@@ -18,7 +18,7 @@ import type {
   IdDEntiteDeScene, IdDuClic, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDActionDEntite, IdDeServiceDuLieu, IdDeRoute,
+  IdDeCompetenceOuDeTalent, IdDActionDEntite, IdDEchoppeDuLieu, IdDHebergementDuLieu, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
@@ -215,10 +215,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   designerLeCreneau: (heroId: IdDeHeros, slotKey: IdDeCreneau, option: RefDesignee<IdDeCompetenceOuDeTalent>) => void;
   /** Apprentissage/mémorisation d'un sort (LDB 46/10) — coût PX via engine/grimoire. */
   acheterLeSort: (heroId: IdDeHeros, spellId: IdDeSort) => void;
-  /** Achète un composant d'incantation pour un Sort d'Arcane/Domaine connu (LDB 46 l.113 — NI pistoles). */
+  /** Achète un composant d'incantation lié à un Sort d'Arcane/Domaine connu. LDB 46 l.113 */
   acheterLaComposante: (heroId: IdDeHeros, spellId: IdDeSort) => void;
-  /** Retire un composant d'incantation possédé pour un Sort (sans remboursement). */
-  retirerLaComposante: (heroId: IdDeHeros, spellId: IdDeSort) => void;
+  /** Lie un composant d'incantation à lier à un Sort d'Arcane/Domaine connu. LDB 46 l.113 */
+  designerLeComposant: (uid: IdDObjet, spellId: IdDeSort) => void;
   /** Édite la bio mutable d'un héros hors combat (Motivation + Ambitions court/long, LDB 05) — persisté en save + roster. */
   ecrireLHistorique: (heroId: IdDeHeros, patch: { motivation?: TexteLibre; ambitionShort?: TexteLibre; ambitionLong?: TexteLibre }) => void;
   /** Ouvre la fin de séance depuis le menu de jeu : refusée et dite hors exploration et chez l'invité (`refusDeFinDeSeance`). */
@@ -264,9 +264,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  coûte la maison `fouille-piece-minutes` une fois par geste (LDB 12 l.200). Refus DIT hors exploration,
    *  en dialogue, sans meneur debout, hors de toute pièce. */
   fouillerLaPiece: () => void;
-  /** Marchand de LIEU (#369) — l'échoppe du service `serviceId` du lieu où se tient le groupe (forgeron du hub de
+  /** Marchand de LIEU (#369) — l'échoppe `echoppeId` du lieu où se tient le groupe (forgeron du hub de
    *  ville…) : même système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
-  ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
+  ouvrirLaBoutique: (echoppeId: IdDEchoppeDuLieu) => void;
   /** Jeux de taverne (option `jeux-de-taverne`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
   ouvrirLesJeux: (entityId?: IdDEntiteDeScene) => void;
@@ -283,8 +283,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLeMedecin: (patientId?: IdDeHeros) => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('repos', …)`,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé ; le lieu de la nuit est celui où
-   *  se tient le groupe (`reposDuLieu`). */
-  ouvrirLeRepos: () => void;
+   *  se tient le groupe (`reposDuLieu`) : à un lieu de la carte, son établissement d'hébergement `hebergementId`. */
+  ouvrirLeRepos: (hebergementId?: IdDHebergementDuLieu) => void;
   /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
   effacerLApercu: () => void;
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
@@ -352,8 +352,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   evaluerLeVin: (cargoId: IdDOffreDeCargaison) => void;
   /** Ouvre le Test de Ragot de l'auberge du hub de ville (#352, Activité `recueillir-informations`
    *  étendue au contexte `auberge`) : succès → rumeur commerciale (`generateTradeRumour`), échec →
-   *  Exténué (EDOC 8 l.133). Avance l'horloge (`auberge-recueillir-informations-minutes`) quelle que soit l'issue. */
-  recueillirLesRumeurs: () => void;
+   *  Exténué (EDOC 8 l.133). Avance l'horloge (`auberge-recueillir-informations-minutes`) quelle que soit l'issue. À un
+   *  lieu de la carte, à son établissement d'hébergement `hebergementId`. */
+  recueillirLesRumeurs: (hebergementId?: IdDHebergementDuLieu) => void;
 }
 
 /** Un geste écrit en verbe du noyau et ses arguments, tel qu'un hôte le joue. */

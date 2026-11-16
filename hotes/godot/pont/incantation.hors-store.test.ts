@@ -33,19 +33,26 @@ describe('l’incantation par le pont', () => {
 
     const offres = suite.vue.zones['combat.offres'];
     const sorts = offres.find((c): c is Choix => c.id === 'offre/incantation')!;
-    expect(sorts, 'les sorts de l’actif sont un choix à eux').toMatchObject({ type: 'liste', libelle: 'Lancer ce sort' });
+    expect(sorts, 'les sorts de l’actif sont un choix à eux, aucun armé').toMatchObject({ type: 'liste', libelle: 'Sort', ton: 'neutre' });
+    expect(offres.filter((c) => c.id.startsWith('economie/')).map((c) => [c.id, c.icone]), 'chaque part montrée en pastille porte le dessin de sa part').toEqual([
+      ['economie/action', undefined], ['economie/mouvement', 'ressource/mouvement'], ['economie/gratuit', 'action/ramasser'], ['economie/aucun', undefined],
+    ]);
     expect(offres.find((c) => c.id === 'economie/action')!.valeurs.map((b) => b.id), 'l’offre par candidat quitte la rangée de sa part').not.toContain('incantation');
     const flechette = sorts.valeurs.find((b) => b.libelle === 'Fléchette')!;
     expect(flechette.jeu, 'chaque sort joue le verbe de son offre, l’actif pour lanceur').toEqual({ type: 'incanterLeSort', args: [suite.vue.projection.combat!.actif!.id, 'flechette'] });
     const focaliser = offres.find((c): c is Choix => c.id === 'offre/focalisation')!;
-    expect(focaliser.valeurs.find((b) => b.libelle === 'Fléchette')?.refus, 'un sort qui ne se focalise pas est refusé avec sa raison').toBe('ce Sort ne se focalise pas');
+    expect(focaliser.valeurs.map((b) => b.libelle), 'la liste de Focaliser montre les sorts qui se focalisent').toContain('Arme aethyrique');
+    expect(focaliser.valeurs.map((b) => b.libelle), 'un sort qui ne se focalise pas quitte la liste').not.toContain('Fléchette');
+    expect(focaliser.valeurs.filter((b) => b.refus !== null), 'aucune valeur refusée dans une liste ouverte').toEqual([]);
 
     suite = jouer(appel('jouer', flechette.jeu));
     const armes = suite.vue.zones['combat.offres'].find((c) => c.id === 'offre/incantation')!.valeurs.filter((b) => b.presse).map((b) => b.libelle);
     expect(armes, 'le sort choisi est pressé, seul').toEqual(['Fléchette']);
+    expect(suite.vue.zones['combat.offres'].find((c) => c.id === 'offre/incantation')!.ton, 'la pastille dont un candidat est armé le dit par son ton').toBe('alerte');
     const [cible] = suite.vue.projection.combat!.cibles.liste;
     suite = jouer(appel('jouer', clicDuCombattant(suite.vue, cible)!));
     expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte), 'la fenêtre d’incantation s’ouvre').toEqual(['Incantation']);
+    expect(suite.vue.zones['combat.actif'], 'la fenêtre de jet prend la place du meuble de l’actif, qui n’est plus servi').toEqual([]);
     const corps = () => Object.fromEntries(suite.vue.zones['fenetre.corps'].map((e) => [e.id, e]));
     expect(corps().sort, 'le sort et sa cible').toMatchObject({ texte: 'Fléchette sur Loup' });
     expect(corps().jet, 'la ligne du lanceur, son NI au libellé, à jeter').toMatchObject({ qui: 'Aelindra, Haute Sorcière', libelle: 'Incantation / NI 0', resultat: null });

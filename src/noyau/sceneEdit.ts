@@ -18,6 +18,7 @@ import {
   type SceneStationAnchor,
   type Dialogue,
   type DialogueChoice,
+  type DialogueNode,
   type Trigger,
   type EncounterDef,
   CellSide,
@@ -51,7 +52,8 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
-import type { MapPlace, MapRoute, PlacePoi, WorldMap } from './worldMap';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
+import { type MapPlace, type MapRoute, type PlacePoi, type WorldMap } from './worldMap';
 import {
   ajouterLieu,
   ajouterPoi,
@@ -60,12 +62,14 @@ import {
   majCarte,
   majLieu,
   majRoute,
+  etablissementRetire,
+  refusDeRetirerLEtablissement,
   supprimerLieu,
   supprimerRoute,
   type PatchDeCarte,
   type PatchDeRoute,
 } from './worldMapEdit';
-import { t as tr } from '../i18n';
+import { t as tr, type MsgKey } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
 import { creatures, findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
@@ -94,19 +98,15 @@ import {
   PENTE_TOIT_DEG,
 } from '../data/schemas/defs-scenes/scene';
 import {
-  champsDeclares,
-  choixDuNoeud,
-  cleOfferte,
-  elementDuNoeud,
-  formeAuPoint,
-  recordDuNoeud,
-  unionDuNoeud,
-  varianteCourante,
-  videDuNoeud,
-  type ChoixDuContexte,
-  type ContexteDuChamp,
-} from './codex/editFields';
-import { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
+  champ,
+  ecritureAuFormulaire,
+  rescellementAuFormulaire,
+  retraitAuFormulaire,
+  type ChoixDuFormulaire,
+  type EcritureDeValeur,
+  type Segment,
+  fauteNeuve,
+} from './edition/formulaire';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { buildingRoofMaterial } from './monde/buildings';
 import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
@@ -123,12 +123,10 @@ import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { SOUS_ENTREES, ajouteEntree, etatCouvert, indiceCouple, type CorpsNeuf, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import { refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
+import { refusDId, refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
 import {
-  cheminOffert,
   choixDuChamp,
   DOCUMENTS,
-  ecritureOfferte,
   noeudNeuf,
   formeDuPorteur,
   projetAvecLePorteur,
@@ -150,8 +148,6 @@ import {
   selRect,
   accesDe,
 } from './sceneEditLecture';
-import { estObjet } from '../lib/objet.mjs';
-import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive } from './edition/adresseDeProse';
 import { tableTotale } from '../lib/tableTotale';
 
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -1104,18 +1100,21 @@ export function addRestZone(scene: Scene, rect: Rect, z = 0): { scene: Scene; id
 
 /** Patche la zone de repos d'indice `idx`. */
 export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNullable<Scene['restZones']>[number]>): Scene {
-  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? { ...z, ...patch } : z)) };
+  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? (patch.quality ? champ({ ...z, ...patch }, 'quality', qualiteEcrite(patch.quality)) : { ...z, ...patch }) : z)) };
 }
 
+/** `q` telle que le document l'écrit : « normale » est l'absence du champ. */
+const qualiteEcrite = (q: QualiteDeRepos): QualiteDeRepos | undefined => (q === 'normale' ? undefined : q);
+
 /** Ce que l'inspecteur écrit sur la zone sélectionnée (`patchZone`) : sa couche ; d'un déclencheur, s'il ne joue
- *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité piètre ; d'une zone d'effet, son nom, sa nature (`null` :
+ *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité ; d'une zone d'effet, son nom, sa nature (`null` :
  *  non déclarée), sa forme, son emprise rendue pleine (`clearEffectZoneCarve`), si elle masque la ligne de vue et si
  *  elle barre le passage ; d'un déclencheur ou d'une zone d'effet, les entrées de fiche qu'il couvre (`null` : aucune). */
 export interface PatchDeZone {
   z?: number;
   once?: boolean;
   lieux?: NonNullable<Scene['restZones']>[number]['places'];
-  pietre?: boolean;
+  qualite?: QualiteDeRepos;
   nom?: string;
   presentation?: 'interior' | 'exterior' | null;
   forme?: ZoneArea['kind'];
@@ -1125,241 +1124,31 @@ export interface PatchDeZone {
   couvre?: string[] | null;
 }
 
-/** LA règle d'absence des écrivains de l'éditeur : `o` où le champ `k` vaut `v`, ou s'en retire quand `v` est
- *  `undefined`. */
-function champ<T extends object, K extends keyof T>(o: T, k: K, v: T[K] | undefined): T {
-  const out = { ...o };
-  if (v === undefined) delete out[k];
-  else out[k] = v;
-  return out;
-}
-
 /** `o` où chaque champ de `patch` est posé par `champ` : une clé portée à `undefined` RETIRE le champ. */
 function champs<T extends object>(o: T, patch: Partial<NoInfer<T>>): T {
   const poses: Partial<T> = patch;
   return (Object.keys(poses) as (keyof T)[]).reduce((out, k) => champ<T, keyof T>(out, k, poses[k]), o);
 }
 
-/** Un pas du chemin d'un champ dans sa donnée : une clé d'objet, ou un rang de liste. */
-export type Segment = string | number;
-
-type Objet = Record<string, unknown>;
-
-/** Le nœud admet-il que son champ soit retiré ? */
-const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
-
-/** La valeur `valeur` est-elle de la sorte du nœud `noeud`, où la valeur `actuelle` est écrite ? `undefined` : s'il
- *  admet le retrait ; d'un champ à choix, l'une de ses valeurs (`choixDuNoeud`) ; d'un objet, sa valeur neuve
- *  (`valeurNeuveDe`) ; d'une union, l'une de ses variantes à choisir (`variantesAChoisir`), ou de l'union ou de la liste
- *  qu'est sa variante courante ; d'une liste, l'actuelle après l'un de ses gestes (`gestesDeLaListe`) ; sinon, et pour une union
- *  ou une liste saisie entière, une valeur que le nœud parse. */
-function admise(noeud: unknown, actuelle: unknown, valeur: unknown): boolean {
-  if (valeur === undefined) return retirable(noeud);
-  const choix = choixDuNoeud(noeud);
-  if (choix) return choix.some((o) => o.valeur === valeur);
-  if (champsDeclares(noeud)) return jsonCanonique(valeur) === jsonCanonique(valeurNeuveDe(noeud));
-  const parse = () => (noeud as { safeParse: (v: unknown) => { success: boolean } }).safeParse(valeur).success;
-  const jouee = jsonCanonique(valeur);
-  const union = unionDuNoeud(noeud);
-  if (union) {
-    const courante = varianteCourante(union, actuelle)?.noeud;
-    return variantesAChoisir(noeud, actuelle)!.some((v) => jsonCanonique(v.valeur) === jouee)
-      || ((unionDuNoeud(courante) !== undefined || elementDuNoeud(courante) !== undefined) && admise(courante, actuelle, valeur)) || parse();
-  }
-  const element = elementDuNoeud(noeud);
-  if (element !== undefined) {
-    const gestes = gestesDeLaListe(Array.isArray(actuelle) ? actuelle : [], valeurNeuveDe(element));
-    return [gestes.ajouter, ...gestes.elements.flatMap((e) => [e.retirer, e.monter])].some((l) => l && jsonCanonique(l) === jouee) || parse();
-  }
-  return parse();
-}
-
-/** Le conteneur `o` où le champ au chemin `[cle, ...reste]` vaut `valeur`, posé par `champ` (un élément de liste se
- *  remplace à son rang, s'ajoute en fin au rang qui suit le dernier) ; un objet que ce retrait vide, au rang `rang` du
- *  chemin, en part aussi quand `vidable(rang)`. */
-function ecrit(o: unknown, [cle, ...reste]: readonly Segment[], valeur: unknown, vidable: (rang: number) => boolean, rang = 0): unknown {
-  const sous = (o as Record<Segment, unknown>)[cle];
-  const suite = reste.length ? ecrit(sous, reste, valeur, vidable, rang + 1) : valeur;
-  if (Array.isArray(o)) return cle === o.length ? (suite === undefined ? o : [...o, suite]) : o.map((e, i) => (i === cle ? suite : e));
-  const vide = valeur === undefined && reste.length > 0 && Object.keys(sous as object).length > 0 && !Object.keys(suite as object).length;
-  return champ(o as Objet, cle as string, vide && vidable(rang) ? undefined : suite);
-}
-
-/** Le nœud du pas `pas` depuis le point de nœud `noeud` et de valeur `point`, où le contexte pose les choix `poses` : le
- *  rang d'un élément d'une liste présente (`elementDuNoeud`), la variante courante d'une union comprise (`formeAuPoint`),
- *  ou celui qui suit son dernier, où l'élément s'ajoute ; une clé du record présent (`recordDuNoeud`) qu'il porte, ou
- *  qu'il offre (`champsDuRecord`) : l'un des choix admis que le contexte y pose, sinon une clé qu'admet son nœud ; une clé
- *  déclarée de l'objet présent (`champsDeclares`), à travers ses unions (`formeAuPoint`), ni discriminant que tient le
- *  choix d'une variante, ni identité (`cleOfferte`) ; `undefined` si le formulaire ne l'offre pas. */
-function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => readonly ChoixDuContexte[] | undefined): unknown {
-  if (typeof pas === 'number') {
-    const element = elementDuNoeud(formeAuPoint(noeud, point)?.noeud ?? noeud);
-    return element !== undefined && Array.isArray(point) && Number.isInteger(pas) && pas >= 0 && pas <= point.length ? element : undefined;
-  }
-  if (!estObjet(point)) return undefined;
-  const record = recordDuNoeud(noeud);
-  if (record) {
-    const cles = poses();
-    const offerte = cles ? cles.some((c) => c.refus === null && c.valeur === pas) : (record.cle as { safeParse: (v: unknown) => { success: boolean } }).safeParse(pas).success;
-    return offerte || Object.keys(point).includes(pas) ? record.valeur : undefined;
-  }
-  const forme = formeAuPoint(noeud, point);
-  const n = forme && champsDeclares(forme.noeud)?.find(([cle]) => cle === pas)?.[1];
-  return n !== undefined && !forme!.tenus.includes(pas) && cleOfferte(pas, n) ? n : undefined;
-}
-
-/** Les nœuds de chaque pas du chemin `chemin` (`noeudDuPas`) depuis la donnée `donnee` de l'objet de schéma `objet`, aux
- *  choix `choix` que pose le contexte de son porteur, et la valeur au bout ; `undefined` si le formulaire n'offre pas
- *  l'un de ses pas, ou s'il est vide. */
-function noeudsDuChemin(objet: unknown, donnee: Objet, chemin: readonly Segment[], choix: ContexteDuChamp['choix']): { noeuds: unknown[]; point: unknown } | undefined {
-  const noeuds: unknown[] = [];
-  let point: unknown = donnee;
-  for (const [rang, pas] of chemin.entries()) {
-    const noeud = noeudDuPas(noeuds.length ? noeuds[noeuds.length - 1] : objet, point, pas, () => choix(chemin.slice(0, rang)));
-    if (noeud === undefined) return undefined;
-    noeuds.push(noeud);
-    point = (point as Record<Segment, unknown>)[pas];
-  }
-  return noeuds.length ? { noeuds, point } : undefined;
-}
-
-/** L'objet `point`, de nœud `noeud`, porte-t-il une donnée exigée présente hors de sa clé `cle` : un champ déclaré de
- *  sa forme (`formeAuPoint`) présent, dont l'absence n'est pas admise (`retirable`), ni `cle` ni un discriminant que
- *  tient le choix d'une variante ? */
-function porteUneAutreExigee(noeud: unknown, point: unknown, cle: Segment): boolean {
-  const forme = formeAuPoint(noeud, point);
-  return (champsDeclares(forme?.noeud) ?? []).some(([k, n]) => k !== cle && !forme!.tenus.includes(k) && !retirable(n) && (point as Objet)[k] !== undefined);
-}
-
-/** Le chemin où s'écrit le retrait du champ au chemin `chemin` de la donnée `donnee` de l'objet de schéma `objet`, aux
- *  choix `choix` : le sien si son absence est admise (son nœud l'admet, ou il est l'entrée d'un record) ; sinon, de
- *  proche en proche à travers les clés des objets qui le portent, tant que chacun ne porte aucune autre donnée exigée
- *  présente (`porteUneAutreExigee`), celui du plus proche dont l'absence est admise, qui se retire entier, ses champs
- *  facultatifs avec lui ; ou son refus : un chemin que le formulaire n'offre pas (`nonOffert`), un champ que son objet
- *  exige (`requis`). */
-function cheminDuRetrait(objet: unknown, donnee: Objet, chemin: readonly Segment[], choix: ContexteDuChamp['choix']): readonly Segment[] | 'nonOffert' | 'requis' {
-  const noeuds = noeudsDuChemin(objet, donnee, chemin, choix)?.noeuds;
-  if (!noeuds) return 'nonOffert';
-  const absenceAdmise = (rang: number) => retirable(noeuds[rang]) || recordDuNoeud(rang ? noeuds[rang - 1] : objet) !== undefined;
-  if (absenceAdmise(noeuds.length - 1)) return chemin;
-  const points = chemin.reduce<unknown[]>((pts, pas) => [...pts, (pts[pts.length - 1] as Record<Segment, unknown>)[pas]], [donnee]);
-  for (let rang = noeuds.length - 2; rang >= 0 && typeof chemin[rang + 1] === 'string'; rang--) {
-    if (porteUneAutreExigee(noeuds[rang], points[rang + 1], chemin[rang + 1])) return 'requis';
-    if (absenceAdmise(rang)) return chemin.slice(0, rang + 1);
-  }
-  return 'requis';
-}
-
-/** Pourquoi une valeur ne s'écrit pas : le formulaire n'offre pas son chemin, elle n'est pas de la sorte du champ, elle
- *  est arrivée `null` (un JSON illisible) là où le champ ne l'admet pas, elle est absente d'un champ que son objet exige
- *  (`cheminDuRetrait`), ou son porteur écrit enfreint une règle, dite. */
-export type RefusDeValeur = 'nonOffert' | 'horsSorte' | 'illisible' | 'requis' | { regle: string };
-
-/** Ce qu'écrit une valeur : la donnée écrite, ou son refus. */
-export type EcritureDeValeur<T> = { ok: true; valeur: T } | { ok: false; refus: RefusDeValeur };
-
-/** Les fautes du parse de l'objet de schéma `objet` sur `donnee`, chacune par son message et son chemin, ses rangs
- *  effacés : un retrait décale les rangs des éléments qui le suivent. */
-const fautesDuParse = (objet: unknown, donnee: unknown): { cle: string; message: string }[] =>
-  ((objet as { safeParse: (v: unknown) => { error?: { issues: { path: PropertyKey[]; message: string }[] } } }).safeParse(donnee).error?.issues ?? [])
-    .map((i) => ({ cle: jsonCanonique([i.path.map((p) => (typeof p === 'number' ? '#' : String(p))), i.message]), message: i.message }));
-
-/** Le message de la première faute du parse de `objet` sur `apres` qui n'était pas déjà sur `avant`, compte tenu des
- *  fautes égales (`fautesDuParse`) ; `undefined` sans faute neuve. */
-function fauteNeuve(objet: unknown, avant: unknown, apres: unknown): string | undefined {
-  const deja = new Map<string, number>();
-  for (const { cle } of fautesDuParse(objet, avant)) deja.set(cle, (deja.get(cle) ?? 0) + 1);
-  for (const { cle, message } of fautesDuParse(objet, apres)) {
-    const reste = deja.get(cle) ?? 0;
-    if (!reste) return message;
-    deja.set(cle, reste - 1);
-  }
-  return undefined;
-}
-
-/** La donnée `donnee` de l'objet de schéma `objet` où `valeur` s'écrit au chemin `chemin` (`ecrit`), le champ retiré si
- *  elle vaut `undefined` (l'entrée d'un record partiel ou à clé ouverte, `recordDuNoeud`, se retire toujours), une liste
- *  vidée retirée si son nœud admet l'absence ; ou son refus : un pas que le formulaire n'offre pas (`noeudDuPas`), une
- *  valeur qui n'est pas l'un des choix admis que le contexte de son porteur y pose (`choix`, qui, d'un record, pose ses
- *  clés), ou, sans eux, pas de la sorte du champ (`admise`) ni, d'une liste, elle où s'ajoute en fin l'un des choix
- *  admis que ce contexte pose au rang qui suit son dernier élément ; un retrait (le champ retiré, la liste raccourcie) dont
- *  l'objet écrit porte une faute de son parse que la donnée ne portait pas (`fauteNeuve`), dite. Hors retrait, le schéma
- *  entier ne se vérifie qu'à l'enregistrement et à l'essai (#3606, décision 3). */
-export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown, choix: ContexteDuChamp['choix'] = () => undefined): EcritureDeValeur<Objet> {
-  const pas = noeudsDuChemin(objet, donnee, chemin, choix);
-  if (!pas) return { ok: false, refus: 'nonOffert' };
-  const { noeuds, point } = pas;
-  const dernier = noeuds[noeuds.length - 1];
-  const ecrite = Array.isArray(valeur) && !valeur.length && elementDuNoeud(dernier) !== undefined && retirable(dernier) ? undefined : valeur;
-  const poses = ecrite === undefined || recordDuNoeud(dernier) ? undefined : choix(chemin);
-  const entreeRetiree = ecrite === undefined && recordDuNoeud(noeuds.length > 1 ? noeuds[noeuds.length - 2] : objet) !== undefined;
-  const liste = Array.isArray(point) ? point : [];
-  const ajoutee = () => elementDuNoeud(dernier) !== undefined && !!choix([...chemin, liste.length])?.some((c) => c.refus === null && jsonCanonique([...liste, c.valeur]) === jsonCanonique(ecrite));
-  const ecrivable = poses ? poses.some((c) => c.refus === null && jsonCanonique(c.valeur) === jsonCanonique(ecrite)) : entreeRetiree || admise(dernier, point, ecrite) || ajoutee();
-  if (!ecrivable) return { ok: false, refus: valeur === null ? 'illisible' : 'horsSorte' };
-  const apres = ecrit(donnee, chemin, ecrite, (rang) => retirable(noeuds[rang])) as Objet;
-  const retrait = ecrite === undefined || (Array.isArray(point) && Array.isArray(ecrite) && ecrite.length < point.length);
-  const faute = retrait ? fauteNeuve(objet, donnee, apres) : undefined;
-  return faute === undefined ? { ok: true, valeur: apres } : { ok: false, refus: { regle: faute } };
-}
-
-/** Le retrait déclaré au chemin `chemin` des retraits `retraits` du formulaire (`formeDuPorteur`), de la donnée `donnee` :
- *  d'un rang, la liste qui le porte, sans l'élément ; d'une clé, l'objet qu'elle porte, par le chemin de son retrait
- *  `ecrit` (`cheminDuRetrait`), s'il ne remonte pas au-delà ; `undefined` hors d'eux. */
-function retraitDeclare(retraits: readonly (readonly Segment[])[], donnee: unknown, chemin: readonly Segment[], ecrit: readonly Segment[] | 'nonOffert' | 'requis'): { ecrit: readonly Segment[]; valeur: unknown } | undefined {
-  if (!retraits.some((r) => jsonCanonique(r) === jsonCanonique(chemin))) return undefined;
-  const rang = chemin[chemin.length - 1];
-  if (typeof rang === 'string') return typeof ecrit !== 'string' && jsonCanonique(ecrit) === jsonCanonique(chemin) ? { ecrit, valeur: undefined } : undefined;
-  const parent = chemin.slice(0, -1);
-  const liste = parent.reduce<unknown>((o, pas) => (o as Record<Segment, unknown>)[pas], donnee) as readonly unknown[];
-  return { ecrit: parent, valeur: liste.filter((_, i) => i !== rang) };
-}
-
-/** Où s'écrit `valeur` au chemin `chemin` du formulaire `forme` (`formeDuPorteur`) du porteur de sorte `sorte`, de
- *  donnée `donnee`, dans le cadre `cadre`, et ce qui s'y écrit : `valeur` au chemin, ou, `valeur` absente, le retrait
- *  déclaré qu'est ce chemin (`retraitDeclare`), sinon le retrait au chemin du sien (`cheminDuRetrait`) ; ou son refus :
- *  celui du retrait, une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas (`ecritureOfferte`),
- *  hors d'un retrait déclaré, à ce qu'une adresse de prose dérive (`estCheminDerive`), n'est pas offerte. */
-function ouSEcrit<S extends SorteDePorteur>({ noeud, champs: offerts, retraits }: ReturnType<typeof formeDuPorteur>, sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): { ok: true; noeud: unknown; ecrit: readonly Segment[]; valeur: unknown } | { ok: false; refus: RefusDeValeur } {
-  const retrait = valeur === undefined ? cheminDuRetrait(noeud, donnee as unknown as Objet, chemin, (ici) => choixDuChamp(sorte, donnee, ici, cadre)) : chemin;
-  const declare = valeur === undefined ? retraitDeclare(retraits, donnee, chemin, retrait) : undefined;
-  if (!declare && typeof retrait === 'string') return { ok: false, refus: retrait };
-  const ecrit = declare?.ecrit ?? (retrait as readonly Segment[]);
-  const actuelle = ecrit.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
-  const offerte = declare !== undefined || ecritureOfferte(offerts, ecrit, actuelle);
-  return offerte && !estCheminDerive(noeud, donnee, ecrit) ? { ok: true, noeud, ecrit, valeur: declare ? declare.valeur : valeur } : { ok: false, refus: 'nonOffert' };
-}
+/** Les choix du contexte du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` (`choixDuChamp`). */
+const choixDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): ChoixDuFormulaire =>
+  (ici) => choixDuChamp(sorte, donnee, ici, cadre);
 
 /** Le retrait de chaque champ, à son chemin, du formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le
- *  cadre `cadre`, s'écrit-il (`ouSEcrit`), sans compter les fautes du parse qu'il porterait (`fauteNeuve`) ? */
-export function retraitOffert<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): (chemin: readonly Segment[]) => boolean {
-  const forme = formeDuPorteur(sorte, donnee, cadre);
-  return (chemin) => ouSEcrit(forme, sorte, donnee, chemin, undefined, cadre).ok;
-}
+ *  cadre `cadre`, s'écrit-il (`retraitAuFormulaire`, sur sa forme `formeDuPorteur`) ? */
+export const retraitOffert = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): ((chemin: readonly Segment[]) => boolean) =>
+  retraitAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, choixDuPorteur(sorte, donnee, cadre));
 
-/** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire, là où elle
- *  s'écrit (`ouSEcrit`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`), son
- *  adresse de prose recalée (`adresseRecalee`) et chaque fragment d'adresse scellé sur le `Source/` du cadre
- *  (`adressesScellees`) ; ou son refus : celui de `ouSEcrit`, ou une écriture qui apporte un fragment que seul un
- *  chapitre non chargé scellerait, n'est pas offerte. */
-export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
-  const ou = ouSEcrit(formeDuPorteur(sorte, donnee, cadre), sorte, donnee, chemin, valeur, cadre);
-  if (!ou.ok) return ou;
-  const { noeud, ecrit } = ou;
-  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, ecrit, ou.valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre));
-  if (!ecrite.ok) return ecrite;
-  const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, ecrit), cadre.source);
-  return scellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: scellee as DonneeDuPorteur[S] };
-}
+/** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
+ *  (`ecritureAuFormulaire`, sur sa forme `formeDuPorteur`, aux choix de son contexte et sur le `Source/` du cadre
+ *  `cadre`) ; ou son refus. */
+export const avecLaValeurDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
+  ecritureAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, valeur, choixDuPorteur(sorte, donnee, cadre), cadre.source);
 
 /** La donnée `donnee` du porteur de sorte `sorte` où l'adresse de prose au chemin `chemin` de son formulaire est
- *  rescellée après relecture (`adresseRescellee`), sur le `Source/` du cadre `cadre` ; ou son refus : un chemin que son
- *  formulaire n'offre pas, qui ne désigne pas une adresse, ou dont le chapitre n'est pas chargé. */
-export function avecLAdresseRescellee<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
-  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
-  const rescellee = cheminOffert(offerts, chemin) ? adresseRescellee(noeud, donnee, chemin, cadre.source) : undefined;
-  return rescellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: rescellee as DonneeDuPorteur[S] };
-}
+ *  rescellée après relecture (`rescellementAuFormulaire`, sur le `Source/` du cadre `cadre`) ; ou son refus. */
+export const avecLAdresseRescellee = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
+  rescellementAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, cadre.source);
 
 /** Le patch qui fait de `avant` l'objet `apres` : chaque champ de premier niveau qui change, posé à sa valeur
  *  d'`apres`, `undefined` s'il en est absent. */
@@ -1391,14 +1180,16 @@ function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity):
 /** Ce qu'une table d'écriture déclare d'un porteur de la scène : la scène où sa donnée `avant` devient `apres`, ou son
  *  refus ; et, pour la sorte qui les a, la scène où un porteur neuf est créé, sous son identifiant ; celle où le porteur
  *  `de` prend l'identifiant `vers`, propagé à ce qui le désigne dans la scène ; celle où le porteur `id` est retiré ;
- *  celle où l'élément `de` de la sous-collection à clé du porteur `id` prend l'identifiant `vers`. Un renommage sous un
- *  identifiant vide ou déjà pris rend la scène telle quelle. */
+ *  celle où l'élément `de` de la sous-collection à clé du porteur `id`, adressé par son parent `parent` quand sa clé n'est
+ *  unique que dans lui, prend l'identifiant `vers`, et ce qui refuse de donner l'identifiant `vers` à cet élément, dit
+ *  (`null` : retenu). Un renommage sous un identifiant vide ou déjà pris rend la scène telle quelle. */
 interface EcritureDeScene<D> {
   ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
   creer?: (scene: Scene) => { scene: Scene; id: string };
   renommer?: (scene: Scene, de: string, vers: string) => Scene;
   retirer?: (scene: Scene, id: string) => Scene;
-  renommerElement?: (scene: Scene, id: string, de: string, vers: string) => Scene;
+  renommerElement?: (scene: Scene, id: string, de: string, vers: string, parent?: string) => Scene;
+  refusDeRenommer?: (scene: Scene, id: string, vers: string, element: string | undefined, parent?: string) => string | null;
 }
 
 /** Ce que la table d'écriture d'une sorte de porteur déclare, sur le projet `projet` où la scène `sceneId` est
@@ -1406,8 +1197,9 @@ interface EcritureDeScene<D> {
  *  porteur neuf est créé depuis la sélection `depuis`, avec l'identifiant `avec` qu'elle offre (`avecs`), sous son
  *  identifiant (`undefined` : refusé), et ce qui refuse cette création, dit ; celui où le porteur `de` prend
  *  l'identifiant `vers`, propagé à ce qui le désigne, et ce qui refuse de donner l'identifiant `vers` au porteur `id`, ou
- *  à son élément `element`, dit (`null` : retenu) ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la
- *  sous-collection à clé du porteur `id` prend l'identifiant `vers` ; celui où son élément `element` est retiré ; et ce
+ *  à son élément `element`, adressé par son parent `parent` quand sa clé n'est unique que dans lui, dit (`null` :
+ *  retenu) ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la sous-collection à clé du porteur `id`,
+ *  adressé de même, prend l'identifiant `vers` ; celui où son élément `element` est retiré ; et ce
  *  qui refuse le retrait du porteur `id`, ou de son élément `element`, dit. Un renommage sous un identifiant vide ou déjà
  *  pris rend le projet tel quel. `entrees` : les identifiants des entrées des fiches de dossier que l'hôte sert à la
  *  session (`SessionDEdition`, `entreesDeFiche`). #3606 */
@@ -1417,9 +1209,9 @@ interface EcritureDuPorteur<D> {
   refusDeCreer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => string | undefined;
   avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, entrees: readonly string[]) => readonly string[];
   renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string, entrees: readonly string[]) => ProjetDEdition;
-  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, entrees: readonly string[]) => string | null;
+  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, entrees: readonly string[], parent?: string) => string | null;
   retirer?: (projet: ProjetDEdition, sceneId: string, id: string) => ProjetDEdition;
-  renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string) => ProjetDEdition;
+  renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string, parent?: string) => ProjetDEdition;
   retirerElement?: (projet: ProjetDEdition, sceneId: string, id: string, element: string) => ProjetDEdition;
   refusDeRetirer?: (projet: ProjetDEdition, sceneId: string, id: string, element?: string) => string | undefined;
 }
@@ -1435,7 +1227,7 @@ function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur
     const ecrite = f(scene);
     return ecrite === scene ? projet : ecrire(projet, sceneId, ecrite);
   };
-  const { ecrire: ecrireLaScene, creer, renommer, retirer, renommerElement } = e;
+  const { ecrire: ecrireLaScene, creer, renommer, retirer, renommerElement, refusDeRenommer } = e;
   return {
     ...(ecrireLaScene && { ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D): EcritureDeValeur<ProjetDEdition> => {
       const { lire, ecrire } = DOCUMENTS.scene;
@@ -1449,7 +1241,8 @@ function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur
     } }),
     ...(renommer && { renommer: (projet: ProjetDEdition, sceneId: string, de: string, vers: string) => releve(projet, sceneId, (sc) => renommer(sc, de, vers)) }),
     ...(retirer && { retirer: (projet: ProjetDEdition, sceneId: string, id: string) => releve(projet, sceneId, (sc) => retirer(sc, id)) }),
-    ...(renommerElement && { renommerElement: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string) => releve(projet, sceneId, (sc) => renommerElement(sc, id, de, vers)) }),
+    ...(renommerElement && { renommerElement: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string, parent?: string) => releve(projet, sceneId, (sc) => renommerElement(sc, id, de, vers, parent)) }),
+    ...(refusDeRenommer && { refusDeRenommer: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, _entrees: readonly string[], parent?: string) => refusDeRenommer(DOCUMENTS.scene.lire(projet, sceneId)!, id, vers, element, parent) }),
   };
 }
 
@@ -1467,6 +1260,13 @@ const routesDeLEmbuscade = (projet: ProjetDEdition, sceneId: string, id: string)
 function embuscadesDeLaRencontre(projet: ProjetDEdition, sceneId: string, id: string): string | undefined {
   const routes = routesDeLEmbuscade(projet, sceneId, id).map((r) => `« ${r.id} »`);
   return routes.length ? tr('ecran.editeur.rencontre.embuscade', { id, routes: routes.join(', ') }) : undefined;
+}
+
+/** Ce qui refuse de retirer l'établissement `element` du lieu `id` de la carte du projet `projet`
+ *  (`refusDeRetirerLEtablissement`) ; `undefined` hors d'un établissement. #4277 */
+function refusDeRetirerLElement(projet: ProjetDEdition, _sceneId: string, id: string, element?: string): string | undefined {
+  const lieu = projet.worldMap?.places.find((p) => p.id === id);
+  return lieu && element !== undefined ? refusDeRetirerLEtablissement(lieu, element) : undefined;
 }
 
 /** Le projet `projet` où la rencontre `de` de la scène `sceneId` prend l'identifiant `vers` (`renameEncounter`), propagé
@@ -1491,11 +1291,37 @@ function actionRenommee(scene: Scene, id: string, de: string, vers: string): Sce
   return ent && renommees !== actions ? editEntity(scene, id, { usable: { ...ent.usable, actions: renommees } }) : scene;
 }
 
-/** La scène `scene` où le nœud `de` du dialogue `id` prend l'identifiant `vers` (`renameDialogueNode`). */
-function noeudRenomme(scene: Scene, id: string, de: string, vers: string): Scene {
+/** Les éléments du dialogue `dialogue` sœurs de celui qu'adresse le parent `parent`, et le texte qui nomme le n-ième :
+ *  ses nœuds sans parent, les réponses du nœud `parent` (`dialogueNodeSchema.choices`, liste-clé du nœud) ; `undefined`
+ *  pour un nœud absent. */
+function soeursDansLeDialogue(dialogue: Dialogue, parent: string | undefined): { elements: readonly { id: string }[]; porteur: MsgKey } | undefined {
+  if (parent === undefined) return { elements: dialogue.nodes, porteur: 'ecran.editeur.noeud.porteur' };
+  const noeud = dialogue.nodes.find((n) => n.id === parent);
+  return noeud && { elements: noeud.choices, porteur: 'ecran.editeur.choix.porteur' };
+}
+
+/** Le refus de donner l'identifiant `vers` à l'élément `element` du dialogue `id` de la scène `scene`, adressé par son
+ *  parent `parent` (`soeursDansLeDialogue`) : vide, ou déjà porté par un de ses sœurs (`refusDId`) ; `null` s'il est
+ *  retenu, inchangé, ou sans élément désigné. */
+function refusDIdentifierDansLeDialogue(scene: Scene, id: string, vers: string, element: string | undefined, parent?: string): string | null {
   const dialogue = scene.dialogues.find((d) => d.id === id);
-  const renomme = dialogue && renameDialogueNode(dialogue, de, vers);
-  return dialogue && renomme !== dialogue ? replaceDialogue(scene, id, renomme!) : scene;
+  const soeurs = dialogue && soeursDansLeDialogue(dialogue, parent);
+  if (element === undefined || !soeurs?.elements.some((e) => e.id === element)) return null;
+  return refusDId(element, vers.trim(), (candidat) => {
+    const j = soeurs.elements.findIndex((e) => e.id === candidat);
+    return j >= 0 ? tr(soeurs.porteur, { n: j + 1 }) : null;
+  });
+}
+
+/** La scène `scene` où l'élément `de` du dialogue `id`, adressé par son parent `parent`, prend l'identifiant `vers`
+ *  (rogné) : le nœud, propagé (`renameDialogueNode`), ou la réponse du nœud `parent` ; telle quelle, l'élément absent,
+ *  l'identifiant inchangé ou refusé (`refusDIdentifierDansLeDialogue`). */
+function elementDuDialogueRenomme(scene: Scene, id: string, de: string, vers: string, parent?: string): Scene {
+  const dialogue = scene.dialogues.find((d) => d.id === id);
+  const next = vers.trim();
+  if (!dialogue || !soeursDansLeDialogue(dialogue, parent)?.elements.some((e) => e.id === de) || next === de || refusDIdentifierDansLeDialogue(scene, id, next, de, parent)) return scene;
+  const reponseRenommee = (n: DialogueNode): DialogueNode => (n.id === parent ? { ...n, choices: n.choices.map((c) => (c.id === de ? { ...c, id: next } : c)) } : n);
+  return replaceDialogue(scene, id, parent === undefined ? renameDialogueNode(dialogue, de, next) : { ...dialogue, nodes: dialogue.nodes.map(reponseRenommee) });
 }
 
 /** Le projet `projet` dont la carte du monde devient celle que `f` écrit ; tel quel sans carte. */
@@ -1670,10 +1496,12 @@ const ecrituresDesRegistres = tableTotale(Object.keys(CORPS_NEUFS) as RegistreCr
  *  d'une rencontre ou de la scène, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
  *  renommage d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son
  *  retrait (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
- *  (`removeDialogue`) et le renommage d'un de ses nœuds (`noeudRenomme`) ; d'une rencontre, sa création
+ *  (`removeDialogue`), le renommage d'un de ses nœuds ou de la réponse d'un nœud (`elementDuDialogueRenomme`) et son refus
+ *  dit (`refusDIdentifierDansLeDialogue`) ; d'une rencontre, sa création
  *  (`addEncounter`), son renommage propagé aux embuscades de route (`rencontreRenommee`), son retrait
  *  (`removeEncounter`), refusé tant qu'une embuscade de route la lance (`embuscadesDeLaRencontre`) ; d'un lieu, son
- *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`) ; d'une route,
+ *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`), et celui d'un de
+ *  ses établissements (`etablissementRetire`), refusé tant qu'un point d'intérêt le vise (`refusDeRetirerLElement`) ; d'une route,
  *  son écriture (`routeEcrite`), sa création depuis le lieu
  *  sélectionné vers l'un de ceux qu'il rejoint (`routeCreee`, `lieuxAJoindre`) et son retrait (`supprimerRoute`) ; de la
  *  carte, son écriture (`majCarte`) et son retrait du projet, qui n'offre plus de voyage ; des réglages du projet et du
@@ -1684,7 +1512,7 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
   zone: { ecrire: remplace('zone') },
   declencheur: { ...deLaScene({ renommer: renameTrigger, retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }) }), ecrire: remplace('declencheur') },
   entite: deLaScene({ ecrire: sceneAvecLEntite, renommerElement: actionRenommee }),
-  dialogue: { ...deLaScene({ creer: addDialogue, renommer: renameDialogue, retirer: removeDialogue, renommerElement: noeudRenomme }), ecrire: remplace('dialogue') },
+  dialogue: { ...deLaScene({ creer: addDialogue, renommer: renameDialogue, retirer: removeDialogue, renommerElement: elementDuDialogueRenomme, refusDeRenommer: refusDIdentifierDansLeDialogue }), ecrire: remplace('dialogue') },
   rencontre: {
     ...deLaScene({ creer: addEncounter, retirer: removeEncounter }),
     ecrire: remplace('rencontre'),
@@ -1696,6 +1524,11 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
     ecrire: (projet, _sceneId, avant, apres) => ({ ok: true, valeur: surLaCarte(projet, (carte) => majLieu(carte, avant.id, patchEntre(avant, apres))) }),
     creer: lieuCree,
     retirer: (projet, _sceneId, id) => surLaCarte(projet, (carte) => supprimerLieu(carte, id)),
+    retirerElement: (projet, _sceneId, id, element) => surLaCarte(projet, (carte) => {
+      const patch = etablissementRetire(carte.places.find((p) => p.id === id)!, element);
+      return patch ? majLieu(carte, id, patch) : carte;
+    }),
+    refusDeRetirer: refusDeRetirerLElement,
   },
   route: {
     ecrire: routeEcrite,
@@ -1783,7 +1616,7 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
       restZones: (scene.restZones ?? []).map((r, i) => {
         if (i !== sel.idx) return r;
         const out = { ...r, rect: patch.z === undefined ? r.rect : rectALaCouche(r.rect, patch.z), places: { ...r.places, ...patch.lieux } };
-        return patch.pietre === undefined ? out : champ(out, 'quality', patch.pietre ? 'pietre' : undefined);
+        return patch.qualite ? champ(out, 'quality', qualiteEcrite(patch.qualite)) : out;
       }),
     };
   }
@@ -1945,12 +1778,13 @@ export function setNorthDeg(scene: Scene, deg: number | undefined): Scene {
   return champ(scene, 'northDeg', deg === undefined || !Number.isFinite(deg) ? undefined : ((deg % 360) + 360) % 360);
 }
 
-/** Renomme la scène éditée. Refusé (scène rendue inchangée) pour un id vide, ou déjà porté par une autre
- *  scène du projet (`autres`) : les transitions et la carte du monde désignent une scène par son id. */
-export function renameScene(scene: Scene, autres: readonly Pick<Scene, 'id'>[], to: string): Scene {
+/** Renomme la racine éditée du projet, une scène ou la carte du monde. Refusé (racine rendue inchangée) pour un id
+ *  vide, ou déjà porté par une autre racine (`autres`) : les transitions et la carte du monde désignent une scène par
+ *  son id, et `validateScene` range les fautes de la carte sous le sien. */
+export function renameScene<R extends Pick<Scene, 'id'>>(racine: R, autres: readonly Pick<Scene, 'id'>[], to: string): R {
   const next = to.trim();
-  if (!next || next === scene.id || autres.some((s) => s.id === next)) return scene;
-  return { ...scene, id: next };
+  if (!next || next === racine.id || autres.some((s) => s.id === next)) return racine;
+  return { ...racine, id: next };
 }
 
 /** Réécrit le point d'entrée `id` : sa case est plafonnée à la carte et ramenée à une case entière
@@ -2013,7 +1847,8 @@ export function patchSceneRoofDefaults(scene: Scene, patch: Partial<SceneRoofDef
 
 /** Patche l'offre de repos de la scène entière, à partir de l'offre effective (`reposDeScene`). */
 export function setSceneRest(scene: Scene, patch: Partial<NonNullable<Scene['rest']>>): Scene {
-  return { ...scene, rest: { ...reposDeScene(scene), ...patch } };
+  const rest = { ...reposDeScene(scene), ...patch };
+  return { ...scene, rest: patch.quality ? champ(rest, 'quality', qualiteEcrite(patch.quality)) : rest };
 }
 
 /** Fusionne des flags initiaux dans `scene.flags` (état de départ : porte ouverte, jalon posé…). */

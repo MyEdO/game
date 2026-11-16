@@ -1,21 +1,35 @@
-[gd_resource type="Theme" load_steps=2 format=3]
+[gd_resource type="Theme" load_steps=5 format=3]
 
-[sub_resource type="StyleBoxFlat" id="Anneau_a_lancer"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.725, 0.671, 0.573, 0.5)
-content_margin_left = 10.0
-content_margin_top = 2.0
-content_margin_right = 10.0
-content_margin_bottom = 2.0
-corner_radius_top_left = 999
-corner_radius_top_right = 999
-corner_radius_bottom_right = 999
-corner_radius_bottom_left = 999
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="1_cadre"]
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Medaillon"]
+script = ExtResource("1_cadre")
+cadre = "medaillon"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Sceau"]
+script = ExtResource("1_cadre")
+cadre = "sceau"
+
+[sub_resource type="StyleBoxFlat" id="Medaillon_eteint"]
+bg_color = Color(0.36, 0.26, 0.1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.14, 0.05, 1)
+corner_radius_top_left = 17
+corner_radius_top_right = 17
+corner_radius_bottom_right = 17
+corner_radius_bottom_left = 17
 
 [resource]
+reussite/colors/font_color = Color(0.133, 0.102, 0.067, 1)
+reussite/font_sizes/font_size = 18
+reussite/styles/panel = SubResource("Medaillon")
+echec/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+echec/font_sizes/font_size = 18
+echec/styles/panel = SubResource("Sceau")
 neutre/base_type = &"PanelContainer"
-neutre/styles/panel = SubResource("Anneau_a_lancer")
+neutre/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+neutre/font_sizes/font_size = 18
+neutre/styles/panel = SubResource("Medaillon_eteint")

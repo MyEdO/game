@@ -1,0 +1,40 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "pourpoint-matelasse"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [
+    "torse",
+    "hanches",
+    "bras_haut_g",
+    "bras_haut_d",
+    "avant_bras_g",
+    "avant_bras_d"
+  ],
+  "chaines": [
+    "jupe"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "robe",
+      "palette": "vet2",
+      "matiere": "prop--drap-terne"
+    }
+  ],
+  "glb": {
+    "sha256": "556e92e0abc53c8a964136d34059111247a8f28806582f201ca62d8a65d1436e",
+    "octets": 756512
+  }
+}

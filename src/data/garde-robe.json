@@ -120,6 +120,12 @@
     "kind": "emplacement"
   },
   {
+    "id": "charge_dos",
+    "type": "garde-robe",
+    "label": "Charge du dos",
+    "kind": "emplacement"
+  },
+  {
     "id": "casque",
     "type": "garde-robe",
     "label": "Casque",
@@ -246,6 +252,27 @@
     "categorie": "vetement"
   },
   {
+    "id": "jupe",
+    "type": "garde-robe",
+    "label": "Jupe",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "foulard",
+    "type": "garde-robe",
+    "label": "Foulard",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "bonnet",
+    "type": "garde-robe",
+    "label": "Bonnet",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
     "id": "insigne",
     "type": "garde-robe",
     "label": "Insigne",
@@ -306,6 +333,26 @@
     }
   },
   {
+    "id": "hotte",
+    "type": "garde-robe",
+    "label": "Hotte",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "dos"
+    }
+  },
+  {
+    "id": "ecu-au-dos",
+    "type": "garde-robe",
+    "label": "Écu au dos",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "dos"
+    }
+  },
+  {
     "id": "casque-a-cornes",
     "type": "garde-robe",
     "label": "Casque à cornes",
@@ -330,6 +377,33 @@
     "kind": "variante",
     "piece": {
       "id": "bottes"
+    }
+  },
+  {
+    "id": "bottines",
+    "type": "garde-robe",
+    "label": "Bottines",
+    "kind": "variante",
+    "piece": {
+      "id": "bottes"
+    }
+  },
+  {
+    "id": "bas-de-chausses",
+    "type": "garde-robe",
+    "label": "Bas-de-chausses",
+    "kind": "variante",
+    "piece": {
+      "id": "bas"
+    }
+  },
+  {
+    "id": "brassards-d-acier",
+    "type": "garde-robe",
+    "label": "Brassards d’acier",
+    "kind": "variante",
+    "piece": {
+      "id": "brassards"
     }
   },
   {
@@ -384,6 +458,15 @@
     "kind": "variante",
     "piece": {
       "id": "ceinture"
+    }
+  },
+  {
+    "id": "pourpoint-matelasse",
+    "type": "garde-robe",
+    "label": "Pourpoint matelassé",
+    "kind": "variante",
+    "piece": {
+      "id": "pourpoint"
     }
   },
   {
@@ -586,6 +669,18 @@
     "id": "calvitie-et-barbe-rase",
     "type": "garde-robe",
     "label": "Couronne dégarnie et barbe rase",
+    "kind": "coiffure"
+  },
+  {
+    "id": "cheveux-nattes",
+    "type": "garde-robe",
+    "label": "Cheveux nattés",
+    "kind": "coiffure"
+  },
+  {
+    "id": "cheveux-longs",
+    "type": "garde-robe",
+    "label": "Cheveux longs",
     "kind": "coiffure"
   },
   {

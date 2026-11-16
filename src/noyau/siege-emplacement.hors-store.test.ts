@@ -104,7 +104,7 @@ describe('(B) Tir — le chef sert la pièce et touche la cible (resolveAttack, 
     const all = [mkEmplacement(poste), gunner, s1, cible];
     applyShipPostes(all);
     const get = mkGet(groundScene(), all, { gunner: 'N' });
-    const r = resolveAttack(get, gunner, cible, undefined, false, false, false, firedWeapon(banc.getState().scene, gunner, cible, poste.item.uid, all));
+    const r = resolveAttack(get, gunner, cible, firedWeapon(banc.getState().scene, gunner, cible, poste.item.uid, all), undefined, false, false, false);
     expect(r).not.toBeNull();
     expect(r!.weapon.uid).toBe(poste.item.uid); // c'est bien la baliste du poste qui a tiré
     expect(r!.res.hit).toBe(true);

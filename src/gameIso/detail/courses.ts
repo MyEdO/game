@@ -10,7 +10,7 @@
  *
  * Convention : `u` court le long de l'appareillage (m), `v` descend (m depuis le haut de la période).
  */
-import { hash32, seedStream } from '../../data/hash';
+import { hash32, seedStream } from '../../lib/hash';
 import { ACCENT_FRAC, BLOCK_INSET_M } from './expand';
 import type { DetailRecipe } from '../../data/materials.types';
 

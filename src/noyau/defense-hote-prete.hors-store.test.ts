@@ -53,7 +53,7 @@ function setup(seed: number, { destabilisante = true } = {}) {
  *  avant eux (#4011). Rend `false` pour une graine qui ne produit pas cette situation. */
 function jusquAuxTestsDeLaDestabilisante(seed: number): boolean {
   const { tireur, ours } = setup(seed);
-  if (!maybeOpenDefense(g, banc.setState, ours, tireur, undefined, undefined, ours.chargedThisTurn)) return false;
+  if (!maybeOpenDefense(g, banc.setState, ours, tireur, ours.weapons[0], undefined, ours.chargedThisTurn)) return false;
   g().jetLancer('defense');
   if (!g().pendingDefense?.result?.hit) return false;
   g().jetValider('defense');
@@ -132,7 +132,7 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
     // Graine 2, arme sans Déstabilisante : le coup touche, la Déviation se valide, et la défense du maillon
     // suivant est posée quand le curseur est sur l'étape `critique`.
     const { tireur, ours } = setup(2, { destabilisante: false });
-    expect(maybeOpenDefense(g, banc.setState, ours, tireur, undefined, undefined, ours.chargedThisTurn)).toBe(true);
+    expect(maybeOpenDefense(g, banc.setState, ours, tireur, ours.weapons[0], undefined, ours.chargedThisTurn)).toBe(true);
     g().jetLancer('defense');
     expect(g().pendingDefense?.result?.hit).toBe(true);
     g().jetValider('defense');

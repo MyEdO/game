@@ -74,6 +74,11 @@
     "label": "Attrape-coquin"
   },
   {
+    "id": "barde",
+    "type": "apparences",
+    "label": "Barde"
+  },
+  {
     "id": "baton",
     "type": "apparences",
     "label": "Bâton de combat",
@@ -155,6 +160,14 @@
     "label": "Amulette"
   },
   {
+    "id": "collier_a_cranes",
+    "type": "apparences",
+    "label": "Collier à crânes",
+    "forme": {
+      "id": "amulette"
+    }
+  },
+  {
     "id": "symbole_religieux",
     "type": "apparences",
     "label": "Symbole religieux"
@@ -184,6 +197,11 @@
     "id": "herbes",
     "type": "apparences",
     "label": "Herbes"
+  },
+  {
+    "id": "pilon_et_mortier",
+    "type": "apparences",
+    "label": "Pilon et mortier"
   },
   {
     "id": "cimeterre",

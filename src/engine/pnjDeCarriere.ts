@@ -27,7 +27,14 @@ import { applyTalentAcquisition, competencesAjouteesPar, deplierAjouts, talentsA
 import { augmenterLaCompetence } from './character';
 import { blessuresReconciliees } from './characteristics';
 import { contexteDeNaissanceDObjet } from './items';
-import { dotationsDuPnj, emplacementsDeDotation, resolveTrappingChoices, valeursDeLEmplacement, type ChoixDeDotation } from './trappingChoices';
+import {
+  dotationsDuPnj,
+  emplacementsDeDotation,
+  resolveTrappingChoices,
+  valeursDeLEmplacement,
+  type ChoixDeDotation,
+  type PorteurDArme,
+} from './trappingChoices';
 import { hashSeed, makeRNG, type RNG } from './dice';
 import { statusIncome } from './activities';
 import { actorStatus } from './social';
@@ -113,20 +120,20 @@ const tirer = <T>(liste: readonly T[], rng: RNG): T | undefined => (liste.length
 const fluxDuPnj = (id: string, carriere: string, quoi: string): RNG => makeRNG(hashSeed(`carriere:${id}:${carriere}:${quoi}`));
 
 /** Les choix de dotation `choisis` complétés sur `rng` : chaque emplacement de `dotations` non choisi reçoit une de
- *  ses valeurs (`valeursDeLEmplacement`). */
-function choixCompletes(dotations: Parameters<typeof emplacementsDeDotation>[0], choisis: NonNullable<ParcoursDeCarriere['dotationsDeCarriere']>, rng: RNG): ChoixDeDotation {
+ *  ses valeurs pour le porteur `porteur` (`valeursDeLEmplacement`). */
+function choixCompletes(dotations: Parameters<typeof emplacementsDeDotation>[0], choisis: NonNullable<ParcoursDeCarriere['dotationsDeCarriere']>, porteur: PorteurDArme, rng: RNG): ChoixDeDotation {
   const complets: ChoixDeDotation = {};
   for (const e of emplacementsDeDotation(dotations)) {
-    const v = choisis[e.adresse] ?? tirer(valeursDeLEmplacement(e), rng);
+    const v = choisis[e.adresse] ?? tirer(valeursDeLEmplacement(e, porteur), rng);
     if (v !== undefined) complets[e.adresse] = v;
   }
   return complets;
 }
 
-/** Le refus du parcours `p`, `undefined` s'il est admis : une carrière à un Niveau qu'elle n'a pas, un Talent qu'aucun
- *  Niveau atteint n'offre, une Compétence sans emplacement à choix libre qui la couvre, un choix de dotation hors des
- *  emplacements de la carrière actuelle ou de leurs valeurs. */
-export function refusDuParcours(p: ParcoursDeCarriere): string | undefined {
+/** Le refus du parcours `p` du porteur `porteur`, `undefined` s'il est admis : une carrière à un Niveau
+ *  qu'elle n'a pas, un Talent qu'aucun Niveau atteint n'offre, une Compétence sans emplacement à choix libre qui la
+ *  couvre, un choix de dotation hors des emplacements de la carrière actuelle ou de leurs valeurs. */
+export function refusDuParcours(p: ParcoursDeCarriere, porteur: PorteurDArme): string | undefined {
   const ids = Object.keys(p.carrieres);
   if (!ids.length) return t('parcours.refus.vide');
   for (const [id, niveau] of Object.entries(p.carrieres)) {
@@ -146,15 +153,16 @@ export function refusDuParcours(p: ParcoursDeCarriere): string | undefined {
   for (const [adresse, v] of Object.entries(p.dotationsDeCarriere ?? {})) {
     const e = emplacements.get(adresse);
     if (!e) return t('parcours.refus.emplacement', { adresse, carriere: actuelle.id, niveau: actuelle.niveau });
-    if (!valeursDeLEmplacement(e).includes(v)) return t('parcours.refus.valeur', { valeur: v, adresse });
+    if (!valeursDeLEmplacement(e, porteur).includes(v)) return t('parcours.refus.valeur', { valeur: v, adresse });
   }
   return undefined;
 }
 
-/** Le parcours `p` sans ce que ses carrières n'admettent plus (`refusDuParcours`) : les Talents et Compétences d'une
- *  carrière absente ou que ses Niveaux n'offrent plus, les choix de dotation hors des emplacements de la carrière
- *  actuelle. Ce que l'éditeur écrit après une carrière retirée ou un Niveau changé. */
-export function parcoursRetouche(p: ParcoursDeCarriere): ParcoursDeCarriere {
+/** Le parcours `p` du porteur `porteur` sans ce que ses carrières n'admettent plus (`refusDuParcours`) : les
+ *  Talents et Compétences d'une carrière absente ou que ses Niveaux n'offrent plus, les choix de dotation hors des
+ *  emplacements de la carrière actuelle ou de leurs valeurs. Ce que l'éditeur écrit après une carrière retirée ou un
+ *  Niveau changé. */
+export function parcoursRetouche(p: ParcoursDeCarriere, porteur: PorteurDArme): ParcoursDeCarriere {
   const garder = <T>(parCarriere: Readonly<Record<string, readonly T[]>> | undefined, admis: (id: string, refs: readonly T[]) => T[]) => {
     const out = Object.fromEntries(Object.entries(parCarriere ?? {}).flatMap(([id, refs]) => {
       const gardes = id in p.carrieres ? admis(id, refs) : [];
@@ -167,7 +175,7 @@ export function parcoursRetouche(p: ParcoursDeCarriere): ParcoursDeCarriere {
   const emplacements = new Map(actuelle ? emplacementsDeDotation(dotationsDuPnj(actuelle.id, actuelle.niveau)).map((e) => [e.adresse as string, e]) : []);
   const dotations = Object.fromEntries(Object.entries(p.dotationsDeCarriere ?? {}).filter(([a, v]) => {
     const e = emplacements.get(a);
-    return e !== undefined && valeursDeLEmplacement(e).includes(v);
+    return e !== undefined && valeursDeLEmplacement(e, porteur).includes(v);
   }));
   return {
     carrieres: p.carrieres,
@@ -242,7 +250,7 @@ export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
   const dotations = dotationsDuPnj(actuelle.id, actuelle.niveau);
   const rngDotations = fluxDuPnj(c.id, actuelle.id, 'dotations');
   let n = 0;
-  Object.assign(c, doterLePorteur(resolveTrappingChoices(dotations, choixCompletes(dotations, p.dotationsDeCarriere ?? {}, rngDotations)), rngDotations, () => `${c.id}-dotation-${n++}`, contexteDeNaissanceDObjet(c)));
+  Object.assign(c, doterLePorteur(resolveTrappingChoices(dotations, choixCompletes(dotations, p.dotationsDeCarriere ?? {}, c, rngDotations)), rngDotations, () => `${c.id}-dotation-${n++}`, contexteDeNaissanceDObjet(c)));
   c.wounds = blessuresReconciliees(c);
 }
 

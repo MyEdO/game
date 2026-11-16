@@ -117,7 +117,7 @@ describe('3 — `corruptionExposure` `easeSteps` : Bouclier en acier doré (VDM 
     applyOps(c, opsOf('bouclier-en-acier-dore'), { idNeuf: idsDeTest, rng: desDuTest, label: 'Bouclier en acier doré', defaultDurationRounds: 10 });
     expect(corruptionEaseSteps(c)).toBe(2);
     const seen: ExposureLevel[] = [];
-    applyOps(c, [{ op: 'corruptionExposure', level: 'majeure' }], { idNeuf: idsDeTest, rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
+    applyOps(c, [{ op: 'corruptionExposure', level: 'majeure' }], { idNeuf: idsDeTest, rng: desDuTest, onCorruptionExposure: (_c, l) => { seen.push(l); return []; } });
     expect(seen).toEqual(['mineure']);
   });
 
@@ -125,13 +125,13 @@ describe('3 — `corruptionExposure` `easeSteps` : Bouclier en acier doré (VDM 
     const c = dummy();
     applyOps(c, opsOf('bouclier-en-acier-dore'), { idNeuf: idsDeTest, rng: desDuTest, label: 'Bouclier en acier doré', defaultDurationRounds: 10 });
     const seen: ExposureLevel[] = [];
-    applyOps(c, [{ op: 'corruptionExposure', level: 'moderee' }], { idNeuf: idsDeTest, rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
+    applyOps(c, [{ op: 'corruptionExposure', level: 'moderee' }], { idNeuf: idsDeTest, rng: desDuTest, onCorruptionExposure: (_c, l) => { seen.push(l); return []; } });
     expect(seen).toEqual([]);
   });
 
   it('sans abri, le niveau posé est intact (l’atténuation ne s’invente pas)', () => {
     const seen: ExposureLevel[] = [];
-    applyOps(dummy(), [{ op: 'corruptionExposure', level: 'majeure' }], { idNeuf: idsDeTest, rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
+    applyOps(dummy(), [{ op: 'corruptionExposure', level: 'majeure' }], { idNeuf: idsDeTest, rng: desDuTest, onCorruptionExposure: (_c, l) => { seen.push(l); return []; } });
     expect(seen).toEqual(['majeure']);
     expect(easeExposure('majeure', 0)).toBe('majeure');
   });

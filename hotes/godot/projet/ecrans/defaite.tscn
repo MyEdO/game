@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://cadres/fin_du_combat.tscn" id="0_cadre"]
+
+[node name="Cadre" instance=ExtResource("0_cadre")]

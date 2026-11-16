@@ -16,26 +16,7 @@ import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, emprunter, lambeaux, lisser, porteur_de, voisinage
-
-
-def joindre_les_surfaces(morceaux):
-    """Positions, triangles et poids de morceaux (positions, triangles, poids) joints."""
-    decalages = np.cumsum([0] + [len(p) for p, _, _ in morceaux[:-1]])
-    return (np.concatenate([p for p, _, _ in morceaux]), np.concatenate([t + k for (_, t, _), k in zip(morceaux, decalages)]),
-            np.concatenate([w for _, _, w in morceaux]))
-
-
-def horizontale(psi):
-    """Direction horizontale de l'azimut `psi` (degrés, depuis l'avant -y vers la gauche +x)."""
-    a = math.radians(psi)
-    return np.array([math.sin(a), -math.cos(a), 0.0])
-
-
-def selon(table, psi):
-    """La valeur de `table` (`[(azimut, valeur)]`, de 0 à 180°) à l'azimut `psi`, interpolée, symétrique."""
-    a, v = zip(*table)
-    return float(np.interp(abs((psi + 180.0) % 360.0 - 180.0), a, v))
+from tissu import Maillage, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
 
 
 def construire(D, materiaux, b):
@@ -66,10 +47,10 @@ def construire(D, materiaux, b):
         proches = np.abs((psi_cou - psi + 180.0) % 360.0 - 180.0) <= c['fenetre']
         O = np.array([axe[0], axe[1], cou[proches, 2].min() + c['hauteur']])
         # Du dedans du cou vers le dehors : visé du dehors, le col s'arrêtait sur l'épaule, plus haute que lui sur les côtés.
-        touche = arbre.ray_cast(Vector(O.tolist()), Vector(horizontale(psi).tolist()))[0]
+        touche = arbre.ray_cast(Vector(O.tolist()), Vector(direction_spatiale(psi).tolist()))[0]
         if touche is None:
             raise ValueError(f'col-de-fourrure : aucun cou à l\'azimut {psi:.1f}')
-        col.append(np.array(touche) + (c['jeu'] + D['EPAISSEUR']) * horizontale(psi))
+        col.append(np.array(touche) + (c['jeu'] + D['EPAISSEUR']) * direction_spatiale(psi))
 
     C = np.array(b.tete(D['CENTRE']['os'])) + np.array([0.0, D['CENTRE']['dy'], 0.0])
     C[2] = D['CENTRE']['z']
@@ -82,7 +63,7 @@ def construire(D, materiaux, b):
         bas = selon(D['BORD'], psi) + meches[j] * selon(D['MECHES'], psi)
         phis = np.linspace(D['ELEVATION_HAUT'], bas, max(2, int(math.ceil((bas - D['ELEVATION_HAUT']) / D['PAS_D_ELEVATION'])) + 1))
         jeu = selon(D['JEU'], psi)
-        visees = [vise(C, math.sin(math.radians(p)) * horizontale(psi) + np.array([0.0, 0.0, math.cos(math.radians(p))]),
+        visees = [vise(C, math.sin(math.radians(p)) * direction_spatiale(psi) + np.array([0.0, 0.0, math.cos(math.radians(p))]),
                        D['PORTEE'], D['PAS'],
                        float(np.interp(p, [D['ELEVATION_HAUT'], D['ELEVATION_HAUT'] + selon(D['RAMPE_DU_JEU'], psi)], [c['jeu'], jeu])))
                   for p in phis]
@@ -96,7 +77,7 @@ def construire(D, materiaux, b):
         # Le gonflement est horizontal, dans le plan de la colonne : le long des visées, il montait la fourrure du devant vers
         # le menton. Chaque sommet sous le col y ajoute sa touffe, tirée au hasard (graine des codes de caractères), croissante du col au bord.
         touffe = np.array([0.0] + [t * touffes.uniform(0.0, D['TOUFFES']['ampleur']) for t in u[1:]])
-        colonnes.append(pts + (D['GONFLEMENT'] * np.sin(np.pi * u) + touffe)[:, None] * horizontale(psi))
+        colonnes.append(pts + (D['GONFLEMENT'] * np.sin(np.pi * u) + touffe)[:, None] * direction_spatiale(psi))
     rangs = [[colonnes[j][k] for j in range(m)] for k in range(D['RANGS'] + 1)]
 
     M = Maillage()

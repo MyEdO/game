@@ -28,6 +28,7 @@ import {
   weaponRangeSpecSchema,
 } from './valeurs';
 import { marquerProduit } from './interne/produits';
+import { ENGINS_DE_SIEGE } from './sousListes';
 import {
   idDe,
   marqueurDeLaForme,
@@ -280,6 +281,15 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
 }), 'melee');
 
 
+/** `PerteSansEquipe` (`engine/types`). AA 10 l.148 ; ZI 13 l.193 */
+export const perteSansEquipeSchema = nommerChamps(z.strictObject({
+  removeQualities: refs('quality').optional(),
+  removeType: z.literal('atout').optional(),
+}), {
+  removeQualities: { label: 'Qualités perdues' },
+  removeType: { label: 'Perd tous ses Atouts' },
+});
+
 /** LDB 73 */
 export const weaponSchema = nommerChamps(z.strictObject({
   label: z.string(),
@@ -290,7 +300,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
   qualities: z.array(qualityRefSchema),
   subType: ref('weaponGroup').optional(),
   weaponGroup: ref('weaponGroup').optional(),
-  soloSimple: z.boolean().optional(),
+  perteSansEquipe: perteSansEquipeSchema.optional(),
   indirect: z.boolean().optional(),
   /** LDB 62 l.278 */
   bladed: z.boolean().optional(),
@@ -306,7 +316,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
   qualities: { label: 'Qualités' },
   subType: { label: 'Sous-type' },
   weaponGroup: { label: 'Groupe d’armes' },
-  soloSimple: { label: 'Simple à manier seul' },
+  perteSansEquipe: { label: 'Perte sans équipe' },
   indirect: { label: 'Tir indirect' },
   bladed: { label: 'Arme à lame' },
   organicProjectile: { label: 'Projectile organique' },
@@ -314,7 +324,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
 });
 
 /** `TrappingRef` (`src/data/index.ts`) — par id de catalogue (+ quantité, + Atouts ATTACHÉS `qualities`
- *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),
+ *  ou emplacement « Atouts au choix » `qualityChoice`, sa classe de qualité — LDB 60 l.7 ; LDB 60 l.11),
  *  texte narratif hors catalogue (+ quantité), dotation de POSSESSION (`dotationDePossessionSchema`,
  *  véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9), somme d'argent (`sommeSchema`), mention par nature
  *  (`dotationDeMentionSchema`), « 1 parmi » (`pick`, `{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`,
@@ -336,8 +346,13 @@ export const objetDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({
   valeur: sommeSchema.optional(),
 }), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, valeur: { label: 'valeur' } }), { label: 'objet du catalogue' });
 
-/** Dotation d'un objet du catalogue : l'objet, et son emplacement « Atout au choix » (`qualityChoice`). LDB 60 */
-export const dotationDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({ ...objetDeCatalogueSchema.shape, qualityChoice: z.literal(true).optional() }), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } }), { label: 'objet du catalogue' });
+/** La classe de qualité d'un objet doté dont les Atouts sont au choix. LDB 60 l.7 ; LDB 60 l.11 */
+export const classeDeQualiteSchema = enumNomme({ qualite: 'de qualité', haute: 'de Haute Qualité' });
+export type ClasseDeQualite = z.infer<typeof classeDeQualiteSchema>;
+
+/** Dotation d'un objet du catalogue : l'objet, et son emplacement « Atouts au choix » (`qualityChoice`), sa classe de
+ *  qualité. LDB 60 */
+export const dotationDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({ ...objetDeCatalogueSchema.shape, qualityChoice: classeDeQualiteSchema.optional() }), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } }), { label: 'objet du catalogue' });
 
 /** Dotation d'une MENTION : un bien imprimé que la fiche porte sous sa nature, sans mécanique. #4053 */
 export const dotationDeMentionSchema = nommerNoeud(nommerChamps(z.strictObject({
@@ -350,17 +365,21 @@ export type DotationDeMention = z.infer<typeof dotationDeMentionSchema>;
 /** Dotation d'une ligne hors catalogue : son texte imprimé et sa quantité. */
 export const dotationDeTexteSchema = nommerNoeud(nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }), { label: 'ligne de texte' });
 
-/** Ce qu'une dotation POSSÈDE hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
-export const typeDePossessionSchema = enumNomme({ creature: 'Créature', vehicle: 'Véhicule' });
+/** Ce qu'un effet `givePossession` donne hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
+const LIBELLES_DE_POSSESSION = { creature: 'Créature', vehicle: 'Véhicule' } as const;
+export const typeDePossessionSchema = enumNomme(LIBELLES_DE_POSSESSION);
+/** Ce qu'une dotation POSSÈDE hors du sac : une possession, ou un engin de siège servi en poste
+ *  (sous-liste `ENGINS_DE_SIEGE`, jamais un objet de sac). AA 02 l.335-339 ; #4143 */
+export const typeDeDotationDePossessionSchema = enumNomme({ ...LIBELLES_DE_POSSESSION, engin: 'Engin de siège' });
 /** Dotation d'une POSSESSION : la référence typée, sa quantité et son libellé imprimé. */
-export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDePossessionSchema, {}, {
+export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDeDotationDePossessionSchema, { engin: { type: 'trapping', sousListe: ENGINS_DE_SIEGE } }, {
   count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 }), { label: 'possession' });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
 export type ObjetDeCatalogue = z.infer<typeof objetDeCatalogueSchema>;
 type FormeSansTexte =
-  | (ObjetDeCatalogue & { qualityChoice?: true })
+  | (ObjetDeCatalogue & { qualityChoice?: ClasseDeQualite })
   | DotationDePossession
   | Somme;
 type LotDeDotation = { lot: (ObjetDeCatalogue | DotationDePossession)[] };
@@ -373,7 +392,7 @@ type FormeDeDotation = FormeSansTexte | JokerDeDotation | DotationDeTexte | Dota
 const jokerDeDotationSchema = nommerNoeud(nommerChamps(z.strictObject({
   wildcard: z.literal('arme'),
   groupe: ref('weaponGroup', undefined, 'weapon').optional(),
-  qualityChoice: z.literal(true).optional(),
+  qualityChoice: z.literal('qualite').optional(),
 }), { wildcard: { label: "choix libre" }, groupe: { label: "Groupe d’armes" }, qualityChoice: { label: 'qualité au choix' } }), { label: 'arme au choix' });
 type JokerDeDotation = z.infer<typeof jokerDeDotationSchema>;
 

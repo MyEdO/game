@@ -49,7 +49,7 @@ import {
   optionsDeTroc, refusDAjout, refusDeMarchandage, refusDeRecherche, refusDeRefusDuMarche, sellRefusal, type MerchantState, type ModeDeMarche,
 } from './merchantFlow';
 import { findTrappingById } from '../data/index';
-import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
+import { couchagesDeLaNuit, dormeurDuRepos, foodOptions, nourrituresDeTroupe } from './restFlow';
 import { itemLabel } from '../engine/items';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
 import { battleSceneById, herosQuiSePostent, postesDeBataille, refusDAlea, refusDeMelee, refusDeRassemblement, refusDeSceneDeBataille } from './massBattleFlow';
@@ -347,11 +347,11 @@ export const OUVERTS_DU_CHOIX = {
   repos: {
     couchage: reglage('repos', 'couchage', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
-      return nuit ? lodgingOptions(nuit.p.places).map((v) => duRepos(v, 'couchage')) : [];
+      return nuit ? couchagesDeLaNuit(nuit.p, s.party, pid).map((c) => ouverte(c.id, c.libelle, c.refus)) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.lodging ?? null)),
     pitance: reglage('repos', 'pitance', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
-      return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
+      return nuit ? (nuit.dormeur ? foodOptions(nuit.p, nuit.dormeur) : nourrituresDeTroupe(nuit.p)).map((v) => duRepos(v, 'pitance')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
   },
   // LDB 17 l.25, LDB 11 l.97-103

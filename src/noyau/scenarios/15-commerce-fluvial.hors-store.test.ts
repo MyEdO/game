@@ -12,6 +12,7 @@ import { primaryCargoCarrier } from '../../noyau/carriers';
 import { avanceEtapeCascade, draineCascade, draineCascadeDifferee } from '../../noyau/cascade.testkit';
 import { carrierFreeEnc } from '../../engine/cargo';
 import { REIK_INDEX } from '../../scenes/test-scenarios/_reik-index';
+import type { VoyageCadence } from '../voyageCadence';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -53,10 +54,10 @@ describe('Scénario Commerce fluvial — carte fidèle à l’Index géographiqu
     const places = scenConstruit.worldMap!.places;
     const place = (id: string) => places.find((p) => p.id === `p-${id}`)!;
     // Indices recopiés de l'Index (l.187 Altdorf, l.227 Kemperbad, l.221 Grünburg, l.237 Ubersreik).
-    expect(place('altdorf').market).toMatchObject({ taille: 4, richesse: 5, produits: ['commerce-terre'] });
-    expect(place('kemperbad').market).toMatchObject({ taille: 3, richesse: 4, wineBonusEchelons: 2 });
-    expect(place('grunburg').market).toMatchObject({ taille: 3, richesse: 2, produits: ['commerce-terre'] });
-    expect(place('ubersreik').market).toMatchObject({ taille: 3, richesse: 4 });
+    expect(place('altdorf')).toMatchObject({ taille: 4, market: { richesse: 5, produits: ['commerce-terre'] } });
+    expect(place('kemperbad')).toMatchObject({ taille: 3, market: { richesse: 4, wineBonusEchelons: 2 } });
+    expect(place('grunburg')).toMatchObject({ taille: 3, market: { richesse: 2, produits: ['commerce-terre'] } });
+    expect(place('ubersreik')).toMatchObject({ taille: 3, market: { richesse: 4 } });
     // Chaque Lieu de la carte a un marché (LandMarketProfile) et est relié par barge.
     expect(places.every((p) => p.market)).toBe(true);
     expect(scenConstruit.worldMap!.routes.every((r) => r.modes.includes('barge'))).toBe(true);
@@ -141,7 +142,7 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
 });
 
 /**
- * #2545 — la descente COMMANDÉE (ordres par défaut, `DEFAULT_VOYAGE_ORDERS`) se résout sans fenêtre par
+ * #2545 — la descente COMMANDÉE (`{ cadence: 'commande' }`) se résout sans fenêtre par
  * jet : le jour se joue d'un bloc (`runCascadeImmediate`) et le dé d'Exposition hydrique comme son Test
  * (MSRC 16 l.5-13) sont des Tests de route sous ordres (`voyageCadence.KINDS_SOUS_ORDRES`). Aucune
  * fenêtre n'en montre les dés : chacun laisse sa ligne au journal.
@@ -151,10 +152,10 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
 
   /** Descend jusqu'à l'arrivée en dormant aux haltes et en FORÇANT chaque barrage (MSRC 7 l.128) :
    *  rend chaque fenêtre de JET rencontrée ; les décisions tranchées s'accumulent dans `decisions`. */
-  function descendre(cadence?: 'jourParJour', decisions: string[] = []): string[] {
+  function descendre(cadence: VoyageCadence, decisions: string[] = []): string[] {
     drainCascade(); // l'entrée de scène du lanceur (affichage, aucun jet)
     const fenetres: string[] = [];
-    get().partirEnVoyage('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence });
     for (let i = 0; i < 40 && get().travelPlan; i++) {
       const p = get().pendingCascade;
       const cur = p?.participants[p.cursor];
@@ -176,7 +177,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
       : { ...r, riverPerils: (r.riverPerils ?? []).map((pe) => (pe.perilId === 'barrage' ? { ...pe, chancePct: 100 } : pe)) })) } });
   }
 
-  it('graine 5, cadence par défaut, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
+  it('graine 5, sous ordres, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
     seedBattleRng(5);
     barragePose();
     // Le journal du store est plafonné : chaque ligne se capte à son puits (`ecrireAuJournal`), le temps de la descente.
@@ -185,7 +186,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     banc.setState({ ecrireAuJournal: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
     const decisions: string[] = [];
     try {
-      expect(descendre(undefined, decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);
+      expect(descendre('commande', decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);
     } finally {
       banc.setState({ ecrireAuJournal: puits });
     }

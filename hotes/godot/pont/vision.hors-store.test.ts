@@ -17,7 +17,7 @@ import type { Combatant, Jeu } from '../../../src/noyau/index';
 import { testScenarios } from '../../../src/scenes/test-scenarios/index';
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { depuisBase64 } from '../../../src/lib/base64';
-import { hash32AuMillieme } from '../../../src/data/hash';
+import { hash32AuMillieme } from '../../../src/lib/hash';
 import { t } from '../../../src/i18n';
 import type { VisionDuMonde } from '../../../src/noyau/index';
 import type { Jet, Ligne } from '../../../src/hote/elements';
@@ -95,7 +95,7 @@ describe('melee-dans-le-noir — les gobelins au contact, hors de la vue du grou
     expect(clic, 'sa case aux occupants : le champ la clique').not.toBeNull();
     jouer(clic!);
     expect(vue().projection.combat!.apercu?.cible, 'le premier clic vise l’ennemi').toBe(vise);
-    expect(vue().zones['combat.apercu'], 'l’aperçu ne dit pas son nom').toEqual([{ type: 'ligne', id: 'apercu', ton: 'neutre', texte: t('ecran.apercu.cible', { cible: INCONNU }), detail: null }]);
+    expect(vue().zones['combat.apercu'], 'l’aperçu ne dit pas son nom').toEqual([{ type: 'ligne', id: 'apercu', ton: 'neutre', texte: t('ecran.apercu.cible', { cible: INCONNU }), detail: null, touche: null }]);
     jouer(clic!);
     expect(vue().projection.fenetre, 'le second clic ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDAttaque' } });
     expect((corpsDe(vue(), 'cible') as Ligne).texte, 'la fenêtre ne nomme pas sa cible').toBe(t('ecran.attaque.cible', { cible: INCONNU }));

@@ -7,7 +7,7 @@
  * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
-import type { RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
+import type { QualiteDeRepos, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
@@ -131,8 +131,9 @@ export interface SceneEntity {
    *  résolue au bord du rendu, hérité du type de prop s'il n'est pas posé ici ; absent = `flamme`. */
   light?: { radiusM: number; tone?: string };
   /** Marchand (#2) : ce PNJ ouvre un panneau d'achat/vente (référence un archétype de `MERCHANT_ARCHETYPES`, `data/index.ts`).
-   *  `settlement`/`resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
-   *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat). */
+   *  `resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
+   *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat) ; `settlement` surcharge la colonne de
+   *  Disponibilité du lieu (`colonneDeDisponibiliteDuMarchand`, `noyau/worldMap.ts`), seule source d'un marchand hors de tout lieu. */
   /** OVERRIDES par-entité des 3 règles maison Marché (LDB 59/60, `marche-guildes`/`marche-mode`/
    *  `marche-tenir-comptes`) — mêmes domaines de valeurs que la règle globale correspondante. Absent =
    *  HÉRITAGE du global (`engine/policy` `rule(...)`), jamais un 3ᵉ état ambigu. Lus par `marketRule`
@@ -327,13 +328,13 @@ export interface Scene {
    *  gagnent des ombres cohérentes entre elles. Posé par `setNorthDeg` (qui le ramène dans `[0,360[`). */
   northDeg?: number;
   /** OFFRE DE REPOS de la scène (bouton de Repos en exploration → modale de Repos) : lieux disponibles
-   *  (auberge/chez soi/camp, combinables) + qualité (piètre = ½ prix, nourriture à risque).
+   *  (auberge/chez soi/camp, combinables) + qualité (`QUALITE_DU_REPOS`, LDB 66 l.5).
    *  Absent = camp seulement ; tout à false = repos interdit ici. La météo ci-dessus donne la
    *  sévérité d'Exposition d'une nuit dehors (engine/exposure). */
-  rest?: { auberge?: boolean; maison?: boolean; camp?: boolean; quality?: 'normale' | 'pietre' };
+  rest?: { auberge?: boolean; maison?: boolean; camp?: boolean; quality?: QualiteDeRepos };
   /** Offre de repos PAR ZONE (prioritaire sur `rest` là où le groupe se tient) — « paramétrable
    *  sur la zone » : le quartier de l'auberge offre des chambres, la place du marché non. */
-  restZones?: { rect: { x: number; y: number; w: number; h: number; z?: number }; places: { auberge?: boolean; maison?: boolean; camp?: boolean }; quality?: 'normale' | 'pietre' }[];
+  restZones?: { rect: { x: number; y: number; w: number; h: number; z?: number }; places: { auberge?: boolean; maison?: boolean; camp?: boolean }; quality?: QualiteDeRepos }[];
   /** ZONES D'EFFET posées sur la carte (éditeur) — PIÈGES / hasards / brasiers : tout combattant qui
    *  TRAVERSE (`onCross` : pic, flaque acide, glyphe) ou STATIONNE (`perRound` : nuage de poison,
    *  brasier) y subit l'effet (Dégâts/soin/États en `GameOp[]`). Converties en `BattleZone`
@@ -861,8 +862,18 @@ function structureOccultante(id?: string): boolean {
  *  L’opacité n’est PAS la franchissabilité : une arête non occultante reste infranchissable
  *  (`wallBetween` ne lit jamais ce prédicat — on voit à travers une herse, on ne la traverse pas). */
 export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
-  return !wallIsOpen(scene, seg) && !(seg.window && !seg.shuttered) && structureOccultante(seg.structure);
+  return !wallIsOpen(scene, seg) && !croiseeOuverte(seg) && structureOccultante(seg.structure);
 }
+
+/** Une arête sépare-t-elle deux combattants pour le CORPS À CORPS ? Celle qui coupe la vue (`areteOcculte`), ou celle
+ *  qui tient et dont la Structure déclare `arreteLeCoup` : on la regarde à travers sans frapper par-dessus.
+ *  LDB 13 l.114 ; #4105. */
+export function areteSepareLeCoup(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return areteOcculte(scene, seg) || (!wallIsOpen(scene, seg) && !!seg.structure && findStructureById(seg.structure)?.arreteLeCoup === true);
+}
+
+/** Croisée sans `shuttered` (arbitrage #1712, 2026-09-08) ; aux volets clos, l'arête est son mur. */
+export const croiseeOuverte = (seg: WallSeg): boolean => !!seg.window && !seg.shuttered;
 
 /** Arête (case, side N/E/S/O) → forme CANONIQUE de stockage (case, N|E) : le `S` de (x,y) est le `N` de (x,y+1), le `O`
  *  de (x,y) le `E` de (x-1,y). */
@@ -907,6 +918,12 @@ export function wallBetween(scene: Scene, ax: number, ay: number, bx: number, by
  *  divergent sur une Structure déclarée `occulte: false` : elle barre le pas sans couper la vue. */
 export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
   return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
+}
+
+/** Une arête sépare-t-elle pour le CORPS À CORPS deux cases adjacentes du même étage ? Même arête, même géométrie que
+ *  `areteOcculteEntre`, prédicat `areteSepareLeCoup`. */
+export function areteSepareLeCoupEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
+  return areteEntre(scene, ax, ay, bx, by, z, (w) => areteSepareLeCoup(scene, w));
 }
 
 /** Un mur d'arête (`Scene.walls`) est-il franchi par la ligne `from`→`to` ? Bloque la vue

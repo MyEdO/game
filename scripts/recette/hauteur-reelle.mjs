@@ -8,7 +8,7 @@
 //   node scripts/recette/hauteur-reelle.mjs [--url <url>] --vues portable
 //   node scripts/recette/hauteur-reelle.mjs --mesures     (imprime les mesures, aucun verdict)
 //
-// Écrans parcourus, à CHACUNE des trois vues de `vues-recette.json` (bureau, portable, mobile) :
+// Écrans parcourus, à CHACUNE des vues de `vues-recette.json` (bureau, portable) :
 //   `menu`, `party`, `creator`, `compendium`, `editor`, `test`, `coop` ; la campagne en exploration
 //   puis en combat ; l'ouverture de campagne et le récap de chapitre ; un document, un butin, la
 //   fiche de personnage ; le menu SYSTÈME ouvert par une vraie frappe d'Échap et ses sous-écrans
@@ -30,9 +30,8 @@
 // Les VERDICTS sont des détecteurs PURS (`detecteurs-hauteur.mjs`), testés à fixtures par
 // `test:recette` : la MESURE vit ici, le JUGEMENT là-bas.
 //
-// Sortie : la liste complète des défauts, exit 1 s'il en reste, exit 0 sinon.
-// Résidu mesuré sur l'arbre : Codex à 360×740, page 3007/740 — #1860. Aucune liste d'exemption ici :
-// la sonde reste rouge tant qu'il vit.
+// Sortie : la liste complète des défauts, exit 1 s'il en reste, exit 0 sinon. Aucune liste
+// d'exemption ici.
 import {
   openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, clickItemByText, VUES_RECETTE, FN_NOMMER_ELEMENT,
 } from './lib.mjs';
@@ -502,7 +501,7 @@ async function main() {
     for (const e of echecs) console.error(`  · ${e}`);
     process.exit(1);
   }
-  console.log('\nHauteur réelle : aucun scrollport de page, aucun corps de modale écrasé, acteur au trait en vue, aucun pied de cadre hors champ, aucun contenu coupé sous le bord d\'un cadre, aucun chevauchement dans un cadre — aux trois vues.');
+  console.log('\nHauteur réelle : aucun scrollport de page, aucun corps de modale écrasé, acteur au trait en vue, aucun pied de cadre hors champ, aucun contenu coupé sous le bord d\'un cadre, aucun chevauchement dans un cadre — à chaque vue.');
 }
 
 if (import.meta.main) {

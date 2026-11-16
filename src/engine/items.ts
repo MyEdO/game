@@ -23,11 +23,12 @@ import {
   type FireArc,
   type CharKey,
   type Main,
+  type PerteSansEquipe,
 } from './types';
 import { bonus, bonusDeForce, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants, damageWeapon, isImprovised, effectiveWeaponRange } from './weaponDamage';
-import { groupeAPoudre, maniementRetenu, type ManiementRetenu } from './weaponGroup';
+import { groupeAPoudre, groupeLance, maniementRetenu, type ManiementRetenu } from './weaponGroup';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
@@ -119,6 +120,7 @@ function deciderApparenceALaNaissance<T extends GabaritDObjet>(
  *  vs « +BF+N ». DÉRIVE l'affichage de la donnée structurée (`WeaponDamageSpec`, dans `types.ts`). */
 export function damageString(d: WeaponDamageSpec): string {
   if ('literal' in d) return d.literal;
+  if ('aucun' in d) return '–';
   if (d.plusBF) return d.flat === 0 && d.bare ? '+BF' : `+BF+${d.flat}`;
   return d.flat < 0 ? `${d.flat}` : `+${d.flat}`; // Indice négatif : « -2 », pas « +-2 »
 }
@@ -146,9 +148,10 @@ export function reachRankOf(reach: string | null | undefined): number | null {
 
 /** INVERSE de `damageString` (chaîne → spec) — pour la migration des données et la saisie éditeur,
  *  JAMAIS au runtime. « +BF+4 »→{plusBF,flat:4}, « +9 »→{plusBF:false,flat:9}, « +BF »→{plusBF,flat:0,bare},
- *  « -2 »→{plusBF:false,flat:-2}, sinon « Spécial » → {literal}. */
+ *  « -2 »→{plusBF:false,flat:-2}, « – »→{aucun}, sinon « Spécial » → {literal}. */
 export function parseDamage(s: string): WeaponDamageSpec {
   const t = s.trim();
+  if (t === '–' || t === '-') return { aucun: true };
   const plusBF = /BF/i.test(t);
   const nums = t.replace(/BF/gi, '').match(/[+-]?\d+/g);
   if (!plusBF && !nums) return { literal: t }; // non chiffrable (« Spécial »)
@@ -162,11 +165,13 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   shape: true,
   reach: true,
   range: true,
-  soloSimple: true,
+  perteSansEquipe: true,
+  bouclierDEquipe: true,
   indirect: true,
   bladed: true,
   organicProjectile: true,
   onHitEffects: true,
+  passifDArme: true,
   minRangeBand: true,
   sizeFor: true,
   requiresMastery: true,
@@ -230,7 +235,7 @@ export interface WeaponSpec extends ProprietesIntrinsequesDArme {
   trappingId?: string;
   weaponGroup?: string;
   defaultAmmo?: string;
-  soloSimple?: boolean;
+  perteSansEquipe?: PerteSansEquipe;
   indirect?: boolean;
   bladed?: boolean;
   organicProjectile?: boolean;
@@ -835,16 +840,25 @@ export function lacherLArme(c: Combatant, weapon: Weapon): void {
   mainsNuesSiDesarme(c.weapons);
 }
 
-/** L'arme TOMBE (`LDB 60 l.50`, `LDB 62 l.280`, CRB 036 l.80) : elle quitte les mains (`lacherLArme`) et, objet de
- *  l'inventaire, quitte aussi son porteur, armement re-dérivé ; rend cet objet, à déposer au sol par l'appelant.
- *  `undefined` pour une arme sans objet (statbloc, pièce de poste), qui n'a que quitté les mains. */
-export function laisserTomber(c: Combatant, weapon: Weapon): ItemInstance | undefined {
+/** L'arme TOMBE (`LDB 60 l.50`, `LDB 62 l.280`, CRB 036 l.80, `LDB 14 l.142`) : elle quitte les mains (`lacherLArme`)
+ *  et, objet de l'inventaire, quitte aussi son porteur, armement re-dérivé ; rend cet objet, à déposer au sol par
+ *  l'appelant. L'arme d'un Trait résolue au catalogue (`trappingId`) : le Trait cède, comme devant un objet tenu, et
+ *  l'objet naît sous un uid neuf (`idNeuf`), LDB 85 l.31 ; #4330. `undefined` pour une arme sans objet (attaque
+ *  naturelle, pièce de poste), qui n'a que quitté les mains. */
+export function laisserTomber(c: Combatant, weapon: Weapon, idNeuf: FabriqueDId): ItemInstance | undefined {
   const it = objetSourceDeLArme(c, weapon);
   lacherLArme(c, weapon);
-  if (!it || !(c.items ?? []).includes(it)) return undefined;
-  c.items = c.items!.filter((i) => i !== it);
-  recomputeLoadout(c);
-  return it;
+  if (it && (c.items ?? []).includes(it)) {
+    c.items = c.items!.filter((i) => i !== it);
+    recomputeLoadout(c);
+    return it;
+  }
+  const trait = weapon.trappingId ? (c.traits ?? []).find((t) => `trait-${cleDInstanceDeTrait(t)}` === weapon.uid) : undefined;
+  if (!trait) return undefined;
+  const cle = cleDInstanceDeTrait(trait);
+  c.traits = c.traits!.filter((t) => t !== trait);
+  if (c.liveTraits) c.liveTraits = c.liveTraits.filter((t) => cleDInstanceDeTrait(t) !== cle);
+  return itemFromTrappingById(weapon.trappingId!, idNeuf, findTrappingById, contexteDeNaissanceDObjet(c)) ?? undefined;
 }
 
 /** Libellé AUTO d'un set d'armes, DÉRIVÉ de son CONTENU (façon Dragon Age / Pillars) : nom de l'arme
@@ -915,9 +929,9 @@ export function weaponFromItem(it: ItemInstance, hand?: Main, ctx?: ContexteDeMa
   return applyEnchants(buildWeapon({
     ...copierIntrinseques(it, true),
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'distance',
-    // Possession de catalogue SANS profil de Dégâts (lasso, mortier, munitions de trait) : « +BF » nu.
+    // Possession de catalogue SANS profil de Dégâts (munitions de trait) : Dégâts « – ».
     // Convention UNIQUE du profil d'arme — elle vit ICI, plus aucun appelant ne la redéclare.
-    damage: it.damage ?? { plusBF: true, flat: 0, bare: true },
+    damage: it.damage ?? { aucun: true },
     qualities: it.qualities, subType: it.subType, weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo,
     reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
     ...(it.teinte ? { teinte: it.teinte } : {}), apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
@@ -1400,7 +1414,7 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
   if (melee.length) melee.sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0].equipped = true;
   if (ranged.length) ranged[0].equipped = true;
   const holder = { items } as Combatant; // equipConflicts lit c.items (équipés au fil de l'eau)
-  const armours = items.filter((i) => i.kind === 'armor').sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
+  const armours = items.filter((i) => i.kind === 'armor' && !itemCapability(i, 'armureDeMonture')).sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
   for (const a of armours) if (!equipConflicts(holder, a).length) a.equipped = true;
   // LDB 61 l.21
   for (const it of items) if (it.kind !== 'armor' && isWearable(it) && !equipConflicts(holder, it).length) it.equipped = true;
@@ -1408,9 +1422,11 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
 }
 
 /** Famille de munitions canonique. Les Groupes À POUDRE (`groupeAPoudre`) partagent les mêmes munitions
- *  (LDB 62 l.99 ; LDB 62 l.129-131). Les autres familles (Arc/Arbalète/Fronde) correspondent à l'identique. */
+ *  (LDB 62 l.99 ; LDB 62 l.129-131). Une arme lancée (`groupeLance`) est son propre projectile : aucune
+ *  famille (LDB 14 l.142 ; #4330). Les autres familles (Arc/Arbalète/Fronde) correspondent à l'identique. */
 export function ammoFamily(subType?: string): string {
   const s = subType ?? ''; // `subType` = id de Groupe
+  if (groupeLance(s)) return '';
   if (groupeAPoudre(s)) return 'poudre-ingenierie';
   // Artillerie (AA/MDG) : les armes de siège (canon/baliste/mortier/pierrier) tirent les munitions de
   // siège (boulets, carreaux, bombes, mitraille). Sans cette normalisation, une arme de siège
@@ -1580,7 +1596,8 @@ export function consumeAmmo(c: Combatant, used: ItemInstance): void {
 }
 
 /** Arme à distance « augmentée » par la munition tirée : Dégâts combinés (flats additionnés, BF si l'un
- *  l'utilise) et Atouts fusionnés (ex. Empaleuse de la Flèche). */
+ *  l'utilise ; arme à Dégâts « – » : ceux de la munition, AA 10 l.192) et Atouts fusionnés (ex. Empaleuse
+ *  de la Flèche). */
 export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const w = weapon.damage;
   const a = ammo.damage;
@@ -1588,6 +1605,6 @@ export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   for (const q of ammo.qualities) if (!qualities.some((x) => x.id === q.id)) qualities.push(q);
   const damage: WeaponDamageSpec = 'flat' in w
     ? { plusBF: w.plusBF || (a != null && 'plusBF' in a && a.plusBF), flat: w.flat + (a != null && 'flat' in a ? a.flat : 0) }
-    : w; // arme « Spécial » (literal) → inchangée
+    : 'aucun' in w ? (a ?? w) : w; // arme « Spécial » (literal) → inchangée
   return { ...weapon, damage, qualities };
 }

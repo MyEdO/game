@@ -15,8 +15,8 @@ extends SceneTree
 ##
 ## La part se lit en lumière linéaire, l'environnement de la recette en tonemap linéaire (`monde_du_bati`) : la teinte du
 ## noyau est une part de lumière linéaire, que la courbe filmique, transformation d'affichage, abaisserait encore sur les
-## pixels sombres. La recette mesure le voile des surfaces : le brouillard volumétrique de Forward+ ajoute une lumière
-## diffuse que la vision ne voile pas, la recette le coupe (`_a_l_ombre`).
+## pixels sombres. Sous l'éclairage d'un extérieur, le brouillard volumétrique de Forward+ reste allumé : sa brume
+## diffuse la part de chaque case (`Lumiere.brume`, `_a_l_ombre`).
 ##
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
@@ -179,13 +179,13 @@ func _entre(monde: Monde, regard: String, objets: Dictionary) -> void:
 ## Sous l'éclairage d'un extérieur du jeu (`PIXELS.LUMIERE_DU_JEU`), sous deux caméras : la tactique d'un demi-tour (azimut
 ## 180), en plongée vers la face du mur du kit et de la boîte que son soleil laisse à l'ombre, et l'œil de l'immersion
 ## au ras du sol, qui le voit en rasant : toute explorée, toute inconnue, chacun, le sol compris, à la part de lumière
-## de son état, contre le témoin sans vision, au plus `TOLERANCE` au-dessus et `CREUX_DU_PILOTE` de plus au-dessous. Le
-## brouillard volumétrique, que la vision ne voile pas, coupé.
+## de son état, contre le témoin sans vision, à `TOLERANCE` près sous Forward+, brouillard volumétrique allumé, et sous
+## le rendu de compatibilité au plus `TOLERANCE` au-dessus et `CREUX_DU_PILOTE` de plus au-dessous.
 func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 	var volume := monde.volume
 	(monde.get_node("Lumiere") as Lumiere).eclairer(PIXELS.LUMIERE_DU_JEU, METRES_PAR_CASE)
-	(monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment.volumetric_fog_enabled = false
 	var lus := objets.merged({sol = [monde.get_node("VolumeDeScene/Volume/Morceaux").get_child(0).get_node("Vu")]})
+	var creux := 0.0 if Lumiere.rendu_complet() else CREUX_DU_PILOTE
 	for camera in ["en plongée", "au ras du sol"]:
 		if camera == "en plongée":
 			monde.regarder("tactique")
@@ -212,7 +212,7 @@ func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 					continue
 				var part := PIXELS.part(temoin, voilee, masques[nom])
 				print("[voile-du-bati] sous le ciel du jeu, %s, %s : %s %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
-				if part - etat[1] > TOLERANCE or part - etat[1] < -(TOLERANCE + CREUX_DU_PILOTE):
+				if part - etat[1] > TOLERANCE or part - etat[1] < -(TOLERANCE + creux):
 					_fautes.append("sous le ciel du jeu, %s, %s : %s à la part %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
 		volume.voir(null)
 

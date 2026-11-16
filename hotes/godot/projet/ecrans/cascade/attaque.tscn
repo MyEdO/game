@@ -34,7 +34,7 @@ source = "fenetre.etape"
 [node name="Zone" type="Node" parent="Colonne/Cible"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("cible", "arme")
+ids = PackedStringArray("cible", "arme", "sansEquipe")
 
 [node name="Coup" type="HFlowContainer" parent="Colonne"]
 

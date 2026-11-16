@@ -26,11 +26,12 @@
   "surfaces": [
     {
       "nom": "bas",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--laine"
     }
   ],
   "glb": {
-    "sha256": "fa64c660637a9cdde6d24cea71a46cfcf84c96beff9e700bb3fc549bbef2e4b7",
-    "octets": 449024
+    "sha256": "7f07c6664dd3f7005c3a04d69c7c19df81dc40b4888e7b1f9f8a8cb8aa33f3c2",
+    "octets": 562452
   }
 }

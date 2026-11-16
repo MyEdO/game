@@ -8,21 +8,16 @@
  */
 import { Combatant, Weapon } from './types';
 import { REACH_IDS, reachIdOf, reachRankOf } from './items';
+import { casesDansLaPortee } from './grid';
 
 /**
- * Portée d'ENGAGEMENT / d'attaque d'une arme de MÊLÉE, en CASES. RAW : LDB 62 l.163 (Allonge
- * « Très longue » → Engage jusqu'à 4 m) et l.164 (« Considérable » → 6 m), avec 1 case = 2 m
- * (LDB 15 l.12) → 2 et 3 cases. Toute autre Allonge (ou arme à distance / mains nues) engage aux
- * 2 m par défaut que ces deux lignes remplacent (« plutôt que 2 ») = 1 case.
- * L'Option « Longueur d'Arme » (LDB 62 l.172 : −10 à l'adversaire) est une règle optionnelle dont le
- * modificateur de Test vit dans combat.ts (`weaponReachPenalty`) ; l'engagement reste basé sur les cases. Pure.
+ * Portée d'ENGAGEMENT / d'attaque d'une arme de MÊLÉE, en CASES à l'échelle de la scène (`metresPerTile`).
+ * LDB 62 l.163-164 (Très longue 4 m, Considérable 6 m, « plutôt que 2 ») ; LDB 15 l.12. Plancher d'une case
+ * (`casesDansLaPortee`). L'Option « Longueur d'Arme » (LDB 62 l.172) vit dans combat.ts (`weaponReachPenalty`).
  */
-export function reachTiles(weapon: Weapon | null | undefined): number {
-  if (!weapon || weapon.type !== 'melee') return 1;
-  const id = reachIdOf(weapon.reach);
-  if (id === 'tres-longue') return 2;
-  if (id === 'considerable') return 3;
-  return 1;
+export function reachTiles(weapon: Weapon | null | undefined, metresPerTile: number): number {
+  const id = weapon?.type === 'melee' ? reachIdOf(weapon.reach) : null;
+  return casesDansLaPortee(id === 'tres-longue' ? 4 : id === 'considerable' ? 6 : 2, metresPerTile);
 }
 
 /** Rang d'Allonge du combat de MÊLÉE d'un combattant, lu sur l'arme de mêlée qu'il emploie — ou sur son
@@ -44,8 +39,8 @@ export function longerThanShort(weapon: Weapon | null | undefined): boolean {
 
 /** Portée de mêlée d'un combattant = Allonge de son arme de mêlée employée (la 1ʳᵉ, comme `attackWeapon`).
  *  Source UNIQUE de l'éligibilité d'attaque de mêlée (héros, résolution, IA) → symétrie garantie. Pure. */
-export function meleeReachTiles(weapons: Weapon[]): number {
-  return reachTiles(weapons.find((w) => w.type === 'melee'));
+export function meleeReachTiles(weapons: Weapon[], metresPerTile: number): number {
+  return reachTiles(weapons.find((w) => w.type === 'melee'), metresPerTile);
 }
 
 export function isEngaged(c: Combatant): boolean {

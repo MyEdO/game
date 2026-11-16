@@ -81,8 +81,8 @@ describe('Naufrage — Natation montée par `rollStep` (#1153 L3)', () => {
 
 describe('Nuit — contagion / cauchemars / entretien différé montés par `rollStep` (#1153 L3)', () => {
   const restPending = (party: Combatant[]): PendingRest => ({
-    places: { lodging: [], food: [] }, quality: 'normale', days: 1, phase: 'setup',
-    perHero: Object.fromEntries(party.map((h) => [h.id, { lodging: 'auberge', food: 'repas' }])),
+    places: { auberge: true }, quality: 'normale', days: 1, phase: 'setup',
+    perHero: Object.fromEntries(party.map((h) => [h.id, { lodging: 'chambre-1', food: 'repas' }])),
   } as never);
 
   it('Contagion + Cauchemars : cible = valeur RAW + Difficulté, et rien d’anonyme', () => {
@@ -222,7 +222,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
  */
 describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 volet A)', () => {
   const restPending = (party: Combatant[], lodging: string): PendingRest => ({
-    places: { lodging: [], food: [] }, quality: 'normale', days: 1, phase: 'setup',
+    places: { auberge: true }, quality: 'normale', days: 1, phase: 'setup',
     perHero: Object.fromEntries(party.map((h) => [h.id, { lodging, food: 'repas' }])),
   } as never);
 
@@ -235,7 +235,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
   it('Marche forcée : base NUE, État nommé, cible = valeur JETÉE (Résistance +0, LDB 51 l.195)', () => {
     const marcheur = campeur({ id: 'mar', label: 'Marcheur' });
     fresh([marcheur]);
-    const p = { ...restPending([marcheur], 'auberge'), travelMarch: [marcheur.id] } as never as PendingRest;
+    const p = { ...restPending([marcheur], 'chambre-1'), travelMarch: [marcheur.id] } as never as PendingRest;
     const { steps } = buildNightCascade(get, set, p, { fedDaily: true });
     const st = jetDe(steps.find((s) => s.kind === 'marche-forcee')!);
     const nue = skillBaseValue(marcheur, { skill: { id: 'resistance' }, characteristic: 'endurance' });
@@ -252,7 +252,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     // la porte compte (`LDB 16 l.125`), et c'est ce que ce test mesure (#1685).
     const blesse = campeur({ id: 'ble', label: 'Blessé', wounds: blessuresDeBase(12, 4), conditions: [{ id: 'extenue', value: 1 }] as never });
     fresh([blesse]);
-    const { steps } = buildNightCascade(get, set, restPending([blesse], 'auberge'), { fedDaily: true });
+    const { steps } = buildNightCascade(get, set, restPending([blesse], 'chambre-1'), { fedDaily: true });
     const st = jetDe(steps.find((s) => s.kind === 'recuperation')!);
     const nue = skillBaseValue(blesse, { skill: { id: 'resistance' } });
     const jetee = testValue(blesse, { skill: { id: 'resistance' } });
@@ -318,7 +318,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     });
     fresh([ivre]);
     set({ lastUpkeepDay: -1 } as never);
-    const { steps } = buildNightCascade(get, set, restPending([ivre], 'auberge'), { fedDaily: true });
+    const { steps } = buildNightCascade(get, set, restPending([ivre], 'chambre-1'), { fedDaily: true });
     const desso = steps.find((s) => s.kind === 'dessoulage')!;
     desso.participants![0].result = { roll: 50, target: desso.participants![0].target, sl: 0, success: true } as never;
     const out = applierDe('dessoulage')!(get, set, desso, get().party[0], { steps, index: 0 } as never);

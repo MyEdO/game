@@ -30,7 +30,7 @@ import { ouvrirLeRepos, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
 import type { IdDeClasseDePassage } from './designations';
 import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
-import { lieuDuGroupe, placeById, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { lieuDuGroupe, placeById, otherEnd, refusDAcces, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
 import {
   TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, classeRetenue, forcedMarchTest, applyTravelFatigue,
@@ -61,12 +61,11 @@ import { canAfford, formatMoney, type Money } from '../engine/money';
 import { provisioningManifest } from '../engine/provisions';
 import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
-import { evalCondition } from '../engine/flowCore';
 import { rollDice } from '../engine/dice';
 import { facesDuDe } from '../engine/tables';
 import { rule } from '../engine/policy';
-import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
-import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
+import { isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
+import { currentSeason, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
 import { rangerLesEvenements } from './evenementDuJour';
@@ -84,7 +83,7 @@ import type { Combatant } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import { traceLineOf } from '../engine/traceLine';
 import { refLabel } from '../data';
-import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
+import { DEFAULT_VOYAGE_ORDERS, traverseeCommandee } from './voyageCadence';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
@@ -167,8 +166,9 @@ export interface TravelPlan {
   kmDone: number;
   /** Interrompu par une péripétie (combat/transition) — reprise via `reprendreLeVoyage`. */
   interrupted: boolean;
-  /** ORDRES permanents de la traversée (couche `voyageCadence`) : cadence COMMANDÉE (routine auto-résolue,
-   *  PV du jour) ou JOUR-PAR-JOUR (modale par jet). Consommé par la mer ET le fluvial. */
+  /** ORDRES permanents du trajet (couche `voyageCadence`), à terre, en mer et au fleuve : cadence COMMANDÉE (le
+   *  pilote du jour joue tout jet d'office) ou JOUR-PAR-JOUR (une fenêtre par jet), lue par `traverseeCommandee` ;
+   *  absents, jour par jour. */
   orders?: import('./voyageCadence').VoyageOrders;
   /** Postes d'Activité de l'Étape : un héros → ≤1 Activité (EDOC 8). Initialisé depuis les rôles
    *  PERSISTANTS (`travelRole`) au départ, réutilisé chaque Étape (0 ré-assignation par jour). */
@@ -209,6 +209,10 @@ export interface TravelPlan {
   /** Événements RACONTÉS du jour EN COURS, tous milieux (#4005) : seul écrivain `noteEvent`, rangés dans le
    *  `TravelRecapDay` clos à chaque sortie de jour (`rangerLesEvenements`). Absent : aucun événement. */
   evenements?: import('./recapLine').RecapEvent[];
+  /** COMPTE RENDU du jour EN COURS : les rangées des bandes jouées sous `rowSurface: 'pv'`, seul écrivain
+   *  `voyageCadence.noterAuProcesVerbal`, rangées dans le `TravelRecapDay` clos à la sortie du jour. Absent : rien
+   *  n'y est écrit. */
+  procesVerbal?: import('./restFlow').NightEntry[];
 }
 
 /** Entrées d'une journée de route terrestre, figées au build de la cascade `travelDay` : l'horloge/les
@@ -332,7 +336,7 @@ export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode):
 }
 
 /** Réglages d'un départ choisis à la carte du monde : classe du billet, heures de route par jour, allure,
- *  rythme forcé et cadence en mer, traversée rapide. */
+ *  rythme forcé en mer, cadence du trajet, traversée rapide. */
 export interface OptionsDeDepart {
   classeId?: IdDeClasseDePassage; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
   cadence?: import('./voyageCadence').VoyageCadence;
@@ -410,9 +414,8 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
   const { from, route } = trajet;
   if (route.from != null && route.from.id !== from.id) return t('tf.refusSensUnique');
   // #684
-  if (route.when != null && !evalCondition(route.when, condCtx(() => s))) {
-    return garanti(route.refus, route.id, 'raison du trajet fermé (`mapRouteSchema`)').texte;
-  }
+  const ferme = refusDAcces(route, condCtx(() => s));
+  if (ferme !== null) return ferme;
   // EDOC 07 l.140
   if (mode === 'monture' && !rule('voyage-allures')) return t('tf.refusMode');
   if (mode === 'monture' && !partyFullyMounted(s.party, s.possessions)) return t('tf.refusMonture');
@@ -515,6 +518,7 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   const plan: TravelPlan = {
     routeId, fromPlaceId: from.id, toPlaceId: to.id, mode, departAt: get().gameTime,
     hoursPerDay: hours, km: route.km, kmDone: 0, interrupted: false,
+    orders: { cadence: opts.cadence ?? DEFAULT_VOYAGE_ORDERS.cadence },
     ...(allure ? { allure } : {}),
     // Postes initialisés depuis les rôles PERSISTANTS (`travelRole`) — réutilisés chaque Étape (EDOC 8).
     postes: rule('voyage-etapes') ? stageAssignmentFromRoles(party) : undefined,
@@ -647,7 +651,7 @@ function runTravelDays(get: Get, set: Set): void {
       recap?.days.push(recapDay);
       if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
       const daySteps = buildTravelDayCascade(get, set, route, recapDay, [], { toLabel: to.label, destLabel: to.label });
-      jouerLaJournee(get, set, [premierKm, ...daySteps], { title: t('tf.titreDuJourForce'), purpose: 'travelDay' }, false);
+      jouerLaJournee(get, set, [premierKm, ...daySteps], { title: t('tf.titreDuJourForce'), purpose: 'travelDay' }, traverseeCommandee(get()));
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
     const forced = forcedDriver ? forcedPaceDay(get, set, kmLeft, forcedDriver) : null;
@@ -721,7 +725,7 @@ function runTravelDays(get: Get, set: Set): void {
     // locaux ne survivent pas — `continueTravelDayAfterCascade` les relit depuis `plan.recap`.
     if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
     if (daySteps.length) {
-      jouerLaJournee(get, set, daySteps, { title: t('tf.titreDuJour'), purpose: 'travelDay' }, false);
+      jouerLaJournee(get, set, daySteps, { title: t('tf.titreDuJour'), purpose: 'travelDay' }, traverseeCommandee(get()));
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
     // Aucun jet influençable : finalisation immédiate (arrivée / halte de nuit) — comme la cascade le
@@ -738,11 +742,6 @@ export function continueTravelAfterNight(get: Get, set: Set): void {
   if (plan.sea) { runSeaDay(get, set); return; } // traversée maritime : la journée suivante est navale
   if (plan.river) { runRiverDays(get, set); return; } // descente fluviale : la journée suivante est fluviale
   runTravelDays(get, set);
-}
-
-/** Saison courante (table de Météo EDOC 8 l.52) depuis l'horloge du jeu. */
-function currentSeason(get: Get): Season {
-  return seasonOfMonth(toDate(get().gameTime).month);
 }
 
 /**
@@ -805,7 +804,7 @@ function buildTravelDayCascade(
     pousseSi(steps, tableStep({
       id: STAGE_WEATHER_STEP_ID, kind: STAGE_WEATHER_KIND, worldOwner: true, icon: 'voyage/vague',
       label: t('step.stageWeather'),
-      table: { tableId: stageWeatherTableId(currentSeason(get)) },
+      table: { tableId: stageWeatherTableId(currentSeason(get().gameTime)) },
       stake: voyageStakeRef(STAGE_WEATHER_KIND),
     }));
   }
@@ -1365,7 +1364,7 @@ export const TABLES = {
       const tiree = step.table?.result;
       if (!tiree) return {};
       const w = tiree.id as Weather;
-      const season = currentSeason(get);
+      const season = currentSeason(get().gameTime);
       // CONTEXTE DU JOUR : il vit dans l'état (`plan.recap.days[dernier]`, poussé avant le build) — une
       // fenêtre de pose peut s'intercaler entre le dé et la suite, donc la pile ne peut pas le porter.
       const jours = get().travelPlan?.recap?.days ?? [];

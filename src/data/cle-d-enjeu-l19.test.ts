@@ -7,8 +7,16 @@
  */
 import { describe, expect, it } from 'vitest';
 import { STAKES, combatStakeRef, flowStakeRef, nightStakeRef, resolveStake, voyageStakeRef } from './index';
-import { catalogStakeSchema, flowTestSchema } from './schemas/grammaire/mecanique';
+import type { z } from 'zod';
+import { catalogStakeSchema, flowTestSchema, stakeRefSchema } from './schemas/grammaire/mecanique';
 import seaEvents from './sea-events.json';
+
+/** Les clés de CHAQUE membre d'une union. */
+type ClesDe<T> = T extends unknown ? keyof T : never;
+/** `true` seulement si `A` et `B` s'incluent MUTUELLEMENT ; sinon `= true` ne compile plus (gaté par le typecheck). */
+type Eq<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+/** Le type SAISI d'un enjeu (#4234) : les clés qu'un document écrit, exactement. */
+const enjeuSaisi: Eq<ClesDe<z.output<typeof stakeRefSchema>>, 'key' | 'authored' | 'source' | 'adapteDe'> = true;
 
 const entree = (id: string) => STAKES.find((e) => e.id === id)!;
 
@@ -48,6 +56,14 @@ describe('L19 — un enjeu, une identité : son id', () => {
     const r = flowTestSchema.safeParse({ ...test, stake: { key, values: { metres: 3 } } });
     expect(r.success ? [] : r.error.issues.map((i) => [i.code, i.path.join('/'), 'keys' in i ? i.keys : []])).toEqual([['unrecognized_keys', 'stake', ['values']]]);
     expect(flowTestSchema.safeParse({ ...test, stake: { key } }).success).toBe(true);
+  });
+
+  it('un document authore une clé de catalogue ou sa phrase, jamais l’enjeu dérivé du porteur, que le socle calcule (#4234, arbitrage #1262)', () => {
+    const test = { skill: { id: 'athletisme' }, difficulty: 'intermediaire' };
+    const r = flowTestSchema.safeParse({ ...test, stake: { from: { kind: 'sort', id: 'fleche-de-feu' } } });
+    expect(r.success ? [] : r.error.issues.map((i) => [i.code, i.path.join('/')])).toEqual([['invalid_union', 'stake']]);
+    expect(flowTestSchema.safeParse({ ...test, stake: { authored: 'Ce qui se joue.' } }).success).toBe(true);
+    expect(enjeuSaisi).toBe(true);
   });
 
   it('un document ne vise qu’une entrée d’enjeu qui existe et n’a aucun trou : le moteur seul les remplit (#3606 M2e3)', () => {

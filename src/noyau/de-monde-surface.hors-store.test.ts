@@ -240,7 +240,7 @@ const marche = (id: string, label: string) => buildScene({ id, label, desc: '.',
 function carte(): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
-    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, market: profile() }],
+    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, taille: 4, market: { richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'] } }],
     routes: [],
   };
 }
@@ -744,7 +744,7 @@ function prepareJourTerrestre(seed: number): void {
   get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });
 }
-const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied'); };
+const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied', { cadence: 'jourParJour' }); };
 
 /** État d'une traversée dont le compteur d'événement de bord échoit AUJOURD'HUI (l'étape à table
  *  existe). RNG ensemencé EN TÊTE, pour la raison dite sur `prepareJourTerrestre` : `buildSeaPlan`

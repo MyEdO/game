@@ -1634,7 +1634,9 @@
     },
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "aucun": true
+    },
     "qualities": [
       {
         "id": "immobilisante"
@@ -1739,6 +1741,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -1784,6 +1789,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -2642,6 +2650,7 @@
     "id": "petites-munitions-et-poudre",
     "type": "trappings",
     "label": "Petites munitions et Poudre",
+    "packSize": 12,
     "categorie": "ammunition",
     "subType": {
       "id": "poudre-noire-et-ingenierie"
@@ -2664,7 +2673,8 @@
     },
     "source": {
       "book": "livre-de-base",
-      "page": 296
+      "page": 296,
+      "note": "LDB 62 l.123 ; Lot : AA 08 l.499 (12)."
     }
   },
   {
@@ -2703,7 +2713,7 @@
   {
     "id": "jambieres-en-cuir",
     "type": "trappings",
-    "label": "Jambières en cuir",
+    "label": "Jambières de cuir",
     "categorie": "armor",
     "subType": {
       "id": "cuir-souple"
@@ -3168,6 +3178,64 @@
     },
     "shape": {
       "id": "plastron"
+    }
+  },
+  {
+    "id": "barde",
+    "type": "trappings",
+    "label": "Barde",
+    "categorie": "armor",
+    "subType": {
+      "id": "mailles"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": "Tête, Corps, Pattes avant",
+    "pa": 2,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Possession sans prix ni disponibilité, Enc non compté. Arbitrages du 2026-11-16 (#4135) : « Possession seulement, non chiffrée » ; « Oui, même objet » ; matière, « Barde mailles, blaireau cuir ».",
+    "source": {
+      "book": "aux-armes",
+      "page": 109,
+      "note": "AA 09 l.188 ; PA : Up in Arms 10 l.156 (VO, nombres seuls)"
+    },
+    "shape": {
+      "id": "barde"
+    },
+    "capabilities": {
+      "armureDeMonture": true
+    }
+  },
+  {
+    "id": "caparacon-pour-blaireau",
+    "type": "trappings",
+    "label": "Caparaçon pour blaireau",
+    "categorie": "armor",
+    "subType": {
+      "id": "cuir-bouilli"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": "Tête, Corps",
+    "pa": 2,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Possession sans prix ni disponibilité, Enc non compté. Arbitrages du 2026-11-16 (#4135) : « Possession seulement, non chiffrée » ; « Oui, même objet » ; matière, « Barde mailles, blaireau cuir ».",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 88,
+      "note": "ADE I 07 l.66"
+    },
+    "shape": {
+      "id": "barde"
+    },
+    "capabilities": {
+      "armureDeMonture": true
     }
   },
   {
@@ -4936,6 +5004,85 @@
     }
   },
   {
+    "id": "rhum-tord-boyaux",
+    "type": "trappings",
+    "label": "Rhum tord-boyaux",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.411) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17). Arbitrage du 2026-11-16 (#4202) : « Un Test, l'échec vaut deux verres ».",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 152,
+      "note": "MDG 16 l.411"
+    },
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "long-drong-silver-capitaine-des-pirates-tueurs-m-cc-ct-f-e-i-ag-dex-int-fm-soc-b-3-72-62-56-69-40-29-32-40-71-52-30",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 5,
+          "sum": "32de8022519c46b7"
+        }
+      ]
+    },
+    "consumable": {
+      "kind": "test",
+      "test": {
+        "skill": {
+          "id": "resistance-a-l-alcool"
+        },
+        "label": "Rhum tord-boyaux — Résistance à l'alcool"
+      },
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
+      },
+      "echec": {
+        "kind": "effet",
+        "effet": {
+          "type": "ops",
+          "ops": [
+            {
+              "op": "intoxicate"
+            },
+            {
+              "op": "intoxicate",
+              "tantQuIvre": [
+                {
+                  "op": "skillMod",
+                  "skill": {
+                    "id": "charme"
+                  },
+                  "mod": -20
+                },
+                {
+                  "op": "grantTrait",
+                  "trait": {
+                    "id": "perturbant"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "id": "dejeuner",
     "type": "trappings",
     "label": "Déjeuner",
@@ -5769,6 +5916,9 @@
     "id": "pilon-et-mortier",
     "type": "trappings",
     "label": "Pilon et Mortier",
+    "shape": {
+      "id": "pilon_et_mortier"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "outils-et-necessaires"
@@ -6873,6 +7023,32 @@
     }
   },
   {
+    "id": "composant-d-incantation",
+    "type": "trappings",
+    "label": "Composant d’incantation",
+    "capabilities": {
+      "isSpellComponent": true
+    },
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Encombrement 0 : arbitrage utilisateur du 2026-11-16 (« 0, négligeable », ticket #4132, https://github.com/MyEdO/game/issues/4132). Aucun prix de catalogue : le composant coûte le NI du Sort qu'il favorise (LDB 46 l.113, LDB 49 l.5), payé à l'achat.",
+    "source": {
+      "book": "livre-de-base",
+      "page": 236,
+      "note": "LDB 46 l.107-113"
+    }
+  },
+  {
     "id": "parchemin",
     "type": "trappings",
     "label": "Parchemin",
@@ -6952,6 +7128,9 @@
     "id": "livre",
     "type": "trappings",
     "label": "Livre",
+    "shape": {
+      "id": "livre"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "livres-et-documents"
@@ -8619,8 +8798,8 @@
     "qualities": [],
     "desc": "Cette substance hallucinogène extrêmement addictive pousse sous les potences et elle est mâchée pour calmer un esprit agité. Les utilisateurs doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ; de plus, le Mouvement est réduit de moitié. Cependant, les Tests de Calme reçoivent un bonus de +20. Durée: active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
     "price": {
-      "gold": 0,
-      "silver": 1,
+      "gold": 1,
+      "silver": 0,
       "brass": 0
     },
     "source": {
@@ -11000,7 +11179,9 @@
       "carreau-de-baliste",
       "carreau-nain-norse"
     ],
-    "soloSimple": true,
+    "perteSansEquipe": {
+      "removeType": "atout"
+    },
     "enc": 20,
     "availability": "limitee",
     "reach": null,
@@ -11559,7 +11740,9 @@
     "range": 100,
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "aucun": true
+    },
     "qualities": [
       {
         "id": "recharge",
@@ -13302,21 +13485,41 @@
     "id": "jezail-a-malepierre",
     "type": "trappings",
     "label": "Jezaïl à malepierre",
+    "hands": 2,
     "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
-    "availability": "exotique",
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 0
+    "perteSansEquipe": {
+      "removeQualities": [
+        "pointue",
+        "precise"
+      ]
     },
+    "bouclierDEquipe": {
+      "id": "bouclier-de-jezail"
+    },
+    "availability": null,
+    "price": null,
     "source": {
       "book": "zoo-imperial",
-      "page": 45
+      "page": 94,
+      "note": "ZI 13 l.203"
     },
-    "desc": "La contrefaçon skaven du long fusil du Hochland. Utilisez le profil du long fusil, mais ajoutez-y le Défaut Dangereuse. De plus, les cibles qu'elle blesse doivent effectuer un Test de Corruption (Mineure), car ses balles sont incrustées de malepierre.",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 3,
+          "sum": "a4a5c264975190c5"
+        }
+      ]
+    },
     "reach": null,
     "range": 100,
     "loc": null,
@@ -13327,21 +13530,99 @@
     },
     "qualities": [
       {
+        "id": "devastatrice"
+      },
+      {
         "id": "pointue"
+      },
+      {
+        "id": "a-poudre-noire"
       },
       {
         "id": "precise"
       },
       {
-        "id": "recharge"
+        "id": "recharge",
+        "value": 4
       },
       {
         "id": "dangereuse"
       }
     ],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "mineure",
+                  "nature": "physique"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "jezail"
+    },
+    "rangement": {
+      "id": "dos"
+    }
+  },
+  {
+    "id": "bouclier-de-jezail",
+    "type": "trappings",
+    "label": "Bouclier de jezaïl",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "shield": true,
+    "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "reach": "Très courte",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 2
+    },
+    "qualities": [
+      {
+        "id": "protectrice",
+        "value": 2
+      }
+    ],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.193"
+    },
+    "shape": {
+      "id": "rond"
     },
     "rangement": {
       "id": "dos"
@@ -13356,17 +13637,27 @@
     "subType": {
       "id": "ingenierie"
     },
-    "availability": "exotique",
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 0
-    },
+    "availability": null,
+    "price": null,
     "source": {
       "book": "zoo-imperial",
-      "page": 45
+      "page": 94,
+      "note": "ZI 13 l.197 ; Enc : VO Le Rat Cornu – Compagnon, p.34 (Ratling Gun, 3*, part du tireur principal)."
     },
-    "desc": "Machine à tuer skaven à plusieurs canons. Il faut deux skavens pour s'en servir : un pour charger, l'autre pour la maintenir tant bien que mal. Arme à distance : +10 Dégâts, portée 40 mètres, Atouts À Poudre noire, Empaleuse, Explosion 3 et Perforante, Défauts Dangereuse et Imprécise. Ses balles étant incrustées de malepierre, les cibles blessées doivent effectuer un Test de Corruption (Mineure) Accessible (+20).",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "5501bb1d60a58230"
+        }
+      ]
+    },
     "reach": null,
     "range": 40,
     "loc": null,
@@ -13394,15 +13685,155 @@
       },
       {
         "id": "imprecise"
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
       }
     ],
-    "enc": 4,
+    "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "canon_ratling"
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "mineure",
+                  "nature": "physique",
+                  "difficulty": "accessible"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "lance-maleflamme",
+    "type": "trappings",
+    "label": "Lance-maleflamme",
+    "hands": 2,
+    "categorie": "distance",
+    "subType": {
+      "id": "ingenierie"
+    },
+    "availability": null,
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.201 ; Enc et Groupe : VO Le Rat Cornu – Compagnon, p.34 (Warpfire Thrower, 2*, part du tireur principal)."
+    },
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 2,
+          "sum": "0d1625b597b74d14"
+        }
+      ]
+    },
+    "reach": null,
+    "range": 8,
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 6
+    },
+    "qualities": [
+      {
+        "id": "a-explosion",
+        "value": 4
+      },
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
+      }
+    ],
+    "enc": 2,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "condition",
+                "id": {
+                  "id": "en-flammes"
+                },
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "moderee",
+                  "nature": "physique"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
   },
   {
     "id": "pistolet-a-malepierre",
@@ -13412,17 +13843,27 @@
     "subType": {
       "id": "poudre-noire"
     },
-    "availability": "exotique",
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 0
-    },
+    "availability": null,
+    "price": null,
     "source": {
       "book": "zoo-imperial",
-      "page": 45
+      "page": 94,
+      "note": "ZI 13 l.205"
     },
-    "desc": "La version skaven des pistolets humains, « améliorée » selon leurs standards. Atouts À Poudre noire, Dévastatrice, Empaleuse, Perforante ; Défauts Dangereuse et Recharge 1. Ses balles étant incrustées de malepierre, les cibles qu'il blesse doivent effectuer un Test de Corruption (Mineure).",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 4,
+          "sum": "20ab9efd8607c7d8"
+        }
+      ]
+    },
     "reach": null,
     "range": 20,
     "loc": null,
@@ -13456,11 +13897,762 @@
       }
     ],
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "pistolet_malepierre"
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "mineure",
+                  "nature": "physique"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trident-de-triton",
+    "type": "trappings",
+    "label": "Trident de Triton",
+    "categorie": "melee",
+    "subType": {
+      "id": "armes-d-hast"
+    },
+    "enc": 250,
+    "availability": null,
+    "price": null,
+    "reach": "Considérable",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 6
+    },
+    "qualities": [
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "empaleuse"
+      },
+      {
+        "id": "magique"
+      },
+      {
+        "id": "percutante"
+      }
+    ],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "all",
+            "of": [
+              {
+                "kind": "woundsDealt",
+                "op": ">",
+                "value": 0
+              },
+              {
+                "kind": "navire",
+                "who": "target"
+              }
+            ]
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "characteristic": "endurance",
+              "difficulty": "complexe"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": {
+                      "id": "voie-d-eau"
+                    },
+                    "value": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "trigger": "onCrit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "navire",
+            "who": "target"
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "characteristic": "endurance",
+              "difficulty": "difficile"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": {
+                      "id": "voie-d-eau"
+                    },
+                    "value": 3
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "trident-de-triton",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "a67c9e416bb84218"
+        },
+        {
+          "kind": "blocs",
+          "sec": "trident-de-triton",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 2,
+          "sum": "955bf5e89912f4d7"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 149,
+      "note": "MDG 16 l.321-327"
+    }
+  },
+  {
+    "id": "pistolet-patte-d-oie-a-malepierre",
+    "type": "trappings",
+    "label": "Pistolet patte d'oie à malepierre",
+    "categorie": "distance",
+    "subType": {
+      "id": "poudre-noire"
+    },
+    "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "range": 10,
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 7
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "malepierre"
+      },
+      {
+        "id": "recharge",
+        "value": 5
+      },
+      {
+        "id": "tir-de-zone",
+        "value": 5
+      }
+    ],
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "archiseigneur-des-mers-vrisk-gratte-le-fer",
+          "secOcc": 1,
+          "b0": 14,
+          "b1": 14,
+          "sum": "c8dfe1d8b5e00961"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 157,
+      "note": "MDG 16 l.508-513"
+    },
+    "shape": {
+      "id": "pistolet_griffon"
+    },
+    "rangement": {
+      "id": "ceinture_d"
+    }
+  },
+  {
+    "id": "malelame-a-deux-mains",
+    "type": "trappings",
+    "label": "Malelame à deux mains",
+    "hands": 2,
+    "categorie": "melee",
+    "subType": {
+      "id": "armes-d-hast"
+    },
+    "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "reach": "Longue",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 5
+    },
+    "qualities": [
+      {
+        "id": "defensive"
+      },
+      {
+        "id": "empaleuse"
+      },
+      {
+        "id": "taille"
+      }
+    ],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 1
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "resistance"
+              },
+              "difficulty": "accessible"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": {
+                      "id": "sonne"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "passifDArme": [
+      {
+        "op": "armourPierce",
+        "amount": 0,
+        "bypass": "metal"
+      }
+    ],
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "7c5a615f6971b59a"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.199 ; « Assommé » = État Sonné (VO Stunned). Groupe, Enc, Allonge et Dégâts (hallebarde, +1 Dégâts) : VO Le Rat Cornu – Compagnon, p.35. « Peuvent libérer » lu comme permanent (passifDArme)."
+    },
+    "shape": {
+      "id": "hallebarde"
+    },
+    "rangement": {
+      "id": "dos"
+    },
+    "bladed": true
+  },
+  {
+    "id": "decharge-de-malelame",
+    "type": "trappings",
+    "label": "Décharge de malelame",
+    "hands": 2,
+    "categorie": "distance",
+    "subType": {
+      "id": "ingenierie"
+    },
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "maison": "Arbitrage du 2026-11-16 (#4202) : « Ignore seulement le métal ». Groupe Ingénierie, celui des armes du clan Skryre sans poudre noire (lance-maleflamme) ; Dégâts et Portée au Trait À distance du statbloc.",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.199 ; ZI 13 l.222"
+    },
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "7c5a615f6971b59a"
+        }
+      ]
+    },
+    "reach": null,
+    "range": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "passifDArme": [
+      {
+        "op": "armourPierce",
+        "amount": 0,
+        "bypass": "metal"
+      }
+    ]
+  },
+  {
+    "id": "malelame-a-une-main",
+    "type": "trappings",
+    "label": "Malelame à une main",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "reach": "Moyenne",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 5
+    },
+    "qualities": [
+      {
+        "id": "zap"
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 35,
+      "note": "Arme simple, +1 Dégâts et Atout ZAP ! (VO Warp-Blades). Folio relevé aux renvois internes du livre (« Warp-blades (see page 35) »), l'extraction n'ayant aucune ancre de folio."
+    },
+    "shape": {
+      "id": "epee"
+    },
+    "rangement": {
+      "id": "ceinture_g"
+    },
+    "bladed": true
+  },
+  {
+    "id": "mousquet-a-malepierre",
+    "type": "trappings",
+    "label": "Mousquet à malepierre",
+    "categorie": "distance",
+    "subType": {
+      "id": "poudre-noire"
+    },
+    "enc": 2,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "range": 40,
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 8
+    },
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "recharge",
+        "value": 2
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 34,
+      "note": "Nom VF : Altdorf, la Couronne de l'Empire, chapitre « La Cité souterraine », profil du tireur skaven (« mousquet à malepierre »). Nombres : VO Warpmusket. Folio : début de section « Ranged Weapons » au sommaire du livre, l'extraction n'ayant aucune ancre de folio."
+    },
+    "shape": {
+      "id": "arquebuse"
+    },
+    "rangement": {
+      "id": "dos"
+    }
+  },
+  {
+    "id": "etoile-de-malepierre",
+    "type": "trappings",
+    "label": "Étoile de malepierre",
+    "categorie": "distance",
+    "subType": {
+      "id": "lancer"
+    },
+    "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "range": {
+      "bf": 2
+    },
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 3
+    },
+    "qualities": [
+      {
+        "id": "devastatrice"
+      },
+      {
+        "id": "malepierre"
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 34,
+      "note": "Nombres : VO Warpstone Star. Folio : début de section « Ranged Weapons » au sommaire du livre, l'extraction n'ayant aucune ancre de folio."
+    },
+    "rangement": {
+      "id": "ceinture_d"
+    }
+  },
+  {
+    "id": "bombe-fumigene",
+    "type": "trappings",
+    "label": "Bombe fumigène",
+    "categorie": "distance",
+    "subType": {
+      "id": "lancer"
+    },
+    "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "range": {
+      "bf": 3
+    },
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "aucun": true
+    },
+    "qualities": [],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "zone",
+                "shape": "disc",
+                "radiusMeters": 2,
+                "blocksLoS": true,
+                "durationRounds": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "rendu": {
+                  "id": "souffle-de-fumee"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 34,
+      "note": "Nombres : VO Smoke Bomb. Folio : début de section « Ranged Weapons » au sommaire du livre, l'extraction n'ayant aucune ancre de folio."
+    },
+    "shape": {
+      "id": "bombe"
+    },
+    "rangement": {
+      "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
+    }
+  },
+  {
+    "id": "encensoir-de-la-peste",
+    "type": "trappings",
+    "label": "Encensoir de la peste",
+    "categorie": "melee",
+    "subType": {
+      "id": "fleau"
+    },
+    "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "reach": "Longue",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 4
+    },
+    "qualities": [
+      {
+        "id": "perturbante"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "imprecise"
+      },
+      {
+        "id": "epuisante"
+      },
+      {
+        "id": "malepierre"
+      }
+    ],
+    "source": {
+      "book": "rat-cornu-compagnon",
+      "page": 32,
+      "note": "Nombres : VO Plague Censer. Folio : début de section « Melee Weapons » au sommaire du livre, l'extraction n'ayant aucune ancre de folio."
+    },
+    "shape": {
+      "id": "fleau"
+    },
+    "rangement": {
+      "id": "dos"
+    },
+    "effects": [
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 2,
+          "centreCompris": true
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "majeure",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 4,
+          "radiusInnerMeters": 2
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "moderee",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 8,
+          "radiusInnerMeters": 4
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "mineure",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "boulet",
+    "type": "trappings",
+    "label": "Boulet",
+    "hands": 2,
+    "categorie": "melee",
+    "subType": {
+      "id": "deux-mains"
+    },
+    "availability": null,
+    "price": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 10
+    },
+    "qualities": [
+      {
+        "id": "a-enroulement"
+      },
+      {
+        "id": "percutante"
+      },
+      {
+        "id": "dangereuse"
+      }
+    ],
+    "source": {
+      "book": "zoo-imperial",
+      "page": 28,
+      "note": "ZI 02 l.171"
+    },
+    "shape": {
+      "id": "fleau"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -14268,7 +15460,7 @@
       "book": "zoo-imperial",
       "page": 115
     },
-    "desc": "Marteau de guerre magique dont la tête a été forgée avec des os de stégadon réduits en poudre, et dont le cri se fait entendre à chaque coup. S'il tue un ennemi, le son devient assourdissant : les créatures vivantes dans un rayon de 10 mètres (sauf l'utilisateur) doivent réussir un Test de Résistance Intermédiaire (+0) ou subir un État Assourdi et 1d10 Blessures qui ignorent l'armure (mais pas le Bonus d'Endurance).",
+    "desc": "La tête de ce marteau a été forgée avec les os réduits en poudre d'une grande créature, dont le cri se fait entendre à chaque coup porté. Si le marteau est utilisé pour tuer un ennemi, ce son devient assourdissant. Les créatures vivantes dans un rayon de 10 mètres, à l'exception de l'utilisateur du marteau, doivent effectuer un Test de **Résistance Intermédiaire (+0)** ou subir un État *Assourdi* et 1d10 Blessures qui ignorent l'armure, mais pas le Bonus d'Endurance.",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -14285,6 +15477,9 @@
       },
       {
         "id": "lente"
+      },
+      {
+        "id": "magique"
       }
     ],
     "enc": 3,
@@ -14313,7 +15508,7 @@
       "book": "zoo-imperial",
       "page": 116
     },
-    "desc": "Arme simple (épée) ou dague magique dont la poignée creuse contient une mèche de cheveux de sirène. La lame gagne l'Atout Dévastatrice, mais l'utilisateur est incapable de parler ou de produire le moindre son tant qu'il la manie ; cela vaut aussi pour quiconque est blessé par cette arme. Si la mèche a été prise par la force, l'utilisateur ne peut pas utiliser le Talent Chanceux tant qu'il tient ou porte Silence.",
+    "desc": "Des armes de ce type ont été forgées à de nombreuses occasions, mais ceux qui connaissent l'histoire de ces artefacts savent que leur fabrication est infortunée. La lame en elle-même doit être bien conçue et incorporer des minerais rares et des poudres spéciales pour retenir les Vents de Magie. De plus, la poignée doit être creuse et contenir une mèche de cheveux de sirène. On pensait autrefois que cette mèche devait être donnée de plein gré par la créature, mais il a ensuite été prouvé que ce n'était pas nécessaire.\n\nUne fois forgée, la lame se distingue par son tranchant redoutable et obtient l'Atout Dévastatrice. Cependant, l'utilisateur est dans l'incapacité de parler ou de produire le moindre son tant qu'il manie cette arme. Les bruits de pas et autres sons indirects peuvent être entendus, mais aucune tentative de parler ou crier ne sera audible. Cela s'applique également aux personnes blessées par cette arme, quelle que soit la gravité de la plaie.\n\nSi la mèche de cheveux utilisée pour fabriquer cette arme a été donnée de plein gré, il n'y a aucun autre effet. Toutefois, si elle a été prise par la force, l'utilisateur ne pourra pas utiliser le Talent Chanceux tant qu'il tient ou porte Silence.",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -14324,6 +15519,9 @@
     "qualities": [
       {
         "id": "devastatrice"
+      },
+      {
+        "id": "magique"
       }
     ],
     "enc": 1,
@@ -14372,6 +15570,9 @@
       },
       {
         "id": "inoffensive"
+      },
+      {
+        "id": "magique"
       }
     ],
     "enc": 1,
@@ -16295,6 +17496,9 @@
       },
       {
         "id": "defensive"
+      },
+      {
+        "id": "magique"
       }
     ],
     "desc": "Un bâton enchanté est conçu de manière à attirer les Vents de Magie que le lanceur de sorts utilise.\n\nPar exemple, un sorcier Flamboyant peut arborer un petit brasero et plusieurs clefs en bronze sur son bâton, représentant physiquement et symboliquement *Aqshy*. Celui d'un sorcier dissident peut avoir des os cliquetants et des symboles cabalistiques destinés à attirer *Dhar*. S'il peut toujours être utilisé comme un bâton de combat, il procure également d'autres avantages.\n\nTant qu'un lanceur de sorts porte un bâton enchanté, il réduit de 1 le NI des Sorts du Domaine associé, jusqu'à un minimum de 0. Ceci s'applique également à n'importe quel Sort d'Arcane qu'il lance.",
@@ -17477,34 +18681,9 @@
         "trigger": "onHit",
         "on": {
           "near": "soi",
-          "radiusMeters": 6
+          "radiusMeters": 6,
+          "centreCompris": true
         },
-        "flow": {
-          "kind": "si",
-          "condition": {
-            "kind": "slThreshold",
-            "op": "<=",
-            "value": 3
-          },
-          "alors": {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "ops": [
-                {
-                  "op": "wounds",
-                  "amount": 1,
-                  "ignoreTB": true,
-                  "ignoreAP": true
-                }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "trigger": "onHit",
-        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -17532,49 +18711,9 @@
         "trigger": "onHit",
         "on": {
           "near": "soi",
-          "radiusMeters": 6
+          "radiusMeters": 6,
+          "centreCompris": true
         },
-        "flow": {
-          "kind": "si",
-          "condition": {
-            "kind": "slThreshold",
-            "op": "<=",
-            "value": 3
-          },
-          "alors": {
-            "kind": "test",
-            "test": {
-              "skill": {
-                "id": "resistance"
-              },
-              "difficulty": "complexe",
-              "label": "Déchireur de sociabilité"
-            },
-            "reussite": {
-              "kind": "sequence",
-              "etapes": []
-            },
-            "echec": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "assourdi"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      {
-        "trigger": "onHit",
-        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {

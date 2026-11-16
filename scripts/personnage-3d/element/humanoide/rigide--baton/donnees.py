@@ -16,8 +16,8 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'bois': ('bois', ((0.46, 0.46, 0.46), 0.0, 0.87)),
-    'metal': ('metal', ((0.66, 0.66, 0.66), 0.4, 0.55)),
+    'bois': ('bois', 'bois-chene'),
+    'metal': ('metal', 'acier-battu'),
 }
 
 BUDGET_TRIANGLES = 1200          # procédure du skill, section 7 : rigide tenu
@@ -29,9 +29,6 @@ PRISE_DEPUIS_TALON = 0.60
 """HYPOTHÈSE : la main droite au tiers du fût. Mesuré sur la base r24 : le talon reste à 0,41 m du sol au plus bas en
 `Hampe_Marche_Loop` et à 0,11 m en `Death01` ; à 0,80 m il passerait sous le sol en `Death01`."""
 
-AXE_DANS_LA_PRISE = (-0.015, 0.015)
-"""(x, z) du centre du plus grand passage libre commun aux deux poings fermés de la base r24, en `Hampe_Repos_Loop`, la
-main gauche sur la seconde prise ; sur l'axe de la prise, la paume touche le fût."""
 
 FUT = {'rayon': 0.015, 'segments': 12}
 """HYPOTHÈSE : 30 mm de diamètre, un bâton tenu à pleine main (hampe de la hallebarde : 35 mm, manche de la grande

@@ -2,7 +2,8 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyShipPostes, servingCrewPresent, servablePostes } from './shipPostes';
 import { firedWeapon } from '../combatFlow';
-import { crewedFireWeapon, simpleSoloFireWeapon } from '../../engine/crewedWeapon';
+import { armeSansEquipe } from '../../engine/weaponDamage';
+import { hasQuality, resolveQualities } from '../../engine/qualities/dispatch';
 import { combatValue } from '../../engine/combat';
 import { mannedPosteWeapon, itemFromTrappingById } from '../../engine/items';
 import type { Combatant, ShipPoste, SkillInstance, Weapon } from '../../engine/types';
@@ -74,7 +75,7 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
     const w = firedWeapon(null, chefArb, target, poste.item.uid, all);
     expect(w.reload).toBe(6); // Recharge 3 ×2 (sous-effectif : 1 < Indice 2)
     expect(combatValue(chefArb, 'distance', w)).toBe(38); // tir à la Projectiles (Arbalète) du chef, pas 55
-    expect(w.qualities.some((q) => q.id === 'pointue')).toBe(false); // 1 servant valide → solo → perd ses Atouts (l.3818)
+    expect(hasQuality(w, 'pointue')).toBe(false); // 1 servant valide → solo → perd ses Atouts (l.3818)
   });
 
   it('DEUX servants à la bonne Projectiles → équipe complète (recharge normale, Atout conservé)', () => {
@@ -88,7 +89,7 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
     expect(servingCrewPresent(chefArb, all)).toBe(2);
     const w = firedWeapon(null, chefArb, target, poste.item.uid, all);
     expect(w.reload).toBe(3); // effectif complet → pas de ×2
-    expect(w.qualities.some((q) => q.id === 'pointue')).toBe(true); // équipe complète → Pointue conservée
+    expect(hasQuality(w, 'pointue')).toBe(true); // équipe complète → Pointue conservée
   });
 });
 
@@ -120,22 +121,16 @@ describe('(b) Poudre noire — Ingénierie qualifie pour un canon (l.3816)', () 
 // (c) BALISTE SOLO — l'arme « relativement simple » (l.3818) perd ses Atouts, garde ses Défauts.
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 describe('(c) Baliste solo — perd ses Atouts, conserve ses Défauts (l.3818)', () => {
-  it('`simpleSoloFireWeapon` retire les Atouts (Pointue) et conserve TOUS les Défauts (Recharge, Arme d’équipe)', () => {
-    const w = simpleSoloFireWeapon(engineWeapon('baliste'));
-    expect(w.qualities.some((q) => q.id === 'pointue')).toBe(false); // Atout retiré
-    expect(w.qualities.some((q) => q.id === 'recharge')).toBe(true); // Défaut conservé
-    expect(w.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(true); // Défaut conservé
+  it('`armeSansEquipe(baliste)` retire TOUS les Atouts et conserve TOUS les Défauts (Recharge, Arme d’équipe)', () => {
+    const w = armeSansEquipe(engineWeapon('baliste'));
+    expect(resolveQualities(w).filter((r) => r.data?.polarite === 'atout')).toEqual([]); // Atouts retirés
+    expect(hasQuality(w, 'recharge')).toBe(true); // Défaut conservé
+    expect(hasQuality(w, 'arme-d-equipe')).toBe(true); // Défaut conservé
   });
 
-  it('via `crewedFireWeapon(baliste, 1)` : Pointue retirée, Recharge ×2 conservée (composé avec le sous-effectif)', () => {
-    const w = crewedFireWeapon(engineWeapon('baliste'), 1); // 1 servant valide
-    expect(w.qualities.some((q) => q.id === 'pointue')).toBe(false); // perd ses Atouts
-    expect(w.reload).toBe(6); // Recharge 3 ×2 (Défaut, conservé/aggravé)
-  });
-
-  it('un canon « non simple » manié seul GARDE ses Atouts (le strip ne vise QUE les pièces flaggées soloSimple)', () => {
-    const w = crewedFireWeapon(engineWeapon('batterie-tonnerre-de-feu'), 1); // a l'Atout Explosion/Salve, pas soloSimple
-    expect(w.qualities.some((q) => q.id === 'salve')).toBe(true); // Atout conservé (pas une baliste)
+  it('une pièce sans `perteSansEquipe` maniée seule GARDE ses Atouts', () => {
+    const w = armeSansEquipe(engineWeapon('batterie-tonnerre-de-feu'));
+    expect(hasQuality(w, 'salve')).toBe(true);
   });
 });
 

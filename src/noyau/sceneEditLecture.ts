@@ -2,8 +2,8 @@
  * LECTURES de l'édition de scène — outil actif, calques, sélection, picking, emprise du pinceau et formulaire tiré
  * du schéma de chaque porteur (`formulaireDe`). PURES,
  * Node-safe, sans import d'hôte : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
- * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
- * `scripts/guards/lib/sceneFieldEditability.mjs`.
+ * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont dans `AUTHOR_PATH`, de
+ * `scripts/guards/lib/editabiliteDesChamps.mjs`.
  */
 import {
   dialoguesDeLaScene,
@@ -38,7 +38,8 @@ import {
   type Terrain,
 } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
-import { mapPlaceSchema, mapRouteSchema, placePoiSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { mapPlaceSchema, mapRouteSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
 import {
   affaireSchema,
@@ -78,7 +79,7 @@ import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/
 import { declarationDeFeuilleDId, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
 import { entree as trappingEntree } from '../data/schemas/defs/trappings';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
-import { champsDeclares, choixDuNoeud, formeAuPoint, inferFields, type ChoixDuContexte, type ContexteDuChamp, type FieldDesc } from './codex/editFields';
+import { champsDeclares, choixDuNoeud, formeAuPoint, type ChoixDuContexte, type FieldDesc } from './codex/editFields';
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
 import { chargeLArme, gabaritDObjet } from '../engine/items';
@@ -114,7 +115,7 @@ import { entreesDeStades, entreesNarratives, type CleDeReferenceNarrative } from
 import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
 import { SOUS_REFERENCES, type CleDeSousReference } from '../data/schemas/defs-scenes/refs-narratives';
 import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
-import { emptyWorldMap, resolvePortRef, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
+import { emptyWorldMap, estUnHebergement, resolvePortRef, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
 import type { Warning } from './validateScene';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
@@ -127,11 +128,12 @@ import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { actionNeuve } from './monde/usable';
 import { nextEntityId } from '../lib/entityId';
-import { choixSousUneAdresse, estCheminDerive, type SourceDeLEdition } from './edition/adresseDeProse';
+import { choixSousUneAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
-import type { Rect, Pt, EffectZoneSeed, Segment } from './sceneEdit';
+import type { Rect, Pt, EffectZoneSeed } from './sceneEdit';
+import { champsDuFormulaire, type CheminsOfferts, type FormeDuFormulaire, type Segment } from './edition/formulaire';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
@@ -519,10 +521,6 @@ export interface DonneeDuPorteur extends DonneeDesRegistres { zone: SceneEffectZ
 /** La sorte d'un porteur de formulaire tiré du schéma. */
 export type SorteDePorteur = keyof DonneeDuPorteur;
 
-/** Les chemins de clés et de rangs, depuis la donnée d'un porteur, des champs qu'il offre : chacun avec tout ce qu'il
- *  porte. */
-type CheminsOfferts = readonly (readonly Segment[])[];
-
 /** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, les scènes, la carte du monde et le narratif de
  *  son projet, et le `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
 export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif' | 'worldMap'>; source: SourceDeLEdition }
@@ -823,12 +821,25 @@ const champsSauf = (schema: unknown, exclues: readonly string[]): CheminsOfferts
   champsDeclares(schema)!.flatMap(([cle]) => (exclues.includes(cle) ? [] : [[cle]]));
 
 /** Les champs qu'offre le formulaire d'un lieu : chacun de son schéma, hors de son identifiant, de sa position sur la
- *  carte (`pos`, donnée spatiale) et de ses points d'intérêt ; de chacun d'eux, à son rang, chaque champ hors de son
- *  identifiant et de sa position sur le plan. #3606 */
-const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'poi']);
-const CHAMPS_DU_POI = champsSauf(placePoiSchema, ['id', 'pos']);
-const champsDuLieu = (lieu: MapPlace): CheminsOfferts =>
-  [...CHAMPS_DU_LIEU, ...(lieu.poi ?? []).flatMap((_, i) => CHAMPS_DU_POI.map(([cle]) => ['poi', i, cle]))];
+ *  carte (`pos`, donnée spatiale), de ses établissements et de ses points d'intérêt ; de chacun de ses établissements, à
+ *  son rang, son nom et son accès réservé (`champsDAcces`), son type et son identifiant posés à sa création
+ *  (`etablissementAjoute`), et, s'il héberge
+ *  (`estUnHebergement`), la qualité de son repos et, de chacune de ses offres déclarées, à son rang, chaque champ hors de
+ *  son identifiant, l'offre s'ajoutant et se retirant par ses écrivains (`offreAjoutee`, `offreRetiree`) ; de chacun de
+ *  ses points d'intérêt, à son rang, son icône et, s'il mène à une scène, son nom, sa position posée au plan, sa cible
+ *  par son écrivain (`ciblerPoi`). #3606 #4277 */
+const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'services', 'poi']);
+const CHAMPS_DE_L_OFFRE = champsSauf(offreDAubergeSchema, ['id']);
+const champsDuLieu = (lieu: MapPlace): CheminsOfferts => [
+  ...CHAMPS_DU_LIEU,
+  ...(lieu.services ?? []).flatMap((sv, i) => [
+    ['services', i, 'label'],
+    ['services', i, 'when'],
+    ['services', i, 'refus'],
+    ...(estUnHebergement(sv) ? [['services', i, 'rest', 'quality'], ...(sv.rest?.offres ?? []).flatMap((_, j) => CHAMPS_DE_L_OFFRE.map(([cle]) => ['services', i, 'rest', 'offres', j, cle]))] : []),
+  ]),
+  ...(lieu.poi ?? []).flatMap((p, i) => [...(p.sceneId ? [['poi', i, 'label']] : []), ['poi', i, 'icon']]),
+];
 
 /** Les champs qu'offre le formulaire d'une route : chacun de son schéma, hors de son identifiant, de ses extrémités et
  *  de son sens, que pose sa liaison (`lierLieux`). #3606 */
@@ -1200,27 +1211,10 @@ export function projetAvecLePorteur<D>(acces: AccesDuPorteur<D>, projet: ProjetD
   return document.ecrire(projet, sceneId, avec(doc, porteurs(doc).map((p) => (id(p, sceneId) === cle ? apres : p))));
 }
 
-/** `a` est-il un préfixe du chemin `b` ? */
-const prefixe = (a: readonly Segment[], b: readonly Segment[]): boolean => a.length <= b.length && a.every((p, i) => p === b[i]);
-
-/** Le chemin `chemin` est-il offert par les champs `offerts` : sous l'un d'eux, ou sur le chemin de l'un d'eux ? */
-export const cheminOffert = (offerts: CheminsOfferts, chemin: readonly Segment[]): boolean =>
-  offerts.some((o) => prefixe(o, chemin) || prefixe(chemin, o));
-
-/** L'écriture au chemin `chemin`, où la donnée vaut `actuelle`, est-elle offerte par les champs `offerts` : sous l'un
- *  d'eux ; sur le chemin de l'un d'eux, si chaque clé que porte `actuelle`, ou chaque élément d'une liste à son rang,
- *  l'est, de proche en proche (elle n'emporte aucun champ qu'ils n'offrent pas). */
-export function ecritureOfferte(offerts: CheminsOfferts, chemin: readonly Segment[], actuelle: unknown): boolean {
-  if (offerts.some((o) => prefixe(o, chemin))) return true;
-  if (!offerts.some((o) => prefixe(chemin, o))) return false;
-  const entrees: [Segment, unknown][] = Array.isArray(actuelle) ? actuelle.map((v, i) => [i, v]) : estObjet(actuelle) ? Object.entries(actuelle) : [];
-  return entrees.every(([cle, v]) => v === undefined || ecritureOfferte(offerts, [...chemin, cle], v));
-}
-
 /** Le formulaire tiré du schéma du porteur de sorte `sorte` (`FORMULAIRES`) : le nœud où s'écrit sa donnée `donnee`, à
  *  travers les unions de son schéma (`formeAuPoint`), les champs que sa donnée offre dans le cadre `cadre`, et ses
  *  retraits déclarés, aucun s'il n'en déclare pas. */
-export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): { noeud: unknown; champs: CheminsOfferts; retraits: CheminsOfferts } {
+export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): FormeDuFormulaire {
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
   return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee, cadre), retraits: retraitsDuPorteur(sorte, donnee) };
 }
@@ -1293,7 +1287,7 @@ const choixDuCatalogueOuvert = (noeuds: readonly unknown[]): ChoixDuContexte[] =
  *  entrée (`entreesDeLaFeuilleLocale`) : d'une feuille locale, chaque id que sa portée admet, après ceux de son catalogue
  *  si elle est ouverte (`choixDuCatalogueOuvert`) ; d'une référence `{ id }` dont l'identifiant en est une, chacun posé
  *  entier ; `undefined` sinon. */
-function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
+export function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
   const entrees = entreesDeLaFeuilleLocale(noeuds, ouvreurs);
   if (entrees) return [...choixDuCatalogueOuvert(noeuds), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
   const emboites = entreesDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);
@@ -1320,19 +1314,7 @@ export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeD
   return locaux && duPorteur ? duPorteur.filter((c) => locaux.some((l) => jsonCanonique(l.valeur) === jsonCanonique(c.valeur))) : locaux ?? duPorteur;
 }
 
-/** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` : le champ de tête de
- *  chacun de ses champs offerts (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son
- *  contexte : ce qu'il offre sous lui (`cheminOffert`, jamais ce qu'une adresse de prose dérive,
- *  `estCheminDerive`), où il s'écrit entier (`ecritureOfferte`), ses choix (`choixDuChamp`) et le `Source/` de
- *  ses adresses. */
-export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): FieldDesc[] {
-  const { noeud, champs } = formeDuPorteur(sorte, donnee, cadre);
-  const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud, niveau: 'profondeur' });
-  const contexte: ContexteDuChamp = {
-    offert: (chemin) => cheminOffert(champs, chemin) && !estCheminDerive(noeud, donnee, chemin),
-    ecrivable: (chemin, actuelle) => ecritureOfferte(champs, chemin, actuelle),
-    choix: (chemin) => choixDuChamp(sorte, donnee, chemin, cadre),
-    source: cadre.source,
-  };
-  return [...new Set(champs.map(([tete]) => tete))].flatMap((cle) => decrits.filter((f) => f.key === cle)).map((f) => ({ ...f, contexte }));
-}
+/** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` (`champsDuFormulaire`) : sur
+ *  sa forme (`formeDuPorteur`), aux choix de son contexte (`choixDuChamp`) et sur le `Source/` du cadre. */
+export const formulaireDe = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): FieldDesc[] =>
+  champsDuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, (chemin) => choixDuChamp(sorte, donnee, chemin, cadre), cadre.source);

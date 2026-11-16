@@ -22,7 +22,7 @@ import type { GameOp, OpPassive } from '../ops';
  *  VDM 05 *Défaut*) — retirées APRÈS la fusion de famille ; `passive` : ops passives conférées par cette
  *  même altération, lues au MÊME point que le `passive` d'un Atout de registre (`weaponPassiveOps`). */
 export type QualityCarrier = { qualities: QualityInstance[]; weaponGroup?: string | null; subType?: string | null; noFamilyQualities?: boolean;
-  removedQualities?: string[]; removedTypes?: ('atout' | 'defaut')[]; passive?: OpPassive[] };
+  removedQualities?: string[]; removedTypes?: ('atout' | 'defaut')[]; passive?: OpPassive[]; passifDArme?: OpPassive[] };
 
 /** Une qualité résolue présente sur un objet : sa définition de registre (libellé), son id STABLE, sa
  *  donnée mécanique (`qualities.json` → passive/capabilities/effects) et son Indice éventuel. */
@@ -42,12 +42,13 @@ export interface ResolvedQuality {
 /** Ops passives de la qualité (lecture par id dans la donnée). */
 const passiveOf = (id: string): GameOp[] => findQualityById(id)?.passive ?? [];
 
-/** SOURCE UNIQUE des ops PASSIVES d'ARME à consulter : celles des qualités présentes (registre, par id) +
+/** SOURCE UNIQUE des ops PASSIVES d'ARME à consulter : celles des qualités présentes (registre, par id),
  *  celles conférées par une ALTÉRATION de l'arme (`Weapon.passive`, op `augmentWeapon.passive` — VDM 05
- *  *Défaut* « −1 DR à tous les Tests pour attaquer avec elle »). Tout lecteur de passif d'arme passe ICI. */
+ *  *Défaut*) et celles de l'arme de catalogue (`Weapon.passifDArme`, ZI 13 l.199). Tout lecteur de passif
+ *  d'arme passe ICI. */
 export function weaponPassiveOps(w: QualityCarrier | undefined): GameOp[] {
   if (!w) return [];
-  return [...resolveQualities(w).flatMap((r) => passiveOf(r.id)), ...(w.passive ?? [])];
+  return [...resolveQualities(w).flatMap((r) => passiveOf(r.id)), ...(w.passive ?? []), ...(w.passifDArme ?? [])];
 }
 
 /** Qualités du registre présentes sur l'objet (normalisées, avec id/donnée/Indice). Chaînes inconnues
@@ -79,8 +80,8 @@ export function hasQuality(w: QualityCarrier | undefined, id: QualityId): boolea
   return resolveQualities(w).some((r) => r.id === id);
 }
 
-/** La qualité d'`id` est-elle un Atout (≠ Défaut) ? Lu dans la DONNÉE (`qualities.json` champ `polarite`). Sert au
- *  « perd tous ses Atouts » d'une baliste tirée en solo (AA 10 l.148). Qualité inconnue → false (pas un Atout). */
+/** La qualité d'`id` est-elle un Atout (≠ Défaut) ? Lu dans la DONNÉE (`qualities.json` champ `polarite`). Qualité
+ *  inconnue → false (pas un Atout). LDB 62 l.184,188 */
 export function isAtoutQuality(id: string): boolean {
   return findQualityById(id)?.polarite === 'atout';
 }
@@ -247,20 +248,27 @@ export function magazineSize(w: QualityCarrier | undefined): number | undefined 
   return r ? r.indice ?? 1 : undefined;
 }
 
-/** Protectrice (Indice) : PA conférés à TOUTES les localisations quand on OPPOSE l'attaque avec
- *  cette arme (LDB 62 l.296). 0 si la qualité est absente. */
-export function protectriceAP(parryWeapon: QualityCarrier | undefined): number {
-  const r = resolveQualities(parryWeapon).find((x) => x.caps?.parryAP);
+/** Indice de Protectrice de `w` (LDB 62 l.296), 0 si la qualité est absente. */
+function indiceDeProtectrice(w: QualityCarrier | undefined): number {
+  const r = resolveQualities(w).find((x) => x.caps?.parryAP);
   return r ? r.indice ?? 1 : 0;
 }
 
-/** Protectrice ≥ 2 : permet d'OPPOSER les projectiles tirés en Ligne de Vue (LDB 62 l.296).
- *  Renvoie l'arme protectrice utilisable, ou undefined. */
+/** Protectrice (Indice) : PA conférés à TOUTES les localisations quand on OPPOSE l'attaque avec
+ *  cette arme (LDB 62 l.296), ou au plus haut du bouclier du binôme (`bouclierDuBinome`, ZI 13 l.193). 0 si la
+ *  qualité est absente des deux. */
+export function protectriceAP(parryWeapon: QualityCarrier | undefined, bouclierDuBinome?: QualityCarrier): number {
+  return Math.max(indiceDeProtectrice(parryWeapon), indiceDeProtectrice(bouclierDuBinome));
+}
+
+/** Protectrice ≥ 2 : `w` permet d'OPPOSER les projectiles tirés en Ligne de Vue (LDB 62 l.296). */
+export function pareLesTirs(w: QualityCarrier | undefined): boolean {
+  return indiceDeProtectrice(w) >= 2;
+}
+
+/** L'arme de `weapons` qui pare les tirs (`pareLesTirs`), ou undefined. */
 export function rangedOpposeWeapon(weapons: Weapon[] | undefined): Weapon | undefined {
-  return (weapons ?? []).find((w) => {
-    const r = resolveQualities(w).find((x) => x.caps?.parryAP);
-    return r && (r.indice ?? 1) >= 2;
-  });
+  return (weapons ?? []).find(pareLesTirs);
 }
 
 /** Perturbante (LDB 62 l.272-274) : l'arme peut repousser au lieu de blesser. */
@@ -273,7 +281,7 @@ export function hasBladeTrap(w: QualityCarrier | undefined): boolean {
   return resolveQualities(w).some((r) => r.caps?.piegeALame);
 }
 
-/** Arme MAGIQUE (qualité enchantée, ADE II) : ses attaques comptent comme magiques (Éthéré, LDB 85). */
+/** Arme MAGIQUE : une qualité `capabilities.magic`. ADE II 04 l.214 */
 export function isMagicWeapon(w: QualityCarrier | undefined): boolean {
   return resolveQualities(w).some((r) => r.caps?.magic);
 }

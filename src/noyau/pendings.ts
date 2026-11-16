@@ -798,6 +798,9 @@ export interface PendingCorruption {
   /** EXPOSITION : nature imposée par la source → pas de choix joueur. Absent/false = indéterminée
    *  (LDB 19 l.29) → la modale propose les Tests de `influences-corruptrices` (cf. réglage `corruption.nature`). */
   natureFixee?: boolean;
+  /** EXPOSITION : Difficulté imprimée par la source (op `corruptionExposure.difficulty`, ZI 13 l.197), qui
+   *  survit au choix de la nature ; absente, celle du Test de `influences-corruptrices`. */
+  difficulteFixee?: Difficulty;
   /** Alignement de la SOURCE (Puissance du Chaos) posé par l'éditeur de niveau → table EDOC à tirer
    *  si une mutation survient (sinon la règle globale décide). Voyage exposition → seuil → mutation. */
   align?: import('../engine/corruption').ChaosAlign;
@@ -2289,14 +2292,14 @@ export type CascadeTestStep = Extract<CascadeRollStep, { evaluation?: 'test' }>;
 export type CascadeStep = CascadeRollStep | (CascadeStepBase & { target?: undefined; rollLabel?: undefined });
 
 /** SURFACE des rangées d'une bande résolue par un pilote sans fenêtre, DÉCLARÉE par ce pilote : le
- *  procès-verbal structuré d'une traversée (`dayEntriesFromStep`, `seaVoyageFlow.ts`) montre déjà
- *  chaque dé, ligne par ligne — le journal ne les redit pas (#1291). Absente = le journal est la seule
- *  surface, il porte les dés. */
+ *  procès-verbal structuré d'une traversée (`TravelPlan.procesVerbal`, écrit au commit de la bande par
+ *  `voyageCadence.noterAuProcesVerbal`) montre chaque dé, ligne par ligne — le journal ne les redit pas
+ *  (#1291). Absente = le journal est la seule surface, il porte les dés. */
 export type RowSurface = 'pv';
 
 /** Contexte de lancement d'un pilote immédiat PARQUÉ, rejoué tel quel à sa reprise : `sansContexte` = lancé
  *  sans `ctx` (un combat ouvert en plein vol arrête la boucle sans rien empiler) ; `rowSurface` = la
- *  surface de rangées qu'il avait déclarée, que le dénouement de la séquence honore ; `auxVraisChoix` = il
+ *  surface de rangées qu'il avait déclarée, que chaque commit de bande de la suite honore ; `auxVraisChoix` = il
  *  s'arrête à chaque vrai choix d'un siège (`cascade.jouerLaJournee`, #3534). */
 export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface; auxVraisChoix?: true };
 

@@ -31,11 +31,13 @@
   "surfaces": [
     {
       "nom": "robe",
-      "palette": "vet1"
+      "palette": "vet1",
+      "matiere": "prop--drap-terne"
     },
     {
       "nom": "dessous",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--toile-ecrue"
     },
     {
       "nom": "poitrine",
@@ -43,7 +45,7 @@
     }
   ],
   "glb": {
-    "sha256": "a56a80cec02d183025edd28e1507e7b17bca389fa27d61a0927b0d2c031aff52",
-    "octets": 687196
+    "sha256": "6a348605dd46b67f21faf1962e411ec88b6f427feeab78c1f7bdde620996a92a",
+    "octets": 896044
   }
 }

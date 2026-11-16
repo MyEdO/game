@@ -842,9 +842,8 @@ describe('Boucle de jeu (store)', () => {
     banc.avancer(2000);
     st = banc.getState();
     expect(st.pendingDefense).not.toBeNull();
-    // +20 Combat monté (cible plus petite que la monture, l.180) + 20 Surnombre (la monture est un
-    // combattant ennemi actif au contact → « 2 contre 1 », LDB 14 l.110 — même décompte que resolveAttack).
-    expect(st.pendingDefense!.atk.target).toBe(combatValue(E, 'melee', E.weapons[0]) + 40);
+    // +20 Combat monté (l.180), sans Surnombre : le cavalier et sa monture comptent un. LDB 14 l.110 ; #4202
+    expect(st.pendingDefense!.atk.target).toBe(combatValue(E, 'melee', E.weapons[0]) + 20);
   });
 
   it('Sonné : un héros actif ne peut PAS attaquer/incanter, mais peut se déplacer (LDB 16 l.125)', () => {
@@ -3189,7 +3188,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: {}, wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-    sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
+    sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, settlement: 'ville' } });
     return sc;
   };
 
@@ -3607,7 +3606,7 @@ describe('Marché — règles optionnelles (marche-mode / marche-guildes)', () =
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-    sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
+    sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, settlement: 'ville' } });
     return sc;
   };
 

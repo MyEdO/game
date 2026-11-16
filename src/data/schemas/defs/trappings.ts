@@ -23,10 +23,10 @@ import {
   weaponRangeSpecSchema,
 } from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { manieAussiSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
+import { manieAussiSchema, perteSansEquipeSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 import { ref, refs, refusDeLEntree } from '../grammaire/ref';
-import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
+import { DECLARABLE_PAR_UN_PORTEUR, RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
 export const file = 'trappings.json';
@@ -72,7 +72,9 @@ const doc = document(
     weaponGroup: ref('weaponGroup').optional(),
     /** #3771 */
     rendu: ref('rendu').optional(),
-    soloSimple: z.boolean().optional(),
+    perteSansEquipe: perteSansEquipeSchema.optional(),
+    /** ZI 13 l.193 */
+    bouclierDEquipe: ref('trapping').optional(),
     /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),
     /** LDB 62 l.31 ; LDB 62 l.135 */
@@ -86,6 +88,10 @@ const doc = document(
     organicProjectile: z.boolean().optional(),
     /** ADE II 8 l.243 */
     onHitEffects: z.array(triggeredEffectSchema).optional(),
+    /** The Horned Rat Companion 03 l.23-31 ; #4202 */
+    effects: z.array(triggeredEffectSchema).optional(),
+    /** ZI 13 l.199 */
+    passifDArme: passifsDe().optional(),
     /** ADE II 8 l.251/253 */
     minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
     siegeFootprint: z.number().optional(),
@@ -104,6 +110,8 @@ const doc = document(
     enc: z.union([z.number(), z.literal('ND'), z.literal('Variable')]).nullable().optional(),
     /** ADE II 2 l.706-710 */
     sizeFor: sizeCategorySchema.optional(),
+    /** Arbitrage #4110 (2026-11-16) */
+    reserveeA: ref('groupe', undefined, DECLARABLE_PAR_UN_PORTEUR).optional(),
     /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 69 l.9 ; LDB 59 l.15 ; LDB 62 l.31 ; LDB 44 l.113-119 ; MDG 10 l.112 */
     availability: z.union([availabilitySchema, z.literal('ND')]).nullable(),
     /** `reach`/`loc`/`pa`/`damage` : portés par les armes/armures — ABSENTS (pas seulement `null`) sur
@@ -147,9 +155,13 @@ const doc = document(
       label: 'Rendu du coup',
       hint: 'Rendu visuel et sonore de l’arme (`rendus.json`), à la place de celui de son Groupe : un engin de siège, dont le Groupe dit qui le sert, pas ce qu’il tire',
     },
-    soloSimple: {
-      label: 'Simple en solo',
-      hint: 'Arme d’équipage relativement simple : tirée seule, elle perd le bénéfice des Atouts',
+    perteSansEquipe: {
+      label: 'Perte sans équipe',
+      hint: 'Qualités que l’arme perd quand son tireur n’a ni servant ni allié adjacent',
+    },
+    bouclierDEquipe: {
+      label: 'Bouclier d’équipe',
+      hint: 'Bouclier que tient l’allié au contact du tireur : Protectrice de ce bouclier aux deux, ni Course ni Fuite',
     },
     unarmed: {
       label: 'Est « Mains nues »',
@@ -167,6 +179,8 @@ const doc = document(
       hint: 'Approximation maison : le projectile est organique (arrêté par le Bouclier anti-flèches)',
     },
     onHitEffects: { label: 'Effets à la touche', hint: 'Effets déclenchés au moment où l’arme touche sa cible' },
+    effects: { label: 'Effets déclenchés', hint: 'Effets déclenchés tant que l’objet est porté ou tenu' },
+    passifDArme: { label: 'Effets passifs de l’arme', hint: 'Effets continus de l’arme elle-même lors de ses attaques, distincts de ceux du porteur' },
     minRangeBand: {
       label: 'Portée minimale de tir',
       hint: 'Bande sous laquelle l’arme de siège ne peut pas tirer (pas de Bout portant)',
@@ -197,6 +211,7 @@ const doc = document(
       label: 'Taille prévue',
       hint: 'Version grande taille d’une possession ordinaire (ex. équipement pour Ogre)',
     },
+    reserveeA: { label: 'Réservée à', hint: 'Groupe seul à qui une arme au choix de carrière l’offre' },
     availability: { label: 'Disponibilité' },
     reach: { label: 'Allonge', hint: 'Porté par les armes de mêlée ; absent des objets sans profil d’arme' },
     range: { label: 'Portée', hint: 'Mètres fixes, ou Bonus de Force × multiplicateur (armes de jet)' },
@@ -239,10 +254,11 @@ const doc = document(
     edit: { dataset: 'trappings' },
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
+  // `subType` : discriminant de la sous-liste `ENGINS_DE_SIEGE` (`grammaire/sousListes.ts`).
   // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
   {
     exiges: ['source'],
-    espace: { discriminant: 'categorie', marqueurs: ['service'] },
+    espace: { discriminant: ['categorie', 'subType'], marqueurs: ['service'] },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as { id: string; categorie: string; subType: { id: string } | null; shape?: { id: string } };

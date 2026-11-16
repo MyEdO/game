@@ -156,7 +156,7 @@ describe('partirEnVoyage — à pied', () => {
     banc.getState().partirEnVoyage('r1', 'pied');
     const p = banc.getState().pendingRest!;
     expect(p.places.auberge).toBe(true);
-    expect(p.perHero[banc.getState().party[0].id].lodging).toBe('privee'); // défaut auberge
+    expect(p.perHero[banc.getState().party[0].id].lodging).toBe('chambre-1'); // défaut auberge
     const before = toBrass(partyMoneyTotal(banc.getState));
     sleepThroughHalt();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before - 120 - 12); // chambre 10 pa + repas 1 pa

@@ -23,6 +23,12 @@ export const STRUCTURES_CIBLES = [
   { concept: "prose-nommee", signature: "texte+…", date: "2026-10-08" },
   { concept: "reference", signature: "id", date: "2026-08-23" },
   { concept: "reference", signature: "id,spec", date: "2026-08-23" },
+  // #4110
+  { concept: "reference", signature: "id,qualityChoice", date: "2026-11-13" },
+  { concept: "reference", signature: "id,qualityChoice,spec", date: "2026-11-13" },
+  { concept: "reference", signature: "wildcard", date: "2026-11-15" },
+  { concept: "reference", signature: "groupe,wildcard", date: "2026-11-15" },
+  { concept: "reference", signature: "qualityChoice,wildcard", date: "2026-11-15" },
   { concept: "reference", signature: "choix,id", date: "2026-08-23" },
   { concept: "reference", signature: "id,type", date: "2026-08-23" },
   { concept: "reference", signature: "count,id,type", date: "2026-08-23" },
@@ -106,6 +112,8 @@ export const STRUCTURES_CIBLES = [
   { concept: "valeur-d-identite", signature: "repere,valeur+…", date: "2026-10-17" },
   { concept: "billet-de-route", signature: "prix", date: "2026-10-16" },
   { concept: "billet-de-route", signature: "prix+…", date: "2026-10-16" },
+  { concept: "offre-d-auberge", signature: "id,prix,source", date: "2026-11-15" },
+  { concept: "offre-d-auberge", signature: "id,prix,risque,source", date: "2026-11-15" },
   // #2533 (2026-10-17) — provenance des valeurs de route : formes CIBLES de la porte de #2533, que le détecteur de la base
   // de sa plage (`scripts/guards/lib/corpusDesComptes.mts`) doit reconnaître.
   { concept: "provenance-de-valeur", signature: "source", date: "2026-10-17" },

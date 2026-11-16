@@ -7,6 +7,8 @@
 import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
 import { DOSSIER_DES_MODELES, recupererModeles } from '../asset/release';
+import { decorDeTest, decorSaisonnierDeTest, TEINTE_D_AUTOMNE } from '../asset/modeles.testkit.ts';
+import type { Saison } from '../asset/element.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import type { Stockage } from '../../../src/lib/stockage';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
@@ -46,13 +48,25 @@ export function morceauxDe(appel: ReturnType<typeof table>['appel'], source: 'pa
 /** La vue d'une réponse qui en porte une. */
 export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
 
-/** Le bouton qui ouvre la fiche d'un héros du groupe (`groupe.heros`), sa carte nommée par son nom ou son rang. */
+/** Le bouton qui ouvre la fiche d'un héros du groupe : sur sa carte (`groupe.heros`), en combat sur son rang de
+ *  l'ordre du tour (`combat.ordre`) ; la carte ou le rang nommé par son nom, ou par son rang parmi ceux qui en portent un. */
 export function ficheDuHeros(vue: VueDuPont, heros: string | number): Bouton {
-  const cartes = vue.zones['groupe.heros'];
-  const carte = typeof heros === 'number' ? cartes[heros] : cartes.find((c) => c.nom === heros);
-  const bouton = carte?.elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'));
-  if (!bouton) throw new Error(`aucune carte du groupe pour ${heros}`);
+  const deFiche = (e: Element): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/');
+  const porteurs = [...vue.zones['groupe.heros'], ...vue.zones['combat.ordre']].filter((p) => p.elements.some(deFiche));
+  const porteur = typeof heros === 'number' ? porteurs[heros] : porteurs.find((c) => c.nom === heros);
+  const bouton = porteur?.elements.find(deFiche);
+  if (!bouton) throw new Error(`aucune carte du groupe ni rang de l’ordre du tour pour ${heros}`);
   return bouton;
+}
+
+/** Chaque héros du groupe de `vue`, et sa bourse lue sur sa fiche (`fiche.porteur`), ouverte puis refermée. */
+export function boursesDuGroupe(appel: ReturnType<typeof table>['appel'], vue: VueDuPont): { id: string; nom: string; bourse: Element | undefined }[] {
+  return vue.zones['groupe.heros'].map((carte, i) => {
+    const bourse = suiteDe(appel('fiche', ficheDuHeros(vue, i).jeu)).vue.zones['fiche.porteur'][0].elements.find((e) => e.id === 'bourse');
+    expect(bourse, `${carte.nom} : sa bourse sur sa fiche`).toMatchObject({ type: 'puce' });
+    suiteDe(appel('fiche', { fiche: null }));
+    return { id: carte.id, nom: carte.nom, bourse };
+  });
 }
 
 /** Les éléments de la section `id` du statbloc de la fiche ouverte (`fiche.sections`, `section/<id>`), aucun sans
@@ -64,6 +78,24 @@ let commites: Promise<ReturnType<typeof listage>> | undefined;
 /** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert, le GLB épinglé de
  *  chacun déposé d'abord (`recupererModeles`) ; lu une fois par graphe de modules. */
 export const modelesCommites = () => (commites ??= recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: () => {} }).then(() => listage(DOSSIER_DES_MODELES)));
+
+/** Les manifestes du listage commité `commites`, ceux des éléments `decor` retirés, plus l'élément `decor` de test
+ *  `decor--<prop>` (`decorDeTest`) de chaque type de `props` : les seuls décors qu'ils servent. */
+export const avecLesSeulsDecors = (commites: ReturnType<typeof listage>, ...props: string[]): Record<string, unknown> => ({
+  ...Object.fromEntries(Object.entries(commites.manifestes).filter(([, m]) => (m as { categorie?: string }).categorie !== 'decor')),
+  ...Object.fromEntries(props.map((prop) => [`decor--${prop}`, decorDeTest(prop)])),
+});
+
+/** Les manifestes du listage commité `commites` sans décor, plus le décor saisonnier de test du type `prop`
+ *  (`decorSaisonnierDeTest`). */
+export const avecLeSaisonnier = (commites: ReturnType<typeof listage>, prop: string): Record<string, unknown> => ({ ...avecLesSeulsDecors(commites), [`decor--${prop}`]: decorSaisonnierDeTest(prop) });
+
+/** Ce que la saison `saison` (`null` : aucune) change du décor saisonnier de test servi : ses branches nues
+ *  (`avec-hiver`) cachées hors de l'hiver, son feuillage (`sans-hiver`) en hiver, et sa teinte d'automne. */
+export const enSaison = (saison: Saison | null) => ({
+  palette: saison === 'automne' ? { vegetal: TEINTE_D_AUTOMNE } : {},
+  caches: [saison === 'automne' ? 'sans-automne' : 'avec-automne', saison === 'hiver' ? 'sans-hiver' : 'avec-hiver'],
+});
 
 /** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité `commites`. */
 export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof listage>, manifestes = commites.manifestes): void {

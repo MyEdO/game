@@ -12,9 +12,7 @@
   "couvre": [
     "torse",
     "bras_haut_g",
-    "bras_haut_d",
-    "avant_bras_g",
-    "avant_bras_d"
+    "bras_haut_d"
   ],
   "silhouettes": [
     "feminin",
@@ -25,11 +23,17 @@
   "surfaces": [
     {
       "nom": "pourpoint",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--drap-terne"
+    },
+    {
+      "nom": "creves",
+      "palette": "vet1",
+      "matiere": "prop--drap-terne"
     }
   ],
   "glb": {
-    "sha256": "5953cbb022393dcb20e78221baa4bc7d930f652194616c911d1698a727e8c08c",
-    "octets": 527412
+    "sha256": "6db0cb625ee7840a6ca088400ef47bc51022853280199928acb1a7c1c0147da6",
+    "octets": 407692
   }
 }

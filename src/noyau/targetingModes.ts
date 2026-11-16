@@ -237,7 +237,7 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   const mpt = sceneMetresPerTile(get().scene);
   const gbf = () => bonusDeForce(ship); // paresseux : la portée navale est fixe (number) → BF jamais évalué
   const maxRange = Math.max(...postes.map((p) => effectiveRange(p.item.range, gbf) ?? 0)); // mètres — la plus longue pièce du bord
-  if (maxRange && rangeBandModifier(distanceDeCombat(ship, target), maxRange, mpt) == null)
+  if (maxRange && rangeBandModifier(distanceDeCombat(get().scene, ship, target), maxRange, mpt) == null)
     return { reason: 'range', detail: t('cs.refusBordeeHorsPortee', { ship: ship.label }) };
   return null;
 }
@@ -487,7 +487,7 @@ function overcastAffordance(get: Get, _active: Combatant, target: Combatant): Ho
   const pool = s.battle?.combatants ?? s.party;
   const caster = pool.find((c) => c.id === pc.casterId);
   const spell = findSpellById(pc.spellId);
-  if (!caster || !spell || !overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === target.id)) return { kind: 'none' };
+  if (!caster || !spell || !overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === target.id)) return { kind: 'none' };
   return { kind: 'ok', line: 'dashed', title: spell.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
@@ -661,7 +661,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       // sinon un héros mixte mêlée+distance ne pourrait jamais tirer une cible éloignée (LDB Armes l.297-298).
       const battleNow = get().battle!;
       const w = pickAttackWeapon(get().scene, battleNow, active, target, option.weaponUid);
-      if (w.type === 'melee' && distanceDeContact(get().scene, attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
+      if (w.type === 'melee' && distanceDeContact(get().scene, attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w, sceneMetresPerTile(get().scene))) {
         refuserGesteDuSiege(get, set, t('cs.meleeOutOfRange')); // aucune arme à distance dispo → mêlée hors de portée
         return;
       }
@@ -835,7 +835,7 @@ const OVERCAST_MODE = {
     const caster = pc && pool.find((c) => c.id === pc.casterId);
     const spell = pc && findSpellById(pc.spellId);
     if (!pc || !caster || !spell) return [];
-    return overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
+    return overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
   },
   commitCombatant: (get, _set, _active, id) => { get().jetRegler('incantation', 'ciblesSupplementaires', ciblesBasculees(get().pendingCast?.extraTargetIds, id)); },
 } satisfies TargetingMode;

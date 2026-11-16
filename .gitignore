@@ -131,6 +131,7 @@ __pycache__/
 /docs/raw/**/catalogue-*.md
 /hotes/godot/pont/CONTRAT.md
 /src/**/*.generated.ts
+/src/data/schemas/_fichiers-de-l-atelier.generated.json
 # fin des cibles pures
 
 # Cache incrémental de tsc (artefact de build)

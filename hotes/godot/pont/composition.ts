@@ -83,8 +83,8 @@ export interface CompositionSurLaBase {
    *  `reliefDeCorpulence` du manifeste et `w` le poids de `corpulence` dans `morphes` (#4002) ; vide sans
    *  `reliefDeCorpulence` ou à poids nul. Godot le multiplie au `normal_scale` du matériau de la surface. */
   reliefs: Record<string, number>;
-  /** la couleur `#rrggbb` de chaque emplacement de palette que la composition colore (`couleurs`), résolue au
-   *  nuancier (`findCouleurById`, surface du noyau), vide sans `couleurs`. La composition ne porte que des ids
+  /** la couleur `#rrggbb` de chaque emplacement de palette que la race de rendu ou la composition colore (`couleurs`), résolue au
+   *  nuancier (`findCouleurById`, surface du noyau), vide sans couleur. La composition ne porte que des ids
    *  (#2966) ; Godot ne lit aucun catalogue pour colorer. */
   palette: Record<string, string>;
 }

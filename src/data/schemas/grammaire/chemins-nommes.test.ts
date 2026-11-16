@@ -117,7 +117,7 @@ describe('chemins nommés par leur schéma', () => {
       [detailRecipeSchema, ['courses'], 'rangs'],
       [restPlacesSchema, ['maison'], 'chez soi'],
       [sceneSchema, ['rest', 'maison'], 'repos › chez soi'],
-      [placeServiceSchema, ['rest', 'maison'], 'repos › chez soi'],
+      [placeServiceSchema, ['rest', 'quality'], 'repos › qualité'],
     ] as const) expect(cheminLisible(lieuDe(schema, {}, chemin))).toBe(nom);
     for (const cle of ['focusNoMiscastOnDouble', 'castNoMiscastOnDouble']) {
       expect(cheminLisible(lieuDe(combatFeatureSchema, {}, [cle]))).toMatch(/^aucune Imparfaite sur un double réussi /);

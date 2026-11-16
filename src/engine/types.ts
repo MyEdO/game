@@ -241,6 +241,8 @@ export type { ArmourBypass };
  *  `damageString` ; remplace la chaîne « +BF+4 » re-parsée par regex au runtime. */
 export type WeaponDamageSpec =
   | { literal: string }
+  /** Dégâts « – » imprimés : une touche sans prise (`SansPrise` 'sans-degats'). LDB 62 l.76 ; AA 10 l.192 ; #4202. */
+  | { aucun: true }
   | { plusBF: boolean; flat: number; bare?: true; bfInclus?: true };
 
 /** Portée d'arme à distance (LDB 62) : `number` = mètres FIXES (arc/arbalète/arme à feu) ; `{ bf }` =
@@ -312,6 +314,9 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  MÊME vocabulaire que le `passive` d'un Atout/Défaut du registre, lus au MÊME point (`weaponPassiveOps`,
    *  engine/qualities/dispatch). VDM 05 Défaut : « −1 DR à tous les Tests pour attaquer avec elle ». */
   passive?: import('./ops').OpPassive[];
+  /** Passifs d'ARME portés en DONNÉE par le catalogue (`TrappingData.passifDArme`), lus au MÊME point
+   *  (`weaponPassiveOps`). ZI 13 l.199 */
+  passifDArme?: import('./ops').OpPassive[];
   /** Qualités NEUTRALISÉES sur cette arme par id (altération `augmentWeapon.removeQualities`) — retirées
    *  APRÈS la fusion des qualités de FAMILLE (`resolveQualities`), qui sont sur le même plan RAW. */
   removedQualities?: string[];
@@ -324,9 +329,11 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  bonne famille de munition (pierrier/canon/baliste/mortier) là où `subType` seul ne le fait pas. Lu par
    *  `ammoFamilyLabel` pour le hint joueur. */
   defaultAmmo?: string;
-  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN SEUL servant
-   *  valide → l'arme perd TOUS ses Atouts (conserve ses Défauts). Lu par `crewedFireWeapon`. Absent = non. */
-  soloSimple?: boolean;
+  /** Qualités que l'arme perd tirée sans équipe (`armeSansEquipe`, `WeaponContext.sansEquipe`). AA 10 l.148 ;
+   *  ZI 13 l.193 */
+  perteSansEquipe?: PerteSansEquipe;
+  /** Bouclier que tient le partenaire au contact du tireur de cette arme (`bouclierDuBinome`). ZI 13 l.193 ; #4202 */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169-171) : peut viser une CASE au sol
    *  (pas forcément un combattant) ; son Atout Explosion/Tir de zone frappe le rayon autour de la case. Lu
    *  par `availableAttacks` (ciblage de case vs combattant). Absent = tir DIRECT (canon, baliste, pierrier). */
@@ -444,6 +451,10 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
  *  arme invoquée — Épée ardente de Rhuin). PORTÉ PAR L'OBJET (`ItemInstance.enchants`, source de
  *  vérité) et replié dans l'arme dérivée par `recomputeLoadout` (`applyEnchants`). `id` : identité
  *  pour le retrait ciblé à l'expiration (un `ActiveEffect.enchantRef` le temporise). */
+/** Qualités perdues par une arme tirée sans équipe, au vocabulaire des retraits de `WeaponEnchant` : par id
+ *  STABLE, ou tous les Atouts (polarité lue au registre). AA 10 l.148 ; ZI 13 l.193 */
+export type PerteSansEquipe = Pick<WeaponEnchant, 'removeQualities'> & { removeType?: 'atout' };
+
 export interface WeaponEnchant {
   id: string;
   /** Atouts ajoutés en ids STABLES de qualité (`QualityRef.id` — « magique » → touche l'Éthéré ;
@@ -1087,8 +1098,10 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** Arme DÉRIVÉE conférée tant que l'objet est équipé (`TrappingData.derivedWeapon`, armée à la naissance
    *  par `armeDeLaDonnee`). */
   derivedWeapon?: Weapon;
-  /** Pièce « relativement simple » (baliste, cf. `Weapon.soloSimple`) — propagé à l'arme dérivée. */
-  soloSimple?: boolean;
+  /** Cf. `Weapon.perteSansEquipe` — propagé à l'arme dérivée. */
+  perteSansEquipe?: PerteSansEquipe;
+  /** Cf. `Weapon.bouclierDEquipe`. */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte, cf. `Weapon.indirect`) — propagé à l'arme dérivée. */
   indirect?: boolean;
   /** LDB 62 l.278 — approximation MAISON, propagé à l'arme dérivée (cf. `Weapon.bladed`). */
@@ -1103,6 +1116,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   minRangeBand?: RangeBandId;
   /** #2967 */
   apparence?: string;
+  /** Composant d'incantation (`isSpellComponent`) : id du Sort qu'il favorise ; absent, le composant reste à lier. LDB 46 l.113 */
+  sortLie?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;
   /** Quantité (paquet de munitions, ex. « (12) » → 12). */
@@ -1235,7 +1250,7 @@ export interface EntreeBarre {
  *  Record = laissé au pré-remplissage déduit. Objet creux, jamais un tableau à trous : le snapshot de
  *  partie sérialise en JSON, où un trou deviendrait `null` — donc « vidée ».
  *  UN modèle pour les trois zones — le set au poing n'est qu'une dimension de l'adresse de l'arsenal.
- *  Lecture/écriture : le validateur `poserDansBarre` de l'hôte. */
+ *  Lecture/écriture : le validateur `poserDansBarre` du noyau (`src/noyau/dispositionConsole.ts`). */
 export interface DispositionConsole {
   /** Arsenal, par `WeaponLoadout.id` : commuter le set affiche SA disposition. */
   arsenal?: Record<string, Record<number, EntreeBarre | null>>;
@@ -1484,16 +1499,10 @@ export interface Combatant {
   /** DISPOSITION de la console de combat, PAR ADRESSE de case (spec HUD zone 6 : la barre est
    *  éditable, la déduction ne fait que pré-remplir). Donnée du PORTEUR : elle voyage avec lui
    *  (save, roster, coop) sans table annexe ni clé de partie. Porte unique d'écriture :
-   *  `poserDansBarre`, chez l'hôte. */
+   *  `poserDansBarre`, au noyau. */
   barre?: DispositionConsole;
   /** Sorts/prières connus — `id` de `src/data/spells.json`, résolus par `findSpellById`. */
   spells?: string[];
-  /** Composants d'incantation possédés (LDB 46 l.107-113) — `id` des Sorts d'Arcane/Domaine pour
-   *  lesquels le héros a acheté un composant (coût = NI pistoles d'argent, « acheté pour un Sort
-   *  spécifique »). Sous la règle optionnelle `magie-composant`, le composant absorbe les pires
-   *  effets du contrecoup : Imparfaite Majeure → Mineure, Mineure → annulée ; consommé à l'incantation
-   *  (succès OU échec, Imparfaite OU PAS). Persisté entre combats. */
-  componentSpells?: string[];
   /** Points de Péché (LDB 40 l.30-36) — Bienheureux ayant violé les commandements de
    *  son dieu. Octroyés par le MJ/l'auteur (Effet `giveSin`), jamais inventés ; pas de
    *  maximum ; chaque jet de Colère des dieux en retire 1 (l.53). Persisté entre combats. */

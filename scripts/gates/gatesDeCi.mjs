@@ -78,14 +78,26 @@ export const LANE_LOCALE_DE_JOB = {
   godot: {
     lane: 'types',
     raison:
-      '`godot:sonde`, `godot:rendus` et `personnage-3d:tests` ont leur job pour raccourcir le chemin critique de la CI ' +
-      '(#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+      '`godot:sonde` et `personnage-3d:tests` ont leur job pour raccourcir le chemin critique de la CI (#3412) ; le ' +
+      'rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+  },
+  'godot-rendus': {
+    lane: 'types',
+    raison:
+      '`godot:rendus` (#3951) a son job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient ' +
+      '`PLAFOND_LANES` lanes, et `types` le porte',
+  },
+  'godot-recette': {
+    lane: 'types',
+    raison:
+      '`godot:recette` (#3945) a son job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient ' +
+      '`PLAFOND_LANES` lanes, et `types` le porte',
   },
   corpus: {
     lane: 'types',
     raison:
-      '`test:corpus`, `mods:check` et `godot:recette` (#3945) ont leur job pour raccourcir le chemin critique de la CI ' +
-      '(#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+      '`test:corpus` et `mods:check` ont leur job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local ' +
+      'tient `PLAFOND_LANES` lanes, et `types` les porte',
   },
   'docs-tests': {
     lane: 'docs',

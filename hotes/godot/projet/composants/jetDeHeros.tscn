@@ -12,7 +12,7 @@ champ = "detail"
 propriete = &"tooltip_text"
 
 [node name="Resultat" type="PanelContainer" parent="."]
-custom_minimum_size = Vector2(40, 0)
+custom_minimum_size = Vector2(34, 34)
 size_flags_vertical = 4
 theme = ExtResource("t_jet_de_heros")
 
@@ -22,8 +22,13 @@ champ = "ton"
 propriete = &"theme_type_variation"
 
 [node name="De" type="Label" parent="Resultat"]
-theme_type_variation = &"De"
 horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ton" type="Node" parent="Resultat/De"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
 
 [node name="resultat" type="Node" parent="Resultat/De"]
 script = ExtResource("1_liaison")

@@ -3,7 +3,7 @@
 ## disposition qu'elle nomme. Chaque zone de la scène lit une source de la vue et chaque source a sa zone, hors des
 ## zones d'un panneau que la disposition cache (le journal sous une scène qui le tient, `Disposition.journal`) ; chaque
 ## élément a son composant, dans l'ordre de la zone qui le range, et aucun ne reste sans zone ; chaque texte qu'il dit
-## (`DITS`) se lit à l'écran, ou au survol de son contrôle ; chaque geste pressé joue l'intention que l'élément porte,
+## (`DITS`) se lit à l'écran, au survol de son contrôle ou au menu de la partie ouvert ; chaque geste pressé joue l'intention que l'élément porte,
 ## un formulaire celle que la vue attend, un curseur glissé ou réglé par sa boîte à nombre sa valeur (#4081) ; le geste
 ## en focus le prend. Remontrée, une vue garde ses nœuds et ne joue rien (sa pose remet chaque curseur) ; vidée, une
 ## zone les quitte et la fenêtre se cache, le journal garde ses lignes. Chaque disposition dédiée (`res://ecrans/`) est
@@ -40,8 +40,8 @@ func _recetter() -> void:
 	var ecran: Node = load("res://scenes/Ecran.tscn").instantiate()
 	root.add_child(ecran)
 	for vue in vues:
-		await _recetter_la_vue(_disposer(ecran, vue.disposition), vue)
-	var zones := _disposer(ecran, null)
+		await _recetter_la_vue(_disposer(ecran, vue.disposition, vue.combat), vue)
+	var zones := _disposer(ecran, null, false)
 	Zone.montrer_toutes(zones, {})
 	_verifier(not (ecran.get_node(SCENE).find_child("Cadre", true, false) as Control).visible, "sans fenêtre, le cadre de la fenêtre se cache")
 	for scene in _dedicaces(ECRANS):
@@ -57,16 +57,20 @@ func _recetter() -> void:
 
 
 ## Les zones de l'écran, la disposition de `disposition` posée (`Disposition.disposer`) : chacune rend son geste joué.
-func _disposer(ecran: Node, disposition: Variant) -> Array[Zone]:
+func _disposer(ecran: Node, disposition: Variant, en_combat: bool) -> Array[Zone]:
 	var posee := ecran.get_node(SCENE + "/Disposition") as Disposition
-	posee.disposer(disposition)
+	posee.disposer(disposition, en_combat)
 	_posees[posee.scene] = true
 	_journal = posee.journal
 	var zones := Zone.racines(ecran)
 	for zone in zones:
-		if zone.geste.get_connections().is_empty():
-			zone.geste.connect(func(jeu: Dictionary) -> void: _joues.append(jeu))
+		if not zone.geste.is_connected(_noter):
+			zone.geste.connect(_noter)
 	return zones
+
+
+func _noter(jeu: Dictionary) -> void:
+	_joues.append(jeu)
 
 
 ## Les scènes de disposition dédiées sous `dossier`, hors de la générique.
@@ -105,7 +109,7 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 				continue
 			var textes := _textes(noeud)
 			for dit in _dits(e):
-				_verifier(textes.has(dit), "%s, %s/%s : « %s » ne se lit pas (%s)" % [vue.nom, e.type, e.id, dit, textes])
+				_verifier(_se_lit(textes, dit), "%s, %s/%s : « %s » ne se lit pas (%s)" % [vue.nom, e.type, e.id, dit, textes])
 			_presser(vue, noeud, e)
 	await process_frame
 	var focus := root.gui_get_focus_owner()
@@ -161,14 +165,27 @@ func _textes(noeud: Node) -> Array:
 	return textes
 
 
-## Visible, ou dans un onglet que son `TabContainer` ne montre pas : il se lit en choisissant son onglet.
+## Si `dit` se lit dans `textes` : un texte entier, ou des lignes entières d'un texte, dont la bulle qu'écrivent à la
+## suite les unes des autres plusieurs liaisons (`Liaison.a_la_suite` : le libellé, le détail, le refus).
+static func _se_lit(textes: Array, dit: String) -> bool:
+	return textes.any(func(t: String) -> bool: return ("\n%s\n" % t).contains("\n%s\n" % dit))
+
+
+## Visible, ou dans un onglet que son `TabContainer` ne montre pas, dans la liste fermée d'une ouvrante (`Ouvrante` :
+## le menu de la partie, une pastille de choix), ou composant qu'une zone en `derniers` cache (la chronique fermée, que
+## sa pastille ouvre) : il se lit en choisissant son onglet, en ouvrant la liste, en pressant la pastille.
 func _lisible(n: Control) -> bool:
 	var c: Node = n
 	while c is Control:
-		if not (c as Control).visible and not c.get_parent() is TabContainer:
+		if not (c as Control).visible and not c.get_parent() is TabContainer and not c.get_parent() is Ouvrante and not _cache_par_derniers(c):
 			return false
 		c = c.get_parent()
 	return true
+
+
+## Si `c` est un composant de zone que sa zone cache en `derniers` (`Zone.derniers`).
+static func _cache_par_derniers(c: Node) -> bool:
+	return c.has_meta(Zone.META) and c.get_parent().get_children().any(func(z: Node) -> bool: return z is Zone and z.derniers > 0)
 
 
 ## Chaque texte que l'élément `e` et ses éléments imbriqués disent (`DITS`, le nom d'une entité, la valeur d'une
@@ -195,12 +212,17 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 	match e.type:
 		"bouton":
 			_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
-		"choix":
-			for v in e.valeurs:
-				var bouton := _composant_de(noeud, v)
-				_attendre(vue, v.id, func() -> void: (bouton.get_node("Presser") as BaseButton).pressed.emit(), v.jeu)
-		"liste":
-			var liste: OptionButton = noeud.find_children("*", "OptionButton", true, false).front()
+		"puce":
+			if e.jeu != null:
+				_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
+		"choix", "liste":
+			var deroulantes := noeud.find_children("*", "OptionButton", true, false)
+			if deroulantes.is_empty():
+				for v in e.valeurs:
+					var bouton := _composant_de(noeud, v)
+					_attendre(vue, v.id, func() -> void: (bouton.get_node("Presser") as BaseButton).pressed.emit(), v.jeu)
+				return
+			var liste: OptionButton = deroulantes.front()
 			var pressee := -1
 			for i in e.valeurs.size():
 				if e.valeurs[i].presse:

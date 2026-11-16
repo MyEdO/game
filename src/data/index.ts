@@ -6,7 +6,7 @@
 import type { IconId } from './icons/types';
 import type { EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
-import { listeEt, t } from '../i18n';
+import { listeEt, t, type MsgKey } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
   dansLaSousListe,
@@ -23,8 +23,16 @@ import {
   type RefTypee,
   type TypeEntite,
 } from './schemas/grammaire/ref';
-import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
-import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
+import {
+  cleNichee,
+  libelleDeLElement,
+  lireCleDEspace,
+  pasDeLaSuite,
+  retenuParFiltre,
+  suivreLeChemin,
+  vocabulaireDuFichier,
+} from './schemas/grammaire/cle-d-espace';
+import { VOCABULAIRES, type NomDeVocabulaire } from './schemas/grammaire/vocabulaires';
 import {
   CATEGORIE_CODEX_DU_FICHIER,
   CLES_CODEX,
@@ -35,8 +43,8 @@ import {
   type DatasetDeCategorie,
 } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
-import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
-import type { DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
+import { ENGINS_DE_SIEGE, INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
+import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import {
   natureDeMentionSchema,
@@ -268,7 +276,7 @@ import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
-import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type StakeForm } from '../engine/types';
+import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type StakeForm, type PerteSansEquipe } from '../engine/types';
 import { formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
 // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
@@ -623,11 +631,11 @@ export function trousDeLEnjeu(key: StakeKey): string[] | undefined {
  *  jamais silencieux). `entryCategory` = la catégorie FOURNIE par le producteur, pour les clés dont le
  *  dataset ne peut pas la déclarer (`entryFromSource` : l'entité source d'un effet peut être de
  *  n'importe quelle nature). */
-function stakeRef(
-  dataset: StakeDataset,
+function stakeRef<D extends StakeDataset>(
+  dataset: D,
   kind: string,
   opts: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> } = {},
-): StakeRef {
+): CatalogStake & { key: { dataset: D } } {
   if (!stakeEntry({ dataset, kind })) {
     throw new Error(`stakeRef('${dataset}/${kind}') : aucune entrée d'enjeu — une surface qui LANCE dit ce qu'elle met en jeu`);
   }
@@ -687,11 +695,15 @@ export function stateRecoveryStakeRef(etatId: string): StakeRef {
 }
 
 /** Enjeu d'une MODALE MONO (#1117 L1b, `stakeRef`) : le TYPE ferme l'id (`FlowStakeId`, généré) en
- *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage. */
+ *  PREMIER rideau, le throw est le second. `entryId` = la chanson chantée, le type de Test d'équipage.
+ *  Sans `values`, l'enjeu a la forme qu'un document saisit (`catalogStakeSchema`) : un Effet en pose un
+ *  par défaut sans recopier sa clé. */
+export function flowStakeRef(id: FlowStakeId, opts?: { entryId?: string }): CatalogStake & { key: { dataset: 'flux' }; values?: never };
+export function flowStakeRef(id: FlowStakeId, opts: { entryId?: string; values: Record<string, string | number> }): CatalogStake;
 export function flowStakeRef(
   id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
-): StakeRef {
+): CatalogStake {
   return stakeRef('flux', id, opts);
 }
 
@@ -826,6 +838,8 @@ export interface ItemCapabilities {
   isRations?: boolean;
   /** Grimoire / livre de Sorts (LDB 47 l.21) — un Sort non mémorisé du Domaine peut y être lu (NON gaté). */
   isGrimoire?: boolean;
+  /** Composant d'incantation (LDB 46 l.107-113), lié à un Sort par `ItemInstance.sortLie` (NON gaté). */
+  isSpellComponent?: boolean;
   /** Outils de crochetage (LDB 67 l.66 : « nécessaire pour utiliser la Compétence Crochetage sans
    *  pénalité ») — consommé par `SkillData.tool` (crochetage → −10 sans outil, LDB 09 l.168). NON gaté
    *  sur le port : les posséder suffit (on les sort pour s'en servir, comme `isRations`). */
@@ -845,6 +859,10 @@ export interface ItemCapabilities {
    *  période avec pénalité de -20). Lue par-objet (`itemCapability`), pas gatée sur le port : l'arme est
    *  fixée à la main qui la tient. */
   disarmImmune?: boolean;
+  /** Objet lancé détruit, qui ne tombe pas au sol (`appliquerLaTouche`, `noyau/combatFlow.ts`). #4330 */
+  detruitAuLancer?: boolean;
+  /** Armure de monture, portée par la bête et jamais équipée par une dotation (`harnacher`, `noyau/mount.ts`). AA 09 l.184 ; ADE I 07 l.66 ; #4135 */
+  armureDeMonture?: boolean;
   /** Arme à corde séparable (Lance-harpon, ADE II 02 l.677 : « Si la corde est séparée de la flèche, la
    *  portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante ») — active le mode de tir
    *  `WeaponContext.harpoonRopeCut` (`effectiveWeapon`, `noyau/combatFlow.ts` `weaponContextOf`), choisi
@@ -877,9 +895,10 @@ export interface TrappingData {
   /** Rendu visuel et sonore de l'arme (`rendus.json`), à la place de celui de son Groupe : un engin de siège, dont le
    *  Groupe dit qui le sert, pas ce qu'il tire (#3771). */
   rendu?: { id: string };
-  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN seul servant
-   *  valide → perd tous ses Atouts (garde ses Défauts). Lu par `crewedFireWeapon`. */
-  soloSimple?: boolean;
+  /** Cf. `Weapon.perteSansEquipe`. AA 10 l.148 ; ZI 13 l.193 */
+  perteSansEquipe?: PerteSansEquipe;
+  /** Cf. `Weapon.bouclierDEquipe`. ZI 13 l.193 */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169/171) : peut viser une CASE au sol.
    *  Propagé Trapping → ItemInstance → Weapon (`indirect`) ; lu par `availableAttacks`. Canon/baliste = direct. */
   indirect?: boolean;
@@ -894,6 +913,12 @@ export interface TrappingData {
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
   onHitEffects?: TriggeredEffect[];
+  /** Effets DÉCLENCHÉS de l'objet PORTÉ ou TENU (`isHeld`), lus au catalogue par `effectSourcesOf`, jamais
+   *  copiés sur l'instance. #4202 */
+  effects?: TriggeredEffect[];
+  /** Passifs de l'ARME elle-même (vocabulaire de `weaponPassiveOps`), ≠ `passive` du PORTEUR. Propagé
+   *  Trapping → ItemInstance → Weapon (`passifDArme`). ZI 13 l.199 */
+  passifDArme?: import('../engine/ops').OpPassive[];
   /** PORTÉE MINIMALE de tir (bande) : la cible plus proche que cette bande REFUSE le tir (≠ malus). Machines
    *  de siège à distance = `'courte'` (pas de Bout Portant, ADE II 8 l.253) ; trébuchet/mortier =
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
@@ -949,6 +974,9 @@ export interface TrappingData {
    *  sur le catalogue NATIVEMENT ogre (massue ogre, pansière ogre… l.604 : Enc déjà entré à sa valeur pleine,
    *  pas de doublement). Propagée à `ItemInstance.sizeFor` / `Weapon.sizeFor`. */
   sizeFor?: import('../engine/size').SizeCategory;
+  /** Seul Groupe de peuple (`groups.json`) à qui une arme au choix de carrière l'offre (`offerteAuPorteur`).
+   *  Arbitrage #4110 (2026-11-16) */
+  reserveeA?: { id: string };
   availability: Availability | 'ND' | null;
   /** Allonge de MÊLÉE — vocabulaire FERMÉ `ReachValue` (les sept longueurs de LDB 62 l.156-164, plus
    *  « Variable » l.31) ou null, VALIDÉ au chargement par le schéma zod (`schemas/defs/trappings.ts`).
@@ -1279,20 +1307,22 @@ export const qualities = datasetDe<typeof qualitiesDef>(qualitiesJson);
 export const TAVERN_GAMES = datasetDe<typeof tavernGamesDef>(tavernGamesJson);
 /** Index des Atouts/Défauts par `id` STABLE (slug) — lookup runtime indépendant de la langue (dispatch). */
 const qualiteParId = indexParId('qualities', qualities);
+/** Qualité MAGIQUE : `capabilities.magic` (Magique, ADE II 04 l.214 ; Maudit, VDM 12 l.786-788). */
+const estQualiteMagique = (q: QualityData | undefined): boolean => q?.capabilities?.magic === true;
 /** Atouts de Fabrication (LDB 60 l.9-32) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
  *  Compétence Métier produit, donc hors qualités MAGIQUES (`capabilities.magic` : Maudit, VDM 12
- *  folio 170, est un Atout d'objet qu'aucun artisan ne fabrique). */
+ *  l.786-788, est un Atout d'objet qu'aucun artisan ne fabrique). */
 export const fabricationAtouts = memoParVersion('qualities', (): QualityData['id'][] =>
-  qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !q.capabilities?.magic).map((q) => q.id),
+  qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !estQualiteMagique(q)).map((q) => q.id),
 );
-/** Atout de fabrication par DÉFAUT (fallback maison quand le joueur ne choisit pas ; le RAW n'en fixe
- *  aucun — un objet de qualité a toujours UN Atout, LDB 60 l.11). */
+/** Atout de Fabrication d'un emplacement « Atouts au choix » que personne n'a choisi. LDB 60 l.11 ; LDB 60 l.26 */
 export const DEFAULT_FABRICATION_ATOUT = 'raffine';
-/** `QualityRef` d'un Atout de fabrication résolu au registre, `undefined` hors registre — une qualité INDICÉE
- *  (`indice`) prend l'Indice 1 par défaut d'un Atout UNIQUE de fabrication (LDB 60 l.30). */
-export function fabricationAtoutQuality(id: string): QualityRef | undefined {
+/** Les `QualityRef` de l'Atout de Fabrication `id` pris `prises` fois : une entrée d'Indice `prises` s'il est indicé,
+ *  `prises` entrées sinon. LDB 60 l.30-32 */
+export function fabricationAtoutQuality(id: string, prises: number): QualityRef[] {
   const q = qualiteParId(id);
-  return q && (q.indice ? { id: q.id, value: 1 } : { id: q.id });
+  if (!q) return [];
+  return q.indice ? [{ id: q.id, value: prises }] : Array.from({ length: prises }, () => ({ id: q.id }));
 }
 /** Symptômes de maladie (LDB 20) — entités de DONNÉE éditables au Codex (passive/onTick/capabilities). */
 export const symptoms = datasetDe<typeof symptomsDef>(symptomsJson);
@@ -1337,9 +1367,12 @@ export function mutationLabel(id: string | null | undefined): PlayerText {
 const marqueDeSiege = porteLeMarqueur('weaponGroup', 'siege');
 /** Groupe d'engins de siège : marqueur `siege` de `weaponGroups.json`. AA 10 l.136 */
 export const groupeDeSiege = (id: string | null | undefined): boolean => !!id && marqueDeSiege(id);
-/** Engins de siège posables : trappings d'un Groupe d'engins de siège (`groupeDeSiege`). Foyer du filtre
- *  partagé par les emplacements, les références d'entité et la catégorie du Codex. */
-export const siegeEngines = memoParVersion(['trappings', 'weaponGroups'], () => trappings.filter((t) => groupeDeSiege(t.subType?.id)));
+/** Engins de siège posables : la sous-liste `ENGINS_DE_SIEGE` des trappings, dans l'ordre de la donnée.
+ *  Foyer du filtre partagé par les emplacements, les références d'entité et la catégorie du Codex. */
+export const siegeEngines = memoParVersion('trappings', () => {
+  const ids = new Set(idsDeLaSousListe('trapping', ENGINS_DE_SIEGE));
+  return trappings.filter((t) => ids.has(t.id));
+});
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
@@ -1535,7 +1568,7 @@ export type LandCargoData = DatasetDe<typeof landCargoDef>;
 export const landCargo = datasetDe<typeof landCargoDef>(landCargoJson);
 
 /** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE désigné par
- *  `ref('serviceDeLieu')` (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) et résolu par `placeServices`
+ *  `ref('serviceDeLieu')` (`MapPlace.services[].kind`, et `PlacePoi.service` hors des établissements du lieu) et résolu par `placeServices`
  *  (`src/noyau/worldMap.ts`). `port`/`marche` y donnent le libellé, l'icône et le fond par défaut du port et du
  *  marché d'un lieu, qui gardent leur propre schéma riche — id STABLE → libellé/icône d'affichage du hub de lieu. */
 export type LieuServiceData = EntreeDe<typeof lieuxServicesDef>;
@@ -2264,12 +2297,15 @@ export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | n
 }
 /** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
 const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
-/** ARMES choisissables `{ id, label, groupe }` : toute Possession `melee`/`distance` hors « Mains nues »
- *  (`TrappingData.unarmed`) et hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`), triée au
- *  libellé. `id` = `trappingId` STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`). */
-export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
+/** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` hors « Mains nues »
+ *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
+ *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
+ *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue ; `reserveeA`, le seul Groupe
+ *  de peuple à qui elle s'offre. */
+export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
-  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id }))
+  .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
+  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor, reserveeA: t.reserveeA?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
@@ -2349,7 +2385,7 @@ export function chaosSpellsOf(god: string): string[] {
 
 /** Référence à une Possession : par `id` du catalogue (+ quantité éventuelle), texte NARRATIF hors
  *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
- *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
+ *  (`DotationDePossession`, véhicule, bête ou engin de siège — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
  *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU somme d'argent (`Somme`) —
  *  OU mention par nature (`DotationDeMention`) — OU « 1 parmi »
  *  (`{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`AdvancementRef`), dont une option peut être un lot d'objets ou de
@@ -2358,8 +2394,8 @@ export function chaosSpellsOf(god: string): string[] {
  *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
  *  restent tels quels et ne produisent aucun objet.
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
- *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atout au choix »
- *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
+ *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atouts au choix »
+ *  (`qualityChoice`, sa classe de qualité, LDB 60 l.7 ; LDB 60 l.11) — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). Annotation de
  *  `trappingRefSchema` (`schemas/grammaire/reference.ts`). */
 export type { CountSpec, DotationDePossession, DotationDeMention, QualityRef, Somme, TrappingRef };
@@ -2438,14 +2474,27 @@ function collectionDuType(type: TypeEntite): DatasetDeCategorie | undefined {
 export function datasetDeLEspaceDuType(type: TypeEntite): CleDeDataset | undefined {
   return collectionDuType(type)?.cle;
 }
-/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées vivantes de l'espace de son type
- *  qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de la donnée ; LÈVE si aucun dataset ne porte
- *  l'espace (`datasetDeLEspaceDuType`). */
-export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+/** Les entrées `{ id, label }` de l'espace de `type`, dans l'ordre de leur source : la collection vivante de son dataset
+ *  (`collectionDuType`), sinon la table de son vocabulaire (`VOCABULAIRES`), sinon les ids qu'admet sa validation
+ *  (`idsDe`), chacun au libellé de son entrée dans la racine vivante de son fichier (`RACINES_VIVANTES`, au bout des
+ *  champs de sa niche), à défaut l'id. */
+function entreesDuType(type: TypeEntite): readonly { id: string; label: string }[] {
   const d = collectionDuType(type);
-  if (d === undefined) throw new Error(`choixDeLaFeuilleDId : aucun dataset ne porte l’espace ${espaceDe(type)}.`);
+  if (d !== undefined) return collectionDeRacine(d);
+  const { fichier, niche } = lireCleDEspace(espaceDe(type));
+  const nom = vocabulaireDuFichier(fichier) as NomDeVocabulaire | undefined;
+  if (nom !== undefined) return Object.entries(VOCABULAIRES[nom]).map(([id, label]) => ({ id, label }));
+  const pas = pasDeLaSuite(niche ?? '');
+  const lues = pas.every((p): p is { champ: string } => 'champ' in p) ? suivreLeChemin(RACINES_VIVANTES[fichier], pas) : undefined;
+  const entrees = Array.isArray(lues) ? lues.filter(estObjet) : [];
+  return [...idsDe(type)].map((id) => ({ id, label: libelleDeLElement(entrees.find((e) => e.id === id) ?? {}, LIBELLE_AU_LABEL.champs) ?? id }));
+}
+/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées de l'espace de son type
+ *  (`entreesDuType`) qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de leur source. */
+export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+  const entrees = entreesDuType(type);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
-  return collectionDeRacine(d).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
+  return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */
@@ -2619,12 +2668,25 @@ export function advancementLabel(category: string, a: AdvancementRef): PlayerTex
 export function advancementBaseId(a: AdvancementRef): string | undefined {
   return 'id' in a ? a.id : undefined;
 }
+/** Clé du libellé d'un emplacement « Atouts au choix », par classe de qualité. */
+const CLE_DE_QUALITE_AU_CHOIX = { qualite: 'ref.qualiteAuChoix', haute: 'ref.hauteQualiteAuChoix' } as const satisfies Record<ClasseDeQualite, MsgKey>;
 /** Libellé d'affichage d'une dotation ou d'une option de « 1 parmi » (`BrancheDeDotation`) : « Marteau », « Pamphlétaire (3) »,
  *  « Chiffon (1d10) », « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
  *  `RefDesignee` — `LDB 08 l.1130`), « Bijoux valant 3d10 couronnes d'or » (`valeur`), somme d'argent
  *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, « 1 parmi » (récursif), lot
  *  « Arc et Flèche (10) », ou joker « Arme (au choix) », « Arme du groupe Deux-mains (au choix) ». SOURCE UNIQUE
  *  (Codex, créateur, marchand, inventaire). */
+/** Le libellé de catalogue d'une dotation de possession, au catalogue que nomme son `type`. */
+function libelleDeLaPossession(ref: DotationDePossession): PlayerText {
+  switch (ref.type) {
+    case 'vehicle':
+      return dataLabel(findVehicleById(ref.id)?.label, ref.id);
+    case 'creature':
+      return dataLabel(findCreatureById(ref.id)?.label, ref.id);
+    case 'engin':
+      return refLabel('trappings', ref);
+  }
+}
 export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
   if ('pick' in ref) return libelleDuParmi(ref.pick, ref.of.map(trappingRefLabel));
   if ('lot' in ref) return dataLabel(listeEt(ref.lot.map(trappingRefLabel)));
@@ -2637,12 +2699,10 @@ export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
         ? ref.label
         : !('type' in ref)
           ? refLabel('trappings', ref)
-          : ref.type === 'vehicle'
-            ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
-            : dataLabel(findCreatureById(ref.id)?.label, ref.id);
+          : libelleDeLaPossession(ref);
   const quantite: CountSpec | undefined = 'count' in ref ? ref.count : undefined;
   const count = quantite ? ('fixed' in quantite ? ` (${quantite.fixed})` : ` (${formatDice(quantite.roll)})`) : '';
-  if ('qualityChoice' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
+  if ('qualityChoice' in ref && ref.qualityChoice) return t(CLE_DE_QUALITE_AU_CHOIX[ref.qualityChoice], { base: base + count });
   const quality = 'qualities' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
   const libelle = base + count + quality;
   return 'valeur' in ref && ref.valeur ? t('ref.valant', { base: libelle, somme: libelleDeLaSomme(ref.valeur) }) : dataLabel(libelle);

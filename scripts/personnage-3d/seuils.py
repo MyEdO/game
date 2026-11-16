@@ -4,7 +4,8 @@ symbole homonyme de l'évaluateur : `IMAGES_PAR_SECONDE`, `INSTANTS_CONFONDUS`,
 `MARGE_DE_GRILLE` (`echantillonnage.ts`) ; `INFLUENCES_MAX`,
 `POIDS_NEGLIGEABLE`, `TOLERANCE_SOMME_POIDS`, `TOLERANCE_JUMEAUX_POSITION_M` (`gardes/poids.ts`) ; `SOL_TOLERANCE_M`
 (`gardes/piedsAuSol.ts`) ; `TOLERANCE_ECHELLE` (`gardes/pistesDEchelle.ts`) ; `MAJORITE_DU_POIDS` (`gardes/appuis.ts`) ;
-`ETIREMENT_EN_CLIP`, `ETIREMENT_AU_REPOS` (`gardes/etirement.ts`), intervalles (bas, haut).
+`ETIREMENT_EN_CLIP`, `ETIREMENT_AU_REPOS` (`gardes/etirement.ts`), intervalles (bas, haut) ; `VITESSE_DU_POIGNET`
+(`gardes/poignets.ts`).
 """
 import json
 from pathlib import Path
@@ -24,4 +25,5 @@ TOLERANCE_ECHELLE = _SEUILS['TOLERANCE_ECHELLE']
 MAJORITE_DU_POIDS = _SEUILS['MAJORITE_DU_POIDS']
 ETIREMENT_EN_CLIP = tuple(_SEUILS['ETIREMENT_EN_CLIP'])
 ETIREMENT_AU_REPOS = tuple(_SEUILS['ETIREMENT_AU_REPOS'])
+VITESSE_DU_POIGNET = _SEUILS['VITESSE_DU_POIGNET']
 ETIREMENT_DES_CLES = (max(ETIREMENT_AU_REPOS[0], ETIREMENT_EN_CLIP[0]), min(ETIREMENT_AU_REPOS[1], ETIREMENT_EN_CLIP[1]))

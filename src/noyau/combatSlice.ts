@@ -134,7 +134,7 @@ import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
-import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
+import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
 import type { FateSaveSource } from '../engine/fortune';
@@ -143,7 +143,7 @@ import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
-import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
+import { crochetDuSol, lacherLeBouclierDuBinome, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
 import {
   nePeutPasDifferer,
   jouerFlowEntier,
@@ -207,6 +207,7 @@ import {
   syncDerivedConditions,
   isConditionLocked,
   soinDeDetermination,
+  isActionLocked,
 } from '../engine/conditions';
 import {
   modesDOuverture,
@@ -671,7 +672,7 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   else if (done?.purpose === 'travelDay') {
     handled = true;
     if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set);
-    else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set, done.piloteImmediat?.rowSurface === 'pv' ? done.participants : []);
+    else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set);
     else travelFlow.continueTravelDayAfterCascade(get, set, done);
   }
   // Exposition hydrique fluviale (MSRC 16) surfacée APRÈS le jour (#344) : la clôture reprend la fin du
@@ -935,6 +936,7 @@ export function createCombatSlice(get: Get, set: Set) {
         (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
       const path = movement.path;
       const fromPos = { ...active.pos! };
+      if (isActionLocked(active)) lacherLeBouclierDuBinome(get, set, active); // fuite forcée : ZI 13 l.193
       placeCombatant(active, scene, dest);
       if (geom !== active) placeCombatant(geom, scene, dest); // déplace la monture sous le cavalier (couple solidaire)
       displaceSmaller(get, geom); // un grand « dégage » les plus petits sous son empreinte (85 l.373-374)
@@ -1092,8 +1094,9 @@ export function createCombatSlice(get: Get, set: Set) {
       const barre = barreDuGeste(get());
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active, battle } = barre;
-      const refus = refusDeCourse(battle, active);
+      const refus = refusDeCourse(get().scene, battle, active);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
+      if (isActionLocked(active)) lacherLeBouclierDuBinome(get, set, active); // fuite forcée : ZI 13 l.193
       const resolved = dest && !movement ? resolveMovement(get, dest) : null;
       if (resolved?.status === 'bloque') return;
       const plan = movement ?? (resolved?.status === 'possible' ? { path: resolved.path, cost: resolved.cost } : undefined);
@@ -1286,7 +1289,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || isOutOfAction(active) || !canTakeAction(active) || !hasCommandTeam(active)) return;
-      const chiefs = teamCommandTargets(active, battle.combatants);
+      const chiefs = teamCommandTargets(get().scene, active, battle.combatants);
       if (!chiefs.length) return;
       const onSuccess: Flow = {
         kind: 'sequence',
@@ -1339,7 +1342,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
       if (weapon.type !== 'distance') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
-      if (!inFiringBand(scene, hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
+      if (!inFiringBand(scene, hero, target, weapon)) return void refuserGeste(get, set, t('cf.horsDePortee'));
       if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
       // `pendingAttack.interrupt` → jetValider('attaque') applique le tir sans avancer le tour + épuise son tour normal.
@@ -1670,6 +1673,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (!mount) return;
         mount.mountable = true;
         mountUp(enemies[i], mount); // partage la position/empreinte de la monture (LDB 14 l.179)
+        harnacher(enemies[i], mount);
       });
       // Structures destructibles de siège (AA 10 l.94-127) : chaque arête portant une `structure` INTACTE devient
       // un Combattant inerte à PV (kind 'pnj' → ne fausse pas la fin de combat, cf. checkBattleOver qui ne
@@ -2355,7 +2359,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const caster = pool.find((c) => c.id === pc.casterId);
         const spell = findSpellById(pc.spellId);
         if (!caster || !spell) return;
-        const eligibles = new Set(overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
+        const eligibles = new Set(overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
         const cap = extraTargetCapacity(overcastSourceOf(spell), pc.overcast?.targets ?? 0, spellTargetCount(spell, caster));
         const refus = ids.length > cap ? t('cast.refus.ciblesAuDela', { cap })
           : new Set(ids).size < ids.length ? t('cast.refus.cibleRepetee')
@@ -2440,6 +2444,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const mover = inBattleId(battle, pd.moverId);
         const foe = inBattleId(battle, pd.foeId);
         if (!mover || !foe) return set({ pendingDisengage: null, pendingCascade: null });
+        if (isActionLocked(mover)) lacherLeBouclierDuBinome(get, set, mover); // fuite forcée : ZI 13 l.193
         campGain(get, foe); // l'adversaire gagne immédiatement +1 Avantage (l.63)
         foe.gainedAdvThisRound = true;
         // `interactive` = le slot est-il JOUÉ (héros du groupe, quel que soit le SIÈGE qui le possède) —
@@ -3085,7 +3090,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         if (pa.siege && pa.center) {
           const lines = lance.hit && lance.damage != null
             ? [t('cf.impactDeSiege', { name: attacker.label }), ...resolveWeaponArea(get, set,
-                { attacker, weapon, damage: lance.damage, location: lance.location ?? 'corps', distanceTiles: distanceDeCombat(attacker, target), center: pa.center },
+                { attacker, weapon, damage: lance.damage, location: lance.location ?? 'corps', distanceTiles: distanceDeCombat(get().scene, attacker, target), center: pa.center },
                 battleAreaTargets(get), battleRng()).lines]
             : [t('cf.siegeRate', { name: attacker.label })];
           set({ battle: { ...markActed(get, set), action: null, preview: null, log: [...get().battle!.log, ...evLines(lines, 'tir', attacker.id)] } });

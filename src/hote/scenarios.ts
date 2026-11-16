@@ -20,7 +20,7 @@ const TESTS_A_LA_CARTE = 120;
 /** Le scénario `sc` en entité : son titre, ce qu'il vérifie (coupé au mot, entier au détail) et son groupe, et son
  *  lancement. */
 function entiteDuScenario(sc: TestScenario): Entite {
-  const lancer: Bouton = { type: 'bouton', id: `lancer/${sc.id}`, libelle: t('ecran.scenarios.lancer'), jeu: { scenario: sc.id }, presse: false, focus: false, refus: null };
+  const lancer: Bouton = { type: 'bouton', id: `lancer/${sc.id}`, libelle: t('ecran.scenarios.lancer'), jeu: { scenario: sc.id }, presse: false, focus: false, detail: null, touche: null, refus: null };
   return { type: 'entite', id: sc.id, ton: 'neutre', nom: sc.title, elements: [ligne('fiche', `${coupeAuMot(sc.tests, TESTS_A_LA_CARTE)}\n${sc.partyNote}`, 'neutre', sc.tests), lancer] };
 }
 

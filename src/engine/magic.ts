@@ -23,6 +23,7 @@ import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { rule } from './policy';
 import { traitCapability } from './traits/dispatch';
+import { itemCapability } from './capabilities';
 import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
@@ -52,10 +53,11 @@ import type { CastingNumberMod, CastingNumberSubject } from './castingNumber';
 import { sourceDuTraitA } from './armourBypass';
 import { wornArmourPoints } from './items';
 import { LOCALISATIONS_DE_COUP } from './localisations';
+import { casesDansLaPortee } from './grid';
 import type { MatiereDArmure } from '../data/schemas/grammaire/valeurs';
 import { MINUTES_PER_DAY, minutesUntilNext, dawnMinute } from './clock';
 import { ALL_MAGIC, Combatant, DIFFICULTE_PAR_DEFAUT, HitLocation, Difficulty, CharKey, CastPenalty, type ItemInstance } from './types';
-import { findTraitById, findTalentById, findDomainById, findGodById, matiereDuGroupe, type TestMatch } from '../data';
+import { findTraitById, findTalentById, findDomainById, findGodById, findSpellById, matiereDuGroupe, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
 import { ritualReduction, type RitualReduced } from './grimoire';
@@ -97,11 +99,11 @@ export function hasTalent(c: Combatant, talentId: string): boolean {
   return effectiveTalents(c).some((t) => t.talentId === talentId && (t.times ?? 1) >= 1);
 }
 
-/** Test de la famille Incantation : sa Compétence, et si la Caractéristique d'incantation du Domaine
- *  arcanique du lanceur la remplace (`castingChar`, ADE II 2 l.728 : Langue (Magick) d'un boucher ogre). */
+/** Test de la famille Incantation : sa Compétence, et si la Caractéristique d'incantation que porte un Trait du
+ *  lanceur la remplace (`TraitCapabilities.castingChar`). ADE II 2 l.728 */
 export interface TestDIncantation {
   skill: RefDesignee;
-  caracDuDomaine?: true;
+  caracDuLanceur?: true;
 }
 
 /** Branche d'incantation déduite du type de sort. */
@@ -114,7 +116,7 @@ export interface CastInfo extends TestDIncantation {
 
 /** Le Test d'Incantation arcanique, Langue (Magick) (LDB 46 l.22-24) — aussi celui de la Dissipation. */
 export function incantationArcane(): CastInfo {
-  return { skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuDomaine: true };
+  return { skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuLanceur: true };
 }
 
 /** Le sort relève-t-il d'une Prière (Bénédiction/Miracle) ? Discriminant UNIQUE : la `family`
@@ -134,6 +136,25 @@ export function castInfo(spell: SpellLike): CastInfo {
 /** Vrai pour les Sorts d'Arcane/Domaine pouvant être alimentés par Focalisation. */
 export function isArcaneSpell(spell: SpellLike): boolean {
   return spell.family === 'arcane' || spell.family === 'chaos';
+}
+
+/** Un composant se lie à ce Sort : d'Arcane ou de Domaine (Chaos compris), à NI. LDB 46 l.113 */
+export function prendUnComposant(spell: SpellLike): boolean {
+  return isArcaneSpell(spell) && spell.cn != null;
+}
+
+/** Lie chaque composant à lier de `c` au Sort à composant suivant de ses Sorts connus, dans leur ordre, en
+ *  cycle : la liaison d'un PNJ (arbitrage #4132 du 2026-11-16). LDB 46 l.113 */
+export function lierLesComposants(c: Combatant): void {
+  const sorts = (c.spells ?? []).filter((id) => { const sp = findSpellById(id); return !!sp && prendUnComposant(sp); });
+  if (!sorts.length) return;
+  let k = 0;
+  for (const it of c.items ?? []) if (itemCapability(it, 'isSpellComponent') && !it.sortLie) it.sortLie = sorts[k++ % sorts.length];
+}
+
+/** Le composant d'incantation de `c` lié au Sort `spellId`, s'il en porte un. LDB 46 l.113 */
+export function composantLie(c: Combatant, spellId: string): ItemInstance | undefined {
+  return (c.items ?? []).find((it) => itemCapability(it, 'isSpellComponent') && it.sortLie === spellId);
 }
 
 /** La pénalité `p` vise-t-elle la compétence de magie `skill` (id stable) ? */
@@ -242,13 +263,12 @@ export function prayerTalentMissing(c: Combatant, spell: SpellLike): 'beni' | 'i
 /**
  * Caractéristique d'un Test d'incantation — POINT UNIQUE, lu par la valeur du Test (`castingValue`)
  * comme par le plafond de Soutien (LDB 12 l.198). Carac d'instance (data-driven, `skills.ts`) sinon
- * celle de `skills.json`. Surcharge DATA du Domaine quand le Test la déclare (`caracDuDomaine`) : la
- * Magie de la Gueule (réservée aux ogres) se lance sur l'Endurance (ADE II 2 l.728) — attribut
- * `castingChar` du domaine, AUCUN sniff d'espèce.
+ * celle de `skills.json`. Surcharge par un Trait du lanceur quand le Test la déclare (`caracDuLanceur`) :
+ * capacité `castingChar` du Trait, aucun sniff d'espèce. ADE II 2 l.728
  */
 export function castingCharKey(c: Combatant, test: TestDIncantation): CharKey {
-  const domChar = test.caracDuDomaine ? findDomainById(arcaneDomainIdOf(c))?.castingChar : undefined;
-  return domChar ?? effectiveSkillCharKey(c, { skill: test.skill });
+  const duTrait = test.caracDuLanceur ? (c.traits ?? []).map((t) => findTraitById(t.id)?.capabilities?.castingChar).find((k) => k !== undefined) : undefined;
+  return duTrait ?? effectiveSkillCharKey(c, { skill: test.skill });
 }
 
 /**
@@ -271,7 +291,7 @@ export function castingBaseValue(c: Combatant, test: TestDIncantation): number {
  * (`castingBaseValue`) une fois modulé par les contrecoups actifs (castPenalties) et, EN COMBAT, par
  * l'Avantage (LDB 46 l.125).
  */
-export function castingValue(c: Combatant, test: Pick<CastInfo, 'skill' | 'caracDuDomaine'>): number {
+export function castingValue(c: Combatant, test: Pick<CastInfo, 'skill' | 'caracDuLanceur'>): number {
   return castingBaseValue(c, test) + castPenaltyMod(c, test.skill.id) + 10 * (c.advantage ?? 0);
 }
 
@@ -445,23 +465,26 @@ export function zdeDiameterMeters(target: SpellTarget | null | undefined, caster
   return target.span === 'radius' ? m * 2 : m;
 }
 
-/** Rayon de la ZdE en CASES (grille 2 m/case) : diamètre/2 mètres → ÷2 m/case,
- *  arrondi à l'entier inférieur (min 0 = la seule case du centre). */
-export function zdeRadiusTiles(target: SpellTarget | null | undefined, caster: Combatant): number | null {
+/** Rayon d'un gabarit de zone en MÈTRES → cases, à l'échelle de la scène (`metresPerTile`) : arrondi au plancher,
+ *  minimum 0 (la seule case du centre). LDB 15 l.12. */
+export const rayonDeGabaritEnCases = (rayonM: number, metresPerTile: number): number => Math.max(0, Math.floor(rayonM / metresPerTile));
+
+/** Rayon de la ZdE en CASES à l'échelle `metresPerTile` (`rayonDeGabaritEnCases` du demi-diamètre). */
+export function zdeRadiusTiles(target: SpellTarget | null | undefined, caster: Combatant, metresPerTile: number): number | null {
   const diam = zdeDiameterMeters(target, caster);
-  return diam == null ? null : Math.max(0, Math.floor(diam / 2 / 2));
+  return diam == null ? null : rayonDeGabaritEnCases(diam / 2, metresPerTile);
 }
 
 /**
- * Portée d'un sort en CASES (2 m/case) depuis la portée STRUCTURÉE : `self` → 0, `touch` → 1,
- * `distance` → ⌊mètres/2⌋ (km ×1000). Null = non chiffrable (`special`/absente). Zéro parsing.
+ * Portée d'un sort en CASES à l'échelle `metresPerTile` depuis la portée STRUCTURÉE : `self` → 0, `touch` → 1,
+ * `distance` → `casesDansLaPortee` (km ×1000). Null = non chiffrable (`special`/absente). Zéro parsing.
  */
-export function spellRangeTiles(range: SpellRange | null | undefined, caster: Combatant): number | null {
+export function spellRangeTiles(range: SpellRange | null | undefined, caster: Combatant, metresPerTile: number): number | null {
   if (!range) return null;
   switch (range.kind) {
     case 'self': return 0;
     case 'touch': return 1;
-    case 'distance': return Math.max(1, Math.floor((valeurSansTirage(range.value, caster) * (range.unit === 'km' ? 1000 : 1)) / 2));
+    case 'distance': return casesDansLaPortee(valeurSansTirage(range.value, caster) * (range.unit === 'km' ? 1000 : 1), metresPerTile);
     case 'special': return null;
   }
 }
@@ -470,12 +493,12 @@ export function spellRangeTiles(range: SpellRange | null | undefined, caster: Co
  *  (×initial arcane/miracle, +6 m fixe bénédiction) et — RAW Bénédiction (LDB 41 l.27 : Guérison touchée
  *  → 6 m / 12 m) — une portée Contact (0 m → +6 m/pas). « Vous »/« Spécial », et le Contact d'un Sort/
  *  Miracle, ne s'étendent pas (LDB 47 « Contact ne peut pas être étendu » ; LDB 42 « Vous » non augmentable). */
-export function effectiveSpellRangeTiles(range: SpellRange | null | undefined, caster: Combatant, source: OvercastSource, steps: number): number | null {
-  if (!range || steps <= 0 || range.kind === 'self' || range.kind === 'special') return spellRangeTiles(range, caster);
+export function effectiveSpellRangeTiles(range: SpellRange | null | undefined, caster: Combatant, source: OvercastSource, steps: number, metresPerTile: number): number | null {
+  if (!range || steps <= 0 || range.kind === 'self' || range.kind === 'special') return spellRangeTiles(range, caster, metresPerTile);
   if (range.kind === 'touch')
-    return source === 'blessing' ? Math.max(1, Math.floor(effectiveRangeMetres('blessing', 0, steps) / 2)) : 1;
+    return source === 'blessing' ? casesDansLaPortee(effectiveRangeMetres('blessing', 0, steps), metresPerTile) : 1;
   const baseM = valeurSansTirage(range.value, caster) * (range.unit === 'km' ? 1000 : 1);
-  return Math.max(1, Math.floor(effectiveRangeMetres(source, baseM, steps) / 2));
+  return casesDansLaPortee(effectiveRangeMetres(source, baseM, steps), metresPerTile);
 }
 
 /** Nombre de cibles INITIAL d'un sort (la valeur « Cible » résolue), 1 par défaut. Base de la capacité

@@ -7,7 +7,7 @@ import { contratDe } from './build-contrat-du-pont.mjs'
 
 const PONT = 'hotes/godot/pont/pont.ts'
 const GD = 'hotes/godot/projet/scripts/contrat.gd'
-const TITRES = ['En-tête', 'Transport', 'Erreurs', 'Suite', 'Vue', 'Monde', 'Éditeur', 'Lumière', 'Effets', 'Musique', "L'écran de Godot",
+const TITRES = ['En-tête', 'Transport', 'Erreurs', 'Suite', 'Vue', 'Monde', 'Éditeur', 'Compendium', 'Lumière', 'Effets', 'Musique', "L'écran de Godot",
   "Corps d'un combattant", 'Atelier 3D', "Gabarit d'une base", "Composition d'un personnage", 'Pile des couches', 'Écran publié']
 
 const pont = (methode) => `export function creerPont() {\n  const methodes = {\n${methode}\n    vue() { return {} },\n  }\n  return methodes\n}\n`

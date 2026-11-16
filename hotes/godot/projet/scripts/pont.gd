@@ -31,11 +31,13 @@ const PARAMETRE_DE_RECETTE := "recette"
 ## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario du
 ## paramètre `scenario`.
 var essai := false
-## Si la partie à ouvrir est une partie au groupe (`ouvrir`), que le joueur compose puis lance sur une campagne du jeu
-## (`lancer`), plutôt qu'un scénario de test : « Jouer » de l'accueil le pose.
-var au_groupe := false
-## Si le combat s'ouvre sur les sauvegardes à charger (`sauvegardes`), sans partie : « Reprendre » de l'accueil le pose.
-var reprise := false
+## L'entrée de l'accueil (`EntreeDeLAccueil`) que le combat suit à son ouverture, vide sans entrée suivie : `jouer`, une
+## partie au groupe (`ouvrir`) ; `reprendre`, les sauvegardes à charger (`sauvegardes`), sans partie ; `salon`, le
+## panneau du salon (`PanneauDuSalon`), sans partie.
+var entree := ""
+## Les lignes d'une session du salon finie (`nouvelles`, `quittee`) que le combat rechargé montre au panneau du salon,
+## vide sans elles : posées par le combat qui quitte sa partie, vidées par `PanneauDuSalon.ouvrir`.
+var fin_du_salon: Array = []
 ## L'emplacement de la sauvegarde que le combat charge à son ouverture (`charger`), `null` sans chargement demandé.
 var a_charger: Variant = null
 ## Si une recette pilote le jeu (`PARAMETRE_DE_RECETTE`) : l'écran se publie (`publier_l_ecran`), une image ne se dessine
@@ -101,6 +103,13 @@ func est_pret() -> bool:
 	return _transport.est_ouvert()
 
 
+## L'accueil revient, plus rien ne disant au combat comment s'ouvrir (`entree` vidée, `essai` levé).
+func revenir_a_l_accueil() -> void:
+	entree = ""
+	essai = false
+	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
+
+
 ## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne`, chacun abonné
 ## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert et les volumes posés
 ## (`regler_les_volumes`), `false` (la panne signalée) s'il ne s'ouvre pas.
@@ -158,14 +167,19 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[], curseurs: { element, gauche, droite, y, valeur }[] }`, le texte et le
 ##   centre de chaque bouton actif, et chaque curseur réglable du panneau des réglages (`PontDuNoyau.curseurs_a_l_ecran`).
-## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z", [x, y]>,
-##   glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[],
-##   emblemes: Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`,
+## - Au Compendium : `{ boutons: { texte, x, y, element?, cle?, choix?, ids?, retenu? }[], panneaux: [x, y, largeur,
+##   hauteur][], saisies: { texte, x, y, element? }[], compendium: { zones } }`, comme à l'éditeur, et les zones de la
+##   dernière réponse de `compendium` (section « Compendium ») ; « Fermer » porte la clé `compendium/fermer`.
+## - Au combat : `{ boutons: { texte, x, y, element?, cle?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z",
+##   [x, y]>, glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], panneaux: [x, y, largeur, hauteur][],
+##   corps: Record<string, { base: string, elements: string[], emblemes: Record<string, string>,
+##   couleurs: Record<string, Record<string, string>> }>, navires: string[], compendium: { zones } }`,
 ##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
 ##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
 ##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
-##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de l'écran où le
-##   monde se voit, que l'interface ne couvre pas (`Monde.cadre`, vide avant la première mise en page), les ids des
+##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de la fenêtre
+##   que l'ossature de l'interface laisse à la scène (`Monde.cadre`, vide avant la première mise en page), sur laquelle
+##   des panneaux se posent, l'emprise de chaque panneau (`PontDuNoyau.panneaux_a_l_ecran`), les ids des
 ##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, et, par id de
 ##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
 ##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre,
@@ -174,11 +188,13 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
 ##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids`, `retenu`, `ouverte` et `designe`, comme à
-##   l'atelier ; `curseurs`, comme au menu.
-## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], saisies: { texte, x, y, element? }[],
-##   panneau: { valeur, contenu, page, haut, bas, boutons, saisies }, cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes,
-##   noms, calque, calque_pose } }`, chaque champ de texte éditable à l'écran, son texte et son centre
-##   (`PontDuNoyau.saisies_a_l_ecran`), le défilement du panneau d'outils, ses boutons et ses champs défilés hors de
+##   l'atelier ; `curseurs`, comme au menu ; `compendium`, les zones du Compendium ouvert en consultation depuis une
+##   fiche, vide quand il est caché, ses boutons parmi `boutons`.
+## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], panneaux: [x, y, largeur, hauteur][],
+##   saisies: { texte, x, y, element? }[], panneau: { valeur, contenu, page, haut, bas, boutons, saisies },
+##   cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes, noms, calque, calque_pose } }`, l'emprise de
+##   chaque panneau (`PontDuNoyau.panneaux_a_l_ecran`), chaque champ de texte éditable à l'écran, son texte et son
+##   centre (`PontDuNoyau.saisies_a_l_ecran`), le défilement du panneau d'outils, ses boutons et ses champs défilés hors de
 ##   son cadre compris (`PontDuNoyau.defilement_publie`), le point de l'écran du sol de
 ##   chaque case de la couche éditée, les zones, la surcouche et le calque de la dernière réponse de `editer` (section
 ##   « Éditeur »), le nombre d'arêtes posées sur le monde, les noms posés sur le monde par case `x,y,z`, et si le calque
@@ -304,17 +320,43 @@ func exposer(nom: String, rappel: Callable) -> void:
 
 
 ## Sous une recette, `republier` appelé quand une liste déroulante sous `racine`, présente ou à venir, s'ouvre, se ferme
-## ou désigne un autre article au clavier : l'écran publie l'état de ses listes (`boutons_a_l_ecran`).
+## ou désigne un autre article au clavier, quand une ouvrante (`Ouvrante` : le menu de la partie, une pastille) ouvre ou
+## ferme sa liste, ou quand un défilement défile : l'écran publie l'état de ses listes et ses boutons à l'écran
+## (`boutons_a_l_ecran`).
 func suivre_les_listes(racine: Node, republier: Callable) -> void:
 	if not en_recette:
 		return
 	var suivre := func(noeud: Node) -> void:
-		if noeud is OptionButton and racine.is_ancestor_of(noeud):
+		if not racine.is_ancestor_of(noeud):
+			return
+		if noeud is OptionButton:
 			var articles := (noeud as OptionButton).get_popup()
 			articles.visibility_changed.connect(republier)
 			articles.id_focused.connect(func(_id: int) -> void: republier.call())
-	for liste in racine.find_children("*", "OptionButton", true, false):
-		suivre.call(liste)
+		elif noeud is Ouvrante:
+			(noeud as Ouvrante).change.connect(republier)
+		elif noeud is ScrollContainer:
+			for barre: ScrollBar in [(noeud as ScrollContainer).get_v_scroll_bar(), (noeud as ScrollContainer).get_h_scroll_bar()]:
+				barre.value_changed.connect(func(_valeur: float) -> void: republier.call())
+	for noeud in racine.find_children("*", "Control", true, false):
+		suivre.call(noeud)
+	var arbre := get_tree()
+	arbre.node_added.connect(suivre)
+	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
+
+
+## Sous une recette, `republier` appelé quand le texte d'un champ (`LineEdit`, `TextEdit`) sous `racine`, présent ou à
+## venir, change : l'écran publie ses champs (`saisies_a_l_ecran`).
+func suivre_les_saisies(racine: Node, republier: Callable) -> void:
+	if not en_recette:
+		return
+	var suivre := func(noeud: Node) -> void:
+		if noeud is LineEdit and racine.is_ancestor_of(noeud):
+			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: republier.call())
+		elif noeud is TextEdit and racine.is_ancestor_of(noeud):
+			(noeud as TextEdit).text_changed.connect(republier)
+	for champ in racine.find_children("*", "", true, false):
+		suivre.call(champ)
 	var arbre := get_tree()
 	arbre.node_added.connect(suivre)
 	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
@@ -403,6 +445,21 @@ static func glissiere_publiee(glissiere: Slider) -> Dictionary:
 	return {gauche = cadre.position.x, droite = cadre.end.x, y = cadre.get_center().y, valeur = glissiere.value}
 
 
+## L'emprise à l'écran `[x, y, largeur, hauteur]` de chaque `PanelContainer` visible sous `racines` qu'aucun autre
+## `PanelContainer` ne contient : le plus extérieur des panneaux de l'interface.
+static func panneaux_a_l_ecran(racines: Array) -> Array:
+	var panneaux := []
+	for racine in racines:
+		for panneau in racine.find_children("*", "PanelContainer", true, false):
+			var parent: Node = panneau.get_parent()
+			while parent != null and not parent is PanelContainer:
+				parent = parent.get_parent()
+			if panneau.is_visible_in_tree() and parent == null:
+				var emprise: Rect2 = panneau.get_global_rect()
+				panneaux.append([emprise.position.x, emprise.position.y, emprise.size.x, emprise.size.y])
+	return panneaux
+
+
 ## Le défilement vertical `defilement` : sa position (`valeur`, la valeur de sa barre, `ScrollBar.value`), la hauteur
 ## de son contenu (`contenu`, `Range.max_value`) et celle qu'il montre (`page`, `Range.page`), le haut et le bas de son
 ## cadre à l'écran, et ses boutons et ses champs de texte, ceux qu'il cache compris, chacun publié comme à
@@ -431,25 +488,26 @@ func adresse(relative: String) -> String:
 	return _transport.adresse(relative)
 
 
-## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` envoyé ;
+## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` et les
+## en-têtes `entetes` envoyés ;
 ## vide, et une erreur à `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi),
 ## ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un
 ## bloc.
-func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "") -> PackedByteArray:
+func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "", entetes := PackedStringArray()) -> PackedByteArray:
 	var requete := HTTPRequest.new()
 	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
 	# Sur le Web, le navigateur a déjà décompressé un corps `Content-Encoding: gzip` (GitHub Pages, #3778) : HTTPRequest
 	# ne le décompresse pas une seconde fois (`RESULT_BODY_DECOMPRESS_FAILED`).
 	requete.accept_gzip = false
 	add_child(requete)
-	var code := requete.request(adresse(relative), PackedStringArray(), methode, corps)
+	var code := requete.request(adresse(relative), entetes, methode, corps)
 	if code != OK:
 		requete.queue_free()
 		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
 		return PackedByteArray()
 	var resultat := []
-	requete.request_completed.connect(func(issue: int, statut: int, entetes: PackedStringArray, recu: PackedByteArray) -> void:
-		resultat.append_array([issue, statut, entetes, recu]), CONNECT_ONE_SHOT)
+	requete.request_completed.connect(func(issue: int, statut: int, en_tete: PackedStringArray, recu: PackedByteArray) -> void:
+		resultat.append_array([issue, statut, en_tete, recu]), CONNECT_ONE_SHOT)
 	var silence := Timer.new()
 	silence.one_shot = true
 	requete.add_child(silence)

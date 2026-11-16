@@ -25,12 +25,12 @@ import {
 describe('Portée des tirs (table des Difficultés, 14 - _GoBack.md l.82-118 ; 1 case = 2 m)', () => {
   it('Bout portant +40, Courte +20, Moyenne +0, Longue −10, Extrême −30, au-delà = null', () => {
     const R = 50; // Arc : Portée 50 m
-    expect(rangeBandModifier(2, R)).toBe(40); // 4 m ≤ 5 (÷10) — Bout portant
-    expect(rangeBandModifier(10, R)).toBe(20); // 20 m ≤ 25 (÷2) — Courte
-    expect(rangeBandModifier(24, R)).toBe(0); // 48 m ≤ 50 (×1) — Moyenne
-    expect(rangeBandModifier(40, R)).toBe(-10); // 80 m ≤ 100 (×2) — Longue (l.99)
-    expect(rangeBandModifier(70, R)).toBe(-30); // 140 m ≤ 150 (×3) — Extrême (l.118)
-    expect(rangeBandModifier(80, R)).toBeNull(); // 160 m > 150 → hors de portée
+    expect(rangeBandModifier(2, R, 2)).toBe(40); // 4 m ≤ 5 (÷10) — Bout portant
+    expect(rangeBandModifier(10, R, 2)).toBe(20); // 20 m ≤ 25 (÷2) — Courte
+    expect(rangeBandModifier(24, R, 2)).toBe(0); // 48 m ≤ 50 (×1) — Moyenne
+    expect(rangeBandModifier(40, R, 2)).toBe(-10); // 80 m ≤ 100 (×2) — Longue (l.99)
+    expect(rangeBandModifier(70, R, 2)).toBe(-30); // 140 m ≤ 150 (×3) — Extrême (l.118)
+    expect(rangeBandModifier(80, R, 2)).toBeNull(); // 160 m > 150 → hors de portée
   });
 });
 
