@@ -5,5 +5,4 @@
 [node name="Portrait" instance=ExtResource("1_portrait")]
 
 [node name="Image" parent="."]
-custom_minimum_size = Vector2(46, 59)
-stretch_mode = 6
+custom_minimum_size = Vector2(50, 63)

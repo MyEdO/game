@@ -6,4 +6,3 @@
 
 [node name="Image" parent="."]
 custom_minimum_size = Vector2(31, 40)
-stretch_mode = 6

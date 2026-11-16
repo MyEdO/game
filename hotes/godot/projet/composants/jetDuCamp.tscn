@@ -140,7 +140,7 @@ champ = "resultat"
 face = &"unite"
 
 [node name="Resultat" type="PanelContainer" parent="Pile/Chiffres"]
-custom_minimum_size = Vector2(46, 46)
+custom_minimum_size = Vector2(50, 50)
 size_flags_vertical = 4
 theme = ExtResource("5_sceau")
 
