@@ -95,6 +95,18 @@ describe('volumeDepuis : la reprise rend le calcul entier (#3993)', () => {
     reprendEgal(releve, avant.etat, 'support relevé');
   });
 
+  it('un décor tourné sur place se reprend tourné', () => {
+    const scene = (facing?: 'E' | 'S'): Scene => {
+      const c = emptyScene('cap', 4, 1);
+      c.entities.push({ id: 't', kind: 'prop', decor: { id: 'arbre-mort' }, pos: { x: 1, y: 0 }, ...(facing ? { facing } : {}) });
+      return c;
+    };
+    const avantCap = entier(scene());
+    const repris = reprendEgal(scene('E'), avantCap.etat, 'décor tourné');
+    expect(repris.volume, 'le cap change le volume').not.toEqual(avantCap.volume);
+    expect(repris.etat.decors.get('entite/t')!.pose.cap).toBe('E');
+  });
+
   it('un décor qui s’allume puis s’éteint : ses surfaces portent `luminaire` exactement quand il éclaire', () => {
     const eclaire = (light: SceneEntity['light']): Scene => ({ ...s, entities: s.entities.map((e) => (e.id === 'tonneau-1' ? { ...e, light } : e)) });
     const luminairesDuTonneau = (e: EtatDuVolume) =>

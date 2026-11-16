@@ -343,7 +343,7 @@ type FaceDuMorceau = FacePlacee & Readonly<{ surLaCarte: Case; quads: QuadsDeFac
 /**
  * L'état d'où le volume d'une scène se reprend (`volumeDepuis`) : la scène vue par son volume (`SceneDuVolume`) dont il
  * est issu, les montants de chaque couche (`montantsDeLaCouche`, par case `x,y`), les cases bloquées par une entité
- * (`x,y,z`), par couche et par case les faces de sol, par décor posé (`cleDeLaPose`) sa pose et ses faces, par crête
+ * (`x,y,z`), par couche et par case les faces de sol, par décor posé (`PoseDeDecor.cle`) sa pose et ses faces, par crête
  * (sa case et son arête) ses faces, par case de flottaison sa face de mer, les quads de chaque face, et par morceau ses
  * faces, leurs rangs et le morceau.
  */
@@ -371,6 +371,8 @@ type DecorPose = PoseAuVolume & Readonly<{ faces: readonly Face[] }>;
  * ancre, de son cap et de son pied, que le volume et le pont lisent tous deux.
  */
 export interface PoseDeDecor {
+  /** son identité dans le monde : `entite/<id>` pour une entité `prop`, `terrain/<x,y,z>` de sa case pour le terrain. */
+  cle: string;
   /** l'id de son type de décor (`props.json`), celui que porte `decor` de ses surfaces. */
   prop: string;
   /**
@@ -398,9 +400,6 @@ const memePose = (a: PoseDeDecor, b: PoseDeDecor): boolean =>
   a.prop === b.prop && a.ancre.x === b.ancre.x && a.ancre.y === b.ancre.y && a.cap === b.cap && a.piedM === b.piedM
   && memeCase(a.case, b.case) && a.entId === b.entId && a.luminaire === b.luminaire;
 
-/** La clé d'un décor posé dans l'état du volume : `entite/<id>` pour une entité, `terrain/<x,y,z>` pour le terrain. */
-const cleDeLaPose = (p: PoseDeDecor): string => (p.entId !== undefined ? `entite/${p.entId}` : `terrain/${spaceCellKey(p.case.x, p.case.y, p.case.z)}`);
-
 /** Les décors posés de `scene` vue par son volume (`couchesDuVolume` appliqué) : celui que son terrain pose sur chaque
  *  case de chaque couche (`terrainOverlayProp`), case par case, puis chaque entité `prop`, dans l'ordre des entités ;
  *  chacun qui se dessine en volume (`decorEnVolume`) sur une couche de la scène (`caseSurLaCarte`). PUR. */
@@ -413,7 +412,8 @@ function posesDuVolume(scene: Readonly<SceneDuVolume>): PoseAuVolume[] {
     const surLaCarte = caseSurLaCarte(scene, cell);
     if (!resolu || !surLaCarte) return [];
     const eclaire = entId !== undefined && luminaires.has(entId);
-    const pose = { prop: resolu.prop.id, ancre, cap: resolu.cap, piedM, case: surLaCarte, ...(entId !== undefined ? { entId } : {}), ...(eclaire ? { luminaire: true as const } : {}) };
+    const cle = entId !== undefined ? `entite/${entId}` : `terrain/${spaceCellKey(surLaCarte.x, surLaCarte.y, surLaCarte.z)}`;
+    const pose = { cle, prop: resolu.prop.id, ancre, cap: resolu.cap, piedM, case: surLaCarte, ...(entId !== undefined ? { entId } : {}), ...(eclaire ? { luminaire: true as const } : {}) };
     return [{ pose, cell }];
   };
   const duTerrain = scene.layers.flatMap(({ z }) => Array.from({ length: w * h }, (_, i) => {
@@ -551,7 +551,7 @@ export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuV
   const sols = parCase((x, y, z, i) =>
     avant && !aRefaire(x, y, z) ? avant.sols.get(z)![i] : floorFaces(scene, x, y, z, isOverhang(scene, x, y, z), montants.get(z)!.get(`${x},${y}`) ?? []));
   const decors = posesDuVolume(scene).map(({ pose, cell }): DecorPose => {
-    const ancien = avant?.decors.get(cleDeLaPose(pose));
+    const ancien = avant?.decors.get(pose.cle);
     if (ancien && memeCase(ancien.cell, cell) && memePose(ancien.pose, pose)) return ancien;
     const { prop, ancre, cap, piedM, entId } = pose;
     return { pose, cell, faces: facesDuDecor(prop, { ancre, facing: cap, baseHeightM: piedM, ...(entId !== undefined ? { entId } : {}) }, mpt)! };
@@ -613,7 +613,7 @@ export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuV
     volume: { metresParCase: mpt, hauteurs, morceaux: [...morceaux.values()].map((m) => m.morceau) },
     etat: {
       scene, montants, bloquees, sols,
-      decors: new Map(decors.map((d) => [cleDeLaPose(d.pose), d])),
+      decors: new Map(decors.map((d) => [d.pose.cle, d])),
       cretes: new Map(cretes.map((c) => [c.cle, c])),
       mer, quads, morceaux,
     },

@@ -132,7 +132,7 @@ func _sortir_les_decors_en_lecture(pont: PontRetenu, lu: Dictionary) -> void:
 	var modeles := _modeles_poses(_scene_neuve(lu))
 	var poses := [0]
 	modeles.pose.connect(func() -> void: poses[0] += 1)
-	var foret := range(3).map(func(x: int) -> Dictionary: return {prop = "arbre", ancre = {x = x, y = 0}, cap = "S", piedM = 0.0, case = {x = x, y = 0, z = 0}})
+	var foret := range(3).map(func(x: int) -> Dictionary: return {cle = "terrain/%d,0,0" % x, prop = "arbre", ancre = {x = x, y = 0}, cap = "S", piedM = 0.0, case = {x = x, y = 0, z = 0}})
 	modeles.poser({}, {arbre = {element = BASE, poses = foret}}, {}, 1.0)
 	await _sortir(pont, "décors", modeles, poses)
 

@@ -57,7 +57,7 @@ export const vehiculeDeTest = (definition = 'caraque') => ({
 });
 
 /** Le manifeste d'un décor, élément sans base, du type de décor `prop` (`props.json`), pour `GLB_SANS_BASE`. */
-export const decorDeTest = (prop = 'tonneau') => ({
+export const decorDeTest = (prop: string) => ({
   schema: 3, categorie: 'decor', cle: { prop }, liaison: { mode: 'rigide' }, surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_SANS_BASE),
 });
 

@@ -19,7 +19,6 @@ cherchent par id dans chaque dossier de `--modeles` : sortie de `construire.py` 
         [--gros-plans] [--seuls-gros-plans <noms>]
 """
 import argparse
-import json
 import math
 import runpy
 import sys

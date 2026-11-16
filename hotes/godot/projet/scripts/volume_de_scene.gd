@@ -7,8 +7,9 @@
 ## navire bordée par sa coque (`border_la_mer`) ; ce que le regard
 ## en retire, masqué case par case dans le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; ce que le
 ## groupe en voit, voilé de même case par case et fondu d'une vision à la suivante (`voir`) ; le voile de cette vision
-## sur chaque navire (`voile`, jusqu'à `oublier_le_voile`, `art/voile.gdshader`), lié au sol de chaque case des morceaux
-## posés, en texture rangée comme la vision (`_batir_les_sols`) ; les nappes de toit et les couronnes crénelées des
+## sur chaque modèle posé (`voile`, par clé de pose de `MontageDesModeles`, jusqu'à `oublier_le_voile`,
+## `art/voile.gdshader`), lié au sol de chaque case des morceaux posés, en texture rangée comme la vision
+## (`_batir_les_sols`) ; les nappes de toit et les couronnes crénelées des
 ## murs, de même forme qu'un morceau, voilées comme lui mais jamais masquées, réconciliées de même par clé et
 ## empreinte ; les arêtes de la scène, en unités de plateau, chacune la pièce du kit des arêtes (`KIT`) que l'arête
 ## nomme, sinon sa boîte, en groupes d'instances (`poser_les_aretes`), chaque instance vue teinte par l'état de la
@@ -87,7 +88,7 @@ var _teintes := Vector3.ONE
 ## Les rangées d'un plan de la vision posée (`rangeesParPlan`), un plan par couche : la hauteur `h`, en cases.
 var _rangees_par_plan := 1
 var _vision_en_attente: Variant = null
-## Le sol de chaque case du volume posé (`_batir_les_sols`), et, par id de navire, la matière de son voile (`voile`),
+## Le sol de chaque case du volume posé (`_batir_les_sols`), et, par clé de modèle posé, la matière de son voile (`voile`),
 ## liée à la vision comme les nappes.
 var _sols: ImageTexture = null
 var _voiles := {}
@@ -312,16 +313,17 @@ func _lier_la_vision_a(matiere: ShaderMaterial) -> void:
 	matiere.set_shader_parameter("vision_cases_par_metre", MiseEnPage.echelle_metrique(metres_par_case))
 
 
-## La matière du voile de la vision du navire `navire` (`art/voile.gdshader`), liée à la vision posée (`voir`) et au sol
-## de chaque case du volume posé (`_batir_les_sols`), la même tant que `oublier_le_voile` ne l'a pas oubliée.
-func voile(navire: String) -> ShaderMaterial:
-	if not _voiles.has(navire):
+## La matière du voile de la vision du modèle posé sous la clé `cle` (`MontageDesModeles`, `art/voile.gdshader`), liée
+## à la vision posée (`voir`) et au sol de chaque case du volume posé (`_batir_les_sols`), la même tant que
+## `oublier_le_voile` ne l'a pas oubliée.
+func voile(cle: String) -> ShaderMaterial:
+	if not _voiles.has(cle):
 		var matiere := ShaderMaterial.new()
 		matiere.shader = VOILE
 		matiere.set_shader_parameter("sols", _sols)
 		_lier_la_vision_a(matiere)
-		_voiles[navire] = matiere
-	return _voiles[navire]
+		_voiles[cle] = matiere
+	return _voiles[cle]
 
 
 ## La matière `matiere` de la brume de la vision (`Lumiere.brume`, `art/brume-de-la-vision.gdshader`) liée, comme un
@@ -332,9 +334,9 @@ func brumer(matiere: ShaderMaterial) -> void:
 	_lier_la_vision_a(_brume)
 
 
-## Le voile du navire `navire` (`voile`) oublié.
-func oublier_le_voile(navire: String) -> void:
-	_voiles.erase(navire)
+## Le voile du modèle posé sous la clé `cle` (`voile`) oublié.
+func oublier_le_voile(cle: String) -> void:
+	_voiles.erase(cle)
 
 
 ## Le sol de chaque case de chaque couche du volume posé, de hauteurs `hauteurs` (`VolumeDuMonde.hauteurs`, en mètres),

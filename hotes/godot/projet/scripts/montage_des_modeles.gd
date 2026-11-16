@@ -72,8 +72,8 @@ func vider() -> void:
 
 ## Les poses de `navires` (`vue.corps.navires`) et de `decors` (`vue.corps.decors`), par clé : chaque navire sous l'id de
 ## son entité, son corps, son `centre` à la hauteur 0, au `cap` de son corps, sa `flottaison` ; chaque pose d'un décor
-## sous `<prop>/<id de son entité>`, ou `<prop>/<x,y,z>` de sa case pour le décor du terrain, son élément monté nu
-## (`DECOR_NU`), son `ancre` à son `piedM`, à son `cap`, sa `case`, et `luminaire` s'il éclaire.
+## sous sa `cle` (`PoseDeDecor.cle`), son élément monté nu (`DECOR_NU`), son `ancre` à son `piedM`, à son `cap`, sa
+## `case`, et `luminaire` s'il éclaire.
 static func _poses_servies(navires: Dictionary, decors: Dictionary) -> Dictionary:
 	var poses := {}
 	for id: String in navires:
@@ -82,11 +82,10 @@ static func _poses_servies(navires: Dictionary, decors: Dictionary) -> Dictionar
 	for prop: String in decors:
 		var corps: Dictionary = DECOR_NU.merged({element = decors[prop].element})
 		for p: Dictionary in decors[prop].poses:
-			var lieu: String = p.entId if p.has("entId") else "%d,%d,%d" % [p.case.x, p.case.y, p.case.z]
 			var servie := {corps = corps, x = p.ancre.x, y = p.ancre.y, piedM = p.piedM, cap = p.cap, case = p.case}
 			if p.has("luminaire"):
 				servie.luminaire = true
-			poses["%s/%s" % [prop, lieu]] = servie
+			poses[p.cle] = servie
 	return poses
 
 
@@ -99,6 +98,11 @@ func _exit_tree() -> void:
 ## Les clés des poses dont le modèle est posé.
 func poses() -> Array:
 	return _montes.keys().filter(func(cle: String) -> bool: return _montes[cle].scene != null)
+
+
+## Les clés des navires dont le modèle est posé (`poses`, servies avec leur `flottaison`).
+func navires() -> Array:
+	return poses().filter(func(cle: String) -> bool: return _servis[cle].has("flottaison"))
 
 
 ## Le corps de la pose `cle` monté (`MontageDeVehicule.monter`), sa scène nue placée (`_placer`) ; son corps inchangé,

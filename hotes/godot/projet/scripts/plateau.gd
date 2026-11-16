@@ -49,8 +49,6 @@ var _zones := ZonesQuiDurent.new()
 var _marques: Dictionary = {}
 var _modeles: Dictionary = {}
 var _vue: Dictionary = {}
-## Les navires de la dernière vue montrée (`vue.corps.navires`), par id.
-var _navires: Dictionary = {}
 var _survol: Variant = null
 
 
@@ -86,7 +84,6 @@ func montrer(vue: Dictionary) -> void:
 			_monde.suivre(_lieu(suivi[0].pos))
 	_immersion.montrer(vue)
 	if vue.plateau != null:
-		_navires = vue.corps.navires
 		_modeles_poses.poser(vue.corps.navires, vue.corps.decors, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
 	var poses := {}
 	for c in dessines:
@@ -182,9 +179,9 @@ func _nommer_les_entites(entites: Array) -> void:
 	_monde.etiqueter(noms)
 
 
-## Les ids des navires de la scène dont le modèle est posé (`MontageDesModeles.poses`, les navires de `vue.corps.navires`).
+## Les ids des navires de la scène dont le modèle est posé (`MontageDesModeles.navires`).
 func navires() -> Array:
-	return _modeles_poses.poses().filter(func(cle: String) -> bool: return _navires.has(cle))
+	return _modeles_poses.navires()
 
 
 ## La caméra posée sur le cadrage `cadrage` (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`), sous le regard du

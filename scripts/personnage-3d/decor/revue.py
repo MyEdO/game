@@ -1,4 +1,4 @@
-"""Revue d'un décor (#4335) : AVANT, les primitives de sa recette (`gabarit.polygones`), APRÈS, son GLB, chacun habillé
+"""Revue d'un décor (#4335) : AVANT, les primitives de sa recette (`Gabarit.polygones`), APRÈS, son GLB, chacun habillé
 comme le jeu l'habille (`rendu.habiller_le_modele`, projeté : la texture de chaque `matiere` que porte le catalogue
 `rendu.CATALOGUE`, la couleur de son matériau sinon), rendus dans le même studio (`rendu.studio`) au même cadrage, celui
 du gabarit : de face, de trois-quarts et de dessus. `planche.png` les range en deux lignes, AVANT au-dessus d'APRÈS.
@@ -16,7 +16,7 @@ sys.path[:0] = [str(ICI), str(ICI.parent)]
 
 import habillage  # noqa: E402
 import rendu  # noqa: E402
-from gabarit import Gabarit, polygones, vers_blender  # noqa: E402
+from gabarit import Gabarit, vers_blender  # noqa: E402
 
 VUES = (("face", (0, -1, 0.05)), ("trois-quarts", (0.65, -1, 0.45)), ("dessus", (0, -0.001, 1)))
 LARGEUR, HAUTEUR = 640, 640
@@ -26,8 +26,7 @@ def primitives(bpy, G):
     """Les primitives du gabarit `G`, un objet par primitive, chacun du matériau de sa matière ; et leur manifeste."""
     matieres = habillage.catalogue()
     objets = []
-    for i, p in enumerate(G.primitives):
-        faces = polygones(p)
+    for i, (p, faces) in enumerate(zip(G.primitives, G.polygones)):
         sommets = [vers_blender(*q) for f in faces for q in f]
         debuts = [sum(len(f) for f in faces[:k]) for k in range(len(faces))]
         mesh = bpy.data.meshes.new(f"primitive-{i}")

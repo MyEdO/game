@@ -179,12 +179,12 @@ describe('les décors posés du volume (#4335)', () => {
     expect(new Set(tris.filter((t) => !t.matiere.startsWith('prop--')).map((t) => t.surface.decor))).toEqual(new Set([undefined]));
   });
 
-  it('les poses sont celles dont le volume pose les faces : ancre, cap résolu, pied et case de ses triangles', () => {
+  it('les poses sont celles dont le volume pose les faces : clé, ancre, cap résolu, pied et case de ses triangles', () => {
     const s = decors();
     const tonneau = s.entities.find((e) => e.id === 'tonneau-e')!;
     expect(posesDesDecors(s)).toEqual([
-      { prop: 'arbre', ancre: { x: 1, y: 0 }, cap: 'S', piedM: 0, case: { x: 1, y: 0, z: 0 } },
-      { prop: 'tonneau', ancre: ancreDuDecor(tonneau, sceneMetresPerTile(s)), cap: 'E', piedM: 0.5, case: { x: 2, y: 0, z: 0 }, entId: 'tonneau-e' },
+      { cle: 'terrain/1,0,0', prop: 'arbre', ancre: { x: 1, y: 0 }, cap: 'S', piedM: 0, case: { x: 1, y: 0, z: 0 } },
+      { cle: 'entite/tonneau-e', prop: 'tonneau', ancre: ancreDuDecor(tonneau, sceneMetresPerTile(s)), cap: 'E', piedM: 0.5, case: { x: 2, y: 0, z: 0 }, entId: 'tonneau-e' },
     ]);
     const tris = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.surface.decor === 'tonneau');
     expect(Math.min(...tris.flatMap((t) => t.ys))).toBeCloseTo(0.5, 2);

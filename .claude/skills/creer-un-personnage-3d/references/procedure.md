@@ -664,17 +664,19 @@ provenances neuves qui les épinglent (`git add -f` des GLB nommés par leur emp
 
 Un décor (catégorie `decor`, clé `{ "prop": <id> }` d'un décor de `src/data/props.json`) se construit depuis le dépôt,
 sans base, par le constructeur commun `scripts/personnage-3d/construire.py`, un dossier par modèle,
-`scripts/personnage-3d/decor/<modele>/` : `donnees.py` (`MATERIAUX` par décor, les matières que nomme sa recette ;
-`BUDGET_TRIANGLES` ; chaque proportion nommée, en fraction de la primitive qui la porte, et la docstring qui dit les
+`scripts/personnage-3d/decor/<modele>/` : `donnees.py` (`MATERIAUX` par décor : chacun de ses matériaux, un
+emplacement de palette et une matière du domaine `prop` de `src/data/materials.json`, choisie pour ce qu'elle rend, qui
+peut différer de celle que nomme la recette, la docstring disant pourquoi ; `BUDGET_TRIANGLES` ; chaque proportion nommée, en fraction de la primitive qui la porte, et la docstring qui dit les
 proportions d'adaptation sans illustration) et `modele.py` (`elements(D)`, un élément par décor : `cles`
 `[("decor", {"prop": id})]`, un GLB par clé). Des décors qui partagent leur construction partagent le dossier (`arbre` :
 `arbre`, `arbre-mort`, `souche`, `buisson`).
 
 **Gabarit.** Les primitives de la recette (`volume.primitives`) restent la seule source du gabarit de jeu (empreinte,
-dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes, et
-se bâtit dans leur enveloppe convexe (`gabarit.enveloppe`), dont il garde l'encombrement sans recopier les primitives ;
-`Gabarit.rentrer` y ramène le sommet qui en sortirait. `test_decor.py` refuse un sommet du GLB hors de cette enveloppe,
-sol compris, à 1 mm près. Une enveloppe qui empêche un modèle correct se rapporte, avec la cote qui gêne ; le modèle ne
+dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes ni
+de leur géométrie, que `decor/polygones.mjs` tire de `polygonesDePrimitive` (`src/data/props.types.ts`), et se bâtit
+dans leur enveloppe convexe (`gabarit.enveloppe`), dont il garde l'encombrement sans recopier les primitives ;
+`Gabarit.rentrer` y ramène le sommet qui en sortirait. `test_decor.py` refuse un sommet du GLB publié (lu dans le cache
+des modèles à l'empreinte de son manifeste) hors de cette enveloppe, sol compris, à 1 mm près. Une enveloppe qui empêche un modèle correct se rapporte, avec la cote qui gêne ; le modèle ne
 change pas la recette.
 
 **Repère et cap.** La recette est en mètres, origine à l'ancre, `xM` à l'est, `yM` vers son front au cap d'identité
@@ -691,8 +693,9 @@ node hotes/godot/importer.mjs /atelier/<modele>/decor--<id> decor--<id> --sans-p
 ```
 
 Deux constructions donnent les mêmes octets (aléa semé des codes de caractères de l'id). `npm run personnage-3d:tests`
-(`test_decor.py`) reconstruit chaque modèle, compare chaque manifeste au publié, exige un modèle pour chaque `decor--*`
-publié et passe la garde du gabarit. Publier comme un véhicule (chapitre 9, « Publier »).
+(`test_decor.py`) reconstruit chaque modèle dont une entrée a changé (tous sous `WFRP_3D_TOUT=1`), compare chaque
+manifeste au publié, exige un modèle pour chaque `decor--*` publié et passe la garde du gabarit sur chaque GLB publié,
+sans le reconstruire. Publier comme un véhicule (chapitre 9, « Publier »).
 
 **Revue.** `decor/revue.py` rend AVANT (les primitives de la recette) et APRÈS (le GLB), habillés comme le jeu, dans le
 studio de `rendu.py`, de face, de trois-quarts et de dessus, dans une `planche.png` :
