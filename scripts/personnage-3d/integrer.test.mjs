@@ -1,10 +1,10 @@
 // L'intégration d'un lot d'éléments 3D (#4338) : ordre, commandes, triangles et transfert, sur fixtures nommées.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { gitDe } from '../test/gitDeBanc.mjs'
 import { commandeDEnvoi, commandeDImport, construction, fabriquerTransfert, ordreDuLot, trianglesParEmpreinte } from './integrer.mjs'
 
 const BURE = 'humanoide/vetement--bure'
@@ -67,8 +67,7 @@ function depotAvecGlbImporte(t) {
   writeFileSync(join(racine, `${BURE_IMPORTEE}.manifeste.json`), '{"version":2}')
   writeFileSync(join(racine, `${BURE_IMPORTEE}.provenance.json`), JSON.stringify({ model_sha256: SHA }))
   writeFileSync(join(racine, `${BURE_IMPORTEE}.glb`), 'glTF bure')
-  const git = (...args) => spawnSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' }).stdout.trim()
-  return { racine, git }
+  return { racine, git: gitDe(racine, { net: true }) }
 }
 const GLB = [{ id: 'humanoide--vetement--bure', chemin: `${BURE_IMPORTEE}.glb`, sha256: SHA }]
 const acceptee = () => ({ status: 0, stdout: '', stderr: '' })
