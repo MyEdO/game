@@ -7,7 +7,7 @@
 theme_type_variation = &"RangeeSerree"
 
 [node name="Cire" type="Panel" parent="."]
-custom_minimum_size = Vector2(30, 30)
+custom_minimum_size = Vector2(50, 50)
 size_flags_vertical = 4
 mouse_filter = 2
 theme = ExtResource("t_sceau")

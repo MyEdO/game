@@ -1,12 +1,15 @@
 import type { CadreDef } from '../types';
-import { anneau, contour, moities, RAYON, reflet } from '../rond';
+import { moities, rond } from '../rond';
+
+/** Le médaillon : un rond de 25, la taille du sceau qui lui répond au même jet (`art/jet_de_heros.tres`). */
+const { anneau, contour, reflet, tranches } = rond(25);
 
 /** Médaillon : un disque de laiton patiné, son listel bombé (arête claire en haut à gauche, sombre en bas à droite),
  *  son champ en creux, un reflet sur le listel. */
 export const cadre: CadreDef = {
   id: 'medaillon',
   label: 'Médaillon',
-  tranches: [RAYON, RAYON, RAYON, RAYON],
+  tranches,
   svg: `
     ${moities('medaillon')}
     <rect ${contour(0)} fill="var(--laiton-sombre)"/>
