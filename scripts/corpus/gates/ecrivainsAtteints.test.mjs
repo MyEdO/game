@@ -349,6 +349,10 @@ const ATTENDU = {
     'scripts/git-hooks/journal.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs',
     'scripts/migrations/replay-head.mjs', 'scripts/test/verrou.mjs'],
   'test:ops': [
+    // +1 le 2026-11-16 (#4339) : `lierNodeModules` crée le `node_modules` de la cible (`mkdirSync`) et y lie en dur
+    // les entrées du principal (`cp -al`) ; le banc ne lui passe que le dépôt jetable de `depotGabarit.mjs` et son
+    // worktree, sous os.tmpdir() ; l'arbre n'est jamais écrit.
+    'scripts/ops/chantier.mjs',
     // +1 le 2026-10-17 (#2586) : le banc du cliquet forge un dépôt knip (`package.json`, `knip.json`, sources)
     // sous un `mkdtempSync` d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/ops/knip-exports-ratchet.test.mjs',
