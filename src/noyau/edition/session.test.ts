@@ -62,6 +62,7 @@ import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { valeurNeuveDe } from '../valeursNeuves';
+import { refusDAccesSchema } from '../../data/schemas/grammaire/acces';
 import { refusDeLaValeur, refusDeRetrait, refusDuRenommage } from './session';
 import { identiteNeuve } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
 import { projetSchema } from '../../data/schemas/defs-scenes/projet';
@@ -1493,6 +1494,24 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
     expect(erreurs(carte(revendu))).toEqual([]);
     const doublee = { ...carte(revendu), places: carte(revendu).places.map((p, i) => (i ? p : { ...p, services: p.services!.map((sv, j) => (j ? sv : { ...sv, rest: { offres: [...sv.rest!.offres!, sv.rest!.offres![0]] } })) })) };
     expect(erreurs(doublee).length, 'témoin : la validation lit les offres').toBeGreaterThan(0);
+  });
+
+  it('l’accès réservé d’un établissement se pose, se modifie et se retire au formulaire du lieu ; la carte écrite passe la validation ; une condition sans raison du refus est refusée, à la validation comme au retrait de la raison (#4277)', () => {
+    const s = jouer(surLePlan(), { geste: 'ajouterEtablissement', kind: 'auberge' });
+    const surClub = (chemin: Segment[], v?: unknown) => ({ geste: 'valeur' as const, porteur: { sorte: 'lieu' as const, id: 'x' }, chemin: ['services', 0, ...chemin], ...(v === undefined ? {} : { valeur: v }) });
+    const membre = { kind: 'flag', expr: 'membre-du-club' } as const;
+    const erreurs = (m: WorldMap) => validateScene(projetEdite(s).scenes, m, NARRATIF_VIDE).filter((w) => w.level === 'error').map((w) => w.message);
+    const avant = erreurs(carte(s));
+    const neuves = (m: WorldMap) => erreurs(m).filter((e) => !avant.includes(e));
+    expect(neuves(carte(jouer(s, surClub(['when'], membre)))), 'une condition sans raison du refus : refusée à la validation').toEqual([expect.stringContaining('« when » posé sans « refus »')]);
+    const pose = jouer(s, surClub(['refus'], valeurNeuveDe(refusDAccesSchema)), surClub(['refus', 'texte'], 'Réservé aux membres.'), surClub(['when'], membre));
+    expect([carte(pose).places[0].services?.[0], pose.historique.passe.length]).toEqual([{ id: 'auberge', kind: { id: 'auberge' }, refus: { texte: 'Réservé aux membres.' }, when: membre }, s.historique.passe.length + 3]);
+    const modifie = jouer(pose, surClub(['refus', 'texte'], 'Le portier vous toise.'));
+    expect(carte(modifie).places[0].services?.[0].refus).toEqual({ texte: 'Le portier vous toise.' });
+    expect(refusDeLaValeur(modifie, surClub(['refus'])), 'la raison ne se retire pas sous une condition posée').toMatchObject({ regle: expect.stringContaining('« when » posé sans « refus »') });
+    expect(neuves(carte(modifie))).toEqual([]);
+    const retire = jouer(modifie, surClub(['when']), surClub(['refus']));
+    expect(carte(retire).places[0].services?.[0]).toEqual({ id: 'auberge', kind: { id: 'auberge' } });
   });
 
   it('retirer le point d’intérêt désigné l’ôte du lieu sur un cran, la liste vidée retirée ; sans point désigné, c’est sans objet', () => {
