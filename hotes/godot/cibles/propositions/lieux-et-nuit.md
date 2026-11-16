@@ -1,8 +1,7 @@
 # Propositions : lieux et nuit (2026-11-16, #3935)
 
 Compte rendu des cinq écrans dessinés depuis les maquettes validées de lieu et de voyage, la cible écrite
-`../ecrites/lieu.md` et le relevé de ce qui se joue la nuit (ci-dessous). Sources HTML hors dépôt :
-`/mnt/project-files/interface-3935/maquettes/lieux-et-nuit/`. Rien n'est validé.
+`../ecrites/lieu.md` et le relevé de ce qui se joue la nuit (ci-dessous). Sources au dépôt : `sources/lieux-et-nuit/`. Rien n'est validé.
 
 Directions de l'utilisateur (verbatims au 2026-11-16, fiche `user-doctrine-la-cible-prime-sur-l-ancien-ecran`) : une
 image autour d'un feu de camp et une quand on dort à l'auberge ; affectations à des postes dans la lignée du voyage ;

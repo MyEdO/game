@@ -1,7 +1,7 @@
 # Propositions : combat (2026-11-16, #3935)
 
 Compte rendu des onze états dessinés depuis la cible écrite `../ecrites/combat.md`, le contrat `../combat.md` et les
-maquettes validées (`../maquettes/`). Sources HTML hors dépôt : `/mnt/project-files/interface-3935/maquettes/combat/`.
+maquettes validées (`../maquettes/`). Sources au dépôt : `sources/combat/`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Localisation », « Au hasard », « Retenir ses coups »,

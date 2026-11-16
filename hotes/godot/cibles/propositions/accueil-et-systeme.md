@@ -1,7 +1,7 @@
 # Propositions : accueil et système (2026-11-16, #3935)
 
 Compte rendu des six écrans, sans cible écrite, dessinés dans le style des maquettes validées. Contenu lu au code, pas
-le design. Sources HTML hors dépôt : `/mnt/project-files/interface-3935/maquettes/accueil-et-systeme/`. Rien n'est
+le design. Sources au dépôt : `sources/accueil-et-systeme/`. Rien n'est
 validé.
 
 Pièces neuves : registre relié et ses signets ; contrôles de réglage (oui/non, réglette, segments, pas-à-pas) ;

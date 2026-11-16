@@ -1,0 +1,231 @@
+/* Héros : création (pages 4 à 10) et progression, images d'intention (#3935). Pièces de la famille posées sur
+   commun.css (matières, cadres, plaques, sceaux, pastilles, portraits, bandeau). Maquette hors du jeu. */
+#mur{position:absolute;inset:0;filter:brightness(.5) saturate(.9)}
+#mur::after{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 128px,rgba(0,0,0,.55) 128px 130px),
+  radial-gradient(120% 90% at 50% 38%,rgba(0,0,0,0) 40%,rgba(0,0,0,.72) 100%),
+  linear-gradient(180deg,rgba(0,0,0,0) 72%,rgba(0,0,0,.8) 100%)}
+.cadre>.ruban{z-index:2}
+.fell{font-family:"Fell",serif}
+
+/* ───────── frise des étapes ───────── */
+#frise .fond{overflow:visible}
+#frise .rail{position:absolute;top:26px;height:2px;background:rgba(0,0,0,.6);box-shadow:0 1px 0 rgba(255,220,160,.08)}
+#frise .rail.fait{background:linear-gradient(180deg,#e2c06a,#8a6a26);box-shadow:0 1px 2px rgba(0,0,0,.8)}
+.etape{position:absolute;top:0;width:0;height:56px}
+.etape>.pst{position:absolute;left:-13px;top:14px;box-shadow:0 2px 4px rgba(0,0,0,.7),0 0 8px rgba(255,214,140,.25)}
+.etape>.pst>div{background:radial-gradient(circle at 40% 30%,#3b2718,#1b100a 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8)}
+.etape>.clou{left:-4px;top:23px;width:9px;height:9px}
+.etape>span{position:absolute;top:42px;left:0;transform:translateX(-50%);font-size:10.5px;line-height:13px;color:var(--creme-2);white-space:nowrap}
+.etape.a-venir>span{color:#8f8168}
+.etape>.ruban{top:9px;font-size:19px;line-height:25px;padding:2px 30px 5px;display:flex;align-items:baseline;gap:9px}
+.etape>.ruban small{font-size:11.5px;font-weight:600;color:#e6cf9a;letter-spacing:.3px}
+#fermer-creation{position:absolute;right:16px;top:7px;width:42px;height:42px;padding:3px}
+
+/* ───────── panneaux de création ───────── */
+.pan>.fond{padding:17px 21px 16px}
+.pan>.fond.bois{padding:16px 18px}
+.rub{font-family:"Fell SC",serif;font-size:13px;line-height:16px;letter-spacing:1.1px;color:#4f2f14;white-space:nowrap}
+.fond.bois .rub{color:var(--creme-2)}
+.rub .note{font-family:"Spectral";font-style:italic;font-size:12.5px;letter-spacing:0;color:#5a4530}
+.sep{display:flex;align-items:center;gap:10px;margin:11px 26px}
+.sep::before,.sep::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(60,40,20,0),rgba(60,40,20,.55))}
+.sep::after{transform:scaleX(-1)}
+.sep>i{width:7px;height:7px;transform:rotate(45deg);background:#5a4530}
+.lignes{display:flex;flex-direction:column}
+.deux{display:grid;grid-template-columns:1fr 1fr;column-gap:22px}
+.ligne{display:flex;align-items:center;gap:9px;height:30px;padding:0 9px;border:2px solid transparent;border-bottom:1px solid rgba(60,40,20,.28);font-family:"Fell",serif;font-size:15.5px;color:#2a1d12;white-space:nowrap;min-width:0}
+.ligne>.n{flex:1;min-width:0;overflow:hidden}
+.ligne>.n small{font-size:13.5px;color:#4a3420}
+.ligne.choisie{border:2px solid #a8842f;border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px rgba(60,40,10,.75),0 2px 5px rgba(60,35,5,.35)}
+.ligne.refusee{color:rgba(42,29,18,.42)}
+.ligne.refusee .tag{opacity:.45}
+.ligne .raison{font-family:"Fell SC";font-size:10.5px;letter-spacing:.9px;color:rgba(107,28,16,.75)}
+.losange{flex:none;width:6px;height:6px;transform:rotate(45deg);border:1.2px solid #4a3420;margin:0 4px}
+.tag{display:inline-block;flex:none;width:34px;text-align:center;font-family:"Fell SC";font-size:11px;line-height:16px;letter-spacing:.8px;color:#4a2a12;border:1px solid rgba(60,40,20,.5);border-radius:2px;background:rgba(255,245,215,.25)}
+.val{flex:none;font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:14.5px;font-weight:600;color:#2a1d12;min-width:24px;text-align:right}
+.jeton{display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:11px;border:1px solid rgba(60,40,20,.7);font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:12px;font-weight:600;letter-spacing:.2px;color:#2a1d12;background:rgba(255,245,215,.3);white-space:nowrap}
+.fond.bois .jeton{border-color:rgba(226,192,106,.7);color:#f0e2c2;background:rgba(0,0,0,.25)}
+.jeton.or{border-color:#5d4313;background:linear-gradient(180deg,#f3dc93,#c9a44c);color:#2a1a08}
+.jeton.cire{border-color:#5a130b;background:linear-gradient(180deg,#c8452c,#8f2416);color:#fbe9d6}
+.jeton.fer{border-color:#000;background:linear-gradient(180deg,#3a3833,#1d1c1a);color:#a59c8a}
+
+/* le dé : sceau de cire chiffré */
+.de{position:relative;flex:none;width:72px;height:72px;display:grid;place-items:center;background:radial-gradient(circle at 36% 28%,#d8573b,#a32c1b 48%,#5a130b 100%);border-radius:48% 52% 55% 45%/52% 46% 54% 48%;box-shadow:0 4px 8px rgba(40,10,0,.6),inset 0 0 0 6px rgba(60,10,5,.4),inset 3px 3px 5px rgba(255,170,140,.35);font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:29px;font-weight:600;color:#2a0906;text-shadow:0 1px 0 rgba(255,170,140,.35)}
+.de.moyen{width:44px;height:44px;font-size:17px;box-shadow:0 3px 5px rgba(40,10,0,.6),inset 0 0 0 4px rgba(60,10,5,.4),inset 2px 2px 3px rgba(255,170,140,.35)}
+.de.petit{width:34px;height:34px;font-size:13.5px;box-shadow:0 2px 4px rgba(40,10,0,.6),inset 0 0 0 3px rgba(60,10,5,.4),inset 2px 2px 3px rgba(255,170,140,.35)}
+.tirage{display:flex;gap:26px;align-items:flex-start}
+.tirage .col{display:flex;flex-direction:column;gap:7px;min-width:0}
+
+/* palier, compteur, clous d'Augmentation */
+.paliers{flex:none;display:flex;gap:5px}
+.palier{width:34px;height:21px;border-radius:11px;display:grid;place-items:center;border:1px solid rgba(60,40,20,.55);font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:11.5px;font-weight:600;color:#4a3420;background:rgba(255,245,215,.25)}
+.palier.pris{border-color:#5d4313;background:linear-gradient(180deg,#f3dc93,#c39c44);color:#2a1a08;box-shadow:0 1px 3px rgba(60,35,5,.5)}
+.palier.zero{border-color:rgba(42,29,18,.8);color:#2a1d12;background:rgba(255,245,215,.6)}
+.palier.ferme{border-color:rgba(60,40,20,.25);color:rgba(42,29,18,.32);background:none}
+.clous{flex:none;display:flex;gap:4px}
+.clous>i{width:11px;height:11px;border-radius:50%;border:1px solid rgba(60,40,20,.6);background:rgba(60,40,20,.08)}
+.clous>i.p{border-color:#5d4313;background:radial-gradient(circle at 36% 30%,#f7e3a2,#b8923a 70%);box-shadow:0 1px 2px rgba(60,35,5,.55)}
+.clous>i:nth-child(5){margin-right:5px}
+.pm{flex:none;display:flex;gap:5px}
+.pm .pst{width:23px;height:23px}
+.pm .pst.fer>div{background:radial-gradient(circle at 40% 30%,#4a4740,#1d1c1a 70%)}
+
+/* la page du centre */
+.page-c{display:flex;flex-direction:column;align-items:center;height:100%}
+.page-c .nom{font-family:"Grenze Gotisch";font-weight:600;font-size:33px;line-height:46px;margin:-4px 0 -4px;color:#3a1a10;letter-spacing:.3px;white-space:nowrap;text-align:center}
+.page-c .sous{font-family:"Fell SC";font-size:12.5px;letter-spacing:1.1px;color:#5a2a12;white-space:nowrap}
+.page-c .sep{align-self:stretch;margin:9px 60px}
+.prose{margin:0;font-family:"Spectral";font-size:14px;line-height:20px;color:#32241a;text-align:left;align-self:stretch}
+.prose+.prose{margin-top:7px}
+.vignette{align-self:stretch;padding:3px;border-radius:2px;box-shadow:0 3px 8px rgba(40,25,5,.55),0 0 0 1px #1a1005}
+.vignette>svg{display:block;width:100%;height:100%;box-shadow:inset 0 0 0 1px #000}
+.faits{align-self:stretch;display:grid;grid-template-columns:1fr 1fr;gap:8px 18px}
+.fait .rub{display:block}
+.fait b{display:block;font-family:"Fell";font-weight:400;font-size:15.5px;line-height:20px;color:#2a1d12;white-space:nowrap}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;height:23px;padding:0 11px;border-radius:12px;border:1px solid rgba(60,40,20,.6);font-family:"Fell SC";font-size:11.5px;letter-spacing:.9px;color:#3a2a18;background:rgba(255,245,215,.3);white-space:nowrap}
+.pill.prise{border-color:#5d4313;background:linear-gradient(180deg,#f3dc93,#c39c44);color:#2a1a08;box-shadow:0 1px 3px rgba(60,35,5,.5)}
+.anneau{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3b2718,#150c07 72%);box-shadow:0 0 0 2px #1a1005,0 0 0 3px rgba(168,132,47,.9),0 3px 6px rgba(40,25,5,.6);font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:18px;font-weight:600;color:#f4e8ca}
+.anneau.petit{width:36px;height:36px;font-size:14.5px}
+.filigrane{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);opacity:.5}
+
+/* cartes de Compétence (page du centre) */
+.rangee{align-self:stretch;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.carte{position:relative;height:92px;padding:9px 10px 8px;border:1px solid rgba(60,40,20,.5);border-radius:3px;background:rgba(255,246,218,.3);box-shadow:0 2px 5px rgba(60,35,5,.2)}
+.carte .n{font-family:"Fell";font-size:15.5px;line-height:18px;color:#2a1d12;white-space:nowrap;margin-top:15px}
+.carte .anneau{position:absolute;right:9px;top:9px}
+.carte .pied{margin-top:3px}
+.carte .calc{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:11.5px;color:#4a3420}
+.carte.vide{border:1.5px dashed rgba(60,40,20,.5);background:none;box-shadow:none;display:grid;place-items:center}
+.carte.vide span{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:#6b1c10}
+
+/* le héros qui se dessine */
+#heros-neuf .fond{display:flex;gap:18px}
+.niche{flex:none;width:226px;height:100%;padding:4px;border-radius:2px;box-shadow:0 4px 10px rgba(0,0,0,.7),0 0 0 1px #1a1005}
+.niche>div{width:100%;height:100%;background:radial-gradient(90% 70% at 50% 34%,#eadbb4,#d3bf90 60%,#b9a070);box-shadow:inset 0 0 0 1px rgba(0,0,0,.7),inset 0 0 22px rgba(90,60,20,.5)}
+.niche svg{display:block;width:100%;height:100%}
+.acquis{flex:1;min-width:0;display:flex;flex-direction:column}
+.acquis .qui{font-family:"Grenze Gotisch";font-weight:600;font-size:29px;line-height:42px;color:#f4e8ca;text-shadow:0 2px 3px #000;white-space:nowrap;margin:-8px 0 3px;overflow:hidden}
+.acquis .a{margin-bottom:9px;min-width:0}
+.acquis .a b{display:flex;align-items:center;gap:8px;font-family:"Fell";font-weight:400;font-size:16.5px;line-height:21px;color:#f0e2c2;white-space:nowrap}
+.acquis .a b .jeton{height:19px;font-size:11px;padding:0 8px}
+.acquis .a i{display:block;font-family:"Fell SC";font-style:normal;font-size:11px;letter-spacing:1px;color:var(--creme-2);white-space:nowrap}
+.acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:9px}
+.acquis .gestes .plaque{flex:none;height:42px}
+.acquis .gestes .plaque.armee>div{font-size:16px;letter-spacing:1.6px}
+.acquis .gestes .plaque:not(.armee){height:34px}
+.acquis .refus{font-style:italic;font-size:12.5px;line-height:16px;color:#e6b9a8;margin-bottom:8px}
+
+/* bandeau des héros de la famille (deux ou trois cases) */
+#bandeau.b3{left:410px;top:621px;width:887px;height:151px}
+#bandeau.b3 .fond{grid-template-columns:repeat(3,1fr)}
+#bandeau.b2{left:553px;top:621px;width:600px;height:151px}
+#bandeau.b2 .fond{grid-template-columns:repeat(2,1fr)}
+.portrait.esquisse>div{background:radial-gradient(90% 80% at 50% 28%,#efe1bc,#d6c296 62%,#b79e6c)}
+.heros .etat{display:flex;align-items:center;gap:8px;margin-top:8px;font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:#e6b9a8}
+
+/* ───────── possessions ───────── */
+.objets{align-self:stretch;display:grid;grid-template-columns:repeat(4,1fr);gap:12px 11px}
+.objet{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.objet .img{width:100%;aspect-ratio:1;padding:3px;border-radius:2px;box-shadow:0 3px 6px rgba(40,25,5,.5),0 0 0 1px #1a1005}
+.objet .img>div{width:100%;height:100%;display:grid;place-items:center;background:radial-gradient(90% 90% at 40% 30%,#4a3020,#1b100a 78%);box-shadow:inset 0 0 0 1px #000,inset 0 0 14px rgba(0,0,0,.7)}
+.objet.fer .img{box-shadow:0 2px 4px rgba(40,25,5,.4),0 0 0 1px #000}
+.objet.choisi .img{box-shadow:0 3px 6px rgba(40,25,5,.5),0 0 0 1px #1a1005,0 0 14px rgba(255,200,90,.95)}
+.objet b{font-family:"Fell";font-weight:400;font-size:13.5px;line-height:16px;color:#2a1d12;text-align:center}
+.objet i{font-family:"Fell SC";font-style:normal;font-size:11.5px;letter-spacing:.9px;line-height:13px;color:#6b1c10;white-space:nowrap}
+.dot{display:flex;align-items:baseline;gap:8px;height:31px;padding-top:6px;font-family:"Fell";font-size:16px;color:#2a1d12;border-bottom:1px solid rgba(60,40,20,.2);white-space:nowrap}
+.dot small{font-family:"Fell SC";font-size:11.5px;letter-spacing:.9px;color:#6b1c10}
+
+/* ───────── identité ───────── */
+.onglets-m{display:flex;gap:9px}
+.onglets-m .plaque{height:36px}
+.physique{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px}
+.mesure{display:flex;align-items:center;gap:12px}
+.mesure b{display:block;font-family:"Fell";font-weight:400;font-size:18px;line-height:22px;color:#2a1d12;white-space:nowrap}
+.mesure .rub .note{font-size:11.5px}
+.champ{align-self:stretch;margin-top:13px}
+.champ .ecrit{margin-top:2px;height:31px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid rgba(60,40,20,.6);font-family:"Fell";font-style:italic;font-size:18px;line-height:24px;color:#2b1a3a;white-space:nowrap}
+.champ.saisi .ecrit{border:2px solid #a8842f;border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px rgba(60,40,10,.7);padding:0 8px 2px}
+.champ .ecrit u{display:inline-block;width:1.5px;height:20px;background:#2b1a3a;margin-left:2px;text-decoration:none}
+
+/* ───────── fiche (présentation, progression) ───────── */
+.ident>.fond{padding:20px 22px}
+.ident .tete{display:flex;gap:16px}
+.ident .tete .portrait{width:136px;height:168px;padding:5px}
+.ident .nom{font-family:"Grenze Gotisch";font-weight:600;font-size:29px;line-height:41px;color:#3a1a10;letter-spacing:.3px;margin:-6px 0 -7px}
+.ident .l{font-family:"Fell SC";font-size:13px;line-height:20px;letter-spacing:1.1px;color:#4a2a12;white-space:nowrap}
+.ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 5px}
+.ident .bl span:last-child{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:14px;color:#2a1d12}
+.ident .vie{height:8px}
+.reserves{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
+.reserve{display:flex;align-items:center;gap:10px}
+.reserve .medaillon{width:42px;height:42px;padding:3px}
+.reserve .medaillon>div{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:16px;font-weight:600;color:#f4e8ca}
+.bande>.fond{display:grid;grid-template-columns:repeat(12,1fr);padding:0 8px}
+.bande .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:16px}
+.bande .c+.c{border-left:1px solid rgba(60,40,20,.22)}
+.bande .c .ab{font-family:"Fell SC";font-size:13px;line-height:15px;letter-spacing:1.1px;color:#5a3a1c}
+.bande .c .v{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:25px;line-height:31px;color:#2a1d12}
+.bande .c .aug{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:11px;line-height:14px;color:#5a4530;height:14px}
+.bande .c .jeton{margin-top:5px;height:21px;font-size:11.5px;padding:0 9px}
+.bande .c.carr::before{content:"";position:absolute;inset:8px 5px 7px;border:2px solid #a8842f;border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px rgba(60,40,10,.6)}
+.bande .c>*{position:relative}
+.bande.mini>.fond{grid-template-columns:repeat(6,1fr);padding:0}
+.bande.mini .c{padding:7px 0 6px}
+.bande.mini .c:nth-child(n+7){border-top:1px solid rgba(60,40,20,.22)}
+.bande.mini .c:nth-child(7){border-left:0}
+.bande.mini .c .v{font-size:21px;line-height:26px}
+
+.achat{display:flex;align-items:center;gap:10px;height:41px;padding:0 4px 0 2px;border-bottom:1px solid rgba(60,40,20,.25);min-width:0}
+.achat .n{flex:1;min-width:0;overflow:hidden;font-family:"Fell";font-size:16px;color:#2a1d12;white-space:nowrap}
+.achat .n small{font-size:13.5px;color:#4a3420}
+.achat .aug{flex:none;width:30px;text-align:right;font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:12.5px;color:#5a4530}
+.achat .fait{flex:none;width:18px;display:grid;place-items:center}
+.achat .plaque{flex:none;width:86px;height:30px}
+.achat .plaque>div{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.2px;padding:0 6px}
+.achat.vise{border:2px solid #a8842f;border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px rgba(60,40,10,.75),0 2px 5px rgba(60,35,5,.35);padding:0 2px 0 0}
+.talent{display:flex;align-items:center;gap:13px;padding:10px 12px;border:1px solid rgba(60,40,20,.4);border-radius:3px;background:rgba(255,246,218,.28);margin-top:9px}
+.talent .t{flex:1;min-width:0}
+.talent .t b{display:block;margin:-3px 0 -2px;font-family:"Grenze Gotisch";font-weight:600;font-size:20px;line-height:28px;letter-spacing:.3px;color:#2a1d12;white-space:nowrap}
+.talent .t i{display:block;font-family:"Fell SC";font-style:normal;font-size:11.5px;line-height:15px;letter-spacing:1px;color:#5a3a1c;white-space:nowrap}
+.talent .plaque{flex:none;width:112px;height:34px}
+.talent .plaque>div{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.2px;padding:0 6px}
+.talent .plaque.fermee>div{font-family:"Fell SC";font-weight:400;font-size:11.5px;letter-spacing:.9px}
+.talent.clos b{color:rgba(42,29,18,.6)}
+.bourse-px{display:flex;align-items:center;gap:14px}
+.bourse-px .px{flex:none;min-width:92px;height:54px;padding:3px;border-radius:28px;box-shadow:0 3px 7px rgba(40,25,5,.55),0 0 0 1px #150d04}
+.bourse-px .px>div{height:100%;border-radius:26px;display:grid;place-items:center;padding:0 16px;background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);box-shadow:inset 0 0 0 1px rgba(60,40,10,.85),inset 0 1px 0 rgba(255,245,200,.7);font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:25px;font-weight:600;color:#2a1a08}
+.bourse-px b{display:block;font-family:"Fell SC";font-weight:400;font-size:16px;line-height:21px;letter-spacing:1.2px;color:#3a1a10;white-space:nowrap}
+.exige{display:flex;align-items:center;gap:10px;height:30px;font-family:"Fell";font-size:15px;color:#2a1d12;white-space:nowrap}
+.exige .cpt{margin-left:auto;font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:13px;font-weight:600}
+.exige .pst{width:22px;height:22px}
+.exige .trou{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(60,40,20,.55);background:rgba(60,40,20,.08)}
+.ident .plaque{flex:none}
+
+/* le chemin de la carrière */
+.chemin>.fond{overflow:visible}
+.chemin .rail{position:absolute;top:42px;height:2px;background:rgba(60,40,20,.45)}
+.chemin .rail.fait{background:linear-gradient(180deg,#b8923a,#6d5119);height:3px;top:41px}
+.station{position:absolute;top:0;width:0}
+.station .pt{position:absolute;left:-17px;top:26px;width:34px;height:34px}
+.station .pt.clou-fer{left:-7px;top:36px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8f8a7d,#2b2924 60%,#0a0908);box-shadow:0 1px 2px rgba(0,0,0,.7)}
+.station .et{position:absolute;top:66px;left:0;transform:translateX(-50%);text-align:center;white-space:nowrap}
+.station .et b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:19px;line-height:21px;letter-spacing:.3px;color:#2a1d12}
+.station .et i{display:block;font-family:"Fell SC";font-style:normal;font-size:11px;line-height:14px;letter-spacing:1px;color:#5a3a1c}
+.station.loin .et b{color:rgba(42,29,18,.5)}
+.station.loin .et i{color:rgba(90,58,28,.6)}
+.station .ruban{top:12px;font-size:13px;padding:1px 22px 3px}
+.station.vise .pt{box-shadow:0 0 0 1px #150d04,0 0 16px rgba(255,200,90,.95)}
+.ouvre{display:grid;grid-template-columns:132px 1fr;gap:9px 12px;align-items:start;align-self:stretch}
+.ouvre .rub{padding-top:5px}
+.cout{margin-left:auto;font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:11.5px;font-weight:600;color:#4a3420}
+.ligne.choisie .cout{color:#2a1a08}
+
+.cartouche{align-self:stretch;display:flex;align-items:center;gap:13px;padding:10px 13px;border:1px solid rgba(60,40,20,.45);border-radius:3px;background:rgba(255,246,218,.3);margin-top:auto}
+.cartouche b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:20px;line-height:23px;letter-spacing:.3px;color:#2a1d12;white-space:nowrap}
+.cartouche i{display:block;font-family:"Fell SC";font-style:normal;font-size:12px;line-height:16px;letter-spacing:1px;color:#4f2f14;white-space:nowrap}
+.cartouche .lin{margin-left:auto;font-size:15px;font-weight:600;color:#2a1d12}
+.ident .plaque>div{font-size:14px}
+.mesure .de{width:54px;height:54px;font-size:21px}
+.physique{gap:24px 22px}

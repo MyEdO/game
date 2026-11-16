@@ -1,0 +1,20 @@
+#camp{left:1323px;top:20px;width:360px}
+#camp .fond{padding:24px 16px 14px}
+.rang-c{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rang-c .lab{flex:none;width:76px;font-size:12.5px;color:var(--creme-2)}
+.rang-c .plaque{height:36px}
+.rang-c .plaque>div{font-size:14px;gap:7px}
+.rang-c .v{font-size:13.5px;color:#eadfc4;line-height:17px}
+.rang-c .v em{color:var(--creme-2)}
+.note-c{margin:-3px 0 11px 86px;font-style:italic;font-size:12.5px;line-height:16px;color:var(--creme-2)}
+.pips{display:flex;gap:7px;padding:0 3px}
+.pips i{width:12px;height:12px;transform:rotate(45deg);background:linear-gradient(135deg,#f0e4c6,#b9a57b);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.8)}
+.pips i.vide{background:#120b07;box-shadow:0 0 0 1px rgba(201,185,149,.4),inset 0 1px 2px #000}
+.chiffre{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:3px;background:#120b07;box-shadow:0 0 0 1px rgba(201,185,149,.4),inset 0 1px 3px #000;font-family:"Grenze Gotisch";font-weight:600;font-size:21px;color:#f3e6c6}
+#camp .filet{height:1px;background:linear-gradient(90deg,rgba(201,185,149,0),rgba(201,185,149,.45),rgba(201,185,149,0));margin:13px 0 9px}
+#camp .t{font-size:12.5px;color:var(--or);margin-bottom:7px}
+.jouera{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13.5px;color:#eadfc4}
+.jouera .pst{width:22px;height:22px}
+.jouera span{margin-left:auto;font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+#camp .plaque.nuit{height:44px;margin-top:12px}
+#camp .plaque.nuit>div{font-size:16.5px}

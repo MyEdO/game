@@ -404,7 +404,7 @@ const VERROU_MOD_HORS_TS = [{
   message: `Module hors \`.ts\` dans un mod (\`.js\`, \`.mjs\`, \`.cjs\`, \`.cts\`, \`.jsx\`, \`.tsx\`, bancs compris) : un mod s'écrit en \`.ts\`, avec \`h()\` pour le rendu (#2278) ; ${REMEDE_MOD}.`,
 }];
 
-export const IGNORE_LINT = ['dist/**', 'node_modules/**', 'public/**', '_site/**', '**/*.json', '/*.config.*', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**',
+export const IGNORE_LINT = ['dist/**', 'node_modules/**', 'public/**', '_site/**', '**/*.json', '/*.config.*', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**', 'hotes/godot/cibles/propositions/sources/**',
   '.claude/**/*', '!.claude/workflows/', '!.claude/workflows/**',
   ...DOSSIERS_DE_MOD.map((dossier) => `!${dossier}`),
   ...[...GLOBS_DE_MOD, ...GLOBS_DE_MOD_HORS_TS].map((glob) => `!${glob}`),
