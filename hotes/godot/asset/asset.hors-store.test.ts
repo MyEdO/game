@@ -1,8 +1,9 @@
 // Le contrat d'asset d'un modèle 3D modulaire (#2948) : lecture du GLB, chemins absolus, import, Release.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { empreinte, sha256 } from './empreinte.ts';
 import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
@@ -28,7 +29,8 @@ import {
 } from './modeles.testkit.ts';
 import {
   DOSSIER_DES_MODELES, modelesAPublier, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
-  suivisHorsRelease, TAG, urlDAsset, DEPOT, URL_API_DE_LA_RELEASE, type AssetAPublier, type Gh,
+  MARQUEUR_DES_VERIFIES, suivisHorsRelease, TAG, urlDAsset, DEPOT, URL_API_DE_LA_RELEASE, type AssetAPublier, type Gh,
+  empreinteDesSources, verdictsDuDossier,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
 import { epinglesAPublier, recupererEpingles } from './epingles.ts';
@@ -760,6 +762,48 @@ describe('recupererEpingles', () => {
     expect(readFileSync(join(textures, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
     await expect(recupererEpingles({ dossiers: [kit], cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
   });
+  describe('le marqueur des fichiers vérifiés (`verifiesDu`)', () => {
+    /** Le dossier des textures vérifié une fois, l'herbe tirée de la Release, et le cache de cette vérification. */
+    const verifieUneFois = async () => {
+      const [textures] = dossiers();
+      const cache = temporaire();
+      await recupererEpingles({ dossiers: [textures], cache, telecharger: release().telecharger, journal: muet });
+      return { textures, cache, herbe: join(textures, 'terrain--herbe.jpg') };
+    };
+    /** `octets` écrits à la place de `chemin`, sa date remise à `date` (secondes) si elle est donnée. */
+    const alterer = (chemin: string, octets: Uint8Array, date?: number) => {
+      writeFileSync(chemin, octets);
+      if (date !== undefined) utimesSync(chemin, date, date);
+    };
+    const lignes = async (textures: string, cache: string) => {
+      const journal: string[] = [];
+      await recupererEpingles({ dossiers: [textures], cache, telecharger: release().telecharger, journal: (l) => journal.push(l) });
+      return journal;
+    };
+    it('saute la somme d’un fichier inchangé en taille et en date depuis sa vérification', async () => {
+      const { textures, cache } = await verifieUneFois();
+      expect(await lignes(textures, cache)).toEqual([expect.stringContaining(': 1 fichier(s), 0 vérifié(s) par leur SHA-256')]);
+    });
+    it.each<[string, (herbe: string) => void]>([
+      ['sa taille', (herbe) => alterer(herbe, new Uint8Array(Buffer.from('herbe fanée')))],
+      ['sa date seule, à la même taille', (herbe) => alterer(herbe, new Uint8Array(COULEUR.length).fill(0x21), statSync(herbe).mtimeMs / 1000 + 60)],
+    ])('revérifie et remplace un fichier dont %s a changé depuis sa vérification', async (_, changer) => {
+      const { textures, cache, herbe } = await verifieUneFois();
+      changer(herbe);
+      expect(await lignes(textures, cache)).toEqual([expect.stringContaining(': 1 fichier(s), 1 vérifié(s) par leur SHA-256')]);
+      expect(readFileSync(herbe)).toEqual(Buffer.from(COULEUR));
+    });
+    it('garde pour vérifié un fichier altéré à la même taille et à la même date : le marqueur retiré, il est revérifié', async () => {
+      const { textures, cache, herbe } = await verifieUneFois();
+      const date = statSync(herbe).mtimeMs / 1000;
+      alterer(herbe, new Uint8Array(COULEUR.length).fill(0x21), date);
+      await lignes(textures, cache);
+      expect(readFileSync(herbe)).not.toEqual(Buffer.from(COULEUR));
+      rmSync(join(cache, MARQUEUR_DES_VERIFIES));
+      await lignes(textures, cache);
+      expect(readFileSync(herbe)).toEqual(Buffer.from(COULEUR));
+    });
+  });
   it.each<[string, unknown, string]>([
     ['un fichier sans SHA-256', { 'kit.glb': { licence: 'CC0-1.0' } }, 'kit.glb.sha256 « undefined » n\'est pas un SHA-256'],
     ['une extension que la Release ne porte pas', { 'kit.png': { sha256: sha256(KIT) } }, 'kit.png n\'a pas une extension de la Release'],
@@ -877,6 +921,71 @@ describe('recupererModeles', () => {
     manifeste.clips.marche = 'Walking_A';
     writeFileSync(join(dossier, 'Essai.manifeste.json'), JSON.stringify(manifeste));
     await expect(recupererModeles({ dossier, cache: temporaire(), telecharger: serveur({ [url]: GLB_DE_BASE }).telecharger, journal: muet })).rejects.toThrow(/clip-absent/);
+  });
+});
+
+describe('les verdicts gardés (`verdictsDuDossier`)', () => {
+  /** Un dossier de modèles, la base `Essai` et l'élément `epee` sur elle, et un cache vide. */
+  const dossierEtCache = (base: unknown = baseDeTest()) => {
+    const dossier = temporaire();
+    deposerModeleDeTest(dossier, 'Essai', base, GLB_DE_BASE);
+    deposerModeleDeTest(dossier, 'epee', elementSchema3(), GLB_D_ELEMENT);
+    return { dossier, cache: temporaire() };
+  };
+  /** Par id, accepté (`true`) ou les refus, et le nombre de manifestes jugés pour de bon. */
+  const juger = (dossier: string, cache: string) => {
+    const { verdicts, erreurs, valides } = verdictsDuDossier(dossier, cache);
+    expect(erreurs).toEqual([]);
+    return { valides, verdicts: Object.fromEntries(verdicts.map(({ id, verdict }) => [id, verdict.ok || verdict.refus])) };
+  };
+  it('ne rejuge pas un modèle inchangé depuis son acceptation', () => {
+    const { dossier, cache } = dossierEtCache();
+    expect(juger(dossier, cache)).toEqual({ valides: 2, verdicts: { Essai: true, epee: true } });
+    expect(juger(dossier, cache)).toEqual({ valides: 2 - 2, verdicts: { Essai: true, epee: true } });
+  });
+  it('rejuge et refuse un manifeste altéré après son acceptation, et l’élément posé sur lui', () => {
+    const { dossier, cache } = dossierEtCache();
+    juger(dossier, cache);
+    writeFileSync(join(dossier, 'Essai.manifeste.json'), JSON.stringify({ ...baseDeTest(), os: ['os-absent'] }));
+    const { valides, verdicts } = juger(dossier, cache);
+    expect(valides).toBe(2);
+    expect(verdicts.Essai).toEqual(expect.arrayContaining([expect.stringContaining('[os-inconnu]')]));
+    expect(verdicts.epee).not.toBe(true);
+  });
+  it('note chaque acceptation sous l’empreinte des sources du validateur réel (`modeles.ts`)', () => {
+    const { dossier, cache } = dossierEtCache();
+    juger(dossier, cache);
+    const lu = JSON.parse(readFileSync(join(cache, MARQUEUR_DES_VERIFIES), 'utf8')) as { acceptes: Record<string, { cle: string }> };
+    const validateur = empreinteDesSources(fileURLToPath(new URL('./modeles.ts', import.meta.url)));
+    expect(Object.values(lu.acceptes).map(({ cle }) => cle.split('|')[0])).toEqual([validateur, validateur]);
+  });
+  it('oublie toute acceptation notée sous une autre empreinte du validateur', () => {
+    const { dossier, cache } = dossierEtCache();
+    juger(dossier, cache);
+    const marqueur = join(cache, MARQUEUR_DES_VERIFIES);
+    const lu = JSON.parse(readFileSync(marqueur, 'utf8')) as { acceptes: Record<string, { cle: string }> };
+    for (const acceptation of Object.values(lu.acceptes)) acceptation.cle = acceptation.cle.replace(/^[0-9a-f]{64}\|/, `${sha256(Buffer.from('un octet de plus'))}|`);
+    writeFileSync(marqueur, JSON.stringify(lu));
+    expect(juger(dossier, cache)).toEqual({ valides: 2, verdicts: { Essai: true, epee: true } });
+  });
+  it('rejuge à chaque appel un modèle refusé', () => {
+    const { dossier, cache } = dossierEtCache({ ...baseDeTest(), os: ['os-absent'] });
+    expect(juger(dossier, cache).valides).toBe(2);
+    expect(juger(dossier, cache).valides).toBe(2);
+  });
+  it('change l’empreinte du validateur quand un octet change dans une source qu’il importe de proche en proche', () => {
+    const d = temporaire();
+    writeFileSync(join(d, 'entree.ts'), "import { b } from './b';\nexport const a = b;\n");
+    mkdirSync(join(d, 'b'));
+    writeFileSync(join(d, 'b', 'index.ts'), "export { c as b } from '../c.mjs';\n");
+    writeFileSync(join(d, 'c.mjs'), "import donnees from './donnees.json' with { type: 'json' };\nexport const c = donnees;\n");
+    writeFileSync(join(d, 'donnees.json'), '{"valeur":1}');
+    writeFileSync(join(d, 'voisin.ts'), 'export const v = 1;\n');
+    const avant = empreinteDesSources(join(d, 'entree.ts'));
+    writeFileSync(join(d, 'voisin.ts'), 'export const v = 2;\n');
+    expect(empreinteDesSources(join(d, 'entree.ts'))).toBe(avant);
+    writeFileSync(join(d, 'donnees.json'), '{"valeur":2}');
+    expect(empreinteDesSources(join(d, 'entree.ts'))).not.toBe(avant);
   });
 });
 

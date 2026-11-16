@@ -8,15 +8,17 @@
  * (`suivisHorsRelease`). Les textures du sol et le kit des arêtes y vivent de même (`./epingles.ts`, #3476).
  */
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { extname, join } from 'node:path';
+import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { CLE_HORS_RELEASE, FICHIER_DE_LICENCE } from './dossierDeProduction.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
-import { fichiersDuModele, indexerModeles, verdictsDesModeles, type EntreeDeModele } from './modeles.ts';
+import { lireGlb } from './glb.ts';
+import { estBase, fichiersDuModele, indexerModeles, validerModele, type BaseLivree, type EntreeDeModele } from './modeles.ts';
 
 /** Le dépôt dont la Release porte les modèles. */
 export const DEPOT = 'MyEdO/game';
@@ -35,6 +37,153 @@ export function verifierSomme(nom: string, octets: Uint8Array, attendue: string)
 
 /** La somme SHA-256 du fichier `chemin`, ou `null` s'il est absent. */
 const sommeDuFichier = (chemin: string): string | null => (existsSync(chemin) ? sha256(readFileSync(chemin)) : null);
+
+/** Le marqueur des fichiers vérifiés et des manifestes acceptés (`verifiesDu`), dans le cache. */
+export const MARQUEUR_DES_VERIFIES = 'verifies.json';
+
+/** Le chemin résolu de l'import relatif `specifieur` de `depuis`, tel que Vite le résout, ou `undefined`. */
+const resoudreLImport = (depuis: string, specifieur: string): string | undefined =>
+  ['', '.ts', '.tsx', '.mjs', '.js', '/index.ts'].map((suffixe) => resolve(dirname(depuis), specifieur) + suffixe).find((c) => existsSync(c) && statSync(c).isFile());
+
+/** Les imports et exports relatifs d'un module, dynamiques compris. */
+const IMPORT_RELATIF = /\b(?:from|import)\s*\(?\s*['"](\.{1,2}\/[^'"]+)['"]/g;
+
+/** L'empreinte SHA-256 des sources du module `entree` et de tout ce qu'il importe par chemin relatif, de proche en
+ *  proche (données JSON comprises) : un octet changé dans l'une la change. */
+export function empreinteDesSources(entree: string): string {
+  const vus = new Set<string>();
+  const pile = [entree];
+  while (pile.length) {
+    const fichier = pile.pop() as string;
+    if (vus.has(fichier)) continue;
+    vus.add(fichier);
+    if (!/\.(?:ts|tsx|mjs|js)$/.test(fichier)) continue;
+    for (const [, specifieur] of readFileSync(fichier, 'utf8').matchAll(IMPORT_RELATIF)) {
+      const cible = resoudreLImport(fichier, specifieur as string);
+      if (cible !== undefined) pile.push(cible);
+    }
+  }
+  const empreinte = createHash('sha256');
+  for (const fichier of [...vus].sort()) empreinte.update(fichier).update(readFileSync(fichier));
+  return empreinte.digest('hex');
+}
+
+/** L'empreinte du validateur des modèles (`validerModele`, `./modeles.ts`), calculée une fois par processus. */
+let empreinteDuValidateur: string | undefined;
+const validateur = (): string => (empreinteDuValidateur ??= empreinteDesSources(fileURLToPath(new URL('./modeles.ts', import.meta.url))));
+
+/** Ce que le marqueur garde d'un manifeste accepté contre son GLB : la clé de ce verdict (`verdictsDuDossier`), et les
+ *  os qui portent les meshes rigides du GLB (`osDesRigides`). */
+interface Acceptation {
+  readonly cle: string;
+  readonly os: readonly string[];
+}
+const estAcceptation = (v: unknown): v is Acceptation => estObjet(v) && typeof v.cle === 'string' && Array.isArray(v.os) && v.os.every((o) => typeof o === 'string');
+
+/** Les fichiers du projet vérifiés par leur somme et les manifestes acceptés contre leur GLB, notés dans le cache
+ *  `cache` (`MARQUEUR_DES_VERIFIES`). Pour un fichier, par chemin, la taille, la date et l'empreinte du fichier à sa
+ *  dernière vérification réussie : `inchange` dit qu'il a encore la taille et la date notées pour cette empreinte, sa
+ *  somme ne se recalcule pas. Un fichier altéré sans que changent sa taille ni sa date passe donc pour vérifié, comme
+ *  sous make ou rsync ; retirer le marqueur force la vérification complète. Pour un manifeste, par chemin, la clé de
+ *  son dernier verdict d'acceptation (`accepte`, `accepter`, `verdictsDuDossier`) ; aucun refus ne s'y note. `ecrire`
+ *  oublie ce qui n'est plus sur le disque. Un marqueur absent ou illisible ne note rien. */
+export function verifiesDu(cache: string): {
+  inchange(chemin: string, empreinte: string): boolean;
+  noter(chemin: string, empreinte: string): void;
+  accepte(chemin: string, cle: string): readonly string[] | undefined;
+  accepter(chemin: string, cle: string, os: readonly string[]): void;
+  ecrire(): void;
+} {
+  const marqueur = join(cache, MARQUEUR_DES_VERIFIES);
+  let sommes: Record<string, string> = {};
+  let acceptes: Record<string, Acceptation> = {};
+  try {
+    const lu: unknown = JSON.parse(readFileSync(marqueur, 'utf8'));
+    if (estObjet(lu) && estObjet(lu.sommes)) sommes = Object.fromEntries(Object.entries(lu.sommes).filter((e): e is [string, string] => typeof e[1] === 'string'));
+    if (estObjet(lu) && estObjet(lu.acceptes)) acceptes = Object.fromEntries(Object.entries(lu.acceptes).filter((e): e is [string, Acceptation] => estAcceptation(e[1])));
+  } catch {
+    sommes = {};
+  }
+  const signature = (chemin: string, empreinte: string): string => {
+    const { size, mtimeMs } = statSync(chemin);
+    return `${size}:${mtimeMs}:${empreinte}`;
+  };
+  const presents = <T>(notes: Record<string, T>) => Object.fromEntries(Object.entries(notes).filter(([chemin]) => existsSync(chemin)));
+  return {
+    inchange: (chemin, empreinte) => existsSync(chemin) && sommes[chemin] === signature(chemin, empreinte),
+    noter: (chemin, empreinte) => {
+      sommes[chemin] = signature(chemin, empreinte);
+    },
+    accepte: (chemin, cle) => (acceptes[chemin]?.cle === cle ? acceptes[chemin].os : undefined),
+    accepter: (chemin, cle, os) => {
+      acceptes[chemin] = { cle, os };
+    },
+    ecrire: () => ecrireTexteAtomique(marqueur, JSON.stringify({ sommes: presents(sommes), acceptes: presents(acceptes) })),
+  };
+}
+
+/** Les os, sans doublon, qui portent les meshes sans skin du GLB `octets` (`lireGlb`). */
+const osDesRigides = (octets: Uint8Array): string[] => [...new Set(lireGlb(octets).meshes.flatMap((m) => (m.skinne || m.os === null ? [] : [m.os])))];
+
+/** Le verdict d'un manifeste du dossier : accepté, avec les os de ses meshes rigides (`osDesRigides`), ou refusé. */
+export type VerdictDuDossier = { readonly ok: true; readonly os: readonly string[] } | { readonly ok: false; readonly refus: readonly string[] };
+
+/** Chaque manifeste de `dossier` jugé contre son GLB (`validerModele`), les bases d'abord, un élément contre la base
+ *  du dossier qu'il nomme ; `erreurs` porte le manifeste illisible et le GLB qui ne s'ouvre pas. Un manifeste que le
+ *  marqueur du cache `cache` (`verifiesDu`) accepte sous la même clé ne se rejuge pas : la clé tient la taille et la
+ *  date de son GLB et l'empreinte de son contenu, pour un élément celles de sa base, et l'empreinte du validateur
+ *  (`empreinteDesSources`) : une règle changée rejuge tout. Un refus se rejuge à chaque appel. `valides` compte les manifestes
+ *  jugés pour de bon. */
+export function verdictsDuDossier(dossier: string, cache: string = CACHE_DES_MODELES): {
+  readonly verdicts: readonly { readonly id: string; readonly brut: unknown; readonly verdict: VerdictDuDossier }[];
+  readonly erreurs: readonly string[];
+  readonly valides: number;
+} {
+  const { entrees, erreurs } = manifestesDesModeles(dossier);
+  const verifies = verifiesDu(cache);
+  const glb = (id: string) => join(dossier, fichiersDuModele(id).glb);
+  const signatures = new Map<string, string>();
+  for (const { id, brut } of entrees) {
+    try {
+      const { size, mtimeMs } = statSync(glb(id));
+      signatures.set(id, `${size}:${mtimeMs}:${sha256(new TextEncoder().encode(JSON.stringify(brut)))}`);
+    } catch (e) {
+      erreurs.push(`${fichiersDuModele(id).glb} : ${(e as NodeJS.ErrnoException).code ?? (e as Error).message}`);
+    }
+  }
+  const livrees = entrees.filter((e) => signatures.has(e.id)).sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut)));
+  const nomDeBase = (brut: unknown): string | undefined => (estObjet(brut) && typeof brut.base === 'string' ? brut.base : undefined);
+  const basesLivrees = new Map(livrees.filter((e) => estBase(e.brut)).map((e) => [nomDeBase(e.brut) as string, e]));
+  const cleDe = ({ id, brut }: EntreeDeModele): string => {
+    const base = estBase(brut) ? undefined : basesLivrees.get(nomDeBase(brut) ?? '');
+    return [validateur(), signatures.get(id), ...(base ? [signatures.get(base.id)] : [])].join('|');
+  };
+  const octets = new Map<string, Uint8Array>();
+  const lire = (id: string): Uint8Array => octets.get(id) ?? octets.set(id, readFileSync(glb(id))).get(id) as Uint8Array;
+  const bases = new Map<string, BaseLivree>();
+  const baseDe = (brut: unknown): ReadonlyMap<string, BaseLivree> => {
+    const nom = nomDeBase(brut);
+    const base = estBase(brut) || nom === undefined ? undefined : basesLivrees.get(nom);
+    if (nom !== undefined && base) bases.set(nom, { brut: base.brut, octets: lire(base.id) });
+    return bases;
+  };
+  let valides = 0;
+  const verdicts = livrees.map((entree) => {
+    const { id, brut } = entree;
+    const manifeste = join(dossier, fichiersDuModele(id).manifeste);
+    const cle = cleDe(entree);
+    const garde = verifies.accepte(manifeste, cle);
+    if (garde !== undefined) return { id, brut, verdict: { ok: true, os: garde } as const };
+    valides++;
+    const v = validerModele(brut, lire(id), baseDe(brut));
+    if (!v.ok) return { id, brut, verdict: v };
+    const os = osDesRigides(lire(id));
+    verifies.accepter(manifeste, cle, os);
+    return { id, brut, verdict: { ok: true, os } as const };
+  });
+  verifies.ecrire();
+  return { verdicts, erreurs, valides };
+}
 
 /** Le fichier `chemin` gardé s'il a la somme `attendue` ; sinon les octets de `tirer()`, vérifiés au nom de `nom`
  *  (`verifierSomme`), écrits atomiquement sous `chemin` (`ecrireTexteAtomique`). */
@@ -259,8 +408,9 @@ export async function tirerDeLaRelease(epingle: FichierEpingle, extension: Exten
 
 /** Dépose dans `dossier` le GLB de chaque modèle épinglé et le garde dans le cache `cache` : le GLB du projet s'il a
  *  la somme épinglée (le cache s'en amorce), sinon celui du cache, sinon tiré de la Release ; tout fichier se vérifie
- *  par sa somme et s'écrit atomiquement. Chaque manifeste se valide ensuite contre son GLB. Lève à la première
- *  provenance fausse, au premier fichier introuvable ou de somme fausse, au premier manifeste refusé. */
+ *  par sa somme et s'écrit atomiquement, sauf le GLB du projet inchangé depuis sa dernière vérification (`verifiesDu`).
+ *  Chaque manifeste se juge ensuite contre son GLB (`verdictsDuDossier`). Lève à la première provenance fausse, au
+ *  premier fichier introuvable ou de somme fausse, au premier manifeste refusé. */
 export async function recupererModeles({ dossier, cache = CACHE_DES_MODELES, telecharger = fetch, journal = console.log }: {
   dossier: string;
   cache?: string;
@@ -269,21 +419,27 @@ export async function recupererModeles({ dossier, cache = CACHE_DES_MODELES, tel
 }): Promise<readonly ModeleEpingle[]> {
   const { modeles, erreurs } = modelesEpingles(dossier);
   if (erreurs.length) throw new Error(`modèles mal épinglés :\n  ${erreurs.join('\n  ')}`);
-  const { entrees } = manifestesDesModeles(dossier);
-  const octetsParId = new Map<string, Uint8Array>();
+  const verifies = verifiesDu(cache);
+  let resommes = 0;
   for (const modele of modeles) {
     const enCache = join(cache, nomDAsset(modele.empreinte, 'glb'));
     const dansLeProjet = join(dossier, modele.model);
+    if (verifies.inchange(dansLeProjet, modele.empreinte)) continue;
+    resommes++;
     const duProjet = sommeDuFichier(dansLeProjet) === modele.empreinte;
     if (modele.hors_release !== undefined && !duProjet) throw new Error(`[hors-release] ${modele.model} (${modele.empreinte}) : ${modele.hors_release} ; absent de la Release, GLB du poste attendu (reconstruire puis réimporter)`);
     await enCacheOuTire(enCache, modele.empreinte, modele.model, async () => (duProjet ? readFileSync(dansLeProjet) : tirerDeLaRelease({ fichier: modele.model, empreinte: modele.empreinte }, 'glb', telecharger, journal)));
     if (!duProjet) ecrireTexteAtomique(dansLeProjet, readFileSync(enCache));
-    octetsParId.set(modele.id, readFileSync(dansLeProjet));
   }
-  for (const { id, verdict } of verdictsDesModeles(entrees, octetsParId)) {
+  const { verdicts, erreurs: illisibles, valides } = verdictsDuDossier(dossier, cache);
+  if (illisibles.length) throw new Error(`modèles illisibles :\n  ${illisibles.join('\n  ')}`);
+  for (const { id, verdict } of verdicts) {
     if (!verdict.ok) throw new Error(`${fichiersDuModele(id).manifeste} refusé contre ${fichiersDuModele(id).glb} :\n  ${verdict.refus.join('\n  ')}`);
   }
-  journal(`[modèles] ${modeles.map((m) => m.model).join(', ')} : vérifiés (SHA-256), manifestes validés, cache ${cache}`);
+  const notes = verifiesDu(cache);
+  for (const modele of modeles) notes.noter(join(dossier, modele.model), modele.empreinte);
+  notes.ecrire();
+  journal(`[modèles] ${modeles.length} modèle(s), ${resommes} vérifié(s) par leur SHA-256, ${valides} manifeste(s) validé(s) contre leur GLB, les autres inchangés depuis leur vérification ; cache ${cache}`);
   return modeles;
 }
 
