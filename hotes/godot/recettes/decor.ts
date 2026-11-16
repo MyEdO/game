@@ -12,6 +12,7 @@ import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
 import { posesDesDecors, sceneDEchantillon, volumeDuMonde } from '../../../src/noyau/index';
 import type { Dir4 } from '../../../src/geometry/dir8';
+import { tableTotale } from '../../../src/lib/tableTotale';
 
 /** Les entrées de `echantillon` que l'atelier envoie, dans l'ordre des gestes de la recette : un décor, la mer, une
  *  matière de relief, une matière de toit, puis un mur crénelé, dont la brèche abat la couronne et dont la case crénelée porte la crête. */
@@ -35,11 +36,11 @@ const CAPS: readonly Dir4[] = ['S', 'E'];
 export function figerLeDecor(listage: Listage) {
   const { fige, appel } = figerLAtelier(listage, (id, manifeste) => id === 'humanoide' || manifeste.categorie === 'decor');
   const element = (fige.modeles.decors as Record<string, string>)[ASYMETRIQUE];
-  const caps = Object.fromEntries(CAPS.map((cap) => {
+  const caps = tableTotale(CAPS, (cap) => {
     const scene = sceneDEchantillon('decor', ASYMETRIQUE);
     const tournee = { ...scene, entities: scene.entities.map((e) => (e.kind === 'prop' ? { ...e, facing: cap } : e)) };
-    return [cap, { monde: volumeDuMonde(tournee), decors: { [ASYMETRIQUE]: { element, poses: posesDesDecors(tournee) } } }];
-  }));
+    return { monde: volumeDuMonde(tournee), decors: { [ASYMETRIQUE]: { element, poses: posesDesDecors(tournee) } } };
+  });
   return {
     ...fige,
     echantillons: { [cleDEntree(null)]: appel('echantillons') },
