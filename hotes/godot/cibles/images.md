@@ -8,10 +8,25 @@ Dessinées depuis les cibles écrites (`ecrites/`) et les maquettes validées, j
 
 ## Images cibles validées (2026-11-13 au 2026-11-15)
 
-Sous `maquettes/` : celles d'une planche en PNG, déclarées dans `maquettes.json` (`attaque-jet-tombe`,
-`combat-barre-de-l-actif`) ; les autres en JPEG, référence de style de leur famille : `combat-liste-ouverte`,
-`voyage-image-cible`, `lieu-steinbruck`, `lieu-enceintes`, `ville-bogenhafen-quartiers`, `auberge-fin-du-voyage`,
-`auberge-bouge-altstadt`, `logis-qualites`, `echoppe-panier`, `creation-carriere`, `fiche-du-heros`.
+Les images de la page « Images cibles des écrans », sous `maquettes/`. Celles d'une planche en PNG, déclarées dans
+`maquettes.json` ; les autres en JPEG, référence de leur famille. Légende de chacune :
+
+| Image | Ce qu'elle tranche |
+|---|---|
+| `voyage-image-cible` | le décor tient tout l'écran et dit le milieu, le moment et le temps ; les jets en pastilles sur les cartes des héros ; seule une décision arrête la route |
+| `combat-tour-du-heros` | le tour d'un héros : ordre en colonne de portraits, panneau de l'actif, barre d'actions, aperçu de la cible survolée |
+| `attaque-jet-tombe` | le jet d'attaque dans un bandeau de parchemin en bas, les deux dés côte à côte, sans masquer le champ |
+| `combat-liste-ouverte` | variante A : la pastille « Sort » ouvre un panneau au-dessus du meuble qui ne liste que le disponible, fiche au survol, deux clics pour lancer |
+| `combat-barre-de-l-actif` | variante B (retenue) : six emplacements rapides au-dessus des actions, jouables d'un clic ou aux touches 1 à 6 ; les pastilles restent l'entrée de chaque famille |
+| `lieu-steinbruck` | l'arrivée dans un bourg : la place, la rue jusqu'à la porte, les services portés par leurs bâtiments, le départ sur le poteau des routes |
+| `echoppe-panier` | le marchand à gauche, l'étal en lignes avec le prix en colonne, le panier et son compte, la vente héros par héros |
+| `lieu-enceintes` | l'enceinte est une donnée du lieu : aucun mur, palissade, rempart, sur le même écran |
+| `ville-bogenhafen-quartiers` | une grande ville s'ouvre sur son plan, quartiers nommés, ambiance et enseignes du quartier regardé, sceau sur le quartier d'une rumeur |
+| `auberge-fin-du-voyage` | l'aubergiste vend chambre, repas, bière et écurie au prix du livre ; la rumeur de la salle s'inscrit au journal |
+| `logis-qualites` | la qualité est une donnée de l'établissement, par quartier ; salle, offres et prix la suivent |
+| `auberge-bouge-altstadt` | le même écran en bas de l'échelle : moins d'offres, paillasse, avertissement des voleurs |
+| `creation-carriere` | la frise des dix étapes, le d100 au-dessus des listes, la page de la carrière, le héros qui se dessine |
+| `fiche-du-heros` | un écran entier : identité et réserves à gauche, profil en bande, contenu en onglets, héros changé par le bandeau |
 
 ## Combat (2026-11-16)
 
