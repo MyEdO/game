@@ -3,7 +3,8 @@ erreurs nommées ; silhouettes.raboter_sous_correction, rabot mesuré sur les cl
 d'étirement, du repère du mesh au repère monde et retour ; formes.raboter, rabot des clés marquées à leur force et sa
 pente ; silhouettes.parts_des_fautes, part de chaque nom aux sites en faute ; silhouettes.mesurer_domaine,
 mesure incrémentale égale à la porte de construction ; silhouettes.fondu, une part par nœud ; silhouette à os et socle
-du rabot (#4002 issuecomment-6826035694)."""
+du rabot (#4002 issuecomment-6826035694) ; silhouettes.ajuster, corps amené sur un donneur sans froisser ses arêtes
+(#3173)."""
 import contextlib
 import io
 import json
@@ -19,12 +20,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 import silhouettes  # noqa: E402
 import humanoide  # noqa: E402
-from formes import PENTE_DU_RABOT, RABOT, STAGNATION_M, aux_noeuds, raboter, rapports, region_locale, retournees_par  # noqa: E402
+from formes import (PENTE_DU_RABOT, RABOT, STAGNATION_M, aux_noeuds, raboter, rapports,  # noqa: E402
+                    region_locale, retournees_par)
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
 from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
-from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction, fondu,  # noqa: E402
+from silhouettes import (AJUSTEMENT, AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, ajuster, correction, fondu,  # noqa: E402
                          mesurer_domaine, par_nom, raboter_sous_correction, refuser_les_inertes)
 from cuisson_gabarit import etats_aux_facteurs_neutres, etats_du_gabarit  # noqa: E402
 
@@ -137,6 +139,47 @@ def kkt(x, aretes, noeud, fixe, lus, d0):
     systeme = numpy.block([[hessienne, lignes.T], [lignes, numpy.zeros((len(lignes), len(lignes)))]])
     solution = numpy.linalg.lstsq(systeme, numpy.concatenate([gradient, cibles]), rcond=None)[0]
     return solution[:taille].reshape(3, nv).T
+
+
+class Ajustement(unittest.TestCase):
+    """Une grille plane de 13 × 13 sommets au pas de 0,1 m, le dernier sommet jumeau du premier de sa rangée ; le
+    donneur `plie` est la grille levée de 3 cm dont les colonnes 5 à 7 sont rabattues sur la colonne 6."""
+    COTE = 13
+
+    def setUp(self):
+        n = self.COTE
+        self.x = numpy.array([(0.1 * i, 0.1 * j, 0.0) for j in range(n) for i in range(n)] + [(0.0, 0.0, 0.0)])
+        self.noeud = numpy.arange(len(self.x))
+        self.noeud[-1] = 0
+        rang = numpy.arange(n * n).reshape(n, n)
+        self.aretes = numpy.concatenate([numpy.stack([rang[:, :-1].ravel(), rang[:, 1:].ravel()], axis=1),
+                                         numpy.stack([rang[:-1].ravel(), rang[1:].ravel()], axis=1)])
+
+    @staticmethod
+    def plie(y):
+        dans = (y[:, 0] > 0.45) & (y[:, 0] < 0.75)
+        return numpy.stack([numpy.where(dans, 0.6, y[:, 0]), y[:, 1], numpy.full(len(y), 0.03)], axis=1)
+
+    def test_un_donneur_translate_se_rejoint_sans_changer_une_arete(self):
+        y, raidies = ajuster(self.x, self.noeud, self.aretes, lambda y: self.x + (0.0, 0.0, 0.05))
+        numpy.testing.assert_allclose(y, self.x + (0.0, 0.0, 0.05), atol=1e-7)
+        self.assertEqual(raidies, 0)
+
+    def test_un_pli_du_donneur_ne_raidit_que_ses_aretes_et_laisse_le_reste_au_donneur(self):
+        self.assertEqual(float(rapports(self.x, self.plie(self.x) - self.x, self.aretes).min()), 0.0)
+        lus = []
+        y, raidies = ajuster(self.x, self.noeud, self.aretes, lambda y: lus.append(y) or self.plie(y))
+        r = rapports(self.x, y - self.x, self.aretes)
+        self.assertGreaterEqual(r.min(), AJUSTEMENT['bornes'][0])
+        self.assertLessEqual(r.max(), AJUSTEMENT['bornes'][1])
+        pres = (numpy.abs(self.x[self.aretes, 0] - 0.6) < 0.25).all(axis=1)
+        self.assertGreater(raidies, 0)
+        self.assertLessEqual(raidies, int(pres.sum()))
+        loin = numpy.abs(self.x[:, 0] - 0.6) > 0.35
+        self.assertLess(numpy.linalg.norm(y - self.plie(y), axis=1)[loin].max(), 0.005)
+        numpy.testing.assert_allclose(y[:, 2], 0.03, atol=1e-6)
+        numpy.testing.assert_array_equal(y[-1], y[0])
+        self.assertGreater(numpy.abs(lus[-1] - self.x).max(), 0.02)
 
 
 class Correction(unittest.TestCase):
@@ -259,12 +302,14 @@ class LissageSousCorrection(unittest.TestCase):
         z = self.x[:, 2]
         self.libre = numpy.clip((numpy.minimum(z, HAUTEUR - z) - 0.05) / 0.2, 0.0, 1.0)
         self.vus = []
+        self.repartitions = []
         self.correction = correction(self.x, self.aretes, self.noeud, self.libre == 0,
                                      anneaux(self.x, NIVEAUX_DES_ANNEAUX))
 
         def corriger_et_noter(champs, repartitions=None):
             corriges, sonde = self.correction(champs, repartitions)
             self.vus.append((list(champs), corriges))
+            self.repartitions.append(repartitions)
             return corriges, sonde
 
         self.corriger = corriger_et_noter
@@ -275,23 +320,24 @@ class LissageSousCorrection(unittest.TestCase):
         brut[:, 1] = 0.1 * numpy.sin(5 * self.x[:, 2])
         return brut
 
-    def finir(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
+    def finir(self, bruts, bornes=BORNES, vers_le_monde=None):
         """Les champs finis de `raboter_sous_correction` sur les clés `bruts` au repère du mesh, repos `self.x` porté
-        dans ce repère par l'inverse de `vers_le_monde` (par défaut l'identité), depuis le rabot cumulé `rabot`."""
-        return self.finir_et_raboter(bruts, bornes, vers_le_monde, rabot)[0]
-
-    def finir_et_raboter(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
+        dans ce repère par l'inverse de `vers_le_monde` (par défaut l'identité)."""
         vers_le_monde = numpy.eye(3) if vers_le_monde is None else vers_le_monde
         repos = self.x @ numpy.linalg.inv(vers_le_monde)
         return self.raboter(bruts, lambda champs: un_site_par_nom({nom: hors_de(rapports(repos, d, self.aretes), bornes)
                                                                    for nom, d in champs.items()}),
-                            vers_le_monde, rabot)
+                            vers_le_monde)
 
-    def raboter(self, bruts, hors, vers_le_monde=None, rabot=None, portes=None):
+    def raboter(self, bruts, hors, vers_le_monde=None, portes=None):
         with contextlib.redirect_stdout(io.StringIO()):
             return raboter_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger,
-                                           numpy.eye(3) if vers_le_monde is None else vers_le_monde, hors, rabot,
-                                           portes)
+                                           numpy.eye(3) if vers_le_monde is None else vers_le_monde, hors, portes)
+
+    def rabot(self, *noms):
+        """Le rabot cumulé (nom -> facteur par sommet) que la dernière correction a reçu en `repartitions`, aux noms
+        rabotés `noms` dans l'ordre de `bruts`."""
+        return dict(zip(noms, self.repartitions[-1], strict=True))
 
     def porte(self):
         """Une silhouette à os sur le cylindre : les sommets tenus (`libre` nul) tout à un os rigide de déplacement
@@ -323,10 +369,9 @@ class LissageSousCorrection(unittest.TestCase):
         self.assertTrue(tenus.any())
         bruts = {'k': t, 'r': self.translation()}
         partout = numpy.ones(len(self.aretes), dtype=bool)
-        finis, rabot = self.raboter(bruts, lambda champs: un_site_par_nom({
+        finis = self.raboter(bruts, lambda champs: un_site_par_nom({
             'k': partout, 'r': hors_de(rapports(self.x, champs['r'], self.aretes), self.BORNES)}), portes={'k': c})
         self.assertEqual(list(finis), ['k', 'r'])
-        self.assertEqual(list(rabot), ['r'])
         numpy.testing.assert_allclose(finis['k'], c + self.libre[:, None] * (t - c), rtol=0, atol=1e-12)
         numpy.testing.assert_array_equal(finis['k'][tenus], numpy.tile(self.RIGIDE, (tenus.sum(), 1)))
         self.assertTrue(self.vus)
@@ -346,8 +391,8 @@ class LissageSousCorrection(unittest.TestCase):
             return un_site_par_nom({'k': numpy.zeros(len(self.aretes), dtype=bool), 'r': marque})
 
         with mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 10):
-            finis, rabot = self.raboter({'k': t, 'r': brut}, hors, portes={'k': c})
-        numpy.testing.assert_array_equal(rabot['r'], 1.0)
+            finis = self.raboter({'k': t, 'r': brut}, hors, portes={'k': c})
+        numpy.testing.assert_array_equal(self.rabot('r')['r'], 1.0)
         (attendu,), _ = self.correction([self.libre[:, None] * brut])
         numpy.testing.assert_allclose(finis['r'], attendu, rtol=0, atol=1e-9)
 
@@ -365,7 +410,8 @@ class LissageSousCorrection(unittest.TestCase):
             return un_site_par_nom({'k': numpy.zeros(len(self.aretes), dtype=bool), 'r': marque})
 
         with mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 80):
-            finis, rabot = self.raboter({'k': t, 'r': self.x * [1.0, 1.0, 0.0]}, hors, portes={'k': c})
+            finis = self.raboter({'k': t, 'r': self.x * [1.0, 1.0, 0.0]}, hors, portes={'k': c})
+        rabot = self.rabot('r')
         self.assertLess(rabot['r'][self.aretes[defaut]].max(), 1.0)
         self.assertLessEqual(numpy.linalg.norm(finis['r'][self.aretes[defaut]], axis=1).max(), seuil)
         numpy.testing.assert_array_equal(rabot['r'][numpy.isin(self.noeud, self.aretes[socle])], 1.0)
@@ -393,7 +439,7 @@ class LissageSousCorrection(unittest.TestCase):
         for avec_a in (True, False):
             self.vus = []
             with mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 80):
-                finis[avec_a], _ = self.raboter({'r': self.x * [1.0, 1.0, 0.0]}, hors(avec_a))
+                finis[avec_a] = self.raboter({'r': self.x * [1.0, 1.0, 0.0]}, hors(avec_a))
             passes[avec_a] = len(self.vus)
         self.assertGreater(numpy.abs(finis[True]['r'][self.aretes[a]]).max(), 0)
         self.assertEqual(passes[True], passes[False])
@@ -412,9 +458,8 @@ class LissageSousCorrection(unittest.TestCase):
             raise AssertionError('corriger appelé')
 
         self.corriger = corriger
-        finis, rabot = self.raboter({'k': t, 'j': u}, hors, portes={'j': d, 'k': c})
+        finis = self.raboter({'k': t, 'j': u}, hors, portes={'j': d, 'k': c})
         self.assertEqual(list(finis), ['k', 'j'])
-        self.assertEqual(rabot, {})
         numpy.testing.assert_allclose(finis['k'], c + self.libre[:, None] * (t - c), rtol=0, atol=1e-12)
         numpy.testing.assert_allclose(finis['j'], d + self.libre[:, None] * (u - d), rtol=0, atol=1e-12)
 
@@ -427,18 +472,6 @@ class LissageSousCorrection(unittest.TestCase):
         self.assertTrue(numpy.array_equal(fini, corrige))
         self.assertEqual(self.hors(fini), 0)
         self.assertEqual(numpy.abs(fini[self.libre == 0]).max(), 0.0)
-
-    def test_le_tour_suivant_repart_du_rabot_cumule_et_ne_rabote_plus_les_memes_cles(self):
-        brut = numpy.zeros_like(self.x)
-        brut[:, 1] = 0.3 * numpy.sin(25 * self.x[:, 2])
-        bruts = {'k': brut}
-        fini, rabot = self.finir_et_raboter(bruts)
-        self.assertLess(rabot['k'].min(), 1.0)
-        vus = len(self.vus)
-        repris, rabot_repris = self.finir_et_raboter(bruts, rabot=rabot)
-        self.assertEqual(len(self.vus), vus + 1)
-        self.assertLess(numpy.abs(repris['k'] - fini['k']).max(), TOLERANCE)
-        numpy.testing.assert_array_equal(rabot_repris['k'], rabot['k'])
 
     def test_le_rabot_se_mesure_sur_le_champ_corrige(self):
         """Un correcteur bouchon qui annule la moitié basse : la bosse qu'il efface ne se rabote pas."""
@@ -516,9 +549,9 @@ class Rabot(unittest.TestCase):
 
     def raboter(self, champ, facteur=None, hors=None):
         mesure = hors or self.hors
-        resultat, passes, _ = raboter(champ[:, None], self.noeud, self.aretes,
-                                      self.facteur if facteur is None else facteur,
-                                      lambda pile, _: (pile, mesure(pile[:, 0])[:, None]), PASSES_MAX)
+        resultat, passes = raboter(champ[:, None], self.noeud, self.aretes,
+                                   self.facteur if facteur is None else facteur,
+                                   lambda pile, _: (pile, mesure(pile[:, 0])[:, None]), PASSES_MAX)
         return resultat[:, 0], passes
 
     def test_une_arete_hors_bornes_aux_deux_extremites_tenues_leve(self):
@@ -581,7 +614,7 @@ class Rabot(unittest.TestCase):
             pile[premier[self.noeud]] = champ[premier[self.noeud]][:, None]
             return pile, next(marques)[:, None]
 
-        resultat, passes, _ = raboter(champ[:, None], self.noeud, self.aretes, self.facteur, rendre, PASSES_MAX)
+        resultat, passes = raboter(champ[:, None], self.noeud, self.aretes, self.facteur, rendre, PASSES_MAX)
         self.assertEqual(passes, 2)
         self.assertTrue(numpy.allclose(resultat[self.noeud == voisin, 0],
                                        RABOT ** (2 - 1 / (PENTE_DU_RABOT + 1)) * champ[self.noeud == voisin]))
@@ -595,9 +628,15 @@ class Rabot(unittest.TestCase):
         force[milieu] = 1.0
         forces = iter([force, numpy.zeros_like(force)])
         champ = numpy.ones((n, 1, 3))
-        resultat, passes, cumul = raboter(champ, numpy.arange(n), aretes, numpy.ones(n),
-                                          lambda pile, _: (pile, next(forces)), PASSES_MAX)
+        cumuls = []
+
+        def mesurer(pile, cumul):
+            cumuls.append(cumul)
+            return pile, next(forces)
+
+        resultat, passes = raboter(champ, numpy.arange(n), aretes, numpy.ones(n), mesurer, PASSES_MAX)
         self.assertEqual(passes, 1)
+        cumul = cumuls[-1]
         numpy.testing.assert_array_equal(resultat[:, 0, 0], cumul[:, 0])
         distance = numpy.minimum(numpy.abs(numpy.arange(n) - milieu), numpy.abs(numpy.arange(n) - milieu - 1))
         facteurs = [cumul[distance == r, 0] for r in range(PENTE_DU_RABOT + 2)]
@@ -615,9 +654,15 @@ class Rabot(unittest.TestCase):
         marque[0] = [1.0, 0.5]
         forces = iter([marque, numpy.zeros_like(marque)])
         champ = numpy.stack([self.bosse, self.bosse], axis=1)
-        _, passes, cumul = raboter(champ, self.noeud, self.aretes, self.facteur,
-                                   lambda pile, _: (pile, next(forces)), PASSES_MAX)
+        cumuls = []
+
+        def mesurer(pile, cumul):
+            cumuls.append(cumul)
+            return pile, next(forces)
+
+        _, passes = raboter(champ, self.noeud, self.aretes, self.facteur, mesurer, PASSES_MAX)
         self.assertEqual(passes, 1)
+        cumul = cumuls[-1]
         bouts = numpy.isin(self.noeud, self.aretes[0])
         numpy.testing.assert_allclose(cumul[bouts, 0], RABOT, rtol=1e-12)
         numpy.testing.assert_allclose(cumul[bouts, 1], RABOT ** 0.5, rtol=1e-12)
@@ -704,8 +749,8 @@ class DomaineDesSilhouettes(unittest.TestCase):
                               anneaux(self.p, NIVEAUX_DES_ANNEAUX))
         mesure = self.mesure()
         with contextlib.redirect_stdout(io.StringIO()):
-            finis, _ = raboter_sous_correction(dict(self.champs), self.noeud, self.aretes,
-                                              libre, corriger, numpy.eye(3), mesure)
+            finis = raboter_sous_correction(dict(self.champs), self.noeud, self.aretes,
+                                            libre, corriger, numpy.eye(3), mesure)
         self.assertFalse(any(m.any() for m in par_nom(*self.mesure()(finis)).values()))
         for nom in self.champs:
             self.assertGreater(numpy.abs(finis[nom] - self.champs[nom]).max(), 0)
@@ -742,8 +787,8 @@ class DomaineDesSilhouettes(unittest.TestCase):
             return fautes, {**pese, 'temoin': numpy.zeros_like(fautes)}
 
         with contextlib.redirect_stdout(io.StringIO()):
-            finis, _ = raboter_sous_correction(champs, self.noeud, self.aretes,
-                                              libre, corriger, numpy.eye(3), hors)
+            finis = raboter_sous_correction(champs, self.noeud, self.aretes,
+                                            libre, corriger, numpy.eye(3), hors)
         numpy.testing.assert_allclose(finis['temoin'], temoin, rtol=0, atol=TOLERANCE)
         self.assertTrue(all(numpy.abs(finis[n] - champs[n]).max() > 0 for n in self.champs))
         self.assertFalse(any(m.any() for m in par_nom(*hors(finis)).values()))
@@ -1051,9 +1096,15 @@ class PartsDesFautes(unittest.TestCase):
         marques = par_nom(*mesure)
         self.assertTrue(marques['corpulence'][0])
         self.assertFalse(marques['carrure_moins'][0])
+        repartitions = []
+
+        def corriger(d, r=None):
+            repartitions.append(r)
+            return d, {}
+
         with contextlib.redirect_stdout(io.StringIO()):
-            finis, rabot = raboter_sous_correction(champs, numpy.arange(2), aretes, numpy.ones(2),
-                                                   lambda d, _=None: (d, {}), numpy.eye(3), hors)
+            finis = raboter_sous_correction(champs, numpy.arange(2), aretes, numpy.ones(2), corriger, numpy.eye(3), hors)
+        rabot = dict(zip(champs, repartitions[-1], strict=True))
         self.assertLess(rabot['corpulence'].max(), 1.0)
         numpy.testing.assert_array_equal(rabot['carrure_moins'], 1.0)
         self.assertFalse(any(m.any() for m in par_nom(*hors(finis)).values()))

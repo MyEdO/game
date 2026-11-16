@@ -264,10 +264,7 @@ def construire(args):
     noms_des_objets = {'squelette': squelette.name, 'squelette_f': squelette_f.name, 'objets_f': [o.name for o in objets_f],
                        'peaux': [p.name for p in peaux], 'clips': [a.name for a in clips]}
 
-    rabot = None
-
     def poser_les_silhouettes():
-        nonlocal rabot
         clear_animation(squelette)
         bpy.context.view_layer.update()
         for action in clips:
@@ -276,8 +273,8 @@ def construire(args):
         table[OS_DES_SILHOUETTES] = lire_os_des_silhouettes(squelette)
         ajouter_corpulence(squelette, corps, args.mpfb)
         neutres = etats_aux_facteurs_neutres(table, silhouettes(peaux))
-        rabot = finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)),
-                                      clips, plantes, neutres, rabot)
+        finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)), clips,
+                              plantes, neutres)
         return neutres
 
     def poser_les_clips():
@@ -397,7 +394,7 @@ def construire(args):
                 image.pack()
         reprises.ecrire(nom, {'passe': passe, 'phase': phase, 'renouveler': renouveler, 'etats_silhouettes': etats_silhouettes,
                               'references': references, 'precedentes': precedentes, 'captures': captures,
-                              'contraintes': contraintes, 'rabot': rabot, 'objets': noms_des_objets, 'ecart_cles': ecart_cles,
+                              'contraintes': contraintes, 'objets': noms_des_objets, 'ecart_cles': ecart_cles,
                               'etats': etats if au_milieu else None, 'courantes': courantes if au_milieu else None,
                               'suites': [{cle: etat[cle] for cle in SUITE_DE_CORRECTION} for _, _, etat in moteurs]
                               if au_milieu else None})
@@ -425,7 +422,7 @@ def construire(args):
         table[OS_DES_SILHOUETTES] = lire_os_des_silhouettes(squelette)
         phase, renouveler, etats_silhouettes = reprise['phase'], reprise['renouveler'], reprise['etats_silhouettes']
         references, precedentes, captures = reprise['references'], reprise['precedentes'], reprise['captures']
-        contraintes, rabot, passes = reprise['contraintes'], reprise['rabot'], reprise['passe']
+        contraintes, passes = reprise['contraintes'], reprise['passe']
         etats, courantes, suites, ecart_cles = reprise['etats'], reprise['courantes'], reprise['suites'], reprise['ecart_cles']
     if reprise is None or phase != 'fini':
         try:

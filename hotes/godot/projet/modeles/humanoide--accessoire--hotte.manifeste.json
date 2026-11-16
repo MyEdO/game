@@ -30,9 +30,9 @@
       ],
       "poids": {
         "spine_02": 0.0885,
-        "spine_03": 0.8282,
+        "spine_03": 0.8278,
         "neck_01": 0.0594,
-        "clavicle_r": 0.0239
+        "clavicle_r": 0.0243
       }
     },
     "charge_dos#2": {
@@ -49,9 +49,9 @@
       ],
       "poids": {
         "spine_02": 0.0885,
-        "spine_03": 0.8282,
+        "spine_03": 0.8278,
         "neck_01": 0.0594,
-        "clavicle_r": 0.0239
+        "clavicle_r": 0.0243
       }
     },
     "charge_dos#3": {
@@ -68,9 +68,9 @@
       ],
       "poids": {
         "spine_02": 0.0885,
-        "spine_03": 0.8282,
+        "spine_03": 0.8278,
         "neck_01": 0.0594,
-        "clavicle_r": 0.0239
+        "clavicle_r": 0.0243
       }
     },
     "charge_dos#4": {
@@ -87,9 +87,9 @@
       ],
       "poids": {
         "spine_02": 0.0885,
-        "spine_03": 0.8282,
+        "spine_03": 0.8278,
         "neck_01": 0.0594,
-        "clavicle_r": 0.0239
+        "clavicle_r": 0.0243
       }
     },
     "charge_dos#5": {
@@ -106,9 +106,9 @@
       ],
       "poids": {
         "spine_02": 0.0885,
-        "spine_03": 0.8282,
+        "spine_03": 0.8278,
         "neck_01": 0.0594,
-        "clavicle_r": 0.0239
+        "clavicle_r": 0.0243
       }
     },
     "charge_dos#6": {
@@ -125,9 +125,9 @@
       ],
       "poids": {
         "spine_02": 0.0885,
-        "spine_03": 0.8282,
+        "spine_03": 0.8278,
         "neck_01": 0.0594,
-        "clavicle_r": 0.0239
+        "clavicle_r": 0.0243
       }
     },
     "charge_dos#7": {
@@ -144,9 +144,9 @@
       ],
       "poids": {
         "spine_02": 0.0885,
-        "spine_03": 0.8282,
+        "spine_03": 0.8278,
         "neck_01": 0.0594,
-        "clavicle_r": 0.0239
+        "clavicle_r": 0.0243
       }
     },
     "charge_dos#8": {
@@ -163,9 +163,9 @@
       ],
       "poids": {
         "spine_02": 0.0885,
-        "spine_03": 0.8282,
+        "spine_03": 0.8278,
         "neck_01": 0.0594,
-        "clavicle_r": 0.0239
+        "clavicle_r": 0.0243
       }
     }
   },
@@ -181,7 +181,7 @@
     }
   ],
   "glb": {
-    "sha256": "503239c913f7f7c38687aab848f33e1f6f4f2cb2e5bf35b65f064d4200829334",
-    "octets": 374428
+    "sha256": "f76a1f1f86524eff1f6c2bd0113b6260f9f26f03440866b04e8614e20fad7ad0",
+    "octets": 374572
   }
 }
