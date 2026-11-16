@@ -248,10 +248,11 @@ class Base:
         self.emplacements[nom] = {'os': os_, **attache(self.rig.data.bones[os_].matrix_local, repere),
                                   **({'poids': poids} if len(poids) > 1 else {})}
 
-    def nappe(self, nom, X, normales, W, orientes, mat, epaisseur):
+    def nappe(self, nom, X, normales, W, orientes, mat, epaisseur, matieres=None):
         """La double nappe skinnée `nom` sur la nappe extérieure (positions `X`, `normales`, poids `W` par os de la base,
-        triangles `orientes`), l'intérieure à `epaisseur` en retrait le long des normales."""
-        return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur)
+        triangles `orientes`), l'intérieure à `epaisseur` en retrait le long des normales ; `matieres` : par triangle, le
+        matériau de son endroit et celui de son envers, `None` pour `mat`."""
+        return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur, matieres)
 
     def transferer(self, piece, zones, bornes=BORNES_DES_CLES, masques=()):
         """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` depuis la copie
@@ -565,10 +566,12 @@ def maillage_skinne(nom, sommets, faces, mat, rig, poids):
     return obj
 
 
-def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
+def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur, matieres=None):
     """Deux nappes et leurs bords : chaque sommet porté par plusieurs éventails de triangles est dédoublé par éventail,
     la nappe intérieure est la copie retournée à `epaisseur` le long des normales, chaque arête de bord est fermée ;
-    normales recalculées vers l'extérieur. Nappes et bords sont lisses chacun de son côté d'une arête vive : les coins d'un
+    normales recalculées vers l'extérieur. `matieres` : par triangle, le matériau de sa face d'endroit et celui de sa face
+    d'envers (`None` : `mat`), ajoutés à ceux de l'objet dans l'ordre où les triangles les nomment.
+    Nappes et bords sont lisses chacun de son côté d'une arête vive : les coins d'un
     sommet sur une même face d'un côté portent la même normale au bit près, que l'export glTF fusionne quel que soit
     l'arrondi de la machine ; à plat, les faces presque coplanaires d'un bord donnaient des normales à quelques 1e-5,
     fusionnées ou non selon leur arrondi à 4 décimales (#3865)."""
@@ -597,10 +600,11 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
             for i in eventail:
                 triangles[i] = tuple(double if s == sommet else s for s in triangles[i])
     moitie = len(points)
-    faces, sortes, aretes = [], [], {}
-    for t in triangles:
+    faces, sortes, teintes, aretes = [], [], [], {}
+    for k, t in enumerate(triangles):
         faces.extend((t, tuple(moitie + i for i in reversed(t))))
         sortes.extend((0, 1))
+        teintes.extend(matieres[k] if matieres else (None, None))
         for a, b in zip(t, t[1:] + t[:1]):
             arete = tuple(sorted((a, b)))
             aretes[arete] = aretes.get(arete, 0) + 1
@@ -618,6 +622,13 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
     for polygone, sorte in zip(obj.data.polygons, sortes):
         polygone.material_index = sorte
         polygone.use_smooth = True
+    rangs = {}
+    for polygone, teinte in zip(obj.data.polygons, teintes):
+        if teinte is not None:
+            if teinte.name not in rangs:
+                obj.data.materials.append(teinte)
+                rangs[teinte.name] = len(obj.data.materials) - 1
+            polygone.material_index = rangs[teinte.name]
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     for arete in bm.edges:

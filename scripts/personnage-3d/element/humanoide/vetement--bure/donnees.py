@@ -45,9 +45,10 @@ BORNES_DES_CLES = (0.27, 2.5)      # robe : la jupe longue suit le bas de jambe 
 CORSAGE = [('bas', 0.0, 0.008, 0.0), ('bas', 0.12, 0.014, 0.0), ('aisselle', -0.12, 0.018, 0.0),
            ('aisselle', -0.04, 0.018, 0.0), ('aisselle', 0.03, 0.020, 0.0), ('aisselle', 0.09, 0.022, 0.0),
            ('cou', -0.03, 0.026, 0.0), ('cou', 0.0, 0.026, 0.0), ('cou', 0.015, 0.030, 0.0)]
-# Aisances : robe, un peu plus amples sous la poitrine (HYPOTHÈSE : la bure tombe des pectoraux sur le ventre). Le col,
+# Aisances : celles du premier Sorcier (#3743), un peu plus amples sous la poitrine (HYPOTHÈSE : la bure tombe des
+# pectoraux sur le ventre). Le col,
 # fermé, s'arrête 15 mm au-dessus du bas du cou, sous le col de fourrure (`vetement--col-de-fourrure`) : monté à 30 mm
-# comme celui de la robe (dont l'encolure s'ouvre en V), le cou le traversait de 19 mm sous `carrure_plus`
+# comme celui du premier Sorcier (#3743), le cou le traversait de 19 mm sous `carrure_plus`
 # (Hit_Knockback, porte) ; élargi à 40 mm, il ne suivait plus le cou sous `gabarit_head_plus` (`cle-inerte`). Le premier
 # anneau reste sous la ceinture publiée, que la cordelière remplace. Le ventre rond est celui du corps sous `corpulence`
 # (preset `pretre`, build 0,8), que la bure suit par ses clés.
@@ -71,11 +72,11 @@ MANCHE = [(-0.10, 0.024, 0.0), (0.15, 0.022, 0.0), (0.55, 0.026, 0.0), (0.95, 0.
           (1.40, 0.100, 0.42)]
 # illustration : manche ajustée jusqu'au coude, puis cloche très évasée (bras gauche levé : l'ouverture fait ~0,25 m de
 # large) dont le pan pend jusqu'à l'aisselle, ~0,45 m sous le coude ; aisances de la cloche : HYPOTHÈSE, plus larges que
-# celles de la robe (50 et 72 mm devant l'avant-bras bandé, mesurées), que la bure ne fait que dépasser.
+# les 50 et 72 mm qui gardaient l'avant-bras bandé derrière la manche du premier Sorcier (mesurés, #3743).
 ANGLE_DU_PAN = 170.0               # robe
 INCLINAISON_DU_PAN = 20.0          # robe
-RACCORD_EPAULE = 0.5               # robe
-COUPE_DES_POIDS = 0.7              # robe
+RACCORD_EPAULE = 0.5               # #3743 : au-delà, la manche suit `upperarm` d'un bloc
+COUPE_DES_POIDS = 0.7              # #3743 : 0,95 `upperarm`, 0,05 `lowerarm`, lus sur l'export
 LAMBEAUX_MANCHE = {'profondeur': 0.05, 'creux': 0.15, 'graine': 'humanoide--vetement--bure--manche-'}
 """Illustration : le bord des cloches s'effiloche en lambeaux d'environ 25 px (6 cm) ; 5 cm, sous la longueur du dernier
 intervalle de la manche (~6,5 cm du côté sans pan), que le recul d'un creux ne retourne pas (HYPOTHÈSE)."""

@@ -135,7 +135,10 @@ def cylindre(maille, a0, a1, rayon, axe, centre, segments, mat):
 
 
 def point(axe, centre, a, u, w):
-    """Le point d'abscisse `a` sur l'axe 'x', 'y' ou 'z' passant par `centre`, décalé de (u, w) dans le plan normal."""
+    """Le point d'abscisse `a` sur l'axe 'x', 'y' ou 'z' passant par `centre`, décalé de (u, w) dans le plan normal ; `axe`
+    peut être un repère de trois vecteurs unitaires : l'axe, puis les deux du plan normal."""
+    if not isinstance(axe, str):
+        return tuple(np.asarray(centre) + a * np.asarray(axe[0]) + u * np.asarray(axe[1]) + w * np.asarray(axe[2]))
     cx, cy, cz = centre
     if axe == "y":
         return (cx + u, cy + a, cz + w)
@@ -173,7 +176,7 @@ def tube(maille, chemin, rayon, cotes, mat):
 
 
 def tore(maille, axe, centre, grand, petit, n_grand, n_petit, mat):
-    """Tore d'axe 'x', 'y' ou 'z' (anneau plaqué contre une face de cette normale)."""
+    """Tore d'axe 'x', 'y' ou 'z' (anneau plaqué contre une face de cette normale), ou du repère `axe` (`point`)."""
     sommets, faces = [], []
     for i in range(n_grand):
         t = 2 * math.pi * i / n_grand

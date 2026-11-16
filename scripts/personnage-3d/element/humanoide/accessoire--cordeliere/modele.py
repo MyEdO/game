@@ -1,4 +1,4 @@
-"""Géométrie de `humanoide--accessoire--cordeliere` (`element/tissu.py`), d'après `donnees.py` (aucun nombre ici).
+"""Géométrie de `humanoide--accessoire--cordeliere` (`element/taille.py`), d'après `donnees.py` (aucun nombre ici).
 
 - la corde : un tube rond fermé autour de la taille, chaque section posée sur la bure publiée, au plus loin de l'axe du
   corps le long de son rayon, plus le jeu ; les rayons tombent de part et d'autre du milieu du devant, jamais sur la
@@ -17,7 +17,8 @@ import math
 
 import numpy as np
 from anatomie import AXES_DU_PERSONNAGE
-from tissu import JUMEAU, emprunter, lisser, maillage_skinne, poids_normalises, porteur_de, sur_le_porteur, voisinage
+from taille import axe_du_corps, ceindre
+from tissu import emprunter, lisser, porteur_de, sur_le_porteur, voisinage
 
 
 def unitaire(x):
@@ -46,9 +47,7 @@ def repere(tangente, sortante):
 def construire(D, materiaux, b):
     b.exiger(D['ZONES'])
     bure = porteur_de(*b.matieres_publiees(D['CONTOURNE']['bure'], D['MATIERES_DE_LA_BURE']))
-    P = np.concatenate([b.corps(z)[0] for z in D['ZONES']])
-    tranche = P[np.abs(P[:, 2] - D['HAUTEUR']) < 0.02]
-    axe = np.array([(tranche[:, 0].min() + tranche[:, 0].max()) / 2, (tranche[:, 1].min() + tranche[:, 1].max()) / 2, 0.0])
+    axe = axe_du_corps(b, D['ZONES'], D['HAUTEUR'])
     haut = np.array([0.0, 0.0, 1.0])
     R, s = D['RAYON'], D['SEGMENTS']
 
@@ -102,11 +101,5 @@ def construire(D, materiaux, b):
         W += [emprunter(np.asarray(p), bure)[0] if poids is None else poids for p in pts]
     triangles = [(f[0], f[k], f[k + 1]) for f in faces for k in range(1, len(f) - 1)]
     W = lisser(np.array(W), voisinage(triangles, len(sommets)), D['LISSAGE_POIDS'])
-    corde = maillage_skinne('cordeliere', sommets, faces, materiaux['corde'], b.rig, poids_normalises(W, b.os))
-    for poly in corde.data.polygons:
-        poly.use_smooth = True
-    corde.data.set_sharp_from_angle(angle=math.radians(D['ANGLE_LISSE']))
-    corde.data.attributes.new(JUMEAU, 'INT', 'POINT')   # nappe simple : chaque sommet est son propre jumeau
-    b.transferer(corde, D['ZONES'], masques=[([True] * len(sommets), D['ZONES'],
-                                               {D['CONTOURNE']['bure']: D['ZONES_DE_LA_BURE']})])
-    return corde
+    return ceindre(b, 'cordeliere', sommets, faces, [materiaux['corde']], [0] * len(faces), W, D['ANGLE_LISSE'], D['ZONES'],
+                   D['CONTOURNE']['bure'], D['ZONES_DE_LA_BURE'])
