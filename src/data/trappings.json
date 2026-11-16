@@ -16615,6 +16615,9 @@
       {
         "id": "equipe",
         "value": 4
+      },
+      {
+        "id": "a-poudre-noire"
       }
     ],
     "desc": "L'école impériale des ingénieurs a créé ces projectiles incroyablement dangereux et imprécis en s'inspirant des feux d'artifice. Ils sont réputés pour le bruit aigu qu'ils produisent en virevoltant dans les airs, et les conséquences dévastatrices de leurs explosions.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
@@ -16626,7 +16629,13 @@
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 88
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 122
+      }
+    ]
   },
   {
     "id": "canon-a-repetition-feu-d-enfer-ade2",

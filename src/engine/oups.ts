@@ -8,7 +8,7 @@ import { Combatant, Weapon } from './types';
 import { groupeDeLArme } from '../data';
 import { groupeAPoudre } from './weaponGroup';
 import { oupsTable, oupsMisfire, oupsDie, OupsKind } from '../data/oups';
-import { isFirearmQuality, hasQuality, isUnbreakable } from './qualities/dispatch';
+import { resolveQualities, hasQuality, isUnbreakable } from './qualities/dispatch';
 import { solideSaveThreshold, sauvegardeImperdable } from './weaponDamage';
 import { TABLE_SALVE_MISFIRE } from './artilleryMisfire';
 import type { DemandeDe } from './ops';
@@ -36,16 +36,17 @@ export function isFumble(roll: number, success: boolean, fingersLost = 0): boole
 }
 
 /** L'arme est-elle « à Poudre noire, mécanique ou explosive » ? Son Groupe (`groupeDeLArme`) à poudre
- *  (`groupeAPoudre`) ou `explosifs`, ou une qualité `firearm`. LDB 14 l.34 ; LDB 62 l.178 ; AA 10 l.150, l.165 */
-function armeAIncidentDeTir(w: Weapon): boolean {
+ *  (`groupeAPoudre`) ou `explosifs`, ou une qualité à capacité `firearm`. Lu par l'Incident de Tir et
+ *  l'effroi Nerveux. LDB 14 l.34 ; LDB 85 l.249 ; LDB 62 l.178 ; AA 10 l.150, l.165 ; #4345 */
+export function armeAPoudre(w: Weapon): boolean {
   const groupe = groupeDeLArme(w);
-  return groupeAPoudre(groupe) || groupe === 'explosifs' || isFirearmQuality(w);
+  return groupeAPoudre(groupe) || groupe === 'explosifs' || resolveQualities(w).some((r) => r.caps?.firearm);
 }
 
 /** L'Incident de Tir de cette Maladresse, lu sur le jet du Test de combat qui l'a produite (sa parité,
  *  son dé des unités), ou `null` : la Maladresse va au Tableau des Oups !. LDB 14 l.19, l.34 */
 export function incidentDeTir(arme: Weapon, jetDeMaladresse: number): OupsResolved | null {
-  if (!armeAIncidentDeTir(arme) || jetDeMaladresse % 2 !== 0) return null;
+  if (!armeAPoudre(arme) || jetDeMaladresse % 2 !== 0) return null;
   return { roll: jetDeMaladresse, kind: 'misfire', label: oupsMisfire().label };
 }
 

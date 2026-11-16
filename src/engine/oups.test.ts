@@ -1,6 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
-import { isFumble, incidentDeTir, rollOups, desDOups, desDeBrisDeLame, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from './oups';
+import {
+  isFumble,
+  incidentDeTir,
+  armeAPoudre,
+  rollOups,
+  desDOups,
+  desDeBrisDeLame,
+  ligneDeSolide,
+  SOURCE_SOLIDE,
+  type OupsResolved,
+  type DemandeDeCasse,
+} from './oups';
 import { oupsTable, oupsMisfire } from '../data/oups';
 import type { Combatant, Weapon } from './types';
 import { t } from '../i18n';
@@ -86,14 +97,20 @@ describe('incidentDeTir (LDB 14 l.19, l.34)', () => {
     for (const jet of [100, 22, 44, 66, 88]) expect(incidentDeTir(sword, jet)).toBeNull();
   });
 
-  // Matrice sur le catalogue chargé : le Groupe d'arme (LDB 62 l.178 ; AA 10 l.150, l.165) ou une qualité à feu.
-  const COUVERTES = ['pistolet', 'arquebuse', 'arquebus-a-repetition', 'bombe', 'canon-petit', 'canon-moyen', 'canon-grand', 'mortier', 'pierrier', 'canon-a-repetition', 'canon-a-repetition-feu-d-enfer'];
-  const HORS = ['arc-long', 'arbalete', 'baliste', 'fronde', 'javelot'];
-  it.each(COUVERTES)('%s : couverte, raté sur un jet pair', (id) => {
-    expect(incidentDeTir(armeDeTest(id), 44)?.kind).toBe('misfire');
+  it('mangonneau (À Explosion, sans poudre) : jamais d’Incident, même sur un jet pair (#4345)', () => {
+    for (const jet of [100, 22, 44, 66, 88]) expect(incidentDeTir(armeDeTest('mangonneau-ade2'), jet)).toBeNull();
   });
-  it.each(HORS)('%s : hors Incident de Tir', (id) => {
-    expect(incidentDeTir(armeDeTest(id), 44)).toBeNull();
+});
+
+/** LDB 14 l.34 ; LDB 62 l.178 ; AA 10 l.150, l.154, l.165 ; ADE II 08 l.270 ; #4345 */
+describe('armeAPoudre (LDB 14 l.34 ; #4345)', () => {
+  const A_POUDRE = ['pistolet', 'arquebuse', 'arquebus-a-repetition', 'bombe', 'canon-petit', 'canon-moyen', 'canon-grand', 'mortier', 'pierrier', 'canon-a-repetition', 'canon-a-repetition-feu-d-enfer', 'canon-ade2', 'mortier-ade2', 'batterie-tonnerre-de-feu-ade2'];
+  const HORS = ['arc-long', 'arbalete', 'baliste', 'fronde', 'javelot', 'mangonneau-ade2', 'onagre-ade2', 'trebuchet-ade2', 'canon-a-flammes-nain-ade2'];
+  it.each(A_POUDRE)('%s : arme à poudre', (id) => {
+    expect(armeAPoudre(armeDeTest(id))).toBe(true);
+  });
+  it.each(HORS)('%s : hors', (id) => {
+    expect(armeAPoudre(armeDeTest(id))).toBe(false);
   });
 });
 
