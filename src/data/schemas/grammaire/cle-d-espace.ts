@@ -197,10 +197,19 @@ export function porteLeChampMarqueur(e: Readonly<Record<string, unknown>>, champ
 export const marqueurPorte = (sousListe: SousListeMarquee, e: object): string | undefined =>
   sousListe.horsMarqueurs.find((m) => porteLeChampMarqueur(e as Readonly<Record<string, unknown>>, m));
 
+/** La valeur du champ DISCRIMINANT `champ` de l'élément `e` : une chaîne, ou l'`id` d'une référence
+ *  `{ id }` (`trappings.json › subType`) ; `undefined` sinon. SEUL lecteur, pour le générateur des clés
+ *  (`scripts/gen-espaces.mts`) comme pour le filtre (`retenuParFiltre`). */
+export function valeurDuDiscriminant(e: Readonly<Record<string, unknown>>, champ: string): string | undefined {
+  const v = e[champ];
+  if (typeof v === 'string') return v;
+  return estObjet(v) && typeof v.id === 'string' ? v.id : undefined;
+}
+
 /** L'élément `e` est-il retenu par le filtre ? SEUL prédicat de filtre, lu par `idsDeCollection`. */
 export function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string, unknown>>): boolean {
   if (filtre.horsMarqueurs) return marqueurPorte(filtre, e) === undefined;
-  return filtre.vaut === undefined ? porteLeChampMarqueur(e, filtre.champ) : e[filtre.champ] === filtre.vaut;
+  return filtre.vaut === undefined ? porteLeChampMarqueur(e, filtre.champ) : valeurDuDiscriminant(e, filtre.champ) === filtre.vaut;
 }
 
 /**

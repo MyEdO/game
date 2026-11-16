@@ -45,6 +45,7 @@ import {
   pasDeLaSuite,
   suiteAvecPas,
   suivreLeChemin,
+  valeurDuDiscriminant,
   type PasResolu,
 } from '../src/data/schemas/grammaire/cle-d-espace';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
@@ -83,8 +84,8 @@ function clesDe(c: CollectionDeFichier): string[] {
   for (const champ of champsDiscriminants(espace)) {
     const valeurs = new Set<string>();
     for (const [el, cle] of elementsCles(c)) {
-      const vaut = el[champ];
-      if (typeof vaut !== 'string') continue;
+      const vaut = valeurDuDiscriminant(el, champ);
+      if (vaut === undefined) continue;
       if (HORS_DE_LA_GRAPHIE.test(vaut)) throw new Error(`gen-espaces: ${c.cle} « ${cle} » : la valeur de discriminant « ${vaut} » porte ?, =, # ou !.`);
       valeurs.add(vaut);
     }
