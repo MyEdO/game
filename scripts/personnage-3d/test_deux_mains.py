@@ -8,9 +8,9 @@ en sort ;
 une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval, l'écrasement ne lit que les arêtes
 que meuvent les os libres ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement ;
-sous une silhouette à os, les têtes déplacées et le tronc posé sont ceux du squelette déplacé explicite, et un point du
-bras se mesure sur sa tête d'os déplacée, tournée par les axes du bras ; le prix du tronc compte la prise à sa marge ;
-une prise dans un tronc plan en sort à sa marge le long de la normale, une prise dehors ne bouge pas (#4002) ;
+sous une silhouette à os, les têtes déplacées sont celles du squelette déplacé explicite ; le prix du tronc compte le
+pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; une peau dans un tronc en boîte en sort à sa
+marge contre le gradient du champ, une peau dehors ne bouge pas (#4002, #3810) ;
 le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
 l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
 import json
@@ -25,11 +25,13 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import (CLIPS, CONTINUITE, MARGE_DES_BORNES, POIGNET, PRONATION, SECONDES, TOURS, TRONC,  # noqa: E402
-                        ChaineDuBras, PeauDuBras, PeauDuTronc, bras, chemin, cle, coude, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
-                        pousser, prix_du_tronc, repere_de_l_arme, tour_du_repere, tronc_pose)
+from deux_mains import (CLIPS, CONTINUITE, ECART_DU_TRONC, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS,  # noqa: E402
+                        PeauDuBras, bras, chemin, cle, coude, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
+                        pousser, prix_du_tronc, repere_de_l_arme, tour_du_repere)
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
-from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, TETES, autour_de_l_avant, peaux  # noqa: E402
+from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
+from test_tronc import boite  # noqa: E402
+from tronc import ChaineDuBras, PeauDuMembre, PeauDuTronc, membre_pose, tronc_pose  # noqa: E402
 
 L1, L2 = 0.25, 0.24
 LIBRE = {a: [-180, 180] for a in 'xyz'}
@@ -160,51 +162,55 @@ class SousUneSilhouetteAOs(unittest.TestCase):
         numpy.testing.assert_allclose(ecarts_des_os(matrices, PARENT, DEPLACEMENTS)[0],
                                       tetes[:, 2] - (rotations_de_peau(matrices)[0] @ DEPLACEMENTS[..., None])[:, 2, 0], atol=1e-12)
 
-    def test_le_tronc_pose_est_la_peau_du_squelette_deplace(self):
-        cle_ = DECALAGE + PROPRE
-        tronc = PeauDuTronc((SOMMET + numpy.r_[cle_, 0.0])[None, None], numpy.array([[0.0, 0.0, 1.0]]), POIDS, PARENT,
-                            DEPLACEMENTS[None])
-        pose = tronc_pose(tronc, peaux(numpy.zeros((3, 3)), LOCALES))
-        explicite = (peaux(DEPLACEMENTS, LOCALES)[2] @ (SOMMET + numpy.r_[cle_, 0.0]))[:3]
-        numpy.testing.assert_allclose(pose.positions[0, 0], explicite, atol=1e-12)
 
-
-def plan(deplacements=None):
-    """Le tronc plan z = 0, normale +Z, dedans sous lui, posé au repos sur un seul os, un seul jeu."""
-    grille = numpy.linspace(-0.3, 0.3, 61)
-    x = numpy.array([[a, b, 0.0, 1.0] for a in grille for b in grille])
-    tronc = PeauDuTronc(x[None], numpy.tile([0.0, 0.0, 1.0], (len(x), 1)), numpy.ones((len(x), 1)), numpy.array([-1]),
-                        numpy.zeros((1, 1, 3)))
+def tronc_en_boite():
+    """Le tronc en boîte (`test_tronc.boite`), posé au repos sur un seul os, un seul jeu."""
+    x = boite().reshape(-1, 3)
+    tronc = PeauDuTronc(numpy.c_[x, numpy.ones(len(x))][None], numpy.ones((len(x), 1)), numpy.arange(len(x)).reshape(-1, 3),
+                        numpy.array([-1]), numpy.zeros((1, 1, 3)))
     return tronc_pose(tronc, numpy.eye(4)[None])
+
+
+def membre(points, grossier=None):
+    """La `tronc.MembrePose` des `points` (sommets, 3), chacun sur la main d'une chaîne bras, avant-bras, main au repos, et
+    sa `tronc.PeauDuMembre`, tous les sommets échantillonnés, l'échantillon grossier `grossier` (tous sans lui), de
+    rayon nul."""
+    x = numpy.c_[points, numpy.ones(len(points))]
+    tous = numpy.arange(len(x))
+    peau = PeauDuMembre(x[None], numpy.tile([0.0, 0.0, 1.0], (len(x), 1)), numpy.zeros((0, 3), dtype=int), tous,
+                        tous if grossier is None else numpy.array(grossier), 0.0)
+    return membre_pose(peau, numpy.tile(numpy.eye(4), (3, 1, 1)), numpy.zeros((1, 3, 3)), numpy.zeros((1, 3, 3)), PARENT, [0, 1, 2]), peau
 
 
 class Tronc(unittest.TestCase):
     AXES = numpy.eye(3)[None, None].repeat(2, axis=1)
     """Un essai, le bras et l'avant-bras à leur repos."""
 
-    def prix(self, chaines, prise, axes=AXES):
+    def prix(self, points, chaines=((0, 0, 0),) * 3, grossier=None):
         chaine = ChaineDuBras(numpy.eye(3)[None].repeat(2, axis=0), numpy.array(chaines, dtype=float)[None])
-        return prix_du_tronc(plan(), chaine, numpy.array([[0.0, 0.0, 0.3]]), axes, (0.1, 0.0, 0.3), prise)[0]
+        return prix_du_tronc(tronc_en_boite(), membre(numpy.array(points), grossier), chaine,
+                             numpy.tile(numpy.eye(4), (1, 3, 1, 1)), self.AXES)[0]
 
-    def test_sous_une_silhouette_a_os_un_point_du_bras_se_mesure_sur_sa_tete_deplacee(self):
-        haute = (0.0, 0.0, 2.0)
-        enfonce = [(0, 0, 0), (0, 0, -0.5), (0, 0, -0.5)]
-        self.assertEqual(self.prix([(0, 0, 0)] * 3, haute), 0)
-        self.assertGreater(self.prix(enfonce, haute), 0)
-        retourne = self.AXES.copy()
-        retourne[0, 0] = numpy.diag([1.0, -1.0, -1.0])
-        self.assertEqual(self.prix(enfonce, haute, retourne), 0)
+    def test_le_prix_du_tronc_compte_le_pire_sommet_de_la_peau_a_sa_marge(self):
+        self.assertAlmostEqual(self.prix([(0.0, 0.0, 1.396), (0.0, 0.0, 1.7), (0.05, 0.0, 1.399)]),
+                               ((0.004 + ECART_DU_TRONC['marge']) / ECART_DU_TRONC['echelle']) ** 2, places=6)
 
-    def test_le_prix_du_tronc_compte_la_prise(self):
-        self.assertAlmostEqual(self.prix([(0, 0, 0)] * 3, (0.0, 0.0, -0.01)), ((0.01 + TRONC['prise']) / TRONC['echelle']) ** 2,
-                               places=6)
+    def test_un_essai_dont_l_echantillon_grossier_ne_peut_toucher_ne_paie_rien(self):
+        self.assertEqual(self.prix([(0.0, 0.0, 1.7), (0.0, 0.0, 1.396)], grossier=[0]), 0)
+        self.assertGreater(self.prix([(0.0, 0.0, 1.7), (0.0, 0.0, 1.396)], grossier=[1]), 0)
 
-    def test_une_prise_dans_un_tronc_plan_en_sort_a_sa_marge_le_long_de_la_normale(self):
-        pas = pousser(plan(), numpy.array([[[0.01, 0.02, -0.02], [0.05, -0.1, 0.03]]]))
-        numpy.testing.assert_allclose(pas, (0.0, 0.0, 0.02 + TRONC['prise']), atol=1e-12)
+    def test_sous_une_silhouette_a_os_la_peau_se_mesure_sur_sa_tete_deplacee(self):
+        haute = [(0.0, 0.0, 1.41)]
+        self.assertEqual(self.prix(haute), 0)
+        self.assertAlmostEqual(self.prix(haute, ((0, 0, -0.02),) * 3),
+                               ((0.01 + ECART_DU_TRONC['marge']) / ECART_DU_TRONC['echelle']) ** 2, places=6)
 
-    def test_une_prise_dehors_ne_bouge_pas(self):
-        self.assertFalse(pousser(plan(), numpy.array([[[0.01, 0.02, TRONC['prise'] + 0.01]]])).any())
+    def test_une_peau_dans_un_tronc_en_sort_a_sa_marge_contre_le_gradient(self):
+        pas = pousser(tronc_en_boite(), numpy.array([[[0.01, 0.02, 1.396], [0.05, -0.1, 1.392], [0.0, 0.0, 1.5]]]))
+        numpy.testing.assert_allclose(pas, (0.0, 0.0, 0.008 + ECART_DU_TRONC['marge']), atol=1e-9)
+
+    def test_une_peau_dehors_ne_bouge_pas(self):
+        self.assertFalse(pousser(tronc_en_boite(), numpy.array([[[0.01, 0.02, 1.4 + ECART_DU_TRONC['marge'] + 0.002]]])).any())
 
 
 class Interpolation(unittest.TestCase):
