@@ -39,7 +39,7 @@ export interface WallEl extends ElBase {
 }
 /** Élément BILLBOARD (zéro face) : les DEUX backends rendent son SVG catalogue (`propSvg`) ancré aux pieds.
  *  `source` = ORIGINE (le rendu est identique) : 'entity' = prop de scène (fouillable, empreinte, facing,
- *  anim) ; 'terrain' = décor dérivé d'un terrain (`overlayProp`, ex. bois → arbre — 1×1, jamais fouillable) ;
+ *  anim) ; 'terrain' = décor dérivé d'un terrain (`decorDuTerrain`, ex. une essence du bois — 1×1, jamais fouillable) ;
  *  'ornament' = ornement d'IDENTITÉ d'un bâtiment (clocheton/cheminée/enseigne/étal — dérivé de `ArchitectureBody.style`
  *  via `buildingFeatures`) ; 'architecture' = feature authorée d'une façade. */
 export type BillboardPropEl = BillboardPropBase & OrigineDecor;

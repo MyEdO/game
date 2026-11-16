@@ -12,10 +12,11 @@
  * la table rôle → clip de chaque base et la vitesse au sol de son rôle `marche` ; chaque véhicule servi, élément sans base
  * (#2987), sous la fiche que nomme sa clé `definition` ; le rapport de l'index, dont l'élément n'est servi nulle part.
  * Monté, un véhicule porte ses pièces aux postes en vigueur (`postesEnVigueur`), celles de ses Améliorations, et cache
- * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`).
+ * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`) ; un décor, ceux que la saison change, peint de
+ * la palette de cette saison (`paletteSelon`).
  */
 import { rangDeCase, type Attache, type EmplacementOffert, type Repere } from '../asset/attache';
-import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement } from '../asset/element';
+import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement, type Saison } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
@@ -70,8 +71,8 @@ export interface ModelesDeLAtelier {
    *  vaut la table rôle → clip de la base (`clips` du manifeste, « Gabarit d'une base ») et `vitesseAuSol` la vitesse
    *  au sol en m/s de son clip du rôle `marche` (`appuis.vitesseAuSol`). */
   bases: BaseDeLAtelier[];
-  /** les fichiers, sous `modeles/`, de chaque base et de chaque élément servi, à un point, à une ligne ou en véhicule
-   *  (`fichiersDuModele`) : son GLB et la scène que l'export en fabrique. Godot demande celui que nomme la `forme` du
+  /** les fichiers, sous `modeles/`, de chaque base et de chaque élément servi, à un point, à une ligne, en véhicule,
+   *  en Amélioration ou en décor (`fichiersDuModele`) : son GLB et la scène que l'export en fabrique. Godot demande celui que nomme la `forme` du
    *  listage. */
   fichiers: Record<string, { glb: string; scene: string }>;
   /** ceux de l'index (`[base-absente]`, `[cle-en-doublon]`, `[base-en-doublon]`, `[forme]`). Un manifeste qui n'est
@@ -85,7 +86,7 @@ export interface ModelesDeLAtelier {
    *  même base (`emplacementsNonOfferts`, `asset/element.ts`). Cet élément n'est servi ni à un point ni à une ligne.
    *  L'import (`hotes/godot/importer.mjs`) imprime le même rapport, sans bloquer. */
   rapport: string[];
-  /** pour chaque base servie, et pour chaque élément servi, à un point, à une ligne ou en véhicule, quelle que soit
+  /** pour chaque base servie, et pour chaque élément servi, à un point, à une ligne, en véhicule, en Amélioration ou en décor, quelle que soit
    *  sa liaison, et pour eux seuls, ses `surfaces` (`asset/surfaces.ts`), dans l'ordre du manifeste ; une base sans
    *  `surfaces` (champ optionnel de son manifeste, déclaré par son corps,
    *  `scripts/personnage-3d/base/humanoide.json`) n'en a aucune, seul un élément admet `blason` et `matiere`, et
@@ -146,6 +147,9 @@ export interface ModelesDeLAtelier {
    *  nomme une Amélioration de son `selon` (refus `selon-absent`), montré seulement quand elle est montée, ou
    *  seulement quand elle ne l'est pas. */
   ameliorations: Record<string, string>;
+  /** par type de décor (`props.json`), l'id de l'élément `decor` servi dont la `cle.prop` le nomme (#4335), que lit
+   *  `decors` de la vue (section « Corps d'un combattant »). Un élément `decor` n'a pas de base. */
+  decors: Record<string, string>;
 }
 
 /**
@@ -357,12 +361,12 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   const couches = Object.fromEntries(Object.entries(rangs).map(([id, couche]): [string, CoucheDeLAtelier] =>
     [id, { ...couche, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < couche.rang) }]));
-  const parCle = (categorie: 'vehicule' | 'amelioration', champ: 'definition' | 'amelioration') => Object.fromEntries(elements.flatMap((e) => {
+  const parCle = (categorie: 'vehicule' | 'amelioration' | 'decor', champ: 'definition' | 'amelioration' | 'prop') => Object.fromEntries(elements.flatMap((e) => {
     const m = e.brut as ManifesteDElement;
     return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
   }));
   const vehicules = Object.fromEntries(Object.entries(parCle('vehicule', 'definition')).sort(([, a], [, b]) => libelles[a].localeCompare(libelles[b], 'fr')));
-  return { bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules, ameliorations: parCle('amelioration', 'amelioration') };
+  return { bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules, ameliorations: parCle('amelioration', 'amelioration'), decors: parCle('decor', 'prop') };
 }
 
 /** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la
@@ -433,10 +437,15 @@ export function ameliorationsMontees(manifeste: unknown, ameliorations: readonly
   });
 }
 
-/** Les nœuds à cacher du véhicule de manifeste `manifeste`, qui porte les Améliorations `ameliorations`, et de ses pièces
- *  d'Amélioration `montees` (`ameliorationsMontees`, de manifeste dans `manifestes`) : pour chaque Amélioration que nomme
- *  leur `selon`, ses nœuds `sans-` si elle est montée, `avec-` sinon (`noeudSelon`). */
-export function noeudsCaches(manifeste: unknown, ameliorations: readonly string[], montees: readonly AmeliorationMontee[], manifestes: Readonly<Record<string, unknown>>): string[] {
-  const nommees = new Set([manifeste, ...montees.map((m) => manifestes[m.element])].flatMap((m) => Object.keys((m as Extract<ManifesteDElement, { categorie: 'vehicule' | 'amelioration' }>).selon ?? {})));
-  return [...nommees].map((a) => noeudSelon(ameliorations.includes(a) ? 'sans' : 'avec', a));
+/** Les nœuds à cacher de l'élément de manifeste `manifeste` (véhicule ou décor), dont les clés de `selon` `actives` le sont
+ *  (Améliorations portées, saison du jeu), et des pièces d'Amélioration `montees` d'un véhicule (`ameliorationsMontees`, de
+ *  manifeste dans `manifestes`) : pour chaque clé que nomme leur `selon`, ses nœuds `sans-` si elle est active, `avec-`
+ *  sinon (`noeudSelon`). */
+export function noeudsCaches(manifeste: unknown, actives: readonly string[], montees: readonly AmeliorationMontee[], manifestes: Readonly<Record<string, unknown>>): string[] {
+  const nommees = new Set([manifeste, ...montees.map((m) => manifestes[m.element])].flatMap((m) => Object.keys((m as Extract<ManifesteDElement, { selon?: unknown }>).selon ?? {})));
+  return [...nommees].map((cle) => noeudSelon(actives.includes(cle) ? 'sans' : 'avec', cle));
 }
+
+/** La palette du décor de manifeste `manifeste` en la saison `saison` (`selon.<saison>.palette`) ; aucune sans saison. */
+export const paletteSelon = (manifeste: unknown, saison: Saison | null): Record<string, string> =>
+  ({ ...(saison && (manifeste as Extract<ManifesteDElement, { categorie: 'decor' }>).selon?.[saison]?.palette) });

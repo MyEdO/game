@@ -7,8 +7,9 @@
 ## Avant d'ouvrir, il indexe les modèles du serveur (`MontageDeComposition.indexer_les_modeles`), que le pont lit pour
 ## servir le corps de chaque navire ; non retenus, il n'ouvre rien. Le monde rendu va au monde (`Monde.poser`) : son
 ## manifeste, et la géométrie de ses seuls morceaux dont l'empreinte a bougé (`morceaux`, source `edition`), masqué au-dessus de la couche éditée
-## (`retrait`, `VolumeDeScene.retirer`), avec les arêtes de la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
-## (`MontageDesNavires`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
+## (`retrait`, `VolumeDeScene.retirer`), avec les arêtes de la couche (`VolumeDeScene.poser_les_aretes`), les navires
+## de la scène, chacun sous le modèle de son corps, et ses décors servis, chacun sous le modèle de son élément
+## (`MontageDesModeles`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
 ## (`Monde.etiqueter`), puis le geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête
@@ -30,9 +31,9 @@ extends Node
 ## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés et retenus
 ## (`MontageDeComposition.indexer_les_modeles`, rien d'ouvert sans eux), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
 ## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
-## (`VolumeDeScene.poser_les_aretes`) et ses navires, chacun sous le modèle de son corps comme au plateau
-## (`MontageDesNavires`), la surcouche en plaques sur le sol de ses cases (`Monde.peindre`) : chaque zone nommée
-## au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
+## (`VolumeDeScene.poser_les_aretes`), ses navires, chacun sous le modèle de son corps, et ses décors servis (`decors`),
+## chacun sous le modèle de son élément, comme au plateau (`MontageDesModeles`), la surcouche en plaques sur le sol de
+## ses cases (`Monde.peindre`) : chaque zone nommée au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
 ## repère, celui de la sélection en survol, nommé au-dessus de sa case (`Monde.etiqueter`), puis le geste en cours,
 ## l'arête sélectionnée gainée (`Monde.choisir_l_arete`) et le calque de la couche sous sa planche
 ## (`Monde.poser_le_calque` : un quadrilatère sur ses quatre coins, juste au-dessus de son plan et sans test de
@@ -57,7 +58,7 @@ const CAMPAGNE := "la-diligence"
 const CALQUES := "user://calques"
 
 @onready var _monde: Monde = $Monde
-@onready var _navires: MontageDesNavires = $Navires
+@onready var _modeles: MontageDesModeles = $Modeles
 @onready var _interface: CanvasLayer = $Interface
 @onready var _defilement: ScrollContainer = $Interface/Ossature/Outils/Defilement
 @onready var _refus: Label = $Interface/Avis/Refus
@@ -141,7 +142,7 @@ func _pointer(geste: String, touche: Dictionary) -> void:
 	_jouer({edition = {geste = geste, point = {case = {x = touche.case.x, y = touche.case.y}, f = {x = touche.f.x, y = touche.f.y}}}})
 
 
-## Une réponse de `editer` : le monde, ses arêtes et ses navires posés s'il y en a un, la surcouche peinte, le calque posé, les zones
+## Une réponse de `editer` : le monde, ses arêtes, ses navires et ses décors servis posés s'il y en a un, la surcouche peinte, le calque posé, les zones
 ## montrées, le texte à enregistrer écrit au dépôt, les calques gardés, la planche demandée choisie, et le chapitre
 ## demandé chargé ; la scène mise à l'essai se joue au combat.
 func _suivre(reponse: Dictionary) -> void:
@@ -151,7 +152,7 @@ func _suivre(reponse: Dictionary) -> void:
 	if reponse.has("monde"):
 		_poser_le_monde(reponse)
 		_monde.volume.poser_les_aretes(reponse.aretes)
-		_navires.poser(reponse.navires, {}, reponse.monde.metresParCase)
+		_modeles.poser(reponse.navires, reponse.decors, {}, reponse.monde.metresParCase)
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche
 	_monde.choisir_l_arete(_surcouche.arete)

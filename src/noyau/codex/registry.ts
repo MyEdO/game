@@ -2072,7 +2072,7 @@ const CODEX_SPECS = {
     // RÈGLE (franchissabilité, précédence de raccord, blocage de la vue, surface bâtie, hauteur du bloc
     // plein) et les mêmes clés de RENDU (teinte, rampe, décor posé). Aucune table de libellés ici : les
     // noms FR viennent de la méta du def (`libelleDuChamp`), l'ordre des arrêts de rampe de la source
-    // unique `terrainStopsOrdonnes`, et le nom du décor posé de l'entrée `props.json` qu'il référence.
+    // unique `terrainStopsOrdonnes`, et les noms des décors posés des entrées `props.json` qu'il référence.
     label: 'codex.fiche.terrains', group: 'monde',
     build: () => {
       const meta = metaPourFichier('terrains.json');
@@ -2088,7 +2088,7 @@ const CODEX_SPECS = {
           fact(nom('built'), t.built ? tr('codex.fiche.oui') : null),
           fact(nom('solidHeightM'), t.solidHeightM != null ? `${t.solidHeightM} m` : null),
           fact(nom('matiere'), t.matiere ? matiereLabel(t.matiere.id) : null),
-          fact(nom('overlayProp'), t.overlayProp ? propLabel(t.overlayProp.id) : null),
+          fact(nom('overlayProps'), t.overlayProps ? t.overlayProps.map(propLabel).join(' · ') : null),
         ),
         // Les DEUX porteurs de couleur du terrain (teinte d'aperçu + arrêts de la rampe) tiennent la
         // MÊME section : ce sont des couleurs, rendues par la même rangée `couleur` (pastille peinte +
