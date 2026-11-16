@@ -803,11 +803,10 @@ describe('REGISTRE des chemins de jet (#1066) — familles CANONIQUES énuméré
 const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
   // COMBAT : SOLDÉ — toute cible de Test se forme par `cibleDuTest` (`engine/tests.ts`), y compris la
   // rangée batch du Test de Peur (`encounterPsychFlow`) et le dé d'une manœuvre (`rollFlowSpecs`).
-  // HORS COMBAT — les sites de jet sont routés par `rollLine`/`rollStep` ; ce qui reste n'est pas une cible.
-  'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'un Test d'équipage (`buildVoyageCrewStep`, pas une cible)
+  // HORS COMBAT : SOLDÉ — les sites de jet sont routés par `rollLine`/`rollStep`.
 };
 
-/** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 1 occurrence / 1 fichier, aucune en combat — verrou
+/** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 0 occurrence — verrou
  *  global : un site déplacé d'un fichier à l'autre ne s'y cache pas. `ui/editor/LogicDock.tsx` n'y
  *  figure pas : son aperçu de difficulté mesure 0 site, la borne du champ vit dans `NumberField`. */
 const TOTAL_DECLARE = Object.values(LIGNE_A_LA_MAIN_STOCK).reduce((s, n) => s + n, 0);

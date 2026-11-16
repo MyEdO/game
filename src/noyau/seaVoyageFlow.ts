@@ -127,7 +127,15 @@ import {
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
   type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
-import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
+import {
+  navalMoveMod,
+  navalTraitsDe,
+  navalTestTypeDR,
+  navalNavTestModLines,
+  shipHasNavalTrait,
+  hullNavalTraits,
+  vesselNavalTraits,
+} from '../engine/navalTraits';
 import { rule } from '../engine/policy';
 import { TEMPORARY_REPAIR } from '../engine/riverNavigation';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -160,7 +168,6 @@ import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladie
 import {
   DIFFICULTE_PAR_DEFAUT,
   DIFFICULTY_LABELS,
-  DIFFICULTY_MODIFIERS,
   type Combatant,
   type Difficulty,
   type NavalTraitRef,
@@ -672,6 +679,9 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
   const testType = findCrewTestTypeById(testTypeId);
   const essentialRoleId = testType?.essential.id;
   const pont = activeSeaPrecipitation(get); // MDG 13 l.185
+  const difficulty = opts.difficulty ?? DIFFICULTE_PAR_DEFAUT; // MDG 14 l.13
+  // « Bouteur »/« Gréement de course » : MSRC 12 l.66/140 ; Test de Navigation = Compétence de propulsion, MDG 13 l.17-19, l.119.
+  const navDir = testType?.steering ? navalNavTestModLines(hullNavalTraits(ship)) : [];
   // Le flux propriétaire (naval) RÉSOUT la présentation (rôle tenu) et DÉCLARE le jet de chaque
   // contributeur au MONTEUR CANONIQUE (`rollStep`) — le séquenceur/modale génériques n'y liront QUE
   // des champs neutres (`BatchParticipant`), base NUE et composantes NOMMÉES comprises.
@@ -686,7 +696,7 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
       ...(rv?.used ? { skill: structuredClone(rv.used) } : {}), // #2097
       interactive: true,
       essential: a.roleId === essentialRoleId,
-      difficulty: 'intermediaire' as const,
+      difficulty,
       bonusSlOnSuccess: role ? crewTalentDR(a.crew, role, navigation) : 0,
       result: null,
       // La Compétence RÉELLEMENT tenue par le rôle (`crewRoleValue().used`) est celle qui se décompose ;
@@ -696,26 +706,24 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
       // résolue (`rollStep`, LDB 09 l.30 ; #2588 Q1). Sans rôle résolu, la valeur vient d'une autre
       // formule : elle se DÉCLARE comme telle.
       ...rollStep(rv?.refus != null
-        ? { actor: a.crew, test: { skill: rv.used, sense: opts.sense }, difficulty: 'intermediaire', refus: rv.refus }
+        ? { actor: a.crew, test: { skill: rv.used, sense: opts.sense }, difficulty, refus: rv.refus }
         : rv?.used
           ? {
             actor: a.crew, test: { skill: rv.used, sense: opts.sense },
-            valeur: rv.value, difficulty: 'intermediaire',
+            valeur: rv.value, difficulty,
             ...(crewTestModParts(a.crew).length ? { dansLaValeur: crewTestModParts(a.crew) } : {}),
+            ...(navDir.length && rv.used.id === navigation.id ? { surLaCible: navDir } : {}),
             pont,
           }
-          : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty: 'intermediaire', pont }),
+          : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty, pont }),
     };
   });
   const saboteur = shipSaboteurDR(ship); // MDG 14 l.45-47 : −1..−5 DR plats, aussi en voyage (#214)
   // #221 : Traits/Améliorations navals ciblant CE type de Test d'équipage (op `skillDRBonus` à `testType`,
   // ex. Proue-idole de Stromfels → Poursuite) — agnostique de la compétence tenue par le représentant.
   const traitDR = navalTestTypeDR(hullNavalTraits(ship), testTypeId);
-  // « Bouteur »/« Gréement de course » modifient le Test de Navigation POUR DIRIGER (MSRC 12 l.66/140) —
-  // seul le Test d'équipage de manœuvre (steering) le reçoit, converti en DR (`navalNavTestDR`, ÷10).
   // Modificateurs d'événement posés sur le navire (op `navireMod`) : MDG 15 l.184-185
-  const modsDR = sommeDesModificateurs(get().vessel?.modificateurs, get().gameTime, 'manDR');
-  const navDirDR = testType?.steering ? navalNavTestDR(hullNavalTraits(ship)) + modsDR : 0;
+  const navDirDR = testType?.steering ? sommeDesModificateurs(get().vessel?.modificateurs, get().gameTime, 'manDR') : 0;
   // MANQUE DE BRAS (MDG 14 l.55) — s'applique à TOUT Test d'équipage, voyage compris : −2 DR par tranche de
   // 10 % manquante ET plafond au Succès Minime. En campagne l'attrition vient des pertes d'équipage
   // (`vessel.crewLost`, MDG 15 l.245) — MÊME couture que le combat (`shipUndercrew`).
@@ -723,7 +731,7 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
   // Le naval verse ses paramètres de formule DÉJÀ chiffrés en `meta` NEUTRE (bande de Moral + sabotage +
   // traits + Manque de bras, et son plafond) et l'ID de son prédicat de succès (`crew-test` →
   // `crewTestSuccess`, MDG 14 l.13) : l'agrégat générique ne connaît aucun seuil naval.
-  const flatDR = moraleBand(shipMoraleScore(get, ship)).crewTestDR + saboteur + traitDR + navDirDR + (opts.extraDR ?? 0) + (opts.difficulty ? DIFFICULTY_MODIFIERS[opts.difficulty] / 10 : 0) + undercrew.dr;
+  const flatDR = moraleBand(shipMoraleScore(get, ship)).crewTestDR + saboteur + traitDR + navDirDR + (opts.extraDR ?? 0) + undercrew.dr;
   // La POSSESSION de la bande est posée par le socle (`bandStep`) : N contributeurs ⇒ `groupOwner`, un
   // seul ⇒ son porteur. Déclarée nulle part ici — c'est ce qui laissait la fenêtre à l'hôte seul (#1268).
   return bandStep({

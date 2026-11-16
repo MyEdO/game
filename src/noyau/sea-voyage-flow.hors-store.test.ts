@@ -37,7 +37,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate, tableSpec } from './cascade';
-import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
+import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
@@ -419,41 +419,87 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
   });
 });
 
+/** Groupe de prétirés, poste ÉPINGLÉ par index (`shipRole`, le geste du roster) ; Voile aux index
+ *  `voile`, aucun autre porteur de Voile ni de Ramer. */
+function equipage(postes: (string | undefined)[], voile: number[]): Combatant[] {
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, postes.length).map((h, i) => ({
+    ...h,
+    ...(postes[i] ? { shipRole: postes[i] } : {}),
+    skills: [...h.skills.filter((sk) => sk.id !== 'voile' && sk.id !== 'ramer'), ...(voile.includes(i) ? [{ id: 'voile', spec: 'cogue', characteristic: 'agilite' as const, advances: 10 }] : [])],
+  }));
+  set({ party } as never);
+  return party;
+}
+
 describe('Tourbillon — l’Évasion se joue à la Difficulté du gabarit (MDG 13 l.531-535)', () => {
   beforeEach(freshState);
 
-  function drEvasion(whirlpoolId: string): number {
+  function evasion(whirlpoolId: string): CascadeStep {
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     entrerDansLeTourbillon(get, set, whirlpoolId, whirlpoolId);
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
-      if (cur?.kind === 'equipage-tourbillon') return Number(cur.meta?.aggregateFlatDR ?? 0);
+      if (cur?.kind === 'equipage-tourbillon') return cur;
       stepCascade();
     }
     throw new Error(`aucune étape d’Évasion jouée pour ${whirlpoolId}`);
   }
 
-  it('Maelstrom Difficile (–20) : −2 DR face au Tourbillon Intermédiaire ; Rotation lente Accessible (+20) : +2 DR', () => {
-    const intermediaire = drEvasion('tourbillon');
+  it.each([
+    ['tourbillon', 'intermediaire'],
+    ['maelstrom', 'difficile'],
+    ['rotation-lente', 'accessible'],
+  ] as const)('%s : chaque membre jette l’Évasion %s, aucun DR plat sur le total (MDG 14 l.13)', (whirlpoolId, difficulte) => {
+    const reference = Number(evasion('tourbillon').meta?.aggregateFlatDR ?? 0);
     freshState();
-    expect(drEvasion('maelstrom')).toBe(intermediaire - 2);
+    const st = evasion(whirlpoolId);
+    expect(membresHorsDifficulte(st, difficulte)).toEqual([]);
+    expect(Number(st.meta?.aggregateFlatDR ?? 0)).toBe(reference);
+  });
+
+  // MSRC 12 l.66/140 ; Test de Navigation = Compétence de propulsion (MDG 13 l.17-19), Manœuvre comprise (l.119).
+  it.each([
+    ['bouteur', 'Bouteur', 20],
+    ['greement-de-course', 'Gréement de course', -10],
+  ] as const)('%s : ligne nommée %s sur la cible des seules rangées qui jettent la Compétence de propulsion, aucun DR plat', (traitId, label, value) => {
+    const postes = ['capitaine', 'timonier', 'mousse', 'navigateur'];
+    equipage(postes, [1, 2]);
+    const sans = evasion('tourbillon');
     freshState();
-    expect(drEvasion('rotation-lente')).toBe(intermediaire + 2);
+    equipage(postes, [1, 2]);
+    set({ vessel: { ...get().vessel!, upgrades: [{ id: traitId }] } });
+    const avec = evasion('tourbillon');
+    const navigation = navigationDuNavire(get, get().travelPlan!.vehicle!);
+    const rangees = avec.participants!;
+    const propulsion = rangees.filter((r) => r.skill?.id === navigation.id);
+    const autres = rangees.filter((r) => r.skill?.id !== navigation.id);
+    expect(propulsion.map((r) => r.roleId).sort()).toEqual(['mousse', 'timonier']);
+    expect(autres.length).toBeGreaterThan(0);
+    for (const r of propulsion) {
+      expect(r.mods).toContainEqual({ label, value, famille: 'circonstance', ref: { category: 'navalTraits', id: traitId } });
+      expect(r.target).toBe(sans.participants!.find((s) => s.id === r.id)!.target! + value);
+    }
+    for (const r of autres) {
+      expect(r.mods?.some((m) => m.label === label)).toBeFalsy();
+      expect(r.target).toBe(sans.participants!.find((s) => s.id === r.id)!.target);
+    }
+    expect(membresHorsDifficulte(avec, 'intermediaire')).toEqual([]);
+    expect(Number(avec.meta?.aggregateFlatDR ?? 0)).toBe(Number(sans.meta?.aggregateFlatDR ?? 0));
   });
 });
 
 describe('Infestation de rats géants — Extermination des nuisibles Complexe (MDG 15 l.159-164)', () => {
   beforeEach(freshState);
 
-  function driveDayCaptureExtermination(): number | undefined {
-    let extra: number | undefined;
+  function driveDayCaptureExtermination(): CascadeStep | undefined {
+    let extra: CascadeStep | undefined;
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
-      if (cur?.kind === 'equipage-extermination') extra = Number(cur.meta?.aggregateFlatDR ?? 0) || undefined;
+      if (cur?.kind === 'equipage-extermination') extra ??= cur;
       stepCascade();
     }
     return extra;
@@ -467,10 +513,12 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
     return get().vessel!.infestation!;
   }
 
-  it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
+  it('Complexe (–10) : chaque membre jette l’Extermination Complexe, aucun DR plat sur le total (MDG 14 l.13)', () => {
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     set({ vessel: { ...get().vessel!, infestation: { label: 'Infestation de rats géants', crewTestType: 'extermination-nuisibles', difficulty: 'complexe', drCible: 25, progres: 0, chaqueNuit: EMPTY_FLOW } } });
-    expect(driveDayCaptureExtermination()).toBe(-1);
+    const st = driveDayCaptureExtermination()!;
+    expect(membresHorsDifficulte(st, 'complexe')).toEqual([]);
+    expect(st.meta?.aggregateFlatDR).toBeUndefined(); // Moral 75, sans saboteur ni trait
   });
 
   it('l’événement de bord FORCÉ pose l’infestation de la donnée sur le navire : Complexe, 25 DR', () => {
@@ -539,8 +587,8 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     return coup;
   }
 
-  it('Extermination à DR −1 : au soir, le dé `nombre` sur le héros tiré, la journée close, `chaqueNuit` jouée ; puis la série', () => {
-    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible, 1);
+  it('Extermination à DR négatif : au soir, le dé `nombre` sur le héros tiré, la journée close, `chaqueNuit` jouée ; puis la série', () => {
+    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible + 10, 1);
     expect(s.travelPlan!.kmDone).toBeGreaterThan(0);
     expect(s.pendingRest).toBeTruthy();
     expect(s.vessel!.infestation!.assaillie).toBeUndefined();
@@ -579,7 +627,7 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
   });
 
   it('rats géants : une touche qui blesse expose à la fièvre du rongeur (MDG 15 l.164)', () => {
-    journeeInfestee('infestation-de-rats-geants', (cible) => cible, 1);
+    journeeInfestee('infestation-de-rats-geants', (cible) => cible + 10, 1);
     const coup = uneAttaquePerdue([20, 23]);
     expect(coup.hit && (coup.woundsLost ?? 0) > 0).toBe(true);
     const s = get();
@@ -609,7 +657,7 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
 
   it('un marin tiré au sort : aucune série, une ligne au journal (MDG 15 l.161)', () => {
     const avant = get().journal.length;
-    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible, 13);
+    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible + 10, 13);
     expect(s.pendingRest).toBeTruthy();
     expect(etapesDAttaques(s)).toEqual([]);
     expect(s.serieSubie).toBeNull();
@@ -714,7 +762,8 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     const jour = premierJourDeMer(milesToday + milesRestants);
     expect(jour.milesToday).toBe(milesToday);
     if (difficulte === null) { expect(jour.orientation).toBe(true); expect(jour.phare).toBeUndefined(); return; }
-    expect(Number(jour.phare!.meta?.aggregateFlatDR ?? 0)).toBe(Number(jour.progression!.meta?.aggregateFlatDR ?? 0) + DIFFICULTY_MODIFIERS[difficulte] / 10);
+    expect(membresHorsDifficulte(jour.phare!, difficulte)).toEqual([]); // MDG 14 l.13
+    expect(Number(jour.phare!.meta?.aggregateFlatDR ?? 0)).toBe(Number(jour.progression!.meta?.aggregateFlatDR ?? 0));
   });
 });
 
@@ -1754,18 +1803,6 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
 /** ÉPUISEMENT : MDG 13 l.62, l.111 ; MDG 14 l.24-32, l.69 ; #1595 (issuecomment-6153321990). */
 describe('Épuisement — les impliqués testent à la fin de la Période de travail (MDG 13 l.111, #1595)', () => {
   beforeEach(freshState);
-
-  /** Groupe de prétirés, poste ÉPINGLÉ par index (`shipRole`, le geste du roster) ; Voile aux index
-   *  `voile`, aucun autre porteur de Voile ni de Ramer. */
-  function equipage(postes: (string | undefined)[], voile: number[]): Combatant[] {
-    const party = tousLesHerosDeScenario(idsDeTest).slice(0, postes.length).map((h, i) => ({
-      ...h,
-      ...(postes[i] ? { shipRole: postes[i] } : {}),
-      skills: [...h.skills.filter((sk) => sk.id !== 'voile' && sk.id !== 'ramer'), ...(voile.includes(i) ? [{ id: 'voile', spec: 'cogue', characteristic: 'agilite' as const, advances: 10 }] : [])],
-    }));
-    set({ party } as never);
-    return party;
-  }
 
   /** Joue les étapes, comme un joueur, jusqu'à la bande d'Épuisement ; `voie` tranche le choix de
    *  Progression (MDG 14 l.63), sinon son défaut. `undefined` si la journée se clôt sans la bande. */
