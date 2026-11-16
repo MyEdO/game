@@ -40,6 +40,20 @@ def contourne(donnees):
     return ()
 
 
+def glb_locaux(paires, lus):
+    """Les GLB de `--local <id>=<glb>` (`element/construire.py`, #4338) : `{id: chemin}`, chaque id parmi les ids publiés
+    `lus` par l'élément, chaque GLB un fichier. Lève `ValueError` sinon."""
+    locaux = {}
+    for paire in paires:
+        id_, egal, glb = paire.partition('=')
+        if not egal or id_ not in lus or id_ in locaux:
+            raise ValueError(f'--local « {paire} » : attendu <id>=<glb>, une fois par id, id parmi {sorted(lus)}')
+        if not Path(glb).is_file():
+            raise ValueError(f'--local « {paire} » : {glb} n’est pas un fichier')
+        locaux[id_] = Path(glb).resolve()
+    return locaux
+
+
 def sujets_des_elements():
     """Un sujet par élément sur base, `element/<base>/<dossier>/`, qui publie `<base>--<dossier>`."""
     return [sujet(f'{d.parent.relative_to(RACINE).as_posix()}/', {f'{d.parent.parent.name}--{d.parent.name}'}, contourne(d))
@@ -127,3 +141,8 @@ def construire_en_relevant(argv, **options):
 def lectures_hors_entrees(lus, sujet, sujets, racines):
     """Les fichiers du dépôt de `lus` qui ne sont pas des entrées de `sujet`, triés."""
     return sorted(c for c in lus if not est_entree(c, sujet, sujets, racines))
+
+
+if __name__ == '__main__':
+    # `python entrees.py <donnees.py>...` : les ids que contourne chacun, en JSON, pour `integrer.mjs` (#4338).
+    print(json.dumps([contourne(Path(d)) for d in sys.argv[1:]]))

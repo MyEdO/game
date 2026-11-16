@@ -1,6 +1,7 @@
 """rendu (#4002) : les os de repos déplacés par `gabarit.osDesSilhouettes`, chaque translation tournée par le repère de
 repos de son parent, invisibles au repos et centre de rotation de l'os sous une pose ; le relief de la peau sous
 `corpulence`."""
+import argparse
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,7 +9,7 @@ from pathlib import Path
 import numpy
 
 from glb import ecrire_glb, lire_glb
-from rendu import accuser_le_relief, deplacements_des_os, deplacer_les_os, facteur_de_relief, importer, matrice_du_noeud
+from rendu import accuser_le_relief, deplacements_des_os, deplacer_les_os, facteur_de_relief, importer, lire_cadre, matrice_du_noeud
 
 RACINE_TOURNEE = [0, 0, 2 ** -0.5, 2 ** -0.5]
 """Quart de tour autour de Z (glTF)."""
@@ -85,6 +86,19 @@ class FacteurDeRelief(unittest.TestCase):
         self.assertIsNone(facteur_de_relief(manifeste, {'corpulence': 0}))
         self.assertIsNone(facteur_de_relief(manifeste, {'feminin': 1}))
         self.assertIsNone(facteur_de_relief({}, {'corpulence': 1}))
+
+
+class LireCadre(unittest.TestCase):
+    """`--cadre` (#4338)."""
+
+    def test_quatre_nombres_en_metres(self):
+        self.assertEqual(lire_cadre('0,0.02,0.62,1.35'), (0.0, 0.02, 0.62, 1.35))
+        self.assertEqual(lire_cadre('-0.5,1,-2,0.6'), (-0.5, 1.0, -2.0, 0.6))
+
+    def test_refuse_un_cadre_mal_forme_ou_d_etendue_nulle(self):
+        for texte in ('0,0,0.6', '0,0,0.6,1,2', '0,0,haut,1', '0,0,0.6,0', '0,0,0.6,-1', '0,0,nan,1', '0,0,0.6,inf', ''):
+            with self.subTest(texte=texte), self.assertRaises(argparse.ArgumentTypeError):
+                lire_cadre(texte)
 
 
 class DansBlender(unittest.TestCase):
