@@ -1,6 +1,6 @@
 *Pages PDF 51-118*
 
-# **STATUT**
+# <span id="page-50-0" data-folio="49"></span>**STATUT**
 
 Le Vieux Monde est particulièrement hiérarchisé – les gens du peuple n'ont pas vraiment de doutes quant à leur place dans la société. Pendant que l'élite jouit d'un pouvoir et d'un prestige que nul ne leur conteste, et qu'elle se charge de faire respecter par la force si besoin, la plupart de ceux qui se trouvent entre les deux sont bien conscients de leur état et ont pour principale préoccupation de l'améliorer. C'est ce que représente le Statut, qui a donc une influence sur les relations entre les personnes issues de classes sociales différentes.
 
@@ -885,7 +885,7 @@ h **Informateur – Bronze 3**
 **Possessions :** bureau et personnel, grand réseau d'Espions, d'Agents secrets et d'Informateurs
 
 
-*Vous surveillez le territoire d'autrui, vous assurant que tout y est en ordre, et, si nécessaire, protégé.*
+<span id="page-67-0" data-folio="66"></span>*Vous surveillez le territoire d'autrui, vous assurant que tout y est en ordre, et, si nécessaire, protégé.*
 
 Les Intendants sont en charge de la maintenance des propriétés de leur employeur. Ne pas parvenir à embellir – ou, tout au moins entretenir – leurs terres ou les ravitailler régulièrement mène en général à la disgrâce. Dans certaines circonstances, plusieurs Intendants peuvent travailler de concert à l'entretien des terres d'un même employeur.
 
@@ -1099,7 +1099,7 @@ foudroyants, Vigilance
 **Talents :** Exaltant, Frappe réactive, Robuste, Tir précis **Possessions :** paquet de cartes, vêtements de qualité
 
 
-*Vous ruant dans la bataille sur un lourd destrier, vous dominez le champ de bataille, semant la peur sur votre passage.*
+<span id="page-71-0" data-folio="70"></span>*Vous ruant dans la bataille sur un lourd destrier, vous dominez le champ de bataille, semant la peur sur votre passage.*
 
 Beaucoup pensent que les principaux guerriers du Vieux Monde forment la cavalerie lourde. Une charge groupée est un spectacle impressionnant, mais même un unique Chevalier peut représenter une armée à lui seul. Il y a beaucoup d'ordres de chevalerie dans l'Empire, les plus célèbres étant la Reiksguard, les Loups Blancs, les Chevaliers Panthères et les Chevaliers Griffons, chacun possédant sa propre histoire glorifiée et ses puissants héros. Beaucoup de Chevaliers de l'Empire appartiennent à des ordres séculiers de Chevalerie, en partie parce que l'entraînement des lanciers lourds est trop coûteux pour la plupart des nobles. Les ordres templiers, ceux qui vouent leurs services à une seule divinité, sont tout aussi répandus, mais un peu plus indépendants. Parmi eux se trouvent un nombre incalculable d'indépendants, de chevaliers mercenaires, et de chevaliers déshonorés, la plupart vendant leur lance au plus offrant.
 
@@ -1561,7 +1561,7 @@ Tir précis **Possessions** : chemise de mailles, cheval de selle et selle
 quatre paires de menottes
 
 
-*Obstiné, vous menez vos passagers à bon port, en vous assurant de leur sécurité, et ce, malgré les dangers permanents auxquels vous faites face.*
+<span id="page-79-0" data-folio="78"></span>*Obstiné, vous menez vos passagers à bon port, en vous assurant de leur sécurité, et ce, malgré les dangers permanents auxquels vous faites face.*
 
 Pour de très nombreuses personnes, la diligence est le seul moyen permettant de voyager d'une ville à l'autre. Même si les étendues sauvages traversées jusqu'à destination vont grouiller d'hommes-bêtes, de bandits et bien pire, un Cocher courageux et opiniâtre, dont les chevaux sont frais et le fidèle tromblon chargé, pourra rendre ce voyage possible. Afin d'éviter au maximum les risques, les relais de diligence sont à la recherche permanente de vitesse, et leurs employés, ne faisant confiance à personne, sont précédés d'une réputation de rudesse chez les voyageurs. Les Cochers commencent le plus souvent en tant que Postillons, montés sur le cheval de tête d'un attelage, et par tous les temps. Certains Cochers transportent des lettres au lieu de passagers, travaillent en tant que chauffeurs pour certains nobles, conduisent des calèches ou des chariots remplis de biens, ou se retrouvent dans les plus grandes villes à piloter les omnibus. Enfin, certains deviennent complices d'évasion.
 
@@ -1620,7 +1620,7 @@ Sens de l'orientation, Tireur de précision
 **Possessions :** parc de diligences et de chevaux, cartes
 
 
-*Plein de sagesse et à l'abri de toute ingérence, vous voyagez à travers l'Empire afin de vendre vos biens où bon vous semble, sans entraves.*
+<span id="page-80-0" data-folio="79"></span>*Plein de sagesse et à l'abri de toute ingérence, vous voyagez à travers l'Empire afin de vendre vos biens où bon vous semble, sans entraves.*
 
 Les Colporteurs voyagent de villages en hameaux, proposant biens et services comme l'aiguisage des couteaux, le reprisage et autres bricolages. La plupart transportent des biens relativement bon marché qu'on trouve facilement dans les plus grandes villes, comme des rubans ou des épingles pour les cheveux. Les colporteurs sont toujours les bienvenus, même auprès des gens les plus méfiants, car chacun aime acquérir babioles et colifichets, même s'ils sont superflus.
 
