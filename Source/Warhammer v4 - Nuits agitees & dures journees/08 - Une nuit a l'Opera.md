@@ -124,7 +124,7 @@ Alors que la Comtesse s'arrête pour échanger quelques mots avec le comte Bruno
 Une fois dans le couloir menant à sa loge royale, la Comtesse se déchaîne devant son personnel : «*Trouvez-moi le fichu sorcier derrière cette farce, et maintenant ! Si c'est encore un autre maudit Gris, je jure que je les bannis tous de ma ville ! À jamais !* » Elle se tourne alors vers la Gravin. « *Désolée que vous ayez assisté à ça, ma chérie. C'est ma faute, j'ai laissé mes sorciers au palais. C'est idiot de ma part, mais ils me tapent sur les nerfs avec leurs incessantes interférences. Venez, asseyons-nous, regardons cet opéra et célébrons notre victoire* ».
 
 
-#### **19h50**
+#### <span id="page-43-0" data-folio="42"></span>**19h50**
 
 Des échauffourées éclatent sur le balcon entre certains des jeunes Pfeifraucher et Toppenheimer. Des membres plus âgés des deux Maisons nobles tentent de maintenir l'ordre avec des avertissements sévères, avant de se rendre à leurs loges, presque sûrs que les bêtises sont finies.
 
@@ -165,7 +165,7 @@ Alors que les deux avocats discutent, Kavenner se penche en avant pour toucher l
 Après avoir jeté le sort, Kavenner quitte l'antichambre sur ces mots : « *Maintenant, vous ne pouvez pas nier que vous êtes l'un des nôtres* », puis retourne à ses appartements du palais. En sortant, il passera devant l'agent de Hubkind (*Intrigue n° 7*), qui se retire dans la galerie chaque fois qu'il voit quelqu'un dans le couloir. Au moment où Kavenner passe, l'agent murmure une courte phrase, audible seulement par l'avocat, un code de reconnaissance utilisé par les cultistes de Slaanesh dans tout l'Empire. Distrait et pressé, Kavenner doit réussir un Test de **Force Mentale** pour éviter d'y répondre sans y penser : si toutefois la réplique lui échappe, il en sera tellement choqué qu'il courra s'enfuir de l'Opéra, à la sortie duquel il tombera directement sur Hubkind et ses complices, qui attendaient dans l'ombre d'une ruelle voisine et ont été alertés par les signaux de leur agent depuis la fenêtre de la galerie.
 
 
-S'il est atteint de mutation, Rechtshandler tente de fuir l'Opéra sans être repéré. Si l'agent de Hubkind dans le couloir le voit (voir *20h04* ci-dessus) et remarque sa mutation (selon sa nature précise), il partira immédiatement pour faire un rapport à son maître. Le répurgateur va alors capturer Rechtshandler, et l'affrontement entre lui et la Comtesse (voir *23h30* ci-après) sera encore pire à cause de cette « preuve » de corruption, dans les hautes sphères.
+<span id="page-44-0" data-folio="43"></span>S'il est atteint de mutation, Rechtshandler tente de fuir l'Opéra sans être repéré. Si l'agent de Hubkind dans le couloir le voit (voir *20h04* ci-dessus) et remarque sa mutation (selon sa nature précise), il partira immédiatement pour faire un rapport à son maître. Le répurgateur va alors capturer Rechtshandler, et l'affrontement entre lui et la Comtesse (voir *23h30* ci-après) sera encore pire à cause de cette « preuve » de corruption, dans les hautes sphères.
 
 ### **20h30**
 
@@ -194,7 +194,7 @@ Dans la galerie à l'étage, les trois jeunes Toppenheimer boivent et s'esclaffe
 Albrecht Oldenhaller se rend à la galerie, s'approchant de l'un des serviteurs porteurs de plateaux pour y prendre un verre. Au moment où il arrive, une jeune femme séduisante, l'assassin des Huydermans, le heurte accidentellement, s'excusant abondamment avec un sourire éblouissant. Il insiste pour qu'elle prenne le dernier verre sur le
 
 
-Ils discutent tous deux un moment, puis elle se retourne, les yeux écarquillés et le souffle coupé, emportant le conseiller dans son mouvement circulaire, et renversant un autre convive qui finit sa course sur une chaise. Se moquant de sa propre frayeur, elle explique à un Oldenhaller surpris qu'elle pensait avoir vu sortir la Comtesse mais qu'elle s'est trompée. Elle se tourne alors pour s'excuser auprès de l'homme sur la chaise. Il s'affaisse en avant, semblant endormi ou ivre. Elle rit, puis entraîne Oldenhaller vers un serviteur chargé d'un plateau de boissons fraîches.
+<span id="page-45-0" data-folio="44"></span>Ils discutent tous deux un moment, puis elle se retourne, les yeux écarquillés et le souffle coupé, emportant le conseiller dans son mouvement circulaire, et renversant un autre convive qui finit sa course sur une chaise. Se moquant de sa propre frayeur, elle explique à un Oldenhaller surpris qu'elle pensait avoir vu sortir la Comtesse mais qu'elle s'est trompée. Elle se tourne alors pour s'excuser auprès de l'homme sur la chaise. Il s'affaisse en avant, semblant endormi ou ivre. Elle rit, puis entraîne Oldenhaller vers un serviteur chargé d'un plateau de boissons fraîches.
 
 Il faut un Test opposé de **Perception/Discrétion** pour constater que l'homme affaissé, un autre assassin, engagé par la famille Schatzenheimer, tenait un poignard à la main, et qu'en faisant pivoter le conseiller, elle a également saisi le poignet de l'homme, et a guidé la lame dans son cœur. Un autre Test, identique, est nécessaire pour voir qu'elle laisse tomber un liquide clair dans la boisson fraîche d'Oldenhaller, depuis un compartiment dans un anneau : il s'agit de Brise-cœur (**WFJDR**, p. 306).
 
@@ -217,7 +217,7 @@ Sierck est accompagné par un jeune homme mince et bien habillé, aux cheveux ro
 Il s'agit en fait d'Edwina Lowenhertz, la fille de l'acteur Edvard, (*Intrigue n° 3*) déguisée : pour remarquer que quelque chose ne va pas à son sujet, il est nécessaire de réussir un Test opposé de **Perception / Représentation (Interprétation)** contre Edwina. S'inclinant devant la Comtesse et sa suite, le jeune homme présente le célèbre acteur et dramaturge d'une voix grave, « *Detlef Sierck, Votre Grâce* », avant de s'écarter, alors que Sierck s'avance pour saluer à son tour.
 
 
-À ce moment, plusieurs choses se produisent très rapidement : l'acteur frustré Edvard Lowenhertz est en train d'assouvir sa vengeance, ourdie depuis longtemps.
+<span id="page-46-0" data-folio="45"></span>À ce moment, plusieurs choses se produisent très rapidement : l'acteur frustré Edvard Lowenhertz est en train d'assouvir sa vengeance, ourdie depuis longtemps.
 
 Une grande silhouette encagoulée s'avance hors de la foule, frôlant légèrement Sierck de la main et en prononçant une étrange syllabe. Le dramaturge s'agite légèrement et semble confus (Lowenhertz lui a jeté un sort de Choc, lui donnant 1 État *Sonné*).
 
@@ -254,7 +254,7 @@ Cela semble une farce relativement inoffensive, mais le mal est fait. La panique
 Si personne d'autre n'essaie de calmer la foule, la Comtesse ellemême se redresse et, d'une voix étonnamment forte, maîtrise la foule, l'exhortant à rester calme, et la rassurant en expliquant que ce n'était rien de plus qu'une farce inoffensive mais idiote. Tous les regards sont tournés vers elle, et lorsqu'elle fait signe au public de s'asseoir, les gens obéissent machinalement. Elle 
 
 
-fait un signe de tête au chef d'orchestre dans la fosse, qui lui répond par une salutation et tapote son pupitre. La musique enfle, et le spectacle reprend.
+<span id="page-47-0" data-folio="46"></span>fait un signe de tête au chef d'orchestre dans la fosse, qui lui répond par une salutation et tapote son pupitre. La musique enfle, et le spectacle reprend.
 
 Glimbrin profite de cette perturbation pour faire les poches du professeur, et voler une clé de la chambre forte du stock principal de l'École impériale d'artillerie. Il sortira de l'Opéra de la manière la plus furtive possible. Lorsqu'il atteint l'école d'artillerie, il dérobe autant d'armes expérimentales qu'il peut en dénicher. Son intention est de renvoyer les armes dans les tunnels de Glimdwarrow (voir page 86), dernière ligne de défense pour son peuple si ses terres sont à nouveau envahies.
 
@@ -351,7 +351,7 @@ V
 
 Kavenner, doté d'une voix nasillarde, est l'avocat personnel de la Comtesse. Il est considéré comme un homme sévère et dévoué, qui se consacre tout entier à sa femme, ses enfants, et au culte de Verena. Il utilise cette bonne réputation pour dissimuler sa double vie en tant que cultiste des plus performants et des plus dépravés de l'*Ordo Ultima*. Chargé il y a trois ans de corrompre la Comtesse pour le compte du Prince du Plaisir, il l'a trouvée inexplicablement intraitable. Ce qui lui embrouille les idées, et l'agace tout autant. Pour cette raison, il s'en prend invariablement à ses inférieurs.
 
-#### BRECHT KAVENNER - CULTISTE DE SLAANESH ET AVOCAT (OR 3)
+#### <span id="page-49-0" data-folio="48"></span>BRECHT KAVENNER - CULTISTE DE SLAANESH ET AVOCAT (OR 3)
 
 | M | CC | CT | F  | E  | I  | Ag | Dex | Int | FM | Soc | B  |
 |---|----|----|----|----|----|----|-----|-----|----|-----|----|

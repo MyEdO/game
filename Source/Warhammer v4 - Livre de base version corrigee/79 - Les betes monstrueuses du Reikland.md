@@ -1,6 +1,6 @@
 *Pages PDF 319-326*
 
-# **LES BÊTES MONSTRUEUSES DU REIKLAND**
+# <span id="page-318-0" data-folio="317"></span>**LES BÊTES MONSTRUEUSES DU REIKLAND**
 
 Dans tout le Reikland, toutes sortes de grands monstres dangereux chassent, s'attaquant aux imprudents et aux naïfs, les ramenant dans leur antre tapissé d'os pour les consommer plus tard.
 

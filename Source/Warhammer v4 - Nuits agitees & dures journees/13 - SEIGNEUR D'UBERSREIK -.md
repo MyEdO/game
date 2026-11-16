@@ -172,7 +172,7 @@ Heinrich et Rickard s'évitent jusqu'à l'annonce du seigneur Maximilien Aschaff
 Le seigneur Siegfried von Saponatheim est annoncé lorsqu'il arrive avec sa suite. Il porte un masque de cerf orné de magnifiques bois et raconte à qui veut l'entendre qu'il a abattu le cerf lui-même. Si Siegfried emploie les Personnages, il les charge de saper ses rivaux par tous les moyens possibles.
 
 
-Alors que Siegfried est accueilli par Erich, un nain sort de la cuisine et parle en urgence avec Borgun Barbedemousse. Un Test de **Perception Difficile (-20)** réussi permet à un PJ d'entendre qu'un chariot apportant plus de bière a eu un accrochage avec une sorte de mutant à tête de rat, mais les nains l'ont chassé et il a disparu dans l'ombre.
+<span id="page-75-0" data-folio="74"></span>Alors que Siegfried est accueilli par Erich, un nain sort de la cuisine et parle en urgence avec Borgun Barbedemousse. Un Test de **Perception Difficile (-20)** réussi permet à un PJ d'entendre qu'un chariot apportant plus de bière a eu un accrochage avec une sorte de mutant à tête de rat, mais les nains l'ont chassé et il a disparu dans l'ombre.
 
 Borgun s'entretient brièvement avec les capitaines Blucher et Pfeffer. Le capitaine Pfeffer échange alors quelques propos avec l'un de ses gardiens à l'extérieur du manoir, l'envoyant à la caserne du Guet avec un message visant à renforcer la sécurité dans la ville.
 
@@ -211,7 +211,7 @@ Le père Gunther Emming, prêtre de Sigmar, tente d'entraîner la gravin Maria U
 À ce moment-là, les têtes se tournent vers la salle de réception, où Florian Pfeifraucher « charme » la jeune prêtresse de Shallya, sœur Célestine Hoch. Ivre, il affirme « aimer les pauvres » alors que la petite femme tente de le repousser. Si les Personnages n'interviennent pas, Florian sera mis à la porte par les gardes du seigneur Erich, ce qui mettra probablement dans l'embarras la Gravin, que les Pfeifraucher soutiennent, même si elle n'a aucun lien avec lui.
 
 
-#### HEINRICH, HEINRICH, OU HEINRICH ?
+#### <span id="page-76-0" data-folio="75"></span>HEINRICH, HEINRICH, OU HEINRICH ?
 
 Heinrich est un nom populaire dans l'Empire, et trois Heinrich très différents assistent à la fête de seigneur Erich : le baron Heinrich von Falkenhayn, seigneur Heinrich von Bruner, et le père Heinrich Gutenberg. Les joueurs peuvent oublier lequel des trois est concerné à un moment donné, et il en va de même pour les autres personnes présentes à la fête, alors n'hésitez pas à faire croire à un Personnage, lorsque l'un d'entre eux est mentionné, qu'il s'agit d'un autre Heinrich.
 
@@ -240,7 +240,7 @@ Alors que les amants s'éclipsent, le père Gunther et le père Heinrich entamen
 Un invité retardataire habillé en flagellant sigmarite, hirsute et barbu, et se révèle être un véritable flagellant. Il fixe les costumes pendant un moment, puis attaque avec un hurlement de fureur. Il n'est pas armé mais possède un court fouet à plusieurs lanières qui compte comme une arme de base. Si les Personnages ne font rien, les gardes et les serviteurs se déplacent pour maîtriser le flagellant en peu de temps. Si les Personnages parviennent à maîtriser le sigmarite enragé sans le blesser, dame Nacht le remarque et le note pour l'avenir. Les Personnages observateurs
 
 
-Il fulmine en disant que la Gravin échappe constamment à sa justice et que Sigmar lui-même l'a sûrement envoyée pour le mettre à l'épreuve. Maria Ulrike prend l'homme en pitié, lui offre quelques aumônes, et le fait rapidement quitter la salle alors que Hubkind hurle qu'il y a des sorcières et des cultistes parmi eux. La Gravin demande ensuite discrètement aux Personnages, s'ils travaillent pour elle, de s'assurer que l'homme ne revienne pas.
+<span id="page-77-0" data-folio="76"></span>Il fulmine en disant que la Gravin échappe constamment à sa justice et que Sigmar lui-même l'a sûrement envoyée pour le mettre à l'épreuve. Maria Ulrike prend l'homme en pitié, lui offre quelques aumônes, et le fait rapidement quitter la salle alors que Hubkind hurle qu'il y a des sorcières et des cultistes parmi eux. La Gravin demande ensuite discrètement aux Personnages, s'ils travaillent pour elle, de s'assurer que l'homme ne revienne pas.
 
 ### **21h45**
 
@@ -263,7 +263,7 @@ Un Coureur d'égouts skaven escalade le mur le plus proche de la cuisine et grim
 Si la Gravin ne sert pas les intérêts de la Maison Saponatheim, grâce à la perturbation, le seigneur Siegfried von Saponatheim tente de s'approcher d'elle et de jeter dans son verre de vin un peu de sa poudre émétique. Comme précédemment, les Personnages peuvent s'en apercevoir en réussissant un Test opposé de **Perception / Escamotage**.
 
 
-#### **22h30**
+#### <span id="page-78-0" data-folio="77"></span>**22h30**
 
 Le seigneur Siegfried von Saponatheim utilise une plus grande quantité de sa poudre émétique pour corser la nourriture à la table du buffet. Ceci peut être repéré par n'importe quel Personnage à proximité avec le même Test opposé de **Perception / Escamotage** que précédemment. Quiconque consomme la nourriture contaminée tombera violemment malade dans les dix minutes (à moins que des mutations n'aient déjà commencé à se produire) et le bal s'arrêtera brusquement. Si cela se produit, le seigneur Erich aura échoué dans ses tentatives d'impressionner les habitants de la ville et la cause des von Holzenauer échouera piteusement. Si les Personnages démasquent le seigneur Siegfried, il est disgracié et les espoirs des von Saponatheim de régner sur Ubersreik sont anéantis.
 
@@ -478,7 +478,7 @@ Noblesse, Savoir-vivre (Nobles) 3
 **Traits :** Arme (Poings) +3
 
 
-#### **Baron Heinrich von Falkenhayn**
+#### <span id="page-83-0" data-folio="82"></span>**Baron Heinrich von Falkenhayn**
 
 Heinrich est originaire de la ville de Stimmingen dans le duché de Falkenhayn, au sud. Il est âgé d'une quarantaine d'années et garde un œil attentif sur le déroulement de la soirée qu'il rapportera à son père, le graf Wolfgang von Falkenhayn. Heinrich fait preuve d'un esprit vif et d'un humour grinçant.
 

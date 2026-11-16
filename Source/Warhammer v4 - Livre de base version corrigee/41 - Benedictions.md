@@ -1,6 +1,6 @@
 *Pages PDF 222-223*
 
-# **BÉNÉDICTIONS**
+# <span id="page-221-0" data-folio="220"></span>**BÉNÉDICTIONS**
 
 Les Bénédictions sont les manifestations mineures d'une volonté divine ; un Personnage avec le Talent Béni reçoit les six Bénédictions de son culte listées dans Bénédictions par culte.
 

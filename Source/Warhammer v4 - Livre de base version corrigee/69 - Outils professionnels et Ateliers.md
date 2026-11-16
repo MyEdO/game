@@ -1,6 +1,6 @@
 *Pages PDF 307*
 
-# **OUTILS PROFESSIONNELS ET ATELIERS**
+# <span id="page-306-0" data-folio="305"></span>**OUTILS PROFESSIONNELS ET ATELIERS**
 
 Les Outils professionnels sont nécessaires si vous souhaitez utiliser un Test de Métier pour fabriquer ou réparer quelque chose, et les exemples ci-dessous représentent un aperçu des nombreuses options disponibles. Les Ateliers sont nécessaires pour des projets de plus grande ampleur, comme créer de nouvelles Possessions.
 
