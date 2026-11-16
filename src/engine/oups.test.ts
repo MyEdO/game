@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
-import { isFumble, rollOups, desDOups, desDeBrisDeLame, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from './oups';
+import { isFumble, incidentDeTir, rollOups, desDOups, desDeBrisDeLame, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from './oups';
 import { oupsTable, oupsMisfire } from '../data/oups';
 import type { Combatant, Weapon } from './types';
 import { t } from '../i18n';
+import { armeDeTest } from './objetsDeTest.testkit';
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const pistol: Weapon = { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [{ id: 'pistolet' }], subType: 'Poudre noire', range: 20 };
+const pistol: Weapon = { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [{ id: 'pistolet' }], subType: 'poudre-noire', range: 20 };
 
 describe('isFumble (LDB 14 l.19)', () => {
   it('échec + double = Maladresse', () => {
@@ -35,37 +36,64 @@ describe('isFumble — escalade Doigts amputés (LDB 18 l.251, #144)', () => {
   });
 });
 
-describe('rollOups (Tableau des Oups !)', () => {
-  it('le kind correspond toujours à la bande du jet (arme de mêlée, pas de misfire)', () => {
+describe('rollOups (Tableau des Oups !, LDB 14 l.21-30)', () => {
+  it('le kind correspond toujours à la bande du d100 tiré', () => {
     for (let s = 1; s <= 300; s++) {
-      const r = rollOups(sword, makeRNG(s));
+      const r = rollOups(makeRNG(s));
       expect(r.roll).toBeGreaterThanOrEqual(1);
       expect(r.roll).toBeLessThanOrEqual(100);
-      expect(r.kind).not.toBe('misfire');
       const band = oupsTable().find((e) => r.roll >= e.min && r.roll <= e.max)!;
       expect(r.kind).toBe(band.kind);
     }
   });
   it('couvre plusieurs bandes du tableau', () => {
     const kinds = new Set<string>();
-    for (let s = 1; s <= 300; s++) kinds.add(rollOups(sword, makeRNG(s)).kind);
+    for (let s = 1; s <= 300; s++) kinds.add(rollOups(makeRNG(s)).kind);
     expect(kinds.size).toBeGreaterThanOrEqual(4);
-  });
-  it("Incident de Tir : arme à poudre + jet PAIR → misfire", () => {
-    let sawMisfire = false;
-    for (let s = 1; s <= 200; s++) {
-      const r = rollOups(pistol, makeRNG(s));
-      if (r.roll % 2 === 0) { expect(r.kind).toBe('misfire'); expect(r.label).toBe(oupsMisfire().label); sawMisfire = true; }
-      else expect(r.kind).not.toBe('misfire');
-    }
-    expect(sawMisfire).toBe(true);
   });
   it("l'Incident de Tir vit dans oups.json, hors de la table d100 (son libellé : src/data/oups-verbatim.test.ts)", () => {
     expect(oupsMisfire().kind).toBe('misfire');
-    expect(oupsTable()).toHaveLength(7); // la table d100 = 7 bandes, le misfire en est exclu (filtré hors table)
+    expect(oupsTable().map((e) => e.kind)).not.toContain('misfire');
   });
-  it("arme non à poudre : jamais de misfire", () => {
-    for (let s = 1; s <= 200; s++) expect(rollOups(sword, makeRNG(s)).kind).not.toBe('misfire');
+});
+
+/**
+ * L'INCIDENT DE TIR se lit sur le jet du Test de combat qui a produit la Maladresse, jamais sur un jet du
+ * Tableau des Oups ! — `LDB 14 l.34` : « Si vous utilisez une arme à Poudre noire, mécanique ou
+ * explosive et que vous effectuez une Maladresse qui est aussi un nombre pair – 00, 88 etc. –, votre
+ * arme a un raté d'allumage […] en utilisant le dé des unités comme DR pour toucher ».
+ */
+describe('incidentDeTir (LDB 14 l.19, l.34)', () => {
+  it('arme à poudre, Maladresse paire (00, 22, 44, 66, 88) → raté d’allumage, porté par CE jet', () => {
+    for (const jet of [100, 22, 44, 66, 88]) {
+      expect(incidentDeTir(pistol, jet), `jet ${jet}`).toEqual({ roll: jet, kind: 'misfire', label: oupsMisfire().label });
+    }
+  });
+  it('arme à poudre, Maladresse impaire (11, 33, 55, 77, 99) → jamais d’Incident : le Tableau des Oups !', () => {
+    for (const jet of [11, 33, 55, 77, 99]) expect(incidentDeTir(pistol, jet), `jet ${jet}`).toBeNull();
+  });
+  it('arme Dangereuse, Maladresse sur un 9 (98, LDB 62 l.315) : pair → raté', () => {
+    expect(incidentDeTir({ ...pistol, qualities: [{ id: 'dangereuse' }] }, 98)?.kind).toBe('misfire');
+  });
+  it('Doigts amputés (LDB 18 l.251) : Maladresse sur 32 (deux doigts perdus) → pair, raté', () => {
+    expect(isFumble(32, false, 2)).toBe(true);
+    expect(incidentDeTir(pistol, 32)?.roll).toBe(32);
+  });
+  it('le dé des unités du jet de Maladresse porte le DR : jet 44 → 4', () => {
+    expect(incidentDeTir(pistol, 44)!.roll % 10).toBe(4);
+  });
+  it('arme hors Poudre noire, mécanique ou explosive : jamais d’Incident, même sur un jet pair', () => {
+    for (const jet of [100, 22, 44, 66, 88]) expect(incidentDeTir(sword, jet)).toBeNull();
+  });
+
+  // Matrice sur le catalogue chargé : le Groupe d'arme (LDB 62 l.178 ; AA 10 l.150, l.165) ou une qualité à feu.
+  const COUVERTES = ['pistolet', 'arquebuse', 'arquebus-a-repetition', 'bombe', 'canon-petit', 'canon-moyen', 'canon-grand', 'mortier', 'pierrier', 'canon-a-repetition', 'canon-a-repetition-feu-d-enfer'];
+  const HORS = ['arc-long', 'arbalete', 'baliste', 'fronde', 'javelot'];
+  it.each(COUVERTES)('%s : couverte, raté sur un jet pair', (id) => {
+    expect(incidentDeTir(armeDeTest(id), 44)?.kind).toBe('misfire');
+  });
+  it.each(HORS)('%s : hors Incident de Tir', (id) => {
+    expect(incidentDeTir(armeDeTest(id), 44)).toBeNull();
   });
 });
 
@@ -125,7 +153,7 @@ describe('desDOups — la grappe d’une Maladresse, dans l’ordre', () => {
   });
 
   it('Bâclé + Poudre noire + Solide(1), Incident de tir : UNE sauvegarde pour l’événement, lue par les deux causes', () => {
-    const arme = { ...sword, subType: 'poudre noire', qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] } as Weapon;
+    const arme = { ...sword, subType: 'poudre-noire', qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] } as Weapon;
     const d = desDOups(porteur(), arme, MISFIRE);
     expect(cles(d), 'un seul dé Solide, quelle que soit la cause').toEqual(['solide']);
     expect(d[0].lecture).toEqual({ kind: 'seuil', indice: 9, source: { kind: 'qualite', id: 'solide' } });

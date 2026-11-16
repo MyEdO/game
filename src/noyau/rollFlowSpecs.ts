@@ -1548,7 +1548,7 @@ export const FLOWS = paresseux({
     cloture: (p) => (maladresseCourante(p) ? null : 'sansJet'),
     rolled: (st) => !!st.maladresse?.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
-    resolve: (_s, st) => (st.maladresse ? { maladresse: { ...st.maladresse, result: rollOups(st.maladresse.weapon, battleRng()) } } : null),
+    resolve: (_s, st) => (st.maladresse ? { maladresse: { ...st.maladresse, result: rollOups(battleRng()) } } : null),
     outcome: (st) => sealOutcome(true, 0, st.maladresse?.result?.roll ?? 0, 100),
   }),
 
