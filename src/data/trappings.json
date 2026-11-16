@@ -5004,6 +5004,85 @@
     }
   },
   {
+    "id": "rhum-tord-boyaux",
+    "type": "trappings",
+    "label": "Rhum tord-boyaux",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.411) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17). Arbitrage du 2026-11-16 (#4202) : « Un Test, l'échec vaut deux verres ».",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 152,
+      "note": "MDG 16 l.411"
+    },
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "long-drong-silver-capitaine-des-pirates-tueurs-m-cc-ct-f-e-i-ag-dex-int-fm-soc-b-3-72-62-56-69-40-29-32-40-71-52-30",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 5,
+          "sum": "32de8022519c46b7"
+        }
+      ]
+    },
+    "consumable": {
+      "kind": "test",
+      "test": {
+        "skill": {
+          "id": "resistance-a-l-alcool"
+        },
+        "label": "Rhum tord-boyaux — Résistance à l'alcool"
+      },
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
+      },
+      "echec": {
+        "kind": "effet",
+        "effet": {
+          "type": "ops",
+          "ops": [
+            {
+              "op": "intoxicate"
+            },
+            {
+              "op": "intoxicate",
+              "tantQuIvre": [
+                {
+                  "op": "skillMod",
+                  "skill": {
+                    "id": "charme"
+                  },
+                  "mod": -20
+                },
+                {
+                  "op": "grantTrait",
+                  "trait": {
+                    "id": "perturbant"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "id": "dejeuner",
     "type": "trappings",
     "label": "Déjeuner",
