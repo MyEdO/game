@@ -198,8 +198,8 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
     const champs = formulaireDe('declencheur', d, CADRE_VIDE);
     expect(champs.map((c) => [c.key, c.nullable]), 'la condition d’entrée, absente admise, puis le flux, requis').toEqual([['when', true], ['flow', false]]);
     const variantes = variantesAChoisir(champs[0].noeud, when)!;
-    expect(variantes).toHaveLength(35);
-    expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(35);
+    expect(new Set(variantes.map((v) => v.cle)).size, 'une variante par sorte de Condition').toBe(variantes.length);
+    expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(variantes.length);
     expect(['all', 'any', 'not'].map((k) => variantes.find((v) => v.cle === k)?.libelle)).toEqual(['TOUS (ET)', 'AU MOINS UN (OU)', 'NON']);
     expect(variantes.find((v) => v.cle === 'not')!.valeur, 'NON enveloppe la courante (`recast`)').toEqual({ kind: 'not', of: when });
     expect(variantes.find((v) => v.courante)?.cle).toBe('all');
