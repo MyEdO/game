@@ -1,6 +1,6 @@
 *Pages PDF 217*
 
-# **LES DIEUX ELFES**
+# <span id="page-216-0" data-folio="215"></span>**LES DIEUX ELFES**
 
 Les elfes vénéraient leurs propres dieux bien avant que les humains et les autres races n'existent sous leur forme actuelle. Leur panthéon est considérable, composé de différents groupes de divinités importantes pour les elfes sylvains et les hauts elfes.
 

@@ -1,6 +1,6 @@
 *Pages PDF 288-289*
 
-# **SITES ANCIENS ET RUINES TERRIFIANTES**
+# <span id="page-287-0" data-folio="286"></span>**SITES ANCIENS ET RUINES TERRIFIANTES**
 
 La longue et sanglante histoire du Reikland remonte à une époque plus ancienne encore que celle de Magnus le Pieux et de la Grande Guerre Contre le Chaos ; les vestiges d'anciennes atrocités recouvrent littéralement le royaume. Le voyageur sage et prévoyant n'hésitera donc pas à vérifier s'il n'y a pas d'anciennes ruines à proximité avant d'établir son campement pour la nuit. Certains de ces sites sont entourés de légendes troublantes de bien triste renom promettant un macabre spectacle, même si la plupart des villes et des villages se vantent d'avoir de telles ruines à proximité, avec leurs propres légendes parlant de carnages et de diverses horreurs.
 

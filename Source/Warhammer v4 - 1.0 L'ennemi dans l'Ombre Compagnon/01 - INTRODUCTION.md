@@ -49,7 +49,7 @@ Un grand merci à Games Workshop et Cubicle 7
 Traduction française Khaos Project © 2021 Tous droits réservés, © copyright Games Workshop. La reproduction de cet ouvrage même partielle est formellement interdite, sous toutes ses formes. Publié par Khaos Project SAS, 133 avenue de Caen, 76530 Grand Couronne
 
 
-# Creation de L'Ennemi Interieur
+# <span id="page-4-0" data-folio="4"></span>Creation de L'Ennemi Interieur
 
 #### Par Phil Gallagher
 
@@ -72,7 +72,7 @@ Malheureusement, nous n'avons jamais pu développer le système de magie dont la
 C'est un peu effrayant de réaliser combien de temps s'est écoulé depuis le début du travail sur la campagne de **L'Ennemi Intérieur**, mais c'est aussi gratifiant de voir qu'elle a survécu pour présenter à une nouvelle génération le monde sombre et les aventures périlleuses de **Warhammer Fantasy le Jeu de Rôle.**
 
 
-# Trente annees dans l'Ombre
+# <span id="page-5-0" data-folio="5"></span>Trente annees dans l'Ombre
 
 #### Par Graeme Davis
 

@@ -1,6 +1,6 @@
 *Pages PDF 306*
 
-# **LIVRES ET DOCUMENTS**
+# <span id="page-305-0" data-folio="304"></span>**LIVRES ET DOCUMENTS**
 
 La presse à imprimer est une invention récente de l'Empire, donc la plupart des livres sont toujours manuscrits, certains avec des pages ornées de splendides enluminures, alors que d'autres ne sont guère que quelques notes griffonnées. Dans les plus grandes agglomérations, les documents officiels, les bulletins d'informations et les tracts sont généralement imprimés, tout comme beaucoup de poèmes, de romans d'amour et d'importants textes académiques. Tous les prix sont des suggestions assez approximatives, car les contenus et la qualité varient de façon importante.
 

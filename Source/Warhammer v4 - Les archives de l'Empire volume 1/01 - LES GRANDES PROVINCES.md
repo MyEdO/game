@@ -1,6 +1,6 @@
 *Pages PDF 7-22*
 
-# • LES GRANDES PROVINCES •
+# <span id="page-6-0" data-folio="6"></span>• LES GRANDES PROVINCES •
 
 ## **L'EMPIRE EN L'AN 2512 CI**
 
@@ -25,7 +25,7 @@ Bien que l'Empereur soit leur « seigneur », il ne dirige pas les Grandes Provi
 porcelaine fine, chevaux, produits en cuir, vin
 
 
-Contrairement au reste de l'Empire, l'Averland se compose d'une série de plaines vallonnées et inondées de soleil, qui s'étendent du nord-ouest au sud-est entre les cours d'eau que sont le Haut Reik, l'Aver et le Bief bleu. À l'ouest se trouvent le Wissenland et Nuln, alors qu'à l'est la plaine s'élève pour atteindre les Montagnes Noires et les Montagnes du Bord du Monde, où vivent les nains, mais aussi les peaux-vertes, les trolls et pire encore. L'Averland est une contrée fertile dont les plaines sont irriguées par les crues annuelles. Certaines années, celles-ci viennent semer la pagaille dans les communautés établies le long des berges des grands cours d'eau, mais les habitants de l'Averland considèrent que c'est là le prix imposé par Taal en échange de récoltes abondantes.
+<span id="page-7-0" data-folio="7"></span>Contrairement au reste de l'Empire, l'Averland se compose d'une série de plaines vallonnées et inondées de soleil, qui s'étendent du nord-ouest au sud-est entre les cours d'eau que sont le Haut Reik, l'Aver et le Bief bleu. À l'ouest se trouvent le Wissenland et Nuln, alors qu'à l'est la plaine s'élève pour atteindre les Montagnes Noires et les Montagnes du Bord du Monde, où vivent les nains, mais aussi les peaux-vertes, les trolls et pire encore. L'Averland est une contrée fertile dont les plaines sont irriguées par les crues annuelles. Certaines années, celles-ci viennent semer la pagaille dans les communautés établies le long des berges des grands cours d'eau, mais les habitants de l'Averland considèrent que c'est là le prix imposé par Taal en échange de récoltes abondantes.
 
 À l'écart des cours d'eau, l'intérieur de l'Averland est constitué de petits villages de métayers qui jonchent les fiefs de la noblesse. Dans l'Averland de l'Ouest et du Sud, les nobles se consacrent à l'élevage du célèbre bétail à longues cornes, menant leurs troupeaux chaque année vers les parcs à bestiaux d'Averheim et de Loningbruck, où ils seront abattus et exportés. Dans le sud, où la noblesse élève également des chevaux puissants et rapides, et à l'est, l'élevage du bétail laisse place à la viticulture et à la fabrication du vin, la terre y étant plus propice à faire pousser du raisin de grande qualité. À l'est, on trouve des négociants en gemmes, minerais et fourrures. À l'extrémité sud-est, juste au sud du Mootland et à l'ouest de la Sylvanie, se trouvent les trois fiefs indépendants du Brachland, de l'Achter Aver et de l'Auld Ryding. Ceux-ci sont revendiqués par l'Averland et le Stirland, ce qui constitue une source de frictions entre les deux. De nombreux humains ont creusé des mines dans les contreforts des Montagnes Noires et des Montagnes du Bord du Monde, mais peu s'aventurent loin dans les montagnes à la recherche de richesses minérales, car ils finiraient par pénétrer sur des territoires revendiqués par les nains, qui n'hésitent pas à capturer les intrus et à exiger un dédommagement.
 
@@ -89,7 +89,7 @@ Le Nordland s'étend de la frontière avec l'Ostland à l'est au Wasteland à sa
 Enfin, tout à l'ouest se trouve la Laurelorn, le royaume des Éonirs, connu sous le nom d'elfes sylvains dans l'Empire. Cette forêt est appelée le « Bois de la Sorcière » par les habitants de la région, en raison de la crainte que leur inspire sa reine. Comme en atteste le sort de Schlaghügel, cette peur est peutêtre justifiée.
 
 
-## **Les habitants**
+## <span id="page-9-0" data-folio="9"></span>**Les habitants**
 
 Les habitants de Middenheim se considèrent comme le roc qui assure la stabilité de l'Empire. Entêtés et loyaux jusqu'à l'obstination, ils pensent : *« Lorsque tout s'écroulera, nous serons toujours là, avec notre flamme brûlante, et nous serons prêts à tout reconstruire. »* Comme il se doit pour des descendants des Teutogens, les habitants de Middenheim sont généralement grands et blonds aux yeux bleus. Ils sont réputés pour leur sombre courage et leur refus d'abdiquer au combat, mais cela peut aussi donner lieu à un certain chauvinisme à l'encontre des autres citoyens de l'Empire. En effet, les nains font parfois remarquer que, dans tout l'Empire, ce sont les habitants de Middenheim qui leur ressemblent le plus et montrent un grand respect pour la vie privée, peut-être lié au fait qu'ils vivent dans des espaces particulièrement confinés.
 
@@ -190,7 +190,7 @@ Ils sont réputés bien plus expressifs et démonstratifs que les Wissenlanders,
 Bien que Nuln possède une armée importante et efficace d'arquebusiers et de hallebardiers qui y sont formés, et que son artillerie soit la meilleure de l'Empire, elle est, de toutes les Grandes Provinces, celle qui s'appuie le plus sur le recrutement de mercenaires. Les condottieres tiléens du « Héron Bleu » y sont employés depuis plus d'un siècle.
 
 
-*26 Vorgeheim, 2512 CI*
+<span id="page-12-0" data-folio="12"></span>*26 Vorgeheim, 2512 CI*
 
 *18 Vorgeheim, 2515 CI Ma chère Em,*
 
@@ -401,7 +401,7 @@ Descendant en grande majorité des Mérogens et Ménogoths, le Sudenland moderne
 Les habitants du Sudenland sont considérés comme taciturnes et pensifs, comme accablés par le poids de leur passé. Autrefois Grande Province du Solland, la région a été dévastée lors de l'invasion des orcs menée par Gorbad Griff 'Eud'Fer au XVIIIe siècle. Le peuple massacré, la famille royale sacrifiée aux dieux orcs, les terres et les villes brûlées, le Croc runique perdu : c'est comme si la brutalité de ces événements pesait encore lourdement aujourd'hui, la refondation et le nouveau nom donné à la province n'ayant guère apaisé ce souvenir.
 
 
-#### *LE VIDE-QUERELLES*
+#### <span id="page-17-0" data-folio="17"></span>*LE VIDE-QUERELLES*
 
 Lorsque le Solland fut rasé par la Waaagh de Gorbad Griff'Eud'Fer, son Croc runique fut perdu. Ces lames anciennes furent forgées autrefois par le forgeron nain Alaric le Fou et offertes à l'Empire naissant pour solidifier sa force. Depuis, les Comtes Électeurs de l'Empire les conservent comme un patrimoine précieux, aussi bien en tant qu'arme qu'en tant que symbole d'autorité. Gorbad a arraché le Croc runique du Solland, le *Vide-querelles*, des mains d'Eldred mourant, le dernier Comte Électeur de la province.
 
@@ -457,7 +457,7 @@ La plupart des habitants du Talabecland sont des descendants des tribus Taleuten
 Les habitants du Talabecland ont les cheveux brun-roux à roux avec la peau bronzée, des taches de rousseur et des yeux bleus. Pragmatiques et effacés, ils forment un peuple religieux qui vénère particulièrement Taal et Ulric. Les Grands Ducs ont parrainé la construction d'un nouveau temple de plus grande envergure dédié à Taal, à Krieglitz près du château Schloss, mais une série d'accidents mystérieux, des signes de désapprobation divine selon certains, ont retardé sa construction.
 
 
-## I
+## <span id="page-19-0" data-folio="19"></span>I
 
 ## **Lieu notable**
 
@@ -505,7 +505,7 @@ Annexé par le Talabecland en 1400 CI lors du chaos qui a suivi la sécession de
 De tradition extrêmement conservatrice, Talabheim est connue comme une cité ou des lois régissent tous les aspects de la vie, certaines remontant à la fondation de la cité. Ce fatras confus de textes souvent contradictoires et appliqués de manière capricieuse fait que même les autochtones s'y perdent, ce qui fait la richesse et l'influence de la Guilde des Plaideurs, compte tenu du penchant des habitants de Talabheim pour les procès. Là où un habitant de Marienburg triture un contrat dans tous les sens pour tenter d'en retirer tous les avantages possibles, ceux de Talabheim sont connus pour s'en tenir à la lettre d'un accord, quand bien même cela leur est défavorable. Les négociations avec un Talabheimer peuvent sembler interminables, chaque mot faisant l'objet d'âpres discussions avant la signature. On raconte que les contrats de mariage prennent si longtemps à établir qu'une fiancée en devient veuve avant d'avoir été mariée. Les habitants de Talabheim ressemblent à leurs cousins du
 
 
-I
+<span id="page-21-0" data-folio="21"></span>I
 
 Talabecland, tandis que les Hochlanders affichent un air vaguement oriental, avec des cheveux bruns, des yeux gris et une peau bronzée. Tous honorent les dieux de l'Empire, en particulier Taal, dont les temples se trouvent dans les profondeurs de la Kraterwald, la forêt qui tapisse le sol du Cratère. Verena, vénérée comme la déesse du droit écrit, est la divinité la plus importante après Taal. Ulric est également important et l'un des grands prêtres d'Ulric vit dans la cité ; Sigmar a son propre temple, où réside l'Archilecteur de l'Est, bien que des préjugés anciens font que les sigmarites sont considérés avec une discrète suspicion. Certains radicaux voudraient réinstaurer une interdiction vieille de mille ans et levée au cours des deux derniers siècles à l'encontre des sigmarites.
 
