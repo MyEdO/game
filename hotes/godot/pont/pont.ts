@@ -91,6 +91,8 @@ import {
   famillesDEchantillons,
   posesDesDecors,
   sceneDEchantillon,
+  currentSeason,
+  seasonLabel,
   type PoseDeDecor,
   type EchantillonDessine,
   type FamilleDEchantillons,
@@ -153,6 +155,7 @@ import {
   emblemeMonte,
   modelesDeLAtelier,
   noeudsCaches,
+  paletteSelon,
   postesEnVigueur,
   postesMontes,
   type AmeliorationMontee,
@@ -161,6 +164,7 @@ import {
 } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
+import { SAISONS, type Saison } from '../asset/element';
 import type { TableDeClips } from '../asset/clips';
 import { type CreationOuverte, type GesteDeLaCreation, type GesteDuRoster, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
@@ -272,8 +276,9 @@ export interface CorpsDuCombat {
   navires: Record<string, NavireServi>;
   /**
    * par type de décor (`props.json`) posé dans la scène dont le dernier `modeles` sert un élément `decor` de même
-   * `cle.prop` (`decors` de sa réponse, section « Atelier 3D ») : ce modèle et ses poses (`DecorServi`). Le monde ne
-   * peint pas les surfaces dont `decor` est une de ses clés (section « Monde ») ; un décor sans modèle reste peint.
+   * `cle.prop` (`decors` de sa réponse, section « Atelier 3D ») : ce modèle et ses poses, en la saison de l'horloge du
+   * jeu (`currentSeason`), l'éditeur en aucune (`DecorServi`). Le monde ne peint pas les surfaces dont `decor` est une
+   * de ses clés (section « Monde ») ; un décor sans modèle reste peint.
    */
   decors: Record<string, DecorServi>;
 }
@@ -287,6 +292,27 @@ export interface DecorServi {
   element: string;
   /** chaque pose de ce décor dans la scène (`posesDesDecors`, section « Monde »), dans l'ordre du volume. */
   poses: PoseDeDecor[];
+  /**
+   * par emplacement de palette, la couleur de la saison du décor
+   * (`selon.<saison>.palette` de son manifeste, `paletteSelon`) ; `{}` sans saison.
+   */
+  palette: Record<string, string>;
+  /**
+   * les noms des nœuds à cacher (`noeudsCaches`, `atelier.ts`) : pour chaque saison que nomme le
+   * `selon` de son manifeste, `sans-<saison>` si c'est la sienne, `avec-<saison>` sinon.
+   */
+  caches: string[];
+}
+
+/**
+ * @contrat Atelier 3D
+ * Une saison où montrer un échantillon dont un décor servi change selon la saison (#4335).
+ */
+export interface SaisonOfferte {
+  /** l'id de la saison (`SAISONS`). */
+  id: Saison;
+  /** son libellé, celui de sa donnée (`seasonLabel`). */
+  libelle: string;
 }
 
 /**
@@ -883,15 +909,24 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   }));
 
   /** Par type de décor, chaque décor posé de `scene` (`posesDesDecors`) dont un élément `decor` est servi
-   *  (`DecorServi`) : le jeu, l'éditeur et l'atelier les montrent tous trois. */
-  const decorsServis = (scene: Scene): Record<string, DecorServi> => {
+   *  (`DecorServi`), en la saison `saison` (`null` : aucune, le modèle tel que bâti) : le jeu, l'éditeur et l'atelier
+   *  les montrent tous trois. */
+  const decorsServis = (scene: Scene, saison: Saison | null): Record<string, DecorServi> => {
     const servis: Record<string, DecorServi> = {};
     for (const pose of posesDesDecors(scene)) {
       const element = modeles?.modeles.decors[pose.prop];
-      if (element) (servis[pose.prop] ??= { element, poses: [] }).poses.push(pose);
+      if (!element) continue;
+      const manifeste = modeles!.manifestes[element];
+      (servis[pose.prop] ??= { element, poses: [], palette: paletteSelon(manifeste, saison), caches: noeudsCaches(manifeste, saison ? [saison] : [], [], {}) }).poses.push(pose);
     }
     return servis;
   };
+
+  /** Chaque saison de `SAISONS`, à son libellé, dès que le `selon` d'un décor de `decors` en nomme une ; aucune sinon. */
+  const saisonsOffertes = (decors: Record<string, DecorServi>): SaisonOfferte[] =>
+    Object.values(decors).some(({ element }) => Object.keys((modeles!.manifestes[element] as { selon?: object }).selon ?? {}).length)
+      ? SAISONS.map((id) => ({ id, libelle: seasonLabel(id) }))
+      : [];
 
   /** Les corps des combattants dessinés de `projection`, puis des héros du groupe de `etat` qu'elle ne dessine pas, chacun
    *  sa portée composée sur l'unique base servie, leurs véhicules servis, hors des navires de la scène, et les navires
@@ -917,7 +952,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         return corps ? [[id, corps]] : [];
       })),
       navires: scene ? naviresServis(scene) : {},
-      decors: scene ? decorsServis(scene) : {},
+      decors: scene ? decorsServis(scene, currentSeason(etat.gameTime)) : {},
     };
   };
 
@@ -1742,23 +1777,27 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return { familles: famillesDEchantillons() };
     },
     /**
-     * `{ famille, id }` : l'id d'une famille de `echantillons` et celui d'une de ses entrées
+     * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
+     * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues, decors }` : la scène d'échantillon que le noyau
-     * bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie (`echantillonDessine`, surface
-     * du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard
+     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène d'échantillon que le
+     * noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie (`echantillonDessine`,
+     * surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard
      * `immersion` (`aretes`, section « Vue »), ses nappes de toit, ses couronnes, les clés des couronnes que sa brèche
-     * abat (`couronnesAbattues`), et ses décors servis, comme `corps.decors` de la vue (section « Corps d'un
-     * combattant ») ; refusé sur une famille hors de `echantillons` (le message les nomme) et sur une entrée
-     * hors de sa famille (le message nomme la famille) ; avant ou après `demarrer`
+     * abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
+     * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
+     * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme
+     * la famille) et sur une saison inconnue (le message les nomme) ; avant ou après `demarrer`
      */
-    echantillon(json): EchantillonDessine & { decors: Record<string, DecorServi> } {
-      const e = entreeDe('echantillon', json, ['famille', 'id']);
+    echantillon(json): EchantillonDessine & { decors: Record<string, DecorServi>; saisons: SaisonOfferte[] } {
+      const e = entreeDe('echantillon', json, ['famille', 'id', 'saison']);
       const familles = famillesDEchantillons();
       const famille = familles.find((f) => f.id === e.famille);
       valider(famille !== undefined, `echantillon : famille, l’id d’une famille d’échantillons (${familles.map((f) => f.id).join(', ')})`);
       valider(famille!.entrees.some((entree) => entree.id === e.id), `echantillon : id, l’id d’une entrée de la famille ${famille!.id}`);
-      return { ...echantillonDessine(famille!.id, e.id as string), decors: decorsServis(sceneDEchantillon(famille!.id, e.id as string)) };
+      valider(e.saison === undefined || SAISONS.includes(e.saison as Saison), `echantillon : saison, l’une de ${SAISONS.join(', ')}`);
+      const decors = decorsServis(sceneDEchantillon(famille!.id, e.id as string), (e.saison as Saison | undefined) ?? null);
+      return { ...echantillonDessine(famille!.id, e.id as string), decors, saisons: saisonsOffertes(decors) };
     },
     /**
      * `{ composition, preset? }` : une composition (section « Composition d'un personnage ») et l'id d'un preset de
@@ -1867,7 +1906,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
         calque: calqueAffiche(session),
-        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue), decors: decorsServis(vue) } : {}),
+        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue), decors: decorsServis(vue, null) } : {}),
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(projetEdite(session).id, charge.sceneId, charge.z) } } : {}),

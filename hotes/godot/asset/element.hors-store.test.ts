@@ -10,7 +10,9 @@ import {
   GLB_AU_POSTE,
   GLB_DE_BASE,
   GLB_D_ELEMENT,
+  GLB_SAISONNIER,
   GLB_SANS_BASE,
+  decorSaisonnierDeTest,
   glbANoeuds,
   glbDElement,
   vehiculeDeTest,
@@ -184,7 +186,13 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', 'pièce d’Amélioration sans `montage`', manifeste('amelioration', { montage: undefined })],
   ['forme', 'montage inconnu', manifeste('amelioration', { montage: 'coque' })],
   ['etat-absent', 'pièce montée aux postes sans ses nœuds `ouvert` et `ferme`', manifeste('amelioration', { cle: { amelioration: 'sabord' }, montage: 'postes' })],
-  ['champ-hors-categorie', '`selon` sur un décor', manifeste('decor', { selon: {} })],
+  ['cle-inconnue', '`selon` d’un décor à une saison inconnue', manifeste('decor', { selon: { mousson: {} } })],
+  ['cle-inconnue', '`selon` d’un décor à une Amélioration, qui n’est pas une saison', manifeste('decor', { selon: { sabord: {} } })],
+  ['palette-inconnue', 'palette d’une saison à un emplacement qu’aucune surface ne prend', manifeste('decor', { selon: { automne: { palette: { vegetal: '#b5651d' } } } })],
+  ['forme', 'palette d’une saison à une couleur qui n’est pas hexadécimale', manifeste('decor', { selon: { automne: { palette: { metal: 'roux' } } } })],
+  ['forme', '`postes` au `selon` d’un décor', manifeste('decor', { selon: { hiver: { postes: {} } } })],
+  ['forme', '`palette` au `selon` d’un véhicule', manifeste('vehicule', { selon: { sabord: { palette: { metal: '#b5651d' } } } })],
+  ['selon-absent', 'nœud `avec-hiver` d’un décor sans `selon.hiver`', ...surGlb('decor', { surfaces: [{ nom: 'metal', palette: 'metal' }], selon: { automne: {} } }, glbANoeuds(['tronc', 'avec-hiver']))],
   ['cle-inconnue', '`selon` d’un Trait naval, qui n’est pas une Amélioration', manifeste('vehicule', { selon: { robuste: {} } })],
   ['forme', '`postes` au `selon` d’une pièce d’Amélioration, qui n’offre pas de postes', manifeste('amelioration', { selon: { sabord: { postes: {} } } })],
   ['bord-inconnu', 'poste d’une Amélioration à un bord qui n’en est pas un', manifeste('vehicule', { selon: { sabord: { postes: { flanc: [[3, 0.3, 0]] } } } })],
@@ -322,6 +330,24 @@ describe('validerElement : ce qui change selon une Amélioration (#2987)', () =>
     expect(verdict(manifeste('vehicule', { surfaces: SURFACES }, GLB), GLB)).toEqual({
       ok: false, ecarts: ['avec-sabord', 'sans-sabord'].map((nom) => ({ code: 'selon-absent', ou: 'selon', detail: `${nom} change selon \`sabord\`, que \`selon\` ne nomme pas` })),
     });
+  });
+});
+
+describe('validerElement : ce qui change selon la saison d’un décor (#4335)', () => {
+  const GLB = glbANoeuds(['tronc', 'avec-hiver', 'sans-hiver']);
+  const SURFACES = [{ nom: 'metal', palette: 'metal' }];
+  it('un décor nomme à son `selon` la saison de ses nœuds `avec-` et `sans-`, et la palette d’une saison', () => {
+    const saisonnier = manifeste('decor', { surfaces: SURFACES, selon: { automne: { palette: { metal: '#b5651d' } }, hiver: {} } }, GLB);
+    expect(verdict(saisonnier, GLB)).toEqual({ ok: true, manifeste: saisonnier });
+  });
+  it('chaque nœud dont le `selon` ne nomme pas la saison est nommé', () => {
+    expect(verdict(manifeste('decor', { surfaces: SURFACES }, GLB), GLB)).toEqual({
+      ok: false, ecarts: ['avec-hiver', 'sans-hiver'].map((nom) => ({ code: 'selon-absent', ou: 'selon', detail: `${nom} change selon \`hiver\`, que \`selon\` ne nomme pas` })),
+    });
+  });
+  it('le décor saisonnier de banc est valide sur son GLB', () => {
+    const banc = decorSaisonnierDeTest('buisson');
+    expect(verdict(banc, GLB_SAISONNIER)).toEqual({ ok: true, manifeste: banc });
   });
 });
 

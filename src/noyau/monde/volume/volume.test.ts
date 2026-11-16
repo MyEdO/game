@@ -15,7 +15,7 @@ import {
 import { clearedSpace, nappeKey, shelterField } from './toits';
 import { perimeterWallSegs } from '../../sceneEdit.testkit';
 import { emptyScene, parapetTilesAbove, sceneMetresPerTile, setDoorOpen, setStructureDown, setTileCollapsed, type Scene } from '../scene';
-import { terrainAbsent } from '../terrain';
+import { decorDuTerrain, terrainAbsent } from '../terrain';
 import { paintTiles, setEdgeWall } from '../../sceneEdit';
 import { bumperDataset } from '../../../data/versionDataset';
 import { datasetArray, setDataset, type DatasetKey } from '../../../data/overrides';
@@ -172,10 +172,13 @@ describe('les décors posés du volume (#4335)', () => {
     return s;
   }
 
-  it('chaque surface d’un décor porte `decor`, l’id de son type : l’arbre du bois, le tonneau de l’entité ; le sol, aucun', () => {
+  /** Le décor que le bois pose sur sa case (1, 0, 0) : l'essence et le cap que tire `decorDuTerrain`. */
+  const duBois = () => decorDuTerrain('bois', 1, 0, 0)!;
+
+  it('chaque surface d’un décor porte `decor`, l’id de son type : l’essence du bois, le tonneau de l’entité ; le sol, aucun', () => {
     const tris = trianglesDuVolume(volumeDuMonde(decors()));
     const deDecor = tris.filter((t) => t.matiere.startsWith('prop--'));
-    expect(new Set(deDecor.map((t) => `${t.case.join(',')} ${t.surface.decor}`))).toEqual(new Set(['1,0,0 arbre', '2,0,0 tonneau']));
+    expect(new Set(deDecor.map((t) => `${t.case.join(',')} ${t.surface.decor}`))).toEqual(new Set([`1,0,0 ${duBois().prop}`, '2,0,0 tonneau']));
     expect(new Set(tris.filter((t) => !t.matiere.startsWith('prop--')).map((t) => t.surface.decor))).toEqual(new Set([undefined]));
   });
 
@@ -183,7 +186,7 @@ describe('les décors posés du volume (#4335)', () => {
     const s = decors();
     const tonneau = s.entities.find((e) => e.id === 'tonneau-e')!;
     expect(posesDesDecors(s)).toEqual([
-      { cle: 'terrain/1,0,0', prop: 'arbre', ancre: { x: 1, y: 0 }, cap: 'S', piedM: 0, case: { x: 1, y: 0, z: 0 } },
+      { cle: 'terrain/1,0,0', prop: duBois().prop, ancre: { x: 1, y: 0 }, cap: duBois().cap, piedM: 0, case: { x: 1, y: 0, z: 0 } },
       { cle: 'entite/tonneau-e', prop: 'tonneau', ancre: ancreDuDecor(tonneau, sceneMetresPerTile(s)), cap: 'E', piedM: 0.5, case: { x: 2, y: 0, z: 0 }, entId: 'tonneau-e' },
     ]);
     const tris = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.surface.decor === 'tonneau');

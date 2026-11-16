@@ -3,8 +3,8 @@ extends PontDuNoyau
 
 ## Le pont figé des recettes de l'atelier (`hotes/godot/recettes/atelier.ts`) : `catalogues`, `vitrine` et `modeles`
 ## rendent leur réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée
-## (`JSON.stringify`), `modeles/listage.json` le listage figé et tout autre chemin le fichier du projet, rien s'il est
-## absent (le dépôt de l'éditeur), chaque paramètre celui de `fige.parametres` ; il garde les entrées reçues hors de ces
+## (`JSON.stringify`), `modeles/listage.json` le listage figé, et
+## tout autre chemin le fichier du projet, rien s'il est absent (le dépôt de l'éditeur), chaque paramètre celui de `fige.parametres` ; il garde les entrées reçues hors de ces
 ## trois et les chemins requêtés. Il est en recette (`en_recette`) : chaque écran publié est retenu dans `ecran`.
 
 var fige: Dictionary

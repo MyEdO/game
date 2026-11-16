@@ -675,7 +675,23 @@ emplacement de palette et une matière du domaine `prop` de `src/data/materials.
 peut différer de celle que nomme la recette, la docstring disant pourquoi ; `BUDGET_TRIANGLES` ; chaque proportion nommée, en fraction de la primitive qui la porte, et la docstring qui dit les
 proportions d'adaptation sans illustration) et `modele.py` (`elements(D)`, un élément par décor : `cles`
 `[("decor", {"prop": id})]`, un GLB par clé). Des décors qui partagent leur construction partagent le dossier (`arbre` :
-`arbre`, `arbre-mort`, `souche`, `buisson`).
+`arbre`, `hetre`, `orme`, `pin`, `arbre-mort`, `souche`, `buisson`).
+
+**Saisons.** Un décor change selon la saison du jeu (ids de `src/data/weather.json`, `SAISONS` de
+`hotes/godot/asset/element.ts`) par deux moyens, que `donnees.py` déclare dans `SELON`, par décor et par saison, et que
+`modele.py` porte au `selon` du manifeste :
+
+- une couleur, `{ "palette": { <emplacement d'une de ses surfaces>: "#rrggbb" } }` : elle teint la texture neutre de la
+  matière (`.neutre.jpg`), plus claire que sa texture, si bien que la teinte se règle au rendu (`revue.py --saison`),
+  jamais sur la couleur visée ; une saison sans entrée laisse le décor tel que bâti ;
+- des nœuds du GLB : `sans-<saison>`, caché en cette saison, et `avec-<saison>`, montré en elle seule. Une saison qui ne
+  change que des nœuds se déclare `{}` : l'hôte ne cache que les nœuds des saisons que `selon` nomme, et le manifeste
+  dont le GLB porte un tel nœud sans la nommer est refusé (`selon-absent`).
+
+Le feuillage d'un décor caduc (`CADUCS` de `decor/arbre/donnees.py`) est son nœud `sans-hiver`, et sa ramure nue son
+nœud `avec-hiver` : des brindilles en éventail là où chaque masse de feuillage se tient (`ramure`), tirées d'un aléa à
+part, pour que le feuillage ne change pas quand la ramure change. Le budget de triangles compte ce qui se montre à la
+fois, la plus lourde des deux tenues.
 
 **Gabarit.** Les primitives de la recette (`volume.primitives`) restent la seule source du gabarit de jeu (empreinte,
 dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes ni
@@ -710,8 +726,12 @@ sans le reconstruire. Publier comme un véhicule (chapitre 9, « Publier »).
 studio de `rendu.py`, de face, de trois-quarts et de dessus, dans une `planche.png` :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/decor/revue.py <id> --modeles /atelier/<modele> --sortie /atelier/revue-<id>
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/decor/revue.py <id> --modeles /atelier/<modele> --sortie /atelier/revue-<id> [--saison <saison>]
 ```
+
+`--saison` montre APRÈS comme le jeu en cette saison (nœuds cachés, palette du `selon`) ; sans elle, le décor tel que
+bâti. Un décor saisonnier se regarde en chacune de ses saisons. La recette rendue
+`hotes/godot/projet/recettes/saisons-du-decor.gd` (`npm run godot:rendus`) lit aux pixels le chêne en chaque saison.
 
 Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner.
 

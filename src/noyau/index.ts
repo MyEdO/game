@@ -18,6 +18,9 @@ export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_C
 export { formatMoney } from '../engine/money';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
+export { currentSeason } from '../engine/travelStages';
+export type { Season } from '../engine/travelStages';
+export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export {
   advancementLabel,
   careers,
@@ -31,6 +34,7 @@ export {
   matieresDe,
   props,
   refLabel,
+  seasonLabel,
   siegeEngines,
   structureAppearances,
   trappingRefLabel,

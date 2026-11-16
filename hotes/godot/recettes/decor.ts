@@ -57,14 +57,14 @@ function coiffeUnBloc(scene: Scene): Scene {
  *  échantillon sur un bloc plein avec le retrait sous sa couche (`coiffe`). */
 export function figerLeDecor(listage: Listage) {
   const { fige, appel } = figerLAtelier(listage, (id, manifeste) => id === 'humanoide' || manifeste.categorie === 'decor');
-  const element = (fige.modeles.decors as Record<string, string>)[ASYMETRIQUE];
+  const servi = (appel('echantillon', { famille: 'decor', id: ASYMETRIQUE }).decors as Record<string, Record<string, unknown>>)[ASYMETRIQUE];
   const caps = tableTotale(CAPS, (cap) => {
     const scene = sceneDEchantillon('decor', ASYMETRIQUE);
     const tournee = { ...scene, entities: scene.entities.map((e) => (e.kind === 'prop' ? { ...e, facing: cap } : e)) };
-    return { monde: volumeDuMonde(tournee), decors: { [ASYMETRIQUE]: { element, poses: posesDesDecors(tournee) } } };
+    return { monde: volumeDuMonde(tournee), decors: { [ASYMETRIQUE]: { ...servi, poses: posesDesDecors(tournee) } } };
   });
   const coiffee = coiffeUnBloc(sceneDEchantillon('decor', ASYMETRIQUE));
-  const coiffe = { monde: volumeDuMonde(coiffee), decors: { [ASYMETRIQUE]: { element, poses: posesDesDecors(coiffee) } }, retrait: retraitDuMonde(coiffee, 0) };
+  const coiffe = { monde: volumeDuMonde(coiffee), decors: { [ASYMETRIQUE]: { ...servi, poses: posesDesDecors(coiffee) } }, retrait: retraitDuMonde(coiffee, 0) };
   return {
     ...fige,
     echantillons: { [cleDEntree(null)]: appel('echantillons') },

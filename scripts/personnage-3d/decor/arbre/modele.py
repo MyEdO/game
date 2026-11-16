@@ -2,7 +2,13 @@
 (`gabarit.py`), où `Gabarit.rentrer` ramène le sommet qui en sortirait. Une branche (tronc, charpentière, rameau, racine,
 tige) est une suite d'anneaux le long d'une courbe, au repère transporté, de section striée et vrillée, finie en pointe
 ou en cassure ; une masse de feuillage, un icosaèdre subdivisé, lobé, entaillé, facetté. L'aléa est semé des codes de
-caractères de l'id du décor : deux constructions rendent les mêmes octets."""
+caractères de l'id du décor : deux constructions rendent les mêmes octets.
+
+Saisons. Un décor de `CADUCS` (`donnees.py`) perd ses feuilles en hiver : son feuillage est le nœud `sans-hiver`
+(`NOEUD_DU_FEUILLAGE`), caché en hiver, et sa ramure nue, des brindilles en éventail là où chaque masse de feuillage se
+tient, le nœud `avec-hiver` (`NOEUD_DE_LA_RAMURE`), montré en hiver seulement ; son aléa est à part (`alea` de l'id suivi
+d'« hiver »), si bien que la ramure ne change rien au reste. Un décor que nomme `SELON` (`donnees.py`) porte au
+manifeste ce qui change selon la saison : par saison, `{ palette? }` ; `SELON` nomme l'hiver de chaque décor caduc."""
 import math
 import random
 
@@ -12,7 +18,9 @@ import habillage
 from gabarit import Gabarit
 from maille import Maille, lineaire, objet
 
-DECORS = ("arbre", "arbre-mort", "souche", "buisson")
+DECORS = ("arbre", "hetre", "orme", "pin", "arbre-mort", "souche", "buisson")
+NOEUD_DU_FEUILLAGE = "sans-hiver"
+NOEUD_DE_LA_RAMURE = "avec-hiver"
 HAUT = Vector((0, 0, 1))
 
 
@@ -196,6 +204,43 @@ def masse(m, F, bout, taille, mat, a):
         bloc(m, F, centre + (cap(azimut) * ecart + HAUT * a.uniform(*hauteurs)) * taille, taille * a.uniform(*tailles), mat, a)
 
 
+def brin(m, points, rayons, cotes, mat):
+    """Un brin droit ou coudé : un anneau de `cotes` côtés à chacun de ses `points` sauf le dernier, sa pointe."""
+    pts = [Vector(p) for p in points]
+    anneaux = []
+    for i, r in enumerate(rayons):
+        t = (pts[i + 1] - pts[max(i - 1, 0)]).normalized()
+        ref = Vector((1, 0, 0)) if abs(t.x) < 0.9 else Vector((0, 1, 0))
+        n = (ref - t * ref.dot(t)).normalized()
+        b = t.cross(n)
+        anneaux.append([pts[i] + (n * math.cos(2 * math.pi * j / cotes) + b * math.sin(2 * math.pi * j / cotes)) * r for j in range(cotes)])
+    peau(m, anneaux, mat, pts[-1])
+
+
+def ramure(m, R, F, bout, taille, mat, a):
+    """La ramure nue de la masse de feuillage de `taille` au-dessus de `bout`, d'après `R` (`RAMURE`) : des brindilles en
+    éventail de `bout` jusqu'au bord de la masse et de ses satellites, coudées, chacune fourchue d'un côté puis de
+    l'autre, ses fourches coudées comme elle."""
+    bout = Vector(bout)
+    centre = bout + HAUT * taille * F["hauteur"] * F["assise"]
+    nombre = max(R["minimum"], round(taille * R["par_metre"]))
+    tour = a.uniform(0, 360)
+
+    def au_bord(azimut, elevations, portees):
+        elevation = math.radians(a.uniform(*elevations))
+        return centre + (cap(azimut) * math.cos(elevation) + HAUT * math.sin(elevation) * F["hauteur"]) * taille * a.uniform(*portees)
+
+    for k in range(nombre):
+        azimut = tour + (k + a.random()) * 360 / nombre
+        fin = au_bord(azimut, R["elevation"], R["portee"])
+        coude = bout.lerp(fin, R["coude"]) + HAUT * taille * R["bombe"] + cap(azimut + 90) * taille * a.uniform(-R["travers"], R["travers"])
+        brin(m, [bout, coude, fin], [r * taille for r in R["rayons"]], R["cotes"], mat)
+        for rang, part in enumerate(R["fourches"]):
+            depart = sur([bout, coude, fin], part)
+            vise = au_bord(azimut + (1 if (k + rang) % 2 else -1) * a.uniform(*R["ecart"]), R["elevation_des_fourches"], R["portee_des_fourches"])
+            brin(m, [depart, depart.lerp(vise, R["coude"]) + HAUT * taille * R["bombe"], vise], [r * taille for r in R["rayons_des_fourches"]], R["cotes"], mat)
+
+
 def sur(chemin, part):
     """Le point de `chemin` à `part` (0 à 1) de ses tronçons."""
     x = part * (len(chemin) - 1)
@@ -230,18 +275,25 @@ def bourrelet(m, chemin, rayon, creux, B, mat, a):
                         for i in range(2) for k in range(cotes)], mat)
 
 
-def arbre(D, bois, feuilles, a):
-    """Le feuillu : le tronc et sa flèche, les charpentières en arc, leurs rameaux, une masse de feuillage à chaque bout."""
-    A, S, F = D["ARBRE"], D["SECTIONS"], D["FEUILLAGE"]["arbre"]
-    fut, _ = branche(bois, A["chemin"], A["rayons"], S["tronc"], "ecorce", a, contreforts=A["contreforts"])
-    masse(feuilles, F, fut[-1], A["cime"], "feuillage", a)
+def arbre(A, D, F, bois, feuilles, nues, a, hiver):
+    """L'arbre `A` (`ARBRES`) au feuillage `F` : le tronc et sa flèche, les charpentières en arc, leurs rameaux, une
+    masse de feuillage à chaque bout, et sous elle sa ramure d'hiver dans `nues` (aucune si `None`) ; ses moignons."""
+    S = D["SECTIONS"]
+    fut, _ = branche(bois, A["chemin"], A["rayons"], S[A["tronc"]], "ecorce", a, contreforts=A["contreforts"])
+
+    def garnir(bout, taille):
+        masse(feuilles, F, bout, taille, "feuillage", a)
+        if nues is not None:
+            ramure(nues, D["RAMURE"], F, bout, taille, "ecorce", hiver)
+
+    garnir(fut[-1], A["cime"])
 
     def rameau(depart, azimut, longueur, montee, taille):
         bout = depart + cap(azimut) * longueur + HAUT * montee
         part, bombe, travers = A["coude"]
         coude = depart.lerp(bout, part) + HAUT * montee * bombe + cap(azimut + 90) * a.uniform(-travers, travers)
         branche(bois, [depart, coude, bout], A["rayons_rameau"], S["rameau"], "ecorce", a)
-        masse(feuilles, F, bout, taille, "feuillage", a)
+        garnir(bout, taille)
 
     for C in A["charpentieres"]:
         pied = a_la_hauteur(fut, C["depart"])
@@ -250,11 +302,16 @@ def arbre(D, bois, feuilles, a):
         points += [pied + vers * C["portee"] * fp + HAUT * C["montee"] * fm for fp, fm in A["arc"]]
         points.append(pied + vers * C["portee"] + HAUT * C["montee"])
         chemin, _ = branche(bois, points, [f * C["rayon"] for f in A["rayons_charpentiere"]], S["charpentiere"], "ecorce", a)
-        masse(feuilles, F, chemin[-1], C["masse"], "feuillage", a)
+        garnir(chemin[-1], C["masse"])
         for part, ecart, longueur, montee, taille in C["rameaux"]:
             rameau(sur(chemin, part), C["azimut"] + ecart, longueur, montee, taille)
     for hauteur, azimut, longueur, montee, taille in A["fleche"]:
         rameau(a_la_hauteur(fut, hauteur), azimut, longueur, montee, taille)
+    for hauteur, azimut, longueur, montee, rayon in A["moignons"]:
+        pied = a_la_hauteur(fut, hauteur)
+        (part, bombe), sections = D["MOIGNON"]
+        branche(bois, [pied, pied + cap(azimut) * longueur * part + HAUT * montee * bombe, pied + cap(azimut) * longueur + HAUT * montee],
+                [rayon * f for f in sections], S["branche-morte"], "ecorce", a, cassure=D["CASSURE"])
 
 
 def arbre_mort(D, bois, a):
@@ -328,8 +385,9 @@ def souche(D, bois, a):
         branche(bois, R["chemin"], R["rayons"], S["racine"], mat, a)
 
 
-def buisson(D, tiges, feuilles, a):
-    """La touffe : une tige par masse de feuillage, du pied à son dessous, et les brindilles nues."""
+def buisson(D, tiges, feuilles, nues, a, hiver):
+    """La touffe : une tige par masse de feuillage, du pied à son dessous, sa ramure d'hiver dans `nues`, et les
+    brindilles nues."""
     B, S, F = D["BUISSON"], D["SECTIONS"], D["FEUILLAGE"]["buisson"]
     part_portee, part_montee = B["coude"]
 
@@ -342,30 +400,37 @@ def buisson(D, tiges, feuilles, a):
         bout = Vector(centre) - HAUT * taille * F["hauteur"] * F["assise"]
         tige(bout)
         masse(feuilles, F, bout, taille, "feuillage", a)
+        ramure(nues, D["RAMURE"], F, bout, taille, "tiges", hiver)
     for azimut, portee, hauteur in B["brindilles"]:
         tige(cap(azimut) * portee + HAUT * hauteur)
 
 
 def construire(D, id_):
-    G, a = Gabarit(id_), alea(id_)
+    G, a, hiver = Gabarit(id_), alea(id_), alea(f"{id_} hiver")
     mats = habillage.materiaux(D["MATERIAUX"][id_])
     pieces = {nom: Maille([mat]) for nom, mat in mats.items()}
-    if id_ == "arbre":
-        arbre(D, pieces["ecorce"], pieces["feuillage"], a)
+    caduc = id_ in D["CADUCS"]
+    nues = Maille([mats["tiges" if id_ == "buisson" else "ecorce"]]) if caduc else None
+    if id_ in D["ARBRES"]:
+        arbre(D["ARBRES"][id_], D, D["FEUILLAGE"][id_], pieces["ecorce"], pieces["feuillage"], nues, a, hiver)
     elif id_ == "arbre-mort":
         arbre_mort(D, pieces["bois-mort"], a)
     elif id_ == "souche":
         souche(D, pieces["bois-mort"], a)
     else:
-        buisson(D, pieces["tiges"], pieces["feuillage"], a)
+        buisson(D, pieces["tiges"], pieces["feuillage"], nues, a, hiver)
+    noeuds = [(NOEUD_DU_FEUILLAGE if caduc and nom == "feuillage" else nom, maille) for nom, maille in pieces.items()]
+    if caduc:
+        noeuds.append((NOEUD_DE_LA_RAMURE, nues))
     objets = []
-    for nom, maille in pieces.items():
+    for nom, maille in noeuds:
         maille.v = [tuple(p) for p in G.rentrer(maille.v, D["RETRAIT"])]
-        objets.append(objet(nom, maille, (0.0, 0.0, 0.0), D["ANGLE_LISSE"][nom]))
-    triangles = sum(len(o.data.polygons) for o in objets)
+        objets.append(objet(nom, maille, (0.0, 0.0, 0.0), D["ANGLE_LISSE"][maille.materiaux[0].name]))
+    triangles = sum(len(o.data.polygons) for o in objets) - min((len(o.data.polygons) for o in objets if o.name in (NOEUD_DU_FEUILLAGE, NOEUD_DE_LA_RAMURE)), default=0)
     if triangles > D["BUDGET_TRIANGLES"][id_]:
         raise ValueError(f"{id_} : {triangles} triangles, budget {D['BUDGET_TRIANGLES'][id_]}")
-    return {}
+    selon = D["SELON"].get(id_)
+    return {"selon": selon} if selon else {}
 
 
 def elements(D):

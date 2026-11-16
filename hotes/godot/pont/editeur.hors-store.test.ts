@@ -12,7 +12,7 @@
  * chacun de ses fragments scellé par le noyau (#3606 M2g).
  */
 import { describe, expect, it } from 'vitest';
-import { avecLesSeulsDecors, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
+import { avecLeSaisonnier, avecLesSeulsDecors, enSaison, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
 import type { DecorServi, MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
 import { UNITES_DU_PLAN_DE_CARTE, type AreteDessinee, type RetraitDuMonde, type Scene } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
@@ -1682,6 +1682,8 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(Object.keys(servie.decors!)).toEqual([prop]);
     expect(servie.decors![prop].element).toBe(`decor--${prop}`);
     expect(servie.decors![prop].poses.length).toBeGreaterThan(0);
+    servirLesModeles(appel, COMMITES, avecLeSaisonnier(COMMITES, prop));
+    expect(editionDe(appel('editer', { ouvrir: CAMPAGNE })).decors![prop], 'sans horloge, le décor saisonnier tel que bâti').toMatchObject(enSaison(null));
   });
 
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {

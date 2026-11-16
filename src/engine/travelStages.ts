@@ -20,6 +20,7 @@ import { saisonParId } from '../data/saisons';
 import { weatherIdSchema } from '../data/schemas/defs/weather';
 import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
 import type { ExposureSeverity } from './exposure';
+import { toDate } from './clock';
 
 /** Les quatre saisons du tableau de Météo (EDOC 8 l.52). */
 export type Season = 'printemps' | 'ete' | 'automne' | 'hiver';
@@ -42,6 +43,11 @@ export function seasonOfMonth(monthIndex: number | null): Season {
   if (m >= 4 && m <= 6) return 'ete';       // Sommerzeit, Vorgeheim, Nachgeheim
   if (m >= 7 && m <= 9) return 'automne';   // Erntezeit, Brauzeit, Kaldezeit
   return 'hiver';                           // Ulriczeit(10), Vorhexen(11), Nachhexen(0)
+}
+
+/** Saison courante (table de Météo EDOC 8 l.52) à l'horloge du jeu `gameTime` (minutes, `toDate`). */
+export function currentSeason(gameTime: number): Season {
+  return seasonOfMonth(toDate(gameTime).month);
 }
 
 /**

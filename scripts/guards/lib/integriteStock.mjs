@@ -103,7 +103,6 @@ export const MAISON_MASQUEES = [
   { famille: 'maison-masquee', fichier: 'src/data/buildings.json', ref: '["tour","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/defauts-de-compilation.json', ref: '["defauts-de-compilation","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/props.json', ref: '["applique-murale","maison","",""]', occurrence: 1 },
-  { famille: 'maison-masquee', fichier: 'src/data/props.json', ref: '["arbre","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/props.json', ref: '["arche-ruine","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/props.json', ref: '["bastingage","maison","",""]', occurrence: 1 },
   { famille: 'maison-masquee', fichier: 'src/data/props.json', ref: '["brasero","maison","",""]', occurrence: 1 },
