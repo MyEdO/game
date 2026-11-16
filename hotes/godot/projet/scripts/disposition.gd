@@ -16,16 +16,18 @@ extends Node
 ## joue en bas en `rangDeLActif`, toujours montré par le défilement (`Zone.pied`) ; chaque rang porte son portrait sur le
 ## fond de son ton, son nom, ses Blessures en jauge de largeur fixe, et, pour un héros, le bouton de sa fiche posé sur
 ## son portrait (`surLeRang`, plat, sa bulle « Fiche »),
-## le meuble de l'actif en bas au centre (`Actif/Poste/Meuble`, son chêne sous le portrait qui le dépasse : en `meuble`,
-## une seule forme, à gauche ses Blessures en jauge, son Mouvement en jetons, un losange par case, son Action en sceau
-## de cire, son Avantage, ses États, à leur droite son portrait et son nom ; à droite du meuble ses offres,
-## `combat.offres` : l'Action en plaques à pictogramme et à nom ; dessous, chaque autre choix en pastille ronde à
-## pictogramme, en colonnes égales, son nom sous elle, la rangée débordant à gauche sous le portrait et le nom
-## (`SousLePortrait`), qui ouvre au-dessus du meuble sa liste titrée en colonne, pressée tant qu'elle est ouverte
-## (`PastilleDeChoix`)), posée sur
-## sa droite la tablette de bois des six emplacements rapides (`Actif/Poste/Tablette`, `combat.rapides` : une case pleine
-## en `case`, voilée tant qu'elle est refusée, une case libre en `caseLibre`, chacune la touche de son rang en son coin
-## haut gauche, `touche.gd`), qui se retire avec le meuble, la fin du tour en bas à droite (`Tour`, la part du tour de
+## le meuble de l'actif en bas au centre (`Actif/Poste/Meuble`, son chêne sous le portrait qui le dépasse, son thème de
+## portée `art/meuble.tres` : en `meuble`, une seule forme, trois zones : à gauche, en deux colonnes titrées en petites
+## capitales, ses Blessures en chiffres sur leur barre (`mesure`) et son Action en sceau de cire (`sceau`), son
+## Mouvement en chiffres sur ses losanges, un par case (`jetons`), et son Avantage en chiffre dans son cadre
+## (`compte`), ses États dessous ; au centre son portrait et son nom ; à droite ses offres, `combat.offres` : l'Action
+## sous son ruban, à cheval sur le bord du chêne, en plaques larges à pictogramme et à nom (`plaques`) ; dessous,
+## chaque autre choix en pastille ronde à pictogramme, en colonnes, son nom entier sous elle, qui ouvre au-dessus du
+## meuble sa liste titrée en colonne, pressée tant qu'elle est ouverte (`PastilleDeChoix`)), posée sur sa droite, à
+## son bord, la tablette de bois des six emplacements rapides (`Actif/Poste/Rapides/Tablette`, `combat.rapides` : une
+## case pleine en `case`, voilée tant qu'elle est refusée, une case libre en `caseLibre`, chacune la touche de son rang
+## dans un médaillon à son coin haut gauche, `touche.gd`, son nom entier dessous), qui se retire avec le meuble,
+## la fin du tour en bas à droite (`Tour`, la part du tour de
 ## `combat.offres`, `economie/aucun`, en `finDuTour` :
 ## « Fin du tour » en gros bouton rond de laiton au sablier, son nom dessous, les autres en pastilles rondes empilées à sa gauche), les avis
 ## du combat en ligne au-dessus du meuble (`Actif/Avis`) et le dialogue, et où se cadre le monde (`Monde.cadre`) ;

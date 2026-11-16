@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=23 format=3]
+[gd_resource type="Theme" load_steps=22 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 [ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
@@ -86,17 +86,6 @@ expand_margin_bottom = 2.0
 [sub_resource type="StyleBoxFlat" id="Voile"]
 bg_color = Color(0.02, 0.015, 0.01, 0.62)
 
-[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Tablette"]
-content_margin_left = 10.0
-content_margin_top = 14.0
-content_margin_right = 10.0
-content_margin_bottom = 14.0
-script = ExtResource("2_cadre")
-cadre = "chene-ferre"
-matiere = "prop--bois-chene"
-teinte = Color(0.62, 0.55, 0.48, 1)
-ombre = ExtResource("3_ombre")
-
 [sub_resource type="StyleBoxFlat" id="Case_libre"]
 bg_color = Color(0.06, 0.04, 0.025, 0.55)
 border_width_left = 1
@@ -160,7 +149,5 @@ Description/font_sizes/font_size = 17
 Description/constants/line_spacing = 0
 Voile/base_type = &"Panel"
 Voile/styles/panel = SubResource("Voile")
-Tablette/base_type = &"PanelContainer"
-Tablette/styles/panel = SubResource("Tablette")
 CaseLibre/base_type = &"Panel"
 CaseLibre/styles/panel = SubResource("Case_libre")

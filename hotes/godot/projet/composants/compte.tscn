@@ -1,0 +1,27 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+
+[node name="Compte" type="HBoxContainer"]
+theme_type_variation = &"RangeeSerree"
+
+[node name="Cadre" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(28, 28)
+size_flags_vertical = 4
+theme_type_variation = &"Compte"
+
+[node name="Valeur" type="Label" parent="Cadre"]
+theme_type_variation = &"ChiffreDuCompte"
+horizontal_alignment = 1
+
+[node name="valeur" type="Node" parent="Cadre/Valeur"]
+script = ExtResource("1_liaison")
+champ = "valeur"
+
+[node name="Libelle" type="Label" parent="."]
+size_flags_vertical = 4
+theme_type_variation = &"TitreDeMesure"
+
+[node name="libelle" type="Node" parent="Libelle"]
+script = ExtResource("1_liaison")
+champ = "libelle"
