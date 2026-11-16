@@ -13729,6 +13729,94 @@
         "id": "percutante"
       }
     ],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "all",
+            "of": [
+              {
+                "kind": "woundsDealt",
+                "op": ">",
+                "value": 0
+              },
+              {
+                "kind": "navire",
+                "who": "target"
+              }
+            ]
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "characteristic": "endurance",
+              "difficulty": "complexe"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": {
+                      "id": "voie-d-eau"
+                    },
+                    "value": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "trigger": "onCrit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "navire",
+            "who": "target"
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "characteristic": "endurance",
+              "difficulty": "difficile"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": {
+                      "id": "voie-d-eau"
+                    },
+                    "value": 3
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
     "descRef": {
       "book": "mer-des-griffes",
       "ch": "16",

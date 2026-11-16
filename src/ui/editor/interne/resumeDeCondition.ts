@@ -84,6 +84,7 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'foeInLoS': return 'ennemi en Ligne de Vue';
     case 'cibleEnVue': return c.hostiles ? 'membre hostile de la Cible en vue' : 'membre de la Cible en vue';
     case 'visiblePassive': return `${c.who === 'caster' ? 'lanceur' : 'cible'} : atteinte visible`;
+    case 'navire': return `${libelleDeValeur(actorRefSchema, c.who)} : navire`;
     case 'hiddenFromFoes': return 'caché (hors de vue de l’ennemi)';
     case 'engaged': return 'engagé avec un ennemi';
     case 'crewTest': return 'au sein d’un Test d’équipage';
