@@ -1,10 +1,13 @@
 """reprises.Reprises : une étape écrite se relit, scène rouverte ; une étape coupée avant son pointeur laisse la
-précédente ; une étape nouvelle retire les anciennes ; `effacer` retire les reprises de toutes les constructions, qu'une
-construction encore en cours réécrit. `dossier_de_construction` nomme le dossier par l'empreinte, sous le
-`git-common-dir`. Une scène Blender réelle traverse l'écriture et la relecture (#3319, #3793)."""
+précédente ; une étape nouvelle retire les anciennes ; `effacer` retire les reprises de sa construction et
+celles, périmées, des autres (#3173).
+`dossier_de_construction` nomme le dossier par l'empreinte, sous le `git-common-dir`. Une scène Blender réelle traverse
+l'écriture et la relecture (#3319, #3793)."""
+import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -13,7 +16,7 @@ import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from reprises import ETAT, POINTEUR, SCENE, Reprises, dossier_de_construction  # noqa: E402
+from reprises import ETAT, PEREMPTION_S, POINTEUR, SCENE, Reprises, dossier_de_construction  # noqa: E402
 
 
 def blender(dossier):
@@ -61,16 +64,25 @@ class Reprise(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in self.dossier.iterdir()), [POINTEUR, 'point-fixe'])
         self.assertEqual(sorted(p.name for p in (self.dossier / 'point-fixe').iterdir()), sorted([SCENE, ETAT]))
 
-    def test_effacer_retire_toutes_les_constructions_qu_une_construction_en_cours_reecrit(self):
-        abandonnee, en_cours = blender(self.racine / 'b'), blender(self.racine / 'c')
-        abandonnee.ecrire('passe-0001', {'passe': 1})
-        en_cours.ecrire('passe-0001', {'passe': 1})
+    def test_effacer_laisse_la_reprise_d_une_autre_empreinte(self):
+        autre = blender(self.racine / 'b')
+        autre.ecrire('passe-0001', {'passe': 1})
         finie = blender(self.dossier)
         finie.ecrire('point-fixe', {'passe': 9})
         finie.effacer()
-        self.assertFalse(self.racine.exists())
-        en_cours.ecrire('passe-0002', {'passe': 2})
-        self.assertEqual(en_cours.lire()['passe'], 2)
+        self.assertFalse(self.dossier.exists())
+        self.assertIsNone(finie.lire())
+        self.assertEqual(autre.lire()['passe'], 1)
+
+    def test_effacer_retire_la_reprise_perimee_d_une_autre_empreinte(self):
+        autre = blender(self.racine / 'b')
+        autre.ecrire('passe-0001', {'passe': 1})
+        ancien = time.time() - PEREMPTION_S - 60
+        os.utime(self.racine / 'b', (ancien, ancien))
+        finie = blender(self.dossier)
+        finie.ecrire('point-fixe', {'passe': 9})
+        finie.effacer()
+        self.assertEqual(list(self.racine.iterdir()), [])
 
     def test_l_empreinte_nomme_le_dossier_sous_le_git_common_dir(self):
         racine = Path(__file__).resolve().parents[2]

@@ -384,12 +384,12 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     est marquée pour un nom raboté avec la force de la plus grande part du nom aux sites qui y sont en faute hors du
     socle, marquée dès que cette force est non nulle. La correction de
     chaque passe porte le rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que le
-    rabot leur ôte. Rend aussi le rabot cumulé (nom -> facteur par sommet) des seuls noms rabotés."""
+    rabot leur ôte."""
     portes = portes or {}
     portes_finis = {nom: c + libre[:, None] * (bruts[nom] - c) for nom, c in portes.items()}
     noms = [nom for nom in bruts if nom not in portes]
     if not noms:
-        return {nom: portes_finis[nom] for nom in bruts}, {}
+        return {nom: portes_finis[nom] for nom in bruts}
     inverse = numpy.linalg.inv(vers_le_monde)
 
     def tous(courants):
@@ -413,10 +413,10 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
                for k, nom in enumerate(noms)}, flush=True)
         return numpy.stack([courants[nom] for nom in noms], axis=1), marques
 
-    pile, passes, cumul = raboter(numpy.stack([bruts[nom] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
-                                  PASSES_DE_RABOT)
+    pile, passes = raboter(numpy.stack([bruts[nom] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
+                            PASSES_DE_RABOT)
     print('SILHOUETTES rabot', passes, 'passe(s) ; correction', sondes[-1], flush=True)
-    return tous({nom: pile[:, k] for k, nom in enumerate(noms)}), {nom: cumul[:, k] for k, nom in enumerate(noms)}
+    return tous({nom: pile[:, k] for k, nom in enumerate(noms)})
 
 
 def exces(rapport, bornes):
@@ -587,10 +587,10 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
         def derivees(champs):
             return cuire({nom: d - portes[nom] if nom in portes else d for nom, d in champs.items()})
 
-        finis, _ = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
-                                               mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees,
-                                                               portes=list(portes)),
-                                               portes)
+        finis = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
+                                        mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees,
+                                                        portes=list(portes)),
+                                        portes)
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
         print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom], axis=1).max()), 4), '->',

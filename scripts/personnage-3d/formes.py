@@ -111,20 +111,20 @@ def raboter(champ, noeud, aretes, facteur, mesurer, passes_max):
     l'extrémité marquée la plus proche (`anneaux_des_marquees`). Les nœuds à r anneaux de la région, 1 ≤ r ≤
     `PENTE_DU_RABOT`, reçoivent `RABOT ** (s · (1 − r / (PENTE_DU_RABOT + 1)))`, s la force du nœud raboté le plus
     proche ; la clé reste intacte ailleurs. Un sommet de `facteur` nul reste nul. Les sommets d'un même nœud
-    reçoivent la même valeur. Rend les champs mesurés de la dernière passe, le nombre de passes et le rabot cumulé.
+    reçoivent la même valeur. Rend les champs mesurés de la dernière passe et le nombre de passes.
     Une arête marquée dont les deux extrémités ont un `facteur` nul, qu'aucune passe ne change, ou une arête marquée
     au-delà de `passes_max` passes, arrête la construction."""
     libre = (facteur > 0)[:, None, None]
-    cumul = aux_noeuds(numpy.ones(champ.shape[:2]), noeud)
     valeur = aux_noeuds(champ * facteur[:, None, None], noeud)
     anneaux = numpy.zeros(valeur.shape[1], dtype=int)
+    cumul = numpy.ones(valeur.shape[:2])
     rabotees = {}
     for passe in range(passes_max + 1):
         mesures, forces = mesurer(valeur[noeud] * libre, cumul[noeud])
         forces = numpy.asarray(forces, dtype=float)
         marquees = forces > 0
         if not marquees.any():
-            return mesures, passe, cumul[noeud]
+            return mesures, passe
         tenues = marquees & (facteur[aretes] == 0).all(axis=1)[:, None]
         if tenues.any():
             raise RuntimeError(f'{int(tenues.any(axis=1).sum())} arête(s) hors bornes aux deux extrémités tenues : aucune passe de '
