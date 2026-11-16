@@ -53,7 +53,8 @@ describe('porteeDeComposition', () => {
   });
 
   it('une armure sans ensemble apporte les pièces qui couvrent les localisations de son trapping (#3456), comme au combat', () => {
-    const { portees } = porteeDeComposition(lue({ ...composition, objets: ['veste-de-cuir'] }));
+    const { pieces: _pieces, ...sansPieces } = sansTenue;
+    const { portees } = porteeDeComposition(lue({ ...sansPieces, objets: ['veste-de-cuir'] }));
     const attendues = piecesDeLObjet('veste-de-cuir');
     expect(attendues.length).toBeGreaterThan(0);
     expect(portees.filter((p) => p.par?.id === 'veste-de-cuir').map((p) => p.cle)).toEqual(attendues.map((id) => ({ champ: 'piece', id })));
