@@ -679,10 +679,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       if (cur?.kind === 'equipage-orientation') { orientation = true; break; }
       if (cur?.kind === 'equipage-progression') progression = cur;
       // Le choix de Progression (MDG 14 l.63) se répond par défaut — voie d'équipage.
-      if (cur?.options && !cur.chosen) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
-      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetLancer('cascadeEnBande', part.id); }
-      else if (cur && !cur.result) get().jetLancer('cascade', cur.id);
-      get().jetValider('cascade');
+      avanceEtapeCascade(get);
       if (cur?.kind === 'equipage-progression') milesToday = get().travelPlan?.sea?.milesToday ?? 0;
     }
     return { phare, progression, milesToday, orientation };
