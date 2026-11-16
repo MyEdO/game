@@ -42,17 +42,21 @@ const ouvertSur = (jeu: Jeu | null): string | null => {
 /** Les zones de la fiche d'une suite. */
 const zonesDeLaFiche = (s: Suite) => (['fiche.porteur', 'fiche.gestes', 'fiche.profil', 'fiche.sections', 'fiche.source', 'fiche.objet'] as const).map((z) => s.vue.zones[z]);
 
+/** Les héros du groupe du dôme. */
+const HEROS = ['Ilyanwe la Voilée', 'Berta'];
+
 describe('la fiche d’un combattant par le pont', () => {
   it('ouverte par le bouton d’un héros : sa tête, son profil, ses sections, une possession choisie, puis fermée', () => {
     const { suite: debut } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
-    const groupe = debut.vue.zones['groupe.heros'];
-    expect(groupe.map((c) => c.nom), 'chaque héros du groupe a sa carte, qui le nomme').toEqual(['Ilyanwe la Voilée', 'Berta']);
-    expect([0, 1].some((i) => ficheDuHeros(debut.vue, i).presse), 'aucune fiche ouverte').toBe(false);
+    expect(debut.vue.zones['groupe.heros'], 'en combat, aucune carte de héros : l’ordre du tour les porte').toEqual([]);
+    const fiches = debut.vue.zones['combat.ordre'].flatMap((r) => r.elements.filter((e) => e.id.startsWith('fiche/')).map((e) => [r.nom, e.id.replace('fiche/', 'ordre/') === r.id]));
+    expect(fiches.sort(), 'le rang de chaque héros du groupe, et lui seul, porte le bouton de sa fiche').toEqual([...HEROS].sort().map((nom) => [nom, true]));
+    expect(HEROS.some((h) => ficheDuHeros(debut.vue, h).presse), 'aucune fiche ouverte').toBe(false);
     expect(zonesDeLaFiche(debut), 'sans fiche, ses zones sont vides').toEqual([[], [], [], [], [], []]);
 
-    let s = suiteDe(appel('fiche', ficheDuHeros(debut.vue, 0).jeu));
+    let s = suiteDe(appel('fiche', ficheDuHeros(debut.vue, 'Ilyanwe la Voilée').jeu));
     expect(s.vue.projection.pas, 'ouvrir la fiche ne joue aucun geste de la partie').toBe(debut.vue.projection.pas);
-    expect(ficheDuHeros(s.vue, 0).presse, 'le héros de la fiche ouverte est pressé').toBe(true);
+    expect(ficheDuHeros(s.vue, 'Ilyanwe la Voilée').presse, 'le héros de la fiche ouverte est pressé').toBe(true);
     const [heros] = s.vue.zones['fiche.porteur'];
     expect(heros.nom).toBe('Ilyanwe la Voilée');
     expect(heros.elements.some((e) => e.id === 'bourse'), 'un héros du groupe a sa bourse').toBe(true);
@@ -128,9 +132,9 @@ describe('la fiche d’un combattant par le pont', () => {
 
     s = suiteDe(appel('fiche', avance.vue.zones['fiche.gestes'].find((b) => b.id === 'fermer')!.jeu));
     expect(zonesDeLaFiche(s), 'fermée, ses zones se vident').toEqual([[], [], [], [], [], []]);
-    s = suiteDe(appel('fiche', ficheDuHeros(s.vue, 1).jeu));
+    s = suiteDe(appel('fiche', ficheDuHeros(s.vue, 'Berta').jeu));
     expect(s.vue.zones['fiche.porteur'][0].nom, 'le bouton d’un autre héros ouvre sa fiche').toBe('Berta');
-    s = suiteDe(appel('fiche', ficheDuHeros(s.vue, 1).jeu));
+    s = suiteDe(appel('fiche', ficheDuHeros(s.vue, 'Berta').jeu));
     expect(s.vue.zones['fiche.porteur'], 'son bouton pressé la ferme').toEqual([]);
   });
 
@@ -140,7 +144,7 @@ describe('la fiche d’un combattant par le pont', () => {
     expect(orc.nom).toBe('Orc');
     expect(orc.elements.some((e) => e.id === 'bourse'), 'un adversaire n’a pas de bourse').toBe(false);
     expect(orc.elements.map((e) => e.id).filter((id) => ['espece', 'carriere', 'destin', 'chance', 'resilience', 'determination'].includes(id)), 'ni espèce, ni carrière, ni Points pour une créature').toEqual([]);
-    expect([0, 1].some((i) => ficheDuHeros(s.vue, i).presse), 'aucun héros pressé').toBe(false);
+    expect(HEROS.some((h) => ficheDuHeros(s.vue, h).presse), 'aucun héros pressé').toBe(false);
     expect(s.vue.zones['fiche.sections'].map((e) => e.nom), 'chaque section non vide, dans l’ordre du statbloc').toEqual(['Attaques', 'Armure', 'Traits']);
     expect(armes(s).map((a) => [a.nom, ...(a.elements as Puce[]).map((p) => [p.libelle, p.valeur])]), 'une arme : la valeur de son Test, ses Dégâts résolus')
       .toEqual([['Arme', ['Test', '35'], ['Dégâts +8 (8)', null]]]);

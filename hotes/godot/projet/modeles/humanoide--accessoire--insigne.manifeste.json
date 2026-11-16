@@ -17,11 +17,12 @@
     },
     {
       "nom": "bordure",
-      "palette": "vet1"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     }
   ],
   "glb": {
-    "sha256": "52338dd003e0b6f4a2fb62b6b861ff82f1fb46a0d393ed99befc576a7fdca055",
-    "octets": 29464
+    "sha256": "da8c59017b5b387e7fc83cc7ad86d2c5f6d640dc26eddcd13bc60e702d311cae",
+    "octets": 61960
   }
 }

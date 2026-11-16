@@ -12,9 +12,10 @@ import { isInanimate } from '../../engine/structures';
 import { distanceDeContact } from '../monde/footprint';
 
 /** Parmi `combattants`, ceux du camp `kind`, vivants, posés, animés (`isInanimate`) et au contact de `cible`
- *  (`distanceDeContact`, relief compris). */
+ *  (`distanceDeContact`, relief compris), hors monture chevauchée (`riderId`, comme `isMount` de `noyau/mount.ts`, dont
+ *  l'import ferme un cycle) : son cavalier la représente. ZI 13 l.193 ; LDB 14 l.110 ; arbitrage du 2026-11-16, #4202 */
 export function auContactParmi(scene: Scene | null, combattants: readonly Combatant[], cible: Combatant, kind: Combatant['kind']): Combatant[] {
-  return combattants.filter((c) => c.kind === kind && !isOutOfAction(c) && !isInanimate(c) && c.pos && distanceDeContact(scene, c, cible) <= 1);
+  return combattants.filter((c) => c.kind === kind && !c.riderId && !isOutOfAction(c) && !isInanimate(c) && c.pos && distanceDeContact(scene, c, cible) <= 1);
 }
 
 /** Le décompte d'`auContactParmi`. */

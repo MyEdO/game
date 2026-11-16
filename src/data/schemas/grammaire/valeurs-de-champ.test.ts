@@ -139,7 +139,7 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume|vegetal',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal',
   'physique|mentale',
   // `offreDAubergeSchema` (#4277) : les offres d'auberge d'un hébergement (LDB 66 l.12-16, l.28).
   'commune|chambre|grande|repas',

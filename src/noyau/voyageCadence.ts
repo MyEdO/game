@@ -35,7 +35,7 @@ export interface VoyageOrders {
  *  de terre, de mer et de fleuve (`travelFlow`, `buildSeaPlan`, `buildRiverPlan`), `fixerLaCadence`, l'ordre des
  *  cadences offertes (`CADENCES_AU_CHOIX`) et le sélecteur de départ de `WorldMapView` (aucune copie en dur du
  *  littéral ailleurs). */
-export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
+export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'jourParJour' };
 
 /** Chaque cadence, une fois. */
 const CADENCES: Record<VoyageCadence, true> = { commande: true, jourParJour: true };
@@ -70,8 +70,8 @@ export const KINDS_SOUS_ORDRES: ReadonlySet<GenreDeCascade> = new Set<GenreDeCas
 export type EtatDeTraversee = Pick<Jeu, 'net' | 'travelPlan'>;
 
 /**
- * La cadence a-t-elle un effet ? — SOURCE UNIQUE, lue par `traverseeCommandee`, par les vues qui l'offrent
- * (`carteEnVue.trajetsDepuis`, `voyageEnVue`) et par le sélecteur de départ du web. La résolution sans fenêtre est
+ * La cadence a-t-elle un effet ? — SOURCE UNIQUE, lue par `traverseeCommandee`, par la vue qui l'offre en route
+ * (`voyageEnVue`) et par le sélecteur de départ du web. La résolution sans fenêtre est
  * un bloc HÔTE-SEUL (`docs/architecture.md`, « Coop en ligne — limitations connues ») : hors mode local, une
  * traversée se joue jour par jour quels que soient ses ordres.
  */

@@ -1,0 +1,52 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/geste.gd" id="2_geste"]
+[ext_resource type="Script" path="res://scripts/dessin.gd" id="3_dessin"]
+[ext_resource type="Theme" path="res://art/fin_du_tour.tres" id="t_fin"]
+[ext_resource type="Script" path="res://scripts/bulle.gd" id="9_bulle"]
+
+[node name="Bouton" type="VBoxContainer"]
+size_flags_vertical = 8
+theme = ExtResource("t_fin")
+
+[node name="Presser" type="Button" parent="."]
+focus_mode = 0
+script = ExtResource("9_bulle")
+custom_minimum_size = Vector2(88, 88)
+toggle_mode = true
+autowrap_mode = 3
+icon_alignment = 1
+vertical_icon_alignment = 0
+
+[node name="libelle" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="Dessin" type="Node" parent="Presser"]
+script = ExtResource("3_dessin")
+champ = "icone"
+
+[node name="presse" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "presse"
+propriete = &"button_pressed"
+
+[node name="refus" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "refus"
+propriete = &"disabled"
+
+[node name="Geste" type="Node" parent="Presser"]
+script = ExtResource("2_geste")
+
+[node name="detail" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "detail"
+propriete = &"tooltip_text"
+
+[node name="infobulle_refus" type="Node" parent="Presser"]
+script = ExtResource("1_liaison")
+champ = "refus"
+propriete = &"tooltip_text"
+a_la_suite = true

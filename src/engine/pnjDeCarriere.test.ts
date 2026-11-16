@@ -27,6 +27,7 @@ import { augmenterLaCompetence } from './character';
 import type { Combatant } from './types';
 import { bourseOf, bourseInstanceOf, setBourseBrass } from './bourse';
 import { toBrass } from './money';
+import { wornArmourPoints } from './items';
 
 const porte = (p: ParcoursDeCarriere, id = 'pnj'): Combatant => {
   const c = combattantDeTest({ id });
@@ -148,6 +149,11 @@ describe('dotations de la carrière actuelle et de ses Niveaux inférieurs, sans
     const ids = porte({ carrieres: { medecin: 3 } }).items!.map((i) => i.trappingId);
     expect(ids).toEqual(expect.arrayContaining(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-de-guilde', 'outils-professionnels-medecin', 'atelier']));
     expect(ids).not.toContain('bourse');
+  });
+  it('le Chevalier 3 garde au sac, non portée, la barde de sa dotation : l’armure qu’il porte est celle du Chevalier 2 (#4135)', () => {
+    const chevalier = porte({ carrieres: { chevalier: 3 } });
+    expect(chevalier.items!.filter((i) => i.trappingId === 'barde').map((i) => i.equipped)).toEqual([false]);
+    expect(wornArmourPoints(chevalier.items!)).toEqual(wornArmourPoints(porte({ carrieres: { chevalier: 2 } }).items!));
   });
   it('la carrière d’avant ne dote pas', () => {
     expect(porte({ carrieres: { soldat: 2, medecin: 1 } }).items!.map((i) => i.trappingId)).toEqual(['bandages', 'potion-de-guerison']);

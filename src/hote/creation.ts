@@ -34,7 +34,7 @@ import {
 const RANGEE_AU_PLUS = 11;
 
 const bouton = (id: string, libelle: string, creation: GesteDeLaCreation | null, refus: string | null = null, presse = false, focus = false): Bouton => ({
-  type: 'bouton', id, libelle, jeu: { creation }, presse, focus, refus,
+  type: 'bouton', id, libelle, jeu: { creation }, presse, focus, detail: null, touche: null, refus,
 });
 
 /** Une rubrique de la page en élément : un geste en bouton, un jet tombé, un choix en rangée ou en liste (chaque option

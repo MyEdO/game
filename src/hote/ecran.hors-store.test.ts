@@ -5,12 +5,12 @@ import { lignesDuJournal, zonesDeLEcran } from './ecran';
 import { SANS_ROSTER } from './roster';
 import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
-import { dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
+import { ACTIONS, dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
 import { choixPiegeLame } from '../noyau/combatFlow';
 import { choiceStep } from '../noyau/rollSeam';
-import { t } from '../i18n';
+import { estUneCle, t } from '../i18n';
 import type { Bouton, Entite } from './elements';
 import { ouvrirLeBanc } from '../noyau/banc.testkit';
 import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
@@ -61,6 +61,14 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
     } finally {
       partie.fermer();
     }
+  });
+});
+
+describe('la pastille d’une offre par candidat (`combat.offres`)', () => {
+  it('le catalogue nomme court chaque action qui s’offre par candidat (`ecran.offre.<id>`)', () => {
+    const parCandidat = ACTIONS.filter((a) => a.candidates).map((a) => a.id);
+    expect(parCandidat, 'des actions s’offrent par candidat').toContain('incantation');
+    expect(parCandidat.filter((id) => !estUneCle(`ecran.offre.${id}`))).toEqual([]);
   });
 });
 
@@ -163,7 +171,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
 
 describe('la carte d’un héros lit l’en-tête de sa fiche, pas la fiche (#3975)', () => {
   it('dessiner l’écran sans fiche ouverte ne calcule aucune fiche', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(nouvelEntete('porte-close', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
       const ns = fiches as unknown as Record<string, unknown>;

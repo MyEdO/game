@@ -12,6 +12,7 @@ import { primaryCargoCarrier } from '../../noyau/carriers';
 import { avanceEtapeCascade, draineCascade, draineCascadeDifferee } from '../../noyau/cascade.testkit';
 import { carrierFreeEnc } from '../../engine/cargo';
 import { REIK_INDEX } from '../../scenes/test-scenarios/_reik-index';
+import type { VoyageCadence } from '../voyageCadence';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -141,7 +142,7 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
 });
 
 /**
- * #2545 — la descente COMMANDÉE (ordres par défaut, `DEFAULT_VOYAGE_ORDERS`) se résout sans fenêtre par
+ * #2545 — la descente COMMANDÉE (`{ cadence: 'commande' }`) se résout sans fenêtre par
  * jet : le jour se joue d'un bloc (`runCascadeImmediate`) et le dé d'Exposition hydrique comme son Test
  * (MSRC 16 l.5-13) sont des Tests de route sous ordres (`voyageCadence.KINDS_SOUS_ORDRES`). Aucune
  * fenêtre n'en montre les dés : chacun laisse sa ligne au journal.
@@ -151,10 +152,10 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
 
   /** Descend jusqu'à l'arrivée en dormant aux haltes et en FORÇANT chaque barrage (MSRC 7 l.128) :
    *  rend chaque fenêtre de JET rencontrée ; les décisions tranchées s'accumulent dans `decisions`. */
-  function descendre(cadence?: 'jourParJour', decisions: string[] = []): string[] {
+  function descendre(cadence: VoyageCadence, decisions: string[] = []): string[] {
     drainCascade(); // l'entrée de scène du lanceur (affichage, aucun jet)
     const fenetres: string[] = [];
-    get().partirEnVoyage('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence });
     for (let i = 0; i < 40 && get().travelPlan; i++) {
       const p = get().pendingCascade;
       const cur = p?.participants[p.cursor];
@@ -176,7 +177,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
       : { ...r, riverPerils: (r.riverPerils ?? []).map((pe) => (pe.perilId === 'barrage' ? { ...pe, chancePct: 100 } : pe)) })) } });
   }
 
-  it('graine 5, cadence par défaut, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
+  it('graine 5, sous ordres, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
     seedBattleRng(5);
     barragePose();
     // Le journal du store est plafonné : chaque ligne se capte à son puits (`ecrireAuJournal`), le temps de la descente.
@@ -185,7 +186,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     banc.setState({ ecrireAuJournal: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
     const decisions: string[] = [];
     try {
-      expect(descendre(undefined, decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);
+      expect(descendre('commande', decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);
     } finally {
       banc.setState({ ecrireAuJournal: puits });
     }

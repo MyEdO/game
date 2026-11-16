@@ -15,7 +15,7 @@ import { creerPont, type ReseauDuPont, type MondeDuPont, type MorceauxDuPont, ty
 import { gestesDessines } from './dessines';
 export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
-import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal, type VoyageCadence } from '../../../src/noyau/index';
+import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal } from '../../../src/noyau/index';
 import { parametresDuGeste } from '../../../src/hote/gestes';
 import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } from '../../../src/hote/elements';
 
@@ -47,12 +47,14 @@ export function morceauxDe(appel: ReturnType<typeof table>['appel'], source: 'pa
 /** La vue d'une réponse qui en porte une. */
 export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
 
-/** Le bouton qui ouvre la fiche d'un héros du groupe (`groupe.heros`), sa carte nommée par son nom ou son rang. */
+/** Le bouton qui ouvre la fiche d'un héros du groupe : sur sa carte (`groupe.heros`), en combat sur son rang de
+ *  l'ordre du tour (`combat.ordre`) ; la carte ou le rang nommé par son nom, ou par son rang parmi ceux qui en portent un. */
 export function ficheDuHeros(vue: VueDuPont, heros: string | number): Bouton {
-  const cartes = vue.zones['groupe.heros'];
-  const carte = typeof heros === 'number' ? cartes[heros] : cartes.find((c) => c.nom === heros);
-  const bouton = carte?.elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'));
-  if (!bouton) throw new Error(`aucune carte du groupe pour ${heros}`);
+  const deFiche = (e: Element): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/');
+  const porteurs = [...vue.zones['groupe.heros'], ...vue.zones['combat.ordre']].filter((p) => p.elements.some(deFiche));
+  const porteur = typeof heros === 'number' ? porteurs[heros] : porteurs.find((c) => c.nom === heros);
+  const bouton = porteur?.elements.find(deFiche);
+  if (!bouton) throw new Error(`aucune carte du groupe ni rang de l’ordre du tour pour ${heros}`);
   return bouton;
 }
 
@@ -183,9 +185,8 @@ export function gesteDe(vue: VueDuPont, cle: string): Bouton | Choix | Formulair
 /** L'élément d'id `id` du corps de la fenêtre, `undefined` sans lui. */
 export const corpsDe = (vue: VueDuPont, id: string): Element | undefined => vue.zones['fenetre.corps'].find((e) => e.id === id);
 
-/** Le départ du trajet `route` sous la cadence `cadence` sur la carte ouverte : le choix de ses modes, sous sa
- *  destination au plan. */
-export function departDeLaCarte(vue: VueDuPont, route: string, cadence: VoyageCadence): Choix {
+/** Le départ du trajet `route` sur la carte ouverte : le choix de ses modes, sous sa destination au plan. */
+export function departDeLaCarte(vue: VueDuPont, route: string): Choix {
   const plan = corpsDe(vue, 'carte/plan') as Plan;
-  return plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.type === 'choix' && e.id === `${route}/${cadence}`)!;
+  return plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.type === 'choix' && e.id === route)!;
 }
