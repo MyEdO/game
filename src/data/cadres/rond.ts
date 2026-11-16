@@ -37,22 +37,31 @@ export const rond = (rayon: number) => {
   };
 };
 
-/** La pastille : un rond de 17. */
-const PASTILLE = rond(17);
+/**
+ * Un disque à listel (#3935) de rayon `rayon` : le listel bombé, large de `listel`, d'un disque de `metal` (`clair` en
+ * haut à gauche, `sombre` en bas à droite, inversés quand le disque est `enfonce`), son champ en creux de `champ`, un
+ * reflet sur le listel.
+ */
+const disque = (rayon: number, listel: number) => {
+  const { anneau, contour, reflet, tranches } = rond(rayon);
+  return (id: string, label: string, champ: string, clair: string, metal: string, sombre: string, enfonce = false): CadreDef => ({
+    id,
+    label,
+    tranches,
+    svg:
+      moities(id) +
+      `<rect ${contour(0)} fill="var(${sombre})"/>` +
+      `<rect ${contour(1)} fill="var(${metal})"/>` +
+      anneau(id, 1.5, enfonce ? sombre : clair, enfonce ? clair : sombre, 0.9) +
+      `<rect ${contour(listel + 1)} fill="var(--shadow-ink)"/>` +
+      `<rect ${contour(listel + 2)} fill="var(${champ})"/>` +
+      anneau(id, listel + 2.5, '--shadow-ink', clair, 0.6) +
+      (enfonce ? '' : reflet(2, clair, 0.9)),
+  });
+};
 
-/** Une pastille (#3935) : le listel bombé d'un disque de `metal` (`clair` en haut à gauche, `sombre` en bas à droite,
- *  inversés quand la pastille est `enfoncee`), son champ en creux de `champ`, un reflet sur le listel. */
-export const pastille = (id: string, label: string, champ: string, clair: string, metal: string, sombre: string, enfoncee = false): CadreDef => ({
-  id,
-  label,
-  tranches: PASTILLE.tranches,
-  svg:
-    moities(id) +
-    `<rect ${PASTILLE.contour(0)} fill="var(${sombre})"/>` +
-    `<rect ${PASTILLE.contour(1)} fill="var(${metal})"/>` +
-    PASTILLE.anneau(id, 1.5, enfoncee ? sombre : clair, enfoncee ? clair : sombre, 0.9) +
-    `<rect ${PASTILLE.contour(4)} fill="var(--shadow-ink)"/>` +
-    `<rect ${PASTILLE.contour(5)} fill="var(${champ})"/>` +
-    PASTILLE.anneau(id, 5.5, '--shadow-ink', clair, 0.6) +
-    (enfoncee ? '' : PASTILLE.reflet(2, clair, 0.9)),
-});
+/** Une pastille : un disque à listel de 17 de rayon, posé à 34 de côté. */
+export const pastille = disque(17, 3);
+
+/** Un bouton rond : un disque à listel de 42 de rayon, posé à 84 de côté (la fin du tour, `art/fin_du_tour.tres`). */
+export const boutonRond = disque(42, 6);

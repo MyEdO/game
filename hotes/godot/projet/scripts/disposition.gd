@@ -27,7 +27,7 @@ extends Node
 ## en `case`, voilée tant qu'elle est refusée, une case libre en `caseLibre`, chacune la touche de son rang en son coin
 ## haut gauche, `touche.gd`), qui se retire avec le meuble, la fin du tour en bas à droite (`Tour`, la part du tour de
 ## `combat.offres`, `economie/aucun`, en `finDuTour` :
-## « Fin du tour » en gros bouton rond de laiton, les autres en pastilles rondes à pictogramme à sa gauche), les avis
+## « Fin du tour » en gros bouton rond de laiton au sablier, son nom dessous, les autres en pastilles rondes empilées à sa gauche), les avis
 ## du combat en ligne au-dessus du meuble (`Actif/Avis`) et le dialogue, et où se cadre le monde (`Monde.cadre`) ;
 ## rien ne recouvre le groupe ni le journal. En combat, la
 ## fenêtre générique se pose en bas au centre, au-dessus du meuble de l'actif. Le coin bas-droit

@@ -5,7 +5,7 @@
 [node name="Rang" instance=ExtResource("1_rang")]
 
 [node name="Zone" parent="Rangee/Cadre/Portrait"]
-formes = PackedStringArray("portrait:portraitDeLActif")
+formes = PackedStringArray("portrait:portraitDuRangActif")
 
 [node name="Nom" parent="Rangee/Pile"]
 theme_type_variation = &"NomDeLActif"
