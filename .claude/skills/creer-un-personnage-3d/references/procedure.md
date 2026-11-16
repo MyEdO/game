@@ -675,7 +675,10 @@ proportions d'adaptation sans illustration) et `modele.py` (`elements(D)`, un é
 dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes ni
 de leur géométrie, que `decor/polygones.mjs` tire de `polygonesDePrimitive` (`src/data/props.types.ts`), et se bâtit
 dans leur enveloppe convexe (`gabarit.enveloppe`), dont il garde l'encombrement sans recopier les primitives ;
-`Gabarit.rentrer` y ramène le sommet qui en sortirait. `test_decor.py` refuse un sommet du GLB publié (lu dans le cache
+`Gabarit.rentrer` y ramène le sommet qui en sortirait. Le modèle ne
+passe par aucune rotation de `mathutils` (`rotation_difference`, `Quaternion`, `Euler`, `Matrix.Rotation`), dont la
+trigonométrie en simple précision change d'une libm à l'autre et déplace les sommets : un repère se transporte par
+produits vectoriels (`transporter` de `decor/arbre/modele.py`). `test_decor.py` refuse un sommet du GLB publié (lu dans le cache
 des modèles à l'empreinte de son manifeste) hors de cette enveloppe, sol compris, à 1 mm près. Une enveloppe qui empêche un modèle correct se rapporte, avec la cote qui gêne ; le modèle ne
 change pas la recette.
 

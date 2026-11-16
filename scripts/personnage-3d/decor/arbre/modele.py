@@ -46,6 +46,13 @@ def courbe(points, rayons, pas, ecart, a):
     return chemin + [pts[-1]], sections + [rayons[-1]]
 
 
+def transporter(n, t0, t1):
+    """La normale `n` portée par la plus petite rotation qui amène la tangente unitaire `t0` sur `t1`, sans fonction
+    trigonométrique (Rodrigues) : le résultat ne dépend pas de la libm."""
+    v = t0.cross(t1)
+    return n + v.cross(n) + v.cross(v.cross(n)) / (1 + t0.dot(t1))
+
+
 def peau(m, anneaux, mat, pointe):
     """Les quads entre anneaux successifs (listes de points de même longueur), le premier fermé à plat, le dernier en
     cône vers `pointe`."""
@@ -78,7 +85,7 @@ def branche(m, points, rayons, S, mat, a, cassure=None, contreforts=None, creux=
     anneaux, longueur = [], 0.0
     for i, (p, t, r) in enumerate(zip(chemin, tangentes, sections)):
         if i:
-            n = (tangentes[i - 1].rotation_difference(t) @ n).normalized()
+            n = transporter(n, tangentes[i - 1], t).normalized()
             longueur += (p - chemin[i - 1]).length
         b = t.cross(n)
         anneau = []
