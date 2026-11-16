@@ -134,6 +134,18 @@
       "pdfChars": 0
     },
     {
+      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/16 - CHAPITRE 12 - LE CARNAVAL DU PANDEMONIUM.md",
+      "ref": "EDOC 16 folio 126",
+      "occurrence": 1,
+      "pdfChars": 0
+    },
+    {
+      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/16 - CHAPITRE 12 - LE CARNAVAL DU PANDEMONIUM.md",
+      "ref": "EDOC 16 folio 127",
+      "occurrence": 1,
+      "pdfChars": 0
+    },
+    {
       "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre/04 - Chapitre 4 - Sur la route de Bogenhafen....md",
       "ref": "EDO 4 folio 51",
       "occurrence": 1,
@@ -204,6 +216,12 @@
       "ref": "MSR 9 folio 93",
       "occurrence": 1,
       "pdfChars": 37
+    },
+    {
+      "fichier": "Source/Warhammer v4 - Les Vents de Magie/14 - Les Vents a l'oeuvre.md",
+      "ref": "VDM 14 folio 203",
+      "occurrence": 1,
+      "pdfChars": 0
     }
   ]
 }

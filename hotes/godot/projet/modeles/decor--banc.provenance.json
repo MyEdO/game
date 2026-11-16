@@ -1,0 +1,13 @@
+{
+  "model": "decor--banc.glb",
+  "model_sha256": "41400f60d5df6502f517624dfc660df8627b8049d6d52e2aedc0d98294e56928",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

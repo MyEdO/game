@@ -1,6 +1,6 @@
 *Pages PDF 174-183*
 
-# **TRAUMATISME**
+# <span id="page-173-0" data-folio="172"></span>**TRAUMATISME**
 
 La plupart des Personnages vont, au cours de la partie, subir des traumatismes. Les règles de Traumatisme qui suivent indiquent la façon de les gérer et de les soigner lorsque c'est possible.
 

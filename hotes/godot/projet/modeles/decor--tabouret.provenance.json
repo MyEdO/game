@@ -1,0 +1,13 @@
+{
+  "model": "decor--tabouret.glb",
+  "model_sha256": "1d4ee35ee60cea658d4ba106408b66472a2a40d767ebb59ce45cf193f5ab56b9",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

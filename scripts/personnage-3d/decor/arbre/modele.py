@@ -14,7 +14,8 @@ import math
 from mathutils import Vector
 
 import habillage
-from geometrie import HAUT, alea, cap, coque, lisse, normale
+import geometrie
+from geometrie import HAUT, a_la_hauteur, alea, anneau, cap, coque, lisse, normale, normales
 from gabarit import Gabarit
 from maille import Maille, lineaire, objet
 
@@ -65,7 +66,7 @@ def branche(m, points, rayons, S, mat, a, cassure=None, contreforts=None, creux=
             n = transporter(n, tangentes[i - 1], t).normalized()
             longueur += (p - chemin[i - 1]).length
         b = t.cross(n)
-        anneau = []
+        cercle = []
         for j in range(k):
             angle = 2 * math.pi * j / k + S["torsion"] * longueur
             d = n * math.cos(angle) + b * math.sin(angle)
@@ -74,8 +75,8 @@ def branche(m, points, rayons, S, mat, a, cassure=None, contreforts=None, creux=
                 f *= evasement(d, p.z, contreforts)
             for z, azimut, demi_hauteur, demi_ouverture, profondeur in creux:
                 f *= 1 - profondeur * max(0.0, 1 - ((p.z - z) / demi_hauteur) ** 2) * max(0.0, 1 - (ecart_d_azimut(d, azimut) / math.radians(demi_ouverture)) ** 2)
-            anneau.append(p + d * r * f)
-        anneaux.append(anneau)
+            cercle.append(p + d * r * f)
+        anneaux.append(cercle)
     bout, t, r = chemin[-1], tangentes[-1], sections[-1]
     if cassure is None:
         coque(m, anneaux, mat, bout + t * r * S["pointe"])
@@ -176,13 +177,7 @@ def masse(m, F, bout, taille, mat, a):
 def brin(m, points, rayons, cotes, mat):
     """Un brin droit ou coudé : un anneau de `cotes` côtés à chacun de ses `points` sauf le dernier, sa pointe."""
     pts = [Vector(p) for p in points]
-    anneaux = []
-    for i, r in enumerate(rayons):
-        t = (pts[i + 1] - pts[max(i - 1, 0)]).normalized()
-        n = normale(t)
-        b = t.cross(n)
-        anneaux.append([pts[i] + (n * math.cos(2 * math.pi * j / cotes) + b * math.sin(2 * math.pi * j / cotes)) * r for j in range(cotes)])
-    coque(m, anneaux, mat, pts[-1])
+    coque(m, [anneau(pts[i], *normales((pts[i + 1] - pts[max(i - 1, 0)]).normalized()), r, cotes) for i, r in enumerate(rayons)], mat, pts[-1])
 
 
 def ramure(m, R, F, bout, taille, mat, a):
@@ -214,12 +209,6 @@ def sur(chemin, part):
     x = part * (len(chemin) - 1)
     i = min(int(x), len(chemin) - 2)
     return chemin[i].lerp(chemin[i + 1], x - i)
-
-
-def a_la_hauteur(chemin, z):
-    """Le point de `chemin`, qui monte, à la hauteur `z`."""
-    i = max(i for i, p in enumerate(chemin[:-1]) if p.z <= z)
-    return chemin[i].lerp(chemin[i + 1], (z - chemin[i].z) / (chemin[i + 1].z - chemin[i].z))
 
 
 def rayon_a(points, rayons, z):
@@ -331,13 +320,13 @@ def souche(D, bois, a):
     anneaux.append(lisiere)
     for rang, part in enumerate(C["cernes"]):
         for marche in (rang, rang + 1):
-            anneau = []
+            cercle = []
             for j, p in enumerate(bord):
                 gerce = azimuts[j][1]
                 q = p * part
                 fond = gerce[3] if gerce and part >= gerce[2] else 0
-                anneau.append(q + HAUT * (dessus(q) - marche * C["gradin"] - fond + a.uniform(-C["relief"], C["relief"])))
-            anneaux.append(anneau)
+                cercle.append(q + HAUT * (dessus(q) - marche * C["gradin"] - fond + a.uniform(-C["relief"], C["relief"])))
+            anneaux.append(cercle)
     coque(bois, anneaux, mat, HAUT * (dessus(Vector((0, 0, 0))) - (len(C["cernes"]) + 1) * C["gradin"] - C["coeur"]))
 
     nombre, demi_longueur, largeurs, epaisseur, hauteurs, devers, couche = C["charniere"]
@@ -402,6 +391,4 @@ def construire(D, id_):
 
 
 def elements(D):
-    for id_ in DECORS:
-        yield {"glb": id_, "cles": [("decor", {"prop": id_})], "materiaux": D["MATERIAUX"][id_], "blasons": (),
-               "construire": lambda id_=id_: construire(D, id_)}
+    return geometrie.elements(D, DECORS, construire)

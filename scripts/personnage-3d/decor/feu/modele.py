@@ -1,5 +1,5 @@
 """Les feux (#4335) : un GLB par décor de `DECORS`, bâti dans l'enveloppe convexe des primitives de sa recette
-(`gabarit.py`), dont il lit les cotes (`gabarit.boite`, par `pave` et `cylindre_lu`) et où `Gabarit.rentrer` ramène
+(`gabarit.py`), dont il lit les cotes (`geometrie.pave` et `geometrie.rond`) et où `Gabarit.rentrer` ramène
 le sommet qui en sortirait. Chaque pièce est une coque close : un caillou et un tas, des anneaux bruités fermés en
 pointe ; une bûche, des anneaux striés le long de son axe, ses bouts sciés rapportés ; un fer forgé, une section carrée
 le long d'un chemin plan. L'aléa est semé des codes de caractères de l'id du décor : deux constructions rendent les
@@ -12,10 +12,10 @@ import math
 
 from mathutils import Vector
 
-import habillage
-from geometrie import HAUT, alea, cap, coque, lisse, normale
-from gabarit import NOEUD_EMISSIF, Gabarit, boite
-from maille import Maille, cylindre, lineaire, objet, poutre, tour
+import geometrie
+from geometrie import ANGLES, HAUT, X, Y, cap, coque, lisse, normales, pave, rond
+from gabarit import NOEUD_EMISSIF
+from maille import cylindre, lineaire, poutre, tour
 
 DECORS = ("feu-camp", "brasero", "lampadaire")
 NOEUDS = {
@@ -24,19 +24,11 @@ NOEUDS = {
     "lampadaire": {"socle": ("pierre",), "fut": ("fer", "laiton"), "lanterne": ("fer", "laiton"), NOEUD_EMISSIF: ("vitres",)},
 }
 """Par décor, ses nœuds et les matériaux de chacun (`MATERIAUX` de `donnees.py`)."""
-ANGLES = ((1, 1), (-1, 1), (-1, -1), (1, -1))
-
-
-def pave(p):
-    """La boîte ou le prisme `p` de la recette (`gabarit.boite`) : son centre, et ses côtés (xM, yM, hM)."""
-    centre, demi = boite(p)
-    return Vector(centre), tuple(2 * e for e in demi)
 
 
 def cylindre_lu(G, emet):
-    """Le cylindre de la recette de `G` qui porte `emet` ou non (`gabarit.boite`) : son centre, son rayon, sa longueur."""
-    centre, (rayon, _, demi) = boite(next(p for p in G.primitives if p["kind"] == "cylinder" and bool(p.get("emet")) == emet))
-    return Vector(centre), rayon, 2 * demi
+    """Le cylindre de la recette de `G` qui porte `emet` ou non : son centre, son rayon, sa longueur (`geometrie.rond`)."""
+    return rond(next(p for p in G.primitives if p["kind"] == "cylinder" and bool(p.get("emet")) == emet))
 
 
 def caillou(m, pied, demi_axes, hauteur, azimut, C, mat, a):
@@ -70,8 +62,7 @@ def buche(m, p0, p1, rayon, B, cotes, a):
     """Une bûche de `p0` à `p1` d'après `B` : l'écorce, des anneaux striés et fléchis, et à chaque bout sa coupe sciée,
     rapportée en saillie dans l'aubier."""
     t = (p1 - p0).normalized()
-    n = normale(t)
-    b = t.cross(n)
+    n, b = normales(t)
     stries = [a.uniform(-B["stries"], B["stries"]) for _ in range(cotes)]
     anneaux = []
     for i in range(B["troncons"] + 1):
@@ -134,7 +125,7 @@ def feu_camp(D, G, P, a):
     B = F["buche"]
     jeu = F["jeu"] * rayon_buche
     assise = max(r for _, _, r in F["couchees"]) * rayon_buche
-    for long_, travers, rang in ((Vector((1, 0, 0)), Vector((0, 1, 0)), "couchees"), (Vector((0, 1, 0)), Vector((1, 0, 0)), "travers")):
+    for long_, travers, rang in ((X, Y, "couchees"), (Y, X, "travers")):
         for ecart, part, r in F[rang]:
             r *= rayon_buche
             z = r if rang == "couchees" else assise + (assise + r) * F["appui"]
@@ -254,21 +245,8 @@ BATIR = {"feu-camp": feu_camp, "brasero": brasero, "lampadaire": lampadaire}
 
 
 def construire(D, id_):
-    G = Gabarit(id_)
-    mats = habillage.materiaux(D["MATERIAUX"][id_])
-    pieces = {noeud: Maille([mats[nom] for nom in noms]) for noeud, noms in NOEUDS[id_].items()}
-    BATIR[id_](D, G, pieces, alea(id_))
-    objets = []
-    for noeud, maille in pieces.items():
-        maille.v = [tuple(p) for p in G.rentrer(maille.v, D["RETRAIT"])]
-        objets.append(objet(noeud, maille, (0.0, 0.0, 0.0), D["ANGLE_LISSE"][noeud]))
-    triangles = sum(len(o.data.polygons) for o in objets)
-    if triangles > D["BUDGET_TRIANGLES"][id_]:
-        raise ValueError(f"{id_} : {triangles} triangles, budget {D['BUDGET_TRIANGLES'][id_]}")
-    return {}
+    return geometrie.par_noeuds(D, id_, NOEUDS[id_], BATIR[id_])
 
 
 def elements(D):
-    for id_ in DECORS:
-        yield {"glb": id_, "cles": [("decor", {"prop": id_})], "materiaux": D["MATERIAUX"][id_], "blasons": (),
-               "construire": lambda id_=id_: construire(D, id_)}
+    return geometrie.elements(D, DECORS, construire)

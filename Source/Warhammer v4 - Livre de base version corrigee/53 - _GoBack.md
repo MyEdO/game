@@ -1,6 +1,6 @@
 *Pages PDF 272-277*
 
-# **Le canal Grünberg**
+# <span id="page-271-0" data-folio="270"></span>**Le canal Grünberg**
 
 X
 

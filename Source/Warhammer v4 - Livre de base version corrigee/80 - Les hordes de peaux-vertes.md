@@ -1,6 +1,6 @@
 *Pages PDF 327*
 
-# **LES HORDES DE PEAUX-VERTES**
+# <span id="page-326-0" data-folio="325"></span>**LES HORDES DE PEAUX-VERTES**
 
 Les orcs et les gobelins constituent le fléau de la civilisation. Ils déferlent sans cesse depuis leurs grossières enceintes fortifiées, le plus souvent pour se faire la guerre entre eux, abattant les faibles et vénérant les forts. Un seigneur de guerre peau-verte se lèvera, inévitablement, de ces escarmouches intestines et ralliera les tribus voisines sous une même bannière. Puis les tambours de guerre retentiront à nouveau, et la marée verte montera une fois de plus, prête à raser chaque village et ville sur son passage, ne laissant rien d'autre que du sang et des ruines dans son sillage.
 

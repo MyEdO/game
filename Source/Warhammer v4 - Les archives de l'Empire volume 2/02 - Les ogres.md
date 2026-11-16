@@ -1,6 +1,6 @@
 *Pages PDF 17-39*
 
-## **LES OGRES**
+## <span id="page-16-0" data-folio="15"></span>**LES OGRES**
 
 Pour la plupart des habitants de l'Empire, les ogres représentent une menace obscure, mais âprement discutée, venant de terres lointaines. Dans le Vieux Monde, les ogres font presque toujours partie de compagnies de mercenaires, au sein desquelles ils sont recrutés pour leur force, leur taille et leur férocité inégalables. Ceux qui y ont déjà eu affaire ne savent que trop bien qu'il faut les aborder avec prudence.
 
