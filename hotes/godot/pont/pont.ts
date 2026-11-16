@@ -380,9 +380,10 @@ export interface CorpsDuVehicule {
  * persistées ni leurs règles de combat. Son emblème est celui de son apparence d'auteur (`EntityAppearance.embleme`,
  * une référence `{ id }` à un emblème de la garde-robe, que le schéma refuse inconnue ou d'une autre catégorie), sinon
  * celui de sa créature (`emblemeDe`). Son sexe est celui de son apparence, `M` par défaut : le corps neutre de la base,
- * clé `feminin` à 0. Ses `couleurs`, absentes si aucune ne colore un emplacement, sont celles de l'apparence de sa
- * créature (`EntityAppearance.couleurs`, une couleur du nuancier par emplacement de palette, `couleursSchema`), chacune
- * remplacée par celle de son apparence d'auteur. Une surface prend la palette de la teinte de l'objet qui l'apporte,
+ * clé `feminin` à 0. Ses `couleurs`, absentes si aucune ne colore un emplacement, sont celles de sa race de
+ * rendu (`raceAppearance.json › couleurs`, une couleur du nuancier par emplacement de palette, `couleursSchema`), chacune
+ * remplacée par celle de l'apparence de sa créature (`EntityAppearance.couleurs`), puis par celle de son apparence
+ * d'auteur. Une surface prend la palette de la teinte de l'objet qui l'apporte,
  * sinon ces couleurs, sinon garde la matière du modèle.
  */
 /** Le corps du véhicule `vehicule` (`vehiculeDuCombattant`) sur les modèles servis `servis`, `null` si aucun élément

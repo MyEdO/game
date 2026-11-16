@@ -187,6 +187,15 @@ describe('porteeDuCombattant', () => {
     expect(porteeDuCombattant(heros())).not.toHaveProperty('couleurs');
   });
 
+  it('ses couleurs partent de celles de sa race de rendu, que sa créature puis son apparence d’auteur remplacent (#4379)', () => {
+    setDataset('raceAppearance', raceAppearance.map((r) => (r.id === 'orc' ? { ...r, couleurs: couleurs({ peau: 'peau-pale', yeux: 'yeux-gris' }) } : r)));
+    setDataset('creatures', creatures.map((e) => (e.id === 'orc' ? { ...e, appearance: { ...e.appearance, couleurs: couleurs({ yeux: 'yeux-verts' }) } } : e)));
+    const orc = creature('orc');
+    expect(porteeDuCombattant(orc)!.couleurs).toEqual({ peau: { id: 'peau-pale' }, yeux: { id: 'yeux-verts' } });
+    expect(porteeDuCombattant({ ...orc, appearanceOverride: { ...orc.appearanceOverride, couleurs: couleurs({ peau: 'peau-ebene' }) } })!.couleurs)
+      .toEqual({ peau: { id: 'peau-ebene' }, yeux: { id: 'yeux-verts' } });
+  });
+
   it('le sexe est celui de l’apparence ; sans apparence, le corps neutre de la base', () => {
     expect(porteeDuCombattant(heros({ apparence: { sex: 'F' } }))!.sex).toBe('F');
     expect(porteeDuCombattant(heros())!.sex).toBe('M');
