@@ -114,7 +114,7 @@ def tonneau(F, T, P, a):
     longueur, part, saillie = C["agrafe"]
     for z0, z1 in sorted(ceintures):
         tour(P["cercles"], [(z0, rayon(z0) - ancrage), (z0, rayon(z0) + fer), (z1, rayon(z1) + fer), (z1, rayon(z1) - ancrage)],
-             "z", tuple(axe), C["segments"], "fer")
+             "z", tuple(axe), C["segments"], "fer", ferme=True)
         azimut = a.uniform(0, 360)
         milieu = axe + cap(azimut) * (rayon((z0 + z1) / 2) + fer) + HAUT * (z0 + z1) / 2
         travers = cap(azimut + 90) * longueur * rayon_du_fut / 2

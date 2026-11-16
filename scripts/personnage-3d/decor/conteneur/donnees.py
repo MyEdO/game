@@ -27,7 +27,7 @@ MATERIAUX = {
     "coffre": {**BOIS_ET_FER, "laiton": ("metal2", "laiton-dore")},
 }
 
-BUDGET_TRIANGLES = {"tonneau": 1800, "tonneaux-pile": 5400, "caisse": 1500, "coffre": 1500}
+BUDGET_TRIANGLES = {"tonneau": 1850, "tonneaux-pile": 5550, "caisse": 1500, "coffre": 1500}
 
 ANGLE_LISSE = {"douves": 12, "cercles": 30, "planches": 12, "clous": 30, "coffre": 10, "ferrures": 30}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : les douves et les planches

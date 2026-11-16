@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "lit"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ecru",
+      "palette": "vet1",
+      "matiere": "prop--toile-ecrue"
+    },
+    {
+      "nom": "rouge",
+      "palette": "vet2",
+      "matiere": "prop--toile-rouge"
+    }
+  ],
+  "glb": {
+    "sha256": "7aab4410b9069b638db85fca0bdaf5e1928e6fc09f122a44bd170f7959527129",
+    "octets": 62912
+  }
+}

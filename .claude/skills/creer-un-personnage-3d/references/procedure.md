@@ -705,7 +705,7 @@ passe par aucune rotation de `mathutils` (`rotation_difference`, `Quaternion`, `
 trigonométrie en simple précision change d'une libm à l'autre et déplace les sommets : un repère se transporte par
 produits vectoriels (`transporter` de `decor/arbre/modele.py`). `test_decor.py` refuse un sommet du GLB publié (lu dans le cache
 des modèles à l'empreinte de son manifeste) hors de cette enveloppe, sol compris, à 1 mm près. Une enveloppe qui empêche un modèle correct se rapporte, avec la cote qui gêne ; le modèle ne
-change pas la recette.
+change pas la recette. Chaque pièce est une coque close aux faces vers le dehors : `test_decor.py` refuse un nœud du GLB publié qui a une arête non appariée ou une coque soudée de volume négatif ou nul (`glb.coques_en_defaut`).
 
 **Repère et cap.** La recette est en mètres, origine à l'ancre, `xM` à l'est, `yM` vers son front au cap d'identité
 (`CAP_IDENTITE_PROP`, `src/data/props.types.ts`), `hM` vers le haut. En Blender, (x, y, z) = (xM, -yM, hM) : le front vers
