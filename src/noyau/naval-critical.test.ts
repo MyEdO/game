@@ -54,9 +54,9 @@ describe('applyCriticalToTarget — coque/navire (MDG 13) au lieu de Trauma huma
     expect(posed).toBe(true);
   });
 
-  it('renvoie false (la coque ne « meurt » pas d’un Critique — destruction par Blessures/Naufrage)', () => {
+  it('n’est jamais létal (la coque ne « meurt » pas d’un Critique — destruction par Blessures/Naufrage)', () => {
     const s: Combatant = ship();
-    expect(applyCriticalToTarget(s, 'corps', 0, [], setStub, { get: getHorsBataille })).toBe(false);
+    expect(applyCriticalToTarget(s, 'corps', 0, [], setStub, { get: getHorsBataille })).toBe('subie');
   });
 });
 
@@ -83,6 +83,6 @@ describe('applyCriticalToTarget — l’équipage lié (crewIds) encaisse via la
     seedBattleRng(1);
     const s = ship();
     s.crewIds = ['m0'];
-    expect(applyCriticalToTarget(s, 'corps', 0, [], setStub, { get: getHorsBataille })).toBe(false);
+    expect(applyCriticalToTarget(s, 'corps', 0, [], setStub, { get: getHorsBataille })).toBe('subie');
   });
 });

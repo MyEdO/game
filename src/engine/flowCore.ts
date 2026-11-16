@@ -157,6 +157,8 @@ export interface ActorView {
   /** L'acteur porte-t-il un passif VISIBLE (`aPassifVisible` — lésion apparente d'une maladie active) ?
    *  Lu par la Condition `visiblePassive`. */
   visiblePassive?: boolean;
+  /** L'acteur est-il un NAVIRE (`estNavire`) ? Lu par la Condition `navire`. */
+  navire?: boolean;
 }
 
 /** SÉLECTEUR de héros d'une Condition de groupe : un héros au moins (`any`), tout le groupe (`all`), ou
@@ -279,6 +281,8 @@ export type Condition =
    *  émise `visible` par sa source) ? Gate d'apparence : « à quel point votre apparence peut susciter la
    *  sympathie » (LDB 09 l.97). Acteur absent = false. */
   | { kind: 'visiblePassive'; who: ActorRef }
+  /** L'acteur (`who`) est-il un NAVIRE (`ActorView.navire`) ? #4202. Acteur absent = false. */
+  | { kind: 'navire'; who: ActorRef }
   | { kind: 'all'; of: Condition[] }
   | { kind: 'any'; of: Condition[] }
   | { kind: 'not'; of: Condition };
@@ -458,6 +462,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     }
     case 'casterChaosDomain': return ctx.caster?.chaosDomain === cond.is;
     case 'visiblePassive': return (cond.who === 'caster' ? ctx.caster : ctx.target)?.visiblePassive === true;
+    case 'navire': return (cond.who === 'caster' ? ctx.caster : ctx.target)?.navire === true;
     case 'skill':
       return matchParty(ctx, cond.who ?? 'any', (m) => (m.skills ?? []).some((s) =>
         refCouvre({ id: cond.id, spec: cond.spec }, s) && (s.advances ?? 0) >= (cond.advances ?? 0)));

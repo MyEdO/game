@@ -2170,9 +2170,12 @@ export function resolveCritSeverity(
   return { crit, table: { ...decl, forcedRoll: rolled.roll, result: rolled } };
 }
 
+/** Issue d'une Blessure critique appliquée : `letale` (le caller finalise via `finalizeHeroDeath`),
+ *  `subie`, ou `reportee` — un autre corps l'encaisse à la place du porteur (MDG 13 l.584). */
+export type IssueDuCritique = 'letale' | 'subie' | 'reportee';
+
 /** Applique une Blessure critique (Coup Critique ou overkill) à `target` : PB (ignore BE+PA,
- *  plancher 0) + États + compteur. RETOURNE `true`
- *  si le résultat est létal (le caller finalise via finalizeHeroDeath). Pousse le journal dans `log`. */
+ *  plancher 0) + États + compteur. RETOURNE son issue (`IssueDuCritique`). Pousse le journal dans `log`. */
 export function applyCriticalToTarget(
   target: Combatant,
   location: HitLocation,
@@ -2191,17 +2194,17 @@ export function applyCriticalToTarget(
      *  impose (`CriticalResolved.testFlow`) — un appelant sans `get` perdrait ce jet en silence. */
     get: Get;
   },
-): boolean {
+): IssueDuCritique {
   const { ctx, prerolled, suppressReveal, get, origine, surLeCritique } = opts;
   // Aiguillage par porteur : `porteurDeCritique` (AA 10 l.114 ; MDG 13 l.656 ; EDOC 07 l.334).
   const porteur = porteurDeCritique(target);
   if (porteur === 'structure') {
     applyStructureCriticalToTarget(get().forgerUnId, set, target, { attackerId: ctx?.attackerId, attackerKind: ctx?.attackerKind, weapon: ctx?.weapon }, log, { overkill });
-    return false; // AA 10 l.127
+    return 'subie'; // AA 10 l.127
   }
   if (porteur === 'vehicule-routier') {
     log.push(tr('cf.coqueSansCritique', { name: target.label })); // EDOC 07 l.334
-    return false;
+    return 'subie';
   }
   if (porteur === 'navire') {
     const profil = garanti(profilNavalDe(target), target.creatureId, 'profil naval du navire (MDG 12 l.131)');
@@ -2286,7 +2289,7 @@ export function applyCriticalToTarget(
   // `MiscastResult.testFlow` (`finishMiscast`). Létal : le RAW n'applique aucun effet supplémentaire (l'`applyOps`
   // ci-dessus est gaté pareillement) — le Test n'a plus d'objet.
   if (crit.testFlow && !crit.lethal) routeTriggeredTest(get, set, target, target, crit.testFlow, { idNeuf: get().forgerUnId, rng: battleRng(), label: crit.label });
-  return crit.lethal; // « Mort » instantané → finalisé par le caller (sauvetage par Destin possible)
+  return crit.lethal ? 'letale' : 'subie'; // « Mort » instantané → finalisé par le caller (sauvetage par Destin possible)
 }
 
 /**
@@ -2296,7 +2299,7 @@ export function applyCriticalToTarget(
  * l'« Équipage », le marin exposé encaisse le coup par le pipeline des Critiques (`encaisserLeCoupDuMarin`,
  * MDG 13 l.584) ; les Éclats infligent 9 Dégâts à autant de marins. L'équipage est résolu depuis `target.crewIds` via la bataille (`get`) ; absent → effets de coque seuls.
  * La destruction de la coque NE passe PAS par un « Mort » de Critique mais par ses Blessures / l'État Naufrage —
- * on renvoie donc toujours `false`.
+ * l'issue n'est jamais `letale` ; `reportee` quand le marin encaisse (MDG 13 l.584).
  */
 export function applyHullCriticalToTarget(
   target: Combatant,
@@ -2304,7 +2307,7 @@ export function applyHullCriticalToTarget(
   log: string[],
   set: SetFn,
   opts: { ctx?: DeviationCtx; suppressReveal?: boolean; get: Get; forcedLocRoll?: number; forcedCritRoll?: number },
-): boolean {
+): IssueDuCritique {
   const { ctx, suppressReveal, get, forcedLocRoll, forcedCritRoll } = opts;
   const hull = findVehicleById(target.creatureId ?? '')?.hull;
   const crew = target.crewIds
@@ -2332,7 +2335,7 @@ export function applyHullCriticalToTarget(
     const attaquant = garanti(inBattleId(lire().battle, ctx?.attackerId), ctx?.attackerId, "auteur du coup qui porte le Critique d'Équipage");
     const marin = garanti(crew.find((c) => c.id === outcome.marinId), outcome.marinId, "marin d'un Critique d'Équipage");
     for (const l of encaisserLeCoupDuMarin(lire, set, naissanceDuCoupDuMarin(coup, attaquant, marin), []) ?? []) log.push(l);
-    return false;
+    return 'reportee';
   }
   // Le coup à l'équipage de la rangée (MSRC 07 l.78/l.94, MDG 13 l.763) sur N marins passe par la PORTE
   // canonique, APRÈS la révélation : UNE bande de N rangées pour ceux que des sièges tiennent, voie inline
@@ -2346,7 +2349,7 @@ export function applyHullCriticalToTarget(
       ));
     }
   }
-  return false;
+  return 'subie';
 }
 
 /** Table d'étape du Critique de Structure (AA 10 l.116-127) — la DONNÉE `structure-criticals.json` porte les
@@ -2496,10 +2499,10 @@ function applyCritAndFinalize(
   get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number, origine: OrigineCritique,
   log: string[], ctx: DeviationCtx, auteur: Combatant | undefined, avantLeCoup: Combatant, crit?: CriticalResolved, suppressReveal?: boolean,
   surLeCritique?: (crit: CriticalResolved) => void,
-): boolean {
-  const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine, surLeCritique });
-  if (lethal) finalizeHeroDeath(get, set, target, avantLeCoup, auteur);
-  return lethal;
+): IssueDuCritique {
+  const issue = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine, surLeCritique });
+  if (issue === 'letale') finalizeHeroDeath(get, set, target, avantLeCoup, auteur);
+  return issue;
 }
 
 /**
@@ -2649,9 +2652,9 @@ export function applyCoupCritiqueSec(
     suspendreLeCritique(set, etapeId, victim.id, avantLeCoup);
     return;
   }
-  const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, auteur, avantLeCoup);
+  const issue = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, auteur, avantLeCoup);
   breakBacleArmour(victim, loc, log); // LDB 60 l.50
-  apresLeCritiqueDe({ get, set, auteur, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(lethal, entree.origine); // #316
+  apresLeCritiqueDe({ get, set, auteur, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(issue, entree.origine); // #316
 }
 
 /** Ce que lit l'après d'une Blessure critique infligée. */
@@ -2666,13 +2669,13 @@ interface ApresLeCritique {
   woundsDealt?: number;
 }
 
-/** Après une Blessure critique INFLIGÉE (`lethal` = rendu d'`applyCritAndFinalize`) : Frappe blessante
+/** Après une Blessure critique INFLIGÉE (`issue` = rendu d'`applyCritAndFinalize`) : Frappe blessante
  *  (LDB 10 ; LDB 18 l.15), puis `onCrit` (`TriggeredEffect.coupCritique` ; #316 ; #1595 c.6221792068 Q4,
- *  c.6226467544, c.6228496170 Q3, Q4b). */
-function apresLeCritiqueDe(a: ApresLeCritique): (lethal: boolean, origine: OrigineCritique) => void {
-  return (lethal, origine) => {
+ *  c.6226467544, c.6228496170 Q3, Q4b). Une Blessure `reportee` n'est pas celle de `cible` : MDG 13 l.584 ; #4202. */
+function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine: OrigineCritique) => void {
+  return (issue, origine) => {
     const { get, set, auteur, cible, log } = a;
-    if (!auteur || lethal) return;
+    if (!auteur || issue !== 'subie') return;
     const fb = loseWounds(cible, talentCritExtraWounds(auteur));
     if (fb > 0) log.push(tr('cf.coupBlessant', { name: cible.label, n: fb }));
     const battle = get().battle;
@@ -2849,7 +2852,7 @@ interface ApplicationDesCritiques {
   /** Le jet de toucher (révélation d'une Déviation de l'automate). */
   roll: number;
   /** Après une Blessure critique INFLIGÉE (Frappe blessante, `onCrit`). */
-  apres?: (lethal: boolean, origine: OrigineCritique) => void;
+  apres?: (issue: IssueDuCritique, origine: OrigineCritique) => void;
 }
 
 /** APPLIQUE le plan des Blessures critiques d'un coup, Blessures du coup déjà retirées : Mort subite, puis
@@ -2866,10 +2869,10 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
   let bacle = coupCritique;
   const casse = (): void => { if (bacle) breakBacleArmour(target, lieu, log); bacle = false; };
   if (!compte.critiques.some((c) => estUnCoupCritique(c.origine))) casse();
-  let lethal = false;
+  let issue: IssueDuCritique | undefined;
   let lancerDuTableau: number | undefined;
   let infligees = 0;
-  for (let i = 0; i < a.plan.length && !lethal; i++) {
+  for (let i = 0; i < a.plan.length && issue !== 'letale'; i++) {
     const decision = a.plan[i];
     const entree = compte.critiques[i];
     const coupCritiqueEntree = estUnCoupCritique(entree.origine);
@@ -2880,8 +2883,8 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
       // (pose du dé, #942 L4) garde sa révélation.
-      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
-      a.apres?.(lethal, entree.origine);
+      issue = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
+      a.apres?.(issue, entree.origine);
       infligees++;
     }
     if (coupCritiqueEntree) casse();
@@ -4928,8 +4931,8 @@ export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: Pen
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
     const auteur = dev.ctx.attackerId ? porteurParId(get(), dev.ctx.attackerId) : undefined;
-    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, avantLeCoup, dev.crit, true); // Subir : Critique pré-tiré
-    apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
+    const issue = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, avantLeCoup, dev.crit, true); // Subir : Critique pré-tiré
+    apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(issue, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
   // 0 PB → À Terre (LDB 18 l.15).

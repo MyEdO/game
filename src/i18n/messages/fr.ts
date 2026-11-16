@@ -4668,6 +4668,8 @@ export const fr = {
   'codex.c.casterChaosDomain.non': "le Domaine du Chaos du lanceur n'est pas {dieu}",
   'codex.c.visiblePassive': '{qui} porte une atteinte VISIBLE',
   'codex.c.visiblePassive.non': '{qui} ne porte aucune atteinte VISIBLE',
+  'codex.c.navire': '{qui} est un navire',
+  'codex.c.navire.non': "{qui} n'est pas un navire",
   'codex.c.skill': '{sujet} possède la Compétence {nom}',
   'codex.c.skill.non': '{sujet} ne possède pas la Compétence {nom}',
   'codex.c.talent': '{sujet} possède le Talent {nom}',

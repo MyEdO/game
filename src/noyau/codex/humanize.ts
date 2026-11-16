@@ -331,6 +331,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     }
     case 'casterChaosDomain': return t(neg ? 'codex.c.casterChaosDomain.non' : 'codex.c.casterChaosDomain', { dieu: refLabel('gods', { id: c.is }) });
     case 'visiblePassive': return t(neg ? 'codex.c.visiblePassive.non' : 'codex.c.visiblePassive', { qui: who(c.who) });
+    case 'navire': return t(neg ? 'codex.c.navire.non' : 'codex.c.navire', { qui: who(c.who) });
     case 'skill': {
       const sujet = sujetDuGroupe(c.who);
       return `${t(neg ? 'codex.c.skill.non' : 'codex.c.skill', { sujet, nom: refLabel('skills', { id: c.id, spec: c.spec }) })}${c.advances ? ` (≥${c.advances})` : ''}`;
