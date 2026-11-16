@@ -10,11 +10,11 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs';
-import { coteACote, deposerLesPlanches, encoderPng, EPINGLE, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs';
+import { coteACote, deposerLesPlanches, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur } from './planches.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
 afterAll(() => rmSync(racine, { recursive: true, force: true }));
@@ -98,5 +98,11 @@ describe('coteACote', () => {
 
   it('ne rend rien pour une planche sans maquette', () => {
     expect(coteACote('autre', capture, declaree())).toBeNull();
+  });
+
+  it('chaque maquette déclarée est au dépôt, à l’empreinte validée', () => {
+    const declarees: Record<string, { chemin: string; sha256: string }> = JSON.parse(readFileSync(MAQUETTES, 'utf8'));
+    const lues = Object.fromEntries(Object.entries(declarees).map(([nom, { chemin }]) => [nom, createHash('sha256').update(readFileSync(resolve(dirname(MAQUETTES), chemin))).digest('hex')]));
+    expect(lues).toEqual(Object.fromEntries(Object.entries(declarees).map(([nom, { sha256 }]) => [nom, sha256])));
   });
 });

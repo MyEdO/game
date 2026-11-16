@@ -7,18 +7,18 @@
 // l'étalon de la planche, et `valides.json`, par nom de planche la date et l'empreinte SHA-256 de l'étalon que l'utilisateur a validé. Un étalon ne vaut que pour le
 // Chromium épinglé (`EPINGLE`) sous Linux x86-64 (`refusDuNavigateur`) : le canari le compare
 // (mesure `godot-etalons` de `.github/workflows/canari.yml`), qui installe ce Chromium à la version de Playwright lue ici.
-// La maquette validée d'une planche, hors dépôt, se déclare dans `cibles/maquettes.json` (`MAQUETTES`) ; `coteACote`
+// La maquette validée d'une planche, `cibles/maquettes/<nom>.png`, se déclare dans `cibles/maquettes.json` (`MAQUETTES`) ; `coteACote`
 // la pose au-dessus de la capture de la planche.
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { crc32, deflateSync } from 'node:zlib'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
 
 export const DOSSIER_DES_ETALONS = fileURLToPath(new URL('./etalons', import.meta.url))
 export const VALIDES = join(DOSSIER_DES_ETALONS, 'valides.json')
-/** Les maquettes des planches : par nom de planche, `chemin` du PNG, `sha256`, `facteur` (sa taille sur celle de la
+/** Les maquettes des planches : par nom de planche, `chemin` du PNG depuis `cibles/`, `sha256`, `facteur` (sa taille sur celle de la
  *  capture) et `date` de sa validation. */
 export const MAQUETTES = fileURLToPath(new URL('./cibles/maquettes.json', import.meta.url))
 /** Le build du navigateur des étalons : la version de Playwright qui l'installe, et celle de Chrome for Testing qu'il
@@ -94,8 +94,9 @@ export function coteACote(nom, capture, maquettes) {
   const { chemin, sha256, facteur } = declaree
   const avis = (raison) => ({ avis: `${nom} : maquette ${chemin} ${raison}, pas de côte à côte` })
   if (!chemin.endsWith('.png')) return avis('au format non lu (PNG seulement)')
-  if (!existsSync(chemin)) return avis('absente de ce poste')
-  const octets = readFileSync(chemin)
+  const fichier = resolve(dirname(MAQUETTES), chemin)
+  if (!existsSync(fichier)) return avis('absente de ce poste')
+  const octets = readFileSync(fichier)
   const lue = createHash('sha256').update(octets).digest('hex')
   if (lue !== sha256) return avis(`d’empreinte ${lue}, ${sha256} validée`)
   const m = decodePng(octets)

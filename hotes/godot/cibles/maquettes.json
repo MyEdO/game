@@ -1,14 +1,14 @@
 {
   "attaque-jet-tombe": {
-    "chemin": "/mnt/project-files/interface-3935/combat-jet-d-attaque-maquette.png",
-    "sha256": "0c8d581a445c050c2b2c2f1bb62fcf073b0736fc5caea330cca2775bcb157856",
-    "facteur": 2,
+    "chemin": "maquettes/attaque-jet-tombe.png",
+    "sha256": "0fdf69525fc6ed66d366e5e5bfd43e92dd0d833f14840207f7b14d2975d7ece8",
+    "facteur": 1,
     "date": "2026-11-13"
   },
   "combat-barre-de-l-actif": {
-    "chemin": "/mnt/project-files/interface-3935/combat-emplacements-rapides-maquette.png",
-    "sha256": "457cd80b4d9f85587ab41bccb2096397d015dd99657787df9e412e793513ba61",
-    "facteur": 1.5,
+    "chemin": "maquettes/combat-barre-de-l-actif.png",
+    "sha256": "e68618eaa90cce09b93a3f7f41ece9df2339be88610784036b98813a6d38d268",
+    "facteur": 1,
     "date": "2026-11-13"
   }
 }

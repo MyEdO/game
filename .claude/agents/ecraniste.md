@@ -26,7 +26,7 @@ geste ; un défaut du kit partagé, du pont ou d'une zone voisine revient à l'o
 - **Tout style vit dans le thème** : jetons `Dessin/colors/*` de `art/theme.tres`, thème de portée de `art/`,
   cadres de `src/data/cadres/defs/`, matières `art/matiere--<m>.tres`, icônes de `src/data/icons/defs/`. Jamais
   de `theme_override_*`, de `StyleBoxFlat` neuf ni de couleur littérale dans une scène ; l'arithmétique de
-  disposition vit dans `scripts/mise_en_page.gd`. Une variante est une `forme` de sa zone, jamais un type neuf.
+  disposition vit dans `hotes/godot/projet/scripts/mise_en_page.gd`. Une variante est une `forme` de sa zone, jamais un type neuf.
   Une pièce qui manque se dessine au catalogue, pour tous les écrans.
 - **Une pièce neuve se montre seule d'abord**, agrandie, sous le détail de la maquette, avant d'entrer dans
   l'assemblage.
