@@ -26,6 +26,10 @@ ICI = Path(__file__).resolve().parent
 PROPS = habillage.DEPOT / "src" / "data" / "props.json"
 COPLANAIRE = 1e-9
 """Écart (m) sous lequel un sommet des primitives est tenu pour posé sur une face de leur enveloppe."""
+NOEUD_EMISSIF = "emet"
+"""Le nœud du GLB d'un décor qui porte ce qui luit, présent si et seulement si sa recette a une primitive `emet`
+(`test_decor.py`), que l'hôte allume sur une pose qui éclaire (`NOEUD_EMISSIF`,
+`hotes/godot/projet/scripts/montage_des_modeles.gd`)."""
 
 
 def fiche(id_):
@@ -36,6 +40,17 @@ def fiche(id_):
 def vers_blender(x, y, h):
     """Le point (xM, yM, hM) de la recette dans le repère de Blender."""
     return (x, -y, h)
+
+
+def boite(primitive):
+    """Le centre et les demi-côtés (x, y, z) de la boîte de `primitive` (boîte, prisme, ou cylindre d'axe vertical),
+    dans le repère de Blender."""
+    c = primitive["center"]
+    if primitive["kind"] == "cylinder":
+        demi = (primitive["radiusM"], primitive["radiusM"], primitive["longueurM"] / 2)
+    else:
+        demi = tuple(primitive["size"][k] / 2 for k in ("xM", "yM", "hM"))
+    return vers_blender(c["xM"], c["yM"], c["hM"]), demi
 
 
 def depuis_gltf(X, Y, Z):

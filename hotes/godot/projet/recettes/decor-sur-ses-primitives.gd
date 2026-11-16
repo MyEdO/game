@@ -6,10 +6,14 @@ extends SceneTree
 ## par des `MontageDesModeles`. À chaque cap : la scène peint d'abord tous les triangles du volume ; dès les décors
 ## servis, ni sa vue ni son ombre ne peignent ceux du décor (`VolumeDeScene.peindre_sans`) ; le modèle posé a l'emprise
 ## des triangles du décor (à `TOLERANCE_M` près sur chaque borne de chaque axe : le modèle reproduit la forme de sa
-## recette, pas ses facettes), et celle du cap tourné n'est pas celle du cap `S` ; les décors plus servis, le modèle
-## retiré et le volume peint entier. Puis le décor posé sur un bloc plein (`coiffe`), sous le retrait que le noyau rend
-## sous sa couche (`retraitDuMonde`, plan `pose` retiré, plan `sol` montré) : aucun de ses meshes ne se voit et chacun
-## porte son ombre, montré de nouveau sans masque.
+## recette, pas ses facettes), et celle du cap tourné n'est pas celle du cap `S` ; chaque mesh du modèle est sur la couche
+## du monde et aucun n'émet ; les décors plus servis, le modèle retiré et le volume peint entier. Puis le décor posé sur
+## un bloc plein (`coiffe`), sous le retrait que le noyau rend sous sa couche (`retraitDuMonde`, plan `pose` retiré,
+## plan `sol` montré) : aucun de ses meshes ne se voit et chacun porte son ombre, montré de nouveau sans masque. Enfin un
+## décor qui éclaire (`luminaire`), chacune de ses poses portant `luminaire` : chaque mesh de son modèle est sur la
+## couche des luminaires (`VolumeDeScene.COUCHE_DES_LUMINAIRES`), chaque mesh de son nœud qui luit
+## (`MontageDesModeles.emissives`) émet, et aucun autre ; reposé sans `luminaire`, le même modèle, sans remontage, est sur
+## la couche du monde et aucun de ses meshes n'émet.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/decor.json"
@@ -27,8 +31,8 @@ func _initialize() -> void:
 func _recetter() -> void:
 	print("[decor-sur-ses-primitives] version=", Engine.get_version_info().string)
 	var decor: Variant = JSON.parse_string(FileAccess.get_file_as_string(FIGE))
-	if not decor is Dictionary or not decor.has("caps") or not decor.has("coiffe"):
-		push_error("[decor-sur-ses-primitives] %s : aucun décor figé à ses caps ni sur son bloc" % FIGE)
+	if not decor is Dictionary or not decor.has("caps") or not decor.has("coiffe") or not decor.has("luminaire"):
+		push_error("[decor-sur-ses-primitives] %s : aucun décor figé à ses caps, sur son bloc ni qui éclaire" % FIGE)
 		quit(2)
 		return
 	PontFige.poser(self, decor)
@@ -42,6 +46,7 @@ func _recetter() -> void:
 		if emprises.S != null and emprises[cap] != null:
 			_verifier(not _proches(emprises.S, emprises[cap], decor.caps[cap].monde.metresParCase), "cap %s : l'emprise %s est celle du cap S %s, le décor n'éprouve pas la rotation" % [cap, emprises[cap], emprises.S])
 	await _retirer_sur_le_bloc(decor.coiffe)
+	await _eclairer(decor.luminaire)
 	for faute in _fautes:
 		push_error("[decor-sur-ses-primitives] " + faute)
 	print("[decor-sur-ses-primitives] %d caps posés, erreurs=%d" % [emprises.size(), _fautes.size()])
@@ -99,6 +104,7 @@ func _poser_au_cap(cap: String, figee: Dictionary) -> Variant:
 		emprise = MontageDeVehicule.boite(montage.scene, scene)
 		print("[decor-sur-ses-primitives] cap %s, %s m par case : modèle %s, primitives %s" % [cap, monde.metresParCase, emprise, primitives])
 		_verifier(_proches(emprise, primitives, monde.metresParCase), "cap %s : le modèle a l'emprise %s, les primitives %s" % [cap, emprise, primitives])
+		_verifier_l_eclairage(montage, "cap %s" % cap, false)
 	modeles.poser({}, {}, {}, monde.metresParCase)
 	_verifier(modeles.poses().is_empty() and volume.ce_qui_est_pose().triangles == tous, "cap %s : décor plus servi, %d modèles posés et %d triangles peints, attendu 0 et %d" % [cap, modeles.poses().size(), volume.ce_qui_est_pose().triangles, tous])
 	scene.queue_free()
@@ -124,6 +130,53 @@ func _retirer_sur_le_bloc(figee: Dictionary) -> void:
 		_verifier(pieces.all(func(piece: MeshInstance3D) -> bool: return piece.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON), "sur le bloc : sans masque, le modèle ne se voit pas")
 	scene.queue_free()
 	await process_frame
+
+
+## L'échantillon `figee` (`{ monde, decors }`) d'un décor qui éclaire, chacune de ses poses portant `luminaire`, dans
+## une scène neuve retirée ensuite : son modèle posé luit (`_verifier_l_eclairage`) ; reposé avec ses poses sans
+## `luminaire`, le même corps, son modèle n'est pas remonté et s'éteint.
+func _eclairer(figee: Dictionary) -> void:
+	var monde: Dictionary = figee.monde
+	var prop: String = figee.decors.keys()[0]
+	_verifier(figee.decors[prop].poses.all(func(p: Dictionary) -> bool: return p.has("luminaire")), "%s : une pose figée ne porte pas `luminaire`" % prop)
+	var scene := _scene_neuve(monde)
+	var modeles: MontageDesModeles = scene.get_node("Modeles")
+	modeles.poser({}, figee.decors, {}, monde.metresParCase)
+	var montage: MontageDeVehicule = await _modele_pose(modeles, prop)
+	if montage != null:
+		_verifier_l_eclairage(montage, prop, true)
+		var eteints: Dictionary = figee.decors.duplicate(true)
+		for p: Dictionary in eteints[prop].poses:
+			p.erase("luminaire")
+		var scene_posee := montage.scene
+		modeles.poser({}, eteints, {}, monde.metresParCase)
+		await process_frame
+		var meme: bool = modeles.poses().size() == 1 and modeles.get("_montes")[modeles.poses()[0]] == montage and montage.scene == scene_posee
+		if _verifier(meme, "%s éteint : le modèle a été remonté" % prop):
+			_verifier_l_eclairage(montage, "%s éteint" % prop, false)
+	scene.queue_free()
+	await process_frame
+
+
+## Le modèle posé de `montage` (`quoi` nomme l'épreuve dans la faute) : chaque mesh sur la couche des luminaires si
+## `eclaire`, sur celle du monde sinon ; si `eclaire`, chaque mesh qui luit (`MontageDesModeles.emissives`, un au moins)
+## émet ; aucun autre n'émet.
+func _verifier_l_eclairage(montage: MontageDeVehicule, quoi: String, eclaire: bool) -> void:
+	var couche := VolumeDeScene.COUCHE_DES_LUMINAIRES if eclaire else VolumeDeScene.COUCHE_DU_MONDE
+	var luisent := MontageDesModeles.emissives(montage.scene)
+	_verifier(not eclaire or not luisent.is_empty(), "%s : aucun mesh sous `%s`" % [quoi, MontageDesModeles.NOEUD_EMISSIF])
+	for piece: MeshInstance3D in montage.scene.find_children("*", "MeshInstance3D", true, false):
+		_verifier(piece.layers == couche, "%s : %s sur la couche %d, attendu %d" % [quoi, piece.name, piece.layers, couche])
+		var attendu: bool = eclaire and piece in luisent
+		_verifier(_emet(piece) == attendu, "%s : %s %s" % [quoi, piece.name, "n'émet pas" if attendu else "émet"])
+	print("[decor-sur-ses-primitives] %s : %d meshes sur la couche %d, %d qui luisent%s" % [quoi, montage.scene.find_children("*", "MeshInstance3D", true, false).size(), couche, luisent.size(), "" if eclaire else " éteints"])
+
+
+## Si une surface de `piece` émet.
+static func _emet(piece: MeshInstance3D) -> bool:
+	return range(piece.mesh.get_surface_count()).any(func(rang: int) -> bool:
+		var matiere := piece.get_active_material(rang) as BaseMaterial3D
+		return matiere != null and matiere.emission_enabled)
 
 
 ## Le nombre de triangles des surfaces du volume `monde` que `retenue` retient.

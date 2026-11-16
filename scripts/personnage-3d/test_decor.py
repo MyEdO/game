@@ -4,7 +4,8 @@ chaque GLB publié d'un décor, lu dans le cache des modèles (`CACHE_DES_MODELE
 en CI) à l'empreinte de son manifeste publié, tient dans l'enveloppe convexe des primitives de sa recette
 (`decor/gabarit.py`), sol compris, à `TOLERANCE` près : le modèle garde l'encombrement que le jeu lit dans ces
 primitives. Aucun build : un modèle dont une entrée a changé se reconstruit à l'empreinte publiée
-(`test_chaque_modele_reproduit_ses_elements_publies`), si bien que la garde vaut pour lui. Un décor que nomme le `SELON`
+(`test_chaque_modele_reproduit_ses_elements_publies`), si bien que la garde vaut pour lui. Chaque GLB publié d'un décor a
+un nœud `gabarit.NOEUD_EMISSIF` si et seulement si sa recette a une primitive `emet`. Un décor que nomme le `SELON`
 des données de son modèle porte ce `selon` au manifeste, un autre aucun."""
 import json
 import runpy
@@ -44,6 +45,16 @@ def sommets(chemin):
     return np.concatenate(sortie)
 
 
+def noms_des_noeuds(chemin):
+    """Les noms des nœuds du GLB `chemin`."""
+    return {noeud.get('name') for noeud in lire_glb(chemin)[0]['nodes']}
+
+
+def emet(prop):
+    """Si la recette du décor `prop` a une primitive `emet`."""
+    return any(p.get('emet') for p in gabarit.fiche(prop)['volume']['primitives'])
+
+
 def hors_du_gabarit(prop, points):
     """Le nombre des `points` (glTF) hors de l'enveloppe convexe des primitives du décor `prop`, et les cinq premiers."""
     recette = np.array([gabarit.depuis_gltf(*p) for p in points])
@@ -67,13 +78,23 @@ class SelonDesDonnees(unittest.TestCase):
 class Reconstruction(reconstruction.DUneFamille, unittest.TestCase):
     FAMILLE = 'decor'
 
-    def test_chaque_sommet_publie_tient_dans_le_gabarit_de_son_decor(self):
+    def publies(self):
+        """Par id de décor publié, dans l'ordre, son prop et son GLB lu dans le cache à l'empreinte de son manifeste."""
         for id_ in sorted(id_ for ids in self.publie.values() for id_ in ids):
+            publie = json.loads((MODELES / f'{id_}.manifeste.json').read_text(encoding='utf-8'))
+            yield id_, id_.removeprefix('decor--'), CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb"
+
+    def test_chaque_sommet_publie_tient_dans_le_gabarit_de_son_decor(self):
+        for id_, prop, glb in self.publies():
             with self.subTest(id=id_):
-                publie = json.loads((MODELES / f'{id_}.manifeste.json').read_text(encoding='utf-8'))
-                glb = CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb"
-                self.assertEqual(hors_du_gabarit(id_.removeprefix('decor--'), sommets(glb)), (0, []),
+                self.assertEqual(hors_du_gabarit(prop, sommets(glb)), (0, []),
                                  f'{id_} : sommets (xM, yM, hM) hors de l\'enveloppe convexe des primitives de sa recette')
+
+    def test_un_decor_publie_a_un_noeud_emissif_si_et_seulement_si_sa_recette_a_une_primitive_emet(self):
+        for id_, prop, glb in self.publies():
+            with self.subTest(id=id_):
+                self.assertEqual(gabarit.NOEUD_EMISSIF in noms_des_noeuds(glb), emet(prop),
+                                 f'{id_} : nœud `{gabarit.NOEUD_EMISSIF}` du GLB et primitive `emet` de la recette discordants')
 
 
 if __name__ == '__main__':

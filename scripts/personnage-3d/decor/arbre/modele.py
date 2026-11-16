@@ -10,28 +10,17 @@ tient, le nœud `avec-hiver` (`NOEUD_DE_LA_RAMURE`), montré en hiver seulement 
 d'« hiver »), si bien que la ramure ne change rien au reste. Un décor que nomme `SELON` (`donnees.py`) porte au
 manifeste ce qui change selon la saison : par saison, `{ palette? }` ; `SELON` nomme l'hiver de chaque décor caduc."""
 import math
-import random
 
 from mathutils import Vector
 
 import habillage
+from geometrie import HAUT, alea, cap, coque, lisse, normale
 from gabarit import Gabarit
 from maille import Maille, lineaire, objet
 
 DECORS = ("arbre", "hetre", "orme", "pin", "arbre-mort", "souche", "buisson")
 NOEUD_DU_FEUILLAGE = "sans-hiver"
 NOEUD_DE_LA_RAMURE = "avec-hiver"
-HAUT = Vector((0, 0, 1))
-
-
-def alea(id_):
-    """Le générateur semé des codes de caractères de `id_`."""
-    return random.Random(sum((i + 1) * ord(c) for i, c in enumerate(id_)))
-
-
-def cap(azimut):
-    """Le vecteur horizontal unitaire d'`azimut` degrés."""
-    return Vector((math.cos(math.radians(azimut)), math.sin(math.radians(azimut)), 0))
 
 
 def ecart_d_azimut(direction, azimut):
@@ -42,16 +31,10 @@ def ecart_d_azimut(direction, azimut):
 def courbe(points, rayons, pas, ecart, a):
     """La courbe de Catmull-Rom par `points`, `pas` anneaux par tronçon, chaque anneau intercalé écarté d'au plus
     `ecart` mètres sur chaque axe, et le rayon de chacun, interpolé de `rayons`."""
-    pts = [Vector(p) for p in points]
-    chemin, sections = [], []
-    for i in range(len(pts) - 1):
-        p0, p1, p2, p3 = pts[max(i - 1, 0)], pts[i], pts[i + 1], pts[min(i + 2, len(pts) - 1)]
-        for s in range(pas):
-            t = s / pas
-            q = 0.5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t ** 2 + (3 * p1 - p0 - 3 * p2 + p3) * t ** 3)
-            chemin.append(q + Vector([a.uniform(-ecart, ecart) for _ in range(3)]) if s else q)
-            sections.append(rayons[i] + (rayons[i + 1] - rayons[i]) * t)
-    return chemin + [pts[-1]], sections + [rayons[-1]]
+    lisses = lisse([Vector(p) for p in points], pas)
+    chemin = [q + Vector([a.uniform(-ecart, ecart) for _ in range(3)]) if i % pas else q for i, q in enumerate(lisses[:-1])]
+    sections = [rayons[i] + (rayons[i + 1] - rayons[i]) * (s / pas) for i in range(len(points) - 1) for s in range(pas)]
+    return chemin + lisses[-1:], sections + [rayons[-1]]
 
 
 def transporter(n, t0, t1):
@@ -59,19 +42,6 @@ def transporter(n, t0, t1):
     trigonométrique (Rodrigues) : le résultat ne dépend pas de la libm."""
     v = t0.cross(t1)
     return n + v.cross(n) + v.cross(v.cross(n)) / (1 + t0.dot(t1))
-
-
-def peau(m, anneaux, mat, pointe):
-    """Les quads entre anneaux successifs (listes de points de même longueur), le premier fermé à plat, le dernier en
-    cône vers `pointe`."""
-    k = len(anneaux[0])
-    sommets = [tuple(p) for anneau in anneaux for p in anneau] + [tuple(pointe)]
-    faces = [[i * k + j, i * k + (j + 1) % k, (i + 1) * k + (j + 1) % k, (i + 1) * k + j]
-             for i in range(len(anneaux) - 1) for j in range(k)]
-    faces.append(list(range(k))[::-1])
-    dernier = (len(anneaux) - 1) * k
-    faces += [[dernier + j, dernier + (j + 1) % k, len(sommets) - 1] for j in range(k)]
-    m.ajouter(sommets, faces, mat)
 
 
 def evasement(direction, z, contreforts):
@@ -88,8 +58,7 @@ def branche(m, points, rayons, S, mat, a, cassure=None, contreforts=None, creux=
     k = S["cotes"]
     stries = [a.uniform(-S["stries"], S["stries"]) for _ in range(k)]
     tangentes = [(chemin[min(i + 1, len(chemin) - 1)] - chemin[max(i - 1, 0)]).normalized() for i in range(len(chemin))]
-    ref = Vector((1, 0, 0)) if abs(tangentes[0].x) < 0.9 else Vector((0, 1, 0))
-    n = (ref - tangentes[0] * ref.dot(tangentes[0])).normalized()
+    n = normale(tangentes[0])
     anneaux, longueur = [], 0.0
     for i, (p, t, r) in enumerate(zip(chemin, tangentes, sections)):
         if i:
@@ -109,12 +78,12 @@ def branche(m, points, rayons, S, mat, a, cassure=None, contreforts=None, creux=
         anneaux.append(anneau)
     bout, t, r = chemin[-1], tangentes[-1], sections[-1]
     if cassure is None:
-        peau(m, anneaux, mat, bout + t * r * S["pointe"])
+        coque(m, anneaux, mat, bout + t * r * S["pointe"])
     else:
         eclats, paroi, fond = cassure
         bord = [v + t * r * a.uniform(*eclats) for v in anneaux[-1]]
         dedans = [bout + (v - bout) * paroi for v in anneaux[-1]]
-        peau(m, anneaux + [bord, dedans], mat, bout - t * r * fond)
+        coque(m, anneaux + [bord, dedans], mat, bout - t * r * fond)
     return chemin, anneaux
 
 
@@ -210,11 +179,10 @@ def brin(m, points, rayons, cotes, mat):
     anneaux = []
     for i, r in enumerate(rayons):
         t = (pts[i + 1] - pts[max(i - 1, 0)]).normalized()
-        ref = Vector((1, 0, 0)) if abs(t.x) < 0.9 else Vector((0, 1, 0))
-        n = (ref - t * ref.dot(t)).normalized()
+        n = normale(t)
         b = t.cross(n)
         anneaux.append([pts[i] + (n * math.cos(2 * math.pi * j / cotes) + b * math.sin(2 * math.pi * j / cotes)) * r for j in range(cotes)])
-    peau(m, anneaux, mat, pts[-1])
+    coque(m, anneaux, mat, pts[-1])
 
 
 def ramure(m, R, F, bout, taille, mat, a):
@@ -370,7 +338,7 @@ def souche(D, bois, a):
                 fond = gerce[3] if gerce and part >= gerce[2] else 0
                 anneau.append(q + HAUT * (dessus(q) - marche * C["gradin"] - fond + a.uniform(-C["relief"], C["relief"])))
             anneaux.append(anneau)
-    peau(bois, anneaux, mat, HAUT * (dessus(Vector((0, 0, 0))) - (len(C["cernes"]) + 1) * C["gradin"] - C["coeur"]))
+    coque(bois, anneaux, mat, HAUT * (dessus(Vector((0, 0, 0))) - (len(C["cernes"]) + 1) * C["gradin"] - C["coeur"]))
 
     nombre, demi_longueur, largeurs, epaisseur, hauteurs, devers, couche = C["charniere"]
     levre, travers = cap(chute) * debut, cap(chute + 90)

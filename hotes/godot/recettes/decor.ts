@@ -8,7 +8,8 @@
  * coïncidence (`projet/recettes/decor-sur-ses-primitives.gd`), `caps` : l'échantillon de `ASYMETRIQUE` à chaque cap de
  * `CAPS`, son volume et ses décors servis comme la vue les sert (`DecorServi`) ; et `coiffe` : ce même échantillon
  * posé sur un bloc plein (`coiffeUnBloc`), son volume, ses décors servis, et le retrait que rend le noyau sous sa
- * couche (`retraitDuMonde`), qui retire le plan `pose` de chaque case et laisse montré son plan `sol` (`capsSolid`).
+ * couche (`retraitDuMonde`), qui retire le plan `pose` de chaque case et laisse montré son plan `sol` (`capsSolid`) ;
+ * et `luminaire` : l'échantillon de `LUMINEUX`, son volume et ses décors servis, dont chaque pose éclaire.
  */
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
@@ -32,6 +33,9 @@ const ENTREES: readonly Record<string, unknown>[] = [
 const ASYMETRIQUE = 'arbre-mort';
 const CAPS: readonly Dir4[] = ['S', 'E'];
 
+/** Le décor qui éclaire de la recette de la coïncidence : sa pose porte `luminaire`. */
+const LUMINEUX = 'lampadaire';
+
 /** Le bloc plein (`solidHeightM` de `terrains.json`) que coiffe la couche du décor de `coiffeUnBloc`, et la hauteur,
  *  en mètres, de la couche qui le coiffe : celle de son dessus. */
 const BLOC = 'mur';
@@ -53,23 +57,28 @@ function coiffeUnBloc(scene: Scene): Scene {
 
 /** Les échantillons figés : l'atelier figé sur la base humanoïde et les éléments `decor` de `listage`, la réponse de
  *  `echantillons` sous la clé de l'entrée absente, par clé d'entrée (`cleDEntree`), la réponse de `echantillon` à
- *  chacune de `ENTREES`, par cap de `CAPS`, l'échantillon de `ASYMETRIQUE` tourné à ce cap (`caps`), et cet
- *  échantillon sur un bloc plein avec le retrait sous sa couche (`coiffe`). */
+ *  chacune de `ENTREES`, par cap de `CAPS`, l'échantillon de `ASYMETRIQUE` tourné à ce cap (`caps`), cet
+ *  échantillon sur un bloc plein avec le retrait sous sa couche (`coiffe`), et l'échantillon de `LUMINEUX`
+ *  (`luminaire`). */
 export function figerLeDecor(listage: Listage) {
   const { fige, appel } = figerLAtelier(listage, (id, manifeste) => id === 'humanoide' || manifeste.categorie === 'decor');
-  const servi = (appel('echantillon', { famille: 'decor', id: ASYMETRIQUE }).decors as Record<string, Record<string, unknown>>)[ASYMETRIQUE];
+  /** Le volume de `scene` et le décor `id` tel que l'échantillon le sert, aux poses de `scene`. */
+  const figee = (id: string, scene: Scene) => {
+    const servi = (appel('echantillon', { famille: 'decor', id }).decors as Record<string, Record<string, unknown>>)[id];
+    return { monde: volumeDuMonde(scene), decors: { [id]: { ...servi, poses: posesDesDecors(scene) } } };
+  };
   const caps = tableTotale(CAPS, (cap) => {
     const scene = sceneDEchantillon('decor', ASYMETRIQUE);
-    const tournee = { ...scene, entities: scene.entities.map((e) => (e.kind === 'prop' ? { ...e, facing: cap } : e)) };
-    return { monde: volumeDuMonde(tournee), decors: { [ASYMETRIQUE]: { ...servi, poses: posesDesDecors(tournee) } } };
+    return figee(ASYMETRIQUE, { ...scene, entities: scene.entities.map((e) => (e.kind === 'prop' ? { ...e, facing: cap } : e)) });
   });
   const coiffee = coiffeUnBloc(sceneDEchantillon('decor', ASYMETRIQUE));
-  const coiffe = { monde: volumeDuMonde(coiffee), decors: { [ASYMETRIQUE]: { ...servi, poses: posesDesDecors(coiffee) } }, retrait: retraitDuMonde(coiffee, 0) };
+  const coiffe = { ...figee(ASYMETRIQUE, coiffee), retrait: retraitDuMonde(coiffee, 0) };
   return {
     ...fige,
     echantillons: { [cleDEntree(null)]: appel('echantillons') },
     echantillon: Object.fromEntries(ENTREES.map((e) => [cleDEntree(e), appel('echantillon', e)])),
     caps,
     coiffe,
+    luminaire: figee(LUMINEUX, sceneDEchantillon('decor', LUMINEUX)),
   };
 }
