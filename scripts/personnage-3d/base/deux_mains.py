@@ -117,10 +117,11 @@ REPOS_LOIN = ((-0.02, -0.40, 1.2925), (0.85, 0.0, -0.53))
 """Le repos, les mains écartées de la poitrine : dans le recul et la chute, le dos qui se plie sur les hanches ne mène pas
 l'avant-bras gauche dans le ventre ; une fois le corps à terre, les mains reviennent au repos, sur la poitrine, et ne
 tendent pas l'arme vers le ciel (#3806)."""
-GARDE = ((0.04, -0.38, 1.12), (0.40, 0.10, -0.91))
-"""Les mains devant le ventre, assez loin de lui pour le ventre corpulent, la hache dressée, penchée vers l'épaule
-droite, le tranchant vers l'adversaire, la main gauche sous la droite, à peine en arrière d'elle : l'arrière de
-l'aisselle gauche ne s'écrase pas sous les silhouettes féminine, corpulente ou mince (#3806)."""
+GARDE = ((-0.08, -0.38, 1.18), (0.40, 0.10, -0.91))
+"""Les mains devant le flanc droit, à hauteur du nombril, assez loin du ventre pour le ventre corpulent, la hache
+dressée, penchée vers l'épaule droite, le tranchant vers l'adversaire, la main gauche sous la droite, à peine en arrière
+d'elle : l'arrière de l'aisselle gauche ne s'écrase pas sous les silhouettes féminine, corpulente ou mince (#3806), et
+le coude droit, que le buste tourné du clip source mène en arrière, reste hors du flanc sous la carrure large (#3810)."""
 LEVEE = ((-0.24, -0.22, 1.16), (0.25, -0.25, -0.93))
 """Les mains montées devant l'épaule droite, le fer dressé au-dessus d'elle, le manche presque droit à droite du menton
 et non en travers du visage (#3806)."""
