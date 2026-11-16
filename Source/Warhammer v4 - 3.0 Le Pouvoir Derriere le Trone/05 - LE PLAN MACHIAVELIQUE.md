@@ -199,7 +199,7 @@ Fatiguées de ne servir qu'un but ornemental à la cour du Graf, une, deux, ou t
 Peu importe votre choix en tant que MJ, vous devrez procéder à quelques ajustements au niveau des lieux utilisés au **Chapitre 6,** pour remplacer la maison de Wasmeier par celle de l'antagoniste choisi.
 
 
-### POUR LES GROGNARDS : SECRETS MORTELS
+### <span id="page-44-0" data-folio="42"></span>POUR LES GROGNARDS : SECRETS MORTELS
 
 Le comportement et l'attitude d'un PNJ peuvent être affectés par son secret mortel, n'oubliez pas de modifier la description du personnage si nécessaire. Pour s'assurer la victoire, l'antagoniste doit contrôler des PNJ qui totaliseront au moins 9 « votes d'influence » (voir *Influencer le Graf*, p. 40). Gardez également en tête qu'il ou elle ne doit pas contrôler Luigi Pavarotti, le Médecin du Baron. Les Personnages peuvent le suspecter dans un premier temps, mais il peut devenir un puissant allié, et représente également leur seule chance de rompre l'enchantement qui hypnotise Dieter. S'il venait à être contrôlé par l'antagoniste, le jeu deviendrait très difficile, voire impossible.
 

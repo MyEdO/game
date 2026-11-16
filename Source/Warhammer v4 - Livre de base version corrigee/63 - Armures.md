@@ -1,6 +1,6 @@
 *Pages PDF 301-302*
 
-# **ARMURES**
+# <span id="page-300-0" data-folio="299"></span>**ARMURES**
 
 *« D'abord, évitez tout contact. C'est votre principe de base. Et si vous ne pouvez pas, portez toujours une protection… D'accord ? »* – Caporal « Nobbs » Nobbilar, Instructeur de combat de base.
 

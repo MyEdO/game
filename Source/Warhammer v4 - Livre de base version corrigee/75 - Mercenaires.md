@@ -1,6 +1,6 @@
 *Pages PDF 311*
 
-# **MERCENAIRES**
+# <span id="page-310-0" data-folio="309"></span>**MERCENAIRES**
 
 Si vous avez besoin de muscles ou de cerveaux supplémentaires pendant l'aventure, vous pouvez payer des mercenaires PNJ pour vous accompagner. Vous pouvez engager n'importe quelle Carrière avec l'accord du MJ, et ils sont rémunérés à un montant égal à leur Statut pour un travail rapide, ou le triple pour une journée complète de travail. Le MJ peut augmenter ou réduire ce montant en fonction de la personnalité de chacun d'eux et des circonstances locales.
 

@@ -1,11 +1,11 @@
 *Pages PDF 9-31*
 
-#### **Middenheim**
+#### <span id="page-8-0" data-folio="6"></span>**Middenheim**
 
 La dernière étape du voyage est la plus courte en distance, mais peut souvent prendre autant de temps que les autres. Tous les arrivants doivent se soumettre à certaines formalités, essentiellement liées aux nouvelles lois fiscales de la ville, et attendre leur tour pour emprunter l'une des chaussées ou l'un des télésièges qui relient le pied de l'Ulricsberg, ou Fauschlag, à la ville.
 
 
-### NOUVELLES ET RUMEURS
+### <span id="page-16-0" data-folio="14"></span>NOUVELLES ET RUMEURS
 
 Ces rumeurs peuvent être entendues en chemin, à l'un des différents arrêts en cours de route ou par le biais de compagnons de voyage. Lancez un d10 pour choisir au hasard ou sélectionnez une rumeur appropriée au PNJ en question. Si les rumeurs liées aux conflits et aux taxes à Middenheim servent à créer l'ambiance générale pour le reste de l'aventure, n'oubliez pas de mentionner également l'agitation du peuple de l'Empire. Cette anticipation vous sera utile si vous poursuivez avec *Le Rat Cornu* et *L'Empire en Ruines,* qui sont les deux derniers chapitres de **L'Ennemi Intérieur**.
 
@@ -309,7 +309,7 @@ Kurt est, lui aussi, une personne affable qui se prend pour un conteur amusant e
 **Possessions :** justaucorps de cuir, 2 dagues, bourse contenant 1 CO et 10/-
 
 
-### **Konrad Alpiger**
+### <span id="page-26-0" data-folio="24"></span>**Konrad Alpiger**
 
 I
 

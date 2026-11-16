@@ -1,6 +1,6 @@
 *Pages PDF 166-168*
 
-# **DÉPLACEMENT**
+# <span id="page-165-0" data-folio="164"></span>**DÉPLACEMENT**
 
 Les détails nécessaires concernant les déplacements dépendent de la façon dont vous repérez où chacun se trouve. De nombreux MJ aiment utiliser « le théâtre de l'esprit », où vous décrivez les positions relatives de chacun et les distances qui séparent les protagonistes, jugeant de la possibilité d'entreprendre le Mouvement ou l'Action que le Joueur décrit.
 

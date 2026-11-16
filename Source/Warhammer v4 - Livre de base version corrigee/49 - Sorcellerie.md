@@ -1,6 +1,6 @@
 *Pages PDF 256-257*
 
-# **Le Domaine de la Sorcellerie**
+# <span id="page-255-0" data-folio="254"></span>**Le Domaine de la Sorcellerie**
 
 Les Sorts de Sorcellerie se nourrissent de tous les Vents disponibles, sans se soucier des mélanges et d'éventuels résultats catastrophiques. À chaque fois qu'un pratiquant de la Sorcellerie fait un jet sur le Tableau des Incantations Imparfaites, il gagne 1 Point de Corruption. De plus, vous pouvez infliger un État *Hémorragique*  à toute cible d'un Sort du Domaine de la Sorcellerie. Enfin, le fait de focaliser ou lancer des Sorts de ce Domaine nécessite systématiquement un lancer sur le Tableau des Incantations Imparfaites Mineures à moins d'être lancé avec un ingrédient, ou bien ce composant ne servira à rien si un jet sur le Tableau des Incantations Imparfaites doit malgré tout être effectué. Par chance, les ingrédients du Domaine de la Sorcellerie sont bon marché et facilement disponibles : la plupart du temps, ce sont des morceaux d'animaux de petite taille. Les composants coûtent le NI du Sort en sous de cuivre, à la place des pistoles d'argent habituelles. Sinon, un Sorcier dissident peut chercher les différents composants luimême, en utilisant la Compétence Survie en extérieur : un jet réussi permet de recevoir 1+ DR composants, comme décrit sous Trouver de la nourriture et des herbes, page 131.
 
@@ -28,7 +28,7 @@ Vous pouvez cibler aussi bien un puits, qu'un champ ou encore un animal domestiq
 
 **Cible :** ZdE (un lieu unique) **Durée :** (Force Mentale) jours
 
-Vous ciblez un lieu unique, comme une maison ou une clairière, où chaque créature qui entrera sera la victime de rêves obsédants et de cauchemars éveillés. Ceux qui pénètrent dans le lieu pendant que le Sort est actif sont perturbés par d'étranges sensations, des ombres voletantes et des voix murmurantes à la limite de leur audition. À moins de posséder le Talent Magie des Arcanes (Sorcellerie), ils subissent 1 État *Exténué*. De plus, à moins de réussir un Test de **Calme Intermédiaire (+0)**, ils subissent de nouveau +1 État *Exténué* ainsi qu'un État *Brisé*, qui ne disparaitront que lorsqu'ils quitteront le lieu en question.
+<span id="page-256-0" data-folio="255"></span>Vous ciblez un lieu unique, comme une maison ou une clairière, où chaque créature qui entrera sera la victime de rêves obsédants et de cauchemars éveillés. Ceux qui pénètrent dans le lieu pendant que le Sort est actif sont perturbés par d'étranges sensations, des ombres voletantes et des voix murmurantes à la limite de leur audition. À moins de posséder le Talent Magie des Arcanes (Sorcellerie), ils subissent 1 État *Exténué*. De plus, à moins de réussir un Test de **Calme Intermédiaire (+0)**, ils subissent de nouveau +1 État *Exténué* ainsi qu'un État *Brisé*, qui ne disparaitront que lorsqu'ils quitteront le lieu en question.
 
 # **Malédiction de douleur paralysante**
 

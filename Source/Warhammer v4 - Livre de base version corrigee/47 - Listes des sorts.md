@@ -1,6 +1,6 @@
 *Pages PDF 240-246*
 
-# **LISTES DES SORTS**
+# <span id="page-239-0" data-folio="238"></span>**LISTES DES SORTS**
 
 Les Sorts mineurs figurent en premier dans les listes, suivis par les Sorts d'Arcane, puis les Huit Domaines Élémentaires (Couleurs de la Magie), deux autres Domaines à part, suivis de deux Domaines Sombres, et enfin un Sort pour chacun des trois Domaines du Chaos. Les Domaines Sombres et les Domaines du Chaos sont bien plus courts que les autres, car ils y figurent pour les PNJ. Les règles spéciales pour chaque Domaine sont présentées avant les listes de Sorts.
 
@@ -21,7 +21,7 @@ Vous pouvez choisir la même option plusieurs fois. Par exemple, si vous obtenez
 Si vous commencez à jouer avec un Grimoire, il appartient au MJ de déterminer combien de Sorts votre maître a répertorié à l'intérieur. Certains Maîtres sont beaucoup plus généreux que d'autres, mais la plupart fournissent au moins quatre nouveaux Sorts à étudier, et bien peu en fournissent plus de huit. Si vous avez Mémorisé un Sort, vous n'avez pas besoin d'accéder à votre Grimoire pour le lancer. Si vous n'avez pas encore mémorisé un Sort, vous pouvez utiliser le Grimoire pour le lancer en utilisant vos deux mains. Cela double le NI du Sort et expose votre Grimoire à des dégâts potentiels ou au vol.
 
 
-# PRÉSENTATION DES SORTS
+# <span id="page-240-0" data-folio="239"></span>PRÉSENTATION DES SORTS
 
 - **NI :** il s'agit du Niveau d'Incantation du Sort.
 - **Portée :** il s'agit de la portée du Sort, en général indiquée en mètres. Si la portée indique « Vous », le Sort peut uniquement être jeté sur le lanceur de Sorts. Si la portée indique « Contact », la cible doit être touchée par le lanceur de Sorts.

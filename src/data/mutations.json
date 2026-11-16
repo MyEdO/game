@@ -917,7 +917,7 @@
     "note": "Gagne le Talent Sorcier ! ; -5 en Sociabilité, -5 en Intelligence",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -929,7 +929,7 @@
     "note": "Gagne le Trait de créature Bestial pendant 1d10 heures après un échec à un Test lié à la Force Mentale",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -948,7 +948,7 @@
     "note": "Si soumis à Psychologie (voir Livre de Règles, page 190), gagne le Trait de créature Corruption (Mineure) ; -10 Sociabilité",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -978,7 +978,7 @@
     "note": "Gagne le Trait de créature Insensible à la douleur ; -20 Initiative, -20 Intelligence",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -1004,7 +1004,7 @@
     "note": "Gagne le Trait de créature Haine (Religion) ; +10 Force Mentale",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -1016,7 +1016,7 @@
     "note": "Gagne le Trait de créature Immunité Psychologique durant 1d10 Rounds lorsque vous prenez un État Brisé, ensuite subissez 1d10 États Brisé",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -1074,7 +1074,7 @@
     ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -1098,7 +1098,7 @@
     "note": "Gagne le symptôme Malaise durant 1d10 heures en cas d’échec à un Test lié à la Force Mentale",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -1118,7 +1118,7 @@
     "note": "Gagne le Trait de créature Belliqueux : impossibilité de Fuir volontairement (voir page 165 du Livre de Règles)",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 70
     }
   },
   {
@@ -1154,7 +1154,7 @@
     "note": "-10 Intelligence, +10 Force Mentale. Gagne le Trait de créature Stupide si seul",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 71
     }
   },
   {
@@ -1235,7 +1235,7 @@
     "note": "Gagne le Symptôme Convulsions durant 1d10 heures en cas d’échec à un Test lié à la Force Mentale",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 71
     }
   },
   {
@@ -1261,7 +1261,7 @@
     "note": "Gagne le Trait de créature Effrayé (Cible), déterminer la Cible avec un jet sur le Tableau des Obsessions",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 71
     }
   },
   {
@@ -1326,7 +1326,7 @@
     "note": "Réduit la Dextérité à 0 de façon permanente (réglage absolu de carac, pas un modificateur — non exprimable par charMod) ; vous ne pouvez pas être désarmé. Note 3 : ne peut pas être dissimulée.",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 66
     }
   },
   {
@@ -1440,7 +1440,7 @@
     "note": "Effet déclenché au contact : les créatures ou les objets qui vous touchent physiquement doivent réussir un Test d'Athlétisme ou gagner un État En flammes. Note 3 : ne peut pas être dissimulée.",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 66
     }
   },
   {
@@ -1474,7 +1474,7 @@
     "note": "Note 3 : ne peut pas être dissimulée.",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 66
     }
   },
   {
@@ -1547,7 +1547,7 @@
     "note": "Allonge +2 pas sur toute arme de corps à corps tenue — règle d'Allonge contextuelle, non exprimable par un GameOp passif (dépend de l'arme équipée).",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 66
     }
   },
   {
@@ -1559,7 +1559,7 @@
     "note": "Effet déclenché/actif : permet de lancer le Sort Mauvais œil en dépensant un Point de Chance, sans Test, puis subir une Incantation imparfaite mineure — dette #459 (action optionnelle payée en Chance). Note 3 : ne peut pas être dissimulée.",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 66
     }
   },
   {
@@ -1602,7 +1602,7 @@
     "note": "Immunité à l'Exposition aux climats froids ; effets de l'Exposition aux climats chauds doublés. Règle d'environnement (Exposition) hors moteur de combat — laissée en note. Note 3 : ne peut pas être dissimulée.",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 66
     }
   },
   {
@@ -1999,7 +1999,7 @@
     ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 69
     }
   },
   {
@@ -2024,7 +2024,7 @@
     ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 69
     }
   },
   {
@@ -2048,7 +2048,7 @@
     ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 69
     }
   },
   {
@@ -2121,7 +2121,7 @@
     ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 69
     }
   },
   {
@@ -2172,7 +2172,7 @@
     ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 69
     }
   },
   {
@@ -2204,7 +2204,7 @@
     ],
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 67
+      "page": 69
     }
   },
   {

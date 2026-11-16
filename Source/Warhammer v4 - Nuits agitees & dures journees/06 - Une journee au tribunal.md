@@ -133,7 +133,7 @@ Dans le même temps, un autre Test de **Perception Intermédiaire (+0)** réussi
 Alors que le travail continue sur les tribunes, une partie d'une balustrade s'écroule. Il y a quelques blessures mineures, mais rien de sérieux. Toutefois, l'accident fait beaucoup de bruit et toutes les têtes se tournent pour voir. Toutes sauf une : celle d'un agent de Dammenblatz qui s'est arrangé pour que cet accident survienne.
 
 
-Pendant que les aventuriers observent la source du vacarme, il glisse une sarbacane et un petit étui de dards empoisonnés dans les vêtements du Personnage qui semble le moins capable de repérer la tentative. Cela fonctionne comme le pickpocket, la seule différence étant que cela vise à faire l'inverse. Cela demande donc un Test **Opposé d'Escamotage/Perception** réussi dont la difficulté est modifiée selon les circonstances comme vous le jugez bon. L'étui a de la place pour quatre dards, mais il n'en contient que trois, pour une raison qui sera révélée plus tard (voir *10h45*). Tous les trois sont enduits de Lotus Noir (**WFJDR**, p307).
+<span id="page-29-0" data-folio="28"></span>Pendant que les aventuriers observent la source du vacarme, il glisse une sarbacane et un petit étui de dards empoisonnés dans les vêtements du Personnage qui semble le moins capable de repérer la tentative. Cela fonctionne comme le pickpocket, la seule différence étant que cela vise à faire l'inverse. Cela demande donc un Test **Opposé d'Escamotage/Perception** réussi dont la difficulté est modifiée selon les circonstances comme vous le jugez bon. L'étui a de la place pour quatre dards, mais il n'en contient que trois, pour une raison qui sera révélée plus tard (voir *10h45*). Tous les trois sont enduits de Lotus Noir (**WFJDR**, p307).
 
 ### **10h15**
 
@@ -172,7 +172,7 @@ Entouré par deux membres du Guet, un héraut portant une livrée aux couleurs d
 *«Oyez ! Oyez !»* crie-t-il. *«Ordre et silence pour leurs vénérables éminences, le magistrat Hannes Richter, la magistrate Hanna Anwalt et l'Assistant magistrat Gerhard Urteil!»* Le brouhaha autour de l'arène se calme un peu pendant que les trois magistrats de la ville prennent place.
 
 
-### DUEL JUDICIAIRE
+### <span id="page-30-0" data-folio="29"></span>DUEL JUDICIAIRE
 
 Sous la loi impériale, les nobles, ainsi que d'autres personnes sous certaines circonstances, peuvent faire appel à un duel judiciaire au lieu de faire face à un jury. Beaucoup de nobles, et un certain nombre de grands prêtres et marchands influents entretiennent des champions de justice dans leurs suites pour cette raison. La législation codifiant le duel judiciaire est complexe et certains de ses dispositions sont très vieilles, remontant aux duels légaux des premières tribus qui ont fondé l'Empire. De plus, il y a diverses variantes locales, avec de multiples subtilités sur l'application des lois; il est donc toujours sage de s'adjoindre les services d'un juriste compétent avant de s'engager dans ce mode de jugement. En fonction de la sévérité de la charge, un duel judiciaire peut être disputé jusqu'au premier sang ou jusqu'à ce qu'un des combattants ne puisse plus poursuivre. En termes de jeu, le premier sang est la première attaque qui cause une perte de plus de 3 Blessures (les coups moindres sont considérés comme des estafilades au mieux); un adversaire est incapable de continuer lorsqu'il est réduit à 0 Blessure.
 
@@ -203,7 +203,7 @@ Pendant que les champions se préparent, la haute prêtresse de Verena parcourt 
 Le héraut entre à nouveau dans l'arène et fait sonner sa trompette. Le silence se fait au moment où il se tourne vers les magistrats sur la tribune qui acquiescent pour que le procès commence.
 
 
-*«Oyez ! Oyez !»* crie-t-il. *«Dans l'affaire du noble baron Eberhardt von Dammenblatz de Wissenberg contre la noble gravin Maria Ulrike von Liebwitz d'Ambosstein, concernant la mort de feu le noble baron Otto von Dammenblatz, seigneur de Wissenberg, que les champions s'avancent et que le jugement commence!»*
+<span id="page-31-0" data-folio="30"></span>*«Oyez ! Oyez !»* crie-t-il. *«Dans l'affaire du noble baron Eberhardt von Dammenblatz de Wissenberg contre la noble gravin Maria Ulrike von Liebwitz d'Ambosstein, concernant la mort de feu le noble baron Otto von Dammenblatz, seigneur de Wissenberg, que les champions s'avancent et que le jugement commence!»*
 
 Les deux champions sortent alors de leurs pavillons et se font face. Le magistrat Richter lève un mouchoir blanc en l'air. Pendant un long moment, tout est silencieux. Puis, il le laisse tomber et le combat commence ! Vraiment?
 
@@ -240,7 +240,7 @@ Lorsque le compte du fantôme est réglé (ou qu'Hubkind est tué et que le fant
 L'ordre est finalement revenu et les derniers blessés sont transportés au temple de Shallya. Les magistrats donnent le signal pour que le combat redémarre. Alors, les cultistes de l'*Ordo Ultima* approchent des tribunes et, à demi cachés dans la foule, l'un d'eux projette un dard sur Rechtshandler à l'aide d'une sarbacane à courte portée. Le projectile est enduit de Lotus Noir (**WFJDR**, p307), comme l'aiguille dans le coussin (voir *11h*). À nouveau, les aventuriers peuvent les repérer avec un Test **Opposé Perception/ Discrétion** et crier pour qu'on les empêche de s'échapper.
 
 
-Rechtshandler pousse un cri de désarroi et agrippe son cou, retirant le dard et le montrant à la Gravin, qui se lève et approche les magistrats. Le combat est encore une fois arrêté sous les railleries et les huées de la foule pendant que le dard est examiné. Des gardes sont envoyés parmi les spectateurs pour essayer de trouver les agresseurs, mais tout ce qu'ils vont ramener, c'est une sarbacane abandonnée que les cultistes ont laissée après avoir tiré. Pendant ce temps, soit Rechtshandler a le visage noir et est mort, soit il est en mauvaise condition, un greffier vient donc prendre sa place pour le reste de la durée du duel.
+<span id="page-32-0" data-folio="31"></span>Rechtshandler pousse un cri de désarroi et agrippe son cou, retirant le dard et le montrant à la Gravin, qui se lève et approche les magistrats. Le combat est encore une fois arrêté sous les railleries et les huées de la foule pendant que le dard est examiné. Des gardes sont envoyés parmi les spectateurs pour essayer de trouver les agresseurs, mais tout ce qu'ils vont ramener, c'est une sarbacane abandonnée que les cultistes ont laissée après avoir tiré. Pendant ce temps, soit Rechtshandler a le visage noir et est mort, soit il est en mauvaise condition, un greffier vient donc prendre sa place pour le reste de la durée du duel.
 
 #### **12h45**
 
