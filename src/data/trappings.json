@@ -14260,6 +14260,54 @@
     "bladed": true
   },
   {
+    "id": "decharge-de-malelame",
+    "type": "trappings",
+    "label": "Décharge de malelame",
+    "hands": 2,
+    "categorie": "distance",
+    "subType": {
+      "id": "ingenierie"
+    },
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "maison": "Arbitrage du 2026-11-16 (#4202) : « Ignore seulement le métal ». Groupe Ingénierie, celui des armes du clan Skryre sans poudre noire (lance-maleflamme) ; Dégâts et Portée au Trait À distance du statbloc.",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.199 ; ZI 13 l.222"
+    },
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "7c5a615f6971b59a"
+        }
+      ]
+    },
+    "reach": null,
+    "range": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "passifDArme": [
+      {
+        "op": "armourPierce",
+        "amount": 0,
+        "bypass": "metal"
+      }
+    ]
+  },
+  {
     "id": "malelame-a-une-main",
     "type": "trappings",
     "label": "Malelame à une main",
