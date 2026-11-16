@@ -241,6 +241,8 @@ export type { ArmourBypass };
  *  `damageString` ; remplace la chaîne « +BF+4 » re-parsée par regex au runtime. */
 export type WeaponDamageSpec =
   | { literal: string }
+  /** Dégâts « – » imprimés : une touche sans prise (`SansPrise` 'sans-degats'). LDB 62 l.76 ; AA 10 l.192 ; #4202. */
+  | { aucun: true }
   | { plusBF: boolean; flat: number; bare?: true; bfInclus?: true };
 
 /** Portée d'arme à distance (LDB 62) : `number` = mètres FIXES (arc/arbalète/arme à feu) ; `{ bf }` =

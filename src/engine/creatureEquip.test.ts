@@ -178,9 +178,8 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     }
   });
 
-  it('Possession de catalogue SANS profil de Dégâts (Lasso) : « +BF » nu — convention du profil d’arme, portée par la projection UNIQUE, jamais redéclarée par un canal', () => {
-    const nu = { plusBF: true, flat: 0, bare: true };
-    expect(parPossession('lasso')!.damage).toEqual(nu);
+  it('Lasso : Dégâts « – » (LDB 62 l.76) — portés par la projection UNIQUE, jamais redéclarés par un canal', () => {
+    expect(parPossession('lasso')!.damage).toEqual({ aucun: true });
     // Canal TRAIT : l'Indice IMPRIMÉ du statbloc prime (LDB 85 l.9) — il n'y a rien à replier.
     expect(weaponFromTrait(t({ id: 'a-distance', arg: 'lasso', value: 4 }))!.damage).toEqual({ plusBF: false, flat: 4 });
   });

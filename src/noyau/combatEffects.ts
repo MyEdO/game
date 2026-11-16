@@ -83,7 +83,7 @@ import { contractDisease, applyContraction, diseaseDefs } from '../engine/diseas
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
-import { ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
+import { crochetDeZone, ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
 import { placeById, quaiDuGroupe } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -535,7 +535,7 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
 
 /** Applique les ops d'UNE feuille EffectOp à `c` — SOURCE UNIQUE des exécuteurs d'EffectOp (handler de
  *  scène `ops`, `runCombatFlow`, runner de consommable) : les `delayed` sont PROGRAMMÉES
- *  (`scheduleDelayedOps`), le reste passe par `applyOps` avec le contexte de la FEUILLE (`leafOpsCtx` —
+ *  (`scheduleDelayedOps`), les `zone` qui portent leur durée posées (`crochetDeZone`), le reste passe par `applyOps` avec le contexte de la FEUILLE (`leafOpsCtx` —
  *  untilTime/label bakés priment, sinon le contexte appelant). Renvoie le journal, ou `OPS_DIFFEREES`
  *  si les dés de la feuille sont partis à la porte (l'appelant confie alors SA SUITE à l'étape ouverte,
  *  cf. `confierLaSuite`).
@@ -547,7 +547,7 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
 export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): string[] | typeof OPS_DIFFEREES {
   const e = structuredClone(feuille); // #2097
   const now = base.now ?? get().gameTime;
-  const ctx = leafOpsCtx({ ...base, now, ...crochetsDeCorruption(get, set) }, e);
+  const ctx = leafOpsCtx({ ...base, now, ...crochetsDeCorruption(get, set), ...crochetDeZone(get) }, e);
   for (const o of e.ops) if (o.op === 'delayed') scheduleDelayedOps(get, set, c, o, { now, untilTime: ctx.defaultUntilTime, label: ctx.label });
   const rest = e.ops.filter((o) => o.op !== 'delayed');
   if (!rest.length) return [];
@@ -660,6 +660,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte): OpsCtx | nu
     ...crochetsDeCorruption(get, set),
     ...campAdvantageHooks(get),
     ...crochetDuSol(get, set),
+    ...crochetDeZone(get),
     ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
     ...(hull ? { hull } : {}),
     ...(caster ? { caster } : {}),

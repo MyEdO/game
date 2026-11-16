@@ -1548,6 +1548,8 @@ export const fr = {
   // Dégâts (LDB 15 l.80). Le libellé dit ce que le dé DÉCIDE, l'unité vit sur la déclaration.
   'op.chute.deHauteur': 'Hauteur de chute — {table}',
   'op.chute.deDegats': 'Dégâts de chute',
+  // Le dé de DURÉE d'une zone posée hors sort, tel que la porte le montre (#1508) — #4202.
+  'op.zone.deDuree': 'Durée de la zone',
   'op.gainDAvantage': '{name} gagne {n} Avantage{s}.',
   'op.avantageComplete': '{name} porte son Avantage à {n}.',
   'op.avantageDepense': '{name} perd tous ses Avantages.',

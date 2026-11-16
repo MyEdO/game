@@ -531,8 +531,8 @@ export interface RollBreakdown {
 }
 
 /** Ce qui ôte au coup toute prise sur sa cible : MDG 13 l.605, l.614 ; ADE II 08 l.296, l.300 ; LDB 85 l.98, l.278 ; LDB 47 l.358 ;
- *  LDB 85 l.134 ; LDB 14 l.159. */
-export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches' | 'ethere' | 'empoignade';
+ *  LDB 85 l.134 ; LDB 14 l.159 ; LDB 62 l.76, AA 10 l.192, #4202. */
+export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches' | 'ethere' | 'empoignade' | 'sans-degats';
 
 /** Le RNG du tirage de la Localisation relancée, et la Localisation figée d'une re-dérivation du même jet.
  *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544. */
@@ -1836,9 +1836,12 @@ function applyHit(
   // Coque bloquée (MDG 13) : petites armes (l.605) / case « – » du tableau des Tailles (l.614) →
   // AUCUNE Blessure ni Critique de navire ; sinon plancher 0 pour une coque (un coup faible ricoche).
   const hullBlocked = !!hullAdj && 'blocked' in hullAdj;
+  // LDB 62 l.76 ; AA 10 l.192 ; #4202.
+  const sansDegats = 'aucun' in weapon.damage;
   const sansPrise: SansPrise | undefined = hullBlocked ? 'coque-bloquee'
+    : sansDegats ? 'sans-degats'
     : isStructure(defender) && structureImmune(weapon, defender) ? 'structure-immune' : undefined;
-  const woundsLost = hullBlocked ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
+  const woundsLost = hullBlocked || sansDegats ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
   // AA 10 l.98 — terme DIT au journal quand le BE d'une Structure est compté plusieurs fois.
   const beMult = structureEnduranceMult(weapon, defender, attacker.size);
   const beBase = bonus(effectiveChar(defender, 'endurance'));
@@ -1863,7 +1866,7 @@ function applyHit(
     netSL: dr,
     location: loc,
     ...(relance ? { critLocation: critWoundLocation(tirage.rng, defender.bodyShape, tirage.fige) } : {}),
-    damage,
+    damage: sansDegats ? 0 : damage,
     woundsLost,
     apExternal: extraAP - sureShot,
     critical: isCritical,
