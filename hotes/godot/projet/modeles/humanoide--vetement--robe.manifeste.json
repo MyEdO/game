@@ -41,22 +41,11 @@
     },
     {
       "nom": "poitrine",
-      "palette": "vet2",
-      "matiere": "prop--toile-ecrue"
-    },
-    {
-      "nom": "galon",
-      "palette": "vet2",
-      "matiere": "prop--laine"
-    },
-    {
-      "nom": "doublure",
-      "palette": "vet2",
-      "matiere": "prop--laine"
+      "palette": "peau"
     }
   ],
   "glb": {
-    "sha256": "66fc450c6b97e75c253643c2a78d60240101a571b0770fe1f58a76192a5d4888",
-    "octets": 1119104
+    "sha256": "aab48e54b77287ad988900d085dffb366676699301215ee3a2c6a5cd6724772c",
+    "octets": 897328
   }
 }
