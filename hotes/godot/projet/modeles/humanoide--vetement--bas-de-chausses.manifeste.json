@@ -1,0 +1,35 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "bas-de-chausses"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "dessous",
+  "couvre": [
+    "genou_g",
+    "genou_d",
+    "mollet_g",
+    "mollet_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "bas",
+      "palette": "vet2",
+      "matiere": "prop--laine"
+    }
+  ],
+  "glb": {
+    "sha256": "11d6c9e2546a8a4b2085f428e98034497f18217e38154363d65417786f7e526f",
+    "octets": 385668
+  }
+}

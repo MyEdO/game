@@ -549,6 +549,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'Couleurs.cuir @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.fourrure @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.metal @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.metal2 @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.peau @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.plume @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.vegetal @ src/data/schemas/grammaire/valeurs.ts',

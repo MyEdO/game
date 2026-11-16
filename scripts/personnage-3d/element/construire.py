@@ -14,7 +14,8 @@ skinnée `couche`, `couvre`, `chaines`), `MATERIAUX` (`{nom: (emplacement de pal
 matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313),
 `BUDGET_TRIANGLES`, et chaque dimension nommée avec sa source. `modele.py` porte `construire`, selon la liaison :
 - `rigide` : `construire(D, materiaux)` rend les objets, bâtis dans le repère de la prise `PRISE` (une prise du manifeste
-  de base) ; ils pendent à l'os de cette prise ;
+  de base) ou de l'emplacement `EMPLACEMENT` qu'offre l'élément importé `OFFRANT` ; ils pendent à l'os de ce
+  repère ;
 - `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
   transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
   qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste ;
@@ -191,9 +192,18 @@ def triangles_de(objets, budget):
     return triangles
 
 
+def repere_de_pendaison(D, manifeste_de_base):
+    """Le repère où pend un rigide (#4318) : la prise `D['PRISE']` de la base, ou l'emplacement `D['EMPLACEMENT']`
+    qu'offre l'élément importé `D['OFFRANT']`."""
+    if "PRISE" in D:
+        return manifeste_de_base["prises"][D["PRISE"]]
+    return lire(MODELES / f"{D['OFFRANT']}.manifeste.json")["emplacements"][D["EMPLACEMENT"]]
+
+
 def construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire):
-    """Les objets du modèle, pendus à l'os de la prise `D['PRISE']` ; rend les octets, les champs propres et le compte."""
-    prise = manifeste_de_base["prises"][D["PRISE"]]
+    """Les objets du modèle, pendus à l'os de leur repère (`repere_de_pendaison`) ; rend les octets, les champs propres
+    et le compte."""
+    prise = repere_de_pendaison(D, manifeste_de_base)
     rig = armature_au_repos(glb_de_base)
     objets = modele.construire(D, habillage.materiaux(D["MATERIAUX"]))
     triangles = triangles_de(objets, D["BUDGET_TRIANGLES"])
