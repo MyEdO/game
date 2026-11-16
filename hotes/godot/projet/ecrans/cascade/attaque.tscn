@@ -24,16 +24,17 @@ formes = PackedStringArray("jet:jetDuCamp")
 [node name="Centre" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel"]
 custom_minimum_size = Vector2(220, 0)
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 2.0
+size_flags_stretch_ratio = 0.7
 alignment = 1
 
 [node name="Etape" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
 alignment = 1
 
-[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Etape"]
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Etape" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.etape"
 formes = PackedStringArray("ligne:rubrique")
+masque = NodePath("..")
 
 [node name="Cible" type="HBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
 alignment = 1
@@ -62,10 +63,11 @@ masque = NodePath("../../Point")
 [node name="Coup" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
 alignment = 1
 
-[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Coup"]
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Coup" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("degats", "tirDansLeTas", "tirImmobile")
+masque = NodePath("..")
 
 [node name="DrNet" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
 theme = ExtResource("2_titre")
@@ -88,20 +90,22 @@ formes = PackedStringArray("ligne:ligneAuCentre")
 
 [node name="Localisation" type="HBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages"]
 
-[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages/Localisation"]
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages/Localisation" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.reglages"
 ids = PackedStringArray("jetRegler@attaque#localisation")
 formes = PackedStringArray("choix:silhouette")
+masque = NodePath("../..")
 
 [node name="Autres" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages"]
 size_flags_horizontal = 3
 alignment = 1
 
-[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages/Autres"]
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages/Autres" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.reglages"
 formes = PackedStringArray("choix:choixEnLigne")
+masque = NodePath("../..")
 
 [node name="Apres" type="VSeparator" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel"]
 

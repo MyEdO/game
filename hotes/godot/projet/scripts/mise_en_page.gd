@@ -77,8 +77,8 @@ const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord 
 const ECART_DE_BULLE := 12.0
 ## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
 const ECART_DU_MEUBLE := 8.0
-## La largeur la plus grande d'un bandeau de jet, en pixels.
-const LARGEUR_DU_BANDEAU := 1000.0
+## La largeur la plus grande d'un bandeau de jet, en unités de la vue de 1280 × 720.
+const LARGEUR_DU_BANDEAU := 1091.0
 ## La largeur la plus étroite de la chronique posée sur la scène en combat, sa pastille comprise, en pixels.
 const LARGEUR_DE_LA_CHRONIQUE := 310.0
 ## La hauteur au-delà de laquelle la liste ouverte d'une pastille défile, en pixels.
@@ -818,10 +818,14 @@ static func decalage_du_poste(origine: float, largeur_de_scene: float, largeur: 
 	return (debut + fin) / 2.0 - centre
 
 
-## La largeur d'un bandeau de jet posé dans le poste de l'actif, entre `gauche`, le bord droit de l'ordre du tour, et
-## `droite`, le bord gauche de la fin du tour ou de la scène, à `ECART_DU_MEUBLE` de chacun : au plus `LARGEUR_DU_BANDEAU`.
-static func largeur_du_bandeau(gauche: float, droite: float) -> float:
-	return minf(LARGEUR_DU_BANDEAU, droite - gauche - 2.0 * ECART_DU_MEUBLE)
+## La largeur d'un bandeau de jet centré sur une scène qui commence à `origine` (abscisses de l'écran) et fait
+## `largeur_de_scene` de large, sans couvrir `gauche`, le bord droit de l'ordre du tour, ni `droite`, le bord gauche de la
+## fin du tour ou de la scène, à `ECART_DU_MEUBLE` de chacun : au plus `LARGEUR_DU_BANDEAU`. Centré, il garde sa place
+## quel que soit le jet.
+static func largeur_du_bandeau(origine: float, largeur_de_scene: float, gauche: float, droite: float) -> float:
+	var centre := origine + largeur_de_scene / 2.0
+	var demi := minf(centre - gauche, droite - centre) - ECART_DU_MEUBLE
+	return minf(LARGEUR_DU_BANDEAU, 2.0 * demi)
 
 
 ## La place libre, en pixels, entre le bord droit d'un poste de `largeur` décalé de `decalage` du centre d'une scène de

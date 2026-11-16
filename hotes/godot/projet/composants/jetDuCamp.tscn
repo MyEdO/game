@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 [ext_resource type="PackedScene" path="res://composants/portrait.tscn" id="3_portrait"]
 [ext_resource type="Theme" path="res://art/rang.tres" id="4_rang"]
+[ext_resource type="Theme" path="res://art/jet_de_heros.tres" id="5_sceau"]
+[ext_resource type="Theme" path="res://art/etiquette_du_jet.tres" id="6_etiquette"]
 
 [node name="Jet" type="HBoxContainer"]
 size_flags_horizontal = 3
@@ -26,7 +28,7 @@ propriete = &"visible"
 [node name="Portrait" parent="Cadre" instance=ExtResource("3_portrait")]
 
 [node name="Image" parent="Cadre/Portrait"]
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(64, 80)
 
 [node name="Pile" type="VBoxContainer" parent="."]
 size_flags_horizontal = 3
@@ -43,6 +45,7 @@ champ = "qui"
 cacher_si_nul = true
 
 [node name="Modificateurs" type="HFlowContainer" parent="Pile/Tete"]
+theme = ExtResource("6_etiquette")
 size_flags_horizontal = 3
 size_flags_vertical = 4
 
@@ -69,7 +72,9 @@ champ = "cible"
 cacher_si_nul = true
 
 [node name="Resultat" type="PanelContainer" parent="Pile/Chiffres"]
+custom_minimum_size = Vector2(46, 46)
 size_flags_vertical = 4
+theme = ExtResource("5_sceau")
 
 [node name="resultat" type="Node" parent="Pile/Chiffres/Resultat"]
 script = ExtResource("1_liaison")
@@ -82,8 +87,13 @@ champ = "ton"
 propriete = &"theme_type_variation"
 
 [node name="De" type="Label" parent="Pile/Chiffres/Resultat"]
-theme_type_variation = &"Chiffre"
 horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ton" type="Node" parent="Pile/Chiffres/Resultat/De"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
 
 [node name="resultat" type="Node" parent="Pile/Chiffres/Resultat/De"]
 script = ExtResource("1_liaison")

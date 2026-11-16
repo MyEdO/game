@@ -3,5 +3,5 @@
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 
 [resource]
-Label/font_sizes/font_size = 30
+Label/font_sizes/font_size = 28
 Label/fonts/font = ExtResource("1_titres")

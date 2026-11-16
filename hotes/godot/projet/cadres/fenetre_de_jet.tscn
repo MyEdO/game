@@ -28,11 +28,13 @@ theme_type_variation = &"PileSerree"
 theme = ExtResource("4_encre")
 
 [node name="Gestes" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile"]
+theme_type_variation = &"RangeeDeGestes"
 alignment = 1
 
 [node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Gestes"]
 script = ExtResource("1_zone")
 source = "fenetre.gestes"
+formes = PackedStringArray("bouton:boutonDeJet")
 
 [node name="Tete" type="CenterContainer" parent="."]
 size_flags_vertical = 0

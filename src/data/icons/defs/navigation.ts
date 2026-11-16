@@ -7,10 +7,10 @@ import type { IconFamily } from '../types';
 const K = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
 const KF = 'fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"';
 const F = 'fill="currentColor" stroke="none"';
-/** Les cinq sommets du dé à dix faces, du haut dans le sens des aiguilles. */
-const DE_SOMMETS = 'M12 1 L22.6 9.2 L18.3 23 H5.7 L1.4 9.2 Z';
-/** La face du dé, en cerf-volant : sa pointe au sommet, ses flancs aux arêtes rayonnantes. */
-const DE_FACE = 'M12 1.6 L17.9 14.6 L12 20.3 L6.1 14.6 Z';
+/** La silhouette du dé à dix faces vu de trois quarts : les deux pointes et la ceinture en zigzag aux flancs. */
+const DE_SILHOUETTE = 'M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z';
+/** La face de devant, en cerf-volant : sa pointe au sommet, ses arêtes courtes jointes au bas de la ceinture. */
+const DE_FACE = 'M12 1 L17.9 13.3 L12 16.2 L6.1 13.3 Z';
 /** Le trait du dé, à l'encre. */
 const DE_TRAIT = 'fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round"';
 
@@ -177,15 +177,18 @@ export const icons: IconFamily = [
   {
     id: 'navigation/des',
     label: 'Tirage',
-    // Dé à dix faces (d100 du jeu), pièce pleine à ses matières : pentagone, face en cerf-volant claire, facettes
-    // ombrées, arêtes rayonnantes à l'encre. Le chiffre posé par le jeu va au centre de la face (12, 12.4).
+    // Dé à dix faces (d100 du jeu), trapézoèdre pentagonal posé, pièce pleine à ses matières : face de devant claire,
+    // faces en fuite et faces du bas ombrées (jour en haut à gauche), arêtes à l'encre. Le chiffre posé par le jeu va au
+    // centre de la face (12, 12.2).
     svg:
-      `<path d="${DE_SOMMETS}" fill="var(--parchment)"/>` +
-      `<path d="${DE_SOMMETS}" fill="var(--ink)" opacity="0.19"/>` +
-      `<path d="M12 20.3 L18.3 23 H5.7 Z" fill="var(--ink)" opacity="0.12"/>` +
+      `<path d="${DE_SILHOUETTE}" fill="var(--parchment)"/>` +
+      `<path d="M12 1 L2.5 9.9 V14.1 L6.1 13.3 Z" fill="var(--ink)" opacity="0.08"/>` +
+      `<path d="M12 1 L21.5 9.9 V14.1 L17.9 13.3 Z" fill="var(--ink)" opacity="0.22"/>` +
+      `<path d="M12 23 V16.2 L6.1 13.3 L2.5 14.1 Z" fill="var(--ink)" opacity="0.26"/>` +
+      `<path d="M12 23 V16.2 L17.9 13.3 L21.5 14.1 Z" fill="var(--ink)" opacity="0.4"/>` +
       `<path d="${DE_FACE}" fill="var(--ivoire)"/>` +
-      `<path ${DE_TRAIT} stroke-width="0.65" d="${DE_FACE} M6.1 14.6 L1.4 9.2 M17.9 14.6 L22.6 9.2 M12 20.3 L5.7 23 M12 20.3 L18.3 23"/>` +
-      `<path ${DE_TRAIT} stroke-width="0.95" d="${DE_SOMMETS}"/>`,
+      `<path ${DE_TRAIT} stroke-width="0.65" d="${DE_FACE} M6.1 13.3 L2.5 14.1 M17.9 13.3 L21.5 14.1 M12 16.2 V23"/>` +
+      `<path ${DE_TRAIT} stroke-width="0.95" d="${DE_SILHOUETTE}"/>`,
   },
   {
     id: 'navigation/mutation',

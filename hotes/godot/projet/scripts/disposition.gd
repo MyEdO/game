@@ -50,8 +50,8 @@ extends Node
 ## (`jetDuCampEnMiroir`), chacun son portrait au bord (`Jet.combattant` : le joueur dans le laiton, l'autre sur la cire,
 ## les cadres des rangs de `art/rang.tres`, aucun sans combattant), son nom, sa compétence, son seuil, son dé, son
 ## verdict, son DR et ses modificateurs ; au centre le reste, centré, le DR net en gothique (`art/dr_net.tres`), l'issue
-## penchée (`art/issue_du_jet.tres`), chaque réglage en ligne qui coule (`choixEnLigne`). Le bandeau prend la place entre
-## l'ordre du tour et le bord (`MiseEnPage.largeur_du_bandeau`) ; ses trois colonnes sont côte à côte (`Duel`), le nom
+## penchée (`art/issue_du_jet.tres`), chaque réglage en ligne qui coule (`choixEnLigne`). Le bandeau se centre sur la
+## scène sans couvrir l'ordre du tour ni la fin du tour (`MiseEnPage.largeur_du_bandeau`) ; ses trois colonnes sont côte à côte (`Duel`), le nom
 ## d'un camp et ses modificateurs coulent dans la sienne. L'écran d'attaque (`projet/ecrans/cascade/attaque.tscn`) : au centre l'arme et la cible
 ## sur une ligne qui les sépare d'un point, ses pastilles, le DR net, l'issue et les options du coup, la Localisation sur
 ## une silhouette (`silhouette`, chaque zone le bouton de sa valeur, par l'id de la valeur, `art/silhouette.tres`) ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
@@ -218,8 +218,8 @@ func _aligner(ligne: Node) -> void:
 		(ligne as Label).horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if _fermee else HORIZONTAL_ALIGNMENT_LEFT
 
 
-## Le poste de l'actif calé entre l'ordre du tour et la fin du tour (`MiseEnPage.decalage_du_poste`), un bandeau de jet à
-## la largeur de cette place (`MiseEnPage.largeur_du_bandeau`) ; la chronique
+## Le poste de l'actif calé entre l'ordre du tour et la fin du tour (`MiseEnPage.decalage_du_poste`), un bandeau de jet
+## centré sur la scène (`MiseEnPage.largeur_du_bandeau`) ; la chronique
 ## dans la place libre à sa droite, au-dessus de la fin du tour, ou au-dessus du poste quand cette place est trop étroite
 ## (`MiseEnPage.gauche_de_la_chronique`, `bas_de_la_chronique`) ; en combat, la générique posée en bas au centre, à sa
 ## largeur minimale, au-dessus du meuble de l'actif s'il se montre (`MiseEnPage.au_dessus_du_meuble`).
@@ -227,7 +227,7 @@ func _caler() -> void:
 	var cadre_de_scene := (chronique.get_parent() as Control).get_global_rect()
 	var droite := tour.global_position.x if tour.visible else cadre_de_scene.end.x
 	if _posee != null and _posee.is_in_group(BANDEAU):
-		(_posee as Control).custom_minimum_size.x = MiseEnPage.largeur_du_bandeau(ordre.get_global_rect().end.x, droite)
+		(_posee as Control).custom_minimum_size.x = MiseEnPage.largeur_du_bandeau(cadre_de_scene.position.x, cadre_de_scene.size.x, ordre.get_global_rect().end.x, droite)
 	var largeur := actif.size.x if actif.visible else 0.0
 	var decalage := MiseEnPage.decalage_du_poste(cadre_de_scene.position.x, cadre_de_scene.size.x, largeur, ordre.get_global_rect().end.x, droite)
 	actif.offset_left = decalage
