@@ -380,6 +380,24 @@
     }
   },
   {
+    "id": "bottines",
+    "type": "garde-robe",
+    "label": "Bottines",
+    "kind": "variante",
+    "piece": {
+      "id": "bottes"
+    }
+  },
+  {
+    "id": "bas-de-chausses",
+    "type": "garde-robe",
+    "label": "Bas-de-chausses",
+    "kind": "variante",
+    "piece": {
+      "id": "bas"
+    }
+  },
+  {
     "id": "plumet-simple",
     "type": "garde-robe",
     "label": "Plumet simple",

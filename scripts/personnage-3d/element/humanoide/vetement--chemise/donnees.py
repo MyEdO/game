@@ -51,7 +51,7 @@ BORNES_DES_CLES = (0.27, 2.5)      # pourpoint-matelasse
 # `aisselle` (bas du haut des bras, z = 1,37), `cou` (bas du cou, z = 1,53) ---
 CORPS = [('bas', 0.03, 0.003), ('bas', 0.16, 0.006), ('aisselle', -0.05, 0.008), ('aisselle', 0.06, 0.008),
          ('cou', -0.03, 0.006)]
-"""HYPOTHÈSE : ajustée, rentrée sous le haut-de-chausses (son haut à 1,126, base) dès 1,07 ; sous le pourpoint, à moins
+"""HYPOTHÈSE : ajustée, rentrée sous le haut-de-chausses (son haut à 1,085, base) dès 1,07 ; sous le pourpoint, à moins
 de son aisance (`vetement--pourpoint`, 7 mm au moins). Elle s'arrête 3 cm sous le bas du cou, sous l'encolure du
 pourpoint, où le col prend le relais : montée sur le cou, sa bande du haut s'étirait de 3,8 fois bras levés
 (`arete-etiree`, Pistol_Aim)."""

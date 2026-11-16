@@ -2,8 +2,9 @@
 bordure et leurs coins dorés, posées sur le haut-de-chausses publié (`donnees.py`).
 
 Chaque lame est une grille de quatre rangs (`PROFIL`) et sept colonnes : les deux bords, le bord intérieur de chaque
-bordure, le coin doré et le milieu. Chaque nœud est posé au `JEU` du point le plus avancé du haut-de-chausses entre
-ses rangs et ses colonnes voisins, visé de l'avant sur une grille (`VISEES`) : la lame épouse le galbe de la cuisse ;
+bordure, le coin doré et le milieu. Chaque nœud est posé au `JEU` du point le plus avancé du haut-de-chausses à mi-chemin
+de ses rangs et de ses colonnes voisins, visé depuis l'axe de la cuisse sur une grille (`VISEES`), chaque colonne sur son
+azimut (`RAYON_DE_GALBE`) : la lame s'enroule sur la cuisse et épouse le bouffant ;
 elle s'écarte de son fond du bord haut au bord bas,
 par-dessus la lame suivante. La dorure reprend les nœuds de la lame, au `RELIEF` : une bande le long de chaque côté,
 une le long du bas de la dernière lame, un triangle par lame. Doubles nappes ; le bord haut et le bord bas d'une lame
@@ -34,7 +35,10 @@ def tassette(D, b, porteur, cote, signe, materiaux):
     """Les lames et la dorure de la tassette du côté `cote` (`l` : `signe` +1, `r` : -1)."""
     hanche = np.array(b.tete(f"{D['OS']}_{cote}"))
     face = direction_spatiale(signe * D['AZIMUT'])
-    travers = np.array([-face[1], face[0], 0.0])
+
+    def rayon(u):
+        """La direction, depuis l'axe de la cuisse, du point de la tassette à `u` m en travers de son milieu."""
+        return direction_spatiale(signe * (D['AZIMUT'] + np.degrees(u / D['RAYON_DE_GALBE'])))
     hauteur = (D['LAMES'] - 1) * D['PAS'] + D['LONGUEUR']
     relief = D['RELIEF'] * face
     objets = []
@@ -46,16 +50,19 @@ def tassette(D, b, porteur, cote, signe, materiaux):
             us = [-demi, -demi + D['BORDURE'], -D['COIN'] * demi, 0.0, D['COIN'] * demi, demi - D['BORDURE'], demi]
             for c, u in enumerate(us):
                 avancees = []
-                for uv in np.linspace(us[max(c - 1, 0)], us[min(c + 1, len(us) - 1)], D['VISEES']):
-                    for zv in np.linspace(zs[max(r - 1, 0)], zs[min(r + 1, len(zs) - 1)], D['VISEES']):
-                        depart = np.array([hanche[0], hanche[1], zv]) + uv * travers + D['PORTEE'] * face
-                        touche = porteur['arbre'].ray_cast(Vector(depart.tolist()), Vector((-face).tolist()), D['PORTEE'])
+                for uv in np.linspace((u + us[max(c - 1, 0)]) / 2, (u + us[min(c + 1, len(us) - 1)]) / 2, D['VISEES']):
+                    for zv in np.linspace((z + zs[max(r - 1, 0)]) / 2, (z + zs[min(r + 1, len(zs) - 1)]) / 2, D['VISEES']):
+                        d = rayon(uv)
+                        depart = np.array([hanche[0], hanche[1], zv]) + D['PORTEE'] * d
+                        touche = porteur['arbre'].ray_cast(Vector(depart.tolist()), Vector((-d).tolist()), D['PORTEE'])
                         if touche[0] is not None:
-                            avancees.append(D['PORTEE'] - touche[3])
+                            # L'avancée du point touché le long de la direction du nœud : la lame passe devant tous les
+                            # points de son voisinage, sans s'écarter de la culotte qui fuit en biais de sa direction.
+                            avancees.append(float((np.array(touche[0]) - np.array([hanche[0], hanche[1], z])) @ rayon(u)))
                 if not avancees:
                     raise ValueError(f'tassette {cote} : aucun haut-de-chausses devant le nœud z = {z:.3f}, u = {u:.3f}')
-                noeuds.append(np.array([hanche[0], hanche[1], z]) + u * travers
-                              + (max(avancees) + D['JEU'] + D['EPAISSEUR'] + ecart) * face)
+                noeuds.append(np.array([hanche[0], hanche[1], z])
+                              + (max(avancees) + D['JEU'] + D['EPAISSEUR'] + ecart) * rayon(u))
         colonnes, rangs = len(noeuds) // len(D['PROFIL']), len(D['PROFIL'])
         i = lambda r, c: r * colonnes + c
         maille = lambda r, c: (i(r, c), i(r, c + 1), i(r + 1, c + 1), i(r + 1, c))

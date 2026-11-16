@@ -39,7 +39,8 @@ describe('composerSurLaBase', () => {
     const tenue = { type: 'tenue', id: 'uniforme-de-soldat' };
     expect(manquants.map(({ ligne, champ, id, par }) => ({ ligne, champ, id, par: par && { type: par.type, id: par.id } }))).toEqual([
       { ligne: 'ligne/tete', champ: 'tete', id: 'humain', par: undefined },
-      ...['chemise', 'pourpoint', 'haut-de-chausses', 'bas', 'bottes', 'gants'].map((id) => ({ ligne: `ligne/piece/${id}`, champ: 'piece', id, par: tenue })),
+      ...[['chemise', 'chemise'], ['pourpoint', 'pourpoint'], ['haut-de-chausses', 'haut-de-chausses'], ['bas', 'bas-de-chausses'], ['bottes', 'bottines'], ['gants', 'gants']]
+        .map(([piece, id]) => ({ ligne: `ligne/piece/${piece}`, champ: 'piece', id, par: tenue })),
       { ligne: 'ligne/emplacement/genou_g', champ: 'piece', id: 'ruban', par: undefined },
       { ligne: 'ligne/emplacement/poitrine', champ: 'piece', id: 'insigne', par: undefined },
       { ligne: 'ligne/emplacement/epaule_d', champ: 'piece', id: 'baudrier-sur-armure', par: undefined },

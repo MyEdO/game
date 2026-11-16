@@ -48,7 +48,7 @@ BORNES_DES_CLES = (0.27, 2.5)      # pourpoint-matelasse
 CORPS = [('bas', 0.10, 0.012), ('bas', 0.18, 0.014), ('aisselle', -0.05, 0.016), ('aisselle', 0.06, 0.016),
          ('cou', -0.06, 0.014), ('cou', 0.015, 0.014)]
 """HYPOTHÈSE : ajusté, 6 à 8 mm au-dessus de la chemise ; court, il s'arrête à 1,14, au-dessus du haut-de-chausses (son
-haut à 1,126, base), sous le plastron qui descend à 1,06 : rentré dessous jusqu'à 1,06, il passait devant lui accroupi
+haut à 1,085, base), sous le plastron qui descend à 1,06 : rentré dessous jusqu'à 1,06, il passait devant lui accroupi
 ou sous `carrure_plus` (`couche-traversee`, 8 à 33 mm, Crouch_Fwd_Loop, Roll). L'anneau sous le cou à 6 cm de lui : à
 3 cm, la bande qui monte au cou s'étirait de 4,5 fois sous `carrure_plus` (`arete-etiree`) ; l'encolure serrée sur le cou, 1,5 cm au-dessus de son bas, d'où sort le col de la chemise, à 8 mm de lui : à 4 mm, le col
 passait devant elle sous `carrure_plus` (`couche-traversee`, 14 mm).

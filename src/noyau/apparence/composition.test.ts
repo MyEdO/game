@@ -35,7 +35,8 @@ import { piecesDEnsemble } from './gardeRobe';
 
 const soldat = findPresetDePersonnageById('soldat')!;
 const composition = compositionDuPreset(soldat);
-const { tenue: _tenue, ...sansTenue } = composition;
+/** Le Soldat sans sa tenue ni les variantes de pièces, dont celles des pièces que la tenue apporte. */
+const { tenue: _tenue, variantesPieces: _variantes, ...sansTenue } = composition;
 /** `brut` passé par la seule porte d'une composition (`lireComposition`), qui frappe ses ids. */
 const lue = (brut: unknown): Composition => {
   const lu = lireComposition(brut);

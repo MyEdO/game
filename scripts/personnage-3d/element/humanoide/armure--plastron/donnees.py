@@ -41,7 +41,7 @@ BUDGET_TRIANGLES = 1000
 COLONNES = 24                      # HYPOTHÈSE de maillage : une colonne tous les 15°, l'arête sur la colonne 0
 HAUTEURS = [1.06, 1.085, 1.15, 1.23, 1.30, 1.34, 1.40, 1.46, 1.52]
 """m, du bas à l'encolure. Le bas à 1,06, cote du bord bas du plastron pour les tassettes (illustration : ~1,03 m ;
-base : le haut-de-chausses monte à 1,126, le bas du torse est à 1,04). La seconde rangée, à 2,5 cm, ferme la bordure
+base : le haut-de-chausses monte à 1,085, le bas du torse est à 1,04). La seconde rangée, à 2,5 cm, ferme la bordure
 dorée du bas (illustration : ~12 px, 2,3 cm). L'encolure à 1,52, sous le bas du cou (1,53, base), d'où sort le col de la
 chemise (illustration : le col rouge monte ~5 cm au-dessus du plastron)."""
 EMMANCHURE = (1.34, 5)
@@ -63,7 +63,7 @@ AISANCE = [(1.06, 0.046), (1.15, 0.036), (1.23, 0.028), (1.40, 0.032)]
 """(z, m) : la distance au tronc partout autour, interpolée. HYPOTHÈSE : 14 à 16 mm au-dessus du pourpoint
 (`vetement--pourpoint`, 7 à 16 mm) : à 10 mm sur la poitrine, le pourpoint passait devant la plaque bras levés ou
 tendus (`couche-traversee`, 5 à 18 mm, Melee_Hook, Pistol_Aim, NinjaJump) ; au bas, 4,6 cm, au-dessus de la ceinture bouffante du haut-de-chausses (son haut à
-1,126, base), comme le plastron publié avant lui (4,2 à 4,4 cm de 1,06 à 1,10) ; à 4 cm, la ceinture passait devant lui
+1,085, base), comme le plastron publié avant lui (4,2 à 4,4 cm de 1,06 à 1,10) ; à 4 cm, la ceinture passait devant lui
 sous `carrure_plus` (`couche-traversee`, 7 à 17 mm)."""
 BOMBE = [(1.06, 0.004), (1.15, 0.014), (1.23, 0.024), (1.30, 0.030), (1.40, 0.028), (1.46, 0.018), (1.52, 0.008)]
 """(z, m) : ce que le devant s'écarte de plus, au milieu, s'éteignant vers les flancs comme le carré du cosinus de
