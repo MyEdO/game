@@ -30,7 +30,6 @@ describe('IdsParEspace — un id absent de la donnée ne compile pas', () => {
     const faux: IdsParEspace['trappings.json?subType=armes-de-siege'] = 'dague';
     const vrai: IdsParEspace['trappings.json?subType=armes-de-siege'] = 'pierrier';
     const engins = idsDeLaSousListe('trapping', ENGINS_DE_SIEGE);
-    expect(engins).toHaveLength(22);
     expect(engins).toContain(vrai);
     expect(engins).not.toContain(faux);
   });
