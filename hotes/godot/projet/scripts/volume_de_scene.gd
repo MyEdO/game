@@ -183,9 +183,13 @@ func retiree(case: Vector2i, rangee: int) -> bool:
 
 
 ## Si le masque posé (`retirer`) retire la case `case` (sa couche en `z`) du plan `pose` de sa couche
-## (`MiseEnPage.rangee_de_pose`), celui où se rangent les faces d'un décor (`PoseDeDecor.case`).
+## (`MiseEnPage.rangee_de_pose`), celui où se rangent les faces d'un décor (`PoseDeDecor.case`). Une case hors du monde
+## posé (`poser`), celle d'une pose du monde précédent que `MontageDesModeles.poser` n'a pas encore retirée, ne l'est pas.
 func posee_retiree(case: Vector3i) -> bool:
-	return _masque != null and retiree(Vector2i(case.x, case.y), int(MiseEnPage.rangee_de_pose(_couches[case.z], _rangees_d_une_couche)))
+	if _masque == null or not _couches.has(case.z):
+		return false
+	var texel := MiseEnPage.texel_du_masque(Vector2i(case.x, case.y), int(MiseEnPage.rangee_de_pose(_couches[case.z], _rangees_d_une_couche)))
+	return Rect2i(Vector2i.ZERO, _masque.get_size()).has_point(texel) and _masque.get_pixelv(texel).r8 != 0
 
 
 ## La vision du groupe (`vision`, `CONTRAT.md`, section « Monde », `VisionDuMonde` : `{ masque, largeur, rangees,
