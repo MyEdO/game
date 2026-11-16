@@ -6,13 +6,13 @@ import { poseDeRepos, type Echantillon } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { gardeMembres, mesurerMembres, troncDe } from './membres.ts';
 
-/** Une scène : un tronc de géométrie `g` (au repos, avant +z, haut +y) skinné à parts égales sur les os `noms`, tous à
- *  l'origine, et une main d'un seul sommet. */
-function scene(g: BufferGeometry, noms: readonly string[] = ['colonne']) {
+/** Une scène : un tronc de géométrie `g` (au repos, avant +z, haut +y) skinné sur les os `noms`, tous à l'origine, l'os
+ *  `noms[k]` au slot de peau k de chaque sommet avec le poids `poids[k]`, et une main d'un seul sommet. */
+function scene(g: BufferGeometry, noms: readonly string[] = ['colonne'], poids: readonly number[] = noms.map(() => 1 / noms.length)) {
   const racine = new Object3D();
   const n = g.attributes.position.count;
   g.setAttribute('skinIndex', new BufferAttribute(Uint16Array.from({ length: n * 4 }, (_, i) => (i % 4 < noms.length ? i % 4 : 0)), 4));
-  g.setAttribute('skinWeight', new BufferAttribute(Float32Array.from({ length: n * 4 }, (_, i) => (i % 4 < noms.length ? 1 / noms.length : 0)), 4));
+  g.setAttribute('skinWeight', new BufferAttribute(Float32Array.from({ length: n * 4 }, (_, i) => (i % 4 < noms.length ? poids[i % 4] : 0)), 4));
   const tronc = new SkinnedMesh(g);
   const osDuTronc = noms.map((nom) => Object.assign(new Bone(), { name: nom }));
   for (const b of osDuTronc) racine.add(b);
@@ -87,12 +87,28 @@ describe('membres', () => {
     expect(mesurerMembres([main], tronc, echantillon([0, 0.2, 0.05]))).toHaveLength(1);
   });
 
-  it('la posture du tronc est la rotation moyenne de ses os, pondérée : deux os égaux à 0° et 60°, posture à 30°', () => {
-    // Sur l'axe du tube, près de son ouverture : une demi-droite menée à 0° ou à 60° sort par l'ouverture, à 30° non.
-    const { tronc, echantillon, main, os } = scene(tube(), ['droit', 'plie']);
-    const axe = new Vector3(1, 0, 0);
+  const axe = new Vector3(1, 0, 0);
+  /** Le point à `y` sur l'axe du tube tourné de `degres` autour de l'axe transverse. */
+  const surLAxe = (y: number, degres: number) => new Vector3(0, y, 0).applyQuaternion(new Quaternion().setFromAxisAngle(axe, (degres * Math.PI) / 180)).toArray();
+
+  it('la posture du tronc est la rotation moyenne de ses os, pondérée : os de poids 0,8 à 0° et 0,2 à 60°, posture à 12°', () => {
+    // Sur l'axe du tube tourné de 12°, près de son ouverture : une demi-droite menée à 12° reste dans le tube, à la
+    // moyenne sans poids, 30°, elle sort par l'ouverture.
+    const { tronc, echantillon, main, os } = scene(tube(), ['droit', 'plie'], [0.8, 0.2]);
     os[1].quaternion.setFromAxisAngle(axe, Math.PI / 3);
-    const pres = new Vector3(0, 0.14, 0).applyQuaternion(new Quaternion().setFromAxisAngle(axe, Math.PI / 6)).toArray();
-    expect(mesurerMembres([main], tronc, echantillon(pres))).toHaveLength(1);
+    expect(mesurerMembres([main], tronc, echantillon(surLAxe(0.16, 12)))).toHaveLength(1);
+  });
+
+  it('la posture du tronc ne dépend pas de l’ordre de ses os : le signe s’aligne sur le plus lourd', () => {
+    // Les os de poids 0,7, 0,2, 0,1 à 0°, 60°, 190° posent le tube tourné de 12°, réduit de 0,72 en travers. Le quaternion
+    // de l'os léger est de signe opposé à celui du plus lourd : la posture alignée sur le plus lourd est à 0°, la
+    // demi-droite reste dans le tube ; alignée sur l'os léger, elle est à −41° et la demi-droite sort par l'ouverture.
+    const verdict = (ordre: readonly number[]) => {
+      const [noms, poids, angles] = [['droit', 'plie', 'retourne'], [0.7, 0.2, 0.1], [0, 60, 190]].map((l) => ordre.map((k) => l[k]));
+      const { tronc, echantillon, main, os } = scene(tube(), noms as string[], poids as number[]);
+      os.forEach((o, k) => o.quaternion.setFromAxisAngle(axe, ((angles[k] as number) * Math.PI) / 180));
+      return mesurerMembres([main], tronc, echantillon(surLAxe(0.11, 12))).length;
+    };
+    expect([verdict([0, 1, 2]), verdict([2, 1, 0])]).toEqual([1, 1]);
   });
 });

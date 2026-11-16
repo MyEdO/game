@@ -47,14 +47,14 @@ interface OsDuTronc {
   readonly reposInverse: Quaternion;
 }
 
-/** Les meshes du tronc et les os qui pèsent sur leurs sommets. */
+/** Les meshes du tronc et les os qui pèsent sur leurs sommets, rangés par poids décroissant, à poids égaux par nom. */
 export interface Tronc {
   readonly meshes: readonly Mesh[];
   readonly os: readonly OsDuTronc[];
 }
 
 /** Le tronc des `meshes` sur la pose de repos `repos`, `null` sans mesh : chaque os qui pèse sur leurs sommets, et son
- *  poids de peau total. */
+ *  poids de peau total, du plus lourd au plus léger. */
 export function troncDe(meshes: readonly Mesh[], repos: Pose): Tronc | null {
   if (!meshes.length) return null;
   const poidsParOs = new Map<string, number>();
@@ -70,20 +70,20 @@ export function troncDe(meshes: readonly Mesh[], repos: Pose): Tronc | null {
     }
   }
   if (!poidsParOs.size) throw new Error(`${GARDE} : aucun os ne pèse sur le tronc ${meshes.map((m) => m.name).join(', ')}`);
-  const os = [...poidsParOs].map(([nom, poids]) => ({ nom, poids, reposInverse: rotationLocale(repos, nom, undefined, new Quaternion()).invert() }));
+  const os = [...poidsParOs].sort(([a, pa], [b, pb]) => pb - pa || (a < b ? -1 : a > b ? 1 : 0)).map(([nom, poids]) => ({ nom, poids, reposInverse: rotationLocale(repos, nom, undefined, new Quaternion()).invert() }));
   return { meshes, os };
 }
 
-const delta = new Quaternion(), premier = new Quaternion();
+const delta = new Quaternion(), plusLourd = new Quaternion();
 
 /** La posture du tronc à l'échantillon `e` : la moyenne, pondérée par leurs poids, des rotations monde de ses os depuis
- *  leur repos, alignées en signe sur la première, normalisée. */
+ *  leur repos, alignées en signe sur celle de l'os le plus lourd, normalisée. */
 function postureDuTronc(tronc: Tronc, e: Pose): Quaternion {
   const somme = new Quaternion(0, 0, 0, 0);
   tronc.os.forEach(({ nom, poids, reposInverse }, i) => {
     rotationLocale(e, nom, undefined, delta).multiply(reposInverse);
-    if (i === 0) premier.copy(delta);
-    const w = premier.dot(delta) >= 0 ? poids : -poids;
+    if (i === 0) plusLourd.copy(delta);
+    const w = plusLourd.dot(delta) >= 0 ? poids : -poids;
     somme.set(somme.x + w * delta.x, somme.y + w * delta.y, somme.z + w * delta.z, somme.w + w * delta.w);
   });
   return somme.normalize();
