@@ -196,17 +196,13 @@ describe('possession réseau (netOwnership)', () => {
     expect(intentAllowedFor(s, 1, 'fenetreValider', ['debutDuRound'])).toBe(false);
   });
 
-  it("valider l'étape (`jetValider('cascade')`) : l'acteur de l'étape ; sur une étape partagée, l'hôte, et le siège dont nulle autre rangée n'attend (#1273)", () => {
+  it("valider l'étape (`jetValider('cascade')`) : le propriétaire de la fenêtre — l'acteur de l'étape, tous sur une étape de groupe", () => {
     const etape = (over: object) => base({ pendingCascade: cascadeDeTest([{ id: 'e', kind: 'round', ...over }]) });
     const acteur = etape({ actorId: 'h2' });
     expect(intentAllowedFor(acteur, 1, 'jetValider', ['cascade']), 'le siège de l’acteur').toBe(true);
     expect(intentAllowedFor(acteur, 0, 'jetValider', ['cascade']), 'un autre siège').toBe(false);
-    const rangee = (id: string, result: object | null) => ({ id, interactive: true, base: 50, target: 50, result });
-    const fait = { roll: 10, target: 50, sl: 4, success: true };
-    const sieges = (rangees: object[]) => [0, 1].map((seat) => intentAllowedFor(etape({ groupOwner: true, participants: rangees }), seat, 'jetValider', ['cascade']));
-    expect(sieges([]), 'étape partagée sans rangée').toEqual([true, true]);
-    expect(sieges([rangee('h1', null), rangee('h2', fait)]), 'la rangée de l’hôte attend').toEqual([true, false]);
-    expect(sieges([rangee('h1', fait), rangee('h2', null)]), 'seule la rangée de l’invité attend').toEqual([true, true]);
+    const groupe = etape({ actorId: 'h2', groupOwner: true });
+    expect([0, 1].map((seat) => intentAllowedFor(groupe, seat, 'jetValider', ['cascade'])), 'étape de groupe').toEqual([true, true]);
   });
 
   it('seatOwns : héros non attribué → hôte', () => {

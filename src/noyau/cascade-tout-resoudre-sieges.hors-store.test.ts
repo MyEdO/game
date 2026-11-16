@@ -1,7 +1,7 @@
 /**
  * #1273 — « Tout résoudre » (`jetLancer('cascade')` sans rangée) sur une bande PARTAGÉE (`groupOwner`), en coop : un siège
  * ne résout que SES rangées en attente, l'hôte toute la bande (arbitrage du 2026-11-16 au ticket). « Continuer »
- * (`jetValider('cascade')`) est refusé à l'invité tant qu'une rangée d'un autre siège attend son jet ; la fenêtre affichée au siège
+ * (`jetValider('cascade')`) ne fait rien avancer tant qu'une rangée attend son jet (`stepReady`) ; la fenêtre affichée au siège
  * dit la même chose (`fermeturesDeLaFenetre`). Chemin complet : `appliquerLIntentionDUnSiege`, comme l'hôte le joue.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -13,8 +13,7 @@ import { startCascade } from './cascade';
 import { seedBattleRng } from './battleRng';
 import { TOUT_RESOUDRE } from './combatAuto';
 import { cleDuGeste } from './modalArbiter';
-import { fermeturesDeLaFenetre } from './verbesOuverts';
-import { t } from '../i18n';
+import { fermeturesDeLaFenetre, fermeturesDuFlux } from './verbesOuverts';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { Combatant } from '../engine/types';
@@ -57,7 +56,7 @@ const toutResoudreAuSiege = (siege: number) => {
 };
 
 describe('#1273 — « Tout résoudre » d’une bande partagée : chacun les siens, l’hôte tout', () => {
-  it('l’invité ne résout que SA rangée, puis « Continuer » lui est refusé tant que celle de l’hôte attend', () => {
+  it('l’invité ne résout que SA rangée, puis « Continuer » ne fait rien avancer tant que celle de l’hôte attend', () => {
     table();
     expect(intention(1, 'jetLancer', ['cascade'])).toBe('appliquee');
     expect(resultatDe('h2'), 'la rangée de l’invité').toBeTruthy();
@@ -66,8 +65,8 @@ describe('#1273 — « Tout résoudre » d’une bande partagée : chacun les si
     expect(toutResoudreAuSiege(1), 'l’invité n’a plus rien à résoudre').toBe('jetLance');
     expect(toutResoudreAuSiege(0), 'l’hôte garde « Tout résoudre »').toBeNull();
     banc.setState({ net: { ...banc.getState().net, mySeat: 0 } });
-    expect(intention(1, 'jetValider', ['cascade']), '« Continuer » de l’invité par-dessus la rangée de l’hôte').toBe('refusee');
-    expect(banc.getState().journal).toContain(t('coop.intentRefused'));
+    expect(fermeturesDuFlux(banc.getState(), 'cascade').valider, '« Continuer » affiché fermé').toBe('jetNonLance');
+    intention(1, 'jetValider', ['cascade']);
     expect(banc.getState().pendingCascade!.cursor, '« Continuer » avançait par-dessus la rangée de l’hôte').toBe(0);
     expect(resultatDe('h1')).toBeNull();
     const deDeLInvite = resultatDe('h2');

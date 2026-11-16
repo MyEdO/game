@@ -522,17 +522,6 @@ const acteurDEtape = (s: Jeu, seat: number, pid: string | undefined): boolean =>
 };
 
 /**
- * « Continuer » (`jetValider('cascade')`) une étape PARTAGÉE (`groupOwner`, owner de modale `'*'`) : l'hôte ; un autre
- * siège, quand aucune rangée en attente n'est à un autre que lui (`seatInfluences`). Arbitrage du 2026-11-16, #1273.
- * Une étape qui n'est pas partagée : le repli universel.
- */
-const valideLEtapePartagee = (s: Jeu, seat: number): boolean | null => {
-  const step = s.pendingCascade?.participants[s.pendingCascade.cursor];
-  if (!step?.groupOwner) return null;
-  return seatOwns(s, seat, undefined) || (step.participants ?? []).every((r) => !!r.result || seatInfluences(s, seat, r.id));
-};
-
-/**
  * Flux MONO à fenêtre PARTAGÉE (`FLOW_VERBS.jetOwner`, #1005) : ces verbes DÉPENSENT les ressources du
  * porteur du jet (Chance, Résilience, Corruption du Pacte) — la possession suit ce porteur, désigné en
  * donnée, et par le MÊME prédicat que l'affordance affichée (`seatInfluences`). Sans cette route, un
@@ -567,8 +556,6 @@ const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => 
  *  - flux MONO : le porteur du jet (`routeJet`) ; un porteur non combattant : le repli universel pour le lancer et les
  *    verbes de fenêtre, personne pour un verbe qui dépense (`depenseDuPorteur`) ;
  *  - Résistance et inversion d'une étape de `cascade` : l'acteur de l'étape (`acteurDEtape`) ;
- *  - « Continuer » une étape partagée de `cascade` : l'hôte, ou le siège dont nulle autre rangée n'attend
- *    (`valideLEtapePartagee`) ;
  *  - flux MULTI dont la rangée porte SON acteur (`pidIsActor`) : le propriétaire de ce combattant ; le jet sans
  *    rangée (« Tout lancer », `rangeeFacultative`) : tout siège, il ne lance que les rangées du siège qui agit
  *    (`lancerSansRangee`, `influencesLocally`) ; un verbe de
@@ -582,7 +569,6 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
     const w: FlowVerbs = FLOW_VERBS[flux];
     if (w.kind === 'mono') return routeJet(w.jetOwner, depenseDuPorteur(verbe)).rule(s, seat, args);
     if (flux === 'cascade' && (verbe === 'resister' || verbe === 'inverser')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
-    if (flux === 'cascade' && verbe === 'valider') return valideLEtapePartagee(s, seat);
     if (!w.pidIsActor || estVerbeDeFenetre(verbe)) return null;
     const rangee = rangeeDuGeste(verbe, args);
     if (rangee === undefined && rangeeFacultative(flux, verbe)) return true;
