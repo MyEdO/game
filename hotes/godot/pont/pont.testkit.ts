@@ -97,9 +97,10 @@ export const enSaison = (saison: Saison | null) => ({
   caches: [saison === 'automne' ? 'sans-automne' : 'avec-automne', saison === 'hiver' ? 'sans-hiver' : 'avec-hiver'],
 });
 
-/** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité `commites`. */
+/** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides et ses densités d'UV au listage
+ *  commité `commites`. */
 export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof listage>, manifestes = commites.manifestes): void {
-  expect(appel('modeles', { manifestes, osDesRigides: tableTotale(Object.keys(manifestes), (id) => commites.osDesRigides[id] ?? []) })).toMatchObject({ ok: true });
+  expect(appel('modeles', { manifestes, osDesRigides: tableTotale(Object.keys(manifestes), (id) => commites.osDesRigides[id] ?? []), densitesUv: tableTotale(Object.keys(manifestes), (id) => commites.densitesUv[id] ?? {}) })).toMatchObject({ ok: true });
 }
 
 /** La suite d'une réponse réussie, ou l'échec qui dit la réponse. */

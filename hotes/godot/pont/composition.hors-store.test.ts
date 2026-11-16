@@ -28,7 +28,7 @@ const soldat = cataloguesDeComposition().presets.find((p) => p.id === 'soldat')!
 const composer = (manifestes: Record<string, unknown>, brut: unknown) => {
   const lu = lireComposition(brut);
   if (!lu.ok) throw new Error(JSON.stringify(lu.fautes));
-  const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])));
+  const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])), {});
   expect(modeles.refus).toEqual([]);
   return composerSurLaBase(modeles.bases[0], manifestes, porteeDeComposition(lu.valeur));
 };
@@ -72,7 +72,7 @@ describe('composerSurLaBase', () => {
     const chausses = { ...plastron, categorie: 'vetement', cle: { piece: 'haut-de-chausses' }, couche: 'tenue' };
     const ample = { ...chausses, cle: { piece: 'haut-de-chausses-ample' } };
     const manifestes = { humanoide, chausses, ample };
-    const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])));
+    const modeles = modelesDeLAtelier(manifestes, tableTotale(Object.keys(manifestes), (id) => (id === 'humanoide' ? [] : ['root'])), {});
     expect(modeles.bases[0].lignes).toContainEqual(expect.objectContaining({ sorte: 'piece', variantes: true, id: 'haut-de-chausses', elements: ['chausses', 'ample'] }));
     expect(modeles.libelles.ample).toBe('Haut-de-chausses ample');
     expect(composer(manifestes, soldat).montes).toContainEqual({ ligne: 'ligne/piece/haut-de-chausses', element: 'chausses' });
@@ -137,15 +137,15 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
 
   it('composer se refuse avant modeles, puis compose sur une base servie', () => {
     expect(appeler('composer', { base: 'humanoide', composition: soldat }).erreur.message).toMatch(/modeles d’abord/);
-    appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
+    appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] }, densitesUv: {} });
     expect(appeler('composer', { base: 'autre', composition: soldat }).erreur.categorie).toBe('validation');
-    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'materiaux', 'montes', 'morphes', 'ok', 'palette', 'rapport', 'reliefs']);
+    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'materiaux', 'matieres', 'montes', 'morphes', 'ok', 'palette', 'rapport', 'reliefs']);
   });
 
   it('un élément monté prend la palette de la teinte de sa chose portée (#3456) ; une chose sans élément, aucune', () => {
     const portee = porteeDeComposition(soldat);
     const teintee = { ...portee, portees: portee.portees.map((p) => (p.cle.id === 'plastron' ? { ...p, teinte: 'aethyrique' } : p)) };
-    const modeles = modelesDeLAtelier({ humanoide, plastron }, { humanoide: [], plastron: ['root'] });
+    const modeles = modelesDeLAtelier({ humanoide, plastron }, { humanoide: [], plastron: ['root'] }, {});
     const { montes } = composerSurLaBase(modeles.bases[0], { humanoide, plastron }, teintee);
     expect(montes).toContainEqual({ ligne: 'ligne/piece/plastron', element: 'plastron', palette: findTeinteById('aethyrique')!.palette });
     const sansElement = composerSurLaBase(modeles.bases[0], { humanoide, plastron }, { ...teintee, portees: teintee.portees.map((p) => (p.cle.id === 'casque' ? { ...p, teinte: 'aethyrique' } : p)) });
@@ -153,13 +153,21 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
   });
 
   it('composer publie la palette de la composition, chaque couleur du nuancier résolue en `#rrggbb` ; sans `couleurs`, aucune', () => {
-    appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
+    appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] }, densitesUv: {} });
     const { couleurs: _, ...sansCouleurs } = soldat;
     expect(appeler('composer', { base: 'humanoide', composition: sansCouleurs }).palette).toEqual({});
     const couleurs = { peau: { id: 'peau-halee' }, plume: { id: 'plume-rousse' }, metal2: { id: 'laiton' } };
     expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs } }).palette).toEqual({ peau: findCouleurById('peau-halee')!.color, plume: findCouleurById('plume-rousse')!.color, metal2: findCouleurById('laiton')!.color });
     expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs: { peau: { id: 'acier-bleu' } } } }).erreur.categorie).toBe('validation');
     expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs: { or: { id: 'acier' } } } }).erreur.categorie).toBe('validation');
+  });
+
+  it('la composition publie le nom de catalogue de chaque matière de sa portée (#4379) ; sans matière, aucun', () => {
+    const modeles = modelesDeLAtelier({ humanoide }, { humanoide: [] }, {});
+    const portee = porteeDeComposition(soldat);
+    const { matieres: _m, ...sansMatieres } = portee;
+    expect(composerSurLaBase(modeles.bases[0], { humanoide }, sansMatieres).matieres).toEqual({});
+    expect(composerSurLaBase(modeles.bases[0], { humanoide }, { ...portee, matieres: { peau: { id: 'peau-epaisse' } } }).matieres).toEqual({ peau: 'prop--peau-epaisse' });
   });
 
   it('catalogues publie chaque champ en `{ id, label }` et ses axes, et presetDeComposition le Soldat sous son preset', () => {
@@ -183,7 +191,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
 
   it('publie le défaut d’emblème et donne priorité aux choix manuels, y compris au vide explicite', () => {
     const blasonne = { ...plastron, surfaces: [{ nom: 'acier', palette: 'metal', blason: true }] };
-    appeler('modeles', { manifestes: { humanoide, blasonne }, osDesRigides: { humanoide: [], blasonne: [] } });
+    appeler('modeles', { manifestes: { humanoide, blasonne }, osDesRigides: { humanoide: [], blasonne: [] }, densitesUv: {} });
     const composition = { race: { id: 'humain' }, sex: 'M', tete: { id: 'humain' }, objets: ['plastron'], embleme: { id: 'taureau-rouge' } };
     const entree = { base: 'humanoide', composition };
     const monte = (r: ReturnType<typeof appeler>) => r.montes.find((m: { ligne: string }) => m.ligne === 'ligne/piece/plastron');

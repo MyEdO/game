@@ -196,6 +196,12 @@ describe('porteeDuCombattant', () => {
       .toEqual({ peau: { id: 'peau-ebene' }, yeux: { id: 'yeux-verts' } });
   });
 
+  it('ses matières sont celles de sa race de rendu ; une race sans matières n’en donne aucune (#4379)', () => {
+    setDataset('raceAppearance', raceAppearance.map(({ matieres: _m, ...r }) => (r.id === 'orc' ? { ...r, matieres: { peau: { id: 'peau-epaisse' } } } : r)));
+    expect(porteeDuCombattant(creature('orc'))!.matieres).toEqual({ peau: { id: 'peau-epaisse' } });
+    expect(porteeDuCombattant(creature('gor'))).not.toHaveProperty('matieres');
+  });
+
   it('le sexe est celui de l’apparence ; sans apparence, le corps neutre de la base', () => {
     expect(porteeDuCombattant(heros({ apparence: { sex: 'F' } }))!.sex).toBe('F');
     expect(porteeDuCombattant(heros())!.sex).toBe('M');

@@ -62,7 +62,9 @@ interface JsonGltf {
   nodes?: { name?: unknown; mesh?: number; skin?: number; children?: number[]; extras?: { zone?: unknown } }[];
   scenes?: { nodes?: number[] }[];
   scene?: number;
-  meshes?: { primitives: { material?: number; attributes?: Record<string, number>; extensions?: { KHR_materials_variants?: { mappings?: unknown } } }[]; extras?: { targetNames?: unknown } }[];
+  meshes?: { primitives: { material?: number; mode?: number; indices?: number; attributes?: Record<string, number>; extensions?: { KHR_materials_variants?: { mappings?: unknown } } }[]; extras?: { targetNames?: unknown } }[];
+  accessors?: { bufferView?: number; byteOffset?: number; componentType?: number; normalized?: boolean; count?: number; type?: string; sparse?: unknown }[];
+  bufferViews?: { buffer?: number; byteOffset?: number; byteLength?: number; byteStride?: number }[];
   extensions?: { KHR_materials_variants?: { variants?: unknown } };
   materials?: { name?: string }[];
   skins?: { joints: number[] }[];
@@ -252,4 +254,74 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
     animations: nomsDe(json.animations ?? []),
     os: nomsDe((json.skins ?? []).flatMap(s => s.joints.map(i => noeuds[i]))),
   };
+}
+
+/** Par type de composante glTF lu, sa taille en octets, sa lecture et le diviseur de sa forme `normalized`. */
+const COMPOSANTES: Readonly<Record<number, readonly [number, (v: DataView, o: number) => number, number]>> = {
+  5121: [1, (v, o) => v.getUint8(o), 255],
+  5123: [2, (v, o) => v.getUint16(o, true), 65535],
+  5125: [4, (v, o) => v.getUint32(o, true), 1],
+  5126: [4, (v, o) => v.getFloat32(o, true), 1],
+};
+const LARGEURS: Readonly<Record<string, number>> = { SCALAR: 1, VEC2: 2, VEC3: 3 };
+const TRIANGLES = 4;
+
+/** Les valeurs de l'accesseur `indice` de `json` dans `bin`, `largeur` composantes chacune (glTF 2.0, « Accessors ») ;
+ *  un accesseur creux, sans vue ou hors de sa vue n'est pas lu. */
+function valeursDe(json: JsonGltf, bin: Uint8Array | null, indice: number, largeur: number): Float64Array {
+  const a = (json.accessors ?? [])[indice];
+  const vue = a?.bufferView === undefined ? undefined : (json.bufferViews ?? [])[a.bufferView];
+  const composante = COMPOSANTES[a?.componentType ?? -1];
+  if (!a || !vue || !bin || vue.buffer !== 0 || a.sparse !== undefined || !composante || LARGEURS[a.type ?? ''] !== largeur || !Number.isInteger(a.count)) {
+    throw new GlbIllisible(`accesseur ${indice} non lu (vue, type, composante ou forme creuse)`);
+  }
+  const [taille, lire, diviseur] = composante;
+  const count = a.count as number;
+  const pas = vue.byteStride ?? taille * largeur;
+  const debut = (vue.byteOffset ?? 0) + (a.byteOffset ?? 0);
+  if (count > 0 && debut + pas * (count - 1) + taille * largeur > Math.min((vue.byteOffset ?? 0) + (vue.byteLength ?? 0), bin.byteLength)) {
+    throw new GlbIllisible(`accesseur ${indice} hors de sa vue`);
+  }
+  const donnees = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  const echelle = a.normalized ? diviseur : 1;
+  const sortie = new Float64Array(count * largeur);
+  for (let i = 0; i < count; i++) for (let c = 0; c < largeur; c++) sortie[i * largeur + c] = lire(donnees, debut + i * pas + c * taille) / echelle;
+  return sortie;
+}
+
+/** Par nom de matériau des primitives en triangles de tout nœud à mesh qui portent `TEXCOORD_0`, sa densité d'UV : la
+ *  racine du rapport de l'aire de leurs triangles, aux positions du mesh, à celle de leurs triangles en UV, en mètres
+ *  par unité d'UV (#4379). Un matériau dont l'une ou l'autre aire est nulle n'en a pas ; une bande ou un éventail de
+ *  triangles n'est pas lu. */
+export function densitesDesUv(octets: Uint8Array): Record<string, number> {
+  const { json: brut, bin } = lireConteneur(octets);
+  const json = brut as JsonGltf;
+  arborescence(json);
+  const aires = new Map<string, [number, number]>();
+  for (const n of json.nodes ?? []) {
+    if (n.mesh === undefined) continue;
+    for (const p of (json.meshes ?? [])[n.mesh].primitives) {
+      const uv = p.attributes?.TEXCOORD_0;
+      const position = p.attributes?.POSITION;
+      if (p.material === undefined || uv === undefined || position === undefined) continue;
+      if ((p.mode ?? TRIANGLES) !== TRIANGLES) throw new GlbIllisible(`primitive en mode ${p.mode}, triangles attendus`);
+      const xyz = valeursDe(json, bin, position, 3);
+      const st = valeursDe(json, bin, uv, 2);
+      const sommets = xyz.length / 3;
+      if (st.length / 2 !== sommets) throw new GlbIllisible(`TEXCOORD_0 de ${st.length / 2} sommets, POSITION de ${sommets}`);
+      const indices = p.indices === undefined ? Float64Array.from({ length: sommets }, (_, i) => i) : valeursDe(json, bin, p.indices, 1);
+      const materiau = nomDe((json.materials ?? [])[p.material]) ?? '';
+      const somme = aires.get(materiau) ?? [0, 0];
+      for (let t = 0; t + 2 < indices.length; t += 3) {
+        const [a, b, c] = [indices[t], indices[t + 1], indices[t + 2]];
+        if (a >= sommets || b >= sommets || c >= sommets) throw new GlbIllisible(`indice de sommet hors des ${sommets} sommets`);
+        const u = [0, 1, 2].map((k) => xyz[b * 3 + k] - xyz[a * 3 + k]);
+        const v = [0, 1, 2].map((k) => xyz[c * 3 + k] - xyz[a * 3 + k]);
+        somme[0] += Math.hypot(u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]) / 2;
+        somme[1] += Math.abs((st[b * 2] - st[a * 2]) * (st[c * 2 + 1] - st[a * 2 + 1]) - (st[c * 2] - st[a * 2]) * (st[b * 2 + 1] - st[a * 2 + 1])) / 2;
+      }
+      aires.set(materiau, somme);
+    }
+  }
+  return Object.fromEntries([...aires].filter(([, [espace, uv]]) => espace > 0 && uv > 0).map(([materiau, [espace, uv]]) => [materiau, Math.sqrt(espace / uv)]));
 }

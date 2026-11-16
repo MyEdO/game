@@ -200,7 +200,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
       if (methode === 'demarrer') scenario = (entree as { scenario: string }).scenario;
       return r;
     };
-    const modeles: unknown = listage ? appeler('modeles', { manifestes: listage.manifestes, osDesRigides: listage.osDesRigides }) : null;
+    const modeles: unknown = listage ? appeler('modeles', { manifestes: listage.manifestes, osDesRigides: listage.osDesRigides, densitesUv: listage.densitesUv }) : null;
     const reponse = (methode: string, entree: unknown = null): unknown => JSON.parse(pont.appeler(methode, entree === null ? null : JSON.stringify(entree)));
     const communes = (): ReponsesCommunes => {
       const monde = reponse('monde') as MondeDuPont;

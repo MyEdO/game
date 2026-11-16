@@ -31,6 +31,7 @@ import {
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
 import {
   facteursDeComposition,
+  matieresDeLaRace,
   porteesDeLaTenue,
   porteesDesObjets,
   teinteDeLObjet,
@@ -135,6 +136,7 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
     rapport,
     ...(embleme ? { embleme } : {}),
     ...couleursDuCombattant(c, race),
+    ...matieresDeLaRace(race),
     facteurs: facteursDeComposition(undefined, race),
     // #3253
     sex: sexeDuPorteur(c) ?? 'M',

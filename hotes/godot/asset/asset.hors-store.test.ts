@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { empreinte, sha256 } from './empreinte.ts';
-import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
+import { densitesDesUv, ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
+import { glb as glbDePieces } from './evaluateur/gardes/pieces.testkit.ts';
 import { chargerLicences, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './dossierDeProduction.ts';
 import { importerPersonnage as importerDuDepot } from './importer.ts';
 import { ecrireProduction, ProductionRefusee, type SourcesDeBase } from '../../../scripts/personnage-3d/base/production.ts';
@@ -135,6 +136,19 @@ describe('lireGlb', () => {
     const faux = GLB.slice();
     muter(new DataView(faux.buffer));
     expect(() => lireGlb(faux)).toThrow(motif);
+  });
+});
+
+describe('densitesDesUv', () => {
+  const carre = { sommets: [[0, 0, 0], [2, 0, 0], [2, 2, 0], [0, 2, 0]] as const, triangles: [0, 1, 2, 0, 2, 3] };
+  it('rend par matériau la racine du rapport des aires de toutes ses primitives, en espace puis en UV ; sans UV ou à UV dégénérées, rien (#4379)', () => {
+    const octets = glbDePieces([
+      { nom: 'torse', ...carre, uv: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+      { nom: 'bras', sommets: [[0, 0, 0], [1, 0, 0], [0, 0, 1]], triangles: [0, 1, 2], uv: [[0, 0], [1, 0], [0, 1]] },
+      { nom: 'cheveux', ...carre, materiau: 'cheveux' },
+      { nom: 'yeux', ...carre, materiau: 'yeux', uv: [[0, 1], [0, 1], [0, 1], [0, 1]] },
+    ]);
+    expect(densitesDesUv(octets)).toEqual({ peau: Math.sqrt((4 + 0.5) / (1 + 0.5)) });
   });
 });
 

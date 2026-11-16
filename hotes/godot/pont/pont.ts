@@ -430,7 +430,9 @@ export interface CorpsDuVehicule {
  * rendu (`raceAppearance.json › couleurs`, une couleur du nuancier par emplacement de palette, `couleursSchema`), chacune
  * remplacée par celle de l'apparence de sa créature (`EntityAppearance.couleurs`), puis par celle de son apparence
  * d'auteur. Une surface prend la palette de la teinte de l'objet qui l'apporte,
- * sinon ces couleurs, sinon garde la matière du modèle.
+ * sinon ces couleurs, sinon garde la matière du modèle. Ses `matieres`, absentes si sa race n'en donne aucune, sont
+ * celles de sa race de rendu (`raceAppearance.json › matieres`, une matière du domaine `prop` par emplacement de
+ * palette, `matieresSchema`, #4379).
  */
 /** Le corps du véhicule `vehicule` (`vehiculeDuCombattant`) sur les modèles servis `servis`, `null` si aucun élément
  *  `vehicule` de sa fiche n'est servi. Le combat (`corpsDe`) et l'atelier (`vehicule`) le composent tous deux ici. */
@@ -1544,8 +1546,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return suite(o);
     },
     /**
-     * `{ manifestes, osDesRigides }` : un objet id de modèle → manifeste et un objet id de modèle → liste d'os, ceux du
-     * listage (`GET modeles/listage.json`, section « Atelier 3D »)
+     * `{ manifestes, osDesRigides, densitesUv }` : un objet id de modèle → manifeste, un objet id de modèle → liste d'os
+     * et un objet id de modèle → densité d'UV de chaque matériau, ceux du listage (`GET modeles/listage.json`, section
+     * « Atelier 3D »)
      *
      * @returns `{ bases, fichiers, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
      * ameliorations }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme état du pont, que
@@ -1553,18 +1556,21 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `demarrer`
      */
     modeles(json) {
-      const e = entreeDe('modeles', json, ['manifestes', 'osDesRigides']);
+      const e = entreeDe('modeles', json, ['manifestes', 'osDesRigides', 'densitesUv']);
       valider(estObjet(e.manifestes), 'modeles : manifestes, un objet id de modèle → manifeste');
       valider(estObjet(e.osDesRigides) && Object.values(e.osDesRigides).every(estListeDeChaines), 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides');
+      const estUneDensite = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0;
+      valider(estObjet(e.densitesUv) && Object.values(e.densitesUv).every((d) => estObjet(d) && Object.values(d).every(estUneDensite)),
+        'modeles : densitesUv, un objet id de modèle → densité d’UV positive de chaque matériau');
       const manifestes = e.manifestes as Record<string, unknown>;
-      modeles = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>) };
+      modeles = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>, e.densitesUv as Record<string, Record<string, number>>) };
       return modeles.modeles;
     },
     /**
      * `{ base, composition, emblemes? }` : l'id d'une base servie par le dernier `modeles`, une composition (section
      * « Composition d'un personnage »)
      *
-     * @returns `{ montes, manquants, rapport, gabarit, morphes, materiaux, reliefs, palette }` (`composerSurLaBase`,
+     * @returns `{ montes, manquants, rapport, gabarit, morphes, materiaux, reliefs, palette, matieres }` (`composerSurLaBase`,
      * `composition.ts`, qui compose aussi le corps de chaque combattant) ; refusé avant tout `modeles`, sur une base
      * qu'il n'a pas servie, sur une composition que `lireComposition` refuse, et sur des surcharges `emblemes` que
      * `lireSurchargesDEmblemes` refuse (table de lignes vers `{ id }` d’un emblème connu ou `null`)

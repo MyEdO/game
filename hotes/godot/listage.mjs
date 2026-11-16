@@ -6,8 +6,8 @@ import { cpSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { chargerAssets } from './asset/charger.mjs'
 
-const { DOSSIER_DES_MODELES, fichiersDuModele, lireGlb, manifestesDesModeles, verdictsDesModeles } = await chargerAssets([
-  "export { lireGlb } from '/hotes/godot/asset/glb.ts';",
+const { DOSSIER_DES_MODELES, densitesDesUv, fichiersDuModele, lireGlb, manifestesDesModeles, verdictsDesModeles } = await chargerAssets([
+  "export { densitesDesUv, lireGlb } from '/hotes/godot/asset/glb.ts';",
   "export { manifestesDesModeles } from '/hotes/godot/asset/release.ts';",
   "export { fichiersDuModele, verdictsDesModeles } from '/hotes/godot/asset/modeles.ts';",
 ])
@@ -25,7 +25,8 @@ export { DOSSIER_DES_MODELES }
  * tel que le site le publie :
  *
  * - `GET modeles/listage.json` : le listage,
- *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>, erreurs: string[], forme }`, que le
+ *   `{ manifestes: Record<id, manifeste>, osDesRigides: Record<id, string[]>, densitesUv: Record<id, Record<matériau, number>>,
+ *   erreurs: string[], forme }`, que le
  *   serveur du dossier vivant calcule à son lancement puis à nouveau quand un fichier du dossier change, en
  *   `Cache-Control: no-store`. `forme` nomme le fichier de
  *   `fichiers` (réponse de `modeles`) que Godot demande pour chaque modèle : `glb` au dossier vivant, que Godot lit à
@@ -39,10 +40,15 @@ export { DOSSIER_DES_MODELES }
  *   vide pour un modèle dont aucun mesh non skinné ne pend à une articulation d'un skin. `lireGlb` tient pour
  *   illisible un GLB dont un tableau ou une entrée est mal formé (un mesh sans `primitives`, un skin sans `joints`
  *   compris), dont un indice sort de sa liste, dont un nœud à mesh n'a pas de nom, dont deux nœuds portent le même
- *   nom, dont un nœud a plusieurs parents, dont la parenté boucle ou dont une racine de scène a un parent. `erreurs`
- *   porte, une ligne chacun, le manifeste illisible, le GLB illisible, le refus d'un manifeste et le dossier des
- *   modèles illisible. Godot passe `manifestes` et `osDesRigides` tels quels à `modeles`, qui ne les revalide pas :
- *   la validation et la lecture des os lisent le GLB, côté Node : au serveur à chaque changement du dossier, à l'export une fois.
+ *   nom, dont un nœud a plusieurs parents, dont la parenté boucle ou dont une racine de scène a un parent.
+ *   `densitesUv` porte, pour chaque manifeste de `manifestes`, la densité d'UV de chaque matériau de son GLB qui en a
+ *   une (`densitesDesUv`, `asset/glb.ts`) : la racine du rapport de l'aire de ses triangles, toutes primitives
+ *   réunies, à leur aire en `TEXCOORD_0`, en mètres par unité d'UV, que le montage sert à l'échelle de la matière de
+ *   la race (#4379) ; un GLB dont elle ne se lit pas n'en a pas, et son défaut va à `erreurs`. `erreurs`
+ *   porte, une ligne chacun, le manifeste illisible, le GLB illisible, le refus d'un manifeste, la densité d'UV
+ *   illisible et le dossier des modèles illisible. Godot passe `manifestes`, `osDesRigides` et `densitesUv` tels
+ *   quels à `modeles`, qui ne les revalide pas : la validation, la lecture des os et la mesure des UV lisent le GLB,
+ *   côté Node : au serveur à chaque changement du dossier, à l'export une fois.
  * - `GET modeles/<fichier>` : chaque fichier du dossier des modèles (manifeste, GLB ou scène fabriquée), servi en
  *   `Cache-Control: no-store` par le serveur du dossier vivant. Un chemin hors du dossier ou qui ne s'ouvre pas en
  *   fichier reçoit 404.
@@ -53,8 +59,8 @@ export { DOSSIER_DES_MODELES }
 export const LISTAGE = 'listage.json'
 
 /** Le listage de `dossier`, servi en GLB : les manifestes que `verdictsDesModeles` accepte contre leur GLB, de chacun les
- *  os qui portent ses meshes rigides (`os` des `meshes` sans skin de `lireGlb`), et les erreurs (manifeste illisible, GLB
- *  illisible, refus, dossier illisible). */
+ *  os qui portent ses meshes rigides (`os` des `meshes` sans skin de `lireGlb`) et les densités d'UV de ses matériaux
+ *  (`densitesDesUv`), et les erreurs (manifeste illisible, GLB illisible, refus, densité illisible, dossier illisible). */
 export function listage(dossier) {
   try {
     const lus = manifestesDesModeles(dossier)
@@ -70,15 +76,21 @@ export function listage(dossier) {
     }
     const manifestes = {}
     const osDesRigides = {}
+    const densitesUv = {}
     for (const { id, brut, verdict } of verdictsDesModeles(lus.entrees, octets)) {
       if (verdict.ok) {
         manifestes[id] = brut
         osDesRigides[id] = [...new Set(lireGlb(octets.get(id)).meshes.flatMap(m => (m.skinne || m.os === null ? [] : [m.os])))]
+        try {
+          densitesUv[id] = densitesDesUv(octets.get(id))
+        } catch (e) {
+          erreurs.push(`${fichiersDuModele(id).glb} : ${e.message}`)
+        }
       } else erreurs.push(`${fichiersDuModele(id).manifeste} : ${verdict.refus.join(' ; ')}`)
     }
-    return { manifestes, osDesRigides, erreurs, forme: 'glb' }
+    return { manifestes, osDesRigides, densitesUv, erreurs, forme: 'glb' }
   } catch (e) {
-    return { manifestes: {}, osDesRigides: {}, erreurs: [`${dossier} : ${e.code ?? e.message}`], forme: 'glb' }
+    return { manifestes: {}, osDesRigides: {}, densitesUv: {}, erreurs: [`${dossier} : ${e.code ?? e.message}`], forme: 'glb' }
   }
 }
 

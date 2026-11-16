@@ -38,7 +38,7 @@ func _recetter() -> void:
 	print("[modeles-non-retenus] version=", Engine.get_version_info().string)
 	MontageDeComposition.retenir_les_modeles(RETENUS, {forme = FORME})
 	var pont := PontDeLIndexRefuse.new({
-		listage = {manifestes = {}, osDesRigides = {}, erreurs = [], forme = FORME},
+		listage = {manifestes = {}, osDesRigides = {}, densitesUv = {}, erreurs = [], forme = FORME},
 		modeles = {ok = false, erreur = {categorie = "validation", message = REFUS}},
 		parametres = {scenario = "dome"},
 	})

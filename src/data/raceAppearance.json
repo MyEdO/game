@@ -53,6 +53,11 @@
       "yeux": {
         "id": "yeux-rouges"
       }
+    },
+    "matieres": {
+      "peau": {
+        "id": "peau-epaisse"
+      }
     }
   },
   {
@@ -154,6 +159,11 @@
       },
       "yeux": {
         "id": "yeux-rouges"
+      }
+    },
+    "matieres": {
+      "peau": {
+        "id": "peau-epaisse"
       }
     }
   },

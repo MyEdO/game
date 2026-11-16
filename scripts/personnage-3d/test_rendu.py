@@ -1,7 +1,9 @@
 """rendu (#4002) : les os de repos déplacés par `gabarit.osDesSilhouettes`, chaque translation tournée par le repère de
 repos de son parent, invisibles au repos et centre de rotation de l'os sous une pose ; le relief de la peau sous
-`corpulence`."""
+`corpulence` ; la palette et les matières d'un preset, celles de sa race d'abord, et la matière de la race ajoutée en
+détail aux surfaces de son emplacement, aux UV à l'échelle mesurée (#4379)."""
 import argparse
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,7 +11,9 @@ from pathlib import Path
 import numpy
 
 from glb import ecrire_glb, lire_glb
-from rendu import accuser_le_relief, deplacements_des_os, deplacer_les_os, facteur_de_relief, importer, lire_cadre, matrice_du_noeud
+from habillage import couleur_lineaire
+from rendu import (METRES_PAR_MOTIF, POIDS_DU_DETAIL, accuser_le_relief, apparence, deplacements_des_os, deplacer_les_os, facteur_de_relief,
+                   habiller_le_modele, importer, lire_cadre, matrice_du_noeud)
 
 RACINE_TOURNEE = [0, 0, 2 ** -0.5, 2 ** -0.5]
 """Quart de tour autour de Z (glTF)."""
@@ -88,6 +92,24 @@ class FacteurDeRelief(unittest.TestCase):
         self.assertIsNone(facteur_de_relief({}, {'corpulence': 1}))
 
 
+class Apparence(unittest.TestCase):
+    """La palette et les matières d'un preset (#4379)."""
+
+    RACES = [{'id': 'orc', 'couleurs': {'peau': {'id': 'vert'}, 'yeux': {'id': 'rouge'}}, 'matieres': {'peau': {'id': 'peau-epaisse'}}},
+             {'id': 'humain'}]
+    NUANCIER = [{'id': 'vert', 'domain': 'couleur', 'color': '#2a5a2a'}, {'id': 'rouge', 'domain': 'couleur', 'color': '#a02020'},
+                {'id': 'bleu', 'domain': 'couleur', 'color': '#2030a0'}]
+
+    def test_les_couleurs_de_la_race_puis_celles_du_preset_et_les_matieres_de_la_race(self):
+        palette, matieres = apparence({'race': {'id': 'orc'}, 'couleurs': {'yeux': {'id': 'bleu'}}}, self.RACES, self.NUANCIER)
+        self.assertEqual(palette, {'peau': couleur_lineaire('#2a5a2a'), 'yeux': couleur_lineaire('#2030a0')})
+        self.assertEqual(matieres, {'peau': 'prop--peau-epaisse'})
+
+    def test_une_race_sans_couleurs_ni_matieres_n_en_donne_aucune(self):
+        self.assertEqual(apparence({'race': {'id': 'humain'}, 'couleurs': {'yeux': {'id': 'bleu'}}}, self.RACES, self.NUANCIER),
+                         ({'yeux': couleur_lineaire('#2030a0')}, {}))
+
+
 class LireCadre(unittest.TestCase):
     """`--cadre` (#4338)."""
 
@@ -162,6 +184,63 @@ class DansBlender(unittest.TestCase):
         self.assertAlmostEqual(force['Peau'], 0.4, places=6)
         self.assertAlmostEqual(force['Cheveux'], 0.8, places=6)
 
+    def test_la_matiere_de_la_race_s_ajoute_en_detail_aux_uv_a_l_echelle_du_materiau_sur_tout_le_modele_et_le_materiau_reste(self):
+        bpy = self.bpy
+        matiere = 'prop--peau-epaisse'
+        mat = bpy.data.materials.new('PeauDeRace')
+        nt = mat.node_tree
+        bsdf = next(n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED')
+        bsdf.inputs['Base Color'].default_value = (0.2, 0.4, 0.1, 1)
+        atlas = nt.nodes.new('ShaderNodeTexImage')
+        atlas.image = bpy.data.images.new('atlas', 4, 4)
+        carte = nt.nodes.new('ShaderNodeNormalMap')
+        carte.inputs['Strength'].default_value = 0.8
+        nt.links.new(atlas.outputs['Color'], carte.inputs['Color'])
+        nt.links.new(carte.outputs['Normal'], bsdf.inputs['Normal'])
+        objets = []
+        for nom, cote, etendue in (('Torse', 4, 1), ('Bras', 1, 0.5)):
+            maillage = bpy.data.meshes.new(nom)
+            maillage.from_pydata([(0, 0, 0), (cote, 0, 0), (0, cote, 0)], [], [(0, 1, 2)])
+            maillage.uv_layers.new(name='UVMap')
+            for boucle, uv in zip(maillage.uv_layers[0].data, ((0, 0), (etendue, 0), (0, etendue))):
+                boucle.uv = uv
+            maillage.materials.append(mat)
+            objets.append(bpy.data.objects.new(nom, maillage))
+            bpy.context.scene.collection.objects.link(objets[-1])
+        manifeste = {'surfaces': [{'nom': 'PeauDeRace', 'palette': 'peau'}]}
+        habiller_le_modele(bpy, objets, manifeste, None, True, {}, {'peau': matiere})
+        self.assertFalse(any(n.type == 'TEX_IMAGE' and n.projection == 'BOX' for n in nt.nodes))
+        self.assertEqual(bsdf.inputs['Normal'].links[0].from_node, carte)
+        self.assertAlmostEqual(carte.inputs['Strength'].default_value, 0.8 / POIDS_DU_DETAIL, places=6)
+        melange = carte.inputs['Color'].links[0].from_node
+        self.assertEqual((melange.blend_type, melange.inputs['Factor'].default_value), ('MIX', POIDS_DU_DETAIL))
+        entrees = [s for s in melange.inputs if s.type == 'RGBA']
+        self.assertEqual(entrees[0].links[0].from_node, atlas)
+        self.assertEqual(entrees[1].links[0].from_node.image.name, f'{matiere}.normale.jpg')
+        teinte = bsdf.inputs['Base Color'].links[0].from_node
+        self.assertEqual((teinte.blend_type, teinte.inputs['Factor'].default_value), ('MULTIPLY', POIDS_DU_DETAIL))
+        couleurs = [s for s in teinte.inputs if s.type == 'RGBA']
+        numpy.testing.assert_allclose(couleurs[0].default_value, (0.2, 0.4, 0.1, 1), atol=1e-6)
+        self.assertEqual(couleurs[1].links[0].from_node.image.name, f'{matiere}.neutre.jpg')
+        mise = next(n for n in nt.nodes if n.type == 'MAPPING')
+        echelle = math.sqrt((8 + 0.5) / (0.5 + 0.125)) / METRES_PAR_MOTIF
+        numpy.testing.assert_allclose(mise.inputs['Scale'].default_value, (echelle, echelle, 1), atol=1e-6)
+
+    def test_sans_relief_au_catalogue_ni_texture_rien_ne_s_ajoute(self):
+        bpy = self.bpy
+        mat = bpy.data.materials.new('SansTexture')
+        maillage = bpy.data.meshes.new('SansTexture')
+        maillage.from_pydata([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [], [(0, 1, 2)])
+        maillage.uv_layers.new(name='UVMap')
+        maillage.materials.append(mat)
+        objet = bpy.data.objects.new('SansTexture', maillage)
+        bpy.context.scene.collection.objects.link(objet)
+        avant = len(mat.node_tree.nodes)
+        habiller_le_modele(bpy, [objet], {'surfaces': [{'nom': 'SansTexture', 'palette': 'peau', 'matiere': 'prop--sans-texture'},
+                                                       ]}, None, True, {}, {'peau': 'prop--peau-epaisse'})
+        habiller_le_modele(bpy, [objet], {'surfaces': [{'nom': 'SansTexture', 'palette': 'peau'}]}, None, True, {},
+                           {'peau': 'prop--sans-texture'})
+        self.assertEqual(len(mat.node_tree.nodes), avant)
 
 if __name__ == '__main__':
     unittest.main()

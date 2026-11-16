@@ -1,7 +1,7 @@
 /**
  * LE SERVEUR DE L'EXPORT WEB (#3086, `pont/CONTRAT.md`, section « Atelier 3D ») : `GET modeles/listage.json` rend
- * `{ manifestes, osDesRigides, erreurs, forme }`, les seuls manifestes validés contre leur GLB, de chacun les os qui
- * portent ses meshes rigides et la forme `glb`, en `no-store`, calculé au lancement puis à nouveau quand un fichier du
+ * `{ manifestes, osDesRigides, densitesUv, erreurs, forme }`, les seuls manifestes validés contre leur GLB, de chacun les
+ * os qui portent ses meshes rigides et les densités d'UV de ses matériaux, et la forme `glb`, en `no-store`, calculé au lancement puis à nouveau quand un fichier du
  * dossier change ; `GET modeles/<fichier>` sert le fichier en `no-store`,
  * 404 hors du dossier ou absent ; une URI malformée reçoit 400 et un dossier des modèles illisible passe dans
  * `erreurs`, le serveur continue. `deposerLesModeles` (#3778, #3946) écrit sous `modeles/` de l'export les mêmes
@@ -42,6 +42,21 @@ const GLB_TENU = ecrireGlb({
   skins: [{ joints: [0] }], meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
 }, null);
 const masse = { ...elementSchema3('humanoide'), cle: { apparence: 'masse' }, glb: empreinte(GLB_TENU) };
+/** Un rigide tenu au carré de 2 m de côté sur toute l'UV (densité 2), ou, `brise`, à l'UV hors de ses accesseurs. */
+const glbAuxUv = (brise: boolean) => ecrireGlb({
+  asset: { version: '2.0' }, nodes: [{ name: 'root', children: [1] }, { name: 'tete', mesh: 0 }], skins: [{ joints: [0] }],
+  meshes: [{ primitives: [{ attributes: { POSITION: 0, TEXCOORD_0: brise ? 9 : 1 }, indices: 2, material: 0 }] }], materials: [{ name: 'metal' }],
+  accessors: [
+    { bufferView: 0, componentType: 5126, count: 4, type: 'VEC3', min: [0, 0, 0], max: [2, 2, 0] },
+    { bufferView: 1, componentType: 5126, count: 4, type: 'VEC2' },
+    { bufferView: 2, componentType: 5123, count: 6, type: 'SCALAR' },
+  ],
+  bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 48 }, { buffer: 0, byteOffset: 48, byteLength: 32 }, { buffer: 0, byteOffset: 80, byteLength: 12 }],
+  buffers: [{ byteLength: 92 }],
+}, new Uint8Array([
+  ...new Uint8Array(new Float32Array([0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 0, 0, 1, 0, 1, 1, 0, 1]).buffer),
+  ...new Uint8Array(new Uint16Array([0, 1, 2, 0, 2, 3]).buffer),
+]));
 
 let serveurs: { url: string; fermer: () => void }[] = [];
 const demarrer = async (dossier = modeles) => {
@@ -86,6 +101,18 @@ describe('servir', () => {
   it('le listage rend, de chaque manifeste validé, les os qui portent ses meshes rigides', async () => {
     const { osDesRigides } = await (await fetch(`${await demarrer()}modeles/${LISTAGE}`)).json();
     expect(osDesRigides).toEqual({ humanoide: [], epee: ['root'], masse: ['root'] });
+  });
+
+  it('le listage rend, de chaque manifeste validé, la densité d’UV de ses matériaux ; une densité illisible passe dans `erreurs` (#4379)', async () => {
+    const mesures = join(racine, 'mesures');
+    cpSync(modeles, mesures, { recursive: true });
+    const [mesure, brise] = [glbAuxUv(false), glbAuxUv(true)];
+    deposerModeleDeTest(mesures, 'hache', { ...elementSchema3('humanoide'), cle: { apparence: 'hache' }, glb: empreinte(mesure) }, mesure);
+    deposerModeleDeTest(mesures, 'lance', { ...elementSchema3('humanoide'), cle: { apparence: 'lance' }, glb: empreinte(brise) }, brise);
+    const { manifestes, densitesUv, erreurs } = await (await fetch(`${await demarrer(mesures)}modeles/${LISTAGE}`)).json();
+    expect(Object.keys(manifestes)).toContain('lance');
+    expect(densitesUv).toEqual({ humanoide: {}, epee: {}, masse: {}, hache: { metal: 2 } });
+    expect(erreurs).toContainEqual('lance.glb : GLB illisible : accesseur 9 non lu (vue, type, composante ou forme creuse)');
   });
 
   it('un modèle déposé après le lancement entre au listage suivant', async () => {
@@ -133,8 +160,8 @@ describe('servir', () => {
 
   it('un dossier des modèles qui n’est pas un dossier passe dans `erreurs`, et le serveur sert la suivante', async () => {
     const url = await demarrer(join(web, 'index.html'));
-    const { manifestes, osDesRigides, erreurs } = await (await fetch(`${url}modeles/${LISTAGE}`)).json();
-    expect([manifestes, osDesRigides]).toEqual([{}, {}]);
+    const { manifestes, osDesRigides, densitesUv, erreurs } = await (await fetch(`${url}modeles/${LISTAGE}`)).json();
+    expect([manifestes, osDesRigides, densitesUv]).toEqual([{}, {}, {}]);
     expect(erreurs).toEqual([expect.stringMatching(/ : ENOTDIR$/)]);
     expect((await fetch(`${url}index.html`)).status).toBe(200);
   });

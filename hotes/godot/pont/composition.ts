@@ -2,8 +2,9 @@
  * LA COMPOSITION D'UN PERSONNAGE SUR UNE BASE (#3086, D2 et son amendement ; `CONTRAT.md`, section « Composition d'un
  * personnage ») : ce que porte un corps (`PorteeDeComposition`, d'une composition ou d'un combattant, surface du noyau),
  * résolu en éléments de la base sur ses lignes et ses points (`modelesDeLAtelier`), avec la pose de son gabarit (`poseDuGabarit`), les poids de ses
- * silhouettes (`poidsDeSilhouettes`), ses matériaux par sexe (`parSexe` des surfaces de la base, #3188) et sa palette
- * résolue au nuancier (`findCouleurById`), chaque élément monté à la palette de sa teinte (`findTeinteById`, #3456).
+ * silhouettes (`poidsDeSilhouettes`), ses matériaux par sexe (`parSexe` des surfaces de la base, #3188), sa palette
+ * résolue au nuancier (`findCouleurById`), chaque élément monté à la palette de sa teinte (`findTeinteById`, #3456), et les
+ * matières de sa race au catalogue de Godot (`nomDeMatiere`, #4379).
  */
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
@@ -13,6 +14,7 @@ import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
 import {
   findCouleurById,
   findTeinteById,
+  nomDeMatiere,
   pieceRacine,
   emblemeDuPorteur,
   type EmblemeResolu,
@@ -42,7 +44,7 @@ import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './a
  * `objets`), à défaut le `rangement` du trapping (`trappings.json`) ; sans l'un ni l'autre, il va à `rapport`, sans
  * point. Chaque objet porte sa teinte (`teinteDeLObjet`, `Portee.teinte`) : celle de son Groupe d'armure (`teinte` de
  * `weaponGroups.json`) s'il en est un. Cette portée (`PorteeDeComposition`) porte aussi le corps qu'elle habille,
- * `sex`, `build?` et `couleurs?`, que `composerSurLaBase` lit sans relire la composition ; `porteeDuCombattant`
+ * `sex`, `build?`, `couleurs?` et `matieres?`, que `composerSurLaBase` lit sans relire la composition ; `porteeDuCombattant`
  * (`src/noyau/apparence/combattant.ts`) en est le second producteur, par le même assembleur d'objet
  * (`porteesDesObjets`).
  */
@@ -87,6 +89,9 @@ export interface CompositionSurLaBase {
    *  nuancier (`findCouleurById`, surface du noyau), vide sans couleur. La composition ne porte que des ids
    *  (#2966) ; Godot ne lit aucun catalogue pour colorer. */
   palette: Record<string, string>;
+  /** par emplacement de palette auquel la race de rendu donne une matière (`matieres` de `raceAppearance.json`, #4379),
+   *  le nom de cette matière du catalogue de Godot (`nomDeMatiere`, `prop--<id>`) ; vide sans matière. */
+  matieres: Record<string, string>;
 }
 
 /**
@@ -188,5 +193,6 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     materiaux: Object.fromEntries(surfaces.flatMap(({ nom, parSexe }) => (parSexe?.[portee.sex] ? [[nom, parSexe[portee.sex]!]] : []))),
     reliefs: relief === undefined ? {} : Object.fromEntries(surfaces.flatMap(({ nom, palette }) => (palette === 'peau' ? [[nom, relief]] : []))),
     palette: paletteDesCouleurs(portee.couleurs),
+    matieres: Object.fromEntries(Object.entries(portee.matieres ?? {}).map(([slot, { id }]) => [slot, nomDeMatiere({ domain: 'prop', id })])),
   };
 }

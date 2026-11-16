@@ -53,9 +53,9 @@ describe('le pont avant sa partie', () => {
     }
   });
 
-  it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
+  it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes`, sans `osDesRigides` ou sans `densitesUv` se refuse', () => {
     const manifestes = { humanoide: baseDeTest(), epee: elementSchema3() };
-    expect(appel('modeles', { manifestes, osDesRigides: { humanoide: [], epee: ['root'] } })).toMatchObject({
+    expect(appel('modeles', { manifestes, osDesRigides: { humanoide: [], epee: ['root'] }, densitesUv: { humanoide: { peau: 1.5 } } })).toMatchObject({
       ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'secondaire', elements: ['epee'] }] }], fichiers: { humanoide: { glb: 'humanoide.glb', scene: 'humanoide.scn' }, epee: { glb: 'epee.glb', scene: 'epee.scn' } }, refus: [],
     });
     const sansManifestes = { categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' };
@@ -64,6 +64,9 @@ describe('le pont avant sa partie', () => {
     const sansOs = { categorie: 'validation', message: 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides' };
     expect(erreurDe(appel('modeles', { manifestes }))).toEqual(sansOs);
     expect(erreurDe(appel('modeles', { manifestes, osDesRigides: { epee: 'root' } }))).toEqual(sansOs);
+    const sansDensites = { categorie: 'validation', message: 'modeles : densitesUv, un objet id de modèle → densité d’UV positive de chaque matériau' };
+    expect(erreurDe(appel('modeles', { manifestes, osDesRigides: {} }))).toEqual(sansDensites);
+    expect(erreurDe(appel('modeles', { manifestes, osDesRigides: {}, densitesUv: { humanoide: { peau: 0 } } }))).toEqual(sansDensites);
   });
 
   it('`scenarios` rend, sans partie, chaque scénario du catalogue une fois, sous sa section, et le bouton qui le démarre', () => {

@@ -23,6 +23,9 @@ const DEMI_CASE := 0.5
 const DECALAGE_DU_CALQUE := 0.01
 ## Le côté, en mètres, du motif d'une texture du sol posée sur le volume du monde.
 const METRES_PAR_MOTIF := 2.0
+## Le poids de la couche de détail d'une matière de race (#4379), celui de son `detail_mask`
+## (`MontageDeComposition.masque_du_detail`) : la carte de normales de la surface et celle de la matière s'y mêlent.
+const POIDS_DU_DETAIL := 0.5
 const QUART_DE_TOUR := PI / 2.0
 const PAS_DE_ZOOM := 1.15
 ## Les bornes du zoom de l'orbite de l'atelier, rapportées à l'échelle du cadre posé.
@@ -616,6 +619,17 @@ static func echelle_composee(echelle_du_squelette: float, echelle: float) -> flo
 ## (`reliefs` de la composition, #4002).
 static func relief_au_facteur(relief: float, facteur: float) -> float:
 	return relief * facteur
+
+
+## Le facteur de relief `relief` d'une surface sous une matière de race (#4379) : divisé par `POIDS_DU_DETAIL`.
+static func relief_sous_le_detail(relief: float) -> float:
+	return relief / POIDS_DU_DETAIL
+
+
+## L'échelle des UV2 d'une matière de race (#4379) sur une surface de densité d'UV `densite`, en mètres par unité d'UV :
+## un motif tous les `METRES_PAR_MOTIF`.
+static func echelle_de_detail(densite: float) -> float:
+	return densite / METRES_PAR_MOTIF
 
 
 ## L'échelle de l'orbite qui cadre un corps de sommet `sommet` comme elle cadre, à l'échelle 1, le corps neutre de sommet

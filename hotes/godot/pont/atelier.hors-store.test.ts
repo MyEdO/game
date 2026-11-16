@@ -39,6 +39,7 @@ describe('modelesDeLAtelier', () => {
   const modeles = modelesDeLAtelier(
     { humanoide, epee, bouclier, lanterne, chemise, teteNaine, broche, orpheline },
     { humanoide: [], epee: ['root'], bouclier: ['spine', 'handslot.l'], lanterne: [], chemise: ['root'], teteNaine: ['root'], broche: ['root'] },
+    {},
   );
   const lignes = modeles.bases[0].lignes;
 
@@ -57,7 +58,7 @@ describe('modelesDeLAtelier', () => {
   });
 
   it('une base publie les os de ses chaînes (#3842)', () => {
-    expect(modelesDeLAtelier({ humanoide: { ...humanoide, chaines: { cape: ['cape_1', 'cape_2'], jupe: ['jupe_1'] } } }, { humanoide: [] }).bases[0].osDeChaine).toEqual(['cape_1', 'cape_2', 'jupe_1']);
+    expect(modelesDeLAtelier({ humanoide: { ...humanoide, chaines: { cape: ['cape_1', 'cape_2'], jupe: ['jupe_1'] } } }, { humanoide: [] }, {}).bases[0].osDeChaine).toEqual(['cape_1', 'cape_2', 'jupe_1']);
   });
 
   it('une base sans table des rôles tenus à deux mains la publie vide (#3319)', () => {
@@ -76,7 +77,7 @@ describe('modelesDeLAtelier', () => {
     expect(emplacementsDeRangement('epee')).not.toContain('epaule_d');
     expect(emplacementsDeRangement('symbole_de_sigmar')).toContain('cou');
     const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], emplacements: { dos, ceinture_g: attache('root') }, prises: { main: attache('main_d'), secondaire: attache('main_g') } };
-    const base = modelesDeLAtelier({ humanoide: mains, epee, bouclier }, { humanoide: [], epee: ['main_d'], bouclier: ['spine'] }).bases[0];
+    const base = modelesDeLAtelier({ humanoide: mains, epee, bouclier }, { humanoide: [], epee: ['main_d'], bouclier: ['spine'] }, {}).bases[0];
     expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], ceinture_g: ['epee'], main: ['epee'], secondaire: ['epee'] });
   });
   it('les lignes de pièce sont, dans l’ordre de la garde-robe, le sélecteur `tete`, le sélecteur `coiffure`, une bascule `piece` par pièce de vêtement ou d’armure, puis une liste `emplacement` par emplacement d’une pièce d’accessoire', () => {
@@ -110,7 +111,13 @@ describe('modelesDeLAtelier', () => {
   it('chaque base et chaque élément servi, quelle que soit sa liaison, et eux seuls, donnent leurs surfaces ; une base sans `surfaces`, aucune', () => {
     expect(modeles.surfaces).toEqual({ humanoide: [], bouclier: bouclier.surfaces, epee: epee.surfaces, chemise: chemise.surfaces, teteNaine: teteNaine.surfaces, broche: broche.surfaces });
     const peinte = { ...humanoide, surfaces: [{ nom: 'peau', palette: 'peau' }] };
-    expect(modelesDeLAtelier({ humanoide: peinte }, { humanoide: [] }).surfaces).toEqual({ humanoide: peinte.surfaces });
+    expect(modelesDeLAtelier({ humanoide: peinte }, { humanoide: [] }, {}).surfaces).toEqual({ humanoide: peinte.surfaces });
+  });
+
+  it('chaque surface servie porte la densité d’UV de son matériau au listage ; un matériau sans densité, aucune (#4379)', () => {
+    const peinte = { ...humanoide, surfaces: [{ nom: 'peau', palette: 'peau' }, { nom: 'yeux', palette: 'yeux' }] };
+    expect(modelesDeLAtelier({ humanoide: peinte }, { humanoide: [] }, { humanoide: { peau: 1.5, cheveux: 2 } }).surfaces)
+      .toEqual({ humanoide: [{ nom: 'peau', palette: 'peau', densiteUv: 1.5 }, { nom: 'yeux', palette: 'yeux' }] });
   });
 
   it('chaque élément servi qui déclare une seconde prise la donne telle quelle, avec le maniement de sa forme, et lui seul (#3319)', () => {
@@ -118,14 +125,14 @@ describe('modelesDeLAtelier', () => {
     const hallebarde = { ...elementSchema3('humanoide'), cle: { apparence: 'hallebarde' }, liaison: { mode: 'rigide', secondePrise } };
     const estoc = { ...elementSchema3('humanoide'), cle: { apparence: 'epee_soldat' }, liaison: { mode: 'rigide', secondePrise } };
     expect(modeles.secondesPrises).toEqual({});
-    expect(modelesDeLAtelier({ humanoide, epee, hallebarde, estoc }, { humanoide: [], epee: ['root'], hallebarde: ['root'], estoc: ['root'] }).secondesPrises)
+    expect(modelesDeLAtelier({ humanoide, epee, hallebarde, estoc }, { humanoide: [], epee: ['root'], hallebarde: ['root'], estoc: ['root'] }, {}).secondesPrises)
       .toEqual({ hallebarde: { repere: secondePrise, maniement: 'hampe' }, estoc: { repere: secondePrise, maniement: null } });
   });
 
   it('chaque élément servi qui a une couche donne son rang, s’il est un accessoire, les zones qu’il couvre et les éléments qu’il masque, ceux de couche plus intérieure ou sans couche, et lui seul (#2972, #3842)', () => {
     expect(modeles.couches).toEqual({ chemise: { rang: 2, accessoire: false, couvre: ['torse'], masque: ['epee', 'bouclier', 'teteNaine', 'broche'] }, teteNaine: { rang: 0, accessoire: false, couvre: ['tete'], masque: ['epee', 'bouclier', 'broche'] } });
     const { couvre: _, ...sansZones } = { ...broche, couche: 'tenue' };
-    expect(modelesDeLAtelier({ humanoide, chemise, broche: sansZones }, { humanoide: [], chemise: ['root'], broche: ['root'] }).couches)
+    expect(modelesDeLAtelier({ humanoide, chemise, broche: sansZones }, { humanoide: [], chemise: ['root'], broche: ['root'] }, {}).couches)
       .toEqual({ chemise: { rang: 2, accessoire: false, couvre: ['torse'], masque: [] }, broche: { rang: 2, accessoire: true, couvre: [], masque: [] } });
   });
 
@@ -146,12 +153,12 @@ describe('modelesDeLAtelier', () => {
     const plumet = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'plumet' }, couche: 'tenue' };
     const casque = { ...chemise, categorie: 'armure', cle: { piece: 'casque' }, couche: 'armure', emplacements: { cimier: dos } };
     const servis = (m: ReturnType<typeof modelesDeLAtelier>) => [...m.bases[0].points, ...m.bases[0].lignes].flatMap((l) => ('elements' in l ? l.elements : []));
-    const sansCimier = modelesDeLAtelier({ humanoide, plumet }, { humanoide: [], plumet: ['root'] });
+    const sansCimier = modelesDeLAtelier({ humanoide, plumet }, { humanoide: [], plumet: ['root'] }, {});
     expect(sansCimier.rapport).toEqual(['[emplacement-non-offert] plumet : plumet se pose sur cimier, que ni la base `humanoide` ni aucune de ses pièces n’offre']);
     expect(sansCimier.refus).toEqual([]);
     expect(servis(sansCimier)).toEqual([]);
     expect(Object.keys(sansCimier.fichiers)).toEqual(['humanoide']);
-    const avecCimier = modelesDeLAtelier({ humanoide, casque, plumet }, { humanoide: [], casque: [], plumet: ['spine'] });
+    const avecCimier = modelesDeLAtelier({ humanoide, casque, plumet }, { humanoide: [], casque: [], plumet: ['spine'] }, {});
     expect(avecCimier.rapport).toEqual([]);
     expect(avecCimier.bases[0].lignes.filter((l) => 'id' in l && l.elements.includes('plumet')).map((l) => ('id' in l ? `${l.sorte}:${l.id}` : l.sorte))).toEqual(['emplacement:cimier']);
     expect(avecCimier.bases[0].points.flatMap(({ elements }) => elements)).toEqual([]);
@@ -160,9 +167,9 @@ describe('modelesDeLAtelier', () => {
 
   it('un véhicule, sans base, est servi sous la fiche que nomme sa `definition`, son GLB, ses surfaces et le libellé de sa fiche avec lui, même sans aucune base (#2987)', () => {
     const caraque = vehiculeDeTest('caraque');
-    const seul = modelesDeLAtelier({ caraque }, { caraque: [] });
+    const seul = modelesDeLAtelier({ caraque }, { caraque: [] }, {});
     expect(seul).toMatchObject({ bases: [], refus: [], vehicules: { caraque: 'caraque' }, fichiers: { caraque: { glb: 'caraque.glb', scene: 'caraque.scn' } }, surfaces: { caraque: caraque.surfaces }, libelles: { caraque: 'Caraque (MDG)' } });
-    expect(modelesDeLAtelier({ humanoide, epee, caraque }, { humanoide: [], epee: ['root'], caraque: [] }).bases[0].points.flatMap(({ elements }) => elements)).not.toContain('caraque');
+    expect(modelesDeLAtelier({ humanoide, epee, caraque }, { humanoide: [], epee: ['root'], caraque: [] }, {}).bases[0].points.flatMap(({ elements }) => elements)).not.toContain('caraque');
     expect(modeles.vehicules).toEqual({});
   });
 
@@ -170,6 +177,7 @@ describe('modelesDeLAtelier', () => {
     const { libelles } = modelesDeLAtelier(
       { baliste: vehiculeDeTest('baliste'), 'baliste-ade2': vehiculeDeTest('baliste-ade2') },
       { baliste: [], 'baliste-ade2': [] },
+      {},
     );
     expect(libelles).toEqual({ baliste: 'Baliste (AA)', 'baliste-ade2': 'Baliste (ADE II)' });
   });

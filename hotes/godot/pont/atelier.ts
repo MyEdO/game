@@ -100,8 +100,9 @@ export interface ModelesDeLAtelier {
    *  `parSexe`, une table d'un sexe (`sexeSchema`) au nom d'un matériau du GLB, nomme le matériau qui remplace le
    *  sien sur un corps de ce sexe (#3188), la variante `KHR_materials_variants` du nom du sexe de chaque primitive de
    *  la surface (`surface-absente` sinon), que la construction recouche des UV du corps qui le peint sur celles de la
-   *  surface (`scripts/personnage-3d/base/materiaux_par_sexe.py`). */
-  surfaces: Record<string, readonly Surface[]>;
+   *  surface (`scripts/personnage-3d/base/materiaux_par_sexe.py`) ; `densiteUv`, la densité d'UV du matériau de ce `nom`
+   *  au listage (`densitesUv`), quand il en a une. */
+  surfaces: Record<string, readonly SurfaceServie[]>;
   /** pour chaque élément servi, le libellé de la chose que sa `cle` désigne (`libelleDeCleDElement`, surface du
    *  noyau : sa tête, sa coiffure, sa pièce, son apparence ou la fiche de son véhicule, celle-ci marquée du sigle de
    *  son livre, `libelleDAuteur` : « Baliste (AA) », « Baliste (ADE II) »), à défaut son id. */
@@ -265,6 +266,12 @@ const modeDe = (e: EntreeDeModele) => (e.brut as ManifesteDElement).liaison.mode
 const formesDe = (id: string): ModelesDeLAtelier['fichiers'][string] => { const { glb, scene } = fichiersDuModele(id); return { glb, scene }; };
 /** La base de l'élément `e`, `undefined` s'il est sans base (`estSansBase`). */
 const baseDe = (e: EntreeDeModele): string | undefined => { const m = e.brut as ManifesteDElement; return 'base' in m ? m.base : undefined; };
+
+/** Une surface de manifeste servie, avec la densité d'UV de son matériau au listage (`densitesDesUv`, `asset/glb.ts`). */
+export interface SurfaceServie extends Surface {
+  readonly densiteUv?: number;
+}
+
 /** Les `nom` des surfaces `blason: true` du manifeste d'élément `manifeste`, dans l'ordre du manifeste. */
 export const blasonsDe = (manifeste: unknown): string[] => (manifeste as ManifesteDElement).surfaces.filter((s) => s.blason === true).map((s) => s.nom);
 
@@ -275,17 +282,25 @@ export const emblemeMonte = (embleme: EmblemeResolu | undefined, manifeste: unkn
 
 /** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases, leurs points d'accroche et
  *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les véhicules, les refus de
- *  l'index et son rapport. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id
+ *  l'index et son rapport ; chaque surface servie porte la densité d'UV de son matériau dans `densitesUv` (id de modèle →
+ *  matériau → densité, du listage servi). Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id
  *  de modèle → os qui portent ses meshes rigides, du listage servi), et à chacune de ses prises si l'un d'eux est l'os d'une
  *  prise (#3319) ; toute pièce, accessoire rigide compris, à la ligne dont
  *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou de la pièce de sa variante (`pieceRacine`,
  *  #3446), ou l'emplacement de sa pièce
  *  d'accessoire (`emplacementDePiece`), que la base ou l'une de ses pièces offre. */
-export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>): ModelesDeLAtelier {
+export function modelesDeLAtelier(
+  manifestes: Record<string, unknown>,
+  osDesRigides: Readonly<Record<string, readonly string[]>>,
+  densitesUv: Readonly<Record<string, Readonly<Record<string, number>>>>,
+): ModelesDeLAtelier {
   const index = indexerModeles(Object.entries(manifestes).map(([id, brut]) => ({ id, brut })));
   const elements = [...index.elements.values()];
   const fichiers: ModelesDeLAtelier['fichiers'] = {};
-  const surfaces: Record<string, readonly Surface[]> = {};
+  const surfaces: Record<string, readonly SurfaceServie[]> = {};
+  const servirLesSurfaces = (id: string, liste: readonly Surface[]) => {
+    surfaces[id] = liste.map((s) => (densitesUv[id]?.[s.nom] === undefined ? s : { ...s, densiteUv: densitesUv[id][s.nom] }));
+  };
   const libelles: Record<string, string> = {};
   const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
   const rangs: Record<string, Pick<CoucheDeLAtelier, 'rang' | 'accessoire' | 'couvre'>> = {};
@@ -300,7 +315,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const servir = (servis: readonly EntreeDeModele[]): string[] =>
     servis.map(({ id, brut }) => {
       fichiers[id] = formesDe(id);
-      surfaces[id] = (brut as ManifesteDElement).surfaces;
+      servirLesSurfaces(id, (brut as ManifesteDElement).surfaces);
       libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
       const { couche, couvre } = brut as { couche?: Couche; couvre?: readonly string[] };
       if (couche) rangs[id] = { rang: COUCHES.indexOf(couche), accessoire: (brut as ManifesteDElement).categorie === 'accessoire', couvre: couvre ?? [] };
@@ -316,7 +331,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const objets = deLaBase.filter((e) => !estUnePiece(e));
     const pieces = deLaBase.filter(estUnePiece);
     fichiers[id] = formesDe(id);
-    surfaces[id] = m.surfaces ?? [];
+    servirLesSurfaces(id, m.surfaces ?? []);
     const osDesPrises = Object.values(m.prises ?? {}).map((a) => a.os);
     const pointsDe = (genre: PointDAccroche['genre'], attaches: Readonly<Record<string, Attache>>): PointDAccroche[] =>
       Object.entries(attaches).map(([pointId, attache]) => {

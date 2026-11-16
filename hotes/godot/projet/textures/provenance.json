@@ -407,6 +407,24 @@
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 128x128! -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
   },
+  "prop--peau-epaisse.jpg": {
+    "sha256": "886e34f31585e8ee8e8a7039fdf4f742848c488ecc5ae8d4e7d030123492be9a",
+    "source": "https://ambientcg.com/view?id=Leather030 (Leather030_1K-JPG.zip : Leather030_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#7a6a55 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--peau-epaisse.neutre.jpg": {
+    "sha256": "8065b7c16237f549b2ba3aeebe05e3c3da1e0e340fa92a78943aa1e4a4e8b9e9",
+    "source": "https://ambientcg.com/view?id=Leather030 (Leather030_1K-JPG.zip : Leather030_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -colorspace Gray -auto-level -level 0%,55% +level 55%,100% -colorspace sRGB -write mpr:t +delete -size 1024x1024 tile:mpr:t -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--peau-epaisse.normale.jpg": {
+    "sha256": "544b97bfe47192a87a67d4934881659193e655694520b50a7cddf1125106759d",
+    "source": "https://ambientcg.com/view?id=Leather030 (Leather030_1K-JPG.zip : Leather030_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 256x256! -channel RG -function Polynomial 8,-3.5 +channel -write mpr:t +delete -size 512x512 tile:mpr:t -strip -quality 90"
+  },
   "prop--toile-ecrue.neutre.jpg": {
     "sha256": "57a4e0ce293a47870076ad839e02354d95d5ecd7c097b573318b5315c9fba5fb",
     "source": "https://ambientcg.com/view?id=Fabric062 (Fabric062_1K-JPG.zip : Fabric062_1K-JPG_Color.jpg) ; dérivée de prop--toile-ecrue.jpg",

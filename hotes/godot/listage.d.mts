@@ -2,7 +2,7 @@
 
 export const DOSSIER_DES_MODELES: string;
 
-export function listage(dossier: string): { manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]>; erreurs: string[]; forme: 'glb' };
+export function listage(dossier: string): { manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]>; densitesUv: Record<string, Record<string, number>>; erreurs: string[]; forme: 'glb' };
 
 export const LISTAGE: string;
 

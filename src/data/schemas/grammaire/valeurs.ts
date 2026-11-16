@@ -1240,6 +1240,10 @@ export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
 export const couleursSchema = z.partialRecord(slotSchema, ref('material', undefined, 'couleur'));
 export type Couleurs = z.input<typeof couleursSchema>;
 
+/** Matière de peau d'une race : une matière du décor (`materials.json`, domaine `prop`) par emplacement de palette (#4379). */
+export const matieresSchema = z.partialRecord(slotSchema, ref('material', undefined, 'prop'));
+export type Matieres = z.input<typeof matieresSchema>;
+
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({

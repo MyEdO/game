@@ -288,6 +288,15 @@
     "metalness": 0.4
   },
   {
+    "id": "peau-epaisse",
+    "type": "materials",
+    "label": "Peau épaisse",
+    "domain": "prop",
+    "color": "#7a6a55",
+    "roughness": 0.8,
+    "metalness": 0
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",

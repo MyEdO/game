@@ -70,6 +70,14 @@ describe('porteeDeComposition', () => {
     expect(porteeDeComposition(lue({ ...sansCouleurs, couleurs: { yeux: { id: 'yeux-verts' } } })).couleurs).toEqual({ peau: { id: 'peau-pale' }, yeux: { id: 'yeux-verts' } });
   });
 
+  it('ses matières : celles de sa race de rendu ; une race sans matières n’en donne aucune (#4379)', () => {
+    const race = sansTenue.race.id;
+    setDataset('raceAppearance', raceAppearance.map(({ matieres: _m, ...r }) => r));
+    expect(porteeDeComposition(lue(sansTenue))).not.toHaveProperty('matieres');
+    setDataset('raceAppearance', raceAppearance.map((r) => (r.id === race ? { ...r, matieres: { peau: { id: 'peau-epaisse' } } } : r)));
+    expect(porteeDeComposition(lue(sansTenue)).matieres).toEqual({ peau: { id: 'peau-epaisse' } });
+  });
+
   it('un objet tenu porte son apparence à sa prise', () => {
     expect(porteeDeComposition(soldat).portees).toContainEqual(expect.objectContaining({ cle: { champ: 'apparence', id: 'hallebarde' }, point: 'main' }));
   });
