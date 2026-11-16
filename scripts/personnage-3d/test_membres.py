@@ -2,12 +2,12 @@
 le tronc, sous la tolérance de la garde mais à moins de la marge, ne se corrige pas ; une main dans le tronc en sort à
 la marge par l'avancée ; un avant-bras dans le tronc, main dehors, en sort par l'écart du coude, vers le dehors, la main
 en place et le bras sans torsion ajoutée ; l'enveloppe raccorde l'écart d'une image corrigée à ses voisines, à pas
-borné ; un bras que ni l'avancée ni le coude ne sortent ne requiert rien, et la première de ses images que rien ne sort,
-la plus enfoncée d'abord, arrête sa correction sans calculer les suivantes ; une correction qui laisse la peau dans le
-tronc se refuse, une qui ferme sauf sous la carrure maximale se garde et le dit, sauf si elle y enfonce la peau plus
-qu'à la source ; une correction qui étire la peau hors des bornes que vise l'IK se refuse ; les courbes d'un bras
-refusé reviennent à leur source au bit près ; sur un rig, un clip dont un bras ferme et l'autre manque un contrôle
-revient tout entier à sa source au bit près, un clip dont un bras n'a rien à corriger et l'autre ferme se garde."""
+borné ; un bras que ni l'avancée ni le coude ne sortent ne requiert rien ; une avancée déjà essayée ne se repose pas ;
+une correction qui laisse la peau dans le tronc se refuse, une qui ferme sauf sous la carrure maximale se garde et le
+dit, sauf si elle y enfonce la peau plus qu'à la source ; les courbes d'un bras refusé reviennent à leur source au bit
+près ; sur un rig, un clip dont un bras ferme et l'autre manque un contrôle revient tout entier à sa source au bit
+près, un clip dont un bras n'a rien à corriger et l'autre ferme se garde, un clip dont la correction d'un bras enfonce
+dans le tronc l'autre bras, non corrigé, revient à sa source."""
 import contextlib
 import io
 import math
@@ -23,11 +23,10 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from animation import assign_action  # noqa: E402
-from deux_mains import PEAU  # noqa: E402
 from ecart import ECART_DU_TRONC, RACCORD, poussee_requise  # noqa: E402
-from membres import (JEUX_REQUIS, PLUS_ENFONCEE, bras_de_l_image, corriger, courbes, defaut_d_etirement,  # noqa: E402
+from membres import (JEUX_REQUIS, PLUS_ENFONCEE, bras_de_l_image, corriger, courbes,  # noqa: E402
                      ecarter_les_membres, exactes, peau_posee, poses_du_bras, requis, restaurer, verdict)
-from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, SOL_TOLERANCE_M  # noqa: E402
+from seuils import IMAGES_PAR_SECONDE, SOL_TOLERANCE_M  # noqa: E402
 from test_tronc import boite  # noqa: E402
 from tronc import BRAS, TRONC as JEUX, PeauDuMembre, PeauDuTronc, champs_du_tronc, profondeurs, tronc_pose  # noqa: E402
 
@@ -113,14 +112,14 @@ def corriger_(images):
     """`corriger` sur les `images` (`TroncPose`, `Bras`), une par instant, sous le seul jeu du tronc en boîte."""
     poses, bras = [p for p, _ in images], [b for _, b in images]
     sources = numpy.array([exactes(TRONC, p, b) for p, b in images])
-    return corriger(TRONC, poses, bras, numpy.arange(float(len(images))), sources, SEUL)
+    return corriger(TRONC, poses, bras, numpy.arange(float(len(images))), sources, SEUL, [{} for _ in images])
 
 
 class HorsDuTronc(unittest.TestCase):
     def test_un_bras_hors_du_tronc_ne_se_corrige_pas_et_sa_pose_ressort_a_l_identique(self):
         pose, bras = devant()
-        avancees, ecarts, echec = corriger_([(pose, bras)] * 3)
-        self.assertIsNone(echec)
+        avancees, ecarts, rien = corriger_([(pose, bras)] * 3)
+        self.assertEqual(rien, 0)
         self.assertEqual([float(v) for v in numpy.concatenate((avancees, ecarts))], [0.0] * 6)
         matrices, _, _ = poses_du_bras(bras, pose, 0.0, [0.0])
         numpy.testing.assert_allclose(matrices[0], bras.sources[0], atol=1e-6)
@@ -133,8 +132,8 @@ class SousLaTolerance(unittest.TestCase):
         pose, bras = image(articulation + Vector((0, 0, 0.25)), articulation, segment(articulation, (0, -1, 0), 0.24))
         self.assertAlmostEqual(float(exactes(TRONC, pose, bras)[0]), 0.003, delta=2e-4)
         self.assertGreater(profondeurs(avec_champs(pose), peau_posee(bras)[:, 0]).max(), -ECART_DU_TRONC['marge'])
-        avancees, ecarts, echec = corriger_([(pose, bras)] * 3)
-        self.assertIsNone(echec)
+        avancees, ecarts, rien = corriger_([(pose, bras)] * 3)
+        self.assertEqual(rien, 0)
         self.assertEqual([float(v) for v in numpy.concatenate((avancees, ecarts))], [0.0] * 6)
 
 
@@ -145,7 +144,7 @@ class MainDansLeTronc(unittest.TestCase):
         pose, bras = image(epaule, articulation, segment(articulation, (-0.5, 0.6, 0), 0.24))
         pose = avec_champs(pose)
         self.assertGreater(peau_posee(bras)[..., 1].max(), -0.15)
-        avancee, ecart = requis(pose, bras, SEUL)
+        avancee, ecart = requis(pose, bras, SEUL, {})
         self.assertGreater(avancee, 0.0)
         self.assertAlmostEqual(avancee, poussee_requise(pose, bras.main), places=12)
         self.assertEqual(ecart, 0.0)
@@ -158,7 +157,7 @@ class AvantBrasDansLeTronc(unittest.TestCase):
         pose, bras = coude_dedans()
         pose = avec_champs(pose)
         self.assertEqual(poussee_requise(pose, bras.main), 0.0)
-        avancee, ecart = requis(pose, bras, SEUL)
+        avancee, ecart = requis(pose, bras, SEUL, {})
         self.assertEqual(avancee, 0.0)
         self.assertGreater(ecart, 0.0)
         matrices, axes, ((humerus, _, articulation),) = poses_du_bras(bras, pose, avancee, [ecart])
@@ -173,7 +172,7 @@ class Enveloppe(unittest.TestCase):
     def test_l_ecart_d_une_image_corrigee_se_raccorde_a_ses_voisines_a_pas_borne(self):
         loin, contact, milieu = devant(), coude_dedans(), 15
         _, ecarts, _ = corriger_([contact if i == milieu else loin for i in range(31)])
-        requis_ = requis(avec_champs(contact[0]), contact[1], SEUL)[1]
+        requis_ = requis(avec_champs(contact[0]), contact[1], SEUL, {})[1]
         self.assertAlmostEqual(ecarts[milieu], requis_, places=9)
         en_images = RACCORD * IMAGES_PAR_SECONDE
         self.assertTrue((ecarts[[milieu - 1, milieu + 1]] > 0).all())
@@ -192,34 +191,23 @@ class RienNeSort(unittest.TestCase):
     def test_un_bras_que_ni_l_avancee_ni_le_coude_ne_sortent_ne_requiert_rien(self):
         pose, bras = rien_ne_sort()
         self.assertGreater(float(exactes(TRONC, pose, bras)[0]), SOL_TOLERANCE_M)
-        self.assertIsNone(requis(avec_champs(pose), bras, SEUL))
-        self.assertEqual(corriger_([(pose, bras)]), (None, None, 0))
-
-    def test_la_premiere_image_que_rien_ne_sort_arrete_la_correction_sans_calculer_les_suivantes(self):
-        images = [coude_dedans()] * 4 + [rien_ne_sort()]
-        profondes = [float(exactes(TRONC, p, b)[0]) for p, b in images]
-        self.assertGreater(profondes[4], max(profondes[:4]))
-        self.assertGreater(min(profondes), SOL_TOLERANCE_M)
-        with mock.patch('membres.requis', wraps=requis) as compte:
-            self.assertEqual(corriger_(images), (None, None, 4))
-        self.assertEqual(compte.call_count, 1)
+        self.assertIsNone(requis(avec_champs(pose), bras, SEUL, {}))
+        avancees, ecarts, rien = corriger_([(pose, bras)])
+        self.assertEqual(float(numpy.abs(numpy.concatenate((avancees, ecarts))).max()), 0.0)
+        self.assertEqual(rien, 1)
 
 
-class Etirement(unittest.TestCase):
-    HAUT = ETIREMENT_EN_CLIP[1] - PEAU['marge']
-
-    def test_une_correction_qui_etire_la_peau_au_dela_de_la_marge_de_l_ik_se_refuse(self):
-        etirements = {0: (self.HAUT - 0.01, PEAU['plancher']), 1: (self.HAUT + 0.01, 1.0)}
-        self.assertIsNone(defaut_d_etirement([0.0, 1.0], etirements, [0]))
-        self.assertEqual(defaut_d_etirement([0.0, 1.0], etirements, [0, 1]), ('étirement', 1.0, (round(self.HAUT + 0.01, 3), 1.0)))
-
-    def test_une_correction_qui_ecrase_la_peau_sous_le_plancher_se_refuse(self):
-        etirements = {0: (1.0, PEAU['plancher'] - 0.01)}
-        self.assertEqual(defaut_d_etirement([2.5], etirements, [0]), ('étirement', 2.5, (1.0, round(PEAU['plancher'] - 0.01, 3))))
-
-    def test_une_image_non_corrigee_hors_des_bornes_ne_compte_pas(self):
-        etirements = {0: (ETIREMENT_EN_CLIP[1] + 1.0, 0.0), 1: (1.0, 1.0)}
-        self.assertIsNone(defaut_d_etirement([0.0, 1.0], etirements, [1]))
+class Essais(unittest.TestCase):
+    def test_une_avancee_deja_essayee_ne_se_repose_pas_et_rend_le_meme_requis(self):
+        pose, bras = coude_dedans()
+        pose = avec_champs(pose)
+        essais = {}
+        premier = requis(pose, bras, SEUL, essais)
+        self.assertEqual(list(essais), [0.0])
+        with mock.patch('membres.poses_du_bras', wraps=poses_du_bras) as compte:
+            self.assertEqual(requis(pose, bras, SEUL, essais), premier)
+        self.assertEqual(compte.call_count, 0)
+        self.assertEqual(requis(pose, bras, SEUL, {}), premier)
 
 
 class Verdict(unittest.TestCase):
@@ -340,6 +328,21 @@ def rig_minimal():
     return rig
 
 
+def piece(rig, bas, haut):
+    """Un bloc du tronc de `rig`, chaque sommet à 0,55 sur `spine_01` et 0,45 sur `upperarm_r`, posé à l'image 0 du clip
+    courant dans la boîte [`bas`, `haut`]."""
+    bpy.context.scene.frame_set(0)
+    bras = rig.pose.bones['upperarm_r'].matrix @ rig.data.bones['upperarm_r'].matrix_local.inverted()
+    vers_repos = numpy.linalg.inv(0.55 * numpy.eye(4) + 0.45 * numpy.array(bras))
+    points, indices = numpy.unique(boite(numpy.array(bas), numpy.array(haut), 4).reshape(-1, 3).round(9), axis=0,
+                                   return_inverse=True)
+    repos = (numpy.c_[points, numpy.ones(len(points))] @ vers_repos.T)[:, :3]
+    maillage(rig, 'Rig-piece', [tuple(p) for p in repos], [tuple(t) for t in indices.reshape(-1, 3)], ['spine_01'] * len(points))
+    objet = bpy.data.objects['Rig-piece']
+    objet.vertex_groups['spine_01'].add(range(len(points)), 0.55, 'REPLACE')
+    objet.vertex_groups.new(name='upperarm_r').add(range(len(points)), 0.45, 'REPLACE')
+
+
 def poser(rig, cote, articulation, poignet, torsion=0.0):
     """Le bras `cote` de `rig` posé de son épaule au coude `articulation` puis au `poignet`, chaque os tourné au plus court
     depuis son repos, la main dans l'axe de l'avant-bras tournée de `torsion` degrés autour de son +Y."""
@@ -402,6 +405,16 @@ class ClipEntier(unittest.TestCase):
         apres = courbes(action, self.OS)
         self.assertEqual({k: v for k, v in apres.items() if '_r"' in k[0]}, {k: v for k, v in source.items() if '_r"' in k[0]})
         self.assertNotEqual(apres, source)
+
+
+    def test_un_clip_dont_la_correction_d_un_bras_enfonce_l_autre_bras_non_corrige_revient_a_sa_source(self):
+        action = clip(self.rig, 'Pousse', {'r': flanc('r')})
+        piece(self.rig, (0.23, -0.55, 1.25), (0.39, -0.43, 1.33))
+        source = courbes(action, self.OS)
+        ligne = self.passe(action)
+        self.assertIn('rendu à la source', ligne)
+        self.assertIn('tous les jeux : l tronc image', ligne)
+        self.assertEqual(courbes(action, self.OS), source)
 
 
 if __name__ == '__main__':
