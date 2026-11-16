@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "pilosite",
+  "cle": {
+    "coiffure": "cheveux-longs"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "poil",
+      "palette": "cheveux"
+    }
+  ],
+  "glb": {
+    "sha256": "4f4179fa17d6e74c1c31d2645f656a763743a5d95abda406479fd0f3ee3af0f4",
+    "octets": 286088
+  }
+}

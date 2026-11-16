@@ -57,6 +57,15 @@ class Decision(unittest.TestCase):
         self.assertFalse(est_entree(f'{E}vetement--bure/donnees.py', CORDELIERE, SUJETS, RACINES))
         self.assertFalse(est_entree(f'{V}caraque/modele.py', BURE, SUJETS, RACINES))
 
+    def test_les_ids_lus_sont_les_contournes_et_l_offrant(self):
+        with tempfile.TemporaryDirectory() as dossier:
+            donnees = Path(dossier) / 'donnees.py'
+            donnees.write_text("CONTOURNE = {'tete': 'humanoide--a', 'cou': 'humanoide--b'}\nOFFRANT = 'humanoide--c'\nAUTRE = 3\n",
+                               encoding='utf-8')
+            self.assertEqual(entrees.ids_lus(donnees), ('humanoide--a', 'humanoide--b', 'humanoide--c'))
+            donnees.write_text('AUTRE = 3\n', encoding='utf-8')
+            self.assertEqual(entrees.ids_lus(donnees), ())
+
 
 class Changements(unittest.TestCase):
 

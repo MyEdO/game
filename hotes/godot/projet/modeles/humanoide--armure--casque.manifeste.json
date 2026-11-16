@@ -10,27 +10,27 @@
   },
   "couche": "armure",
   "couvre": [],
-  "emplacements": {
-    "cimier": {
-      "os": "Head",
-      "position": [
-        0,
-        0.215487,
-        -0.006071
-      ],
-      "rotation": [
-        -0.02897,
-        0,
-        0
-      ]
-    }
-  },
   "silhouettes": [
     "feminin",
     "corpulence",
     "carrure_moins",
     "carrure_plus"
   ],
+  "emplacements": {
+    "cimier": {
+      "os": "Head",
+      "position": [
+        0,
+        0.202836,
+        0.085122
+      ],
+      "rotation": [
+        -0.23841,
+        0,
+        0
+      ]
+    }
+  },
   "surfaces": [
     {
       "nom": "metal",
@@ -43,7 +43,7 @@
     }
   ],
   "glb": {
-    "sha256": "d5b14a22129b2cb7f75d6a16d2d427e6656f8b7f91da96da23c97c91821052ff",
-    "octets": 339172
+    "sha256": "83628fb946ea902dc98522a86861546bdf16668269624820fcb6f40f6af86809",
+    "octets": 330876
   }
 }
