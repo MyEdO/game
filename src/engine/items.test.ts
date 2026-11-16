@@ -545,6 +545,9 @@ describe('buildInventory — quantité d’une dotation (LDB 74 l.41 ; `merchant
     const items = buildInventory([{ id: 'fleche', count: { fixed: 12 } }], makeRNG(5), idsDeTest);
     expect(items.map((i) => i.qty)).toEqual([12]);
   });
+  it('Petites munitions et poudre : un lot de 12 à l’achat (AA 08 l.499)', () => {
+    expect(itemFromTrappingById('petites-munitions-et-poudre', idsDeTest)!.qty).toBe(12);
+  });
 });
 
 describe('items — recomputeLoadout / encombrement', () => {

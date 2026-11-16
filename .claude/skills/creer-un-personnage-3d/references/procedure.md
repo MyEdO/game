@@ -227,8 +227,8 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   à défaut de matière au catalogue (peau, poil, corne, parchemin), un gris de construction `(couleur, métal, rugosité)`.
   Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313).
   `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
-  tout autre matériau reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; `PRISE`
-  pour un rigide ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
+  tout autre matériau reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; pour un rigide,
+  `PRISE` (une prise de la base) ou `EMPLACEMENT` (un emplacement de l'élément `OFFRANT`, importé avant lui) ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
   à trancher en revue), jamais enfouie dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et
   la coiffure) nomme ses ids.
 - `modele.py` : la construction seule. Un rigide : `construire(D, materiaux)` rend ses objets, bâtis dans le repère de
@@ -682,7 +682,10 @@ proportions d'adaptation sans illustration) et `modele.py` (`elements(D)`, un é
 dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes ni
 de leur géométrie, que `decor/polygones.mjs` tire de `polygonesDePrimitive` (`src/data/props.types.ts`), et se bâtit
 dans leur enveloppe convexe (`gabarit.enveloppe`), dont il garde l'encombrement sans recopier les primitives ;
-`Gabarit.rentrer` y ramène le sommet qui en sortirait. `test_decor.py` refuse un sommet du GLB publié (lu dans le cache
+`Gabarit.rentrer` y ramène le sommet qui en sortirait. Le modèle ne
+passe par aucune rotation de `mathutils` (`rotation_difference`, `Quaternion`, `Euler`, `Matrix.Rotation`), dont la
+trigonométrie en simple précision change d'une libm à l'autre et déplace les sommets : un repère se transporte par
+produits vectoriels (`transporter` de `decor/arbre/modele.py`). `test_decor.py` refuse un sommet du GLB publié (lu dans le cache
 des modèles à l'empreinte de son manifeste) hors de cette enveloppe, sol compris, à 1 mm près. Une enveloppe qui empêche un modèle correct se rapporte, avec la cote qui gêne ; le modèle ne
 change pas la recette.
 

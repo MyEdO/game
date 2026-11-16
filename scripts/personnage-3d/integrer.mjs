@@ -29,7 +29,8 @@ const BORNE_MS = 270_000
  *  l'élément est `<dossier du script>/<argument>/donnees.py`. */
 export const CONSTRUCTEURS = {
   humanoide: { script: 'scripts/personnage-3d/element/construire.py', argument: (nom) => `humanoide/${nom}` },
-  vehicule: { script: 'scripts/personnage-3d/vehicule/construire.py', argument: (nom) => nom },
+  vehicule: { script: 'scripts/personnage-3d/construire.py', argument: (nom) => `vehicule/${nom}` },
+  decor: { script: 'scripts/personnage-3d/construire.py', argument: (nom) => `decor/${nom}` },
 }
 
 /** La construction de l'élément `<base>/<nom>` : la commande qui l'écrit sous `sortie`, et son `donnees.py`, relatifs au
@@ -43,7 +44,7 @@ export function construction(element, sortie) {
 }
 
 /** Les éléments `<base>/<nom>` du lot dans l'ordre de leur construction : chacun après ceux du lot dont il lit l'id publié
- *  `<base>--<nom>` (`lus[element]`, les ids que rend `contourne` d'`entrees.py`), l'ordre donné gardé sinon. Lève sur un
+ *  `<base>--<nom>` (`lus[element]`, les ids que rend `ids_lus` d'`entrees.py`), l'ordre donné gardé sinon. Lève sur un
  *  cycle. PURE. */
 export function ordreDuLot(elements, lus) {
   const parId = new Map(elements.map((e) => [e.replace('/', '--'), e]))
@@ -143,9 +144,9 @@ if (import.meta.main) {
   const importes = []
   try {
     const parElement = new Map(positionals.map((e) => [e, construction(e, join(temporaire, e.replace('/', '--')))]))
-    const contournes = JSON.parse(await lancer([ENVIRONNEMENT, 'scripts/personnage-3d/entrees.py', ...positionals.map((e) => parElement.get(e).donnees)],
-      join(temporaire, 'contourne.log'), 'lecture des CONTOURNE'))
-    const ordre = ordreDuLot(positionals, tableTotale(positionals, (_, i) => contournes[i]))
+    const lus = JSON.parse(await lancer([ENVIRONNEMENT, 'scripts/personnage-3d/entrees.py', ...positionals.map((e) => parElement.get(e).donnees)],
+      join(temporaire, 'ids-lus.log'), 'lecture des ids lus'))
+    const ordre = ordreDuLot(positionals, tableTotale(positionals, (_, i) => lus[i]))
     const { enCacheOuTire, DOSSIER_DES_MODELES, CACHE_DES_MODELES } = await chargerAssets(["export { CACHE_DES_MODELES } from '/hotes/godot/asset/release.ts';"])
     for (const element of ordre) {
       const { commande } = parElement.get(element)
