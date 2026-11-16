@@ -19,6 +19,8 @@ from pathlib import Path
 POINTEUR = 'courante'
 SCENE = 'scene.blend'
 ETAT = 'etat.pickle'
+PEREMPTION_S = 7 * 24 * 3600
+"""Âge du dossier au-delà duquel le dossier d'une autre construction se retire (`effacer`)."""
 
 
 def dossier_de_construction(racine, arguments):
@@ -72,6 +74,9 @@ class Reprises:
               'Mo', flush=True)
 
     def effacer(self):
-        """Retire, une fois la sortie écrite, le dossier de la construction et ceux des constructions abandonnées sous
-        une autre empreinte ; une construction qui tourne encore réécrit le sien à sa passe suivante."""
-        shutil.rmtree(self.dossier.parent)
+        """Retire, une fois la sortie écrite, le dossier de la construction, et celui de toute autre construction
+        écrit depuis plus de `PEREMPTION_S` (#3793) ; une autre construction plus récente garde sa reprise (#3173)."""
+        perimes = [autre for autre in self.dossier.parent.iterdir()
+                   if autre != self.dossier and time.time() - autre.stat().st_mtime > PEREMPTION_S]
+        for dossier in [self.dossier, *perimes]:
+            shutil.rmtree(dossier)

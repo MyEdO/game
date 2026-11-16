@@ -452,7 +452,10 @@ export const ECRIT_LU = {
       '`recupererModeles` (#2948) ne joue que sous ces six modes, `deposerLesModeles` (hotes/godot/listage.mjs) que ' +
       'sous `--export` et `--bureau`, dans leur `--sortie` (#3778), `deposerLesPlanches` (hotes/godot/planches.mjs, #3935) que sous `--export`, ' +
       '`deposerLesAvis` (hotes/godot/avis.mjs, #4063) que sous `--export` et `--bureau`, dans leur `--sortie` ; ' +
-      'le stockage du bundle exécuté est `stockageDuProcessus(null)` (hotes/godot/stockage.mjs, #3009), en mémoire seule',
+      'le stockage du bundle exécuté est `stockageDuProcessus(null)` (hotes/godot/stockage.mjs, #3009), en mémoire seule ; ' +
+      'la copie importée du projet (`surUneCopie`, `mettreAJourLaCopie`, hotes/godot/construire.mjs, #3935), son marqueur ' +
+      '(`ecrireTexteAtomique`) et son verrou (`prendreVerrouAsync`, scripts/test/verrou.mjs) ne jouent que sous `--sonde`, ' +
+      '`--rendus`, `--coop`, `--export`, `--bureau` et le pilotage natif (`piloter`), et seulement sous `~/.cache/wfrp-godot-copies/`',
   },
   'godot:sonde': {
     ecrit: [],
@@ -489,7 +492,13 @@ export const ECRIT_LU = {
       '`deposerLesPlanches` (hotes/godot/planches.mjs, #3935) que sous `--export`, `deposerLesAvis` (hotes/godot/avis.mjs, #4063) ' +
       'que sous `--export` et `--bureau`, dans leur `--sortie` ; le stockage du pont vivant ' +
       '(`stockageDuProcessus`, hotes/godot/stockage.mjs, #3009) est le fichier que chaque recette reçoit en ' +
-      '`--stockage=`, `stockage.json` dans la COPIE du projet, donc hors de l’arbre',
+      '`--stockage=`, `stockage.json` dans la COPIE du projet, donc hors de l’arbre. La COPIE est jetable, tirée de la ' +
+      'copie importée du projet gardée hors de l’arbre (`surUneCopie`, hotes/godot/construire.mjs, #3935) : ' +
+      '`mettreAJourLaCopie` y copie le projet sous `~/.cache/wfrp-godot-copies/<version>/<empreinte du chemin>`, ' +
+      'y pose son marqueur `<copie>.json` par `ecrireTexteAtomique` (scripts/guards/lib/ecritureJsonAtomique.mjs, renommage ' +
+      'par renommageResilient.mjs) et la garde par le verrou `<copie>.verrou` (`prendreVerrouAsync`, scripts/test/verrou.mjs, ' +
+      'temporaire et reprise à côté du verrou) : rien sous l’arbre ; `godot:rendus`, `godot:coop` et `godot:recette` ' +
+      'passent par la même copie',
   },
   'godot:rendus': {
     ecrit: [],
@@ -505,7 +514,8 @@ export const ECRIT_LU = {
     raison:
       '`godot --headless --import`, puis chaque recette sous `recettes/` déclarant `const RECETTE_RENDUE := true` jouée ' +
       'en rendu réel sous `--rendering-method forward_plus` et `gl_compatibility`, menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
-      'sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, et sur un écran (`xvfb-run` sans `DISPLAY`) ; ' +
+      'sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, ' +
+      'tirée de la copie importée de `godot:sonde`, hors de l’arbre (`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935), et sur un écran (`xvfb-run` sans `DISPLAY`) ; ' +
       'LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
       'constructeur), scripts/, les zones du noyau chargées par `chargerAssets`, leurs catalogues et Source/, ' +
       'tsconfig.json et package.json. Écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`) ; ' +
@@ -529,7 +539,8 @@ export const ECRIT_LU = {
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'Source/', 'tsconfig.json', 'package.json'],
     prerequis: [{ chemin: 'server/node_modules', pose: 'npm --prefix server ci' }],
     raison:
-      '`godot --headless --import` sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, puis le relay local ' +
+      '`godot --headless --import` sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, ' +
+      'tirée de la copie importée de `godot:sonde`, hors de l’arbre (`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935), puis le relay local ' +
       '(`npm run relay:dev`, server/, sur un port libre de la boucle locale, son état sous `os.tmpdir()`) et les deux ' +
       'recettes de la coop (`RECETTES_DE_LA_COOP`, hotes/godot/construire.mjs, #3009) lancées ensemble, chacune avec ' +
       '`--pont=<hotes/godot/vivant.mjs>`, `--stockage=` et ses données d’utilisateur dans la COPIE ; LIT ce que lit ' +
@@ -551,7 +562,8 @@ export const ECRIT_LU = {
       'Les recettes natives de l’hôte Godot (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) : les jeux `combat` et ' +
       '`editeur`, menés de front (`jeuxPilotesDeFront`, #3412), par `recette.mjs --natif`, qui bâtit le pont en mémoire (`write: false`), sert le jeu sans ' +
       'export (`servir.mjs`) et lance Godot `--headless` sur une COPIE importée du projet sous `os.tmpdir()`, effacée ' +
-      '(`piloter`, hotes/godot/construire.mjs) ; le parcours `editeur` sert une COPIE des projets manuscrits sous ' +
+      '(`piloter`, hotes/godot/construire.mjs), tirée de la copie importée de `godot:sonde`, hors de l’arbre ' +
+      '(`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935) ; le parcours `editeur` sert une COPIE des projets manuscrits sous ' +
       '`os.tmpdir()` (`depot`), où son enregistrement écrit, jamais sous src/scenes/ ; les journaux vont sous ' +
       '`dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit ; LIT ce que lit `godot:sonde`. Écrit sous ' +
       'hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`) ; `deposerLesModeles`, `deposerLesPlanches` et ' +
