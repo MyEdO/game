@@ -498,5 +498,49 @@
         "id": "tissu-sable"
       }
     }
+  },
+  {
+    "id": "orc",
+    "type": "presets-de-personnage",
+    "label": "Orc",
+    "source": {
+      "book": "livre-de-base",
+      "page": 325,
+      "note": "Illustration du bestiaire fournie par Clément le 2026-11-07 (archive des illustrations de référence, hors dépôt), page 327 du PDF, folio imprimé 325. La tête est celle de l’orc, mâchoire avancée et crocs montants, gueule fermée au repos. Le sexe est masculin, lecture de l’illustration. La peau et les yeux sont ceux de la race (`raceAppearance.json`) ; les dents sont d’ivoire, lecture de l’illustration."
+    },
+    "race": {
+      "id": "orc"
+    },
+    "sex": "M",
+    "tete": {
+      "id": "orc"
+    },
+    "couleurs": {
+      "corne": {
+        "id": "ivoire"
+      }
+    }
+  },
+  {
+    "id": "gobelin",
+    "type": "presets-de-personnage",
+    "label": "Gobelin",
+    "source": {
+      "book": "livre-de-base",
+      "page": 326,
+      "note": "Illustration du bestiaire fournie par Clément le 2026-11-07 (archive des illustrations de référence, hors dépôt), page 328 du PDF, folio imprimé 326. La tête est celle du gobelin, nez en bec, grandes oreilles et deux anneaux à l’oreille gauche, gueule fermée au repos. Le sexe est masculin, lecture de l’illustration. La peau et les yeux sont ceux de la race (`raceAppearance.json`) ; les dents sont d’ivoire, lecture de l’illustration."
+    },
+    "race": {
+      "id": "gobelin"
+    },
+    "sex": "M",
+    "tete": {
+      "id": "gobelin"
+    },
+    "couleurs": {
+      "corne": {
+        "id": "ivoire"
+      }
+    }
   }
 ]
