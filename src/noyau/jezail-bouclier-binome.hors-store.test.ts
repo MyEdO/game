@@ -83,7 +83,7 @@ describe.each([
   });
 
   it('le partenaire pose le bouclier, ou le tireur lâche le jezaïl : le binôme cesse, la Course revient', () => {
-    for (const lacher of [(T: Combatant, P: Combatant) => laisserTomber(P, tenu(P, BOUCLIER)), (T: Combatant) => laisserTomber(T, tenu(T, JEZAIL))]) {
+    for (const lacher of [(_T: Combatant, P: Combatant) => laisserTomber(P, tenu(P, BOUCLIER), idsDeTest), (T: Combatant) => laisserTomber(T, tenu(T, JEZAIL), idsDeTest)]) {
       const { T, P } = binome();
       const battle = combat([T, P]);
       expect([refusDeCourse(null, battle, T), refusDeCourse(null, battle, P)]).toEqual([

@@ -209,6 +209,7 @@
     "rendu": {
       "id": "explosifs"
     },
+    "lancee": true,
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -241,6 +242,7 @@
     "rendu": {
       "id": "jet"
     },
+    "lancee": true,
     "source": {
       "book": "livre-de-base",
       "page": 297,

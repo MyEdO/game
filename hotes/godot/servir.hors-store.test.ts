@@ -154,7 +154,7 @@ describe('servir, le dépôt', () => {
       mkdirSync(dirname(join(corpus, rel)), { recursive: true });
       cpSync(join(dossierDesProjetsLivres(), rel), join(corpus, rel));
     }
-    const s = await servir({ web, depot });
+    const s = await servir({ web, modeles, depot });
     serveurs.push(s);
     url = s.url;
     id = idDe(manuscrit);
@@ -230,7 +230,7 @@ describe('servir, les données du Compendium (#4020)', () => {
     mkdirSync(join(depot, 'src/data/schemas'), { recursive: true });
     cpSync(LISTE, join(depot, LISTE));
     cpSync(join('src/data', FICHIER), join(depot, 'src/data', FICHIER));
-    const s = await servir({ web, depot });
+    const s = await servir({ web, modeles, depot });
     serveurs.push(s);
     url = s.url;
   });

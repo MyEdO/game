@@ -28,7 +28,7 @@ import {
 import { bonus, bonusDeForce, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants, damageWeapon, isImprovised, effectiveWeaponRange } from './weaponDamage';
-import { groupeAPoudre, maniementRetenu, type ManiementRetenu } from './weaponGroup';
+import { groupeAPoudre, groupeLance, maniementRetenu, type ManiementRetenu } from './weaponGroup';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
@@ -840,16 +840,25 @@ export function lacherLArme(c: Combatant, weapon: Weapon): void {
   mainsNuesSiDesarme(c.weapons);
 }
 
-/** L'arme TOMBE (`LDB 60 l.50`, `LDB 62 l.280`, CRB 036 l.80) : elle quitte les mains (`lacherLArme`) et, objet de
- *  l'inventaire, quitte aussi son porteur, armement re-dérivé ; rend cet objet, à déposer au sol par l'appelant.
- *  `undefined` pour une arme sans objet (statbloc, pièce de poste), qui n'a que quitté les mains. */
-export function laisserTomber(c: Combatant, weapon: Weapon): ItemInstance | undefined {
+/** L'arme TOMBE (`LDB 60 l.50`, `LDB 62 l.280`, CRB 036 l.80, `LDB 14 l.142`) : elle quitte les mains (`lacherLArme`)
+ *  et, objet de l'inventaire, quitte aussi son porteur, armement re-dérivé ; rend cet objet, à déposer au sol par
+ *  l'appelant. L'arme d'un Trait résolue au catalogue (`trappingId`) : le Trait cède, comme devant un objet tenu, et
+ *  l'objet naît sous un uid neuf (`idNeuf`), LDB 85 l.31 ; #4330. `undefined` pour une arme sans objet (attaque
+ *  naturelle, pièce de poste), qui n'a que quitté les mains. */
+export function laisserTomber(c: Combatant, weapon: Weapon, idNeuf: FabriqueDId): ItemInstance | undefined {
   const it = objetSourceDeLArme(c, weapon);
   lacherLArme(c, weapon);
-  if (!it || !(c.items ?? []).includes(it)) return undefined;
-  c.items = c.items!.filter((i) => i !== it);
-  recomputeLoadout(c);
-  return it;
+  if (it && (c.items ?? []).includes(it)) {
+    c.items = c.items!.filter((i) => i !== it);
+    recomputeLoadout(c);
+    return it;
+  }
+  const trait = weapon.trappingId ? (c.traits ?? []).find((t) => `trait-${cleDInstanceDeTrait(t)}` === weapon.uid) : undefined;
+  if (!trait) return undefined;
+  const cle = cleDInstanceDeTrait(trait);
+  c.traits = c.traits!.filter((t) => t !== trait);
+  if (c.liveTraits) c.liveTraits = c.liveTraits.filter((t) => cleDInstanceDeTrait(t) !== cle);
+  return itemFromTrappingById(weapon.trappingId!, idNeuf, findTrappingById, contexteDeNaissanceDObjet(c)) ?? undefined;
 }
 
 /** Libellé AUTO d'un set d'armes, DÉRIVÉ de son CONTENU (façon Dragon Age / Pillars) : nom de l'arme
@@ -1413,9 +1422,11 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
 }
 
 /** Famille de munitions canonique. Les Groupes À POUDRE (`groupeAPoudre`) partagent les mêmes munitions
- *  (LDB 62 l.99 ; LDB 62 l.129-131). Les autres familles (Arc/Arbalète/Fronde) correspondent à l'identique. */
+ *  (LDB 62 l.99 ; LDB 62 l.129-131). Une arme lancée (`groupeLance`) est son propre projectile : aucune
+ *  famille (LDB 14 l.142 ; #4330). Les autres familles (Arc/Arbalète/Fronde) correspondent à l'identique. */
 export function ammoFamily(subType?: string): string {
   const s = subType ?? ''; // `subType` = id de Groupe
+  if (groupeLance(s)) return '';
   if (groupeAPoudre(s)) return 'poudre-ingenierie';
   // Artillerie (AA/MDG) : les armes de siège (canon/baliste/mortier/pierrier) tirent les munitions de
   // siège (boulets, carreaux, bombes, mitraille). Sans cette normalisation, une arme de siège
