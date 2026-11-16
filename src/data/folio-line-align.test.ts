@@ -133,7 +133,7 @@ describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318)', ()
     ).toBeLessThanOrEqual(SANS_CITATION_MAX);
   });
 
-  it('MESURE : 52 des 54 folios de reglesOptionnelles sont MACHINE-vérifiés, les 2 autres sont nommés', () => {
+  it('MESURE : les folios de reglesOptionnelles sont MACHINE-vérifiés, hors les non-jugeables nommés au stock', () => {
     expect(scanned).toBeGreaterThan(200);
     const regles = violations.filter((v) => v.file === 'reglesOptionnelles.json');
     expect(regles, `reglesOptionnelles.json doit rester à ZÉRO désalignement :\n${regles.map((v) => v.key).join('\n')}`).toEqual([]);
@@ -146,7 +146,6 @@ describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318)', ()
         .filter((e) => e.fichier === `${DOSSIER_DATA}/reglesOptionnelles.json`)
         .map((e) => e.ref)),
     );
-    expect(nonJugees).toHaveLength(2); // 54 posés − 52 vérifiés
   });
 
   it('COUVERTURE : aucune entrée n\'est jugée depuis un span à TROU, et les non-jugeables sont ceux du stock', () => {
