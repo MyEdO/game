@@ -75,6 +75,15 @@ class SelonDesDonnees(unittest.TestCase):
                 self.assertEqual(modele.construire(donnees, 'souche'), attendu)
 
 
+class Enveloppe(unittest.TestCase):
+    def test_une_caisse_saillante_de_moins_du_voisinage_garde_la_face_qu_elle_depasse(self):
+        def caisse(x, cote_x, cote):
+            return {"kind": "box", "center": {"xM": x, "yM": 0, "hM": 0.5}, "size": {"xM": cote_x, "yM": cote, "hM": cote}}
+        saillie = gabarit.VOISINAGE / 10
+        faces = gabarit.enveloppe(gabarit.polygones([caisse(0, 1, 1), caisse(-0.45 - saillie / 2, 0.1 + saillie, 0.2)]))
+        self.assertAlmostEqual(gabarit.depassement(np.array([[-0.51, 0.45, 0.95]]), faces)[0], 0.01, places=5)
+
+
 class Reconstruction(reconstruction.DUneFamille, unittest.TestCase):
     FAMILLE = 'decor'
 
