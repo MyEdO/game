@@ -189,3 +189,22 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     expect(parPossession('massue-ogre')!.sizeFor).toBe('grande');
   });
 });
+
+describe('statblocs armés au catalogue : Atouts/Allonge du catalogue, Dégâts et Portée du statbloc (LDB 85 l.9)', () => {
+  const armesDe = (id: string): Weapon[] => {
+    const c = findCreatureById(id)!;
+    return renderWeaponsFromTraits(traitsDuPorteur(c.traits, porteurDuProfil(c.id, c.char)));
+  };
+
+  it('Vrisk Gratte-le-fer « Arme (Épée) +12 » : une Arme simple (LDB 62 l.127 ; MDG 16 l.499)', () => {
+    const w = armesDe('vrisk-gratte-le-fer').find((a) => a.trappingId === 'arme-simple')!;
+    expect([w.type, w.reach, w.qualities, w.damage]).toEqual(['melee', 'Moyenne', [], { plusBF: false, flat: 12, bfInclus: true }]);
+  });
+
+  it('Technomage du clan Skryre : ses deux attaques à distance, dont le Pistolet à malepierre +9 (20) (ZI 13 l.222)', () => {
+    const distance = armesDe('technomage-du-clan-skryre').filter((a) => a.type === 'distance');
+    expect(distance).toHaveLength(2);
+    const pistolet = distance.find((a) => a.trappingId === 'pistolet-a-malepierre')!;
+    expect([pistolet.damage, pistolet.range]).toEqual([{ plusBF: false, flat: 9 }, 20]);
+  });
+});

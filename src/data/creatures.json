@@ -11797,6 +11797,12 @@
         "range": 48
       },
       {
+        "id": "a-distance",
+        "value": 9,
+        "arg": "pistolet-a-malepierre",
+        "range": 20
+      },
+      {
         "id": "arme",
         "value": 10,
         "arg": "malelame-a-deux-mains"
@@ -13265,7 +13271,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -13391,7 +13397,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "corruption",
@@ -13518,7 +13524,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -13656,7 +13662,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -13796,7 +13802,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -13937,7 +13943,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -16467,7 +16473,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Hache"
+        "arg": "arme-simple"
       },
       {
         "id": "haine",
@@ -19263,7 +19269,7 @@
       {
         "id": "a-distance",
         "value": 8,
-        "arg": "Pistolets",
+        "arg": "pistolet",
         "range": 20
       },
       {
@@ -19274,7 +19280,7 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Épée"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -19911,7 +19917,7 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -20236,7 +20242,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Hache"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
