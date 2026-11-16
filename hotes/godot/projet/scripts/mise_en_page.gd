@@ -4,7 +4,7 @@
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
 ## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
-## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du tour, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
 ## sa case, le coin de ce qui se pose sous un lieu, la
@@ -77,6 +77,8 @@ const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord 
 const ECART_DE_BULLE := 12.0
 ## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
 const ECART_DU_MEUBLE := 8.0
+## La largeur la plus étroite de la chronique posée sur la scène en combat, sa pastille comprise, en pixels.
+const LARGEUR_DE_LA_CHRONIQUE := 310.0
 ## La hauteur au-delà de laquelle la liste ouverte d'une pastille défile, en pixels.
 const HAUTEUR_DE_LISTE := 320.0
 ## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
@@ -800,6 +802,37 @@ static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> V
 ## meuble), à `ECART_DU_MEUBLE` de lui et du bas de la scène.
 static func au_dessus_du_meuble(hauteur: float) -> float:
 	return -ECART_DU_MEUBLE - (hauteur + ECART_DU_MEUBLE if hauteur > 0.0 else 0.0)
+
+
+## Le décalage horizontal du poste de l'actif, de `largeur`, posé au centre d'une scène de `largeur_de_scene` qui part de
+## `origine` (abscisses de l'écran) : nul tant que ce centre le tient entre `gauche`, le bord droit de l'ordre du tour, et `droite`, le bord gauche de la fin du
+## tour, à `ECART_DU_MEUBLE` de chacun ; sinon, ce qui le centre dans cette place.
+static func decalage_du_poste(origine: float, largeur_de_scene: float, largeur: float, gauche: float, droite: float) -> float:
+	var debut := gauche + ECART_DU_MEUBLE
+	var fin := droite - ECART_DU_MEUBLE
+	var centre := origine + largeur_de_scene / 2.0
+	if centre - largeur / 2.0 >= debut and centre + largeur / 2.0 <= fin:
+		return 0.0
+	return (debut + fin) / 2.0 - centre
+
+
+## La place libre, en pixels, entre le bord droit d'un poste de `largeur` décalé de `decalage` du centre d'une scène de
+## `largeur_de_scene` et le bord droit de la scène, à `ECART_DU_MEUBLE` de l'un et de l'autre.
+static func libre_a_droite_du_poste(largeur_de_scene: float, largeur: float, decalage: float) -> float:
+	return largeur_de_scene / 2.0 - largeur / 2.0 - decalage - 2.0 * ECART_DU_MEUBLE
+
+
+## Le bord gauche, compté du bord droit de la scène, de la chronique ancrée à ce bord à `ECART_DU_MEUBLE` : la place
+## `libre` à droite du poste de l'actif, au moins `LARGEUR_DE_LA_CHRONIQUE`.
+static func gauche_de_la_chronique(libre: float) -> float:
+	return -ECART_DU_MEUBLE - maxf(libre, LARGEUR_DE_LA_CHRONIQUE)
+
+
+## Le décalage vertical du bas de la chronique, à `ECART_DU_MEUBLE` au-dessus de la fin du tour, de `hauteur_du_tour`,
+## posée au bas de la scène à `ECART_DU_MEUBLE` ; au-dessus du poste de l'actif, de `hauteur_du_poste` et posé de même,
+## quand la place `libre` à sa droite est plus étroite que `LARGEUR_DE_LA_CHRONIQUE`.
+static func bas_de_la_chronique(libre: float, hauteur_du_poste: float, hauteur_du_tour: float) -> float:
+	return -2.0 * ECART_DU_MEUBLE - (hauteur_du_tour if libre >= LARGEUR_DE_LA_CHRONIQUE else maxf(hauteur_du_poste, hauteur_du_tour))
 
 
 ## Le coin haut-gauche d'une liste de `taille` ouverte au-dessus d'un socle dont le haut est à `haut`, à

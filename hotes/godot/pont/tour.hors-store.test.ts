@@ -149,10 +149,15 @@ describe('un tour complet par le pont', () => {
     expect(meubleDe(suite).jetons.filter(([, ton]) => ton === 'reussite').length, 'la charge a vidé des cases').toBeLessThan(meubleDe(suite).jetons.length - 1);
     expect(confirmee.lignes.map((l) => l.texte), 'l’issue confirmée entre au journal de l’écran').toContain((issue as Ligne).texte);
     const barre = suite.vue.zones['combat.offres'];
-    const offres = [...barre.flatMap((o) => o.valeurs), ...barre.filter((c) => c.id.startsWith('offre/')).map((c) => ({ ...c, id: c.id.slice('offre/'.length) }))];
     const fermees = suite.vue.projection.combat!.offres!.liste.filter((o) => o.refus !== null);
-    expect(fermees.length, 'l’Action jouée, des offres se ferment').toBeGreaterThan(0);
-    expect(fermees.map((o) => offres.find((b) => b.id === o.id)?.refus), 'chaque offre fermée reste à la barre, son bouton ou le choix de ses candidats refusé avec sa raison').toEqual(fermees.map((o) => o.refus));
+    const fixe = (o: (typeof fermees)[number]) => !o.candidats.length && o.geste !== null && (o.economie === 'action' || o.economie === 'aucun');
+    expect(fermees.filter(fixe).length, 'l’Action jouée, des plaques se ferment').toBeGreaterThan(0);
+    expect(fermees.filter((o) => !fixe(o)).length, 'l’Action jouée, des offres hors emplacement fixe se ferment').toBeGreaterThan(0);
+    expect(fermees.filter(fixe).map((o) => barre.find((c) => c.id === `economie/${o.economie}`)?.valeurs.find((b) => b.id === o.id)?.refus), 'une offre fermée d’un emplacement fixe reste, refusée avec sa raison').toEqual(fermees.filter(fixe).map((o) => o.refus));
+    const montres = [...barre.map((c) => c.id), ...barre.flatMap((c) => c.valeurs.map((b) => b.id))];
+    expect(fermees.filter((o) => !fixe(o)).filter((o) => montres.includes(o.id) || montres.includes(`offre/${o.id}`)).map((o) => o.id), 'une offre fermée hors emplacement fixe quitte la barre').toEqual([]);
+    expect(barre.filter((c) => c.id !== 'economie/action' && c.id !== 'economie/aucun').flatMap((c) => [c, ...c.valeurs]).filter((x) => x.refus !== null).map((x) => x.id), 'une liste ouverte ne porte que des valeurs ouvertes').toEqual([]);
+    expect(barre.filter((c) => !c.valeurs.length).map((c) => c.id), 'aucun choix sans valeur').toEqual([]);
     ({ suite } = finirLeTour());
 
     const second = actifDe(suite);

@@ -5,12 +5,12 @@ import { lignesDuJournal, zonesDeLEcran } from './ecran';
 import { SANS_ROSTER } from './roster';
 import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
-import { dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
+import { ACTIONS, dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
 import { choixPiegeLame } from '../noyau/combatFlow';
 import { choiceStep } from '../noyau/rollSeam';
-import { t } from '../i18n';
+import { estUneCle, t } from '../i18n';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -55,6 +55,14 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
     } finally {
       partie.fermer();
     }
+  });
+});
+
+describe('la pastille d’une offre par candidat (`combat.offres`)', () => {
+  it('le catalogue nomme court chaque action qui s’offre par candidat (`ecran.offre.<id>`)', () => {
+    const parCandidat = ACTIONS.filter((a) => a.candidates).map((a) => a.id);
+    expect(parCandidat, 'des actions s’offrent par candidat').toContain('incantation');
+    expect(parCandidat.filter((id) => !estUneCle(`ecran.offre.${id}`))).toEqual([]);
   });
 });
 

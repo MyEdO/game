@@ -109,7 +109,7 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 				continue
 			var textes := _textes(noeud)
 			for dit in _dits(e):
-				_verifier(textes.has(dit), "%s, %s/%s : « %s » ne se lit pas (%s)" % [vue.nom, e.type, e.id, dit, textes])
+				_verifier(_se_lit(textes, dit), "%s, %s/%s : « %s » ne se lit pas (%s)" % [vue.nom, e.type, e.id, dit, textes])
 			_presser(vue, noeud, e)
 	await process_frame
 	var focus := root.gui_get_focus_owner()
@@ -163,6 +163,12 @@ func _textes(noeud: Node) -> Array:
 			for i in (n as OptionButton).item_count:
 				textes.append((n as OptionButton).get_item_text(i))
 	return textes
+
+
+## Si `dit` se lit dans `textes` : un texte entier, ou des lignes entières d'un texte, dont la bulle qu'écrivent à la
+## suite les unes des autres plusieurs liaisons (`Liaison.a_la_suite` : le libellé, le détail, le refus).
+static func _se_lit(textes: Array, dit: String) -> bool:
+	return textes.any(func(t: String) -> bool: return ("\n%s\n" % t).contains("\n%s\n" % dit))
 
 
 ## Visible, ou dans un onglet que son `TabContainer` ne montre pas, dans la liste fermée d'une ouvrante (`Ouvrante` :

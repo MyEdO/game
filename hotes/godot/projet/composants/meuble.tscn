@@ -10,7 +10,6 @@ theme_type_variation = &"RangeeSerree"
 theme_type_variation = &"DansLeMeuble"
 
 [node name="Reste" type="VBoxContainer" parent="Gauche"]
-custom_minimum_size = Vector2(220, 0)
 size_flags_vertical = 4
 theme_type_variation = &"PileTassee"
 
@@ -29,8 +28,8 @@ source = "elements"
 ids = PackedStringArray("mouvement")
 formes = PackedStringArray("entite:jetons")
 
-[node name="Tour" type="HBoxContainer" parent="Gauche/Reste"]
-theme_type_variation = &"RangeeSerree"
+[node name="Tour" type="HFlowContainer" parent="Gauche/Reste"]
+theme_type_variation = &"FluxSerre"
 
 [node name="Action" type="HBoxContainer" parent="Gauche/Reste/Tour"]
 size_flags_horizontal = 3
@@ -71,7 +70,7 @@ ids = PackedStringArray("portrait")
 formes = PackedStringArray("portrait:portraitDeLActif")
 
 [node name="Nom" type="Label" parent="Centre"]
-custom_minimum_size = Vector2(130, 0)
+custom_minimum_size = Vector2(120, 0)
 mouse_filter = 1
 theme_type_variation = &"NomDeHeros"
 horizontal_alignment = 1

@@ -12,8 +12,15 @@ import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 /** Le ton d'un élément : le nom d'une variation du thème de l'hôte. */
 export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
 
-/** Une ligne de texte. `detail` : ce qu'elle tait, montré à la demande. */
-export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string; detail: string | null }
+/** Une ligne de texte. `detail` : ce qu'elle tait, montré à la demande ; `touche` : la touche qu'elle imprime sans la
+ *  jouer (la case libre d'un emplacement rapide). */
+export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string; detail: string | null; touche: Touche | null }
+
+/** Les touches des emplacements rapides, rang par rang : des actions d'entrée de l'hôte. */
+export const TOUCHES_RAPIDES = ['rapide_1', 'rapide_2', 'rapide_3', 'rapide_4', 'rapide_5', 'rapide_6'] as const;
+
+/** Le nom d'une action d'entrée de l'hôte (son `InputMap`), qui dit la touche qu'il y lie. */
+export type Touche = (typeof TOUCHES_RAPIDES)[number] | 'fin_de_tour';
 
 /** Une puce : un libellé et sa valeur (un État et son nombre, un modificateur et son signe). `detail` : ce qu'elle
  *  change, montré à la demande. */
@@ -101,6 +108,10 @@ export interface Bouton {
   focus: boolean;
   /** pourquoi il ne se joue pas, `null` s'il se joue. */
   refus: string | null;
+  /** ce que son libellé tait, montré au survol avant son refus (jamais le refus recopié) ; `null` : rien. */
+  detail: string | null;
+  /** l'action d'entrée de l'hôte qui le joue comme un clic, imprimée sur lui ; `null` : aucune. */
+  touche: Touche | null;
   /** l'id de son dessin au registre des icônes (`src/data/icons`), absent sans dessin. */
   icone?: string;
 }
@@ -216,7 +227,7 @@ const DESCRIPTION_AU_DETAIL = 300;
 export const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
 
 /** Une ligne. */
-export const ligne = (id: string, texte: string, ton: Ton = 'neutre', detail: string | null = null): Ligne => ({ type: 'ligne', id, ton, texte, detail });
+export const ligne = (id: string, texte: string, ton: Ton = 'neutre', detail: string | null = null): Ligne => ({ type: 'ligne', id, ton, texte, detail, touche: null });
 
 /** Les arguments du geste `g`, l'argument `nom` valant `valeur` : chaque argument posé par la fenêtre, puis la valeur
  *  courante de chaque argument requis ; un argument optionnel sans valeur clôt la liste. */
@@ -235,7 +246,7 @@ function argumentsAvec(g: GesteDeLaFenetre, nom: string, valeur: unknown): unkno
 const valeursDuChoix = (g: GesteDeLaFenetre, a: ArgumentDuGeste): Bouton[] =>
   (a.valeurs ?? []).map((v, i): Bouton => ({
     type: 'bouton', id: `${g.cle}/${i}`, libelle: v.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, a.nom, v.valeur) },
-    presse: v.valeur === a.valeur, focus: false, refus: v.refus ?? g.raison,
+    presse: v.valeur === a.valeur, focus: false, detail: null, touche: null, refus: v.refus ?? g.raison,
   }));
 
 /** La saisie de l'argument `a`, sous l'id `id`. */
@@ -262,7 +273,7 @@ export function elementsDesGestes(gestes: readonly GesteDeLaFenetre[]): (Bouton 
   return ouverts.map((g) => {
     const enFocus = g === focus;
     switch (g.rendu) {
-      case 'bouton': return { type: 'bouton', id: g.cle, libelle: g.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, '', null) }, presse: false, focus: enFocus, refus: g.raison };
+      case 'bouton': return { type: 'bouton', id: g.cle, libelle: g.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, '', null) }, presse: false, focus: enFocus, detail: null, touche: null, refus: g.raison };
       case 'choix':
       case 'liste': return { type: g.rendu, id: g.cle, ton: 'neutre', libelle: g.libelle, focus: enFocus, refus: g.raison, valeurs: valeursDuChoix(g, g.arguments.find((a) => a.nom === g.aChoisir)!) };
       case 'formulaire': return { type: 'formulaire', id: g.cle, libelle: g.libelle, verbe: g.verbe, focus: enFocus, refus: g.raison, champs: g.arguments.map((a) => saisie(`${g.cle}/${a.nom}`, a)) };

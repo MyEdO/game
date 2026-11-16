@@ -577,7 +577,7 @@ export interface CalqueAffiche {
 const PEINTURES: readonly WallPaint[] = ['wall', 'door', 'diagBack', 'diagFwd'];
 
 const bouton = (id: string, libelle: string, edition: GesteDEdition, presse = false, refus: string | null = null): Bouton => ({
-  type: 'bouton', id, libelle, jeu: { edition }, presse, focus: false, refus,
+  type: 'bouton', id, libelle, jeu: { edition }, presse, focus: false, detail: null, touche: null, refus,
 });
 
 const choix = (id: string, libelle: string, valeurs: Bouton[], type: Choix['type'] = 'choix'): Choix => ({

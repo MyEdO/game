@@ -175,59 +175,82 @@ script = ExtResource("1_zone")
 source = "combat.avis"
 repli = true
 
-[node name="Meuble" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif"]
+[node name="Poste" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif"]
 visible = false
 size_flags_horizontal = 4
 mouse_filter = 2
 
-[node name="Fond" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble"]
-mouse_filter = 2
-theme_type_variation = &"SaillieDuMeuble"
+[node name="Tablette" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste"]
+visible = false
+size_flags_horizontal = 8
+theme_type_variation = &"Tablette"
 
-[node name="Chene" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Fond" groups=["socle"]]
-theme_type_variation = &"Cartouche"
-
-[node name="Garni" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble"]
-mouse_filter = 2
-theme_type_variation = &"GarniDuMeuble"
-
-[node name="Rangee" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni"]
+[node name="Cases" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Tablette"]
 mouse_filter = 2
 theme_type_variation = &"RangeeSerree"
 
-[node name="Actif" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni/Rangee"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Tablette/Cases" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "combat.rapides"
+masque = NodePath("../..")
+formes = PackedStringArray("bouton:case", "ligne:caseLibre")
+
+[node name="Meuble" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste"]
 mouse_filter = 2
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni/Rangee/Actif" node_paths=PackedStringArray("masque")]
+[node name="Fond" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble"]
+mouse_filter = 2
+theme_type_variation = &"SaillieDuMeuble"
+
+[node name="Chene" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Fond" groups=["socle"]]
+theme_type_variation = &"Cartouche"
+
+[node name="Garni" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble"]
+mouse_filter = 2
+theme_type_variation = &"GarniDuMeuble"
+
+[node name="Rangee" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni"]
+mouse_filter = 2
+theme_type_variation = &"RangeeSerree"
+
+[node name="Actif" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee"]
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Actif" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "combat.actif"
-masque = NodePath("../../../..")
+masque = NodePath("../../../../..")
 formes = PackedStringArray("entite:meuble")
 
-[node name="Offres" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni/Rangee"]
+[node name="Offres" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee"]
 mouse_filter = 2
 theme_type_variation = &"DansLeMeuble"
 
-[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni/Rangee/Offres"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres"]
 mouse_filter = 2
 theme_type_variation = &"PileTassee"
 
-[node name="Familles" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni/Rangee/Offres/Pile"]
+[node name="Action" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile"]
 mouse_filter = 2
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni/Rangee/Offres/Pile/Familles"]
-script = ExtResource("1_zone")
-source = "combat.offres"
-formes = PackedStringArray("choix:pastilleDeChoix", "liste:pastilleDeChoix")
-
-[node name="Action" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni/Rangee/Offres/Pile"]
-mouse_filter = 2
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Meuble/Garni/Rangee/Offres/Pile/Action"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile/Action"]
 script = ExtResource("1_zone")
 source = "combat.offres"
 ids = PackedStringArray("economie/action")
 formes = PackedStringArray("choix:plaques")
+
+[node name="SousLePortrait" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile"]
+mouse_filter = 2
+theme_type_variation = &"SousLePortrait"
+
+[node name="Familles" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile/SousLePortrait"]
+mouse_filter = 2
+theme_type_variation = &"RangeeTassee"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile/SousLePortrait/Familles"]
+script = ExtResource("1_zone")
+source = "combat.offres"
+formes = PackedStringArray("choix:pastilleDeChoix", "liste:pastilleDeChoix")
 
 [node name="Tour" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 visible = false
@@ -259,16 +282,14 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -8.0
-offset_top = -116.0
 offset_right = -8.0
-offset_bottom = -116.0
 grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
 theme_type_variation = &"RangeeSerree"
 
 [node name="Panneau" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique"]
-custom_minimum_size = Vector2(350, 0)
+size_flags_horizontal = 3
 size_flags_vertical = 8
 mouse_filter = 2
 theme = ExtResource("t_chronique")
@@ -288,11 +309,13 @@ script = ExtResource("1_zone")
 source = "journal.titre"
 formes = PackedStringArray("entite:pictogramme")
 
-[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal", "coin_du_pied", "actif", "chronique", "lignes", "panneau", "bascule", "menu")]
+[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal", "coin_du_pied", "actif", "ordre", "tour", "chronique", "lignes", "panneau", "bascule", "menu")]
 script = ExtResource("2_disposition")
 journal = NodePath("../../../../Droite")
 coin_du_pied = NodePath("../../../Pied/Rangee/Coin")
 actif = NodePath("../Actif")
+ordre = NodePath("../Hud/Corps/Ordre")
+tour = NodePath("../Tour")
 chronique = NodePath("../Chronique")
 lignes = NodePath("../../../../Droite/Pile/Defilement")
 panneau = NodePath("../Chronique/Panneau")

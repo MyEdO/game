@@ -1,10 +1,11 @@
-[gd_resource type="Theme" load_steps=20 format=3]
+[gd_resource type="Theme" load_steps=23 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 [ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
 [ext_resource type="Script" path="res://scripts/cadre.gd" id="2_cadre"]
 [ext_resource type="StyleBox" path="res://art/ombre_de_panneau.tres" id="3_ombre"]
 [ext_resource type="StyleBox" path="res://art/cadre_de_fenetre.tres" id="4_fenetre"]
+[ext_resource type="StyleBox" path="res://art/laiton_sur_chene.tres" id="6_laiton_sur_chene"]
 [ext_resource type="StyleBox" path="res://art/bouton_repos.tres" id="b_repos"]
 [ext_resource type="StyleBox" path="res://art/bouton_survol.tres" id="b_survol"]
 [ext_resource type="StyleBox" path="res://art/bouton_presse.tres" id="b_presse"]
@@ -84,6 +85,29 @@ expand_margin_bottom = 2.0
 [sub_resource type="StyleBoxFlat" id="Voile"]
 bg_color = Color(0.02, 0.015, 0.01, 0.62)
 
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Tablette"]
+content_margin_left = 10.0
+content_margin_top = 14.0
+content_margin_right = 10.0
+content_margin_bottom = 14.0
+script = ExtResource("2_cadre")
+cadre = "chene-ferre"
+matiere = "prop--bois-chene"
+teinte = Color(0.62, 0.55, 0.48, 1)
+ombre = ExtResource("3_ombre")
+
+[sub_resource type="StyleBoxFlat" id="Case_libre"]
+bg_color = Color(0.06, 0.04, 0.025, 0.55)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.26, 0.1, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [resource]
 Button/styles/normal = ExtResource("b_repos")
 Button/styles/hover = ExtResource("b_survol")
@@ -102,6 +126,8 @@ Pastille/styles/hover_pressed = SubResource("Pastille_presse")
 Pastille/styles/disabled = SubResource("Pastille_ferme")
 Pastille/styles/focus = SubResource("Pastille_focus")
 Portrait/styles/panel = SubResource("Laiton")
+PortraitDeLActif/base_type = &"Portrait"
+PortraitDeLActif/styles/panel = ExtResource("6_laiton_sur_chene")
 Recit/styles/panel = SubResource("Cadre_du_recit")
 Rubrique/base_type = &"Label"
 Rubrique/colors/font_color = Color(0.816, 0.69, 0.42, 1)
@@ -133,3 +159,7 @@ Description/font_sizes/font_size = 17
 Description/constants/line_spacing = 0
 Voile/base_type = &"Panel"
 Voile/styles/panel = SubResource("Voile")
+Tablette/base_type = &"PanelContainer"
+Tablette/styles/panel = SubResource("Tablette")
+CaseLibre/base_type = &"Panel"
+CaseLibre/styles/panel = SubResource("Case_libre")

@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" path="res://composants/portrait.tscn" id="1_portrait"]
 
 [node name="Portrait" instance=ExtResource("1_portrait")]
+theme_type_variation = &"PortraitDeLActif"
 
 [node name="Image" parent="."]
 custom_minimum_size = Vector2(64, 64)

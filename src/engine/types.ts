@@ -1238,7 +1238,7 @@ export interface EntreeBarre {
  *  Record = laissé au pré-remplissage déduit. Objet creux, jamais un tableau à trous : le snapshot de
  *  partie sérialise en JSON, où un trou deviendrait `null` — donc « vidée ».
  *  UN modèle pour les trois zones — le set au poing n'est qu'une dimension de l'adresse de l'arsenal.
- *  Lecture/écriture : le validateur `poserDansBarre` de l'hôte. */
+ *  Lecture/écriture : le validateur `poserDansBarre` du noyau (`src/noyau/dispositionConsole.ts`). */
 export interface DispositionConsole {
   /** Arsenal, par `WeaponLoadout.id` : commuter le set affiche SA disposition. */
   arsenal?: Record<string, Record<number, EntreeBarre | null>>;
@@ -1487,7 +1487,7 @@ export interface Combatant {
   /** DISPOSITION de la console de combat, PAR ADRESSE de case (spec HUD zone 6 : la barre est
    *  éditable, la déduction ne fait que pré-remplir). Donnée du PORTEUR : elle voyage avec lui
    *  (save, roster, coop) sans table annexe ni clé de partie. Porte unique d'écriture :
-   *  `poserDansBarre`, chez l'hôte. */
+   *  `poserDansBarre`, au noyau. */
   barre?: DispositionConsole;
   /** Sorts/prières connus — `id` de `src/data/spells.json`, résolus par `findSpellById`. */
   spells?: string[];

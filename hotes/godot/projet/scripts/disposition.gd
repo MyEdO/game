@@ -11,11 +11,17 @@ extends Node
 ## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le round en
 ## cartouche en haut à gauche (`Hud/Tour`, `Cartouche`), l'ordre du tour en colonne au bord gauche, celui qui joue en bas
 ## (`Hud/Corps/Ordre`, chaque rang en `rang`, celui qui joue en `rangDeLActif`, un héros avec le bouton de sa fiche),
-## le meuble de l'actif en bas au centre (`Actif/Meuble`, son chêne sous le portrait qui le dépasse : à gauche, en
-## `meuble`, ses Blessures en jauge, son Mouvement en jetons, un losange par case, son Action en sceau de cire, son
-## Avantage, ses États ; au milieu son portrait et son nom ; à droite ses offres, `combat.offres` : chaque autre choix
-## en pastille ronde à pictogramme qui ouvre au-dessus du meuble sa liste titrée en colonne (`PastilleDeChoix`), puis
-## l'Action en plaques à pictogramme et à nom), la fin du tour en bas à droite (`Tour`, la part du tour de `combat.offres`, `economie/aucun`, en `finDuTour` :
+## le meuble de l'actif en bas au centre (`Actif/Poste/Meuble`, son chêne sous le portrait qui le dépasse : en `meuble`,
+## une seule forme, à gauche ses Blessures en jauge, son Mouvement en jetons, un losange par case, son Action en sceau
+## de cire, son Avantage, ses États, à leur droite son portrait et son nom ; à droite du meuble ses offres,
+## `combat.offres` : l'Action en plaques à pictogramme et à nom ; dessous, chaque autre choix en pastille ronde à
+## pictogramme, en colonnes égales, son nom sous elle, la rangée débordant à gauche sous le portrait et le nom
+## (`SousLePortrait`), qui ouvre au-dessus du meuble sa liste titrée en colonne, pressée tant qu'elle est ouverte
+## (`PastilleDeChoix`)), posée sur
+## sa droite la tablette de bois des six emplacements rapides (`Actif/Poste/Tablette`, `combat.rapides` : une case pleine
+## en `case`, voilée tant qu'elle est refusée, une case libre en `caseLibre`, chacune la touche de son rang en son coin
+## haut gauche, `touche.gd`), qui se retire avec le meuble, la fin du tour en bas à droite (`Tour`, la part du tour de
+## `combat.offres`, `economie/aucun`, en `finDuTour` :
 ## « Fin du tour » en gros bouton rond de laiton, les autres en pastilles rondes à pictogramme à sa gauche), les avis
 ## du combat en ligne au-dessus du meuble (`Actif/Avis`) et le dialogue, et où se cadre le monde (`Monde.cadre`) ;
 ## rien ne recouvre le groupe ni le journal. En combat, la
@@ -106,6 +112,10 @@ const CHRONIQUE_OUVERTE := preload("res://art/statbloc.tres")
 @export var coin_du_pied: Control
 ## Le meuble de l'actif, au-dessus duquel la générique se pose en combat.
 @export var actif: Control
+## L'ordre du tour, en colonne au bord gauche, à droite duquel se cale le poste de l'actif.
+@export var ordre: Control
+## La fin du tour, en bas à droite, à gauche de laquelle se cale le poste de l'actif.
+@export var tour: Control
 ## La chronique posée sur la scène en combat, à la place du panneau du journal.
 @export var chronique: Control
 ## Le défilement des lignes du journal (`journal.lignes`), seul : au panneau du journal hors combat, à la chronique en
@@ -124,12 +134,15 @@ var _posee: Node = null
 var _en_combat := false
 ## Le panneau du journal qui tient les lignes hors combat.
 var _pile_du_journal: Node
+## La chronique est fermée en combat : ses lignes alignées à droite (`_aligner`).
+var _fermee := false
 
 
 func _ready() -> void:
 	_pile_du_journal = lignes.get_parent()
-	actif.resized.connect(_caler)
-	actif.visibility_changed.connect(_caler)
+	for signal_ in [actif.resized, actif.visibility_changed, ordre.resized, tour.resized, tour.visibility_changed, (chronique.get_parent() as Control).resized]:
+		signal_.connect(_caler)
+	lignes.get_node("Lignes").child_entered_tree.connect(_aligner)
 
 
 ## La scène de `disposition` posée (`null` : la générique), `en_combat` ou non ; vrai si elle a remplacé la précédente,
@@ -170,6 +183,9 @@ func ouvrir_la_chronique(ouverte: bool) -> void:
 ## seules dernières sur la scène la chronique fermée, sans cadre, laissant passer la souris, bulles comprises.
 func _ranger_les_lignes(en_combat: bool, ouverte: bool) -> void:
 	var defile := ouverte or not en_combat
+	_fermee = not defile
+	for ligne in lignes.get_node("Lignes").get_children():
+		_aligner(ligne)
 	(lignes.get_node("Lignes/Zone") as Zone).derniers = 0 if defile else LIGNES_DE_LA_CHRONIQUE
 	lignes.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO if defile else ScrollContainer.SCROLL_MODE_DISABLED
 	lignes.custom_minimum_size.y = HAUTEUR_DE_LA_CHRONIQUE if en_combat and ouverte else 0.0
@@ -179,17 +195,35 @@ func _ranger_les_lignes(en_combat: bool, ouverte: bool) -> void:
 	panneau.mouse_filter = Control.MOUSE_FILTER_STOP if ouverte else Control.MOUSE_FILTER_IGNORE
 
 
-## En combat, la générique posée en bas au centre, à sa largeur minimale, au-dessus du meuble de l'actif s'il se
-## montre (`MiseEnPage.au_dessus_du_meuble`).
+## Une ligne du journal alignée à droite dans la chronique fermée, à gauche sinon.
+func _aligner(ligne: Node) -> void:
+	if ligne is Label:
+		(ligne as Label).horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if _fermee else HORIZONTAL_ALIGNMENT_LEFT
+
+
+## Le poste de l'actif calé entre l'ordre du tour et la fin du tour (`MiseEnPage.decalage_du_poste`) ; la chronique
+## dans la place libre à sa droite, au-dessus de la fin du tour, ou au-dessus du poste quand cette place est trop étroite
+## (`MiseEnPage.gauche_de_la_chronique`, `bas_de_la_chronique`) ; en combat, la générique posée en bas au centre, à sa
+## largeur minimale, au-dessus du meuble de l'actif s'il se montre (`MiseEnPage.au_dessus_du_meuble`).
 func _caler() -> void:
+	var cadre_de_scene := (chronique.get_parent() as Control).get_global_rect()
+	var largeur := actif.size.x if actif.visible else 0.0
+	var decalage := MiseEnPage.decalage_du_poste(cadre_de_scene.position.x, cadre_de_scene.size.x, largeur, ordre.get_global_rect().end.x, tour.global_position.x if tour.visible else cadre_de_scene.end.x)
+	actif.offset_left = decalage
+	actif.offset_right = decalage
+	var libre := MiseEnPage.libre_a_droite_du_poste(cadre_de_scene.size.x, largeur, decalage)
+	chronique.offset_left = MiseEnPage.gauche_de_la_chronique(libre)
+	var bas := MiseEnPage.bas_de_la_chronique(libre, actif.size.y if actif.visible else 0.0, tour.size.y if tour.visible else 0.0)
+	chronique.offset_top = bas
+	chronique.offset_bottom = bas
 	if not _en_combat or scene != GENERIQUE:
 		return
 	var cadre := _posee as Control
-	var bas := MiseEnPage.au_dessus_du_meuble(actif.size.y if actif.visible else 0.0)
+	var bas_du_cadre := MiseEnPage.au_dessus_du_meuble(actif.size.y if actif.visible else 0.0)
 	cadre.anchor_left = 0.5
 	cadre.anchor_right = 0.5
 	cadre.offset_left = 0.0
 	cadre.offset_right = 0.0
 	cadre.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	cadre.offset_top = bas
-	cadre.offset_bottom = bas
+	cadre.offset_top = bas_du_cadre
+	cadre.offset_bottom = bas_du_cadre

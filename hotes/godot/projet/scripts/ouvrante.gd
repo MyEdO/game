@@ -2,7 +2,7 @@
 ## de la pastille ou du composant que sa zone y pose) ouvre et ferme sa liste (`liste`). La liste se ferme au choix
 ## d'un geste, le focus suivant ce que le geste ouvre, et sans choix (Échap, clic hors d'elle, pastille pressée de
 ## nouveau), le focus rendu au contrôle qui le portait avant l'ouverture s'il est encore focalisable, sinon à la
-## pastille. Ouverte, le focus passe à son premier geste ; ses gestes se parcourent au clavier. Une seule liste est
+## pastille si elle le prend. Ouverte, le focus passe à son premier geste ; ses gestes se parcourent au clavier. Une seule liste est
 ## ouverte dans tout l'écran : en ouvrir une ferme l'autre. Son état ouvert est local à l'écran.
 class_name Ouvrante
 extends Control
@@ -65,15 +65,16 @@ func _ouvrir() -> void:
 		(gestes[0] as Control).grab_focus()
 
 
-## La liste fermée sans choix, le focus rendu (`_avant`, sinon la pastille).
+## La liste fermée sans choix, le focus rendu (`_avant`, sinon la pastille focalisable).
 func _fermer() -> void:
 	if not liste.visible:
 		return
 	_cacher()
+	var presser := pastille.find_child("Presser", true, false) as Control
 	if is_instance_valid(_avant) and _avant.is_visible_in_tree() and _avant.focus_mode != FOCUS_NONE:
 		_avant.grab_focus()
-	else:
-		(pastille.find_child("Presser", true, false) as Control).grab_focus()
+	elif presser.focus_mode != FOCUS_NONE:
+		presser.grab_focus()
 
 
 ## La liste cachée, le focus laissé à ce qui le prend.

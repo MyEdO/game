@@ -1,0 +1,13 @@
+[gd_resource type="StyleBox" script_class="CadreDeMatiere" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="1_cadre"]
+
+[resource]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+script = ExtResource("1_cadre")
+cadre = "laiton"
+matiere = "prop--bois-chene"
+teinte = Color(0.42, 0.4, 0.37, 1)

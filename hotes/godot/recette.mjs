@@ -16,7 +16,7 @@
 //   à corps de la vue a la base de l'élément, celle que l'écran publie posée (`wfrpEcran.corps`), et le combattant dont
 //   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `secondaire`, l'emblème de sa
 //   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet, ou, avec `--statique`, celui que l'export a déposé, en scènes fabriquées (#3946). Puis la fenêtre du round à l'Entrée, l'ordre du tour montré : chaque bouton du cadre publié est sous un panneau publié (`panneaux`), et des cases du cadre aussi ; une charge sur la plus proche des cibles en vue que la charge offre, cliquée à sa case (`casesDesCibles`),
-//   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
+//   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour à Espace ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
 //   Godot jusqu'à la Défense du héros visé, l'adversaire en vue ou non, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
 //   partie, et chaque bouton se trouve par l'élément de la vue qu'il dessine (`vue.zones`). Le jet tombé, la fenêtre
@@ -65,7 +65,8 @@
 //   liasse, son offre cliquée, « Chapitre 1 » puis « Lire » : le document se lit au centre ; « Refermer » rend la
 //   conversation à la liasse.
 // - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche, la liste des sorts de la Haute
-//   Sorcière ouverte par sa pastille, Fléchette amenée à la molette puis cliquée, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
+//   Sorcière : le sort de l'emplacement rapide du rang 0, lu dans `combat.rapides`, armé à la touche 1 puis désarmé par elle ;
+//   la liste des sorts ouverte par sa pastille, Fléchette amenée à la molette puis cliquée, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
 //   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
 // - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche à l'écran, les tours passent jusqu'au Tueur, son offre
 //   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
@@ -537,11 +538,25 @@ const panneauSur = (e, point) => e.panneaux.find((p) => dans(p, point))
 /** Si le point `point` de l'écran publié `e` montre le monde : dans son cadre (`cadre`), la fenêtre s'il n'en publie
  *  pas, et sous aucun de ses panneaux (`panneauSur`). */
 const auMonde = (e, point) => dans(e.cadre ?? FENETRE, point) && !panneauSur(e, point)
-async function cliquerCase({ x, y, z = 0 }) {
-  const [e, point] = await attendreALEcran((e) => casesPosees(e)?.[`${x},${y},${z}`])
-  assert.ok(point, e?.glisse ? `la caméra ne glisse plus avant le clic sur la case ${x},${y},${z}` : `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
+/** Les crans de pivot (Q) d'un tour complet de la caméra tactique. */
+const CRANS_DE_PIVOT = 4
+const PIVOT = { key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81 }
+/** Le point publié de la case `{ x, y, z }`, la caméra posée, amené au monde (`auMonde`) : la caméra pivotée d'un cran (Q)
+ *  tant qu'un panneau couvre ce point ou qu'il sort du cadre, moins d'un tour (`CRANS_DE_PIVOT`), comme le joueur la tourne. */
+async function amenerAuMonde({ x, y, z = 0 }) {
+  const lire = () => attendreALEcran((e) => casesPosees(e)?.[`${x},${y},${z}`])
+  let [e, point] = await lire()
+  for (let cran = 1; cran < CRANS_DE_PIVOT && point && !auMonde(e, point); cran++) {
+    await realKey(session, PIVOT)
+    ;[e, point] = await lire()
+  }
+  assert.ok(point, e?.glisse ? `la caméra ne glisse plus avant la lecture de la case ${x},${y},${z}` : `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
   assert.ok(auMonde(e, point), `la case ${x},${y},${z} au point ${point.map(Math.round)} montre le monde : ${panneauSur(e, point) ? `le panneau ${panneauSur(e, point).map(Math.round)} la couvre` : `hors du cadre ${e.cadre.map(Math.round)}`}`)
-  await cliquerPoint(...point)
+  return point
+}
+/** Le clic sur la case `{ x, y, z }` à son point amené au monde (`amenerAuMonde`). */
+async function cliquerCase(c) {
+  await cliquerPoint(...await amenerAuMonde(c))
 }
 /** La case de la cible `id`, en vue du groupe ou non (`vue.casesDesCibles`). */
 function caseDeLaCible(v, id) {
@@ -578,6 +593,18 @@ async function finirLeTour() {
   await cliquerBouton({ element: 'bouton/fin-de-tour' })
   const v = await vue()
   if (v.projection.combat.finDeTourArmee) await cliquerBouton({ element: 'bouton/fin-de-tour' })
+}
+const ESPACE = { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
+const DIGIT1 = { key: '1', code: 'Digit1', windowsVirtualKeyCode: 49 }
+/** La fin du tour jouée à sa touche, Espace (`fin_de_tour`, `projet/project.godot`), comme `finirLeTour` la clique. */
+async function finirLeTourAEspace() {
+  assert.equal(offre(await vue(), 'fin-de-tour')?.touche, 'fin_de_tour', 'la fin du tour porte sa touche')
+  for (let fois = 0; fois < 2; fois++) {
+    await marquer()
+    await realKey(session, ESPACE)
+    await nouvelEcran()
+    if (!(await vue()).projection.combat.finDeTourArmee) return
+  }
 }
 
 /** Le dossier neuf `--modeles` rempli des modèles épinglés du projet (`modelesEpingles`) : le manifeste, la provenance
@@ -715,13 +742,13 @@ async function parcoursCombat() {
   assert.notEqual(etape(v), 'jetDAttaque', 'confirmée, la fenêtre d’attaque se ferme')
   const pbApres = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
   noter(`confirmée : fenêtre fermée ; ${proche.nom} ${pbAvant} → ${pbApres} Blessures`)
-  await finirLeTour()
+  await finirLeTourAEspace()
   v = await vue()
   const second = actif(v)
   assert.notEqual(second.id, heros.id, 'la fin du tour passe la main')
   assert.equal(second.camp, 'heros')
   const vers = v.cases.find((c) => c.zone === 'marche' && c.cout === 1).case
-  noter(`fin du tour de ${heros.nom} ; actif ${second.nom}`)
+  noter(`fin du tour de ${heros.nom} à Espace ; actif ${second.nom}`)
   await cliquerCase(vers)
   v = await vue()
   assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['deplacement', [vers.x, vers.y, vers.z ?? 0]], 'le premier clic montre l’aperçu')
@@ -1014,9 +1041,9 @@ const CADRAGES_DE_LA_VISION = {
   tactique: { regard: 'tactique', case: { x: 5, y: 3 }, lacet: 0, zoom: 22 },
   plateau: { regard: 'plateau', case: { x: 5, y: 3 }, lacet: 0, zoom: 22 },
 }
-/** Le cadrage de la tactique au clic du pas : au nord du chasseur, dont le corps cache `CASE_DU_PAS` vu du sud ; au
- *  zoom des `CADRAGES_DE_LA_VISION`. */
-const CADRAGE_DU_PAS = { regard: 'tactique', case: { x: 5, y: 2 }, lacet: 180, zoom: 22 }
+/** Le cadrage de la tactique au clic du pas : vu du nord, le chasseur dont le corps cache `CASE_DU_PAS` vu du sud
+ *  derrière elle, la case au centre de la vue, au-dessus de la tablette ; au zoom des `CADRAGES_DE_LA_VISION`. */
+const CADRAGE_DU_PAS = { regard: 'tactique', case: { x: CASE_DU_PAS.x, y: CASE_DU_PAS.y }, lacet: 180, zoom: 22 }
 
 /** La luminance de chaque case libre sous chaque regard que la touche V offre, de la tactique à son retour (au combat,
  *  `regardDuJeu` rend la tactique pour l'immersion), la caméra posée au cadrage du regard (`CADRAGES_DE_LA_VISION`),
@@ -1220,8 +1247,6 @@ async function parcoursMurs() {
 
 /** Les crans de molette qui rapprochent la caméra tactique du véhicule actif. */
 const CRANS_DU_GROS_PLAN = 6
-/** Les crans de pivot (Q) d'un tour complet de la caméra tactique autour du véhicule. */
-const CRANS_DE_PIVOT = 4
 async function parcoursVehicule() {
   await enHauteDefinition()
   await cliquerBouton('Combat')
@@ -1243,7 +1268,7 @@ async function parcoursVehicule() {
   for (let cran = 0; cran < CRANS_DE_PIVOT; cran++) {
     await sleep(1500)
     await capturer(`2987-caraque-gros-plan-${cran}`)
-    await realKey(session, { key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81 })
+    await realKey(session, PIVOT)
   }
 }
 
@@ -1445,8 +1470,8 @@ async function parcoursDocument() {
   const parcourir = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.args?.[1] === 'lire'))
   assert.ok(parcourir, `à portée de la liasse, son offre est un bouton : ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
   await cliquerBouton(bouton(parcourir))
-  await attendreLaVue("v.zones['dialogue.reponses'].length > 0")
   for (const debut of ['Chapitre 1', 'Lire']) {
+    await attendreLaVue(`v.zones['dialogue.reponses'].some((b) => b.libelle.startsWith('${debut}'))`)
     v = await vue()
     const reponse = zone(v, 'dialogue.reponses').find((b) => b.libelle.startsWith(debut))
     assert.ok(reponse, `la réponse « ${debut} » est un bouton : ${zone(v, 'dialogue.reponses').map((b) => b.libelle).join(' | ')}`)
@@ -1496,6 +1521,17 @@ async function parcoursIncantation() {
   assert.ok(sorts, `les sorts de l’actif sont un choix : ${zone(v, 'combat.offres').map((c) => c.id).join(' | ')}`)
   noter(`« ${sorts.libelle} » : ${sorts.valeurs.length} sorts en ${sorts.type}`)
   await capturer('3328-j1-1-sorts')
+  const [premiere] = zone(v, 'combat.rapides')
+  assert.equal(premiere?.type, 'bouton', `la case du rang 0 porte un sort : ${zone(v, 'combat.rapides').map((e) => e.libelle ?? e.texte).join(' | ')}`)
+  assert.equal(premiere.touche, 'rapide_1', 'sa case porte la touche de son rang')
+  await realKey(session, DIGIT1)
+  await attendreLaVue("v.zones['combat.rapides'][0]?.presse === true")
+  v = await vue()
+  assert.equal(zone(v, 'combat.offres').find((c) => c.id === 'offre/incantation').valeurs.find((b) => b.presse)?.libelle, premiere.libelle, 'la touche 1 arme le sort de sa case')
+  noter(`touche 1 : ${premiere.libelle} armé, ${v.projection.combat.cibles.liste.length} cibles`)
+  await realKey(session, DIGIT1)
+  await attendreLaVue("v.zones['combat.rapides'][0]?.presse === false")
+  noter(`touche 1 de nouveau : ${premiere.libelle} désarmé`)
   const flechette = sorts.valeurs.find((b) => b.libelle === 'Fléchette')
   assert.ok(flechette, `Fléchette est offerte : ${sorts.valeurs.map((b) => b.libelle).join(', ')}`)
   const valeurs = new Set(sorts.valeurs.map((b) => bouton(b).element))
@@ -1799,9 +1835,10 @@ async function parcoursFiche() {
   assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.nom, 'le bouton de son rang ouvre le statbloc du héros')
   noter(`rang « ${heros.nom} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
   await capturer('3678-statbloc-1-heros')
-  const publie = await ecranPose()
-  const [cle, ennemi] = Object.entries(v.occupants).find(([k, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec' && auMonde(publie, publie.cases[k]))
-  const [px, py] = publie.cases[cle]
+  const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec')
+  assert.ok(ennemi, 'un ennemi en vue occupe une case')
+  const [x, y, z] = cle.split(',').map(Number)
+  const [px, py] = await amenerAuMonde({ x, y, z })
   await marquer()
   await geste(session, { surface: 'canvas', x: px, y: py }, { qui: `clic droit (${Math.round(px)}, ${Math.round(py)})` }, clic({ bouton: 'right' }))
   await nouvelEcran()
