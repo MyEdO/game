@@ -1480,7 +1480,8 @@ export const effectTargetingSchema = z.union([
  *  Mâchoires d'acier : « chaque fois que vous gagnez un État Sonné »).
  *  `onWoundLoss` se produit pour TOUTE perte de PB (mêlée OU distance) ; le TYPE d'attaque voyage dans le
  *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
- *  `onCrit` : chaque Blessure critique non létale infligée ; son origine voyage dans le contexte
+ *  `onCrit` : chaque Blessure critique non létale infligée, et le Critique refusé par une coque routière,
+ *  où seuls les effets `coupCritique` jouent (EDOC 07 l.334 ; #4202) ; son origine voyage dans le contexte
  *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
  *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
  *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).

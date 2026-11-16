@@ -2170,8 +2170,9 @@ export function resolveCritSeverity(
 }
 
 /** Issue d'une Blessure critique appliquée : `letale` (le caller finalise via `finalizeHeroDeath`),
- *  `subie`, ou `reportee` — un autre corps l'encaisse à la place du porteur (MDG 13 l.584). */
-export type IssueDuCritique = 'letale' | 'subie' | 'reportee';
+ *  `subie`, `reportee` — un autre corps l'encaisse à la place du porteur (MDG 13 l.584) —, ou `aucune` —
+ *  personne n'encaisse de Blessure critique (EDOC 07 l.334 ; #4202). */
+export type IssueDuCritique = 'letale' | 'subie' | 'reportee' | 'aucune';
 
 /** Applique une Blessure critique (Coup Critique ou overkill) à `target` : PB (ignore BE+PA,
  *  plancher 0) + États + compteur. RETOURNE son issue (`IssueDuCritique`). Pousse le journal dans `log`. */
@@ -2203,7 +2204,7 @@ export function applyCriticalToTarget(
   }
   if (porteur === 'vehicule-routier') {
     log.push(tr('cf.coqueSansCritique', { name: target.label })); // EDOC 07 l.334
-    return 'subie';
+    return 'aucune';
   }
   if (porteur === 'navire') {
     const profil = garanti(profilNavalDe(target), target.creatureId, 'profil naval du navire (MDG 12 l.131)');
@@ -2656,7 +2657,7 @@ export function applyCoupCritiqueSec(
   apresLeCritiqueDe({ get, set, auteur, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(issue, entree.origine); // #316
 }
 
-/** Ce que lit l'après d'une Blessure critique infligée. */
+/** Ce que lit l'après d'un Critique. */
 interface ApresLeCritique {
   get: Get;
   set: SetFn;
@@ -2668,20 +2669,23 @@ interface ApresLeCritique {
   woundsDealt?: number;
 }
 
-/** Après une Blessure critique INFLIGÉE (`issue` = rendu d'`applyCritAndFinalize`) : Frappe blessante
+/** Après un Critique (`issue` = rendu d'`applyCritAndFinalize`) : Frappe blessante sur une Blessure `subie`
  *  (LDB 10 ; LDB 18 l.15), puis `onCrit` (`TriggeredEffect.coupCritique` ; #316 ; #1595 c.6221792068 Q4,
- *  c.6226467544, c.6228496170 Q3, Q4b). Une Blessure `reportee` n'est pas celle de `cible` : MDG 13 l.584 ; #4202. */
+ *  c.6226467544, c.6228496170 Q3, Q4b). Une Blessure `reportee` n'est pas celle de `cible` : MDG 13 l.584 ;
+ *  #4202. Sur une issue `aucune`, seuls les effets `coupCritique` jouent : EDOC 07 l.334 ; #4202. */
 function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine: OrigineCritique) => void {
   return (issue, origine) => {
     const { get, set, auteur, cible, log } = a;
-    if (!auteur || issue !== 'subie') return;
-    const fb = loseWounds(cible, talentCritExtraWounds(auteur));
-    if (fb > 0) log.push(tr('cf.coupBlessant', { name: cible.label, n: fb }));
+    if (!auteur || issue === 'letale' || issue === 'reportee') return;
+    if (issue === 'subie') {
+      const fb = loseWounds(cible, talentCritExtraWounds(auteur));
+      if (fb > 0) log.push(tr('cf.coupBlessant', { name: cible.label, n: fb }));
+    }
     const battle = get().battle;
     if (!battle) return;
     emitCombatEvent('onCrit', {
       get, set, battle, self: auteur, sink: (line) => log.push(line),
-      triggerCtx: { victim: cible, weapon: a.arme, location: a.lieu, woundsDealt: a.woundsDealt, attackType: a.arme?.type, origine, rng: battleRng() },
+      triggerCtx: { victim: cible, weapon: a.arme, location: a.lieu, woundsDealt: a.woundsDealt, attackType: a.arme?.type, origine, sansBlessureCritique: issue === 'aucune', rng: battleRng() },
     });
   };
 }
@@ -2884,7 +2888,7 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
       // (pose du dé, #942 L4) garde sa révélation.
       issue = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
       a.apres?.(issue, entree.origine);
-      infligees++;
+      if (issue !== 'aucune') infligees++;
     }
     if (coupCritiqueEntree) casse();
   }

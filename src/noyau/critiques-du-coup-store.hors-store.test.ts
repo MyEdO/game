@@ -22,6 +22,7 @@ import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '.
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { markFixedDie } from './fixedDieMark';
+import { talentCritExtraWounds } from '../engine/combatFeatures/dispatch';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,13 +31,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 
-interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean; arme?: Weapon; retenu?: boolean; vehicule?: string; grapple?: boolean }
+interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean; arme?: Weapon; retenu?: boolean; vehicule?: string; grapple?: boolean; coque?: number; frappeBlessante?: boolean }
 
 /** Un coup (de double, sauf `double: false`) sur la cible, par la couture du jeu (`rederivePassiveAttack` → `applyAttackResult`),
  *  la cascade drainée au dé `de` et au choix `choisir`. `tenu` = un siège MJ tient la cible. `pieces` = l'armure portée par la cible, à la place de sa PA plate.
  *  `martyr` = l'autre ennemi la garde (LDB 43 l.107) ; `demoniaque` = l'Indice de sa sauvegarde (LDB 85 l.98). `sousAttaque` = le coup d'une sous-attaque.
- *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître ; `grapple` = une Empoignade (LDB 14 l.159). */
-function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false }: Coup = {}) {
+ *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître ; `grapple` = une Empoignade (LDB 14 l.159).
+ *  `coque` = les Blessures restantes du véhicule ; `frappeBlessante` = l'attaquant a Frappe blessante (LDB 10). */
+function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false, coque, frappeBlessante = false }: Coup = {}) {
   banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'hote' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
@@ -46,9 +48,11 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'heros')!;
+  if (frappeBlessante) H.talents = [...(H.talents ?? []), { talentId: 'frappe-blessante', times: 1 }];
   const ennemis = b.combatants.filter((c) => c.kind === 'ennemi');
   if (vehicule) b.combatants[b.combatants.indexOf(ennemis[0])] = ennemis[0] = spawnEnemy({ vehicule }, ennemis[0].id, ennemis[0].pos!);
   const [cible, pretre] = ennemis;
+  if (coque != null) cible.wounds = { ...cible.wounds, current: coque };
   pretre.items = (pretre.items ?? []).filter((i) => i.kind !== 'armor');
   pretre.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
   pretre.wounds = blessuresDeBase(20, 20, pretre);
@@ -458,6 +462,46 @@ describe('véhicule routier : la coque refuse le Critique (EDOC 07 l.334)', () =
     expect(auJet.critical, 'le double fait le Coup Critique au jet').toBe(true);
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
+  });
+
+  // EDOC 07 l.334 ; #4202.
+  /** Le coup sur la diligence, avec les `critiques` de ses `ANIM_ATTACK` de mêlée. */
+  function surLaDiligence(o: Coup) {
+    const emis: (number | undefined)[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'melee') emis.push(p.result.critiques); });
+    try { return { ...coup({ vehicule: 'diligence', ...o }), emis }; } finally { lache(); }
+  }
+  const sabre = { ...epee, label: 'Sabre', qualities: [{ id: 'taillade', value: 1 }] } as Weapon;
+  const arbalete = { ...epee, label: 'Arbalète', type: 'distance', qualities: [{ id: 'empaleuse' }] } as unknown as Weapon;
+  const arbaleteTaillade = { ...arbalete, qualities: [{ id: 'empaleuse' }, { id: 'taillade', value: 1 }] } as unknown as Weapon;
+
+  it('Frappe blessante et double sur une diligence : aucune Blessure en plus, `critiques` nul', () => {
+    const temoin = surLaDiligence({});
+    const { H, cible, emis } = surLaDiligence({ frappeBlessante: true });
+    expect(cible.wounds.current).toBe(temoin.cible.wounds.current);
+    expect(journal()).not.toContain(tr('cf.coupBlessant', { name: cible.label, n: talentCritExtraWounds(H) }));
+    expect(emis.every((n) => !n), '`critiques` 0 ou absent').toBe(true);
+  });
+
+  it('Taillade et double sur une diligence : aucun État Hémorragique', () => {
+    const { auJet, cible } = surLaDiligence({ arme: sabre });
+    expect(auJet.critical).toBe(true);
+    expect(hasCondition(cible, 'hemorragique')).toBe(false);
+  });
+
+  it('Empaleuse et double sur une diligence : la munition se loge (effet du Coup Critique)', () => {
+    const { auJet, cible } = surLaDiligence({ arme: arbalete });
+    expect(auJet.critical).toBe(true);
+    expect(hasCondition(cible, 'munition-logee')).toBe(true);
+  });
+
+  it("Critique par dépassement seul sur une diligence : aucun effet sur Critique, même du Coup Critique", () => {
+    const { auJet, res, cible } = surLaDiligence({ arme: arbaleteTaillade, double: false, coque: 1 });
+    expect(auJet.critical, 'aucun double').toBe(false);
+    expect(res.woundsLost, 'le coup dépasse les Blessures restantes').toBeGreaterThan(1);
+    expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
+    expect(hasCondition(cible, 'munition-logee')).toBe(false);
+    expect(hasCondition(cible, 'hemorragique')).toBe(false);
   });
 });
 
