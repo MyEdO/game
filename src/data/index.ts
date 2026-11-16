@@ -893,6 +893,8 @@ export interface TrappingData {
   rendu?: { id: string };
   /** Cf. `Weapon.perteSansEquipe`. AA 10 l.148 ; ZI 13 l.193 */
   perteSansEquipe?: PerteSansEquipe;
+  /** Cf. `Weapon.bouclierDEquipe`. ZI 13 l.193 */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169/171) : peut viser une CASE au sol.
    *  Propagé Trapping → ItemInstance → Weapon (`indirect`) ; lu par `availableAttacks`. Canon/baliste = direct. */
   indirect?: boolean;
