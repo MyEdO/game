@@ -3179,6 +3179,64 @@
     }
   },
   {
+    "id": "barde",
+    "type": "trappings",
+    "label": "Barde",
+    "categorie": "armor",
+    "subType": {
+      "id": "mailles"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": "Tête, Corps, Pattes avant",
+    "pa": 2,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Possession sans prix ni disponibilité, Enc non compté. Arbitrages du 2026-11-16 (#4135) : « Possession seulement, non chiffrée » ; « Oui, même objet » ; matière, « Barde mailles, blaireau cuir ».",
+    "source": {
+      "book": "aux-armes",
+      "page": 109,
+      "note": "AA 09 l.188 ; PA : Up in Arms 10 l.156 (VO, nombres seuls)"
+    },
+    "shape": {
+      "id": "barde"
+    },
+    "capabilities": {
+      "armureDeMonture": true
+    }
+  },
+  {
+    "id": "caparacon-pour-blaireau",
+    "type": "trappings",
+    "label": "Caparaçon pour blaireau",
+    "categorie": "armor",
+    "subType": {
+      "id": "cuir-bouilli"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": "Tête, Corps",
+    "pa": 2,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Possession sans prix ni disponibilité, Enc non compté. Arbitrages du 2026-11-16 (#4135) : « Possession seulement, non chiffrée » ; « Oui, même objet » ; matière, « Barde mailles, blaireau cuir ».",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 88,
+      "note": "ADE I 07 l.66"
+    },
+    "shape": {
+      "id": "barde"
+    },
+    "capabilities": {
+      "armureDeMonture": true
+    }
+  },
+  {
     "id": "baril",
     "type": "trappings",
     "label": "Baril",
