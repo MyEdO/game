@@ -26,7 +26,15 @@ import {
   moneyPartialSchema,
   natureDInfluenceSchema,
 } from '../grammaire/valeurs';
-import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire, testDeSceneSchema } from '../grammaire/mecanique';
+import {
+  arbreDeFlow,
+  conditionSchema,
+  effectOpSchema,
+  executeesDe,
+  extendedTestSchema,
+  refuserLeVivreDuNavire,
+  testDeSceneSchema,
+} from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
