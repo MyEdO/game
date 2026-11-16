@@ -1283,8 +1283,9 @@ export type GameOp =
   | { op: 'light'; radiusM: number; tone?: { id: string } }
   /** Boisson alcoolisée : enregistre UN échec de Résistance à l'alcool (LDB 09 l.475) sur la cible —
    *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
-   *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
-  | { op: 'intoxicate' }
+   *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow).
+   *  `tantQuIvre` : ops jouées sous l'effet d'ivresse (`EFFET_D_IVRESSE`), retirées au dessoûlage. MDG 16 l.411 */
+  | { op: 'intoxicate'; tantQuIvre?: GameOp[] }
   /** Narration de campagne : texte Markdown et provenance locale. #2001. `nombre` : un nombre tiré à
    *  l'application, annoncé après le texte. MDG 15 l.154-155 */
   | { op: 'narrative'; text: string; nombre?: Formula; source?: SourceRef; adapteDe?: SourceRef }
@@ -3371,9 +3372,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const { log, drunkOps } = applyAlcoholTest(target, false, be, rng);
         lines.push(...log);
         // La MÉCANIQUE du résultat d'Ivresse (Bravoure/meilleur ami/belligérant, `drunkenness.json`)
-        // est un `GameOp[]` — exécutée ICI, sous le ctx imbriqué de l'op (`EFFET_D_IVRESSE` marque les
+        // est un `GameOp[]`, comme `tantQuIvre` — exécutés ICI, sous le ctx imbriqué de l'op (`EFFET_D_IVRESSE` marque les
         // ActiveEffect posés, retirés en bloc par `soberUpDissipate`).
-        if (drunkOps?.length) lines.push(...applyOps(target, drunkOps, imbrique({ effectId: EFFET_D_IVRESSE })));
+        const sousIvresse = [...(drunkOps ?? []), ...(o.tantQuIvre ?? [])];
+        if (sousIvresse.length) lines.push(...applyOps(target, sousIvresse, imbrique({ effectId: EFFET_D_IVRESSE })));
         break;
       }
       case 'narrative':
