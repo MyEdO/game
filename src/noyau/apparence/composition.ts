@@ -187,7 +187,8 @@ export function porteesDesObjets(objets: readonly ObjetPorte[], variantes?: Vari
 /** Ce que porte `composition` : sa tête, sa coiffure, les pièces de l'ensemble de sa tenue puis ses `pieces` (D6(b)), puis
  *  chaque objet, tenu puis porté (`porteesDesObjets`), son apparence choisie (`apparencesObjets`), à défaut sa forme, à son
  *  rangement choisi (`rangementsObjets`) s'il n'est pas tenu ; les pièces sous leurs variantes (`variantesPieces`) ; les
- *  facteurs de son gabarit, et le corps qu'elle habille. */
+ *  facteurs de son gabarit, le corps qu'elle habille, et ses couleurs : celles de sa race de rendu, chacune remplacée par
+ *  la sienne (#4379). */
 export function porteeDeComposition(composition: Composition): PorteeDeComposition {
   const race = raceAppearance.find((r) => r.id === composition.race.id);
   if (!race) throw new Error(`porteeDeComposition : « ${composition.race.id} » n'est aucune race de \`raceAppearance.json\`.`);
@@ -205,7 +206,8 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
     [...Object.entries(composition.prises ?? {}).map(([main, tenu]) => objet(tenu.id, main)), ...(composition.objets ?? []).map((id) => objet(id))],
     variantesPieces,
   );
-  const { sex, build, couleurs } = composition;
+  const { sex, build } = composition;
+  const couleurs = { ...race.couleurs, ...composition.couleurs };
   return {
     portees: [...liste, ...objets.portees],
     rapport: objets.rapport,
@@ -213,7 +215,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
     facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race),
     sex,
     ...(build === undefined ? {} : { build }),
-    ...(couleurs ? { couleurs } : {}),
+    ...(Object.keys(couleurs).length ? { couleurs } : {}),
   };
 }
 

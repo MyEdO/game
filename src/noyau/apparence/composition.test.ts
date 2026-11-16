@@ -22,6 +22,7 @@ import {
   gardeRobe,
   piecesDeLObjet,
   presetsDePersonnage,
+  raceAppearance,
   trappingsInstanciables,
   type PresetDePersonnage,
 } from '../../data';
@@ -45,6 +46,8 @@ const lue = (brut: unknown): Composition => {
 };
 
 describe('porteeDeComposition', () => {
+  afterEach(resetData);
+
   it('un objet habillé par un ensemble apporte ses pièces, sans apparence ni point', () => {
     const { portees } = porteeDeComposition(lue({ ...sansTenue, objets: ['gants'] }));
     expect(portees.filter((p) => p.par?.id === 'gants')).toEqual(
@@ -58,6 +61,13 @@ describe('porteeDeComposition', () => {
     const attendues = piecesDeLObjet('veste-de-cuir');
     expect(attendues.length).toBeGreaterThan(0);
     expect(portees.filter((p) => p.par?.id === 'veste-de-cuir').map((p) => p.cle)).toEqual(attendues.map((id) => ({ champ: 'piece', id })));
+  });
+
+  it('ses couleurs : celles de sa race de rendu, chacune remplacée par la sienne (#4379)', () => {
+    const { couleurs: _couleurs, ...sansCouleurs } = sansTenue;
+    expect(porteeDeComposition(lue(sansCouleurs))).not.toHaveProperty('couleurs');
+    setDataset('raceAppearance', raceAppearance.map((r) => (r.id === sansTenue.race.id ? { ...r, couleurs: { peau: { id: 'peau-pale' }, yeux: { id: 'yeux-gris' } } } : r)));
+    expect(porteeDeComposition(lue({ ...sansCouleurs, couleurs: { yeux: { id: 'yeux-verts' } } })).couleurs).toEqual({ peau: { id: 'peau-pale' }, yeux: { id: 'yeux-verts' } });
   });
 
   it('un objet tenu porte son apparence à sa prise', () => {
