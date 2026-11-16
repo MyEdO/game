@@ -196,11 +196,13 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * offres ouvertes, absente sans elles. Une offre par candidat, le sort, l'arme ou l'attaque de trait, est un choix à
    * elle sous sa part, de son nom court, en liste au-delà de sept candidats ouverts, chaque candidat ouvert un bouton qui le nomme et joue
    * le verbe de son offre, l'armé pressé ; absente sans candidat ouvert.
+   * hors de la barre ouverte (un jet, le tour d'un adversaire), un combat en cours ne sert que la fin du tour sous le tour,
+   * refusée de la raison de la barre (`combat.barre.raison`), son `jeu` une suite vide.
    */
   'combat.offres': Choix[];
   /**
    * les six emplacements rapides de l'actif d'un siège (`emplacementsRapides`), rang par rang en `rapide/<rang>`,
-   * aucun hors de la barre ouverte, comme les offres : hors de son tour, sous une fenêtre qui tient la main.
+   * aucun hors de la barre ouverte : hors de son tour, sous une fenêtre qui tient la main.
    * une case pleine en bouton : le nom du sort ou de l'objet, le dessin de son action, le geste de son offre, pressé
    * quand elle est armée, refusé avec sa raison.
    * une case dont rien ne s'offre plus reste à son rang, refusée, son `jeu` une suite vide.
@@ -1008,6 +1010,29 @@ function ficheDuSort(id: string, cout: (typeof ACTIONS)[number]['coutAction']): 
   return [s.label, ...faits.flatMap(([libelle, valeur]) => (valeur === null ? [] : [`${libelle} : ${valeur}`]))].join('\n');
 }
 
+/** La touche d'une offre de la barre, par l'id de son action ; une autre n'en a pas. */
+const TOUCHES_DES_OFFRES: Partial<Record<string, Touche>> = { 'fin-de-tour': 'fin_de_tour' };
+
+/** L'action d'une offre de la barre, par son id. */
+const actionDeLOffre = (id: string) => garanti(ACTIONS.find((a) => a.id === id), id, 'action de l’offre');
+
+/** Le choix d'une part de l'économie du tour `e`, de ses boutons, en `alerte` quand l'un est pressé. */
+function partDuTour(e: (typeof ACTIONS)[number]['coutAction'], valeurs: Bouton[]): Choix {
+  const dessin: IconId | undefined = (DESSINS_DES_PARTS as Partial<Record<string, IconId>>)[e];
+  return {
+    type: 'choix', id: `economie/${e}`, ton: valeurs.some((b) => b.presse) ? 'alerte' : 'neutre', libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs,
+    ...(dessin ? { icone: dessin } : {}),
+  };
+}
+
+/** La fin du tour d'un combat en cours dont la barre n'est pas ouverte : fermée de la `raison` de la barre, sans suite. */
+function finDuTourFermee(raison: string): Choix {
+  const fin = actionDeLOffre('fin-de-tour');
+  return partDuTour('aucun', [{
+    type: 'bouton', id: fin.id, libelle: fin.label, jeu: { suite: [] }, presse: false, focus: false, detail: null, touche: TOUCHES_DES_OFFRES[fin.id] ?? null, refus: raison, icone: fin.icon,
+  }]);
+}
+
 /** Les offres de l'actif, chacune un bouton qui joue son geste (`Offre.geste`), au dessin de son action, pressée quand
  *  elle est armée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui la nomme une
  *  fois, au dessin de sa part (`DESSINS_DES_PARTS`), en `alerte` quand l'une de ses offres est armée, celles qui n'en
@@ -1016,13 +1041,12 @@ function ficheDuSort(id: string, cout: (typeof ACTIONS)[number]['coutAction']): 
  *  elles. Une offre qui s'offre par candidat (le sort, l'arme, l'attaque de trait) est un choix à elle, au dessin de son
  *  action, de son nom court (`nomDePastille`), en `alerte` quand l'un de ses candidats est armé, sous sa part, en liste au-delà de `CHOIX_EN_BOUTONS`
  *  candidats ouverts : chaque candidat ouvert un bouton qui le nomme et joue son geste ; sans candidat ouvert, elle n'est
- *  pas projetée. Une offre sans geste, dont la case attend un paramètre que seule la console choisit, n'a pas de bouton. */
-/** La touche d'une offre de la barre, par l'id de son action ; une autre n'en a pas. */
-const TOUCHES_DES_OFFRES: Partial<Record<string, Touche>> = { 'fin-de-tour': 'fin_de_tour' };
-
+ *  pas projetée. Une offre sans geste, dont la case attend un paramètre que seule la console choisit, n'a pas de bouton.
+ *  Hors de la barre ouverte, un combat en cours ne porte que la fin du tour fermée (`finDuTourFermee`). */
 function offresDuCombat(c: Combat): Choix[] {
-  const offres = (c.offres?.liste ?? []).filter((o) => o.geste || o.candidats.some((k) => k.geste));
-  const action = (o: (typeof offres)[number]) => garanti(ACTIONS.find((a) => a.id === o.id), o.id, 'action de l’offre');
+  if (c.offres === null) return c.fin === null && c.barre.raison !== null ? [finDuTourFermee(c.barre.raison)] : [];
+  const offres = c.offres.liste.filter((o) => o.geste || o.candidats.some((k) => k.geste));
+  const action = (o: (typeof offres)[number]) => actionDeLOffre(o.id);
   const jeuDe = (g: GesteDuNoyau): Bouton['jeu'] => ({ type: g.verbe, args: g.args });
   const bouton = (o: (typeof offres)[number]): Bouton => ({
     type: 'bouton', id: o.id, libelle: action(o).label, jeu: jeuDe(garanti(o.geste, o.id, 'geste de l’offre')), presse: o.armee, focus: false, detail: null, touche: TOUCHES_DES_OFFRES[o.id] ?? null, refus: o.refus, icone: action(o).icon,
@@ -1039,12 +1063,8 @@ function offresDuCombat(c: Combat): Choix[] {
   return [...new Set(offres.map((o) => o.economie))].flatMap((e): Choix[] => {
     const part = offres.filter((o) => o.economie === e);
     const uniques = part.filter((o) => !o.candidats.length && o.geste && (EMPLACEMENTS_FIXES.has(e) || o.refus === null));
-    const dessin: IconId | undefined = (DESSINS_DES_PARTS as Partial<Record<string, IconId>>)[e];
     return [
-      ...(uniques.length ? [{
-        type: 'choix' as const, id: `economie/${e}`, ton: uniques.some((o) => o.armee) ? 'alerte' as const : 'neutre' as const, libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: uniques.map(bouton),
-        ...(dessin ? { icone: dessin } : {}),
-      }] : []),
+      ...(uniques.length ? [partDuTour(e, uniques.map(bouton))] : []),
       ...part.filter((o) => o.candidats.length).flatMap(parCandidat),
     ];
   });

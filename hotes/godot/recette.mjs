@@ -1628,10 +1628,10 @@ async function parcoursSoin() {
   await engagerLeCombat()
   await attendreLaVue('!!v.projection.combat')
   await fermerLesFenetres()
-  /** La main à un héros : sa barre offre la fin du tour, toute fenêtre vidée. */
+  /** La main à un héros : sa barre offre la fin du tour ouverte, toute fenêtre vidée. */
   const aUnHeros = async () => {
     for (;;) {
-      await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'fin-de-tour')", 120000)
+      await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'fin-de-tour' && !b.refus)", 120000)
       if (!(await vue()).projection.fenetre) return
       await fermerLesFenetres()
     }

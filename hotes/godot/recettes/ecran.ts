@@ -249,8 +249,8 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     const rang = rangs.find((r) => r.id === `ordre/${id}`) ?? rangs.find((r) => r.id === `suite/${id}`);
     return (rang?.type === 'entite' ? rang.elements : []).find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu;
   };
-  /** Le geste que l'offre `id` de la barre déclare, tel que l'hôte le dessine. */
-  const offre = (s: Suite, id: string): Jeu => s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).find((b) => b.id === id)!.jeu;
+  /** Le geste que l'offre ouverte `id` de la barre déclare, tel que l'hôte le dessine. */
+  const offre = (s: Suite, id: string): Jeu => s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).find((b) => b.id === id && !b.refus)!.jeu;
 
   const dome = unPont(lignes);
   const { appeler, jouer, fermer } = dome;

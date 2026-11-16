@@ -57,6 +57,12 @@ const valeurDe = (b: Bouton): unknown => ('args' in b.jeu ? b.jeu.args[b.jeu.arg
 
 const actifDe = (s: Suite) => s.vue.projection.combat!.actif!;
 
+/** Les offres de la barre, chaque choix par son id, chacun de ses boutons par son id, sa raison et son jeu. */
+const offresDe = (s: Suite) => s.vue.zones['combat.offres'].map((c) => [c.id, c.valeurs.map((b) => [b.id, b.refus, b.jeu])]);
+
+/** Ce que sert la barre fermée de la raison `raison` (A2, J1 de `hotes/godot/cibles/combat.md`). */
+const finDuTourFermee = (raison: string) => [['economie/aucun', [['fin-de-tour', raison, { suite: [] }]]]];
+
 /** La fin du tour par le verbe de son offre, confirmée par le même verbe quand la vue la dit armée (`finDeTourArmee`). */
 function finirLeTour(): ReturnType<typeof jouer> {
   const arme = jouer({ type: 'terminerLeTour', args: [] });
@@ -99,6 +105,8 @@ describe('un tour complet par le pont', () => {
     expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
     expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');
     expect(economie('fin-de-tour'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
+    expect(economie('fin-de-tour')!.valeurs.find((v) => v.id === 'fin-de-tour'), 'au tour du héros, la fin du tour est ouverte et finit le tour')
+      .toMatchObject({ refus: null, touche: 'fin_de_tour', jeu: { type: 'terminerLeTour' } });
     const action = economie('attaque')!.valeurs;
     expect(action.map((v) => [v.id, v.icone]), 'chaque offre de l’Action porte le dessin de son action en donnée').toEqual(action.map((v) => [v.id, ACTIONS.find((a) => a.id === v.id)!.icon]));
     expect(action.every((v) => typeof v.icone === 'string'), 'chaque offre de l’Action a un dessin').toBe(true);
@@ -122,6 +130,8 @@ describe('un tour complet par le pont', () => {
     ({ suite } = jouer(clicDuCombattant(suite.vue, cible)!));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDAttaque' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attaque');
+    expect(suite.vue.projection.combat!.barre, 'pendant le jet, la fenêtre tient la main').toEqual({ forme: 'tenue', raison: t('barre.mainTenue') });
+    expect(offresDe(suite), 'pendant le jet, la barre ne sert que la fin du tour, fermée de sa raison').toEqual(finDuTourFermee(t('barre.mainTenue')));
     expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attaque#localisation');
     expect([corpsDe(suite.vue, 'jet'), corpsDe(suite.vue, 'defense')].map((j) => j && 'combattant' in j && j.combattant), 'chaque camp du jet porte l’id de son combattant en vue')
       .toEqual([heros.id, cible]);
@@ -196,6 +206,9 @@ describe('un tour complet par le pont', () => {
     expect(adversaire.camp, 'les jetons repris, le noyau joue l’adversaire').toBe('ennemi');
     const defense = suite.vue.projection.fenetre!;
     expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDeDefense' } });
+    const raison = t('barre.nonPilote', { name: adversaire.nom });
+    expect(suite.vue.projection.combat!.barre, 'au tour de l’adversaire, la barre est spectatrice').toEqual({ forme: 'spectatrice', raison });
+    expect(offresDe(suite), 'au tour de l’adversaire, la fin du tour reste servie, fermée de sa raison').toEqual(finDuTourFermee(raison));
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense dit qui attaque').toMatchObject({ type: 'ligne', texte: expect.stringContaining(adversaire.nom) });
     const etape = suite.vue.zones['fenetre.etape'];
     expect(suite.vue.disposition, 'la Défense se dispose par sa clé et son jet').toBe('cascade/defense');

@@ -49,12 +49,14 @@ extends Node
 ## l'Entrée joue en laiton plein. Le camp du joueur à gauche (`jetDuCamp`), l'autre à droite en miroir
 ## (`jetDuCampEnMiroir`), chacun son portrait au bord (`Jet.combattant` : le joueur dans le laiton, l'autre sur la cire,
 ## les cadres des rangs de `art/rang.tres`, aucun sans combattant), son nom, sa compétence, son seuil, ses deux dés à dix faces (`navigation/des`, la face
-## de chacun lue au résultat, `Liaison.face`), son résultat en sceau, son verdict en petites capitales, son DR et ses modificateurs ; au centre le reste, centré, le DR net en gothique (`art/dr_net.tres`), l'issue
+## de chacun lue au résultat, `Liaison.face`), son résultat en sceau, son verdict en petites capitales, son DR et ses modificateurs ; au centre le reste,
+## centré, le DR net en gothique (`art/dr_net.tres`), l'issue
 ## penchée (`art/issue_du_jet.tres`), chaque réglage en ligne qui coule (`choixEnLigne`). Le bandeau se centre sur la
 ## scène sans couvrir l'ordre du tour ni la fin du tour (`MiseEnPage.largeur_du_bandeau`) ; ses trois colonnes sont côte à côte (`Duel`), le nom
 ## d'un camp et ses modificateurs coulent dans la sienne. L'écran d'attaque (`projet/ecrans/cascade/attaque.tscn`) : au centre l'arme et la cible
 ## sur une ligne qui les sépare d'un point, ses pastilles, le DR net, l'issue et les options du coup, la Localisation sur
-## une silhouette (`silhouette`, chaque zone le bouton de sa valeur, par l'id de la valeur, `art/silhouette.tres`) ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
+## une silhouette (`silhouette`, chaque zone le bouton de sa valeur, par l'id de la valeur, `art/silhouette.tres`) ; l'écran de Défense
+## (`projet/ecrans/cascade/defense.tscn`),
 ## sa réaction à gauche, son score à atteindre avant le dé, face au jet de l'attaquant, révélé une fois le dé tombé.
 ## Le bandeau d'incantation (`projet/ecrans/cascade/incantation.tscn`) n'a qu'un camp, le lanceur (son NI au
 ## libellé) ; au centre le sort et sa cible, la zone et le budget de Surincantation en pastilles, l'issue, puis

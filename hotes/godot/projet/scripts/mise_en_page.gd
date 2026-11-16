@@ -1,11 +1,15 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, son lacet à un azimut, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
-## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
+## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses
+## pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
 ## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
-## d'un point, les deux faces d'un d100, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
-## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
+## d'un point, les deux faces d'un d100, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du
+## tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de
+## bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le
+## plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
 ## sa case, le coin de ce qui se pose sous un lieu, la
 ## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
