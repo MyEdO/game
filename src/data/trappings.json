@@ -13578,6 +13578,9 @@
       }
     ],
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "jezail"
     },
@@ -13595,6 +13598,9 @@
     },
     "shield": true,
     "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "reach": "Très courte",
     "loc": null,
@@ -13686,6 +13692,9 @@
       }
     ],
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "canon_ratling"
     },
@@ -13774,6 +13783,9 @@
       }
     ],
     "enc": 2,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "onHitEffects": [
       {
         "trigger": "onHit",
@@ -13885,6 +13897,9 @@
       }
     ],
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "pistolet_malepierre"
     },
@@ -14077,6 +14092,9 @@
       "id": "poudre-noire"
     },
     "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14142,6 +14160,9 @@
       "id": "armes-d-hast"
     },
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Longue",
@@ -14247,6 +14268,9 @@
       "id": "base"
     },
     "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Moyenne",
@@ -14283,6 +14307,9 @@
       "id": "poudre-noire"
     },
     "enc": 2,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14323,6 +14350,9 @@
       "id": "lancer"
     },
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14361,6 +14391,9 @@
       "id": "lancer"
     },
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14427,6 +14460,9 @@
       "id": "fleau"
     },
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Longue",

@@ -43,7 +43,7 @@ export function construction(element, sortie) {
 }
 
 /** Les éléments `<base>/<nom>` du lot dans l'ordre de leur construction : chacun après ceux du lot dont il lit l'id publié
- *  `<base>--<nom>` (`lus[element]`, les ids que rend `contourne` d'`entrees.py`), l'ordre donné gardé sinon. Lève sur un
+ *  `<base>--<nom>` (`lus[element]`, les ids que rend `ids_lus` d'`entrees.py`), l'ordre donné gardé sinon. Lève sur un
  *  cycle. PURE. */
 export function ordreDuLot(elements, lus) {
   const parId = new Map(elements.map((e) => [e.replace('/', '--'), e]))
@@ -143,9 +143,9 @@ if (import.meta.main) {
   const importes = []
   try {
     const parElement = new Map(positionals.map((e) => [e, construction(e, join(temporaire, e.replace('/', '--')))]))
-    const contournes = JSON.parse(await lancer([ENVIRONNEMENT, 'scripts/personnage-3d/entrees.py', ...positionals.map((e) => parElement.get(e).donnees)],
-      join(temporaire, 'contourne.log'), 'lecture des CONTOURNE'))
-    const ordre = ordreDuLot(positionals, tableTotale(positionals, (_, i) => contournes[i]))
+    const lus = JSON.parse(await lancer([ENVIRONNEMENT, 'scripts/personnage-3d/entrees.py', ...positionals.map((e) => parElement.get(e).donnees)],
+      join(temporaire, 'ids-lus.log'), 'lecture des ids lus'))
+    const ordre = ordreDuLot(positionals, tableTotale(positionals, (_, i) => lus[i]))
     const { enCacheOuTire, DOSSIER_DES_MODELES, CACHE_DES_MODELES } = await chargerAssets(["export { CACHE_DES_MODELES } from '/hotes/godot/asset/release.ts';"])
     for (const element of ordre) {
       const { commande } = parElement.get(element)
