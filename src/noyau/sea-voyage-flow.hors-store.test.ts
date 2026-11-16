@@ -6,7 +6,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import {
   buildSeaPlan, portRepairVessel, installerLAmelioration, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
-  buildOverspeedSteps, engineerOf, etapeDEquipage, type SeaVoyageState,
+  buildOverspeedSteps, engineerOf, etapeDEquipage, entrerDansLeTourbillon, type SeaVoyageState,
 } from './seaVoyageFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -419,6 +419,31 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
   });
 });
 
+describe('Tourbillon — l’Évasion se joue à la Difficulté du gabarit (MDG 13 l.531-535)', () => {
+  beforeEach(freshState);
+
+  function drEvasion(whirlpoolId: string): number {
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    entrerDansLeTourbillon(get, set, whirlpoolId, whirlpoolId);
+    for (let i = 0; i < 30 && !get().pendingRest; i++) {
+      const p = get().pendingCascade;
+      if (!p) break;
+      const cur = p.participants[p.cursor];
+      if (cur?.kind === 'equipage-tourbillon') return Number(cur.meta?.aggregateFlatDR ?? 0);
+      stepCascade();
+    }
+    throw new Error(`aucune étape d’Évasion jouée pour ${whirlpoolId}`);
+  }
+
+  it('Maelstrom Difficile (–20) : −2 DR face au Tourbillon Intermédiaire ; Rotation lente Accessible (+20) : +2 DR', () => {
+    const intermediaire = drEvasion('tourbillon');
+    freshState();
+    expect(drEvasion('maelstrom')).toBe(intermediaire - 2);
+    freshState();
+    expect(drEvasion('rotation-lente')).toBe(intermediaire + 2);
+  });
+});
+
 describe('Infestation de rats géants — Extermination des nuisibles Complexe (MDG 15 l.159-164)', () => {
   beforeEach(freshState);
 
@@ -615,7 +640,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 1, modes: ['mer'], sea: true, seaHeading: 'est' }],
   };
 
-  function freshLighthouseState() {
+  function freshLighthouseState(km = 1) {
     seedBattleRng(1);
     const [a, b] = tousLesHerosDeScenario(idsDeTest);
     const vigie = { ...a, skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], traumas: [traumaById('surdite', undefined, 'tete')] };
@@ -624,7 +649,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       party: [vigie, timonier],
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
-      worldMap: lighthouseMap,
+      worldMap: { ...lighthouseMap, routes: lighthouseMap.routes.map((r) => ({ ...r, km })) },
       lieu: 'A',
       travelPlan: null,
       travelRecap: null,
@@ -638,23 +663,33 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     } as never);
   }
 
-  it('la Vigie SOURDE n’est PAS pénalisée au Test de Perception du phare (sense "vue" posé par kind "equipage-phare")', () => {
-    freshLighthouseState();
+  /** Joue le PREMIER jour de mer jusqu'à l'étape du phare, ou jusqu'à l'Orientation (bâtie après lui) s'il n'y en a pas. */
+  function premierJourDeMer(km: number) {
+    freshLighthouseState(km);
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     let phare: CascadeStep | undefined;
     let progression: CascadeStep | undefined;
-    for (let i = 0; i < 30 && !phare; i++) {
+    let milesToday = 0;
+    let orientation = false;
+    for (let i = 0; i < 30; i++) {
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
       if (cur?.kind === 'equipage-phare') { phare = cur; break; }
+      if (cur?.kind === 'equipage-orientation') { orientation = true; break; }
       if (cur?.kind === 'equipage-progression') progression = cur;
       // Le choix de Progression (MDG 14 l.63) se répond par défaut — voie d'équipage.
       if (cur?.options && !cur.chosen) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
       else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetLancer('cascadeEnBande', part.id); }
       else if (cur && !cur.result) get().jetLancer('cascade', cur.id);
       get().jetValider('cascade');
+      if (cur?.kind === 'equipage-progression') milesToday = get().travelPlan?.sea?.milesToday ?? 0;
     }
+    return { phare, progression, milesToday, orientation };
+  }
+
+  it('la Vigie SOURDE n’est PAS pénalisée au Test de Perception du phare (sense "vue" posé par kind "equipage-phare")', () => {
+    const { phare, progression } = premierJourDeMer(1);
     expect(phare).toBeTruthy(); // l'étape du phare a bien été atteinte (port à phare, km 1 → dans la portée dès le jour 1)
     // Dé-navalisation (#328) : `sense`/`roleId` ne sont plus des champs du participant GÉNÉRIQUE —
     // l'effet du sens « vue » est BAKÉ dans la présentation `base` À LA CONSTRUCTION (`crewRoleValue`,
@@ -668,6 +703,21 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     // Autre étape (Progression, sans sens narratif dédié) : base résolue SANS sens — comportement historique.
     expect(progression).toBeTruthy();
     for (const part of progression!.participants!) expect(typeof part.base).toBe('number');
+  });
+
+  // MDG 13 l.339-346
+  it.each([
+    [5, 'facile'],
+    [5.2, 'intermediaire'],
+    [10.2, 'difficile'],
+    [15.2, null],
+  ] as const)('à %s milles restants, le Test de phare est %s', (milesRestants, difficulte) => {
+    const { milesToday } = premierJourDeMer(1000);
+    expect(milesToday).toBeGreaterThan(0);
+    const jour = premierJourDeMer(milesToday + milesRestants);
+    expect(jour.milesToday).toBe(milesToday);
+    if (difficulte === null) { expect(jour.orientation).toBe(true); expect(jour.phare).toBeUndefined(); return; }
+    expect(Number(jour.phare!.meta?.aggregateFlatDR ?? 0)).toBe(Number(jour.progression!.meta?.aggregateFlatDR ?? 0) + DIFFICULTY_MODIFIERS[difficulte] / 10);
   });
 });
 

@@ -1021,9 +1021,10 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
     // Manœuvre tant que non dégagé.
     const entangleDR = findCrewTestTypeById(testTypeId)?.steering ? (sea.entangled?.manDR ?? 0) : 0;
     // Le Test d'Évasion d'un Tourbillon (MDG 13 l.514-537) traverse des eaux dangereuses (LDB 10 l.966).
+    const evasion = sea.crisis.kind === 'tourbillon' ? garanti(findWhirlpool(sea.crisis.whirlpoolId), sea.crisis.whirlpoolId, 'tourbillon').evasion : undefined;
     const st = buildVoyageCrewStep(get, testTypeId, kind, {
       ...(entangleDR ? { extraDR: entangleDR } : {}),
-      ...(kind === 'equipage-tourbillon' ? { contexte: 'perilDesEaux' as const } : {}),
+      ...(evasion ? { contexte: 'perilDesEaux' as const, difficulty: evasion.difficulty } : {}), // MDG 13 l.531-535
     });
     if (st) out.push(st);
     else resolveSeaCrisisRound(get, set, capToSuccesMinime(UNDERCREW_DR));
@@ -1057,8 +1058,9 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   const dest = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
   const lighthouse = dest?.port?.lighthouse;
   const milesLeft = plan.km - plan.kmDone - sea.milesToday;
-  if (lighthouse && milesLeft <= 15 && lighthouseSpotDifficulty(Math.max(1, Math.round(milesLeft))) != null) {
-    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: 'vue' });
+  const spot = lighthouse ? lighthouseSpotDifficulty(Math.max(1, Math.ceil(milesLeft))) : null;
+  if (spot) {
+    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: 'vue', difficulty: spot }); // MDG 13 l.339-346
     pousseSi(out, st);
   }
   // 5. Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311), + Carte marine (+DR, MDG 15 l.290).
@@ -1117,7 +1119,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   const eff = effectiveSeaM(get);
   if (eff.sail && eff.m === null && eff.affaler) {
     patchSea(get, set, { sailsDown: true });
-    const st = buildVoyageCrewStep(get, 'affaler', 'equipage-affaler');
+    const st = buildVoyageCrewStep(get, 'affaler', 'equipage-affaler', { difficulty: AFFALER_RULES.difficulty }); // MDG 13 l.292
     pousseSi(steps, st);
   }
   // 3. Progression du jour : MDG 14 l.61-65 ; MDG 15 l.78. Encalminé : MDG 13 l.296-298. Voiles
