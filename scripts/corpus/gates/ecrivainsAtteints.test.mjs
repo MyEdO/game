@@ -865,6 +865,10 @@ const ATTENDU = {
     "scripts/test/node-tests.mjs",
     "scripts/test/verrou.mjs",
     "scripts/guards/lib/superviserProcessus.mjs",
+    // #4338 : `fabriquerTransfert` pose son index et son message sous un `mkdtempSync` d'os.tmpdir(), retiré en finally,
+    // dans le dépôt forgé du banc sous os.tmpdir() ; la construction, l'import et le cache restent sous `import.meta.main`.
+    "scripts/personnage-3d/integrer.mjs",
+    "scripts/personnage-3d/integrer.test.mjs",
   ],
   // #2586 : la garde des balayages non résolus dérive par `balayagesNonResolus` de `perimetre.mjs` (mémos sous un
   // `mkdtempSync` d'os.tmpdir()), qui lance ses fichiers par `memoire.mjs` (émissions et diagnostic sous un
