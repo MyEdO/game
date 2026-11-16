@@ -1741,6 +1741,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -1786,6 +1789,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -14202,6 +14208,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {

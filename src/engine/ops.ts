@@ -3307,7 +3307,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         } else if (tenue) {
           if (!ctx.onLacher) lacherLArme(target, tenue);
           else {
-            const tombe = laisserTomber(target, tenue);
+            const tombe = laisserTomber(target, tenue, ctx.idNeuf);
             if (tombe) ctx.onLacher(target, tombe);
           }
           lines.push(t('op.desarmement', { name: target.label, item: tenue.label }));

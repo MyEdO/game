@@ -6,13 +6,14 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { itemFromTrappingById, weaponFromItem } from '../engine/items';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-// Câblage de la Dispersion (LDB 14 l.144-151) : un TIR DE LANCER raté dévie (journal de Dispersion),
-// un tir d'ARC raté reste un simple échec sans déviation (Portée FIXE ≠ Portée `{bf}`).
+// LDB 14 l.144-151 ; #4330
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -35,8 +36,9 @@ const enemy = (p: Partial<Combatant>): Combatant =>
     ...p,
   }) as unknown as Combatant);
 
-const thrown: Weapon = { label: 'Hache de jet', type: 'distance', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 }, qualities: [] } as Weapon;
-const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [] } as Weapon;
+const arme = (id: string): Weapon => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
+const thrown = arme('hache-de-lancer');
+const bow = arme('arc');
 
 const missRes = (): AttackResult => ({
   hit: false, attackerRoll: 88, netSL: -3, critical: false, advantageTo: null, defenderDefeated: false, log: 'manque sa cible.',
@@ -62,7 +64,7 @@ describe('Dispersion — câblage d’un raté de Lancer (LDB 14 l.144-151)', ()
     expect(logText()).toMatch(/Dispersion/);
   });
 
-  it('tir d’ARC raté → AUCUNE Dispersion (Portée fixe, pas une arme de jet)', () => {
+  it('tir d’ARC raté → AUCUNE Dispersion (Groupe Arc, pas une arme lancée)', () => {
     setBattle([hero({ weapons: [bow] }), enemy({})]);
     applyAttackResult(banc.getState, banc.setState, banc.getState().battle!.combatants[0], banc.getState().battle!.combatants[1], bow, missRes());
     expect(logText()).not.toMatch(/Dispersion/);
