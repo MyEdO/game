@@ -248,15 +248,15 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
   const place = (patch: Partial<MapPlace>): MapPlace =>
     ({ id: 'l1', label: 'Lieu', pos: { x: 0, y: 0 }, scene: { id: 's1' }, ...patch });
 
-  it('lieu COMPLET (port + marché + auberge propre) → 3 services, payloads RÉFÉRENCÉS (pas copiés)', () => {
+  it('lieu COMPLET (port + marché + auberge propre) → 3 services, port et offres RÉFÉRENCÉS, marché à la Taille du port', () => {
     const port = { taille: 4, richesse: 5, production: ['commerce-mer'] };
-    const market = { taille: 3, richesse: 4, produits: ['vin-eau-de-vie'] };
+    const market = { richesse: 4, produits: ['vin-eau-de-vie'] };
     const offres = [{ id: 'repas' as const, source: { book: 'livre-de-base', page: 302 } }];
     const p = place({ port, market, services: [{ id: 'auberge', kind: { id: 'auberge' }, rest: { quality: 'grande', offres } }] });
     const svc = placeServices(p);
     expect(svc.map((s) => s.category)).toEqual(['port', 'marche', 'auberge']);
     expect(svc[0].port).toBe(p.port); // référence, pas une copie
-    expect(svc[1].market).toBe(p.market);
+    expect(svc[1].market, 'le marché à la Taille du port').toEqual({ ...market, taille: 4 });
     expect(svc[2].rest).toEqual({ places: { auberge: true }, quality: 'grande', offres });
     expect(svc[2].rest?.offres).toBe(offres);
     expect(svc[2].label).toBe('Auberge'); // libellé du catalogue lieux-services.json

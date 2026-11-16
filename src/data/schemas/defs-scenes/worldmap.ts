@@ -3,9 +3,10 @@ import { nommerChamps } from '../grammaire/meta';
  * Schémas zod de la CARTE DU MONDE d'un projet (`src/noyau/worldMap.ts`) — lieux, routes, services.
  *
  * ORDRE DU SEAM : le schéma voit `places[].port` AVANT `resolvePortRef` (`parseProject`), donc
- * sous ses DEUX formes documentées (`worldMap.ts:181-183`) — la forme SPARSE par référence
+ * sous ses DEUX formes — la forme SPARSE par référence
  * (`{ ref, lighthouse }`, le catalogue `naval-ports.json` fournissant les défauts) et la forme
- * CONCRÈTE à plat (`PortProfile` complet). Un port sans `ref` porte donc son profil en entier.
+ * CONCRÈTE à plat (`PortProfile` complet), que documente `MapPlace.port`. Un port sans `ref` porte donc son
+ * profil en entier.
  */
 import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
@@ -26,16 +27,21 @@ export const travelModeSchema = z.string();
 /** `WindDirection` (`engine/seaWeather.ts`) — cap dominant d'une route maritime (`MDG 13 l.262-270`). */
 export const windDirectionSchema = enumNomme({ nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest' });
 
-/** `PortProfile` (`engine/seaVoyage.ts:217`) en forme AUTHORÉE : SPARSE quand `ref` désigne une
+/** Libellé de chaque indice de Taille d'un lieu. MSRC 13 l.44-50 */
+export const LIBELLES_DE_TAILLE: Readonly<Record<number, string>> = { 1: 'Hameau', 2: 'Village', 3: 'Ville', 4: 'Grande ville' };
+
+/** Indice de Taille d'un lieu (`LIBELLES_DE_TAILLE`), MSRC 13 l.44-50 : un nœud pour ses deux porteurs, le port
+ *  (`portProfileSchema`) et le lieu sans port (`mapPlaceSchema`). Le MDG n'imprime AUCUNE échelle : son Index des ports
+ *  emploie celle-ci — mesuré 2026-09-01, 39/39 ports de `naval-ports.json` dans 1..4 ; `MDG 15 l.249`. */
+export const tailleDuLieuSchema = z.number().int().min(1).max(4);
+
+/** `PortProfile` (`engine/seaVoyage.ts`) en forme AUTHORÉE : SPARSE quand `ref` désigne une
  *  entrée de `naval-ports.json` (les champs présents sont des SURCHARGES locales), COMPLET sinon.
  *  `lighthouse` (hors catalogue) : un phare veille sur l'approche (`MDG 13 l.333-351`). */
 export const portProfileSchema = nommerChamps(z
   .strictObject({
     ref: idDe('navalPort').optional(),
-    /** Indice de Taille du Lieu. Le MDG n'imprime AUCUNE échelle : c'est celle de `MSRC 13 l.44-50`
-     *  (1 Hameau … 4 Grande ville) que son Index des ports emploie — mesuré 2026-09-01, 39/39 ports de
-     *  `naval-ports.json` dans 1..4, et `MDG 15 l.249` nomme « hameau ou petit village (Taille 1 ou 2) ». */
-    taille: z.number().int().min(1).max(4).optional(),
+    taille: tailleDuLieuSchema.optional(),
     /** Indice de Richesse du Lieu, `MSRC 13 l.52-60` (1 à 5). Même mesure : 39/39 ports dans 1..5.
      *  Le domaine est FERMÉ aux deux bouts — c'est lui qui entre dans le tableau du Prix d'offre
      *  (`MDG 15 l.378-383`), dont la première bande commence à 1. */
@@ -56,16 +62,15 @@ export const portProfileSchema = nommerChamps(z
         ctx.addIssue({
           code: 'custom',
           path: [champ],
-          message: `port sans « ref » : le profil est authoré EN ENTIER, « ${champ} » manque (forme concrète, worldMap.ts:181-183).`,
+          message: `port sans « ref » : le profil est authoré EN ENTIER, « ${champ} » manque.`,
         });
       }
     }
   }), { ref: { label: "référence" , texte: { regime: "technique"} }, taille: { label: "taille" }, richesse: { label: "richesse" }, production: { label: "production" , texte: { regime: "technique"} }, surplus: { label: "surplus" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, cosmopolite: { label: "cosmopolite" }, lighthouse: { label: "phare" } });
 
-/** `LandMarketProfile` (`engine/landCargo.ts:62`) — indices de commerce terrestre/fluvial (`MSRC 13`). */
+/** `LandMarketProfile` (`engine/landCargo.ts`) sans sa Taille, que porte le lieu (`tailleDuLieu`) — indices de commerce
+ *  terrestre/fluvial (`MSRC 13`). */
 export const landMarketProfileSchema = nommerChamps(z.strictObject({
-  /** Indice de Taille de la communauté (1 Hameau … 4 Grande ville, `MSRC 13 l.44-50`). */
-  taille: z.number().int().min(1).max(4),
   /** Indice de Richesse, `MSRC 13 l.52-60` : la colonne n'imprime QUE 1 à 5 — « Misérable » y porte
    *  « - », donc aucun indice, et n'est pas authorable. Domaine FERMÉ : c'est la colonne d'entrée du
    *  tableau de la Mise à prix (`MSRC 13 l.150-156`), qui donne une ligne par indice de 1 à 5. */
@@ -79,7 +84,7 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
   wineBonusEchelons: z.number().optional(),
   hostLine: z.string().optional(),
   backdrop: ref('fond').optional(),
-}), { taille: { label: "taille" }, richesse: { label: "richesse" }, produits: { label: "produits" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" , texte: { regime: "narration",horsContrat: { motif: "sans-saisie-campagne",preuve: "src/ui/editor/WorldMapPlacePanel.tsx:WorldMapPlacePanel"}} }, backdrop: { label: "fond" } });
+}), { richesse: { label: "richesse" }, produits: { label: "produits" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" , texte: { regime: "narration",horsContrat: { motif: "sans-saisie-campagne",preuve: "src/ui/editor/WorldMapPlacePanel.tsx:WorldMapPlacePanel"}} }, backdrop: { label: "fond" } });
 
 /** Les établissements d'un lieu (`MapPlace.services`), que désigne hors du catalogue le point d'intérêt de son plan
  *  (`PlacePoi.service`) ; le lieu l'ouvre (`mapPlaceSchema`). #4277 */
@@ -128,7 +133,8 @@ export const placePoiSchema = nommerChamps(z
     }
   }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, service: { label: "service" , texte: { regime: "technique"} } });
 
-/** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. */
+/** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. Sa Taille a UN porteur (`tailleDuLieu`) :
+ *  son port, sinon `taille` ; un marché exige l'un des deux. MSRC 13 l.44-50 */
 export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
@@ -138,6 +144,8 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
   entry: z.string().optional(),
   /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
   icon: idDIconeSchema.optional(),
+  /** Taille d'un lieu SANS port ; absente : le lieu n'est pas une agglomération. */
+  taille: tailleDuLieuSchema.optional(),
   port: portProfileSchema.optional(),
   market: landMarketProfileSchema.optional(),
   services: listeCle(placeServiceSchema, 'id').optional(),
@@ -148,7 +156,12 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose'), [SERVICES_DU_LIEU]);
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, taille: { label: "taille" }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose').superRefine((lieu, ctx) => {
+  if (lieu.taille !== undefined && lieu.port !== undefined)
+    ctx.addIssue({ code: 'custom', path: ['taille'], message: 'un lieu à port tient sa taille de son port : « taille » ne s’y pose pas.' });
+  if (lieu.market !== undefined && lieu.taille === undefined && lieu.port === undefined)
+    ctx.addIssue({ code: 'custom', path: ['market'], message: 'un marché exige la taille du lieu : posez « taille », ou un port.' });
+}), [SERVICES_DU_LIEU]);
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. Hors de toute scène, elle en ouvre
  *  les portées VIDES (`ouvrirPortees`, source `'vide'`) : aucune référence locale de la scène n'y résout. */

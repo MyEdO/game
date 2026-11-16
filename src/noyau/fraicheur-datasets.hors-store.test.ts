@@ -38,7 +38,7 @@ import {
 import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
 import { overloadMaxEnc, offerPricePct } from '../engine/seaVoyage';
 import { minCargoEnc, partialSurchargePct, rollMerchantSkill } from '../engine/landCargo';
-import { rollAvailability, barterRatio } from '../engine/disponibilite';
+import { rollAvailability, barterRatio, colonneDeLaTaille } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { SEA_BOARD_EVENT_TABLE } from './seaVoyageFlow';
 import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from '../data/index';
@@ -306,17 +306,20 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(second.id);
   });
 
-  it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability` et `barterRatio` la lisent', () => {
+  it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability`, `barterRatio` et `colonneDeLaTaille` la lisent', () => {
     const fiche = structuredClone(datasetObject('disponibilite'));
     expect(rollAvailability('limitee', 'village', deFixe(1)).test!.target).toBe(30);
     expect(barterRatio('commune', 'exotique')).toEqual({ give: 8, get: 1 });
+    expect(colonneDeLaTaille(2)).toBe('village');
     setObjectDataset('disponibilite', {
       ...fiche,
+      colonneParTaille: { ...fiche.colonneParTaille, 2: 'ville' },
       dispoPct: fiche.dispoPct.map((e) => (e.availability === 'limitee' ? { ...e, pct: { ...e.pct, village: 77 } } : e)),
       barterRatios: fiche.barterRatios.map((r) => (r.give === 'commune' ? { ...r, ratios: { ...r.ratios, exotique: { give: 9, get: 1 } } } : r)),
     });
     expect(rollAvailability('limitee', 'village', deFixe(1)).test!.target).toBe(77);
     expect(barterRatio('commune', 'exotique')).toEqual({ give: 9, get: 1 });
+    expect(colonneDeLaTaille(2)).toBe('ville');
   });
 
   it('les phases du jour ÉDITÉES : aube, crépuscule, créneau de départ et arche solaire suivent', () => {

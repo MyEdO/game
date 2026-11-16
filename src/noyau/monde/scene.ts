@@ -131,8 +131,9 @@ export interface SceneEntity {
    *  résolue au bord du rendu, hérité du type de prop s'il n'est pas posé ici ; absent = `flamme`. */
   light?: { radiusM: number; tone?: string };
   /** Marchand (#2) : ce PNJ ouvre un panneau d'achat/vente (référence un archétype de `MERCHANT_ARCHETYPES`, `data/index.ts`).
-   *  `settlement`/`resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
-   *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat). */
+   *  `resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
+   *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat) ; `settlement` surcharge la colonne de
+   *  Disponibilité du lieu (`colonneDeDisponibiliteDuMarchand`, `noyau/worldMap.ts`), seule source d'un marchand hors de tout lieu. */
   /** OVERRIDES par-entité des 3 règles maison Marché (LDB 59/60, `marche-guildes`/`marche-mode`/
    *  `marche-tenir-comptes`) — mêmes domaines de valeurs que la règle globale correspondante. Absent =
    *  HÉRITAGE du global (`engine/policy` `rule(...)`), jamais un 3ᵉ état ambigu. Lus par `marketRule`
