@@ -1611,12 +1611,19 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const owner = env.hero(e.heroId);
       if (!owner) return;
-      // Le `type` de la référence choisit la variante : un véhicule, sinon le vivant (`LivingRef`) de sa nature.
+      // Le `type` de la référence choisit la variante : un véhicule, ou le vivant (`LivingRef`) de sa nature.
       const r = e.ref;
       const commun = { ownerId: owner.id, location: { kind: 'avec-le-groupe' as const }, items: [] };
-      const input: PossessionInput = 'type' in r && r.type === 'vehicle'
-        ? { nature: 'vehicule', vehicleId: r.id, ...commun }
-        : { nature: e.nature === 'serviteur' ? 'serviteur' : 'bete', ref: 'custom' in r ? r : { id: r.id }, ...commun };
+      const nature = e.nature === 'serviteur' ? 'serviteur' : 'bete';
+      const input = ((): PossessionInput => {
+        if ('custom' in r) return { nature, ref: r, ...commun };
+        switch (r.type) {
+          case 'vehicle':
+            return { nature: 'vehicule', vehicleId: r.id, ...commun };
+          case 'creature':
+            return { nature, ref: { id: r.id }, ...commun };
+        }
+      })();
       const uid = ajouterLaPossession(env.get, env.set, input);
       env.log(t('eff.recuperation', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
     },
@@ -1624,9 +1631,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     refs: (e) => {
       const r = e.ref;
       if ('custom' in r) return [];
-      if (r.type === 'creature' && !findCreatureById(r.id)) return [{ level: 'error', message: `Possession → créature inexistante « ${r.id || '(aucune)'} »` }];
-      if (r.type === 'vehicle' && !findVehicleById(r.id)) return [{ level: 'error', message: `Possession → véhicule inexistant « ${r.id || '(aucun)'} »` }];
-      return [];
+      switch (r.type) {
+        case 'creature':
+          return findCreatureById(r.id) ? [] : [{ level: 'error', message: `Possession → créature inexistante « ${r.id || '(aucune)'} »` }];
+        case 'vehicle':
+          return findVehicleById(r.id) ? [] : [{ level: 'error', message: `Possession → véhicule inexistant « ${r.id || '(aucun)'} »` }];
+      }
     },
   },
   giveMoney: {

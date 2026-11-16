@@ -2385,7 +2385,7 @@ export function chaosSpellsOf(god: string): string[] {
 
 /** Référence à une Possession : par `id` du catalogue (+ quantité éventuelle), texte NARRATIF hors
  *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
- *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
+ *  (`DotationDePossession`, véhicule, bête ou engin de siège — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
  *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU somme d'argent (`Somme`) —
  *  OU mention par nature (`DotationDeMention`) — OU « 1 parmi »
  *  (`{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`AdvancementRef`), dont une option peut être un lot d'objets ou de
@@ -2676,6 +2676,17 @@ const CLE_DE_QUALITE_AU_CHOIX = { qualite: 'ref.qualiteAuChoix', haute: 'ref.hau
  *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, « 1 parmi » (récursif), lot
  *  « Arc et Flèche (10) », ou joker « Arme (au choix) », « Arme du groupe Deux-mains (au choix) ». SOURCE UNIQUE
  *  (Codex, créateur, marchand, inventaire). */
+/** Le libellé de catalogue d'une dotation de possession, au catalogue que nomme son `type`. */
+function libelleDeLaPossession(ref: DotationDePossession): PlayerText {
+  switch (ref.type) {
+    case 'vehicle':
+      return dataLabel(findVehicleById(ref.id)?.label, ref.id);
+    case 'creature':
+      return dataLabel(findCreatureById(ref.id)?.label, ref.id);
+    case 'engin':
+      return refLabel('trappings', ref);
+  }
+}
 export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
   if ('pick' in ref) return libelleDuParmi(ref.pick, ref.of.map(trappingRefLabel));
   if ('lot' in ref) return dataLabel(listeEt(ref.lot.map(trappingRefLabel)));
@@ -2688,9 +2699,7 @@ export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
         ? ref.label
         : !('type' in ref)
           ? refLabel('trappings', ref)
-          : ref.type === 'vehicle'
-            ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
-            : dataLabel(findCreatureById(ref.id)?.label, ref.id);
+          : libelleDeLaPossession(ref);
   const quantite: CountSpec | undefined = 'count' in ref ? ref.count : undefined;
   const count = quantite ? ('fixed' in quantite ? ` (${quantite.fixed})` : ` (${formatDice(quantite.roll)})`) : '';
   if ('qualityChoice' in ref && ref.qualityChoice) return t(CLE_DE_QUALITE_AU_CHOIX[ref.qualityChoice], { base: base + count });

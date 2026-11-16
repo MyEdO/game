@@ -397,13 +397,20 @@ const kvRows = (pairs: [string, unknown][]): CodexRow[] =>
 const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
   rows.length ? { title, layout: 'chips', rows } : null;
 /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
- *  foyer — `id`→Possessions, `{id, type}`→Créatures ou Véhicules selon `type` — jamais une re-résolution
- *  par libellé. Une somme, une mention et un `{text}` ne désignent aucune entité ;
+ *  foyer — `id`→Possessions, `{id, type}`→Créatures, Véhicules ou Engins de siège selon `type` — jamais une
+ *  re-résolution par libellé. Une somme, une mention et un `{text}` ne désignent aucune entité ;
  *  `pick`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);
-  if ('type' in ref && ref.type === 'creature') return idRefRow('creatures', ref.id, undefined, show);
-  if ('type' in ref) return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
+  if ('type' in ref)
+    switch (ref.type) {
+      case 'creature':
+        return idRefRow('creatures', ref.id, undefined, show);
+      case 'vehicle':
+        return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
+      case 'engin':
+        return { t: 'ref', category: 'siegeEngines', id: ref.id, label: refLabel('trappings', ref), show };
+    }
   if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
   // PASTILLE NUE, jamais de la prose : une somme, une mention ou un `{text}` est un NOM (« Grand hôtel particulier avec
   // jardins » y ferait lier « Grand »), et `pick`/`wildcard` sont des libellés composites. Aucune
