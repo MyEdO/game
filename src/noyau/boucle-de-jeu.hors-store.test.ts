@@ -842,9 +842,8 @@ describe('Boucle de jeu (store)', () => {
     banc.avancer(2000);
     st = banc.getState();
     expect(st.pendingDefense).not.toBeNull();
-    // +20 Combat monté (cible plus petite que la monture, l.180) + 20 Surnombre (la monture est un
-    // combattant ennemi actif au contact → « 2 contre 1 », LDB 14 l.110 — même décompte que resolveAttack).
-    expect(st.pendingDefense!.atk.target).toBe(combatValue(E, 'melee', E.weapons[0]) + 40);
+    // +20 Combat monté (l.180), sans Surnombre : le cavalier et sa monture comptent un. LDB 14 l.110 ; #4202
+    expect(st.pendingDefense!.atk.target).toBe(combatValue(E, 'melee', E.weapons[0]) + 20);
   });
 
   it('Sonné : un héros actif ne peut PAS attaquer/incanter, mais peut se déplacer (LDB 16 l.125)', () => {
