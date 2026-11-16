@@ -15,7 +15,8 @@ Le repère de l'arme porte son +Y vers le fer (la seconde prise est sur cet axe,
 Un clip dérivé tient la peau de ses avant-bras et de ses mains hors du tronc sous chaque jeu de silhouettes de
 `tronc.TRONC`, carrures comprises, les os déplacés comme l'hôte les joue, mesurée comme la mesure la garde `membres`
 (`tronc`) : l'IK choisit le tour du coude qui l'écarte, et ce qu'elle ne peut pas écarter, l'arme l'écarte, translatée
-hors du tronc avec les deux mains qui la tiennent (`pousser`, `POUSSEE`, #4002, #3810).
+hors du tronc avec les deux mains qui la tiennent, d'une translation continue dans le temps (`ecarter`, `POUSSEE`,
+`RACCORD`, #4002, #3810).
 
 Le roulis de l'arme et le tour de chaque coude se choisissent sur le clip entier : le chemin retenu
 est celui qui paie le moins, poses et vitesses comprises (`chemin`, `poser_les_bras`, #3878).
@@ -33,7 +34,7 @@ from mathutils import Matrix, Quaternion, Vector
 from animation import assign_action, meshes_for
 from pistes import aller_a, sacs
 from poids import cadence, deformer, instants, peau_lineaire
-from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE, VITESSE_DU_POIGNET
+from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, POIDS_NEGLIGEABLE, VITESSE_DU_POIGNET
 from tronc import (TRONC, ChaineDuBras, membre_pose, peau_du_membre, peau_du_tronc, poser_le_membre, profondeurs, tetes_du_bras,
                    tronc_pose)
 
@@ -80,15 +81,23 @@ ECART_DU_TRONC = {'marge': 0.005, 'echelle': 0.01}
 """En mètres : la peau de l'avant-bras et de la main (`tronc.peau_du_membre`) se tient à `marge` hors du tronc
 (`tronc.TRONC`) sous chacun de ses jeux, les os déplacés comme l'hôte les joue ; le pire de ses sommets, plus près que
 `marge` ou dedans, se paie par pas d'`echelle` (`prix_du_tronc`, #3806, #4002, #3810). La garde `membres` admet un sommet
-à 5 mm dedans (`ECART_DE_SUIVI_M`) ; le champ s'écarte de la distance exacte de moins de 4,2 mm près de la surface
-(`tronc.CHAMP`) : un sommet tenu à `marge` dehors par le champ reste hors de portée de la garde."""
-POUSSEE = {'pas': 8, 'passes': 4, 'tolerance': 1e-4, 'refus': 0.0009}
-"""La poussée de l'arme hors du tronc (`pousser`, `poser_les_bras`) : au plus `pas` translations par poussée, chacune
-contre le gradient du champ du tronc (`tronc.profondeurs`) au sommet le plus enfoncé de la peau que la translation
-emporte, jusqu'à `ECART_DU_TRONC['marge']` dehors à `tolerance` mètres près ; au plus `passes` tours de poussée puis
-d'IK après le premier IK (#4002, #3810). La peau entière posée encore enfoncée de plus de `refus` mètres refuse le
-clip : la garde `membres` admet 5 mm dedans et le champ s'écarte de la distance exacte de moins de 4,1 mm
-(`tronc.CHAMP`), une peau lue à moins de 0,9 mm dedans reste sous la tolérance de la garde."""
+à 5 mm dedans (`ECART_DE_SUIVI_M`) ; le champ s'écarte de l'enfoncement exact de 6,5 mm au plus sur les sommets qu'il
+lit à moins de 1 cm de la surface (`tronc.CHAMP`) : un sommet tenu à `marge` dehors par le champ reste hors de portée de
+la garde."""
+POUSSEE = {'pas': 8, 'passes': 4, 'tolerance': 1e-4, 'raccords': 2, 'refus': 0.0009}
+"""La poussée de l'arme hors du tronc (`pousser`, `ecarter`, `poser_les_bras`) : au plus `pas` translations par
+poussée, chacune contre le gradient du champ du tronc (`tronc.profondeurs`) au sommet le plus enfoncé de la peau que la
+translation emporte, jusqu'à `ECART_DU_TRONC['marge']` dehors à `tolerance` mètres près ; au plus `raccords` tours
+d'enveloppe puis de poussée résiduelle par écart (`ecarter`) ; au plus `passes` tours de poussée puis d'IK après le
+premier IK (#4002, #3810). La peau entière posée encore enfoncée de plus de `refus` mètres refuse le
+clip : la garde `membres` admet 5 mm dedans et le champ s'écarte de l'enfoncement exact de moins de 1,8 mm à 99 % des
+sommets qu'il lit à moins de 1 cm de la surface (`tronc.CHAMP`) : une peau lue à moins de 0,9 mm dedans reste sous la
+tolérance de la garde, sauf au pire mesuré, 6,5 mm, qu'aucun `refus` positif ne couvre."""
+RACCORD = 0.5
+"""En secondes, la durée sur laquelle la translation de l'arme monte de zéro à la poussée requise d'une image et en
+redescend (`envelopper`). La poussée requise image par image garde sa norme mais saute de direction quand le sommet le
+plus enfoncé passe d'un contact à l'autre : sur `Lourde_Marche_Loop`, 2,7 à 3,7 cm, la main tournait alors sur son
+avant-bras jusqu'à 1033 °/s ; enveloppée sur 0,5 s, 78 °/s, la poussée la plus grande à 4,3 cm (#3810)."""
 ROULIS = tuple(range(-180, 180, 15))
 """En degrés, les roulis de l'arme autour de son manche parmi lesquels le chemin d'un clip se cherche d'abord
 (`poser_les_bras`)."""
@@ -295,6 +304,34 @@ def pousser(tronc, peau):
             break
         pas = pas + direction * profondeur
     return pas
+
+
+def envelopper(requises, instants_):
+    """Par image, la translation (images, 3) de l'arme qui enveloppe les poussées `requises` (images, 3) aux `instants_`
+    (images,), en images de `IMAGES_PAR_SECONDE` : sur chaque axe du rig, la plus grande des parts positives et la plus
+    négative des parts négatives, chacune pondérée en cosinus surélevé de 1 à son image à 0 à `RACCORD` d'elle. Elle
+    rend chaque poussée requise à son image, monte vers elle et en redescend en `RACCORD`, nulle plus loin."""
+    ecarts = numpy.abs(numpy.subtract.outer(numpy.asarray(instants_, dtype=float), numpy.asarray(instants_, dtype=float)))
+    poids = 0.5 * (1 + numpy.cos(math.pi * numpy.minimum(ecarts / (RACCORD * IMAGES_PAR_SECONDE), 1.0)))[:, :, None]
+    requises = numpy.asarray(requises, dtype=float)[None]
+    return (poids * numpy.maximum(requises, 0.0)).max(axis=1) + (poids * numpy.minimum(requises, 0.0)).min(axis=1)
+
+
+def ecarter(troncs, peaux, requises, translations, instants_, seuil):
+    """Les poussées requises et les translations (images, 3) qui sortent du tronc de chaque image (`troncs`) sa peau
+    (`peaux`, par image (jeux, sommets, 3) sous sa translation `translations`), que la translation emporte d'un bloc :
+    les translations enveloppent les poussées `requises` (`envelopper`, `instants_`) ; à chaque image dont la peau sous
+    l'enveloppe s'enfonce de plus de `seuil` mètres (`enfoncement`, moins sa marge), la poussée requise devient
+    l'enveloppe plus la poussée résiduelle (`pousser`), au plus `POUSSEE['raccords']` fois."""
+    for _ in range(POUSSEE['raccords']):
+        enveloppe = envelopper(requises, instants_)
+        vues = [p + e - d for p, e, d in zip(peaux, enveloppe, translations)]
+        poussees = numpy.array([enfoncement(t, v)[0] - ECART_DU_TRONC['marge'] > seuil for t, v in zip(troncs, vues)])
+        if not poussees.any():
+            return requises, enveloppe
+        residus = numpy.array([pousser(t, v) if p else numpy.zeros(3) for t, v, p in zip(troncs, vues, poussees)])
+        requises = numpy.where(poussees[:, None], enveloppe + residus, requises)
+    return requises, envelopper(requises, instants_)
 
 
 def hors_des_bornes(rotation, bornes):
@@ -515,41 +552,56 @@ def bras_de_l_image(rig, arme, mains, cadre, longueurs, peaux, tronc, membres, p
     return BrasDeLImage(tronc_, prix, poses_, peau_, mains_, {c: poses[c][0] for c in mains})
 
 
+def choisir(images, translations, durees, tours_de_l_arme, grossiers):
+    """Par image de `images` (`BrasDeLImage`), l'arme translatée de `translations[i]`, l'état (roulis de l'arme, tour du
+    coude droit, tour du coude gauche, en degrés) du chemin qui paie le moins sur le clip entier (`chemin`), cherché sur
+    `ROULIS` et `TOURS`, puis autour de lui à chaque pas d'`AFFINAGES`, `CONTINUITE['passes']` fois chacun ; `durees` et
+    `tours_de_l_arme` : ceux de `chemin`. `grossiers`, par indice d'image, la translation et la table des prix sur
+    `ROULIS` et `TOURS` d'un appel précédent : la table se relit tant que la translation de l'image n'a pas changé,
+    sinon elle se calcule et s'y range."""
+    for i, (image, t) in enumerate(zip(images, translations)):
+        if i not in grossiers or grossiers[i][0] != tuple(t):
+            grossiers[i] = (tuple(t), image.prix(t, ROULIS, {'r': TOURS, 'l': TOURS}))
+    valeurs = [(ROULIS, TOURS, TOURS)] * len(images)
+    prix = [grossiers[i][1] for i in range(len(images))]
+    etats = [tuple(v[axe][k] for axe, k in enumerate(indices)) for v, indices in zip(valeurs, chemin(prix, valeurs, durees, tours_de_l_arme))]
+    for affinage in (a for a in AFFINAGES for _ in range(CONTINUITE['passes'])):
+        valeurs = [tuple([centre + d for d in ecarts] for centre, ecarts in zip(etat, (affinage[0], affinage[1], affinage[1])))
+                   for etat in etats]
+        prix = [image.prix(t, v[0], {'r': v[1], 'l': v[2]}) for image, t, v in zip(images, translations, valeurs)]
+        etats = [tuple(v[axe][k] for axe, k in enumerate(indices)) for v, indices in zip(valeurs, chemin(prix, valeurs, durees, tours_de_l_arme))]
+    return etats
+
+
 def poser_les_bras(images, durees, tours_de_l_arme):
     """Par image de `images` (`BrasDeLImage`), l'arme roulée, la pose de chaque bras (`bras`) et la translation de l'arme :
-    le roulis de l'arme et les tours des deux coudes suivent le chemin qui paie le moins sur le clip entier (`chemin`),
-    cherché sur `ROULIS` et `TOURS`, puis autour de lui à chaque pas d'`AFFINAGES`, `CONTINUITE['passes']` fois chacun ;
-    `durees` et `tours_de_l_arme` : ceux de `chemin`. Avant l'IK, l'arme de chaque image se translate hors du tronc avec
-    la peau des deux mains (`pousser`, `BrasDeLImage.mains`) ; après lui, l'arme de chaque image dont la peau entière
-    posée reste enfoncée de plus de `POUSSEE['refus']` se translate de nouveau, avec elle, puis l'IK se rejoue, au plus
+    le roulis de l'arme et les tours des deux coudes suivent `choisir` ; `durees` et `tours_de_l_arme` : ceux de
+    `chemin`. Avant l'IK, l'arme de chaque image se translate hors du tronc avec la peau des deux mains (`ecarter`,
+    `BrasDeLImage.mains`) ; après lui, tant que la peau entière posée d'une image reste enfoncée de plus de
+    `POUSSEE['refus']`, l'arme s'écarte de nouveau avec la peau entière posée des images enfoncées de plus que lui, puis
+    l'IK se rejoue (`choisir`, sa mémoire des prix grossiers gardée d'un tour à l'autre), au plus
     `POUSSEE['passes']` fois. Rend aussi, par image, l'enfoncement de la peau entière posée et son jeu, le jeu `None`
     sous `POUSSEE['refus']`, et le nombre de tours de poussée après le premier IK."""
-    def choisir():
-        valeurs = [(ROULIS, TOURS, TOURS)] * len(images)
-        etats = None
-        for affinage in (None, *(a for a in AFFINAGES for _ in range(CONTINUITE['passes']))):
-            if affinage is not None:
-                valeurs = [tuple([centre + d for d in ecarts] for centre, ecarts in zip(etat, (affinage[0], affinage[1], affinage[1])))
-                           for etat in etats]
-            prix = [image.prix(t, v[0], {'r': v[1], 'l': v[2]}) for image, t, v in zip(images, translations, valeurs)]
-            etats = [tuple(v[axe][k] for axe, k in enumerate(indices)) for v, indices in zip(valeurs, chemin(prix, valeurs, durees, tours_de_l_arme))]
-        return [image.poses(t, etat) for image, t, etat in zip(images, translations, etats)]
-
     def enfoncees():
         vues = [enfoncement(image.tronc, image.peau(p)) for image, p in zip(images, poses)]
         return [(profondeur - ECART_DU_TRONC['marge'], jeu) for profondeur, _, jeu in vues]
 
-    translations = [Vector(pousser(image.tronc, image.mains(Vector()))) for image in images]
-    poses = choisir()
+    def poser(translations):
+        return [image.poses(Vector(t), etat) for image, t, etat
+                in zip(images, translations, choisir(images, [Vector(t) for t in translations], durees, tours_de_l_arme, grossiers))]
+
+    troncs, instants_, grossiers = [image.tronc for image in images], numpy.cumsum(durees), {}
+    requises, translations = ecarter(troncs, [image.mains(Vector()) for image in images], numpy.zeros((len(images), 3)),
+                                     numpy.zeros((len(images), 3)), instants_, POUSSEE['tolerance'] - ECART_DU_TRONC['marge'])
+    poses = poser(translations)
     restes, passes = enfoncees(), 0
     while passes < POUSSEE['passes'] and any(d > POUSSEE['refus'] for d, _ in restes):
-        for i, (d, _) in enumerate(restes):
-            if d > POUSSEE['refus']:
-                translations[i] = translations[i] + Vector(pousser(images[i].tronc, images[i].peau(poses[i])))
-        poses = choisir()
+        requises, translations = ecarter(troncs, [image.peau(p) for image, p in zip(images, poses)], requises, translations,
+                                         instants_, POUSSEE['refus'])
+        poses = poser(translations)
         restes, passes = enfoncees(), passes + 1
     restes = [(d, jeu if d > POUSSEE['refus'] else None) for d, jeu in restes]
-    return [(roule, bras_, t) for (roule, bras_), t in zip(poses, translations)], restes, passes
+    return [(roule, bras_, Vector(t)) for (roule, bras_), t in zip(poses, translations)], restes, passes
 
 
 def deriver(bpy, rig, reperes):

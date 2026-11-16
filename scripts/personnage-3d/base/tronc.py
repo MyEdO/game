@@ -38,10 +38,12 @@ CHAMP = {'pas': 0.015, 'portee': 0.02, 'echantillon': 0.015, 'grossier': 0.04}
 """En mètres : le pas de la grille du champ du tronc posé ; la portée de sa distance exacte aux triangles, qui élargit
 sa boîte et borne son enfoncement dehors ;
 le côté des cellules où la peau d'un membre se sous-échantillonne, un sommet par cellule, et celui de son échantillon
-grossier (`peau_du_membre`). Sur
-`Lourde_Repos_Loop` à 2,3 s, l'enfoncement lu s'écarte de la distance exacte de moins de 4,2 mm à moins de 2 cm de la
-surface, de 0,5 à 1,3 mm en moyenne selon le jeu ; au repos, un sommet de l'avant-bras et de la main est à moins de
-15,1 mm (4,1 mm en moyenne) d'un sommet du sous-échantillon, qui en retient 449 sur 1314 par côté (#3810)."""
+grossier (`peau_du_membre`). Sur les sommets de la peau des avant-bras et des mains qu'il lit à moins de 1 cm de la
+surface, à chaque image des clips dérivés à deux mains, sous chaque jeu, l'enfoncement lu s'écarte de l'enfoncement
+exact (parité et distance à tous les triangles) de 0,4 mm en moyenne, de moins de 1,8 mm à 99 %, de 6,5 mm au plus
+(`Hampe_Attaque` sous la carrure large : lu à 7,0 mm dehors pour 0,6 mm) ; au repos, un sommet de l'avant-bras et de
+la main est à moins de 15,1 mm (4,1 mm en moyenne) d'un sommet du sous-échantillon, qui en retient 449 sur 1314 par
+côté (#3810)."""
 AXE = 1
 """L'axe des demi-droites du sens : l'avant-arrière du tronc au repos, Y du rig."""
 DECALAGE = 1.37e-6

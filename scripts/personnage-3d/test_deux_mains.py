@@ -10,7 +10,9 @@ que meuvent les os libres ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement ;
 sous une silhouette à os, les têtes déplacées sont celles du squelette déplacé explicite ; le prix du tronc compte le
 pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; une peau dans un tronc en boîte en sort à sa
-marge contre le gradient du champ, une peau dehors ne bouge pas (#4002, #3810) ;
+marge contre le gradient du champ, une peau dehors ne bouge pas (#4002, #3810) ; la translation de l'arme rend la
+poussée requise d'une seule image à cette image, y monte et en redescend en continu, nulle à `RACCORD` d'elle ; une image
+dont la translation n'a pas changé relit ses prix grossiers, et le chemin est celui du calcul complet ;
 le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
 l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
 import json
@@ -25,9 +27,10 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import (CLIPS, CONTINUITE, ECART_DU_TRONC, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS,  # noqa: E402
-                        PeauDuBras, bras, chemin, cle, coude, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
-                        pousser, prix_du_tronc, repere_de_l_arme, tour_du_repere)
+from deux_mains import (CLIPS, CONTINUITE, ECART_DU_TRONC, IMAGES_PAR_SECONDE, MARGE_DES_BORNES, PRONATION, RACCORD,  # noqa: E402
+                        ROULIS, SECONDES, TOURS, PeauDuBras, bras, chemin, choisir, cle, coude, envelopper,
+                        etirement_du_bras, hors_des_bornes, interpoler, peau_fixe, pousser, prix_du_tronc, repere_de_l_arme,
+                        tour_du_repere)
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
 from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
 from test_tronc import boite  # noqa: E402
@@ -211,6 +214,42 @@ class Tronc(unittest.TestCase):
 
     def test_une_peau_dehors_ne_bouge_pas(self):
         self.assertFalse(pousser(tronc_en_boite(), numpy.array([[[0.01, 0.02, 1.4 + ECART_DU_TRONC['marge'] + 0.002]]])).any())
+
+
+class Enveloppe(unittest.TestCase):
+    def test_la_poussee_requise_d_une_seule_image_monte_et_redescend_en_continu(self):
+        instants_, requise, milieu = numpy.arange(97.0), numpy.array([0.0, -0.03, 0.012]), 48
+        requises = numpy.zeros((len(instants_), 3))
+        requises[milieu] = requise
+        translations = envelopper(requises, instants_)
+        numpy.testing.assert_allclose(translations[milieu], requise, atol=1e-12)
+        raccord = RACCORD * IMAGES_PAR_SECONDE
+        self.assertFalse(translations[numpy.abs(instants_ - milieu) >= raccord].any())
+        self.assertTrue((numpy.linalg.norm(translations, axis=1) <= numpy.linalg.norm(requise) + 1e-12).all())
+        pas = numpy.abs(numpy.diff(translations, axis=0)).max(axis=0)
+        self.assertTrue((pas <= numpy.abs(requise) * math.pi / (2 * raccord) + 1e-12).all())
+
+
+class Choisir(unittest.TestCase):
+    class Image:
+        """Une image dont l'état qui paie le moins suit la translation de l'arme ; compte ses tables de prix grossiers."""
+        def __init__(self):
+            self.grossieres = 0
+
+        def prix(self, translation, roulis, tours):
+            self.grossieres += len(roulis) == len(ROULIS)
+            r, a, b = numpy.ix_(numpy.asarray(roulis, dtype=float), numpy.asarray(tours['r'], dtype=float), numpy.asarray(tours['l'], dtype=float))
+            return ((r - 100 * translation[0]) / 15) ** 2 + ((a - 100 * translation[1]) / 6) ** 2 + ((b - 100 * translation[2]) / 6) ** 2
+
+    def test_une_image_dont_la_translation_n_a_pas_change_relit_ses_prix_grossiers_sans_changer_le_chemin(self):
+        images = [self.Image() for _ in range(3)]
+        avant = [Vector((0.0, 0.1, -0.1))] * 3
+        apres = [avant[0], Vector((0.9, -0.5, 0.4)), avant[2]]
+        grossiers = {}
+        choisir(images, avant, [0.0, 1.0, 1.0], [0.0] * 3, grossiers)
+        memoire = choisir(images, apres, [0.0, 1.0, 1.0], [0.0] * 3, grossiers)
+        self.assertEqual(memoire, choisir([self.Image() for _ in range(3)], apres, [0.0, 1.0, 1.0], [0.0] * 3, {}))
+        self.assertEqual([i.grossieres for i in images], [1, 2, 1])
 
 
 class Interpolation(unittest.TestCase):
