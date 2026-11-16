@@ -237,7 +237,6 @@ export const TALENTS_SENTINELLES = [];
 
 export const DOTATIONS_TEXTES = [
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["alchimiste-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["artilleur-4","trappings.text","","129b4c53cb691897e2d4b50f1c13c97d46b8a7d000aaf8b7a6eca451d1fa3b9c"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["astromancien-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chamane-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chasseur-de-primes-2","trappings.text","","cb80b6b632b331ccc6805e56306b1839e738567dc50a154e75647e90de77baf9"]', occurrence: 1 },
