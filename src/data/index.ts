@@ -276,7 +276,7 @@ import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
-import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type StakeForm } from '../engine/types';
+import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type StakeForm, type PerteSansEquipe } from '../engine/types';
 import { formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
 // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
@@ -889,9 +889,8 @@ export interface TrappingData {
   /** Rendu visuel et sonore de l'arme (`rendus.json`), à la place de celui de son Groupe : un engin de siège, dont le
    *  Groupe dit qui le sert, pas ce qu'il tire (#3771). */
   rendu?: { id: string };
-  /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN seul servant
-   *  valide → perd tous ses Atouts (garde ses Défauts). Lu par `crewedFireWeapon`. */
-  soloSimple?: boolean;
+  /** Cf. `Weapon.perteSansEquipe`. AA 10 l.148 ; ZI 13 l.193 */
+  perteSansEquipe?: PerteSansEquipe;
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169/171) : peut viser une CASE au sol.
    *  Propagé Trapping → ItemInstance → Weapon (`indirect`) ; lu par `availableAttacks`. Canon/baliste = direct. */
   indirect?: boolean;

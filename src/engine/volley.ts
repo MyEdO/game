@@ -9,6 +9,7 @@ import type { RollBreakdown } from './combat';
 import { attackDRAdjust } from './qualities/dispatch';
 import { mannedPosteWeapon, loadedAmmo, weaponWithAmmo } from './items';
 import { crewedFireWeapon } from './crewedWeapon';
+import { armeSansEquipe, sansEquipe } from './weaponDamage';
 import { crewedTeamIndice } from './qualities/dispatch';
 import { exposedCrew } from './shipCritical';
 import type { Combatant, ShipPoste, Weapon, ItemInstance } from './types';
@@ -52,7 +53,9 @@ export function resolveVolley(
     const tireur = byId.get((poste.crewIds ?? [])[0]) ?? (abstract ? shipCrew[0] : servants[0]);
     const ammo = loadedAmmo(tireur, weapon);
     if (ammo) weapon = weaponWithAmmo(weapon, ammo);
-    weapon = crewedFireWeapon(weapon, abstract ? crewedTeamIndice(weapon) : servants.length);
+    const presents = abstract ? crewedTeamIndice(weapon) : servants.length;
+    weapon = crewedFireWeapon(weapon, presents);
+    if (sansEquipe(presents)) weapon = armeSansEquipe(weapon); // AA 10 l.148
     const gunDR = dr + attackDRAdjust(weapon, success); // LDB 62 l.288, l.323
     const jet: RollBreakdown = { label: 'Tir de batterie', base: 0, modifier: 0, target: 0, roll: d100(rng), success, sl: gunDR };
     shots.push({ tireur, weapon, ammo, jet, posteUid: poste.item.uid, reload: weapon.reload ?? 0 });

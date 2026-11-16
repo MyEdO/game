@@ -99,6 +99,7 @@ import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
+import { retraitsDits } from './weaponDamage';
 import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
@@ -2547,8 +2548,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           ...(o.addQualities ?? []).map((id) => qualityRefLabel({ id })), // id stable → libellé affiché
           ...(dmg ? [`+${dmg} Dégâts`] : []),
           ...(o.onHitEffects?.length ? ['effet à la touche'] : []),
-          ...(o.removeQualities ?? []).map((id) => `−${qualityRefLabel({ id })}`),
-          ...(o.removeType ? [t(o.removeType === 'atout' ? 'op.frag.atoutsPerdus' : 'op.frag.defautsPerdus')] : []),
+          ...retraitsDits(o),
           ...(o.suppressEnchants ? [t('op.frag.enchantementsSuspendus')] : []),
           ...(o.passive?.length ? [t('op.frag.passifDArme')] : []),
         ];

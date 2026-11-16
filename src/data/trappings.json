@@ -11006,7 +11006,9 @@
       "carreau-de-baliste",
       "carreau-nain-norse"
     ],
-    "soloSimple": true,
+    "perteSansEquipe": {
+      "removeType": "atout"
+    },
     "enc": 20,
     "availability": "limitee",
     "reach": null,
@@ -13312,6 +13314,12 @@
     "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
+    },
+    "perteSansEquipe": {
+      "removeQualities": [
+        "pointue",
+        "precise"
+      ]
     },
     "availability": null,
     "price": null,

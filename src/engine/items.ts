@@ -23,6 +23,7 @@ import {
   type FireArc,
   type CharKey,
   type Main,
+  type PerteSansEquipe,
 } from './types';
 import { bonus, bonusDeForce, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
@@ -162,7 +163,7 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   shape: true,
   reach: true,
   range: true,
-  soloSimple: true,
+  perteSansEquipe: true,
   indirect: true,
   bladed: true,
   organicProjectile: true,
@@ -231,7 +232,7 @@ export interface WeaponSpec extends ProprietesIntrinsequesDArme {
   trappingId?: string;
   weaponGroup?: string;
   defaultAmmo?: string;
-  soloSimple?: boolean;
+  perteSansEquipe?: PerteSansEquipe;
   indirect?: boolean;
   bladed?: boolean;
   organicProjectile?: boolean;
