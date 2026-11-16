@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { prixDeLOffre } from './restFlow';
-import { offresDuType, placeServices, type MapPlace } from './worldMap';
+import { offresDuType, placeServices, type MapPlace, type MarcheDAuteur } from './worldMap';
 import { refusAQuai } from './portFlow';
 import { t } from '../i18n';
 import { findTrappingById } from '../data';
 import { toBrass, priceToMoney } from '../engine/money';
-import type { LandMarketProfile } from '../engine/landCargo';
 
 /**
  * SERVICES D'UN LIEU (#343) : composition des services d'un lieu, porte d'entrée au port, et convergence des prix
@@ -13,7 +12,7 @@ import type { LandMarketProfile } from '../engine/landCargo';
  * cf. rest-lodging-price-source.test).
  */
 
-const market: LandMarketProfile = { taille: 3, richesse: 2, produits: ['commerce-terre'] };
+const market: MarcheDAuteur = { richesse: 2, produits: ['commerce-terre'] };
 
 const place = (over: Partial<MapPlace> = {}): MapPlace => ({
   id: 'bogenhafen', label: 'Bögenhafen', pos: { x: 40, y: 30 }, scene: { id: 'sc-bogen' }, ...over,
@@ -30,7 +29,7 @@ describe('placeServices — composition des services d’un lieu au hub (#343)',
     const list = placeServices(townPlace());
     expect(list.map((s) => s.id)).toEqual(['port', 'marche', 'auberge']);
     expect(list.find((s) => s.id === 'port')!.category).toBe('port');
-    expect(list.find((s) => s.id === 'marche')!.market).toBe(market);
+    expect(list.find((s) => s.id === 'marche')!.market, 'le marché à la Taille du port (MSRC 13 l.44-50)').toEqual({ ...market, taille: 4 });
     const auberge = list.find((s) => s.id === 'auberge')!;
     expect(auberge.category).toBe('auberge');
     expect(auberge.rest).toEqual({ places: { auberge: true }, quality: 'grande', offres: offresDuType('auberge') });

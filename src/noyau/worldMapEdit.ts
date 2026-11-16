@@ -9,7 +9,6 @@ import { uniqueSlugId } from '../data/slug';
 import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { choixDuNoeud } from './codex/editFields';
 import type { TravelMode } from '../engine/travel';
-import type { LandMarketProfile } from '../engine/landCargo';
 import { t } from '../i18n';
 import {
   estUnHebergement,
@@ -18,6 +17,7 @@ import {
   placeServices,
   SERVICE_CITE,
   type MapPlace,
+  type MarcheDAuteur,
   type MapRoute,
   type MapRouteTrace,
   type OffreDAuberge,
@@ -42,8 +42,8 @@ export const peripetieNeuve = (): RoutePeril => ({ label: 'Péripétie', chanceP
 /** Port maritime neuf d'un lieu : petit port de production côtière. */
 export const portNeuf = (): NonNullable<MapPlace['port']> => ({ taille: 2, richesse: 2, production: [] });
 
-/** Marché terrestre neuf d'un lieu. */
-export const marcheNeuf = (): LandMarketProfile => ({ taille: 2, richesse: 2, produits: [] });
+/** Marché terrestre neuf d'un lieu ; sa Taille est celle du lieu (`tailleDuLieu`). */
+export const marcheNeuf = (): MarcheDAuteur => ({ richesse: 2, produits: [] });
 
 /** Écart sous lequel deux lieux se chevauchent, et pas du décalage d'un ajout au même point. */
 const CHEVAUCHEMENT = 4;

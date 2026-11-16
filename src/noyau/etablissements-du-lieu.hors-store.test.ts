@@ -19,7 +19,7 @@ const LITS_MITEUX = [{ id: 'commune', source: { book: 'livre-de-base', page: 302
 const worldMap: WorldMap = {
   id: 'carte', label: 'Carte', routes: [],
   places: [{
-    id: 'bourg', label: 'Ubersreik', pos: { x: 0, y: 0 }, scene: { id: 'place' },
+    id: 'bourg', label: 'Ubersreik', pos: { x: 0, y: 0 }, scene: { id: 'place' }, taille: 3,
     services: [
       { id: 'auberge-du-port', kind: { id: 'auberge' }, label: 'Auberge du Port' },
       { id: 'lits-miteux', kind: { id: 'auberge' }, label: 'Les lits miteux', rest: { offres: [...LITS_MITEUX] } },

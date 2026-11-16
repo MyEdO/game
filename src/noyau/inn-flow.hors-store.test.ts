@@ -38,7 +38,7 @@ function tavernMap(): WorldMap {
     id: 'm', label: 'Le Reik',
     places: [
       { id: 'A', label: 'Auberge du Cerf', pos: { x: 0, y: 0 }, scene: { id: 'auberge-a' }, services: [{ id: 'cerf', kind: { id: 'auberge' } }] },
-      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'altdorf-b' }, market: { taille: 4, richesse: 4, produits: ['commerce-terre'] } },
+      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'altdorf-b' }, taille: 4, market: { richesse: 4, produits: ['commerce-terre'] } },
     ],
     routes: [],
   };

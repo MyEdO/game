@@ -383,7 +383,7 @@ Couverture confirmée des refs `LDB XX l.YY` dans le code :
 
 | Ref source | Fichier implémentant | Mécanique |
 |---|---|---|
-| `LDB 59 l.25-35` | `src/engine/disponibilite.ts` | Table de Disponibilité RAW (Commune/Limitée/Rare/Exotique × Village/Ville/Cité) ; `rollAvailability`, `fullStock`, `rollStock` |
+| `LDB 59 l.25-35` | `src/engine/disponibilite.ts` | Table de Disponibilité RAW (Commune/Limitée/Rare/Exotique × Village/Ville/Cité) ; `rollAvailability`, `fullStock`, `rollStock` ; colonne lue par la Taille du lieu (`colonneDeLaTaille`, table maison `colonneParTaille` de `src/data/disponibilite.json`) |
 | `LDB 59 l.18` | `src/engine/disponibilite.ts` + `src/noyau/merchantFlow.ts` | Règle optionnelle stock sans Test (`fullStock`) ; désactivation Marchandage si `simplifie` |
 | `LDB 60 l.3` | `src/engine/appraisal.ts` | Évaluation : estimation ±10 % Rare/Exotique |
 | `LDB 60 l.3` | `src/engine/bargain.ts` + `src/noyau/merchantFlow.ts` | Test opposé Marchandage : −10 % achat ; soured sur botch (DR net ≥ 6 en défaite) ; gel du Marchandage cette visite |

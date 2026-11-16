@@ -28,7 +28,7 @@ import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combat
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
-import { estUnHebergement, nomDuPoi, placeServices, sceneAubergeOffer, type WorldMap } from './worldMap';
+import { colonneDeDisponibiliteDuMarchand, estUnHebergement, lieuDeLaScene, nomDuPoi, placeServices, sceneAubergeOffer, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
 import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
@@ -206,6 +206,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         if (sceneAubergeOffer(sceneDuLieu)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : l’auberge est celle de l’établissement, retire-la de la scène`);
       }
       const resolus = placeServices(p, sceneDuLieu);
+      if (colonneDeDisponibiliteDuMarchand(undefined, p) === undefined)
+        for (const svc of resolus)
+          if (svc.merchantArchetype !== undefined) addWm(p.id, `Lieu « ${p.label} » → l’échoppe « ${svc.label} » ouvre un marchand, mais le lieu n’a pas de Taille : pose-lui une Taille`);
       const resolvedServiceIds = new Set<string>();
       for (const s of resolus) {
         if (resolvedServiceIds.has(s.id)) addWm(p.id, `Lieu « ${p.label} » → deux services du lieu portent l’identifiant « ${s.id} »`);
@@ -284,6 +287,11 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → Cible psy « ${id} » : aucun personnage de la scène ne porte cet id.`);
     for (const id of individusNommes({ ...s, entities: [] }).filter(individuAbsent))
       add('error', 'scene', undefined, `Cible psy « ${id} » : aucun personnage de la scène ne porte cet id.`);
+    // La colonne de Disponibilité d'un marchand se résout (`colonneDeDisponibiliteDuMarchand`) au lieu où se tient la scène.
+    const lieuDeLaSceneValidee = lieuDeLaScene(worldMap, s.id);
+    for (const e of s.entities)
+      if (e.merchant && colonneDeDisponibiliteDuMarchand(e.merchant.settlement, lieuDeLaSceneValidee) === undefined)
+        add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → marchand hors de tout lieu de Taille connue : pose une Taille au lieu de la scène, ou choisis sa colonne de Disponibilité hors lieu.`);
     const checkEffect = (eff: Effect, refId: string, scope: Warning['scope']) => {
       const handler = EFFECT_HANDLERS[eff.type] as EffectHandler;
       if (handler.refs) for (const issue of handler.refs(eff, refCtx)) add(issue.level, scope, refId, issue.message);
