@@ -8,6 +8,7 @@ import { buildEncounter } from './monde/encounterAuthoring';
 import { validateScene } from './validateScene';
 import type { Scene } from './monde/scene';
 import type { Possession } from '../engine/possession';
+import { avecArmuresDeMontureDeTest, BARDE_DE_TEST } from '../engine/armureDeMonture.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -204,5 +205,25 @@ describe('Combat monté AUTHORÉ — `mount` / `ridesEntityId` au spawn (LDB 14 
     expect(monture.riderId).toBeUndefined();
     expect(cavalier.mountId).toBeUndefined();
     expect(monture.mountable).toBe(true); // `mount: true` du membre tient : seul l'appairage manque
+  });
+});
+
+describe('Barde authorée au cavalier : le couple pré-monté la passe à sa monture (AA 09 l.184 ; #4135)', () => {
+  it('la barde du cavalier, portée par le demigriffon, s’ajoute à son Trait Armure', () => {
+    const enc = buildEncounter({
+      id: ENC_CAVALERIE,
+      enemies: [
+        { creature: { id: 'demigriffon' }, pos: { x: 16, y: 11 }, mount: true },
+        { creature: { id: 'mutant' }, pos: { x: 19, y: 11 }, rides: 0, inventaire: { [BARDE_DE_TEST.id]: false } },
+      ],
+    });
+    const scene: Scene = { ...testScene(), id: 'test-barde', entities: [...testScene().entities.filter((e) => e.kind === 'heroStart'), ...enc.entities], encounters: [enc.encounter] };
+    const battle = avecArmuresDeMontureDeTest(() => startCavalerie(scene));
+
+    const monture = battle.combatants.find((c) => c.id === enc.entities[0].id)!;
+    const cavalier = battle.combatants.find((c) => c.id === enc.entities[1].id)!;
+    expect(monture.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(monture.items?.map((i) => [i.trappingId, i.equipped])).toEqual([[BARDE_DE_TEST.id, true]]);
+    expect(cavalier.items).toEqual([]);
   });
 });

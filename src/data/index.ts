@@ -859,6 +859,8 @@ export interface ItemCapabilities {
   disarmImmune?: boolean;
   /** Objet lancé détruit, qui ne tombe pas au sol (`appliquerLaTouche`, `noyau/combatFlow.ts`). #4330 */
   detruitAuLancer?: boolean;
+  /** Armure de monture, portée par la bête et jamais équipée par une dotation (`harnacher`, `noyau/mount.ts`). AA 09 l.184 ; ADE I 07 l.66 ; #4135 */
+  armureDeMonture?: boolean;
   /** Arme à corde séparable (Lance-harpon, ADE II 02 l.677 : « Si la corde est séparée de la flèche, la
    *  portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante ») — active le mode de tir
    *  `WeaponContext.harpoonRopeCut` (`effectiveWeapon`, `noyau/combatFlow.ts` `weaponContextOf`), choisi

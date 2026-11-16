@@ -52,8 +52,9 @@ import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
 import { rangeBandName } from './combat';
-import { trappings } from '../data';
+import { trappings, type TrappingRef } from '../data';
 import { makeRNG } from './dice';
+import { avecArmuresDeMontureDeTest, BARDE_DE_TEST } from './armureDeMonture.testkit';
 import { Combatant, ItemInstance, Weapon } from './types';
 import type { Mutation } from './corruption';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
@@ -504,6 +505,12 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
     expect(worn).toContain('chemise-de-mailles');
     expect(worn).toContain('plastron');
     expect(worn.filter((id) => id === 'justaucorps-de-cuir' || id === 'veste-de-cuir')).toHaveLength(1);
+  });
+
+  it('buildInventory garde au sac, sans l’équiper, l’armure de monture d’une dotation (#4135)', () => {
+    const items = avecArmuresDeMontureDeTest(() => buildInventory([{ id: 'justaucorps-de-cuir' }, { id: BARDE_DE_TEST.id } as TrappingRef], makeRNG(1), idsDeTest));
+    expect(items.map((i) => [i.trappingId, i.equipped])).toEqual([['justaucorps-de-cuir', true], [BARDE_DE_TEST.id, false]]);
+    expect(wornArmourPoints(items)).toEqual(wornArmourPoints(buildInventory([{ id: 'justaucorps-de-cuir' }], makeRNG(1), idsDeTest)));
   });
 
   it('buildInventory fusionne les Atouts ATTACHÉS de la ref (`qualities`) aux qualités de base du catalogue (#657 Lot 1)', () => {
