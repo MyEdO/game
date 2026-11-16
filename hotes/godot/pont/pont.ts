@@ -89,6 +89,9 @@ import {
   volumeDuMonde,
   echantillonDessine,
   famillesDEchantillons,
+  posesDesDecors,
+  sceneDEchantillon,
+  type PoseDeDecor,
   type EchantillonDessine,
   type FamilleDEchantillons,
   type Composition,
@@ -267,6 +270,23 @@ export interface CorpsDuCombat {
    * corps, son centre et ses stations (`NavireServi`).
    */
   navires: Record<string, NavireServi>;
+  /**
+   * par type de décor (`props.json`) posé dans la scène dont le dernier `modeles` sert un élément `decor` de même
+   * `cle.prop` (`decors` de sa réponse, section « Atelier 3D ») : ce modèle et ses poses (`DecorServi`). Le monde ne
+   * peint pas les surfaces dont `decor` est une de ses clés (section « Monde ») ; un décor sans modèle reste peint.
+   */
+  decors: Record<string, DecorServi>;
+}
+
+/**
+ * @contrat Corps d'un combattant
+ * Un décor de la scène servi par son modèle (#4335), à la place des surfaces du volume qu'il pose.
+ */
+export interface DecorServi {
+  /** l'id de son élément `decor` (`ModelesDeLAtelier.decors`). */
+  element: string;
+  /** chaque pose de ce décor dans la scène (`posesDesDecors`, section « Monde »), dans l'ordre du volume. */
+  poses: PoseDeDecor[];
 }
 
 /**
@@ -862,6 +882,17 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     return [[id, { corps, centre, stations: stationsDuNavire(scene, id, emprises) }]];
   }));
 
+  /** Par type de décor, chaque décor posé de `scene` (`posesDesDecors`) dont un élément `decor` est servi
+   *  (`DecorServi`) : le jeu, l'éditeur et l'atelier les montrent tous trois. */
+  const decorsServis = (scene: Scene): Record<string, DecorServi> => {
+    const servis: Record<string, DecorServi> = {};
+    for (const pose of posesDesDecors(scene)) {
+      const element = modeles?.modeles.decors[pose.prop];
+      if (element) (servis[pose.prop] ??= { element, poses: [] }).poses.push(pose);
+    }
+    return servis;
+  };
+
   /** Les corps des combattants dessinés de `projection`, puis des héros du groupe de `etat` qu'elle ne dessine pas, chacun
    *  sa portée composée sur l'unique base servie, leurs véhicules servis, hors des navires de la scène, et les navires
    *  servis de la scène. */
@@ -886,6 +917,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         return corps ? [[id, corps]] : [];
       })),
       navires: scene ? naviresServis(scene) : {},
+      decors: scene ? decorsServis(scene) : {},
     };
   };
 
@@ -1712,20 +1744,21 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     /**
      * `{ famille, id }` : l'id d'une famille de `echantillons` et celui d'une de ses entrées
      *
-     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues }` : la scène d'échantillon que le noyau bâtit
-     * pour cette entrée, dessinée comme le monde de la partie (`echantillonDessine`, surface du noyau, section «
-     * Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard `immersion` (`aretes`,
-     * section « Vue »), ses nappes de toit, ses couronnes et les clés des couronnes que sa brèche abat
-     * (`couronnesAbattues`) ; refusé sur une famille hors de `echantillons` (le message les nomme) et sur une entrée
+     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues, decors }` : la scène d'échantillon que le noyau
+     * bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie (`echantillonDessine`, surface
+     * du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard
+     * `immersion` (`aretes`, section « Vue »), ses nappes de toit, ses couronnes, les clés des couronnes que sa brèche
+     * abat (`couronnesAbattues`), et ses décors servis, comme `corps.decors` de la vue (section « Corps d'un
+     * combattant ») ; refusé sur une famille hors de `echantillons` (le message les nomme) et sur une entrée
      * hors de sa famille (le message nomme la famille) ; avant ou après `demarrer`
      */
-    echantillon(json): EchantillonDessine {
+    echantillon(json): EchantillonDessine & { decors: Record<string, DecorServi> } {
       const e = entreeDe('echantillon', json, ['famille', 'id']);
       const familles = famillesDEchantillons();
       const famille = familles.find((f) => f.id === e.famille);
       valider(famille !== undefined, `echantillon : famille, l’id d’une famille d’échantillons (${familles.map((f) => f.id).join(', ')})`);
       valider(famille!.entrees.some((entree) => entree.id === e.id), `echantillon : id, l’id d’une entrée de la famille ${famille!.id}`);
-      return echantillonDessine(famille!.id, e.id as string);
+      return { ...echantillonDessine(famille!.id, e.id as string), decors: decorsServis(sceneDEchantillon(famille!.id, e.id as string)) };
     },
     /**
      * `{ composition, preset? }` : une composition (section « Composition d'un personnage ») et l'id d'un preset de
@@ -1760,7 +1793,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ, ou, d'un retrait déclaré de son porteur, l'objet ou l'élément entier (section « Éditeur »)
      *
-     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, decors?, depot?, essai?,
      * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
      * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
      * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
@@ -1834,7 +1867,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
         calque: calqueAffiche(session),
-        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue) } : {}),
+        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue), decors: decorsServis(vue) } : {}),
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(projetEdite(session).id, charge.sceneId, charge.z) } } : {}),

@@ -4,7 +4,8 @@
 ## (`monter_l_amelioration`), les nœuds que changent ses Améliorations cachés (`cacher_selon`), coupé à une hauteur
 ## (`couper`), voilé par la vision du groupe (`voiler`). Chaque combattant du plateau (`combattant.gd`) et l'atelier
 ## (`atelier.gd`) en sont deux porteurs : l'un le pose sur son empreinte, tourné vers son cap, l'autre au sol, sous un
-## cadrage à sa taille ; le plateau y monte aussi chaque navire de la scène, coupé sous les ponts que le regard retire.
+## cadrage à sa taille ; les modèles posés du monde (`MontageDesModeles`) y montent aussi chaque navire de la scène,
+## coupé sous les ponts que le regard retire, et chaque pose d'un décor servi.
 class_name MontageDeVehicule
 extends Node3D
 
@@ -102,7 +103,7 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	return true
 
 
-## Sorti de l'arbre avec son combattant, son atelier ou ses navires, qui n'y reviennent pas (#4195) : le chargement en
+## Sorti de l'arbre avec son combattant, son atelier ou ses modèles posés, qui n'y reviennent pas (#4195) : le chargement en
 ## vol est jeté (`_chargement`, `monter`).
 func _exit_tree() -> void:
 	_chargement = null

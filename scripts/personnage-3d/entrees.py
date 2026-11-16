@@ -1,6 +1,6 @@
 """Les entrées d'une reconstruction de la chaîne 3D (#3412, lot 4C) : un SUJET est un élément sur base (`element/<base>/<dossier>`)
-ou un modèle de véhicule (`vehicule/<modele>`), avec son dossier et les ids publiés qu'il lit sous `hotes/godot/projet/modeles/`
-(les siens, et ceux qu'il contourne). Un chemin du dépôt est une ENTRÉE d'un sujet (`est_entree`) s'il est sous une racine que
+ou un modèle sans base (`<famille>/<modele>` : `vehicule/caraque`, `decor/arbre`), avec son dossier et les ids publiés qu'il
+lit sous `hotes/godot/projet/modeles/` (les siens, et ceux qu'il contourne). Un chemin du dépôt est une ENTRÉE d'un sujet (`est_entree`) s'il est sous une racine que
 lit la gate `personnage-3d:tests` (`ECRIT_LU`, `scripts/gates/toutes.mjs`), hors du dossier d'un autre sujet, et, sous les
 modèles publiés, hors des fichiers d'un id qu'un autre sujet publie et que lui ne lit pas. Tout le reste de ces racines est
 partagé : le code de la chaîne, la base, les licences, les matières.
@@ -22,8 +22,9 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[1]
 MODELES = 'hotes/godot/projet/modeles/'
 TOUT = 'WFRP_3D_TOUT'
-FAMILLES_DES_VEHICULES = ('vehicule', 'amelioration')
-"""Les catégories des éléments que publient les modèles de `vehicule/` (`identifiant` de `vehicule/construire.py`)."""
+CATEGORIES_DES_FAMILLES = {'vehicule': ('vehicule', 'amelioration'), 'decor': ('decor',)}
+"""Par famille de modèles sans base (`<famille>/<modele>/`, `construire.py`), les catégories des éléments qu'ils publient
+(`identifiant` de `construire.py`)."""
 
 
 def sujet(dossier, publie, contourne=()):
@@ -60,15 +61,23 @@ def sujets_des_elements():
             for d in sorted((ICI / 'element').glob('*/*/donnees.py'))]
 
 
-def sujets_des_vehicules(publie_par_modele):
-    """Un sujet par modèle de `vehicule/<modele>/`, qui publie les ids de `publie_par_modele[modele]`."""
-    return [sujet(f'{(ICI / "vehicule" / m).relative_to(RACINE).as_posix()}/', publie_par_modele[m])
-            for m in sorted(d.parent.name for d in (ICI / 'vehicule').glob('*/donnees.py'))]
+def modeles(famille):
+    """Les modèles de la famille `famille`, les dossiers `<famille>/<modele>/` qui portent un `donnees.py`."""
+    return sorted(d.parent.name for d in (ICI / famille).glob('*/donnees.py'))
 
 
-def ids_publies_des_vehicules():
-    """Les ids publiés sous `MODELES` des familles de `FAMILLES_DES_VEHICULES`."""
-    return {p.name.removesuffix('.manifeste.json') for c in FAMILLES_DES_VEHICULES for p in (RACINE / MODELES).glob(f'{c}--*.manifeste.json')}
+def ids_publies(famille):
+    """Les ids publiés sous `MODELES` des catégories de la famille `famille`."""
+    return {p.name.removesuffix('.manifeste.json') for c in CATEGORIES_DES_FAMILLES[famille]
+            for p in (RACINE / MODELES).glob(f'{c}--*.manifeste.json')}
+
+
+def sujets_sans_base(**exacts):
+    """Un sujet par modèle de chaque famille, `<famille>/<modele>/`. `exacts[famille]` donne, par modèle, les ids qu'il
+    publie ; sans lui, chaque modèle de la famille est tenu pour publier tous les ids publiés de ses catégories, ce qui
+    suffit à juger les entrées des autres sujets."""
+    return [sujet(f'{(ICI / f / m).relative_to(RACINE).as_posix()}/', exacts[f][m] if f in exacts else ids_publies(f))
+            for f in CATEGORIES_DES_FAMILLES for m in modeles(f)]
 
 
 def changements():

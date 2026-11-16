@@ -147,15 +147,17 @@ export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,
   matieresDeDecor,
+  posesDesDecors,
   retraitDuMonde,
   toitsDuMonde,
   volumeDuMonde,
   type MorceauDuMonde,
   type NappeDuMonde,
+  type PoseDeDecor,
   type RetraitDuMonde,
   type VolumeDuMonde,
 } from './monde/volume/volume';
-export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
+export { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export {
   avertissementsDeLaSession,

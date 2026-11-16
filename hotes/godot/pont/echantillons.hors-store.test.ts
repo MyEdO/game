@@ -16,12 +16,12 @@ describe('les échantillons par le pont', () => {
     expect((r as unknown as { familles: FamilleDEchantillons[] }).familles).toEqual(famillesDEchantillons());
   });
 
-  it('`echantillon` rend la scène dessinée de la première entrée de chaque famille', () => {
+  it('`echantillon` rend la scène dessinée de la première entrée de chaque famille, sans décor servi avant `modeles`', () => {
     for (const famille of famillesDEchantillons()) {
       const { id } = famille.entrees[0]!;
       const { ok, ...dessine } = appel('echantillon', { famille: famille.id, id });
       expect(ok, `${famille.id} ${id}`).toBe(true);
-      expect(dessine, `${famille.id} ${id}`).toEqual(JSON.parse(JSON.stringify(echantillonDessine(famille.id, id))));
+      expect(dessine, `${famille.id} ${id}`).toEqual(JSON.parse(JSON.stringify({ ...echantillonDessine(famille.id, id), decors: {} })));
     }
   });
 
