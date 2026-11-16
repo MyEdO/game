@@ -11,12 +11,17 @@ import numpy
 from seuils import IMAGES_PAR_SECONDE
 from tronc import avant, profondeurs, profondeurs_exactes
 
-ECART_DU_TRONC = {'marge': 0.005, 'echelle': 0.01}
+ECART_DU_TRONC = {'marge': 0.005, 'echelle': 0.003}
 """En mètres : la peau de l'avant-bras et de la main (`tronc.peau_du_membre`) se tient à `marge` hors du tronc
 (`tronc.TRONC`) sous chacun de ses jeux, les os déplacés comme l'hôte les joue ; le pire de ses sommets, plus près que
-`marge` ou dedans, se paie par pas d'`echelle` (`deux_mains.prix_du_tronc`, #3806, #4002, #3810). La marge vise : lue
-sur le champ, qui s'écarte de l'enfoncement exact de 6,5 mm au plus (`tronc.CHAMP`), elle ne décide pas ; la profondeur
-exacte décide (`enfoncement`)."""
+`marge` ou dedans, se paie par pas d'`echelle`, au carré (`deux_mains.prix_du_tronc`, #3806, #4002, #3810). Parmi les
+prix d'une pose de bras (`deux_mains.bras`), une peau au contact du tronc paie 2,8, autant qu'un tour du coude de 75°
+(`(tour / 45)²`), et une peau à la tolérance de la garde (`SOL_TOLERANCE_M` dedans) paie 11, plus que le tour le plus
+large de `deux_mains.TOURS` : l'IK ne retient pas un tour qui laisse la peau dedans pour un tour plus court. Mesuré sur
+`Hampe_Attaque` (#3810) : à une `echelle` de 0,01, l'IK y retient un tour qui laisse l'avant-bras gauche 5,5 mm dans le
+tronc sous `carrure_plus` (prix 1,1) ; à 0,003, la peau reste dehors sous les cinq jeux à toutes les images. La marge
+vise : lue sur le champ, qui s'écarte de l'enfoncement exact de 6,5 mm au plus (`tronc.CHAMP`), elle ne décide pas ; la
+profondeur exacte décide (`enfoncement`)."""
 POUSSEE = {'pas': 0.01, 'borne': 0.15, 'tolerance': 1e-4}
 """La poussée hors du tronc (`poussee_requise`), en mètres le long de l'avant du tronc posé : la plus petite avancée qui
 tient une peau à `ECART_DU_TRONC['marge']` dehors se cherche par pas de `pas`, puis par dichotomie à `tolerance` près ;

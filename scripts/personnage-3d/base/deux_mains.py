@@ -69,10 +69,12 @@ coude s'écarte de son +X de moins de 45° à 90 %."""
 BORNES = json.loads(Path(__file__).with_name('humanoide.json').read_text(encoding='utf-8'))['bornesArticulaires']
 """Par os, les bornes articulaires que déclare le corps (`bornesArticulaires`, #2992) : par axe, [min, max] en degrés du
 vecteur de rotation de l'os depuis son repos (`hors_des_bornes`) ; une pose d'avant-bras ou de main qui en sort, à
-`MARGE_DES_BORNES` près, se paie comme une limite."""
+`MARGE_DES_BORNES` près, se paie comme une limite (`bras`), et une pose qui sort des bornes elles-mêmes manque le
+contrôle des bornes (`defaut_du_bras`), comme la garde `amplitude` la mesure
+(`hotes/godot/asset/evaluateur/gardes/amplitude.ts`)."""
 MARGE_DES_BORNES = 1.0
 """En degrés, la marge en deçà des bornes où l'IK tient une pose : l'export et l'interpolation entre deux images la
-déplacent de moins que cela, et la garde `amplitude` mesure la pose jouée."""
+déplacent de moins que cela. La marge vise, la borne décide (`defaut_du_bras`)."""
 PEAU = {'marge': 0.25, 'echelle': 0.02, 'plancher': 0.2, 'echelle_plancher': 0.01}
 """L'étirement des arêtes de la peau que meut un bras (`etirement_du_bras`), mesuré sur le corps neutre, se paie au-delà de
 la borne haute de `ETIREMENT_EN_CLIP` moins `marge`, par pas d'`echelle`, et son écrasement en deçà de `plancher`, par pas
@@ -109,7 +111,7 @@ l'avant-bras gauche dans le ventre ; une fois le corps à terre, les mains revie
 tendent pas l'arme vers le ciel (#3806)."""
 REPOS_DU_RECUL = ((-0.02, -0.28, 1.2925), (0.85, 0.0, -0.53))
 """Le repos, les mains 3 cm plus loin de la poitrine : à la fin du recul, les mains au repos entrent de 3,4 cm dans le
-ventre corpulent féminin, et l'avancée qui les en sort, raccordée sur `RACCORD`, mène l'avant-bras droit dans le flanc
+ventre corpulent féminin, et l'avancée qui les en sort, raccordée sur `ecart.RACCORD`, mène l'avant-bras droit dans le flanc
 sous la carrure large au milieu du recul ; 3 cm plus loin, l'avancée reste sous 2,7 cm et la peau à 5 mm du flanc
 (#3810)."""
 GARDE = ((-0.08, -0.38, 1.18), (0.40, 0.10, -0.91))
@@ -142,8 +144,10 @@ HAMPE_CHUTE = ((-0.02, -0.33, 1.36), (0.88, 0.1, -0.2))
 fer en bas à gauche : dans la chute, le corps la garde en travers de lui et non dressée en l'air, les mains hautes et
 écartées du ventre, qui se plie (#3806) ; le fer assez peu penché pour que l'avant-bras gauche reste hors du ventre
 corpulent (#3810)."""
-HAMPE_GISANT = ((-0.02, -0.22, 1.30), (0.88, 0.1, -0.2))
-"""La hampe de la chute, couchée sur la poitrine du corps à terre, le fer vers le sol à sa gauche (#3806)."""
+HAMPE_GISANT = ((-0.02, -0.28, 1.30), (0.88, 0.1, -0.2))
+"""La hampe de la chute, couchée sur la poitrine du corps à terre, le fer vers le sol à sa gauche (#3806), assez loin
+d'elle pour que l'avant-bras et la main gauches restent hors du tronc sous les bras longs corpulents du gabarit
+(`arms_plus` × `corpulence`, #3810)."""
 HAMPE_GARDE = ((-0.175, -0.2, 1.0), (0.272, -0.809, 0.521))
 """La main droite au talon contre la hanche droite, la gauche devant, le fer pointé à hauteur de tête."""
 HAMPE_ARME = ((-0.13, -0.04, 1.143), (0.437, -0.354, 0.827))
@@ -269,15 +273,15 @@ def ecarter(troncs, peaux):
     return numpy.array([poussee_requise(t, p) or 0.0 for t, p in zip(troncs, peaux)])
 
 
-def hors_des_bornes(rotation, bornes):
+def hors_des_bornes(rotation, bornes, marge):
     """Le dépassement, en degrés, sommé sur les axes, du vecteur de rotation de la matrice `rotation` (axe × angle,
     l'angle dans [0, 180], `hotes/godot/asset/evaluateur/gardes/amplitude.ts` `vecteurDeRotation`) hors de `bornes`
-    (par axe, [min, max]) resserrées de `MARGE_DES_BORNES`."""
+    (par axe, [min, max]) resserrées de `marge` degrés."""
     q = rotation.to_quaternion()
     if q.w < 0:
         q.negate()
     v = q.axis * math.degrees(q.angle)
-    return sum(max(0.0, v[i] - bornes[a][1] + MARGE_DES_BORNES, bornes[a][0] + MARGE_DES_BORNES - v[i]) for i, a in enumerate('xyz'))
+    return sum(max(0.0, v[i] - bornes[a][1] + marge, bornes[a][0] + marge - v[i]) for i, a in enumerate('xyz'))
 
 
 def lire_le_bras(pose, cote):
@@ -294,7 +298,7 @@ def defaut_du_bras(cote, images, lectures, etirements, verifiees):
     du pack (`membres`), et la plus grande vitesse de sa main sur son avant-bras lue en chemin. Par image de `images`
     (instants, en images de `poids.cadence`) : `lectures`, le bras lu (`lire_le_bras`) ; `etirements`, le plus grand
     et le plus petit rapport de longueur des arêtes de la peau que meut le bras (`etirement_du_bras`). Aux images d'indices
-    `verifiees`, l'avant-bras et la main restent dans leurs bornes (`BORNES`, `hors_des_bornes`) et la peau dans
+    `verifiees`, l'avant-bras et la main restent dans leurs bornes (`BORNES`, `hors_des_bornes` sans marge) et la peau dans
     `ETIREMENT_EN_CLIP` ; d'une image à la suivante, l'une des deux vérifiée, la main tourne sur l'avant-bras à au plus
     `VITESSE_DU_POIGNET`. Rend (contrôle, instant, valeur) ou `None`, et la vitesse en degrés par seconde."""
     _, os_avant_bras, os_main = BRAS[cote]
@@ -303,7 +307,7 @@ def defaut_du_bras(cote, images, lectures, etirements, verifiees):
     for k in sorted(verifiees):
         avant_bras, main, _ = lectures[k]
         for nom, rotation in ((os_avant_bras, avant_bras), (os_main, main)):
-            hors = hors_des_bornes(rotation, BORNES[nom])
+            hors = hors_des_bornes(rotation, BORNES[nom], 0.0)
             if hors > 0:
                 return (f'bornes de {nom}', images[k], round(hors, 1)), vitesse
         haut, bas = etirements[k]
@@ -323,8 +327,8 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
     au repos sous la clavicule), sans torsion, comme dans les clips sources ; l'avant-bras plie depuis le bras, puis tourne
     sur son axe, dans les bornes de `pronation`, pour détordre le poignet ; le coude tourne autour de l'axe
     épaule-poignet, à partir du côté de `pole`. Chaque tour du coude a son prix (`POIGNET`), dans les `bornes` de
-    l'avant-bras puis de la main (`BORNES`, `hors_des_bornes`), sous l'étirement de la peau (`PEAU`) quand `peau` porte
-    la `PeauDuBras`, sa part fixe (`peau_fixe`) et l'indice d'os du bras puis de l'avant-bras, et à l'écart du tronc
+    l'avant-bras puis de la main resserrées de `MARGE_DES_BORNES` (`BORNES`, `hors_des_bornes`), sous l'étirement de
+    la peau (`PEAU`) quand `peau` porte la `PeauDuBras`, sa part fixe (`peau_fixe`) et l'indice d'os du bras puis de l'avant-bras, et à l'écart du tronc
     quand `membre` porte le `tronc.TroncPose`, la `tronc.MembrePose` de ce côté et son sous-échantillon, et la
     `tronc.ChaineDuBras` de ce côté (`prix_du_tronc`) ; `repos` : celui de `matrices_de_la_chaine`, requis avec `peau`
     ou `membre`. `rel_avant_bras` et `rel_main` : chaque os dans le repère de son parent, au repos. Rend la
@@ -347,8 +351,8 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
         tourne = min(max(torsion, pronation[0]), pronation[1])
         avant_bras = plie @ Matrix.Rotation(math.radians(tourne), 3, 'Y')
         flexion = math.degrees(((avant_bras @ rel_main).transposed() @ axes_main).to_quaternion().to_swing_twist('Y')[0].angle)
-        hors = hors_des_bornes(repos.transposed() @ avant_bras, bornes[0]) \
-            + hors_des_bornes((avant_bras @ rel_main).transposed() @ axes_main, bornes[1])
+        hors = hors_des_bornes(repos.transposed() @ avant_bras, bornes[0], MARGE_DES_BORNES) \
+            + hors_des_bornes((avant_bras @ rel_main).transposed() @ axes_main, bornes[1], MARGE_DES_BORNES)
         prix = ((torsion - tourne) / POIGNET['torsion']) ** 2 + (max(0.0, flexion - POIGNET['flexion']) / 10) ** 2 \
             + (max(0.0, charniere - POIGNET['charniere']) / 10) ** 2 + (tour / 45) ** 2 \
             + 1e3 * (max(0.0, abs(torsion - tourne) - POIGNET['torsion_max']) + max(0.0, flexion - POIGNET['flexion_max']) + hors) ** 2

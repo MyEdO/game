@@ -2,8 +2,9 @@
 repos, sauf à une clé d'élan, la prise `main` à la moitié de l'écart du milieu de chaque clé ; le repère de l'arme porte
 son +Y vers le fer et son +X au plus près du flanc donné ; chaque clip dérivé a une clé au début et une à la fin, et un
 maniement dont la seconde prise est déclarée ; le bras ne se tord pas et l'avant-bras porte la torsion dans ses bornes ;
-le dépassement des bornes articulaires se lit sur le vecteur de rotation, à la marge près, et écarte l'IK d'une pose qui
-en sort ;
+le dépassement des bornes articulaires se lit sur le vecteur de rotation, à la marge donnée près ; il écarte l'IK d'une pose
+qui sort des bornes resserrées de leur marge, et un bras posé ne manque le contrôle des bornes qu'au-delà de la borne
+elle-même ;
 une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval, l'écrasement ne lit que les arêtes
 que meuvent les os libres ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement ;
@@ -27,7 +28,7 @@ from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import (CLIPS, CONTINUITE, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS, PeauDuBras, bras,  # noqa: E402
+from deux_mains import (BORNES, CLIPS, CONTINUITE, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS, PeauDuBras, bras,  # noqa: E402
                         chemin, cle, defaut_du_bras, ecarter, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
                         poser_les_bras, prix_du_tronc, refus_du_tronc, repere_de_l_arme, tour_du_repere)
 from ecart import ECART_DU_TRONC, POUSSEE  # noqa: E402
@@ -65,9 +66,10 @@ class Bras(unittest.TestCase):
         axe = max(range(3), key=lambda i: abs(v[i]))
         serree = {**LIBRE, 'xyz'[axe]: [-abs(v[axe]) / 2, abs(v[axe]) / 2]}
         _, (_, humerus_, avant_bras_, _, _, detail) = self.poser(0, bornes=(serree, LIBRE))
-        self.assertLess(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree),
-                        hors_des_bornes(humerus.transposed() @ avant_bras, serree))
-        self.assertAlmostEqual(detail[4], round(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree), 1), places=6)
+        self.assertLess(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree, MARGE_DES_BORNES),
+                        hors_des_bornes(humerus.transposed() @ avant_bras, serree, MARGE_DES_BORNES))
+        self.assertAlmostEqual(detail[4], round(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree, MARGE_DES_BORNES), 1),
+                               places=6)
 
     def test_le_bras_ne_se_tord_pas_et_l_avant_bras_porte_la_torsion_dans_ses_bornes(self):
         for tourne in (-150, -90, -40, 0, 30, 90):
@@ -95,10 +97,13 @@ class Bras(unittest.TestCase):
 class HorsDesBornes(unittest.TestCase):
     def test_le_vecteur_de_rotation_se_lit_par_axe_a_la_marge_pres(self):
         bornes = {'x': [-20, 50], 'y': [-180, 180], 'z': [-10, 20]}
-        self.assertEqual(hors_des_bornes(Matrix.Identity(3), bornes), 0)
-        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(30), 3, 'Z'), bornes), 10 + MARGE_DES_BORNES, places=4)
-        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(-30), 3, 'X'), bornes), 10 + MARGE_DES_BORNES, places=4)
-        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(19.5), 3, 'Z'), bornes), 0.5, places=4)
+        self.assertEqual(hors_des_bornes(Matrix.Identity(3), bornes, MARGE_DES_BORNES), 0)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(30), 3, 'Z'), bornes, MARGE_DES_BORNES), 10 + MARGE_DES_BORNES,
+                               places=4)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(-30), 3, 'X'), bornes, MARGE_DES_BORNES), 10 + MARGE_DES_BORNES,
+                               places=4)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(19.5), 3, 'Z'), bornes, MARGE_DES_BORNES), 0.5, places=4)
+        self.assertEqual(hors_des_bornes(Matrix.Rotation(math.radians(19.5), 3, 'Z'), bornes, 0.0), 0)
 
 
 class Peau(unittest.TestCase):
@@ -203,6 +208,14 @@ class DefautDuBras(unittest.TestCase):
     def test_une_peau_trop_etiree_manque_le_controle(self):
         defaut, _ = defaut_du_bras('l', [0.0], self.lectures((0,)), [(4.0, 1.0)], [0])
         self.assertEqual(defaut, ('étirement', 0.0, (4.0, 1.0)))
+
+    def test_une_pose_dans_la_marge_des_bornes_passe_et_une_pose_au_dela_de_la_borne_manque_le_controle(self):
+        borne = BORNES['lowerarm_l']['x'][1]
+        for ecart_, attendu in ((-0.5, None), (0.5, ('bornes de lowerarm_l', 0.0, 0.5))):
+            with self.subTest(ecart=ecart_):
+                avant_bras = Matrix.Rotation(math.radians(borne + ecart_), 3, 'X')
+                defaut, _ = defaut_du_bras('l', [0.0], [(avant_bras, Matrix.Identity(3), Quaternion())], [(1.0, 1.0)], [0])
+                self.assertEqual(defaut, attendu)
 
 
 class PoserLesBras(unittest.TestCase):
