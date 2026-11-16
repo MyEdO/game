@@ -33,17 +33,23 @@
     },
     {
       "nom": "dorure",
-      "palette": "metal",
+      "palette": "metal2",
       "matiere": "prop--laiton-dore"
     },
     {
       "nom": "gland",
       "palette": "accent",
       "matiere": "prop--laine"
+    },
+    {
+      "nom": "cartouche",
+      "palette": "metal",
+      "matiere": "prop--acier-battu",
+      "blason": true
     }
   ],
   "glb": {
-    "sha256": "f6f27a44cba74bd18a6812ff5428dce7f20996e1de55a6c14f42f11bb032c7c7",
-    "octets": 107508
+    "sha256": "b96c3c1bfd78499180bed468c54eb2a34fdc205aec14097632bcd7285c34f632",
+    "octets": 110396
   }
 }

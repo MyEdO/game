@@ -1,34 +1,12 @@
-"""Géométrie de `humanoide--vetement--pourpoint` : un corps ajusté d'anneaux horizontaux fermés, du bas du torse au bas
+"""Géométrie de `humanoide--vetement--pourpoint` : un corps ajusté d'anneaux horizontaux fermés (`robe.anneaux`), du bas du torse au bas
 du cou, et les mancherons du kit des robes (`robe.manches`), bouffants de l'épaule au coude, fendus de crevés : une
 colonne sur `COLONNES_DE_CREVE`, rentrée en creux aux anneaux intérieurs de la bande `CREVES`, porte la surface
 `creves` ; poids empruntés au corps, sommet par sommet, silhouettes et clés `gabarit_*` transférées."""
 import numpy as np
 
-from robe import BRAS, COU, TRONC, Nappe, manches, piece_de
-from tissu import anneau, centre_de, direction, emprunter
+from robe import BRAS, COU, TRONC, Nappe, anneaux, manches, piece_de
 
 PORTEUSES = TRONC + COU + BRAS['g'] + BRAS['d']
-
-
-def anneaux(D, b, nappe, porteur, liste, m):
-    """Les anneaux horizontaux fermés de `liste` (ancre, décalage, aisance), `m` colonnes, coupés dans le tronc et le
-    cou, dans le cou seul au-dessus du bas du cou (la coupe du tronc y passe encore sur le trapèze, jusqu'aux épaules),
-    reliés en bandes."""
-    ancres = {'bas': float(b.corps('torse')[0][:, 2].min()),
-              'aisselle': min(float(b.corps(z)[0][:, 2].min()) for z in BRAS['g'][:1] + BRAS['d'][:1]),
-              'cou': float(b.corps('cou')[0][:, 2].min())}
-    thetas = [360.0 * i / m for i in range(m)]
-    faits = []
-    for ancre, dz, e in liste:
-        z = ancres[ancre] + dz
-        zones = COU if ancre == 'cou' and dz > 0 else TRONC + COU
-        P = b.coupe(zones, (0.0, 0.0, z), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), minimum=1)
-        c = centre_de(P)
-        pts = [np.array([p[0], p[1], z]) for p in anneau(P, c, [direction(t) for t in thetas], [e] * m,
-                                                          D['DEGAGEMENT_MIN'], au_plus_pres=True)]
-        faits.append((nappe.poser(pts, [emprunter(p, porteur)[0] for p in pts]), np.array([c[0], c[1], z])))
-    for (A, ca), (B, cb) in zip(faits, faits[1:]):
-        nappe.bande(A, B, (ca + cb) / 2)
 
 
 def creves(D, nappe, debut):

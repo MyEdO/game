@@ -29,10 +29,9 @@ laisserait un trou aux épaules. Les triangles du pourpoint qu'il couvre tout en
 
 MATERIAUX = {
     'acier': ('metal', 'acier-battu'),
-    'dorure': ('metal', 'laiton-dore'),
+    'dorure': ('metal2', 'laiton-dore'),
 }
-"""Illustration : acier poli, bordures dorées. La bordure prend l'emplacement `metal`, comme celle des tassettes
-(`armure--tassettes/donnees.py`) : la palette n'a pas d'emplacement de dorure, sa matière seule la distingue."""
+"""Illustration : acier poli (`metal`), bordures dorées (`metal2`, le laiton au preset `soldat`)."""
 
 BUDGET_TRIANGLES = 1000
 """Sous les 2 000 d'une armure (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000)."""
@@ -59,19 +58,21 @@ JEU_DE_BRETELLE = 0.026
 """m, au-dessus de l'épaule de la base. HYPOTHÈSE : au-dessus du pourpoint (12 mm au bas du cou), comme l'encolure."""
 
 # --- Aisance : distance au tronc de la base (enveloppe convexe de la coupe), par anneau et azimut ---
-AISANCE = [(1.06, 0.046), (1.15, 0.036), (1.23, 0.028), (1.40, 0.032)]
+AISANCE = [(1.06, 0.046), (1.15, 0.032), (1.23, 0.028), (1.40, 0.032)]
 """(z, m) : la distance au tronc partout autour, interpolée. HYPOTHÈSE : 14 à 16 mm au-dessus du pourpoint
 (`vetement--pourpoint`, 7 à 16 mm) : à 10 mm sur la poitrine, le pourpoint passait devant la plaque bras levés ou
-tendus (`couche-traversee`, 5 à 18 mm, Melee_Hook, Pistol_Aim, NinjaJump) ; au bas, 4,6 cm, au-dessus de la ceinture bouffante du haut-de-chausses (son haut à
+tendus (`couche-traversee`, 5 à 18 mm, Melee_Hook, Pistol_Aim, NinjaJump) ; resserré à la taille (3,2 cm à 1,15, contre
+3,6) ; au bas, 4,6 cm, au-dessus de la ceinture bouffante du haut-de-chausses (son haut à
 1,085, base), comme le plastron publié avant lui (4,2 à 4,4 cm de 1,06 à 1,10) ; à 4 cm, la ceinture passait devant lui
 sous `carrure_plus` (`couche-traversee`, 7 à 17 mm)."""
 BOMBE = [(1.06, 0.004), (1.15, 0.014), (1.23, 0.024), (1.30, 0.030), (1.40, 0.028), (1.46, 0.018), (1.52, 0.008)]
 """(z, m) : ce que le devant s'écarte de plus, au milieu, s'éteignant vers les flancs comme le carré du cosinus de
 l'azimut. Illustration : la poitrine est bombée en carène, plus saillante sous les seins, rentrée à la taille et à
 l'encolure ; ~3 cm de bombé au plus, HYPOTHÈSE de valeur."""
-ARETE = 0.012
+ARETE = 0.020
 """m : la colonne de l'avant (azimut 0) ressort de plus, de la deuxième rangée à l'encolure, en arête. Illustration :
-une arête verticale nette au milieu du plastron ; HYPOTHÈSE de valeur."""
+une arête verticale nette au milieu du plastron ; HYPOTHÈSE de valeur : à 1,2 cm, l'arête, ombrée lisse, ne se lisait
+pas au rendu."""
 EVASEMENT_DU_BAS = 0.008
 """m : la rangée du bas s'écarte de plus, le bord se relève en rebord sur le haut-de-chausses. HYPOTHÈSE."""
 DORURE = {'bas': 1, 'haut': 1}

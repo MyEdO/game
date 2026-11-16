@@ -40,9 +40,10 @@ ANGLE_LISSE = 50.0                      # HYPOTHÈSE : degrés, les barbes reste
 
 # Une plume : une hampe (`chemin`, points de passage d'une courbe) habillée de sections en lentille, la face tournée
 # vers l'avant au pied ; `largeurs` et `epaisseurs` donnent, par part de la longueur, la demi-largeur des barbes et la
-# demi-épaisseur au droit de la hampe.
+# demi-épaisseur au droit de la hampe ; `surface`, le matériau de `MATERIAUX` qu'elle prend.
 PLUMES = {
-    'plume': {
+    'blanche': {
+        'surface': 'plume',
         # illustration : monte de ~24 cm en penchant vers l'arrière-gauche, la pointe retombe vers l'arrière
         'chemin': [(0.0, 0.0, 0.0), (0.008, 0.07, -0.008), (0.022, 0.15, -0.032), (0.042, 0.225, -0.075),
                    (0.062, 0.275, -0.140), (0.074, 0.280, -0.205), (0.080, 0.255, -0.250)],
@@ -51,14 +52,41 @@ PLUMES = {
         'epaisseurs': [(0.0, 0.004), (0.3, 0.016), (0.8, 0.014), (1.0, 0.007)],   # HYPOTHÈSE : plume fournie
         'sections': 18,                 # HYPOTHÈSE de maillage
     },
-    'plume_rouge': {
-        # illustration : part vers la gauche du personnage à ~40°, puis retombe ; ~20 cm de long
+    # La touffe rouge : quatre plumes frisées plantées au pied de la blanche, en éventail. Illustration : une masse
+    # rouge de ~20 cm sur ~11 cm, qui part vers la gauche du personnage à ~40° et retombe, faite de plusieurs pointes
+    # recourbées qui se séparent au bout. HYPOTHÈSE : quatre plumes, chacune ~3,5 cm de demi-largeur, dont les pointes
+    # s'écartent de ~6 cm (haut, milieu, bas, arrière), la pointe enroulée vers le bas.
+    'rouge_haut': {
+        'surface': 'plume_rouge',
+        'chemin': [(0.006, 0.0, -0.004), (0.030, 0.060, -0.020), (0.070, 0.125, -0.050), (0.118, 0.160, -0.085),
+                   (0.160, 0.150, -0.112), (0.178, 0.112, -0.122)],
+        'largeurs': [(0.0, 0.004), (0.15, 0.020), (0.5, 0.036), (0.85, 0.034), (1.0, 0.018)],
+        'epaisseurs': [(0.0, 0.004), (0.3, 0.014), (0.8, 0.012), (1.0, 0.006)],
+        'sections': 8,                  # HYPOTHÈSE de maillage
+    },
+    'rouge_milieu': {
+        'surface': 'plume_rouge',
         'chemin': [(0.006, 0.0, -0.004), (0.035, 0.045, -0.018), (0.080, 0.090, -0.045), (0.130, 0.118, -0.078),
-                   (0.172, 0.112, -0.110), (0.198, 0.078, -0.132), (0.205, 0.035, -0.145)],
-        # illustration : ~11 cm de large, touffue jusqu'au bout
-        'largeurs': [(0.0, 0.004), (0.1, 0.024), (0.4, 0.052), (0.75, 0.058), (1.0, 0.034)],
-        'epaisseurs': [(0.0, 0.004), (0.3, 0.020), (0.8, 0.018), (1.0, 0.009)],   # HYPOTHÈSE : plus touffue que la blanche
-        'sections': 14,
+                   (0.172, 0.112, -0.110), (0.198, 0.078, -0.132), (0.200, 0.045, -0.138)],
+        'largeurs': [(0.0, 0.004), (0.15, 0.022), (0.5, 0.038), (0.85, 0.036), (1.0, 0.020)],
+        'epaisseurs': [(0.0, 0.004), (0.3, 0.014), (0.8, 0.012), (1.0, 0.006)],
+        'sections': 8,
+    },
+    'rouge_bas': {
+        'surface': 'plume_rouge',
+        'chemin': [(0.006, 0.0, 0.0), (0.045, 0.030, -0.005), (0.100, 0.060, -0.020), (0.160, 0.068, -0.040),
+                   (0.205, 0.045, -0.058), (0.222, 0.005, -0.066)],
+        'largeurs': [(0.0, 0.004), (0.15, 0.020), (0.5, 0.034), (0.85, 0.032), (1.0, 0.018)],
+        'epaisseurs': [(0.0, 0.004), (0.3, 0.014), (0.8, 0.012), (1.0, 0.006)],
+        'sections': 8,
+    },
+    'rouge_arriere': {
+        'surface': 'plume_rouge',
+        'chemin': [(0.004, 0.0, -0.008), (0.025, 0.050, -0.040), (0.055, 0.095, -0.090), (0.095, 0.115, -0.145),
+                   (0.130, 0.095, -0.190), (0.142, 0.055, -0.205)],
+        'largeurs': [(0.0, 0.004), (0.15, 0.020), (0.5, 0.034), (0.85, 0.032), (1.0, 0.018)],
+        'epaisseurs': [(0.0, 0.004), (0.3, 0.014), (0.8, 0.012), (1.0, 0.006)],
+        'sections': 8,
     },
 }
 FRANGE = 0.09

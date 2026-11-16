@@ -28,10 +28,10 @@ MANIFESTE = {
 
 MATERIAUX = {
     'acier': ('metal', 'acier-battu'),
-    'dorure': ('metal', 'laiton-dore'),
+    'dorure': ('metal2', 'laiton-dore'),
 }
-"""Illustration : acier des lames, laiton doré de la bordure et des coins. `SLOTS` de `src/lib/palette.ts` n'a qu'un
-emplacement de métal : la dorure le partage avec l'acier."""
+"""Illustration : acier des lames (`metal`), laiton doré de la bordure et des coins (`metal2`, le laiton au preset
+`soldat`)."""
 
 BUDGET_TRIANGLES = 2000           # procédure du skill, section 7 : armure par pièce
 

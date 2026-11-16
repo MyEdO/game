@@ -46,12 +46,12 @@
     },
     {
       "nom": "dorure",
-      "palette": "metal",
+      "palette": "metal2",
       "matiere": "prop--laiton-dore"
     }
   ],
   "glb": {
-    "sha256": "c60da92f9c066c2c343490becc1d030d31c10256c739be238c7b2ffb46e81d29",
-    "octets": 365364
+    "sha256": "d152ad0a6e796524f70d160df960811381845797b7514aaa42533b6af5cb3f47",
+    "octets": 366440
   }
 }

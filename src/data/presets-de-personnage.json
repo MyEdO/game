@@ -6,7 +6,7 @@
     "source": {
       "book": "livre-de-base",
       "page": 74,
-      "note": "Illustration LDB page076_img2492 : page 76 du PDF, folio imprimé 74 (`data-folio=\"74\"`, « 08 - Statut.md » l.1328). Carrière Soldat (`soldat-2`), dont les possessions donnent l’arme au choix, `heaume` et `plastron` (LDB 08 l.1366) ; l’arme est la `hallebarde` de l’illustration. La hallebarde est tenue `main`, car une arme à deux mains reste un seul objet attaché à sa main directrice (`hotes/godot/pont/CONTRAT.md`), et la main gauche la saisit sur sa seconde prise (#3319), alors que l’illustration la fait tenir par la main gauche, `off` : conflit relevé par le contrat de l’illustration (point ouvert « Main qui tient la hallebarde »). Le casque est l’objet `heaume` de la carrière, et non `heaume-ouvert`, alors que l’illustration montre un casque ouvert à joues : conflit relevé par le contrat de l’illustration (point ouvert « Casque `heaume` ou `heaume-ouvert` »). Le plastron est l’objet `plastron` de `soldat-2`. L’écu porté au dos est omis, car choisir un bouclier change l’objet de règle et la carrière n’en donne pas. Épaulières, brassards et tassettes sont omis, car aucun objet de la carrière ne les porte (conflit image ↔ règle). La tenue est `uniforme-de-soldat`, et les pièces ajoutées sont les accessoires de la garde-robe que son ensemble ne porte pas : `ruban`, `insigne`, `baudrier` et le `plumet` de l’illustration. Le `plumet` se pose sur l’emplacement `cimier` du casque. Le baudrier est sa variante `baudrier-sur-armure` (`variantesPieces`), passée sur le plastron comme dans l’illustration. L’emblème est `taureau-rouge`, la tête de taureau rouge de l’insigne en écu de l’illustration, posée sur la surface `blason` de l’insigne. La bourse est omise, car la garde-robe n’en a aucune pièce : c’est un manque de donnée. La coiffure est omise, car la seule de la garde-robe, `crane-rase`, contredit les cheveux longs brun foncé de l’illustration. Le sexe est féminin, lecture du contrat (« traits lus féminins »). La corpulence est absente : le corps neutre. Les couleurs sont lues sur l’illustration, chacune la plus proche du nuancier (`materials.json`, domaine `couleur`) : teint clair, cheveux brun foncé, manches et chausses bouffantes noires, bas blancs, bottes de cuir fauve, armure d’acier, plume blanche, rubans rouges en accent, hampe de bois brun. Les yeux, que l’illustration ne lit pas, gardent la matière du modèle. Le bas et les bottes prennent leurs variantes `bas-de-chausses` et `bottines` : les bas blancs ajustés et les bottines basses à tige souple de l’illustration, le Sorcier et l’Apothicaire gardant les pièces `bas` et `bottes`."
+      "note": "Illustration LDB page076_img2492 : page 76 du PDF, folio imprimé 74 (`data-folio=\"74\"`, « 08 - Statut.md » l.1328). Carrière Soldat (`soldat-2`), dont les possessions donnent l’arme au choix, `heaume` et `plastron` (LDB 08 l.1366) ; l’arme est la `hallebarde` de l’illustration. La hallebarde est tenue `main`, car une arme à deux mains reste un seul objet attaché à sa main directrice (`hotes/godot/pont/CONTRAT.md`), et la main gauche la saisit sur sa seconde prise (#3319), alors que l’illustration la fait tenir par la main gauche, `off` : conflit relevé par le contrat de l’illustration (point ouvert « Main qui tient la hallebarde »). Le casque est l’objet `heaume` de la carrière, et non `heaume-ouvert`, alors que l’illustration montre un casque ouvert à joues : conflit relevé par le contrat de l’illustration (point ouvert « Casque `heaume` ou `heaume-ouvert` »). Le plastron est l’objet `plastron` de `soldat-2`. L’écu porté au dos, les épaulières, les brassards et les tassettes de l’illustration sont des pièces de la garde-robe (`ecu-au-dos`, `epaulieres`, `brassards` en variante `brassards-d-acier`, `tassettes`), posées pour l’image seule : aucun objet de la carrière ne les porte et elles n’ajoutent aucun objet de règle (conflit image ↔ règle). Les épaulières noircies prennent la couleur de l’étoffe principale. La tenue est `uniforme-de-soldat`, et les pièces ajoutées sont les accessoires de la garde-robe que son ensemble ne porte pas : `ruban`, `insigne`, `baudrier`, le `plumet` et ces quatre pièces d’armure et d’écu de l’illustration. Le `plumet` se pose sur l’emplacement `cimier` du casque. Le baudrier est sa variante `baudrier-sur-armure` (`variantesPieces`), passée sur le plastron comme dans l’illustration. L’emblème est `taureau-rouge`, la tête de taureau rouge de l’insigne en écu de l’illustration, posée sur la surface `blason` de l’insigne. La bourse est omise, car la garde-robe n’en a aucune pièce : c’est un manque de donnée. La coiffure est `cheveux-longs`, les cheveux longs brun foncé de l’illustration. Le sexe est féminin, lecture du contrat (« traits lus féminins »). La corpulence est absente : le corps neutre. Les couleurs sont lues sur l’illustration, chacune la plus proche du nuancier (`materials.json`, domaine `couleur`) : teint clair, cheveux brun foncé, manches et chausses bouffantes noires, bas blancs, bottes de cuir fauve, armure d’acier, liserés dorés de laiton, plume blanche, rubans rouges en accent, hampe de bois brun. Les yeux, que l’illustration ne lit pas, gardent la matière du modèle. Le bas et les bottes prennent leurs variantes `bas-de-chausses` et `bottines` : les bas blancs ajustés et les bottines basses à tige souple de l’illustration, le Sorcier et l’Apothicaire gardant les pièces `bas` et `bottes`."
     },
     "race": {
       "id": "humain"
@@ -15,6 +15,9 @@
     "tete": {
       "id": "humain"
     },
+    "coiffure": {
+      "id": "cheveux-longs"
+    },
     "tenue": {
       "id": "uniforme-de-soldat"
     },
@@ -22,7 +25,11 @@
       "ruban",
       "insigne",
       "baudrier",
-      "plumet"
+      "plumet",
+      "epaulieres",
+      "brassards",
+      "tassettes",
+      "ecu-au-dos"
     ],
     "objets": [
       "heaume",
@@ -37,6 +44,9 @@
       },
       "bottes": {
         "id": "bottines"
+      },
+      "brassards": {
+        "id": "brassards-d-acier"
       }
     },
     "prises": {
@@ -65,6 +75,9 @@
       },
       "metal": {
         "id": "acier"
+      },
+      "metal2": {
+        "id": "laiton"
       },
       "accent": {
         "id": "tissu-rouge"

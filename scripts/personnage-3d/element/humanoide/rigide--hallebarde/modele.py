@@ -1,7 +1,8 @@
 """Géométrie de `humanoide--rigide--hallebarde` : la hampe de bois le long du +Y de la prise, centrée sur
 `AXE_DANS_LA_PRISE` (`base/anatomie.py`), son talon de métal ; au sommet, la douille renflée, le collet doré à champ d'acier,
 les deux lames en croissant dans le plan de la hampe et du tranchant (+Z), biseautées vers le fil, la tige, la bague et
-la pointe d'estoc ; le gland cannelé pendu sous la douille, autour de la hampe (`donnees.py`)."""
+la pointe d'estoc ; au milieu de chaque face du champ du collet, le cartouche de l'emblème ; le gland cannelé pendu
+sous la douille, autour de la hampe (`donnees.py`)."""
 import math
 
 import numpy as np
@@ -78,6 +79,44 @@ def gland(m, D, centre_y):
     m.ajouter(sommets, faces, 'gland')
 
 
+def champ(m, C, cu, cw, yc):
+    """Le champ d'acier du collet, en `relief` sur ses deux faces, et au milieu de chacune le cartouche carré (surface
+    `blason`), ses UV sur le carré [0,1]² : vu de sa face, u croît vers la droite de qui le regarde, v vers le fer."""
+    e, b, c = C['epaisseur'] / 2 + C['relief'], C['bordure'], C['cartouche'] / 2
+    h0, h1 = yc + C['h'][0] + b, yc + C['h'][1] - b
+    r0, r1 = cw + C['r'][0] + b, cw + C['r'][1] - b
+    hc, rc = (h0 + h1) / 2, (r0 + r1) / 2
+    hs, rs = [h0, hc - c, hc + c, h1], [r0, rc - c, rc + c, r1]
+    noms = [x.name for x in m.materiaux]
+
+    def face(q, mat, uv=None):
+        m.f.append(q)
+        m.m.append(noms.index(mat))
+        m.uv.append(uv or [(0.0, 0.0)] * len(q))
+
+    # Sur chaque face, la grille 4 × 4 (h, r) ; sa case du milieu est le cartouche.
+    debuts = {}
+    for signe in (1.0, -1.0):
+        debuts[signe] = base = len(m.v)
+        m.v.extend((cu + signe * e, h, r) for h in hs for r in rs)
+        for i in range(3):
+            for j in range(3):
+                q = [base + 4 * i + j, base + 4 * i + j + 1, base + 4 * (i + 1) + j + 1, base + 4 * (i + 1) + j]
+                q = q[::-1] if signe > 0 else q
+                if (i, j) == (1, 1):
+                    # Vue de +X, la droite de qui regarde est -Z ; vue de -X, +Z.
+                    face(q, 'cartouche', [(0.5 - signe * (m.v[k][2] - rc) / (2 * c), 0.5 + (m.v[k][1] - hc) / (2 * c))
+                                          for k in q])
+                else:
+                    face(q, 'metal')
+    # Le chant du champ, entre les deux faces.
+    tour = [4 * i + j for i, j in [(0, 0), (0, 1), (0, 2), (0, 3), (1, 3), (2, 3), (3, 3), (3, 2), (3, 1), (3, 0),
+                                   (2, 0), (1, 0)]]
+    ip, im = debuts[1.0], debuts[-1.0]
+    for k in range(12):
+        face([ip + tour[k], ip + tour[(k + 1) % 12], im + tour[(k + 1) % 12], im + tour[k]], 'metal')
+
+
 def construire(D, materiaux):
     talon = -D['PRISE_DEPUIS_TALON']
     sommet = D['LONGUEUR'] - D['PRISE_DEPUIS_TALON']
@@ -91,15 +130,13 @@ def construire(D, materiaux):
     tour(m, [(talon, 0.0), (talon + T['pointe'], T['rayon'] * 0.7), (talon + T['pointe'] + 0.01, T['rayon']),
              (talon + T['hauteur'], T['rayon']), (talon + T['hauteur'], 0.0)], 'y', centre, H['segments'], 'metal')
     tour(m, [(yc + h, r) for h, r in D['DOUILLE']], 'y', centre, D['SEGMENTS_DOUILLE'], 'metal')
-    haut_douille = yc + max(h for h, _ in D['DOUILLE'])
-    cylindre(m, haut_douille - 0.005, B['bas'] + 0.002, D['TIGE']['rayon'], 'y', centre, P['segments'], 'metal')
+    cylindre(m, yc + C['h'][1] - 0.005, B['bas'] + 0.002, D['TIGE']['rayon'], 'y', centre, P['segments'], 'metal')
     cylindre(m, B['bas'], B['haut'], B['rayon'], 'y', centre, P['segments'], 'metal')
     tour(m, [(P['base'], 0.0), (P['base'], P['rayon']), (P['base'] + 0.35 * (sommet - P['base']), P['rayon'] * 0.75),
              (sommet, 0.0)], 'y', centre, P['segments'], 'metal')
     boite(m, (cu - C['epaisseur'] / 2, yc + C['h'][0], cw + C['r'][0]),
           (cu + C['epaisseur'] / 2, yc + C['h'][1], cw + C['r'][1]), 'dorure')
-    e, b = C['epaisseur'] / 2 + C['relief'], C['bordure']
-    boite(m, (cu - e, yc + C['h'][0] + b, cw + C['r'][0] + b), (cu + e, yc + C['h'][1] - b, cw + C['r'][1] - b), 'metal')
+    champ(m, C, cu, cw, yc)
     for L in D['LAMES'].values():
         lame(m, D, L, yc)
     gland(m, D, yc)

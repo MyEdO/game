@@ -38,12 +38,17 @@
       "matiere": "prop--acier-battu"
     },
     {
+      "nom": "cordon",
+      "palette": "vet1",
+      "matiere": "prop--corde"
+    },
+    {
       "nom": "fleuron",
       "palette": "accent"
     }
   ],
   "glb": {
-    "sha256": "83628fb946ea902dc98522a86861546bdf16668269624820fcb6f40f6af86809",
-    "octets": 330876
+    "sha256": "693df87809c2b28a1153226cbe61780b9c7e6b1bf1cec1505cbbec376346b41f",
+    "octets": 358436
   }
 }

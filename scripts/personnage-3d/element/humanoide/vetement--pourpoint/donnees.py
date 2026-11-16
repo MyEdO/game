@@ -22,8 +22,8 @@ MANIFESTE = {
     'couche': 'tenue',
     'couvre': ['torse', 'bras_haut_g', 'bras_haut_d'],
 }
-"""Le torse, et le haut des bras que le mancheron couvre jusqu'au coude (dernier anneau à 1,05 de `upperarm`, au-delà
-du bout de la zone, base : |x| = 0,47) ; l'avant-bras est à la chemise."""
+"""Le torse, et le haut des bras que le mancheron couvre jusqu'au coude (dernier anneau à 0,86 de `upperarm`, dans la
+zone : base, chacune de ses faces la plus proche de `bras_haut_*`) ; l'avant-bras est à la chemise."""
 
 MATERIAUX = {
     'pourpoint': ('vet2', 'drap-terne'),
@@ -56,14 +56,15 @@ Sous le plastron (`armure--plastron`, 24 mm au moins)."""
 
 # --- Mancherons : anneaux perpendiculaires à `upperarm` (fraction de l'os ; aisance ; pan), le kit des robes
 # (`robe.manches`) ; l'épaule à 0, le coude à 1 ---
-MANCHE = [(-0.10, 0.012, 0.0), (0.10, 0.016, 0.0), (0.35, 0.042, 0.0), (0.62, 0.042, 0.0), (0.86, 0.030, 0.0),
-          (1.05, 0.012, 0.0)]
+MANCHE = [(-0.10, 0.012, 0.0), (0.10, 0.016, 0.0), (0.35, 0.042, 0.0), (0.58, 0.036, 0.0), (0.84, 0.018, 0.0)]
 """Illustration : le mancheron bouffe de l'épaule au coude, ~21 cm de large au plus gros (4,2 cm d'aisance sur le bras),
-et se resserre au coude sur la manche de la chemise (12 mm sous lui jusqu'à 0,75, 6 mm au coude) : son bord, à 6 mm de
-la chemise, sous la distance de retenue du montage (`SERRAGE_M` de `hotes/godot/asset/pile.ts`, 1 cm), la retient coude
-plié ; à 1 cm et plus, le bouffant de la chemise passait devant lui (`couche-traversee`, 7 à 18 mm, Lourde_Attaque,
-Hampe_Mort, Punch). HYPOTHÈSE : sa racine, sous le bord du plastron et
-l'épaulière, à 1,6 cm ; à 3 cm, et bouffant à 4,6 cm, il passait devant eux bras levés
+et se resserre au-dessus du coude en un ourlet net, que coiffe le bord du brassard (`armure--brassards-d-acier`).
+L'ourlet à 0,86, sous le bord du brassard tout autour (base : il monte à 0,71-0,84 de `upperarm`) : à 1,05, la
+dernière bande d'anneaux passait dans la zone `avant_bras_*`, que le brassard cache, et le mancheron finissait en dents
+au coude. L'ourlet à 1,8 cm du bras, 9 mm au-dessus de la chemise (son aisance à 0,86 : 9 mm), sous la distance de retenue du
+montage (`SERRAGE_M` de `hotes/godot/asset/pile.ts`, 1 cm), la retient coude plié ; à 1 cm et plus, le bouffant de la
+chemise passait devant lui (`couche-traversee`, 7 à 18 mm, Lourde_Attaque, Hampe_Mort, Punch). HYPOTHÈSE : sa racine,
+sous le bord du plastron et l'épaulière, à 1,6 cm ; à 3 cm, et bouffant à 4,6 cm, il passait devant eux bras levés
 (`couche-traversee`, 9 à 18 mm, Melee_Hook, Sword_Dash)."""
 CREVES = (1, 4)
 """Les bandes d'anneaux fendues de crevés : de l'anneau 1 (0,10) à l'anneau 4 (0,86) de `MANCHE`."""

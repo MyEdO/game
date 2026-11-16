@@ -1,4 +1,5 @@
-"""Géométrie de `humanoide--accessoire--plumet` : deux plumes d'autruche, bâties dans le repère de l'emplacement `cimier`.
+"""Géométrie de `humanoide--accessoire--plumet` : une plume d'autruche blanche et une touffe de plumes rouges
+(`PLUMES`), bâties dans le repère de l'emplacement `cimier`.
 
 Chaque plume est un volume fermé le long de sa hampe (`chemin`, courbe de Catmull-Rom) : des sections en lentille de
 six points, larges des barbes et épaisses au droit de la hampe, le bord des barbes arqué vers l'arrière de la face
@@ -58,7 +59,7 @@ def plume(D, m, nom):
         j = (i + 1) % COTES
         faces.append([pied, j, i])
         faces.append([pointe, COTES * (n - 1) + i, COTES * (n - 1) + j])
-    m.ajouter(sommets, faces, nom)
+    m.ajouter(sommets, faces, p['surface'])
 
 
 def construire(D, materiaux):

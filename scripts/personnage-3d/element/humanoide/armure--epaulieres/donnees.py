@@ -25,8 +25,11 @@ MANIFESTE = {
 }
 """`couvre` vide, comme le plastron : entre deux lames et sous leur arc ouvert, la manche se voit."""
 
-MATERIAUX = {'acier': ('metal', 'acier-battu')}
-"""Illustration : acier noirci ; la teinte vient de l'emplacement `metal` de la palette."""
+MATERIAUX = {'acier': ('vet1', 'fer-noirci')}
+"""Illustration : acier noirci, presque noir, aux reflets clairs, du ton des crevés et des chausses noires, nettement
+plus sombre que le plastron et les brassards d'acier poli. Matière `fer-noirci` du catalogue. Les emplacements de
+métal de `SLOTS` (`src/lib/palette.ts`) portent l'acier poli (`metal`) et le laiton des dorures (`metal2`) : l'acier
+noirci prend la teinte de `vet1` (noir au preset `soldat`), la couleur sombre de la tenue. HYPOTHÈSE d'emplacement."""
 
 BUDGET_TRIANGLES = 2000           # procédure du skill, section 7 : armure par pièce
 
@@ -59,11 +62,11 @@ bras (le dehors du bras pendant). Illustration : quatre à cinq lames se compten
 plus courte, les suivantes enveloppent le devant et le dehors de la manche ; le dos est HYPOTHÈSE. Quatre lames
 couvrent le haut du bras jusqu'à 17 cm de l'épaule, au-dessus du coude (base : 25 cm)."""
 COLONNES = 12                     # HYPOTHÈSE de maillage : intervalles le long de l'arc, un tous les ~3 cm
-PROFIL = [(0.0, 0.0), (0.4, 0.009), (1.0, 0.011)]
+PROFIL = [(0.0, 0.0), (0.45, 0.013), (1.0, 0.014)]
 """(t, m) : du bord haut (t = 0) au bord bas (t = 1) d'une lame, ce qu'elle s'écarte de la manche au-delà du `JEU`.
-Illustration : lames bombées, le bord bas relevé par-dessus la lame suivante. HYPOTHÈSE : 9 mm de bombé, 1,1 cm au
-bord bas, qui laisse la lame suivante (au jeu, puis bombée) passer sous son épaisseur ; à 1,4 cm, le bord bas se
-dressait en ailette au rendu."""
+Illustration : lames franchement bombées, en bourrelets, le bord bas relevé par-dessus la lame suivante. HYPOTHÈSE :
+1,3 cm de bombé, 1,4 cm au bord bas, qui laisse la lame suivante (au jeu, puis bombée : 1,2 cm sous ce bord, épaisseur
+comprise) passer sous son épaisseur ; à 9 mm de bombé, les lames se lisaient plates au rendu."""
 ARRONDI = [0.12, 0.03]
 """Part de la demi-longueur de la lame retirée à sa première et à sa deuxième colonne depuis chaque bout de l'arc.
 Illustration : le bord des lames est arrondi aux coins. HYPOTHÈSE de valeur : à 0,28, les bouts des lames se lisaient

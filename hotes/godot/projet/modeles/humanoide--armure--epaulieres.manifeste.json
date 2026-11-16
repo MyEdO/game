@@ -19,12 +19,12 @@
   "surfaces": [
     {
       "nom": "acier",
-      "palette": "metal",
-      "matiere": "prop--acier-battu"
+      "palette": "vet1",
+      "matiere": "prop--fer-noirci"
     }
   ],
   "glb": {
-    "sha256": "f5e302a91370676bcfc434318b06a9bad5a0d4d54c806f54b64db11d867da0df",
-    "octets": 351892
+    "sha256": "a7858961e1c58fba84a538f006cf1eac31a92d9f4270ecde70f1259c548f54a6",
+    "octets": 357420
   }
 }

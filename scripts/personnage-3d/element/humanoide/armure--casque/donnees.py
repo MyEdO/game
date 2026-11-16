@@ -29,11 +29,13 @@ MANIFESTE = {
 
 MATERIAUX = {
     'metal': ('metal', 'acier-battu'),
+    'cordon': ('vet1', 'corde'),
     'fleuron': ('accent', ((0.3, 0.3, 0.3), 0.0, 0.5)),
 }
-"""Illustration : acier poli de la calotte et des joues ; cordons du bandeau noir et acier, lus comme de l'acier
-(`acier-battu`, le même emplacement `metal`). Le médaillon du fleuron n'a aucune matière au catalogue (émail, pierre) :
-gris de construction, teinté par l'emplacement `accent`."""
+"""Illustration : acier poli de la calotte et des joues ; le bandeau tord deux cordons, l'un d'acier (`acier-battu`,
+emplacement `metal`), l'autre noir, de corde teinte par `vet1` (noir au preset `soldat`, la couleur sombre de la tenue).
+Le médaillon du fleuron n'a aucune matière au catalogue (émail, pierre) : gris de construction, teinté par
+l'emplacement `accent`."""
 
 BUDGET_TRIANGLES = 2000                 # procédure du skill, section 7 : armure par pièce
 
@@ -85,7 +87,7 @@ BANDEAU = {
     'rayon': 0.011,                     # illustration : bandeau de ~11 px de haut, 2,2 cm
     'aplat': 0.5,                       # HYPOTHÈSE : petit axe de la section en part du grand, deux cordons accolés
     'segments': 36,                     # HYPOTHÈSE de maillage
-    'cotes': 5,
+    'cotes': 6,                         # HYPOTHÈSE de maillage : trois côtés par cordon
     'tours': 12,                        # illustration : une torsade tous les ~6 cm ; demi-tours de la section sur le tour
     'enfoncement': 0.4,                 # HYPOTHÈSE : part du rayon noyée dans la coque
 }
@@ -98,7 +100,9 @@ FLEURON = {
     'rayon_du_medaillon': 0.017,        # illustration : le rouge fait les deux tiers du diamètre
     'saillie_du_chaton': 0.016,         # HYPOTHÈSE : au-delà de la coque, par-dessus le bandeau
     'saillie_du_medaillon': 0.020,      # HYPOTHÈSE : bombé de 4 mm au-dessus du chaton
-    'cotes': 8,                         # HYPOTHÈSE de maillage
+    'cotes': 8,                         # HYPOTHÈSE de maillage : le médaillon
+    'petales': 8,                       # illustration : le chaton festonné en rosette, ~8 pétales autour du médaillon
+    'festons': 0.15,                    # HYPOTHÈSE : part du rayon du chaton dont rentre le creux entre deux pétales
 }
 
 # ---------------------------------------------------------------- cimier

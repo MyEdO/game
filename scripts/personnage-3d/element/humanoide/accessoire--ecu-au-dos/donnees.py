@@ -36,11 +36,12 @@ BUDGET_TRIANGLES = 800            # procédure du skill, section 7 : accessoire
 
 CONTOURNE = {
     'pourpoint': 'humanoide--vetement--pourpoint',
+    'plastron': 'humanoide--armure--plastron',
     'baudrier': 'humanoide--accessoire--baudrier-sur-armure',
 }
 """Les éléments publiés du preset `soldat` derrière lesquels l'écu se pose, au `JEU` : le dos et les manches du
-pourpoint, la sangle du baudrier dans le dos."""
-MATIERES = {'pourpoint': ['pourpoint'], 'baudrier': ['cuir', 'metal']}
+pourpoint, la dossière du plastron, la sangle du baudrier dans le dos."""
+MATIERES = {'pourpoint': ['pourpoint'], 'plastron': ['acier', 'dorure'], 'baudrier': ['sangle', 'boucle']}
 PORTEUR = 'pourpoint'
 ZONES_DU_CORPS = ['torse', 'cou', 'tete']
 """Zones de la base derrière lesquelles l'écu se pose aussi : son bord haut monte derrière la tête."""
@@ -83,11 +84,11 @@ la corne dans la vue de trois-quarts, qui raccourcit l'horizontale ; ~28° de fa
 TANGAGE = 5.0
 """Degrés dont le haut de l'écu s'écarte vers l'arrière. HYPOTHÈSE : la pente du dos du pourpoint, des reins
 (y = 0,15) aux omoplates (y = 0,19), pour que la pointe basse reste près des reins."""
-LACET = 15.0
+LACET = 5.0
 """Degrés dont l'écu tourne autour de la verticale, son flanc gauche vers l'arrière. HYPOTHÈSE : pendu en travers du
-dos, il s'appuie sur l'omoplate et s'écarte derrière l'épaule ; bras à l'horizontale, il passe ainsi à plus de 3 cm
-(`PORTEE_DE_COUVERTURE_M` de `hotes/godot/asset/pile.ts`) derrière la manche et les épaulières, que le montage
-tenait sinon pour couvertes par lui (`couche-traversee` de l'épaulière gauche, jusqu'à 46 mm, à plat sur le dos)."""
+dos, il s'appuie sur l'omoplate droite et la dossière, et son flanc gauche s'écarte un peu derrière l'épaule ; à 15°,
+l'écu flottait à 13 cm du dos au milieu (base : écart médian de sa face avant au plastron et au pourpoint, de 1,40 à
+1,50 m ; 5 cm à 5°)."""
 JEU = 0.012
 """m, de la face avant du cerclage à tout ce qui est sous l'écu (éléments contournés et corps). HYPOTHÈSE : l'écu
 repose sur le dos, sans le toucher bras à l'horizontale, où la manche bouffante passe sous lui."""

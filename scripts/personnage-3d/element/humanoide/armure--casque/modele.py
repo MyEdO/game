@@ -4,8 +4,8 @@
   colonne (`BORD`) au haut de la calotte, éventail au sommet ; un ellipsoïde au-dessus du centre du crâne, le rayon de
   l'équateur corrigé par `PROFIL_BAS` au-dessous, tenu partout au `JEU` de la peau de la tête publiée ; le bord finit en
   lèvre retroussée (`LEVRE`), visière au front. Double nappe.
-- Le bandeau : un tore à section aplatie qui tourne le long du tour, deux cordons torsadés.
-- Le fleuron : un chaton d'acier et son médaillon bombé, au front, sur le bandeau.
+- Le bandeau : un tore à section aplatie qui tourne le long du tour, deux cordons torsadés, l'un d'acier, l'autre noir.
+- Le fleuron : une rosette, chaton d'acier festonné en pétales, et son médaillon bombé, au front, sur le bandeau.
 - L'emplacement `cimier`, offert sur la coque à l'avant-haut de la calotte (`CIMIER`).
 
 Silhouettes et clés `gabarit_*` transférées des zones de la tête. Toute cote vient de `donnees.py`.
@@ -106,7 +106,9 @@ def solide(D, b, nom, M, mat):
     return objet
 
 
-def bandeau(D, b, forme, mat):
+def bandeau(D, b, forme, mat, cordon):
+    """Le tore aplati qui tourne le long du tour ; la moitié de chaque section, de part et d'autre du grand axe, est un
+    cordon : l'une d'acier (`mat`), l'autre de `cordon`, et la torsion les fait alterner."""
     t = D['BANDEAU']
     M = Maillage()
     centres, anneaux = [], []
@@ -123,7 +125,13 @@ def bandeau(D, b, forme, mat):
     for k in range(t['segments']):
         suivant = (k + 1) % t['segments']
         M.bande(anneaux[k], anneaux[suivant], 0.5 * (centres[k] + centres[suivant]))
-    return solide(D, b, 'bandeau', M, mat)
+    objet = solide(D, b, 'bandeau', M, mat)
+    objet.data.materials.append(cordon)
+    # `Maillage.bande` : le côté i de la section k porte les triangles 2 (k cotes + i) et 2 (k cotes + i) + 1.
+    for polygone in objet.data.polygons:
+        if (polygone.index // 2) % t['cotes'] < t['cotes'] // 2:
+            polygone.material_index = 1
+    return objet
 
 
 def fleuron(D, b, forme, metal, medaillon):
@@ -135,15 +143,17 @@ def fleuron(D, b, forme, metal, medaillon):
     u /= np.linalg.norm(u)
     v = np.cross(normale, u)
 
-    def cercle(rayon, saillie):
-        return [pied + saillie * normale + rayon * (math.cos(a) * u + math.sin(a) * v)
-                for a in np.linspace(0.0, 2 * math.pi, f['cotes'], endpoint=False)]
+    def cercle(rayon, saillie, cotes=f['cotes'], festons=0.0):
+        return [pied + saillie * normale + rayon * (1.0 - festons * (k % 2)) * (math.cos(a) * u + math.sin(a) * v)
+                for k, a in enumerate(np.linspace(0.0, 2 * math.pi, cotes, endpoint=False))]
 
     dedans = pied - f['rayon_du_chaton'] * normale
     chaton = Maillage()
-    anneaux = [chaton.ajouter(cercle(r, s), 'chaton') for r, s in (
-        (f['rayon_du_chaton'], -0.3 * f['saillie_du_chaton']), (f['rayon_du_chaton'], f['saillie_du_chaton']),
-        (f['rayon_du_medaillon'], f['saillie_du_chaton']))]
+    n = 2 * f['petales']
+    anneaux = [chaton.ajouter(cercle(r, s, n, e), 'chaton') for r, s, e in (
+        (f['rayon_du_chaton'], -0.3 * f['saillie_du_chaton'], f['festons']),
+        (f['rayon_du_chaton'], f['saillie_du_chaton'], f['festons']),
+        (f['rayon_du_medaillon'], f['saillie_du_chaton'], 0.0))]
     for A, B in zip(anneaux, anneaux[1:]):
         chaton.bande(A, B, dedans)
     pierre = Maillage()
@@ -162,7 +172,7 @@ def construire(D, materiaux, b):
     P, T, _ = b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES_DE_LA_TETE'])
     peau = BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
     forme = Coque(D, np.array(b.tete(D['OS'])) + np.asarray(D['CENTRE'], float), peau)
-    piece = joindre([coque(D, b, forme, materiaux['metal']), bandeau(D, b, forme, materiaux['metal']),
+    piece = joindre([coque(D, b, forme, materiaux['metal']), bandeau(D, b, forme, materiaux['metal'], materiaux['cordon']),
                      *fleuron(D, b, forme, materiaux['metal'], materiaux['fleuron'])])
     piece.name = D['MANIFESTE']['cle']['piece']
 

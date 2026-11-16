@@ -30,10 +30,9 @@ chemise et la fin de celle du pourpoint (leurs meshes `avant_bras_*`), et la man
 
 MATERIAUX = {
     'acier': ('metal', 'acier-battu'),
-    'dorure': ('metal', 'laiton-dore'),
+    'dorure': ('metal2', 'laiton-dore'),
 }
-"""Illustration : acier poli, liserés dorés. `SLOTS` de `src/lib/palette.ts` n'a qu'un emplacement de métal : la dorure
-le partage avec l'acier (comme `armure--tassettes`)."""
+"""Illustration : acier poli (`metal`), liserés dorés (`metal2`, le laiton au preset `soldat`)."""
 
 BUDGET_TRIANGLES = 1100
 """Sous les 2 000 d'une armure (procédure, section 7) : le budget assemblé du Soldat est à sa limite (16 000) ; le canon
@@ -41,10 +40,11 @@ cache les meshes `avant_bras_*` du corps, de la chemise, du pourpoint et des gan
 
 CONTOURNE = {'chemise': 'humanoide--vetement--chemise', 'pourpoint': 'humanoide--vetement--pourpoint'}
 """Les manches publiées du preset `soldat` que le bord évasé du coude enveloppe : leurs meshes `bras_haut_*`, qui
-restent dessinés, finissent à s ≤ 0,016 (base)."""
+restent dessinés, finissent à s ≤ 0,003 (base : la chemise ; l'ourlet du pourpoint, à 0,84 de `upperarm`, à s = -0,046
+à -0,030)."""
 MATIERES = {'chemise': ['chemise'], 'pourpoint': ['pourpoint', 'creves']}
 FIN_DES_MANCHES = 0.02
-"""m : abscisse au-delà de laquelle aucun sommet des manches ne compte (base : 0,016)."""
+"""m : abscisse au-delà de laquelle aucun sommet des manches ne compte (base : 0,003)."""
 
 POIDS_DE_LA_MANCHE = 'pourpoint'
 """Les sommets du canon en deçà de `FIN_DES_MANCHES` (le bord du coude) prennent les poids du point de cette manche
@@ -54,13 +54,13 @@ Hampe_Attaque, Lourde_Attaque, Hampe_Mort). Le reste du canon prend ceux du corp
 ZONES = {c: [f'bras_haut_{c}', f'avant_bras_{c}', f'main_{c}'] for c in 'gd'}
 """Par bras, les zones que le canon traverse : ses poids et ses clés en viennent."""
 
-RANGEES = [(-0.108, -0.035), (-0.097, -0.026), (-0.078, -0.015), (-0.055, -0.003), (0.0, 0.02), (0.11, 0.11),
+RANGEES = [(-0.108, -0.058), (-0.097, -0.048), (-0.078, -0.032), (-0.055, -0.014), (0.0, 0.02), (0.11, 0.11),
            (0.20, 0.20), (0.236, 0.236), (0.248, 0.248)]
 """(s à l'arrière, s au pli du coude) de chaque anneau, du coude au poignet ; entre les deux, selon l'azimut
-(`AZIMUT_ARRIERE`, `POINTE`). Base : les meshes `avant_bras_*` que le canon cache montent jusqu'à s = -0,101 derrière le
-coude (pourpoint, à 270°), -0,067 dessous et dessus (chemise, cachée aussi sous le pourpoint), -0,071 pour le corps ;
-le pourpoint resté dessiné descend jusqu'à s = -0,033 dessus et dessous et 0,016 devant : le haut du canon passe sous
-lui partout, sans trou ; les anneaux du coude serrés, que la bouffe de la manche (base : rayon jusqu'à 0,13 à
+(`AZIMUT_ARRIERE`, `POINTE`). Base : les meshes `avant_bras_*` que le canon cache montent jusqu'à s = -0,071 derrière le
+coude (corps), -0,067 dessous et dessus (chemise) ; l'ourlet du pourpoint, resté dessiné, descend jusqu'à s = -0,046
+à -0,030 : le haut du canon passe sur lui tout autour, pli du coude compris (-0,058), sans laisser voir entre eux la
+chemise, dont le montage retire en dents les triangles que le canon couvre ; les anneaux du coude serrés, que la bouffe de la manche (base : rayon jusqu'à 0,13 à
 s = -0,10..-0,04) ne passe pas entre deux. Le bas à 0,248, sur le poignet (base : la zone `main` commence à
 0,212-0,244). Illustration : le canon couvre l'avant-bras entier, son bord du coude évasé."""
 AZIMUT_ARRIERE = 270.0
