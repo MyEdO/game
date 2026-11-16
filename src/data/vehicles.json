@@ -5,9 +5,15 @@
     "label": "Diligence",
     "icon": "voyage/diligence",
     "source": {
-      "book": "livre-de-base",
-      "page": 306
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 26
     },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 306
+      }
+    ],
     "enc": 100,
     "chargement": 80,
     "desc": "Une diligence est un véhicule fermé, à quatre roues, tiré par deux à six chevaux. Elles constituent le moyen de locomotion favori des riches pour les voyages de longue distance. L'Empire compte plusieurs compagnies de diligences qui assurent des services réguliers entre les grandes villes. Un véhicule noble, souvent appelé carrosse ou calèche, peut transporter jusqu'à six passagers et possède normalement un plateau à l’arrière pour transporter les bagages. Il est impensable de les attacher sur le toit, car cela gâcherait l’apparence du véhicule. De nombreux véhicules de nobles portent des ornements décoratifs et héraldiques sur le toit, ce qui rend impossible le stockage des bagages. Un carrosse n’a qu’un seul conducteur, avec deux valets de pied qui se tiennent sur des marches à l’arrière, de part et d’autre des bagages, suffisamment haut pour voir par-dessus le toit. D’autres serviteurs suivent généralement dans des charrettes ou des carrosses de moindre importance, et des éclaireurs (ou courriers en ville) vont au devant pour dégager le chemin et derrière pour assurer la sécurité. \n\nLes diligences commerciales peuvent transporter six passagers à l’intérieur, et leurs bagages sont arrimés au toit. Quatre autres passagers peuvent voyager avec les bagages s’ils sont prêts à braver les éléments. L’équipage se compose d’un cocher et d’un assistant. Ce dernier est généralement armé d’une arbalète ou d’un tromblon et pare aux éventuels problèmes. \n\nAvec la peinture, les dorures, les belles sculptures et autres frivolités, il n’y a pas de limite à ce que vous pouvez dépenser pour une diligence. En effet, en la matière, le moindre sou dépensé ne l’est que pour souligner le statut de son propriétaire ou même le rehausser. L’ostentation et l’auto-promotion sont des fins en soi, et seul un pingre se contenterait d’une diligence ordinaire.",
@@ -334,9 +340,15 @@
     "label": "Charrette",
     "icon": "voyage/charrette",
     "source": {
-      "book": "livre-de-base",
-      "page": 306
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 26
     },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 306
+      }
+    ],
     "enc": 10,
     "chargement": 25,
     "desc": "Les charrettes sont de petits véhicules à deux roues de toutes sortes, y compris les charrettes à âne, les chars et les cabriolets. Les charrettes de passagers comprennent une banquette pouvant accueillir jusqu'à deux personnes, tandis que celles qui transportent des marchandises ont un siège plus petit avec un côté ouvert pour le chargement. Les charrettes sont tirées par un seul animal. Des bras dépassent de chaque côté du châssis, auxquels est attaché un harnais, ou un collier.",
@@ -389,12 +401,19 @@
   {
     "id": "chariot-leger",
     "type": "vehicles",
-    "label": "Chariot",
+    "label": "Chariot léger",
     "icon": "voyage/charrette",
     "source": {
-      "book": "livre-de-base",
-      "page": 306
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 27
     },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 306,
+        "quote": "Chariot"
+      }
+    ],
     "enc": 30,
     "chargement": 30,
     "desc": "Les chariots sont de grands véhicules ouverts destinés à transporter tout type de marchandises, y compris, dans certains cas, des personnes. Selon leur taille, ils sont tirés par plusieurs chevaux ou bœufs. À l'avant se trouve une banquette assez large pour trois personnes, bien qu’ils ne nécessitent qu’un seul conducteur. Certains chariots sont équipés de toiles amovibles en forme de tente pour protéger la cargaison des intempéries et des regards indiscrets. Certains voyageurs, notamment les Strigany, utilisent de grands wagons appelés « roulottes » avec des toits en bois permanents. L’intérieur de ces caravanes est souvent somptueux, renfermant tout ce dont une famille nombreuse pourrait avoir besoin.",

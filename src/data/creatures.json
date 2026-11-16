@@ -1229,6 +1229,14 @@
       "book": "livre-de-base",
       "page": 316
     },
+    "purchase": {
+      "price": {
+        "gold": 0,
+        "silver": 3,
+        "brass": 0
+      },
+      "availability": "limitee"
+    },
     "appearance": {
       "species": "pigeon"
     },
@@ -21570,6 +21578,14 @@
       "book": "livre-de-base",
       "page": 306
     },
+    "purchase": {
+      "price": {
+        "gold": 0,
+        "silver": 0,
+        "brass": 5
+      },
+      "availability": "commune"
+    },
     "appearance": {
       "species": "poulet"
     },
@@ -21599,6 +21615,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 306
+    },
+    "purchase": {
+      "price": {
+        "gold": 10,
+        "silver": 0,
+        "brass": 0
+      },
+      "availability": "rare"
     },
     "appearance": {
       "species": "singe"

@@ -2650,6 +2650,7 @@
     "id": "petites-munitions-et-poudre",
     "type": "trappings",
     "label": "Petites munitions et Poudre",
+    "packSize": 12,
     "categorie": "ammunition",
     "subType": {
       "id": "poudre-noire-et-ingenierie"
@@ -2711,7 +2712,7 @@
   {
     "id": "jambieres-en-cuir",
     "type": "trappings",
-    "label": "Jambières en cuir",
+    "label": "Jambières de cuir",
     "categorie": "armor",
     "subType": {
       "id": "cuir-souple"
@@ -7949,7 +7950,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Extrait des oursins caméléons des marais de l'Empire, cet hallucinogène extraordinairement puissant donne des visions d'un désir profond, comme un amour perdu, un ami décédé ou un enfant disparu. Appelé Bave dans les rues, il est populaire auprès des personnes désespérées. Après l'exposition, vous devez réussir un Test d'Endurance Très difficile (-30) ou être perdu dans un fantasme très réaliste, que le MJ doit gérer. Durée: 1d10 minutes.",
+    "desc": "Extrait des oursins caméléons des marais de l'Empire, cet hallucinogène extraordinairement puissant donne des visions d'un désir profond, comme un amour perdu, un ami décédé ou un enfant disparu. Appelé Bave dans les rues, il est populaire auprès des personnes désespérées. Après l'exposition, vous devez réussir un Test d'Endurance Très difficile (-30) ou être perdu dans un fantasme très réaliste, que le MJ doit gérer. Durée : 1d10 minutes.",
     "price": {
       "gold": 1,
       "silver": 5,
@@ -7999,7 +8000,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Ces champignons hallucinogènes sont consommés par les gobelins fanatiques avant la bataille. Ils induisent une rage berserk, ajoutant +10 en Force, +4 Blessures et le Talent Frénésie. Quand l'effet se dissipe, l'utilisateur perd 1d10 Points de Blessure. Tous ceux qui ne sont pas des peaux-vertes doivent aussi réussir un Test de Résistance Intermédiaire (+0) ou contracter une Infection mineure. Durée: actif tant qu'il est mâché plus 2d10 minutes supplémentaires.",
+    "desc": "Ces champignons hallucinogènes sont consommés par les gobelins fanatiques avant la bataille. Ils induisent une rage berserk, ajoutant +10 en Force, +4 Blessures et le Talent Frénésie. Quand l'effet se dissipe, l'utilisateur perd 1d10 Points de Blessure. Tous ceux qui ne sont pas des peaux-vertes doivent aussi réussir un Test de Résistance Intermédiaire (+0) ou contracter une Infection mineure. Durée : actif tant qu'il est mâché plus 2d10 minutes supplémentaires.",
     "price": {
       "gold": 5,
       "silver": 0,
@@ -8175,7 +8176,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Ce stimulant très addictif est un composé synthétique à base de soufre, de mercure et d'autres éléments. Inhaler la poudre octroie un bonus de +1 en Mouvement, et de +10 en F, E, Ag et CC. Cela dure trois heures, après lesquelles l'utilisateur subit une pénalité de -2 en Mouvement et -20 en Capacité de Combat, Endurance, Force et Agilité. Durée: 1 jour.",
+    "desc": "Ce stimulant très addictif est un composé synthétique à base de soufre, de mercure et d'autres éléments. Inhaler la poudre octroie un bonus de +1 en Mouvement, et de +10 en F, E, Ag et CC. Cela dure trois heures, après lesquelles l'utilisateur subit une pénalité de -2 en Mouvement et -20 en Capacité de Combat, Endurance, Force et Agilité. Durée : 1 jour.",
     "price": {
       "gold": 0,
       "silver": 18,
@@ -8267,7 +8268,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Ce tranquillisant est une mousse séchée qui pousse seulement sur les feuilles de la forêt Laurelorn. Les elfes utilisent la Fleur de lune pour traiter la Peste noire, octroyant un bonus de +30 à tous les Tests associés pour résister à la maladie, mais elle n'a aucun effet sur les autres races. Les autres peuvent inhaler les vapeurs en faisant bouillir la mousse et s'ils ratent un Test de Force Mentale Très difficile (-30) gagnent un État Inconscient. Sur un succès, ils reçoivent un bonus de +20 aux Tests de Calme et gagnent 1 État Exténué. La Fleur de lune est utilisée comme anesthésique par les médecins réputés et onéreux. Durée: 1d10 + 5 heures.",
+    "desc": "Ce tranquillisant est une mousse séchée qui pousse seulement sur les feuilles de la forêt Laurelorn. Les elfes utilisent la Fleur de lune pour traiter la Peste noire, octroyant un bonus de +30 à tous les Tests associés pour résister à la maladie, mais elle n'a aucun effet sur les autres races. Les autres peuvent inhaler les vapeurs en faisant bouillir la mousse et s'ils ratent un Test de Force Mentale Très difficile (-30) gagnent un État Inconscient. Sur un succès, ils reçoivent un bonus de +20 aux Tests de Calme et gagnent 1 État Exténué. La Fleur de lune est utilisée comme anesthésique par les médecins réputés et onéreux. Durée : 1d10 + 5 heures.",
     "price": {
       "gold": 5,
       "silver": 0,
@@ -8559,7 +8560,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "L'une des drogues de rue les plus courantes de l'Empire, la mystracine doit être mâchée, pour apporter une sensation d'euphorie et des hallucinations agréables qui, selon les dires de certains, pourraient être reliées aux Vents de la Magie. La drogue donne un bonus de +10 aux Tests d'Endurance et de Force Mentale, mais une pénalité de -10 aux Tests d'Agilité, d'Initiative et d'Intelligence. Durée: active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
+    "desc": "L'une des drogues de rue les plus courantes de l'Empire, la mystracine doit être mâchée, pour apporter une sensation d'euphorie et des hallucinations agréables qui, selon les dires de certains, pourraient être reliées aux Vents de la Magie. La drogue donne un bonus de +10 aux Tests d'Endurance et de Force Mentale, mais une pénalité de -10 aux Tests d'Agilité, d'Initiative et d'Intelligence. Durée : active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
     "price": {
       "gold": 0,
       "silver": 4,
@@ -8567,7 +8568,7 @@
     },
     "source": {
       "book": "livre-de-base",
-      "page": 306
+      "page": 307
     },
     "consumable": {
       "kind": "effet",
@@ -8631,15 +8632,15 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Cette substance hallucinogène extrêmement addictive pousse sous les potences et elle est mâchée pour calmer un esprit agité. Les utilisateurs doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ; de plus, le Mouvement est réduit de moitié. Cependant, les Tests de Calme reçoivent un bonus de +20. Durée: active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
+    "desc": "Cette substance hallucinogène extrêmement addictive pousse sous les potences et elle est mâchée pour calmer un esprit agité. Les utilisateurs doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ; de plus, le Mouvement est réduit de moitié. Cependant, les Tests de Calme reçoivent un bonus de +20. Durée : active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
     "price": {
-      "gold": 0,
-      "silver": 1,
+      "gold": 1,
+      "silver": 0,
       "brass": 0
     },
     "source": {
       "book": "livre-de-base",
-      "page": 306
+      "page": 307
     },
     "consumable": {
       "kind": "effet",
