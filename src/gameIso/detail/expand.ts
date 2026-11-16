@@ -9,7 +9,7 @@
  * tirages des autres (goldens stables par section).
  */
 import type { DetailRecipe } from '../../data/materials.types';
-import { hash32, seedStream } from '../../data/hash';
+import { hash32, seedStream } from '../../lib/hash';
 
 /** Rang horizontal [v0,v1] (assise/bardeau/planche). */
 export interface CourseRow { v0: number; v1: number }

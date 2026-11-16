@@ -11,19 +11,22 @@
   "surfaces": [
     {
       "nom": "bois",
-      "palette": "bois"
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
     },
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     },
     {
       "nom": "cuir",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     }
   ],
   "glb": {
-    "sha256": "beea08271175740d181f2be1c0ac91ba3bdb59662430262502ca129816e38c49",
-    "octets": 67876
+    "sha256": "98b6511cda97ed1c80fb4666aa522cfc90f77e5fe6808d437cf9c6a61162bdd2",
+    "octets": 83596
   }
 }

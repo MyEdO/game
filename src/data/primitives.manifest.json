@@ -600,8 +600,8 @@
     "type": "primitives.manifest",
     "label": "inferFields/FieldDesc/choixDuNoeud/champsDeclares/bornesDuNoeud/unionDuNoeud/elementDuNoeud",
     "fichier": "src/noyau/codex/editFields.ts",
-    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste (`elementDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `gestesDeLaListe`, `src/noyau/sceneEdit.ts`)",
-    "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en gestes par `src/hote/editeur.ts` (`renduDe`, `elementsDesGestes`) et joué par le geste `valeur` de la session d'édition",
+    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste (`elementDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `ecritureAuFormulaire`, `src/noyau/edition/formulaire.ts` ; `gestesDeLaListe`, `src/noyau/valeursNeuves.ts`)",
+    "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en éléments par `src/hote/formulaire.ts` (`elementsDuFormulaireTire`, `valeurDuFormulaire`) et joué par le geste `valeur` de la session d'édition",
     "verrou": "src/noyau/edition/formulaire.test.ts"
   },
   {
@@ -2351,9 +2351,9 @@
     "id": "hash32",
     "type": "primitives.manifest",
     "label": "hash32/hash32AuMillieme",
-    "fichier": "src/data/hash.ts",
+    "fichier": "src/lib/hash.ts",
     "concept": "empreinte FNV-1a 32 bits déterministe (Math.imul) : de parts textuelles ou numériques, séparées ; d’un tableau numérique pris au millième, sa longueur comprise, poursuivie depuis une empreinte de départ, sans passer par son texte",
     "perimetre": "toute couche : graines de détail de surface (src/gameIso), empreintes des morceaux, nappes et couronnes du volume du monde (src/noyau/monde/volume/volume.ts), clés du plateau (src/noyau/monde/aretes.ts)",
-    "verrou": "src/data/hash.test.ts"
+    "verrou": "src/lib/hash.test.ts"
   }
 ]

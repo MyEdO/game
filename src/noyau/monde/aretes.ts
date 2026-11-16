@@ -29,7 +29,7 @@ import {
 import { estAbsent } from './terrain';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { memoByRef, memoByRefDeps } from './sceneMemo';
-import { hash32, hash32AuMillieme } from '../../data/hash';
+import { hash32, hash32AuMillieme } from '../../lib/hash';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { spaceCellKey } from './volume/architectureVisibility';
 import type { Rot } from '../../geometry/iso';
@@ -277,7 +277,7 @@ export interface PlateauDeLaScene {
    */
   cleDuMonde: string;
   /**
-   * La clé du retrait, l'empreinte (`hash32AuMillieme`, `src/data/hash.ts`, en base 36) des octets du masque que le
+   * La clé du retrait, l'empreinte (`hash32AuMillieme`, `src/lib/hash.ts`, en base 36) des octets du masque que le
    * regard retire pour le groupe (`masqueDuRegard`) : le jeu rappelle `retrait` quand elle change.
    */
   cleDuRetrait: string;

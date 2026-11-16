@@ -268,6 +268,7 @@ export const ECRIT_LU = {
       'session-version.mjs installe Codex côte à côte sous ~/.cache/wfrp-codex, hors de l’arbre, en tâche détachée ; son banc injecte dossier de versions, registre, npm-cli.js et lanceur ; ses versions, verrous, journal, npm-cli.js factice, pilote et préchargement sans réseau de l’entrée CLI s’écrivent dans un mkdtempSync sous os.tmpdir(), retiré par t.after après l’arrêt des enfants ; session-harnais.test.mjs lit les hooks réels sous .claude/skills/harnais/ et les exécute avec ses interfaces injectées, sans écrire ce dossier ; ' +
       'session.test.mjs importe repartition.mjs pour surfaceDe et projeter, fonctions pures sans lecture ni écriture fs ; ses mkdirSync et appendFileSync de traces sont fermés dans executer(registre), que ce banc n’appelle pas ; aucune lecture ni écriture de trace n’est atteinte par ce chemin ; ' +
       'son JobHost Windows ne lance au banc que des enfants Node neutres sous ces dossiers temporaires, jamais Windows Terminal ni un agent ; le lancement WT et l’inventaire sont injectés, et lancerAgent ne lance au banc que des enfants Node neutres sous os.tmpdir() ; ' +
+      'chantier.mjs (#4339) crée et lie en dur le node_modules d’un worktree conteneur (lierNodeModules) ; ses bancs ne lui passent que le dépôt jetable de depotGabarit.mjs et son worktree sous os.tmpdir() ; ' +
       'fraicheur-docs.mjs ne reçoit des bancs chantier que leurs dépôts jetables sous os.tmpdir(), ou un copierDocs injecté ; aucun ledger du principal réel n’est écrit ; ' +
       'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +
       '`ecrivainsAtteints.test.mjs`, pas ici) : les bancs écrivent sous os.tmpdir() — leurs dossiers de ' +
@@ -447,8 +448,8 @@ export const ECRIT_LU = {
       '(l’entrée d’hôte `scripts/entree-d-hote.mjs` et le greffon `proseSource()`), Source/ (la prose adressée que le ' +
       'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite). `--pont-seul` ne charge aucun asset : ' +
       '`chargerAssets` (hotes/godot/asset/charger.mjs) n’est appelé que par `editeur`, `modeleDExport` et `deposerLesAssets` ' +
-      '(hotes/godot/construire.mjs), sous `--sonde`, `--rendus`, `--export`, `--bureau` et `--ouvrir` ; aucun écrivain ne joue : ' +
-      '`recupererModeles` (#2948) ne joue que sous ces cinq modes, `deposerLesModeles` (hotes/godot/listage.mjs) que ' +
+      '(hotes/godot/construire.mjs), sous `--sonde`, `--rendus`, `--coop`, `--export`, `--bureau` et `--ouvrir` ; aucun écrivain ne joue : ' +
+      '`recupererModeles` (#2948) ne joue que sous ces six modes, `deposerLesModeles` (hotes/godot/listage.mjs) que ' +
       'sous `--export` et `--bureau`, dans leur `--sortie` (#3778), `deposerLesPlanches` (hotes/godot/planches.mjs, #3935) que sous `--export`, ' +
       '`deposerLesAvis` (hotes/godot/avis.mjs, #4063) que sous `--export` et `--bureau`, dans leur `--sortie` ; ' +
       'le stockage du bundle exécuté est `stockageDuProcessus(null)` (hotes/godot/stockage.mjs, #3009), en mémoire seule',
@@ -511,6 +512,31 @@ export const ECRIT_LU = {
       '`deposerLesAvis` (hotes/godot/avis.mjs, #4063) n’écrit que sous `--export` et `--bureau`, dans leur `--sortie` ; ' +
       'le stockage du pont (hotes/godot/stockage.mjs, #3009) n’y est jamais ouvert, faute de pont vivant',
   },
+  'godot:coop': {
+    ecrit: [],
+    ecritFerme: {
+      'hotes/godot/projet/modeles/':
+        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs) : `recupererModeles` n’y écrit ' +
+        'un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis renommage ; ' +
+        '`godot:coop` suit `godot:sonde` dans le job `godot` de ci.yml comme dans la lane `types` du rejeu local ' +
+        '(`LANE_LOCALE_DE_JOB`), une SÉRIE : il ne lui reste rien à écrire',
+      'server/.wrangler/':
+        '`wrangler dev` (`npm run relay:dev`, lancé par `leRelayLocal`, hotes/godot/construire.mjs, #3009) y bâtit le ' +
+        'Worker sous `tmp/`, qu’il vide à son arrêt ; l’état du Durable Object va au dossier temporaire de ' +
+        '`--persist-to`, que le mode efface ; `.wrangler/` est gitignoré (server/.gitignore), et la seule autre gate ' +
+        'lectrice de server/, `server:typecheck`, ne compile que `server/src/` (server/tsconfig.json)',
+    },
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'Source/', 'tsconfig.json', 'package.json'],
+    prerequis: [{ chemin: 'server/node_modules', pose: 'npm --prefix server ci' }],
+    raison:
+      '`godot --headless --import` sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, puis le relay local ' +
+      '(`npm run relay:dev`, server/, sur un port libre de la boucle locale, son état sous `os.tmpdir()`) et les deux ' +
+      'recettes de la coop (`RECETTES_DE_LA_COOP`, hotes/godot/construire.mjs, #3009) lancées ensemble, chacune avec ' +
+      '`--pont=<hotes/godot/vivant.mjs>`, `--stockage=` et ses données d’utilisateur dans la COPIE ; LIT ce que lit ' +
+      '`godot:sonde`, et server/ (le Worker, sa config et ses dépendances). Le relay est arrêté à la fin, son groupe de ' +
+      'processus entier ; `deposerLesAvis`, `deposerLesModeles` et `deposerLesPlanches` n’écrivent que sous `--export` ' +
+      'et `--bureau`',
+  },
   'godot:recette': {
     ecrit: [],
     ecritFerme: {
@@ -538,11 +564,11 @@ export const ECRIT_LU = {
       'scripts/personnage-3d/__pycache__/':
         'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
         'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé » ; ' +
-        'les constructions que `test_vehicule.py` et `test_element.py` lancent en sous-processus n’en écrivent pas ' +
+        'les constructions que `test_vehicule.py`, `test_decor.py` et `test_element.py` lancent en sous-processus n’en écrivent pas ' +
         '(`PYTHONDONTWRITEBYTECODE`)',
     },
-    lit: ['scripts/personnage-3d/', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
-      'src/data/materials.json', 'src/data/vehicles.json'],
+    lit: ['scripts/personnage-3d/', 'hotes/godot/asset/charger.mjs', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
+      'src/data/materials.json', 'src/data/props.json', 'src/data/props.types.ts', 'src/data/vehicles.json', 'src/geometry/dir8.ts'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
@@ -551,8 +577,11 @@ export const ECRIT_LU = {
       '`seuils.py`) ; `test_vehicule.py` reconstruit les véhicules ' +
       'de `vehicule/` sous `tempfile.TemporaryDirectory()`, d’après les matières de `src/data/materials.json` et les ponts ' +
       'de la caraque (`ponts` de sa fiche dans `src/data/vehicles.json`) et mesure les écarts entre la caraque bâtie et ses ' +
-      'ponts, et `test_element.py` les éléments sur base d’`element/`, sur les GLB épinglés lus dans le cache ' +
-      '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle dans la lane) ; les deux comparent ' +
+      'ponts, `test_decor.py` les décors de `decor/` et mesure chaque GLB publié d’un décor, lu dans le cache ci-dessous, dans ' +
+      'le gabarit de sa recette (`volume.primitives` de sa fiche dans `src/data/props.json`, ses polygones par ' +
+      '`polygonesDePrimitive` de `src/data/props.types.ts`, qui importe `src/geometry/dir8.ts`, que lance ' +
+      '`decor/polygones.mjs`), et `test_element.py` les éléments sur base d’`element/`, sur les GLB épinglés lus dans le cache ' +
+      '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle dans la lane) ; les trois comparent ' +
       'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/',
     delegueeAuPerimetre:
       'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +
@@ -767,7 +796,7 @@ export const ECRIT_LU = {
   },
   'raw:check-renvois': {
     ecrit: [],
-    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
+    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/lib/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
     raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
       'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; aucune ' +

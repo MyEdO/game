@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
@@ -10,6 +10,8 @@
 [ext_resource type="Theme" path="res://art/entites_en_cartes.tres" id="t_en_cartes"]
 [ext_resource type="PackedScene" path="res://scenes/MenuDeLaPartie.tscn" id="t_menu"]
 [ext_resource type="Theme" path="res://art/cartes.tres" id="t_cartes"]
+[ext_resource type="Theme" path="res://art/jour.tres" id="t_jour"]
+[ext_resource type="Theme" path="res://art/chronique.tres" id="t_chronique"]
 
 [node name="Ecran" type="Node"]
 
@@ -103,11 +105,6 @@ masque = NodePath("..")
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal", "coin_du_pied")]
-script = ExtResource("2_disposition")
-journal = NodePath("../../../../Droite")
-coin_du_pied = NodePath("../../../Pied/Rangee/Coin")
-
 [node name="Hud" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 anchors_preset = 15
 anchor_right = 1.0
@@ -121,59 +118,209 @@ grow_vertical = 2
 mouse_filter = 2
 theme_type_variation = &"PileSerree"
 
-[node name="Haut" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud"]
+[node name="Tour" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud"]
 visible = false
-theme_type_variation = &"Panneau"
+size_flags_horizontal = 0
+theme_type_variation = &"Cartouche"
 
-[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut"]
+[node name="Texte" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Tour"]
+custom_minimum_size = Vector2(360, 0)
+theme = ExtResource("t_jour")
 
-[node name="Tour" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile/Tour" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Tour/Texte" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "combat.tour"
-masque = NodePath("../../..")
+masque = NodePath("../..")
 
-[node name="Ordre" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile"]
-vertical_scroll_mode = 0
-
-[node name="Rangee" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile/Ordre"]
+[node name="Corps" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud"]
+size_flags_vertical = 3
+mouse_filter = 2
 theme_type_variation = &"RangeeSerree"
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile/Ordre/Rangee"]
+[node name="Ordre" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps"]
+mouse_filter = 2
+horizontal_scroll_mode = 0
+
+[node name="Rangs" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre"]
+size_flags_vertical = 3
+mouse_filter = 2
+theme_type_variation = &"PileTassee"
+alignment = 2
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs"]
 script = ExtResource("1_zone")
 source = "combat.ordre"
+formes = PackedStringArray("entite:rang", "entite.alerte:rangDeLActif")
 
-[node name="Gauche" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud"]
+[node name="Actif" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_top = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="Avis" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif"]
 visible = false
-custom_minimum_size = Vector2(360, 0)
-size_flags_horizontal = 0
-theme_type_variation = &"Panneau"
+size_flags_horizontal = 4
+mouse_filter = 2
+theme = ExtResource("t_avis")
 
-[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche"]
-
-[node name="Actif" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile/Actif" node_paths=PackedStringArray("masque")]
-script = ExtResource("1_zone")
-source = "combat.actif"
-masque = NodePath("../../..")
-
-[node name="Avis" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile/Avis" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Avis"]
 script = ExtResource("1_zone")
 source = "combat.avis"
-masque = NodePath("../../..")
+repli = true
 
-[node name="Tour" type="HFlowContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile"]
-theme_type_variation = &"FluxSerre"
+[node name="Poste" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif"]
+visible = false
+size_flags_horizontal = 4
+mouse_filter = 2
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile/Tour" node_paths=PackedStringArray("masque")]
+[node name="Tablette" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste"]
+visible = false
+size_flags_horizontal = 8
+theme_type_variation = &"Tablette"
+
+[node name="Cases" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Tablette"]
+mouse_filter = 2
+theme_type_variation = &"RangeeSerree"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Tablette/Cases" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "combat.rapides"
+masque = NodePath("../..")
+formes = PackedStringArray("bouton:case", "ligne:caseLibre")
+
+[node name="Meuble" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste"]
+mouse_filter = 2
+
+[node name="Fond" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble"]
+mouse_filter = 2
+theme_type_variation = &"SaillieDuMeuble"
+
+[node name="Chene" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Fond" groups=["socle"]]
+theme_type_variation = &"Cartouche"
+
+[node name="Garni" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble"]
+mouse_filter = 2
+theme_type_variation = &"GarniDuMeuble"
+
+[node name="Rangee" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni"]
+mouse_filter = 2
+theme_type_variation = &"RangeeSerree"
+
+[node name="Actif" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee"]
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Actif" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "combat.actif"
+masque = NodePath("../../../../..")
+formes = PackedStringArray("entite:meuble")
+
+[node name="Offres" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee"]
+mouse_filter = 2
+theme_type_variation = &"DansLeMeuble"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres"]
+mouse_filter = 2
+theme_type_variation = &"PileTassee"
+
+[node name="Action" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile"]
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile/Action"]
 script = ExtResource("1_zone")
 source = "combat.offres"
-masque = NodePath("../../..")
+ids = PackedStringArray("economie/action")
+formes = PackedStringArray("choix:plaques")
+
+[node name="SousLePortrait" type="MarginContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile"]
+mouse_filter = 2
+theme_type_variation = &"SousLePortrait"
+
+[node name="Familles" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile/SousLePortrait"]
+mouse_filter = 2
+theme_type_variation = &"RangeeTassee"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Actif/Poste/Meuble/Garni/Rangee/Offres/Pile/SousLePortrait/Familles"]
+script = ExtResource("1_zone")
+source = "combat.offres"
+formes = PackedStringArray("choix:pastilleDeChoix", "liste:pastilleDeChoix")
+
+[node name="Tour" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+visible = false
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Tour"]
+script = ExtResource("1_zone")
+source = "combat.offres"
 ids = PackedStringArray("economie/aucun")
+formes = PackedStringArray("choix:finDuTour")
+repli = true
+
+[node name="Chronique" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+visible = false
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_right = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"RangeeSerree"
+
+[node name="Panneau" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique"]
+size_flags_horizontal = 3
+size_flags_vertical = 8
+mouse_filter = 2
+theme = ExtResource("t_chronique")
+
+[node name="Pastille" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique"]
+size_flags_vertical = 8
+mouse_filter = 2
+theme_type_variation = &"Enveloppe"
+
+[node name="Basculer" type="Button" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique/Pastille"]
+custom_minimum_size = Vector2(34, 34)
+theme_type_variation = &"Pastille"
+toggle_mode = true
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Chronique/Pastille/Basculer"]
+script = ExtResource("1_zone")
+source = "journal.titre"
+formes = PackedStringArray("entite:pictogramme")
+
+[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal", "coin_du_pied", "actif", "ordre", "tour", "chronique", "lignes", "panneau", "bascule", "menu")]
+script = ExtResource("2_disposition")
+journal = NodePath("../../../../Droite")
+coin_du_pied = NodePath("../../../Pied/Rangee/Coin")
+actif = NodePath("../Actif")
+ordre = NodePath("../Hud/Corps/Ordre")
+tour = NodePath("../Tour")
+chronique = NodePath("../Chronique")
+lignes = NodePath("../../../../Droite/Pile/Defilement")
+panneau = NodePath("../Chronique/Panneau")
+bascule = NodePath("../Chronique/Pastille/Basculer")
+menu = NodePath("../../../../../MenuDeLaPartie")
 
 [node name="Dialogue" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 visible = false
@@ -298,15 +445,6 @@ theme_type_variation = &"Pied"
 size_flags_horizontal = 3
 theme_type_variation = &"PileSerree"
 
-[node name="Offres" type="TabContainer" parent="Interface/Ossature/Colonne/Pied/Rangee/Pile"]
-theme_type_variation = &"Onglets"
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Pied/Rangee/Pile/Offres" node_paths=PackedStringArray("masque")]
-script = ExtResource("1_zone")
-source = "combat.offres"
-masque = NodePath("../../../..")
-repli = true
-
 [node name="Exploration" type="HFlowContainer" parent="Interface/Ossature/Colonne/Pied/Rangee/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Pied/Rangee/Pile/Exploration" node_paths=PackedStringArray("masque")]
@@ -339,17 +477,11 @@ custom_minimum_size = Vector2(320, 0)
 theme_type_variation = &"Journal"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Droite"]
-
-[node name="Titre" type="VBoxContainer" parent="Interface/Ossature/Droite/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Droite/Pile/Titre"]
-script = ExtResource("1_zone")
-source = "journal.titre"
+theme = ExtResource("t_journal")
 
 [node name="Defilement" type="ScrollContainer" parent="Interface/Ossature/Droite/Pile"]
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
-theme = ExtResource("t_journal")
 
 [node name="Lignes" type="VBoxContainer" parent="Interface/Ossature/Droite/Pile/Defilement"]
 theme_type_variation = &"PileSerree"
@@ -452,3 +584,5 @@ theme_type_variation = &"alerte"
 [node name="Panne" type="Label" parent="Interface/Avis"]
 horizontal_alignment = 1
 theme_type_variation = &"echec"
+
+[connection signal="toggled" from="Interface/Ossature/Colonne/Milieu/Scene/Chronique/Pastille/Basculer" to="Interface/Ossature/Colonne/Milieu/Scene/Disposition" method="ouvrir_la_chronique"]

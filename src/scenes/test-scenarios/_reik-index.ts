@@ -1,4 +1,4 @@
-import type { LandMarketProfile } from '../../engine/landCargo';
+import type { MarcheDAuteur } from '../../noyau/worldMap';
 import type { IdsParEspace } from '../../data/schemas/_ids.generated';
 
 /**
@@ -128,10 +128,9 @@ export function hasTradeGoods(e: ReikEntry): boolean {
   return e.r != null && e.produits.some((p) => p !== 'subsistance');
 }
 
-/** Profil de marché (`LandMarketProfile`) d'une entrée de l'Index — Taille + Richesse + Produits verbatim. */
-export function reikMarket(e: ReikEntry): LandMarketProfile {
+/** Marché d'auteur (`MarcheDAuteur`) d'une entrée de l'Index — Richesse + Produits verbatim ; sa Taille va au lieu. */
+export function reikMarket(e: ReikEntry): MarcheDAuteur {
   return {
-    taille: e.taille,
     richesse: e.r!,
     produits: e.produits,
     ...(e.wineBonus ? { wineBonusEchelons: e.wineBonus } : {}),

@@ -18,6 +18,12 @@ describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
     expect(grants[0]).toMatchObject({ nature: 'bete', ref: { id: 'mule' }, ownerId: 'hero-2', location: { kind: 'avec-le-groupe' }, items: [] });
   });
 
+  it('{id, type: engin} → grant engin (trappingId), avec-le-groupe, owner = ownerId (#4143)', () => {
+    const refs: TrappingRef[] = [{ id: 'canon-petit', type: 'engin' }];
+    const grants = possessionGrantsFromRefs(refs, 'hero-4', makeRNG(1));
+    expect(grants).toEqual([{ nature: 'engin', trappingId: 'canon-petit', ownerId: 'hero-4', location: { kind: 'avec-le-groupe' }, items: [] }]);
+  });
+
   it('count.fixed > 1 → autant de grants DISTINCTS (aucun aliasing d\'objet/items/location)', () => {
     const refs: TrappingRef[] = [{ id: 'mule', type: 'creature', count: { fixed: 3 } }];
     const grants = possessionGrantsFromRefs(refs, 'h', makeRNG(1));

@@ -136,7 +136,6 @@ import type { phaseDeChute } from './fallMove';
 import type { Tool } from './sceneEditLecture';
 import type { ActionDArchitecture, OutilDeLEditeur } from './edition/session';
 import type { ContexteDuPointeur } from './edition/pointeur';
-import type { RouteObjet } from '../data/schemas/exposition-derivee';
 import type { advanceCost } from '../engine/advancement';
 import type { SequenceAbandon, SequenceBoard, SequenceCloseCtx, SequenceDef, SequenceRoundActors, SequenceState, SequenceVerdict } from './sequenceContract';
 import type { sequenceCumulsDeLaManche } from './sequenceCore';
@@ -240,7 +239,7 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'peur' | 'phare' | 'phase' | 'physique' | 'piece' | 'pied' | 'piege' | 'pietinement' | 'pirates' | 'pires' | 'pitance'
   | 'pivot' | 'place' | 'plaie' | 'plancher' | 'planque' | 'plateau' | 'plein' | 'pnj' | 'polymorphie' | 'port'
   | 'porte' | 'portee' | 'porteur' | 'porteurs' | 'pose' | 'possession' | 'possible' | 'poste' | 'posture' | 'pot' | 'pourcentage' | 'poursuite'
-  | 'poursuivre' | 'poussee' | 'pratiquer' | 'precedente' | 'present' | 'prevention' | 'priere' | 'privee' | 'prix'
+  | 'poursuivre' | 'poussee' | 'pratiquer' | 'precedente' | 'present' | 'prevention' | 'priere' | 'prix'
   | 'production' | 'profil' | 'progression' | 'prolonge' | 'promouvoir' | 'protecteur' | 'protection' | 'provisions'
   | 'psychologie' | 'psychologique' | 'puissance' | 'qualite' | 'quantite' | 'quotidien' | 'r' | 'raccourci' | 'ragot'
   | 'rallier' | 'ramassage' | 'rangees' | 'rapide' | 'rate' | 'ration' | 'rations' | 'reaction' | 'reapparition'
@@ -352,7 +351,7 @@ const verrousDuLexique: [
   Verrou<Mots<NonNullable<SkillData['combatSubstitute']>['role'] | NonNullable<SkillData['combatSubstitute']>['gate']>, MotDuLexique>, // #3977
   Verrou<Mots<PendingDisengage['phase'] | PendingAuContact['phase'] | PendingGrapple['phase'] | ReturnType<typeof phaseDeChute>>, MotDuLexique>, // #3977
   Verrou<Mots<Tool['mode'] | OutilDeLEditeur['mode'] | ActionDArchitecture | NonNullable<ContexteDuPointeur['architecture']>['action']>, MotDuLexique>, // #3977
-  Verrou<Mots<RouteObjet['mode'] | EntrainementOption['kind'] | Parameters<typeof advanceCost>[1]>, MotDuLexique>, // #3977
+  Verrou<Mots<EntrainementOption['kind'] | Parameters<typeof advanceCost>[1]>, MotDuLexique>, // #3977
   Verrou<Mots<keyof SequenceState | Exclude<ClesDeLUnion<SequenceVerdict<unknown>>, 'log'> | SequenceVerdict<unknown>['suite'] | keyof SequenceRoundActors
     | Exclude<keyof SequenceCloseCtx<unknown>, 'get' | 'seq' | 'rng'> | keyof SequenceDef | Exclude<keyof SequenceBoard, 'title' | 'unit'> | Exclude<keyof SequenceAbandon, 'label' | 'title'>
     | keyof ReturnType<typeof sequenceCumulsDeLaManche>>, MotDuLexique>, // #3977

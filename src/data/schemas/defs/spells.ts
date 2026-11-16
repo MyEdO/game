@@ -16,13 +16,13 @@ import { messagePorteSansDuree } from '../../../engine/ops';
 export const file = 'spells.json';
 export const famille = 'entite';
 
-/** Toute op `condition { carried }` de l'arbre d'effets d'une entrée (#1695). */
-function* opsPortees(noeud: unknown): Generator<Record<string, unknown>> {
-  if (Array.isArray(noeud)) { for (const e of noeud) yield* opsPortees(e); return; }
+/** Toute op de l'arbre d'effets d'une entrée que `retenue` retient. */
+function* opsRetenues(noeud: unknown, retenue: (n: Record<string, unknown>) => boolean): Generator<Record<string, unknown>> {
+  if (Array.isArray(noeud)) { for (const e of noeud) yield* opsRetenues(e, retenue); return; }
   if (noeud == null || typeof noeud !== 'object') return;
   const n = noeud as Record<string, unknown>;
-  if (n.op === 'condition' && n.carried === true) yield n;
-  for (const v of Object.values(n)) yield* opsPortees(v);
+  if (retenue(n)) yield n;
+  for (const v of Object.values(n)) yield* opsRetenues(v, retenue);
 }
 
 /** Portée d'un Sort (`SpellRange` en dérive, `engine/spellRange.ts`). */
@@ -196,8 +196,13 @@ const doc = document(
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as { duration?: { kind?: string } | null; effects?: unknown };
+        // LDB 47 l.15 ; #4202.
+        if (!opsRetenues(e.effects, (n) => n.op === 'zone' && n.durationRounds !== undefined).next().done) {
+          ctx.addIssue({ code: 'custom', path: ['effects'], message: 'op « zone » d’un sort : « durationRounds » interdit, la zone dure le temps du sort.' });
+        }
         if (e.duration != null && e.duration.kind !== 'instant') return;
-        for (const op of opsPortees(e.effects)) {
+        // #1695
+        for (const op of opsRetenues(e.effects, (n) => n.op === 'condition' && n.carried === true)) {
           ctx.addIssue({ code: 'custom', path: ['effects'], message: messagePorteSansDuree(String(op.id ?? '')) });
         }
       }),

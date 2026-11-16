@@ -5,7 +5,7 @@
  * servants au-delà de l'Indice n'améliorent pas le tir mais compensent les pertes (l.444).
  */
 import type { Weapon, QualityInstance } from './types';
-import { crewedTeamIndice, crewedTeamRedoublePenalty, isAtoutQuality } from './qualities/dispatch';
+import { crewedTeamIndice, crewedTeamRedoublePenalty } from './qualities/dispatch';
 
 /** Dégradation d'une Arme d'équipe en sous-effectif (cumulatif). */
 export interface CrewedPenalty {
@@ -46,26 +46,11 @@ export function crewedFireWeapon(weapon: Weapon, present: number): Weapon {
   const has = (id: string) => weapon.qualities.some((q) => q.id === id);
   const added = pen.addFlaws.filter((f) => !has(f)).map((id) => ({ id }));
   const redoubled = pen.addFlaws.filter(has).length; // Défauts déjà portés et « re-reçus » (l.460)
-  let qualities: QualityInstance[] = [...weapon.qualities.filter((q) => q.id !== 'arme-d-equipe'), ...added];
-  // Baliste « relativement simple » (AA 10 l.148) tirée par UN SEUL servant valide (`present ≤ 1` : pas
-  // d'équipe) → l'arme PERD TOUS SES ATOUTS, conserve ses Défauts. ORTHOGONAL au sous-effectif : la recharge
-  // ×2 / les Défauts ajoutés s'appliquent EN PLUS (cf. `simpleSoloFireWeapon`, qui ne touche QUE les Atouts).
-  if (weapon.soloSimple && present <= 1) qualities = qualities.filter((q) => !isAtoutQuality(q.id));
+  const qualities: QualityInstance[] = [...weapon.qualities.filter((q) => q.id !== 'arme-d-equipe'), ...added];
   return {
     ...weapon,
     qualities,
     reload: (weapon.reload ?? 0) * pen.reloadFactor,
     ...(redoubled ? { crewedTohitPenalty: (weapon.crewedTohitPenalty ?? 0) + crewedTeamRedoublePenalty(weapon)! * redoubled } : null),
   };
-}
-
-/**
- * Pièce « relativement simple » tirée par UN SEUL servant valide (la baliste, AA 10 l.148) : l'arme PERD
- * TOUS SES ATOUTS (Pointue…) mais CONSERVE l'intégralité de ses Défauts (Recharge, Arme d'équipe…). PUR,
- * data-driven (Atout/Défaut lu dans `qualities.json` via `isAtoutQuality`). Le tir lui-même reste un Test de
- * Projectiles (Spé du Groupe) à la Capacité de Tir — cf. `combatValue` (la Spé s'applique normalement). Brique
- * COMPOSÉE par `crewedFireWeapon` quand l'effectif valide ≤ 1 ; exposée pour la résolution/l'éprouvé isolé.
- */
-export function simpleSoloFireWeapon(weapon: Weapon): Weapon {
-  return { ...weapon, qualities: weapon.qualities.filter((q) => !isAtoutQuality(q.id)) };
 }

@@ -105,7 +105,7 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
       { op: 'removeCondition', id: { id: 'hemorragique' }, all: true },
     ]);
   });
-  it('les consommables de la base portent un Flow (11 migrés + 9 drogues/herbes LDB 71-72 + rouille MSRC + sel sacré MDG + boissons alcoolisées LDB 09 + malepierre LDB 19, #462 ; + 14 potions VDM 12, #732)', () => {
+  it('les consommables de la base portent un Flow (11 migrés + 9 drogues/herbes LDB 71-72 + rouille MSRC + sel sacré MDG + boissons alcoolisées LDB 09 + rhum tord-boyaux MDG + malepierre LDB 19, #462 ; + 14 potions VDM 12, #732)', () => {
     const ids = trappings.filter((t) => t.consumable).map((t) => t.id).sort();
     expect(ids).toEqual([
       'bandages',
@@ -142,6 +142,7 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
       'racine-de-mandragore',
       'racine-de-terre',
       'racine-des-tombes',
+      'rhum-tord-boyaux',
       'rouille-mouchetee',
       'sel-sacre',
       'soude-commune',

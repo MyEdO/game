@@ -10,8 +10,11 @@ extends CanvasLayer
 ## `quittee` de `nouvelles`, jusqu'aux zones qu'il montre ensuite. `{ salon: true }` l'ouvre ; `{ salon: false }`
 ## (« Fermer ») le ferme, sur la partie ouverte, ou, sans partie, sur l'accueil ; tout autre geste de ses zones va à
 ## `salon`, puis il relève `nouvelles`. Sa minuterie relève `nouvelles` toutes les `PERIODE_S` secondes si et
-## seulement si les dernières zones lues de `salon` offrent `{ salon: 'quitter' }`, panneau à l'écran ou non : hors
-## salon, aucun appel ne part. Le combat relit `salon` après chaque `Suite`, d'où qu'elle vienne. Une `Suite` relevée
+## seulement si les dernières zones lues de `salon` offrent `{ salon: 'quitter' }`, panneau à l'écran ou non, et une
+## dernière fois quand des zones lues ne l'offrent plus : la `quittee` déposée pendant leur lecture s'y lit ; hors
+## salon, aucun appel ne part. La demande de fermeture de la fenêtre (`NOTIFICATION_WM_CLOSE_REQUEST`) joue
+## `{ salon: 'quitter' }` à `salon` si et seulement si ces mêmes zones l'offrent, avant que Godot ne quitte.
+## Le combat relit `salon` après chaque `Suite`, d'où qu'elle vienne. Une `Suite` relevée
 ## passe par le combat ; une `quittee` relevée pendant une partie montrée recharge le combat sans partie
 ## (`PontDuNoyau.fin_du_salon`, `PontDuNoyau.entree`), sur le panneau qui en dit les lignes ; sans partie, le panneau
 ## les montre avec les zones relues.
@@ -61,6 +64,13 @@ func relire() -> void:
 		_regler(reponse.zones)
 
 
+## La fenêtre qui se ferme : « Quitter le salon » rendu à `salon` si les dernières zones lues l'offrent (`_regler`) ;
+## rien ne se relève ni ne se montre, le jeu quitte.
+func _notification(quoi: int) -> void:
+	if quoi == NOTIFICATION_WM_CLOSE_REQUEST and not _minuterie.is_stopped():
+		_pont.appeler("salon", QUITTER)
+
+
 ## La racine de ce que le panneau porte à l'écran (`PontDuNoyau.boutons_a_l_ecran`).
 func racine() -> Control:
 	return _cadre
@@ -95,16 +105,18 @@ func _relever() -> void:
 func _montrer(reponse: Dictionary, lignes: Array) -> void:
 	if reponse.get("ok") != true:
 		return
-	_regler(reponse.zones)
 	Zone.montrer_toutes(Zone.racines(_cadre), reponse.zones.merged({"journal.lignes": lignes}))
 	_cadre.visible = true
 	change.emit()
+	_regler(reponse.zones)
 
 
-## La minuterie en marche si et seulement si `zones` offrent « Quitter le salon » (`QUITTER`).
+## La minuterie en marche si et seulement si `zones` offrent « Quitter le salon » (`QUITTER`) ; arrêtée, une dernière
+## relève.
 func _regler(zones: Dictionary) -> void:
 	var offert: bool = zones["salon.gestes"].any(func(g: Dictionary) -> bool: return g.get("jeu") == QUITTER)
 	if offert and _minuterie.is_stopped():
 		_minuterie.start()
-	elif not offert:
+	elif not offert and not _minuterie.is_stopped():
 		_minuterie.stop()
+		_relever()

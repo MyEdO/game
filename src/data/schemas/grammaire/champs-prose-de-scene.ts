@@ -5,7 +5,7 @@ export const PROSES_NOMMEES = {
   'narratif.documents[].prose': { champ: 'prose', label: 'texte', regime: 'document', presence: 'requis', porteur: 'folio' },
   'massBattle.terrain': { champ: 'terrain', label: 'terrain', regime: 'narration', presence: 'optionnel', porteur: 'folio' },
   'scenes[].startMessage.texte': { champ: 'texte', label: 'message d’introduction', regime: 'narration', presence: 'requis', porteur: 'folio' },
-  'worldMap.routes[].refus.texte': { champ: 'texte', label: 'raison du refus', regime: 'narration', presence: 'requis', porteur: 'folio' },
+  'acces.refus.texte': { champ: 'texte', label: 'raison du refus', regime: 'narration', presence: 'requis', porteur: 'folio' },
   'worldMap.places[].prose': { champ: 'prose', label: 'description', regime: 'narration', presence: 'optionnel', porteur: 'folio' },
   'narratif.ouverture.sousTitre.texte': { champ: 'texte', label: 'sous-titre', regime: 'narration', presence: 'requis', porteur: 'folio' },
   'narratif.cloture.sousTitre.texte': { champ: 'texte', label: 'sous-titre', regime: 'narration', presence: 'requis', porteur: 'folio' },

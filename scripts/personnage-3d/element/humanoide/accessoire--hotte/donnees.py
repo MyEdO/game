@@ -27,7 +27,7 @@ MANIFESTE = {
 
 MATERIAUX = {
     'osier': ('bois', ((0.55, 0.55, 0.55), 0.0, 0.9)),
-    'cuir': ('cuir', ((0.4, 0.4, 0.4), 0.0, 0.87)),
+    'cuir': ('cuir', 'cuir-tanne'),
 }
 """Illustration : l'osier brun du panier (`bois`), le cuir sombre des bretelles (`cuir`). Gris de construction."""
 

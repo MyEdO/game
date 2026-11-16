@@ -114,10 +114,12 @@ describe('objets maudits — Méfaits exprimés', () => {
     walk(effects);
     expect(wounds.length).toBeGreaterThan(0);
     expect(wounds.every((w) => w.ignoreTB === true && w.ignoreAP === true)).toBe(true);
-    // « lui y compris » : `near` EXCLUT le centre (`EffectTargeting`, engine/flowCore) — il faut
-    // donc un effet jumeau visant le porteur.
-    const selfAssourdi = effects.filter((e) => (e as { on?: unknown }).on === 'soi' && JSON.stringify(e).includes('assourdi'));
-    expect(selfAssourdi).toHaveLength(1);
+    // « lui y compris » : chaque effet vise le rayon de 6 m centre compris (`EffectTargeting.centreCompris`).
+    expect(effects.map((e) => e.on)).toEqual([
+      { near: 'soi', radiusMeters: 6, centreCompris: true },
+      { near: 'soi', radiusMeters: 6, centreCompris: true },
+    ]);
+    expect(effects.filter((e) => JSON.stringify(e.flow).includes('assourdi'))).toHaveLength(1);
   });
 
   it('Hache de fureur incessante : profil d’Arme simple (LDB 62 l.32/l.127), aucun Atout du Bienfait', () => {

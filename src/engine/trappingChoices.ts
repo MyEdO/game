@@ -15,6 +15,8 @@ import {
   findTrappingById,
   firstLevel,
   levelsForCareer,
+  speciesSize,
+  tailleDuProfil,
   trappingRefLabel,
   idDObjet,
   DEFAULT_FABRICATION_ATOUT,
@@ -22,10 +24,14 @@ import {
   type BrancheDeDotation,
   type JokerDArme,
   type QualityRef,
+  type SpeciesData,
   type TrappingRef,
 } from '../data/index';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { atoutsMinimaux } from './qualities/craftEconomy';
+import { groupsFor } from './groups';
+import { possessionASaTaille } from './size';
+import type { Combatant } from './types';
 
 /** Choix de dotation : index de branche d'un `{pick, of}`, id d'objet d'un `{wildcard}`, clé de combinaison d'Atouts
  *  d'un `{id, qualityChoice}` ou d'un `{wildcard, qualityChoice}` (`valeursDeLEmplacement`). */
@@ -186,14 +192,29 @@ export function atoutChoisi(e: EmplacementAtout, choices: ChoixDeDotation): stri
   return combinaisonChoisie(e, choices).cle;
 }
 
-/** Les valeurs qu'un choix peut poser sur l'emplacement `e` : l'index de chaque branche d'un `{pick, of}`, chaque arme
- *  choisissable d'un `{wildcard}` (`armesChoisissables`), du seul Groupe `groupe` s'il en nomme un, la clé de chaque
- *  combinaison d'Atouts de Fabrication d'un `atout` (LDB 60 l.7-32). */
-export function valeursDeLEmplacement(e: EmplacementDeDotation): (number | string)[] {
+/** Ce qu'une arme au choix de carrière lit de son porteur : sa Taille et ses Groupes déclarés. */
+export type PorteurDArme = Pick<Combatant, 'size' | 'groups'>;
+
+/** Le porteur d'arme d'un personnage de l'espèce `sp` (`speciesSize`, `groupsFor`). */
+export const porteurDeLEspece = (sp: SpeciesData): PorteurDArme => ({ size: speciesSize(sp), groups: groupsFor({ speciesId: sp.id }) });
+
+/** Le porteur d'arme d'un profil du bestiaire `cr` (`tailleDuProfil`, `groupsFor`). */
+export const porteurDuProfil = (cr: Parameters<typeof tailleDuProfil>[0] & NonNullable<Parameters<typeof groupsFor>[0]['creature']>): PorteurDArme => ({ size: tailleDuProfil(cr), groups: groupsFor({ creature: cr }) });
+
+/** L'arme choisissable `a` s'offre-t-elle au porteur `p` : à sa Taille, et réservée à aucun Groupe ou à l'un des siens.
+ *  ADE II 2 l.604 ; ADE II 2 l.710 ; arbitrages #4110 (2026-11-15, 2026-11-16) */
+const offerteAuPorteur = (a: ReturnType<typeof armesChoisissables>[number], p: PorteurDArme): boolean =>
+  possessionASaTaille(a.sizeFor, p.size) && (a.reserveeA === undefined || (p.groups ?? []).includes(a.reserveeA));
+
+/** Les valeurs qu'un choix peut poser sur l'emplacement `e` du porteur `porteur` : l'index de chaque branche
+ *  d'un `{pick, of}`, chaque arme choisissable d'un `{wildcard}` (`armesChoisissables`) offerte au porteur
+ *  (`offerteAuPorteur`), du seul Groupe `groupe` s'il en nomme un, la clé de chaque combinaison d'Atouts de
+ *  Fabrication d'un `atout` (LDB 60 l.7-32). */
+export function valeursDeLEmplacement(e: EmplacementDeDotation, porteur: PorteurDArme): (number | string)[] {
   if (e.sorte === 'branches') return e.ref.of.map((_, j) => j);
   if (e.sorte === 'atout') return combinaisonsDAtouts(e).map((c) => c.cle);
   const groupe = e.ref.groupe?.id;
-  return armesChoisissables().filter((a) => groupe === undefined || a.groupe === groupe).map((a) => a.id);
+  return armesChoisissables().filter((a) => (groupe === undefined || a.groupe === groupe) && offerteAuPorteur(a, porteur)).map((a) => a.id);
 }
 
 /** Le libellé de la valeur `v` de l'emplacement `e` (`valeursDeLEmplacement`) : sa branche, son arme ou ses Atouts. */

@@ -11,15 +11,17 @@
   "surfaces": [
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     },
     {
       "nom": "cuir",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     }
   ],
   "glb": {
-    "sha256": "134f9d6d18675dc237c707a87bf4a6c05d210b0a0110f0e605693f25983e1fba",
-    "octets": 61836
+    "sha256": "89371b3417597ee9fef25ca1de71eb9faf7faeb4739c8c8a9aa01304d0e45c07",
+    "octets": 68296
   }
 }

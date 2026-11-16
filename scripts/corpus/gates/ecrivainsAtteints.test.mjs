@@ -349,6 +349,10 @@ const ATTENDU = {
     'scripts/git-hooks/journal.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs',
     'scripts/migrations/replay-head.mjs', 'scripts/test/verrou.mjs'],
   'test:ops': [
+    // +1 le 2026-11-16 (#4339) : `lierNodeModules` crée le `node_modules` de la cible (`mkdirSync`) et y lie en dur
+    // les entrées du principal (`cp -al`) ; le banc ne lui passe que le dépôt jetable de `depotGabarit.mjs` et son
+    // worktree, sous os.tmpdir() ; l'arbre n'est jamais écrit.
+    'scripts/ops/chantier.mjs',
     // +1 le 2026-10-17 (#2586) : le banc du cliquet forge un dépôt knip (`package.json`, `knip.json`, sources)
     // sous un `mkdtempSync` d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/ops/knip-exports-ratchet.test.mjs',
@@ -861,6 +865,10 @@ const ATTENDU = {
     "scripts/test/node-tests.mjs",
     "scripts/test/verrou.mjs",
     "scripts/guards/lib/superviserProcessus.mjs",
+    // #4338 : `fabriquerTransfert` pose son index et son message sous un `mkdtempSync` d'os.tmpdir(), retiré en finally,
+    // dans le dépôt forgé du banc sous os.tmpdir() ; la construction, l'import et le cache restent sous `import.meta.main`.
+    "scripts/personnage-3d/integrer.mjs",
+    "scripts/personnage-3d/integrer.test.mjs",
   ],
   // #2586 : la garde des balayages non résolus dérive par `balayagesNonResolus` de `perimetre.mjs` (mémos sous un
   // `mkdtempSync` d'os.tmpdir()), qui lance ses fichiers par `memoire.mjs` (émissions et diagnostic sous un
@@ -889,6 +897,7 @@ const ATTENDU = {
   'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   'godot:rendus': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
+  'godot:coop': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs'],
   // #3945, #3412, ECRIT_LU (`scripts/gates/toutes.mjs`) : le lot écrit le journal de chaque jeu sous `dist/godot-recettes/`,
   // lit `jeuxPilotesDeFront` de `construire.mjs`, et lance `recette.mjs --natif` en sous-processus, dont `piloter`
   // (`construire.mjs`) dépose les GLB (`ecritFerme`).

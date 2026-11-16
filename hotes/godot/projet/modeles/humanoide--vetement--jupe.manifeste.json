@@ -28,11 +28,12 @@
   "surfaces": [
     {
       "nom": "robe",
-      "palette": "vet1"
+      "palette": "vet1",
+      "matiere": "prop--drap-terne"
     }
   ],
   "glb": {
-    "sha256": "96b4a0c85aa62cdaaa827a2a178db38b114d58e256c3ea839d1ee27781f27f5f",
-    "octets": 403852
+    "sha256": "c8db0e739a46e9ed2cc0061826560c2741c097b29e09380d49b4579ee9593560",
+    "octets": 491888
   }
 }

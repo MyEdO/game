@@ -13,9 +13,9 @@ import type {
   IdDActivite, IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeRangee, IdDeLigneDeRepartition, IdDePlaieDeLOperation,
   IdDeQualiteDArtisanat, IdDeReponseDeDialogue, IdDEntrainement, IdDeSort, IdDeTalent, IdDeTireurRapide, IdDeTraitPsyPorte, IdDObjet, IdDObjetDuCatalogue, IdDuCoupleMonte,
   IdDePosteDeBataille, IdDeSceneDeBataille,
-  IdDOffreDeCargaison, IdDePorteurDeCargaison, IdDeCargaison, IdDePointDInteret,
+  IdDOffreDeCargaison, IdDePorteurDeCargaison, IdDeCargaison, IdDePointDInteret, IdDeCouchage,
 } from './designations';
-import type { RestFood, RestLodging } from './restFlow';
+import type { RestFood } from './restFlow';
 import type { ModeDeMarche } from './merchantFlow';
 import type { FlowKey } from './flowVerbs';
 import type { CleDeRegistre } from './modalArbiter';
@@ -120,7 +120,7 @@ export interface ChoixDesFenetres {
   };
   repos: {
     /** LDB 66 */
-    couchage: RestLodging;
+    couchage: IdDeCouchage;
     /** LDB 66 */
     pitance: RestFood;
   };

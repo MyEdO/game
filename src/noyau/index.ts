@@ -16,8 +16,13 @@ export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
+export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
+export { currentSeason } from '../engine/travelStages';
+export type { Season } from '../engine/travelStages';
+export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export {
+  advancementLabel,
   careers,
   conditionLabel,
   findCareerById,
@@ -29,6 +34,7 @@ export {
   matieresDe,
   props,
   refLabel,
+  seasonLabel,
   siegeEngines,
   structureAppearances,
   trappingRefLabel,
@@ -51,6 +57,7 @@ export {
   emplacementsDeDotation,
   estEmplacementRacine,
   libelleDeLaValeur,
+  porteurDuProfil,
   sousEmplacementActif,
   valeursDeLEmplacement,
   type EmplacementDeDotation,
@@ -63,7 +70,9 @@ export type { Equipe } from '../engine/relations';
 export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 export { valeurConforme, type FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
+export { emplacementsRapides } from './emplacementsRapides';
 export { ACTIONS } from '../data/index';
+export { DESSINS_DES_PARTS } from '../data/schemas/defs/actions';
 export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/icons';
 export { CADRE_DES_CADRES, CADRES } from '../data/cadres';
 export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
@@ -142,15 +151,17 @@ export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,
   matieresDeDecor,
+  posesDesDecors,
   retraitDuMonde,
   toitsDuMonde,
   volumeDuMonde,
   type MorceauDuMonde,
   type NappeDuMonde,
+  type PoseDeDecor,
   type RetraitDuMonde,
   type VolumeDuMonde,
 } from './monde/volume/volume';
-export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
+export { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export {
   avertissementsDeLaSession,
@@ -194,7 +205,7 @@ export {
   type SessionDEdition,
 } from './edition/session';
 export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
-export { orienterRoute } from './worldMapEdit';
+export { offresDeLEtablissement, orienterRoute, typesDEtablissement } from './worldMapEdit';
 export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
 export { SOUS_ENTREES } from '../data/schemas/defs-scenes/ecritures-du-narratif';
@@ -230,7 +241,37 @@ export {
   type FieldDesc,
 } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
-export { type Segment } from './sceneEdit';
+export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
+export {
+  atelierIdentifiable,
+  categoriesDeLaFamille,
+  compendium,
+  deDeLAtelier,
+  entreeMontree,
+  entreesListees,
+  facettesOffertes,
+  formulaireDeLAtelier,
+  ouvrirLeCompendium,
+  renvoisDeLEntree,
+  transactionDemandee,
+  type GesteDuCompendium,
+  type RefusDuCompendium,
+  type SessionDuCompendium,
+} from './codex/session';
+export {
+  CODEX_GROUPS,
+  categoryByKey,
+  cibleDuCodex,
+  codexGroupLabel,
+  type CodexItem,
+  type CodexRow,
+} from './codex/registry';
+export { tokenizeLinks } from './codex/relations';
+export {
+  enregistrerEntree,
+  isEditableCategory,
+  supprimerEntree,
+} from '../data/atelierDuCodex';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';
@@ -276,14 +317,13 @@ export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncanta
 export { fenetreDuSoin } from './soin';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
-export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur } from './ficheDuPorteur';
+export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { carteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
 export { voyageEnVue } from './voyageEnVue';
-export type { VoyageCadence } from './voyageCadence';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
@@ -370,4 +410,4 @@ export {
   type EntreeListee,
   type SavedProject,
 } from './persistance/bibliotheque';
-export { ProjetRefuse, type ProjectDoc } from './worldMap';
+export { ProjetRefuse, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';

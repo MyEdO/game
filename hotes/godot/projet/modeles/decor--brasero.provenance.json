@@ -1,0 +1,13 @@
+{
+  "model": "decor--brasero.glb",
+  "model_sha256": "4aefb7e0b32b2d5862ee50de6f544f4d67da8a4c84de94aa341dd56989fcf71a",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

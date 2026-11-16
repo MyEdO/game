@@ -71,7 +71,14 @@ export function buildPropVolumes(prop: PropData, ancrage: AncrageVolume, mpt: nu
  *  que la recette refuse. La SEULE décision volume ou non d'un décor, que lisent le volume du monde des hôtes et
  *  l'émetteur de décor du rendu web. */
 export function facesDuDecor(ref: string | undefined, ancrage: Omit<AncrageVolume, 'facing'> & { facing?: Dir8 }, mpt: number): Face[] | null {
+  const resolu = decorEnVolume(ref, ancrage.facing);
+  return resolu && buildPropVolumes(resolu.prop, { ...ancrage, facing: resolu.cap }, mpt);
+}
+
+/** Le type de décor `ref` et son cap cardinal résolu (`capVolumique`) depuis `facing`, quand il se dessine en volume ;
+ *  `null` sinon (`facesDuDecor`). PUR. */
+export function decorEnVolume(ref: string | undefined, facing: Dir8 | undefined): { prop: PropData; cap: Dir4 } | null {
   const prop = findPropById(ref);
-  const facing = capVolumique(ancrage.facing);
-  return prop && facing ? buildPropVolumes(prop, { ...ancrage, facing }, mpt) : null;
+  const cap = capVolumique(facing);
+  return prop && cap ? { prop, cap } : null;
 }

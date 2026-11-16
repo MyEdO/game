@@ -5,7 +5,7 @@
  */
 export function genAll(verbose?: boolean, options?: { check?: boolean }): void;
 /** Les sorties de la PHASE 2 (`scripts/gen-espaces.mts`). */
-export const SORTIES_DES_ESPACES: { readonly ids: string; readonly cles: string; readonly racines: string };
+export const SORTIES_DES_ESPACES: { readonly ids: string; readonly cles: string; readonly racines: string; readonly atelier: string };
 /** Tous les fichiers que ce générateur écrit EN ENTIER, phase 2 comprise. */
 export const SORTIES: readonly string[];
 /** Le rouge d'un registre périmé en `--check`. */

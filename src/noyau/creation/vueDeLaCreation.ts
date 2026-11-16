@@ -7,7 +7,7 @@
  */
 import {
   apercuDuHeros, careerCharKeys, careerSkillEntries, carrieresOffertes, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp,
-  charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
+  charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftPorteur, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
   speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomCount, speciesTalentRandomDrawn, speciesXp, starXp, stepIds, tirerLaVariante,
@@ -41,6 +41,7 @@ import {
   valeursDeLEmplacement,
   type ChoixDeDotation,
   type EmplacementDeDotation,
+  type PorteurDArme,
 } from '../../engine/trappingChoices';
 import type { AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { idsDeLaSousListe, type RefASpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
@@ -336,24 +337,25 @@ function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** Un emplacement de dotation en choix (LDB 05 l.542-583) : une branche, une arme au choix, une combinaison d'Atouts de
- *  Fabrication (LDB 60 l.7-32, `valeurParDefaut` à défaut), puis l'emplacement qui le suit (`sousEmplacementActif`). */
+/** Un emplacement de dotation en choix (LDB 05 l.542-583) : une branche, une arme au choix offerte au porteur du brouillon
+ *  (`draftPorteur`), une combinaison d'Atouts de Fabrication (LDB 60 l.7-32, `valeurParDefaut` à défaut), puis
+ *  l'emplacement qui le suit (`sousEmplacementActif`). */
 function dotation(d: CreatorDraft, e: EmplacementDeDotation): RubriqueDeCreation[] {
   const choisis = d.trappingChoices ?? {};
   const sous = sousEmplacementActif(e, choisis);
-  return [rubriqueDeDotation(e, choisis), ...(sous ? dotation(d, sous) : [])];
+  return [rubriqueDeDotation(e, choisis, draftPorteur(d)), ...(sous ? dotation(d, sous) : [])];
 }
 
-function rubriqueDeDotation(e: EmplacementDeDotation, choisis: ChoixDeDotation): RubriqueDeCreation {
+function rubriqueDeDotation(e: EmplacementDeDotation, choisis: ChoixDeDotation, porteur: PorteurDArme): RubriqueDeCreation {
   switch (e.sorte) {
     case 'branches': {
       const j = brancheChoisie(e, choisis);
-      return choix(e.adresse, t('crea.vue.auChoix'), valeursDeLEmplacement(e).map((k) => option(libelleDeLaValeur(e, k), geste('dotation', e.adresse, k), k === j)));
+      return choix(e.adresse, t('crea.vue.auChoix'), valeursDeLEmplacement(e, porteur).map((k) => option(libelleDeLaValeur(e, k), geste('dotation', e.adresse, k), k === j)));
     }
-    case 'joker': return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), idChoisi(e, choisis) === id)));
+    case 'joker': return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e, porteur).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), idChoisi(e, choisis) === id)));
     case 'atout': {
       const atouts = atoutChoisi(e, choisis);
-      return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((v) => option(libelleDeLaValeur(e, v), geste('dotation', e.adresse, v), v === atouts)));
+      return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e, porteur).map((v) => option(libelleDeLaValeur(e, v), geste('dotation', e.adresse, v), v === atouts)));
     }
   }
 }

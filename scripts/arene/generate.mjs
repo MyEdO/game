@@ -49,7 +49,7 @@ const worldMap = {
   id: 'arene-carte',
   label: 'Les Terres de l’Arène',
   places: [
-    { id: 'bourg', label: 'Le Bourg de l’Arène', pos: { x: 22, y: 55 }, scene: { id: 'arene-hub' }, entry: 'route', icon: 'scenario/village' },
+    { id: 'bourg', label: 'Le Bourg de l’Arène', pos: { x: 22, y: 55 }, scene: { id: 'arene-hub' }, entry: 'route', icon: 'scenario/village', taille: 3 },
     { id: 'foret', label: 'La Vieille Futaie', pos: { x: 55, y: 30 }, scene: { id: 'arene-exp-foret' }, icon: 'scenario/hameau' },
     { id: 'marais', label: 'La Tourbière Noire', pos: { x: 72, y: 62 }, scene: { id: 'arene-exp-marais' }, icon: 'scenario/piege' },
     { id: 'village', label: 'Felsbach', pos: { x: 48, y: 80 }, scene: { id: 'arene-exp-village' }, icon: 'journal/mort' },

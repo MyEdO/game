@@ -11,7 +11,7 @@ import lieuxServicesJson from '../../lieux-services.json';
 import loupEtSaumureJson from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 
 const PLACE = loupEtSaumureJson.worldMap.places[0];
-const MARCHE = { taille: 2, richesse: 3, produits: [] };
+const MARCHE = { richesse: 3, produits: [] };
 
 const messages = (schema: z.ZodType, doc: unknown): string => {
   const r = schema.safeParse(doc);

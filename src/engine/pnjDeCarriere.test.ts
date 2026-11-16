@@ -17,9 +17,9 @@ import { combattantDeTest } from './combattantDeTest.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
-import { fabricationAtouts, findTrappingById, groupeDeLArme, levelsForCareer } from '../data';
+import { fabricationAtouts, findCreatureById, findSpeciesById, findTrappingById, groupeDeLArme, levelsForCareer } from '../data';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
-import { dotationsDuPnj, emplacementsDeDotation, valeursDeLEmplacement } from './trappingChoices';
+import { dotationsDuPnj, emplacementsDeDotation, porteurDeLEspece, porteurDuProfil, valeursDeLEmplacement } from './trappingChoices';
 import { craftAtoutCount } from './qualities/craftEconomy';
 import { availableChars, skillSlots, talentSlots } from './careerSlots';
 import { isCareerLevelComplete } from './advancement';
@@ -27,6 +27,8 @@ import { augmenterLaCompetence } from './character';
 import type { Combatant } from './types';
 import { bourseOf, bourseInstanceOf, setBourseBrass } from './bourse';
 import { toBrass } from './money';
+import { wornArmourPoints } from './items';
+import { ENGINS_DE_SIEGE } from '../data/schemas/grammaire/sousListes';
 
 const porte = (p: ParcoursDeCarriere, id = 'pnj'): Combatant => {
   const c = combattantDeTest({ id });
@@ -100,10 +102,10 @@ describe('ce qu’un Talent ajoute aux carrières est de carrière dès le Nivea
   });
   const flagellant: ParcoursDeCarriere = { carrieres: { flagellant: 2, soldat: 2 }, talentsDeCarriere: { flagellant: [{ id: 'lire-ecrire' }, { id: 'flagellant' }], soldat: [{ id: 'frenesie' }] } };
   it('Frénésie, ajoutée par Flagellant, est un Talent offert des Niveaux suivants : l’auteur la choisit au Soldat', () => {
-    expect(refusDuParcours(flagellant)).toBeUndefined();
+    expect(refusDuParcours(flagellant, { size: 'moyenne' })).toBeUndefined();
     expect(talentsDuParcours(flagellant).niveaux.soldat.map((n) => n.offerts.includes('frenesie'))).toEqual([true, true]);
-    expect(refusDuParcours({ carrieres: { soldat: 2 }, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } })).toMatch(/frenesie/);
-    expect(parcoursRetouche({ ...flagellant, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } }).talentsDeCarriere).toBeUndefined();
+    expect(refusDuParcours({ carrieres: { soldat: 2 }, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } }, { size: 'moyenne' })).toMatch(/frenesie/);
+    expect(parcoursRetouche({ ...flagellant, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } }, { size: 'moyenne' }).talentsDeCarriere).toBeUndefined();
     expect(porte(flagellant).talents.map((t) => t.talentId)).toContain('frenesie');
   });
   it('sans choix de l’auteur, Frénésie compte parmi les Talents tirés aux Niveaux du Soldat qui suivent Flagellant', () => {
@@ -149,6 +151,11 @@ describe('dotations de la carrière actuelle et de ses Niveaux inférieurs, sans
     expect(ids).toEqual(expect.arrayContaining(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-de-guilde', 'outils-professionnels-medecin', 'atelier']));
     expect(ids).not.toContain('bourse');
   });
+  it('le Chevalier 3 garde au sac, non portée, la barde de sa dotation : l’armure qu’il porte est celle du Chevalier 2 (#4135)', () => {
+    const chevalier = porte({ carrieres: { chevalier: 3 } });
+    expect(chevalier.items!.filter((i) => i.trappingId === 'barde').map((i) => i.equipped)).toEqual([false]);
+    expect(wornArmourPoints(chevalier.items!)).toEqual(wornArmourPoints(porte({ carrieres: { chevalier: 2 } }).items!));
+  });
   it('la carrière d’avant ne dote pas', () => {
     expect(porte({ carrieres: { soldat: 2, medecin: 1 } }).items!.map((i) => i.trappingId)).toEqual(['bandages', 'potion-de-guerison']);
   });
@@ -156,6 +163,13 @@ describe('dotations de la carrière actuelle et de ses Niveaux inférieurs, sans
     const plume = porte({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 2 } });
     expect(plume.items!.map((i) => i.trappingId)).toEqual(['plume-d-oie']);
     expect(porte({ carrieres: { artiste: 1 } }).items!.map((i) => i.trappingId)).toEqual([expect.stringMatching(/^(pinceau|ciseau|plume-d-oie)$/)]);
+  });
+  it('le Maître artilleur ne porte au sac aucune pièce d’artillerie, quelle qu’elle soit (AA 02 l.339 ; #4143)', () => {
+    const piece = emplacementsDeDotation(dotationsDuPnj('artilleur', 4)).find((e) => e.sorte === 'branches' && e.ref.of.every((b) => 'type' in b && b.type === 'engin'))!;
+    for (const j of valeursDeLEmplacement(piece, { size: 'moyenne' })) {
+      const artilleur = porte({ carrieres: { artilleur: 4 }, dotationsDeCarriere: { [piece.adresse]: j } });
+      expect(artilleur.items!.filter((i) => findTrappingById(i.trappingId!)?.subType?.id === ENGINS_DE_SIEGE), `choix ${j}`).toEqual([]);
+    }
   });
   it('le Statut est celui du Niveau atteint de la carrière actuelle : le Doktor de l’exemple est Argent 5 (EDO 11 l.27)', () => {
     expect(actorStatus(porte({ carrieres: { medecin: 3 } }))).toEqual({ tier: 'argent', standing: 5 });
@@ -174,8 +188,8 @@ describe('armes au choix du PNJ : joker d’un Groupe d’armes, joker à Atout 
   });
   it('refuse une arme hors du Groupe du joker, admet une arme du Groupe et un Atout de Fabrication', () => {
     avecFixture(() => {
-      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'rapiere' } })).toMatch(/valeur/);
-      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'grande-hache', [dot([6])]: 'rapiere', [dot([6, 0])]: 'solide' } })).toBeUndefined();
+      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'rapiere' } }, { size: 'moyenne' })).toMatch(/valeur/);
+      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'grande-hache', [dot([6])]: 'rapiere', [dot([6, 0])]: 'solide' } }, { size: 'moyenne' })).toBeUndefined();
     });
   });
 });
@@ -192,23 +206,29 @@ describe('Atouts au choix d’une dotation de Haute Qualité : le Noble 4 (LDB 0
   it('sans choix, les quatre Habits de cour portent une des combinaisons offertes, tirée à graine fixe', () => {
     const noble = porte({ carrieres: { noble: 4 } });
     expect(quantite(noble)).toBe(4);
-    const offertes = valeursDeLEmplacement(habits());
+    const offertes = valeursDeLEmplacement(habits(), { size: 'moyenne' });
     for (const i of habitsDeHauteQualite(noble)) expect(offertes).toContain(i.qualities.flatMap((q) => Array.from({ length: q.value ?? 1 }, () => q.id)).sort().join('+'));
   });
 });
 
 describe('refusDuParcours et parcoursRetouche', () => {
   it('refuse un Niveau absent, un Talent qu’aucun Niveau atteint n’offre, une Compétence sans emplacement, une dotation hors emplacement', () => {
-    expect(refusDuParcours({ carrieres: { medecin: 3 } })).toBeUndefined();
-    expect(refusDuParcours({ carrieres: { medecin: 5 } })).toMatch(/Niveau 5/);
-    expect(refusDuParcours({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } })).toMatch(/chirurgie/);
-    expect(refusDuParcours({ carrieres: { medecin: 1 }, competencesDeCarriere: { medecin: [{ id: 'savoir', spec: 'histoire' }] } })).toMatch(/savoir/);
-    expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 3 } })).toMatch(/valeur/);
-    expect(refusDuParcours({ carrieres: { medecin: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 0 } })).toMatch(/emplacement/);
+    expect(refusDuParcours({ carrieres: { medecin: 3 } }, { size: 'moyenne' })).toBeUndefined();
+    expect(refusDuParcours({ carrieres: { medecin: 5 } }, { size: 'moyenne' })).toMatch(/Niveau 5/);
+    expect(refusDuParcours({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } }, { size: 'moyenne' })).toMatch(/chirurgie/);
+    expect(refusDuParcours({ carrieres: { medecin: 1 }, competencesDeCarriere: { medecin: [{ id: 'savoir', spec: 'histoire' }] } }, { size: 'moyenne' })).toMatch(/savoir/);
+    expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 3 } }, { size: 'moyenne' })).toMatch(/valeur/);
+    expect(refusDuParcours({ carrieres: { medecin: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 0 } }, { size: 'moyenne' })).toMatch(/emplacement/);
+  });
+  it('refuse au joker nu du Soldat un canon ratling pour un humain, l’admet pour un skaven (arbitrage #4110, 2026-11-16)', () => {
+    const joker = emplacementsDeDotation(dotationsDuPnj('soldat', 2)).find((e) => e.sorte === 'joker' && e.ref.groupe === undefined)!;
+    const p: ParcoursDeCarriere = { carrieres: { soldat: 2 }, dotationsDeCarriere: { [joker.adresse]: 'canon-ratling' } };
+    expect(refusDuParcours(p, porteurDeLEspece(findSpeciesById('humains-reiklander')!))).toMatch(/valeur/);
+    expect(refusDuParcours(p, porteurDuProfil(findCreatureById('skaven')!))).toBeUndefined();
   });
   it('retouché, le parcours perd ce que ses Niveaux n’offrent plus', () => {
     const p: ParcoursDeCarriere = { carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }, { id: 'lire-ecrire' }], soldat: [{ id: 'guerrier-ne' }] } };
-    expect(parcoursRetouche(p)).toEqual({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'lire-ecrire' }] }, competencesDeCarriere: undefined, dotationsDeCarriere: undefined });
+    expect(parcoursRetouche(p, { size: 'moyenne' })).toEqual({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'lire-ecrire' }] }, competencesDeCarriere: undefined, dotationsDeCarriere: undefined });
   });
 });
 

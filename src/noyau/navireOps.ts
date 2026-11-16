@@ -9,7 +9,7 @@ import { garanti } from '../lib/garanti';
 import { rollDice, tirerSigne, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { deDeTirageDe } from '../data/rangees';
-import { MINUTES_PER_DAY, toDate } from '../engine/clock';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { estOpDuNavire, nomDeSource, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
@@ -28,7 +28,7 @@ import {
   type ModificateurDuNavire,
 } from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
-import { seasonOfMonth } from '../engine/travelStages';
+import { currentSeason } from '../engine/travelStages';
 import { embarquerDesVivres, isRation, LITRES_PAR_TONNEAU, rationsDeCale, rationsDuVivre, retirerDuVivre } from '../engine/provisions';
 import type { Id } from '../data/schemas/grammaire/ref';
 
@@ -165,7 +165,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
         return [t('eff.cargaisonPerdueEnc', { enc: removed })];
       }
       const enc = Math.max(0, Math.round(resolveFormula(o.enc, ref, ctx.rng)));
-      const season = seasonOfMonth(toDate(get().gameTime).month);
+      const season = currentSeason(get().gameTime);
       const cargo = rollRandomCargo(season, ctx.rng);
       set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: get().forgerUnId('it'), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, ctx.rng) }] } });
       return [t('eff.cargaison', { enc, cargo: cargo.label })];

@@ -6,7 +6,7 @@
  */
 import { terrainEntree } from '../terrain';
 import { matieresDe } from '../../../data';
-import { hash32 } from '../../../data/hash';
+import { hash32 } from '../../../lib/hash';
 import type { TerrainDef } from '../../../data';
 import type { DetailRecipe, MaterialRef, PropMaterialData, ReliefMaterialDef, RoofMaterialDef } from '../../../data/materials.types';
 import type { EntreeVivante } from '../../../data/datasets';

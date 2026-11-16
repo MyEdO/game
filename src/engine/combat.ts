@@ -54,7 +54,7 @@ import { maniementRetenu, speDeCorpsACorps } from './weaponGroup';
 import { traumaDodgePenaltyParts, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
-import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
+import { SIZE_RANGED_MOD, SIZE_LABEL, possessionASaTaille, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
@@ -70,6 +70,7 @@ import {
   attackDRAdjust,
   vsDefenseDRAdjust,
   rapideParryMod,
+  pareLesTirs,
   protectriceAP,
   rangedOpposeWeapon,
   isMagicWeapon,
@@ -531,8 +532,8 @@ export interface RollBreakdown {
 }
 
 /** Ce qui ôte au coup toute prise sur sa cible : MDG 13 l.605, l.614 ; ADE II 08 l.296, l.300 ; LDB 85 l.98, l.278 ; LDB 47 l.358 ;
- *  LDB 85 l.134 ; LDB 14 l.159. */
-export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches' | 'ethere' | 'empoignade';
+ *  LDB 85 l.134 ; LDB 14 l.159 ; LDB 62 l.76, AA 10 l.192, #4202. */
+export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches' | 'ethere' | 'empoignade' | 'sans-degats';
 
 /** Le RNG du tirage de la Localisation relancée, et la Localisation figée d'une re-dérivation du même jet.
  *  LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544. */
@@ -911,20 +912,8 @@ export function attackModifiers(
   // Frappe assommante (Tête + arme Assommante) / Tir mortel (distance) : pas de pénalité (LDB 10).
   if (opts.location && !(target && sizeGap(target.size, attacker.size) >= 2)
       && !ignoresCalledShotPenalty(attacker, opts.kind, opts.location, hasQuality(weapon, 'assommante'))) out.push(ligneDeRegle('viser-une-localisation', 'localisation'));
-  // Possession pas prévue pour la Taille du porteur (ADE II 2 l.710), ex. un ogre maniant
-  // une arme de Taille Moyenne. Symétrique quand `sizeFor` est POSÉ (une arme taillée pour une Taille
-  // devient réellement inadaptée à une autre, ADE II 2 l.604). Sans `sizeFor` (possession ORDINAIRE
-  // du catalogue) : la LDB ne cite aucune pénalité d'équipement pour un porteur plus PETIT que la
-  // Moyenne (Talent Petit, LDB 10 l.939-943, muet sur l'équipement) — seul un porteur plus GRAND que la
-  // Moyenne (ex. ogre) subit le malus, l'objet ordinaire étant implicitement taillé pour la Moyenne.
-  // Une arme NATURELLE (`Weapon.natural` — dents/griffes/cornes) ou SIZELESS (trait « Arme » générique
-  // sans objet de catalogue résolu, `creatureEquip.weaponFromTrait`) est PAR DÉFINITION à la Taille de
-  // son porteur : jamais de « Possession pas à sa taille », qui vise un OBJET manufacturé réel (ADE II
-  // ch.02 l.604-710).
-  const gearSize = effectiveSize(weapon.sizeFor);
-  const carrierSize = effectiveSize(attacker.size);
-  if (!weapon.natural && !weapon.sizeless && gearSize !== carrierSize
-      && (weapon.sizeFor !== undefined || SIZE_ORDER[carrierSize] > SIZE_ORDER.moyenne)) {
+  // ADE II 2 l.604 ; ADE II 2 l.710. Arme naturelle ou sizeless : jamais (`Weapon.natural`, `Weapon.sizeless`).
+  if (!weapon.natural && !weapon.sizeless && !possessionASaTaille(weapon.sizeFor, attacker.size)) {
     out.push(ligneDeRegle('possession-pas-a-sa-taille', 'possession-pas-a-sa-taille'));
   }
   // Main secondaire (LDB 14 l.78) ; Ambidextre la réduit via le registre combatFeatures.
@@ -1069,6 +1058,8 @@ export interface AttackOptions {
   /** L'attaque frappe par le FLANC ou le DERRIÈRE de la cible (facing établi par combatFlow) : active le
    *  bonus SUPPLÉMENTAIRE d'Assourdi (+10, LDB 16 l.29) dans `meleeAttackerBonus`. Absent = de face. */
   flankRear?: boolean;
+  /** Bouclier du binôme du défenseur (`bouclierDuBinome`, noyau) : sa Protectrice compte en Parade. ZI 13 l.193 */
+  bouclierDuBinome?: Weapon;
 }
 
 // `woundsFromHit` (Blessures d'un coup d'arme) vit dans le module FEUILLE `woundsCalc.ts`
@@ -1221,9 +1212,10 @@ export function finishMelee(
   withhold = false, // LDB 18 l.30 ; AA 07 l.59, l.61
   sub?: DefenseSub, // substitution sociale (mode 'social') : base + libellé de la Compétence substituée
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4) ; absente = composée ici
+  bouclierDuBinome?: Weapon, // ZI 13 l.193
 ): AttackResult {
   const atkBd = bd(attackTestLabel(attacker, weapon, 'melee'), combatValue(attacker, 'melee', weapon), atk, compo ?? composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env })));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, dmgProxy, parryWeapon, dodgeMods, withhold, sub });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, dmgProxy, parryWeapon, dodgeMods, withhold, sub, bouclierDuBinome });
 }
 
 /**
@@ -1243,7 +1235,7 @@ function combineOpposed(
   defenseMode: DefenseMode,
   atkBd: ReturnType<typeof bd>,
   tirage: TirageDeLocalisation,
-  opts: { location?: HitLocation; dmgProxy?: AttackOptions['dmgProxy']; parryWeapon?: Weapon; dodgeMods?: ModLine[]; withhold?: boolean; sub?: DefenseSub } = {},
+  opts: { location?: HitLocation; dmgProxy?: AttackOptions['dmgProxy']; parryWeapon?: Weapon; dodgeMods?: ModLine[]; withhold?: boolean; sub?: DefenseSub; bouclierDuBinome?: Weapon } = {},
 ): AttackResult {
   const { location, dmgProxy } = opts;
   const parryWeapon = opts.parryWeapon ?? defaultParryWeapon(defender);
@@ -1301,8 +1293,8 @@ function combineOpposed(
     };
   }
   const critical = atk.isDouble && atk.success;
-  // Protectrice (LDB 62 l.296) : opposer l'attaque avec l'arme → Indice PA à toutes les localisations.
-  const res = applyHit(attacker, defender, weapon, atkLine, opp.netSL, critical, tirage, location, dmgProxy, defenseMode === 'parade' ? protectriceAP(parryWeapon) : 0, opts.withhold);
+  // Protectrice (LDB 62 l.296) : opposer l'attaque avec l'arme → Indice PA à toutes les localisations ; ZI 13 l.193.
+  const res = applyHit(attacker, defender, weapon, atkLine, opp.netSL, critical, tirage, location, dmgProxy, defenseMode === 'parade' ? protectriceAP(parryWeapon, opts.bouclierDuBinome) : 0, opts.withhold);
   res.defenderRoll = def.roll;
   res.defenderDetail = defLine;
   res.parryWeapon = usedParry;
@@ -1411,7 +1403,7 @@ export function resolveMelee(
     res = resolveMeleePassive(attacker, defender, weapon, atk, { rng }, opts.location, opts.env, opts.dmgProxy, opts.withhold, compo);
   } else {
     const def = rollMeleeDefender(defender, defenseMode, rng, opts.dodgeMods, defaultParryWeapon(defender), weapon);
-    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, { rng }, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defaultParryWeapon(defender), opts.withhold, undefined, compo);
+    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, { rng }, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defaultParryWeapon(defender), opts.withhold, undefined, compo, opts.bouclierDuBinome);
   }
   if (autoKill && res.hit) res.autoKill = true;
   return res;
@@ -1456,7 +1448,8 @@ export function belowMinRangeBand(distanceTiles: number, rangeMeters: number, mi
  * Modes de défense AUTORISÉS contre une attaque à DISTANCE. Défaut RAW : AUCUN (LDB 13 l.135, le tir
  * est un Test de Projectiles non opposé). Trois exceptions, indépendantes (le défenseur choisit parmi
  * les modes obtenus) :
- *  - Parade : bouclier/arme **Protectrice 2+**, projectile en Ligne de Vue (LDB 62 l.296) ;
+ *  - Parade : bouclier/arme **Protectrice 2+**, projectile en Ligne de Vue (LDB 62 l.296), ou bouclier du binôme
+ *    `bouclierDuBinome` Protectrice 2+ (ZI 13 l.193) ;
  *  - Parade : tireur **Engagé** avec sa cible (tir au contact) → « n'importe quelle Corps à corps » (LDB 14 l.44) ;
  *  - Esquive : tir à **Bout Portant** (LDB 14 l.40).
  * `[]` = tir non défendable → résolution non opposée habituelle.
@@ -1468,11 +1461,12 @@ export function rangedDefenseModes(
   distanceTiles: number | undefined,
   los: boolean,
   metresPerTile: number,
+  bouclierDuBinome?: Weapon,
 ): ('parade' | 'esquive')[] {
   if (cannotDefend(defender)) return []; // Surpris / À Terre… : pas de réaction (LDB 16)
   const modes = new Set<'parade' | 'esquive'>();
   if (isEngagedWith(attacker, defender.id)) modes.add('parade'); // tireur Engagé (l.70) : toute Corps à corps
-  else if (los && rangedOpposeWeapon(defender.weapons)) modes.add('parade'); // bouclier Protectrice 2+ en Ligne de Vue (l.307)
+  else if (los && (rangedOpposeWeapon(defender.weapons) || pareLesTirs(bouclierDuBinome))) modes.add('parade'); // bouclier Protectrice 2+ en Ligne de Vue (l.307) ; ZI 13 l.193
   const rangeM = porteeDeTir(attacker, weapon);
   if (distanceTiles != null && rangeM != null && rangeBandId(distanceTiles, rangeM, metresPerTile) === 'bout-portant')
     modes.add('esquive'); // Bout Portant (l.62)
@@ -1489,13 +1483,14 @@ export function bestRangedDefense(
   distanceTiles: number | undefined,
   los: boolean,
   metresPerTile: number,
-): { mode: 'parade' | 'esquive'; parryWeapon?: Weapon } | undefined {
-  const modes = rangedDefenseModes(attacker, defender, weapon, distanceTiles, los, metresPerTile);
+  bouclierDuBinome?: Weapon,
+): { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; bouclierDuBinome?: Weapon } | undefined {
+  const modes = rangedDefenseModes(attacker, defender, weapon, distanceTiles, los, metresPerTile, bouclierDuBinome);
   if (!modes.length) return undefined;
   const parryWeapon = rangedOpposeWeapon(defender.weapons) ?? defaultParryWeapon(defender);
   const valOf = (m: 'parade' | 'esquive') => defenseValue(defender, m, m === 'parade' ? parryWeapon : undefined);
   const best = maxBy(modes, valOf)!.item; // `modes` non vide (garde ci-dessus) ; first-max = mode le plus défensif.
-  return { mode: best, parryWeapon: best === 'parade' ? parryWeapon : undefined };
+  return best === 'parade' ? { mode: best, parryWeapon, bouclierDuBinome } : { mode: best };
 }
 
 /** Résout une attaque à distance (Test de Projectiles, non opposé). */
@@ -1507,7 +1502,7 @@ export function resolveRanged(
   distanceTiles: number | undefined,
   location: HitLocation | undefined,
   env: ModLine[] | undefined,
-  defense: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMods?: ModLine[] } | undefined,
+  defense: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMods?: ModLine[]; bouclierDuBinome?: Weapon } | undefined,
   metresPerTile: number,
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
@@ -1523,7 +1518,7 @@ export function resolveRanged(
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
   if (defense && !isHelplessTarget(defender)) {
     const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defaultParryWeapon(defender), weapon);
-    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { rng }, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods, withhold });
+    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { rng }, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods, withhold, bouclierDuBinome: defense.bouclierDuBinome });
   }
   return passiveOutcome(attacker, defender, weapon, atk, atkBd, 'distance', { rng }, location, undefined, withhold);
 }
@@ -1564,10 +1559,11 @@ export function finishRanged(
   metresPerTile: number,
   compo?: DifficultyComposition, // Difficulté FIGÉE par le jet d'origine (#1153 L4) ; absente = composée ici
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
+  bouclierDuBinome?: Weapon, // ZI 13 l.193
 ): AttackResult {
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile });
   const atkBd = bd(attackTestLabel(attacker, weapon, 'distance'), combatValue(attacker, 'distance', weapon), atk, compo ?? composeAttack(mods));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, parryWeapon, dodgeMods, withhold });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, tirage, { location, parryWeapon, dodgeMods, withhold, bouclierDuBinome });
 }
 
 /**
@@ -1848,9 +1844,12 @@ function applyHit(
   // Coque bloquée (MDG 13) : petites armes (l.605) / case « – » du tableau des Tailles (l.614) →
   // AUCUNE Blessure ni Critique de navire ; sinon plancher 0 pour une coque (un coup faible ricoche).
   const hullBlocked = !!hullAdj && 'blocked' in hullAdj;
+  // LDB 62 l.76 ; AA 10 l.192 ; #4202.
+  const sansDegats = 'aucun' in weapon.damage;
   const sansPrise: SansPrise | undefined = hullBlocked ? 'coque-bloquee'
+    : sansDegats ? 'sans-degats'
     : isStructure(defender) && structureImmune(weapon, defender) ? 'structure-immune' : undefined;
-  const woundsLost = hullBlocked ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
+  const woundsLost = hullBlocked || sansDegats ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
   // AA 10 l.98 — terme DIT au journal quand le BE d'une Structure est compté plusieurs fois.
   const beMult = structureEnduranceMult(weapon, defender, attacker.size);
   const beBase = bonus(effectiveChar(defender, 'endurance'));
@@ -1875,7 +1874,7 @@ function applyHit(
     netSL: dr,
     location: loc,
     ...(relance ? { critLocation: critWoundLocation(tirage.rng, defender.bodyShape, tirage.fige) } : {}),
-    damage,
+    damage: sansDegats ? 0 : damage,
     woundsLost,
     apExternal: extraAP - sureShot,
     critical: isCritical,

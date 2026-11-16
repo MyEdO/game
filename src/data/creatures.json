@@ -5575,7 +5575,7 @@
     "talents": [],
     "trappings": [
       {
-        "text": "barde"
+        "id": "barde"
       }
     ],
     "spells": [],
@@ -11793,13 +11793,19 @@
       {
         "id": "a-distance",
         "value": 7,
-        "arg": "Malelame",
+        "arg": "decharge-de-malelame",
         "range": 48
+      },
+      {
+        "id": "a-distance",
+        "value": 9,
+        "arg": "pistolet-a-malepierre",
+        "range": 20
       },
       {
         "id": "arme",
         "value": 10,
-        "arg": "Malelame"
+        "arg": "malelame-a-deux-mains"
       }
     ],
     "optionals": [
@@ -13265,7 +13271,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -13391,7 +13397,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "corruption",
@@ -13462,6 +13468,12 @@
       },
       {
         "id": "arme-simple"
+      },
+      {
+        "id": "composant-d-incantation",
+        "count": {
+          "fixed": 4
+        }
       }
     ],
     "spells": [
@@ -13484,7 +13496,8 @@
     "grantGroups": [
       "skaven",
       "nurgle"
-    ]
+    ],
+    "maison": "Quatre composants pour les « composants pour des sorts » (Middenheim 02 l.2568) : un par Sort d'Arcane ou de Domaine connu. Valeur d'adaptation du ticket #4132 (https://github.com/MyEdO/game/issues/4132)."
   },
   {
     "id": "maitre-moulder-skree",
@@ -13511,7 +13524,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -13649,7 +13662,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -13789,7 +13802,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -13930,7 +13943,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -16460,7 +16473,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Hache"
+        "arg": "arme-simple"
       },
       {
         "id": "haine",
@@ -18715,7 +18728,7 @@
       {
         "id": "arme",
         "value": 16,
-        "arg": "Trident de Triton"
+        "arg": "trident-de-triton"
       },
       {
         "id": "attaque-caudale",
@@ -18892,7 +18905,7 @@
         "id": "couronne-de-triton"
       },
       {
-        "text": "trident de Triton"
+        "id": "trident-de-triton"
       }
     ],
     "spells": [
@@ -19256,7 +19269,7 @@
       {
         "id": "a-distance",
         "value": 8,
-        "arg": "Pistolets",
+        "arg": "pistolet",
         "range": 20
       },
       {
@@ -19267,7 +19280,7 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Épée"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -19532,8 +19545,7 @@
         }
       },
       {
-        "id": "alcool",
-        "spec": "rhum tord-boyaux"
+        "id": "rhum-tord-boyaux"
       }
     ],
     "spells": [],
@@ -19898,13 +19910,13 @@
       {
         "id": "a-distance",
         "value": 7,
-        "arg": "pistolet",
+        "arg": "pistolet-patte-d-oie-a-malepierre",
         "range": 10
       },
       {
         "id": "arme",
         "value": 12,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -20181,7 +20193,7 @@
         }
       },
       {
-        "text": "pistolet patte d'oie à malepierre"
+        "id": "pistolet-patte-d-oie-a-malepierre"
       },
       {
         "id": "arme-simple"
@@ -20229,7 +20241,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Hache"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -56388,7 +56400,7 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Électro-Hallebarde"
+        "arg": "malelame-a-deux-mains"
       }
     ],
     "optionals": [],
@@ -56537,7 +56549,7 @@
         "id": "heaume"
       },
       {
-        "text": "Électro-Hallebarde"
+        "id": "malelame-a-deux-mains"
       }
     ],
     "spells": [],
@@ -56590,7 +56602,7 @@
       {
         "id": "arme",
         "value": 13,
-        "arg": "Électro-Hallebarde"
+        "arg": "malelame-a-deux-mains"
       }
     ],
     "optionals": [],
@@ -56766,7 +56778,7 @@
         "id": "heaume"
       },
       {
-        "text": "Électro-Hallebarde"
+        "id": "malelame-a-deux-mains"
       }
     ],
     "spells": [],
@@ -56824,8 +56836,7 @@
       {
         "id": "a-distance",
         "value": 8,
-        "arg": "Mousquet à Malepierre",
-        "range": 20
+        "arg": "mousquet-a-malepierre"
       }
     ],
     "optionals": [],
@@ -56961,7 +56972,7 @@
         "id": "arme-simple"
       },
       {
-        "text": "Mousquet à Malepierre"
+        "id": "mousquet-a-malepierre"
       }
     ],
     "spells": [],
@@ -57014,7 +57025,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Électro-Lame"
+        "arg": "malelame-a-une-main"
       },
       {
         "id": "a-distance",
@@ -57170,7 +57181,7 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Électro-Lame"
+        "id": "malelame-a-une-main"
       },
       {
         "id": "jezail-a-malepierre"
@@ -57232,7 +57243,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Électro-Lame"
+        "arg": "malelame-a-une-main"
       },
       {
         "id": "a-distance",
@@ -57400,7 +57411,7 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Électro-Lame"
+        "id": "malelame-a-une-main"
       },
       {
         "id": "jezail-a-malepierre"
@@ -57463,7 +57474,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Électro-Lame"
+        "arg": "malelame-a-une-main"
       },
       {
         "id": "a-distance",
@@ -57658,7 +57669,7 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Électro-Lame"
+        "id": "malelame-a-une-main"
       },
       {
         "id": "jezail-a-malepierre"
@@ -57904,8 +57915,7 @@
       {
         "id": "a-distance",
         "value": 7,
-        "arg": "Shurikens Skavens",
-        "range": 6
+        "arg": "etoile-de-malepierre"
       }
     ],
     "optionals": [],
@@ -58047,7 +58057,7 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Shurikens Skavens"
+        "id": "etoile-de-malepierre"
       }
     ],
     "spells": [
@@ -58121,8 +58131,7 @@
       {
         "id": "a-distance",
         "value": 7,
-        "arg": "Shurikens Skavens",
-        "range": 6
+        "arg": "etoile-de-malepierre"
       },
       {
         "id": "a-distance",
@@ -58298,13 +58307,13 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Shurikens Skavens"
+        "id": "etoile-de-malepierre"
       },
       {
         "id": "filet"
       },
       {
-        "text": "Bombe Fumigène"
+        "id": "bombe-fumigene"
       }
     ],
     "spells": [
@@ -58382,8 +58391,7 @@
       {
         "id": "a-distance",
         "value": 7,
-        "arg": "Shurikens Skavens",
-        "range": 6
+        "arg": "etoile-de-malepierre"
       },
       {
         "id": "a-distance",
@@ -58584,13 +58592,13 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Shurikens Skavens"
+        "id": "etoile-de-malepierre"
       },
       {
         "id": "filet"
       },
       {
-        "text": "Bombe Fumigène"
+        "id": "bombe-fumigene"
       }
     ],
     "spells": [
@@ -58661,7 +58669,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Encensoir de la Peste"
+        "arg": "encensoir-de-la-peste"
       }
     ],
     "optionals": [],
@@ -58748,7 +58756,7 @@
     ],
     "trappings": [
       {
-        "text": "Encensoir de la Peste"
+        "id": "encensoir-de-la-peste"
       }
     ],
     "spells": [],
@@ -58821,7 +58829,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Encensoir de la Peste"
+        "arg": "encensoir-de-la-peste"
       }
     ],
     "optionals": [],
@@ -58925,7 +58933,7 @@
     ],
     "trappings": [
       {
-        "text": "Encensoir de la Peste"
+        "id": "encensoir-de-la-peste"
       }
     ],
     "spells": [
@@ -59005,7 +59013,7 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Encensoir de la Peste"
+        "arg": "encensoir-de-la-peste"
       }
     ],
     "optionals": [],
@@ -59128,7 +59136,7 @@
     ],
     "trappings": [
       {
-        "text": "Encensoir de la Peste"
+        "id": "encensoir-de-la-peste"
       }
     ],
     "spells": [
@@ -59212,7 +59220,7 @@
       {
         "id": "arme",
         "value": 11,
-        "arg": "Encensoir de la Peste"
+        "arg": "encensoir-de-la-peste"
       }
     ],
     "optionals": [],
@@ -59350,7 +59358,7 @@
     ],
     "trappings": [
       {
-        "text": "Encensoir de la Peste"
+        "id": "encensoir-de-la-peste"
       }
     ],
     "spells": [
@@ -62692,7 +62700,7 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Boule & Chaîne"
+        "arg": "boulet"
       }
     ],
     "optionals": [],
@@ -62768,7 +62776,7 @@
     ],
     "trappings": [
       {
-        "text": "Boule & Chaîne"
+        "id": "boulet"
       }
     ],
     "spells": [],

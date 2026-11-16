@@ -38,7 +38,7 @@ describe('le repos pose l’heure de `aubeApresNuits`', () => {
   it.each(DEPARTS)('buildNightCascade depuis %d', (from) => {
     const party = groupe();
     const banc = ouvrirLeBanc({ etat: { party, gameTime: from } });
-    const pending = { places: { lodging: [], food: [] }, quality: 'normale', days: 1, phase: 'setup', perHero: Object.fromEntries(party.map((h) => [h.id, { lodging: 'auberge', food: 'repas' }])) } as never;
+    const pending = { places: { auberge: true }, quality: 'normale', days: 1, phase: 'setup', perHero: Object.fromEntries(party.map((h) => [h.id, { lodging: 'chambre-1', food: 'repas' }])) } as never;
     buildNightCascade(banc.getState, banc.setState as never, pending, { fedDaily: true });
     expect(banc.getState().gameTime).toBe(reveil(from, 1));
   });

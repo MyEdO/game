@@ -21,8 +21,8 @@ MANIFESTE = {
     'couvre': ['torse', 'hanches', 'bras_haut_g', 'bras_haut_d', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d'],
     'chaines': ['jupe'],
 }
-MATERIAUX = {'robe': ('vet1', ((0.55, 0.57, 0.6), 0.0, 0.87)),       # niveaux de gris de construction, sans couleur cuite
-             'dessous': ('vet2', ((0.8, 0.78, 0.72), 0.0, 0.87)),
+MATERIAUX = {'robe': ('vet1', 'drap-terne'),       # niveaux de gris de construction, sans couleur cuite
+             'dessous': ('vet2', 'toile-ecrue'),
              'poitrine': ('peau', ((0.7, 0.7, 0.7), 0.0, 0.6))}
 
 # --- Maillage ---

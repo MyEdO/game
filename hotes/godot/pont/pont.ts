@@ -34,6 +34,12 @@ import {
   enTeteDuPorteur,
   ficheDuPorteur,
   editer,
+  compendium,
+  enregistrerEntree,
+  ouvrirLeCompendium,
+  supprimerEntree,
+  transactionDemandee,
+  type SessionDuCompendium,
   herosDuRosterOfferts,
   ouvrirLEdition,
   projetDuDepot,
@@ -83,6 +89,11 @@ import {
   volumeDuMonde,
   echantillonDessine,
   famillesDEchantillons,
+  posesDesDecors,
+  sceneDEchantillon,
+  currentSeason,
+  seasonLabel,
+  type PoseDeDecor,
   type EchantillonDessine,
   type FamilleDEchantillons,
   type Composition,
@@ -144,6 +155,7 @@ import {
   emblemeMonte,
   modelesDeLAtelier,
   noeudsCaches,
+  paletteSelon,
   postesEnVigueur,
   postesMontes,
   type AmeliorationMontee,
@@ -152,6 +164,7 @@ import {
 } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
+import { SAISONS, type Saison } from '../asset/element';
 import type { TableDeClips } from '../asset/clips';
 import { type CreationOuverte, type GesteDeLaCreation, type GesteDuRoster, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
@@ -170,6 +183,8 @@ import {
   surcoucheDeLEdition,
   zonesDeLEditeur,
 } from '../../../src/hote/editeur';
+import { boutonDuCompendium, estLIssueDUneTransaction, gesteDuCompendium, refusDuCompendiumDit, zonesDuCompendium } from '../../../src/hote/compendium';
+import { hash32 } from '../../../src/lib/hash';
 import { allBuiltinCampaigns, campagneDuJeu, lancementDeLaCampagne, paquetDuJeu } from '../../../src/scenes/campaign';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
 import {
@@ -259,6 +274,45 @@ export interface CorpsDuCombat {
    * corps, son centre et ses stations (`NavireServi`).
    */
   navires: Record<string, NavireServi>;
+  /**
+   * par type de décor (`props.json`) posé dans la scène dont le dernier `modeles` sert un élément `decor` de même
+   * `cle.prop` (`decors` de sa réponse, section « Atelier 3D ») : ce modèle et ses poses, en la saison de l'horloge du
+   * jeu (`currentSeason`), l'éditeur en aucune (`DecorServi`). Le monde ne peint pas les surfaces dont `decor` est une
+   * de ses clés (section « Monde ») ; un décor sans modèle reste peint.
+   */
+  decors: Record<string, DecorServi>;
+}
+
+/**
+ * @contrat Corps d'un combattant
+ * Un décor de la scène servi par son modèle (#4335), à la place des surfaces du volume qu'il pose.
+ */
+export interface DecorServi {
+  /** l'id de son élément `decor` (`ModelesDeLAtelier.decors`). */
+  element: string;
+  /** chaque pose de ce décor dans la scène (`posesDesDecors`, section « Monde »), dans l'ordre du volume. */
+  poses: PoseDeDecor[];
+  /**
+   * par emplacement de palette, la couleur de la saison du décor
+   * (`selon.<saison>.palette` de son manifeste, `paletteSelon`) ; `{}` sans saison.
+   */
+  palette: Record<string, string>;
+  /**
+   * les noms des nœuds à cacher (`noeudsCaches`, `atelier.ts`) : pour chaque saison que nomme le
+   * `selon` de son manifeste, `sans-<saison>` si c'est la sienne, `avec-<saison>` sinon.
+   */
+  caches: string[];
+}
+
+/**
+ * @contrat Atelier 3D
+ * Une saison où montrer un échantillon dont un décor servi change selon la saison (#4335).
+ */
+export interface SaisonOfferte {
+  /** l'id de la saison (`SAISONS`). */
+  id: Saison;
+  /** son libellé, celui de sa donnée (`seasonLabel`). */
+  libelle: string;
 }
 
 /**
@@ -742,18 +796,18 @@ const ENTREES_SERVIES = ENTREES_DE_DOSSIER.map((e) => e.id);
 
 /** L'index des chapitres du `Source/` que porte `texte`, le texte que sert le poste (`servir.mjs`, `source/manifest.json`) :
  *  du JSON, par livre son sigle et ses chapitres, chacun sa graphie et son titre. */
-function manifesteServi(texte: unknown): NonNullable<SessionDEdition['manifeste']> {
-  valider(typeof texte === 'string', 'editer : manifeste, le texte de l’index des chapitres que sert le poste');
+function manifesteServi(texte: unknown): NonNullable<SessionDEdition['source']['manifeste']> {
+  valider(typeof texte === 'string', 'manifeste, le texte de l’index des chapitres que sert le poste');
   let lu: unknown;
   try {
     lu = JSON.parse(texte as string);
   } catch {
-    throw new ErreurDeGeste('validation', 'editer : manifeste, JSON illisible');
+    throw new ErreurDeGeste('validation', 'manifeste, JSON illisible');
   }
   const chapitre = (c: unknown) => estObjet(c) && typeof c.ch === 'string' && typeof c.titre === 'string';
   const livre = (l: unknown) => estObjet(l) && typeof l.abbr === 'string' && Array.isArray(l.chapitres) && l.chapitres.every(chapitre);
-  valider(estObjet(lu) && Object.values(lu).every(livre), 'editer : manifeste, par livre { abbr, chapitres: { ch, titre }[] }');
-  return lu as NonNullable<SessionDEdition['manifeste']>;
+  valider(estObjet(lu) && Object.values(lu).every(livre), 'manifeste, par livre { abbr, chapitres: { ch, titre }[] }');
+  return lu as NonNullable<SessionDEdition['source']['manifeste']>;
 }
 
 /** Le pont sur le stockage `stockage` de son hôte (`null` : aucun, rien ne se sauvegarde) et sur son réseau `reseau`
@@ -826,6 +880,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
   /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
   let edition: { session: SessionDEdition; monde: { vue: Scene; z: number } } | null = null;
+  /** La session du Compendium (`compendium`), `null` avant qu'il s'ouvre. */
+  let codex: SessionDuCompendium | null = null;
+  /** La reprise de la dernière transaction du Compendium jouée en mémoire, dont l'hôte n'a pas rendu l'issue. */
+  let reprise: (() => void) | null = null;
   /** Ce qui construit le lancement de la dernière scène mise à l'essai par l'éditeur, que `demarrer { essai }` ouvre. */
   let essai: Parameters<typeof ouvrirLeLancement>[1] | null = null;
 
@@ -849,6 +907,26 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     const emprises = estObjet(manifeste) && estObjet(manifeste.cases) ? manifeste.cases as EmprisesDesCases : {};
     return [[id, { corps, centre, stations: stationsDuNavire(scene, id, emprises) }]];
   }));
+
+  /** Par type de décor, chaque décor posé de `scene` (`posesDesDecors`) dont un élément `decor` est servi
+   *  (`DecorServi`), en la saison `saison` (`null` : aucune, le modèle tel que bâti) : le jeu, l'éditeur et l'atelier
+   *  les montrent tous trois. */
+  const decorsServis = (scene: Scene, saison: Saison | null): Record<string, DecorServi> => {
+    const servis: Record<string, DecorServi> = {};
+    for (const pose of posesDesDecors(scene)) {
+      const element = modeles?.modeles.decors[pose.prop];
+      if (!element) continue;
+      const manifeste = modeles!.manifestes[element];
+      (servis[pose.prop] ??= { element, poses: [], palette: paletteSelon(manifeste, saison), caches: noeudsCaches(manifeste, saison ? [saison] : [], [], {}) }).poses.push(pose);
+    }
+    return servis;
+  };
+
+  /** Chaque saison de `SAISONS`, à son libellé, dès que le `selon` d'un décor de `decors` en nomme une ; aucune sinon. */
+  const saisonsOffertes = (decors: Record<string, DecorServi>): SaisonOfferte[] =>
+    Object.values(decors).some(({ element }) => Object.keys((modeles!.manifestes[element] as { selon?: object }).selon ?? {}).length)
+      ? SAISONS.map((id) => ({ id, libelle: seasonLabel(id) }))
+      : [];
 
   /** Les corps des combattants dessinés de `projection`, puis des héros du groupe de `etat` qu'elle ne dessine pas, chacun
    *  sa portée composée sur l'unique base servie, leurs véhicules servis, hors des navires de la scène, et les navires
@@ -874,6 +952,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         return corps ? [[id, corps]] : [];
       })),
       navires: scene ? naviresServis(scene) : {},
+      decors: scene ? decorsServis(scene, currentSeason(etat.gameTime)) : {},
     };
   };
 
@@ -1698,22 +1777,27 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return { familles: famillesDEchantillons() };
     },
     /**
-     * `{ famille, id }` : l'id d'une famille de `echantillons` et celui d'une de ses entrées
+     * `{ famille, id, saison? }` : l'id d'une famille de `echantillons`, celui d'une de ses entrées, et l'id d'une
+     * saison (`SAISONS`), sans quoi aucune : le modèle tel que bâti
      *
-     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues }` : la scène d'échantillon que le noyau bâtit
-     * pour cette entrée, dessinée comme le monde de la partie (`echantillonDessine`, surface du noyau, section «
-     * Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard `immersion` (`aretes`,
-     * section « Vue »), ses nappes de toit, ses couronnes et les clés des couronnes que sa brèche abat
-     * (`couronnesAbattues`) ; refusé sur une famille hors de `echantillons` (le message les nomme) et sur une entrée
-     * hors de sa famille (le message nomme la famille) ; avant ou après `demarrer`
+     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues, decors, saisons }` : la scène d'échantillon que le
+     * noyau bâtit pour cette entrée (`sceneDEchantillon`), dessinée comme le monde de la partie (`echantillonDessine`,
+     * surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard
+     * `immersion` (`aretes`, section « Vue »), ses nappes de toit, ses couronnes, les clés des couronnes que sa brèche
+     * abat (`couronnesAbattues`), ses décors servis en cette saison, comme `corps.decors` de la vue (section « Corps
+     * d'un combattant »), et chaque saison si le `selon` de l'un d'eux en nomme une (`SaisonOfferte`) ; refusé sur
+     * une famille hors de `echantillons` (le message les nomme), sur une entrée hors de sa famille (le message nomme
+     * la famille) et sur une saison inconnue (le message les nomme) ; avant ou après `demarrer`
      */
-    echantillon(json): EchantillonDessine {
-      const e = entreeDe('echantillon', json, ['famille', 'id']);
+    echantillon(json): EchantillonDessine & { decors: Record<string, DecorServi>; saisons: SaisonOfferte[] } {
+      const e = entreeDe('echantillon', json, ['famille', 'id', 'saison']);
       const familles = famillesDEchantillons();
       const famille = familles.find((f) => f.id === e.famille);
       valider(famille !== undefined, `echantillon : famille, l’id d’une famille d’échantillons (${familles.map((f) => f.id).join(', ')})`);
       valider(famille!.entrees.some((entree) => entree.id === e.id), `echantillon : id, l’id d’une entrée de la famille ${famille!.id}`);
-      return echantillonDessine(famille!.id, e.id as string);
+      valider(e.saison === undefined || SAISONS.includes(e.saison as Saison), `echantillon : saison, l’une de ${SAISONS.join(', ')}`);
+      const decors = decorsServis(sceneDEchantillon(famille!.id, e.id as string), (e.saison as Saison | undefined) ?? null);
+      return { ...echantillonDessine(famille!.id, e.id as string), decors, saisons: saisonsOffertes(decors) };
     },
     /**
      * `{ composition, preset? }` : une composition (section « Composition d'un personnage ») et l'id d'un preset de
@@ -1748,7 +1832,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ, ou, d'un retrait déclaré de son porteur, l'objet ou l'élément entier (section « Éditeur »)
      *
-     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, decors?, depot?, essai?,
      * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
      * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
      * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
@@ -1789,7 +1873,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
         else if (estLIssueDUnChapitre(e.edition)) {
           const { book, ch } = e.edition;
-          valider(s.chapitreEnAttente?.book === book && s.chapitreEnAttente.ch === ch, `editer : chapitre, ${book} ch.${ch} n’est pas le chapitre attendu`);
+          valider(s.source.chapitreEnAttente?.book === book && s.source.chapitreEnAttente.ch === ch, `editer : chapitre, ${book} ch.${ch} n’est pas le chapitre attendu`);
         }
         else if (!estUnGesteDuPointeur(e.edition)) {
           const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
@@ -1816,18 +1900,94 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       edition = { session, monde: neuf ? { vue, z: session.z } : edition!.monde };
       const memoire = memoireDesCalques(avant, session);
       const charge = session.chargement && !avant?.chargement ? session.chargement : null;
-      const attendu = session.chapitreEnAttente;
-      const demande = attendu && (attendu.book !== avant?.chapitreEnAttente?.book || attendu.ch !== avant.chapitreEnAttente.ch) ? attendu : null;
+      const attendu = session.source.chapitreEnAttente;
+      const demande = attendu && (attendu.book !== avant?.source.chapitreEnAttente?.book || attendu.ch !== avant.source.chapitreEnAttente.ch) ? attendu : null;
       return {
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
         calque: calqueAffiche(session),
-        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue) } : {}),
+        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue), decors: decorsServis(vue, null) } : {}),
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(projetEdite(session).id, charge.sceneId, charge.z) } } : {}),
         ...(demande ? { chapitre: demande } : {}),
         ...(memoire ? { memoire } : {}),
+      };
+    },
+    /**
+     * `{ ouvrir: true, manifeste?, categorie?, id?, instance? }` : le texte de l'index des chapitres du `Source/` que sert
+     * le poste, et l'entrée où le Compendium s'ouvre, son instance (« 8 Tentacules +8 ») ; ou `{ compendium }` : le geste
+     * du Compendium (`GesteDuCompendium`, `src/noyau/codex/session.ts`) que porte un bouton des zones `compendium.*`, un
+     * qui l'offre sans refus d'abord, l'issue de l'écriture au dépôt (`{ geste: 'enregistrement', reussi, refus? }`,
+     * refusée en `validation` hors d'une transaction demandée) ou celle du chapitre attendu ; ou `{ type: 'recherche' |
+     * 'identifier' | 'enTete' | 'valeur', args }` : un formulaire des zones (section « Compendium »)
+     *
+     * @returns `{ zones, chapitre?, donnees? }` : les zones `compendium.*` ; `chapitre` le `{ book, ch }` que la session
+     * se met à attendre, que l'hôte charge puis rend en `{ compendium: { geste: 'chapitre', book, ch, texte } }` ;
+     * `donnees` le `{ fichier, texte, avant }` qu'« Enregistrer » ou « Supprimer » vient d'écrire en mémoire, `avant`
+     * l'empreinte (`hash32`) du texte du fichier d'avant, que l'hôte écrit au dépôt (`PUT donnees/<fichier>`) puis dont
+     * il rend l'issue, une issue échouée remettant la donnée en mémoire telle qu'avant ; un bouton ou un formulaire
+     * refusé se refuse en `regle`, avec sa raison, comme une transaction que la donnée refuse
+     */
+    compendium(json) {
+      const e = entreeDe('compendium', json, (e) => ('ouvrir' in e ? ['ouvrir', 'manifeste', 'categorie', 'id', 'instance'] : 'type' in e ? ['type', 'args'] : ['compendium']));
+      const avant = 'ouvrir' in e ? null : codex;
+      let donnees: { fichier: string; texte: string; avant: number } | null = null;
+      if ('ouvrir' in e) {
+        valider(e.ouvrir === true, 'compendium : ouvrir, true');
+        const cible = e.categorie === undefined && e.id === undefined ? undefined : e;
+        valider(cible === undefined || (typeof cible.categorie === 'string' && typeof cible.id === 'string' && (cible.instance === undefined || typeof cible.instance === 'string')), 'compendium : categorie et id, l’entrée où il s’ouvre, instance son libellé montré');
+        const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
+        const paquets = allBuiltinCampaigns.map((c) => ({ fichier: c.fichier, projet: c.paquet }));
+        reprise = null;
+        codex = ouvrirLeCompendium(manifeste, paquets, cible && { categorie: cible.categorie as string, id: cible.id as string, ...(cible.instance === undefined ? {} : { instance: cible.instance as string }) });
+        valider(!cible || codex.refus === null, `compendium : ${codex.refus}`);
+      } else {
+        valider(codex !== null, 'compendium : aucun Compendium ouvert, compendium { ouvrir } d’abord');
+        const s = codex!;
+        const z = zonesDuCompendium(s);
+        let geste;
+        if ('type' in e) {
+          geste = gesteDuCompendium(z, s, e);
+          valider(geste, 'compendium : un formulaire des zones compendium.*, { type: recherche | identifier | enTete, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
+        } else if (estLIssueDUneTransaction(e.compendium)) {
+          valider(transactionDemandee(s), 'compendium : aucun enregistrement ni suppression en cours');
+          if (!e.compendium.reussi) reprise?.();
+          reprise = null;
+          geste = e.compendium;
+        } else if (estLIssueDUnChapitre(e.compendium)) {
+          const { book, ch } = e.compendium;
+          valider(s.source.chapitreEnAttente?.book === book && s.source.chapitreEnAttente.ch === ch, `compendium : chapitre, ${book} ch.${ch} n’est pas le chapitre attendu`);
+          geste = e.compendium;
+        } else {
+          const b = boutonDuCompendium(z, e.compendium);
+          valider(b, 'compendium : le geste `{ compendium }` d’un bouton des zones compendium.*, l’issue d’une écriture ({ geste: enregistrement, reussi, refus? }) ou celle du chapitre attendu ({ geste: chapitre, book, ch, texte: texte | null })');
+          if (b!.refus) throw new ErreurDeGeste('regle', `compendium : ${b!.refus}`);
+          geste = e.compendium as Parameters<typeof compendium>[1];
+        }
+        let suite = compendium(s, geste!);
+        if (suite.refus !== null && geste!.geste !== 'enregistrement') throw new ErreurDeGeste('regle', `compendium : ${refusDuCompendiumDit(suite.refus)}`);
+        const transaction = transactionDemandee(suite);
+        if (transaction && !transactionDemandee(s)) {
+          const issue = transaction.sorte === 'enregistrer'
+            ? enregistrerEntree(transaction.categorie, transaction.entree, transaction.index, transaction.enTete)
+            : supprimerEntree(transaction.categorie, transaction.index, suite.paquets);
+          if (!issue.ok) {
+            suite = compendium(suite, { geste: 'enregistrement', reussi: false, refus: issue.erreurs.join(' ; ') });
+            codex = suite;
+            throw new ErreurDeGeste('regle', `compendium : ${refusDuCompendiumDit(suite.refus!)}`);
+          }
+          donnees = { fichier: issue.fichier, texte: issue.texte, avant: hash32(issue.avant) };
+          reprise = issue.reprendre;
+        }
+        codex = suite;
+      }
+      const attendu = codex!.source.chapitreEnAttente;
+      const demande = attendu && (attendu.book !== avant?.source.chapitreEnAttente?.book || attendu.ch !== avant.source.chapitreEnAttente.ch) ? attendu : null;
+      return {
+        zones: zonesDuCompendium(codex!),
+        ...(demande ? { chapitre: demande } : {}),
+        ...(donnees ? { donnees } : {}),
       };
     },
     /**

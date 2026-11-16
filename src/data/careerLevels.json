@@ -4827,7 +4827,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petite unité de Chevaliers",
@@ -6426,7 +6426,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon pour blaireau (2 PA sur la tête et le torse)"
+        "id": "caparacon-pour-blaireau"
       },
       {
         "pick": 1,
@@ -10776,7 +10776,10 @@
         "spec": "sanglant"
       },
       {
-        "text": "10 Ingrédients ésotériques"
+        "id": "composant-d-incantation",
+        "count": {
+          "fixed": 10
+        }
       },
       {
         "id": "crane",
@@ -19632,7 +19635,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petit contingent de suivants",
@@ -19920,7 +19923,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petite unité de Chevaliers du Soleil flamboyant",
@@ -20205,7 +20208,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petite unité de Chevaliers du Loup Blanc",
@@ -20508,7 +20511,7 @@
     ],
     "trappings": [
       {
-        "text": "Caparaçon"
+        "id": "barde"
       },
       {
         "label": "Petite unité de Chevaliers Panthères",
@@ -23269,7 +23272,57 @@
     ],
     "trappings": [
       {
-        "text": "Pièce d'artillerie"
+        "pick": 1,
+        "of": [
+          {
+            "id": "baliste",
+            "type": "engin"
+          },
+          {
+            "id": "catapulte-petite",
+            "type": "engin"
+          },
+          {
+            "id": "catapulte-moyenne",
+            "type": "engin"
+          },
+          {
+            "id": "catapulte-grande",
+            "type": "engin"
+          },
+          {
+            "id": "batterie-tonnerre-de-feu",
+            "type": "engin"
+          },
+          {
+            "id": "canon-a-repetition",
+            "type": "engin"
+          },
+          {
+            "id": "canon-a-repetition-feu-d-enfer",
+            "type": "engin"
+          },
+          {
+            "id": "canon-petit",
+            "type": "engin"
+          },
+          {
+            "id": "canon-moyen",
+            "type": "engin"
+          },
+          {
+            "id": "canon-grand",
+            "type": "engin"
+          },
+          {
+            "id": "mortier",
+            "type": "engin"
+          },
+          {
+            "id": "pierrier",
+            "type": "engin"
+          }
+        ]
       },
       {
         "id": "carte"

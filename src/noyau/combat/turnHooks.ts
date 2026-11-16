@@ -23,6 +23,7 @@ import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement } from '../mount';
+import { materialiserLaBarre } from '../dispositionConsole';
 import { isFrenzied, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
 import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
 import { combatStakeRef } from '../../data';
@@ -41,8 +42,13 @@ const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
 /** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`) — point unique
  *  appelé par `advanceTurn` (tour suivant du Round) ET `lancerLeRound` (1ᵉʳ combattant du Round),
  *  pour ne pas dupliquer le déclenchement. Inerte tant qu'aucune donnée ne porte un effet `onTurnStart`.
- *  Journalisé en `detail` (kind agnostique — l'IA comme le héros). No-op si hors d'action. */
+ *  Journalisé en `detail` (kind agnostique — l'IA comme le héros). No-op si hors d'action. Il matérialise d'abord la
+ *  barre du combattant (`materialiserLaBarre`), avant tout rendu de son tour. */
 export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant | undefined): void {
+  if (c && !isOutOfAction(c)) {
+    const { barre } = materialiserLaBarre(c);
+    if (barre !== c.barre) c.barre = barre;
+  }
   fireTurnEdgeTriggers(get, set, c, 'onTurnStart');
   // Mode « Avantage de groupe » : un octroi d'Avantage par OP au début du tour (Redoutable, ZI : complète
   // jusqu'à l'Indice — op `topUpAdvantage`) écrit sur la projection ; on relève la réserve du camp (adverse

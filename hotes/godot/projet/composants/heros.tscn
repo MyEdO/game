@@ -95,5 +95,5 @@ theme_type_variation = &"FluxSerre"
 [node name="Zone" type="Node" parent="Rangee/Pile/Elements" node_paths=PackedStringArray("masque")]
 script = ExtResource("2_zone")
 source = "elements"
-formes = PackedStringArray("jet:jetDeHeros")
+formes = PackedStringArray("jet:jetDeHeros", "liste:listeDeHeros")
 masque = NodePath("..")

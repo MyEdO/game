@@ -21,8 +21,8 @@ import numpy as np
 
 ICI = Path(__file__).resolve().parent
 sys.path.insert(0, str(ICI))
-from entrees import (a_reconstruire, changements, construire_en_relevant, ids_publies_des_vehicules, lectures_hors_entrees,  # noqa: E402
-                     sujets_des_elements, sujets_des_vehicules)
+from entrees import (a_reconstruire, changements, construire_en_relevant, lectures_hors_entrees, sujets_des_elements,  # noqa: E402
+                     sujets_sans_base)
 from glb import lire_accesseur, lire_glb  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES  # noqa: E402
 
@@ -134,7 +134,7 @@ class Reconstruction(unittest.TestCase):
         change = changements()
         elements = sujets_des_elements()
         self.assertTrue(elements, f"aucun élément sous {ICI / 'element'}")
-        sujets = elements + sujets_des_vehicules({m: ids_publies_des_vehicules() for m in (d.parent.name for d in (ICI / 'vehicule').glob('*/donnees.py'))})
+        sujets = elements + sujets_sans_base()
         print(f"[test_element] base {change['base'] or '(aucune)'}" + (f" : {change['motif']}" if change['motif'] else ''))
         with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(max_workers=os.cpu_count()) as file:
             construire = lambda element: construire_en_relevant([ICI / 'element' / 'construire.py', element, '--sortie', Path(tmp) / element],

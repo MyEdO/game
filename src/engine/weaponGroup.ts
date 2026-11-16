@@ -17,6 +17,12 @@ const marqueAPoudre = porteLeMarqueur('weaponGroup', 'poudre');
 /** Groupe d'arme ou de munition À POUDRE : marqueur `poudre` de `weaponGroups.json`. LDB 62 l.99 ; LDB 62 l.129 */
 export const groupeAPoudre = (id: string | null | undefined): boolean => !!id && marqueAPoudre(id);
 
+const marqueLancee = porteLeMarqueur('weaponGroup', 'lancee');
+/** Groupe d'armes LANCÉES : marqueur `lancee` de `weaponGroups.json`. LDB 14 l.142 ; #4330 */
+export const groupeLance = (id: string | null | undefined): boolean => !!id && marqueLancee(id);
+/** Arme LANCÉE : son Groupe (`groupeDeLArme`) porte le marqueur `lancee`. LDB 14 l.142 ; #4330 */
+export const isThrownWeapon = (w: Pick<Weapon, 'weaponGroup' | 'subType'>): boolean => groupeLance(groupeDeLArme(w));
+
 /** Spé de Corps à corps `spec` (id de Groupe d'arme) de `c`, ou `undefined` : instance d'une Compétence dont
  *  l'entrée puise ses Spés dans les Groupes d'armes de mêlée (`specsSource`). */
 export function speDeCorpsACorps(c: Pick<Combatant, 'skills'>, spec: string): SkillInstance | undefined {

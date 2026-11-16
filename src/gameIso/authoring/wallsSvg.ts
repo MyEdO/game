@@ -17,7 +17,7 @@ import type { EntreeVivante } from '../../data/datasets';
 import { facadeStructureAppearance } from '../../noyau/monde/volume/structures';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../../lib/ombrage';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
-import { hash32 } from '../../data/hash';
+import { hash32 } from '../../lib/hash';
 import type { WallEl } from '../builders/types';
 import type { Face, GP } from '../../noyau/monde/volume/types';
 import type { WallSide } from '../../noyau/monde/scene';

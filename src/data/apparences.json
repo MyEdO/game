@@ -74,6 +74,11 @@
     "label": "Attrape-coquin"
   },
   {
+    "id": "barde",
+    "type": "apparences",
+    "label": "Barde"
+  },
+  {
     "id": "baton",
     "type": "apparences",
     "label": "Bâton de combat",

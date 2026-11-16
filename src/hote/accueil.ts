@@ -12,7 +12,7 @@ import { AUTO_SLOT, SAVE_SLOTS, lireLaSauvegarde } from './sauvegardes';
  */
 export interface ZonesDeLAccueil {
   /**
-   * « Jouer », « Reprendre », « Jouer en ligne », « Combat », « Atelier » et « Éditeur », dont le `jeu` `{ accueil }`
+   * « Jouer », « Reprendre », « Jouer en ligne », « Combat », « Atelier », « Éditeur » et « Compendium », dont le `jeu` `{ accueil }`
    * nomme l'entrée que l'hôte suit (`EntreeDeLAccueil`), puis « Options », dont le `jeu` `{ reglages: true }` ouvre le
    * panneau des réglages. « Reprendre » est refusé quand aucun emplacement du stockage ne porte de sauvegarde.
    */
@@ -26,6 +26,7 @@ const LIBELLES = {
   combat: 'ecran.accueil.combat',
   atelier: 'ecran.accueil.atelier',
   editeur: 'ecran.accueil.editeur',
+  compendium: 'ecran.accueil.compendium',
 } as const satisfies Record<EntreeDeLAccueil, MsgKey>;
 
 /** La zone de l'accueil sur `stockage`. */
@@ -34,8 +35,8 @@ export function zonesDeLAccueil(stockage: Stockage | null): ZonesDeLAccueil {
   const refus: Partial<Record<EntreeDeLAccueil, string>> = aReprendre ? {} : { reprendre: t('ecran.accueil.reprendre.aucune') };
   return {
     'accueil.gestes': [
-      ...(Object.keys(LIBELLES) as EntreeDeLAccueil[]).map((entree): Bouton => ({ type: 'bouton', id: entree, libelle: t(LIBELLES[entree]), jeu: { accueil: entree }, presse: false, focus: false, refus: refus[entree] ?? null })),
-      { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, refus: null },
+      ...(Object.keys(LIBELLES) as EntreeDeLAccueil[]).map((entree): Bouton => ({ type: 'bouton', id: entree, libelle: t(LIBELLES[entree]), jeu: { accueil: entree }, presse: false, focus: false, detail: null, touche: null, refus: refus[entree] ?? null })),
+      { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
     ],
   };
 }

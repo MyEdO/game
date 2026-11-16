@@ -32,7 +32,7 @@ import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
-import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
+import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -83,7 +83,7 @@ import { contractDisease, applyContraction, diseaseDefs } from '../engine/diseas
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
-import { ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
+import { crochetDeZone, ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
 import { placeById, quaiDuGroupe } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -535,7 +535,7 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
 
 /** Applique les ops d'UNE feuille EffectOp à `c` — SOURCE UNIQUE des exécuteurs d'EffectOp (handler de
  *  scène `ops`, `runCombatFlow`, runner de consommable) : les `delayed` sont PROGRAMMÉES
- *  (`scheduleDelayedOps`), le reste passe par `applyOps` avec le contexte de la FEUILLE (`leafOpsCtx` —
+ *  (`scheduleDelayedOps`), les `zone` qui portent leur durée posées (`crochetDeZone`), le reste passe par `applyOps` avec le contexte de la FEUILLE (`leafOpsCtx` —
  *  untilTime/label bakés priment, sinon le contexte appelant). Renvoie le journal, ou `OPS_DIFFEREES`
  *  si les dés de la feuille sont partis à la porte (l'appelant confie alors SA SUITE à l'étape ouverte,
  *  cf. `confierLaSuite`).
@@ -547,7 +547,7 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
 export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): string[] | typeof OPS_DIFFEREES {
   const e = structuredClone(feuille); // #2097
   const now = base.now ?? get().gameTime;
-  const ctx = leafOpsCtx({ ...base, now }, e);
+  const ctx = leafOpsCtx({ ...base, now, ...crochetsDeCorruption(get, set), ...crochetDeZone(get) }, e);
   for (const o of e.ops) if (o.op === 'delayed') scheduleDelayedOps(get, set, c, o, { now, untilTime: ctx.defaultUntilTime, label: ctx.label });
   const rest = e.ops.filter((o) => o.op !== 'delayed');
   if (!rest.length) return [];
@@ -648,7 +648,7 @@ export function porterOpsCtx(ctx: OpsCtx): OpsCtxPorte {
  * Rend `null` quand la COQUE déclarée a disparu entre le mint et la résolution (voyage clos, cascade
  * suspendue puis reprise) : l'appelant le DIT au lieu de jouer la conséquence à moitié.
  */
-export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Combatant): OpsCtx | null {
+export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte): OpsCtx | null {
   const hull = porte.hullId ? coqueParId(get(), porte.hullId) : undefined;
   if (porte.hullId && !hull) return null;
   const caster = porte.casterId ? actorIn(get(), porte.casterId) : undefined;
@@ -657,9 +657,10 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
     ...porte.gele,
     rng: battleRng(),
     idNeuf: get().forgerUnId,
-    onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
+    ...crochetsDeCorruption(get, set),
     ...campAdvantageHooks(get),
     ...crochetDuSol(get, set),
+    ...crochetDeZone(get),
     ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
     ...(hull ? { hull } : {}),
     ...(caster ? { caster } : {}),
@@ -1610,12 +1611,19 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const owner = env.hero(e.heroId);
       if (!owner) return;
-      // Le `type` de la référence choisit la variante : un véhicule, sinon le vivant (`LivingRef`) de sa nature.
+      // Le `type` de la référence choisit la variante : un véhicule, ou le vivant (`LivingRef`) de sa nature.
       const r = e.ref;
       const commun = { ownerId: owner.id, location: { kind: 'avec-le-groupe' as const }, items: [] };
-      const input: PossessionInput = 'type' in r && r.type === 'vehicle'
-        ? { nature: 'vehicule', vehicleId: r.id, ...commun }
-        : { nature: e.nature === 'serviteur' ? 'serviteur' : 'bete', ref: 'custom' in r ? r : { id: r.id }, ...commun };
+      const nature = e.nature === 'serviteur' ? 'serviteur' : 'bete';
+      const input = ((): PossessionInput => {
+        if ('custom' in r) return { nature, ref: r, ...commun };
+        switch (r.type) {
+          case 'vehicle':
+            return { nature: 'vehicule', vehicleId: r.id, ...commun };
+          case 'creature':
+            return { nature, ref: { id: r.id }, ...commun };
+        }
+      })();
       const uid = ajouterLaPossession(env.get, env.set, input);
       env.log(t('eff.recuperation', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
     },
@@ -1623,9 +1631,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     refs: (e) => {
       const r = e.ref;
       if ('custom' in r) return [];
-      if (r.type === 'creature' && !findCreatureById(r.id)) return [{ level: 'error', message: `Possession → créature inexistante « ${r.id || '(aucune)'} »` }];
-      if (r.type === 'vehicle' && !findVehicleById(r.id)) return [{ level: 'error', message: `Possession → véhicule inexistant « ${r.id || '(aucun)'} »` }];
-      return [];
+      switch (r.type) {
+        case 'creature':
+          return findCreatureById(r.id) ? [] : [{ level: 'error', message: `Possession → créature inexistante « ${r.id || '(aucune)'} »` }];
+        case 'vehicle':
+          return findVehicleById(r.id) ? [] : [{ level: 'error', message: `Possession → véhicule inexistant « ${r.id || '(aucun)'} »` }];
+      }
     },
   },
   giveMoney: {
@@ -1762,7 +1773,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get), ...crochetDuSol(env.get, env.set) });
+        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, ...campAdvantageHooks(env.get), ...crochetDuSol(env.get, env.set) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
@@ -2488,7 +2499,7 @@ export const TABLES = {
       if (!ops || !step.de?.result) return;
       // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
       if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, hero);
+      const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
       if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
       const groupe = groupeDe(step);
       const des = new Map<string, number>();

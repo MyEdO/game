@@ -28,6 +28,7 @@ import {
   weaponRangeSpecSchema,
 } from './valeurs';
 import { marquerProduit } from './interne/produits';
+import { ENGINS_DE_SIEGE } from './sousListes';
 import {
   idDe,
   marqueurDeLaForme,
@@ -280,6 +281,15 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
 }), 'melee');
 
 
+/** `PerteSansEquipe` (`engine/types`). AA 10 l.148 ; ZI 13 l.193 */
+export const perteSansEquipeSchema = nommerChamps(z.strictObject({
+  removeQualities: refs('quality').optional(),
+  removeType: z.literal('atout').optional(),
+}), {
+  removeQualities: { label: 'Qualités perdues' },
+  removeType: { label: 'Perd tous ses Atouts' },
+});
+
 /** LDB 73 */
 export const weaponSchema = nommerChamps(z.strictObject({
   label: z.string(),
@@ -290,7 +300,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
   qualities: z.array(qualityRefSchema),
   subType: ref('weaponGroup').optional(),
   weaponGroup: ref('weaponGroup').optional(),
-  soloSimple: z.boolean().optional(),
+  perteSansEquipe: perteSansEquipeSchema.optional(),
   indirect: z.boolean().optional(),
   /** LDB 62 l.278 */
   bladed: z.boolean().optional(),
@@ -306,7 +316,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
   qualities: { label: 'Qualités' },
   subType: { label: 'Sous-type' },
   weaponGroup: { label: 'Groupe d’armes' },
-  soloSimple: { label: 'Simple à manier seul' },
+  perteSansEquipe: { label: 'Perte sans équipe' },
   indirect: { label: 'Tir indirect' },
   bladed: { label: 'Arme à lame' },
   organicProjectile: { label: 'Projectile organique' },
@@ -355,10 +365,14 @@ export type DotationDeMention = z.infer<typeof dotationDeMentionSchema>;
 /** Dotation d'une ligne hors catalogue : son texte imprimé et sa quantité. */
 export const dotationDeTexteSchema = nommerNoeud(nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }), { label: 'ligne de texte' });
 
-/** Ce qu'une dotation POSSÈDE hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
-export const typeDePossessionSchema = enumNomme({ creature: 'Créature', vehicle: 'Véhicule' });
+/** Ce qu'un effet `givePossession` donne hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
+const LIBELLES_DE_POSSESSION = { creature: 'Créature', vehicle: 'Véhicule' } as const;
+export const typeDePossessionSchema = enumNomme(LIBELLES_DE_POSSESSION);
+/** Ce qu'une dotation POSSÈDE hors du sac : une possession, ou un engin de siège servi en poste
+ *  (sous-liste `ENGINS_DE_SIEGE`, jamais un objet de sac). AA 02 l.335-339 ; #4143 */
+export const typeDeDotationDePossessionSchema = enumNomme({ ...LIBELLES_DE_POSSESSION, engin: 'Engin de siège' });
 /** Dotation d'une POSSESSION : la référence typée, sa quantité et son libellé imprimé. */
-export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDePossessionSchema, {}, {
+export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDeDotationDePossessionSchema, { engin: { type: 'trapping', sousListe: ENGINS_DE_SIEGE } }, {
   count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 }), { label: 'possession' });

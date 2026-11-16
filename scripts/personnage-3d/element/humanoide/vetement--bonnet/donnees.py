@@ -23,7 +23,7 @@ MANIFESTE = {
     'couche': 'tenue',
     'couvre': [],
 }
-MATERIAUX = {'bonnet': ('cuir', ((0.6, 0.6, 0.6), 0.0, 0.8))}   # gris de construction, sans couleur cuite
+MATERIAUX = {'bonnet': ('cuir', 'cuir-tanne')}   # gris de construction, sans couleur cuite
 
 BUDGET_TRIANGLES = 2500                 # procédure, section 7 : vêtement par pièce
 EPAISSEUR = 0.003                       # HYPOTHÈSE : cuir souple, double nappe

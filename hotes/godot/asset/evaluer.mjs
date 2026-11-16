@@ -3,7 +3,7 @@
 // si la base ne porte pas un clip, une silhouette ou la carrure demandés, 0 sinon.
 //   npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1]
-//     [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--etats-gabarit] [--porte]
+//     [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte]
 // Avec `--base`, chaque `<glb>` est un élément monté sur cette base, ensemble (une tenue), sa couche et ses zones lues
 // dans le manifeste d'élément voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import) :
 // la traversée des couches se mesure (#3743) ; seul un élément dont la forme `cle.apparence` est celle d'une arme (un
@@ -13,6 +13,10 @@
 // élément (#3743) : le corps neutre, puis chaque silhouette déclarée par le manifeste de base seule à 1, chacune dans son
 // processus, en parallèle sur les cœurs de la machine ; code 1 si une passe a un écart. `--plafonds` nomme la table des
 // écarts `membre-dans-un-vetement` que la tenue admet, `{ "<passe>": { "<clip>": <nombre> } }` (`gardeMembreDansUnVetement`).
+// `--temoin` nomme le rapport `--json` d'un run antérieur : la sortie ne liste que les écarts absents du témoin
+// (`identiteDEcart`, `evaluateur/temoin.ts`) après une ligne de compte, et le code est 1 seulement s'il y en a ; `--json`
+// écrit toujours le rapport complet (#4338). Le libellé `élément k` d'un mesh est positionnel : le témoin se compare
+// aux mêmes `<glb>` dans le même ordre, les éléments neufs à la fin.
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
@@ -42,7 +46,14 @@ function lirePlafonds(chemin, silhouettes = {}) {
   return table[noms[0] ?? 'neutre'] ?? {}
 }
 
-let values, positionals, facteurs, silhouettes, plafonds
+/** Les écarts du rapport `--json` `chemin` d'une évaluation, refusé s'il n'en porte pas. */
+function lireTemoin(chemin) {
+  const rapport = JSON.parse(readFileSync(chemin, 'utf8'))
+  if (!estObjet(rapport) || !Array.isArray(rapport.ecarts)) throw new Error(`--temoin : ${chemin} n’est pas le rapport --json d’une évaluation (sans « ecarts »)`)
+  return rapport.ecarts
+}
+
+let values, positionals, facteurs, silhouettes, plafonds, temoin
 try {
   const argumentsLus = parseArgs({
     allowPositionals: true,
@@ -57,6 +68,7 @@ try {
       clips: { type: 'string' },
       json: { type: 'string' },
       plafonds: { type: 'string' },
+      temoin: { type: 'string' },
     },
   })
   values = argumentsLus.values
@@ -71,6 +83,8 @@ try {
   silhouettes = values.silhouettes === undefined ? undefined : lirePaires(values.silhouettes, 'silhouettes')
   if (values.plafonds !== undefined && (values['etats-gabarit'] || facteurs !== undefined)) throw new Error('--plafonds : --etats-gabarit et --facteurs incompatibles')
   plafonds = values.plafonds === undefined ? undefined : lirePlafonds(values.plafonds, silhouettes)
+  if (values.temoin !== undefined && (values.porte || values['etats-gabarit'])) throw new Error('--temoin : --porte et --etats-gabarit incompatibles')
+  temoin = values.temoin === undefined ? undefined : lireTemoin(values.temoin)
 } catch (erreur) {
   console.error(erreur.message)
   process.exit(2)
@@ -80,7 +94,7 @@ const manifesteVoisin = (glb) => [glb.replace(/\.glb$/, '.element.json'), glb.re
 const sansManifeste = values.base ? positionals.filter((g) => !manifesteVoisin(g)) : []
 if (values.base ? positionals.length === 0 || sansManifeste.length : positionals.length !== 1) {
   if (sansManifeste.length) console.error(`sans manifeste d’élément voisin (<id>.element.json ou <id>.manifeste.json) : ${sansManifeste.join(', ')}`)
-  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--etats-gabarit] [--porte]')
+  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte]')
   console.error('  sans --manifeste : ni gabarit ni prise, et seule la racine a une position animée')
   process.exit(2)
 }
@@ -192,9 +206,17 @@ try {
     await sortir(ecarts ? 1 : 0)
   }
   const fiche = await evaluer(entree)
-  afficherFiche(fiche)
   if (values.json) writeFileSync(values.json, `${JSON.stringify(fiche, null, 2)}\n`)
-  await sortir(fiche.ecarts.length ? 1 : 0)
+  if (!temoin) {
+    afficherFiche(fiche)
+    await sortir(fiche.ecarts.length ? 1 : 0)
+  }
+  const { identiteDEcart } = await chargerEvaluateur('temoin.ts')
+  const connus = new Set(temoin.map(identiteDEcart))
+  const neufs = fiche.ecarts.filter((e) => !connus.has(identiteDEcart(e)))
+  console.log(`témoin ${temoin.length} écart(s), mesure ${fiche.ecarts.length}, neufs ${neufs.length}`)
+  for (const e of neufs) console.log(ligneDEcart(e))
+  await sortir(neufs.length ? 1 : 0)
 } catch (erreur) {
   console.error(erreur instanceof Error ? erreur.message : String(erreur))
   await sortir(1)

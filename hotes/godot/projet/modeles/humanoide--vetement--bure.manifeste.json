@@ -52,11 +52,12 @@
   "surfaces": [
     {
       "nom": "robe",
-      "palette": "vet1"
+      "palette": "vet1",
+      "matiere": "prop--laine"
     }
   ],
   "glb": {
-    "sha256": "d1b219fb1099c842604b87338a99149373a38d5a2cf5523fe4a97253160a96e3",
-    "octets": 710964
+    "sha256": "d2c108ae77ac1df57a5a9261767e98d246195ac68d064be8d2d9e43b2b2681a4",
+    "octets": 921080
   }
 }
