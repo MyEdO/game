@@ -6942,6 +6942,32 @@
     }
   },
   {
+    "id": "composant-d-incantation",
+    "type": "trappings",
+    "label": "Composant d’incantation",
+    "capabilities": {
+      "isSpellComponent": true
+    },
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Encombrement 0 : arbitrage utilisateur du 2026-11-16 (« 0, négligeable », ticket #4132, https://github.com/MyEdO/game/issues/4132). Aucun prix de catalogue : le composant coûte le NI du Sort qu'il favorise (LDB 46 l.113, LDB 49 l.5), payé à l'achat.",
+    "source": {
+      "book": "livre-de-base",
+      "page": 236,
+      "note": "LDB 46 l.107-113"
+    }
+  },
+  {
     "id": "parchemin",
     "type": "trappings",
     "label": "Parchemin",

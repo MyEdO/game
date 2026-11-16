@@ -93,6 +93,10 @@ export const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   encumbranceFactor: z.number().optional(),
   /** ADE II 2 l.708 */
   consumptionFactor: z.number().optional(),
+  /** ADE II 2 l.728 */
+  castingChar: charKeySchema.optional(),
+  /** ADE II 2 l.726 */
+  castingHunger: z.boolean().optional(),
 }), {
   bonusWoundsBE: { label: 'Bonus de Blessures par Bonus d’Endurance' },
   mutationAtSpawn: { label: 'Mutations à l’apparition' },
@@ -139,6 +143,8 @@ export const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   wakelessBite: { label: 'Morsure sans réveil' },
   encumbranceFactor: { label: 'Facteur d’Encombrement' },
   consumptionFactor: { label: 'Facteur de consommation' },
+  castingChar: { label: 'Caractéristique d’incantation' },
+  castingHunger: { label: 'Faim à l’incantation' },
 });
 
 /** Une capacité de `traitCapabilitiesSchema`, nommée par le libellé de son champ (`suppressesCapabilities`). */
