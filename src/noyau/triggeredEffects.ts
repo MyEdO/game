@@ -308,6 +308,9 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
   attackType?: 'melee' | 'distance';
   /** D'où naît la Blessure critique (`onCrit`) — filtre les effets `coupCritique` par `estUnCoupCritique`. */
   origine?: OrigineCritique;
+  /** Le Critique ne pose aucune Blessure critique (`onCrit`) — seuls les effets `coupCritique` s'exercent.
+   *  EDOC 07 l.334 ; #4202. */
+  sansBlessureCritique?: boolean;
   /** `set` du store — fourni quand un Test de trigger peut être routé en cascade influençable (héros
    *  manuel) ou résolu inline (ennemi/auto). Câblé sur tous les `fireTriggers` de combat (onHit/
    *  onWoundLoss/onKill/onStartled/onRoundStart/Domaine + manœuvres) ; INERTE tant qu'aucune donnée de
@@ -445,7 +448,7 @@ function mesurerCibleEnVue(get: Get, actor: Combatant, affliction: PsychAfflicti
  *  quel que soit son émetteur. */
 export function ciblesDeLEffet(
   get: Get, actor: Combatant, eff: TriggeredEffect, trigger: EffectTrigger,
-  ctx: Pick<TriggerCtx, 'victim' | 'conditionName' | 'attackType' | 'origine'>,
+  ctx: Pick<TriggerCtx, 'victim' | 'conditionName' | 'attackType' | 'origine' | 'sansBlessureCritique'>,
 ): Combatant[] {
   if (eff.trigger !== trigger) return [];
   // Filtre `onGainCondition` : ne réagit qu'à l'État effectivement gagné (Mâchoires → 'sonne').
@@ -453,6 +456,7 @@ export function ciblesDeLEffet(
   // Filtre par TYPE d'attaque (onHit/onWoundLoss) : un effet `attackType` ne réagit qu'à ce type.
   if (eff.attackType && eff.attackType !== ctx.attackType) return [];
   if (eff.coupCritique && !estUnCoupCritique(ctx.origine)) return [];
+  if (ctx.sansBlessureCritique && !eff.coupCritique) return [];
   return targetsFor(get, actor, eff.on, ctx.victim).filter((t) =>
     // On n'applique pas un effet à une cible DÉJÀ hors de combat (pas d'éclaboussure sur un cadavre) —
     // SAUF le PORTEUR réagissant à SON PROPRE événement (`on:'self'`) : une unité doit pouvoir réagir à

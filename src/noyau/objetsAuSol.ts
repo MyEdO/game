@@ -7,7 +7,7 @@
  */
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { OpsCtx } from '../engine/ops';
-import { itemLabel } from '../engine/items';
+import { itemLabel, laisserTomber } from '../engine/items';
 import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
@@ -21,7 +21,8 @@ import { aPorteeDe } from './monde/exploreNav';
 import { meneurDuMonde } from './monde/combatants';
 import { removeEntity } from './combatPlacement';
 import { etatDeLaBarre } from './actionRegistry';
-import { journaliser } from './combatLog';
+import { ev, journaliser } from './combatLog';
+import { bouclierDuBinomeEnJeu } from './combat/surnombre';
 import { bus, EVT } from './bus';
 
 /** Le décor qui montre un objet posé au sol : le petit sac du catalogue des décors (`props.json`), non bloquant. */
@@ -99,6 +100,16 @@ export function lacherAuSol(get: Get, set: Set, objet: ItemInstance, pos: Pt): v
  *  assaillant sans case (`serieSubie`, `spawnEnemy`) n'a pas de sol où le déposer. */
 export function crochetDuSol(get: Get, set: Set): Required<Pick<OpsCtx, 'onLacher'>> {
   return { onLacher: (porteur: Combatant, objet: ItemInstance) => { if (porteur.pos) lacherAuSol(get, set, objet, porteur.pos); } };
+}
+
+/** `c` lâche au sol le bouclier du binôme qu'il tient (`bouclierDuBinomeEnJeu`) par le chemin du désarmement
+ *  (`laisserTomber`, `crochetDuSol`) : la fuite forcée l'emporte sur le binôme. ZI 13 l.193 ; #4202 */
+export function lacherLeBouclierDuBinome(get: Get, set: Set, c: Combatant): void {
+  const bouclier = bouclierDuBinomeEnJeu(get(), c);
+  if (!bouclier || !c.weapons.includes(bouclier)) return;
+  const tombe = laisserTomber(c, bouclier, get().forgerUnId);
+  if (tombe) crochetDuSol(get, set).onLacher(c, tombe);
+  get().battle!.log.push(ev('fuite', t('cf.bouclierLacheEnFuyant', { name: c.label, weapon: bouclier.label }), c.id));
 }
 
 /** Remet le lot du décor `entityId` au combattant `receveurId` (`avecLeLot` : une Bourse rejoint la sienne) et retire le

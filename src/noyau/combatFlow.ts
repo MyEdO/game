@@ -126,9 +126,9 @@ import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
-import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
+import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
-import { effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
+import { bouclierDuBinomeEnJeu, effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
 import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
@@ -161,8 +161,9 @@ import {
 import {
   isStupid,
   flyMeters, runMultiplier,
-  isSkittishMount, immuneToSpellDomain,
+  isSkittishMount, immuneToSpellDomain, traitCapability,
 } from '../engine/traits/dispatch';
+import { isRation } from '../engine/provisions';
 import {
   isMagicMissile,
   prayerWrathTriggered,
@@ -194,6 +195,8 @@ import {
   zdeRadiusTiles,
   rayonDeGabaritEnCases,
   isArcaneSpell,
+  composantLie,
+  prendUnComposant,
   castInfoIsPrayer,
   focusSkillFor,
   castLandProbability,
@@ -321,7 +324,7 @@ import {
   endommagerLArmeTenue,
   weaponIdentity,
 } from '../engine/items';
-import { crochetDuSol, lacherAuSol } from './objetsAuSol';
+import { crochetDuSol, lacherAuSol, lacherLeBouclierDuBinome } from './objetsAuSol';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import {
@@ -1262,7 +1265,7 @@ export function resolveAttack(
     const rd = defenseSurfaced(get(), target)
       ? undefined
       : (() => {
-        const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+        const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
         return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
     const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold);
@@ -1285,7 +1288,7 @@ export function resolveAttack(
   // seul jet d'ATTAQUANT (`defense:'aucune'`) et l'interposition (`openSurfacedDefense`, chemin piloté) ou la
   // fenêtre réactive (`maybeOpenDefense`, chemin IA) opposera le jet de défense au jet figé.
   const surfaced = defenseSurfaced(get(), target);
-  return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'aucune' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear }), weapon };
+  return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'aucune' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear, bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) }), weapon };
 }
 
 /** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `jet`, tranché à
@@ -1322,7 +1325,7 @@ export function resolveDualSecond(
   const mode = (cannotDefend(target) || isInanimate(target) || defenseSurfaced(get(), target)) ? 'aucune' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
   if (mode === 'aucune') return resolveMeleePassive(attacker, target, offWeapon, atk, { rng: battleRng() }, opts?.location, env, undefined, false, compo);
   const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), defaultParryWeapon(target), offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
-  return finishMelee(attacker, target, offWeapon, atk, def, mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo);
+  return finishMelee(attacker, target, offWeapon, atk, def, mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo, bouclierDuBinomeEnJeu(get(), target));
 }
 
 /** Cibles VALIDES de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773 : « un adversaire disponible de
@@ -1687,7 +1690,7 @@ export function disengageOutcome(winner: VainqueurOppose): IssueOpposee {
  *  plus dangereux. Rouvre le mouvement si plus aucun foe vivant. Options : `noyau/combat/desengagement.ts`. */
 export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   const battle = get().battle!;
-  const ctx = { active: mover, battle };
+  const ctx = { active: mover, battle, scene: get().scene };
   const foes = adversairesEngages(ctx);
   const libre = departLibre(ctx);
   if (!foes.length || libre) {
@@ -1878,7 +1881,7 @@ export function computeRunReach(get: Get<Jeu>): Map<string, number> {
   if (battle.reachable.size > 0) return new Map();
   const active = activeCombatant(battle);
   if (!active || !controlsCombatant(get(), active) || !active.pos) return new Map();
-  if (refusDeCourse(battle, active)) return new Map();
+  if (refusDeCourse(scene, battle, active)) return new Map();
   const geom = mountOf(battle, active) ?? active;
   const budget = movementRemaining(battle, active) + distanceDeCourse(mouvementDeCourse(battle, active));
   const reach = moveReachFor(geom, scene, active.pos, budget, moveEnv(battle, geom));
@@ -1940,6 +1943,7 @@ export function aiApproachPlan(
   const inp: EnemyTurnInput = { ...input, losMemo: input.losMemo ?? makeLosMemo(input.scene, input.smoke ?? []), memoDesApproches: input.memoDesApproches ?? new Map() };
   const charge = chooseEnemyAction({ ...inp, movement: courseBudget });
   if (charge.kind === 'deplacement' && atContact(charge)) return { plan: charge, ran: null };
+  if (refusDuBinome(input.scene, { combatants: [enemy, ...(input.squad ?? [])] }, enemy)) return none; // ZI 13 l.193
   // Course (LDB 15 l.41) : budget = Marche + Course + DR ; pas d'attaque.
   const course = testDuCavalier(enemy, testDeRegle('course', 'courir'));
   const r = resolveRun(testValue(enemy, course), course.difficulty, M, rng);
@@ -2170,8 +2174,9 @@ export function resolveCritSeverity(
 }
 
 /** Issue d'une Blessure critique appliquée : `letale` (le caller finalise via `finalizeHeroDeath`),
- *  `subie`, ou `reportee` — un autre corps l'encaisse à la place du porteur (MDG 13 l.584). */
-export type IssueDuCritique = 'letale' | 'subie' | 'reportee';
+ *  `subie`, `reportee` — un autre corps l'encaisse à la place du porteur (MDG 13 l.584) —, ou `aucune` —
+ *  personne n'encaisse de Blessure critique (EDOC 07 l.334 ; #4202). */
+export type IssueDuCritique = 'letale' | 'subie' | 'reportee' | 'aucune';
 
 /** Applique une Blessure critique (Coup Critique ou overkill) à `target` : PB (ignore BE+PA,
  *  plancher 0) + États + compteur. RETOURNE son issue (`IssueDuCritique`). Pousse le journal dans `log`. */
@@ -2203,7 +2208,7 @@ export function applyCriticalToTarget(
   }
   if (porteur === 'vehicule-routier') {
     log.push(tr('cf.coqueSansCritique', { name: target.label })); // EDOC 07 l.334
-    return 'subie';
+    return 'aucune';
   }
   if (porteur === 'navire') {
     const profil = garanti(profilNavalDe(target), target.creatureId, 'profil naval du navire (MDG 12 l.131)');
@@ -2656,7 +2661,7 @@ export function applyCoupCritiqueSec(
   apresLeCritiqueDe({ get, set, auteur, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(issue, entree.origine); // #316
 }
 
-/** Ce que lit l'après d'une Blessure critique infligée. */
+/** Ce que lit l'après d'un Critique. */
 interface ApresLeCritique {
   get: Get;
   set: SetFn;
@@ -2668,20 +2673,23 @@ interface ApresLeCritique {
   woundsDealt?: number;
 }
 
-/** Après une Blessure critique INFLIGÉE (`issue` = rendu d'`applyCritAndFinalize`) : Frappe blessante
+/** Après un Critique (`issue` = rendu d'`applyCritAndFinalize`) : Frappe blessante sur une Blessure `subie`
  *  (LDB 10 ; LDB 18 l.15), puis `onCrit` (`TriggeredEffect.coupCritique` ; #316 ; #1595 c.6221792068 Q4,
- *  c.6226467544, c.6228496170 Q3, Q4b). Une Blessure `reportee` n'est pas celle de `cible` : MDG 13 l.584 ; #4202. */
+ *  c.6226467544, c.6228496170 Q3, Q4b). Une Blessure `reportee` n'est pas celle de `cible` : MDG 13 l.584 ;
+ *  #4202. Sur une issue `aucune`, seuls les effets `coupCritique` jouent : EDOC 07 l.334 ; #4202. */
 function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine: OrigineCritique) => void {
   return (issue, origine) => {
     const { get, set, auteur, cible, log } = a;
-    if (!auteur || issue !== 'subie') return;
-    const fb = loseWounds(cible, talentCritExtraWounds(auteur));
-    if (fb > 0) log.push(tr('cf.coupBlessant', { name: cible.label, n: fb }));
+    if (!auteur || issue === 'letale' || issue === 'reportee') return;
+    if (issue === 'subie') {
+      const fb = loseWounds(cible, talentCritExtraWounds(auteur));
+      if (fb > 0) log.push(tr('cf.coupBlessant', { name: cible.label, n: fb }));
+    }
     const battle = get().battle;
     if (!battle) return;
     emitCombatEvent('onCrit', {
       get, set, battle, self: auteur, sink: (line) => log.push(line),
-      triggerCtx: { victim: cible, weapon: a.arme, location: a.lieu, woundsDealt: a.woundsDealt, attackType: a.arme?.type, origine, rng: battleRng() },
+      triggerCtx: { victim: cible, weapon: a.arme, location: a.lieu, woundsDealt: a.woundsDealt, attackType: a.arme?.type, origine, sansBlessureCritique: issue === 'aucune', rng: battleRng() },
     });
   };
 }
@@ -2884,7 +2892,7 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
       // (pose du dé, #942 L4) garde sa révélation.
       issue = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
       a.apres?.(issue, entree.origine);
-      infligees++;
+      if (issue !== 'aucune') infligees++;
     }
     if (coupCritiqueEntree) casse();
   }
@@ -3962,7 +3970,7 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
   if (!defenseSurfaced(s, target)) return { refus: 'non-surfacee' };
   // TIR : LDB 62 l.296 ; LDB 14 l.40 ; LDB 14 l.44. LoS acquise : l'IA ne tire que si elle voit (doAttack).
   if (weapon?.type === 'distance') {
-    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene));
+    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target));
     return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
@@ -4000,7 +4008,7 @@ export function maybeOpenDefense(
     const dist = distanceDeCombat(get().scene, attacker, target);
     const { env } = attackEnv(get, attacker, target, weapon);
     const atk = rollRangedAttacker(attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
-    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
     // Composée HORS du littéral : la Difficulté du tir figé, avec les mêmes options que `rollRangedAttacker`.
     const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'distance', distanceTiles: dist, env, metresPerTile: mpt }));
     set({
@@ -4067,7 +4075,7 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
   if (pa.siege) return false;
   if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
-  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene)).length > 0;
+  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target)).length > 0;
   return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon, sceneMetresPerTile(s.scene));
 }
 
@@ -4096,8 +4104,9 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
     suite: { mode: 'pilotee' as const, pa: { ...pa, defended: true } },
   };
   if (weapon.type === 'distance') {
-    const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt);
-    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+    const binome = bouclierDuBinomeEnJeu(get(), target);
+    const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt, binome);
+    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, binome);
     set({ pendingDefense: { ...base, mode: best?.mode ?? modes[0], parryWeaponUid: best?.parryWeapon?.uid, modes, distanceTiles: dist } });
   } else {
     set({ pendingDefense: { ...base, mode: bestDefenseMode(target) } });
@@ -4739,7 +4748,7 @@ function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // l.123), seul son EFFET est ignoré (LDB 85 l.98) ; l'Action, gratuite, est rendue par la reprise.
   const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind } };
   if (maybeOpenDefense(get, set, attacker, target, weapon, suite)) return OPS_DIFFEREES; // suspendu : resolve via défense
-  const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'aucune' : bestDefenseMode(target) });
+  const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'aucune' : bestDefenseMode(target), bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) });
   // Enchaînement absent = `auto` (LDB 85 l.362), joué par l'après-coup.
   return applyAttackResult(get, set, attacker, target, weapon, res, { sousAttaque: true, suite });
 }
@@ -5099,26 +5108,26 @@ export function resumeManeuverDefense(get: Get, set: SetFn, resume: { attackerId
 
 
 /**
- * Composant d'incantation (LDB 46 l.107-113, règle optionnelle `magie-composant`) — appelé UNE fois
- * au point d'incantation d'un Sort d'Arcane/Domaine par un lanceur qui suit les règles de PERSONNAGE
- * (#143 — `followsCharacterRules`, PAS un proxy `kind`). Si un composant pour ce Sort est possédé :
- * il est CONSUMÉ « même si aucune Incantation Imparfaite n'a été obtenue » (l.111), une ligne est
- * journalisée, et `true` est renvoyé → toute Imparfaite de ce lancement sera dégradée (passé en
- * `componentDowngrade` à `applyMiscast`). Mute `caster.componentSpells`. Renvoie `false` (sans effet)
- * si la règle est éteinte, le lanceur ne suit pas les règles de Personnage, ou aucun composant ne
- * couvre le Sort. `lines` reçoit la ligne « composant consumé » le cas échéant.
+ * Composant d'incantation, appelé UNE fois au point d'incantation d'un Sort : le composant que porte le lanceur
+ * pour CE Sort (`composantLie`) est consumé, une ligne est journalisée, et `true` est renvoyé → toute Imparfaite
+ * de ce lancement sera dégradée (`componentDowngrade` à `applyMiscast`). Sans composant lié, `false`, rien ne
+ * bouge. LDB 46 l.107-113
  */
 export function useSpellComponent(caster: Combatant, spellId: string, lines: string[]): boolean {
-  if (!followsCharacterRules(caster) || rule('magie-composant') !== true) return false;
-  const owned = caster.componentSpells ?? [];
-  if (!owned.includes(spellId)) return false;
-  const i = owned.indexOf(spellId);
-  const next = [...owned];
-  next.splice(i, 1); // retire UNE occurrence (consommée par l'incantation)
-  caster.componentSpells = next;
-  // LDB 46 l.111
+  const composant = composantLie(caster, spellId);
+  if (!composant) return false;
+  caster.items = caster.items!.filter((it) => it !== composant);
   lines.push(tr('cf.composanteConsommee', { name: caster.label }));
   return true;
+}
+
+/** Le lanceur à capacité `castingHunger` qui lance un Sort à composant sans en consumer un, et sans Vivres sur
+ *  lui, perd 1 Blessure par NI du Sort (op `wounds`). ADE II 2 l.726 */
+function faimALIncantation(get: Get, caster: Combatant, spell: NonNullable<ReturnType<typeof findSpell>>, componentUsed: boolean, lines: string[]): void {
+  if (componentUsed || !prendUnComposant(spell) || !traitCapability(caster.traits, 'castingHunger')) return;
+  if ((caster.items ?? []).some(isRation)) return;
+  const n = spell.cn ?? 0;
+  lines.push(tr('cf.faimALIncantation', { name: caster.label, spell: spell.label, n }), ...applyOps(caster, [{ op: 'wounds', amount: n }], { idNeuf: get().forgerUnId, rng: battleRng(), caster }));
 }
 
 // ---------------------------------------------------------------------------
@@ -5174,11 +5183,8 @@ function liveSinPoints(caster: Combatant, severity: MiscastSeverity): number {
  * réduction à 0 + Inconscient). Retourne les lignes de journal.
  */
 export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: MiscastSeverity, opts?: { suppressReveal?: boolean; componentDowngrade?: boolean; sorceryCorruption?: boolean; domainId?: string; targetIds?: string[] }): string[] {
-  // Composant d'incantation (LDB 46 l.111, règle optionnelle) : si un composant adapté a été
-  // SACRIFIÉ pour ce Sort (consommation décidée et journalisée au point d'incantation — cf.
-  // `useSpellComponent`), il absorbe les pires effets du contrecoup : « toute Incantation Imparfaite
-  // Majeure devient Mineure, et aucune Incantation Imparfaite Mineure n'a d'effet ». La transformation
-  // de sévérité est PURE (engine/miscast.componentDowngrade) ; ne touche pas la Colère des dieux.
+  // Composant consumé au point d'incantation (`useSpellComponent`) : la sévérité se dégrade
+  // (engine/miscast.componentDowngrade), jamais la Colère des dieux. LDB 46 l.111
   if (opts?.componentDowngrade && severity !== 'colere') {
     const downgraded = componentDowngrade(severity);
     if (downgraded === null) {
@@ -6737,11 +6743,9 @@ export function applyCast(
     }
   }
   const logLines: string[] = res.touche ? [] : [res.log];
-  // Composant d'incantation (LDB 46 l.107-113, règle optionnelle) : consommé UNE fois par lancement
-  // d'un Sort d'Arcane/Domaine couvert, « même si aucune Incantation Imparfaite n'a été obtenue »
-  // (l.111). `componentUsed` → toute Imparfaite de ce lancement est dégradée (Majeure→Mineure,
-  // Mineure→annulée). N'a pas lieu pour une Prière (l.113 : composants = Sorts d'Arcane/Domaine).
+  // LDB 46 l.111 ; LDB 46 l.113
   const componentUsed = isSort && useSpellComponent(caster, spell.id, logLines);
+  if (isSort) faimALIncantation(get, caster, spell, componentUsed, logLines);
   // Malepierre PORTÉE (`VDM 02 l.163-165`) : le doublement du DR (déjà figé sur `res.malepierreConsumed`,
   // `engine/magic.ts`) décrémente ICI la réserve — seul point d'ÉCRITURE (`consumeMalepierre`).
   const malepierreItem = res.malepierreConsumed ? malepierreItemOf(caster) : undefined;
@@ -9362,6 +9366,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       return;
     }
     case 'deplacement': {
+      if (action.fuite) lacherLeBouclierDuBinome(get, set, enemy); // ZI 13 l.193
       // Simplification IA assumée (sévérité mineure, relevée par la revue de fidélité) :
       //  • l'IA ne fait JAMAIS de Désengagement (option joueur, LDB 15 l.43-49) : un
       //    ennemi Engagé qui se repositionne ne paie pas l'Esquive/le sacrifice d'Avantage.

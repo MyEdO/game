@@ -10,27 +10,27 @@
   },
   "couche": "armure",
   "couvre": [],
-  "emplacements": {
-    "cimier": {
-      "os": "Head",
-      "position": [
-        0,
-        0.215487,
-        -0.006071
-      ],
-      "rotation": [
-        -0.02897,
-        0,
-        0
-      ]
-    }
-  },
   "silhouettes": [
     "feminin",
     "corpulence",
     "carrure_moins",
     "carrure_plus"
   ],
+  "emplacements": {
+    "cimier": {
+      "os": "Head",
+      "position": [
+        0,
+        0.202836,
+        0.085122
+      ],
+      "rotation": [
+        -0.23841,
+        0,
+        0
+      ]
+    }
+  },
   "surfaces": [
     {
       "nom": "metal",
@@ -38,12 +38,17 @@
       "matiere": "prop--acier-battu"
     },
     {
+      "nom": "cordon",
+      "palette": "vet1",
+      "matiere": "prop--corde"
+    },
+    {
       "nom": "fleuron",
       "palette": "accent"
     }
   ],
   "glb": {
-    "sha256": "d5b14a22129b2cb7f75d6a16d2d427e6656f8b7f91da96da23c97c91821052ff",
-    "octets": 339172
+    "sha256": "693df87809c2b28a1153226cbe61780b9c7e6b1bf1cec1505cbbec376346b41f",
+    "octets": 358436
   }
 }

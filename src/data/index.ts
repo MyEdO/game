@@ -838,6 +838,8 @@ export interface ItemCapabilities {
   isRations?: boolean;
   /** Grimoire / livre de Sorts (LDB 47 l.21) — un Sort non mémorisé du Domaine peut y être lu (NON gaté). */
   isGrimoire?: boolean;
+  /** Composant d'incantation (LDB 46 l.107-113), lié à un Sort par `ItemInstance.sortLie` (NON gaté). */
+  isSpellComponent?: boolean;
   /** Outils de crochetage (LDB 67 l.66 : « nécessaire pour utiliser la Compétence Crochetage sans
    *  pénalité ») — consommé par `SkillData.tool` (crochetage → −10 sans outil, LDB 09 l.168). NON gaté
    *  sur le port : les posséder suffit (on les sort pour s'en servir, comme `isRations`). */
@@ -859,6 +861,8 @@ export interface ItemCapabilities {
   disarmImmune?: boolean;
   /** Objet lancé détruit, qui ne tombe pas au sol (`appliquerLaTouche`, `noyau/combatFlow.ts`). #4330 */
   detruitAuLancer?: boolean;
+  /** Armure de monture, portée par la bête et jamais équipée par une dotation (`harnacher`, `noyau/mount.ts`). AA 09 l.184 ; ADE I 07 l.66 ; #4135 */
+  armureDeMonture?: boolean;
   /** Arme à corde séparable (Lance-harpon, ADE II 02 l.677 : « Si la corde est séparée de la flèche, la
    *  portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante ») — active le mode de tir
    *  `WeaponContext.harpoonRopeCut` (`effectiveWeapon`, `noyau/combatFlow.ts` `weaponContextOf`), choisi
@@ -893,6 +897,8 @@ export interface TrappingData {
   rendu?: { id: string };
   /** Cf. `Weapon.perteSansEquipe`. AA 10 l.148 ; ZI 13 l.193 */
   perteSansEquipe?: PerteSansEquipe;
+  /** Cf. `Weapon.bouclierDEquipe`. ZI 13 l.193 */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169/171) : peut viser une CASE au sol.
    *  Propagé Trapping → ItemInstance → Weapon (`indirect`) ; lu par `availableAttacks`. Canon/baliste = direct. */
   indirect?: boolean;
@@ -968,6 +974,9 @@ export interface TrappingData {
    *  sur le catalogue NATIVEMENT ogre (massue ogre, pansière ogre… l.604 : Enc déjà entré à sa valeur pleine,
    *  pas de doublement). Propagée à `ItemInstance.sizeFor` / `Weapon.sizeFor`. */
   sizeFor?: import('../engine/size').SizeCategory;
+  /** Seul Groupe de peuple (`groups.json`) à qui une arme au choix de carrière l'offre (`offerteAuPorteur`).
+   *  Arbitrage #4110 (2026-11-16) */
+  reserveeA?: { id: string };
   availability: Availability | 'ND' | null;
   /** Allonge de MÊLÉE — vocabulaire FERMÉ `ReachValue` (les sept longueurs de LDB 62 l.156-164, plus
    *  « Variable » l.31) ou null, VALIDÉ au chargement par le schéma zod (`schemas/defs/trappings.ts`).
@@ -2285,14 +2294,15 @@ export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | n
 }
 /** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
 const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
-/** ARMES choisissables `{ id, label, groupe, sizeFor }` : toute Possession `melee`/`distance` hors « Mains nues »
+/** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` hors « Mains nues »
  *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
  *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
- *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue. */
+ *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue ; `reserveeA`, le seul Groupe
+ *  de peuple à qui elle s'offre. */
 export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
   .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
-  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor }))
+  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor, reserveeA: t.reserveeA?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {

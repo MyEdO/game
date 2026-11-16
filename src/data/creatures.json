@@ -5575,7 +5575,7 @@
     "talents": [],
     "trappings": [
       {
-        "text": "barde"
+        "id": "barde"
       }
     ],
     "spells": [],
@@ -11797,6 +11797,12 @@
         "range": 48
       },
       {
+        "id": "a-distance",
+        "value": 9,
+        "arg": "pistolet-a-malepierre",
+        "range": 20
+      },
+      {
         "id": "arme",
         "value": 10,
         "arg": "malelame-a-deux-mains"
@@ -13265,7 +13271,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -13391,7 +13397,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "corruption",
@@ -13462,6 +13468,12 @@
       },
       {
         "id": "arme-simple"
+      },
+      {
+        "id": "composant-d-incantation",
+        "count": {
+          "fixed": 4
+        }
       }
     ],
     "spells": [
@@ -13484,7 +13496,8 @@
     "grantGroups": [
       "skaven",
       "nurgle"
-    ]
+    ],
+    "maison": "Quatre composants pour les « composants pour des sorts » (Middenheim 02 l.2568) : un par Sort d'Arcane ou de Domaine connu. Valeur d'adaptation du ticket #4132 (https://github.com/MyEdO/game/issues/4132)."
   },
   {
     "id": "maitre-moulder-skree",
@@ -13511,7 +13524,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -13649,7 +13662,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -13789,7 +13802,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -13930,7 +13943,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -16460,7 +16473,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Hache"
+        "arg": "arme-simple"
       },
       {
         "id": "haine",
@@ -19256,7 +19269,7 @@
       {
         "id": "a-distance",
         "value": 8,
-        "arg": "Pistolets",
+        "arg": "pistolet",
         "range": 20
       },
       {
@@ -19267,7 +19280,7 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Épée"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -19904,7 +19917,7 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -20229,7 +20242,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Hache"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",

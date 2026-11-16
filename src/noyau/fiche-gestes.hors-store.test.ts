@@ -9,6 +9,7 @@ import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, 
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { refusEmplacementDeMain, refusAchatDeComposant, refusDeSupprimerSet } from './partyFlow';
+import { itemCapability } from '../engine/capabilities';
 import { refusDInventaire, refusDuBackground, refusDeRompreUneFaveur } from './verrousDeFiche';
 import { buildAdvancementView } from './monde/advancement';
 import { refusGestePossession, ciblesDEmbarquement } from './possessionsFlow';
@@ -453,7 +454,7 @@ describe('acheterLaComposante — le verdict (`refusAchatDeComposant`) est celui
     expect(refusAchatDeComposant(heros, 'projectile-magique-inexistant')).toBe(t('pf.componentSpellNotFound'));
     avecPartie({ ...etatInitialDuJeu(), party: [heros] }, (partie) => {
       const appel = partie.envoyer({ type: 'acheterLaComposante', args: [heros.id, 'projectile-magique-inexistant'] });
-      expect(partie.etat().party[0].componentSpells ?? []).toEqual([]);
+      expect((partie.etat().party[0].items ?? []).filter((it) => itemCapability(it, 'isSpellComponent'))).toEqual([]);
       expect(lignesDuJournal(appel)).toEqual([t('pf.componentSpellNotFound')]);
     });
   });

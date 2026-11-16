@@ -116,6 +116,18 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
     expect(ranged[0].reload).toBeGreaterThan(0);
     expect(c.traits?.map((t) => t.id)).toEqual(['arme', 'armure']);
   });
+
+  it('une barde portée s’ajoute au Trait Armure du demigriffon : l’armure du demigriffon monté (AA 09 l.184 ; #4135)', () => {
+    const c = spawnEnemy({ ref: 'demigriffon' }, 'dg-barde', { x: 0, y: 0 }, { inventaire: { barde: true } });
+    expect(c.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+    expect(c.armour).toEqual(spawnEnemy({ ref: 'demigriffon-adulte' }, 'dg-adulte', { x: 0, y: 0 }).armour);
+    expect(c.traits?.some((t) => t.id === 'armure')).toBe(true);
+  });
+
+  it('un caparaçon porté s’ajoute au Trait Armure du blaireau, sur la tête et le torse (ADE I 07 l.66 ; #4135)', () => {
+    const c = spawnEnemy({ ref: 'blaireau' }, 'bl-caparacon', { x: 0, y: 0 }, { inventaire: { 'caparacon-pour-blaireau': true } });
+    expect(c.armour).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 3, jambeG: 1, jambeD: 1 });
+  });
 });
 
 describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)', () => {

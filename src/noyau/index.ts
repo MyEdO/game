@@ -46,7 +46,6 @@ export {
   talentsDuParcours,
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
-export { entitySize } from './monde/spawn';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {
@@ -54,6 +53,7 @@ export {
   emplacementsDeDotation,
   estEmplacementRacine,
   libelleDeLaValeur,
+  porteurDuProfil,
   sousEmplacementActif,
   valeursDeLEmplacement,
   type EmplacementDeDotation,
@@ -318,7 +318,6 @@ export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
 export { voyageEnVue } from './voyageEnVue';
-export type { VoyageCadence } from './voyageCadence';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';

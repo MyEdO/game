@@ -26,7 +26,7 @@ import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecan
 import { manieAussiSchema, perteSansEquipeSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 import { ref, refs, refusDeLEntree } from '../grammaire/ref';
-import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
+import { DECLARABLE_PAR_UN_PORTEUR, RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
 export const file = 'trappings.json';
@@ -73,6 +73,8 @@ const doc = document(
     /** #3771 */
     rendu: ref('rendu').optional(),
     perteSansEquipe: perteSansEquipeSchema.optional(),
+    /** ZI 13 l.193 */
+    bouclierDEquipe: ref('trapping').optional(),
     /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),
     /** LDB 62 l.31 ; LDB 62 l.135 */
@@ -108,6 +110,8 @@ const doc = document(
     enc: z.union([z.number(), z.literal('ND'), z.literal('Variable')]).nullable().optional(),
     /** ADE II 2 l.706-710 */
     sizeFor: sizeCategorySchema.optional(),
+    /** Arbitrage #4110 (2026-11-16) */
+    reserveeA: ref('groupe', undefined, DECLARABLE_PAR_UN_PORTEUR).optional(),
     /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 69 l.9 ; LDB 59 l.15 ; LDB 62 l.31 ; LDB 44 l.113-119 ; MDG 10 l.112 */
     availability: z.union([availabilitySchema, z.literal('ND')]).nullable(),
     /** `reach`/`loc`/`pa`/`damage` : portés par les armes/armures — ABSENTS (pas seulement `null`) sur
@@ -154,6 +158,10 @@ const doc = document(
     perteSansEquipe: {
       label: 'Perte sans équipe',
       hint: 'Qualités que l’arme perd quand son tireur n’a ni servant ni allié adjacent',
+    },
+    bouclierDEquipe: {
+      label: 'Bouclier d’équipe',
+      hint: 'Bouclier que tient l’allié au contact du tireur : Protectrice de ce bouclier aux deux, ni Course ni Fuite',
     },
     unarmed: {
       label: 'Est « Mains nues »',
@@ -203,6 +211,7 @@ const doc = document(
       label: 'Taille prévue',
       hint: 'Version grande taille d’une possession ordinaire (ex. équipement pour Ogre)',
     },
+    reserveeA: { label: 'Réservée à', hint: 'Groupe seul à qui une arme au choix de carrière l’offre' },
     availability: { label: 'Disponibilité' },
     reach: { label: 'Allonge', hint: 'Porté par les armes de mêlée ; absent des objets sans profil d’arme' },
     range: { label: 'Portée', hint: 'Mètres fixes, ou Bonus de Force × multiplicateur (armes de jet)' },

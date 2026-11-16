@@ -19,11 +19,11 @@
     {
       "nom": "ruban",
       "palette": "vet1",
-      "matiere": "prop--toile-ecrue"
+      "matiere": "prop--drap-terne"
     }
   ],
   "glb": {
-    "sha256": "9ac37379e3a5cd1ecb7eb5c86939902e2c92bdc4e6edb96ff890b7e8c64d26f4",
-    "octets": 270032
+    "sha256": "67eadba0223499907f07daf175faaa8ec55ad59888f5676773207eb354c7e572",
+    "octets": 156076
   }
 }

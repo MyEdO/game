@@ -175,7 +175,7 @@ func _choisir_un_scenario() -> String:
 	var barre := (_scenarios.get_node("Defilement") as ScrollContainer).get_v_scroll_bar()
 	barre.value_changed.connect(_republier)
 	_scenarios.visible = true
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 	var jeu: Dictionary = await zones[0].geste
 	barre.value_changed.disconnect(_republier)
 	_scenarios.visible = false
@@ -260,7 +260,7 @@ func _montrer_les_sauvegardes(reponse: Dictionary) -> void:
 		return
 	Zone.montrer_toutes(Zone.racines(_sauvegardes), reponse.zones)
 	_sauvegardes.visible = true
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 
 
 ## Le panneau des sauvegardes fermé : sur la partie ouverte, ou, sans partie, sur l'accueil.
@@ -269,7 +269,7 @@ func _fermer_les_sauvegardes() -> void:
 		_pont.revenir_a_l_accueil()
 		return
 	_sauvegardes.visible = false
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 
 
 ## La sauvegarde de l'emplacement `emplacement` à charger : la partie ouverte quittée (`quitter`, son point de reprise
@@ -334,7 +334,7 @@ func _suivre(reponse: Dictionary) -> void:
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_salon.relire()
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 
 
 ## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
