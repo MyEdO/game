@@ -13325,6 +13325,9 @@
         "precise"
       ]
     },
+    "bouclierDEquipe": {
+      "id": "bouclier-de-jezail"
+    },
     "availability": null,
     "price": null,
     "source": {
@@ -13406,6 +13409,43 @@
     "enc": 3,
     "shape": {
       "id": "jezail"
+    },
+    "rangement": {
+      "id": "dos"
+    }
+  },
+  {
+    "id": "bouclier-de-jezail",
+    "type": "trappings",
+    "label": "Bouclier de jezaïl",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "shield": true,
+    "enc": 1,
+    "availability": null,
+    "reach": "Très courte",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 2
+    },
+    "qualities": [
+      {
+        "id": "protectrice",
+        "value": 2
+      }
+    ],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.193"
+    },
+    "shape": {
+      "id": "rond"
     },
     "rangement": {
       "id": "dos"

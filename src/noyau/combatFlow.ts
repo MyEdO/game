@@ -126,9 +126,9 @@ import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
-import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
+import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
-import { effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
+import { bouclierDuBinomeEnJeu, effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
 import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
@@ -321,7 +321,7 @@ import {
   endommagerLArmeTenue,
   weaponIdentity,
 } from '../engine/items';
-import { crochetDuSol } from './objetsAuSol';
+import { crochetDuSol, lacherLeBouclierDuBinome } from './objetsAuSol';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import {
@@ -1263,7 +1263,7 @@ export function resolveAttack(
     const rd = defenseSurfaced(get(), target)
       ? undefined
       : (() => {
-        const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+        const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
         return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
     const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold);
@@ -1286,7 +1286,7 @@ export function resolveAttack(
   // seul jet d'ATTAQUANT (`defense:'aucune'`) et l'interposition (`openSurfacedDefense`, chemin piloté) ou la
   // fenêtre réactive (`maybeOpenDefense`, chemin IA) opposera le jet de défense au jet figé.
   const surfaced = defenseSurfaced(get(), target);
-  return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'aucune' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear }), weapon };
+  return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'aucune' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear, bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) }), weapon };
 }
 
 /** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `jet`, tranché à
@@ -1323,7 +1323,7 @@ export function resolveDualSecond(
   const mode = (cannotDefend(target) || isInanimate(target) || defenseSurfaced(get(), target)) ? 'aucune' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
   if (mode === 'aucune') return resolveMeleePassive(attacker, target, offWeapon, atk, { rng: battleRng() }, opts?.location, env, undefined, false, compo);
   const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), defaultParryWeapon(target), offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
-  return finishMelee(attacker, target, offWeapon, atk, def, mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo);
+  return finishMelee(attacker, target, offWeapon, atk, def, mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo, bouclierDuBinomeEnJeu(get(), target));
 }
 
 /** Cibles VALIDES de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773 : « un adversaire disponible de
@@ -1688,7 +1688,7 @@ export function disengageOutcome(winner: VainqueurOppose): IssueOpposee {
  *  plus dangereux. Rouvre le mouvement si plus aucun foe vivant. Options : `noyau/combat/desengagement.ts`. */
 export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   const battle = get().battle!;
-  const ctx = { active: mover, battle };
+  const ctx = { active: mover, battle, scene: get().scene };
   const foes = adversairesEngages(ctx);
   const libre = departLibre(ctx);
   if (!foes.length || libre) {
@@ -1879,7 +1879,7 @@ export function computeRunReach(get: Get<Jeu>): Map<string, number> {
   if (battle.reachable.size > 0) return new Map();
   const active = activeCombatant(battle);
   if (!active || !controlsCombatant(get(), active) || !active.pos) return new Map();
-  if (refusDeCourse(battle, active)) return new Map();
+  if (refusDeCourse(scene, battle, active)) return new Map();
   const geom = mountOf(battle, active) ?? active;
   const budget = movementRemaining(battle, active) + distanceDeCourse(mouvementDeCourse(battle, active));
   const reach = moveReachFor(geom, scene, active.pos, budget, moveEnv(battle, geom));
@@ -1941,6 +1941,7 @@ export function aiApproachPlan(
   const inp: EnemyTurnInput = { ...input, losMemo: input.losMemo ?? makeLosMemo(input.scene, input.smoke ?? []), memoDesApproches: input.memoDesApproches ?? new Map() };
   const charge = chooseEnemyAction({ ...inp, movement: courseBudget });
   if (charge.kind === 'deplacement' && atContact(charge)) return { plan: charge, ran: null };
+  if (refusDuBinome(input.scene, { combatants: [enemy, ...(input.squad ?? [])] }, enemy)) return none; // ZI 13 l.193
   // Course (LDB 15 l.41) : budget = Marche + Course + DR ; pas d'attaque.
   const course = testDuCavalier(enemy, testDeRegle('course', 'courir'));
   const r = resolveRun(testValue(enemy, course), course.difficulty, M, rng);
@@ -3959,7 +3960,7 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
   if (!defenseSurfaced(s, target)) return { refus: 'non-surfacee' };
   // TIR : LDB 62 l.296 ; LDB 14 l.40 ; LDB 14 l.44. LoS acquise : l'IA ne tire que si elle voit (doAttack).
   if (weapon?.type === 'distance') {
-    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene));
+    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target));
     return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
@@ -3997,7 +3998,7 @@ export function maybeOpenDefense(
     const dist = distanceDeCombat(get().scene, attacker, target);
     const { env } = attackEnv(get, attacker, target, weapon);
     const atk = rollRangedAttacker(attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
-    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
     // Composée HORS du littéral : la Difficulté du tir figé, avec les mêmes options que `rollRangedAttacker`.
     const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'distance', distanceTiles: dist, env, metresPerTile: mpt }));
     set({
@@ -4064,7 +4065,7 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
   if (pa.siege) return false;
   if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
-  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene)).length > 0;
+  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target)).length > 0;
   return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon, sceneMetresPerTile(s.scene));
 }
 
@@ -4093,8 +4094,9 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
     suite: { mode: 'pilotee' as const, pa: { ...pa, defended: true } },
   };
   if (weapon.type === 'distance') {
-    const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt);
-    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+    const binome = bouclierDuBinomeEnJeu(get(), target);
+    const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt, binome);
+    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, binome);
     set({ pendingDefense: { ...base, mode: best?.mode ?? modes[0], parryWeaponUid: best?.parryWeapon?.uid, modes, distanceTiles: dist } });
   } else {
     set({ pendingDefense: { ...base, mode: bestDefenseMode(target) } });
@@ -4736,7 +4738,7 @@ function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // l.123), seul son EFFET est ignoré (LDB 85 l.98) ; l'Action, gratuite, est rendue par la reprise.
   const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind } };
   if (maybeOpenDefense(get, set, attacker, target, weapon, suite)) return OPS_DIFFEREES; // suspendu : resolve via défense
-  const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'aucune' : bestDefenseMode(target) });
+  const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'aucune' : bestDefenseMode(target), bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) });
   // Enchaînement absent = `auto` (LDB 85 l.362), joué par l'après-coup.
   return applyAttackResult(get, set, attacker, target, weapon, res, { sousAttaque: true, suite });
 }
@@ -9350,6 +9352,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       return;
     }
     case 'deplacement': {
+      if (action.fuite) lacherLeBouclierDuBinome(get, set, enemy); // ZI 13 l.193
       // Simplification IA assumée (sévérité mineure, relevée par la revue de fidélité) :
       //  • l'IA ne fait JAMAIS de Désengagement (option joueur, LDB 15 l.43-49) : un
       //    ennemi Engagé qui se repositionne ne paie pas l'Esquive/le sacrifice d'Avantage.

@@ -166,6 +166,7 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   reach: true,
   range: true,
   perteSansEquipe: true,
+  bouclierDEquipe: true,
   indirect: true,
   bladed: true,
   organicProjectile: true,

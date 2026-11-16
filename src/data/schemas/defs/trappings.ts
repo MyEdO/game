@@ -73,6 +73,8 @@ const doc = document(
     /** #3771 */
     rendu: ref('rendu').optional(),
     perteSansEquipe: perteSansEquipeSchema.optional(),
+    /** ZI 13 l.193 */
+    bouclierDEquipe: ref('trapping').optional(),
     /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),
     /** LDB 62 l.31 ; LDB 62 l.135 */
@@ -154,6 +156,10 @@ const doc = document(
     perteSansEquipe: {
       label: 'Perte sans équipe',
       hint: 'Qualités que l’arme perd quand son tireur n’a ni servant ni allié adjacent',
+    },
+    bouclierDEquipe: {
+      label: 'Bouclier d’équipe',
+      hint: 'Bouclier que tient l’allié au contact du tireur : Protectrice de ce bouclier aux deux, ni Course ni Fuite',
     },
     unarmed: {
       label: 'Est « Mains nues »',

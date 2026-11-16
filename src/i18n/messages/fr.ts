@@ -2265,6 +2265,7 @@ export const fr = {
   'cf.lameResiste': '{weapon} résiste à la casse (Incassable/Solide) mais est arrachée des mains de {name}.',
   'cf.libelleDuPiegeALame': 'Piège-lame',
   'cf.armeLachee': '{name} laisse tomber {weapon}, arrachée de ses mains !',
+  'cf.bouclierLacheEnFuyant': '{name} lâche {weapon} et fuit.',
   'cf.ganteletVerrouilleRetient': 'Le gantelet verrouillé de {name} retient {weapon} (−20 à tous ses Tests avec cette arme pendant 1 Round).',
   'cf.enTeteDuRound': '— Round {round} —',
   // En-tête de la ligne du Tableau des Oups ! — `{effet}` est le libellé de la ligne tirée (`oups.json`).
@@ -4348,6 +4349,10 @@ export const fr = {
   'agate.prayerForAction': '{name} doit effectuer un Test de Prière pour son Action ({source}).',
   'agate.alreadyEngaged': 'déjà Engagé',
   'agate.prone': 'ne peut que ramper : se relever d’abord',
+  'agate.cannotRun': 'ne peut pas réaliser d’Action de Course',
+  // ZI 13 l.193 (`noyau/combat/surnombre.bouclierDuBinome`).
+  'agate.binomeTientLeBouclier': 'tient {bouclier} du binôme : le poser au sol d’abord',
+  'agate.binomeCouvert': 'couvert par {bouclier} d’un allié : il doit le poser au sol d’abord',
   'agate.noMovementLeft': 'plus de Mouvement ce tour',
   'agate.noResolve': 'aucun point de Détermination',
   'agate.noFreeWeaponAttack': 'aucune attaque d’Arme gratuite disponible',

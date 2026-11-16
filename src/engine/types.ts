@@ -332,6 +332,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   /** Qualités que l'arme perd tirée sans équipe (`armeSansEquipe`, `WeaponContext.sansEquipe`). AA 10 l.148 ;
    *  ZI 13 l.193 */
   perteSansEquipe?: PerteSansEquipe;
+  /** Bouclier que tient le partenaire au contact du tireur de cette arme (`bouclierDuBinome`). ZI 13 l.193 ; #4202 */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte — « arc élevé », AA 10 l.169-171) : peut viser une CASE au sol
    *  (pas forcément un combattant) ; son Atout Explosion/Tir de zone frappe le rayon autour de la case. Lu
    *  par `availableAttacks` (ciblage de case vs combattant). Absent = tir DIRECT (canon, baliste, pierrier). */
@@ -1098,6 +1100,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   derivedWeapon?: Weapon;
   /** Cf. `Weapon.perteSansEquipe` — propagé à l'arme dérivée. */
   perteSansEquipe?: PerteSansEquipe;
+  /** Cf. `Weapon.bouclierDEquipe`. */
+  bouclierDEquipe?: { id: string };
   /** Pièce à TIR INDIRECT (mortier/catapulte, cf. `Weapon.indirect`) — propagé à l'arme dérivée. */
   indirect?: boolean;
   /** LDB 62 l.278 — approximation MAISON, propagé à l'arme dérivée (cf. `Weapon.bladed`). */
