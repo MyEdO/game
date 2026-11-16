@@ -2650,6 +2650,7 @@
     "id": "petites-munitions-et-poudre",
     "type": "trappings",
     "label": "Petites munitions et Poudre",
+    "packSize": 12,
     "categorie": "ammunition",
     "subType": {
       "id": "poudre-noire-et-ingenierie"
@@ -2672,7 +2673,8 @@
     },
     "source": {
       "book": "livre-de-base",
-      "page": 296
+      "page": 296,
+      "note": "LDB 62 l.123 ; Lot : AA 08 l.499 (12)."
     }
   },
   {
@@ -2711,7 +2713,7 @@
   {
     "id": "jambieres-en-cuir",
     "type": "trappings",
-    "label": "Jambières en cuir",
+    "label": "Jambières de cuir",
     "categorie": "armor",
     "subType": {
       "id": "cuir-souple"
@@ -8717,8 +8719,8 @@
     "qualities": [],
     "desc": "Cette substance hallucinogène extrêmement addictive pousse sous les potences et elle est mâchée pour calmer un esprit agité. Les utilisateurs doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ; de plus, le Mouvement est réduit de moitié. Cependant, les Tests de Calme reçoivent un bonus de +20. Durée: active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
     "price": {
-      "gold": 0,
-      "silver": 1,
+      "gold": 1,
+      "silver": 0,
       "brass": 0
     },
     "source": {
@@ -13561,7 +13563,7 @@
     "source": {
       "book": "zoo-imperial",
       "page": 94,
-      "note": "ZI 13 l.197"
+      "note": "ZI 13 l.197 ; Enc : VO Le Rat Cornu – Compagnon, p.34 (Ratling Gun, 3*, part du tireur principal)."
     },
     "descRef": {
       "book": "zoo-imperial",
@@ -13610,7 +13612,7 @@
         "value": 2
       }
     ],
-    "enc": 4,
+    "enc": 3,
     "reserveeA": {
       "id": "skaven"
     },
@@ -13664,7 +13666,7 @@
     "source": {
       "book": "zoo-imperial",
       "page": 94,
-      "note": "ZI 13 l.201"
+      "note": "ZI 13 l.201 ; Enc et Groupe : VO Le Rat Cornu – Compagnon, p.34 (Warpfire Thrower, 2*, part du tireur principal)."
     },
     "descRef": {
       "book": "zoo-imperial",
