@@ -1,0 +1,13 @@
+{
+  "model": "decor--gravats.glb",
+  "model_sha256": "bab1c13348690a35105108ad23008e3328a5da276302ed4540bc3e33246592ea",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

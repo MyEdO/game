@@ -225,6 +225,13 @@ func _porter_la_hauteur(piece: MeshInstance3D, boite: AABB) -> void:
 		locale.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 
 
+## Le matériau de surface que porte la surface `rang` de `piece`, un mesh de sa scène, sinon un duplicata de son
+## matériau actif posé à sa place (`MontageDeComposition.materiau_local`) ; `null` s'il n'est pas un `BaseMaterial3D`.
+func materiau_propre(piece: MeshInstance3D, rang: int) -> BaseMaterial3D:
+	var porte := piece.get_surface_override_material(rang) as BaseMaterial3D
+	return porte if porte != null else MontageDeComposition.materiau_local(piece, rang, _locaux)
+
+
 ## L'enveloppe convexe, dans le plan horizontal du repère global, de ce que sa scène montre sous la hauteur globale
 ## `hauteur` : ses sommets dessous et les points où les côtés de ses triangles la traversent, hors des doubles d'ombre.
 func contour_sous(hauteur: float) -> PackedVector2Array:

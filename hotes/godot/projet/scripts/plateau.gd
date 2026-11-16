@@ -423,8 +423,9 @@ func _survoler(case: Variant) -> void:
 ## d'un GLB sert toutes les poses de son décor. Le monde ne peint ni n'ombre plus les surfaces de ce décor
 ## (`VolumeDeScene.peindre_sans`), dès que la vue le sert, le rayon du pointeur les touchant toujours ; le modèle porte
 ## sa propre ombre, sur la couche des luminaires si la pose porte `luminaire` (`VolumeDeScene.COUCHE_DES_LUMINAIRES`),
-## se voile à la vision comme un navire (`VolumeDeScene.voile`), et, quand le regard retire sa `case` (au plan `pose`
-## de sa couche, `VolumeDeScene.posee_retiree`), ne se voit plus et porte son ombre. Recettes
-## `projet/recettes/decor-sur-ses-primitives.gd` (coïncidence avec les primitives), `voile-du-decor.gd` (voile, rendu
-## réel), `saisons-du-decor.gd` (feuillage de saison, rendu réel) et `atelier-du-decor.gd` (l'échantillon d'un décor
-## dans l'atelier).
+## les meshes de son nœud `emet` émettant alors leur couleur d'albédo (`MontageDesModeles._allumer`), se voile à la
+## vision comme un navire (`VolumeDeScene.voile`), et, quand le regard retire sa `case` (au plan `pose` de sa couche,
+## `VolumeDeScene.posee_retiree`), ne se voit plus et porte son ombre. Recettes
+## `projet/recettes/decor-sur-ses-primitives.gd` (coïncidence avec les primitives, couche et lueur d'un luminaire),
+## `voile-du-decor.gd` (voile, rendu réel), `saisons-du-decor.gd` (feuillage de saison, rendu réel) et
+## `atelier-du-decor.gd` (l'échantillon d'un décor dans l'atelier).
