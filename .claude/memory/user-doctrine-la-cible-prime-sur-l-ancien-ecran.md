@@ -11,6 +11,10 @@ metadata:
 
 **Verbatim (2026-11-16)** : « Si "début du round" est a affiché, ca sera au même endroit que le bandeau de jet » — #3935.
 
+**Verbatim (2026-11-16)** : « On a pas besoin que cela soit exact mais il y a des choses qui sont à reprendre » ; « Et pleins de détail oui comme Échec qui actuellement en minuscule, la typo et la case, des elements désalignied » — #3935.
+
+**Verbatim (2026-11-16)** : « On ne devrait pas créer un agent pour comme on a fait pour modeleur ? » — #3935.
+
 **Why :** le fil allait rhabiller en parchemin la fenêtre de jet centrée de l'ancien écran, alors que la cible écrite du combat dit que le bandeau de jet prend la place du meuble de l'actif.
 
 **How to apply :**
@@ -19,3 +23,5 @@ metadata:
 - ce que la cible a retiré (fenêtre, panneau, bouton) se retire, il ne se rhabille pas ;
 - en combat, ce qui arrête le jeu (jet, critique, début du round) s'affiche dans le bandeau du bas, jamais en fenêtre centrée ;
 - un point que la cible ne tranche pas se propose à l'utilisateur en maquette, pas en reprenant l'ancien par défaut.
+- la fidélité à la maquette se juge aux détails (police, casse, alignements, centrages, lisibilité), pas au pixel ;
+- un lot d'écran Godot se confie à l'agent `ecraniste`.
