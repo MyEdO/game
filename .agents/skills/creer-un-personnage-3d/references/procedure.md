@@ -64,7 +64,25 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoid
 ``` Vérifier unités, axes, échelle et pose de liaison de la base,
 sans les modifier dans l'élément. Une coupure ne coûte qu'une passe : chaque passe du point fixe des poids écrit une
 reprise (`reprises.py`) dans `<git-common-dir>/reprises-3d/<empreinte>`, l'empreinte de la révision, de ses écarts
-suivis et des arguments ; relancer la même commande repart de la dernière, et `reprises-3d` s'efface une fois la sortie écrite. La construction exige `node` dans le `PATH` : avant Blender,
+suivis et des arguments ; relancer la même commande repart de la dernière, et `reprises-3d` s'efface une fois la sortie écrite.
+
+Une retouche de la pose des bras d'un clip (clés de geste de `deux_mains.py`, passe de `membres.py`) s'itère au banc
+avant de cuire la base. Le banc importe la base publiée, `~/.cache/wfrp-modeles-3d/<glb.sha256 du manifeste>.glb` que
+`npm run godot:sonde` y tire, rejoue les clips nommés avec le code de l'arbre (`--deux-mains` : dérivés de
+`deux_mains.CLIPS` ; `--pack` : passe de `membres.py`, `tous` pour le pack entier), réécrit les rotations des bras, des
+clavicules et du dos de ces clips dans une copie du GLB, écrit à côté le manifeste à son empreinte et imprime la
+commande `npm run godot:evaluer` à lancer sur cette copie :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/banc.py ~/.cache/wfrp-modeles-3d/<empreinte>.glb hotes/godot/projet/modeles/humanoide.manifeste.json --sortie /atelier/banc --deux-mains Hampe_Touche
+```
+
+Le banc prouve la garde Node sur la base publiée rechargée, clips rejoués. Il ne prouve pas la base cuite : la peau de
+la scène rechargée s'écarte de celle de la construction de 3 à 5 mm (#3810), et les chaînes des clips rejoués restent
+celles de la base publiée. Avant de publier, cuire la base et jouer `npm run godot:evaluer -- <base.glb> --manifeste
+<manifeste> --etats-gabarit` sur sa sortie.
+
+La construction exige `node` dans le `PATH` : avant Blender,
 `scripts/personnage-3d/base/manifeste.mjs --verifier` refuse une sortie dans un arbre du dépôt (liens
 et jonctions résolus), un dossier de sortie qui porte un autre fichier que le GLB, `manifest.json` et
 les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un texte de licence
