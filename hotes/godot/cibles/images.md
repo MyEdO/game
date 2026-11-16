@@ -1,6 +1,6 @@
 # Images cibles et propositions de maquettes (#3935)
 
-Images d'intention des écrans sans maquette validée, une par état, sous `propositions/<famille>/<état>.jpg` (vue
+Images d'intention des écrans sans maquette validée, une par état, sous `propositions/<famille>/<état>.jpg`, le compte rendu détaillé de chaque famille dans `propositions/<famille>.md` (vue
 `bureau`). Une proposition n'est pas une cible : elle le devient quand l'utilisateur la valide, son image entre alors
 dans `maquettes/` et `maquettes.json`. Les choix qu'aucune cible écrite ne tranchait sont listés avec l'état.
 Dessinées depuis les cibles écrites (`ecrites/`) et les maquettes validées, jamais depuis un écran existant
