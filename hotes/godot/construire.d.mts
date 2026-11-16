@@ -12,4 +12,10 @@ export function piloter(options: {
   rendu?: string;
   lance: (tuer: () => void) => void;
   encore: () => boolean;
+  planches?: string;
+  fenetre: { largeur: number; hauteur: number };
 }): Promise<{ lignes: string[]; erreurs: string[] }>;
+
+export function signaturesDu(dossier: string): Record<string, string>;
+
+export function ecartsDeLaCopie(avant: Readonly<Record<string, string>>, apres: Readonly<Record<string, string>>): { copier: string[]; retirer: string[] };

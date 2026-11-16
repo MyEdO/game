@@ -112,7 +112,7 @@
 //   « Supprimer » l'en retire, page rechargée comprise.
 // - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; la molette, tournée sur un curseur de
 //   volume, défile le panneau sans régler ce volume, jusqu'à ce que ses quatre curseurs de volume tiennent ensemble
-//   dans la page de 1280 × 720 (#4081) ; « Oui » des dés fixés pressé, le pont dit la
+//   dans la fenêtre (`FENETRE`, #4081) ; « Oui » des dés fixés pressé, le pont dit la
 //   préférence réglée ; la page rechargée, elle revient du stockage ; « Jouer », puis « Options » de la partie : le
 //   même panneau, « Non » la remet, « Fermer » rend la partie. Le volume de la musique (#3949) réglé par le pont avant
 //   le rechargement : il revient du stockage et, dans la page (`lieu.releverLesGains`), un gain de son graphe audio le
@@ -225,6 +225,8 @@
 //   pied, le milieu des points publiés de ses cases ; un mur resté en vue ne change pas, et chaque mur qui change d'état,
 //   lu sur sa face dont la case porte son état, le plus grand de ceux de ses cases (`aretes`), se rend dans le rapport
 //   des teintes à `TOLERANCE_DU_VOILE` près.
+// - `planche` (`--planche <nom>`, `--natif` seulement, #3935) : le jeu s'ouvre sur cette planche
+//   (`projet/scripts/pont_de_planche.gd`) à la vue de référence, sans menu d'entrée ; une fois montrée (`wfrpPlancheMontree`), elle se capture sous son nom, sans autre geste.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -301,7 +303,7 @@ import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine },
 })
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
 if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/recette.mjs (--web <dossier de l’export> | --natif [--rendu <méthode>]) --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
@@ -310,6 +312,8 @@ if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages a
 if (o.parcours === 'bord' && !o.route) throw new Error('--parcours bord attend --route <route.json> (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`)')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'preset' && !o.preset) throw new Error('--parcours preset attend --preset <id d’un preset de personnage>')
+if ((o.parcours === 'planche') !== !!o.planche) throw new Error('--parcours planche va avec --planche <nom d’une planche>, et --planche avec lui seul')
+if (o.planche && !o.natif) throw new Error('--planche se joue en natif (--natif) : à la page, une planche se montre au banc des étalons (etalons.mjs)')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
 if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
 
@@ -333,8 +337,11 @@ const DOSSIER_SERVI = o.modeles ?? fileURLToPath(new URL('./projet/modeles', imp
 /** Le lieu où la recette se joue, choisi une fois : la page de l'export (`--web`), ou le jeu lancé sans export
  *  (`--natif`). Les deux portent les mêmes noms. */
 const lieu = o.natif ? await import('./pilotage/natif.mjs') : await import('./pilotage/page.mjs')
+/** La fenêtre du jeu d'un parcours joué, `[x, y, largeur, hauteur]`, sous les deux lieux : celle que le lanceur passe au
+ *  pilote natif (`ouvrir` de `pilotage/natif.mjs`), la page de `pilotage/page.mjs`. */
+const FENETRE = [0, 0, 1280, 720]
 const { ATTENTE_ECHUE, clic, evaluate, geste, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } = lieu
-const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu })
+const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] } })
 const noter = (t) => console.log('·', t)
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
 const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
@@ -572,9 +579,6 @@ async function ecranFige() {
   assert.ok(fige, e?.fondu ? 'la vision ne se fond plus avant la capture' : 'la caméra se pose, le plateau à l’écran, avant la capture')
   return e
 }
-/** La fenêtre du jeu, `[x, y, largeur, hauteur]`, sous les deux lieux : `TAILLE` du pilote natif
- *  (`projet/recettes/pilote.gd`), la page de `pilotage/page.mjs`. */
-const FENETRE = [0, 0, 1280, 720]
 /** Si le point `[px, py]` de l'écran est dans le rectangle `[x, y, largeur, hauteur]`. */
 const dans = ([x, y, l, h], [px, py]) => px >= x && px <= x + l && py >= y && py <= y + h
 /** Le panneau de l'écran publié `e` (`panneaux`) sous lequel est le point `point`, `undefined` sans lui. */
@@ -1993,7 +1997,7 @@ async function parcoursReglages() {
   const avant = await preferences()
   const curseurs = await curseursDeVolume()
   assert.deepEqual(curseurs.map((c) => c.element).sort(), [...volumes].sort(), 'les quatre curseurs de volume dans le cadre à l’ouverture du panneau')
-  for (const c of curseurs) assert.ok(c.gauche >= 0 && c.droite <= 1280 && c.y >= 0 && c.y <= 720, `${c.element} dans la page : ${JSON.stringify(c)}`)
+  for (const c of curseurs) assert.ok(dans(FENETRE, [c.gauche, c.y]) && dans(FENETRE, [c.droite, c.y]), `${c.element} dans la page : ${JSON.stringify(c)}`)
   await capturer('4081-reglages-volumes')
   const [premier] = curseurs
   const tourner = async (sens) => {
@@ -4311,6 +4315,14 @@ async function parcoursCompendium() {
   noter('« Fermer » rend l’accueil')
 }
 
+/** Le plus long temps d'une planche jusqu'à montrée : la page de `etalons.mjs` l'attend autant. */
+const PLANCHE_MONTREE_MS = 180000
+/** La planche `--planche` montrée (`wfrpPlancheMontree`) puis capturée sous son nom. */
+async function parcoursPlanche() {
+  await waitFor(session, `globalThis.wfrpPlancheMontree === ${JSON.stringify(o.planche)}`, { timeoutMs: PLANCHE_MONTREE_MS })
+  await capturer(o.planche)
+}
+
 const PARCOURS = {
   reglages: parcoursReglages,
   combat: parcoursCombat,
@@ -4347,13 +4359,14 @@ const PARCOURS = {
   preset: parcoursPreset,
   vision: parcoursVision,
   murs: parcoursMurs,
+  planche: parcoursPlanche,
 }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_DU_PARCOURS)), [], 'chaque parcours déclare ses jeux au lot (`JEUX_DU_PARCOURS`)')
 
 let echec = null
 try {
-  await attendreLeMenu()
+  if (!o.planche) await attendreLeMenu()
   await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))
   assert.deepEqual(releve, { ok: true, erreurs: [] }, 'aucune erreur de la page relevée par le pont')

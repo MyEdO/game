@@ -4924,6 +4924,7 @@ export const fr = {
   'codex.op.depenseDAvantage.tout': 'perd tous ses Avantages',
   'codex.op.lumiere': 'émet de la lumière sur {n} m',
   'codex.op.ivresse': "échoue à résister à l'alcool",
+  'codex.op.ivresse.effet': "échoue à résister à l'alcool ; tant qu'ivre : {ops}",
   'codex.op.nombreNarratif': '{text} : {n}',
   'codex.flow.si': 'Si {cond}, {alors}',
   'codex.flow.sinon': ' ; sinon {sinon}',

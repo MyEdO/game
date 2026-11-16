@@ -2,12 +2,15 @@ extends SceneTree
 
 ## @contrat Écran publié
 ## Hors d'une page, une recette pilote le jeu par `projet/recettes/pilote.gd`, la boucle principale du lancement
-## (`--script`, #3945) : il porte la fenêtre à 1280 × 720, ouvre le menu d'entrée et le lieu du noyau, puis relève à
-## chaque pas de physique (`physics_frame`) les commandes du parcours par la méthode `commandes` du processus du pont,
-## que seul le lanceur d'une recette sert (`hotes/godot/pilotage/natif.mjs`) : comme une entrée du joueur, chacune est
-## jouée et ses appels différés vidés avant `process_frame`, où la publication de l'écran juge sa mise en page
-## (`PublicationDeLEcran.demander`). Son entrée est `{ rendus }`, ce que chaque commande jouée depuis la
-## relève d'avant a rendu, `[id, valeur]` ; sa réponse `{ ok: true, commandes }`, chacune portant son `id` et l'une de :
+## (`--script`, #3945) : il porte la fenêtre à la taille de ses paramètres `largeur` et `hauteur` (`--<cle>=<valeur>`),
+## ouvre le menu d'entrée, puis, le lieu du noyau ouvert par l'écran, relève à chaque pas de physique (`physics_frame`)
+## les commandes du parcours par la méthode `commandes` du processus du pont, que seul le lanceur d'une recette sert
+## (`hotes/godot/pilotage/natif.mjs`) : comme une entrée du joueur, chacune est jouée et ses appels différés vidés avant
+## `process_frame`, où la publication de l'écran juge sa mise en page (`PublicationDeLEcran.demander`). Il l'appelle au
+## transport du pont de l'arbre, jamais au pont : le pont qu'un écran pose à la place du sien (`PontDePlanche`) ne la
+## sert pas. Il suit ce pont et tient chacune de ses pannes pour un échec.
+## Son entrée est `{ rendus }`, ce que chaque commande jouée depuis la relève d'avant a rendu, `[id, valeur]` ; sa
+## réponse `{ ok: true, commandes }`, chacune portant son `id` et l'une de :
 ## - `souris` (`deplacer`, `presser`, `relacher` ou `cran`), `x`, `y` et `bouton` (l'index de Godot, absent d'un
 ##   déplacement) : l'événement de souris passé à `Input.parse_input_event`, un cran de molette pressé puis relâché ;
 ## - `touche` (`{ key, code }`, comme la page les nomme) et `appuyee` : l'événement de clavier, son caractère porté
@@ -20,7 +23,6 @@ extends SceneTree
 ## - `quitter` : le code de sortie, après la ligne `[pilote] fin`.
 ## Une commande rend `true`, la réponse de son rappel, ou `{ erreur }`.
 
-const TAILLE := Vector2i(1280, 720)
 ## Le code Godot de chaque touche que la page nomme autrement que par son caractère ou `Key<lettre>`.
 const TOUCHES := {
 	"Enter": KEY_ENTER, "Escape": KEY_ESCAPE, "Backspace": KEY_BACKSPACE, "Home": KEY_HOME, "End": KEY_END,
@@ -48,20 +50,41 @@ func _initialize() -> void:
 
 
 func _piloter() -> void:
-	root.size = TAILLE
-	_pont = root.get_node("Pont")
+	_suivre_le_pont()
+	root.size = Vector2i(int(_pont.parametre("largeur")), int(_pont.parametre("hauteur")))
+	change_scene_to_file(ProjectSettings.get_setting("application/run/main_scene"))
+	while not _fini:
+		_suivre_le_pont()
+		if _transport.est_ouvert():
+			_relever()
+		await physics_frame
+
+
+## Le pont de l'arbre suivi, s'il a changé : ses pannes font échouer le pilote, son transport porte les commandes.
+func _suivre_le_pont() -> void:
+	var pont: PontDuNoyau = root.get_node("Pont")
+	if is_instance_valid(_pont) and _pont == pont:
+		return
+	_pont = pont
+	_pont.panne.connect(_echouer)
 	for enfant in _pont.get_children():
 		if enfant is TransportDuProcessus:
 			_transport = enfant
-	change_scene_to_file(ProjectSettings.get_setting("application/run/main_scene"))
-	if not await _pont.rejoindre(func(_message: String) -> void: pass, func(message: String) -> void: _echouer(message)):
-		_finir(1)
-	while not _fini:
-		var releve := _pont.appeler("commandes", {rendus = _rendus})
-		_rendus = []
-		for commande: Dictionary in releve.get("commandes", []):
-			_jouer(commande)
-		await physics_frame
+
+
+## Les commandes relevées au lieu et jouées, ce que les précédentes ont rendu remis ; une relève illisible, un échec,
+## et sans réponse, la panne du transport le fait déjà.
+func _relever() -> void:
+	var brut: Variant = _transport.appeler("commandes", JSON.stringify({rendus = _rendus}))
+	_rendus = []
+	if brut == null:
+		return
+	var releve: Variant = JSON.parse_string(brut)
+	if not releve is Dictionary:
+		_echouer("commandes : relève illisible : %s" % str(brut).left(200))
+		return
+	for commande: Dictionary in releve.get("commandes", []):
+		_jouer(commande)
 
 
 ## La panne du lieu `message` écrite en erreur, puis la sortie en échec.
