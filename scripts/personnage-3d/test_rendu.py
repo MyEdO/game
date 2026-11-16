@@ -1,6 +1,7 @@
 """rendu (#4002) : les os de repos déplacés par `gabarit.osDesSilhouettes`, chaque translation tournée par le repère de
 repos de son parent, invisibles au repos et centre de rotation de l'os sous une pose ; le relief de la peau sous
-`corpulence`."""
+`corpulence` ; la palette d'un preset, les couleurs de sa race d'abord (#4379) ; une matière sans texture au catalogue
+laisse le matériau."""
 import argparse
 import tempfile
 import unittest
@@ -9,7 +10,9 @@ from pathlib import Path
 import numpy
 
 from glb import ecrire_glb, lire_glb
-from rendu import accuser_le_relief, deplacements_des_os, deplacer_les_os, facteur_de_relief, importer, lire_cadre, matrice_du_noeud
+from habillage import couleur_lineaire
+from rendu import (accuser_le_relief, deplacements_des_os, deplacer_les_os, facteur_de_relief, habiller_le_modele, importer, lire_cadre,
+                   matrice_du_noeud, palette)
 
 RACINE_TOURNEE = [0, 0, 2 ** -0.5, 2 ** -0.5]
 """Quart de tour autour de Z (glTF)."""
@@ -88,6 +91,22 @@ class FacteurDeRelief(unittest.TestCase):
         self.assertIsNone(facteur_de_relief({}, {'corpulence': 1}))
 
 
+class Palette(unittest.TestCase):
+    """La palette d'un preset (#4379)."""
+
+    RACES = [{'id': 'orc', 'couleurs': {'peau': {'id': 'vert'}, 'yeux': {'id': 'rouge'}}}, {'id': 'humain'}]
+    NUANCIER = [{'id': 'vert', 'domain': 'couleur', 'color': '#2a5a2a'}, {'id': 'rouge', 'domain': 'couleur', 'color': '#a02020'},
+                {'id': 'bleu', 'domain': 'couleur', 'color': '#2030a0'}]
+
+    def test_les_couleurs_de_la_race_puis_celles_du_preset(self):
+        self.assertEqual(palette({'race': {'id': 'orc'}, 'couleurs': {'yeux': {'id': 'bleu'}}}, self.RACES, self.NUANCIER),
+                         {'peau': couleur_lineaire('#2a5a2a'), 'yeux': couleur_lineaire('#2030a0')})
+
+    def test_une_race_sans_couleurs_n_en_donne_aucune(self):
+        self.assertEqual(palette({'race': {'id': 'humain'}, 'couleurs': {'yeux': {'id': 'bleu'}}}, self.RACES, self.NUANCIER),
+                         {'yeux': couleur_lineaire('#2030a0')})
+
+
 class LireCadre(unittest.TestCase):
     """`--cadre` (#4338)."""
 
@@ -161,6 +180,20 @@ class DansBlender(unittest.TestCase):
                  for nom, m in materiaux.items()}
         self.assertAlmostEqual(force['Peau'], 0.4, places=6)
         self.assertAlmostEqual(force['Cheveux'], 0.8, places=6)
+
+    def test_une_matiere_sans_texture_au_catalogue_laisse_le_materiau(self):
+        bpy = self.bpy
+        mat = bpy.data.materials.new('SansTexture')
+        maillage = bpy.data.meshes.new('SansTexture')
+        maillage.from_pydata([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [], [(0, 1, 2)])
+        maillage.uv_layers.new(name='UVMap')
+        maillage.materials.append(mat)
+        objet = bpy.data.objects.new('SansTexture', maillage)
+        bpy.context.scene.collection.objects.link(objet)
+        avant = len(mat.node_tree.nodes)
+        habiller_le_modele(bpy, [objet], {'surfaces': [{'nom': 'SansTexture', 'palette': 'peau', 'matiere': 'prop--sans-texture'}]},
+                           None, True, {})
+        self.assertEqual(len(mat.node_tree.nodes), avant)
 
 
 if __name__ == '__main__':
