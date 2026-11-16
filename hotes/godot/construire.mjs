@@ -25,8 +25,9 @@
 // (`figerLesPlanches`, `deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
-// travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
-// du profil Godot (`export_templates`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--coop`, `--export` et `--bureau` déposent les GLB, les textures et le
+// travaille que sur une copie jetable du projet sous le dossier temporaire, tirée de sa copie importée gardée hors de
+// l'arbre (`surUneCopie`, #3935) : l'arbre n'en reçoit rien, ni les modèles d'export du profil Godot
+// (`export_templates`). Chaque étape du démarrage écrit sa durée au journal (`[démarrage]`, `chronometrer`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--coop`, `--export` et `--bureau` déposent les GLB, les textures et le
 // kit des arêtes du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
 // (`recupererModeles`, #2948 ; `recupererEpingles`, #3476), et la copie reçoit le catalogue des dessins
 // (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, le kit et le catalogue des dessins, ce
@@ -45,7 +46,8 @@ import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
-import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
@@ -57,27 +59,15 @@ import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { estGroupeVivant } from '../../scripts/guards/lib/pid.mjs'
+import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
+import { prendreVerrouAsync } from '../../scripts/test/verrou.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { chargerAssets } from './asset/charger.mjs'
+import { assetsDeLHote } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs'
 import { stockageDuProcessus } from './stockage.mjs'
-
-let assetsCharges = null
-/** Les assets que `--sonde`, `--rendus`, `--coop`, `--export`, `--bureau` et `--ouvrir` lisent (`chargerAssets`), chargés à la première demande, jamais à l'import. */
-const assets = () => (assetsCharges ??= chargerAssets([
-  "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
-  "export { figerVuesDeLEcran, figerLesPlanches } from '/hotes/godot/recettes/ecran.ts';",
-  "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
-  "export { figerLeRepos } from '/hotes/godot/recettes/atelier.ts';",
-  "export { figerLeDecor } from '/hotes/godot/recettes/decor.ts';",
-  "export { figerLeChemin } from '/hotes/godot/recettes/chemin.ts';",
-  "export { figerLEditeurDuNavire } from '/hotes/godot/recettes/editeur.ts';",
-  "export { figerLeDegagement } from '/hotes/godot/recettes/degagement.ts';",
-  "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
-]))
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
@@ -328,9 +318,10 @@ const publie = (fichier) => `https://github.com/godotengine/godot/releases/downl
 const versionDe = (binaire) => spawnSync(binaire, ['--version'], { encoding: 'utf8', timeout: 60_000 }).stdout?.trim() ?? ''
 
 /** Le binaire de l'éditeur épinglé : `GODOT` s'il est posé et de la version épinglée, sinon celui du cache, téléchargé
- *  et vérifié par sa somme à sa première demande. */
+ *  et vérifié par sa somme à sa première demande. Chaque entrée se pose sous un nom propre au processus puis se
+ *  renomme, le lanceur en dernier : deux lancements menés de front sur un cache vide ne s'écrivent pas l'un sur l'autre. */
 async function editeur() {
-  const { verifierSomme } = await assets()
+  const { verifierSomme } = await assetsDeLHote()
   if (process.env.GODOT) {
     const version = versionDe(process.env.GODOT)
     if (!version.startsWith(VERSION_IMPRIMEE)) throw new Error(`GODOT=${process.env.GODOT} imprime « ${version} », ${VERSION_IMPRIMEE} attendu`)
@@ -348,8 +339,10 @@ async function editeur() {
   verifierSomme(plateforme.archive, zip, plateforme.sha256)
   mkdirSync(CACHE, { recursive: true })
   for (const { nom, octets } of await extraire(enMemoire(zip), plateforme.entrees)) {
-    writeFileSync(join(CACHE, nom), octets)
-    chmodSync(join(CACHE, nom), 0o755)
+    const pose = join(CACHE, `${nom}.${process.pid}.pose`)
+    writeFileSync(pose, octets)
+    chmodSync(pose, 0o755)
+    renameSync(pose, join(CACHE, nom))
   }
   return lanceur
 }
@@ -385,7 +378,7 @@ const NOYAU = 'noyau'
 /** Le chemin du modèle d'export `entree` de l'archive des modèles : celui du cache si sa somme est l'épinglée, sinon
  *  tiré par tranches de l'archive publiée et vérifié par sa somme épinglée. */
 async function modeleDExport(entree) {
-  const { enCacheOuTire } = await assets()
+  const { enCacheOuTire } = await assetsDeLHote()
   const attendue = EDITEUR.modeles.sha256[entree]
   if (!attendue) throw new Error(`${entree} : aucune somme épinglée (EDITEUR.modeles)`)
   const chemin = join(CACHE, basename(entree))
@@ -605,19 +598,92 @@ function coop(binaire, { figerLesDessins }) {
   })
 }
 
+/** `ms` millisecondes en secondes, au dixième, à la française. */
+const secondes = (ms) => (ms / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+/** L'étape `etape` du démarrage écrite au journal à la durée `ms` (`[démarrage] <etape> : <s> s`). */
+export const direLEtape = (etape, ms) => console.log(`[démarrage] ${etape} : ${secondes(ms)} s`)
+
+/** `faire()` attendu, sa durée écrite au journal (`direLEtape`) : ce qu'il rend. */
+export async function chronometrer(etape, faire) {
+  const debut = performance.now()
+  try {
+    return await faire()
+  } finally {
+    direLEtape(etape, performance.now() - debut)
+  }
+}
+
 /** Le catalogue des dessins (`figerLesDessins`) déposé sous `art/dessins.json` du projet `projet`, que lit `projet/scripts/dessin.gd`. */
 function deposerLesDessins(projet, figerLesDessins) {
   writeFileSync(join(projet, 'art', 'dessins.json'), JSON.stringify(figerLesDessins()))
 }
 
-/** Joue `faire(copie)` sur une copie du projet, le catalogue des dessins déposé (`deposerLesDessins`), importée par
- *  `binaire`, sous le dossier temporaire ; rend ses erreurs. */
+/** Les fichiers de `dossier`, hors de tout dossier `.godot` : par chemin relatif, leur signature `taille:date`. */
+export function signaturesDu(dossier, sous = dossier, signatures = {}) {
+  for (const nom of listerDossier(sous)) {
+    const chemin = join(sous, nom)
+    const etat = statSync(chemin)
+    if (etat.isDirectory()) {
+      if (nom !== '.godot') signaturesDu(dossier, chemin, signatures)
+    } else if (etat.isFile()) signatures[relative(dossier, chemin)] = `${etat.size}:${etat.mtimeMs}`
+  }
+  return signatures
+}
+
+/** Ce que la copie, mise à jour aux signatures `avant`, reçoit pour l'être aux signatures `apres` (`signaturesDu`) :
+ *  les fichiers neufs ou de signature changée à copier, ceux qui ont quitté le projet à retirer. Ce que Godot écrit
+ *  dans la copie (`.godot`, ses `.import` et `.uid`) n'est dans aucune des deux et n'y est pas touché. */
+export function ecartsDeLaCopie(avant, apres) {
+  return {
+    copier: Object.keys(apres).filter((rel) => avant[rel] !== apres[rel]),
+    retirer: Object.keys(avant).filter((rel) => !Object.hasOwn(apres, rel)),
+  }
+}
+
+/** La copie importée du projet de cet arbre, hors de l'arbre et hors de `CACHE`, que la CI garde entre ses jobs
+ *  (`.github/actions/caches-3d`) : une par version de l'éditeur, son `.godot` gardé d'un lancement à l'autre, l'import
+ *  n'y retraite que ce qui a changé. Son marqueur porte les signatures du projet (`signaturesDu`) au dernier import
+ *  réussi ; son verrou la garde des lancements menés de front. */
+const COPIE_IMPORTEE = join(homedir(), '.cache', 'wfrp-godot-copies', EDITEUR.version, createHash('sha256').update(PROJET).digest('hex').slice(0, 16))
+const MARQUEUR_DE_LA_COPIE = `${COPIE_IMPORTEE}.json`
+const VERROU_DE_LA_COPIE = `${COPIE_IMPORTEE}.verrou`
+
+/** La copie importée (`COPIE_IMPORTEE`) mise au projet et au catalogue des dessins (`deposerLesDessins`), puis importée
+ *  par `binaire` si l'un ou l'autre a changé depuis le dernier import réussi : les erreurs de l'import. */
+async function mettreAJourLaCopie(binaire, figerLesDessins) {
+  const apres = signaturesDu(PROJET)
+  const marque = existsSync(MARQUEUR_DE_LA_COPIE) ? JSON.parse(readFileSync(MARQUEUR_DE_LA_COPIE, 'utf8')) : null
+  const { copier, retirer } = ecartsDeLaCopie(existsSync(COPIE_IMPORTEE) && marque ? marque.fichiers : {}, apres)
+  await chronometrer(`copie importée mise à jour (${copier.length} fichier(s) copiés, ${retirer.length} retirés)`, () => {
+    for (const rel of retirer) rmSync(join(COPIE_IMPORTEE, rel), { force: true })
+    for (const rel of copier) cpSync(join(PROJET, rel), join(COPIE_IMPORTEE, rel), { preserveTimestamps: true })
+  })
+  const dessins = join(COPIE_IMPORTEE, 'art', 'dessins.json')
+  const avantLesDessins = existsSync(dessins) ? readFileSync(dessins, 'utf8') : null
+  await chronometrer('catalogue des dessins', () => deposerLesDessins(COPIE_IMPORTEE, figerLesDessins))
+  if (marque && !copier.length && !retirer.length && readFileSync(dessins, 'utf8') === avantLesDessins) return []
+  const { erreurs } = await chronometrer('import Godot', () => godot(binaire, COPIE_IMPORTEE, ['--import']))
+  if (!erreurs.length) ecrireTexteAtomique(MARQUEUR_DE_LA_COPIE, JSON.stringify({ fichiers: apres }))
+  return erreurs
+}
+
+/** Joue `faire(copie)` sur une copie jetable, sous le dossier temporaire, de la copie importée du projet
+ *  (`mettreAJourLaCopie`), son `.godot` compris et ses dates gardées : l'arbre n'en reçoit rien, et ce que `faire`
+ *  écrit dans sa copie ne revient pas à la copie importée. Rend ses erreurs. */
 async function surUneCopie(binaire, figerLesDessins, faire) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
-    cpSync(PROJET, copie, { recursive: true, filter: (source) => !source.split(sep).includes('.godot') })
-    deposerLesDessins(copie, figerLesDessins)
-    const { erreurs } = godot(binaire, copie, ['--import'])
+    const verrou = await prendreVerrouAsync({ chemin: VERROU_DE_LA_COPIE, libelle: 'copie importée du projet Godot', attente: { echeanceMs: ECHEANCE_MS, pasMs: 500 } })
+    if (verrou.etat !== 'pris') return [verrou.message]
+    let erreurs
+    try {
+      mkdirSync(COPIE_IMPORTEE, { recursive: true })
+      erreurs = await mettreAJourLaCopie(binaire, figerLesDessins)
+      if (!erreurs.length) await chronometrer('copie jetable de la copie importée', () => cpSync(COPIE_IMPORTEE, copie, { recursive: true, preserveTimestamps: true }))
+    } finally {
+      verrou.liberer()
+    }
     return erreurs.length ? erreurs : await faire(copie)
   } finally {
     rmSync(copie, { recursive: true, force: true })
@@ -716,7 +782,7 @@ const FIN_DU_PILOTE = '[pilote] fin'
  *  ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes, et ses échecs. */
 export async function piloter({ args, env, rendu, lance, encore }) {
   const a = await deposerLesAssets()
-  const binaire = await editeur()
+  const binaire = await chronometrer('éditeur Godot', editeur)
   const lignes = []
   const erreurs = await surUneCopie(binaire, a.figerLesDessins, async (copie) => {
     const [commande, ...prefixe] = rendu ? [...ECRAN_VIRTUEL, binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
@@ -804,9 +870,9 @@ function verdict(erreurs) {
 
 /** Les GLB, les textures et le kit du projet déposés (`recupererModeles`, `recupererEpingles`) avant d'ouvrir Godot : rend les assets. */
 async function deposerLesAssets() {
-  const a = await assets()
-  await a.recupererModeles({ dossier: a.DOSSIER_DES_MODELES })
-  await a.recupererEpingles({})
+  const a = await chronometrer('assets chargés (Vite)', assetsDeLHote)
+  await chronometrer('modèles vérifiés', () => a.recupererModeles({ dossier: a.DOSSIER_DES_MODELES }))
+  await chronometrer('textures, kit et sons vérifiés', () => a.recupererEpingles({}))
   return a
 }
 

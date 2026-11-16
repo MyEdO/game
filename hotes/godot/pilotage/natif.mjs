@@ -11,7 +11,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { format } from 'node:util'
 import { runInThisContext } from 'node:vm'
-import { empaqueter, piloter } from '../construire.mjs'
+import { chronometrer, direLEtape, empaqueter, piloter } from '../construire.mjs'
 import { pontDuBundle, servirLeCanal } from '../processus.mjs'
 import { servir } from '../servir.mjs'
 import { stockageDuProcessus } from '../stockage.mjs'
@@ -40,7 +40,8 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     entries.push({ type, text: format(...args) })
     ecrire(...args)
   }
-  const { code } = await empaqueter(null, 'development')
+  direLEtape('modules de la recette chargés', performance.now())
+  const { code } = await chronometrer('bundle du pont', () => empaqueter(null, 'development'))
   const consoleRelevee = Object.assign(Object.create(console), { error: relever('error', console.error), warn: relever('warning', console.warn) })
   const stockage = stockageDuProcessus(null)
   /** Les noms que Godot a publiés en global depuis le dernier lancement. */
@@ -52,8 +53,8 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     publies.clear()
     pont = globalThis.wfrpPont = pontDuBundle(code, consoleRelevee, stockage)
   }
-  poserLePont()
-  const srv = await servir({ ...(modeles && { modeles }), ...(depot && { depot }) })
+  await chronometrer('évaluation du bundle', poserLePont)
+  const srv = await chronometrer('listage des modèles servis', () => servir({ ...(modeles && { modeles }), ...(depot && { depot }) }))
   /** Les commandes que le pilote n'a pas relevées, et celles dont il n'a pas rendu le résultat, par id. */
   const file = []
   const attendues = new Map()
@@ -64,7 +65,11 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     for (const { reject } of attendues.values()) reject(new Error(mort))
     attendues.clear()
   }
+  /** Vrai une fois que le pilote a relevé ses premières commandes. */
+  let pilotePret = false
   const commandes = (json) => {
+    if (!pilotePret && lanceA !== null) direLEtape('Godot lancé, jusqu’au pilote prêt', performance.now() - lanceA)
+    pilotePret = true
     for (const [id, valeur] of JSON.parse(json).rendus) {
       const { resolve, reject } = attendues.get(id)
       attendues.delete(id)
@@ -102,7 +107,10 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
   let auLancement
   const lancement = () => new Promise((r) => { auLancement = r })
   const premier = lancement()
+  /** L'instant du lancement de Godot, puis `null` une fois la première capture rendue. */
+  let lanceA = null
   const lance = (t) => {
+    lanceA ??= performance.now()
     tuer = t
     if (recharge) poserLePont()
     recharge = false
@@ -119,7 +127,18 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
       if (mort) return Promise.reject(new Error(mort))
       const id = ++dernier
       file.push({ id, ...commande })
-      return courseContreMontre(new Promise((resolve, reject) => attendues.set(id, { resolve, reject })), COMMANDE_MS, `commande sans réponse du pilote après ${COMMANDE_MS} ms : ${JSON.stringify(commande)}`)
+      const rendu = courseContreMontre(new Promise((resolve, reject) => attendues.set(id, { resolve, reject })), COMMANDE_MS, `commande sans réponse du pilote après ${COMMANDE_MS} ms : ${JSON.stringify(commande)}`)
+      if ('capture' in commande && lanceA !== null) {
+        return rendu.then((valeur) => {
+          if (lanceA !== null) {
+            direLEtape('Godot lancé, jusqu’à la première capture', performance.now() - lanceA)
+            direLEtape('total jusqu’à la première capture', performance.now())
+            lanceA = null
+          }
+          return valeur
+        })
+      }
+      return rendu
     },
     mort: () => mort,
     /** Le jeu quitté puis relancé sur la même copie, son pont tiré de nouveau du bundle : ce qu'une page rechargée
