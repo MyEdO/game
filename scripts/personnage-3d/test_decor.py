@@ -3,7 +3,8 @@ publiés sous `hotes/godot/projet/modeles/`, et chaque décor publié y a son mo
 chaque GLB publié d'un décor, lu dans le cache des modèles (`CACHE_DES_MODELES`, que remplit `godot:sonde` avant ce test
 en CI) à l'empreinte de son manifeste publié, tient dans l'enveloppe convexe des primitives de sa recette
 (`decor/gabarit.py`), sol compris, à `TOLERANCE` près : le modèle garde l'encombrement que le jeu lit dans ces
-primitives. Aucun build : un modèle dont une entrée a changé se reconstruit à l'empreinte publiée
+primitives ; et chaque nœud de ce GLB est une réunion de coques closes aux faces vers le dehors (`glb.coques_en_defaut`).
+Aucun build : un modèle dont une entrée a changé se reconstruit à l'empreinte publiée
 (`test_chaque_modele_reproduit_ses_elements_publies`), si bien que la garde vaut pour lui. Chaque GLB publié d'un décor a
 un nœud `gabarit.NOEUD_EMISSIF` si et seulement si sa recette a une primitive `emet`. Un décor que nomme le `SELON`
 des données de son modèle porte ce `selon` au manifeste, un autre aucun."""
@@ -20,7 +21,7 @@ sys.path[:0] = [str(ICI / 'decor'), str(ICI)]
 
 import gabarit  # noqa: E402
 import reconstruction  # noqa: E402
-from glb import lire_accesseur, lire_glb  # noqa: E402
+from glb import coques_en_defaut, lire_accesseur, lire_glb  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES  # noqa: E402
 from rendu import matrice_du_noeud  # noqa: E402
 
@@ -98,6 +99,12 @@ class Reconstruction(reconstruction.DUneFamille, unittest.TestCase):
             with self.subTest(id=id_):
                 self.assertEqual(hors_du_gabarit(prop, sommets(glb)), (0, []),
                                  f'{id_} : sommets (xM, yM, hM) hors de l\'enveloppe convexe des primitives de sa recette')
+
+    def test_chaque_noeud_publie_est_fait_de_coques_closes_aux_faces_vers_le_dehors(self):
+        for id_, _, glb in self.publies():
+            with self.subTest(id=id_):
+                self.assertEqual(coques_en_defaut(glb), [],
+                                 f'{id_} : nœuds (nom, arêtes non appariées, coques de volume négatif ou nul) qui ne sont pas des coques closes')
 
     def test_un_decor_publie_a_un_noeud_emissif_si_et_seulement_si_sa_recette_a_une_primitive_emet(self):
         for id_, prop, glb in self.publies():

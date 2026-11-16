@@ -89,8 +89,8 @@ def branche(m, points, rayons, S, mat, a, cassure=None, contreforts=None, creux=
 
 
 def ecorce(m, chemin, anneaux, E, mat, a):
-    """Les lanières d'écorce restées sur un tronc : par côté, une bande à `epaisseur` de ses anneaux, du pied à la
-    hauteur où elle s'arrête, son bord déchiré, ses chants fermés là où la voisine s'arrête plus bas."""
+    """Les lanières d'écorce restées sur un tronc : par côté, une bande close à `epaisseur` de ses anneaux, du pied à la
+    hauteur où elle s'arrête, son bord déchiré."""
     epaisseur, hauteurs, dent = E
     k = len(anneaux[0])
     arrets = []
@@ -109,14 +109,7 @@ def ecorce(m, chemin, anneaux, E, mat, a):
             continue
         gauche = [dessus(i, j, 0.0) for i in range(n)] + [dessus(n, j, a.uniform(0, dent))]
         droite = [dessus(i, j + 1, 0.0) for i in range(n)] + [dessus(n, j + 1, a.uniform(0, dent))]
-        sommets = [p for paire in gauche + droite for p in paire]
-        dedans_g, dehors_g = (lambda i: 2 * i), (lambda i: 2 * i + 1)
-        dedans_d, dehors_d = (lambda i: 2 * (n + 1 + i)), (lambda i: 2 * (n + 1 + i) + 1)
-        faces = [[dehors_g(i), dehors_d(i), dehors_d(i + 1), dehors_g(i + 1)] for i in range(n)]
-        faces.append([dehors_g(n), dehors_d(n), dedans_d(n), dedans_g(n)])
-        faces += [[dedans_g(i), dehors_g(i), dehors_g(i + 1), dedans_g(i + 1)] for i in range(min(arrets[j - 1], n), n)]
-        faces += [[dehors_d(i), dedans_d(i), dedans_d(i + 1), dehors_d(i + 1)] for i in range(min(arrets[(j + 1) % k], n), n)]
-        m.ajouter([tuple(p) for p in sommets], faces, mat)
+        coque(m, [[dedans_g, dehors_g, dehors_d, dedans_d] for (dedans_g, dehors_g), (dedans_d, dehors_d) in zip(gauche, droite)], mat)
 
 
 def icosaedre(subdivisions):
@@ -175,9 +168,13 @@ def masse(m, F, bout, taille, mat, a):
 
 
 def brin(m, points, rayons, cotes, mat):
-    """Un brin droit ou coudé : un anneau de `cotes` côtés à chacun de ses `points` sauf le dernier, sa pointe."""
+    """Un brin droit ou coudé : un anneau de `cotes` côtés à chacun de ses `points` sauf le dernier, sa pointe ; une
+    coque convexe par tronçon."""
     pts = [Vector(p) for p in points]
-    coque(m, [anneau(pts[i], *normales((pts[i + 1] - pts[max(i - 1, 0)]).normalized()), r, cotes) for i, r in enumerate(rayons)], mat, pts[-1])
+    anneaux = [anneau(pts[i], *normales((pts[i + 1] - pts[max(i - 1, 0)]).normalized()), r, cotes) for i, r in enumerate(rayons)]
+    for troncon in zip(anneaux, anneaux[1:]):
+        coque(m, troncon, mat)
+    coque(m, anneaux[-1:], mat, pts[-1])
 
 
 def ramure(m, R, F, bout, taille, mat, a):
@@ -217,9 +214,9 @@ def rayon_a(points, rayons, z):
 
 
 def bourrelet(m, chemin, rayon, creux, B, mat, a):
-    """Le bourrelet qui cerne la cavité `creux` d'un tronc de chemin `chemin` et de rayon `rayon(z)` : trois anneaux
-    autour d'elle, le pied dans le bois, la crête en saillie, la gorge vers le fond, d'après `B` (part de l'ouverture où
-    court la crête, saillie et largeur en fractions, côtés, grain)."""
+    """Le bourrelet qui cerne la cavité `creux` d'un tronc de chemin `chemin` et de rayon `rayon(z)` : un tore de trois
+    anneaux autour d'elle, le pied dans le bois, la crête en saillie, la gorge vers le fond, d'après `B` (part de
+    l'ouverture où court la crête, saillie et largeur en fractions, côtés, grain)."""
     z, azimut, demi_hauteur, demi_ouverture, _ = creux
     part, saillie, largeur, cotes, grain = B
     anneaux = []
@@ -228,8 +225,8 @@ def bourrelet(m, chemin, rayon, creux, B, mat, a):
             t = 2 * math.pi * k / cotes
             h = z + demi_hauteur * echelle * math.sin(t)
             anneaux.append(tuple(a_la_hauteur(chemin, h) + cap(azimut + demi_ouverture * echelle * math.cos(t)) * rayon(h) * (1 + relief + a.uniform(-grain, grain))))
-    m.ajouter(anneaux, [[i * cotes + k, i * cotes + (k + 1) % cotes, (i + 1) * cotes + (k + 1) % cotes, (i + 1) * cotes + k]
-                        for i in range(2) for k in range(cotes)], mat)
+    m.ajouter(anneaux, [[i * cotes + k, i * cotes + (k + 1) % cotes, (i + 1) % 3 * cotes + (k + 1) % cotes, (i + 1) % 3 * cotes + k]
+                        for i in range(3) for k in range(cotes)], mat)
 
 
 def arbre(A, D, F, bois, feuilles, nues, a, hiver):
@@ -336,8 +333,7 @@ def souche(D, bois, a):
         largeur = a.uniform(*largeurs)
         pied = [c + travers * i * largeur / 2 + cap(chute) * j * epaisseur / 2 for i, j in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
         pointe = c + HAUT * (dessus(c) + a.uniform(*hauteurs)) + travers * a.uniform(-devers, devers) + cap(chute) * a.uniform(*couche)
-        bois.ajouter([tuple(p + HAUT * (dessus(p) - C["gradin"])) for p in pied] + [tuple(pointe)],
-                     [[i, (i + 1) % 4, 4] for i in range(4)], mat)
+        coque(bois, [[p + HAUT * (dessus(p) - C["gradin"]) for p in pied]], mat, pointe)
     for R in C["racines"]:
         branche(bois, R["chemin"], R["rayons"], S["racine"], mat, a)
 
