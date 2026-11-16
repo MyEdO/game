@@ -1,8 +1,10 @@
 """tronc (#3810) : la posture du tronc est la moyenne pondérée des rotations de ses os ; le champ d'une boîte fermée porte
 son enfoncement, tournée ou non, signé et à 2 mm près, profond compris ; un tube ouvert en haut et en bas contient son axe et
 non le dessus de son ouverture, couché par ses os comme debout, et son avant suit sa posture ; un point loin du tronc est
-dehors ; sous une silhouette à os, le tronc posé
-et la peau du membre posée sous une autre pose de la chaîne sont ceux du squelette déplacé explicite (#4002)."""
+dehors ; un point dans une boîte ou à portée d'elle est atteint, un point au-delà non ; sous une silhouette à os, le
+tronc posé et la peau du membre posée sous une autre pose de la chaîne sont ceux du squelette déplacé explicite (#4002) ; le coude
+d'un bras à deux os atteint la cible à portée en gardant ses segments et plie du côté du pôle, ramène une cible hors de
+portée sur la sphère de portée."""
 import math
 import sys
 import unittest
@@ -10,13 +12,14 @@ from pathlib import Path
 
 import bpy  # noqa: F401
 import numpy
+from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from sol import tetes_deplacees  # noqa: E402
 from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, autour_de_l_avant, peaux  # noqa: E402
-from tronc import (CHAMP, MembrePose, PeauDuMembre, PeauDuTronc, avant, champ, lire_le_champ, membre_pose,  # noqa: E402
-                   posture_du_tronc, poser_le_membre, profondeurs, tronc_pose)
+from tronc import (CHAMP, MembrePose, PeauDuMembre, PeauDuTronc, atteints, avant, champ, coude,  # noqa: E402
+                   lire_le_champ, membre_pose, posture_du_tronc, poser_le_membre, profondeurs, tronc_pose)
 
 BAS, HAUT = numpy.array([-0.2, -0.15, 0.8]), numpy.array([0.2, 0.15, 1.4])
 
@@ -53,6 +56,19 @@ def boite(bas=BAS, haut=HAUT, n=12):
     return numpy.array(triangles)
 
 
+def tronc_en_boite(*bornes):
+    """Le tronc en boîte (`boite`, aux `bornes` données), posé au repos sur un seul os, un seul jeu : sa `PeauDuTronc` et
+    son `TroncPose`."""
+    return tronc_pose(peau_de_boite(*bornes), numpy.eye(4)[None])
+
+
+def peau_de_boite(*bornes):
+    """La `PeauDuTronc` de la boîte (`boite`, aux `bornes` données), sur un seul os, un seul jeu."""
+    x = boite(*bornes).reshape(-1, 3)
+    return PeauDuTronc(numpy.c_[x, numpy.ones(len(x))][None], numpy.ones((len(x), 1)), numpy.arange(len(x)).reshape(-1, 3),
+                       numpy.array([-1]), numpy.zeros((1, 1, 3)))
+
+
 def tube(rayon=0.12, bas=0.8, haut=1.4, cotes=32, etages=12):
     """Les sommets (sommets, 3) et les triangles d'indices d'un tube d'axe Z, ouvert en haut et en bas."""
     angles = numpy.linspace(0, 2 * math.pi, cotes, endpoint=False)
@@ -85,6 +101,13 @@ class ChampDUneBoite(unittest.TestCase):
 
     def test_un_point_loin_du_tronc_est_dehors(self):
         self.assertEqual(lire_le_champ(champ(boite()), numpy.array([[0.0, -0.9, 1.1]]))[0], -CHAMP['portee'])
+
+
+class Atteints(unittest.TestCase):
+    def test_un_point_dedans_ou_a_portee_est_atteint_un_point_au_dela_non(self):
+        points = numpy.array([[0.0, 0.0, 1.4 - 0.004], [0.0, -0.15 + 0.08, 1.1], [0.0, -0.15 - 0.012, 1.1], [0.5, 0.0, 1.1],
+                              [0.2 + 0.008, 0.149, 0.81]])
+        self.assertEqual(atteints(boite(), points, 0.01).tolist(), [True, True, False, False, True])
 
 
 class ChampDUnTube(unittest.TestCase):
@@ -139,6 +162,27 @@ class SousUneSilhouetteAOs(unittest.TestCase):
         deplace = peaux(DEPLACEMENTS, AUTRES)
         explicite = numpy.einsum('nb,bij,nj->ni', w, deplace, x)[:, :3]
         numpy.testing.assert_allclose(posee, explicite, atol=1e-12)
+
+
+L1, L2 = 0.25, 0.24
+
+
+class Coude(unittest.TestCase):
+    def test_une_cible_a_portee_est_atteinte_segments_gardes_coude_du_cote_du_pole(self):
+        epaule, cible, pole = Vector((0, 0, 1.4)), Vector((0.1, -0.3, 1.1)), Vector((1, 0, -1))
+        poignet, articulation = coude(epaule, cible, L1, L2, pole)
+        self.assertAlmostEqual((poignet - cible).length, 0, places=6)
+        self.assertAlmostEqual((articulation - epaule).length, L1, places=6)
+        self.assertAlmostEqual((poignet - articulation).length, L2, places=6)
+        axe = (cible - epaule).normalized()
+        milieu = epaule + axe * (articulation - epaule).dot(axe)
+        self.assertGreater((articulation - milieu).dot(pole), 0)
+
+    def test_une_cible_hors_de_portee_tend_le_bras_vers_elle(self):
+        epaule, cible = Vector((0, 0, 1.4)), Vector((0, -2, 1.4))
+        poignet, _ = coude(epaule, cible, L1, L2, Vector((0, 0, -1)))
+        self.assertAlmostEqual((poignet - epaule).length, L1 + L2, places=3)
+        self.assertGreater((poignet - epaule).normalized().dot((cible - epaule).normalized()), 0.9999)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,4 @@
-"""deux_mains : le coude d'un bras à deux os atteint la cible à portée en gardant ses segments et plie du côté du pôle,
-ramène une cible hors de portée sur la sphère de portée ; les clés de geste s'interpolent en partant et en arrivant au
+"""deux_mains : les clés de geste s'interpolent en partant et en arrivant au
 repos, sauf à une clé d'élan, la prise `main` à la moitié de l'écart du milieu de chaque clé ; le repère de l'arme porte
 son +Y vers le fer et son +X au plus près du flanc donné ; chaque clip dérivé a une clé au début et une à la fin, et un
 maniement dont la seconde prise est déclarée ; le bras ne se tord pas et l'avant-bras porte la torsion dans ses bornes ;
@@ -9,12 +8,9 @@ une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête �
 que meuvent les os libres ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement ;
 sous une silhouette à os, les têtes déplacées sont celles du squelette déplacé explicite ; le prix du tronc compte le
-pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; une peau dans un tronc en boîte en sort à sa
-marge en avançant, d'exactement ce qu'il faut, une peau dehors ne bouge pas, une peau que l'avancée ne sort pas, derrière
-la boîte ou au-delà de la borne, n'est pas poussée (#4002, #3810) ; l'avancée de l'arme rend la poussée requise d'une
-seule image à cette image, y monte et en redescend en continu, nulle à `RACCORD` d'elle, et couvre deux images
-requises ; l'arme n'avance que pour la peau des mains, et la peau entière que l'IK laisse dans le tronc se rend avec son
-jeu et la zone de son os dominant (#3810) ;
+pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; la poussée requise est nulle là où l'avancée ne
+sort pas la peau (#4002, #3810) ; l'arme n'avance que pour la peau des mains, et la peau entière que l'IK laisse dans le
+tronc se rend avec son jeu et la zone de son os dominant (#3810) ;
 le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
 l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
 import json
@@ -29,35 +25,17 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import (CLIPS, CONTINUITE, ECART_DU_TRONC, IMAGES_PAR_SECONDE, MARGE_DES_BORNES, PRONATION, RACCORD,  # noqa: E402
-                        POUSSEE, SECONDES, TOURS, PeauDuBras, bras, chemin, cle, coude, ecarter, enfoncement,
-                        envelopper, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe, poser_les_bras,
-                        poussee_requise, prix_du_tronc, repere_de_l_arme, tour_du_repere)
+from deux_mains import (CLIPS, CONTINUITE, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS, PeauDuBras, bras,  # noqa: E402
+                        chemin, cle, ecarter, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
+                        poser_les_bras, prix_du_tronc, repere_de_l_arme, tour_du_repere)
+from ecart import ECART_DU_TRONC, POUSSEE  # noqa: E402
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
 from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
-from test_tronc import boite  # noqa: E402
-from tronc import ChaineDuBras, PeauDuMembre, PeauDuTronc, membre_pose, tronc_pose  # noqa: E402
+from test_tronc import tronc_en_boite  # noqa: E402
+from tronc import ChaineDuBras, PeauDuMembre, membre_pose  # noqa: E402
 
 L1, L2 = 0.25, 0.24
 LIBRE = {a: [-180, 180] for a in 'xyz'}
-
-
-class Coude(unittest.TestCase):
-    def test_une_cible_a_portee_est_atteinte_segments_gardes_coude_du_cote_du_pole(self):
-        epaule, cible, pole = Vector((0, 0, 1.4)), Vector((0.1, -0.3, 1.1)), Vector((1, 0, -1))
-        poignet, articulation = coude(epaule, cible, L1, L2, pole)
-        self.assertAlmostEqual((poignet - cible).length, 0, places=6)
-        self.assertAlmostEqual((articulation - epaule).length, L1, places=6)
-        self.assertAlmostEqual((poignet - articulation).length, L2, places=6)
-        axe = (cible - epaule).normalized()
-        milieu = epaule + axe * (articulation - epaule).dot(axe)
-        self.assertGreater((articulation - milieu).dot(pole), 0)
-
-    def test_une_cible_hors_de_portee_tend_le_bras_vers_elle(self):
-        epaule, cible = Vector((0, 0, 1.4)), Vector((0, -2, 1.4))
-        poignet, _ = coude(epaule, cible, L1, L2, Vector((0, 0, -1)))
-        self.assertAlmostEqual((poignet - epaule).length, L1 + L2, places=3)
-        self.assertGreater((poignet - epaule).normalized().dot((cible - epaule).normalized()), 0.9999)
 
 
 def torsion(parent, enfant):
@@ -168,14 +146,6 @@ class SousUneSilhouetteAOs(unittest.TestCase):
                                       tetes[:, 2] - (rotations_de_peau(matrices)[0] @ DEPLACEMENTS[..., None])[:, 2, 0], atol=1e-12)
 
 
-def tronc_en_boite(*bornes):
-    """Le tronc en boîte (`test_tronc.boite`, aux `bornes` données), posé au repos sur un seul os, un seul jeu."""
-    x = boite(*bornes).reshape(-1, 3)
-    tronc = PeauDuTronc(numpy.c_[x, numpy.ones(len(x))][None], numpy.ones((len(x), 1)), numpy.arange(len(x)).reshape(-1, 3),
-                        numpy.array([-1]), numpy.zeros((1, 1, 3)))
-    return tronc_pose(tronc, numpy.eye(4)[None])
-
-
 def membre(points, grossier=None):
     """La `tronc.MembrePose` des `points` (sommets, 3), chacun sur la main d'une chaîne bras, avant-bras, main au repos, et
     sa `tronc.PeauDuMembre`, tous les sommets échantillonnés, l'échantillon grossier `grossier` (tous sans lui), de
@@ -209,23 +179,6 @@ class Tronc(unittest.TestCase):
         self.assertEqual(self.prix(haute), 0)
         self.assertAlmostEqual(self.prix(haute, ((0, 0, -0.02),) * 3),
                                ((0.01 + ECART_DU_TRONC['marge']) / ECART_DU_TRONC['echelle']) ** 2, places=6)
-
-    def test_une_peau_dans_un_tronc_en_sort_a_sa_marge_en_avancant_d_exactement_ce_qu_il_faut(self):
-        tronc = tronc_en_boite()
-        peau = numpy.array([[[0.01, -0.146, 1.1], [0.05, -0.143, 1.0], [0.0, -0.5, 1.1]]])
-        requise = 0.007 + ECART_DU_TRONC['marge']
-        poussee = poussee_requise(tronc, peau)
-        self.assertGreaterEqual(poussee, requise - 1e-9)
-        self.assertLessEqual(poussee, requise + POUSSEE['tolerance'])
-        self.assertLessEqual(enfoncement(tronc, peau + (0.0, -poussee, 0.0))[0], -ECART_DU_TRONC['marge'])
-
-    def test_une_peau_dehors_ne_bouge_pas(self):
-        self.assertEqual(poussee_requise(tronc_en_boite(), numpy.array([[[0.01, -0.15 - ECART_DU_TRONC['marge'] - 0.002, 1.1]]])), 0.0)
-
-    def test_une_peau_que_l_avancee_ne_sort_pas_n_est_pas_poussee(self):
-        mince = tronc_en_boite(numpy.array([-0.2, -0.05, 0.8]), numpy.array([0.2, 0.05, 1.4]))
-        self.assertIsNone(poussee_requise(mince, numpy.array([[[0.0, 0.045, 1.1]]])))
-        self.assertIsNone(poussee_requise(tronc_en_boite(), numpy.array([[[0.0, 0.0, 1.1]]])))
 
     def test_la_poussee_requise_est_nulle_la_ou_l_avancee_ne_sort_pas_la_peau(self):
         tronc = tronc_en_boite()
@@ -264,31 +217,6 @@ class PoserLesBras(unittest.TestCase):
         self.assertEqual((restes[0][1], restes[0][2]), (0, 'avant_bras_g'))
         self.assertAlmostEqual(restes[0][0], 0.004, delta=1e-3)
         self.assertLess(restes[1][0], 0.0)
-
-
-class Enveloppe(unittest.TestCase):
-    RACCORD_EN_IMAGES = RACCORD * IMAGES_PAR_SECONDE
-
-    def test_la_poussee_requise_d_une_seule_image_monte_et_redescend_en_continu(self):
-        instants_, requise, milieu = numpy.arange(97.0), 0.03, 48
-        requises = numpy.zeros(len(instants_))
-        requises[milieu] = requise
-        avancees = envelopper(requises, instants_)
-        self.assertAlmostEqual(avancees[milieu], requise, places=12)
-        self.assertFalse(avancees[numpy.abs(instants_ - milieu) >= self.RACCORD_EN_IMAGES].any())
-        pas = numpy.diff(avancees)
-        self.assertTrue((pas[:milieu] >= 0).all() and (pas[milieu:] <= 0).all())
-        self.assertLessEqual(numpy.abs(pas).max(), requise * math.pi / (2 * self.RACCORD_EN_IMAGES) + 1e-12)
-
-    def test_deux_images_requises_sont_couvertes_et_raccordees(self):
-        instants_ = numpy.arange(49.0)
-        requises = numpy.zeros(len(instants_))
-        requises[[20, 26]] = 0.02, 0.05
-        avancees = envelopper(requises, instants_)
-        self.assertTrue((avancees >= requises - 1e-12).all())
-        self.assertAlmostEqual(avancees[26], 0.05, places=12)
-        self.assertTrue((avancees[20:27] >= 0.02 - 1e-12).all())
-        self.assertLessEqual(numpy.abs(numpy.diff(avancees)).max(), 0.05 * math.pi / (2 * self.RACCORD_EN_IMAGES) + 1e-12)
 
 
 class Interpolation(unittest.TestCase):

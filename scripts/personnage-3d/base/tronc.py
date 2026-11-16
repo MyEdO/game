@@ -1,6 +1,7 @@
-"""Le tronc de la base humanoïde dont l'avant-bras et la main des clips dérivés à deux mains se tiennent à l'écart
-(`deux_mains`, #3806, #4002, #3810), mesuré comme le mesure la garde `membres`
-(`hotes/godot/asset/evaluateur/gardes/membres.ts`) : même peau, même surface, même posture, même sens.
+"""Le tronc de la base humanoïde dont l'avant-bras et la main se tiennent à l'écart, dans les clips dérivés à deux mains
+(`deux_mains`) comme dans les clips du pack (`membres`) (#3806, #4002, #3810), mesuré comme le mesure la garde `membres`
+(`hotes/godot/asset/evaluateur/gardes/membres.ts`) : même peau, même surface, même posture, même sens ; et la chaîne du
+bras qui porte cette peau (`BRAS`, `coude`, `matrices_de_la_chaine`, `poser_le_membre`).
 
 La surface du tronc est faite des faces des zones `TRONC['zones']`, la zone d'une face étant celle de l'os dominant de
 ses sommets (`anatomie.os_de_la_face`) ; les sujets, des faces des zones de l'avant-bras et de la main d'un côté. Sous un
@@ -16,10 +17,12 @@ demi-droites vers l'avant et l'arrière du tronc (±Y du rig) coupent chacune la
 grandeur est sa distance aux triangles à moins de `CHAMP['portee']`, sinon sa distance à la plus proche traversée de la
 surface par les trois droites des axes qui le portent ; dehors, elle se borne à `CHAMP['portee']`. Entre les nœuds,
 l'enfoncement s'interpole en trilinéaire (`lire_le_champ`) ; hors de la grille, tout point est dehors, à
-`CHAMP['portee']`.
+`CHAMP['portee']`. Sans champ, un point se sait dans le tronc ou à portée de lui par la même parité et sa distance aux
+triangles proches (`atteints`).
 
 Repère Blender du rig : +X la gauche du personnage, −Y l'avant, +Z le haut.
 """
+import math
 from typing import NamedTuple
 
 import numpy
@@ -48,6 +51,8 @@ AXE = 1
 """L'axe des demi-droites du sens : l'avant-arrière du tronc au repos, Y du rig."""
 DECALAGE = 1.37e-6
 """Le décalage des droites du sens, hors des arêtes et des sommets du tronc (`DECALAGE_M` de la garde `membres`)."""
+BRAS = {cote: (f'upperarm_{cote}', f'lowerarm_{cote}', f'hand_{cote}') for cote in ('r', 'l')}
+"""Par côté, la chaîne d'un bras : épaule, coude, main."""
 
 
 class Peau(NamedTuple):
@@ -109,11 +114,16 @@ def peau_du_tronc(rig, peaux):
     return PeauDuTronc(*peau_des_zones(rig, peaux, TRONC['zones']), parent, deplacements)
 
 
+def melanger(w, matrices, x):
+    """Σ_b w_b M_b x de chaque sommet (`w` (sommets, os), `x` homogènes) sous les matrices de peau `matrices`
+    (os, 4, 4) : (sommets, 3)."""
+    return numpy.einsum('nij,nj->ni', (w @ matrices[:, :3].reshape(len(matrices), 12)).reshape(-1, 3, 4), x)
+
+
 def poser(w, x, matrices, tetes, deplacements):
     """Les sommets (`w`, `x` homogènes) sous les matrices de peau `matrices` (os, 4, 4), le squelette déplacé de
     `deplacements` (os, 3), aux têtes posées déplacées de `tetes` (`sol.tetes_deplacees`, os, 3) : (sommets, 3)."""
-    return (numpy.einsum('nb,bij,nj->ni', w, matrices[:, :3], x)
-            + w @ (tetes - numpy.einsum('bij,bj->bi', rotations_de_peau(matrices), deplacements)))
+    return melanger(w, matrices, x) + w @ (tetes - numpy.einsum('bij,bj->bi', rotations_de_peau(matrices), deplacements))
 
 
 def posture_du_tronc(poids, matrices):
@@ -268,18 +278,66 @@ class TroncPose(NamedTuple):
     retour: numpy.ndarray
 
 
-def tronc_pose(tronc, matrices):
-    """Le `TroncPose` de `tronc` (`PeauDuTronc`) sous les matrices de peau `matrices` (os, 4, 4), comme l'hôte le joue."""
+def tronc_pose(tronc, matrices, champs=True):
+    """Le `TroncPose` de `tronc` (`PeauDuTronc`) sous les matrices de peau `matrices` (os, 4, 4), comme l'hôte le joue ;
+    sans ses champs si `champs` est faux (`champs_du_tronc`), ses sommets lus par `pres_du_tronc`."""
     tetes = numpy.stack([tetes_deplacees(matrices[None], tronc.parent, d)[0] for d in tronc.deplacements])
     positions = numpy.stack([poser(tronc.w, x, matrices, t, d) for x, t, d in zip(tronc.x, tetes, tronc.deplacements)])
-    retour = posture_du_tronc(tronc.w.sum(axis=0), matrices).T
-    return TroncPose(positions, tetes, [champ((p @ retour.T)[tronc.triangles]) for p in positions], retour)
+    pose = TroncPose(positions, tetes, [], posture_du_tronc(tronc.w.sum(axis=0), matrices).T)
+    return champs_du_tronc(tronc, pose) if champs else pose
+
+
+def champs_du_tronc(tronc, pose):
+    """Le `TroncPose` `pose` de `tronc` (`PeauDuTronc`), un `Champ` par jeu."""
+    return pose._replace(champs=[champ((p @ pose.retour.T)[tronc.triangles]) for p in pose.positions])
 
 
 def profondeurs(tronc, points):
     """Par jeu, l'enfoncement dans le `TroncPose` `tronc` de chaque point de `points` (jeux, …, 3), dans le repère du
     rig (`lire_le_champ`)."""
     return numpy.stack([lire_le_champ(c, p @ tronc.retour.T) for c, p in zip(tronc.champs, points)])
+
+
+def atteints(sommets, points, portee):
+    """Si chaque point de `points` (points, 3) est dans les triangles `sommets` (triangles, 3, 3), ou à moins de
+    `portee` d'eux, tous dans le repère du tronc au repos : dedans si ses deux demi-droites d'axe `AXE`, décalées de
+    `DECALAGE`, coupent chacune les triangles un nombre impair de fois. Seules les paires que la boîte d'un triangle
+    admet se calculent."""
+    a, b = [i for i in range(3) if i != AXE]
+    bas, haut = sommets.min(axis=1), sommets.max(axis=1)
+    vus = numpy.zeros(len(points), dtype=bool)
+    retenus = numpy.flatnonzero(((points >= bas.min(axis=0) - portee) & (points <= haut.max(axis=0) + portee)).all(axis=1))
+    if not len(retenus):
+        return vus
+    p = points[retenus]
+    q = p[:, [a, b]] + DECALAGE
+    i, t = numpy.nonzero((q[:, None, 0] >= bas[:, a]) & (q[:, None, 0] <= haut[:, a]) & (q[:, None, 1] >= bas[:, b])
+                         & (q[:, None, 1] <= haut[:, b]))
+    s, q = sommets[t], q[i]
+    aire = (s[:, 1, a] - s[:, 0, a]) * (s[:, 2, b] - s[:, 0, b]) - (s[:, 2, a] - s[:, 0, a]) * (s[:, 1, b] - s[:, 0, b])
+    with numpy.errstate(divide='ignore', invalid='ignore'):
+        u = ((s[:, 1, a] - q[:, 0]) * (s[:, 2, b] - q[:, 1]) - (s[:, 2, a] - q[:, 0]) * (s[:, 1, b] - q[:, 1])) / aire
+        v = ((s[:, 2, a] - q[:, 0]) * (s[:, 0, b] - q[:, 1]) - (s[:, 0, a] - q[:, 0]) * (s[:, 2, b] - q[:, 1])) / aire
+        r = 1 - u - v
+        coupe = (aire != 0) & (u >= 0) & (v >= 0) & (r >= 0)
+        hauteurs = u * s[:, 0, AXE] + v * s[:, 1, AXE] + r * s[:, 2, AXE]
+    dessus = numpy.bincount(i[coupe & (hauteurs > p[i, AXE])], minlength=len(p))
+    dessous = numpy.bincount(i[coupe & (hauteurs < p[i, AXE])], minlength=len(p))
+    dedans = (dessus % 2 == 1) & (dessous % 2 == 1)
+    proches = ~dedans[:, None]
+    for k in range(3):
+        proches = proches & (p[:, None, k] >= bas[:, k] - portee) & (p[:, None, k] <= haut[:, k] + portee)
+    i, t = numpy.nonzero(proches)
+    dedans[i[distances_aux_triangles(p[i], sommets[t, 0], sommets[t, 1], sommets[t, 2]) <= portee]] = True
+    vus[retenus] = dedans
+    return vus
+
+
+def pres_du_tronc(tronc, pose, points, portee):
+    """Si l'un des `points` (jeux, …, 3), dans le repère du rig, est dans le `TroncPose` `pose` de `tronc`
+    (`PeauDuTronc`) ou à moins de `portee` de lui sous son jeu (`atteints`)."""
+    return any(atteints((s @ pose.retour.T)[tronc.triangles], p.reshape(-1, 3) @ pose.retour.T, portee).any()
+               for s, p in zip(pose.positions, points))
 
 
 def avant(tronc):
@@ -294,6 +352,46 @@ class ChaineDuBras(NamedTuple):
     bras à son ΔJ posé, l'avant-bras et la main à ce ΔJ plus leur déplacement D relatif à celui du bras."""
     repos: numpy.ndarray
     chaines: numpy.ndarray
+
+
+def repos_de_la_chaine(rig, cote):
+    """Le repos de la chaîne `BRAS[cote]` de `rig` (`matrices_de_la_chaine`, `chaine_du_bras`) : les inverses des
+    matrices de repos de ses trois os (3, 4, 4) et la tête de la main dans le repère de repos de l'avant-bras."""
+    repos = rig.data.bones
+    _, coude_, main = BRAS[cote]
+    return (numpy.array([numpy.array(repos[n].matrix_local.inverted()) for n in BRAS[cote]]),
+            (repos[coude_].matrix_local.inverted() @ repos[main].matrix_local).translation.copy())
+
+
+def chaine_du_bras(tronc, pose, chaine, repos):
+    """La `ChaineDuBras` des os `chaine` (indices du bras, de l'avant-bras et de la main) sous le `TroncPose` `pose` de
+    `tronc` (`PeauDuTronc`) ; `repos` : celui de `repos_de_la_chaine`."""
+    return ChaineDuBras(repos[0][:2, :3, :3],
+                        pose.tetes[:, chaine[:1]] + tronc.deplacements[:, chaine] - tronc.deplacements[:, chaine[:1]])
+
+
+def coude(epaule, cible, l1, l2, pole):
+    """Le poignet atteint et le coude d'un bras de segments `l1` puis `l2`, de l'`epaule` vers la `cible` : la cible
+    hors de portée se ramène sur la sphère de portée, et le coude plie du côté de `pole`."""
+    axe = (cible - epaule).normalized()
+    distance = max(abs(l1 - l2) + 1e-4, min((cible - epaule).length, l1 + l2 - 1e-4))
+    a = (l1 * l1 - l2 * l2 + distance * distance) / (2 * distance)
+    h = math.sqrt(max(0.0, l1 * l1 - a * a))
+    plan = (pole - axe * pole.dot(axe)).normalized()
+    return epaule + axe * distance, epaule + axe * a + plan * h
+
+
+def matrices_de_la_chaine(epaule, humerus, coude_, avant_bras, axes_main, repos):
+    """Les matrices de peau (3, 4, 4) du bras aux axes `humerus` sur l'`epaule`, de l'avant-bras aux axes `avant_bras`
+    sur le `coude_` et de la main aux axes `axes_main` sur sa tête, que l'avant-bras porte : `repos`, celui de
+    `repos_de_la_chaine`."""
+    inverses, decalage = repos
+    poses = []
+    for axes, origine in ((humerus, epaule), (avant_bras, coude_), (axes_main, coude_ + avant_bras @ decalage)):
+        pose = axes.to_4x4()
+        pose.translation = origine
+        poses.append(numpy.array(pose))
+    return numpy.array(poses) @ inverses
 
 
 def tetes_du_bras(chaine, axes):
@@ -361,7 +459,7 @@ def membre_pose(membre, matrices, tetes, deplacements, parent, chaine):
         for g in (-1, 0, 1, 2):
             os_ = numpy.flatnonzero((groupe == g) & (membre.w.sum(axis=0) > 0))
             w = membre.w[:, os_]
-            parts.append((numpy.einsum('nb,bik,nk->ni', w, matrices[os_, :3], x), w @ e[j, os_]))
+            parts.append((melanger(w, matrices[os_], x), w @ e[j, os_]))
         fixe.append(parts[0][0] + parts[0][1])
         y.append(numpy.stack([p[0] for p in parts[1:]]))
         z.append(numpy.stack([p[1] - s[g][:, None] * tetes[j, chaine[g]] for g, p in enumerate(parts[1:])]))

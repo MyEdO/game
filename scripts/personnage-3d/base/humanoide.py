@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from anatomie import PIEDS, gabarit, poser, reperes_des_prises  # noqa: E402
 from deux_mains import deriver as deriver_a_deux_mains  # noqa: E402
+from membres import ecarter_les_membres  # noqa: E402
 from animation import assign_action, clear_animation, meshes_for  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
@@ -437,6 +438,7 @@ def construire(args):
     print('SOL tenu en', passes, 'passe(s)', flush=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
+    ecarter_les_membres(bpy, squelette, clips)
     for action in deriver_a_deux_mains(bpy, squelette, reperes_des_prises(squelette)):
         preparer(action)
         clips.append(action)
