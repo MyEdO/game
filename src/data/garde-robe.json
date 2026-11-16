@@ -398,6 +398,15 @@
     }
   },
   {
+    "id": "brassards-d-acier",
+    "type": "garde-robe",
+    "label": "Brassards d’acier",
+    "kind": "variante",
+    "piece": {
+      "id": "brassards"
+    }
+  },
+  {
     "id": "plumet-simple",
     "type": "garde-robe",
     "label": "Plumet simple",

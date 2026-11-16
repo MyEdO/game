@@ -22,20 +22,28 @@
   },
   "surfaces": [
     {
-      "nom": "metal",
-      "palette": "metal"
-    },
-    {
       "nom": "bois",
-      "palette": "bois"
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
     },
     {
-      "nom": "accent",
-      "palette": "accent"
+      "nom": "metal",
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
+    },
+    {
+      "nom": "dorure",
+      "palette": "metal",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "gland",
+      "palette": "accent",
+      "matiere": "prop--laine"
     }
   ],
   "glb": {
-    "sha256": "e38c570a245146c962f046bd08baf6bda5ef563371587024c6db6c17f62b4426",
-    "octets": 51684
+    "sha256": "f6f27a44cba74bd18a6812ff5428dce7f20996e1de55a6c14f42f11bb032c7c7",
+    "octets": 107508
   }
 }
