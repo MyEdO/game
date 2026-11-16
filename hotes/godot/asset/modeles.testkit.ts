@@ -61,6 +61,27 @@ export const decorDeTest = (prop: string) => ({
   schema: 3, categorie: 'decor', cle: { prop }, liaison: { mode: 'rigide' }, surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_SANS_BASE),
 });
 
+/** Le GLB d'un décor qui change selon la saison (#4335), que Godot importe : un même triangle sous trois nœuds à mesh,
+ *  `tronc` et `avec-hiver` du matériau `bois`, `sans-hiver` du matériau `feuillage`. */
+export const GLB_SAISONNIER = ecrireGlb({
+  asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0, 1, 2] }],
+  nodes: [{ name: 'tronc', mesh: 0 }, { name: 'sans-hiver', mesh: 1 }, { name: 'avec-hiver', mesh: 0 }],
+  meshes: [0, 1].map((material) => ({ primitives: [{ attributes: { POSITION: 0 }, material }] })),
+  materials: [{ name: 'bois' }, { name: 'feuillage' }],
+  accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [0, 0, 0], max: [1, 1, 0] }],
+  bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 36 }], buffers: [{ byteLength: 36 }],
+}, new Uint8Array(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]).buffer));
+/** La teinte d'automne de l'emplacement `vegetal` du décor saisonnier de test. */
+export const TEINTE_D_AUTOMNE = '#b5651d';
+/** Le manifeste d'un décor du type `prop` (`props.json`) pour `GLB_SAISONNIER`, qui change selon la saison : son
+ *  feuillage (`sans-hiver`) caché en hiver, ses branches nues (`avec-hiver`) montrées, et son emplacement `vegetal`
+ *  teint en automne. */
+export const decorSaisonnierDeTest = (prop: string) => ({
+  schema: 3, categorie: 'decor', cle: { prop }, liaison: { mode: 'rigide' },
+  surfaces: [{ nom: 'bois', palette: 'bois' }, { nom: 'feuillage', palette: 'vegetal' }],
+  selon: { automne: { palette: { vegetal: TEINTE_D_AUTOMNE } }, hiver: {} }, glb: empreinte(GLB_SAISONNIER),
+});
+
 /** Le texte de licence de pack que `productionDeTest` dépose : une production importable établit sa licence. */
 export const LICENCE_DE_PRODUCTION = 'LICENSE-Pack.txt';
 /** Le contenu de `LICENCE_DE_PRODUCTION`. */

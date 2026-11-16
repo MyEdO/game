@@ -3,8 +3,8 @@ extends PontDuNoyau
 
 ## Le pont figé des recettes de l'atelier (`hotes/godot/recettes/atelier.ts`) : `catalogues`, `vitrine` et `modeles`
 ## rendent leur réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée
-## (`JSON.stringify`), `modeles/listage.json` le listage figé et tout autre chemin le fichier du projet, rien s'il est
-## absent (le dépôt de l'éditeur), chaque paramètre celui de `fige.parametres` ; il garde les entrées reçues hors de ces
+## (`JSON.stringify`), `modeles/listage.json` le listage figé, un chemin de `fige.octets` ses octets figés (en base64), et
+## tout autre chemin le fichier du projet, rien s'il est absent (le dépôt de l'éditeur), chaque paramètre celui de `fige.parametres` ; il garde les entrées reçues hors de ces
 ## trois et les chemins requêtés. Il est en recette (`en_recette`) : chaque écran publié est retenu dans `ecran`.
 
 var fige: Dictionary
@@ -40,6 +40,8 @@ func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.M
 	requetes.append(relative)
 	if relative == "modeles/listage.json":
 		return JSON.stringify(fige.listage).to_utf8_buffer()
+	if fige.get("octets", {}).has(relative):
+		return Marshalls.base64_to_raw(fige.octets[relative])
 	var chemin := "res://%s" % relative
 	var octets := FileAccess.get_file_as_bytes(chemin) if FileAccess.file_exists(chemin) else PackedByteArray()
 	if octets.is_empty():

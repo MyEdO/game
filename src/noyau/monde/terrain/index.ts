@@ -18,6 +18,8 @@ import { terrains } from '../../../data/index';
 import { memoParVersion } from '../../../data/versionDataset';
 import type { TerrainDef } from '../../../data';
 import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
+import { hash32 } from '../../../lib/hash';
+import { DIR4_ORDER, type Dir4 } from '../../../geometry/dir8';
 
 
 const indexVivant = memoParVersion('terrains', () =>
@@ -149,9 +151,14 @@ export function terrainsAvecGlyphe(): Readonly<Record<string, Terrain>> {
   return glyphesVivants();
 }
 
-/** Décor posé sur chaque tuile du terrain (id de `props.json`), ou undefined. */
-export function terrainOverlayProp(id: string): string | undefined {
-  return indexDesTerrains()[id]?.overlayProp?.id;
+/** Le décor que le terrain `terrain` pose sur la case MONDE (x, y, z) : l'un de ses `overlayProps` (id de
+ *  `props.json`) et son cap cardinal, tous deux tirés de `hash32('decor', x, y, z)` — la même case rend le même
+ *  décor dans tous les rendus, sans état. `undefined` pour un terrain qui ne pose aucun décor. */
+export function decorDuTerrain(terrain: string, x: number, y: number, z: number): { prop: string; cap: Dir4 } | undefined {
+  const essences = indexDesTerrains()[terrain]?.overlayProps;
+  if (!essences) return undefined;
+  const h = hash32('decor', x, y, z);
+  return { prop: essences[h % essences.length], cap: DIR4_ORDER[Math.floor(h / essences.length) % DIR4_ORDER.length] };
 }
 /** Hauteur (m) du BLOC PLEIN d'un terrain (rendu seulement — s'ajoute à `heightAt` pour l'AFFICHAGE), 0 sinon. */
 export function terrainSolidHeightM(id: string): number {
@@ -167,7 +174,7 @@ export function terrainMatiere(id: string): string | undefined {
 /** Recette de détail d'un terrain, RESTREINTE aux sections d'ACCENT (touffes, mouchetis) — `null`
  *  quand l'entrée n'en porte aucune. Deux consommateurs la lisent : l'affine (`authoring/floorsSvg.ts`)
  *  et le volumique (`groundAccents.ts`) ; le POV lit la recette NON restreinte en direct monde
- *  volumique. Elle vit avec le dataset qu'elle interroge, au même titre que `terrainOverlayProp`.
+ *  volumique. Elle vit avec le dataset qu'elle interroge, au même titre que `decorDuTerrain`.
  *
  *  Type par ACCÈS INDEXÉ sur `TerrainDef`, déjà importé ici : `DetailRecipe` vit dans
  *  `src/data/materials.types.ts` ; l'accès indexé économise un second import. */

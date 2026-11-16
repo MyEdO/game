@@ -26,7 +26,7 @@ import {
 } from '../scene';
 import { entityBlockedAt } from '../sceneRules';
 import { versionDesDatasets } from '../../../data/versionDataset';
-import { terrainAbsent, terrainOverlayProp, terrainsAvecGlyphe } from '../terrain';
+import { decorDuTerrain, terrainAbsent, terrainsAvecGlyphe } from '../terrain';
 import { garanti } from '../../../lib/garanti';
 import { tableTotale } from '../../../lib/tableTotale';
 import { facesDuDessus } from './pente';
@@ -83,7 +83,7 @@ interface Provenance {
   luminaire?: true;
   /**
    * l'id du type de décor (`props.json`) dont la recette pose ses faces (`facesDuDecor`), décor d'une entité `prop`
-   * ou du terrain (`terrainOverlayProp`), chacun posé par une `PoseDeDecor` : le monde la touche (`cases`, voile,
+   * ou du terrain (`decorDuTerrain`), chacun posé par une `PoseDeDecor` : le monde la touche (`cases`, voile,
    * retrait, ombre) ; il ne la peint pas quand `decors` de la vue sert un modèle de ce décor (section « Corps d'un
    * combattant »), qui se montre à sa place.
    */
@@ -186,7 +186,7 @@ export interface MorceauDuMonde extends GeometrieDuMonde {
  * par case et sa variance de teinte, relief, raccords, piliers), la crête qui ceinture chaque zone crénelée
  * (`cretesDePerimetre`, `src/noyau/monde/volume/creneaux.ts`, matière `structure--<id>` de l'apparence que porte
  * `Layer.crenellated`) et les décors, chacun modelé par la recette de son type (`facesDuDecor`,
- * `src/noyau/monde/volume/propVolumes.ts`) : celui que le terrain pose sur chacune de ses cases (`terrainOverlayProp`,
+ * `src/noyau/monde/volume/propVolumes.ts`) : celui que le terrain pose sur chacune de ses cases (`decorDuTerrain`,
  * les arbres du bois) et les entités `prop` de la scène, à la couleur de leur matériau de décor (matière `prop--<id>`).
  * Il se publie dans le repère des builders, en mètres : X à l'est, Y en haut, Z au sud, la case (x, y) centrée sur (x ·
  * `metresParCase`, y · `metresParCase`). Il ne dépend que de la scène : ce qu'un regard en retire est un masque
@@ -381,7 +381,8 @@ export interface PoseDeDecor {
    */
   ancre: { x: number; y: number };
   /**
-   * son cap cardinal résolu (`capVolumique`, `S` sans `facing`), dans le repère de `rotatePropLocal`
+   * son cap cardinal résolu (`capVolumique` du `facing` d'une entité `prop`, `S` sans lui ; celui de `decorDuTerrain` pour
+   * le décor du terrain), dans le repère de `rotatePropLocal`
    * (`src/data/props.types.ts`) : `S` laisse la recette telle qu'authorée, chaque cran la tourne de 45° horaires.
    */
   cap: Dir4;
@@ -389,7 +390,7 @@ export interface PoseDeDecor {
   piedM: number;
   /** la case que portent ses triangles dans `cases` (`caseSurLaCarte`) : celle de son voile et de son retrait. */
   case: { x: number; y: number; z: number };
-  /** l'id de son entité `prop`, absent pour le décor du terrain (`terrainOverlayProp`). */
+  /** l'id de son entité `prop`, absent pour le décor du terrain (`decorDuTerrain`). */
   entId?: string;
   /** présent quand il éclaire (`mapLights`), comme `luminaire` de ses surfaces. */
   luminaire?: true;
@@ -401,7 +402,7 @@ const memePose = (a: PoseDeDecor, b: PoseDeDecor): boolean =>
   && memeCase(a.case, b.case) && a.entId === b.entId && a.luminaire === b.luminaire;
 
 /** Les décors posés de `scene` vue par son volume (`couchesDuVolume` appliqué) : celui que son terrain pose sur chaque
- *  case de chaque couche (`terrainOverlayProp`), case par case, puis chaque entité `prop`, dans l'ordre des entités ;
+ *  case de chaque couche (`decorDuTerrain`), case par case, puis chaque entité `prop`, dans l'ordre des entités ;
  *  chacun qui se dessine en volume (`decorEnVolume`) sur une couche de la scène (`caseSurLaCarte`). PUR. */
 function posesDuVolume(scene: Readonly<SceneDuVolume>): PoseAuVolume[] {
   const { w, h } = scene.dimensions;
@@ -418,7 +419,8 @@ function posesDuVolume(scene: Readonly<SceneDuVolume>): PoseAuVolume[] {
   };
   const duTerrain = scene.layers.flatMap(({ z }) => Array.from({ length: w * h }, (_, i) => {
     const [x, y] = [i % w, Math.floor(i / w)];
-    return poser(terrainOverlayProp(tileAt(scene, x, y, z)), undefined, { x, y }, heightAt(scene, x, y, z), { x, y, z });
+    const decor = decorDuTerrain(tileAt(scene, x, y, z), x, y, z);
+    return decor ? poser(decor.prop, decor.cap, { x, y }, heightAt(scene, x, y, z), { x, y, z }) : [];
   }).flat());
   const desEntites = scene.entities.flatMap((ent) =>
     ent.kind === 'prop' ? poser(ent.decor?.id, ent.facing, ancreDuDecor(ent, mpt), piedDuDecor(scene, ent), { ...ent.pos, z: ent.z ?? 0 }, ent.id) : []);

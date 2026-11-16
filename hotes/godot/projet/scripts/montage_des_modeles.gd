@@ -11,6 +11,8 @@
 ## `VolumeDeScene.COUCHE_DES_LUMINAIRES`) ; retirée avec sa case quand le regard la retire (`case`, `_retirer`). Une
 ## pose dont seul le lieu change se repose sans se recharger ; celles qui ne sont plus servies se retirent. Chacune se
 ## voile par la vision du groupe que le volume tient (`VolumeDeScene.voile`, `MontageDeVehicule.voiler`), case par case.
+## Un décor que la saison change (`palette`, `caches`) se remonte quand son corps change, ceux qu'elle ne change pas
+## restent montés (`MontageDeVehicule.monter`).
 ## Le volume ne peint pas les surfaces des décors servis (`VolumeDeScene.peindre_sans`), que leurs modèles montrent.
 class_name MontageDesModeles
 extends Node3D
@@ -18,8 +20,9 @@ extends Node3D
 ## Le modèle d'une pose s'est posé.
 signal pose
 
-## Un décor se monte comme un véhicule nu : son élément, sans palette, poste, Amélioration, nœud caché ni clip.
-const DECOR_NU := {palette = {}, postes = [], ameliorations = [], caches = [], clips = {}}
+## Un décor se monte comme un véhicule nu : son élément, sa palette et ses nœuds cachés servis, sans poste, Amélioration
+## ni clip.
+const DECOR_NU := {postes = [], ameliorations = [], clips = {}}
 
 ## Le volume de la scène, qui voile chaque modèle, borde la mer de chaque navire et retire chaque case.
 @export var volume: VolumeDeScene
@@ -72,15 +75,15 @@ func vider() -> void:
 
 ## Les poses de `navires` (`vue.corps.navires`) et de `decors` (`vue.corps.decors`), par clé : chaque navire sous l'id de
 ## son entité, son corps, son `centre` à la hauteur 0, au `cap` de son corps, sa `flottaison` ; chaque pose d'un décor
-## sous sa `cle` (`PoseDeDecor.cle`), son élément monté nu (`DECOR_NU`), son `ancre` à son `piedM`, à son `cap`, sa
-## `case`, et `luminaire` s'il éclaire.
+## sous sa `cle` (`PoseDeDecor.cle`), son élément monté nu (`DECOR_NU`), peint de sa `palette` et ses `caches` cachés
+## (`MontageDeVehicule.monter`), son `ancre` à son `piedM`, à son `cap`, sa `case`, et `luminaire` s'il éclaire.
 static func _poses_servies(navires: Dictionary, decors: Dictionary) -> Dictionary:
 	var poses := {}
 	for id: String in navires:
 		var navire: Dictionary = navires[id]
 		poses[id] = {corps = navire.corps, x = navire.centre.x, y = navire.centre.y, piedM = 0.0, cap = navire.corps.cap, flottaison = id}
 	for prop: String in decors:
-		var corps: Dictionary = DECOR_NU.merged({element = decors[prop].element})
+		var corps: Dictionary = DECOR_NU.merged({element = decors[prop].element, palette = decors[prop].palette, caches = decors[prop].caches})
 		for p: Dictionary in decors[prop].poses:
 			var servie := {corps = corps, x = p.ancre.x, y = p.ancre.y, piedM = p.piedM, cap = p.cap, case = p.case}
 			if p.has("luminaire"):

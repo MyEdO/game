@@ -20,8 +20,7 @@ import { cargoTotalEnc } from '../engine/seaVoyage';
 import { partyItemsCargoEnc, partyLandCapacity } from '../noyau/carriers';
 import { moraleBand } from '../engine/crewMorale';
 import { rationsDeCale } from '../engine/provisions';
-import { seasonOfMonth, weatherCondition, type Weather } from '../engine/travelStages';
-import { toDate } from '../engine/clock';
+import { currentSeason, weatherCondition, type Weather } from '../engine/travelStages';
 import { findVehicleById, seasonLabel, libelleOuAbsence } from '../data';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
@@ -272,7 +271,7 @@ export function voyageTiles(
     tiles.push({ key: 'betes', icon: 'voyage/en-selle', label: 'Bêtes', value: `${mounts.length}${hurt ? ` · ${hurt} blessée${hurt > 1 ? 's' : ''}` : ''}` });
   }
   pushCargoTile(tiles, party, possessions); // chargement porté par les bêtes/véhicules du convoi (#327)
-  const season = seasonOfMonth(toDate(gameTime).month);
+  const season = currentSeason(gameTime);
   tiles.push({ key: 'saison', icon: 'repos/froid', label: 'Saison', value: seasonLabel(season) });
   return tiles;
 }

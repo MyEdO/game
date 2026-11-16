@@ -4,8 +4,10 @@ chaque GLB publié d'un décor, lu dans le cache des modèles (`CACHE_DES_MODELE
 en CI) à l'empreinte de son manifeste publié, tient dans l'enveloppe convexe des primitives de sa recette
 (`decor/gabarit.py`), sol compris, à `TOLERANCE` près : le modèle garde l'encombrement que le jeu lit dans ces
 primitives. Aucun build : un modèle dont une entrée a changé se reconstruit à l'empreinte publiée
-(`test_chaque_modele_reproduit_ses_elements_publies`), si bien que la garde vaut pour lui."""
+(`test_chaque_modele_reproduit_ses_elements_publies`), si bien que la garde vaut pour lui. Un décor que nomme le `SELON`
+des données de son modèle porte ce `selon` au manifeste, un autre aucun."""
 import json
+import runpy
 import sys
 import unittest
 from pathlib import Path
@@ -48,6 +50,18 @@ def hors_du_gabarit(prop, points):
     faces = gabarit.enveloppe(gabarit.polygones(gabarit.fiche(prop)['volume']['primitives']))
     hors = recette[gabarit.depassement(recette, faces) > TOLERANCE]
     return len(hors), [tuple(round(float(c), 4) for c in p) for p in hors[:5]]
+
+
+class SelonDesDonnees(unittest.TestCase):
+    def test_le_selon_des_donnees_va_au_manifeste_du_decor_qu_il_nomme(self):
+        import bpy
+        from arbre import modele
+        D = runpy.run_path(str(ICI / 'decor' / 'arbre' / 'donnees.py'))
+        selon = {'automne': {'palette': {'bois': '#7a5230'}}, 'hiver': {}}
+        for donnees, attendu in ((D, {}), ({**D, 'SELON': {'souche': selon}}, {'selon': selon})):
+            with self.subTest(selon='SELON' in donnees):
+                bpy.ops.wm.read_factory_settings(use_empty=True)
+                self.assertEqual(modele.construire(donnees, 'souche'), attendu)
 
 
 class Reconstruction(reconstruction.DUneFamille, unittest.TestCase):

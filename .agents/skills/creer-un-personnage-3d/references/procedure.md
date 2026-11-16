@@ -675,7 +675,9 @@ emplacement de palette et une matière du domaine `prop` de `src/data/materials.
 peut différer de celle que nomme la recette, la docstring disant pourquoi ; `BUDGET_TRIANGLES` ; chaque proportion nommée, en fraction de la primitive qui la porte, et la docstring qui dit les
 proportions d'adaptation sans illustration) et `modele.py` (`elements(D)`, un élément par décor : `cles`
 `[("decor", {"prop": id})]`, un GLB par clé). Des décors qui partagent leur construction partagent le dossier (`arbre` :
-`arbre`, `arbre-mort`, `souche`, `buisson`).
+`arbre`, `arbre-mort`, `souche`, `buisson`). Un décor qui change selon la saison nomme dans sa scène ses nœuds
+`avec-<saison>` et `sans-<saison>`, et `donnees.py` le déclare dans `SELON`, par décor et par saison (`saisonSchema`),
+`{ "palette": { <emplacement d'une de ses surfaces>: "#rrggbb" } }` ou `{}`, que `modele.py` porte au `selon` du manifeste.
 
 **Gabarit.** Les primitives de la recette (`volume.primitives`) restent la seule source du gabarit de jeu (empreinte,
 dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes ni

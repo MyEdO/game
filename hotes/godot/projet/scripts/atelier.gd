@@ -50,7 +50,10 @@ const SECTIONS := [
 	{id = "poste", titre = "Postes"},
 	{id = "amelioration", titre = "Améliorations"},
 	{id = "pavillon", titre = "Emblème"},
+	{id = "saison", titre = "Saison"},
 ]
+## Le texte du choix d'aucune saison d'un échantillon : son décor tel que bâti.
+const TELLE_QUE_BATIE := "Telle que bâtie"
 ## L'emplacement d'emblème d'un véhicule : ses voiles et son pavillon, les surfaces `blason` de son élément.
 const PAVILLON := "vehicule"
 
@@ -159,7 +162,7 @@ var _parcours: Tween
 var _hors_du_repos := false
 ## Les familles d'échantillons de `echantillons`, vides avant elle.
 var _familles_d_echantillons: Array = []
-## L'échantillon demandé, `{ famille, id }` (l'entrée de `echantillon`), `null` : aucun.
+## L'échantillon demandé, `{ famille, id, saison? }` (l'entrée de `echantillon`), `null` : aucun.
 var _echantillon_demande: Variant = null
 
 
@@ -446,7 +449,9 @@ func _montrer_le_modele_pose() -> void:
 ## plateau (section « Corps d'un combattant », `MontageDesModeles`, le nœud `Echantillon/Scene/Modeles`), à l'échelle de
 ## `metresParCase`, sa boîte au sol et cadrée comme celle d'un véhicule (`MarcheDeLAtelier.cadrer_la_boite`), de
 ## nouveau à chaque modèle posé ; le sol de l'atelier se cache tant
-## qu'un échantillon est posé. Seuls « Effets » et « Outils » sont alors offerts ; un effet cadre aussi l'échantillon.
+## qu'un échantillon est posé. Seuls « Effets » et « Outils » sont alors offerts, et « Équipement » si son décor change
+## selon la saison (`saisons`) : la section « Saison » y offre le décor tel que bâti, puis chaque saison servie à son
+## `libelle`, et le choix redemande `echantillon` en cette saison (`saison`) ; un effet cadre aussi l'échantillon.
 ## « Recharger les modèles » repose l'échantillon demandé, l'état de l'atelier publiant `echantillon` (section « Écran
 ## publié »). Une base ou un véhicule choisi retire l'échantillon.
 
@@ -504,7 +509,7 @@ func _poser_sans_base(racine: Node3D) -> void:
 ## nappes de toit, ses couronnes (`VolumeDeScene.poser`, la réponse pour manifeste et pour géométries reçues) et ses
 ## arêtes posés par sa scène, les couronnes tombées retirées, ses décors servis montés par leur modèle
 ## (`MontageDesModeles.poser`, `decors`), en mètres (`MiseEnPage.echelle_en_metres`), au sol et cadré à sa taille
-## (`_poser_l_echantillon_au_sol`).
+## (`_poser_l_echantillon_au_sol`), et la section « Saison » posée sur ses `saisons` (`_poser_les_saisons`).
 func _poser_l_echantillon() -> void:
 	var reponse := _pont.appeler("echantillon", _echantillon_demande)
 	if reponse.get("ok") != true:
@@ -516,8 +521,34 @@ func _poser_l_echantillon() -> void:
 	_modeles_de_l_echantillon.poser({}, reponse.decors, {}, reponse.monde.metresParCase)
 	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)
 	_poser_l_echantillon_au_sol()
+	_poser_les_saisons(reponse.saisons)
 	_montrer_le_modele_pose()
 	_montrer_l_etat()
+
+
+## La section « Saison » de l'onglet Équipement sur les saisons `saisons` d'un échantillon (`{ id, libelle }`), aucune
+## sans elles : la liste de clé `saison` offre le décor tel que bâti (`VIDE`), puis chacune à son `libelle`, la saison
+## demandée choisie, et le choix redemande l'échantillon en cette saison (`_choisir_la_saison`).
+func _poser_les_saisons(saisons: Array) -> void:
+	Controles.vider(_panneau_des_emplacements)
+	_sections.clear()
+	if saisons.is_empty():
+		return
+	var choix: Array = [{id = VIDE, texte = TELLE_QUE_BATIE}]
+	for saison in saisons:
+		choix.append({id = saison.id, texte = saison.libelle})
+	var liste := _liste_deroulante("saison", choix, _choisir_la_saison)
+	_rangee("Saison", _section("saison")).add_child(liste)
+	_selectionner(liste, _echantillon_demande.get("saison", VIDE))
+
+
+## L'échantillon demandé en la saison `saison` (`VIDE` : aucune, tel que bâti), puis redessiné (`_poser_l_echantillon`).
+func _choisir_la_saison(saison: String) -> void:
+	var demande := {famille = _echantillon_demande.famille, id = _echantillon_demande.id}
+	if saison != VIDE:
+		demande.saison = saison
+	_echantillon_demande = demande
+	_poser_l_echantillon()
 
 
 ## La scène de l'échantillon au sol (`_poser_au_sol`) et cadrée à sa taille (`MarcheDeLAtelier.cadrer_la_boite`), modèles
@@ -1135,7 +1166,8 @@ func _montrer_l_onglet(onglet: String) -> void:
 
 
 ## Les onglets que le modèle posé offre, dans l'ordre du panneau (`.claude/rules/hote-godot.md`) : « Personnage », la
-## composition d'une base posée ; « Équipement », si une de ses sections porte une rangée ou s'il reste à produire ;
+## composition d'une base posée ; « Équipement », si une de ses sections porte une rangée (dont « Saison », d'un
+## échantillon dont un décor change selon la saison, `_poser_les_saisons`) ou s'il reste à produire ;
 ## « Couleurs », si une surface posée prend une couleur de palette (`_palette_posee`) ; « Animation », si le lecteur du
 ## modèle posé a un clip ou si l'engin posé attaque ; « Effets » et « Outils », toujours.
 func _onglets_offerts() -> Array[String]:

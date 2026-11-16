@@ -21,7 +21,7 @@ describe('les échantillons par le pont', () => {
       const { id } = famille.entrees[0]!;
       const { ok, ...dessine } = appel('echantillon', { famille: famille.id, id });
       expect(ok, `${famille.id} ${id}`).toBe(true);
-      expect(dessine, `${famille.id} ${id}`).toEqual(JSON.parse(JSON.stringify({ ...echantillonDessine(famille.id, id), decors: {} })));
+      expect(dessine, `${famille.id} ${id}`).toEqual(JSON.parse(JSON.stringify({ ...echantillonDessine(famille.id, id), decors: {}, saisons: [] })));
     }
   });
 

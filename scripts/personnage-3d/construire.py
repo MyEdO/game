@@ -10,7 +10,7 @@ L'id est `<categorie>--<valeur de la clé>` (`vehicule--caraque`, `amelioration-
 un dict : `glb` (nom de la scène), `cles` [(categorie, cle)], `materiaux` (table `{nom: (emplacement, matière)}`,
 `habillage.py`), `blasons` (matériaux qui reçoivent l'emblème, exportés avec leurs UV), `construire` (bâtit la scène vide,
 rend les champs du manifeste propres à l'élément : `postes`, `selon`, `ancrages`, `montage`, `clips` (`vehicule/clips.py`)
-d'un véhicule, rien d'un décor). Les familles et les catégories qu'elles publient : `CATEGORIES_DES_FAMILLES`
+d'un véhicule, `selon` d'un décor qui change selon la saison). Les familles et les catégories qu'elles publient : `CATEGORIES_DES_FAMILLES`
 (`entrees.py`).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py <famille>/<modele> --sortie <dossier neuf hors du dépôt>

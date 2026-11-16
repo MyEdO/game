@@ -2,7 +2,9 @@
 (`gabarit.py`), où `Gabarit.rentrer` ramène le sommet qui en sortirait. Une branche (tronc, charpentière, rameau, racine,
 tige) est une suite d'anneaux le long d'une courbe, au repère transporté, de section striée et vrillée, finie en pointe
 ou en cassure ; une masse de feuillage, un icosaèdre subdivisé, lobé, entaillé, facetté. L'aléa est semé des codes de
-caractères de l'id du décor : deux constructions rendent les mêmes octets."""
+caractères de l'id du décor : deux constructions rendent les mêmes octets. Un décor que nomme `SELON` (facultatif dans
+`donnees.py`) porte au manifeste ce qui change selon la saison : par saison, `{ palette? }`, ses nœuds `avec-<saison>` et
+`sans-<saison>` nommés dans sa scène."""
 import math
 import random
 
@@ -358,7 +360,8 @@ def construire(D, id_):
     triangles = sum(len(o.data.polygons) for o in objets)
     if triangles > D["BUDGET_TRIANGLES"][id_]:
         raise ValueError(f"{id_} : {triangles} triangles, budget {D['BUDGET_TRIANGLES'][id_]}")
-    return {}
+    selon = D.get("SELON", {}).get(id_)
+    return {"selon": selon} if selon else {}
 
 
 def elements(D):

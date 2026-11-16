@@ -2,12 +2,27 @@
  * LE DÉCOR SERVI PAR SON MODÈLE (#4335 ; `CONTRAT.md`, sections « Monde », « Corps d'un combattant » et « Atelier 3D ») :
  * chaque surface d'un décor du volume porte l'id de son type ; la vue sert, pour chaque type dont un élément `decor` est
  * servi, ce modèle et les poses de ce décor, celles dont le volume pose les faces ; l'atelier les sert de même pour
- * l'échantillon d'un décor.
+ * l'échantillon d'un décor. Un décor qui change selon la saison est servi, en jeu, à la saison de l'horloge, dans
+ * l'atelier à celle demandée, à l'éditeur à aucune : ses nœuds cachés et sa palette.
  */
-import { beforeAll, describe, expect, it } from 'vitest';
-import { avecLesSeulsDecors, modelesCommites, mondeDe, morceauxDe, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
-import { posesDesDecors, sceneDEchantillon } from '../../../src/noyau/index';
-import type { DecorServi } from './pont';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  avecLeSaisonnier,
+  avecLesSeulsDecors,
+  enSaison,
+  erreurDe,
+  modelesCommites,
+  mondeDe,
+  morceauxDe,
+  servirLesModeles,
+  suiteDe,
+  table,
+  vueDe,
+} from './pont.testkit';
+import { currentSeason, posesDesDecors, sceneDEchantillon } from '../../../src/noyau/index';
+import { SAISONS, type Saison } from '../asset/element';
+import { cleDEmplacement } from '../../../src/hote/sauvegardes';
+import type { DecorServi, SaisonOfferte } from './pont';
 
 const COMMITES = await modelesCommites();
 const { appel } = table();
@@ -25,6 +40,7 @@ describe('les décors de la scène en cours', () => {
         for (let t = s.debut / 3; t < s.fin / 3; t++) cases.add(m.cases.slice(t * 3, t * 3 + 3).join(','));
       }
   });
+  afterAll(() => appel('quitter'));
 
   it('sans élément `decor` servi, aucun décor ; servi, le seul type qu’il nomme, à chaque case où le volume pose ses faces', () => {
     const [prop] = [...casesParDecor.keys()];
@@ -45,8 +61,49 @@ describe('l’échantillon d’un décor dans l’atelier', () => {
     const { appel: atelier } = table();
     servirLesModeles(atelier, COMMITES, avecLesSeulsDecors(COMMITES, 'tonneau'));
     const { decors } = atelier('echantillon', { famille: 'decor', id: 'tonneau' }) as unknown as { decors: Record<string, DecorServi> };
-    expect(decors).toEqual({ tonneau: { element: 'decor--tonneau', poses: posesDesDecors(sceneDEchantillon('decor', 'tonneau')) } });
+    expect(decors).toEqual({ tonneau: { element: 'decor--tonneau', poses: posesDesDecors(sceneDEchantillon('decor', 'tonneau')), palette: {}, caches: [] } });
     expect(decors.tonneau.poses).toHaveLength(1);
     expect((atelier('echantillon', { famille: 'decor', id: 'table' }) as unknown as { decors: unknown }).decors).toEqual({});
+  });
+});
+
+describe('un décor qui change selon la saison (`selon`)', () => {
+  it('l’atelier le sert à la saison demandée, sans elle tel que bâti, et offre chaque saison à son libellé', () => {
+    const { appel: atelier } = table();
+    servirLesModeles(atelier, COMMITES, avecLeSaisonnier(COMMITES, 'buisson'));
+    const echantillon = (saison?: Saison) => atelier('echantillon', { famille: 'decor', id: 'buisson', ...(saison ? { saison } : {}) }) as unknown as { decors: Record<string, DecorServi>; saisons: SaisonOfferte[] };
+    for (const saison of [null, ...SAISONS]) expect(echantillon(saison ?? undefined).decors.buisson, saison ?? 'tel que bâti').toMatchObject(enSaison(saison));
+    const { saisons } = echantillon();
+    expect(saisons.map((s) => s.id)).toEqual(SAISONS);
+    for (const { id, libelle } of saisons) expect(libelle, id).not.toBe(id);
+    expect(erreurDe(atelier('echantillon', { famille: 'decor', id: 'buisson', saison: 'mousson' })).message).toContain('saison');
+  });
+
+  it('l’atelier n’offre aucune saison pour un décor qui n’en nomme aucune', () => {
+    const { appel: atelier } = table();
+    servirLesModeles(atelier, COMMITES, avecLesSeulsDecors(COMMITES, 'tonneau'));
+    const { decors, saisons } = atelier('echantillon', { famille: 'decor', id: 'tonneau', saison: 'hiver' }) as unknown as { decors: Record<string, DecorServi>; saisons: SaisonOfferte[] };
+    expect(decors.tonneau).toMatchObject({ palette: {}, caches: [] });
+    expect(saisons).toEqual([]);
+  });
+
+  it('le jeu le sert à la saison de son horloge', () => {
+    const { appel, stockage } = table();
+    suiteDe(appel('demarrer', { scenario: 'a-bord-de-la-caraque', graine: 7 }));
+    const [prop] = morceauxDe(appel, 'partie', mondeDe(appel).monde!).flatMap((m) => m.surfaces.flatMap((s) => (s.decor === undefined ? [] : [s.decor])));
+    expect(prop, 'la scène pose au moins un décor').toBeDefined();
+    servirLesModeles(appel, COMMITES, avecLeSaisonnier(COMMITES, prop));
+    appel('sauvegarder', { sauvegarder: 1 });
+    const cle = cleDEmplacement(1);
+    const sauvee = JSON.parse(stockage.getItem(cle)!);
+    for (const saison of SAISONS) {
+      let gameTime = sauvee.gameTime as number;
+      while (currentSeason(gameTime) !== saison) gameTime += 24 * 60;
+      stockage.setItem(cle, JSON.stringify({ ...sauvee, gameTime, data: { ...sauvee.data, gameTime } }));
+      appel('quitter');
+      suiteDe(appel('charger', { charger: 1 }));
+      expect(vueDe(appel('vue')).corps.decors[prop], saison).toMatchObject(enSaison(saison));
+    }
+    appel('quitter');
   });
 });

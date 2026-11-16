@@ -150,6 +150,15 @@ Ces règles s'appliquent en et hors combat.
 > « La vitesse d'une barge peut augmenter ou diminuer jusqu'à 30 % si elle est en aval ou en
 > amont, si vous jugez que c'est approprié. »
 
+### Forêts du Reikland (couleur locale)
+
+**Source :** LDB 52 l.73
+
+> « Des kilomètres de chênes, de pins, d'ormes et de hêtres vertigineux non cartographiés
+> dissimulent bien plus que des bandits désespérés et des animaux sauvages. »
+
+- Les quatre essences des forêts du Reikland : chêne, pin, orme, hêtre.
+
 ---
 
 ## Transports payants
