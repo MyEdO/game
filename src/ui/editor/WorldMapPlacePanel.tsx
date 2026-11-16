@@ -14,7 +14,8 @@ import { planChrome } from '../PlanChrome';
 import { VB_W, VB_H } from '../worldMapViewport';
 import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
-import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon, nomDuPoi } from '../../noyau/worldMap';
+import { type MapPlace, type MarcheDAuteur, type PlacePoi, resolvePortRef, placeServices, poiIcon, nomDuPoi } from '../../noyau/worldMap';
+import { LIBELLES_DE_TAILLE } from '../../data/schemas/defs-scenes/worldmap';
 import {
   etablissementAjoute,
   etablissementRetire,
@@ -24,7 +25,7 @@ import {
   typesDEtablissement,
   type PatchDeLieu,
 } from '../../noyau/worldMapEdit';
-import { LAND_RICHESSE_ROWS, VOIE_TERRESTRE, type LandMarketProfile } from '../../engine/landCargo';
+import { LAND_RICHESSE_ROWS, VOIE_TERRESTRE } from '../../engine/landCargo';
 import { VOIE_MARITIME, type PortProfile } from '../../engine/seaVoyage';
 import { CARGO_ENTRIES, isEchangeable, marchandisesDe, type Voie } from '../../engine/cargo';
 import { navalPorts, findNavalPortById } from '../../data';
@@ -36,8 +37,8 @@ import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/grammaire/campagne';
 import { idDEntropie } from '../../hote/entropie';
 
-/** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */
-const TAILLE_LABELS = ['Hameau', 'Village', 'Ville', 'Grande ville'];
+/** Options d'un indice de Taille (`LIBELLES_DE_TAILLE`). MSRC 13 l.44-50 */
+const optionsDeTaille = () => Object.entries(LIBELLES_DE_TAILLE).map(([n, label]) => <option key={n} value={n}>{n} — {label}</option>);
 /** Options de la colonne Produits/Production : TOUT le vocabulaire de la voie au catalogue (marchandises
  *  ET marqueurs). Un marqueur porte son qualificatif `hint` EN DONNÉE (« plaque tournante » / « rien à
  *  échanger ») — l'écran le rend entre parenthèses, il ne l'écrit pas. */
@@ -87,6 +88,15 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
             <input value={place.entry ?? ''} onChange={(e) => updPlace(place.id, { entry: e.target.value || undefined })} />
           </label>
           <CouvreField value={place.couvre} sujet="du lieu" onChange={(couvre) => updPlace(place.id, { couvre })} />
+          {/* Un lieu à port tient sa taille de son port (`tailleDuLieu`). */}
+          {!place.port && (
+            <label className="ed-field">Taille de la communauté (l.44-50)
+              <select value={place.taille ?? ''} onChange={(e) => updPlace(place.id, { taille: e.target.value ? Number(e.target.value) : undefined })}>
+                <option value="">— aucune (hors agglomération) —</option>
+                {optionsDeTaille()}
+              </select>
+            </label>
+          )}
 
           <div className="mini-title" title="Le lieu n'existe sur la carte qu'une fois la condition vraie : ni médaillon, ni route, ni voyage vers lui. « Toujours » = lieu toujours visible.">Visible si</div>
           <WhenEditor when={place.when} kinds={CONDITION_KINDS_CARTE} narratif={narratif} onChange={(when) => updPlace(place.id, { when })} />
@@ -138,14 +148,9 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
           </label>
           {place.market && (() => {
             const mk = place.market;
-            const updMarket = (patch: Partial<LandMarketProfile>) => updPlace(place.id, { market: { ...mk, ...patch } });
+            const updMarket = (patch: Partial<MarcheDAuteur>) => updPlace(place.id, { market: { ...mk, ...patch } });
             return (
               <>
-                <label className="ed-field">Taille de la communauté (l.44-50)
-                  <select value={mk.taille} onChange={(e) => updMarket({ taille: Number(e.target.value) })}>
-                    {TAILLE_LABELS.map((label, i) => <option key={i} value={i + 1}>{i + 1} — {label}</option>)}
-                  </select>
-                </label>
                 <label className="ed-field">Indice de richesse — Mise à prix (l.52-60, l.150-156)
                   <select value={mk.richesse} onChange={(e) => updMarket({ richesse: Number(e.target.value) })}>
                     {LAND_RICHESSE_ROWS.map((r) => (
@@ -181,7 +186,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
             <input
               type="checkbox"
               checked={!!place.port}
-              onChange={(e) => updPlace(place.id, { port: e.target.checked ? portNeuf() : undefined })}
+              onChange={(e) => updPlace(place.id, e.target.checked ? { port: portNeuf(), taille: undefined } : { port: undefined })}
             />
             <Icon id="voyage/ancre" size="sm" /> Port maritime (accostage, commerce, chantier)
           </label>
@@ -226,7 +231,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                 })()}
                 <label className="ed-field">Taille du port (1-4, l.439-506)
                   <select value={pt.taille} onChange={(e) => updPort({ taille: Number(e.target.value) })}>
-                    {TAILLE_LABELS.map((label, i) => <option key={i} value={i + 1}>{i + 1} — {label}</option>)}
+                    {optionsDeTaille()}
                   </select>
                 </label>
                 <label className="ed-field">Richesse du port

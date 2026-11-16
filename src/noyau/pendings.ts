@@ -798,6 +798,9 @@ export interface PendingCorruption {
   /** EXPOSITION : nature imposée par la source → pas de choix joueur. Absent/false = indéterminée
    *  (LDB 19 l.29) → la modale propose les Tests de `influences-corruptrices` (cf. réglage `corruption.nature`). */
   natureFixee?: boolean;
+  /** EXPOSITION : Difficulté imprimée par la source (op `corruptionExposure.difficulty`, ZI 13 l.197), qui
+   *  survit au choix de la nature ; absente, celle du Test de `influences-corruptrices`. */
+  difficulteFixee?: Difficulty;
   /** Alignement de la SOURCE (Puissance du Chaos) posé par l'éditeur de niveau → table EDOC à tirer
    *  si une mutation survient (sinon la règle globale décide). Voyage exposition → seuil → mutation. */
   align?: import('../engine/corruption').ChaosAlign;

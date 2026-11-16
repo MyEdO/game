@@ -6,7 +6,7 @@ import type { Combatant, Characteristics, CharKey, HeroDetails, ItemInstance, Sk
 import { CHAR_KEYS } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ObjetDeCatalogue } from '../data/schemas/grammaire/reference';
-import { findSpeciesById, levelsForCareer, speciesSize } from '../data';
+import { findSpeciesById, levelsForCareer } from '../data';
 import { acquerirTalent, freeSlotFor, refKey, skillSlots, talentSlots, talentSlotsUpTo, type PorteurDeTalents } from './careerSlots';
 import { assemblerLeHeros, augmenterLaCompetence, type CreateHeroOptions } from './character';
 import { carriereActuelle, designationsDeCarriere, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
@@ -14,6 +14,7 @@ import { contexteDeNaissanceDObjet, customTrapping, inventaireDesDotations, type
 import { baseWithTalents, talentCharBonusById } from './talentEffects';
 import type { FabriqueDId } from './fabriqueDId';
 import { tableTotale } from '../lib/tableTotale';
+import { porteurDeLEspece } from './trappingChoices';
 
 /** Une fiche de héros imprimée, en ids. */
 export interface FicheDeHeros {
@@ -84,7 +85,7 @@ function inventaireDeLaFiche(fiche: FicheDeHeros, carriere: string, idNeuf: Fabr
 export function heroDeFiche(fiche: FicheDeHeros, idNeuf: FabriqueDId): Combatant {
   const espece = findSpeciesById(fiche.speciesId);
   if (!espece) throw new Error(`Espèce inconnue : ${fiche.speciesId}`);
-  const refus = refusDuParcours(fiche.parcours, speciesSize(espece));
+  const refus = refusDuParcours(fiche.parcours, porteurDeLEspece(espece));
   if (refus) throw new Error(`Fiche « ${fiche.id} » : ${refus}`);
   const actuelle = carriereActuelle(fiche.parcours)!;
 

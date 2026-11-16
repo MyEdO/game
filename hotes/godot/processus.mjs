@@ -67,7 +67,9 @@ export function pontDuBundle(code, console, stockage) {
  *   le pose en global (`hotes/godot/pilotage/natif.mjs`).
  * - Une ligne illisible sur son entrée le tue ; la fin de son entrée ferme le serveur, et il sort en 0 : aussitôt si rien ne
  *   le retient, sinon (une socket, un `fetch`, une connexion du serveur) `BORNE_DE_SORTIE_MS` après que sa sortie
- *   standard est vidée, sans geste de salon.
+ *   standard est vidée, sans geste de salon. Ce qu'un geste d'avant a écrit sur une socket part dans ce délai.
+ * - Après la fin de son entrée, rien de non vide ne s'écrit sur sa sortie standard : Godot ferme le tuyau, ses deux
+ *   bouts, et une écriture non vide y lève `EPIPE`, qui tue le processus.
  */
 
 /** Le délai après lequel un processus dont l'entrée a fini sort, quoi que le retienne. */

@@ -21,8 +21,8 @@ PRISE = 'main'
 
 MATERIAUX = {
     'parchemin': ('vet2', ((0.75, 0.75, 0.75), 0.0, 0.9)),
-    'cuir': ('cuir', ((0.5, 0.5, 0.5), 0.0, 0.9)),
-    'metal': ('metal', ((0.66, 0.66, 0.66), 0.5, 0.5)),
+    'cuir': ('cuir', 'cuir-tanne'),
+    'metal': ('metal', 'acier-battu'),
 }
 """`SLOTS` n'a pas d'emplacement de parchemin : `vet2`, l'écru du dessous de la robe du preset `sorcier`, comme sur
 l'illustration."""

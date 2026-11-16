@@ -27,7 +27,7 @@ import { modalHolds } from '../../noyau/modalArbiter';
 import { modalBlocksMapHover } from '../mapHover';
 import { hotbar } from '../hotbarBridge';
 import { editeur } from '../editeurBridge';
-import { TOUCHES_IMPRIMEES } from '../dispositionConsole';
+import { TOUCHES_IMPRIMEES } from '../../noyau/dispositionConsole';
 import { currentInterludeAction, actionGate } from '../../noyau/actionRegistry';
 import { validTargets, preemptShooterIds } from '../../noyau/targeting';
 import type { ScreenDir } from '../combatCursor';

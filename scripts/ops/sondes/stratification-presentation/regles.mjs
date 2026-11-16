@@ -96,7 +96,7 @@ export const REGLES = Object.freeze([
     preuve: 'src/noyau/monde/path.ts:1-5 ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
   },
   {
-    motif: new RegExp(String.raw`^src/state/(refusVisible|registreOffres|offreRendue|offresUtilisables|recapLine|fixedDieMark|dialogueLibelle|dialogueHistory|identites|hotbarBridge|localIntent|modalArbiter|mapHover|codexFocus|combatCursor|preferences|dispositionConsole|revealStep)(\.|-)`),
+    motif: new RegExp(String.raw`^src/state/(refusVisible|registreOffres|offreRendue|offresUtilisables|recapLine|fixedDieMark|dialogueLibelle|dialogueHistory|identites|hotbarBridge|localIntent|modalArbiter|mapHover|codexFocus|combatCursor|preferences|revealStep)(\.|-)`),
     categorie: 'interface-wfrp',
     raison: 'État d\'affichage/saisie propre à WFRP : pastilles d\'offres, refus visible, arbitre de modales et carte inerte sous modale, curseur de combat, intention locale, pont console, libellés de dialogue, préférences.',
     preuve: 'src/state/offreRendue.ts:1-4 ; src/noyau/modalArbiter.ts:1-6 ; src/state/mapHover.ts:1-13 (modalHolds) ; src/state/hotbarBridge.ts:1-5',

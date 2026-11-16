@@ -4,7 +4,8 @@
 ## (`monter_l_amelioration`), les nœuds que changent ses Améliorations cachés (`cacher_selon`), coupé à une hauteur
 ## (`couper`), voilé par la vision du groupe (`voiler`). Chaque combattant du plateau (`combattant.gd`) et l'atelier
 ## (`atelier.gd`) en sont deux porteurs : l'un le pose sur son empreinte, tourné vers son cap, l'autre au sol, sous un
-## cadrage à sa taille ; le plateau y monte aussi chaque navire de la scène, coupé sous les ponts que le regard retire.
+## cadrage à sa taille ; les modèles posés du monde (`MontageDesModeles`) y montent aussi chaque navire de la scène,
+## coupé sous les ponts que le regard retire, et chaque pose d'un décor servi.
 class_name MontageDeVehicule
 extends Node3D
 
@@ -102,7 +103,7 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	return true
 
 
-## Sorti de l'arbre avec son combattant, son atelier ou ses navires, qui n'y reviennent pas (#4195) : le chargement en
+## Sorti de l'arbre avec son combattant, son atelier ou ses modèles posés, qui n'y reviennent pas (#4195) : le chargement en
 ## vol est jeté (`_chargement`, `monter`).
 func _exit_tree() -> void:
 	_chargement = null
@@ -224,6 +225,13 @@ func _porter_la_hauteur(piece: MeshInstance3D, boite: AABB) -> void:
 		locale.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 
 
+## Le matériau de surface que porte la surface `rang` de `piece`, un mesh de sa scène, sinon un duplicata de son
+## matériau actif posé à sa place (`MontageDeComposition.materiau_local`) ; `null` s'il n'est pas un `BaseMaterial3D`.
+func materiau_propre(piece: MeshInstance3D, rang: int) -> BaseMaterial3D:
+	var porte := piece.get_surface_override_material(rang) as BaseMaterial3D
+	return porte if porte != null else MontageDeComposition.materiau_local(piece, rang, _locaux)
+
+
 ## L'enveloppe convexe, dans le plan horizontal du repère global, de ce que sa scène montre sous la hauteur globale
 ## `hauteur` : ses sommets dessous et les points où les côtés de ses triangles la traversent, hors des doubles d'ombre.
 func contour_sous(hauteur: float) -> PackedVector2Array:
@@ -276,7 +284,7 @@ static func boite(noeud: Node, dans: Node3D) -> Variant:
 ## aucun) (`MontageDeComposition.peindre`, les `surfaces` de l'élément), ses matériaux propres tenus dans `locaux` ; rend
 ## si l'emblème est posé sur une surface.
 static func peindre_l_element(scene: Node3D, element: String, palette: Dictionary, texture: ImageTexture, locaux: Dictionary) -> bool:
-	return MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], texture, palette, locaux)
+	return MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], texture, palette, locaux, false)
 
 
 ## La scène `piece` d'une pièce montée sous la scène `scene` de son véhicule, au poste `poste` (`postes` du corps) : à

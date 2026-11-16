@@ -9,8 +9,9 @@
 import { describe, it, expect } from 'vitest';
 import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
 import { clicDuCombattant, type Suite } from './pont';
-import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
-import type { Bouton, Choix, Jet, Ligne } from '../../../src/hote/elements';
+import { ACTIONS, CLIC_DU_CHAMP } from '../../../src/noyau/index';
+import type { Bouton, Choix, Entite, Jet, Ligne, Puce } from '../../../src/hote/elements';
+import { t } from '../../../src/i18n';
 
 const { appel: appelNu } = table();
 
@@ -61,6 +62,25 @@ function finirLeTour(): ReturnType<typeof jouer> {
   return { suite: fin.suite, journal: [...arme.journal, ...fin.journal], lignes: [...arme.lignes, ...fin.lignes], effets: [...arme.effets, ...fin.effets] };
 }
 
+/** Le meuble de l'actif de `s` (`combat.actif`) : son portrait, chaque élément de son Mouvement à son ton, le ton de son
+ *  Action. */
+function meubleDe(s: Suite) {
+  const [actif] = s.vue.zones['combat.actif'];
+  const mouvement = actif.elements.find((e): e is Entite => e.type === 'entite' && e.id === 'mouvement');
+  return {
+    portrait: actif.elements.find((e) => e.type === 'portrait'),
+    jetons: (mouvement?.elements ?? []).map((e) => [e.id, 'ton' in e ? e.ton : null]),
+    action: actif.elements.find((e): e is Puce => e.id === 'action' && e.type === 'puce')?.ton,
+  };
+}
+
+/** Le Mouvement de l'actif de `s` tel que la projection le compte (`mouvement`, `[restant, total]`) : un jeton par case,
+ *  plein (`reussite`) tant qu'il reste, puis ce qui reste. */
+function jetonsAttendus(s: Suite): (string | null)[][] {
+  const [restant, total] = s.vue.projection.combat!.actif!.mouvement;
+  return [...Array.from({ length: total }, (_, i) => [`jeton/${i}`, i < restant ? 'reussite' : 'neutre']), ['reste', 'neutre']];
+}
+
 describe('un tour complet par le pont', () => {
   it('attaque d’un héros par ses gestes, déplacement, attaque adverse jouée par le noyau, Défense', { timeout: 240_000 }, () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
@@ -76,8 +96,20 @@ describe('un tour complet par le pont', () => {
     expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
     expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');
     expect(economie('fin-de-tour'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
+    const action = economie('attaque')!.valeurs;
+    expect(action.map((v) => [v.id, v.icone]), 'chaque offre de l’Action porte le dessin de son action en donnée').toEqual(action.map((v) => [v.id, ACTIONS.find((a) => a.id === v.id)!.icon]));
+    expect(action.every((v) => typeof v.icone === 'string'), 'chaque offre de l’Action a un dessin').toBe(true);
     expect(suite.vue.zones['combat.actif'][0]?.nom, 'le panneau nomme l’actif').toBe(heros.nom);
-    expect(suite.vue.zones['combat.ordre'].filter((p) => p.ton === 'alerte').map((p) => p.libelle), 'le bandeau de l’ordre met en avant celui qui joue, lui seul').toEqual([heros.nom]);
+    expect(meubleDe(suite), 'le meuble de l’actif : son portrait, son Mouvement en jetons, pleins tant qu’il en reste, son Action entière').toEqual({
+      portrait: { type: 'portrait', id: 'portrait', combattant: heros.id }, jetons: jetonsAttendus(suite), action: 'reussite',
+    });
+    const ordre = suite.vue.zones['combat.ordre'];
+    expect(ordre.filter((r) => r.ton === 'alerte').map((r) => r.nom), 'l’ordre met en avant celui qui joue, lui seul').toEqual([heros.nom]);
+    expect(ordre[ordre.length - 1]?.id, 'celui qui joue, en bas de la colonne').toBe(`ordre/${heros.id}`);
+    expect(ordre[ordre.length - 1]?.elements.slice(0, 2), 'son rang : son portrait, puis ses Blessures en jauge').toEqual([
+      { type: 'portrait', id: 'portrait', combattant: heros.id },
+      expect.objectContaining({ type: 'jauge', id: 'blessures', courant: expect.any(Number), max: expect.any(Number) }),
+    ]);
     ({ suite } = jouer({ type: 'armerLIntention', args: ['charge'] }));
     expect(suite.vue.projection.combat!.intention, 'l’offre arme son intention').toBe('charge');
     expect(suite.vue.zones['combat.offres'].flatMap((o) => o.valeurs).find((o) => o.presse)?.id, 'l’offre armée est pressée').toBe('charge');
@@ -113,16 +145,30 @@ describe('un tour complet par le pont', () => {
     const confirmee = presser(bouton(suite, attendu(suite)));
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('jetDAttaque');
+    expect(meubleDe(suite), 'la charge jouée : ses cases de Mouvement vidées, son Action jouée').toEqual({ ...meubleDe(suite), jetons: jetonsAttendus(suite), action: 'neutre' });
+    expect(meubleDe(suite).jetons.filter(([, ton]) => ton === 'reussite').length, 'la charge a vidé des cases').toBeLessThan(meubleDe(suite).jetons.length - 1);
     expect(confirmee.lignes.map((l) => l.texte), 'l’issue confirmée entre au journal de l’écran').toContain((issue as Ligne).texte);
     const barre = suite.vue.zones['combat.offres'];
-    const offres = [...barre.flatMap((o) => o.valeurs), ...barre.filter((c) => c.id.startsWith('offre/')).map((c) => ({ ...c, id: c.id.slice('offre/'.length) }))];
     const fermees = suite.vue.projection.combat!.offres!.liste.filter((o) => o.refus !== null);
-    expect(fermees.length, 'l’Action jouée, des offres se ferment').toBeGreaterThan(0);
-    expect(fermees.map((o) => offres.find((b) => b.id === o.id)?.refus), 'chaque offre fermée reste à la barre, son bouton ou le choix de ses candidats refusé avec sa raison').toEqual(fermees.map((o) => o.refus));
+    const fixe = (o: (typeof fermees)[number]) => !o.candidats.length && o.geste !== null && (o.economie === 'action' || o.economie === 'aucun');
+    expect(fermees.filter(fixe).length, 'l’Action jouée, des plaques se ferment').toBeGreaterThan(0);
+    expect(fermees.filter((o) => !fixe(o)).length, 'l’Action jouée, des offres hors emplacement fixe se ferment').toBeGreaterThan(0);
+    expect(fermees.filter(fixe).map((o) => barre.find((c) => c.id === `economie/${o.economie}`)?.valeurs.find((b) => b.id === o.id)?.refus), 'une offre fermée d’un emplacement fixe reste, refusée avec sa raison').toEqual(fermees.filter(fixe).map((o) => o.refus));
+    const montres = [...barre.map((c) => c.id), ...barre.flatMap((c) => c.valeurs.map((b) => b.id))];
+    expect(fermees.filter((o) => !fixe(o)).filter((o) => montres.includes(o.id) || montres.includes(`offre/${o.id}`)).map((o) => o.id), 'une offre fermée hors emplacement fixe quitte la barre').toEqual([]);
+    expect(barre.filter((c) => c.id !== 'economie/action' && c.id !== 'economie/aucun').flatMap((c) => [c, ...c.valeurs]).filter((x) => x.refus !== null).map((x) => x.id), 'une liste ouverte ne porte que des valeurs ouvertes').toEqual([]);
+    expect(barre.filter((c) => !c.valeurs.length).map((c) => c.id), 'aucun choix sans valeur').toEqual([]);
     ({ suite } = finirLeTour());
 
     const second = actifDe(suite);
     expect(second.id).not.toBe(heros.id);
+    const rangs = suite.vue.zones['combat.ordre'].map((r) => r.id);
+    expect(rangs[rangs.length - 1], 'le suivant joue, en bas de la colonne').toBe(`ordre/${second.id}`);
+    expect(rangs.indexOf(`ordre/${heros.id}`), 'qui a joué remonte au round suivant, au-dessus de qui reste à jouer').toBeLessThan(rangs.indexOf(`ordre/${second.id}`));
+    const debuts = suite.vue.zones['combat.ordre'].flatMap((r) => r.elements.filter((e): e is Ligne => e.id === 'round').map((e) => [r.id, e.texte]));
+    expect(debuts, 'un seul rang porte le round suivant, lui en tête des rangs qui ont joué').toHaveLength(1);
+    expect(debuts[0][1], 'le round suivant, nommé').toBe(t('ecran.round', { round: suite.vue.projection.combat!.round + 1 }));
+    expect(rangs.indexOf(debuts[0][0]), 'le round suivant commence au-dessus de qui reste à jouer, sous ceux qui ont joué').toBeGreaterThanOrEqual(rangs.indexOf(`ordre/${heros.id}`));
     const vers = suite.vue.cases.find((c) => c.zone === 'marche' && c.cout === 1)!.case;
     ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
     expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'deplacement', cible: null, case: [vers.x, vers.y, vers.z ?? 0] });

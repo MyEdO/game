@@ -1,0 +1,36 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/touche.gd" id="2_touche"]
+
+[node name="CaseLibre" type="VBoxContainer"]
+custom_minimum_size = Vector2(72, 0)
+mouse_filter = 2
+theme_type_variation = &"PileTassee"
+
+[node name="Cadre" type="Panel" parent="."]
+custom_minimum_size = Vector2(44, 44)
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_type_variation = &"CaseLibre"
+
+[node name="Touche" type="Label" parent="Cadre"]
+offset_left = 2.0
+offset_top = 1.0
+mouse_filter = 2
+theme_type_variation = &"Mesure"
+
+[node name="touche" type="Node" parent="Cadre/Touche"]
+script = ExtResource("2_touche")
+champ = "touche"
+cacher_si_nul = true
+
+[node name="Libelle" type="Label" parent="."]
+theme_type_variation = &"Mesure"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="texte" type="Node" parent="Libelle"]
+script = ExtResource("1_liaison")
+champ = "texte"

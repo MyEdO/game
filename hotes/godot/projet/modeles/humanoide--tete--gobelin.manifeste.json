@@ -1,0 +1,48 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "tete",
+  "cle": {
+    "tete": "gobelin"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [
+    "tete",
+    "visage",
+    "nez",
+    "oeil_g",
+    "oeil_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "peau",
+      "palette": "peau"
+    },
+    {
+      "nom": "yeux",
+      "palette": "yeux"
+    },
+    {
+      "nom": "dents",
+      "palette": "corne"
+    },
+    {
+      "nom": "anneaux",
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
+    }
+  ],
+  "glb": {
+    "sha256": "e8ff797367e1b9abe9b07f51f79c648406519a399a99b0e9464fa2d0f6cabb49",
+    "octets": 706404
+  }
+}

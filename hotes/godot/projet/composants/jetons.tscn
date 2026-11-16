@@ -1,0 +1,35 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Jetons" type="HBoxContainer"]
+size_flags_horizontal = 3
+theme_type_variation = &"RangeeSerree"
+
+[node name="Libelle" type="Label" parent="."]
+custom_minimum_size = Vector2(92, 0)
+theme_type_variation = &"Discret"
+
+[node name="nom" type="Node" parent="Libelle"]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="Cases" type="HBoxContainer" parent="."]
+size_flags_vertical = 4
+
+[node name="Zone" type="Node" parent="Cases"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("jeton/")
+formes = PackedStringArray("puce:jeton")
+
+[node name="Reste" type="HBoxContainer" parent="."]
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Zone" type="Node" parent="Reste"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("reste")
+formes = PackedStringArray("ligne:carriere")

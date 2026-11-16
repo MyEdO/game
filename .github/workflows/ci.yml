@@ -224,6 +224,7 @@ jobs:
   # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
   # requirements.txt), après `godot:sonde`, qui tire dans `CACHE_DES_MODELES` les GLB épinglés que `test_element.py` lit.
   # Le cache de pip est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner, ne se cache pas.
+  # `godot:coop` (#3009) : le relay local (`server/` installé pour lui seul) et la coop jouée par deux processus Godot.
   godot:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -240,6 +241,11 @@ jobs:
       - name: Godot — scripts et recettes autonomes
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm --prefix server ci
+      - name: Godot — coop à deux processus
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run godot:coop
       - id: python-3d
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"

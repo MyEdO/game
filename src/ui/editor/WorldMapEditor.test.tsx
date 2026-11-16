@@ -162,14 +162,14 @@ describe('WorldMapEditor — panneau Lieu (#419)', () => {
 });
 
 describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
-  it('active le marché et édite taille/richesse/produits', () => {
+  it('pose la taille au lieu, active le marché et édite richesse/produits', () => {
     mount();
     selectPlace('p1');
+    setValue(input('Taille de la communauté'), '3');
+    expect(lastMap!.places[0].taille).toBe(3);
     click(tab('Commerce'));
     click(checkbox('Lieu de commerce'));
     expect(lastMap!.places[0].market).toBeTruthy();
-    setValue(input('Taille de la communauté'), '3');
-    expect(lastMap!.places[0].market!.taille).toBe(3);
 
     const richesseSel = input('Indice de richesse — Mise à prix') as HTMLSelectElement;
     const otherRichesse = [...richesseSel.options].map((o) => o.value).find((v) => v !== richesseSel.value)!;
@@ -185,9 +185,13 @@ describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
   it('active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare', () => {
     mount();
     selectPlace('p1');
+    setValue(input('Taille de la communauté'), '3');
     click(tab('Commerce'));
     click(checkbox('Port maritime'));
-    expect(lastMap!.places[0].port).toBeTruthy();
+    expect([!!lastMap!.places[0].port, lastMap!.places[0].taille], 'le port porte la taille du lieu').toEqual([true, undefined]);
+    click(tab('Lieu'));
+    expect(document.body.textContent, 'un lieu à port tient sa taille de son port').not.toContain('Taille de la communauté');
+    click(tab('Commerce'));
 
     const port0 = navalPorts[0];
     pickRef('Port du catalogue', `${port0.label} (${port0.region})`);

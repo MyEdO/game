@@ -83,7 +83,7 @@ const KIND_OPTIONS: [Condition['kind'], string][] = ([
   'always', 'flag', 'etat', 'time', 'hasItem', 'money', 'partyDead', 'compare', 'slThreshold', 'location',
   'attackKind', 'startleCause', 'woundsDealt', 'engagedAdvantageGap', 'engagedAdvantageLead', 'foeInLoS',
   'cibleEnVue', 'hiddenFromFoes', 'engaged', 'crewTest', 'roundDeCombat', 'nearestFoe', 'capability',
-  'visiblePassive', 'relation', 'has', 'casterChaosDomain', 'skill', 'talent', 'career', 'species', 'status', 'all',
+  'visiblePassive', 'navire', 'relation', 'has', 'casterChaosDomain', 'skill', 'talent', 'career', 'species', 'status', 'all',
   'any', 'not',
 ] as const).map((k): [Condition['kind'], string] => [k, LIBELLE_DE_CONDITION.get(k)!]);
 
@@ -274,6 +274,15 @@ export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = condi
             {optionsDuNoeud(actorRefSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
           porte une atteinte visible
+        </span>
+      )}
+      {cond.kind === 'navire' && (
+        <span className="cond-time">
+          <select className="cond-kind" aria-label="Acteur qui est un navire" value={cond.who}
+            onChange={(e) => onChange({ ...cond, who: e.target.value as ActorRef })}>
+            {optionsDuNoeud(actorRefSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          est un navire
         </span>
       )}
       {cond.kind === 'relation' && (

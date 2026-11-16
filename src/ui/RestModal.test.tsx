@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { RestBody } from './RestModal';
+import { offresDeLAubergeDeScene } from '../noyau/worldMap';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
@@ -33,7 +34,7 @@ function halte(pleinAir: boolean): string {
   const plan: TravelPlan = { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'pied', hoursPerDay: 6, km: 60, kmDone: 24, interrupted: false, log: [jour] };
   useGame.setState({
     party: [hero], travelPlan: plan,
-    pendingRest: { places: { camp: true }, lieu: fixtureText('sur la route de A à B'), quality: 'normale', days: 1, perHero: { h: { lodging: 'dehors', food: 'rien' } }, phase: 'setup', travelHalt: true } as never,
+    pendingRest: { places: { camp: true }, offres: [], lieu: fixtureText('sur la route de A à B'), quality: 'normale', days: 1, perHero: { h: { lodging: 'dehors', food: 'rien' } }, phase: 'setup', travelHalt: true } as never,
   });
   const el = document.createElement('div');
   root = createRoot(el);
@@ -64,7 +65,7 @@ describe('RestBody — avertissement de récupération (LDB 18 l.338)', () => {
     const assoiffe = { ...structuredClone(hero), wounds: { ...hero.wounds, current: hero.wounds.max - 5 }, thirst: { days: 1, tests: 0, failures: 0 } } as Combatant;
     useGame.setState({
       party: [assoiffe], travelPlan: null,
-      pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'commune', food: 'repas' } }, phase: 'setup' } as never,
+      pendingRest: { places: { auberge: true }, offres: structuredClone(offresDeLAubergeDeScene()), lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'commune', food: 'repas' } }, phase: 'setup' } as never,
     });
     const el = document.createElement('div');
     root = createRoot(el);
@@ -77,7 +78,7 @@ describe('RestBody — la note d’auberge que la bourse ne couvre pas (LDB 66)'
   it('bourse vide, chambre privée : le total est « over » et Dormir se ferme sur le refus du geste', () => {
     useGame.setState({
       party: [hero], travelPlan: null, net: { ...useGame.getState().net, mode: 'local' },
-      pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'chambre-1', food: 'rien' } }, phase: 'setup' } as never,
+      pendingRest: { places: { auberge: true }, offres: structuredClone(offresDeLAubergeDeScene()), lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'chambre-1', food: 'rien' } }, phase: 'setup' } as never,
     });
     const el = document.createElement('div');
     root = createRoot(el);

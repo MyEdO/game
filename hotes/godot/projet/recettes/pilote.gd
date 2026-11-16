@@ -22,6 +22,7 @@ const TAILLE := Vector2i(1280, 720)
 const TOUCHES := {
 	"Enter": KEY_ENTER, "Escape": KEY_ESCAPE, "Backspace": KEY_BACKSPACE, "Home": KEY_HOME, "End": KEY_END,
 	"ArrowUp": KEY_UP, "ArrowDown": KEY_DOWN, "Space": KEY_SPACE,
+	"Digit1": KEY_1, "Digit2": KEY_2, "Digit3": KEY_3, "Digit4": KEY_4, "Digit5": KEY_5, "Digit6": KEY_6,
 }
 const DEPLACER := "deplacer"
 const CRAN := "cran"

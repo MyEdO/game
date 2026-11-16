@@ -2,7 +2,7 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { itemFromTrappingById, weaponFromItem } from './items';
 import type { ItemInstance, Weapon } from './types';
 
-type EtatDObjetDeTest = Partial<Pick<ItemInstance, 'uid' | 'equipped'>>;
+type EtatDObjetDeTest = Partial<Pick<ItemInstance, 'uid' | 'equipped' | 'sortLie'>>;
 type EtatDArmeDeTest = EtatDObjetDeTest & Pick<Partial<Weapon>, 'hand'>;
 
 export function objetDeTest(id: string, etat: EtatDObjetDeTest = {}): ItemInstance {

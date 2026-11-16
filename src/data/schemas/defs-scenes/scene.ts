@@ -55,7 +55,8 @@ import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../e
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { estUnNavireAPonts, findCreatureById, findTrappingById, siegeEngines, tailleDuProfil } from '../../index';
+import { estUnNavireAPonts, findCreatureById, findTrappingById, siegeEngines } from '../../index';
+import { porteurDuProfil } from '../../../engine/trappingChoices';
 import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
 import { estCardinal } from '../../../geometry/dir8';
@@ -180,7 +181,8 @@ const marketModeSchema = enumNomme({
   simplifie: 'Simplifié (les deux désactivés)',
 });
 
-/** Marchand d'une entité de scène : son archétype, et les surcharges de ses prix (`defs/merchants.ts`) et des 3 règles
+/** Marchand d'une entité de scène : son archétype, la colonne de Disponibilité d'un marchand hors de tout lieu
+ *  (`colonneDeDisponibiliteDuMarchand`, `noyau/worldMap.ts`), et les surcharges de ses prix (`defs/merchants.ts`) et des 3 règles
  *  maison Marché (LDB 59/60). */
 export const marchandDeSceneSchema = nommerChamps(z.strictObject({
   archetype: ref('merchant'),
@@ -191,7 +193,7 @@ export const marchandDeSceneSchema = nommerChamps(z.strictObject({
   guild: z.boolean().optional(),
   marketMode: marketModeSchema.optional(),
   tenirComptes: z.boolean().optional(),
-}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "localité"  }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
+}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "colonne de Disponibilité hors lieu" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
 
 /** L'inventaire d'auteur d'un personnage : chaque objet du catalogue par son id, vrai s'il le porte (`isWearable` ;
  *  une arme se tient par les sets d'armes). Il devient les objets du combattant au spawn. LDB 77 l.7, #3684 */
@@ -200,14 +202,14 @@ export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
 
 /** La faute d'un personnage porté à un parcours de carrière (`parcoursDe`), `undefined` s'il est admis ou n'en porte
  *  pas : un parcours part d'un profil du Bestiaire (`creature`), sans statbloc ni preset, et la carrière actuelle
- *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`, à la Taille du profil (`tailleDuProfil`).
+ *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`, au porteur du profil (`porteurDuProfil`).
  *  Des choix de carrière sans carrière sont refusés. */
 export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; creature?: { id: string }; appearance?: { tenue?: string } }): string | undefined {
   const parcours = parcoursDe(ent);
   if (!parcours) return ent.talentsDeCarriere || ent.competencesDeCarriere || ent.dotationsDeCarriere ? 'choix de carrière sans carrière' : undefined;
   if (ent.statblock || ent.presetId || !ent.creature) return 'un PNJ de carrière part d’un profil du Bestiaire (« creature »), sans statbloc ni preset';
   if (ent.appearance?.tenue) return 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur';
-  return refusDuParcours(parcours, tailleDuProfil(findCreatureById(ent.creature.id) ?? {}));
+  return refusDuParcours(parcours, porteurDuProfil(findCreatureById(ent.creature.id) ?? {}));
 }
 
 /** Un élément de `combat.optionals` d'une entité de scène (`LDB 76 l.45`) : un Trait posé, ou une note « swap » du

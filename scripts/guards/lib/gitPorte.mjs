@@ -2064,12 +2064,13 @@ export function pousser(depot, { vers, bail = false }) {
   } catch (e) { return indisponible('superviseur push illisible : ' + e.message) }
 }
 
-/** Un worktree neuf en `chemin`, depuis `depuis`, détaché ou sur une branche neuve.
- *  @param {Depot} depot @param {{ chemin: string, branche?: string, depuis: string, detache?: boolean }} p */
-export const ajouterWorktree = (depot, { chemin, branche, depuis, detache = false }) => {
+/** Un worktree neuf en `chemin`, depuis `depuis`, détaché ou sur une branche neuve ; `sansHooks` ne lance
+ *  aucun hook (`core.hooksPath=/dev/null`, git help config : un conteneur cloud n'a pas posé les siens).
+ *  @param {Depot} depot @param {{ chemin: string, branche?: string, depuis: string, detache?: boolean, sansHooks?: boolean }} p */
+export const ajouterWorktree = (depot, { chemin, branche, depuis, detache = false, sansHooks = false }) => {
   if (detache && branche) throw new Error('ajouterWorktree : détaché sans branche')
   const [base] = revisionsDe([depuis])
-  return ecrire(depot, ['worktree', 'add', ...(detache ? ['--detach'] : ['-b', revisionsDe([branche])[0]]), '--', chemin, base])
+  return ecrire(depot, [...(sansHooks ? ['-c', 'core.hooksPath=/dev/null'] : []), 'worktree', 'add', ...(detache ? ['--detach'] : ['-b', revisionsDe([branche])[0]]), '--', chemin, base])
 }
 
 /**

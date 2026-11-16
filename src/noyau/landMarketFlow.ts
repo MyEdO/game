@@ -15,7 +15,7 @@
  * `cargo.ts`. Le Marchandage (Test opposé, ±`bargainPct`) réutilise le MÊME patron que `portFlow`.
  */
 import { battleRng } from './battleRng';
-import { lieuDuGroupe } from './worldMap';
+import { lieuDuGroupe, marcheDuLieu } from './worldMap';
 import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/skills';
 import { opposedTest, shiftDifficulty, type OpposedResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
@@ -44,8 +44,8 @@ import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
 import { refuserGeste } from './refusVisible';
 import type { Jeu } from './etat';
 import { appraiseRefus, APPRAISE_SKILL, remiseMaximaleDeMarchandage } from './merchantFlow';
-import { seasonOfMonth } from '../engine/travelStages';
-import { toDate, dayIndex } from '../engine/clock';
+import { currentSeason } from '../engine/travelStages';
+import { dayIndex } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
@@ -92,8 +92,9 @@ const log = (get: Get, _set: Set, lines: string[]) => {
 /** Lieu de commerce terrestre courant (place de la carte dont la scène EST la scène courante + `market`). */
 export function currentMarket(get: Get): { placeId: string; label: string; market: LandMarketProfile } | null {
   const place = lieuDuGroupe(get());
-  if (!place?.market) return null;
-  return { placeId: place.id, label: place.label, market: place.market };
+  const market = place && marcheDuLieu(place);
+  if (!market) return null;
+  return { placeId: place.id, label: place.label, market };
 }
 
 /** Génère les offres d'ACHAT à l'arrivée (MSRC 13 l.22-42) : disponibilité en 2 temps — d'abord une CHANCE de
@@ -110,7 +111,7 @@ export function ouvrirLeMarche(get: Get, set: Set): void {
 function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => void): void {
   const cur = currentMarket(get);
   if (!cur) return;
-  const season = seasonOfMonth(toDate(get().gameTime).month);
+  const season = currentSeason(get().gameTime);
   const { market } = cur;
   phase('Marchand présent');
   const find = rollFindMerchant(market, rng);

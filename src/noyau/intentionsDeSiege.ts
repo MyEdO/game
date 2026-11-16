@@ -121,7 +121,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
   acheterLaCaracteristique: 'hôte', acheterLaCompetence: 'hôte', acheterLeTalent: 'hôte', acheterLeSort: 'hôte',
   changerDeCarriere: 'hôte', designerLeCreneau: 'hôte', entrainerLaProthese: 'hôte', acheterLaComposante: 'hôte',
-  retirerLaComposante: 'hôte', ecrireLHistorique: 'hôte', rompreLaFaveur: 'hôte',
+  designerLeComposant: 'hôte', ecrireLHistorique: 'hôte', rompreLaFaveur: 'hôte',
   ouvrirLeMedecin: 'hôte', evaluerLObjet: 'hôte',
   // ── Possessions / inventaire / équipement ──────────────────────────────────────────────────────
   equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLApparence: 'hôte',

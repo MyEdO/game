@@ -609,7 +609,7 @@ export const CONCEPTS: readonly Concept[] = [
     noyau: ['repere', 'valeur'],
   },
   // AVANT `billet-de-route` (même clé `prix`, l'offre porte `id`), et l'ordre décide. Porte : `offreDAubergeSchema`
-  // (`src/data/schemas/defs-scenes/worldmap.ts`). LDB 66 l.12-16 ; LDB 66 l.28 ; ACE 02 l.99. #4277.
+  // (`src/data/schemas/grammaire/hebergement.ts`). LDB 66 l.12-16 ; LDB 66 l.28 ; ACE 02 l.99. #4277.
   {
     id: 'offre-d-auberge',
     label: 'offre d’auberge d’un établissement (`OffreDAuberge`)',

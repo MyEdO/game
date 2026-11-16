@@ -343,6 +343,16 @@
     }
   },
   {
+    "id": "ecu-au-dos",
+    "type": "garde-robe",
+    "label": "Écu au dos",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "dos"
+    }
+  },
+  {
     "id": "casque-a-cornes",
     "type": "garde-robe",
     "label": "Casque à cornes",
@@ -367,6 +377,33 @@
     "kind": "variante",
     "piece": {
       "id": "bottes"
+    }
+  },
+  {
+    "id": "bottines",
+    "type": "garde-robe",
+    "label": "Bottines",
+    "kind": "variante",
+    "piece": {
+      "id": "bottes"
+    }
+  },
+  {
+    "id": "bas-de-chausses",
+    "type": "garde-robe",
+    "label": "Bas-de-chausses",
+    "kind": "variante",
+    "piece": {
+      "id": "bas"
+    }
+  },
+  {
+    "id": "brassards-d-acier",
+    "type": "garde-robe",
+    "label": "Brassards d’acier",
+    "kind": "variante",
+    "piece": {
+      "id": "brassards"
     }
   },
   {
@@ -638,6 +675,12 @@
     "id": "cheveux-nattes",
     "type": "garde-robe",
     "label": "Cheveux nattés",
+    "kind": "coiffure"
+  },
+  {
+    "id": "cheveux-longs",
+    "type": "garde-robe",
+    "label": "Cheveux longs",
     "kind": "coiffure"
   },
   {

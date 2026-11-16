@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "lampadaire"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "vitres",
+      "palette": "accent",
+      "matiere": "prop--braises"
+    }
+  ],
+  "glb": {
+    "sha256": "4f79abed32ebe71b967db69662041e911b2023428a51c7275fb38964ff2d0583",
+    "octets": 66096
+  }
+}

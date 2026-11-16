@@ -8,7 +8,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import {
   tousLesTerrains, terrainIds, terrainEntree, terrainLabel, terrainWalkable, terrainPriority,
-  terrainOpaque, terrainBuilt, terrainSolidHeightM, terrainOverlayProp, terrainDetail,
+  terrainOpaque, terrainBuilt, terrainSolidHeightM, decorDuTerrain, terrainDetail,
   terrainAbsent, estAbsent, terrainHorsGrille, glypheDe, terrainsAvecGlyphe, terrainStopsOrdonnes,
 } from './index';
 import { GLYPHES_RESERVES } from '../../../data/schemas/grammaire/carte-ascii';
@@ -36,7 +36,7 @@ describe('terrains — la règle lue au dataset', () => {
     expect(terrainOpaque('zzz-inconnu')).toBe(false);
     expect(terrainBuilt('zzz-inconnu')).toBe(false);
     expect(terrainSolidHeightM('zzz-inconnu')).toBe(0);
-    expect(terrainOverlayProp('zzz-inconnu')).toBeUndefined();
+    expect(decorDuTerrain('zzz-inconnu', 0, 0, 0)).toBeUndefined();
     expect(terrainDetail('zzz-inconnu')).toBeNull();
   });
 
@@ -50,11 +50,44 @@ describe('terrains — la règle lue au dataset', () => {
     expect(terrainPriority('pave')).toBeGreaterThan(terrainPriority('herbe'));
   });
 
-  it('mur : opaque, bâti, bloc plein ; bois : décor posé sur chaque tuile', () => {
+  it('mur : opaque, bâti, bloc plein', () => {
     expect(terrainOpaque('mur')).toBe(true);
     expect(terrainBuilt('mur')).toBe(true);
     expect(terrainSolidHeightM('mur')).toBeGreaterThan(0);
-    expect(terrainOverlayProp('bois')).toBe('arbre');
+  });
+});
+
+describe('terrains — `decorDuTerrain` : le décor et le cap de la case, par son hachage', () => {
+  const ESSENCES = ['e1', 'e2', 'e3'];
+  const poserLeMelange = () => {
+    const fixture = { ...AVANT.find((t) => t.overlayProps === undefined)!, id: 'terrain-melange', overlayProps: ESSENCES };
+    setDataset('terrains', [...AVANT, fixture] as never);
+  };
+  const cases = Array.from({ length: 20 * 20 }, (_, i) => [i % 20, Math.floor(i / 20), i % 2] as const);
+
+  it('chaque case pose l’une des essences du terrain, à un cap cardinal, et TOUTES sortent sur une étendue', () => {
+    poserLeMelange();
+    const decors = cases.map(([x, y, z]) => decorDuTerrain('terrain-melange', x, y, z)!);
+    expect(new Set(decors.map((d) => d.prop))).toEqual(new Set(ESSENCES));
+    expect(new Set(decors.map((d) => d.cap))).toEqual(new Set(['N', 'E', 'S', 'O']));
+  });
+
+  it('la même case rend le même décor (aucun état, aucune RNG), et deux cases ne se copient pas toutes', () => {
+    poserLeMelange();
+    const lire = () => cases.map(([x, y, z]) => decorDuTerrain('terrain-melange', x, y, z));
+    expect(lire()).toEqual(lire());
+    expect(new Set(lire().map((d) => `${d!.prop}/${d!.cap}`)).size).toBeGreaterThan(ESSENCES.length);
+  });
+
+  it('sur le vrai `bois`, l’essence ne se répète pas à la période 4 le long d’une rangée', () => {
+    const paires = Array.from({ length: 40 * 6 }, (_, i) => [i % 6, Math.floor(i / 6)] as const);
+    const egales = paires.filter(([x, y]) => decorDuTerrain('bois', x, y, 0)!.prop === decorDuTerrain('bois', x + 4, y, 0)!.prop);
+    expect(egales.length / paires.length, `${egales.length}/${paires.length} cases copient l’essence de x+4`).toBeLessThan(0.5);
+  });
+
+  it('un terrain sans `overlayProps` ne pose aucun décor', () => {
+    const sans = AVANT.find((t) => t.overlayProps === undefined)!;
+    expect(decorDuTerrain(sans.id, 3, 4, 0)).toBeUndefined();
   });
 });
 

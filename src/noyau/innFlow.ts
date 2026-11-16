@@ -21,7 +21,7 @@ import { openPartyTest, freeCons } from './rollSeam';
 import { generateTradeRumour } from './landMarketFlow';
 import { rule } from '../engine/policy';
 import { lieuDuGroupe } from './worldMap';
-import { hebergementsDuLieu } from './lieuFlow';
+import { hebergementsDuLieu, refuserLeServiceFerme } from './lieuFlow';
 import { refuserGeste } from './refusVisible';
 import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
@@ -43,6 +43,7 @@ export function recueillirLesRumeurs(get: Get, set: Set, hebergementId?: string)
   if (lieuDuGroupe(get()) && !hebergementsDuLieu(get()).some((svc) => svc.id === hebergementId)) {
     return void refuserGeste(get, set, t('lieu.hebergementInconnu', { service: hebergementId ?? '' }));
   }
+  if (refuserLeServiceFerme(get, set, hebergementId)) return;
   const def = activityById(ACTIVITY_ID);
   const test = def?.tests?.[0];
   if (!def || !test?.skill) return;

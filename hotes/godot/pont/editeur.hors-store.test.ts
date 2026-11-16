@@ -12,8 +12,8 @@
  * chacun de ses fragments scellé par le noyau (#3606 M2g).
  */
 import { describe, expect, it } from 'vitest';
-import { erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
-import type { MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
+import { avecLeSaisonnier, avecLesSeulsDecors, enSaison, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
+import type { DecorServi, MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
 import { UNITES_DU_PLAN_DE_CARTE, type AreteDessinee, type RetraitDuMonde, type Scene } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
@@ -43,6 +43,7 @@ interface Edition {
   retrait?: RetraitDuMonde;
   aretes?: AreteDessinee[];
   navires?: Record<string, NavireServi>;
+  decors?: Record<string, DecorServi>;
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
   planche?: { image: string };
@@ -1668,6 +1669,21 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     const pont = presser(boutonDe(posee, 'couche/2'));
     expect([pont.vue.couche, boutonDe(pont, 'couche/retirer').refus]).toEqual([2, 'Seuls les ponts d’un navire posent cette couche']);
     expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 3 && x <= 20 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
+  });
+
+  it('la réponse sert les décors de la scène dont un élément `decor` est servi, comme la vue (#4335)', () => {
+    const { appel } = table();
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const [prop] = morceauxDe(appel, 'edition', ouverte.monde!).flatMap((m) => m.surfaces.flatMap((sf) => (sf.decor === undefined ? [] : [sf.decor])));
+    expect(prop, 'la scène ouverte pose au moins un décor').toBeDefined();
+    expect(ouverte.decors).toEqual({});
+    servirLesModeles(appel, COMMITES, avecLesSeulsDecors(COMMITES, prop));
+    const servie = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    expect(Object.keys(servie.decors!)).toEqual([prop]);
+    expect(servie.decors![prop].element).toBe(`decor--${prop}`);
+    expect(servie.decors![prop].poses.length).toBeGreaterThan(0);
+    servirLesModeles(appel, COMMITES, avecLeSaisonnier(COMMITES, prop));
+    expect(editionDe(appel('editer', { ouvrir: CAMPAGNE })).decors![prop], 'sans horloge, le décor saisonnier tel que bâti').toMatchObject(enSaison(null));
   });
 
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {

@@ -16,7 +16,8 @@ import { buildAdvancementView } from '../noyau/monde/advancement';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
 import { effectiveSpellOf } from '../noyau/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusAchatDeComposant, coutDuComposant, composantsOfferts } from '../noyau/partyFlow';
+import { refusAchatDeComposant, refusDeDesignation, coutDuComposant, composantsOfferts } from '../noyau/partyFlow';
+import { itemCapability } from '../engine/capabilities';
 import type { GestesDeLObjet } from '../noyau/gestesDeLObjet';
 import { libelleAvecSpec } from '../noyau/depenseDePx';
 import { refusDeSoins } from '../noyau/medicFlow';
@@ -25,7 +26,6 @@ import { t } from '../i18n';
 import { actorHasSkill, skillBaseValue } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
-import { rule } from '../engine/policy';
 import { bourseOf } from '../engine/bourse';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, estLanceur } from '../engine/grimoire';
 import { spellSupportOf } from '../engine/spellspec';
@@ -283,7 +283,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
   const focaliserLeSort = useGame((s) => s.focaliserLeSort);
   const dissiperLeSort = useGame((s) => s.dissiperLeSort);
   const acheterLaComposante = useGame((s) => s.acheterLaComposante);
-  const retirerLaComposante = useGame((s) => s.retirerLaComposante);
+  const designerLeComposant = useGame((s) => s.designerLeComposant);
   const [targetId, setTargetId] = useState(hero.id);
   const spells = (hero.spells ?? [])
     .map((x) => findSpellById(x)) // hero.spells = ids de sort (runtime)
@@ -425,22 +425,22 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
           </div>
         );
       })()}
-      {rule('magie-composant') === true && (() => {
-        // Composants d'incantation (LDB 46 l.107-113) : achetés PAR Sort d'Arcane/Domaine connu,
-        // coût = NI pistoles d'argent ; absorbent le contrecoup (Imparfaite Majeure→Mineure,
-        // Mineure→annulée) puis sont consumés à l'incantation. Visible seulement règle ON.
+      {(() => {
+        // LDB 46 l.107-113
         const arcane = composantsOfferts(hero);
         if (!arcane.length) return null;
-        const owned = hero.componentSpells ?? [];
-        const countOf = (id: string) => owned.filter((x) => x === id).length;
+        const composants = (hero.items ?? []).filter((it) => itemCapability(it, 'isSpellComponent'));
+        const aLier = composants.find((it) => !it.sortLie);
+        const nbALier = composants.filter((it) => !it.sortLie).length;
         return (
           <div className="spell-components">
             <span className="mini-title">
               <Icon id="magie/composante" size="sm" /> Composants d'incantation
+              {nbALier > 0 ? <span className="muted"> · {nbALier} à lier</span> : null}
             </span>
             <div className="spell-list">
               {arcane.map((sp) => {
-                const n = countOf(sp.id);
+                const n = composants.filter((it) => it.sortLie === sp.id).length;
                 const cost = coutDuComposant(sp);
                 const refusAchat = refusAchatDeComposant(hero, sp.id);
                 return (
@@ -450,10 +450,17 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                       {n > 0 ? <span className="muted"> · ×{n}</span> : null}
                     </span>
                     <Row className="spell-actions">
-                      {n > 0 && (
-                        <button className="btn small" title="Jeter un composant (pas de remboursement)" onClick={() => retirerLaComposante(hero.id, sp.id)}>
-                          −
-                        </button>
+                      {aLier && (
+                        <GatedAction
+                          id={`spell-comp-bind-${sp.id}`}
+                          label="Lier"
+                          ariaLabel={`Lier un composant à ${sp.label}`}
+                          enabled={!refusDeDesignation(hero, aLier.uid, sp.id)}
+                          {...raisonSi(refusDeDesignation(hero, aLier.uid, sp.id))}
+                          onClick={() => designerLeComposant(aLier.uid, sp.id)}
+                          primary={false}
+                          btnClassName="small"
+                        />
                       )}
                       <GatedAction
                         id={`spell-comp-buy-${sp.id}`}

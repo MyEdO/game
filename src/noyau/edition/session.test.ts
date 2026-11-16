@@ -62,6 +62,7 @@ import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { valeurNeuveDe } from '../valeursNeuves';
+import { refusDAccesSchema } from '../../data/schemas/grammaire/acces';
 import { refusDeLaValeur, refusDeRetrait, refusDuRenommage } from './session';
 import { identiteNeuve } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
 import { projetSchema } from '../../data/schemas/defs-scenes/projet';
@@ -1277,6 +1278,20 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
     expect(carte(annule)).toEqual(RELIEE);
   });
 
+  it('un lieu écrit sa taille, de 1 à 4, et l’écriture s’annule', () => {
+    // MSRC 13 l.44-50
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    const ecrit = jouer(s, valeur('lieu', 'x', ['taille'], 3));
+    expect([carte(ecrit).places[0].taille, ecrit.historique.passe.length]).toEqual([3, s.historique.passe.length + 1]);
+    expect(carte(jouer(ecrit, { geste: 'annuler' }))).toEqual(RELIEE);
+    expect([0, 5, 2.5].map((n) => refusDeLaValeur(s, valeur('lieu', 'x', ['taille'], n)))).toEqual(['horsSorte', 'horsSorte', 'horsSorte']);
+    expect(carte(jouer(ecrit, valeur('lieu', 'x', ['taille']))).places[0].taille, 'un lieu sans marché la retire').toBeUndefined();
+    const marchand = { ...RELIEE, places: [{ ...RELIEE.places[0], taille: 3, market: { richesse: 3, produits: [] } }, RELIEE.places[1]] };
+    const surMarche = jouer(ouvert(marchand), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    expect(refusDeLaValeur(surMarche, valeur('lieu', 'x', ['taille'])), 'un marché garde la taille de son lieu').toEqual({ regle: 'un marché exige la taille du lieu : posez « taille », ou un port.' });
+    expect(jouer(surMarche, valeur('lieu', 'x', ['taille']))).toBe(surMarche);
+  });
+
   it('relier deux lieux pose une route depuis le lieu sélectionné vers l’un de ceux qu’il rejoint, sélectionnée sur un cran ; sans lieu offert, c’est sans objet', () => {
     const s = jouer(ouvert(), { geste: 'document', document: 'carte' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'lieu-0' } });
     expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(s), idDeLaSceneEditee(s), s.sel, s.entreesDeFiche)).toEqual(['lieu-1']);
@@ -1472,6 +1487,45 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
     const retire = jouer(vise, { geste: 'supprimer', element: 'auberge' });
     expect([carte(retire).places[0].services, retire.sel]).toEqual([[{ id: 'auberge-2', kind: { id: 'auberge' } }], { type: 'place', id: 'x' }]);
     expect(carte(jouer(retire, { geste: 'annuler' }))).toEqual(carte(vise));
+  });
+
+  it('une auberge du lieu sélectionné cesse de vendre le repas du livre puis le revend, chacun sur un cran ; ses offres déclarées s’écrivent au formulaire sauf leur identifiant ; la carte écrite passe la validation, une offre doublée non (#4277)', () => {
+    const s = jouer(surLePlan(), { geste: 'ajouterEtablissement', kind: 'auberge' }, { geste: 'ajouterEtablissement', kind: 'forgeron' }, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['taille'], valeur: 3 });
+    const sansRepas = jouer(s, { geste: 'retirerOffre', etablissement: 'auberge', offre: 'repas' });
+    expect([carte(sansRepas).places[0].services?.[0].rest?.offres?.map((o) => o.id), sansRepas.historique.passe.length]).toEqual([['commune', 'chambre', 'grande'], s.historique.passe.length + 1]);
+    const revendu = jouer(sansRepas, { geste: 'ajouterOffre', etablissement: 'auberge', offre: 'repas' });
+    expect(carte(revendu).places[0].services?.[0].rest?.offres?.map((o) => o.id)).toEqual(['commune', 'chambre', 'grande', 'repas']);
+    expect([
+      jouer(revendu, { geste: 'ajouterOffre', etablissement: 'auberge', offre: 'repas' }),
+      jouer(revendu, { geste: 'ajouterOffre', etablissement: 'forgeron', offre: 'repas' }),
+      jouer(revendu, { geste: 'retirerOffre', etablissement: 'absent', offre: 'repas' }),
+    ], 'une offre déjà vendue, un établissement qui n’héberge pas ou absent : sans objet').toEqual([revendu, revendu, revendu]);
+    const prix = jouer(revendu, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 0, 'rest', 'offres', 3, 'prix'], valeur: {} });
+    expect(carte(prix).places[0].services?.[0].rest?.offres?.[3].prix).toEqual({});
+    expect(refusDeLaValeur(revendu, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 0, 'rest', 'offres', 3, 'id'], valeur: 'commune' }), 'son identifiant ne s’écrit que par ses écrivains').toBe('nonOffert');
+    expect(refusDeLaValeur(revendu, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['services', 1, 'rest'], valeur: {} }), 'un forgeron n’héberge pas').toBe('nonOffert');
+    const erreurs = (m: WorldMap) => validateScene(projetEdite(revendu).scenes, m, NARRATIF_VIDE).filter((w) => w.level === 'error').map((w) => w.message);
+    expect(erreurs(carte(revendu))).toEqual([]);
+    const doublee = { ...carte(revendu), places: carte(revendu).places.map((p, i) => (i ? p : { ...p, services: p.services!.map((sv, j) => (j ? sv : { ...sv, rest: { offres: [...sv.rest!.offres!, sv.rest!.offres![0]] } })) })) };
+    expect(erreurs(doublee).length, 'témoin : la validation lit les offres').toBeGreaterThan(0);
+  });
+
+  it('l’accès réservé d’un établissement se pose, se modifie et se retire au formulaire du lieu ; la carte écrite passe la validation ; une condition sans raison du refus est refusée, à la validation comme au retrait de la raison (#4277)', () => {
+    const s = jouer(surLePlan(), { geste: 'ajouterEtablissement', kind: 'auberge' });
+    const surClub = (chemin: Segment[], v?: unknown) => ({ geste: 'valeur' as const, porteur: { sorte: 'lieu' as const, id: 'x' }, chemin: ['services', 0, ...chemin], ...(v === undefined ? {} : { valeur: v }) });
+    const membre = { kind: 'flag', expr: 'membre-du-club' } as const;
+    const erreurs = (m: WorldMap) => validateScene(projetEdite(s).scenes, m, NARRATIF_VIDE).filter((w) => w.level === 'error').map((w) => w.message);
+    const avant = erreurs(carte(s));
+    const neuves = (m: WorldMap) => erreurs(m).filter((e) => !avant.includes(e));
+    expect(neuves(carte(jouer(s, surClub(['when'], membre)))), 'une condition sans raison du refus : refusée à la validation').toEqual([expect.stringContaining('« when » posé sans « refus »')]);
+    const pose = jouer(s, surClub(['refus'], valeurNeuveDe(refusDAccesSchema)), surClub(['refus', 'texte'], 'Réservé aux membres.'), surClub(['when'], membre));
+    expect([carte(pose).places[0].services?.[0], pose.historique.passe.length]).toEqual([{ id: 'auberge', kind: { id: 'auberge' }, refus: { texte: 'Réservé aux membres.' }, when: membre }, s.historique.passe.length + 3]);
+    const modifie = jouer(pose, surClub(['refus', 'texte'], 'Le portier vous toise.'));
+    expect(carte(modifie).places[0].services?.[0].refus).toEqual({ texte: 'Le portier vous toise.' });
+    expect(refusDeLaValeur(modifie, surClub(['refus'])), 'la raison ne se retire pas sous une condition posée').toMatchObject({ regle: expect.stringContaining('« when » posé sans « refus »') });
+    expect(neuves(carte(modifie))).toEqual([]);
+    const retire = jouer(modifie, surClub(['when']), surClub(['refus']));
+    expect(carte(retire).places[0].services?.[0]).toEqual({ id: 'auberge', kind: { id: 'auberge' } });
   });
 
   it('retirer le point d’intérêt désigné l’ôte du lieu sur un cran, la liste vidée retirée ; sans point désigné, c’est sans objet', () => {

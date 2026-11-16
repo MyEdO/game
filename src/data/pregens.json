@@ -447,7 +447,7 @@
         "id": "bourse"
       },
       {
-        "text": "ingrédients de sorts"
+        "id": "composant-d-incantation"
       }
     ],
     "spells": [
@@ -469,7 +469,8 @@
           "sides": 10
         }
       }
-    }
+    },
+    "maison": "Un composant pour la « Besace contenant des ingrédients de sorts » (EDOC 16 l.794) : Wanda ne connaît que de la Magie mineure, sans composant (arbitrage du 2026-11-16) ; le composant attend le premier Sort d'Arcane qu'elle apprend. Valeur d'adaptation du ticket #4132 (https://github.com/MyEdO/game/issues/4132)."
   },
   {
     "id": "johann-dassbut",
@@ -1214,7 +1215,10 @@
         "id": "baton-de-combat"
       },
       {
-        "text": "Besace de composants"
+        "id": "composant-d-incantation",
+        "count": {
+          "fixed": 4
+        }
       },
       {
         "id": "bourse"
@@ -1266,7 +1270,8 @@
           "sides": 10
         }
       }
-    }
+    },
+    "maison": "Quatre composants pour la « Besace de composants » (PDTP 01 l.87) : un par Sort d'Arcane ou de Domaine connu. Valeur d'adaptation du ticket #4132 (https://github.com/MyEdO/game/issues/4132)."
   },
   {
     "id": "golthog",

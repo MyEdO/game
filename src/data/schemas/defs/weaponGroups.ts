@@ -18,7 +18,7 @@ type Kind = keyof typeof KINDS;
 
 /** CHARGE par `kind` (`espace.chargeParDiscriminant`) : seul le `kind` qui la déclare porte une clé. #3076 */
 const chargeParDiscriminant = {
-  weapon: ['combat', 'maniement', 'rendu', 'poudre', 'siege', 'manieAussi'],
+  weapon: ['combat', 'maniement', 'rendu', 'poudre', 'siege', 'lancee', 'manieAussi'],
   ammo: ['poudre'],
   armour: ['material', 'couche', 'seuil', 'teinte'],
   inventory: [],
@@ -57,6 +57,8 @@ const doc = document(
     poudre: z.literal(true).optional(),
     /** AA 10 l.136 */
     siege: z.literal(true).optional(),
+    /** LDB 14 l.142 ; #4330 */
+    lancee: z.literal(true).optional(),
     /** AA 08 l.194 */
     manieAussi: manieAussiSchema.optional(),
   },
@@ -81,6 +83,7 @@ const doc = document(
     rendu: { label: 'Rendu du coup (arme)', hint: 'Rendu visuel et sonore d’une arme du Groupe (`rendus.json`), à défaut du sien' },
     poudre: { label: 'À poudre', hint: 'Arme ou munition à Poudre noire et d’Ingénierie' },
     siege: { label: 'Engins de siège', hint: 'Les objets du Groupe sont des engins de siège, posés en combat et servis par une équipe' },
+    lancee: { label: 'Armes lancées', hint: 'Les armes du Groupe quittent la main au jet : Dispersion sur un raté, puis chute au sol' },
     manieAussi: { label: 'Armes aussi maniées en', hint: 'Par Groupe de Corps à corps qui manie aussi toute arme du Groupe : ses Atouts et Défauts, ses mains, à pied seulement' },
   },
   {
@@ -90,9 +93,10 @@ const doc = document(
   // `combat` : univers des sources `weaponGroupsMelee`/`weaponGroupsRanged` (`grammaire/sourcesDeSpecs.ts`) ;
   // `kind` : la sous-liste `armour`, type d'armure d'une pièce (`subType`, `defs/trappings.ts`) ;
   // `poudre` : la sous-liste des Groupes à poudre (`groupeAPoudre`, `src/engine/weaponGroup.ts`) ;
-  // `siege` : la sous-liste des Groupes d'engins de siège (`groupeDeSiege`, `src/data/index.ts`).
+  // `siege` : la sous-liste des Groupes d'engins de siège (`groupeDeSiege`, `src/data/index.ts`) ;
+  // `lancee` : la sous-liste des Groupes d'armes lancées (`isThrownWeapon`, `src/engine/weaponGroup.ts`).
   {
-    espace: { discriminant: ['combat', 'kind'], champDeCharge: 'kind', chargeParDiscriminant, requisesParDiscriminant, marqueurs: ['poudre', 'siege'] },
+    espace: { discriminant: ['combat', 'kind'], champDeCharge: 'kind', chargeParDiscriminant, requisesParDiscriminant, marqueurs: ['poudre', 'siege', 'lancee'] },
     affinerEntree: (entree) => entree.refine((g: { seuil?: number }) => g.seuil === undefined || g.seuil >= 0, { path: ['seuil'], message: 'le palier de PA d’un Groupe d’armure est ≥ 0' }),
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {

@@ -10,7 +10,8 @@
 ## nœud `Vehicule`), au sol et cadrés à sa taille ; l'engin posé attaque, son coup et son état d'attaque. Il pose aussi
 ## ce que le jeu dessine en 3D hors des modèles servis (#3802, `echantillons`, `echantillon`, `CONTRAT.md`, section
 ## « Atelier 3D ») : chaque entrée de chaque famille servie, dans une scène bâtie par le noyau, rendue par le volume de
-## scène du jeu (`VolumeDeScene`, le nœud `Echantillon/Scene`) à l'échelle métrique, au sol et cadrée à sa taille.
+## scène du jeu (`VolumeDeScene`, le nœud `Echantillon/Scene`) et ses décors servis par les modèles posés du jeu
+## (`MontageDesModeles`, le nœud `Echantillon/Scene/Modeles`), à l'échelle métrique, au sol et cadrée à sa taille.
 ## Son onglet Effets montre la vitrine des effets que le jeu joue (#3777, `vitrine`, `CONTRAT.md`, section « Effets ») :
 ## chaque variante de chaque rendu d'arme, de chaque Domaine et de la Prière, chaque son et chaque flottant, rejoués par
 ## son nœud `Effets` de l'auteur posé à l'origine vers la cible (`Cible`), et chaque musique, jouée par sa `Musique`
@@ -49,7 +50,10 @@ const SECTIONS := [
 	{id = "poste", titre = "Postes"},
 	{id = "amelioration", titre = "Améliorations"},
 	{id = "pavillon", titre = "Emblème"},
+	{id = "saison", titre = "Saison"},
 ]
+## Le texte du choix d'aucune saison d'un échantillon : son décor tel que bâti.
+const TEL_QUE_BATI := "Tel que bâti"
 ## L'emplacement d'emblème d'un véhicule : ses voiles et son pavillon, les surfaces `blason` de son élément.
 const PAVILLON := "vehicule"
 
@@ -70,6 +74,7 @@ const METRES_PAR_UNITE := 1.0
 @onready var _etats: EtatsDuCorps = $Etats
 @onready var _echantillon: Node3D = $Echantillon
 @onready var _scene_de_l_echantillon: VolumeDeScene = $Echantillon/Scene
+@onready var _modeles_de_l_echantillon: MontageDesModeles = $Echantillon/Scene/Modeles
 @onready var _sol: MeshInstance3D = $Sol
 @onready var _effets: Effets = $Effets
 @onready var _cible: Node3D = $Cible
@@ -157,7 +162,7 @@ var _parcours: Tween
 var _hors_du_repos := false
 ## Les familles d'échantillons de `echantillons`, vides avant elle.
 var _familles_d_echantillons: Array = []
-## L'échantillon demandé, `{ famille, id }` (l'entrée de `echantillon`), `null` : aucun.
+## L'échantillon demandé, `{ famille, id, saison? }` (l'entrée de `echantillon`), `null` : aucun.
 var _echantillon_demande: Variant = null
 
 
@@ -173,6 +178,7 @@ func _ready() -> void:
 	_recueil = _erreurs
 	_montage.erreurs = _erreurs
 	_montage.empilee.connect(_publier)
+	_modeles_de_l_echantillon.pose.connect(_poser_l_echantillon_au_sol)
 	_pont.suivre_les_listes(_interface, _publier_l_ecran)
 	%Recharger.pressed.connect(_recharger)
 	%Lecture.pressed.connect(_lire)
@@ -184,7 +190,6 @@ func _ready() -> void:
 	for aide in _cases_des_aides:
 		_cases_des_aides[aide].toggled.connect(_montrer_l_aide.bind(aide))
 	for onglet in _onglets:
-		_onglets[onglet].get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier())
 		_boutons_des_onglets[onglet].pressed.connect(_montrer_l_onglet.bind(onglet))
 	%Copier.pressed.connect(_copier)
 	%Attaquer.pressed.connect(_attaquer)
@@ -323,7 +328,8 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 
 
 ## L'écran ramené à aucun modèle : le squelette posé n'informe plus la pose des os, le montage vidé
-## (`MontageDeComposition.vider`), aucun véhicule (`MontageDeVehicule.vider`), aucun échantillon (`VolumeDeScene.vider`),
+## (`MontageDeComposition.vider`), aucun véhicule (`MontageDeVehicule.vider`), aucun échantillon (`VolumeDeScene.vider`,
+## `MontageDesModeles.vider`),
 ## ni pose d'os, ni emplacement, ni clip, ni repère, ni rangée d'emblèmes, ni arbre branché (`_debrancher`).
 func _remettre_a_zero() -> void:
 	_debrancher()
@@ -332,6 +338,7 @@ func _remettre_a_zero() -> void:
 	_montage.vider()
 	_vehicule.vider()
 	_scene_de_l_echantillon.vider()
+	_modeles_de_l_echantillon.vider()
 	_pose_des_os = {}
 	_pas = 0.0
 	Controles.vider(_panneau_des_emplacements)
@@ -438,9 +445,13 @@ func _montrer_le_modele_pose() -> void:
 ## (`parapet`), une case haussée d'un étage, crénelée de l'apparence, que sa crête ceint (`cretesDePerimetre`, #3818).
 ## La réponse se pose sous le nœud `Echantillon/Scene` de l'atelier, une `VolumeDeScene` comme celle du monde de la
 ## partie (section « Monde ») : le volume en morceaux complets, les arêtes, les nappes de toit et les couronnes, celles de
-## `couronnesAbattues` retirées (`VolumeDeScene.retirer_les_couronnes`), à l'échelle de `metresParCase`, sa boîte au
-## sol et cadrée comme celle d'un véhicule (`MarcheDeLAtelier.cadrer_la_boite`) ; le sol de l'atelier se cache tant
-## qu'un échantillon est posé. Seuls « Effets » et « Outils » sont alors offerts ; un effet cadre aussi l'échantillon.
+## `couronnesAbattues` retirées (`VolumeDeScene.retirer_les_couronnes`), et ses `decors` montés par leur modèle comme au
+## plateau (section « Corps d'un combattant », `MontageDesModeles`, le nœud `Echantillon/Scene/Modeles`), à l'échelle de
+## `metresParCase`, sa boîte au sol et cadrée comme celle d'un véhicule (`MarcheDeLAtelier.cadrer_la_boite`), de
+## nouveau à chaque modèle posé ; le sol de l'atelier se cache tant
+## qu'un échantillon est posé. Seuls « Effets » et « Outils » sont alors offerts, et « Équipement » si son décor change
+## selon la saison (`saisons`) : la section « Saison » y offre le décor tel que bâti, puis chaque saison servie à son
+## `libelle`, et le choix redemande `echantillon` en cette saison (`saison`) ; un effet cadre aussi l'échantillon.
 ## « Recharger les modèles » repose l'échantillon demandé, l'état de l'atelier publiant `echantillon` (section « Écran
 ## publié »). Une base ou un véhicule choisi retire l'échantillon.
 
@@ -496,8 +507,9 @@ func _poser_sans_base(racine: Node3D) -> void:
 
 ## L'échantillon demandé dessiné par `echantillon` (`CONTRAT.md`, « Atelier 3D ») : son volume en morceaux complets, ses
 ## nappes de toit, ses couronnes (`VolumeDeScene.poser`, la réponse pour manifeste et pour géométries reçues) et ses
-## arêtes posés par sa scène, les couronnes tombées retirées, en mètres
-## (`MiseEnPage.echelle_en_metres`), au sol (`_poser_au_sol`) et cadré à sa taille (`MarcheDeLAtelier.cadrer_la_boite`).
+## arêtes posés par sa scène, les couronnes tombées retirées, ses décors servis montés par leur modèle
+## (`MontageDesModeles.poser`, `decors`), en mètres (`MiseEnPage.echelle_en_metres`), au sol et cadré à sa taille
+## (`_poser_l_echantillon_au_sol`), et la section « Saison » posée sur ses `saisons` (`_poser_les_saisons`).
 func _poser_l_echantillon() -> void:
 	var reponse := _pont.appeler("echantillon", _echantillon_demande)
 	if reponse.get("ok") != true:
@@ -506,12 +518,45 @@ func _poser_l_echantillon() -> void:
 	scene.poser(reponse, {volume = reponse.monde.morceaux, toits = reponse.toits, couronnes = reponse.couronnes})
 	scene.poser_les_aretes(reponse.aretes)
 	scene.retirer_les_couronnes(reponse.couronnesAbattues)
+	_modeles_de_l_echantillon.poser({}, reponse.decors, {}, reponse.monde.metresParCase)
 	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)
-	scene.position = Vector3.ZERO
-	_poser_au_sol(scene)
-	_marche.cadrer_la_boite(MontageDeVehicule.boite(scene, _echantillon))
+	_poser_l_echantillon_au_sol()
+	_poser_les_saisons(reponse.saisons)
 	_montrer_le_modele_pose()
 	_montrer_l_etat()
+
+
+## La section « Saison » de l'onglet Équipement sur les saisons `saisons` d'un échantillon (`{ id, libelle }`), aucune
+## sans elles : la liste de clé `saison` offre le décor tel que bâti (`VIDE`), puis chacune à son `libelle`, la saison
+## demandée choisie, et le choix redemande l'échantillon en cette saison (`_choisir_la_saison`).
+func _poser_les_saisons(saisons: Array) -> void:
+	Controles.vider(_panneau_des_emplacements)
+	_sections.clear()
+	if saisons.is_empty():
+		return
+	var choix: Array = [{id = VIDE, texte = TEL_QUE_BATI}]
+	for saison in saisons:
+		choix.append({id = saison.id, texte = saison.libelle})
+	var liste := _liste_deroulante("saison", choix, _choisir_la_saison)
+	_rangee("Saison", _section("saison")).add_child(liste)
+	_selectionner(liste, _echantillon_demande.get("saison", VIDE))
+
+
+## L'échantillon demandé en la saison `saison` (`VIDE` : aucune, tel que bâti), puis redessiné (`_poser_l_echantillon`).
+func _choisir_la_saison(saison: String) -> void:
+	var demande := {famille = _echantillon_demande.famille, id = _echantillon_demande.id}
+	if saison != VIDE:
+		demande.saison = saison
+	_echantillon_demande = demande
+	_poser_l_echantillon()
+
+
+## La scène de l'échantillon au sol (`_poser_au_sol`) et cadrée à sa taille (`MarcheDeLAtelier.cadrer_la_boite`), modèles
+## posés compris, à chaque modèle qui s'y pose (`MontageDesModeles.pose`).
+func _poser_l_echantillon_au_sol() -> void:
+	_scene_de_l_echantillon.position = Vector3.ZERO
+	_poser_au_sol(_scene_de_l_echantillon)
+	_marche.cadrer_la_boite(MontageDeVehicule.boite(_scene_de_l_echantillon, _echantillon))
 
 
 ## Le véhicule demandé composé par `vehicule` (`CONTRAT.md`, « Atelier 3D ») : ses pièces, ses Améliorations, les
@@ -1121,7 +1166,8 @@ func _montrer_l_onglet(onglet: String) -> void:
 
 
 ## Les onglets que le modèle posé offre, dans l'ordre du panneau (`.claude/rules/hote-godot.md`) : « Personnage », la
-## composition d'une base posée ; « Équipement », si une de ses sections porte une rangée ou s'il reste à produire ;
+## composition d'une base posée ; « Équipement », si une de ses sections porte une rangée (dont « Saison », d'un
+## échantillon dont un décor change selon la saison, `_poser_les_saisons`) ou s'il reste à produire ;
 ## « Couleurs », si une surface posée prend une couleur de palette (`_palette_posee`) ; « Animation », si le lecteur du
 ## modèle posé a un clip ou si l'engin posé attaque ; « Effets » et « Outils », toujours.
 func _onglets_offerts() -> Array[String]:

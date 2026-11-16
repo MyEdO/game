@@ -7,8 +7,10 @@ import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
-import { lieuDuGroupe, placeServices, type MapPlace, type PlacePoi, type ResolvedPlaceService } from './worldMap';
+import { lieuDuGroupe, placeServices, refusDAcces, type MapPlace, type PlacePoi, type ResolvedPlaceService, type ServiceDHebergement } from './worldMap';
 import { sceneDuRegistre } from './monde/registreDesScenes';
+import { condCtx } from './bourseFlow';
+import { refuserGeste } from './refusVisible';
 import { fenetreDuJeu } from './combatAuto';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import { garanti } from '../lib/garanti';
@@ -29,6 +31,19 @@ export function servicesDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): ResolvedPlace
   return ici ? placeServices(ici, sceneDuRegistre(ici.scene.id)) : [];
 }
 
+/** La raison de la fermeture du service `svc` du lieu (son accès réservé, `refusDAcces`), ou `null` : il est ouvert. */
+export function refusDuService(s: Jeu, svc: ResolvedPlaceService): string | null {
+  return svc.acces ? refusDAcces(svc.acces, condCtx(() => s)) : null;
+}
+
+/** Refuse le geste qui ouvre le service `id` du lieu tant que son accès réservé le ferme (`refusDuService`) ; `true` :
+ *  le refus est prononcé. Un id qu'aucun service du lieu ne porte est laissé au geste, qui le refuse à sa façon. */
+export function refuserLeServiceFerme(get: Get, set: Set, id: string | undefined): boolean {
+  const svc = servicesDuLieu(get()).find((x) => x.id === id);
+  const refus = svc ? refusDuService(get(), svc) : null;
+  return refus !== null && refuserGeste(get, set, refus);
+}
+
 /** Un service à échoppe : il porte l'archétype de son marchand (`merchantArchetype`). */
 export type Echoppe = ResolvedPlaceService & { merchantArchetype: string };
 
@@ -39,8 +54,8 @@ export function echoppesDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): Echoppe[] {
 
 /** Les établissements d'hébergement du lieu où se tient le groupe : où `ouvrirLeRepos` et `recueillirLesRumeurs` se
  *  jouent. */
-export function hebergementsDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): ResolvedPlaceService[] {
-  return servicesDuLieu(s).filter((svc) => svc.category === 'auberge');
+export function hebergementsDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): ServiceDHebergement[] {
+  return servicesDuLieu(s).filter((svc): svc is ServiceDHebergement => svc.category === 'auberge');
 }
 
 /** Un point d'intérêt du plan du lieu qui mène à une scène. */

@@ -19,8 +19,8 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'cuir': ('cuir', ((0.5, 0.5, 0.5), 0.0, 0.9)),
-    'metal': ('metal', ((0.66, 0.66, 0.66), 0.4, 0.55)),
+    'cuir': ('cuir', 'cuir-tanne'),
+    'metal': ('metal', 'acier-battu'),
 }
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire (brief du ticket)

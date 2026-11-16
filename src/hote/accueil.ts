@@ -35,8 +35,8 @@ export function zonesDeLAccueil(stockage: Stockage | null): ZonesDeLAccueil {
   const refus: Partial<Record<EntreeDeLAccueil, string>> = aReprendre ? {} : { reprendre: t('ecran.accueil.reprendre.aucune') };
   return {
     'accueil.gestes': [
-      ...(Object.keys(LIBELLES) as EntreeDeLAccueil[]).map((entree): Bouton => ({ type: 'bouton', id: entree, libelle: t(LIBELLES[entree]), jeu: { accueil: entree }, presse: false, focus: false, refus: refus[entree] ?? null })),
-      { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, refus: null },
+      ...(Object.keys(LIBELLES) as EntreeDeLAccueil[]).map((entree): Bouton => ({ type: 'bouton', id: entree, libelle: t(LIBELLES[entree]), jeu: { accueil: entree }, presse: false, focus: false, detail: null, touche: null, refus: refus[entree] ?? null })),
+      { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
     ],
   };
 }

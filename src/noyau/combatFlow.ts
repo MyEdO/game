@@ -126,9 +126,9 @@ import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
-import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
+import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
-import { effectifAuContact } from './combat/surnombre';
+import { bouclierDuBinomeEnJeu, effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
 import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
@@ -161,8 +161,9 @@ import {
 import {
   isStupid,
   flyMeters, runMultiplier,
-  isSkittishMount, immuneToSpellDomain,
+  isSkittishMount, immuneToSpellDomain, traitCapability,
 } from '../engine/traits/dispatch';
+import { isRation } from '../engine/provisions';
 import {
   isMagicMissile,
   prayerWrathTriggered,
@@ -194,6 +195,8 @@ import {
   zdeRadiusTiles,
   rayonDeGabaritEnCases,
   isArcaneSpell,
+  composantLie,
+  prendUnComposant,
   castInfoIsPrayer,
   focusSkillFor,
   castLandProbability,
@@ -229,13 +232,15 @@ import {
   spellFlowFor,
   spellOps,
   flowHasFreeAttack,
+  flowHasImpureOp,
   flattenFlow,
+  reecrireLesOps,
   EMPTY_FLOW,
   type FlowTest,
   type EffectTrigger,
 } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
-import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
+import { applyOps, nomDeSource, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -317,8 +322,9 @@ import {
   laisserTomber,
   rederiverLArmeTenue,
   endommagerLArmeTenue,
+  weaponIdentity,
 } from '../engine/items';
-import { crochetDuSol } from './objetsAuSol';
+import { crochetDuSol, lacherAuSol, lacherLeBouclierDuBinome } from './objetsAuSol';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import {
@@ -403,7 +409,14 @@ import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfir
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
 import { avecSequelles, traumaById, dechirureFractureFicheId, consolidateAmputations, maxFingersLostForWeapon, reinjuryBleed } from '../engine/trauma';
-import { effectiveWeaponDamage, isThrownWeapon, solideSaveThreshold, sauvegardeImperdable, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
+import {
+  effectiveWeaponDamage,
+  solideSaveThreshold,
+  sauvegardeImperdable,
+  effectiveWeapon,
+  sansEquipe,
+  type WeaponContext,
+} from '../engine/weaponDamage';
 import { scatter } from '../engine/scatter';
 import { TIME_COST } from '../engine/timeCost';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -509,7 +522,7 @@ import {
 } from '../engine/travelStages';
 import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
 import type { TravelRecapDay } from './travelFlow';
-import { groupeAPoudre, maniementRetenu, weaponGroup } from '../engine/weaponGroup';
+import { groupeAPoudre, isThrownWeapon, maniementRetenu, weaponGroup } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt, climbTraverseFor } from './monde/path';
 import { casesDansLaPortee, chebyshev } from '../engine/grid';
 import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
@@ -748,7 +761,16 @@ export function firedWeapon(scene: Scene | null, attacker: Combatant, target: Co
   // funnel UNIQUE attaquant ⊕ arme ⊕ contexte — donc la MÊME arme transformée sert la touche/les Dégâts
   // (`resolveAttack` → `applyHit`) ET la Maladresse sur un RATÉ : `jetValider('attaque')` et l'IA RE-DÉRIVENT l'arme
   // par `firedWeapon`, si bien que `dangerousNine` voit la Dangereuse du Fléau sans compétence.
-  return effectiveWeapon(w, weaponContextOf(attacker, w, target, { harpoonRopeCut }));
+  return effectiveWeapon(w, weaponContextOf(attacker, w, target, { harpoonRopeCut, sansEquipe: !!combatants && tireSansEquipe(scene, attacker, w, combatants) }));
+}
+
+/** `attacker` tire `w` sans équipe : servants aptes de la pièce qu'il sert (`servingCrewPresent`), sinon lui et ses
+ *  alliés au contact (`effectifAuContactParmi`). Faux pour une arme sans `perteSansEquipe`. AA 10 l.148 ; ZI 13 l.193 ;
+ *  #4202 */
+export function tireSansEquipe(scene: Scene | null, attacker: Combatant, w: Weapon, combatants: Combatant[]): boolean {
+  if (!w.perteSansEquipe) return false;
+  const servants = attacker.mannedPoste?.item.uid === w.uid ? servingCrewPresent(attacker, combatants) : undefined;
+  return sansEquipe(servants ?? effectifAuContactParmi(scene, combatants, attacker, attacker.kind));
 }
 
 /** Contexte d'usage d'une arme (règles d'arme CONTEXTUELLES de Groupe, LDB 62) dérivé de l'attaquant.
@@ -756,7 +778,7 @@ export function firedWeapon(scene: Scene | null, attacker: Combatant, target: Co
  *  Maniement de deux armes) l'appellent — aucune duplication de l'inférence `charged`/`mounted`/`hasGroupSkill`.
  *  `target` (optionnel — rétro-compat) sert le combat « au contact » (LDB 62 l.176) : une arme plus longue
  *  que Courte devient improvisée quand attaquant et cible sont entrés dans la longueur d'arme l'un de l'autre. */
-export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combatant, opts?: { harpoonRopeCut?: boolean }): WeaponContext {
+export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combatant, opts?: { harpoonRopeCut?: boolean; sansEquipe?: boolean }): WeaponContext {
   const objetSource = objetSourceDeLArme(attacker, w);
   return {
     charged: !!attacker.chargedThisTurn,
@@ -769,6 +791,7 @@ export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combata
     // la capacité de l'arme (`ItemCapabilities.ropeMode`) — jamais un id d'arme en dur.
     harpoonRopeCut: !!opts?.harpoonRopeCut && !!objetSource && itemCapability(objetSource, 'ropeMode'),
     maniement: maniementRetenu(attacker, w, w.hands), // AA 08 l.190 ; AA 08 l.343
+    sansEquipe: !!opts?.sansEquipe, // AA 10 l.148 ; ZI 13 l.193
   };
 }
 
@@ -1242,7 +1265,7 @@ export function resolveAttack(
     const rd = defenseSurfaced(get(), target)
       ? undefined
       : (() => {
-        const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+        const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
         return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
     const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold);
@@ -1265,7 +1288,7 @@ export function resolveAttack(
   // seul jet d'ATTAQUANT (`defense:'aucune'`) et l'interposition (`openSurfacedDefense`, chemin piloté) ou la
   // fenêtre réactive (`maybeOpenDefense`, chemin IA) opposera le jet de défense au jet figé.
   const surfaced = defenseSurfaced(get(), target);
-  return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'aucune' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear }), weapon };
+  return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'aucune' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear, bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) }), weapon };
 }
 
 /** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `jet`, tranché à
@@ -1302,7 +1325,7 @@ export function resolveDualSecond(
   const mode = (cannotDefend(target) || isInanimate(target) || defenseSurfaced(get(), target)) ? 'aucune' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
   if (mode === 'aucune') return resolveMeleePassive(attacker, target, offWeapon, atk, { rng: battleRng() }, opts?.location, env, undefined, false, compo);
   const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), defaultParryWeapon(target), offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
-  return finishMelee(attacker, target, offWeapon, atk, def, mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo);
+  return finishMelee(attacker, target, offWeapon, atk, def, mode, { rng: battleRng() }, opts?.location, env, defenseDodgeMods(get(), target), undefined, defaultParryWeapon(target), false, undefined, compo, bouclierDuBinomeEnJeu(get(), target));
 }
 
 /** Cibles VALIDES de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773 : « un adversaire disponible de
@@ -1667,7 +1690,7 @@ export function disengageOutcome(winner: VainqueurOppose): IssueOpposee {
  *  plus dangereux. Rouvre le mouvement si plus aucun foe vivant. Options : `noyau/combat/desengagement.ts`. */
 export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   const battle = get().battle!;
-  const ctx = { active: mover, battle };
+  const ctx = { active: mover, battle, scene: get().scene };
   const foes = adversairesEngages(ctx);
   const libre = departLibre(ctx);
   if (!foes.length || libre) {
@@ -1858,7 +1881,7 @@ export function computeRunReach(get: Get<Jeu>): Map<string, number> {
   if (battle.reachable.size > 0) return new Map();
   const active = activeCombatant(battle);
   if (!active || !controlsCombatant(get(), active) || !active.pos) return new Map();
-  if (refusDeCourse(battle, active)) return new Map();
+  if (refusDeCourse(scene, battle, active)) return new Map();
   const geom = mountOf(battle, active) ?? active;
   const budget = movementRemaining(battle, active) + distanceDeCourse(mouvementDeCourse(battle, active));
   const reach = moveReachFor(geom, scene, active.pos, budget, moveEnv(battle, geom));
@@ -1920,6 +1943,7 @@ export function aiApproachPlan(
   const inp: EnemyTurnInput = { ...input, losMemo: input.losMemo ?? makeLosMemo(input.scene, input.smoke ?? []), memoDesApproches: input.memoDesApproches ?? new Map() };
   const charge = chooseEnemyAction({ ...inp, movement: courseBudget });
   if (charge.kind === 'deplacement' && atContact(charge)) return { plan: charge, ran: null };
+  if (refusDuBinome(input.scene, { combatants: [enemy, ...(input.squad ?? [])] }, enemy)) return none; // ZI 13 l.193
   // Course (LDB 15 l.41) : budget = Marche + Course + DR ; pas d'attaque.
   const course = testDuCavalier(enemy, testDeRegle('course', 'courir'));
   const r = resolveRun(testValue(enemy, course), course.difficulty, M, rng);
@@ -2149,9 +2173,13 @@ export function resolveCritSeverity(
   return { crit, table: { ...decl, forcedRoll: rolled.roll, result: rolled } };
 }
 
+/** Issue d'une Blessure critique appliquée : `letale` (le caller finalise via `finalizeHeroDeath`),
+ *  `subie`, `reportee` — un autre corps l'encaisse à la place du porteur (MDG 13 l.584) —, ou `aucune` —
+ *  personne n'encaisse de Blessure critique (EDOC 07 l.334 ; #4202). */
+export type IssueDuCritique = 'letale' | 'subie' | 'reportee' | 'aucune';
+
 /** Applique une Blessure critique (Coup Critique ou overkill) à `target` : PB (ignore BE+PA,
- *  plancher 0) + États + compteur. RETOURNE `true`
- *  si le résultat est létal (le caller finalise via finalizeHeroDeath). Pousse le journal dans `log`. */
+ *  plancher 0) + États + compteur. RETOURNE son issue (`IssueDuCritique`). Pousse le journal dans `log`. */
 export function applyCriticalToTarget(
   target: Combatant,
   location: HitLocation,
@@ -2170,17 +2198,17 @@ export function applyCriticalToTarget(
      *  impose (`CriticalResolved.testFlow`) — un appelant sans `get` perdrait ce jet en silence. */
     get: Get;
   },
-): boolean {
+): IssueDuCritique {
   const { ctx, prerolled, suppressReveal, get, origine, surLeCritique } = opts;
   // Aiguillage par porteur : `porteurDeCritique` (AA 10 l.114 ; MDG 13 l.656 ; EDOC 07 l.334).
   const porteur = porteurDeCritique(target);
   if (porteur === 'structure') {
     applyStructureCriticalToTarget(get().forgerUnId, set, target, { attackerId: ctx?.attackerId, attackerKind: ctx?.attackerKind, weapon: ctx?.weapon }, log, { overkill });
-    return false; // AA 10 l.127
+    return 'subie'; // AA 10 l.127
   }
   if (porteur === 'vehicule-routier') {
     log.push(tr('cf.coqueSansCritique', { name: target.label })); // EDOC 07 l.334
-    return false;
+    return 'aucune';
   }
   if (porteur === 'navire') {
     const profil = garanti(profilNavalDe(target), target.creatureId, 'profil naval du navire (MDG 12 l.131)');
@@ -2265,7 +2293,7 @@ export function applyCriticalToTarget(
   // `MiscastResult.testFlow` (`finishMiscast`). Létal : le RAW n'applique aucun effet supplémentaire (l'`applyOps`
   // ci-dessus est gaté pareillement) — le Test n'a plus d'objet.
   if (crit.testFlow && !crit.lethal) routeTriggeredTest(get, set, target, target, crit.testFlow, { idNeuf: get().forgerUnId, rng: battleRng(), label: crit.label });
-  return crit.lethal; // « Mort » instantané → finalisé par le caller (sauvetage par Destin possible)
+  return crit.lethal ? 'letale' : 'subie'; // « Mort » instantané → finalisé par le caller (sauvetage par Destin possible)
 }
 
 /**
@@ -2275,7 +2303,7 @@ export function applyCriticalToTarget(
  * l'« Équipage », le marin exposé encaisse le coup par le pipeline des Critiques (`encaisserLeCoupDuMarin`,
  * MDG 13 l.584) ; les Éclats infligent 9 Dégâts à autant de marins. L'équipage est résolu depuis `target.crewIds` via la bataille (`get`) ; absent → effets de coque seuls.
  * La destruction de la coque NE passe PAS par un « Mort » de Critique mais par ses Blessures / l'État Naufrage —
- * on renvoie donc toujours `false`.
+ * l'issue n'est jamais `letale` ; `reportee` quand le marin encaisse (MDG 13 l.584).
  */
 export function applyHullCriticalToTarget(
   target: Combatant,
@@ -2283,7 +2311,7 @@ export function applyHullCriticalToTarget(
   log: string[],
   set: SetFn,
   opts: { ctx?: DeviationCtx; suppressReveal?: boolean; get: Get; forcedLocRoll?: number; forcedCritRoll?: number },
-): boolean {
+): IssueDuCritique {
   const { ctx, suppressReveal, get, forcedLocRoll, forcedCritRoll } = opts;
   const hull = findVehicleById(target.creatureId ?? '')?.hull;
   const crew = target.crewIds
@@ -2311,7 +2339,7 @@ export function applyHullCriticalToTarget(
     const attaquant = garanti(inBattleId(lire().battle, ctx?.attackerId), ctx?.attackerId, "auteur du coup qui porte le Critique d'Équipage");
     const marin = garanti(crew.find((c) => c.id === outcome.marinId), outcome.marinId, "marin d'un Critique d'Équipage");
     for (const l of encaisserLeCoupDuMarin(lire, set, naissanceDuCoupDuMarin(coup, attaquant, marin), []) ?? []) log.push(l);
-    return false;
+    return 'reportee';
   }
   // Le coup à l'équipage de la rangée (MSRC 07 l.78/l.94, MDG 13 l.763) sur N marins passe par la PORTE
   // canonique, APRÈS la révélation : UNE bande de N rangées pour ceux que des sièges tiennent, voie inline
@@ -2325,7 +2353,7 @@ export function applyHullCriticalToTarget(
       ));
     }
   }
-  return false;
+  return 'subie';
 }
 
 /** Table d'étape du Critique de Structure (AA 10 l.116-127) — la DONNÉE `structure-criticals.json` porte les
@@ -2475,10 +2503,10 @@ function applyCritAndFinalize(
   get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number, origine: OrigineCritique,
   log: string[], ctx: DeviationCtx, auteur: Combatant | undefined, avantLeCoup: Combatant, crit?: CriticalResolved, suppressReveal?: boolean,
   surLeCritique?: (crit: CriticalResolved) => void,
-): boolean {
-  const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine, surLeCritique });
-  if (lethal) finalizeHeroDeath(get, set, target, avantLeCoup, auteur);
-  return lethal;
+): IssueDuCritique {
+  const issue = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine, surLeCritique });
+  if (issue === 'letale') finalizeHeroDeath(get, set, target, avantLeCoup, auteur);
+  return issue;
 }
 
 /**
@@ -2628,12 +2656,12 @@ export function applyCoupCritiqueSec(
     suspendreLeCritique(set, etapeId, victim.id, avantLeCoup);
     return;
   }
-  const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, auteur, avantLeCoup);
+  const issue = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, auteur, avantLeCoup);
   breakBacleArmour(victim, loc, log); // LDB 60 l.50
-  apresLeCritiqueDe({ get, set, auteur, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(lethal, entree.origine); // #316
+  apresLeCritiqueDe({ get, set, auteur, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(issue, entree.origine); // #316
 }
 
-/** Ce que lit l'après d'une Blessure critique infligée. */
+/** Ce que lit l'après d'un Critique. */
 interface ApresLeCritique {
   get: Get;
   set: SetFn;
@@ -2645,20 +2673,23 @@ interface ApresLeCritique {
   woundsDealt?: number;
 }
 
-/** Après une Blessure critique INFLIGÉE (`lethal` = rendu d'`applyCritAndFinalize`) : Frappe blessante
+/** Après un Critique (`issue` = rendu d'`applyCritAndFinalize`) : Frappe blessante sur une Blessure `subie`
  *  (LDB 10 ; LDB 18 l.15), puis `onCrit` (`TriggeredEffect.coupCritique` ; #316 ; #1595 c.6221792068 Q4,
- *  c.6226467544, c.6228496170 Q3, Q4b). */
-function apresLeCritiqueDe(a: ApresLeCritique): (lethal: boolean, origine: OrigineCritique) => void {
-  return (lethal, origine) => {
+ *  c.6226467544, c.6228496170 Q3, Q4b). Une Blessure `reportee` n'est pas celle de `cible` : MDG 13 l.584 ;
+ *  #4202. Sur une issue `aucune`, seuls les effets `coupCritique` jouent : EDOC 07 l.334 ; #4202. */
+function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine: OrigineCritique) => void {
+  return (issue, origine) => {
     const { get, set, auteur, cible, log } = a;
-    if (!auteur || lethal) return;
-    const fb = loseWounds(cible, talentCritExtraWounds(auteur));
-    if (fb > 0) log.push(tr('cf.coupBlessant', { name: cible.label, n: fb }));
+    if (!auteur || issue === 'letale' || issue === 'reportee') return;
+    if (issue === 'subie') {
+      const fb = loseWounds(cible, talentCritExtraWounds(auteur));
+      if (fb > 0) log.push(tr('cf.coupBlessant', { name: cible.label, n: fb }));
+    }
     const battle = get().battle;
     if (!battle) return;
     emitCombatEvent('onCrit', {
       get, set, battle, self: auteur, sink: (line) => log.push(line),
-      triggerCtx: { victim: cible, weapon: a.arme, location: a.lieu, woundsDealt: a.woundsDealt, attackType: a.arme?.type, origine, rng: battleRng() },
+      triggerCtx: { victim: cible, weapon: a.arme, location: a.lieu, woundsDealt: a.woundsDealt, attackType: a.arme?.type, origine, sansBlessureCritique: issue === 'aucune', rng: battleRng() },
     });
   };
 }
@@ -2828,7 +2859,7 @@ interface ApplicationDesCritiques {
   /** Le jet de toucher (révélation d'une Déviation de l'automate). */
   roll: number;
   /** Après une Blessure critique INFLIGÉE (Frappe blessante, `onCrit`). */
-  apres?: (lethal: boolean, origine: OrigineCritique) => void;
+  apres?: (issue: IssueDuCritique, origine: OrigineCritique) => void;
 }
 
 /** APPLIQUE le plan des Blessures critiques d'un coup, Blessures du coup déjà retirées : Mort subite, puis
@@ -2845,10 +2876,10 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
   let bacle = coupCritique;
   const casse = (): void => { if (bacle) breakBacleArmour(target, lieu, log); bacle = false; };
   if (!compte.critiques.some((c) => estUnCoupCritique(c.origine))) casse();
-  let lethal = false;
+  let issue: IssueDuCritique | undefined;
   let lancerDuTableau: number | undefined;
   let infligees = 0;
-  for (let i = 0; i < a.plan.length && !lethal; i++) {
+  for (let i = 0; i < a.plan.length && issue !== 'letale'; i++) {
     const decision = a.plan[i];
     const entree = compte.critiques[i];
     const coupCritiqueEntree = estUnCoupCritique(entree.origine);
@@ -2859,9 +2890,9 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
       // (pose du dé, #942 L4) garde sa révélation.
-      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
-      a.apres?.(lethal, entree.origine);
-      infligees++;
+      issue = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.auteur, a.avantLeCoup, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
+      a.apres?.(issue, entree.origine);
+      if (issue !== 'aucune') infligees++;
     }
     if (coupCritiqueEntree) casse();
   }
@@ -3273,11 +3304,16 @@ function appliquerLaTouche(
   bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind, defense, weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
   const evKind: CombatEventKind = weapon.type === 'distance' ? 'tir' : 'attaque';
   const log = [ev(evKind, ligneDuCoup(res), attacker.id, target.id)];
-  // LDB 14 l.142-151
-  if (!res.hit && isThrownWeapon(weapon) && attacker.pos && target.pos) {
-    const land = scatter(attacker.pos, target.pos, battleRng(), sceneMetresPerTile(get().scene), get().scene?.dimensions);
-    bus.emit(EVT.ANIM_FLOAT, { pos: land, text: tr('cf.dispersionFlottante'), kind: 'rate' });
-    log.push(ev(evKind, tr('cf.dispersion', { name: attacker.label }), attacker.id, target.id));
+  // LDB 14 l.142-151 ; #4330
+  if (isThrownWeapon(weapon) && attacker.pos && target.pos) {
+    const land = res.hit ? target.pos : scatter(attacker.pos, target.pos, battleRng(), sceneMetresPerTile(get().scene), get().scene?.dimensions);
+    if (!res.hit) {
+      bus.emit(EVT.ANIM_FLOAT, { pos: land, text: tr('cf.dispersionFlottante'), kind: 'rate' });
+      log.push(ev(evKind, tr('cf.dispersion', { name: attacker.label }), attacker.id, target.id));
+      poserLesZonesALArrivee(get, set, attacker, target, weapon, land);
+    }
+    const lancee = laisserTomber(attacker, weapon, get().forgerUnId);
+    if (lancee && !itemCapability(lancee, 'detruitAuLancer')) lacherAuSol(get, set, lancee, land);
   }
   log.push(...evLines(critLog, 'critique', attacker.id, target.id));
   // Nerveux (LDB 85 l.249) : « facilement effrayée par […] les bruits forts » — un coup d'arme à
@@ -3934,7 +3970,7 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
   if (!defenseSurfaced(s, target)) return { refus: 'non-surfacee' };
   // TIR : LDB 62 l.296 ; LDB 14 l.40 ; LDB 14 l.44. LoS acquise : l'IA ne tire que si elle voit (doAttack).
   if (weapon?.type === 'distance') {
-    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene));
+    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target));
     return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
@@ -3972,7 +4008,7 @@ export function maybeOpenDefense(
     const dist = distanceDeCombat(get().scene, attacker, target);
     const { env } = attackEnv(get, attacker, target, weapon);
     const atk = rollRangedAttacker(attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
-    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
     // Composée HORS du littéral : la Difficulté du tir figé, avec les mêmes options que `rollRangedAttacker`.
     const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'distance', distanceTiles: dist, env, metresPerTile: mpt }));
     set({
@@ -4039,7 +4075,7 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
   if (pa.siege) return false;
   if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
-  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene)).length > 0;
+  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target)).length > 0;
   return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon, sceneMetresPerTile(s.scene));
 }
 
@@ -4068,8 +4104,9 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
     suite: { mode: 'pilotee' as const, pa: { ...pa, defended: true } },
   };
   if (weapon.type === 'distance') {
-    const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt);
-    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
+    const binome = bouclierDuBinomeEnJeu(get(), target);
+    const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt, binome);
+    const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, binome);
     set({ pendingDefense: { ...base, mode: best?.mode ?? modes[0], parryWeaponUid: best?.parryWeapon?.uid, modes, distanceTiles: dist } });
   } else {
     set({ pendingDefense: { ...base, mode: bestDefenseMode(target) } });
@@ -4711,7 +4748,7 @@ function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // l.123), seul son EFFET est ignoré (LDB 85 l.98) ; l'Action, gratuite, est rendue par la reprise.
   const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind } };
   if (maybeOpenDefense(get, set, attacker, target, weapon, suite)) return OPS_DIFFEREES; // suspendu : resolve via défense
-  const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'aucune' : bestDefenseMode(target) });
+  const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'aucune' : bestDefenseMode(target), bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) });
   // Enchaînement absent = `auto` (LDB 85 l.362), joué par l'après-coup.
   return applyAttackResult(get, set, attacker, target, weapon, res, { sousAttaque: true, suite });
 }
@@ -4906,8 +4943,8 @@ export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: Pen
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
     const auteur = dev.ctx.attackerId ? porteurParId(get(), dev.ctx.attackerId) : undefined;
-    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, avantLeCoup, dev.crit, true); // Subir : Critique pré-tiré
-    apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
+    const issue = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, avantLeCoup, dev.crit, true); // Subir : Critique pré-tiré
+    apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(issue, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
   // 0 PB → À Terre (LDB 18 l.15).
@@ -5071,26 +5108,26 @@ export function resumeManeuverDefense(get: Get, set: SetFn, resume: { attackerId
 
 
 /**
- * Composant d'incantation (LDB 46 l.107-113, règle optionnelle `magie-composant`) — appelé UNE fois
- * au point d'incantation d'un Sort d'Arcane/Domaine par un lanceur qui suit les règles de PERSONNAGE
- * (#143 — `followsCharacterRules`, PAS un proxy `kind`). Si un composant pour ce Sort est possédé :
- * il est CONSUMÉ « même si aucune Incantation Imparfaite n'a été obtenue » (l.111), une ligne est
- * journalisée, et `true` est renvoyé → toute Imparfaite de ce lancement sera dégradée (passé en
- * `componentDowngrade` à `applyMiscast`). Mute `caster.componentSpells`. Renvoie `false` (sans effet)
- * si la règle est éteinte, le lanceur ne suit pas les règles de Personnage, ou aucun composant ne
- * couvre le Sort. `lines` reçoit la ligne « composant consumé » le cas échéant.
+ * Composant d'incantation, appelé UNE fois au point d'incantation d'un Sort : le composant que porte le lanceur
+ * pour CE Sort (`composantLie`) est consumé, une ligne est journalisée, et `true` est renvoyé → toute Imparfaite
+ * de ce lancement sera dégradée (`componentDowngrade` à `applyMiscast`). Sans composant lié, `false`, rien ne
+ * bouge. LDB 46 l.107-113
  */
 export function useSpellComponent(caster: Combatant, spellId: string, lines: string[]): boolean {
-  if (!followsCharacterRules(caster) || rule('magie-composant') !== true) return false;
-  const owned = caster.componentSpells ?? [];
-  if (!owned.includes(spellId)) return false;
-  const i = owned.indexOf(spellId);
-  const next = [...owned];
-  next.splice(i, 1); // retire UNE occurrence (consommée par l'incantation)
-  caster.componentSpells = next;
-  // LDB 46 l.111
+  const composant = composantLie(caster, spellId);
+  if (!composant) return false;
+  caster.items = caster.items!.filter((it) => it !== composant);
   lines.push(tr('cf.composanteConsommee', { name: caster.label }));
   return true;
+}
+
+/** Le lanceur à capacité `castingHunger` qui lance un Sort à composant sans en consumer un, et sans Vivres sur
+ *  lui, perd 1 Blessure par NI du Sort (op `wounds`). ADE II 2 l.726 */
+function faimALIncantation(get: Get, caster: Combatant, spell: NonNullable<ReturnType<typeof findSpell>>, componentUsed: boolean, lines: string[]): void {
+  if (componentUsed || !prendUnComposant(spell) || !traitCapability(caster.traits, 'castingHunger')) return;
+  if ((caster.items ?? []).some(isRation)) return;
+  const n = spell.cn ?? 0;
+  lines.push(tr('cf.faimALIncantation', { name: caster.label, spell: spell.label, n }), ...applyOps(caster, [{ op: 'wounds', amount: n }], { idNeuf: get().forgerUnId, rng: battleRng(), caster }));
 }
 
 // ---------------------------------------------------------------------------
@@ -5146,11 +5183,8 @@ function liveSinPoints(caster: Combatant, severity: MiscastSeverity): number {
  * réduction à 0 + Inconscient). Retourne les lignes de journal.
  */
 export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: MiscastSeverity, opts?: { suppressReveal?: boolean; componentDowngrade?: boolean; sorceryCorruption?: boolean; domainId?: string; targetIds?: string[] }): string[] {
-  // Composant d'incantation (LDB 46 l.111, règle optionnelle) : si un composant adapté a été
-  // SACRIFIÉ pour ce Sort (consommation décidée et journalisée au point d'incantation — cf.
-  // `useSpellComponent`), il absorbe les pires effets du contrecoup : « toute Incantation Imparfaite
-  // Majeure devient Mineure, et aucune Incantation Imparfaite Mineure n'a d'effet ». La transformation
-  // de sévérité est PURE (engine/miscast.componentDowngrade) ; ne touche pas la Colère des dieux.
+  // Composant consumé au point d'incantation (`useSpellComponent`) : la sévérité se dégrade
+  // (engine/miscast.componentDowngrade), jamais la Colère des dieux. LDB 46 l.111
   if (opts?.componentDowngrade && severity !== 'colere') {
     const downgraded = componentDowngrade(severity);
     if (downgraded === null) {
@@ -6709,11 +6743,9 @@ export function applyCast(
     }
   }
   const logLines: string[] = res.touche ? [] : [res.log];
-  // Composant d'incantation (LDB 46 l.107-113, règle optionnelle) : consommé UNE fois par lancement
-  // d'un Sort d'Arcane/Domaine couvert, « même si aucune Incantation Imparfaite n'a été obtenue »
-  // (l.111). `componentUsed` → toute Imparfaite de ce lancement est dégradée (Majeure→Mineure,
-  // Mineure→annulée). N'a pas lieu pour une Prière (l.113 : composants = Sorts d'Arcane/Domaine).
+  // LDB 46 l.111 ; LDB 46 l.113
   const componentUsed = isSort && useSpellComponent(caster, spell.id, logLines);
+  if (isSort) faimALIncantation(get, caster, spell, componentUsed, logLines);
   // Malepierre PORTÉE (`VDM 02 l.163-165`) : le doublement du DR (déjà figé sur `res.malepierreConsumed`,
   // `engine/magic.ts`) décrémente ICI la réserve — seul point d'ÉCRITURE (`consumeMalepierre`).
   const malepierreItem = res.malepierreConsumed ? malepierreItemOf(caster) : undefined;
@@ -7025,28 +7057,29 @@ function placeSpellZone(
   const rounds = baseRounds * durationMult + durationBonusRounds;
   // Rayon par défaut (si l'op n'a pas de `radiusMeters`) : dérivé de la `target` du sort (« Zone Diamètre
   // BFM m » → rayon BFM/2). Protection de Phâ : Zone centrée sur le lanceur (range self).
-  placeZoneFromOp(get, caster, target, pz, spell.label, rounds, sl, (zdeDiameterMeters(spell.target, caster) ?? 4) / 2, logLines,
+  if (!target.pos) { logLines.push(tr('cf.zonePersiste', { spell: spell.label })); return; }
+  placeZoneFromOp(get, caster, target.pos, pz, spell.label, rounds, sl, (zdeDiameterMeters(spell.target, caster) ?? 4) / 2, logLines,
     spell.id ? { kind: 'sort', id: spell.id } : undefined);
 }
 
-/** Pose une ZONE persistante depuis un op `zone` (op-based, réutilisable HORS sort : effets déclenchés —
- *  zone laissée à la mort/touche…). `label`/`rounds`/`fallbackRadiusM` sont fournis par l'appelant (un
- *  sort les tire de sa durée/ZdE ; un trigger fournit des défauts). `target.pos` = centre du disque.
- *  `source` = l'ENTITÉ qui pose la zone (ids) : elle voyage SUR la zone, et le Test de TRAVERSÉE
+/** Pose une ZONE persistante depuis un op `zone` : celle d'un sort (`placeSpellZone`) ou d'un effet déclenché
+ *  (`crochetDeZone`). `label`/`rounds`/`fallbackRadiusM` sont fournis par l'appelant (un sort les tire de sa
+ *  durée/ZdE ; un effet déclenché, de l'op). `centre` = centre du disque (le mur est perpendiculaire à l'axe
+ *  poseur→centre). `source` = l'ENTITÉ qui pose la zone (ids) : elle voyage SUR la zone, et le Test de TRAVERSÉE
  *  (`crossTest`) en dérive son enjeu — ce qui se joue est le sort qui barre le passage (#1262 V2 L6d). */
-function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZone: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], sourceRecue?: EffectSource): void {
+function placeZoneFromOp(get: Get, caster: Combatant, centre: Pt, opDeZone: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], sourceRecue?: EffectSource): void {
   const { pz, source } = structuredClone({ pz: opDeZone, source: sourceRecue }); // #2097
   const battle = get().battle;
-  if (!battle || !target.pos || !caster.pos) { logLines.push(tr('cf.zonePersiste', { spell: label })); return; }
+  if (!battle || !caster.pos) { logLines.push(tr('cf.zonePersiste', { spell: label })); return; }
   const discRadiusM = pz.radiusMeters != null ? Math.max(0, resolveFormula(pz.radiusMeters, caster, battleRng())) : fallbackRadiusM;
   // Cases BORNÉES à la carte au SITE D'ÉCRITURE (`clampZoneTiles`) : la géométrie de pose est non
   // bornée, une zone posée au coin déborderait en cases négatives stockées dans `battle.zones`.
   const rawTiles = clampZoneTiles(pz.shape === 'wall'
-    ? wallTiles(caster.pos, target.pos, porteeEnCases(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng()), sceneMetresPerTile(get().scene)))
-    : discTiles(target.pos, porteeEnCases(discRadiusM, sceneMetresPerTile(get().scene))), get().scene?.dimensions);
-  // z propagé sur chaque case (défaut 0, cf. zoneAreaTiles §782/#799) : une zone posée à l'étage `target.pos.z`
+    ? wallTiles(caster.pos, centre, porteeEnCases(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng()), sceneMetresPerTile(get().scene)))
+    : discTiles(centre, porteeEnCases(discRadiusM, sceneMetresPerTile(get().scene))), get().scene?.dimensions);
+  // z propagé sur chaque case (défaut 0, cf. zoneAreaTiles §782/#799) : une zone posée à l'étage `centre.z`
   // ne couvre pas les cases de même (x,y) à un autre étage (zoneCovers compare `t.z ?? 0` / `p.z ?? 0`).
-  const tiles = target.pos.z ? rawTiles.map((t) => ({ ...t, z: target.pos!.z })) : rawTiles;
+  const tiles = centre.z ? rawTiles.map((t) => ({ ...t, z: centre.z })) : rawTiles;
   const zone: BattleZone = {
     label, tiles, rounds, casterId: caster.id,
     ...(pz.blocksLoS ? { blocksLoS: true } : {}),
@@ -7057,26 +7090,51 @@ function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZon
     ...(pz.gate ? { gate: pz.gate } : {}),
     ...(pz.noCorruption ? { noCorruption: true } : {}),
     ...(source ? { source } : {}),
+    ...(pz.rendu ? { rendu: pz.rendu } : {}),
   };
   battle.zones = [...(battle.zones ?? []), zone];
   logLines.push(tr('cf.zonePersistePlusieursRounds', { spell: label, rounds }));
-  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...target.pos }, tiles, ...(source?.kind === 'sort' ? { sort: source.id } : {}) });
+  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...centre }, tiles, ...(source?.kind === 'sort' ? { sort: source.id } : {}), ...(pz.rendu ? { rendu: pz.rendu.id } : {}) });
+}
+
+/** Les zones des effets à la touche d'une arme LANCÉE qui manque se posent à son point d'arrivée (`land`, Dispersion) ;
+ *  ses autres effets à la touche n'ont pas lieu. #4202 ; LDB 14 l.142 */
+function poserLesZonesALArrivee(get: Get, set: SetFn, attacker: Combatant, target: Combatant, weapon: Weapon, land: Pt): void {
+  const source = { kind: 'objet' as const, id: weaponIdentity(weapon) };
+  for (const eff of weapon.onHitEffects ?? []) {
+    if (eff.trigger !== 'onHit') continue;
+    const zones = reecrireLesOps(eff.flow, (o) => (o.op === 'zone' ? o : null));
+    if (!flowHasImpureOp(zones)) continue;
+    runCombatFlow({ get, set, target, caster: attacker, label: weapon.label, opsCtx: { caster: attacker, source: eff.source ?? source, centreDeZone: land } }, zones);
+  }
+}
+
+/** Le crochet d'`applyOps` qui POSE la zone d'une op `zone` portant sa durée (`OpsCtx.onZone`) : au point
+ *  `centreDeZone`, sinon sur la cible ; le poseur est le porteur de l'effet. #4202 */
+export function crochetDeZone(get: Get): Required<Pick<OpsCtx, 'onZone'>> {
+  return {
+    onZone: (op, rounds, cible, ctx) => {
+      const lines: string[] = [];
+      const centre = ctx.centreDeZone ?? cible.pos;
+      if (!centre) return [tr('cf.zonePersiste', { spell: nomDeSource(ctx) })];
+      if (op.shape === 'disc' && op.radiusMeters === undefined) throw new Error(`op « zone » de ${nomDeSource(ctx)} : disque sans « radiusMeters » — hors sort, aucune Zone d'Effet ne le donne.`);
+      placeZoneFromOp(get, ctx.caster ?? cible, centre, op, nomDeSource(ctx), rounds, ctx.sl ?? 0, 0, lines, ctx.source);
+      return lines;
+    },
+  };
 }
 
 /** Résout les ops IMPURES (grille/initiative) d'un déclencheur — GÉNÉRIQUE, pas limité à summon : un
- *  effet de DONNÉE déclenché (Trait/Talent/Atout) qui invoque ou
- *  pose une zone est résolu ICI, comme au lancement d'un sort. `summon`/`zone` sont inertes dans
- *  `applyOps` (moteur pur) ; on les moissonne (`triggerEffectOps`) et on les dispatche vers leur
- *  résolveur state (applySummon / placeZoneFromOp). Les autres impures (grantFreeAttack, interruptFocus,
- *  breakBlade) fonctionnent déjà dans leur propre contexte (frappe gratuite / réactions de combat). */
+ *  effet de DONNÉE déclenché (Trait/Talent/Atout) qui invoque ou programme une reconstitution est résolu
+ *  ICI, comme au lancement d'un sort. `summon`/`scheduleRespawn` sont inertes dans `applyOps` (moteur pur) ;
+ *  on les moissonne (`triggerEffectOps`) et on les dispatche vers leur résolveur state (applySummon /
+ *  scheduleRespawnFromOp). Les autres impures fonctionnent dans leur propre contexte : la zone par le crochet
+ *  `crochetDeZone` du walker de combat, la frappe gratuite, les réactions de combat. */
 export function resolveTriggerImpureOps(get: Get, set: SetFn, actor: Combatant, trigger: EffectTrigger): string[] {
   const lines: string[] = [];
-  for (const { op, source } of triggerEffectOps(actor, trigger)) {
+  for (const { op } of triggerEffectOps(actor, trigger)) {
     if (op.op === 'summon') lines.push(...applySummon(get, set, actor, op, { rng: battleRng() }));
     else if (op.op === 'scheduleRespawn') lines.push(...scheduleRespawnFromOp(get, set, actor, op));
-    // La ZONE garde l'ENTITÉ qui l'a posée (le Trait/Talent porteur) : son `crossTest` en dérive son
-    // enjeu, exactement comme une zone de sort (#1262 V2 L6d).
-    else if (op.op === 'zone') placeZoneFromOp(get, actor, actor, op, actor.label, op.perRound ? 3 : 1, 0, 2, lines, source);
   }
   return lines;
 }
@@ -7886,7 +7944,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
     checkBattleOver(get, set);
     return undefined;
   }
-  const tombe = laisserTomber(attacker, drop);
+  const tombe = laisserTomber(attacker, drop, get().forgerUnId);
   if (tombe) crochetDuSol(get, set).onLacher(attacker, tombe);
   // Étape d'AFFICHAGE empilée (comme un Coup Critique) : visible « l'un sous l'autre », acquittée par le
   // joueur. `actorId` = le défenseur piégeur (propriétaire de la modale en coop). Applier muet (préserve `outcome`).
@@ -9054,9 +9112,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // hook) : c'est un CONTRÔLE DE FLUX (`return advanceTurn` saute le tour) — un hook `run(ctx):void` ne
   // peut pas exprimer « sauter le tour ». Il s'exécute APRÈS le dispatch `turnStart`, avant l'action IA.
   if (isStupid(enemy.traits) && enemy.pos) {
-    const guided = battle.combatants.some(
-      (a) => a.kind === enemy.kind && a.id !== enemy.id && !isOutOfAction(a) && !isStupid(a.traits) && distanceDeContact(get().scene, a, enemy) <= 1,
-    );
+    const guided = effectifAuContactParmi(get().scene, battle.combatants.filter((a) => a.id !== enemy.id && !isStupid(a.traits)), enemy, enemy.kind) > 0;
     if (!guided && !rollSansPilote(get, enemy, testValue(enemy, { characteristic: 'intelligence' }), 'facile', battleRng()).success) {
       battle.log.push(ev('detail', tr('cf.stupidite', { name: enemy.label }), enemy.id));
       set({ battle: { ...battle } });
@@ -9301,6 +9357,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       return;
     }
     case 'deplacement': {
+      if (action.fuite) lacherLeBouclierDuBinome(get, set, enemy); // ZI 13 l.193
       // Simplification IA assumée (sévérité mineure, relevée par la revue de fidélité) :
       //  • l'IA ne fait JAMAIS de Désengagement (option joueur, LDB 15 l.43-49) : un
       //    ennemi Engagé qui se repositionne ne paie pas l'Esquive/le sacrifice d'Avantage.

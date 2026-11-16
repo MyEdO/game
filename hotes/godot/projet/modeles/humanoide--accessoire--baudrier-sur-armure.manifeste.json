@@ -17,16 +17,18 @@
   ],
   "surfaces": [
     {
-      "nom": "cuir",
-      "palette": "cuir"
+      "nom": "sangle",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     },
     {
-      "nom": "metal",
-      "palette": "metal"
+      "nom": "boucle",
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     }
   ],
   "glb": {
-    "sha256": "afcfd8311e2bac8195674c4699b088364b64fb6c6025d98968c996a938b53881",
-    "octets": 228484
+    "sha256": "296d96db5ebe5b9a250a503e79a0ff96d9d21d7dbfce99616448d6cd3d663b26",
+    "octets": 202164
   }
 }

@@ -300,7 +300,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
     id: 'w', label: 'Carte',
     places: [{
       id: 'halle', label: 'La Halle', pos: { x: 10, y: 10 }, scene: { id: testScene().id },
-      market: { taille: 2, richesse: 2, produits: [] } as never,
+      taille: 2, market: { richesse: 2, produits: [] },
     }],
     routes: [],
   });

@@ -5,9 +5,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetData, setObjectDataset } from '../data/overrides';
 import { semencesDeScene } from '../data';
-import { routesFrom, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { offresDuType, routesFrom, type MapPlace, type OffreDAuberge, type PlaceService, type MapRoute, type WorldMap } from './worldMap';
 import {
-  BORNES_DE_CARTE, ajouterLieu, basculerMode, ciblerPoi, etablissementAjoute, etablissementRetire, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, typesDEtablissement,
+  BORNES_DE_CARTE, ajouterLieu, basculerMode, ciblerPoi, etablissementAjoute, etablissementRetire, lierLieux, majCarte, majLieu, majRoute, offreAjoutee, offresDeLEtablissement, offreRetiree, supprimerLieu, supprimerRoute, typesDEtablissement,
 } from './worldMapEdit';
 
 const lieu = (id: string, x: number, y = 50): MapPlace => ({ id, label: id, pos: { x, y }, scene: { id: 's' } });
@@ -152,7 +152,7 @@ describe('patchs et modes', () => {
 });
 
 describe('établissements d’un lieu (#4277)', () => {
-  const avec = (l: MapPlace, ...kinds: string[]) => kinds.reduce((x, k) => ({ ...x, ...etablissementAjoute(x, k) }), l);
+  const avec = (l: MapPlace, ...kinds: PlaceService['kind']['id'][]) => kinds.reduce((x, k) => ({ ...x, ...etablissementAjoute(x, k) }), l);
 
   it('un établissement neuf prend l’identifiant de son type, puis le premier suffixe libre, jamais celui d’un service automatique du lieu', () => {
     expect(avec(lieu('a', 10), 'auberge', 'auberge', 'temple').services).toEqual([
@@ -174,5 +174,57 @@ describe('établissements d’un lieu (#4277)', () => {
     const service = ciblerPoi(m, 'a', 'p', { service: { id: 'auberge' } });
     expect(service.places[0].poi).toEqual([{ id: 'p', pos: { x: 1, y: 2 }, icon: 'navigation/repos', service: { id: 'auberge' } }]);
     expect(ciblerPoi(service, 'a', 'p', { label: 'Salle', sceneId: { id: 's' } }).places[0].poi).toEqual([{ id: 'p', pos: { x: 1, y: 2 }, icon: 'navigation/repos', label: 'Salle', sceneId: { id: 's' } }]);
+  });
+});
+
+describe('offres d’auberge d’un établissement (#4277)', () => {
+  const ACE = { book: 'altdorf-couronne-de-l-empire', page: 31, note: 'ACE 02 l.99' };
+  /** L'asile de nuit de Miriam : chambre commune 5 sc (vérole urticante 5 %), repas 3 sc (courante galopante 5 %), sans chambre. ACE 02 l.99 */
+  const ASILE: OffreDAuberge[] = [
+    { id: 'commune', prix: { brass: 5 }, risque: { maladie: { id: 'verole-urticante' }, pourcent: 5 }, source: ACE },
+    { id: 'repas', prix: { brass: 3 }, risque: { maladie: { id: 'courante-galopante' }, pourcent: 5 }, source: ACE },
+  ];
+  const avec = (...services: PlaceService[]): MapPlace => ({ ...lieu('a', 10), services });
+  const auberge: PlaceService = { id: 'auberge', kind: { id: 'auberge' } };
+  const asile: PlaceService = { id: 'asile', kind: { id: 'auberge' }, rest: { quality: 'pietre', offres: ASILE } };
+  const offresDe = (patch: ReturnType<typeof offreAjoutee>, id: string) => patch?.services?.find((sv) => sv.id === id)?.rest?.offres?.map((o) => o.id);
+
+  it('retirer le repas d’une auberge qui vend les offres du livre lui laisse les trois autres, à leur source', () => {
+    const patch = offreRetiree(avec(auberge), 'auberge', 'repas');
+    expect(patch?.services?.[0].rest).toEqual({ offres: offresDuType('auberge').filter((o) => o.id !== 'repas') });
+    expect(offresDe(patch, 'auberge')).toEqual(['commune', 'chambre', 'grande']);
+  });
+
+  it('l’asile vend en plus une chambre du livre, sans prix ni risque propres, ses offres déclarées et sa qualité gardées', () => {
+    const patch = offreAjoutee(avec(asile, auberge), 'asile', 'chambre');
+    expect(patch?.services?.[0].rest).toEqual({ quality: 'pietre', offres: [...ASILE, { id: 'chambre', source: { book: 'livre-de-base', page: 302 } }] });
+    expect(patch?.services?.[1], 'l’autre établissement inchangé').toBe(auberge);
+  });
+
+  it('l’asile retire sa commune ; sans plus rien à vendre, sa liste vide reste, qui ne retombe pas sur les offres du livre', () => {
+    const sansCommune = { ...asile, ...offreRetiree(avec(asile), 'asile', 'commune')!.services![0] };
+    expect(sansCommune.rest?.offres).toEqual([ASILE[1]]);
+    expect(offreRetiree(avec(sansCommune), 'asile', 'repas')?.services?.[0].rest?.offres).toEqual([]);
+  });
+
+  it('une offre déjà vendue ne s’ajoute pas, une offre non vendue ne se retire pas, un établissement absent ou qui n’héberge pas ne vend rien', () => {
+    const forge: PlaceService = { id: 'forge', kind: { id: 'forgeron' } };
+    expect([
+      offreAjoutee(avec(auberge), 'auberge', 'repas'),
+      offreRetiree(avec(asile), 'asile', 'grande'),
+      offreAjoutee(avec(forge), 'forge', 'repas'),
+      offreAjoutee(avec(auberge), 'absent', 'repas'),
+    ]).toEqual([undefined, undefined, undefined, undefined]);
+    expect(offresDeLEtablissement(avec(forge), 'forge')).toBeUndefined();
+  });
+
+  it('chaque offre du schéma, à son libellé, se dit vendue ou non', () => {
+    expect(offresDeLEtablissement(avec(asile), 'asile')).toEqual([
+      { id: 'commune', libelle: 'Chambre commune', vendue: true },
+      { id: 'chambre', libelle: 'Chambre', vendue: false },
+      { id: 'grande', libelle: 'Grande chambre', vendue: false },
+      { id: 'repas', libelle: 'Repas', vendue: true },
+    ]);
+    expect(offresDeLEtablissement(avec(auberge), 'auberge')?.every((o) => o.vendue), 'sans déclaration, les offres du livre').toBe(true);
   });
 });

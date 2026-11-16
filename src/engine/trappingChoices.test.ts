@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   atoutChoisi,
   dotationsDuHeros,
+  dotationsDuPnj,
   emplacementsDeDotation,
   emplacementTranche,
   estEmplacementDeDotation,
@@ -59,7 +60,17 @@ describe('emplacementsDeDotation — énumération canonique (classe PUIS niveau
 
   it('`estEmplacementDeDotation` : `{pick, of}`, `{wildcard}`, `{id, qualityChoice}` ; une ref concrète n\'en est pas un', () => {
     expect([{ pick: 1, of: [] }, { wildcard: 'arme' }, { wildcard: 'arme', groupe: { id: 'lancer' } }, { id: 'fleuret', qualityChoice: 'qualite' }].map((r) => estEmplacementDeDotation(r as TrappingRef))).toEqual([true, true, true, true]);
-    expect(([{ id: 'dague' }, { text: 'Toges' }, { id: 'cheval', type: 'creature' }, { id: 'charrette', type: 'vehicle' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false]);
+    expect(([{ id: 'dague' }, { text: 'Toges' }, { id: 'cheval', type: 'creature' }, { id: 'charrette', type: 'vehicle' }, { id: 'canon-petit', type: 'engin' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false, false]);
+  });
+
+  it('le Maître artilleur choisit sa pièce d’artillerie parmi les douze engins d’AA, résolue en engin possédé (AA 02 l.339 ; AA 10 l.175-193 ; #4053)', () => {
+    const dotations = dotationsDuPnj('artilleur', 4);
+    const piece = emplacementsDeDotation(dotations).find((e) => e.sorte === 'branches' && e.ref.of.every((b) => 'type' in b && b.type === 'engin'))!;
+    expect(valeursDeLEmplacement(piece, { size: 'moyenne' }).map((v) => libelleDeLaValeur(piece, v))).toEqual([
+      'Baliste', 'Catapulte (petite)', 'Catapulte (moyenne)', 'Catapulte (grande)', 'Batterie tonnerre de feu', 'Canon à répétition',
+      'Canon à répétition feu d\'enfer', 'Canon (petit)', 'Canon (moyen)', 'Canon (grand)', 'Mortier', 'Pierrier',
+    ]);
+    expect(resolveTrappingChoices(dotations, { [piece.adresse]: 7 })).toContainEqual({ id: 'canon-petit', type: 'engin' });
   });
 });
 
@@ -213,7 +224,7 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
   it('aucune pièce de siège ni munition parmi les armes d’un joker, nu ou de groupe (#156)', () => {
     avecFixture(() => {
       for (const adresse of [dot([1]), dot([6]), dot([7])]) {
-        const familles = valeursDeLEmplacement(emplacement(adresse), 'moyenne').map((id) => findTrappingById(String(id))!.subType?.id);
+        const familles = valeursDeLEmplacement(emplacement(adresse), { size: 'moyenne' }).map((id) => findTrappingById(String(id))!.subType?.id);
         expect(familles.filter((f) => FAMILLES_SERVIES.includes(f ?? '')), adresse).toEqual([]);
       }
     });
@@ -221,10 +232,10 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
 
   it('un joker de groupe ne rend que les armes de son Groupe, et l’Atout de son joker les Atouts de Fabrication', () => {
     avecFixture(() => {
-      const armes = valeursDeLEmplacement(emplacement(dot([6])), 'moyenne');
+      const armes = valeursDeLEmplacement(emplacement(dot([6])), { size: 'moyenne' });
       expect(armes.length).toBeGreaterThan(0);
       expect([...new Set(armes.map((id) => groupeDe(String(id))))]).toEqual(['deux-mains']);
-      expect(valeursDeLEmplacement(emplacement(dot([7, 0])), 'moyenne')).toEqual(fabricationAtouts());
+      expect(valeursDeLEmplacement(emplacement(dot([7, 0])), { size: 'moyenne' })).toEqual(fabricationAtouts());
     });
   });
 
@@ -233,7 +244,7 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
     const lire = (refs: readonly BrancheDeDotation[]): void => refs.forEach((r) => ('pick' in r ? lire(r.of) : 'wildcard' in r && r.groupe && groupes.add(r.groupe.id)));
     careerLevels.forEach((l) => lire(l.trappings));
     expect(groupes.size).toBeGreaterThan(0);
-    for (const g of groupes) expect(valeursDeLEmplacement({ adresse: dot([0]), chemin: [0], sorte: 'joker', ref: { wildcard: 'arme', groupe: { id: g } } }, 'moyenne').length, g).toBeGreaterThan(0);
+    for (const g of groupes) expect(valeursDeLEmplacement({ adresse: dot([0]), chemin: [0], sorte: 'joker', ref: { wildcard: 'arme', groupe: { id: g } } }, { size: 'moyenne' }).length, g).toBeGreaterThan(0);
   });
 });
 
@@ -267,13 +278,13 @@ describe('emplacement `atout` : les combinaisons d’Atouts de sa classe de qual
 
   it('de Qualité : chaque Atout de Fabrication seul, dans l’ordre de la donnée', () => {
     avecAtoutsDeFixture(() => {
-      expect(valeursDeLEmplacement(deQualite(), 'moyenne')).toEqual(['raffine', 'zeta-unique', 'alpha-indice']);
+      expect(valeursDeLEmplacement(deQualite(), { size: 'moyenne' })).toEqual(['raffine', 'zeta-unique', 'alpha-indice']);
     });
   });
 
   it('de Haute Qualité sur un objet d’Encombrement 1 : toutes les paires, un doublon pour le seul Atout qui peut être pris plusieurs fois (LDB 60 l.26 ; LDB 60 l.30)', () => {
     avecAtoutsDeFixture(() => {
-      expect(valeursDeLEmplacement(deHauteQualite(), 'moyenne')).toEqual(['raffine+raffine', 'raffine+zeta-unique', 'alpha-indice+raffine', 'alpha-indice+zeta-unique', 'alpha-indice+alpha-indice']);
+      expect(valeursDeLEmplacement(deHauteQualite(), { size: 'moyenne' })).toEqual(['raffine+raffine', 'raffine+zeta-unique', 'alpha-indice+raffine', 'alpha-indice+zeta-unique', 'alpha-indice+alpha-indice']);
     });
   });
 
@@ -319,7 +330,7 @@ describe('emplacement `atout` : les combinaisons d’Atouts de sa classe de qual
 
   it('un Habit de cour de Haute Qualité (LDB 65 l.21, Encombrement 1) offre huit paires d’Atouts, chacune de deux prises (arbitrage #4053)', () => {
     const habit: TrappingRef = { id: 'costume-de-cour', qualityChoice: 'haute' };
-    const valeurs = valeursDeLEmplacement(atoutDe(habit), 'moyenne').map(String);
+    const valeurs = valeursDeLEmplacement(atoutDe(habit), { size: 'moyenne' }).map(String);
     expect(valeurs).toHaveLength(8);
     expect(valeurs).toEqual(expect.arrayContaining(['raffine+raffine', 'solide+solide', 'leger+pratique']));
     expect(valeurs).not.toEqual(expect.arrayContaining(['leger+leger']));

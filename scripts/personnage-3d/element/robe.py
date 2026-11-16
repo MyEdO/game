@@ -86,6 +86,33 @@ def deplacer(b, robe, nom):
     b.offrir(nom, emprunter(p, porteur_de(X, T, np.array(robe.poids)))[0], p, np.array(AXES_DU_PERSONNAGE).T)
 
 
+def ancres_du_corps(b):
+    """Les hauteurs où s'ancrent les anneaux d'un corps de vêtement : `bas` (bas du torse), `aisselle` (bas du haut des
+    bras), `cou` (bas du cou)."""
+    return {'bas': float(b.corps('torse')[0][:, 2].min()),
+            'aisselle': min(float(b.corps(z)[0][:, 2].min()) for z in BRAS['g'][:1] + BRAS['d'][:1]),
+            'cou': float(b.corps('cou')[0][:, 2].min())}
+
+
+def anneaux(D, b, nappe, porteur, liste, m):
+    """Les anneaux horizontaux fermés de `liste` (ancre de `ancres_du_corps`, décalage, aisance), `m` colonnes, coupés
+    dans le tronc et le cou, dans le cou seul au-dessus du bas du cou (la coupe du tronc y passe encore sur le trapèze,
+    jusqu'aux épaules), reliés en bandes : le corps fermé d'une chemise ou d'un pourpoint."""
+    ancres = ancres_du_corps(b)
+    thetas = [360.0 * i / m for i in range(m)]
+    faits = []
+    for ancre, dz, e in liste:
+        z = ancres[ancre] + dz
+        zones = COU if ancre == 'cou' and dz > 0 else TRONC + COU
+        P = b.coupe(zones, (0.0, 0.0, z), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), minimum=1)
+        c = centre_de(P)
+        pts = [np.array([p[0], p[1], z]) for p in anneau(P, c, [direction(t) for t in thetas], [e] * m,
+                                                          D['DEGAGEMENT_MIN'], au_plus_pres=True)]
+        faits.append((nappe.poser(pts, [emprunter(p, porteur)[0] for p in pts]), np.array([c[0], c[1], z])))
+    for (A, ca), (B, cb) in zip(faits, faits[1:]):
+        nappe.bande(A, B, (ca + cb) / 2)
+
+
 def piece_de(D, b, M, mat, surface):
     X, orientes, normales = M.orienter()
     W0 = np.array(M.poids)
@@ -103,9 +130,7 @@ def construire(D, materiaux, b):
     ourlet_bas = D['OURLET_DESSOUS'] if avec_dessous else D['OURLET_ROBE']
 
     # Corsage.
-    ancres = {'bas': float(b.corps('torse')[0][:, 2].min()),
-              'aisselle': min(float(b.corps(z)[0][:, 2].min()) for z in ('bras_haut_g', 'bras_haut_d')),
-              'cou': float(b.corps('cou')[0][:, 2].min())}
+    ancres = ancres_du_corps(b)
     m = D['SEGMENTS_CORPS']
     corsage, encolure, thetas = [], [], []
     ouvertures = [o for _, _, _, o in D['CORSAGE']]

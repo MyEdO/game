@@ -251,7 +251,23 @@ describe('RoomGuest (Transport + reprise)', () => {
     await rg.idle();
     expect(got).toEqual(['COUCOU']);
     rg.close();
+    await rg.idle();
     expect(ws.sent).toContain(JSON.stringify({ ctl: 'bye' }));
+  });
+
+  it('close() : le bye de la session part avant le `ctl bye`, et l’hôte libère le siège (#3009)', async () => {
+    const s = resumedHostSession();
+    s.seatGuest();
+    await s.idle();
+    expect(s.host.seats[1]).toBeDefined();
+    const ws = FakeSocket.instances[1];
+    const avant = ws.sent.length;
+    s.guest.close();
+    await s.idle();
+    const envoyes = ws.sent.slice(avant).map((raw) => JSON.parse(raw) as { data?: string; ctl?: string });
+    expect(envoyes.map((e) => e.ctl ?? (JSON.parse(e.data!) as { kind: string }).kind)).toEqual(['bye', 'bye']);
+    expect(envoyes[1]).toEqual({ ctl: 'bye' });
+    expect(s.host.seats[1]).toBeUndefined();
   });
 });
 
@@ -313,7 +329,7 @@ describe('panne des chaînes, messages illisibles (#3009)', () => {
     },
   );
 
-  it('client fermé : une enveloppe ne passe plus, un maillon en vol ne livre ni n’envoie', async () => {
+  it('client fermé : une enveloppe ne passe plus, un maillon en vol ne livre pas ; l’envoi en vol part avant le `ctl bye`, aucun après', async () => {
     const enVol: (() => void)[] = [];
     const differee = <T,>(valeur: T) => new Promise<T>((r) => { enVol.push(() => r(valeur)); });
     const rg = new RoomGuest(BASE, 'ABC234', 'Anna', { ...ports, compression: {
@@ -331,13 +347,13 @@ describe('panne des chaînes, messages illisibles (#3009)', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(enVol).toHaveLength(2);
     rg.close();
-    const envoyes = ws.sent.length;
+    rg.send('APRES');
     for (const reprendre of enVol) reprendre();
     ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TARD' }));
     ws.receive(JSON.stringify({ data: 'TARD' }));
     await rg.idle();
     expect(got).toEqual([]);
     expect(seated).not.toHaveBeenCalled();
-    expect(ws.sent).toHaveLength(envoyes);
+    expect(ws.sent).toEqual([JSON.stringify({ z: `z:${'x'.repeat(5000)}` }), JSON.stringify({ ctl: 'bye' })]);
   });
 });

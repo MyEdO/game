@@ -51,6 +51,7 @@ import { datasetDe, type EntreeDe } from '../data/datasets';
 import type * as traumasDef from '../data/schemas/defs/traumas';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
+import { isHeld } from './capabilities';
 
 export type TraumaKind = NonNullable<TraumaFiche['kind']>;
 export type TraumaSeverity = NonNullable<TraumaFiche['severity']>;
@@ -989,8 +990,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   // (skillMod des Bésicles…) émis kind 'intrinseque' — comme les mutations. Les objets RANGÉS (inside) ne
   // comptent pas (ni equipped ni tenus). Lu par `passiveSkillSum` → `testValue`.
   for (const it of c.items ?? []) {
-    const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
-    if (!held || !it.trappingId) continue;
+    if (!isHeld(c, it) || !it.trappingId) continue;
     for (const op of it.passive ?? []) out.push({ op, kind: 'intrinseque', src: { category: 'trappings', id: it.trappingId }, label: it.label });
   }
   // Traits à modificateur de PROFIL appliqués en DIRECT (LDB 85 : Élite/Coriace/Brutal/Rapide… facultatifs,

@@ -483,6 +483,14 @@ Utilisé avec Corde (Enc 1, 8/4 la corde de 10 m). Test d'Athlétisme selon MJ.
 
 **Implémente :** [État calculé](../implemente.generated.md#4eequipementchambre-commune-voleurs)
 
+### Offre d'un établissement — asile de nuit (ACE)
+
+Prix absolus et risque de maladie propres à un établissement, distincts des prix listés.
+
+> ACE 02 l.99 : « **Prix :** chambre, commune 5 sc par nuit(5 % de risque d'exposition à la vérole urticante) ; repas, auberge 3 sc (5 % de risque d'exposition à la courante galopante). »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eequipementoffre-d-un-etablissement-asile-de-nuit-ace)
+
 ---
 
 ## Catalogue banal — à transcrire séparément

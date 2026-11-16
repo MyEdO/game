@@ -29,11 +29,16 @@ extends PontDuNoyau.Transport
 ## qui pilote le lieu dans le processus de Godot (`projet/recettes/pilote.gd`).
 ## Sa sortie d'erreur passe à celle de Godot.
 ## Sa mort, octets attendus compris, est une panne, qui dit son code de sortie.
-## Le processus meurt quand le pont quitte l'arbre.
+## Quand le pont quitte l'arbre, Godot ferme le tuyau, entrée et sortie, et attend que le processus sorte de lui-même,
+## `LECTURES_DE_LA_SORTIE` lectures au plus : la fin de son entrée l'y mène, la trame d'un salon quitté juste avant
+## partie (sondé sous Linux) ; passé ce délai, il le tue.
 ## Les paramètres sont ceux du lancement après `--` (`--<cle>=<valeur>`) ;
 ## un fichier se choisit et s'enregistre par le dialogue de fichier natif.
 
 const ATTENTE_S := 60.0
+## Les lectures de l'état du processus, à `PAUSE_US` d'écart, que Godot fait au plus quand il attend qu'il sorte de
+## lui-même, son entrée fermée : 2 s, sa borne de sortie (`BORNE_DE_SORTIE_MS`, `hotes/godot/processus.mjs`) et une marge.
+const LECTURES_DE_LA_SORTIE := 10_000
 ## La pause entre deux lectures d'un tuyau vide, pendant l'attente d'une réponse.
 const PAUSE_US := 200
 ## La ligne qui annonce les octets d'une réponse, suivie de leur nombre.
@@ -108,7 +113,14 @@ var _octets := PackedByteArray()
 
 
 func _exit_tree() -> void:
-	if _pid != 0 and not _mort and OS.is_process_running(_pid):
+	if _pid == 0 or _mort:
+		return
+	_entree.close()
+	for _lecture in LECTURES_DE_LA_SORTIE:
+		if not OS.is_process_running(_pid):
+			return
+		OS.delay_usec(PAUSE_US)
+	if OS.is_process_running(_pid):
 		OS.kill(_pid)
 
 
