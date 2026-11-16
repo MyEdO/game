@@ -23,7 +23,7 @@ import {
   type OffreDAuberge,
   type PlacePoi,
   type PlaceService,
-  type Praticabilite,
+  type Acces,
   type RoutePeril,
   type WorldMap,
 } from './worldMap';
@@ -58,7 +58,7 @@ function dansLesBornes(pos: Pos): Pos {
 
 export type PatchDeCarte = Partial<Pick<WorldMap, 'label' | 'background' | 'params'>>;
 export type PatchDeLieu = Partial<Omit<MapPlace, 'id'>>;
-export type PatchDeRoute = Partial<Omit<MapRouteTrace, 'id' | 'a' | 'b'>> | Praticabilite;
+export type PatchDeRoute = Partial<Omit<MapRouteTrace, 'id' | 'a' | 'b'>> | Acces;
 
 export function majCarte(map: WorldMap, patch: PatchDeCarte): WorldMap {
   return { ...map, ...patch };

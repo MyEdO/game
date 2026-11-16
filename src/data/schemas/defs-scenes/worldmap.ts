@@ -9,6 +9,7 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
+import { champsDAcces, META_DE_L_ACCES, refuserLAccesMuet } from '../grammaire/acces';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
 import { enumNomme, idDIconeSchema, pointDuPlanSchema, qualiteDeReposSchema } from '../grammaire/valeurs';
@@ -22,7 +23,6 @@ import { findVehicleById } from '../../index';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
 export const travelModeSchema = z.string();
-export const refusRouteSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'worldMap.routes[].refus.texte');
 /** `WindDirection` (`engine/seaWeather.ts`) — cap dominant d'une route maritime (`MDG 13 l.262-270`). */
 export const windDirectionSchema = enumNomme({ nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest' });
 
@@ -87,7 +87,7 @@ export const SERVICES_DU_LIEU = { collection: 'services', catalogue: 'établisse
 
 /** `PlaceService` — établissement d'un lieu (`id` stable, unique dans le lieu ; `kind` = id de `lieux-services.json`),
  *  hors port/marché qui portent leur schéma riche. `rest` = qualité et offres d'auberge d'un établissement
- *  d'hébergement ; `offres` absent : les offres du livre. #4277 */
+ *  d'hébergement ; `offres` absent : les offres du livre ; `when`/`refus` : son accès réservé (`champsDAcces`). #4277 */
 export const placeServiceSchema = nommerChamps(z.strictObject({
   id: z.string(),
   kind: ref('serviceDeLieu'),
@@ -98,7 +98,8 @@ export const placeServiceSchema = nommerChamps(z.strictObject({
       offres: offresDAubergeSchema.optional(),
   }), { quality: { label: "qualité" }, offres: { label: "offres" } })
     .optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" } });
+  ...champsDAcces,
+}).superRefine((service, ctx) => refuserLAccesMuet(service, ctx, 'un établissement')), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" }, ...META_DE_L_ACCES });
 
 /** `PlacePoi` (#345) — marqueur de PLAN, cible EXCLUSIVE `sceneId`, nommée par son `label`, OU `service` (un service
  *  RÉSOLU du lieu : établissement déclaré, ou port/marché automatique du catalogue), nommé par ce service. #4277 */
@@ -209,12 +210,8 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   river: z.boolean().optional(),
   /** Périls de rivière tirés chaque jour (`MSRC 7 l.119-166`, `river-perils.json`). */
   riverPerils: z.array(nommerChamps(z.strictObject({ perilId: z.string(), chancePct: z.number() }), { perilId: { label: "péril" , texte: { regime: "technique"} }, chancePct: { label: "probabilité" } })).optional(),
-  /** PRATICABILITÉ du trajet (algèbre `Condition`, cf. `evalCondition`) — axe ARÊTE du gating
-   *  narratif, indépendant de `mapPlaceSchema.when`. Absente = toujours praticable. */
-  when: conditionCondCtxSchema.optional(),
-  /** Raison JOUEUR de l'indisponibilité, rendue par `GatedAction` en infobulle — EXIGÉE dès que
-   *  `when` est posé (superRefine ci-dessous) : un trajet fermé MUET est un cul-de-sac inexplicable. */
-  refus: refusRouteSchema.optional(),
+  /** PRATICABILITÉ du trajet (`champsDAcces`) — axe ARÊTE du gating narratif, indépendant de `mapPlaceSchema.when`. */
+  ...champsDAcces,
   /** Exposition HYDRIQUE de la descente (`MSRC 16 l.5-13`) — déclenche l'Effet `waterExposure`. */
   riverExposure: nommerChamps(z
     .strictObject({
@@ -233,15 +230,10 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
         ctx.addIssue({ code: 'custom', path: ['provenances', cle], message: `provenance manquante : cite le livre et la page, ou dis la raison maison ${PROVENANCE_EXIGEE[cle]}.` });
       }
     }
-    if (route.when !== undefined && !route.refus?.texte.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: "« when » posé sans « refus » — un trajet fermable doit dire au JOUEUR pourquoi il l'est (infobulle « GatedAction »).",
-      });
-    }
+    refuserLAccesMuet(route, ctx, 'un trajet');
     for (const [mode, billet] of Object.entries(route.billets ?? {}))
       for (const message of fautesDuBillet(route, mode, billet)) ctx.addIssue({ code: 'custom', path: ['billets', mode], message });
-  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, provenances: { label: "provenances" } });
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, ...META_DE_L_ACCES, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, provenances: { label: "provenances" } });
 
 /** `WorldMapParams` — réglages RAW de voyage au niveau CARTE, tous paramétrables. */
 export const worldMapParamsSchema = nommerChamps(z.strictObject({

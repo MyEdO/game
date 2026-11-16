@@ -15,7 +15,8 @@ import type { Scene } from './monde/scene';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
-import type { placeServiceSchema, refusRouteSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { placeServiceSchema, routePerilSchema, worldMapParamsSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { refusDAccesSchema } from '../data/schemas/grammaire/acces';
 import type { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { provenanceDeValeurSchema } from '../data/schemas/grammaire/route';
@@ -96,8 +97,9 @@ export type PlacePoi = {
 /** Un ÉTABLISSEMENT attaché à un lieu (catalogue `lieux-services.json`) — hors port/marché, qui portent leur propre
  *  schéma riche. `id` STABLE, unique dans le lieu (#4277) : un lieu porte plusieurs établissements d'un même type ;
  *  `kind` désigne l'entrée du catalogue ; `label` = surcharge d'affichage facultative d'auteur ; `rest` = qualité et
- *  offres d'auberge d'un établissement d'hébergement (`hebergement` du catalogue, `estUnHebergement`). */
-export type PlaceService = z.output<typeof placeServiceSchema>;
+ *  offres d'auberge d'un établissement d'hébergement (`hebergement` du catalogue, `estUnHebergement`) ; son accès réservé
+ *  (`Acces`). */
+export type PlaceService = Omit<z.output<typeof placeServiceSchema>, 'when' | 'refus'> & Acces;
 
 /** Une offre d'auberge d'un établissement (`offreDAubergeSchema`). */
 export type OffreDAuberge = z.output<typeof offreDAubergeSchema>;
@@ -117,16 +119,21 @@ export function offresDuType(kind: string): readonly OffreDAuberge[] {
 export type RoutePeril = z.infer<typeof routePerilSchema>;
 
 /** Route entre deux lieux (`a` ↔ `b`, bidirectionnelle par défaut), praticable ou fermable. */
-export type MapRoute = MapRouteTrace & Praticabilite;
+export type MapRoute = MapRouteTrace & Acces;
 
-/** Le trajet est-il PRATICABLE (algèbre `Condition`, cf. `evalCondition`) — axe ARÊTE du gating
- *  narratif, indépendant de `MapPlace.when` : un tronçon se ferme sans que le lieu déjà visité
- *  cesse d'exister sur la carte. `when` absent = toujours praticable ; posé, il vient avec `refus`, la
- *  raison JOUEUR de l'indisponibilité portée par `GatedAction` (infobulle — arbitrage 2026-08-24, jamais
- *  inline par défaut). Lue par `routesFrom`. */
-export type Praticabilite =
-  | { when?: undefined; refus?: z.infer<typeof refusRouteSchema> }
-  | { when: Condition; refus: z.infer<typeof refusRouteSchema> };
+/** L'ACCÈS RÉSERVÉ d'une route ou d'un établissement (`champsDAcces`, algèbre `Condition`) — pour la route, axe ARÊTE du
+ *  gating narratif, indépendant de `MapPlace.when` : un tronçon se ferme sans que le lieu déjà visité cesse d'exister
+ *  sur la carte. `when` absent = toujours ouvert ; posé, il vient avec `refus`, la raison JOUEUR de la fermeture
+ *  (infobulle — arbitrage 2026-08-24, jamais inline par défaut). Jugé par `refusDAcces`. */
+export type Acces =
+  | { when?: undefined; refus?: z.infer<typeof refusDAccesSchema> }
+  | { when: Condition; refus: z.infer<typeof refusDAccesSchema> };
+
+/** La raison de la fermeture de l'accès `acces` sous `ctx`, ou `null` : il est ouvert. Source unique du verdict d'un
+ *  accès réservé, route et établissement. PUR. */
+export function refusDAcces(acces: Acces, ctx: ConditionCtx): string | null {
+  return acces.when !== undefined && !evalCondition(acces.when, ctx) ? acces.refus.texte : null;
+}
 
 /** Billet d'auteur d'un passage payant (EDO 01 l.142) : un forfait par place, payé une fois, d'avance,
  *  au départ de la route qui le porte, valable pour elle et pour sa `suite`. */
@@ -337,6 +344,8 @@ interface ServiceResolu {
   opensScreen?: 'port';
   /** Libellé du bouton d'entrée du service qui porte un `opensScreen` (catalogue). */
   enterLabel?: string;
+  /** L'accès réservé de l'établissement déclaré (`PlaceService`), référencé ; absent : toujours ouvert. */
+  acces?: Acces;
 }
 
 /** Une offre d'auberge de la nuit : celle d'un établissement, ou celle de son type au catalogue (`offresDuType`). */
@@ -443,6 +452,7 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
       merchantArchetype: def?.merchantArchetype?.id,
       opensScreen: def?.opensScreen,
       enterLabel: def?.enterLabel,
+      acces: s,
     };
     out.push(estUnHebergement(s)
       ? { ...service, category: 'auberge', rest: { places: { auberge: true }, quality: s.rest?.quality ?? 'normale', offres: s.rest?.offres ?? offresDuType(s.kind.id) } }
@@ -490,7 +500,7 @@ export function routesFrom(map: WorldMap, placeId: string, ctx?: ConditionCtx): 
     (r) =>
       (r.a.id === placeId || r.b.id === placeId) &&
       (r.from == null || r.from.id === placeId) &&
-      (r.when == null || ctx == null || evalCondition(r.when, ctx)),
+      (ctx == null || refusDAcces(r, ctx) === null),
   );
 }
 
@@ -505,7 +515,7 @@ export function routesEtat(
 ): { route: MapRoute; ouverte: boolean }[] {
   return map.routes
     .filter((r) => (r.a.id === placeId || r.b.id === placeId) && (r.from == null || r.from.id === placeId))
-    .map((r) => ({ route: r, ouverte: r.when == null || ctx == null || evalCondition(r.when, ctx) }));
+    .map((r) => ({ route: r, ouverte: ctx == null || refusDAcces(r, ctx) === null }));
 }
 
 /** Lieux EXISTANTS de la carte (`MapPlace.when`) — frère NŒUD de `routesFrom` : source unique de la

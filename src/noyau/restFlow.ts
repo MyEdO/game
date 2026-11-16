@@ -177,7 +177,7 @@ import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { listeEt, t, type MsgKey } from '../i18n';
 import { lieuDuGroupe, placeById, offresDeLAubergeDeScene, type OffreDuRepos, type WorldMap } from './worldMap';
-import { hebergementsDuLieu } from './lieuFlow';
+import { hebergementsDuLieu, refuserLeServiceFerme } from './lieuFlow';
 import { refuserGeste } from './refusVisible';
 import { garanti } from '../lib/garanti';
 import { libelleDuLitteral } from './libelles';
@@ -922,6 +922,7 @@ export function validationsDuRepos(get: Get, set: Set) {
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
     ouvrirLeRepos: (hebergementId) => {
+      if (refuserLeServiceFerme(get, set, hebergementId)) return;
       const repos = reposDuLieu(get, hebergementId);
       if (repos) ouvrirLeRepos(get, set, repos);
       else if (lieuDuGroupe(get())) refuserGeste(get, set, t('lieu.hebergementInconnu', { service: hebergementId ?? '' }));

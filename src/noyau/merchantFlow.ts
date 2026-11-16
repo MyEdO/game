@@ -62,7 +62,7 @@ import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } fr
 import { sceneNpc } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { cleDeBillet, lieuDuGroupe, placeServiceMerchantId } from './worldMap';
-import { echoppesDuLieu } from './lieuFlow';
+import { echoppesDuLieu, refuserLeServiceFerme } from './lieuFlow';
 import { ajouterLaPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 import { refuserGeste } from './refusVisible';
@@ -441,6 +441,7 @@ export function ouvrirLaBoutique(get: Get, set: Set, echoppeId: string): void {
   const svc = echoppesDuLieu(get()).find((x) => x.id === echoppeId);
   if (!ici) return void refuserGeste(get, set, t('mf.boutiqueSansLieu'));
   if (!svc) return void refuserGeste(get, set, t('mf.boutiqueInconnue', { service: echoppeId }));
+  if (refuserLeServiceFerme(get, set, svc.id)) return;
   openMerchantByArchetype(get, set, placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, undefined, svc.backdrop);
 }
 
