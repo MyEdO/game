@@ -2602,7 +2602,7 @@ const CODEX_SPECS = {
       const { achat, vente, ragot } = c;
       return [{
         id: 'landCargo', label: c.label, source: src(achat.source),
-        meta: facts(fact(tr('codex.fiche.ragot'), tr('codex.fiche.difficulteEtModificateur', { v: DIFFICULTY_LABELS[ragot.difficulty], mod: signe(ragot.mod) }))),
+        meta: facts(fact(tr('codex.fiche.ragot'), DIFFICULTY_LABELS[ragot.difficulty])),
         sections: sections(
           {
             title: tr('codex.fiche.qualiteDuVin', { die: formatDice(deDeLaTableTiree(c.qualiteDuVin)) }), layout: 'list',
