@@ -8017,6 +8017,20 @@ export function etatDeTourNeuf(): Pick<BattleState, 'action' | 'selectedAttack' 
   };
 }
 
+/** L'ordre d'un Round tiré de l'ordre `base` : qui agit en dernier (Maladresse Oups! 21-40, arme Lente) rejeté en fin.
+ *  LDB 62 l.331. */
+function ordreDuRound(base: string[], combatants: Combatant[]): string[] {
+  const lastIds = combatants.filter((c) => c.actLastNextRound || strikesLast(c.weapons)).map((c) => c.id);
+  return [...base.filter((id) => !lastIds.includes(id)), ...base.filter((id) => lastIds.includes(id))];
+}
+
+/** L'ordre que le Round suivant jouera, tiré de l'ordre canonique (`baseOrder`) : un réordonnancement du Round courant
+ *  (pré-emption, Maladresse) n'y survit pas (LDB 17 l.22-25). `null` sous la règle optionnelle
+ *  `combat-relancer-initiative` (LDB 13 l.43) : il n'est pas encore tiré. */
+export function ordreDuRoundSuivant(battle: Pick<BattleState, 'baseOrder' | 'order' | 'combatants'>): string[] | null {
+  return rule('combat-relancer-initiative') ? null : ordreDuRound(battle.baseOrder ?? battle.order, battle.combatants);
+}
+
 export function advanceTurn(get: Get, set: SetFn) {
   // Pause de début de Round (PERSONNE n'est actif, turn -1) : un advanceTurn retardataire (timer
   // d'IA en vol) ne doit pas ré-incrémenter le tour SOUS la pause — `lancerLeRound` le posera.
@@ -8047,21 +8061,16 @@ export function advanceTurn(get: Get, set: SetFn) {
       const round = battle.round + 1;
       get().avancerLeTemps(TIME_COST.combatRound); // « tout est horodaté » : 1 Round franchi = +combatRound min
       battle.log.push(ev('round', tr('cf.enTeteDuRound', { round })));
-      // Ordre du Round : on REPART de l'ordre canonique (baseOrder) — donc tout réordonnancement
-      // (Maladresse « agir en dernier » Oups! 21-40, pré-emption Chance) ne dure qu'UN Round (l.22-25).
-      // Règle optionnelle « Relancer l'Initiative chaque Round » (LDB 13 l.43, « effectuer un lancer pour
-      // chaque Round ») : on re-tire la VALEUR d'Initiative de chaque combattant via `rollInitiative` (même
-      // méthode `combat-methode-initiative` qu'à l'ouverture) puis on recalcule l'ordre — ce nouvel ordre devient
-      // la base canonique de CE Round. OFF (défaut) : `baseOrder` est conservé (comportement inchangé).
-      let base = battle.baseOrder ?? battle.order;
-      if (rule('combat-relancer-initiative')) {
+      // Ordre du Round (`ordreDuRoundSuivant`) ; sous `combat-relancer-initiative` (LDB 13 l.43), chaque Initiative se
+      // re-tire par `rollInitiative` (même méthode `combat-methode-initiative` qu'à l'ouverture) et l'ordre recalculé
+      // devient la base canonique de CE Round.
+      const suite = ordreDuRoundSuivant(battle);
+      if (suite) battle.order = suite;
+      else {
         for (const c of battle.combatants) c.initiative = rollInitiative(c, battleRng());
-        base = combatOrder(battle.combatants, isMerScene(get().scene), battleRng());
-        battle.baseOrder = base;
+        battle.baseOrder = combatOrder(battle.combatants, isMerScene(get().scene), battleRng());
+        battle.order = ordreDuRound(battle.baseOrder, battle.combatants);
       }
-      // Agir en dernier : Maladresse (Oups! 21-40, 1 Round) OU arme Lente active (LDB 62 l.331, permanent).
-      const lastIds = battle.combatants.filter((c) => c.actLastNextRound || strikesLast(c.weapons)).map((c) => c.id);
-      battle.order = [...base.filter((id) => !lastIds.includes(id)), ...base.filter((id) => lastIds.includes(id))];
       for (const c of battle.combatants) if (c.actLastNextRound) { c.actLastNextRound = false; battle.log.push(ev('detail', tr('cf.agitEnDernier', { name: c.label }), c.id)); }
       // Entretien de Round PARTITIONNÉ (spec coop §4bis) : TOUT va au journal de combat (bandeau) ;
       // seules les lignes CONCERNANT UN HÉROS alimentent la révélation (les ennemis : journal seul).

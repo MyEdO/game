@@ -1,0 +1,115 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="PackedScene" path="res://composants/portrait.tscn" id="3_portrait"]
+[ext_resource type="Theme" path="res://art/rang.tres" id="4_rang"]
+
+[node name="Jet" type="HBoxContainer"]
+size_flags_horizontal = 3
+
+[node name="detail" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "detail"
+propriete = &"tooltip_text"
+
+[node name="Cadre" type="PanelContainer" parent="."]
+size_flags_vertical = 4
+theme = ExtResource("4_rang")
+theme_type_variation = &"neutre"
+
+[node name="combattant" type="Node" parent="Cadre"]
+script = ExtResource("1_liaison")
+champ = "combattant"
+propriete = &"visible"
+
+[node name="Portrait" parent="Cadre" instance=ExtResource("3_portrait")]
+
+[node name="Image" parent="Cadre/Portrait"]
+custom_minimum_size = Vector2(64, 64)
+
+[node name="Pile" type="VBoxContainer" parent="."]
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Tete" type="HFlowContainer" parent="Pile"]
+
+[node name="Qui" type="Label" parent="Pile/Tete"]
+theme_type_variation = &"NomDuCamp"
+
+[node name="qui" type="Node" parent="Pile/Tete/Qui"]
+script = ExtResource("1_liaison")
+champ = "qui"
+cacher_si_nul = true
+
+[node name="Modificateurs" type="HFlowContainer" parent="Pile/Tete"]
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Zone" type="Node" parent="Pile/Tete/Modificateurs"]
+script = ExtResource("2_zone")
+source = "modificateurs"
+
+[node name="Libelle" type="Label" parent="Pile"]
+theme_type_variation = &"Competence"
+
+[node name="libelle" type="Node" parent="Pile/Libelle"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="Chiffres" type="HBoxContainer" parent="Pile"]
+theme_type_variation = &"Rangee"
+
+[node name="Cible" type="Label" parent="Pile/Chiffres"]
+theme_type_variation = &"Chiffre"
+
+[node name="cible" type="Node" parent="Pile/Chiffres/Cible"]
+script = ExtResource("1_liaison")
+champ = "cible"
+cacher_si_nul = true
+
+[node name="Resultat" type="PanelContainer" parent="Pile/Chiffres"]
+size_flags_vertical = 4
+
+[node name="resultat" type="Node" parent="Pile/Chiffres/Resultat"]
+script = ExtResource("1_liaison")
+champ = "resultat"
+propriete = &"visible"
+
+[node name="ton" type="Node" parent="Pile/Chiffres/Resultat"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="De" type="Label" parent="Pile/Chiffres/Resultat"]
+theme_type_variation = &"Chiffre"
+horizontal_alignment = 1
+
+[node name="resultat" type="Node" parent="Pile/Chiffres/Resultat/De"]
+script = ExtResource("1_liaison")
+champ = "resultat"
+
+[node name="Issue" type="VBoxContainer" parent="Pile/Chiffres"]
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Verdict" type="Label" parent="Pile/Chiffres/Issue"]
+custom_minimum_size = Vector2(72, 0)
+autowrap_mode = 3
+
+[node name="verdict" type="Node" parent="Pile/Chiffres/Issue/Verdict"]
+script = ExtResource("1_liaison")
+champ = "verdict"
+cacher_si_nul = true
+
+[node name="ton" type="Node" parent="Pile/Chiffres/Issue/Verdict"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Dr" type="Label" parent="Pile/Chiffres/Issue"]
+
+[node name="dr" type="Node" parent="Pile/Chiffres/Issue/Dr"]
+script = ExtResource("1_liaison")
+champ = "dr"
+cacher_si_nul = true

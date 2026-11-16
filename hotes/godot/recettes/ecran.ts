@@ -242,6 +242,13 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(gestesDessines(s.vue).map((g) => g.id))}`);
     return b.jeu;
   };
+  /** Le geste du bouton de fiche du combattant `id` sur son rang de l'ordre du tour : parmi ceux qui restent à jouer
+   *  (`ordre/`), sinon à l'ordre du round suivant (`suite/`). */
+  const ficheDuRang = (s: Suite, id: string): Jeu => {
+    const rangs = s.vue.zones['combat.ordre'];
+    const rang = rangs.find((r) => r.id === `ordre/${id}`) ?? rangs.find((r) => r.id === `suite/${id}`);
+    return (rang?.type === 'entite' ? rang.elements : []).find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu;
+  };
   /** Le geste que l'offre `id` de la barre déclare, tel que l'hôte le dessine. */
   const offre = (s: Suite, id: string): Jeu => s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).find((b) => b.id === id)!.jeu;
 
@@ -284,12 +291,13 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     s = jouer('jouer', presse(s));
   }
   figer(dome, 'coup-critique', 'Coup Critique', s);
-  s = appeler('fiche', s.vue.zones['combat.ordre'].flatMap((r) => r.elements).find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu);
+  const heros = s.vue.projection.combat!.voisins.liste.find((c) => c.camp === 'heros')!.id;
+  s = appeler('fiche', ficheDuRang(s, heros));
   figer(dome, 'fiche-du-heros', 'fiche du héros, son statbloc', s);
   const possessions = s.vue.zones['fiche.sections'].find((e) => e.id === 'section/possessions')!.elements;
   s = appeler('fiche', possessions.find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer(dome, 'fiche-possession', 'fiche du héros, une possession choisie', s);
-  s = appeler('fiche', { fiche: { porteur: cible } });
+  s = appeler('fiche', ficheDuRang(s, cible));
   figer(dome, 'fiche-adversaire', 'fiche d’un adversaire, son statbloc', s);
   s = appeler('fiche', s.vue.zones['fiche.gestes'][0].jeu);
   const fini = (s: Suite) => !!s.vue.projection.combat?.fin && !!s.vue.projection.fenetre && !s.vue.projection.fenetre.etape;

@@ -409,8 +409,15 @@ const zone = (v, z) => v.zones[z]
 /** Le bouton de la carte d'un héros du groupe (`groupe.heros`), ou en combat de son rang de l'ordre du tour
  *  (`combat.ordre`), qui ouvre sa fiche. */
 const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' && e.id.startsWith('fiche/'))
-/** Les héros du groupe de la vue `v` qui portent le bouton de leur fiche : leurs cartes, en combat leurs rangs. */
-const herosAFiche = (v) => [...zone(v, 'groupe.heros'), ...zone(v, 'combat.ordre')].filter(ficheDuHeros)
+/** Le combattant `id` dans l'ordre du tour de la vue `v` (`combat.ordre`) : son rang parmi ceux qui restent à jouer ce
+ *  round (`ordre/`), sinon à l'ordre du round suivant (`suite/`). */
+const rangDe = (v, id) => element(v, 'combat.ordre', `ordre/${id}`) ?? element(v, 'combat.ordre', `suite/${id}`)
+/** Les héros du groupe de la vue `v` qui portent le bouton de leur fiche : leurs cartes, en combat leurs rangs
+ *  (`rangDe`), chaque héros en vue (`voisins`) une fois. */
+const herosAFiche = (v) => [
+  ...zone(v, 'groupe.heros'),
+  ...(v.projection.combat?.voisins.liste ?? []).filter((c) => c.camp === 'heros').map((c) => rangDe(v, c.id)),
+].filter((carte) => carte && ficheDuHeros(carte))
 /** Le bouton `quoi` amené à l'écran dans une liste qui défile : la molette tournée d'un cran sur le premier bouton
  *  publié que retient `voisin`, un bouton de la même liste, attendu ailleurs à l'écran publié ou hors de lui, jusqu'à
  *  ce que `quoi` paraisse. */
@@ -579,12 +586,15 @@ const auMonde = (e, point) => dans(e.cadre ?? FENETRE, point) && !panneauSur(e, 
 const CRANS_DE_PIVOT = 4
 const PIVOT = { key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81 }
 /** Le point publié de la case `{ x, y, z }`, la caméra posée, amené au monde (`auMonde`) : la caméra pivotée d'un cran (Q)
- *  tant qu'un panneau couvre ce point ou qu'il sort du cadre, moins d'un tour (`CRANS_DE_PIVOT`), comme le joueur la tourne. */
+ *  tant qu'un panneau couvre ce point ou qu'il sort du cadre, moins d'un tour (`CRANS_DE_PIVOT`), comme le joueur la tourne.
+ *  Le pivot n'appelle pas le pont : l'écran qu'il publie (`Monde.cadrage_change`) s'attend neuf (`nouvelEcran`). */
 async function amenerAuMonde({ x, y, z = 0 }) {
   const lire = () => attendreALEcran((e) => casesPosees(e)?.[`${x},${y},${z}`])
   let [e, point] = await lire()
   for (let cran = 1; cran < CRANS_DE_PIVOT && point && !auMonde(e, point); cran++) {
+    await marquer()
     await realKey(session, PIVOT)
+    await nouvelEcran()
     ;[e, point] = await lire()
   }
   assert.ok(point, e?.glisse ? `la caméra ne glisse plus avant la lecture de la case ${x},${y},${z}` : `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
@@ -805,7 +815,9 @@ async function parcoursCombat() {
   if (adversaire) assert.ok(element(v, 'fenetre.corps', 'defense/qui')?.texte.includes(adversaire.nom), 'la Défense répond à l’adversaire actif')
   const defenseur = v.projection.fenetre.proprietaire
   assert.equal(defenseur.genre, 'porteur', 'la Défense est à un héros')
-  assert.ok(zone(v, 'fenetre.etape')[0]?.texte.includes(defenseur.nom), 'l’étape nomme le héros qui se défend')
+  const jetDuDefenseur = zone(v, 'fenetre.corps').find((e) => e.type === 'jet' && e.combattant !== null && e.qui === defenseur.nom)
+  assert.ok(jetDuDefenseur, 'le jet de son camp porte le portrait et le nom du héros qui se défend')
+  assert.deepEqual(zone(v, 'fenetre.etape'), [], 'l’étape de la Défense, dont le jet nomme le héros, est exactement vide')
   noter(`Défense ouverte par les minuteurs : ${corps(v)} ; à ${defenseur.nom}`)
   await capturer('2928-6c-5-defense')
   const [jetDeDefense, reagir] = [enFocus(v).id, 'jetRegler@defense#reaction']
@@ -1111,7 +1123,7 @@ async function parcoursVision() {
   const [ennemi] = v.projection.combat.voisins.liste.filter((c) => c.id !== chasseur.id).map((c) => c.id)
   assert.ok(ennemi, `un ennemi en vue : ${JSON.stringify(v.projection.combat.voisins.liste.map((c) => c.id))}`)
   await waitFor(session, `!!globalThis.wfrpEcran?.corps?.[${JSON.stringify(ennemi)}]`, { timeoutMs: 120000 })
-  assert.ok(element(v, 'combat.ordre', `ordre/${ennemi}`), `${ennemi} en vue a son rang dans l’ordre du tour`)
+  assert.ok(rangDe(v, ennemi), `${ennemi} en vue a son rang dans l’ordre du tour`)
   noter(`${ennemi} en vue : corps posé, rang dans l’ordre du tour`)
   const avant = await etatsDesCases()
   const luesAvant = await luminancesSousLesRegards('avant')
@@ -1125,7 +1137,7 @@ async function parcoursVision() {
   noter(`pas cliqué vers (${CASE_DU_PAS.x}, ${CASE_DU_PAS.y}) : vision ${cle} → ${v.vision}`)
   assert.ok(!v.projection.combat.voisins.liste.some((c) => c.id === ennemi), `${ennemi} sort de la vue`)
   assert.ok(Object.values(v.occupants).includes(ennemi), `${ennemi} garde sa case aux occupants`)
-  assert.equal(element(v, 'combat.ordre', `ordre/${ennemi}`), undefined, `${ennemi} hors de vue n’est pas dans l’ordre du tour`)
+  assert.equal(rangDe(v, ennemi), undefined, `${ennemi} hors de vue n’est pas dans l’ordre du tour`)
   await waitFor(session, `!!globalThis.wfrpEcran?.corps && !(${JSON.stringify(ennemi)} in wfrpEcran.corps)`, { timeoutMs: 30000 })
   noter(`${ennemi} hors de vue : aucun corps posé, aucun rang dans l’ordre du tour, sa case ${Object.keys(v.occupants).find((k) => v.occupants[k] === ennemi)} aux occupants ; cibles ${JSON.stringify(v.projection.combat.cibles.liste)}`)
   const apres = await etatsDesCases()
@@ -1887,7 +1899,7 @@ async function parcoursFiche() {
   await cliquerBouton({ cle: 'compendium/fermer' })
   await waitFor(session, `Object.keys(globalThis.wfrpEcran?.compendium?.zones ?? { x: 1 }).length === 0`)
   assert.equal((await vue()).zones['fiche.porteur'][0]?.nom, heros.nom, '« Fermer » cache le Compendium sur la fiche toujours ouverte')
-  const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec')
+  const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => rangDe(v, id)?.ton === 'echec')
   assert.ok(ennemi, 'un ennemi en vue occupe une case')
   const [x, y, z] = cle.split(',').map(Number)
   const [px, py] = await amenerAuMonde({ x, y, z })

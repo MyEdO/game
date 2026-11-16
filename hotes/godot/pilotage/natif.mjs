@@ -3,7 +3,7 @@
 // importée du projet (`piloter`, `construire.mjs`), prend pour pont un relais (`relais.mjs`) vers la socket où ce
 // processus sert le protocole (`servirLeCanal`). Ce que Godot publie (`publier`) se pose en global, où les expressions
 // du parcours le lisent comme dans la page (`wfrpEcran`, à côté de `wfrpPont`) ; chaque geste du parcours est une
-// commande que le pilote (`projet/recettes/pilote.gd`) relève à chaque image et joue. Mêmes noms que le lieu de la
+// commande que le pilote (`projet/recettes/pilote.gd`) relève à chaque pas de physique et joue. Mêmes noms que le lieu de la
 // page (`page.mjs`).
 import { mkdirSync } from 'node:fs'
 import { createServer } from 'node:net'

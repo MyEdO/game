@@ -147,9 +147,49 @@ mouse_filter = 2
 theme_type_variation = &"PileTassee"
 alignment = 2
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs"]
+[node name="Suite" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs"]
+mouse_filter = 2
+theme_type_variation = &"PileTassee"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs/Suite"]
 script = ExtResource("1_zone")
 source = "combat.ordre"
+repli = true
+ids = PackedStringArray("suite/")
+formes = PackedStringArray("entite:rangPasse")
+
+[node name="Round" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs"]
+visible = false
+mouse_filter = 2
+theme_type_variation = &"RangeeSerree"
+
+[node name="Medaillon" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs/Round"]
+mouse_filter = 2
+theme_type_variation = &"Medaillon"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs/Round/Medaillon" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "combat.ordre"
+masque = NodePath("../..")
+ids = PackedStringArray("round")
+formes = PackedStringArray("ligne:rubrique")
+
+[node name="Filet" type="HSeparator" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs/Round"]
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"FiletDeLaiton"
+
+[node name="Restants" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs"]
+mouse_filter = 2
+theme_type_variation = &"PileTassee"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Corps/Ordre/Rangs/Restants"]
+script = ExtResource("1_zone")
+source = "combat.ordre"
+repli = true
+pied = true
+ids = PackedStringArray("ordre/")
 formes = PackedStringArray("entite:rang", "entite.alerte:rangDeLActif")
 
 [node name="Actif" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]

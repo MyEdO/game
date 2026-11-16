@@ -3,15 +3,18 @@ extends SceneTree
 ## @contrat Écran publié
 ## Hors d'une page, une recette pilote le jeu par `projet/recettes/pilote.gd`, la boucle principale du lancement
 ## (`--script`, #3945) : il porte la fenêtre à 1280 × 720, ouvre le menu d'entrée et le lieu du noyau, puis relève à
-## chaque image les commandes du parcours par la méthode `commandes` du processus du pont, que seul le lanceur d'une
-## recette sert (`hotes/godot/pilotage/natif.mjs`). Son entrée est `{ rendus }`, ce que chaque commande jouée depuis la
+## chaque pas de physique (`physics_frame`) les commandes du parcours par la méthode `commandes` du processus du pont,
+## que seul le lanceur d'une recette sert (`hotes/godot/pilotage/natif.mjs`) : comme une entrée du joueur, chacune est
+## jouée et ses appels différés vidés avant `process_frame`, où la publication de l'écran juge sa mise en page
+## (`PublicationDeLEcran.demander`). Son entrée est `{ rendus }`, ce que chaque commande jouée depuis la
 ## relève d'avant a rendu, `[id, valeur]` ; sa réponse `{ ok: true, commandes }`, chacune portant son `id` et l'une de :
 ## - `souris` (`deplacer`, `presser`, `relacher` ou `cran`), `x`, `y` et `bouton` (l'index de Godot, absent d'un
 ##   déplacement) : l'événement de souris passé à `Input.parse_input_event`, un cran de molette pressé puis relâché ;
 ## - `touche` (`{ key, code }`, comme la page les nomme) et `appuyee` : l'événement de clavier, son caractère porté
 ##   à l'appui d'une touche d'un seul caractère ;
 ## - `rappel` et `entree` : le rappel exposé sous ce nom (`Transport.exposer`) appelé, sa réponse rendue ;
-## - `capture` : l'image de la fenêtre écrite en PNG à ce chemin, `false` sans rendu (`--headless`) ;
+## - `capture` : l'image de la fenêtre écrite en PNG à ce chemin, `false` sans rendu (`--headless`), prise une fois que
+##   chaque portrait demandé est photographié (`StudioDePortraits.au_repos`), `PORTRAITS_S` au plus ;
 ## - `fichier` : le chemin que rend le choix de fichier ouvert (`TransportDuProcessus._choisir_un_chemin`), attendu,
 ##   ou, sous ce dossier, le nom que le choix propose ; rend ce chemin, le fichier lu ou écrit ;
 ## - `quitter` : le code de sortie, après la ligne `[pilote] fin`.
@@ -24,6 +27,9 @@ const TOUCHES := {
 	"ArrowUp": KEY_UP, "ArrowDown": KEY_DOWN, "Space": KEY_SPACE,
 	"Digit1": KEY_1, "Digit2": KEY_2, "Digit3": KEY_3, "Digit4": KEY_4, "Digit5": KEY_5, "Digit6": KEY_6,
 }
+## Le plus long temps du studio des portraits pour finir sa file avant une capture : moins que `COMMANDE_MS` de
+## `hotes/godot/pilotage/natif.mjs`, pour que l'échec nomme le studio.
+const PORTRAITS_S := 20.0
 const DEPLACER := "deplacer"
 const CRAN := "cran"
 
@@ -55,7 +61,7 @@ func _piloter() -> void:
 		_rendus = []
 		for commande: Dictionary in releve.get("commandes", []):
 			_jouer(commande)
-		await process_frame
+		await physics_frame
 
 
 ## La panne du lieu `message` écrite en erreur, puis la sortie en échec.
@@ -160,11 +166,21 @@ func _code(nom: String) -> Key:
 	return TOUCHES.get(nom, KEY_NONE)
 
 
-## L'image de la fenêtre, une fois dessinée, écrite en PNG à `chemin` : `true` ; `false` sans rendu.
+## L'image de la fenêtre, une fois chaque portrait demandé photographié (`StudioDePortraits.au_repos`) puis l'image
+## dessinée, écrite en PNG à `chemin` : `true` ; `false` sans rendu ; `{ erreur }` si le studio n'a pas fini sa file
+## `PORTRAITS_S` après la demande.
 func _capturer(id: Variant, chemin: String) -> void:
 	if DisplayServer.get_name() == "headless":
 		_rendus.append([id, false])
 		return
+	var echue := [false]
+	create_timer(PORTRAITS_S).timeout.connect(func() -> void: echue[0] = true)
+	while not StudioDePortraits.au_repos():
+		if echue[0]:
+			var erreur := "capture %s : le studio des portraits n'a pas fini sa file après %s s" % [chemin, PORTRAITS_S]
+			_rendus.append([id, {erreur = erreur}])
+			return
+		await process_frame
 	await RenderingServer.frame_post_draw
 	var ecrit := root.get_texture().get_image().save_png(chemin)
 	_rendus.append([id, true if ecrit == OK else {erreur = "capture %s : %s" % [chemin, error_string(ecrit)]}])

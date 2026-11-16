@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as fiches from '../noyau/ficheDuPorteur';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
-import { lignesDuJournal, zonesDeLEcran } from './ecran';
+import { lignesDuJournal, TETE_DU_ROUND_SUIVANT, zonesDeLEcran } from './ecran';
 import { SANS_ROSTER } from './roster';
 import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
@@ -144,6 +144,30 @@ describe('le début du Round (`fenetre.gestes`)', () => {
       const seul = { gestes: ['fenetreValider@debutDuRound'], reglages: ['fenetreChoisir@debutDuRound#promouvoir'] };
       expect(dessines(debut), 'seul : qui agit en premier, en réglage, et le lancer').toEqual(seul);
       expect(dessines({ ...debut, net: { ...debut.net, mode: 'hote' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(seul);
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('l’ordre du tour (`combat.ordre`)', () => {
+  it('le héros qui agit en premier ce Round reprend au Round suivant sa place de l’ordre canonique', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const debut = partie.etat().battle!;
+      const base = debut.baseOrder ?? debut.order;
+      const promu = [...base].reverse().find((id) => debut.combatants.find((c) => c.id === id)?.kind === 'heros')!;
+      expect(base.indexOf(promu), 'témoin : le héros promu n’ouvre pas l’ordre canonique').toBeGreaterThan(0);
+      partie.envoyer({ type: 'fenetreChoisir', args: ['debutDuRound', 'promouvoir', promu] });
+      partie.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
+      const etat = partie.etat();
+      expect(etat.battle!.order[0], 'témoin : il ouvre le Round courant').toBe(promu);
+      const colonne = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null, SANS_ROSTER)['combat.ordre'];
+      const enVue = new Set(colonne.flatMap((r) => (r.id.startsWith('ordre/') ? [r.id.slice('ordre/'.length)] : [])));
+      expect(enVue.size, 'témoin : plus de combattants en vue que la tête du round suivant n’en montre').toBeGreaterThan(TETE_DU_ROUND_SUIVANT);
+      expect(colonne.filter((r) => r.id.startsWith('suite/')).map((r) => r.id).reverse(), 'la tête du round suivant, de bas en haut : l’ordre canonique')
+        .toEqual(base.filter((id) => enVue.has(id)).slice(0, TETE_DU_ROUND_SUIVANT).map((id) => `suite/${id}`));
+      expect(colonne.find((r) => r.id === 'round'), 'sous lui, le round qui commence').toMatchObject({ type: 'ligne', texte: t('ecran.round', { round: etat.battle!.round + 1 }) });
     } finally {
       partie.fermer();
     }

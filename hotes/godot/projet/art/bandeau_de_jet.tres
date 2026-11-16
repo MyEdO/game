@@ -1,0 +1,65 @@
+[gd_resource type="Theme" load_steps=5 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="2_rubriques"]
+
+[sub_resource type="StyleBoxFlat" id="Ruban"]
+content_margin_left = 22.0
+content_margin_top = 2.0
+content_margin_right = 22.0
+content_margin_bottom = 4.0
+bg_color = Color(0.42, 0.09, 0.07, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.22, 0.04, 0.03, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 3
+
+[sub_resource type="StyleBoxFlat" id="Laiton_plein"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.66, 0.52, 0.25, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.7, 0.38, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[resource]
+Button/colors/font_focus_color = Color(0.133, 0.102, 0.067, 1)
+Button/font_sizes/font_size = 16
+Button/fonts/font = ExtResource("2_rubriques")
+MargeDuParchemin/base_type = &"MarginContainer"
+MargeDuParchemin/constants/margin_left = 14
+MargeDuParchemin/constants/margin_top = 6
+MargeDuParchemin/constants/margin_right = 14
+MargeDuParchemin/constants/margin_bottom = 2
+Duel/base_type = &"HBoxContainer"
+Duel/constants/separation = 14
+Button/styles/focus = SubResource("Laiton_plein")
+SaillieDuRuban/base_type = &"MarginContainer"
+SaillieDuRuban/constants/margin_top = 15
+Ruban/base_type = &"PanelContainer"
+Ruban/styles/panel = SubResource("Ruban")
+NomDuCamp/base_type = &"Label"
+NomDuCamp/colors/font_color = Color(0.114, 0.102, 0.086, 1)
+NomDuCamp/font_sizes/font_size = 22
+NomDuCamp/fonts/font = ExtResource("1_titres")
+Competence/base_type = &"Label"
+Competence/colors/font_color = Color(0.35, 0.33, 0.3, 1)
+Competence/font_sizes/font_size = 14
+Competence/fonts/font = ExtResource("2_rubriques")
+Rubrique/colors/font_color = Color(0.35, 0.33, 0.3, 1)
+Rubrique/font_sizes/font_size = 14

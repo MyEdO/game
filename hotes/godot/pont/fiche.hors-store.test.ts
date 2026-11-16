@@ -49,8 +49,15 @@ describe('la fiche d’un combattant par le pont', () => {
   it('ouverte par le bouton d’un héros : sa tête, son profil, ses sections, une possession choisie, puis fermée', () => {
     const { suite: debut } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
     expect(debut.vue.zones['groupe.heros'], 'en combat, aucune carte de héros : l’ordre du tour les porte').toEqual([]);
-    const fiches = debut.vue.zones['combat.ordre'].flatMap((r) => r.elements.filter((e) => e.id.startsWith('fiche/')).map((e) => [r.nom, e.id.replace('fiche/', 'ordre/') === r.id]));
-    expect(fiches.sort(), 'le rang de chaque héros du groupe, et lui seul, porte le bouton de sa fiche').toEqual([...HEROS].sort().map((nom) => [nom, true]));
+    const rangs = debut.vue.zones['combat.ordre'].filter((r): r is Entite => r.type === 'entite');
+    expect(rangs.map((r) => r.nom), 'les héros du groupe ont leur rang').toEqual(expect.arrayContaining(HEROS));
+    expect(rangs.some((r) => r.ton === 'echec'), 'témoin : un adversaire a son rang').toBe(true);
+    const fiches = rangs.map((r) => r.elements.filter((e): e is Bouton => e.type === 'bouton').map((b) => [b.id, b.jeu]));
+    expect(fiches, 'chaque rang, héros comme adversaire, porte le bouton qui ouvre la fiche de son combattant, d’id propre au rang')
+      .toEqual(rangs.map((r) => {
+        const id = r.id.slice(r.id.indexOf('/') + 1);
+        return [[r.id.startsWith('suite/') ? `fiche/suite/${id}` : `fiche/${id}`, { fiche: { porteur: id } }]];
+      }));
     expect(HEROS.some((h) => ficheDuHeros(debut.vue, h).presse), 'aucune fiche ouverte').toBe(false);
     expect(zonesDeLaFiche(debut), 'sans fiche, ses zones sont vides').toEqual([[], [], [], [], [], []]);
 

@@ -4,7 +4,7 @@
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
 ## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
-## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du tour, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
 ## sa case, le coin de ce qui se pose sous un lieu, la
@@ -77,6 +77,8 @@ const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord 
 const ECART_DE_BULLE := 12.0
 ## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
 const ECART_DU_MEUBLE := 8.0
+## La largeur la plus grande d'un bandeau de jet, en pixels.
+const LARGEUR_DU_BANDEAU := 1000.0
 ## La largeur la plus étroite de la chronique posée sur la scène en combat, sa pastille comprise, en pixels.
 const LARGEUR_DE_LA_CHRONIQUE := 310.0
 ## La hauteur au-delà de laquelle la liste ouverte d'une pastille défile, en pixels.
@@ -814,6 +816,12 @@ static func decalage_du_poste(origine: float, largeur_de_scene: float, largeur: 
 	if centre - largeur / 2.0 >= debut and centre + largeur / 2.0 <= fin:
 		return 0.0
 	return (debut + fin) / 2.0 - centre
+
+
+## La largeur d'un bandeau de jet posé dans le poste de l'actif, entre `gauche`, le bord droit de l'ordre du tour, et
+## `droite`, le bord gauche de la fin du tour ou de la scène, à `ECART_DU_MEUBLE` de chacun : au plus `LARGEUR_DU_BANDEAU`.
+static func largeur_du_bandeau(gauche: float, droite: float) -> float:
+	return minf(LARGEUR_DU_BANDEAU, droite - gauche - 2.0 * ECART_DU_MEUBLE)
 
 
 ## La place libre, en pixels, entre le bord droit d'un poste de `largeur` décalé de `decalage` du centre d'une scène de

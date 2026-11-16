@@ -1,16 +1,21 @@
 ## La disposition de la fenêtre (#3328) : la scène d'éditeur, sans script, qui range les zones de la fenêtre qui tient
 ## la main. Celle que la vue nomme (`vue.disposition`, `res://ecrans/<disposition>.tscn`) quand elle existe, sinon la
 ## générique (`GENERIQUE`) ; elle s'instancie juste après ce nœud, au-dessus du round, de l'ordre (`Hud`), du meuble de
-## l'actif (`Actif`) et de la fin du tour (`Tour`), sous le dialogue et le groupe, et remplace la précédente. En combat,
-## la générique se pose en bas au centre, au-dessus du meuble de l'actif quand il se montre, à sa place sinon.
+## l'actif (`Actif`) et de la fin du tour (`Tour`), sous le dialogue et le groupe, et remplace la précédente ; un bandeau
+## de jet (groupe `BANDEAU`) s'instancie dans le poste de l'actif (`Actif`), à la place du meuble. En combat, la
+## générique se pose en bas au centre, au-dessus du meuble de l'actif quand il se montre, à sa place sinon.
 class_name Disposition
 extends Node
 
 ## @contrat L'écran de Godot
 ## L'écran (`projet/scenes/Ecran.tscn`) se partage en trois : le journal à droite, le groupe au pied, et la scène
 ## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le round en
-## cartouche en haut à gauche (`Hud/Tour`, `Cartouche`), l'ordre du tour en colonne au bord gauche, celui qui joue en bas
-## (`Hud/Corps/Ordre`, chaque rang en `rang`, celui qui joue en `rangDeLActif`, un héros avec le bouton de sa fiche),
+## cartouche en haut à gauche (`Hud/Tour`, `Cartouche`), l'ordre du tour en colonne au bord gauche (`Hud/Corps/Ordre`),
+## de haut en bas : la tête du round suivant estompée (`suite/`, en `rangPasse`), le round qui commence avec elle en
+## rubrique dans un médaillon suivie d'un filet (`round`), puis ceux qui restent à jouer (`ordre/`, en `rang`), celui qui
+## joue en bas en `rangDeLActif`, toujours montré par le défilement (`Zone.pied`) ; chaque rang porte son portrait sur le
+## fond de son ton, son nom, ses Blessures en jauge de largeur fixe, et, pour un héros, le bouton de sa fiche posé sur
+## son portrait (`surLeRang`, plat, sa bulle « Fiche »),
 ## le meuble de l'actif en bas au centre (`Actif/Poste/Meuble`, son chêne sous le portrait qui le dépasse : en `meuble`,
 ## une seule forme, à gauche ses Blessures en jauge, son Mouvement en jetons, un losange par case, son Action en sceau
 ## de cire, son Avantage, ses États, à leur droite son portrait et son nom ; à droite du meuble ses offres,
@@ -37,15 +42,22 @@ extends Node
 ## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
 ## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par
 ## lui, une zone sans `ids` ceux qu'aucune autre zone de sa source ne nomme (`Zone.montrer_toutes`), si bien qu'aucun
-## élément ne se perd. Les fenêtres de jet héritent du cadre `projet/cadres/fenetre_de_jet.tscn`, posé en bas au
-## centre de la scène, toujours au même endroit : en combat, à la place du meuble de l'actif, que la vue ne sert pas
-## sous une fenêtre de jet. L'écran d'attaque
-## (`projet/ecrans/cascade/attaque.tscn`) montre la cible,
-## l'arme et ses pastilles, le jet de l'attaquant face à celui de la défense (le nombre à atteindre et le dé en gros),
-## l'issue, les options du coup puis les gestes en rangée ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
-## sa réaction et son score à atteindre avant le dé face au jet de l'attaquant, révélé une fois le dé tombé. La fenêtre
-## d'incantation (`projet/ecrans/cascade/incantation.tscn`) montre le sort et sa
-## cible, le jet du lanceur (son NI au libellé), la zone et le budget de Surincantation en pastilles, l'issue, puis
+## élément ne se perd. Les jets de combat sont des bandeaux qui héritent du cadre `projet/cadres/fenetre_de_jet.tscn`
+## (groupe `bandeau`) : posé dans le poste de l'actif (`Actif`), à la place du meuble, que la vue ne sert pas sous un
+## jet, il en prend l'ancrage et le calage, quel que soit le jet ; un parchemin dans le chêne ferré, le titre sur un
+## ruban (`art/bandeau_de_jet.tres`), le corps à l'encre (`art/statbloc.tres`), les gestes en rangée dessous, celui que
+## l'Entrée joue en laiton plein. Le camp du joueur à gauche (`jetDuCamp`), l'autre à droite en miroir
+## (`jetDuCampEnMiroir`), chacun son portrait au bord (`Jet.combattant` : le joueur dans le laiton, l'autre sur la cire,
+## les cadres des rangs de `art/rang.tres`, aucun sans combattant), son nom, sa compétence, son seuil, son dé, son
+## verdict, son DR et ses modificateurs ; au centre le reste, centré, le DR net en gothique (`art/dr_net.tres`), l'issue
+## penchée (`art/issue_du_jet.tres`), chaque réglage en ligne qui coule (`choixEnLigne`). Le bandeau prend la place entre
+## l'ordre du tour et le bord (`MiseEnPage.largeur_du_bandeau`) ; ses trois colonnes sont côte à côte (`Duel`), le nom
+## d'un camp et ses modificateurs coulent dans la sienne. L'écran d'attaque (`projet/ecrans/cascade/attaque.tscn`) : au centre l'arme et la cible
+## sur une ligne qui les sépare d'un point, ses pastilles, le DR net, l'issue et les options du coup, la Localisation sur
+## une silhouette (`silhouette`, chaque zone le bouton de sa valeur, par l'id de la valeur, `art/silhouette.tres`) ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
+## sa réaction à gauche, son score à atteindre avant le dé, face au jet de l'attaquant, révélé une fois le dé tombé.
+## Le bandeau d'incantation (`projet/ecrans/cascade/incantation.tscn`) n'a qu'un camp, le lanceur (son NI au
+## libellé) ; au centre le sort et sa cible, la zone et le budget de Surincantation en pastilles, l'issue, puis
 ## chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec sa raison. L'écran du
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
 ## du cadre `projet/cadres/monde.tscn`, posé au-dessus du `Hud` et sous le dialogue comme toute disposition, le titre en grand
@@ -96,6 +108,8 @@ extends Node
 ## `projet/ecrans/`, sans ligne de GDScript.
 
 const GENERIQUE := "res://ecrans/fenetre.tscn"
+## Le groupe de la racine d'un bandeau de jet, posé dans le poste de l'actif.
+const BANDEAU := &"bandeau"
 ## La source des lignes du journal : la disposition qui la range tient le journal dans sa scène.
 const LIGNES_DU_JOURNAL := "journal.lignes"
 ## Les lignes du journal que la chronique fermée montre sur la scène, les dernières.
@@ -110,7 +124,7 @@ const CHRONIQUE_OUVERTE := preload("res://art/statbloc.tres")
 @export var journal: Control
 ## La place que le bandeau des héros réserve à droite au menu de la partie, tenue quand le journal est caché.
 @export var coin_du_pied: Control
-## Le meuble de l'actif, au-dessus duquel la générique se pose en combat.
+## Le poste de l'actif, au-dessus duquel la générique se pose en combat, et où se pose un bandeau de jet.
 @export var actif: Control
 ## L'ordre du tour, en colonne au bord gauche, à droite duquel se cale le poste de l'actif.
 @export var ordre: Control
@@ -157,7 +171,10 @@ func disposer(disposition: Variant, en_combat: bool) -> bool:
 		_posee.get_parent().remove_child(_posee)
 		_posee.queue_free()
 	_posee = load(chemin).instantiate()
-	add_sibling(_posee)
+	if _posee.is_in_group(BANDEAU):
+		actif.add_child(_posee)
+	else:
+		add_sibling(_posee)
 	journal.visible = not en_combat and not Zone.racines(_posee).any(func(zone: Zone) -> bool: return zone.source == LIGNES_DU_JOURNAL)
 	coin_du_pied.visible = not en_combat and not journal.visible
 	chronique.visible = en_combat
@@ -201,14 +218,18 @@ func _aligner(ligne: Node) -> void:
 		(ligne as Label).horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if _fermee else HORIZONTAL_ALIGNMENT_LEFT
 
 
-## Le poste de l'actif calé entre l'ordre du tour et la fin du tour (`MiseEnPage.decalage_du_poste`) ; la chronique
+## Le poste de l'actif calé entre l'ordre du tour et la fin du tour (`MiseEnPage.decalage_du_poste`), un bandeau de jet à
+## la largeur de cette place (`MiseEnPage.largeur_du_bandeau`) ; la chronique
 ## dans la place libre à sa droite, au-dessus de la fin du tour, ou au-dessus du poste quand cette place est trop étroite
 ## (`MiseEnPage.gauche_de_la_chronique`, `bas_de_la_chronique`) ; en combat, la générique posée en bas au centre, à sa
 ## largeur minimale, au-dessus du meuble de l'actif s'il se montre (`MiseEnPage.au_dessus_du_meuble`).
 func _caler() -> void:
 	var cadre_de_scene := (chronique.get_parent() as Control).get_global_rect()
+	var droite := tour.global_position.x if tour.visible else cadre_de_scene.end.x
+	if _posee != null and _posee.is_in_group(BANDEAU):
+		(_posee as Control).custom_minimum_size.x = MiseEnPage.largeur_du_bandeau(ordre.get_global_rect().end.x, droite)
 	var largeur := actif.size.x if actif.visible else 0.0
-	var decalage := MiseEnPage.decalage_du_poste(cadre_de_scene.position.x, cadre_de_scene.size.x, largeur, ordre.get_global_rect().end.x, tour.global_position.x if tour.visible else cadre_de_scene.end.x)
+	var decalage := MiseEnPage.decalage_du_poste(cadre_de_scene.position.x, cadre_de_scene.size.x, largeur, ordre.get_global_rect().end.x, droite)
 	actif.offset_left = decalage
 	actif.offset_right = decalage
 	var libre := MiseEnPage.libre_a_droite_du_poste(cadre_de_scene.size.x, largeur, decalage)

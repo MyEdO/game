@@ -16,7 +16,7 @@ export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
 import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal } from '../../../src/noyau/index';
 import { parametresDuGeste } from '../../../src/hote/gestes';
-import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } from '../../../src/hote/elements';
+import type { Bouton, Choix, Element, Entite, Formulaire, Jeu, Ligne, Plan, Saisie } from '../../../src/hote/elements';
 
 /** Une réponse décodée. */
 export type Reponse = ({ ok: true } & Partial<Suite> & Record<string, unknown>) | { ok: false; erreur: { categorie: CategorieDuPont; message: string } };
@@ -46,11 +46,13 @@ export function morceauxDe(appel: ReturnType<typeof table>['appel'], source: 'pa
 /** La vue d'une réponse qui en porte une. */
 export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
 
-/** Le bouton qui ouvre la fiche d'un héros du groupe : sur sa carte (`groupe.heros`), en combat sur son rang de
- *  l'ordre du tour (`combat.ordre`) ; la carte ou le rang nommé par son nom, ou par son rang parmi ceux qui en portent un. */
+/** Le bouton qui ouvre la fiche d'un héros du groupe : sur sa carte (`groupe.heros`), en combat sur son premier rang de
+ *  l'ordre du tour (`combat.ordre`) ; la carte ou le rang nommé par son nom, ou, hors combat, par son rang parmi les
+ *  cartes qui en portent un. */
 export function ficheDuHeros(vue: VueDuPont, heros: string | number): Bouton {
   const deFiche = (e: Element): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/');
-  const porteurs = [...vue.zones['groupe.heros'], ...vue.zones['combat.ordre']].filter((p) => p.elements.some(deFiche));
+  const rangs = vue.zones['combat.ordre'].filter((r): r is Entite => r.type === 'entite');
+  const porteurs = [...vue.zones['groupe.heros'], ...rangs].filter((p) => p.elements.some(deFiche));
   const porteur = typeof heros === 'number' ? porteurs[heros] : porteurs.find((c) => c.nom === heros);
   const bouton = porteur?.elements.find(deFiche);
   if (!bouton) throw new Error(`aucune carte du groupe ni rang de l’ordre du tour pour ${heros}`);

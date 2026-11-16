@@ -4,8 +4,10 @@
 ## Les éléments se réconcilient par type et par id : un élément déjà dessiné garde son nœud tant que sa forme ne change
 ## pas (son ton peut la changer), un élément parti le quitte,
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
-## pied, montré par le défilement qui le contient, ou, en `derniers`, seuls les derniers montrés.
-## Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`, `Saisie`, `Portrait` et `Dessin` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
+## pied, montré par le défilement qui le contient, ou, en `derniers`, seuls les derniers montrés ; en `pied`, le dernier
+## élément est montré par ce défilement à chaque pose (celui qui joue, au pied de l'ordre du tour).
+## Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`, `Saisie`, `Portrait` et `Dessin` le reçoit, et
+## chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
 ## de l'écran entre les zones du composant (`ids`), son `masque` caché quand elle n'a rien à montrer, son geste relayé.
 ## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer ; en `repli`, le conteneur de la zone se
 ## cache quand elle n'a rien à montrer, sans la place qu'il tiendrait vide dans celui qui le range. Sous un `TabContainer`, chaque élément
@@ -26,6 +28,8 @@ signal geste(jeu: Dictionary)
 @export var ajout := false
 @export var masque: Control = null
 @export var repli := false
+## Le dernier élément montré par le défilement qui contient la zone à chaque pose, comme en `ajout`.
+@export var pied := false
 ## Sans initialiseur : l'export Web de Godot 4.7 perd la valeur posée d'un `PackedStringArray` initialisé par `[]`.
 @export var ids: PackedStringArray
 ## La forme d'un type d'élément dans cette zone, `<type>:<forme>` : le composant `res://composants/<forme>.tscn` ;
@@ -79,7 +83,7 @@ func montrer(elements: Array) -> void:
 			if not gardes.has(cle):
 				conteneur.remove_child(dessines[cle])
 				dessines[cle].queue_free()
-	if ajout and dernier != null:
+	if (ajout or pied) and dernier != null:
 		_montrer_le_pied(dernier)
 	if derniers:
 		_garder_les_derniers()
