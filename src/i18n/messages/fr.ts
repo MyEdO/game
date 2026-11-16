@@ -4901,6 +4901,9 @@ export const fr = {
   'codex.on.engagesTaille': '{n} adversaire(s) engagé(s) de Taille ≤ la sienne',
   'codex.on.rayonSoi': 'les cibles à ≤ {m} m de soi',
   'codex.on.rayonVictime': 'les cibles à ≤ {m} m de la victime',
+  'codex.on.auDela': ', au-delà de {m} m',
+  'codex.on.soiCompris': ', soi compris',
+  'codex.on.victimeComprise': ', victime comprise',
   // Écritures du narratif (`noyau/narratifEdit.ts`, #3059).
   'narratifEdit.idVide': 'Identifiant vide',
   'narratifEdit.idPorte': 'Identifiant « {candidat} » déjà porté par {porteur}',

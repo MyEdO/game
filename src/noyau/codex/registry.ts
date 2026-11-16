@@ -1544,6 +1544,7 @@ const CODEX_SPECS = {
           chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
           passiveSection(t.passifDArme),
+          effectsSection(t.effects, ETATS_DU_CODEX, tr('codex.fiche.effetsDeclenches')),
           ...reverseSections('trappings', t.id),
         ),
       });

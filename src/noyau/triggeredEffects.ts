@@ -53,8 +53,10 @@ import {
   findPsychologyById,
   findSymptomById,
   findMutationById,
+  findTrappingById,
   testSkillLabel,
 } from '../data';
+import { isHeld } from '../engine/capabilities';
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
 import { difficulteDeLArg, rollTest } from '../engine/tests';
@@ -123,18 +125,23 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
 
 /**
  * SOURCE UNIQUE d'énumération des sources d'effet DÉCLENCHÉ d'un combattant — TOUS les KINDS en UN endroit :
- * Atouts d'arme (`weapon.onHitEffects`), Traits, Qualités d'arme, Talents, symptômes, MUTATIONS, ÉTATS,
+ * Atouts d'arme (`weapon.onHitEffects`), objets portés ou tenus (`TrappingData.effects`), Traits, Qualités d'arme, Talents, symptômes, MUTATIONS, ÉTATS,
  * états PSY. Chaque source
  * est taguée `key`/`cap`/`label` (+ `stacks` pour les statuts, pions réduits d'une capacité de la cible).
  * TOUT le reste en DÉRIVE (zéro énumérateur parallèle) : `fireTriggers` (via `effectsOf` non-statut +
  * `fireConditionEffects`/`firePsychEffects`), `resolveFreeAttacks` (via `freeAttackSourcesOf`), et le
  * COLLECTEUR jumeau de fin de Round (`collectRoundEndTestSteps`, combat/triggeredTest — les Tests d'un
  * héros MANUEL deviennent des étapes de cascade au lieu d'être joués inline). AJOUTER UN
- * KIND = ICI seulement. Ordre FIGÉ (enchant → traits → atouts → talents → symptômes → mutations →
+ * KIND = ICI seulement. Ordre FIGÉ (enchant → objets portés → traits → atouts → talents → symptômes → mutations →
  * États → psy) = déroulé RNG déterministe. */
 export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSource[] {
   const out: TriggerSource[] = [];
   if (weapon?.onHitEffects?.length) { const wid = weaponIdentity(weapon); out.push({ effects: withSource(weapon.onHitEffects, { kind: 'objet', id: wid }), cap: 1, key: `weapon:${wid}`, label: weapon.label }); }
+  // Objets PORTÉS ou TENUS (`isHeld`) : leurs `effects` lus au catalogue par id stable. #4202
+  for (const it of actor.items ?? []) {
+    const d = it.trappingId && isHeld(actor, it) ? findTrappingById(it.trappingId) : undefined;
+    if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'objet', id: d.id }), cap: 1, key: `item:${it.uid}`, label: d.label });
+  }
   // Traits du porteur, puis ceux que confère l'attaque de la touche (`Weapon.traitsConferes`, ZI 03 l.75, l.77) :
   // un Trait conféré ne tire qu'aux touches de l'attaque qui le confère.
   for (const tr of [...(actor.traits ?? []), ...(weapon?.traitsConferes ?? [])]) { const d = findTraitById(tr.id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, tr.arg, tr.value), { kind: 'trait', id: tr.id }), cap: 1, key: `trait:${tr.id}`, label: d.label ?? tr.id }); }
@@ -249,13 +256,18 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
     // GÉOMÉTRIE : tous les combattants à portée d'un centre (arc d'Azyr, Trait/Talent d'aire)
     const center = on.near === 'soi' ? actor : victim;
     if (!center?.pos) return [];
-    const radius = porteeEnCases(on.radiusMeters, sceneMetresPerTile(get().scene));
+    const mpt = sceneMetresPerTile(get().scene);
+    const radius = porteeEnCases(on.radiusMeters, mpt);
+    const inner = on.radiusInnerMeters === undefined ? undefined : porteeEnCases(on.radiusInnerMeters, mpt);
+    const dist = (c: Combatant) => distanceDeCombat(get().scene, center, c);
+    const inclus = on.centreCompris ? center.id : undefined; // #4202
     // ORCHESTRATEUR d'aire PARTAGÉ (combatantsWithinRadius), distance d'EMPREINTE (la Taille compte) : un effet
     // déclenché SOURCE-AGNOSTIQUE (Trait/Talent/Atout/État portant `on:{near,radiusMeters}`) applique son Flow
     // de GameOps à TOUTES les cibles du rayon — MÊME collecte que munitions/zoneBlast/manœuvres.
     return combatantsWithinRadius(center.pos, radius, battle.combatants,
-      (c) => c.id !== center.id && c.id !== actor.id && !isOutOfAction(c),
-      (_ctr, c) => distanceDeCombat(get().scene, center, c));
+      (c) => (c.id === inclus || (c.id !== center.id && c.id !== actor.id)) && !isOutOfAction(c)
+        && (inner === undefined || dist(c) > inner),
+      (_ctr, c) => dist(c));
   }
   return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engages'
 }
