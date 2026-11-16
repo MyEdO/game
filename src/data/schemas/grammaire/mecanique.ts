@@ -870,7 +870,9 @@ const DECLARATIONS_D_OPS = {
     barrier: z.boolean().optional(),
     gate: z.literal('profane').optional(),
     noCorruption: z.boolean().optional(),
-  }), { op: { label: "opération"  }, shape: { label: "forme"  }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }),
+    durationRounds: formulaSchema.optional(),
+    rendu: ref('rendu').optional(),
+  }), { op: { label: "opération"  }, shape: { label: "forme"  }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, rendu: { label: "rendu" }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }),
   augmentWeapon: nommerChamps(z.strictObject({
     op: z.literal('augmentWeapon'),
     addQualities: refs('quality').optional(),
@@ -1454,14 +1456,18 @@ export const effectOnSchema = enumNomme({
  *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
  *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
  *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
- *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
+ *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus, sauf
+ *  `centreCompris` qui inclut le CENTRE seul : avec `near:'soi'` le centre est le porteur, avec
+ *  `near:'victime'` le porteur reste exclu (aucun porteur réel ne s'y vise). `radiusInnerMeters`
+ *  fait une COURONNE : la distance doit DÉPASSER ce rayon intérieur. Les deux rayons passent par la
+ *  même conversion en cases (`porteeEnCases`), d'où des couronnes jointives sans recouvrement (#4202).
  *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
  *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
  *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
  *  par tout effet « happe le plus proche petit ennemi engagé ». */
 export const effectTargetingSchema = z.union([
   variante('Cible désignée', effectOnSchema),
-  nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
+  nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number(), radiusInnerMeters: z.number().optional(), centreCompris: z.literal(true).optional() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" }, radiusInnerMeters: { label: "au-delà de (mètres)" }, centreCompris: { label: "centre compris" } }),
   nommerChamps(z.strictObject({ pick: z.literal('engages'), sizeAtMost: z.literal('soi').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
 
@@ -1754,6 +1760,19 @@ function refuserLaGratuiteNonTerminale(flow: Flow<EffectOp>, ctx: z.RefinementCt
   });
 }
 
+/** Une zone posée hors sort porte sa durée (`durationRounds`, #4202) : refuse une op `zone` qui n'en a pas
+ *  dans un Flow d'effet déclenché. */
+function refuserLaZoneSansDuree(flow: Flow<EffectOp>, ctx: z.RefinementCtx): void {
+  walkFlow(flow, (noeud, chemin) => {
+    if (noeud.kind !== 'effet') return;
+    noeud.effet.ops.forEach((o, i) => {
+      if (o.op === 'zone' && o.durationRounds === undefined) {
+        ctx.addIssue({ code: 'custom', path: ['flow', ...chemin, 'effet', 'ops', i], message: 'op « zone » hors sort sans « durationRounds » : la zone porte sa durée.' });
+      }
+    });
+  });
+}
+
 /** `Flow<E>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
  *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
 export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
@@ -1796,7 +1815,7 @@ function effetDeclencheSur(flow: z.ZodType<Flow<EffectOp>>) {
      *  proposé (étape de CHOIX de fin de Round, skippable) ; IA / cadence auto → JAMAIS exercé (ni décision
      *  silencieuse ni jet caché). */
     optional: z.boolean().optional(),
-  }).superRefine((v, ctx) => refuserLaGratuiteNonTerminale(v.flow, ctx)), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
+  }).superRefine((v, ctx) => { refuserLaGratuiteNonTerminale(v.flow, ctx); refuserLaZoneSansDuree(v.flow, ctx); }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 }
 
 function construire(regimes: Regimes) {

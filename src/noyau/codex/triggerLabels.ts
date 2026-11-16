@@ -4,11 +4,13 @@ import { effectOnSchema } from '../../data/schemas/grammaire/mecanique';
 import { t } from '../../i18n';
 
 /** Libellé de la CIBLE d'un effet déclenché — chaîne simple (nœud `effectOnSchema`), géométrie
- *  (`{near, radiusMeters}`) ou sélection limitée d'un adversaire engagé (`{pick, sizeAtMost, max}`) :
+ *  (`{near, radiusMeters, radiusInnerMeters?, centreCompris?}`) ou sélection limitée d'un adversaire engagé (`{pick, sizeAtMost, max}`) :
  *  les deux formes OBJET n'ont pas d'univers de valeurs, elles se composent ici. */
 export const onLabel = (on: TriggeredEffect['on']): string =>
   typeof on === 'object'
     ? 'pick' in on
       ? t(on.sizeAtMost === 'soi' ? 'codex.on.engagesTaille' : 'codex.on.engages', { n: on.max })
       : t(on.near === 'soi' ? 'codex.on.rayonSoi' : 'codex.on.rayonVictime', { m: on.radiusMeters })
+        + (on.radiusInnerMeters !== undefined ? t('codex.on.auDela', { m: on.radiusInnerMeters }) : '')
+        + (on.centreCompris ? t(on.near === 'soi' ? 'codex.on.soiCompris' : 'codex.on.victimeComprise') : '')
     : libelleDeValeur(effectOnSchema, on);

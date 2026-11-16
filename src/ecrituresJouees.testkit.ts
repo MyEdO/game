@@ -56,7 +56,7 @@ const recursif = (chemin: readonly Segment[]): boolean => {
 };
 
 /** Au plus autant de gestes joués : la boucle se termine même si un formulaire en ouvrait sans fin. */
-const GESTES_AU_PLUS = 400;
+const GESTES_AU_PLUS = 800;
 
 /** La valeur à jouer dans la saisie `s` d'un formulaire `valeur` : un nombre autre que le courant, dans ses bornes ; un
  *  texte ; une liste vide pour du JSON. */

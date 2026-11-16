@@ -27,7 +27,7 @@ export function itemCapability(it: Pick<ItemInstance, 'capabilities'>, cap: keyo
 
 /** Un objet est-il PORTÉ (equipped) ou TENU (arme du loadout actif `c.weapons`) ? Même garde que le
  *  collecteur passif (`trauma.passiveMods`) : les objets RANGÉS/en vrac ne comptent pas. */
-function isHeld(c: Combatant, it: ItemInstance): boolean {
+export function isHeld(c: Combatant, it: ItemInstance): boolean {
   return !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
 }
 
