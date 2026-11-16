@@ -44,12 +44,6 @@ def primitives(bpy, G):
     return objets, {"surfaces": [{"nom": m, "palette": None, "matiere": f"prop--{m}"} for m in sorted({p["material"] for p in G.primitives})]}
 
 
-def textures_au_catalogue(manifeste):
-    """Le manifeste réduit aux surfaces dont la matière a sa texture au catalogue, les autres gardant leur couleur."""
-    return {**manifeste, "surfaces": [s for s in manifeste.get("surfaces", [])
-                                      if "matiere" not in s or (rendu.CATALOGUE / f"{s['matiere']}.jpg").exists()]}
-
-
 def grille(bpy, lignes, sortie):
     """Les images `lignes` (listes de chemins de même taille) en grille, la première ligne en haut, dans `sortie`."""
     import numpy as np
@@ -103,8 +97,8 @@ def main():
     for o in importes:
         o.hide_render = True
     palette = {e: habillage.couleur_lineaire(c) for e, c in selon.get(args.saison, {}).get("palette", {}).items()}
-    rendu.habiller_le_modele(bpy, avant, textures_au_catalogue(manifeste_avant), None, False, {})
-    rendu.habiller_le_modele(bpy, apres, textures_au_catalogue(manifeste), None, False, palette)
+    rendu.habiller_le_modele(bpy, avant, manifeste_avant, None, False, {})
+    rendu.habiller_le_modele(bpy, apres, manifeste, None, False, palette)
     bas, hautes = rendu.bornes(bpy, avant)
     etendue = max(hautes.x - bas.x, hautes.y - bas.y, hautes.z - bas.z)
     rendre = rendu.studio(bpy, bas, (bas + hautes) / 2, etendue, sortie, debut)
