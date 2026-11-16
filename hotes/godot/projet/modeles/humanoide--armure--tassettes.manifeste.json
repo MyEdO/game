@@ -1,0 +1,35 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "armure",
+  "cle": {
+    "piece": "tassettes"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "armure",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "acier",
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
+    },
+    {
+      "nom": "dorure",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "63a7a9a68ce3b9fda4b2aa5fdbd3b5978d07f939cb27fbb676b5e94858e95280",
+    "octets": 441956
+  }
+}

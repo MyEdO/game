@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   CASES_PAR_MORCEAU,
   couronnesDuMonde,
+  posesDesDecors,
   retraitDuMonde,
   toitsDuMonde,
   toitsLeves,
@@ -14,7 +15,7 @@ import {
 import { clearedSpace, nappeKey, shelterField } from './toits';
 import { perimeterWallSegs } from '../../sceneEdit.testkit';
 import { emptyScene, parapetTilesAbove, sceneMetresPerTile, setDoorOpen, setStructureDown, setTileCollapsed, type Scene } from '../scene';
-import { terrainAbsent } from '../terrain';
+import { decorDuTerrain, terrainAbsent } from '../terrain';
 import { paintTiles, setEdgeWall } from '../../sceneEdit';
 import { bumperDataset } from '../../../data/versionDataset';
 import { datasetArray, setDataset, type DatasetKey } from '../../../data/overrides';
@@ -22,6 +23,7 @@ import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { scenario as siegeEnceinte } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as scenarioDiligence } from '../../../scenes/test-scenarios/diligence';
 import { edgeKey } from '../facades';
+import { ancreDuDecor } from '../footprint';
 import { METRES_PER_LEVEL } from '../relief';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { parseHex } from '../../../lib/couleurHex';
@@ -155,6 +157,48 @@ describe('volumeDuMonde (#3476)', () => {
     const tris = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.matiere.startsWith('prop--'));
     expect(tris.map((t) => t.matiere)).toContain('prop--feuillage');
     expect(new Set(tris.map((t) => t.case.join(',')))).toEqual(new Set(['1,0,0']));
+  });
+});
+
+describe('les décors posés du volume (#4335)', () => {
+  /** Un bois en (1, 0), un tonneau au cap E sur la case haussée (2, 0), un tonneau au cap diagonal en (3, 0), qui ne se
+   *  dessine pas en volume. */
+  function decors(): Scene {
+    const s = emptyScene('scene-test', 4, 1);
+    s.layers[0].tiles = ['herbe', 'bois', 'herbe', 'herbe'];
+    s.layers[0].height = [0, 0, 0.5, 0];
+    s.entities.push({ id: 'tonneau-e', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 2, y: 0 }, facing: 'E' });
+    s.entities.push({ id: 'tonneau-ne', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 3, y: 0 }, facing: 'NE' });
+    return s;
+  }
+
+  /** Le décor que le bois pose sur sa case (1, 0, 0) : l'essence et le cap que tire `decorDuTerrain`. */
+  const duBois = () => decorDuTerrain('bois', 1, 0, 0)!;
+
+  it('chaque surface d’un décor porte `decor`, l’id de son type : l’essence du bois, le tonneau de l’entité ; le sol, aucun', () => {
+    const tris = trianglesDuVolume(volumeDuMonde(decors()));
+    const deDecor = tris.filter((t) => t.matiere.startsWith('prop--'));
+    expect(new Set(deDecor.map((t) => `${t.case.join(',')} ${t.surface.decor}`))).toEqual(new Set([`1,0,0 ${duBois().prop}`, '2,0,0 tonneau']));
+    expect(new Set(tris.filter((t) => !t.matiere.startsWith('prop--')).map((t) => t.surface.decor))).toEqual(new Set([undefined]));
+  });
+
+  it('les poses sont celles dont le volume pose les faces : clé, ancre, cap résolu, pied et case de ses triangles', () => {
+    const s = decors();
+    const tonneau = s.entities.find((e) => e.id === 'tonneau-e')!;
+    expect(posesDesDecors(s)).toEqual([
+      { cle: 'terrain/1,0,0', prop: duBois().prop, ancre: { x: 1, y: 0 }, cap: duBois().cap, piedM: 0, case: { x: 1, y: 0, z: 0 } },
+      { cle: 'entite/tonneau-e', prop: 'tonneau', ancre: ancreDuDecor(tonneau, sceneMetresPerTile(s)), cap: 'E', piedM: 0.5, case: { x: 2, y: 0, z: 0 }, entId: 'tonneau-e' },
+    ]);
+    const tris = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.surface.decor === 'tonneau');
+    expect(Math.min(...tris.flatMap((t) => t.ys))).toBeCloseTo(0.5, 2);
+  });
+
+  it('un décor qui éclaire porte `luminaire` à sa pose comme à ses surfaces', () => {
+    const s = decors();
+    const eclaire = { ...s, entities: s.entities.map((e) => (e.id === 'tonneau-e' ? { ...e, light: { radiusM: 5 } } : e)) };
+    expect(posesDesDecors(eclaire).find((p) => p.entId === 'tonneau-e')?.luminaire).toBe(true);
+    const tris = trianglesDuVolume(volumeDuMonde(eclaire)).filter((t) => t.surface.decor === 'tonneau');
+    expect(new Set(tris.map((t) => t.surface.luminaire))).toEqual(new Set([true]));
   });
 });
 

@@ -1,6 +1,6 @@
 """Les entrées d'une reconstruction de la chaîne 3D (#3412, lot 4C) : un SUJET est un élément sur base (`element/<base>/<dossier>`)
-ou un modèle de véhicule (`vehicule/<modele>`), avec son dossier et les ids publiés qu'il lit sous `hotes/godot/projet/modeles/`
-(les siens, et ceux qu'il contourne). Un chemin du dépôt est une ENTRÉE d'un sujet (`est_entree`) s'il est sous une racine que
+ou un modèle sans base (`<famille>/<modele>` : `vehicule/caraque`, `decor/arbre`), avec son dossier et les ids publiés qu'il
+lit sous `hotes/godot/projet/modeles/` (les siens, ceux qu'il contourne et celui dont il prend un emplacement). Un chemin du dépôt est une ENTRÉE d'un sujet (`est_entree`) s'il est sous une racine que
 lit la gate `personnage-3d:tests` (`ECRIT_LU`, `scripts/gates/toutes.mjs`), hors du dossier d'un autre sujet, et, sous les
 modèles publiés, hors des fichiers d'un id qu'un autre sujet publie et que lui ne lit pas. Tout le reste de ces racines est
 partagé : le code de la chaîne, la base, les licences, les matières.
@@ -22,22 +22,29 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[1]
 MODELES = 'hotes/godot/projet/modeles/'
 TOUT = 'WFRP_3D_TOUT'
-FAMILLES_DES_VEHICULES = ('vehicule', 'amelioration')
-"""Les catégories des éléments que publient les modèles de `vehicule/` (`identifiant` de `vehicule/construire.py`)."""
+CATEGORIES_DES_FAMILLES = {'vehicule': ('vehicule', 'amelioration'), 'decor': ('decor',)}
+"""Par famille de modèles sans base (`<famille>/<modele>/`, `construire.py`), les catégories des éléments qu'ils publient
+(`identifiant` de `construire.py`)."""
 
 
-def sujet(dossier, publie, contourne=()):
-    """Le sujet de dossier `dossier` (relatif au dépôt, finissant par `/`), qui publie les ids `publie` et lit en plus ceux
-    qu'il contourne."""
-    return {'dossier': dossier, 'publie': frozenset(publie), 'lit': frozenset(publie) | frozenset(contourne)}
+def sujet(dossier, publie, lus=()):
+    """Le sujet de dossier `dossier` (relatif au dépôt, finissant par `/`), qui publie les ids `publie` et lit en plus les
+    ids `lus` (`ids_lus`)."""
+    return {'dossier': dossier, 'publie': frozenset(publie), 'lit': frozenset(publie) | frozenset(lus)}
 
 
-def contourne(donnees):
-    """Les ids publiés que contourne l'élément de `donnees` (`CONTOURNE` de son `donnees.py`, un littéral)."""
+def ids_lus(donnees):
+    """Les ids publiés que lit l'élément de `donnees`, littéraux de son `donnees.py` : ceux qu'il contourne (`CONTOURNE`)
+    et celui dont il prend un emplacement (`OFFRANT`, #4318)."""
+    lus = []
     for noeud in ast.parse(donnees.read_text(encoding='utf-8')).body:
-        if isinstance(noeud, ast.Assign) and any(isinstance(c, ast.Name) and c.id == 'CONTOURNE' for c in noeud.targets):
-            return tuple(ast.literal_eval(noeud.value).values())
-    return ()
+        if isinstance(noeud, ast.Assign):
+            noms = {c.id for c in noeud.targets if isinstance(c, ast.Name)}
+            if 'CONTOURNE' in noms:
+                lus += ast.literal_eval(noeud.value).values()
+            if 'OFFRANT' in noms:
+                lus.append(ast.literal_eval(noeud.value))
+    return tuple(lus)
 
 
 def glb_locaux(paires, lus):
@@ -56,19 +63,27 @@ def glb_locaux(paires, lus):
 
 def sujets_des_elements():
     """Un sujet par élément sur base, `element/<base>/<dossier>/`, qui publie `<base>--<dossier>`."""
-    return [sujet(f'{d.parent.relative_to(RACINE).as_posix()}/', {f'{d.parent.parent.name}--{d.parent.name}'}, contourne(d))
+    return [sujet(f'{d.parent.relative_to(RACINE).as_posix()}/', {f'{d.parent.parent.name}--{d.parent.name}'}, ids_lus(d))
             for d in sorted((ICI / 'element').glob('*/*/donnees.py'))]
 
 
-def sujets_des_vehicules(publie_par_modele):
-    """Un sujet par modèle de `vehicule/<modele>/`, qui publie les ids de `publie_par_modele[modele]`."""
-    return [sujet(f'{(ICI / "vehicule" / m).relative_to(RACINE).as_posix()}/', publie_par_modele[m])
-            for m in sorted(d.parent.name for d in (ICI / 'vehicule').glob('*/donnees.py'))]
+def modeles(famille):
+    """Les modèles de la famille `famille`, les dossiers `<famille>/<modele>/` qui portent un `donnees.py`."""
+    return sorted(d.parent.name for d in (ICI / famille).glob('*/donnees.py'))
 
 
-def ids_publies_des_vehicules():
-    """Les ids publiés sous `MODELES` des familles de `FAMILLES_DES_VEHICULES`."""
-    return {p.name.removesuffix('.manifeste.json') for c in FAMILLES_DES_VEHICULES for p in (RACINE / MODELES).glob(f'{c}--*.manifeste.json')}
+def ids_publies(famille):
+    """Les ids publiés sous `MODELES` des catégories de la famille `famille`."""
+    return {p.name.removesuffix('.manifeste.json') for c in CATEGORIES_DES_FAMILLES[famille]
+            for p in (RACINE / MODELES).glob(f'{c}--*.manifeste.json')}
+
+
+def sujets_sans_base(**exacts):
+    """Un sujet par modèle de chaque famille, `<famille>/<modele>/`. `exacts[famille]` donne, par modèle, les ids qu'il
+    publie ; sans lui, chaque modèle de la famille est tenu pour publier tous les ids publiés de ses catégories, ce qui
+    suffit à juger les entrées des autres sujets."""
+    return [sujet(f'{(ICI / f / m).relative_to(RACINE).as_posix()}/', exacts[f][m] if f in exacts else ids_publies(f))
+            for f in CATEGORIES_DES_FAMILLES for m in modeles(f)]
 
 
 def changements():
@@ -144,5 +159,5 @@ def lectures_hors_entrees(lus, sujet, sujets, racines):
 
 
 if __name__ == '__main__':
-    # `python entrees.py <donnees.py>...` : les ids que contourne chacun, en JSON, pour `integrer.mjs` (#4338).
-    print(json.dumps([contourne(Path(d)) for d in sys.argv[1:]]))
+    # `python entrees.py <donnees.py>...` : les ids que lit chacun, en JSON, pour `integrer.mjs` (#4338).
+    print(json.dumps([ids_lus(Path(d)) for d in sys.argv[1:]]))

@@ -64,8 +64,8 @@ import { refuseSi } from './verrousDeFiche';
 import { rollDice } from '../engine/dice';
 import { facesDuDe } from '../engine/tables';
 import { rule } from '../engine/policy';
-import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
-import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
+import { isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
+import { currentSeason, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
 import { rangerLesEvenements } from './evenementDuJour';
@@ -744,11 +744,6 @@ export function continueTravelAfterNight(get: Get, set: Set): void {
   runTravelDays(get, set);
 }
 
-/** Saison courante (table de Météo EDOC 8 l.52) depuis l'horloge du jeu. */
-function currentSeason(get: Get): Season {
-  return seasonOfMonth(toDate(get().gameTime).month);
-}
-
 /**
  * Construit les ÉTAPES influençables du JOUR terrestre (cascade `purpose:'travelDay'`) — la MISE EN
  * SCÈNE des jets du jour, dans l'ORDRE de résolution RAW (l.10) : (Étape EDOC) Météo tirée ici
@@ -809,7 +804,7 @@ function buildTravelDayCascade(
     pousseSi(steps, tableStep({
       id: STAGE_WEATHER_STEP_ID, kind: STAGE_WEATHER_KIND, worldOwner: true, icon: 'voyage/vague',
       label: t('step.stageWeather'),
-      table: { tableId: stageWeatherTableId(currentSeason(get)) },
+      table: { tableId: stageWeatherTableId(currentSeason(get().gameTime)) },
       stake: voyageStakeRef(STAGE_WEATHER_KIND),
     }));
   }
@@ -1369,7 +1364,7 @@ export const TABLES = {
       const tiree = step.table?.result;
       if (!tiree) return {};
       const w = tiree.id as Weather;
-      const season = currentSeason(get);
+      const season = currentSeason(get().gameTime);
       // CONTEXTE DU JOUR : il vit dans l'état (`plan.recap.days[dernier]`, poussé avant le build) — une
       // fenêtre de pose peut s'intercaler entre le dé et la suite, donc la pile ne peut pas le porter.
       const jours = get().travelPlan?.recap?.days ?? [];

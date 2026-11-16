@@ -3077,6 +3077,11 @@
     "label": "Arbre",
     "solid": true,
     "cover": "imparfaite",
+    "source": {
+      "book": "livre-de-base",
+      "page": 268,
+      "note": "LDB 52 l.73 « chênes »"
+    },
     "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72)",
     "volume": {
       "capIdentite": "S",
@@ -3130,6 +3135,242 @@
           "axis": "h",
           "radiusM": 0.42,
           "longueurM": 0.7,
+          "sides": 8,
+          "material": "feuillage"
+        }
+      ]
+    }
+  },
+  {
+    "id": "hetre",
+    "type": "props",
+    "label": "Hêtre",
+    "solid": true,
+    "cover": "imparfaite",
+    "source": {
+      "book": "livre-de-base",
+      "page": 268,
+      "note": "LDB 52 l.73 « hêtres »"
+    },
+    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72)",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.2
+          },
+          "axis": "h",
+          "radiusM": 0.2,
+          "longueurM": 2.4,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 2.7
+          },
+          "axis": "h",
+          "radiusM": 0.55,
+          "longueurM": 0.6,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 3.5
+          },
+          "axis": "h",
+          "radiusM": 0.75,
+          "longueurM": 1,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 4.4
+          },
+          "axis": "h",
+          "radiusM": 0.65,
+          "longueurM": 0.8,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 5.05
+          },
+          "axis": "h",
+          "radiusM": 0.35,
+          "longueurM": 0.5,
+          "sides": 8,
+          "material": "feuillage"
+        }
+      ]
+    }
+  },
+  {
+    "id": "orme",
+    "type": "props",
+    "label": "Orme",
+    "solid": true,
+    "cover": "imparfaite",
+    "source": {
+      "book": "livre-de-base",
+      "page": 268,
+      "note": "LDB 52 l.73 « ormes »"
+    },
+    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72)",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.1
+          },
+          "axis": "h",
+          "radiusM": 0.24,
+          "longueurM": 2.2,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 2.5
+          },
+          "axis": "h",
+          "radiusM": 0.5,
+          "longueurM": 0.6,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 3.2
+          },
+          "axis": "h",
+          "radiusM": 0.75,
+          "longueurM": 0.8,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 4
+          },
+          "axis": "h",
+          "radiusM": 0.95,
+          "longueurM": 0.8,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 4.6
+          },
+          "axis": "h",
+          "radiusM": 0.8,
+          "longueurM": 0.4,
+          "sides": 8,
+          "material": "feuillage"
+        }
+      ]
+    }
+  },
+  {
+    "id": "pin",
+    "type": "props",
+    "label": "Pin",
+    "solid": true,
+    "cover": "imparfaite",
+    "source": {
+      "book": "livre-de-base",
+      "page": 268,
+      "note": "LDB 52 l.73 « pins »"
+    },
+    "maison": "couvert maison : un tronc ne masque qu’une part du corps et le feuillage ne masque rien — l’étalon IMPARFAIT de la haie (LDB 14 l.72)",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.8
+          },
+          "axis": "h",
+          "radiusM": 0.18,
+          "longueurM": 3.6,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 3.9
+          },
+          "axis": "h",
+          "radiusM": 0.7,
+          "longueurM": 0.6,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 4.5
+          },
+          "axis": "h",
+          "radiusM": 0.55,
+          "longueurM": 0.6,
+          "sides": 8,
+          "material": "feuillage"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 5
+          },
+          "axis": "h",
+          "radiusM": 0.3,
+          "longueurM": 0.4,
           "sides": 8,
           "material": "feuillage"
         }

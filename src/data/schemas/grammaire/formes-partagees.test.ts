@@ -95,6 +95,11 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     expect(trappingRefSchema.safeParse({ pick: 1, of: [{ pick: 1, of: [{ id: 'dague' }, { wildcard: 'arme' }] }, { id: 'grande-hache' }] }).success).toBe(true);
   });
 
+  it('accepte un « 1 parmi » d’engins de siège `{id, type: engin}` (#4143)', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'baliste', type: 'engin' }, { id: 'pierrier', type: 'engin' }] }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'baliste', type: 'engin' }, { id: 'dague', type: 'engin' }] }).success).toBe(false);
+  });
+
   it('accepte un lot d’objets ou de possessions comme option d’un « 1 parmi »', () => {
     expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'arme-simple' }, { lot: [{ id: 'arc' }, { id: 'fleche', count: { fixed: 10 } }] }] }).success).toBe(true);
     expect(trappingRefSchema.safeParse({ pick: 1, of: [{ lot: [{ id: 'cheval-de-monte', type: 'creature' }, { id: 'selle-et-harnais' }] }, { id: 'diligence', type: 'vehicle' }] }).success).toBe(true);

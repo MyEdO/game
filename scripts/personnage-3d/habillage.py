@@ -1,5 +1,6 @@
-"""Habillage d'un élément rigide, véhicule, Amélioration ou objet tenu (#2987, #3743) : les matériaux du GLB et les `surfaces` de son manifeste, lus
-dans la table `MATERIAUX` des données du modèle, `{nom: (emplacement de palette, matière)}`.
+"""Habillage d'un élément rigide, véhicule, Amélioration, décor ou objet tenu (#2987, #3743, #4335) : les matériaux du
+GLB et les `surfaces` de son manifeste, lus dans la table `MATERIAUX` des données du modèle, `{nom: (emplacement de
+palette, matière)}`.
 
 La matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` : la surface du manifeste la déclare
 `"matiere": "prop--<id>"`, et l'hôte l'habille de sa texture et de son relief du catalogue

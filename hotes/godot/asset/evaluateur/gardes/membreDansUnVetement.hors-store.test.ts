@@ -6,6 +6,8 @@ import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { endroitDe, PORTEE_DE_COUVERTURE_M } from '../../pile.ts';
 import { TOLERANCE_JUMEAUX_POSITION_M } from './poids.ts';
 import { gardeMembreDansUnVetement, mesurerMembresDansUnVetement, pairesHorsDeZone, zonesVoisines } from './membreDansUnVetement.ts';
+import { evaluer } from '../evaluer.ts';
+import { glb, type Piece } from './pieces.testkit.ts';
 
 /** Un carré de 0,2 m de côté à la hauteur `z`, en grille 3 × 3, décalé de `dx` en X. */
 function carre(z: number, dx = 0): Float32Array {
@@ -109,5 +111,27 @@ describe('membreDansUnVetement', () => {
     const mesurer_ = (vus: ArrayLike<number>) => mesurerMembresDansUnVetement([{ membre: posee, zone: 'main_d', vetement: nappe, triangles: vus }], [], echantillon(new Map<Mesh, Float32Array>([[posee, dos], [nappe, drap]])));
     expect(mesurer_(dessus)).toEqual([]);
     expect(mesurer_(triangles(nappe)).map((m) => m.sommets)).toEqual([9]);
+  });
+});
+
+describe('evaluer : le voisinage des zones se lit sur le corps au repos, avant la pile (#4379)', () => {
+  /** Le cou, sa couture en x = 0 : sa rangée en x = −0,1 devant le masque, celle en x = −0,05 derrière. */
+  const COU: Piece = {
+    nom: 'Cou', zone: 'cou', triangles: [0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4],
+    sommets: [[-0.1, 1, 0.02], [-0.05, 1, -0.008], [0, 1, 0], [-0.1, 1.1, 0.02], [-0.05, 1.1, -0.008], [0, 1.1, 0]],
+  };
+  /** La tête du corps, décalée de `dx` en X : à 0, cousue au cou. */
+  const tete = (dx: number): Piece => ({ nom: 'Tete', zone: 'tete', triangles: [0, 1, 2, 0, 2, 3], sommets: [[dx, 1, 0], [0.1 + dx, 1, 0], [0.1 + dx, 1.1, 0], [dx, 1.1, 0]] });
+  /** Une tête portée de zone `tete`, juste devant la couture du cou : la pile y recule la peau du cou. */
+  const MASQUE: Piece = { nom: 'Masque', zone: 'tete', triangles: [0, 1, 2, 0, 2, 3], sommets: [[-0.12, 0.98, 0.001], [0.1, 0.98, 0.001], [0.1, 1.12, 0.001], [-0.12, 1.12, 0.001]] };
+  const membres = async (dx: number) => (await evaluer({ base: glb([COU, tete(dx)], 'Repos'), elements: [glb([MASQUE])], couches: [{ couche: 'peau', couvre: ['tete'] }], pas: 0.5 }))
+    .ecarts.filter((e) => e.garde === 'membreDansUnVetement').map((e) => [e.code, e.mesh]);
+
+  it('VERT : le cou cousu à la tête qu’une tête portée masque ne la traverse pas, sa couture reculée par la pile', async () => {
+    expect(await membres(0)).toEqual([]);
+  });
+
+  it('ROUGE : le même cou sans couture avec la tête la traverse', async () => {
+    expect(await membres(0.02)).toEqual([['membre-dans-un-vetement', 'élément 1/Masque#0']]);
   });
 });

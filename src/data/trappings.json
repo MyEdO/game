@@ -2650,6 +2650,7 @@
     "id": "petites-munitions-et-poudre",
     "type": "trappings",
     "label": "Petites munitions et Poudre",
+    "packSize": 12,
     "categorie": "ammunition",
     "subType": {
       "id": "poudre-noire-et-ingenierie"
@@ -2672,7 +2673,8 @@
     },
     "source": {
       "book": "livre-de-base",
-      "page": 296
+      "page": 296,
+      "note": "LDB 62 l.123 ; Lot : AA 08 l.499 (12)."
     }
   },
   {
@@ -2711,7 +2713,7 @@
   {
     "id": "jambieres-en-cuir",
     "type": "trappings",
-    "label": "Jambières en cuir",
+    "label": "Jambières de cuir",
     "categorie": "armor",
     "subType": {
       "id": "cuir-souple"
@@ -4999,6 +5001,85 @@
       "book": "livre-de-base",
       "page": 86,
       "note": "LDB 08 l.2082"
+    }
+  },
+  {
+    "id": "rhum-tord-boyaux",
+    "type": "trappings",
+    "label": "Rhum tord-boyaux",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.411) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17). Arbitrage du 2026-11-16 (#4202) : « Un Test, l'échec vaut deux verres ».",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 152,
+      "note": "MDG 16 l.411"
+    },
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "long-drong-silver-capitaine-des-pirates-tueurs-m-cc-ct-f-e-i-ag-dex-int-fm-soc-b-3-72-62-56-69-40-29-32-40-71-52-30",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 5,
+          "sum": "32de8022519c46b7"
+        }
+      ]
+    },
+    "consumable": {
+      "kind": "test",
+      "test": {
+        "skill": {
+          "id": "resistance-a-l-alcool"
+        },
+        "label": "Rhum tord-boyaux — Résistance à l'alcool"
+      },
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
+      },
+      "echec": {
+        "kind": "effet",
+        "effet": {
+          "type": "ops",
+          "ops": [
+            {
+              "op": "intoxicate"
+            },
+            {
+              "op": "intoxicate",
+              "tantQuIvre": [
+                {
+                  "op": "skillMod",
+                  "skill": {
+                    "id": "charme"
+                  },
+                  "mod": -20
+                },
+                {
+                  "op": "grantTrait",
+                  "trait": {
+                    "id": "perturbant"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   },
   {
@@ -8717,8 +8798,8 @@
     "qualities": [],
     "desc": "Cette substance hallucinogène extrêmement addictive pousse sous les potences et elle est mâchée pour calmer un esprit agité. Les utilisateurs doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ; de plus, le Mouvement est réduit de moitié. Cependant, les Tests de Calme reçoivent un bonus de +20. Durée: active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
     "price": {
-      "gold": 0,
-      "silver": 1,
+      "gold": 1,
+      "silver": 0,
       "brass": 0
     },
     "source": {
@@ -13497,6 +13578,9 @@
       }
     ],
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "jezail"
     },
@@ -13514,6 +13598,9 @@
     },
     "shield": true,
     "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "reach": "Très courte",
     "loc": null,
@@ -13555,7 +13642,7 @@
     "source": {
       "book": "zoo-imperial",
       "page": 94,
-      "note": "ZI 13 l.197"
+      "note": "ZI 13 l.197 ; Enc : VO Le Rat Cornu – Compagnon, p.34 (Ratling Gun, 3*, part du tireur principal)."
     },
     "descRef": {
       "book": "zoo-imperial",
@@ -13604,7 +13691,10 @@
         "value": 2
       }
     ],
-    "enc": 4,
+    "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "canon_ratling"
     },
@@ -13655,7 +13745,7 @@
     "source": {
       "book": "zoo-imperial",
       "page": 94,
-      "note": "ZI 13 l.201"
+      "note": "ZI 13 l.201 ; Enc et Groupe : VO Le Rat Cornu – Compagnon, p.34 (Warpfire Thrower, 2*, part du tireur principal)."
     },
     "descRef": {
       "book": "zoo-imperial",
@@ -13693,6 +13783,9 @@
       }
     ],
     "enc": 2,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "onHitEffects": [
       {
         "trigger": "onHit",
@@ -13804,6 +13897,9 @@
       }
     ],
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "pistolet_malepierre"
     },
@@ -13996,6 +14092,9 @@
       "id": "poudre-noire"
     },
     "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14061,6 +14160,9 @@
       "id": "armes-d-hast"
     },
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Longue",
@@ -14158,6 +14260,54 @@
     "bladed": true
   },
   {
+    "id": "decharge-de-malelame",
+    "type": "trappings",
+    "label": "Décharge de malelame",
+    "hands": 2,
+    "categorie": "distance",
+    "subType": {
+      "id": "ingenierie"
+    },
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "maison": "Arbitrage du 2026-11-16 (#4202) : « Ignore seulement le métal ». Groupe Ingénierie, celui des armes du clan Skryre sans poudre noire (lance-maleflamme) ; Dégâts et Portée au Trait À distance du statbloc.",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.199 ; ZI 13 l.222"
+    },
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "7c5a615f6971b59a"
+        }
+      ]
+    },
+    "reach": null,
+    "range": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "passifDArme": [
+      {
+        "op": "armourPierce",
+        "amount": 0,
+        "bypass": "metal"
+      }
+    ]
+  },
+  {
     "id": "malelame-a-une-main",
     "type": "trappings",
     "label": "Malelame à une main",
@@ -14166,6 +14316,9 @@
       "id": "base"
     },
     "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Moyenne",
@@ -14202,6 +14355,9 @@
       "id": "poudre-noire"
     },
     "enc": 2,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14242,6 +14398,9 @@
       "id": "lancer"
     },
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14280,6 +14439,9 @@
       "id": "lancer"
     },
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14346,6 +14508,9 @@
       "id": "fleau"
     },
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Longue",

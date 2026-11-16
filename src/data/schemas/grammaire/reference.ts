@@ -28,6 +28,7 @@ import {
   weaponRangeSpecSchema,
 } from './valeurs';
 import { marquerProduit } from './interne/produits';
+import { ENGINS_DE_SIEGE } from './sousListes';
 import {
   idDe,
   marqueurDeLaForme,
@@ -364,10 +365,14 @@ export type DotationDeMention = z.infer<typeof dotationDeMentionSchema>;
 /** Dotation d'une ligne hors catalogue : son texte imprimé et sa quantité. */
 export const dotationDeTexteSchema = nommerNoeud(nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }), { label: 'ligne de texte' });
 
-/** Ce qu'une dotation POSSÈDE hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
-export const typeDePossessionSchema = enumNomme({ creature: 'Créature', vehicle: 'Véhicule' });
+/** Ce qu'un effet `givePossession` donne hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
+const LIBELLES_DE_POSSESSION = { creature: 'Créature', vehicle: 'Véhicule' } as const;
+export const typeDePossessionSchema = enumNomme(LIBELLES_DE_POSSESSION);
+/** Ce qu'une dotation POSSÈDE hors du sac : une possession, ou un engin de siège servi en poste
+ *  (sous-liste `ENGINS_DE_SIEGE`, jamais un objet de sac). AA 02 l.335-339 ; #4143 */
+export const typeDeDotationDePossessionSchema = enumNomme({ ...LIBELLES_DE_POSSESSION, engin: 'Engin de siège' });
 /** Dotation d'une POSSESSION : la référence typée, sa quantité et son libellé imprimé. */
-export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDePossessionSchema, {}, {
+export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDeDotationDePossessionSchema, { engin: { type: 'trapping', sousListe: ENGINS_DE_SIEGE } }, {
   count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 }), { label: 'possession' });

@@ -18,6 +18,9 @@ export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_C
 export { formatMoney } from '../engine/money';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
+export { currentSeason } from '../engine/travelStages';
+export type { Season } from '../engine/travelStages';
+export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export {
   advancementLabel,
   careers,
@@ -31,6 +34,7 @@ export {
   matieresDe,
   props,
   refLabel,
+  seasonLabel,
   siegeEngines,
   structureAppearances,
   trappingRefLabel,
@@ -46,7 +50,6 @@ export {
   talentsDuParcours,
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
-export { entitySize } from './monde/spawn';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {
@@ -54,6 +57,7 @@ export {
   emplacementsDeDotation,
   estEmplacementRacine,
   libelleDeLaValeur,
+  porteurDuProfil,
   sousEmplacementActif,
   valeursDeLEmplacement,
   type EmplacementDeDotation,
@@ -147,15 +151,17 @@ export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,
   matieresDeDecor,
+  posesDesDecors,
   retraitDuMonde,
   toitsDuMonde,
   volumeDuMonde,
   type MorceauDuMonde,
   type NappeDuMonde,
+  type PoseDeDecor,
   type RetraitDuMonde,
   type VolumeDuMonde,
 } from './monde/volume/volume';
-export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
+export { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export {
   avertissementsDeLaSession,

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { categoryByKey, type CodexItem, type CodexRow } from './registry';
+import { avecDotations } from '../../data/dotations.fixture';
 
 /** Lignes de la section « Niveau N : … » de l'onglet Progression d'une Carrière. */
 const levelRows = (item: CodexItem, levelPrefix: string): CodexRow[] => {
@@ -35,5 +36,11 @@ describe('Codex registry — Possessions de Niveau de Carrière : réf STRUCTUR�
     const rows = levelRows(item, 'Niveau 3');
     const vehicleRow = rows.find((r) => r.t === 'ref' && r.category === 'vehicles');
     expect(vehicleRow).toMatchObject({ t: 'ref', category: 'vehicles', id: 'diligence' });
+  });
+
+  it('{id, type: engin} lie les Engins de siège, au libellé du catalogue des objets (#4143)', () => {
+    const rows = avecDotations('artilleur', { niveau: [{ id: 'canon-petit', type: 'engin' }] }, () =>
+      levelRows(categoryByKey('careers')!.items.find((i) => i.id === 'artilleur')!, 'Niveau 1'));
+    expect(rows.find((r) => r.t === 'ref' && r.category === 'siegeEngines')).toMatchObject({ t: 'ref', category: 'siegeEngines', id: 'canon-petit', label: 'Canon (petit)' });
   });
 });

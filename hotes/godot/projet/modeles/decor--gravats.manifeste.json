@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "gravats"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    }
+  ],
+  "glb": {
+    "sha256": "bab1c13348690a35105108ad23008e3328a5da276302ed4540bc3e33246592ea",
+    "octets": 152448
+  }
+}

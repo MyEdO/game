@@ -24,6 +24,23 @@ export async function chargerAssets(exportsSupplementaires = []) {
   return importer(entree.id, entree.greffons)
 }
 
+let assetsDeLHoteCharges = null
+/** Les assets que lisent le listage des modèles (`listage.mjs`) et les modes de `construire.mjs` (`chargerAssets`) :
+ *  un seul chargement par processus, qu'ils partagent. */
+export const assetsDeLHote = () => (assetsDeLHoteCharges ??= chargerAssets([
+  "export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';",
+  "export { verdictsDuDossier } from '/hotes/godot/asset/release.ts';",
+  "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
+  "export { figerVuesDeLEcran, figerLesPlanches } from '/hotes/godot/recettes/ecran.ts';",
+  "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
+  "export { figerLeRepos } from '/hotes/godot/recettes/atelier.ts';",
+  "export { figerLeDecor } from '/hotes/godot/recettes/decor.ts';",
+  "export { figerLeChemin } from '/hotes/godot/recettes/chemin.ts';",
+  "export { figerLEditeurDuNavire } from '/hotes/godot/recettes/editeur.ts';",
+  "export { figerLeDegagement } from '/hotes/godot/recettes/degagement.ts';",
+  "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
+]))
+
 /** Le module `module` de l’évaluateur d’assets (`evaluateur/`, par défaut `evaluer.ts`), hors du graphe de l’hôte : il
  *  ne lit ni le catalogue ni le noyau. */
 export const chargerEvaluateur = (module = 'evaluer.ts') => importer(fileURLToPath(new URL(`./evaluateur/${module}`, import.meta.url)), [])

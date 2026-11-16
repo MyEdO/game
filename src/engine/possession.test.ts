@@ -24,6 +24,11 @@ function bete(overrides: Partial<Possession & { nature: 'bete' }> = {}): Possess
   } as Possession;
 }
 
+/** Un petit canon possédé (AA 10 l.175-193 : Enc 30), servi en poste. #4143 */
+function engin(): Possession {
+  return { uid: 'pos-engin', ownerId: 'hero-1', location: { kind: 'avec-le-groupe' }, items: [], nature: 'engin', trappingId: 'canon-petit' };
+}
+
 describe('possessionCapacity — source par nature (§4.2/§5)', () => {
   it('bête (réf bestiaire) : Contenu du profil EDOC (mule → 14 Enc)', () => {
     expect(possessionCapacity(bete())).toBe(14);
@@ -50,6 +55,10 @@ describe('possessionCapacity — source par nature (§4.2/§5)', () => {
       vehicleId: 'barge', naval: { morale: { score: 0, factors: [] } as any },
     };
     expect(possessionCapacity(p)).toBe(300);
+  });
+
+  it('engin de siège : servi en poste, aucune capacité de port (#4143) → undefined', () => {
+    expect(possessionCapacity(engin())).toBeUndefined();
   });
 
   it('immeuble : pas de catalogue de capacité (T4, #356) → undefined', () => {
@@ -102,6 +111,10 @@ describe('possessionLabel — label d’instance sinon libellé du catalogue (do
   it('véhicule sans label d’instance : libellé du catalogue (« Charrette »)', () => {
     const p: Possession = { uid: 'pos-2', ownerId: 'hero-1', location: { kind: 'avec-le-groupe' }, items: [], nature: 'vehicule', vehicleId: 'charrette' };
     expect(possessionLabel(p)).toBe('Charrette');
+  });
+
+  it('engin de siège sans label d’instance : libellé du catalogue des objets (« Canon (petit) », #4143)', () => {
+    expect(possessionLabel(engin())).toBe('Canon (petit)');
   });
 });
 
@@ -228,6 +241,10 @@ describe('canEmbark — bornes de chaîne par nature (§5)', () => {
 
   it('véhicule sur navire : oui', () => {
     expect(canEmbark(vehicule, navire)).toBe(true);
+  });
+
+  it('engin de siège sur navire : non, il n’est pas une nature embarquable (#4143)', () => {
+    expect(canEmbark(engin(), navire)).toBe(false);
   });
 
   it('navire sur navire : non', () => {

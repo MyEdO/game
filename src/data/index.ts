@@ -43,7 +43,7 @@ import {
   type DatasetDeCategorie,
 } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
-import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
+import { ENGINS_DE_SIEGE, INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import {
@@ -974,6 +974,9 @@ export interface TrappingData {
    *  sur le catalogue NATIVEMENT ogre (massue ogre, pansière ogre… l.604 : Enc déjà entré à sa valeur pleine,
    *  pas de doublement). Propagée à `ItemInstance.sizeFor` / `Weapon.sizeFor`. */
   sizeFor?: import('../engine/size').SizeCategory;
+  /** Seul Groupe de peuple (`groups.json`) à qui une arme au choix de carrière l'offre (`offerteAuPorteur`).
+   *  Arbitrage #4110 (2026-11-16) */
+  reserveeA?: { id: string };
   availability: Availability | 'ND' | null;
   /** Allonge de MÊLÉE — vocabulaire FERMÉ `ReachValue` (les sept longueurs de LDB 62 l.156-164, plus
    *  « Variable » l.31) ou null, VALIDÉ au chargement par le schéma zod (`schemas/defs/trappings.ts`).
@@ -1364,9 +1367,12 @@ export function mutationLabel(id: string | null | undefined): PlayerText {
 const marqueDeSiege = porteLeMarqueur('weaponGroup', 'siege');
 /** Groupe d'engins de siège : marqueur `siege` de `weaponGroups.json`. AA 10 l.136 */
 export const groupeDeSiege = (id: string | null | undefined): boolean => !!id && marqueDeSiege(id);
-/** Engins de siège posables : trappings d'un Groupe d'engins de siège (`groupeDeSiege`). Foyer du filtre
- *  partagé par les emplacements, les références d'entité et la catégorie du Codex. */
-export const siegeEngines = memoParVersion(['trappings', 'weaponGroups'], () => trappings.filter((t) => groupeDeSiege(t.subType?.id)));
+/** Engins de siège posables : la sous-liste `ENGINS_DE_SIEGE` des trappings, dans l'ordre de la donnée.
+ *  Foyer du filtre partagé par les emplacements, les références d'entité et la catégorie du Codex. */
+export const siegeEngines = memoParVersion('trappings', () => {
+  const ids = new Set(idsDeLaSousListe('trapping', ENGINS_DE_SIEGE));
+  return trappings.filter((t) => ids.has(t.id));
+});
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
@@ -2291,14 +2297,15 @@ export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | n
 }
 /** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
 const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
-/** ARMES choisissables `{ id, label, groupe, sizeFor }` : toute Possession `melee`/`distance` hors « Mains nues »
+/** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` hors « Mains nues »
  *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
  *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
- *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue. */
+ *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue ; `reserveeA`, le seul Groupe
+ *  de peuple à qui elle s'offre. */
 export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
   .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
-  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor }))
+  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor, reserveeA: t.reserveeA?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
@@ -2378,7 +2385,7 @@ export function chaosSpellsOf(god: string): string[] {
 
 /** Référence à une Possession : par `id` du catalogue (+ quantité éventuelle), texte NARRATIF hors
  *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
- *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
+ *  (`DotationDePossession`, véhicule, bête ou engin de siège — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
  *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU somme d'argent (`Somme`) —
  *  OU mention par nature (`DotationDeMention`) — OU « 1 parmi »
  *  (`{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`AdvancementRef`), dont une option peut être un lot d'objets ou de
@@ -2669,6 +2676,17 @@ const CLE_DE_QUALITE_AU_CHOIX = { qualite: 'ref.qualiteAuChoix', haute: 'ref.hau
  *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, « 1 parmi » (récursif), lot
  *  « Arc et Flèche (10) », ou joker « Arme (au choix) », « Arme du groupe Deux-mains (au choix) ». SOURCE UNIQUE
  *  (Codex, créateur, marchand, inventaire). */
+/** Le libellé de catalogue d'une dotation de possession, au catalogue que nomme son `type`. */
+function libelleDeLaPossession(ref: DotationDePossession): PlayerText {
+  switch (ref.type) {
+    case 'vehicle':
+      return dataLabel(findVehicleById(ref.id)?.label, ref.id);
+    case 'creature':
+      return dataLabel(findCreatureById(ref.id)?.label, ref.id);
+    case 'engin':
+      return refLabel('trappings', ref);
+  }
+}
 export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
   if ('pick' in ref) return libelleDuParmi(ref.pick, ref.of.map(trappingRefLabel));
   if ('lot' in ref) return dataLabel(listeEt(ref.lot.map(trappingRefLabel)));
@@ -2681,9 +2699,7 @@ export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
         ? ref.label
         : !('type' in ref)
           ? refLabel('trappings', ref)
-          : ref.type === 'vehicle'
-            ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
-            : dataLabel(findCreatureById(ref.id)?.label, ref.id);
+          : libelleDeLaPossession(ref);
   const quantite: CountSpec | undefined = 'count' in ref ? ref.count : undefined;
   const count = quantite ? ('fixed' in quantite ? ` (${quantite.fixed})` : ` (${formatDice(quantite.roll)})`) : '';
   if ('qualityChoice' in ref && ref.qualityChoice) return t(CLE_DE_QUALITE_AU_CHOIX[ref.qualityChoice], { base: base + count });

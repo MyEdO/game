@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "rocher"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    }
+  ],
+  "glb": {
+    "sha256": "667ce1093eb2482951bcc66207da4da2875c7fe432f195a85bad11a2d4168b29",
+    "octets": 33188
+  }
+}

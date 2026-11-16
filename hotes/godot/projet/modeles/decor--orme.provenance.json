@@ -1,0 +1,13 @@
+{
+  "model": "decor--orme.glb",
+  "model_sha256": "5d8fdfd45614df04ef4ca91b64b0f1c72b6fdbb88673cc4f35754a1ef80f36f9",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
