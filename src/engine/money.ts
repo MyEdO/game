@@ -47,18 +47,22 @@ export function priceToMoney(p: Partial<Money> | 'ND' | null): Money {
 export function toMoney(p: { gold?: number; silver?: number; brass?: number }): Money {
   return { gold: p.gold ?? 0, silver: p.silver ?? 0, brass: p.brass ?? 0 };
 }
+/** Les Échelons de Statut, du plus bas au plus haut. LDB 08 l.9 */
+export const ECHELONS_DE_STATUT = ['bronze', 'argent', 'or'] as const;
 /** Échelon de Statut, et de prix (`CRAFT_BASE_DR`, `engine/activities`). LDB 08 l.9 */
-export type StatusTier = 'bronze' | 'argent' | 'or';
+export type StatusTier = (typeof ECHELONS_DE_STATUT)[number];
 /** Un Statut : son Échelon et son Standing. */
 export interface Status { tier: StatusTier; standing: number }
 
 /** Le libellé joueur d'un Échelon (« Argent »). */
 export const libelleDEchelon = (tier: StatusTier): string => t(`statut.echelon.${tier}`);
 
+const STATUT_LU = new RegExp(`^(${ECHELONS_DE_STATUT.join('|')})\\s+(\\d+)$`, 'i');
+
 /** Décompose un libellé de Statut (« Argent 2 », « Bronze 1 », « Or 3 ») ; `null` s'il n'est pas reconnu.
  *  SOURCE UNIQUE du parsing, et de la validation des Statuts de donnée (`statutSchema`). */
 export function parseStatus(status: string | undefined | null): Status | null {
-  const m = /^(bronze|argent|or)\s+(\d+)$/i.exec(status?.trim() ?? '');
+  const m = STATUT_LU.exec(status?.trim() ?? '');
   return m ? { tier: m[1].toLowerCase() as StatusTier, standing: Number(m[2]) } : null;
 }
 

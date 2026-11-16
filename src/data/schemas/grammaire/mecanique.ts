@@ -11,8 +11,7 @@ import { validerApparenceDonnee } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
-import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
-import { categorieDEntreeAPool, trousDeLEnjeu, type StakeRef } from '../../index';
+import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import {
@@ -1158,7 +1157,6 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
 export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
 
-/** `FlowTest` (`engine/flowCore.ts`) — jet différé (→ modale), tout le métier hors branches. */
 /** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
  *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
@@ -1184,22 +1182,9 @@ export const catalogStakeSchema = nommerChamps(z.strictObject({
  *  (arbitrage user 2026-08-12, #1262) : elle voyage avec le document et ne pointe aucun dataset. */
 export const authoredStakeSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'stake.authored');
 
-/** `DerivedStake` (`src/data/index.ts`) — enjeu DÉRIVÉ de l'entité porteuse (`{kind, id}`), calculé
- *  au montage de l'étape par le socle. */
-export const derivedStakeSchema = nommerChamps(z.strictObject({
-  from: nommerChamps(z.strictObject({
-    kind: z.enum(Object.keys(CATEGORY_BY_SOURCE_KIND) as [EffectSourceKind, ...EffectSourceKind[]]),
-    id: z.string(),
-  }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } }),
-}), { from: { label: "provenance" } });
-
-/** `StakeRef` (`src/data/index.ts`) — les TROIS formes d'enjeu d'une entrée de jet, qui passent par
- *  la même porte de résolution (`resolveStake`). */
-export const stakeRefSchema: z.ZodType<StakeRef> = z.union([
-  catalogStakeSchema,
-  authoredStakeSchema,
-  derivedStakeSchema,
-]);
+/** L'enjeu qu'un DOCUMENT porte (`StakeRef`, `src/data/index.ts`, en est la sortie avec les formes du moteur) : une
+ *  clé de catalogue sans valeurs (`catalogStakeSchema`), ou sa phrase (`authoredStakeSchema`). */
+export const enjeuDeDonneeSchema = z.union([catalogStakeSchema, authoredStakeSchema]);
 
 /** FACILITATION d'un jet par ce que porte le jeteur (Compétence, Talent) : `steps` crans plus facile,
  *  au signe d'`easeDifficulty` (`src/engine/tests.ts`). Forme partagée (`FlowTest.easierIf`, Spécial
@@ -1251,8 +1236,6 @@ const opposeSchema = nommerChamps(z
 
 /** Les champs d'un Test de donnée qui précèdent sa décision. */
 const champsDuTestAvantLaDecision = {
-  /** ENJEU du Test (#1117) — cf. `stakeRefSchema`. */
-  stake: stakeRefSchema.optional(),
   ...jetSchema.shape,
   /** LDB 18 */
   sense: senseSchema.optional(),
@@ -1285,7 +1268,7 @@ const champsDuTestApresLaDecision = {
   opposed: opposeSchema.optional(),
 };
 
-const metaDuTestAvantLaDecision: MetaDesChamps<typeof champsDuTestAvantLaDecision> = { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" } };
+const metaDuTestAvantLaDecision: MetaDesChamps<typeof champsDuTestAvantLaDecision> = { ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" } };
 const metaDuTestApresLaDecision: MetaDesChamps<typeof champsDuTestApresLaDecision> = { argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } };
 
 /** UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
@@ -1314,21 +1297,25 @@ function nommerCeQueTesteLeJet(v: { stake?: unknown; skill?: unknown; characteri
   });
 }
 
-/** Le Test de DONNÉE, la forme UNIQUE du jet en donnée, avec la `decision` qu'il porte : celle de
- *  `decisionDuTestSchema` (`flowTestSchema`), ou aucune (`testFixeSchema`). */
-function testDeDonnee<D extends z.core.$ZodShape>(decision: D, metaDeLaDecision: MetaDesChamps<D>) {
+/** Le Test de DONNÉE, la forme UNIQUE du jet en donnée, avec l'ENJEU (#1117) qu'un document peut lui écrire et
+ *  la `decision` qu'il porte : celle de `decisionDuTestSchema`, ou aucune (`testFixeSchema`). */
+function testDeDonnee<E extends z.ZodType, D extends z.core.$ZodShape>(enjeu: E, decision: D, metaDeLaDecision: MetaDesChamps<D>) {
   return marquerProduit(nommerChamps(
-    z.strictObject({ ...champsDuTestAvantLaDecision, ...decision, ...champsDuTestApresLaDecision }).superRefine(nommerCeQueTesteLeJet),
-    { ...metaDuTestAvantLaDecision, ...metaDeLaDecision, ...metaDuTestApresLaDecision },
+    z.strictObject({ stake: enjeu.optional(), ...champsDuTestAvantLaDecision, ...decision, ...champsDuTestApresLaDecision }).superRefine(nommerCeQueTesteLeJet),
+    { stake: { label: "enjeu" }, ...metaDuTestAvantLaDecision, ...metaDeLaDecision, ...metaDuTestApresLaDecision },
   ), 'testDeDonnee', 'test');
 }
 
 /** Le Test de flux : il porte sa décision (`decisionDuTestSchema`), que `resoudreFlowTest` lit seule. */
-export const flowTestSchema = testDeDonnee(decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
+export const flowTestSchema = testDeDonnee(enjeuDeDonneeSchema, decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
 
 /** Le Test FIXE : sans aucun champ de décision, sa Difficulté est celle qu'il déclare. La forme du Test d'un
  *  porteur qui la fixe (`porteurDeTestFixe`, `noeudTestFixe`). */
-export const testFixeSchema = testDeDonnee({}, {});
+export const testFixeSchema = testDeDonnee(enjeuDeDonneeSchema, {}, {});
+
+/** Le Test d'un document de SCÈNE : son enjeu est la phrase que le document écrit (`authoredStakeSchema`,
+ *  arbitrage user 2026-08-12, #1262), jamais une clé du catalogue du moteur. */
+export const testDeSceneSchema = testDeDonnee(authoredStakeSchema, decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
 
 
 /** Champ que le Test de donnée (`testDeDonnee`) laisse FACULTATIF et qu'un porteur peut exiger. */
@@ -1371,9 +1358,9 @@ export const extendedTestSchema = nommerChamps(z.strictObject({
   label: z.string(),
   ...cibleEtendueSchema.shape,
   flag: z.string().optional(),
-  /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
-   *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
-  stake: stakeRefSchema.optional(),
+  /** ENJEU du Test (#1117) — l'enjeu d'un document (`enjeuDeDonneeSchema`), résolu par `resolveStake` et
+   *  affiché par la modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
+  stake: enjeuDeDonneeSchema.optional(),
 }), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), ...metaDesChamps(decisionDuTestSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
 
 /** Options de `noeudTest` — ce qu'un document RESSERRE sur le nœud partagé, jamais un spread. */
@@ -1430,8 +1417,8 @@ export function noeudTestFixe<B extends z.ZodType>(branche: B, options: Pick<Opt
   return porteurDeTestFixe(noeudDeTest(testFixeSchema, branche, options), 'difficulty');
 }
 
-/** Le nœud `test` de `noeudTest`, sur le Test `test` : de flux, ou fixe. */
-function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
+/** Le nœud `test` de `noeudTest`, sur le Test `test` : de flux, fixe, ou de scène. */
+function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema | typeof testDeSceneSchema, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
   const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
   const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   if (!options.echecSeulServi) return noeud;
@@ -1777,14 +1764,14 @@ function refuserLaGratuiteNonTerminale(flow: Flow<EffectOp>, ctx: z.RefinementCt
 }
 
 /** `Flow<E>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
- *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
-export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
+ *  par sa feuille `effet`, sa `Condition`, le coût d'Avantage de son `choix` et le Test de ses nœuds `test`. */
+export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>, test: typeof flowTestSchema | typeof testDeSceneSchema): z.ZodType<Flow<E>> {
   const flow: z.ZodType<Flow<E>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
       variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('sequence'), etapes: z.array(flow) }), { kind: { label: "type"  }, etapes: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
       variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('effet'), effet: feuille }), { kind: { label: "type"  }, effet: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
       variante('Si', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('si'), condition, alors: flow, sinon: flow.optional() }), { kind: { label: "type"  }, condition: { label: "condition" }, alors: { label: "alors" }, sinon: { label: "sinon" } }), 'arbreDeFlow', 'flow.if')),
-      variante('Test', noeudTest(flow)),
+      variante('Test', noeudDeTest(test, flow, {})),
       variante('Choix', proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choix'),
         coutEnAvantage: coutDAvantage.optional(),
@@ -1874,7 +1861,7 @@ function construire(regimes: Regimes) {
 
   // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
   // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
-  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE));
+  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE), flowTestSchema);
 
   const triggeredEffect = effetDeclencheSur(flow);
 

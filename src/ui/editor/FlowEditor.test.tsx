@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
+import { act, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { FlowEditor } from './FlowEditor';
+import { FlowEditor, TestFields } from './FlowEditor';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, type FlowTest } from '../../engine/flowCore';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
@@ -82,5 +83,43 @@ describe('FlowEditor — nœud Test : condition d’accès (`gate`, MDG 15 l.197
     };
     expect(basculer(testFlow('priere'))).toContain('"gate":{"kind":"always"}');
     expect(basculer({ kind: 'test', test: { skill: { id: 'priere' }, gate: { kind: 'always' } }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW })).not.toContain('"gate"');
+  });
+});
+
+describe('FlowEditor — nœud Test : Statut de l’interlocuteur (`vsStatus`, LDB 08)', () => {
+  function monter(depart: FlowTest) {
+    let dernier = depart;
+    function Banc() {
+      const [test, setTest] = useState(depart);
+      return <TestFields test={test} onChange={(t) => { dernier = t; setTest(t); }} />;
+    }
+    const { container } = monterRacine(<Banc />);
+    return { container, lu: () => dernier };
+  }
+  const echelon = (container: HTMLElement) => container.querySelector<HTMLSelectElement>('select[aria-label="Échelon de l’interlocuteur"]')!;
+  const choisirEchelon = (container: HTMLElement, valeur: string) => act(() => {
+    echelon(container).value = valeur;
+    echelon(container).dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+  it('l’Échelon puis le Standing saisis écrivent le Statut dans le Test', async () => {
+    const { container, lu } = monter({ skill: { id: 'charme' } });
+    await choisirEchelon(container, 'argent');
+    expect(lu().vsStatus).toBe('Argent 1');
+    const standing = container.querySelector<HTMLInputElement>('input[aria-label="Standing de l’interlocuteur"]')!;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    await act(() => {
+      setter?.call(standing, '3');
+      standing.dispatchEvent(new Event('input', { bubbles: true }));
+      standing.dispatchEvent(new Event('focusout', { bubbles: true }));
+    });
+    expect(lu().vsStatus).toBe('Argent 3');
+  });
+
+  it('« aucun » Échelon retire le Statut du Test', async () => {
+    const { container, lu } = monter({ skill: { id: 'charme' }, vsStatus: 'Or 2' });
+    expect(echelon(container).value).toBe('or');
+    await choisirEchelon(container, '');
+    expect(lu().vsStatus).toBeUndefined();
   });
 });

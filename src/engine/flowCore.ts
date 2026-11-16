@@ -476,8 +476,11 @@ export function conditionCtx(s: { flags: Record<string, boolean>; gameTime: numb
 }
 
 /** Spécification d'un jet de compétence/caractéristique différé (→ modale) : la sortie de `flowTestSchema`
- *  (`data/schemas/grammaire/mecanique.ts`), sans les branches (portées par le nœud Flow `test`). */
-export type FlowTest = z.output<typeof flowTestSchema>;
+ *  (`data/schemas/grammaire/mecanique.ts`), sans les branches (portées par le nœud Flow `test`), dont l'enjeu
+ *  s'élargit aux formes du MOTEUR (`StakeRef` : valeurs calculées, enjeu dérivé du porteur). */
+export interface FlowTest extends Omit<z.output<typeof flowTestSchema>, 'stake'> {
+  stake?: StakeRef;
+}
 
 /** Les champs de la DÉCISION d'un `FlowTest`, lus par `resoudreFlowTest` (`engine/decisionDuTest.ts`) seul. */
 export const CHAMPS_DE_DECISION = ['gate', 'difficultyBy', 'easierIf'] satisfies readonly (keyof FlowTest)[];

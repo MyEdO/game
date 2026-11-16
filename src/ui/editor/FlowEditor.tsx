@@ -21,6 +21,7 @@ import { Icon } from '../Icon';
 import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
+import { ECHELONS_DE_STATUT, libelleDEchelon, parseStatus, type StatusTier } from '../../engine/money';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
 import { facilitationSchema, flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
 import { NumberField } from '../NumberField';
@@ -126,6 +127,13 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
   // lecture déclarée : l'éditeur montre et réécrit les valeurs authorées
   const { difficulty, easierIf, gate } = test;
   const upd = (patch: Partial<FlowTest>) => onChange({ ...test, ...patch });
+  const enjeu = test.stake;
+  const authore = enjeu && 'authored' in enjeu ? enjeu : undefined;
+  const statut = parseStatus(test.vsStatus);
+  const poserStatut = (tier: StatusTier | undefined, standing: number) => {
+    const lu = flowTestSchema.shape.vsStatus.safeParse(tier && `${libelleDEchelon(tier)} ${standing}`);
+    upd({ vsStatus: lu.success ? lu.data : undefined });
+  };
   const setEase = (patch: Partial<NonNullable<FlowTest['easierIf']>>) => {
     const m = { ...(easierIf ?? {}), ...patch };
     upd({ easierIf: m.hasSkill || m.hasTalent ? m : undefined });
@@ -162,14 +170,14 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
           la scène — `validateScene` refuse un jet muet. Un enjeu de CATALOGUE (Flow produit par le
           moteur, jamais par cet éditeur) reste en lecture seule : sa phrase vit dans la donnée. */}
       <div className="tf-row">
-        {test.stake?.key ? (
+        {enjeu && 'key' in enjeu ? (
           <span className="dr" title="Enjeu servi par un dataset du moteur — il s’édite dans sa donnée, pas dans la scène.">
-            Enjeu : {test.stake.key.dataset}/{test.stake.key.kind} (catalogue)
+            Enjeu : {enjeu.key.dataset}/{enjeu.key.kind} (catalogue)
           </span>
         ) : (
           <Stack>
-            <ProseField label="Enjeu du jet" value={test.stake?.authored ?? ''} onChange={(authored) => upd({ stake: authored.trim() ? { authored, ...(test.stake?.authored !== undefined ? { source: test.stake.source, adapteDe: test.stake.adapteDe } : {}) } : undefined })} />
-            {test.stake?.authored !== undefined && <ProvenanceDuTexte copie identite={`${identite}/enjeu`} sujet="de l'enjeu" value={test.stake} onChange={(patch) => upd({ stake: { authored: test.stake!.authored!, ...patch } })} />}
+            <ProseField label="Enjeu du jet" value={authore?.authored ?? ''} onChange={(authored) => upd({ stake: authored.trim() ? { authored, ...(authore ? { source: authore.source, adapteDe: authore.adapteDe } : {}) } : undefined })} />
+            {authore && <ProvenanceDuTexte copie identite={`${identite}/enjeu`} sujet="de l'enjeu" value={authore} onChange={(patch) => upd({ stake: { authored: authore.authored, ...patch } })} />}
           </Stack>
         )}
       </div>
@@ -189,6 +197,15 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
             value={test.vsGroups}
             onChange={(ids) => { const lus = flowTestSchema.shape.vsGroups.safeParse(ids); upd({ vsGroups: lus.success ? lus.data : undefined }); }}
           />
+          {/* Statut de l'interlocuteur (LDB 08) : Échelon puis Standing, écrits en libellé de Statut et validés par `statutSchema`. */}
+          <label className="dr" title="Le Statut de l’interlocuteur module le Test de Sociabilité selon celui du jeteur">
+            Statut de l’interlocuteur
+            <select aria-label="Échelon de l’interlocuteur" value={statut?.tier ?? ''} onChange={(e) => poserStatut(ECHELONS_DE_STATUT.find((tier) => tier === e.target.value), statut?.standing ?? 1)}>
+              <option value="">aucun</option>
+              {ECHELONS_DE_STATUT.map((tier) => <option key={tier} value={tier}>{libelleDEchelon(tier)}</option>)}
+            </select>
+            {statut && <NumberField variant="nu" label="Standing de l’interlocuteur" min={0} value={statut.standing} onChange={(standing) => poserStatut(statut.tier, standing)} />}
+          </label>
         </div>
       )}
       <div className="tf-row">

@@ -26,7 +26,7 @@ import {
   moneyPartialSchema,
   natureDInfluenceSchema,
 } from '../grammaire/valeurs';
-import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
+import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire, testDeSceneSchema } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
@@ -734,7 +734,7 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
 
 /** `Flow<Effect>` (`engine/flowCore.ts:559`) — l'arbre `arbreDeFlow` de feuille `do` l'union `Effect`
  *  de scène, au coût de `choice` littéral (le template `$indice` n'a pas de porteur en scène). */
-export const sceneFlowSchema: z.ZodType<Flow> = arbreDeFlow(effectSchema, conditionSchema, z.number());
+export const sceneFlowSchema: z.ZodType<Flow> = arbreDeFlow(effectSchema, conditionSchema, z.number(), testDeSceneSchema);
 
 function nommerEffet<N extends z.ZodType>(noeud: N, label: string): N {
   return nommerNoeud(noeud, { label, nom: `effet ${label}` });

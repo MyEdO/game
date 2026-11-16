@@ -423,7 +423,7 @@ export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: 
  */
 export function stakeAtTableRow(stake: StakeRef | undefined, decl: CascadeTableDecl, result: CascadeTableResult): StakeRef | undefined {
   const category = tableStepDef(decl.tableId)?.entryCategory;
-  if (!stake || !category || stake.key == null) return stake;
+  if (!stake || !category || !('key' in stake)) return stake;
   return { ...stake, key: { ...stake.key, entryId: result.id, entryCategory: category } };
 }
 

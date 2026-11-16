@@ -36,7 +36,7 @@ import {
   settlementSchema,
 } from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
-import { conditionSchema, executeesDe, flowTestSchema, variante } from '../grammaire/mecanique';
+import { conditionSchema, executeesDe, testDeSceneSchema, variante } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
 import {
   competenceChiffreeSchema,
@@ -783,7 +783,7 @@ export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   /** Payload `GameOp[]` — vocabulaire UNIQUE partagé avec les zones de Sort (`applyOps`). */
   onCross: executeesDe().optional(),
   perRound: executeesDe().optional(),
-  crossTest: flowTestSchema.optional(),
+  crossTest: testDeSceneSchema.optional(),
   /** BARRIÈRE : `blockGroups` vide/absent = bloque tout le monde ; sinon ids de Groupes. */
   barrier: nommerChamps(z.strictObject({ blockGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional() }), { blockGroups: { label: "groupes bloqués" , texte: { regime: "technique"} } }).optional(),
   z: z.number().optional(),
