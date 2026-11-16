@@ -23,8 +23,8 @@ const invite = (lien: Partial<Partie['net']>) => partie({ mode: 'invite', mySeat
 /** Les formulaires de `z`, par verbe : leur refus. */
 const refusDesFormulaires = (z: ZonesDuSalon) => Object.fromEntries(z['salon.gestes'].flatMap((g) => (g.type === 'formulaire' ? [[g.verbe, g.refus]] : [])));
 const textes = (z: ZonesDuSalon) => z['salon.etat'].map((l) => l.texte);
-const quitter = [{ type: 'bouton', id: 'quitter', libelle: t('ecran.salon.quitter'), jeu: { salon: 'quitter' }, presse: false, focus: false, refus: null }];
-const fermer = { type: 'bouton', id: 'fermer', libelle: t('ecran.salon.fermer'), jeu: { salon: false }, presse: false, focus: false, refus: null };
+const quitter = [{ type: 'bouton', id: 'quitter', libelle: t('ecran.salon.quitter'), jeu: { salon: 'quitter' }, presse: false, focus: false, detail: null, touche: null, refus: null }];
+const fermer = { type: 'bouton', id: 'fermer', libelle: t('ecran.salon.fermer'), jeu: { salon: false }, presse: false, focus: false, detail: null, touche: null, refus: null };
 const ids = (z: ZonesDuSalon) => z['salon.gestes'].map((g) => g.id);
 
 describe('zonesDuSalon — par état (Z4)', () => {
@@ -61,7 +61,7 @@ describe('zonesDuSalon — par état (Z4)', () => {
   it('échec : son texte, et les formulaires de nouveau', () => {
     const echec: OuvertureDuSalon = { echec: 'Service coop injoignable — réessayez.' };
     const z = zonesDuSalon(partie({}), echec, true);
-    expect(z['salon.etat']).toEqual([{ type: 'ligne', id: 'ouverture', ton: 'echec', texte: echec.echec, detail: null }]);
+    expect(z['salon.etat']).toEqual([{ type: 'ligne', id: 'ouverture', ton: 'echec', texte: echec.echec, detail: null, touche: null }]);
     expect(refusDesFormulaires(z)).toEqual({ heberger: null, rejoindre: t('ecran.salon.refus.partieOuverte') });
     expect(ids(z)).toEqual(['heberger', 'rejoindre', 'fermer']);
   });

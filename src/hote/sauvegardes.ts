@@ -131,7 +131,7 @@ export interface ZonesDesSauvegardes {
 }
 
 /** Le bouton `id` de libellé `libelle`, qui joue `jeu`. */
-const bouton = (id: string, libelle: string, jeu: Bouton['jeu'], refus: string | null = null): Bouton => ({ type: 'bouton', id, libelle, jeu, presse: false, focus: false, refus });
+const bouton = (id: string, libelle: string, jeu: Bouton['jeu'], refus: string | null = null): Bouton => ({ type: 'bouton', id, libelle, jeu, presse: false, focus: false, detail: null, touche: null, refus });
 
 /** Les zones des sauvegardes de `stockage` ; `etat` : la partie ouverte, `null` sans partie. */
 export function zonesDesSauvegardes(stockage: Stockage | null, etat: Partie | null): ZonesDesSauvegardes {

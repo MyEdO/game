@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Theme" path="res://art/jeton.tres" id="t_jeton"]
+
+[node name="Jeton" type="Control"]
+custom_minimum_size = Vector2(16, 16)
+size_flags_vertical = 4
+mouse_filter = 1
+
+[node name="libelle" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "libelle"
+propriete = &"tooltip_text"
+
+[node name="Losange" type="Panel" parent="."]
+offset_left = 3.0
+offset_top = 3.0
+offset_right = 13.0
+offset_bottom = 13.0
+rotation = 0.785398
+pivot_offset = Vector2(5, 5)
+mouse_filter = 2
+theme = ExtResource("t_jeton")
+
+[node name="ton" type="Node" parent="Losange"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"

@@ -65,7 +65,7 @@ export function zonesDuSalon(etat: Pick<Partie, 'net' | 'party'> | null, ouvertu
     : [ligne('ouverture', ouverture.echec, 'echec')];
   const sansReseau = reseau ? null : t('ecran.salon.refus.sansReseau');
   const ouvrirOuQuitter: (Formulaire | Bouton)[] = enSession || enCours
-    ? [{ type: 'bouton', id: 'quitter', libelle: t('ecran.salon.quitter'), jeu: { salon: 'quitter' }, presse: false, focus: false, refus: null }]
+    ? [{ type: 'bouton', id: 'quitter', libelle: t('ecran.salon.quitter'), jeu: { salon: 'quitter' }, presse: false, focus: false, detail: null, touche: null, refus: null }]
     : [
       formulaire('heberger', t('coop.hote.bouton'), sansReseau ?? (etat === null ? t('ecran.salon.refus.sansPartie') : null), [champ('heberger', 'nom', t('coop.name.label'))]),
       formulaire('rejoindre', t('coop.join.btn'), sansReseau ?? (etat === null ? null : t('ecran.salon.refus.partieOuverte')), [
@@ -75,13 +75,13 @@ export function zonesDuSalon(etat: Pick<Partie, 'net' | 'party'> | null, ouvertu
     ];
   const gestes: (Formulaire | Bouton)[] = enCours
     ? ouvrirOuQuitter
-    : [...ouvrirOuQuitter, { type: 'bouton', id: 'fermer', libelle: t('ecran.salon.fermer'), jeu: { salon: false }, presse: false, focus: false, refus: null }];
+    : [...ouvrirOuQuitter, { type: 'bouton', id: 'fermer', libelle: t('ecran.salon.fermer'), jeu: { salon: false }, presse: false, focus: false, detail: null, touche: null, refus: null }];
   return {
     'salon.etat': etatDuSalon,
     'salon.gestes': gestes,
     'salon.sieges': etat === null ? [] : siegesOfferts(etat).map((o): Choix => ({
       type: 'choix', id: o.id, ton: 'neutre', libelle: o.nom, focus: false, refus: null,
-      valeurs: o.choix.map((c): Bouton => ({ type: 'bouton', id: `${o.id}/${c.siege ?? 'ia'}`, libelle: c.nom, jeu: c.intention, presse: c.tenu, focus: false, refus: null })),
+      valeurs: o.choix.map((c): Bouton => ({ type: 'bouton', id: `${o.id}/${c.siege ?? 'ia'}`, libelle: c.nom, jeu: c.intention, presse: c.tenu, focus: false, detail: null, touche: null, refus: null })),
     })),
   };
 }

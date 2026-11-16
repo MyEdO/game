@@ -184,7 +184,6 @@ func _ready() -> void:
 	for aide in _cases_des_aides:
 		_cases_des_aides[aide].toggled.connect(_montrer_l_aide.bind(aide))
 	for onglet in _onglets:
-		_onglets[onglet].get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier())
 		_boutons_des_onglets[onglet].pressed.connect(_montrer_l_onglet.bind(onglet))
 	%Copier.pressed.connect(_copier)
 	%Attaquer.pressed.connect(_attaquer)

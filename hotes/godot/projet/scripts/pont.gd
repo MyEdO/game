@@ -320,17 +320,26 @@ func exposer(nom: String, rappel: Callable) -> void:
 
 
 ## Sous une recette, `republier` appelé quand une liste déroulante sous `racine`, présente ou à venir, s'ouvre, se ferme
-## ou désigne un autre article au clavier : l'écran publie l'état de ses listes (`boutons_a_l_ecran`).
+## ou désigne un autre article au clavier, quand une ouvrante (`Ouvrante` : le menu de la partie, une pastille) ouvre ou
+## ferme sa liste, ou quand un défilement défile : l'écran publie l'état de ses listes et ses boutons à l'écran
+## (`boutons_a_l_ecran`).
 func suivre_les_listes(racine: Node, republier: Callable) -> void:
 	if not en_recette:
 		return
 	var suivre := func(noeud: Node) -> void:
-		if noeud is OptionButton and racine.is_ancestor_of(noeud):
+		if not racine.is_ancestor_of(noeud):
+			return
+		if noeud is OptionButton:
 			var articles := (noeud as OptionButton).get_popup()
 			articles.visibility_changed.connect(republier)
 			articles.id_focused.connect(func(_id: int) -> void: republier.call())
-	for liste in racine.find_children("*", "OptionButton", true, false):
-		suivre.call(liste)
+		elif noeud is Ouvrante:
+			(noeud as Ouvrante).change.connect(republier)
+		elif noeud is ScrollContainer:
+			for barre: ScrollBar in [(noeud as ScrollContainer).get_v_scroll_bar(), (noeud as ScrollContainer).get_h_scroll_bar()]:
+				barre.value_changed.connect(func(_valeur: float) -> void: republier.call())
+	for noeud in racine.find_children("*", "Control", true, false):
+		suivre.call(noeud)
 	var arbre := get_tree()
 	arbre.node_added.connect(suivre)
 	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))

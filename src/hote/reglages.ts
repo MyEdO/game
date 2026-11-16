@@ -54,7 +54,7 @@ type Forme = FormeDeControle & { id: string; label: string };
 /** Le contrôle de l'entrée `f`, de valeur `valeur`, dont le geste est le verbe `verbe` des réglages. */
 function controle(verbe: 'preference' | 'regle', f: Forme, valeur: PrefValue, refus: string | null): Element {
   const id = `${verbe}/${f.id}`;
-  const valeurDe = (v: PrefValue, libelle: string): Bouton => ({ type: 'bouton', id: `${id}/${v}`, libelle, jeu: { type: verbe, args: [f.id, v] }, presse: v === valeur, focus: false, refus });
+  const valeurDe = (v: PrefValue, libelle: string): Bouton => ({ type: 'bouton', id: `${id}/${v}`, libelle, jeu: { type: verbe, args: [f.id, v] }, presse: v === valeur, focus: false, detail: null, touche: null, refus });
   switch (f.kind) {
     case 'flag':
       return { type: 'choix', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: [valeurDe(false, t('valeur.non')), valeurDe(true, t('valeur.oui'))] };
@@ -72,7 +72,7 @@ function elementsDeLaRegle(r: OptionalRule, surcharges: Readonly<Record<string, 
   return [
     ligne(`regle/${r.id}/ref`, r.ref, 'neutre', detail || null),
     controle('regle', r, surchargee ? surcharges[r.id] : r.default, refus),
-    ...(surchargee ? [{ type: 'bouton' as const, id: `retablir/${r.id}`, libelle: t('ecran.reglages.defaut'), jeu: { type: 'retablir', args: [r.id] }, presse: false, focus: false, refus }] : []),
+    ...(surchargee ? [{ type: 'bouton' as const, id: `retablir/${r.id}`, libelle: t('ecran.reglages.defaut'), jeu: { type: 'retablir', args: [r.id] }, presse: false, focus: false, detail: null, touche: null, refus }] : []),
   ];
 }
 
@@ -90,7 +90,7 @@ export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, '
       elements: OPTIONAL_RULES.filter((r) => r.group === groupe).flatMap((r) => elementsDeLaRegle(r, surcharges, refus)),
     })),
     'reglages.avis': retraits ? [ligne('retraits', t('houseRules.retirees', { liste: nommerLesRetraits(retraits) }), 'alerte')] : [],
-    'reglages.gestes': [{ type: 'bouton', id: 'fermer', libelle: t('ecran.reglages.fermer'), jeu: { reglages: false }, presse: false, focus: false, refus: null }],
+    'reglages.gestes': [{ type: 'bouton', id: 'fermer', libelle: t('ecran.reglages.fermer'), jeu: { reglages: false }, presse: false, focus: false, detail: null, touche: null, refus: null }],
   };
 }
 

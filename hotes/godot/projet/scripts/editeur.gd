@@ -87,7 +87,6 @@ func _ready() -> void:
 	_zones = Zone.racines(_interface)
 	for zone in _zones:
 		zone.geste.connect(_jouer)
-	_defilement.get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
 	_pont.suivre_les_listes(_interface, _publier_l_ecran)
 	for pages in _interface.find_children("*", "TabContainer", true, false):
 		(pages as TabContainer).tab_clicked.connect(func(_onglet: int) -> void: _publier_l_ecran())
@@ -184,7 +183,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_calque = reponse.calque
 	_monde.poser_le_calque(_calque, null if _calque == null else _planche(_calque.image))
 	Zone.montrer_toutes(_zones, _vue.zones)
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 	if reponse.has("depot"):
 		_deposer(reponse.depot)
 	if reponse.has("memoire"):
