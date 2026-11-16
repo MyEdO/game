@@ -1634,7 +1634,9 @@
     },
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "aucun": true
+    },
     "qualities": [
       {
         "id": "immobilisante"
@@ -11565,7 +11567,9 @@
     "range": 100,
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "aucun": true
+    },
     "qualities": [
       {
         "id": "recharge",
@@ -14058,8 +14062,40 @@
     },
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "aucun": true
+    },
     "qualities": [],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "zone",
+                "shape": "disc",
+                "radiusMeters": 2,
+                "blocksLoS": true,
+                "durationRounds": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "rendu": {
+                  "id": "souffle-de-fumee"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
     "source": {
       "book": "rat-cornu-compagnon",
       "page": 34,
@@ -14198,7 +14234,10 @@
     "reach": null,
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 10
+    },
     "qualities": [
       {
         "id": "a-enroulement"
