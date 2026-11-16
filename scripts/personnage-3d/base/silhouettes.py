@@ -373,7 +373,7 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     return corriger
 
 
-def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors, rabot=None, portes=None):
+def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors, portes=None):
     """#3104 ; #3101 issuecomment-6489583109 ; #4002 issuecomment-6826035694. Les champs finis des `bruts` (nom -> T au
     repère du mesh), rendus au repère du mesh dans l'ordre de `bruts`. Un nom de `portes` (nom -> C au repère du mesh)
     rend C + libre·(T − C), sans rabot ni correction. Les autres, libre·T, sont rabotés ensemble (`formes.raboter`,
@@ -384,8 +384,7 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     est marquée pour un nom raboté avec la force de la plus grande part du nom aux sites qui y sont en faute hors du
     socle, marquée dès que cette force est non nulle. La correction de
     chaque passe porte le rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que le
-    rabot leur ôte. Le rabot repart du rabot cumulé `rabot` (nom -> facteur par sommet) d'un tour précédent de la
-    construction ; rend aussi le rabot cumulé de ce tour, des seuls noms rabotés."""
+    rabot leur ôte. Rend aussi le rabot cumulé (nom -> facteur par sommet) des seuls noms rabotés."""
     portes = portes or {}
     portes_finis = {nom: c + libre[:, None] * (bruts[nom] - c) for nom, c in portes.items()}
     noms = [nom for nom in bruts if nom not in portes]
@@ -414,9 +413,8 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
                for k, nom in enumerate(noms)}, flush=True)
         return numpy.stack([courants[nom] for nom in noms], axis=1), marques
 
-    depart = None if rabot is None else numpy.stack([rabot[nom] for nom in noms], axis=1)
     pile, passes, cumul = raboter(numpy.stack([bruts[nom] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
-                                  PASSES_DE_RABOT, depart)
+                                  PASSES_DE_RABOT)
     print('SILHOUETTES rabot', passes, 'passe(s) ; correction', sondes[-1], flush=True)
     return tous({nom: pile[:, k] for k, nom in enumerate(noms)}), {nom: cumul[:, k] for k, nom in enumerate(noms)}
 
@@ -552,8 +550,8 @@ def refuser_les_inertes(finis):
             f'{nom} {v:.4f} m <= {SOL_TOLERANCE_M} m' for nom, v in inertes.items()))
 
 
-def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, plantes, etats_des_clips, rabot=None):
-    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » ; `rabot`, le rabot cumulé du tour précédent, rendu à jour."""
+def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, plantes, etats_des_clips):
+    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     groupe = jumeaux(x)
@@ -589,9 +587,9 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
         def derivees(champs):
             return cuire({nom: d - portes[nom] if nom in portes else d for nom, d in champs.items()})
 
-        finis, rabot = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
+        finis, _ = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
                                                mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees,
-                                                               portes=list(portes)), rabot,
+                                                               portes=list(portes)),
                                                portes)
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
@@ -605,4 +603,3 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
     refuser_les_inertes(finis)
     for peau in secondaires:
         transferer_les_cles(corps, peau, cles)
-    return rabot

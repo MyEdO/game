@@ -100,9 +100,8 @@ def region_locale(aretes, masque, anneaux, n):
     return anneaux_des_marquees(aretes, numpy.asarray(masque, dtype=float), anneaux, n)[0] >= 0
 
 
-def raboter(champ, noeud, aretes, facteur, mesurer, passes_max, cumul=None):
-    """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,) et par le rabot cumulé
-    `cumul` (sommets, clés) d'un rabot précédent (par défaut 1), rabotés passe après passe jusqu'à ce que `mesurer`
+def raboter(champ, noeud, aretes, facteur, mesurer, passes_max):
+    """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,), rabotés passe après passe jusqu'à ce que `mesurer`
     (champs complets, rabot cumulé de chaque sommet et clé -> (champs mesurés, force (arêtes, clés) dans [0, 1])) ne
     marque plus aucune arête, une arête marquée pour une clé quand sa force y est non nulle (#4002). Chaque passe
     repart des champs mesurés : une projection, comme la correction des silhouettes, s'y applique avant le rabot
@@ -116,8 +115,8 @@ def raboter(champ, noeud, aretes, facteur, mesurer, passes_max, cumul=None):
     Une arête marquée dont les deux extrémités ont un `facteur` nul, qu'aucune passe ne change, ou une arête marquée
     au-delà de `passes_max` passes, arrête la construction."""
     libre = (facteur > 0)[:, None, None]
-    cumul = aux_noeuds(numpy.ones(champ.shape[:2]) if cumul is None else cumul, noeud)
-    valeur = aux_noeuds(champ * facteur[:, None, None], noeud) * cumul[:, :, None]
+    cumul = aux_noeuds(numpy.ones(champ.shape[:2]), noeud)
+    valeur = aux_noeuds(champ * facteur[:, None, None], noeud)
     anneaux = numpy.zeros(valeur.shape[1], dtype=int)
     rabotees = {}
     for passe in range(passes_max + 1):

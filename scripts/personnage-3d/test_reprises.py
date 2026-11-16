@@ -37,11 +37,11 @@ class Reprise(unittest.TestCase):
         objet = bpy.data.objects.new('peau', maillage)
         bpy.context.scene.collection.objects.link(objet)
         objet.vertex_groups.new(name='os').add([1], 0.25, 'REPLACE')
-        blender(self.dossier).ecrire('passe-0003', {'passe': 3, 'rabot': numpy.arange(4.0)})
+        blender(self.dossier).ecrire('passe-0003', {'passe': 3, 'captures': numpy.arange(4.0)})
         bpy.ops.wm.read_factory_settings(use_empty=True)
         etat = blender(self.dossier).lire()
         self.assertEqual(etat['passe'], 3)
-        numpy.testing.assert_array_equal(etat['rabot'], numpy.arange(4.0))
+        numpy.testing.assert_array_equal(etat['captures'], numpy.arange(4.0))
         lu = bpy.data.objects['peau']
         self.assertAlmostEqual(lu.vertex_groups['os'].weight(1), 0.25)
 

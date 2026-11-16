@@ -318,23 +318,22 @@ class LissageSousCorrection(unittest.TestCase):
         brut[:, 1] = 0.1 * numpy.sin(5 * self.x[:, 2])
         return brut
 
-    def finir(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
+    def finir(self, bruts, bornes=BORNES, vers_le_monde=None):
         """Les champs finis de `raboter_sous_correction` sur les clés `bruts` au repère du mesh, repos `self.x` porté
-        dans ce repère par l'inverse de `vers_le_monde` (par défaut l'identité), depuis le rabot cumulé `rabot`."""
-        return self.finir_et_raboter(bruts, bornes, vers_le_monde, rabot)[0]
+        dans ce repère par l'inverse de `vers_le_monde` (par défaut l'identité)."""
+        return self.finir_et_raboter(bruts, bornes, vers_le_monde)[0]
 
-    def finir_et_raboter(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
+    def finir_et_raboter(self, bruts, bornes=BORNES, vers_le_monde=None):
         vers_le_monde = numpy.eye(3) if vers_le_monde is None else vers_le_monde
         repos = self.x @ numpy.linalg.inv(vers_le_monde)
         return self.raboter(bruts, lambda champs: un_site_par_nom({nom: hors_de(rapports(repos, d, self.aretes), bornes)
                                                                    for nom, d in champs.items()}),
-                            vers_le_monde, rabot)
+                            vers_le_monde)
 
-    def raboter(self, bruts, hors, vers_le_monde=None, rabot=None, portes=None):
+    def raboter(self, bruts, hors, vers_le_monde=None, portes=None):
         with contextlib.redirect_stdout(io.StringIO()):
             return raboter_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger,
-                                           numpy.eye(3) if vers_le_monde is None else vers_le_monde, hors, rabot,
-                                           portes)
+                                           numpy.eye(3) if vers_le_monde is None else vers_le_monde, hors, portes)
 
     def porte(self):
         """Une silhouette à os sur le cylindre : les sommets tenus (`libre` nul) tout à un os rigide de déplacement
@@ -470,18 +469,6 @@ class LissageSousCorrection(unittest.TestCase):
         self.assertTrue(numpy.array_equal(fini, corrige))
         self.assertEqual(self.hors(fini), 0)
         self.assertEqual(numpy.abs(fini[self.libre == 0]).max(), 0.0)
-
-    def test_le_tour_suivant_repart_du_rabot_cumule_et_ne_rabote_plus_les_memes_cles(self):
-        brut = numpy.zeros_like(self.x)
-        brut[:, 1] = 0.3 * numpy.sin(25 * self.x[:, 2])
-        bruts = {'k': brut}
-        fini, rabot = self.finir_et_raboter(bruts)
-        self.assertLess(rabot['k'].min(), 1.0)
-        vus = len(self.vus)
-        repris, rabot_repris = self.finir_et_raboter(bruts, rabot=rabot)
-        self.assertEqual(len(self.vus), vus + 1)
-        self.assertLess(numpy.abs(repris['k'] - fini['k']).max(), TOLERANCE)
-        numpy.testing.assert_array_equal(rabot_repris['k'], rabot['k'])
 
     def test_le_rabot_se_mesure_sur_le_champ_corrige(self):
         """Un correcteur bouchon qui annule la moitié basse : la bosse qu'il efface ne se rabote pas."""
