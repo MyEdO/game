@@ -184,7 +184,7 @@ func retiree(case: Vector2i, rangee: int) -> bool:
 
 ## Si le masque posé (`retirer`) retire la case `case` (sa couche en `z`) du plan `pose` de sa couche
 ## (`MiseEnPage.rangee_de_pose`), celui où se rangent les faces d'un décor (`PoseDeDecor.case`). Une case hors du monde
-## posé (`poser`), celle d'une pose du monde précédent que `MontageDesModeles.poser` n'a pas encore retirée, ne l'est pas.
+## posé (`poser`), celle d'une pose du monde précédent que `MontageDesModeles` tient jusqu'à son `poser`, ne l'est pas.
 func posee_retiree(case: Vector3i) -> bool:
 	if _masque == null or not _couches.has(case.z):
 		return false
