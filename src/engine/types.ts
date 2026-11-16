@@ -1112,6 +1112,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   minRangeBand?: RangeBandId;
   /** #2967 */
   apparence?: string;
+  /** Composant d'incantation (`isSpellComponent`) : id du Sort qu'il favorise ; absent, le composant reste à lier. LDB 46 l.113 */
+  sortLie?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;
   /** Quantité (paquet de munitions, ex. « (12) » → 12). */
@@ -1497,12 +1499,6 @@ export interface Combatant {
   barre?: DispositionConsole;
   /** Sorts/prières connus — `id` de `src/data/spells.json`, résolus par `findSpellById`. */
   spells?: string[];
-  /** Composants d'incantation possédés (LDB 46 l.107-113) — `id` des Sorts d'Arcane/Domaine pour
-   *  lesquels le héros a acheté un composant (coût = NI pistoles d'argent, « acheté pour un Sort
-   *  spécifique »). Sous la règle optionnelle `magie-composant`, le composant absorbe les pires
-   *  effets du contrecoup : Imparfaite Majeure → Mineure, Mineure → annulée ; consommé à l'incantation
-   *  (succès OU échec, Imparfaite OU PAS). Persisté entre combats. */
-  componentSpells?: string[];
   /** Points de Péché (LDB 40 l.30-36) — Bienheureux ayant violé les commandements de
    *  son dieu. Octroyés par le MJ/l'auteur (Effet `giveSin`), jamais inventés ; pas de
    *  maximum ; chaque jet de Colère des dieux en retire 1 (l.53). Persisté entre combats. */

@@ -161,8 +161,9 @@ import {
 import {
   isStupid,
   flyMeters, runMultiplier,
-  isSkittishMount, immuneToSpellDomain,
+  isSkittishMount, immuneToSpellDomain, traitCapability,
 } from '../engine/traits/dispatch';
+import { isRation } from '../engine/provisions';
 import {
   isMagicMissile,
   prayerWrathTriggered,
@@ -194,6 +195,8 @@ import {
   zdeRadiusTiles,
   rayonDeGabaritEnCases,
   isArcaneSpell,
+  composantLie,
+  prendUnComposant,
   castInfoIsPrayer,
   focusSkillFor,
   castLandProbability,
@@ -5103,26 +5106,26 @@ export function resumeManeuverDefense(get: Get, set: SetFn, resume: { attackerId
 
 
 /**
- * Composant d'incantation (LDB 46 l.107-113, règle optionnelle `magie-composant`) — appelé UNE fois
- * au point d'incantation d'un Sort d'Arcane/Domaine par un lanceur qui suit les règles de PERSONNAGE
- * (#143 — `followsCharacterRules`, PAS un proxy `kind`). Si un composant pour ce Sort est possédé :
- * il est CONSUMÉ « même si aucune Incantation Imparfaite n'a été obtenue » (l.111), une ligne est
- * journalisée, et `true` est renvoyé → toute Imparfaite de ce lancement sera dégradée (passé en
- * `componentDowngrade` à `applyMiscast`). Mute `caster.componentSpells`. Renvoie `false` (sans effet)
- * si la règle est éteinte, le lanceur ne suit pas les règles de Personnage, ou aucun composant ne
- * couvre le Sort. `lines` reçoit la ligne « composant consumé » le cas échéant.
+ * Composant d'incantation, appelé UNE fois au point d'incantation d'un Sort : le composant que porte le lanceur
+ * pour CE Sort (`composantLie`) est consumé, une ligne est journalisée, et `true` est renvoyé → toute Imparfaite
+ * de ce lancement sera dégradée (`componentDowngrade` à `applyMiscast`). Sans composant lié, `false`, rien ne
+ * bouge. LDB 46 l.107-113
  */
 export function useSpellComponent(caster: Combatant, spellId: string, lines: string[]): boolean {
-  if (!followsCharacterRules(caster) || rule('magie-composant') !== true) return false;
-  const owned = caster.componentSpells ?? [];
-  if (!owned.includes(spellId)) return false;
-  const i = owned.indexOf(spellId);
-  const next = [...owned];
-  next.splice(i, 1); // retire UNE occurrence (consommée par l'incantation)
-  caster.componentSpells = next;
-  // LDB 46 l.111
+  const composant = composantLie(caster, spellId);
+  if (!composant) return false;
+  caster.items = caster.items!.filter((it) => it !== composant);
   lines.push(tr('cf.composanteConsommee', { name: caster.label }));
   return true;
+}
+
+/** Le lanceur à capacité `castingHunger` qui lance un Sort à composant sans en consumer un, et sans Vivres sur
+ *  lui, perd 1 Blessure par NI du Sort (op `wounds`). ADE II 2 l.726 */
+function faimALIncantation(get: Get, caster: Combatant, spell: NonNullable<ReturnType<typeof findSpell>>, componentUsed: boolean, lines: string[]): void {
+  if (componentUsed || !prendUnComposant(spell) || !traitCapability(caster.traits, 'castingHunger')) return;
+  if ((caster.items ?? []).some(isRation)) return;
+  const n = spell.cn ?? 0;
+  lines.push(tr('cf.faimALIncantation', { name: caster.label, spell: spell.label, n }), ...applyOps(caster, [{ op: 'wounds', amount: n }], { idNeuf: get().forgerUnId, rng: battleRng(), caster }));
 }
 
 // ---------------------------------------------------------------------------
@@ -5178,11 +5181,8 @@ function liveSinPoints(caster: Combatant, severity: MiscastSeverity): number {
  * réduction à 0 + Inconscient). Retourne les lignes de journal.
  */
 export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: MiscastSeverity, opts?: { suppressReveal?: boolean; componentDowngrade?: boolean; sorceryCorruption?: boolean; domainId?: string; targetIds?: string[] }): string[] {
-  // Composant d'incantation (LDB 46 l.111, règle optionnelle) : si un composant adapté a été
-  // SACRIFIÉ pour ce Sort (consommation décidée et journalisée au point d'incantation — cf.
-  // `useSpellComponent`), il absorbe les pires effets du contrecoup : « toute Incantation Imparfaite
-  // Majeure devient Mineure, et aucune Incantation Imparfaite Mineure n'a d'effet ». La transformation
-  // de sévérité est PURE (engine/miscast.componentDowngrade) ; ne touche pas la Colère des dieux.
+  // Composant consumé au point d'incantation (`useSpellComponent`) : la sévérité se dégrade
+  // (engine/miscast.componentDowngrade), jamais la Colère des dieux. LDB 46 l.111
   if (opts?.componentDowngrade && severity !== 'colere') {
     const downgraded = componentDowngrade(severity);
     if (downgraded === null) {
@@ -6741,11 +6741,9 @@ export function applyCast(
     }
   }
   const logLines: string[] = res.touche ? [] : [res.log];
-  // Composant d'incantation (LDB 46 l.107-113, règle optionnelle) : consommé UNE fois par lancement
-  // d'un Sort d'Arcane/Domaine couvert, « même si aucune Incantation Imparfaite n'a été obtenue »
-  // (l.111). `componentUsed` → toute Imparfaite de ce lancement est dégradée (Majeure→Mineure,
-  // Mineure→annulée). N'a pas lieu pour une Prière (l.113 : composants = Sorts d'Arcane/Domaine).
+  // LDB 46 l.111 ; LDB 46 l.113
   const componentUsed = isSort && useSpellComponent(caster, spell.id, logLines);
+  if (isSort) faimALIncantation(get, caster, spell, componentUsed, logLines);
   // Malepierre PORTÉE (`VDM 02 l.163-165`) : le doublement du DR (déjà figé sur `res.malepierreConsumed`,
   // `engine/magic.ts`) décrémente ICI la réserve — seul point d'ÉCRITURE (`consumeMalepierre`).
   const malepierreItem = res.malepierreConsumed ? malepierreItemOf(caster) : undefined;

@@ -838,6 +838,8 @@ export interface ItemCapabilities {
   isRations?: boolean;
   /** Grimoire / livre de Sorts (LDB 47 l.21) — un Sort non mémorisé du Domaine peut y être lu (NON gaté). */
   isGrimoire?: boolean;
+  /** Composant d'incantation (LDB 46 l.107-113), lié à un Sort par `ItemInstance.sortLie` (NON gaté). */
+  isSpellComponent?: boolean;
   /** Outils de crochetage (LDB 67 l.66 : « nécessaire pour utiliser la Compétence Crochetage sans
    *  pénalité ») — consommé par `SkillData.tool` (crochetage → −10 sans outil, LDB 09 l.168). NON gaté
    *  sur le port : les posséder suffit (on les sort pour s'en servir, comme `isRations`). */

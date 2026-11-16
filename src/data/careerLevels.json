@@ -10776,7 +10776,10 @@
         "spec": "sanglant"
       },
       {
-        "text": "10 Ingrédients ésotériques"
+        "id": "composant-d-incantation",
+        "count": {
+          "fixed": 10
+        }
       },
       {
         "id": "crane",
