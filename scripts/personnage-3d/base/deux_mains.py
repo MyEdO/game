@@ -16,8 +16,9 @@ Un clip dérivé tient la peau de ses avant-bras et de ses mains hors du tronc s
 `tronc.TRONC`, carrures comprises, les os déplacés comme l'hôte les joue, mesurée comme la mesure la garde `membres`
 (`tronc`) : avant l'IK, l'arme sort la peau des deux mains, qui avancent avec elle le long de l'avant du tronc posé
 (`tronc.avant`), d'une grandeur positive continue dans le temps (`ecarter`, `ecart`) ; l'IK choisit le tour
-du coude qui écarte la peau entière ; une peau que l'IK laisse dans le tronc refuse le clip, et sa clé de geste est à
-reprendre (#4002, #3810).
+du coude qui écarte la peau entière ; une peau que l'IK laisse dans le tronc au-delà de la tolérance de la garde
+`membres`, à sa profondeur exacte (`ecart.enfoncement`), refuse le clip, et sa clé de geste est à reprendre (#4002,
+#3810).
 
 Le roulis de l'arme et le tour de chaque coude se choisissent sur le clip entier : le chemin retenu
 est celui qui paie le moins, poses et vitesses comprises (`chemin`, `poser_les_bras`, #3878).
@@ -36,8 +37,8 @@ from anatomie import zone_de_l_os
 from animation import assign_action, meshes_for
 from pistes import aller_a, sacs
 from poids import cadence, deformer, instants, peau_lineaire
-from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE, VITESSE_DU_POIGNET
-from ecart import ECART_DU_TRONC, POUSSEE, enfoncement, envelopper, poussee_requise
+from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE, SOL_TOLERANCE_M, VITESSE_DU_POIGNET
+from ecart import ECART_DU_TRONC, enfoncement, envelopper, poussee_requise
 from tronc import (BRAS, TRONC, avant, chaine_du_bras, coude, matrices_de_la_chaine, membre_pose, peau_du_membre,
                    peau_du_tronc, poser_le_membre, profondeurs, repos_de_la_chaine, tetes_du_bras, tronc_pose)
 
@@ -279,6 +280,44 @@ def hors_des_bornes(rotation, bornes):
     return sum(max(0.0, v[i] - bornes[a][1] + MARGE_DES_BORNES, bornes[a][0] + MARGE_DES_BORNES - v[i]) for i, a in enumerate('xyz'))
 
 
+def lire_le_bras(pose, cote):
+    """Le bras `cote` posé (`BRAS`), lu sur les os de pose `pose` du rig : la rotation de l'avant-bras depuis son repos
+    sous le bras et celle de la main depuis son repos sous l'avant-bras (`matrix_basis`), et l'orientation de la main
+    sur l'avant-bras (quaternion)."""
+    _, avant_bras, main = (pose[n] for n in BRAS[cote])
+    return (avant_bras.matrix_basis.to_3x3(), main.matrix_basis.to_3x3(),
+            (avant_bras.matrix.to_3x3().transposed() @ main.matrix.to_3x3()).to_quaternion())
+
+
+def defaut_du_bras(cote, images, lectures, etirements, verifiees):
+    """Le premier contrôle que manque le bras `cote` posé sur un clip, commun aux clips dérivés (`deriver`) et aux clips
+    du pack (`membres`), et la plus grande vitesse de sa main sur son avant-bras lue en chemin. Par image de `images`
+    (instants, en images de `poids.cadence`) : `lectures`, le bras lu (`lire_le_bras`) ; `etirements`, le plus grand
+    et le plus petit rapport de longueur des arêtes de la peau que meut le bras (`etirement_du_bras`). Aux images d'indices
+    `verifiees`, l'avant-bras et la main restent dans leurs bornes (`BORNES`, `hors_des_bornes`) et la peau dans
+    `ETIREMENT_EN_CLIP` ; d'une image à la suivante, l'une des deux vérifiée, la main tourne sur l'avant-bras à au plus
+    `VITESSE_DU_POIGNET`. Rend (contrôle, instant, valeur) ou `None`, et la vitesse en degrés par seconde."""
+    _, os_avant_bras, os_main = BRAS[cote]
+    paires = sorted({j for k in verifiees for j in (k, k + 1) if 0 < j < len(images)})
+    vitesse = 0.0
+    for k in sorted(verifiees):
+        avant_bras, main, _ = lectures[k]
+        for nom, rotation in ((os_avant_bras, avant_bras), (os_main, main)):
+            hors = hors_des_bornes(rotation, BORNES[nom])
+            if hors > 0:
+                return (f'bornes de {nom}', images[k], round(hors, 1)), vitesse
+        haut, bas = etirements[k]
+        if haut > ETIREMENT_EN_CLIP[1] or bas < ETIREMENT_EN_CLIP[0]:
+            return ('étirement', images[k], (round(float(haut), 3), round(float(bas), 3))), vitesse
+    for j in paires:
+        angle = lectures[j - 1][2].rotation_difference(lectures[j][2]).angle
+        vitesse_ = math.degrees(min(angle, 2 * math.pi - angle)) / ((images[j] - images[j - 1]) / cadence())
+        if vitesse_ > VITESSE_DU_POIGNET:
+            return ('vitesse du poignet', images[j], round(vitesse_)), vitesse
+        vitesse = max(vitesse, vitesse_)
+    return None, vitesse
+
+
 def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, pronation, bornes, repos=None, peau=None, membre=None):
     """Les poses d'un bras dont la main prend la matrice `main` : le bras tourne au plus court depuis `axes_epaule` (sa pose
     au repos sous la clavicule), sans torsion, comme dans les clips sources ; l'avant-bras plie depuis le bras, puis tourne
@@ -496,8 +535,8 @@ def poser_les_bras(images, durees, tours_de_l_arme):
     le roulis de l'arme et les tours des deux coudes suivent `choisir` ; `durees` et `tours_de_l_arme` : ceux de
     `chemin`. L'arme de chaque image avance le long de l'avant de son tronc (`tronc.avant`) de l'enveloppe
     (`envelopper`) des poussées requises par la peau des deux mains (`ecarter`, `BrasDeLImage.mains`), puis l'IK pose
-    les bras (`choisir`). Rend aussi, par image, le sommet le plus enfoncé de la peau entière posée (`enfoncement`) :
-    son enfoncement, son jeu et la zone de son os dominant (`BrasDeLImage.zones`)."""
+    les bras (`choisir`). Rend aussi, par image, le sommet le plus enfoncé de la peau entière posée, à sa profondeur
+    exacte (`ecart.enfoncement`) : son enfoncement, son jeu et la zone de son os dominant (`BrasDeLImage.zones`)."""
     troncs = [image.tronc for image in images]
     avancees = envelopper(ecarter(troncs, [image.mains(Vector()) for image in images]), numpy.cumsum(durees))
     translations = [Vector(avant(t)) * float(s) for t, s in zip(troncs, avancees)]
@@ -509,14 +548,24 @@ def poser_les_bras(images, durees, tours_de_l_arme):
     return [(roule, bras_, t) for (roule, bras_), t in zip(poses, translations)], restes
 
 
+def refus_du_tronc(nom, image, reste):
+    """Le refus du clip `nom` à l'`image` dont la peau posée la plus enfoncée est `reste` (`poser_les_bras`), ou `None` :
+    une peau plus enfoncée que `SOL_TOLERANCE_M`, à sa profondeur exacte, est dans le tronc pour la garde `membres`."""
+    enfonce, jeu, zone = reste
+    if enfonce <= SOL_TOLERANCE_M:
+        return None
+    return (f'{nom} image {image} : peau {zone} enfoncée de {enfonce * 100:.2f} cm dans le tronc sous '
+            f'{"+".join(TRONC["silhouettes"][jeu]) or "le corps neutre"}')
+
+
 def deriver(bpy, rig, reperes):
     """Les actions de `CLIPS`, ajoutées au rig `rig` d'après ses clips sources, aux instants de chacun (`poids.instants`),
     sur la peau aux poids corrigés et les clips sources posés au sol (après le point fixe de `humanoide.construire`) ;
     `reperes` : par prise `main` et `secondaire`, son os et son repère dans celui de cet os (`anatomie.reperes_des_prises`).
     Les avant-bras, les mains et l'arme se tiennent à l'écart du tronc sous chaque jeu de `tronc.TRONC`, os des
-    silhouettes compris (`poser_les_bras`, #4002, #3810) ; une peau que l'IK laisse dans le tronc refuse le clip, comme un
-    poignet trop tordu, une peau du bras trop étirée, ou une main qui tourne sur son avant-bras plus vite que
-    `VITESSE_DU_POIGNET` (#3878)."""
+    silhouettes compris (`poser_les_bras`, #4002, #3810) ; une peau que l'IK laisse dans le tronc plus enfoncée que
+    `SOL_TOLERANCE_M`, à sa profondeur exacte, refuse le clip, comme un poignet trop tordu ou un bras qui manque un
+    contrôle de `defaut_du_bras` (#3878)."""
     repos = {b.name: b.matrix_local.copy() for b in rig.data.bones}
     longueurs = {cote: ((repos[c].translation - repos[e].translation).length, (repos[m].translation - repos[c].translation).length)
                  for cote, (e, c, m) in BRAS.items()}
@@ -574,31 +623,19 @@ def deriver(bpy, rig, reperes):
             armes.append(cadre.to_3x3().inverted() @ arme.to_3x3())
         poses, restes = poser_les_bras(bras_des_images, [0.0] + [b - a for a, b in zip(images, images[1:])],
                                        [0.0] + [tour_du_repere(a, b) for a, b in zip(armes, armes[1:])])
-        ecart, poussee, vitesse, poignets = 0.0, 0.0, 0.0, {'torsion': 0, 'flexion': 0, 'coude': 1.0, 'bornes': 0.0}
-        precedentes = None
+        ecart, poussee, poignets = 0.0, 0.0, {'torsion': 0, 'flexion': 0, 'coude': 1.0, 'bornes': 0.0}
+        lectures, etirements = {c: [] for c in BRAS}, {c: [] for c in BRAS}
         for image, bras_de_l_image_, (roule, bras_, translation), (enfonce, jeu, zone) in zip(images, bras_des_images, poses, restes):
-            if enfonce > POUSSEE['refus']:
-                raise ValueError(f'{nom} image {image} : peau {zone} enfoncée de {enfonce * 100:.1f} cm dans le tronc sous '
-                                 f'{"+".join(TRONC["silhouettes"][jeu]) or "le corps neutre"}')
+            refus = refus_du_tronc(nom, image, (enfonce, jeu, zone))
+            if refus:
+                raise ValueError(refus)
             aller_a(scene, image)
-            mains_sur_l_avant_bras = {}
             for cote_, (_, humerus, axes_avant_bras, articulation, _, (torsion_, tourne, flexion_, _, hors, etire, ecrase)) in bras_.items():
                 if abs(torsion_ - tourne) > POIGNET['torsion_max'] or flexion_ > POIGNET['flexion_max']:
                     raise ValueError(f'{nom} image {image} : poignet {cote_} tordu de {torsion_ - tourne}°, plié de {flexion_}°')
-                if etire > ETIREMENT_EN_CLIP[1] or ecrase < ETIREMENT_EN_CLIP[0]:
-                    raise ValueError(f'{nom} image {image} : peau du bras {cote_} étirée à {etire:.2f}, écrasée à {ecrase:.3f}')
                 poignets = {'torsion': max(poignets['torsion'], abs(torsion_ - tourne)), 'flexion': max(poignets['flexion'], flexion_),
                             'coude': round(max(poignets['coude'], etire), 2), 'bornes': max(poignets['bornes'], hors)}
                 finale = roule @ mains[cote_]
-                mains_sur_l_avant_bras[cote_] = (axes_avant_bras.transposed() @ finale.to_3x3()).to_quaternion()
-                if precedentes is not None:
-                    angle = precedentes[1][cote_].rotation_difference(mains_sur_l_avant_bras[cote_]).angle
-                    tourne_de = math.degrees(min(angle, 2 * math.pi - angle))
-                    vitesse_ = tourne_de / ((image - precedentes[0]) / cadence())
-                    if vitesse_ > VITESSE_DU_POIGNET:
-                        raise ValueError(f'{nom} image {image} : main {cote_} tournée de {tourne_de:.1f}° sur son avant-bras '
-                                         f'depuis l\'image {precedentes[0]}, soit {vitesse_:.0f}°/s pour {VITESSE_DU_POIGNET}')
-                    vitesse = max(vitesse, vitesse_)
                 epaule, avant_bras, os_main = (pose[n] for n in BRAS[cote_])
                 for os_, axes, origine in ((epaule, humerus, bras_de_l_image_.epaules[cote_]), (avant_bras, axes_avant_bras, articulation)):
                     matrice = axes.to_4x4()
@@ -610,10 +647,17 @@ def deriver(bpy, rig, reperes):
                 os_main.matrix = finale
                 bpy.context.view_layer.update()
                 ecart = max(ecart, (cible - os_main.matrix.translation).length)
-            precedentes = (image, mains_sur_l_avant_bras)
+                lectures[cote_].append(lire_le_bras(pose, cote_))
+                etirements[cote_].append((etire, ecrase))
             poussee = max(poussee, translation.length)
             for n in bras_animes:
                 pose[n].keyframe_insert('rotation_quaternion', frame=image)
+        vitesse = 0.0
+        for cote_ in BRAS:
+            defaut, vitesse_ = defaut_du_bras(cote_, images, lectures[cote_], etirements[cote_], range(len(images)))
+            if defaut is not None:
+                raise ValueError(f'{nom} bras {cote_} : {defaut[0]} à l\'image {defaut[1]} : {defaut[2]}')
+            vitesse = max(vitesse, vitesse_)
         print('DEUX_MAINS', nom, 'de', source_nom, 'images', len(images), 'écart de main', round(ecart, 4), 'poignet',
               poignets, 'vitesse du poignet', round(vitesse), 'arme poussée', round(poussee, 4),
               'peau la plus enfoncée', round(max(d for d, _, _ in restes), 4), flush=True)

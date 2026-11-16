@@ -1,7 +1,8 @@
 """tronc (#3810) : la posture du tronc est la moyenne pondérée des rotations de ses os ; le champ d'une boîte fermée porte
 son enfoncement, tournée ou non, signé et à 2 mm près, profond compris ; un tube ouvert en haut et en bas contient son axe et
 non le dessus de son ouverture, couché par ses os comme debout, et son avant suit sa posture ; un point loin du tronc est
-dehors ; un point dans une boîte ou à portée d'elle est atteint, un point au-delà non ; sous une silhouette à os, le
+dehors ; la profondeur exacte d'un point dans une boîte ou un tube ouvert est sa distance au plus proche triangle, un
+point dehors ou au-dessus de l'ouverture est à `-inf` ; un point dans une boîte ou à portée d'elle est atteint, un point au-delà non ; sous une silhouette à os, le
 tronc posé et la peau du membre posée sous une autre pose de la chaîne sont ceux du squelette déplacé explicite (#4002) ; le coude
 d'un bras à deux os atteint la cible à portée en gardant ses segments et plie du côté du pôle, ramène une cible hors de
 portée sur la sphère de portée."""
@@ -19,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from sol import tetes_deplacees  # noqa: E402
 from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, autour_de_l_avant, peaux  # noqa: E402
 from tronc import (CHAMP, MembrePose, PeauDuMembre, PeauDuTronc, atteints, avant, champ, coude,  # noqa: E402
-                   lire_le_champ, membre_pose, posture_du_tronc, poser_le_membre, profondeurs, tronc_pose)
+                   lire_le_champ, membre_pose, posture_du_tronc, poser_le_membre, profondeurs, profondeurs_exactes, tronc_pose)
 
 BAS, HAUT = numpy.array([-0.2, -0.15, 0.8]), numpy.array([0.2, 0.15, 1.4])
 
@@ -110,12 +111,33 @@ class Atteints(unittest.TestCase):
         self.assertEqual(atteints(boite(), points, 0.01).tolist(), [True, True, False, False, True])
 
 
+def tronc_en_tube(matrice):
+    """Le `TroncPose` du tube ouvert (`tube`) sur un seul os de matrice de peau `matrice`, un seul jeu."""
+    sommets, faces = tube()
+    x = numpy.c_[sommets, numpy.ones(len(sommets))]
+    return tronc_pose(PeauDuTronc(x[None], numpy.ones((len(x), 1)), faces, numpy.array([-1]), numpy.zeros((1, 1, 3))),
+                      matrice[None])
+
+
+class ProfondeurExacte(unittest.TestCase):
+    def test_dans_une_boite_la_distance_au_plus_proche_triangle_dehors_moins_l_infini(self):
+        points = numpy.array([[[0.0, 0.0, 1.4 - 0.003], [0.05, -0.15 + 0.007, 1.0], [0.01, -0.15 + 0.08, 1.1],
+                               [0.0, -0.15 - 0.002, 1.1], [0.5, 0.0, 1.1]]])
+        vus = profondeurs_exactes(tronc_en_boite(), points)[0]
+        numpy.testing.assert_allclose(vus[:3], [0.003, 0.007, 0.08], atol=1e-3)
+        self.assertEqual(vus[3:].tolist(), [-math.inf, -math.inf])
+
+    def test_dans_un_tube_ouvert_l_axe_est_dedans_a_son_rayon_le_dessus_de_l_ouverture_dehors(self):
+        points = numpy.array([[[0.0, 0.0, 1.1], [0.0, 0.0, 1.41], [0.115, 0.0, 1.1], [0.1, 0.1, 1.1]]])
+        vus = profondeurs_exactes(tronc_en_tube(numpy.eye(4)), points)[0]
+        self.assertAlmostEqual(vus[0], 0.12 * math.cos(math.pi / 32), delta=1e-3)
+        self.assertAlmostEqual(vus[2], 0.005, delta=1e-3)
+        self.assertEqual(vus[[1, 3]].tolist(), [-math.inf, -math.inf])
+
+
 class ChampDUnTube(unittest.TestCase):
     def tronc(self, matrice):
-        sommets, faces = tube()
-        x = numpy.c_[sommets, numpy.ones(len(sommets))]
-        return tronc_pose(PeauDuTronc(x[None], numpy.ones((len(x), 1)), faces, numpy.array([-1]), numpy.zeros((1, 1, 3))),
-                          matrice[None])
+        return tronc_en_tube(matrice)
 
     def test_son_axe_est_dedans_et_le_dessus_de_son_ouverture_dehors(self):
         vus = profondeurs(self.tronc(numpy.eye(4)), numpy.array([[[0.0, 0.0, 1.1], [0.0, 0.0, 1.41]]]))[0]

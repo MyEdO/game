@@ -12,9 +12,10 @@ import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from ecart import ECART_DU_TRONC, POUSSEE, RACCORD, enfoncement, envelopper, poussee_requise  # noqa: E402
+from ecart import ECART_DU_TRONC, POUSSEE, RACCORD, envelopper, poussee_requise  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from test_tronc import tronc_en_boite  # noqa: E402
+from tronc import profondeurs  # noqa: E402
 
 
 class Poussee(unittest.TestCase):
@@ -25,7 +26,7 @@ class Poussee(unittest.TestCase):
         poussee = poussee_requise(tronc, peau)
         self.assertGreaterEqual(poussee, requise - 1e-9)
         self.assertLessEqual(poussee, requise + POUSSEE['tolerance'])
-        self.assertLessEqual(enfoncement(tronc, peau + (0.0, -poussee, 0.0))[0], -ECART_DU_TRONC['marge'])
+        self.assertLessEqual(profondeurs(tronc, peau + (0.0, -poussee, 0.0)).max(), -ECART_DU_TRONC['marge'])
 
     def test_une_peau_dehors_ne_bouge_pas(self):
         self.assertEqual(poussee_requise(tronc_en_boite(), numpy.array([[[0.01, -0.15 - ECART_DU_TRONC['marge'] - 0.002, 1.1]]])), 0.0)

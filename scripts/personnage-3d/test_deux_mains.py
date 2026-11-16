@@ -10,7 +10,9 @@ prise de chaque arme tourne comme celle des clips de son maniement ;
 sous une silhouette à os, les têtes déplacées sont celles du squelette déplacé explicite ; le prix du tronc compte le
 pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; la poussée requise est nulle là où l'avancée ne
 sort pas la peau (#4002, #3810) ; l'arme n'avance que pour la peau des mains, et la peau entière que l'IK laisse dans le
-tronc se rend avec son jeu et la zone de son os dominant (#3810) ;
+tronc se rend avec son jeu et la zone de son os dominant, à sa profondeur exacte : à 3 mm dedans elle passe, à 7 mm
+elle refuse le clip ; un bras posé manque le contrôle d'une main qui tourne trop vite sur son avant-bras ou d'une peau
+trop étirée (#3810) ;
 le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
 l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
 import json
@@ -21,13 +23,13 @@ from pathlib import Path
 
 import bpy
 import numpy
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from deux_mains import (CLIPS, CONTINUITE, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS, PeauDuBras, bras,  # noqa: E402
-                        chemin, cle, ecarter, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
-                        poser_les_bras, prix_du_tronc, repere_de_l_arme, tour_du_repere)
+                        chemin, cle, defaut_du_bras, ecarter, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
+                        poser_les_bras, prix_du_tronc, refus_du_tronc, repere_de_l_arme, tour_du_repere)
 from ecart import ECART_DU_TRONC, POUSSEE  # noqa: E402
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
 from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
@@ -187,6 +189,22 @@ class Tronc(unittest.TestCase):
         self.assertEqual(requises[1], 0.0)
 
 
+class DefautDuBras(unittest.TestCase):
+    def lectures(self, tours):
+        return [(Matrix.Identity(3), Matrix.Identity(3), Quaternion((0, 0, 1), math.radians(t))) for t in tours]
+
+    def test_une_main_qui_tourne_sur_son_avant_bras_au_dela_de_la_vitesse_manque_le_controle_aux_images_verifiees(self):
+        images, etirements = [0.0, 1.0, 2.0], [(1.0, 1.0)] * 3
+        self.assertIsNone(defaut_du_bras('l', images, self.lectures((0, 1, 2)), etirements, range(3))[0])
+        vite = self.lectures((0, 0, 179))
+        self.assertEqual(defaut_du_bras('l', images, vite, etirements, range(3))[0][:2], ('vitesse du poignet', 2.0))
+        self.assertIsNone(defaut_du_bras('l', images, vite, etirements, [0])[0])
+
+    def test_une_peau_trop_etiree_manque_le_controle(self):
+        defaut, _ = defaut_du_bras('l', [0.0], self.lectures((0,)), [(4.0, 1.0)], [0])
+        self.assertEqual(defaut, ('étirement', 0.0, (4.0, 1.0)))
+
+
 class PoserLesBras(unittest.TestCase):
     class Image:
         """Une image sur le tronc en boîte dont la peau des mains est `mains` et la peau entière posée `peau`, l'arme
@@ -217,6 +235,12 @@ class PoserLesBras(unittest.TestCase):
         self.assertEqual((restes[0][1], restes[0][2]), (0, 'avant_bras_g'))
         self.assertAlmostEqual(restes[0][0], 0.004, delta=1e-3)
         self.assertLess(restes[1][0], 0.0)
+
+    def test_une_peau_a_3_mm_dans_le_tronc_passe_a_7_mm_refuse_le_clip(self):
+        images = [self.Image([(0.0, -0.3, 1.1)], [(0.0, -0.15 + p, 1.1)], ['main_d']) for p in (0.003, 0.007)]
+        _, restes = poser_les_bras(images, [0.0, 1e3], [0.0, 0.0])
+        self.assertIsNone(refus_du_tronc('Clip', 0.0, restes[0]))
+        self.assertIn('main_d enfoncée de 0.70 cm', refus_du_tronc('Clip', 1.0, restes[1]))
 
 
 class Interpolation(unittest.TestCase):

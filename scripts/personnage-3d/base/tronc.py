@@ -18,7 +18,8 @@ grandeur est sa distance aux triangles à moins de `CHAMP['portee']`, sinon sa d
 surface par les trois droites des axes qui le portent ; dehors, elle se borne à `CHAMP['portee']`. Entre les nœuds,
 l'enfoncement s'interpole en trilinéaire (`lire_le_champ`) ; hors de la grille, tout point est dehors, à
 `CHAMP['portee']`. Sans champ, un point se sait dans le tronc ou à portée de lui par la même parité et sa distance aux
-triangles proches (`atteints`).
+triangles proches (`atteints`), et sa profondeur exacte par la même parité et sa distance au plus proche triangle
+(`profondeurs_exactes`) : le champ vise, la profondeur exacte décide (#3810).
 
 Repère Blender du rig : +X la gauche du personnage, −Y l'avant, +Z le haut.
 """
@@ -271,11 +272,13 @@ def lire_le_champ(champ_, points):
 class TroncPose(NamedTuple):
     """Le tronc posé (`tronc_pose`) : par jeu, les positions de ses sommets (jeux, sommets, 3), le déplacement ΔJ de la
     tête posée de chaque os (`sol.tetes_deplacees`, jeux, os, 3) et son `Champ` ; `retour`, la rotation (3, 3) qui
-    ramène le repère du rig à celui du tronc au repos, l'inverse de sa posture (`posture_du_tronc`)."""
+    ramène le repère du rig à celui du tronc au repos, l'inverse de sa posture (`posture_du_tronc`) ; ses triangles
+    d'indices de sommets (`PeauDuTronc.triangles`)."""
     positions: numpy.ndarray
     tetes: numpy.ndarray
     champs: list
     retour: numpy.ndarray
+    triangles: numpy.ndarray
 
 
 def tronc_pose(tronc, matrices, champs=True):
@@ -283,7 +286,7 @@ def tronc_pose(tronc, matrices, champs=True):
     sans ses champs si `champs` est faux (`champs_du_tronc`), ses sommets lus par `pres_du_tronc`."""
     tetes = numpy.stack([tetes_deplacees(matrices[None], tronc.parent, d)[0] for d in tronc.deplacements])
     positions = numpy.stack([poser(tronc.w, x, matrices, t, d) for x, t, d in zip(tronc.x, tetes, tronc.deplacements)])
-    pose = TroncPose(positions, tetes, [], posture_du_tronc(tronc.w.sum(axis=0), matrices).T)
+    pose = TroncPose(positions, tetes, [], posture_du_tronc(tronc.w.sum(axis=0), matrices).T, tronc.triangles)
     return champs_du_tronc(tronc, pose) if champs else pose
 
 
@@ -298,18 +301,12 @@ def profondeurs(tronc, points):
     return numpy.stack([lire_le_champ(c, p @ tronc.retour.T) for c, p in zip(tronc.champs, points)])
 
 
-def atteints(sommets, points, portee):
-    """Si chaque point de `points` (points, 3) est dans les triangles `sommets` (triangles, 3, 3), ou à moins de
-    `portee` d'eux, tous dans le repère du tronc au repos : dedans si ses deux demi-droites d'axe `AXE`, décalées de
-    `DECALAGE`, coupent chacune les triangles un nombre impair de fois. Seules les paires que la boîte d'un triangle
-    admet se calculent."""
+def _dedans(sommets, p):
+    """Si chaque point de `p` (points, 3) est dans les triangles `sommets` (triangles, 3, 3), tous dans le repère du
+    tronc au repos : ses deux demi-droites d'axe `AXE`, décalées de `DECALAGE`, coupent chacune les triangles un nombre
+    impair de fois. Seules les paires que la boîte d'un triangle admet se calculent."""
     a, b = [i for i in range(3) if i != AXE]
     bas, haut = sommets.min(axis=1), sommets.max(axis=1)
-    vus = numpy.zeros(len(points), dtype=bool)
-    retenus = numpy.flatnonzero(((points >= bas.min(axis=0) - portee) & (points <= haut.max(axis=0) + portee)).all(axis=1))
-    if not len(retenus):
-        return vus
-    p = points[retenus]
     q = p[:, [a, b]] + DECALAGE
     i, t = numpy.nonzero((q[:, None, 0] >= bas[:, a]) & (q[:, None, 0] <= haut[:, a]) & (q[:, None, 1] >= bas[:, b])
                          & (q[:, None, 1] <= haut[:, b]))
@@ -323,13 +320,45 @@ def atteints(sommets, points, portee):
         hauteurs = u * s[:, 0, AXE] + v * s[:, 1, AXE] + r * s[:, 2, AXE]
     dessus = numpy.bincount(i[coupe & (hauteurs > p[i, AXE])], minlength=len(p))
     dessous = numpy.bincount(i[coupe & (hauteurs < p[i, AXE])], minlength=len(p))
-    dedans = (dessus % 2 == 1) & (dessous % 2 == 1)
+    return (dessus % 2 == 1) & (dessous % 2 == 1)
+
+
+def atteints(sommets, points, portee):
+    """Si chaque point de `points` (points, 3) est dans les triangles `sommets` (triangles, 3, 3) (`_dedans`), ou à
+    moins de `portee` d'eux, tous dans le repère du tronc au repos."""
+    bas, haut = sommets.min(axis=1), sommets.max(axis=1)
+    vus = numpy.zeros(len(points), dtype=bool)
+    retenus = numpy.flatnonzero(((points >= bas.min(axis=0) - portee) & (points <= haut.max(axis=0) + portee)).all(axis=1))
+    if not len(retenus):
+        return vus
+    p = points[retenus]
+    dedans = _dedans(sommets, p)
     proches = ~dedans[:, None]
     for k in range(3):
         proches = proches & (p[:, None, k] >= bas[:, k] - portee) & (p[:, None, k] <= haut[:, k] + portee)
     i, t = numpy.nonzero(proches)
     dedans[i[distances_aux_triangles(p[i], sommets[t, 0], sommets[t, 1], sommets[t, 2]) <= portee]] = True
     vus[retenus] = dedans
+    return vus
+
+
+def profondeurs_exactes(tronc, points):
+    """Par jeu, la profondeur exacte dans le `TroncPose` `tronc` de chaque point de `points` (jeux, …, 3), dans le
+    repère du rig, comme la mesure la garde `membres` : un point dans la boîte du tronc et dedans (`_dedans`) est à sa
+    plus petite distance à un triangle du tronc, positive ; tout autre point est dehors, à `-inf`. La garde ne cherche
+    le triangle le plus proche qu'à `PORTEE_DU_VOISINAGE_M` autour du point, sinon à la plus proche traversée de ses
+    demi-droites : les deux mesures s'accordent sous 3 cm de profondeur (#3810)."""
+    vus = numpy.full(points.shape[:-1], -numpy.inf)
+    for jeu, (s, p) in enumerate(zip(tronc.positions, points)):
+        sommets = (s @ tronc.retour.T)[tronc.triangles]
+        p = p.reshape(-1, 3) @ tronc.retour.T
+        retenus = numpy.flatnonzero(((p >= sommets.min(axis=(0, 1))) & (p <= sommets.max(axis=(0, 1)))).all(axis=1))
+        retenus = retenus[_dedans(sommets, p[retenus])]
+        plat = vus[jeu].reshape(-1)
+        for lot in numpy.array_split(retenus, max(1, len(retenus) // 64)) if len(retenus) else ():
+            forme = (len(lot), len(sommets), 3)
+            plat[lot] = distances_aux_triangles(numpy.broadcast_to(p[lot, None], forme),
+                                                *(numpy.broadcast_to(sommets[None, :, k], forme) for k in range(3))).min(axis=1)
     return vus
 
 
