@@ -280,6 +280,15 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
 }), 'melee');
 
 
+/** `PerteSansEquipe` (`engine/types`). AA 10 l.148 ; ZI 13 l.193 */
+export const perteSansEquipeSchema = nommerChamps(z.strictObject({
+  removeQualities: refs('quality').optional(),
+  removeType: z.literal('atout').optional(),
+}), {
+  removeQualities: { label: 'Qualités perdues' },
+  removeType: { label: 'Perd tous ses Atouts' },
+});
+
 /** LDB 73 */
 export const weaponSchema = nommerChamps(z.strictObject({
   label: z.string(),
@@ -290,7 +299,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
   qualities: z.array(qualityRefSchema),
   subType: ref('weaponGroup').optional(),
   weaponGroup: ref('weaponGroup').optional(),
-  soloSimple: z.boolean().optional(),
+  perteSansEquipe: perteSansEquipeSchema.optional(),
   indirect: z.boolean().optional(),
   /** LDB 62 l.278 */
   bladed: z.boolean().optional(),
@@ -306,7 +315,7 @@ export const weaponSchema = nommerChamps(z.strictObject({
   qualities: { label: 'Qualités' },
   subType: { label: 'Sous-type' },
   weaponGroup: { label: 'Groupe d’armes' },
-  soloSimple: { label: 'Simple à manier seul' },
+  perteSansEquipe: { label: 'Perte sans équipe' },
   indirect: { label: 'Tir indirect' },
   bladed: { label: 'Arme à lame' },
   organicProjectile: { label: 'Projectile organique' },
