@@ -13,7 +13,7 @@ import { nomDe } from '../engine/nom';
 import { type Combatant, type Weapon, type HitLocation, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import type { OpsCtx, GameOp } from '../engine/ops';
+import { nomDeSource, type OpsCtx, type GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import {
@@ -22,6 +22,7 @@ import {
   type EffectTrigger,
   flowHasTest,
   flowHasFreeAttack,
+  flowHasImpureOp,
   spellEffectOps,
   EMPTY_FLOW,
   reecrireFlow,
@@ -66,7 +67,7 @@ import { RNG } from '../engine/dice';
 import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { crochetsDeCorruption } from './corruptionFlow';
-import { routeTriggeredTest } from './combat/triggeredTest';
+import { routeTriggeredTest, runCombatFlow } from './combat/triggeredTest';
 
 /** TAGUE des effets authorés de l'ENTITÉ dont ils sont tirés — « les GameOps sont rattachés à quelque
  *  chose » (arbitrage user 2026-07-18). Cette identité voyage jusqu'à l'`OpsCtx` du dispatch, où
@@ -187,9 +188,9 @@ function effectsOf(actor: Combatant, weapon?: Weapon): TriggeredEffect[] {
 
 /** Ops d'un déclencheur `trigger` portées par le combattant (Traits/Talents/Atouts), à plat, CHACUNE
  *  AVEC L'ENTITÉ qui la porte (`source`, taguée par `withSource`). Sert à RÉSOUDRE les ops IMPURES
- *  (summon, zone : grille/initiative) au SITE du trigger — elles sont inertes dans `applyOps` (moteur
- *  pur) et n'étaient résolues qu'au lancement de sort. GÉNÉRIQUE (pas limité à summon) : l'appelant
- *  (state) filtre par `op.op` et dispatche vers le résolveur idoine (applySummon, placeZoneFromOp…).
+ *  (summon, scheduleRespawn : grille/initiative/horloge) au SITE du trigger — elles sont inertes dans `applyOps`
+ *  (moteur pur). GÉNÉRIQUE (pas limité à summon) : l'appelant (state) filtre par `op.op` et dispatche vers le
+ *  résolveur idoine (applySummon, scheduleRespawnFromOp).
  *  Sur CE chemin, le `on` de la feuille n'est pas lu : l'op impure se résout au site du porteur, chez
  *  l'appelant (`combatFlow.ts`). Le dispatcher général (`applyTriggeredEffects`) distingue, lui, la
  *  cible `t` du porteur `actor`.
@@ -465,7 +466,8 @@ export function flowOffert(eff: TriggeredEffect): Flow {
 }
 
 /** CŒUR d'application : applique une LISTE d'effets `TriggeredEffect` de `actor` correspondant à
- *  `trigger`, chacun via `runPureFlowLines` aux cibles résolues (`on`). Source UNIQUE : utilisé par
+ *  `trigger`, chacun via `runPureFlowLines` aux cibles résolues (`on`) — via `runCombatFlow` s'il porte une op
+ *  IMPURE (`flowHasImpureOp`) et que le contexte porte `set`. Source UNIQUE : utilisé par
  *  `fireTriggers` (effets de traits/atouts) ET par les manœuvres (effets du profil de manœuvre).
  *  Un effet dont le Flow est un nœud `test` ET pour lequel `ctx.set` est fourni (hook
  *  `onGainCondition`) est ROUTÉ vers la voie cadence-aware (jamais la branche succès silencieuse).
@@ -522,6 +524,12 @@ export function applyTriggeredEffects(
         if (ctx.set) { routeTriggeredTest(get, ctx.set, t, actor, flowOffert(eff), flowCtx); continue; }
         if (eff.optional) continue; // opt-in SANS voie de choix (entretien hors combat) → non exercé
         lines.push(...resoudreSansRouteur(t, actor, eff.flow, flowCtx, get));
+        continue;
+      }
+      // Op IMPURE (`zone`…) : le walker de COMBAT la résout par son crochet, le chemin pur l'avalerait. Son journal
+      // part dans la file différée (`queueLines`), drainée par l'émetteur.
+      if (ctx.set && flowHasImpureOp(eff.flow)) {
+        runCombatFlow({ get, set: ctx.set, target: t, caster: actor, label: nomDeSource(flowCtx), opsCtx: flowCtx }, eff.flow);
         continue;
       }
       lines.push(...runPureFlowLines(t, actor, eff.flow, flowCtx));
