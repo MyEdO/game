@@ -1037,6 +1037,8 @@ export const fr = {
   'ecran.editeur.lieu.etablissement': '{nom} — {type}',
   'ecran.editeur.lieu.etablissement.retirer': 'Retirer {nom}',
   'ecran.editeur.lieu.etablissement.ajouter': 'Ajouter un établissement',
+  'ecran.editeur.lieu.offre.retirer': 'Ne plus vendre : {offre}',
+  'ecran.editeur.lieu.offre.ajouter': 'Vendre une offre',
   'ecran.editeur.lieu.etablissement.vise': 'Le point d’intérêt « {poi} » mène à cet établissement : retirez-le ou changez sa cible d’abord.',
   'ecran.editeur.scenes': '{n} scène(s) au projet',
   'ecran.editeur.scenes.ajouter': 'Nouvelle scène',

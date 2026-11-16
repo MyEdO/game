@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { chambresDuRepos, restCost, restServicePrice } from './restFlow';
+import { chambresDuRepos, restCost, prixDeLOffre } from './restFlow';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { refusDuChoix } from './choixDeFenetre';
 import { emptyScene } from './monde/scene';
@@ -35,7 +35,7 @@ function nuitALAuberge(ids: string[], opts: { quality?: QualiteDeRepos; days?: n
 }
 const chambres = () => chambresDuRepos(banc.getState().pendingRest!, banc.getState().party);
 const note = () => toBrass(restCost(banc.getState().pendingRest!, banc.getState().party));
-const chambrePrivee = () => toBrass(restServicePrice('privee'));
+const chambrePrivee = () => toBrass(prixDeLOffre({ id: 'chambre' }, 'normale'));
 
 describe('chambres de la nuit (LDB 66 l.28)', () => {
   it('à 4 héros, le défaut apparie le groupe dans son ordre : 2 chambres, 20/-', () => {

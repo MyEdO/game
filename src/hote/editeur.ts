@@ -26,7 +26,7 @@ import {
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
   findSpellById, listesDeSorts, sortsImprimes,
   aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
-  OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, refusDeForme, FORMES_D_ETAT, type FormeDEtatKind, planDuLieuOuvert, nomDuPoi, placeServices, typesDEtablissement, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
+  OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, refusDeForme, FORMES_D_ETAT, type FormeDEtatKind, planDuLieuOuvert, nomDuPoi, offresDeLEtablissement, placeServices, typesDEtablissement, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
 } from '../noyau/index';
 import { pluriel, t, type MsgKey } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -377,7 +377,10 @@ export interface ZonesDeLEditeur {
    * `lieu/poi/cible/service/<id>`, la courante pressée (`{ geste: 'ciblerPoi', cible }`) ;
    * `lieu/etablissements`, le compte de ses établissements ; de chacun, `lieu/etablissement/<id>`, son nom et son
    * type, et `lieu/etablissement/<id>/retirer`, refusé tant qu'un point d'intérêt le vise (`{ geste: 'supprimer',
-   * element }`) ; `lieu/etablissement/ajouter`, en liste, `lieu/etablissement/ajouter/<type>` par type du catalogue
+   * element }`), et, d'un établissement d'hébergement, `lieu/etablissement/<id>/offre/<offre>/retirer` par offre qu'il vend
+   * (`{ geste: 'retirerOffre', etablissement, offre }`) puis `lieu/etablissement/<id>/offre/ajouter`, en liste,
+   * `lieu/etablissement/<id>/offre/ajouter/<offre>` par offre qu'il ne vend pas (`{ geste: 'ajouterOffre', etablissement,
+   * offre }`, `offresDeLEtablissement`) ; `lieu/etablissement/ajouter`, en liste, `lieu/etablissement/ajouter/<type>` par type du catalogue
    * (`{ geste: 'ajouterEtablissement', kind }`) ;
    * son formulaire tiré du schéma, sa position et la position de ses points d'intérêt exceptées, qui se glissent au
    * plan, ses établissements par leur nom et leur repos ; le supprimer, ses routes avec lui.
@@ -1574,9 +1577,17 @@ function sensDeLaRoute(s: SessionDEdition, route: DonneeDuPorteur['route']): Cho
  *  refusé sans lui (`{ geste: 'retirerPoi' }`), et la cible de ce point, chaque scène du projet et chaque service résolu
  *  du lieu (`placeServices`), la courante pressée (`{ geste: 'ciblerPoi', cible }`) ; ses établissements (`MapPlace.services`),
  *  chacun nommé avec son type, le bouton qui le retire, refusé avec sa raison (`{ geste: 'supprimer', element }`,
- *  `refusDeRetrait`), puis un bouton par type d'établissement (`typesDEtablissement`, `{ geste: 'ajouterEtablissement',
+ *  `refusDeRetrait`), et, s'il héberge, chaque offre qu'il vend, à retirer, et le choix de celle à ajouter
+ *  (`offresDeLEtablissement`), puis un bouton par type d'établissement (`typesDEtablissement`, `{ geste: 'ajouterEtablissement',
  *  kind }`). #3606 #4277 */
 function propresDuLieu(s: SessionDEdition, lieu: DonneeDuPorteur['lieu']): (Choix | Ligne | Bouton)[] {
+  const offresDuLieu = (etablissement: string, offres: NonNullable<ReturnType<typeof offresDeLEtablissement>>): (Choix | Bouton)[] => {
+    const aAjouter = offres.filter((o) => !o.vendue);
+    return [
+      ...offres.filter((o) => o.vendue).map((o) => boutonDEdition(`lieu/etablissement/${etablissement}/offre/${o.id}/retirer`, t('ecran.editeur.lieu.offre.retirer', { offre: o.libelle }), { geste: 'retirerOffre', etablissement, offre: o.id })),
+      ...(aAjouter.length ? [choix(`lieu/etablissement/${etablissement}/offre/ajouter`, t('ecran.editeur.lieu.offre.ajouter'), aAjouter.map((o) => boutonDEdition(`lieu/etablissement/${etablissement}/offre/ajouter/${o.id}`, o.libelle, { geste: 'ajouterOffre', etablissement, offre: o.id })), 'liste')] : []),
+    ];
+  };
   const plan = planDuLieuOuvert(s);
   const ouvert = plan?.lieu.id === lieu.id;
   const services = placeServices(lieu);
@@ -1596,6 +1607,7 @@ function propresDuLieu(s: SessionDEdition, lieu: DonneeDuPorteur['lieu']): (Choi
       return [
         ligne(`lieu/etablissement/${e.id}`, t('ecran.editeur.lieu.etablissement', { nom, type: nomDuType(e.kind.id) })),
         boutonDEdition(`lieu/etablissement/${e.id}/retirer`, t('ecran.editeur.lieu.etablissement.retirer', { nom }), { geste: 'supprimer', element: e.id }, false, refusDeRetrait(s, e.id)),
+        ...offresDuLieu(e.id, offresDeLEtablissement(lieu, e.id) ?? []),
       ];
     }),
     choix('lieu/etablissement/ajouter', t('ecran.editeur.lieu.etablissement.ajouter'), typesDEtablissement().map((sv) => boutonDEdition(`lieu/etablissement/ajouter/${sv.id}`, sv.label, { geste: 'ajouterEtablissement', kind: sv.id })), 'liste'),

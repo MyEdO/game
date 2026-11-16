@@ -28,7 +28,7 @@ import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combat
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
-import { nomDuPoi, placeServices, type WorldMap } from './worldMap';
+import { estUnHebergement, nomDuPoi, placeServices, sceneAubergeOffer, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
 import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
@@ -195,7 +195,17 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       // Le schéma juge le service au catalogue ou aux établissements du lieu ; ici, le LIEU doit le résoudre
       // (`placeServices` à la scène du lieu, source unique, `noyau/worldMap.ts`), port, marché et auberge AUTOMATIQUES
       // compris (#360), chacun sous un id unique (#4277).
-      const resolus = placeServices(p, project.find((sc) => sc.id === p.scene.id));
+      const sceneDuLieu = project.find((sc) => sc.id === p.scene.id);
+      // L'offre de repos d'un lieu à hébergement a UN porteur, l'établissement (`PlaceService.rest`), jamais sa scène. #4277
+      const hebergement = (p.services ?? []).find(estUnHebergement);
+      if (sceneDuLieu && hebergement) {
+        const nom = hebergement.label ?? hebergement.id;
+        const addScene = (message: string) => out.push({ level: 'error', sceneId: sceneDuLieu.id, scope: 'scene', refId: sceneDuLieu.id, message });
+        if (sceneDuLieu.rest?.quality) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : la qualité du repos se règle sur l’établissement, retire-la de la scène`);
+        if ((sceneDuLieu.restZones ?? []).some((z) => z.quality)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : la qualité du repos se règle sur l’établissement, retire-la des zones de repos`);
+        if (sceneAubergeOffer(sceneDuLieu)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : l’auberge est celle de l’établissement, retire-la de la scène`);
+      }
+      const resolus = placeServices(p, sceneDuLieu);
       const resolvedServiceIds = new Set<string>();
       for (const s of resolus) {
         if (resolvedServiceIds.has(s.id)) addWm(p.id, `Lieu « ${p.label} » → deux services du lieu portent l’identifiant « ${s.id} »`);

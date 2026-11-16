@@ -11,7 +11,8 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
-import { enumNomme, idDIconeSchema, pointDuPlanSchema } from '../grammaire/valeurs';
+import { enumNomme, idDIconeSchema, pointDuPlanSchema, qualiteDeReposSchema } from '../grammaire/valeurs';
+import { offresDAubergeSchema } from '../grammaire/hebergement';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
@@ -85,18 +86,17 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
 export const SERVICES_DU_LIEU = { collection: 'services', catalogue: 'établissements du lieu' } as const satisfies PorteeLocale;
 
 /** `PlaceService` — établissement d'un lieu (`id` stable, unique dans le lieu ; `kind` = id de `lieux-services.json`),
- *  hors port/marché qui portent leur schéma riche. `rest` = offre de couchage PROPRE à l'établissement. #4277 */
+ *  hors port/marché qui portent leur schéma riche. `rest` = qualité et offres d'auberge d'un établissement
+ *  d'hébergement ; `offres` absent : les offres du livre. #4277 */
 export const placeServiceSchema = nommerChamps(z.strictObject({
   id: z.string(),
   kind: ref('serviceDeLieu'),
   label: z.string().optional(),
   rest: nommerChamps(z
     .strictObject({
-      auberge: z.boolean().optional(),
-      maison: z.boolean().optional(),
-      camp: z.boolean().optional(),
-      bord: z.boolean().optional(),
-  }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" }, bord: { label: "bord" } })
+      quality: qualiteDeReposSchema.optional(),
+      offres: offresDAubergeSchema.optional(),
+  }), { quality: { label: "qualité" }, offres: { label: "offres" } })
     .optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" } });
 

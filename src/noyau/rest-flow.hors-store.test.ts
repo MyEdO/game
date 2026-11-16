@@ -13,7 +13,8 @@ import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
-import { restPlacesHere, lodgingOptions, restServicePrice } from './restFlow';
+import { offresDeLAubergeDeScene } from './worldMap';
+import { restPlacesHere, lodgingOptions, prixDeLOffre } from './restFlow';
 import { makeRNG } from '../engine/dice';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { addRestZone } from './sceneEdit';
@@ -247,9 +248,9 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
 
 describe('couchage À BORD (MDG) — le navire n’est pas un bivouac', () => {
   it('en mer, `bord` est le SEUL couchage : « dehors » ne figure PAS dans l’offre', () => {
-    expect(lodgingOptions({ bord: true })).toEqual(['bord']);
+    expect(lodgingOptions({ places: { bord: true }, offres: [] })).toEqual(['bord']);
     // Sur la rivière (mouillage possible), `bord` s’ajoute au campement, la belle étoile reste offerte.
-    expect(lodgingOptions({ camp: true, bord: true })).toEqual(['bord', 'dehors']);
+    expect(lodgingOptions({ places: { camp: true, bord: true }, offres: [] })).toEqual(['bord', 'dehors']);
   });
 
   it('nuit à bord sous la tempête : ABRITÉ (aucune étape d’Exposition), la récupération a bien lieu', () => {
@@ -267,8 +268,8 @@ describe('couchage À BORD (MDG) — le navire n’est pas un bivouac', () => {
   });
 
   it('à terre SANS navire : offre inchangée (pas de couchage `bord`)', () => {
-    expect(lodgingOptions({ camp: true })).toEqual(['dehors']);
-    expect(lodgingOptions({ auberge: true })).toEqual(['commune', 'dehors']);
+    expect(lodgingOptions({ places: { camp: true }, offres: [] })).toEqual(['dehors']);
+    expect(lodgingOptions({ places: { auberge: true }, offres: offresDeLAubergeDeScene() })).toEqual(['commune', 'dehors']);
   });
 });
 
@@ -347,7 +348,7 @@ describe('qualité de l’hébergement — prix et Courante galopante (LDB 66 l.
     expect(Object.values(banc.getState().pendingRest!.perHero)).toEqual([{ lodging: 'chambre-1', food: 'repas' }, { lodging: 'chambre-1', food: 'repas' }]);
     banc.getState().fenetreValider('repos');
   };
-  const prixListes = toBrass(restServicePrice('privee')) + 2 * toBrass(restServicePrice('repas'));
+  const prixListes = toBrass(prixDeLOffre({ id: 'chambre' }, 'normale')) + 2 * toBrass(prixDeLOffre({ id: 'repas' }, 'normale'));
 
   it('piètre : la moitié des prix listés ; normale : les prix listés ; grande : le double', () => {
     const payes = (['pietre', 'normale', 'grande'] as const).map((q) => {

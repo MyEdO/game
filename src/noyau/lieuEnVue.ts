@@ -36,8 +36,7 @@ export interface LieuEnVue { nom: string; prose: string | null; plan: PlanDeLaCa
 function gestesDuService(s: Jeu, svc: ResolvedPlaceService): GesteDuService[] {
   const entrer = (geste: GesteDuNoyau, refus: string | null = null): GesteDuService[] => [{ id: 'entrer', libelle: svc.enterLabel ?? t('lieu.entrer'), geste, refus }];
   if (svc.category === 'auberge') {
-    const dormir: GesteDuService[] = svc.rest ? [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'ouvrirLeRepos', args: [svc.id] }, refus: null }] : [];
-    return [...dormir, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'recueillirLesRumeurs', args: [svc.id] }, refus: null }];
+    return [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'ouvrirLeRepos', args: [svc.id] }, refus: null }, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'recueillirLesRumeurs', args: [svc.id] }, refus: null }];
   }
   if (svc.category === 'port' || svc.opensScreen === 'port') return entrer({ verbe: 'ouvrirLePort', args: [] }, refusAQuai(s));
   if (svc.category === 'marche') return entrer({ verbe: 'ouvrirLeMarche', args: [] });
