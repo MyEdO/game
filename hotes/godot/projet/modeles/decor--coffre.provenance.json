@@ -1,0 +1,13 @@
+{
+  "model": "decor--coffre.glb",
+  "model_sha256": "c3ec75941ed49b8b94ce170ef5d6974c58bccb68a69269ca6c7b9d3c09d10c1f",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
