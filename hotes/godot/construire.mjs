@@ -45,7 +45,7 @@ import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
-import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
@@ -54,6 +54,7 @@ import { gzipSync, inflateRawSync } from 'node:zlib'
 import { Linter } from 'eslint'
 import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
+import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { estGroupeVivant } from '../../scripts/guards/lib/pid.mjs'
@@ -346,10 +347,9 @@ async function editeur() {
   if (!reponse.ok) throw new Error(`${url} : HTTP ${reponse.status}`)
   const zip = Buffer.from(await reponse.arrayBuffer())
   verifierSomme(plateforme.archive, zip, plateforme.sha256)
-  mkdirSync(CACHE, { recursive: true })
+  // #4199 : `extraire` rend les entrées dans l'ordre de `entrees`, le lanceur (testé par `existsSync`) se renomme en dernier.
   for (const { nom, octets } of await extraire(enMemoire(zip), plateforme.entrees)) {
-    writeFileSync(join(CACHE, nom), octets)
-    chmodSync(join(CACHE, nom), 0o755)
+    ecrireTexteAtomique(join(CACHE, nom), octets, { mode: 0o755 })
   }
   return lanceur
 }

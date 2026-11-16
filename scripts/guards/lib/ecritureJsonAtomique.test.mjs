@@ -3,7 +3,7 @@
 import { test } from 'node:test'
 import { spawn } from 'node:child_process'
 import assert from 'node:assert/strict'
-import { existsSync, linkSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
+import { existsSync, linkSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ecrireJsonAtomique, ecrireTexteAtomique, lireTextePublie, publierJsonSiAbsent } from './ecritureJsonAtomique.mjs'
@@ -48,6 +48,16 @@ test('#2603 — ecrireTexteAtomique : le fichier lu n’est jamais réécrit en 
   assert.equal(readFileSync(cible, 'utf8'), 'v2\n')
   assert.equal(readFileSync(ancienne, 'utf8'), 'v1\n', 'un lecteur qui tient l’ancienne cible la lit entière : rien ne l’a tronquée ni réécrite')
   assert.deepEqual(listerDossier(racine), ['ancienne.js', 'registre.js'])
+})
+
+test('#4199 — ecrireTexteAtomique : des octets publiés avec leur mode, sans temporaire restant', { skip: process.platform === 'win32' }, (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'ecriture-json-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const cible = join(racine, 'godot'), octets = Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x00, 0xff])
+  ecrireTexteAtomique(cible, octets, { mode: 0o755 })
+  assert.deepEqual(readFileSync(cible), octets)
+  assert.equal(statSync(cible).mode & 0o777, 0o755)
+  assert.deepEqual(listerDossier(racine), ['godot'])
 })
 
 test('#2491 écriture JSON : le retry du renommage consomme l’attente injectée', (t) => {
