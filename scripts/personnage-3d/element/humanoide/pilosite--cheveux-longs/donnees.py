@@ -32,14 +32,13 @@ construction."""
 BUDGET_TRIANGLES = 1500                 # procédure du skill, section 7 : pilosité
 
 CONTOURNE = {'tete': 'humanoide--tete--humain', 'chemise': 'humanoide--vetement--chemise',
-             'pourpoint': 'humanoide--vetement--pourpoint'}
-"""La tête publiée, dont la peau porte la chevelure ; la chemise et le pourpoint du preset `soldat`, dont les cols
-montent sur le cou (base : jusqu'à 0,102 et 0,130 sous le centre) et par-dessus lesquels tombe la chevelure
-(illustration). HYPOTHÈSE, comme les nattes de `cheveux-nattes` : une chevelure qui tombe aux épaules se pose sur ce qui
+             'pourpoint': 'humanoide--vetement--pourpoint', 'plastron': 'humanoide--armure--plastron'}
+"""La tête publiée, dont la peau porte la chevelure ; la chemise, le pourpoint et le plastron du preset `soldat`, dont
+les cols et la dossière montent vers le cou et par-dessus lesquels tombe la chevelure (illustration). HYPOTHÈSE, comme les nattes de `cheveux-nattes` : une chevelure qui tombe aux épaules se pose sur ce qui
 y est porté ; une couche `peau` qui traverse un col en ressort devant lui (`couche-percee-au-repos`), et à moins de
 1 cm devant lui la pile des couches la retient derrière (`PERCEE_M`, `hotes/godot/asset/pile.ts`)."""
 MATIERES_DE_LA_TETE = ['peau']
-MATIERES_DES_COLS = {'chemise': ['chemise'], 'pourpoint': ['pourpoint']}
+MATIERES_DES_COLS = {'chemise': ['chemise', 'col'], 'pourpoint': ['pourpoint'], 'plastron': ['acier', 'dorure']}
 ZONES_DU_CORPS = ['cou', 'torse']
 """Zones de la base que la chevelure contourne sous la tête : la nuque et le haut des épaules."""
 ZONES_DES_POIDS = ['cou', 'torse']
