@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Theme" path="res://art/bandeau_de_jet.tres" id="2_bandeau"]
-[ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="3_titre"]
+[ext_resource type="Theme" path="res://art/titre_du_ruban.tres" id="3_titre"]
 [ext_resource type="Theme" path="res://art/statbloc.tres" id="4_encre"]
 
 [node name="Cadre" type="MarginContainer" groups=["bandeau"]]
@@ -49,4 +49,5 @@ theme = ExtResource("3_titre")
 [node name="Zone" type="Node" parent="Tete/Ruban/Titre" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.titre"
+formes = PackedStringArray("ligne:rubrique")
 masque = NodePath("../../../..")

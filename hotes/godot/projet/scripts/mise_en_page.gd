@@ -4,7 +4,7 @@
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
 ## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
-## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'un point, les deux faces d'un d100, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
 ## sa case, le coin de ce qui se pose sous un lieu, la
@@ -799,6 +799,12 @@ static func pivot_sur_la_case(angle: float, case: Vector2i, haut: float, dessus:
 	var y := (case.y + DEMI_CASE) * CASE_DE_CONTACT
 	var manque := dessus + JEU_DE_RANGEMENT - arriere - recul
 	return maxf(angle, atan2(manque, y)) if y > haut + APPUI_DE_RANGEMENT and y > 0.0 and manque > 0.0 else angle
+
+
+## Les faces des deux dés à dix faces qui donnent `resultat` au d100 : celle des dizaines (`x` : 0 à 90) et celle des
+## unités (`y` : 0 à 9) ; 100 se lit 00 et 0.
+static func faces_du_d100(resultat: int) -> Vector2i:
+	return Vector2i(resultat % 100 - resultat % 10, resultat % 10)
 
 
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.

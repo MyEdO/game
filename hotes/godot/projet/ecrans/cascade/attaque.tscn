@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://cadres/fenetre_de_jet.tscn" id="0_cadre"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Theme" path="res://art/issue_du_jet.tres" id="3_issue"]
 [ext_resource type="Theme" path="res://art/dr_net.tres" id="2_titre"]
+[ext_resource type="Theme" path="res://art/bandeau_de_jet.tres" id="4_bandeau"]
 
 [node name="Cadre" instance=ExtResource("0_cadre")]
 
@@ -28,6 +29,7 @@ size_flags_stretch_ratio = 0.7
 alignment = 1
 
 [node name="Etape" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+theme = ExtResource("4_bandeau")
 alignment = 1
 
 [node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Etape" node_paths=PackedStringArray("masque")]
@@ -37,6 +39,7 @@ formes = PackedStringArray("ligne:rubrique")
 masque = NodePath("..")
 
 [node name="Cible" type="HBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+theme = ExtResource("4_bandeau")
 alignment = 1
 
 [node name="Arme" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Cible"]
