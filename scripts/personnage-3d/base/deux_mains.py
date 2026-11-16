@@ -84,11 +84,12 @@ ECART_DU_TRONC = {'marge': 0.005, 'echelle': 0.01}
 à 5 mm dedans (`ECART_DE_SUIVI_M`) ; le champ s'écarte de l'enfoncement exact de 6,5 mm au plus sur les sommets qu'il
 lit à moins de 1 cm de la surface (`tronc.CHAMP`) : un sommet tenu à `marge` dehors par le champ reste hors de portée de
 la garde."""
-POUSSEE = {'pas': 8, 'passes': 4, 'tolerance': 1e-4, 'raccords': 2, 'refus': 0.0009}
+POUSSEE = {'pas': 8, 'passes': 4, 'tolerance': 1e-4, 'raccords': 12, 'refus': 0.0009}
 """La poussée de l'arme hors du tronc (`pousser`, `ecarter`, `poser_les_bras`) : au plus `pas` translations par
 poussée, chacune contre le gradient du champ du tronc (`tronc.profondeurs`) au sommet le plus enfoncé de la peau que la
 translation emporte, jusqu'à `ECART_DU_TRONC['marge']` dehors à `tolerance` mètres près ; au plus `raccords` tours
-d'enveloppe puis de poussée résiduelle par écart (`ecarter`) ; au plus `passes` tours de poussée puis d'IK après le
+d'enveloppe puis de poussée résiduelle par écart (`ecarter`), qui s'arrête au premier où aucune image ne s'enfonce ;
+au plus `passes` tours de poussée puis d'IK après le
 premier IK (#4002, #3810). La peau entière posée encore enfoncée de plus de `refus` mètres refuse le
 clip : la garde `membres` admet 5 mm dedans et le champ s'écarte de l'enfoncement exact de moins de 1,8 mm à 99 % des
 sommets qu'il lit à moins de 1 cm de la surface (`tronc.CHAMP`) : une peau lue à moins de 0,9 mm dedans reste sous la
@@ -306,15 +307,26 @@ def pousser(tronc, peau):
     return pas
 
 
-def envelopper(requises, instants_):
-    """Par image, la translation (images, 3) de l'arme qui enveloppe les poussées `requises` (images, 3) aux `instants_`
-    (images,), en images de `IMAGES_PAR_SECONDE` : sur chaque axe du rig, la plus grande des parts positives et la plus
-    négative des parts négatives, chacune pondérée en cosinus surélevé de 1 à son image à 0 à `RACCORD` d'elle. Elle
-    rend chaque poussée requise à son image, monte vers elle et en redescend en `RACCORD`, nulle plus loin."""
-    ecarts = numpy.abs(numpy.subtract.outer(numpy.asarray(instants_, dtype=float), numpy.asarray(instants_, dtype=float)))
-    poids = 0.5 * (1 + numpy.cos(math.pi * numpy.minimum(ecarts / (RACCORD * IMAGES_PAR_SECONDE), 1.0)))[:, :, None]
-    requises = numpy.asarray(requises, dtype=float)[None]
-    return (poids * numpy.maximum(requises, 0.0)).max(axis=1) + (poids * numpy.minimum(requises, 0.0)).min(axis=1)
+def envelopper(requises, instants_, en_conflit):
+    """Par image, les parts positive et négative (images, 3) de la translation de l'arme qui enveloppe les poussées
+    `requises` (images, 3) aux `instants_` (images,), en images de `IMAGES_PAR_SECONDE` : sur chaque axe du rig, la plus
+    grande des parts positives et la plus négative des parts négatives, chacune pondérée en cosinus surélevé de 1 à son
+    image à 0 à `RACCORD` d'elle, ou plus tôt, de chaque côté, à la première image de ce côté en conflit sur cet axe
+    (`en_conflit`, images, 3) qui y demande, au-delà de `POUSSEE['tolerance']`, le sens opposé. La translation, leur
+    somme, monte vers chaque poussée requise et en redescend en `RACCORD` au plus, nulle plus loin, et rend à chaque image
+    en conflit sur un axe au moins sa poussée, dans son sens : deux images voisines en conflit aux sens opposés sont
+    satisfaites chacune, raccordées sur la durée qui les sépare."""
+    instants_ = numpy.asarray(instants_, dtype=float)
+    requises = numpy.asarray(requises, dtype=float)
+    apres = numpy.subtract.outer(instants_, instants_)
+    sens = numpy.sign(requises) * (numpy.abs(requises) > POUSSEE['tolerance'])
+    opposes = ((sens[:, None, :] * sens[None, :, :]) < 0) & numpy.asarray(en_conflit, dtype=bool)[None]
+    raccord = RACCORD * IMAGES_PAR_SECONDE
+    droite = numpy.where(opposes & (apres.T > 0)[:, :, None], apres.T[:, :, None], raccord).min(axis=1)
+    gauche = numpy.where(opposes & (apres.T < 0)[:, :, None], -apres.T[:, :, None], raccord).min(axis=1)
+    demis = numpy.where((apres > 0)[:, :, None], droite[None], gauche[None])
+    poids = 0.5 * (1 + numpy.cos(math.pi * numpy.minimum(numpy.abs(apres)[:, :, None] / demis, 1.0)))
+    return (poids * numpy.maximum(requises, 0.0)[None]).max(axis=1), (poids * numpy.minimum(requises, 0.0)[None]).min(axis=1)
 
 
 def ecarter(troncs, peaux, requises, translations, instants_, seuil):
@@ -322,16 +334,22 @@ def ecarter(troncs, peaux, requises, translations, instants_, seuil):
     (`peaux`, par image (jeux, sommets, 3) sous sa translation `translations`), que la translation emporte d'un bloc :
     les translations enveloppent les poussées `requises` (`envelopper`, `instants_`) ; à chaque image dont la peau sous
     l'enveloppe s'enfonce de plus de `seuil` mètres (`enfoncement`, moins sa marge), la poussée requise devient
-    l'enveloppe plus la poussée résiduelle (`pousser`), au plus `POUSSEE['raccords']` fois."""
+    l'enveloppe plus la poussée résiduelle (`pousser`), et l'image entre en conflit sur chaque axe où cette poussée
+    requise va contre la part de sens opposé de l'enveloppe ; jusqu'à ce qu'aucune ne s'enfonce, au plus
+    `POUSSEE['raccords']` fois."""
+    tolerance, en_conflit = POUSSEE['tolerance'], numpy.zeros(numpy.shape(requises), dtype=bool)
     for _ in range(POUSSEE['raccords']):
-        enveloppe = envelopper(requises, instants_)
+        haut, bas = envelopper(requises, instants_, en_conflit)
+        enveloppe = haut + bas
         vues = [p + e - d for p, e, d in zip(peaux, enveloppe, translations)]
         poussees = numpy.array([enfoncement(t, v)[0] - ECART_DU_TRONC['marge'] > seuil for t, v in zip(troncs, vues)])
         if not poussees.any():
             return requises, enveloppe
         residus = numpy.array([pousser(t, v) if p else numpy.zeros(3) for t, v, p in zip(troncs, vues, poussees)])
-        requises = numpy.where(poussees[:, None], enveloppe + residus, requises)
-    return requises, envelopper(requises, instants_)
+        nouvelles = enveloppe + residus
+        en_conflit |= poussees[:, None] & (((nouvelles > tolerance) & (bas < -tolerance)) | ((nouvelles < -tolerance) & (haut > tolerance)))
+        requises = numpy.where(poussees[:, None], nouvelles, requises)
+    return requises, sum(envelopper(requises, instants_, en_conflit))
 
 
 def hors_des_bornes(rotation, bornes):
@@ -557,10 +575,10 @@ def choisir(images, translations, durees, tours_de_l_arme, grossiers):
     coude droit, tour du coude gauche, en degrés) du chemin qui paie le moins sur le clip entier (`chemin`), cherché sur
     `ROULIS` et `TOURS`, puis autour de lui à chaque pas d'`AFFINAGES`, `CONTINUITE['passes']` fois chacun ; `durees` et
     `tours_de_l_arme` : ceux de `chemin`. `grossiers`, par indice d'image, la translation et la table des prix sur
-    `ROULIS` et `TOURS` d'un appel précédent : la table se relit tant que la translation de l'image n'a pas changé,
-    sinon elle se calcule et s'y range."""
+    `ROULIS` et `TOURS` d'un appel précédent : la table se relit tant que la translation de l'image n'a pas bougé de
+    plus de 1e-6 m sur un axe, sinon elle se calcule et s'y range."""
     for i, (image, t) in enumerate(zip(images, translations)):
-        if i not in grossiers or grossiers[i][0] != tuple(t):
+        if i not in grossiers or numpy.abs(numpy.subtract(grossiers[i][0], tuple(t))).max() > 1e-6:
             grossiers[i] = (tuple(t), image.prix(t, ROULIS, {'r': TOURS, 'l': TOURS}))
     valeurs = [(ROULIS, TOURS, TOURS)] * len(images)
     prix = [grossiers[i][1] for i in range(len(images))]

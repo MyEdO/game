@@ -11,8 +11,9 @@ prise de chaque arme tourne comme celle des clips de son maniement ;
 sous une silhouette à os, les têtes déplacées sont celles du squelette déplacé explicite ; le prix du tronc compte le
 pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; une peau dans un tronc en boîte en sort à sa
 marge contre le gradient du champ, une peau dehors ne bouge pas (#4002, #3810) ; la translation de l'arme rend la
-poussée requise d'une seule image à cette image, y monte et en redescend en continu, nulle à `RACCORD` d'elle ; une image
-dont la translation n'a pas changé relit ses prix grossiers, et le chemin est celui du calcul complet ;
+poussée requise d'une seule image à cette image, y monte et en redescend en continu, nulle à `RACCORD` d'elle ; deux
+images voisines aux poussées requises opposées sortent chacune du tronc, raccordées entre elles seules ; une image
+dont la translation n'a pas bougé de plus de 1e-6 m relit ses prix grossiers, et le chemin est celui du calcul complet ;
 le chemin d'un clip garde sa famille de poses tant qu'en changer paie plus que le prix qu'il y gagne, et en change sur
 l'intervalle le plus long, et son roulis suit le repère de l'arme qui tourne sur son manche (#3878)."""
 import json
@@ -28,8 +29,8 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from deux_mains import (CLIPS, CONTINUITE, ECART_DU_TRONC, IMAGES_PAR_SECONDE, MARGE_DES_BORNES, PRONATION, RACCORD,  # noqa: E402
-                        ROULIS, SECONDES, TOURS, PeauDuBras, bras, chemin, choisir, cle, coude, envelopper,
-                        etirement_du_bras, hors_des_bornes, interpoler, peau_fixe, pousser, prix_du_tronc, repere_de_l_arme,
+                        POUSSEE, ROULIS, SECONDES, TOURS, PeauDuBras, bras, chemin, choisir, cle, coude, ecarter,
+                        enfoncement, envelopper, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe, pousser, prix_du_tronc, repere_de_l_arme,
                         tour_du_repere)
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
 from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
@@ -221,13 +222,30 @@ class Enveloppe(unittest.TestCase):
         instants_, requise, milieu = numpy.arange(97.0), numpy.array([0.0, -0.03, 0.012]), 48
         requises = numpy.zeros((len(instants_), 3))
         requises[milieu] = requise
-        translations = envelopper(requises, instants_)
+        translations = sum(envelopper(requises, instants_, numpy.zeros(requises.shape, dtype=bool)))
         numpy.testing.assert_allclose(translations[milieu], requise, atol=1e-12)
         raccord = RACCORD * IMAGES_PAR_SECONDE
         self.assertFalse(translations[numpy.abs(instants_ - milieu) >= raccord].any())
         self.assertTrue((numpy.linalg.norm(translations, axis=1) <= numpy.linalg.norm(requise) + 1e-12).all())
         pas = numpy.abs(numpy.diff(translations, axis=0)).max(axis=0)
         self.assertTrue((pas <= numpy.abs(requise) * math.pi / (2 * raccord) + 1e-12).all())
+
+    def test_deux_images_voisines_aux_poussees_opposees_sont_satisfaites_chacune_et_raccordees_entre_elles(self):
+        instants_, haute, basse = numpy.arange(49.0), 24, 25
+        peaux_ = [numpy.array([[[0.0, 0.0, 1.6]]]) for _ in instants_]
+        peaux_[haute], peaux_[basse] = numpy.array([[[0.0, 0.0, 1.396]]]), numpy.array([[[0.0, 0.0, 0.803]]])
+        troncs = [tronc_en_boite()] * len(instants_)
+        zeros = numpy.zeros((len(instants_), 3))
+        _, translations = ecarter(troncs, peaux_, zeros, zeros, instants_, POUSSEE['tolerance'] - ECART_DU_TRONC['marge'])
+        for tronc, peau, t in zip(troncs, peaux_, translations):
+            self.assertLessEqual(enfoncement(tronc, peau + t)[0], POUSSEE['tolerance'])
+        self.assertGreater(translations[haute, 2], 0)
+        self.assertLess(translations[basse, 2], 0)
+        raccord = RACCORD * IMAGES_PAR_SECONDE
+        self.assertFalse(translations[(instants_ <= haute - raccord) | (instants_ >= basse + raccord)].any())
+        pas = numpy.abs(numpy.diff(translations, axis=0)).max(axis=1)
+        pas[haute] = 0.0
+        self.assertTrue((pas <= numpy.abs(translations).max() * math.pi / (2 * raccord) + 1e-12).all())
 
 
 class Choisir(unittest.TestCase):
@@ -244,7 +262,7 @@ class Choisir(unittest.TestCase):
     def test_une_image_dont_la_translation_n_a_pas_change_relit_ses_prix_grossiers_sans_changer_le_chemin(self):
         images = [self.Image() for _ in range(3)]
         avant = [Vector((0.0, 0.1, -0.1))] * 3
-        apres = [avant[0], Vector((0.9, -0.5, 0.4)), avant[2]]
+        apres = [avant[0] + Vector((4e-7, 0.0, -4e-7)), Vector((0.9, -0.5, 0.4)), avant[2]]
         grossiers = {}
         choisir(images, avant, [0.0, 1.0, 1.0], [0.0] * 3, grossiers)
         memoire = choisir(images, apres, [0.0, 1.0, 1.0], [0.0] * 3, grossiers)
