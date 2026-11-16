@@ -65,6 +65,19 @@ class Peau(NamedTuple):
     triangles: numpy.ndarray
 
 
+def repos_des_jeux(peau, x, sommets, vers_rig):
+    """Par jeu de `TRONC['silhouettes']`, les `sommets` (indices) du mesh `peau` au repos sous les clés de forme du jeu à 1,
+    homogènes, dans le repère du rig (jeux, sommets, 4) : `x`, ses sommets au repos, homogènes, dans le repère monde
+    (`poids.peau_lineaire`) ; `vers_rig`, du repère monde à celui du rig (4, 4)."""
+    tour = vers_rig[:3, :3] @ numpy.array(peau.matrix_world.to_3x3())
+    cles = peau.data.shape_keys.key_blocks if peau.data.shape_keys else {}
+    base = numpy.array([v.co for v in peau.data.vertices], dtype=numpy.float64)[sommets]
+    neutre = x[sommets].astype(numpy.float64) @ vers_rig.T
+    return numpy.stack([neutre + numpy.c_[sum((numpy.array([c.co for c in cles[n].data], dtype=numpy.float64)[sommets] - base
+                                               for n in silhouettes), numpy.zeros_like(base)) @ tour.T, numpy.zeros(len(base))]
+                        for silhouettes in TRONC['silhouettes']])
+
+
 def peau_des_zones(rig, peaux, zones):
     """La `Peau` des faces de `peaux` (`poids.peau_lineaire`, os de `rig`) dont la zone (`anatomie.os_de_la_face`) est
     dans `zones`."""
@@ -80,13 +93,8 @@ def peau_des_zones(rig, peaux, zones):
         if not len(faces):
             continue
         sommets, locales = numpy.unique(faces, return_inverse=True)
-        tour = vers_rig[:3, :3] @ numpy.array(peau.matrix_world.to_3x3())
-        cles = peau.data.shape_keys.key_blocks if peau.data.shape_keys else {}
-        base = numpy.array([v.co for v in peau.data.vertices], dtype=numpy.float64)[sommets]
-        for jeu, silhouettes in zip(jeux, TRONC['silhouettes']):
-            ecart = sum((numpy.array([c.co for c in cles[n].data], dtype=numpy.float64)[sommets] - base for n in silhouettes),
-                        numpy.zeros_like(base))
-            jeu.append(x[sommets].astype(numpy.float64) @ vers_rig.T + numpy.c_[ecart @ tour.T, numpy.zeros(len(base))])
+        for jeu, positions in zip(jeux, repos_des_jeux(peau, x, sommets, vers_rig)):
+            jeu.append(positions)
         poids.append(w[sommets].astype(numpy.float64))
         triangles.append(locales.reshape(-1, 3) + compte)
         compte += len(sommets)
@@ -125,6 +133,12 @@ def poser(w, x, matrices, tetes, deplacements):
     """Les sommets (`w`, `x` homogènes) sous les matrices de peau `matrices` (os, 4, 4), le squelette déplacé de
     `deplacements` (os, 3), aux têtes posées déplacées de `tetes` (`sol.tetes_deplacees`, os, 3) : (sommets, 3)."""
     return melanger(w, matrices, x) + w @ (tetes - numpy.einsum('bij,bj->bi', rotations_de_peau(matrices), deplacements))
+
+
+def poser_sous_les_jeux(w, x, matrices, tetes, deplacements):
+    """Par jeu, les sommets (`w`, `x` au repos du jeu, homogènes, (jeux, sommets, 4)) sous les matrices de peau `matrices`
+    (os, 4, 4), aux ΔJ `tetes` et aux déplacements D `deplacements` du jeu (jeux, os, 3) (`poser`) : (jeux, sommets, 3)."""
+    return numpy.stack([poser(w, x_, matrices, t, d) for x_, t, d in zip(x, tetes, deplacements)])
 
 
 def posture_du_tronc(poids, matrices):
@@ -285,8 +299,8 @@ def tronc_pose(tronc, matrices, champs=True):
     """Le `TroncPose` de `tronc` (`PeauDuTronc`) sous les matrices de peau `matrices` (os, 4, 4), comme l'hôte le joue ;
     sans ses champs si `champs` est faux (`champs_du_tronc`), ses sommets lus par `pres_du_tronc`."""
     tetes = numpy.stack([tetes_deplacees(matrices[None], tronc.parent, d)[0] for d in tronc.deplacements])
-    positions = numpy.stack([poser(tronc.w, x, matrices, t, d) for x, t, d in zip(tronc.x, tetes, tronc.deplacements)])
-    pose = TroncPose(positions, tetes, [], posture_du_tronc(tronc.w.sum(axis=0), matrices).T, tronc.triangles)
+    pose = TroncPose(poser_sous_les_jeux(tronc.w, tronc.x, matrices, tetes, tronc.deplacements), tetes, [],
+                     posture_du_tronc(tronc.w.sum(axis=0), matrices).T, tronc.triangles)
     return champs_du_tronc(tronc, pose) if champs else pose
 
 

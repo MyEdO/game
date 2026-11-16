@@ -40,7 +40,7 @@ from poids import cadence, deformer, instants, peau_lineaire
 from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE, SOL_TOLERANCE_M, VITESSE_DU_POIGNET
 from ecart import ECART_DU_TRONC, enfoncement, envelopper, poussee_requise
 from tronc import (BRAS, TRONC, avant, chaine_du_bras, coude, matrices_de_la_chaine, membre_pose, peau_du_membre,
-                   peau_du_tronc, poser_le_membre, profondeurs, repos_de_la_chaine, tetes_du_bras, tronc_pose)
+                   peau_du_tronc, poser_le_membre, profondeurs, repos_de_la_chaine, repos_des_jeux, tetes_du_bras, tronc_pose)
 
 SECONDES = {'lourde2m': (-0.35, 0.0), 'hampe': (0.5, -90.0)}
 """Par maniement, la seconde prise de ses clips dérivés dans le repère de la prise `main` : sa cote en mètres sur le +Y,
@@ -76,11 +76,13 @@ MARGE_DES_BORNES = 1.0
 """En degrés, la marge en deçà des bornes où l'IK tient une pose : l'export et l'interpolation entre deux images la
 déplacent de moins que cela. La marge vise, la borne décide (`defaut_du_bras`)."""
 PEAU = {'marge': 0.25, 'echelle': 0.02, 'plancher': 0.2, 'echelle_plancher': 0.01}
-"""L'étirement des arêtes de la peau que meut un bras (`etirement_du_bras`), mesuré sur le corps neutre, se paie au-delà de
-la borne haute de `ETIREMENT_EN_CLIP` moins `marge`, par pas d'`echelle`, et son écrasement en deçà de `plancher`, par pas
-d'`echelle_plancher` : la marge et le plancher couvrent les silhouettes et les états du gabarit, que la mesure ne parcourt
-pas, sous lesquels une arête du poignet écrasée à 0,07 sur le corps neutre passe sous la borne basse, et l'aisselle et le
-haut de l'épaule, tenus à 0,12 sur le corps neutre, passent sous elle sous les silhouettes combinées (#3319)."""
+"""Dans l'IK des clips dérivés (`bras`), l'étirement des arêtes de la peau que meut un bras (`etirement_du_bras`), mesuré
+sur le corps neutre, se paie au-delà de la borne haute de `ETIREMENT_EN_CLIP` moins `marge`, par pas d'`echelle`, et son
+écrasement en deçà de `plancher`, par pas d'`echelle_plancher` : la marge et le plancher couvrent les silhouettes et les
+états du gabarit, que cette mesure ne parcourt pas, sous lesquels une arête du poignet écrasée à 0,07 sur le corps neutre
+passe sous la borne basse, et l'aisselle et le haut de l'épaule, tenus à 0,12 sur le corps neutre, passent sous elle sous
+les silhouettes combinées (#3319). La passe des clips du pack mesure la même peau sous chaque jeu de `tronc.TRONC`
+(`rapports_du_bras`, `membres.etirement_neuf`, #3810)."""
 ROULIS = tuple(range(-180, 180, 15))
 """En degrés, les roulis de l'arme autour de son manche parmi lesquels le chemin d'un clip se cherche d'abord
 (`poser_les_bras`)."""
@@ -202,8 +204,10 @@ def interpoler(cles, u, ecart):
 
 
 class PeauDuBras(NamedTuple):
-    """Les arêtes de la peau que meut un bras (`peau_du_bras`) : leurs sommets au repos, homogènes, dans le repère du rig,
-    les poids de chacun sur chaque os, les arêtes en indices de ces sommets, et leur longueur au repos."""
+    """Les arêtes de la peau que meut un bras (`peau_du_bras`) : par jeu de `tronc.TRONC`, leurs sommets au repos sous les
+    clés de forme du jeu (`tronc.repos_des_jeux`), homogènes, dans le repère du rig (jeux, sommets, 4), les poids de chacun
+    sur chaque os, les arêtes en indices de ces sommets, et leur longueur au repos du corps neutre, celle à laquelle la
+    garde `etirement` les rapporte (`hotes/godot/asset/evaluateur/gardes/etirement.ts`)."""
     x: numpy.ndarray
     w: numpy.ndarray
     aretes: numpy.ndarray
@@ -214,37 +218,46 @@ def peau_du_bras(peaux, noms, mobiles, monde_vers_rig):
     """La `PeauDuBras` de `peaux` (`poids.peau_lineaire`, os `noms`) : les arêtes dont un sommet suit l'un des os
     `mobiles`, le bras, l'avant-bras et leurs descendants ; `monde_vers_rig` passe du repère monde à celui du rig."""
     colonnes = [noms.index(n) for n in mobiles]
+    vers_rig = numpy.array(monde_vers_rig)
     positions, poids, aretes, compte = [], [], [], 0
     for peau in peaux:
         x, w = peau_lineaire(peau, noms)
         paires = numpy.array([e.vertices[:] for e in peau.data.edges], dtype=numpy.int64).reshape(-1, 2)
         paires = paires[(w[:, colonnes].sum(axis=1)[paires] > POIDS_NEGLIGEABLE).any(axis=1)]
+        if not len(paires):
+            continue
         sommets, locales = numpy.unique(paires, return_inverse=True)
-        positions.append(x[sommets].astype(numpy.float64) @ numpy.array(monde_vers_rig).T)
+        positions.append(repos_des_jeux(peau, x, sommets, vers_rig))
         poids.append(w[sommets].astype(numpy.float64))
         aretes.append(locales.reshape(-1, 2) + compte)
         compte += len(sommets)
-    x, aretes = numpy.concatenate(positions), numpy.concatenate(aretes)
-    return PeauDuBras(x, numpy.concatenate(poids), aretes, numpy.linalg.norm(x[aretes[:, 0], :3] - x[aretes[:, 1], :3], axis=1))
+    x, aretes = numpy.concatenate(positions, axis=1), numpy.concatenate(aretes)
+    return PeauDuBras(x, numpy.concatenate(poids), aretes,
+                      numpy.linalg.norm(x[0, aretes[:, 0], :3] - x[0, aretes[:, 1], :3], axis=1))
 
 
 def peau_fixe(peau, matrices, libres):
-    """Les sommets de `peau` (`PeauDuBras`) sous les matrices de peau `matrices` (os, 4, 4) de tous les os sauf les
-    `libres` (indices), dont la part reste à ajouter (`etirement_du_bras`)."""
+    """Les sommets de `peau` (`PeauDuBras`) sur le corps neutre sous les matrices de peau `matrices` (os, 4, 4) de tous
+    les os sauf les `libres` (indices), dont la part reste à ajouter (`etirement_du_bras`)."""
     w = peau.w.copy()
     w[:, libres] = 0.0
-    return deformer(w, peau.x, matrices[None])[0]
+    return deformer(w, peau.x[0], matrices[None])[0]
+
+
+def rapports_du_bras(peau, y):
+    """Par pose, le rapport de la longueur de chaque arête de `peau` (`PeauDuBras`) sous les sommets posés `y`
+    (poses, sommets, 3) à sa longueur au repos du corps neutre : (poses, arêtes)."""
+    return numpy.linalg.norm(y[:, peau.aretes[:, 0]] - y[:, peau.aretes[:, 1]], axis=2) / peau.longueurs[None]
 
 
 def etirement_du_bras(peau, fixe, libres):
-    """Par pose, le plus grand rapport de longueur à la longueur de repos des arêtes de `peau` (`PeauDuBras`), et le plus
-    petit de celles qu'un os de `libres` meut : `fixe` (`peau_fixe`), plus la part de chaque os de `libres`, couples
-    d'indice d'os et de ses matrices de peau par pose (poses, 4, 4). Le poing fermé des clips sources, que les os libres
-    ne meuvent pas, n'y entre pas."""
-    y = fixe[None] + sum(peau.w[None, :, os_, None] * numpy.einsum('nj,kij->kni', peau.x, matrices)[..., :3]
+    """Par pose, sur le corps neutre, le plus grand rapport de longueur à la longueur de repos des arêtes de `peau`
+    (`PeauDuBras`, `rapports_du_bras`), et le plus petit de celles qu'un os de `libres` meut : `fixe` (`peau_fixe`), plus
+    la part de chaque os de `libres`, couples d'indice d'os et de ses matrices de peau par pose (poses, 4, 4). Le poing
+    fermé des clips sources, que les os libres ne meuvent pas, n'y entre pas."""
+    y = fixe[None] + sum(peau.w[None, :, os_, None] * numpy.einsum('nj,kij->kni', peau.x[0], matrices)[..., :3]
                          for os_, matrices in libres)
-    a, b = peau.aretes[:, 0], peau.aretes[:, 1]
-    rapports = numpy.linalg.norm(y[:, a] - y[:, b], axis=2) / peau.longueurs[None]
+    rapports = rapports_du_bras(peau, y)
     meues = (peau.w[:, [os_ for os_, _ in libres]].sum(axis=1) > POIDS_NEGLIGEABLE)[peau.aretes].any(axis=1)
     return rapports.max(axis=1), rapports[:, meues].min(axis=1)
 

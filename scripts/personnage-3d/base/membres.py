@@ -18,8 +18,10 @@ que rien ne sort ne requiert rien, l'enveloppe de ses voisines la couvre ou non.
 liste est perdue ; sinon les deux bras s'écrivent et le clip reposé se garde si la peau exacte de chacun de ses deux
 bras, corrigé ou non (le tronc suit aussi les os des bras), reste sous la tolérance à chaque image sous chaque jeu requis
 et n'est, sous un jeu retiré du requis, à aucune image plus enfoncée qu'à la source de plus de `PLUS_ENFONCEE`
-(`verdict`), et si chaque bras corrigé passe, aux images corrigées, les contrôles d'un bras posé
-(`deux_mains.defaut_du_bras`). Sinon les courbes sources des deux bras reviennent à l'identique et la liste suivante
+(`verdict`), si chaque bras corrigé passe, aux images corrigées, les contrôles d'un bras posé
+(`deux_mains.defaut_du_bras`), et si, aux images corrigées et à leurs voisines, la peau que meut chaque bras corrigé ne
+sort de `ETIREMENT_EN_CLIP` sous aucun jeu de `tronc.TRONC` là où la source y était, mesurée comme la garde `etirement`
+(`etirements`, `etirement_neuf`). Sinon les courbes sources des deux bras reviennent à l'identique et la liste suivante
 s'essaie, sans reposer les essais de `requis` déjà faits ; après la dernière, le clip reste sa source. La ligne
 `MEMBRES` du clip le dit.
 
@@ -38,15 +40,15 @@ from mathutils import Matrix, Quaternion, Vector
 
 from anatomie import zone_de_l_os
 from animation import assign_action, meshes_for
-from deux_mains import defaut_du_bras, etirement_du_bras, lire_le_bras, peau_du_bras, peau_fixe
+from deux_mains import defaut_du_bras, etirement_du_bras, lire_le_bras, peau_du_bras, peau_fixe, rapports_du_bras
 from ecart import ECART_DU_TRONC, POUSSEE, envelopper, poussee_requise
 from noms_silhouettes import CARRURE_PLUS
 from pistes import aller_a, sacs
 from poids import instants
-from seuils import SOL_TOLERANCE_M
+from seuils import ETIREMENT_EN_CLIP, SOL_TOLERANCE_M
 from tronc import (BRAS, TRONC, avant, chaine_du_bras, champs_du_tronc, coude, matrices_de_la_chaine, membre_pose,
-                   peau_du_membre, peau_du_tronc, poser_le_membre, pres_du_tronc, profondeurs, profondeurs_exactes,
-                   repos_de_la_chaine, tetes_du_bras, tronc_pose)
+                   peau_du_membre, peau_du_tronc, poser_le_membre, poser_sous_les_jeux, pres_du_tronc, profondeurs,
+                   profondeurs_exactes, repos_de_la_chaine, tetes_du_bras, tronc_pose)
 
 ECART_DU_COUDE = {'pas': 1.0, 'borne': 45.0}
 """En degrés, l'écart du coude autour de l'axe épaule-poignet (`requis`) : cherché par pas de `pas`, jusqu'à `borne`
@@ -58,6 +60,9 @@ tous, puis tous sauf la carrure maximale, sous laquelle la peau reste alors, au 
 (`PLUS_ENFONCEE`) : le corps normal d'abord (#3810)."""
 PLUS_ENFONCEE = 0.001
 """En mètres, l'enfoncement exact qu'une correction peut ajouter à la source sous un jeu retiré du requis (`JEUX_REQUIS`)."""
+ETIREMENT_AGGRAVE = 0.01
+"""La part de son rapport source dont une correction peut encore éloigner de `ETIREMENT_EN_CLIP` une arête que la source
+tenait déjà hors de lui (`etirement_neuf`)."""
 
 
 class Bras(NamedTuple):
@@ -228,6 +233,29 @@ def verdict(sources, apres, jeux, images):
     return None, reste
 
 
+def etirements(tronc, peau, pose, courantes):
+    """Par jeu de `tronc.TRONC`, le rapport de chaque arête de la `deux_mains.PeauDuBras` `peau` à sa longueur au repos du
+    corps neutre (`deux_mains.rapports_du_bras`), posée sous les matrices de peau `courantes` (os, 4, 4) et les clés de
+    forme du jeu, sur les os déplacés du `tronc.TroncPose` `pose` de `tronc` (`tronc.poser_sous_les_jeux`), comme la garde
+    `etirement` la mesure (`hotes/godot/asset/evaluateur/gardes/etirement.ts`) : (jeux, arêtes)."""
+    return rapports_du_bras(peau, poser_sous_les_jeux(peau.w, peau.x, courantes, pose.tetes, tronc.deplacements))
+
+
+def etirement_neuf(sources, apres, images):
+    """L'étirement qu'une correction fait naître, `None` sans lui : `sources` et `apres`, les rapports (`etirements`) de
+    la source et du clip reposé aux `images` (instants) vérifiées (images, jeux, arêtes). Une arête hors de
+    `ETIREMENT_EN_CLIP` après la correction compte si la source la tenait dedans, ou si la correction l'en éloigne encore
+    de plus de `ETIREMENT_AGGRAVE` de son rapport source ; la pire, en écart logarithmique à 1 comme la garde, se rend :
+    « étirement sous <jeu> image <instant> <rapport> »."""
+    bas, haut = ETIREMENT_EN_CLIP
+    neuves = (((apres > haut) & ((sources <= haut) | (apres > sources * (1 + ETIREMENT_AGGRAVE))))
+              | ((apres < bas) & ((sources >= bas) | (apres < sources * (1 - ETIREMENT_AGGRAVE)))))
+    if not neuves.any():
+        return None
+    i, j, k = numpy.unravel_index(numpy.where(neuves, numpy.abs(numpy.log(apres)), -numpy.inf).argmax(), neuves.shape)
+    return f'étirement sous {nom_du_jeu(j)} image {images[i]:.2f} {apres[i, j, k]:.5f}'
+
+
 def courbes(action, os_):
     """Les courbes de rotation des os `os_` dans `action`, par (chemin, indice) : leurs clés, chacune en (instant,
     valeur), poignées, interpolation, types de poignées et assouplissement."""
@@ -262,8 +290,8 @@ def ecarter_les_membres(bpy, rig, clips):
     et imprime par clip une ligne `MEMBRES` : images, par bras sa peau exacte la plus enfoncée à la source, puis la liste
     gardée et, par bras corrigé, images corrigées, avancée et écart du coude les plus grands, peau exacte la plus
     enfoncée après et reste sous un jeu retiré du requis ; ou le clip rendu à sa source, avec pour chaque liste essayée
-    le bras, le contrôle manqué, l'instant et la valeur ; le compte des images que rien ne sort, par bras ; et la
-    durée."""
+    le bras, le contrôle manqué (`verdict`, `deux_mains.defaut_du_bras`, `etirement_neuf`), l'instant et la valeur ; le
+    compte des images que rien ne sort, par bras ; et la durée."""
     peaux = meshes_for(bpy, rig)
     tronc = peau_du_tronc(rig, peaux)
     noms = [b.name for b in rig.data.bones]
@@ -345,7 +373,8 @@ def ecarter_les_membres(bpy, rig, clips):
             defaut = None
             for cote, (avancees, ecarts, touchees) in corrections.items():
                 ecrire(images, lus, cote, avancees, ecarts, touchees)
-            relus = {i: lire(images[i]) for c in corrections.values() for i in c[2]}
+            relus = {j: lire(images[j]) for j in sorted({j for c in corrections.values() for i in c[2]
+                                                         for j in (i - 1, i, i + 1) if 0 <= j < len(images)})}
             etats = []
             for cote in cotes:
                 apres = sources[cote].copy()
@@ -355,11 +384,17 @@ def ecarter_les_membres(bpy, rig, clips):
                 if defaut_ is None and cote in corrections:
                     avancees, ecarts, touchees = corrections[cote]
                     lectures = [relus[i][2][cote] if i in relus else l[2][cote] for i, l in enumerate(lus)]
-                    etirements = {i: etirement(relus[i][3], cote) for i in touchees}
-                    controle, _ = defaut_du_bras(cote, images, lectures, etirements, touchees)
+                    neutres = {i: etirement(relus[i][3], cote) for i in touchees}
+                    controle, _ = defaut_du_bras(cote, images, lectures, neutres, touchees)
                     if controle is not None:
                         defaut_ = f'{controle[0]} image {controle[1]:.2f} {controle[2]}'
                     else:
+                        verifiees = sorted({j for i in touchees for j in (i - 1, i, i + 1) if 0 <= j < len(images)})
+                        defaut_ = etirement_neuf(
+                            numpy.array([etirements(tronc, aretes[cote], lus[i][0], lus[i][3]) for i in verifiees]),
+                            numpy.array([etirements(tronc, aretes[cote], relus[i][0], relus[i][3]) for i in verifiees]),
+                            [images[i] for i in verifiees])
+                    if defaut_ is None:
                         etats.append(f'{cote} corrigées {len(touchees)}, avancée max {avancees.max() * 100:.2f} cm, écart du '
                                      f'coude max {ecarts.max():.1f}°, après {en_cm(apres[:, list(jeux)].max())}{reste}')
                 elif defaut_ is None and reste:

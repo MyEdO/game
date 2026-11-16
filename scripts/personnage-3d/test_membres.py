@@ -4,7 +4,10 @@ la marge par l'avancée ; un avant-bras dans le tronc, main dehors, en sort par 
 en place et le bras sans torsion ajoutée ; l'enveloppe raccorde l'écart d'une image corrigée à ses voisines, à pas
 borné ; un bras que ni l'avancée ni le coude ne sortent ne requiert rien ; une avancée déjà essayée ne se repose pas ;
 une correction qui laisse la peau dans le tronc se refuse, une qui ferme sauf sous la carrure maximale se garde et le
-dit, sauf si elle y enfonce la peau plus qu'à la source ; les courbes d'un bras refusé reviennent à leur source au bit
+dit, sauf si elle y enfonce la peau plus qu'à la source ; l'étirement de la peau du bras se lit sous chaque jeu : sous un
+jeu dont la clé de forme double une arête, au double de celui du neutre, et sous un jeu à os, sur la peau du squelette
+déplacé explicite ; une correction qui étire hors de `ETIREMENT_EN_CLIP` une arête que la source y tenait se refuse, et
+la même se garde si la source dépassait déjà autant, non si elle l'aggrave au-delà de `ETIREMENT_AGGRAVE` ; les courbes d'un bras refusé reviennent à leur source au bit
 près ; sur un rig, un clip dont un bras ferme et l'autre manque un contrôle revient tout entier à sa source au bit
 près, un clip dont un bras n'a rien à corriger et l'autre ferme se garde, un clip dont la correction d'un bras enfonce
 dans le tronc l'autre bras, non corrigé, revient à sa source."""
@@ -22,13 +25,17 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from animation import assign_action  # noqa: E402
+from animation import assign_action, meshes_for  # noqa: E402
+from deux_mains import PeauDuBras, peau_du_bras  # noqa: E402
 from ecart import ECART_DU_TRONC, RACCORD, poussee_requise  # noqa: E402
-from membres import (JEUX_REQUIS, PLUS_ENFONCEE, bras_de_l_image, corriger, courbes,  # noqa: E402
-                     ecarter_les_membres, exactes, peau_posee, poses_du_bras, requis, restaurer, verdict)
-from seuils import IMAGES_PAR_SECONDE, SOL_TOLERANCE_M  # noqa: E402
+from membres import (ETIREMENT_AGGRAVE, JEUX_REQUIS, PLUS_ENFONCEE, bras_de_l_image, corriger, courbes,  # noqa: E402
+                     ecarter_les_membres, etirement_neuf, etirements, exactes, peau_posee, poses_du_bras, requis, restaurer,
+                     verdict)
+from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, SOL_TOLERANCE_M  # noqa: E402
+from test_sol import DEPLACEMENTS, PARENT, SOMMET, autour_de_l_avant, peaux  # noqa: E402
 from test_tronc import boite  # noqa: E402
-from tronc import BRAS, TRONC as JEUX, PeauDuMembre, PeauDuTronc, champs_du_tronc, profondeurs, tronc_pose  # noqa: E402
+from tronc import (BRAS, TRONC as JEUX, PeauDuMembre, PeauDuTronc, champs_du_tronc, peau_du_tronc, profondeurs,  # noqa: E402
+                   tronc_pose)
 
 REPOS = Matrix(((-1, 0, 0), (0, -1, 0), (0, 0, 1)))
 """Les axes de repos des trois os du bras : leur +Y vers l'avant (−Y du rig)."""
@@ -235,6 +242,67 @@ class Verdict(unittest.TestCase):
         sources, apres = self.peaux(0.02, 0.02 + 2 * PLUS_ENFONCEE)
         defaut, _ = verdict(sources, apres, JEUX_REQUIS[1], self.IMAGES)
         self.assertTrue(defaut.startswith('carrure_plus plus enfoncée image 0.00'))
+
+
+class EtirementNeuf(unittest.TestCase):
+    """Deux images, trois arêtes au rapport 1 sous chaque jeu, sauf la dernière sous le dernier jeu."""
+    JEU = len(JEUX['silhouettes']) - 1
+
+    def rapports(self, source, apres):
+        sources, apres_ = numpy.ones((2, len(JEUX['silhouettes']), 3)), numpy.ones((2, len(JEUX['silhouettes']), 3))
+        sources[1, self.JEU, 2], apres_[1, self.JEU, 2] = source, apres
+        return sources, apres_
+
+    def test_une_correction_qui_etire_hors_des_bornes_une_arete_que_la_source_y_tenait_se_refuse(self):
+        haut = ETIREMENT_EN_CLIP[1]
+        self.assertEqual(etirement_neuf(*self.rapports(haut - 0.005, haut + 0.005), [0.0, 8.0]),
+                         f'étirement sous {"+".join(JEUX["silhouettes"][self.JEU])} image 8.00 {haut + 0.005:.5f}')
+
+    def test_la_meme_correction_se_garde_si_la_source_depassait_deja_autant(self):
+        haut = ETIREMENT_EN_CLIP[1]
+        self.assertIsNone(etirement_neuf(*self.rapports(haut + 0.04, haut + 0.04), [0.0, 8.0]))
+        self.assertIsNone(etirement_neuf(*self.rapports(haut + 0.04, (haut + 0.04) * (1 + ETIREMENT_AGGRAVE / 2)), [0.0, 8.0]))
+
+    def test_une_correction_qui_aggrave_un_depassement_de_la_source_au_dela_de_sa_part_se_refuse(self):
+        haut = ETIREMENT_EN_CLIP[1]
+        self.assertIsNotNone(etirement_neuf(*self.rapports(haut + 0.04, (haut + 0.04) * (1 + 2 * ETIREMENT_AGGRAVE)), [0.0, 8.0]))
+
+
+class EtirementSousLesJeux(unittest.TestCase):
+    def test_sous_un_jeu_dont_la_cle_double_une_arete_l_etirement_lu_est_le_double_de_celui_du_neutre(self):
+        rig = rig_minimal()
+        objet = bpy.data.objects['Rig-bras-l']
+        double = next(j for j, jeu in enumerate(JEUX['silhouettes']) if len(jeu) == 1)
+        sommets = [numpy.array(objet.data.vertices[i].co) for i in (0, 4)]
+        objet.data.shape_keys.key_blocks[JEUX['silhouettes'][double][0]].data[4].co = tuple(2 * sommets[1] - sommets[0])
+        poser(rig, 'l', *flanc('l'))
+        noms = [b.name for b in rig.data.bones]
+        peaux_ = meshes_for(bpy, rig)
+        tronc = peau_du_tronc(rig, peaux_)
+        epaule = rig.data.bones['upperarm_l']
+        peau_ = peau_du_bras(peaux_, noms, [o.name for o in (epaule, *epaule.children_recursive)], rig.matrix_world.inverted())
+        courantes = numpy.array([numpy.array(rig.pose.bones[n].matrix @ rig.data.bones[n].matrix_local.inverted()) for n in noms])
+        rapports = etirements(tronc, peau_, tronc_pose(tronc, courantes, champs=False), courantes)
+        a, b = (int(numpy.linalg.norm(peau_.x[0, :, :3] - s, axis=1).argmin()) for s in sommets)
+        arete = next(k for k, paire in enumerate(peau_.aretes) if {int(paire[0]), int(paire[1])} == {a, b})
+        self.assertAlmostEqual(rapports[0, arete], 1.0, places=5)
+        self.assertAlmostEqual(rapports[double, arete], 2 * rapports[0, arete], places=5)
+
+    def test_sous_un_jeu_a_os_la_peau_suit_l_os_deplace(self):
+        x = numpy.array([SOMMET, [0.05, 0.0, 1.5, 1.0]])
+        w = numpy.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
+        deplacements = numpy.stack([numpy.zeros((3, 3)), DEPLACEMENTS])
+        tronc = PeauDuTronc(numpy.stack([SOMMET[None]] * 2), numpy.array([[0.0, 0.0, 1.0]]), numpy.array([[0, 0, 0]]), PARENT,
+                            deplacements)
+        longueur = numpy.linalg.norm(x[0, :3] - x[1, :3])
+        peau_ = PeauDuBras(numpy.stack([x] * 2), w, numpy.array([[0, 1]]), numpy.array([longueur]))
+        locales = [numpy.eye(4), autour_de_l_avant(numpy.pi / 2), autour_de_l_avant(-numpy.pi / 2)]
+        courantes = peaux(numpy.zeros((3, 3)), locales)
+        rapports = etirements(tronc, peau_, tronc_pose(tronc, courantes, champs=False), courantes)
+        for jeu, d in enumerate(deplacements):
+            y = numpy.einsum('nb,bij,nj->ni', w, peaux(d, locales), x)[:, :3]
+            self.assertAlmostEqual(rapports[jeu, 0], numpy.linalg.norm(y[0] - y[1]) / longueur, places=9)
+        self.assertGreater(abs(rapports[1, 0] - rapports[0, 0]), 0.01)
 
 
 class Restaurer(unittest.TestCase):

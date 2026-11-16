@@ -6,7 +6,8 @@ le dépassement des bornes articulaires se lit sur le vecteur de rotation, à la
 qui sort des bornes resserrées de leur marge, et un bras posé ne manque le contrôle des bornes qu'au-delà de la borne
 elle-même ;
 une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval, l'écrasement ne lit que les arêtes
-que meuvent les os libres ; la seconde
+que meuvent les os libres ; la peau du bras porte son repos sous chaque jeu du tronc et rapporte une arête à sa longueur
+au repos du corps neutre : sous un jeu dont la clé de forme double une arête, son rapport au repos du jeu est 2 (#3810) ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement ;
 sous une silhouette à os, les têtes déplacées sont celles du squelette déplacé explicite ; le prix du tronc compte le
 pire sommet de la peau du membre à sa marge, sur la tête d'os déplacée ; la poussée requise est nulle là où l'avancée ne
@@ -29,13 +30,14 @@ from mathutils import Matrix, Quaternion, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from deux_mains import (BORNES, CLIPS, CONTINUITE, MARGE_DES_BORNES, PRONATION, SECONDES, TOURS, PeauDuBras, bras,  # noqa: E402
-                        chemin, cle, defaut_du_bras, ecarter, etirement_du_bras, hors_des_bornes, interpoler, peau_fixe,
-                        poser_les_bras, prix_du_tronc, refus_du_tronc, repere_de_l_arme, tour_du_repere)
+                        chemin, cle, defaut_du_bras, ecarter, etirement_du_bras, hors_des_bornes, interpoler, peau_du_bras,
+                        peau_fixe, poser_les_bras, prix_du_tronc, rapports_du_bras, refus_du_tronc, repere_de_l_arme,
+                        tour_du_repere)
 from ecart import ECART_DU_TRONC, POUSSEE  # noqa: E402
 from sol import ecarts_des_os, rotations_de_peau, tetes_deplacees  # noqa: E402
 from test_sol import DEPLACEMENTS, PARENT, TETES, autour_de_l_avant, peaux  # noqa: E402
 from test_tronc import tronc_en_boite  # noqa: E402
-from tronc import ChaineDuBras, PeauDuMembre, membre_pose  # noqa: E402
+from tronc import TRONC, ChaineDuBras, PeauDuMembre, membre_pose  # noqa: E402
 
 L1, L2 = 0.25, 0.24
 LIBRE = {a: [-180, 180] for a in 'xyz'}
@@ -114,7 +116,7 @@ class Peau(unittest.TestCase):
 
     def peau(self):
         longueurs = numpy.linalg.norm(self.X[self.ARETES[:, 0], :3] - self.X[self.ARETES[:, 1], :3], axis=1)
-        return PeauDuBras(self.X, self.W, self.ARETES, longueurs)
+        return PeauDuBras(self.X[None], self.W, self.ARETES, longueurs)
 
     def etirement(self, *matrices):
         peau = self.peau()
@@ -135,6 +137,26 @@ class Peau(unittest.TestCase):
         fixe = peau_fixe(peau, numpy.array([numpy.diag([0.1, 0.1, 0.1, 1.0]), numpy.eye(4)]), [1])
         ecrase = etirement_du_bras(peau, fixe, [(1, numpy.array([numpy.diag([0.5, 0.5, 0.5, 1.0])]))])[1][0]
         self.assertAlmostEqual(ecrase, 0.5, places=6)
+
+    def test_sous_un_jeu_dont_la_cle_double_une_arete_son_rapport_au_repos_du_jeu_est_2(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        donnee = bpy.data.meshes.new('Bras')
+        donnee.from_pydata([tuple(p[:3]) for p in self.X], [tuple(a) for a in self.ARETES], [])
+        objet = bpy.data.objects.new('Bras', donnee)
+        bpy.context.scene.collection.objects.link(objet)
+        objet.vertex_groups.new(name='epaule').add(range(len(self.X)), 1.0, 'REPLACE')
+        objet.shape_key_add(name='Basis')
+        silhouettes = sorted({s for jeu in TRONC['silhouettes'] for s in jeu})
+        for silhouette in silhouettes:
+            objet.shape_key_add(name=silhouette)
+        double = next(j for j, jeu in enumerate(TRONC['silhouettes']) if jeu == (silhouettes[0],))
+        objet.data.shape_keys.key_blocks[silhouettes[0]].data[1].co = tuple(2 * self.X[1, :3] - self.X[0, :3])
+        peau = peau_du_bras([objet], ['racine', 'epaule'], ['epaule'], Matrix.Identity(4))
+        self.assertEqual(peau.x.shape, (len(TRONC['silhouettes']), len(self.X), 4))
+        rapports = rapports_du_bras(peau, peau.x[:, :, :3])
+        arete = next(k for k, (a, b) in enumerate(peau.aretes) if {int(a), int(b)} == {0, 1})
+        self.assertAlmostEqual(rapports[0, arete], 1.0, places=6)
+        self.assertAlmostEqual(rapports[double, arete], 2.0, places=6)
 
 
 LOCALES = [numpy.eye(4), autour_de_l_avant(numpy.pi / 2), autour_de_l_avant(-numpy.pi / 2)]
