@@ -7312,6 +7312,29 @@
     }
   },
   {
+    "id": "mandat-d-arret",
+    "type": "trappings",
+    "label": "Mandat d'arrêt",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1545) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 77,
+      "note": "LDB 08 l.1545"
+    }
+  },
+  {
     "id": "bon-de-commande",
     "type": "trappings",
     "label": "Bon de commande",
@@ -11053,7 +11076,7 @@
     "maison": "Aucune table d'équipement ne liste cet objet (EDOC 16 l.481) : Encombrement posé sur le repère Casserole, Enc 1 (LDB 74 l.19).",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 113,
+      "page": 114,
       "note": "EDOC 16 l.481"
     }
   },
