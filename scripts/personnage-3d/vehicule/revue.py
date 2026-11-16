@@ -19,7 +19,6 @@ cherchent par id dans chaque dossier de `--modeles` : sortie de `construire.py` 
         [--gros-plans] [--seuls-gros-plans <noms>]
 """
 import argparse
-import json
 import math
 import runpy
 import sys
@@ -33,16 +32,6 @@ import rendu  # noqa: E402
 
 LACETS = {"proue": 0.0, "tribord": -math.pi / 2, "poupe": math.pi, "babord": math.pi / 2}
 TOUT = "tout"
-
-
-def trouver(dossiers, id_):
-    """Le GLB et le manifeste de `id_` dans le premier des `dossiers` qui les porte."""
-    for d in dossiers:
-        for glb, manifeste in ((d / id_ / f"{id_}.glb", d / id_ / f"{id_}.element.json"),
-                               (d / f"{id_}.glb", d / f"{id_}.manifeste.json")):
-            if glb.exists() and manifeste.exists():
-                return glb, json.loads(manifeste.read_text(encoding="utf-8"))
-    raise FileNotFoundError(f"{id_} : ni <id>/<id>.glb ni <id>.glb (avec son manifeste) sous {[str(d) for d in dossiers]}")
 
 
 def en_vigueur(navire, ameliorations):
@@ -83,8 +72,8 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     import bpy
     from mathutils import Vector
-    glb_navire, navire = trouver(args.modeles, revue["vehicule"])
-    aux_postes = {bord: trouver(args.modeles, id_) for bord, id_ in revue["aux_postes"].items()}
+    glb_navire, navire = rendu.trouver(args.modeles, revue["vehicule"])
+    aux_postes = {bord: rendu.trouver(args.modeles, id_) for bord, id_ in revue["aux_postes"].items()}
     seules = set(filter(None, args.seules.split(",")))
     emblem = None
 
@@ -114,7 +103,7 @@ def main():
                 if arme(bord, i):
                     importer(*aux_postes[bord], pos, LACETS[bord])
         for am in ameliorations:
-            glb, manifeste = trouver(args.modeles, f"amelioration--{am}")
+            glb, manifeste = rendu.trouver(args.modeles, f"amelioration--{am}")
             if manifeste["montage"] == "postes":
                 for bord, positions in navire["selon"][am]["postes"].items():
                     for i, pos in enumerate(positions):

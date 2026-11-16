@@ -34,10 +34,14 @@ test('construction choisit le constructeur de la base et nomme le donnees.py de 
     donnees: 'scripts/personnage-3d/element/humanoide/vetement--bure/donnees.py',
   })
   assert.deepEqual(construction(CARAQUE, '/tmp/x'), {
-    commande: ['scripts/personnage-3d/environnement.mjs', 'scripts/personnage-3d/vehicule/construire.py', 'caraque', '--sortie', '/tmp/x'],
+    commande: ['scripts/personnage-3d/environnement.mjs', 'scripts/personnage-3d/construire.py', 'vehicule/caraque', '--sortie', '/tmp/x'],
     donnees: 'scripts/personnage-3d/vehicule/caraque/donnees.py',
   })
-  for (const inconnu of ['decor/tonneau', 'humanoide', 'humanoide/a/b', 'toString/x']) assert.equal(construction(inconnu, '/tmp/x'), null, inconnu)
+  assert.deepEqual(construction('decor/arbre', '/tmp/x'), {
+    commande: ['scripts/personnage-3d/environnement.mjs', 'scripts/personnage-3d/construire.py', 'decor/arbre', '--sortie', '/tmp/x'],
+    donnees: 'scripts/personnage-3d/decor/arbre/donnees.py',
+  })
+  for (const inconnu of ['meuble/tonneau', 'humanoide', 'humanoide/a/b', 'toString/x']) assert.equal(construction(inconnu, '/tmp/x'), null, inconnu)
 })
 
 test('commandeDImport importe sans publier, et remplace un id déjà importé', () => {

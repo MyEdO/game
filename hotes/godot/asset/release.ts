@@ -11,7 +11,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { dirname, extname, join, resolve } from 'node:path';
+import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { CLE_HORS_RELEASE, FICHIER_DE_LICENCE } from './dossierDeProduction.ts';
@@ -41,30 +41,38 @@ const sommeDuFichier = (chemin: string): string | null => (existsSync(chemin) ? 
 /** Le marqueur des fichiers vérifiés et des manifestes acceptés (`verifiesDu`), dans le cache. */
 export const MARQUEUR_DES_VERIFIES = 'verifies.json';
 
-/** Le chemin résolu de l'import relatif `specifieur` de `depuis`, tel que Vite le résout, ou `undefined`. */
+/** La racine du dépôt : `empreinteDesSources` y lit les sources par leur chemin relatif. */
+const RACINE_DU_DEPOT = fileURLToPath(new URL('../../..', import.meta.url));
+
+/** Le chemin, relatif à la racine du dépôt, de l'import relatif `specifieur` du module `depuis` (relatif aussi), tel
+ *  que Vite le résout, ou `undefined`. */
 const resoudreLImport = (depuis: string, specifieur: string): string | undefined =>
-  ['', '.ts', '.tsx', '.mjs', '.js', '/index.ts'].map((suffixe) => resolve(dirname(depuis), specifieur) + suffixe).find((c) => existsSync(c) && statSync(c).isFile());
+  ['', '.ts', '.tsx', '.mjs', '.js', '/index.ts'].map((suffixe) => join(dirname(depuis), specifieur) + suffixe).find((c) => existsSync(resolve(RACINE_DU_DEPOT, c)) && statSync(resolve(RACINE_DU_DEPOT, c)).isFile());
 
 /** Les imports et exports relatifs d'un module, dynamiques compris. */
 const IMPORT_RELATIF = /\b(?:from|import)\s*\(?\s*['"](\.{1,2}\/[^'"]+)['"]/g;
 
 /** L'empreinte SHA-256 des sources du module `entree` et de tout ce qu'il importe par chemin relatif, de proche en
- *  proche (données JSON comprises) : un octet changé dans l'une la change. */
+ *  proche (données JSON comprises) : un octet changé dans l'une la change. Les sources se lisent depuis la racine du
+ *  dépôt (`RACINE_DU_DEPOT`). */
 export function empreinteDesSources(entree: string): string {
   const vus = new Set<string>();
-  const pile = [entree];
+  const pile = [relative(RACINE_DU_DEPOT, entree)];
   while (pile.length) {
     const fichier = pile.pop() as string;
     if (vus.has(fichier)) continue;
     vus.add(fichier);
     if (!/\.(?:ts|tsx|mjs|js)$/.test(fichier)) continue;
-    for (const [, specifieur] of readFileSync(fichier, 'utf8').matchAll(IMPORT_RELATIF)) {
+    for (const [, specifieur] of readFileSync(resolve(RACINE_DU_DEPOT, fichier), 'utf8').matchAll(IMPORT_RELATIF)) {
       const cible = resoudreLImport(fichier, specifieur as string);
       if (cible !== undefined) pile.push(cible);
     }
   }
   const empreinte = createHash('sha256');
-  for (const fichier of [...vus].sort()) empreinte.update(fichier).update(readFileSync(fichier));
+  for (const fichier of [...vus].sort()) {
+    const chemin = resolve(RACINE_DU_DEPOT, fichier);
+    empreinte.update(chemin).update(readFileSync(chemin));
+  }
   return empreinte.digest('hex');
 }
 

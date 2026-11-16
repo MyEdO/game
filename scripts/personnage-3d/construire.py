@@ -1,16 +1,19 @@
-"""Construction d'un véhicule ou d'un engin et de ses éléments (#2987) : lit `vehicule/<modele>/donnees.py`, bâtit chaque
-élément que déclare `elements(D)` de `vehicule/<modele>/modele.py`, l'exporte en GLB et écrit, pour chaque clé de
-l'élément, son dossier de production `<sortie>/<id>/` :
+"""Construction d'un élément sans base (#2987, #4335) : un véhicule, une Amélioration ou un décor. Lit
+`<famille>/<modele>/donnees.py` (`vehicule/caraque`, `decor/arbre`), bâtit chaque élément que déclare `elements(D)` de
+`<famille>/<modele>/modele.py`, l'exporte en GLB et écrit, pour chaque clé de l'élément, son dossier de production
+`<sortie>/<id>/` :
 
 - `<id>.glb` et `<id>.element.json`, le manifeste schéma 3 que valide `npm run godot:valider -- <element.json> <glb>` ;
 - `manifest.json` et `LICENSE-CC0-1.0.txt`, l'enveloppe que lit `node hotes/godot/importer.mjs <sortie>/<id> <id>`.
 
-L'id est `<categorie>--<valeur de la clé>` (`vehicule--caraque`, `amelioration--sabord`). Un élément est un dict :
-`glb` (nom de la scène), `cles` [(categorie, cle)], `materiaux` (table `{nom: (emplacement, matière)}`, `habillage.py`),
-`blasons` (matériaux qui reçoivent l'emblème, exportés avec leurs UV), `construire` (bâtit la scène vide, rend les
-champs du manifeste propres à l'élément : `postes`, `selon`, `ancrages`, `montage`, `clips` (`clips.py`)).
+L'id est `<categorie>--<valeur de la clé>` (`vehicule--caraque`, `amelioration--sabord`, `decor--arbre`). Un élément est
+un dict : `glb` (nom de la scène), `cles` [(categorie, cle)], `materiaux` (table `{nom: (emplacement, matière)}`,
+`habillage.py`), `blasons` (matériaux qui reçoivent l'emblème, exportés avec leurs UV), `construire` (bâtit la scène vide,
+rend les champs du manifeste propres à l'élément : `postes`, `selon`, `ancrages`, `montage`, `clips` (`vehicule/clips.py`)
+d'un véhicule, `selon` d'un décor qui change selon la saison). Les familles et les catégories qu'elles publient : `CATEGORIES_DES_FAMILLES`
+(`entrees.py`).
 
-    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/construire.py <modele> --sortie <dossier neuf hors du dépôt>
+    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py <famille>/<modele> --sortie <dossier neuf hors du dépôt>
 """
 import argparse
 import importlib
@@ -19,10 +22,11 @@ import sys
 from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
-sys.path[:0] = [str(ICI), str(ICI.parent)]
+sys.path.insert(0, str(ICI))
 
 import bpy  # noqa: E402
 import habillage  # noqa: E402
+from entrees import CATEGORIES_DES_FAMILLES, modeles  # noqa: E402
 from production import MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
 
 LICENCES = {"LICENSE-CC0-1.0.txt": MODELES / "LICENSE-CC0-1.0-f6089cba01cb570a.txt"}
@@ -64,11 +68,13 @@ def produire(element, sortie):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("modele", choices=sorted(d.parent.name for d in ICI.glob("*/donnees.py")))
+    p.add_argument("modele", choices=[f"{f}/{m}" for f in CATEGORIES_DES_FAMILLES for m in modeles(f)])
     p.add_argument("--sortie", required=True)
     args = p.parse_args()
-    D = runpy.run_path(str(ICI / args.modele / "donnees.py"))
-    modele = importlib.import_module(f"{args.modele}.modele")
+    famille, nom = args.modele.split("/")
+    sys.path.insert(0, str(ICI / famille))
+    D = runpy.run_path(str(ICI / famille / nom / "donnees.py"))
+    modele = importlib.import_module(f"{nom}.modele")
     sortie = dossier_de_sortie(args.sortie)
     for element in modele.elements(D):
         produire(element, sortie)

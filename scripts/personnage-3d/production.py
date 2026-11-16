@@ -1,4 +1,4 @@
-"""Le dossier de production d'un élément (#2987, #3743), commun à `vehicule/construire.py` et `element/construire.py` :
+"""Le dossier de production d'un élément (#2987, #3743), commun à `construire.py` (sans base) et `element/construire.py` :
 ce que lit `node hotes/godot/importer.mjs <dossier> <id>`.
 
 - `<id>.glb` et `<id>.element.json`, le manifeste schéma 3 ;

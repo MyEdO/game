@@ -111,6 +111,16 @@ def manifeste_voisin(glb):
     return json.loads(chemin.read_text(encoding='utf-8'))
 
 
+def trouver(dossiers, id_):
+    """Le GLB et le manifeste de `id_` dans le premier des `dossiers` qui les porte."""
+    for d in dossiers:
+        for glb, manifeste in ((d / id_ / f"{id_}.glb", d / id_ / f"{id_}.element.json"),
+                               (d / f"{id_}.glb", d / f"{id_}.manifeste.json")):
+            if glb.exists() and manifeste.exists():
+                return glb, json.loads(manifeste.read_text(encoding="utf-8"))
+    raise FileNotFoundError(f"{id_} : ni <id>/<id>.glb ni <id>.glb (avec son manifeste) sous {[str(d) for d in dossiers]}")
+
+
 def matrice_du_noeud(noeud):
     """La matrice 4×4 du nœud glTF `noeud` dans le repère de son parent (`matrix`, sinon `translation`, `rotation`,
     `scale`)."""

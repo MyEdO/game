@@ -28,8 +28,7 @@ import { setCadence } from '../engine/cadence';
 import { t } from '../i18n';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { buildWeatherResistanceSteps, buildStageSteps } from './travelPostes';
-import { seasonOfMonth, weatherFromRoll, type Season } from '../engine/travelStages';
-import { toDate } from '../engine/clock';
+import { currentSeason, weatherFromRoll, type Season } from '../engine/travelStages';
 import { creditBourse } from './bourseFlow';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
@@ -114,7 +113,7 @@ describe('cascade du JOUR terrestre — les jets d’Étape sont influençables 
     expect(meteo.worldOwner).toBe(true);
     // La SAISON choisit la TABLE — jamais un `mod` : un décalage saisonnier rendrait des lignes
     // faussement inatteignables à la pose (les N premiers naturels seraient morts).
-    const saison = seasonOfMonth(toDate(get().gameTime).month);
+    const saison = currentSeason(get().gameTime);
     expect(meteo.table!.tableId).toBe(`stage-weather-${saison}`);
     expect(meteo.table!.mod ?? 0).toBe(0);
   });

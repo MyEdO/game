@@ -418,5 +418,41 @@
     "source": "https://ambientcg.com/view?id=Fabric040 (Fabric040_1K-JPG.zip : Fabric040_1K-JPG_Color.jpg) ; dérivée de prop--toile-rouge.jpg",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--bois-mort.jpg": {
+    "sha256": "05b773e3b80faac99a06ed3f4c9ee5e2b78b262156974e60f1d04726479dca05",
+    "source": "https://ambientcg.com/view?id=Bark002 (Bark002_1K-JPG.zip : Bark002_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6b5d4c ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--bois-mort.neutre.jpg": {
+    "sha256": "7fb623ab0d86aed0bd732328f595f6f51a3493d6dc2f30d0b8f2be64b7e9555f",
+    "source": "https://ambientcg.com/view?id=Bark002 (Bark002_1K-JPG.zip : Bark002_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 55%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--bois-mort.normale.jpg": {
+    "sha256": "057ca184245edb3ef5e9b89e9fbc1a69f2e4308fd256fa0c066e676e9b66a32d",
+    "source": "https://ambientcg.com/view?id=Bark002 (Bark002_1K-JPG.zip : Bark002_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--feuillage.jpg": {
+    "sha256": "f9623429c95d59ff24e1f9d5a6a0ae2450951710cede3bd68252938b16496e6a",
+    "source": "https://ambientcg.com/view?id=Moss002 (Moss002_1K-JPG.zip : Moss002_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#3f6b34 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--feuillage.neutre.jpg": {
+    "sha256": "4fe20292bce9edea2cab76ff9584b1e14aaebf1dffff738858332b7ba944f1ef",
+    "source": "https://ambientcg.com/view?id=Moss002 (Moss002_1K-JPG.zip : Moss002_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 50%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--feuillage.normale.jpg": {
+    "sha256": "35ee252388879f7fea89ea152edee919019bb8116e86e25f42b6adae5253268b",
+    "source": "https://ambientcg.com/view?id=Moss002 (Moss002_1K-JPG.zip : Moss002_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   }
 }

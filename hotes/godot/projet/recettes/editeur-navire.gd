@@ -4,7 +4,7 @@ extends SceneTree
 ## (`scripts/editeur.gd`) ouvert sur un pont figé (`PontFige`, sur l'éditeur du navire figé par la sonde,
 ## `hotes/godot/recettes/editeur.ts`), qui sert le listage et les GLB du projet et répond à chaque entrée de `editer`
 ## et de `morceaux` que la sonde a figée. L'outil Navire pressé offre la caraque, choisie en tête de sa liste ; le cap à l'est pressé,
-## l'appui sur le monde la pose : son modèle se monte (`MontageDesNavires`), son origine au point de la carte sous son
+## l'appui sur le monde la pose : son modèle se monte (`MontageDesModeles`), son origine au point de la carte sous son
 ## centre servi, sa proue tournée vers l'est. Glissée à l'outil de sélection, la caraque se repose sous son centre
 ## déplacé, sans se recharger. Le pont du dessus choisi, sa plus haute couche, le monde touche le sol de chaque case de
 ## ce pont (`Monde.sol_sous`) sur cette couche : ses ponts se visent. Aucune entrée n'est hors du figé, aucun refus ni
@@ -60,7 +60,7 @@ func _derouler(lu: Dictionary, editeur: Node) -> void:
 	var pointes: Array = lu.pointes
 	_pointer(editeur, pointes[0])
 	var id: String = lu.navire.id
-	var navires: MontageDesNavires = editeur.get_node("Navires")
+	var navires: MontageDesModeles = editeur.get_node("Modeles")
 	if not await _attendre(func() -> bool: return id in navires.poses(), "le modèle de %s posé" % id):
 		return
 	var modele: Node3D = navires.get("_montes")[id].scene
