@@ -28,6 +28,7 @@ import type { Combatant } from './types';
 import { bourseOf, bourseInstanceOf, setBourseBrass } from './bourse';
 import { toBrass } from './money';
 import { wornArmourPoints } from './items';
+import { ENGINS_DE_SIEGE } from '../data/schemas/grammaire/sousListes';
 
 const porte = (p: ParcoursDeCarriere, id = 'pnj'): Combatant => {
   const c = combattantDeTest({ id });
@@ -162,6 +163,13 @@ describe('dotations de la carrière actuelle et de ses Niveaux inférieurs, sans
     const plume = porte({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [adresseDeCreation.dotation([0])]: 2 } });
     expect(plume.items!.map((i) => i.trappingId)).toEqual(['plume-d-oie']);
     expect(porte({ carrieres: { artiste: 1 } }).items!.map((i) => i.trappingId)).toEqual([expect.stringMatching(/^(pinceau|ciseau|plume-d-oie)$/)]);
+  });
+  it('le Maître artilleur ne porte au sac aucune pièce d’artillerie, quelle qu’elle soit (AA 02 l.339 ; #4143)', () => {
+    const piece = emplacementsDeDotation(dotationsDuPnj('artilleur', 4)).find((e) => e.sorte === 'branches' && e.ref.of.every((b) => 'type' in b && b.type === 'engin'))!;
+    for (const j of valeursDeLEmplacement(piece, { size: 'moyenne' })) {
+      const artilleur = porte({ carrieres: { artilleur: 4 }, dotationsDeCarriere: { [piece.adresse]: j } });
+      expect(artilleur.items!.filter((i) => findTrappingById(i.trappingId!)?.subType?.id === ENGINS_DE_SIEGE), `choix ${j}`).toEqual([]);
+    }
   });
   it('le Statut est celui du Niveau atteint de la carrière actuelle : le Doktor de l’exemple est Argent 5 (EDO 11 l.27)', () => {
     expect(actorStatus(porte({ carrieres: { medecin: 3 } }))).toEqual({ tier: 'argent', standing: 5 });

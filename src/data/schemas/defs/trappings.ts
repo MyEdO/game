@@ -254,10 +254,11 @@ const doc = document(
     edit: { dataset: 'trappings' },
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
+  // `subType` : discriminant de la sous-liste `ENGINS_DE_SIEGE` (`grammaire/sousListes.ts`).
   // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
   {
     exiges: ['source'],
-    espace: { discriminant: 'categorie', marqueurs: ['service'] },
+    espace: { discriminant: ['categorie', 'subType'], marqueurs: ['service'] },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as { id: string; categorie: string; subType: { id: string } | null; shape?: { id: string } };
