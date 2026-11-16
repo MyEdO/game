@@ -494,6 +494,7 @@ describe('materials.json, domaine `prop` — les matières du décor', () => {
       'albatre', 'feuillage', 'bois-mort', 'os', 'sang-repandu', 'eau-dormante', 'paille', 'toile-ecrue',
       'toile-chaos', 'pierre-chaos', 'rune-chaos', 'ombre', 'terre-battue', 'roseau', 'soie', 'ecaille',
       'chapeau-rouge', 'drap-terne', 'peau-morte', 'corde', 'cuir-tanne',
+      'laine', 'fourrure', 'acier-battu', 'mailles',
     ]);
     for (const m of matieresDe('prop')) {
       expect(m.color, m.id).toMatch(/^#[0-9a-f]{6}$/);

@@ -42,8 +42,8 @@ const PORTEURS = [
     porteur: 'worldMap.places[].poi[].sceneId', chemin: 'worldMap.places.0.poi.0.sceneId',
     avec: (v: unknown) => projet((c) => {
       const lieu: { poi: unknown[] } = c.worldMap.places[0];
-      const { serviceKind: _service, ...poi } = c.worldMap.places[0].poi[0];
-      lieu.poi[0] = { ...poi, sceneId: v };
+      const { service: _service, ...poi } = c.worldMap.places[0].poi[0];
+      lieu.poi[0] = { ...poi, label: 'Auberge', sceneId: v };
     }),
   },
   {

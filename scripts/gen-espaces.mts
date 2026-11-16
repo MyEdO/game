@@ -6,7 +6,9 @@
  * `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`), avec la CATÉGORIE CODEX de chaque
  * fichier qui en déclare exactement une (`CATEGORIE_CODEX_DU_FICHIER`, lue sur l'`exposition.codex` des
  * defs), et les RACINES VIVANTES
- * (`src/data/schemas/_racines-vivantes.generated.ts`, `RACINES_VIVANTES`), son image.
+ * (`src/data/schemas/_racines-vivantes.generated.ts`, `RACINES_VIVANTES`), son image, et les FICHIERS DE
+ * L'ATELIER (`src/data/schemas/_fichiers-de-l-atelier.generated.json`) : le chemin de chaque fichier d'une catégorie
+ * éditable du Codex, que le dépôt servi écrit (`hotes/godot/servir.mjs`, `PUT donnees/<fichier>`).
  *
  * Le JSON disque de chaque document de `SCHEMA_DEFS` est CO-DESCENDU avec son schéma, sans parse
  * (`collectionsDesDocuments`, `grammaire/collection-cle.ts`) : chaque collection marquée `espace` y
@@ -52,7 +54,7 @@ import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
 import { estObjet } from '../src/lib/objet.mjs';
 
-const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES } = SORTIES_DES_ESPACES;
+const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES, atelier: SORTIE_ATELIER } = SORTIES_DES_ESPACES;
 
 /** Table VIDE : ce que la phase 2 pose à la place d'un index illisible. */
 export const TABLE_VIDE = 'export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = {};\n';
@@ -194,12 +196,12 @@ function cheminResolu(
 /** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), les CLÉS DE DATASET et les documents
  *  de leur image. Les modules qui importent l'index se chargent ICI, par `import()` : l'appelant a déjà
  *  rendu l'index chargeable. */
-export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeLEspace: [string, { readonly cle: string; readonly fichier: string; readonly chemin: readonly PasResolu[] }][]; racines: DocumentDeDataset[]; valeursDeRegle: [string, string][] }> {
+export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeLEspace: [string, { readonly cle: string; readonly fichier: string; readonly chemin: readonly PasResolu[] }][]; racines: DocumentDeDataset[]; fichiersDeLAtelier: [string, string][]; valeursDeRegle: [string, string][] }> {
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
   const { atteindre, cleDesLibellesDeLaSource, collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
   const { lectureDuVocabulaire } = await import('../src/data/schemas/grammaire/vocabulaires');
   const { TYPES } = await import('../src/data/schemas/grammaire/ref');
-  const { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } = await import('../src/data/schemas/exposition-derivee');
+  const { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } = await import('../src/data/schemas/exposition-derivee');
   const brutParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, JSON.parse(readFileSync(join(d.root, d.file), 'utf8')) as unknown]));
   const schemaParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, d.schema]));
   const acces: AccesAuxDocuments = (fichier) => (brutParNom.has(fichier) ? { schema: schemaParNom.get(fichier), racine: brutParNom.get(fichier) } : undefined);
@@ -299,6 +301,8 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     collections,
     datasetsDeLEspace: [...datasetsDeLEspace].sort(([a], [b]) => parUnitesDeCode(a, b)),
     racines,
+    fichiersDeLAtelier: [...new Set([...Object.values(CATEGORY_DATASET_DERIVE), ...Object.values(OBJECT_CATEGORY_DERIVE).map((r) => r.ds)].map((ds) => DATASET_FICHIER_DERIVE[ds]))]
+      .sort(parUnitesDeCode).map((fichier): [string, string] => { const def = defParNom.get(fichier)!; return [fichier, join(def.root, def.file).split('\\').join('/')]; }),
     valeursDeRegle: regles.map((r) => [r.id, typeDeValeur(r)]),
   };
 }
@@ -314,9 +318,9 @@ function specificateur(sortie: string, chemin: string): string {
   return rel.startsWith('.') ? rel : `./${rel}`;
 }
 
-/** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
+/** Les sorties de la phase 2, rendues sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
-  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeLEspace, racines, valeursDeRegle } = await indexDesIds();
+  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeLEspace, racines, fichiersDeLAtelier, valeursDeRegle } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -392,7 +396,8 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {\n` +
     racines.map((r, i) => `  ${litteralJs(r.fichier)}: r${i},\n`).join('') +
     `};\n`;
-  return { textes: new Map([[SORTIE, body], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines]]), table, clesDeDataset, racines };
+  const atelier = `${JSON.stringify(Object.fromEntries(fichiersDeLAtelier), null, 2)}\n`;
+  return { textes: new Map([[SORTIE, body], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines], [SORTIE_ATELIER, atelier]]), table, clesDeDataset, racines };
 }
 
 /** Le texte de l'index des ids sur disque, `''` s'il n'existe pas encore. */
@@ -440,7 +445,7 @@ export async function rendre(): Promise<Map<string, string>> {
   return (await rendu()).textes;
 }
 
-/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET et les RACINES VIVANTES — seulement si leur contenu change.
+/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET, les RACINES VIVANTES et les FICHIERS DE L'ATELIER — seulement si leur contenu change.
  *  Un index illisible est d'abord remplacé par la table vide ; en `check`, il est un rouge et rien ne se calcule. */
 async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number } | null> {
   if (!indexChargeable(indexSurDisque())) {

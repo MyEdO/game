@@ -212,6 +212,9 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 	match e.type:
 		"bouton":
 			_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
+		"puce":
+			if e.jeu != null:
+				_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
 		"choix", "liste":
 			var deroulantes := noeud.find_children("*", "OptionButton", true, false)
 			if deroulantes.is_empty():

@@ -1544,6 +1544,7 @@ const CODEX_SPECS = {
           chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
           passiveSection(t.passifDArme),
+          effectsSection(t.effects, ETATS_DU_CODEX, tr('codex.fiche.effetsDeclenches')),
           ...reverseSections('trappings', t.id),
         ),
       });
@@ -2898,6 +2899,16 @@ function categoryIndex(category: string): Map<string, CodexItem> | undefined {
 export function codexLookupById(category: string | undefined, id: string | undefined): CodexItem | undefined {
   if (!category || !id) return undefined;
   return categoryIndex(category)?.get(id);
+}
+
+/** La cible d'une ouverture du Compendium : une entrée d'une catégorie, et son instance. */
+export interface CibleDuCompendium { categorie: string; id: string; instance?: string }
+
+/** La cible de l'entrée `id` de la catégorie `categorie` (`codexLookupById`), et son `instance` quand le terme qui la
+ *  désigne en est une ; `null` sans `id` ou sans cette entrée au Codex. */
+export function cibleDuCodex(categorie: string, id: string | undefined, instance?: string): CibleDuCompendium | null {
+  const item = codexLookupById(categorie, id);
+  return item ? { categorie, id: item.id, ...(instance === undefined ? {} : { instance }) } : null;
 }
 
 const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;

@@ -8,5 +8,5 @@ MANIFESTE = {
     'couche': 'dessous',
     'couvre': ['torse', 'bras_haut_g', 'bras_haut_d', 'avant_bras_g', 'avant_bras_d'],
 }
-MATERIAUX = {'chemise': ('accent', ((0.6, 0.6, 0.6), 0.0, 0.87))}
+MATERIAUX = {'chemise': ('accent', 'toile-ecrue')}
 BUDGET_TRIANGLES = 1600

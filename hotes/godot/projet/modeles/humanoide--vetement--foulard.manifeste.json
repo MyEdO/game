@@ -19,11 +19,12 @@
   "surfaces": [
     {
       "nom": "foulard",
-      "palette": "accent"
+      "palette": "accent",
+      "matiere": "prop--toile-ecrue"
     }
   ],
   "glb": {
-    "sha256": "b182adf774579d015e030049e4344639c4ce9a1bce75c3d9b1c047b7df59f783",
-    "octets": 497452
+    "sha256": "a4f50b58c97bbe4445ab3122b19a4185dd93fbf6f706c981eb2a5543c4670ae6",
+    "octets": 685148
   }
 }

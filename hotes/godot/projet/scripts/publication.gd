@@ -39,7 +39,7 @@ func _remettre_en_page() -> void:
 
 ## L'écran publié une fois l'interface mise en page.
 func demander() -> void:
-	if not _pont.en_recette:
+	if not _pont.en_recette or not _scene.is_inside_tree():
 		return
 	_remise_en_page = true
 	if _attendue:

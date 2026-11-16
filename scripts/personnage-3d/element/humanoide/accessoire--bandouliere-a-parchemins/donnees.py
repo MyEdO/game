@@ -24,7 +24,7 @@ MANIFESTE = {
 alors qu'elle ne la traverse pas, et sous l'écharpe de la capuche (`manteau`)."""
 
 MATERIAUX = {
-    'sangle': ('vet2', ((0.75, 0.73, 0.68), 0.0, 0.9)),
+    'sangle': ('vet2', 'toile-ecrue'),
 }
 """Illustration : sangle écrue comme la robe de dessous (`vet2`). Gris de construction."""
 

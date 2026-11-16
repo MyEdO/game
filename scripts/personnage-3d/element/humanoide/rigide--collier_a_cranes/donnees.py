@@ -27,7 +27,7 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'metal': ('metal', ((0.66, 0.66, 0.66), 0.6, 0.45)),
+    'metal': ('metal', 'acier-battu'),
     'os': ('corne', ((0.75, 0.75, 0.75), 0.0, 0.85)),
 }
 """Brief (#4261) : chaîne, petit crâne et fuseaux sur l'emplacement `metal` ; le crâne d'os sur `corne`, l'ivoire de

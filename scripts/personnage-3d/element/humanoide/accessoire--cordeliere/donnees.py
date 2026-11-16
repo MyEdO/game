@@ -21,7 +21,7 @@ MANIFESTE = {
 qu'elle ne la traverse pas (comme `accessoire--bandouliere-a-parchemins` sur la robe)."""
 
 MATERIAUX = {
-    'corde': ('cuir', ((0.5, 0.5, 0.5), 0.0, 0.9)),
+    'corde': ('cuir', 'corde'),
 }
 """Brief : palette `cuir`. Gris de construction."""
 

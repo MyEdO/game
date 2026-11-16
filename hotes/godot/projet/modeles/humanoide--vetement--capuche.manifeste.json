@@ -22,11 +22,12 @@
   "surfaces": [
     {
       "nom": "capuche",
-      "palette": "accent"
+      "palette": "accent",
+      "matiere": "prop--laine"
     }
   ],
   "glb": {
-    "sha256": "2e39d5031477dc4387a3c50bf1c08f4d4a5b50dde5afddc8718cb945c633e261",
-    "octets": 519544
+    "sha256": "29362cf1726c962c3c7c8627b119a946031867952b3a27e71f323e912620e80c",
+    "octets": 638492
   }
 }

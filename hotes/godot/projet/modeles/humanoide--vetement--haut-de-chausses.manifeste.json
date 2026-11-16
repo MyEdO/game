@@ -25,15 +25,17 @@
   "surfaces": [
     {
       "nom": "haut_de_chausses",
-      "palette": "vet1"
+      "palette": "vet1",
+      "matiere": "prop--drap-terne"
     },
     {
       "nom": "creves",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--toile-ecrue"
     }
   ],
   "glb": {
-    "sha256": "2166344afde6f4db582bd6e29e2d23e5594ed63fb580bcb9ac089a29df9da687",
-    "octets": 540000
+    "sha256": "b91d9a8fc350ddba23eded7d6035101b790d055aa49c437bcdc9bc8106a2917e",
+    "octets": 690152
   }
 }

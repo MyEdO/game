@@ -1634,7 +1634,9 @@
     },
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "aucun": true
+    },
     "qualities": [
       {
         "id": "immobilisante"
@@ -1739,6 +1741,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -1784,6 +1789,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -11006,7 +11014,9 @@
       "carreau-de-baliste",
       "carreau-nain-norse"
     ],
-    "soloSimple": true,
+    "perteSansEquipe": {
+      "removeType": "atout"
+    },
     "enc": 20,
     "availability": "limitee",
     "reach": null,
@@ -11565,7 +11575,9 @@
     "range": 100,
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "aucun": true
+    },
     "qualities": [
       {
         "id": "recharge",
@@ -13313,6 +13325,12 @@
     "subType": {
       "id": "poudre-noire"
     },
+    "perteSansEquipe": {
+      "removeQualities": [
+        "pointue",
+        "precise"
+      ]
+    },
     "availability": null,
     "price": null,
     "source": {
@@ -13408,17 +13426,27 @@
     "subType": {
       "id": "ingenierie"
     },
-    "availability": "exotique",
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 0
-    },
+    "availability": null,
+    "price": null,
     "source": {
       "book": "zoo-imperial",
-      "page": 45
+      "page": 94,
+      "note": "ZI 13 l.197"
     },
-    "desc": "Machine à tuer skaven à plusieurs canons. Il faut deux skavens pour s'en servir : un pour charger, l'autre pour la maintenir tant bien que mal. Arme à distance : +10 Dégâts, portée 40 mètres, Atouts À Poudre noire, Empaleuse, Explosion 3 et Perforante, Défauts Dangereuse et Imprécise. Ses balles étant incrustées de malepierre, les cibles blessées doivent effectuer un Test de Corruption (Mineure) Accessible (+20).",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "5501bb1d60a58230"
+        }
+      ]
+    },
     "reach": null,
     "range": 40,
     "loc": null,
@@ -13446,6 +13474,10 @@
       },
       {
         "id": "imprecise"
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
       }
     ],
     "enc": 4,
@@ -13454,7 +13486,137 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "mineure",
+                  "nature": "physique",
+                  "difficulty": "accessible"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "lance-maleflamme",
+    "type": "trappings",
+    "label": "Lance-maleflamme",
+    "hands": 2,
+    "categorie": "distance",
+    "subType": {
+      "id": "ingenierie"
+    },
+    "availability": null,
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.201"
+    },
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 2,
+          "sum": "0d1625b597b74d14"
+        }
+      ]
+    },
+    "reach": null,
+    "range": 8,
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 6
+    },
+    "qualities": [
+      {
+        "id": "a-explosion",
+        "value": 4
+      },
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "arme-d-equipe",
+        "value": 2
+      }
+    ],
+    "enc": 2,
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "condition",
+                "id": {
+                  "id": "en-flammes"
+                },
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "alors": {
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "corruptionExposure",
+                  "level": "moderee",
+                  "nature": "physique"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
   },
   {
     "id": "pistolet-a-malepierre",
@@ -13583,6 +13745,94 @@
       },
       {
         "id": "percutante"
+      }
+    ],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "all",
+            "of": [
+              {
+                "kind": "woundsDealt",
+                "op": ">",
+                "value": 0
+              },
+              {
+                "kind": "navire",
+                "who": "target"
+              }
+            ]
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "characteristic": "endurance",
+              "difficulty": "complexe"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": {
+                      "id": "voie-d-eau"
+                    },
+                    "value": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "trigger": "onCrit",
+        "on": "victime",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "navire",
+            "who": "target"
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "characteristic": "endurance",
+              "difficulty": "difficile"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": {
+                      "id": "voie-d-eau"
+                    },
+                    "value": 3
+                  }
+                ]
+              }
+            }
+          }
+        }
       }
     ],
     "descRef": {
@@ -13914,8 +14164,40 @@
     },
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "aucun": true
+    },
     "qualities": [],
+    "onHitEffects": [
+      {
+        "trigger": "onHit",
+        "on": "victime",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "zone",
+                "shape": "disc",
+                "radiusMeters": 2,
+                "blocksLoS": true,
+                "durationRounds": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "rendu": {
+                  "id": "souffle-de-fumee"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
     "source": {
       "book": "rat-cornu-compagnon",
       "page": 34,
@@ -13926,6 +14208,9 @@
     },
     "rangement": {
       "id": "ceinture_d"
+    },
+    "capabilities": {
+      "detruitAuLancer": true
     }
   },
   {
@@ -13973,7 +14258,72 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "effects": [
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 2,
+          "centreCompris": true
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "majeure",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 4,
+          "radiusInnerMeters": 2
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "moderee",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onRoundStart",
+        "on": {
+          "near": "soi",
+          "radiusMeters": 8,
+          "radiusInnerMeters": 4
+        },
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "mineure",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      }
+    ]
   },
   {
     "id": "boulet",
@@ -13989,7 +14339,10 @@
     "reach": null,
     "loc": null,
     "pa": null,
-    "damage": null,
+    "damage": {
+      "plusBF": false,
+      "flat": 10
+    },
     "qualities": [
       {
         "id": "a-enroulement"
@@ -18039,34 +18392,9 @@
         "trigger": "onHit",
         "on": {
           "near": "soi",
-          "radiusMeters": 6
+          "radiusMeters": 6,
+          "centreCompris": true
         },
-        "flow": {
-          "kind": "si",
-          "condition": {
-            "kind": "slThreshold",
-            "op": "<=",
-            "value": 3
-          },
-          "alors": {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "ops": [
-                {
-                  "op": "wounds",
-                  "amount": 1,
-                  "ignoreTB": true,
-                  "ignoreAP": true
-                }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "trigger": "onHit",
-        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -18094,49 +18422,9 @@
         "trigger": "onHit",
         "on": {
           "near": "soi",
-          "radiusMeters": 6
+          "radiusMeters": 6,
+          "centreCompris": true
         },
-        "flow": {
-          "kind": "si",
-          "condition": {
-            "kind": "slThreshold",
-            "op": "<=",
-            "value": 3
-          },
-          "alors": {
-            "kind": "test",
-            "test": {
-              "skill": {
-                "id": "resistance"
-              },
-              "difficulty": "complexe",
-              "label": "Déchireur de sociabilité"
-            },
-            "reussite": {
-              "kind": "sequence",
-              "etapes": []
-            },
-            "echec": {
-              "kind": "effet",
-              "effet": {
-                "type": "ops",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": {
-                      "id": "assourdi"
-                    },
-                    "value": 1
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      {
-        "trigger": "onHit",
-        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {

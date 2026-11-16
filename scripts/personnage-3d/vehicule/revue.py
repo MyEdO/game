@@ -6,17 +6,16 @@ vers son bord ; une pièce d'Amélioration à son ancrage, tournée comme le nav
 son `selon`, `ouvert` devant une pièce, `ferme` sinon ; les nœuds `sans-<amelioration>` cachés quand elle est montée,
 `avec-<amelioration>` quand elle ne l'est pas.
 
-Chaque GLB s'habille comme le jeu l'habille, sans palette : chaque surface de son manifeste qui déclare une `matiere`
-prend la texture de cette matière dans le catalogue (`<catalogue>/<matiere>.jpg`), en triplanaire dans le repère de
-l'objet, un motif tous les 2 m ; une surface `blason` reçoit en couche de détail (UV « UVMap », le carré [0,1]²) un
-emblème d'essai ; toute autre surface garde la couleur de son matériau.
+Chaque GLB s'habille comme le jeu l'habille, sans palette (`rendu.habiller_le_modele`, projetée) : chaque surface de son
+manifeste qui déclare une `matiere` prend la texture de cette matière dans le catalogue ; une surface `blason` reçoit
+en couche de détail un emblème d'essai ; toute autre surface garde la couleur de son matériau.
 
 Les configurations et les vues de l'intérieur sont la `REVUE` des données du modèle. Un GLB et son manifeste se
 cherchent par id dans chaque dossier de `--modeles` : sortie de `construire.py` (`<id>/<id>.glb`,
 `<id>/<id>.element.json`) ou destination d'import (`<id>.glb`, `<id>.manifeste.json`).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py <modele> --modeles <dossier>
-        [--modeles <dossier>] --catalogue hotes/godot/projet/textures --sortie <dossier neuf> [--seules <noms>]
+        [--modeles <dossier>] --sortie <dossier neuf> [--seules <noms>]
         [--gros-plans] [--seuls-gros-plans <noms>]
 """
 import argparse
@@ -34,7 +33,6 @@ import rendu  # noqa: E402
 
 LACETS = {"proue": 0.0, "tribord": -math.pi / 2, "poupe": math.pi, "babord": math.pi / 2}
 TOUT = "tout"
-METRES_PAR_MOTIF = 2.0           # `MiseEnPage.METRES_PAR_MOTIF` du monde Godot
 
 
 def trouver(dossiers, id_):
@@ -70,7 +68,6 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("modele", choices=sorted(d.parent.name for d in ICI.glob("*/donnees.py")))
     p.add_argument("--modeles", action="append", required=True, type=Path)
-    p.add_argument("--catalogue", required=True, type=Path)
     p.add_argument("--sortie", required=True, type=Path)
     p.add_argument("--seules", default="")
     p.add_argument("--gros-plans", action="store_true")
@@ -95,16 +92,7 @@ def main():
         avant = set(bpy.context.scene.objects)
         bpy.ops.import_scene.gltf(filepath=str(glb.resolve(strict=True)))
         nouveaux = [o for o in bpy.context.scene.objects if o not in avant]
-        surfaces = {s["nom"]: s for s in manifeste.get("surfaces", [])}
-        vus = set()
-        for o in nouveaux:
-            if o.type != "MESH":
-                continue
-            for mat in o.data.materials:
-                if mat and mat.name not in vus and mat.name.split(".")[0] in surfaces:
-                    vus.add(mat.name)
-                    habiller(bpy, mat, surfaces[mat.name.split(".")[0]], o.data.uv_layers[0].name if o.data.uv_layers else "",
-                             emblem, args.catalogue)
+        rendu.habiller_le_modele(bpy, nouveaux, manifeste, emblem, False, {})
         ancre = bpy.data.objects.new("ancre", None)
         bpy.context.scene.collection.objects.link(ancre)
         ancre.location = blender(position)
@@ -182,46 +170,6 @@ def embleme_d_essai(bpy):
     img.pixels.foreach_set(px.ravel().astype(np.float32))
     return img
 
-
-def habiller(bpy, mat, surface, couche_blason, emblem, catalogue):
-    """La surface du manifeste comme le jeu l'habille : la texture de sa `matiere` du catalogue, en projection triplanaire
-    dans le repère de l'objet (Box, fondu 0.2), un motif tous les `METRES_PAR_MOTIF`, sans teinte ; sans matière, la
-    couleur de son matériau ; l'emblème d'essai en couche de détail (UV « UVMap ») si `blason`."""
-    nt = mat.node_tree
-    bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
-    base = bsdf.inputs["Base Color"]
-    sortie = None
-    if surface.get("matiere"):
-        for lien in list(nt.links):
-            if lien.to_socket == base:
-                nt.links.remove(lien)
-        coord = nt.nodes.new("ShaderNodeTexCoord")
-        echelle = nt.nodes.new("ShaderNodeMapping")
-        echelle.inputs["Scale"].default_value = (1 / METRES_PAR_MOTIF,) * 3
-        nt.links.new(coord.outputs["Object"], echelle.inputs["Vector"])
-        tex = nt.nodes.new("ShaderNodeTexImage")
-        tex.image = bpy.data.images.load(str((catalogue / f"{surface['matiere']}.jpg").resolve(strict=True)), check_existing=True)
-        tex.projection, tex.projection_blend = "BOX", 0.2
-        nt.links.new(echelle.outputs["Vector"], tex.inputs["Vector"])
-        sortie = tex.outputs["Color"]
-    if surface.get("blason"):
-        uv = nt.nodes.new("ShaderNodeUVMap")
-        uv.uv_map = couche_blason
-        det = nt.nodes.new("ShaderNodeTexImage")
-        det.image, det.extension = emblem, "CLIP"
-        nt.links.new(uv.outputs["UV"], det.inputs["Vector"])
-        mix = nt.nodes.new("ShaderNodeMix")
-        mix.data_type = "RGBA"
-        nt.links.new(det.outputs["Alpha"], mix.inputs["Factor"])
-        a = next(s for s in mix.inputs if s.name == "A" and s.type == "RGBA")
-        if sortie is not None:
-            nt.links.new(sortie, a)
-        else:
-            a.default_value = base.default_value
-        nt.links.new(det.outputs["Color"], next(s for s in mix.inputs if s.name == "B" and s.type == "RGBA"))
-        sortie = next(s for s in mix.outputs if s.type == "RGBA")
-    if sortie is not None:
-        nt.links.new(sortie, base)
 
 
 def gros_plan(bpy, output, fichier, oeil, vise, focale):

@@ -85,9 +85,6 @@ import {
   renameEffectZone,
   avecLaValeurDuPorteur,
   avecLAdresseRescellee,
-  type EcritureDeValeur,
-  type RefusDeValeur,
-  type Segment,
   renameEntry,
   setPosteCrew,
   setPosteEngine,
@@ -103,7 +100,6 @@ import {
   DOCUMENTS,
   FORMULAIRES,
   accesDe,
-  cheminOffert,
   entiteDeLaSelection,
   formeDuPorteur,
   porteurDeLaPortee,
@@ -125,6 +121,7 @@ import {
   type Tool,
   type DocumentDuProjet,
 } from '../sceneEditLecture';
+import { cheminOffert, type EcritureDeValeur, type RefusDeValeur, type Segment } from './formulaire';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -157,14 +154,24 @@ import {
   type GesteEnCours,
   type PointDeCarte,
 } from './pointeur';
-import { orienterRoute, retirerPoi } from '../worldMapEdit';
+import {
+  ciblerPoi,
+  etablissementAjoute,
+  type CibleDuPoi,
+  majLieu,
+  offreAjoutee,
+  offreRetiree,
+  orienterRoute,
+  type PatchDeLieu,
+  retirerPoi,
+  typesDEtablissement,
+} from '../worldMapEdit';
 import { formeChangee } from '../narratifEdit';
 import type { FormeDEtatKind } from '../../data/schemas/defs-scenes/formes-d-etat';
-import type { MapPlace, WorldMap } from '../worldMap';
+import { placeServices, type MapPlace, type OffreDAuberge, type WorldMap } from '../worldMap';
 import type { CalibProgress } from './calage';
 import type { Manifeste } from '../../data/source/chapitres';
-import { estGraphieDeChapitre, parseChapitre, type ChapitreParse } from '../../data/source/decoupe';
-import { adressesDe, cleDuChapitre } from './adresseDeProse';
+import { adressesDe, avecLeChapitreDemande, avecLeChapitreRecu, sourceServie, type SourceServie } from './adresseDeProse';
 import { caler, calqueNeuf, calquesLus, type CalqueDeCouche, type CalquesDuProjet, type ReglageDuCalque } from './calque';
 
 /** Les tailles du pinceau, en cases de côté. */
@@ -500,15 +507,11 @@ export interface SessionDEdition {
   defaut: string | null;
   /** La couche dont l'hôte charge la planche, `null` sans chargement en cours. */
   chargement: { sceneId: string; z: number } | null;
-  /** L'index des chapitres du `Source/` que l'hôte sert, `null` s'il ne le sert pas. */
-  manifeste: Manifeste | null;
+  /** Le `Source/` que l'hôte sert : son index, les chapitres chargés et celui qu'il charge (`SourceServie`). */
+  source: SourceServie;
   /** Les identifiants des entrées des fiches de dossier que l'hôte sert, que l'écart du narratif écarte ; vides s'il
    *  n'en sert aucune, l'écart n'en offrant alors aucune. */
   entreesDeFiche: readonly string[];
-  /** Chaque chapitre que l'hôte a chargé, par `cleDuChapitre` : parsé, ou `null` s'il n'a pas pu se charger. */
-  chapitres: Readonly<Record<string, ChapitreParse | null>>;
-  /** Le chapitre que l'hôte charge, `null` sans chargement en cours (`avecLeChapitreDemande`). */
-  chapitreEnAttente: { book: string; ch: string } | null;
   /** Les calques que l'hôte gardait étaient d'un autre format, retirés à l'ouverture. */
   ecartes: boolean;
   /** Le plan du lieu sélectionné de la carte du monde, ouvert : le pointeur y va (`planDuLieuOuvert`), et `poi` y est le
@@ -526,7 +529,9 @@ export interface SessionDEdition {
  *  d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`, `creer`), depuis la sélection, avec l'identifiant `avec` que sa
  *  table offre (`avecs`), sélectionné ; orienter la route sélectionnée depuis l'une de ses extrémités, ou dans les deux
  *  sens (`null`, `orienterRoute`) ; donner à l'état sélectionné du narratif la forme neuve `kind` (`formeChangee`) ; ouvrir le plan du lieu `lieu` de la carte du monde ouverte, sélectionné, ou le fermer (`null`, `planDuLieu`) ; retirer le point
- *  d'intérêt désigné sur ce plan (`retirerPoi`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
+ *  d'intérêt désigné sur ce plan (`retirerPoi`), ou le faire viser la scène `scene` ou le service `service` du lieu (`ciblerPoi`) ; ajouter au lieu
+ *  sélectionné un établissement du type `kind` (`typesDEtablissement`, `etablissementAjoute`), faire vendre à son établissement
+ *  d'hébergement `etablissement` l'offre du livre `offre` ou la lui retirer (`offreAjoutee`, `offreRetiree`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ, ou l'objet ou l'élément d'un retrait déclaré, `retraitsDuPorteur`), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
  *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou sans sélection le porteur singulier du
@@ -567,6 +572,9 @@ export type GesteDEdition =
   | { geste: 'forme'; kind: FormeDEtatKind }
   | { geste: 'planDuLieu'; lieu: string | null }
   | { geste: 'retirerPoi' }
+  | { geste: 'ciblerPoi'; cible: { scene: string } | { service: string } }
+  | { geste: 'ajouterEtablissement'; kind: string }
+  | { geste: 'ajouterOffre' | 'retirerOffre'; etablissement: string; offre: OffreDAuberge['id'] }
   | { geste: 'document'; document: SorteDeDocument }
   | { geste: 'valeur'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[]; valeur?: unknown }
   | { geste: 'resceller'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[] }
@@ -619,6 +627,15 @@ export const vueDeLaScene = (s: SessionDEdition): Scene => poserLesNavires(scene
 /** La couche `z` est-elle l'une de la vue de `scene` (`poserLesNavires`) ? */
 const coucheVue = (scene: Scene, z: number): boolean => poserLesNavires(scene).layers.some((l) => l.z === z);
 
+/** La session `s` où le lieu sélectionné de la carte du monde reçoit le patch `patch(lieu)` (`majLieu`), telle quelle sans
+ *  lieu sélectionné ou quand `patch` refuse (`undefined`). */
+function avecLeLieuPatche(s: SessionDEdition, patch: (lieu: MapPlace) => PatchDeLieu | undefined): SessionDEdition {
+  const carte = projetEdite(s).worldMap;
+  const lieu = s.sel?.type === FORMULAIRES.lieu.sel ? carte?.places.find((p) => p.id === (s.sel as { id: string }).id) : undefined;
+  const patche = lieu && patch(lieu);
+  return carte && lieu && patche ? ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), majLieu(carte, lieu.id, patche)), s.sel) : s;
+}
+
 /** La session qui édite la première scène du projet `projet`, à l'outil de sélection, sur la couche 0 ; `duDepot` :
  *  le projet est celui que le dépôt porte, où il s'enregistre ; `gardes`, s'il est donné, les calques que l'hôte
  *  gardait pour lui (`calquesLus`), retirés s'ils sont d'un autre format ; `manifeste`, l'index des chapitres du
@@ -630,7 +647,7 @@ export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?
     historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), document: 'scene', outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistre: projet, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
-    manifeste, entreesDeFiche, chapitres: {}, chapitreEnAttente: null, planDuLieu: null,
+    source: sourceServie(manifeste), entreesDeFiche, planDuLieu: null,
   };
 }
 
@@ -876,6 +893,14 @@ export function planDuLieuOuvert(s: SessionDEdition): { lieu: MapPlace; poi: str
   return lieu ? { lieu, poi: lieu.poi?.some((x) => x.id === plan!.poi) ? plan!.poi : null } : undefined;
 }
 
+/** La cible `cible` d'un point d'intérêt du lieu `lieu` : la scène du projet parmi `scenes`, dont il prend le nom
+ *  (`poiNeuf`), ou un service résolu du lieu (`placeServices`) ; `undefined` hors d'eux. #4277 */
+function cibleDuPoi(scenes: readonly Pick<Scene, 'id' | 'label'>[], lieu: MapPlace, cible: { scene: string } | { service: string }): CibleDuPoi | undefined {
+  if ('service' in cible) return placeServices(lieu).some((sv) => sv.id === cible.service) ? { service: { id: cible.service } } : undefined;
+  const scene = scenes.find((sc) => sc.id === cible.scene);
+  return scene && { label: scene.label, sceneId: { id: scene.id } };
+}
+
 /** La session `s`, son plan du lieu fermé si la sélection n'en désigne plus le lieu (`planDuLieuOuvert`). */
 const avecSonPlanDuLieu = (s: SessionDEdition): SessionDEdition => (s.planDuLieu && !planDuLieuOuvert(s) ? { ...s, planDuLieu: null } : s);
 
@@ -1028,7 +1053,7 @@ function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdit
 
 /** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet et le `Source/` que l'hôte
  *  sert. */
-export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: projetEdite(s), source: { manifeste: s.manifeste, chapitres: s.chapitres } });
+export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: projetEdite(s), source: s.source });
 
 /** Ce qu'un geste écrit au formulaire d'un porteur, dans le cadre `cadre` : sa donnée écrite, ou son refus. */
 type EcritureDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur) => EcritureDeValeur<DonneeDuPorteur[S]>;
@@ -1208,6 +1233,22 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const carte = carteEditee(s);
       return { ...ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), retirerPoi(carte, plan.lieu.id, plan.poi)), s.sel), planDuLieu: { poi: null } };
     }
+    case 'ciblerPoi': {
+      const plan = planDuLieuOuvert(s);
+      const cible = plan?.poi ? cibleDuPoi(projetEdite(s).scenes, plan.lieu, g.cible) : undefined;
+      if (!plan?.poi || !cible) return s;
+      const carte = carteEditee(s);
+      const ecrite = ciblerPoi(carte, plan.lieu.id, plan.poi, cible);
+      return jsonCanonique(ecrite) === jsonCanonique(carte) ? s : ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), ecrite), s.sel);
+    }
+    case 'ajouterEtablissement': {
+      const type = typesDEtablissement().find((sv) => sv.id === g.kind);
+      return type ? avecLeLieuPatche(s, (lieu) => etablissementAjoute(lieu, type.id)) : s;
+    }
+    case 'ajouterOffre':
+      return avecLeLieuPatche(s, (lieu) => offreAjoutee(lieu, g.etablissement, g.offre));
+    case 'retirerOffre':
+      return avecLeLieuPatche(s, (lieu) => offreRetiree(lieu, g.etablissement, g.offre));
     case 'sens': {
       const carte = projetEdite(s).worldMap;
       const route = s.sel && 'id' in s.sel && s.sel.type === FORMULAIRES.route.sel ? s.sel.id : undefined;
@@ -1315,9 +1356,8 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'retirerCalque':
       return calqueDeLaCouche(s) ? { ...s, calques: avecLeCalque(s, idDeLaSceneEditee(s), s.z, null), calage: HORS_DU_CALAGE } : s;
     case 'chapitre': {
-      const attendu = s.chapitreEnAttente;
-      if (attendu?.book !== g.book || attendu.ch !== g.ch) return s;
-      return { ...s, chapitreEnAttente: null, chapitres: { ...s.chapitres, [cleDuChapitre(g.book, g.ch)]: g.texte === null ? null : parseChapitre(g.texte) } };
+      const source = avecLeChapitreRecu(s.source, g.book, g.ch, g.texte);
+      return source === s.source ? s : { ...s, source };
     }
   }
 }
@@ -1339,24 +1379,21 @@ function porteurDeLaSelection(s: SessionDEdition): { schema: unknown; donnee: un
   return porteur && donnee && { schema: FORMULAIRES[porteur.sorte].schema, donnee, champs: formeDuPorteur(porteur.sorte, donnee, cadreDeLaSession(s)).champs };
 }
 
-/** La session `s`, le chapitre qu'elle attend posé si elle n'en attend aucun et que l'hôte sert le `Source/` : celui de
- *  la première adresse de prose du porteur sélectionné (`porteurDeLaSelection`, `adressesDe`), sous un champ qu'il
- *  offre (`cheminOffert`), dont le chapitre est choisi et absent des chapitres reçus. Il se demande donc à la sélection d'un porteur dont une adresse a déjà un
- *  chapitre, et au choix d'un chapitre. */
-function avecLeChapitreDemande(s: SessionDEdition): SessionDEdition {
+/** La session `s`, le chapitre qu'elle attend demandé (`avecLeChapitreDemande`) parmi les adresses de prose du porteur
+ *  sélectionné (`porteurDeLaSelection`, `adressesDe`), sous un champ qu'il offre (`cheminOffert`). Il se demande donc à
+ *  la sélection d'un porteur dont une adresse a déjà un chapitre, et au choix d'un chapitre. */
+function avecSonChapitreDemande(s: SessionDEdition): SessionDEdition {
   const porteur = porteurDeLaSelection(s);
-  if (s.chapitreEnAttente || !s.manifeste || !porteur) return s;
-  const manquante = adressesDe(porteur.schema, porteur.donnee)
-    .filter(({ chemin }) => cheminOffert(porteur.champs, chemin))
-    .map(({ adresse }) => adresse)
-    .find((a) => estGraphieDeChapitre(a.ch) && !(cleDuChapitre(a.book, a.ch) in s.chapitres));
-  return manquante ? { ...s, chapitreEnAttente: { book: manquante.book, ch: manquante.ch } } : s;
+  if (!porteur) return s;
+  const adresses = adressesDe(porteur.schema, porteur.donnee).filter(({ chemin }) => cheminOffert(porteur.champs, chemin)).map(({ adresse }) => adresse);
+  const source = avecLeChapitreDemande(s.source, adresses);
+  return source === s.source ? s : { ...s, source };
 }
 
 /** La session après le geste `g` (`editerLaCouche`), son plan du lieu fermé sans son lieu sélectionné (`avecSonPlanDuLieu`),
- *  le chapitre qu'elle attend demandé (`avecLeChapitreDemande`) ; le
+ *  le chapitre qu'elle attend demandé (`avecSonChapitreDemande`) ; le
  *  calage est celui de la couche éditée, changer de couche l'abandonne. */
 export function editer(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
-  const suite = avecLeChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
+  const suite = avecSonChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
   return suite.z === s.z ? suite : { ...suite, calage: HORS_DU_CALAGE };
 }

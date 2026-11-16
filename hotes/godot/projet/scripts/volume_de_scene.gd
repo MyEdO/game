@@ -635,7 +635,7 @@ func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
 	var matieres := _matieres_masquees if masquee else _matieres_des_nappes
 	if not matieres.has(nom):
 		var matiere: ShaderMaterial = (matiere_texturee_masquee if ResourceLoader.exists(texture_de(nom)) else couleur_des_sommets_masquee).duplicate()
-		texturer(matiere, nom)
+		texturer(matiere, nom, texture_de(nom), true)
 		if masquee:
 			matiere.set_shader_parameter("retrait", _retrait)
 		_lier_la_vision_a(matiere)
@@ -653,15 +653,21 @@ static func relief_de(nom: String) -> String:
 	return "res://textures/%s.normale.jpg" % nom
 
 
+## Le chemin de la texture neutre de la matière `nom` au projet, celle que teint une couleur de palette (#4313).
+static func texture_neutre_de(nom: String) -> String:
+	return "res://textures/%s.neutre.jpg" % nom
+
+
 ## `materiau`, une matière standard ou du shader de monde (qui nomme ses paramètres comme les propriétés de la matière
-## standard), habillé de la matière `nom` si sa texture est au projet : la texture et son relief s'il y est, projetés
-## sur les trois axes du repère du mesh, un motif tous les `MiseEnPage.METRES_PAR_MOTIF`.
-static func texturer(materiau: Material, nom: String) -> void:
-	if not ResourceLoader.exists(texture_de(nom)):
+## standard), habillé de la texture `albedo` si elle est au projet, `texture_de(nom)` ou `texture_neutre_de(nom)`, et
+## du relief de la matière `nom` s'il y est : projetés sur les trois axes du repère du mesh si `projetee`, lus aux UV
+## du mesh, en mètres, sinon (#4313) ; un motif tous les `MiseEnPage.METRES_PAR_MOTIF`.
+static func texturer(materiau: Material, nom: String, albedo: String, projetee: bool) -> void:
+	if not ResourceLoader.exists(albedo):
 		return
 	var propriete := "shader_parameter/" if materiau is ShaderMaterial else ""
-	materiau.set(propriete + "albedo_texture", load(texture_de(nom)))
-	materiau.set(propriete + "uv1_triplanar", true)
+	materiau.set(propriete + "albedo_texture", load(albedo))
+	materiau.set(propriete + "uv1_triplanar", projetee)
 	materiau.set(propriete + "uv1_triplanar_sharpness", NETTETE_DU_MOTIF)
 	materiau.set(propriete + "uv1_scale", MiseEnPage.echelle_de_motif())
 	if ResourceLoader.exists(relief_de(nom)):

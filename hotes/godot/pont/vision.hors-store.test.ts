@@ -17,7 +17,7 @@ import type { Combatant, Jeu } from '../../../src/noyau/index';
 import { testScenarios } from '../../../src/scenes/test-scenarios/index';
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { depuisBase64 } from '../../../src/lib/base64';
-import { hash32AuMillieme } from '../../../src/data/hash';
+import { hash32AuMillieme } from '../../../src/lib/hash';
 import { t } from '../../../src/i18n';
 import type { VisionDuMonde } from '../../../src/noyau/index';
 import type { Jet, Ligne } from '../../../src/hote/elements';

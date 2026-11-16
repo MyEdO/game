@@ -40,7 +40,7 @@
 //    terminé (`05 - _gjdgxs.md:438`) — et que le bloc suivant n'ouvre pas un paragraphe logique
 //    (emphase `*`/`**`, puce, table).
 import { normalize as normalizeCitation, sansBr, brEnSaut } from './normalize.ts';
-import { hash32 } from '../hash.ts';
+import { hash32 } from '../../lib/hash.ts';
 import { ANCRE_FOLIO, FOLIO_ATTR, ancreVide, foliosRoulants } from './ancre-vide.ts';
 
 /** Bloc d'affichage : le markdown rendu, sa ligne de début dans le fichier du chapitre, le folio

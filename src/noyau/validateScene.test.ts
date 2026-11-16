@@ -13,7 +13,7 @@ import { addEntity, deleteSel, paintTiles, setSceneFlags, setSceneLabel, setScen
 import { resetData, setDataset } from '../data/overrides';
 import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { METRES_PER_LEVEL } from './monde/relief';
-import type { WorldMap, MapPlace } from './worldMap';
+import type { WorldMap, MapPlace, PlacePoi } from './worldMap';
 import type { SeatAssignments } from './monde/seating';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 
@@ -581,21 +581,21 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
     expect(w.filter((x) => x.level === 'error')).toEqual([]);
   });
 
-  it('POI bien formé ciblant un service DÉCLARÉ par le lieu → aucune erreur', () => {
+  it('POI bien formé ciblant un établissement DÉCLARÉ par le lieu, sans libellé → aucune erreur', () => {
     const w = validateScene([base()], wm(
-      [{ id: 'poi-1', label: 'Auberge', pos: { x: 10, y: 10 }, serviceKind: { id: 'auberge' } }],
-      [{ kind: { id: 'auberge' } }],
+      [{ id: 'poi-1', pos: { x: 10, y: 10 }, service: { id: 'auberge-miteuse' } }],
+      [{ id: 'auberge-miteuse', kind: { id: 'auberge' }, label: 'Les lits miteux' }],
     ));
     expect(w.filter((x) => x.level === 'error')).toEqual([]);
   });
 
-  it('POI ciblant le PORT automatique du lieu (`serviceKind` `port`, sans service déclaré) → aucune erreur', () => {
+  it('POI ciblant le PORT automatique du lieu (`service` `port`, sans service déclaré) → aucune erreur', () => {
     const w = validateScene([base()], {
       id: 'w', label: 'Carte',
       places: [{
         id: 'lieu', label: 'Lieu', pos: { x: 0, y: 0 }, scene: { id: 'A' },
         port: { ref: undefined, taille: 1, richesse: 1, production: [] } as unknown as MapPlace['port'],
-        poi: [{ id: 'poi-1', label: 'Le port', pos: { x: 10, y: 10 }, serviceKind: { id: 'port' } }],
+        poi: [{ id: 'poi-1', pos: { x: 10, y: 10 }, service: { id: 'port' } }],
       }],
       routes: [],
     });
@@ -605,8 +605,8 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
   it('id de POI dupliqué (même lieu) → erreur du SCHÉMA de carte, le POI répété nommé par son libellé', () => {
     const w = validateScene([base()], wm([
       { id: 'poi-1', label: 'A', pos: { x: 1, y: 1 }, sceneId: { id: 'A' } },
-      { id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, serviceKind: { id: 'auberge' } },
-    ], [{ kind: { id: 'auberge' } }]));
+      { id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, sceneId: { id: 'A' } },
+    ]));
     expect(w.filter((x) => x.level === 'error')).toEqual([
       expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'points d’intérêt « B » : « poi-1 » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.' }),
     ]);
@@ -626,13 +626,24 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
   });
 
   it('ni scène ni service (cible absente) → erreur EXCLUSIVE', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Rien', pos: { x: 1, y: 1 } }]));
+    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Rien', pos: { x: 1, y: 1 } } as unknown as PlacePoi]));
     expect(msgs(w).some((m) => /cible EXCLUSIVE/.test(m))).toBe(true);
   });
 
   it('scène ET service à la fois → erreur EXCLUSIVE', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Les deux', pos: { x: 1, y: 1 }, sceneId: { id: 'A' }, serviceKind: { id: 'auberge' } }]));
+    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Les deux', pos: { x: 1, y: 1 }, sceneId: { id: 'A' }, service: { id: 'auberge' } } as unknown as PlacePoi]));
     expect(msgs(w).some((m) => /cible EXCLUSIVE/.test(m))).toBe(true);
+  });
+
+  it('POI vers une scène sans libellé, POI vers un service avec libellé → erreur du SCHÉMA sur « label »', () => {
+    const w = validateScene([base()], wm([
+      { id: 'poi-1', pos: { x: 1, y: 1 }, sceneId: { id: 'A' } } as unknown as PlacePoi,
+      { id: 'poi-2', label: 'Copie', pos: { x: 2, y: 2 }, service: { id: 'auberge' } } as unknown as PlacePoi,
+    ], [{ id: 'auberge', kind: { id: 'auberge' } }]));
+    expect(msgs(w).filter((m) => /« label »/.test(m))).toEqual([
+      expect.stringContaining('un point d’intérêt qui mène à une scène porte son « label »'),
+      expect.stringContaining('un point d’intérêt qui vise un service ne porte aucun « label »'),
+    ]);
   });
 
   it('sceneId inexistant → erreur', () => {
@@ -640,14 +651,41 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
     expect(msgs(w).some((m) => /scène inexistante/.test(m))).toBe(true);
   });
 
-  it('serviceKind inconnu du catalogue → erreur du SCHÉMA, le catalogue nommé', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Faux', pos: { x: 1, y: 1 }, serviceKind: { id: 'nawak' } }]));
-    expect(msgs(w).some((m) => /« nawak » est absent du catalogue des services de lieu/.test(m))).toBe(true);
+  it('POI vers un établissement que le lieu ne déclare pas → erreur du SCHÉMA (les établissements du lieu nommés) et du lieu', () => {
+    const w = validateScene([base()], wm([{ id: 'poi-1', pos: { x: 1, y: 1 }, service: { id: 'nawak' } }], [{ id: 'auberge', kind: { id: 'auberge' } }]));
+    const erreurs = msgs(w.filter((x) => x.level === 'error'));
+    expect(erreurs.some((m) => /nawak/.test(m) && /établissements du lieu/.test(m)), erreurs.join('\n')).toBe(true);
+    expect(erreurs).toContain('POI « nawak » → service absent du lieu « nawak »');
   });
 
-  it('serviceKind du catalogue que le lieu n’offre pas → erreur', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Temple', pos: { x: 1, y: 1 }, serviceKind: { id: 'temple' } }]));
-    expect(msgs(w.filter((x) => x.level === 'error'))).toEqual(['POI « Temple » → service absent du lieu « temple »']);
+  it('POI vers un type du catalogue que le lieu n’offre pas → erreur, le POI nommé par son id faute de service', () => {
+    const w = validateScene([base()], wm([{ id: 'poi-1', pos: { x: 1, y: 1 }, service: { id: 'temple' } }]));
+    expect(msgs(w.filter((x) => x.level === 'error'))).toEqual(['POI « temple » → service absent du lieu « temple »']);
+  });
+
+  it('deux établissements du même id dans un lieu → erreur du SCHÉMA', () => {
+    const w = validateScene([base()], wm(undefined, [{ id: 'auberge', kind: { id: 'auberge' } }, { id: 'auberge', kind: { id: 'auberge' } }]));
+    expect(msgs(w.filter((x) => x.level === 'error')).some((m) => /« auberge » dupliqué/.test(m))).toBe(true);
+  });
+
+  it('établissement déclaré sous l’id d’un service AUTOMATIQUE du lieu → erreur', () => {
+    const w = validateScene([base()], {
+      id: 'w', label: 'Carte', routes: [],
+      places: [{
+        ...place(undefined, [{ id: 'port', kind: { id: 'temple' } }]),
+        port: { ref: undefined, taille: 1, richesse: 1, production: [] } as unknown as MapPlace['port'],
+      }],
+    });
+    expect(msgs(w.filter((x) => x.level === 'error'))).toEqual(['Lieu « Lieu » → deux services du lieu portent l’identifiant « port »']);
+  });
+
+  it('établissement sous l’id `auberge` alors que la scène du lieu offre l’auberge : refusé en doublon s’il n’héberge pas, l’auberge de la scène refusée s’il héberge', () => {
+    const scene = { ...base(), rest: { auberge: true } };
+    const erreurs = (services: MapPlace['services']) => msgs(validateScene([scene], wm(undefined, services)).filter((x) => x.level === 'error'));
+    expect(erreurs([{ id: 'auberge', kind: { id: 'temple' } }]), 'un temple nommé « auberge » croise l’auberge de la scène')
+      .toEqual(['Lieu « Lieu » → deux services du lieu portent l’identifiant « auberge »']);
+    expect(erreurs([{ id: 'auberge', kind: { id: 'auberge' } }]), 'l’auberge déclarée porte seule l’offre de repos')
+      .toEqual([`Scène « ${scene.label} » → le lieu « Lieu » déclare l’hébergement « auberge » : l’auberge est celle de l’établissement, retire-la de la scène`]);
   });
 });
 
@@ -793,5 +831,43 @@ describe('validateScene — une écriture rend les avertissements d’une valida
     const peinte = paintTiles(scenes[0], { x: 1, y: 1 }, 'dalle', 1);
     expect(auditsRefaits(() => audits(peinte)), 'la scène peinte se refait').toBeGreaterThan(0);
     expect(auditsRefaits(() => scenes.slice(1).forEach(audits)), 'les autres scènes').toBe(0);
+  });
+});
+
+describe('validateScene — l’offre de repos d’un lieu à hébergement a un porteur, l’établissement (#4277)', () => {
+  const carte = (services: MapPlace['services']): WorldMap => ({ id: 'w', label: 'Carte', places: [{ id: 'lieu', label: 'Lieu', pos: { x: 0, y: 0 }, scene: { id: 'A' }, services }], routes: [] });
+  const ACE = { book: 'altdorf-couronne-de-l-empire', page: 31, note: 'ACE 02 l.99' };
+  const asile: MapPlace['services'] = [{ id: 'asile', kind: { id: 'auberge' }, label: 'L’asile' }];
+  const erreurs = (scene: Scene, services: MapPlace['services']) => msgs(validateScene([scene], carte(services)).filter((w) => w.level === 'error'));
+
+  it('la qualité du repos de la scène du lieu est refusée, à la scène', () => {
+    const s = { ...base(), rest: { quality: 'grande' as const } };
+    const w = validateScene([s], carte(asile)).filter((x) => x.level === 'error');
+    expect(w.map((x) => [x.scope, x.sceneId, x.message])).toEqual([['scene', s.id, `Scène « ${s.label} » → le lieu « Lieu » déclare l’hébergement « L’asile » : la qualité du repos se règle sur l’établissement, retire-la de la scène`]]);
+  });
+
+  it('l’auberge de la scène du lieu est refusée, à la scène', () => {
+    const s = { ...base(), rest: { auberge: true } };
+    expect(erreurs(s, asile)).toEqual([`Scène « ${s.label} » → le lieu « Lieu » déclare l’hébergement « L’asile » : l’auberge est celle de l’établissement, retire-la de la scène`]);
+  });
+
+  it('l’auberge d’une zone de repos de la scène du lieu est refusée, à la scène', () => {
+    const s: Scene = { ...base(), restZones: [{ rect: { x: 0, y: 0, w: 1, h: 1 }, places: { auberge: true } }] };
+    expect(erreurs(s, asile)).toEqual([`Scène « ${s.label} » → le lieu « Lieu » déclare l’hébergement « L’asile » : l’auberge est celle de l’établissement, retire-la de la scène`]);
+  });
+
+  it('la qualité d’une zone de repos de la scène du lieu est refusée, à la scène', () => {
+    const s: Scene = { ...base(), restZones: [{ rect: { x: 0, y: 0, w: 1, h: 1 }, places: { camp: true }, quality: 'pietre' }] };
+    expect(erreurs(s, asile)).toEqual([`Scène « ${s.label} » → le lieu « Lieu » déclare l’hébergement « L’asile » : la qualité du repos se règle sur l’établissement, retire-la des zones de repos`]);
+  });
+
+  it('deux offres de même id dans un établissement sont refusées', () => {
+    const doublon: MapPlace['services'] = [{ ...asile[0], rest: { offres: [{ id: 'commune', source: ACE }, { id: 'commune', prix: { brass: 5 }, source: ACE }] } }];
+    expect(erreurs(base(), doublon)).toEqual(['lieux « Lieu » › services « L’asile » › repos › offres « commune » : « commune » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.']);
+  });
+
+  it('témoin : sans hébergement au lieu, la scène porte sa qualité et son auberge', () => {
+    const zones: Scene['restZones'] = [{ rect: { x: 0, y: 0, w: 1, h: 1 }, places: { auberge: true }, quality: 'pietre' }];
+    expect(erreurs({ ...base(), rest: { auberge: true, quality: 'grande' }, restZones: zones }, [{ id: 'temple', kind: { id: 'temple' } }])).toEqual([]);
   });
 });

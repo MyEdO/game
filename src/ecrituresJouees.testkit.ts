@@ -34,7 +34,7 @@ import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/p
  *  l'hôte le sert (`GET source/<livre>/<ch>.md`, `texteDuChapitre`). */
 function jouer(s: SessionDEdition, geste: GesteDEdition): SessionDEdition {
   const joue = editer(s, geste);
-  const attendu = joue.chapitreEnAttente;
+  const attendu = joue.source.chapitreEnAttente;
   return attendu ? editer(joue, { geste: 'chapitre', book: attendu.book, ch: attendu.ch, texte: texteDuChapitre(attendu.book, attendu.ch) }) : joue;
 }
 
@@ -56,7 +56,7 @@ const recursif = (chemin: readonly Segment[]): boolean => {
 };
 
 /** Au plus autant de gestes joués : la boucle se termine même si un formulaire en ouvrait sans fin. */
-const GESTES_AU_PLUS = 400;
+const GESTES_AU_PLUS = 800;
 
 /** La valeur à jouer dans la saisie `s` d'un formulaire `valeur` : un nombre autre que le courant, dans ses bornes ; un
  *  texte ; une liste vide pour du JSON. */
@@ -581,7 +581,7 @@ const PERIL = { ajouter: 'valeur/perils/ajouter/0', effets: 'valeur/perils/0/eff
 
 /** Les écritures de la carte du monde de la première campagne du jeu, son narratif mis en place (`narratifMisEnPlace`) :
  *  la carte renommée (`identifierChaque`) ; l'inspecteur de la carte ; un lieu posé à l'outil Lieu et un ajouté à la zone Logique, un point d'intérêt épinglé à
- *  son plan ; une route tirée à l'outil Chemin, un mode de transport, une péripétie dont le premier Effet joue chacun de
+ *  son plan, deux auberges ajoutées au lieu, le point tourné vers la première, la seconde retirée, leur nom et leur repos joués à l'inspecteur ; une route tirée à l'outil Chemin, un mode de transport, une péripétie dont le premier Effet joue chacun de
  *  ses types (`jouerLesVariantes`), chaque forme d'enjeu d'un Test étendu, l'adresse de prose d'un journal
  *  (`composerLAdresse`) ; une embuscade sur une scène à points d'entrée, chaque sens de la route ; une route que la
  *  zone Logique relie depuis un lieu ; la carte retirée puis rouverte. Chacun joué à son inspecteur (`jouerLInspecteur`). */
@@ -599,6 +599,9 @@ export function ecrituresDeLaCarte(): EcritureJouee[] {
   s = jouer(jouer(presser(s, 'outil/epingler'), { geste: 'appui', point: point(30, 40) }), { geste: 'relache', point: point(30, 40) });
   const lieu = porteurDu(s, { sorte: 'lieu', id: neuf })!;
   out.push({ avant: documentDu(sansPoi, 'lieu'), apres: documentDu(s, 'lieu'), chemin: [...lieu.chemin, 'poi'], valeur: (lieu.donnee as { poi?: unknown }).poi, saisie: 'bouton' });
+  s = consigner(consigner(s, 'lieu/etablissement/ajouter/auberge', ['services'], out), 'lieu/etablissement/ajouter/auberge', ['services'], out);
+  s = consigner(consigner(s, 'lieu/poi/cible/service/auberge', ['poi'], out), 'lieu/etablissement/auberge-2/retirer', ['services'], out);
+  s = consigner(consigner(s, 'lieu/etablissement/auberge/offre/repas/retirer', ['services'], out), 'lieu/etablissement/auberge/offre/ajouter/repas', ['services'], out);
   s = presser(jouerLInspecteur(presser(presser(s, 'outil/select'), `logique/lieu/${neuf}`), out), 'lieu/plan');
   const tiree = jouer(jouer(jouer(presser(s, 'outil/chemin'), { geste: 'appui', point: point(depart.pos.x, depart.pos.y) }), { geste: 'glisse', point: point(70, 20) }), { geste: 'relache', point: point(85, 15) });
   s = cree(s, tiree, 'route', out);

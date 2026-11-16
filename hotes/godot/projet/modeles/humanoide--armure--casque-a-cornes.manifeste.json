@@ -34,7 +34,8 @@
   "surfaces": [
     {
       "nom": "metal",
-      "palette": "metal"
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
     },
     {
       "nom": "corne",
@@ -42,7 +43,7 @@
     }
   ],
   "glb": {
-    "sha256": "caa41371d4ce7559db75b15b5fdd2e08720ccad2424bcc10b0a5e53c3619e7d3",
-    "octets": 190076
+    "sha256": "c11c2d5041141e273d27f4323eed69f2f828d5ab6b2aa0139cf8d904358edba9",
+    "octets": 270012
   }
 }

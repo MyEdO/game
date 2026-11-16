@@ -19,11 +19,12 @@
   "surfaces": [
     {
       "nom": "bonnet",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     }
   ],
   "glb": {
-    "sha256": "24185f2686d3fc00a168ce4d2718827ee83aea574117ff5ab4c8a64fa71c52ff",
-    "octets": 279852
+    "sha256": "73fcd00d32d97656a2ffeee387f0ab6eab006d65fc271582d1f5c039c04858af",
+    "octets": 358020
   }
 }

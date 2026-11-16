@@ -141,6 +141,8 @@ const NOMMES = [
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
   'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume|vegetal',
   'physique|mentale',
+  // `offreDAubergeSchema` (#4277) : les offres d'auberge d'un hébergement (LDB 66 l.12-16, l.28).
+  'commune|chambre|grande|repas',
   // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
   // Disponibilité (LDB 59) et récolte (ZI 13 l.286), en ids nommés.
   'commune|limitee|rare|exotique',
@@ -150,6 +152,8 @@ const NOMMES = [
   // `settlementSchema` (LDB 59 l.25-34) et `marketModeSchema` (#3606) : la taille d'agglomération d'un
   // marché et le mode de marché d'un marchand de scène.
   'village|ville|cite',
+  // La clé d'indice de Taille de lieu de `disponibilite.json` › `colonneParTaille` (MSRC 13 l.44-50, #4277).
+  '1|2|3|4',
   'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',

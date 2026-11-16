@@ -226,7 +226,7 @@ const porteAlsoIn = (categoryKey: string): boolean => {
   const ds = editableDataset(categoryKey);
   if (ds !== undefined) return noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
   const objet = editableObjectDataset(categoryKey);
-  return objet?.mode === 'unique' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
+  return objet !== undefined && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
 };
 
 /**
@@ -242,7 +242,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
   const add = (...keys: string[]) => keys.forEach((x) => k.add(x));
   if (categoryKey === 'creatures') add('appearance');
-  if (['spells', 'traits', 'qualities', 'domains', 'talents', 'maneuvers', 'etats', 'psychologies', 'symptoms', 'mutations'].includes(categoryKey)) add('effects');
+  if (['spells', 'traits', 'qualities', 'domains', 'talents', 'maneuvers', 'etats', 'psychologies', 'symptoms', 'mutations', 'trappings'].includes(categoryKey)) add('effects');
   if (categoryKey === 'maneuvers') add(...MANEUVER_PROFILE_KEYS);
   if (['traits', 'qualities', 'mutations', 'talents', 'etats', 'trappings', 'psychologies', 'navalTraits'].includes(categoryKey)) add('passive');
   if (categoryKey === 'races') add('traits'); // Traits posés → réutilise TraitListField (comme creatures) — Trait racial d'espèce (encombrance/consommation), #572
@@ -402,7 +402,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // (riders « à la touche »…) ET Talents (Assaut féroce onHit, Frappe réactive onCharged…).
   // États psychologiques (`psychologies`, LDB 21, #157) ÉTENDENT le même `StatusData` que les États
   // (`passive`/`effects` mutualisés) — même patron de rendu.
-  const isTriggered = categoryKey === 'traits' || categoryKey === 'qualities' || categoryKey === 'domains' || categoryKey === 'talents' || categoryKey === 'etats' || categoryKey === 'psychologies' || categoryKey === 'symptoms' || categoryKey === 'mutations';
+  const isTriggered = categoryKey === 'traits' || categoryKey === 'qualities' || categoryKey === 'domains' || categoryKey === 'talents' || categoryKey === 'etats' || categoryKey === 'psychologies' || categoryKey === 'symptoms' || categoryKey === 'mutations' || categoryKey === 'trappings';
   // Manœuvre = ENTITÉ de 1ʳᵉ classe : profil dédié + ses effets AUTHORÉS (Dégâts + États) en GameOp.
   const isManeuver = categoryKey === 'maneuvers';
   // Porteurs de modificateurs PASSIFS continus (`GameOp[]`) édités par ops (GameOpEditor), comme un sort.
@@ -904,11 +904,17 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
               </select>
             </label>
             {typeof eff.on === 'object' && 'near' in eff.on && (
-              <label className="dr">à ≤ <NumberField variant="nu" label="Rayon de la zone (m)" min={1} width="3.4em" value={eff.on.radiusMeters} onChange={(radiusMeters) => set(i, { on: { near: (eff.on as ZoneDEffet).near, radiusMeters } })} /> m de
-              <select value={eff.on.near} onChange={(e) => set(i, { on: { near: e.target.value as ZoneDEffet['near'], radiusMeters: (eff.on as { radiusMeters: number }).radiusMeters } })}>
+              <label className="dr">à ≤ <NumberField variant="nu" label="Rayon de la zone (m)" min={1} width="3.4em" value={eff.on.radiusMeters} onChange={(radiusMeters) => set(i, { on: { ...(eff.on as ZoneDEffet), radiusMeters } })} /> m de
+              <select value={eff.on.near} onChange={(e) => set(i, { on: { ...(eff.on as ZoneDEffet), near: e.target.value as ZoneDEffet['near'] } })}>
                 <option value="victime">la victime</option>
                 <option value="soi">soi</option>
               </select></label>
+            )}
+            {typeof eff.on === 'object' && 'near' in eff.on && (
+              <label className="dr">au-delà de <NumberField variant="nu" label="Rayon intérieur de la couronne (m)" min={0} width="3.4em" value={eff.on.radiusInnerMeters ?? 0}
+                onChange={(m) => { const { radiusInnerMeters: _r, ...zone } = eff.on as ZoneDEffet; set(i, { on: m > 0 ? { ...zone, radiusInnerMeters: m } : zone }); }} /> m
+              <input type="checkbox" checked={!!eff.on.centreCompris}
+                onChange={(e) => { const { centreCompris: _c, ...zone } = eff.on as ZoneDEffet; set(i, { on: e.target.checked ? { ...zone, centreCompris: true } : zone }); }} /> centre compris</label>
             )}
             {typeof eff.on === 'object' && 'pick' in eff.on && (
               <label className="dr">max <NumberField variant="nu" label="Nombre maximum de cibles" min={1} width="3.4em" value={eff.on.max} onChange={(max) => set(i, { on: { pick: 'engages', ...((eff.on as SelectionDEffet).sizeAtMost ? { sizeAtMost: 'soi' as const } : {}), max } })} />

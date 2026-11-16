@@ -103,6 +103,13 @@ func est_pret() -> bool:
 	return _transport.est_ouvert()
 
 
+## L'accueil revient, plus rien ne disant au combat comment s'ouvrir (`entree` vidée, `essai` levé).
+func revenir_a_l_accueil() -> void:
+	entree = ""
+	essai = false
+	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
+
+
 ## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne`, chacun abonné
 ## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert et les volumes posés
 ## (`regler_les_volumes`), `false` (la panne signalée) s'il ne s'ouvre pas.
@@ -160,10 +167,13 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[], curseurs: { element, gauche, droite, y, valeur }[] }`, le texte et le
 ##   centre de chaque bouton actif, et chaque curseur réglable du panneau des réglages (`PontDuNoyau.curseurs_a_l_ecran`).
-## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z", [x, y]>,
-##   glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], panneaux: [x, y, largeur, hauteur][],
+## - Au Compendium : `{ boutons: { texte, x, y, element?, cle?, choix?, ids?, retenu? }[], panneaux: [x, y, largeur,
+##   hauteur][], saisies: { texte, x, y, element? }[], compendium: { zones } }`, comme à l'éditeur, et les zones de la
+##   dernière réponse de `compendium` (section « Compendium ») ; « Fermer » porte la clé `compendium/fermer`.
+## - Au combat : `{ boutons: { texte, x, y, element?, cle?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z",
+##   [x, y]>, glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], panneaux: [x, y, largeur, hauteur][],
 ##   corps: Record<string, { base: string, elements: string[], emblemes: Record<string, string>,
-##   couleurs: Record<string, Record<string, string>> }>, navires: string[] }`,
+##   couleurs: Record<string, Record<string, string>> }>, navires: string[], compendium: { zones } }`,
 ##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
 ##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
 ##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
@@ -178,7 +188,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
 ##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids`, `retenu`, `ouverte` et `designe`, comme à
-##   l'atelier ; `curseurs`, comme au menu.
+##   l'atelier ; `curseurs`, comme au menu ; `compendium`, les zones du Compendium ouvert en consultation depuis une
+##   fiche, vide quand il est caché, ses boutons parmi `boutons`.
 ## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], panneaux: [x, y, largeur, hauteur][],
 ##   saisies: { texte, x, y, element? }[], panneau: { valeur, contenu, page, haut, bas, boutons, saisies },
 ##   cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes, noms, calque, calque_pose } }`, l'emprise de
@@ -334,6 +345,23 @@ func suivre_les_listes(racine: Node, republier: Callable) -> void:
 	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
 
 
+## Sous une recette, `republier` appelé quand le texte d'un champ (`LineEdit`, `TextEdit`) sous `racine`, présent ou à
+## venir, change : l'écran publie ses champs (`saisies_a_l_ecran`).
+func suivre_les_saisies(racine: Node, republier: Callable) -> void:
+	if not en_recette:
+		return
+	var suivre := func(noeud: Node) -> void:
+		if noeud is LineEdit and racine.is_ancestor_of(noeud):
+			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: republier.call())
+		elif noeud is TextEdit and racine.is_ancestor_of(noeud):
+			(noeud as TextEdit).text_changed.connect(republier)
+	for champ in racine.find_children("*", "", true, false):
+		suivre.call(champ)
+	var arbre := get_tree()
+	arbre.node_added.connect(suivre)
+	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
+
+
 ## Le pont `pont` posé à la place de celui de l'arbre (`/root/Pont`), que chaque écran rejoint ensuite.
 static func remplacer(arbre: SceneTree, pont: PontDuNoyau) -> void:
 	var ancien := arbre.root.get_node_or_null("Pont")
@@ -460,25 +488,26 @@ func adresse(relative: String) -> String:
 	return _transport.adresse(relative)
 
 
-## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` envoyé ;
+## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` et les
+## en-têtes `entetes` envoyés ;
 ## vide, et une erreur à `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi),
 ## ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un
 ## bloc.
-func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "") -> PackedByteArray:
+func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "", entetes := PackedStringArray()) -> PackedByteArray:
 	var requete := HTTPRequest.new()
 	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
 	# Sur le Web, le navigateur a déjà décompressé un corps `Content-Encoding: gzip` (GitHub Pages, #3778) : HTTPRequest
 	# ne le décompresse pas une seconde fois (`RESULT_BODY_DECOMPRESS_FAILED`).
 	requete.accept_gzip = false
 	add_child(requete)
-	var code := requete.request(adresse(relative), PackedStringArray(), methode, corps)
+	var code := requete.request(adresse(relative), entetes, methode, corps)
 	if code != OK:
 		requete.queue_free()
 		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
 		return PackedByteArray()
 	var resultat := []
-	requete.request_completed.connect(func(issue: int, statut: int, entetes: PackedStringArray, recu: PackedByteArray) -> void:
-		resultat.append_array([issue, statut, entetes, recu]), CONNECT_ONE_SHOT)
+	requete.request_completed.connect(func(issue: int, statut: int, en_tete: PackedStringArray, recu: PackedByteArray) -> void:
+		resultat.append_array([issue, statut, en_tete, recu]), CONNECT_ONE_SHOT)
 	var silence := Timer.new()
 	silence.one_shot = true
 	requete.add_child(silence)

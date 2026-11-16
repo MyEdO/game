@@ -38,7 +38,7 @@ import { facesDuDecor } from './propVolumes';
 import { ancreDuDecor } from '../footprint';
 import { piedDuDecor } from '../poseDuDecor';
 import { matieresDe } from '../../../data';
-import { hash32, hash32AuMillieme } from '../../../data/hash';
+import { hash32, hash32AuMillieme } from '../../../lib/hash';
 import { jsonCanonique } from '../../../lib/jsonCanonique.mjs';
 import { enBase64 } from '../../../lib/base64';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';

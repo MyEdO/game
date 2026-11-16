@@ -20,8 +20,8 @@ MANIFESTE = {
 PRISE = 'main'
 
 MATERIAUX = {
-    'toile': ('vet2', ((0.7, 0.7, 0.7), 0.0, 0.92)),
-    'cuir': ('cuir', ((0.5, 0.5, 0.5), 0.0, 0.9)),
+    'toile': ('vet2', 'toile-ecrue'),
+    'cuir': ('cuir', 'cuir-tanne'),
 }
 """`SLOTS` n'a pas d'emplacement de couverture : `vet2`, l'écru du preset `sorcier`, proche du rouleau de l'illustration."""
 

@@ -180,7 +180,8 @@ const marketModeSchema = enumNomme({
   simplifie: 'Simplifié (les deux désactivés)',
 });
 
-/** Marchand d'une entité de scène : son archétype, et les surcharges de ses prix (`defs/merchants.ts`) et des 3 règles
+/** Marchand d'une entité de scène : son archétype, la colonne de Disponibilité d'un marchand hors de tout lieu
+ *  (`colonneDeDisponibiliteDuMarchand`, `noyau/worldMap.ts`), et les surcharges de ses prix (`defs/merchants.ts`) et des 3 règles
  *  maison Marché (LDB 59/60). */
 export const marchandDeSceneSchema = nommerChamps(z.strictObject({
   archetype: ref('merchant'),
@@ -191,7 +192,7 @@ export const marchandDeSceneSchema = nommerChamps(z.strictObject({
   guild: z.boolean().optional(),
   marketMode: marketModeSchema.optional(),
   tenirComptes: z.boolean().optional(),
-}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "localité"  }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
+}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "colonne de Disponibilité hors lieu" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
 
 /** L'inventaire d'auteur d'un personnage : chaque objet du catalogue par son id, vrai s'il le porte (`isWearable` ;
  *  une arme se tient par les sets d'armes). Il devient les objets du combattant au spawn. LDB 77 l.7, #3684 */

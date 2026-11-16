@@ -608,6 +608,18 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [{ sig: 'repere,valeur+…', statut: 'cible', note: '`source` ⊕ `adapteDe`, l’un des deux REQUIS au schéma' }],
     noyau: ['repere', 'valeur'],
   },
+  // AVANT `billet-de-route` (même clé `prix`, l'offre porte `id`), et l'ordre décide. Porte : `offreDAubergeSchema`
+  // (`src/data/schemas/grammaire/hebergement.ts`). LDB 66 l.12-16 ; LDB 66 l.28 ; ACE 02 l.99. #4277.
+  {
+    id: 'offre-d-auberge',
+    label: 'offre d’auberge d’un établissement (`OffreDAuberge`)',
+    strate: 'Valeur',
+    signatures: [
+      { sig: 'id,prix,source', statut: 'cible' },
+      { sig: 'id,prix,risque,source', statut: 'cible', note: '`risque` OPTIONNEL au schéma' },
+    ],
+    noyau: ['id', 'prix'],
+  },
   // APRÈS `palier` (même clé `prix`, le palier d'un billet porte `seuil`), et l'ordre décide. Porte :
   // `routeBilletSchema` (`src/data/schemas/grammaire/route.ts`). Noyau MESURÉ sur les 2 racines
   // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]`. EDO 01 l.142.

@@ -19,6 +19,7 @@ export { formatMoney } from '../engine/money';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
 export {
+  advancementLabel,
   careers,
   conditionLabel,
   findCareerById,
@@ -198,7 +199,7 @@ export {
   type SessionDEdition,
 } from './edition/session';
 export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
-export { orienterRoute } from './worldMapEdit';
+export { offresDeLEtablissement, orienterRoute, typesDEtablissement } from './worldMapEdit';
 export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
 export { SOUS_ENTREES } from '../data/schemas/defs-scenes/ecritures-du-narratif';
@@ -234,7 +235,37 @@ export {
   type FieldDesc,
 } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
-export { type Segment } from './sceneEdit';
+export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
+export {
+  atelierIdentifiable,
+  categoriesDeLaFamille,
+  compendium,
+  deDeLAtelier,
+  entreeMontree,
+  entreesListees,
+  facettesOffertes,
+  formulaireDeLAtelier,
+  ouvrirLeCompendium,
+  renvoisDeLEntree,
+  transactionDemandee,
+  type GesteDuCompendium,
+  type RefusDuCompendium,
+  type SessionDuCompendium,
+} from './codex/session';
+export {
+  CODEX_GROUPS,
+  categoryByKey,
+  cibleDuCodex,
+  codexGroupLabel,
+  type CodexItem,
+  type CodexRow,
+} from './codex/registry';
+export { tokenizeLinks } from './codex/relations';
+export {
+  enregistrerEntree,
+  isEditableCategory,
+  supprimerEntree,
+} from '../data/atelierDuCodex';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';
@@ -280,7 +311,7 @@ export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncanta
 export { fenetreDuSoin } from './soin';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
-export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur } from './ficheDuPorteur';
+export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { carteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
@@ -374,4 +405,4 @@ export {
   type EntreeListee,
   type SavedProject,
 } from './persistance/bibliotheque';
-export { ProjetRefuse, type ProjectDoc } from './worldMap';
+export { ProjetRefuse, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';

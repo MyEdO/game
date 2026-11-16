@@ -23,7 +23,7 @@ import {
   weaponRangeSpecSchema,
 } from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { manieAussiSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
+import { manieAussiSchema, perteSansEquipeSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 import { ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
@@ -72,7 +72,7 @@ const doc = document(
     weaponGroup: ref('weaponGroup').optional(),
     /** #3771 */
     rendu: ref('rendu').optional(),
-    soloSimple: z.boolean().optional(),
+    perteSansEquipe: perteSansEquipeSchema.optional(),
     /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),
     /** LDB 62 l.31 ; LDB 62 l.135 */
@@ -86,6 +86,8 @@ const doc = document(
     organicProjectile: z.boolean().optional(),
     /** ADE II 8 l.243 */
     onHitEffects: z.array(triggeredEffectSchema).optional(),
+    /** The Horned Rat Companion 03 l.23-31 ; #4202 */
+    effects: z.array(triggeredEffectSchema).optional(),
     /** ZI 13 l.199 */
     passifDArme: passifsDe().optional(),
     /** ADE II 8 l.251/253 */
@@ -149,9 +151,9 @@ const doc = document(
       label: 'Rendu du coup',
       hint: 'Rendu visuel et sonore de l’arme (`rendus.json`), à la place de celui de son Groupe : un engin de siège, dont le Groupe dit qui le sert, pas ce qu’il tire',
     },
-    soloSimple: {
-      label: 'Simple en solo',
-      hint: 'Arme d’équipage relativement simple : tirée seule, elle perd le bénéfice des Atouts',
+    perteSansEquipe: {
+      label: 'Perte sans équipe',
+      hint: 'Qualités que l’arme perd quand son tireur n’a ni servant ni allié adjacent',
     },
     unarmed: {
       label: 'Est « Mains nues »',
@@ -169,6 +171,7 @@ const doc = document(
       hint: 'Approximation maison : le projectile est organique (arrêté par le Bouclier anti-flèches)',
     },
     onHitEffects: { label: 'Effets à la touche', hint: 'Effets déclenchés au moment où l’arme touche sa cible' },
+    effects: { label: 'Effets déclenchés', hint: 'Effets déclenchés tant que l’objet est porté ou tenu' },
     passifDArme: { label: 'Effets passifs de l’arme', hint: 'Effets continus de l’arme elle-même lors de ses attaques, distincts de ceux du porteur' },
     minRangeBand: {
       label: 'Portée minimale de tir',

@@ -4,7 +4,7 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, IdDeCouche, PageDeCreation } from '../noyau/index';
+import type { CreatorDraft, GesteDEdition, GesteDuCompendium, GesteDuBrouillon, IdDeCouche, PageDeCreation } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import type { AnySlot, SaveSlot } from './sauvegardes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -23,8 +23,9 @@ export const TOUCHES_RAPIDES = ['rapide_1', 'rapide_2', 'rapide_3', 'rapide_4', 
 export type Touche = (typeof TOUCHES_RAPIDES)[number] | 'fin_de_tour';
 
 /** Une puce : un libellé et sa valeur (un État et son nombre, un modificateur et son signe). `detail` : ce qu'elle
- *  change, montré à la demande. */
-export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null; detail: string | null }
+ *  change, montré à la demande ; `jeu` : ce qu'elle joue, pressée (le terme d'une fiche ouvre le Compendium sur
+ *  l'entrée qu'il désigne), `null` si elle ne se presse pas. */
+export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; valeur: string | null; detail: string | null; jeu: Jeu | null }
 
 /** Une jauge : sa valeur courante sur son maximum, et ce qu'elle dit. */
 export interface Jauge { type: 'jauge'; id: string; ton: Ton; libelle: string; courant: number; max: number; texte: string }
@@ -75,8 +76,8 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
 export type GesteDuRoster = { recruter: string } | { retirer: string } | { exporter: string } | { importer: true } | { importe: string | null };
 
 /** Une entrée de l'accueil de l'hôte : le jeu au groupe à composer, les sauvegardes à reprendre, le salon à
- *  rejoindre, le combat d'un scénario de test, l'atelier, l'éditeur de carte. */
-export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'atelier' | 'editeur';
+ *  rejoindre, le combat d'un scénario de test, l'atelier, l'éditeur de carte, le Compendium. */
+export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'atelier' | 'editeur' | 'compendium';
 
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, celui d'une offre de l'actif compris
  *  (`Offre.geste`), une suite de verbes
@@ -87,7 +88,7 @@ export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'salon' | 'combat' | 'ate
  *  roster de l'hôte (`groupe.ts`), le panneau des sauvegardes à ouvrir ou à fermer, l'emplacement à charger ou celui
  *  où sauvegarder (`sauvegardes.ts`), le panneau des réglages à ouvrir ou à fermer (`reglages.ts`), l'entrée de
  *  l'accueil à suivre (`accueil.ts`), le panneau du salon à ouvrir ou à fermer, le salon à quitter (`salon.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: boolean | 'quitter' };
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { compendium: GesteDuCompendium } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: boolean | 'quitter' };
 
 /**
  * @contrat Vue
@@ -225,6 +226,16 @@ const DESCRIPTION_AU_DETAIL = 300;
 
 /** Le premier paragraphe d'une description, coupé au mot (`coupeAuMot`) : le détail se lit d'un coup d'œil. */
 export const resume = (desc: string | null): string | null => desc && coupeAuMot(desc.split(/\n\s*\n/)[0], DESCRIPTION_AU_DETAIL);
+
+/** Un bouton qui joue `jeu`. */
+export const bouton = (id: string, libelle: string, jeu: Jeu, presse = false, refus: string | null = null): Bouton => ({
+  type: 'bouton', id, libelle, jeu, presse, focus: false, detail: null, touche: null, refus,
+});
+
+/** Un choix (ou une liste) parmi les boutons `valeurs`. */
+export const choix = (id: string, libelle: string, valeurs: Bouton[], type: Choix['type'] = 'choix'): Choix => ({
+  type, id, ton: 'neutre', libelle, focus: false, refus: null, valeurs,
+});
 
 /** Une ligne. */
 export const ligne = (id: string, texte: string, ton: Ton = 'neutre', detail: string | null = null): Ligne => ({ type: 'ligne', id, ton, texte, detail, touche: null });

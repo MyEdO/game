@@ -30,7 +30,7 @@ import { ouvrirLeRepos, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
 import type { IdDeClasseDePassage } from './designations';
 import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
-import { lieuDuGroupe, placeById, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { lieuDuGroupe, placeById, otherEnd, refusDAcces, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
 import {
   TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, classeRetenue, forcedMarchTest, applyTravelFatigue,
@@ -61,7 +61,6 @@ import { canAfford, formatMoney, type Money } from '../engine/money';
 import { provisioningManifest } from '../engine/provisions';
 import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
-import { evalCondition } from '../engine/flowCore';
 import { rollDice } from '../engine/dice';
 import { facesDuDe } from '../engine/tables';
 import { rule } from '../engine/policy';
@@ -415,9 +414,8 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
   const { from, route } = trajet;
   if (route.from != null && route.from.id !== from.id) return t('tf.refusSensUnique');
   // #684
-  if (route.when != null && !evalCondition(route.when, condCtx(() => s))) {
-    return garanti(route.refus, route.id, 'raison du trajet fermé (`mapRouteSchema`)').texte;
-  }
+  const ferme = refusDAcces(route, condCtx(() => s));
+  if (ferme !== null) return ferme;
   // EDOC 07 l.140
   if (mode === 'monture' && !rule('voyage-allures')) return t('tf.refusMode');
   if (mode === 'monture' && !partyFullyMounted(s.party, s.possessions)) return t('tf.refusMonture');

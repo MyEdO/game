@@ -78,8 +78,9 @@ var _campagne := ""
 var _planches := {}
 ## La publication de l'écran, attendue jusqu'à ce que l'interface soit mise en page (`_publier_l_ecran`).
 var _publication: PublicationDeLEcran
-## Les attentes au pont en vol : la planche, le chapitre, le dépôt. Une reprise dont l'attente n'y est plus rend la main.
-var _en_vol := {}
+## Les attentes au poste : le projet servi et le manifeste à l'ouverture, la planche, le chapitre, le dépôt
+## (`PosteDEdition`).
+var _poste: PosteDEdition
 
 
 func _ready() -> void:
@@ -90,11 +91,8 @@ func _ready() -> void:
 	for pages in _interface.find_children("*", "TabContainer", true, false):
 		(pages as TabContainer).tab_clicked.connect(func(_onglet: int) -> void: _publier_l_ecran())
 	_publication = PublicationDeLEcran.new(_pont, self, _interface, _ecran_publie)
-	get_tree().node_added.connect(func(noeud: Node) -> void:
-		if noeud is LineEdit and _interface.is_ancestor_of(noeud):
-			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran())
-		elif noeud is TextEdit and _interface.is_ancestor_of(noeud):
-			(noeud as TextEdit).text_changed.connect(_publier_l_ecran))
+	_poste = PosteDEdition.new(_pont)
+	_pont.suivre_les_saisies(_interface, _publier_l_ecran)
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	var recueil: Array[String] = []
@@ -108,14 +106,15 @@ func _ready() -> void:
 	var ouvrir := {ouvrir = _campagne}
 	if FileAccess.file_exists(_fichier_des_calques()):
 		ouvrir.calques = FileAccess.get_file_as_string(_fichier_des_calques())
-	var hors_du_depot: Array[String] = []
-	var servi := await _pont.requeter("depot/%s" % ouvrir.ouvrir, hors_du_depot)
-	if not servi.is_empty():
-		ouvrir.projet = servi.get_string_from_utf8()
-	var manifeste := await _pont.requeter("source/manifest.json", hors_du_depot)
-	if not manifeste.is_empty():
-		ouvrir.manifeste = manifeste.get_string_from_utf8()
-	_suivre(_pont.appeler("editer", ouvrir))
+	_poste.reprendre(func() -> PackedByteArray:
+		var hors_du_depot: Array[String] = []
+		return await _pont.requeter("depot/%s" % ouvrir.ouvrir, hors_du_depot), func(servi: PackedByteArray) -> void:
+			if not servi.is_empty():
+				ouvrir.projet = servi.get_string_from_utf8()
+			_poste.manifeste(func(manifeste: String) -> void:
+				if manifeste != "":
+					ouvrir.manifeste = manifeste
+				_suivre(_pont.appeler("editer", ouvrir))))
 
 
 ## Le monde d'une réponse de `editer` (`reponse.monde`, le manifeste du volume) posé au monde (`Monde.poser`), sans
@@ -198,9 +197,9 @@ func _suivre(reponse: Dictionary) -> void:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/Combat.tscn")
 
 
-## Sorti de l'arbre (l'essai, `_suivre`), il n'y revient pas (#4195) : ses attentes en vol sont abandonnées (`_en_vol`).
+## Sorti de l'arbre (l'essai, `_suivre`), il n'y revient pas (#4195) : ses attentes au poste sont abandonnées.
 func _exit_tree() -> void:
-	_en_vol.clear()
+	_poste.abandonner()
 
 
 ## Le fichier des calques gardés de la campagne ouverte.
@@ -235,11 +234,12 @@ func _garder(memoire: Dictionary) -> void:
 ## La planche `image` choisie sur le disque de l'auteur, écrite en `user://<image>.png`, puis sa taille rendue au pont ;
 ## rien s'il renonce ou si l'image ne se lit pas.
 func _charger_la_planche(image: String) -> void:
-	var jeton := RefCounted.new()
-	_en_vol[jeton] = true
-	var choisie := await _pont.choisir_un_fichier(PontDuNoyau.IMAGES)
-	if not _en_vol.erase(jeton):
-		return
+	_poste.reprendre(func() -> Dictionary: return await _pont.choisir_un_fichier(PontDuNoyau.IMAGES), _lire_la_planche.bind(image))
+
+
+## La planche `image` lue du fichier choisi `choisie` (`PontDuNoyau.choisir_un_fichier`), écrite, et sa taille rendue au
+## pont.
+func _lire_la_planche(choisie: Dictionary, image: String) -> void:
 	var lue := Image.new()
 	var issue := ERR_FILE_UNRECOGNIZED
 	match choisie.get("type", ""):
@@ -260,27 +260,17 @@ func _charger_la_planche(image: String) -> void:
 ## Le texte du chapitre `chapitre` du `Source/` que sert le poste (`GET source/<book>/<ch>.md`), rendu au pont, ou `null`
 ## s'il ne se charge pas.
 func _charger_le_chapitre(chapitre: Dictionary) -> void:
-	var recueil: Array[String] = []
-	var jeton := RefCounted.new()
-	_en_vol[jeton] = true
-	var lu := await _pont.requeter("source/%s/%s.md" % [chapitre.book, chapitre.ch], recueil)
-	if not _en_vol.erase(jeton):
-		return
-	_jouer({edition = {geste = "chapitre", book = chapitre.book, ch = chapitre.ch, texte = lu.get_string_from_utf8() if recueil.is_empty() else null}})
+	_poste.charger_le_chapitre(chapitre, func(texte: Variant) -> void:
+		_jouer({edition = {geste = "chapitre", book = chapitre.book, ch = chapitre.ch, texte = texte}}))
 
 
 ## Le texte `depot.texte` écrit au dépôt à la place du projet `depot.id`, puis l'issue de l'écriture rendue au pont ; une
 ## écriture qui échoue dit pourquoi.
 func _deposer(depot: Dictionary) -> void:
-	var recueil: Array[String] = []
-	var jeton := RefCounted.new()
-	_en_vol[jeton] = true
-	await _pont.requeter("depot/%s" % depot.id, recueil, HTTPClient.METHOD_PUT, depot.texte)
-	if not _en_vol.erase(jeton):
-		return
-	_jouer({edition = {geste = "enregistrement", reussi = recueil.is_empty()}})
-	if not recueil.is_empty():
-		_refus.text = "\n".join(recueil)
+	_poste.ecrire("depot/%s" % depot.id, depot.texte, PackedStringArray(), func(recueil: Array[String]) -> void:
+		_jouer({edition = {geste = "enregistrement", reussi = recueil.is_empty()}})
+		if not recueil.is_empty():
+			_refus.text = "\n".join(recueil))
 
 
 func _unhandled_input(event: InputEvent) -> void:
