@@ -29,7 +29,8 @@ const BORNE_MS = 270_000
  *  l'élément est `<dossier du script>/<argument>/donnees.py`. */
 export const CONSTRUCTEURS = {
   humanoide: { script: 'scripts/personnage-3d/element/construire.py', argument: (nom) => `humanoide/${nom}` },
-  vehicule: { script: 'scripts/personnage-3d/vehicule/construire.py', argument: (nom) => nom },
+  vehicule: { script: 'scripts/personnage-3d/construire.py', argument: (nom) => `vehicule/${nom}` },
+  decor: { script: 'scripts/personnage-3d/construire.py', argument: (nom) => `decor/${nom}` },
 }
 
 /** La construction de l'élément `<base>/<nom>` : la commande qui l'écrit sous `sortie`, et son `donnees.py`, relatifs au

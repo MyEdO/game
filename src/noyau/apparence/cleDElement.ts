@@ -3,7 +3,7 @@
  * résolu y trouve son entrée, dont le libellé nomme l'élément à l'écran. Une ligne par champ de clé résolu (`CHAMPS`),
  * jamais par catégorie.
  */
-import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findTeteById, libelleDAuteur } from '../../data';
+import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findPropById, findTeteById, libelleDAuteur } from '../../data';
 import { pieceOuVariante } from './gardeRobe';
 
 export type CodeDEcartDeCle = 'cle-inconnue' | 'piece-hors-categorie';
@@ -29,6 +29,7 @@ const CHAMPS = {
   apparence: { find: findApparenceById, quoi: 'apparence de `apparences.json`' },
   definition: { find: (id: string) => { const fiche = findFicheDeVehicule(id); return fiche && { label: libelleDAuteur(fiche) }; }, quoi: 'coque de `vehicles.json` ni engin `armes-de-siege` de `trappings.json`' },
   amelioration: { find: (id: string) => { const t = findNavalTrait(id); return t?.kind === 'amelioration' ? t : undefined; }, quoi: 'Amélioration de `naval-traits.json`' },
+  prop: { find: findPropById, quoi: 'décor de `props.json`' },
 } as const satisfies Readonly<Record<string, ChampDeCle>>;
 
 /** Un champ de clé résolu (`CHAMPS`). */

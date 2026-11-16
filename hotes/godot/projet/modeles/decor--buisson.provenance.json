@@ -1,0 +1,13 @@
+{
+  "model": "decor--buisson.glb",
+  "model_sha256": "e17c7f1f4b89f832610576106e9d4d47012191574d343d1ffd444f368b20744f",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

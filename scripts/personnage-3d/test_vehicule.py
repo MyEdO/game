@@ -1,19 +1,14 @@
 """Construction des véhicules (#2987) : chaque modèle de `vehicule/` reconstruit depuis le dépôt les GLB et les
-manifestes publiés sous `hotes/godot/projet/modeles/`, octet pour octet (l'empreinte du manifeste) ; chaque véhicule et
-chaque Amélioration publiés y ont leur modèle. Seul se reconstruit un modèle dont une entrée a changé depuis la base du
-diff, tous sous `WFRP_3D_TOUT=1` (`entrees.py`, #3412), chacun ne lisant que ses entrées. La caraque suit ses ponts
-(`ponts` de sa fiche, #3686) à une épaisseur de cloison près, et une caraque allongée dans la source aussi. Sur chaque
-navire, toute case des ponts s'atteint et tient un occupant debout (#3790), et sa coque est close : ni trou dans un
-plancher, ni rayon qui sorte du navire depuis une case (#3815)."""
+manifestes publiés sous `hotes/godot/projet/modeles/`, et chaque véhicule et chaque Amélioration publiés y ont leur modèle
+(`reconstruction.py`). La caraque suit ses ponts (`ponts` de sa fiche, #3686) à une épaisseur de cloison près, et une
+caraque allongée dans la source aussi. Sur chaque navire, toute case des ponts s'atteint et tient un occupant debout
+(#3790), et sa coque est close : ni trou dans un plancher, ni rayon qui sorte du navire depuis une case (#3815)."""
 import copy
-import hashlib
 import importlib
 import json
 import math
-import os
 import runpy
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -21,71 +16,18 @@ ICI = Path(__file__).resolve().parent
 sys.path[:0] = [str(ICI / 'vehicule'), str(ICI)]
 
 import bpy  # noqa: E402
-import construire  # noqa: E402
 import navire  # noqa: E402
 import plan_de_jeu  # noqa: E402
+import reconstruction  # noqa: E402
 from caraque import modele  # noqa: E402
-from entrees import (a_reconstruire, changements, construire_en_relevant, ids_publies_des_vehicules,  # noqa: E402
-                     lectures_hors_entrees, sujets_des_elements, sujets_des_vehicules)
 from mathutils import Vector  # noqa: E402
 
 MODELES = ICI.parents[1] / 'hotes' / 'godot' / 'projet' / 'modeles'
-PUBLIE_PAR_MODELE = {
-    m: [construire.identifiant(categorie, cle) for element in importlib.import_module(f'{m}.modele').elements(runpy.run_path(str(ICI / 'vehicule' / m / 'donnees.py')))
-        for categorie, cle in element['cles']]
-    for m in sorted(d.parent.name for d in (ICI / 'vehicule').glob('*/donnees.py'))
-}
-"""Les ids que publie chaque modèle de `vehicule/`, lus aux clés de ses éléments (`elements(D)`), sans les bâtir."""
 
 
-class Reconstruction(unittest.TestCase):
+class Reconstruction(reconstruction.DUneFamille, unittest.TestCase):
+    FAMILLE = 'vehicule'
 
-    def construire(self, modele):
-        """Les dossiers de production que `construire.py <modele>` écrit, par id, bâtis sous le relevé de leurs lectures,
-        et les fichiers du dépôt lus (`entrees.construire_en_relevant`)."""
-        sortie = Path(self.dossier.name) / modele
-        env = {**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'}
-        vu, lus = construire_en_relevant([ICI / 'vehicule' / 'construire.py', modele, '--sortie', sortie],
-                                         capture_output=True, text=True, env=env, timeout=240)
-        self.assertEqual(vu.returncode, 0, vu.stdout[-2000:] + vu.stderr[-2000:])
-        return {d.name: d for d in sorted(sortie.iterdir())}, lus
-
-    def setUp(self):
-        self.dossier = tempfile.TemporaryDirectory()
-
-    def tearDown(self):
-        self.dossier.cleanup()
-
-    def test_chaque_modele_reproduit_ses_elements_publies(self):
-        """Chaque modèle dont une entrée a changé (`entrees.a_reconstruire`) reconstruit les éléments qu'il déclare, chacun
-        comme publié, sans lire hors de ses entrées ; chaque élément publié des familles des véhicules a son modèle."""
-        change = changements()
-        vehicules = sujets_des_vehicules(PUBLIE_PAR_MODELE)
-        sujets = sujets_des_elements() + vehicules
-        for modele, s in zip(sorted(PUBLIE_PAR_MODELE), vehicules):
-            with self.subTest(modele=modele):
-                if not a_reconstruire(s, sujets, change):
-                    self.skipTest(f"aucune entrée de {modele} changée depuis {change['base']}")
-                produits, lus = self.construire(modele)
-                self.assertEqual(lectures_hors_entrees(lus, s, sujets, change['racines']), [], f'{modele} lit hors de ses entrées (`entrees.est_entree`)')
-                self.assertEqual(sorted(produits), sorted(PUBLIE_PAR_MODELE[modele]))
-                for id_, dossier in produits.items():
-                    with self.subTest(id=id_):
-                        manifeste = json.loads((dossier / f'{id_}.element.json').read_text(encoding='utf-8'))
-                        octets = (dossier / f'{id_}.glb').read_bytes()
-                        self.assertEqual(manifeste['glb'], {'sha256': hashlib.sha256(octets).hexdigest(), 'octets': len(octets)})
-                        enveloppe = json.loads((dossier / 'manifest.json').read_text(encoding='utf-8'))
-                        self.assertEqual(enveloppe, {'model': f'{id_}.glb', 'model_sha256': manifeste['glb']['sha256'], 'manifeste': manifeste})
-                        publie = MODELES / f'{id_}.manifeste.json'
-                        self.assertTrue(publie.exists(), f'{id_} : aucun manifeste publié sous {MODELES}')
-                        self.assertEqual(manifeste, json.loads(publie.read_text(encoding='utf-8')))
-
-    def test_chaque_element_publie_a_son_modele(self):
-        declares = {id_ for ids in PUBLIE_PAR_MODELE.values() for id_ in ids}
-        self.assertEqual(ids_publies_des_vehicules() - declares, set(), 'élément publié sans modèle sous vehicule/')
-        for modele, ids in sorted(PUBLIE_PAR_MODELE.items()):
-            with self.subTest(modele=modele):
-                self.assertEqual([id_ for id_ in ids if not (MODELES / f'{id_}.manifeste.json').exists()], [], 'élément déclaré sans manifeste publié')
 
 TOLERANCE = 0.10      # une épaisseur de cloison (`CLOISON.epaisseur`)
 METRES_PAR_CASE = 2.0  # l'échelle du plan (`sceneMetresPerTile`, LDB 15 l.12), son origine au centre du plan
