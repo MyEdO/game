@@ -119,6 +119,7 @@ function deciderApparenceALaNaissance<T extends GabaritDObjet>(
  *  vs « +BF+N ». DÉRIVE l'affichage de la donnée structurée (`WeaponDamageSpec`, dans `types.ts`). */
 export function damageString(d: WeaponDamageSpec): string {
   if ('literal' in d) return d.literal;
+  if ('aucun' in d) return '–';
   if (d.plusBF) return d.flat === 0 && d.bare ? '+BF' : `+BF+${d.flat}`;
   return d.flat < 0 ? `${d.flat}` : `+${d.flat}`; // Indice négatif : « -2 », pas « +-2 »
 }
@@ -146,9 +147,10 @@ export function reachRankOf(reach: string | null | undefined): number | null {
 
 /** INVERSE de `damageString` (chaîne → spec) — pour la migration des données et la saisie éditeur,
  *  JAMAIS au runtime. « +BF+4 »→{plusBF,flat:4}, « +9 »→{plusBF:false,flat:9}, « +BF »→{plusBF,flat:0,bare},
- *  « -2 »→{plusBF:false,flat:-2}, sinon « Spécial » → {literal}. */
+ *  « -2 »→{plusBF:false,flat:-2}, « – »→{aucun}, sinon « Spécial » → {literal}. */
 export function parseDamage(s: string): WeaponDamageSpec {
   const t = s.trim();
+  if (t === '–' || t === '-') return { aucun: true };
   const plusBF = /BF/i.test(t);
   const nums = t.replace(/BF/gi, '').match(/[+-]?\d+/g);
   if (!plusBF && !nums) return { literal: t }; // non chiffrable (« Spécial »)
@@ -916,9 +918,9 @@ export function weaponFromItem(it: ItemInstance, hand?: Main, ctx?: ContexteDeMa
   return applyEnchants(buildWeapon({
     ...copierIntrinseques(it, true),
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'distance',
-    // Possession de catalogue SANS profil de Dégâts (lasso, mortier, munitions de trait) : « +BF » nu.
+    // Possession de catalogue SANS profil de Dégâts (munitions de trait) : Dégâts « – ».
     // Convention UNIQUE du profil d'arme — elle vit ICI, plus aucun appelant ne la redéclare.
-    damage: it.damage ?? { plusBF: true, flat: 0, bare: true },
+    damage: it.damage ?? { aucun: true },
     qualities: it.qualities, subType: it.subType, weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo,
     reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
     ...(it.teinte ? { teinte: it.teinte } : {}), apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
@@ -1581,7 +1583,8 @@ export function consumeAmmo(c: Combatant, used: ItemInstance): void {
 }
 
 /** Arme à distance « augmentée » par la munition tirée : Dégâts combinés (flats additionnés, BF si l'un
- *  l'utilise) et Atouts fusionnés (ex. Empaleuse de la Flèche). */
+ *  l'utilise ; arme à Dégâts « – » : ceux de la munition, AA 10 l.192) et Atouts fusionnés (ex. Empaleuse
+ *  de la Flèche). */
 export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const w = weapon.damage;
   const a = ammo.damage;
@@ -1589,6 +1592,6 @@ export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   for (const q of ammo.qualities) if (!qualities.some((x) => x.id === q.id)) qualities.push(q);
   const damage: WeaponDamageSpec = 'flat' in w
     ? { plusBF: w.plusBF || (a != null && 'plusBF' in a && a.plusBF), flat: w.flat + (a != null && 'flat' in a ? a.flat : 0) }
-    : w; // arme « Spécial » (literal) → inchangée
+    : 'aucun' in w ? (a ?? w) : w; // arme « Spécial » (literal) → inchangée
   return { ...weapon, damage, qualities };
 }

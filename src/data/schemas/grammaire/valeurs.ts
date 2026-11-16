@@ -861,7 +861,7 @@ export const surchargePaletteSchema = z.partialRecord(slotSchema, couleurHexSche
  *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
 export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS)]);
 
-/** `WeaponDamageSpec` (`src/engine/types.ts`) — Dégâts d'arme : littéral, ou Bonus de Force + valeur fixe.
+/** `WeaponDamageSpec` (`src/engine/types.ts`) — Dégâts d'arme : littéral, « – », ou Bonus de Force + valeur fixe.
  *  Lu par les armes du catalogue (`trappings`) et les manœuvres qui portent leurs Dégâts (`maneuvers`). ZI */
 export const weaponDamageSpecSchema = z.union([
   nommerChamps(z.strictObject({ literal: z.string() }), { literal: { label: 'Valeur littérale' } }),
@@ -871,6 +871,7 @@ export const weaponDamageSpecSchema = z.union([
     bare: { label: 'Mains nues' },
     bfInclus: { label: 'Indice BF inclus' },
   }),
+  nommerChamps(z.strictObject({ aucun: z.literal(true) }), { aucun: { label: 'Sans Dégâts' } }),
 ]);
 
 /** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */

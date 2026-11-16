@@ -19,7 +19,7 @@ function effectiveDamageTaken(w: Pick<Weapon, 'damageTaken' | 'qualities'>): num
 
 /** Dégâts d'arme effectifs après réduction par `damageTaken` (la composante fixe positive est
  *  réduite, plancher 0 → BF+0 improvisée ; une composante négative — mains nues — est préservée).
- *  Lit la donnée STRUCTURÉE (`WeaponDamageSpec`) — zéro parsing de chaîne ; « Spécial » (literal) → 0. */
+ *  Lit la donnée STRUCTURÉE (`WeaponDamageSpec`) — zéro parsing de chaîne ; « Spécial » (literal) et « – » (aucun) → 0. */
 export function effectiveWeaponDamage(w: Weapon, force: { bf: number; passif: number }): number {
   const d = w.damage;
   const usesBF = 'plusBF' in d && d.plusBF;
@@ -104,7 +104,7 @@ export function applyEnchants(w: Weapon, enchants: WeaponEnchant[]): Weapon {
 
 /** L'arme est-elle réduite à l'état improvisé (bonus de Dégâts à +0 par usure) ? */
 export function isImprovised(w: Pick<Weapon, 'damage' | 'damageTaken' | 'qualities'>): boolean {
-  if (!('flat' in w.damage)) return false; // « Spécial » (literal) : jamais improvisé
+  if (!('flat' in w.damage)) return false; // « Spécial » (literal) et « – » (aucun) : jamais improvisé
   const flat = w.damage.flat;
   const dt = effectiveDamageTaken(w);
   return dt > 0 && flat >= 0 && flat - dt <= 0; // LDB 62 l.135 : réduits PAR les Dégâts reçus

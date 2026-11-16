@@ -229,13 +229,15 @@ import {
   spellFlowFor,
   spellOps,
   flowHasFreeAttack,
+  flowHasImpureOp,
   flattenFlow,
+  reecrireLesOps,
   EMPTY_FLOW,
   type FlowTest,
   type EffectTrigger,
 } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
-import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
+import { applyOps, nomDeSource, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -317,6 +319,7 @@ import {
   laisserTomber,
   rederiverLArmeTenue,
   endommagerLArmeTenue,
+  weaponIdentity,
 } from '../engine/items';
 import { crochetDuSol } from './objetsAuSol';
 import { hasCapability, itemCapability } from '../engine/capabilities';
@@ -3281,6 +3284,7 @@ function appliquerLaTouche(
     const land = scatter(attacker.pos, target.pos, battleRng(), sceneMetresPerTile(get().scene), get().scene?.dimensions);
     bus.emit(EVT.ANIM_FLOAT, { pos: land, text: tr('cf.dispersionFlottante'), kind: 'rate' });
     log.push(ev(evKind, tr('cf.dispersion', { name: attacker.label }), attacker.id, target.id));
+    poserLesZonesALArrivee(get, set, attacker, target, weapon, land);
   }
   log.push(...evLines(critLog, 'critique', attacker.id, target.id));
   // Nerveux (LDB 85 l.249) : « facilement effrayée par […] les bruits forts » — un coup d'arme à
@@ -7028,28 +7032,29 @@ function placeSpellZone(
   const rounds = baseRounds * durationMult + durationBonusRounds;
   // Rayon par défaut (si l'op n'a pas de `radiusMeters`) : dérivé de la `target` du sort (« Zone Diamètre
   // BFM m » → rayon BFM/2). Protection de Phâ : Zone centrée sur le lanceur (range self).
-  placeZoneFromOp(get, caster, target, pz, spell.label, rounds, sl, (zdeDiameterMeters(spell.target, caster) ?? 4) / 2, logLines,
+  if (!target.pos) { logLines.push(tr('cf.zonePersiste', { spell: spell.label })); return; }
+  placeZoneFromOp(get, caster, target.pos, pz, spell.label, rounds, sl, (zdeDiameterMeters(spell.target, caster) ?? 4) / 2, logLines,
     spell.id ? { kind: 'sort', id: spell.id } : undefined);
 }
 
-/** Pose une ZONE persistante depuis un op `zone` (op-based, réutilisable HORS sort : effets déclenchés —
- *  zone laissée à la mort/touche…). `label`/`rounds`/`fallbackRadiusM` sont fournis par l'appelant (un
- *  sort les tire de sa durée/ZdE ; un trigger fournit des défauts). `target.pos` = centre du disque.
- *  `source` = l'ENTITÉ qui pose la zone (ids) : elle voyage SUR la zone, et le Test de TRAVERSÉE
+/** Pose une ZONE persistante depuis un op `zone` : celle d'un sort (`placeSpellZone`) ou d'un effet déclenché
+ *  (`crochetDeZone`). `label`/`rounds`/`fallbackRadiusM` sont fournis par l'appelant (un sort les tire de sa
+ *  durée/ZdE ; un effet déclenché, de l'op). `centre` = centre du disque (le mur est perpendiculaire à l'axe
+ *  poseur→centre). `source` = l'ENTITÉ qui pose la zone (ids) : elle voyage SUR la zone, et le Test de TRAVERSÉE
  *  (`crossTest`) en dérive son enjeu — ce qui se joue est le sort qui barre le passage (#1262 V2 L6d). */
-function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZone: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], sourceRecue?: EffectSource): void {
+function placeZoneFromOp(get: Get, caster: Combatant, centre: Pt, opDeZone: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], sourceRecue?: EffectSource): void {
   const { pz, source } = structuredClone({ pz: opDeZone, source: sourceRecue }); // #2097
   const battle = get().battle;
-  if (!battle || !target.pos || !caster.pos) { logLines.push(tr('cf.zonePersiste', { spell: label })); return; }
+  if (!battle || !caster.pos) { logLines.push(tr('cf.zonePersiste', { spell: label })); return; }
   const discRadiusM = pz.radiusMeters != null ? Math.max(0, resolveFormula(pz.radiusMeters, caster, battleRng())) : fallbackRadiusM;
   // Cases BORNÉES à la carte au SITE D'ÉCRITURE (`clampZoneTiles`) : la géométrie de pose est non
   // bornée, une zone posée au coin déborderait en cases négatives stockées dans `battle.zones`.
   const rawTiles = clampZoneTiles(pz.shape === 'wall'
-    ? wallTiles(caster.pos, target.pos, porteeEnCases(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng()), sceneMetresPerTile(get().scene)))
-    : discTiles(target.pos, porteeEnCases(discRadiusM, sceneMetresPerTile(get().scene))), get().scene?.dimensions);
-  // z propagé sur chaque case (défaut 0, cf. zoneAreaTiles §782/#799) : une zone posée à l'étage `target.pos.z`
+    ? wallTiles(caster.pos, centre, porteeEnCases(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng()), sceneMetresPerTile(get().scene)))
+    : discTiles(centre, porteeEnCases(discRadiusM, sceneMetresPerTile(get().scene))), get().scene?.dimensions);
+  // z propagé sur chaque case (défaut 0, cf. zoneAreaTiles §782/#799) : une zone posée à l'étage `centre.z`
   // ne couvre pas les cases de même (x,y) à un autre étage (zoneCovers compare `t.z ?? 0` / `p.z ?? 0`).
-  const tiles = target.pos.z ? rawTiles.map((t) => ({ ...t, z: target.pos!.z })) : rawTiles;
+  const tiles = centre.z ? rawTiles.map((t) => ({ ...t, z: centre.z })) : rawTiles;
   const zone: BattleZone = {
     label, tiles, rounds, casterId: caster.id,
     ...(pz.blocksLoS ? { blocksLoS: true } : {}),
@@ -7060,26 +7065,51 @@ function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZon
     ...(pz.gate ? { gate: pz.gate } : {}),
     ...(pz.noCorruption ? { noCorruption: true } : {}),
     ...(source ? { source } : {}),
+    ...(pz.rendu ? { rendu: pz.rendu } : {}),
   };
   battle.zones = [...(battle.zones ?? []), zone];
   logLines.push(tr('cf.zonePersistePlusieursRounds', { spell: label, rounds }));
-  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...target.pos }, tiles, ...(source?.kind === 'sort' ? { sort: source.id } : {}) });
+  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...centre }, tiles, ...(source?.kind === 'sort' ? { sort: source.id } : {}), ...(pz.rendu ? { rendu: pz.rendu.id } : {}) });
+}
+
+/** Les zones des effets à la touche d'une arme LANCÉE qui manque se posent à son point d'arrivée (`land`, Dispersion) ;
+ *  ses autres effets à la touche n'ont pas lieu. #4202 ; LDB 14 l.142 */
+function poserLesZonesALArrivee(get: Get, set: SetFn, attacker: Combatant, target: Combatant, weapon: Weapon, land: Pt): void {
+  const source = { kind: 'objet' as const, id: weaponIdentity(weapon) };
+  for (const eff of weapon.onHitEffects ?? []) {
+    if (eff.trigger !== 'onHit') continue;
+    const zones = reecrireLesOps(eff.flow, (o) => (o.op === 'zone' ? o : null));
+    if (!flowHasImpureOp(zones)) continue;
+    runCombatFlow({ get, set, target, caster: attacker, label: weapon.label, opsCtx: { caster: attacker, source: eff.source ?? source, centreDeZone: land } }, zones);
+  }
+}
+
+/** Le crochet d'`applyOps` qui POSE la zone d'une op `zone` portant sa durée (`OpsCtx.onZone`) : au point
+ *  `centreDeZone`, sinon sur la cible ; le poseur est le porteur de l'effet. #4202 */
+export function crochetDeZone(get: Get): Required<Pick<OpsCtx, 'onZone'>> {
+  return {
+    onZone: (op, rounds, cible, ctx) => {
+      const lines: string[] = [];
+      const centre = ctx.centreDeZone ?? cible.pos;
+      if (!centre) return [tr('cf.zonePersiste', { spell: nomDeSource(ctx) })];
+      if (op.shape === 'disc' && op.radiusMeters === undefined) throw new Error(`op « zone » de ${nomDeSource(ctx)} : disque sans « radiusMeters » — hors sort, aucune Zone d'Effet ne le donne.`);
+      placeZoneFromOp(get, ctx.caster ?? cible, centre, op, nomDeSource(ctx), rounds, ctx.sl ?? 0, 0, lines, ctx.source);
+      return lines;
+    },
+  };
 }
 
 /** Résout les ops IMPURES (grille/initiative) d'un déclencheur — GÉNÉRIQUE, pas limité à summon : un
- *  effet de DONNÉE déclenché (Trait/Talent/Atout) qui invoque ou
- *  pose une zone est résolu ICI, comme au lancement d'un sort. `summon`/`zone` sont inertes dans
- *  `applyOps` (moteur pur) ; on les moissonne (`triggerEffectOps`) et on les dispatche vers leur
- *  résolveur state (applySummon / placeZoneFromOp). Les autres impures (grantFreeAttack, interruptFocus,
- *  breakBlade) fonctionnent déjà dans leur propre contexte (frappe gratuite / réactions de combat). */
+ *  effet de DONNÉE déclenché (Trait/Talent/Atout) qui invoque ou programme une reconstitution est résolu
+ *  ICI, comme au lancement d'un sort. `summon`/`scheduleRespawn` sont inertes dans `applyOps` (moteur pur) ;
+ *  on les moissonne (`triggerEffectOps`) et on les dispatche vers leur résolveur state (applySummon /
+ *  scheduleRespawnFromOp). Les autres impures fonctionnent dans leur propre contexte : la zone par le crochet
+ *  `crochetDeZone` du walker de combat, la frappe gratuite, les réactions de combat. */
 export function resolveTriggerImpureOps(get: Get, set: SetFn, actor: Combatant, trigger: EffectTrigger): string[] {
   const lines: string[] = [];
-  for (const { op, source } of triggerEffectOps(actor, trigger)) {
+  for (const { op } of triggerEffectOps(actor, trigger)) {
     if (op.op === 'summon') lines.push(...applySummon(get, set, actor, op, { rng: battleRng() }));
     else if (op.op === 'scheduleRespawn') lines.push(...scheduleRespawnFromOp(get, set, actor, op));
-    // La ZONE garde l'ENTITÉ qui l'a posée (le Trait/Talent porteur) : son `crossTest` en dérive son
-    // enjeu, exactement comme une zone de sort (#1262 V2 L6d).
-    else if (op.op === 'zone') placeZoneFromOp(get, actor, actor, op, actor.label, op.perRound ? 3 : 1, 0, 2, lines, source);
   }
   return lines;
 }
