@@ -1825,7 +1825,7 @@ function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: 
 }
 
 /** « Tout résoudre » roule-t-il cette rangée de bande au siège qui décide (`decidingSeat`) ? L'hôte, toutes ; un autre
- *  siège, celles qu'il influence (`influencesLocally`). Arbitrage du 2026-11-16, #1273. */
+ *  siège, celles qu'il influence (`influencesLocally`). #1273 */
 export function resoutLaRangeeIci(s: Jeu, id: string): boolean {
   return seatOwns(s, decidingSeat(s), undefined) || influencesLocally(s, id);
 }
