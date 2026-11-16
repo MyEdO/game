@@ -12379,9 +12379,9 @@
     "id": "baton-pointu",
     "type": "trappings",
     "label": "Bâton pointu",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "arc"
     },
     "enc": 0,
     "availability": "commune",
@@ -12422,9 +12422,10 @@
     "id": "fleche-barbelee",
     "type": "trappings",
     "label": "Flèche barbelée",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "arc"
     },
     "enc": 0,
     "availability": "limitee",
@@ -12457,9 +12458,10 @@
     "id": "fleche-bodkin",
     "type": "trappings",
     "label": "Flèche bodkin",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "arc"
     },
     "enc": 0,
     "availability": "limitee",
@@ -12491,9 +12493,10 @@
     "id": "bille-de-plomb",
     "type": "trappings",
     "label": "Bille de plomb",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "fronde"
     },
     "enc": 0,
     "availability": "commune",
@@ -12512,11 +12515,10 @@
         "id": "assommante"
       }
     ],
-    "desc": "Munition de fronde en plomb, vendue par lot de 12.",
     "price": {
       "gold": 0,
-      "silver": 4,
-      "brass": 0
+      "silver": 0,
+      "brass": 4
     },
     "source": {
       "book": "aux-armes",
@@ -12527,9 +12529,9 @@
     "id": "caillou",
     "type": "trappings",
     "label": "Caillou",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "fronde"
     },
     "enc": 0,
     "availability": "commune",
@@ -13047,9 +13049,10 @@
     "id": "balle-de-gros-calibre-et-poudre",
     "type": "trappings",
     "label": "Balle de gros calibre et poudre",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "limitee",
@@ -13086,9 +13089,9 @@
     "id": "bombe-explosive",
     "type": "trappings",
     "label": "Bombe explosive",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "limitee",
@@ -13126,9 +13129,10 @@
     "id": "cartouche-en-papier",
     "type": "trappings",
     "label": "Cartouche en papier",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "limitee",
@@ -13162,9 +13166,9 @@
     "id": "cartouche-et-poudre-de-precision",
     "type": "trappings",
     "label": "Cartouche et poudre de précision",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "commune",
@@ -13201,9 +13205,9 @@
     "id": "ferraille-et-poudre",
     "type": "trappings",
     "label": "Ferraille et poudre",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "commune",
@@ -13240,9 +13244,9 @@
     "id": "grappin-munition",
     "type": "trappings",
     "label": "Grappin (munition)",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 1,
     "availability": "limitee",
@@ -13279,9 +13283,10 @@
     "id": "poudre-impregnee-d-aqshy",
     "type": "trappings",
     "label": "Poudre imprégnée d'Aqshy",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "exotique",

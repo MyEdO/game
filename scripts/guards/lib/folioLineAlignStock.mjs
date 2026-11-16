@@ -88,7 +88,6 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/stakes.json', ref: 'soin-hemorragie', occurrence: 1 },
   { fichier: 'src/data/stakes.json', ref: 'soin-munition-logee', occurrence: 1 },
   { fichier: 'src/data/stakes.json', ref: 'structure-critique', occurrence: 1 },
-  { fichier: 'src/data/weaponGroups.json', ref: 'munitions', occurrence: 1 },
 ]
 
 export const FOLIO_LINE_ALIGN_NON_JUGEABLE = [
