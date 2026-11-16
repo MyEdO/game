@@ -98,13 +98,19 @@ describe('refTypee — `extra` compose les champs du porteur dans chaque branche
   });
 
   it('la dotation de possession : chaque branche est la classe `objetDeRef:refTypee:{count,label}`, posée `dotation`', () => {
-    expect(declarationDeRefTypee(dotationDePossessionSchema)?.types).toEqual(['creature', 'vehicle']);
-    expect(produits(dotationDePossessionSchema)).toEqual(['objetDeRef:refTypee:count,label dotation', 'objetDeRef:refTypee:count,label dotation']);
+    expect(declarationDeRefTypee(dotationDePossessionSchema)?.types).toEqual(['creature', 'vehicle', 'engin']);
+    expect(produits(dotationDePossessionSchema)).toEqual(['objetDeRef:refTypee:count,label dotation', 'objetDeRef:refTypee:count,label dotation', 'objetDeRef:refTypee:count,label dotation']);
   });
 
   it('l’id résout dans le catalogue de son type : une mule n’est pas un véhicule', () => {
     expect(dotationDePossessionSchema.safeParse({ id: 'mule', type: 'creature', label: 'Grisette' }).success).toBe(true);
     expect(dotationDePossessionSchema.safeParse({ id: 'mule', type: 'vehicle' }).success).toBe(false);
     expect(dotationDePossessionSchema.safeParse({ creatureId: 'mule' }).success).toBe(false);
+  });
+
+  it('un engin résout dans la sous-liste des engins de siège : ni un objet de sac, ni un véhicule (#4143)', () => {
+    expect(dotationDePossessionSchema.safeParse({ id: 'canon-petit', type: 'engin' }).success).toBe(true);
+    expect(dotationDePossessionSchema.safeParse({ id: 'cape', type: 'engin' }).success).toBe(false);
+    expect(dotationDePossessionSchema.safeParse({ id: 'chariot-leger', type: 'engin' }).success).toBe(false);
   });
 });

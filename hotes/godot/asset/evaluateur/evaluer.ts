@@ -240,6 +240,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, osDesSilhouettes: table?.osDesSilhouettes, poidsDesFormes });
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>(peau.map((c) => neutre.get(c) as Float32Array));
+  const voisines = zonesVoisines(corps, zone, { positions: fondue });
   const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()), peau);
   base.scene.updateMatrixWorld(true);
   const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
@@ -277,7 +278,6 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const endroit = (m: Mesh): Uint32Array => endroits.get(m) as Uint32Array;
   const couches = lierLesCouches(corpsMontre, declareesMontrees, repos, couvre, endroit);
   const traversees: TraverseeDUnEchantillon[] = [];
-  const voisines = zonesVoisines(corps, zone, repos);
   const horsDeZone = pairesHorsDeZone(corpsMontre, declareesMontrees.flatMap((d) => d.meshes), zone, voisines, endroit);
   const peauxHorsDeZone = pairesHorsDeZone(corpsMontre, corps, zone, voisines, (m) => indicesDe(m, positionsDe(repos, m).length / 3));
   const membresSousVetement: MembreDUnEchantillon[] = [];

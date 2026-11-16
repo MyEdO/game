@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   atoutChoisi,
   dotationsDuHeros,
+  dotationsDuPnj,
   emplacementsDeDotation,
   emplacementTranche,
   estEmplacementDeDotation,
@@ -59,7 +60,17 @@ describe('emplacementsDeDotation — énumération canonique (classe PUIS niveau
 
   it('`estEmplacementDeDotation` : `{pick, of}`, `{wildcard}`, `{id, qualityChoice}` ; une ref concrète n\'en est pas un', () => {
     expect([{ pick: 1, of: [] }, { wildcard: 'arme' }, { wildcard: 'arme', groupe: { id: 'lancer' } }, { id: 'fleuret', qualityChoice: 'qualite' }].map((r) => estEmplacementDeDotation(r as TrappingRef))).toEqual([true, true, true, true]);
-    expect(([{ id: 'dague' }, { text: 'Toges' }, { id: 'cheval', type: 'creature' }, { id: 'charrette', type: 'vehicle' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false]);
+    expect(([{ id: 'dague' }, { text: 'Toges' }, { id: 'cheval', type: 'creature' }, { id: 'charrette', type: 'vehicle' }, { id: 'canon-petit', type: 'engin' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false, false]);
+  });
+
+  it('le Maître artilleur choisit sa pièce d’artillerie parmi les douze engins d’AA, résolue en engin possédé (AA 02 l.339 ; AA 10 l.175-193 ; #4053)', () => {
+    const dotations = dotationsDuPnj('artilleur', 4);
+    const piece = emplacementsDeDotation(dotations).find((e) => e.sorte === 'branches' && e.ref.of.every((b) => 'type' in b && b.type === 'engin'))!;
+    expect(valeursDeLEmplacement(piece, { size: 'moyenne' }).map((v) => libelleDeLaValeur(piece, v))).toEqual([
+      'Baliste', 'Catapulte (petite)', 'Catapulte (moyenne)', 'Catapulte (grande)', 'Batterie tonnerre de feu', 'Canon à répétition',
+      'Canon à répétition feu d\'enfer', 'Canon (petit)', 'Canon (moyen)', 'Canon (grand)', 'Mortier', 'Pierrier',
+    ]);
+    expect(resolveTrappingChoices(dotations, { [piece.adresse]: 7 })).toContainEqual({ id: 'canon-petit', type: 'engin' });
   });
 });
 

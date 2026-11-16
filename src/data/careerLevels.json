@@ -7200,7 +7200,7 @@
         "id": "filet"
       },
       {
-        "text": "Mandat d'arrêt"
+        "id": "mandat-d-arret"
       },
       {
         "id": "menottes"
@@ -23272,7 +23272,57 @@
     ],
     "trappings": [
       {
-        "text": "Pièce d'artillerie"
+        "pick": 1,
+        "of": [
+          {
+            "id": "baliste",
+            "type": "engin"
+          },
+          {
+            "id": "catapulte-petite",
+            "type": "engin"
+          },
+          {
+            "id": "catapulte-moyenne",
+            "type": "engin"
+          },
+          {
+            "id": "catapulte-grande",
+            "type": "engin"
+          },
+          {
+            "id": "batterie-tonnerre-de-feu",
+            "type": "engin"
+          },
+          {
+            "id": "canon-a-repetition",
+            "type": "engin"
+          },
+          {
+            "id": "canon-a-repetition-feu-d-enfer",
+            "type": "engin"
+          },
+          {
+            "id": "canon-petit",
+            "type": "engin"
+          },
+          {
+            "id": "canon-moyen",
+            "type": "engin"
+          },
+          {
+            "id": "canon-grand",
+            "type": "engin"
+          },
+          {
+            "id": "mortier",
+            "type": "engin"
+          },
+          {
+            "id": "pierrier",
+            "type": "engin"
+          }
+        ]
       },
       {
         "id": "carte"

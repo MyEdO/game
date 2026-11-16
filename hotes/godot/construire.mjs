@@ -47,7 +47,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
 import { createHash } from 'node:crypto'
-import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
@@ -318,7 +318,8 @@ const publie = (fichier) => `https://github.com/godotengine/godot/releases/downl
 const versionDe = (binaire) => spawnSync(binaire, ['--version'], { encoding: 'utf8', timeout: 60_000 }).stdout?.trim() ?? ''
 
 /** Le binaire de l'éditeur épinglé : `GODOT` s'il est posé et de la version épinglée, sinon celui du cache, téléchargé
- *  et vérifié par sa somme à sa première demande. */
+ *  et vérifié par sa somme à sa première demande. Chaque entrée se pose sous un nom propre au processus puis se
+ *  renomme, le lanceur en dernier : deux lancements menés de front sur un cache vide ne s'écrivent pas l'un sur l'autre. */
 async function editeur() {
   const { verifierSomme } = await assetsDeLHote()
   if (process.env.GODOT) {
@@ -338,8 +339,10 @@ async function editeur() {
   verifierSomme(plateforme.archive, zip, plateforme.sha256)
   mkdirSync(CACHE, { recursive: true })
   for (const { nom, octets } of await extraire(enMemoire(zip), plateforme.entrees)) {
-    writeFileSync(join(CACHE, nom), octets)
-    chmodSync(join(CACHE, nom), 0o755)
+    const pose = join(CACHE, `${nom}.${process.pid}.pose`)
+    writeFileSync(pose, octets)
+    chmodSync(pose, 0o755)
+    renameSync(pose, join(CACHE, nom))
   }
   return lanceur
 }

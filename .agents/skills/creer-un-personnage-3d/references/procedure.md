@@ -693,6 +693,10 @@ nœud `avec-hiver` : des brindilles en éventail là où chaque masse de feuilla
 part, pour que le feuillage ne change pas quand la ramure change. Le budget de triangles compte ce qui se montre à la
 fois, la plus lourde des deux tenues.
 
+**Ce qui luit.** Le GLB d'un décor a un nœud `emet` (`NOEUD_EMISSIF` de `decor/gabarit.py`) si et seulement si sa
+recette a une primitive `emet` (`test_decor.py`) : il porte ce qui luit à l'aplomb du centre de cette primitive, que l'hôte
+allume sur une pose qui éclaire (`MontageDesModeles._allumer`).
+
 **Gabarit.** Les primitives de la recette (`volume.primitives`) restent la seule source du gabarit de jeu (empreinte,
 dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes ni
 de leur géométrie, que `decor/polygones.mjs` tire de `polygonesDePrimitive` (`src/data/props.types.ts`), et se bâtit

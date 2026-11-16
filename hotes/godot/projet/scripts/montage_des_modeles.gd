@@ -8,9 +8,10 @@
 ## Ce que la pose porte fait le reste : coupée à la hauteur de coupe que le regard lui donne (`coupes`), entière sinon ;
 ## sa flottaison bordée par ce que son modèle plonge sous la hauteur 0 (`flottaison`, `MontageDeVehicule.contour_sous`,
 ## `VolumeDeScene.border_la_mer`) ; rangée sur la couche des luminaires si elle éclaire (`luminaire`,
-## `VolumeDeScene.COUCHE_DES_LUMINAIRES`) ; retirée avec sa case quand le regard la retire (`case`, `_retirer`). Une
-## pose dont seul le lieu change se repose sans se recharger ; celles qui ne sont plus servies se retirent. Chacune se
-## voile par la vision du groupe que le volume tient (`VolumeDeScene.voile`, `MontageDeVehicule.voiler`), case par case.
+## `VolumeDeScene.COUCHE_DES_LUMINAIRES`), ce que son modèle porte sous `NOEUD_EMISSIF` luisant alors (`_allumer`) ;
+## retirée avec sa case quand le regard la retire (`case`, `_retirer`). Une pose dont seul le lieu change se repose sans
+## se recharger ; celles qui ne sont plus servies se retirent. Chacune se voile par la vision du groupe que le volume
+## tient (`VolumeDeScene.voile`, `MontageDeVehicule.voiler`), case par case.
 ## Un décor que la saison change (`palette`, `caches`) se remonte quand son corps change, ceux qu'elle ne change pas
 ## restent montés (`MontageDeVehicule.monter`).
 ## Le volume ne peint pas les surfaces des décors servis (`VolumeDeScene.peindre_sans`), que leurs modèles montrent.
@@ -23,6 +24,9 @@ signal pose
 ## Un décor se monte comme un véhicule nu : son élément, sa palette et ses nœuds cachés servis, sans poste, Amélioration
 ## ni clip.
 const DECOR_NU := {postes = [], ameliorations = [], clips = {}}
+## Le nom du nœud qui porte ce qui luit dans le modèle d'un décor (`scripts/personnage-3d/decor/gabarit.py`,
+## `NOEUD_EMISSIF`).
+const NOEUD_EMISSIF := "emet"
 
 ## Le volume de la scène, qui voile chaque modèle, borde la mer de chaque navire et retire chaque case.
 @export var volume: VolumeDeScene
@@ -139,12 +143,45 @@ func _placer(cle: String, scene: Node3D) -> void:
 
 
 ## Chaque mesh du modèle de la pose `cle` sur la couche des luminaires si elle éclaire (`luminaire`), que la lampe d'un
-## foyer exclut de son ombre (`Foyer`), sur la couche du monde sinon ; puis sa case retirée (`_retirer`).
+## foyer exclut de son ombre (`Foyer`), sur la couche du monde sinon ; ce qui luit allumé ou éteint (`_allumer`) ; puis
+## sa case retirée (`_retirer`).
 func _ranger(cle: String) -> void:
 	var couche := VolumeDeScene.COUCHE_DES_LUMINAIRES if _servis[cle].has("luminaire") else VolumeDeScene.COUCHE_DU_MONDE
 	for piece: MeshInstance3D in _montes[cle].scene.find_children("*", "MeshInstance3D", true, false):
 		piece.layers = couche
+	_allumer(cle)
 	_retirer(cle)
+
+
+## Chaque surface de chaque mesh qui luit du modèle de la pose `cle` (`emissives`) : si la pose éclaire (`luminaire`),
+## son matériau propre (`MontageDeVehicule.materiau_propre`) émet sa couleur d'albédo, texture comprise ; sinon le
+## matériau propre qu'elle porte déjà n'émet pas.
+func _allumer(cle: String) -> void:
+	var eclaire: bool = _servis[cle].has("luminaire")
+	var montage: MontageDeVehicule = _montes[cle]
+	for piece: MeshInstance3D in emissives(montage.scene):
+		for rang in piece.mesh.get_surface_count():
+			if not eclaire:
+				var portee := piece.get_surface_override_material(rang) as BaseMaterial3D
+				if portee != null:
+					portee.emission_enabled = false
+				continue
+			var matiere := montage.materiau_propre(piece, rang)
+			if matiere == null:
+				continue
+			matiere.emission_enabled = true
+			matiere.emission = matiere.albedo_color
+			matiere.emission_texture = matiere.albedo_texture
+
+
+## Les meshes de la scène `scene` qui luisent : chaque nœud `NOEUD_EMISSIF` qui en est un, et ceux qu'il porte.
+static func emissives(scene: Node3D) -> Array:
+	var pieces := []
+	for noeud in scene.find_children(NOEUD_EMISSIF, "Node3D", true, false):
+		if noeud is MeshInstance3D:
+			pieces.append(noeud)
+		pieces.append_array(noeud.find_children("*", "MeshInstance3D", true, false))
+	return pieces
 
 
 ## Le modèle de chaque pose posée retiré ou montré selon le retrait posé au volume (`_retirer`).
