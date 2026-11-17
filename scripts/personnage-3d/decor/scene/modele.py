@@ -281,10 +281,7 @@ def lustre(D, G, pieces, a):
     liés entre voisins, bobèches, bougies et flammes."""
     L, laiton = D["LUSTRE"], pieces["laiton"]
     for rang in ("culot", "corbeille", "tige"):
-        primitive = G.primitives[L[rang]]
-        c, r, h = rond(primitive)
-        tournee(laiton, c - HAUT * (h / 2), c + HAUT * (h / 2), X, Y, r * math.cos(math.pi / primitive["sides"]),
-                L["tournes"][rang], L["cotes"], "laiton")
+        geometrie.tourne(laiton, G.primitives[L[rang]], L["tournes"][rang], L["cotes"], "laiton")
     axe, r_tige, _ = rond(G.primitives[L["tige"]])
 
     Br = L["bras"]
@@ -325,8 +322,7 @@ def portant(D, G, pieces, a):
     P, fer = D["PORTANT"], pieces["fer"]
     futs = []
     for patin, montant in zip(P["pieds"], P["montants"]):
-        c, (lx, ly, lz) = pave(G.primitives[patin])
-        profilee(fer, c - Y * (ly / 2), c + Y * (ly / 2), (lx / 2, lz / 2), P["patin"], "fer", X, HAUT)
+        geometrie.profile(fer, G.primitives[patin], "y", P["patin"], "fer")
         cm, r, h = rond(G.primitives[montant])
         tournee(fer, cm - HAUT * (h / 2), cm + HAUT * (h / 2), X, Y, r, P["fut"]["profil"], P["fut"]["cotes"], "fer")
         futs.append((cm, r, h))

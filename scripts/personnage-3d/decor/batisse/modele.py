@@ -172,8 +172,9 @@ def clocheton(D, G, pieces, a):
     C, pierre, fer, laiton, ardoise = (D["CLOCHETON"], pieces["pierre"], pieces["fer"], pieces["laiton"],
                                        pieces["ardoise"])
     K = D["TAILLE"]
-    cs, (sx, sy, sz) = pave(G.primitives[C["socle"]])
-    profilee(pierre, cs - HAUT * (sz / 2), cs + HAUT * (sz / 2), (sx / 2, sy / 2), C["plinthe"], "pierre")
+    socle = G.primitives[C["socle"]]
+    geometrie.profile(pierre, socle, "h", C["plinthe"], "pierre")
+    _, (_, _, sz) = pave(socle)
     ct, cotes = pave(G.primitives[C["tour"]])
     _, ty, tz = cotes
     lit, tete = ct.z - tz / 2 - sz * C["ancrage"], ct.z + tz / 2
@@ -206,8 +207,8 @@ def clocheton(D, G, pieces, a):
 
     B = C["sonnerie"]
     cloche = G.primitives[C["cloche"]]
-    cl, rayon, h = rond(cloche)
-    apotheme = rayon * math.cos(math.pi / cloche["sides"])
+    cl, _, h = rond(cloche)
+    apotheme = geometrie.apotheme(cloche)
     cote = math.copysign(1, cl.y - ct.y)
     pied, cerveau = cl - HAUT * (h / 2), cl + HAUT * (h / 2)
     tournee(laiton, pied + HAUT * (h * B["levre"]), cerveau, X, Y, apotheme, B["robe"], B["cotes"], "laiton")
@@ -418,8 +419,8 @@ def stalle(D, G, pieces, a):
             for pied in pieds:
                 cheville(bois, Vector((pied.x, pied.y, fil.z)) + dedans * demi, dedans, epais * C["cheville"], a)
 
-    cp, (px, py, pz) = pave(G.primitives[S["cornier"]])
-    profilee(bois, cp - HAUT * (pz / 2), cp + HAUT * (pz / 2), (px / 2, py / 2), S["tete"])
+    cp, (px, _, pz) = pave(G.primitives[S["cornier"]])
+    geometrie.profile(bois, G.primitives[S["cornier"]], "h", S["tete"], MAT)
     hauteur, enfonce, longueur, rayon, pans = S["patere"]
     vers = X * math.copysign(1, cl.x - cp.x)
     face = cp + vers * (px / 2) + HAUT * (pz * (hauteur - 1 / 2))
@@ -502,19 +503,20 @@ def grille(D, G, pieces, a):
             clou(fer, axe + long * (portee * part) + HAUT * (haut / 2), HAUT, K["rivet"], large / 2, "fer")
 
     B = R["barreau"]
-    barreaux = [(primitive["axis"], primitive["sides"], *rond(primitive))
-                for primitive in (G.primitives[rang] for rang in R["barreaux"])]
-    perce = barreaux[0][0]
-    for axis, pans, cb, rayon, long in barreaux:
-        _, axe = AXES[axis]
-        apotheme = rayon * math.cos(math.pi / pans)
+    barreaux = [(primitive, *rond(primitive)) for primitive in (G.primitives[rang] for rang in R["barreaux"])]
+    perce = barreaux[0][0]["axis"]
+    for primitive, cb, _, long in barreaux:
+        _, axe = AXES[primitive["axis"]]
+        apotheme = geometrie.apotheme(primitive)
         profil = [(0.0, B["passant"]), (1.0, B["passant"])]
-        if axis == perce:
-            croises = sorted((autre - cb).dot(axe) / long + 1 / 2 for nom, _, autre, _, _ in barreaux if nom != perce)
+        if primitive["axis"] == perce:
+            croises = sorted((autre - cb).dot(axe) / long + 1 / 2 for p, autre, _, _ in barreaux
+                             if p["axis"] != perce)
             profil = ([(0.0, B["corps"])]
                       + [(t + pas * apotheme / long, part) for t in croises for pas, part in B["renflement"]]
                       + [(1.0, B["corps"])])
-        tournee(fer, cb - axe * (long / 2), cb + axe * (long / 2), *normales(axe), apotheme, profil, pans, "fer")
+        tournee(fer, cb - axe * (long / 2), cb + axe * (long / 2), *normales(axe), apotheme, profil, primitive["sides"],
+                "fer")
 
 
 def paravent(D, G, pieces, a):

@@ -1,0 +1,46 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "mannequin"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "toile",
+      "palette": "vet1",
+      "matiere": "prop--toile-ecrue"
+    },
+    {
+      "nom": "paille",
+      "palette": "vegetal",
+      "matiere": "prop--paille"
+    },
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "704ae1c405d1df20effe28d232842789320ee2a61c35959b26b023f8ddb82a3c",
+    "octets": 59568
+  }
+}
