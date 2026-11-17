@@ -63,10 +63,10 @@ Aucune cible écrite. Le contenu vient de `src/hote/accueil.ts`, `groupe.ts`, `s
 
 | État | Intention | Choix à valider |
 |---|---|---|
-| `accueil` | la compagnie face à Altdorf, jeu en plaques, outils en pastilles | « Reprendre » en premier ; sur-titre et sous-titre ajoutés |
+| `accueil` | la compagnie face à Altdorf, jeu en plaques, outils en pastilles | « Continuer » en premier, qui charge la dernière sauvegarde ; sur-titre et sous-titre ajoutés |
 | `nouvelle-partie` | la salle d'une auberge-relais, le groupe attablé, les voyageurs à recruter, les campagnes en avis cloués | cinq voyageurs visibles à la fois ; espèce absente de l'étiquette |
-| `sauvegardes` | quatre feuillets sur la table, l'automatique d'abord | portraits du groupe et vignette du lieu, que la sauvegarde ne porte pas |
-| `menu-de-la-partie` | le jeu assombri, la colonne de l'accueil | geste « Reprendre » ; colonne à gauche |
+| `sauvegardes` | quatre feuillets sur la table, l'automatique d'abord, chacun ce que la sauvegarde porte | états sans partie et refus non dessinés |
+| `menu-de-la-partie` | le jeu assombri, la colonne de l'accueil | geste « Reprendre » ; « Terminer la séance » sans son écran ; colonne à gauche |
 | `options` | préférences sur un volet, règles maison dans un registre à quinze signets | douze règles par feuillet ; libellés lisibles des options |
 | `ouverture-de-chapitre` | carton plein écran du chapitre, « Commencer » | compagnie affichée ; texte sur l'image |
 
@@ -77,15 +77,15 @@ n'a pas de cible écrite (`src/noyau/monde/advancement.ts`, LDB 07).
 
 | État | Intention | Choix à valider |
 |---|---|---|
-| `creation-signe-astral` | le dé puis les vingt signes, la page du signe au centre | variantes de l'Étoile du Sorcier ; champ « Dieux » |
+| `creation-signe-astral` | le dé puis les vingt signes, la page du signe au centre | champ « Dieux » |
 | `creation-competences-de-race` | douze lignes à trois paliers, six cartes au centre | aucun |
-| `creation-competences-de-carriere` | huit lignes à dix clous, la Compétence pressée au centre | Augmentations de race non distinguées |
+| `creation-competences-de-carriere` | huit lignes à dix clous, l'Augmentation de race en pastille à part, la Compétence pressée au centre | « Suivant » refusé tant qu'il reste des points |
 | `creation-talents` | race et carrière sur une page, tirages en sceaux | pastille « Utilisation » |
 | `creation-possessions` | la bourse au dé, le bagage en vignettes | pictogrammes d'objets neufs |
-| `creation-identite` | ce que les dés donnent, un feuillet pour motivation et ambitions | motivation et ambitions non servies par la vue |
+| `creation-identite` | ce que les dés donnent, nom, Motivation et Ambitions à la plume | saisies non servies par la vue de l'hôte (#3009) |
 | `creation-presentation` | le héros achevé, « Engager » | la vue ne sert pas tout ce qui est dessiné |
-| `progression-depense-d-experience` | la fiche dont profil, Compétences et Talents deviennent pressables, avec leur prix | onglet de la fiche ou écran à part ; achat immédiat |
-| `progression-changement-de-carriere` | le chemin des quatre niveaux, le niveau suivant, une autre carrière par Classe | carrières listées par livre ; niveaux fermés |
+| `progression-depense-d-experience` | la fiche dont profil, Compétences et Talents deviennent pressables, avec leur prix | onglet de la fiche ou écran à part ; achat immédiat ; créneaux au choix et sorts |
+| `progression-changement-de-carriere` | le chemin des quatre niveaux, inférieur et suivant pressables, une autre carrière par Classe | carrières listées par livre ; saut de niveau |
 
 ## Exploration et récit (2026-11-16)
 

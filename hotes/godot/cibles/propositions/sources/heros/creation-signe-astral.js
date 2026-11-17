@@ -1,6 +1,6 @@
 /* Création 4/10 : le signe astral (ADE II 03 l.36-63 ; src/data/stars.json). */
 const SIGNES = ["Wymund l'Anachorète", 'La Grande Croix', 'Le Trait du Peintre', 'Gnuthus le Buffle', 'Dragomas le Dragon', 'Le Crépuscule', 'Le Fourreau de Grungni', 'Mammit le Sage', 'Mummit le Fou', 'Les Deux Bœufs',
-  'Le Danseur', 'Le Tambour', 'Le Flûtiste', 'Vobist le Pâle', 'La Charrette Brisée', 'La Chèvre Sauvage', 'Le Chaudron de Rhya', 'Cackelfax le Coq', 'La Scie à Os'];
+  'Le Danseur', 'Le Tambour', 'Le Flûtiste', 'Vobist le Pâle', 'La Charrette Brisée', 'La Chèvre Sauvage', 'Le Chaudron de Rhya', 'Cackelfax le Coq', 'La Scie à Os', "L'Étoile du Sorcier"];
 /* quatre signes sous un même rang du d100, départagés au d10 (stars.json, `sub`) : [d10, variante] */
 const ETOILE_DU_SORCIER = [['1-3', 'Sixième sens'], ['4-6', 'Seconde vue'], ['7-9', 'Magie mineure'], ['10', 'Sorcier !']];
 const CHOISI = 'Le Trait du Peintre';
@@ -43,7 +43,7 @@ poser([
       <div class="lignes">${SIGNES.slice(0, 10).map(ligneDeSigne).join('')}</div>
       <div class="lignes">${SIGNES.slice(10).map(ligneDeSigne).join('')}</div>
     </div>
-    <div class="ligne" style="height:34px;border-bottom:0;padding-right:0"><i class="losange"></i><span class="n" data-texte="L'Étoile du Sorcier">L'Étoile du Sorcier</span><div class="pills" style="flex:none;flex-wrap:nowrap;gap:5px">${ETOILE_DU_SORCIER.map(([d, v]) => `<span class="pill" style="padding:0 8px"><b class="lin" style="font-size:10.5px;margin-right:5px">${d}</b>${v}</span>`).join('')}</div></div>`),
+    <div style="display:flex;align-items:center;gap:10px;margin-top:9px">${rub('Sa variante')}<div class="pills" style="flex-wrap:nowrap;gap:5px">${ETOILE_DU_SORCIER.map(([d, v]) => `<span class="pill" style="padding:0 8px"><b class="lin" style="font-size:10.5px;margin-right:5px">${d}</b>${v}</span>`).join('')}</div></div>`),
   centre('Signe de la Précision', `
     <div class="vignette laiton" style="height:140px;margin-top:10px">${ciel()}</div>
     <div class="nom" style="margin-top:9px" data-texte="nom du signe">Le Trait du Peintre</div>

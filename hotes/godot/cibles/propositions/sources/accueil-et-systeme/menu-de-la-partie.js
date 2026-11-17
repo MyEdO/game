@@ -14,6 +14,7 @@ monter([
      ${plaque('Sauvegardes', { icone: 'disque' })}
      ${plaque('Options', { icone: 'systeme' })}
      ${plaque('Jouer en ligne', { icone: 'reseau' })}
+     ${plaque('Terminer la séance', { icone: 'plume' })}
      <div class="trait"></div>
      ${plaque('Quitter la partie', { icone: 'sortie' })}
      <div class="dernier ombre">Dernière sauvegarde automatique à 18:05.</div>

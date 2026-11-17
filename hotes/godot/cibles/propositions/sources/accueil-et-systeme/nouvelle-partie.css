@@ -14,7 +14,7 @@
 #recruter .plaque{height:34px}
 #recruter .plaque>div{font-size:14.5px}
 
-#panneau{left:1322px;top:20px;width:362px;height:566px}
+#panneau{left:1322px;top:74px;width:362px;height:528px}
 #panneau .fond{padding:26px 14px 0}
 .affiche{position:relative;padding:22px 18px 16px;text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.6),0 0 0 1px rgba(40,25,10,.9),inset 0 0 22px rgba(90,60,20,.45);border-radius:1px;transform:rotate(.5deg)}
 .affiche .clou{top:8px}

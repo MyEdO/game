@@ -14,7 +14,7 @@ poser([
   gauche(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">${rub('Compétences de race')}${plaque('Répartition par défaut', { style: 'flex:none;width:214px;height:32px' })}</div>
     <div class="lignes">${COMPETENCES.map(ligneDeRace).join('')}</div>
-    <div style="display:flex;align-items:center;gap:9px;margin-top:13px"><span class="jeton fer">À +5 &nbsp;·&nbsp; 3 / 3</span><span class="jeton or">À +3 &nbsp;·&nbsp; 2 / 3</span><span class="rub" style="margin-left:4px"><span class="note">Encore une Compétence à +3.</span></span></div>`),
+    <div style="display:flex;align-items:center;gap:9px;margin-top:13px"><span class="jeton fer">À +5 &nbsp;·&nbsp; 3 / 3</span><span class="jeton or">À +3 &nbsp;·&nbsp; 2 / 3</span></div>`),
   centre('Humains (Reiklander)', `
     <div class="nom" style="margin-top:12px" data-texte="titre de page">Compétences de race</div>
     <div class="sous">Trois à +5 · trois à +3</div>

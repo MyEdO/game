@@ -107,7 +107,7 @@ monter([
      <div class="camp gothique ombre">L’Ennemi Intérieur</div>
    </div>`,
   `<div id="entrees" data-piece="entrées">
-     ${plaque('Reprendre', { armee: true, icone: 'jouer' })}
+     ${plaque('Continuer', { armee: true, icone: 'jouer' })}
      <div class="dernier ombre"><span class="rubrique">Steinbruck</span> · 14 Pflugzeit 2512 CI · 18:20</div>
      ${plaque('Jouer', { icone: 'route' })}
      ${plaque('Jouer en ligne', { icone: 'reseau' })}

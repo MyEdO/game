@@ -39,6 +39,7 @@
 .ligne>.n small{font-size:13.5px;color:#4a3420}
 .ligne.choisie{border:2px solid #a8842f;border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px rgba(60,40,10,.75),0 2px 5px rgba(60,35,5,.35)}
 .ligne.refusee{position:relative;color:rgba(42,29,18,.42)}
+.ligne.refusee .bulle-refus{left:auto;right:6px;transform:none}
 .ligne.refusee .tag{opacity:.45}
 .ligne .raison{font-family:"Fell SC";font-size:10.5px;letter-spacing:.9px;color:rgba(107,28,16,.75)}
 .losange{flex:none;width:6px;height:6px;transform:rotate(45deg);border:1.2px solid #4a3420;margin:0 4px}
