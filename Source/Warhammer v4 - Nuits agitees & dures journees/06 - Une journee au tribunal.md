@@ -221,7 +221,7 @@ Les détails varient fortement : certains avancent que l'évasion a réussi, d'a
 
 prétendent que le mur
 
-manu mirof - emmanuel.mirof@gmail.com
+
 
 d'autres que l'explosion n'a causé aucun dégât. Certains disent que le condamné était un meurtrier, d'autres affirment que c'était un rançonneur et d'autres encore sont surs qu'il s'agissait d'une lavandière accusée de sorcellerie, qui s'est échappée grâce à un sort. C'est à vous de décider du résultat de la tentative d'évasion de Kappan, mais tout Personnage qui se trouvait dans la prison (voir *10h45*) peut aisément s'enfuir dans la confusion et rejoindre le groupe. Pendant ce temps, les deux champions s'avancent et le magistrat lâche son mouchoir à nouveau pour redémarrer le combat.
 
