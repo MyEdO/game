@@ -54,7 +54,8 @@ def construire(D, materiaux, b):
     tete = b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES']['tete'])
     pourpoint = b.matieres_publiees(D['CONTOURNE']['pourpoint'], D['MATIERES']['pourpoint'])
     P, T, W = joindre_les_surfaces([pourpoint] + [b.corps(z) for z in D['ZONES_DU_CORPS']])
-    dessous = arbre_de(P, T)
+    porteur = porteur_de(P, T, W)
+    dessous = porteur['arbre']
     Po, To, _ = joindre_les_surfaces([pourpoint, tete])
     m = D['COLONNES']
     psis = [360.0 * j / m for j in range(m)]
@@ -96,7 +97,6 @@ def construire(D, materiaux, b):
         hauteur = 0.5 * (np.mean([p[2] for p in ra]) + np.mean([p[2] for p in rb]))
         M.bande(A, B, np.array([axe[0], axe[1], min(hauteur, C[2] + 0.5 * (hauteur - C[2]))]))
     X, orientes, normales = M.orienter()
-    porteur = porteur_de(P, T, W)
     Wx = np.array([emprunter(p, porteur)[0] for p in X])
     for a, o in D['OS_REPORTES'].items():
         Wx[:, b.indice_os[o]] += Wx[:, b.indice_os[a]]

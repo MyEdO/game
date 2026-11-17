@@ -32,7 +32,7 @@ BUDGET_TRIANGLES = 800            # procédure du skill, section 7 : accessoire
 CONTOURNE = {'robe': 'humanoide--vetement--robe'}
 """La ceinture repose sur la robe du preset `sorcier` : elle en emprunte les poids et les clés (ses meshes des zones
 `ZONES_DE_LA_ROBE`)."""
-MATIERES_DE_LA_ROBE = ['robe', 'dessous', 'galon', 'doublure']
+MATIERES_DE_LA_ROBE = ['robe', 'dessous', 'galon']
 ZONES_DE_LA_ROBE = ['torse', 'hanches', 'cuisse_g', 'cuisse_d']
 ZONES = ['torse', 'hanches', 'cuisse_g', 'cuisse_d']   # zones du corps que la ceinture traverse
 

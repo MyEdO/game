@@ -13,7 +13,7 @@ def axe_du_corps(b, zones, hauteur):
     return np.array([(tranche[:, 0].min() + tranche[:, 0].max()) / 2, (tranche[:, 1].min() + tranche[:, 1].max()) / 2, 0.0])
 
 
-def ceindre(b, nom, sommets, faces, mat, teintes, W, angle_vif, zones, publie, zones_du_publie):
+def ceindre(b, nom, sommets, faces, mat, W, angle_vif, zones, publie, zones_du_publie, teintes=()):
     """La pièce skinnée `nom` (`Base.nappe_simple` : ses `faces` au matériau `mat`, la face k à celui de `teintes[k]` s'il
     n'est pas `None`, ses poids `W`, lisse hors des arêtes de plus d'`angle_vif` degrés), ses silhouettes et ses clés
     `gabarit_*` transférées des meshes des zones `zones_du_publie` de l'élément publié `publie` qu'elle ceint."""

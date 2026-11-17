@@ -99,5 +99,5 @@ def construire(D, materiaux, b):
 
     cuir = materiaux['cuir']
     teintes = [None if m.materiaux[rang] is cuir else m.materiaux[rang] for rang in m.m]
-    return ceindre(b, 'ceinture-a-boucle', m.v, m.f, cuir, teintes, np.array(poids), D['ANGLE_VIF'], D['ZONES'],
-                   D['CONTOURNE']['robe'], D['ZONES_DE_LA_ROBE'])
+    return ceindre(b, 'ceinture-a-boucle', m.v, m.f, cuir, np.array(poids), D['ANGLE_VIF'], D['ZONES'],
+                   D['CONTOURNE']['robe'], D['ZONES_DE_LA_ROBE'], teintes)

@@ -96,5 +96,5 @@ def construire(D, materiaux, b):
         W += [emprunter(np.asarray(p), bure)[0] if poids is None else poids for p in pts]
     triangles = [(f[0], f[k], f[k + 1]) for f in faces for k in range(1, len(f) - 1)]
     W = lisser(np.array(W), voisinage(triangles, len(sommets)), D['LISSAGE_POIDS'])
-    return ceindre(b, 'cordeliere', sommets, faces, materiaux['corde'], [None] * len(faces), W, D['ANGLE_LISSE'], D['ZONES'],
+    return ceindre(b, 'cordeliere', sommets, faces, materiaux['corde'], W, D['ANGLE_LISSE'], D['ZONES'],
                    D['CONTOURNE']['bure'], D['ZONES_DE_LA_BURE'])

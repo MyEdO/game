@@ -100,10 +100,11 @@ def coque(D, b, forme, mat):
     return b.nappe('casque', X, normales, rigide(D, b, len(X)), orientes, mat, D['EPAISSEUR'])
 
 
-def solide(D, b, nom, M, mat):
-    """Le maillage `M`, fermé, lié rigide à l'os du casque."""
+def solide(D, b, nom, M, mat, teintes=()):
+    """Le maillage `M`, fermé, lié rigide à l'os du casque, au matériau `mat`, chaque triangle à celui de `teintes` qui
+    n'est pas `None`."""
     X, faces, _ = M.orienter()
-    return b.nappe_simple(nom, [tuple(p) for p in X], [tuple(f) for f in faces], rigide(D, b, len(X)), mat)
+    return b.nappe_simple(nom, [tuple(p) for p in X], [tuple(f) for f in faces], rigide(D, b, len(X)), mat, teintes)
 
 
 def bandeau(D, b, forme, mat, cordon):
@@ -125,13 +126,9 @@ def bandeau(D, b, forme, mat, cordon):
     for k in range(t['segments']):
         suivant = (k + 1) % t['segments']
         M.bande(anneaux[k], anneaux[suivant], 0.5 * (centres[k] + centres[suivant]))
-    objet = solide(D, b, 'bandeau', M, mat)
-    objet.data.materials.append(cordon)
     # `Maillage.bande` : le côté i de la section k porte les triangles 2 (k cotes + i) et 2 (k cotes + i) + 1.
-    for polygone in objet.data.polygons:
-        if (polygone.index // 2) % t['cotes'] < t['cotes'] // 2:
-            polygone.material_index = 1
-    return objet
+    return solide(D, b, 'bandeau', M, mat, [cordon if (k // 2) % t['cotes'] < t['cotes'] // 2 else None
+                                            for k in range(len(M.triangles))])
 
 
 def fleuron(D, b, forme, metal, medaillon):
