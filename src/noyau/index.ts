@@ -13,7 +13,7 @@ export type { Get } from './flowTypes';
 export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
-export { previewAttack, activeCombatant } from './combatFlow';
+export { previewAttack, activeCombatant, ordreDuRoundSuivant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
@@ -240,7 +240,7 @@ export {
   varianteCourante,
   type FieldDesc,
 } from './codex/editFields';
-export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
+export { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
 export {
   atelierIdentifiable,

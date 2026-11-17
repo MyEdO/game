@@ -183,6 +183,11 @@ func mesures() -> Dictionary:
 	return _mesures
 
 
+## Si le gabarit posé attend sa mesure, que la prochaine mise à jour du squelette prend puis annonce (`mesure`).
+func mesure_en_attente() -> bool:
+	return _a_mesurer
+
+
 func _process_modification_with_delta(_delta: float) -> void:
 	var squelette := get_skeleton()
 	if _a_mesurer:

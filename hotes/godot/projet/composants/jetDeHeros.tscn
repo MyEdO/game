@@ -12,7 +12,7 @@ champ = "detail"
 propriete = &"tooltip_text"
 
 [node name="Resultat" type="PanelContainer" parent="."]
-custom_minimum_size = Vector2(34, 34)
+custom_minimum_size = Vector2(50, 50)
 size_flags_vertical = 4
 theme = ExtResource("t_jet_de_heros")
 

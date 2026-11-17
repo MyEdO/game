@@ -350,7 +350,7 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     expect(boutonDe(opaque, 'zone/blocksLoS').presse).toBe(true);
     const barree = presser(boutonDe(opaque, 'zone/barrier'));
     expect([boutonDe(barree, 'zone/barrier').presse, boutonDe(presser(boutonDe(barree, 'zone/barrier')), 'zone/barrier').presse]).toEqual([true, false]);
-    expect(valeursDeLInspecteur(barree, 'valeur/barrier/blockGroups/ajouter').map((v) => (v.jeu as { args: unknown[] }).args.slice(1)), 'barrée, elle offre les groupes qu’elle bloque, au catalogue des Groupes d’appartenance').toEqual(idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE).map((id) => [['barrier', 'blockGroups'], [id]]));
+    expect(valeursDeLInspecteur(barree, 'valeur/barrier/blockGroups/ajouter').map((v) => (v.jeu as { args: unknown[] }).args.slice(1)), 'barrée, elle offre les groupes qu’elle bloque, au catalogue des Groupes d’appartenance').toEqual(idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE).map((id) => [['barrier', 'blockGroups', 0], id]));
     expect(inspecteur(opaque).some((el) => el.id.startsWith('valeur/barrier')), 'ouverte, aucun').toBe(false);
 
     expect(inspecteur(posee).find((el) => el.id === 'zone/couvre')).toMatchObject({ type: 'ligne', texte: 'Aucune entrée de fiche couverte.' });
@@ -498,7 +498,7 @@ describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
     const inspectee = presser(boutonDe(enrole, `logique/rencontre/${id}`));
     const membres = inspectee.vue.zones['editeur.inspecteur'].filter((el): el is Ligne => el.id.startsWith('rencontre/membre'));
     expect(membres.map((l) => l.texte)).toEqual(['Membres (1) — un personnage s’enrôle à son inspecteur', expect.stringMatching(/ — Ennemi$/)]);
-    expect(idsSous(inspectee, 'valeur/members')).toEqual(['valeur/members', 'valeur/members/0', 'valeur/members/0/mount', 'valeur/members/0/mount/0', 'valeur/members/0/mount/1', 'valeur/members/0/mount/aucune']);
+    expect(idsSous(inspectee, 'valeur/members')).toEqual(['valeur/members', 'valeur/members/0', 'valeur/members/0/mount', 'valeur/members/0/mount/false', 'valeur/members/0/mount/true', 'valeur/members/0/mount/aucune']);
   });
 
   it('une rencontre renommée l’est dans le « Démarrer un combat » du déclencheur qui la lance', () => {
@@ -529,7 +529,7 @@ describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
     expect(membres).toHaveLength(6);
     const seuil = presser(valeursDeLInspecteur(choisie, 'valeur/victoryCondition/type').find((b) => b.libelle === 'Sortie à seuil de dommage')!);
     expect(valeursDeLInspecteur(seuil, 'valeur/victoryCondition/targetId/ajouter').map((b) => b.libelle)).toEqual(membres);
-    const monture = presser(boutonDe(choisie, 'valeur/members/1/mount/1'));
+    const monture = presser(boutonDe(choisie, 'valeur/members/1/mount/true'));
     expect(inspecte(monture, `rencontre/membre/${membres[1]}`)).toMatchObject({ texte: expect.stringMatching(/ — Ennemi, monture$/) });
     expect(valeursDeLInspecteur(monture, 'valeur/members/0/ridesEntityId/ajouter').map((b) => b.libelle)).toEqual([membres[1]]);
   });
@@ -686,7 +686,7 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(departs.map((b) => b.libelle)).toEqual(['Le Bourg de l’Arène', 'La Vieille Futaie']);
     const depuis = presser(departs[0]);
     const suites = valeursDeLInspecteur(depuis, 'valeur/billets/diligence/suite/ajouter');
-    expect(suites.map((b) => b.id), 'les autres routes du mode seules').toEqual(['valeur/billets/diligence/suite/ajouter/0']);
+    expect(suites.map((b) => b.id), 'les autres routes du mode seules').toEqual([`valeur/billets/diligence/suite/ajouter/${JSON.stringify('route-felsbach')}`]);
     const suite = presser(suites[0]);
     const vendu = presser(boutonDe(suite, 'valeur/billets/diligence/marchandage/ajouter'));
     const vendeurs = valeursDeLInspecteur(vendu, 'valeur/billets/diligence/marchandage/presetId');
@@ -698,7 +698,7 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
       valeursDeLInspecteur(fini, 'valeur/billets/diligence/depuis/id').find((b) => b.presse)?.libelle,
       valeursDeLInspecteur(fini, 'valeur/billets/diligence/suite/0').find((b) => b.presse)?.id,
       valeursDeLInspecteur(fini, 'valeur/billets/diligence/marchandage/presetId').find((b) => b.presse)?.id,
-    ]).toEqual([expect.objectContaining({ valeur: 30 }), 'Le Bourg de l’Arène', 'valeur/billets/diligence/suite/0/0', vendeurs[0].id]);
+    ]).toEqual([expect.objectContaining({ valeur: 30 }), 'Le Bourg de l’Arène', `valeur/billets/diligence/suite/0/${JSON.stringify('route-felsbach')}`, vendeurs[0].id]);
     expect(refusDuRetraitDuMode(appel), 'le mode qui porte le billet ne se retire pas').toBe(true);
   });
 
@@ -1171,7 +1171,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ligneDe = (e: Edition, id: string) => (e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Ligne | undefined)?.texte;
-    const ajout = (e: Edition, id: string) => valeursDeLInspecteur(e, 'valeur/combat/spells/ajouter').find((b) => { const l = (b.jeu as { args: unknown[][] }).args[2]; return l[l.length - 1] === id; });
+    const ajout = (e: Edition, id: string) => valeursDeLInspecteur(e, 'valeur/combat/spells/ajouter').find((b) => (b.jeu as { args: unknown[] }).args[2] === id);
     presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
     jouer({ geste: 'appui', point: point(1, 1) });
     const pnj = presser(boutonDe(jouer({ geste: 'relache', point: point(1, 1) }), 'valeur/combat/ajouter'));
@@ -1384,7 +1384,7 @@ describe('l’éditeur de carte par le pont, l’adresse de prose (#3606 M2g)', 
     expect(erreurDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '02', texte: TEXTE } })).message, 'un autre chapitre que l’attendu se refuse').toBe('editer : chapitre, livre-de-base ch.02 n’est pas le chapitre attendu');
     const charge = editionDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '01', texte: TEXTE } }));
     expect(charge.chapitre, 'reçu, il ne se redemande pas').toBeUndefined();
-    let e = choisir(charge, `${D}/parts/ajouter`, (v) => (v as Fragment[])[0].kind === 'cellule');
+    let e = choisir(charge, `${D}/parts/ajouter`, (v) => (v as Fragment).kind === 'cellule');
     e = choisir(e, `${D}/parts/0/row`, (v) => v === 'Épée');
     e = choisir(e, `${D}/parts/0/table`, (v) => v === 'table des armes#1');
     e = choisir(e, `${D}/parts/0/col`, (v) => v === 'Prix');

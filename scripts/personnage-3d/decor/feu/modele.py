@@ -13,7 +13,7 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import ANGLES, HAUT, X, Y, anneau, cap, coque, lisse, normales, pave, rond
+from geometrie import ANGLES, COTES, HAUT, X, Y, anneau, bougie, cap, cercle, coque, lisse, normales, pave, rond
 from gabarit import NOEUD_EMISSIF
 from maille import cylindre, lineaire, poutre, tour
 
@@ -104,12 +104,6 @@ def gradins(m, niveaux, demi, pan, mat, a, grain, pointe=None):
     coque(m, anneaux, mat, None if pointe is None else HAUT * pointe)
 
 
-def cercle(m, axe, centre, r, h, e, segments, mat):
-    """Un cercle de fer plat autour de l'axe `axe` par `centre` : son rayon moyen `r`, sa hauteur `h` le long de l'axe,
-    son épaisseur `e`."""
-    tour(m, [(-h / 2, r - e / 2), (h / 2, r - e / 2), (h / 2, r + e / 2), (-h / 2, r + e / 2)], axe, centre, segments, mat, ferme=True)
-
-
 def faite(G):
     """La hauteur du faîte des prismes de la recette de `G`."""
     return max(c.z + cotes[2] / 2 for c, cotes in (pave(p) for p in G.primitives if p["kind"] == "prism"))
@@ -136,17 +130,6 @@ def consoles(m, azimuts, chemin, portee, pied, longueur, cote, pas, mat):
     for azimut in azimuts:
         vers = cap(azimut)
         barre(m, lisse([vers * r * portee + HAUT * (pied + part * longueur) for r, part in chemin], pas), HAUT.cross(vers), cote, mat)
-
-
-def bougie(P, pied, demi, haut, sommet, B):
-    """Une bougie d'après `B` (`BOUGIE`, fractions de `demi`) : sa bobèche et son binet au nœud `bras`, de `pied` sur
-    `haut` ; sa cire jusqu'à la hauteur `sommet` ; sa flamme au nœud émissif."""
-    axe = (pied.x, pied.y, 0)
-    segments, pans = B["segments"]
-    tour(P["bras"], [(pied.z + part * haut, f * demi) for part, f in B["bobeche"]], "z", axe, segments, "laiton")
-    cylindre(P["bougies"], pied.z + haut, sommet, B["cire"] * demi, "z", axe, segments, "cire")
-    hauteur, profil = B["flamme"]
-    tour(P[NOEUD_EMISSIF], [(sommet + part * hauteur * demi, f * demi) for part, f in profil], "z", axe, pans, "flamme")
 
 
 def cage(m, vitres, boite, C):
@@ -199,7 +182,8 @@ def feu_camp(D, G, P, a):
         for ecart, part, r in F[rang]:
             r *= rayon_buche
             z = r if rang == "couchees" else assise + (assise + r) * F["appui"]
-            p0, p1 = (travers * (ecart * longueur + a.uniform(-jeu, jeu)) + long_ * s * part * longueur / 2 + HAUT * z for s in (-1, 1))
+            p0, p1 = (travers * (ecart * longueur + a.uniform(-jeu, jeu)) + long_ * s * part * longueur / 2 + HAUT * z
+                      for s in COTES)
             buche(P["buches"], p0, p1, r, B, B["cotes"], a)
     R = F["dresse"]
     for azimut_pied, pied, azimut_tete, tete in F["dresses"]:
@@ -265,7 +249,7 @@ def lampadaire(D, G, P, a):
     part, portee, r, (r_boule, l_boule) = L["barre"]
     z, portee = pied + part * longueur, portee * cote / 2
     cylindre(P["fut"], -portee, portee, r * rayon, "x", (0, 0, z), 6, "fer")
-    for s in (-1, 1):
+    for s in COTES:
         cylindre(P["fut"], *sorted((s * portee, s * (portee - l_boule * rayon))), r_boule * rayon, "x", (0, 0, z), 6, "fer")
 
     plateau, (cote_plateau, _, haut_plateau) = boites["fer-noirci"]
@@ -319,8 +303,8 @@ def chandelier(D, G, P, a):
     portee = max(abs(c.x) for _, (c, _) in boites)
     consoles(P["bras"], C["azimuts"], chemin, portee, pied, longueur, fer * rayon, pas, "laiton")
     for centre, (cote, _, haut) in (b for p, b in boites if p["material"] == "albatre"):
-        bougie(P, Vector((centre.x, centre.y, bas_de_traverse)), cote / 2, haut_de_traverse,
-               centre.z - haut / 2 + C["cires"][0 if centre.x else 1] * haut, B)
+        bougie(P["bras"], P["bougies"], P[NOEUD_EMISSIF], Vector((centre.x, centre.y, bas_de_traverse)), cote / 2,
+               haut_de_traverse, centre.z - haut / 2 + C["cires"][0 if centre.x else 1] * haut, B)
 
 
 def applique_murale(D, G, P, a):
@@ -349,7 +333,8 @@ def applique_murale(D, G, P, a):
         course = Vector((pied.x, pied.y, 0)) - depart
         points = [depart + course * s + HAUT * (centre.z - haut / 2 + z * haut) for s, z in chemin] + [pied]
         barre(P["bras"], lisse(points, pas), HAUT.cross(course.normalized()), fer * cote / 2, "laiton")
-        bougie(P, pied, cote / 2, haut_de_bras, pied.z + cire * haut_du_binet, B)
+        bougie(P["bras"], P["bougies"], P[NOEUD_EMISSIF], pied, cote / 2, haut_de_bras, pied.z + cire * haut_du_binet,
+               B)
 
 
 def lanterne_sur_fut(L, G, P, a):

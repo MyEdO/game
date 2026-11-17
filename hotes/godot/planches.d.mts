@@ -7,3 +7,9 @@ export function deposerLesPlanches(sortie: string, planches: { nom: string; para
 export function refusDuNavigateur(navigateur: string, machine: { plateforme: string; architecture: string }): string | null;
 
 export function etalonsSansPlanche(fichiers: string[], noms: string[]): string[];
+
+export const MAQUETTES: string;
+
+export function encoderPng(image: { w: number; h: number; data: Buffer }): Buffer;
+
+export function coteACote(nom: string, capture: Buffer, maquettes: Record<string, { chemin: string; sha256: string; facteur: number; date: string }>): { image: Buffer } | { avis: string } | null;

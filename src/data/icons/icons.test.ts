@@ -23,12 +23,11 @@ describe('registre d’icônes (src/data/icons/defs)', () => {
     for (const d of ALL) expect(d.label.trim().length, d.id).toBeGreaterThan(0);
   });
 
-  it('ne contient AUCUNE couleur en dur (currentColor / none / var(--gold) seulement)', () => {
+  it('ne contient AUCUNE couleur en dur : `fill`, `stroke` et `stop-color` nomment `currentColor`, `none` ou un jeton `var(--…)`', () => {
+    const couleur = /^(?:currentColor|none|var\(--[a-z0-9-]+\))$/;
     for (const d of ALL) {
       expect(d.svg, `${d.id} : couleur hex interdite`).not.toMatch(/#[0-9a-fA-F]{3,8}/);
-      for (const m of d.svg.matchAll(/(?:fill|stroke)="([^"]+)"/g)) {
-        expect(['currentColor', 'none', 'var(--gold)'], `${d.id} : ${m[0]}`).toContain(m[1]);
-      }
+      for (const m of d.svg.matchAll(/(?:fill|stroke|stop-color)="([^"]+)"/g)) expect(m[1], `${d.id} : ${m[0]}`).toMatch(couleur);
     }
   });
 

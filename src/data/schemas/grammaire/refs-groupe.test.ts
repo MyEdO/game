@@ -8,7 +8,8 @@ import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { catalogueSpecs, declarationDeFeuilleDId, entreeOuverte, estSpecialisable, idsDe, idsDeLaSousListe, type FeuilleDId, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR } from './sousListes';
-import { conditionSchema, famillesConstruites, hasConditionSchema, hasWhatSchema } from './mecanique';
+import { conditionSchema, famillesConstruites, gameOpSchema, hasConditionSchema, hasWhatSchema } from './mecanique';
+import { GROUPES_TIRABLES } from '../../obsessions';
 import { descendre, ouverts, pasDeDonnee } from './descente';
 import { valeursDe } from './meta';
 import { DEFS_DE_DOCUMENT } from '../validate';
@@ -148,5 +149,13 @@ describe('Condition `skill` — la spécialisation est une de celles de la Comp�
     expect(skill(specialisee!, FANTOME), `${specialisee} (${FANTOME})`).toBe(false);
     expect(skill(nue!), nue).toBe(true);
     expect(skill(nue!, sienne), `${nue} (${sienne})`).toBe(false);
+  });
+});
+
+describe('Catalogue de spécialisations d’un id qui n’est aucune entrée (#4020)', () => {
+  it('un id vide a le catalogue d’un id inconnu, sans lever ; le parse d’un Trait conféré d’id vide se juge', () => {
+    for (const type of ['trait', 'talent', 'skill'] as const) expect(catalogueSpecs(type, ''), type).toEqual(catalogueSpecs(type, FANTOME));
+    const [table] = Object.keys(GROUPES_TIRABLES);
+    expect(gameOpSchema.safeParse({ op: 'grantTrait', trait: { id: '' }, cible: { table: { id: table } } }).success).toBe(false);
   });
 });

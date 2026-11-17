@@ -16,6 +16,8 @@ import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { type MapPlace, type MarcheDAuteur, type PlacePoi, resolvePortRef, placeServices, poiIcon, nomDuPoi } from '../../noyau/worldMap';
 import { LIBELLES_DE_TAILLE } from '../../data/schemas/defs-scenes/worldmap';
+import { signalDuPortSchema, type SignalDuPort } from '../../data/schemas/defs/naval-ports';
+import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import {
   etablissementAjoute,
   etablissementRetire,
@@ -192,7 +194,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
           </label>
           {place.port && (() => {
             const pt = place.port;
-            const updPort = (patch: Partial<PortProfile & { lighthouse?: boolean; ref?: string }>) =>
+            const updPort = (patch: Partial<PortProfile & { ref?: string }>) =>
               updPlace(place.id, { port: { ...pt, ...patch } });
             // Bascule d'une clé d'un Record<id, indice> (Surplus/Demande) : cocher = indice 1, décocher = retirer la clé.
             const toggleTable = (key: 'surplus' | 'demande', id: string) => {
@@ -213,9 +215,9 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   nullableLabel="— aucun (port d'auteur) —"
                   onChange={(ref) => {
                     if (!ref) { updPort({ ref: undefined }); return; }
-                    // Choisir une réf REMPLACE le profil par celui du catalogue (seul lighthouse,
-                    // hors catalogue, est préservé) — pas les défauts d'auteur pré-résolution (#217).
-                    const resolved = resolvePortRef({ ref, lighthouse: pt.lighthouse });
+                    // Choisir une réf REMPLACE le profil par celui du catalogue — pas les défauts
+                    // d'auteur pré-résolution (#217).
+                    const resolved = resolvePortRef({ ref });
                     updPlace(place.id, { port: resolved });
                   }}
                 />
@@ -245,9 +247,11 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   <input type="checkbox" checked={!!pt.cosmopolite} onChange={(e) => updPort({ cosmopolite: e.target.checked || undefined })} />
                   <Icon id="voyage/cosmopolite" size="sm" /> Grand port cosmopolite (Marienburg/Lothern, l.343 — marchands supérieurs)
                 </label>
-                <label className="ed-check">
-                  <input type="checkbox" checked={!!pt.lighthouse} onChange={(e) => updPort({ lighthouse: e.target.checked || undefined })} />
-                  <Icon id="voyage/phare" size="sm" /> Phare à l'approche (Test de Perception de vigie à l'atterrage, MDG 13 l.333-351)
+                <label className="ed-field"><Icon id="voyage/phare" size="sm" /> Signal du port (repérage à l'atterrage, MDG 13 l.333-351)
+                  <select value={pt.signal ?? ''} onChange={(e) => updPort({ signal: e.target.value ? e.target.value as SignalDuPort : undefined })}>
+                    <option value="">— aucun —</option>
+                    {optionsDuNoeud(signalDuPortSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
                 </label>
                 <div className="mini-title">Production (colonne Produits de l'Index)</div>
                 {produitOptions(VOIE_MARITIME).map((p) => (

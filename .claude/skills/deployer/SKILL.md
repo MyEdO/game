@@ -65,4 +65,5 @@ Puis vérifier le site du dossier publié.
 Les secrets Actions de `MyEdO/game` `PROD_DEPLOY_KEY` et `DEV_DEPLOY_KEY` sont les clés privées SSH dont les
 publiques sont des deploy keys en écriture sur `cgauche/cgauche.github.io` et `cgauche/dev` — un run qui échoue sur
 l'authentification vient de celle de sa cible. GitHub refuse un fichier poussé de plus de 100 Mo : le pck de Godot ne porte
-pas `modeles/` (`exclude_filter` de `hotes/godot/projet/export_presets.cfg`), servis à côté.
+ni `modeles/` (`exclude_filter` de `hotes/godot/projet/export_presets.cfg`), ni les dossiers de `PAQUETS_DU_WEB`
+(`hotes/godot/construire.mjs`, #4402), servis à côté ; l'export échoue sur tout fichier de sa sortie au-delà.

@@ -1,0 +1,30 @@
+/* Accueil et système, images d'intention (#3935). Pièces ajoutées au kit commun (commun.css) :
+   la toile (reprise de la fin de combat), l'outil (pastille + libellé, repris du combat), l'affiche, la carte de sauvegarde, le registre. */
+/* le grain de la toile, plus marqué que celui du jeu */
+#grain{opacity:.28}
+
+/* la toile : reprise de la fin de combat */
+.toile-ombre{filter:drop-shadow(0 16px 24px rgba(0,0,0,.8))}
+.toile{position:relative;display:grid;place-items:center;background:repeating-linear-gradient(0deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,220,160,.06) 0 1px,transparent 1px 3px),linear-gradient(180deg,#6a2218,#3c110b);box-shadow:inset 0 0 0 2px rgba(226,192,106,.6),inset 0 0 44px rgba(0,0,0,.55);clip-path:polygon(0 0,100% 0,calc(100% - 30px) 50%,100% 100%,0 100%,30px 50%)}
+.toile::before{content:"";position:absolute;inset:9px 46px;border:1px solid rgba(226,192,106,.45)}
+.toile span{color:#f3e6c6;text-shadow:0 3px 4px rgba(0,0,0,.75);white-space:nowrap}
+
+/* l'outil : pastille ronde et son libellé (repris de la barre de combat) */
+.outil{display:flex;flex-direction:column;align-items:center;gap:6px;width:92px}
+.outil .bouton-rond{width:50px;height:50px;padding:4px}
+.outil span{font-size:13px;color:#f0e2c2;white-space:nowrap}
+
+/* filet à losange (repris de la création) */
+.filet-l{display:flex;align-items:center;gap:10px}
+.filet-l::before,.filet-l::after{content:"";flex:1;height:1px;background:currentColor;opacity:.55}
+.filet-l i{width:8px;height:8px;transform:rotate(45deg);background:currentColor}
+
+/* le cartouche de titre : la gothique respire (aucun jambage coupé) */
+#titre .n{line-height:50px;margin:-9px 0 -8px}
+
+/* la table : le fond des écrans posés (sauvegardes, options) */
+#table{background-size:900px 450px,auto}
+#lueur-table{background:radial-gradient(60% 70% at 50% 46%,rgba(255,190,110,.20),rgba(255,190,110,.05) 55%,rgba(0,0,0,.55) 100%)}
+
+/* le jeu flouté et assombri, sous un écran posé dessus (menu de la partie, fin de séance) */
+#ecran[data-fond="jeu"]::before{content:"";position:absolute;inset:-8px;background:url(fond-lieu-steinbruck.jpg) center/cover;filter:blur(2.5px) brightness(.58) saturate(.75)}

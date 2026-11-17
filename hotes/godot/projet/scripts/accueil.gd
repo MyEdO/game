@@ -5,7 +5,8 @@
 extends CenterContainer
 
 ## @contrat Écran publié
-## L'entrée de l'application est un menu (`scenes/Accueil.tscn`, `run/main_scene`) qui montre la zone `accueil.gestes`
+## L'entrée de l'application est un menu (`scenes/Accueil.tscn`, `run/main_scene` ; dans la page, après la scène de
+## démarrage `scenes/Demarrage.tscn`, `run/main_scene.web`) qui montre la zone `accueil.gestes`
 ## de la méthode `accueil` : « Jouer » ouvre une partie au groupe (`ouvrir`), « Reprendre » montre les sauvegardes à
 ## charger (`sauvegardes`), « Jouer en ligne » montre le panneau du salon sans partie (`salon`), chacune au combat, qui
 ## suit l'entrée de l'accueil (`PontDuNoyau.entree`) ; « Combat » démarre un scénario de test, « Atelier », « Éditeur » et

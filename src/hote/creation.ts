@@ -42,7 +42,7 @@ const bouton = (id: string, libelle: string, creation: GesteDeLaCreation | null,
 function element(r: RubriqueDeCreation): Element {
   switch (r.genre) {
     case 'geste': return bouton(r.id, r.libelle, r.geste, r.refus, r.presse);
-    case 'jet': return { type: 'jet', id: r.id, ton: 'neutre', qui: null, libelle: r.libelle, cible: null, resultat: r.resultat, dr: null, verdict: null, modificateurs: [], detail: r.detail } satisfies Jet;
+    case 'jet': return { type: 'jet', id: r.id, ton: 'neutre', qui: null, combattant: null, libelle: r.libelle, cible: null, resultat: r.resultat, dr: null, verdict: null, modificateurs: [], detail: r.detail } satisfies Jet;
     case 'choix': return {
       type: r.options.length > RANGEE_AU_PLUS ? 'liste' : 'choix', id: r.id, ton: 'neutre', libelle: r.libelle, focus: false, refus: null,
       valeurs: r.options.map((o, i) => bouton(`${r.id}/${i}`, o.libelle, o.geste, o.refus, o.choisie)),

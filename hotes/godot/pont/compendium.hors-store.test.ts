@@ -87,4 +87,20 @@ describe('compendium', () => {
     expect(supprimer.refus).toMatch(/^D’autres données désignent cette entrée/);
     expect(erreurDe(appel('compendium', supprimer.jeu))).toEqual({ categorie: 'regle', message: `compendium : ${supprimer.refus}` });
   });
+
+  it('un geste de liste ne porte que l’élément à son rang : le plus gros jeu de l’atelier d’une table de noms, l’élément le plus gros d’une de ses listes et son enveloppe (#4020)', () => {
+    const { appel } = table();
+    const [entree] = datasetArray('names');
+    const atelier = zonesDe(appel('compendium', boutonDe(zonesDe(appel('compendium', { ouvrir: true, categorie: 'names', id: entree.id })), 'modifier').jeu))['compendium.atelier'];
+    const jeux = atelier.flatMap((e) => (e.type === 'bouton' ? [e.jeu] : e.type === 'choix' || e.type === 'liste' ? e.valeurs.map((v) => v.jeu) : []));
+    const valeurDe = (jeu: unknown): unknown => {
+      const j = jeu as { compendium?: { valeur?: unknown }; args?: unknown[] };
+      return j.compendium ? j.compendium.valeur : j.args?.[2];
+    };
+    const taille = (v: unknown): number => (v === undefined ? 0 : JSON.stringify(v).length);
+    const elements = Object.values(entree).flatMap((v) => (Array.isArray(v) ? v.map(taille) : []));
+    const enveloppe = Math.max(...jeux.map((j) => taille(j) - taille(valeurDe(j))));
+    expect(Math.max(...elements), 'l’entrée porte des listes').toBeGreaterThan(0);
+    expect(Math.max(...jeux.map(taille))).toBeLessThanOrEqual(Math.max(...elements) + enveloppe);
+  });
 });

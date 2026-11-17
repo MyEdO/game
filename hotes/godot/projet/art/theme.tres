@@ -1,6 +1,7 @@
-[gd_resource type="Theme" load_steps=27 format=3]
+[gd_resource type="Theme" load_steps=28 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
+[ext_resource type="StyleBox" path="res://art/bouton_focus.tres" id="b_focus"]
 
 [sub_resource type="StyleBoxFlat" id="Piste_de_glissiere"]
 bg_color = Color(0.32, 0.31, 0.3, 1)
@@ -282,24 +283,11 @@ expand_margin_right = -1.0
 expand_margin_bottom = -1.0
 anti_aliasing = false
 
-[sub_resource type="StyleBoxFlat" id="Bouton_focus"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.85, 0.7, 0.38, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-draw_center = false
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
-
 [sub_resource type="StyleBoxEmpty" id="Sans_fond"]
+
+[sub_resource type="StyleBoxLine" id="Filet_de_laiton"]
+color = Color(0.66, 0.52, 0.25, 1)
+thickness = 2
 
 [resource]
 HSlider/styles/slider = SubResource("Piste_de_glissiere")
@@ -387,25 +375,14 @@ Button/styles/hover = SubResource("Bouton_survol")
 Button/styles/pressed = SubResource("Bouton_presse")
 Button/styles/hover_pressed = SubResource("Bouton_presse")
 Button/styles/disabled = SubResource("Bouton_refuse")
-Button/styles/focus = SubResource("Bouton_focus")
+Button/styles/focus = ExtResource("b_focus")
 Button/colors/font_focus_color = Color(0.953, 0.902, 0.784, 1)
-Dessin/colors/chene_clair = Color(0.15, 0.105, 0.065, 1)
+Dessin/colors/chene_clair = Color(0.18, 0.114, 0.071, 1)
 Dessin/colors/chene_sombre = Color(0.06, 0.04, 0.025, 1)
 CarteDeService/base_type = &"PanelContainer"
 CarteDeService/styles/panel = SubResource("Carte_de_service")
 Vignette/base_type = &"PanelContainer"
 Vignette/styles/panel = SubResource("Masque_de_vignette")
-SaillieDuMeuble/base_type = &"MarginContainer"
-SaillieDuMeuble/constants/margin_top = 30
-DansLeMeuble/base_type = &"MarginContainer"
-DansLeMeuble/constants/margin_top = 46
-; -128 = colonne du portrait (Nom min 120, composants/meuble.tscn) + séparation de RangeeSerree (8).
-SousLePortrait/base_type = &"MarginContainer"
-SousLePortrait/constants/margin_left = -128
-GarniDuMeuble/base_type = &"MarginContainer"
-GarniDuMeuble/constants/margin_left = 12
-GarniDuMeuble/constants/margin_right = 12
-GarniDuMeuble/constants/margin_bottom = 16
 MargesDuReste/base_type = &"MarginContainer"
 MargesDuReste/constants/margin_right = 40
 MargesDeCarte/base_type = &"MarginContainer"
@@ -428,6 +405,8 @@ Medaillon/styles/panel = SubResource("Medaillon")
 Vie/base_type = &"ProgressBar"
 Vie/styles/background = SubResource("Fond_de_vie")
 Vie/styles/fill = SubResource("Plein_de_vie")
+FiletDeLaiton/base_type = &"HSeparator"
+FiletDeLaiton/styles/separator = SubResource("Filet_de_laiton")
 Dessin/colors/encre = Color(0.851, 0.706, 0.416, 1)
 Dessin/colors/bg = Color(0.063, 0.055, 0.043, 1)
 Dessin/colors/bg2 = Color(0.09, 0.078, 0.063, 1)
@@ -446,8 +425,10 @@ Dessin/colors/fer_sombre = Color(0.05, 0.045, 0.04, 1)
 Dessin/colors/laiton_clair = Color(0.85, 0.7, 0.38, 1)
 Dessin/colors/laiton = Color(0.66, 0.52, 0.25, 1)
 Dessin/colors/laiton_sombre = Color(0.36, 0.26, 0.1, 1)
+Dessin/colors/laiton_eclat = Color(0.937, 0.847, 0.569, 1)
+Dessin/colors/ivoire = Color(0.953, 0.902, 0.784, 1)
 Dessin/colors/roussi = Color(0.42, 0.24, 0.08, 1)
-Dessin/colors/cire = Color(0.58, 0.11, 0.08, 1)
+Dessin/colors/cire = Color(0.561, 0.145, 0.09, 1)
 Dessin/colors/cire_claire = Color(0.8, 0.3, 0.22, 1)
 Dessin/colors/cire_sombre = Color(0.3, 0.05, 0.035, 1)
 Dessin/colors/ciel_aube_haut = Color(0.173, 0.208, 0.322, 1)

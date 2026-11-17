@@ -1,0 +1,13 @@
+{
+  "model": "decor--colonne-brisee.glb",
+  "model_sha256": "cfaca48b4309ee4e90f26dfa5f7b8723298daa240fa73b99c17314c6d69bc443",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

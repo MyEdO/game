@@ -1,11 +1,15 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, son lacet à un azimut, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
-## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
+## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses
+## pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
 ## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
-## d'un point, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du tour, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
-## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
+## d'un point, les deux faces d'un d100, le bas d'une fenêtre posée au-dessus du meuble de l'actif, le décalage du poste de l'actif entre l'ordre et la fin du
+## tour, la largeur d'un bandeau de jet, la place et le bas de la chronique, le coin et la hauteur de la liste ouverte d'une pastille, la largeur d'un texte de
+## bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
+## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le
+## plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan, le point du plan sous le pointeur et
 ## sa case, le coin de ce qui se pose sous un lieu, la
 ## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
@@ -77,6 +81,8 @@ const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord 
 const ECART_DE_BULLE := 12.0
 ## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
 const ECART_DU_MEUBLE := 8.0
+## La largeur la plus grande d'un bandeau de jet, en unités de la vue de 1280 × 720.
+const LARGEUR_DU_BANDEAU := 1091.0
 ## La largeur la plus étroite de la chronique posée sur la scène en combat, sa pastille comprise, en pixels.
 const LARGEUR_DE_LA_CHRONIQUE := 310.0
 ## La hauteur au-delà de laquelle la liste ouverte d'une pastille défile, en pixels.
@@ -799,6 +805,12 @@ static func pivot_sur_la_case(angle: float, case: Vector2i, haut: float, dessus:
 	return maxf(angle, atan2(manque, y)) if y > haut + APPUI_DE_RANGEMENT and y > 0.0 and manque > 0.0 else angle
 
 
+## Les faces des deux dés à dix faces qui donnent `resultat` au d100 : celle des dizaines (`x` : 0 à 90) et celle des
+## unités (`y` : 0 à 9) ; 100 se lit 00 et 0.
+static func faces_du_d100(resultat: int) -> Vector2i:
+	return Vector2i(resultat % 100 - resultat % 10, resultat % 10)
+
+
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
 static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> Vector2:
 	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)
@@ -820,6 +832,16 @@ static func decalage_du_poste(origine: float, largeur_de_scene: float, largeur: 
 	if centre - largeur / 2.0 >= debut and centre + largeur / 2.0 <= fin:
 		return 0.0
 	return (debut + fin) / 2.0 - centre
+
+
+## La largeur d'un bandeau de jet centré sur une scène qui commence à `origine` (abscisses de l'écran) et fait
+## `largeur_de_scene` de large, sans couvrir `gauche`, le bord droit de l'ordre du tour, ni `droite`, le bord gauche de la
+## fin du tour ou de la scène, à `ECART_DU_MEUBLE` de chacun : au plus `LARGEUR_DU_BANDEAU`. Centré, il garde sa place
+## quel que soit le jet.
+static func largeur_du_bandeau(origine: float, largeur_de_scene: float, gauche: float, droite: float) -> float:
+	var centre := origine + largeur_de_scene / 2.0
+	var demi := minf(centre - gauche, droite - centre) - ECART_DU_MEUBLE
+	return minf(LARGEUR_DU_BANDEAU, 2.0 * demi)
 
 
 ## La place libre, en pixels, entre le bord droit d'un poste de `largeur` décalé de `decalage` du centre d'une scène de

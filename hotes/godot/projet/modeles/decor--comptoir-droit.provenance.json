@@ -1,0 +1,13 @@
+{
+  "model": "decor--comptoir-droit.glb",
+  "model_sha256": "25891de3424ca9cfbdfccfc3d9bbdd3cf9937151d7dbb6e157da83b1c001d669",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

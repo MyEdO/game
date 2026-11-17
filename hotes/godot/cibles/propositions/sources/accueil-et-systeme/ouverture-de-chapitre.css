@@ -1,0 +1,15 @@
+#carton{position:absolute;left:84px;top:44px;width:720px}
+#carton .sur{font-size:15.5px;letter-spacing:2.2px;color:var(--or);margin-left:4px}
+#carton .nom{font-size:88px;line-height:136px;margin:-24px 0 -30px;width:max-content;padding-right:8px;white-space:nowrap;background:linear-gradient(180deg,#fff4d4 12%,#f0d48a 52%,#b88a36 92%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 2px rgba(0,0,0,.85)) drop-shadow(0 0 22px rgba(0,0,0,.7))}
+#carton .tome{font-size:30px;line-height:40px;font-weight:500;color:#efe2c0;margin-left:4px;letter-spacing:.5px}
+#carton .toile-ombre{margin:22px 0 20px -6px;width:max-content}
+#carton .toile{width:640px;height:62px;clip-path:polygon(0 0,100% 0,calc(100% - 18px) 50%,100% 100%,0 100%,18px 50%)}
+#carton .toile::before{inset:6px 30px}
+#carton .toile span{font-size:25px;line-height:36px;letter-spacing:.5px}
+#carton p{margin:0 0 12px 4px;width:640px;font-style:italic;font-size:17px;line-height:25px;color:#efe4c8}
+#carton .source{font-size:12.5px;color:var(--creme-2);margin-left:4px}
+#bandeau{top:626px;height:146px}
+#bandeau .fond{padding-top:6px}
+#commencer{position:absolute;left:1466px;top:700px;width:216px}
+#commencer .plaque{height:52px}
+#commencer .plaque>div{font-size:18px;letter-spacing:1.4px;gap:12px}

@@ -40,7 +40,7 @@ import {
   isColdSeason, weatherCondition, type Weather, type Season,
 } from '../engine/travelStages';
 import { weatherTestMods } from '../engine/weatherTestMod'; // #341
-import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
+import { hasCoat, partyHasTent, applyExposureFailure, exposureFailureRank, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
 import { contexteDeNaissanceDObjet, itemFromGive, autoStowNewItem } from '../engine/items';
@@ -454,9 +454,8 @@ export const TABLES = {
     },
     /** Un Test d'EXPOSITION de fin d'Étape (l.73) : échec → escalade cumulative de froid (l.415), rhume
      *  CONTRACTÉ en saison froide ou PROLONGÉ (`coldExposureChill`). Protection magique = ignorée d'office.
-     *  Le RANG d'échec = nombre de paliers de
-     *  froid DÉJÀ PERSISTÉS (activeEffects `exposition-froid`, seule mémoire du cumul) — escalade
-     *  cumulative INTER-Étapes (0 → −10 CT/Ag/Dex, 3 → le reste, 10 → Blessures). */
+     *  Le RANG d'échec se déduit des effets de froid DÉJÀ PERSISTÉS (activeEffects `exposition-froid`,
+     *  seule mémoire du cumul inter-Étapes) par `exposureFailureRank`. */
     etapeExposition: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
       const weatherLabel = String(step.meta?.weatherLabel ?? '');
@@ -466,8 +465,7 @@ export const TABLES = {
       if (step.result.success) return { consequences: freeCons([]) };
       const j: string[] = [t('tp.exposureLine', { name: hero.label, weather: weatherLabel })];
       const prior = (hero.activeEffects ?? []).filter((e) => e.effectId === 'exposition-froid').length;
-      const rank = prior >= 10 ? 3 : prior >= 3 ? 2 : 1;
-      j.push(...applyExposureFailure(hero, rank, battleRng()).log);
+      j.push(...applyExposureFailure(hero, exposureFailureRank(prior), battleRng()).log);
       j.push(...coldExposureChill(hero, !!step.meta?.coldSeason));
       return { consequences: freeCons(j) };
     },

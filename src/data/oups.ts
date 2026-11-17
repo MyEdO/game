@@ -21,7 +21,7 @@ export type OupsKind = BandeDesOups['kind'];
 
 /** Bandes du Tableau des Oups ! (les 7 fourchettes) — lues par `findTableEntry`. */
 export const oupsTable = memoParVersion('oups', () => oups.filter((e): e is BandeDesOups => e.kind !== 'misfire'));
-/** Entrée « Incident de Tir » (label DISPLAY-ONLY) — source UNIQUE, lue par `rollOups`. */
+/** Entrée « Incident de Tir » (label DISPLAY-ONLY) — source UNIQUE, lue par `incidentDeTir`. */
 export const oupsMisfire = memoParVersion('oups', () => oups.find((e) => e.kind === 'misfire')!);
 /** Le dé du Tableau des Oups !, lu à l'appel. */
 export const oupsDie = (): DeDeTable => deDeTirageDe<typeof tableauDesOups>(oupsJson);

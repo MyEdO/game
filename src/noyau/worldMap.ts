@@ -49,13 +49,12 @@ export interface MapPlace {
   /** Icône du médaillon (id du registre src/data/icons), défaut `navigation/point-d-entree`. */
   icon?: IconId;
   /** Profil COMMERCIAL de port (Index des ports, MDG 15 l.439-506) — présent = ce lieu est un port
-   *  maritime (commerce, événements d'escale, chantier). `lighthouse` : un phare veille sur l'approche
-   *  (Test de Perception d'équipage à l'atterrage, MDG 13 l.333-351). `ref` (#217) : id de
+   *  maritime (commerce, événements d'escale, chantier). `ref` (#217) : id de
    *  `naval-ports.json` — les champs `PortProfile` ci-dessous sont alors des SURCHARGES locales
    *  par-dessus le catalogue (sparse en authoring JSON, résolues/complétées au chargement du projet
    *  par `resolvePortRef`, `parseProject`) ; le type reste NON-partiel car tout consommateur aval lit
    *  `place.port` APRÈS résolution (jamais la forme sparse brute). */
-  port?: { ref?: string } & import('../engine/seaVoyage').PortProfile & { lighthouse?: boolean };
+  port?: { ref?: string } & import('../engine/seaVoyage').PortProfile;
   /** Taille d'un lieu SANS port (`tailleDuLieu`), MSRC 13 l.44-50 ; absente : le lieu n'est pas une agglomération. */
   taille?: number;
   /** Indices de COMMERCE TERRESTRE/FLUVIAL (Index géographique, MSRC 13 l.183-278) — présent = ce Lieu
@@ -248,12 +247,12 @@ export function emptyWorldMap(id: string): WorldMap {
  * locale d'auteur, authoring SPARSE toléré en entrée — `Partial<PortProfile>`) l'emporte. `ref` inconnu
  * → erreur EXPLICITE (fail-fast, jamais un port silencieusement vide). Appelée par `parseProject`
  * (chargement de projet, entrée déjà résolue/concrète ou sparse à plat) et par l'éditeur au moment où
- * l'auteur choisit une réf au picker (`WorldMapEditor` — entrée sparse `{ ref, lighthouse }` : choisir
- * une réf REMPLACE le profil par celui du catalogue, seul `lighthouse` — hors catalogue — est préservé).
+ * l'auteur choisit une réf au picker (`WorldMapEditor` — entrée sparse `{ ref }` : choisir une réf REMPLACE
+ * le profil par celui du catalogue).
  * Inverse : `portVersDepot`.
  */
 export function resolvePortRef(
-  port: ({ ref?: string } & Partial<PortProfile> & { lighthouse?: boolean }) | undefined,
+  port: ({ ref?: string } & Partial<PortProfile>) | undefined,
 ): MapPlace['port'] {
   if (!port?.ref) return port as MapPlace['port'];
   const trouve = findNavalPortById(port.ref);
@@ -269,7 +268,7 @@ export function resolvePortRef(
     surplus: port.surplus ?? def.surplus,
     demande: port.demande ?? def.demande,
     cosmopolite: port.cosmopolite ?? def.cosmopolite,
-    lighthouse: port.lighthouse,
+    signal: port.signal ?? def.signal,
   };
 }
 
@@ -285,18 +284,17 @@ function egalJson(a: unknown, b: unknown): boolean {
 
 /**
  * FORME CANONIQUE d'un port (dépôt) : une surcharge égale au catalogue disparaît. Sans `ref`, le port
- * est rendu tel quel (même référence). Avec `ref`, il ne garde que `ref`, `lighthouse` s'il est posé, et
- * chaque champ qui DIFFÈRE du défaut que `resolvePortRef({ ref })` en tire — source UNIQUE des défauts
+ * est rendu tel quel (même référence). Avec `ref`, il ne garde que `ref` et chaque champ qui DIFFÈRE du défaut que `resolvePortRef({ ref })` en tire — source UNIQUE des défauts
  * comme de l'erreur de `ref` inconnue.
  */
 export function portVersDepot(port: MapPlace['port']): MapPlace['port'] {
   if (!port?.ref) return port;
-  const { ref: _ref, lighthouse: _phare, ...defauts } = resolvePortRef({ ref: port.ref })!;
+  const { ref: _ref, ...defauts } = resolvePortRef({ ref: port.ref })!;
   const clesSurchargees = (Object.keys(defauts) as (keyof typeof defauts)[]).filter(
     (k) => port[k] !== undefined && !egalJson(port[k], defauts[k]),
   );
   const surcharges = tableTotale(clesSurchargees, (k) => port[k]);
-  return { ref: port.ref, ...surcharges, ...(port.lighthouse !== undefined ? { lighthouse: port.lighthouse } : {}) } as MapPlace['port'];
+  return { ref: port.ref, ...surcharges } as MapPlace['port'];
 }
 
 /** Le lieu dont `sceneId` est la scène. */

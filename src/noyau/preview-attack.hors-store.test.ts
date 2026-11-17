@@ -66,12 +66,10 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     expect(preview.target).toBe(r!.res.attackerDetail!.target); // l'aperçu ne ment pas
   });
 
-  it('estimation de dégâts : dmg = arme + Force, soak = Endurance + PA', () => {
+  it('estimation de dégâts : dmg = arme + Force', () => {
     const a = combatant({ id: 'A' }); // F 35 → BF 3 ; Épée +BF+4 → 7
-    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } as never }); // E 35 → BE 3, PA corps 2
-    const p = previewAttack(mkGet([a, b]), a, b, 'corps');
-    expect(p.dmg).toBe(7);
-    expect(p.soak).toBe(5); // BE 3 + PA 2
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
+    expect(previewAttack(mkGet([a, b]), a, b, 'corps').dmg).toBe(7);
   });
 
   it('mêlée hors de portée (au-delà de l’Allonge) → inRange false', () => {

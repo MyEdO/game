@@ -1,0 +1,85 @@
+# Propositions : lieux et nuit (2026-11-16, #3935)
+
+Compte rendu des cinq écrans dessinés depuis les maquettes validées de lieu et de voyage, la cible écrite
+`../ecrites/lieu.md` et le relevé de ce qui se joue la nuit (ci-dessous). Sources au dépôt : `sources/lieux-et-nuit/`. Rien n'est validé.
+
+Directions de l'utilisateur (verbatims au 2026-11-16, fiche `user-doctrine-la-cible-prime-sur-l-ancien-ecran`) : une
+image autour d'un feu de camp et une quand on dort à l'auberge ; affectations à des postes dans la lignée du voyage ;
+interludes liés à des lieux et à des PNJ, jamais une fenêtre à cinquante choix ; un PNJ qui donne un service ouvre la
+page des services de son lieu.
+
+Choix transverses à valider : le poste (médaillon ou portrait, étiquette de chêne à pointe) est la pièce unique
+d'affectation (bivouac, auberge, table de jeu), geste supposé « choisir un héros au bandeau, puis cliquer un poste » ;
+rail de services à gauche et panneau de parchemin à droite forment le gabarit de toute page de service.
+
+## Ce qui se joue la nuit (relevé aux livres)
+- Aucune règle de tour de garde aux livres. Bases : Surprise LDB 13 l.53-59 (au MJ), Rester aux aguets EDOC 08
+  l.155-157, Vigilance LDB 13 l.64.
+- Campement : Survie en extérieur LDB 09 l.554 (abri et nourriture, +1 Personnage par DR, échec Résistance ou
+  Exténué, Échec Stupéfiant au MJ) ; tente LDB 74 l.62 ; sac de couchage +20 au froid LDB 74 l.60.
+- Récupération LDB 18 l.296 ; Exténué LDB 16 l.92, l.101 (durée au MJ), LDB 61 l.48 ; Guérison LDB 09 l.256-269 ;
+  faim et soif LDB 18 l.338-342, EDOC 08 l.46 ; Exposition LDB 18 l.328-334, EDOC 08 l.90, l.139-141 ; marche forcée
+  LDB 51 l.195 ; péripéties LDB 51 l.208-221.
+- Activités d'Étape, une par Personnage « autour d'un feu de camp » : EDOC 08 l.131-180.
+- Mer : MDG 13 l.111, MDG 15 l.76, l.104-108, l.268, l.304-306. Fleuve : MSRC 7 l.21.
+- Auberge : qualité et prix LDB 66 l.5-28, ACE 02 l.99 ; boisson LDB 09 l.473-485 ; Pari LDB 09 l.389 ; jeux NADJ 16 ;
+  rumeurs EDOC 08 l.151-153, EDOC 09 l.19-23.
+- Au code : `src/noyau/restFlow.ts:204`, `:435`, `:562-578`, `:759` ; `travelFlow.ts:314` ; `travelPostes.ts:136`
+  derrière `voyage-etapes` (défaut `false`) ; `seaVoyageFlow.ts:1815-1825` ; `riverVoyageFlow.ts:862` ;
+  `innFlow.ts:42` ; `tavernFlow.ts:237` ; `medicFlow.ts:72`.
+- Absent du code : veille de nuit ; abri de fortune complet ; sac de couchage +20 ; boire une pinte.
+
+## bivouac
+- Clairière de nuit (lune, lisière, feu, tente, diligence dételée). Les choix se font par héros, sur sa carte du
+  bandeau : couchage (« Dehors », seul couchage de la halte) et nourriture (« Ration » ou « Rien »), libellés de
+  `src/i18n/messages/fr.ts:325`, `:439-444`, choix de `src/noyau/restFlow.ts:163`.
+- Panneau « Le campement » : l'abri se lit (la tente est possédée ou non, elle ne se choisit pas), le temps ; « Ce que
+  la nuit jouera » : le froid (Résistance), le repos ; plaque « Passer la nuit ». Aucune sortie : la halte de voyage
+  ne se quitte pas (`src/noyau/modalArbiter.ts:192`).
+- Retouche du 2026-11-17 (#4411) : les huit postes d'Activité d'Étape et leur billet sortent de la halte (une
+  Activité par Étape se joue dans la journée, EDOC 08 l.131, `src/noyau/travelPostes.ts`, règle `voyage-etapes`
+  éteinte par défaut) ; « Tente / Belle étoile », le couchage et les vivres du groupe sortent du panneau.
+- À valider : tente sans effet chiffré aux livres (LDB 74 l.62, règle maison `exposition-tente-annule`) ; le sac de
+  couchage (LDB 74 l.60) non montré, le noyau ne l'applique pas ; la ligne « Le froid » sous la tente dépend de la
+  sévérité du temps (`exposureTestCount`, `src/noyau/restFlow.ts:486-512`), non relue pour le gel.
+
+## nuit-a-l-auberge
+- La salle de La Fin du Voyage ; l'aubergiste et ses offres au prix de la maison, sans choix de qualité (la qualité
+  est une donnée de l'établissement, `src/noyau/restFlow.ts`, `p.quality`) : chambre commune 10 sc par tête, chambre
+  privée 10/– (2 lits), grande chambre 20/– (4 lits, LDB 66 l.28), repas 1/– par tête (LDB 66 l.12-16).
+- Qui dort où : les quatre portraits posés dans la grande chambre, « 4 lits sur 4 ». Tarif par personne (#3004) :
+  « Bourses du groupe » par `bourse(…)`, la part de chacun (6/–) sous son nom, réglable, et le total ; « Passer la
+  nuit ». Postes de soirée : boire (bière, la pinte 3 sc, LDB 66), écouter les rumeurs, jouer, se faire soigner,
+  dormir.
+- À valider : une seule activité de soirée par héros (transposition de l'Étape, aucun RAW) ; « Boire » demande une
+  offre au noyau (M12 de l'audit ; la règle d'ivresse existe, LDB 09 l.475) ; écurie à la nuit (LDB 66 l.14) non
+  offerte.
+
+## services-du-lieu-medecin
+- La page des services du quartier (rail : auberge, armurier, guilde des Joailliers, guilde des Médecins, Guet),
+  le cabinet en image, le docteur et son boniment ; le patient se choisit par son portrait dans le bandeau (plus
+  d'onglets sur la page) ; soins : Panser (Guérison, LDB 09 l.260), Recoudre (Chirurgie, LDB 10 l.184, LDB 18 l.314).
+- Payer : chaque acte se paie au lancer du Test (`src/noyau/medicFlow.ts:182`), par le bénéficiaire (#3004) :
+  « À payer », « Bourse de Greta » par `bourse(…)`, « Payer et soigner ».
+- Mutualisation du 2026-11-17 (#4411) : la page des soins vit dans `sources/lieux-et-nuit/soins.js` et `soins.css`,
+  que posent aussi les soins entre héros (`exploration-et-recit`) ; image inchangée au pixel.
+- La Chirurgie à 15/– est dite « valeur maison » sur l'image : aucun prix aux livres (LDB 75 l.19 ne donne que la
+  visite, « 4-6 pistoles »).
+- À valider : visite à 5/– dans la fourchette du livre, à tracer en valeur maison elle aussi ; le noyau débite le
+  groupe, pas le patient ; docteur anonyme ; rail du quartier ou du bâtiment.
+
+## jeux-de-taverne
+- La même page à l'auberge, onglet « Les jeux » : la table sous sa lanterne, trois joueurs PNJ, la place libre ;
+  l'Al-zahr, les fléchettes, le bras de fer (NADJ 16) ; sièges, mise, pot, « S'asseoir et lancer les dés ».
+- À valider : jeux proposés par maison ; mise libre (le livre ne chiffre pas) ; nombre cible et variante rapide non
+  montrés.
+
+## interlude-en-ville
+- Le plan de Bögenhafen ; sept lieux épinglés, chacun une Activité et son hôte (LDB 23 l.132-240) ; le lieu choisi
+  à gauche avec ses seules activités et « Envoyer Mira à la taverne » ; avis « Argent à gaspiller » (LDB 23 l.13-19).
+- À droite, par héros : l'Événement de sa période (LDB 22 l.5, LDB 23 l.15, `eventRoll`) et le compteur de ses
+  Activités restantes sur trois (LDB 23 l.5, `src/noyau/interludeEnVue.ts:48-52`). La sortie est la pastille
+  « Reprendre la route » ; « Passer la semaine » et le tableau des semaines sortent (le noyau ne tient pas de semaine
+  courante). « Semer la dissension » dit ses deux Activités (LDB 23 l.240).
+- À valider : rattacher chaque Activité à un lieu et à un PNJ est une adaptation de scénario ; restriction par
+  Classe (LDB 23 l.195) ; plusieurs Activités absentes du plan ; l'effet de l'Événement n'est pas montré.

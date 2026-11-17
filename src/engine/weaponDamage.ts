@@ -219,7 +219,7 @@ export function effectiveWeapon(arme: Weapon, ctx?: WeaponContext): Weapon {
 
   // LDB 62 l.184,188
   if (ctx?.groupSkillMode === 'degrade') {
-    const kept = resolveQualities(manie).filter((r) => !isAtoutQuality(r.id)).map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
+    const kept = resolveQualities(manie).filter((r) => !isAtoutQuality(r.id)).map((r) => r.instance);
     return { ...manie, qualities: kept, noFamilyQualities: true };
   }
   return manie;

@@ -1726,7 +1726,7 @@ export function profilDuCoup(weapon: Weapon, retenu: boolean): Weapon {
   // change pas la compétence maniée).
   const kept = resolveQualities(w)
     .filter((r) => !r.caps?.withheldOnRestraint)
-    .map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
+    .map((r) => r.instance);
   return { ...w, qualities: kept, noFamilyQualities: true };
 }
 

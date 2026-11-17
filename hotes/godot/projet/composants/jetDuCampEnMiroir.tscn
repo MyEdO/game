@@ -1,0 +1,201 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="PackedScene" path="res://composants/portrait.tscn" id="3_portrait"]
+[ext_resource type="Theme" path="res://art/rang.tres" id="4_rang"]
+[ext_resource type="Theme" path="res://art/jet_de_heros.tres" id="5_sceau"]
+[ext_resource type="Theme" path="res://art/etiquette_du_jet.tres" id="6_etiquette"]
+[ext_resource type="Script" path="res://scripts/dessin.gd" id="7_dessin"]
+[ext_resource type="Theme" path="res://art/bandeau_de_jet.tres" id="8_bandeau"]
+
+[node name="Jet" type="HBoxContainer"]
+size_flags_horizontal = 3
+theme = ExtResource("8_bandeau")
+
+[node name="detail" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "detail"
+propriete = &"tooltip_text"
+
+[node name="Pile" type="VBoxContainer" parent="."]
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"PileDuCamp"
+
+[node name="Tete" type="HFlowContainer" parent="Pile"]
+alignment = 2
+
+[node name="Modificateurs" type="HFlowContainer" parent="Pile/Tete"]
+theme = ExtResource("6_etiquette")
+size_flags_horizontal = 3
+size_flags_vertical = 4
+alignment = 2
+
+[node name="Zone" type="Node" parent="Pile/Tete/Modificateurs"]
+script = ExtResource("2_zone")
+source = "modificateurs"
+
+[node name="Qui" type="Label" parent="Pile/Tete"]
+theme_type_variation = &"NomDuCamp"
+horizontal_alignment = 2
+
+[node name="qui" type="Node" parent="Pile/Tete/Qui"]
+script = ExtResource("1_liaison")
+champ = "qui"
+cacher_si_nul = true
+
+[node name="Libelle" type="Label" parent="Pile"]
+theme_type_variation = &"Competence"
+horizontal_alignment = 2
+
+[node name="libelle" type="Node" parent="Pile/Libelle"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="Chiffres" type="HBoxContainer" parent="Pile"]
+theme_type_variation = &"LigneDuJet"
+
+[node name="Issue" type="VBoxContainer" parent="Pile/Chiffres"]
+size_flags_horizontal = 3
+theme_type_variation = &"PileDeLIssue"
+alignment = 1
+
+[node name="Verdict" type="Label" parent="Pile/Chiffres/Issue"]
+custom_minimum_size = Vector2(72, 0)
+horizontal_alignment = 2
+autowrap_mode = 3
+
+[node name="verdict" type="Node" parent="Pile/Chiffres/Issue/Verdict"]
+script = ExtResource("1_liaison")
+champ = "verdict"
+cacher_si_nul = true
+
+[node name="ton" type="Node" parent="Pile/Chiffres/Issue/Verdict"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Dr" type="Label" parent="Pile/Chiffres/Issue"]
+theme_type_variation = &"DrDuCamp"
+horizontal_alignment = 2
+
+[node name="dr" type="Node" parent="Pile/Chiffres/Issue/Dr"]
+script = ExtResource("1_liaison")
+champ = "dr"
+cacher_si_nul = true
+
+[node name="Resultat" type="PanelContainer" parent="Pile/Chiffres"]
+custom_minimum_size = Vector2(50, 50)
+size_flags_vertical = 4
+theme = ExtResource("5_sceau")
+
+[node name="resultat" type="Node" parent="Pile/Chiffres/Resultat"]
+script = ExtResource("1_liaison")
+champ = "resultat"
+propriete = &"visible"
+
+[node name="ton" type="Node" parent="Pile/Chiffres/Resultat"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="De" type="Label" parent="Pile/Chiffres/Resultat"]
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ton" type="Node" parent="Pile/Chiffres/Resultat/De"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="resultat" type="Node" parent="Pile/Chiffres/Resultat/De"]
+script = ExtResource("1_liaison")
+champ = "resultat"
+
+[node name="Dizaine" type="TextureRect" parent="Pile/Chiffres"]
+custom_minimum_size = Vector2(38, 38)
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="cible" type="Node" parent="Pile/Chiffres/Dizaine"]
+script = ExtResource("1_liaison")
+champ = "cible"
+propriete = &"visible"
+
+[node name="Dessin" type="Node" parent="Pile/Chiffres/Dizaine"]
+script = ExtResource("7_dessin")
+champ = "icone"
+nomme = "navigation/des"
+
+[node name="Face" type="Label" parent="Pile/Chiffres/Dizaine"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"FaceDuDe"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="resultat" type="Node" parent="Pile/Chiffres/Dizaine/Face"]
+script = ExtResource("1_liaison")
+champ = "resultat"
+face = &"dizaine"
+
+[node name="Unite" type="TextureRect" parent="Pile/Chiffres"]
+custom_minimum_size = Vector2(38, 38)
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="cible" type="Node" parent="Pile/Chiffres/Unite"]
+script = ExtResource("1_liaison")
+champ = "cible"
+propriete = &"visible"
+
+[node name="Dessin" type="Node" parent="Pile/Chiffres/Unite"]
+script = ExtResource("7_dessin")
+champ = "icone"
+nomme = "navigation/des"
+
+[node name="Face" type="Label" parent="Pile/Chiffres/Unite"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"FaceDuDe"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="resultat" type="Node" parent="Pile/Chiffres/Unite/Face"]
+script = ExtResource("1_liaison")
+champ = "resultat"
+face = &"unite"
+
+[node name="Cible" type="Label" parent="Pile/Chiffres"]
+theme_type_variation = &"Chiffre"
+
+[node name="cible" type="Node" parent="Pile/Chiffres/Cible"]
+script = ExtResource("1_liaison")
+champ = "cible"
+cacher_si_nul = true
+
+[node name="Cadre" type="PanelContainer" parent="."]
+size_flags_vertical = 4
+theme = ExtResource("4_rang")
+theme_type_variation = &"echec"
+
+[node name="combattant" type="Node" parent="Cadre"]
+script = ExtResource("1_liaison")
+champ = "combattant"
+propriete = &"visible"
+
+[node name="Portrait" parent="Cadre" instance=ExtResource("3_portrait")]
+
+[node name="Image" parent="Cadre/Portrait"]
+custom_minimum_size = Vector2(64, 80)

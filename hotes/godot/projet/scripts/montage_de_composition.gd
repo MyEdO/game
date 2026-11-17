@@ -92,7 +92,7 @@ var pieces: Dictionary = {}
 var _emblemes_demandes: Dictionary = {}
 ## Par id d'emplacement monté, les nœuds qui portent ses meshes dans la scène.
 var _noeuds: Dictionary = {}
-## Par id d'emplacement, la demande de montage retenue : le montage en vol d'une autre demande est jeté.
+## Par id d'emplacement, le montage en vol (`monter`) : celui d'une autre demande, ou démonté, est jeté.
 var _demandes: Dictionary = {}
 ## Les meshes de la base posée, relevés avant tout montage.
 var _pieces_de_la_base: Array[MeshInstance3D] = []
@@ -110,7 +110,7 @@ var fusion: MeshInstance3D = null
 ## Une refonte est-elle demandée pour la fin de l'image (`_demander_la_refonte`) ?
 var _refonte_demandee := false
 ## La pile des couches résolue (`recevoir_la_pile`) : la `signature` de sa demande, son `bilan` et, par maillage de la
-## demande, ses tableaux (`maillages`) ; `{}` sans elle.
+## demande, ses tableaux (`maillages`), vides pour une réponse en échec ; `{}` sans elle.
 var pile: Dictionary = {}
 ## La signature de la demande de pile de ce qui est fondu (`_empiler`), `""` sans pile à résoudre.
 var _pile_fondue := ""
@@ -412,9 +412,9 @@ func cibles() -> Dictionary:
 	return retenues
 
 
-## L'emplacement `id` démonté avec son emblème ; le montage en vol qu'il attendait est jeté.
+## L'emplacement `id` démonté avec son emblème ; le montage en vol qu'il attendait est jeté (`_demandes`).
 func demonter(id: String) -> void:
-	_demandes[id] = RefCounted.new()
+	_demandes.erase(id)
 	for noeud in _noeuds.get(id, []):
 		noeud.free()
 	_noeuds.erase(id)
@@ -452,20 +452,21 @@ func demonter(id: String) -> void:
 ## nom de la base (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; chaque mesh skinné sous le squelette de la
 ## base, son skin lié par nom d'os (`scene_lue`). Rien de monté s'il n'a aucun mesh à monter, ou si un os que ses
 ## meshes nomment manque à la base : chacun va à `recueil`. Monté, il reçoit les morphes de la composition ; rend s'il
-## l'est.
+## l'est. En vol dans `_demandes` jusqu'à sa sortie, qui demande la refonte, sauf jeté par une autre demande.
 func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	demonter(id)
-	var demande: RefCounted = _demandes[id]
+	var demande := RefCounted.new()
+	_demandes[id] = demande
 	var sous := squelette
 	if sous == null:
-		return false
+		return _echouer(id)
 	var scene := await scene_du_modele(element, recueil)
 	if demande != _demandes.get(id):
 		if scene != null:
 			scene.free()
 		return false
 	if scene == null:
-		return false
+		return _echouer(id)
 	var trouvees: Array[MeshInstance3D] = []
 	var os_des_pieces: Array[Array] = []
 	var absents: Array[String] = []
@@ -485,7 +486,7 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 		recueil.append("element-sans-piece : %s" % element)
 	if trouvees.is_empty() or not absents.is_empty():
 		scene.free()
-		return false
+		return _echouer(id)
 	var noeuds: Array[Node] = []
 	for rang in trouvees.size():
 		noeuds.append(_poser_la_piece(trouvees[rang], os_des_pieces[rang], sous, id))
@@ -520,11 +521,19 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	if not noeuds_ranges.is_empty():
 		_tenus_ranges[id] = {tenus = noeuds, ranges = noeuds_ranges, rangement = ligne}
 	montes[id] = element
+	_demandes.erase(id)
 	_ranger()
 	poser_les_morphes()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
 	return true
+
+
+## L'échec du montage en vol à l'emplacement `id` : sorti de `_demandes`, sa refonte demandée ; rend `false`.
+func _echouer(id: String) -> bool:
+	_demandes.erase(id)
+	_demander_la_refonte()
+	return false
 
 
 ## Le premier emplacement de la base posée où se range `element`, monté à la prise `id` (les `elements` de ce point,
@@ -1344,7 +1353,8 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## de compatibilité, un appel de dessin par passe et une passe de skinning à chaque image où le squelette bouge
 ## (`drivers/gles3/storage/mesh_storage.cpp`, `update_mesh_instances`, Godot 4.7-stable). Après tout montage, démontage,
 ## masque des zones, habillage ou cuisson des formes, `MontageDeComposition.refondre` réunit, une fois à la fin de
-## l'image, chaque mesh visible du modèle, de la base comme des éléments montés, en un seul `MeshInstance3D` skinné sous
+## l'image où aucun montage n'est en vol ni aucune pile attendue (section « Pile des couches »), chaque mesh visible du
+## modèle, de la base comme des éléments montés, en un seul `MeshInstance3D` skinné sous
 ## le squelette de la base (`fusion`) : une surface par matériau équivalent (même classe, mêmes valeurs, mêmes
 ## textures), sur un `Skin` qui réunit les liaisons de chaque pièce, une liaison nommée par os et par repère. Une pièce
 ## skinnée y garde ses liaisons, compensées des translations du gabarit (section « Gabarit d'une base »), une pièce
@@ -1366,13 +1376,14 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## skinnée de la base, visible ou non, dont la zone (`extras.zone`) n'est couverte par aucun élément monté de la
 ## couche `peau` (`couvre` de sa couche), puis chaque surface skinnée, visible ou non, de chaque élément monté de la
 ## couche `peau` qui couvre une zone, chacune par ses positions au repos et, si elle a des shape keys, ses positions
-## sans forme ; une tenue d'une seule pièce ne demande rien. La fusion se dessine d'abord
-## telle que ses auteurs l'ont faite ; à la réponse, si ce qui est fondu n'a pas changé (même demande), elle se refond
-## avec, pour chaque maillage, ses sommets reculés, ses triangles encore dessinés, ses os et ses poids, un os gagné lié
+## sans forme ; une tenue d'une seule pièce ne demande rien. Tant que la réponse est attendue, aucune fusion : chaque
+## pièce se dessine seule, telle que son auteur l'a faite ; à la réponse, si ce qui est fondu n'a pas changé (même
+## demande), la fusion se fait avec, pour chaque maillage, ses sommets reculés, ses triangles encore dessinés, ses os et ses poids, un os gagné lié
 ## au repère que lui donne la première pièce fondue qui le porte. La réponse est gardée tant que la demande ne change
-## pas : un habillage ou une couleur ne redemandent rien. Les meshes propres des pièces restent ceux de leurs auteurs.
+## pas : un habillage ou une couleur ne redemandent rien. Une réponse en échec est gardée de même, sans pile : la
+## fusion se fait sans pile et rien ne se redemande. Les meshes propres des pièces restent ceux de leurs auteurs.
 ## Sans page (recette autonome, hors Web), la fusion se fait sans pile. La recette autonome
-## `projet/recettes/pile-des-couches.gd` vérifie la pose d'une pile reçue.
+## `projet/recettes/pile-des-couches.gd` vérifie la pose d'une pile reçue et celle d'une réponse en échec.
 
 ## La refonte des pièces demandée pour la fin de l'image (`refondre`), une seule fois quel que soit le nombre de
 ## demandes.
@@ -1388,9 +1399,11 @@ func _refondre_la_demande() -> void:
 		refondre()
 
 
-## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce
-## fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque maillage que la pile résout fondu tel
-## qu'elle le rend (`_empiler`) ; l'ancienne `fusion` libérée, aucune sans squelette ou sans pièce à fondre. Chaque
+## L'ancienne `fusion` libérée, puis, la composition réglée (aucun montage en vol dans `_demandes`, aucune pile attendue
+## pour ce qui est fondu, `_empiler`), les meshes visibles du modèle fondus en `fusion`, une surface par matériau
+## équivalent (`_signature`), chaque pièce fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque
+## maillage que la pile résout fondu tel qu'elle le rend ; aucune sans squelette ou sans pièce à fondre. Non réglée,
+## aucune fusion : chaque pièce rendue seule à son calque. Chaque
 ## liaison d'une pièce skinnée, fondue ou gagnée par la pile, est compensée (`_liaison_compensee`) ; une pièce skinnée
 ## dessinée seule porte la copie compensée du skin de son auteur (`_skin_compense`), une pièce fondue le sien.
 func refondre() -> void:
@@ -1398,27 +1411,36 @@ func refondre() -> void:
 	if is_instance_valid(fusion):
 		fusion.free()
 	fusion = null
+	_pile_fondue = ""
 	if squelette == null or not is_instance_valid(squelette):
 		return
 	var skin := Skin.new()
 	var liaisons := {}
 	var fondues := {}
 	var reperes := {}
-	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
+	var resolus := {}
+	var pieces_du_modele := modele.find_children("*", "MeshInstance3D", true, false)
+	if _demandes.is_empty():
+		for noeud in pieces_du_modele:
+			var renvois := _renvois(noeud as MeshInstance3D, skin, liaisons)
+			if not renvois.is_empty():
+				fondues[noeud] = renvois
+		resolus = _empiler(fondues)
+	var reglee := _demandes.is_empty() and (_pile_fondue == "" or _pile_demandee != _pile_fondue)
+	for noeud in pieces_du_modele:
 		var piece := noeud as MeshInstance3D
-		var renvois := _renvois(piece, skin, liaisons)
-		piece.layers = CALQUE if renvois.is_empty() else 0
+		var fondue := reglee and fondues.has(piece)
+		piece.layers = 0 if fondue else CALQUE
 		var auteur := _skin_de_l_auteur(piece)
-		if auteur != null:
-			piece.set_meta(SKIN, auteur)
-			piece.skin = _skin_compense(auteur) if renvois.is_empty() else auteur
-		if renvois.is_empty():
+		if auteur == null:
 			continue
-		fondues[piece] = renvois
-		if auteur != null:
+		piece.set_meta(SKIN, auteur)
+		piece.skin = auteur if fondue else _skin_compense(auteur)
+		if fondue:
 			for liaison in auteur.get_bind_count():
 				reperes.get_or_add(auteur.get_bind_name(liaison), _liaison_compensee(auteur.get_bind_name(liaison), auteur.get_bind_pose(liaison)))
-	var resolus := _empiler(fondues)
+	if not reglee:
+		return
 	var outils := {}
 	for piece: MeshInstance3D in fondues:
 		for surface in piece.mesh.get_surface_count():
@@ -1452,7 +1474,7 @@ func refondre() -> void:
 
 ## Par maillage que la pile des couches résout (`[pièce, surface]`), ses tableaux résolus, parmi les pièces `fondues` ;
 ## aucun tant que la pile de ce qui est fondu n'est pas reçue (`recevoir_la_pile`), demandée au pont si elle ne
-## l'est pas déjà. Les pièces de la demande : les meshes de la base, puis ceux de chaque élément monté qui déclare une
+## l'est pas déjà (`_pile_demandee`), ni si sa réponse est en échec. Sa signature va à `_pile_fondue`. Les pièces de la demande : les meshes de la base, puis ceux de chaque élément monté qui déclare une
 ## couche (`couches` de `modeles`), chacun par ses surfaces skinnées fondues ; sa peau, la peau de la tenue (#3842) :
 ## chaque surface skinnée de la base, fondue ou non, hors des zones que couvre un élément monté de la couche `peau`
 ## (`RANG_DE_LA_PEAU`), puis chaque surface skinnée de ces éléments, fondue ou non.
@@ -1473,7 +1495,6 @@ func _empiler(fondues: Dictionary) -> Dictionary:
 					sujets.append([piece, surface])
 		if not maillages.is_empty():
 			demandees.append({rang = porteur[1].rang, accessoire = porteur[1].accessoire, maillages = maillages})
-	_pile_fondue = ""
 	if demandees.slice(1).is_empty():
 		return {}
 	var parents := {}
@@ -1503,7 +1524,7 @@ func _empiler(fondues: Dictionary) -> Dictionary:
 	var resolus := {}
 	var pont := get_node_or_null("/root/Pont") as PontDuNoyau
 	if pile.get("signature") == _pile_fondue:
-		for rang in sujets.size():
+		for rang in pile.maillages.size():
 			resolus[sujets[rang]] = pile.maillages[rang]
 	elif _pile_demandee != _pile_fondue and pont != null and pont.est_pret():
 		_pile_demandee = _pile_fondue
@@ -1537,11 +1558,16 @@ func _maillage(piece: MeshInstance3D, surface: int) -> Dictionary:
 
 
 ## La réponse `reponse` du pont à la demande de pile de signature `signature` (`PileResolue`, `CONTRAT.md`, « Pile des
-## couches ») : gardée, fondue (`refondre`) et dite (`empilee`) si elle répond à ce qui est fondu, oubliée sinon.
+## couches ») : si elle répond à ce qui est fondu, gardée, fondue (`refondre`) et dite (`empilee`), ou, en échec, gardée
+## sans maillage ni bilan et fondue sans pile ; oubliée sinon.
 func recevoir_la_pile(reponse: Dictionary, signature: String) -> void:
 	if _pile_demandee == signature:
 		_pile_demandee = ""
-	if reponse.get("ok") != true or signature != _pile_fondue:
+	if signature != _pile_fondue:
+		return
+	if reponse.get("ok") != true:
+		pile = {signature = signature, bilan = {}, maillages = []}
+		refondre()
 		return
 	var maillages := []
 	for piece in reponse.pieces:

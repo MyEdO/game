@@ -1,0 +1,13 @@
+{
+  "model": "decor--paravent.glb",
+  "model_sha256": "6e6b3d3dd41a59c34106b4d7d359804e0d5752c9257d283bcf6b3fc3b7840340",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

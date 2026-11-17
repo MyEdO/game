@@ -1,0 +1,13 @@
+{
+  "model": "decor--pilori.glb",
+  "model_sha256": "b997a95d7d75ff444f2dedf2fd5bb1be5959ddd7f98f34b63c7df6faec0a11f2",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

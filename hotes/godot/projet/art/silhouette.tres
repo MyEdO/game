@@ -1,0 +1,75 @@
+[gd_resource type="Theme" load_steps=6 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="1_rubriques"]
+
+[sub_resource type="StyleBoxFlat" id="Encre"]
+content_margin_left = 4.0
+content_margin_top = 1.0
+content_margin_right = 4.0
+content_margin_bottom = 1.0
+bg_color = Color(0.35, 0.28, 0.2, 0.12)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.114, 0.102, 0.086, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Survol"]
+content_margin_left = 4.0
+content_margin_top = 1.0
+content_margin_right = 4.0
+content_margin_bottom = 1.0
+bg_color = Color(0.66, 0.52, 0.25, 0.25)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.66, 0.52, 0.25, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Laiton"]
+content_margin_left = 4.0
+content_margin_top = 1.0
+content_margin_right = 4.0
+content_margin_bottom = 1.0
+bg_color = Color(0.66, 0.52, 0.25, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.7, 0.38, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxEmpty" id="Sans"]
+
+[resource]
+Button/colors/font_color = Color(0.114, 0.102, 0.086, 1)
+Button/colors/font_hover_color = Color(0.114, 0.102, 0.086, 1)
+Button/colors/font_pressed_color = Color(0.133, 0.102, 0.067, 1)
+Button/colors/font_hover_pressed_color = Color(0.133, 0.102, 0.067, 1)
+Button/colors/font_focus_color = Color(0.114, 0.102, 0.086, 1)
+Button/font_sizes/font_size = 11
+Button/fonts/font = ExtResource("1_rubriques")
+Button/styles/normal = SubResource("Encre")
+Button/styles/hover = SubResource("Survol")
+Button/styles/pressed = SubResource("Laiton")
+Button/styles/hover_pressed = SubResource("Laiton")
+Button/styles/disabled = SubResource("Encre")
+Button/styles/focus = SubResource("Sans")
+Label/colors/font_color = Color(0.35, 0.33, 0.3, 1)
+Label/font_sizes/font_size = 14
+Label/fonts/font = ExtResource("1_rubriques")
+Silhouette/base_type = &"VBoxContainer"
+Silhouette/constants/separation = 2
+Membres/base_type = &"HBoxContainer"
+Membres/constants/separation = 2

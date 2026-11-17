@@ -1,86 +1,122 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://cadres/fenetre_de_jet.tscn" id="0_cadre"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
-[ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="2_titre"]
+[ext_resource type="Theme" path="res://art/issue_du_jet.tres" id="3_issue"]
+[ext_resource type="Theme" path="res://art/dr_net.tres" id="2_titre"]
+[ext_resource type="Theme" path="res://art/bandeau_de_jet.tres" id="4_bandeau"]
 
 [node name="Cadre" instance=ExtResource("0_cadre")]
 
-[node name="Colonne" type="VBoxContainer" parent="."]
-theme_type_variation = &"PileSerree"
+[node name="Duel" type="HBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps"]
+theme_type_variation = &"Duel"
 
-[node name="Tete" type="HBoxContainer" parent="Colonne"]
-theme_type_variation = &"Rangee"
-
-[node name="Titre" type="VBoxContainer" parent="Colonne/Tete"]
-size_flags_horizontal = 3
-theme = ExtResource("2_titre")
-
-[node name="Zone" type="Node" parent="Colonne/Tete/Titre" node_paths=PackedStringArray("masque")]
-script = ExtResource("1_zone")
-source = "fenetre.titre"
-masque = NodePath("../../../..")
-
-[node name="Etape" type="VBoxContainer" parent="Colonne/Tete"]
-size_flags_horizontal = 3
-alignment = 1
-
-[node name="Zone" type="Node" parent="Colonne/Tete/Etape"]
-script = ExtResource("1_zone")
-source = "fenetre.etape"
-
-[node name="Cible" type="VBoxContainer" parent="Colonne"]
-
-[node name="Zone" type="Node" parent="Colonne/Cible"]
-script = ExtResource("1_zone")
-source = "fenetre.corps"
-ids = PackedStringArray("cible", "arme", "sansEquipe")
-
-[node name="Coup" type="HFlowContainer" parent="Colonne"]
-
-[node name="Zone" type="Node" parent="Colonne/Coup"]
-script = ExtResource("1_zone")
-source = "fenetre.corps"
-ids = PackedStringArray("degats", "tirDansLeTas", "tirImmobile")
-
-[node name="Duel" type="HBoxContainer" parent="Colonne"]
-theme_type_variation = &"Rangee"
-
-[node name="Attaquant" type="VBoxContainer" parent="Colonne/Duel"]
+[node name="Attaquant" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel"]
 size_flags_horizontal = 3
 
-[node name="Zone" type="Node" parent="Colonne/Duel/Attaquant"]
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Attaquant"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("jet")
+formes = PackedStringArray("jet:jetDuCamp")
 
-[node name="Contre" type="VSeparator" parent="Colonne/Duel"]
+[node name="Avant" type="VSeparator" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel"]
 
-[node name="Defenseur" type="VBoxContainer" parent="Colonne/Duel"]
+[node name="Centre" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel"]
+custom_minimum_size = Vector2(220, 0)
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.74
+alignment = 1
+
+[node name="Etape" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+theme = ExtResource("4_bandeau")
+alignment = 1
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Etape" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.etape"
+formes = PackedStringArray("ligne:rubrique")
+masque = NodePath("..")
+
+[node name="Cible" type="HBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+theme = ExtResource("4_bandeau")
+alignment = 1
+
+[node name="Arme" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Cible"]
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Cible/Arme"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("arme")
+formes = PackedStringArray("ligne:rubrique")
+
+[node name="Point" type="Label" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Cible"]
+theme_type_variation = &"Rubrique"
+text = "·"
+
+[node name="Vise" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Cible"]
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Cible/Vise" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("cible", "sansEquipe")
+formes = PackedStringArray("ligne.alerte:ligne", "ligne:rubrique")
+masque = NodePath("../../Point")
+
+[node name="Coup" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+alignment = 1
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Coup" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("degats", "tirDansLeTas", "tirImmobile")
+masque = NodePath("..")
+
+[node name="DrNet" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+theme = ExtResource("2_titre")
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/DrNet"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("drNet")
+formes = PackedStringArray("ligne:ligneAuCentre")
+
+[node name="Issue" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+theme = ExtResource("3_issue")
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Issue"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+formes = PackedStringArray("ligne:ligneAuCentre")
+
+[node name="Reglages" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre"]
+
+[node name="Localisation" type="HBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages"]
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages/Localisation" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.reglages"
+ids = PackedStringArray("jetRegler@attaque#localisation")
+formes = PackedStringArray("choix:silhouette")
+masque = NodePath("../..")
+
+[node name="Autres" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages"]
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Centre/Reglages/Autres" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.reglages"
+formes = PackedStringArray("choix:choixEnLigne")
+masque = NodePath("../..")
+
+[node name="Apres" type="VSeparator" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel"]
+
+[node name="Defenseur" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel"]
 size_flags_horizontal = 3
 
-[node name="Zone" type="Node" parent="Colonne/Duel/Defenseur"]
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Corps/Duel/Defenseur"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("defense")
-
-[node name="Issue" type="VBoxContainer" parent="Colonne"]
-
-[node name="Zone" type="Node" parent="Colonne/Issue"]
-script = ExtResource("1_zone")
-source = "fenetre.corps"
-
-[node name="Reglages" type="VBoxContainer" parent="Colonne"]
-
-[node name="Zone" type="Node" parent="Colonne/Reglages"]
-script = ExtResource("1_zone")
-source = "fenetre.reglages"
-
-[node name="Pied" type="HSeparator" parent="Colonne"]
-
-[node name="Gestes" type="HFlowContainer" parent="Colonne"]
-alignment = 1
-
-[node name="Zone" type="Node" parent="Colonne/Gestes"]
-script = ExtResource("1_zone")
-source = "fenetre.gestes"
+formes = PackedStringArray("jet:jetDuCampEnMiroir")

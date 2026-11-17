@@ -1,0 +1,102 @@
+[gd_resource type="Theme" load_steps=11 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="2_rubriques"]
+[ext_resource type="FontVariation" path="res://art/police_penchee.tres" id="3_penchee"]
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="4_cadre"]
+[ext_resource type="StyleBox" path="res://art/ombre_de_panneau.tres" id="5_ombre"]
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Tablette"]
+content_margin_left = 16.0
+content_margin_top = 14.0
+content_margin_right = 16.0
+content_margin_bottom = 9.0
+script = ExtResource("4_cadre")
+cadre = "chene-ferre"
+matiere = "prop--bois-chene"
+teinte = Color(0.62, 0.55, 0.48, 1)
+ombre = ExtResource("5_ombre")
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Ruban"]
+content_margin_left = 29.0
+content_margin_top = 0.0
+content_margin_right = 29.0
+content_margin_bottom = 1.0
+script = ExtResource("4_cadre")
+cadre = "ruban"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Compte"]
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+script = ExtResource("4_cadre")
+cadre = "bouton"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Rang"]
+script = ExtResource("4_cadre")
+cadre = "pastille"
+
+[resource]
+PileDuPoste/base_type = &"VBoxContainer"
+PileDuPoste/constants/separation = -29
+PosteDeLaTablette/base_type = &"MarginContainer"
+PosteDeLaTablette/constants/margin_right = 10
+Tablette/base_type = &"PanelContainer"
+Tablette/styles/panel = SubResource("Tablette")
+RangeeDeCases/base_type = &"HBoxContainer"
+RangeeDeCases/constants/separation = 0
+SaillieDuMeuble/base_type = &"MarginContainer"
+SaillieDuMeuble/constants/margin_top = 40
+GarniDuMeuble/base_type = &"MarginContainer"
+GarniDuMeuble/constants/margin_left = 31
+GarniDuMeuble/constants/margin_right = 10
+GarniDuMeuble/constants/margin_bottom = 7
+RangeeDuMeuble/base_type = &"HBoxContainer"
+RangeeDuMeuble/constants/separation = 22
+GaucheDuMeuble/base_type = &"MarginContainer"
+GaucheDuMeuble/constants/margin_top = 64
+DroiteDuMeuble/base_type = &"MarginContainer"
+DroiteDuMeuble/constants/margin_top = 24
+RangsDuMeuble/base_type = &"VBoxContainer"
+RangsDuMeuble/constants/separation = 20
+PileDeMesure/base_type = &"VBoxContainer"
+PileDeMesure/constants/separation = 3
+PileDOffre/base_type = &"VBoxContainer"
+PileDOffre/constants/separation = 2
+RangeeDePlaques/base_type = &"HBoxContainer"
+RangeeDePlaques/constants/separation = 7
+TitreDeMesure/base_type = &"Label"
+TitreDeMesure/colors/font_color = Color(0.871, 0.796, 0.616, 1)
+TitreDeMesure/font_sizes/font_size = 12
+TitreDeMesure/fonts/font = ExtResource("2_rubriques")
+ChiffreDeMesure/base_type = &"Label"
+ChiffreDeMesure/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+ChiffreDeMesure/font_sizes/font_size = 12
+ChiffreDeMesure/fonts/font = ExtResource("2_rubriques")
+EtatDeMesure/base_type = &"Label"
+EtatDeMesure/colors/font_color = Color(0.871, 0.796, 0.616, 1)
+EtatDeMesure/font_sizes/font_size = 15
+EtatDeMesure/fonts/font = ExtResource("3_penchee")
+Compte/base_type = &"PanelContainer"
+Compte/styles/panel = SubResource("Compte")
+ChiffreDuCompte/base_type = &"Label"
+ChiffreDuCompte/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+ChiffreDuCompte/font_sizes/font_size = 16
+ChiffreDuCompte/fonts/font = ExtResource("1_titres")
+Ruban/base_type = &"PanelContainer"
+Ruban/styles/panel = SubResource("Ruban")
+TitreDuRuban/base_type = &"Label"
+TitreDuRuban/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+TitreDuRuban/font_sizes/font_size = 13
+TitreDuRuban/fonts/font = ExtResource("2_rubriques")
+NomDOffre/base_type = &"Label"
+NomDOffre/colors/font_color = Color(0.871, 0.796, 0.616, 1)
+NomDOffre/font_sizes/font_size = 11
+NomDOffre/fonts/font = ExtResource("2_rubriques")
+Rang/base_type = &"Panel"
+Rang/styles/panel = SubResource("Rang")
+ChiffreDuRang/base_type = &"Label"
+ChiffreDuRang/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+ChiffreDuRang/font_sizes/font_size = 11
+ChiffreDuRang/fonts/font = ExtResource("2_rubriques")
