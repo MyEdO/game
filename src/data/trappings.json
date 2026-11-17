@@ -2673,7 +2673,8 @@
     },
     "source": {
       "book": "livre-de-base",
-      "page": 296
+      "page": 296,
+      "note": "LDB 62 l.123 ; Lot : AA 08 l.499 (12)."
     }
   },
   {
@@ -3177,6 +3178,64 @@
     },
     "shape": {
       "id": "plastron"
+    }
+  },
+  {
+    "id": "barde",
+    "type": "trappings",
+    "label": "Barde",
+    "categorie": "armor",
+    "subType": {
+      "id": "mailles"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": "Tête, Corps, Pattes avant",
+    "pa": 2,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Possession sans prix ni disponibilité, Enc non compté. Arbitrages du 2026-11-16 (#4135) : « Possession seulement, non chiffrée » ; « Oui, même objet » ; matière, « Barde mailles, blaireau cuir ».",
+    "source": {
+      "book": "aux-armes",
+      "page": 109,
+      "note": "AA 09 l.188 ; PA : Up in Arms 10 l.156 (VO, nombres seuls)"
+    },
+    "shape": {
+      "id": "barde"
+    },
+    "capabilities": {
+      "armureDeMonture": true
+    }
+  },
+  {
+    "id": "caparacon-pour-blaireau",
+    "type": "trappings",
+    "label": "Caparaçon pour blaireau",
+    "categorie": "armor",
+    "subType": {
+      "id": "cuir-bouilli"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": "Tête, Corps",
+    "pa": 2,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Possession sans prix ni disponibilité, Enc non compté. Arbitrages du 2026-11-16 (#4135) : « Possession seulement, non chiffrée » ; « Oui, même objet » ; matière, « Barde mailles, blaireau cuir ».",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 88,
+      "note": "ADE I 07 l.66"
+    },
+    "shape": {
+      "id": "barde"
+    },
+    "capabilities": {
+      "armureDeMonture": true
     }
   },
   {
@@ -4942,6 +5001,85 @@
       "book": "livre-de-base",
       "page": 86,
       "note": "LDB 08 l.2082"
+    }
+  },
+  {
+    "id": "rhum-tord-boyaux",
+    "type": "trappings",
+    "label": "Rhum tord-boyaux",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.411) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17). Arbitrage du 2026-11-16 (#4202) : « Un Test, l'échec vaut deux verres ».",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 152,
+      "note": "MDG 16 l.411"
+    },
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "long-drong-silver-capitaine-des-pirates-tueurs-m-cc-ct-f-e-i-ag-dex-int-fm-soc-b-3-72-62-56-69-40-29-32-40-71-52-30",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 5,
+          "sum": "32de8022519c46b7"
+        }
+      ]
+    },
+    "consumable": {
+      "kind": "test",
+      "test": {
+        "skill": {
+          "id": "resistance-a-l-alcool"
+        },
+        "label": "Rhum tord-boyaux — Résistance à l'alcool"
+      },
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
+      },
+      "echec": {
+        "kind": "effet",
+        "effet": {
+          "type": "ops",
+          "ops": [
+            {
+              "op": "intoxicate"
+            },
+            {
+              "op": "intoxicate",
+              "tantQuIvre": [
+                {
+                  "op": "skillMod",
+                  "skill": {
+                    "id": "charme"
+                  },
+                  "mod": -20
+                },
+                {
+                  "op": "grantTrait",
+                  "trait": {
+                    "id": "perturbant"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   },
   {
@@ -6885,6 +7023,32 @@
     }
   },
   {
+    "id": "composant-d-incantation",
+    "type": "trappings",
+    "label": "Composant d’incantation",
+    "capabilities": {
+      "isSpellComponent": true
+    },
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Encombrement 0 : arbitrage utilisateur du 2026-11-16 (« 0, négligeable », ticket #4132, https://github.com/MyEdO/game/issues/4132). Aucun prix de catalogue : le composant coûte le NI du Sort qu'il favorise (LDB 46 l.113, LDB 49 l.5), payé à l'achat.",
+    "source": {
+      "book": "livre-de-base",
+      "page": 236,
+      "note": "LDB 46 l.107-113"
+    }
+  },
+  {
     "id": "parchemin",
     "type": "trappings",
     "label": "Parchemin",
@@ -7145,6 +7309,29 @@
       "book": "livre-de-base",
       "page": 74,
       "note": "LDB 08 l.1380"
+    }
+  },
+  {
+    "id": "mandat-d-arret",
+    "type": "trappings",
+    "label": "Mandat d'arrêt",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1545) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 77,
+      "note": "LDB 08 l.1545"
     }
   },
   {
@@ -10889,7 +11076,7 @@
     "maison": "Aucune table d'équipement ne liste cet objet (EDOC 16 l.481) : Encombrement posé sur le repère Casserole, Enc 1 (LDB 74 l.19).",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 113,
+      "page": 114,
       "note": "EDOC 16 l.481"
     }
   },
@@ -13337,6 +13524,9 @@
         "precise"
       ]
     },
+    "bouclierDEquipe": {
+      "id": "bouclier-de-jezail"
+    },
     "availability": null,
     "price": null,
     "source": {
@@ -13416,8 +13606,51 @@
       }
     ],
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "jezail"
+    },
+    "rangement": {
+      "id": "dos"
+    }
+  },
+  {
+    "id": "bouclier-de-jezail",
+    "type": "trappings",
+    "label": "Bouclier de jezaïl",
+    "categorie": "melee",
+    "subType": {
+      "id": "base"
+    },
+    "shield": true,
+    "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "reach": "Très courte",
+    "loc": null,
+    "pa": null,
+    "damage": {
+      "plusBF": true,
+      "flat": 2
+    },
+    "qualities": [
+      {
+        "id": "protectrice",
+        "value": 2
+      }
+    ],
+    "price": null,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.193"
+    },
+    "shape": {
+      "id": "rond"
     },
     "rangement": {
       "id": "dos"
@@ -13437,7 +13670,7 @@
     "source": {
       "book": "zoo-imperial",
       "page": 94,
-      "note": "ZI 13 l.197"
+      "note": "ZI 13 l.197 ; Enc : VO Le Rat Cornu – Compagnon, p.34 (Ratling Gun, 3*, part du tireur principal)."
     },
     "descRef": {
       "book": "zoo-imperial",
@@ -13486,7 +13719,10 @@
         "value": 2
       }
     ],
-    "enc": 4,
+    "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "canon_ratling"
     },
@@ -13537,7 +13773,7 @@
     "source": {
       "book": "zoo-imperial",
       "page": 94,
-      "note": "ZI 13 l.201"
+      "note": "ZI 13 l.201 ; Enc et Groupe : VO Le Rat Cornu – Compagnon, p.34 (Warpfire Thrower, 2*, part du tireur principal)."
     },
     "descRef": {
       "book": "zoo-imperial",
@@ -13575,6 +13811,9 @@
       }
     ],
     "enc": 2,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "onHitEffects": [
       {
         "trigger": "onHit",
@@ -13686,6 +13925,9 @@
       }
     ],
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "shape": {
       "id": "pistolet_malepierre"
     },
@@ -13878,6 +14120,9 @@
       "id": "poudre-noire"
     },
     "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -13943,6 +14188,9 @@
       "id": "armes-d-hast"
     },
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Longue",
@@ -14040,6 +14288,54 @@
     "bladed": true
   },
   {
+    "id": "decharge-de-malelame",
+    "type": "trappings",
+    "label": "Décharge de malelame",
+    "hands": 2,
+    "categorie": "distance",
+    "subType": {
+      "id": "ingenierie"
+    },
+    "reserveeA": {
+      "id": "skaven"
+    },
+    "availability": null,
+    "price": null,
+    "maison": "Arbitrage du 2026-11-16 (#4202) : « Ignore seulement le métal ». Groupe Ingénierie, celui des armes du clan Skryre sans poudre noire (lance-maleflamme) ; Dégâts et Portée au Trait À distance du statbloc.",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 94,
+      "note": "ZI 13 l.199 ; ZI 13 l.222"
+    },
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "armurerie-du-clan-skryre",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "7c5a615f6971b59a"
+        }
+      ]
+    },
+    "reach": null,
+    "range": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "passifDArme": [
+      {
+        "op": "armourPierce",
+        "amount": 0,
+        "bypass": "metal"
+      }
+    ]
+  },
+  {
     "id": "malelame-a-une-main",
     "type": "trappings",
     "label": "Malelame à une main",
@@ -14048,6 +14344,9 @@
       "id": "base"
     },
     "enc": 1,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Moyenne",
@@ -14084,6 +14383,9 @@
       "id": "poudre-noire"
     },
     "enc": 2,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14124,6 +14426,9 @@
       "id": "lancer"
     },
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14162,6 +14467,9 @@
       "id": "lancer"
     },
     "enc": 0,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": null,
@@ -14228,6 +14536,9 @@
       "id": "fleau"
     },
     "enc": 3,
+    "reserveeA": {
+      "id": "skaven"
+    },
     "availability": null,
     "price": null,
     "reach": "Longue",

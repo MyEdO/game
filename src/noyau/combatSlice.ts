@@ -134,7 +134,7 @@ import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
-import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
+import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
 import type { FateSaveSource } from '../engine/fortune';
@@ -143,7 +143,7 @@ import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
-import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
+import { crochetDuSol, lacherLeBouclierDuBinome, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
 import {
   nePeutPasDifferer,
   jouerFlowEntier,
@@ -207,6 +207,7 @@ import {
   syncDerivedConditions,
   isConditionLocked,
   soinDeDetermination,
+  isActionLocked,
 } from '../engine/conditions';
 import {
   modesDOuverture,
@@ -935,6 +936,7 @@ export function createCombatSlice(get: Get, set: Set) {
         (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
       const path = movement.path;
       const fromPos = { ...active.pos! };
+      if (isActionLocked(active)) lacherLeBouclierDuBinome(get, set, active); // fuite forcée : ZI 13 l.193
       placeCombatant(active, scene, dest);
       if (geom !== active) placeCombatant(geom, scene, dest); // déplace la monture sous le cavalier (couple solidaire)
       displaceSmaller(get, geom); // un grand « dégage » les plus petits sous son empreinte (85 l.373-374)
@@ -1092,8 +1094,9 @@ export function createCombatSlice(get: Get, set: Set) {
       const barre = barreDuGeste(get());
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active, battle } = barre;
-      const refus = refusDeCourse(battle, active);
+      const refus = refusDeCourse(get().scene, battle, active);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
+      if (isActionLocked(active)) lacherLeBouclierDuBinome(get, set, active); // fuite forcée : ZI 13 l.193
       const resolved = dest && !movement ? resolveMovement(get, dest) : null;
       if (resolved?.status === 'bloque') return;
       const plan = movement ?? (resolved?.status === 'possible' ? { path: resolved.path, cost: resolved.cost } : undefined);
@@ -1670,6 +1673,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (!mount) return;
         mount.mountable = true;
         mountUp(enemies[i], mount); // partage la position/empreinte de la monture (LDB 14 l.179)
+        harnacher(enemies[i], mount);
       });
       // Structures destructibles de siège (AA 10 l.94-127) : chaque arête portant une `structure` INTACTE devient
       // un Combattant inerte à PV (kind 'pnj' → ne fausse pas la fin de combat, cf. checkBattleOver qui ne
@@ -2440,6 +2444,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const mover = inBattleId(battle, pd.moverId);
         const foe = inBattleId(battle, pd.foeId);
         if (!mover || !foe) return set({ pendingDisengage: null, pendingCascade: null });
+        if (isActionLocked(mover)) lacherLeBouclierDuBinome(get, set, mover); // fuite forcée : ZI 13 l.193
         campGain(get, foe); // l'adversaire gagne immédiatement +1 Avantage (l.63)
         foe.gainedAdvThisRound = true;
         // `interactive` = le slot est-il JOUÉ (héros du groupe, quel que soit le SIÈGE qui le possède) —
@@ -2697,43 +2702,34 @@ export function cloturesDuCombat(get: Get, set: Set) {
         tracerLaFuite(get, set, mover, foe, { dos: false, touche: true });
         return get().jetValider('fuite');
       }
-      const seqBefore = get().pendingCascade;
-      const stepsBefore = seqBefore?.participants.length ?? 0;
-      set({
-        pendingDisengage: null, // la modale se ferme AVANT l'application (une conséquence peut ouvrir la sienne)
-        battle: { ...battle, log: [...battle.log, ev('fuite', t('cs.fleeBackstab', { name: mover.label, foe: foe.label }), mover.id, foe.id)] },
+      // L'hôte `desengagement` se clôt par la sortie d'hôte (#4255) : la modale se ferme AVANT l'application, qui
+      // est sa suite (une conséquence peut ouvrir la sienne).
+      sortirDeLHote(get, set, { pendingDisengage: null }, () => {
+        const b = get().battle!;
+        set({ battle: { ...b, log: [...b.log, ev('fuite', t('cs.fleeBackstab', { name: mover.label, foe: foe.label }), mover.id, foe.id)] } });
+        // Attaque GRATUITE (elle ne consomme pas l'Action du fuyard, dont c'est le tour) : l'Action rendue
+        // est la SUITE du coup, jouée par son après-coup — à la reprise quand le coup est suspendu.
+        // Enchaînement déclaré par le conducteur du frappeur, partition de `aiDriven` (`applyTalentFreeAttack`).
+        const enchainement: EnchainementDuCoup = aiDriven(get(), foe) ? { mode: 'auto' } : { mode: 'heros', wasChain: false };
+        const suspended = applyAttackResult(get, set, foe, mover, backstabWeapon(foe), res,
+          { suite: { restitution: { prevActed: battle.acted }, manoeuvre: { kind: 'dos' }, enchainement } });
+        const jet = toucheSlot?.jet;
+        const broken = jet && !jet.success ? 1 + Math.max(0, -jet.sl) : 0; // échec → 1 + DR négatif (LDB 15 l.66)
+        if (suspended) {
+          // Le coup gratuit n'est PAS résolu : `applyAttackResult` a EMPILÉ une étape qui tient la main (Déviation
+          // Critique du fuyard, Test ou choix poussé par la touche, qui porte l'après-coup). La fuite (Brisé + Course)
+          // attend SA résolution, dans la même fenêtre, via l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 :
+          // « une fois que ce coup gratuit est résolu… »).
+          pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'mouvementDeFuite', actorId: mover.id, icon: 'melee/fuir', label: t('step.fuite'),
+            outcome: toRecapLines([
+              t('cs.fuiteReprise', { name: mover.label, foe: foe.label }),
+              ...(broken > 0 ? [t('cs.panic', { name: mover.label, broken })] : []),
+            ]),
+            fuite: { moverId: mover.id, foeId: foe.id, broken } });
+          return;
+        }
+        completeFlee(get, set, mover.id, foe.id, broken);
       });
-      // Attaque GRATUITE (elle ne consomme pas l'Action du fuyard, dont c'est le tour) : l'Action rendue
-      // est la SUITE du coup, jouée par son après-coup — à la reprise quand le coup est suspendu.
-      // Enchaînement déclaré par le conducteur du frappeur, partition de `aiDriven` (`applyTalentFreeAttack`).
-      const enchainement: EnchainementDuCoup = aiDriven(get(), foe) ? { mode: 'auto' } : { mode: 'heros', wasChain: false };
-      const suspended = applyAttackResult(get, set, foe, mover, backstabWeapon(foe), res,
-        { suite: { restitution: { prevActed: battle.acted }, manoeuvre: { kind: 'dos' }, enchainement } });
-      const jet = toucheSlot?.jet;
-      const broken = jet && !jet.success ? 1 + Math.max(0, -jet.sl) : 0; // échec → 1 + DR négatif (LDB 15 l.66)
-      if (suspended) {
-        // Le coup gratuit n'est PAS résolu : `applyAttackResult` a EMPILÉ une étape qui tient la main (Déviation
-        // Critique du fuyard, Test ou choix poussé par la touche, qui porte l'après-coup). La fuite (Brisé + Course)
-        // attend SA résolution, dans la même fenêtre, via l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 :
-        // « une fois que ce coup gratuit est résolu… »).
-        pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'mouvementDeFuite', actorId: mover.id, icon: 'melee/fuir', label: t('step.fuite'),
-          outcome: toRecapLines([
-            t('cs.fuiteReprise', { name: mover.label, foe: foe.label }),
-            ...(broken > 0 ? [t('cs.panic', { name: mover.label, broken })] : []),
-          ]),
-          fuite: { moverId: mover.id, foeId: foe.id, broken } });
-        const casc = get().pendingCascade;
-        if (casc?.participants[casc.cursor]?.jet === 'desengagement') validerLEtape(get, set); // avancer sur l'étape de Déviation
-        return;
-      }
-      completeFlee(get, set, mover.id, foe.id, broken);
-      // Cascade-hôte : on ne ferme QUE si l'application n'a rien empilé (Coup Critique…) — jamais une
-      // cascade FRAÎCHE créée par la conséquence elle-même (une porte d'append en ouvre une s'il n'y en a pas).
-      const seq = get().pendingCascade;
-      if (!seq) return; // rien à fermer
-      if (!seqBefore) return; // cascade FRAÎCHE ouverte par la conséquence (Coup Critique) : elle est déjà sur SON étape
-      if (seq.participants.length > stepsBefore) validerLEtape(get, set); // conséquence APPENDUE → avancer dessus
-      else set({ pendingCascade: null }); // rien d'empilé : la cascade-hôte du Désengagement se ferme
     },
     // Cycle Chance/+1 DR/Pacte/Résilience (spec `auContact`) : foe (atk) figé, seul le jet du mover se (re)joue.
     // « Appliquer » : le Test opposé EST l'Action. Le mover (héros) gagne → IL choisit (phase 'choix') ;
@@ -3278,11 +3274,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (pc.zone && !pc.zone.center) {
         const castable = castAfterCrit(lance, pc.critChoice);
         // Sort qui n'aboutit PAS (raté / DISSIPÉ par Contre-sort, LDB 46 l.156) : aucune zone à poser →
-        // on ferme proprement la situation (data + cascade-hôte) — pas de soft-lock, cibles intactes.
+        // l'hôte se clôt par la sortie d'hôte (#4255) — pas de soft-lock, cibles intactes.
         if (!castable) {
           const caster = actorIn(get(), pc.casterId);
-          set({ pendingCast: null, pendingCascade: null });
-          if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
+          sortirDeLHote(get, set, { pendingCast: null }, () => {
+            if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
+          });
           return;
         }
         // Lançable → la confirmation EST le passage en pose (la vraie application se fait à la pose,

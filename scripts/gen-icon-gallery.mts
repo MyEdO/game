@@ -1,10 +1,10 @@
 /**
  * Galerie QC des ICÔNES UI (registre src/data/icons/ — primitive <Icon>, LOT 4 anti-emoji) :
  * chaque icône rendue aux 3 tailles canon (sm 14 / md 18 / lg 24) + une loupe 48px, groupée
- * par famille. Vérifie que CHAQUE icône reste lisible à 14px et respecte la charte (currentColor).
+ * par famille. Vérifie que CHAQUE icône reste lisible à 14px et respecte la charte (currentColor, jetons du web).
  * Lancer : npx tsx scripts/gen-icon-gallery.mts
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
@@ -15,6 +15,8 @@ import type { IconId } from '../src/data/icons';
 const ALL = ICON_FAMILIES.flat();
 const families = [...new Set(ALL.map((d) => d.id.split('/')[0]))];
 export const OUT = fileURLToPath(new URL('../public/icon-gallery.html', import.meta.url));
+/** Les jetons du web (`:root` de `src/ui/styles/base.css`), que nomment les icônes pleines à leurs matières. */
+const JETONS = readFileSync(fileURLToPath(new URL('../src/ui/styles/base.css', import.meta.url)), 'utf8').match(/^:root \{\n([\s\S]*?)^\}/m)![1];
 
 const cell = (id: IconId, label: string) => {
   const at = (size: number) => renderToStaticMarkup(React.createElement(Icon, { id, size }));
@@ -36,7 +38,8 @@ const sections = families
 
 return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="./favicon.svg" /><title>Icônes UI QC</title>
 <style>
-  :root { color-scheme: dark; --gold: #b8912f; }
+  :root { color-scheme: dark;
+${JETONS}  }
   body { background:#11141c; color:#e8ecf4; font:13px/1.4 system-ui,sans-serif; padding:16px }
   a { color:#8fb6ff }
   h1 { font-size:18px } h2 { color:#d8a93b; font-size:14px; margin:20px 0 8px }

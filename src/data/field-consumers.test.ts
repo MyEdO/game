@@ -365,7 +365,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['FlowTest', 'opposed', 'src/noyau/combat/triggeredTest.ts @opp'],
   ['CountSpec', 'fixed', 'src/data/index.ts @count'],
   ['CountSpec', 'roll', 'src/data/index.ts @count'],
-  ['TrappingRef', 'label', 'src/engine/possessionGrants.ts @possessionGrantsFromRefs'],
+  ['TrappingRef', 'label', 'src/engine/possessionGrants.ts @commun'],
   ['FlowTest', 'argDifficulty', 'src/noyau/triggeredEffects.ts @visit'],
   ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @etapeRencontre'],
   ['TraitInstance', 'hidden', 'src/engine/groups.ts @hiddenGroupsOf'],
@@ -408,7 +408,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   TalentData: ['codexOnly', 'grantSpecGroups', 'specsOpen'],
   TraitData: ['difficulte', 'grantSpecGroups', 'specsOpen'],
   TrappingData: [
-    'bladed', 'consumableDuration', 'container', 'indirect', 'minRangeBand', 'onHitEffects',
+    'bladed', 'bouclierDEquipe', 'consumableDuration', 'container', 'indirect', 'minRangeBand', 'onHitEffects',
     'organicProjectile', 'perteSansEquipe', 'requiresMastery', 'service',
   ],
   WeaponGroupData: ['combat', 'lancee', 'poudre', 'siege'],

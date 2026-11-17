@@ -1,6 +1,6 @@
 *Pages PDF 231*
 
-# **L'AETHYR**
+# <span id="page-230-0" data-folio="229"></span>**L'AETHYR**
 
 L'apprentissage suivi par les étudiants en magie vient de celui des elfes, qui expliquèrent que la source de tout pouvoir magique provient de l'Aethyr. Cette dimension infinie, que l'on dit être le lieu de reproduction des démons et des esprits, existe bien au-delà du monde physique. Les elfes découvrirent, loin dans la partie nord de l'Empire, une grande déchirure dans la trame même du monde, vers l'Aethyr, et que cette dernière suinte la magie à l'état brut. Ces énergies tournoyantes – les Vents de Magie – soufflent à travers le monde, se rassemblant et tourbillonnant en grandes volutes célestes avant de pleuvoir et d'imprégner la terre et les créatures qui la parcourent. Ce sont ces vents puissants dont se servent les Sorciers pour alimenter leurs Sorts.
 

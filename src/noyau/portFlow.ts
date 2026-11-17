@@ -49,8 +49,8 @@ import {
 } from '../engine/seaVoyage';
 import type { Formula, GameOp } from '../engine/ops';
 import { findCargoById, isTradeHubColumn } from '../engine/cargo';
-import { seasonOfMonth } from '../engine/travelStages';
-import { MINUTES_PER_DAY, toDate } from '../engine/clock';
+import { currentSeason } from '../engine/travelStages';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { chainStep } from './enchainerEtape';
 import type { CascadeStep, CascadeRoll } from './pendings';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
@@ -120,7 +120,7 @@ export function autrePortAuHasard(get: Get, rng: RNG): MapPlace | undefined {
  *  carte tiré au hasard. MDG 15 l.253, l.256, l.259, l.263 */
 export function alterLeMarche(get: Get, set: Set, o: Extract<GameOp, { op: 'marcheDuPort' }>, label: string, quantite: (f: Formula) => number, rng: RNG): string[] {
   const now = get().gameTime;
-  const season = seasonOfMonth(toDate(now).month);
+  const season = currentSeason(now);
   const escale = get().vessel?.escale;
   const ici = escale && get().worldMap ? placeById(get().worldMap!, escale) : undefined;
   const poser = (a: AlterationDuMarche): void => set({ alterationsDuMarche: [...get().alterationsDuMarche.filter((x) => x.jusqua === 'escale' || x.jusqua > now), a] });
@@ -228,7 +228,7 @@ export function ouvrirLePort(get: Get, set: Set): void {
 function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) => void): void {
   const cur = currentPort(get);
   if (!cur || !get().vessel) return;
-  const season = seasonOfMonth(toDate(get().gameTime).month);
+  const season = currentSeason(get().gameTime);
   const { port } = cur;
   const ids = new Set<string>();
   // Seules les MARCHANDISES de la colonne Production entrent au négoce : un marqueur de l'Index

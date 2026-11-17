@@ -58,7 +58,7 @@ export interface ZonesDeLaPartie {
 }
 
 /** Un bouton d'une carte du groupe à composer. */
-const bouton = (id: string, libelle: string, jeu: Jeu, refus: string | null): Bouton => ({ type: 'bouton', id, libelle, jeu, presse: false, focus: false, refus });
+const bouton = (id: string, libelle: string, jeu: Jeu, refus: string | null): Bouton => ({ type: 'bouton', id, libelle, jeu, presse: false, focus: false, detail: null, touche: null, refus });
 
 /** La carte d'un héros que le groupe recrute : son nom, son espèce et sa carrière, puis ses boutons. */
 const carte = (id: string, h: { nom: string; espece: string | null; carriere: string | null }, boutons: Bouton[]): Entite => ({
@@ -69,10 +69,10 @@ const carte = (id: string, h: { nom: string; espece: string | null; carriere: st
  *  avant son lancement, son groupe à composer, des pré-tirés et du roster `roster` de l'hôte, et la campagne à lancer. */
 export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 'scene' | 'pendingCampaign'>, roster: RosterMontre): ZonesDeLaPartie {
   const gestes: Bouton[] = [
-    { type: 'bouton', id: 'sauvegardes', libelle: t('ecran.partie.sauvegardes'), jeu: { sauvegardes: true }, presse: false, focus: false, refus: null },
-    { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, refus: null },
-    { type: 'bouton', id: 'salon', libelle: t('coop.title.local'), jeu: { salon: true }, presse: false, focus: false, refus: null },
-    { type: 'bouton', id: 'quitter', libelle: t('ecran.partie.quitter'), jeu: { quitter: true }, presse: false, focus: false, refus: null },
+    { type: 'bouton', id: 'sauvegardes', libelle: t('ecran.partie.sauvegardes'), jeu: { sauvegardes: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
+    { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
+    { type: 'bouton', id: 'salon', libelle: t('coop.title.local'), jeu: { salon: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
+    { type: 'bouton', id: 'quitter', libelle: t('ecran.partie.quitter'), jeu: { quitter: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
   ];
   const menu: Entite[] = [{ type: 'entite', id: 'menu', ton: 'neutre', nom: t('ecran.partie.menu'), elements: [{ type: 'icone', id: 'icone', icone: 'interface/reglages' }] }];
   if (partieEnCours(etat)) return { 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': gestes, 'partie.menu': menu };

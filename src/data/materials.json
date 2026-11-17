@@ -534,6 +534,20 @@
     "color": "#4a2e20"
   },
   {
+    "id": "peau-verte-sombre",
+    "type": "materials",
+    "label": "Peau verte sombre",
+    "domain": "couleur",
+    "color": "#4b5e24"
+  },
+  {
+    "id": "peau-vert-jaune",
+    "type": "materials",
+    "label": "Peau vert-jaune",
+    "domain": "couleur",
+    "color": "#6b7a2c"
+  },
+  {
     "id": "cheveux-blonds",
     "type": "materials",
     "label": "Cheveux blonds",
@@ -609,6 +623,13 @@
     "label": "Yeux marron",
     "domain": "couleur",
     "color": "#5a3a24"
+  },
+  {
+    "id": "yeux-rouges",
+    "type": "materials",
+    "label": "Yeux rouges",
+    "domain": "couleur",
+    "color": "#b3201a"
   },
   {
     "id": "tissu-ecru",

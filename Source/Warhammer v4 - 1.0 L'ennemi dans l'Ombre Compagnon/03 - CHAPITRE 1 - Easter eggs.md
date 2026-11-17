@@ -1,6 +1,6 @@
 *Pages PDF 8*
 
-## CHAPITRE 1 : « EASTER EGGS »
+## <span id="page-7-0" data-folio="7"></span>CHAPITRE 1 : « EASTER EGGS »
 
 La campagne de **L'Ennemi Intérieur**, et **WFJDR** en général (surtout la première édition), devint célèbre pour ses noms amusants, ses plaisanteries, et ses références à la culture populaire. En voici quelques unes des meilleures extraites de *L'Ennemi Intérieur* et d'*Ombres sur Bögenhafen*.
 

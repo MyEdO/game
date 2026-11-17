@@ -1,6 +1,6 @@
 *Pages PDF 235-239*
 
-# **LES RÈGLES MAGIQUES**
+# <span id="page-234-0" data-folio="233"></span>**LES RÈGLES MAGIQUES**
 
 # **Seconde vue**
 

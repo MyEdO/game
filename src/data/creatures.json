@@ -5583,7 +5583,7 @@
     "talents": [],
     "trappings": [
       {
-        "text": "barde"
+        "id": "barde"
       }
     ],
     "spells": [],
@@ -11801,8 +11801,14 @@
       {
         "id": "a-distance",
         "value": 7,
-        "arg": "Malelame",
+        "arg": "decharge-de-malelame",
         "range": 48
+      },
+      {
+        "id": "a-distance",
+        "value": 9,
+        "arg": "pistolet-a-malepierre",
+        "range": 20
       },
       {
         "id": "arme",
@@ -13085,7 +13091,7 @@
     "desc": "La Première Menace de Middenheim est une puissante monstruosité morte-vivante, qui ressemble à la fois à un fantôme immatériel et à une entité vampirique. L'origine de Babrakkos est une zone d'ombre, mais les érudits pensent que le manque de sites consacrés à la Foi antique dans la région, ainsi que les étranges propriétés nécromantiques du Fort de Bronze indiquent qu'un puissant nécromancien y a régné avant que les Teutogens ne s'y installent. Babrakkos était peut-être un serviteur, un ami ou un rival de Morath, le nécromancien qui vivait auparavant au Fort d'Airain.\n\nIl a passé plus de deux mille ans à rassembler ses forces afin de pouvoir se manifester dans le monde de nouveau. Au départ, la liche peut uniquement s'incarner sous une faible forme spectrale, mais au fur et à mesure que ses serviteurs commettent davantage d'actes en son nom, elle devient bel et bien une entité morte-vivante mortelle. Les Mangeurs du Monde ont un sanctuaire dédié à Babrakkos dans les caves d'un bâtiment de l'Altmarkt (voir p. 33). C'est ici qu'ils rangent les artefacts qu'ils réussissent à dérober. Babrakkos se manifeste dans cette région et y reste jusqu'à ce que la maladie et le désordre atteignent un tel paroxysme qu'il se sent prêt à errer de nouveau dans le monde des mortels.",
     "source": {
       "book": "middenheim",
-      "page": 159
+      "page": 157
     },
     "appearance": {
       "species": "babrakkos"
@@ -13273,7 +13279,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -13399,7 +13405,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "corruption",
@@ -13470,6 +13476,12 @@
       },
       {
         "id": "arme-simple"
+      },
+      {
+        "id": "composant-d-incantation",
+        "count": {
+          "fixed": 4
+        }
       }
     ],
     "spells": [
@@ -13492,7 +13504,8 @@
     "grantGroups": [
       "skaven",
       "nurgle"
-    ]
+    ],
+    "maison": "Quatre composants pour les « composants pour des sorts » (Middenheim 02 l.2568) : un par Sort d'Arcane ou de Domaine connu. Valeur d'adaptation du ticket #4132 (https://github.com/MyEdO/game/issues/4132)."
   },
   {
     "id": "maitre-moulder-skree",
@@ -13519,7 +13532,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",
@@ -13657,7 +13670,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -13797,7 +13810,7 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -13938,7 +13951,7 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -16468,7 +16481,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Hache"
+        "arg": "arme-simple"
       },
       {
         "id": "haine",
@@ -19264,7 +19277,7 @@
       {
         "id": "a-distance",
         "value": 8,
-        "arg": "Pistolets",
+        "arg": "pistolet",
         "range": 20
       },
       {
@@ -19275,7 +19288,7 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Épée"
+        "arg": "arme-simple"
       }
     ],
     "optionals": [],
@@ -19540,8 +19553,7 @@
         }
       },
       {
-        "id": "alcool",
-        "spec": "rhum tord-boyaux"
+        "id": "rhum-tord-boyaux"
       }
     ],
     "spells": [],
@@ -19912,7 +19924,7 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Épée"
+        "arg": "arme-simple"
       },
       {
         "id": "arme",
@@ -20237,7 +20249,7 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Hache"
+        "arg": "arme-simple"
       },
       {
         "id": "armure",

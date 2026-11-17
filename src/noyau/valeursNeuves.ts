@@ -19,6 +19,7 @@ import { declarationDeFeuilleDId } from '../data/schemas/grammaire/ref';
 import { CONDITION_TOUJOURS, recast } from '../data/valeursNeuves';
 import type { Condition } from '../engine/flowCore';
 import { terrainsElectifs } from './monde/terrain';
+import { memoByRef } from './monde/sceneMemo';
 import { EFFECT_HANDLERS } from './combatEffects';
 import {
   admetUneListe,
@@ -296,7 +297,7 @@ export function valeurNeuveDe(noeud: unknown): unknown {
  *  la variante qui ne le porte pas (clé vide) et pour une union sans discriminant. */
 function neuveDeLaVariante(u: UnionDuNoeud, v: VarianteDuNoeud, actuelle: unknown): unknown {
   if (declarationDEnfants(u.noeud)) return newOp(v.cle);
-  if (u.variantes.some((w) => classeDeProduit(w.noeud)?.role === `condition.${w.cle}`)) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
+  if (recastee(u)) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
   const neuve = valeurNeuveDe(v.noeud);
   return v.cle === '' || u.discriminant === '' ? neuve : { ...(neuve as object), [u.discriminant]: v.cle };
 }
@@ -312,18 +313,16 @@ export function variantesAChoisir(noeud: unknown, actuelle: unknown): ValeurDeVa
   const u = unionDuNoeud(noeud);
   if (!u) return undefined;
   const courante = varianteCourante(u, actuelle);
-  return u.variantes.map((v) => ({ cle: v.cle, libelle: v.libelle, valeur: v === courante ? actuelle : neuveDeLaVariante(u, v, actuelle), courante: v === courante }));
+  const neuves = recastee(u) ? undefined : neuvesDeLUnion(u.noeud as object);
+  return u.variantes.map((v, rang) => ({ cle: v.cle, libelle: v.libelle, valeur: v === courante ? actuelle : neuves ? neuves[rang] : neuveDeLaVariante(u, v, actuelle), courante: v === courante }));
 }
 
-/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin
- *  (`null` sans élément neuf, `valeurNeuveDe` n'en bâtissant aucun) ; pour chaque élément, « Retirer », la liste sans
- *  lui, et « Monter », celle où il passe avant le précédent (`null` pour le premier). */
-export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[] | null; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
-  return {
-    ajouter: neuve === undefined ? null : [...liste, neuve],
-    elements: liste.map((e, rang) => ({
-      retirer: liste.filter((_, i) => i !== rang),
-      monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
-    })),
-  };
-}
+/** L'union `u` est-elle celle d'une Condition, dont la valeur neuve de chaque variante enveloppe l'actuelle (`recast`) ? */
+const recastee = (u: UnionDuNoeud): boolean => u.variantes.some((w) => classeDeProduit(w.noeud)?.role === `condition.${w.cle}`);
+
+/** La valeur neuve de chaque variante, par rang, de l'union de nœud `noeud` hors d'une Condition (`recastee`), qui ne
+ *  dépend pas de l'actuelle (`neuveDeLaVariante`), retenue par nœud (`memoByRef`) : aucun consommateur ne la mute. */
+const neuvesDeLUnion = memoByRef((noeud: object): unknown[] => {
+  const u = unionDuNoeud(noeud)!;
+  return u.variantes.map((v) => neuveDeLaVariante(u, v, undefined));
+});

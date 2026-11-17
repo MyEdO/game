@@ -490,10 +490,11 @@ export function folioRangeIn(map, folio, ch = null) {
   return hits[0]
 }
 
-const _folioCache = new Map() // abbr -> Map(folio -> [{ ch, lo, hi }])
-export function folioIndexOf(abbr) {
-  if (_folioCache.has(abbr)) return _folioCache.get(abbr)
-  const dir = livreDuSigle(abbr)?.dir
+// Registre INJECTABLE (fixture) : le dossier lu est le `dir` de l'entrée du sigle, clé du cache.
+const _folioCache = new Map() // dir -> Map(folio -> [{ ch, lo, hi }])
+export function folioIndexOf(abbr, registre = REGISTRE_LIVRES) {
+  const dir = livreDuSigle(abbr, registre)?.dir
+  if (_folioCache.has(dir)) return _folioCache.get(dir)
   const chapters = []
   if (dir) {
     for (const file of listerDossier(dir, { absent: 'vide' })) {
@@ -504,13 +505,13 @@ export function folioIndexOf(abbr) {
     }
   }
   const map = buildFolioMap(chapters)
-  _folioCache.set(abbr, map)
+  _folioCache.set(dir, map)
   return map
 }
 
-// (abbr, folio, ch?) → { ch, lo, hi } | null | 'ambiguous' (`folioRangeIn`).
-export function folioRange(abbr, folio, ch = null) {
-  return folioRangeIn(folioIndexOf(abbr), folio, ch)
+// (abbr, folio, ch?, registre?) → { ch, lo, hi } | null | 'ambiguous' (`folioRangeIn`).
+export function folioRange(abbr, folio, ch = null, registre = REGISTRE_LIVRES) {
+  return folioRangeIn(folioIndexOf(abbr, registre), folio, ch)
 }
 
 // (abbr, nn, folioStr, suffix) -> [lo, hi] LIGNES dans le fichier-chapitre `nn`, ou `null` (#606).
@@ -520,10 +521,10 @@ export function folioRange(abbr, folio, ch = null) {
 // folio ancré hors du chapitre `nn` (frontiere de chapitre) -- on ne cherche PAS a re-ancrer, juste
 // a ne pas crediter un mauvais chapitre. Un `-fin`/`+pts` dont le second folio est irresolu degrade
 // sur la seule plage du premier folio (jamais un throw ni une plage bancale).
-export function folioSpan(abbr, nn, folioStr, suffix) {
+export function folioSpan(abbr, nn, folioStr, suffix, registre = REGISTRE_LIVRES) {
   const wantCh = Number(nn)
   const resolveInCh = (folio) => {
-    const r = folioRange(abbr, folio, wantCh)
+    const r = folioRange(abbr, folio, wantCh, registre)
     if (!r || r === 'ambiguous' || r.ch !== wantCh) return null
     return r
   }
@@ -561,8 +562,8 @@ export function chapterBoundaryRisk(map, ch, folio) {
 }
 
 // (abbr, ch, folio) → bool, enrobe `chapterBoundaryRisk` avec `folioIndexOf` (accès disque + cache).
-export function chapterBoundaryRiskFor(abbr, ch, folio) {
-  return chapterBoundaryRisk(folioIndexOf(abbr), ch, folio)
+export function chapterBoundaryRiskFor(abbr, ch, folio, registre = REGISTRE_LIVRES) {
+  return chapterBoundaryRisk(folioIndexOf(abbr, registre), ch, folio)
 }
 
 // Trouve la ligne d'une ancre `from`/`to` de `chapterFile` (heading Markdown normalisé, ou `folio:NN`).

@@ -104,8 +104,8 @@ import { buildWeapon } from '../engine/items';
 import { applyOps, resolveFormula, type Formula, type GameOp, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { itemCapability } from '../engine/capabilities';
-import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
-import { seasonOfMonth } from '../engine/travelStages';
+import { MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
+import { currentSeason } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, directionOpposee, VENT_DOMINANT, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
@@ -1188,7 +1188,7 @@ function seaDayAllRoutine(get: Get): boolean {
  *  premier jour, sans cran de vent. MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
 function meteoDuJour(get: Get, coque: Combatant, ventDeLaVeille: SeaWeather['vent'] | undefined, rng: RNG): { weather: SeaWeather; windFrom: WindDirection } {
   const verrous = meteosActives(get().vessel?.meteosImposees, get().gameTime);
-  let weather = rollSeaWeather(seasonOfMonth(toDate(get().gameTime).month), rng);
+  let weather = rollSeaWeather(currentSeason(get().gameTime), rng);
   if (ventDeLaVeille) weather = { ...weather, vent: tickWindForceDay(ventDeLaVeille, rng) };
   const windFrom = rollWindDirection(rng, verrous.some((v) => v.ventInverse) ? directionOpposee(VENT_DOMINANT) : VENT_DOMINANT);
   for (const v of verrous) {

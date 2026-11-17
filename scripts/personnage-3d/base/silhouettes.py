@@ -1,9 +1,9 @@
 """Silhouettes de la base humanoïde (#2972, L1d #3101) : les shape keys de la table `SILHOUETTES`, sur le corps et ses peaux secondaires.
 
 - `feminin` : le corps F d'Universal Base Characters, posé par son skin sur le repos du squelette H (chaque os F amené
-  sur l'os H homonyme, tête et queue confondues), puis chaque sommet du corps H projeté sur cette surface ; le décalage
-  fait la clé. Chaque sommet se lie à cette surface par `formes.lier`, la liaison filtrée par os de toute clé tirée
-  d'un donneur.
+  sur l'os H homonyme, tête et queue confondues), puis le corps H ajusté à cette surface sans froisser ses arêtes
+  (`ajuster`, #3173) ; le décalage fait la clé. Chaque sommet se lie à cette surface par `formes.lier`, la
+  liaison filtrée par os de toute clé tirée d'un donneur.
 - `carrure_moins`, `carrure_plus` (#4002 issuecomment-6817454030), de rapport r la borne min, resp. max, de `st`
   (`bornes_de_st`) : T = C + H. H, homothétie de rapport r de chaque sommet autour de ses axes de chair
   (`portage.axes_de_chair`), son centre la combinaison, par ses poids, de ses points les plus proches sur ces axes
@@ -49,6 +49,12 @@ from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, INFLUENCES_MAX, MAJORI
 ICI = Path(__file__).resolve().parent
 DONNEES = ICI.parents[2] / 'src' / 'data'
 PASSES_DE_RABOT = 400
+AJUSTEMENT = {'raideurs': (10.0, 3.0, 1.0, 0.3, 0.1), 'tours': 3, 'bornes': (0.4, 2.5), 'reraidir': 3.0, 'reprises': 40}
+"""`ajuster` (#3173) : les raideurs successives des arêtes, de la plus raide à la plus souple, chacune jouée `tours`
+fois ; puis, tant qu'une arête sort de `bornes` (son rapport de longueur, en deçà d'`ETIREMENT_DES_CLES`, la marge pour
+les états du gabarit et les clips), sa raideur multipliée par `reraidir`, au plus `reprises` fois. Valeurs d'ingénierie :
+sur la clé `feminin` du 2026-11-15, la projection seule sort 312 arêtes d'`ETIREMENT_DES_CLES` (rapports de 0 à 10,9) ;
+l'ajustement n'en sort aucune (0,40 à 2,35, 92 arêtes raidies), à moins de 9 mm du donneur partout."""
 """Passes de rabot sous correction (`raboter_sous_correction`) au-delà desquelles la construction s'arrête : valeur
 d'ingénierie #3104 (53 passes mesurées sur la capture r9 de la base `humanoide` le 2026-11-04)."""
 
@@ -123,23 +129,83 @@ def surface_ramenee(squelette, squelette_donneur, donneur, noms):
     return surface, faces, numpy.array([numpy.bincount(dominants[t], minlength=len(noms)).argmax() for t in faces])
 
 
+def ajuster(x, noeud, aretes, cibles):
+    """Les sommets `x` (sommets, 3) amenés sur la surface d'un donneur sans froisser leurs arêtes `aretes` (entre nœuds
+    `noeud`, `poids.jumeaux`) : `cibles(y)` rend, par sommet posé en `y`, son point lié sur le donneur (`formes.lier`,
+    `formes.transporter`). Chaque tour lie les sommets où ils sont, puis les pose au minimum de la somme, par sommet,
+    du carré de sa distance à son point lié et, par arête, de sa raideur fois le carré de l'écart de son vecteur à
+    celui du repos (`resoudreLaplacien`, `laplacien.ts`) ; les raideurs, les tours et les arêtes raidies suivent
+    `AJUSTEMENT`. Les sommets d'un même nœud reçoivent la même position. Rend les sommets ajustés et le nombre
+    d'arêtes raidies ; une arête encore hors bornes au bout des reprises arrête la construction."""
+    x = numpy.asarray(x, dtype=float)
+    i, j = aretes[:, 0], aretes[:, 1]
+    repos = x[i] - x[j]
+    libres = numpy.unique(noeud)
+    rang = numpy.full(len(x), -1)
+    rang[libres] = numpy.arange(len(libres))
+    p, q = rang[i], rang[j]
+    compte = numpy.bincount(noeud, minlength=len(x)).astype(float)
+
+    def poser(y, raideur):
+        k = numpy.broadcast_to(numpy.asarray(raideur, dtype=float), (len(aretes),))
+        diagonale = compte.copy()
+        numpy.add.at(diagonale, i, k)
+        numpy.add.at(diagonale, j, k)
+        voisins = [[] for _ in libres]
+        for a, b, poids in zip(p.tolist(), q.tolist(), k.tolist()):
+            voisins[a].append([b, poids])
+            voisins[b].append([a, poids])
+        second = numpy.zeros_like(x)
+        numpy.add.at(second, noeud, cibles(y))
+        numpy.add.at(second, i, k[:, None] * repos)
+        numpy.add.at(second, j, -k[:, None] * repos)
+        laplacien = {'libres': libres.tolist(), 'diagonale': diagonale[libres].tolist(), 'voisins': voisins, 'isolees': []}
+        return numpy.array(json.loads(lancer(ICI / 'laplacien.mjs', [], json.dumps(
+            {'laplacien': laplacien, 'seconds': second[libres].tolist()}))))[rang[noeud]]
+
+    y = x.copy()
+    for raideur in AJUSTEMENT['raideurs']:
+        for _ in range(AJUSTEMENT['tours']):
+            y = poser(y, raideur)
+    raideurs = numpy.full(len(aretes), AJUSTEMENT['raideurs'][-1])
+    for _ in range(AJUSTEMENT['reprises']):
+        r = rapports(x, y - x, aretes)
+        hors = (r < AJUSTEMENT['bornes'][0]) | (r > AJUSTEMENT['bornes'][1])
+        if not hors.any():
+            return y, int((raideurs > AJUSTEMENT['raideurs'][-1]).sum())
+        raideurs[hors] *= AJUSTEMENT['reraidir']
+        y = poser(y, raideurs)
+    raise RuntimeError(f"{int(hors.sum())} arête(s) hors de {AJUSTEMENT['bornes']} après {AJUSTEMENT['reprises']} reprises de l'ajustement")
+
+
 def feminin(squelette, corps, squelette_feminin, corps_feminin):
-    """Le décalage `feminin` de chaque sommet de `corps` (repère monde), et la sonde de sa projection."""
+    """Le décalage `feminin` de chaque sommet de `corps` (repère monde), et la sonde de sa projection et de son
+    ajustement."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     surface, faces, os_des_faces = surface_ramenee(squelette, squelette_feminin, corps_feminin, noms)
     os_de_x, voisinage = w.argmax(axis=1), voisins(squelette, noms)
-    face, barycentres, distances = lier(x[:, :3], os_de_x, surface, faces, os_des_faces, voisinage)
-    points = transporter(surface, faces, face, barycentres)
+
+    def lies(y):
+        face, barycentres, distances = lier(y, os_de_x, surface, faces, os_des_faces, voisinage)
+        return transporter(surface, faces, face, barycentres), distances
+
+    points, distances = lies(x[:, :3])
     face_libre, barycentres_libres, _ = lier(x[:, :3], numpy.zeros(len(x), dtype=int), surface, faces, os_des_faces,
                                              [list(range(len(noms)))])
     libre, os_libre = transporter(surface, faces, face_libre, barycentres_libres), os_des_faces[face_libre]
+    groupe = jumeaux(x)
+    aretes = aretes_des_triangles(corps, groupe)
+    ajustes, raidies = ajuster(x[:, :3], groupe, aretes, lambda y: lies(y)[0])
+    r = rapports(x[:, :3], ajustes - x[:, :3], aretes)
     pire = int(distances.argmax())
     sonde = {'distances': numpy.percentile(distances, [50, 90, 99, 100]).round(4).tolist(),
              'pire': (pire, noms[os_de_x[pire]], round(float(distances[pire]), 4)),
              'ailleurs_sans_voisinage': int(sum(o not in voisinage[a] for a, o in zip(os_de_x, os_libre))),
-             'ecart_au_libre': round(float(numpy.linalg.norm(points - libre, axis=1).max()), 4)}
-    return points - x[:, :3], sonde
+             'ecart_au_libre': round(float(numpy.linalg.norm(points - libre, axis=1).max()), 4),
+             'ajustement': {'rapports': (round(float(r.min()), 3), round(float(r.max()), 3)), 'aretes_raidies': raidies,
+                            'au_donneur': round(float(lies(ajustes)[1].max()), 4)}}
+    return ajustes - x[:, :3], sonde
 
 
 def carrure(x, w, noms, axes, rapport):
@@ -307,7 +373,7 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     return corriger
 
 
-def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors, rabot=None, portes=None):
+def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors, portes=None):
     """#3104 ; #3101 issuecomment-6489583109 ; #4002 issuecomment-6826035694. Les champs finis des `bruts` (nom -> T au
     repère du mesh), rendus au repère du mesh dans l'ordre de `bruts`. Un nom de `portes` (nom -> C au repère du mesh)
     rend C + libre·(T − C), sans rabot ni correction. Les autres, libre·T, sont rabotés ensemble (`formes.raboter`,
@@ -318,13 +384,12 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     est marquée pour un nom raboté avec la force de la plus grande part du nom aux sites qui y sont en faute hors du
     socle, marquée dès que cette force est non nulle. La correction de
     chaque passe porte le rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que le
-    rabot leur ôte. Le rabot repart du rabot cumulé `rabot` (nom -> facteur par sommet) d'un tour précédent de la
-    construction ; rend aussi le rabot cumulé de ce tour, des seuls noms rabotés."""
+    rabot leur ôte."""
     portes = portes or {}
     portes_finis = {nom: c + libre[:, None] * (bruts[nom] - c) for nom, c in portes.items()}
     noms = [nom for nom in bruts if nom not in portes]
     if not noms:
-        return {nom: portes_finis[nom] for nom in bruts}, {}
+        return {nom: portes_finis[nom] for nom in bruts}
     inverse = numpy.linalg.inv(vers_le_monde)
 
     def tous(courants):
@@ -348,11 +413,10 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
                for k, nom in enumerate(noms)}, flush=True)
         return numpy.stack([courants[nom] for nom in noms], axis=1), marques
 
-    depart = None if rabot is None else numpy.stack([rabot[nom] for nom in noms], axis=1)
-    pile, passes, cumul = raboter(numpy.stack([bruts[nom] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
-                                  PASSES_DE_RABOT, depart)
+    pile, passes = raboter(numpy.stack([bruts[nom] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
+                            PASSES_DE_RABOT)
     print('SILHOUETTES rabot', passes, 'passe(s) ; correction', sondes[-1], flush=True)
-    return tous({nom: pile[:, k] for k, nom in enumerate(noms)}), {nom: cumul[:, k] for k, nom in enumerate(noms)}
+    return tous({nom: pile[:, k] for k, nom in enumerate(noms)})
 
 
 def exces(rapport, bornes):
@@ -486,8 +550,8 @@ def refuser_les_inertes(finis):
             f'{nom} {v:.4f} m <= {SOL_TOLERANCE_M} m' for nom, v in inertes.items()))
 
 
-def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, plantes, etats_des_clips, rabot=None):
-    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » ; `rabot`, le rabot cumulé du tour précédent, rendu à jour."""
+def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, plantes, etats_des_clips):
+    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     groupe = jumeaux(x)
@@ -523,10 +587,10 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
         def derivees(champs):
             return cuire({nom: d - portes[nom] if nom in portes else d for nom, d in champs.items()})
 
-        finis, rabot = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
-                                               mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees,
-                                                               portes=list(portes)), rabot,
-                                               portes)
+        finis = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
+                                        mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees,
+                                                        portes=list(portes)),
+                                        portes)
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
         print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom], axis=1).max()), 4), '->',
@@ -539,4 +603,3 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
     refuser_les_inertes(finis)
     for peau in secondaires:
         transferer_les_cles(corps, peau, cles)
-    return rabot

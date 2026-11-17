@@ -1,0 +1,260 @@
+"""La géométrie commune aux modèles des décors (#4335) : les axes, ceux d'un cylindre de la recette, les coins d'un
+carré, les deux côtés d'un axe, la boîte et le cylindre d'une primitive en `Vector`, le rampant d'un prisme, l'aléa
+semé de l'id, le cap d'un azimut, les normales d'une tangente, le point d'un chemin à une hauteur, la courbe lissée par
+des points, l'anneau régulier, la section bosselée et la coque close d'une suite d'anneaux ; les pièces que les
+familles partagent (pièce équarrie, planche, planche rampante, pièce profilée et son profil de poteau à chanfreins
+arrêtés, pièce tournée et son profil droit, pièce ronde courbée, cheville et ses cotes, clou, anneau plat de section
+rectangulaire, chaîne pendue, bougie sur sa bobèche) et le partage inégal d'une longueur ; et la déclaration des
+éléments d'une famille, avec la construction d'un décor dont les nœuds se bâtissent ensemble."""
+import math
+import random
+
+from mathutils import Vector
+
+import habillage
+from gabarit import VERSANTS, Gabarit, boite
+from maille import Maille, cylindre, objet, tore, tour
+
+X, Y, HAUT = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
+ANGLES = ((1, 1), (-1, 1), (-1, -1), (1, -1))
+"""Les signes (x, y) des quatre coins d'un carré centré, dans le sens direct."""
+COTES = (-1, 1)
+"""Les signes des deux côtés d'un axe, le négatif puis le positif."""
+AXES = {"x": ("x", X), "y": ("y", Y), "h": ("z", HAUT)}
+"""L'axe de `maille` (`point`, `tour`, `tore`) et le vecteur unitaire de l'`axis` d'un cylindre de la recette."""
+MAT = "bois"
+"""Le matériau d'une pièce de bois (`barre`, `planche`, `profilee`, `tournee`, `cheville`)."""
+
+
+def pave(primitive):
+    """Le centre et les côtés (x, y, z) de la boîte, du prisme ou du cylindre d'axe vertical `primitive` de la recette
+    (`gabarit.boite`)."""
+    centre, demi = boite(primitive)
+    return Vector(centre), tuple(2 * e for e in demi)
+
+
+def rond(primitive):
+    """Le centre, le rayon et la longueur du cylindre `primitive` de la recette (`pave`)."""
+    centre, (diametre, _, longueur) = pave(primitive)
+    return centre, diametre / 2, longueur
+
+
+def rampant(primitive):
+    """Le rampant du prisme `primitive` de la recette : le sens horizontal unitaire où il descend (`VERSANTS`), le
+    milieu de sa crête, celui de son égout, sa longueur dans ce sens et sa largeur en travers."""
+    c, (lx, ly, lz) = pave(primitive)
+    descend = Vector(VERSANTS[primitive["slope"]])
+    long = abs(descend.x) * lx + abs(descend.y) * ly
+    return (descend, c - descend * (long / 2) + HAUT * (lz / 2), c + descend * (long / 2) - HAUT * (lz / 2), long,
+            lx + ly - long)
+
+
+def alea(id_):
+    """Le générateur semé des codes de caractères de `id_`."""
+    return random.Random(sum((i + 1) * ord(c) for i, c in enumerate(id_)))
+
+
+def cap(azimut):
+    """Le vecteur horizontal unitaire d'`azimut` degrés."""
+    return Vector((math.cos(math.radians(azimut)), math.sin(math.radians(azimut)), 0))
+
+
+def normale(t):
+    """Une normale unitaire à la tangente unitaire `t`."""
+    ref = X if abs(t.x) < 0.9 else Y
+    return (ref - t * ref.dot(t)).normalized()
+
+
+def normales(t):
+    """Deux normales unitaires `(n, b)` à la tangente unitaire `t`, `(t, n, b)` direct."""
+    n = normale(t)
+    return n, t.cross(n)
+
+
+def a_la_hauteur(chemin, z):
+    """Le point de `chemin`, qui monte, à la hauteur `z`."""
+    i = max(i for i, p in enumerate(chemin[:-1]) if p.z <= z)
+    return chemin[i].lerp(chemin[i + 1], (z - chemin[i].z) / (chemin[i + 1].z - chemin[i].z))
+
+
+def lisse(points, pas):
+    """La courbe de Catmull-Rom par `points`, `pas` points par tronçon."""
+    chemin = []
+    for i in range(len(points) - 1):
+        p0, p1, p2, p3 = points[max(i - 1, 0)], points[i], points[i + 1], points[min(i + 2, len(points) - 1)]
+        for s in range(pas):
+            t = s / pas
+            chemin.append(0.5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t ** 2 + (3 * p1 - p0 - 3 * p2 + p3) * t ** 3))
+    return chemin + [points[-1]]
+
+
+def anneau(centre, u, v, rayon, cotes):
+    """Les `cotes` sommets du polygone régulier de `rayon` autour de `centre`, dans le plan de `u` et `v` unitaires, le
+    premier sur `u`, dans le sens de `u` vers `v`."""
+    return [centre + (u * math.cos(2 * math.pi * j / cotes) + v * math.sin(2 * math.pi * j / cotes)) * rayon for j in range(cotes)]
+
+
+def bosselee(a, u, v, cotes, bosse):
+    """La section bosselée de `cotes` côtés dans le plan de `u` et `v` (triplets), chacun à une part du rayon tirée
+    dans `bosse`, tournée d'un angle tiré ensuite : la fonction qui rend ses sommets autour d'un centre, à un rayon,
+    chacun calculé en double précision avant son `Vector`."""
+    bosses = [a.uniform(*bosse) for _ in range(cotes)]
+    phase = a.uniform(0, 2 * math.pi)
+    angles = [phase + 2 * math.pi * j / cotes for j in range(cotes)]
+    return lambda centre, rayon: [Vector([p + (du * math.cos(t) + dv * math.sin(t)) * (rayon * b)
+                                          for p, du, dv in zip(centre, u, v)]) for t, b in zip(angles, bosses)]
+
+
+def coque(m, anneaux, mat, pointe=None):
+    """La coque close des `anneaux` successifs (listes de points de même longueur) : le premier fermé à plat, le
+    dernier à plat aussi, ou en cône vers `pointe`."""
+    k = len(anneaux[0])
+    sommets = [tuple(p) for anneau in anneaux for p in anneau]
+    faces = [[i * k + j, i * k + (j + 1) % k, (i + 1) * k + (j + 1) % k, (i + 1) * k + j]
+             for i in range(len(anneaux) - 1) for j in range(k)]
+    faces.append(list(range(k))[::-1])
+    dernier = (len(anneaux) - 1) * k
+    if pointe is None:
+        faces.append([dernier + j for j in range(k)])
+    else:
+        faces += [[dernier + j, dernier + (j + 1) % k, len(sommets)] for j in range(k)]
+        sommets.append(tuple(pointe))
+    m.ajouter(sommets, faces, mat)
+
+
+def octogone(c, u, v, du, dv, chanfrein):
+    """Le rectangle de centre `c` et de demi-côtés `du` sur `u`, `dv` sur `v`, ses coins abattus de `chanfrein`."""
+    return [c + u * x + v * y for x, y in ((du - chanfrein, -dv), (du, -dv + chanfrein), (du, dv - chanfrein), (du - chanfrein, dv),
+                                           (-du + chanfrein, dv), (-du, dv - chanfrein), (-du, -dv + chanfrein), (-du + chanfrein, -dv))]
+
+
+def barre(m, stations, u, v, mat=MAT):
+    """Une pièce équarrie aux arêtes abattues : la coque des sections `stations` [(centre, du, dv, chanfrein)], chacune
+    dans le plan de `u` et `v`."""
+    coque(m, [octogone(c, u, v, du, dv, chanfrein) for c, du, dv, chanfrein in stations], mat)
+
+
+def planche(m, a, b, u, v, du, dv, chanfrein, mat=MAT):
+    """Une planche de `a` à `b`, ses rives et ses bouts adoucis de `chanfrein`."""
+    d = (b - a).normalized() * chanfrein
+    barre(m, [(a, du - chanfrein, dv - chanfrein, chanfrein / 2), (a + d, du, dv, chanfrein), (b - d, du, dv, chanfrein),
+              (b, du - chanfrein, dv - chanfrein, chanfrein / 2)], u, v, mat)
+
+
+def rampante(m, a, b, du, dv, chanfrein, mat=MAT):
+    """Une planche de `a` à `b` (`planche`), de demi-côtés `du` en travers, horizontal, et `dv` dans son plan
+    vertical."""
+    fil = (b - a).normalized()
+    travers = fil.cross(HAUT).normalized()
+    planche(m, a, b, travers, fil.cross(travers), du, dv, chanfrein, mat)
+
+
+def profilee(m, a, b, demi, profil, mat=MAT, u=X, v=Y):
+    """Une pièce équarrie de `a` à `b`, ses sections dans le plan de `u` et `v` (horizontales par défaut), de
+    demi-côtés `demi` (sur `u`, sur `v`) d'après `profil` [(part de la longueur, part du demi-côté sur `u`, part du
+    demi-côté sur `v`, chanfrein en fraction du plus petit demi-côté de `demi`)]."""
+    barre(m, [(a.lerp(b, t), demi[0] * part_x, demi[1] * part_y, min(demi) * chanfrein)
+              for t, part_x, part_y, chanfrein in profil], u, v, mat)
+
+
+POTEAU = ((0.0, 1.0, 1.0, 0.08), (0.06, 1.0, 1.0, 0.08), (0.10, 1.0, 1.0, 0.30), (0.86, 1.0, 1.0, 0.30),
+          (0.90, 1.0, 1.0, 0.08), (1.0, 1.0, 1.0, 0.08))
+"""Le profil d'un poteau à chanfreins arrêtés (`profilee`)."""
+
+
+def tournee(m, a, b, u, v, rayon, profil, cotes, mat=MAT):
+    """Une pièce tournée de `a` à `b`, ses cercles dans le plan de `u` et `v`, de `rayon` d'après `profil`
+    [(part de la longueur, part du rayon)]."""
+    coque(m, [anneau(a.lerp(b, t), u, v, rayon * part, cotes) for t, part in profil], mat)
+
+
+CYLINDRE = ((0.0, 1.0), (1.0, 1.0))
+"""Le profil d'une pièce tournée de rayon constant (`tournee`)."""
+
+
+def courbee(m, chemin, axe, rayons, cotes, mat):
+    """Une pièce ronde courbée le long de `chemin`, courbe d'un plan normal à `axe` unitaire, son rayon de
+    `rayons[0]` au premier point à `rayons[1]` au dernier."""
+    dernier = len(chemin) - 1
+    anneaux = []
+    for i, p in enumerate(chemin):
+        t = (chemin[min(i + 1, dernier)] - chemin[max(i - 1, 0)]).normalized()
+        anneaux.append(anneau(p, axe, t.cross(axe), rayons[0] + (rayons[1] - rayons[0]) * i / dernier, cotes))
+    coque(m, anneaux, mat)
+
+
+# Cheville (`cheville`) : côtés ; part de son rayon enfoncée dans le bois ; saillie de sa tête (fraction de son rayon,
+# tirée) ; profil (part de la longueur, part du rayon).
+CHEVILLE = {"cotes": 5, "enfonce": 1.0, "saillie": (0.25, 0.45), "profil": ((0.0, 1.0), (1.0, 0.75))}
+
+
+def cheville(m, p, n, rayon, a, mat=MAT):
+    """Une cheville de `rayon` enfoncée en `p` dans la face de normale `n`, sa tête en saillie, d'après `CHEVILLE`."""
+    C = CHEVILLE
+    tournee(m, p - n * (rayon * C["enfonce"]), p + n * (rayon * a.uniform(*C["saillie"])), *normales(n), rayon,
+            C["profil"], C["cotes"], mat)
+
+
+def clou(m, centre, dehors, C, demi, mat):
+    """Une tête de clou en pointe de diamant posée sur `centre`, tournée vers `dehors`, d'après `C` (`CLOU`), en
+    fractions de `demi`."""
+    u, v = normales(dehors)
+    c = C[0] * demi
+    coque(m, [[centre + u * a * c + v * b * c for a, b in ANGLES]], mat, centre + dehors * C[1] * demi)
+
+
+def cercle(m, axe, centre, r, h, e, segments, mat):
+    """Un anneau plat de section rectangulaire autour de l'axe `axe` par `centre` : son rayon moyen `r`, sa hauteur `h`
+    le long de l'axe, son épaisseur `e`."""
+    tour(m, [(-h / 2, r - e / 2), (h / 2, r - e / 2), (h / 2, r + e / 2), (-h / 2, r + e / 2)], axe, centre, segments,
+         mat, ferme=True)
+
+
+def chaine(m, x, y, z0, z1, nombre, grand, petit, segments, mat):
+    """Une chaîne de `nombre` maillons à l'aplomb de (`x`, `y`), leurs centres de `z0` à `z1`, chacun un tore de rayon
+    `grand` et de fer `petit` (`segments` du tour et de la section), le premier normal à x, les suivants alternés."""
+    for k in range(nombre):
+        tore(m, "xy"[k % 2], (x, y, z0 + (z1 - z0) * k / (nombre - 1)), grand, petit, *segments, mat)
+
+
+def bougie(bobeche, cire, flamme, pied, demi, haut, sommet, B):
+    """Une bougie d'après `B`, ses rayons et la hauteur de sa flamme en fractions de `demi` : sa bobèche et son binet,
+    tournés dans `bobeche`, leur profil en parts de `haut` au-dessus de `pied` ; sa cire dans `cire`, de `haut`
+    au-dessus de `pied` à la hauteur `sommet` ; sa flamme dans `flamme`, sur la cire."""
+    axe = (pied.x, pied.y, 0)
+    segments, pans = B["segments"]
+    tour(bobeche, [(pied.z + part * haut, f * demi) for part, f in B["bobeche"]], "z", axe, segments, "laiton")
+    cylindre(cire, pied.z + haut, sommet, B["cire"] * demi, "z", axe, segments, "cire")
+    hauteur, profil = B["flamme"]
+    tour(flamme, [(sommet + part * hauteur * demi, f * demi) for part, f in profil], "z", axe, pans, "flamme")
+
+
+def partage(a, nombre, ecart):
+    """Les bornes de `nombre` parts de [0, 1], chaque borne du dedans écartée d'au plus `ecart` de sa part."""
+    return [0.0] + [(k + a.uniform(-ecart, ecart)) / nombre for k in range(1, nombre)] + [1.0]
+
+
+def par_noeuds(D, id_, noeuds, batir):
+    """Le décor `id_` dont les `noeuds` {nœud : noms de ses matériaux (`D["MATERIAUX"]`)} se bâtissent ensemble par
+    `batir(D, gabarit, mailles par nœud, aléa)`, chaque sommet ramené dans l'enveloppe à `D["RETRAIT"]` sous elle
+    (`Gabarit.rentrer`), chaque nœud lissé sous `D["ANGLE_LISSE"][nœud]`, ses triangles dans `D["BUDGET_TRIANGLES"]`."""
+    G = Gabarit(id_)
+    mats = habillage.materiaux(D["MATERIAUX"][id_])
+    pieces = {noeud: Maille([mats[nom] for nom in noms]) for noeud, noms in noeuds.items()}
+    batir(D, G, pieces, alea(id_))
+    objets = []
+    for noeud, maille in pieces.items():
+        maille.v = [tuple(p) for p in G.rentrer(maille.v, D["RETRAIT"])]
+        objets.append(objet(noeud, maille, (0.0, 0.0, 0.0), D["ANGLE_LISSE"][noeud]))
+    triangles = sum(len(o.data.polygons) for o in objets)
+    if triangles > D["BUDGET_TRIANGLES"][id_]:
+        raise ValueError(f"{id_} : {triangles} triangles, budget {D['BUDGET_TRIANGLES'][id_]}")
+    return {}
+
+
+def elements(D, decors, construire):
+    """Les éléments de la famille (`construire.py`) : un par décor de `decors`, sa clé `decor`, ses matériaux
+    `D["MATERIAUX"][id]`, bâti par `construire(D, id)`."""
+    for id_ in decors:
+        yield {"glb": id_, "cles": [("decor", {"prop": id_})], "materiaux": D["MATERIAUX"][id_], "blasons": (),
+               "construire": lambda id_=id_: construire(D, id_)}

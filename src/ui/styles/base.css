@@ -22,6 +22,7 @@
   --ok-bright: #6fce8e; /* succès clair — texte/icône positif sur fond sombre */
   --parchment: #decb9d; /* surface claire « document » (texte = --ink) */
   --parchment2: #cbb478;
+  --ivoire: #f3e6c8; /* parchemin éclairé : face du dé (navigation/des), champ d'étiquette */
   --ink: #221a11;
   --blood: #5a120a;
   --corruption-violet: #4a1a56; /* gangrène de Corruption (liseré de registre + bandeau de cadre, #492) */

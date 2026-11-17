@@ -1,0 +1,13 @@
+{
+  "model": "decor--enclume.glb",
+  "model_sha256": "c2b17c02031f32e40683a63bd47006033b61829102fb72534ca7b01599ba3f67",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

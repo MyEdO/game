@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "tombe"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "terre",
+      "palette": "corps",
+      "matiere": "prop--terre-battue"
+    }
+  ],
+  "glb": {
+    "sha256": "4bfb32878c882a324c55263351f05573fea5cf9bece6892d50b1ad30d743fbb9",
+    "octets": 15684
+  }
+}

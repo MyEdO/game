@@ -67,6 +67,46 @@ test('--porte joue le corps neutre puis chaque silhouette déclarée seule à 1,
   }
 }, 120_000);
 
+test('--temoin refuse --porte et --etats-gabarit', () => {
+  for (const option of ['--porte', '--etats-gabarit']) {
+    const resultat = spawnSync(process.execPath, [script, 'base.glb', '--manifeste', 'manifeste.json', '--temoin', 'temoin.json', option], { cwd: racine, encoding: 'utf8', windowsHide: true });
+    expect(resultat.status, resultat.stderr).toBe(2);
+    expect(resultat.stderr).toMatch(/--temoin : --porte et --etats-gabarit incompatibles/);
+  }
+});
+
+test('--temoin ne liste que les écarts absents du rapport témoin, sort en 1 seulement s’il y en a, et --json écrit le rapport complet', () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'evaluer-temoin-'));
+  try {
+    const [glb, temoin, vide, sortie] = ['base.glb', 'temoin.json', 'vide.json', 'sortie.json'].map((f) => join(dossier, f));
+    writeFileSync(glb, glbFabrique({ clips: { Descend: [0, -0.2] } }));
+    writeFileSync(vide, JSON.stringify({ ecarts: [] }));
+    const evaluer = (...options: string[]) => spawnSync(process.execPath, [script, glb, '--pas', '0.5', ...options], { cwd: racine, encoding: 'utf8', windowsHide: true });
+    expect(evaluer('--json', temoin).status).toBe(1);
+    const ecarts: unknown[] = JSON.parse(readFileSync(temoin, 'utf8')).ecarts;
+    expect(ecarts.length).toBeGreaterThan(0);
+
+    const sansNeuf = evaluer('--temoin', temoin, '--json', sortie);
+    expect(sansNeuf.status, sansNeuf.stderr).toBe(0);
+    expect(sansNeuf.stdout).toBe(`témoin ${ecarts.length} écart(s), mesure ${ecarts.length}, neufs 0\n`);
+    expect(JSON.parse(readFileSync(sortie, 'utf8')).ecarts).toEqual(ecarts);
+
+    const toutNeuf = evaluer('--temoin', vide);
+    expect(toutNeuf.status, toutNeuf.stderr).toBe(1);
+    const lignes = toutNeuf.stdout.trimEnd().split('\n');
+    expect(lignes[0]).toBe(`témoin 0 écart(s), mesure ${ecarts.length}, neufs ${ecarts.length}`);
+    expect(lignes.slice(1)).toHaveLength(ecarts.length);
+    expect(lignes.slice(1).every((l) => l.startsWith('['))).toBe(true);
+
+    writeFileSync(join(dossier, 'etats.json'), JSON.stringify({ etats: [] }));
+    const pasUnRapport = evaluer('--temoin', join(dossier, 'etats.json'));
+    expect(pasUnRapport.status).toBe(2);
+    expect(pasUnRapport.stderr).toMatch(/n’est pas le rapport --json d’une évaluation/);
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
+}, 120_000);
+
 test('avec --base, refuse un élément sans manifeste d’élément voisin : sa couche ferait défaut à la traversée', () => {
   const dossier = mkdtempSync(join(tmpdir(), 'evaluer-sans-manifeste-'));
   try {

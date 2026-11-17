@@ -123,7 +123,7 @@ Vous pourriez imaginer une campagne qui oppose les Personnages à la Couronne Ro
 Les indices donnés dans **Mort sur le Reik** suggèrent que le quartier général du culte se trouve à Middenheim, mais n'indiquent pas où le trouver. Les Personnages doivent faire preuve d'initiative pour traquer et dissoudre le culte de la ville. Si la Couronne Rouge est détruite, la campagne de Khazrak manquera d'une supervision essentielle, mais si les Personnages peuvent intercepter des messages entre les cultistes et les hommes-bêtes sans avertir la Couronne Rouge, ils pourraient aider Middenheim à préparer une contre-offensive décisive.
 
 
-|                                      | F                                      | M                                    | S                                  |
+<span id="page-160-0" data-folio="158"></span>|                                      | F                                      | M                                    | S                                  |
 |--------------------------------------|----------------------------------------|--------------------------------------|------------------------------------|
 | Ind<br>ex                            | Fils d'Ulric, Les 138                  | Magister Hugo Vertvallon 141         | Stade Bernabau 57                  |
 | A                                    | Fléau mort-vivant 10                   | Magnam Odenhaus Pantera 86           | Statue d'Artur 54                  |
@@ -211,7 +211,7 @@ Les indices donnés dans **Mort sur le Reik** suggèrent que le quartier génér
 Entrailles du Loup, Les................ 108 Entrepôt de Brunhilde, L'............... 60 Épée et le Fléau, L'.......................... 77 Érudit, À l'...................................... 48
 
 
-| Lieux                                            | DUCHÉ                                                  | KONIGSGARTEN                                    |
+<span id="page-161-0" data-folio="159"></span>| Lieux                                            | DUCHÉ                                                  | KONIGSGARTEN                                    |
 |--------------------------------------------------|--------------------------------------------------------|-------------------------------------------------|
 | par                                              | D'IMMELSCHEID                                          | La Clairière aux Songes 66                      |
 | uartier                                          | Fort Immelscheid 126                                   | La Folie du graf Berholdt 65                    |

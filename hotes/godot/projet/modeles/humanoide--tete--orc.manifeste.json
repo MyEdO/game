@@ -1,0 +1,43 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "tete",
+  "cle": {
+    "tete": "orc"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "peau",
+  "couvre": [
+    "tete",
+    "visage",
+    "nez",
+    "oeil_g",
+    "oeil_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "peau",
+      "palette": "peau"
+    },
+    {
+      "nom": "yeux",
+      "palette": "yeux"
+    },
+    {
+      "nom": "dents",
+      "palette": "corne"
+    }
+  ],
+  "glb": {
+    "sha256": "dc61941159ec5cab5efba7103f61208762bf0b9d0fa68a9b3f8ff35a3338cec6",
+    "octets": 686616
+  }
+}

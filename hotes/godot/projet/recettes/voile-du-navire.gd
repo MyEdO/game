@@ -20,7 +20,7 @@ extends SceneTree
 ## sous l'eau retournée si tous ses pixels sont purs. Sous les deux rendus : le masque servi tout vu donne l'image sans
 ## vision au pixel ; sous chacun des trois regards (tactique, plateau, immersion, `_uniformes`), tout exploré (octets à
 ## 128), puis tout inconnu (à 0), chaque surface lue (sous la caméra tactique, le plancher, le flanc et la mâture au
-## moins) prend la part de son état (`_borne_du_pilote`) ; à mi-fondu de la vue vers l'inconnu, la part qu'elle prend
+## moins) prend la part de son état (`PIXELS.borne_du_pilote`) ; à mi-fondu de la vue vers l'inconnu, la part qu'elle prend
 ## explorée ; coupé sous son avant-dernière couche de pont, ce que la coupe découvre (ses pixels intérieurs) est, voilé,
 ## ce qu'il est sans voile ; sous l'œil de l'immersion, sur une case de pont couverte, elle et ce qui est dessous vus,
 ## le reste inconnu, le plafond à la part 1. Les appels de dessin, voilé et sans voile, imprimés.
@@ -65,7 +65,7 @@ var _fautes: Array[String] = []
 var _signales: Array[String] = []
 var _nom := ""
 var _monde: Monde
-var _navires: MontageDesNavires
+var _navires: MontageDesModeles
 var _vue: Dictionary
 var _id := ""
 ## Le masque servi, le sol de chaque couche (`monde.hauteurs`, en mètres), les couches et les cases de pont servies.
@@ -147,11 +147,11 @@ func _demarrer(scenario: String) -> Node:
 	root.add_child(combat)
 	var plateau: Plateau = combat.get_node("Plateau")
 	_monde = plateau.get_node("Monde")
-	_navires = plateau.get_node("Navires")
+	_navires = plateau.get_node("Modeles")
 	var limite := Time.get_ticks_msec() + int(ATTENTE_S * 1000.0)
-	while Time.get_ticks_msec() < limite and _signales.is_empty() and (_navires.poses().is_empty() or _monde.volume.get("_vision") == null):
+	while Time.get_ticks_msec() < limite and _signales.is_empty() and (plateau.navires().is_empty() or _monde.volume.get("_vision") == null):
 		await process_frame
-	if _navires.poses().is_empty() or _monde.volume.get("_vision") == null:
+	if plateau.navires().is_empty() or _monde.volume.get("_vision") == null:
 		_fautes.append("%s : navire ou vision non posés (%s)" % [_nom, _signales])
 		combat.queue_free()
 		return null
@@ -164,7 +164,7 @@ func _demarrer(scenario: String) -> Node:
 	environnement.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	environnement.volumetric_fog_enabled = false
 	_vue = combat.get("_vue")
-	_id = _navires.poses()[0]
+	_id = plateau.navires()[0]
 	_servi = pont.reponses.vision
 	_hauteurs = pont.reponses.monde.monde.hauteurs
 	_couches = _monde.couches()
@@ -205,24 +205,6 @@ func _cadrer(regard: String) -> void:
 	var centre: Dictionary = _vue.corps.navires[_id].centre
 	_monde.regarder(regard)
 	_monde.cadrer(MiseEnPage.point_de_la_carte(centre.x - 0.5, centre.y - 0.5, 0.0), MiseEnPage.lacet_de_l_azimut(30.0), DISTANCE[_nom])
-
-
-## Le masque servi, chaque octet à `octet`.
-func _uniforme(octet: int) -> Dictionary:
-	var octets := PackedByteArray()
-	octets.resize(Marshalls.base64_to_raw(_servi.masque).size())
-	octets.fill(octet)
-	return _servi.merged({masque = Marshalls.raw_to_base64(octets)}, true)
-
-
-## Le masque servi, l'octet de chaque case (`x`, `y`, couche d'indice `couche`) que `etat` rend.
-func _masque(etat: Callable) -> Dictionary:
-	var octets := Marshalls.base64_to_raw(_servi.masque)
-	var largeur := int(_servi.largeur)
-	var rangees := int(_servi.rangeesParPlan)
-	for i in octets.size():
-		octets[i] = etat.call(i % largeur, (i / largeur) % rangees, i / (largeur * rangees))
-	return _servi.merged({masque = Marshalls.raw_to_base64(octets)}, true)
 
 
 ## L'image sous la vision `vision`, posée sans fondu.
@@ -310,7 +292,7 @@ func _tactique() -> void:
 	for nom in ["plancher", "flanc", "mâture"]:
 		if not surfaces.has(nom):
 			_fautes.append("%s : le %s n'a pas %d pixels intérieurs" % [_nom, nom, INTERIEUR_LISIBLE])
-	if (await _voir(_uniforme(VUE))).get_data() != temoin.get_data():
+	if (await _voir(PIXELS.uniforme(_servi, VUE))).get_data() != temoin.get_data():
 		_fautes.append("%s : tout vu, l'image n'est pas celle sans vision" % _nom)
 	var appels_voilee := _appels()
 	await _sans_voile()
@@ -321,24 +303,24 @@ func _tactique() -> void:
 
 
 ## Sous le regard posé, d'image sans vision `temoin` et de surfaces lues `surfaces` (au moins une) : tout exploré
-## (octets à 128), puis tout inconnu (à 0), chaque surface prend la part de son état (`_borne_du_pilote`) ; à mi-fondu
+## (octets à 128), puis tout inconnu (à 0), chaque surface prend la part de son état (`PIXELS.borne_du_pilote`) ; à mi-fondu
 ## de la vue vers l'inconnu, la part qu'elle prend explorée.
 func _uniformes(temoin: Image, surfaces: Dictionary) -> void:
 	var regard := _monde.regard()
 	_verifier(not surfaces.is_empty(), "%s, %s : aucune surface n'a %d pixels intérieurs" % [_nom, regard, INTERIEUR_LISIBLE])
 	var explorees := {}
 	for etat: Array in [[EXPLOREE, _servi.teintes.explored, "exploré"], [INCONNUE, _servi.teintes.unknown, "inconnu"]]:
-		var image := await _voir(_uniforme(etat[0]))
+		var image := await _voir(PIXELS.uniforme(_servi, etat[0]))
 		for nom: String in surfaces:
 			var lue := PIXELS.part(temoin, image, surfaces[nom])
-			var haute := maxf(etat[1], _borne_du_pilote(_luminance_mediane(temoin, surfaces[nom]), etat[1]))
+			var haute := maxf(etat[1], PIXELS.borne_du_pilote(PIXELS.luminance_mediane(temoin, surfaces[nom]), etat[1]))
 			if etat[0] == EXPLOREE:
 				explorees[nom] = lue
 			print("[voile-du-navire] %s, %s, tout %s : %s %.3f, attendue de %.3f à %.3f (%d pixels)" % [_nom, regard, etat[2], nom, lue, etat[1] - TOLERANCE, haute + TOLERANCE, surfaces[nom].size()])
 			if lue < etat[1] - TOLERANCE or lue > haute + TOLERANCE:
 				_fautes.append("%s, %s, tout %s : %s à la part %.3f, attendue de %.3f à %.3f" % [_nom, regard, etat[2], nom, lue, etat[1] - TOLERANCE, haute + TOLERANCE])
-	await _voir(_uniforme(VUE))
-	_monde.volume.voir(_uniforme(INCONNUE))
+	await _voir(PIXELS.uniforme(_servi, VUE))
+	_monde.volume.voir(PIXELS.uniforme(_servi, INCONNUE))
 	_monde.volume.avancer_le_fondu(VolumeDeScene.DUREE_DU_FONDU_S / 2.0)
 	var fondue := await PIXELS.image(self)
 	for nom: String in surfaces:
@@ -369,11 +351,11 @@ func _oracles(flanc: Array) -> void:
 	for colonne: Vector2i in _existants:
 		for sol: Array in _existants[colonne]:
 			existe[Vector3i(colonne.x, colonne.y, sol[1])] = true
-	var masques := [["servi", _servi, 0], ["existantes vues", _masque(func(x: int, y: int, k: int) -> int: return VUE if existe.has(Vector3i(x, y, k)) else INCONNUE), PURS_LISIBLES]]
+	var masques := [["servi", _servi, 0], ["existantes vues", PIXELS.masque_de_vision(_servi, func(x: int, y: int, k: int) -> int: return VUE if existe.has(Vector3i(x, y, k)) else INCONNUE), PURS_LISIBLES]]
 	for couche in _couches.size():
 		if _ponts.keys().any(func(c: Vector3i) -> bool: return c.z == _couches[couche]):
-			masques.append(["couche %d inconnue" % _couches[couche], _masque(func(_x: int, _y: int, k: int) -> int: return INCONNUE if k == couche else VUE), 0])
-			masques.append(["couche %d seule vue" % _couches[couche], _masque(func(_x: int, _y: int, k: int) -> int: return VUE if k == couche else INCONNUE), 0])
+			masques.append(["couche %d inconnue" % _couches[couche], PIXELS.masque_de_vision(_servi, func(_x: int, _y: int, k: int) -> int: return INCONNUE if k == couche else VUE), 0])
+			masques.append(["couche %d seule vue" % _couches[couche], PIXELS.masque_de_vision(_servi, func(_x: int, _y: int, k: int) -> int: return VUE if k == couche else INCONNUE), 0])
 	_monde.volume.voir(null)
 	var temoin := await PIXELS.image(self)
 	var positions := await _positions(temoin)
@@ -535,7 +517,7 @@ func _eau_retournee(temoin: Image, regardables: Dictionary, flanc: Array) -> voi
 	var servis := Marshalls.base64_to_raw(_servi.masque)
 	var largeur := int(_servi.largeur)
 	var rangees := int(_servi.rangeesParPlan)
-	var retournee := _masque(func(x: int, y: int, couche: int) -> int: return servis[x + largeur * (y + rangees * couche)] if colonnes.has(Vector2i(x, y)) else INCONNUE)
+	var retournee := PIXELS.masque_de_vision(_servi, func(x: int, y: int, couche: int) -> int: return servis[x + largeur * (y + rangees * couche)] if colonnes.has(Vector2i(x, y)) else INCONNUE)
 	var servie := await _voir(_servi)
 	var image := await _voir(retournee)
 	var octets := Marshalls.base64_to_raw(retournee.masque)
@@ -579,7 +561,7 @@ func _coupe() -> void:
 			coupe = minf(coupe, _hauteurs[_couches.size() - 2].rangees[c.y][c.x])
 	_monde.volume.voir(null)
 	var entier := await PIXELS.image(self)
-	_navires.poser(_vue.corps.navires, {_id: coupe}, _metres_par_case())
+	_navires.poser(_vue.corps.navires, _vue.corps.decors, {_id: coupe}, _metres_par_case())
 	var coupee := await PIXELS.image(self)
 	_montage().scene.visible = false
 	var sans := await PIXELS.image(self)
@@ -594,11 +576,11 @@ func _coupe() -> void:
 	if decouverts.size() < DECOUVERTS_LISIBLES:
 		_fautes.append("%s : coupé, %d pixels découverts, au moins %d attendus" % [_nom, decouverts.size(), DECOUVERTS_LISIBLES])
 	for etat in [EXPLOREE, INCONNUE]:
-		var autres := _changes(await _voir(_uniforme(etat)), await _sans_voile(), decouverts)
+		var autres := _changes(await _voir(PIXELS.uniforme(_servi, etat)), await _sans_voile(), decouverts)
 		if autres > 0:
 			_fautes.append("%s, coupé, état %d : %d pixels découverts voilés" % [_nom, etat, autres])
 	_monde.volume.voir(null)
-	_navires.poser(_vue.corps.navires, _vue.plateau.coupesDesNavires, _metres_par_case())
+	_navires.poser(_vue.corps.navires, _vue.corps.decors, _vue.plateau.coupesDesNavires, _metres_par_case())
 	await process_frame
 
 
@@ -617,7 +599,7 @@ func _immersion() -> void:
 	var temoin := await PIXELS.image(self)
 	var surfaces := await _surfaces()
 	await _uniformes(temoin, surfaces)
-	var voilee := await _voir(_masque(func(_x: int, _y: int, couche: int) -> int: return VUE if couche <= 1 else INCONNUE))
+	var voilee := await _voir(PIXELS.masque_de_vision(_servi, func(_x: int, _y: int, couche: int) -> int: return VUE if couche <= 1 else INCONNUE))
 	for nom in ["plafond", "plancher"]:
 		if surfaces.has(nom):
 			print("[voile-du-navire] %s, immersion en %s : %s %.3f (%d pixels)" % [_nom, oeil, nom, PIXELS.part(temoin, voilee, surfaces[nom]), surfaces[nom].size()])
@@ -626,23 +608,6 @@ func _immersion() -> void:
 		_verifier(lue >= 1.0 - TOLERANCE, "%s, immersion : plafond à la part %.3f" % [_nom, lue])
 	_monde.volume.voir(null)
 	_cadrer("tactique")
-
-
-## La borne haute de la part lue d'un pixel de luminance linéaire `x` voilé à la part `part` : le pilote de
-## compatibilité mélange après l'encodage sRGB (`OUTPUT_IS_SRGB`, `art/voile.gdshader`), le voile y multiplie srgb(x)
-## par srgb(part), qui rend lin(srgb(x)·srgb(part)) / x de la lumière ; sous Forward+, la part est exacte.
-static func _borne_du_pilote(x: float, part: float) -> float:
-	var melange := Color(x, x, x).linear_to_srgb().r * Color(part, part, part).linear_to_srgb().r
-	return Color(melange, melange, melange).srgb_to_linear().r / x
-
-
-## La médiane de la luminance linéaire de `image` aux pixels `pixels`.
-static func _luminance_mediane(image: Image, pixels: Array[Vector2i]) -> float:
-	var luminances := PackedFloat32Array()
-	for pixel in pixels:
-		luminances.append(PIXELS.luminance(image.get_pixelv(pixel)))
-	luminances.sort()
-	return luminances[luminances.size() / 2]
 
 
 ## Les appels de dessin de la dernière image rendue.

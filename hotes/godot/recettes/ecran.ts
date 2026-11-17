@@ -4,7 +4,7 @@
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
  * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
  * focus ou sa première valeur ouverte, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
- * Critique, la fiche du premier héros ouverte par son bouton, son statbloc, sa première possession choisie (ses gestes
+ * Critique, la fiche du premier héros de l'ordre du tour ouverte par le bouton de son rang, son statbloc, sa première possession choisie (ses gestes
  * refusés en combat), la fiche de la cible de la charge, le combat poursuivi de même jusqu'à sa fin (la fenêtre de sa
  * fin, sa sortie en focus), puis, chacun sur un pont neuf, le premier document de la liasse de `documents-edo` lu, et
  * dans `magie` la Fléchette choisie parmi les sorts de l'actif, la fiche du lanceur, sa fenêtre d'incantation avant puis après le jet et un pas
@@ -48,10 +48,12 @@ import {
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 import type { Listage } from './atelier';
 
-/** Une vue de l'écran figée : son nom, sa disposition, ses zones, et l'intention de chaque formulaire par son id. */
+/** Une vue de l'écran figée : son nom, sa disposition, si elle est en combat, ses zones, et l'intention de chaque
+ *  formulaire par son id. */
 export interface VueFigee {
   nom: string;
   disposition: string | null;
+  combat: boolean;
   zones: ZonesDeLEcran & ZonesDeLaSuite;
   attendus: Record<string, Jeu>;
 }
@@ -230,7 +232,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   /** La suite `s` de la partie de `p` figée : sa vue, nommée `titre`, et sa planche, nommée `nom`. */
   const figer = (p: ReturnType<typeof unPont>, nom: string, titre: string, s: Suite) => {
     vues.push({
-      nom: titre, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] },
+      nom: titre, disposition: s.vue.disposition, combat: s.vue.projection.combat !== null, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] },
       attendus: Object.fromEntries(Object.values(s.vue.zones).flatMap((z) => formulaires(z)).map((f) => [f.id, telQueDessine(f)])),
     });
     planches.push(p.planche(nom, titre, s));
@@ -240,8 +242,15 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(gestesDessines(s.vue).map((g) => g.id))}`);
     return b.jeu;
   };
-  /** Le geste que l'offre `id` de la barre déclare, tel que l'hôte le dessine. */
-  const offre = (s: Suite, id: string): Jeu => s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).find((b) => b.id === id)!.jeu;
+  /** Le geste du bouton de fiche du combattant `id` sur son rang de l'ordre du tour : parmi ceux qui restent à jouer
+   *  (`ordre/`), sinon à l'ordre du round suivant (`suite/`). */
+  const ficheDuRang = (s: Suite, id: string): Jeu => {
+    const rangs = s.vue.zones['combat.ordre'];
+    const rang = rangs.find((r) => r.id === `ordre/${id}`) ?? rangs.find((r) => r.id === `suite/${id}`);
+    return (rang?.type === 'entite' ? rang.elements : []).find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu;
+  };
+  /** Le geste que l'offre ouverte `id` de la barre déclare, tel que l'hôte le dessine. */
+  const offre = (s: Suite, id: string): Jeu => s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).find((b) => b.id === id && !b.refus)!.jeu;
 
   const dome = unPont(lignes);
   const { appeler, jouer, fermer } = dome;
@@ -282,12 +291,13 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     s = jouer('jouer', presse(s));
   }
   figer(dome, 'coup-critique', 'Coup Critique', s);
-  s = appeler('fiche', s.vue.zones['groupe.heros'][0].elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu);
+  const heros = s.vue.projection.combat!.voisins.liste.find((c) => c.camp === 'heros')!.id;
+  s = appeler('fiche', ficheDuRang(s, heros));
   figer(dome, 'fiche-du-heros', 'fiche du héros, son statbloc', s);
   const possessions = s.vue.zones['fiche.sections'].find((e) => e.id === 'section/possessions')!.elements;
   s = appeler('fiche', possessions.find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer(dome, 'fiche-possession', 'fiche du héros, une possession choisie', s);
-  s = appeler('fiche', { fiche: { porteur: cible } });
+  s = appeler('fiche', ficheDuRang(s, cible));
   figer(dome, 'fiche-adversaire', 'fiche d’un adversaire, son statbloc', s);
   s = appeler('fiche', s.vue.zones['fiche.gestes'][0].jeu);
   const fini = (s: Suite) => !!s.vue.projection.combat?.fin && !!s.vue.projection.fenetre && !s.vue.projection.fenetre.etape;
@@ -297,6 +307,16 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   }
   figer(dome, 'fin-du-combat', `fin du combat, ${s.vue.zones['fenetre.titre'][0]?.texte ?? 'sans fenêtre'}`, s);
   fermer();
+
+  const triomphe = unPont([]);
+  s = triomphe.jouer('demarrer', { scenario: 'grimpant', graine: 7 });
+  for (let pas = 0; !fini(s); pas++) {
+    if (pas > 100) throw new Error(`aucune fin du combat de l’araignée après ${pas} gestes`);
+    s = triomphe.jouer('jouer', presse(s));
+  }
+  if (s.vue.disposition !== 'victoire') throw new Error(`le combat de l’araignée finit en ${s.vue.disposition}, pas en victoire`);
+  figer(triomphe, 'victoire', 'fin du combat, Victoire', s);
+  triomphe.fermer();
 
   /** Une fenêtre après l'autre, chacune par son geste pressé, tant qu'une tient la main. */
   const viderLesFenetres = (j: ReturnType<typeof unPont>['jouer'], s: Suite): Suite => {
@@ -338,7 +358,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   s = voyage.jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
   figer(voyage, 'carte-du-monde', 'carte du monde', s);
   const plan = s.vue.zones['fenetre.corps'].find((e): e is Plan => e.type === 'plan')!;
-  s = voyage.jouer('jouer', plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.id === 'r-grandroute/jourParJour')!.valeurs[0].jeu);
+  s = voyage.jouer('jouer', plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.id === 'r-grandroute')!.valeurs[0].jeu);
   figer(voyage, 'voyage-jets', 'voyage : la journée arrêtée aux jets des héros', s);
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
     if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
@@ -410,7 +430,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
-    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
+    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'combat.rapides': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
     'groupe.heros': [], 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [],
     'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': [], 'partie.menu': [],
   };
@@ -441,6 +461,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   vues.push({
     nom: 'formulaire de chaque saisie',
     disposition: null,
+    combat: false,
     zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.corps': [CURSEUR], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
     attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE }, [CASES.id]: { type: CASES.verbe, args: [['a']] } },
   });

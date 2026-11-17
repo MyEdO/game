@@ -397,13 +397,20 @@ const kvRows = (pairs: [string, unknown][]): CodexRow[] =>
 const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
   rows.length ? { title, layout: 'chips', rows } : null;
 /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
- *  foyer — `id`→Possessions, `{id, type}`→Créatures ou Véhicules selon `type` — jamais une re-résolution
- *  par libellé. Une somme, une mention et un `{text}` ne désignent aucune entité ;
+ *  foyer — `id`→Possessions, `{id, type}`→Créatures, Véhicules ou Engins de siège selon `type` — jamais une
+ *  re-résolution par libellé. Une somme, une mention et un `{text}` ne désignent aucune entité ;
  *  `pick`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);
-  if ('type' in ref && ref.type === 'creature') return idRefRow('creatures', ref.id, undefined, show);
-  if ('type' in ref) return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
+  if ('type' in ref)
+    switch (ref.type) {
+      case 'creature':
+        return idRefRow('creatures', ref.id, undefined, show);
+      case 'vehicle':
+        return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
+      case 'engin':
+        return { t: 'ref', category: 'siegeEngines', id: ref.id, label: refLabel('trappings', ref), show };
+    }
   if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
   // PASTILLE NUE, jamais de la prose : une somme, une mention ou un `{text}` est un NOM (« Grand hôtel particulier avec
   // jardins » y ferait lier « Grand »), et `pick`/`wildcard` sont des libellés composites. Aucune
@@ -2072,7 +2079,7 @@ const CODEX_SPECS = {
     // RÈGLE (franchissabilité, précédence de raccord, blocage de la vue, surface bâtie, hauteur du bloc
     // plein) et les mêmes clés de RENDU (teinte, rampe, décor posé). Aucune table de libellés ici : les
     // noms FR viennent de la méta du def (`libelleDuChamp`), l'ordre des arrêts de rampe de la source
-    // unique `terrainStopsOrdonnes`, et le nom du décor posé de l'entrée `props.json` qu'il référence.
+    // unique `terrainStopsOrdonnes`, et les noms des décors posés des entrées `props.json` qu'il référence.
     label: 'codex.fiche.terrains', group: 'monde',
     build: () => {
       const meta = metaPourFichier('terrains.json');
@@ -2088,7 +2095,7 @@ const CODEX_SPECS = {
           fact(nom('built'), t.built ? tr('codex.fiche.oui') : null),
           fact(nom('solidHeightM'), t.solidHeightM != null ? `${t.solidHeightM} m` : null),
           fact(nom('matiere'), t.matiere ? matiereLabel(t.matiere.id) : null),
-          fact(nom('overlayProp'), t.overlayProp ? propLabel(t.overlayProp.id) : null),
+          fact(nom('overlayProps'), t.overlayProps ? t.overlayProps.map(propLabel).join(' · ') : null),
         ),
         // Les DEUX porteurs de couleur du terrain (teinte d'aperçu + arrêts de la rampe) tiennent la
         // MÊME section : ce sont des couleurs, rendues par la même rangée `couleur` (pastille peinte +

@@ -100,6 +100,7 @@ import {
 import {
   champ,
   ecritureAuFormulaire,
+  monteeAuFormulaire,
   rescellementAuFormulaire,
   retraitAuFormulaire,
   type ChoixDuFormulaire,
@@ -1144,6 +1145,12 @@ export const retraitOffert = <S extends SorteDePorteur>(sorte: S, donnee: Donnee
  *  `cadre`) ; ou son refus. */
 export const avecLaValeurDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
   ecritureAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, valeur, choixDuPorteur(sorte, donnee, cadre), cadre.source);
+
+/** La donnée `donnee` du porteur de sorte `sorte` où l'élément de liste au chemin `chemin` de son formulaire passe
+ *  avant le précédent (`monteeAuFormulaire`, sur sa forme `formeDuPorteur`, aux choix de son contexte et sur le
+ *  `Source/` du cadre `cadre`) ; ou son refus. */
+export const avecLElementMonte = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
+  monteeAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, choixDuPorteur(sorte, donnee, cadre), cadre.source);
 
 /** La donnée `donnee` du porteur de sorte `sorte` où l'adresse de prose au chemin `chemin` de son formulaire est
  *  rescellée après relecture (`rescellementAuFormulaire`, sur le `Source/` du cadre `cadre`) ; ou son refus. */

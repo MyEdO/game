@@ -18,7 +18,6 @@ import {
   type CellSide,
   type Scene,
   type SceneDuVolume,
-  type SceneEntity,
   type WallSeg,
   CHAMPS_DES_COURONNES,
   CHAMPS_DES_TOITS,
@@ -27,14 +26,15 @@ import {
 } from '../scene';
 import { entityBlockedAt } from '../sceneRules';
 import { versionDesDatasets } from '../../../data/versionDataset';
-import { terrainAbsent, terrainOverlayProp, terrainsAvecGlyphe } from '../terrain';
+import { decorDuTerrain, terrainAbsent, terrainsAvecGlyphe } from '../terrain';
 import { garanti } from '../../../lib/garanti';
 import { tableTotale } from '../../../lib/tableTotale';
 import { facesDuDessus } from './pente';
 import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
 import { NEIGHBOURS, capsSolid, floorFaces, isOverhang, montantsDeLaCouche } from './floors';
-import { facesDuDecor } from './propVolumes';
+import { decorEnVolume, facesDuDecor } from './propVolumes';
+import type { Dir4, Dir8 } from '../../../geometry/dir8';
 import { ancreDuDecor } from '../footprint';
 import { piedDuDecor } from '../poseDuDecor';
 import { matieresDe } from '../../../data';
@@ -56,15 +56,38 @@ import { mapLights } from '../vision';
 import type { Face } from './types';
 import type { MaterialRef } from '../../../data/materials.types';
 
-/** D'où viennent des faces du volume : `navire`, l'id de l'entité du navire dont les ponts les posent
- *  (`provenanceDesNavires`), que l'hôte touche sans les peindre, le navire se montrant par son modèle 3D ; `flottaison`,
- *  l'id du navire dont elles sont la mer, sur l'emprise de ses ponts à sa flottaison, que l'hôte peint hors de la coque
- *  de son modèle et que le rayon du pointeur traverse ; `luminaire`, celles d'un décor qui éclaire (`mapLights`), dont
- *  l'hôte ne porte pas l'ombre sous la lampe d'un foyer (#3811). */
+/**
+ * @contrat Monde
+ * D'où viennent les faces d'une surface du volume (`surfaces`) : rien pour le sol, le relief et les crêtes hors d'un
+ * navire.
+ */
 interface Provenance {
+  /**
+   * l'id de l'entité du navire dont les ponts posent ses faces (`provenanceDesNavires`, `src/noyau/planDeNavire.ts`) :
+   * le monde la touche (`cases`, rayon du pointeur, marche de l'œil) sans la peindre (`VolumeDeScene._maillage_de`),
+   * le navire se montrant par son modèle (section « Corps d'un combattant », `navires`) ; ses décors n'en portent pas.
+   */
   navire?: string;
+  /**
+   * l'id de l'entité du navire dont elle est la mer, sur le rectangle de ses ponts à la couche de son pont le plus
+   * bas (`MER`, le terrain du glyphe `~`, à la hauteur 0, à la place du sol de la scène hors de ses ponts) : le rayon
+   * du pointeur la traverse, le monde la peint hors de la coque du modèle posé, sous la hauteur 0
+   * (`VolumeDeScene.border_la_mer`, `MontageDeVehicule.contour_sous`, recette `projet/recettes/coupe-du-navire.gd`).
+   */
   flottaison?: string;
+  /**
+   * présent sur les faces d'un décor qui éclaire (`mapLights`, `src/noyau/monde/vision.ts`) : le monde les peint, et
+   * n'en porte pas l'ombre sous la lampe d'un foyer, que son luminaire masquerait (`VolumeDeScene._morceau`, section
+   * « Lumière », #3811).
+   */
   luminaire?: true;
+  /**
+   * l'id du type de décor (`props.json`) dont la recette pose ses faces (`facesDuDecor`), décor d'une entité `prop`
+   * ou du terrain (`decorDuTerrain`), chacun posé par une `PoseDeDecor` : le monde la touche (`cases`, voile,
+   * retrait, ombre) ; il ne la peint pas quand `decors` de la vue sert un modèle de ce décor (section « Corps d'un
+   * combattant »), qui se montre à sa place.
+   */
+  decor?: string;
 }
 
 /** Les triangles d'une matière du volume, nommée `<domaine>--<id>` (`nomDeMatiere`) : ses sommets de `debut` inclus à
@@ -122,22 +145,9 @@ interface GeometrieDuMonde {
    */
   cases: number[];
   /**
-   * une par matière (et provenance), ses sommets de `debut` à `fin` exclu, dans l'ordre des triangles. Les triangles
-   * d'une même matière se suivent (`surfaces`) ; le sol et les crêtes d'une case que posent les ponts d'un navire de
-   * la scène
-   * (`provenanceDesNavires`, `src/noyau/planDeNavire.ts`) forment des surfaces à part, qui portent `navire`, l'id de
-   * l'entité du navire : le monde les touche (`cases`, forme du rayon du pointeur et de la marche de l'œil) sans les
-   * peindre (`VolumeDeScene._maillage_de`), le navire se montrant par son modèle (section « Corps d'un combattant »,
-   * `navires`) ; ses décors restent peints ; sur sa flottaison, le rectangle de ses ponts à la couche de son pont le
-   * plus bas, chaque case est sa mer (`MER`, le terrain du glyphe `~`) à la hauteur 0, à la place du sol de la scène
-   * hors de ses ponts : des surfaces à part, qui portent `flottaison`, l'id de l'entité du navire, que le rayon du
-   * pointeur traverse et que le monde peint hors de la coque du modèle posé, sous la hauteur 0
-   * (`VolumeDeScene.border_la_mer`,
-   * `MontageDeVehicule.contour_sous`, recette `projet/recettes/coupe-du-navire.gd`) ; les faces d'un décor qui éclaire
-   * (`mapLights`, `src/noyau/monde/vision.ts`) forment des surfaces à part, qui portent `luminaire: true` : le monde
-   * les peint, et n'en porte pas l'ombre sous la lampe d'un foyer, que son luminaire masquerait
-   * (`VolumeDeScene._morceau`, section « Lumière ») ; une matière se nomme
-   * `<domaine>--<id>` (`terrain--herbe`, `relief--pierre`).
+   * une par matière et par provenance (`Provenance`), ses sommets de `debut` à `fin` exclu, dans l'ordre des
+   * triangles : les triangles d'une même surface se suivent. Une matière se nomme `<domaine>--<id>` (`terrain--herbe`,
+   * `relief--pierre`).
    */
   surfaces: SurfaceDuVolume[];
 }
@@ -176,7 +186,7 @@ export interface MorceauDuMonde extends GeometrieDuMonde {
  * par case et sa variance de teinte, relief, raccords, piliers), la crête qui ceinture chaque zone crénelée
  * (`cretesDePerimetre`, `src/noyau/monde/volume/creneaux.ts`, matière `structure--<id>` de l'apparence que porte
  * `Layer.crenellated`) et les décors, chacun modelé par la recette de son type (`facesDuDecor`,
- * `src/noyau/monde/volume/propVolumes.ts`) : celui que le terrain pose sur chacune de ses cases (`terrainOverlayProp`,
+ * `src/noyau/monde/volume/propVolumes.ts`) : celui que le terrain pose sur chacune de ses cases (`decorDuTerrain`,
  * les arbres du bois) et les entités `prop` de la scène, à la couleur de leur matériau de décor (matière `prop--<id>`).
  * Il se publie dans le repère des builders, en mètres : X à l'est, Y en haut, Z au sud, la case (x, y) centrée sur (x ·
  * `metresParCase`, y · `metresParCase`). Il ne dépend que de la scène : ce qu'un regard en retire est un masque
@@ -256,10 +266,11 @@ type FaceRangee = FaceListee & { geom: FaceGeom; surLaCarte: { x: number; y: num
 function emballer(scene: Pick<Scene, 'dimensions' | 'metresPerTile'>, faces: readonly FaceRangee[]): GeometrieDuMonde {
   const centre = centreDeLaCarte(scene.dimensions, sceneMetresPerTile(scene));
   const parMatiere = new Map<string, Provenance & { matiere: string; faces: number[] }>();
-  faces.forEach(({ face, navire, flottaison, luminaire }, i) => {
+  faces.forEach(({ face, navire, flottaison, luminaire, decor }, i) => {
     const matiere = nomDeMatiere(face.material);
-    const cle = `${navire ?? ''}|${flottaison ?? ''}|${luminaire ?? ''}|${matiere}`;
-    const groupe = parMatiere.get(cle) ?? parMatiere.set(cle, { matiere, ...(navire ? { navire } : {}), ...(flottaison ? { flottaison } : {}), ...(luminaire ? { luminaire } : {}), faces: [] }).get(cle)!;
+    const cle = `${navire ?? ''}|${flottaison ?? ''}|${luminaire ?? ''}|${decor ?? ''}|${matiere}`;
+    const provenance = { ...(navire ? { navire } : {}), ...(flottaison ? { flottaison } : {}), ...(luminaire ? { luminaire } : {}), ...(decor ? { decor } : {}) };
+    const groupe = parMatiere.get(cle) ?? parMatiere.set(cle, { matiere, ...provenance, faces: [] }).get(cle)!;
     groupe.faces.push(i);
   });
   const positions: number[] = [];
@@ -332,25 +343,89 @@ type FaceDuMorceau = FacePlacee & Readonly<{ surLaCarte: Case; quads: QuadsDeFac
 /**
  * L'état d'où le volume d'une scène se reprend (`volumeDepuis`) : la scène vue par son volume (`SceneDuVolume`) dont il
  * est issu, les montants de chaque couche (`montantsDeLaCouche`, par case `x,y`), les cases bloquées par une entité
- * (`x,y,z`), par couche et par case les faces de sol et celles du décor du terrain, par entité (son `id`) son pied et
- * les faces de son décor, par crête (sa case et son arête) ses faces, par case de flottaison sa face de mer,
- * les quads de chaque face, et par morceau ses faces, leurs rangs et le morceau.
+ * (`x,y,z`), par couche et par case les faces de sol, par décor posé (`PoseDeDecor.cle`) sa pose et ses faces, par crête
+ * (sa case et son arête) ses faces, par case de flottaison sa face de mer, les quads de chaque face, et par morceau ses
+ * faces, leurs rangs et le morceau.
  */
 export interface EtatDuVolume {
   readonly scene: Readonly<SceneDuVolume>;
   readonly montants: ReadonlyMap<number, ReadonlyMap<string, readonly Face[]>>;
   readonly bloquees: ReadonlySet<string>;
   readonly sols: ReadonlyMap<number, readonly (readonly Face[] | null)[]>;
-  readonly decorsDuTerrain: ReadonlyMap<number, readonly (readonly Face[])[]>;
-  readonly decorsDEntite: ReadonlyMap<string, DecorDEntite>;
+  readonly decors: ReadonlyMap<string, DecorPose>;
   readonly cretes: ReadonlyMap<string, Readonly<{ canon: string; faces: readonly Face[] }>>;
   readonly mer: ReadonlyMap<string, readonly Face[]>;
   readonly quads: ReadonlyMap<Face, QuadsDeFace>;
   readonly morceaux: ReadonlyMap<string, Readonly<{ faces: readonly FaceDuMorceau[]; morceau: MorceauDuMonde }>>;
 }
 
-/** Le décor d'une entité `prop` : l'entité, son pied (`piedDuDecor`) et ses faces (`facesDuDecor`). */
-type DecorDEntite = Readonly<{ entite: SceneEntity; pied: number; faces: readonly Face[] }>;
+/** Un décor posé dans le volume (`posesDuVolume`) : sa pose et la case de sa teinte (`FaceListee.cell`). */
+type PoseAuVolume = Readonly<{ pose: PoseDeDecor; cell: Case }>;
+
+/** Un décor posé : sa pose, la case de sa teinte, et ses faces (`facesDuDecor`). */
+type DecorPose = PoseAuVolume & Readonly<{ faces: readonly Face[] }>;
+
+/**
+ * @contrat Monde
+ * Un décor posé dans le volume (`posesDesDecors`) : ce que ses faces (`facesDuDecor`) portent, le seul calcul de son
+ * ancre, de son cap et de son pied, que le volume et le pont lisent tous deux.
+ */
+export interface PoseDeDecor {
+  /** son identité dans le monde : `entite/<id>` pour une entité `prop`, `terrain/<x,y,z>` de sa case pour le terrain. */
+  cle: string;
+  /** l'id de son type de décor (`props.json`), celui que porte `decor` de ses surfaces. */
+  prop: string;
+  /**
+   * le point de la scène, en cases continues (la case centrée sur l'entier), où se pose l'origine de sa recette :
+   * `ancreDuDecor` pour une entité `prop`, le centre de sa case pour le décor du terrain.
+   */
+  ancre: { x: number; y: number };
+  /**
+   * son cap cardinal résolu (`capVolumique` du `facing` d'une entité `prop`, `S` sans lui ; celui de `decorDuTerrain` pour
+   * le décor du terrain), dans le repère de `rotatePropLocal`
+   * (`src/data/props.types.ts`) : `S` laisse la recette telle qu'authorée, chaque cran la tourne de 45° horaires.
+   */
+  cap: Dir4;
+  /** la hauteur de son pied, en mètres : `piedDuDecor` pour une entité `prop`, `heightAt` de sa case pour le terrain. */
+  piedM: number;
+  /** la case que portent ses triangles dans `cases` (`caseSurLaCarte`) : celle de son voile et de son retrait. */
+  case: { x: number; y: number; z: number };
+  /** l'id de son entité `prop`, absent pour le décor du terrain (`decorDuTerrain`). */
+  entId?: string;
+  /** présent quand il éclaire (`mapLights`), comme `luminaire` de ses surfaces. */
+  luminaire?: true;
+}
+
+/** `a` et `b` posent-ils le même décor au même endroit, éclairant ou non de même ? */
+const memePose = (a: PoseDeDecor, b: PoseDeDecor): boolean =>
+  a.prop === b.prop && a.ancre.x === b.ancre.x && a.ancre.y === b.ancre.y && a.cap === b.cap && a.piedM === b.piedM
+  && memeCase(a.case, b.case) && a.entId === b.entId && a.luminaire === b.luminaire;
+
+/** Les décors posés de `scene` vue par son volume (`couchesDuVolume` appliqué) : celui que son terrain pose sur chaque
+ *  case de chaque couche (`decorDuTerrain`), case par case, puis chaque entité `prop`, dans l'ordre des entités ;
+ *  chacun qui se dessine en volume (`decorEnVolume`) sur une couche de la scène (`caseSurLaCarte`). PUR. */
+function posesDuVolume(scene: Readonly<SceneDuVolume>): PoseAuVolume[] {
+  const { w, h } = scene.dimensions;
+  const mpt = sceneMetresPerTile(scene);
+  const luminaires = new Set(mapLights(scene).map((source) => source.srcId));
+  const poser = (ref: string | undefined, facing: Dir8 | undefined, ancre: { x: number; y: number }, piedM: number, cell: Case, entId?: string): PoseAuVolume[] => {
+    const resolu = decorEnVolume(ref, facing);
+    const surLaCarte = caseSurLaCarte(scene, cell);
+    if (!resolu || !surLaCarte) return [];
+    const eclaire = entId !== undefined && luminaires.has(entId);
+    const cle = entId !== undefined ? `entite/${entId}` : `terrain/${spaceCellKey(surLaCarte.x, surLaCarte.y, surLaCarte.z)}`;
+    const pose = { cle, prop: resolu.prop.id, ancre, cap: resolu.cap, piedM, case: surLaCarte, ...(entId !== undefined ? { entId } : {}), ...(eclaire ? { luminaire: true as const } : {}) };
+    return [{ pose, cell }];
+  };
+  const duTerrain = scene.layers.flatMap(({ z }) => Array.from({ length: w * h }, (_, i) => {
+    const [x, y] = [i % w, Math.floor(i / w)];
+    const decor = decorDuTerrain(tileAt(scene, x, y, z), x, y, z);
+    return decor ? poser(decor.prop, decor.cap, { x, y }, heightAt(scene, x, y, z), { x, y, z }) : [];
+  }).flat());
+  const desEntites = scene.entities.flatMap((ent) =>
+    ent.kind === 'prop' ? poser(ent.decor?.id, ent.facing, ancreDuDecor(ent, mpt), piedDuDecor(scene, ent), { ...ent.pos, z: ent.z ?? 0 }, ent.id) : []);
+  return [...duTerrain, ...desEntites];
+}
 
 /** `a` et `b` sont-ils le même objet, sinon du même contenu (`jsonCanonique`) ? */
 const memeObjet = (a: unknown, b: unknown): boolean => a === b || jsonCanonique(a) === jsonCanonique(b);
@@ -429,6 +504,7 @@ const memesFaces = (a: readonly FaceDuMorceau[], b: readonly FaceDuMorceau[]): b
   a.length === b.length && a.every((f, i) => {
     const g = b[i];
     return f.face === g.face && memeCase(f.cell, g.cell) && memeCase(f.surLaCarte, g.surLaCarte) && f.navire === g.navire && f.flottaison === g.flottaison
+      && f.luminaire === g.luminaire && f.decor === g.decor
       && f.rangs.length === g.rangs.length && f.rangs.every((r, j) => r === g.rangs[j]);
   });
 
@@ -457,19 +533,18 @@ const couchesDuVolume = (scene: Readonly<SceneDuVolume>): SceneDuVolume['layers'
  *  sinon, seul ce que la différence touche se refait.
  *  Le sol de chaque case de chaque couche (`floorFaces`), à refaire selon `solARefaire` ; la mer de la flottaison de
  *  chaque navire (`MER`, à la hauteur 0, à la place du sol de la scène hors de ses ponts) ; les crêtes des zones
- *  crénelées (`cretesDePerimetre`), reprises à contenu égal ; le décor que son terrain pose sur chaque case
- *  (`terrainOverlayProp`), repris à décor et hauteur égaux ; celui des entités `prop`, à leur ancre (`ancreDuDecor`) et
- *  à leur cap, sur leur pied (`piedDuDecor`), repris à entité et pied égaux. Le rang coplanaire se calcule sur toutes
+ *  crénelées (`cretesDePerimetre`), reprises à contenu égal ; chaque décor posé (`posesDuVolume` : celui du terrain, puis
+ *  ceux des entités `prop`), à son ancre, à son cap et sur son pied, repris à pose égale. Le rang coplanaire se calcule sur toutes
  *  les faces ; chaque face va au morceau de sa case sur la carte (`caseSurLaCarte`) et de son genre, aucun au-dessus de
  *  la plus haute couche ; un morceau aux mêmes faces (`memesFaces`) est repris, les autres se triangulent. Le sol et
  *  les crêtes d'une case que les ponts d'un navire posent portent ce navire (`provenanceDesNavires`) ; ses décors,
- *  non ; les décors d'entité qui éclairent (`mapLights`) portent `luminaire`. `precedent` n'est jamais modifié. PUR. */
+ *  non ; chaque face d'un décor porte `decor`, l'id de son type, et celles d'un décor qui éclaire (`mapLights`),
+ *  `luminaire`. `precedent` n'est jamais modifié. PUR. */
 export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuVolume | null): { volume: VolumeDuMonde; etat: EtatDuVolume } {
   const scene: Readonly<SceneDuVolume> = { ...entree, layers: couchesDuVolume(entree) };
   const mpt = sceneMetresPerTile(scene);
   const { w, h } = scene.dimensions;
   const provenance = provenanceDesNavires(scene);
-  const luminaires = new Set(mapLights(scene).map((source) => source.srcId));
   const avant = precedent && memeCadre(precedent, scene) ? precedent : null;
   const montants = new Map(scene.layers.map(({ z }) => [z, montantsDeLaCouche(scene, z)]));
   const bloquees = casesBloquees(scene);
@@ -477,17 +552,11 @@ export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuV
   const parCase = <T>(f: (x: number, y: number, z: number, i: number) => T) => new Map(scene.layers.map(({ z }) => [z, Array.from({ length: w * h }, (_, i) => f(i % w, Math.floor(i / w), z, i))]));
   const sols = parCase((x, y, z, i) =>
     avant && !aRefaire(x, y, z) ? avant.sols.get(z)![i] : floorFaces(scene, x, y, z, isOverhang(scene, x, y, z), montants.get(z)!.get(`${x},${y}`) ?? []));
-  const decorsDuTerrain = parCase((x, y, z, i): readonly Face[] => {
-    const [decor, haut] = [terrainOverlayProp(tileAt(scene, x, y, z)), heightAt(scene, x, y, z)];
-    if (avant && terrainOverlayProp(tileAt(avant.scene, x, y, z)) === decor && heightAt(avant.scene, x, y, z) === haut) return avant.decorsDuTerrain.get(z)![i];
-    return facesDuDecor(decor, { ancre: { x, y }, baseHeightM: haut }, mpt) ?? [];
-  });
-  const decors = scene.entities.flatMap((ent): DecorDEntite[] => {
-    if (ent.kind !== 'prop') return [];
-    const pied = piedDuDecor(scene, ent);
-    const ancien = avant?.decorsDEntite.get(ent.id);
-    if (ancien && ancien.pied === pied && memeObjet(ancien.entite, ent)) return [ancien];
-    return [{ entite: ent, pied, faces: facesDuDecor(ent.decor?.id, { ancre: ancreDuDecor(ent, mpt), ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: pied, entId: ent.id }, mpt) ?? [] }];
+  const decors = posesDuVolume(scene).map(({ pose, cell }): DecorPose => {
+    const ancien = avant?.decors.get(pose.cle);
+    if (ancien && memeCase(ancien.cell, cell) && memePose(ancien.pose, pose)) return ancien;
+    const { prop, ancre, cap, piedM, entId } = pose;
+    return { pose, cell, faces: facesDuDecor(prop, { ancre, facing: cap, baseHeightM: piedM, ...(entId !== undefined ? { entId } : {}) }, mpt)! };
   });
   const mer = new Map([...provenance.flottaison.keys()].map((cle): [string, readonly Face[]] => {
     const [x, y] = cle.split(',').map(Number);
@@ -517,13 +586,8 @@ export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuV
     for (const face of mer.get(cle)!) placees.push({ face, cell: { x, y, z }, flottaison: navire, genre: 'pose' });
   }
   for (const c of cretes) for (const face of c.faces) placees.push({ face, cell: c.case, ...duNavire(c.case), genre: 'pose' });
-  for (const { z } of scene.layers)
-    decorsDuTerrain.get(z)!.forEach((faces, i) => {
-      const cell = { x: i % w, y: Math.floor(i / w), z };
-      for (const face of faces) placees.push({ face, cell, genre: 'pose' });
-    });
-  for (const { entite, faces } of decors)
-    for (const face of faces) placees.push({ face, cell: { ...entite.pos, z: entite.z ?? 0 }, ...(luminaires.has(entite.id) ? { luminaire: true as const } : {}), genre: 'pose' });
+  for (const { pose, cell, faces } of decors)
+    for (const face of faces) placees.push({ face, cell, decor: pose.prop, ...(pose.luminaire ? { luminaire: true as const } : {}), genre: 'pose' });
 
   const quads = new Map<Face, QuadsDeFace>();
   for (const { face } of placees) if (!quads.has(face)) quads.set(face, avant?.quads.get(face) ?? faceQuadsOriented(face, mpt, faceDepthM(face)));
@@ -550,8 +614,8 @@ export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuV
   return {
     volume: { metresParCase: mpt, hauteurs, morceaux: [...morceaux.values()].map((m) => m.morceau) },
     etat: {
-      scene, montants, bloquees, sols, decorsDuTerrain,
-      decorsDEntite: new Map(decors.map((d) => [d.entite.id, d])),
+      scene, montants, bloquees, sols,
+      decors: new Map(decors.map((d) => [d.pose.cle, d])),
       cretes: new Map(cretes.map((c) => [c.cle, c])),
       mer, quads, morceaux,
     },
@@ -575,6 +639,13 @@ export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   const version = versionDesDatasets();
   const deps = [version, ...CHAMPS_DU_VOLUME.map((c) => (c === 'flags' ? tuilesEffondreesSignature(scene) : scene[c]))];
   return volumeRetenu(deps, (precedent) => volumeDepuis(projectionDuVolume(scene), precedent?.deps[0] === version ? precedent.value.etat : null)).volume;
+});
+
+/** Les décors posés de `scene` (`PoseDeDecor`), ceux dont le volume du monde (`volumeDuMonde`) pose les faces, dans
+ *  son ordre (`posesDuVolume`). Mémoïsés par scène et version des datasets (`memoByRef`). PUR. */
+export const posesDesDecors = memoByRef((scene: Scene): PoseDeDecor[] => {
+  const vue = projectionDuVolume(scene);
+  return posesDuVolume({ ...vue, layers: couchesDuVolume(vue) }).map(({ pose }) => pose);
 });
 
 /** Les octets du masque de ce que le regard retire du volume de `scene` (`volumeDuMonde`, `RetraitDuMonde`) : les cases

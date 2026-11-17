@@ -14,15 +14,19 @@ Une tenue se rend montée sur sa base : `--input` est la base, chaque `--element
 voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import), comme l'évaluateur. Les zones
 que couvrent les éléments sont masquées sur la base, un rigide pend à l'os de même nom de la base, une pièce skinnée suit
 son armature. `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
-le preset de personnage (`src/data/presets-de-personnage.json`) y pose au nuancier (`src/data/materials.json`) ; chaque
-surface d'un élément qui déclare une `matiere` s'habille comme le jeu l'habille, de sa texture du catalogue
-`CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette couleur ; `--clip`
+la race du preset de personnage (`src/data/raceAppearance.json`) puis le preset (`src/data/presets-de-personnage.json`)
+y posent au nuancier (`src/data/materials.json`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
+le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
+couleur ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
 directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
+`--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut) vise ce centre et cadre cette étendue dans les vues
+de face, de trois-quarts, de dos, d'échelle et isométriques au lieu de celles du modèle ; l'éclairage reste celui du
+modèle (#4338).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <base.glb> --element <a.glb> [--element <b.glb>] \\
-        --preset sorcier [--clip Hampe_Repos_Loop --image 20] [--illustration <illustration.png>] --output <dossier vide>
+        --preset sorcier [--clip Hampe_Repos_Loop --image 20] [--illustration <illustration.png>] [--cadre 0,0.02,0.62,1.2] --output <dossier vide>
 """
 import argparse
 import hashlib
@@ -35,6 +39,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from glb import lire_glb  # noqa: E402
+from habillage import couleur_lineaire  # noqa: E402
 from noms_silhouettes import CORPULENCE  # noqa: E402
 
 DEPOT = Path(__file__).resolve().parents[2]
@@ -62,6 +67,17 @@ def lire_silhouettes(texte):
             raise argparse.ArgumentTypeError(f'« {paire} » ; attendu nom=<nombre>[,nom=<nombre>]')
         poids[nom] = nombre
     return poids
+
+
+def lire_cadre(texte):
+    """Le cadre de `--cadre`, `x,y,z,étendue` en mètres, l'étendue positive : (x, y, z, étendue)."""
+    try:
+        cadre = tuple(float(v) for v in texte.split(','))
+    except ValueError:
+        cadre = ()
+    if len(cadre) != 4 or not all(math.isfinite(v) for v in cadre) or cadre[3] <= 0:
+        raise argparse.ArgumentTypeError(f'« {texte} » ; attendu x,y,z,étendue en mètres, l\'étendue positive')
+    return cadre
 
 
 def poser_les_silhouettes(bpy, poids):
@@ -95,6 +111,16 @@ def manifeste_voisin(glb):
     if chemin is None:
         raise ValueError(f'{glb} : ni {glb.stem}.element.json ni {glb.stem}.manifeste.json à côté')
     return json.loads(chemin.read_text(encoding='utf-8'))
+
+
+def trouver(dossiers, id_):
+    """Le GLB et le manifeste de `id_` dans le premier des `dossiers` qui les porte."""
+    for d in dossiers:
+        for glb, manifeste in ((d / id_ / f"{id_}.glb", d / id_ / f"{id_}.element.json"),
+                               (d / f"{id_}.glb", d / f"{id_}.manifeste.json")):
+            if glb.exists() and manifeste.exists():
+                return glb, json.loads(manifeste.read_text(encoding="utf-8"))
+    raise FileNotFoundError(f"{id_} : ni <id>/<id>.glb ni <id>.glb (avec son manifeste) sous {[str(d) for d in dossiers]}")
 
 
 def matrice_du_noeud(noeud):
@@ -202,16 +228,24 @@ def monter(bpy, base, rig, elements):
                         mod.object = rig
 
 
+def palette(preset, races, matieres):
+    """La palette du `preset` de personnage, comme le noyau la compose (`porteeDeComposition`, #4379) :
+    `{emplacement: couleur linéaire (r, g, b)}`, les couleurs de sa race de `races` (`raceAppearance.json`), chacune
+    remplacée par la sienne, résolues au nuancier de `matieres` (`materials.json`)."""
+    race = next(r for r in races if r['id'] == preset['race']['id'])
+    nuancier = {m['id']: m['color'] for m in matieres if m.get('domain') == 'couleur'}
+    couleurs = {**race.get('couleurs', {}), **preset.get('couleurs', {})}
+    return {slot: couleur_lineaire(nuancier[couleur['id']]) for slot, couleur in couleurs.items()}
+
+
 def palette_du_preset(id_):
-    """`{emplacement: couleur linéaire (r, g, b)}` du preset de personnage `id_`, résolue au nuancier."""
-    preset = next((p for p in json.loads((DONNEES / 'presets-de-personnage.json').read_text(encoding='utf-8')) if p['id'] == id_), None)
+    """`palette` du preset de personnage `id_` sur les données du dépôt."""
+    def lire(fichier):
+        return json.loads((DONNEES / fichier).read_text(encoding='utf-8'))
+    preset = next((p for p in lire('presets-de-personnage.json') if p['id'] == id_), None)
     if preset is None:
         raise ValueError(f'--preset {id_} : aucun preset de personnage de cet id')
-    nuancier = {m['id']: m['color'] for m in json.loads((DONNEES / 'materials.json').read_text(encoding='utf-8')) if m.get('domain') == 'couleur'}
-
-    def lineaire(hexa):
-        return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in (int(hexa[i:i + 2], 16) / 255 for i in (1, 3, 5)))
-    return {slot: lineaire(nuancier[couleur['id']]) for slot, couleur in preset.get('couleurs', {}).items()}
+    return palette(preset, lire('raceAppearance.json'), lire('materials.json'))
 
 
 def colorer(objets, surfaces, palette):
@@ -229,15 +263,17 @@ def colorer(objets, surfaces, palette):
 
 def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
     """La surface du manifeste comme le jeu l'habille (`MontageDeComposition.peindre`) : la texture de sa `matiere` du
-    catalogue, sa texture neutre (`<matiere>.neutre.jpg`) si `couleur` est donnée et que le catalogue la porte, teinte de
-    `couleur` (linéaire) ; lue aux UV `couche` si `par_uv` et que la surface n'est pas `blason`, projetée sinon dans le
-    repère de l'objet (Box, fondu 0.2) ; un motif tous les `METRES_PAR_MOTIF` ; sans matière, la couleur de son
-    matériau ; l'emblème `emblem` en couche de détail (UV `couche`) si `blason` et qu'il est donné."""
+    catalogue si le catalogue la porte, sa texture neutre (`<matiere>.neutre.jpg`) si `couleur` est donnée et que le
+    catalogue la porte, teinte de `couleur` (linéaire) ; lue aux UV `couche` si `par_uv` et que la surface n'est pas
+    `blason`, projetée sinon dans le repère de l'objet (Box, fondu 0.2) ; un motif tous les `METRES_PAR_MOTIF` ; sans
+    texture, la couleur de son matériau ; l'emblème `emblem` en couche de détail (UV `couche`) si `blason` et qu'il est
+    donné."""
     nt = mat.node_tree
     bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
     base = bsdf.inputs["Base Color"]
     sortie = None
-    if surface.get("matiere"):
+    matiere = surface.get("matiere")
+    if matiere and (CATALOGUE / f"{matiere}.jpg").exists():
         for lien in list(nt.links):
             if lien.to_socket == base:
                 nt.links.remove(lien)
@@ -252,8 +288,8 @@ def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
             coord = nt.nodes.new("ShaderNodeTexCoord")
             nt.links.new(coord.outputs["Object"], echelle.inputs["Vector"])
             tex.projection, tex.projection_blend = "BOX", 0.2
-        neutre = CATALOGUE / f"{surface['matiere']}.neutre.jpg"
-        image = neutre if couleur is not None and neutre.exists() else CATALOGUE / f"{surface['matiere']}.jpg"
+        neutre = CATALOGUE / f"{matiere}.neutre.jpg"
+        image = neutre if couleur is not None and neutre.exists() else CATALOGUE / f"{matiere}.jpg"
         tex.image = bpy.data.images.load(str(image.resolve(strict=True)), check_existing=True)
         nt.links.new(echelle.outputs["Vector"], tex.inputs["Vector"])
         sortie = tex.outputs["Color"]
@@ -423,6 +459,7 @@ def main():
     parser.add_argument('--clip', help='clip de la base posé avant le rendu')
     parser.add_argument('--image', type=int, default=1, help='image du clip posée')
     parser.add_argument('--illustration', type=Path, help='illustration directrice posée à gauche de planche.png')
+    parser.add_argument('--cadre', type=lire_cadre, help='x,y,z,étendue : centre et étendue cadrés au lieu de ceux du modèle')
     args = parser.parse_args()
     source = Path(args.input).resolve(strict=True)
     output = Path(args.output).resolve()
@@ -491,24 +528,25 @@ def main():
         materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
     report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
     render = studio(bpy, low, center, extent, output, start)
+    cible, etendue = (Vector(args.cadre[:3]), args.cadre[3]) if args.cadre else (center, extent)
     if args.isometric_only:
         report['camera_elevation_degrees'] = 45
         report['camera_direction'] = [1, -1, 2 ** 0.5]
         for size in (512, 40, 64, 128):
-            render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), center, extent * 1.12, size, size)
+            render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), cible, etendue * 1.12, size, size)
     else:
-        render('face-trois-quarts.png', (0.65, -1, 0.17), center, extent * 1.12, 1000, 1200)
-        render('dos-trois-quarts.png', (-0.65, 1, 0.17), center, extent * 1.12, 1000, 1200)
+        render('face-trois-quarts.png', (0.65, -1, 0.17), cible, etendue * 1.12, 1000, 1200)
+        render('dos-trois-quarts.png', (-0.65, 1, 0.17), cible, etendue * 1.12, 1000, 1200)
         if skinned:
-            render('face.png', (0, -1, 0.05), center, extent * 1.12, 1000, 1200)
-            render('dos.png', (0, 1, 0.05), center, extent * 1.12, 1000, 1200)
+            render('face.png', (0, -1, 0.05), cible, etendue * 1.12, 1000, 1200)
+            render('dos.png', (0, 1, 0.05), cible, etendue * 1.12, 1000, 1200)
             if args.illustration:
                 planche(bpy, [args.illustration.resolve(strict=True)] + [output / v for v in ('face.png', 'face-trois-quarts.png', 'dos.png')],
                         output / 'planche.png')
             portrait_target = Vector((center.x, center.y, low.z + height * 0.86))
             render('portrait.png', (0.3, -1, 0.05), portrait_target, height * 0.32, 768, 768)
         for size in (40, 64, 128):
-            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), center, extent * 1.12, round(size * 1000 / 1200), size)
+            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), cible, etendue * 1.12, round(size * 1000 / 1200), size)
     report['elapsed_seconds'] = time.monotonic() - start
     report['sha256_after'] = hashlib.sha256(source.read_bytes()).hexdigest()
     if digest != report['sha256_after']:

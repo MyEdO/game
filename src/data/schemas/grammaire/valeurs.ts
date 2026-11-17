@@ -846,7 +846,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 /** Le libellé de chaque emplacement de palette (`SLOTS`, `src/lib/palette.ts`). */
 const LIBELLES_DES_SLOTS = {
   peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Étoffe principale', vet2: 'Étoffe secondaire', cuir: 'Cuir', metal: 'Métal',
-  corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume', vegetal: 'Végétal',
+  metal2: 'Métal secondaire', corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume', vegetal: 'Végétal',
 } as const satisfies Readonly<Record<Slot, string>>;
 
 /** Un emplacement de palette. */
@@ -887,12 +887,14 @@ export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   isShelter: z.boolean().optional(),
   isRations: z.boolean().optional(),
   isGrimoire: z.boolean().optional(),
+  isSpellComponent: z.boolean().optional(),
   lockpicks: z.boolean().optional(),
   scurvyGuard: z.boolean().optional(),
   sealskin: z.boolean().optional(),
   shipParts: z.boolean().optional(),
   disarmImmune: z.boolean().optional(),
   detruitAuLancer: z.boolean().optional(),
+  armureDeMonture: z.boolean().optional(),
   ropeMode: z.boolean().optional(),
   waterContainer: z.boolean().optional(),
   improvisedWithoutCharge: z.boolean().optional(),
@@ -902,12 +904,14 @@ export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   isShelter: { label: 'Abri' },
   isRations: { label: 'Rations' },
   isGrimoire: { label: 'Grimoire' },
+  isSpellComponent: { label: 'Composant d’incantation' },
   lockpicks: { label: 'Crochets' },
   scurvyGuard: { label: 'Protection contre le scorbut' },
   sealskin: { label: 'Peau de phoque' },
   shipParts: { label: 'Pièces de navire' },
   disarmImmune: { label: 'Immunité au désarmement' },
   detruitAuLancer: { label: 'Détruit au lancer' },
+  armureDeMonture: { label: 'Armure de monture' },
   ropeMode: { label: 'Usage de la corde' },
   waterContainer: { label: 'Récipient d’eau' },
   improvisedWithoutCharge: { label: 'Improvisée sans Charge' },

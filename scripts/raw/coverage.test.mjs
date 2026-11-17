@@ -1,8 +1,8 @@
 // Test de la granularité SECTION adaptative de `coverage.mjs` (#454 défaut A/7, #604) : `sectionsOf`
 // (découpe pure du texte d'un chapitre en sections, au niveau de heading `splitLevel`), `refSpansFor`
 // (plages de ligne des refs `ABBR NN l.X`), `annotateSections` (recoupement section↔refs) et
-// `classifyHole` (ventilation fiche/catalogue/scénario/hors-règle/trou, #604) — toutes PURES, aucun
-// accès disque sauf les deux tests marqués « Disque RÉEL ». Lancé par `npm run test:raw`.
+// `classifyHole` (ventilation fiche/catalogue/scénario/hors-règle/trou, #604) — toutes PURES ; les refs
+// au folio se résolvent contre un livre de BANC (`avecLivreFixture`). Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
@@ -10,6 +10,7 @@ import {
   markerSplitStub, chapterTitleOf, rendre,
 } from './coverage.mjs'
 import { BOOKS, chapterFile, coeurDe, niveauDeSectionDe, readText } from './_lib.mjs'
+import { avecLivreFixture } from './atlasFixture.mjs'
 
 // #604 (garde de classe) : le seam readText (_lib.mjs) normalise \r\n/\r -> \n AU POINT DE LECTURE --
 // sectionsOf lui-meme reste nu (aucune tolerance interne). Repro root-cause : le '.' de regex exclut
@@ -224,25 +225,28 @@ test('annotateSections : la section "(intro)" (avant le premier H2) est TOUJOURS
   assert.ok(!ann.some((s) => s.isIntro))
 })
 
-test('refSpansFor (#606) : une ref FOLIO `ABBR NN p.X` credite le meme chapitre que `l.X`, sans throw', () => {
-  // Disque REEL (LDB 10 = Talents, le cas fondateur du ticket) : la graphie folio des fiches de l'Atlas
-  // resout une plage de lignes VIA folioRange -- jamais 0 span silencieux.
+// Livre de BANC : le ch.10 porte les folios 132 et 133 (une ancre et une ligne de texte chacun, après
+// le titre), le ch.48 le folio 255, le ch.49 le folio 256.
+const avecFolios = (fn) => avecLivreFixture('LDB', { 10: [132, 133], 48: [255], 49: [256] }, fn)
+
+test('refSpansFor (#606) : une ref FOLIO `ABBR NN p.X` credite le meme chapitre que `l.X`, sans throw', () => avecFolios((registre) => {
+  // La graphie folio des fiches de l'Atlas resout la plage de lignes du folio VIA folioRange : de son
+  // ancre (l.2) a l'ancre suivante (l.4) -- jamais 0 span silencieux.
   const docs = [{ file: 'talents.md', text: 'LDB 10 p.132 — Table des Talents.' }]
   const stats = { ignoredFolios: 0 }
-  const spans = refSpansFor('LDB', '10', docs, stats)
-  assert.equal(spans.length, 1)
-  assert.ok(spans[0].hi >= spans[0].lo && spans[0].lo > 0)
+  const spans = refSpansFor('LDB', '10', docs, stats, registre)
+  assert.deepEqual(spans, [{ lo: 2, hi: 4, file: 'talents.md' }])
   assert.equal(stats.ignoredFolios, 0)
-})
+}))
 
-test('refSpansFor (#606) : un folio qui resout vers un AUTRE chapitre (frontiere) est IGNORE proprement, jamais credite au mauvais chapitre', () => {
-  // Cas reel `LDB 49 p.255` (corruption.md) : le folio 255 vit en realite en LDB 48 (residu #454/#522).
+test('refSpansFor (#606) : un folio qui resout vers un AUTRE chapitre (frontiere) est IGNORE proprement, jamais credite au mauvais chapitre', () => avecFolios((registre) => {
+  // Le folio 255 n'est ancre qu'au ch.48 : cite sous le ch.49, il ne credite rien.
   const docs = [{ file: 'corruption.md', text: 'Mauvais œil (LDB 49 p.255).' }]
   const stats = { ignoredFolios: 0 }
-  const spans = refSpansFor('LDB', '49', docs, stats)
+  const spans = refSpansFor('LDB', '49', docs, stats, registre)
   assert.deepEqual(spans, [])
   assert.equal(stats.ignoredFolios, 1)
-})
+}))
 
 // --- #604 : granularité adaptative (`niveauDeSection` du registre) ---
 

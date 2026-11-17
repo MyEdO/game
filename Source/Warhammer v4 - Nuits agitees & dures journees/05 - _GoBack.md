@@ -1,6 +1,6 @@
 *Pages PDF 15-24*
 
-À un moment, tôt dans la soirée, un des PNJ secondaires (un serviteur ou un garde) lui fait une suggestion déplacée. Elle l'assomme rapidement et efficacement. Le propriétaire intervient alors pour éviter une bagarre. Si l'un des Personnages l'insulte avant, elle réagira de la même façon, sans dégainer d'arme. Si des armes sont dégainées, ou que le combat dure plus de 2 Rounds, le propriétaire et le personnel interviennent, aidés par autant de clients de l'auberge que nécessaire.
+<span id="page-14-0" data-folio="13"></span>À un moment, tôt dans la soirée, un des PNJ secondaires (un serviteur ou un garde) lui fait une suggestion déplacée. Elle l'assomme rapidement et efficacement. Le propriétaire intervient alors pour éviter une bagarre. Si l'un des Personnages l'insulte avant, elle réagira de la même façon, sans dégainer d'arme. Si des armes sont dégainées, ou que le combat dure plus de 2 Rounds, le propriétaire et le personnel interviennent, aidés par autant de clients de l'auberge que nécessaire.
 
 ### **22h00**
 
@@ -51,7 +51,7 @@ Rechtshandler ouvre doucement la porte de sa chambre et regarde à l'extérieur.
 Erpresser va voir «Schmidt » dans sa chambre. Il toque à la porte et est autorisé à entrer immédiatement. Il y a un lourd bruit (entendu avec un Test de **Perception Intermédiaire (+0)**; le Test est **Accessible (+20)** si un Personnage écoute à la porte ou est dans une chambre adjacente) lorsque «Schmidt » tue le serviteur.
 
 
-Quelques moments plus tard, « Schmidt » ouvre précautionneusement sa porte pour voir si la voie est libre et va essayer de se débarrasser du corps de la même façon que Rechtshandler (voir *22h50*).
+<span id="page-15-0" data-folio="14"></span>Quelques moments plus tard, « Schmidt » ouvre précautionneusement sa porte pour voir si la voie est libre et va essayer de se débarrasser du corps de la même façon que Rechtshandler (voir *22h50*).
 
 ### **23h15**
 
@@ -98,7 +98,7 @@ Elle va sembler familière aux Personnages, car elle a été volée à l'un d'eu
 Après que toutes les accusations et les protestations d'innocence se sont calmées, la Gravin se lève.
 
 
-*«Je suis autorisée en tant que Gravin à exercer mon droit impérial de dispenser la justice courante et il semble juste que je le fasse dans le cas présent, étant donné que je suis la principale partie lésée. C'est pourquoi je statue que ce groupe devra être enfermé dans leur chambre jusqu'au matin, lorsque je déciderai de la suite. Toutes leurs armes et équipements seront confisqués et des gardes seront postés à leur porte et sous leurs fenêtres. Vous, cependant,»*  elle désigne le Personnage de Classe Guerrier semblant le plus fort, ou celui qui s'en rapproche le plus, *«je vous condamne à remplacer mon champion assassiné jusqu'à ce qu'il me plaise d'en décider autrement.»* Un murmure parcourt la salle du bar, mais personne ne remet en cause sa décision.
+<span id="page-16-0" data-folio="15"></span>*«Je suis autorisée en tant que Gravin à exercer mon droit impérial de dispenser la justice courante et il semble juste que je le fasse dans le cas présent, étant donné que je suis la principale partie lésée. C'est pourquoi je statue que ce groupe devra être enfermé dans leur chambre jusqu'au matin, lorsque je déciderai de la suite. Toutes leurs armes et équipements seront confisqués et des gardes seront postés à leur porte et sous leurs fenêtres. Vous, cependant,»*  elle désigne le Personnage de Classe Guerrier semblant le plus fort, ou celui qui s'en rapproche le plus, *«je vous condamne à remplacer mon champion assassiné jusqu'à ce qu'il me plaise d'en décider autrement.»* Un murmure parcourt la salle du bar, mais personne ne remet en cause sa décision.
 
 Le corps de Bruno est confié aux «Morriens » avec la requête d'en prendre soin jusqu'à l'aube. Il est emmené dans leur chambre, enveloppé dans une couverture, ainsi que tout autre corps qui aurait pu être découvert jusqu'à présent.
 
@@ -165,7 +165,7 @@ Si *Une nuit agitée aux Trois Plumes* est jouée comme une aventure indépendan
 Calme, confiante et assurée, la gravin Maria Ulrike est dans la trentaine et dégage la noblesse tranquille d'une femme de pouvoir. Grande, avec des cheveux blonds coupés courts, elle préfère la dernière mode du Reikland bien qu'elle s'habillera conformément aux coutumes locales pour faire la meilleure impression possible. Le reikspiel que la Gravin parle est raffiné, mais possède une note d'inflexion ascendante trahissant ses longs hivers passés à Nuln.
 
 
-#### MARIA ULRIKE VON LIEBWITZ - NOBLE SEIGNEUR (OR 7)
+#### <span id="page-18-0" data-folio="17"></span>MARIA ULRIKE VON LIEBWITZ - NOBLE SEIGNEUR (OR 7)
 
 | M | CC | CT | F  | E  | I  | Ag | Dex | Int | FM | Soc | B  |
 |---|----|----|----|----|----|----|-----|-----|----|-----|----|

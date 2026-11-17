@@ -20,6 +20,7 @@ import { t } from '../i18n';
 import { travelModeLabels } from '../engine/travel';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from '../noyau/worldMap';
+import { DEFAULT_VOYAGE_ORDERS } from '../noyau/voyageCadence';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -156,10 +157,10 @@ describe('#2545 — mer puis fleuve : le bouton pressé est la cadence transmise
     expect(bouton(String(t('wm.traverseeRapideAction')))!.getAttribute('aria-pressed')).toBe('true');
     choisirDestination('Altdorf');
     const presse = boutons().filter((b) => b.getAttribute('aria-pressed') === 'true');
-    expect(presse.map((b) => b.textContent?.trim()), 'une cadence fluviale est pressée').toEqual([commandee]);
+    expect(presse.map((b) => b.textContent?.trim()), 'une cadence fluviale est pressée, celle du défaut').toEqual([DEFAULT_VOYAGE_ORDERS.cadence === 'commande' ? commandee : jourParJour]);
     partir();
     expect(get().travelPlan?.river, 'la descente est JOUÉE').toBeTruthy();
-    expect(get().travelPlan?.orders?.cadence).toBe('commande');
+    expect(get().travelPlan?.orders?.cadence).toBe(DEFAULT_VOYAGE_ORDERS.cadence);
   });
 });
 

@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { corpsDe, drainer, erreurDe, mondeDe, table, type Reponse } from './pont.testkit';
 import { casesDesCiblesDe, clicDuCombattant, SANS_BORNE, type Suite, type VueDuPont } from './pont';
 import { projeter } from '../../../src/hote/projection';
+import { TETE_DU_ROUND_SUIVANT } from '../../../src/hote/ecran';
 import { ouvrirLeBanc } from '../../../src/noyau/banc.testkit';
 import { lancerLeScenario } from '../../../src/noyau/lancementDeScenario';
 import { lancementDuScenario } from '../../../src/scenes/test-scenarios/_shared';
@@ -51,9 +52,11 @@ describe('siege-enceinte — les ennemis derrière la muraille, hors de la vue d
     expect(horsDeVue().sort(), 'les occupants hors de vue : exactement les 8 ennemis derrière la muraille').toEqual(DERRIERE_LA_MURAILLE);
     expect(Object.keys(vue().corps.combattants).sort(), 'les corps : ceux des combattants en vue').toEqual([...enVue()].sort());
     expect(Object.keys(vue().marques).sort(), 'les marques : celles des combattants en vue').toEqual([...enVue()].sort());
-    const ordre = vue().zones['combat.ordre'].map((p) => p.id.slice('ordre/'.length));
-    expect(ordre.every((id) => enVue().includes(id)), `l’ordre du tour ne nomme que des combattants en vue : ${ordre.join(', ')}`).toBe(true);
-    expect(vue().projection.combat!.tours, 'le compte des tours : l’ordre du tour en vue').toBe(ordre.length);
+    const rangs = vue().zones['combat.ordre'].filter((p) => p.type === 'entite').map((p) => p.id);
+    const nommes = rangs.map((id) => id.slice(id.indexOf('/') + 1));
+    expect(nommes.every((id) => enVue().includes(id)), `l’ordre du tour ne nomme que des combattants en vue : ${rangs.join(', ')}`).toBe(true);
+    expect(rangs.filter((id) => id.startsWith('suite/')).length, 'la tête du round suivant : ses premiers en vue, au plus `TETE_DU_ROUND_SUIVANT`')
+      .toBe(Math.min(vue().projection.combat!.tours, TETE_DU_ROUND_SUIVANT));
   });
 
   it('la fiche d’un ennemi hors de vue se refuse en `validation`, en mots du joueur ; celle d’un héros s’ouvre', () => {
@@ -95,7 +98,7 @@ describe('melee-dans-le-noir — les gobelins au contact, hors de la vue du grou
     expect(clic, 'sa case aux occupants : le champ la clique').not.toBeNull();
     jouer(clic!);
     expect(vue().projection.combat!.apercu?.cible, 'le premier clic vise l’ennemi').toBe(vise);
-    expect(vue().zones['combat.apercu'], 'l’aperçu ne dit pas son nom').toEqual([{ type: 'ligne', id: 'apercu', ton: 'neutre', texte: t('ecran.apercu.cible', { cible: INCONNU }), detail: null }]);
+    expect(vue().zones['combat.apercu'], 'l’aperçu ne dit pas son nom').toEqual([{ type: 'ligne', id: 'apercu', ton: 'neutre', texte: t('ecran.apercu.cible', { cible: INCONNU }), detail: null, touche: null }]);
     jouer(clic!);
     expect(vue().projection.fenetre, 'le second clic ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDAttaque' } });
     expect((corpsDe(vue(), 'cible') as Ligne).texte, 'la fenêtre ne nomme pas sa cible').toBe(t('ecran.attaque.cible', { cible: INCONNU }));

@@ -1,8 +1,8 @@
 /**
- * Grants de POSSESSION portés par des dotations (Classe/Carrière) — #617/#618 SOCLE POSSESSIONS Lot 1.
+ * Grants de POSSESSION portés par des dotations (Classe/Carrière) — #617/#618 SOCLE POSSESSIONS.
  * `buildInventory` (engine/items.ts) ignore les dotations de possession (`{id, type}`) d'un `TrappingRef`
  * (pas des objets de sac) : ce module les MATÉRIALISE en `PossessionInput[]`, même shape que l'Effet
- * `givePossession` (noyau/combatEffects.ts) — bête/véhicule `avec-le-groupe`, `count` respecté.
+ * `givePossession` (noyau/combatEffects.ts) — bête, véhicule ou engin de siège `avec-le-groupe`, `count` respecté.
  */
 import type { Somme, TrappingRef } from '../data';
 import type { PossessionInput } from './possession';
@@ -29,19 +29,22 @@ export function possessionGrantsFromRefs(refs: TrappingRef[], ownerId: string, r
   for (const ref of refs) {
     const n = compteDeLaDotation(ref, (de) => rollDice(de, rng));
     if (!('type' in ref)) continue;
-    if (ref.type === 'vehicle') {
-      // Objet NEUF à CHAQUE itération (jamais la même réf poussée N fois) — `ajouterLaPossession` ne fait
-      // qu'un spread SUPERFICIEL (`{...p, uid}`, possessionsFlow.ts) : un `items`/`location` partagé
-      // entre N possessions dupliquées les ferait muter ensemble (embarquer sur l'une affecterait
-      // les autres).
-      for (let i = 0; i < n; i++) {
-        grants.push({ nature: 'vehicule', vehicleId: ref.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [], ...(ref.label ? { label: ref.label } : {}) });
+    // Objet NEUF à CHAQUE itération (jamais la même réf poussée N fois) — `ajouterLaPossession` ne fait
+    // qu'un spread SUPERFICIEL (`{...p, uid}`, possessionsFlow.ts) : un `items`/`location` partagé
+    // entre N possessions dupliquées les ferait muter ensemble (embarquer sur l'une affecterait
+    // les autres).
+    const neuve = (): PossessionInput => {
+      const commun = { ownerId, location: { kind: 'avec-le-groupe' } as const, items: [], ...(ref.label ? { label: ref.label } : {}) };
+      switch (ref.type) {
+        case 'vehicle':
+          return { nature: 'vehicule', vehicleId: ref.id, ...commun };
+        case 'creature':
+          return { nature: 'bete', ref: { id: ref.id }, ...commun };
+        case 'engin':
+          return { nature: 'engin', trappingId: ref.id, ...commun };
       }
-    } else {
-      for (let i = 0; i < n; i++) {
-        grants.push({ nature: 'bete', ref: { id: ref.id }, ownerId, location: { kind: 'avec-le-groupe' }, items: [], ...(ref.label ? { label: ref.label } : {}) });
-      }
-    }
+    };
+    for (let i = 0; i < n; i++) grants.push(neuve());
   }
   return grants;
 }

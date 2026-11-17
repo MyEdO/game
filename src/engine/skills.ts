@@ -34,9 +34,8 @@ import { maxBy } from './pick';
  *  (`SkillData.altChar` : `gatedByRule` + `from` + `chars` par valeur de règle) — Métier comme Savoir
  *  (LDB 09 l.358), Intimidation (LDB 09 l.294). Une compétence de plus = une entrée de donnée, zéro
  *  ligne ici. Renvoie la CharKey à utiliser (inchangée si aucune règle ne s'applique).
- *  (Les carac alternatives PAR ENTITÉ — ex. lanceur ogre : Langue (Magick) sur Endurance, ADE II 2 l.728 —
- *  sont portées par la DONNÉE — `SkillInstance.characteristic` — lue par effectiveSkillCharKey en amont,
- *  pas ici : aucun sniff d'espèce dans le moteur.) */
+ *  (Une carac alternative PAR ENTITÉ est portée par la DONNÉE — `SkillInstance.characteristic`, lue par
+ *  effectiveSkillCharKey en amont — ou, pour l'incantation, par un Trait (`castingChar`, `castingCharKey`).) */
 function altCharKey(c: Combatant, skillId: string, ck: CharKey): CharKey {
   const alt = byId('skill', skillId)?.altChar;
   if (!alt || (alt.from && ck !== alt.from)) return ck;

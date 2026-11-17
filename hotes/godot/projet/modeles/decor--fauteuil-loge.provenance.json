@@ -1,0 +1,13 @@
+{
+  "model": "decor--fauteuil-loge.glb",
+  "model_sha256": "3b31a4e4819e7dc6d1bc0ebb392c84fb443c7c0142018d698d8dd493b9803aae",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -1,11 +1,12 @@
 /**
  * Les OPTIONS du Désengagement (LDB 15 l.43-49), une par prédicat PUR. Chacune est la source unique que
  * lisent le gate `desengagement` (`noyau/actionRegistry.ts`), l'économie du tour (`noyau/turnEconomy.ts`)
- * et le flux (`startDisengage`, `noyau/combatFlow.ts`). Purs, ils ne lisent que l'acteur et son combat,
+ * et le flux (`startDisengage`, `noyau/combatFlow.ts`). Purs, ils ne lisent que l'acteur, son combat et, pour la Fuite, sa scène,
  * jamais le store ; ils importent du noyau `combat/advantagePool`, `monde/combatants`, `mount` et `refusDuTour`.
  */
 import type { Combatant } from '../../engine/types';
 import type { BattleState } from '../etat';
+import type { Scene } from '../monde/scene';
 import { isOutOfAction } from '../../engine/conditions';
 import { groupAdvantage } from '../../engine/advantagePool';
 import { canDisengageWithLessAdvantage, retreatAdvantageCost } from '../../engine/combatFeatures/dispatch';
@@ -16,12 +17,17 @@ import { canMove, defenseDodgeMods } from '../mount';
 import type { Jeu } from '../etat';
 import { defenseTargetMods, defenseValue, defenseValueModParts } from '../../engine/combat';
 import { rollLine, type RollLineParts } from '../ligneDeJet';
-import { refusActionDepensee, refusHorsDEtatDAgir, refusPriereImposee } from '../refusDuTour';
+import { refusActionDepensee, refusDuBinome, refusHorsDEtatDAgir, refusPriereImposee } from '../refusDuTour';
 
 /** Le porteur et son combat. */
 export interface CtxDeDesengagement {
   active: Combatant;
   battle: BattleState;
+}
+
+/** `CtxDeDesengagement` et la scène, que mesure le binôme de la Fuite (`refusDuBinome`). */
+export interface CtxDeFuite extends CtxDeDesengagement {
+  scene: Scene | null;
 }
 
 /** Les adversaires Engagés de l'acteur encore en jeu. */
@@ -59,13 +65,13 @@ export function refusDEsquiveDeDesengagement({ active, battle }: CtxDeDesengagem
   return refusActionDepensee(battle) ?? refusHorsDEtatDAgir(active) ?? refusPriereImposee(active);
 }
 
-/** La Fuite : LDB 15 l.61 ; LDB 16 l.125. Ouverte tant que `canMove`. */
-export function peutFuir(ctx: CtxDeDesengagement): boolean {
-  return adversairesEngages(ctx).length > 0 && canMove(ctx.battle, ctx.active);
+/** La Fuite : LDB 15 l.61 ; LDB 16 l.125. Ouverte tant que `canMove`, hors binôme au bouclier (`refusDuBinome`, ZI 13 l.193). */
+export function peutFuir(ctx: CtxDeFuite): boolean {
+  return adversairesEngages(ctx).length > 0 && canMove(ctx.battle, ctx.active) && !refusDuBinome(ctx.scene, ctx.battle, ctx.active);
 }
 
 /** Une option qui ne coûte pas l'Action reste-t-elle ouverte (Avantage, départ libre ou Fuite) ? */
-export function desengagementSansAction(ctx: CtxDeDesengagement): boolean {
+export function desengagementSansAction(ctx: CtxDeFuite): boolean {
   return peutSacrifierLAvantage(ctx) || departLibre(ctx) || peutFuir(ctx);
 }
 

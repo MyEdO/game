@@ -44,8 +44,8 @@ import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
 import { refuserGeste } from './refusVisible';
 import type { Jeu } from './etat';
 import { appraiseRefus, APPRAISE_SKILL, remiseMaximaleDeMarchandage } from './merchantFlow';
-import { seasonOfMonth } from '../engine/travelStages';
-import { toDate, dayIndex } from '../engine/clock';
+import { currentSeason } from '../engine/travelStages';
+import { dayIndex } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
@@ -111,7 +111,7 @@ export function ouvrirLeMarche(get: Get, set: Set): void {
 function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => void): void {
   const cur = currentMarket(get);
   if (!cur) return;
-  const season = seasonOfMonth(toDate(get().gameTime).month);
+  const season = currentSeason(get().gameTime);
   const { market } = cur;
   phase('Marchand présent');
   const find = rollFindMerchant(market, rng);

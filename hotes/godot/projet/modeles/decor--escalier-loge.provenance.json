@@ -1,0 +1,13 @@
+{
+  "model": "decor--escalier-loge.glb",
+  "model_sha256": "f818c51d845f4f1c81f7903cb95ddd1b903fb0c96c96bf1d725556847a50cb1c",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

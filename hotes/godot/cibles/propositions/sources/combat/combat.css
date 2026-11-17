@@ -1,0 +1,314 @@
+@import url(jet.css);
+@font-face{font-family:"Grenze Gotisch";src:url(../polices/GrenzeGotisch-wght.ttf);font-weight:100 900}
+@font-face{font-family:"Fell SC";src:url(../polices/IMFeENsc28P.ttf)}
+@font-face{font-family:"Fell";src:url(../polices/IMFeENrm28P.ttf)}
+@font-face{font-family:"Fell";src:url(../polices/IMFeENit28P.ttf);font-style:italic}
+@font-face{font-family:"Spectral";src:url(../polices/Spectral-Regular.ttf)}
+@font-face{font-family:"Spectral";src:url(../polices/Spectral-Italic.ttf);font-style:italic}
+@font-face{font-family:"Spectral";src:url(../polices/Spectral-SemiBold.ttf);font-weight:600}
+:root{
+  --creme:#e9dcc0; --creme-2:#c9b995; --encre:#2a1d12; --encre-2:#5a4530;
+  --or:#e2c06a; --or-sombre:#8a6a26; --cire:#9c2a1a; --cire-clair:#c8452c;
+  --bois:#2a1a10; --fer:#1a1917;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#000}
+#ecran{position:relative;width:1707px;height:780px;overflow:hidden;font-family:"Spectral",serif;color:var(--creme)}
+#scene{position:absolute;inset:0;width:1707px;height:780px}
+#ui{position:absolute;inset:0}
+.calque{position:absolute;inset:0;pointer-events:none}
+
+/* matières, reprises de l'écran de voyage */
+.bois{background-color:#2b1b11;background-image:var(--tex-bois),linear-gradient(180deg,#3a2517 0%,#24160d 55%,#1a0f08 100%);background-blend-mode:multiply,normal}
+.parchemin{background-color:#d8c49a;background-image:var(--tex-parchemin),radial-gradient(120% 90% at 50% 40%,#e6d5ad 0%,#d6c196 55%,#b89f6e 100%);background-blend-mode:multiply,normal;color:var(--encre)}
+.laiton{background:linear-gradient(135deg,#4a3410 0%,#a8842f 22%,#f3dc93 45%,#b8923a 62%,#5d4313 100%)}
+.fer{background:linear-gradient(135deg,#3a3833 0%,#17161a 40%,#4a4740 55%,#121114 100%)}
+.cadre{position:absolute;border-radius:5px;padding:9px;box-shadow:0 14px 34px rgba(0,0,0,.6),0 2px 0 rgba(255,220,160,.10) inset,0 -2px 0 rgba(0,0,0,.55) inset,0 0 0 1px #0c0705}
+.cadre>.fond{position:relative;width:100%;height:100%;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.65),0 0 0 2px rgba(226,192,106,.35),inset 0 0 26px rgba(70,40,10,.55),inset 0 0 4px rgba(40,20,5,.8)}
+.ferrure{position:absolute;width:30px;height:30px;background:linear-gradient(135deg,#34322e,#141311 60%,#26241f);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 2px 4px rgba(0,0,0,.6)}
+.ferrure::after{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8f8a7d,#2b2924 60%,#0a0908);box-shadow:0 1px 1px rgba(0,0,0,.7)}
+.ferrure.hg{left:-3px;top:-3px;clip-path:polygon(0 0,100% 0,100% 34%,34% 34%,34% 100%,0 100%);border-radius:5px 0 0 0}.ferrure.hg::after{left:4px;top:4px}
+.ferrure.hd{right:-3px;top:-3px;clip-path:polygon(0 0,100% 0,100% 100%,66% 100%,66% 34%,0 34%);border-radius:0 5px 0 0}.ferrure.hd::after{right:4px;top:4px}
+.ferrure.bg{left:-3px;bottom:-3px;clip-path:polygon(0 0,34% 0,34% 66%,100% 66%,100% 100%,0 100%);border-radius:0 0 0 5px}.ferrure.bg::after{left:4px;bottom:4px}
+.ferrure.bd{right:-3px;bottom:-3px;clip-path:polygon(66% 0,100% 0,100% 100%,0 100%,0 66%,66% 66%);border-radius:0 0 5px 0}.ferrure.bd::after{right:4px;bottom:4px}
+.clou{position:absolute;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#a39c8c,#33302a 60%,#0a0908);box-shadow:0 1px 1px rgba(0,0,0,.8)}
+.gothique{font-family:"Grenze Gotisch",serif;font-weight:600;letter-spacing:.3px}
+.rubrique{font-family:"Fell SC",serif;letter-spacing:1.1px}
+.ombre{text-shadow:0 1px 2px #000,0 0 10px rgba(0,0,0,.9),0 0 22px rgba(0,0,0,.7)}
+.ruban{position:absolute;padding:2px 22px 4px;font-size:14px;color:#f0e2c2;background:linear-gradient(180deg,#5b1d14,#3c110b);box-shadow:0 2px 5px rgba(0,0,0,.6),inset 0 0 0 1px rgba(226,192,106,.45);clip-path:polygon(0 0,100% 0,calc(100% - 9px) 50%,100% 100%,0 100%,9px 50%);white-space:nowrap}
+
+/* portraits */
+.portrait{position:relative;flex:none;padding:4px;border-radius:3px;box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #1a1005}
+.portrait>div{width:100%;height:100%;overflow:hidden;background:radial-gradient(90% 80% at 50% 28%,#d9c69b,#a58d62 62%,#6d5a3c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.7),inset 0 0 12px rgba(0,0,0,.6)}
+.portrait.ennemi{box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #000}
+.portrait.ennemi>div{background:radial-gradient(90% 80% at 50% 28%,#9a4030,#6a2015 60%,#2e0c08)}
+.portrait svg{display:block;width:100%;height:100%}
+.vie{position:relative;height:6px;background:#0d0806;border-radius:1px;box-shadow:0 0 0 1px rgba(226,192,106,.35),inset 0 1px 2px #000}
+.vie>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(180deg,#b9412c,#7c1f14);border-radius:1px}
+.parchemin .vie{box-shadow:0 0 0 1px rgba(60,40,20,.75),inset 0 1px 2px #000}
+
+/* le round */
+#round{left:22px;top:16px;width:214px;height:66px}
+#round .fond{display:flex;align-items:center;gap:12px;padding:0 14px}
+#round .n{font-size:30px;line-height:30px;color:#f1e4c4;text-shadow:0 2px 3px #000}
+#round .t{font-size:13.5px;color:var(--creme-2);line-height:16px}
+
+/* l'ordre du tour : colonne du bord gauche, l'actif en bas */
+#ordre{position:absolute;left:22px;bottom:12px;width:226px;display:flex;flex-direction:column-reverse;gap:8px}
+.rang{display:flex;align-items:center;gap:10px}
+.rang .portrait{width:46px;height:56px;padding:3px}
+.rang .qui{min-width:0}
+.rang .nom{font-size:13.5px;color:#eadfc4;white-space:nowrap}
+.rang.ennemi .nom{color:#f0a48e}
+.rang .vie{width:92px;height:5px;margin-top:5px}
+.rang .pv{font-family:"Fell SC";font-size:11.5px;color:var(--creme-2);margin-left:8px;white-space:nowrap}
+.rang .ligne{display:flex;align-items:center}
+.rang.actif .portrait{width:66px;height:80px;padding:4px;box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #1a1005,0 0 18px rgba(255,214,140,.55)}
+.rang.actif .nom{font-family:"Grenze Gotisch";font-weight:600;font-size:19px;color:#f6ead0;letter-spacing:.3px}
+.rang.actif .vie{width:98px;height:6px}
+.rang.fantome{opacity:.42}
+.rang.fantome.loin{opacity:.22}
+.rang.fantome .portrait{width:38px;height:46px}
+.borne{display:flex;align-items:center;gap:9px;margin:1px 0 1px 3px}
+.borne .disque{width:32px;height:32px;border-radius:50%;padding:3px;box-shadow:0 2px 5px rgba(0,0,0,.7)}
+.borne .disque>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3b2718,#1b100a 70%);font-family:"Grenze Gotisch";font-weight:600;font-size:16px;color:#f1e4c4;box-shadow:inset 0 0 0 1px rgba(0,0,0,.8)}
+.borne span{font-size:12px;color:var(--creme-2)}
+.borne i{flex:1;height:1px;background:linear-gradient(90deg,rgba(201,185,149,.6),rgba(201,185,149,0))}
+
+/* la barre de l'actif */
+#barre{left:264px;top:634px;width:1180px;height:138px}
+#barre .fond{background:none;box-shadow:none}
+#actif-portrait{position:absolute;left:806px;top:580px;width:96px;height:118px;z-index:3}
+#actif-nom{position:absolute;left:764px;top:700px;width:180px;text-align:center;z-index:3}
+#actif-nom .n{font-size:20px;line-height:27px;color:#f3e6c6;text-shadow:0 1px 2px #000;white-space:nowrap}
+#actif-nom .a{font-size:12px;color:var(--creme-2);margin-top:0;white-space:nowrap}
+#etat{position:absolute;left:24px;top:14px;width:452px;display:grid;grid-template-columns:1fr 1fr;column-gap:26px;row-gap:13px}
+.mesure .tete{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--creme-2)}
+.mesure .tete b{font-family:"Fell SC";font-weight:400;font-size:14px;color:#f0e2c2;letter-spacing:.8px}
+.mesure .vie{height:8px;margin-top:7px}
+.pas{display:flex;gap:7px;margin-top:5px}
+.pas i{width:15px;height:15px;transform:rotate(45deg);background:linear-gradient(135deg,#f0e4c6,#b9a57b);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.8)}
+.pas i.vide{background:#120b07;box-shadow:0 0 0 1px rgba(201,185,149,.4),inset 0 1px 2px #000}
+.pas.petit{margin-left:4px}
+.jeton{display:flex;align-items:center;gap:10px;margin-top:2px}
+.jeton .v{font-size:14px;color:#f0e2c2}
+.jeton .v em{font-style:italic;color:var(--creme-2);font-size:13.5px}
+.sceau{position:relative;flex:none;width:30px;height:30px;display:grid;place-items:center;background:radial-gradient(circle at 38% 30%,#d2553a,#9c2a1a 50%,#5a130b 100%);border-radius:48% 52% 55% 45%/52% 46% 54% 48%;box-shadow:0 2px 4px rgba(0,0,0,.75),inset 0 0 0 3px rgba(60,10,5,.45),inset 2px 2px 3px rgba(255,170,140,.35)}
+.chiffre{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:3px;background:#120b07;box-shadow:0 0 0 1px rgba(201,185,149,.4),inset 0 1px 3px #000;font-family:"Grenze Gotisch";font-weight:600;font-size:21px;color:#f3e6c6}
+
+/* plaques : ce qui se presse est de laiton */
+#gestes{position:absolute;left:684px;top:14px;width:478px}
+.plaques{display:flex;gap:8px}
+.plaque{position:relative;flex:1;height:44px;padding:2px;border-radius:3px;box-shadow:0 3px 6px rgba(0,0,0,.7),0 0 0 1px #150d04}
+.plaque>div{height:100%;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:2px;background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,220,160,.12);font-family:"Fell SC";font-size:15.5px;letter-spacing:1px;color:var(--or);white-space:nowrap}
+.plaque.armee>div{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);color:#2a1a08;box-shadow:inset 0 0 0 1px rgba(60,40,10,.85),inset 0 2px 5px rgba(60,35,5,.55)}
+.plaque.armee{box-shadow:0 1px 2px rgba(0,0,0,.7),0 0 0 1px #150d04,0 0 14px rgba(255,214,140,.5)}
+.pastilles{display:flex;justify-content:space-between;margin-top:10px;padding:0 2px}
+.outil{width:88px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.outil span{font-size:11.5px;color:var(--creme-2);white-space:nowrap;letter-spacing:.7px}
+.bouton-rond{flex:none;border-radius:50%;padding:3px;box-shadow:0 4px 8px rgba(0,0,0,.7),0 0 0 1px #150d04}
+.bouton-rond>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3b2718,#1b100a 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8),inset 0 2px 5px rgba(0,0,0,.8)}
+.bouton-rond.ferme{box-shadow:0 3px 6px rgba(0,0,0,.6),0 0 0 1px #000}
+.bouton-rond.ferme>div{background:radial-gradient(circle at 40% 30%,#26231f,#131210 70%)}
+
+/* la fin du tour */
+#fin{position:absolute;left:1560px;top:640px;width:104px;display:flex;flex-direction:column;align-items:center;gap:6px}
+#fin .bouton-rond{width:92px;height:92px;padding:5px}
+#fin span{font-size:14.5px;color:#f0e2c2;white-space:nowrap}
+#fin.ferme span{color:#8d8474}
+#tour-outils{position:absolute;left:1474px;top:648px;display:flex;flex-direction:column;gap:10px}
+#tour-outils .bouton-rond{width:38px;height:38px}
+#systeme{position:absolute;right:22px;top:18px}
+#systeme .bouton-rond{width:44px;height:44px;padding:4px}
+
+/* le journal : trois lignes dans un coin */
+#journal{position:absolute;right:24px;bottom:164px;width:300px;text-align:right}
+#journal .tete{display:flex;justify-content:flex-end;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2;margin-bottom:7px}
+#journal .tete .bouton-rond{width:30px;height:30px}
+#journal p{margin:0 0 5px;font-style:italic;font-size:14.5px;line-height:19px;color:#e6dabd}
+#journal p.vieux{color:#bdb096}
+#journal p.borne-j{font-family:"Fell SC";font-style:normal;font-size:12.5px;letter-spacing:1px;color:var(--creme-2)}
+
+/* l'aperçu de la cible survolée */
+#apercu{position:absolute;left:1046px;top:292px;width:286px;padding:11px 14px 11px;font-size:14px;line-height:19px;box-shadow:0 10px 22px rgba(0,0,0,.65),0 0 0 1px rgba(40,25,10,.9),inset 0 0 18px rgba(90,60,20,.45);border-radius:2px}
+#apercu::before{content:"";position:absolute;left:-8px;top:70px;width:16px;height:16px;background:#d3bf92;transform:rotate(45deg);box-shadow:-2px 2px 0 rgba(40,25,10,.9)}
+#apercu .tete{display:flex;justify-content:space-between;align-items:baseline}
+#apercu .tete .n{font-size:22px;line-height:24px;color:#3a1a10}
+#apercu .tete .c{font-size:12px;color:#6b1c10}
+#apercu .pv{display:flex;align-items:center;gap:9px;margin:6px 0 9px}
+#apercu .pv .vie{flex:1;height:7px}
+#apercu .pv b{font-family:"Fell SC";font-weight:400;font-size:13.5px}
+#apercu .titre{font-size:12.5px;color:#5a2a12;border-top:1px solid rgba(60,40,20,.45);padding-top:7px;margin-bottom:3px}
+#apercu table{border-collapse:collapse;width:100%}
+#apercu td{padding:1px 0;vertical-align:baseline}
+#apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14.5px;white-space:nowrap}
+#apercu .seuil td{font-weight:600}
+#apercu .seuil td:last-child{font-family:"Grenze Gotisch";font-size:22px;line-height:20px;color:#3a1a10}
+#apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45);font-style:italic;font-size:13px;line-height:17px;color:#4a3420}
+
+/* le jet : un bandeau à la place de la barre */
+#jet .titre{left:50%;top:-6px;transform:translateX(-50%);font-size:19px;padding:1px 34px 4px;font-family:"Grenze Gotisch";font-weight:600;letter-spacing:.6px}
+#suites .plaque.armee{box-shadow:0 3px 6px rgba(0,0,0,.6),0 0 0 1px #150d04}
+#suites .plaque.armee>div{box-shadow:inset 0 0 0 1px rgba(60,40,10,.85),inset 0 1px 0 rgba(255,245,200,.7)}
+
+#ecran[data-socle=jet] #journal{bottom:234px}
+
+/* variantes : la liste ouverte d'une pastille, les emplacements rapides */
+.outil.ouvert .bouton-rond{box-shadow:0 0 0 1px #150d04,0 0 14px rgba(255,214,140,.75)}
+.outil.ouvert .bouton-rond>div{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26)}
+.outil.ouvert svg{stroke:#2a1a08}
+.outil.ouvert span{color:#f3e6c6}
+#liste{left:939px;top:424px;width:262px;height:200px}
+#liste .fond{background:none;box-shadow:none;padding:6px 8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px}
+#liste .t{font-size:13px;color:var(--creme-2);letter-spacing:1px;padding:0 2px 1px}
+#liste .plaque.ligne-l{flex:none;height:34px}
+#liste .plaque.ligne-l>div{justify-content:flex-start;padding:0 12px;font-size:15px}
+#apercu.a-gauche::before{left:auto;right:-8px;top:208px;box-shadow:2px -2px 0 rgba(40,25,10,.9)}
+#apercu.au-dessus::before{left:28px;top:auto;bottom:-8px;box-shadow:2px 2px 0 rgba(40,25,10,.9)}
+#rapides{left:939px;top:540px;width:404px;height:82px}
+#rapides .fond{background:none;box-shadow:none;display:flex;justify-content:space-between;align-items:flex-start;padding:5px 10px 0;box-sizing:border-box}
+.case-r{width:60px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.case-r .plaque{flex:none;width:44px;height:40px}
+.case-r .plaque.vide{opacity:.5}
+.case-r .plaque.vide>div{background:#120b07}
+.case-r b{position:absolute;left:-7px;top:-7px;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;background:#120b07;box-shadow:0 0 0 1px rgba(226,192,106,.6);font-family:"Fell SC";font-weight:400;font-size:11.5px;color:#f0e2c2}
+.case-r span{font-size:11px;color:var(--creme-2);white-space:nowrap;letter-spacing:.6px}
+
+/* ───────── états ajoutés (#3935) : tour adverse, jets, critique, début du round, fin, journal, fiche ───────── */
+@font-face{font-family:"Lineale";src:url(../polices/Inter-Medium.otf);font-weight:500}
+.lineale{font-family:"Lineale",sans-serif;font-weight:500}
+
+/* l'adversaire agit : l'ordre et le meuble passent au fer, tout ce qui se presse se ferme */
+.rang.ennemi.actif .portrait{box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #000,0 0 18px rgba(224,85,58,.6)}
+.rang.ennemi.actif .nom{color:#f6b9a6}
+.rang.lu .portrait{box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #1a1005,0 0 14px rgba(255,214,140,.8)}
+.rang.lu .nom{color:#f6ead0}
+.plaque.fermee{box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px #000}
+.plaque.fermee>div{background:radial-gradient(120% 140% at 50% 0%,#26231f,#131210 75%);color:#8d8474;box-shadow:inset 0 0 0 1px rgba(0,0,0,.8)}
+#barre.adverse .outil span{color:#7d7668}
+#barre.adverse .ruban{filter:grayscale(.85) brightness(.62)}
+#barre.adverse~#actif-portrait{box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #000}
+#barre.adverse~#actif-nom .n{color:#f6b9a6}
+
+/* la silhouette des localisations */
+.silhouette{flex:none;display:block}
+.zone{fill:rgba(74,52,32,.3);stroke:#3a2815;stroke-width:1.3;stroke-linejoin:round}
+.zone.choisie{fill:#dcb85c;stroke:#2a1a08;stroke-width:1.5}
+.zone.touchee{fill:#9c2a1a;stroke:#4a0f08;stroke-width:1.5}
+
+/* le bandeau avant le dé : les réglages au centre, les sceaux encore vides */
+#jet .fond.avant{grid-template-columns:1fr 380px 1fr}
+.reglages .rangee{display:flex;justify-content:center;align-items:center;gap:20px;text-align:left}
+#verdict.reglages{padding-top:0}
+#round .n,#round .t{white-space:nowrap}
+.choix .l{font-size:12px;color:#4a3420;margin-top:3px}
+.choix .v{display:flex;align-items:center;gap:10px}
+.choix .v .gothique{font-size:25px;line-height:27px;color:#3a1a10}
+.choix .v .modif{margin-top:0}
+.choix .bas{display:flex;align-items:center;gap:16px;margin-top:8px}
+.plaque.mini{flex:none;width:104px;height:28px;box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px #150d04}
+.plaque.mini>div{font-size:13px}
+.bascule{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#2a1d12;white-space:nowrap}
+.bascule i{flex:none;width:36px;height:18px;padding:2px;border-radius:9px;box-shadow:0 0 0 1px #000,inset 0 1px 3px #000}
+.bascule b{display:block;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1px #150d04,0 1px 2px rgba(0,0,0,.8)}
+
+/* l'incantation : un seul camp, le sort au centre, sa cible à droite */
+#verdict.sort .dr{font-size:32px}
+.visee .pv{display:flex;flex-direction:row-reverse;align-items:center;gap:9px;margin-top:16px}
+.visee .pv .vie{width:132px;height:7px}
+.visee .pv b{font-weight:400;font-size:13.5px;white-space:nowrap}
+
+/* le coup critique */
+#jet .fond.critique{grid-template-columns:392px 1fr}
+.camp.touche{align-items:flex-start}
+.camp.touche .silhouette{margin:0 2px}
+.camp.touche .c{color:#7c1f14}
+.camp.touche .des{margin-top:10px}
+#critique{height:104px;padding:0 0 0 28px;border-left:1px solid rgba(60,40,20,.4)}
+#critique .dr{font-size:31px;line-height:36px;color:#3a1a10}
+#critique p{margin:5px 0 0;max-width:640px;font-size:15.5px;line-height:21px;color:#2a1d12}
+
+/* le début du round : un choix, à la place du jet */
+#jet .fond.debut{display:flex;justify-content:center;align-items:flex-start;gap:14px;padding-top:26px}
+.annonce{height:92px;margin-right:8px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
+.annonce .dr{font-size:34px;line-height:38px;color:#3a1a10}
+.annonce .sous{font-size:13.5px;color:#4a3420}
+.plaque.carte{flex:none;width:262px;height:92px}
+.plaque.carte>div{justify-content:flex-start;gap:13px;padding:0 13px;text-align:left}
+.carte .portrait{width:54px;height:66px;padding:3px}
+.carte .n{font-size:20px;line-height:23px;letter-spacing:.3px;color:#f3e6c6}
+.carte .c{font-size:13px}
+.carte.armee .n{color:#2a1a08}
+#jet .fond.debut #suites .plaque.large{width:232px}
+
+/* la fin du combat */
+#issue{position:absolute;left:573px;top:236px;width:560px;display:flex;flex-direction:column;align-items:center;gap:28px}
+.toile-ombre{filter:drop-shadow(0 16px 24px rgba(0,0,0,.8))}
+.toile{position:relative;width:560px;height:150px;display:grid;place-items:center;background:repeating-linear-gradient(0deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,220,160,.06) 0 1px,transparent 1px 3px),linear-gradient(180deg,#6a2218,#3c110b);box-shadow:inset 0 0 0 2px rgba(226,192,106,.6),inset 0 0 44px rgba(0,0,0,.55);clip-path:polygon(0 0,100% 0,calc(100% - 30px) 50%,100% 100%,0 100%,30px 50%)}
+.toile::before{content:"";position:absolute;inset:10px 48px;border:1px solid rgba(226,192,106,.45)}
+.toile span{font-size:84px;line-height:126px;letter-spacing:1px;color:#f3e6c6;text-shadow:0 3px 4px rgba(0,0,0,.75)}
+#ecran[data-etat=fin-defaite] .toile{background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,220,160,.05) 0 1px,transparent 1px 3px),linear-gradient(180deg,#3f1712,#1d0906)}
+#ecran[data-etat=fin-defaite] .toile span{color:#d9cbb0}
+#issue .plaque{flex:none;width:214px;height:48px}
+#issue .plaque>div{font-size:17px}
+
+/* le journal entier */
+#journal .tete.ouvert .bouton-rond{box-shadow:0 0 0 1px #150d04,0 0 14px rgba(255,214,140,.75)}
+#journal .tete.ouvert .bouton-rond>div{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26)}
+#ecran[data-etat=journal-ouvert] #journal{padding-bottom:72px}
+#journal-entier .titre,#f-profil .titre{left:50%;top:-6px;transform:translateX(-50%);font-size:19px;padding:1px 34px 4px;font-family:"Grenze Gotisch";font-weight:600;letter-spacing:.6px}
+#journal-entier{left:1283px;top:118px;width:400px;height:372px}
+#journal-entier .fond{padding:28px 20px 0}
+#journal-entier h4{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-weight:400;font-size:13px;color:#5a2a12}
+#journal-entier h4::after{content:"";flex:1;height:1px;background:rgba(60,40,20,.45)}
+#journal-entier p+h4{margin-top:13px}
+#journal-entier p{margin:0 0 6px;font-style:italic;font-size:14.5px;line-height:19px;color:#2a1d12;white-space:nowrap}
+
+/* la fiche au clic sur un portrait de l'ordre */
+#f-identite{left:264px;top:14px;width:270px;height:516px}
+#f-identite .fond{padding:18px 17px 0}
+#f-identite .fond>.tete{display:flex;gap:13px}
+#f-identite .portrait{width:88px;height:108px}
+#f-identite .n{font-size:28px;line-height:30px;color:#3a1a10}
+#f-identite .c{font-size:12.5px;line-height:16px;color:#4a3420;margin-top:5px}
+#f-identite .mesure{margin-top:24px}
+#f-identite .mesure .tete{color:#4a3420}
+#f-identite .mesure .tete b{font-family:"Lineale";font-size:13.5px;letter-spacing:0;color:#2a1d12}
+.orne{display:flex;align-items:center;gap:10px;margin:28px 8px 24px}
+.orne i{flex:1;height:1px;background:rgba(60,40,20,.45)}
+.orne b{width:7px;height:7px;transform:rotate(45deg);background:#5a4530}
+.reserves{display:flex;flex-direction:column;gap:13px}
+.medaillon{display:flex;align-items:center;gap:13px;font-size:14.5px;color:#2a1d12}
+.medaillon .disque,.anneau{flex:none;width:42px;height:42px;border-radius:50%;padding:3px;box-shadow:0 2px 5px rgba(0,0,0,.6)}
+.medaillon .disque>div,.anneau>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3b2718,#1b100a 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8);font-family:"Lineale";font-size:18px;color:#f3e6c6}
+#f-profil{left:544px;top:14px;width:826px;height:88px}
+#f-profil .fond{display:grid;grid-template-columns:repeat(12,1fr);align-items:start;padding:22px 8px 0}
+.carac{text-align:center;border-left:1px solid rgba(60,40,20,.3)}
+.carac:first-child{border-left:0}
+.carac span{display:block;font-size:12.5px;line-height:15px;color:#5a4530}
+.carac b{display:block;font-size:22px;line-height:27px;color:#2a1d12}
+#f-figure{left:544px;top:112px;width:250px;height:418px}
+#f-figure .fond{padding:9px}
+.niche{height:100%;padding:4px;border-radius:2px;box-shadow:0 0 0 1px #1a1005}
+.niche>div{height:100%;display:grid;place-items:end center;padding-bottom:26px;background:radial-gradient(90% 70% at 50% 38%,#e6d5ad,#b89f6e 70%,#7d6844);box-shadow:inset 0 0 0 1px rgba(0,0,0,.7),inset 0 0 30px rgba(60,35,10,.6)}
+.niche svg{width:190px;height:268px;filter:sepia(.4) saturate(.85) drop-shadow(0 4px 3px rgba(40,20,5,.45))}
+#f-sections{left:804px;top:112px;width:566px;height:418px}
+#f-sections .fond{padding:36px 18px 0}
+.onglets{position:absolute;left:28px;top:-7px;display:flex;align-items:center;gap:8px}
+.onglets .ruban{position:relative;font-size:19px;padding:1px 30px 4px;font-family:"Grenze Gotisch";font-weight:600;letter-spacing:.6px;margin-right:4px}
+.onglets .plaque{flex:none;height:30px}
+.onglets .plaque>div{padding:0 14px;font-size:13.5px}
+.arme{display:flex;gap:18px;padding:12px;margin-bottom:12px;border:1px solid rgba(60,40,20,.45);background:rgba(255,245,215,.22);box-shadow:inset 0 0 14px rgba(120,90,40,.25)}
+.vignette{flex:none;width:112px;height:112px;padding:3px;box-shadow:0 2px 5px rgba(0,0,0,.5),0 0 0 1px #1a1005}
+.vignette>div{height:100%;background:radial-gradient(circle at 50% 40%,#4a3020,#1b100a 80%);box-shadow:inset 0 0 0 1px #000}
+.vignette svg{display:block;width:100%;height:100%}
+.arme .n{font-size:26px;line-height:28px;color:#3a1a10}
+.mesures{display:flex;align-items:center;gap:11px;margin-top:7px}
+.mesures .t{font-size:13px;color:#4a3420;margin-right:16px}
+.mesures .m{margin-right:20px}
+.mesures .m span{display:block;font-size:12px;line-height:14px;color:#5a4530}
+.mesures .m b{font-weight:600;font-size:16px;line-height:21px;color:#2a1d12;white-space:nowrap}
+.atouts{display:flex;gap:8px;margin-top:7px;height:24px}
+.atouts span{padding:1px 12px 2px;border:1px solid rgba(42,29,18,.7);border-radius:12px;font-size:12.5px;line-height:19px;color:#2a1d12;background:rgba(255,245,215,.4)}
+#fermer{position:absolute;right:22px;top:76px;display:flex;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2}
+#fermer .bouton-rond{width:44px;height:44px;padding:4px}
