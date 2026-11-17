@@ -1,7 +1,9 @@
 """La géométrie commune aux modèles des décors (#4335) : les axes, les coins d'un carré, la boîte et le cylindre d'une
 primitive en `Vector`, l'aléa semé de l'id, le cap d'un azimut, les normales d'une tangente, le point d'un chemin à une
-hauteur, la courbe lissée par des points, l'anneau régulier et la coque close d'une suite d'anneaux ; et la déclaration
-des éléments d'une famille, avec la construction d'un décor dont les nœuds se bâtissent ensemble."""
+hauteur, la courbe lissée par des points, l'anneau régulier et la coque close d'une suite d'anneaux ; les pièces de
+bois et de fer que les familles partagent (pièce équarrie, planche, pièce profilée, pièce tournée, cheville, clou) et
+le partage inégal d'une longueur ; et la déclaration des éléments d'une famille, avec la construction d'un décor dont
+les nœuds se bâtissent ensemble."""
 import math
 import random
 
@@ -14,6 +16,8 @@ from maille import Maille, objet
 X, Y, HAUT = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
 ANGLES = ((1, 1), (-1, 1), (-1, -1), (1, -1))
 """Les signes (x, y) des quatre coins d'un carré centré, dans le sens direct."""
+MAT = "bois"
+"""Le matériau d'une pièce de bois (`barre`, `planche`, `tournee`, `cheville`)."""
 
 
 def pave(primitive):
@@ -89,6 +93,56 @@ def coque(m, anneaux, mat, pointe=None):
         faces += [[dernier + j, dernier + (j + 1) % k, len(sommets)] for j in range(k)]
         sommets.append(tuple(pointe))
     m.ajouter(sommets, faces, mat)
+
+
+def octogone(c, u, v, du, dv, chanfrein):
+    """Le rectangle de centre `c` et de demi-côtés `du` sur `u`, `dv` sur `v`, ses coins abattus de `chanfrein`."""
+    return [c + u * x + v * y for x, y in ((du - chanfrein, -dv), (du, -dv + chanfrein), (du, dv - chanfrein), (du - chanfrein, dv),
+                                           (-du + chanfrein, dv), (-du, dv - chanfrein), (-du, -dv + chanfrein), (-du + chanfrein, -dv))]
+
+
+def barre(m, stations, u, v, mat=MAT):
+    """Une pièce équarrie aux arêtes abattues : la coque des sections `stations` [(centre, du, dv, chanfrein)], chacune
+    dans le plan de `u` et `v`."""
+    coque(m, [octogone(c, u, v, du, dv, chanfrein) for c, du, dv, chanfrein in stations], mat)
+
+
+def planche(m, a, b, u, v, du, dv, chanfrein, mat=MAT):
+    """Une planche de `a` à `b`, ses rives et ses bouts adoucis de `chanfrein`."""
+    d = (b - a).normalized() * chanfrein
+    barre(m, [(a, du - chanfrein, dv - chanfrein, chanfrein / 2), (a + d, du, dv, chanfrein), (b - d, du, dv, chanfrein),
+              (b, du - chanfrein, dv - chanfrein, chanfrein / 2)], u, v, mat)
+
+
+def profilee(m, a, b, demi, profil):
+    """Une pièce équarrie dressée de `a` à `b`, sections horizontales, de demi-côtés `demi` (x, y) d'après `profil`
+    [(part de la longueur, part du demi-côté, chanfrein en fraction du plus petit demi-côté)]."""
+    barre(m, [(a.lerp(b, t), demi[0] * part, demi[1] * part, min(demi) * chanfrein) for t, part, chanfrein in profil], X, Y)
+
+
+def tournee(m, a, b, u, v, rayon, profil, cotes, mat=MAT):
+    """Une pièce tournée de `a` à `b`, ses cercles dans le plan de `u` et `v`, de `rayon` d'après `profil`
+    [(part de la longueur, part du rayon)]."""
+    coque(m, [anneau(a.lerp(b, t), u, v, rayon * part, cotes) for t, part in profil], mat)
+
+
+def cheville(m, p, n, rayon, K, a, mat=MAT):
+    """Une cheville de `rayon` enfoncée en `p` dans la face de normale `n`, sa tête en saillie, d'après `K`
+    (`CHEVILLE`)."""
+    tournee(m, p - n * (rayon * K["enfonce"]), p + n * (rayon * a.uniform(*K["saillie"])), *normales(n), rayon, K["profil"], K["cotes"], mat)
+
+
+def clou(m, centre, dehors, C, demi, mat):
+    """Une tête de clou en pointe de diamant posée sur `centre`, tournée vers `dehors`, d'après `C` (`CLOU`), en
+    fractions de `demi`."""
+    u, v = normales(dehors)
+    c = C[0] * demi
+    coque(m, [[centre + u * a * c + v * b * c for a, b in ANGLES]], mat, centre + dehors * C[1] * demi)
+
+
+def partage(a, nombre, ecart):
+    """Les bornes de `nombre` parts de [0, 1], chaque borne du dedans écartée d'au plus `ecart` de sa part."""
+    return [0.0] + [(k + a.uniform(-ecart, ecart)) / nombre for k in range(1, nombre)] + [1.0]
 
 
 def par_noeuds(D, id_, noeuds, batir):
