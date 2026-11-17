@@ -9,3 +9,5 @@ const identite = ({ px, apres = '', niveau, exigences, pied }) => cadre('identit
   ${rub('Pour achever Sorcière novice')}
   <div style="margin-top:5px">${exigences.map((e) => exige(...e)).join('')}</div>
   <div style="margin-top:14px">${pied}</div>`, { classe: 'pan ident' });
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { identite });

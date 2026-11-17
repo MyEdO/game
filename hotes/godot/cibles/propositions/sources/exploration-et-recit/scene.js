@@ -228,3 +228,5 @@ function sceneRoute() {
   el(S, 'rect', { x: 0, y: 0, width: W, height: 300, fill: 'url(#haut)' });
   el(S, 'rect', { x: 0, y: 440, width: W, height: 340, fill: 'url(#bas)' });
 }
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { sceneAuberge, sceneRoute });

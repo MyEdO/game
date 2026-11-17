@@ -99,7 +99,7 @@ au commentaire de #3935.
 
 Chaque proposition a sa source HTML, CSS et JS sous `propositions/sources/<famille>/`, polices communes sous
 `propositions/sources/polices/` (OFL). Une image se refait depuis sa source, jamais à la main :
-`node propositions/sources/rendre.cjs <chemin absolu du .html> <sortie.png> [échelle]` (vue 1707 × 780, rapport des
+`node propositions/sources/rendre.mjs <chemin absolu du .html> <sortie.png> [échelle]`, Playwright pris à `PLAYWRIGHT_MODULE` (chemin de son `index.js`) s'il ne se résout pas depuis le dépôt (vue 1707 × 780, rapport des
 pièces qui débordent ou se chevauchent). Les pages d'une famille partagent sa feuille et son script communs ; une pièce
 neuve s'y ajoute plutôt que dans une page.
 

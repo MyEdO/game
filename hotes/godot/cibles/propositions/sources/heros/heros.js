@@ -110,3 +110,5 @@ const ACQUIS = [
   ['Caractéristiques', 'Jets gardés', '+50 PX'],
   ['Signe astral', 'Le Trait du Peintre', '+25 PX'],
 ];
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { sep, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, poser, ACQUIS });
