@@ -63,7 +63,7 @@ monter([
        <div class="pied">${rond('gauche', 16)}<span class="folio rubrique">Feuillet 9 sur 15</span><span class="suite"><span class="rubrique">Feuillet suivant</span>${rond('droite', 16)}</span></div>
      </div>
 ${ATELIER ? atelier : fiche}
-     <i class="clou" style="left:8px;top:8px"></i><i class="clou" style="right:8px;top:8px"></i><i class="clou" style="left:8px;bottom:8px"></i><i class="clou" style="right:8px;bottom:8px"></i>
+     ${CLOUS}
    </div>`,
   croix(),
 ]);

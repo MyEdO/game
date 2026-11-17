@@ -50,7 +50,7 @@ if (ETAT === 'combat-naval-bordee') {
   /* le tour d'un héros qui sert une pièce du bord : le meuble de l'actif (`combat/meuble-chef-de-piece`), la munition ouverte */
   ui.push(...meuble({
     genre: 'bjorn', nom: 'Bjorn', sous: 'Canon (petit) de bâbord',
-    etat: `${mesure('Blessures', '16 / 16')}${mesure('Chargé', '1 / 1', 'or')}<div class="jetons">${JETONS}</div><div class="portes"><span class="rubrique">Poste</span>${plaque('Quitter la pièce', { icone: 'quitter' })}</div>`,
+    etat: `${mesure('Blessures', '16 / 16')}${mesure('Chargé', '1 / 1', 'or')}${jetons()}<div class="portes"><span class="rubrique">Poste</span>${plaque('Quitter la pièce', { icone: 'quitter' })}</div>`,
     plaques: `${plaque('Manœuvrer', { icone: 'barre' })}${plaque('Bordée', { icone: 'canon' })}${plaque('Attaque', { icone: 'attaque' })}`,
     conditionnelles: `${plaque('Recharger', { fermee: true })}${plaque('Diriger l’équipe')}${plaque('Chanson de marin')}`,
     pastilles: [['munition', 'Munition'], ['competence', 'Compétence'], ['objet', 'Objet'], ['armes', 'Armes']], ouverte: 'munition',

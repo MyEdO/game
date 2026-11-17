@@ -148,11 +148,11 @@
 .mesure{display:flex;align-items:center;gap:12px}
 .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:18px;line-height:22px;color:#2a1d12;white-space:nowrap}
 .mesure .rub .note{font-size:11.5px}
-.champ{align-self:stretch;margin-top:13px}
-.champ .ecrit{margin-top:2px;height:31px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid rgba(60,40,20,.6);font-family:"Fell";font-style:italic;font-size:18px;line-height:24px;color:#2b1a3a;white-space:nowrap}
-.champ.saisi .ecrit{border:2px solid #a8842f;border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px rgba(60,40,10,.7);padding:0 8px 2px}
-.champ .ecrit svg{flex:none;margin:0 0 3px auto}
-.champ .ecrit u{display:inline-block;width:1.5px;height:20px;background:#2b1a3a;margin-left:2px;text-decoration:none}
+.ligne-ecrite{align-self:stretch;margin-top:13px}
+.ligne-ecrite .ecrit{margin-top:2px;height:31px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid rgba(60,40,20,.6);font-family:"Fell";font-style:italic;font-size:18px;line-height:24px;color:#2b1a3a;white-space:nowrap}
+.ligne-ecrite.saisi .ecrit{border:2px solid #a8842f;border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px rgba(60,40,10,.7);padding:0 8px 2px}
+.ligne-ecrite .ecrit svg{flex:none;margin:0 0 3px auto}
+.ligne-ecrite .ecrit u{display:inline-block;width:1.5px;height:20px;background:#2b1a3a;margin-left:2px;text-decoration:none}
 
 /* ───────── fiche (présentation, progression) ───────── */
 .ident>.fond{padding:20px 22px}

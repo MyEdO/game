@@ -119,8 +119,8 @@
 #remis .plaque>div{font-size:16.5px}
 
 /* la désignation d'un héros : le bandeau du jet, une carte par héros (`carte`, `../combat/jet.js`) */
-#jet .fond.cartes{display:flex;justify-content:center;align-items:flex-start;gap:12px;padding-top:28px}
-#jet .fond.cartes .plaque.carte{width:270px}
+#jet .fond.debut{gap:12px;padding-top:28px}
+#jet .fond.debut .plaque.carte{width:270px}
 
 /* le carnet d'enquête : un panneau posé sur le jeu, les affaires au rail, l'affaire ouverte sur sa page */
 #documents{left:24px;top:330px;width:300px}

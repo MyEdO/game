@@ -47,6 +47,8 @@ const cadre = (id, x, y, w, h, matiere, contenu, { ruban = null, classe = '', te
 /* les sections d'un panneau en onglets : l'active est le ruban, les autres des plaques (`ecrites/heros.md`) */
 const onglets = (noms, active) => `<div class="onglets">${noms.map((s) => (s === active ? `<span class="ruban gothique" data-texte="section">${s}</span>` : plaque(s))).join('')}</div>`;
 const sep = () => '<div class="sep"><i></i></div>';
+/* une Compétence et sa spécialité */
+const nomDe = (n, spec) => `${n}${spec ? ` <small>(${spec})</small>` : ''}`;
 const rub = (t, note = '') => `<div class="rub">${t}${note ? ` <span class="note">${note}</span>` : ''}</div>`;
 const car = (ab) => `<span class="tag">${ab}</span>`;
 const coche = (taille = 26) => `<div class="pst laiton" style="width:${taille}px;height:${taille}px"><div>${picto('coche', Math.round(taille * .55), '#2a1a08', 2.2)}</div></div>`;
@@ -118,4 +120,4 @@ const ACQUIS = [
   ['Signe astral', 'Le Trait du Peintre', '+25 PX'],
 ];
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { sep, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, caseDeCarac, pm, reserve, onglets, poser, ACQUIS });
+Object.assign(globalThis, { sep, nomDe, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, caseDeCarac, pm, reserve, onglets, poser, ACQUIS });

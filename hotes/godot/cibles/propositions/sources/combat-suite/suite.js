@@ -7,7 +7,6 @@ const SUITE = ECRAN.dataset.suite;
 const $ = (s) => document.querySelector(s);
 
 /* ───────── pièces du bandeau ───────── */
-const pas = (pleins, total, classe = '') => `<div class="pas petit ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
 /* le bandeau et l'annonce de l'état de base cèdent leur place au bandeau de la suite */
 const poser = (titre, classe, contenu, suites) => {
   const [premier, ...autres] = document.querySelectorAll('#jet, #issue');
@@ -47,7 +46,7 @@ const ETATS = {
   surincantation() {
     cerner(...GOBELIN);
     journal(vieux('Tireur gobelin maîtrise sa psychologie (Animosité).'), vieux('Orc maîtrise sa psychologie (Animosité).'), neuf('Ilyanwe la Voilée incante Fléchette.'));
-    const axe = (nom, alloues, valeur) => `<div class="axe"><span class="rubrique">${nom}</span>${pas(alloues, 2)}<b>${valeur}</b>${moinsPlus({ moins: alloues > 0, plus: alloues < 2 })}</div>`;
+    const axe = (nom, alloues, valeur) => `<div class="axe"><span class="rubrique">${nom}</span>${rangDePas(alloues, 2, 'petit')}<b>${valeur}</b>${moinsPlus({ moins: alloues > 0, plus: alloues < 2 })}</div>`;
     const sansObjet = (nom) => `<div class="axe ferme"><span class="rubrique">${nom}</span><em>sans objet</em></div>`;
     poser('Incantation', 'sur', `
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['30', '4'], total: 34, dr: '+5', reussite: true })}
@@ -119,7 +118,7 @@ const ETATS = {
     poser('Dissipation', 'seul', `
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick) · coûte l’Action', seuil: 85, des: ['50', '1'], total: 51, dr: '+3', reussite: true })}
       <div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation 7</div><div class="dr gothique">Dôme</div>
-        <div class="cumul">${pas(5, 7)}<b class="rubrique" data-texte="cumul">5 DR sur 7</b></div>
+        <div class="cumul">${rangDePas(5, 7, 'petit')}<b class="rubrique" data-texte="cumul">5 DR sur 7</b></div>
         <p data-texte="phrase d'issue">Le Dôme vacille : encore 2 DR pour le dissiper.</p></div>
       ${vise('gobelin', CHAMANE, 'Lanceur du Sort visé', '11 / 11')}`, apresLeDe({ heros: RESERVES.ilyanwe }));
   },
@@ -130,7 +129,7 @@ const ETATS = {
     poser('Focalisation', 'focal', `
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Focalisation', seuil: 62, des: ['20', '4'], total: 24, dr: '+4', reussite: true })}
       <div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation 7</div><div class="dr gothique">Dôme</div>
-        <div class="cumul">${pas(4, 7)}<b class="rubrique" data-texte="cumul">4 DR sur 7</b></div>
+        <div class="cumul">${rangDePas(4, 7, 'petit')}<b class="rubrique" data-texte="cumul">4 DR sur 7</b></div>
         <p data-texte="phrase d'issue">Focalisation : 4/7 DR.</p></div>
       <div class="enjeu"><div class="l rubrique">Ce que la Focalisation ouvre</div>
         <table><tr><td>7 DR cumulés</td><td>NI 0 au prochain Round</td></tr><tr><td>Critique</td><td>lançable au prochain Round</td></tr><tr><td>Incantation manquée</td><td>magie perdue</td></tr></table></div>`, apresLeDe({ heros: RESERVES.ilyanwe }));
@@ -156,7 +155,7 @@ const ETATS = {
     poser('Corruption', 'corruption', `
       <div class="camp expose">${portrait('berta', 'heros')}
         <div><div class="n gothique">Berta</div><div class="c rubrique">Exposition modérée</div>
-        <div class="points"><div class="l rubrique"><span>Points de Corruption</span><b>2 / 6</b></div>${pas(2, 6, 'cire')}</div></div>
+        <div class="points"><div class="l rubrique"><span>Points de Corruption</span><b>2 / 6</b></div>${rangDePas(2, 6, 'petit cire')}</div></div>
       </div>
       <div class="nature"><div class="l rubrique">Nature de la Corruption</div>
         <div class="deux">${carte('Résistance', 'Influence physique · ≤ 45', { armee: true })}${carte('Calme', 'Corruption spirituelle · ≤ 40')}</div></div>

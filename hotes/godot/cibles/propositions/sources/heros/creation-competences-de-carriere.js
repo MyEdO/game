@@ -5,7 +5,6 @@ const COMPETENCES = [
   ['I', 'Perception', '', 5, 0, 46], ['Soc', 'Ragot', '', 4, 5, 44], ['E', 'Résistance', '', 2, 0, 35], ['E', "Résistance à l'alcool", '', 2, 0, 35],
 ];
 const deRace = (n) => `<span class="palier race ${n ? '' : 'sans'}">+${n}</span>`;
-const nomDe = (n, spec) => `${n}${spec ? ` <small>(${spec})</small>` : ''}`;
 const ligneDeCarriere = ([c, n, spec, aug, race, test, choisie]) => `<div class="ligne ${choisie ? 'choisie' : ''}" style="height:42px">${car(c)}<span class="n" data-texte="${n}">${nomDe(n, spec)}</span>
   ${deRace(race)}<div class="clous">${Array.from({ length: 10 }, (_, i) => `<i class="${i < aug ? 'p' : ''}"></i>`).join('')}</div>${pm(aug === 10)}<span class="val">${test}</span></div>`;
 const SPECS = ['Calligraphie', 'Cartographie', 'Écriture', 'Gravure', 'Icones', 'Mosaïque', 'Peinture', 'Sculpture', 'Tatouage', 'Tissage', 'Boucherie', 'Rédaction', 'Dessin'];

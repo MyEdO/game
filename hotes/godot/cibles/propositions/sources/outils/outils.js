@@ -1,5 +1,5 @@
 /* Hors partie et outils, images d'intention (#3935). Ajouts au kit (commun.js, systeme.js) : pictogrammes des outils,
-   champ de saisie, ligne à compte. Maquette hors du jeu. */
+   ligne à compte. Maquette hors du jeu. */
 Object.assign(PICTOS, {
   loupe: '<circle cx="10.500" cy="10.500" r="6"/><path d="M15 15l5.500 5.500"/>',
   selection: '<path d="M6 3.500l12 9-5.500 1 3 6-2.500 1.200-3-6L6 18.500z"/>',
@@ -22,10 +22,7 @@ Object.assign(PICTOS, {
   refaire: '<path d="M15 6.500L19.500 11 15 15.500M19.500 11H10a4.500 4.500 0 0 0 0 9h4"/>',
   couches: '<path d="M12 4l9 4.500-9 4.500-9-4.500zM3 12.500l9 4.500 9-4.500M3 16.500l9 4.500 9-4.500"/>',
 });
-/* un champ de saisie : libellé de rubrique, valeur ou attente */
-const champ = (libelle, valeur, { attente = '', classe = '' } = {}) => `<label class="champ ${classe}"><span class="rubrique">${libelle}</span><b class="${valeur ? '' : 'vide'}">${valeur || attente}${valeur ? '<i class="curseur-texte"></i>' : ''}</b></label>`;
 /* une ligne de liste : nom, compte à droite */
 const ligneDeListe = (nom, compte = '', { la = false, icone = null } = {}) => `<div class="ligne ${la ? 'la' : ''}">${icone ? picto(icone, 16, la ? '#2a1a08' : '#e2c06a') : ''}<span>${nom}</span>${compte !== '' ? `<em class="lin">${compte}</em>` : ''}</div>`;
-const fondDeTable = () => { el(S, 'rect', { width: W, height: H, fill: '#150c07' }); return `<div class="calque bois" id="table"></div><div class="calque" id="lueur-table"></div>`; };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { champ, ligneDeListe, fondDeTable });
+Object.assign(globalThis, { ligneDeListe });

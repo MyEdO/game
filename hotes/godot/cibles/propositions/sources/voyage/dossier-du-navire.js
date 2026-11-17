@@ -21,7 +21,7 @@ const etat = (lab, val) => `<div class="etat-n"><span class="rubrique">${lab}</s
 const barre = (nom, valeur, classe = '', style = '') => { const [a, b = 100] = valeur.split(' / '); return `<div class="mesure" style="${style}"><div class="tete rubrique"><span>${nom}</span><b class="lineale">${valeur}</b></div><div class="vie ${classe}"><i style="width:${100 * a / b}%"></i></div></div>`; };
 /* le nom de l'instance : lu, ou en saisie (chaque frappe joue `renommerLaPossession`) */
 const nomme = (nom, saisie) => (saisie
-  ? `<div class="saisie n gothique" data-texte="nom en saisie">${nom}<i></i></div>`
+  ? champ('', nom, { classe: 'n gothique' })
   : `<div class="n gothique">${nom}</div>`);
 /* où se trouve la possession, et les gestes qui la déplacent ; `confirme` : l'abandon demandé attend sa confirmation */
 const lieuEtGestes = (ou, gestes, suite = '') => `<div class="ou"><div class="l"><span class="rubrique">Se trouve</span><b>${ou}</b></div>

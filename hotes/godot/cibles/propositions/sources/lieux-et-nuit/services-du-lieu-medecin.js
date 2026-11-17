@@ -73,10 +73,7 @@ el(S, 'rect', { width: 380, height: H, fill: '#000', opacity: .3 });
 const pieces = [];
 pieces.push(titre({ icone: 'soin', nom: 'Guilde des Médecins', sous: 'Teuerberg, Bögenhafen', largeur: 400 }));
 const SERVICES = [['lit', 'La Fin du Voyage'], ['chope', 'Les Piques croisées'], ['balance', 'Guilde des Joailliers'], ['soin', 'Guilde des Médecins', 1], ['bouclier', 'Caserne du Guet']];
-pieces.push(`<div id="rail" class="cadre bois" data-piece="services"><div class="fond bois">
-  ${SERVICES.map(([i, n, a]) => plaque(n, { icone: i, armee: !!a })).join('')}
-  <div class="pied rubrique">On passe de l’un à l’autre sans ressortir</div>
-</div><div class="ruban rubrique">Services de Teuerberg</div>${ferrures}</div>`);
+pieces.push(rail('Services de Teuerberg', SERVICES, 'On passe de l’un à l’autre sans ressortir'));
 pieces.push(`<div id="docteur" class="hote cadre bois" data-piece="docteur"><div class="fond bois">
   <div class="tete">${medaillon('soin', { petit: true })}<div><div class="n gothique" data-texte="docteur">Le docteur de la guilde</div><div class="s rubrique">Docteur en médecine · Guérison 62</div></div></div>
   <p>Asseyez-vous sous la fenêtre et montrez-moi cela. Et ne bougez plus.</p>

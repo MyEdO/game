@@ -2,7 +2,6 @@
    de denrées et de porteurs, bustes des négociants, cartouches d'offre et de porteur, les deux décors (la halle, le
    quai). Maquette hors du jeu. */
 Object.assign(PICTOS, {
-  reseau: '<circle cx="6" cy="12" r="2.500"/><circle cx="18" cy="6" r="2.500"/><circle cx="18" cy="18" r="2.500"/><path d="M8.200 10.900l7.600-3.800M8.200 13.100l7.600 3.800"/>',
   panier: '<path d="M4 10h16l-2 9H6zM8 10l4-6 4 6M9.500 13v3M12 13v3M14.500 13v3"/>',
   tonneau: '<path d="M7 4h10c2 4 2 12 0 16H7c-2-4-2-12 0-16zM5.800 9h12.400M5.800 15h12.400"/>',
   ballot: '<rect x="4" y="7" width="16" height="11" rx="3"/><path d="M9 7v11M15 7v11M4 12.500h16"/>',
@@ -31,10 +30,6 @@ const cartouche = ({ id, classe = '', x, y, l, icone, nom, sous, corps = '', poi
   <div class="tete">${medaillon(icone, { petit: true })}<div><div class="n gothique" data-texte="${id}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div><div class="s rubrique">${sous}</div></div></div>${corps}
 </div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
 const jauge = (pris, total, ajout = 0) => `<div class="jauge"><i style="width:${100 * pris / total}%"></i>${ajout ? `<u style="left:${100 * pris / total}%;width:${100 * ajout / total}%"></u>` : ''}</div>`;
-const rail = (ruban, services, pied) => `<div id="rail" class="cadre bois" data-piece="services"><div class="fond bois">
-  ${services.map(([i, n, a]) => plaque(n, { icone: i, armee: !!a })).join('')}
-  <div class="pied rubrique">${pied}</div>
-</div><div class="ruban rubrique">${ruban}</div>${ferrures}</div>`;
 /* la page de droite, sur parchemin : ce que l'on compose ou traite ; `piece` la nomme au rapport de rendu */
 const page = (piece, ruban, corps, classe = '') => `<div id="page" class="page cadre bois ${classe}" data-piece="${piece}" style="height:auto"><div class="fond parchemin">${corps}</div><div class="ruban gothique">${ruban}</div>${ferrures}</div>`;
 const quantite = (v, min, max, unite = 'Enc') => `<div class="quantite">${rond('moins', 15)}<div style="flex:1"><div class="reglette"><u style="width:${100 * (v - min) / (max - min)}%"></u><i style="left:${100 * (v - min) / (max - min)}%"></i></div><div class="bornes lin"><span>${min}</span><span>${max}</span></div></div>${rond('plus', 15)}<span class="val">${v} ${unite}</span></div>`;
@@ -223,4 +218,4 @@ function sceneDuQuai() {
 }
 const nuagesDuSoir = () => { const g = el(S, 'g'); for (const [cx, cy, rx, ry, o] of [[420, 150, 260, 22, .5], [760, 96, 220, 16, .4], [1180, 190, 300, 20, .45], [980, 290, 240, 14, .35], [560, 300, 200, 12, .3]]) el(g, 'ellipse', { cx, cy, rx, ry, fill: '#2a2238', opacity: o, filter: 'url(#f8)' }); };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { mesures, cartouche, jauge, rail, page, quantite, voie, sceneDeLaHalle, sceneDuQuai });
+Object.assign(globalThis, { mesures, cartouche, jauge, page, quantite, voie, sceneDeLaHalle, sceneDuQuai });

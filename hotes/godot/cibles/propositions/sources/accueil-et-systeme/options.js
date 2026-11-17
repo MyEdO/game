@@ -4,7 +4,6 @@
    « Destin & Résistance » et l'action de sa règle (src/data/reglesOptionnelles.json:128-147). */
 const ETAT = document.getElementById('ecran').dataset.etat ?? '';
 const VERROU = 'Règles verrouillées : un combat est en cours. Le moteur les lit en direct — les changer maintenant réécrirait un combat déjà commencé (réserves d’Avantage, Initiative, Blessures). Terminez le combat pour les modifier.';
-const ouiNon = (v) => `<span class="oui-non"><b class="${v ? '' : 'la'}">Non</b><b class="${v ? 'la' : ''}">Oui</b></span>`;
 const curseur = (v, min, max, texte = v, l = 118) => `<span class="curseur"><span class="reglette" style="width:${l}px"><u style="width:${100 * (v - min) / (max - min)}%"></u><i style="left:${100 * (v - min) / (max - min)}%"></i></span><span class="val gothique">${texte}</span></span>`;
 const liste = (v) => `<span class="pas-a-pas">${picto('gauche', 15, '#5a4530', 2)}<b class="rubrique">${v}</b>${picto('droite', 15, '#5a4530', 2)}</span>`;
 const regle = ({ nom, ref, c, maison = false, modifiee = false, aide = null, action = null }) => `
@@ -38,9 +37,8 @@ const MODIFIES = { Combat: 1, Voyage: 2, ...(ETAT === 'chance' ? { 'Destin & Ré
 const pref = (nom, c, aide = '') => `<div class="pref"><div class="l"><b>${nom}</b>${c}</div>${aide ? `<p>${aide}</p>` : ''}</div>`;
 const volume = (v) => curseur(v, 0, 100, v + ' %', 104);
 
-el(S, 'rect', { width: W, height: H, fill: '#150c07' });
 monter([
-  `<div class="calque bois" id="table"></div><div class="calque" id="lueur-table"></div>`,
+  fondDeTable(),
   titre({ icone: 'systeme', nom: 'Options', sous: 'Préférences et règles maison', largeur: 392 }),
   `<div id="preferences" class="cadre bois" data-piece="préférences"><div class="fond bois"><span class="ruban rubrique">Préférences</span>
      ${pref('Couper le son', ouiNon(false))}
@@ -66,7 +64,7 @@ monter([
        ${OUVERT.droite.map(regle).join('')}
        <div class="pied"><span class="suite"><span class="rubrique">Feuillet suivant</span>${rond('droite', 16)}</span></div>
      </div>` : '<div class="feuille d parchemin"></div>'}
-     <i class="clou" style="left:8px;top:8px"></i><i class="clou" style="right:8px;top:8px"></i><i class="clou" style="left:8px;bottom:8px"></i><i class="clou" style="right:8px;bottom:8px"></i>
+     ${CLOUS}
    </div>`,
   croix(),
 ]);

@@ -11,9 +11,8 @@ const feuillet = ({ nom, lieu, date, reel, sauver = true, charge = false, vide =
     <div class="reel lin">Sauvegardée le ${reel}</div>`}
     <div class="gestes">${vide ? '' : plaque('Charger', { armee: charge })}${sauver ? (COMBAT ? plaque(`Sauvegarder${pointe ? raison('Impossible de sauvegarder en plein combat.') : ''}`, { fermee: true }) : plaque('Sauvegarder')) : ''}</div>
   </div>${ferrures}</div>`;
-el(S, 'rect', { width: W, height: H, fill: '#150c07' });
 monter([
-  `<div class="calque bois" id="table"></div><div class="calque" id="lueur-table"></div>`,
+  fondDeTable(),
   titre({ icone: 'disque', nom: 'Sauvegardes', sous: 'Steinbruck · 14 Pflugzeit 2512 CI · 18:20', largeur: 430 }),
   croix(),
   `<div id="feuillets" data-piece="emplacements">

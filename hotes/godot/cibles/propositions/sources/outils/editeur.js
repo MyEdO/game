@@ -14,7 +14,7 @@ const barre = () => `<div id="barre" class="cadre bois" data-piece="barre"><div 
   <div class="medaillon petit fer"><div>${picto('plume', 19, '#e9dcc0')}</div></div>
   <div><div class="nom gothique" data-texte="titre">Éditeur de campagne</div><div class="s rubrique">L’Ennemi Intérieur — chapitre 1 : la route d’Altdorf</div></div>
   <div class="sep"></div>
-  <span class="segments">${['Scène', 'Carte du monde', 'Narratif'].map((d) => `<b class="${d === (CARTE ? 'Carte du monde' : 'Scène') ? 'la' : ''}">${d}</b>`).join('')}</span>
+  ${segments(['Scène', 'Carte du monde', 'Narratif'], CARTE ? 'Carte du monde' : 'Scène')}
   <div class="espace"></div>
   ${petite('Annuler', { icone: 'retour' })}${petite('Rétablir', { icone: 'refaire', fermee: true })}
   <div class="sep"></div>
@@ -114,7 +114,7 @@ if (CARTE) {
        ${plaque('Ajouter un établissement', { icone: 'plus' })}
        <div class="r rubrique">Routes (1)</div>
        <div class="prop"><span>La route principale</span><span class="v lin" style="font-style:normal">40 km</span></div>
-       <div class="prop" style="flex-direction:column;align-items:flex-start;padding:6px 0 8px;gap:5px"><span>Sens</span><span class="segments"><b>Les deux sens</b><b class="la">Depuis Auberge La Diligence</b></span></div>
+       <div class="prop" style="flex-direction:column;align-items:flex-start;padding:6px 0 8px;gap:5px"><span>Sens</span>${segments(['Les deux sens', 'Depuis Auberge La Diligence'], 'Depuis Auberge La Diligence')}</div>
        ${validation}
      </div><div class="ruban gothique">Inspecteur</div>${ferrures}</div>`,
   );
@@ -130,9 +130,9 @@ if (CARTE) {
   const INSPECTEUR = {
     'editeur-scene': `<h3 class="gothique" data-texte="choisi">Porte</h3><div class="sous rubrique">Arête 14, 8 E · couche 0</div>
        <div class="trait"></div>
-       <div class="prop"><span>Type</span><span class="segments"><b>Cloison</b><b class="la">Porte</b></span></div>
-       <div class="prop"><span>Fermée au départ</span>${`<span class="oui-non"><b>Non</b><b class="la">Oui</b></span>`}</div>
-       <div class="prop"><span>Porte secrète</span>${`<span class="oui-non"><b class="la">Non</b><b>Oui</b></span>`}</div>
+       <div class="prop"><span>Type</span>${segments(['Cloison', 'Porte'], 'Porte')}</div>
+       <div class="prop"><span>Fermée au départ</span>${ouiNon(true)}</div>
+       <div class="prop"><span>Porte secrète</span>${ouiNon(false)}</div>
        <div class="prop gris"><span>Difficulté de Perception</span><span class="v">—</span></div>
        <div class="prop gris"><span>Découvrable depuis</span><span class="v">—</span></div>
        <div class="prop"><span>Matériau</span><span class="v">Mur à ossature en bois</span></div>
@@ -143,7 +143,7 @@ if (CARTE) {
     'editeur-outil-terrain': `<h3 class="gothique" data-texte="choisi">Terrain</h3><div class="sous rubrique">Options de l’outil</div>
        <div class="trait"></div>
        <div class="r rubrique">Pinceau</div>
-       <span class="segments large">${['1×1', '3×3', '5×5', 'Rectangle'].map((n) => `<b class="${n === '3×3' ? 'la' : ''}">${n}</b>`).join('')}</span>
+       <div class="pinceau">${segments(['1×1', '3×3', '5×5', 'Rectangle'], '3×3')}</div>
        <div class="r rubrique">Terrains</div>
        <div class="terrains">${TERRAINS.map((n) => `<b class="${n === 'Pavés' ? 'la' : ''}">${n}</b>`).join('')}</div>`,
     'editeur-supprimer': `<h3 class="gothique" data-texte="choisi">Personnage</h3><div class="sous rubrique">Case 12, 8 · couche 0</div>
@@ -151,7 +151,7 @@ if (CARTE) {
        ${champ('Nom', 'Gustav')}
        <div class="prop" style="margin-top:6px"><span>Fiche</span><span class="v">Citadin</span></div>
        <div class="prop"><span>Orientation</span><span class="pas-a-pas">${picto('gauche', 13, '#5a4530', 2)}<b class="rubrique">Sud</b>${picto('droite', 13, '#5a4530', 2)}</span></div>
-       <div class="prop"><span>Couche</span><span class="segments"><b class="la">0</b><b>1</b></span></div>
+       <div class="prop"><span>Couche</span>${segments(['0', '1'], '0')}</div>
        <div class="r rubrique">Inventaire</div>
        <div class="prop gris"><span>Aucun objet dans l’inventaire.</span></div>
        ${plaque('Ajouter un objet à l’inventaire', { icone: 'plus' })}

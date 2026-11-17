@@ -135,7 +135,7 @@ if (ETAT === 'designation-d-un-heros') {
   pieces.push(`<div class="apercu parchemin vers-droite" data-piece="invite" style="left:486px;top:318px;width:286px;--pointe:70px">
     <div class="tete"><span class="n gothique">Le corps du voyageur</span></div>
     <p data-texte="invite">En retournant le cadavre, vous découvrez avec stupeur qu’il est le sosie de l’un d’entre vous. Lequel ?</p></div>`);
-  pieces.push(bandeauDuJet('Désigner un héros', 'cartes', HEROS.map((h) => carte(h.nom, h.car, { portrait: portrait(h.id), armee: h.id === 'aldric' })).join(''), plaque('Désigner', { armee: true })));
+  pieces.push(bandeauDuJet('Désigner un héros', 'debut', HEROS.map((h) => carte(h.nom, h.car, { portrait: portrait(h.id), armee: h.id === 'aldric' })).join(''), plaque('Désigner', { armee: true })));
   pieces.push(chronique([['borne-j', 'La nuit, sur la route d’Altdorf'], ['', 'Mira retourne le corps du voyageur.']], 'haut', 'bottom:234px'), coins());
 }
 
