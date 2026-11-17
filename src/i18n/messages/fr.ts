@@ -5230,7 +5230,6 @@ export const fr = {
   'codex.fiche.manqueAuMoinsDr': 'manque ≥ {n} DR',
   'codex.fiche.drEnPlusOuDavantage': '+{n} DR ou plus',
   'codex.fiche.ragot': 'Ragot',
-  'codex.fiche.difficulteEtModificateur': '{v} ({mod})',
   'codex.fiche.qualiteDuVin': 'Qualité du vin ({die})',
   'codex.fiche.qualitePrixCo': '{label} · {price} CO',
   'codex.fiche.surcoutDAchatPartiel': 'Surcoût d’achat partiel',

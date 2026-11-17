@@ -52,13 +52,6 @@ export function exactDifficultyFromModifier(mod: number): Difficulty | undefined
   return (Object.keys(DIFFICULTY_MODIFIERS) as Difficulty[]).find((k) => DIFFICULTY_MODIFIERS[k] === mod);
 }
 
-/** Difficulté RÉSULTANTE d'une Difficulté RAW assortie d'un modificateur plat (`MSRC 13 l.176`) —
- *  composition PURE `difficultyFromModifier(mod(base) + delta)`. SOURCE UNIQUE : l'arithmétique de
- *  Difficulté vit dans le moteur, jamais recomposée au call-site (cliquet #1153). */
-export function shiftDifficulty(base: Difficulty, delta: number): Difficulty {
-  return difficultyFromModifier(DIFFICULTY_MODIFIERS[base] + delta);
-}
-
 export interface TestResult {
   roll: number;
   target: number; // valeur effective après difficulté

@@ -163,7 +163,7 @@ describe('Poudre imprégnée d’Aqshy (AA 08 l.544) — seuil de Maladresse él
   it('Poudre imprégnée d’Aqshy (via weaponWithAmmo) : Maladresse sur 8 OU 9 (AA 08 l.544)', async () => {
     const { weaponWithAmmo } = await import('../items');
     const weapon = w(['Empaleuse']);
-    const ammo = { qualities: q_(["Poudre imprégnée d'Aqshy"]), damage: { plusBF: false, flat: 2 } } as unknown as import('../types').ItemInstance;
+    const ammo = itemFromTrappingById('poudre-impregnee-d-aqshy', idsDeTest)!;
     const armed = weaponWithAmmo(weapon, ammo);
     expect(dangerousNine(armed, 84, false)).toBe(true); // 8 en dizaines
     expect(dangerousNine(armed, 48, false)).toBe(true); // 8 en unités
@@ -173,7 +173,7 @@ describe('Poudre imprégnée d’Aqshy (AA 08 l.544) — seuil de Maladresse él
   it('Test RÉUSSI : jamais de Maladresse, même avec un digit du seuil', async () => {
     const { weaponWithAmmo } = await import('../items');
     const weapon = w(['Empaleuse']);
-    const ammo = { qualities: q_(["Poudre imprégnée d'Aqshy"]), damage: { plusBF: false, flat: 2 } } as unknown as import('../types').ItemInstance;
+    const ammo = itemFromTrappingById('poudre-impregnee-d-aqshy', idsDeTest)!;
     const armed = weaponWithAmmo(weapon, ammo);
     expect(dangerousNine(armed, 84, true)).toBe(false);
   });

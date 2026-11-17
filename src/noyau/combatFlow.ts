@@ -130,7 +130,7 @@ import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, re
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { bouclierDuBinomeEnJeu, effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
 import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
-import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
+import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
   applyTriggeredEffects,
   maneuverEffectsOf,
@@ -395,6 +395,7 @@ import {
 import { findTableEntry } from '../engine/tables';
 import {
   isFumble,
+  incidentDeTir,
   rollOups,
   desDOups,
   desDeBrisDeLame,
@@ -402,6 +403,7 @@ import {
   CLE_SOLIDE,
   ligneDeSolide,
   SOURCE_SOLIDE,
+  armeAPoudre,
   type OupsResolved,
   type DemandeDeCasse,
 } from '../engine/oups';
@@ -805,7 +807,7 @@ export function banRangedActive(battle: BattleState | null | undefined): boolean
   return battle?.banRanged ?? (battle?.victoryCondition?.type === 'firstBlood');
 }
 
-/** Rencontre de SIÈGE effective (`EncounterDef.siege` — arbitrage utilisateur du 2026-09-04, verbatims
+/** Rencontre de SIÈGE effective (`EncounterDef.siege` — #1680, commentaire 5546039260 du 2026-09-04, verbatims
  *  au foyer unique : JSDoc de `siege`, `data/schemas/defs-scenes/scene.ts`) — SEUL point
  *  de résolution, consommé par `buildAiInput` pour offrir (ou non) les structures destructibles au
  *  choix de cible de l'IA. Défaut LITTÉRAL `false` : contrairement à `banRangedActive`, rien n'est
@@ -1372,10 +1374,8 @@ export interface AttackPreview {
   /** ÉCRÊTAGE réellement subi par la cible (`TestResult.clamped`) : la seule donnée qui autorise la
    *  chip « plafond 99 » sur le pré-jet (`PendingRoll.clamped`). Absent = aucun bornage. */
   clamped?: number;
-  /** Dégâts d'arme (Force incluse) AVANT le DR du jet. La Blessure réelle = `dmg` + DR − `soak` (plancher 1). */
+  /** Dégâts d'arme (Force incluse) AVANT le DR du jet. */
   dmg: number;
-  /** Encaissé par la cible à la localisation visée (Bonus d'Endurance + PA, réduction d'armure des Atouts déduite). */
-  soak: number;
 }
 export function previewAttack(
   get: Get<Jeu>,
@@ -1397,15 +1397,12 @@ export function previewAttack(
   const dist = battle
     ? mesure(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target))
     : mesure(attacker, target);
-  // Estimation de dégâts (R4) : dégâts d'arme (Force incluse) et encaissé de la cible. Le `soak` est dérivé
-  // de `woundsFromHit` (oracle) avec un dégât large → capture exactement PA + réduction d'armure (Perforante…).
+  // Estimation de dégâts (R4) : dégâts d'arme (Force incluse).
   const dmg = effectiveWeaponDamage(weapon, forceDuPorteur(attacker));
   const base = combatValue(attacker, kind, weapon);
-  const loc = location ?? 'corps';
-  const soak = (dmg + 20) - woundsFromHit(weapon, target, loc, dmg + 20, 0, 1, attacker.size);
-  if (kind === 'melee' && dist > reachTiles(weapon, mpt)) return { weapon, kind, inRange: false, blocked: false, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
+  if (kind === 'melee' && dist > reachTiles(weapon, mpt)) return { weapon, kind, inRange: false, blocked: false, target: 0, base, mods: [], dmg, difficulty: 'intermediaire' };
   const { env, blocked } = attackEnv(get, attacker, target, weapon, opts);
-  if (blocked) return { weapon, kind, inRange: true, blocked: true, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
+  if (blocked) return { weapon, kind, inRange: true, blocked: true, target: 0, base, mods: [], dmg, difficulty: 'intermediaire' };
   const distanceTiles = kind === 'distance' ? dist : undefined;
   const mods = attackModifiers(attacker, target, weapon, { kind, location, distanceTiles, env, metresPerTile: mpt });
   const rangeM = porteeDeTir(attacker, weapon); // Portée résolue (jet `{bf}` → BF×N) + modificateur de la munition sélectionnée ; null = hors bande
@@ -1422,7 +1419,7 @@ export function previewAttack(
     weapon, kind, inRange, blocked: false,
     target: line.target, base: line.base, mods: line.mods,
     ...(line.clamped ? { clamped: line.clamped } : {}),
-    dmg, soak, difficulty: line.difficulty,
+    dmg, difficulty: line.difficulty,
     ...(line.difficultyCombined != null ? { difficultyCombined: line.difficultyCombined } : {}),
     ...(line.difficultyParts ? { difficultyParts: line.difficultyParts } : {}),
   };
@@ -3316,9 +3313,8 @@ function appliquerLaTouche(
     if (lancee && !itemCapability(lancee, 'detruitAuLancer')) lacherAuSol(get, set, lancee, land);
   }
   log.push(...evLines(critLog, 'critique', attacker.id, target.id));
-  // Nerveux (LDB 85 l.249) : « facilement effrayée par […] les bruits forts » — un coup d'arme à
-  // feu (Poudre noire/Explosion) terrifie les créatures Nerveuses présentes : +3 État Brisé.
-  if (battle && weapon.type === 'distance' && isFirearmQuality(weapon)) {
+  // Nerveux, bruits forts : LDB 85 l.249 ; #4345
+  if (battle && weapon.type === 'distance' && armeAPoudre(weapon)) {
     for (const c of battle.combatants) {
       // Nerveux (effet déclenché onStartled : +3 Brisé) — fired par le dispatcher générique (no-op si absent).
       // Cause 'noise' (bruits forts) → exemption Dressé (Guerre) lue par la Condition Flow `startleCause`.
@@ -3447,21 +3443,25 @@ function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defense
 }
 
 /** ÉCRIT la Maladresse de `porteur` sur `arme` (LDB 14 l.19) — ÉCRITURE UNIQUE des deux temps de
- *  Maladresse d'un coup, partagée par la SURFACE du porteur (`jetSurfaced` — qui tient le jet joue son
- *  Oups !) : surfacé, une étape de Maladresse portant la queue ; sinon, la Maladresse appliquée sur
- *  place. Rend `true` quand une fenêtre tient la main (l'étape, ou le dé de casse de l'arme). */
-function ecrireLaMaladresse(get: Get, set: SetFn, porteur: Combatant, arme: Weapon, suivant: QueueDuCoup): boolean {
+ *  Maladresse d'un coup. `jetDeMaladresse` = le jet du Test de combat qui l'a produite : son Incident de
+ *  Tir (`incidentDeTir`, LDB 14 l.34) s'applique sur place, aucun dé à ouvrir ; sinon, partagée par la
+ *  SURFACE du porteur (`jetSurfaced` — qui tient le jet joue son Oups !) : surfacé, une étape de
+ *  Maladresse portant la queue ; sinon, la Maladresse appliquée sur place. Rend `true` quand une fenêtre
+ *  tient la main (l'étape, ou le dé de casse de l'arme). */
+function ecrireLaMaladresse(get: Get, set: SetFn, porteur: Combatant, arme: Weapon, jetDeMaladresse: number, suivant: QueueDuCoup): boolean {
+  const incident = incidentDeTir(arme, jetDeMaladresse);
+  if (incident) return applyOups(get, set, porteur, arme, incident, new Map(), suivant) === OPS_DIFFEREES;
   if (jetSurfaced(get(), porteur)) {
     pushHost(get, set, (index) => ({ id: `cons-maladresse-${porteur.id}-${index}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: porteur.id, maladresse: { weapon: arme, result: null, coup: suivant } }));
     return true;
   }
-  return applyOups(get, set, porteur, arme, rollOups(arme, battleRng()), new Map(), suivant) === OPS_DIFFEREES;
+  return applyOups(get, set, porteur, arme, rollOups(battleRng()), new Map(), suivant) === OPS_DIFFEREES;
 }
 
 /** Maladresse de l'ATTAQUANT : son Test d'attaque raté sur un double (LDB 14 l.19), sur l'arme du coup. */
 function maladresseDeLAttaquant(get: Get, set: SetFn, attacker: Combatant, weapon: Weapon, res: AttackResult, suivant: QueueDuCoup): boolean {
   if (!attackerFumbled(res, weapon, attacker)) return false;
-  return ecrireLaMaladresse(get, set, attacker, weapon, suivant);
+  return ecrireLaMaladresse(get, set, attacker, weapon, res.attackerDetail!.roll, suivant);
 }
 
 /** Maladresse du DÉFENSEUR (Test opposé, LDB 14 l.13) : sa Parade/Esquive ratée sur un double, sur
@@ -3470,7 +3470,7 @@ function maladresseDuDefenseur(get: Get, set: SetFn, target: Combatant, res: Att
   const arme = res.parryWeapon ?? defaultParryWeapon(target);
   if (!arme || !res.defenderDetail || res.defenderDetail.mode === 'social' || isOutOfAction(target)) return false;
   if (!defenderFumbled(res, arme, target)) return false;
-  return ecrireLaMaladresse(get, set, target, arme, suivant);
+  return ecrireLaMaladresse(get, set, target, arme, res.defenderDetail.roll, suivant);
 }
 
 /**
