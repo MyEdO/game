@@ -208,9 +208,7 @@ const interieur = (svg) => svg.replace(/^\s*<svg[^>]*>/, '').replace(/<\/svg>\s*
 const assombrir = (a = .58) => el(S, 'rect', { width: W, height: H, fill: '#080504', opacity: a });
 /* le départ d'un trajet, sur le poteau des routes : la destination, sa longueur, un moyen par plaque et sa durée */
 const depart = ({ nom, sous, modes, note }) => `<div class="depart"><div><b>${nom}</b><span class="s rubrique">${sous}</span>${note ? `<p>${note}</p>` : ''}</div><div class="modes">${modes.map(([icone, jours, o = {}]) => plaque(`${jours} j`, { icone, ...o })).join('')}</div></div>`;
-/* une pastille qui ouvre un écran posé sur le voyage (carte, dossier du navire, postes de bord), sous la carte du trajet */
-const ouvrir = (libelle, icone, haut) => `<div class="ouvrir" data-piece="ouvrir ${libelle}" style="top:${haut}px"><span class="rubrique ombre">${libelle}</span>${rond(icone, 18)}</div>`;
 /* au pied d'un billet de jet : la Chance qui reste à ceux qui l'ont lancé (LDB 17 l.23-24) */
 const chanceDe = (...ids) => `<div class="chance"><span class="rubrique">Chance</span>${reserves(...ids.map((id) => { const h = HEROS.find((x) => x.id === id); return [h.chance, h.nom.split(' ')[0]]; }))}</div>`;
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { poser, temps, carteDuTrajet, frise, recit, billet, ligne, jauge, interieur, assombrir, depart, ouvrir, chanceDe });
+Object.assign(globalThis, { poser, temps, carteDuTrajet, frise, recit, billet, ligne, jauge, interieur, assombrir, depart, chanceDe });

@@ -7,7 +7,7 @@ fermer();
 const pieces = [];
 pieces.push(titre({ icone: 'cordage', nom: 'Postes de bord', sous: 'La cogue · 15 marins · 3ᵉ jour en mer', largeur: 452 }));
 pieces.push(`<div data-piece="postes">
-  ${poste(628, 58, { nom: 'Vigie', sous: 'Perception', heros: 'bjorn' })}
+  ${poste(628, 58, { nom: 'Vigie', sous: 'Perception', heros: 'bjorn', plus: true })}
   ${poste(628, 198, { nom: 'Mousse', sous: 'Voile ou Ramer', icone: 'cordage' })}
   ${poste(330, 328, { nom: 'Capitaine', sous: 'Commandement', heros: 'greta', vise: true })}
   ${poste(500, 328, { nom: 'Timonier', sous: 'Voile', heros: 'mira' })}
@@ -17,7 +17,6 @@ pieces.push(`<div data-piece="postes">
   ${poste(628, 458, { nom: 'Chirurgien', sous: 'Guérison', icone: 'soin' })}
   ${poste(806, 458, { nom: 'Chansonnier', sous: 'Divertissement (Chant)', icone: 'chant' })}
   ${poste(1010, 458, { nom: 'Repos', sous: 'Aucun rôle', icone: 'sommeil' })}
-  <div class="place" style="left:660px;top:64px">${medaillon('plus', { petit: true })}</div>
 </div>`);
 pieces.push(billet({ x: 60, y: 196, largeur: 300, pointe: 236, nom: 'Capitaine', qui: 'Rôle essentiel', lignes: [['Compétence', 'Commandement'], ['Test d’équipage', 'Progression'], ['Ses degrés', 'comptent double']] }));
 pieces.push(`<div id="bord" class="cadre bois bord" data-piece="le bord"><div class="fond bois">

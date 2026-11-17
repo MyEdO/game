@@ -8,8 +8,6 @@ merDeCombat();
 navire(el(S, 'g'), 9.5, 5, {});
 navire(el(S, 'g'), 8.5, 11, { sens: -1, coque: ['#4a4a52', '#2c2c34', '#18181e'], voile: '#16161c' });
 voiles();
-/* les réserves de Mira : celles de `HEROS` (`../lieux-et-nuit/commun.js`), que le socle du combat ne porte pas */
-const MIRA = { chance: 2, resilience: 2, determination: 2 };
 const ui = [];
 ui.push(SYSTEME);
 ui.push(`<div id="round" class="cadre bois" data-piece="round"><div class="fond bois"><div class="n gothique">Round 1</div><div class="t rubrique">tour 2<br>sur 6</div></div>${ferrures}</div>`);
@@ -27,5 +25,5 @@ ui.push(bandeauDuJet('Manœuvre', 'avant', `
     <div class="enjeux"><span class="modif rubrique">Man de la cogue −1 DR</span><span class="modif rubrique">Peu maniable −1 DR</span></div>`)}
   <div class="rangees"><div class="t rubrique">Chacun lance son jet, les DR s’additionnent</div>
     ${rangee('greta', 'Greta Hartmann', 'Capitaine · Commandement', 44)}${rangee('aldric', 'Aldric', 'Navigateur · Orientation', 52)}${rangee('bjorn', 'Bjorn', 'Mousse · Voile ou Ramer', 31)}</div>`,
-  avantLeDe({ heros: MIRA })));
+  avantLeDe({ heros: HEROS.find((h) => h.id === 'mira') })));
 monter(ui);

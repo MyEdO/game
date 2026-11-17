@@ -8,7 +8,7 @@ const VENTE = ETAT === 'halle-vente', JET = ETAT.startsWith('marchandage'), AVAN
 const MARCHANDE = JET && !AVANT;
 /* #3004 : la cargaison est une entreprise commune, chacun règle sa part avant de conclure */
 const [bjorn, mira, aldric, greta] = HEROS;
-const PARTS = bourse({ parts: [[bjorn.nom, '10/–', bjorn.bourse], [mira.nom, '5/–', mira.bourse], [aldric.nom, MARCHANDE ? '1 CO 4/– 6 sc' : '1 CO 10/–', aldric.bourse], ['Greta', '10/–', greta.bourse]], total: MARCHANDE ? '2 CO 9/– 6 sc' : '2 CO 15/–' });
+const PARTS = bourse({ parts: [[bjorn.nom, '10/–', bjorn.bourse], [mira.nom, '5/–', mira.bourse], [aldric.nom, MARCHANDE ? '1 CO 4/– 6 sc' : '1 CO 10/–', aldric.bourse], ['Greta', '10/–', greta.bourse]], total: MARCHANDE ? '2 CO 9/– 6 sc' : '2 CO 15/–', reglable: !COOP });
 sceneDeLaHalle({ charge: VENTE ? 3 : 0 });
 
 const pieces = [];

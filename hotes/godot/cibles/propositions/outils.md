@@ -2,9 +2,9 @@
 
 Compte rendu des six états dessinés pour la coop, l'éditeur de campagne et le Compendium, des écrans sans image
 d'intention ni cible écrite. Contenu lu au code (`src/hote/`, `src/noyau/`, `server/`, `src/i18n/messages/fr.ts`),
-jamais le design d'un écran existant. Sources au dépôt : `sources/outils/` ; elles lient le socle de
-`sources/accueil-et-systeme/` et, pour `coop-la-main`, la halle de `sources/commerce/` sur le socle commun de
-`sources/lieux-et-nuit/`.
+jamais le design d'un écran existant. Sources au dépôt : `sources/outils/` ; elles lient le socle commun de
+`sources/lieux-et-nuit/`, les pièces de `sources/accueil-et-systeme/systeme.js` et, pour `coop-la-main`, la halle de
+`sources/commerce/`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (`coop.*` l.1408-1430, `ecran.salon.*` l.1466-1477,
@@ -44,6 +44,7 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - La halle vue du siège d'un invité. Cartouche « La main est à l'hôte » en haut ; les gestes sur la bourse et la cale
   sont en fer, avec la raison du jeu : « L'hôte seul engage la bourse et la cale du groupe. »
   (`src/noyau/intentionsDeSiege.ts:154-161`, `src/noyau/halle.hors-store.test.ts:130`).
+- « Bourses du groupe » montre la part de chacun sans − ni + (`bourse({ reglable: false })`) : l'invité ne règle rien.
 - Chaque héros du bandeau dit qui le joue : « Lena (vous) » en laiton, les autres en fer, « Otto — reconnexion… ».
 - Qui tient la main : `src/noyau/netOwnership.ts:713` (le concerné de la modale, sinon le combattant actif, sinon
   l'hôte).

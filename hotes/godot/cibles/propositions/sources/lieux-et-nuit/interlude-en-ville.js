@@ -16,7 +16,6 @@ pieces.push(`<div id="lieu" class="cadre bois" data-piece="lieu"><div class="fon
   <div class="activite prise">${medaillon('bulle', { petit: true })}<div><b>Dernières nouvelles</b><span class="c rubrique">Ragot · une Activité</span><i>Une rumeur venue de loin, et une de plus par degré de réussite.</i></div></div>
   <div class="activite">${medaillon('goutte', { petit: true })}<div><b>Semer la dissension</b><span class="c rubrique">Ragot, puis Charme · deux Activités</span><i>Monter le quartier contre un homme, une guilde ou le Guet.</i></div></div>
   ${plaque('Envoyer Mira à la taverne', { armee: true, icone: 'route', classe: 'envoyer' })}
-  <div class="pied rubrique">Une activité par semaine, trois au plus</div>
 </div><div class="ruban rubrique">Altstadt</div>${ferrures}</div>`);
 pieces.push(`<div id="carte" class="cadre bois" data-piece="carte"><div class="fond parchemin"><svg viewBox="0 0 844 572" preserveAspectRatio="none"></svg>
   ${LIEUX.map((l) => `<div class="lieu bois ${l.choisi ? 'choisi' : ''}" style="left:${l.x}px;top:${l.y}px">${medaillon(l.icone, { petit: true, taille: 17 })}<div><b>${l.nom}</b><span class="rubrique">${l.quoi}</span></div>${l.heros ? portrait(l.heros) : ''}${l.fantome ? portrait(l.fantome, { classe: 'fantome' }) : ''}</div>`).join('')}

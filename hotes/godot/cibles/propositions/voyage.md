@@ -54,9 +54,11 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   services mis en scène sur leurs bâtiments, pas de liste ; départs à droite sous la carte, un moyen par plaque.
 - Une seule entrée pour la diligence (audit §7) : la plaque du mode, sous « Partir » ; le cartouche « Lignes du
   Rochet » et son « Prendre un billet » sont retirés (le billet se paie au départ, `src/noyau/billetFlow.ts:1-9`).
-  Sous chaque départ, ce que la diligence coûte : « billet en main » quand le billet tenu couvre la route
-  (`OffreDePassage`, `billetFlow.ts:30`), sinon le prix par place (75 km à l'extérieur à –/1 par kilomètre, LDB 51
-  l.178 : 6/– 3 sc). Tarif par personne : chaque voyageur paie sa place de sa bourse (#3004), les bourses sont au
+  Sous le départ, ce que la diligence coûte : le billet de La Diligence s'arrête aux Sept Rayons (EDO 01 l.142, `suite`
+  du billet de `src/scenes/diligence/diligence-projet.json`), la place vers Altdorf se paie donc au tarif du livre,
+  115 km à l'extérieur à –/1 par kilomètre (LDB 51 l.184, `billetImplicite`, `src/engine/travel.ts:170`) : 9/– 7 sc.
+  Un seul départ : les routes de l'étape sont à sens unique (`from`, `src/noyau/worldMap.ts:176`), aucun retour vers
+  La Diligence. Tarif par personne : chaque voyageur paie sa place de sa bourse (#3004), les bourses sont au
   bandeau.
 - Règle montrée : 75 km en diligence à 15 km/h (valeur maison de `src/scenes/diligence/diligence-projet.json`) ; à
   pied et en diligence, 6 h de route par jour (LDB 51 l.191-197) ; une maladie qui se déclare en pastille de cire.
@@ -118,7 +120,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   posé sur le navire (nid-de-pie, gréement, pont, cale), la compétence en clair sous le nom, spécialisation comprise
   (« Projectiles (Poudre noire) », « Divertissement (Chant) »). Le héros se presse au bandeau puis son poste
   (charte « Désigner le héros exécutant ») : `affecterAuRoleABord(crewId, roleId | null)`.
-- Plusieurs titulaires : la Vigie, tenue par Bjorn, offre une place de plus (« + ») ; Vigies, Mousses et Artilleurs
+- Plusieurs titulaires : la Vigie, tenue par Bjorn, offre une place de plus (« + », `poste({ heros, plus })`) ; Vigies, Mousses et Artilleurs
   se tiennent à plusieurs (MDG 14 l.37). Poste « Repos » : aucun rôle (`shipRole: 'repos'`, `shipCrew.ts:71` ;
   Mousse facultatif, MDG 14 l.15). L'Artilleur est ouvert : le verbe ne refuse rien (`shipCrew.ts:668`).
 - Panneau « Le bord » : Moral, Coque, Eau douce, Vivres, puis « Ce que la journée jouera » : Progression (Capitaine),

@@ -84,8 +84,8 @@ const meuble = ({ genre, camp = 'heros', nom, sous, etat, plaques, pastilles, ad
 ];
 /* la cible d'un sort, sans dé */
 const vise = (genre, nom, role, pv) => `<div class="camp droite visee">${portrait(genre, 'ennemi')}<div><div class="n gothique">${nom}</div><div class="c rubrique">${role}</div>${pv ? `<div class="pv"><div class="vie"><i style="width:100%"></i></div><b class="rubrique">${pv}</b></div>` : ''}</div></div>`;
-/* les réserves des deux héros de la cour, telles que le combat s'ouvre */
-const RESERVES = { ilyanwe: { chance: 2, resilience: 1, determination: 1 }, berta: { chance: 2, resilience: 1, determination: 1 } };
+/* les réserves des deux héros de la cour ; Ilyanwe : la fiche validée (`../../../maquettes/fiche-du-heros.jpg`) */
+const RESERVES = { ilyanwe: { chance: 4, resilience: 3, determination: 3 }, berta: { chance: 2, resilience: 1, determination: 1 } };
 /* pose les pièces, cloue le meuble du bas, passe le grain */
 const monter = (ui) => {
   document.getElementById('ui').innerHTML = ui.join('');

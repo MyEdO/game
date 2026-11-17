@@ -55,7 +55,7 @@ if (NEGOCE) {
     <g transform="translate(44,44)" stroke="#4a3420" fill="none" stroke-width="1"><circle r="13"/><path d="M0,-18V18M-18,0H18M-9,-9L9,9M9,-9L-9,9"/></g>
     <text x="196" y="30" font-family="Fell" font-style="italic" font-size="13" fill="#4a3420" opacity=".8">Mer des Griffes</text>
   </svg></div>${ferrures}</div>`);
-  pieces.push(`<div id="ouvrir-carte" data-piece="ouvrir la carte"><span class="rubrique ombre">Ouvrir la carte</span>${rond('loupe', 16)}</div>`);
+  pieces.push(ouvrir('Ouvrir la carte', 'loupe', 266));
   const depart = (nom, sous, jours) => `<div class="depart"><div class="ou"><b>${nom}</b><span class="rubrique">${sous}</span></div><div class="moyen">${rond('navire', 19)}<span class="lin">${jours} j</span></div></div>`;
   pieces.push(`<div id="partir" class="cadre bois" data-piece="partir"><div class="fond bois">
     ${depart('Norden', 'Par la mer des Griffes · 90 milles', 3)}${depart('Hargendorf', 'Par la mer des Griffes · 60 milles', 2)}

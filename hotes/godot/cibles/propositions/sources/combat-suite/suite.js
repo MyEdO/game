@@ -179,7 +179,7 @@ const ETATS = {
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['20', '7'], total: 27, dr: '+2', modif: 'Avantage +10', reussite: true })}
       ${verdict('Bâton de combat · Orc · <span class="relance">relancé, <s>98</s></span>', 'DR net +6', 'Ilyanwe la Voilée touche Orc au corps.')}
       ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`,
-    apresLeDe({ heros: { ...RESERVES.ilyanwe, chance: 1 }, relance: true, survol: 'relancer' }));
+    apresLeDe({ heros: { ...RESERVES.ilyanwe, chance: RESERVES.ilyanwe.chance - 1 }, relance: true, survol: 'relancer' }));
   },
 };
 ETATS[SUITE]();

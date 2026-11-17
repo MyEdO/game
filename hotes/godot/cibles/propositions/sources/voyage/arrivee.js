@@ -1,5 +1,7 @@
 /* L'arrivée : l'écran du lieu (cible écrite `ecrites/lieu.md`), dont la première ligne est le récit du trajet
-   (`src/noyau/recitEnVue.ts`, `trm.titreArrivee`, `trm.dureeVoyage`). */
+   (`src/noyau/recitEnVue.ts`, `trm.titreArrivee`, `trm.dureeVoyage`). Un seul départ : les routes de l'étape sont à sens
+   unique (`from`, `src/scenes/diligence/diligence-projet.json`, `src/noyau/worldMap.ts:176`). Place de diligence : LDB 51 l.184
+   sur 115 km (`billetImplicite`, `src/engine/travel.ts:170`), le billet de La Diligence s'arrête ici (EDO 01 l.142). */
 poser(interieur(D.relais()));
 fermer();
 el(S, 'rect', { width: 560, height: 280, fill: 'url(#haut)', opacity: .55 });
@@ -12,8 +14,7 @@ pieces.push(`<div class="hote cadre bois" data-piece="service auberge" style="le
 pieces.push(carteDuTrajet({ titre: 'La route d’Altdorf', de: 'Sept Rayons', vers: 'Altdorf', part: 0.001 }).replace('<div class="ruban rubrique">La route d’Altdorf</div>', ''));
 pieces.push(ouvrir('Ouvrir la carte', 'loupe', 262));
 pieces.push(`<div id="partir" class="cadre bois" data-piece="partir"><div class="fond bois">
-  ${depart({ nom: 'Altdorf', sous: 'Par la grand-route · 115 km', modes: [['botte', 5], ['roue', 2]], note: 'Diligence : billet en main.' })}
-  ${depart({ nom: 'Auberge La Diligence', sous: 'Retour · 75 km', modes: [['botte', 4], ['roue', 1]], note: 'Diligence : 6/– 3 sc la place, à l’extérieur.' })}
+  ${depart({ nom: 'Altdorf', sous: 'Par la grand-route · 115 km', modes: [['botte', 5], ['roue', 2]], note: 'Diligence : 9/– 7 sc la place, à l’extérieur.' })}
 </div><div class="ruban rubrique">Partir</div>${ferrures}</div>`);
 pieces.push(bandeau({
   bjorn: { texte: 'descend du toit, les reins moulus' },

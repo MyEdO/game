@@ -44,9 +44,6 @@
 .hote .gestes{display:flex;gap:8px;margin-top:10px}
 .hote .plaque{flex:none;height:32px}
 .hote .plaque>div{font-size:13px;gap:7px;padding:0 10px}
-.ouvrir{position:absolute;left:1500px;top:262px;width:183px;display:flex;align-items:center;justify-content:flex-end;gap:11px}
-.ouvrir span{font-size:13.5px;color:#f0e2c2;white-space:nowrap}
-.ouvrir .bouton-rond{width:40px;height:40px;padding:3px}
 #partir{left:1323px;top:322px;width:360px}
 #partir .fond{padding:20px 14px 6px}
 .depart{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 9px}
@@ -70,6 +67,3 @@
 #evenement .plaque.commet{flex:none;width:300px;height:44px;margin-top:12px}
 /* la Chance au pied d'un billet de jet */
 .apercu .chance{display:flex;align-items:center;gap:14px;font-style:normal}
-/* une place de plus à un poste tenu à plusieurs */
-.place{position:absolute}
-.place .medaillon{width:30px;height:30px}
