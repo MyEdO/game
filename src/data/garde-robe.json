@@ -693,6 +693,12 @@
     "kind": "coiffure"
   },
   {
+    "id": "barbe-longue",
+    "type": "garde-robe",
+    "label": "Barbe longue et cheveux mi-longs",
+    "kind": "coiffure"
+  },
+  {
     "id": "taureau-rouge",
     "type": "garde-robe",
     "label": "Tête de taureau rouge",
