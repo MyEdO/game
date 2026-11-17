@@ -10,8 +10,8 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (COTES, HAUT, MAT, X, Y, barre, cheville, clou, coque, partage, pave, planche, profilee,
-                       rond, tournee)
+from geometrie import (COTES, HAUT, MAT, X, Y, barre, bosselee, cheville, clou, coque, partage, pave, planche,
+                       profilee, rond, tournee)
 from maille import plaque
 
 DECORS = ("barriere", "cloture", "palissade", "balustrade-bois", "bastingage")
@@ -132,14 +132,10 @@ def palissade(D, G, pieces, a):
         axes.append(c)
         pied, tete = c.z - longueur / 2, c.z + longueur / 2
         epaule = tete - rayon * a.uniform(*Pi["pointe"])
-        bosses = [a.uniform(*Pi["bosse"]) for _ in range(Pi["cotes"])]
-        tour = a.uniform(0, 2 * math.pi)
+        section = bosselee(a, (rx, 0, 0), (0, ry, 0), Pi["cotes"], Pi["bosse"])
 
-        def tranche(z, part, deport, c=c, rayon=rayon, bosses=bosses, tour=tour):
-            azimuts = [tour + 2 * math.pi * j / Pi["cotes"] for j in range(Pi["cotes"])]
-            return [Vector((c.x + rayon * (deport[0] + rx * part * b * math.cos(t)),
-                            c.y + rayon * (deport[1] + ry * part * b * math.sin(t)), z))
-                    for t, b in zip(azimuts, bosses)]
+        def tranche(z, part, deport, c=c, rayon=rayon, section=section):
+            return section((c.x + rayon * deport[0], c.y + rayon * deport[1], z), rayon * part)
         deports = [tuple(a.uniform(-Pi["flexe"], Pi["flexe"]) for _ in COTES) for _ in range(Pi["rangs"] + 1)]
         parts = [i / Pi["rangs"] for i in range(Pi["rangs"] + 1)]
         coque(pieces["pieux"], [tranche(pied + (epaule - pied) * t, 1 - Pi["defilement"] * t, deport)

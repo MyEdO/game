@@ -1,0 +1,13 @@
+{
+  "model": "decor--etendard.glb",
+  "model_sha256": "8633698e3ea0099626ac5ae60e32ee980498d7ae3f16396e01651fcc789dfda6",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

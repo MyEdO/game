@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "gibet"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    }
+  ],
+  "glb": {
+    "sha256": "9777c3efea20296624579e35c0315e9f5a3554d8c7c258cb7da243c7441184c7",
+    "octets": 83328
+  }
+}

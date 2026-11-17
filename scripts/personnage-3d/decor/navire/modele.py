@@ -11,8 +11,7 @@ from mathutils import Vector
 
 import geometrie
 from geometrie import (AXES, COTES, HAUT, MAT, X, Y, barre, cap, cercle, cheville, coque, courbee, lisse, normales,
-                       partage, pave, planche, profilee, rond, tournee)
-from gabarit import VERSANTS
+                       partage, pave, planche, profilee, rampant, rond, tournee)
 from maille import lineaire, point, tore
 
 DECORS = ("ancre-de-navire", "barre-de-navire", "cabestan", "mat-de-navire", "rouleau-de-cordage", "ecoutille",
@@ -52,9 +51,8 @@ def ancre(D, G, pieces, a):
     diamant = Vector((axe.x, axe.y, dessus + gros * B["assise"]))
     e = r_bras * P["epaisseur"]
     for rang in A["pattes"]:
-        p, (lx, ly, lz) = pave(G.primitives[rang])
-        descend = Vector(VERSANTS[G.primitives[rang]["slope"]])
-        crete = p - descend * (lx / 2) + HAUT * (lz / 2)
+        _, (_, ly, _) = pave(G.primitives[rang])
+        descend, crete, _, _, _ = rampant(G.primitives[rang])
         avance, montee = (crete - diamant).dot(descend), crete.z - diamant.z
         chemin = lisse([diamant + descend * (avance * fx) + HAUT * (montee * fz) for fx, fz in B["points"]], B["pas"])
         normale = descend.cross(HAUT)
@@ -335,14 +333,11 @@ def passerelle(D, G, pieces, a):
     poteaux et chandeliers, filière de corde."""
     Pa, bois = D["PASSERELLE"], pieces[MAT]
     rampe = G.primitives[Pa["rampe"]]
-    c, (lx, ly, lz) = pave(rampe)
-    descend = Vector(VERSANTS[rampe["slope"]])
-    long = abs(descend.x) * lx + abs(descend.y) * ly
-    bas, tete = c + descend * (long / 2) - HAUT * (lz / 2), c - descend * (long / 2) + HAUT * (lz / 2)
+    _, (_, _, lz) = pave(rampe)
+    descend, tete, bas, long, large = rampant(rampe)
     d = (tete - bas).normalized()
     travers = descend.cross(HAUT)
     n = d.cross(travers)
-    large = lx + ly - long
     pente = (tete - bas).length
 
     def dessus(p):
