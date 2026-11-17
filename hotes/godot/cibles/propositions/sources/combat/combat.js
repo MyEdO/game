@@ -208,12 +208,14 @@ function pion(g, [x, y], { genre, camp, actif, cible, pv }) {
   el(g, 'rect', { x: x - w / 2, y: yb, width: w * pv, height: 4, fill: '#b9412c' });
 }
 const CALME = VAR === 'round' || FIN;
+/* LDB 14 l.3 : 10 dégâts − 7 (BE 4 + PA 3) = 3 Blessures du coup, puis 2 du Critique (LDB 18 l.65) */
+const PV_ORC = VAR === 'critique' ? 9 : 14;
 if (VAR !== 'defaite') {
   objet(...HEROS, (g, p) => pion(g, p, { genre: 'ilyanwe', camp: 'heros', actif: !ADVERSE && !CALME, pv: 1 }));
   objet(...BERTA, (g, p) => pion(g, p, { genre: 'berta', camp: 'heros', pv: 1 }));
 }
 if (VAR !== 'victoire') {
-  objet(...ORC, (g, p) => pion(g, p, { genre: 'orc', camp: 'ennemi', cible: !CALME, pv: VAR === 'critique' ? 12 / 14 : 1 }));
+  objet(...ORC, (g, p) => pion(g, p, { genre: 'orc', camp: 'ennemi', cible: !CALME, pv: PV_ORC / 14 }));
   objet(...GOBELIN, (g, p) => pion(g, p, { genre: 'gobelin', camp: 'ennemi', pv: 1 }));
 }
 { const g = el(S, 'g'); objets.sort((p, q) => p.z - q.z).forEach((o) => o.dessine(g, o.p)); }
@@ -264,7 +266,6 @@ const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}"
 
 const jeu = ETAT === 'jet';
 const ui = [];
-const PV_ORC = VAR === 'critique' ? 12 : 14;
 const I = (c = '', pv = 17) => rang('ilyanwe', 'heros', 'Ilyanwe la Voilée', pv, 17, c);
 const Be = (c = '') => rang('berta', 'heros', 'Berta', 12, 12, c);
 const G = (c = '', nom = 'Tireur gobelin') => rang('gobelin', 'ennemi', nom, 11, 11, c);
@@ -284,7 +285,7 @@ if (!FIN) {
   const LIGNES = {
     adverse: vieux('Berta se met en Défensive.') + vieux(TIR) + neuf(AVANCE),
     defense: vieux(TIR) + vieux(AVANCE) + neuf('Orc attaque Ilyanwe la Voilée.'),
-    critique: vieux(ORCP) + vieux(CHARGE) + neuf('Ilyanwe la Voilée touche Orc à la tête.'),
+    critique: vieux(ORCP) + vieux(CHARGE) + neuf('Ilyanwe la Voilée touche Orc (Tête) : 10 dégâts − 7 (BE+PA) = 3 Blessures — CRITIQUE !'),
     round: vieux(TIR) + vieux(AVANCE) + borneJ('Round 2'),
     journal: '',
   }[VAR] ?? (jeu && VAR !== 'incantation' ? vieux(GOB) + vieux(ORCP) + neuf(CHARGE) : borneJ('Le combat commence ! (Round 1)') + vieux(GOB) + neuf(ORCP));
@@ -380,8 +381,8 @@ if (!jeu) {
     plaque('Continuer', { armee: true })));
   else if (VAR === 'round') ui.push(bandeauDuJet('Début du round', 'debut', `
     <div class="annonce"><div class="dr gothique">Round 2</div><div class="sous rubrique">Agir en premier</div></div>
-    ${[['ilyanwe', 'Ilyanwe la Voilée', 'Sorcière', true], ['berta', 'Berta', 'Soldate', false]].map(([g, n, m, a]) => carte(n, m, { armee: a, portrait: portrait(g, 'heros') })).join('')}`,
-    plaque('Commencer le round', { armee: true, classe: 'large' })));
+    ${carte('Berta', 'Soldate <span class="modif rubrique">1 Chance</span>', { armee: true, portrait: portrait('berta', 'heros') })}`,
+    `${reserves([RESERVES.berta.chance, 'Chance de Berta'])}${plaque('Commencer le round', { armee: true, classe: 'large' })}`));
   else ui.push(bandeauDuJet('Attaque', '', `
     ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['90', '8'], total: 98, dr: '−5', modif: 'Avantage +10' })}
     <div id="verdict"><div class="sous rubrique">Bâton de combat · Cible : Orc</div><div class="dr gothique">DR net +1</div><p>Ilyanwe la Voilée rate son attaque ; Orc gagne +1 Avantage.</p></div>
