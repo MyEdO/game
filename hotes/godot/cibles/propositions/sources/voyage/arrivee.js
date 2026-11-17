@@ -9,14 +9,11 @@ pieces.push(recit('Arrivée à Auberge des Sept Rayons · Voyage de 5 h.', 'Une 
 pieces.push(`<div class="hote cadre bois" data-piece="service auberge" style="left:520px;top:20px;width:490px"><div class="fond bois"><div class="tete">${medaillon('lit', { petit: true })}<div><div class="n gothique">Auberge</div></div></div>
   <p>« Trois voitures ce soir ! Il reste de la paille au dortoir, et du ragoût tant qu’il y en a. »</p>
   <div class="gestes">${plaque('Entrer', { icone: 'porte' })}${plaque('Dormir', { icone: 'lit' })}${plaque('Recueillir des informations', { icone: 'bulle' })}</div></div>${ferrures}<i class="pointe" style="left:90px;bottom:-8px"></i></div>`);
-pieces.push(`<div class="hote cadre bois" data-piece="service diligences" style="left:1030px;top:176px;width:262px"><div class="fond bois"><div class="tete">${medaillon('roue', { petit: true })}<div><div class="n gothique">Lignes du Rochet</div></div></div>
-  <p>Le cocher ne repart qu’au matin.</p>
-  <div class="gestes">${plaque('Prendre un billet', { icone: 'roue', fermee: true })}</div></div>${ferrures}<i class="pointe" style="left:90px;bottom:-8px"></i></div>`);
 pieces.push(carteDuTrajet({ titre: 'La route d’Altdorf', de: 'Sept Rayons', vers: 'Altdorf', part: 0.001 }).replace('<div class="ruban rubrique">La route d’Altdorf</div>', ''));
-pieces.push(`<div id="ouvrir" data-piece="ouvrir la carte"><span class="rubrique ombre">Ouvrir la carte</span>${rond('loupe', 18)}</div>`);
+pieces.push(ouvrir('Ouvrir la carte', 'loupe', 262));
 pieces.push(`<div id="partir" class="cadre bois" data-piece="partir"><div class="fond bois">
-  ${depart({ nom: 'Altdorf', sous: 'Par la grand-route · 115 km', modes: [['botte', 5], ['roue', 2]] })}
-  ${depart({ nom: 'Auberge La Diligence', sous: 'Retour · 75 km', modes: [['botte', 4], ['roue', 1]] })}
+  ${depart({ nom: 'Altdorf', sous: 'Par la grand-route · 115 km', modes: [['botte', 5], ['roue', 2]], note: 'Diligence : billet en main.' })}
+  ${depart({ nom: 'Auberge La Diligence', sous: 'Retour · 75 km', modes: [['botte', 4], ['roue', 1]], note: 'Diligence : 6/– 3 sc la place, à l’extérieur.' })}
 </div><div class="ruban rubrique">Partir</div>${ferrures}</div>`);
 pieces.push(bandeau({
   bjorn: { texte: 'descend du toit, les reins moulus' },

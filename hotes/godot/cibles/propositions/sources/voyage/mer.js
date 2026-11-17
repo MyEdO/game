@@ -12,14 +12,14 @@ pieces.push(`<div id="navire" class="cadre bois bord" data-piece="le navire"><di
   ${ligne('Eau douce', '<span class="lin">2 900 L</span>')}
   ${ligne('Vivres de l’équipage', '<span class="lin">735 rations</span>')}
 </div><div class="ruban rubrique">La cogue</div>${ferrures}</div>`);
-pieces.push(`<div id="ouvrir" data-piece="ouvrir le dossier" style="top:452px"><span class="rubrique ombre">Dossier du navire</span>${rond('coque', 18)}</div>`);
+pieces.push(ouvrir('Dossier du navire', 'coque', 452), ouvrir('Postes de bord', 'cordage', 502));
 pieces.push(frise({ de: 'Salzenmund', vers: 'Erengrad', fait: .3, nuits: [.1, .2], reste: 385, unite: 'milles' }));
-pieces.push(billet({ x: 1010, y: 404, largeur: 300, pointe: 236, nom: 'Progression', qui: 'Test d’équipage', lignes: [['Greta, Capitaine', '+2 DR, compte double'], ['Mira, Timonier', '+1 DR'], ['Les marins', '+1 DR'], ['Somme', '+6 DR']] }));
+pieces.push(billet({ x: 1010, y: 350, largeur: 300, pointe: 236, nom: 'Progression', qui: 'Test d’équipage', lignes: [['Greta, Capitaine', '+2 DR ×2 = +4'], ['Mira, Timonier', '+1 DR'], ['Aldric, Navigateur', '+1 DR'], ['Somme', '+6 DR']], pied: chanceDe('greta', 'mira', 'aldric') }));
 pieces.push(bandeau({
   bjorn: { icone: 'oeil', texte: 'Vigie : rien que des mouettes à l’horizon' },
   mira: { icone: 'barre', texte: 'Timonier : vire de bord sans perdre le vent' },
   aldric: { icone: 'etoile', texte: 'Navigateur : fait le point à midi, le cap est bon' },
   greta: { icone: 'couronne', texte: 'Capitaine : tient l’équipage à la manœuvre' },
 }));
-pieces.push(retour('Postes de bord', 'cordage'), coins());
+pieces.push(coins());
 monter(pieces);

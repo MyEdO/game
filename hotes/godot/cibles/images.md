@@ -51,11 +51,11 @@ EDOC 08 l.131-180, LDB 09 l.554, LDB 18 l.296, LDB 66 l.5-28, LDB 23, NADJ 16.
 
 | État | Intention | Choix à valider |
 |---|---|---|
-| `bivouac` | la halte de nuit en scène, les huit Activités d'Étape en postes où poser les héros | « Rester aux aguets » tient lieu de veille ; les huit postes offerts à toute halte ; effet de la tente |
-| `nuit-a-l-auberge` | la salle de l'auberge, chambre et repas par qualité, un poste de soirée par héros | qualité choisie par le joueur ou donnée de la maison ; bourse du groupe ou par héros ; boire une pinte |
-| `services-du-lieu-medecin` | la page des services d'un lieu ouverte sur le médecin, soins par patient | prix de la visite (LDB 75 l.19 donne une fourchette) et de la Chirurgie ; rail du quartier ou du bâtiment |
+| `bivouac` | la halte de nuit en scène, couchage et nourriture réglés par héros au bandeau, l'abri lu | effet de la tente ; sac de couchage non montré |
+| `nuit-a-l-auberge` | la salle de l'auberge, les offres au prix de la maison dont la grande chambre, la part de chaque héros, un poste de soirée par héros | une activité de soirée par héros ; boire une pinte ; écurie |
+| `services-du-lieu-medecin` | la page des services d'un lieu ouverte sur le médecin, soins du patient choisi au bandeau, payés par acte | prix de la visite (LDB 75 l.19 donne une fourchette) ; Chirurgie en valeur maison ; rail du quartier ou du bâtiment |
 | `jeux-de-taverne` | le service des jeux de l'auberge, la table et ses joueurs | jeux proposés par maison ; mise libre |
-| `interlude-en-ville` | le plan de la ville, chaque Activité accrochée à un lieu et à son PNJ | rattachement des Activités aux lieux ; restriction par Classe ; trois semaines |
+| `interlude-en-ville` | le plan de la ville, chaque Activité accrochée à un lieu et à son PNJ | rattachement des Activités aux lieux ; restriction par Classe ; effet de l'Événement de la période |
 
 ## Accueil et système (2026-11-16)
 
@@ -109,15 +109,15 @@ des livres : LDB 51 l.191-221, MSRC 7, MDG 12 à 15.
 
 | État | Intention | Choix à valider |
 |---|---|---|
-| `evenement-de-route` | la péripétie dans un parchemin ferré sur le décor assombri, dé en sceau, choix en barres, exécutant désigné au bandeau | le jeu ne pose aucun choix ici : les trois choix et la désignation sont une proposition ; choix fermé d'exemple |
-| `evenement-de-route-issue` | le résultat en une phrase sur l'image, le jet en pastille, son détail en billet | billet au-dessus de la carte du héros ; soutien du groupe raconté sans pastille |
-| `arrivee` | l'écran du lieu, sa première ligne est le récit du trajet ; services sur leurs bâtiments, départs sous la carte | Sept Rayons n'a aucun service en donnée ; durées des départs en plaques ; bourses au bandeau |
-| `voyage-fluvial` | le décor en plans, la barge, le Test de Navigation en pastille sur le barreur | vent du jour dans l'objet du temps ; qui tient la barre n'est pas choisi ici |
-| `voyage-fluvial-peril` | le contenant d'événement, les deux choix que le jeu pose, leur prérequis écrit | libellés allongés en phrases ; état de la coque sur le choix qui la coûte ; pas de sceau du dé |
-| `voyage-en-mer` | la cogue au centre, frise en milles, Tests d'équipage en pastilles par rôle | panneau « La cogue » ; pastille « Dossier du navire » ; sortie « Postes de bord » |
-| `postes-de-bord` | les neuf rôles en postes posés sur le navire, un portrait par poste tenu | place de chaque poste ; rôles des marins sans portrait ; panneau « Le bord » ; libellé « Veille » |
-| `dossier-du-navire` | la fiche lue en combat appliquée au navire : identité, profil, figure, sections | onglets ; Moral en barre d'or ; le dossier porte le nom du modèle |
-| `combat-naval` | l'écran de combat inchangé, la grille sur l'eau, les navires en pièces du champ | plaques « Manœuvrer », « Bordée », « Attaque » ; mesure de la Coque ; cases dorées et rouges |
+| `evenement-de-route` | la péripétie dans un parchemin ferré, dé en sceau, entrée du livre entière ; le Test au bandeau du jet, testeur désigné dans sa colonne | aucun choix : le livre n'en pose pas ; la désignation du testeur demande un réglage au noyau |
+| `evenement-de-route-issue` | le résultat en une phrase sur l'image, le jet en pastille, son détail en billet, la Chance du héros au pied | billet au-dessus de la carte du héros ; soutien du groupe raconté sans pastille |
+| `arrivee` | l'écran du lieu, sa première ligne est le récit du trajet ; services sur leurs bâtiments, départs sous la carte, le prix de la diligence sous chaque départ | Sept Rayons n'a aucun service en donnée ; durées des départs en plaques ; bourses au bandeau |
+| `voyage-fluvial` | le décor en plans, la barge, le Test de Navigation en pastille sur le poste « Barre » | vent du jour dans l'objet du temps ; le barreur se pose aux postes de bord |
+| `voyage-fluvial-peril` | le contenant d'événement, les deux choix que le jeu pose en cartes, la plaque qui commet | état de la coque sur le choix qui la coûte ; libellé de la plaque selon la carte ; pas de sceau du dé |
+| `voyage-en-mer` | la cogue au centre, frise en milles, Tests d'équipage en pastilles par rôle, Chance au pied du billet | panneau « La cogue » ; pastilles « Dossier du navire » et « Postes de bord » |
+| `postes-de-bord` | les neuf rôles et le repos en postes posés sur le navire, plusieurs titulaires aux postes qui l'admettent | place de chaque poste ; rôles des marins sans portrait ; panneau « Le bord » et ses Tests du jour |
+| `dossier-du-navire` | la fiche lue en combat appliquée au navire : son nom, renommable, puis identité, profil, figure, sections | onglets ; Moral en barre d'or ; nom d'exemple |
+| `combat-naval` | la manœuvre au bandeau du jet : virage réglé au centre, une rangée par héros en rôle ; la grille sur l'eau, les navires en pièces du champ | libellés du virage ; rangées à droite ; cases dorées et rouges |
 
 ## Suite du combat (2026-11-17)
 
@@ -150,7 +150,7 @@ de design du 2026-11-16. Ce qui se joue vient des livres : MSRC 13, MDG 15 l.321
 |---|---|---|
 | `halle-achat` | la page des services ouverte sur le marché, une offre par négociant, les porteurs au premier plan | offres en cartouches plutôt qu'en lignes ; rail des services ouvert ; billet de rumeur cloué |
 | `halle-vente` | la même halle, les lots sur leurs porteurs, trois voies pour un lot | la vente lue sur les porteurs ; nombre visé de l'acheteur dit avant le jet ; deux états plutôt que deux onglets |
-| `marchandage-avant-le-de` | le bandeau de jet à la place du bandeau des héros, la halle visible | enjeux affichés avant le dé ; seuil du négociant masqué ; « Soutien du groupe » en pastille |
+| `marchandage-avant-le-de` | le bandeau de jet à la place du bandeau des héros, la halle visible | enjeux affichés avant le dé, perte comprise ; seuil du négociant masqué ; « Soutien du groupe » en pastille |
 | `marchandage` | le jet résolu, le prix avant et après, les suites en plaques | verdict au centre ; « Conclure » armée ; compte de la page mis à jour dès le verdict |
 | `port` | le port est un lieu : services en cartouches sur le quai, le navire à l'amarre, départs en mer | état du navire lu sur le navire ; un seul cartouche déplié à la fois |
 | `port-negoce` | le négoce de mer sur la page des services du port, la cale seul porteur | même mise en scène que la halle ; avantages de DR annoncés avant le jet ; rail propre au port |
@@ -163,11 +163,11 @@ Aucune cible écrite. Le contenu vient de `src/hote/salon.ts`, `src/hote/coop/sa
 | État | Intention | Choix à valider |
 |---|---|---|
 | `coop-ouvrir` | une tablée vide, rejoindre et héberger en deux feuillets | code en six cases ; geste refusé en fer avec sa raison |
-| `coop-salon` | la tablée, un siège par joueur et ses héros, la page d'attribution | attribution lue deux fois ; un segment par siège ; rôle de Maître du Jeu sous les héros |
+| `coop-salon` | la tablée, un siège par joueur et ses héros, le siège à pourvoir inerte, la page d'attribution | attribution lue deux fois ; un segment par siège ; rôle de Maître du Jeu sous les héros |
 | `coop-la-main` | la halle vue du siège d'un invité, « La main est à l'hôte » | cartouche de la main sur tout écran joué à plusieurs ; nom du joueur sous chaque héros |
 | `editeur-scene` | un plan de travail en trois colonnes : scènes et outils, plan, inspecteur | matières du jeu plutôt qu'outil neutre ; palette d'icônes libellées ; vue de dessus |
 | `editeur-carte-du-monde` | le même plan de travail sur la carte, lieux et routes listés et choisis sur la carte | route éditée dans l'inspecteur du lieu ; sens d'une route en flèche |
-| `compendium` | un registre relié, un signet par famille, la liste en feuillets, la fiche et ses renvois | liste paginée ; renvois tronqués avec leur reste ; « Modifier » visible à la consultation |
+| `compendium` | un registre relié, un signet par famille, la liste en feuillets sous-titrée de sa famille, la fiche et ses renvois | liste paginée ; renvois tronqués avec leur reste ; « Modifier » visible à la consultation |
 
 ## Sources des propositions
 

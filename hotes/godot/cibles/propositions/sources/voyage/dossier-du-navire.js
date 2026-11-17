@@ -1,5 +1,6 @@
 /* Le dossier du navire, sur le modèle de la fiche lue en combat (`combat/fiche-au-clic`). Profil de la Cogue :
-   `src/data/vehicles.json` (MDG 12) ; traits : `src/data/naval-traits.json` ; état : `src/noyau/etat.ts:282` ; Moral : MDG 14 l.133-143. */
+   `src/data/vehicles.json` (MDG 12) ; traits : `src/data/naval-traits.json` ; état : `src/noyau/etat.ts:282` ; Moral : MDG 14 l.133-143 ; nom de l'instance :
+   `src/noyau/possessionsFlow.ts:49`. */
 poser(interieur(D.mer({ navire: false })));
 el(S, 'rect', { width: W, height: H, fill: '#06040a', opacity: .5 });
 voiles();
@@ -10,7 +11,7 @@ const etat = (lab, val) => `<div class="etat-n"><span class="rubrique">${lab}</s
 const ui = [];
 ui.push(`<div id="dossier">
 <div id="f-identite" class="cadre bois" data-piece="dossier-identite"><div class="fond parchemin">
-  <div class="tete">${portrait('navire', 'heros')}<div><div class="n gothique">Cogue</div><div class="c rubrique">Navire à voile</div><div class="c rubrique">25 mètres · 300 CO</div></div></div>
+  <div class="tete">${portrait('navire', 'heros')}<div><div class="n gothique">La Sterne</div><div class="c rubrique">Cogue</div><div class="c rubrique">Navire à voile</div><div class="c rubrique">25 mètres · 300 CO</div><div class="renommer">${rond('plume', 13)}<span class="rubrique">Renommer</span></div></div></div>
   <div class="mesure"><div class="tete rubrique"><span>Coque</span><b class="lineale">50 / 50</b></div><div class="vie"><i style="width:100%"></i></div></div>
   <div class="mesure" style="margin-top:14px"><div class="tete rubrique"><span>Moral</span><b class="lineale">75</b></div><div class="vie or"><i style="width:75%"></i></div></div>
   <div class="orne"><i></i><b></b><i></i></div>

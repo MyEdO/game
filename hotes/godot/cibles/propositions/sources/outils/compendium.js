@@ -22,7 +22,7 @@ monter([
   `<div id="signets" data-piece="signets">${FAMILLES.map((n) => `<div class="signet ${n === 'Compétences' ? 'ouvert' : ''}"><span class="rubrique">${n}</span></div>`).join('')}</div>`,
   `<div id="registre" data-piece="registre"><div class="tranche"></div>
      <div class="feuille g parchemin">
-       <div class="tete"><span class="dom gothique" data-texte="catégorie">Talents</span><span class="sous rubrique">Compétences · 187 entrées</span></div>
+       <div class="tete"><span class="dom gothique" data-texte="catégorie">Talents</span><span class="sous rubrique">Famille Compétences · 187 talents</span></div>
        <div class="filet-l"><i></i></div>
        ${TALENTS.map((n) => `<div class="entree ${n === 'Négociateur' ? 'pointee' : ''}"><span>${n}</span><em class="lin">LDB p. ${n === 'Menaçant' ? 141 : n === 'Oreille absolue' ? 143 : 142}</em></div>`).join('')}
        <div class="pied">${rond('gauche', 16)}<span class="folio rubrique">Feuillet 9 sur 15</span><span class="suite"><span class="rubrique">Feuillet suivant</span>${rond('droite', 16)}</span></div>
