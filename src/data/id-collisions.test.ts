@@ -28,10 +28,10 @@
  *           poudre-impregnee-d-aqshy (trapping ↔ qualité, AA 08 l.544 — la munition PORTE la qualité
  *           qui pose son seuil de Maladresse élargi {8,9}, même patron que `filet`).
  *       • créature↔trapping : une créature existe aussi comme trapping ORDINAIRE (objet de sac, hors
- *           bestiaire possédable) — poulet, singe, vers. Les trappings-bêtes MONTABLES homonymes
+ *           bestiaire possédable) — vers. Les trappings-bêtes MONTABLES homonymes
  *           (cheval-de-guerre-leger, cheval-de-trait, chien, mule, poney) sont RETIRÉS depuis le SOCLE
- *           POSSESSIONS T1-c1 (#617/#618 Lot 2, bascule au registre de possessions) — l'overlap s'est
- *           évanoui, ces ids ne collisionnent plus.
+ *           POSSESSIONS T1-c1 (#617/#618 Lot 2, bascule au registre de possessions), poulet et singe
+ *           depuis leur facette d'achat au bestiaire (#4131) — ces ids ne collisionnent plus.
  *       • créature↔trait : une créature confère à ses combattants un trait de même id — ogre (PERMANENT).
  *       • décor↔véhicule : un DÉCOR (meuble, `props.json`) homonyme d'un VÉHICULE à coque (`vehicles.json`)
  *           — l'entité porte sa NATURE (`SceneEntity.kind`), qui dit dans quel catalogue lire sa réf, donc
@@ -72,8 +72,8 @@ const KNOWN_CROSS = [
   'filet', 'flechette', 'frenesie', 'frisson-paralysant', 'fuite', 'haine', 'hamac', 'hurlement-de-la-bete-indomptable',
   'hurlement-fantomatique', 'infecte', 'langue-prehensile', 'magique', 'marmite', 'maudit', 'mauvais-oeil',
   'morsure', 'mouvement', 'ogre', 'perturbant', 'pieces-detachees-de-navire', 'pistolet', 'poudre-impregnee-d-aqshy',
-  'poulet', 'protection', 'rapide', 'regard-petrifiant', 'regeneration', 'resistance', 'resistance-a-la-magie',
-  'rocher', 'sang-corrosif', 'siege', 'silence', 'singe', 'souffle', 'taille', 'tente', 'tentacules', 'toile', 'tonneau', 'vers',
+  'protection', 'rapide', 'regard-petrifiant', 'regeneration', 'resistance', 'resistance-a-la-magie',
+  'rocher', 'sang-corrosif', 'siege', 'silence', 'souffle', 'taille', 'tente', 'tentacules', 'toile', 'tonneau', 'vers',
   'vision-nocturne', 'vomissement',
 ].sort();
 

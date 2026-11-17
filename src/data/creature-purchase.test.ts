@@ -21,6 +21,9 @@ const ACHAT_IDS = [
   'poney',
   'mouton',
   'cochon',
+  'pigeon',
+  'poulet',
+  'singe',
 ] as const;
 
 /** Détecteurs PURS : la garde et sa preuve par mutation portent sur la MÊME fonction. */
@@ -44,7 +47,7 @@ describe('creatures achetables (T0-b, #611)', () => {
 
   it('la garde d\'exhaustivité MORD sur un porteur en trop ou en moins', () => {
     const enTrop = structuredClone(creatures);
-    enTrop.find((c) => c.id === 'poulet')!.purchase = {
+    enTrop.find((c) => c.id === 'cheval')!.purchase = {
       price: { gold: 0, silver: 0, brass: 5 },
       availability: 'commune',
     };

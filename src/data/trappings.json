@@ -8022,31 +8022,6 @@
     }
   },
   {
-    "id": "poulet",
-    "type": "trappings",
-    "label": "Poulet",
-    "categorie": "trapping",
-    "subType": {
-      "id": "animaux-et-vehicules"
-    },
-    "enc": 1,
-    "availability": "commune",
-    "reach": null,
-    "loc": null,
-    "pa": null,
-    "damage": null,
-    "qualities": [],
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 5
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 306
-    }
-  },
-  {
     "id": "selle-et-harnais",
     "type": "trappings",
     "label": "Selle et Harnais",
@@ -8063,31 +8038,6 @@
     "qualities": [],
     "price": {
       "gold": 6,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 306
-    }
-  },
-  {
-    "id": "singe",
-    "type": "trappings",
-    "label": "Singe",
-    "categorie": "trapping",
-    "subType": {
-      "id": "animaux-et-vehicules"
-    },
-    "enc": 2,
-    "availability": "rare",
-    "reach": null,
-    "loc": null,
-    "pa": null,
-    "damage": null,
-    "qualities": [],
-    "price": {
-      "gold": 10,
       "silver": 0,
       "brass": 0
     },
