@@ -92,15 +92,21 @@ describe('Orientation — Repères & Changement de cap (MDG 13 l.307-331)', () =
 
 describe('Phares & clochers (MDG 13 l.333-351)', () => {
   it('Voir la lumière : ≤5 milles Facile (+40) ; 5-10 Intermédiaire ; 10-15 Difficile ; au-delà : invisible', () => {
-    expect(lighthouseSpotDifficulty(3)).toBe('facile');
-    expect(lighthouseSpotDifficulty(8)).toBe('intermediaire');
-    expect(lighthouseSpotDifficulty(14)).toBe('difficile');
-    expect(lighthouseSpotDifficulty(20)).toBeNull();
+    expect(lighthouseSpotDifficulty(3, false)).toBe('facile');
+    expect(lighthouseSpotDifficulty(8, false)).toBe('intermediaire');
+    expect(lighthouseSpotDifficulty(14, false)).toBe('difficile');
+    expect(lighthouseSpotDifficulty(20, false)).toBeNull();
   });
 
   it('clocher : distances divisées par 2 (l.351) → une cloche à 8 milles se juge comme une lumière à 16 (inaudible)', () => {
     expect(lighthouseSpotDifficulty(8, true)).toBeNull();
     expect(lighthouseSpotDifficulty(4, true)).toBe('intermediaire');
+  });
+
+  it('clocher : l’arrondi suit la division — 2,2 milles ≤ 2,5 Facile, 7,2 ≤ 7,5 Difficile, 7,6 inaudible (l.351)', () => {
+    expect(lighthouseSpotDifficulty(2.2, true)).toBe('facile');
+    expect(lighthouseSpotDifficulty(7.2, true)).toBe('difficile');
+    expect(lighthouseSpotDifficulty(7.6, true)).toBeNull();
   });
 
   it('bonus d’Orientation : phare = premier chiffre de Savoir (Océans) (l.335) ; clocher = +2 DR forfaitaires (l.351)', () => {

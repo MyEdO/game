@@ -7,7 +7,11 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { recordDIds, refs } from '../grammaire/ref';
-import { sourceRefSchema } from '../grammaire/valeurs';
+import { enumNomme, sourceRefSchema } from '../grammaire/valeurs';
+
+/** Genre du signal qui guide les navires vers le port ; absent, aucun. MDG 13 l.333-351 */
+export const signalDuPortSchema = enumNomme({ phare: 'Phare', clocher: 'Clocher' });
+export type SignalDuPort = z.infer<typeof signalDuPortSchema>;
 
 export const file = 'naval-ports.json';
 export const famille = 'entite';
@@ -25,6 +29,7 @@ const doc = document(
     demande: recordDIds('cargo', z.number(), 'mer').optional(),
     /** Grand port cosmopolite (Marienburg/Lothern, MDG 15 l.343-349). */
     cosmopolite: z.boolean().optional(),
+    signal: signalDuPortSchema.optional(),
     /** Colonne Dirigeant, verbatim. */
     dirigeant: z.string().optional(),
     /** Valeur d'ADAPTATION : présent, le port a un chantier où le Blindage se pose ; cite son passage. MDG 12 l.230 */
@@ -49,6 +54,10 @@ const doc = document(
     cosmopolite: {
       label: 'Port cosmopolite',
       hint: 'Grand port cosmopolite (Marienburg, Lothern) : marchands plus généreux, seuil de Négociateur abaissé',
+    },
+    signal: {
+      label: 'Signal du port',
+      hint: 'Phare ou clocher guidant les navires : repérage à l’atterrage et bonus d’Orientation (MDG 13 l.333-351)',
     },
     dirigeant: { label: 'Dirigeant', hint: 'Colonne Dirigeant de l’Index, verbatim' },
     chantierNavalSpecialise: {

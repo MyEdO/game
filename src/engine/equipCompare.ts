@@ -67,8 +67,8 @@ export function compareEquip(item: GabaritDObjet, hero: Combatant): EquipCompari
       const curR = effectiveRange(cur?.range, bf), nextR = effectiveRange(item.range, bf);
       rows.push({ label: 'Portée', current: curR != null ? `${curR} m` : '—', next: nextR != null ? `${nextR} m` : '—', trend: trendOf((nextR ?? 0) - (curR ?? 0)) });
     }
-    const cq = cur ? resolveQualities(cur).map((r) => qualityRefLabel({ id: r.id, value: r.indice })) : [];
-    const nq = resolveQualities(item).map((r) => qualityRefLabel({ id: r.id, value: r.indice }));
+    const cq = cur ? resolveQualities(cur).map((r) => qualityRefLabel(r.instance)) : [];
+    const nq = resolveQualities(item).map((r) => qualityRefLabel(r.instance));
     rows.push({ label: 'Qualités', current: cq.length ? cq.join(', ') : '—', next: nq.length ? nq.join(', ') : '—', trend: 'same' });
     return { slot: item.kind, currentName: cur?.label ?? null, rows };
   }

@@ -26,6 +26,7 @@ import type { Difficulty } from './types';
 import type { SeaWeather } from './seaWeather';
 import type { AggravationMeteo } from './ops';
 import type { Season } from './travelStages';
+import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
 import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, rollSeasonalCargo } from './cargo';
@@ -228,6 +229,8 @@ export interface PortProfile {
   demande?: Record<string, number>;
   /** Grand port cosmopolite (Marienburg/Lothern, l.343-349) : 3 cargaisons « commerce », marchands à 3d10+55. */
   cosmopolite?: boolean;
+  /** Signal qui guide les navires vers le port (phare ou clocher) ; absent, aucun. MDG 13 l.333-351 */
+  signal?: SignalDuPort;
 }
 
 /** ALTÉRATION du marché du port `placeId` posée par l'op `marcheDuPort`, jusqu'au départ du navire (`escale`)

@@ -642,9 +642,9 @@
   {
     "id": "equipage-phare",
     "type": "stakes",
-    "label": "Feu du phare",
+    "label": "Signal du port",
     "cascade": "voyage",
-    "template": "Réussi : la lumière repérée donne un bonus de DR au Test d'Orientation.",
+    "template": "Réussi : le signal repéré (lumière du phare ou son du clocher) donne un bonus de DR au Test d'Orientation.",
     "form": "descripteur",
     "rule": {
       "id": "test-equipage-perception",

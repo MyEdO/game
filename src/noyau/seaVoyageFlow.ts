@@ -10,8 +10,9 @@
  *     Critique au Gréement ; tant que ça souffle, ancre ou dérive à 25 % ;
  *  3. Test d'équipage de PROGRESSION (modale, #65) : milles du jour = 18 × M effectif (vent ch.13
  *     l.276, Salissures l.152, Clinfoc ch.12 l.256), ±10 %/DR (ch.15 l.78) ;
- *  4. arrivée en vue du port À PHARE (`MapPlace.port.lighthouse`) → Test d'équipage de PERCEPTION
- *     (modale, #65 — « voir la lumière d'un phare », l.337) : réussite → bonus d'Orientation (l.335) ;
+ *  4. arrivée à portée du SIGNAL du port (`MapPlace.port.signal`, phare ou clocher) → Test d'équipage de
+ *     PERCEPTION (modale, #65 — « voir la lumière d'un phare », l.337 ; clocher, l.351) : réussite → bonus
+ *     d'Orientation (l.335, l.351) ;
  *  5. Test d'équipage d'ORIENTATION quotidien (modale, #65 — « un Test par jour de voyage », l.311)
  *     → Repères / Changement de cap (retard %, quart de tour, demi-tour) ;
  *  6. CRISE en cours (Poursuite ch.13 l.354 / Tourbillon l.514) : un Test d'équipage par manche
@@ -113,7 +114,7 @@ import {
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
-  lighthouseSpotDifficulty, lighthouseOrientationDR, savoirOceansBonus, pursuitDistanceGain,
+  lighthouseSpotDifficulty, lighthouseOrientationDR, pursuitDistanceGain,
   pursuitLowMPenalty, voileSansProfil, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage,
 } from '../engine/seaNavigation';
 import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailChars, isWeatherWarded } from '../engine/exposure';
@@ -139,6 +140,8 @@ import {
 import { rule } from '../engine/policy';
 import { TEMPORARY_REPAIR } from '../engine/riverNavigation';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { signalDuPortSchema, type SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import {
@@ -1004,8 +1007,15 @@ export function reparationTemporaireApresLaManoeuvre(get: Get, set: Set, ship: C
   pushStep(set, (index) => (fluvial ? reparationTemporaireFluviale : reparationTemporaireDuNavire)(get, ship, `manoeuvre-${ship.id}-${index}`), 'combat');
 }
 
+/** Signal (phare ou clocher) du port d'arrivée du voyage en cours ; absent, aucun. MDG 13 l.333-351 */
+function signalDuPortDArrivee(get: Get): SignalDuPort | undefined {
+  const plan = get().travelPlan;
+  const worldMap = get().worldMap as WorldMap | undefined;
+  return plan && worldMap ? placeById(worldMap, plan.toPlaceId)?.port?.signal : undefined;
+}
+
 /**
- * Étapes POST-PROGRESSION du jour (crise → embuscade ancrée → phare → orientation → extermination →
+ * Étapes POST-PROGRESSION du jour (crise → embuscade ancrée → signal du port → orientation → extermination →
  * entretien), calculées APRÈS que `applySeaProgress` ait posé `sea.milesToday` du jour (dépendance de
  * l'embuscade/du phare, #275 Ronde 2 cran 3 Décision 2) — appelée par l'applier `'equipage-progression'`
  * (`insert`) ET par `buildSeaDayCascade` quand AUCUN Test de Progression n'a pu s'ouvrir (aucun PJ
@@ -1062,13 +1072,14 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
       else openAuthoredSeaAmbush(get, set, route, false); // aucun équipage pour tester → surpris directement
     }
   }
-  // 4. Phare du port d'arrivée en vue (dernier jour de mer) → Test de Perception VISUEL (MDG 13 l.337).
-  const dest = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
-  const lighthouse = dest?.port?.lighthouse;
+  // 4. Signal du port d'arrivée à portée (dernier jour de mer) → Test de Perception : lumière du phare
+  //    (MDG 13 l.337), son du clocher (MDG 13 l.351).
+  const signal = signalDuPortDArrivee(get);
   const milesLeft = plan.km - plan.kmDone - sea.milesToday;
-  const spot = lighthouse ? lighthouseSpotDifficulty(Math.max(1, Math.ceil(milesLeft))) : null;
+  const clocher = signal === 'clocher';
+  const spot = signal ? lighthouseSpotDifficulty(Math.max(1, milesLeft), clocher) : null;
   if (spot) {
-    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: 'vue', difficulty: spot }); // MDG 13 l.339-346
+    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: clocher ? 'ouie' : 'vue', difficulty: spot }); // MDG 13 l.339-346
     pousseSi(out, st);
   }
   // 5. Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311), + Carte marine (+DR, MDG 15 l.290).
@@ -2816,7 +2827,8 @@ export const TABLES = {
       const total = step.result.sl;
       const dr = total + (sea.lighthouseDR ?? 0);
       const out = orientationOutcome(dr, !!sea.minorDrift);
-      const j = [`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR ? `, phare +${sea.lighthouseDR}` : ''}) : ${out.desc}`];
+      const signal = signalDuPortDArrivee(get);
+      const j = [`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR && signal ? `, ${libelleDeValeur(signalDuPortSchema, signal)} +${sea.lighthouseDR}` : ''}) : ${out.desc}`];
       if (out.outcome === 'derive-mineure') patchSea(get, set, { minorDrift: true });
       if (out.rollCourseChange) {
         const cc = rollCourseChange(rng, out.courseChangeBonus);
@@ -2833,15 +2845,18 @@ export const TABLES = {
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
-    /** Phare du port d'arrivée (ch.13 l.337) : réussite → bonus d'Orientation (Savoir Océans/manuel). */
+    /** Signal du port d'arrivée (ch.13 l.337, l.351) : réussite → bonus d'Orientation. */
     'equipage-phare': (get, set, step) => {
       if (!step.result) return;
       const success = step.result.success;
+      const clocher = signalDuPortDArrivee(get) === 'clocher';
       const best = partyAssisted(get().party, { skill: { id: 'orientation' } });
-      const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, false), savoirOceansBonus(best.actor)) : 0;
+      const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, clocher)) : 0;
       patchSea(get, set, { lighthouseDR: dr });
-      // MDG 13 l.335
-      const j = [success ? t('sv.lighthouseSeen', { dr }) : t('sv.lighthouseMissed')];
+      // MDG 13 l.335, l.351
+      const j = [success
+        ? t(clocher ? 'sv.clocherHeard' : 'sv.lighthouseSeen', { dr })
+        : t(clocher ? 'sv.clocherMissed' : 'sv.lighthouseMissed')];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
