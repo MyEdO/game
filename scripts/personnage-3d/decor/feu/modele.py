@@ -13,7 +13,7 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import ANGLES, HAUT, X, Y, anneau, cap, coque, lisse, normales, pave, rond
+from geometrie import ANGLES, COTES, HAUT, X, Y, anneau, cap, cercle, coque, lisse, normales, pave, rond
 from gabarit import NOEUD_EMISSIF
 from maille import cylindre, lineaire, poutre, tour
 
@@ -102,12 +102,6 @@ def gradins(m, niveaux, demi, pan, mat, a, grain, pointe=None):
         anneaux.append([Vector((x + a.uniform(-grain, grain), y + a.uniform(-grain, grain), z))
                         for x, y in ((h, -c), (h, c), (c, h), (-c, h), (-h, c), (-h, -c), (-c, -h), (c, -h))])
     coque(m, anneaux, mat, None if pointe is None else HAUT * pointe)
-
-
-def cercle(m, axe, centre, r, h, e, segments, mat):
-    """Un cercle de fer plat autour de l'axe `axe` par `centre` : son rayon moyen `r`, sa hauteur `h` le long de l'axe,
-    son épaisseur `e`."""
-    tour(m, [(-h / 2, r - e / 2), (h / 2, r - e / 2), (h / 2, r + e / 2), (-h / 2, r + e / 2)], axe, centre, segments, mat, ferme=True)
 
 
 def faite(G):
@@ -199,7 +193,8 @@ def feu_camp(D, G, P, a):
         for ecart, part, r in F[rang]:
             r *= rayon_buche
             z = r if rang == "couchees" else assise + (assise + r) * F["appui"]
-            p0, p1 = (travers * (ecart * longueur + a.uniform(-jeu, jeu)) + long_ * s * part * longueur / 2 + HAUT * z for s in (-1, 1))
+            p0, p1 = (travers * (ecart * longueur + a.uniform(-jeu, jeu)) + long_ * s * part * longueur / 2 + HAUT * z
+                      for s in COTES)
             buche(P["buches"], p0, p1, r, B, B["cotes"], a)
     R = F["dresse"]
     for azimut_pied, pied, azimut_tete, tete in F["dresses"]:
@@ -265,7 +260,7 @@ def lampadaire(D, G, P, a):
     part, portee, r, (r_boule, l_boule) = L["barre"]
     z, portee = pied + part * longueur, portee * cote / 2
     cylindre(P["fut"], -portee, portee, r * rayon, "x", (0, 0, z), 6, "fer")
-    for s in (-1, 1):
+    for s in COTES:
         cylindre(P["fut"], *sorted((s * portee, s * (portee - l_boule * rayon))), r_boule * rayon, "x", (0, 0, z), 6, "fer")
 
     plateau, (cote_plateau, _, haut_plateau) = boites["fer-noirci"]

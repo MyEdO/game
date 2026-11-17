@@ -1,0 +1,13 @@
+{
+  "model": "decor--siege.glb",
+  "model_sha256": "1cd8aa80e62cd73aeceb4d4f7910acb273a94c38cc95460702dbe8ff2f278d0e",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

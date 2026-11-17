@@ -1,0 +1,13 @@
+{
+  "model": "decor--puits.glb",
+  "model_sha256": "10d2adae0d665599f4c819362ab21faf9adfc894543a2d76027dd71b00c9abdf",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

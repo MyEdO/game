@@ -1,9 +1,9 @@
-"""La géométrie commune aux modèles des décors (#4335) : les axes, les coins d'un carré, la boîte et le cylindre d'une
-primitive en `Vector`, l'aléa semé de l'id, le cap d'un azimut, les normales d'une tangente, le point d'un chemin à une
-hauteur, la courbe lissée par des points, l'anneau régulier et la coque close d'une suite d'anneaux ; les pièces de
-bois et de fer que les familles partagent (pièce équarrie, planche, pièce profilée, pièce tournée, cheville, clou) et
-le partage inégal d'une longueur ; et la déclaration des éléments d'une famille, avec la construction d'un décor dont
-les nœuds se bâtissent ensemble."""
+"""La géométrie commune aux modèles des décors (#4335) : les axes, les coins d'un carré, les deux côtés d'un axe, la
+boîte et le cylindre d'une primitive en `Vector`, l'aléa semé de l'id, le cap d'un azimut, les normales d'une tangente,
+le point d'un chemin à une hauteur, la courbe lissée par des points, l'anneau régulier et la coque close d'une suite
+d'anneaux ; les pièces que les familles partagent (pièce équarrie, planche, pièce profilée, pièce tournée et son profil
+droit, cheville et ses cotes, clou, anneau plat de section rectangulaire) et le partage inégal d'une longueur ; et la
+déclaration des éléments d'une famille, avec la construction d'un décor dont les nœuds se bâtissent ensemble."""
 import math
 import random
 
@@ -11,11 +11,13 @@ from mathutils import Vector
 
 import habillage
 from gabarit import Gabarit, boite
-from maille import Maille, objet
+from maille import Maille, objet, tour
 
 X, Y, HAUT = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
 ANGLES = ((1, 1), (-1, 1), (-1, -1), (1, -1))
 """Les signes (x, y) des quatre coins d'un carré centré, dans le sens direct."""
+COTES = (-1, 1)
+"""Les signes des deux côtés d'un axe, le négatif puis le positif."""
 MAT = "bois"
 """Le matériau d'une pièce de bois (`barre`, `planche`, `tournee`, `cheville`)."""
 
@@ -126,10 +128,20 @@ def tournee(m, a, b, u, v, rayon, profil, cotes, mat=MAT):
     coque(m, [anneau(a.lerp(b, t), u, v, rayon * part, cotes) for t, part in profil], mat)
 
 
-def cheville(m, p, n, rayon, K, a, mat=MAT):
-    """Une cheville de `rayon` enfoncée en `p` dans la face de normale `n`, sa tête en saillie, d'après `K`
-    (`CHEVILLE`)."""
-    tournee(m, p - n * (rayon * K["enfonce"]), p + n * (rayon * a.uniform(*K["saillie"])), *normales(n), rayon, K["profil"], K["cotes"], mat)
+CYLINDRE = ((0.0, 1.0), (1.0, 1.0))
+"""Le profil d'une pièce tournée de rayon constant (`tournee`)."""
+
+
+# Cheville (`cheville`) : côtés ; part de son rayon enfoncée dans le bois ; saillie de sa tête (fraction de son rayon,
+# tirée) ; profil (part de la longueur, part du rayon).
+CHEVILLE = {"cotes": 5, "enfonce": 1.0, "saillie": (0.25, 0.45), "profil": ((0.0, 1.0), (1.0, 0.75))}
+
+
+def cheville(m, p, n, rayon, a, mat=MAT):
+    """Une cheville de `rayon` enfoncée en `p` dans la face de normale `n`, sa tête en saillie, d'après `CHEVILLE`."""
+    C = CHEVILLE
+    tournee(m, p - n * (rayon * C["enfonce"]), p + n * (rayon * a.uniform(*C["saillie"])), *normales(n), rayon,
+            C["profil"], C["cotes"], mat)
 
 
 def clou(m, centre, dehors, C, demi, mat):
@@ -138,6 +150,13 @@ def clou(m, centre, dehors, C, demi, mat):
     u, v = normales(dehors)
     c = C[0] * demi
     coque(m, [[centre + u * a * c + v * b * c for a, b in ANGLES]], mat, centre + dehors * C[1] * demi)
+
+
+def cercle(m, axe, centre, r, h, e, segments, mat):
+    """Un anneau plat de section rectangulaire autour de l'axe `axe` par `centre` : son rayon moyen `r`, sa hauteur `h`
+    le long de l'axe, son épaisseur `e`."""
+    tour(m, [(-h / 2, r - e / 2), (h / 2, r - e / 2), (h / 2, r + e / 2), (-h / 2, r + e / 2)], axe, centre, segments,
+         mat, ferme=True)
 
 
 def partage(a, nombre, ecart):

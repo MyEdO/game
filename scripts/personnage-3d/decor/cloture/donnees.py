@@ -45,10 +45,6 @@ RETRAIT = 0.0005
 ARETE = 0.08
 """Chanfrein d'une arête adoucie, en fraction du plus petit demi-côté de la section."""
 
-# Cheville (`geometrie.cheville`) : côtés ; part de son rayon enfoncée dans le bois ; saillie de sa tête
-# (fraction de son rayon, tirée) ; profil (part de la longueur, part du rayon).
-CHEVILLE = {"cotes": 5, "enfonce": 1.0, "saillie": (0.25, 0.45), "profil": ((0.0, 1.0), (1.0, 0.75))}
-
 CLOU = (0.075, 0.04)
 """Tête d'un clou (`geometrie.clou`) : demi-côté et saillie, en fractions de la demi-largeur d'un piquet."""
 
