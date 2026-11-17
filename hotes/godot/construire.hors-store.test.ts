@@ -6,7 +6,7 @@
  */
 import { execFile } from 'node:child_process';
 import { Console } from 'node:console';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, truncateSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -16,7 +16,7 @@ import { RELAY_URL_PROD } from '../../src/hote/coop/page';
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs';
 import { sansModeNiRelais } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
-import { ecartsDeLaCopie, signaturesDu } from './construire.mjs';
+import { ecartsDeLaCopie, fichiersAuDelaDeGitHub, signaturesDu } from './construire.mjs';
 
 /** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, puis `--pont-seul` : ~55 s. */
 const CONSTRUCTION_MS = 180_000;
@@ -148,5 +148,17 @@ describe('la copie importée du projet, mise à jour des seuls fichiers changés
     rmSync(join(d, 'textures', 'herbe.jpg'));
     expect(ecartsDeLaCopie(avant, signaturesDu(d))).toEqual({ copier: [join('scripts', 'a.gd'), join('scripts', 'b.gd')], retirer: [join('textures', 'herbe.jpg')] });
     expect(ecartsDeLaCopie(signaturesDu(d), signaturesDu(d))).toEqual({ copier: [], retirer: [] });
+  });
+});
+
+describe('la garde de l’export Web : aucun fichier au-delà de ce que GitHub tient (#4402)', () => {
+  it('nomme, à toute profondeur, chaque fichier de plus de 104 857 600 octets, et lui seul', () => {
+    const d = join(dossier, `export-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(join(d, 'modeles'), { recursive: true });
+    for (const [rel, taille] of [['index.pck', 104_857_601], ['kit.pck', 104_857_600], [join('modeles', 'lourd.scn'), 200_000_000]] as const) {
+      writeFileSync(join(d, rel), '');
+      truncateSync(join(d, rel), taille);
+    }
+    expect(fichiersAuDelaDeGitHub(d)).toEqual([{ fichier: 'index.pck', taille: 104_857_601 }, { fichier: 'modeles/lourd.scn', taille: 200_000_000 }]);
   });
 });
