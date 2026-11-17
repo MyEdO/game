@@ -1,0 +1,10 @@
+/* Combat naval et dossier du navire : ce qui s'ajoute à la feuille du combat. */
+.vie.or>i{background:linear-gradient(180deg,#f3dc93,#a8842f)}
+#dossier{position:absolute;left:36px;top:26px}
+#dossier #f-identite{height:716px}
+#dossier #f-figure,#dossier #f-sections{height:618px}
+#dossier .niche svg{width:100%;height:100%}
+.arme.trait .texte p{margin:6px 0 0;font-size:15px;line-height:21px;color:#2a1d12}
+.etats{display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;margin-top:22px;padding-top:16px;border-top:1px solid rgba(60,40,20,.45)}
+.etat-n{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:#4a3420}
+.etat-n b{font-size:15px;color:#2a1d12;font-weight:600}

@@ -1,0 +1,70 @@
+/* Voyage, images d'intention (#3935) : pièces de la famille au-dessus de la feuille commune. */
+#titre.temps{height:104px}
+#titre.temps .fond{gap:16px;padding:0 20px 0 16px}
+#titre.temps .n{font-size:29px;line-height:42px;margin:-9px 0 -9px}
+#titre.temps .m{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13.5px;color:#e6dabd}
+#trajet{left:1323px;width:360px;height:232px}
+#trajet .fond{overflow:hidden}
+#trajet .fond>svg{position:absolute;inset:0;width:100%;height:100%}
+#frise{position:absolute;left:222px;top:574px;width:1263px;height:44px}
+#frise .reste{position:absolute;right:10px;top:-14px;font-size:14px;color:#f0e2c2;white-space:nowrap}
+#frise .reste b{font-size:22px}
+#recit.route{left:40px;top:150px;width:600px}
+#recit.route p{font-size:19px;line-height:27px}
+.apercu.vers-bas::before{left:var(--pointe,40px);bottom:-8px;box-shadow:2px 2px 0 rgba(40,25,10,.9)}
+.ligne{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;line-height:23px;color:#eadfc4}
+.ligne .rubrique{font-size:12.5px;color:var(--creme-2);white-space:nowrap}
+.parchemin .ligne{color:var(--encre)}.parchemin .ligne .rubrique{color:var(--encre-2)}
+.jauge{height:8px}
+.jauge>i{background:linear-gradient(180deg,#f3dc93,#a8842f)}
+.jauge.cire>i{background:linear-gradient(180deg,#b9412c,#7c1f14)}
+.filet{height:1px;background:linear-gradient(90deg,rgba(201,185,149,0),rgba(201,185,149,.45),rgba(201,185,149,0));margin:11px 0 8px}
+.parchemin .filet{background:rgba(60,40,20,.42)}
+/* le contenant d'événement : parchemin dans un cadre de chêne ferré, vignette, texte, sceau du dé, choix */
+#evenement{left:260px;top:286px;width:1186px;height:324px}
+#evenement .fond{display:flex;gap:24px;padding:22px 26px 0 20px}
+#evenement .vignette{flex:none;width:254px;height:254px;padding:5px;background:#2a1d12;box-shadow:0 2px 6px rgba(40,20,5,.6);margin-top:2px}
+#evenement .vignette svg{display:block;width:100%;height:100%}
+#evenement .corps{flex:1;min-width:0}
+#evenement .tete{display:flex;align-items:baseline;gap:14px}
+#evenement h2{margin:-9px 0 -7px;font-family:"Grenze Gotisch";font-weight:600;font-size:34px;line-height:50px;color:#3a1a10;letter-spacing:.3px;white-space:nowrap}
+#evenement .tete span{font-size:12.5px;color:#5a2a12}
+#evenement .corps>p{margin:4px 80px 6px 0;font-size:16px;line-height:22px;color:#2a1d12}
+#evenement .plaque{flex:none;height:40px;margin-top:8px}
+#evenement .plaque>div{justify-content:flex-start;gap:12px;font-family:"Spectral";font-size:15.5px;letter-spacing:0;padding:0 14px}
+#evenement .plaque .prix{font-family:"Fell SC";font-weight:400;font-size:12.5px;letter-spacing:1px}
+.sceau.de{position:absolute;right:26px;top:16px;width:62px;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffe2d2}
+.sceau.de b{font-family:"Grenze Gotisch";font-weight:700;font-size:28px;line-height:26px}
+.sceau.de i{font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px}
+.heros.ferme{opacity:.5}
+.heros .attend.sombre{color:var(--or);background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #150d04,0 0 0 2px rgba(226,192,106,.55),0 2px 4px rgba(0,0,0,.6)}
+/* panneau de bord, à droite */
+.bord{position:absolute}
+.bord>.fond{padding:24px 16px 14px}
+.bord .t{font-size:12.5px;color:var(--or);margin-bottom:5px}
+.bord .plaque.grand{height:44px;margin-top:12px}
+.bord .plaque.grand>div{font-size:16.5px}
+/* le lieu d'arrivée : services sur leurs bâtiments, poteau des routes */
+#recit.lieu{width:440px}
+#recit.lieu p{font-size:16px;line-height:23px}
+.hote .gestes{display:flex;gap:8px;margin-top:10px}
+.hote .plaque{flex:none;height:32px}
+.hote .plaque>div{font-size:13px;gap:7px;padding:0 10px}
+#ouvrir{position:absolute;left:1500px;top:262px;width:183px;display:flex;align-items:center;justify-content:flex-end;gap:11px}
+#ouvrir span{font-size:13.5px;color:#f0e2c2;white-space:nowrap}
+#ouvrir .bouton-rond{width:40px;height:40px;padding:3px}
+#partir{left:1323px;top:322px;width:360px}
+#partir .fond{padding:20px 14px 6px}
+.depart{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 9px}
+.depart+.depart{border-top:1px solid rgba(201,185,149,.22)}
+.depart b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:21px;line-height:26px;margin:-4px 0 -3px;color:#f4e8ca;letter-spacing:.3px;white-space:nowrap}
+.depart .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+.depart .modes{display:flex;gap:7px}
+.depart .plaque{flex:none;height:32px}
+.depart .plaque>div{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.2px;gap:6px;padding:0 9px}
+.depart p{margin:4px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:var(--creme-2)}
+#navire{left:1323px;top:262px;width:360px}
+#navire .jauge{margin:1px 0 7px}
+#bord{left:1323px;top:20px;width:360px}
+#bord .jauge{margin:1px 0 7px}
+.jouera.vide{opacity:.5}

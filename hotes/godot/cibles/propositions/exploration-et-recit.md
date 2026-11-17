@@ -1,7 +1,8 @@
 # Propositions : exploration et récit (2026-11-16, #3935)
 
 Compte rendu des six écrans dessinés sans cible écrite, dans le style des maquettes validées, contenu lu à
-`src/hote/ecran.ts` et `src/noyau/modalArbiter.ts`. Sources au dépôt : `sources/exploration-et-recit/`. Le lot a été
+`src/hote/ecran.ts` et `src/noyau/modalArbiter.ts`. Sources au dépôt : `sources/exploration-et-recit/`, sur le socle
+commun de `sources/lieux-et-nuit/`. Le lot a été
 interrompu avant son propre relevé : ce compte rendu est fait d'après les images et les sources, les valeurs
 affichées sont des exemples non relus au livre. Rien n'est validé.
 

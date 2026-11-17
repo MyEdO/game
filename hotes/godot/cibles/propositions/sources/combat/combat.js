@@ -1,6 +1,6 @@
 /* Écran de combat, image d'intention (#3935). Deux états : « tour » (le tour d'un héros) et « jet » (le jet d'attaque
-   qui se résout). Maquette hors du jeu : le champ de bataille est dessiné, il ne prétend pas être le rendu du moteur. */
-const NS = 'http://www.w3.org/2000/svg';
+   qui se résout). Se charge après `jet.js` et `socle.js`. Maquette hors du jeu : le champ de bataille est dessiné, il ne
+   prétend pas être le rendu du moteur. */
 const ECRAN = document.getElementById('ecran');
 /* un état neuf se range sous l'un des deux socles : le meuble de l'actif (« tour ») ou le bandeau (« jet ») */
 const NEUFS = {
@@ -13,38 +13,16 @@ ECRAN.dataset.socle = ETAT;
 const FIN = VAR === 'victoire' || VAR === 'defaite';
 const ADVERSE = VAR === 'adverse' || VAR === 'defense';
 const SURVOL = ETAT === 'tour' && (!VAR || VAR === 'cible');
-const W = 1707, H = 780;
-const el = (parent, tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; };
-const alea = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-const melange = (c1, c2, t) => { const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)); const a = p(c1), b = p(c2); return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
-const svgUrl = (s) => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
-
-/* textures : bois et parchemin, en bruit (les mêmes que l'écran de voyage) */
-document.documentElement.style.setProperty('--tex-bois', svgUrl(`<svg xmlns='${NS}' width='600' height='300'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.22' numOctaves='4' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.42  0 0 0 0 0.30  0.9 0.9 0.9 0 -0.75'/></filter><rect width='100%' height='100%' fill='#c9a57a'/><rect width='100%' height='100%' filter='url(#f)'/></svg>`));
-document.documentElement.style.setProperty('--tex-parchemin', svgUrl(`<svg xmlns='${NS}' width='500' height='400'><filter id='a' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.32  0 0 0 0 0.16  0.9 0.9 0.9 0 -0.95'/></filter><filter id='b' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='5' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.12  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' fill='#fff'/><rect width='100%' height='100%' filter='url(#a)'/><rect width='100%' height='100%' filter='url(#b)'/></svg>`));
-
 /* ───────── le champ de bataille : une cour de ruine, en isométrie ───────── */
-const S = document.getElementById('scene');
-const defs = el(S, 'defs');
-const grad = (id, stops, attrs = { x1: 0, y1: 0, x2: 0, y2: 1 }, type = 'linearGradient') => { const g = el(defs, type, { id, ...attrs }); stops.forEach(([o, c, a]) => el(g, 'stop', { offset: o, 'stop-color': c, 'stop-opacity': a ?? 1 })); return g; };
-const flou = (id, d) => { const f = el(defs, 'filter', { id, x: '-30%', y: '-30%', width: '160%', height: '160%' }); el(f, 'feGaussianBlur', { stdDeviation: d }); };
-flou('f1', 0.8); flou('f2', 2); flou('f6', 6); flou('f18', 18);
 grad('nuit', [[0, '#0a0c16'], [.5, '#12131f'], [1, '#15131a']]);
 grad('feu', [[0, '#ffdf9a', .85], [.16, '#ffb65a', .55], [.45, '#e07a2c', .2], [1, '#e07a2c', 0]], { cx: .5, cy: .5, r: .5 }, 'radialGradient');
 grad('coeur', [[0, '#fff3c8', .95], [.3, '#ffc76e', .6], [1, '#ff9a3a', 0]], { cx: .5, cy: .5, r: .5 }, 'radialGradient');
-grad('vignette', [[.5, '#000', 0], [.82, '#000', .4], [1, '#000', .8]], { cx: .5, cy: .44, r: .74 }, 'radialGradient');
-grad('haut', [[0, '#080a14', .78], [1, '#080a14', 0]]);
-grad('bas', [[0, '#000', 0], [1, '#000', .82]]);
-grad('gauche', [[0, '#000', .62], [1, '#000', 0]], { x1: 0, y1: 0, x2: 1, y2: 0 });
 grad('droite', [[0, '#000', .7], [.55, '#000', .35], [1, '#000', 0]], { cx: .5, cy: .5, r: .5 }, 'radialGradient');
 grad('froid', [[0, '#2a3a6a', 0], [1, '#2a3a6a', .55]], { cx: .5, cy: .5, r: .5 }, 'radialGradient');
 const teinte = (id, clair, sombre) => grad(id, [[0, clair], [.55, sombre], [1, melange(sombre, '#000000', .35)]], { x1: 0, y1: 0, x2: 1, y2: 1 });
 teinte('t-robe', '#7c88ad', '#2b3350'); teinte('t-cuir', '#b98a58', '#5a3d2a'); teinte('t-orc', '#7b8f5c', '#2f3a26'); teinte('t-gob', '#8ea064', '#3b4a2b');
 teinte('t-bois', '#8a6a44', '#3f2c1a');
 
-const A = 46, B = 23, OX = 608, OY = -84;
-const P = (i, j) => [OX + (i - j) * A, OY + (i + j) * B];
-const losange = (x, y, a = A, b = B) => `M${x},${y - b}L${x + a},${y}L${x},${y + b}L${x - a},${y}Z`;
 
 // l'extérieur : la nuit et la lisière, derrière les murs
 el(S, 'rect', { width: W, height: H, fill: 'url(#nuit)' });
@@ -249,40 +227,6 @@ el(S, 'rect', { x: 0, y: 500, width: W, height: 280, fill: 'url(#bas)' });
 if (FIN || VAR === 'fiche') el(S, 'rect', { width: W, height: H, fill: '#06040a', opacity: FIN ? .66 : .42 });
 
 /* ───────── l'interface ───────── */
-const BUSTES = {
-  ilyanwe: '<path d="M16 90c0-17 7-25 19-27l-2-8c-6-5-8-15-5-23 3-8 19-8 22 0 3 8 1 18-5 23l-2 8c12 2 19 10 19 27z"/><path d="M25 37l-10-10 10 3zM53 37l10-10-10 3z"/><path d="M21 41c-3-17 5-30 18-30s21 13 18 30c4 10 5 23 3 36l-9-7c2-10 1-21-3-28-4-5-14-5-18 0-4 7-5 18-3 28l-9 7c-2-13-1-26 3-36z" fill="#1c1410"/>',
-  berta: '<path d="M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z"/><path d="M24 31c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" fill="#1c1410"/><path d="M52 33c7 9 7 22 2 33l-6-3c4-10 4-19-1-27z" fill="#1c1410"/>',
-  gobelin: '<path d="M18 90c0-14 8-20 17-22l-1-5c-8-4-11-13-8-21 3-8 23-8 26 0 3 8 0 17-8 21l-1 5c9 2 17 8 17 22z"/><path d="M27 45L5 34l20 21zM51 45l22-11-20 21z"/><path d="M24 47c-2-16 5-27 15-31 10 4 17 15 15 31-10-6-20-6-30 0z" fill="#0c0605"/>',
-  orc: '<path d="M4 90c0-22 11-30 25-32l-1-6c-8-5-11-17-7-26 4-9 32-9 36 0 4 9 1 21-7 26l-1 6c14 2 25 10 25 32z"/><path d="M21 33c7-6 29-6 36 0l-3 5c-9-4-21-4-30 0z" fill="#0c0605"/><path d="M29 54l-2-11 6 8zM49 54l2-11-6 8z" fill="#e6d6b0"/>',
-};
-const portrait = (genre, camp, style = '') => `<div class="portrait ${camp === 'ennemi' ? 'ennemi fer' : 'laiton'}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" fill="${camp === 'ennemi' ? '#170a08' : '#2a1f17'}">${BUSTES[genre]}</svg></div></div>`;
-const ferrures = '<i class="ferrure hg"></i><i class="ferrure hd"></i><i class="ferrure bg"></i><i class="ferrure bd"></i>';
-const picto = (d, taille = 22, couleur = '#e2c06a', trait = 1.6) => `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="${couleur}" stroke-width="${trait}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-const PICTOS = {
-  attaque: '<path d="M4 4l11 11M4 4v3.500M4 4h3.500M13 17l4-4M16.500 16.500L20 20M20 4L9 15M20 4v3.500M20 4h-3.500M11 17l-4-4M7.500 16.500L4 20"/>',
-  course: '<path d="M9 3v9.500l-4 3.500v4h14v-2.500c0-2-2.500-3-6-3.500V3zM9 7h4M9 10.500h4M5 17.500h14"/>',
-  defensive: '<path d="M12 3l7.500 2.500v5.500c0 4.800-3.200 8-7.500 9.500-4.300-1.500-7.500-4.700-7.500-9.500V5.500zM12 3v17.500M4.500 10.500h15"/>',
-  sort: '<path d="M12 2.500l1.800 6.200 6.200-1.700-4.400 4.700 4.400 4.800-6.200-1.800L12 21l-1.800-6.300L4 16.500l4.400-4.800L4 7l6.200 1.700z"/>',
-  focaliser: '<circle cx="12" cy="12" r="2.200"/><path d="M12 4.500a7.500 7.500 0 1 0 7.500 7.500M12 8a4 4 0 1 1-4 4M19.500 12a7.500 7.500 0 0 0-3-6"/>',
-  competence: '<path d="M12 2.500l8 8-3.500 10.500h-9L4 10.500zM12 2.500l4 9.500-4 4-4-4zM4 10.500L8 12M20 10.500L16 12M12 16v5"/>',
-  poser: '<path d="M12 3.500v11M7.500 10.500l4.500 4.500 4.500-4.500M4.500 20h15"/>',
-  armes: '<path d="M4.500 8.500h13l-3.500-3.500M19.500 15.500h-13l3.500 3.500"/>',
-  fin: '<path d="M7 3h10M7 21h10M8.500 3c0 5 7 6.500 7 9s-7 4-7 9M15.500 3c0 5-7 6.500-7 9s7 4 7 9M10.500 18.500h3"/>',
-  annuler: '<path d="M9 6.500L4.500 11 9 15.500M4.500 11h9.500a4.500 4.500 0 0 1 0 9H10"/>',
-  pause: '<path d="M9 6v12M15 6v12"/>',
-  journal: '<path d="M4 5c3-1.200 5.500-1.200 8 0v14c-2.500-1.200-5-1.200-8 0zM20 5c-3-1.200-5.500-1.200-8 0v14c2.500-1.200 5-1.200 8 0z"/>',
-  systeme: '<circle cx="12" cy="12" r="3.200"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.600 5.600l2.100 2.100M16.300 16.300l2.100 2.100M5.600 18.400l2.100-2.100M16.300 7.700l2.100-2.100"/>',
-  epee: '<path d="M6 18L17 7l2-3-3 2L5 17zM8 13l3 3M4 20l2-2"/>',
-};
-const rond = (nom, taille, { ferme = false, couleur } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'}"><div>${picto(PICTOS[nom], taille, couleur ?? (ferme ? '#7d7668' : '#e2c06a'))}</div></div>`;
-const plaque = (libelle, { armee = false, icone = null, large = false, fermee = false } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'}${armee ? ' armee' : ''}${large ? ' large' : ''}"><div>${icone ? picto(PICTOS[icone], 21, armee ? '#2a1a08' : fermee ? '#7d7668' : '#e2c06a', 1.7) : ''}${libelle}</div></div>`;
-const d10 = (texte) => `<svg width="36" height="40" viewBox="-19 -21 38 42"><path d="M0,-19L17,-5L10,17L-10,17L-17,-5Z" fill="#b8a67e" stroke="#2a1d12" stroke-width="1.300" stroke-linejoin="round"/><path d="M0,-19L10,4L0,13L-10,4Z" fill="#f1e6cc" stroke="#2a1d12" stroke-width="1" stroke-linejoin="round"/><path d="M-17,-5L-10,4M17,-5L10,4M0,13L-10,17M0,13L10,17" stroke="#2a1d12" stroke-width="1" fill="none"/><text x="0" y="3.500" text-anchor="middle" font-family="Grenze Gotisch" font-weight="600" font-size="${texte.length > 1 ? 12.5 : 15}" fill="#2a1d12">${texte}</text></svg>`;
-
-const rang = (genre, camp, nom, pv, max, classe = '') => `
-  <div class="rang ${camp === 'ennemi' ? 'ennemi' : ''} ${classe}">${portrait(genre, camp)}
-    <div class="qui"><div class="nom ${classe.includes('actif') ? '' : 'rubrique'} ombre" data-texte="rang ${nom}">${nom}</div>
-    ${classe.includes('fantome') ? '' : `<div class="ligne"><div class="vie"><i style="width:${100 * pv / max}%"></i></div><span class="pv ombre">${pv} / ${max}</span></div>`}</div>
-  </div>`;
 
 const fiche = (classe, style) => `<div id="apercu" class="parchemin ${classe}" data-piece="fiche" style="${style}">
     <div class="tete"><span class="n gothique">Fléchette</span><span class="c rubrique">${VAR === 'rapides' ? 'Touche 1' : 'Sort'}</span></div>
@@ -322,14 +266,13 @@ const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}"
 const jeu = ETAT === 'jet';
 const ui = [];
 const PV_ORC = VAR === 'critique' ? 12 : 14;
-const I = (c = '') => rang('ilyanwe', 'heros', 'Ilyanwe la Voilée', 17, 17, c);
+const I = (c = '', pv = 17) => rang('ilyanwe', 'heros', 'Ilyanwe la Voilée', pv, 17, c);
 const Be = (c = '') => rang('berta', 'heros', 'Berta', 12, 12, c);
-const G = (c = '') => rang('gobelin', 'ennemi', 'Tireur gobelin', 11, 11, c);
+const G = (c = '', nom = 'Tireur gobelin') => rang('gobelin', 'ennemi', nom, 11, 11, c);
 const O = (c = '') => rang('orc', 'ennemi', 'Orc', PV_ORC, 14, c);
-const borne = (n) => `<div class="borne"><div class="disque fer"><div>${n}</div></div><span class="rubrique ombre">Round ${n}</span><i></i></div>`;
 const SECOND = VAR === 'round' || VAR === 'journal';
 const ROUND = VAR === 'round' ? 'le round<br>débute' : ADVERSE ? 'tour 4<br>sur 4' : 'tour 1<br>sur 4';
-ui.push(`<div id="systeme" data-piece="systeme">${rond('systeme', 22, { couleur: '#c9b995' })}</div>`);
+ui.push(SYSTEME);
 if (!FIN) {
   ui.push(`<div id="round" class="cadre bois" data-piece="round"><div class="fond bois"><div class="n gothique">Round ${SECOND ? 2 : 1}</div><div class="t rubrique">${ROUND}</div></div>${ferrures}</div>`);
   ui.push(`<div id="ordre" data-piece="ordre">
@@ -337,7 +280,6 @@ if (!FIN) {
     : VAR === 'round' ? [I(), Be(), G(), O(), borne(3), I('fantome'), Be('fantome loin')]
     : [I('actif'), Be(VAR === 'fiche' ? 'lu' : ''), G(), O(), borne(SECOND ? 3 : 2), I('fantome'), Be('fantome loin')]).join('')}
 </div>`);
-  const vieux = (t) => `<p class="vieux ombre">${t}</p>`, neuf = (t) => `<p class="ombre">${t}</p>`, borneJ = (t) => `<p class="borne-j ombre">${t}</p>`;
   const GOB = 'Tireur gobelin maîtrise sa psychologie (Animosité).', ORCP = 'Orc maîtrise sa psychologie (Animosité).', CHARGE = 'Ilyanwe la Voilée charge Orc (+1 Avantage).';
   const TIR = 'Tireur gobelin tire sur Berta et la manque.', AVANCE = 'Orc s’avance vers Ilyanwe la Voilée.';
   const LIGNES = {
@@ -357,22 +299,13 @@ if (!FIN) {
 
 if (!jeu) {
   const adv = VAR === 'adverse';
-  ui.push(`<div id="tour-outils" data-piece="tour-outils">${rond('annuler', 19, { ferme: true })}${rond('pause', 19, { ferme: true })}</div>`);
-  ui.push(`<div id="barre" class="cadre bois${adv ? ' adverse' : ''}" data-piece="barre"><div class="fond">
-    <div id="etat">${adv ? `
-      <div class="mesure"><div class="tete rubrique"><span>Blessures</span><b>14 / 14</b></div><div class="vie"><i style="width:100%"></i></div></div>` : `
-      <div class="mesure"><div class="tete rubrique"><span>Blessures</span><b>17 / 17</b></div><div class="vie"><i style="width:100%"></i></div></div>
-      <div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>4 / 4</b></div><div class="pas"><i></i><i></i><i></i><i></i></div></div>
-      <div class="jeton"><div class="sceau">${picto(PICTOS.epee, 18, '#3a0c06', 1.7)}</div><div class="v"><span class="rubrique">Action</span> <em>disponible</em></div></div>
-      <div class="jeton"><div class="chiffre">0</div><div class="v"><span class="rubrique">Avantage</span></div></div>`}
-    </div>
-    <div id="gestes">
-      <div class="plaques">${plaque('Attaque', { armee: SURVOL, icone: 'attaque', fermee: adv })}${plaque('Course', { icone: 'course', fermee: adv })}${plaque('Défensive', { icone: 'defensive', fermee: adv })}</div>
-      <div class="pastilles">${[['sort', 'Sort'], ['focaliser', 'Focaliser'], ['competence', 'Compétence'], ['poser', 'Poser au sol'], ['armes', 'Armes']].map(([p, l]) => `<div class="outil${p === 'sort' && VAR === 'liste' ? ' ouvert' : ''}"><div style="width:34px;height:34px;display:flex">${rond(p, 18, { ferme: adv }).replace('class="bouton-rond', 'style="width:34px;height:34px" class="bouton-rond')}</div><span class="rubrique">${l}</span></div>`).join('')}</div>
-    </div>
-  </div><div class="ruban rubrique" style="left:880px;top:-9px">Action</div>${ferrures}</div>`);
-  ui.push(portrait(adv ? 'orc' : 'ilyanwe', adv ? 'ennemi' : 'heros', '').replace('class="portrait', 'id="actif-portrait" class="portrait'));
-  ui.push(`<div id="actif-nom"><div class="n gothique" data-texte="nom de l'actif">${adv ? 'Orc' : 'Ilyanwe la Voilée'}</div><div class="a rubrique">${adv ? 'Hache' : 'Bâton de combat'}</div></div>`);
+  ui.push(...meuble({
+    ...(adv ? { genre: 'orc', camp: 'ennemi', nom: 'Orc', sous: 'Hache', etat: mesure('Blessures', '14 / 14') }
+      : { genre: 'ilyanwe', nom: 'Ilyanwe la Voilée', sous: 'Bâton de combat', etat: `${mesure('Blessures', '17 / 17')}<div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>4 / 4</b></div><div class="pas"><i></i><i></i><i></i><i></i></div></div>${JETONS}` }),
+    adverse: adv, ouverte: VAR === 'liste' ? 'sort' : null,
+    plaques: `${plaque('Attaque', { armee: SURVOL, icone: 'attaque', fermee: adv })}${plaque('Course', { icone: 'course', fermee: adv })}${plaque('Défensive', { icone: 'defensive', fermee: adv })}`,
+    pastilles: [['sort', 'Sort'], ['focaliser', 'Focaliser'], ['competence', 'Compétence'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
+  }));
   if (SURVOL) ui.push(`<div id="apercu" class="parchemin" data-piece="apercu">
     <div class="tete"><span class="n gothique">Orc</span><span class="c rubrique">Cible</span></div>
     <div class="pv"><div class="vie"><i style="width:100%"></i></div><b>14 / 14</b></div>
@@ -395,7 +328,6 @@ if (!jeu) {
     </div><div class="ruban titre">Journal</div>${ferrures}</div>`);
   }
   if (VAR === 'fiche') {
-    const medaillon = (n, t) => `<div class="medaillon"><div class="disque fer"><div>${n}</div></div><span class="rubrique">${t}</span></div>`;
     const arme = (dessin, nom, test, degats, allonge, atouts) => `<div class="arme">
         <div class="vignette laiton"><div><svg viewBox="0 0 80 80" fill="none" stroke-linecap="round" stroke-linejoin="round">${dessin}</svg></div></div>
         <div class="texte"><div class="n gothique">${nom}</div>
@@ -417,40 +349,29 @@ if (!jeu) {
       ${arme('<path d="M18 62L58 22l6-8-8 6L16 60z" fill="#d9d3c2" stroke="#1a1005" stroke-width="1.500"/><path d="M14 52l14 14M12 68l6-6" stroke="#e2c06a" stroke-width="3.500"/>', 'Épée', 41, '+BF+4 (7)', 'Moyenne', [])}
       ${arme('<path d="M40 12l24 8v18c0 15-10 25-24 30-14-5-24-15-24-30V20z" fill="#6f4d30" stroke="#1a1005" stroke-width="1.500"/><path d="M40 12v56M16 34h48" stroke="#e2c06a" stroke-width="2.500"/><circle cx="40" cy="34" r="6" fill="#b9b3a4" stroke="#1a1005" stroke-width="1.500"/>', 'Bouclier', 41, '+BF+2 (5)', 'Très courte', ['Bouclier 2', 'Défensive', 'Assommante'])}
     </div><div class="onglets"><div class="ruban titre">Attaques</div>${['Compétences', 'Talents', 'Possessions'].map((t) => plaque(t)).join('')}</div>${ferrures}</div>`);
-    ui.push(`<div id="fermer" data-piece="fermer"><span class="rubrique ombre">Fermer</span>${rond('annuler', 20)}</div>`);
+    ui.push(FERMER);
   }
 } else if (FIN) {
   ui.push(`<div id="issue" data-piece="issue"><div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="issue">${VAR === 'victoire' ? 'Victoire' : 'Défaite'}</span></div></div>${plaque('Reprendre', { armee: true })}</div>`);
 } else {
-  const camp = (cote, genre, c, nom, carac, seuil, des, total, dr, modif, verdict = 'échec') => `
-    <div class="camp ${cote}">${portrait(genre, c)}
-      <div><div class="n gothique">${nom}${modif && cote !== 'droite' ? ` <span class="modif rubrique" style="vertical-align:3px;margin-left:6px">${modif}</span>` : ''}</div><div class="c rubrique">${carac}</div>
-      <div class="des"><span class="seuil">≤ ${seuil}</span>${des.map(d10).join('')}<div class="resultat${total == null ? ' vide' : verdict === 'réussite' ? ' reussite' : ''}">${total ?? ''}</div>${total == null ? '' : `<div class="issue${verdict === 'réussite' ? ' reussite' : ''}"><b>${verdict}</b><span>DR ${dr}</span></div>`}</div></div>
-    </div>`;
-  const bandeau = (titre, classe, contenu, suites) => `<div id="jet" class="cadre bois" data-piece="jet"><div class="fond parchemin ${classe}">
-    ${contenu}
-    <div id="suites">${suites}</div>
-  </div><div class="ruban titre">${titre}</div>${ferrures}</div>`;
-  const APRES = `${plaque('Appliquer', { armee: true })}${plaque('Relancer')}${plaque('Chance : +1 DR', { large: true })}${plaque('Pacte')}${plaque('Résilience')}`;
-  const verdict = (sous, dr, phrase) => `<div id="verdict"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="dr gothique">${dr}</div><p>${phrase}</p></div>`;
   if (VAR === 'avant') ui.push(bandeau('Attaque', 'avant', `
-    ${camp('', 'ilyanwe', 'heros', 'Ilyanwe la Voilée', 'Corps à corps (Armes d’hast)', 28, ['', ''], null, null, 'Avantage +10')}
+    ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 28, modif: 'Avantage +10' })}
     <div id="verdict" class="reglages">
       <div class="rangee">${silhouette(102, { tete: 'choisie' })}
         <div class="choix"><div class="sous rubrique">Bâton de combat · Cible : Orc</div><div class="l rubrique">Localisation</div>
           <div class="v"><span class="gothique">Tête</span><span class="modif rubrique">−20 au Test</span></div>
           <div class="bas"><div class="plaque laiton mini"><div>Au hasard</div></div><div class="bascule"><i class="fer"><b class="laiton"></b></i><span class="rubrique">Retenir ses coups</span></div></div>
         </div></div></div>
-    ${camp('droite', 'orc', 'ennemi', 'Orc', 'Parade', 35, ['', ''], null, null, null)}`,
+    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35 })}`,
     `${plaque('Lancer', { armee: true })}${plaque('Annuler')}`));
   else if (VAR === 'defense') ui.push(bandeau('Défense', '', `
-    ${camp('', 'ilyanwe', 'heros', 'Ilyanwe la Voilée', 'Corps à corps (Armes d’hast)', 38, ['60', '1'], 61, '−3', null)}
+    ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 38, des: ['60', '1'], total: 61, dr: '−3' })}
     ${verdict('Hache · Cible : Ilyanwe la Voilée', 'DR net +4', 'Orc touche Ilyanwe la Voilée au bras droit.')}
-    ${camp('droite', 'orc', 'ennemi', 'Orc', 'Corps à corps (Base)', 35, ['4', '20'], 24, '+1', null, 'réussite')}`, APRES));
+    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Corps à corps (Base)', seuil: 35, des: ['4', '20'], total: 24, dr: '+1', reussite: true })}`, APRES()));
   else if (VAR === 'incantation') ui.push(bandeau('Incantation', 'seul', `
-    ${camp('', 'ilyanwe', 'heros', 'Ilyanwe la Voilée', 'Langue (Magick)', 85, ['30', '4'], 34, '+5', null, 'réussite')}
+    ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['30', '4'], total: 34, dr: '+5', reussite: true })}
     <div id="verdict" class="sort"><div class="sous rubrique">Sort · Niveau d’incantation 0</div><div class="dr gothique">Fléchette</div><p>Ilyanwe la Voilée lance Fléchette sur Orc.</p></div>
-    <div class="camp droite visee">${portrait('orc', 'ennemi')}<div><div class="n gothique">Orc</div><div class="c rubrique">Cible du sort</div><div class="pv"><div class="vie"><i style="width:100%"></i></div><b class="rubrique">14 / 14</b></div></div></div>`, APRES));
+    ${vise('orc', 'Orc', 'Cible du sort', '14 / 14')}`, APRES()));
   else if (VAR === 'critique') ui.push(bandeau('Coup critique', 'critique', `
     <div class="camp touche">${portrait('orc', 'ennemi')}${silhouette(100, { tete: 'touchee' })}
       <div><div class="n gothique">Orc</div><div class="c rubrique">Touché à la tête</div>
@@ -463,14 +384,9 @@ if (!jeu) {
     ${[['ilyanwe', 'Ilyanwe la Voilée', 'Sorcière', 1], ['berta', 'Berta', 'Soldate', 0]].map(([g, n, m, a]) => `<div class="plaque laiton carte${a ? ' armee' : ''}"><div>${portrait(g, 'heros')}<div class="qui"><div class="n gothique">${n}</div><div class="c">${m}</div></div></div></div>`).join('')}`,
     plaque('Commencer le round', { armee: true, large: true })));
   else ui.push(bandeau('Attaque', '', `
-    ${camp('', 'ilyanwe', 'heros', 'Ilyanwe la Voilée', 'Corps à corps (Armes d’hast)', 48, ['90', '8'], 98, '−5', 'Avantage +10')}
+    ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['90', '8'], total: 98, dr: '−5', modif: 'Avantage +10' })}
     <div id="verdict"><div class="sous rubrique">Bâton de combat · Cible : Orc</div><div class="dr gothique">DR net +1</div><p>Ilyanwe la Voilée rate son attaque ; Orc gagne +1 Avantage.</p></div>
-    ${camp('droite', 'orc', 'ennemi', 'Orc', 'Parade', 35, ['0', '70'], 70, '−4', null)}`, APRES));
+    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`, APRES()));
 }
-document.getElementById('ui').innerHTML = ui.join('');
+monter(ui);
 if (VAR === 'fiche') FIGURES.berta(document.getElementById('figure-lue'));
-// clous de la barre
-{ const b = document.querySelector('#barre, #jet'); if (b) { const h = b.offsetHeight; [[70, 3], [330, 3], [850, 3], [1110, 3], [70, h - 9], [330, h - 9], [590, h - 9], [850, h - 9], [1110, h - 9]].forEach(([x, y]) => { const c = document.createElement('i'); c.className = 'clou'; c.style.left = x + 'px'; c.style.top = y + 'px'; b.appendChild(c); }); } }
-
-/* grain général */
-document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay;opacity:.3';

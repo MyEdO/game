@@ -172,3 +172,13 @@ html,body{margin:0;background:#000}
 .compte tr.total td{font-family:"Grenze Gotisch";font-size:21px;line-height:24px;font-weight:600;color:#3a1a10}
 .compte tr.total td:last-child{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:17px;letter-spacing:.2px}
 .heros .attend{display:inline-block;margin-top:9px;padding:1px 11px 2px;font-size:12px;color:#2a1a08;border-radius:2px;background:linear-gradient(180deg,#f3dc93,#c39c44);box-shadow:0 0 0 1px #150d04,0 2px 4px rgba(0,0,0,.6);white-space:nowrap}
+
+/* ce qui se jouera : une ligne par jet annoncé, sa pastille, qui le porte */
+.jouera{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13.5px;color:#eadfc4}
+.jouera .pst{width:22px;height:22px}
+.jouera span{margin-left:auto;font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+
+/* une jauge : son lit et son remplissage ; la famille en donne la hauteur et la teinte */
+.jauge{position:relative;background:#0d0806;border-radius:1px;box-shadow:0 0 0 1px rgba(226,192,106,.35),inset 0 1px 2px #000}
+.jauge>i{position:absolute;left:0;top:0;bottom:0;border-radius:1px}
+.parchemin .jauge{box-shadow:0 0 0 1px rgba(60,40,20,.75),inset 0 1px 2px #000}
