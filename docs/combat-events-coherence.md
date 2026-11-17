@@ -91,7 +91,9 @@ part de `resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
 bus, avec l'arme RÉELLE de l'attaquant (`DeviationCtx.weaponObj`) → les Atouts « sur Critique » (Taillade →
 Hémorragique) s'appliquent aussi sur ces Critiques. `onCrit` part à chaque Blessure critique non létale, avec
 `triggerCtx.origine` ; un effet `coupCritique: true` (Empaleuse, Poings d'ignominie) ne réagit qu'au Coup Critique
-(`estUnCoupCritique`), les autres (Taillade) à toute Blessure critique. Une Blessure déviée ou ignorée n'émet rien. `applyCoupCritiqueSec` reste MACHINERIE (ne nomme
+(`estUnCoupCritique`), les autres (Taillade) à toute Blessure critique. Une Blessure déviée ou ignorée n'émet rien.
+Le Critique refusé par une coque routière (issue `aucune`, EDOC 07 l.334 ; #4202) émet `onCrit` avec
+`triggerCtx.sansBlessureCritique` : seuls les effets `coupCritique` s'exercent, sans Frappe blessante. `applyCoupCritiqueSec` reste MACHINERIE (ne nomme
 aucune entité, §3) — elle ÉMET l'événement, elle n'est pas convertie en hook (un hook de phase ne porte pas
 le contexte d'attaque riche — roll/arme/attaquant — qu'exige la résolution du Critique opposé).
 

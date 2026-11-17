@@ -1,6 +1,6 @@
 *Pages PDF 333-335*
 
-# **ESCLAVES DES TÉNÈBRES**
+# <span id="page-332-0" data-folio="331"></span>**ESCLAVES DES TÉNÈBRES**
 
 Chaos. Ce seul mot suffit pour faire se hâter les petites gens superstitieuses vers un temple de Sigmar, faisant le signe du marteau en fuyant. Mais, alors que tous les bons citoyens de l'Empire craignent l'invasion du Chaos ou les attaques des hommes-bêtes, le véritable danger se trouve à l'intérieur des frontières de l'Empire : les cultistes se cachent dans les sous-sols, les nobles corrompus traitent avec les démons, et les villageois ignares font offrande de leur progéniture mutante au lieu de la tuer rapidement, augmentant ainsi involontairement les armées de damnés.
 

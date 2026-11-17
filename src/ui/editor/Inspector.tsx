@@ -123,7 +123,7 @@ import {
 import { ciblesDAncreDeBataille } from '../../noyau/massBattleFlow';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
-import { amateurSchema } from '../../data/schemas/grammaire/valeurs';
+import { amateurSchema, qualiteDeReposSchema, type QualiteDeRepos } from '../../data/schemas/grammaire/valeurs';
 import {
   entityKindSchema,
   facadeFeatureKindSchema,
@@ -976,8 +976,10 @@ export function Inspector({
                     </label>
                   ))}
                   <label className="ed-check">
-                    <input type="checkbox" checked={zone.quality === 'pietre'} onChange={(e) => updateZone({ quality: e.target.checked ? 'pietre' : undefined })} />
-                    <Icon id="ressource/bourse" size="sm" /> Piètre (½ prix, tambouille à risque)
+                    <Icon id="ressource/bourse" size="sm" /> {t('ecran.editeur.zone.qualite')}
+                    <select value={zone.quality ?? 'normale'} onChange={(e) => updateZone({ quality: e.target.value as QualiteDeRepos })}>
+                      {optionsDuNoeud(qualiteDeReposSchema).map(([q, l]) => <option key={q} value={q}>{l}</option>)}
+                    </select>
                   </label>
                 </div>
               </Fold>
@@ -1543,12 +1545,12 @@ function EntityPanel({
             {ent.merchant && (
               <>
                 <label className="ed-field">
-                  ↳ Bourg (override Disponibilité)
+                  ↳ Colonne de Disponibilité hors lieu
                   <select
                     value={ent.merchant.settlement ?? ''}
                     onChange={(e) => updateSel({ merchant: { ...ent.merchant!, settlement: (e.target.value || undefined) as Settlement | undefined } })}
                   >
-                    <option value="">— défaut (archétype) —</option>
+                    <option value="">— celle du lieu —</option>
                     <option value="village">Village</option>
                     <option value="ville">Ville</option>
                     <option value="cite">Cité</option>
@@ -2265,12 +2267,10 @@ function SceneProps({
             </label>
           ))}
           <label className="ed-check">
-            <input
-              type="checkbox"
-              checked={scene.rest?.quality === 'pietre'}
-              onChange={(e) => setScene(setSceneRest(scene, { quality: e.target.checked ? 'pietre' : undefined }))}
-            />
-            <Icon id="ressource/bourse" size="sm" /> Piètre (½ prix, tambouille à risque)
+            <Icon id="ressource/bourse" size="sm" /> {t('ecran.editeur.zone.qualite')}
+            <select value={scene.rest?.quality ?? 'normale'} onChange={(e) => setScene(setSceneRest(scene, { quality: e.target.value as QualiteDeRepos }))}>
+              {optionsDuNoeud(qualiteDeReposSchema).map(([q, l]) => <option key={q} value={q}>{l}</option>)}
+            </select>
           </label>
         </div>
       </Fold>

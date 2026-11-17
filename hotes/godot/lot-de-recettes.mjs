@@ -1,14 +1,18 @@
-// LE LOT DES RECETTES DE L'HÔTE GODOT (#4007) : chaque jeu de `JEUX_DU_PARCOURS`, l'un après l'autre, par
-// `recette.mjs` sur un export déjà produit (`node hotes/godot/construire.mjs --export --sortie <web>`), ou sans export
-// (`--natif`, #3945). Le journal et les captures de chaque jeu vont sous `--captures/<nom du jeu>/` ; le verdict de
-// chacun s'imprime, la fin d'un journal rouge aussi, et le code est non nul dès qu'un jeu est rouge. Joué chaque
-// semaine par `.github/workflows/canari.yml`.
-//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif) --captures <dossier> [--jeux combat,relief]
-import { spawnSync } from 'node:child_process'
+// LE LOT DES RECETTES DE L'HÔTE GODOT (#4007) : chaque jeu de `JEUX_DU_PARCOURS` par `recette.mjs`, l'un après
+// l'autre sur un export déjà produit (`node hotes/godot/construire.mjs --export --sortie <web>`), menés de front sans
+// export (`--natif`, #3945, `jeuxPilotesDeFront`, #3412). Le journal et les captures de chaque jeu vont sous
+// `--captures/<nom du jeu>/` ; le verdict de chacun s'imprime à sa fin, la fin d'un journal rouge aussi, et le code est
+// non nul dès qu'un jeu est rouge. Joué chaque semaine par `.github/workflows/canari.yml`.
+// Avec `--rendu`, chaque jeu natif se joue en rendu réel : ses captures montrent l'écran (`npm run godot:regarder`).
+//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu]) --captures <dossier> [--jeux combat,relief]
+import { spawn, spawnSync } from 'node:child_process'
+import { once } from 'node:events'
 import { closeSync, mkdirSync, openSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
+import { jeuxPilotesDeFront } from './construire.mjs'
 
 const DOSSIER = '<dossier>'
 
@@ -49,6 +53,7 @@ export const JEUX_DU_PARCOURS = {
   roster: { roster: [] },
   reglages: { reglages: [] },
   editeur: { editeur: [] },
+  compendium: { compendium: [] },
   atelier: { atelier: [] },
   composition: {},
   preset: { preset: ['--preset', 'sorcier'] },
@@ -60,7 +65,7 @@ const HORS_NATIF = {
   'combat-statique': '`--statique` sert l’export tel que le site le publie, sans objet hors d’une page',
 }
 
-/** Les jeux qu'une recette native joue en rendu réel (`--rendu`), sous le rendu de la page, les autres sans écran :
+/** Les jeux qu'une recette native joue toujours en rendu réel, sous le rendu de la page, les autres sans écran hors `--rendu` :
  *  `vision` et `murs` lisent les pixels de leurs captures, `wfrpCadrer` (`cadrages`) attend l'image dessinée de la
  *  caméra posée, et l'atelier (`preset`) mesure ses meshes skinnés aux os que le serveur de rendu leur pourvoit. */
 const RENDUS_EN_NATIF = new Set(['vision', 'murs', 'cadrages', 'preset'])
@@ -76,13 +81,21 @@ const PREPARER = {
 }
 /** Le délai d'un jeu ; au-delà, `recette.mjs` reçoit SIGTERM et sort en éteignant son Chrome (`scripts/recette/lib.mjs`). */
 const DELAI_MS = 90 * 60 * 1000
+
+/** Le code de sortie de `node <args>` lancé depuis la racine, sa sortie et ses erreurs dans le descripteur `sortie`,
+ *  SIGTERM à `DELAI_MS`. */
+async function jouer(args, sortie) {
+  const enfant = spawn(process.execPath, args, { cwd: RACINE, stdio: ['ignore', sortie, sortie], timeout: DELAI_MS })
+  const [code] = await once(enfant, 'exit')
+  return code
+}
 /** Les lignes d'un journal rouge recopiées au verdict. */
 const QUEUE = 15
 
 if (import.meta.main) {
-  const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
-  if (!o.web === !o.natif || !o.captures) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif) --captures <dossier> [--jeux <nom>,<nom>]')
-  const lieu = (nom) => (!o.natif ? ['--web', resolve(o.web)] : RENDUS_EN_NATIF.has(nom) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
+  const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, rendu: { type: 'boolean' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
+  if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif [--rendu]) --captures <dossier> [--jeux <nom>,<nom>]')
+  const lieu = (nom) => (!o.natif ? ['--web', resolve(o.web)] : o.rendu || RENDUS_EN_NATIF.has(nom) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
   const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args })))
   const voulus = o.jeux?.split(',') ?? jeux.map((j) => j.nom)
   const inconnus = voulus.filter((nom) => !jeux.some((j) => j.nom === nom))
@@ -90,25 +103,24 @@ if (import.meta.main) {
   const horsNatif = (nom) => o.natif && Object.hasOwn(HORS_NATIF, nom)
   const refuses = (o.jeux ? voulus : []).filter(horsNatif)
   if (refuses.length) throw new Error(`--natif ne joue pas ${refuses.map((nom) => `${nom} (${HORS_NATIF[nom]})`).join(', ')}`)
-  const rouges = []
-  for (const { nom, parcours, args } of jeux.filter((j) => voulus.includes(j.nom))) {
-    if (horsNatif(nom)) {
-      console.log(`${nom} : hors natif, ${HORS_NATIF[nom]}`)
-      continue
-    }
+  const joues = jeux.filter((j) => voulus.includes(j.nom)).filter(({ nom }) => {
+    if (horsNatif(nom)) console.log(`${nom} : hors natif, ${HORS_NATIF[nom]}`)
+    return !horsNatif(nom)
+  })
+  const verdicts = await enFileBornee(joues.map(({ nom, parcours, args }) => async () => {
     const dossier = resolve(o.captures, nom)
     mkdirSync(dossier, { recursive: true })
     const journal = resolve(dossier, 'journal.txt')
     const sortie = openSync(journal, 'w')
     const debut = Date.now()
     const pret = !PREPARER[nom] || PREPARER[nom](dossier, sortie) === 0
-    const status = pret ? spawnSync(process.execPath, [RECETTE, ...lieu(nom), '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], { cwd: RACINE, stdio: ['ignore', sortie, sortie], timeout: DELAI_MS }).status : 1
+    const status = pret ? await jouer([RECETTE, ...lieu(nom), '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], sortie) : 1
     closeSync(sortie)
     console.log(`${nom} : ${status === 0 ? 'vert' : 'ROUGE'} (${Math.round((Date.now() - debut) / 1000)} s)`)
-    if (status === 0) continue
-    rouges.push(nom)
-    console.log(readFileSync(journal, 'utf8').trimEnd().split('\n').slice(-QUEUE).map((ligne) => `  ${ligne}`).join('\n'))
-  }
+    if (status !== 0) console.log(readFileSync(journal, 'utf8').trimEnd().split('\n').slice(-QUEUE).map((ligne) => `  ${ligne}`).join('\n'))
+    return { nom, vert: status === 0 }
+  }), { deFront: o.natif ? jeuxPilotesDeFront() : 1 })
+  const rouges = verdicts.filter((v) => !v.vert).map((v) => v.nom)
   console.log(rouges.length ? `lot ROUGE : ${rouges.join(', ')}` : 'lot vert')
   process.exitCode = rouges.length ? 1 : 0
 }

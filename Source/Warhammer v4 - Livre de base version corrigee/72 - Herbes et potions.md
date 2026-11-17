@@ -1,6 +1,6 @@
 *Pages PDF 309*
 
-# **HERBES ET POTIONS**
+# <span id="page-308-0" data-folio="307"></span>**HERBES ET POTIONS**
 
 Les herbes médicinales peuvent être achetées ou cueillies dans la nature (voir Trouver de la nourriture et des herbes page 131). Une préparation avec des Outils de profession (Herboriste) est en général nécessaire pour extraire les principes médicinaux des plantes et concocter des cataplasmes. Les potions peuvent être brassées en utilisant la Compétence Métier (Apothicaire).
 

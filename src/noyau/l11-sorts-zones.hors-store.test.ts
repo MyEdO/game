@@ -77,11 +77,12 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     // Géométrie : héros adjacent au porteur = couvert vs un tireur lointain…
     const ally = { ...caster, id: 'ally', activeEffects: [], pos: { x: 6, y: 10 } } as Combatant;
     const combatants = [caster, ally, T];
-    const mptTerre = sceneMetresPerTile(banc.getState().scene);
-    expect(wardedAgainst(combatants, T, ally, 'arrowWard', mptTerre)).toBe(true);
+    const terre = banc.getState().scene;
+    const mer = { ...terre!, metresPerTile: 10 };
+    expect(wardedAgainst(combatants, T, ally, 'arrowWard', terre)).toBe(true);
     // …mais un attaquant DANS la zone n'est pas gêné (le projectile n'« entre » pas).
     const inside = { ...T, id: 'in', pos: { x: 5, y: 11 } } as Combatant;
-    expect(wardedAgainst([caster, ally, inside], inside, ally, 'arrowWard', mptTerre)).toBe(false);
+    expect(wardedAgainst([caster, ally, inside], inside, ally, 'arrowWard', terre)).toBe(false);
     // ÉCHELLE DE LA SCÈNE (#1507) : l'aura reste chiffrée en MÈTRES, et sa conversion en cases est la
     // primitive partagée (`porteeEnCases`, plancher d'UNE case — formule verrouillée par
     // `echelle-de-scene.test.ts`). Avec la ZdE du RAW (4 m de DIAMÈTRE → 2 m de rayon), ce rayon tient
@@ -89,10 +90,10 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     // contraste « couvert à terre, découvert en mer » que ces lignes montraient tenait à un rayon de
     // 4 m — la zone DOUBLÉE que ce lot corrige (LDB 47 l.28 : une ZdE est un diamètre).
     const loin = { ...caster, id: 'loin', activeEffects: [], pos: { x: 7, y: 10 } } as Combatant;
-    expect(wardedAgainst([caster, loin, T], T, loin, 'arrowWard', mptTerre)).toBe(false);
-    expect(wardedAgainst([caster, loin, T], T, loin, 'arrowWard', 10)).toBe(false);
+    expect(wardedAgainst([caster, loin, T], T, loin, 'arrowWard', terre)).toBe(false);
+    expect(wardedAgainst([caster, loin, T], T, loin, 'arrowWard', mer)).toBe(false);
     // …et la case ADJACENTE au porteur reste couverte à toute échelle (plancher d'UNE case).
-    expect(wardedAgainst(combatants, T, ally, 'arrowWard', 10)).toBe(true);
+    expect(wardedAgainst(combatants, T, ally, 'arrowWard', mer)).toBe(true);
   });
 
   /**

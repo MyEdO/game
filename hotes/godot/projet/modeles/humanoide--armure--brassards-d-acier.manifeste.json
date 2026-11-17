@@ -1,0 +1,38 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "armure",
+  "cle": {
+    "piece": "brassards-d-acier"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "armure",
+  "couvre": [
+    "avant_bras_g",
+    "avant_bras_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "acier",
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
+    },
+    {
+      "nom": "dorure",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "18e4133772f63d69b2426e1e32c68fe1d32f7ce1ec5280005adadaa068fa37fd",
+    "octets": 393156
+  }
+}

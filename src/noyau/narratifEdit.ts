@@ -1,7 +1,8 @@
 /**
  * ÉCRITURES du narratif qui lisent le PROJET édité (#3059) : renommer une entrée ou une sous-entrée
  * (stade d'un indice, valeur d'un état, repère de son identité) en propageant à toute référence du projet
- * (`renommeRef`), la retirer tant qu'aucune référence ne la désigne (`referencesA`), et changer la forme d'un état. Chaque écrivain refuse ce que le schéma
+ * (`renommeRef`), la retirer tant qu'aucune référence ne la désigne (`referencesA`), et changer la forme d'un état. Les
+ * références d'une entrée sont celles par clé et ses sites locaux (`sitesLocaux`). Chaque écrivain refuse ce que le schéma
  * du narratif refuse (`raffineNarratif`) et rend alors le projet inchangé. PURES : tout hôte les joue,
  * l'éditeur web compris. Les écritures qui ne lisent que le narratif : `ecritures-du-narratif.ts`.
  */
@@ -9,11 +10,22 @@ import type { Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { LIBELLE_NARRATIF } from './codex/libellesNarratifs';
 import { t } from '../i18n';
-import { collisionneAvecLeGlobal, type NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { collisionneAvecLeGlobal, narratifSchema, type NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { projetSchema } from '../data/schemas/defs-scenes/projet';
+import { porteesOuvertes, sitesDeLaPortee } from '../data/schemas/grammaire/collection-cle';
+import { ouverts } from '../data/schemas/grammaire/descente';
+import { metaDesChamps } from '../data/schemas/grammaire/meta';
 import { REGISTRES_NARRATIFS } from '../data/schemas/defs-scenes/registres-narratifs';
 import { FORMES_D_ETAT, valeursDeclarees, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
-import { lieuDuSite, referencesA, renommeRef, type CibleNarrative, type LieuDeSite } from '../data/schemas/defs-scenes/refs-narratives';
-import { recoupementsSans, recoupementsVers, repereRenomme, repereRetire, type Identite } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import { lieuDuSite, referencesA, renommeRef, type CibleNarrative, type LieuDeSite, type SiteLocal } from '../data/schemas/defs-scenes/refs-narratives';
+import {
+  recoupementsSans,
+  recoupementsVers,
+  repereRenomme,
+  repereRetire,
+  type Identite,
+  type RegistreCreable,
+} from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import { sexeSchema, type RaceKey, type Sexe } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { EtatNarratif } from '../data/schemas/defs-scenes/narratif';
@@ -29,6 +41,13 @@ export interface ProjetEdite {
 /** Ce que les écrivains lisent d'un projet : celui de l'éditeur web (`ProjetEdite`) comme celui de la session du noyau,
  *  dont la carte du monde peut manquer. */
 type ProjetDesEcrivains = Pick<ProjetEdite, 'scenes' | 'narratif'> & { worldMap?: WorldMap | null };
+
+/** Les sites LOCAUX du registre `registre` dans `projet`, tel quel, fautif ou non : ceux de la portée que la racine du
+ *  projet ouvre sur sa collection (`sitesDeLaPortee`) ; aucun sans elle. */
+function sitesLocaux(projet: ProjetDesEcrivains, registre: RegistreCreable): readonly SiteLocal[] {
+  const portee = ouverts([projetSchema]).flatMap(porteesOuvertes).find((p) => p.collection === `narratif.${registre}`);
+  return portee ? sitesDeLaPortee(projetSchema, projet, portee) : [];
+}
 
 /** L'identité que porte l'état `etat`, s'il en porte une (forme `heros`). */
 export const identiteDe = (etat: EtatNarratif): Identite | undefined => ('identite' in etat.forme ? etat.forme.identite : undefined);
@@ -105,12 +124,23 @@ function sousEntreesEcrites(etat: EtatNarratif, valeurs: (vs: readonly { id: str
 export function renommeAuProjet<P extends ProjetDesEcrivains>(projet: P, cible: CibleNarrative, nouveau: string): P {
   const next = nouveau.trim();
   if (next === (cible.sous ?? cible.id) || refusDeRenommage(projet.narratif, cible, next)) return projet;
-  const p = renommeRef(projet, cible, next);
+  const p = renommeRef(projet, cible, next, sitesLocaux(projet, cible.registre));
   return { ...p, narratif: renommeDansLeNarratif(p.narratif, cible, next) };
 }
 
-/** Un lieu de site, lisible par l'auteur : « scène « Le relais » », « carte du monde », « indice « L'affiche » ». */
-const lieuLisible = (l: LieuDeSite): string => (l.racine === 'carte' ? t('narratifEdit.lieu.carte') : t(l.racine === 'scene' ? 'narratifEdit.lieu.scene' : 'narratifEdit.lieu.indice', { nom: l.nom }));
+/** Un lieu de site, lisible par l'auteur : « scène « Le relais » », « carte du monde », « l'indice « L'affiche » »
+ *  (`LIBELLE_NARRATIF`), « narratif › clôture ». */
+function lieuLisible(l: LieuDeSite): string {
+  switch (l.racine) {
+    case 'carte': return t('narratifEdit.lieu.carte');
+    case 'scene': return t('narratifEdit.lieu.scene', { nom: l.nom });
+    case 'registre': return t('narratifEdit.porteur.entree', {
+      nom: REGISTRES_NARRATIFS.find((r) => r.cle === l.registre)!.nom,
+      libelle: (LIBELLE_NARRATIF[l.registre] as (e: unknown) => string)(l.entree),
+    });
+    case 'narratif': return t('narratifEdit.lieu.narratif', { membre: metaDesChamps(narratifSchema, { exigees: true })[l.cle].label });
+  }
+}
 
 /** Une ligne d'identité, lisible par l'auteur : « Humain homme ». */
 export const libelleDeLigne = (l: { espece: RaceKey; sexe: Sexe }): string => `${t(`espece.individu.${l.espece}`)} ${libelleDeValeur(sexeSchema, l.sexe).toLowerCase()}`;
@@ -130,7 +160,7 @@ export function refusDeRetrait(projet: ProjetDesEcrivains, cible: CibleNarrative
   if (soeurs && soeurs.elements.length <= 1) return t(`narratifEdit.minimum.${soeurs.famille}`);
   const saisies = saisiesDuRepere(projet.narratif, cible);
   if (saisies.length) return t('narratifEdit.repere.saisi', { lignes: saisies.join(', ') });
-  const sites = referencesA(projet, cible);
+  const sites = referencesA(projet, cible, sitesLocaux(projet, cible.registre));
   const lieux = [...new Set(sites.map((s) => lieuLisible(lieuDuSite(projet, s))))].join(', ');
   return sites.length ? t('narratifEdit.encoreDesigne', { lieux }) : undefined;
 }

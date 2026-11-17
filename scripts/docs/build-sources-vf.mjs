@@ -64,7 +64,9 @@ SANS ce préfixe (Enemy Within…, Altdorf…, Archives of the Empire…) sont l
 connaissance MJ du dépôt parent) — **ne jamais les lire/citer** ici (la donnée du jeu est FR :
 CC/CT/F/E…). **Exceptions** (\`AGENTS.md\` § *Sources VF*) : \`Source/Warhammer Fantasy Roleplay 5e Core Rulebook/\`,
 livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
-\`user-doctrine-lecture-vo-campagne-pour-comprendre\`. Au moindre doute, **lire le \`.md\` et citer**
+\`user-doctrine-lecture-vo-campagne-pour-comprendre\` ; une donnée MÉCANIQUE absente de la VF se prend à la
+VO (nombres, ids et noms FR seulement, jamais de prose, \`source\` au livre VO réel), fiche
+\`user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf\`. Au moindre doute, **lire le \`.md\` et citer**
 \`LDB <chap> l.<ligne>\` / \`ADE…\`.
 
 > **Couche de lecture consolidée = l'Atlas [\`docs/raw/\`](raw/00-index.md)** : il agrège
@@ -78,8 +80,10 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
 > Tout livre FR peut fournir des règles (#277). La dichotomie livre-de-règles / livre-de-contenu
 > ne se juge PAS au niveau du livre : le périmètre s'établit **par passage**, documenté ici, au même
 > standard partout (verbatim citable \`l.<ligne>\`, extraction FR dans \`Source/\` obligatoire — un livre sans
-> extraction ne peut pas fournir de mécanique vérifiable). La VO ne fournit aucune règle hors le Core
-> Rulebook 5e (\`AGENTS.md\` § *Sources VF*).
+> extraction ne peut pas fournir de mécanique vérifiable). La VO fournit les règles du Core Rulebook 5e,
+> et, hors de lui, les seuls nombres d'une donnée mécanique que la VF n'imprime pas (\`AGENTS.md\` §
+> *Sources VF*) ; une entrée VO sans ancre \`data-folio\` relève sa \`source.page\` au sommaire ou aux renvois
+> internes du livre (\`source.note\`).
 
 - **${abbr('livre-de-base')}** = \`${dir('livre-de-base')}\` — chapitres \`NN - Titre.md\` ;
   les commentaires de code \`LDB <n> l.<ligne>\` pointent ces fichiers. Chapitres clés :
@@ -118,8 +122,9 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
   Critiques sur navire (ch.13), tests d'équipage & moral (ch.14), longs voyages/commerce/**activités & maladies en mer**
   (ch.15), classe **Côtier** (ch.9) + carrières norses (ch.7), cultes **Manann/Stromfels** + miracles
   (ch.10-11), magie des mers (ch.2), **bestiaire marin** + capitaines nommés (ch.16). Comme AA/ZI : extraction curée à la main.
-- **${abbr('altdorf-couronne-de-l-empire')}** (Altdorf – Couronne de l'Empire) = \`${dir('altdorf-couronne-de-l-empire')}\` — **UNIQUEMENT
-  l'Annexe I « Activités à Altdorf » (ch.12)** : les Activités « entre deux aventures » gated par lieu (Pénitence,
+- **${abbr('altdorf-couronne-de-l-empire')}** (Altdorf – Couronne de l'Empire) = \`${dir('altdorf-couronne-de-l-empire')}\` — **deux passages** :
+  l'**offre d'un établissement d'hébergement** (ACE 02 l.99 : prix absolus et risque de maladie de la salle commune et du
+  repas de l'asile de nuit, forme de \`PlaceService.rest.offres\`, #4277) ; l'**Annexe I « Activités à Altdorf » (ch.12)** : les Activités « entre deux aventures » gated par lieu (Pénitence,
   Entraînement à une arme inhabituelle, Tester des objets magiques, Mécénat, Recherche universitaire) — cf. \`activities.json\`
   (\`book: "${book('altdorf-couronne-de-l-empire').id}"\`, l'id de \`books.json\` ; \`where: ["altdorf"]\`). Le reste du livre = contenu de campagne (tout passage de
   règle supplémentaire s'ajoute au périmètre ici, arbitrage 2026-07-10). Comme AA/ZI/MDG : extraction curée à la main.

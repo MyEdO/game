@@ -41,6 +41,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'foeInLoS': return { kind: 'foeInLoS' };
     case 'cibleEnVue': return cond.kind === 'cibleEnVue' ? cond : { kind: 'cibleEnVue' };
     case 'visiblePassive': return cond.kind === 'visiblePassive' ? cond : { kind: 'visiblePassive', who: ACTEUR };
+    case 'navire': return cond.kind === 'navire' ? cond : { kind: 'navire', who: ACTEUR };
     case 'hiddenFromFoes': return { kind: 'hiddenFromFoes' };
     case 'engaged': return { kind: 'engaged' };
     case 'crewTest': return { kind: 'crewTest' };

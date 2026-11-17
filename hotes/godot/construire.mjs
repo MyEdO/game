@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// LA CONSTRUCTION DE L'HÔTE GODOT (#2928) : six modes.
+// LA CONSTRUCTION DE L'HÔTE GODOT (#2928) : sept modes.
 // `--pont-seul` bâtit le bundle du pont par `vite build` en production, en bibliothèque, format iife, depuis l'entrée d'hôte unique
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
@@ -25,8 +25,9 @@
 // (`figerLesPlanches`, `deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
-// travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
-// du profil Godot (`export_templates`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--export` et `--bureau` déposent les GLB, les textures et le
+// travaille que sur une copie jetable du projet sous le dossier temporaire, tirée de sa copie importée gardée hors de
+// l'arbre (`surUneCopie`, #3935) : l'arbre n'en reçoit rien, ni les modèles d'export du profil Godot
+// (`export_templates`). Chaque étape du démarrage écrit sa durée au journal (`[démarrage]`, `chronometrer`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--coop`, `--export` et `--bureau` déposent les GLB, les textures et le
 // kit des arêtes du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
 // (`recupererModeles`, #2948 ; `recupererEpingles`, #3476), et la copie reçoit le catalogue des dessins
 // (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, le kit et le catalogue des dessins, ce
@@ -37,12 +38,16 @@
 // épinglé ; à côté, les modèles en scène et les avis de licence, Node et les paquets npm des deux bundles compris ;
 // puis l'exécutable joue une partie sur son noyau embarqué
 // (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des deux rendus du projet (`RENDUS`), les recettes
-// déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`). L'import de ce module
+// déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`).
+// `--coop` (#3009) lance le relay local (`npm run relay:dev`, `server/` installé) et joue la coop par deux processus Godot
+// sans écran, l'hôte et l'invité (`coop`) ; la CI le joue (`npm run godot:coop`). L'import de ce module
 // ne lance aucun mode ; il charge les assets par `listage.mjs` (#3963).
 import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
-import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:net'
+import { createHash } from 'node:crypto'
+import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
@@ -53,44 +58,34 @@ import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
+import { estGroupeVivant } from '../../scripts/guards/lib/pid.mjs'
+import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
+import { prendreVerrouAsync } from '../../scripts/test/verrou.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { chargerAssets } from './asset/charger.mjs'
+import { assetsDeLHote } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs'
 import { stockageDuProcessus } from './stockage.mjs'
 
-let assetsCharges = null
-/** Les assets que `--sonde`, `--rendus`, `--export`, `--bureau` et `--ouvrir` lisent (`chargerAssets`), chargés à la première demande, jamais à l'import. */
-const assets = () => (assetsCharges ??= chargerAssets([
-  "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
-  "export { figerVuesDeLEcran, figerLesPlanches } from '/hotes/godot/recettes/ecran.ts';",
-  "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
-  "export { figerLeRepos } from '/hotes/godot/recettes/atelier.ts';",
-  "export { figerLeDecor } from '/hotes/godot/recettes/decor.ts';",
-  "export { figerLeChemin } from '/hotes/godot/recettes/chemin.ts';",
-  "export { figerLEditeurDuNavire } from '/hotes/godot/recettes/editeur.ts';",
-  "export { figerLeDegagement } from '/hotes/godot/recettes/degagement.ts';",
-  "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
-]))
-
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
 /** Le pont vivant que l'hôte natif lance (`--pont=<chemin>`, `vivant.mjs`). */
 const VIVANT = join(RACINE, 'hotes', 'godot', 'vivant.mjs')
-const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir
+const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir | --coop
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
   --export            le bundle, l'export Web du projet, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --rendus            le projet importé et les recettes rendues jouées en rendu réel sous chacun des deux rendus, Forward+ et compatibilité, par l'éditeur Godot épinglé
   --bureau            l'exécutable de bureau de cette plateforme, son noyau embarqué, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, puis la partie vivante jouée par l'exécutable
   --ouvrir            les GLB tirés de la Release et le catalogue des dessins déposés, puis l'éditeur Godot épinglé ouvert sur le projet en place, qui y joue sur le noyau vivant
+  --coop              le projet importé, le relay local lancé (npm run relay:dev, server/ installé) et la coop jouée par deux processus Godot sans écran, l'hôte et l'invité (Linux seul)
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
 
 /** Les modes : l'option qui choisit chacun. */
-const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export', '--bureau': 'bureau', '--rendus': 'rendus', '--ouvrir': 'ouvrir' }
+const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export', '--bureau': 'bureau', '--rendus': 'rendus', '--ouvrir': 'ouvrir', '--coop': 'coop' }
 
 /** Les options de la ligne de commande, ou l'erreur qui les refuse. */
 function lireOptions(argv) {
@@ -103,7 +98,7 @@ function lireOptions(argv) {
   }
   if (!options.mode) return { erreur: `un mode attendu : ${Object.keys(MODES).join(', ')}` }
   if ((options.mode === 'export' || options.mode === 'bureau') && !options.sortie) return { erreur: `--${options.mode} attend --sortie <dossier>` }
-  if (['sonde', 'ouvrir', 'rendus'].includes(options.mode) && options.sortie) return { erreur: `--${options.mode} : --sortie hors de propos` }
+  if (['sonde', 'ouvrir', 'rendus', 'coop'].includes(options.mode) && options.sortie) return { erreur: `--${options.mode} : --sortie hors de propos` }
   return { options }
 }
 
@@ -323,9 +318,10 @@ const publie = (fichier) => `https://github.com/godotengine/godot/releases/downl
 const versionDe = (binaire) => spawnSync(binaire, ['--version'], { encoding: 'utf8', timeout: 60_000 }).stdout?.trim() ?? ''
 
 /** Le binaire de l'éditeur épinglé : `GODOT` s'il est posé et de la version épinglée, sinon celui du cache, téléchargé
- *  et vérifié par sa somme à sa première demande. */
+ *  et vérifié par sa somme à sa première demande. Chaque entrée se pose sous un nom propre au processus puis se
+ *  renomme, le lanceur en dernier : deux lancements menés de front sur un cache vide ne s'écrivent pas l'un sur l'autre. */
 async function editeur() {
-  const { verifierSomme } = await assets()
+  const { verifierSomme } = await assetsDeLHote()
   if (process.env.GODOT) {
     const version = versionDe(process.env.GODOT)
     if (!version.startsWith(VERSION_IMPRIMEE)) throw new Error(`GODOT=${process.env.GODOT} imprime « ${version} », ${VERSION_IMPRIMEE} attendu`)
@@ -343,8 +339,10 @@ async function editeur() {
   verifierSomme(plateforme.archive, zip, plateforme.sha256)
   mkdirSync(CACHE, { recursive: true })
   for (const { nom, octets } of await extraire(enMemoire(zip), plateforme.entrees)) {
-    writeFileSync(join(CACHE, nom), octets)
-    chmodSync(join(CACHE, nom), 0o755)
+    const pose = join(CACHE, `${nom}.${process.pid}.pose`)
+    writeFileSync(pose, octets)
+    chmodSync(pose, 0o755)
+    renameSync(pose, join(CACHE, nom))
   }
   return lanceur
 }
@@ -380,7 +378,7 @@ const NOYAU = 'noyau'
 /** Le chemin du modèle d'export `entree` de l'archive des modèles : celui du cache si sa somme est l'épinglée, sinon
  *  tiré par tranches de l'archive publiée et vérifié par sa somme épinglée. */
 async function modeleDExport(entree) {
-  const { enCacheOuTire } = await assets()
+  const { enCacheOuTire } = await assetsDeLHote()
   const attendue = EDITEUR.modeles.sha256[entree]
   if (!attendue) throw new Error(`${entree} : aucune somme épinglée (EDITEUR.modeles)`)
   const chemin = join(CACHE, basename(entree))
@@ -469,21 +467,30 @@ function godot(binaire, projet, args) {
  *  partagent `user://` et se jouent à la suite (`menerDeFront`). */
 const DONNEES_DE_L_UTILISATEUR = process.platform === 'linux' ? 'XDG_DATA_HOME' : null
 
+/** Les lancements de Godot que cette machine mène de front quand chacun tient `coeurs` cœurs : autant qu'elle a de fois
+ *  `coeurs` cœurs (au moins un) là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), un seul ailleurs. */
+const lancementsDeFront = (coeurs) => (DONNEES_DE_L_UTILISATEUR ? Math.max(1, Math.floor(availableParallelism() / coeurs)) : 1)
+
 /** Chaque lancement de `lancements` (`{ commande, args(donnees), juger({ lignes, echec }) }`) mené de front
  *  (`enFileBornee`), autant que la machine a de fois `coeurs` cœurs, ce qu'un lancement en tient (au moins un, #3950),
  *  là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), à la suite ailleurs : chacun reçoit un
  *  dossier `donnees` neuf sous le projet `copie`, s'arrête à `ECHEANCE_MS`, et `juger` rend ses erreurs à sa sortie.
  *  Rend les erreurs de tous. */
 async function menerDeFront(copie, lancements, coeurs = 1) {
-  const erreurs = await enFileBornee(lancements.map(({ commande, args, juger }) => async (signal) => {
-    const donnees = mkdtempSync(join(copie, 'donnees-'))
-    const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
-    return juger(await lancerSansTenirLeFil(
-      commande, args(donnees), DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {},
-      (tuer) => arret.addEventListener('abort', tuer, { once: true }),
-    ))
-  }), { deFront: DONNEES_DE_L_UTILISATEUR ? Math.max(1, Math.floor(availableParallelism() / coeurs)) : 1 })
+  const erreurs = await enFileBornee(lancements.map((lancement) => (signal) => lancerAvecSesDonnees(copie, lancement, signal)), { deFront: lancementsDeFront(coeurs) })
   return erreurs.flat()
+}
+
+/** Le lancement `{ commande, args(donnees), juger({ lignes, echec }) }` sans tenir le fil, un dossier `donnees` neuf
+ *  sous le projet `copie` pour ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), `env` ajouté à son
+ *  environnement, tué à `signal` ou à `ECHEANCE_MS` : les erreurs que `juger` rend à sa sortie. */
+async function lancerAvecSesDonnees(copie, { commande, args, juger }, signal, env = {}) {
+  const donnees = mkdtempSync(join(copie, 'donnees-'))
+  const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
+  return juger(await lancerSansTenirLeFil(
+    commande, args(donnees), { ...env, ...(DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {}) },
+    (tuer) => arret.addEventListener('abort', tuer, { once: true }),
+  ))
 }
 
 /** Les arguments du pont d'une recette lancée avec ses données `donnees` (`menerDeFront`) : `--pont=<VIVANT>`, que la
@@ -505,19 +512,178 @@ function jouerLesRecettes(binaire, copie, recettes) {
   })))
 }
 
+/** Les recettes de la coop à deux processus (`coop`), l'hôte puis l'invité. */
+const RECETTES_DE_LA_COOP = ['res://recettes/coop-hote.gd', 'res://recettes/coop-invite.gd']
+
+/** L'attente la plus longue du relay local, de son lancement à sa première room. */
+const ATTENTE_DU_RELAY_MS = 120_000
+
+/** Un port de la boucle locale libre à l'instant. */
+async function unPortLibre() {
+  const serveur = createServer().listen(0, '127.0.0.1')
+  await once(serveur, 'listening')
+  const { port } = serveur.address()
+  serveur.close()
+  return port
+}
+
+/** Le relay local de la coop (`npm run relay:dev`, `server/`), sur un port libre de la boucle locale, son état dans un
+ *  dossier temporaire, sans télémétrie : son `url` une fois que `POST /rooms` y rend une room, ou les `erreurs` de son
+ *  lancement ; `arreter()` tue tout son groupe de processus (npm, wrangler, workerd), efface son état et rend les
+ *  erreurs de son arrêt, dont un processus qui lui survit. */
+async function leRelayLocal() {
+  const port = await unPortLibre()
+  const etat = mkdtempSync(join(tmpdir(), 'wfrp-relay-'))
+  const args = ['run', 'relay:dev', '--', '--', '--port', String(port), '--ip', '127.0.0.1', '--persist-to', etat]
+  const { fd, bilan, clore } = journaliser('npm', args)
+  const relay = spawn('npm', args, { cwd: RACINE, detached: true, stdio: ['ignore', fd, fd], env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } })
+  const sortie = once(relay, 'exit')
+  let fini = null
+  void sortie.then(([status, signal]) => { fini = { status, signal } })
+  const groupeVivant = () => estGroupeVivant(relay.pid)
+  const arreter = async () => {
+    if (groupeVivant()) process.kill(-relay.pid, 'SIGTERM')
+    await sortie
+    const limite = Date.now() + 5_000
+    while (groupeVivant() && Date.now() < limite) await new Promise((r) => setTimeout(r, 50))
+    const survivants = groupeVivant()
+    if (survivants) process.kill(-relay.pid, 'SIGKILL')
+    clore()
+    rmSync(etat, { recursive: true, force: true })
+    return survivants ? [`le relay local laisse des processus après son arrêt (groupe ${relay.pid})`] : []
+  }
+  const url = `http://127.0.0.1:${port}`
+  const debut = performance.now()
+  while (fini === null && performance.now() - debut < ATTENTE_DU_RELAY_MS) {
+    const room = await fetch(`${url}/rooms`, { method: 'POST' }).then((r) => r.ok, () => false)
+    if (room) {
+      console.log(`[godot] relay local sur ${url}, prêt en ${Math.round(performance.now() - debut)} ms`)
+      return { url, erreurs: [], arreter }
+    }
+    await new Promise((r) => setTimeout(r, 250))
+  }
+  const { lignes } = bilan({ status: fini?.status ?? null, signal: fini?.signal ?? null })
+  return { url, erreurs: [`le relay local (npm ${args.join(' ')}) ne rend aucune room en ${ATTENTE_DU_RELAY_MS} ms${fini ? `, sorti (${fini.signal ?? fini.status})` : ''} :\n${lignes.slice(-FIN_DE_SORTIE).join('\n')}`], arreter }
+}
+
+/** La coop à deux processus Godot (#3009) : le projet importé par l'éditeur `binaire` sur une copie, le relay local
+ *  lancé (`leRelayLocal`), puis les deux recettes de `RECETTES_DE_LA_COOP` lancées ensemble, sans écran, chacune avec
+ *  les arguments du pont (`argumentsDuPont`), ses données d'utilisateur à elle (`lancerAvecSesDonnees`), le relay en
+ *  `VITE_RELAY_URL` et, en `--echange=<dossier>`, le dossier qu'elles partagent pour s'y passer le code de la room.
+ *  Le relay est arrêté à la fin, quoi qu'il arrive. Refusée là où les lancements partagent `user://`
+ *  (`DONNEES_DE_L_UTILISATEUR`). Rend les erreurs des deux recettes et du relay. */
+function coop(binaire, { figerLesDessins }) {
+  if (!DONNEES_DE_L_UTILISATEUR) return [`--coop : ${process.platform} ne sépare pas les données d'utilisateur de deux lancements de Godot (Linux seul)`]
+  return surUneCopie(binaire, figerLesDessins, async (copie) => {
+    const relay = await leRelayLocal()
+    const erreurs = [...relay.erreurs]
+    try {
+      if (erreurs.length) return erreurs
+      const echange = mkdtempSync(join(copie, 'echange-'))
+      const debut = performance.now()
+      const jouees = await Promise.all(RECETTES_DE_LA_COOP.map((recette) => lancerAvecSesDonnees(copie, {
+        commande: binaire,
+        args: (donnees) => ['--headless', '--path', copie, '--script', recette, ...argumentsDuPont(donnees), `--echange=${echange}`],
+        juger: ({ lignes, echec }) => {
+          console.log(`[godot] recette de la coop : ${recette}\n${lignes.join('\n')}`)
+          return [...erreursDe(lignes), ...echec]
+        },
+      }, AbortSignal.timeout(ECHEANCE_MS), { VITE_RELAY_URL: relay.url })))
+      erreurs.push(...jouees.flat())
+      if (!erreurs.length) console.log(`[godot] coop à deux processus jouée en ${Math.round(performance.now() - debut)} ms`)
+      return erreurs
+    } finally {
+      erreurs.push(...await relay.arreter())
+    }
+  })
+}
+
+/** `ms` millisecondes en secondes, au dixième, à la française. */
+const secondes = (ms) => (ms / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+/** L'étape `etape` du démarrage écrite au journal à la durée `ms` (`[démarrage] <etape> : <s> s`). */
+export const direLEtape = (etape, ms) => console.log(`[démarrage] ${etape} : ${secondes(ms)} s`)
+
+/** `faire()` attendu, sa durée écrite au journal (`direLEtape`) : ce qu'il rend. */
+export async function chronometrer(etape, faire) {
+  const debut = performance.now()
+  try {
+    return await faire()
+  } finally {
+    direLEtape(etape, performance.now() - debut)
+  }
+}
+
 /** Le catalogue des dessins (`figerLesDessins`) déposé sous `art/dessins.json` du projet `projet`, que lit `projet/scripts/dessin.gd`. */
 function deposerLesDessins(projet, figerLesDessins) {
   writeFileSync(join(projet, 'art', 'dessins.json'), JSON.stringify(figerLesDessins()))
 }
 
-/** Joue `faire(copie)` sur une copie du projet, le catalogue des dessins déposé (`deposerLesDessins`), importée par
- *  `binaire`, sous le dossier temporaire ; rend ses erreurs. */
+/** Les fichiers de `dossier`, hors de tout dossier `.godot` : par chemin relatif, leur signature `taille:date`. */
+export function signaturesDu(dossier, sous = dossier, signatures = {}) {
+  for (const nom of listerDossier(sous)) {
+    const chemin = join(sous, nom)
+    const etat = statSync(chemin)
+    if (etat.isDirectory()) {
+      if (nom !== '.godot') signaturesDu(dossier, chemin, signatures)
+    } else if (etat.isFile()) signatures[relative(dossier, chemin)] = `${etat.size}:${etat.mtimeMs}`
+  }
+  return signatures
+}
+
+/** Ce que la copie, mise à jour aux signatures `avant`, reçoit pour l'être aux signatures `apres` (`signaturesDu`) :
+ *  les fichiers neufs ou de signature changée à copier, ceux qui ont quitté le projet à retirer. Ce que Godot écrit
+ *  dans la copie (`.godot`, ses `.import` et `.uid`) n'est dans aucune des deux et n'y est pas touché. */
+export function ecartsDeLaCopie(avant, apres) {
+  return {
+    copier: Object.keys(apres).filter((rel) => avant[rel] !== apres[rel]),
+    retirer: Object.keys(avant).filter((rel) => !Object.hasOwn(apres, rel)),
+  }
+}
+
+/** La copie importée du projet de cet arbre, hors de l'arbre et hors de `CACHE`, que la CI garde entre ses jobs
+ *  (`.github/actions/caches-3d`) : une par version de l'éditeur, son `.godot` gardé d'un lancement à l'autre, l'import
+ *  n'y retraite que ce qui a changé. Son marqueur porte les signatures du projet (`signaturesDu`) au dernier import
+ *  réussi ; son verrou la garde des lancements menés de front. */
+const COPIE_IMPORTEE = join(homedir(), '.cache', 'wfrp-godot-copies', EDITEUR.version, createHash('sha256').update(PROJET).digest('hex').slice(0, 16))
+const MARQUEUR_DE_LA_COPIE = `${COPIE_IMPORTEE}.json`
+const VERROU_DE_LA_COPIE = `${COPIE_IMPORTEE}.verrou`
+
+/** La copie importée (`COPIE_IMPORTEE`) mise au projet et au catalogue des dessins (`deposerLesDessins`), puis importée
+ *  par `binaire` si l'un ou l'autre a changé depuis le dernier import réussi : les erreurs de l'import. */
+async function mettreAJourLaCopie(binaire, figerLesDessins) {
+  const apres = signaturesDu(PROJET)
+  const marque = existsSync(MARQUEUR_DE_LA_COPIE) ? JSON.parse(readFileSync(MARQUEUR_DE_LA_COPIE, 'utf8')) : null
+  const { copier, retirer } = ecartsDeLaCopie(existsSync(COPIE_IMPORTEE) && marque ? marque.fichiers : {}, apres)
+  await chronometrer(`copie importée mise à jour (${copier.length} fichier(s) copiés, ${retirer.length} retirés)`, () => {
+    for (const rel of retirer) rmSync(join(COPIE_IMPORTEE, rel), { force: true })
+    for (const rel of copier) cpSync(join(PROJET, rel), join(COPIE_IMPORTEE, rel), { preserveTimestamps: true })
+  })
+  const dessins = join(COPIE_IMPORTEE, 'art', 'dessins.json')
+  const avantLesDessins = existsSync(dessins) ? readFileSync(dessins, 'utf8') : null
+  await chronometrer('catalogue des dessins', () => deposerLesDessins(COPIE_IMPORTEE, figerLesDessins))
+  if (marque && !copier.length && !retirer.length && readFileSync(dessins, 'utf8') === avantLesDessins) return []
+  const { erreurs } = await chronometrer('import Godot', () => godot(binaire, COPIE_IMPORTEE, ['--import']))
+  if (!erreurs.length) ecrireTexteAtomique(MARQUEUR_DE_LA_COPIE, JSON.stringify({ fichiers: apres }))
+  return erreurs
+}
+
+/** Joue `faire(copie)` sur une copie jetable, sous le dossier temporaire, de la copie importée du projet
+ *  (`mettreAJourLaCopie`), son `.godot` compris et ses dates gardées : l'arbre n'en reçoit rien, et ce que `faire`
+ *  écrit dans sa copie ne revient pas à la copie importée. Rend ses erreurs. */
 async function surUneCopie(binaire, figerLesDessins, faire) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
-    cpSync(PROJET, copie, { recursive: true, filter: (source) => !source.split(sep).includes('.godot') })
-    deposerLesDessins(copie, figerLesDessins)
-    const { erreurs } = godot(binaire, copie, ['--import'])
+    const verrou = await prendreVerrouAsync({ chemin: VERROU_DE_LA_COPIE, libelle: 'copie importée du projet Godot', attente: { echeanceMs: ECHEANCE_MS, pasMs: 500 } })
+    if (verrou.etat !== 'pris') return [verrou.message]
+    let erreurs
+    try {
+      mkdirSync(COPIE_IMPORTEE, { recursive: true })
+      erreurs = await mettreAJourLaCopie(binaire, figerLesDessins)
+      if (!erreurs.length) await chronometrer('copie jetable de la copie importée', () => cpSync(COPIE_IMPORTEE, copie, { recursive: true, preserveTimestamps: true }))
+    } finally {
+      verrou.liberer()
+    }
     return erreurs.length ? erreurs : await faire(copie)
   } finally {
     rmSync(copie, { recursive: true, force: true })
@@ -569,6 +735,10 @@ const ECRAN_VIRTUEL = process.platform === 'linux' && !process.env.DISPLAY ? ['x
 /** Les cœurs que tient une recette rendue : son moteur en rendu réel et son pont (#3950). */
 const COEURS_D_UNE_RECETTE_RENDUE = 2
 
+/** Les jeux pilotés (`piloter`) que cette machine mène de front : chacun tient les cœurs d'une recette rendue, son
+ *  moteur et le processus de son parcours, qui sert son pont (#3412). */
+export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_RENDUE)
+
 /** Le projet importé par l'éditeur `binaire`, puis chaque recette déclarant `const RECETTE_RENDUE := true` jouée en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
  *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
@@ -604,20 +774,22 @@ const PILOTE = 'res://recettes/pilote.gd'
 const FIN_DU_PILOTE = '[pilote] fin'
 
 /** Le jeu piloté par une recette (#3945) : le projet importé sur une copie par l'éditeur épinglé (`surUneCopie`), puis
- *  `PILOTE` en boucle principale, `args` passés au jeu après `--` et `env` ajouté à son environnement, sans tenir le
+ *  `PILOTE` en boucle principale, `args` passés au jeu après `--` et `env` ajouté à son environnement, avec ses
+ *  données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`) sous la copie, que ses relances gardent, sans tenir le
  *  fil ; sans écran, ou, avec `rendu`, en rendu réel sous cette méthode, sur un écran (`ECRAN_VIRTUEL` sans lui).
  *  `lance(tuer)` est appelé une fois le jeu lancé, `tuer()` le tuant ; à sa sortie, il est relancé sur la même copie
  *  tant que `encore()` le demande. Rend les lignes de chaque sortie jusqu'à `FIN_DU_PILOTE` (ce que le moteur écrit
  *  ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes, et ses échecs. */
 export async function piloter({ args, env, rendu, lance, encore }) {
   const a = await deposerLesAssets()
-  const binaire = await editeur()
+  const binaire = await chronometrer('éditeur Godot', editeur)
   const lignes = []
   const erreurs = await surUneCopie(binaire, a.figerLesDessins, async (copie) => {
     const [commande, ...prefixe] = rendu ? [...ECRAN_VIRTUEL, binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
     const erreurs = []
+    const donnees = DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: mkdtempSync(join(copie, 'donnees-')) } : {}
     do {
-      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], env, lance)
+      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], { ...env, ...donnees }, lance)
       const fin = joue.lignes.findLastIndex((l) => l.trim() === FIN_DU_PILOTE)
       const jouees = fin < 0 ? joue.lignes : joue.lignes.slice(0, fin)
       lignes.push(...jouees)
@@ -698,9 +870,9 @@ function verdict(erreurs) {
 
 /** Les GLB, les textures et le kit du projet déposés (`recupererModeles`, `recupererEpingles`) avant d'ouvrir Godot : rend les assets. */
 async function deposerLesAssets() {
-  const a = await assets()
-  await a.recupererModeles({ dossier: a.DOSSIER_DES_MODELES })
-  await a.recupererEpingles({})
+  const a = await chronometrer('assets chargés (Vite)', assetsDeLHote)
+  await chronometrer('modèles vérifiés', () => a.recupererModeles({ dossier: a.DOSSIER_DES_MODELES }))
+  await chronometrer('textures, kit et sons vérifiés', () => a.recupererEpingles({}))
   return a
 }
 
@@ -768,6 +940,7 @@ async function principal() {
     return verdict(await sonder(await editeur(), a))
   }
   if (options.mode === 'rendus') return verdict(await rendre(await editeur(), await deposerLesAssets()))
+  if (options.mode === 'coop') return verdict(await coop(await editeur(), await deposerLesAssets()))
   if (options.mode === 'ouvrir') {
     deposerLesDessins(PROJET, (await deposerLesAssets()).figerLesDessins)
     return ouvrir(await editeur())

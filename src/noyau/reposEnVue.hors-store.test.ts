@@ -31,9 +31,11 @@ describe('le repos en vue', () => {
     const r = vue();
     expect(r.nuit, 'la nuit et son lieu').toBe('Nuit à l’auberge — Le relais');
     const anna = r.dormeurs.find((d) => d.id === a.id)!;
-    expect(anna.couchage.valeurs.map((v) => [v.libelle, v.choisie]), 'les couchages du relais, le premier pris').toEqual([['Privée', true], ['Commune', false], ['Dehors', false]]);
+    expect(anna.couchage.valeurs.map((v) => [v.libelle, v.choisie]), 'sa chambre et qui la partage, les chambres neuves, puis la salle commune et la belle étoile').toEqual([
+      ['Chambre 1 (2 lits) avec Borin', true], ['Nouvelle chambre (2 lits)', false], ['Nouvelle grande chambre (4 lits)', false], ['Commune', false], ['Dehors', false],
+    ]);
     expect(anna.pitance.valeurs.map((v) => v.libelle), 'sans ration, le repas ou rien').toEqual(['Repas', 'Rien']);
-    expect(anna.couchage.valeurs[2].geste, 'le couchage, en verbe du noyau').toEqual({ verbe: 'fenetreChoisir', args: ['repos', 'couchage', 'dehors', a.id] });
+    expect(anna.couchage.valeurs[4].geste, 'le couchage, en verbe du noyau').toEqual({ verbe: 'fenetreChoisir', args: ['repos', 'couchage', 'dehors', a.id] });
     expect(r.note, 'une chambre pour deux et deux repas, plus que la bourse').toMatchObject({ couverte: false });
   });
 

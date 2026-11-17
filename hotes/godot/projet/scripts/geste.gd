@@ -1,9 +1,12 @@
-## Un geste (#3328, `Bouton`, `Choix`, `Curseur`, `Formulaire` de `src/hote/elements.ts`) : le contrôle qui le porte,
-## son parent, joue l'intention de l'élément que sa zone pose, par la zone (`Zone.geste`). Un bouton joue son `jeu` ;
+## Un geste (#3328, `Bouton`, `Choix`, `Curseur`, `Formulaire`, `Puce` de `src/hote/elements.ts`) : le contrôle qui le
+## porte, son parent, joue l'intention de l'élément que sa zone pose, par la zone (`Zone.geste`). Un bouton, ou une puce
+## qui se presse, joue son `jeu` ;
 ## une liste déroulante, le `jeu` de la valeur choisie ; le bouton d'un formulaire, son verbe et les arguments saisis
 ## sous le composant (`Saisie.arguments`) ; la glissière d'un curseur, son verbe, ses arguments et la valeur que le
 ## joueur lui donne, un glissement fini (#4081) ou tout autre changement hors glissement (sa boîte à nombre, les
-## flèches) ; la molette ne la règle pas, elle défile la liste qui la porte ; refusé, le curseur ne se règle pas. Le geste en `focus` le prend : l'Entrée le joue. Un
+## flèches) ; la molette ne la règle pas, elle défile la liste qui la porte ; refusé, le curseur ne se règle pas. Le geste en `focus` le prend : l'Entrée le joue. La
+## touche d'un bouton (`touche`, une action de l'`InputMap`) le joue comme son clic, son contrôle montré, quand aucun
+## contrôle ne l'a prise avant lui (`_unhandled_input`) ; un bouton refusé la joue aussi, et le noyau dit son refus. Un
 ## bouton à bascule garde l'état que la vue lui donne (`presse`) : seule une vue suivante le change, jamais le clic ni
 ## son refus.
 class_name Geste
@@ -37,7 +40,7 @@ func poser(element: Dictionary, zone: Zone) -> void:
 		(get_parent() as Slider).editable = element.refus == null
 		boite.editable = element.refus == null
 		return
-	if element.focus:
+	if element.get("focus") == true:
 		_prendre_le_focus.call_deferred()
 
 
@@ -55,6 +58,13 @@ func _presser() -> void:
 		_jouer({type = _element.verbe, args = Saisie.arguments(owner, _element.champs)})
 	else:
 		_jouer(_element.jeu)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var touche: Variant = _element.get("touche")
+	if touche != null and event.is_action_pressed(touche) and (get_parent() as Control).is_visible_in_tree():
+		get_viewport().set_input_as_handled()
+		_presser()
 
 
 func _changer(_valeur: float) -> void:

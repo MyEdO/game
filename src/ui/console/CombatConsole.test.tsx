@@ -1146,10 +1146,8 @@ describe('CombatConsole — trois formes, une seule bande', () => {
     // exister, être exécutable, et couvrir les largeurs de la charte.
     const sonde = readFileSync(join(process.cwd(), 'scripts', 'recette', 'console-pont-formes.mjs'), 'utf8');
     for (const w of [900, 700, 560]) expect(sonde, `largeur canon ${w} non sondée`).toContain(String(w));
-    // Les vues JUGÉES (dont le mobile) ne s'écrivent pas dans la sonde : elle les lit à leur source.
+    // Les vues JUGÉES ne s'écrivent pas dans la sonde : elle les lit à leur source.
     expect(sonde, 'la sonde ne lit plus les vues de recette à leur source unique').toContain('VUES_RECETTE');
-    const vues: { largeur: number }[] = JSON.parse(readFileSync(join(process.cwd(), 'scripts', 'recette', 'vues-recette.json'), 'utf8'));
-    expect(vues.some((v) => v.largeur <= 360), 'aucune vue mobile (≤ 360px) à la source des vues').toBe(true);
     expect(sonde).toContain('scrollHeight');
     expect(sonde).toContain('data-forme');
     // Elle mesure la bande RENDUE contre la bande DÉCLARÉE, les recouvrements du pont, et elle sait

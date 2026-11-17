@@ -20,6 +20,7 @@ import { t } from '../i18n';
 import { travelModeLabels } from '../engine/travel';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from '../noyau/worldMap';
+import { DEFAULT_VOYAGE_ORDERS } from '../noyau/voyageCadence';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -156,10 +157,33 @@ describe('#2545 — mer puis fleuve : le bouton pressé est la cadence transmise
     expect(bouton(String(t('wm.traverseeRapideAction')))!.getAttribute('aria-pressed')).toBe('true');
     choisirDestination('Altdorf');
     const presse = boutons().filter((b) => b.getAttribute('aria-pressed') === 'true');
-    expect(presse.map((b) => b.textContent?.trim()), 'une cadence fluviale est pressée').toEqual([commandee]);
+    expect(presse.map((b) => b.textContent?.trim()), 'une cadence fluviale est pressée, celle du défaut').toEqual([DEFAULT_VOYAGE_ORDERS.cadence === 'commande' ? commandee : jourParJour]);
     partir();
     expect(get().travelPlan?.river, 'la descente est JOUÉE').toBeTruthy();
-    expect(get().travelPlan?.orders?.cadence).toBe('commande');
+    expect(get().travelPlan?.orders?.cadence).toBe(DEFAULT_VOYAGE_ORDERS.cadence);
+  });
+});
+
+describe('Traversée rapide et mode hors local : la cadence ne s’offre que là où elle a un effet', () => {
+  const rapide = () => bouton(String(t('wm.traverseeRapideAction')));
+  afterEach(() => set({ net: { ...get().net, mode: 'local' } }));
+
+  it('traversée rapide pressée : aucune cadence n’est pressée', () => {
+    act(() => { cogue(); });
+    choisirDestination('Marienburg');
+    cliquer(rapide());
+    expect(boutons().filter((b) => b.getAttribute('aria-pressed') === 'true')).toEqual([rapide()]);
+  });
+
+  it('hors mode local, en mer : la traversée rapide seule, qu’un second clic relâche', () => {
+    act(() => { cogue(); set({ net: { ...get().net, mode: 'hote' } }); });
+    choisirDestination('Marienburg');
+    expect(rapide(), 'la traversée rapide reste offerte').toBeTruthy();
+    expect([String(t('wm.traverseeCommandee')), jourParJour].map(bouton)).toEqual([undefined, undefined]);
+    cliquer(rapide());
+    expect(rapide()!.getAttribute('aria-pressed')).toBe('true');
+    cliquer(rapide());
+    expect(rapide()!.getAttribute('aria-pressed')).toBe('false');
   });
 });
 

@@ -1,6 +1,6 @@
 *Pages PDF 192-193*
 
-# **PSYCHOLOGIE**
+# <span id="page-191-0" data-folio="190"></span>**PSYCHOLOGIE**
 
 Nos instincts et nos émotions ont une très forte influence sur la façon dont nous réagissons en fonction des circonstances. Ces règles apportent un côté théâtral à vos parties et contribuent à rendre encore plus vivants les habitants du Vieux Monde.
 

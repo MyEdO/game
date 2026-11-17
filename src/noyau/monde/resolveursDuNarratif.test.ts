@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif, resolvePresetCreature } from './resolveursDuNarratif';
 import { emptyNarratif } from './campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
+import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { findCreatureById } from '../../data';
 
 /** Un narratif de projet passé en ARGUMENT (#2817) : aucun store n'est chargé ni importé ici. */
@@ -9,7 +10,7 @@ const LAME = 'campagne-lame-maudite';
 const narratif: NarratifBlock = {
   ...emptyNarratif(),
   presetsPnj: [{ id: 'pnj-baron', base: { id: 'humain' }, profil: { label: 'Le Baron' } }],
-  objets: [{ id: LAME, label: 'Lame maudite', categorie: 'melee', subType: null } as NarratifBlock['objets'][number]],
+  objets: [objetDeCampagne({ id: LAME, label: 'Lame maudite' })],
   documents: [{ id: 'doc-lettre', titre: 'Lettre scellée', prose: 'Une lettre.' } as NarratifBlock['documents'][number]],
   indices: [{ id: 'ind-lettre', affaireId: 'aff-x', kind: 'indice', titre: 'Lettre', stades: [{ id: 's1', prose: 'Une lettre.' }] }],
 };
@@ -34,6 +35,12 @@ describe('résolveurs de la couche de campagne sur un narratif passé en argumen
     expect(r.creature.label).toBe('Le Baron');
     expect(r.creature.char).toEqual(findCreatureById('humain')!.char);
     expect(resolvePresetCreature('pnj-baron', presetDuNarratif(emptyNarratif()))).toBeUndefined();
+  });
+
+  it('un profil sans base prend l’identité de son preset, jamais une identité saisie', () => {
+    const profil = { label: 'Gus', char: findCreatureById('humain')!.char, traits: [] };
+    const seul: NarratifBlock = { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-gus', profil }] };
+    expect(resolvePresetCreature('pnj-gus', presetDuNarratif(seul))!.creature).toEqual({ ...profil, id: 'pnj-gus' });
   });
 
   it('un narratif édité (nouvelle identité) se résout à neuf, l’ancien garde ses entrées', () => {

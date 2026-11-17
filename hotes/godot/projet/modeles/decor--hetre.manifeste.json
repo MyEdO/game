@@ -1,0 +1,39 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "hetre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "selon": {
+    "printemps": {
+      "palette": {
+        "vegetal": "#74ac44"
+      }
+    },
+    "automne": {
+      "palette": {
+        "vegetal": "#b8642a"
+      }
+    },
+    "hiver": {}
+  },
+  "surfaces": [
+    {
+      "nom": "ecorce",
+      "palette": "bois",
+      "matiere": "prop--laine"
+    },
+    {
+      "nom": "feuillage",
+      "palette": "vegetal",
+      "matiere": "prop--feuillage"
+    }
+  ],
+  "glb": {
+    "sha256": "912f823d0e79dca4444e89fd37e8d507d1709dea6ec2d13a49dcfbb112c4f98d",
+    "octets": 349892
+  }
+}

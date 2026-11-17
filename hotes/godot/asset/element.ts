@@ -15,10 +15,13 @@
  * ou une pièce d'Amélioration dit, `selon` une Amélioration montée, ce qui change : ses nœuds `avec-<amelioration>`
  * (`noeudSelon`), montrés seulement quand elle est montée, `sans-<amelioration>` seulement quand elle ne l'est pas, et,
  * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG 12 l.362, Sabord). Un
+ * décor dit de même, `selon` la saison du jeu (`SAISONS`), ses nœuds `avec-<saison>` et `sans-<saison>`, et la couleur que
+ * prend en cette saison l'emplacement de palette d'une de ses surfaces (#4335). Un
  * véhicule s'anime de ses `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme une base ; il dit l'emprise
  * libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
+import { parseHex } from '../../../src/lib/couleurHex.ts';
 import {
   ecartsDeCleDElement,
   emplacementDePiece,
@@ -28,8 +31,10 @@ import {
   type CodeDEcartDeCle,
   type EmprisesDesCases,
   type FireArc,
+  saisonSchema,
+  type Season,
 } from '../../../src/noyau/index.ts';
-import { ecartsAuGlb, ecartsAuxMatieres, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
+import { ecartsAuGlb, ecartsAuxMatieres, ecartsDesMatieresAuxUv, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estRepere, estTriplet, rangDeCase, TOLERANCE_DES_POIDS, type EmplacementOffert, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
@@ -66,9 +71,8 @@ interface RegleDeCategorie {
   readonly ancrages: boolean;
   /** L'élément dit où il se monte sur un véhicule (`MONTAGES`). */
   readonly montage: boolean;
-  /** L'élément dit ce qui change selon une Amélioration navale montée (`selon`) : les nœuds qu'elle montre ou cache, et, s'il
-   *  offre des postes, ceux qu'elle offre. */
-  readonly selon: boolean;
+  /** Le domaine des clés de `selon`, ce dont dépend ce qui change dans l’élément (`DomaineSelon`) ; `null` : rien. */
+  readonly selon: DomaineSelon | null;
   /** L'élément se construit pour une base : son manifeste la nomme, il se valide contre elle et ses meshes rigides pendent
    *  à ses os. Sans base (décor, véhicule, #2987), ses meshes restent à la racine de sa scène ou sous ses propres nœuds. */
   readonly base: boolean;
@@ -81,8 +85,8 @@ interface RegleDeCategorie {
   readonly cases: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false, clips: false, cases: false } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false, clips: false, cases: false } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, selon: null, base: true, secondePrise: false, clips: false, cases: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, selon: null, base: true, secondePrise: false, clips: false, cases: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -94,9 +98,9 @@ export const REGLES_DES_CATEGORIES = {
   accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel', emplacements: true },
   rigide: { ...RIGIDE, cle: ['apparence'], secondePrise: true },
   trait: { ...SKINNE, cle: ['trait'] },
-  decor: { ...RIGIDE, cle: ['prop'], base: false },
-  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, selon: true, base: false, clips: true, cases: true },
-  amelioration: { ...RIGIDE, cle: ['amelioration'], montage: true, selon: true, base: false },
+  decor: { ...RIGIDE, cle: ['prop'], selon: 'saisons', base: false },
+  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, selon: 'ameliorations', base: false, clips: true, cases: true },
+  amelioration: { ...RIGIDE, cle: ['amelioration'], montage: true, selon: 'ameliorations', base: false },
 } as const satisfies Record<string, RegleDeCategorie>;
 
 type Regles = typeof REGLES_DES_CATEGORIES;
@@ -110,17 +114,34 @@ export type Montage = (typeof MONTAGES)[number];
 /** Les nœuds à mesh d'une pièce montée aux postes : celui qu'elle montre devant une pièce montée, et sans. */
 export const ETATS_AU_POSTE = { arme: 'ouvert', vide: 'ferme' } as const;
 
-/** Les nœuds d'un élément qui changent selon une Amélioration : montrés seulement `avec` elle montée, ou `sans`. */
+/** Une saison du jeu, celle que lit son horloge (`currentSeason`). */
+export type Saison = Season;
+/** Les saisons, chacune une fois, dans l'ordre de l'année. */
+export const SAISONS = saisonSchema.options;
+
+/** Ce dont dépend ce qui change dans un élément (`selon`) : une Amélioration navale montée, ou la saison du jeu. */
+type DomaineSelon = 'ameliorations' | 'saisons';
+/** Par domaine de `selon`, ce qu'une de ses clés change dans l'élément, outre ses nœuds : les postes qu'offre une
+ *  Amélioration (si l'élément offre des postes), la palette d'une saison. */
+const EFFETS_SELON: Readonly<Record<DomaineSelon, readonly string[]>> = { ameliorations: ['postes'], saisons: ['palette'] };
+
+/** Les nœuds d'un élément qui changent selon une clé de `selon` : montrés seulement `avec` elle active (Amélioration
+ *  montée, saison du jeu), ou `sans`. */
 const GENRES_SELON = ['avec', 'sans'] as const;
 type GenreSelon = (typeof GENRES_SELON)[number];
-/** Le nom du nœud de genre `genre` selon l'Amélioration `amelioration`. */
-export const noeudSelon = (genre: GenreSelon, amelioration: string): string => `${genre}-${amelioration}`;
+/** Le nom du nœud de genre `genre` selon la clé `cle` de `selon`. */
+export const noeudSelon = (genre: GenreSelon, cle: string): string => `${genre}-${cle}`;
 const NOEUD_SELON = new RegExp(`^(${GENRES_SELON.join('|')})-(.+)$`);
 
 type Rien = Record<never, never>;
 type Liste = readonly string[];
 type Triplet = readonly [number, number, number];
 type Postes = Readonly<Partial<Record<FireArc, readonly Triplet[]>>>;
+/** Par emplacement de palette d'une surface de l'élément, sa couleur `#rrggbb`. */
+type Palette = Readonly<Record<string, string>>;
+type SelonDe<C extends CategorieDElement> = Regles[C]['selon'] extends 'saisons'
+  ? Readonly<Partial<Record<Saison, { readonly palette?: Palette }>>>
+  : Readonly<Record<string, Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien>>;
 
 type Selon<P, Requis, Optionnel> = P extends 'requis' ? Requis : P extends 'optionnel' ? Optionnel : Rien;
 
@@ -135,7 +156,7 @@ type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? {
   & (Regles[C]['montage'] extends true ? { readonly montage: Montage } : Rien)
   & (Regles[C]['clips'] extends true ? { readonly clips?: TableDeClips } : Rien)
   & (Regles[C]['cases'] extends true ? { readonly cases?: EmprisesDesCases } : Rien)
-  & (Regles[C]['selon'] extends true ? { readonly selon?: Readonly<Record<string, Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien>> } : Rien);
+  & (Regles[C]['selon'] extends DomaineSelon ? { readonly selon?: SelonDe<C> } : Rien);
 
 export type ManifesteDElement = {
   [C in CategorieDElement]: {
@@ -215,6 +236,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
   const requis = [...CHAMPS_COMMUNS, ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'requis' ? ['couvre'] : []), ...(regle.montage ? ['montage'] : [])];
   for (const champ of requis) if (brut[champ] === undefined) refus('forme', champ, `champ requis pour un élément \`${categorie}\``);
 
+  const lues = brut.surfaces === undefined ? null : lireSurfaces(brut.surfaces, 'element');
   const nomDeBase = base?.base ?? 'aucune';
   const osDeBase = base?.os ?? [];
   if (regle.base && brut.base !== undefined) {
@@ -291,17 +313,31 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
   };
   if (regle.postes && brut.postes !== undefined) validerPostes('postes', brut.postes);
 
+  const validerPalette = (ou: string, palette: unknown, emplacements: readonly string[]) => {
+    if (!estObjet(palette)) return refus('forme', ou, 'objet attendu');
+    for (const [emplacement, couleur] of Object.entries(palette)) {
+      if (!emplacements.includes(emplacement)) refus('palette-inconnue', `${ou}.${emplacement}`, `${emplacement} n’est l’emplacement d’aucune surface : ${liste(emplacements)} attendu`);
+      else if (typeof couleur !== 'string' || parseHex(couleur) === null) refus('forme', `${ou}.${emplacement}`, 'couleur hexadécimale `#rrggbb` attendue');
+    }
+  };
+
   if (regle.selon) {
     const selon = brut.selon ?? {};
+    const effetsAdmis = EFFETS_SELON[regle.selon].filter((champ) => champ !== 'postes' || regle.postes);
+    const emplacements = (lues?.surfaces ?? []).map((s) => s.palette);
     if (!estObjet(selon)) refus('forme', 'selon', 'objet attendu');
-    else for (const [amelioration, effets] of Object.entries(selon)) {
-      for (const e of ecartsDeCleDElement('amelioration', { amelioration })) refus(e.code, `selon.${amelioration}`, e.detail);
-      if (!estObjet(effets) || Object.keys(effets).some((champ) => !(regle.postes && champ === 'postes'))) refus('forme', `selon.${amelioration}`, regle.postes ? '`{ postes? }` attendu' : '`{}` attendu');
-      else if (effets.postes !== undefined) validerPostes(`selon.${amelioration}.postes`, effets.postes);
+    else for (const [cle, effets] of Object.entries(selon)) {
+      if (regle.selon === 'ameliorations') for (const e of ecartsDeCleDElement('amelioration', { amelioration: cle })) refus(e.code, `selon.${cle}`, e.detail);
+      else if (!(SAISONS as readonly string[]).includes(cle)) refus('cle-inconnue', `selon.${cle}`, `${cle} : ${liste(SAISONS)} attendue`);
+      if (!estObjet(effets) || Object.keys(effets).some((champ) => !effetsAdmis.includes(champ))) refus('forme', `selon.${cle}`, effetsAdmis.length ? `\`{${effetsAdmis.map((c) => ` ${c}?`).join(',')} }\` attendu` : '`{}` attendu');
+      else {
+        if (effets.postes !== undefined) validerPostes(`selon.${cle}.postes`, effets.postes);
+        if (effets.palette !== undefined) validerPalette(`selon.${cle}.palette`, effets.palette, emplacements);
+      }
     }
     for (const { nom } of glb.meshes) {
-      const amelioration = NOEUD_SELON.exec(nom)?.[2];
-      if (amelioration !== undefined && !(estObjet(selon) && Object.prototype.hasOwnProperty.call(selon, amelioration))) refus('selon-absent', 'selon', `${nom} change selon \`${amelioration}\`, que \`selon\` ne nomme pas`);
+      const cle = NOEUD_SELON.exec(nom)?.[2];
+      if (cle !== undefined && !(estObjet(selon) && Object.prototype.hasOwnProperty.call(selon, cle))) refus('selon-absent', 'selon', `${nom} change selon \`${cle}\`, que \`selon\` ne nomme pas`);
     }
   }
 
@@ -335,9 +371,9 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
     }
   }
 
-  if (brut.surfaces !== undefined) {
-    const { surfaces, ecarts: deForme } = lireSurfaces(brut.surfaces, 'element');
-    for (const e of [...deForme, ...ecartsAuxMatieres(surfaces, matieresDeDecor()), ...ecartsAuGlb(surfaces, glb)]) refus(e.code, e.ou, e.detail);
+  if (lues) {
+    const { surfaces, ecarts: deForme } = lues;
+    for (const e of [...deForme, ...ecartsAuxMatieres(surfaces, matieresDeDecor()), ...ecartsAuGlb(surfaces, glb), ...(regle.base ? ecartsDesMatieresAuxUv(surfaces, glb) : [])]) refus(e.code, e.ou, e.detail);
   }
 
   if (brut.glb !== undefined) {

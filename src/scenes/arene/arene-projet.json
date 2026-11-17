@@ -26915,7 +26915,8 @@
      "id": "arene-hub"
     },
     "entry": "route",
-    "icon": "scenario/village"
+    "icon": "scenario/village",
+    "taille": 3
    },
    {
     "id": "foret",

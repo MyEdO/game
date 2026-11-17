@@ -739,14 +739,21 @@ func _point(id: String) -> Dictionary:
 
 
 ## Le repère du point `point` (`_point`) : le sien si la base l'offre ; offert par des pièces (`offertPar`), celui de la
-## première pièce montée qui l'offre, `{}` si aucune ne l'est.
+## pièce qui l'offre (`_offrant_du_point`), `{}` si aucune n'est montée.
 func _attache_du_point(point: Dictionary) -> Dictionary:
 	if not point.has("offertPar"):
 		return point.attache
+	var offrant := _offrant_du_point(point)
+	return point.offertPar[offrant] if offrant != "" else {}
+
+
+## L'élément de la première pièce montée qui offre le point `point` (`offertPar`), vide si la base l'offre ou si aucune
+## ne l'est.
+func _offrant_du_point(point: Dictionary) -> String:
 	for element: String in montes.values():
-		if point.offertPar.has(element):
-			return point.offertPar[element]
-	return {}
+		if point.get("offertPar", {}).has(element):
+			return element
+	return ""
 
 
 ## @contrat Atelier 3D
@@ -763,7 +770,9 @@ func _attache_du_point(point: Dictionary) -> Dictionary:
 ## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
 ## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
 ## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
-## rien dessous, sa face arrière à 5 mm de l'emplacement
+## rien dessous, sa face arrière à 5 mm de l'emplacement. À un emplacement qu'offre une pièce, qui le pose elle-même
+## (une case dans une hotte), l'objet ne descend pas plus bas, et de cette pièce ne compte que ce qu'elle porte sous
+## l'emplacement, jamais une paroi au-dessus
 ## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
 ## qui porte `extras.fourreau` (le fourreau d'une arme, `scripts/personnage-3d/element/lame.py`) n'est montré que
 ## l'objet rangé. Un objet dont la boîte ainsi pendue descend sous le sol de la pose de repos (la hauteur de
@@ -780,6 +789,8 @@ func _attache_du_point(point: Dictionary) -> Dictionary:
 ## personnage (`MiseEnPage.sens_vers_l_avant`) : tourné autour de l'axe de l'os pour que ses sommets posés passent à
 ## `JEU_ENTRE_RANGES` de ceux du précédent (`MiseEnPage.tour_a_cote`, en `PASSES_DE_TOUR` corrections depuis
 ## l'écart de leurs boîtes, `MiseEnPage.decalage_a_cote`), ou, sur l'axe, décalé le long de l'axe X du rangement ;
+## un objet que ce tour sortirait de la place du point (`MiseEnPage.tour_dans_la_place`) se pose sur le point, appuyé
+## sur les objets déjà posés au point comme sur ce qui est porté (`_porte_range`) ;
 ## chaque objet à plat, sa plus petite largeur sur la normale sortante (`MiseEnPage.lacet_a_plat`), appuyé sur ce qui
 ## est porté dessous (`_poser_range`), les meshes d'un objet ensemble ; un objet qui pendrait jusqu'au sol de la pose de
 ## repos passe en bandoulière (`MiseEnPage.biais_de_rangement`, vers `DROITE_DU_PERSONNAGE`), le milieu de sa boîte sur
@@ -797,6 +808,7 @@ func _ranger() -> void:
 	var portes := _portes_au_repos()
 	for point: String in par_point:
 		var attache := _attache_du_point(_point(point))
+		var offrant := _offrant_du_point(_point(point))
 		var portages: Array[Node3D] = []
 		for id: String in par_point[point]:
 			for rangee in _rangements[id]:
@@ -823,6 +835,7 @@ func _ranger() -> void:
 		var tour := 0.0
 		var precedente := AABB()
 		var azimuts := Vector2()
+		var poses := portes.duplicate()
 		for id: String in ids:
 			var rangees: Array = _rangements[id]
 			var bruts := _sommets_ranges(rangees, Transform3D.IDENTITY)
@@ -834,7 +847,8 @@ func _ranger() -> void:
 				suspension = MiseEnPage.centre_en_bandouliere(_boite_de(_sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), Vector3.ZERO))).get_center())
 				sommets = _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension).rotated(Vector3.BACK, biais))
 			var boite := _boite_de(sommets)
-			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, biais = biais, sommets = sommets, portes = portes}
+			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, biais = biais, sommets = sommets, portes = portes,
+				offrant = offrant}
 			if id != ids[0]:
 				var pas := MiseEnPage.decalage_a_cote(0.0, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
 				decalage = MiseEnPage.decalage_a_cote(decalage, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
@@ -842,9 +856,14 @@ func _ranger() -> void:
 				for _passe in PASSES_DE_TOUR:
 					var etendue := _azimuts(bruts, _poser_range(rangement, tour, decalage), depuis)
 					tour = MiseEnPage.tour_a_cote(emplacement.basis, emplacement.origin, tour, sens, azimuts.x, azimuts.y, etendue.x, etendue.y)
+				var dans_la_place := MiseEnPage.tour_dans_la_place(tour)
+				if dans_la_place != tour:
+					rangement.portes = poses
+				tour = dans_la_place
 			var pose := _poser_range(rangement, tour, decalage)
 			for rangee in rangees:
 				rangee.noeud.transform = pose
+				poses.append(_porte_range(rangee, pose, os))
 			precedente = boite
 			azimuts = _azimuts(bruts, pose, depuis)
 
@@ -883,12 +902,12 @@ func _suivre_les_poids() -> void:
 ## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`
 ## qui le monte à son point de suspension (`_suspension`), `biais`, son tour autour de la normale sortante en
 ## bandoulière, ses `sommets` à plat, suspendus et tournés dans son repère de rangement,
-## ce qui est porté `portes`), tourné de `tour` autour de l'axe de l'os ou décalé de `decalage` sur cet axe
-## (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
+## ce qui est porté `portes`, l'élément `offrant` qui offre l'emplacement), tourné de `tour` autour de l'axe de l'os ou
+## décalé de `decalage` sur cet axe (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
 static func _poser_range(rangement: Dictionary, tour: float, decalage: float) -> Transform3D:
 	var repere_ := _repere_de_rangement(rangement.attache, tour, decalage)
 	var os: Transform3D = rangement.os
-	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes)
+	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes, rangement.offrant)
 	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).rotated_local(Vector3.BACK, rangement.biais).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
 
 
@@ -938,8 +957,10 @@ static func _repere_de_rangement(attache: Dictionary, tour: float, decalage: flo
 ## `PORTEE_DE_CONTACT` à son opposé, touche d'abord ce qui est porté le plus en dehors ; l'objet recule pour que sa face
 ## arrière passe à `JEU_DE_RANGEMENT` au-dessus de son haut à `APPUI_DE_RANGEMENT` sous son attache (l'origine du repère
 ## de rangement, ou son haut s'il est plus bas), puis pivote pour passer de même plus bas
-## (`MiseEnPage.recul_sur_la_case`, `recul_d_appui`, `pivot_sur_la_case`).
-static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary]) -> Vector2:
+## (`MiseEnPage.recul_sur_la_case`, `recul_d_appui`, `pivot_sur_la_case`). Un emplacement qu'offre une pièce de
+## l'élément `offrant` (vide si la base l'offre) est posé par elle : la visée de ses pièces part de l'emplacement, et
+## l'objet n'y recule pas sous sa place sans rien dessous.
+static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary], offrant: String) -> Vector2:
 	var boite := _boite_de(sommets)
 	var arriere := {}
 	for v in sommets:
@@ -947,9 +968,11 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 		arriere[case_] = MiseEnPage.plus_bas(arriere.get(case_, INF), v.z)
 	var dessus := {}
 	for case_: Vector2i in arriere:
-		var debut := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, MiseEnPage.PORTEE_DE_CONTACT))
+		var dehors := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, MiseEnPage.PORTEE_DE_CONTACT))
+		var sous_l_emplacement := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, 0.0))
 		var fin := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, -MiseEnPage.PORTEE_DE_CONTACT))
 		for porte in portes:
+			var debut := sous_l_emplacement if offrant != "" and porte.element == offrant else dehors
 			var a := _par(porte.vers_le_mesh, debut)
 			var b := _par(porte.vers_le_mesh, fin)
 			if not (porte.boite as AABB).intersects_segment(a, b):
@@ -963,6 +986,8 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 	for case_: Vector2i in dessus:
 		recul = MiseEnPage.recul_sur_la_case(recul, case_, attache, dessus[case_], arriere[case_])
 	recul = MiseEnPage.recul_d_appui(recul, boite.position.z)
+	if offrant != "":
+		recul = MiseEnPage.plus_haut(recul, MiseEnPage.recul_d_appui(-INF, boite.position.z))
 	var angle := 0.0
 	for case_: Vector2i in dessus:
 		angle = MiseEnPage.pivot_sur_la_case(angle, case_, attache, dessus[case_], arriere[case_], recul)
@@ -970,22 +995,34 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 
 
 ## Ce qui est porté, au repos : par mesh skinné de la base et des éléments montés, ses triangles (`maille`) et sa boîte
-## (`boite`) dans son repère, et les transformations (`_par`) du repère du squelette au sien (`vers_le_mesh`) et retour
-## (`vers_le_squelette`), par le premier os du skin de son auteur (`_skin_de_l_auteur`) à son repos.
+## (`boite`) dans son repère, l'élément monté qui le porte (`element`, vide pour la base), et les transformations
+## (`_par`) du repère du squelette au sien (`vers_le_mesh`) et retour (`vers_le_squelette`), par le premier os du skin de son auteur (`_skin_de_l_auteur`) à son repos.
 func _portes_au_repos() -> Array[Dictionary]:
-	var meshes: Array = _pieces_de_la_base.duplicate()
+	var meshes: Array = _pieces_de_la_base.map(func(mesh: MeshInstance3D) -> Array: return [mesh, ""])
 	for id in pieces:
-		meshes.append_array(pieces[id])
+		meshes.append_array(pieces[id].map(func(mesh: MeshInstance3D) -> Array: return [mesh, montes[id]]))
 	var portes: Array[Dictionary] = []
-	for mesh: MeshInstance3D in meshes:
+	for paire: Array in meshes:
+		var mesh: MeshInstance3D = paire[0]
 		var skin := _skin_de_l_auteur(mesh)
 		if skin == null:
 			continue
 		var os := squelette.get_bone_global_rest(squelette.find_bone(skin.get_bind_name(0)))
 		var liaison := skin.get_bind_pose(0)
-		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(),
+		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(), element = paire[1],
 			vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
 	return portes
+
+
+## Ce que porte un objet rangé de mesh `rangee` (`_rangements`), posé par `pose` dans l'os de repos `os`, comme ce qui
+## est porté au repos (`_portes_au_repos`) : ses triangles et sa boîte dans le repère du mesh, et les transformations de
+## ce repère à celui du squelette et retour (`_par`).
+static func _porte_range(rangee: Dictionary, pose: Transform3D, os: Transform3D) -> Dictionary:
+	var piece: MeshInstance3D = rangee.piece
+	var noeud: Node3D = rangee.noeud
+	return {maille = piece.mesh.generate_triangle_mesh(), boite = piece.mesh.get_aabb(), element = "",
+		vers_le_mesh = [os.affine_inverse(), pose.affine_inverse(), noeud.global_transform, piece.global_transform.affine_inverse()],
+		vers_le_squelette = [piece.global_transform, noeud.global_transform.affine_inverse(), pose, os]}
 
 
 ## Le point `point` passé par les transformations `chaine`, dans leur ordre.
@@ -1050,8 +1087,11 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 ## si la palette colore son emplacement de palette, si elle est `blason` sous un emblème demandé, si la texture de
 ## sa `matiere` est au projet, ou, sur la base, si `reliefs` lui donne un facteur autre que 1 ; le `normal_scale` de ce
 ## matériau propre est celui du matériau actif, remplaçant compris, multiplié par ce facteur (1 sans facteur). La
-## texture de la `matiere` habille la surface comme le monde (section « Monde », `VolumeDeScene.texturer`), projetée
-## sur les trois axes du repère du mesh, l'albédo à blanc ; la couleur y remplace l'albédo du GLB, texture comprise, pour
+## texture de la `matiere` habille la surface comme le monde (section « Monde », `VolumeDeScene.texturer`), l'albédo à
+## blanc : sa texture neutre, `<matiere>.neutre.jpg`, si la palette colore la surface et qu'elle est au projet, sa
+## texture sinon (#4313) ; lue aux UV du GLB, en mètres, sur une surface qui n'est pas `blason` d'un élément monté ou de
+## la base, projetée sur les trois axes du repère du mesh sur une surface `blason` et sur un véhicule ou une pièce
+## d'Amélioration (section « Corps d'un combattant »). La couleur y remplace l'albédo du GLB, texture comprise, pour
 ## que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; l'emblème en
 ## devient la couche *detail* (`detail_enabled`, `detail_albedo`, `detail_blend_mode` mix), lue aux UV du GLB :
 ## `detail_uv_layer` UV1, ou UV2 sur une surface à matière texturée, dont la matière projette l'UV1, la pièce recevant
@@ -1077,7 +1117,7 @@ func _habiller(id: String) -> bool:
 	var palette: Dictionary = composee.get("palette", {}).duplicate()
 	if monte.get("element") == element:
 		palette.merge(monte.get("palette", {}), true)
-	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette, _locaux)
+	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette, _locaux, true)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
 	_demander_la_refonte()
@@ -1099,7 +1139,7 @@ func habiller_la_base() -> void:
 			erreurs.append("materiau-absent : %s" % materiaux[surface])
 		else:
 			remplacants[surface] = remplacant
-	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), _locaux, remplacants, composee.get("reliefs", {}))
+	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), _locaux, true, remplacants, composee.get("reliefs", {}))
 	_demander_la_refonte()
 
 
@@ -1107,13 +1147,14 @@ func habiller_la_base() -> void:
 ## `remplacants` donne à ce nom, puis reçoit un matériau propre (`materiau_local`) si `palette` colore son emplacement de
 ## palette, si elle est `blason` et `texture` n'est pas nulle, si la texture de sa `matiere` est au projet, ou si
 ## `reliefs` donne à ce nom un facteur autre que 1, qui multiplie son `normal_scale` (#4002) : celle-ci
-## l'habille comme le monde (`VolumeDeScene.texturer`), l'albédo à blanc ; la couleur remplace l'albédo du GLB,
-## texture comprise,
+## l'habille comme le monde (`VolumeDeScene.texturer`), l'albédo à blanc, de sa texture neutre si `palette` colore la
+## surface et qu'elle est au projet (#4313), lue aux UV du mesh si `par_uv` et que la surface n'est pas `blason`,
+## projetée sur les trois axes sinon ; la couleur remplace l'albédo du GLB, texture comprise,
 ## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
 ## surface au moins. Chaque matériau propre se tient dans `locaux`, ceux du porteur, qui lâche ceux d'avant de chaque mesh.
-static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, par_uv: bool, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -1141,7 +1182,9 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			if local == null:
 				continue
 			if texturee:
-				VolumeDeScene.texturer(local, matiere)
+				var neutre := VolumeDeScene.texture_neutre_de(matiere)
+				var albedo := neutre if couleur != null and ResourceLoader.exists(neutre) else VolumeDeScene.texture_de(matiere)
+				VolumeDeScene.texturer(local, matiere, albedo, surface.get("blason", false) or not par_uv)
 				local.albedo_color = Color.WHITE
 			elif couleur != null:
 				local.albedo_texture = null

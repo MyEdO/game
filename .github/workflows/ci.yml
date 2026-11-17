@@ -217,8 +217,14 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # L'hôte Godot et la chaîne 3D, hors du chemin critique de `types` (#3412) : une SÉRIE, dans la lane locale `types`
-  # (`LANE_LOCALE_DE_JOB`). Les caches de la chaîne 3D précèdent `godot:sonde`, qui lit les GLB épinglés et l'éditeur.
+  # L'hôte Godot et la chaîne 3D en trois jobs menés de front, hors du chemin critique de `types` (#3412), dans la lane
+  # locale `types` (`LANE_LOCALE_DE_JOB`). Chacun dépose les modèles, les textures et l'éditeur qu'il lit
+  # (`deposerLesAssets`, hotes/godot/construire.mjs), depuis les caches de la chaîne 3D qui le précèdent.
+  # `personnage-3d:tests` (#3145) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
+  # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
+  # requirements.txt), après `godot:sonde`, qui tire dans `CACHE_DES_MODELES` les GLB épinglés que `test_element.py` lit.
+  # Le cache de pip est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner, ne se cache pas.
+  # `godot:coop` (#3009) : le relay local (`server/` installé pour lui seul) et la coop jouée par deux processus Godot.
   godot:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -235,18 +241,11 @@ jobs:
       - name: Godot — scripts et recettes autonomes
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
-      # `godot:rendus` (#3951) : les recettes rendues, en rendu réel sous chacun des deux rendus (Forward+ et
-      # compatibilité), sur un écran virtuel et le rendu logiciel de Mesa ; après `godot:sonde`, qui a déposé les
-      # modèles, les textures et l'éditeur qu'elle lit.
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
-      - name: Godot — recettes rendues sous les deux rendus
+        run: npm --prefix server ci
+      - name: Godot — coop à deux processus
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run godot:rendus
-      # `personnage-3d:tests` (#3145) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
-      # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
-      # requirements.txt), après `godot:sonde`, qui écrit sous `hotes/godot/projet/modeles/` dont `test_vehicule.py` lit les
-      # manifestes, et tire dans `CACHE_DES_MODELES` les GLB épinglés que `test_element.py` lit. Le cache de pip est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner, ne se cache pas.
+        run: npm run godot:coop
       - id: python-3d
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"
@@ -258,6 +257,52 @@ jobs:
           cache-dependency-path: scripts/personnage-3d/requirements.txt
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run personnage-3d:tests
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # `godot:rendus` (#3951) : les recettes rendues, en rendu réel sous chacun des deux rendus (Forward+ et
+  # compatibilité), sur un écran virtuel et le rendu logiciel de Mesa.
+  godot-rendus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
+        uses: ./.github/actions/prologue
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
+      - name: Godot — recettes rendues sous les deux rendus
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run godot:rendus
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # `godot:recette` (#3945) : les jeux `combat` et `editeur` des recettes natives de l'hôte Godot
+  # (`lot-de-recettes.mjs --natif`), sans export ni navigateur ; `canari.yml` joue le lot natif entier.
+  godot-recette:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
+        uses: ./.github/actions/prologue
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - name: Godot — recettes natives
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run godot:recette
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
@@ -285,7 +330,7 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # `test:corpus`, hors du chemin critique de `types` et de `types-hooks` (#3412) : ces jobs et `godot` se
+  # `test:corpus`, hors du chemin critique de `types` et de `types-hooks` (#3412) : ces jobs et ceux de Godot se
   # partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
   # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
   # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
@@ -304,15 +349,6 @@ jobs:
         run: npm run test:corpus
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run mods:check
-      # `godot:recette` (#3945) : les jeux `combat` et `editeur` des recettes natives de l'hôte Godot
-      # (`lot-de-recettes.mjs --natif`), sans export ni navigateur, dans ce job pour rester hors du chemin critique de
-      # la CI (`types`) ; `canari.yml` joue le lot natif entier. Les caches de la chaîne 3D la précèdent : elle dépose
-      # les modèles, les textures et l'éditeur qu'elle lit.
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        uses: ./.github/actions/caches-3d
-      - name: Godot — recettes natives
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run godot:recette
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

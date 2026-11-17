@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { craftPriceFactor, craftEncDelta, shiftAvailability, qualityClass, qualityClassLabel, craftAtoutCount, craftDefautCount } from './craftEconomy';
+import { atoutsMinimaux, craftPriceFactor, craftEncDelta, shiftAvailability, craftAtoutCount, craftDefautCount } from './craftEconomy';
 import { parseQualityInstance } from '../../data/refFormatLivre';
 
 /** Fixture : libellés FR (lisibles) → `QualityInstance[]` structurées via le parseur d'authoring. */
@@ -7,8 +7,13 @@ const it_ = (qualities: string[]) => ({ qualities: qualities.map((q) => parseQua
 
 describe('craftEconomy — comptage & prix (LDB 60 l.11/42)', () => {
   it('compte les Atouts/Défauts d’OBJET seulement (ignore les qualités d’arme)', () => {
-    expect(craftAtoutCount(it_(['Raffiné', 'Solide 3', 'Empaleuse']))).toBe(2); // Empaleuse = Arme, ignorée
+    expect(craftAtoutCount(it_(['Raffiné', 'Solide 3', 'Empaleuse']))).toBe(4); // Solide 3 = trois prises (LDB 60 l.30-32) ; Empaleuse = Arme, ignorée
     expect(craftDefautCount(it_(['Volumineux', 'Peu Fiable']))).toBe(2);
+  });
+  it('un Atout répété compte à chaque prise, un Atout indicé pour son Indice (LDB 60 l.26 ; LDB 60 l.30-32)', () => {
+    expect(craftAtoutCount(it_(['Raffiné', 'Raffiné']))).toBe(2);
+    expect(craftAtoutCount(it_(['Solide 2']))).toBe(2);
+    expect(craftPriceFactor(it_(['Solide 2']))).toBe(4);
   });
   it('prix : chaque Atout ×2, chaque Défaut ÷2', () => {
     expect(craftPriceFactor(it_([]))).toBe(1);
@@ -45,21 +50,12 @@ describe('craftEncDelta (Léger -1 / Volumineux +1, LDB 60 l.18/62)', () => {
   });
 });
 
-describe('qualityClass (LDB 60 l.7/11/42)', () => {
-  it('Haute Qualité = 0 Défaut ET plus d’Atouts que l’Enc', () => {
-    expect(qualityClass(it_(['Raffiné', 'Solide 1', 'Léger']), 2)).toBe('haute'); // 3 Atouts > Enc 2, 0 Défaut
-    expect(qualityClass(it_(['Raffiné', 'Solide 1']), 2)).toBe('qualite'); // 2 Atouts = Enc 2 (pas >)
+describe('atoutsMinimaux (LDB 60 l.7 ; LDB 60 l.11)', () => {
+  it('une Possession de Qualité : un Atout', () => {
+    expect(atoutsMinimaux('qualite')).toBe(1);
+    expect(atoutsMinimaux('qualite', 1)).toBe(1);
   });
-  it('Qualité / Défectueuse / Standard', () => {
-    expect(qualityClass(it_(['Raffiné']), 5)).toBe('qualite'); // plus d'Atouts
-    expect(qualityClass(it_(['Bâclé', 'Laid']), 5)).toBe('defectueuse'); // plus de Défauts
-    expect(qualityClass(it_(['Raffiné', 'Bâclé']), 5)).toBe('standard'); // égalité
-    expect(qualityClass(it_([]), 5)).toBe('standard');
-  });
-  it('le LIBELLÉ de chaque classe vient du catalogue (l’id reste la logique)', () => {
-    expect(qualityClassLabel(qualityClass(it_(['Raffiné', 'Solide 1', 'Léger']), 2))).toBe('Haute Qualité');
-    expect(qualityClassLabel('qualite')).toBe('Qualité');
-    expect(qualityClassLabel('defectueuse')).toBe('Défectueuse');
-    expect(qualityClassLabel('standard')).toBe('Standard');
+  it('une Possession de Haute Qualité d’Encombrement 1 : deux Atouts', () => {
+    expect(atoutsMinimaux('haute', 1)).toBe(2);
   });
 });

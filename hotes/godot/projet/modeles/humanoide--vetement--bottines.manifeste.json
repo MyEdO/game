@@ -1,0 +1,33 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "bottines"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [
+    "pied_g",
+    "pied_d"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    }
+  ],
+  "glb": {
+    "sha256": "9c88449580827db0b203bc9e28519db318297de12ff264aecd74c95831bfaff8",
+    "octets": 281312
+  }
+}

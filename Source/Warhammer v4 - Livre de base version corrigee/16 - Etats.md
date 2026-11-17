@@ -1,6 +1,6 @@
 *Pages PDF 169-171*
 
-# **ÉTATS**
+# <span id="page-168-0" data-folio="167"></span>**ÉTATS**
 
 Les États représentent l'effet des événements qui se produisent au cours de vos aventures. Ces différents États peuvent être notés sur votre feuille de Personnage, mais rien ne vous empêche d'utiliser des pions pour les symboliser. La description de chaque État indique la durée normale des effets qu'il génère ; cependant, il est possible que certaines causes – comme un Sort ou une Blessure critique, changent cet état de fait.
 

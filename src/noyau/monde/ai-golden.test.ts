@@ -18,7 +18,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDe
 import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const RANGED: Weapon = { label: 'Arc', uid: 'arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 const CROSSBOW: Weapon = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [] };
 
 /** Sort RÉSOLU minimal (`CastableSpell`) pour les fixtures golden — défaut = Projectile mono-cible. */
@@ -148,7 +148,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
   it('tireur EN PORTÉE, aucun contact → shoot', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [RANGED] });
     const h = mk('h', 'heros', { x: 1, y: 1 });
-    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'tir', targetId: 'h' });
+    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'tir', targetId: 'h', weaponUid: 'arc' });
   });
 
   it('#537 tireur EN PORTÉE sous banRanged (duel judiciaire) → JAMAIS shoot (bascule approche)', () => {
@@ -260,7 +260,7 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
   it('tireur (arc) + héros à portée + LdV → TIRE (ne fonce pas, ne se repositionne pas)', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [RANGED], movement: 4 });
     const h = mk('h', 'heros', { x: 5, y: 9 }); // d=4, à portée (60) + LdV dégagée
-    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'tir', targetId: 'h' });
+    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'tir', targetId: 'h', weaponUid: 'arc' });
   });
 
   it('lanceur AU CONTACT + sort jouable à portée → LANCE (n’abandonne pas son tour pour un repli)', () => {

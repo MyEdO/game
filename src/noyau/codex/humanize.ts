@@ -331,6 +331,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     }
     case 'casterChaosDomain': return t(neg ? 'codex.c.casterChaosDomain.non' : 'codex.c.casterChaosDomain', { dieu: refLabel('gods', { id: c.is }) });
     case 'visiblePassive': return t(neg ? 'codex.c.visiblePassive.non' : 'codex.c.visiblePassive', { qui: who(c.who) });
+    case 'navire': return t(neg ? 'codex.c.navire.non' : 'codex.c.navire', { qui: who(c.who) });
     case 'skill': {
       const sujet = sujetDuGroupe(c.who);
       return `${t(neg ? 'codex.c.skill.non' : 'codex.c.skill', { sujet, nom: refLabel('skills', { id: c.id, spec: c.spec }) })}${c.advances ? ` (≥${c.advances})` : ''}`;
@@ -603,7 +604,7 @@ export function humanizeOp(o: GameOp): string {
     case 'critOnRoll': return t('codex.op.critiqueSurJet');
     case 'spendAdvantage': return o.amount == null ? t('codex.op.depenseDAvantage.tout') : t('codex.op.depenseDAvantage', { n: o.amount });
     case 'light': return t('codex.op.lumiere', { n: o.radiusM });
-    case 'intoxicate': return t('codex.op.ivresse');
+    case 'intoxicate': return o.tantQuIvre?.length ? t('codex.op.ivresse.effet', { ops: o.tantQuIvre.map(humanizeOp).join(' ; ') }) : t('codex.op.ivresse');
     case 'narrative': return o.nombre === undefined ? o.text : t('codex.op.nombreNarratif', { text: o.text, n: humanizeFormula(o.nombre) });
     case 'shipMorale': return t('codex.op.moralDEquipage', { delta: formatEffetSigne(o.delta) });
     case 'manann': return o.factorId !== undefined

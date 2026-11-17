@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { addCondition, conditionGating } from '../engine/conditions';
 import { effectiveMovement } from '../engine/encumbrance';
-import { refusDeCharge, refusDeCourse, refusRampe } from './refusDuTour';
+import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusRampe } from './refusDuTour';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
@@ -44,7 +44,7 @@ describe('`gating.movement` : `crawl` divise le Mouvement comme `half`, et ne la
         const { c, battle } = porteur(M, etats);
         expect({
           gate: conditionGating(c).movement, eff: effectiveMovement(c), rampe: refusRampe(c),
-          course: refusDeCourse(battle, c), charge: refusDeCharge(battle, c),
+          course: refusDeCourse(null, battle, c), charge: refusDeCharge(battle, c),
         }).toEqual(attendu);
       });
     }
@@ -55,6 +55,14 @@ describe('Mouvement entamé : la Charge se ferme, la Course non (LDB 15 l.35-41)
   it('refusDeCharge dit le Mouvement entamé, refusDeCourse reste ouvert', () => {
     const { c, battle } = porteur(4, []);
     battle.movementUsed = 1;
-    expect([refusDeCharge(battle, c), refusDeCourse(battle, c)]).toEqual([t('agate.movementStarted'), null]);
+    expect([refusDeCharge(battle, c), refusDeCourse(null, battle, c)]).toEqual([t('agate.movementStarted'), null]);
+  });
+});
+
+describe('Rampant : aucune Action de Course (MSRC 15 l.171)', () => {
+  it('refusDeCourseDuPorteur et refusDeCourse le refusent, la Charge reste à son propre verdict', () => {
+    const { c, battle } = porteur(4, []);
+    c.traits = [{ id: 'rampant' }];
+    expect([refusDeCourseDuPorteur(c), refusDeCourse(null, battle, c), refusDeCharge(battle, c)]).toEqual([t('agate.cannotRun'), t('agate.cannotRun'), null]);
   });
 });

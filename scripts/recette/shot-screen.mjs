@@ -4,27 +4,25 @@
 //
 // Usage :
 //   node scripts/recette/shot-screen.mjs --screen gallery --out <dossier absolu>
-//   node scripts/recette/shot-screen.mjs --screen menu --mobile
+//   node scripts/recette/shot-screen.mjs --screen menu --width 1366 --height 650
 //
 // Options :
 //   --screen <id>   id d'écran __wfrp (obligatoire, ex. gallery, menu, party, compendium…)
 //   --out <dir>     dossier ABSOLU de sortie (défaut : DOSSIER_CAPTURES hors arbre)
 //   --url <url>     URL de l'app (défaut : le port de CET arbre, cf. scripts/port-dev.mjs)
-//   --mobile        viewport 360x740 (charte-ui.md, testable dès 360px)
-//   --width/--height  viewport explicite (ignoré si --mobile)
+//   --width/--height  viewport explicite
 //   --settle <ms>   attente après navigation avant capture (défaut 600ms)
 //
 // Sortie : exit 1 si la console a remonté une erreur/exception après l'ouverture de l'écran.
-import { DOSSIER_CAPTURES, validerDossierCaptures, openApp, gotoScreen, shot, consoleGuard, setMobileViewport, setViewport } from './lib.mjs';
+import { DOSSIER_CAPTURES, validerDossierCaptures, openApp, gotoScreen, shot, consoleGuard, setViewport } from './lib.mjs';
 
 export function parseArgs(argv) {
-  const out = { out: DOSSIER_CAPTURES, url: undefined, mobile: false, settle: 600 };
+  const out = { out: DOSSIER_CAPTURES, url: undefined, settle: 600 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--screen') out.screen = argv[++i];
     else if (a === '--out') out.out = argv[++i];
     else if (a === '--url') out.url = argv[++i];
-    else if (a === '--mobile') out.mobile = true;
     else if (a === '--width') out.width = Number(argv[++i]);
     else if (a === '--height') out.height = Number(argv[++i]);
     else if (a === '--settle') out.settle = Number(argv[++i]);
@@ -41,8 +39,7 @@ async function main() {
     ? { width: args.width ?? 1280, height: args.height ?? 900 }
     : undefined);
   try {
-    if (args.mobile) await setMobileViewport(session);
-    else if (args.width && args.height) await setViewport(session, args.width, args.height);
+    if (args.width && args.height) await setViewport(session, args.width, args.height);
 
     const guard = consoleGuard(session);
     await gotoScreen(session, args.screen, { settleMs: args.settle });

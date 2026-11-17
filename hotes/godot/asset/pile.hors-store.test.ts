@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   couvertureDe,
   endroitDe,
+  EGALITE_DE_CHAINE,
   ENTRAINEMENT,
   HALO_M,
   JEU_M,
@@ -163,6 +164,19 @@ describe('resoudreLaPile', () => {
     const dessous = nappe(0, 'jupe_1', 0.1), dessus = nappe(SERRAGE_M, 'jupe_2');
     empiler([piece(dessous), piece(dessus)], ['jupe_1', 'jupe_2']);
     expect(poidsSur(dessous, 40, 'jupe_2')).toBeCloseTo(1, 6);
+  });
+
+  it('une couverture qui ne porte une chaîne plus que lui qu’à l’égalité de chaîne près retient tout entier ; au-delà, non (#3867)', () => {
+    /** La nappe sur `jupe_1`, la part `ecart` de chaque point sur `bassin`, hors de la chaîne. */
+    const sujet = (ecart: number): MaillageDePile => {
+      const m = nappe(0, 'jupe_1', 0.1);
+      m.noms = ['jupe_1', 'bassin'];
+      for (let s = 0; s < m.positions.length / 3; s++) { m.poids[s * 4] = 1 - ecart; m.poids[s * 4 + 1] = ecart; }
+      return m;
+    };
+    const masques = (ecart: number): number => empiler([piece(sujet(ecart)), piece(nappe(SERRAGE_M, 'jupe_1'))], ['jupe_1']).masques;
+    expect(masques(EGALITE_DE_CHAINE / 2)).toBe(128);
+    expect(masques(EGALITE_DE_CHAINE * 10)).toBe(0);
   });
 
   it('une couverture ne retient pas un point d’une autre partie du corps, ni des siens ni de leurs parents', () => {

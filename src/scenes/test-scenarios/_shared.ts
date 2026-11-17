@@ -1,6 +1,6 @@
 import { Combatant, type SkillInstance } from '../../engine/types';
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { byId } from '../../data';
+import { byId, findTrappingById, type SkillRef } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import { Scene } from '../../noyau/monde/scene';
 import type { Terrain } from '../../data/schemas/defs-scenes/scene';
@@ -21,6 +21,13 @@ export function renforcerCompetence(c: Combatant, skillId: string, advances: num
   if (ex) ex.advances = Math.max(ex.advances, advances);
   else c.skills.push({ id: skillId, ...(spec != null ? { spec } : {}), characteristic: def.characteristic, advances } as SkillInstance);
 }
+
+/** Projectiles du Groupe de l'engin servi, que possède un servant compté dans l'équipe — AA 10 l.230, AA 10 l.253.
+ *  Spé = id du `weaponGroup` du trapping. */
+export const projForPiece = (trappingId: string): SkillRef[] => {
+  const g = findTrappingById(trappingId)?.weaponGroup?.id;
+  return g ? [{ id: 'projectiles', spec: g, value: 40 }] : [];
+};
 
 /** Attache des rencontres authored (terse) à une scène : expanse chaque liste d'ennemis en
  *  entités 'personnage' + `members` canoniques, pousse les entités dans la scène et pose les

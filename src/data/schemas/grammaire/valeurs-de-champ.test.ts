@@ -19,7 +19,7 @@ import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
-import { itemCapabilitiesSchema } from '../defs/trappings';
+import { itemCapabilitiesSchema } from './valeurs';
 import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
@@ -139,8 +139,10 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|metal2|corps|accent|bois|corne|fourrure|plume|vegetal',
   'physique|mentale',
+  // `offreDAubergeSchema` (#4277) : les offres d'auberge d'un hébergement (LDB 66 l.12-16, l.28).
+  'commune|chambre|grande|repas',
   // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
   // Disponibilité (LDB 59) et récolte (ZI 13 l.286), en ids nommés.
   'commune|limitee|rare|exotique',
@@ -150,14 +152,21 @@ const NOMMES = [
   // `settlementSchema` (LDB 59 l.25-34) et `marketModeSchema` (#3606) : la taille d'agglomération d'un
   // marché et le mode de marché d'un marchand de scène.
   'village|ville|cite',
+  // La clé d'indice de Taille de lieu de `disponibilite.json` › `colonneParTaille` (MSRC 13 l.44-50, #4277).
+  '1|2|3|4',
   'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
+  'pietre|normale|grande',
   'prop|roof|relief|objet|couleur',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
   'cran|difficulte',
-  // `typeDePossessionSchema` (#3012) : le `type` d'une dotation de POSSESSION, bête ou véhicule.
+  // `typeDePossessionSchema` (#3012) : le `type` de la référence d'un effet `givePossession`, bête ou véhicule.
   'creature|vehicle',
+  // `typeDeDotationDePossessionSchema` (#4143) : le `type` d'une dotation de POSSESSION, bête, véhicule ou engin de siège.
+  'creature|vehicle|engin',
+  // `classeDeQualiteSchema` (#4110) : la classe de qualité d'une dotation dont les Atouts sont au choix (LDB 60 l.7 ; LDB 60 l.11).
+  'qualite|haute',
   // `difficultySchema` (#1921) : l'échelle canon des Difficultés (LDB 12 l.143-151, EDO App.2), nommée
   // par `DIFFICULTY_LABELS` ; `couvertDifficultySchema` en est le sous-univers de couvert (AA 10 l.28-51).
   'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
@@ -336,7 +345,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'navire|navire-fluvial',
   'nuit|voyage|meteo|flux|activite|combat',
   'none|half|crawl',
-  'normale|pietre',
   'oppose|etendu',
   'groupe|ennemis',
   'groupe|heros',
@@ -354,7 +362,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'ship-criticals|river-criticals',
   'sort|rituel',
   'source|group|any',
-  'sort|priere|talent|trait|objet|qualite|maladie|symptome|mutation|etat|psychologie|manoeuvre|creature|activite|regle|jeuDeTaverne|imparfaiteMineure|imparfaiteMajeure|imparfaiteMineureVdm|imparfaiteMajeureVdm|colereDesDieux',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',

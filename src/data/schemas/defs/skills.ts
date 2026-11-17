@@ -5,11 +5,10 @@ import { nommerChamps } from '../grammaire/meta';
  * `SpecsSource`, `engine/skillCombatApps`).
  */
 import { z } from 'zod';
-import { charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
+import { capaciteDObjetSchema, charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { senseSchema } from '../grammaire/mecanique';
 import { ref } from '../grammaire/ref';
-import { capaciteDObjetSchema } from './trappings';
 
 export const file = 'skills.json';
 export const famille = 'entite';

@@ -7,16 +7,20 @@ import { StateChips } from './StateChips';
 import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
 import {
+  appariementEnChambres,
+  chambreDeTroupe,
   lodgingOptions,
   foodOptions,
   nourrituresDeTroupe,
   restCost,
   partsDuRepos,
   noteDAubergeCouverte,
+  type CouchageSansChambre,
   type RestLodging,
   type RestFood,
 } from '../noyau/restFlow';
 import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
+import { reglageDuChoixDeFenetre } from '../noyau/choixDeFenetre';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from '../noyau/combatFlow';
@@ -31,13 +35,14 @@ import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Row } from './Layout';
 
-const LODGING_META: Record<RestLodging, { icon: IconId; labelKey: MsgKey }> = {
-  privee: { icon: 'repos/lit', labelKey: 'valeur.couchage.privee' },
+const LODGING_META: Record<CouchageSansChambre, { icon: IconId; labelKey: MsgKey }> = {
   commune: { icon: 'repos/canape', labelKey: 'valeur.couchage.commune' },
   maison: { icon: 'repos/chez-soi', labelKey: 'valeur.couchage.maison' },
   dehors: { icon: 'repos/campement', labelKey: 'valeur.couchage.dehors' },
   bord: { icon: 'voyage/navire-a-voile', labelKey: 'valeur.couchage.bord' },
 };
+/** L'icône d'un couchage : une chambre d'auberge, ou celle du couchage sans chambre. */
+const iconeDuCouchage = (l: RestLodging): IconId => (Object.prototype.hasOwnProperty.call(LODGING_META, l) ? LODGING_META[l as CouchageSansChambre].icon : 'repos/lit');
 const FOOD_META: Record<RestFood, { icon: IconId; labelKey: MsgKey }> = {
   repas: { icon: 'repos/ragout', labelKey: 'valeur.pitance.repas' },
   maison: { icon: 'repos/repas-fait-maison', labelKey: 'valeur.pitance.maison' },
@@ -97,7 +102,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const exposureTests = exposureTestCount(severity, sheltered);
   const online = net.mode !== 'local';
   const ready = p.readyBySeat ?? {};
-  const reglagesTitle = <>{title}{p.days > 1 ? ` — ${p.days} nuits` : ''}{p.quality === 'pietre' ? ' (piètre)' : ''}</>;
+  const reglagesTitle = <>{title}{p.days > 1 ? ` — ${p.days} nuits` : ''}{p.quality === 'normale' ? '' : ` (${t(`rf.qualite.${p.quality}`)})`}</>;
 
   // Héros affichés (vivants, dotés d'un réglage) ; ÉDITABLES = ceux que le siège local contrôle.
   const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);
@@ -108,9 +113,13 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   // Valeur COMMUNE des followers (sinon aucune sélection maître) — Couchage / Nourriture.
   const commonLodging = followers.length && followers.every((h) => cfgOf(h).lodging === cfgOf(followers[0]).lodging) ? cfgOf(followers[0]).lodging : undefined;
   const commonFood = followers.length && followers.every((h) => cfgOf(h).food === cfgOf(followers[0]).food) ? cfgOf(followers[0]).food : undefined;
-  // Menu de troupe : Couchage = l'offre du lieu (identique pour tous) ; Nourriture = `nourrituresDeTroupe`.
-  const masterFood = nourrituresDeTroupe(p.places);
+  // Menu de troupe : Couchage = les chambres appariées (`appariementEnChambres`) d'une auberge, puis l'offre sans chambre du
+  // lieu ; Nourriture = `nourrituresDeTroupe`.
+  const masterFood = nourrituresDeTroupe(p);
   const applyTroupe = (patch: Partial<{ lodging: RestLodging; food: RestFood }>) => { for (const h of followers) regler(h.id, patch); };
+  const offreDeTroupe = chambreDeTroupe(p);
+  const chambresDeTroupe = offreDeTroupe ? appariementEnChambres(followers, offreDeTroupe) : {};
+  const enChambres = followers.length > 0 && followers.every((h) => cfgOf(h).lodging === chambresDeTroupe[h.id]);
   // Part de chaque héros dans la note (`partsDuRepos`, dont `restCost` est la somme).
   const parts = partsDuRepos(p, party);
 
@@ -132,7 +141,10 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
             <OptionChooser
               layout="seg"
               groupLabel="Couchage"
-              options={lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: commonLodging === l, onSelect: () => applyTroupe({ lodging: l }) }))}
+              options={[
+                ...(offreDeTroupe ? [{ key: 'chambres', label: <><Icon id="repos/lit" size="sm" /> {t('rf.chambres')}</>, selected: enChambres, onSelect: () => { for (const h of followers) regler(h.id, { lodging: chambresDeTroupe[h.id] }); } }] : []),
+                ...lodgingOptions(p).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: commonLodging === l, onSelect: () => applyTroupe({ lodging: l }) })),
+              ]}
             />
             <OptionChooser
               layout="seg"
@@ -149,6 +161,9 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
           const isOpen = expanded.has(h.id);
           const warns = heroWarnings(h, cfg.lodging, cfg.food, exposureTests);
           const share = parts[h.id];
+          // Les couchages qu'ouvre la nuit à ce héros, ses chambres comprises, chacune fermée par sa raison.
+          const couchages = reglageDuChoixDeFenetre(state, 'repos', 'couchage', h.id).valeurs ?? [];
+          const couchage = couchages.find((v) => v.valeur === cfg.lodging)?.libelle;
           return (
             <div key={h.id} className="rest-hero">
               <div className="rest-hero-line">
@@ -158,7 +173,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
                 </div>
                 {/* Choix COURANT en toutes lettres (arbitrage user : plus de segments cryptiques par défaut). */}
                 <div className="rest-hero-pick">
-                  <span className="rest-hero-choice"><Icon id={LODGING_META[cfg.lodging].icon} size="sm" /> {t(LODGING_META[cfg.lodging].labelKey)} · <Icon id={FOOD_META[cfg.food].icon} size="sm" /> {t(FOOD_META[cfg.food].labelKey)}</span>
+                  <span className="rest-hero-choice"><Icon id={iconeDuCouchage(cfg.lodging)} size="sm" /> {couchage} · <Icon id={FOOD_META[cfg.food].icon} size="sm" /> {t(FOOD_META[cfg.food].labelKey)}</span>
                   {warns.length > 0 && (
                     <span className="rest-warn">{warns.map((w, i) => <span key={i}>{i > 0 && ' · '}{w}</span>)}</span>
                   )}
@@ -175,12 +190,12 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
                   <OptionChooser
                     layout="seg"
                     groupLabel="Couchage"
-                    options={lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: cfg.lodging === l, onSelect: () => regler(h.id, { lodging: l }) }))}
+                    options={couchages.map((v) => ({ key: String(v.valeur), label: <><Icon id={iconeDuCouchage(String(v.valeur))} size="sm" /> {v.libelle}</>, selected: cfg.lodging === v.valeur, ...(v.refus ? { refus: v.refus } : {}), onSelect: () => regler(h.id, { lodging: String(v.valeur) }) }))}
                   />
                   <OptionChooser
                     layout="seg"
                     groupLabel="Nourriture"
-                    options={foodOptions(p.places, h).map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {t(FOOD_META[f].labelKey)}</>, selected: cfg.food === f, onSelect: () => regler(h.id, { food: f }) }))}
+                    options={foodOptions(p, h).map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {t(FOOD_META[f].labelKey)}</>, selected: cfg.food === f, onSelect: () => regler(h.id, { food: f }) }))}
                   />
                 </Row>
               )}

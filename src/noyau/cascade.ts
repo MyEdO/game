@@ -48,7 +48,7 @@ import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
-import { canFixDie, influencesLocally } from './netOwnership';
+import { canFixDie, decidingSeat, influencesLocally } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
 import { toRecapLines, type RecapLine } from './recapLine';
@@ -71,9 +71,10 @@ import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
-import { tenuParUnHumain } from './sieges';
+import { seatOwns, tenuParUnHumain } from './sieges';
 import { jouerLaPaireDuJet } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
+import { noterAuProcesVerbal } from './voyageCadence';
 
 /** Le trigger `onOwnTestFailed` d'un Test raté (MSRC 16 l.152), sur le RNG SEEDABLE (`battleRng`). */
 const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] => fireOwnTestFailed(get, actor, { sl, rng: battleRng() });
@@ -698,12 +699,14 @@ export function stepOpposedFreeze(step: CascadeStep | undefined): OpposedRowFree
  * fin de combat, cadence auto) : elle porte l'étampe `meta.autoResolved`, que `commitStep` lit pour
  * émettre SA ligne de trace (#1281). « Tout lancer » (`resolveRemainingCascade`) ne la pose PAS : sa
  * modale reste ouverte sur le BILAN, où chaque rangée montre son dé.
+ *
+ * `resout` — les rangées que le pilote roule (« Tout résoudre » : `resoutLaRangeeIci`) ; les autres gardent leur attente.
  */
-function rollBatchParticipants(step: CascadeStep, autoResolved = false) {
+function rollBatchParticipants(step: CascadeStep, autoResolved = false, resout: (id: string) => boolean = () => true) {
   const opp = stepOpposedFreeze(step);
   // Une rangée née sans jet (ligne non tentable) n'a aucun dé à tirer, mais son refus a le journal pour
   // SEULE surface quand aucune fenêtre ne s'ouvre : elle reçoit la même étampe de trace.
-  return step.participants!.map((p) => (p.result ? (autoResolved && refusSansJet(p) != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
+  return step.participants!.map((p) => (p.result || !resout(p.id) ? (autoResolved && refusSansJet(p) != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
     ...p,
     ...(autoResolved ? { meta: { ...p.meta, autoResolved: true } } : {}),
     result: rollBatchParticipant(p, battleRng(), opp, step.evaluation),
@@ -730,11 +733,11 @@ function libelleDeTraceMono(step: CascadeStep): string | undefined {
  *    `runCascadeImmediate` ; `advanceCascade` le RE-DÉRIVE de `surfaceOf(porteurDe)` pour le dé que le
  *    curseur a posé lui-même), il n'est pas déduit d'un champ d'étape (rien n'entre dans la sauvegarde).
  *
- * PARTITION : « Tout lancer » (`resolveRemainingCascade`) n'étampe rien et ne déclare rien — sa modale
- * reste ouverte sur le BILAN, où chaque rangée montre son dé. Et le journal n'est pas la SEULE surface
- * possible d'une rangée sans fenêtre : le pilote qui rend ses bandes sur un PROCÈS-VERBAL structuré
- * (traversée de mer, `rowSurface: 'pv'`) le DÉCLARE au même titre — chaque dé sur EXACTEMENT une
- * surface, jamais deux (#1291).
+ * PARTITION : « Tout lancer » (`resolveRemainingCascade`) n'étampe rien — sa modale reste ouverte sur le
+ * BILAN, où chaque rangée montre son dé. Et le journal n'est pas la SEULE surface possible d'une rangée
+ * sans fenêtre : le pilote qui rend ses bandes sur un PROCÈS-VERBAL structuré (traversée de mer,
+ * `rowSurface: 'pv'`) le DÉCLARE, et chaque verbe qui commet une de ses bandes, « Tout lancer » compris,
+ * l'y écrit (`noterAuProcesVerbal`) — chaque dé sur EXACTEMENT une surface durable, jamais deux (#1291).
  *
  * Là où il l'est, le journal est la SEULE surface de ces jets — le cas nominatif que la doctrine #295
  * réserve (cf. `cascade-consequence-guard.test.ts`). Règle de CADENCE : une cadence qui réduit les
@@ -1304,7 +1307,8 @@ interface PiloteDuCommit {
   liveMerge?: boolean;
   /** Le jet a été posé PAR le pilote : aucune fenêtre ne l'a montré, le goulot lui donne sa ligne. */
   unwitnessed?: boolean;
-  /** L'appelant DÉCLARE que les rangées de ses bandes se montrent ailleurs qu'au journal (#1291). */
+  /** L'appelant DÉCLARE que les rangées de ses bandes se montrent ailleurs qu'au journal (#1291) : le goulot
+   *  les écrit au compte rendu du trajet (`noterAuProcesVerbal`). */
   rowSurface?: RowSurface;
   /** La SUITE d'une étape-hôte qui se clôt (`sortirDeLHote`, #3981) : sa conséquence, jouée dans la fenêtre d'insertion. */
   suiteDeLHote?: () => void;
@@ -1325,6 +1329,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // ensuite, comme dans la fenêtre qui ne s'est pas ouverte.
   const traces = unwitnessedTraceLines(get, step, unwitnessed, rowSurface);
   journaliser(get, set, traces, 'information', { actorId: step.actorId });
+  if (rowSurface) noterAuProcesVerbal(get, set, step);
   // FENÊTRE D'INSERTION (#1508) ouverte le temps que l'applier — et la continuation qui le suit —
   // tournent : une étape poussée pendant ce temps est la SUITE IMMÉDIATE de celle-ci, pas la fin de la
   // séquence. Rendue à sa valeur précédente ensuite (un applier peut en déclencher un autre).
@@ -1708,20 +1713,11 @@ function poserLeCurseur(get: Get, p: PendingCascade, arrivee = true): PendingCas
 }
 
 /**
- * PORTE PUBLIQUE du curseur (#1426) — poser le curseur d'une cascade OUVERTE sur l'étape `i`. Tout
- * site qui reprend la main sur une cascade hôte (fold d'incantation, re-ciblage du lanceur d'un Test)
- * passe par ICI : un `set({ pendingCascade: { …casc, cursor: i } })` écrit à la main court-circuite le
- * pilote, et une table qu'aucun siège ne joue reste alors non tirée — `jetValider('cascade')` fermé pour toujours.
- */
-export function poserCurseurCascade(get: Get, set: Set, casc: PendingCascade, i: number): void {
-  set({ pendingCascade: curseurPose(get, casc, i) });
-}
-
-/**
- * LA MÊME PORTE, rendue en VALEUR (#1426) — pour un site qui doit publier `pendingCascade` DANS LE
- * MÊME `set` qu'un autre champ : le réglage `test.testeur` change le porteur du Test ET celui de l'étape,
- * et deux `set` successifs publient entre eux un état où les deux porteurs divergent (un abonné rend
- * cet inter-état). Une seule implémentation — `poserCurseurCascade` délègue ici.
+ * PORTE PUBLIQUE du curseur (#1426), rendue en VALEUR — pose le curseur d'une cascade OUVERTE sur
+ * l'étape `i` : un `{ …casc, cursor: i }` écrit à la main court-circuite le pilote, et une table qu'aucun
+ * siège ne joue reste alors non tirée. En valeur, le site publie `pendingCascade` DANS LE MÊME `set`
+ * qu'un autre champ : le réglage `test.testeur` change le porteur du Test ET celui de l'étape, et deux
+ * `set` successifs publient entre eux un état où les deux porteurs divergent (un abonné rend cet inter-état).
  */
 export function curseurPose(get: Get, casc: PendingCascade, i: number): PendingCascade {
   return poserLeCurseur(get, { ...casc, cursor: i });
@@ -1828,7 +1824,14 @@ function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: 
   return { ...p, ...fusionnerLesBornes(p, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length };
 }
 
-/** « Tout lancer » : RÉSOUT d'office les étapes restantes (RNG, sans influence) — on ne peut pas
+/** « Tout résoudre » roule-t-il cette rangée de bande au siège qui décide (`decidingSeat`) ? L'hôte, toutes ; un autre
+ *  siège, celles qu'il influence (`influencesLocally`). #1273 */
+export function resoutLaRangeeIci(s: Jeu, id: string): boolean {
+  return seatOwns(s, decidingSeat(s), undefined) || influencesLocally(s, id);
+}
+
+/** « Tout lancer » : RÉSOUT d'office les étapes restantes (RNG, sans influence ; d'une bande, les rangées du siège qui
+ *  décide, `resoutLaRangeeIci`, la bande dont une rangée attend arrêtant la résolution) — on ne peut pas
  *  « dé-dormir », les conséquences subies s'appliquent quand même — puis place le curseur EN FIN
  *  (`cursor === participants.length`) = état BILAN. La modale RESTE ouverte pour montrer TOUTES les
  *  conséquences ; c'est `finalizeCascade` (« Terminer ») qui ferme et enchaîne la suite — on rend alors
@@ -1866,7 +1869,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
       steps = steps.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, de.spec, battleRng())) : x));
     }
     if (stepInteraction(steps[i]) === 'batch') {
-      steps = steps.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(steps[i]) } : x));
+      steps = steps.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(steps[i], false, (id) => resoutLaRangeeIci(get(), id)) } : x));
     }
     if (!stepReady(steps[i], get())) {
       // « Tout résoudre » ne TRANCHE pas un CHOIX du joueur (dévier/subir, piéger…) et ne joue pas une
@@ -1874,7 +1877,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
       set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: i, log } });
       return null;
     }
-    const r = commitStep(get, set, steps, i, { seq, purpose: p.purpose });
+    const r = commitStep(get, set, steps, i, { seq, purpose: p.purpose, rowSurface: p.piloteImmediat?.rowSurface });
     steps = r.steps;
     seq = r.seq;
     log = [...log, ...r.journal];
@@ -1931,11 +1934,12 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * CHOIX sans `defaultChoice` authoré : jamais tranché en silence (`options[0]`) — la cascade s'arrête
  * PENDANTE, surfacée via `pendingCascade` (patron `resolveRemainingCascade`, #351), marquée
  * `piloteImmediat` du contexte de lancement (`ReprisePilote`) : la décision validée, la suite reprend par CE
- * pilote (`avanceUnPas`) avec CE contexte, et le dénouement de la séquence honore sa `rowSurface`.
+ * pilote (`avanceUnPas`) avec CE contexte, `rowSurface` comprise.
  *
  * `ctx.rowSurface` : l'appelant DÉCLARE que les rangées de ses BANDES se montrent ailleurs qu'au
- * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291). Les
- * étapes MONO du même tableau gardent leur ligne : elles n'ont pas de rangée au PV.
+ * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291) et écrit
+ * chaque bande au compte rendu du trajet à son commit (`noterAuProcesVerbal`). Les étapes MONO du même
+ * tableau gardent leur ligne : elles n'ont pas de rangée au PV.
  */
 export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: ContexteDuPilote): CascadeStep[] | undefined {
   const r = piloteImmediat(get, set, steps, ctx, 0, steps.length, { log: ctx?.log ?? [] }); // un tableau à LUI : son compteur part de sa longueur
@@ -2065,7 +2069,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // no-op de suspension ici puisque CE tableau n'était PAS dans le slot actif) : le reste du tableau
     // ne se résout pas pendant que le combat tourne. Avec un contexte, la séquence ENTIÈRE est parquée
     // (`suspendedCascades`) au rang où le slot l'aurait mise (`rangDeParcage`), sous ce que l'applier a
-    // ouvert avant le combat — étapes déjà jouées comprises, que son dénouement (`rowSurface`) relit — et sa
+    // ouvert avant le combat — étapes déjà jouées comprises — et sa
     // reprise revient à CE pilote, dernière étape comprise : la clôture de l'appelant se joue alors au
     // dénouement de la séquence.
     if (!combatALEntree && get().battle) {

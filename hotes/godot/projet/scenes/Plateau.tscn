@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/Monde.tscn" id="4_monde"]
 [ext_resource type="Script" path="res://scripts/immersion.gd" id="5_immersion"]
 [ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="6_montage"]
-[ext_resource type="Script" path="res://scripts/montage_des_navires.gd" id="7_navires"]
+[ext_resource type="Script" path="res://scripts/montage_des_modeles.gd" id="7_modeles"]
 
 [node name="Plateau" type="Node3D"]
 script = ExtResource("1_plateau")
@@ -15,11 +15,12 @@ scene_combattant = ExtResource("3_combattant")
 
 [node name="Combattants" type="Node3D" parent="."]
 
-[node name="Navires" type="Node3D" parent="." node_paths=PackedStringArray("monde")]
-script = ExtResource("7_navires")
-monde = NodePath("../Monde")
+[node name="Modeles" type="Node3D" parent="." node_paths=PackedStringArray("volume", "chargeur")]
+script = ExtResource("7_modeles")
+volume = NodePath("../Monde/VolumeDeScene")
+chargeur = NodePath("Chargeur")
 
-[node name="Chargeur" type="Node3D" parent="Navires"]
+[node name="Chargeur" type="Node3D" parent="Modeles"]
 script = ExtResource("6_montage")
 
 [node name="Immersion" type="Node" parent="." node_paths=PackedStringArray("monde", "mire")]

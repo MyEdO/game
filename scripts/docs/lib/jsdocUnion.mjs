@@ -188,6 +188,7 @@ export function renderFields(fieldGroups) {
 const DECORATEURS_ZOD = {
   'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'],
   'src/data/schemas/grammaire/interne/produits.ts': ['marquerProduit'],
+  'src/data/schemas/grammaire/valeurs.ts': ['avecApparenceDObjetDonne'],
 }
 
 /** Déballe `z.lazy(() => X)`, `X.superRefine(…)`, `X.optional()`… jusqu'à l'appel `z.strictObject`. */
@@ -513,6 +514,7 @@ export function readSchemaUnionMembers(sf, text, nom, tool) {
   const typeDe = (init) => {
     if (appel(init, 'z.enum') && ts.isArrayLiteralExpression(init.arguments[0])) return init.arguments[0].elements.map((e) => `'${e.text}'`).join(' | ')
     if (appel(init, 'z.literal') && ts.isStringLiteral(init.arguments[0])) return `'${init.arguments[0].text}'`
+    if (appel(init, 'z.literal') && [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword].includes(init.arguments[0].kind)) return init.arguments[0].getText(sf)
     for (const t of ['number', 'string', 'boolean']) if (appel(init, `z.${t}`)) return t
     return abandon(`champ zod non traduit en type : ${init.getText(sf)}`)
   }

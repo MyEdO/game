@@ -1,4 +1,4 @@
-"""Données de `humanoide--accessoire--bandouliere-a-parchemins` (le Sorcier, #3743), lues par `modele.py` : la variante
+"""Données de `humanoide--accessoire--bandouliere-a-parchemins` (le Sorcier, #3743), lues par le kit des sangles (`element/sangle.py`) : la variante
 `bandouliere-a-parchemins` de la pièce `baudrier` de la garde-robe, dont elle garde l'emplacement `epaule_d`.
 
 Illustration directrice : ligne de `INDEX.md` du recueil `illustrations-wfrp` « Sorcier | sorcier | `carrieres/sorcier.png` |
@@ -24,7 +24,7 @@ MANIFESTE = {
 alors qu'elle ne la traverse pas, et sous l'écharpe de la capuche (`manteau`)."""
 
 MATERIAUX = {
-    'sangle': ('vet2', ((0.75, 0.73, 0.68), 0.0, 0.9)),
+    'sangle': ('vet2', 'toile-ecrue'),
 }
 """Illustration : sangle écrue comme la robe de dessous (`vet2`). Gris de construction."""
 
@@ -34,11 +34,11 @@ ZONES = ['torse', 'hanches']      # zones du tronc que la sangle ceint
 
 CONTOURNE = {'robe': 'humanoide--vetement--robe'}
 """La sangle repose sur la robe publiée du preset `sorcier` : elle en emprunte les poids et les clés (ses meshes des zones
-`ZONES_DE_LA_ROBE`), comme le pan et le bas de l'écharpe de la capuche, posés sur la même robe
+`ZONES_DU_SUPPORT`), comme le pan et le bas de l'écharpe de la capuche, posés sur la même robe
 (`vetement--capuche/donnees.py`, `MATIERES_DE_LA_ROBE`) ; elle passe sous ce pan et sous l'écharpe. Liée au seul tronc et
 posée à 4,4 cm de lui, elle passait devant l'écharpe et le pan (jusqu'à 19,8 mm en ClimbUp_1m, porte r25)."""
-MATIERES_DE_LA_ROBE = ['robe', 'dessous', 'poitrine']
-ZONES_DE_LA_ROBE = ['torse', 'hanches', 'bras_haut_d']
+MATIERES_DU_SUPPORT = ['robe', 'dessous', 'poitrine']
+ZONES_DU_SUPPORT = ['torse', 'hanches', 'bras_haut_d']
 
 EPAULE = -0.12
 """x du point d'épaule (HYPOTHÈSE) : l'illustration passe la sangle sur l'épaule droite, entre le cou et la pointe de

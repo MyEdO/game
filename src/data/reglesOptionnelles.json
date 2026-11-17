@@ -299,6 +299,23 @@
     "hint": "Tirer sur une cible Engagée : −20 au toucher ; si ce malus transforme une réussite en échec, le tir touche un allié au hasard. Désactiver retire le malus et le tir égaré."
   },
   {
+    "id": "combat-croisee-melee-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Coup de corps à corps par une croisée : couvert de la cible",
+    "ref": "LDB 14 l.86",
+    "maison": "[entériné 2026-11-13] Arbitrage utilisateur 2026-11-13 (#4105, commentaire 6849608906) : « Le coup passe par-dessus clôture, muret ou bastingage avec le malus de couvert de l'obstacle (-10 à -30) ; fenêtre -30 ; meurtrière : pas de coup. »",
+    "group": "Combat",
+    "kind": "mode",
+    "default": "tresDifficile",
+    "options": [
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "La cible d’un coup de corps à corps porté par une croisée ouverte est sous ce couvert, quel que soit le mur de la croisée. Défaut Très Difficile (–30), la couverture totale (LDB 14 l.86). Le tir par une croisée n’en dépend pas."
+  },
+  {
     "id": "combat-cible-inconsciente",
     "type": "reglesOptionnelles",
     "label": "Cible Inconsciente",
@@ -826,20 +843,6 @@
     "hint": "LDB 07 l.89 : une Augmentation de Caractéristique/Compétence HORS carrière (déjà au coût doublé) exige de trouver un mentor. Activé, ces Augmentations sont bloquées tant que le flag de groupe/scène « mentor » n’est pas posé (Effet d’éditeur setFlag « mentor »). Désactivé par défaut."
   },
   {
-    "id": "magie-composant",
-    "type": "reglesOptionnelles",
-    "label": "Composants d'incantation",
-    "ref": "LDB 46 l.107",
-    "source": {
-      "book": "livre-de-base",
-      "page": 236
-    },
-    "group": "Magie",
-    "kind": "flag",
-    "default": false,
-    "hint": "Un lanceur peut focaliser sa magie via un composant adapté à un Sort d'Arcane/Domaine (acheté pour ce Sort, coût = NI pistoles d'argent). Sur une Incantation Imparfaite, le composant l'absorbe : Majeure → Mineure, Mineure → annulée. Consumé à l'incantation, même sans Imparfaite. Composants gérés sur la fiche du personnage. Désactivé par défaut."
-  },
-  {
     "id": "vents-tourbillonnants",
     "type": "reglesOptionnelles",
     "label": "Vents Tourbillonnants",
@@ -906,7 +909,7 @@
     "ref": "LDB 49 l.5",
     "source": {
       "book": "livre-de-base",
-      "page": 255
+      "page": 254
     },
     "group": "Magie",
     "kind": "flag",
@@ -948,7 +951,7 @@
     "ref": "EDOC 12 l.63",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 65
+      "page": 66
     },
     "group": "Corruption",
     "kind": "mode",

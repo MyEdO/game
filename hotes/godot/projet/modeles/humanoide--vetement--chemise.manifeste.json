@@ -25,11 +25,17 @@
   "surfaces": [
     {
       "nom": "chemise",
-      "palette": "accent"
+      "palette": "vet2",
+      "matiere": "prop--toile-ecrue"
+    },
+    {
+      "nom": "col",
+      "palette": "accent",
+      "matiere": "prop--toile-ecrue"
     }
   ],
   "glb": {
-    "sha256": "add0c1c2a648034de0d184ce9c6fc52e5ae931f002270097217383004206ab76",
-    "octets": 532608
+    "sha256": "a37c0285b96888517363319e01fa1512e8fe5204f1ba5613f70a8c0180215392",
+    "octets": 359992
   }
 }

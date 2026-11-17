@@ -14,7 +14,7 @@ import { bonusDeForce } from '../engine/characteristics';
 import { assertAttackWeapon } from '../engine/combat';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
 import { reachTiles, meleeReachTiles } from '../engine/engagement';
-import { Scene, isWalkable } from './monde/scene';
+import { Scene, isWalkable, sceneMetresPerTile } from './monde/scene';
 import { occupiesTile, footprintN, distanceDeContact } from './monde/footprint';
 import { placeCombatant } from './monde/spawn';
 import { isSkittishMount } from '../engine/traits/dispatch';
@@ -27,6 +27,8 @@ import { inBattleId } from './monde/combatants';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 import { effectiveTalents } from '../engine/talentEffects';
+import { itemCapability } from '../engine/capabilities';
+import { recomputeLoadout } from '../engine/items';
 
 /** Ce combattant chevauche-t-il une monture (= cavalier) ? */
 export const isRider = (c: Combatant): boolean => !!c.mountId;
@@ -103,7 +105,7 @@ export const attackGeomOf = (battle: BattleState, c: Combatant, weapon: Weapon |
  *  — mieux vaut un choix cohérent qu'aucun. `undefined` si aucune arme de mêlée n'atteint la cible. */
 export function meleeWeaponInRangeList(scene: Scene | null, combatants: Combatant[], attacker: Combatant, target: Combatant, weapons: Weapon[] = attacker.weapons): Weapon | undefined {
   const tGeom = combatGeomOfList(combatants, target);
-  const inRange = weapons.filter((w) => w.type === 'melee' && distanceDeContact(scene, attackGeomOfList(combatants, attacker, w), tGeom) <= reachTiles(w));
+  const inRange = weapons.filter((w) => w.type === 'melee' && distanceDeContact(scene, attackGeomOfList(combatants, attacker, w), tGeom) <= reachTiles(w, sceneMetresPerTile(scene)));
   return inRange.find((w) => !structureImmune(w, target)) ?? inRange[0];
 }
 export function meleeWeaponInRange(scene: Scene | null, battle: BattleState, attacker: Combatant, target: Combatant): Weapon | undefined {
@@ -155,7 +157,7 @@ export function pickAttackWeaponList(scene: Scene | null, combatants: Combatant[
     }
   }
   const personal = personalWeaponsOf(attacker);
-  if (!combatants) return assertAttackWeapon(personal, distanceDeContact(scene, attacker, target) <= meleeReachTiles(personal));
+  if (!combatants) return assertAttackWeapon(personal, distanceDeContact(scene, attacker, target) <= meleeReachTiles(personal, sceneMetresPerTile(scene)));
   return meleeWeaponInRangeList(scene, combatants, attacker, target, personal) ?? assertAttackWeapon(personal, false);
 }
 export function pickAttackWeapon(scene: Scene | null, battle: BattleState, attacker: Combatant, target: Combatant, weaponUid?: string): Weapon {
@@ -198,6 +200,17 @@ export function mountUp(rider: Combatant, mount: Combatant): void {
   rider.mountId = mount.id;
   mount.riderId = rider.id;
   if (mount.pos) rider.pos = { ...mount.pos };
+}
+
+/** Le cavalier `rider` d'une rencontre authorée harnache sa monture `mount` : ses objets `armureDeMonture` passent,
+ *  portés, sur la bête. AA 09 l.184 ; #4135 */
+export function harnacher(rider: Combatant, mount: Combatant): void {
+  const bardes = (rider.items ?? []).filter((it) => itemCapability(it, 'armureDeMonture'));
+  if (!bardes.length) return;
+  rider.items = (rider.items ?? []).filter((it) => !bardes.includes(it));
+  mount.items = [...(mount.items ?? []), ...bardes.map((it) => ({ ...it, equipped: true }))];
+  recomputeLoadout(rider);
+  recomputeLoadout(mount);
 }
 
 /** Case libre la plus proche pour reposer un cavalier À PIED (1×1) autour de la monture, sur l'ÉTAGE

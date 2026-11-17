@@ -12,8 +12,8 @@
  * chacun de ses fragments scellé par le noyau (#3606 M2g).
  */
 import { describe, expect, it } from 'vitest';
-import { erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
-import type { MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
+import { avecLeSaisonnier, avecLesSeulsDecors, enSaison, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
+import type { DecorServi, MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
 import { UNITES_DU_PLAN_DE_CARTE, type AreteDessinee, type RetraitDuMonde, type Scene } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
@@ -22,7 +22,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fabricationAtouts, findCreatureById, traits } from '../../../src/data';
+import { choixDeLaFeuilleDId, fabricationAtouts, findCreatureById, traits } from '../../../src/data';
 import { dotationsDuPnj, emplacementsDeDotation } from '../../../src/engine/trappingChoices';
 import { adresseDeCreation } from '../../../src/engine/adresseDeCreation';
 import { travelVehicles } from '../../../src/engine/travel';
@@ -31,6 +31,7 @@ import { emptyScene } from '../../../src/noyau/monde/scene';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { idsDeLaSousListe } from '../../../src/data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../../src/data/schemas/grammaire/sousListes';
+import { VOCABULAIRES } from '../../../src/data/schemas/grammaire/vocabulaires';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 import type { Fragment } from '../../../src/data/source/decoupe';
@@ -42,6 +43,7 @@ interface Edition {
   retrait?: RetraitDuMonde;
   aretes?: AreteDessinee[];
   navires?: Record<string, NavireServi>;
+  decors?: Record<string, DecorServi>;
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
   planche?: { image: string };
@@ -311,7 +313,7 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     expect(supprimee.surcouche.poignee).toBeNull();
   });
 
-  it('un déclencheur joue une fois, ou à chaque entrée ; une zone de repos offre ses lieux, piètre ; chacune change de couche', () => {
+  it('un déclencheur joue une fois, ou à chaque entrée ; une zone de repos offre ses lieux et sa qualité ; chacune change de couche', () => {
     const declencheur = tracee('trigger');
     expect(declencheur.posee.surcouche.zones.find((z) => z.choisi)?.sorte).toBe('declencheur');
     expect(boutonDe(declencheur.posee, 'zone/uneFois').presse, 'un déclencheur naît à usage unique').toBe(true);
@@ -324,7 +326,8 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     const camp = boutonDe(repos.posee, 'zone/lieux/camp').presse;
     const auberge = repos.presser(boutonDe(repos.posee, 'zone/lieux/auberge'));
     expect([boutonDe(auberge, 'zone/lieux/auberge').presse, boutonDe(auberge, 'zone/lieux/camp').presse]).toEqual([true, camp]);
-    expect(boutonDe(repos.presser(boutonDe(auberge, 'zone/pietre')), 'zone/pietre').presse).toBe(true);
+    expect((['pietre', 'normale', 'grande'] as const).map((q) => valeursDeLInspecteur(repos.presser(boutonDe(auberge, `zone/qualite/${q}`)), 'zone/qualite').filter((b) => b.presse).map((b) => b.id)),
+      'l’auteur pose chacune des trois qualités (LDB 66 l.5)').toEqual([['zone/qualite/pietre'], ['zone/qualite/normale'], ['zone/qualite/grande']]);
 
     const etage = repos.presser(boutonDe(repos.presser(boutonDe(auberge, 'couche/ajouter')), 'couche/0'));
     repos.presser(boutonDe(etage, 'outil/select'));
@@ -397,6 +400,7 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
     expect(inspecte(ajoutee, 'nommer')).toMatchObject({ type: 'formulaire', champs: [{ valeur: choisi[0].libelle }] });
     expect(inspecte(ajoutee, 'dialogue/noeud/n1')).toMatchObject({ type: 'ligne', texte: '▶ n1' });
     expect(inspecte(ajoutee, 'valeur/nodes/0')).toMatchObject({ type: 'ligne', texte: 'nœuds 1 « n1 »' });
+    expect(ajoutee.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => /^valeur\/nodes\/0\/[^/]+$/.test(id)), 'l’identité d’un nœud, clé de sa liste, ne se saisit pas : elle se change par son geste dédié (#4234)').toEqual(['valeur/nodes/0/choices', 'valeur/nodes/0/desc', 'valeur/nodes/0/retirer']);
     expect(boutonDe(ajoutee, 'dialogue/supprimer').refus, 'un dialogue que rien ne désigne se retire').toBeNull();
   });
 
@@ -426,6 +430,21 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
     expect(inspecte(renommee, 'dialogue/noeud/salut')).toMatchObject({ texte: '▶ salut' });
     expect(inspecte(renommee, 'valeur/nodes/1')).toMatchObject({ texte: 'nœuds 2 « salut »' });
     expect(ajoutee.vue.zones['editeur.inspecteur'].some((el) => el.id === 'identifier/noeud/salut')).toBe(false);
+  });
+
+  it('chaque réponse d’un nœud porte le formulaire de son identifiant, adressée par son nœud ; le doublon dans le nœud se refuse dit, libre dans un autre (#4234)', () => {
+    const { presser, appel } = ajoute();
+    const reponse = (e: Edition, noeud: number) => presser(valeursDeLInspecteur(e, `valeur/nodes/${noeud}/choices/ajouter`)[0]);
+    const deuxNoeuds = presser(valeursDeLInspecteur(editionDe(appel('editer', { type: 'nommer', args: ['reponses'] })), 'valeur/nodes/ajouter')[0]);
+    const pleines = reponse(reponse(reponse(deuxNoeuds, 0), 0), 1);
+    expect((inspecte(pleines, 'identifier/choix/n1/choix-0') as Formulaire).champs.map((c) => [c.type, c.type === 'fixe' ? c.valeur : null])).toEqual([['fixe', 'n1'], ['fixe', 'choix-0'], ['saisieTexte', null]]);
+    expect(inspecte(pleines, 'identifier/choix/n2/choix-0')).toMatchObject({ type: 'formulaire', libelle: 'Identifier la réponse « choix-0 »' });
+    const renommee = editionDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-0', 'accepter'] }));
+    expect(['identifier/choix/n1/accepter', 'identifier/choix/n1/choix-1', 'identifier/choix/n2/choix-0'].map((id) => inspecte(renommee, id)?.type)).toEqual(['formulaire', 'formulaire', 'formulaire']);
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-1', 'accepter'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « accepter » déjà porté par la réponse 1' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['n2', 'choix-1', 'x'] })).categorie, 'la réponse d’un autre nœud ne s’adresse pas par celui-ci').toBe('validation');
+    const ailleurs = editionDe(appel('editer', { type: 'identifier', args: ['n2', 'choix-0', 'accepter'] }));
+    expect(inspecte(ailleurs, 'identifier/choix/n2/accepter')?.type).toBe('formulaire');
   });
 
   it('un dialogue qu’un personnage désigne ne se supprime pas, la raison dite ; désigné ailleurs, il se supprime', () => {
@@ -584,8 +603,36 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(planDe(retour).traits.filter((tr) => [tr.de, tr.vers].sort().join() === [depart.id, neuf].sort().join())).toHaveLength(2);
     const sans = presser(boutonDe(retour, 'route/supprimer'));
     expect(sans.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => id.endsWith('/supprimer') || id.endsWith('/retirer'))).toEqual(['carte/retirer']);
-    const retiree = presser(boutonDe(sans, 'carte/retirer'));
+    const identifiee = editionDe(appel('editer', { type: 'identifier', args: ['reikland'] }));
+    expect(identifiee.vue.zones['editeur.inspecteur'].find((el) => el.id === 'identifier'), 'la carte s’identifie à son inspecteur').toMatchObject({ type: 'formulaire', champs: [{ valeur: 'reikland' }] });
+    const retiree = presser(boutonDe(identifiee, 'carte/retirer'));
     expect([boutonDe(retiree, 'document/scene').presse, retiree.vue.zones['editeur.carte']]).toEqual([true, []]);
+  });
+
+  it('à l’outil Chemin, la route tirée entre deux lieux de même nom se pose, choisie, son inspecteur rendu', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const pointer = (geste: 'appui' | 'glisse' | 'relache', u: number, v: number) => editionDe(appel('editer', surLePlan(geste, u, v)));
+    const carte = presser(boutonDe(editionDe(appel('editer', { ouvrir: 'la-diligence' })), 'document/carte'));
+    presser(boutonDe(carte, 'outil/lieu'));
+    pointer('appui', 0.9, 0.9);
+    const premier = planDe(pointer('relache', 0.9, 0.9)).points.find((p) => p.ton === 'alerte')!;
+    const ajoute = presser(boutonDe(carte, 'logique/lieu/ajouter'));
+    const second = planDe(ajoute).points.find((p) => p.ton === 'alerte')!;
+    expect([second.id !== premier.id, second.nom], 'deux lieux neufs, de même nom').toEqual([true, premier.nom]);
+    presser(boutonDe(ajoute, 'outil/select'));
+    pointer('appui', premier.x, premier.y);
+    pointer('glisse', 0.5, 0.5);
+    pointer('relache', 0.1, 0.1);
+    const rendu = presser(boutonDe(ajoute, 'annuler'));
+    expect(planDe(rendu).points.find((p) => p.id === premier.id)).toMatchObject({ x: premier.x, y: premier.y });
+    presser(boutonDe(ajoute, 'outil/chemin'));
+    pointer('appui', premier.x, premier.y);
+    for (const t of [1 / 3, 2 / 3, 1]) pointer('glisse', premier.x + t * (second.x - premier.x), premier.y + t * (second.y - premier.y));
+    const posee = pointer('relache', second.x, second.y);
+    const route = planDe(posee).traits.find((tr) => tr.ton === 'reussite');
+    expect([route?.de, route?.vers]).toEqual([premier.id, second.id]);
+    expect(valeursDeLInspecteur(posee, 'route/sens').map((b) => b.id)).toEqual(['route/sens/deux', `route/sens/${premier.id}`, `route/sens/${second.id}`]);
   });
 
   it('« Plan du lieu » montre au plan les points d’intérêt du lieu, aux outils du plan : Épingler en pose un au point, le glissé le déplace, « Retirer le point d’intérêt » l’ôte ; le refermer rend la carte', () => {
@@ -821,6 +868,8 @@ describe('l’éditeur de carte par le pont, la scène', () => {
     expect(nombre(pente, 'scene/toiture/pente')).toBe(nombre(tourne, 'scene/toiture/pente') + 5);
     const camp = boutonDe(pente, 'scene/repos/camp');
     expect(boutonDe(presser(camp), 'scene/repos/camp').presse).toBe(!camp.presse);
+    expect((['grande', 'pietre', 'normale'] as const).map((q) => valeursDeLInspecteur(presser(boutonDe(pente, `scene/repos/qualite/${q}`)), 'scene/repos/qualite').filter((b) => b.presse).map((b) => b.id)),
+      'l’auteur pose chacune des trois qualités de la scène (LDB 66 l.5)').toEqual([['scene/repos/qualite/grande'], ['scene/repos/qualite/pietre'], ['scene/repos/qualite/normale']]);
 
     const drapeau = editionDe(appel('editer', { type: 'drapeau', args: ['pont-leve'] }));
     expect(boutonDe(drapeau, 'scene/drapeau/pont-leve').presse).toBe(true);
@@ -1622,6 +1671,21 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 3 && x <= 20 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
   });
 
+  it('la réponse sert les décors de la scène dont un élément `decor` est servi, comme la vue (#4335)', () => {
+    const { appel } = table();
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const [prop] = morceauxDe(appel, 'edition', ouverte.monde!).flatMap((m) => m.surfaces.flatMap((sf) => (sf.decor === undefined ? [] : [sf.decor])));
+    expect(prop, 'la scène ouverte pose au moins un décor').toBeDefined();
+    expect(ouverte.decors).toEqual({});
+    servirLesModeles(appel, COMMITES, avecLesSeulsDecors(COMMITES, prop));
+    const servie = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    expect(Object.keys(servie.decors!)).toEqual([prop]);
+    expect(servie.decors![prop].element).toBe(`decor--${prop}`);
+    expect(servie.decors![prop].poses.length).toBeGreaterThan(0);
+    servirLesModeles(appel, COMMITES, avecLeSaisonnier(COMMITES, prop));
+    expect(editionDe(appel('editer', { ouvrir: CAMPAGNE })).decors![prop], 'sans horloge, le décor saisonnier tel que bâti').toMatchObject(enSaison(null));
+  });
+
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {
     const { appel } = table();
     servirLesModeles(appel, COMMITES);
@@ -2045,7 +2109,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const z = narratif.vue.zones;
     expect([boutonDe(narratif, 'document/narratif').presse, boutonDe(narratif, 'annuler').refus !== null]).toEqual([true, true]);
     expect([z['editeur.scenes'], z['editeur.outils'], z['editeur.options'], z['editeur.couches'], z['editeur.carte']]).toEqual([[], [], [], [], []]);
-    expect(z['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.id)).toEqual(['logique/affaires', 'logique/indices', 'logique/presetsPnj', 'logique/documents', 'logique/etats', 'logique/ecart']);
+    expect(z['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.id)).toEqual(['logique/affaires', 'logique/indices', 'logique/presetsPnj', 'logique/documents', 'logique/etats', 'logique/objets', 'logique/ecart']);
     expect(z['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne' && el.texte.startsWith('ecran.')), 'chaque registre a son texte').toEqual([]);
     expect([...new Set(z['editeur.inspecteur'].map((el) => el.id.split('/').slice(0, 2).join('/')))]).toEqual(['valeur/ouverture', 'valeur/cloture']);
     const scene = presser(boutonDe(narratif, 'document/scene'));
@@ -2055,7 +2119,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
   it('« Ajouter » crée une entrée de chaque registre créable, sélectionnée, son inspecteur à son nom et à son formulaire ; un champ s’y écrit', () => {
     const { appel, presser, narratif } = surLeNarratif();
     let e = narratif;
-    for (const sorte of ['affaires', 'indices', 'presetsPnj', 'documents', 'etats']) {
+    for (const sorte of ['affaires', 'indices', 'presetsPnj', 'documents', 'etats', 'objets']) {
       const avant = liste(e, sorte);
       e = presser(boutonDe(e, `logique/${sorte}/ajouter`));
       const neuve = liste(e, sorte).filter((id) => !avant.includes(id));
@@ -2165,6 +2229,101 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const sans = presser(boutonDe(une, 'valeur/forme/identite/retirer'));
     expect([boutonDe(sans, 'etat/forme/enum').refus, inspecte(sans, 'valeur/forme/identite/ajouter')?.type]).toEqual([null, 'choix']);
     expect(boutonDe(presser(boutonDe(sans, 'etat/forme/enum')), 'etat/forme/enum').presse).toBe(true);
+  });
+
+  it('un choix parmi des entrées se rend en liste quel que soit son compte : la scène d’un lieu ; un choix parmi un ensemble fermé garde ses boutons : la catégorie d’un objet (#4171)', () => {
+    const { presser, ouverte, narratif } = surLeNarratif();
+    const objet = inspecte(presser(boutonDe(narratif, 'logique/objets/ajouter')), 'valeur/categorie') as Choix;
+    expect([objet.type, objet.valeurs.length], 'la catégorie d’un objet, une énumération fermée').toEqual(['choix', 5]);
+    const carte = presser(boutonDe(narratif, 'document/carte'));
+    const [lieu] = (carte.vue.zones['editeur.logique'].find((el) => el.id === 'logique/lieu/liste') as Choix).valeurs;
+    const scene = inspecte(presser(boutonDe(carte, lieu.id)), 'valeur/scene/id') as Choix;
+    const scenes = (ouverte.vue.zones['editeur.scenes'].find((el) => el.id === 'scenes') as Choix).valeurs;
+    expect([scene.type, scene.valeurs.map((b) => b.libelle)], 'la scène d’un lieu, parmi les scènes du projet').toEqual(['liste', scenes.map((b) => b.libelle)]);
+  });
+
+  it('un objet s’ajoute, s’écrit, se renomme ; choisi au don d’un déclencheur, il suit son renommage ; le retirer se refuse, le lieu dit ; sans référence, il se retire, une annulation le rend (#4171)', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);
+    const nommer = (nom: string) => editionDe(appel('editer', { type: 'nommer', args: [nom] }));
+    const compte = (e: Edition) => (e.vue.zones['editeur.logique'].find((el) => el.id === 'logique/objets') as Ligne).texte;
+    const avant = liste(narratif, 'objets');
+    let e = presser(boutonDe(narratif, 'logique/objets/ajouter'));
+    const [objet] = liste(e, 'objets').filter((id) => !avant.includes(id));
+    expect([compte(e), boutonDe(e, `logique/objets/${objet}`).presse, inspecte(e, 'valeur/categorie')?.type]).toEqual([`Objets (${avant.length + 1})`, true, 'choix']);
+    choisir(editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'objets', id: objet }, ['label'], 'Lanterne'] })), 'valeur/categorie', (v) => v === 'ammunition');
+    e = nommer('lumignon');
+    expect([(inspecte(e, 'valeur/label') as Formulaire).champs[2], valeursDeLInspecteur(e, 'valeur/categorie').find((b) => b.presse)?.libelle, liste(e, 'objets').includes('lumignon')]).toEqual([expect.objectContaining({ valeur: 'Lanterne' }), 'Munitions', true]);
+    e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
+    e = choisir(choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === 'giveTrapping');
+    e = choisir(e, 'valeur/flow/effet/trappingId', (v) => v === 'lumignon');
+    const choisi = (e: Edition) => { const b = valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((v) => v.presse); return [b?.libelle, (b?.jeu as { args: unknown[] } | undefined)?.args[2]]; };
+    expect(choisi(e), 'l’objet de campagne, offert au choix sous son libellé, choisi').toEqual(['Lanterne', 'lumignon']);
+    presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/lumignon'));
+    e = nommer('falot');
+    const refus = boutonDe(e, 'objets/supprimer').refus;
+    expect(refus).toContain(`scène « ${(presser(boutonDe(e, 'document/scene')).vue.zones['editeur.titre'][0]).texte} »`);
+    expect(erreurDe(appel('editer', boutonDe(presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot')), 'objets/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
+    expect(choisi(e), 'le don suit le renommage').toEqual(['Lanterne', 'falot']);
+    e = choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'sequence');
+    e = presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot'));
+    expect(boutonDe(e, 'objets/supprimer').refus, 'sans référence').toBeNull();
+    e = presser(boutonDe(e, 'objets/supprimer'));
+    expect([compte(e), liste(e, 'objets')]).toEqual([`Objets (${avant.length})`, avant]);
+    e = presser(boutonDe(e, 'annuler'));
+    expect([compte(e), liste(e, 'objets').includes('falot')], 'une annulation rend l’objet').toEqual([`Objets (${avant.length + 1})`, true]);
+    /** Le narratif tel que l'auteur le voit sans sélection, comme la recette le lit : les comptes de la zone Logique et le titre de l'ouverture. */
+    const vu = (x: Edition) => JSON.stringify([x.vue.zones['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne').map((el) => el.texte), (inspecte(x, 'valeur/ouverture/titre') as Formulaire | undefined)?.champs.map((c) => (c as { valeur?: unknown }).valeur) ?? null]);
+    for (let n = 0; vu(e) !== vu(narratif); n++) {
+      expect([n < 20, boutonDe(e, 'document/narratif').presse], 'chaque annulation garde le narratif ouvert').toEqual([true, true]);
+      e = presser(boutonDe(e, 'annuler'));
+    }
+    expect(boutonDe(e, 'enregistrer').refus, 'annulé jusqu’à l’ajout, le projet, scène comprise, est celui du dépôt').toBe('Rien à enregistrer');
+  });
+
+  it('l’objectif qu’efface l’Effet d’un déclencheur, une désignation hors de toute liste-clé, se saisit et s’écrit ; les mains d’un objet se choisissent parmi 1 et 2, écrites en nombre (#4234)', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);
+    let e = presser(boutonDe(presser(boutonDe(narratif, 'document/scene')), 'logique/declencheur/t-pont'));
+    e = choisir(choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === 'clearObjective');
+    const objectif = inspecte(e, 'valeur/flow/effet/id') as Formulaire;
+    const [porteur, chemin] = objectif.champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+    e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, 'obj-pont'] }));
+    const depot = JSON.parse(presser(boutonDe(e, 'enregistrer')).depot!.texte) as { scenes: { triggers: { id: string; flow: { effet?: unknown } }[] }[] };
+    expect([objectif.type, depot.scenes[0].triggers.find((tr) => tr.id === 't-pont')!.flow.effet]).toEqual(['formulaire', { type: 'clearObjective', id: 'obj-pont' }]);
+    const objet = presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/ajouter'));
+    const valeurs = (x: Edition) => (inspecte(x, 'valeur/hands') as Choix).valeurs.map((b) => [(b.jeu as { args: unknown[] }).args[2], b.presse]);
+    expect([inspecte(objet, 'valeur/hands')?.type, valeurs(objet)]).toEqual(['choix', [[1, false], [2, false]]]);
+    expect(valeurs(choisir(objet, 'valeur/hands', (v) => v === 2)), 'le nombre écrit, jamais la chaîne').toEqual([[1, false], [2, true]]);
+  });
+
+  it('le son d’un Effet se choisit au registre des sons ; la rencontre d’une activité d’une bataille rangée se choisit parmi celles de la scène (#4234)', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);
+    const scene = presser(boutonDe(narratif, 'document/scene'));
+    const ajoutee = presser(boutonDe(scene, 'logique/rencontre/ajouter'));
+    const rencontre = (ajoutee.vue.zones['editeur.logique'].find((el) => el.id === 'logique/rencontre/liste') as Choix).valeurs.find((b) => b.presse)!.libelle;
+    const effet = (type: string) => choisir(choisir(presser(boutonDe(ajoutee, 'logique/declencheur/t-pont')), 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === type);
+    const son = inspecte(effet('playSfx'), 'valeur/flow/effet/id') as Choix;
+    expect([son.type, son.valeurs.map((b) => [(b.jeu as { args: unknown[] }).args[2], b.libelle])]).toEqual(['liste', Object.entries(VOCABULAIRES.sons)]);
+    const RENCONTRES = 'valeur/flow/effet/battle/sceneEncounters';
+    const ouvert = presser(boutonDe(effet('startMassBattle'), `${RENCONTRES}/ajouter`));
+    const charge = valeursDeLInspecteur(ouvert, `${RENCONTRES}/charge/ajouter`);
+    expect(charge.map((b) => [b.libelle, (b.jeu as { args: unknown[] }).args[2]])).toEqual([[rencontre, { id: rencontre }]]);
+    const [porteur, chemin] = (charge[0].jeu as { args: unknown[] }).args;
+    expect(appel('editer', { type: 'valeur', args: [porteur, chemin, { id: 'enc-absente' }] }), 'une rencontre absente de la scène est refusée').toMatchObject({ ok: false, erreur: { categorie: 'validation' } });
+    const depot = JSON.parse(presser(boutonDe(presser(charge[0]), 'enregistrer')).depot!.texte) as { scenes: { triggers: { id: string; flow: { effet?: { battle?: unknown } } }[] }[] };
+    expect(depot.scenes[0].triggers.find((tr) => tr.id === 't-pont')!.flow.effet!.battle).toEqual(expect.objectContaining({ sceneEncounters: { charge: { id: rencontre } } }));
+  });
+
+  it('la Carrière d’une Condition de clôture se choisit au catalogue des carrières (#4234)', () => {
+    const { presser, narratif } = surLeNarratif();
+    const ouverte = narratif.vue.zones['editeur.inspecteur'].some((el) => el.id.startsWith('valeur/cloture/when')) ? narratif : presser(boutonDe(narratif, 'valeur/cloture/ajouter'));
+    const variante = ouverte.vue.zones['editeur.inspecteur'].flatMap((el) => (el.type === 'choix' || el.type === 'liste' ? el.valeurs : el.type === 'bouton' ? [el] : []))
+      .find((b) => b.id.startsWith('valeur/cloture/when') && (b.jeu as { args?: { kind?: string }[] }).args?.[2]?.kind === 'career')!;
+    const carrieres = valeursDeLInspecteur(presser(variante), 'valeur/cloture/when/id').map((b) => (b.jeu as { args: unknown[] }).args[2]);
+    expect(carrieres).toEqual(choixDeLaFeuilleDId({ type: 'career' }).map((e) => e.id));
   });
 
   it('le choix d’une spécialisation au profil d’un PNJ se choisit par variante nommée ; la liste des spécialisations parmi lesquelles choisir s’écrit élément par élément (#3606 L6)', () => {

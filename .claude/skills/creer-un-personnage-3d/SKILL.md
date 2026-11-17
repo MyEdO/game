@@ -1,6 +1,6 @@
 ---
 name: creer-un-personnage-3d
-description: Produire depuis une illustration un élément 3D du jeu (GLB et manifeste schéma 3 sur la base imposée). Pas pour les règles.
+description: Produire un élément 3D du jeu (GLB, manifeste schéma 3) : sur base, véhicule ou décor. Pas pour les règles.
 ---
 
 # Produire un élément 3D
@@ -14,7 +14,9 @@ Valider le manifeste et son GLB par **`npm run godot:valider -- <element.json> <
 un décor, un véhicule ou une Amélioration, sans base, par **`npm run godot:valider -- <element.json> <element.glb>`** (#2987).
 Un élément sur base se construit dans le dépôt, `scripts/personnage-3d/element/<base>/<categorie>--<valeur>/`
 (`donnees.py`, `modele.py`), par le constructeur commun `element/construire.py` : section 3 de la procédure.
-Un véhicule (navire, engin de siège) se construit par `scripts/personnage-3d/vehicule/` : chapitre 9 de la procédure.
+Un véhicule (navire, engin de siège) se construit par `scripts/personnage-3d/construire.py vehicule/<type>` : chapitre 9
+de la procédure ; un décor de `src/data/props.json`, par `construire.py decor/<modele>`, dans le gabarit de sa recette :
+chapitre 10.
 Mesurer la tenue montée par **`npm run godot:evaluer -- <element.glb>... --base <base.glb> --manifeste <base.json>`**,
 chaque GLB à côté de son manifeste d'élément, pour que la traversée des couches se mesure ;
 utiliser `--facteurs sl=1,legs=1,arms=1,head=1,st=1` et `--silhouettes feminin=1,corpulence=1`
@@ -34,7 +36,8 @@ Interdits : générateur image → 3D, retopologie automatique, illustration pro
 coque moulée pour un vêtement de silhouette, couleur cuite, emblème modelé ou peint, mouvement des
 chaînes recalculé par l'hôte. Une couleur appartient à la palette, jamais à une
 variante de géométrie ; un emblème se pose au montage sur une surface `blason`, neutre, déclarée
-`blason: true` au manifeste et dépliée sur le carré UV (#3111).
+`blason: true` au manifeste et dépliée sur le carré UV (#3111). Un symbole religieux n'est pas un emblème : il a
+la forme de son dieu, une apparence de l'objet par dieu (#3867).
 
 Statut **NON VÉRIFIÉ par défaut**. Un juge neuf statue par signe identitaire ; la revue utilisateur
 consigne verbatim et date au ticket ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans

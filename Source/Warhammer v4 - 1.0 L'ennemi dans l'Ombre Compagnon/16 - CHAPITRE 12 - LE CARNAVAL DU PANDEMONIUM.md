@@ -418,7 +418,7 @@ d'argent.
 Wolmar Rotte..........................47
 
 
-### **HARBULL PIEDVELU**
+### <span id="page-114-0" data-folio="114"></span>**HARBULL PIEDVELU**
 
 CUEILLEUR
 
@@ -546,7 +546,7 @@ CUEILLEUR
 |   |
 
 
-#### APPARENCE ET PERSONNALITÉ
+#### <span id="page-115-0" data-folio="115"></span>APPARENCE ET PERSONNALITÉ
 
 « *Qui ne risque rien n'a rien.* »
 
@@ -574,7 +574,7 @@ Commencez avec 1d10 sous de cuivre supplémentaires par secret choisi.
 NOTES
 
 
-### **WERNER MURRMANN**
+### <span id="page-116-0" data-folio="116"></span>**WERNER MURRMANN**
 
 APPRENTI ARTISAN
 
@@ -701,7 +701,7 @@ APPRENTI ARTISAN
 | Blessures   | 15 |
 
 
-#### APPARENCE ET PERSONNALITÉ
+#### <span id="page-117-0" data-folio="117"></span>APPARENCE ET PERSONNALITÉ
 
 *« Si vous pensez que votre vie est ennuyeuse, imaginez-vous percer des trous dans du bois toute la journée ! »*
 
@@ -731,7 +731,7 @@ Commencez avec 1d10 sous de cuivre supplémentaires par secret choisi.
 NOTES
 
 
-### **WANDA WELTSCHMERTZ**
+### <span id="page-118-0" data-folio="118"></span>**WANDA WELTSCHMERTZ**
 
 SORCIER NOVICE
 
@@ -852,7 +852,7 @@ CO
 | Blessures   | 11 |
 
 
-#### APPARENCE ET PERSONNALITÉ
+#### <span id="page-119-0" data-folio="119"></span>APPARENCE ET PERSONNALITÉ
 
 *« Je comprends que vous soyez une personne très importante, mais moi, fe suis un sorcier des Collèges, ne le savez-vous pas ? Je n'ai pas à rester ici et à écouter vos sottises. Vous ne pouvez m'y forcer. Alors, dégagez ! »*
 
@@ -884,7 +884,7 @@ Commencez avec 1d10 sous de cuivre supplémentaires par secret choisi.
 |                 |    |         |         |            |                                                 |
 
 
-## **JOHANN « DAM'DE NAGE » DASSBÜT**
+## <span id="page-120-0" data-folio="120"></span>**JOHANN « DAM'DE NAGE » DASSBÜT**
 
 CANOTIER
 
@@ -1009,7 +1009,7 @@ Nom : Johann « Dam'de nage » Dassbüt **Âge :** 35 **Race :** Humain **Statut
 | Blessures   | 13 |
 
 
-#### APPARENCE ET PERSONNALITÉ
+#### <span id="page-121-0" data-folio="121"></span>APPARENCE ET PERSONNALITÉ
 
 *« Quoi qu'il arrive en aval, tu fais avec. Alors tu t'inquiètes plus. Sinon t'es un idiot. »*
 
@@ -1039,7 +1039,7 @@ Commencez avec 1d10 sous de cuivre supplémentaires par secret choisi.
 NOTES
 
 
-### **MALMIR GILUVIEL**
+### <span id="page-122-0" data-folio="122"></span>**MALMIR GILUVIEL**
 
 MUSICIEN DES RUES
 
@@ -1164,7 +1164,7 @@ MUSICIEN DES RUES
 | Blessures   | 16 |
 
 
-#### APPARENCE ET PERSONNALITÉ
+#### <span id="page-123-0" data-folio="123"></span>APPARENCE ET PERSONNALITÉ
 
 « Tant à voir. Tant à faire. Tant de feuilles à retourner ! »
 
@@ -1196,7 +1196,7 @@ Commencez avec 1d10 sous de cuivre supplémentaires par secret choisi.
 NOTES
 
 
-### **KIRSTEN KRANK**
+### <span id="page-124-0" data-folio="124"></span>**KIRSTEN KRANK**
 
 RÔDEUR
 
@@ -1312,7 +1312,7 @@ Total 4
 |             |    |
 
 
-#### APPARENCE ET PERSONNALITÉ
+#### <span id="page-125-0" data-folio="125"></span>APPARENCE ET PERSONNALITÉ
 
 « À cheval donné, on ne regarde pas les dents, mais je n'ai jamais eu beaucoup de choix en ce qui concerne les chevaux, vu ma taille. »
 
@@ -1349,4 +1349,4 @@ seule provoque Peur 0 chez Kirsten.
 
 #### POINTS D'ARMURE (PA)
 
-NOTES
+NOTES<span id="page-126-0" data-folio="126"></span><span id="page-127-0" data-folio="127"></span><span id="page-128-0" data-folio="128"></span>

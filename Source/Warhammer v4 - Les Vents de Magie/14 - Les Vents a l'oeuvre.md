@@ -383,7 +383,7 @@ Les habitants d'Eilhart se sont mis à prier à la colonne de Paranoth, imploran
 
 # **LE LABYRINTHE DE L'OMBRE**
 
-<span id="page-207-0" data-folio="204"></span>La lande de l'Ombre se situe au plus profond de la lande Funeste où vivent des créatures étranges et redoutables. Le sol y est un bourbier inextricable et le soleil pénètre rarement l'épaisse brume inquiétante qui couvre la région. Peu ont de raison de venir ici, à moins qu'ils ne cherchent les légendaires Pierres de Barbaneagra. La route qui mène à la lande Funeste est dangereuse, même si l'itinéraire comporte les signes secrets de l'Ordre Gris.
+<span id="page-206-0" data-folio="203"></span><span id="page-207-0" data-folio="204"></span>La lande de l'Ombre se situe au plus profond de la lande Funeste où vivent des créatures étranges et redoutables. Le sol y est un bourbier inextricable et le soleil pénètre rarement l'épaisse brume inquiétante qui couvre la région. Peu ont de raison de venir ici, à moins qu'ils ne cherchent les légendaires Pierres de Barbaneagra. La route qui mène à la lande Funeste est dangereuse, même si l'itinéraire comporte les signes secrets de l'Ordre Gris.
 
 Au centre de cette lande, des murs de brouillard impalpables se déplacent et forment le Labyrinthe de l'Ombre. La brume est une manifestation du Vent Gris, *Ulgu*, transformée en labyrinthe par les Gardiens Gris au cours du temps. Ceux qui peuvent apercevoir ce vent suivent sans encombre le chemin vers le centre du labyrinthe, mais il est possible qu'ils rencontrent des obstacles comme des fondrières, des gaz asphyxiants ou explosifs, des moisissures empoisonnées ou des créatures terribles. Les autres tâtonnent aveuglément et tombent sur ces dangers.
 

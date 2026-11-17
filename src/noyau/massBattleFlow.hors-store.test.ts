@@ -350,7 +350,7 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
 
 describe('Scène MENACE (Intrus l.219)', () => {
   it('applique −20 aux Tests des autres Scènes et est levée par le combat', () => {
-    start({ situations: [['intrus', 'ligne-de-mire']], sceneEncounters: { intrus: 'enc-x' } });
+    start({ situations: [['intrus', 'ligne-de-mire']], sceneEncounters: { intrus: { id: 'enc-x' } } });
     auRound();
     expect(mbState().activeThreats).toContain('intrus');
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
@@ -472,7 +472,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
 
 describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAITE', () => {
   it('VICTOIRE : allié +10 (plafonné au départ), pas de Charge imposée', () => {
-    start({ situations: [['percee']], sceneEncounters: { percee: 'enc-x' } });
+    start({ situations: [['percee']], sceneEncounters: { percee: { id: 'enc-x' } } });
     auRound();
     const mb = mbState();
     banc.setState({
@@ -486,7 +486,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
   });
 
   it('DÉFAITE : Scène de Charge imposée au Round suivant (combatLost), bataille continue', () => {
-    start({ situations: [['percee'], ['motivation']], sceneEncounters: { percee: 'enc-x' } });
+    start({ situations: [['percee'], ['motivation']], sceneEncounters: { percee: { id: 'enc-x' } } });
     auRound();
     const mb = mbState();
     banc.setState({
@@ -1095,7 +1095,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
   });
 
   it('(ii) Scène sous MENACE : le 1ᵉʳ jet CONSERVE la cible pré-cuite (mod −20 non relâché)', () => {
-    start({ situations: [['intrus', 'ligne-de-mire']], sceneEncounters: { intrus: 'enc-x' } });
+    start({ situations: [['intrus', 'ligne-de-mire']], sceneEncounters: { intrus: { id: 'enc-x' } } });
     auRound();
     expect(mbState().activeThreats).toContain('intrus');
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');

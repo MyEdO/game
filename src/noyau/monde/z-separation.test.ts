@@ -62,12 +62,12 @@ describe('z-blindness #807 — distanceDeCombat (mono-cible, hauteur réelle)', 
   it('POSITIF — même étage (h identique) : distance = Chebyshev horizontal pur', () => {
     const a = mk('a', 0, 0, 0, 0);
     const b = mk('b', 3, 0, 0, 0);
-    expect(distanceDeCombat(a, b)).toBe(3);
+    expect(distanceDeCombat(null, a, b)).toBe(3);
   });
   it("NÉGATIF — même (x,y), étage supérieur (Δh=4m=2 cases) : distance DOMINÉE par la verticale", () => {
     const sol = mk('sol', 5, 5, 0, 0);
     const etage = mk('etage', 5, 5, 1, 4);
-    expect(distanceDeCombat(sol, etage)).toBe(2); // horizontal 0, vertical = 4/2 = 2 cases
+    expect(distanceDeCombat(null, sol, etage)).toBe(2); // horizontal 0, vertical = 4/2 = 2 cases
   });
 });
 
@@ -84,9 +84,9 @@ describe('z-blindness #807 — combatantsWithinRadius (aire/orchestrateur partag
   it('NÉGATIF (dist=distanceDeCombat, empreinte) — même (x,y), étage supérieur réel : hors rayon', () => {
     const src = mk('src', 5, 5, 0, 0);
     const above = mk('above', 5, 5, 1, 4); // 2 cases de vertical
-    const withinFloor = combatantsWithinRadius(src.pos!, 1, [above], undefined, (_c, x) => distanceDeCombat(src, x));
+    const withinFloor = combatantsWithinRadius(src.pos!, 1, [above], undefined, (_c, x) => distanceDeCombat(null, src, x));
     expect(withinFloor).toEqual([]);
-    const withinRadius2 = combatantsWithinRadius(src.pos!, 2, [above], undefined, (_c, x) => distanceDeCombat(src, x));
+    const withinRadius2 = combatantsWithinRadius(src.pos!, 2, [above], undefined, (_c, x) => distanceDeCombat(null, src, x));
     expect(withinRadius2).toEqual([above]); // au rayon exact (2 cases), inclus — contrôle POSITIF de la formule
   });
 });

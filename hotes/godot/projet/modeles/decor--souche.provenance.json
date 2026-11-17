@@ -1,0 +1,13 @@
+{
+  "model": "decor--souche.glb",
+  "model_sha256": "bf8aafe9d809a59240453a67af532dc8dfd02920932f262978a751a57681a1c5",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

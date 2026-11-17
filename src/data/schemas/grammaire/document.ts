@@ -18,7 +18,7 @@ import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesCha
 import { exigeSource } from './sans-livre';
 import { marquerProduit } from './interne/produits';
 import { champsProse, refineAdapteDe, refineProse, type PorteurDeProse } from './prose';
-import { marquerCollection, marqueDeListe, marqueDeRecord, refusDeCharge, type EspaceDeNoms } from './collection-cle';
+import { marquerCollection, marqueDeListe, marqueDeRecord, ouvrirLesPorteesSansCollection, refusDeCharge, type EspaceDeNoms } from './collection-cle';
 import { estObjet } from '../../../lib/objet.mjs';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
@@ -257,12 +257,12 @@ export type ExpositionCodex =
 
 type ExpositionEditHorsNiche =
   | { readonly dataset: string }
-  | { readonly object: 'unique' | 'parCle' }
+  | { readonly object: 'unique' }
   | { readonly none: string; readonly dataset?: string };
 type ExpositionNiche = { readonly niche: { readonly categories: Readonly<Record<string, string>> } };
 /**
  * Ce que l'ÉDITEUR édite : le dataset-liste dont ce document est une entrée, l'OBJET de configuration
- * qu'il forme à lui seul (`unique`) ou dont il est une valeur (`parCle`), les TABLEAUX NICHÉS qu'il
+ * qu'il forme à lui seul (`unique`), les TABLEAUX NICHÉS qu'il
  * porte (`niche`), ou rien (`none`, raison exigée — vraie lecture seule, aucune route d'édition).
  * Un document `none` dont les entrées SONT un dataset-liste de la mémoire (`src/data/overrides.ts`
  * `ARRAYS`) le nomme par `dataset` : sans route d'édition, il garde son fichier, et sa clé de dataset
@@ -389,7 +389,7 @@ export interface OptionsDocument {
 }
 
 /** Handle FERMÉ d'un document : ce que le registre, l'éditeur et les gardes consomment. */
-export interface DocumentHandle<T extends string, S = unknown> {
+export interface DocumentHandle<T extends string, S = unknown, E = unknown> {
   /**
    * LE DATASET tel qu'il vit dans son fichier, emballé PAR FAMILLE (#1467) : `entite` →
    * `z.array(entrée)`, `config` → l'entrée seule, `record` → enveloppe + `entries`. Un def n'écrit
@@ -403,11 +403,12 @@ export interface DocumentHandle<T extends string, S = unknown> {
    * L'ENTRÉE SCELLÉE seule — pour l'EMBARQUEMENT (statblocks, table posée dans un autre fichier),
    * jamais pour l'UI, qui consomme le dataset. En famille `record`, l'entrée EST le document entier
    * (enveloppe + `entries`) : `schema` y est `entree`, marquée collection à clé de ses `entries`. Sur un document à `rangee`,
-   * l'entrée porte l'enveloppe ET ses rangées.
+   * l'entrée porte l'enveloppe ET ses rangées. Sa sortie `E` est l'entrée au type (`EntreeDuDocument`).
    */
-  readonly entree: z.ZodType<unknown>;
+  readonly entree: z.ZodType<E>;
   /**
-   * L'entrée en PATCH (tous champs optionnels), dérivée AVANT le sceau puis SCELLÉE à son tour :
+   * L'entrée en PATCH (tous champs optionnels, sans l'`id` : une surcharge n'a pas d'identité),
+   * dérivée AVANT le sceau puis SCELLÉE à son tour :
    * `.partial()` rend un `ZodObject` NU, que `.extend` rouvrirait — la fabrique n'expose aucun nœud
    * extensible, fût-il voisin. `.optional()`/`safeParse` restent servis.
    * Consommateur mesuré : `narratif.ts` (`presetPnjSchema.profil`, profil de PNJ embarqué) — il
@@ -588,7 +589,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   meta: MetaDesChamps<C>,
   declaration: DeclarationExposition,
   options?: OptionsDocument & O,
-): DocumentHandle<T, DatasetDuDocument<T, F, C, O>> {
+): DocumentHandle<T, DatasetDuDocument<T, F, C, O>, EntreeDuDocument<T, F, C, O>> {
   const opts: OptionsDocument = options ?? {};
   const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = opts;
   if (idDocument && idDocument.safeParse('').success) {
@@ -702,11 +703,13 @@ export function document<T extends string, F extends FamilleDocument, C extends 
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
-  // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206).
-  const partielle = marquerProduit(corps.partial(), 'document', 'entreePartielle', champsDuDef).superRefine(
+  // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206). Une
+  // surcharge ne porte pas l'identité de ce qu'elle surcharge : l'`id` n'est pas un champ du patch.
+  const partielle = marquerProduit(corps.omit({ id: true }).partial(),'document', 'entreePartielle', champsDuDef).superRefine(
     refineProse({ type, exigeProse: false, porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
-  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, noms).pipe(z.transform((v) => v));
+  const { id: _identite, ...nomsDuPatch } = noms;
+  const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, nomsDuPatch).pipe(z.transform((v) => v));
   const clesEntree: readonly string[] = Object.keys(corps.shape);
   // Un MARQUEUR d'espace est un champ de l'entrée : un nom hors de ses clés ouvrirait une sous-liste
   // qu'aucune donnée ne saurait jamais remplir (`gen-espaces` admet une sous-liste marquée VIDE).
@@ -738,7 +741,8 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   const avecCharge = refusCharge
     ? (avecProse.superRefine((v, ctx) => refusCharge(v as Record<string, unknown>, ctx)) as z.ZodObject<z.ZodRawShape>)
     : avecProse;
-  const affine = affinerEntree ? affinerEntree(avecCharge) : avecCharge;
+  // PORTÉES LOCALES sans collection : une feuille `idDe(…, { portee })` du document y vaut son catalogue seul.
+  const affine = ouvrirLesPorteesSansCollection(affinerEntree ? affinerEntree(avecCharge) : avecCharge, `document('${type}')`);
   nommerChamps(affine as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affine) });
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
 
@@ -760,7 +764,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
     // Le nœud SCELLÉ (`.pipe(z.transform)`) sort `unknown` : sa sortie au type se déclare ici, depuis
     // les mêmes `champs` et `options` qui l'ont composé.
     schema: schema as z.ZodType<DatasetDuDocument<T, F, C, O>>,
-    entree: entreeScellee,
+    entree: entreeScellee as z.ZodType<EntreeDuDocument<T, F, C, O>>,
     entreePartielle,
     cles: clesEntree,
     type,

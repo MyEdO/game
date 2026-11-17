@@ -113,7 +113,7 @@ export function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) 
  *  `undefined` sinon. */
 export function cfgDeLaFeuille(noeud: unknown): (RefDatasetCfg & { single: true }) | undefined {
   const feuille = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
-  return !feuille || feuille.ouverte ? undefined : cfgDuType(feuille.type);
+  return !feuille || feuille.portee ? undefined : cfgDuType(feuille.type);
 }
 
 /** Config `single` à `spec` d'un champ dont le NŒUD est une référence à spécialisation (`refOuSpec`,

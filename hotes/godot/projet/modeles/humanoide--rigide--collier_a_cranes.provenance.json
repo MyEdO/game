@@ -1,0 +1,21 @@
+{
+  "model": "humanoide--rigide--collier_a_cranes.glb",
+  "model_sha256": "768c1fa6084bafc5d0261b4aa9077da89689cd45a9572396c2f258e8b0ab7268",
+  "importe_le": "2026-11-15",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

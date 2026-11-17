@@ -34,7 +34,7 @@ import {
 const RANGEE_AU_PLUS = 11;
 
 const bouton = (id: string, libelle: string, creation: GesteDeLaCreation | null, refus: string | null = null, presse = false, focus = false): Bouton => ({
-  type: 'bouton', id, libelle, jeu: { creation }, presse, focus, refus,
+  type: 'bouton', id, libelle, jeu: { creation }, presse, focus, detail: null, touche: null, refus,
 });
 
 /** Une rubrique de la page en élément : un geste en bouton, un jet tombé, un choix en rangée ou en liste (chaque option
@@ -47,7 +47,7 @@ function element(r: RubriqueDeCreation): Element {
       type: r.options.length > RANGEE_AU_PLUS ? 'liste' : 'choix', id: r.id, ton: 'neutre', libelle: r.libelle, focus: false, refus: null,
       valeurs: r.options.map((o, i) => bouton(`${r.id}/${i}`, o.libelle, o.geste, o.refus, o.choisie)),
     } satisfies Choix;
-    case 'valeur': return { type: 'puce', id: r.id, ton: 'neutre', libelle: r.libelle, valeur: r.valeur, detail: resume(r.detail) } satisfies Puce;
+    case 'valeur': return { type: 'puce', id: r.id, ton: 'neutre', libelle: r.libelle, valeur: r.valeur, detail: resume(r.detail), jeu: null } satisfies Puce;
   }
 }
 

@@ -477,12 +477,16 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             la campagne, ids de `data/axes.json`, défaut `coreAxisIds` via `resolveActiveAxes`).
                             DONNÉES DE LIEU (#343) : le nœud `MapPlace` est LA source des services d'un lieu —
                             `port` (schéma riche + catalogue `naval-ports.json`), `market` (LandMarketProfile) et
-                            `services[]` EXTENSIBLES (catalogue `lieux-services.json` : auberge/temple/forgeron/
-                            guilde…). API UNIQUE `placeServices(place, scene?)` : compose ces trois sources +
-                            l'auberge (offre PROPRE au service OU dérivée de l'offre de repos de la scène liée) en
-                            une liste `ResolvedPlaceService[]` — payloads RÉFÉRENCÉS, jamais recopiés (zéro
-                            duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
-                            consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
+                            `services[]`, ses ÉTABLISSEMENTS (#4277) : `id` STABLE unique dans le lieu, `kind` =
+                            entrée du catalogue `lieux-services.json` (auberge/temple/forgeron/guilde…), plusieurs
+                            d'un même type par lieu. API UNIQUE `placeServices(place, scene?)` : compose ces trois
+                            sources + l'auberge (offre PROPRE à l'établissement OU dérivée de l'offre de repos de
+                            la scène liée) en une liste `ResolvedPlaceService[]` (`id` de routage, `kind` du
+                            catalogue) — payloads RÉFÉRENCÉS, jamais recopiés. Lue au lieu du groupe par
+                            `servicesDuLieu` (`lieuFlow.ts`) : écran du lieu, repos (`reposDuLieu`), rumeurs,
+                            échoppe ; chaque geste du lieu porte l'id de l'établissement. Un point d'intérêt du
+                            plan (`poi[]`) mène à une scène (son `label`) OU vise un service résolu du lieu par son
+                            id, dont il prend le nom (`nomDuPoi`).
   worldMapEdit.ts           ÉCRIVAINS PURS de la carte du monde (WorldMap → WorldMap) que l'éditeur appelle :
                             patchs, ajout de lieu (bornes `BORNES_DE_CARTE`, décalage, libellé de la semence),
                             liaison dédoublonnée par sens, suppressions en cascade (routes, `suite` des billets).
@@ -713,7 +717,9 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             sous Windows et en garde le dossier en artefact. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
                             le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
                             étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
-                            `const RECETTE_RENDUE := true`.
+                            `const RECETTE_RENDUE := true`. `--coop` (`npm run godot:coop`, étape de la CI, #3009)
+                            lance le relay local (`npm run relay:dev`) et joue la coop par deux processus Godot sans
+                            écran, l'hôte et l'invité (`projet/recettes/coop-hote.gd`, `coop-invite.gd`).
   etalons/                  l'étalon de chaque planche (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des
                             étalons validés). Une planche (un état de partie figé par le pont, que le jeu montre à
                             `?planche=<nom>`) est un dérivé de l'export, jamais commitée : `construire.mjs --export`
@@ -976,10 +982,11 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
 (lever = travail coop futur, hors #254 qui ferme sur DOCUMENTATION seule) :
 
-- **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`traverseeCommandee`)
-  est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
-  (`jouerLaJournee` commandée, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
-  `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
+- **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`cadenceAUnEffet`,
+  source unique de « locale », lue par `traverseeCommandee`, source unique de « commandée ET locale ») garde la
+  résolution d'un bloc du jour (`jouerLaJournee` commandée, dans `travelFlow.runTravelDays`,
+  `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans `seaVoyageFlow.jouerLesEtapesDuJour`,
+  commune aux deux entrées du jour `runSeaDay` et `continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
   (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`). En coop, la cadence reste JOUR-PAR-JOUR quels que
   soient les ordres : chaque jet de route ouvre la fenêtre de son porteur. Raison technique : la résolution
   immédiate est un bloc synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales

@@ -22,11 +22,12 @@
   "surfaces": [
     {
       "nom": "cape",
-      "palette": "accent"
+      "palette": "accent",
+      "matiere": "prop--laine"
     }
   ],
   "glb": {
-    "sha256": "9bbc669e94644cb74152d4b32c1c0fe33062fc46d574b3ffd4c7022bae3e04be",
-    "octets": 751480
+    "sha256": "864881d601dad662a9890d038b73617f6630e8939348623da516b84636c0ba69",
+    "octets": 924788
   }
 }

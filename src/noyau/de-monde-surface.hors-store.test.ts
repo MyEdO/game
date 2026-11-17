@@ -13,7 +13,7 @@ import {
   startCascade,
   pushStep,
   suspendActiveCascade,
-  poserCurseurCascade,
+  curseurPose,
   stepReady,
 } from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
@@ -240,7 +240,7 @@ const marche = (id: string, label: string) => buildScene({ id, label, desc: '.',
 function carte(): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
-    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, market: profile() }],
+    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, taille: 4, market: { richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'] } }],
     routes: [],
   };
 }
@@ -744,7 +744,7 @@ function prepareJourTerrestre(seed: number): void {
   get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });
 }
-const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied'); };
+const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied', { cadence: 'jourParJour' }); };
 
 /** État d'une traversée dont le compteur d'événement de bord échoit AUJOURD'HUI (l'étape à table
  *  existe). RNG ensemencé EN TÊTE, pour la raison dite sur `prepareJourTerrestre` : `buildSeaPlan`
@@ -886,7 +886,7 @@ function sitesCurseurALaMain(): string[] {
  * `pendingCascade` court-circuite ce seam : la table reste non tirée, `stepReady` la refuse et
  * `jetValider('cascade')` devient un no-op DÉFINITIF — la séquence est perdue avec le geste du joueur.
  *
- * Deux cas : la PORTE publique (`poserCurseurCascade`) fait le travail, et aucun site de production
+ * Deux cas : la PORTE publique (`curseurPose`) fait le travail, et aucun site de production
  * de `src/**` ne l'écrit à la main (garde STRUCTURELLE ci-dessous — un `cursor:` de plus la rougit).
  */
 describe('#1426 — les portes du curseur', () => {
@@ -900,7 +900,7 @@ describe('#1426 — les portes du curseur', () => {
     });
     const casc = get().pendingCascade!;
     expect(casc.participants[1].table!.result, 'la table n’est pas tirée au BUILD').toBeUndefined();
-    poserCurseurCascade(get, set, casc, 1);
+    set({ pendingCascade: curseurPose(get, casc, 1) });
     const apres = get().pendingCascade!;
     expect(apres.cursor).toBe(1);
     expect(apres.participants[1].table!.result, 'posé le curseur, le socle a tiré au RANG de l’étape').toBeTruthy();
@@ -918,7 +918,7 @@ describe('#1426 — les portes du curseur', () => {
    */
   it('GARDE STRUCTURELLE — aucun site de `src/**` n’écrit `cursor:` dans un littéral `pendingCascade` hors du pilote', () => {
     const fautifs = sitesCurseurALaMain();
-    expect(fautifs, 'poser le curseur passe par `cascade.poserCurseurCascade`/`curseurPose` — sinon le seam du pilote est court-circuité').toEqual([]);
+    expect(fautifs, 'poser le curseur passe par `cascade.curseurPose` — sinon le seam du pilote est court-circuité').toEqual([]);
   });
 
   /**

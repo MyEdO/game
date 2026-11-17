@@ -155,6 +155,8 @@ export interface ActorView {
   /** L'acteur porte-t-il un passif VISIBLE (`aPassifVisible` — lésion apparente d'une maladie active) ?
    *  Lu par la Condition `visiblePassive`. */
   visiblePassive?: boolean;
+  /** L'acteur est-il un NAVIRE (`estNavire`) ? Lu par la Condition `navire`. */
+  navire?: boolean;
 }
 
 /** SÉLECTEUR de héros d'une Condition de groupe : un héros au moins (`any`), tout le groupe (`all`), ou
@@ -277,6 +279,8 @@ export type Condition =
    *  émise `visible` par sa source) ? Gate d'apparence : « à quel point votre apparence peut susciter la
    *  sympathie » (LDB 09 l.97). Acteur absent = false. */
   | { kind: 'visiblePassive'; who: ActorRef }
+  /** L'acteur (`who`) est-il un NAVIRE (`ActorView.navire`) ? #4202. Acteur absent = false. */
+  | { kind: 'navire'; who: ActorRef }
   | { kind: 'all'; of: Condition[] }
   | { kind: 'any'; of: Condition[] }
   | { kind: 'not'; of: Condition };
@@ -456,6 +460,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     }
     case 'casterChaosDomain': return ctx.caster?.chaosDomain === cond.is;
     case 'visiblePassive': return (cond.who === 'caster' ? ctx.caster : ctx.target)?.visiblePassive === true;
+    case 'navire': return (cond.who === 'caster' ? ctx.caster : ctx.target)?.navire === true;
     case 'skill':
       return matchParty(ctx, cond.who ?? 'any', (m) => (m.skills ?? []).some((s) =>
         refCouvre({ id: cond.id, spec: cond.spec }, s) && (s.advances ?? 0) >= (cond.advances ?? 0)));
@@ -711,9 +716,9 @@ export function flowHasTest<E = EffectOp>(flow: Flow<E>): boolean {
 
 /** Ops IMPURES résolues par le do-loop de `runCombatFlow` (`grantFreeAttack` → frappe gratuite ;
  *  `interruptFocus` → interruption de Focalisation ; `breakBlade` ; `delayed` → file `scheduledEffects`
- *  via `scheduleDelayedOps`) : `applyOps` les laisse inertes. Source UNIQUE pour router une branche de
+ *  via `scheduleDelayedOps` ; `zone` → crochet `OpsCtx.onZone` de `applyLeafOps`) : `applyOps` les laisse inertes. Source UNIQUE pour router une branche de
  *  `test` contenant l'une d'elles vers l'exécuteur IMPUR plutôt que `runPureFlowLines` (qui les avalerait). */
-const HOOK_BACKED_OPS = new Set(['grantFreeAttack', 'interruptFocus', 'breakBlade', 'delayed']);
+const HOOK_BACKED_OPS = new Set(['grantFreeAttack', 'interruptFocus', 'breakBlade', 'delayed', 'zone']);
 
 /** Op IMPURE : de `HOOK_BACKED_OPS`, de NAVIRE (`estOpDuNavire`), résolue sur la cible `navire` par
  *  `noyau/navireOps.ts`, de la BOURSE DU GROUPE (`estOpDeLaBourseDuGroupe`), du MARCHÉ D'UN PORT
@@ -735,11 +740,12 @@ export function flowHasImpureOp<E = EffectOp>(flow: Flow<E>): boolean {
 /** Ops IMPURES (`estOpImpure`) interdites HORS branche `reussite`/`echec` d'un nœud `test` dans un Flow d'effet
  *  DÉCLENCHÉ (`effects: TriggeredEffect[]`, traits/talents/atouts/États/psychologie…) — EXCLUT
  *  `grantFreeAttack`, légitime top-level (résolu par `resolveFreeAttacks`, cf. `flowHasFreeAttack`, ex.
- *  Frappe réactive). `interruptFocus`/`breakBlade`/`delayed` n'ont de hook que dans le do-loop de
+ *  Frappe réactive), et `zone`, légitime top-level (`applyTriggeredEffects` route son Flow vers `runCombatFlow`).
+ *  `interruptFocus`/`breakBlade`/`delayed` n'ont de hook que dans le do-loop de
  *  `runCombatFlow` AVEC son contexte de branche de Test résolue, les ops de navire n'en ont aucun ; placées
  *  ailleurs, `applyTriggeredEffects` (walker `runPureFlowLines`) les avale en silence (`applyOps` les laisse
  *  inertes). */
-const estOpImpureErrante = (o: GameOp): boolean => o.op !== 'grantFreeAttack' && estOpImpure(o);
+const estOpImpureErrante = (o: GameOp): boolean => o.op !== 'grantFreeAttack' && o.op !== 'zone' && estOpImpure(o);
 
 /** Le Flow porte-t-il une op IMPURE errante (`estOpImpureErrante`) EN DEHORS d'une branche `reussite`/`echec` de `test` ?
  *  `inTestBranch` (interne, propagé par la récursion) reste vrai tant qu'on n'est pas ressorti d'un nœud

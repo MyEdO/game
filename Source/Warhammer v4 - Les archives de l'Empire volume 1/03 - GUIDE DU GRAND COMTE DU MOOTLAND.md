@@ -193,7 +193,7 @@ Non pas que les jours de conseil soient calmes, pas plus que les « fêtes relig
 - 0 Lors du décès prématuré d'un Ancien, le Conseil de Birnbaum s'est retrouvé bloqué pendant un an sur un problème important : déterminer quelle guilde est responsable du nettoyage des bains publics, une tâche particulièrement coûteuse et ingrate. Les règles du conseil autorisent un étranger à voter pour éviter une égalité lorsque ce genre de situations se produit. Ils ont choisi d'accorder cet honneur à l'un des Personnages. Les deux camps ont, évidemment, informé le Personnage du bon parti à prendre tandis que d'autres individus ont tout intérêt à ce que le blocage continue et essaieront d'orchestrer un « accident » du décisionnaire.
 
 
-#### DES CLANS DANS LES CLANS
+#### <span id="page-38-0" data-folio="38"></span>DES CLANS DANS LES CLANS
 
 La société halfling s'articule autour des clans : des conglomérats de parents qui partagent un ancêtre commun (mais pas toujours le même nom de famille). Chaque région de l'Empire a les siens propres, mais ces derniers peuvent également se déplacer, ce qui peut engendrer des disputes fratricides. Certains Tuilecaramel dans le Moot préfèreraient encore être pris pour des Pochégarée que d'être surnommés les Tuilecaramel du Reikland (voir *Clans halflings du Reikland*, page 22). Certains Pumpkerlicken du Stirland n'ont jamais rencontré leurs cousins du Mootland. Et, bien entendu, le Moot a ses propres clans uniques, notamment :
 
@@ -214,7 +214,7 @@ La politique existe bien chez les halflings, même si elle est étonnamment déc
 - 0 Un petit groupe de Gardechamps protège les familles de bergers du nord-est de bêtes affamées qu'ils appellent les « Ravageurs de moutons ». Bien sûr, ces bêtes n'existent pas. (Une mise en scène çà ou là avec un mouton égorgé garantit aux Gardechamps de recevoir toutes les louanges sans rien faire.) Malheureusement, les Personnages tombent sur un culte du Chaos en plein sacrifice, et sont incapables de convaincre qui que ce soit qu'il ne s'agit pas d'un « Ravageur de moutons » à l'œuvre !
 
 
-#### **Loi halfling**
+#### <span id="page-39-0" data-folio="39"></span>**Loi halfling**
 
 Il existe un dicton populaire du Stirland qui dit : *« les halflings n'ont pas de lois »*. Au sens le plus large, cela signifie que de manière générale, les petites fautes et leurs préjudices sont vite oubliés, des coupables comme des victimes. D'autres choisissent de l'interpréter plus littéralement : les petits Mootlanders n'ont que faire des lois.
 
@@ -264,7 +264,7 @@ La « véritable expérience » peut être choquante. Le Moot est le seul endroi
 Certains endroits prennent des précautions spéciales pour les grands, afin de montrer qu'ils sont les bienvenus. Les boissons sont servies dans des vases de 30 centimètres, la vaisselle est deux fois trop grande. Après tout, les halflings n'ont aucune idée des besoins humains et peuvent donc commettre des erreurs « innocentes » (voir *Le Grand tour* sur la page suivante). Si les humains ne sont pas satisfaits, ils seront redirigés vers les auberges pour ogres présentes dans la plupart des villes du Moot, mais séjourner avec des ogres est bien, bien pire. Rien que l'odeur peut se révéler fatale.
 
 
-#### VISITEZ LE MOOTLAND
+#### <span id="page-41-0" data-folio="41"></span>VISITEZ LE MOOTLAND
 
 - 0 L'Ancienne, Prudence Fiercœur, recrute les Personnages comme gardes du corps par crainte d'un assassinat politique. Cela signifie que les Personnages doivent la suivre partout, y compris dans de petites salles de réunion halflings et, évidemment, aux bains publics. Les bains sont l'endroit où les assassins comptaient passer à l'acte, les Personnages n'ont donc ni arme ou armure, ni même de place pour se tenir droit ou riposter.
 - 0 Bonmérite Croustilletourte organise une visite en calèche pour faire vivre une véritable aventure à la halfling le long des routes du nord. Il discute avec les passagers, et s'il découvre que certains parmi eux ne manqueront à personne, il les ramène dans sa ferme pour un repas fait maison, les drogue et les emprisonne. Bonmérite et sa fratrie forcent leurs prisonniers à labourer la terre du matin au soir. La plupart meurent de déshydratation et de travail trop intensif, mais l'un d'eux s'est échappé et risquerait de tout gâcher.
@@ -324,7 +324,7 @@ La zone au nord de l'Aver faisait autrefois partie du territoire du Stirland. C'
 *Les vers sont en supplément* 
 
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+<span id="page-43-0" data-folio="43"></span>Yanick Bedard - pumpkinhead83@hotmail.fr
 
 
 ## <span id="page-44-0" data-folio="44"></span>**Les Feuillevertes**

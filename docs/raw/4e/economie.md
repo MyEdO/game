@@ -383,12 +383,12 @@ Couverture confirmée des refs `LDB XX l.YY` dans le code :
 
 | Ref source | Fichier implémentant | Mécanique |
 |---|---|---|
-| `LDB 59 l.25-35` | `src/engine/disponibilite.ts` | Table de Disponibilité RAW (Commune/Limitée/Rare/Exotique × Village/Ville/Cité) ; `rollAvailability`, `fullStock`, `rollStock` |
+| `LDB 59 l.25-35` | `src/engine/disponibilite.ts` | Table de Disponibilité RAW (Commune/Limitée/Rare/Exotique × Village/Ville/Cité) ; `rollAvailability`, `fullStock`, `rollStock` ; colonne lue par la Taille du lieu (`colonneDeLaTaille`, table maison `colonneParTaille` de `src/data/disponibilite.json`) |
 | `LDB 59 l.18` | `src/engine/disponibilite.ts` + `src/noyau/merchantFlow.ts` | Règle optionnelle stock sans Test (`fullStock`) ; désactivation Marchandage si `simplifie` |
 | `LDB 60 l.3` | `src/engine/appraisal.ts` | Évaluation : estimation ±10 % Rare/Exotique |
 | `LDB 60 l.3` | `src/engine/bargain.ts` + `src/noyau/merchantFlow.ts` | Test opposé Marchandage : −10 % achat ; soured sur botch (DR net ≥ 6 en défaite) ; gel du Marchandage cette visite |
 | `LDB 60 l.5` | `src/engine/bargain.ts` + `src/noyau/merchantFlow.ts` | Vente base = ½ prix listé ; ¼ sans Marchandage gagné, ½ si gagné, +10 % au Succès Stupéfiant, +10 % avec Négociateur (`resaleRate`, `bargainSellFactor`) |
-| `LDB 60 l.3-62` | `src/engine/qualities/craftEconomy.ts` | Facteur prix (`craftPriceFactor` : ×2/Atout, ÷2/Défaut) ; décalage Disponibilité (`shiftAvailability`) ; delta Enc (`craftEncDelta` : Léger −1, Volumineux +1) ; classe de qualité (`qualityClass`) |
+| `LDB 60 l.3-62` | `src/engine/qualities/craftEconomy.ts` | Facteur prix (`craftPriceFactor` : ×2/Atout, ÷2/Défaut) ; décalage Disponibilité (`shiftAvailability`) ; delta Enc (`craftEncDelta` : Léger −1, Volumineux +1) ; Atouts minimaux d'une classe de qualité (`atoutsMinimaux`) |
 | `LDB 10 l.336` | `src/noyau/merchantFlow.ts` | Talent Détection d'artefact : Test Intuition, 1 tentative/artefact, révèle aura par DR |
 | `LDB 12 l.94` | `src/noyau/merchantFlow.ts` | Échec d'Évaluation à DR 0 : nouvel essai permis ; à DR négatif, délai maison `marche-evaluation-delai-jours` |
 

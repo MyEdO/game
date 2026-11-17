@@ -1,0 +1,13 @@
+{
+  "model": "decor--fanal.glb",
+  "model_sha256": "dc550f15d2dc3bee45ab6f621596b5d9eb5be60abd2a8ff7f1a617f1920708c0",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

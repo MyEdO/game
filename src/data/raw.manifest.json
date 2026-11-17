@@ -90,7 +90,7 @@
     "type": "raw.manifest",
     "label": "Dégâts infligés aux véhicules (EDOC)",
     "ticket": "#673",
-    "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Seul le refus de la Blessure Critique est joué"
+    "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Le refus de la Blessure Critique est joué, et seuls les effets du Coup Critique (`coupCritique`) s'exercent"
   },
   {
     "id": "4e/deplacement#humeur-de-manann-et-evenements-en-mer-mdg",
@@ -111,7 +111,7 @@
     "type": "raw.manifest",
     "label": "Test d'incantation",
     "ticket": "#1456",
-    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:90`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
+    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:94`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
   },
   {
     "id": "4e/activites#tableau-des-evenements-d100",
@@ -222,5 +222,11 @@
     "label": "Phase d'arrivée",
     "ticket": "#4155",
     "bloque": "Jouée : EDOC 09 l.21. Non jouées : EDOC 09 l.19, l.23."
+  },
+  {
+    "id": "4e/equipement#chambre-commune-voleurs",
+    "type": "raw.manifest",
+    "label": "Chambre commune — voleurs",
+    "bloque": "LDB 66 l.26 ne chiffre ni Test ni effet : jouer la méfiance des voleurs de la chambre commune demande un arbitrage de règle (règle 7 d'AGENTS.md), non tranché."
   }
 ]

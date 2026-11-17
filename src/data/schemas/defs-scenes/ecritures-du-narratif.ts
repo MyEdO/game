@@ -29,7 +29,7 @@ const entreesDuNarratif = (narratif: NarratifBlock): readonly { id?: string }[] 
   REGISTRES_NARRATIFS.flatMap((r) => narratif[r.cle] as readonly { id?: string }[]);
 
 /** Les registres où l'auteur crée une entrée, et le préfixe de leur id frais. */
-const PREFIXE_D_ID = { affaires: 'affaire', indices: 'indice', presetsPnj: 'pnj', documents: 'document', etats: 'etat' } as const satisfies Partial<Record<CleDeRegistreNarratif, string>>;
+const PREFIXE_D_ID = { affaires: 'affaire', indices: 'indice', presetsPnj: 'pnj', documents: 'document', etats: 'etat', objets: 'objet' } as const satisfies Partial<Record<CleDeRegistreNarratif, string>>;
 export type RegistreCreable = keyof typeof PREFIXE_D_ID;
 
 /** Les stades d'un indice ; d'un état, ses valeurs déclarées, son identité et ses repères. */
@@ -46,8 +46,12 @@ export const SOUS_ENTREES: { readonly [R in RegistreCreable]?: readonly { readon
   etats: [{ chemin: VALEURS_D_ETAT, famille: 'valeur' }, { chemin: REPERES, famille: 'repere' }],
 };
 
+/** Le corps d'une entrée neuve du registre `R` : l'entrée sans son id, que la création tire, et sans sa provenance
+ *  (`source`, d'un objet), que l'auteur pose ensuite et dont le schéma dit l'absence d'ici là. */
+export type CorpsNeuf<R extends RegistreCreable> = Omit<NarratifBlock[R][number], 'id' | 'source'>;
+
 /** Ajoute `entree` au `registre`, sous un id frais qu'aucune entrée du narratif ne porte. */
-export function ajouteEntree<R extends RegistreCreable>(narratif: NarratifBlock, registre: R, entree: Omit<NarratifBlock[R][number], 'id'>): { narratif: NarratifBlock; id: string } {
+export function ajouteEntree<R extends RegistreCreable>(narratif: NarratifBlock, registre: R, entree: CorpsNeuf<R>): { narratif: NarratifBlock; id: string } {
   const liste = narratif[registre] as readonly { id: string }[];
   const id = idFrais(PREFIXE_D_ID[registre], liste, entreesDuNarratif(narratif));
   return { narratif: { ...narratif, [registre]: [...liste, { ...entree, id }] }, id };

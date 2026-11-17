@@ -10,11 +10,11 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { buildEncounter } from '../noyau/monde/encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from '../noyau/worldMap';
-import { campaignStart, toDate } from '../engine/clock';
+import { campaignStart } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { resetCadence } from '../engine/cadence';
-import { seasonOfMonth } from '../engine/travelStages';
+import { currentSeason } from '../engine/travelStages';
 import { t } from '../i18n';
 import { activeDayWeather } from '../noyau/combatFlow';
 import { tableStepDef } from '../noyau/cascade';
@@ -68,7 +68,7 @@ function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Comb
 /** POSE le dé de Météo d'Étape (« Dés fixés ») sur la rangée `id` de la table de la saison courante. */
 function poseMeteo(id: string): void {
   const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'etape-meteo')!;
-  const saison = seasonOfMonth(toDate(get().gameTime).month);
+  const saison = currentSeason(get().gameTime);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
 }
@@ -88,7 +88,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
     setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, ...embuscadeDeRoute }), 'clair');
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('pluie-diluvienne');
     draineCascade(get, 200, poseEmbuscade);
     const jours = get().travelPlan!.recap!.days;

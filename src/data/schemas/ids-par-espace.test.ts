@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { IdsParEspace } from './_ids.generated';
 import type { FlowStakeId } from '../index';
+import { idsDeLaSousListe } from './grammaire/ref';
+import { ENGINS_DE_SIEGE } from './grammaire/sousListes';
 
 /**
  * L'union LITTÉRALE des ids par espace (`IdsParEspace`, émise par `scripts/gen-espaces.mts`) ferme
@@ -21,5 +23,14 @@ describe('IdsParEspace — un id absent de la donnée ne compile pas', () => {
     const faux: IdsParEspace['etats.json'] = 'n-existe-pas';
     const vrai: IdsParEspace['etats.json'] = 'empetre';
     expect([faux, vrai]).toEqual(['n-existe-pas', 'empetre']);
+  });
+
+  it('un discriminant référence `{ id }` ouvre son espace : les engins de siège, `subType` de trappings.json', () => {
+    // @ts-expect-error — 'dague' est un trapping hors du sous-type des engins de siège
+    const faux: IdsParEspace['trappings.json?subType=armes-de-siege'] = 'dague';
+    const vrai: IdsParEspace['trappings.json?subType=armes-de-siege'] = 'pierrier';
+    const engins = idsDeLaSousListe('trapping', ENGINS_DE_SIEGE);
+    expect(engins).toContain(vrai);
+    expect(engins).not.toContain(faux);
   });
 });

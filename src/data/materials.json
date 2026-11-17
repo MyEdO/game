@@ -252,6 +252,42 @@
     "metalness": 0
   },
   {
+    "id": "laine",
+    "type": "materials",
+    "label": "Laine",
+    "domain": "prop",
+    "color": "#8a8272",
+    "roughness": 0.95,
+    "metalness": 0
+  },
+  {
+    "id": "fourrure",
+    "type": "materials",
+    "label": "Fourrure",
+    "domain": "prop",
+    "color": "#6b5a48",
+    "roughness": 1,
+    "metalness": 0
+  },
+  {
+    "id": "acier-battu",
+    "type": "materials",
+    "label": "Acier battu",
+    "domain": "prop",
+    "color": "#8b9096",
+    "roughness": 0.45,
+    "metalness": 0.4
+  },
+  {
+    "id": "mailles",
+    "type": "materials",
+    "label": "Mailles",
+    "domain": "prop",
+    "color": "#6f7377",
+    "roughness": 0.5,
+    "metalness": 0.4
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",
@@ -498,6 +534,20 @@
     "color": "#4a2e20"
   },
   {
+    "id": "peau-verte-sombre",
+    "type": "materials",
+    "label": "Peau verte sombre",
+    "domain": "couleur",
+    "color": "#4b5e24"
+  },
+  {
+    "id": "peau-vert-jaune",
+    "type": "materials",
+    "label": "Peau vert-jaune",
+    "domain": "couleur",
+    "color": "#6b7a2c"
+  },
+  {
     "id": "cheveux-blonds",
     "type": "materials",
     "label": "Cheveux blonds",
@@ -573,6 +623,13 @@
     "label": "Yeux marron",
     "domain": "couleur",
     "color": "#5a3a24"
+  },
+  {
+    "id": "yeux-rouges",
+    "type": "materials",
+    "label": "Yeux rouges",
+    "domain": "couleur",
+    "color": "#b3201a"
   },
   {
     "id": "tissu-ecru",
@@ -657,6 +714,20 @@
     "label": "Tissu bleu-gris",
     "domain": "couleur",
     "color": "#3e4e54"
+  },
+  {
+    "id": "tissu-vieux-rose",
+    "type": "materials",
+    "label": "Tissu vieux rose",
+    "domain": "couleur",
+    "color": "#8e6468"
+  },
+  {
+    "id": "tissu-vert-sauge",
+    "type": "materials",
+    "label": "Tissu vert sauge",
+    "domain": "couleur",
+    "color": "#7d8a6a"
   },
   {
     "id": "cuir-fauve",
@@ -748,6 +819,20 @@
     "label": "Fourrure grise",
     "domain": "couleur",
     "color": "#7a7670"
+  },
+  {
+    "id": "fourrure-rousse",
+    "type": "materials",
+    "label": "Fourrure rousse",
+    "domain": "couleur",
+    "color": "#683b2d"
+  },
+  {
+    "id": "vert-feuille",
+    "type": "materials",
+    "label": "Vert feuille",
+    "domain": "couleur",
+    "color": "#55703a"
   },
   {
     "id": "plume-rousse",

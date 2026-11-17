@@ -62,7 +62,14 @@ import {
   type CompetenceDeCarriere,
 } from '../../engine/character';
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
-import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
+import {
+  dotationsDuHeros,
+  emplacementsDeDotation,
+  emplacementTranche,
+  estEmplacementRacine,
+  porteurDeLEspece,
+  type PorteurDArme,
+} from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import {
   findSpeciesById,
@@ -246,6 +253,12 @@ export function draftFromHero(hero: Combatant, seed: number): CreatorDraft {
 
 /** Race du brouillon — `undefined` tant qu'aucune n'est choisie (page blanche, id vide). */
 export const draftSpecies = (d: CreatorDraft): SpeciesData | undefined => (d.speciesId ? findSpeciesById(d.speciesId) : undefined);
+/** Porteur d'arme du brouillon : celui de sa race (`porteurDeLEspece`), sans Taille ni Groupe sans race (Moyenne,
+ *  `effectiveSize`). */
+export const draftPorteur = (d: CreatorDraft): PorteurDArme => {
+  const sp = draftSpecies(d);
+  return sp ? porteurDeLEspece(sp) : {};
+};
 export const draftLevel = (d: CreatorDraft): CareerLevelData | undefined =>
   levelsForCareer(d.careerId).find((l) => l.level === 1);
 /** Race choisie ET carrière choisie — la fiche vivante ne se construit qu'une fois les deux posées. */
@@ -279,8 +292,8 @@ function sansAdresse<V>(parAdresse: Record<AdresseDeCreation, V>, adresse: Adres
 
 export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
   if (id === d.speciesId) return d;
-  // Changer d'espèce invalide les choix dépendants (compétences/talents d'espèce, carrière tirée) —
-  // le geste des Talents aléatoires compris (la table des tirages appartient à l'espèce).
+  // Changer d'espèce invalide les choix dépendants (compétences/talents d'espèce, carrière tirée, dotations offertes
+  // au porteur de l'espèce, `draftPorteur`) — le geste des Talents aléatoires compris (la table des tirages appartient à l'espèce).
   return {
     ...d,
     speciesId: id,
@@ -293,6 +306,7 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
     talentsRolled: false,
     pettySpells: [],
     careerRolls: [],
+    trappingChoices: {},
   };
 }
 

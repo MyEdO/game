@@ -15,9 +15,21 @@
  *
  * Lecteurs : la porte du projet (`refsNarrativesPendantes`, `./projet.ts`), le raffinage du narratif
  * (`./narratif.ts`), le contrat des scénarios de test (`./scenarios-contrat.test.ts`) et l'éditeur
- * (`referencesA` garde une suppression, `renommeRef` propage un renommage).
+ * (`referencesA` garde une suppression, `renommeRef` propage un renommage), qui y joignent les sites LOCAUX d'une
+ * entrée, ceux de la portée que la racine du projet ouvre sur son registre (`sitesDeLaPortee`), reçus en paramètre.
  */
-import { aucunDe, inconnuDe, nomDe, REFERENCES_NARRATIVES, type RegistreReference } from './registres-narratifs';
+import {
+  aucunDe,
+  inconnuDe,
+  nomDe,
+  REFERENCES_NARRATIVES,
+  REGISTRES_NARRATIFS,
+  type CleDeRegistreNarratif,
+  type RegistreReference,
+} from './registres-narratifs';
+import type { RegistreCreable } from './ecritures-du-narratif';
+import type { NarratifBlock } from './narratif';
+import type { sitesDeLaPortee } from '../grammaire/collection-cle';
 import { noeudsDeCondition, sitesDeLaCarte, sitesDeLaScene, sitesDuNarratifDuPaquet, type SitesDuPaquet } from './sites-de-paquet';
 import { FORMES_D_ETAT, LIBELLE_D_USAGE, type FormeDEtatKind, type UsageDEtat } from './formes-d-etat';
 import { estObjet } from '../../../lib/objet.mjs';
@@ -213,7 +225,7 @@ export function refsNarrativesPendantes(doc: ProjetAReferences, narratif: Narrat
 /** Ce que désigne une référence : l'entrée `id` du `registre`, ou sa sous-entrée `sous` (stade d'un
  *  indice, valeur d'un état). */
 export interface CibleNarrative {
-  readonly registre: RegistreReference;
+  readonly registre: RegistreCreable;
   readonly id: string;
   readonly sous?: string;
 }
@@ -229,39 +241,72 @@ export interface Renommage {
   readonly nouveau: string;
 }
 
-/** Les sites du projet qui désignent `cible`. */
-export function referencesA(projet: ProjetAReferences, cible: CibleNarrative): SiteDeRef[] {
-  return sitesDuProjet(projet).filter((s) => vise(s, cible));
+/** Un site LOCAL d'une entrée : une référence que la portée ouverte sur son registre admet (`sitesDeLaPortee`), sa valeur
+ *  ou sa clé de record (`parCle`, dernier segment de `chemin`), au chemin de donnée `chemin` depuis la racine du projet. */
+export type SiteLocal = ReturnType<typeof sitesDeLaPortee>[number];
+
+/** Les sites locaux `locaux` qui désignent `cible` : une entrée, jamais une sous-entrée. */
+const locauxVises = (locaux: readonly SiteLocal[], cible: CibleNarrative): SiteLocal[] =>
+  (cible.sous === undefined ? locaux.filter((s) => s.id === cible.id) : []);
+
+/** Les sites du projet qui désignent `cible` : par clé (`sitesDuProjet`), puis parmi les sites locaux `locaux` de son
+ *  registre. */
+export function referencesA(projet: ProjetAReferences, cible: CibleNarrative, locaux: readonly SiteLocal[]): (SiteDeRef | SiteLocal)[] {
+  return [...sitesDuProjet(projet).filter((s) => vise(s, cible)), ...locauxVises(locaux, cible)];
 }
 
-/** Le projet où chaque site qui désigne `cible` désigne `nouveau` à la place. Seules les racines
- *  touchées (scène, carte, narratif) sont copiées ; les autres restent les mêmes objets. PURE. */
-export function renommeRef<P extends ProjetAReferences>(projet: P, cible: CibleNarrative, nouveau: string): P {
-  const reecrit = <T>(racine: T, sitesDe: (r: unknown) => SiteDeRef[]): T => {
-    if (!sitesDe(racine).some((s) => vise(s, cible))) return racine;
+/** Écrit `nouveau` au site local de chemin `chemin` (relatif à `racine`) : remplace la valeur, ou renomme la clé de record
+ *  (`parCle`) en gardant sa valeur et l'ordre des clés. */
+function ecritAuChemin(racine: unknown, chemin: Chemin, parCle: boolean, nouveau: string): void {
+  const porteur = chemin.slice(0, -1).reduce<unknown>((o, pas) => (o as Record<string | number, unknown>)[pas], racine) as Record<string | number, unknown>;
+  const cle = chemin[chemin.length - 1];
+  if (!parCle) {
+    porteur[cle] = nouveau;
+    return;
+  }
+  const entrees = Object.entries(porteur);
+  for (const [k] of entrees) delete porteur[k];
+  for (const [k, v] of entrees) porteur[k === cle ? nouveau : k] = v;
+}
+
+/** Le projet où chaque site qui désigne `cible` désigne `nouveau` à la place : par clé, et parmi les sites locaux `locaux`
+ *  de son registre, écrits par chemin (`ecritAuChemin`), du plus profond au moins profond. Seules les racines touchées
+ *  (scène, carte, narratif) sont copiées ; les autres restent les mêmes objets. PURE. */
+export function renommeRef<P extends ProjetAReferences>(projet: P, cible: CibleNarrative, nouveau: string, locaux: readonly SiteLocal[]): P {
+  const vises = locauxVises(locaux, cible).sort((a, b) => b.chemin.length - a.chemin.length);
+  const reecrit = <T>(racine: T, sitesDe: (r: unknown) => SiteDeRef[], prefixe: Chemin): T => {
+    const ici = vises.filter((s) => prefixe.every((pas, k) => s.chemin[k] === pas));
+    if (!ici.length && !sitesDe(racine).some((s) => vise(s, cible))) return racine;
     const copie = structuredClone(racine);
     for (const s of sitesDe(copie)) if (vise(s, cible)) s.porteur[s.cle] = nouveau;
+    for (const s of ici) ecritAuChemin(copie, s.chemin.slice(prefixe.length), s.parCle, nouveau);
     return copie;
   };
   return {
     ...projet,
-    scenes: projet.scenes.map((s) => reecrit(s, (r) => sitesDeScene(r))),
-    ...(projet.worldMap != null ? { worldMap: reecrit(projet.worldMap, (r) => sitesDeCarte(r)) } : {}),
-    ...(projet.narratif != null ? { narratif: reecrit(projet.narratif, (r) => sitesDuNarratif(r)) } : {}),
+    scenes: projet.scenes.map((s, i) => reecrit(s, (r) => sitesDeScene(r), ['scenes', i])),
+    ...(projet.worldMap != null ? { worldMap: reecrit(projet.worldMap, (r) => sitesDeCarte(r), ['worldMap']) } : {}),
+    ...(projet.narratif != null ? { narratif: reecrit(projet.narratif, (r) => sitesDuNarratif(r), ['narratif']) } : {}),
   } as P;
 }
 
-/** Le LIEU d'un site : la racine qui le porte et, pour une scène ou un indice, son nom (libellé de la
- *  scène, titre de l'indice, sinon son id). La phrase se compose à l'affichage. */
-export type LieuDeSite = { racine: 'scene' | 'indice'; nom: string } | { racine: 'carte' };
+/** Le LIEU d'un site : la racine qui le porte ; d'une scène, son nom (libellé, sinon id) ; d'une entrée d'un registre du
+ *  narratif (`chemin[1]`), son registre et l'entrée elle-même ; d'un autre membre du narratif (la clôture), sa clé. Les
+ *  noms et la phrase se composent à l'affichage. */
+export type LieuDeSite =
+  | { racine: 'scene'; nom: string }
+  | { racine: 'carte' }
+  | { racine: 'registre'; registre: CleDeRegistreNarratif; entree: unknown }
+  | { racine: 'narratif'; cle: Exclude<keyof NarratifBlock, CleDeRegistreNarratif> };
 
-export function lieuDuSite(projet: ProjetAReferences, site: SiteDeRef): LieuDeSite {
-  const [racine, , rang] = site.chemin;
+const estRegistre = (cle: unknown): cle is CleDeRegistreNarratif => REGISTRES_NARRATIFS.some((r) => r.cle === cle);
+
+export function lieuDuSite(projet: ProjetAReferences, site: { readonly chemin: Chemin }): LieuDeSite {
+  const [racine, cle, rang] = site.chemin;
   if (racine === 'scenes') {
-    const sc = objet(projet.scenes[site.chemin[1] as number]);
+    const sc = objet(projet.scenes[cle as number]);
     return { racine: 'scene', nom: String(sc.label || sc.id) };
   }
   if (racine === 'worldMap') return { racine: 'carte' };
-  const ind = objet(liste(objet(projet.narratif).indices)[rang as number]);
-  return { racine: 'indice', nom: String(ind.titre || ind.id) };
+  return estRegistre(cle) ? { racine: 'registre', registre: cle, entree: liste(objet(projet.narratif)[cle])[rang as number] } : { racine: 'narratif', cle: cle as Exclude<keyof NarratifBlock, CleDeRegistreNarratif> };
 }

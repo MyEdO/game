@@ -10,8 +10,8 @@
  * `engine/structures.ts:164` `refId: struct.id` et par le spawn des coques et engins) ; le bestiaire SEUL pour la
  * référence d'un vivant (`livingRefSchema`, `defs-scenes/effets.ts`) :
  * `ref: { id, type: 'creature' }` (`givePossession`), le `ref: { id }` d'une possession, qui n'ouvre
- * jamais son objet (un `{ ref: … }` est un tirage ou une offre de Compétence), et celui d'un adversaire
- * de poursuite (`foes:`).
+ * jamais son objet (un `{ ref: … }` est un tirage ou une offre de Compétence), et l'adversaire de poursuite,
+ * `{ id }` posé dans `foes:`.
  * Exemptés au SITE (`fichier|ligne du site`) : les tests dont la réf MORTE est le SUJET (refus prouvé).
  */
 import { describe, it, expect } from 'vitest';
@@ -37,7 +37,7 @@ const MOTIFS: { re: RegExp; resout: (id: string) => boolean }[] = [
   { re: /spawnEnemy\(\s*\{\s*ref:\s*'([^']*)'/g, resout: creature },
   { re: /\bref:\s*\{\s*id:\s*'([^']*)',\s*type:\s*'creature'/g, resout: creature },
   { re: /(?<!\{\s*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: creature },
-  { re: /(?<=foes:[^\n]*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: creature },
+  { re: /(?<=foes:\s*\[[^\]]*)\{\s*id:\s*'([^']*)'\s*\}/g, resout: creature },
   { re: /creatureId:\s*'([^']*)'/g, resout: refDeCombattant },
   { re: /\{[^{}]*kind:\s*'personnage'[^{}]*?\bcreature:\s*\{\s*id:\s*'([^']*)'/g, resout: creature },
   { re: /mode:\s*'entite',\s*kind:\s*'personnage',\s*ref:\s*'([^']*)'/g, resout: creature },

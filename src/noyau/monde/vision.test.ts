@@ -489,10 +489,10 @@ describe('croisée (#1712) — la vue et le tir passent, le pas non ; volets clo
   it('croisée portée par une Structure : le couvert descend d’UN cran', () => {
     expect(porteuse, 'une Structure à couvert dégradable existe au dataset').toBeTruthy();
     const brut = couvertDepuisDifficulte(porteuse.couvertPenalty!);
-    expect(couvertDArete(couloir({ structure: porteuse.id }), A, { x: 2, y: 0 })).toBe(cranDeCouvertEnMoins(brut));
+    expect(couvertDArete(couloir({ structure: porteuse.id }), { pos: A }, { pos: { x: 2, y: 0 } }, cranDeCouvertEnMoins)).toBe(cranDeCouvertEnMoins(brut));
   });
 
   it('croisée sur MUR NU (sans `structure`) : aucun couvert', () => {
-    expect(couvertDArete(couloir(), A, { x: 2, y: 0 })).toBe('none');
+    expect(couvertDArete(couloir(), { pos: A }, { pos: { x: 2, y: 0 } }, cranDeCouvertEnMoins)).toBe('none');
   });
 });

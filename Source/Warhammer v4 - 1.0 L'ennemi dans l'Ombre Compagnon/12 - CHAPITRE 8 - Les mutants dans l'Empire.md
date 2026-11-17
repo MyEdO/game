@@ -60,7 +60,7 @@ Les Tableaux de Corruption des pages 184-185 du **Livre de Règles de WFJDR** pr
 Nous rappelons que si la mutation est visible à l'œil, non seulement le mutant subira des pénalités à ses Tests de Sociabilité en fonction des circonstances, mais il est probable que les gens prennent la fuite en le voyant, que la Garde soit appelée, ou que les répurgateurs interviennent...
 
 
-### MUTATIONS PHYSIQUES
+### <span id="page-66-0" data-folio="66"></span>MUTATIONS PHYSIQUES
 
 | 1d100              |        |        |          |          |                                  |                                                                                                                                                                                                                                                     |
 |--------------------|--------|--------|----------|----------|----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -95,7 +95,7 @@ Nous rappelons que si la mutation est visible à l'œil, non seulement le mutant
 | 44                 | 44     | 52     | 45-46    | 49       | Fourrure3                        | Vous ne souffrez plus des effets de<br>l'Exposition aux climats froids, mais les<br>effets de l'Exposition aux climats chauds<br>sont doublés (WFJDR, page 181)                                                                                     |
 
 
-| 1d100              | Khorne | Nurgle | Slaanesh | Tzeentch |                                |                                                                                                                                                                    |  |
+<span id="page-67-0" data-folio="67"></span>| 1d100              | Khorne | Nurgle | Slaanesh | Tzeentch |                                |                                                                                                                                                                    |  |
 |--------------------|--------|--------|----------|----------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|--|
 | Toute<br>Puissance |        |        |          |          | Description                    | Effets                                                                                                                                                             |  |
 | 45-47              | -      | 53-54  | 47-48    | 50       | Branchies1                     | Vous pouvez respirer sous l'eau                                                                                                                                    |  |
@@ -147,7 +147,7 @@ Nous rappelons que si la mutation est visible à l'œil, non seulement le mutant
 <sup>3</sup> Cette mutation ne peut pas être dissimulée.
 
 
-### TÊTE BESTIALE
+### <span id="page-69-0" data-folio="69"></span>TÊTE BESTIALE
 
 | 1d100 |  |
 |-------|--|
@@ -199,7 +199,7 @@ Nous rappelons que si la mutation est visible à l'œil, non seulement le mutant
 
 #### MUTATIONS MENTALES
 
-| MUTATIONS MENTALES |        |        |          |          |                          |                                                                                                                                                                                                                                                                                       |  |
+<span id="page-70-0" data-folio="70"></span>| MUTATIONS MENTALES |        |        |          |          |                          |                                                                                                                                                                                                                                                                                       |  |
 |--------------------|--------|--------|----------|----------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--|
 | 1d100              |        |        |          |          |                          |                                                                                                                                                                                                                                                                                       |  |
 | Toute<br>Puissance | Khorne | Nurgle | Slaanesh | Tzeentch | Description              | Effets                                                                                                                                                                                                                                                                                |  |
@@ -226,7 +226,7 @@ Nous rappelons que si la mutation est visible à l'œil, non seulement le mutant
 saleté
 
 
-| 1d100              | Khorne | Nurgle | Slaanesh | Tzeentch |                         |                                                                                                                 |
+<span id="page-71-0" data-folio="71"></span>| 1d100              | Khorne | Nurgle | Slaanesh | Tzeentch |                         |                                                                                                                 |
 |--------------------|--------|--------|----------|----------|-------------------------|-----------------------------------------------------------------------------------------------------------------|
 | Toute<br>Puissance |        |        |          |          | Description             | Effets                                                                                                          |
 | 56-58              | -      | 52-56  | 59-62    | -        | Esprit solitaire        | -10 à tous les Tests lorsque le Personnage<br>est seul                                                          |

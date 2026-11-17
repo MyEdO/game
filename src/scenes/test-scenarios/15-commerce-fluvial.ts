@@ -116,6 +116,7 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
     pos: { x: Math.round(6 + (i / (RIVER_ORDER.length - 1)) * 88), y: Math.round(34 + 20 * Math.sin(i * 0.8)) },
     scene: { id: `quai-${e.id}` },
     icon: 'scenario/port',
+    taille: e.taille,
     market: reikMarket(e),
   }));
 

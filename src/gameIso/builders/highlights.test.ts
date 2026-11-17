@@ -94,12 +94,12 @@ describe('buildHighlights — surbrillances sémantiques (clés historiques stab
 describe('rangeBandTone — teinte dérivée du SIGNE de rangeBandModifier', () => {
   it('bonus (Bout Portant/Courte, mod > 0), neutre (Moyenne, mod = 0), malus (Longue/Extrême, mod < 0), null au-delà', () => {
     const rangeM = 20;
-    expect(rangeBandTone(1, rangeM)).toBe('bonus');
-    expect(rangeBandTone(5, rangeM)).toBe('bonus');
-    expect(rangeBandTone(10, rangeM)).toBe('neutre');
-    expect(rangeBandTone(25, rangeM)).toBe('malus');
-    expect(rangeBandTone(30, rangeM)).toBe('malus'); // borne Extrême (Portée×3 = 60 m = 30 cases)
-    expect(rangeBandTone(31, rangeM)).toBeNull(); // au-delà : hors de portée
+    expect(rangeBandTone(1, rangeM, 2)).toBe('bonus');
+    expect(rangeBandTone(5, rangeM, 2)).toBe('bonus');
+    expect(rangeBandTone(10, rangeM, 2)).toBe('neutre');
+    expect(rangeBandTone(25, rangeM, 2)).toBe('malus');
+    expect(rangeBandTone(30, rangeM, 2)).toBe('malus'); // borne Extrême (Portée×3 = 60 m = 30 cases)
+    expect(rangeBandTone(31, rangeM, 2)).toBeNull(); // au-delà : hors de portée
   });
 });
 

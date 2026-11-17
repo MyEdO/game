@@ -16,6 +16,7 @@ import { setDataset } from '../data/overrides';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { trappings, findTrappingById } from '../data';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import type { Possession } from '../engine/possession';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Get, Set } from './flowTypes';
@@ -79,7 +80,7 @@ describe('poserLApparence — apparence d’un objet', () => {
 
   it('admet la variante de l’objet de campagne puis retire son défaut local', () => {
     const hero = heroWithArmeSimple();
-    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', shape: { id: 'hache' }, formChoices: ['hache'] };
+    const objet = objetDeCampagne({ id: 'hache-de-campagne', shape: { id: 'hache' }, formChoices: ['hache'] });
     const narratif = { ...emptyNarratif(), objets: [objet] };
     hero.items = [{ ...itemFromTrappingById(objet.id, idsDeTest, objetDuNarratif(narratif))!, uid: hero.items![0].uid, equipped: true }];
     recomputeLoadout(hero);

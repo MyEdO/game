@@ -365,7 +365,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['FlowTest', 'opposed', 'src/noyau/combat/triggeredTest.ts @opp'],
   ['CountSpec', 'fixed', 'src/data/index.ts @count'],
   ['CountSpec', 'roll', 'src/data/index.ts @count'],
-  ['TrappingRef', 'label', 'src/engine/possessionGrants.ts @possessionGrantsFromRefs'],
+  ['TrappingRef', 'label', 'src/engine/possessionGrants.ts @commun'],
   ['FlowTest', 'argDifficulty', 'src/noyau/triggeredEffects.ts @visit'],
   ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @etapeRencontre'],
   ['TraitInstance', 'hidden', 'src/engine/groups.ts @hiddenGroupsOf'],
@@ -408,10 +408,10 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   TalentData: ['codexOnly', 'grantSpecGroups', 'specsOpen'],
   TraitData: ['difficulte', 'grantSpecGroups', 'specsOpen'],
   TrappingData: [
-    'bladed', 'consumableDuration', 'container', 'indirect', 'minRangeBand', 'onHitEffects',
-    'organicProjectile', 'requiresMastery', 'service', 'sizeFor', 'soloSimple',
+    'bladed', 'bouclierDEquipe', 'consumableDuration', 'container', 'indirect', 'minRangeBand', 'onHitEffects',
+    'organicProjectile', 'perteSansEquipe', 'requiresMastery', 'service',
   ],
-  WeaponGroupData: ['combat', 'poudre', 'siege'],
+  WeaponGroupData: ['combat', 'lancee', 'poudre', 'siege'],
 };
 
 /** Raison d'un zéro LU hors du type de l'entrée, mesurée par la jointure (lecture reliée au dataset sous
@@ -429,6 +429,7 @@ const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
   'PlanDEspece.echelle': 'lu par `jugerDeclaration` (`scripts/personnage-3d/base/declaration.mjs`), qui juge l’échelle d’art du porteur d’une base',
   'TrappingData.service': 'lu par clé dynamique : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`)',
   'WeaponGroupData.combat': 'lu par clé dynamique : discriminant de l’espace `weaponGroups.json?combat=…` (`grammaire/sourcesDeSpecs.ts`), filtré par `grammaire/cle-d-espace.ts`',
+  'WeaponGroupData.lancee': 'lu par clé dynamique : marqueur `lancee` (`porteLeMarqueur`, `marqueLancee`, `src/engine/weaponGroup.ts`)',
   'WeaponGroupData.poudre': 'lu par clé dynamique : marqueur `poudre` (`porteLeMarqueur`, `marqueAPoudre`, `src/engine/weaponGroup.ts`)',
   'WeaponGroupData.siege': 'lu par clé dynamique : marqueur `siege` (`porteLeMarqueur`, `marqueDeSiege`, `src/data/index.ts`)',
 };

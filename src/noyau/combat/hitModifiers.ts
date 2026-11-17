@@ -36,7 +36,7 @@ import { woundsFromHit } from '../../engine/woundsCalc';
 import { distanceDeCombat } from '../monde/footprint';
 import { porteeEnCases } from '../monde/combatGeometry';
 import { pushBackTiles } from '../combatPlacement';
-import { sceneMetresPerTile } from '../monde/scene';
+import { sceneMetresPerTile, type Scene } from '../monde/scene';
 import { actorIn } from '../monde/combatants';
 import { t } from '../../i18n';
 import type { FragmentDeTables } from '../tablesPosees';
@@ -59,7 +59,7 @@ function aurasCouvrant<T extends { radiusMeters: number }>(
   combatants: Combatant[],
   attacker: Combatant,
   target: Combatant,
-  mpt: number,
+  scene: Scene | null,
   lire: (e: NonNullable<Combatant['activeEffects']>[number]) => T | undefined,
 ): T[] {
   const out: T[] = [];
@@ -68,8 +68,8 @@ function aurasCouvrant<T extends { radiusMeters: number }>(
     for (const e of w.activeEffects ?? []) {
       const aura = lire(e);
       if (!aura) continue;
-      const r = porteeEnCases(aura.radiusMeters, mpt);
-      if (distanceDeCombat(w, target) <= r && distanceDeCombat(w, attacker) > r) out.push(aura);
+      const r = porteeEnCases(aura.radiusMeters, sceneMetresPerTile(scene));
+      if (distanceDeCombat(scene, w, target) <= r && distanceDeCombat(scene, w, attacker) > r) out.push(aura);
     }
   }
   return out;
@@ -81,9 +81,9 @@ export function wardedAgainst(
   attacker: Combatant,
   target: Combatant,
   field: 'arrowWard' | 'domeWard',
-  mpt: number,
+  scene: Scene | null,
 ): boolean {
-  return aurasCouvrant(combatants, attacker, target, mpt, (e) => e[field]).length > 0;
+  return aurasCouvrant(combatants, attacker, target, scene, (e) => e[field]).length > 0;
 }
 
 /** Les Traits que les Dômes couvrant la cible lui OCTROIENT (LDB 47 l.410) — la charge de l'aura est
@@ -93,9 +93,9 @@ export function domeWardTraits(
   combatants: Combatant[],
   attacker: Combatant,
   target: Combatant,
-  mpt: number,
+  scene: Scene | null,
 ): TraitList {
-  return aurasCouvrant(combatants, attacker, target, mpt, (e) => e.domeWard).map((a) => a.ward);
+  return aurasCouvrant(combatants, attacker, target, scene, (e) => e.domeWard).map((a) => a.ward);
 }
 
 /** LES SAUVEGARDES « 1d10 ≥ Indice » offertes à la cible CONTRE CE COUP : celles de ses propres Traits
@@ -108,9 +108,9 @@ export function seuilsDeSauvegarde(
   attacker: Combatant,
   target: Combatant,
   attaque: TypeDAttaque,
-  mpt: number,
+  scene: Scene | null,
 ): { thr: number; trait: TraitList[number]; dome: boolean }[] {
-  const octroyes = attaque === 'melee' ? [] : domeWardTraits(combatants, attacker, target, mpt);
+  const octroyes = attaque === 'melee' ? [] : domeWardTraits(combatants, attacker, target, scene);
   // CHOIX D'IMPLÉMENTATION non sourcé — le RAW (LDB 47 l.410) OCTROIE le Trait et reste MUET sur le
   // cumul : ici un Trait ne se possède qu'UNE fois, donc deux dômes couvrants (ou un dôme sur un porteur
   // qui a déjà le Trait) n'offrent pas deux dés : UN seul par id de Trait, au meilleur Indice, la
@@ -279,7 +279,7 @@ export const TABLES = {
         // Sauvegarde déjà tombée : on APPLIQUE son issue. « le coup est ignoré, même s'il s'agit d'un
         // critique » (LDB 85 l.98) — la ligne du dé, elle, est écrite par la porte (`cascade.lireEnSeuil`).
         if (res.sauvegarde) return res.sauvegarde.sauve ? toucheSauvee(res) : res;
-        const seuils = seuilsDeSauvegarde(get().battle?.combatants ?? [], attacker, target, attaque, sceneMetresPerTile(get().scene))
+        const seuils = seuilsDeSauvegarde(get().battle?.combatants ?? [], attacker, target, attaque, get().scene)
           .map(({ thr, trait, dome }) => ({ indice: thr, source: { kind: 'trait' as const, id: trait.id }, dome }));
         // GRAPPE DÉPENDANTE : les seuils partent ENSEMBLE à la porte, qui n'en ouvre qu'UN à la fois — le
         // suivant n'existe que si le précédent a raté, aucun dé n'est minté d'avance.
@@ -296,7 +296,7 @@ export const TABLES = {
       order: 8,
       apply: ({ get, attacker, target, weapon, attaque, res }) => {
         if (res.hit && attaque === 'distance' && weapon && organicProjectile(weapon)
-          && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
+          && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', get().scene)) {
           res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.bouclierAntiFlechesDesagrege', { name: target.label }) };
         }
         return res;
@@ -325,7 +325,7 @@ export const TABLES = {
     },
     {
       // Perturbante (LDB 62 l.272-274) : mode « Repousser » armé → l'attaque réussie ne cause PAS de
-      // Dégâts, l'adversaire recule d'1 m par DR du Test opposé (1 case = 2 m, LDB 15 l.12).
+      // Dégâts, l'adversaire recule d'1 m par DR du Test opposé, en cases à l'échelle de la scène (LDB 15 l.12).
       id: 'pushback',
       order: 50,
       apply: ({ get, attacker, target, weapon, attaque, res }) => {
@@ -333,7 +333,7 @@ export const TABLES = {
           attacker.pushbackMode = false; // consommé par cette attaque (réussie ou non)
           if (res.hit) {
             const meters = Math.max(0, res.netSL);
-            const wanted = Math.floor(meters / 2);
+            const wanted = Math.floor(meters / sceneMetresPerTile(get().scene));
             const moved = pushBackTiles(get, attacker, target, wanted);
             res = {
               ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure

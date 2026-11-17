@@ -2,7 +2,7 @@ extends SceneTree
 
 ## La vision du groupe sous le jeu (#3950, `hotes/godot/pont/CONTRAT.md`, méthode `vision`, champ `vue.vision`), sur le
 ## noyau vivant (`TransportDuProcessus`, `--pont=<chemin>` après `--`), chaque partie sur son propre pont espion
-## (`PontEspion`, qui garde chaque méthode appelée et la dernière réponse de chacune) et son combat (`scenes/Combat.tscn`).
+## (`PontEspion`) et son combat (`scenes/Combat.tscn`).
 ## `siege-enceinte` : au départ, chaque combattant posé que `voisins` ne nomme pas (`vue.occupants`) n'a ni modèle
 ## ni marque ; la vision est posée une fois, son image est le masque servi, la case d'un héros lit 255, une case d'un
 ## ennemi hors de vue jamais 255 et l'une d'elles 0 ; sans actif en vue, la caméra suit un combattant dessiné.
@@ -34,18 +34,9 @@ var _fautes: Array[String] = []
 var _signales: Array[String] = []
 
 
-## Le pont du noyau vivant, sur la partie du scénario `scenario` : il garde chaque méthode appelée, dans l'ordre, et la
-## dernière réponse de chacune.
-class PontEspion extends PontDuNoyau:
+## Le pont espion sur la partie du scénario `scenario`.
+class PontDuScenario extends PontEspion:
 	var scenario := ""
-	var appels: Array[String] = []
-	var reponses := {}
-
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
-		appels.append(methode)
-		var reponse := super(methode, entree)
-		reponses[methode] = reponse
-		return reponse
 
 	func parametre(cle: String) -> String:
 		return scenario if cle == "scenario" else super(cle)
@@ -273,7 +264,7 @@ func _arene() -> void:
 ## vide et une faute si elle ne vient pas.
 func _demarrer(scenario: String) -> Dictionary:
 	_signales.clear()
-	var pont := PontEspion.new()
+	var pont := PontDuScenario.new()
 	pont.scenario = scenario
 	PontDuNoyau.remplacer(self, pont)
 	pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))

@@ -28,6 +28,7 @@ import {
   lignesNeuves,
   repereNeuf,
   stadeCouple,
+  type CorpsNeuf,
   type Identite,
   type RegistreCreable,
 } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
@@ -41,7 +42,6 @@ import {
   retireDuProjet,
   type ProjetEdite,
 } from '../../noyau/narratifEdit';
-import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
 import { ChipDeRefus } from '../ChipDeRefus';
@@ -53,6 +53,7 @@ import { t } from '../../i18n';
 import type {
   NarratifBlock,
   PresetPnj,
+  ProfilDePreset,
   Affaire,
   Indice,
   IndiceStade,
@@ -155,7 +156,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
     return true;
   };
   /** Crée une entrée (`ajouteEntree`) et la sélectionne. */
-  const ajoute = <R extends RegistreCreable>(registre: R, entree: Omit<NarratifBlock[R][number], 'id'>, choisir: (id: string) => void) => {
+  const ajoute = <R extends RegistreCreable>(registre: R, entree: CorpsNeuf<R>, choisir: (id: string) => void) => {
     const out = ajouteEntree(narratif, registre, entree);
     poserNarratif(out.narratif);
     choisir(out.id);
@@ -966,11 +967,11 @@ function PresetForm({ porteur, preset, refusDe, onRename, onPatch, refus, onRemo
   const { descRef } = profil;
 
   /** `profil` patché : une clé à `undefined` se retire, et `profil` vide aussi. */
-  const profilPatche = (patch: Partial<CreatureData>): Partial<CreatureData> | undefined => {
-    const next = Object.fromEntries(Object.entries({ ...profil, ...patch }).filter(([, v]) => v !== undefined)) as Partial<CreatureData>;
+  const profilPatche = (patch: ProfilDePreset): ProfilDePreset | undefined => {
+    const next = Object.fromEntries(Object.entries({ ...profil, ...patch }).filter(([, v]) => v !== undefined)) as ProfilDePreset;
     return Object.keys(next).length ? next : undefined;
   };
-  const patchProfil = (patch: Partial<CreatureData>) => onPatch({ profil: profilPatche(patch) });
+  const patchProfil = (patch: ProfilDePreset) => onPatch({ profil: profilPatche(patch) });
   /** Surcharge d'une carac (vide = héritée de la base) — retire `char` s'il redevient vide. */
   const setChar = (k: CharKey, v: number | null) => {
     const char = { ...(profil.char ?? {}) };

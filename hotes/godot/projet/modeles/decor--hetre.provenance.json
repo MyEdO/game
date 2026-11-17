@@ -1,0 +1,13 @@
+{
+  "model": "decor--hetre.glb",
+  "model_sha256": "912f823d0e79dca4444e89fd37e8d507d1709dea6ec2d13a49dcfbb112c4f98d",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
