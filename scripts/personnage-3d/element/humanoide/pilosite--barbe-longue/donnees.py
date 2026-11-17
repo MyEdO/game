@@ -85,13 +85,15 @@ BARBE = {
     'hauteur': (0.003, 0.020),          # illustration : m au-dessus de la peau, rase à la joue, fournie au menton
     # (azimut, m) : longueur de la tombée sous la mâchoire. Illustration : 0,185 m au milieu, jusqu'au sternum (base : z
     # ~1,40) ; HYPOTHÈSE : 0,21 m, pour que la masse qui ressort sous l'écharpe du capuchon garde ses ~10 cm, bras en T
-    # comme en pose ; elle se resserre en pointe, les favoris ne tombent pas
+    # comme en pose ; les favoris ne tombent pas
     # Comptée sous la mâchoire du milieu, par rangs communs à toutes les colonnes (la première valeur, la plus longue,
     # divisée en `rangs_de_tombee`) : des rangs propres à chaque colonne vrillaient les quads d'une colonne longue à sa
     # voisine courte (`enroulement/triangle-retourne`, 6 triangles à x ±0,042 et ±0,067, sonde)
-    'longueur': [(0.0, 0.210), (14.0, 0.210), (27.0, 0.175), (40.0, 0.105), (53.0, 0.070), (60.0, 0.0), (80.0, 0.0)],
+    'longueur': [(0.0, 0.210), (27.0, 0.210), (40.0, 0.175), (53.0, 0.105), (60.0, 0.0), (80.0, 0.0)],
     'rangs_de_tombee': 6,               # HYPOTHÈSE de maillage
-    'resserrement': 0.35,               # illustration : la masse perd ~35 % de sa largeur de la mâchoire à la pointe
+    # illustration : la masse garde presque la largeur du visage jusqu'en bas ; resserrée de 35 % et raccourcie dès
+    # 27°, elle se lisait comme une cravate sous l'écharpe (rendu de face)
+    'resserrement': 0.10,
     'recul': 0.030,                     # HYPOTHÈSE : m, ce dont la pointe se rapproche de l'axe du cou, avant le jeu
     # HYPOTHÈSE : m, de la barbe à la robe, au cou et au torse ; au-delà de `PERCEE_M` (1 cm, `hotes/godot/asset/pile.ts`),
     # en deçà duquel la pile des couches retient une couche derrière sa voisine
