@@ -267,7 +267,7 @@ export const qualityRefSchema = refIndicee('quality');
 export type QualityRef = z.infer<typeof qualityRefSchema>;
 
 /** Qualité MAJORÉE d'une munition (« Explosion +1 », « Tir de zone +3 ») : `majoration` s'ajoute à l'Indice de la même
- *  qualité de l'arme, exclusive de `value`. Résolue par `weaponWithAmmo` (`engine/items.ts`). CRB 086 l.150 ; AA 08 l.496-497 ;
+ *  qualité de l'arme, exclusive de `value`. Résolue par `weaponWithAmmo` (`engine/items.ts`). LDB 62 l.123 ; AA 08 l.496-497 ;
  *  #4346 */
 const qualiteMajoreeRefSchema = ref('quality', { majoration: nommerNoeud(z.number().int().positive(), { nom: 'majoration' }) });
 

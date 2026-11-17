@@ -37,7 +37,7 @@ describe('saisie de qualité — splitIndice', () => {
 });
 
 describe('qualité majorée d’une munition — « +N » (#4346)', () => {
-  it('se rend « +N » depuis le catalogue (CRB 086 l.150 ; AA 08 l.496-497)', () => {
+  it('se rend « +N » depuis le catalogue (LDB 62 l.123 ; #4346 ; AA 08 l.496-497)', () => {
     const libelles = (id: string) => findTrappingById(id)!.qualities.map((q) => qualityRefLabel(qualityInstance(q)));
     expect(libelles('petites-munitions-et-poudre')).toEqual(['À Explosion +1']);
     expect(libelles('ferraille-et-poudre')).toContain('Tir de zone +3');

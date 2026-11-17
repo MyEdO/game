@@ -1599,7 +1599,7 @@ export function consumeAmmo(c: Combatant, used: ItemInstance): void {
  *  l'utilise ; arme à Dégâts « – » : ceux de la munition, AA 10 l.192) et Atouts fusionnés (ex. Empaleuse
  *  de la Flèche). Qualité de la munition : majorée, l'Indice de l'arme + `majoration` (`majoration` si l'arme ne
  *  l'a pas) ; à Indice, il remplace celui de l'arme ; sans Indice, ajoutée si l'arme ne l'a pas. #4346 ; #4361 ;
- *  CRB 086 l.150 ; AA 08 l.496-497 */
+ *  LDB 62 l.123 ; AA 08 l.496-497 */
 export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const w = weapon.damage;
   const a = ammo.damage;

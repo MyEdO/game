@@ -954,7 +954,7 @@ describe('Munitions & rechargement', () => {
     const tir = (armeId: string, munitionId: string) => weaponWithAmmo(arme(armeId), itemFromTrappingById(munitionId, idsDeTest)!);
     const indice = (w: Weapon, id: string) => w.qualities.find((q) => q.id === id)?.value;
     it.each([
-      ['tromblon', 'petites-munitions-et-poudre', 'a-explosion', 4], // Explosion 3 + 1 : CRB 086 l.150, arbitrage #4346 « +1 (Recommandé) »
+      ['tromblon', 'petites-munitions-et-poudre', 'a-explosion', 4], // Explosion 3 + 1 : LDB 62 l.123, arbitrage #4346 « +1 (Recommandé) »
       ['tromblon-a-meche', 'petites-munitions-et-poudre', 'a-explosion', 1], // arme sans Explosion : arbitrage #4346 « La qualité à N (Recommandé) »
       ['tromblon-a-meche', 'ferraille-et-poudre', 'tir-de-zone', 6], // Tir de zone 3 + 3 : AA 08 l.496
       ['mortier-a-main', 'grappin-munition', 'recharge', 4], // Recharge 2 + 2 : AA 08 l.497
