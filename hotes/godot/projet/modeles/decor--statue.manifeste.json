@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "statue"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "marbre",
+      "palette": "corps",
+      "matiere": "prop--albatre"
+    }
+  ],
+  "glb": {
+    "sha256": "de4d55975b8f55641d0f37192f15e280bf735db0a6a975711d948db0d7e6b402",
+    "octets": 65240
+  }
+}

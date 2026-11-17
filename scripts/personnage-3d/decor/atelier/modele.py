@@ -46,9 +46,9 @@ def enclume(D, G, pieces, a):
     marteau posé sur le billot."""
     E, fer = D["ENCLUME"], pieces["fer"]
     billot = G.primitives[E["billot"]]
-    centre, rayon, hauteur = rond(billot)
+    centre, _, hauteur = rond(billot)
     sol, tete = centre - HAUT * (hauteur / 2), centre + HAUT * (hauteur / 2)
-    r = rayon * math.cos(math.pi / billot["sides"]) * E["rayon"]
+    r = geometrie.apotheme(billot) * E["rayon"]
     rondin(pieces, sol, tete, r, E["rondin"])
     part, haut, epais = E["frette"]
     cercle(fer, "z", tuple(sol.lerp(tete, part)), r, hauteur * haut, r * epais, E["rondin"]["cotes"], "fer")
@@ -146,7 +146,7 @@ def cuve(D, G, pieces, a):
     centre, rayon, hauteur = rond(corps)
     sol = centre - HAUT * (hauteur / 2)
     n = C["douves"]
-    pied, tete = (rayon * math.cos(math.pi / corps["sides"]) * part for part in C["rayons"])
+    pied, tete = (geometrie.apotheme(corps) * part for part in C["rayons"])
     e, plat = rayon * C["epaisseur"], math.cos(math.pi / n)
     chanfrein = e * C["chanfrein"]
 
@@ -241,7 +241,7 @@ def marmite(D, G, pieces, a):
     for k in range(cotes):
         dehors = cap(360 * (k + 0.5) / cotes)
         demi_h = h_foyer * B["hauteur"] / 2
-        face = atre + dehors * (r_foyer * math.cos(math.pi / cotes) * B["parement"]) + HAUT * demi_h
+        face = atre + dehors * (geometrie.apotheme(braises) * B["parement"]) + HAUT * demi_h
         geometrie.moellon(pieces["pierre"], face, dehors, HAUT.cross(dehors),
                           r_foyer * math.sin(math.pi / cotes) * B["largeur"], demi_h, r_foyer * B["queue"], B["taille"],
                           a)
@@ -256,10 +256,10 @@ def roue(D, G, pieces, a):
     palier et entretoise, sur deux longerons rivés et deux traverses ; un levier, son bras de fer sur le tourillon."""
     R, fer = D["ROUE"], pieces["fer"]
     jante = G.primitives[R["roue"]]
-    centre, rayon, epais = rond(jante)
+    centre, _, epais = rond(jante)
     axe, essieu = AXES[jante["axis"]]
     u, w = geometrie.repere(axe)
-    apotheme = rayon * math.cos(math.pi / jante["sides"])
+    apotheme = geometrie.apotheme(jante)
 
     def vers(tours):
         return u * math.cos(2 * math.pi * tours) + w * math.sin(2 * math.pi * tours)
@@ -277,8 +277,8 @@ def roue(D, G, pieces, a):
                     (tete, demi_e * T["epaisseur"] - chanfrein, pointe - chanfrein, chanfrein / 2)], essieu,
               essieu.cross(d), "fer")
     noix = G.primitives[R["moyeu"]]
-    moyeu, r_moyeu, l_moyeu = rond(noix)
-    r_moyeu *= math.cos(math.pi / noix["sides"])
+    moyeu, _, l_moyeu = rond(noix)
+    r_moyeu = geometrie.apotheme(noix)
     for k in range(Ra["nombre"]):
         d = vers((k + 0.5) / Ra["nombre"])
         planche(fer, centre + d * (r_moyeu * Ra["pied"]), centre + d * (dedans * Ra["tete"]), essieu, essieu.cross(d),
@@ -386,8 +386,7 @@ def ratelier(D, G, pieces, a):
     """Un râtelier d'armes d'après `RATELIER` : plinthe moulurée, deux poteaux, deux traverses chevillées que les
     hampes traversent ; trois armes d'hast, la hampe, la douille et le fer de chacune."""
     R, m = D["RATELIER"], pieces[MAT]
-    socle, (lx, ly, lz) = pave(G.primitives[R["socle"]])
-    profilee(m, socle - HAUT * (lz / 2), socle + HAUT * (lz / 2), (lx / 2, ly / 2), R["plinthe"])
+    geometrie.profile(m, G.primitives[R["socle"]], "h", R["plinthe"], MAT)
     poteaux = [pave(G.primitives[rang]) for rang in R["poteaux"]]
     for c, (cote, _, haut) in poteaux:
         profilee(m, c - HAUT * (haut / 2), c + HAUT * (haut / 2), (cote / 2 * R["poteau"], cote / 2 * R["poteau"]),

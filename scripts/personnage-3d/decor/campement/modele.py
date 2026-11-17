@@ -76,7 +76,7 @@ def charrette(D, G, pieces, a):
                "fer")
         cm, rm, lm = rond(boite)
         roue(bois, G.primitives[jante], rt - epais / 2, lt, D["ROUE"], (),
-             (pieces["laiton"], "laiton", rm * math.cos(math.pi / boite["sides"]), lm / 2))
+             (pieces["laiton"], "laiton", geometrie.apotheme(boite), lm / 2))
         moyeux.append((cm, rm))
     (gauche, rayon), (droite, _) = moyeux
     E = C["essieu"]
@@ -297,10 +297,10 @@ def barque(D, G, pieces, a):
 
     A = B["rame"]
     rame = G.primitives[B["aviron"]]
-    ca, ra, la = rond(rame)
+    ca, _, la = rond(rame)
     _, file = AXES[rame["axis"]]
     file = file * math.copysign(1, file.dot(descend))
-    ra *= math.cos(math.pi / rame["sides"])
+    ra = geometrie.apotheme(rame)
     ca.z = max(assises) + ra * A["manche"] * math.cos(math.pi / A["cotes"]) * (1 - M["ancrage"])
     pale, poignee = ca - file * (la / 2), ca - file * (la / 2) + file * (la * A["longueur"])
     profilee(bois, pale, pale.lerp(poignee, A["pale"]), (ra * A["section"][0], ra * A["section"][1]), A["profil"],
@@ -310,13 +310,13 @@ def barque(D, G, pieces, a):
 
     L = B["love"]
     glene = G.primitives[B["glene"]]
-    cg, rg, hg = rond(glene)
+    cg, _, hg = rond(glene)
     brin = hg * L["brin"]
     for lit_k in range(L["lits"]):
         for spire in range(L["spires"]):
             tore(pieces["corde"], AXES[glene["axis"]][0], (cg.x, cg.y, fond + brin * (L["pose"] + L["pas"] * lit_k)),
-                 rg * math.cos(math.pi / glene["sides"]) - brin * (1 + L["pas"] * spire + lit_k % 2), brin,
-                 *L["segments"], "corde")
+                 geometrie.apotheme(glene) - brin * (1 + L["pas"] * spire + lit_k % 2), brin, *L["segments"],
+                 "corde")
 
 
 def etal(D, G, pieces, a):
@@ -385,9 +385,9 @@ def tente(D, G, pieces, a):
     haubans de corde."""
     T, bois, toile, corde = D["TENTE"], pieces[MAT], pieces["toile"], pieces["corde"]
     faite = G.primitives[T["faitiere"]]
-    cf, rf, lf = rond(faite)
+    cf, _, lf = rond(faite)
     _, file = AXES[faite["axis"]]
-    apotheme = rf * math.cos(math.pi / faite["sides"])
+    apotheme = geometrie.apotheme(faite)
     pentes = [rampant(G.primitives[rang]) for rang in T["versants"]]
     (_, _, pied_du_versant, _, large), _ = pentes
     sol = pied_du_versant.z
@@ -448,8 +448,7 @@ def tente(D, G, pieces, a):
         piquet = G.primitives[rang]
         cq, rq, hq = rond(piquet)
         pied = cq - HAUT * (hq / 2)
-        tournee(bois, pied, pied + HAUT * hq, X, Y, rq * math.cos(math.pi / piquet["sides"]), T["piquet"],
-                Pe["cotes"])
+        geometrie.tourne(bois, piquet, T["piquet"], Pe["cotes"], MAT)
         prise = cf + file * (math.copysign(lf / 2, (cq - cf).dot(file)) * Ha["prise"])
         encoche = pied + HAUT * (hq * Ha["encoche"])
         tournee(corde, prise, encoche, *normales((encoche - prise).normalized()), rq * Ha["brin"], CYLINDRE,
@@ -464,8 +463,8 @@ def foin(D, G, pieces, a):
     assises = []
     for rang in F["assises"]:
         assise = G.primitives[rang]
-        c, r, h = rond(assise)
-        assises.append((c - HAUT * (h / 2), r * math.cos(math.pi / assise["sides"]), h))
+        c, _, h = rond(assise)
+        assises.append((c - HAUT * (h / 2), geometrie.apotheme(assise), h))
 
     def place(niveau):
         """Le centre du tas à `niveau` (rang d'une assise, part de sa hauteur), l'apothème et la hauteur de cette

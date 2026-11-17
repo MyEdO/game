@@ -1,0 +1,13 @@
+{
+  "model": "decor--lettre.glb",
+  "model_sha256": "71c881031aaf1f40a0b05881f1ea6e45f73f8d64662789d0c423b2d0a5909abb",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

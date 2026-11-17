@@ -242,15 +242,15 @@ def rouleau(D, G, pieces, a):
     """Une glène d'après `ROULEAU` : lits de spires sur un cœur d'ombre, œil ouvert, bout qui file."""
     R, corde = D["ROULEAU"], pieces["corde"]
     _, r_oeil, _ = rond(G.primitives[R["oeil"]])
-    couches = [(G.primitives[rang]["sides"], *rond(G.primitives[rang])) for rang in R["couches"]]
+    couches = [(geometrie.apotheme(p), *rond(p)) for p in (G.primitives[rang] for rang in R["couches"])]
     (_, pied, _, h_pied), (_, tete, _, h_tete) = couches[0], couches[-1]
     sol, hauteur = pied.z - h_pied / 2, tete.z + h_tete / 2 - (pied.z - h_pied / 2)
     nombre = len(couches) * R["lits"]
     brin = hauteur / (2 * nombre) * R["gras"]
     jeu = brin * R["jeu"]
     dedans = r_oeil + brin
-    lits = [(c, r * math.cos(math.pi / pans) - brin - jeu, sol + brin + (hauteur - 2 * brin) * k / (nombre - 1))
-            for k, (pans, c, r, _) in enumerate(couche for couche in couches for _ in range(R["lits"]))]
+    lits = [(c, apotheme - brin - jeu, sol + brin + (hauteur - 2 * brin) * k / (nombre - 1))
+            for k, (apotheme, c, _, _) in enumerate(couche for couche in couches for _ in range(R["lits"]))]
     for rang, (c, dehors, z) in enumerate(lits):
         spires = R["spires"] if rang == nombre - 1 else 2
         for k in range(spires):

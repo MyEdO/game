@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "crane-monstre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "os",
+      "palette": "corps",
+      "matiere": "prop--os"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    }
+  ],
+  "glb": {
+    "sha256": "e75bcf2d512ab3abfaaa95af9c541339c9bfe10c56b755c2bf0948f0581bed32",
+    "octets": 52808
+  }
+}
