@@ -4,7 +4,7 @@
   corps le long de son rayon, plus le jeu ; les rayons tombent de part et d'autre du milieu du devant, jamais sur la
   couture du milieu, où la visée passe entre deux triangles ;
 - le nœud : un fuseau couché le long de la corde, à l'angle `NOEUD['angle']` depuis le devant, jamais plus fin qu'elle ;
-- l'emplacement `ceinture_avant`, offert sur la face extérieure de la corde au milieu du devant (`Base.offrir`), aux
+- l'emplacement `ceinture_avant`, offert sur la face extérieure de la corde au milieu du devant (`Base.offrir_sur`), aux
   poids de la bure sous lui, comme la bure l'offre sur sa surface (`element/robe.py`, `deplacer`) ;
 - les bouts : deux tubes qui pendent du nœud, posés sur la bure le long de leur descente, renflés à la pointe, raides :
   chacun prend en bloc les poids de la bure sous le nœud (pliés avec la bure au pli de l'aine, leurs arêtes s'y
@@ -16,13 +16,8 @@ la bure publiée sous la corde.
 import math
 
 import numpy as np
-from anatomie import AXES_DU_PERSONNAGE
-from taille import axe_du_corps, ceindre
-from tissu import emprunter, lisser, porteur_de, sur_le_porteur, voisinage
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
+from taille import axe_du_corps, ceindre, sortante
+from tissu import emprunter, lisser, porteur_de, sur_le_porteur, unitaire, voisinage
 
 
 def tube(sections, cotes, boucle):
@@ -52,7 +47,7 @@ def construire(D, materiaux, b):
     R, s = D['RAYON'], D['SEGMENTS']
 
     def point(theta):
-        d = np.array([math.sin(theta), -math.cos(theta), 0.0])
+        d = sortante(theta)
         o = axe + haut * (D['HAUTEUR'] - D['PENTE'] / 2 * math.cos(theta))
         p, _ = sur_le_porteur(bure, o, d, D['PORTEE'])
         return p + d * (D['JEU'] + R), d
@@ -65,7 +60,7 @@ def construire(D, materiaux, b):
     parties = [(*tube(sections, D['COTES'], True), None)]
     milieu = unitaire(anneau[-1][1] + anneau[0][1])
     devant = (anneau[-1][0] + anneau[0][0]) / 2 + milieu * R
-    b.offrir(D['EMPLACEMENT'], emprunter(devant, bure)[0], devant, np.array(AXES_DU_PERSONNAGE).T)
+    b.offrir_sur(D['EMPLACEMENT'], devant, bure)
 
     N = D['NOEUD']
     k = round(math.radians(N['angle']) / (2 * math.pi) * s)      # le nœud entre les sections k - 1 et k
@@ -101,5 +96,5 @@ def construire(D, materiaux, b):
         W += [emprunter(np.asarray(p), bure)[0] if poids is None else poids for p in pts]
     triangles = [(f[0], f[k], f[k + 1]) for f in faces for k in range(1, len(f) - 1)]
     W = lisser(np.array(W), voisinage(triangles, len(sommets)), D['LISSAGE_POIDS'])
-    return ceindre(b, 'cordeliere', sommets, faces, [materiaux['corde']], [0] * len(faces), W, D['ANGLE_LISSE'], D['ZONES'],
+    return ceindre(b, 'cordeliere', sommets, faces, materiaux['corde'], [None] * len(faces), W, D['ANGLE_LISSE'], D['ZONES'],
                    D['CONTOURNE']['bure'], D['ZONES_DE_LA_BURE'])

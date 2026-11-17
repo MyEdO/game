@@ -14,18 +14,12 @@ Double nappe d'épaisseur sous la hauteur du bord, poids de la peau tels quels, 
 transférées des zones de la base que la tête recouvre. Toute cote vient de `donnees.py`.
 """
 import math
-import random
 
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-from tissu import lambeaux, voisinage
-
-
-def tirage(graine):
-    """Tirage déterministe, graine des codes de caractères (procédure, section 6)."""
-    return random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(graine)))
+from tissu import lambeaux, tirage, voisinage
 
 
 def table(points, x):

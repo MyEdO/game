@@ -33,7 +33,7 @@ def au_jeu(D, surfaces, axe, d, rayon, jeu):
 def mailler(colonnes, pole=None):
     """La nappe des `colonnes` (`{rang: point}` par colonne) : un quad entre deux colonnes voisines là où toutes deux
     portent deux rangs consécutifs ; `pole` ferme en éventail le plus haut rang d'un tour complet. Rend positions,
-    triangles orientés vers le dehors de l'axe du cou, normales, et le rang de chaque sommet."""
+    triangles orientés vers le dehors de l'axe du cou et normales."""
     M = Maillage()
     indices = [{k: M.ajouter([p], k)[0] for k, p in sorted(c.items())} for c in colonnes]
     voisines = list(zip(indices, indices[1:] + indices[:1])) if pole is not None else list(zip(indices, indices[1:]))
@@ -51,8 +51,7 @@ def mailler(colonnes, pole=None):
         sommet = M.ajouter([pole], haut + 1)[0]
         for a, b_ in voisines:
             M.triangle(a[haut], b_[haut], sommet, ref(a[haut], b_[haut], sommet))
-    X, orientes, normales = M.orienter()
-    return X, orientes, normales, np.array(M.parties)
+    return M.orienter()
 
 
 def cheveux(D, b, tete, toutes):
@@ -115,9 +114,11 @@ def barbe(D, b, tete, dessous):
                 rayon = float(np.linalg.norm((p - O)[:2]))
                 d = (p - O) / rayon
                 onde = 0.5 * (1.0 + math.sin(2 * math.pi * (c['ondes']['periodes'] * t + c['ondes']['dephasage'] * j)))
-                colonne[-i] = O + (au_jeu(D, dessous, O, d, rayon - c['recul'] * t, c['jeu']) + c['ondes']['ampleur'] * t * onde) * d
+                relief = c['ondes']['ampleur'] * t * onde + c['stries'] * t * (j % 2) + c['ventre'] * math.sin(math.pi * t)
+                colonne[-i] = O + (au_jeu(D, dessous, O, d, rayon - c['recul'] * t, c['jeu']) + relief) * d
         colonnes.append(colonne)
     return colonnes, machoires
+
 
 
 def construire(D, materiaux, b):
@@ -129,16 +130,15 @@ def construire(D, materiaux, b):
     toutes, dessous = porteur_de(*joindre_les_surfaces([peau] + corps)), porteur_de(*joindre_les_surfaces([robe] + corps))
 
     def poids(X, part):
-        W = np.array([(1 - t) * emprunter(p, tete)[0] + t * emprunter(p, porteur_corps)[0] for p, t in zip(X, part)])
-        return W
+        return np.array([(1 - t) * emprunter(p, tete)[0] + t * emprunter(p, porteur_corps)[0] for p, t in zip(X, part)])
 
     colonnes, pole = cheveux(D, b, tete, toutes)
-    X, orientes, normales, _ = mailler(colonnes, pole)
+    X, orientes, normales = mailler(colonnes, pole)
     W = lisser(poids(X, np.zeros(len(X))), voisinage(orientes, len(X)), D['LISSAGE_DES_POIDS'])
     nappes = [b.nappe('barbe_longue', X, normales, W, orientes, materiaux['poil'], D['EPAISSEUR'])]
 
     colonnes, machoires = barbe(D, b, tete, dessous)
-    X, orientes, normales, _ = mailler(colonnes)
+    X, orientes, normales = mailler(colonnes)
     haut, bas = D['BARBE']['poids']
     sous = float(np.mean(machoires)) - X[:, 2]
     W = lisser(poids(X, np.array([fondu((s - haut) / (bas - haut)) for s in sous])), voisinage(orientes, len(X)),

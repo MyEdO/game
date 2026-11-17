@@ -6,7 +6,7 @@
   l'ouverture de la robe de dessus ;
 - la boucle : un cadre de quatre barres au milieu du devant, et son ardillon ; deux passants, barres verticales en
   travers du cuir ; un anneau couché contre le cuir. Chacun, raide, prend en bloc les poids de la robe sous son centre ;
-- l'emplacement `EMPLACEMENT`, offert sur la face du cuir (`Base.offrir`), aux poids de la robe sous lui.
+- l'emplacement `EMPLACEMENT`, offert sur la face du cuir (`Base.offrir_sur`), aux poids de la robe sous lui.
 Chaque section du cuir prend en bloc les poids de la robe au plus près du milieu de son envers (pris sommet par
 sommet, les arêtes de son épaisseur s'étiraient au-delà de la porte, `arete-etiree` en 9 clips sur 12) ; silhouettes et
 clés `gabarit_*` transférées de la robe publiée sous la ceinture.
@@ -14,9 +14,8 @@ clés `gabarit_*` transférées de la robe publiée sous la ceinture.
 import math
 
 import numpy as np
-from anatomie import AXES_DU_PERSONNAGE
 from maille import Maille, poutre, tore
-from taille import axe_du_corps, ceindre
+from taille import axe_du_corps, ceindre, sortante
 from tissu import emprunter, porteur_de, sur_le_porteur
 
 HAUT = np.array([0.0, 0.0, 1.0])
@@ -28,9 +27,6 @@ def construire(D, materiaux, b):
     axe = axe_du_corps(b, D['ZONES'], D['HAUTEUR'])
     s, demi = D['SEGMENTS'], D['LARGEUR'] / 2
     angles = [2 * math.pi * (i + 0.5) / s for i in range(s)]
-
-    def sortante(theta):
-        return np.array([math.sin(theta), -math.cos(theta), 0.0])
 
     def rayons(dz):
         """Par section, la distance à l'axe de l'envers du cuir à la hauteur `HAUTEUR + dz` : la robe plus le jeu,
@@ -99,7 +95,9 @@ def construire(D, materiaux, b):
     raidir(c)
 
     point, _ = sur_le_cuir(D['ABSCISSE_DE_L_EMPLACEMENT'])
-    b.offrir(D['EMPLACEMENT'], emprunter(point, robe)[0], point, np.array(AXES_DU_PERSONNAGE).T)
+    b.offrir_sur(D['EMPLACEMENT'], point, robe)
 
-    return ceindre(b, 'ceinture-a-boucle', m.v, m.f, m.materiaux, m.m, np.array(poids), D['ANGLE_VIF'], D['ZONES'],
+    cuir = materiaux['cuir']
+    teintes = [None if m.materiaux[rang] is cuir else m.materiaux[rang] for rang in m.m]
+    return ceindre(b, 'ceinture-a-boucle', m.v, m.f, cuir, teintes, np.array(poids), D['ANGLE_VIF'], D['ZONES'],
                    D['CONTOURNE']['robe'], D['ZONES_DE_LA_ROBE'])

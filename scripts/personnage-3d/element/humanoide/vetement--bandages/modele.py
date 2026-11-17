@@ -15,8 +15,7 @@ transférées des zones du bras.
 import math
 
 import numpy as np
-from mathutils import Vector
-from tissu import Maillage, anneau, centre_de, emprunter, joindre, lisser, porteur_de, repere_de_plan, voisinage
+from tissu import Maillage, anneau, centre_de, emprunter, joindre, lisser, porteur_de, repere_de_plan, viser, voisinage
 
 OS_BRAS = {'g': ('lowerarm_l', 'hand_l', 'middle_01_l', 'thumb_02_l'), 'd': ('lowerarm_r', 'hand_r', 'middle_01_r', 'thumb_02_r')}
 ZONES = {c: [f'bras_haut_{c}', f'avant_bras_{c}', f'main_{c}'] for c in 'gd'}
@@ -101,7 +100,7 @@ def construire(D, materiaux, b):
                     for pas in (-0.5, 0.0, 0.5):
                         a = azimuts[i] + pas * 2 * math.pi / s
                         e = math.cos(a) * um + math.sin(a) * vm
-                        touche = peau['arbre'].ray_cast(Vector((O + H['portee'] * e).tolist()), Vector((-e).tolist()), H['portee'])
+                        touche = viser(peau, O, e, H['portee'])
                         if touche[0] is not None:
                             rayons.append((H['portee'] - touche[3]) * float(e @ d))
                     visees[i] = (d, max(rayons) if rayons else None)

@@ -5,7 +5,6 @@ pièce skinnée, aux clés de la robe qu'elle ceint.
 import math
 
 import numpy as np
-from tissu import JUMEAU, maillage_skinne, poids_normalises
 
 
 def axe_du_corps(b, zones, hauteur):
@@ -15,17 +14,16 @@ def axe_du_corps(b, zones, hauteur):
     return np.array([(tranche[:, 0].min() + tranche[:, 0].max()) / 2, (tranche[:, 1].min() + tranche[:, 1].max()) / 2, 0.0])
 
 
-def ceindre(b, nom, sommets, faces, materiaux, matieres, W, angle_vif, zones, publie, zones_du_publie):
-    """La pièce skinnée `nom` (nappe simple) : ses `faces` aux matériaux `materiaux`, celui de rang `matieres[k]` pour la
-    face k, ses poids `W` par os de la base, lisse hors des arêtes de plus d'`angle_vif` degrés, ses silhouettes et ses
-    clés `gabarit_*` transférées des meshes des zones `zones_du_publie` de l'élément publié `publie` qu'elle ceint."""
-    piece = maillage_skinne(nom, sommets, faces, materiaux[0], b.rig, poids_normalises(W, b.os))
-    for materiau in materiaux[1:]:
-        piece.data.materials.append(materiau)
-    for poly, rang in zip(piece.data.polygons, matieres):
-        poly.material_index = rang
-        poly.use_smooth = True
-    piece.data.set_sharp_from_angle(angle=math.radians(angle_vif))
-    piece.data.attributes.new(JUMEAU, 'INT', 'POINT')   # nappe simple : chaque sommet est son propre jumeau
+def sortante(theta):
+    """La direction horizontale qui sort de l'axe du corps à l'angle `theta` (radians, depuis l'avant -Y vers la gauche
+    +X)."""
+    return np.array([math.sin(theta), -math.cos(theta), 0.0])
+
+
+def ceindre(b, nom, sommets, faces, mat, teintes, W, angle_vif, zones, publie, zones_du_publie):
+    """La pièce skinnée `nom` (`Base.nappe_simple` : ses `faces` au matériau `mat`, la face k à celui de `teintes[k]` s'il
+    n'est pas `None`, ses poids `W`, lisse hors des arêtes de plus d'`angle_vif` degrés), ses silhouettes et ses clés
+    `gabarit_*` transférées des meshes des zones `zones_du_publie` de l'élément publié `publie` qu'elle ceint."""
+    piece = b.nappe_simple(nom, sommets, faces, W, mat, teintes, angle_vif)
     b.transferer(piece, zones, masques=[([True] * len(sommets), zones, {publie: zones_du_publie})])
     return piece

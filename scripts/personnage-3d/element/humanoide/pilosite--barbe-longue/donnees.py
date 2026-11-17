@@ -75,15 +75,17 @@ BARBE = {
     'centre': (0.0, -0.0344, 0.0507),   # tête : (0 ; -0,017 ; 1,660) au repos, à la hauteur du bout du nez, derrière la bouche
     'colonnes': 13,                     # HYPOTHÈSE de maillage : d'un favori à l'autre
     'demi_ouverture': 80.0,             # illustration : le favori monte devant l'oreille (tête : avant de l'oreille à ~81°)
-    # (azimut, élévation) du bord haut : sous le nez (la moustache, tête : narines à z 1,656), puis la ligne de la joue
-    'haut': [(0.0, -1.0), (14.0, -2.0), (24.0, 3.0), (40.0, 8.0), (60.0, 14.0), (80.0, 26.0)],
+    # (azimut, élévation) du bord haut : la moustache, sous le nez (tête : narines à z 1,656, soit -1° ; à -1°, la barbe
+    # masquait le bas du nez, rendu de face), puis la ligne de la joue
+    'haut': [(0.0, -10.0), (14.0, -9.0), (24.0, -3.0), (40.0, 6.0), (60.0, 14.0), (80.0, 26.0)],
     # (azimut, élévation) du bord de la mâchoire, d'où la barbe tombe (tête : devant du menton à -41°, son dessous à -56°)
     'machoire': [(0.0, -48.0), (30.0, -46.0), (50.0, -40.0), (66.0, -30.0), (80.0, -14.0)],
-    'rangs': 3,                         # HYPOTHÈSE de maillage : intervalles du bord haut à la mâchoire
-    'hauteur': (0.003, 0.016),          # illustration : m au-dessus de la peau, rase à la joue, fournie au menton
+    'rangs': 5,                         # HYPOTHÈSE de maillage : intervalles du bord haut à la mâchoire
+    'hauteur': (0.003, 0.020),          # illustration : m au-dessus de la peau, rase à la joue, fournie au menton
     # (azimut, m) : longueur de la tombée sous la mâchoire. Illustration : 0,185 m au milieu, jusqu'au sternum (base : z
-    # ~1,40) ; elle se resserre en pointe, les favoris ne tombent pas
-    'longueur': [(0.0, 0.185), (27.0, 0.165), (40.0, 0.120), (53.0, 0.060), (67.0, 0.020), (80.0, 0.0)],
+    # ~1,40) ; HYPOTHÈSE : 0,21 m, pour que la masse qui ressort sous l'écharpe du capuchon garde ses ~10 cm, bras en T
+    # comme en pose ; elle se resserre en pointe, les favoris ne tombent pas
+    'longueur': [(0.0, 0.210), (27.0, 0.185), (40.0, 0.120), (53.0, 0.060), (67.0, 0.020), (80.0, 0.0)],
     'rangs_de_tombee': 6,               # HYPOTHÈSE de maillage
     'resserrement': 0.45,               # illustration : la masse perd ~45 % de sa largeur de la mâchoire à la pointe
     'recul': 0.030,                     # HYPOTHÈSE : m, ce dont la pointe se rapproche de l'axe du cou, avant le jeu
@@ -93,7 +95,9 @@ BARBE = {
     # illustration : une masse ondulée. Écart au-delà du jeu, nul à la mâchoire : `periodes` ondes le long de la tombée,
     # décalées de `dephasage` période d'une colonne à la suivante (HYPOTHÈSE : ampleur et nombre)
     'ondes': {'ampleur': 0.007, 'periodes': 1.5, 'dephasage': 0.5},
-    'meches': {'graine': 'barbe-longue-barbe', 'profondeur': 0.030, 'creux': 0.3},   # m, pointes inégales du bas
+    'stries': 0.008,                    # HYPOTHÈSE : m, au bas, une colonne sur deux plus écartée de l'axe : des mèches
+    'ventre': 0.012,                    # HYPOTHÈSE : m, ce dont la masse s'épaissit à mi-longueur
+    'meches': {'graine': 'barbe-longue-barbe', 'profondeur': 0.050, 'creux': 0.2},   # m, pointes inégales du bas
     # m sous la mâchoire : où la tombée cesse de suivre la tête seule, et où elle suit le corps seul (cou et torse).
     # HYPOTHÈSE : la barbe repose sur la poitrine, sa pointe ne balaie pas la robe quand la tête tourne
     'poids': (0.015, 0.090),

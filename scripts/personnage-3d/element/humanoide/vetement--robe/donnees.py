@@ -50,8 +50,8 @@ BORNES_DES_CLES = (0.27, 2.5)      # rapport d'arête sous une clé transférée
 ANGLE_VIF = 30                     # degrés : au-delà, une arête des robes reste vive (HYPOTHÈSE : plis marqués en bas)
 
 GALON = 0.06
-"""Illustration : le galon fait ~30 px de large le long des bords de l'ouverture (contrat : ~6 cm) : la première et la
-dernière colonne de la robe de dessus."""
+"""Illustration : le galon fait ~30 px de large (contrat : ~6 cm), le long des bords de l'ouverture (la première et la
+dernière colonne de la robe de dessus) comme à l'ourlet (sa dernière bande, le long de ses dents)."""
 
 # --- Corsage : anneaux horizontaux (ancre, décalage, aisance, demi-ouverture devant en degrés, 0 = fermé), ancres
 # lues sur la base : `bas` = bas de la zone `torse`, `aisselle` = bas des zones `bras_haut_*`, `cou` = bas de la zone
@@ -80,8 +80,6 @@ RANGEES_JUPE = [0.95, 0.85, 0.74, 0.63]
 """Hauteurs nominales des rangées de la robe de dessus, m (HYPOTHÈSE de maillage). La première à 9 cm sous la taille : à
 7 cm, l'arête qui les joint devant, du tronc au filet, s'étirait à 3,58 fois sa longueur (Melee_Hook, Farm_PlantSeed,
 porte 3,51) ; la dernière au-dessus du galon de l'ourlet et de ses dents."""
-GALON_DE_L_OURLET = 0.06
-"""Hauteur de la bande de galon de l'ourlet, le long de ses dents. Illustration : ~30 px."""
 LAMBEAUX_ROBE = {'profondeur': 0.10, 'creux': 0.3, 'graine': 'humanoide--vetement--robe--dessus'}
 """Illustration : l'ourlet du drap sombre est franchement déchiqueté, en dents irrégulières (HYPOTHÈSE : jusqu'à 10 cm,
 larges de deux colonnes, ~17 cm) ; le galon de l'ourlet suit leur bord."""
@@ -104,6 +102,7 @@ tombe sur lui (`couche-traversee`, 22 cm en Sprint_Loop)."""
 # dessus ; poche) ; `poche` : ce dont le dessous pend sous le bras, en lobe (cos^`GALBE_DE_LA_POCHE`) vers
 # `ANGLE_DE_LA_POCHE` dans le plan de l'anneau, incliné de `INCLINAISON_DE_LA_POCHE` sur l'axe du bras ---
 COUPE_MIN = 0.06                   # fraction de `upperarm` en deçà de laquelle la coupe du bras se prend là (épaule)
+CREUX_DE_LA_RACINE = 0.0           # le fond du cône qui ferme la manche, au centre de son premier anneau, dans l'épaule
 RAYON_DE_COUPE_MAX = 0.12          # rayon au-delà duquel un point de la coupe n'est pas du bras (tronc)
 AZIMUTS_DE_MANCHE = [0.0, 40.0, 80.0, 110.0, 132.0, 150.0, 166.0, 180.0, 194.0, 210.0, 228.0, 250.0, 280.0, 320.0]
 """Azimuts des colonnes (0 = dessus du bras en T, 180 = dessous) : serrées dessous, où la poche pend et se plisse."""

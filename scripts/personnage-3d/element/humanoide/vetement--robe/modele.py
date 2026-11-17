@@ -1,5 +1,6 @@
-"""Géométrie de `humanoide--vetement--robe` (`element/tissu.py`), d'après `donnees.py` (aucun nombre ici) : la robe du
-Sorcier, une robe de dessus galonnée, ouverte du col à l'ourlet sur une robe de dessous, aux manches en cloche.
+"""Géométrie de `humanoide--vetement--robe` (kit des robes `element/robe.py`, `element/tissu.py`), d'après `donnees.py`
+(aucun nombre ici) : la robe du Sorcier, une robe de dessus galonnée, ouverte du col à l'ourlet sur une robe de dessous,
+aux manches en cloche.
 
 Trois nappes jointes en une pièce :
 - `robe`, nappe simple : le corsage, anneaux horizontaux sur l'enveloppe des coupes du tronc, ouverts devant, fermés au
@@ -17,35 +18,18 @@ l'avant-bras d'un bloc ; les jupes prennent les os des deux brins voisins du fil
 `gabarit_*` transférées.
 """
 import math
-import random
 
 import numpy as np
-from tissu import (JUMEAU, Maillage, anneau, centre_de, direction, emprunter, enveloppe_convexe, fondu, joindre, lambeaux,
-                   lisser, maillage_skinne, poids_normalises, rayon_a_l_enveloppe, repere_de_plan, selon, voisinage)
-
-TRONC, COU = ['hanches', 'torse'], ['cou']
-BRAS = {c: [f'bras_haut_{c}', f'avant_bras_{c}'] for c in 'gd'}
-OS_BRAS = {'g': ('upperarm_l', 'lowerarm_l'), 'd': ('upperarm_r', 'lowerarm_r')}
-JAMBES = [f'{z}_{c}' for z in ('cuisse', 'genou', 'mollet') for c in 'gd']
-PORTEUSES = TRONC + COU + BRAS['g'] + BRAS['d'] + JAMBES
+from robe import BRAS, COU, JAMBES, PORTEUSES, TRONC, Nappe, ancres_du_corps, bras_de, fermer_a_l_epaule, sur_le_tronc
+from tissu import direction, emprunter, enveloppe_convexe, fondu, joindre, lambeaux, rayon_a_l_enveloppe, selon, tirage
 
 
-def unitaire(x):
-    return x / np.linalg.norm(x)
-
-
-def tirage(graine):
-    """Tirage déterministe, graine des codes de caractères de `graine` (procédure, section 6)."""
-    return random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(graine)))
-
-
-class Toile(Maillage):
-    """Un `Maillage` qui garde, par sommet, ses poids sur les os de la base et s'ils sont fixes (sans lissage), et par
-    triangle la matière `matiere` en cours à sa pose (`None` : celle de la nappe)."""
+class Toile(Nappe):
+    """Une `Nappe` qui garde, par triangle, la matière `matiere` en cours à sa pose (`None` : celle de la nappe)."""
 
     def __init__(self):
         super().__init__()
-        self.poids, self.fixes, self.matieres, self.matiere = [], [], [], None
+        self.matieres, self.matiere = [], None
 
     def triangle(self, a, b, c, ref):
         super().triangle(a, b, c, ref)
@@ -55,11 +39,6 @@ class Toile(Maillage):
         super().quad(a, b, c, d, ref)
         self.matieres.extend([self.matiere] * 2)
 
-    def poser(self, points, poids, fixes=False):
-        self.poids.extend(poids)
-        self.fixes.extend([fixes] * len(points))
-        return self.ajouter(points, None)
-
     def relier(self, A, B, ref, colonnes, galons=()):
         """Les quads des `colonnes` premières colonnes entre deux anneaux ; ceux des colonnes `galons` sont du galon."""
         for i in range(colonnes):
@@ -67,31 +46,13 @@ class Toile(Maillage):
             self.quad(A[i], A[(i + 1) % len(A)], B[(i + 1) % len(B)], B[i], ref)
         self.matiere = None
 
-    def lisses(self, passes):
-        """Positions, triangles orientés, normales et poids, ceux des sommets non fixes lissés de `passes` passes."""
-        X, orientes, normales = self.orienter()
-        W = np.array(self.poids)
-        W = np.where(np.array(self.fixes)[:, None], W, lisser(W, voisinage(orientes, len(X)), passes))
-        return X, orientes, normales, W
-
 
 def nappe_simple(b, D, toile, nom, materiaux):
-    """La nappe simple `nom` de `toile`, skinnée, lisse hors des arêtes de plus d'`ANGLE_VIF` (le fond et la crête des plis) ;
+    """La nappe simple `nom` de `toile`, lisse hors des arêtes de plus d'`ANGLE_VIF` (le fond et la crête des plis) ;
     chaque triangle posé dans une matière en prend le matériau."""
     X, orientes, _, W = toile.lisses(D['LISSAGE_POIDS'])
-    piece = maillage_skinne(nom, [tuple(x) for x in X], [list(t) for t in orientes], materiaux[nom], b.rig,
-                            poids_normalises(W, b.os))
-    rangs = {}
-    for poly, matiere in zip(piece.data.polygons, toile.matieres):
-        poly.use_smooth = True
-        if matiere:
-            if matiere not in rangs:
-                piece.data.materials.append(materiaux[matiere])
-                rangs[matiere] = len(piece.data.materials) - 1
-            poly.material_index = rangs[matiere]
-    piece.data.set_sharp_from_angle(angle=math.radians(D['ANGLE_VIF']))
-    piece.data.attributes.new(JUMEAU, 'INT', 'POINT')   # nappe simple : chaque sommet est son propre jumeau
-    return piece
+    return b.nappe_simple(nom, [tuple(x) for x in X], [list(t) for t in orientes], W, materiaux[nom],
+                          [materiaux[matiere] if matiere else None for matiere in toile.matieres], D['ANGLE_VIF'])
 
 
 def construire(D, materiaux, b):
@@ -113,27 +74,10 @@ def construire(D, materiaux, b):
         return [360 - o + 2 * o * k / G for k in range(1, G)]
 
     # Corsage : anneaux sur l'enveloppe de la coupe du tronc.
-    ancres = {'bas': float(b.corps('torse')[0][:, 2].min()),
-              'aisselle': min(float(b.corps(z)[0][:, 2].min()) for z in ('bras_haut_g', 'bras_haut_d')),
-              'cou': float(b.corps('cou')[0][:, 2].min())}
-
-    def sur_le_tronc(z):
-        """La pose d'un anneau à la hauteur `z` : (toile, angles, aisance) -> ses sommets et son centre ; et le rayon
-        de l'enveloppe du tronc dans une direction."""
-        P = b.coupe(TRONC + COU, (0.0, 0.0, z), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), minimum=1)
-        centre, H = centre_de(P), enveloppe_convexe(P)
-
-        def rayon(theta):
-            return rayon_a_l_enveloppe(H, centre, direction(theta))
-
-        def poser(toile, thetas, aisance):
-            pts = [np.append(centre + (rayon(t) + max(aisance, D['DEGAGEMENT_MIN'])) * direction(t), z) for t in thetas]
-            return toile.poser(pts, [emprunter(p, tronc)[0] for p in pts]), np.array([centre[0], centre[1], z])
-        return poser, rayon
-
+    ancres = ancres_du_corps(b)
     corsage, bande, thetas = [], [], None
     for ancre, dz, aisance, o in D['CORSAGE']:
-        poser, rayon = sur_le_tronc(ancres[ancre] + dz)
+        poser, rayon = sur_le_tronc(D, b, tronc, TRONC + COU, ancres[ancre] + dz)
         if o > 0:
             thetas = colonnes(o, math.degrees(galon / (rayon(o) + aisance)))
             g = D['COLONNES_POITRINE']
@@ -209,7 +153,7 @@ def construire(D, materiaux, b):
 
     dents = lambeaux(D['LAMBEAUX_ROBE'], m + 1)
     jupe = []
-    for k, z in enumerate(D['RANGEES_JUPE'] + [z_ourlet + D['GALON_DE_L_OURLET'], z_ourlet]):
+    for k, z in enumerate(D['RANGEES_JUPE'] + [z_ourlet + galon, z_ourlet]):
         t = angles(z)      # les deux dernières rangées, celles du galon de l'ourlet, suivent ses dents
         mordu = D['LAMBEAUX_ROBE']['profondeur'] if k >= len(D['RANGEES_JUPE']) else None
         zs = [niveau(z + (mordu - d if mordu else 0.0), a) for a, d in zip(t, dents)]
@@ -251,21 +195,7 @@ def manches(D, b, materiaux):
     radial, axial = math.sin(math.radians(D['INCLINAISON_DE_LA_POCHE'])), math.cos(math.radians(D['INCLINAISON_DE_LA_POCHE']))
     for c, signe in (('g', 1.0), ('d', -1.0)):
         porteur = b.porteur(['torse'] + BRAS[c])
-        o0, o1 = (np.array(b.tete(o)) for o in OS_BRAS[c])
-        axe = unitaire(o1 - o0)
-        u, v = repere_de_plan(axe, (0.0, 0.0, 1.0), signe)
-
-        def anneau_de_bras(f, aisances):
-            O = o0 + f * (o1 - o0)
-            Oc = o0 + max(f, D['COUPE_MIN']) * (o1 - o0)
-            P = b.coupe(BRAS[c], Oc, axe, u, v)
-            P = P[np.hypot(P[:, 0], P[:, 1]) < D['RAYON_DE_COUPE_MAX']]
-            milieu = centre_de(P)
-            return ([O + p[0] * u + p[1] * v for p in anneau(P, milieu, dirs, aisances, D['DEGAGEMENT_MIN'])],
-                    O + milieu[0] * u + milieu[1] * v, [Oc + p[0] * u + p[1] * v for p in P])
-
-        peau = anneau_de_bras(D['COUPE_DES_POIDS'], [0.0] * s)[2]
-        poids_de_l_avant_bras = np.mean([emprunter(q, porteur)[0] for q in peau], axis=0)
+        axe, anneau_de_bras, poids_de_l_avant_bras = bras_de(D, b, c, signe, dirs, porteur)
         dents = lambeaux(dict(D['LAMBEAUX_MANCHE'], graine=D['LAMBEAUX_MANCHE']['graine'] + c), s)
         liste = []
         for k, (f, dessus, poche) in enumerate(M):
@@ -280,13 +210,9 @@ def manches(D, b, materiaux):
             liste.append((toile.poser(pts, poids, fixes=not au_bras), milieu))
         for k, ((A, ca), (B, cb)) in enumerate(zip(liste, liste[1:])):
             toile.relier(A, B, (ca + cb) / 2, s, range(s) if k == len(liste) - 2 else ())
-        racine, milieu = liste[0]
-        fond = toile.poser([np.mean([toile.sommets[i] for i in racine], axis=0)], [emprunter(milieu, porteur)[0]])[0]
-        for i in range(s):
-            toile.triangle(racine[i], racine[(i + 1) % s], fond, 2 * milieu - liste[1][1])
+        fermer_a_l_epaule(D, toile, liste, porteur)
     X, orientes, normales, W = toile.lisses(D['LISSAGE_POIDS'])
-    endroits = {None: None, 'galon': materiaux['galon']}
     piece = b.nappe('manches', X, normales, W, orientes, materiaux['robe'], D['EPAISSEUR'],
-                    [(endroits[matiere], materiaux['doublure']) for matiere in toile.matieres])
+                    [(materiaux[matiere] if matiere else None, materiaux['doublure']) for matiere in toile.matieres])
     piece.data.set_sharp_from_angle(angle=math.radians(D['ANGLE_VIF']))
     return piece
