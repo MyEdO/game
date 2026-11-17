@@ -1,6 +1,6 @@
 # Propositions : voyage (2026-11-17, #3935)
 
-Compte rendu des vingt états dessinés (neuf d'origine, onze ajoutés par l'audit des verbes, #4411) depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
+Compte rendu des vingt et un états dessinés (neuf d'origine, douze ajoutés par l'audit des verbes, #4411) depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
 l'arrivée), la doctrine `user-doctrine-la-cible-prime-sur-l-ancien-ecran` et les propositions déjà au dépôt
 (`exploration-et-recit/carte-du-monde.jpg`, `combat/`). Sources au dépôt : `sources/voyage/`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
@@ -45,8 +45,20 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   visible). Aucune pastille « Faire halte » : la route reprend seule (`jouerLaJournee`).
 - À valider : billet ouvert au-dessus de la carte du héros, pointe vers sa pastille ; le soutien du groupe raconté
   par une demi-phrase par héros sans pastille ; « 52 km avant Altdorf » d'exemple ; la relance d'un jet de routine
-  échoué (audit M2 : le jour s'arrête au bandeau du jet sur un échec encore influençable) n'est pas dessinée ici,
-  le jet montré étant réussi.
+  échoué : `evenement-de-route-echec`, plus bas.
+- Changement voulu (#4411) : l'objet du temps porte la « Cadence du voyage », « Jour par jour » armée
+  (`fixerLaCadence(cadence)`, `temps({ cadence })` de `voyage.js`), comme sur `voyage-en-mer`.
+
+## evenement-de-route-echec
+- État de `evenement-de-route` (`evenement.js`) : le Test de Bjorn a échoué (78 sous 61, DR −1). Le bandeau du jet,
+  après le dé : le verdict et l'issue du livre au centre, les réserves de Bjorn, « Appliquer », « Relancer » ouverte,
+  « Chance : +1 DR », « Pacte », « Résilience ».
+- Verbes : `jetRelancer('cascade')`, `jetValider('cascade')`, `jetPactiser('cascade')`,
+  `jetForcerLaReussite('cascade')`.
+- Règle montrée : relancer un Test qui s'est conclu par un échec (LDB 17 l.23) ; l'issue de l'échec (LDB 51 l.215).
+- À valider : le jour s'arrête sur un échec que son porteur peut encore influencer (audit M2), ce que le noyau ne
+  fait pas : jour par jour il s'arrête avant le dé, sous ordres jamais (`attendUnVraiChoix`, à retoucher, verbes
+  inchangés) ; « Appliquer » (charte) pour laisser l'échec ; dé d'exemple.
 
 ## arrivee
 - Cible écrite `lieu.md` : l'arrivée est l'écran du lieu, sa première ligne est le récit du trajet (« Arrivée à
@@ -117,7 +129,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - Changement voulu (#4411) : l'objet du temps porte la « Cadence du voyage », deux plaques, « Jour par jour » et
   « Sous vos ordres » (armée) : `fixerLaCadence(cadence)` (`src/noyau/actionsDuNoyau.ts:303`,
   `src/noyau/voyageEnVue.ts:56`, libellés `ecran.cadence.*`). À valider : la cadence dans l'objet du temps, et la
-  même pièce sur la route et le fleuve (`temps({ cadence })` de `voyage.js`, non posée sur ces deux écrans).
+  même pièce sur la route (`evenement-de-route-issue`) et le fleuve (`voyage-fluvial`). Un arrêt (péripétie, péril,
+  relâche, conseil, panne) ne la montre pas : rien n'avance.
 
 ## postes-de-bord
 - Doctrine : l'affectation suit la lignée des postes de la halte, aucun choix en liste ; chaque rôle est un poste
@@ -198,6 +211,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - Gestes : « Laisser ici » (`remiserLaPossession`, `:321`), « Embarquer » armée, « Abandonner »
   (`cederLaPossession`, `:329`). « Embarquer » ouvre une carte par hôte possible (« La Sterne »), puis la plaque
   « Embarquer sur La Sterne » : `embarquer(possessionUid, hostUid)` (`:325`).
+- Changement voulu (#4411) : le nom en saisie prend l'aspect du champ de la charte (`champ` de `sources/gestes.js`),
+  sans surcharge : une saisie se reconnaît partout à la même pièce.
 - À valider : un dossier par possession, bête et véhicule compris, sur le gabarit du navire ; le nom saisi dans le
   titre (le verbe joue à chaque saisie, sans validation) ; l'hôte choisi en carte.
 
@@ -253,7 +268,8 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 
 ## meuble-piece-de-bord
 - État de `combat-naval` : le tour de Bjorn, qui sert le « Canon (petit) de bâbord ». Le meuble de l'actif
-  (`combat/meuble-chef-de-piece`) : Blessures, « Chargé 1 / 1 », réserves, « Quitter la pièce » ; plaques
+  (`combat/meuble-chef-de-piece`) : Blessures, « Chargé 1 / 1 », Action, Avantage et médaillon de Détermination (`jetons(determination)` de
+  `sources/combat/socle.js`, `depenserLaDetermination`), « Quitter la pièce » ; plaques
   « Manœuvrer », « Bordée », « Attaque » ; conditionnelles « Recharger » (fermée, la pièce est chargée), « Diriger
   l'équipe », « Chanson de marin » ; la pastille « Munition » ouverte sur « Approvisionner la pièce », deux cartes
   et leur stock en soute.
@@ -292,8 +308,11 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - Flux `fuiteDeVapeur` (`src/noyau/seaVoyageFlow.ts:1982-1997`).
 - Règle montrée : Fuite de vapeur, 1d10–5 Dégâts (1 minimum) qui ignorent l'Armure (MDG 12 l.322-328). Seuil et dé
   d'exemple.
-- À valider : la panne dans le contenant d'événement de la route ; le décor n'a pas de silhouette de navire à
-  vapeur (la mer seule).
+- Le décor porte la cogue à vapeur, au large à droite du contenant : cheminée, fumée et jet de vapeur
+  (`D.cogue({ vapeur })`, `D.mer({ cogue })` de `voyage.js`) ; la Propulsion à vapeur est une Amélioration posée sur
+  un bateau (MDG 12 l.305-311).
+- À valider : la panne dans le contenant d'événement de la route ; le navire petit et hors du contenant, qui tient
+  le centre.
 
 ## Payer en mer
 Les gages sont dessinés (`mer-conseil-de-bord`). L'avitaillement (`avitaillerLeNavire`) reste à la page du port de

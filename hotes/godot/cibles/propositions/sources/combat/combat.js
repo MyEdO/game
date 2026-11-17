@@ -15,16 +15,20 @@ const NEUFS = {
   'jet-avant-le-de-armes': ['jet', 'armes'], 'jet-avant-le-de-empoigner': ['jet', 'empoigner'],
   'fin-repli': ['jet', 'repli'], 'fin-aneantissement': ['jet', 'aneantissement'],
   'seconde-frappe': ['jet', 'seconde'], 'frappe-mortelle': ['jet', 'mortelle'], 'debut-du-round-tir-rapide': ['jet', 'tirRapide'],
+  'defense-sociale': ['jet', 'sociale'], 'jet-avant-le-de-harpon': ['jet', 'harpon'], 'localisation-du-critique': ['jet', 'localiser'],
+  'cible-montee': ['jet', 'montee'], 'visee-de-siege': ['jet', 'siege'],
 };
 const [ETAT, VAR] = NEUFS[ECRAN.dataset.etat] ?? [ECRAN.dataset.etat, ECRAN.dataset.variante || ''];
 ECRAN.dataset.socle = ETAT;
 const est = (...v) => v.includes(VAR);
 const FIN = est('victoire', 'defaite', 'repli', 'aneantissement');
 const PERDU = FIN && VAR !== 'victoire';
-const ADVERSE = est('adverse', 'defense', 'parade', 'riposte');
+const ADVERSE = est('adverse', 'defense', 'parade', 'riposte', 'sociale');
 const DEBUT = est('round', 'tirRapide');
 /* les états où Berta porte le geste, et ceux où elle est À Terre au contact de l'Orc */
-const BERTA_JOUE = est('parade', 'riposte', 'aTerre', 'tireur', 'piece', 'determination', 'retirer', 'armes', 'empoigner', 'seconde', 'mortelle');
+const BERTA_JOUE = est('parade', 'riposte', 'sociale', 'aTerre', 'tireur', 'piece', 'determination', 'retirer', 'armes', 'empoigner', 'harpon', 'localiser', 'seconde', 'mortelle', 'montee', 'siege');
+/* les états où l'Orc se tient au loin : Berta tire, sert une pièce ou fait face à un autre */
+const AU_LOIN = est('tireur', 'piece', 'montee', 'siege');
 const COUCHEE = est('aTerre', 'determination', 'retirer');
 const SURVOL = ETAT === 'tour' && (!VAR || VAR === 'cible');
 /* ───────── le champ de bataille : une cour de ruine, en isométrie ───────── */
@@ -76,11 +80,13 @@ el(S, 'ellipse', { cx: FEU[0] + 6, cy: FEU[1] + 100, rx: 1500, ry: 800, fill: 'u
 // ce que le tour dessine au sol
 const HEROS = BERTA_JOUE ? [12, 7] : ETAT === 'tour' || VAR === 'incantation' || VAR === 'defense' ? [10, 8] : [13, 6];
 const BERTA = VAR === 'mortelle' ? [11, 9] : [10, 9];
-const ORC = VAR === 'mortelle' ? [11, 10] : BERTA_JOUE && !est('tireur', 'piece') ? [9, 9] : ADVERSE ? [11, 7] : [14, 6];
-const GOBELIN = VAR === 'seconde' ? [11, 9] : [12, -1];
+const ORC = VAR === 'mortelle' ? [11, 10] : VAR === 'harpon' ? [13, 9] : BERTA_JOUE && !AU_LOIN ? [9, 9] : ADVERSE ? [11, 7] : [14, 6];
 const MONTURE = [9, 9], PIECE = [11, 9];
+const GOBELIN = VAR === 'seconde' ? [11, 9] : VAR === 'montee' ? MONTURE : [12, -1];
+/* AA 10 l.169, l.171 : la case que le curseur survole, centre de l'aire du tir indirect */
+const IMPACT = [14, 6];
 const SUJET = BERTA_JOUE ? BERTA : HEROS;
-const CIBLES = FIN || est('round', 'determination', 'retirer') ? [] : est('seconde', 'tirRapide') ? [ORC, GOBELIN] : SURVOL || ETAT === 'jet' ? [ORC] : [];
+const CIBLES = FIN || est('round', 'determination', 'retirer', 'siege') ? [] : est('seconde', 'tirRapide') ? [ORC, GOBELIN] : VAR === 'montee' ? [GOBELIN] : SURVOL || ETAT === 'jet' ? [ORC] : [];
 const OCCUPE = new Set([HEROS, BERTA, ORC, ...(VAR === 'tireur' ? [MONTURE] : []), ...(est('tireur', 'piece') ? [PIECE] : [])].map(String).concat('8,5', '5,10', '6,11', '12,3', '13,3'));
 /* LDB 16 l.35 : À Terre, le Mouvement ne sert qu'à se relever ou à ramper de sa moitié */
 const PORTEE = COUCHEE ? 2 : 4;
@@ -109,6 +115,8 @@ const PORTEE = COUCHEE ? 2 : 4;
   }
   // les cases des cibles
   for (const c of CIBLES) el(g, 'path', caseDeCible(...c));
+  // l'aire du tir indirect, d'une case de rayon autour de la case survolée
+  if (VAR === 'siege') for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) el(g, 'path', { ...caseDeCible(IMPACT[0] + i, IMPACT[1] + j), 'fill-opacity': i || j ? .2 : .5, 'stroke-width': i || j ? 1.2 : 2.4 });
 }
 
 // une boîte isométrique : dessus, face sud-ouest (éclairée), face sud-est (à l'ombre)
@@ -174,14 +182,15 @@ objet(17, 9, (g, [x, y]) => { // un tonneau
   el(g, 'path', { d: `M${x - 6},${y - 24}A17,7 0 0 0 ${x + 28},${y - 24}M${x - 6},${y - 8}A17,7 0 0 0 ${x + 28},${y - 8}`, fill: 'none', stroke: '#1d1b1a', 'stroke-width': 2.4 });
 });
 
-if (VAR === 'tireur') objet(...MONTURE, (g, [x, y]) => { // un cheval de monte
+const cheval = (g, [x, y]) => { // un cheval de monte
   el(g, 'ellipse', { cx: x + 6, cy: y + 5, rx: 40, ry: 13, fill: '#000', opacity: .45, filter: 'url(#f2)' });
   el(g, 'path', { d: `M${x - 22},${y - 30}L${x - 24},${y}M${x - 10},${y - 28}L${x - 10},${y + 5}M${x + 14},${y - 28}L${x + 13},${y}M${x + 24},${y - 30}L${x + 26},${y + 5}`, stroke: '#3f2c1a', 'stroke-width': 5, 'stroke-linecap': 'round' });
   el(g, 'path', { d: `M${x - 30},${y - 40}C${x - 30},${y - 56} ${x + 24},${y - 58} ${x + 30},${y - 44}C${x + 32},${y - 30} ${x - 26},${y - 26} ${x - 30},${y - 40}Z`, fill: 'url(#t-bois)', stroke: '#1d130b', 'stroke-width': .9 });
   el(g, 'path', { d: `M${x + 16},${y - 50}L${x + 30},${y - 78}L${x + 50},${y - 68}L${x + 47},${y - 60}L${x + 37},${y - 62}L${x + 31},${y - 42}Z`, fill: '#8a6a44', stroke: '#1d130b', 'stroke-width': .9, 'stroke-linejoin': 'round' });
   el(g, 'path', { d: `M${x + 29},${y - 79}L${x + 27},${y - 87}L${x + 34},${y - 80}M${x - 30},${y - 44}Q${x - 42},${y - 34} ${x - 38},${y - 14}`, fill: 'none', stroke: '#2a1d12', 'stroke-width': 3, 'stroke-linecap': 'round' });
   el(g, 'path', { d: `M${x - 8},${y - 54}Q${x + 2},${y - 60} ${x + 12},${y - 54}L${x + 10},${y - 44}L${x - 6},${y - 44}Z`, fill: '#7c1f14', stroke: '#2a0b06', 'stroke-width': .8 });
-});
+};
+if (VAR === 'tireur') objet(...MONTURE, cheval);
 if (est('tireur', 'piece')) objet(...PIECE, (g, [x, y]) => { // une baliste
   const bois = ['#8a6a44', '#6a4c2e', '#3f2c1a'];
   el(g, 'ellipse', { cx: x + 5, cy: y + 6, rx: 38, ry: 15, fill: '#000', opacity: .45, filter: 'url(#f2)' });
@@ -192,6 +201,13 @@ if (est('tireur', 'piece')) objet(...PIECE, (g, [x, y]) => { // une baliste
   el(g, 'path', { d: `M${x - 18},${y - 41}L${x + 36},${y - 14}`, stroke: '#d5d8de', 'stroke-width': 2, 'stroke-linecap': 'round' });
 });
 
+if (VAR === 'siege') objet(...PIECE, (g, [x, y]) => { // un mortier
+  el(g, 'ellipse', { cx: x + 5, cy: y + 6, rx: 36, ry: 14, fill: '#000', opacity: .45, filter: 'url(#f2)' });
+  boite(g, x, y - 2, 28, 14, 12, ['#8a6a44', '#6a4c2e', '#3f2c1a'], 1);
+  el(g, 'path', { d: `M${x - 14},${y - 14}L${x + 12},${y - 52}L${x + 30},${y - 42}L${x + 10},${y - 6}Z`, fill: '#3a3835', stroke: '#0f0e0d', 'stroke-width': 1, 'stroke-linejoin': 'round' });
+  el(g, 'ellipse', { cx: x + 21, cy: y - 47, rx: 10.5, ry: 5.5, fill: '#0f0e0d', stroke: '#6b6862', 'stroke-width': 1.4, transform: `rotate(29 ${x + 21} ${y - 47})` });
+  el(g, 'path', { d: `M${x - 9},${y - 20}L${x + 15},${y - 8}M${x - 2},${y - 31}L${x + 21},${y - 19}`, stroke: '#6b6862', 'stroke-width': 2.2 });
+});
 const path = (f, d, fill, extra = {}) => el(f, 'path', { d, fill, ...extra });
 const FIGURES = {
   ilyanwe: (f) => {
@@ -255,8 +271,16 @@ if (!PERDU) {
   objet(...BERTA, (g, p) => pion(g, p, { genre: 'berta', camp: 'heros', actif: BERTA_JOUE && !ADVERSE, pv: PV_BERTA / 12, couche: COUCHEE }));
 }
 if (VAR !== 'victoire') {
-  objet(...ORC, (g, p) => pion(g, p, { genre: 'orc', camp: 'ennemi', cible: CIBLES.includes(ORC) || (!CALME && !est('determination', 'retirer')), pv: PV_ORC / 14 }));
-  if (VAR !== 'mortelle') objet(...GOBELIN, (g, p) => pion(g, p, { genre: 'gobelin', camp: 'ennemi', cible: CIBLES.includes(GOBELIN), pv: 1 }));
+  objet(...ORC, (g, p) => pion(g, p, { genre: 'orc', camp: 'ennemi', cible: CIBLES.includes(ORC) || (!CALME && !est('determination', 'retirer', 'montee', 'siege')), pv: PV_ORC / 14 }));
+  /* LDB 14 l.180 : le couple monté, le cavalier en selle sur sa monture */
+  if (VAR === 'montee') objet(...GOBELIN, (g, [x, y]) => {
+    el(g, 'ellipse', { cx: x, cy: y, rx: 48, ry: 22, fill: '#e0553a', opacity: .5, filter: 'url(#f6)' });
+    cheval(g, [x, y]);
+    FIGURES.gobelin(el(g, 'g', { transform: `translate(${x - 2},${y - 50})` }));
+    el(g, 'rect', { x: x - 21, y: y - 119, width: 40, height: 6, fill: '#0d0806', stroke: 'rgba(233,220,192,.55)', 'stroke-width': .8, rx: 1 });
+    el(g, 'rect', { x: x - 20, y: y - 118, width: 38, height: 4, fill: '#b9412c' });
+  });
+  else if (VAR !== 'mortelle') objet(...GOBELIN, (g, p) => pion(g, p, { genre: 'gobelin', camp: 'ennemi', cible: CIBLES.includes(GOBELIN), pv: 1 }));
 }
 { const g = el(S, 'g'); objets.sort((p, q) => p.z - q.z).forEach((o) => o.dessine(g, o.p)); }
 
@@ -331,6 +355,7 @@ if (!FIN) {
     tirRapide: vieux(TIR) + vieux(AVANCE) + borneJ('Round 2'),
     parade: vieux(TIR) + vieux('Orc s’avance vers Berta.') + neuf('Orc attaque Berta.'),
     riposte: vieux(TIR) + vieux('Orc s’avance vers Berta.') + neuf('Orc attaque Berta.'),
+    sociale: vieux(TIR) + vieux('Orc s’avance vers Berta.') + neuf('Orc attaque Berta.'),
     aTerre: vieux(GOB) + vieux(ORCP) + neuf('Berta est À Terre.'),
     determination: vieux(GOB) + vieux(ORCP) + neuf('Berta est À Terre.'),
     retirer: vieux(GOB) + vieux(ORCP) + neuf('Berta est À Terre.'),
@@ -338,6 +363,10 @@ if (!FIN) {
     piece: vieux(ORCP) + vieux('Ilyanwe la Voilée se met en Défensive.') + neuf('Berta sert la Baliste.'),
     armes: vieux(GOB) + vieux(ORCP) + neuf('Berta attaque Orc.'),
     empoigner: vieux(GOB) + vieux(ORCP) + neuf('Berta attaque Orc.'),
+    harpon: vieux(GOB) + vieux(ORCP) + neuf('Berta attaque Orc.'),
+    localiser: vieux(GOB) + vieux(ORCP) + neuf('Berta attaque Orc.'),
+    montee: vieux(GOB) + vieux(ORCP) + neuf('Ilyanwe la Voilée se met en Défensive.'),
+    siege: vieux(ORCP) + vieux('Ilyanwe la Voilée se met en Défensive.') + neuf('Berta sert le Mortier.'),
     seconde: vieux(ORCP) + vieux('Berta attaque Orc.') + neuf('Berta touche Orc (Corps) : 10 dégâts − 7 (BE+PA) = 3 Blessures'),
     mortelle: vieux(ORCP) + vieux('Berta attaque Tireur gobelin.') + neuf('Berta tue Tireur gobelin d’un seul coup.'),
     journal: '',
@@ -466,29 +495,32 @@ if (!jeu && BERTA_JOUE) {
   const courte = (nom, seuil, armee) => carte(nom, `≤ ${seuil}`, { armee, classe: 'courte' });
   /* LDB 13 l.167 ; LDB 13 l.123 ; AA 13 l.84 ; LDB 10 l.1037 ; `src/noyau/fenetreDeDefense.ts` ; `reglage.defense.*`,
      `defense.porteBouclier`, `defense.secondaire` (`src/i18n/messages/fr.ts:222-225`, `fr.ts:125`, `fr.ts:123`) */
-  if (est('parade', 'riposte')) ui.push(bandeauDuJet('Défense', 'avant defense', `
-    ${camp({ portrait: BERTA_P, nom: 'Berta', carac: 'Parade', seuil: 41 })}
+  if (est('parade', 'riposte', 'sociale')) ui.push(bandeauDuJet('Défense', 'avant defense', `
+    ${camp({ portrait: BERTA_P, nom: 'Berta', ...(VAR === 'sociale' ? { carac: 'Intimidation', seuil: 38 } : { carac: 'Parade', seuil: 41 }) })}
     ${reglages('Hache · Cible : Berta', `
-      <div class="reactions">${courte('Parade', 41, true)}${courte('Esquive', 34, false)}</div>
-      ${VAR === 'parade'
+      <div class="reactions">${courte('Parade', 41, VAR !== 'sociale')}${courte('Esquive', 34, false)}${VAR === 'sociale' ? courte('Intimidation', 38, true) : ''}</div>
+      ${VAR === 'sociale' ? regle('À la place de Corps à corps', '<span class="modif rubrique">Orc a peur de Berta</span>')
+    : VAR === 'parade'
     ? regle('Parer avec', options([['Épée'], ['Bouclier (2nde)', { armee: true }]])) + regle('Porte-bouclier (2 Av.)', options([['Aucun', { armee: true }], ['Dégâts'], ['Repousser']]))
     : regle('Parer avec', options([['Rapière', { armee: true }], ['Bouclier (2nde)']])) + regle('Riposte', options([['Oui', { armee: true }], ['Non']]))}`, 'haut')}
     ${camp({ cote: 'droite', portrait: ORC_P, nom: 'Orc', carac: 'Corps à corps (Base)', seuil: 35, des: ['4', '20'], total: 24, dr: '+1', reussite: true })}`,
   avantLeDe({ heros: RESERVES.berta })));
   /* LDB 10 l.767-773 ; LDB 14 l.78, l.159 ; AA 07 l.59-61 ; `src/noyau/fenetreDAttaque.ts:166-253` ; `reglage.attaque.*`,
-     `attaque.armeSecondaire`, `attaque.empoigner.note` (`fr.ts:215-221`, `fr.ts:1187`, `fr.ts:1208`) */
-  else if (est('armes', 'empoigner')) {
-    const mainsNues = VAR === 'empoigner';
+     `attaque.armeSecondaire`, `attaque.empoigner.note` (`fr.ts:215-221`, `fr.ts:1187`, `fr.ts:1208`) ; ADE II 02 l.677 ;
+     `reglage.attaque.sansLaCorde`, `attaque.sansLaCorde.noteTenue` (`fr.ts:221`, `fr.ts:1204`) */
+  else if (est('armes', 'empoigner', 'harpon')) {
+    const mainsNues = VAR === 'empoigner', tir = VAR === 'harpon';
     ui.push(bandeauDuJet('Attaque', 'avant armes', `
-    ${camp({ portrait: BERTA_P, nom: 'Berta', carac: mainsNues ? 'Corps à corps (Bagarre)' : 'Corps à corps (Base)', seuil: 41 })}
-    ${reglages(`${mainsNues ? 'Mains nues' : 'Épée'} · Cible : Orc`, `<div class="rangee">${silhouette(92)}<div class="choix">
-      ${mainsNues ? '' : regle('Arme', options([['Épée', { armee: true }], ['Bouclier (2nde −20)']]))}
+    ${camp({ portrait: BERTA_P, nom: 'Berta', ...(tir ? { carac: 'Projectiles (Arbalète)', seuil: 33 } : { carac: mainsNues ? 'Corps à corps (Bagarre)' : 'Corps à corps (Base)', seuil: 41 }) })}
+    ${reglages(`${mainsNues ? 'Mains nues' : tir ? 'Lance-harpon' : 'Épée'} · Cible : Orc`, `<div class="rangee">${silhouette(92)}<div class="choix">
+      ${mainsNues || tir ? '' : regle('Arme', options([['Épée', { armee: true }], ['Bouclier (2nde −20)']]))}
       ${regle('Localisation', options([['Au hasard', { armee: true }]]))}
       ${mainsNues
     ? `<div class="bascules">${bascule('Empoigner', true)}</div><p data-texte="note de l'empoignade">Sur une touche : aucun Dégât ; Empoignade + Empêtré (cible).</p>`
+    : tir ? `<div class="bascules">${bascule('Tirer sans la corde (60 m, sans Immobilisante)')}</div><p data-texte="note de la corde">Corde tenue : Immobilisante, Portée 20.</p>`
     : `<div class="bascules">${bascule('Des deux armes')}${bascule('Retenir ses coups')}</div>`}
     </div></div>`, 'haut')}
-    ${camp({ cote: 'droite', portrait: ORC_P, nom: 'Orc', carac: 'Parade', seuil: 35 })}`,
+    ${tir ? vise('orc', 'Orc', 'Cible du tir', '14 / 14') : camp({ cote: 'droite', portrait: ORC_P, nom: 'Orc', carac: 'Parade', seuil: 35 })}`,
     avantLeDe({ heros: RESERVES.berta, annuler: true })));
   }
   /* LDB 17 l.57-61 ; `depenserLaDetermination` ; libellés des offres `determination-*` (`src/data/actions.json`) ;
@@ -518,6 +550,29 @@ if (!jeu && BERTA_JOUE) {
       ${carte('Aucune visée', '')}
       ${carte('Berta', 'Arbalète chargée<br><span class="modif rubrique">Action et Mouvement</span>', { armee: true, portrait: BERTA_P })}</div></div>`,
   `${reserves([RESERVES.berta.chance, 'Chance de Berta'])}${plaque('Commencer le round', { armee: true, classe: 'large' })}`));
+  /* LDB 14 l.180 ; `fenetre.cibleDeMonture`, `verbe.cibleDeMonture.cible`, `verbe.cibleDeMonture.fermer` (`fr.ts:458`,
+     `fr.ts:295`, `fr.ts:354`) ; `src/noyau/choixDeFenetre.ts:247-252` */
+  else if (VAR === 'montee') ui.push(bandeauDuJet('Combat monté', 'debut', `
+    <div class="annonce"><div class="dr gothique">Berta</div><div class="sous rubrique">Épée</div></div>
+    ${carte('Tireur gobelin', 'Cavalier <span class="modif rubrique">−10 au Test</span>', { armee: true, portrait: portrait('gobelin', 'ennemi') })}
+    ${carte('Cheval', 'Monture', { portrait: portrait('cheval', 'ennemi') })}`,
+  `${plaque('Cibler', { armee: true })}${plaque('Annuler')}`));
+  /* AA 10 l.169, l.171 ; `fenetre.viseeDeSiege`, `consigne.poseDeLaZone`, `verbe.viseeDeSiege.fermer` (`fr.ts:484`,
+     `fr.ts:4454`, `fr.ts:372`) ; `src/noyau/combatSlice.ts:1024-1031`, `src/noyau/combatFlow.ts:5949` */
+  else if (VAR === 'siege') ui.push(bandeauDuJet('Viser', 'consigne', `
+    <div class="camp">${BERTA_P}<div><div class="n gothique">Berta <span class="modif rubrique" style="vertical-align:3px;margin-left:6px">Pilonnage</span></div><div class="c rubrique">Mortier</div></div></div>
+    <p class="consigne" data-texte="consigne">Cliquez la case où poser la zone.</p>`,
+  plaque('Annuler')));
+  /* LDB 17 l.68 ; `reglage.attaque.localisationDuCritique` (`fr.ts:216`) ; `src/noyau/fenetreDAttaque.ts:288-291` */
+  else if (VAR === 'localiser') ui.push(bandeauDuJet('Attaque', 'avant', `
+    ${camp({ portrait: BERTA_P, nom: 'Berta', carac: 'Corps à corps (Base)', seuil: 41, des: ['10', '1'], total: 11, dr: '+3', reussite: true, modif: 'Résultat choisi' })}
+    <div id="verdict" class="reglages">
+      <div class="rangee">${silhouette(102, { tete: 'choisie' })}
+        <div class="choix"><div class="sous rubrique">Épée · Cible : Orc</div><div class="l rubrique">Localisation du Critique</div>
+          <div class="v"><span class="gothique">Tête</span></div>
+        </div></div></div>
+    ${camp({ cote: 'droite', portrait: ORC_P, nom: 'Orc', carac: 'Parade', seuil: 35, des: ['60', '2'], total: 62, dr: '−3' })}`,
+    apresLeDe({ heros: { ...RESERVES.berta, resilience: 0 } })));
   else if (VAR === 'avant') ui.push(bandeauDuJet('Attaque', 'avant', `
     ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 28, modif: 'Avantage +10' })}
     <div id="verdict" class="reglages">

@@ -1,5 +1,5 @@
 /* Exploration et récit, images d'intention (#3935, #4411) : les écrans de la scène isométrique. L'état vient de
-   data-etat : exploration, exploration-gestes, soins-entre-heros, dialogue, jet-de-competence, butin,
+   data-etat : exploration, exploration-gestes, exploration-dessus, exploration-premiere-personne, soins-entre-heros, dialogue, jet-de-competence, butin,
    designation-d-un-heros, document, document-relu, carnet. Le Test de compétence et la désignation se posent sur le
    socle du jet (`../combat/jet.js`). Maquette hors du jeu. */
 const ETAT = document.getElementById('ecran').dataset.etat;
@@ -25,16 +25,26 @@ const LIEU = titre({ icone: 'lit', nom: 'La Diligence', sous: 'Auberge-relais ·
 const JOUR = ['borne-j', 'Le soir, à La Diligence'];
 const pieces = [];
 
-/* ce que le curseur survole : son nom, ce qu'on en sait, le geste d'un clic ; `sens` : le côté de sa pointe */
-const apercu = (sens, x, y, l, nom, texte, icone, geste) => `<div class="apercu parchemin vers-${sens}" data-piece="apercu" style="left:${x}px;top:${y}px;width:${l}px;--pointe:52px">
+/* ce que le curseur survole, ou que vise le point de mire : son nom, ce qu'on en sait, son geste et `par` quoi il se
+   joue ; `sens` : le côté de sa pointe */
+const apercu = (sens, x, y, l, nom, texte, icone, geste, par = 'clic') => `<div class="apercu parchemin vers-${sens}" data-piece="apercu" style="left:${x}px;top:${y}px;width:${l}px;--pointe:52px">
     <div class="tete"><span class="n gothique">${nom}</span></div>
     <p>${texte}</p>
-    <div class="geste">${pastille(icone)}${geste}<em>clic</em></div></div>`;
+    <div class="geste">${pastille(icone)}${geste}<em>${par}</em></div></div>`;
 /* une chose de la scène que l'on vise : sa pastille et son geste */
 const visee = (piece, cx, y, o) => poste(cx, y, { ...o, vise: true }).replace('class="poste', `data-piece="${piece}" class="poste`);
 /* les gestes du groupe, au coin gauche : ceux que la situation ouvre s'empilent au-dessus des deux qui ne bougent pas */
 const gestesDuGroupe = (ouverts = []) => `<div id="gestes-groupe" data-piece="gestes-groupe">${[...ouverts, ['ville', 'Le lieu'], ['carte', 'Carte du monde']].map(([icone, nom]) => `<div>${rond(icone, 24)}<span class="rubrique ombre">${nom}</span></div>`).join('')}</div>`;
 const MENE = { mira: { choisi: true, html: '<span class="attend rubrique">Mène le groupe</span>' } };
+/* ce qui entoure la salle quand la situation ouvre des gestes, sous ses trois vues ; `derniere` : la ligne neuve */
+const chromeDesGestes = (derniere) => [bandeau(MENE), gestesDuGroupe([['soin', 'Soigner'], ['sommeil', 'Se reposer'], ['oeil', 'Fouiller la pièce']]),
+  ouvrir('Carnet d’enquête', 'livre', 462), chronique([JOUR, ['vieux', 'Le groupe entre dans la salle commune.'], ['', derniere]]), coins()];
+/* la touche d'un geste du clavier */
+const touche = (t) => `<kbd class="touche lin">${t}</kbd>`;
+/* #3935 : le regard tenu parmi les trois ; un clic sur un autre y passe, la touche passe au suivant. `regarder`
+   (`hotes/godot/pont/pont.ts:1432`), `REGARDS`, `regardSuivant` (`src/noyau/monde/aretes.ts:125`, `:269`),
+   `changer_de_regard` (`hotes/godot/projet/project.godot:52`) */
+const regard = (tenu) => `<div id="regard" class="cadre bois" data-piece="regard"><div class="fond bois"><span class="rubrique">Regard</span>${segments(['Isométrique', 'Dessus', 'Première personne'], tenu)}${touche('V')}</div></div>`;
 
 if (ETAT === 'exploration') {
   sceneAuberge({ survol: 'gustav', trajet: true, avis: true });
@@ -55,9 +65,30 @@ if (ETAT === 'exploration-gestes') {
   pieces.push(marque(263, 296, 'porte'), marque(984, 436, 'bulle'), marque(148, 428, 'cle'), marque(608, 488, 'main'));
   pieces.push(apercu('droite', 338, 464, 236, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser'));
   pieces.push(visee('croisée', 1321, 172, { nom: 'Croisée', sous: 'Enjamber la fenêtre', icone: 'porte' }));
-  pieces.push(bandeau(MENE), gestesDuGroupe([['soin', 'Soigner'], ['sommeil', 'Se reposer'], ['oeil', 'Fouiller la pièce']]));
-  pieces.push(ouvrir('Carnet d’enquête', 'livre', 462));
-  pieces.push(chronique([JOUR, ['vieux', 'Le groupe entre dans la salle commune.'], ['', 'Le groupe fouille la pièce.']]), coins());
+  pieces.push(...chromeDesGestes('Le groupe fouille la pièce.'));
+}
+/* les mêmes gestes, la salle vue du dessus : seule la caméra change */
+if (ETAT === 'exploration-dessus') {
+  const DAGUE = [10, 10], { lieu } = sceneAubergeDessus({ auSol: DAGUE, croisee: true });
+  const sur = (c, icone) => { const [x, y] = lieu(...c); return marque(x, y - 34, icone); };
+  const [dx, dy] = lieu(...DAGUE), [cx, cy] = lieu(SALLE.fenetresDeDroite[1], SALLE.mur[1]);
+  pieces.push(LIEU, regard('Dessus'));
+  pieces.push(sur([SALLE.mur[0], SALLE.porte], 'porte'), sur(SALLE.gens.cocher, 'bulle'), sur(SALLE.coffre, 'cle'), sur(DAGUE, 'main'));
+  pieces.push(apercu('droite', dx - 270, dy - 56, 236, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser'));
+  pieces.push(visee('croisée', cx, cy - 104, { nom: 'Croisée', sous: 'Enjamber la fenêtre', icone: 'porte' }));
+  pieces.push(...chromeDesGestes('Le groupe fouille la pièce.'));
+}
+/* #3935 (2026-11-17) : la marche libre de l'immersion (`hotes/godot/projet/scripts/immersion.gd`) : le regard à la
+   souris captive, la marche au clavier, le point de mire au centre ; `agir` (E ou clic) joue la case qu'il vise
+   (`case_jouee`, clic du champ) */
+if (ETAT === 'exploration-premiere-personne') {
+  const MIRE = [W / 2, H / 2], { lieu } = sceneAubergeAuxYeux({ oeil: SALLE.groupes.entree.mira });
+  const sur = ([x, y], icone) => marque(x, y - 26, icone);
+  pieces.push(LIEU, regard('Première personne'));
+  pieces.push(sur(lieu(SALLE.mur[0] + .5, SALLE.porte, 1.16), 'porte'), sur(lieu(SALLE.gens.cliente[0] - .15, SALLE.gens.cliente[1], 1), 'bulle'));
+  pieces.push(apercu('droite', MIRE[0] - 296, MIRE[1] - 56, 236, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser', `${touche('E')} ou clic`));
+  pieces.push(`<i id="mire" data-piece="mire"></i>`);
+  pieces.push(...chromeDesGestes('Le groupe fouille la pièce.'));
 }
 
 /* LDB 09 l.260 ; `ouvrirLeMedecin`, `fenetreChoisir('infirmerie', 'patient')`, `jetRegler('soins', 'mode')`,

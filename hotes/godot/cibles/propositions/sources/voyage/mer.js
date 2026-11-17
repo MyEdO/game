@@ -6,7 +6,7 @@
 const ETAT = document.getElementById('ecran').dataset.etat;
 const ARRET = ETAT !== 'voyage-en-mer';
 const AU_PORT = ETAT === 'mer-relache';
-poser(interieur(D.mer(ETAT === 'mer-fuite-de-vapeur' ? { navire: false } : { x: 690 })));
+poser(interieur(D.mer(ETAT === 'mer-fuite-de-vapeur' ? { x: 1568, s: .42, cogue: { vapeur: true } } : { x: 690 })));
 if (ARRET) assombrir();
 fermer();
 const pieces = [];

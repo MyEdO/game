@@ -295,6 +295,11 @@
 .plaque.carte.courte .qui{flex:1;display:flex;justify-content:space-between;align-items:baseline}
 .plaque.carte.courte .n{font-size:18px;line-height:20px}
 .plaque.carte.courte .c{font-family:"Grenze Gotisch";font-weight:600;font-size:18px;line-height:20px}
+/* trois réactions : la substitution sociale s'ajoute, les cartes se serrent à la mesure de leur nom */
+.reactions:has(.carte:nth-child(3)){gap:6px}
+.reactions:has(.carte:nth-child(3)) .plaque.carte.courte{flex:1 1 auto}
+.reactions:has(.carte:nth-child(3)) .plaque.carte.courte>div{gap:7px;padding:0 9px}
+.reactions:has(.carte:nth-child(3)) .plaque.carte.courte :is(.n,.c){font-size:16.5px;white-space:nowrap}
 .regle{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;text-align:left}
 .regle .l{font-size:12px;color:#4a3420;white-space:nowrap}
 #jet .regle .options{gap:6px}
