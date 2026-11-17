@@ -1,7 +1,7 @@
 /**
  * LA SESSION DU COMPENDIUM (#4020), PURE : la consultation du Codex (famille, catégorie, recherche, facettes, entrée
  * montrée et son instance, renvoi suivi) et l'atelier d'une entrée d'une catégorie éditable (modifier, créer, écrire une
- * valeur, resceller une adresse de prose, identifier, écrire le dé d'en-tête, abandonner, enregistrer, supprimer). Elle
+ * valeur, monter un élément de liste, resceller une adresse de prose, identifier, écrire le dé d'en-tête, abandonner, enregistrer, supprimer). Elle
  * lit le registre et les datasets et DÉCRIT la transaction demandée (`transactionDemandee`) ; l'hôte la joue
  * (`enregistrerEntree`, `supprimerEntree`) et en rapporte l'issue (`enregistrement`). Le formulaire de l'atelier est
  * celui de l'éditeur de carte (`src/noyau/edition/formulaire.ts`), le `Source/` servi aussi (`SourceServie`).
@@ -31,6 +31,7 @@ import {
   champsDuFormulaire,
   cheminOffert,
   ecritureAuFormulaire,
+  monteeAuFormulaire,
   rescellementAuFormulaire,
   retraitAuFormulaire,
   type ChoixDuFormulaire,
@@ -87,7 +88,7 @@ export interface SessionDuCompendium {
 /** Un geste du Compendium. Consultation : choisir la famille, la catégorie, le terme de recherche, basculer une valeur
  *  de facette, montrer une entrée, suivre un renvoi vers une entrée d'une autre catégorie. Atelier : modifier l'entrée
  *  montrée, en créer une, écrire une valeur au chemin `chemin` du brouillon (`valeur` absente : le champ se retire), y
- *  resceller une adresse de prose, donner son identifiant, écrire le dé d'en-tête de sa table, abandonner, demander son
+ *  monter l'élément d'une liste avant le précédent, y resceller une adresse de prose, donner son identifiant, écrire le dé d'en-tête de sa table, abandonner, demander son
  *  enregistrement ou sa suppression, puis l'issue que l'hôte en rapporte ; l'issue du chargement du chapitre attendu. */
 export type GesteDuCompendium =
   | { geste: 'famille'; famille: CodexGroup }
@@ -99,6 +100,7 @@ export type GesteDuCompendium =
   | { geste: 'modifier' }
   | { geste: 'creer' }
   | { geste: 'valeur'; chemin: Segment[]; valeur?: unknown }
+  | { geste: 'monter'; chemin: Segment[] }
   | { geste: 'resceller'; chemin: Segment[] }
   | { geste: 'identifier'; id: string }
   | { geste: 'enTete'; valeur: string }
@@ -269,16 +271,18 @@ function ouvrir(s: SessionDuCompendium, g: { geste: 'modifier' | 'creer' }): Ses
 }
 
 /** La session `s` où le geste d'atelier `g` est joué sur l'atelier `a` ; refusé pendant une transaction demandée. */
-function travailler(s: SessionDuCompendium, a: AtelierDuCompendium, g: Extract<GesteDuCompendium, { geste: 'valeur' | 'resceller' | 'identifier' | 'enTete' | 'enregistrer' | 'supprimer' }>): SessionDuCompendium {
+function travailler(s: SessionDuCompendium, a: AtelierDuCompendium, g: Extract<GesteDuCompendium, { geste: 'valeur' | 'monter' | 'resceller' | 'identifier' | 'enTete' | 'enregistrer' | 'supprimer' }>): SessionDuCompendium {
   if (a.enCours) return refusee(s, tr('ecran.compendium.refus.enCours'));
   const avec = (atelier: Partial<AtelierDuCompendium>): SessionDuCompendium => ({ ...s, atelier: { ...a, ...atelier } });
   const ds = editableDataset(a.categorie);
   switch (g.geste) {
     case 'valeur':
+    case 'monter':
     case 'resceller': {
       const forme = formeDeLAtelier(a);
-      const ecrite = g.geste === 'valeur'
-        ? ecritureAuFormulaire(forme, a.entree, g.chemin, g.valeur, choixDeLAtelier(a, forme.noeud, s.source), s.source)
+      const choix = () => choixDeLAtelier(a, forme.noeud, s.source);
+      const ecrite = g.geste === 'valeur' ? ecritureAuFormulaire(forme, a.entree, g.chemin, g.valeur, choix(), s.source)
+        : g.geste === 'monter' ? monteeAuFormulaire(forme, a.entree, g.chemin, choix(), s.source)
         : rescellementAuFormulaire(forme, a.entree, g.chemin, s.source);
       return ecrite.ok ? avec({ entree: ecrite.valeur }) : refusee(s, { chemin: g.chemin, refus: ecrite.refus });
     }

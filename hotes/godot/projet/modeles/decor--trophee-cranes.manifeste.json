@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "trophee-cranes"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "os",
+      "palette": "corps",
+      "matiere": "prop--os"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    }
+  ],
+  "glb": {
+    "sha256": "070312419d739e5e00f1ad579aeeeb828777a3f7384a9f1b2426a90f9c4dab20",
+    "octets": 92892
+  }
+}

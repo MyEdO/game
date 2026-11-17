@@ -17,7 +17,7 @@
 import { battleRng } from './battleRng';
 import { lieuDuGroupe, marcheDuLieu } from './worldMap';
 import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/skills';
-import { opposedTest, shiftDifficulty, type OpposedResult } from '../engine/tests';
+import { opposedTest, type OpposedResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
 import { type RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
@@ -144,15 +144,11 @@ function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => vo
 function apresHalle(get: Get, set: Set): void {
   const cur = currentMarket(get);
   if (!cur) return;
-  // Rumeurs commerciales (MSRC 13 l.176-180) : Test de Ragot Complexe (−10) au marché ; sur un succès, on
-  // tire un AUTRE Emplacement puis une rumeur (Tableau des rumeurs) → les biens visés s'y vendent au DOUBLE
-  // du prix de base (l.180). L'« index géographique du Reikland » (l.180) est ici la liste des Lieux de la
-  // carte porteurs d'un `market` (aucun catalogue neuf). #274 sweep : ce Test était un `rollTest` inline
-  // silencieux (jamais interrogeable/surfacé au MJ) — migré sur la porte `openRoll`.
+  // MSRC 13 l.176-180 ; l'« index géographique du Reikland » (l.180) = les Lieux de la carte porteurs d'un `market`.
   openPartyTest(get, set, {
     skill: { id: 'ragot' }, assisted: false,
     actionLabel: 'Rumeur commerciale',
-    difficulty: shiftDifficulty(gossipRule.difficulty, gossipRule.mod),
+    difficulty: gossipRule.difficulty,
     stake: combatStakeRef(LAND_GOSSIP_KIND),
   }, LAND_GOSSIP_KIND, { placeId: cur.placeId });
 }

@@ -1,20 +1,11 @@
-[gd_resource type="Theme" load_steps=6 format=3]
+[gd_resource type="Theme" load_steps=7 format=3]
 
-[ext_resource type="Script" path="res://scripts/cadre.gd" id="1_cadre"]
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="2_titres"]
 [ext_resource type="StyleBox" path="res://art/laiton_sur_chene.tres" id="3_laiton_sur_chene"]
+[ext_resource type="StyleBox" path="res://art/bouton_focus.tres" id="4_focus"]
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
 
 [sub_resource type="StyleBoxEmpty" id="Sans_cadre"]
-
-[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Laiton_de_l_actif"]
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
-script = ExtResource("1_cadre")
-cadre = "laiton"
-matiere = "prop--bois-chene"
-teinte = Color(0.42, 0.4, 0.37, 1)
 
 [sub_resource type="StyleBoxFlat" id="Fer_sur_cire"]
 content_margin_left = 6.0
@@ -22,36 +13,43 @@ content_margin_top = 6.0
 content_margin_right = 6.0
 content_margin_bottom = 6.0
 bg_color = Color(0.34, 0.08, 0.06, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.05, 0.045, 0.04, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(0.16, 0.155, 0.15, 1)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
 [resource]
-Label/colors/font_shadow_color = Color(0, 0, 0, 0.9)
-Label/colors/font_outline_color = Color(0, 0, 0, 0.6)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.45)
 Label/constants/shadow_offset_x = 1
-Label/constants/shadow_offset_y = 2
-Label/constants/outline_size = 3
+Label/constants/shadow_offset_y = 1
 Portrait/base_type = &"PanelContainer"
 Portrait/styles/panel = SubResource("Sans_cadre")
 neutre/base_type = &"PanelContainer"
-neutre/colors/font_color = Color(0.953, 0.902, 0.784, 1)
-neutre/font_sizes/font_size = 16
-neutre/fonts/font = ExtResource("2_titres")
 neutre/styles/panel = ExtResource("3_laiton_sur_chene")
 echec/base_type = &"PanelContainer"
-echec/colors/font_color = Color(0.953, 0.902, 0.784, 1)
-echec/font_sizes/font_size = 16
-echec/fonts/font = ExtResource("2_titres")
 echec/styles/panel = SubResource("Fer_sur_cire")
 alerte/base_type = &"PanelContainer"
-alerte/colors/font_color = Color(0.85, 0.7, 0.38, 1)
-alerte/font_sizes/font_size = 18
-alerte/fonts/font = ExtResource("2_titres")
-alerte/styles/panel = SubResource("Laiton_de_l_actif")
+alerte/styles/panel = ExtResource("3_laiton_sur_chene")
+NomDuRang/base_type = &"Label"
+NomDuRang/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+NomDuRang/font_sizes/font_size = 13
+NomDuRang/fonts/font = ExtResource("5_rubriques")
+NomDeLActif/base_type = &"Label"
+NomDeLActif/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+NomDeLActif/font_sizes/font_size = 18
+NomDeLActif/fonts/font = ExtResource("2_titres")
+Mesure/font_sizes/font_size = 10
+Mesure/fonts/font = ExtResource("5_rubriques")
+; Ici et non au thème du projet : le `Button` de `ecran.tres`, thème d'un ancêtre, primerait sur la variation.
+SurLeRang/base_type = &"Button"
+SurLeRang/styles/normal = SubResource("Sans_cadre")
+SurLeRang/styles/hover = ExtResource("4_focus")
+SurLeRang/styles/pressed = ExtResource("4_focus")
+SurLeRang/styles/hover_pressed = ExtResource("4_focus")
+SurLeRang/styles/disabled = SubResource("Sans_cadre")
+SurLeRang/styles/focus = ExtResource("4_focus")

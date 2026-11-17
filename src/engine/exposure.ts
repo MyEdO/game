@@ -92,6 +92,14 @@ const SECOND_FAIL: Record<ExposureKind, CharKey[]> = {
   chaleur: ['capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite', 'sociabilite'],
 };
 
+/** Rang de l'échec d'Exposition (argument `failures` d'`applyExposureFailure`) déduit du nombre
+ *  d'effets d'Exposition DÉJÀ posés sur le porteur. LDB 18 l.330/334. PUR. */
+export function exposureFailureRank(posed: number, kind: ExposureKind = 'froid'): number {
+  const first = FIRST_FAIL[kind].length;
+  if (posed >= first + SECOND_FAIL[kind].length) return 3;
+  return posed >= first ? 2 : 1;
+}
+
 /** Nombre de Tests d'une nuit dehors selon sévérité et abri — cadence RAW (LDB 18 l.328 : 4h/2h),
  *  application « nuit ~8h » maison via `exposition-tests-nuit-difficile`/`exposition-tests-nuit-extreme`
  *  (policy.ts). Un abri (Tente) ramène une nuit extrême au rythme difficile. */

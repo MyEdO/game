@@ -1,0 +1,56 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "marmite"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ecorce",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "eau",
+      "palette": "accent",
+      "matiere": "prop--eau-dormante"
+    },
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    },
+    {
+      "nom": "os",
+      "palette": "corps",
+      "matiere": "prop--os"
+    },
+    {
+      "nom": "braises",
+      "palette": "accent",
+      "matiere": "prop--braises"
+    }
+  ],
+  "glb": {
+    "sha256": "54edfd48848ea110026fea4758a32f4c3ee3650ac6d47371e0651af59a77df51",
+    "octets": 97600
+  }
+}

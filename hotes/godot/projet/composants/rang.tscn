@@ -1,90 +1,67 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 [ext_resource type="Theme" path="res://art/rang.tres" id="t_rang"]
-[ext_resource type="Theme" path="res://art/discret.tres" id="t_discret"]
 
 [node name="Rang" type="PanelContainer"]
 size_flags_horizontal = 0
 theme = ExtResource("t_rang")
 theme_type_variation = &"Enveloppe"
 
-[node name="Colonne" type="VBoxContainer" parent="."]
-theme_type_variation = &"PileTassee"
-
-[node name="Rangee" type="HBoxContainer" parent="Colonne"]
+[node name="Rangee" type="HBoxContainer" parent="."]
 theme_type_variation = &"RangeeSerree"
 
-[node name="Cadre" type="PanelContainer" parent="Colonne/Rangee"]
+[node name="Cadre" type="PanelContainer" parent="Rangee"]
 size_flags_vertical = 4
 
-[node name="ton" type="Node" parent="Colonne/Rangee/Cadre"]
+[node name="ton" type="Node" parent="Rangee/Cadre"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
-[node name="Portrait" type="HBoxContainer" parent="Colonne/Rangee/Cadre"]
+[node name="Portrait" type="HBoxContainer" parent="Rangee/Cadre"]
 alignment = 1
 
-[node name="Zone" type="Node" parent="Colonne/Rangee/Cadre/Portrait"]
+[node name="Zone" type="Node" parent="Rangee/Cadre/Portrait"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("portrait")
 formes = PackedStringArray("portrait:portraitDuRang")
 
-[node name="Pile" type="VBoxContainer" parent="Colonne/Rangee"]
+[node name="Fiche" type="PanelContainer" parent="Rangee/Cadre"]
+mouse_filter = 2
+theme_type_variation = &"Enveloppe"
+
+[node name="Zone" type="Node" parent="Rangee/Cadre/Fiche"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("fiche/")
+formes = PackedStringArray("bouton:surLeRang")
+
+[node name="Pile" type="VBoxContainer" parent="Rangee"]
 size_flags_vertical = 4
 theme_type_variation = &"PileTassee"
 
-[node name="Tete" type="HBoxContainer" parent="Colonne/Rangee/Pile"]
-theme_type_variation = &"RangeeSerree"
-
-[node name="Nom" type="Label" parent="Colonne/Rangee/Pile/Tete"]
-custom_minimum_size = Vector2(130, 0)
+[node name="Nom" type="Label" parent="Rangee/Pile"]
 size_flags_vertical = 4
 mouse_filter = 1
 text_overrun_behavior = 3
+theme_type_variation = &"NomDuRang"
 
-[node name="nom" type="Node" parent="Colonne/Rangee/Pile/Tete/Nom"]
+[node name="nom" type="Node" parent="Rangee/Pile/Nom"]
 script = ExtResource("1_liaison")
 champ = "nom"
 
-[node name="infobulle" type="Node" parent="Colonne/Rangee/Pile/Tete/Nom"]
+[node name="infobulle" type="Node" parent="Rangee/Pile/Nom"]
 script = ExtResource("1_liaison")
 champ = "nom"
 propriete = &"tooltip_text"
 
-[node name="ton" type="Node" parent="Colonne/Rangee/Pile/Tete/Nom"]
-script = ExtResource("1_liaison")
-champ = "ton"
-propriete = &"theme_type_variation"
+[node name="Vie" type="HBoxContainer" parent="Rangee/Pile"]
 
-[node name="Fiche" type="HBoxContainer" parent="Colonne/Rangee/Pile/Tete"]
-size_flags_vertical = 4
-theme = ExtResource("t_discret")
-
-[node name="Zone" type="Node" parent="Colonne/Rangee/Pile/Tete/Fiche"]
-script = ExtResource("2_zone")
-source = "elements"
-ids = PackedStringArray("fiche/")
-repli = true
-
-[node name="Vie" type="HBoxContainer" parent="Colonne/Rangee/Pile"]
-
-[node name="Zone" type="Node" parent="Colonne/Rangee/Pile/Vie"]
+[node name="Zone" type="Node" parent="Rangee/Pile/Vie"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("blessures")
-formes = PackedStringArray("jauge:vie")
-
-[node name="Round" type="PanelContainer" parent="Colonne"]
-size_flags_horizontal = 0
-theme_type_variation = &"Medaillon"
-
-[node name="Zone" type="Node" parent="Colonne/Round" node_paths=PackedStringArray("masque")]
-script = ExtResource("2_zone")
-source = "elements"
-ids = PackedStringArray("round")
-formes = PackedStringArray("ligne:rubrique")
-masque = NodePath("..")
+formes = PackedStringArray("jauge:vieDuRang")

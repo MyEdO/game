@@ -1,0 +1,46 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "puits"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ardoise",
+      "palette": "corps",
+      "matiere": "prop--prop-ardoise"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    }
+  ],
+  "glb": {
+    "sha256": "10d2adae0d665599f4c819362ab21faf9adfc894543a2d76027dd71b00c9abdf",
+    "octets": 210832
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "enseigne"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    }
+  ],
+  "glb": {
+    "sha256": "b791c26506f6e2c4c641bb0f867bbac854fd2ff7a7f2b6cb810b3156db9975e4",
+    "octets": 47612
+  }
+}

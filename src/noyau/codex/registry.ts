@@ -1548,7 +1548,7 @@ const CODEX_SPECS = {
         sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
         meta: facts(fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)), fact(tr('codex.fiche.emplacement'), t.loc), fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa), reachFact),
         sections: sections(
-          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
+          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel(r.instance)))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
           passiveSection(t.passifDArme),
           effectsSection(t.effects, ETATS_DU_CODEX, tr('codex.fiche.effetsDeclenches')),
@@ -2609,7 +2609,7 @@ const CODEX_SPECS = {
       const { achat, vente, ragot } = c;
       return [{
         id: 'landCargo', label: c.label, source: src(achat.source),
-        meta: facts(fact(tr('codex.fiche.ragot'), tr('codex.fiche.difficulteEtModificateur', { v: DIFFICULTY_LABELS[ragot.difficulty], mod: signe(ragot.mod) }))),
+        meta: facts(fact(tr('codex.fiche.ragot'), DIFFICULTY_LABELS[ragot.difficulty])),
         sections: sections(
           {
             title: tr('codex.fiche.qualiteDuVin', { die: formatDice(deDeLaTableTiree(c.qualiteDuVin)) }), layout: 'list',

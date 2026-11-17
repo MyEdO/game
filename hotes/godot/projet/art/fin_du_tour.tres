@@ -1,119 +1,72 @@
-[gd_resource type="Theme" load_steps=8 format=3]
+[gd_resource type="Theme" load_steps=11 format=3]
 
-[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="1_rubriques"]
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="2_cadre"]
 
-[sub_resource type="StyleBoxFlat" id="Repos"]
-bg_color = Color(0.66, 0.52, 0.25, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.36, 0.26, 0.1, 1)
-corner_radius_top_left = 44
-corner_radius_top_right = 44
-corner_radius_bottom_right = 44
-corner_radius_bottom_left = 44
-shadow_color = Color(0, 0, 0, 0.55)
-shadow_size = 4
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille"]
+script = ExtResource("2_cadre")
+cadre = "pastille"
 
-[sub_resource type="StyleBoxFlat" id="Survol"]
-bg_color = Color(0.85, 0.7, 0.38, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.36, 0.26, 0.1, 1)
-corner_radius_top_left = 44
-corner_radius_top_right = 44
-corner_radius_bottom_right = 44
-corner_radius_bottom_left = 44
-shadow_color = Color(0, 0, 0, 0.55)
-shadow_size = 4
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_survol"]
+script = ExtResource("2_cadre")
+cadre = "pastille-survol"
 
-[sub_resource type="StyleBoxFlat" id="Presse"]
-bg_color = Color(0.36, 0.26, 0.1, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.85, 0.7, 0.38, 1)
-corner_radius_top_left = 44
-corner_radius_top_right = 44
-corner_radius_bottom_right = 44
-corner_radius_bottom_left = 44
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_presse"]
+script = ExtResource("2_cadre")
+cadre = "pastille-presse"
 
-[sub_resource type="StyleBoxFlat" id="Ferme"]
-bg_color = Color(0.16, 0.155, 0.15, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.05, 0.045, 0.04, 1)
-corner_radius_top_left = 44
-corner_radius_top_right = 44
-corner_radius_bottom_right = 44
-corner_radius_bottom_left = 44
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_ferme"]
+script = ExtResource("2_cadre")
+cadre = "pastille-ferme"
 
-[sub_resource type="StyleBoxFlat" id="Focus"]
-draw_center = false
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.953, 0.902, 0.784, 1)
-corner_radius_top_left = 46
-corner_radius_top_right = 46
-corner_radius_bottom_right = 46
-corner_radius_bottom_left = 46
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fin"]
+script = ExtResource("2_cadre")
+cadre = "bouton-rond"
 
-[sub_resource type="StyleBoxFlat" id="Chene"]
-bg_color = Color(0.2, 0.14, 0.08, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.66, 0.52, 0.25, 1)
-corner_radius_top_left = 44
-corner_radius_top_right = 44
-corner_radius_bottom_right = 44
-corner_radius_bottom_left = 44
-shadow_color = Color(0, 0, 0, 0.55)
-shadow_size = 3
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fin_survol"]
+script = ExtResource("2_cadre")
+cadre = "bouton-rond-survol"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fin_presse"]
+script = ExtResource("2_cadre")
+cadre = "bouton-rond-presse"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fin_ferme"]
+script = ExtResource("2_cadre")
+cadre = "bouton-rond-ferme"
 
 [resource]
-Button/colors/font_color = Color(0.133, 0.102, 0.067, 1)
-Button/colors/font_hover_color = Color(0.133, 0.102, 0.067, 1)
-Button/colors/font_focus_color = Color(0.133, 0.102, 0.067, 1)
-Button/colors/font_pressed_color = Color(0.953, 0.902, 0.784, 1)
-Button/colors/font_hover_pressed_color = Color(0.953, 0.902, 0.784, 1)
-Button/colors/font_disabled_color = Color(0.42, 0.4, 0.37, 1)
-Button/colors/icon_normal_color = Color(0.25, 0.2, 0.15, 1)
-Button/colors/icon_hover_color = Color(0.25, 0.2, 0.15, 1)
-Button/colors/icon_focus_color = Color(0.25, 0.2, 0.15, 1)
-Button/colors/icon_disabled_color = Color(0.8, 0.8, 0.8, 1)
+Button/colors/icon_normal_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/icon_focus_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/icon_hover_color = Color(0.937, 0.847, 0.569, 1)
+Button/colors/icon_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/icon_hover_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/icon_disabled_color = Color(0.42, 0.4, 0.37, 1)
 Button/constants/icon_max_width = 22
-Button/font_sizes/font_size = 16
-Button/fonts/font = ExtResource("1_titres")
-Button/styles/normal = SubResource("Repos")
-Button/styles/hover = SubResource("Survol")
-Button/styles/pressed = SubResource("Presse")
-Button/styles/hover_pressed = SubResource("Presse")
-Button/styles/disabled = SubResource("Ferme")
-Button/styles/focus = SubResource("Focus")
+Button/styles/normal = SubResource("Pastille")
+Button/styles/hover = SubResource("Pastille_survol")
+Button/styles/pressed = SubResource("Pastille_presse")
+Button/styles/hover_pressed = SubResource("Pastille_presse")
+Button/styles/disabled = SubResource("Pastille_ferme")
 neutre/base_type = &"Button"
-neutre/colors/icon_normal_color = Color(0.85, 0.7, 0.38, 1)
-neutre/colors/icon_focus_color = Color(0.85, 0.7, 0.38, 1)
-neutre/colors/icon_pressed_color = Color(0.25, 0.2, 0.15, 1)
-neutre/colors/icon_hover_pressed_color = Color(0.25, 0.2, 0.15, 1)
-neutre/styles/normal = SubResource("Chene")
-neutre/styles/pressed = SubResource("Repos")
-neutre/styles/hover_pressed = SubResource("Repos")
 alerte/base_type = &"Button"
-alerte/colors/icon_pressed_color = Color(0.25, 0.2, 0.15, 1)
-alerte/colors/icon_hover_pressed_color = Color(0.25, 0.2, 0.15, 1)
-alerte/styles/pressed = SubResource("Repos")
-alerte/styles/hover_pressed = SubResource("Repos")
+alerte/styles/normal = SubResource("Pastille_survol")
+Fin/base_type = &"Button"
+Fin/colors/icon_normal_color = Color(0.953, 0.902, 0.784, 1)
+Fin/colors/icon_focus_color = Color(0.953, 0.902, 0.784, 1)
+Fin/colors/icon_hover_color = Color(0.953, 0.902, 0.784, 1)
+Fin/colors/icon_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Fin/colors/icon_hover_pressed_color = Color(0.85, 0.7, 0.38, 1)
+Fin/constants/icon_max_width = 36
+Fin/styles/normal = SubResource("Fin")
+Fin/styles/hover = SubResource("Fin_survol")
+Fin/styles/pressed = SubResource("Fin_presse")
+Fin/styles/hover_pressed = SubResource("Fin_presse")
+Fin/styles/disabled = SubResource("Fin_ferme")
+NomDeFin/base_type = &"Label"
+NomDeFin/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+NomDeFin/colors/font_shadow_color = Color(0, 0, 0, 1)
+NomDeFin/constants/shadow_offset_x = 1
+NomDeFin/constants/shadow_offset_y = 1
+NomDeFin/font_sizes/font_size = 13
+NomDeFin/fonts/font = ExtResource("1_rubriques")

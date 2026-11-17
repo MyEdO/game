@@ -714,6 +714,7 @@
     "demande": {
       "cereales": 1
     },
+    "signal": "clocher",
     "dirigeant": "Reine Juana la Roja",
     "desc": "Produit le célèbre vin de Bilbali",
     "source": {

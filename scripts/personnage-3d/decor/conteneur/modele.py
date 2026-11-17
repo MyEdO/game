@@ -9,7 +9,7 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import ANGLES, HAUT, X, Y, anneau, cap, coque, normales, pave, rond
+from geometrie import ANGLES, HAUT, X, Y, anneau, cap, clou, coque, partage, pave, rond
 from maille import cylindre, poutre, tour, tube
 from maille import boite as bloc
 
@@ -43,24 +43,11 @@ def planche(m, p0, p1, dehors, largeur, epaisseur, chanfrein, mat):
     coque(m, [[p + s for s in section] for p in (p0, p1)], mat)
 
 
-def clou(m, centre, dehors, C, demi, mat):
-    """Une tête de clou en pointe de diamant posée sur `centre`, tournée vers `dehors`, d'après `C` (`CLOU`), en
-    fractions de `demi`."""
-    u, v = normales(dehors)
-    c = C[0] * demi
-    coque(m, [[centre + u * a * c + v * b * c for a, b in ANGLES]], mat, centre + dehors * C[1] * demi)
-
-
 def ruban(m, profil, x0, x1, fer, mat):
     """Un fer plat de `x0` à `x1` le long de `profil`, [((y, z), (ny, nz))] : un point de la surface qu'il suit et sa
     normale unitaire ; il la dépasse de `fer` et s'y ancre d'autant. La coque de sa section, d'un point du profil à
     l'autre."""
     coque(m, [[(x, y + s * ny * fer, z + s * nz * fer) for s, x in ((1, x0), (1, x1), (-1, x1), (-1, x0))] for (y, z), (ny, nz) in profil], mat)
-
-
-def partage(a, nombre, ecart):
-    """Les bornes de `nombre` parts de [0, 1], chaque borne du dedans écartée d'au plus `ecart` de sa part."""
-    return [0.0] + [(k + a.uniform(-ecart, ecart)) / nombre for k in range(1, nombre)] + [1.0]
 
 
 def tonneau(F, T, P, a):

@@ -1,14 +1,14 @@
 /**
- * Maladresses — Livre de base, « Maladresses » (14-_GoBack.md l.53-57). Une Maladresse = Test de
- * combat ÉCHOUÉ dont le d100 est un double (miroir du Critique = double réussi). Déclenche le
- * Tableau des Oups !, ou un Incident de Tir (arme à Poudre noire + jet pair → explosion, l.56-57).
+ * Maladresses — LDB 14 l.19 (Tableau des Oups !, LDB 14 l.21-30) ; Incident de Tir, LDB 14 l.34.
  */
 import { rollDice, RNG, type DiceSpec } from './dice';
 import { findTableEntry } from './tables';
 import { isDoubleRoll } from './tests';
 import { Combatant, Weapon } from './types';
+import { groupeDeLArme } from '../data';
+import { groupeAPoudre } from './weaponGroup';
 import { oupsTable, oupsMisfire, oupsDie, OupsKind } from '../data/oups';
-import { isFirearmQuality, hasQuality, isUnbreakable } from './qualities/dispatch';
+import { resolveQualities, hasQuality, isUnbreakable } from './qualities/dispatch';
 import { solideSaveThreshold, sauvegardeImperdable } from './weaponDamage';
 import { TABLE_SALVE_MISFIRE } from './artilleryMisfire';
 import type { DemandeDe } from './ops';
@@ -35,18 +35,24 @@ export function isFumble(roll: number, success: boolean, fingersLost = 0): boole
   return unit >= 1 && unit <= fingersLost;
 }
 
-/** Arme à Poudre noire / explosive (Incident de Tir, l.56-57). On détecte la famille « Poudre noire ». */
-function isFirearm(w: Weapon | undefined): boolean {
-  if (!w) return false;
-  return /poudre|explos/i.test(w.subType ?? '') || isFirearmQuality(w);
+/** L'arme est-elle « à Poudre noire, mécanique ou explosive » ? Son Groupe (`groupeDeLArme`) à poudre
+ *  (`groupeAPoudre`) ou `explosifs`, ou une qualité à capacité `firearm`. Lu par l'Incident de Tir et
+ *  l'effroi Nerveux. LDB 14 l.34 ; LDB 85 l.249 ; LDB 62 l.178 ; AA 10 l.150, l.165 ; #4345 */
+export function armeAPoudre(w: Weapon): boolean {
+  const groupe = groupeDeLArme(w);
+  return groupeAPoudre(groupe) || groupe === 'explosifs' || resolveQualities(w).some((r) => r.caps?.firearm);
 }
 
-/** Tire sur le Tableau des Oups ! ; Incident de Tir prioritaire (arme à poudre + jet PAIR). */
-export function rollOups(weapon: Weapon | undefined, rng: RNG): OupsResolved {
+/** L'Incident de Tir de cette Maladresse, lu sur le jet du Test de combat qui l'a produite (sa parité,
+ *  son dé des unités), ou `null` : la Maladresse va au Tableau des Oups !. LDB 14 l.19, l.34 */
+export function incidentDeTir(arme: Weapon, jetDeMaladresse: number): OupsResolved | null {
+  if (!armeAPoudre(arme) || jetDeMaladresse % 2 !== 0) return null;
+  return { roll: jetDeMaladresse, kind: 'misfire', label: oupsMisfire().label };
+}
+
+/** Tire sur le Tableau des Oups !. LDB 14 l.21-30 */
+export function rollOups(rng: RNG): OupsResolved {
   const roll = rollDice(oupsDie(), rng);
-  if (isFirearm(weapon) && roll % 2 === 0) {
-    return { roll, kind: 'misfire', label: oupsMisfire().label };
-  }
   const entry = findTableEntry(oupsTable(), roll);
   return { roll, kind: entry.kind, label: entry.label, ...(entry.mod !== undefined ? { mod: entry.mod } : {}) };
 }

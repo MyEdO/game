@@ -341,10 +341,11 @@ export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string
   return (id) => idsDesignes(cle, site).has(id);
 }
 
-/** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune) : l'espace de ses
- *  `specs` (`<espace>#[<id>].specs`), l'univers de sa `specsSource` compris (`lectureDeLEspace`). */
+/** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune, ou `id` n'est aucune entrée de
+ *  `type`, `idsDe`) : l'espace de ses `specs` (`<espace>#[<id>].specs`), l'univers de sa `specsSource` compris
+ *  (`lectureDeLEspace`). */
 export function catalogueSpecs(type: TypeEntite, id: string): readonly string[] {
-  return [...(lireLEspace(cleDesSpecs(espaceDe(type), id)) ?? [])];
+  return idsDe(type).has(id) ? [...(lireLEspace(cleDesSpecs(espaceDe(type), id)) ?? [])] : [];
 }
 
 /** La spécialisation `spec` DÉSIGNE-t-elle une entrée du catalogue de l'entrée `id` de `type`

@@ -10,8 +10,9 @@
  *     Critique au Gréement ; tant que ça souffle, ancre ou dérive à 25 % ;
  *  3. Test d'équipage de PROGRESSION (modale, #65) : milles du jour = 18 × M effectif (vent ch.13
  *     l.276, Salissures l.152, Clinfoc ch.12 l.256), ±10 %/DR (ch.15 l.78) ;
- *  4. arrivée en vue du port À PHARE (`MapPlace.port.lighthouse`) → Test d'équipage de PERCEPTION
- *     (modale, #65 — « voir la lumière d'un phare », l.337) : réussite → bonus d'Orientation (l.335) ;
+ *  4. arrivée à portée du SIGNAL du port (`MapPlace.port.signal`, phare ou clocher) → Test d'équipage de
+ *     PERCEPTION (modale, #65 — « voir la lumière d'un phare », l.337 ; clocher, l.351) : réussite → bonus
+ *     d'Orientation (l.335, l.351) ;
  *  5. Test d'équipage d'ORIENTATION quotidien (modale, #65 — « un Test par jour de voyage », l.311)
  *     → Repères / Changement de cap (retard %, quart de tour, demi-tour) ;
  *  6. CRISE en cours (Poursuite ch.13 l.354 / Tourbillon l.514) : un Test d'équipage par manche
@@ -113,7 +114,7 @@ import {
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
-  lighthouseSpotDifficulty, lighthouseOrientationDR, savoirOceansBonus, pursuitDistanceGain,
+  lighthouseSpotDifficulty, lighthouseOrientationDR, pursuitDistanceGain,
   pursuitLowMPenalty, voileSansProfil, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage,
 } from '../engine/seaNavigation';
 import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailChars, isWeatherWarded } from '../engine/exposure';
@@ -127,10 +128,20 @@ import {
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
   type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
-import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
+import {
+  navalMoveMod,
+  navalTraitsDe,
+  navalTestTypeDR,
+  navalNavTestModLines,
+  shipHasNavalTrait,
+  hullNavalTraits,
+  vesselNavalTraits,
+} from '../engine/navalTraits';
 import { rule } from '../engine/policy';
 import { TEMPORARY_REPAIR } from '../engine/riverNavigation';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { signalDuPortSchema, type SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import {
@@ -160,7 +171,6 @@ import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladie
 import {
   DIFFICULTE_PAR_DEFAUT,
   DIFFICULTY_LABELS,
-  DIFFICULTY_MODIFIERS,
   type Combatant,
   type Difficulty,
   type NavalTraitRef,
@@ -672,6 +682,9 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
   const testType = findCrewTestTypeById(testTypeId);
   const essentialRoleId = testType?.essential.id;
   const pont = activeSeaPrecipitation(get); // MDG 13 l.185
+  const difficulty = opts.difficulty ?? DIFFICULTE_PAR_DEFAUT; // MDG 14 l.13
+  // « Bouteur »/« Gréement de course » : MSRC 12 l.66/140 ; Test de Navigation = Compétence de propulsion, MDG 13 l.17-19, l.119.
+  const navDir = testType?.steering ? navalNavTestModLines(hullNavalTraits(ship)) : [];
   // Le flux propriétaire (naval) RÉSOUT la présentation (rôle tenu) et DÉCLARE le jet de chaque
   // contributeur au MONTEUR CANONIQUE (`rollStep`) — le séquenceur/modale génériques n'y liront QUE
   // des champs neutres (`BatchParticipant`), base NUE et composantes NOMMÉES comprises.
@@ -686,7 +699,7 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
       ...(rv?.used ? { skill: structuredClone(rv.used) } : {}), // #2097
       interactive: true,
       essential: a.roleId === essentialRoleId,
-      difficulty: 'intermediaire' as const,
+      difficulty,
       bonusSlOnSuccess: role ? crewTalentDR(a.crew, role, navigation) : 0,
       result: null,
       // La Compétence RÉELLEMENT tenue par le rôle (`crewRoleValue().used`) est celle qui se décompose ;
@@ -696,26 +709,24 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
       // résolue (`rollStep`, LDB 09 l.30 ; #2588 Q1). Sans rôle résolu, la valeur vient d'une autre
       // formule : elle se DÉCLARE comme telle.
       ...rollStep(rv?.refus != null
-        ? { actor: a.crew, test: { skill: rv.used, sense: opts.sense }, difficulty: 'intermediaire', refus: rv.refus }
+        ? { actor: a.crew, test: { skill: rv.used, sense: opts.sense }, difficulty, refus: rv.refus }
         : rv?.used
           ? {
             actor: a.crew, test: { skill: rv.used, sense: opts.sense },
-            valeur: rv.value, difficulty: 'intermediaire',
+            valeur: rv.value, difficulty,
             ...(crewTestModParts(a.crew).length ? { dansLaValeur: crewTestModParts(a.crew) } : {}),
+            ...(navDir.length && rv.used.id === navigation.id ? { surLaCible: navDir } : {}),
             pont,
           }
-          : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty: 'intermediaire', pont }),
+          : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty, pont }),
     };
   });
   const saboteur = shipSaboteurDR(ship); // MDG 14 l.45-47 : −1..−5 DR plats, aussi en voyage (#214)
   // #221 : Traits/Améliorations navals ciblant CE type de Test d'équipage (op `skillDRBonus` à `testType`,
   // ex. Proue-idole de Stromfels → Poursuite) — agnostique de la compétence tenue par le représentant.
   const traitDR = navalTestTypeDR(hullNavalTraits(ship), testTypeId);
-  // « Bouteur »/« Gréement de course » modifient le Test de Navigation POUR DIRIGER (MSRC 12 l.66/140) —
-  // seul le Test d'équipage de manœuvre (steering) le reçoit, converti en DR (`navalNavTestDR`, ÷10).
   // Modificateurs d'événement posés sur le navire (op `navireMod`) : MDG 15 l.184-185
-  const modsDR = sommeDesModificateurs(get().vessel?.modificateurs, get().gameTime, 'manDR');
-  const navDirDR = testType?.steering ? navalNavTestDR(hullNavalTraits(ship)) + modsDR : 0;
+  const navDirDR = testType?.steering ? sommeDesModificateurs(get().vessel?.modificateurs, get().gameTime, 'manDR') : 0;
   // MANQUE DE BRAS (MDG 14 l.55) — s'applique à TOUT Test d'équipage, voyage compris : −2 DR par tranche de
   // 10 % manquante ET plafond au Succès Minime. En campagne l'attrition vient des pertes d'équipage
   // (`vessel.crewLost`, MDG 15 l.245) — MÊME couture que le combat (`shipUndercrew`).
@@ -723,7 +734,7 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
   // Le naval verse ses paramètres de formule DÉJÀ chiffrés en `meta` NEUTRE (bande de Moral + sabotage +
   // traits + Manque de bras, et son plafond) et l'ID de son prédicat de succès (`crew-test` →
   // `crewTestSuccess`, MDG 14 l.13) : l'agrégat générique ne connaît aucun seuil naval.
-  const flatDR = moraleBand(shipMoraleScore(get, ship)).crewTestDR + saboteur + traitDR + navDirDR + (opts.extraDR ?? 0) + (opts.difficulty ? DIFFICULTY_MODIFIERS[opts.difficulty] / 10 : 0) + undercrew.dr;
+  const flatDR = moraleBand(shipMoraleScore(get, ship)).crewTestDR + saboteur + traitDR + navDirDR + (opts.extraDR ?? 0) + undercrew.dr;
   // La POSSESSION de la bande est posée par le socle (`bandStep`) : N contributeurs ⇒ `groupOwner`, un
   // seul ⇒ son porteur. Déclarée nulle part ici — c'est ce qui laissait la fenêtre à l'hôte seul (#1268).
   return bandStep({
@@ -996,8 +1007,15 @@ export function reparationTemporaireApresLaManoeuvre(get: Get, set: Set, ship: C
   pushStep(set, (index) => (fluvial ? reparationTemporaireFluviale : reparationTemporaireDuNavire)(get, ship, `manoeuvre-${ship.id}-${index}`), 'combat');
 }
 
+/** Signal (phare ou clocher) du port d'arrivée du voyage en cours ; absent, aucun. MDG 13 l.333-351 */
+function signalDuPortDArrivee(get: Get): SignalDuPort | undefined {
+  const plan = get().travelPlan;
+  const worldMap = get().worldMap as WorldMap | undefined;
+  return plan && worldMap ? placeById(worldMap, plan.toPlaceId)?.port?.signal : undefined;
+}
+
 /**
- * Étapes POST-PROGRESSION du jour (crise → embuscade ancrée → phare → orientation → extermination →
+ * Étapes POST-PROGRESSION du jour (crise → embuscade ancrée → signal du port → orientation → extermination →
  * entretien), calculées APRÈS que `applySeaProgress` ait posé `sea.milesToday` du jour (dépendance de
  * l'embuscade/du phare, #275 Ronde 2 cran 3 Décision 2) — appelée par l'applier `'equipage-progression'`
  * (`insert`) ET par `buildSeaDayCascade` quand AUCUN Test de Progression n'a pu s'ouvrir (aucun PJ
@@ -1021,9 +1039,10 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
     // Manœuvre tant que non dégagé.
     const entangleDR = findCrewTestTypeById(testTypeId)?.steering ? (sea.entangled?.manDR ?? 0) : 0;
     // Le Test d'Évasion d'un Tourbillon (MDG 13 l.514-537) traverse des eaux dangereuses (LDB 10 l.966).
+    const evasion = sea.crisis.kind === 'tourbillon' ? garanti(findWhirlpool(sea.crisis.whirlpoolId), sea.crisis.whirlpoolId, 'tourbillon').evasion : undefined;
     const st = buildVoyageCrewStep(get, testTypeId, kind, {
       ...(entangleDR ? { extraDR: entangleDR } : {}),
-      ...(kind === 'equipage-tourbillon' ? { contexte: 'perilDesEaux' as const } : {}),
+      ...(evasion ? { contexte: 'perilDesEaux' as const, difficulty: evasion.difficulty } : {}), // MDG 13 l.531-535
     });
     if (st) out.push(st);
     else resolveSeaCrisisRound(get, set, capToSuccesMinime(UNDERCREW_DR));
@@ -1053,12 +1072,14 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
       else openAuthoredSeaAmbush(get, set, route, false); // aucun équipage pour tester → surpris directement
     }
   }
-  // 4. Phare du port d'arrivée en vue (dernier jour de mer) → Test de Perception VISUEL (MDG 13 l.337).
-  const dest = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
-  const lighthouse = dest?.port?.lighthouse;
+  // 4. Signal du port d'arrivée à portée (dernier jour de mer) → Test de Perception : lumière du phare
+  //    (MDG 13 l.337), son du clocher (MDG 13 l.351).
+  const signal = signalDuPortDArrivee(get);
   const milesLeft = plan.km - plan.kmDone - sea.milesToday;
-  if (lighthouse && milesLeft <= 15 && lighthouseSpotDifficulty(Math.max(1, Math.round(milesLeft))) != null) {
-    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: 'vue' });
+  const clocher = signal === 'clocher';
+  const spot = signal ? lighthouseSpotDifficulty(Math.max(1, milesLeft), clocher) : null;
+  if (spot) {
+    const st = buildVoyageCrewStep(get, 'perception', 'equipage-phare', { sense: clocher ? 'ouie' : 'vue', difficulty: spot }); // MDG 13 l.339-346
     pousseSi(out, st);
   }
   // 5. Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311), + Carte marine (+DR, MDG 15 l.290).
@@ -1117,7 +1138,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   const eff = effectiveSeaM(get);
   if (eff.sail && eff.m === null && eff.affaler) {
     patchSea(get, set, { sailsDown: true });
-    const st = buildVoyageCrewStep(get, 'affaler', 'equipage-affaler');
+    const st = buildVoyageCrewStep(get, 'affaler', 'equipage-affaler', { difficulty: AFFALER_RULES.difficulty }); // MDG 13 l.292
     pousseSi(steps, st);
   }
   // 3. Progression du jour : MDG 14 l.61-65 ; MDG 15 l.78. Encalminé : MDG 13 l.296-298. Voiles
@@ -2806,7 +2827,8 @@ export const TABLES = {
       const total = step.result.sl;
       const dr = total + (sea.lighthouseDR ?? 0);
       const out = orientationOutcome(dr, !!sea.minorDrift);
-      const j = [`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR ? `, phare +${sea.lighthouseDR}` : ''}) : ${out.desc}`];
+      const signal = signalDuPortDArrivee(get);
+      const j = [`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR && signal ? `, ${libelleDeValeur(signalDuPortSchema, signal)} +${sea.lighthouseDR}` : ''}) : ${out.desc}`];
       if (out.outcome === 'derive-mineure') patchSea(get, set, { minorDrift: true });
       if (out.rollCourseChange) {
         const cc = rollCourseChange(rng, out.courseChangeBonus);
@@ -2823,15 +2845,18 @@ export const TABLES = {
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
-    /** Phare du port d'arrivée (ch.13 l.337) : réussite → bonus d'Orientation (Savoir Océans/manuel). */
+    /** Signal du port d'arrivée (ch.13 l.337, l.351) : réussite → bonus d'Orientation. */
     'equipage-phare': (get, set, step) => {
       if (!step.result) return;
       const success = step.result.success;
+      const clocher = signalDuPortDArrivee(get) === 'clocher';
       const best = partyAssisted(get().party, { skill: { id: 'orientation' } });
-      const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, false), savoirOceansBonus(best.actor)) : 0;
+      const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, clocher)) : 0;
       patchSea(get, set, { lighthouseDR: dr });
-      // MDG 13 l.335
-      const j = [success ? t('sv.lighthouseSeen', { dr }) : t('sv.lighthouseMissed')];
+      // MDG 13 l.335, l.351
+      const j = [success
+        ? t(clocher ? 'sv.clocherHeard' : 'sv.lighthouseSeen', { dr })
+        : t(clocher ? 'sv.clocherMissed' : 'sv.lighthouseMissed')];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },

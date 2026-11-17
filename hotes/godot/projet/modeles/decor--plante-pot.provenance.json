@@ -1,0 +1,13 @@
+{
+  "model": "decor--plante-pot.glb",
+  "model_sha256": "b96ab84c9b57e61d93657862a17ae5bd775aba38fb8f1d7e988d436b9f67a867",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

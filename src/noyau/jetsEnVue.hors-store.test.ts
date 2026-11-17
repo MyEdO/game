@@ -136,7 +136,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
     flux: ['defense'],
     oppose: true,
   },
-  maladresse: { patch: { pendingCascade: cascade(etapeHote('maladresse', { maladresse: { weapon: H.weapons[0], result: { roll: 42, kind: 'misfire', label: 'Raté' } } })) }, flux: ['maladresse'] },
+  maladresse: { patch: { pendingCascade: cascade(etapeHote('maladresse', { maladresse: { weapon: H.weapons[0], result: { roll: 42, kind: 'selfWound', label: 'Coup à soi' } } })) }, flux: ['maladresse'] },
   incantation: {
     patch: {
       pendingCascade: cascade(etapeHote('incantation')),

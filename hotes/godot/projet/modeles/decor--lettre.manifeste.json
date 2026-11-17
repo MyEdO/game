@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "lettre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "papier",
+      "palette": "corps",
+      "matiere": "prop--toile-ecrue"
+    },
+    {
+      "nom": "cire",
+      "palette": "accent",
+      "matiere": "prop--toile-rouge"
+    }
+  ],
+  "glb": {
+    "sha256": "71c881031aaf1f40a0b05881f1ea6e45f73f8d64662789d0c423b2d0a5909abb",
+    "octets": 17568
+  }
+}

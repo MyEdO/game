@@ -15,9 +15,9 @@ propriete = &"tooltip_text"
 mouse_filter = 2
 theme_type_variation = &"RangeeSerree"
 
-[node name="Pastilles" type="HBoxContainer" parent="Rangee"]
-size_flags_vertical = 8
-theme_type_variation = &"RangeeSerree"
+[node name="Pastilles" type="VBoxContainer" parent="Rangee"]
+size_flags_vertical = 4
+theme_type_variation = &"PileSerree"
 
 [node name="Zone" type="Node" parent="Rangee/Pastilles"]
 script = ExtResource("1_zone")

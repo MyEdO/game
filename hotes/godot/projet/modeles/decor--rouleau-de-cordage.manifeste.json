@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "rouleau-de-cordage"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    }
+  ],
+  "glb": {
+    "sha256": "1f01166da1e284ed3149f785f827a76772304c1e1944b0fbeb229a150fe73ff8",
+    "octets": 96140
+  }
+}

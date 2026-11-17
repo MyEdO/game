@@ -8,24 +8,23 @@
 
 [node name="Bouton" type="VBoxContainer"]
 size_flags_vertical = 8
+mouse_filter = 2
 theme = ExtResource("t_fin")
+theme_type_variation = &"PileTassee"
 
 [node name="Presser" type="Button" parent="."]
 focus_mode = 0
 script = ExtResource("9_bulle")
-custom_minimum_size = Vector2(88, 88)
+custom_minimum_size = Vector2(84, 84)
+size_flags_horizontal = 4
+theme_type_variation = &"Fin"
 toggle_mode = true
-autowrap_mode = 3
 icon_alignment = 1
-vertical_icon_alignment = 0
-
-[node name="libelle" type="Node" parent="Presser"]
-script = ExtResource("1_liaison")
-champ = "libelle"
 
 [node name="Dessin" type="Node" parent="Presser"]
 script = ExtResource("3_dessin")
 champ = "icone"
+nomme = "interface/attendre"
 
 [node name="presse" type="Node" parent="Presser"]
 script = ExtResource("1_liaison")
@@ -50,3 +49,11 @@ script = ExtResource("1_liaison")
 champ = "refus"
 propriete = &"tooltip_text"
 a_la_suite = true
+
+[node name="Nom" type="Label" parent="."]
+theme_type_variation = &"NomDeFin"
+horizontal_alignment = 1
+
+[node name="libelle" type="Node" parent="Nom"]
+script = ExtResource("1_liaison")
+champ = "libelle"

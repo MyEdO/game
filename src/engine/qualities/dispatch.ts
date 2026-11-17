@@ -37,6 +37,9 @@ export interface ResolvedQuality {
   /** Indice porté par la référence (`QualityInstance.value`) — paramètre les effets de la qualité
    *  (`noyau/triggeredEffects::withArg`, template `$indice`) et son affichage (`qualityRefLabel`). */
   indice?: number;
+  /** La référence elle-même, copie FRAÎCHE (`{id, value?}` ou majorée `{id, majoration}`) : ce que relit tout site qui
+   *  affiche la qualité (`qualityRefLabel`) ou la recopie sur un autre porteur. */
+  instance: QualityInstance;
 }
 
 /** Ops passives de la qualité (lecture par id dans la donnée). */
@@ -63,7 +66,7 @@ export function resolveQualities(w: QualityCarrier | undefined): ResolvedQuality
   const out: ResolvedQuality[] = [];
   for (const q of merged) {
     const data = findQualityById(q.id);
-    out.push({ def: { key: data?.label ?? q.id }, id: q.id, data, caps: data?.capabilities, indice: q.value });
+    out.push({ def: { key: data?.label ?? q.id }, id: q.id, data, caps: data?.capabilities, indice: q.value, instance: { ...q } });
   }
   const beaten = new Set<string>(out.flatMap((r) => r.caps?.beats ?? []));
   // Neutralisations d'une ALTÉRATION (op `augmentWeapon`) : par id, et par POLARITÉ lue dans le REGISTRE
@@ -162,11 +165,6 @@ export function canFireWhileEngaged(w: Weapon | undefined): boolean {
 /** L'objet est-il insensible aux dégâts/destruction (Incassable) ? (remplace les regex /incassable/i). */
 export function isUnbreakable(w: QualityCarrier | undefined): boolean {
   return resolveQualities(w).some((r) => r.caps?.unbreakable);
-}
-
-/** L'arme est-elle une arme à feu (Poudre noire / Explosion) ? (remplace les regex /poudre|explos/i sur les qualités). */
-export function isFirearmQuality(w: QualityCarrier | undefined): boolean {
-  return resolveQualities(w).some((r) => r.caps?.firearm);
 }
 
 /** Ajustement de DR d'un Test RATÉ utilisant l'objet : Pratique +1, Peu Fiable -1 (LDB 60 l.22/58).

@@ -23,7 +23,7 @@ import { findVehicleById } from '../data';
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG, rollDice, type RNG } from '../engine/dice';
 import { imposerLesD100 } from './battleRng.testkit';
-import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade, membresHorsDifficulte } from './cascade.testkit';
 import { acheterAuMarche } from './cargaison.testkit';
 import { applierDe } from './cascade';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
@@ -35,7 +35,7 @@ import { setDataset, resetData } from '../data/overrides';
 import { BOARD_EVENTS, FAST_VOYAGE_PALIERS, PORT_EVENTS } from '../engine/seaVoyage';
 import { lierLesTirages, tiragesDuFlow, type Flow } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
-import type { Combatant } from '../engine/types';
+import type { Combatant, Difficulty } from '../engine/types';
 import { itemFromTrappingById } from '../engine/items';
 import { shipboardSouls } from './shipCrew';
 import { PORT_A_CHANTIER } from '../data/navalPorts.testkit';
@@ -240,16 +240,19 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
     expect(get().vessel!.criticals).toHaveLength(3);
   });
 
-  it('Ouragan : la difficulté Difficile (–20) descend au Test d’équipage en −2 DR plats (l.144 ; MDG 14 l.13)', () => {
+  it('Ouragan : chaque membre jette son Test individuel Difficile (–20), aucun DR plat sur le total (l.144 ; MDG 14 l.13)', () => {
     const ouragan = BOARD_EVENTS.find((e) => e.id === 'ouragan')!.consequence as Extract<Flow, { kind: 'test' }>;
     expect(ouragan.test).toMatchObject({ crewTestType: 'affaler', difficulty: 'difficile' });
-    const drPlats = (difficulty: string): number => {
+    const testDEquipage = (difficulty: Difficulty) => {
       etatFrais();
       consequenceDeBord('ouragan', { ...ouragan, test: { ...ouragan.test, difficulty } } as Flow);
       jour('ouragan');
-      return Number(etape('testDEquipage')?.meta?.aggregateFlatDR ?? 0);
+      return etape('testDEquipage')!;
     };
-    expect(drPlats('difficile')).toBe(drPlats('intermediaire') - 2);
+    const intermediaire = testDEquipage('intermediaire');
+    const difficile = testDEquipage('difficile');
+    expect(membresHorsDifficulte(difficile, 'difficile')).toEqual([]);
+    expect(difficile.meta?.aggregateFlatDR).toBe(intermediaire.meta?.aggregateFlatDR);
   });
 
   it('Ouragan : l’équipage affale à temps, aucun Coup Critique (l.144-145)', () => {
