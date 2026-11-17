@@ -1,6 +1,6 @@
 *Pages PDF 70-75*
 
-## **L'HOSPICE**
+## <span id="page-69-0" data-folio="68"></span>**L'HOSPICE**
 
 <span id="page-70-0" data-folio="69"></span>Le Grand Hospice fut fondé en 2243 sur la base d'un don de terres et d'argent d'Eberhardt le Juste, alors Empereur d'Altdorf. Lui-même prêtre aspirant de Shallya, Eberhardt s'était vu confier la gouvernance de la Maison Holzkrug à la mort soudaine de son père, alors que le comportement de son frère aîné devenait de plus en plus inquiétant.
 

@@ -330,7 +330,7 @@ Se débarrasser d'une Possession lourde annule 1 Test échoué.
 
 **Sources RAW** : `LDB 18 l.327-334`.
 
-**Voir aussi** : Possessions accordant bonus/malus aux Tests d'Exposition (LDB 65 l.44 / LDB 74 p.309).
+**Voir aussi** : Possessions accordant bonus/malus aux Tests d'Exposition (LDB 65 l.44 / LDB 74 l.60).
 
 **Implémente :** [État calculé](../implemente.generated.md#4etraumatismefroid-ldb-18-l-334)
 

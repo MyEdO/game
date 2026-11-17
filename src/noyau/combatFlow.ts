@@ -6026,9 +6026,11 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   set({ pendingCast: { ...pc, zone: { ...pc.zone, center: { ...pt }, placing: false } } });
   bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...pt }, tiles: clampZoneTiles(discTiles(pt, radius, pt.z), get().scene?.dimensions), sort: spell.id });
   if (!inZone.length) {
-    set({ pendingCast: null, pendingCascade: null }); // TERMINAL : ferme data + cascade-hôte (zone à vide)
-    if (pc.focused) caster.focus = undefined; // le sort focalisé est consommé même à vide
-    finishPlayerAction(get, set, [`${spell.label} : la zone ne touche personne.`], 'sort');
+    // TERMINAL : l'hôte se clôt par la sortie d'hôte (#4255), la zone à vide est sa suite.
+    sortirDeLHote(get, set, { pendingCast: null }, () => {
+      if (pc.focused) caster.focus = undefined; // le sort focalisé est consommé même à vide
+      finishPlayerAction(get, set, [`${spell.label} : la zone ne touche personne.`], 'sort');
+    });
     return;
   }
   const first = inZone[0];
@@ -6846,8 +6848,7 @@ export function applyCast(
     // Zone persistante d'un Projectile (Grands feux d'U'Zhul : « le feu continue de brûler
     // dans la Zone d'Effet pour la durée du Sort ») — posée autour de la cible touchée.
     if (res.cast) placeSpellZone(get, caster, target, spell, missileSpec, slFor(target), durationMult, durationBonusRounds, logLines);
-    // Maladresse d'un Sort → Incantation Imparfaite Mineure ; sort focalisé dont
-    // l'incantation échoue → Imparfaite Mineure également (Livre de base l.183).
+    // LDB 46 l.85 ; LDB 46 l.132
     if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)

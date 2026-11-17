@@ -909,7 +909,7 @@
     "ref": "LDB 49 l.5",
     "source": {
       "book": "livre-de-base",
-      "page": 255
+      "page": 254
     },
     "group": "Magie",
     "kind": "flag",
@@ -951,7 +951,7 @@
     "ref": "EDOC 12 l.63",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 65
+      "page": 66
     },
     "group": "Corruption",
     "kind": "mode",

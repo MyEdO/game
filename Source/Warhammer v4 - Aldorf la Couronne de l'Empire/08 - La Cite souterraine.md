@@ -170,4 +170,4 @@ Il dispose de plusieurs espions qu'il envoie à l'École impériale d'ingénieri
 **Possessions :** armure complète de mailles, 3 globes de vent toxique, arme simple (épée), mousquet à malepierre et 12 balles
 
 
-Ludovic Paulet - ludovicmad@wanadoo.fr
+<span id="page-207-0" data-folio="205"></span>Ludovic Paulet - ludovicmad@wanadoo.fr

@@ -2,7 +2,9 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { openSequence, displayStep, monoStep } from './rollSeam';
+import { openSequence, displayStep, monoStep, pushDisplay } from './rollSeam';
+import { toRecapLines } from './recapLine';
+import { testDeRegle } from '../engine/reglesChiffrees';
 import { startCascade, advanceCascade, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, dropSceneEntrySteps, setClotureDeCascade } from './cascade';
 import { runFlow, pushReveal } from './combatEffects';
 import { dispatchCascadeDone } from './combatSlice';
@@ -17,13 +19,13 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import type { GenreDeCascade } from './tablesPosees';
-import { openCastCascade, activeCombatant, commitPlacedZone } from './combatFlow';
+import { openCastCascade, activeCombatant, commitPlacedZone, startDisengage } from './combatFlow';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { Combatant } from '../engine/types';
-import type { CritChoice } from '../engine/magic';
+import type { CritChoice, CastResult } from '../engine/magic';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -734,4 +736,96 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
     expect(banc.getState().pendingCascade!.cursor).toBe(2);
     expect(etapes()).toEqual(['incantation[C]', 'tableDIncantationImparfaite[C][R]', 'deviation']);
   });
+});
+
+describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas la suite de sa séquence', () => {
+  /** Sorcier contre un ennemi, combat ouvert, la main au héros. */
+  function duel(): { heros: Combatant; ennemi: Combatant } {
+    const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+    w.spells = ['explosion'];
+    banc.getState().ensemencerLeTirage(21);
+    banc.setState({ party: [w] });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
+    banc.getState().fenetreValider('debutDuRound');
+    banc.abandonner();
+    const b = banc.getState().battle!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [E, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
+    autres.forEach((e) => (e.dead = true));
+    H.pos = { x: 10, y: 10 }; E.pos = { x: 11, y: 10 };
+    H.wounds = blessuresDeBase(40, 40, H); E.wounds = blessuresDeBase(40, 40, E);
+    b.turn = b.order.indexOf(H.id);
+    banc.setState({ battle: { ...b }, pendingCast: null, pendingCascade: null });
+    return { heros: H, ennemi: E };
+  }
+
+  /** Une étape déjà appendue DERRIÈRE l'hôte de la séquence, avant sa clôture. */
+  function suiteDejaAppendue(heros: Combatant): void {
+    pushDisplay(banc.setState, { id: 'suite-appendue', kind: 'issueDuPiegeALame', actorId: heros.id, icon: 'objet/arme', label: fixtureText('suite'), outcome: toRecapLines(['suite']) });
+  }
+
+  /** L'Explosion (ZdE) au jet figé, l'hôte ouvert comme `castZoneSpell`. */
+  function incanteZone(heros: Combatant, result: CastResult): void {
+    banc.setState({
+      pendingCast: {
+        casterId: heros.id, targetId: heros.id, spellId: 'explosion', missile: true, focused: false, counterspellRouted: true,
+        result, zone: { center: null, radius: 1, r0m: 2 },
+      },
+    });
+    openCastCascade(banc.getState, banc.setState, heros);
+  }
+
+  const etapes = () => banc.getState().pendingCascade?.participants.map((p) => `${p.id}${p.committed ? '[C]' : ''}`);
+
+  it('ZdE qui n’aboutit pas : l’hôte d’incantation est validé, l’étape qui le suit reste au curseur', () => {
+    const { heros } = duel();
+    incanteZone(heros, { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: 'raté' });
+    suiteDejaAppendue(heros);
+    banc.getState().jetValider('incantation');
+    expect(banc.getState().pendingCast).toBeNull();
+    expect(etapes()![0]).toMatch(/\[C\]$/);
+    expect(etapes()![1]).toBe('suite-appendue');
+    expect(banc.getState().pendingCascade!.cursor).toBe(1);
+  });
+
+  it('ZdE posée dans le vide : l’hôte d’incantation est validé, l’étape qui le suit reste au curseur', () => {
+    const { heros } = duel();
+    incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' });
+    banc.getState().jetValider('incantation');
+    suiteDejaAppendue(heros);
+    commitPlacedZone(banc.getState, banc.setState, { x: 10, y: 14 });
+    expect(banc.getState().pendingCast).toBeNull();
+    expect(banc.getState().battle!.acted, 'le Sort lancé à vide consomme l’Action').toBe(true);
+    expect(etapes()![0]).toMatch(/\[C\]$/);
+    expect(etapes()![1]).toBe('suite-appendue');
+    expect(banc.getState().pendingCascade!.cursor).toBe(1);
+  });
+
+  const genres = () => banc.getState().pendingCascade?.participants.map((p) => `${p.kind}${p.committed ? '[C]' : ''}`);
+
+  for (const [critique, attendu] of [
+    [false, ['desengagement[C]', 'issueDuPiegeALame']],
+    [true, ['desengagement[C]', 'deviation', 'mouvementDeFuite', 'issueDuPiegeALame']],
+  ] as const) {
+    it(`Fuite (coup dans le dos ${critique ? 'critique' : 'simple'}) : l’hôte de Désengagement est validé, ses conséquences s’insèrent devant l’étape qui le suit`, () => {
+      const { heros, ennemi } = duel();
+      heros.engagedWith = [ennemi.id]; ennemi.engagedWith = [heros.id];
+      startDisengage(banc.getState, banc.setState, heros);
+      suiteDejaAppendue(heros);
+      banc.setState({
+        pendingDisengage: {
+          moverId: heros.id, foeId: ennemi.id, canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
+          fuir: { participants: [
+            { id: ennemi.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: critique ? 11 : 30, netSL: 1, location: 'corps', damage: critique ? 50 : 4, woundsLost: critique ? 50 : 4, critical: critique, advantageTo: 'attaquant', defenderDefeated: false, log: 'dans le dos' } },
+            { id: heros.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -2 } },
+          ] },
+        },
+      });
+      banc.getState().jetValider('fuite');
+      expect(banc.getState().pendingDisengage).toBeNull();
+      expect(genres()).toEqual(attendu);
+      expect(banc.getState().pendingCascade!.cursor).toBe(1);
+    });
+  }
 });

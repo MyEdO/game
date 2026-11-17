@@ -1,6 +1,6 @@
 *Pages PDF 258*
 
-# **MAGIE NOIRE**
+# <span id="page-257-0" data-folio="256"></span>**MAGIE NOIRE**
 
 Vous trouverez ci-après deux courtes listes de quatre Sorts de Magie noire.
 

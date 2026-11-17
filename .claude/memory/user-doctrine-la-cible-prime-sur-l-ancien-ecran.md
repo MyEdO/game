@@ -21,16 +21,11 @@ metadata:
 
 **Verbatim (2026-11-16)** : « Oui le service du medecin en ville, les jeux de taverne depuis l'écran de service de l'auberge. Franchement si un PNJ donne acces a un service, qu'il ouvre la page des services plutot que la modale, ca marche aussi non ? » — #3935.
 
-**Why :** le fil allait rhabiller en parchemin la fenêtre de jet centrée de l'ancien écran, alors que la cible écrite du combat dit que le bandeau de jet prend la place du meuble de l'actif.
+**Why :** le fil rhabillait en parchemin la fenêtre de jet de l'ancien écran, alors que la cible du combat met le jet dans le bandeau du bas.
 
 **How to apply :**
-- avant tout lot d'écran, relire la cible écrite et ses maquettes, puis nommer dans le brief le passage qui tranche ;
-- l'écart se mesure de la cible vers l'écran, jamais par retouche de l'existant ;
-- ce que la cible a retiré (fenêtre, panneau, bouton) se retire, il ne se rhabille pas ;
-- en combat, ce qui arrête le jeu (jet, critique, début du round) s'affiche dans le bandeau du bas, jamais en fenêtre centrée ;
-- un point que la cible ne tranche pas se propose à l'utilisateur en maquette, pas en reprenant l'ancien par défaut.
-- la fidélité à la maquette se juge aux détails (police, casse, alignements, centrages, lisibilité), pas au pixel ;
-- un lot d'écran Godot se confie à l'agent `ecraniste`.
-- un écran Godot non encore traité n'est jamais une source de design, pas plus que l'ancien web ;
-- un choix parmi beaucoup d'éléments (poste, activité, tour de garde, interlude, bataille de masse) se met en scène dans son lieu, avec ses PNJ, jamais en fenêtre à longue liste.
-- un service (médecin, jeux de taverne, commerce) vit sur la page des services de son lieu ; un PNJ qui y donne accès ouvre cette page, jamais une fenêtre à part.
+- un lot d'écran part de la cible écrite et de ses maquettes (agent `ecraniste`), jamais d'un écran existant, Godot non traité ou ancien web ;
+- ce que la cible retire se retire ; ce qui arrête le combat s'affiche dans le bandeau du bas ;
+- ce que la cible ne tranche pas se propose en maquette ;
+- la fidélité se juge aux détails (police, casse, alignements), pas au pixel ;
+- un choix parmi beaucoup (poste, tour de garde, interlude, bataille) se met en scène dans son lieu avec ses PNJ ; un service vit sur la page des services de son lieu, qu'ouvre le PNJ qui y donne accès.

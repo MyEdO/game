@@ -18,7 +18,7 @@
 // Sortie : docs/raw/coverage.md  ·  `--check` : `ecrireOuVerifier`.
 import { existsSync } from 'node:fs'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
-import { BOOKS, coeurDe, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, readText, teneurDe } from './_lib.mjs'
+import { BOOKS, REGISTRE_LIVRES, coeurDe, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, readText, teneurDe } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { graphieDuFichier, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
@@ -162,8 +162,9 @@ export function sectionsOf(text, splitLevel = 2) {
 // intervalle continu — meme granularite appliquee aux refs folio, converties en lignes via
 // `folioSpan` (accès disque UNIQUEMENT si des refs `p.` sont presentes dans `docs`). `stats`
 // (optionnel, `{ ignoredFolios }`) accumule les folios ignores proprement (ancre absente,
-// ambigue, ou resolue vers un AUTRE chapitre — jamais un throw, #606).
-export function refSpansFor(ab, nn, docs, stats) {
+// ambigue, ou resolue vers un AUTRE chapitre — jamais un throw, #606). `registre` (fixture) dit où lire
+// les folios.
+export function refSpansFor(ab, nn, docs, stats, registre = REGISTRE_LIVRES) {
   const reLine = new RegExp(`\\b${echapperRegex(ab)} 0*${Number(nn)} l\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
   const rePage = new RegExp(`\\b${echapperRegex(ab)} 0*${Number(nn)} p\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
   const spans = []
@@ -182,7 +183,7 @@ export function refSpansFor(ab, nn, docs, stats) {
     }
     rePage.lastIndex = 0
     while ((m = rePage.exec(d.text))) {
-      const resolved = folioSpan(ab, nn, m[1], m[2])
+      const resolved = folioSpan(ab, nn, m[1], m[2], registre)
       if (!resolved) { if (stats) stats.ignoredFolios = (stats.ignoredFolios || 0) + 1; continue }
       spans.push({ lo: resolved[0], hi: resolved[1], file: d.file })
     }

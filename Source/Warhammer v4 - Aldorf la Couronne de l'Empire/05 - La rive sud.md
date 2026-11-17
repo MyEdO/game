@@ -320,7 +320,7 @@ L'ambassadeur actuel est un homme d'État perspicace nommé Louis Rochelle. Son 
 - 0 Les chevaliers bretonniens se lancent parfois dans des quêtes qui les mènent au Reikland. L'ambassade peut demander la reconnaissance officielle de ces nobles, mais le processus est lent et bureaucratique. Pour le moment, les chevaliers en quête qui maltraitent les paysans de l'Empire sans l'approbation du Conseil du Reikland peuvent être jugés selon le droit commun et non le droit noble.
 
 
-### **Deanne L'Isanore**
+### <span id="page-69-0" data-folio="67"></span>**Deanne L'Isanore**
 
 Deanne est arrivée à Altdorf l'année dernière sur invitation de Halmut Clausewitz du Grand Opéra. Sa carrière sur scène s'épanouit enfin après 20 ans passés à jouer les demoiselles en détresse à Parravon. Cette chanteuse en avait assez de pouponner des chevaliers errants et d'éconduire des paysans édentés. Elle s'est juré de ne jamais retourner en Bretonnie. L'incertitude liée à sa profession a considérablement clairsemé sa chevelure déjà fine. Elle s'inquiète à chaque mèche perdue et porte toujours une perruque sur scène.
 
@@ -1116,7 +1116,7 @@ Les nobles d'Altdorf, plus protecteurs, confient à cette étonnante veuve d'âg
 - 0 Von Culper est en réalité un vampire de la lignée des Lahmian. Elle a pour mission de fournir des renseignements confidentiels sur Altdorf à la reine vampire Neferata. À cette fin, elle a destiné le jeune Amadeus von Mencken à prendre la suite du chancelier du Sceau, Otto von Bitternach. Le « Graf de fer » von Bitternach connaîtra bientôt une mort prématurée si personne ne l'avertit du plan sournois de la baronne.
 
 
-### **Harald « L'Infâme » Kleindienst, Capitaine de la Garde**
+### <span id="page-96-0" data-folio="94"></span>**Harald « L'Infâme » Kleindienst, Capitaine de la Garde**
 
 Harald est un homme intimidant de 1,80 m en excellente condition physique malgré son âge. Il était autrefois capitaine de la Garde au poste de Luitpoldstrasse à Altdorf. Il ne s'en est pas attribué le mérite, mais beaucoup pensent que c'est grâce à lui que la dernière Guerre des quais a pris fin. Sa carrière s'est achevée lorsqu'il a tué Ulli von Tasseninck. Harald a expliqué que le noble menaçait une jeune fille, mais comme Ulli était le neveu d'un Électeur, Harald a été écarté afin d'éviter un scandale.
 
@@ -1396,7 +1396,7 @@ Depuis la porte, un long couloir muré mène à la maison du gardien au centre d
 - 0 Pablo Ripasso, un artiste presque célèbre de Magritta, découvre l'un des Personnages et insiste pour qu'il pose pour lui. Il est prêt à payer (une modique somme) pour que le Personnage reste assis là pendant des heures, pendant qu'il peint sa nouvelle muse. Si le Personnage parvient à supporter les heures d'ennui, le travail terminé ressemble à un gribouillage d'enfant. Les Personnages qui se plaignent publiquement peuvent gagner le respect de Mornan Tybalt, qui exècre l'art moderne.
 
 
-### **L'Abomination du Stirland**
+### <span id="page-106-0" data-folio="104"></span>**L'Abomination du Stirland**
 
 L'Abomination du Stirland est une énorme bête à la fourrure laineuse qui possède trois cornes maléfiques sur la tête. Il s'agit d'une nouveauté pour le zoo, qui a d'abord été une attraction populaire. Pendant les premiers mois de son séjour, cette créature s'est déchaînée dans son enclos, donnant de nombreux coups de tête aux murs de pierre et aux barres de fer. Sa rage était si intense qu'elle a même cassé une de ses cornes. À présent, l'animal se contente de fixer le vide d'un air sombre, comme s'il acceptait son inéluctable captivité. Bien évidemment, ce spectacle est insuffisant pour les clients qui payent.
 
