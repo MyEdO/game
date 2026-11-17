@@ -149,6 +149,17 @@ def elevation(p):
     return math.degrees(math.atan2(p[2], math.hypot(p[0], p[1])))
 
 
+def depuis_l_arriere(boucle, P, C):
+    """La boucle `boucle` (indices dans `P`, positions monde) en azimut croissant depuis l'arrière, vue de `C`."""
+    phis = np.array([azimut(P[i] - C) for i in boucle])
+    if np.sum(np.sin(np.radians(np.roll(phis, -1) - phis))) < 0:
+        boucle = boucle[::-1]
+        phis = phis[::-1]
+    phis = np.where(phis >= 180.0, phis - 360.0, phis)
+    debut = int(np.argmin(phis))
+    return boucle[debut:] + boucle[:debut]
+
+
 def couture(b, zones, C):
     """Les sommets du bord du `cou` de la base qu'il partage avec les zones `zones`, en boucle d'azimut croissant depuis
     l'arrière (vu de `C`, monde) : (indices dans le cou, positions monde). Deux sommets confondus du cou n'en font qu'un."""
@@ -183,13 +194,7 @@ def couture(b, zones, C):
         boucle.append(suivant)
     if len(boucle) != len(voisins):
         raise ValueError('tête : la couture du cou est en plusieurs boucles')
-    phis = np.array([azimut(P[i] - C) for i in boucle])
-    if np.sum(np.sin(np.radians(np.roll(phis, -1) - phis))) < 0:
-        boucle.reverse()
-        phis = phis[::-1]
-    phis = np.where(phis >= 180.0, phis - 360.0, phis)
-    debut = int(np.argmin(phis))
-    boucle = boucle[debut:] + boucle[:debut]
+    boucle = depuis_l_arriere(boucle, P, C)
     return np.array(boucle), P[boucle]
 
 

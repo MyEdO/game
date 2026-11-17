@@ -28,6 +28,9 @@ matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313)
 GLB local au lieu du cache épinglé (`entrees.glb_locaux`, #4338) : la construction n'est alors pas reproductible depuis le
 dépôt, la sortie le dit, et elle ne s'importe pas.
 
+`--mpfb <dossier>` donne le dossier `data` de MPFB (tiré par `base/sources.mjs`) à une tête de `element/tete_makehuman.py`,
+qui le lit sous `D['MPFB']` et le réclame s'il manque (#4413).
+
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton \\
         --sortie <dossier neuf hors du dépôt> [--local humanoide--armure--plastron=<plastron.glb>]
 """
@@ -237,9 +240,12 @@ def main():
     p.add_argument("--sortie", required=True)
     p.add_argument("--local", action="append", default=[], metavar="ID=GLB",
                    help="élément lu à ce GLB local au lieu du cache épinglé : construction non reproductible")
+    p.add_argument("--mpfb", type=Path, help="dossier data de MPFB (base/sources.mjs), pour une tête de element/tete_makehuman.py")
     args = p.parse_args()
     base, dossier = args.element.split("/")
     D = runpy.run_path(str(ICI / base / dossier / "donnees.py"))
+    if args.mpfb:
+        D["MPFB"] = args.mpfb
     spec = importlib.util.spec_from_file_location(f"modele_{dossier}", ICI / base / dossier / "modele.py")
     modele = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(modele)

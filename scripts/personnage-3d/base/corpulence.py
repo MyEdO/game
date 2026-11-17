@@ -78,8 +78,8 @@ def alignements(cote):
     return liste
 
 
-def lire_obj(chemin):
-    """Sommets (repère MakeHuman, Y en haut), faces du groupe `body`, et sommets de chaque groupe `joint-*`."""
+def lire_obj(chemin, corps='body'):
+    """Sommets (repère MakeHuman, Y en haut), faces du groupe `corps`, et sommets de chaque groupe `joint-*`."""
     sommets, faces, joints, groupe = [], [], {}, None
     with open(chemin, encoding='utf-8') as fichier:
         for ligne in fichier:
@@ -89,11 +89,11 @@ def lire_obj(chemin):
                 groupe = ligne.split(None, 1)[1].strip()
             elif ligne.startswith('f '):
                 face = [int(t.split('/')[0]) - 1 for t in ligne.split()[1:]]
-                if groupe == 'body':
+                if groupe == corps:
                     faces.append(face)
                 elif groupe and groupe.startswith('joint-'):
                     joints.setdefault(groupe, set()).update(face)
-    if any(i >= SOMMETS_DU_CORPS for f in faces for i in f):
+    if corps == 'body' and any(i >= SOMMETS_DU_CORPS for f in faces for i in f):
         raise RuntimeError(f'{chemin} : une face du groupe body passe le sommet {SOMMETS_DU_CORPS}')
     return np.array(sommets), faces, {nom: sorted(s) for nom, s in joints.items()}
 
@@ -125,15 +125,21 @@ def delta_du_donneur(mpfb, taille):
     return delta + sum(poids * lire_cible(cibles / f'{nom}.target.gz', taille) for nom, poids in CIBLES)
 
 
+def forme_macro(mpfb, sommets, etat):
+    """`sommets` de `base.obj` (repère MakeHuman) chargés des cibles `macrodetails` d'un homme jeune : les races de
+    `RACES` à parts égales, puis l'état `etat` (muscle et poids)."""
+    macro = Path(mpfb) / 'targets' / 'macrodetails'
+    taille = len(sommets)
+    forme = sommets + sum(lire_cible(macro / f'{r}-male-young.target.gz', taille) for r in RACES) / len(RACES)
+    return forme + lire_cible(macro / f'universal-{etat}.target.gz', taille)
+
+
 def donneur(mpfb):
     """`(référence, poids max, triangles, joints)` du donneur, en repère Blender et unités MakeHuman ; ses quads sont
     coupés en triangles ; `joints` donne le centre de chaque groupe `joint-*` à la référence."""
-    macro = Path(mpfb) / 'targets' / 'macrodetails'
     sommets, faces, groupes = lire_obj(Path(mpfb) / '3dobjs' / 'base.obj')
-    taille = len(sommets)
-    reference = sommets + sum(lire_cible(macro / f'{r}-male-young.target.gz', taille) for r in RACES) / len(RACES)
-    reference = reference + lire_cible(macro / f'universal-{ETAT}-{REFERENCE}.target.gz', taille)
-    poids_max = reference + delta_du_donneur(mpfb, taille)
+    reference = forme_macro(mpfb, sommets, f'{ETAT}-{REFERENCE}')
+    poids_max = reference + delta_du_donneur(mpfb, len(sommets))
     reference, poids_max = vers_blender(reference), vers_blender(poids_max)
     joints = {nom: reference[indices].mean(axis=0) for nom, indices in groupes.items()}
     triangles = np.array([t for a, b, c, d in faces for t in ((a, b, c), (a, c, d))])
