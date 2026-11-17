@@ -124,7 +124,7 @@ describe('Exemption de Statut (LDB 09 l.99) — DÉRIVÉE du registre des carri�
   /** Les carrières dont le Statut d'ENTRÉE (niveau 1) n'atteint pas Bronze 1 : « sans ressources ». */
   const sansRessources = careers
     .map((c) => c.id)
-    .filter((id) => !statusMeets(actorStatus({ career: id, careerLevel: 1 }), 'Bronze 1'));
+    .filter((id) => !statusMeets(actorStatus({ career: id, careerLevel: 1 }), { tier: 'bronze', standing: 1 }));
 
   it('le registre en porte au moins une, et Mendiant en est', () => {
     expect(sansRessources.length).toBeGreaterThan(0);

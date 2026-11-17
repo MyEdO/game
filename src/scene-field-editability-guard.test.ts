@@ -627,6 +627,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'FlowTest.vsCapricieux @ src/data/schemas/grammaire/mecanique.ts',
       'FlowTest.vsGroups @ src/data/schemas/grammaire/mecanique.ts',
       'FlowTest.vsStatus @ src/data/schemas/grammaire/mecanique.ts',
+      'FlowTest.vsStatus.standing @ src/data/schemas/grammaire/valeurs.ts',
+      'FlowTest.vsStatus.tier @ src/data/schemas/grammaire/valeurs.ts',
       'FragmentBlocs.b0 @ src/data/schemas/grammaire/valeurs.ts',
       'FragmentBlocs.b1 @ src/data/schemas/grammaire/valeurs.ts',
       'FragmentBlocs.finSec @ src/data/schemas/grammaire/valeurs.ts',

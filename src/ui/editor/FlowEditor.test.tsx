@@ -105,7 +105,7 @@ describe('FlowEditor — nœud Test : Statut de l’interlocuteur (`vsStatus`, L
   it('l’Échelon puis le Standing saisis écrivent le Statut dans le Test', async () => {
     const { container, lu } = monter({ skill: { id: 'charme' } });
     await choisirEchelon(container, 'argent');
-    expect(lu().vsStatus).toBe('Argent 1');
+    expect(lu().vsStatus).toEqual({ tier: 'argent', standing: 1 });
     const standing = container.querySelector<HTMLInputElement>('input[aria-label="Standing de l’interlocuteur"]')!;
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
     await act(() => {
@@ -113,11 +113,11 @@ describe('FlowEditor — nœud Test : Statut de l’interlocuteur (`vsStatus`, L
       standing.dispatchEvent(new Event('input', { bubbles: true }));
       standing.dispatchEvent(new Event('focusout', { bubbles: true }));
     });
-    expect(lu().vsStatus).toBe('Argent 3');
+    expect(lu().vsStatus).toEqual({ tier: 'argent', standing: 3 });
   });
 
   it('« aucun » Échelon retire le Statut du Test', async () => {
-    const { container, lu } = monter({ skill: { id: 'charme' }, vsStatus: 'Or 2' });
+    const { container, lu } = monter({ skill: { id: 'charme' }, vsStatus: { tier: 'or', standing: 2 } });
     expect(echelon(container).value).toBe('or');
     await choisirEchelon(container, '');
     expect(lu().vsStatus).toBeUndefined();

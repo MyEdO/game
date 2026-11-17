@@ -34,7 +34,7 @@ import { giveTrappingLabel } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
 import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
-import { formatMoney, fromBrass } from '../../engine/money';
+import { formatMoney, fromBrass, libelleDuStatut } from '../../engine/money';
 import { formatDice, formatEffetSigne } from '../../engine/dice';
 import { seaWeatherLabel } from '../../engine/seaWeather';
 import { shipLocationLabel } from '../../engine/shipCritical';
@@ -339,7 +339,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
     case 'talent': return t(neg ? 'codex.c.talent.non' : 'codex.c.talent', { sujet: sujetDuGroupe(c.who), nom: refLabel('talents', { id: c.id, spec: c.spec }) });
     case 'career': return t(neg ? 'codex.c.career.non' : 'codex.c.career', { sujet: sujetDuGroupe(c.who), nom: refLabel('careers', { id: c.id }) });
     case 'species': return t(neg ? 'codex.c.species.non' : 'codex.c.species', { sujet: sujetDuGroupe(c.who), nom: refLabel('races', { id: c.id }) });
-    case 'status': return t(neg ? 'codex.c.status.non' : 'codex.c.status', { sujet: sujetDuGroupe(c.who), statut: c.atLeast });
+    case 'status': return t(neg ? 'codex.c.status.non' : 'codex.c.status', { sujet: sujetDuGroupe(c.who), statut: libelleDuStatut(c.atLeast) });
     // De Morgan : NON(A ET B) = (NON A) OU (NON B) ; NON(A OU B) = (NON A) ET (NON B).
     case 'all': return c.of.length ? dedupSubjects(c.of.map((x) => humanizeCondition(x, etats, neg))).join(t(neg ? 'codex.ou' : 'codex.et')) : t(neg ? 'codex.c.jamais' : 'codex.c.toujours');
     case 'any': return c.of.length ? dedupSubjects(c.of.map((x) => humanizeCondition(x, etats, neg))).join(t(neg ? 'codex.et' : 'codex.ou')) : t(neg ? 'codex.c.toujours' : 'codex.c.jamais');

@@ -1066,7 +1066,16 @@
     "fichier": "src/ui/MetalStatus.tsx",
     "concept": "chip de statut métallisé Bronze/Argent/Or avec son échelon",
     "perimetre": "tout affichage de statut social",
-    "verrou": "—"
+    "verrou": "libellé par libelleDuStatut (src/engine/money.ts)"
+  },
+  {
+    "id": "champDeStatut",
+    "type": "primitives.manifest",
+    "label": "ChampDeStatut",
+    "fichier": "src/ui/editor/ChampDeStatut.tsx",
+    "concept": "saisie d’un Statut en ids : choix d’Échelon puis Standing",
+    "perimetre": "tout champ `statutSchema` d’un éditeur web",
+    "verrou": "options lues sur le nœud `statutSchema.shape.tier` (optionsDuNoeud)"
   },
   {
     "id": "waxSeal",

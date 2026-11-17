@@ -47,6 +47,7 @@ import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
 import { actorStatus, statusMeets, type PorteurDeStatut } from './social';
+import type { Status } from './money';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { estObjet } from '../lib/objet.mjs';
 
@@ -193,9 +194,8 @@ export type Condition =
   | { kind: 'talent'; id: string; spec?: string; who?: PartySelector }
   /** Un héros du groupe (`any`/`all`) est de l'espèce `id` (`Combatant.species`) — #711. */
   | { kind: 'species'; id: string; who?: PartySelector }
-  /** Un héros du groupe (`any`/`all`) a un Statut (LDB 08, `actorStatus`) au moins `atLeast`
-   *  (« Argent 2 », `parseStatus`) — #711. */
-  | { kind: 'status'; atLeast: string; who?: PartySelector }
+  /** Un héros du groupe (`any`/`all`) a un Statut (LDB 08, `actorStatus`) au moins `atLeast` — #711. */
+  | { kind: 'status'; atLeast: Status; who?: PartySelector }
   /** COMPARAISON sur un ACTEUR du Flow (cible OU lanceur) — UNIQUE Condition « données d'acteur » :
    *  `subject` (`who` × donnée fixe OU valeur d'un État) · `op` (≥ ≤ = < >) · `value`. `value` est une
    *  CONSTANTE ou le champ d'un AUTRE acteur (« cible plus petite que l'attaquant » ⇔

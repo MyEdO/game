@@ -269,8 +269,8 @@ héros VIVANT du groupe (`who: 'any'`, défaut) ou TOUS (`who: 'all'`) satisfont
   ex. Langue) avec au moins `advances` avances (défaut 0 = simple possession).
 - `{ kind: 'career', id }` — un héros exerce la carrière `id` (`Combatant.career`).
 - `{ kind: 'species', id }` — un héros est de l'espèce `id` (`Combatant.species`, id de `species.json`).
-- `{ kind: 'status', atLeast }` — un héros a un Statut (LDB 08) au moins `atLeast` (« Argent 2 »,
-  `parseStatus` de `src/engine/money.ts`, `statusMeets` de `src/engine/social.ts`).
+- `{ kind: 'status', atLeast }` — un héros a un Statut (LDB 08) au moins `atLeast`, objet d'ids
+  `{ tier: 'argent', standing: 2 }` (`statutSchema`, `statusMeets` de `src/engine/social.ts`).
 
 **Convention d'affichage** — un choix gaté par un `when` de ce type se PRÉFIXE dans le `text` du
 descripteur entre crochets, pour que le joueur voie POURQUOI ce choix lui est offert :

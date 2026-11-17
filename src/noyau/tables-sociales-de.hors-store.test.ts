@@ -39,7 +39,7 @@ describe('Tables sociales — tirées au dé de leur table', () => {
 
   it('Réaction au Statut : un seul tirage, au d2 posé sur la table, « Braver le Statut » annule le mod', () => {
     sousLeDe('reactionAuStatut', 'd2', () => {
-      const { pt, int } = ouvrirLeTest({ skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: 'Or 1' }, 'social-reaction-au-statut');
+      const { pt, int } = ouvrirLeTest({ skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: { tier: 'or', standing: 1 } }, 'social-reaction-au-statut');
       expect(int.mock.calls).toEqual([[1, 2]]);
       expect(pt.psychMod ?? 0).toBe(0);
     });

@@ -22,7 +22,7 @@ import { fabriqueLocale, type FabriqueDId } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
-import { statutDeDonnee, type Status } from '../../engine/money';
+import type { Status } from '../../engine/money';
 import {
   rollSpecies,
   rollCareer,
@@ -775,7 +775,7 @@ const STATUT_SANS_NIVEAU: Status = { tier: 'bronze', standing: 0 };
 /** Le Statut du Niveau choisi, ou `STATUT_SANS_NIVEAU`. */
 export function draftStatus(d: CreatorDraft): Status {
   const lvl = draftLevel(d);
-  return lvl ? statutDeDonnee(lvl.status) : STATUT_SANS_NIVEAU;
+  return lvl ? lvl.status : STATUT_SANS_NIVEAU;
 }
 /** La bourse — faces et montant d'UN tirage, PUR/déterministe (`d.seed`), jamais une relance (LDB 05 :
  *  un seul jet). La ceinture d'agentivité (`wealthRoll`, geste requis avant affichage) vit dans l'UI. */
