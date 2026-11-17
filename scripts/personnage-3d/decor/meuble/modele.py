@@ -65,7 +65,7 @@ def pied_tourne(m, bas, de, haut, cote, P, arete):
     """Un pied tourné de `bas` à `de`, d'après `P` (côtés, profil), sous son dé carré de `de` à `haut`, de demi-côté
     `cote`."""
     tournee(m, bas, de, X, Y, cote, P["profil"], P["cotes"])
-    profilee(m, de, haut, (cote, cote), ((0.0, 1.0, arete), (1.0, 1.0, arete)))
+    profilee(m, de, haut, (cote, cote), ((0.0, 1.0, 1.0, arete), (1.0, 1.0, 1.0, arete)))
 
 
 def cintree(gauche, droit, demi, fleche, t):

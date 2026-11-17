@@ -11,7 +11,7 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (COTES, CYLINDRE, HAUT, MAT, X, Y, barre, cap, cercle, cheville, coque, lisse, octogone,
+from geometrie import (COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, barre, cap, cercle, cheville, coque, lisse, octogone,
                        partage, pave, planche, profilee, rond, tournee)
 from gabarit import VERSANTS
 from maille import poutre, tube
@@ -95,7 +95,7 @@ def puits(D, G, pieces, a):
     arete = cote * D["ARETE"]
     for c, _ in poteaux:
         profilee(bois, c - HAUT * (haut_p / 2 + haut_p * P["poteau"]["ancrage"]), c + HAUT * (haut_p / 2), (demi, demi),
-                 D["POTEAU"])
+                 POTEAU)
 
     versants = [(pave(G.primitives[rang]), Vector(VERSANTS[G.primitives[rang]["slope"]])) for rang in P["versants"]]
     A = P["ardoises"]

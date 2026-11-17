@@ -1,8 +1,9 @@
-"""La géométrie commune aux modèles des décors (#4335) : les axes, les coins d'un carré, les deux côtés d'un axe, la
-boîte et le cylindre d'une primitive en `Vector`, l'aléa semé de l'id, le cap d'un azimut, les normales d'une tangente,
-le point d'un chemin à une hauteur, la courbe lissée par des points, l'anneau régulier et la coque close d'une suite
-d'anneaux ; les pièces que les familles partagent (pièce équarrie, planche, pièce profilée, pièce tournée et son profil
-droit, cheville et ses cotes, clou, anneau plat de section rectangulaire) et le partage inégal d'une longueur ; et la
+"""La géométrie commune aux modèles des décors (#4335) : les axes, ceux d'un cylindre de la recette, les coins d'un
+carré, les deux côtés d'un axe, la boîte et le cylindre d'une primitive en `Vector`, l'aléa semé de l'id, le cap d'un
+azimut, les normales d'une tangente, le point d'un chemin à une hauteur, la courbe lissée par des points, l'anneau
+régulier et la coque close d'une suite d'anneaux ; les pièces que les familles partagent (pièce équarrie, planche,
+pièce profilée et son profil de poteau à chanfreins arrêtés, pièce tournée et son profil droit, pièce ronde courbée,
+cheville et ses cotes, clou, anneau plat de section rectangulaire) et le partage inégal d'une longueur ; et la
 déclaration des éléments d'une famille, avec la construction d'un décor dont les nœuds se bâtissent ensemble."""
 import math
 import random
@@ -18,8 +19,10 @@ ANGLES = ((1, 1), (-1, 1), (-1, -1), (1, -1))
 """Les signes (x, y) des quatre coins d'un carré centré, dans le sens direct."""
 COTES = (-1, 1)
 """Les signes des deux côtés d'un axe, le négatif puis le positif."""
+AXES = {"x": ("x", X), "y": ("y", Y), "h": ("z", HAUT)}
+"""L'axe de `maille` (`point`, `tour`, `tore`) et le vecteur unitaire de l'`axis` d'un cylindre de la recette."""
 MAT = "bois"
-"""Le matériau d'une pièce de bois (`barre`, `planche`, `tournee`, `cheville`)."""
+"""Le matériau d'une pièce de bois (`barre`, `planche`, `profilee`, `tournee`, `cheville`)."""
 
 
 def pave(primitive):
@@ -116,10 +119,17 @@ def planche(m, a, b, u, v, du, dv, chanfrein, mat=MAT):
               (b, du - chanfrein, dv - chanfrein, chanfrein / 2)], u, v, mat)
 
 
-def profilee(m, a, b, demi, profil):
-    """Une pièce équarrie dressée de `a` à `b`, sections horizontales, de demi-côtés `demi` (x, y) d'après `profil`
-    [(part de la longueur, part du demi-côté, chanfrein en fraction du plus petit demi-côté)]."""
-    barre(m, [(a.lerp(b, t), demi[0] * part, demi[1] * part, min(demi) * chanfrein) for t, part, chanfrein in profil], X, Y)
+def profilee(m, a, b, demi, profil, mat=MAT, u=X, v=Y):
+    """Une pièce équarrie de `a` à `b`, ses sections dans le plan de `u` et `v` (horizontales par défaut), de
+    demi-côtés `demi` (sur `u`, sur `v`) d'après `profil` [(part de la longueur, part du demi-côté sur `u`, part du
+    demi-côté sur `v`, chanfrein en fraction du plus petit demi-côté de `demi`)]."""
+    barre(m, [(a.lerp(b, t), demi[0] * part_x, demi[1] * part_y, min(demi) * chanfrein)
+              for t, part_x, part_y, chanfrein in profil], u, v, mat)
+
+
+POTEAU = ((0.0, 1.0, 1.0, 0.08), (0.06, 1.0, 1.0, 0.08), (0.10, 1.0, 1.0, 0.30), (0.86, 1.0, 1.0, 0.30),
+          (0.90, 1.0, 1.0, 0.08), (1.0, 1.0, 1.0, 0.08))
+"""Le profil d'un poteau à chanfreins arrêtés (`profilee`)."""
 
 
 def tournee(m, a, b, u, v, rayon, profil, cotes, mat=MAT):
@@ -130,6 +140,17 @@ def tournee(m, a, b, u, v, rayon, profil, cotes, mat=MAT):
 
 CYLINDRE = ((0.0, 1.0), (1.0, 1.0))
 """Le profil d'une pièce tournée de rayon constant (`tournee`)."""
+
+
+def courbee(m, chemin, axe, rayons, cotes, mat):
+    """Une pièce ronde courbée le long de `chemin`, courbe d'un plan normal à `axe` unitaire, son rayon de
+    `rayons[0]` au premier point à `rayons[1]` au dernier."""
+    dernier = len(chemin) - 1
+    anneaux = []
+    for i, p in enumerate(chemin):
+        t = (chemin[min(i + 1, dernier)] - chemin[max(i - 1, 0)]).normalized()
+        anneaux.append(anneau(p, axe, t.cross(axe), rayons[0] + (rayons[1] - rayons[0]) * i / dernier, cotes))
+    coque(m, anneaux, mat)
 
 
 # Cheville (`cheville`) : côtés ; part de son rayon enfoncée dans le bois ; saillie de sa tête (fraction de son rayon,
