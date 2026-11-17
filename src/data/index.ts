@@ -9,6 +9,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { listeEt, t, type MsgKey } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
+  catalogueSpecs,
   dansLaSousListe,
   espaceDe,
   idDe,
@@ -16,6 +17,7 @@ import {
   idsDeLaSousListe,
   lireLEspace,
   porteLeMarqueur,
+  type FeuilleDeSpec,
   type FeuilleDId,
   type Id,
   type RefASpecialisation,
@@ -2477,6 +2479,12 @@ export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type'
   const entrees = entreesDuType(type);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
   return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
+}
+/** Les choix `{ id, label }` d'une feuille `specDe(type, id)` : le catalogue de spécialisations de l'entrée
+ *  (`catalogueSpecs`), chacune à son libellé (`specLabel`). */
+export function choixDeLaSpec({ type, id }: FeuilleDeSpec): { id: string; label: string }[] {
+  const categorie = datasetDeLEspaceDuType(type) ?? '';
+  return catalogueSpecs(type, id).map((s) => ({ id: s, label: specLabel(categorie, id, s) }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */

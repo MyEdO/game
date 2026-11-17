@@ -10,10 +10,21 @@ import { derouleEnum, libelleDeValeur, metaDesChamps, nomDeNoeud, valeursDe, typ
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { declarationDEnfants, defDe, enfantsDe, ouverts, pasDeDonnee, valeursAdmises } from '../../data/schemas/grammaire/descente';
 import { collectionDe } from '../../data/schemas/grammaire/collection-cle';
-import { aLaFormeDe, declarationDeFeuilleDId, estRefEmboitee, porteeDeLaFeuille } from '../../data/schemas/grammaire/ref';
+import {
+  aLaFormeDe,
+  declarationDeFeuilleDeSpec,
+  declarationDeFeuilleDId,
+  declarationDeRefASpecialisation,
+  entreeOuverte,
+  estRefEmboitee,
+  estSpecialisable,
+  porteeDeLaFeuille,
+  specDe,
+  type TypeEntite,
+} from '../../data/schemas/grammaire/ref';
 import { declarationProseNommee } from '../../data/schemas/grammaire/prose';
 import { OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
-import { choixDeLaFeuilleDId } from '../../data';
+import { choixDeLaFeuilleDId, choixDeLaSpec } from '../../data';
 import type { GameOp } from '../../engine/ops';
 import { libelleDuLitteral } from '../libelles';
 import { estObjet } from '../../lib/objet.mjs';
@@ -180,7 +191,8 @@ export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] |
 
 /** Les valeurs d'un champ À CHOIX, chacune nommée, lues sur la fermeture de son nœud : la réunion, sans doublon, des
  *  entrées de chacune de ses références `idDe` fermées, sa sous-liste comprise
- *  (`choixDeLaFeuilleDId`), et des valeurs de ses énumérations et littéraux membres ; sinon, de sa seule forme,
+ *  (`choixDeLaFeuilleDId`), et des valeurs de ses énumérations et littéraux membres ; d'une feuille `specDe` dont
+ *  l'entrée est FERMÉE (`entreeOuverte`), son catalogue (`choixDeLaSpec`), une entrée ouverte restant un texte ; sinon, de sa seule forme,
  *  les valeurs d'une énumération (`libelleDeValeur`), d'un littéral (`libelleDuLitteral`), faux et vrai d'un
  *  booléen ; de plusieurs formes qui sont chacune un choix (une union de littéraux), la réunion, sans doublon, de leurs
  *  valeurs ; `undefined` pour tout autre nœud. */
@@ -193,6 +205,8 @@ export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
     return [...feuilles.flatMap((f) => choixDeLaFeuilleDId(f!).map((e): ValeurDuChoix => ({ valeur: e.id, libelle: e.label }))), ...membres]
       .filter((o) => !vus.has(o.valeur) && !!vus.add(o.valeur));
   }
+  const spec = formes.map(declarationDeFeuilleDeSpec).find((d) => d !== undefined);
+  if (spec && !entreeOuverte(spec.type, spec.id)) return choixDeLaSpec(spec).map((e) => ({ valeur: e.id, libelle: e.label }));
   const n = seuleForme(noeud);
   if (n === undefined) {
     const branches = formes.filter((f) => !estTransparent(f)).map(choixDuNoeud);
@@ -551,5 +565,25 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
  *  sans les clés `tenus` : les discriminants que tient le choix d'une variante (`formeAuPoint`), l'identité que tient sa
  *  liste (`identiteTenue`). */
 export function champsOfferts(noeud: unknown, donnee: Record<string, unknown>, tenus: readonly string[] = []): FieldDesc[] {
-  return inferFields([donnee], { noeud, niveau: 'profondeur' }).filter((f) => !tenus.includes(f.key));
+  return inferFields([donnee], { noeud, niveau: 'profondeur' }).filter((f) => !tenus.includes(f.key)).map((f) => ({ ...f, noeud: noeudDuChampAuPoint(noeud, donnee, f.key, f.noeud) }));
+}
+
+/** Les feuilles `specDe`, retenues par entrée : le nœud d'un champ est stable d'un appel à l'autre. */
+const FEUILLES_DE_SPEC_AU_POINT = new Map<string, unknown>();
+
+/** Le nœud du champ `cle`, déclaré `declare`, de l'objet `point` de nœud `noeud` : le `spec` d'une référence à
+ *  spécialisation (`declarationDeRefASpecialisation`) est la feuille `specDe` de l'entrée que désigne son `id`, quand
+ *  elle est spécialisable (`estSpecialisable`) ; sinon `declare`. */
+export function noeudDuChampAuPoint(noeud: unknown, point: unknown, cle: string | number, declare: unknown): unknown {
+  const id = estObjet(point) ? point.id : undefined;
+  if (cle !== 'spec' || typeof id !== 'string') return declare;
+  const type = ouverts([noeud]).map(declarationDeRefASpecialisation).find((d) => d !== undefined)?.type;
+  return type && estSpecialisable(type, id) ? feuilleDeSpecAuPoint(type, id) : declare;
+}
+
+/** La feuille `specDe(type, id)`, facultative comme le `spec` qu'elle lit, retenue (`FEUILLES_DE_SPEC_AU_POINT`). */
+function feuilleDeSpecAuPoint(type: TypeEntite, id: string): unknown {
+  const cle = `${type}\u0000${id}`;
+  if (!FEUILLES_DE_SPEC_AU_POINT.has(cle)) FEUILLES_DE_SPEC_AU_POINT.set(cle, specDe(type, id).optional());
+  return FEUILLES_DE_SPEC_AU_POINT.get(cle);
 }
