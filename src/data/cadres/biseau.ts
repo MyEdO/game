@@ -43,8 +43,7 @@ const degrade = (id: string, x2: number, y2: number, de: string, a: string, mili
 
 /** Une plaque de bouton (#3935) : un champ dégradé de `champ[0]` en haut à `champ[1]` en bas, cerné d'un liseré `lisere`,
  *  dans un filet de `metal` dont les flancs vont de l'ombre au plein et dont le haut et le bas portent un éclat, sous
- *  une bordure d'encre ; `enfoncee`, l'ombre du filet tombe sur le haut et la gauche du champ. Le nine-patch
- *  (`TILE_FIT`) n'étire qu'une fois le bord et le champ tant que la plaque fait moins d'une fois et demie le centre. */
+ *  une bordure d'encre ; `enfoncee`, l'ombre du filet tombe sur le haut et la gauche du champ. */
 export const plaque = (id: string, label: string, champ: [string, string], lisere: string, metal: Metal = LAITON, enfoncee = false): CadreDef => {
   const [sombre, eclat, plein] = metal;
   const filet = (y: number, de: string, a: string, ou: number, suffixe: string) =>
