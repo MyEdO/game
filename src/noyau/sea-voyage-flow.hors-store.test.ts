@@ -39,6 +39,8 @@ import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate, tableSpec } from './cascade';
 import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
+import { savoirOceansBonus } from '../engine/seaNavigation';
+import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
 import { rollLine } from './ligneDeJet';
@@ -678,17 +680,17 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
   });
 });
 
-describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337) : la Surdité ne pénalise pas', () => {
-  const lighthouseMap: WorldMap = {
+describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 13 l.351)', () => {
+  const carteASignal = (signal: SignalDuPort, km: number): WorldMap => ({
     id: 'm2', label: 'Mer des Griffes',
     places: [
       { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' } },
-      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 3, richesse: 3, production: [], lighthouse: true } as never },
+      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 3, richesse: 3, production: [], signal } },
     ],
-    routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 1, modes: ['mer'], sea: true, seaHeading: 'est' }],
-  };
+    routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['mer'], sea: true, seaHeading: 'est' }],
+  });
 
-  function freshLighthouseState(km = 1) {
+  function freshLighthouseState(km = 1, signal: SignalDuPort = 'phare') {
     seedBattleRng(1);
     const [a, b] = tousLesHerosDeScenario(idsDeTest);
     const vigie = { ...a, skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], traumas: [traumaById('surdite', undefined, 'tete')] };
@@ -697,7 +699,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       party: [vigie, timonier],
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
-      worldMap: { ...lighthouseMap, routes: lighthouseMap.routes.map((r) => ({ ...r, km })) },
+      worldMap: carteASignal(signal, km),
       lieu: 'A',
       travelPlan: null,
       travelRecap: null,
@@ -712,8 +714,8 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
   }
 
   /** Joue le PREMIER jour de mer jusqu'à l'étape du phare, ou jusqu'à l'Orientation (bâtie après lui) s'il n'y en a pas. */
-  function premierJourDeMer(km: number) {
-    freshLighthouseState(km);
+  function premierJourDeMer(km: number, signal: SignalDuPort = 'phare') {
+    freshLighthouseState(km, signal);
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     let phare: CascadeStep | undefined;
     let progression: CascadeStep | undefined;
@@ -764,6 +766,58 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     if (difficulte === null) { expect(jour.orientation).toBe(true); expect(jour.phare).toBeUndefined(); return; }
     expect(membresHorsDifficulte(jour.phare!, difficulte)).toEqual([]); // MDG 14 l.13
     expect(Number(jour.phare!.meta?.aggregateFlatDR ?? 0)).toBe(Number(jour.progression!.meta?.aggregateFlatDR ?? 0));
+  });
+
+  it('clocher : le Test de Perception est AUDITIF — la Vigie SOURDE y est pénalisée (MDG 13 l.351)', () => {
+    const { phare } = premierJourDeMer(1, 'clocher');
+    expect(phare).toBeTruthy();
+    const vigie = get().party.find((h) => h.traumas?.some((t) => t.traumaId === 'surdite'))!;
+    const vigiePart = phare!.participants!.find((x) => x.id === vigie.id)!;
+    // La base est nue, la Surdité sort en composante nommée : la cible porte la valeur AUDITIVE.
+    const ouie = crewRoleValue(vigie, findCrewRoleById('vigie')!, navigationDuNavire(get, get().travelPlan!.vehicle!), 'ouie').value!;
+    expect(vigiePart.target).toBe(ouie + DIFFICULTY_MODIFIERS[vigiePart.difficulty!]);
+  });
+
+  // MDG 13 l.339-346, l.351
+  it.each([
+    [2.5, 'facile'],
+    [2.6, 'intermediaire'],
+    [7.2, 'difficile'],
+    [7.6, null],
+  ] as const)('clocher à %s milles restants : distances du tableau divisées par 2, Test %s', (milesRestants, difficulte) => {
+    const { milesToday } = premierJourDeMer(1000, 'clocher');
+    expect(milesToday).toBeGreaterThan(0);
+    const jour = premierJourDeMer(milesToday + milesRestants, 'clocher');
+    expect(jour.milesToday).toBe(milesToday);
+    if (difficulte === null) { expect(jour.orientation).toBe(true); expect(jour.phare).toBeUndefined(); return; }
+    expect(membresHorsDifficulte(jour.phare!, difficulte)).toEqual([]); // MDG 14 l.13
+  });
+
+  /** Signal repéré (applier de l'étape) puis Orientation du jour, sur le voyage en cours vers le port B. */
+  function signalRepereEtOrientation(signal: SignalDuPort) {
+    premierJourDeMer(1, signal);
+    const [vigie, timonier] = get().party;
+    const navigateur = { ...vigie, skills: [{ id: 'orientation', characteristic: 'intelligence', advances: 20 }, { id: 'savoir', spec: 'oceans', characteristic: 'intelligence', advances: 40 }] } as Combatant;
+    set({ party: [navigateur, timonier] });
+    const etape = (kind: GenreDeCascade, sl: number): CascadeStep => ({ id: kind, kind, label: fixtureText(kind), result: { roll: 0, target: 0, sl, success: sl >= 1 } });
+    applierDe('equipage-phare')!(get, set, etape('equipage-phare', 1), undefined, { steps: [], index: 0 });
+    const lighthouseDR = get().travelPlan!.sea!.lighthouseDR;
+    const sortie = applierDe('equipage-orientation')!(get, set, etape('equipage-orientation', 0), undefined, { steps: [], index: 0 });
+    return { lighthouseDR, savoir: savoirOceansBonus(navigateur), orientation: resultLine(sortie?.consequences ?? []) };
+  }
+
+  it('clocher repéré : Orientation à +2 DR forfaitaires, quel que soit Savoir (Océans) (MDG 13 l.351)', () => {
+    const { lighthouseDR, savoir, orientation } = signalRepereEtOrientation('clocher');
+    expect(savoir).toBeGreaterThan(2);
+    expect(lighthouseDR).toBe(2);
+    expect(orientation).toContain('Orientation (DR +2, Clocher +2)');
+  });
+
+  it('phare repéré : Orientation au premier chiffre de Savoir (Océans) (MDG 13 l.335)', () => {
+    const { lighthouseDR, savoir, orientation } = signalRepereEtOrientation('phare');
+    expect(savoir).toBeGreaterThan(2);
+    expect(lighthouseDR).toBe(savoir);
+    expect(orientation).toContain(`Phare +${savoir}`);
   });
 });
 

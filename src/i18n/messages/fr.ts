@@ -3613,6 +3613,8 @@ export const fr = {
   'sv.sideBabord': 'bâbord',
   'sv.lighthouseSeen': "La lumière du phare est en vue — l'atterrage se précise (+{dr} DR d'Orientation).",
   'sv.lighthouseMissed': "Aucune lumière à l'horizon — brume ou distance.",
+  'sv.clocherHeard': "La cloche du port se fait entendre — l'atterrage se précise (+{dr} DR d'Orientation).",
+  'sv.clocherMissed': "Aucune cloche ne porte jusqu'au navire — vent ou distance.",
   'sv.lookoutOk': "La vigie a vu venir l'abordage : le navire s'y prépare (pas de Surprise).",
   'sv.lookoutKo': "Trop tard — le navire hostile fond sur vous avant que l'équipage ne réagisse (Surprise) !",
   'sv.chase': 'Poursuite — {label} : {issue} ({gain} → Distance {distance}/{escapeAt}).',

@@ -4,7 +4,7 @@ import { nommerChamps } from '../grammaire/meta';
  *
  * ORDRE DU SEAM : le schéma voit `places[].port` AVANT `resolvePortRef` (`parseProject`), donc
  * sous ses DEUX formes — la forme SPARSE par référence
- * (`{ ref, lighthouse }`, le catalogue `naval-ports.json` fournissant les défauts) et la forme
+ * (`{ ref, …surcharges }`, le catalogue `naval-ports.json` fournissant les défauts) et la forme
  * CONCRÈTE à plat (`PortProfile` complet), que documente `MapPlace.port`. Un port sans `ref` porte donc son
  * profil en entier.
  */
@@ -21,6 +21,7 @@ import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
 import { couvreSchema, PORTEES_DE_LA_SCENE, SCENES_DU_PROJET } from './communs';
 import { findVehicleById } from '../../index';
+import { signalDuPortSchema } from '../defs/naval-ports';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
 export const travelModeSchema = z.string();
@@ -36,8 +37,7 @@ export const LIBELLES_DE_TAILLE: Readonly<Record<number, string>> = { 1: 'Hameau
 export const tailleDuLieuSchema = z.number().int().min(1).max(4);
 
 /** `PortProfile` (`engine/seaVoyage.ts`) en forme AUTHORÉE : SPARSE quand `ref` désigne une
- *  entrée de `naval-ports.json` (les champs présents sont des SURCHARGES locales), COMPLET sinon.
- *  `lighthouse` (hors catalogue) : un phare veille sur l'approche (`MDG 13 l.333-351`). */
+ *  entrée de `naval-ports.json` (les champs présents sont des SURCHARGES locales), COMPLET sinon. */
 export const portProfileSchema = nommerChamps(z
   .strictObject({
     ref: idDe('navalPort').optional(),
@@ -53,7 +53,7 @@ export const portProfileSchema = nommerChamps(z
     demande: recordDIds('cargo', z.number(), 'mer').optional(),
     /** Grand port cosmopolite (`MDG 15 l.343-349`). */
     cosmopolite: z.boolean().optional(),
-    lighthouse: z.boolean().optional(),
+    signal: signalDuPortSchema.optional(),
   })
   .superRefine((port, ctx) => {
     if (port.ref !== undefined) return;
@@ -66,7 +66,7 @@ export const portProfileSchema = nommerChamps(z
         });
       }
     }
-  }), { ref: { label: "référence" , texte: { regime: "technique"} }, taille: { label: "taille" }, richesse: { label: "richesse" }, production: { label: "production" , texte: { regime: "technique"} }, surplus: { label: "surplus" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, cosmopolite: { label: "cosmopolite" }, lighthouse: { label: "phare" } });
+  }), { ref: { label: "référence" , texte: { regime: "technique"} }, taille: { label: "taille" }, richesse: { label: "richesse" }, production: { label: "production" , texte: { regime: "technique"} }, surplus: { label: "surplus" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, cosmopolite: { label: "cosmopolite" }, signal: { label: "signal du port" } });
 
 /** `LandMarketProfile` (`engine/landCargo.ts`) sans sa Taille, que porte le lieu (`tailleDuLieu`) — indices de commerce
  *  terrestre/fluvial (`MSRC 13`). */
