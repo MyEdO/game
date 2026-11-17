@@ -368,7 +368,7 @@ Les villages, forts et auberges-relais aux abords de la Laurelorn peuvent servir
 
 **La Roue Brisée :** les diplomates elfes en route pour Salzenmund se rencontrent souvent dans cette taverne.
 
-**L'Orc Entravé :** cette auberge est tenue par un nain, Gudbru, qui finance une petite troupe de mercenaires qui l'aident à se débarrasser des monstres de la Drakwald. Il reste en permanence aux aguets dans l'espoir d'entendre des rumeurs de trésors elfiques perdus, et souhaite lancer une expédition dans la Laurelorn.
+**L'Orc Entravé :** cette auberge est tenue par un nain, Gudbru, qui finance une petite troupe de mercenaires qui l'aident à se débarrasser des monstres de la Drakwald. Il reste en permanence aux aguets dans l'espoir d'entendre des rumeurs de trésors elfiques perdus, et souhaite lancer une expédition dans la Laurelorn.<span id="page-86-0" data-folio="86"></span>
 
 
-<span id="page-86-0" data-folio="86"></span>Yanick Bedard - pumpkinhead83@hotmail.fr
+

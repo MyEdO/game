@@ -571,7 +571,7 @@ Les portes sont gardées par des soldats de l'armée régulière, sous le comman
 
 0 Comme dans beaucoup de villes, la coutume veut que les cadavres des criminels pendus soient exposés au-dessus des Portes comme un avertissement pour les autres. Celui de Hans Tarmun le Rouge, un bandit local notoire qui a semé la terreur sur la route de Helmgart pendant des années, est actuellement suspendu, entravé par des fers, audessus de la Porte Ouest. Une nuit, alors que Morrslieb croît, le cadavre commence à s'agiter et à bouger, ses bras se tendent
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 vers ceux d'en bas, attrapant les corbeaux qui cherchent à se régaler de sa chair, pour les écraser et les jeter au sol. Comme mère Carlitz, la Grande Prêtresse de Morr locale, est loin de la ville pour diriger des rites funéraires dans un village voisin, il incombe aux Personnages de s'occuper des morts agités, et de la femme vengeresse de Hans, la sorcière Felda Tarmun.
 
@@ -647,7 +647,7 @@ Une autre colonie notable où le Graf n'exerce aucun contrôle est la ville fort
 
 0 Lorsque Barbe de Pierre apprend que les Personnages ont passé du temps dans les égouts, il les invite à un banquet pour avoir un rapport sur leur solidité. Si le groupe parle de rats géants, de temples impies ou de passages secrets, Barbe de Pierre hurle d'indignation, et se rend immédiatement à Bögenhafen pour insister sur la nécessité de réparer tout cela, en mettant probablement la ville en faillite.
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 0 De l'or est découvert dans un affluent de la Bögen, au village de Gammler, près du Cercle du Reikland, déclenchant une sorte de ruée vers l'or. Les PJ peuvent éventuellement réaliser que le métal précieux est en train d'être transmuté grâce à des rafales incontrôlées de Chamon, le Vent d'or, qui s'échappe du Cercle du Reikland, d'anciens mégalithes qui gardent normalement les Vents de Magie sous contrôle. Un alchimiste compagnon de l'Ordre doré a tenté de puiser dans le Cercle, sans se rendre compte des conséquences de ses actions. Lorsque les PJ lui en parlent, il pâlit car il sait que « l'or » reste magiquement actif et qu'il va probablement corrompre et faire muter les infortunés habitants de la rivière qui le ramassent.
 

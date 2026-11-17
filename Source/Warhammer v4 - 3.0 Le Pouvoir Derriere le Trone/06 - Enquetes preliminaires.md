@@ -471,4 +471,4 @@ De petite taille, avec de longs cheveux ondulés brun foncé et des yeux marron 
 
 #### **MIRACLES**
 
-**Miracles :** Amère catharsis, Endurance de l'anachorète, Larmes de Shallya, Martyr
+**Miracles :** Amère catharsis, Endurance de l'anachorète, Larmes de Shallya, Martyr<span id="page-59-0" data-folio="57"></span>

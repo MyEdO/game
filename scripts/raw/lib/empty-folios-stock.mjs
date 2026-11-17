@@ -21,20 +21,19 @@
 // régénération refuse : rien n'est écrit.
 import { BOOKS, pdfDuSigle } from '../_lib.mjs'
 import { EMPTY_BENIGNES_PATH, EMPTY_PERDUES_PATH, SEUIL_UTILE, scanEmptyFoliosInBook, siteDAncreVide } from '../check-folio-continuity.mjs'
-import { resolveBookOffset, HAS_LOWER_RE } from '../anchor-fill.mjs'
+import { resolveBookOffset, porteUnMot } from '../anchor-fill.mjs'
 import { extractPages } from './pdf-extract.mjs'
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { REMESURE } from '../../guards/lib/stockDeSites.mjs'
 
-// Caractères utiles d'une page PDF : lignes portant un MOT réel (3 minuscules consécutives —
-// critère de `anchor-fill.mjs`, qui écarte titre courant, numéro de folio et codes de chapitre),
-// espaces retirés.
+// Caractères utiles d'une page PDF : lignes portant un MOT réel (`porteUnMot` de `anchor-fill.mjs`,
+// qui écarte titre courant, numéro de folio, codes de chapitre et filigrane), espaces retirés.
 export function caracteresUtiles(pageText) {
   if (!pageText) return 0
   return pageText
     .split('\n')
     .map((l) => l.trim())
-    .filter((l) => HAS_LOWER_RE.test(l))
+    .filter(porteUnMot)
     .join('')
     .replace(/\s+/g, '')
     .length

@@ -78,7 +78,7 @@ De même, il peut être judicieux de décider des rencontres que vous souhaitez 
 
 #### **Événements al éatoires**
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 Ces événements aléatoires sont prévus pour être gênants plutôt que dangereux, aussi ne craignez pas de modifier les résultats des Tests ou de réduire les dommages infligés si les Personnages sont en mauvaise posture. Les évènements de ce chapitre devraient inquiéter, effrayer et exaspérer les Personnages, sans les tuer, ni leur infliger de trop graves blessures.
 
