@@ -40,7 +40,7 @@ el(S, 'rect', { width: W, height: H, fill: '#150c07' });
 monter([
   `<div class="calque bois" id="table"></div><div class="calque" id="lueur-table"></div>`,
   titre({ icone: 'disque', nom: 'Sauvegardes', sous: 'Steinbruck · 14 Pflugzeit 2512 CI · 18:20', largeur: 430 }),
-  fermerRond(),
+  croix(),
   `<div id="feuillets" data-piece="emplacements">
     ${feuillet({ nom: 'Emplacement automatique', lieu: 'Steinbruck', date: '14 Pflugzeit 2512 CI · 18:05', reel: '16/11/2026 21:48', genre: 'bourg', sauver: false, charge: true })}
     ${feuillet({ nom: 'Emplacement 1', lieu: 'La route de Weissbruck', date: '12 Pflugzeit 2512 CI · 15:40', reel: '15/11/2026 23:12', genre: 'route' })}

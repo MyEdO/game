@@ -98,5 +98,5 @@ pieces.push(`<div id="soins" class="page cadre bois" data-piece="soins"><div cla
   ${plaque('Payer le docteur', { armee: true, icone: 'bourse', classe: 'payer' })}
 </div><div class="ruban gothique">Les soins du docteur</div>${ferrures}</div>`);
 pieces.push(bandeau({ greta: { choisi: true, mal: true, icone: 'goutte', texte: 'Cuisse lacérée, à recoudre' } }, { bourses: true }));
-pieces.push(sortie('sortie', 'Retour au quartier'), coins());
+pieces.push(retour('Retour au quartier'), coins());
 monter(pieces);

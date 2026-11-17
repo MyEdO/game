@@ -90,9 +90,8 @@
 .depart .moyen .bouton-rond{width:36px;height:36px;padding:3px}
 
 /* le Marchandage : le bandeau de jet du combat (`../combat/jet.css`, lié avant cette feuille), à sa place ; ce que la
-   famille y change : un centre plus large pour les prix, le ruban du socle commun, des libellés sur une ligne */
+   famille y change : un centre plus large pour les prix, des libellés sur une ligne */
 #jet .fond{grid-template-columns:1fr 340px 1fr}
-#jet .ruban{top:-6px;font-size:19px;padding:1px 34px 4px;letter-spacing:.6px}
 .camp .issue b{text-transform:none}
 .modif{margin-top:0;white-space:nowrap}
 #verdict .sous,#verdict .dr{white-space:nowrap}
@@ -100,7 +99,7 @@
 #verdict .prix{display:flex;justify-content:center;align-items:baseline;gap:10px;margin-top:3px;font-size:14px;color:#2a1d12;white-space:nowrap}
 #verdict .prix s{color:#6a5236}
 #verdict .prix b{font-weight:600}
-#suites .plaque.large{width:190px}
+#suites .plaque.large{flex-basis:190px}
 #page.courte{height:524px}
 
 /* la halle vue d'un siège invité */

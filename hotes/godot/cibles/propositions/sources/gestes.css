@@ -1,0 +1,24 @@
+/* Charte des gestes (#3935) : les pièces de `gestes.js`. Chaque feuille de socle l'importe. */
+/* fermer un panneau : la croix, en haut à droite */
+.croix{position:absolute;right:22px;top:18px}
+.croix .bouton-rond{width:44px;height:44px;padding:4px}
+/* quitter un lieu : la pastille de retour, en bas à gauche */
+.retour{position:absolute;left:30px;top:694px;display:flex;align-items:center;gap:13px}
+.retour .bouton-rond{width:52px;height:52px;padding:4px}
+.retour span{font-size:14.5px;color:#f0e2c2;white-space:nowrap}
+/* régler une quantité */
+.moins-plus{display:flex;align-items:center;gap:6px}
+.moins-plus .bouton-rond{width:20px;height:20px;padding:2px;box-shadow:0 1px 3px rgba(0,0,0,.6),0 0 0 1px #150d04}
+/* la raison d'un refus, au survol du geste fermé */
+.bulle-refus{position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%);padding:4px 11px 5px;font-family:"Spectral";font-style:italic;font-size:13px;line-height:17px;letter-spacing:0;white-space:nowrap;color:#2a1d12;box-shadow:0 6px 14px rgba(0,0,0,.6),0 0 0 1px rgba(40,25,10,.9),inset 0 0 14px rgba(90,60,20,.4);border-radius:2px;z-index:4}
+.bulle-refus::before{content:"";position:absolute;left:calc(50% - 5px);bottom:-5px;width:9px;height:9px;background:#cdb88a;transform:rotate(45deg);box-shadow:2px 2px 0 rgba(40,25,10,.9)}
+/* qui paie */
+.qui-paie{display:flex;align-items:center;gap:11px}
+.qui-paie.parts{align-items:flex-start}
+.qui-paie .q{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:12.5px}
+.qui-paie.parts .q{display:block}
+.qui-paie b{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-weight:600;font-size:13.5px;letter-spacing:.2px;white-space:nowrap}
+.qui-paie .part{display:grid;grid-template-columns:1fr auto 92px;align-items:center;column-gap:10px;height:25px;font-size:14px}
+.qui-paie .part .moins-plus b{min-width:74px;text-align:center}
+.qui-paie .part i{font-size:12px;opacity:.75;text-align:right;white-space:nowrap}
+.qui-paie .total{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;padding-top:4px;border-top:1px solid currentColor}

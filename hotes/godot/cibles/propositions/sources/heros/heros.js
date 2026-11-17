@@ -57,7 +57,7 @@ const frise = (rang) => {
     if (i === rang - 1) return `<div class="etape" style="left:${x(i)}px"><div class="ruban gothique" data-texte="étape">${p}<small class="lin">${rang}/${PAGES.length}</small></div></div>`;
     return `<div class="etape a-venir" style="left:${x(i)}px"><i class="clou"></i>${i === rang ? `<span class="rubrique">${p}</span>` : ''}</div>`;
   }).join('');
-  return cadre('frise', 26, 12, 1655, 74, 'bois', `<i class="rail fait" style="left:${x(0)}px;width:${x(rang - 1) - x(0)}px"></i><i class="rail" style="left:${x(rang - 1)}px;width:${x(9) - x(rang - 1)}px"></i>${etapes}<div id="fermer-creation" class="bouton-rond laiton"><div>${picto('croix', 17)}</div></div>`);
+  return cadre('frise', 26, 12, 1655, 74, 'bois', `<i class="rail fait" style="left:${x(0)}px;width:${x(rang - 1) - x(0)}px"></i><i class="rail" style="left:${x(rang - 1)}px;width:${x(9) - x(rang - 1)}px"></i>${etapes}${croix({ dansLePanneau: true })}`);
 };
 
 /* ───────── les trois panneaux ───────── */

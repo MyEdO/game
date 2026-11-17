@@ -20,7 +20,7 @@
 .etape.a-venir>span{color:#8f8168}
 .etape>.ruban{top:9px;font-size:19px;line-height:25px;padding:2px 30px 5px;display:flex;align-items:baseline;gap:9px}
 .etape>.ruban small{font-size:11.5px;font-weight:600;color:#e6cf9a;letter-spacing:.3px}
-#fermer-creation{position:absolute;right:16px;top:7px;width:42px;height:42px;padding:3px}
+#frise .croix{right:16px;top:6px}
 
 /* ───────── panneaux de création ───────── */
 .pan>.fond{padding:17px 21px 16px}

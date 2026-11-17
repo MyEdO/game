@@ -68,23 +68,23 @@ if (VENTE) {
 }
 
 if (JET) {
-  pieces.push(`<div id="jet" class="cadre bois" data-piece="jet"><div class="fond parchemin">
-    ${AVANT ? camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, modif: 'Soutien du groupe' })
-      : camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, des: ['20', '7'], total: 27, dr: '+2', reussite: true, verdict: 'Réussite' })}
-    ${AVANT ? `<div id="verdict"><div class="sous rubrique" data-texte="sous-titre">Laine · 25 Enc · estimation 2 CO 15/–</div><div class="dr gothique">Test opposé</div>
-        <div class="enjeux"><span class="modif rubrique">Gagné : −10 %</span><span class="modif rubrique">Succès Stupéfiant : −20 %</span></div></div>`
-      : `<div id="verdict"><div class="sous rubrique" data-texte="sous-titre">Laine · 25 Enc</div><div class="dr gothique">DR net +4</div>
-        <p>Gagné (−10 % à l’achat)</p><div class="prix lin"><s>2 CO 15/–</s><b>2 CO 9/– 6 sc</b></div></div>`}
-    ${AVANT ? camp({ cote: 'droite', portrait: portrait('drapier'), nom: 'Le négociant en laine', carac: 'Marchandage', seuil: '?' })
-      : camp({ cote: 'droite', portrait: portrait('drapier'), nom: 'Le négociant en laine', carac: 'Marchandage', seuil: '?', des: ['1', '60'], total: 61, dr: '−2', verdict: 'Échec' })}
-    <div id="suites">${AVANT ? `${plaque('Lancer', { armee: true })}${plaque('Annuler')}` : `${plaque('Conclure', { armee: true })}${plaque('Relancer')}${plaque('Chance : +1 DR', { classe: 'large' })}${plaque('Refuser le marché', { classe: 'large' })}`}</div>
-  </div><div class="ruban gothique">Marchander l’achat</div>${ferrures}</div>`);
+  const aldric = HEROS.find((h) => h.id === 'aldric');
+  const negociant = { cote: 'droite', portrait: portrait('drapier'), nom: 'Le négociant en laine', carac: 'Marchandage', seuil: '?' };
+  pieces.push(bandeauDuJet('Marchander l’achat', '', AVANT ? `
+    ${camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, modif: 'Soutien du groupe' })}
+    ${reglages('Laine · 25 Enc · estimation 2 CO 15/–', '<div class="dr gothique">Test opposé</div><div class="enjeux"><span class="modif rubrique">Gagné : −10 %</span><span class="modif rubrique">Succès Stupéfiant : −20 %</span></div>')}
+    ${camp(negociant)}` : `
+    ${camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, des: ['20', '7'], total: 27, dr: '+2', reussite: true, verdict: 'Réussite' })}
+    <div id="verdict"><div class="sous rubrique" data-texte="sous-titre">Laine · 25 Enc</div><div class="dr gothique">DR net +4</div>
+      <p>Gagné (−10 % à l’achat)</p><div class="prix lin"><s>2 CO 15/–</s><b>2 CO 9/– 6 sc</b></div></div>
+    ${camp({ ...negociant, des: ['1', '60'], total: 61, dr: '−2', verdict: 'Échec' })}`,
+  AVANT ? avantLeDe({ heros: aldric, annuler: true }) : `${apresLeDe({ heros: aldric, valider: 'Conclure' })}${plaque('Refuser le marché', { classe: 'large' })}`));
   pieces.push(`<div id="coins" data-piece="coins" style="top:706px">${rond('systeme', 23)}</div>`);
 } else {
   const joue = (qui, moi) => ({ html: `<span class="attend rubrique ${moi ? '' : 'autre'}">${qui}</span>` });
   if (COOP) pieces.push(`<div id="main" class="cadre bois" data-piece="main"><div class="fond bois">${medaillon('reseau', { petit: true })}<div><b class="gothique" data-texte="main">La main est à l’hôte</b><span class="rubrique">Karl compose l’achat · partie K7M2QX</span></div></div>${ferrures}</div>`);
   pieces.push(bandeau(COOP ? { bjorn: joue('Karl · hôte'), mira: joue('Lena (vous)', true), aldric: { ...joue('Karl · hôte'), choisi: true }, greta: joue('Otto — reconnexion…') } : { aldric: { icone: 'balance', texte: 'mènera le Marchandage' } }, { bourses: true }));
-  pieces.push(sortie('sortie', 'Quitter la halle'), coins());
+  pieces.push(retour('Quitter la halle'), coins());
 }
 monter(pieces);
 if (JET) clouer(document.getElementById('jet'));

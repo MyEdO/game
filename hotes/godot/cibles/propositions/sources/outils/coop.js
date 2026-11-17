@@ -73,5 +73,5 @@ if (SALON) {
      </div>${ferrures}</div>`,
   );
 }
-pieces.push(fermerRond());
+pieces.push(croix());
 monter(pieces);

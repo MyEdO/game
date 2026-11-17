@@ -145,7 +145,6 @@ const bandeau = (dits = {}, { bourses = false } = {}) => `<div id="bandeau" clas
       ${d.html ?? ''}
     </div>
   </div>`; }).join('')}</div>${ferrures}</div>`;
-const sortie = (icone, libelle) => `<div id="sortie" data-piece="sortie">${rond(icone, 24)}<span class="rubrique ombre">${libelle}</span></div>`;
 const coins = () => `<div id="coins" data-piece="coins">${rond('journal', 23)}${rond('systeme', 23)}</div>`;
 /* un poste dans la scène : cx = centre, y = haut */
 const poste = (cx, y, { nom, sous, icone, heros, ferme = false, vise = false }) => `<div class="poste ${heros ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}" style="left:${cx - 80}px;top:${y}px">
@@ -158,4 +157,4 @@ const monter = (pieces) => {
   document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay;opacity:.28';
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { alea, melange, rims, sapin, perso, flammes, fermer, plaque, titre, bandeau, sortie, coins, poste, monter });
+Object.assign(globalThis, { alea, melange, rims, sapin, perso, flammes, fermer, plaque, titre, bandeau, coins, poste, monter });

@@ -32,7 +32,7 @@ if (NEGOCE) {
     <div class="note"><i>Au port, seule la cale du navire se négocie.</i></div>
   </div><div class="ruban gothique">Le lot</div>${ferrures}</div>`);
   pieces.push(bandeau({ aldric: { icone: 'balance', texte: 'mènera le Marchandage' } }, { bourses: true }));
-  pieces.push(sortie('sortie', 'Quitter le port'), coins());
+  pieces.push(retour('Quitter le port'), coins());
 } else {
   pieces.push(titre({ icone: 'ancre', nom: 'Salzenmund', sous: `Port · Nordland · ${picto('systeme', 13, '#c9b995', 1.6)} Beau temps`, largeur: 400 }));
   pieces.push(`<div id="recit" data-piece="récit"><p class="ombre">Capitale du Nordland, Grand Temple d’Ulric et temple de Manann Resplendissant. Votre cogue est amarrée au quai des marchands.</p></div>`);
@@ -61,6 +61,6 @@ if (NEGOCE) {
     ${depart('Norden', 'Par la mer des Griffes · 90 milles', 3)}${depart('Hargendorf', 'Par la mer des Griffes · 60 milles', 2)}
   </div><div class="ruban rubrique">Prendre la mer</div>${ferrures}</div>`);
   pieces.push(bandeau({ bjorn: { texte: 'a le pied marin, enfin' }, greta: { mal: true, icone: 'goutte', texte: 'se remet du mal de mer' } }, { bourses: true }));
-  pieces.push(sortie('route', 'Explorer'), coins());
+  pieces.push(retour('Explorer', 'route'), coins());
 }
 monter(pieces);

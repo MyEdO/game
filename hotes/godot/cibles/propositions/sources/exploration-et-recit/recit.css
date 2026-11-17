@@ -1,5 +1,5 @@
-/* Exploration et récit (#3935) : pièces reprises de la maquette de combat (colonne des portraits, lignes du journal,
-   bandeau de jet) et pièces propres aux six écrans. */
+/* Exploration et récit (#3935) : pièces reprises de la maquette de combat (colonne des portraits, lignes du journal)
+   et pièces propres aux six écrans. */
 #ecran{background:#07080d}
 .lin{font-family:"Lineale","Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-weight:500;letter-spacing:.1px}
 @font-face{font-family:"Lineale";src:url(../polices/Inter-Medium.otf);font-weight:500}
@@ -47,31 +47,8 @@
 .arret{left:264px;top:560px;width:1180px;height:212px}
 .arret .ruban{top:-6px}
 .arret .ruban.gothique{font-size:19px;padding:1px 34px 4px;letter-spacing:.6px}
-#suites{position:absolute;left:20px;right:20px;bottom:13px;display:flex;justify-content:center;gap:9px}
-#suites .plaque{flex:none;width:150px;height:40px}
-#suites .plaque.large{width:176px}
-#suites .plaque>div{font-size:15px}
 
-/* le jet : un seul camp */
-#jet .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
-.camp{display:flex;gap:14px;align-items:flex-start}
-.camp.droite{flex-direction:row-reverse;text-align:right}
-.camp .portrait{width:78px;height:96px}
-.camp .n{font-size:21px;line-height:22px;color:#3a1a10;white-space:nowrap}
-.camp .c{font-size:12.5px;color:#4a3420;margin-top:1px;white-space:nowrap}
-.camp .des{display:flex;align-items:center;gap:10px;margin-top:7px}
-.camp .seuil{font-family:"Grenze Gotisch";font-weight:600;font-size:30px;line-height:34px;color:#2a1d12;white-space:nowrap}
-.camp .issue{line-height:17px}
-.camp .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:#7c1f14}
-.camp .issue span{font-size:14px;color:#2a1d12;font-weight:600}
-.camp .issue.reussite b{color:#3d5a26}
-.resultat{flex:none;width:50px;height:50px;display:grid;place-items:center;font-family:"Grenze Gotisch";font-weight:600;font-size:27px;color:#fbe9d2;background:radial-gradient(circle at 38% 30%,#d2553a,#9c2a1a 50%,#5a130b 100%);border-radius:48% 52% 55% 45%/52% 46% 54% 48%;box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 0 0 3px rgba(60,10,5,.45),inset 2px 2px 3px rgba(255,170,140,.35)}
-.resultat.reussite{background:radial-gradient(circle at 38% 30%,#86a35a,#4c6a30 50%,#22361a 100%);box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 0 0 3px rgba(15,35,8,.45),inset 2px 2px 3px rgba(210,240,170,.35)}
-.modif{display:inline-block;padding:0 9px 1px;font-size:12.5px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35);white-space:nowrap}
-#verdict{text-align:center;padding:2px 12px 0;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:104px}
-#verdict .sous{font-size:12.5px;color:#4a3420;white-space:nowrap}
-#verdict .dr{font-size:32px;line-height:36px;color:#3a1a10;margin-top:2px}
-#verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
+/* le Test de compétence : le bandeau du socle du jet (`../combat/jet.css`, lié avant cette feuille) ; à droite, l'enjeu */
 .enjeu p{margin:8px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#3a2a18;max-width:250px;margin-left:auto}
 
 /* la conversation */

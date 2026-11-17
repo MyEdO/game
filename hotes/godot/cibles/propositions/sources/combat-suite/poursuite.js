@@ -31,5 +31,5 @@ pieces.push(bandeau({
   aldric: { icone: 'etoile', texte: 'Navigateur : coupe par les hauts-fonds' },
   greta: { icone: 'couronne', texte: 'Capitaine : presse l’équipage à la manœuvre' },
 }));
-pieces.push(sortie('cordage', 'Postes de bord'), coins());
+pieces.push(retour('Postes de bord', 'cordage'), coins());
 monter(pieces);

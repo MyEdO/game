@@ -93,5 +93,5 @@ pieces.push(`<div id="partie" class="page cadre bois" data-piece="partie"><div c
   ${plaque('S’asseoir et lancer les dés', { armee: true, icone: 'des', classe: 'jouer' })}
 </div><div class="ruban gothique">La partie</div>${ferrures}</div>`);
 pieces.push(bandeau({ bjorn: { choisi: true, icone: 'des', texte: 'prend la place libre à la table de dés' } }, { bourses: true }));
-pieces.push(sortie('sortie', 'Quitter la table'), coins());
+pieces.push(retour('Quitter la table'), coins());
 monter(pieces);

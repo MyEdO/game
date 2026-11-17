@@ -142,5 +142,5 @@ pieces.push(bandeau({
   aldric: { icone: 'sommeil', texte: 'monte se coucher tôt' },
   greta: { icone: 'soin', texte: 'montre sa cuisse au barbier' },
 }));
-pieces.push(sortie('sortie', 'Quitter l’auberge'), coins());
+pieces.push(retour('Quitter l’auberge'), coins());
 monter(pieces);

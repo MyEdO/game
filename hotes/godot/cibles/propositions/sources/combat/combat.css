@@ -1,3 +1,4 @@
+@import url(../gestes.css);
 @import url(jet.css);
 @font-face{font-family:"Grenze Gotisch";src:url(../polices/GrenzeGotisch-wght.ttf);font-weight:100 900}
 @font-face{font-family:"Fell SC";src:url(../polices/IMFeENsc28P.ttf)}
@@ -120,6 +121,7 @@ html,body{margin:0;background:#000}
 #tour-outils .bouton-rond{width:38px;height:38px}
 #systeme{position:absolute;right:22px;top:18px}
 #systeme .bouton-rond{width:44px;height:44px;padding:4px}
+.croix{top:76px}
 
 /* le journal : trois lignes dans un coin */
 #journal{position:absolute;right:24px;bottom:164px;width:300px;text-align:right}
@@ -147,9 +149,6 @@ html,body{margin:0;background:#000}
 #apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45);font-style:italic;font-size:13px;line-height:17px;color:#4a3420}
 
 /* le jet : un bandeau à la place de la barre */
-#jet .titre{left:50%;top:-6px;transform:translateX(-50%);font-size:19px;padding:1px 34px 4px;font-family:"Grenze Gotisch";font-weight:600;letter-spacing:.6px}
-#suites .plaque.armee{box-shadow:0 3px 6px rgba(0,0,0,.6),0 0 0 1px #150d04}
-#suites .plaque.armee>div{box-shadow:inset 0 0 0 1px rgba(60,40,10,.85),inset 0 1px 0 rgba(255,245,200,.7)}
 
 #ecran[data-socle=jet] #journal{bottom:234px}
 
@@ -199,18 +198,12 @@ html,body{margin:0;background:#000}
 /* le bandeau avant le dé : les réglages au centre, les sceaux encore vides */
 #jet .fond.avant{grid-template-columns:1fr 380px 1fr}
 .reglages .rangee{display:flex;justify-content:center;align-items:center;gap:20px;text-align:left}
-#verdict.reglages{padding-top:0}
 #round .n,#round .t{white-space:nowrap}
 .choix .l{font-size:12px;color:#4a3420;margin-top:3px}
 .choix .v{display:flex;align-items:center;gap:10px}
 .choix .v .gothique{font-size:25px;line-height:27px;color:#3a1a10}
 .choix .v .modif{margin-top:0}
 .choix .bas{display:flex;align-items:center;gap:16px;margin-top:8px}
-.plaque.mini{flex:none;width:104px;height:28px;box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px #150d04}
-.plaque.mini>div{font-size:13px}
-.bascule{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#2a1d12;white-space:nowrap}
-.bascule i{flex:none;width:36px;height:18px;padding:2px;border-radius:9px;box-shadow:0 0 0 1px #000,inset 0 1px 3px #000}
-.bascule b{display:block;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1px #150d04,0 1px 2px rgba(0,0,0,.8)}
 
 /* l'incantation : un seul camp, le sort au centre, sa cible à droite */
 #verdict.sort .dr{font-size:32px}
@@ -233,13 +226,7 @@ html,body{margin:0;background:#000}
 .annonce{height:92px;margin-right:8px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
 .annonce .dr{font-size:34px;line-height:38px;color:#3a1a10}
 .annonce .sous{font-size:13.5px;color:#4a3420}
-.plaque.carte{flex:none;width:262px;height:92px}
-.plaque.carte>div{justify-content:flex-start;gap:13px;padding:0 13px;text-align:left}
-.carte .portrait{width:54px;height:66px;padding:3px}
-.carte .n{font-size:20px;line-height:23px;letter-spacing:.3px;color:#f3e6c6}
-.carte .c{font-size:13px}
-.carte.armee .n{color:#2a1a08}
-#jet .fond.debut #suites .plaque.large{width:232px}
+#jet .fond.debut #suites .plaque.large{flex-basis:232px}
 
 /* la fin du combat */
 #issue{position:absolute;left:573px;top:236px;width:560px;display:flex;flex-direction:column;align-items:center;gap:28px}
@@ -310,5 +297,3 @@ html,body{margin:0;background:#000}
 .mesures .m b{font-weight:600;font-size:16px;line-height:21px;color:#2a1d12;white-space:nowrap}
 .atouts{display:flex;gap:8px;margin-top:7px;height:24px}
 .atouts span{padding:1px 12px 2px;border:1px solid rgba(42,29,18,.7);border-radius:12px;font-size:12.5px;line-height:19px;color:#2a1d12;background:rgba(255,245,215,.4)}
-#fermer{position:absolute;right:22px;top:76px;display:flex;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2}
-#fermer .bouton-rond{width:44px;height:44px;padding:4px}

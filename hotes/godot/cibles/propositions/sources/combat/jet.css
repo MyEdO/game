@@ -1,5 +1,5 @@
-/* Le jet opposé (#3935) : le bandeau du bas et ses deux camps, pièces de `jet.js`. `combat.css` l'importe ; un écran bâti
-   sur `../lieux-et-nuit/commun.css` le lie après sa feuille commune. */
+/* Le socle du jet (#3935) : le bandeau du bas et les pièces de `jet.js`. `combat.css` l'importe ; un écran bâti sur
+   `../lieux-et-nuit/commun.css` le lie après sa feuille commune. */
 #jet{left:264px;top:560px;width:1180px;height:212px}
 #jet .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
 .camp{display:flex;gap:14px;align-items:flex-start}
@@ -20,9 +20,53 @@
 #verdict .dr{font-size:30px;line-height:36px;color:#3a1a10;margin-top:2px}
 #verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
 #suites{position:absolute;left:20px;right:20px;bottom:13px;display:flex;justify-content:center;gap:9px}
-#suites .plaque{flex:none;width:150px;height:40px}
-#suites .plaque.large{width:176px}
-#suites .plaque>div{font-size:15px}
+#suites .plaque{flex:0 1 150px;height:40px}
+#suites .plaque.large{flex-basis:176px}
+#suites .plaque>div{font-size:15px;padding:0 10px}
+#suites .plaque.armee{box-shadow:0 3px 6px rgba(0,0,0,.6),0 0 0 1px #150d04}
+#suites .plaque.armee>div{box-shadow:inset 0 0 0 1px rgba(60,40,10,.85),inset 0 1px 0 rgba(255,245,200,.7)}
+#jet>.ruban{left:50%;top:-6px;transform:translateX(-50%);font-size:19px;padding:1px 34px 4px;font-family:"Grenze Gotisch";font-weight:600;letter-spacing:.6px}
 .resultat.vide{background:radial-gradient(circle at 40% 32%,#bfa97a,#a08a5c 55%,#7a6540);box-shadow:inset 0 0 0 1px rgba(60,40,20,.55),inset 0 2px 6px rgba(40,25,5,.55)}
 .resultat.reussite{background:radial-gradient(circle at 38% 30%,#86a35a,#4c6a30 50%,#22361a 100%);box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 0 0 3px rgba(15,35,8,.45),inset 2px 2px 3px rgba(210,240,170,.35)}
 .camp .issue.reussite b{color:#3d5a26}
+
+/* les réserves du héros : un médaillon par réserve, son nom dessous ; à gauche des gestes dans les suites */
+.en-reserve{display:flex;gap:12px;align-items:flex-start}
+#suites .en-reserve{flex:none;margin:-1px 9px -1px 0}
+.en-reserve .res{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;letter-spacing:.7px;line-height:13px;color:#2a1d12;white-space:nowrap}
+.en-reserve .res .disque{flex:none;width:28px;height:28px;border-radius:50%;padding:2px;box-shadow:0 2px 4px rgba(0,0,0,.6)}
+.en-reserve .res .disque>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3b2718,#1b100a 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8);font-family:"Grenze Gotisch";font-weight:600;font-size:16px;color:#f3e6c6}
+.en-reserve .res.vide{color:#6a5a40}
+.en-reserve .res.vide .disque>div{background:radial-gradient(circle at 40% 30%,#26231f,#131210 70%);color:#8d8474}
+
+/* avant le dé : le testeur, les réglages */
+.testeurs{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11.5px;color:#4a3420}
+.camp .testeurs .portrait{width:26px;height:30px;padding:2px}
+.testeurs .t{opacity:.6}
+.testeurs .t.choisi{opacity:1}
+.testeurs .t.choisi .portrait{box-shadow:0 0 0 1px #1a1005,0 0 10px rgba(255,214,140,.95)}
+#verdict.reglages{padding-top:0}
+#jet .options{display:flex;justify-content:center;gap:8px}
+#jet .options .plaque{flex:none;min-width:104px;height:28px;box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px #150d04}
+#jet .options .plaque>div{font-size:13px;padding:0 10px}
+.bascule{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#2a1d12;white-space:nowrap}
+.bascule i{flex:none;width:36px;height:18px;padding:2px;border-radius:9px;box-shadow:0 0 0 1px #000,inset 0 1px 3px #000}
+.bascule b{display:block;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1px #150d04,0 1px 2px rgba(0,0,0,.8)}
+.bascule:not(.allumee) b{filter:grayscale(1) brightness(.6)}
+.bascule.allumee b{margin-left:18px}
+/* les deux dés qui se règlent : + dessus, − dessous */
+.camp .des.regles{margin-top:0}
+.des.regles .moins-plus{flex-direction:column-reverse;gap:1px}
+.des.regles .moins-plus .bouton-rond{width:16px;height:16px}
+
+/* une carte de choix : la choisie en laiton plein, la fermée en fer */
+.plaque.carte{flex:none;width:262px;height:92px}
+.plaque.carte>div{justify-content:flex-start;gap:13px;padding:0 13px;text-align:left}
+.plaque.carte .portrait{width:54px;height:66px;padding:3px}
+.plaque.carte .qui{min-width:0}
+.plaque.carte .n{font-size:20px;line-height:23px;letter-spacing:.3px;color:#f3e6c6}
+.plaque.carte .c{font-family:"Spectral";font-size:13px;letter-spacing:0;line-height:17px;white-space:nowrap;color:#c9b995}
+.plaque.carte.armee .n{color:#2a1a08}
+.plaque.carte.armee .c{color:#3a2a12}
+.plaque.carte.fermee .n{color:#8d8474}
+.plaque.carte.fermee .c{color:#6f685c}

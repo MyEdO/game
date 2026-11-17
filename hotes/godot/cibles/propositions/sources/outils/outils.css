@@ -82,6 +82,7 @@
 #barre .plaque>div{font-size:13px;padding:0 11px;gap:6px}
 #barre .segments b{padding:6px 14px 7px;font-size:14px}
 #barre .bouton-rond{width:38px;height:38px;padding:3px}
+#barre .croix{position:static}
 #barre .sep{width:1px;height:30px;background:rgba(226,192,106,.28)}
 .volet{position:absolute}
 .volet .fond{padding:24px 10px 10px;display:flex;flex-direction:column}

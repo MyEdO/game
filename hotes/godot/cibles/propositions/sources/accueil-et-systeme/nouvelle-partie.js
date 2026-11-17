@@ -148,6 +148,6 @@ monter([
        <div class="dit"><p>Le groupe peut partir à trois.</p></div></div>
      </div>
    </div>${ferrures}</div>`,
-  sortie('sortie', 'Quitter la partie'),
+  retour('Quitter la partie'),
   `<div id="coins" data-piece="coins">${rond('systeme', 23)}</div>`,
 ]);

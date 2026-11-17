@@ -38,5 +38,5 @@ if (PERIL) {
     greta: { texte: 'veille sur la cargaison, à l’avant' },
   }));
 }
-pieces.push(sortie('tente', 'Faire halte'), coins());
+pieces.push(retour('Faire halte', 'tente'), coins());
 monter(pieces);

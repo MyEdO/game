@@ -39,10 +39,6 @@
 .bois .segments b+b{border-left:1px solid rgba(226,192,106,.2)}
 .bois .segments b.la{color:#2a1a08;background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830)}
 
-/* fermer : pastille en haut à droite (reprise de la création) */
-#fermer{position:absolute;right:26px;top:24px}
-#fermer .bouton-rond{width:48px;height:48px;padding:4px}
-
 /* le cartouche de titre : la gothique respire (aucun jambage coupé) */
 #titre .n{line-height:50px;margin:-9px 0 -8px}
 

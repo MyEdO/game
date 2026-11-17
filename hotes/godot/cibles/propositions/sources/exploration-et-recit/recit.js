@@ -1,5 +1,6 @@
 /* Exploration et récit, images d'intention (#3935) : cinq écrans sur la scène isométrique. L'état vient de
-   data-etat : exploration, dialogue, jet-de-competence, butin, document. Maquette hors du jeu. */
+   data-etat : exploration, dialogue, jet-de-competence, butin, document. Le Test de compétence se pose sur le socle
+   du jet (`../combat/jet.js`). Maquette hors du jeu. */
 const ETAT = document.getElementById('ecran').dataset.etat;
 Object.assign(BUSTES, {
   gustav: '<path d="M6 90c0-21 11-28 25-30l-1-6c-8-5-10-18-6-27 4-9 26-9 30 0 4 9 2 22-6 27l-1 6c14 2 25 9 25 30z"/><path d="M24 30c1-4 3-7 6-9-3 4-4 7-4 11zM54 30c-1-4-3-7-6-9 3 4 4 7 4 11z" fill="#15100c"/><path d="M30 48c6 4 12 4 18 0-2 6-16 6-18 0z" fill="#15100c"/>',
@@ -13,13 +14,11 @@ Object.assign(PICTOS, {
   lettre: '<path d="M4 6h16v12H4zM4 7l8 6 8-6"/>',
   de: '<path d="M12 3l8 6-3 11H7L4 9zM12 3l4 9-4 4-4-4zM4 9l4 3M20 9l-4 3M12 16v4"/>',
 });
-const d10 = (texte) => `<svg width="36" height="40" viewBox="-19 -21 38 42"><path d="M0,-19L17,-5L10,17L-10,17L-17,-5Z" fill="#b8a67e" stroke="#2a1d12" stroke-width="1.300" stroke-linejoin="round"/><path d="M0,-19L10,4L0,13L-10,4Z" fill="#f1e6cc" stroke="#2a1d12" stroke-width="1" stroke-linejoin="round"/><path d="M-17,-5L-10,4M17,-5L10,4M0,13L-10,17M0,13L10,17" stroke="#2a1d12" stroke-width="1" fill="none"/><text x="0" y="3.500" text-anchor="middle" font-family="Grenze Gotisch" font-weight="600" font-size="${texte.length > 1 ? 12.5 : 15}" fill="#2a1d12">${texte}</text></svg>`;
 const groupe = () => `<div id="groupe" data-piece="groupe">${HEROS.map((h) => `
   <div class="rang ${h.id === 'mira' ? 'mene' : ''}">${portrait(h.id)}<div><div class="nom ${h.id === 'mira' ? '' : 'rubrique'} ombre">${h.nom}</div>
     <div class="ligne"><div class="vie"><i style="width:${100 * h.pv / h.max}%"></i></div><span class="pv ombre">${h.pv} / ${h.max}</span></div></div></div>`).join('')}</div>`;
 const chronique = (lignes, classe = '', style = '') => `<div id="chronique" class="${classe}" style="${style}" data-piece="chronique"><div class="tete rubrique ombre">Chronique</div>${lignes.map(([g, t]) => `<p class="${g} ombre">${t}</p>`).join('')}</div>`;
 const marque = (x, y, icone) => `<div class="marque" style="left:${x}px;top:${y}px">${medaillon(icone, { petit: true, taille: 17 })}</div>`;
-const clouer = (sel) => { const b = document.querySelector(sel); const h = b.offsetHeight, w = b.offsetWidth; [.06, .28, .72, .94].forEach((t) => [3, h - 9].forEach((y) => { const c = document.createElement('i'); c.className = 'clou'; c.style.left = (w * t | 0) + 'px'; c.style.top = y + 'px'; b.appendChild(c); })); };
 const LIEU = titre({ icone: 'lit', nom: 'La Diligence', sous: 'Auberge-relais · salle commune', largeur: 392 });
 const JOUR = ['borne-j', 'Le soir, à La Diligence'];
 const pieces = [];
@@ -58,17 +57,12 @@ if (ETAT === 'dialogue') {
   pieces.push(chronique([JOUR, ['vieux', 'Le groupe entre dans la salle commune.'], ['', 'Mira s’adresse à Gustav Fondleburger.']], 'haut'));
 }
 if (ETAT === 'jet-de-competence') {
-  const plaqueS = (l, o = {}) => plaque(l, o).replace('class="plaque', `class="plaque${o.large ? ' large' : ''}`);
-  pieces.push(`<div id="jet" class="cadre bois arret" data-piece="jet"><div class="fond parchemin">
-    <div class="camp">${portrait('mira')}
-      <div><div class="n gothique">Mira</div><div class="c rubrique">Charme</div>
-      <div class="des"><span class="seuil">≤ 43</span>${d10('20')}${d10('7')}<div class="resultat reussite">27</div><div class="issue reussite"><b>réussite</b><span>DR +2</span></div></div></div>
-    </div>
-    <div id="verdict"><div class="sous rubrique" data-texte="sous-titre">Test de Charme · Intermédiaire (+0)</div><div class="dr gothique">Réussite</div><p data-texte="verdict">Gustav se laisse amadouer et baisse la voix.</p></div>
+  const mira = HEROS.find((h) => h.id === 'mira');
+  pieces.push(bandeauDuJet('Test de Charme', '', `
+    ${camp({ portrait: portrait('mira'), nom: 'Mira', carac: 'Charme', seuil: 43, des: ['20', '7'], total: 27, dr: '+2', reussite: true })}
+    ${verdict('Test de Charme · Intermédiaire (+0)', 'Réussite', 'Gustav se laisse amadouer et baisse la voix.')}
     <div class="camp droite enjeu">${portrait('gustav')}<div><div class="n gothique">Gustav Fondleburger</div><div class="c rubrique">Interlocuteur</div>
-      <p>« À quel prix cèdent-ils leurs places, entre nous ? »</p></div></div>
-    <div id="suites">${plaqueS('Appliquer', { armee: true })}${plaqueS('Relancer')}${plaqueS('Chance : +1 DR', { large: true })}${plaqueS('Pacte')}${plaqueS('Résilience')}</div>
-  </div><div class="ruban gothique">Test de Charme</div>${ferrures}</div>`);
+      <p>« À quel prix cèdent-ils leurs places, entre nous ? »</p></div></div>`, apresLeDe({ heros: mira })));
   pieces.push(chronique([['vieux', 'Le groupe entre dans la salle commune.'], ['vieux', 'Mira s’adresse à Gustav Fondleburger.'], ['', 'Mira tente de charmer Gustav Fondleburger.']], 'haut', 'bottom:234px'));
 }
 
@@ -110,4 +104,4 @@ if (ETAT === 'document') {
   pieces.push(coins());
 }
 monter(pieces);
-for (const s of ['.arret', '#remis']) if (document.querySelector(s)) clouer(s);
+document.querySelectorAll('.arret, #jet, #remis').forEach(clouer);

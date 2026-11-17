@@ -25,6 +25,6 @@ poser([
     ${talent('feu', 'Magie mineure', 'Acquis · Maxi : 1', 'Maxi atteint', true)}
     ${talent('oeil', 'Seconde vue', "Acquis une fois · Maxi : Bonus d'Initiative", '200 PX')}`, { ruban: 'Talents', classe: 'pan' }),
   groupeDIlyanwe(),
-  sortie('sortie', 'Fermer'),
+  retour('Fermer'),
   coins(),
 ]);

@@ -180,5 +180,10 @@ débordent ou se chevauchent). Rien ne se copie d'une famille à l'autre : une p
 qu'elle prolonge, et une pièce neuve s'ajoute à ce socle plutôt que dans une page. Deux socles : le commun
 (`lieux-et-nuit/commun.css`, `commun.js`, `bustes.js`), que lient `heros`, `exploration-et-recit`, `voyage`,
 `commerce` et les écrans hors champ de `combat-suite` ; celui du combat (`combat/combat.css`, `socle.js`), que lient
-`combat-suite` et le combat naval de `voyage`. Le jet opposé (`combat/jet.css`, `jet.js`) se pose sur l'un comme sur
-l'autre. `accueil-et-systeme`, que prolonge `outils`, garde sa propre feuille commune.
+`combat-suite` et le combat naval de `voyage`. `accueil-et-systeme`, que prolonge `outils`, garde sa propre feuille
+commune. Deux socles de gestes se posent sur les trois, et aucune famille n'en recopie une pièce. La charte
+(`gestes.css`, `gestes.js`, que toute page charge) : la croix qui ferme un panneau, la pastille de retour d'un lieu,
+le réglage − +, la bulle de la raison d'un refus au survol, le médaillon de bourse qui dit qui paie (#3004). Le jet
+(`combat/jet.css`, `jet.js`) : le bandeau du bas, ses camps et son verdict, le testeur et les réglages d'avant le dé,
+les réserves du héros, les gestes d'avant et d'après le dé ouverts ou fermés selon la règle (LDB 17 l.23-24, l.68),
+les dés réglables de la Résilience, le choix par carte.

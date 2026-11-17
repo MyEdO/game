@@ -24,5 +24,5 @@ pieces.push(bandeau({
   aldric: { mal: true, icone: 'goutte', texte: 'les symptômes de « Rhume commun » se déclarent' },
   greta: { texte: 'garde un œil sur les bagages' },
 }, { bourses: true }));
-pieces.push(sortie('route', 'Explorer'), coins());
+pieces.push(retour('Explorer', 'route'), coins());
 monter(pieces);

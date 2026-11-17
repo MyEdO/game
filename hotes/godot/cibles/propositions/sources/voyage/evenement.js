@@ -39,6 +39,6 @@ if (ETAT === 'evenement-de-route') {
     greta: { texte: 'pousse à la roue, de l’eau jusqu’aux genoux' },
   }));
 }
-pieces.push(sortie('tente', 'Faire halte'), coins());
+pieces.push(retour('Faire halte', 'tente'), coins());
 monter(pieces);
 if (ETAT === 'evenement-de-route') marquer('aldric', 'ferme');

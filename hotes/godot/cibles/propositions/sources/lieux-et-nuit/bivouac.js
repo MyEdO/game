@@ -122,5 +122,5 @@ pieces.push(bandeau({
   aldric: { icone: 'carte', texte: 'reporte la route sur le vélin' },
   greta: { choisi: true, html: '<span class="attend rubrique">À poster dans le camp</span>' },
 }));
-pieces.push(sortie('route', 'Lever le camp'), coins());
+pieces.push(retour('Lever le camp', 'route'), coins());
 monter(pieces);

@@ -26,6 +26,6 @@ ui.push(`<div id="dossier">
   <div class="etats">${etat('Eau douce', '2 900 L')}${etat('Vivres de l’équipage', '735 rations')}${etat('Salissures', 'aucune')}${etat('Avaries', 'aucune')}</div>
 </div><div class="onglets"><div class="ruban titre">État</div>${['Équipage', 'Cargaison', 'Améliorations'].map((t) => plaque(t)).join('')}</div>${ferrures}</div>
 </div>`);
-ui.push(FERMER);
+ui.push(croix());
 ui.push(SYSTEME);
 monter(ui);

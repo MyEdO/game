@@ -34,6 +34,6 @@ poser([
     </div>
     <div class="rub" style="margin-top:15px"><span class="note">Hors de sa Classe, le changement coûte 100 PX de plus.</span></div>`, { ruban: 'Autre carrière', classe: 'pan' }),
   groupeDIlyanwe(),
-  sortie('sortie', 'Fermer'),
+  retour('Fermer'),
   coins(),
 ]);

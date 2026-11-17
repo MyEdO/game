@@ -43,7 +43,7 @@ pieces.push(bandeau({
   aldric: { icone: 'livre', texte: 'fouille les registres du temple' },
   greta: { icone: 'epee', texte: 's’exerce avec les hommes du Guet' },
 }, { bourses: true }));
-pieces.push(sortie('sablier', 'Reprendre la route'), coins());
+pieces.push(retour('Reprendre la route', 'sablier'), coins());
 monter(pieces);
 
 /* la carte de la ville, à l'encre sur le parchemin */

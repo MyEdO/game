@@ -36,5 +36,5 @@ pieces.push(bandeau({
   aldric: { texte: 'Navigateur, cartes et sablier' },
   greta: { choisi: true, texte: 'Capitaine, sur le château arrière' },
 }));
-pieces.push(sortie('route', 'Revenir à la traversée'), coins());
+pieces.push(retour('Revenir à la traversée', 'route'), coins());
 monter(pieces);

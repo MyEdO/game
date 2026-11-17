@@ -1,3 +1,4 @@
+@import url(../gestes.css);
 @font-face{font-family:"Grenze Gotisch";src:url(../polices/GrenzeGotisch-wght.ttf);font-weight:100 900}
 @font-face{font-family:"Fell SC";src:url(../polices/IMFeENsc28P.ttf)}
 @font-face{font-family:"Fell";src:url(../polices/IMFeENrm28P.ttf)}
@@ -96,9 +97,6 @@ html,body{margin:0;background:#000}
 .heros.choisi{background:radial-gradient(120% 100% at 30% 40%,rgba(255,214,140,.16),rgba(255,214,140,0) 70%)}
 
 /* coins */
-#sortie{position:absolute;left:30px;top:694px;display:flex;align-items:center;gap:13px}
-#sortie .bouton-rond{width:52px;height:52px;padding:4px}
-#sortie span{font-size:14.5px;color:#f0e2c2;white-space:nowrap}
 #coins{position:absolute;left:1626px;top:642px;display:flex;flex-direction:column;gap:14px}
 #coins .bouton-rond{width:50px;height:50px;padding:4px}
 

@@ -58,7 +58,7 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 
 ## fiche-au-clic (T21)
 - Quatre panneaux entre l'ordre et le journal, au-dessus du meuble, repris de la maquette de fiche : identité, bande
-  de profil, niche à figure, onglets ; champ assombri à 42 % ; « Fermer » en pastille sous celle du système.
+  de profil, niche à figure, onglets ; champ assombri à 42 % ; la croix de laiton de la charte (`sources/gestes.js`) sous la pastille du système.
 - À valider : la fiche ne prend pas tout l'écran, les ancrages restent visibles ; montrée sur Berta (un héros qui
   n'est pas l'actif) ; réserves sur une colonne ; linéale Inter Medium ; pas d'onglet « Sorts » (Berta n'est pas
   lanceuse). La maquette de fiche montre « M 2 » pour Ilyanwe, le meuble 4 / 4 : écart à trancher.

@@ -8,11 +8,8 @@ const $ = (s) => document.querySelector(s);
 
 /* ───────── pièces du bandeau ───────── */
 const pas = (pleins, total, classe = '') => `<div class="pas petit ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
-/* une carte de choix : ce qui se presse dans le bandeau, la choisie en laiton plein, la fermée en fer */
-const carte = (nom, sous, { armee = false, fermee = false, buste = null, classe = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte choix${armee ? ' armee' : ''} ${classe}"><div>${buste ? portrait(buste, 'heros') : ''}<div class="qui"><div class="n gothique">${nom}</div><div class="c">${sous}</div></div></div></div>`;
-const reserve = (...r) => `<div class="reserve">${r.map(([n, t]) => `<div class="res"><div class="disque fer"><div>${n}</div></div><span class="rubrique">${t}</span></div>`).join('')}</div>`;
 /* le bandeau de l'état de base cède sa place à celui de la suite */
-const poser = (titre, classe, contenu, suites) => { $('#jet').outerHTML = bandeau(titre, classe, contenu, suites); clouer($('#jet')); };
+const poser = (titre, classe, contenu, suites) => { $('#jet').outerHTML = bandeauDuJet(titre, classe, contenu, suites); clouer($('#jet')); };
 
 /* ───────── l'ordre, le round, le journal ───────── */
 const CHAMANE = 'Chamane gobelin';
@@ -39,8 +36,7 @@ const ETATS = {
   surincantation() {
     cerner(...GOBELIN);
     journal(vieux('Tireur gobelin maîtrise sa psychologie (Animosité).'), vieux('Orc maîtrise sa psychologie (Animosité).'), neuf('Ilyanwe la Voilée incante Fléchette.'));
-    const rond = (d, ouvert) => `<div class="bouton-rond ${ouvert ? 'laiton' : 'fer ferme'}"><div><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${ouvert ? '#e2c06a' : '#7d7668'}" stroke-width="3" stroke-linecap="round"><path d="${d}"/></svg></div></div>`;
-    const axe = (nom, alloues, valeur) => `<div class="axe"><span class="rubrique">${nom}</span>${pas(alloues, 2)}<b>${valeur}</b><div class="pm">${rond('M6 12h12', alloues > 0)}${rond('M6 12h12M12 6v12', alloues < 2)}</div></div>`;
+    const axe = (nom, alloues, valeur) => `<div class="axe"><span class="rubrique">${nom}</span>${pas(alloues, 2)}<b>${valeur}</b>${moinsPlus({ moins: alloues > 0, plus: alloues < 2 })}</div>`;
     const sansObjet = (nom) => `<div class="axe ferme"><span class="rubrique">${nom}</span><em>sans objet</em></div>`;
     poser('Incantation', 'sur', `
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['30', '4'], total: 34, dr: '+5', reussite: true })}
@@ -50,7 +46,7 @@ const ETATS = {
         <div class="axes"><div class="t"><span class="rubrique">Surincantation</span><b class="gothique" data-texte="pas">1 pas sur 2</b></div>
           ${axe('Cibles', 1, '2 cibles')}${axe('Portée', 0, '×1')}${sansObjet('Zone')}${sansObjet('Durée')}</div>
       </div>
-      <div class="cibles-du-sort">${[['orc', 'Orc', 'Cible du sort'], ['gobelin', 'Tireur gobelin', 'Cible supplémentaire']].map(([g, n, r]) => `<div class="c-s">${portrait(g, 'ennemi')}<div><div class="n gothique">${n}</div><div class="c rubrique">${r}</div></div></div>`).join('')}</div>`, APRES());
+      <div class="cibles-du-sort">${[['orc', 'Orc', 'Cible du sort'], ['gobelin', 'Tireur gobelin', 'Cible supplémentaire']].map(([g, n, r]) => `<div class="c-s">${portrait(g, 'ennemi')}<div><div class="n gothique">${n}</div><div class="c rubrique">${r}</div></div></div>`).join('')}</div>`, apresLeDe({ heros: RESERVES.ilyanwe }));
   },
 
   /* LDB 46 l.156 ; `valeur.declaration.*`, `reglage.contreSort.declaration`, fiche `user-doctrine-declaration-avant-jets` */
@@ -65,15 +61,14 @@ const ETATS = {
     const contre = { portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85 };
     if (!tombe) poser('Contre-sort', 'avant', `
       ${camp(contre)}
-      <div id="verdict" class="reglages declaration"><div class="sous rubrique">Fléchette · Cible : Berta</div>
-        <div class="l rubrique">Ilyanwe la Voilée chante un Contre-sort</div>
-        <div class="trois">${plaque('Contrer seul', { armee: true })}${plaque('S’unir', { fermee: true })}${plaque('Passer')}</div>
-        <span class="modif rubrique">Un seul Contre-sort par Round</span></div>
+      ${reglages('Fléchette · Cible : Berta', `<div class="l rubrique">Ilyanwe la Voilée chante un Contre-sort</div>
+        ${options([['Contrer seul', { armee: true }], ['S’unir', { fermee: true }], ['Passer']])}
+        <span class="modif rubrique">Un seul Contre-sort par Round</span>`, 'declaration')}
       ${camp(lanceur)}`, plaque('Déclarer', { armee: true }));
     else poser('Contre-sort', '', `
       ${camp({ ...contre, des: ['40', '2'], total: 42, dr: '+4', reussite: true })}
       ${verdict('Fléchette · Cible : Berta', 'DR net +2', 'Contre-sort d’Ilyanwe la Voilée : le Sort est dissipé.')}
-      ${camp({ ...lanceur, des: ['7', '30'], total: 37, dr: '+2', reussite: true })}`, APRES({ relance: false }));
+      ${camp({ ...lanceur, des: ['7', '30'], total: 37, dr: '+2', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe }));
   },
 
   /* LDB 46 l.160 ; `src/noyau/pendings.ts:735`, `cs.dispelRoll` */
@@ -90,7 +85,7 @@ const ETATS = {
       <div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation 7</div><div class="dr gothique">Dôme</div>
         <div class="cumul">${pas(5, 7)}<b class="rubrique" data-texte="cumul">5 DR sur 7</b></div>
         <p data-texte="phrase d'issue">Le Dôme vacille : encore 2 DR pour le dissiper.</p></div>
-      ${vise('gobelin', CHAMANE, 'Lanceur du Sort visé', '11 / 11')}`, APRES({ relance: false }));
+      ${vise('gobelin', CHAMANE, 'Lanceur du Sort visé', '11 / 11')}`, apresLeDe({ heros: RESERVES.ilyanwe }));
   },
 
   /* LDB 46 l.36-55, l.85-89 ; `codex.fiche.influenceMalfaisante`, `step.incantationImparfaiteMineure` */
@@ -136,7 +131,7 @@ const ETATS = {
       <div id="critique"><div class="dr gothique">Pattes d’animaux</div>
         <p data-texte="texte de la table">+1 Mouvement</p>
         <p class="note" data-texte="suite">Berta perd 3 Points de Corruption, son Bonus de Force Mentale : il lui en reste 4.</p></div>`,
-    `${reserve([1, 'Résilience'])}${plaque('Continuer', { armee: true })}${plaque('Je te renie !', { large: true })}`);
+    `${reserves([RESERVES.berta.resilience, 'Résilience'])}${plaque('Continuer', { armee: true })}${plaque('Je te renie !', { classe: 'large' })}`);
   },
 
   /* LDB 14 l.17-30 ; `src/data/oups.json`, `jet.maladresse`, `if.fumble` */
@@ -158,11 +153,10 @@ const ETATS = {
     journal(vieux('Ilyanwe la Voilée charge Orc (+1 Avantage).'), vieux('Orc touche Ilyanwe la Voilée au bras droit.'), neuf('Ilyanwe la Voilée veut rompre le combat.'));
     poser('Se désengager', 'debut', `
       <div class="annonce"><div class="dr gothique">Engagée</div><div class="sous rubrique">Avantage 0 · Orc 1</div></div>
-      ${carte('Sacrifier l’Avantage', 'Quitter le combat sans Test', { fermee: true })}
+      ${carte('Sacrifier l’Avantage', `Quitter le combat sans Test${raison('Il faut plus d’Avantages que l’adversaire.')}`, { fermee: true })}
       ${carte('Esquive', 'Test opposé ≤ 44 · coûte l’Action', { armee: true })}
       ${carte('Fuir', 'Coup dans le dos · Orc +20 au toucher')}`,
     `${plaque('Lancer', { armee: true })}${plaque('Annuler')}`);
-    $('#ui').insertAdjacentHTML('beforeend', `<div id="raison" class="parchemin" data-piece="raison du refus">Il faut plus d’Avantages que l’adversaire.</div>`);
   },
 
   /* LDB 17 l.29-32 ; `src/noyau/choixDeFenetre.ts:234`, `valeur.issue.*`, `ecran.destin.*`, `fenetre.destin` */
@@ -173,7 +167,7 @@ const ETATS = {
     poser('Le Destin', 'debut destin', `
       <div class="camp touche lanceur">${portrait('ilyanwe', 'heros')}
         <div><div class="n gothique">Ilyanwe la Voilée</div><div class="c rubrique">Un coup fatal.</div>
-        ${reserve([2, 'Destin'])}</div>
+        ${reserves([2, 'Destin'])}</div>
       </div>
       ${carte('Éviter le coup', '−1 Destin · elle reste au combat', { armee: true })}
       ${carte('Survivre hors du combat', '−1 Destin · elle quitte la rencontre')}
@@ -188,7 +182,7 @@ const ETATS = {
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['20', '7'], total: 27, dr: '+2', modif: 'Avantage +10', reussite: true })}
       ${verdict('Bâton de combat · Cible : Orc', 'DR net +6', 'Ilyanwe la Voilée touche Orc au corps.<br><span class="relance rubrique">Relancé par la Chance · premier jet <s>98</s></span>')}
       ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`,
-    `${reserve([1, 'Chance'])}${APRES({ relance: false })}`);
+    apresLeDe({ heros: { ...RESERVES.ilyanwe, chance: 1 }, relance: true }));
   },
 };
 ETATS[SUITE]();
