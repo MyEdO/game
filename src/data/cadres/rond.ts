@@ -39,8 +39,8 @@ export const rond = (rayon: number) => {
 
 /**
  * Un disque à listel (#3935) de rayon `rayon` : le listel bombé, large de `listel`, d'un disque de `metal` (`clair` en
- * haut à gauche, `sombre` en bas à droite, inversés quand le disque est `enfonce`), son champ en creux de `champ`, un
- * reflet sur le listel.
+ * haut à gauche, `sombre` en bas à droite, inversés quand le disque est `enfonce`), son champ en creux de `champ`, cerné
+ * d'une seule ombre, un reflet sur le listel.
  */
 const disque = (rayon: number, listel: number) => {
   const { anneau, contour, reflet, tranches } = rond(rayon);
@@ -55,7 +55,7 @@ const disque = (rayon: number, listel: number) => {
       anneau(id, 1.5, enfonce ? sombre : clair, enfonce ? clair : sombre, 0.9) +
       `<rect ${contour(listel + 1)} fill="var(--shadow-ink)"/>` +
       `<rect ${contour(listel + 2)} fill="var(${champ})"/>` +
-      anneau(id, listel + 2.5, '--shadow-ink', clair, 0.6) +
+      anneau(id, listel + 2.5, '--shadow-ink', '--shadow-ink', 0.6) +
       (enfonce ? '' : reflet(2, clair, 0.9)),
   });
 };
