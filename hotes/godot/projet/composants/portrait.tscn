@@ -9,7 +9,7 @@ size_flags_vertical = 0
 [node name="Image" type="TextureRect" parent="."]
 custom_minimum_size = Vector2(48, 48)
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 6
 
 [node name="Portrait" type="Node" parent="."]
 script = ExtResource("1_portrait")

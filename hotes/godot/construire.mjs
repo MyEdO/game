@@ -729,8 +729,11 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
  *  d'une page, et celui de la page. */
 const RENDUS = ['forward_plus', 'gl_compatibility']
 
-/** L'écran virtuel qui porte un rendu réel là où aucun écran n'est ouvert (la CI, un conteneur). */
-const ECRAN_VIRTUEL = process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', '-screen 0 1280x720x24'] : []
+/** L'écran virtuel de `largeur` × `hauteur` qui porte un rendu réel là où aucun écran n'est ouvert (la CI, un
+ *  conteneur). */
+const ecranVirtuel = ({ largeur, hauteur }) => process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', `-screen 0 ${largeur}x${hauteur}x24`] : []
+/** L'écran virtuel des recettes rendues (`rendre`). */
+const ECRAN_VIRTUEL = ecranVirtuel({ largeur: 1280, hauteur: 720 })
 
 /** Les cœurs que tient une recette rendue : son moteur en rendu réel et son pont (#3950). */
 const COEURS_D_UNE_RECETTE_RENDUE = 2
@@ -773,23 +776,32 @@ function rendre(binaire, { figerLesDessins }) {
 const PILOTE = 'res://recettes/pilote.gd'
 const FIN_DU_PILOTE = '[pilote] fin'
 
+/** Les planches figées (`figerLesPlanches`) sur les modèles du projet, déposées sous `planches/` de `sortie`
+ *  (`deposerLesPlanches`), les assets `a` chargés (`deposerLesAssets`). */
+const deposerLesPlanchesFigees = (sortie, a) => chronometrer('planches figées', () => deposerLesPlanches(sortie, a.figerLesPlanches(listage(a.DOSSIER_DES_MODELES))))
+
 /** Le jeu piloté par une recette (#3945) : le projet importé sur une copie par l'éditeur épinglé (`surUneCopie`), puis
- *  `PILOTE` en boucle principale, `args` passés au jeu après `--` et `env` ajouté à son environnement, avec ses
+ *  `PILOTE` en boucle principale, à la fenêtre `fenetre`, `{ largeur, hauteur }` (ses paramètres `largeur` et
+ *  `hauteur`), `args` passés au jeu après `--` et `env` ajouté à son environnement, avec ses
  *  données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`) sous la copie, que ses relances gardent, sans tenir le
- *  fil ; sans écran, ou, avec `rendu`, en rendu réel sous cette méthode, sur un écran (`ECRAN_VIRTUEL` sans lui).
+ *  fil ; sans écran, ou, avec `rendu`, en rendu réel sous cette méthode, sur un écran (`ecranVirtuel` de la taille de
+ *  `fenetre` sans lui).
  *  `lance(tuer)` est appelé une fois le jeu lancé, `tuer()` le tuant ; à sa sortie, il est relancé sur la même copie
  *  tant que `encore()` le demande. Rend les lignes de chaque sortie jusqu'à `FIN_DU_PILOTE` (ce que le moteur écrit
- *  ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes, et ses échecs. */
-export async function piloter({ args, env, rendu, lance, encore }) {
+ *  ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes, et ses échecs. Avec `planches`, les
+ *  planches figées y sont déposées avant le lancement (`deposerLesPlanchesFigees`). */
+export async function piloter({ args, env, rendu, lance, encore, planches, fenetre }) {
   const a = await deposerLesAssets()
+  if (planches) await deposerLesPlanchesFigees(planches, a)
   const binaire = await chronometrer('éditeur Godot', editeur)
   const lignes = []
   const erreurs = await surUneCopie(binaire, a.figerLesDessins, async (copie) => {
-    const [commande, ...prefixe] = rendu ? [...ECRAN_VIRTUEL, binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
+    const [commande, ...prefixe] = rendu ? [...ecranVirtuel(fenetre), binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
     const erreurs = []
     const donnees = DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: mkdtempSync(join(copie, 'donnees-')) } : {}
     do {
-      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], { ...env, ...donnees }, lance)
+      const taille = [`--largeur=${fenetre.largeur}`, `--hauteur=${fenetre.hauteur}`]
+      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...taille, ...args], { ...env, ...donnees }, lance)
       const fin = joue.lignes.findLastIndex((l) => l.trim() === FIN_DU_PILOTE)
       const jouees = fin < 0 ? joue.lignes : joue.lignes.slice(0, fin)
       lignes.push(...jouees)
@@ -953,7 +965,7 @@ async function principal() {
   const modele = await modeleDExport(modeleDuPreset(readFileSync(join(PROJET, PRESETS), 'utf8')))
   const sortie = verdict(await exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a, avisDesPaquets(bundle.modules)))
   if (sortie) return sortie
-  deposerLesPlanches(options.sortie, a.figerLesPlanches(listage(a.DOSSIER_DES_MODELES)))
+  await deposerLesPlanchesFigees(options.sortie, a)
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
   return 0
 }

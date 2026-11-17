@@ -6,11 +6,12 @@ class_name PontDePlanche
 extends PontDuNoyau
 
 ## @contrat Écran publié
-## Une planche est un état de partie figé par le pont, déposé dans l'export (`construire.mjs --export`) sous
-## `planches/<nom>.json` (ses réponses propres, `reponses`), les réponses que partagent les planches de son scénario
-## sous `planches/communes/<scenario>.json`. Le pont de la planche rend à chaque méthode la réponse enregistrée sous son
+## Une planche est un état de partie figé par le pont, déposé dans l'export (`construire.mjs --export`), ou, hors d'une
+## page, dans le dossier que sert la recette (`hotes/godot/pilotage/natif.mjs`), sous `planches/<nom>.json` (ses
+## réponses propres, `reponses`), les réponses que partagent les planches de son scénario sous
+## `planches/communes/<scenario>.json`. Le pont de la planche rend à chaque méthode la réponse enregistrée sous son
 ## nom, à toute entrée ; une méthode sans réponse enregistrée est une panne (`PontDuNoyau.panne`, une erreur de la page),
-## jamais une question au pont du noyau. L'adresse `?planche=<nom>`
+## jamais une question au pont du noyau. L'adresse `?planche=<nom>`, hors d'une page le paramètre `--planche=<nom>`,
 ## l'ouvre à la place du menu d'entrée : le combat la montre par son routeur, comme la partie de `?scenario=` qu'il
 ## démarre, et un geste qu'on y presse est une panne, la planche ne servant pas les gestes. `&monde=sans` ne dessine
 ## pas le monde 3D sous l'écran (`Viewport.disable_3d`) : l'image ne dépend alors que de l'interface. Godot publie à la
@@ -38,9 +39,11 @@ func _ready() -> void:
 	_montrer(parametre("planche"))
 
 
-## La planche `nom` lue et montrée par le combat, sans son monde 3D à `&monde=sans` ; illisible, une panne le dit et le
-## menu d'entrée reste celui du jeu.
+## La planche `nom` lue, le lieu ouvert d'abord (hors d'une page, il annonce l'adresse du serveur qui la sert), et montrée
+## par le combat, sans son monde 3D à `&monde=sans` ; illisible, une panne le dit et le menu d'entrée reste celui du jeu.
 func _montrer(nom: String) -> void:
+	if not await _transport.ouvrir():
+		return
 	var recueil: Array[String] = []
 	var planche: Variant = JSON.parse_string((await requeter("%s/%s.json" % [DOSSIER, nom], recueil)).get_string_from_utf8())
 	var communes: Variant = null

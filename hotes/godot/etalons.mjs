@@ -8,7 +8,8 @@
 // taille, ou une erreur de la page, dont une méthode du pont que la planche ne sert pas, sort en 1. Le rapport
 // (`--rapport <dossier>`) garde le rendu de chaque planche, sa capture avec le monde, et une page qui les range près de
 // leur étalon, l'écart en surimpression ; il dit de chaque étalon s'il est celui que l'utilisateur a validé
-// (`valides.json` : son empreinte). Le rapport, le journal et le code de sortie suivent l'ordre des noms.
+// (`valides.json` : son empreinte), et range près d'eux le côte à côte de sa maquette (`coteACote`).
+// Le rapport, le journal et le code de sortie suivent l'ordre des noms.
 //
 //   npm run godot:etalons                                                     l'export, puis le banc qui compare
 //   node hotes/godot/etalons.mjs --web <export> [--rapport <dossier>] [--planche <nom>]...
@@ -20,7 +21,7 @@ import { parseArgs } from 'node:util'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { VUE_REFERENCE, consoleGuard, launchSession, sleep, waitFor } from '../../scripts/recette/lib.mjs'
-import { DOSSIER_DES_ETALONS, VALIDES, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
+import { DOSSIER_DES_ETALONS, MAQUETTES, VALIDES, coteACote, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
 import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
 
 const { values: o } = parseArgs({
@@ -57,9 +58,10 @@ function pageDuRapport(lignes) {
   const rangee = (l) => `<section><h2>${l.nom} <small>${l.titre}</small></h2><p class="${l.verdict === 'conforme' ? 'ok' : 'ko'}">${l.verdict}${l.valide ? ' · validé' : ' · à valider'}</p>
 <div class="images"><figure><img src="${l.nom}.etalon.png"><figcaption>étalon</figcaption></figure>
 <figure><div class="ecart"><img src="${l.nom}.etalon.png"><img src="${l.nom}.rendu.png"></div><figcaption>écart (noir : aucun)</figcaption></figure>
-<figure><img src="${l.nom}.monde.png"><figcaption>dans le jeu</figcaption></figure></div></section>`
+<figure><img src="${l.nom}.monde.png"><figcaption>dans le jeu</figcaption></figure>
+${l.maquette ? `<figure><img src="${l.nom}.maquette.png"><figcaption>maquette, rendu, fondu</figcaption></figure>` : ''}</div></section>`
   return `<!doctype html><meta charset="utf-8"><title>Étalons</title>
-<style>body{background:#111;color:#ddd;font:14px sans-serif;margin:16px}img{max-width:100%;display:block}.images{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}figure{margin:0}.ecart{position:relative}.ecart img+img{position:absolute;inset:0;mix-blend-mode:difference}.ok{color:#8c8}.ko{color:#e66}small{font-weight:normal;color:#999}</style>
+<style>body{background:#111;color:#ddd;font:14px sans-serif;margin:16px}img{max-width:100%;display:block}.images{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}figure{margin:0}.ecart{position:relative}.ecart img+img{position:absolute;inset:0;mix-blend-mode:difference}.ok{color:#8c8}.ko{color:#e66}small{font-weight:normal;color:#999}</style>
 <h1>Étalons : ${valides} validés sur ${lignes.length} planches</h1>
 ${lignes.map(rangee).join('\n')}`
 }
@@ -84,6 +86,7 @@ async function comparer() {
   }
   const noms = o.planche ?? tous
   const valides = JSON.parse(readFileSync(VALIDES, 'utf8'))
+  const maquettes = JSON.parse(readFileSync(MAQUETTES, 'utf8'))
   if (o.rapport) mkdirSync(o.rapport, { recursive: true })
   const srv = await servir({ web: o.web })
   /** La capture de la planche `nom` une fois montrée, dans un navigateur neuf, les erreurs de sa page versées à
@@ -119,6 +122,10 @@ async function comparer() {
       if (etalon) writeFileSync(join(o.rapport, `${nom}.etalon.png`), etalon)
       const bases = Object.fromEntries(Object.entries(demarrer.vue.corps.combattants).map(([id, c]) => [id, c?.base ?? null]))
       writeFileSync(join(o.rapport, `${nom}.monde.png`), await capturer(nom, bases, erreurs))
+      const cote = coteACote(nom, rendu, maquettes)
+      if (cote?.image) writeFileSync(join(o.rapport, `${nom}.maquette.png`), cote.image)
+      if (cote?.avis) console.log(`[etalons] ${cote.avis}`)
+      return { nom, titre, verdict, valide, erreurs, maquette: !!cote?.image }
     }
     return { nom, titre, verdict, valide, erreurs }
   }

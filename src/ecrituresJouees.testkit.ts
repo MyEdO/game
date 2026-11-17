@@ -577,7 +577,7 @@ function narratifMisEnPlace(): SessionDEdition {
 }
 
 /** La péripétie ajoutée à une route, et le préfixe d'id de son premier Effet. */
-const PERIL = { ajouter: 'valeur/perils/ajouter/0', effets: 'valeur/perils/0/effects/ajouter', effet: 'valeur/perils/0/effects/0/' } as const;
+const PERIL = { ajouter: 'valeur/perils/ajouter/', effets: 'valeur/perils/0/effects/ajouter', effet: 'valeur/perils/0/effects/0/' } as const;
 
 /** Les écritures de la carte du monde de la première campagne du jeu, son narratif mis en place (`narratifMisEnPlace`) :
  *  la carte renommée (`identifierChaque`) ; l'inspecteur de la carte ; un lieu posé à l'outil Lieu et un ajouté à la zone Logique, un point d'intérêt épinglé à
@@ -606,7 +606,8 @@ export function ecrituresDeLaCarte(): EcritureJouee[] {
   const tiree = jouer(jouer(jouer(presser(s, 'outil/chemin'), { geste: 'appui', point: point(depart.pos.x, depart.pos.y) }), { geste: 'glisse', point: point(70, 20) }), { geste: 'relache', point: point(85, 15) });
   s = cree(s, tiree, 'route', out);
   s = ecrire(s, gesteDuChoix(s, 'valeur/modes/ajouter', (v) => Array.isArray(v) && v.includes('diligence')), 'saisieChoix', out);
-  const effet = presser(presser(s, PERIL.ajouter), premierBouton(presser(s, PERIL.ajouter), PERIL.effets));
+  const peril = presser(s, premierBouton(s, PERIL.ajouter));
+  const effet = presser(peril, premierBouton(peril, PERIL.effets));
   jouerLesVariantes(effet, `${PERIL.effet}type`, out);
   const etendu = jouer(effet, gesteDuChoix(effet, `${PERIL.effet}type`, (v) => estObjet(v) && v.type === 'extendedTest'));
   jouerLesVariantes(etendu, `${PERIL.effet}stake/forme`, out);

@@ -4,8 +4,8 @@ export interface IconDef {
   id: IconId;
   /** Libellé FR (tooltip par défaut, galerie QC). */
   label: string;
-  /** Contenu INTERNE d'un viewBox 0 0 24 24 — consomme `currentColor`, jamais de couleur en dur
-   *  (accent `var(--gold)` toléré avec parcimonie). */
+  /** Contenu INTERNE d'un viewBox 0 0 24 24 — consomme `currentColor` ou les jetons `var(--…)` de la palette, jamais de
+   *  couleur en dur (`src/data/icons/icons.test.ts`). */
   svg: string;
 }
 

@@ -4,7 +4,7 @@
 [ext_resource type="Theme" path="res://art/jeton.tres" id="t_jeton"]
 
 [node name="Jeton" type="Control"]
-custom_minimum_size = Vector2(16, 16)
+custom_minimum_size = Vector2(20, 20)
 size_flags_vertical = 4
 mouse_filter = 1
 
@@ -16,10 +16,10 @@ propriete = &"tooltip_text"
 [node name="Losange" type="Panel" parent="."]
 offset_left = 3.0
 offset_top = 3.0
-offset_right = 13.0
-offset_bottom = 13.0
+offset_right = 17.0
+offset_bottom = 17.0
 rotation = 0.785398
-pivot_offset = Vector2(5, 5)
+pivot_offset = Vector2(7, 7)
 mouse_filter = 2
 theme = ExtResource("t_jeton")
 

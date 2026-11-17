@@ -60,7 +60,7 @@ describe('les emplacements rapides par le pont', () => {
     const [cible] = suite.vue.projection.combat!.cibles.liste;
     suite = jouer(appel('jouer', clicDuCombattant(suite.vue, cible)!));
     expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte)).toEqual(['Incantation']);
-    expect(suite.vue.zones['combat.offres'], 'sous la fenêtre, aucune offre').toEqual([]);
+    expect(suite.vue.zones['combat.offres'].flatMap((c) => c.valeurs).map((b) => [b.id, b.refus]), 'sous la fenêtre, la seule fin du tour, fermée').toEqual([['fin-de-tour', suite.vue.projection.combat!.barre.raison]]);
     expect(rapides(suite), 'ni aucune case : la tablette se retire avec les offres').toEqual([]);
 
     suite = jouer(appel('jouer', enFocus(suite.vue)!.jeu));

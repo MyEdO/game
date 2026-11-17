@@ -498,7 +498,7 @@ describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
     const inspectee = presser(boutonDe(enrole, `logique/rencontre/${id}`));
     const membres = inspectee.vue.zones['editeur.inspecteur'].filter((el): el is Ligne => el.id.startsWith('rencontre/membre'));
     expect(membres.map((l) => l.texte)).toEqual(['Membres (1) — un personnage s’enrôle à son inspecteur', expect.stringMatching(/ — Ennemi$/)]);
-    expect(idsSous(inspectee, 'valeur/members')).toEqual(['valeur/members', 'valeur/members/0', 'valeur/members/0/mount', 'valeur/members/0/mount/0', 'valeur/members/0/mount/1', 'valeur/members/0/mount/aucune']);
+    expect(idsSous(inspectee, 'valeur/members')).toEqual(['valeur/members', 'valeur/members/0', 'valeur/members/0/mount', 'valeur/members/0/mount/false', 'valeur/members/0/mount/true', 'valeur/members/0/mount/aucune']);
   });
 
   it('une rencontre renommée l’est dans le « Démarrer un combat » du déclencheur qui la lance', () => {
@@ -529,7 +529,7 @@ describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
     expect(membres).toHaveLength(6);
     const seuil = presser(valeursDeLInspecteur(choisie, 'valeur/victoryCondition/type').find((b) => b.libelle === 'Sortie à seuil de dommage')!);
     expect(valeursDeLInspecteur(seuil, 'valeur/victoryCondition/targetId/ajouter').map((b) => b.libelle)).toEqual(membres);
-    const monture = presser(boutonDe(choisie, 'valeur/members/1/mount/1'));
+    const monture = presser(boutonDe(choisie, 'valeur/members/1/mount/true'));
     expect(inspecte(monture, `rencontre/membre/${membres[1]}`)).toMatchObject({ texte: expect.stringMatching(/ — Ennemi, monture$/) });
     expect(valeursDeLInspecteur(monture, 'valeur/members/0/ridesEntityId/ajouter').map((b) => b.libelle)).toEqual([membres[1]]);
   });
@@ -686,7 +686,7 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(departs.map((b) => b.libelle)).toEqual(['Le Bourg de l’Arène', 'La Vieille Futaie']);
     const depuis = presser(departs[0]);
     const suites = valeursDeLInspecteur(depuis, 'valeur/billets/diligence/suite/ajouter');
-    expect(suites.map((b) => b.id), 'les autres routes du mode seules').toEqual(['valeur/billets/diligence/suite/ajouter/0']);
+    expect(suites.map((b) => b.id), 'les autres routes du mode seules').toEqual([`valeur/billets/diligence/suite/ajouter/${JSON.stringify(['route-felsbach'])}`]);
     const suite = presser(suites[0]);
     const vendu = presser(boutonDe(suite, 'valeur/billets/diligence/marchandage/ajouter'));
     const vendeurs = valeursDeLInspecteur(vendu, 'valeur/billets/diligence/marchandage/presetId');
@@ -698,7 +698,7 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
       valeursDeLInspecteur(fini, 'valeur/billets/diligence/depuis/id').find((b) => b.presse)?.libelle,
       valeursDeLInspecteur(fini, 'valeur/billets/diligence/suite/0').find((b) => b.presse)?.id,
       valeursDeLInspecteur(fini, 'valeur/billets/diligence/marchandage/presetId').find((b) => b.presse)?.id,
-    ]).toEqual([expect.objectContaining({ valeur: 30 }), 'Le Bourg de l’Arène', 'valeur/billets/diligence/suite/0/0', vendeurs[0].id]);
+    ]).toEqual([expect.objectContaining({ valeur: 30 }), 'Le Bourg de l’Arène', `valeur/billets/diligence/suite/0/${JSON.stringify('route-felsbach')}`, vendeurs[0].id]);
     expect(refusDuRetraitDuMode(appel), 'le mode qui porte le billet ne se retire pas').toBe(true);
   });
 

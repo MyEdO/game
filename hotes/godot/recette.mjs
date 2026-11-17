@@ -112,7 +112,7 @@
 //   « Supprimer » l'en retire, page rechargée comprise.
 // - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; la molette, tournée sur un curseur de
 //   volume, défile le panneau sans régler ce volume, jusqu'à ce que ses quatre curseurs de volume tiennent ensemble
-//   dans la page de 1280 × 720 (#4081) ; « Oui » des dés fixés pressé, le pont dit la
+//   dans la fenêtre (`FENETRE`, #4081) ; « Oui » des dés fixés pressé, le pont dit la
 //   préférence réglée ; la page rechargée, elle revient du stockage ; « Jouer », puis « Options » de la partie : le
 //   même panneau, « Non » la remet, « Fermer » rend la partie. Le volume de la musique (#3949) réglé par le pont avant
 //   le rechargement : il revient du stockage et, dans la page (`lieu.releverLesGains`), un gain de son graphe audio le
@@ -225,6 +225,8 @@
 //   pied, le milieu des points publiés de ses cases ; un mur resté en vue ne change pas, et chaque mur qui change d'état,
 //   lu sur sa face dont la case porte son état, le plus grand de ceux de ses cases (`aretes`), se rend dans le rapport
 //   des teintes à `TOLERANCE_DU_VOILE` près.
+// - `planche` (`--planche <nom>`, `--natif` seulement, #3935) : le jeu s'ouvre sur cette planche
+//   (`projet/scripts/pont_de_planche.gd`) à la vue de référence, sans menu d'entrée ; une fois montrée (`wfrpPlancheMontree`), elle se capture sous son nom, sans autre geste.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -288,8 +290,8 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { crc32, deflateSync } from 'node:zlib'
 import { FIL_DE_LA_PAGE_MS } from './servir.mjs'
+import { encoderPng } from './planches.mjs'
 import { LISTAGE } from './listage.mjs'
 import { JEUX_DU_PARCOURS } from './lot-de-recettes.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -301,7 +303,7 @@ import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine },
 })
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
 if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/recette.mjs (--web <dossier de l’export> | --natif [--rendu <méthode>]) --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
@@ -310,6 +312,8 @@ if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages a
 if (o.parcours === 'bord' && !o.route) throw new Error('--parcours bord attend --route <route.json> (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`)')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'preset' && !o.preset) throw new Error('--parcours preset attend --preset <id d’un preset de personnage>')
+if ((o.parcours === 'planche') !== !!o.planche) throw new Error('--parcours planche va avec --planche <nom d’une planche>, et --planche avec lui seul')
+if (o.planche && !o.natif) throw new Error('--planche se joue en natif (--natif) : à la page, une planche se montre au banc des étalons (etalons.mjs)')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
 if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
 
@@ -333,8 +337,11 @@ const DOSSIER_SERVI = o.modeles ?? fileURLToPath(new URL('./projet/modeles', imp
 /** Le lieu où la recette se joue, choisi une fois : la page de l'export (`--web`), ou le jeu lancé sans export
  *  (`--natif`). Les deux portent les mêmes noms. */
 const lieu = o.natif ? await import('./pilotage/natif.mjs') : await import('./pilotage/page.mjs')
+/** La fenêtre du jeu d'un parcours joué, `[x, y, largeur, hauteur]`, sous les deux lieux : celle que le lanceur passe au
+ *  pilote natif (`ouvrir` de `pilotage/natif.mjs`), la page de `pilotage/page.mjs`. */
+const FENETRE = [0, 0, 1280, 720]
 const { ATTENTE_ECHUE, clic, evaluate, geste, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } = lieu
-const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu })
+const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] } })
 const noter = (t) => console.log('·', t)
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
 const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
@@ -409,8 +416,15 @@ const zone = (v, z) => v.zones[z]
 /** Le bouton de la carte d'un héros du groupe (`groupe.heros`), ou en combat de son rang de l'ordre du tour
  *  (`combat.ordre`), qui ouvre sa fiche. */
 const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' && e.id.startsWith('fiche/'))
-/** Les héros du groupe de la vue `v` qui portent le bouton de leur fiche : leurs cartes, en combat leurs rangs. */
-const herosAFiche = (v) => [...zone(v, 'groupe.heros'), ...zone(v, 'combat.ordre')].filter(ficheDuHeros)
+/** Le combattant `id` dans l'ordre du tour de la vue `v` (`combat.ordre`) : son rang parmi ceux qui restent à jouer ce
+ *  round (`ordre/`), sinon à l'ordre du round suivant (`suite/`). */
+const rangDe = (v, id) => element(v, 'combat.ordre', `ordre/${id}`) ?? element(v, 'combat.ordre', `suite/${id}`)
+/** Les héros du groupe de la vue `v` qui portent le bouton de leur fiche : leurs cartes, en combat leurs rangs
+ *  (`rangDe`), chaque héros en vue (`voisins`) une fois. */
+const herosAFiche = (v) => [
+  ...zone(v, 'groupe.heros'),
+  ...(v.projection.combat?.voisins.liste ?? []).filter((c) => c.camp === 'heros').map((c) => rangDe(v, c.id)),
+].filter((carte) => carte && ficheDuHeros(carte))
 /** Le bouton `quoi` amené à l'écran dans une liste qui défile : la molette tournée d'un cran sur le premier bouton
  *  publié que retient `voisin`, un bouton de la même liste, attendu ailleurs à l'écran publié ou hors de lui, jusqu'à
  *  ce que `quoi` paraisse. */
@@ -565,9 +579,6 @@ async function ecranFige() {
   assert.ok(fige, e?.fondu ? 'la vision ne se fond plus avant la capture' : 'la caméra se pose, le plateau à l’écran, avant la capture')
   return e
 }
-/** La fenêtre du jeu, `[x, y, largeur, hauteur]`, sous les deux lieux : `TAILLE` du pilote natif
- *  (`projet/recettes/pilote.gd`), la page de `pilotage/page.mjs`. */
-const FENETRE = [0, 0, 1280, 720]
 /** Si le point `[px, py]` de l'écran est dans le rectangle `[x, y, largeur, hauteur]`. */
 const dans = ([x, y, l, h], [px, py]) => px >= x && px <= x + l && py >= y && py <= y + h
 /** Le panneau de l'écran publié `e` (`panneaux`) sous lequel est le point `point`, `undefined` sans lui. */
@@ -579,12 +590,15 @@ const auMonde = (e, point) => dans(e.cadre ?? FENETRE, point) && !panneauSur(e, 
 const CRANS_DE_PIVOT = 4
 const PIVOT = { key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81 }
 /** Le point publié de la case `{ x, y, z }`, la caméra posée, amené au monde (`auMonde`) : la caméra pivotée d'un cran (Q)
- *  tant qu'un panneau couvre ce point ou qu'il sort du cadre, moins d'un tour (`CRANS_DE_PIVOT`), comme le joueur la tourne. */
+ *  tant qu'un panneau couvre ce point ou qu'il sort du cadre, moins d'un tour (`CRANS_DE_PIVOT`), comme le joueur la tourne.
+ *  Le pivot n'appelle pas le pont : l'écran qu'il publie (`Monde.cadrage_change`) s'attend neuf (`nouvelEcran`). */
 async function amenerAuMonde({ x, y, z = 0 }) {
   const lire = () => attendreALEcran((e) => casesPosees(e)?.[`${x},${y},${z}`])
   let [e, point] = await lire()
   for (let cran = 1; cran < CRANS_DE_PIVOT && point && !auMonde(e, point); cran++) {
+    await marquer()
     await realKey(session, PIVOT)
+    await nouvelEcran()
     ;[e, point] = await lire()
   }
   assert.ok(point, e?.glisse ? `la caméra ne glisse plus avant la lecture de la case ${x},${y},${z}` : `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
@@ -805,7 +819,9 @@ async function parcoursCombat() {
   if (adversaire) assert.ok(element(v, 'fenetre.corps', 'defense/qui')?.texte.includes(adversaire.nom), 'la Défense répond à l’adversaire actif')
   const defenseur = v.projection.fenetre.proprietaire
   assert.equal(defenseur.genre, 'porteur', 'la Défense est à un héros')
-  assert.ok(zone(v, 'fenetre.etape')[0]?.texte.includes(defenseur.nom), 'l’étape nomme le héros qui se défend')
+  const jetDuDefenseur = zone(v, 'fenetre.corps').find((e) => e.type === 'jet' && e.combattant !== null && e.qui === defenseur.nom)
+  assert.ok(jetDuDefenseur, 'le jet de son camp porte le portrait et le nom du héros qui se défend')
+  assert.deepEqual(zone(v, 'fenetre.etape'), [], 'l’étape de la Défense, dont le jet nomme le héros, est exactement vide')
   noter(`Défense ouverte par les minuteurs : ${corps(v)} ; à ${defenseur.nom}`)
   await capturer('2928-6c-5-defense')
   const [jetDeDefense, reagir] = [enFocus(v).id, 'jetRegler@defense#reaction']
@@ -1111,7 +1127,7 @@ async function parcoursVision() {
   const [ennemi] = v.projection.combat.voisins.liste.filter((c) => c.id !== chasseur.id).map((c) => c.id)
   assert.ok(ennemi, `un ennemi en vue : ${JSON.stringify(v.projection.combat.voisins.liste.map((c) => c.id))}`)
   await waitFor(session, `!!globalThis.wfrpEcran?.corps?.[${JSON.stringify(ennemi)}]`, { timeoutMs: 120000 })
-  assert.ok(element(v, 'combat.ordre', `ordre/${ennemi}`), `${ennemi} en vue a son rang dans l’ordre du tour`)
+  assert.ok(rangDe(v, ennemi), `${ennemi} en vue a son rang dans l’ordre du tour`)
   noter(`${ennemi} en vue : corps posé, rang dans l’ordre du tour`)
   const avant = await etatsDesCases()
   const luesAvant = await luminancesSousLesRegards('avant')
@@ -1125,7 +1141,7 @@ async function parcoursVision() {
   noter(`pas cliqué vers (${CASE_DU_PAS.x}, ${CASE_DU_PAS.y}) : vision ${cle} → ${v.vision}`)
   assert.ok(!v.projection.combat.voisins.liste.some((c) => c.id === ennemi), `${ennemi} sort de la vue`)
   assert.ok(Object.values(v.occupants).includes(ennemi), `${ennemi} garde sa case aux occupants`)
-  assert.equal(element(v, 'combat.ordre', `ordre/${ennemi}`), undefined, `${ennemi} hors de vue n’est pas dans l’ordre du tour`)
+  assert.equal(rangDe(v, ennemi), undefined, `${ennemi} hors de vue n’est pas dans l’ordre du tour`)
   await waitFor(session, `!!globalThis.wfrpEcran?.corps && !(${JSON.stringify(ennemi)} in wfrpEcran.corps)`, { timeoutMs: 30000 })
   noter(`${ennemi} hors de vue : aucun corps posé, aucun rang dans l’ordre du tour, sa case ${Object.keys(v.occupants).find((k) => v.occupants[k] === ennemi)} aux occupants ; cibles ${JSON.stringify(v.projection.combat.cibles.liste)}`)
   const apres = await etatsDesCases()
@@ -1612,10 +1628,10 @@ async function parcoursSoin() {
   await engagerLeCombat()
   await attendreLaVue('!!v.projection.combat')
   await fermerLesFenetres()
-  /** La main à un héros : sa barre offre la fin du tour, toute fenêtre vidée. */
+  /** La main à un héros : sa barre offre la fin du tour ouverte, toute fenêtre vidée. */
   const aUnHeros = async () => {
     for (;;) {
-      await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'fin-de-tour')", 120000)
+      await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'fin-de-tour' && !b.refus)", 120000)
       if (!(await vue()).projection.fenetre) return
       await fermerLesFenetres()
     }
@@ -1887,7 +1903,7 @@ async function parcoursFiche() {
   await cliquerBouton({ cle: 'compendium/fermer' })
   await waitFor(session, `Object.keys(globalThis.wfrpEcran?.compendium?.zones ?? { x: 1 }).length === 0`)
   assert.equal((await vue()).zones['fiche.porteur'][0]?.nom, heros.nom, '« Fermer » cache le Compendium sur la fiche toujours ouverte')
-  const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec')
+  const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => rangDe(v, id)?.ton === 'echec')
   assert.ok(ennemi, 'un ennemi en vue occupe une case')
   const [x, y, z] = cle.split(',').map(Number)
   const [px, py] = await amenerAuMonde({ x, y, z })
@@ -1981,7 +1997,7 @@ async function parcoursReglages() {
   const avant = await preferences()
   const curseurs = await curseursDeVolume()
   assert.deepEqual(curseurs.map((c) => c.element).sort(), [...volumes].sort(), 'les quatre curseurs de volume dans le cadre à l’ouverture du panneau')
-  for (const c of curseurs) assert.ok(c.gauche >= 0 && c.droite <= 1280 && c.y >= 0 && c.y <= 720, `${c.element} dans la page : ${JSON.stringify(c)}`)
+  for (const c of curseurs) assert.ok(dans(FENETRE, [c.gauche, c.y]) && dans(FENETRE, [c.droite, c.y]), `${c.element} dans la page : ${JSON.stringify(c)}`)
   await capturer('4081-reglages-volumes')
   const [premier] = curseurs
   const tourner = async (sens) => {
@@ -2183,23 +2199,11 @@ const boutonDeLEditeur = (e, id) => Object.values(e.zones).flat().flatMap((el) =
 /** Écrit au chemin `chemin` une planche PNG de `cote` pixels de côté : un fond clair quadrillé de sombre tous les
  *  `pas` pixels. */
 function ecrirePlanche(chemin, cote = 400, pas = 40) {
-  const rangees = Buffer.alloc(cote * (1 + cote * 3))
+  const data = Buffer.alloc(cote * cote * 4, 255)
   for (let y = 0; y < cote; y++) {
-    for (let x = 0; x < cote; x++) rangees.fill(x % pas < 2 || y % pas < 2 ? 40 : 225, y * (1 + cote * 3) + 1 + x * 3, y * (1 + cote * 3) + 4 + x * 3)
+    for (let x = 0; x < cote; x++) data.fill(x % pas < 2 || y % pas < 2 ? 40 : 225, (y * cote + x) * 4, (y * cote + x) * 4 + 3)
   }
-  const bloc = (type, donnees) => {
-    const tete = Buffer.alloc(8)
-    tete.writeUInt32BE(donnees.length)
-    tete.write(type, 4)
-    const crc = Buffer.alloc(4)
-    crc.writeUInt32BE(crc32(Buffer.concat([tete.subarray(4), donnees])))
-    return Buffer.concat([tete, donnees, crc])
-  }
-  const ihdr = Buffer.alloc(13)
-  ihdr.writeUInt32BE(cote, 0)
-  ihdr.writeUInt32BE(cote, 4)
-  ihdr.set([8, 2, 0, 0, 0], 8)
-  writeFileSync(chemin, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloc('IHDR', ihdr), bloc('IDAT', deflateSync(rangees)), bloc('IEND', Buffer.alloc(0))]))
+  writeFileSync(chemin, encoderPng({ w: cote, h: cote, data }))
 }
 
 async function parcoursEditeur() {
@@ -4299,6 +4303,14 @@ async function parcoursCompendium() {
   noter('« Fermer » rend l’accueil')
 }
 
+/** Le plus long temps d'une planche jusqu'à montrée : la page de `etalons.mjs` l'attend autant. */
+const PLANCHE_MONTREE_MS = 180000
+/** La planche `--planche` montrée (`wfrpPlancheMontree`) puis capturée sous son nom. */
+async function parcoursPlanche() {
+  await waitFor(session, `globalThis.wfrpPlancheMontree === ${JSON.stringify(o.planche)}`, { timeoutMs: PLANCHE_MONTREE_MS })
+  await capturer(o.planche)
+}
+
 const PARCOURS = {
   reglages: parcoursReglages,
   combat: parcoursCombat,
@@ -4335,13 +4347,14 @@ const PARCOURS = {
   preset: parcoursPreset,
   vision: parcoursVision,
   murs: parcoursMurs,
+  planche: parcoursPlanche,
 }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_DU_PARCOURS)), [], 'chaque parcours déclare ses jeux au lot (`JEUX_DU_PARCOURS`)')
 
 let echec = null
 try {
-  await attendreLeMenu()
+  if (!o.planche) await attendreLeMenu()
   await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))
   assert.deepEqual(releve, { ok: true, erreurs: [] }, 'aucune erreur de la page relevée par le pont')

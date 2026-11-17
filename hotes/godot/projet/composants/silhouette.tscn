@@ -1,0 +1,83 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Theme" path="res://art/silhouette.tres" id="3_silhouette"]
+
+[node name="Choix" type="HBoxContainer"]
+size_flags_horizontal = 3
+theme = ExtResource("3_silhouette")
+alignment = 1
+
+[node name="Corps" type="VBoxContainer" parent="."]
+theme_type_variation = &"Silhouette"
+
+[node name="Haut" type="HBoxContainer" parent="Corps"]
+theme_type_variation = &"Membres"
+alignment = 1
+
+[node name="Tete" type="HBoxContainer" parent="Corps/Haut"]
+
+[node name="Zone" type="Node" parent="Corps/Haut/Tete"]
+script = ExtResource("2_zone")
+source = "valeurs"
+ids = PackedStringArray("jetRegler@attaque#localisation/\"tete\"")
+
+[node name="Milieu" type="HBoxContainer" parent="Corps"]
+theme_type_variation = &"Membres"
+alignment = 1
+
+[node name="BrasD" type="HBoxContainer" parent="Corps/Milieu"]
+
+[node name="Zone" type="Node" parent="Corps/Milieu/BrasD"]
+script = ExtResource("2_zone")
+source = "valeurs"
+ids = PackedStringArray("jetRegler@attaque#localisation/\"brasD\"")
+
+[node name="Tronc" type="HBoxContainer" parent="Corps/Milieu"]
+
+[node name="Zone" type="Node" parent="Corps/Milieu/Tronc"]
+script = ExtResource("2_zone")
+source = "valeurs"
+ids = PackedStringArray("jetRegler@attaque#localisation/\"corps\"")
+
+[node name="BrasG" type="HBoxContainer" parent="Corps/Milieu"]
+
+[node name="Zone" type="Node" parent="Corps/Milieu/BrasG"]
+script = ExtResource("2_zone")
+source = "valeurs"
+ids = PackedStringArray("jetRegler@attaque#localisation/\"brasG\"")
+
+[node name="Bas" type="HBoxContainer" parent="Corps"]
+theme_type_variation = &"Membres"
+alignment = 1
+
+[node name="JambeD" type="HBoxContainer" parent="Corps/Bas"]
+
+[node name="Zone" type="Node" parent="Corps/Bas/JambeD"]
+script = ExtResource("2_zone")
+source = "valeurs"
+ids = PackedStringArray("jetRegler@attaque#localisation/\"jambeD\"")
+
+[node name="JambeG" type="HBoxContainer" parent="Corps/Bas"]
+
+[node name="Zone" type="Node" parent="Corps/Bas/JambeG"]
+script = ExtResource("2_zone")
+source = "valeurs"
+ids = PackedStringArray("jetRegler@attaque#localisation/\"jambeG\"")
+
+[node name="Cote" type="VBoxContainer" parent="."]
+alignment = 1
+
+[node name="Nom" type="Label" parent="Cote"]
+
+[node name="libelle" type="Node" parent="Cote/Nom"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="Hasard" type="HBoxContainer" parent="Cote"]
+
+[node name="Zone" type="Node" parent="Cote/Hasard"]
+script = ExtResource("2_zone")
+source = "valeurs"
+ids = PackedStringArray("jetRegler@attaque#localisation/null")

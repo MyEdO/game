@@ -43,6 +43,9 @@ var _chargement: RefCounted = null
 var _en_vol := {}
 ## La hauteur, dans son repère, du plus haut point d'accroche de sa base au repos, sans gabarit.
 var _hauteur_de_tete := 0.0
+## Si le gabarit posé attend sa mesure (`GabaritDuSquelette.mesure`), l'étiquette reste à porter à sa hauteur
+## (`_hausser_l_etiquette`) : le haut de la tête qu'elle dit (`hauteur_de_la_tete`) est celui du repos sans gabarit.
+var _etiquette_a_hausser := false
 
 
 ## La tenue suit l'état que son arbre joue (`EtatsDuCorps.suivi`, `MontageDeComposition.poser_le_clip`).
@@ -148,9 +151,9 @@ func subir() -> void:
 
 
 ## Si son dernier corps reçu est monté en entier : plus aucun chargement en vol, ni travail différé de son montage
-## (`MontageDeComposition.en_travail`).
+## (`MontageDeComposition.en_travail`), ni étiquette à porter au gabarit qu'il vient de poser (`_etiquette_a_hausser`).
 func est_vetu() -> bool:
-	return _en_vol.is_empty() and not _montage.en_travail()
+	return _en_vol.is_empty() and not _montage.en_travail() and not _etiquette_a_hausser
 
 
 ## Son arbre d'états arrêté, la pose de son lecteur laissée à qui la fige (`StudioDePortraits`) jusqu'au prochain
@@ -171,6 +174,7 @@ func vetir(corps: Variant) -> void:
 	if corps == null:
 		_base_demandee = null
 		_chargement = null
+		_etiquette_a_hausser = false
 		_montage.vider()
 		_montage.poser_le_modele({}, null)
 		_brancher()
@@ -234,6 +238,7 @@ func _composer() -> void:
 	_montage.habiller_la_base()
 	for os in _montage.poser_le_gabarit():
 		_montage.erreurs.append("os-absent : %s" % os)
+	_etiquette_a_hausser = _montage.gabarit != null and _montage.gabarit.mesure_en_attente()
 	_etats.suivre()
 	if _etats.active:
 		_etats.advance(0.0)
@@ -281,6 +286,7 @@ func _poser_l_etiquette() -> void:
 
 ## L'étiquette portée au gabarit mesuré au repos (`GabaritDuSquelette.mesures`).
 func _hausser_l_etiquette() -> void:
+	_etiquette_a_hausser = false
 	var mesures := _montage.gabarit.mesures()
 	_etiquette.position.y = MiseEnPage.hauteur_au_gabarit(_hauteur_de_tete, mesures.repos.sommet, mesures.neutre.sommet)
 
