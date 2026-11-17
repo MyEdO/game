@@ -10,3 +10,5 @@ const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], total = 
 const verdict = (sous, dr, phrase, classe = '') => `<div id="verdict" class="${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="dr gothique">${dr}</div><p data-texte="phrase d'issue">${phrase}</p></div>`;
 /* les clous du meuble du bas, barre de l'actif ou bandeau du jet */
 const clouer = (b) => { const h = b.offsetHeight; [[70, 3], [330, 3], [850, 3], [1110, 3], [70, h - 9], [330, h - 9], [590, h - 9], [850, h - 9], [1110, h - 9]].forEach(([x, y]) => { const c = document.createElement('i'); c.className = 'clou'; c.style.left = x + 'px'; c.style.top = y + 'px'; b.appendChild(c); }); };
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { camp, verdict, clouer });

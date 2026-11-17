@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+import { chromium } from 'playwright';
 (async () => {
   const [, , html, png, echelle = '2'] = process.argv;
   const b = await chromium.launch();

@@ -28,7 +28,7 @@ monter(pieces);
 {
   const M = document.querySelector('#carte svg'); const encre = '#3a2a18';
   const r = alea(23);
-  const ligne = (pts, t = .5) => { let d = `M${pts[0]}`; for (let k = 1; k < pts.length; k++) { const [x0, y0] = pts[k - 1], [x1, y1] = pts[k]; d += `Q${(x0 + x1) / 2 + (y1 - y0) * .12 * (k % 2 ? 1 : -1)},${(y0 + y1) / 2 - (x1 - x0) * .12 * (k % 2 ? 1 : -1)} ${x1},${y1}`; } return d; };
+  const ligne = (pts) => { let d = `M${pts[0]}`; for (let k = 1; k < pts.length; k++) { const [x0, y0] = pts[k - 1], [x1, y1] = pts[k]; d += `Q${(x0 + x1) / 2 + (y1 - y0) * .12 * (k % 2 ? 1 : -1)},${(y0 + y1) / 2 - (x1 - x0) * .12 * (k % 2 ? 1 : -1)} ${x1},${y1}`; } return d; };
   const REIK = [[1225, 560], [1120, 470], [1050, 372], [960, 262], [895, 168], [800, 118], [640, 96], [470, 60], [300, 44], [120, 62], [-10, 40]];
   const TALABEC = [[895, 168], [1000, 128], [1110, 124], [1235, 84]];
   const ROUTE = [[318, 389], [384, 370], [441, 337], [492, 318], [539, 292], [640, 262], [742, 214], [826, 178], [875, 156]];

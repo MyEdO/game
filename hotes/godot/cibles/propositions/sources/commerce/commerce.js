@@ -220,3 +220,5 @@ function sceneDuQuai() {
   fermer();
 }
 const nuagesDuSoir = () => { const g = el(S, 'g'); for (const [cx, cy, rx, ry, o] of [[420, 150, 260, 22, .5], [760, 96, 220, 16, .4], [1180, 190, 300, 20, .45], [980, 290, 240, 14, .35], [560, 300, 200, 12, .3]]) el(g, 'ellipse', { cx, cy, rx, ry, fill: '#2a2238', opacity: o, filter: 'url(#f8)' }); };
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { mesures, cartouche, jauge, rail, quantite, voie, sceneDeLaHalle, sceneDuQuai });

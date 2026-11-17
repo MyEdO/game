@@ -7,7 +7,6 @@ Object.assign(BUSTES, COMPAGNIE, {
 function navire(g, i, j, { sens = 1, coque = ['#7a5a3a', '#4a3320', '#2a1c12'], voile = '#7d2020' } = {}) {
   const q = (di, dj) => P(i + sens * di, j + sens * dj), pts = (l) => l.map(([a, b]) => q(a, b).join(',')).join(' ');
   const pont = [[2.1, 0], [1.3, -.62], [-1.6, -.62], [-1.9, 0], [-1.6, .62], [1.3, .62]], h = 20;
-  const bas = (l) => l.map(([a, b]) => { const [x, y] = q(a, b); return `${x},${y + h}`; }).join(' ');
   el(g, 'ellipse', { cx: q(0, 0)[0], cy: q(0, 0)[1] + h + 6, rx: 120, ry: 44, fill: '#06121a', opacity: .5, filter: 'url(#f6)' });
   for (const [a, b] of [[pont[3], pont[4]], [pont[4], pont[5]], [pont[5], pont[0]], [pont[2], pont[3]], [pont[0], pont[1]]]) {
     const [x1, y1] = q(...a), [x2, y2] = q(...b); el(g, 'polygon', { points: `${x1},${y1} ${x2},${y2} ${x2},${y2 + h} ${x1},${y1 + h}`, fill: y2 + y1 > 2 * q(0, 0)[1] ? coque[1] : coque[2], stroke: '#140c06', 'stroke-width': 1 });
@@ -30,3 +29,5 @@ function merDeCombat() {
   for (let k = 0; k < 90; k++) { const x = r() * W, y = r() * H, w = 18 + r() * 30; el(v, 'path', { d: `M${x} ${y}q${w / 4} -${w / 8} ${w / 2} 0t${w / 2} 0` }); }
 }
 const voiles = () => { el(S, 'rect', { width: W, height: H, fill: 'url(#vignette)' }); el(S, 'rect', { x: 0, y: 0, width: 330, height: H, fill: 'url(#gauche)' }); el(S, 'rect', { x: 0, y: 500, width: W, height: 280, fill: 'url(#bas)' }); };
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { navire, merDeCombat, voiles });

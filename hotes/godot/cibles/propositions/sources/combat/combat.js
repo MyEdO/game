@@ -40,7 +40,6 @@ el(S, 'rect', { width: W, height: H, fill: 'url(#nuit)' });
 }
 
 // le sol : des dalles
-const dansLaCour = (i, j) => i >= 4 && j >= -1;
 {
   const r = alea(17); const g = el(S, 'g', { stroke: '#1b1921', 'stroke-width': 1.3, 'stroke-linejoin': 'round' });
   for (let i = 4; i < 44; i++) for (let j = -1; j < 44; j++) {

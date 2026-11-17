@@ -7,3 +7,5 @@ const COMPAGNIE = {
   aldric: BASE + '<path d="M25 30c0-11 6-18 14-18s14 7 14 18c-9-4-19-4-28 0z" fill="#1c1410"/><path d="M25 27c9-4 19-4 28 0v5c-9-4-19-4-28 0z" fill="#e9dcc0"/>',
   greta: BASE + '<circle cx="39" cy="8" r="6.500" fill="#1c1410"/><path d="M24 33c-1-13 6-21 15-21s16 8 15 21c-4-7-9-10-15-10s-11 3-15 10z" fill="#1c1410"/>',
 };
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { COMPAGNIE });

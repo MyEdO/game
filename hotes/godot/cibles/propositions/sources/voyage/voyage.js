@@ -210,3 +210,5 @@ const assombrir = (a = .58) => el(S, 'rect', { width: W, height: H, fill: '#0805
 const marquer = (id, classe) => document.querySelectorAll('#bandeau .heros')[HEROS.findIndex((h) => h.id === id)].classList.add(classe);
 /* le départ d'un trajet, sur le poteau des routes : la destination, sa longueur, un moyen par plaque et sa durée */
 const depart = ({ nom, sous, modes, refus }) => `<div class="depart"><div><b>${nom}</b><span class="s rubrique">${sous}</span>${refus ? `<p>${refus}</p>` : ''}</div><div class="modes">${modes.map(([icone, jours, o = {}]) => plaque(`${jours} j`, { icone, ...o })).join('')}</div></div>`;
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { poser, temps, carteDuTrajet, frise, recit, billet, ligne, jauge, interieur, assombrir, marquer, depart });

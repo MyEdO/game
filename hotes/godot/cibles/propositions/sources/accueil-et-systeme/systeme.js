@@ -31,3 +31,5 @@ const crete = (y0, amp, pas, graine, x0 = -20, x1 = W + 20) => { const r = alea(
 const massif = (g, pts, bas, fill, extra = {}) => el(g, 'path', { d: 'M' + pts.map((p) => p.join(',')).join('L') + `L${W + 20},${bas}L-20,${bas}Z`, fill, ...extra });
 const nuages = (g, bandes, fill, filtre = 'f8') => bandes.forEach(([cx, cy, rx, ry, o]) => el(g, 'ellipse', { cx, cy, rx, ry, fill, opacity: o, filter: `url(#${filtre})` }));
 const lisiere = (g, y, n, hMin, hMax, fill, graine, x0 = 0, x1 = W) => { const r = alea(graine); const a = []; for (let i = 0; i < n; i++) a.push([x0 + r() * (x1 - x0), y + r() * 10, hMin + r() * (hMax - hMin)]); a.sort((p, q) => p[1] - q[1]).forEach(([x, yy, h]) => sapin(g, x, yy, h, fill)); };
+// Partagé avec les scripts de page chargés après celui-ci.
+Object.assign(globalThis, { buste, fermerRond, outil, etoiles, crete, massif, nuages, lisiere });
