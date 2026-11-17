@@ -90,17 +90,15 @@ def empiecement(D, b, arbre, morceaux, bas):
     sans les bras, d'arbre de recherche `arbre`, le col aussi sur les zones `ZONES_DU_COL`."""
     e = D['EMPIECEMENT']
 
-    def sans_bras(morceaux_):
-        P, T, _ = joindre_les_surfaces(morceaux_)
-        return arbre_de(P, sans_les_bras(D, P, T))
+    P, T, _ = joindre_les_surfaces(morceaux + [b.corps(z) for z in D['ZONES_DU_COL']])
+    arbres = {'col': arbre_de(P, sans_les_bras(D, P, T)), 'rangs': arbre}
 
-    arbres = {'col': sans_bras(morceaux + [b.corps(z) for z in D['ZONES_DU_COL']]), 'rangs': arbre}
-
-    def vise(depart, d, portee, jeu, arbre):
-        """Le point le plus extérieur de la demi-droite (`depart`, `d`), sous `portee`, au jeu des surfaces de `arbre`."""
+    def vise(depart, d, portee, jeu, cle):
+        """Le point le plus extérieur de la demi-droite (`depart`, `d`), sous `portee`, au jeu des surfaces de l'arbre
+        `cle` (`'col'` ou `'rangs'`)."""
         r = portee
         while r > 0:
-            if arbres[arbre].find_nearest(Vector((depart + r * d).tolist()))[3] <= jeu:
+            if arbres[cle].find_nearest(Vector((depart + r * d).tolist()))[3] <= jeu:
                 return depart + (r + e['pas']) * d
             r -= e['pas']
         return None
@@ -146,7 +144,8 @@ def construire(D, materiaux, b):
     zones = sorted({z for zs in D['ZONES_PUBLIEES'].values() for z in zs} | set(D['ZONES_DU_CORPS']))
     b.exiger(sorted(set(zones) | set(D['ZONES_DU_COL'])))
     publies = [b.matieres_publiees(id_, D['MATIERES'][nom]) for nom, id_ in D['CONTOURNE'].items()]
-    P, T, W = joindre_les_surfaces(publies + [b.corps(z) for z in D['ZONES_DU_CORPS']])
+    morceaux = publies + [b.corps(z) for z in D['ZONES_DU_CORPS']]
+    P, T, W = joindre_les_surfaces(morceaux)
     porteur = porteur_de(P, sans_les_bras(D, P, T), W)
     filet = b.filet('cape')
     O = filet.axe
@@ -154,7 +153,7 @@ def construire(D, materiaux, b):
     descente = lambeaux(D['LAMBEAUX'], D['COLONNES'] + 1)
     points = [[np.array([*(O + r[i, j] * direction(phi)), z - (descente[j] if i == len(rangs) - 1 else 0.0)])
                for j, phi in enumerate(azimuts(D, z))] for i, z in enumerate(rangs)]
-    haut = empiecement(D, b, porteur['arbre'], publies + [b.corps(z) for z in D['ZONES_DU_CORPS']], points[0])
+    haut = empiecement(D, b, porteur['arbre'], morceaux, points[0])
     M = Maillage()
     lignes = [M.ajouter(rang, 'cape') for rang in haut + points]
     e = D['EMPIECEMENT']
