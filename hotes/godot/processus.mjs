@@ -12,7 +12,7 @@ export const PONT = 'wfrp-pont.js'
 
 /** Les API de navigateur que le bundle lit, et que la page de Godot porte : chacune prise au global de Node, sauf celles que donne `pontDuBundle`. */
 export const API_DU_NAVIGATEUR = ['structuredClone', 'console', 'performance', 'URL', 'atob', 'btoa', 'setTimeout', 'clearTimeout', 'queueMicrotask', 'localStorage',
-  'WebSocket', 'fetch', 'CompressionStream', 'DecompressionStream', 'Blob', 'Response', 'TextEncoder', 'TextDecoder', 'URLSearchParams', 'sessionStorage']
+  'WebSocket', 'fetch', 'AbortController', 'CompressionStream', 'DecompressionStream', 'Blob', 'Response', 'TextEncoder', 'TextDecoder', 'URLSearchParams', 'sessionStorage']
 
 /** Les noms de navigateur que le bundle lit en identifiant libre sans que le processus les porte : par nom, le nombre de
  *  ses lectures (`lecturesDuBundle`, `construire.mjs`) et ce qui les garde. */
