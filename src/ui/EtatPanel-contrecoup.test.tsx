@@ -19,7 +19,7 @@ describe('pénalité d’incantation : sa pastille d’état mène à la fiche d
     useGame.getState().ensemencerLeTirage(51);
     const [lanceur, cible] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat');
     useGame.setState({ party: [lanceur, cible] as Combatant[], battle: null });
-    applyCast(useGame.getState, useGame.setState, lanceur, cible, findSpellById('couronne-de-flammes')!, reussi, false, false);
+    applyCast(useGame.getState, useGame.setState, lanceur, [cible], findSpellById('couronne-de-flammes')!, reussi, false, false);
 
     const touchee = useGame.getState().party.find((c) => c.id === cible.id)!;
     expect(touchee.castPenalties?.map((p) => p.source)).toEqual([{ kind: 'sort', id: 'couronne-de-flammes' }]);

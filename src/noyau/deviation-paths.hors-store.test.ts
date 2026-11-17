@@ -72,7 +72,7 @@ const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id
 function castMissile(caster: Combatant, target: Combatant, spell: never, opts: { critical: boolean; sl?: number; extraTargets?: Combatant[] }): void {
   const cr: CastResult = { cast: true, roll: 44, target: 60, sl: opts.sl ?? 2, isCritical: opts.critical, isFumble: false, log: '' };
   const mres = evaluateMissile(caster, target, spell, cr);
-  applyCast(banc.getState, banc.setState, caster, target, spell, mres, true, false, opts.critical ? 'critique' : undefined, opts.extraTargets ? { extraTargets: opts.extraTargets } : undefined);
+  applyCast(banc.getState, banc.setState, caster, [target, ...(opts.extraTargets ?? [])], spell, mres, true, false, opts.critical ? 'critique' : undefined);
 }
 
 // ── Projectile : la Déviation se lit sur la pièce, comme en mêlée ─────────────

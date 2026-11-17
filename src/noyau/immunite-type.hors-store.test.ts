@@ -79,7 +79,7 @@ const lance: CastResult = { cast: true, roll: 21, target: 70, sl: 2, isCritical:
 
 /** Le Projectile `spell` par le chemin du jeu (`applyCast` en Projectile), ses étapes de dé jouées. */
 function projeter(H: Combatant, E: Combatant, spell: NonNullable<ReturnType<typeof findSpellById>>): string[] {
-  applyCast(banc.getState, banc.setState, H, E, spell, evaluateMissile(H, E, spell, lance), true, false);
+  applyCast(banc.getState, banc.setState, H, [E], spell, evaluateMissile(H, E, spell, lance), true, false);
   return draineEtLit(banc.getState);
 }
 

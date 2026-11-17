@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { initialNet } from './etat';
+import { initialNet, type BattleState } from './etat';
 import { openSequence, displayStep, monoStep, pushDisplay } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -19,13 +19,16 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import type { GenreDeCascade } from './tablesPosees';
-import { openCastCascade, activeCombatant, commitPlacedZone, startDisengage } from './combatFlow';
+import { openCastCascade, activeCombatant, commitPlacedZone, startDisengage, openAttackCascade, advanceTurn } from './combatFlow';
+import { emptyScene } from './monde/scene';
+import { bus, EVT } from './bus';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { CritChoice, CastResult } from '../engine/magic';
+import { objetDeTest } from '../engine/objetsDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -828,4 +831,191 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
       expect(banc.getState().pendingCascade!.cursor).toBe(1);
     });
   }
+
+  describe('#4255 lot 2 — toute tentative de ZdE se résout par `applyCast`', () => {
+    const rate: CastResult = { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: 'raté' };
+
+    it('ZdE non posée ratée, focalisée : l’Action et le focus sont consommés, l’Imparfaite Mineure suit l’hôte (LDB 46 l.132)', () => {
+      const { heros } = duel();
+      heros.focus = { spell: 'explosion', dr: 4 };
+      incanteZone(heros, rate);
+      banc.setState({ pendingCast: { ...banc.getState().pendingCast!, focused: true } });
+      banc.getState().jetValider('incantation');
+      expect(banc.getState().pendingCast).toBeNull();
+      expect(banc.getState().battle!.acted, 'la tentative consomme l’Action').toBe(true);
+      expect(heros.focus, 'l’énergie focalisée est perdue').toBeUndefined();
+      expect(genres()).toEqual(['incantation[C]', 'tableDIncantationImparfaite']);
+    });
+
+    it('ZdE non posée en Maladresse : l’hôte validé, le Tableau d’Imparfaite suit dans la cascade (LDB 46 l.85)', () => {
+      const { heros } = duel();
+      incanteZone(heros, { ...rate, roll: 99, isFumble: true, log: 'Maladresse !' });
+      banc.getState().jetValider('incantation');
+      expect(genres()).toEqual(['incantation[C]', 'tableDIncantationImparfaite']);
+      expect(banc.getState().pendingCascade!.cursor).toBe(1);
+      expect(banc.getState().battle!.acted).toBe(true);
+    });
+
+    it('ZdE DISSIPÉE : aucun effet, l’Action est consommée', () => {
+      const { heros, ennemi } = duel();
+      const avant = { h: heros.wounds.current, e: ennemi.wounds.current };
+      incanteZone(heros, { cast: false, dispelled: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'dissipé' });
+      banc.getState().jetValider('incantation');
+      expect(banc.getState().pendingCast).toBeNull();
+      expect(banc.getState().battle!.acted).toBe(true);
+      expect({ h: heros.wounds.current, e: ennemi.wounds.current }, 'personne n’est touché').toEqual(avant);
+    });
+
+    it('ZdE posée dans une zone vide : le composant est consumé (LDB 46 l.111), l’Action consommée, personne n’est touché', () => {
+      const { heros, ennemi } = duel();
+      heros.items = [...(heros.items ?? []), objetDeTest('composant-d-incantation', { uid: 'comp-explosion', sortLie: 'explosion' })];
+      const avant = { h: heros.wounds.current, e: ennemi.wounds.current };
+      incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' });
+      banc.getState().jetValider('incantation');
+      commitPlacedZone(banc.getState, banc.setState, { x: 10, y: 14 });
+      expect(banc.getState().battle!.acted).toBe(true);
+      expect((heros.items ?? []).some((it) => it.uid === 'comp-explosion'), 'le composant est consumé').toBe(false);
+      expect({ h: heros.wounds.current, e: ennemi.wounds.current }).toEqual(avant);
+    });
+
+    for (const [nom, res] of [
+      ['ratée', rate],
+      ['en Maladresse', { ...rate, roll: 99, isFumble: true, log: 'Maladresse !' }],
+      ['dissipée', { ...rate, dispelled: true, log: 'dissipé' }],
+    ] as const) {
+      it(`ZdE non posée ${nom} d’un lanceur IA : la fenêtre se ferme, aucun coup n’est porté`, () => {
+        const { ennemi } = duel();
+        ennemi.spells = ['explosion'];
+        ennemi.pos = { x: 14, y: 10 };
+        const b = banc.getState().battle!;
+        banc.setState({ battle: { ...b, turn: b.order.indexOf(ennemi.id) } });
+        const coups: string[] = [];
+        const off = bus.on(EVT.ANIM_ATTACK, (p: { to: string }) => coups.push(p.to));
+        incanteZone(ennemi, res);
+        banc.getState().jetValider('incantation');
+        banc.avancer(8000);
+        off?.();
+        expect(banc.getState().pendingCast).toBeNull();
+        expect(coups).toEqual([]);
+      });
+    }
+  });
+
+  describe('#4255 lot 3 — la clôture d’un hôte de combat garde les étapes qui le suivent', () => {
+    /** Le héros Engagé avec l'ennemi, le menu de Désengagement ouvert, une étape déjà appendue derrière lui. */
+    function desengagementSuivi(avantage: number): { heros: Combatant; ennemi: Combatant } {
+      const { heros, ennemi } = duel();
+      heros.engagedWith = [ennemi.id]; ennemi.engagedWith = [heros.id];
+      heros.advantage = avantage; ennemi.advantage = 0;
+      startDisengage(banc.getState, banc.setState, heros);
+      suiteDejaAppendue(heros);
+      return { heros, ennemi };
+    }
+    const suiteAuCurseur = (hote: string) => {
+      expect(genres()).toEqual([`${hote}[C]`, 'issueDuPiegeALame']);
+      expect(banc.getState().pendingCascade!.cursor).toBe(1);
+    };
+
+    it('Sacrifier l’Avantage : l’hôte de Désengagement est validé, l’étape qui le suit reste au curseur (LDB 15 l.47)', () => {
+      const { heros } = desengagementSuivi(3);
+      expect(banc.getState().pendingDisengage!.canSacrifice, 'prémisse : l’option est offerte').toBe(true);
+      banc.getState().jetRegler('desengagement', 'sacrifier', true);
+      expect(banc.getState().pendingDisengage).toBeNull();
+      expect(heros.advantage).toBe(0);
+      expect(heros.engagedWith).toEqual([]);
+      expect(banc.getState().battle!.acted, 'l’Action est préservée').toBe(false);
+      suiteAuCurseur('desengagement');
+    });
+
+    it('Esquive appliquée : l’hôte de Désengagement est validé, l’étape qui le suit reste au curseur (LDB 15 l.49)', () => {
+      const { heros, ennemi } = desengagementSuivi(0);
+      banc.setState({ pendingDisengage: { ...banc.getState().pendingDisengage!, phase: 'esquive',
+        atk: { roll: 70, target: 40, success: false, sl: -3, isDouble: false }, def: { roll: 10, target: 40, success: true, sl: 3, isDouble: false }, result: 'reussite' } });
+      banc.getState().jetValider('desengagement');
+      expect(banc.getState().pendingDisengage).toBeNull();
+      expect(heros.engagedWith).not.toContain(ennemi.id);
+      expect(banc.getState().battle!.acted, 'l’Esquive est l’Action').toBe(true);
+      suiteAuCurseur('desengagement');
+    });
+
+    it('menu de Désengagement renoncé : l’hôte est validé, l’étape qui le suit reste au curseur', () => {
+      desengagementSuivi(0);
+      banc.getState().jetAnnuler('desengagement');
+      expect(banc.getState().pendingDisengage).toBeNull();
+      suiteAuCurseur('desengagement');
+    });
+
+    it('attaque annulée avant le jet : l’hôte est validé, l’étape qui le suit reste au curseur', () => {
+      const { heros, ennemi } = duel();
+      openAttackCascade(banc.getState, banc.setState, { attackerId: heros.id, targetId: ennemi.id, location: null, result: null }, 'Attaque', 'action/attaquer');
+      suiteDejaAppendue(heros);
+      banc.getState().jetAnnuler('attaque');
+      expect(banc.getState().pendingAttack).toBeNull();
+      suiteAuCurseur('jetDAttaque');
+    });
+
+    it('charge défaite avant le jet : positions rendues, l’hôte est validé, l’étape qui le suit reste au curseur (LDB 15 l.35)', () => {
+      const { heros, ennemi } = duel();
+      const chargeUndo = { pos: { [heros.id]: { x: 6, y: 10 } }, facing: {}, movedPreAction: false, movementUsed: 0, advGained: 1, gainedAdvBefore: false, chargedBefore: false, avecAvantageBefore: false };
+      heros.advantage = 1;
+      openAttackCascade(banc.getState, banc.setState, { attackerId: heros.id, targetId: ennemi.id, location: null, result: null, fromCharge: true, chargeUndo }, 'Charge', 'action/attaquer');
+      suiteDejaAppendue(heros);
+      banc.getState().jetAnnuler('attaque');
+      expect(banc.getState().pendingAttack).toBeNull();
+      expect(heros.pos).toEqual({ x: 6, y: 10 });
+      expect(heros.advantage, 'l’Avantage de la charge est rendu').toBe(0);
+      suiteAuCurseur('jetDAttaque');
+    });
+
+    /** Tir rapide en interruption (LDB 11 l.97-103) à la pause de début de Round : le héros tire sur un ennemi
+     *  qui se défend (siège MJ, Bout Portant LDB 14 l.40) ou non, et dont la sauvegarde (LDB 85 l.98) suspend
+     *  ou non le coup. */
+    function tirRapide(defendu: boolean, suspendu: boolean): void {
+      const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+      H.fortune = 0; H.pos = { x: 0, y: 0 };
+      const E: Combatant = JSON.parse(JSON.stringify(H));
+      E.id = 'ennemi-tir'; E.label = 'Gobelin'; E.kind = 'ennemi';
+      E.pos = defendu ? { x: 1, y: 0 } : { x: 3, y: 0 };
+      E.wounds = blessuresDeBase(99, 99, E);
+      if (suspendu) E.traits = [{ id: 'demoniaque', value: 8 }] as never;
+      H.talents = [{ talentId: 'tir-rapide', times: 1 }];
+      H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [], loaded: true }] as never;
+      H.characteristics['capacite-de-tir'] = 80;
+      const battle: BattleState = {
+        combatants: [H, E], order: [E.id, H.id], turn: 1, round: 1, action: null, selectedSpellId: null,
+        reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+      };
+      banc.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8), pendingCascade: null });
+      if (defendu) banc.setState({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } } as never);
+      advanceTurn(banc.getState, banc.setState);
+      banc.getState().declencherLeTirPreventif(H.id, E.id);
+      banc.getState().jetLancer('attaque');
+      banc.getState().jetImposerLeResultat('attaque', 21);
+      banc.getState().jetValider('attaque');
+      if (defendu) {
+        banc.getState().jetLancer('defense');
+        banc.getState().jetImposerLeResultat('defense', 96);
+        banc.getState().jetValider('defense');
+      }
+      const c = banc.getState().pendingCascade;
+      const st = c?.participants[c.cursor];
+      if (suspendu && defendu) {
+        expect(st?.kind, 'prémisse : la sauvegarde tient la main').toBe('sauvegarde');
+        banc.getState().jetImposerLeResultat('cascadeTirage', 3, st!.id);
+        banc.getState().jetValider('cascade');
+      }
+    }
+
+    for (const defendu of [false, true]) for (const suspendu of [false, true]) {
+      it(`Tir rapide ${defendu ? 'défendu' : 'non défendu'}, coup ${suspendu ? 'suspendu' : 'direct'} : la séquence se ferme, le tour n’avance pas`, () => {
+        tirRapide(defendu, suspendu);
+        const s = banc.getState();
+        expect(s.pendingAttack).toBeNull();
+        expect(s.pendingCascade).toBeNull();
+        expect(s.pendingRoundStart, 'toujours à la pause de début de Round').not.toBeNull();
+        expect(s.battle!.turn).toBe(-1);
+        expect(s.battle!.combatants.find((c) => c.id === 'ennemi-tir')!.wounds.current, 'le tir a porté').toBeLessThan(99);
+      });
+    }
+  });
 });
