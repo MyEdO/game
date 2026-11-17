@@ -44,6 +44,12 @@ capuchon s'écartait du corps voisin sous `gabarit_head_plus` de plus que son je
 (`suiviDuCorps/cle-inerte`, 26 à 34 mm pour 35, quatre partages essayés) : elle tient à 22 mm de la robe, au-delà de
 l'écart de deux couches liées au même corps."""
 
+BORNES_DES_CLES = (0.3, 3.3)
+"""Rapport de longueur d'arête sous une clé transférée hors duquel elle est lissée (`Base.transferer`), en deçà de la
+porte d'étirement de l'évaluateur ([0,25 ; 4]). Sous `gabarit_head_plus`, le devant de l'écharpe est lié au menton, qui
+descend de 7 cm (`suiviDuCorps` : D = 70,8 mm) ; aux bornes par défaut (0,4 ; 2,5), le lissage ne lui laissait que 34 mm,
+sous la moitié exigée (`cle-inerte`), et écartait la nuque du capuchon du corps de plus que son jeu (`cle-non-suivie`)."""
+
 BUDGET_TRIANGLES = 2500                 # procédure du skill, section 7 : vêtement par pièce
 EPAISSEUR = 0.004                       # HYPOTHÈSE : drap de laine, double nappe
 PORTEE = 0.40                           # m : départ des marches, au-delà de toute surface contournée
@@ -68,12 +74,21 @@ CAPUCHON = {
     # bord haut. Illustration : le bord passe devant l'oreille, à la joue, et se ferme au-dessus du front, qu'il ombre
     # (base : sourcils à z ~1,74, soit 17° ; bord haut à 37°, z ~1,79, 2,4 cm devant le front)
     'ouverture': {'demi': 58.0, 'milieu': -0.5, 'haut': 37.0},
-    # Retombée : ce que la forme gagne en rayon derrière la tête, par élévation (degrés, m), entière au-delà du second
-    # azimut, nulle en deçà du premier. Illustration : le capuchon est rond et souple, son drap en trop retombe dans le
-    # dos, par-dessus l'écharpe ; HYPOTHÈSE (dos non montré) : une poche qui pend jusqu'au haut du dos (z ~1,56)
-    'retombee': {'azimuts': (115.0, 160.0),
-                 'surplus': [(-38.0, 0.130), (-25.5, 0.095), (-13.0, 0.060), (-0.5, 0.032), (12.0, 0.012), (24.5, 0.0)]},
-    'lissage_des_poids': 3,             # HYPOTHÈSE : passes laplaciennes des poids empruntés à la peau de la tête
+    # Retombée, derrière la tête : par élévation de rang (degrés), ce dont le rang descend (`abaissement`, degrés) et ce
+    # que la forme y gagne en rayon (`surplus`, m) ; entière au-delà du second azimut, nulle en deçà du premier, si bien
+    # que le bas de la poche s'arrondit en langue. Illustration : le capuchon est rond et souple, son drap en trop
+    # retombe dans le dos, par-dessus l'écharpe ; HYPOTHÈSE (dos non montré) : une poche qui pend jusqu'au haut du dos
+    # (z ~1,50, y ~0,205, posée sur le dos de l'écharpe ; sans abaissement et coupée à 115°, elle finissait en dalle à
+    # arête droite, avec une marche sur le côté, rendu de dos trois quarts)
+    'retombee': {'azimuts': (100.0, 170.0),          # depuis l'avant
+                 'abaissement': [(-38.0, 9.0), (-25.5, 5.0), (-13.0, 2.0), (-0.5, 0.0)],
+                 'surplus': [(-38.0, 0.180), (-25.5, 0.085), (-13.0, 0.025), (-0.5, 0.0)]},
+    # m depuis le centre : dans la retombée, la hauteur où le capuchon cesse de suivre la tête seule, et celle où il suit
+    # ce sur quoi elle repose, comme l'écharpe. Liée à la tête jusqu'en bas, la retombée entraînait le col de la cape qu'elle
+    # couvre, dont la pile des couches lui donne les poids (`hotes/godot/asset/pile.ts`) : arêtes de la cape étirées, robe,
+    # cou et bandoulière devant elle (`etirement`, `couche-traversee`, 30 écarts sur cinq clips)
+    'poids_de_la_retombee': (-0.030, -0.100),
+    'lissage_des_poids': 3,             # HYPOTHÈSE : passes laplaciennes des poids
 }
 
 # ---------------------------------------------------------------- écharpe
@@ -85,11 +100,14 @@ ECHARPE = {
     'colonnes': 24,                     # HYPOTHÈSE de maillage : intervalles en azimut
     'rangs': 12,                        # HYPOTHÈSE de maillage : intervalles du haut au bord, quatre par pli
     # (azimut, m au-dessus du centre) du haut, un anneau marché à l'horizontale depuis `portee_du_haut` : devant, sous
-    # la barbe du menton (base : menton à z 1,584) ; sur les côtés et derrière, autour du bas du capuchon (z 1,636),
-    # qu'il enveloppe (illustration)
-    'haut': [(0.0, 0.175), (40.0, 0.190), (90.0, 0.240), (180.0, 0.240)],
+    # la barbe du menton (base : menton à z 1,584) ; sur les côtés, autour du bas du capuchon (z 1,636), qu'il enveloppe
+    # (illustration) ; derrière, plus haut sur la nuque, sous la retombée (à 0,240, la peau de la nuque se voyait entre
+    # le capuchon et l'écharpe, rendu de dos trois quarts)
+    'haut': [(0.0, 0.175), (40.0, 0.190), (90.0, 0.240), (120.0, 0.270), (180.0, 0.270)],
     'portee_du_haut': 0.17,             # base : en deçà des épaules
-    'sous_la_retombee': 115.0,          # azimut au-delà duquel le haut passe sous la retombée du capuchon, autour du cou
+    'sous_la_retombee': 105.0,          # azimut au-delà duquel le haut passe sous la retombée du capuchon, autour du cou
+    'passes_du_haut': 2,                # passes qui étalent le rayon du haut d'une colonne à l'autre, sans le réduire : à
+                                        # ce passage, il saute de 3 cm et un triangle s'y retournait (`enroulement`)
     # (azimut, angle polaire) du bord : devant, sur le haut de la poitrine (illustration : ~55 px sous le menton,
     # z ~1,49) ; sur les côtés, à la pointe de l'épaule (`x_max`) ; derrière (HYPOTHÈSE), sur le haut du dos
     'bord': [(0.0, 66.0), (40.0, 62.0), (60.0, 48.0), (90.0, 41.0), (120.0, 41.0), (145.0, 58.0), (180.0, 66.0)],
