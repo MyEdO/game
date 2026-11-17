@@ -74,21 +74,14 @@ CAPUCHON = {
     # bord haut. Illustration : le bord passe devant l'oreille, à la joue, et se ferme au-dessus du front, qu'il ombre
     # (base : sourcils à z ~1,74, soit 17° ; bord haut à 37°, z ~1,79, 2,4 cm devant le front)
     'ouverture': {'demi': 58.0, 'milieu': -0.5, 'haut': 37.0},
-    # Retombée, derrière la tête : par élévation de rang (degrés), ce dont le rang descend (`abaissement`, degrés) et ce
-    # que la forme y gagne en rayon (`surplus`, m) ; entière au-delà du second azimut, nulle en deçà du premier, si bien
-    # que le bas de la poche s'arrondit en langue. Illustration : le capuchon est rond et souple, son drap en trop
-    # retombe dans le dos, par-dessus l'écharpe ; HYPOTHÈSE (dos non montré) : une poche qui pend jusqu'au haut du dos
-    # (z ~1,50, y ~0,205, posée sur le dos de l'écharpe ; sans abaissement et coupée à 115°, elle finissait en dalle à
-    # arête droite, avec une marche sur le côté, rendu de dos trois quarts)
-    'retombee': {'azimuts': (100.0, 170.0),          # depuis l'avant
-                 'abaissement': [(-38.0, 9.0), (-25.5, 5.0), (-13.0, 2.0), (-0.5, 0.0)],
-                 'surplus': [(-38.0, 0.180), (-25.5, 0.085), (-13.0, 0.025), (-0.5, 0.0)]},
-    # m depuis le centre : dans la retombée, la hauteur où le capuchon cesse de suivre la tête seule, et celle où il suit
-    # ce sur quoi elle repose, comme l'écharpe. Liée à la tête jusqu'en bas, la retombée entraînait le col de la cape qu'elle
-    # couvre, dont la pile des couches lui donne les poids (`hotes/godot/asset/pile.ts`) : arêtes de la cape étirées, robe,
-    # cou et bandoulière devant elle (`etirement`, `couche-traversee`, 30 écarts sur cinq clips)
-    'poids_de_la_retombee': (-0.030, -0.100),
-    'lissage_des_poids': 3,             # HYPOTHÈSE : passes laplaciennes des poids
+    # Retombée, derrière la tête : ce que la forme gagne en rayon par élévation de rang (degrés, m), entier au-delà du
+    # second azimut (depuis l'avant), nul en deçà du premier. Illustration : le capuchon est rond et souple, son drap en
+    # trop retombe vers le dos ; HYPOTHÈSE (dos non montré) : une poche qui pend sur la nuque jusqu'au haut de l'écharpe
+    # (z ~1,59, y ~0,17). Elle s'arrête à plus de 3 cm du col de la cape : plus longue (jusqu'à z 1,50), elle le
+    # couvrait, la pile des couches lui donnait ses poids, ceux de la tête (`hotes/godot/asset/pile.ts`), et la cape
+    # s'étirait et laissait passer la robe, le cou et la bandoulière (`etirement` 89, `couche-traversee` 73, passe neutre)
+    'retombee': {'azimuts': (100.0, 170.0), 'surplus': [(-38.0, 0.090), (-25.5, 0.060), (-13.0, 0.020), (-0.5, 0.0)]},
+    'lissage_des_poids': 3,             # HYPOTHÈSE : passes laplaciennes des poids empruntés à la peau de la tête
 }
 
 # ---------------------------------------------------------------- écharpe

@@ -2,8 +2,8 @@
 
 - Le capuchon : rangs en élévation autour du centre du crâne, chacun d'un bord de l'ouverture du visage à l'autre par
   la nuque, fermé au-dessus du front ; chaque point est sur l'ellipsoïde du capuchon (`forme`), jamais à moins du jeu
-  de la tête et de la coiffure ; derrière la tête, les rangs du bas descendent et s'écartent en une poche qui retombe
-  dans le dos, en langue ;
+  de la tête et de la coiffure ; derrière la tête, les rangs du bas s'écartent en une poche qui retombe sur la nuque,
+  par-dessus l'écharpe ;
   le sommet est rond, fermé en éventail. Son envers porte la doublure.
 - L'écharpe : colonnes en azimut autour de l'axe du cou ; le haut, un anneau marché à l'horizontale vers l'axe jusqu'au
   jeu du capuchon, de la coiffure et du cou (sous le menton, autour du bas du capuchon, sous sa retombée derrière) ; sous lui, rangs en angle
@@ -11,8 +11,7 @@
   de son rayon au jeu de la robe, du corps, de la tête et de la coiffure, plus le pli de son rang.
 - Le pan : une bande qui sort de sous le bord de l'écharpe à l'avant gauche et tombe sur la poitrine.
 
-Double nappe ; poids du capuchon empruntés à la peau de la tête, fondus vers ceux de l'écharpe au bas de sa retombée,
-ceux de l'écharpe et du pan à la robe et au corps, la
+Double nappe ; poids du capuchon empruntés à la peau de la tête, ceux de l'écharpe et du pan à la robe et au corps, la
 tête et les bras reportés ; clés reprises du corps, au plus près. Toute cote vient de `donnees.py`.
 """
 import math
@@ -39,12 +38,6 @@ def exterieur(D, surfaces, origine, d, portee, jeu, plancher=None):
     return plancher
 
 
-def poche(c, phi):
-    """La part de la retombée à l'azimut `phi` : entière derrière la tête, nulle devant (`retombee['azimuts']`)."""
-    debut, plein = c['retombee']['azimuts']
-    return fondu((abs((phi + 180.0) % 360.0 - 180.0) - debut) / (plein - debut))
-
-
 def capuchon(D, b, surfaces):
     """Le maillage du capuchon : rangs du bas au sommet, celui-ci fermé en éventail."""
     c = D['CAPUCHON']
@@ -58,11 +51,11 @@ def capuchon(D, b, surfaces):
         ferme = demi < 1e-6
         points = []
         for phi in np.linspace(demi, 360.0 - demi, n)[:n - 1 if ferme else n]:
-            part = poche(c, phi)
-            d = direction_spatiale(phi, e - part * float(np.interp(e, *zip(*t['abaissement']))))
+            d = direction_spatiale(phi, e)
             forme = 1.0 / math.sqrt((d[0] / f['cote']) ** 2 + (d[1] / (f['devant'] if d[1] < 0 else f['derriere'])) ** 2
                                     + (d[2] / (f['haut'] if d[2] > 0 else f['bas'])) ** 2)
-            forme += part * float(np.interp(e, *zip(*t['surplus'])))
+            derriere = fondu((180.0 - abs(phi - 180.0) - t['azimuts'][0]) / (t['azimuts'][1] - t['azimuts'][0]))
+            forme += derriere * float(np.interp(e, *zip(*t['surplus'])))
             points.append(C + exterieur(D, surfaces, C, d, D['PORTEE'], c['jeu'], plancher=forme) * d)
         rang = M.ajouter(points, 'capuchon')
         rangs.append(rang + rang[:1] if ferme else rang)
@@ -153,15 +146,10 @@ def construire(D, materiaux, b):
             W[:, b.indice_os[a]] = 0.0
         return W
 
-    c = D['CAPUCHON']
     M = capuchon(D, b, porteur_de(*joindre_les_surfaces([tete, coiffure])))
     X, orientes, normales = M.orienter()
-    haut, bas = (b.tete(c['os_du_centre'])[2] + c['centre'][2] + h for h in c['poids_de_la_retombee'])
-    C = np.array(b.tete(c['os_du_centre'])) + np.asarray(c['centre'], float)
-    part = np.array([fondu((haut - p[2]) / (haut - bas)) * poche(c, math.degrees(math.atan2(p[0] - C[0], C[1] - p[1])))
-                     for p in X])[:, None]
-    W = (1.0 - part) * np.array([emprunter(p, porteur_de(*tete))[0] for p in X]) + part * pose(X)
-    W = lisser(W, voisinage(orientes, len(X)), c['lissage_des_poids'])
+    W = lisser(np.array([emprunter(p, porteur_de(*tete))[0] for p in X]), voisinage(orientes, len(X)),
+               D['CAPUCHON']['lissage_des_poids'])
     nappes = [b.nappe('capuche', X, normales, W, orientes, materiaux['capuche'], D['EPAISSEUR'],
                       [(None, materiaux['doublure'])] * len(orientes))]
     capuchon_ = (X, np.array(orientes), W)
