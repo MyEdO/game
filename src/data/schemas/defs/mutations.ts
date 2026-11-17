@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { mutationKindSchema } from '../grammaire/valeurs';
+import { formesDeTeteSchema, mutationKindSchema } from '../grammaire/valeurs';
 import { mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'mutations.json';
@@ -22,6 +22,8 @@ const doc = document(
     note: z.string().optional(),
     /** id d'une autre entrée `mutations.json` (Tête bestiale EDOC → sous-table alignée, `rollMutation`). */
     subTable: z.string().optional(),
+    /** Les formes de la tête que la Mutation donne à son porteur dessiné (#4413). */
+    formesDeTete: formesDeTeteSchema.optional(),
   },
   {
     kind: {
@@ -32,6 +34,7 @@ const doc = document(
     effects: { label: 'Effets déclenchés' },
     note: { label: 'Note', hint: 'Note mécanique de l’entrée — ex. bonus de Perception' },
     subTable: { label: 'Sous-table de tirage', hint: 'Entrée dont la sous-table est tirée en cascade' },
+    formesDeTete: { label: 'Formes de la tête', hint: 'Poids de 0 à 1 par forme de la tête du porteur dessiné' },
   },
   {
     codex: { keys: ['mutations'] },

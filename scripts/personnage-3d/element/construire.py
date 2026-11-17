@@ -18,7 +18,8 @@ matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313)
   repère ;
 - `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
   transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
-  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste ;
+  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste, et ses clés de forme propres (ni silhouette de la
+  base ni `gabarit_*` : `visage_inverse` et les traits d'une tête), lues sur la pièce exportée, à `formes` (#4413) ;
 - `squelette` ou `surface` repris du GLB publié (`element/publie.py`, #3761) : `modele.py` porte `reprendre(materiaux, base,
   glb)` au lieu de `construire` et reçoit le GLB épinglé de l'élément ; `donnees.py` ne porte que `MANIFESTE` (ses
   `emplacements` recopiés du manifeste publié), `MATERIAUX` (valeurs lues dans les matériaux du GLB publié) et
@@ -27,9 +28,6 @@ matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313)
 `--local <id>=<glb>` (répétable) lit l'élément publié `<id>` (un élément contourné, ou l'élément même d'une reprise) au
 GLB local au lieu du cache épinglé (`entrees.glb_locaux`, #4338) : la construction n'est alors pas reproductible depuis le
 dépôt, la sortie le dit, et elle ne s'importe pas.
-
-`--mpfb <dossier>` donne le dossier `data` de MPFB (tiré par `base/sources.mjs`) à une tête de `element/tete_makehuman.py`,
-qui le lit sous `D['MPFB']` et le réclame s'il manque (#4413).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton \\
         --sortie <dossier neuf hors du dépôt> [--local humanoide--armure--plastron=<plastron.glb>]
@@ -55,6 +53,7 @@ import maille  # noqa: E402
 import tissu  # noqa: E402
 from entrees import glb_locaux  # noqa: E402
 from glb import lire_glb  # noqa: E402
+from formes import noms_des_cles  # noqa: E402
 from production import CACHE_DES_MODELES, MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
 
 ECART_ROTATION_MAX = 1e-4      # rad, entre le nœud exporté et le repère de prise
@@ -230,7 +229,11 @@ def construire_squelette(D, modele, manifeste_de_base, glb_de_base, publie, id_,
         objets = base.decouper_par_zone(piece)
     octets = exporter(temporaire, base.rig, objets, skinne=True, blasons=D.get("BLASONS", ()))
     offerts = {"emplacements": base.emplacements} if base.emplacements else {}
-    return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **offerts}, triangles
+    de_la_base = set(manifeste_de_base["silhouettes"])
+    siennes = list(dict.fromkeys(nom for objet in objets for nom in noms_des_cles(objet)
+                                 if nom not in de_la_base and not nom.startswith("gabarit_")))
+    formes = {"formes": siennes} if siennes else {}
+    return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **formes, **offerts}, triangles
 
 
 def main():
@@ -240,12 +243,9 @@ def main():
     p.add_argument("--sortie", required=True)
     p.add_argument("--local", action="append", default=[], metavar="ID=GLB",
                    help="élément lu à ce GLB local au lieu du cache épinglé : construction non reproductible")
-    p.add_argument("--mpfb", type=Path, help="dossier data de MPFB (base/sources.mjs), pour une tête de element/tete_makehuman.py")
     args = p.parse_args()
     base, dossier = args.element.split("/")
     D = runpy.run_path(str(ICI / base / dossier / "donnees.py"))
-    if args.mpfb:
-        D["MPFB"] = args.mpfb
     spec = importlib.util.spec_from_file_location(f"modele_{dossier}", ICI / base / dossier / "modele.py")
     modele = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(modele)

@@ -35,6 +35,7 @@ import {
 } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
+import type { FormeDeTete } from '../../../lib/formesDeTete';
 import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLocale, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
@@ -1239,6 +1240,23 @@ export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
  *  emplacement de palette. */
 export const couleursSchema = z.partialRecord(slotSchema, ref('material', undefined, 'couleur'));
 export type Couleurs = z.input<typeof couleursSchema>;
+
+/** Le libellé de chaque forme de la tête (`NOMS_DES_FORMES_DE_TETE`, `src/lib/formesDeTete.ts`). */
+const LIBELLES_DES_FORMES_DE_TETE = {
+  visage_inverse: 'Visage inversé',
+  nez_fort: 'Nez fort',
+  arcades_marquees: 'Arcades marquées',
+  joues_creuses: 'Joues creuses',
+  visage_long: 'Visage long',
+} as const satisfies Readonly<Record<FormeDeTete, string>>;
+
+/** Une forme de la tête, shape key propre à un élément de tête (#4413). */
+export const formeDeTeteSchema = enumNomme(LIBELLES_DES_FORMES_DE_TETE);
+
+/** Les formes de la tête d'un personnage ou d'une mutation : par forme, son poids dans [0, 1] ; absente, 0. UNE
+ *  déclaration pour `defs/presets-de-personnage.ts` et `defs/mutations.ts`. */
+export const formesDeTeteSchema = z.partialRecord(formeDeTeteSchema, z.number().min(0).max(1));
+export type FormesDeTete = z.infer<typeof formesDeTeteSchema>;
 
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, la scène (`SceneEntity.appearance`) et le narratif. */

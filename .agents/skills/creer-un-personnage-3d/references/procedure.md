@@ -158,12 +158,17 @@ offre des `postes` : par bord (`proue`, `tribord`, `poupe`, `babord`, `FIRE_ARCS
 mètres glTF, sa proue vers +Z et tribord vers -X, où se montent dans l'ordre les pièces des postes de ce bord, chacune
 tournée vers lui (`bord-inconnu` sinon). Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
-**`faceFlip`** : chaque tête porte la shape key `visage_inverse`. C'est une clé de la tête, pas de
-la base : elle ne se déclare pas parmi les silhouettes (`silhouette-absente`). Le design la fait
-générer par la chaîne, refuser à l'import quand elle manque, et poser par l'hôte quand le noyau
-publie `faceFlip` résolu. Aucun de ces trois gestes n'est livré, et ni le validateur ni l'import
-n'imposent sa présence : la vérifier dans le GLB, et garder cette exigence NON VÉRIFIÉE tant que
-l'import ne la refuse pas.
+**Clés de forme propres (`formes`, #4413)** : une pièce skinnée peut porter des shape keys qui ne sont
+ni une silhouette de la base ni une clé `gabarit_*`. Ce sont les siennes, pas celles de la base : elles ne se
+déclarent pas parmi les silhouettes (`silhouette-absente`) mais dans le champ `formes` de son manifeste, que
+`element/construire.py` écrit depuis les clés réellement posées sur la pièce exportée ; un élément sans clé
+propre n'a pas ce champ. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
+de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
+la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
+traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `visage_long` (`TRAITS`, des
+cibles de MakeHuman lues sommet à sommet). La liste fermée des noms admis, le refus à l'import d'une tête sans
+`visage_inverse` et la pose des clés par l'hôte relèvent du validateur (`hotes/godot/asset/element.ts`) et de
+l'hôte : les garder NON VÉRIFIÉS tant qu'ils ne sont pas livrés.
 
 Une **zone** est une région du corps ; un **emplacement**, un point d'accroche ; une
 **localisation**, une localisation de règle d'armure ; une **prise**, main ou secondaire.

@@ -1,10 +1,9 @@
 """Tête de race sur la base, au repos pris à la tête de MakeHuman (#4413), pour le `modele.py` d'un élément
 `tete--<race>` qui ne porte que `from tete_makehuman import construire` et son `donnees.py`. Le pack `mpfb` (dossier
-`data` de MPFB, celui de la silhouette `corpulence`, tiré par `base/sources.mjs`) vient de l'option `--mpfb` du
-constructeur.
+`data` de MPFB, celui de la silhouette `corpulence`) est celui de la base, tiré et vérifié par `production.pack_source`.
 
-Forme : `base.obj` chargé des cibles `macrodetails` d'un homme jeune moyen (`corpulence.forme_macro`), puis des cibles
-`CUITES` de `donnees.py` (`((cible sous targets/, poids), …)`), qui font la race. La forme se recale sur le tronc de la
+Forme : `base.obj` chargé des cibles `macrodetails` d'un homme jeune moyen (`corpulence.forme_macro`) et de
+`BOUCHE_FERMEE`, puis des cibles `CUITES` de `donnees.py` (`((cible sous targets/, poids), …)`), qui font la race. La forme se recale sur le tronc de la
 base (`corpulence.recalage`), puis se cale à la taille de la tête humaine publiée (`TAILLE_PUBLIEE`, `calage`) : le calage
 se mesure sur la forme sans cibles cuites, pour qu'une race garde l'écart que ses cibles lui donnent.
 
@@ -19,18 +18,18 @@ Clés : chaque trait de `TRAITS`, partagé par toutes ces têtes, ses cibles lue
 (mutation « Visage inversé », `mutations.json`), le visage retourné tête en bas : de `AXE` (sur l'axe avant-arrière à la
 hauteur `AXE_DU_VISAGE`), chaque sommet du visage prend le rayon de la peau dans la direction reflétée par le plan
 horizontal de cet axe, entier devant, nul hors de `OUVERTURE_DU_VISAGE_DEG` ; ce rayon est la médiane de ceux du sommet
-et de ses voisins, car une visée qui rase le bord d'une lèvre passe dans la bouche ; les yeux tournent d'un demi-tour
-autour de l'axe.
+et de ses voisins, car une visée qui rase le bord d'une paupière passe dans l'orbite ; les yeux tournent d'un demi-tour
+autour de l'axe, et la peau retournée devant chacun recule au plan de son centre, sur `PART_DE_L_ORBITE` de son rayon,
+pour qu'il se voie.
 
 Repère : celui de la base importée dans Blender (mètres, z vers le haut, l'avant vers -y, la gauche du personnage vers
 +x) ; une cote se donne depuis la tête de l'os `Head` au repos.
 """
-from pathlib import Path
-
 import numpy as np
 
-from corpulence import forme_macro, lire_cible, lire_obj, os_des_faces, recalage, tetes, vers_blender
+from corpulence import RACES, forme_macro, lire_cible, lire_obj, os_des_faces, recalage, tetes, vers_blender
 from formes import poser_la_cle
+from production import pack_source
 from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere, elevation,
                   elevation_de_la_couture, normales_de_sommet, poser_les_normales_de_la_couture)
 from tissu import Maillage, emprunter, fondu, maillage_skinne, poids_normalises, porteur_de
@@ -38,6 +37,11 @@ from tissu import Maillage, emprunter, fondu, maillage_skinne, poids_normalises,
 ETAT = 'male-young-averagemuscle-averageweight'
 OS_DE_LA_TETE = ('Head', 'neck_01')
 YEUX = ('helper-l-eye', 'helper-r-eye')
+BOUCHE_FERMEE = (('mouth/mouth-upperlip-height-incr', 1.0),
+                 *((f'expression/units/{race}/mouth-compression', 0.5 / len(RACES)) for race in RACES))
+"""Cibles qui ferment la bouche de la forme neutre, entrouverte de 1,5 mm au milieu (mesuré de face sur `base.obj`) : la
+lèvre haute plus haute, et l'unité d'expression des lèvres serrées, moyennée sur les races comme les cibles
+`macrodetails` (HYPOTHÈSE : poids, les plus faibles qui ferment la fente au milieu, à 1 cm et à 2 cm)."""
 ZONES_DES_CLES = ['tete', 'visage', 'nez']
 """Zones de peau de la base que la tête remplace : ses poids au plus près."""
 CENTRE = (0.0, -0.0054, 0.0807)
@@ -59,6 +63,8 @@ AXE_DU_VISAGE = 0.05
 OUVERTURE_DU_VISAGE_DEG = {'azimut': (60.0, 85.0), 'elevation': (36.0, 46.0)}
 """HYPOTHÈSE : de part et d'autre de l'avant et du plan de l'axe, l'angle jusqu'où `visage_inverse` est entière, puis
 celui où elle est nulle."""
+PART_DE_L_ORBITE = 0.8
+"""HYPOTHÈSE : part du rayon d'un œil retourné sur laquelle la peau recule devant lui."""
 TRAITS = {
     'nez_fort': (('nose/nose-scale-vert-incr', 1.0), ('nose/nose-scale-depth-incr', 0.8), ('nose/nose-volume-incr', 0.5),
                  ('nose/nose-point-down', 0.5)),
@@ -188,13 +194,21 @@ def visage_inverse(P, peau, yeux, triangles, H):
         cle[v] = parts[v] * (reflete - siens[v]) * d
     p = P[yeux]
     cle[yeux] = np.column_stack([-p[:, 0], p[:, 1], 2 * axe[2] - p[:, 2]]) - p
+    peau = np.fromiter(directions, dtype=int)
+    for cote in (p[:, 0] > 0, p[:, 0] <= 0):
+        retourne = (P[yeux] + cle[yeux])[cote]
+        centre = retourne.mean(axis=0)
+        rayon_de_l_oeil = np.linalg.norm(retourne - centre, axis=1).max()
+        u = (centre - axe) / np.linalg.norm(centre - axe)
+        ecart = P[peau] + cle[peau] - centre
+        devant = ecart @ u
+        dessus = (np.linalg.norm(ecart - devant[:, None] * u, axis=1) < PART_DE_L_ORBITE * rayon_de_l_oeil) & (devant > 0)
+        cle[peau[dessus]] -= devant[dessus, None] * u
     return cle
 
 
 def construire(D, materiaux, b):
-    if 'MPFB' not in D:
-        raise ValueError('tête MakeHuman : option --mpfb <dossier data de MPFB> requise (node scripts/personnage-3d/base/sources.mjs le tire)')
-    mpfb = Path(D['MPFB'])
+    mpfb = pack_source('mpfb')
     b.exiger(ZONES_DES_CLES + ['cou'])
     H = np.array(b.tete('Head'))
     C = H + np.asarray(CENTRE, float)
@@ -206,7 +220,7 @@ def construire(D, materiaux, b):
     def cible(liste):
         return sum(p * lire_cible(mpfb / 'targets' / f'{nom}.target.gz', len(sommets)) for nom, p in liste)
 
-    neutre = forme_macro(mpfb, sommets, ETAT)
+    neutre = forme_macro(mpfb, sommets, ETAT) + cible(BOUCHE_FERMEE)
     echelle, translation = recalage({nom: vers_blender(neutre[i]).mean(axis=0) for nom, i in groupes.items()}, tetes(b.rig))
     triangles = triangles_de(faces)
     noms = [o.name for o in b.rig.data.bones]
