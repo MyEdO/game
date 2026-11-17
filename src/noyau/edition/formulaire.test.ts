@@ -1,7 +1,7 @@
 /**
  * Le formulaire tiré du schéma (#3606) : la description d'une zone d'effet et de la condition d'entrée d'un déclencheur
  * (`formulaireDe`, `champsOfferts`), leurs unions choisies par variante nommée (`unionDuNoeud`, `variantesAChoisir`),
- * leurs listes élément par élément (`elementDuNoeud`, `champDeLElement`, `gestesDeLaListe`), la valeur neuve d'un nœud
+ * leurs listes élément par élément (`elementDuNoeud`, `champDeLElement`, `monteeAuFormulaire`), la valeur neuve d'un nœud
  * et d'une op (`valeurNeuveDe`, `newOp`), et le geste `valeur` de la session, qui écrit, change de variante, ajoute,
  * retire et monte un élément de liste, retire (un conteneur vidé part avec son dernier champ), refuse ce que le
  * formulaire n'offre pas en disant pourquoi (`refusDeLaValeur`), et entre dans l'historique. Les choix d'une union
@@ -17,7 +17,7 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeurDuPorteur } from '../sceneEdit';
-import { avecLaValeur, ecritureOfferte, type Segment } from './formulaire';
+import { avecLaValeur, ecritureOfferte, monteeAuFormulaire, type Segment } from './formulaire';
 import {
   choixDuChamp,
   formulaireDe,
@@ -34,7 +34,7 @@ import {
   type SorteDePorteur,
 } from '../sceneEditLecture';
 import { emptyWorldMap, type MapPlace, type WorldMap } from '../worldMap';
-import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
+import { newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema, playSfxSchema } from '../../data/schemas/defs-scenes/effets';
 import { entree as objetDeCampagneSchema } from '../../data/schemas/defs/trappings';
@@ -266,14 +266,20 @@ describe('l’écriture bornée par le formulaire', () => {
     expect(avecLaValeur(z.strictObject({ r: z.number() }), { r: 1 }, ['r'], null), 'un JSON illisible arrive `null`').toEqual({ ok: false, refus: 'illisible' });
   });
 
-  it('un rang de liste s’écrit au chemin, entier, dans la liste présente ; la liste s’écrit entière par l’un de ses gestes', () => {
+  it('un rang de liste s’écrit au chemin, entier, dans la liste présente ; un élément s’ajoute au rang qui suit le dernier, se retire et monte à son rang ; la liste s’écrit entière si elle se parse', () => {
     const liste = z.strictObject({ l: z.array(z.strictObject({ n: z.number(), t: z.string().optional() })).optional() });
     const l = [{ n: 1 }, { n: 2 }];
     expect(avecLaValeur(liste, { l }, ['l', 1, 'n'], 5)).toEqual({ ok: true, valeur: { l: [{ n: 1 }, { n: 5 }] } });
     for (const rang of [2, -1, 0.5, '1']) expect(avecLaValeur(liste, { l }, ['l', rang, 'n'], 5), String(rang)).toEqual({ ok: false, refus: 'nonOffert' });
-    const gestes = gestesDeLaListe(l, { n: 0 });
-    expect(gestes).toEqual({ ajouter: [...l, { n: 0 }], elements: [{ retirer: [{ n: 2 }], monter: null }, { retirer: [{ n: 1 }], monter: [{ n: 2 }, { n: 1 }] }] });
-    for (const jouee of [gestes.ajouter, gestes.elements[0].retirer, gestes.elements[1].monter]) expect(avecLaValeur(liste, { l }, ['l'], jouee)).toEqual({ ok: true, valeur: { l: jouee } });
+    expect(avecLaValeur(liste, { l }, ['l', 2], { n: 0 }), 'la valeur neuve au rang qui suit le dernier').toEqual({ ok: true, valeur: { l: [...l, { n: 0 }] } });
+    expect(avecLaValeur(liste, {}, ['l', 0], { n: 0 }), 'au rang 0 d’une liste absente').toEqual({ ok: true, valeur: { l: [{ n: 0 }] } });
+    expect(avecLaValeur(liste, { l }, ['l', 0], undefined), 'le premier retiré').toEqual({ ok: true, valeur: { l: [{ n: 2 }] } });
+    expect(avecLaValeur(liste, { l }, ['l', 2], undefined), 'aucun élément au rang').toEqual({ ok: false, refus: 'horsSorte' });
+    const forme = { noeud: liste, champs: [['l']], retraits: [] };
+    expect(monteeAuFormulaire(forme, { l }, ['l', 1], () => undefined, SANS_SOURCE)).toEqual({ ok: true, valeur: { l: [{ n: 2 }, { n: 1 }] } });
+    for (const rang of [0, 2, '1']) expect(monteeAuFormulaire(forme, { l }, ['l', rang], () => undefined, SANS_SOURCE), `le rang ${String(rang)} ne monte pas`).toEqual({ ok: false, refus: 'nonOffert' });
+    expect(monteeAuFormulaire({ ...forme, champs: [['l', 0, 'n']] }, { l }, ['l', 1], () => undefined, SANS_SOURCE), 'une liste que le formulaire n’écrit pas entière').toEqual({ ok: false, refus: 'nonOffert' });
+    expect(avecLaValeur(liste, { l }, ['l'], [{ n: 2 }, { n: 1 }])).toEqual({ ok: true, valeur: { l: [{ n: 2 }, { n: 1 }] } });
     expect(avecLaValeur(liste, { l }, ['l'], [{ n: 1 }, { n: 'deux' }])).toEqual({ ok: false, refus: 'horsSorte' });
     expect(avecLaValeur(liste, { l: [{ n: 1 }] }, ['l'], []), 'vidée, la liste dont l’absence est admise part').toEqual({ ok: true, valeur: {} });
     expect(avecLaValeur(z.strictObject({ l: z.array(z.number()) }), { l: [1] }, ['l'], []), 'requise, elle reste vide').toEqual({ ok: true, valeur: { l: [] } });
@@ -284,14 +290,14 @@ describe('l’écriture bornée par le formulaire', () => {
     const dialogue = { id: 'd', start: { id: 'a' }, nodes: [noeud('a', 'c'), noeud('b'), noeud('c', 'mort')] };
     const deja = dialogueSchema.safeParse(dialogue).error?.issues.map((i) => i.path.slice(0, 5));
     expect(deja, 'la référence morte du nœud `c` est une faute préexistante').toEqual([['nodes', 2, 'choices', 0, 'next']]);
-    const gestes = gestesDeLaListe(dialogue.nodes, valeurNeuveDe(dialogueNodeSchema));
-    const [sansA, sansB, sansC] = gestes.elements.map((e) => e.retirer);
+    const [sansA, sansB, sansC] = dialogue.nodes.map((_, rang) => dialogue.nodes.filter((_, i) => i !== rang));
     const fauteAu = (nodes: unknown[], chemin: Segment[]) => dialogueSchema.safeParse({ ...dialogue, nodes }).error!.issues.find((i) => jsonCanonique(i.path.slice(0, chemin.length)) === jsonCanonique(chemin))!.message;
-    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes'], sansA), 'le nœud de départ').toEqual({ ok: false, refus: { regle: fauteAu(sansA, ['start']) } });
-    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes'], sansC), 'le nœud suivant d’une réponse').toEqual({ ok: false, refus: { regle: fauteAu(sansC, ['nodes', 0, 'choices', 0, 'next']) } });
-    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes'], sansB), 'non référencé : la faute de `c` passe du rang 2 au rang 1, déjà là').toEqual({ ok: true, valeur: { ...dialogue, nodes: sansB } });
-    expect(dialogueSchema.safeParse({ ...dialogue, nodes: gestes.ajouter }).error?.issues.length, 'le nœud neuf porte une faute neuve').toBeGreaterThan(deja!.length);
-    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes'], gestes.ajouter)).toEqual({ ok: true, valeur: { ...dialogue, nodes: gestes.ajouter } });
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes', 0], undefined), 'le nœud de départ').toEqual({ ok: false, refus: { regle: fauteAu(sansA, ['start']) } });
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes', 2], undefined), 'le nœud suivant d’une réponse').toEqual({ ok: false, refus: { regle: fauteAu(sansC, ['nodes', 0, 'choices', 0, 'next']) } });
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes', 1], undefined), 'non référencé : la faute de `c` passe du rang 2 au rang 1, déjà là').toEqual({ ok: true, valeur: { ...dialogue, nodes: sansB } });
+    const ajoutes = [...dialogue.nodes, valeurNeuveDe(dialogueNodeSchema)];
+    expect(dialogueSchema.safeParse({ ...dialogue, nodes: ajoutes }).error?.issues.length, 'le nœud neuf porte une faute neuve').toBeGreaterThan(deja!.length);
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes', dialogue.nodes.length], valeurNeuveDe(dialogueNodeSchema))).toEqual({ ok: true, valeur: { ...dialogue, nodes: ajoutes } });
   });
 });
 
@@ -311,6 +317,13 @@ describe('le geste `valeur` de la session', () => {
   const laZone = (s: SessionDEdition) => sceneEditee(s).effectZones![0];
   const leWhen = (s: SessionDEdition) => sceneEditee(s).triggers.find((t) => t.id === trig)!.when;
 
+  it('le retrait d’un élément sous une liste absente ne s’écrit pas : le Retirer de la dernière op, rejoué, ne lève pas', () => {
+    const une = jouer(jouer(depart, ['onCross', 0], newOp('corruption')), ['onCross', 0]);
+    expect(laZone(une).onCross, 'la liste vidée quitte la zone').toBeUndefined();
+    expect(jouer(une, ['onCross', 0]), 'rejoué, le Retirer ne change rien').toBe(une);
+    expect(jouer(une, ['onCross', 0, 'value']), 'un champ sous l’élément absent non plus').toBe(une);
+  });
+
   it('ajoute le Test vide, y écrit chaque champ de sa sorte, retire le dernier avec le Test ; annuler et rétablir le suivent', () => {
     const ajoute = jouer(depart, ['crossTest'], {});
     expect(laZone(ajoute).crossTest).toEqual({});
@@ -329,20 +342,20 @@ describe('le geste `valeur` de la session', () => {
   it('ajoute, change de variante, remplit, monte et retire les ops d’une liste ; la liste vidée quitte la zone', () => {
     const element = elementDuNoeud(formulaireDe('zone', laZone(depart), CADRE_VIDE)[1].noeud);
     const neuve = valeurNeuveDe(element);
-    const ajoutee = jouer(depart, ['onCross'], gestesDeLaListe([], neuve).ajouter);
+    const ajoutee = jouer(depart, ['onCross', 0], neuve);
     expect(laZone(ajoutee).onCross).toEqual([neuve]);
     const corruption = jouer(ajoutee, ['onCross', 0], newOp('corruption'));
     expect(laZone(corruption).onCross, 'changer de variante pose l’op neuve choisie').toEqual([newOp('corruption')]);
-    const deux = jouer(jouer(corruption, ['onCross'], gestesDeLaListe(laZone(corruption).onCross!, neuve).ajouter), ['onCross', 1], newOp('charMod'));
+    const deux = jouer(jouer(corruption, ['onCross', 1], neuve), ['onCross', 1], newOp('charMod'));
     const remplie = jouer(jouer(deux, ['onCross', 0, 'amount'], 3), ['onCross', 1, 'characteristic'], 'agilite');
     expect(laZone(remplie).onCross).toEqual([{ ...newOp('corruption'), amount: 3 }, { ...newOp('charMod'), characteristic: 'agilite' }]);
     expect(jouer(remplie, ['onCross', 1, 'op'], 'corruption'), 'le discriminant se change par le choix de la variante').toBe(remplie);
     const ops = laZone(remplie).onCross!;
-    const montee = jouer(remplie, ['onCross'], gestesDeLaListe(ops, neuve).elements[1].monter);
+    const montee = editer(remplie, { geste: 'monter', porteur, chemin: ['onCross', 1] });
     expect(laZone(montee).onCross).toEqual([ops[1], ops[0]]);
-    const une = jouer(montee, ['onCross'], gestesDeLaListe(laZone(montee).onCross!, neuve).elements[0].retirer);
+    const une = jouer(montee, ['onCross', 0]);
     expect(laZone(une).onCross).toEqual([ops[0]]);
-    expect(laZone(jouer(une, ['onCross'], [])).onCross, 'vidée, elle quitte la zone').toBeUndefined();
+    expect(laZone(jouer(une, ['onCross', 0])).onCross, 'vidée, elle quitte la zone').toBeUndefined();
   });
 
   it('écrit la condition d’un déclencheur : ET enveloppe la courante, une variante NON s’y choisit, une variante interne se choisit au même chemin, la condition se retire', () => {
@@ -546,11 +559,11 @@ describe('le formulaire d’un dialogue (#3606 M3b1a)', () => {
 
     it('écrit le départ, ajoute un nœud et une réponse, écrit son libellé, son suivant, le locuteur, le coût et la condition d’une réponse, les entrées couvertes', () => {
       const [neuf] = choixDuChamp('dialogue', DIALOGUE, ['nodes', 2], CADRE_DU_DIALOGUE)!;
-      const ajoute = jouer(depart, ['nodes'], [...DIALOGUE.nodes, neuf.valeur]);
+      const ajoute = jouer(depart, ['nodes', 2], neuf.valeur);
       const [reponse] = choixDuChamp('dialogue', leDialogue(ajoute), ['nodes', 2, 'choices', 0], CADRE_DU_DIALOGUE)!;
       const ecrit = ([
         [['start'], { id: 'n3' }],
-        [['nodes', 2, 'choices'], [reponse.valeur]],
+        [['nodes', 2, 'choices', 0], reponse.valeur],
         [['nodes', 2, 'choices', 0, 'label'], 'Partir'],
         [['nodes', 2, 'choices', 0, 'next'], { id: 'a' }],
         [['nodes', 2, 'speakerId'], { id: 'pnj' }],
@@ -984,7 +997,7 @@ describe('les porteurs du narratif : une entrée de chaque registre créable, un
     const sansIdentite = ecrit(ici());
     expect([sansLigne.ok && (sansLigne.valeur.forme as typeof avec.forme & { identite: typeof identite }).identite.lignes, sansIdentite.ok && sansIdentite.valeur.forme]).toEqual([[], { kind: 'heros' }]);
     const refus = [ecrit(ici('reperes', 0)), avecLaValeurDuPorteur('indices', lettre, ['stades', 0], undefined, cadre)];
-    expect(refus.map((e) => (e.ok ? 'ok' : e.refus)), 'un rang qu’aucun formulaire ne déclare ne se retire pas').toEqual(['requis', 'requis']);
+    expect(refus.map((e) => (e.ok ? 'ok' : e.refus)), 'un rang qu’aucun formulaire ne déclare, de la liste qu’il n’écrit pas entière, ne se retire pas').toEqual(['nonOffert', 'nonOffert']);
   });
 });
 
@@ -1002,10 +1015,10 @@ describe('l’adresse de prose d’un porteur hors scène : le profil d’un PNJ
   it('l’adresse écrite au profil d’un PNJ se scelle sur le chapitre chargé, comme sous un porteur de la scène ; sans lui, elle n’est pas offerte', () => {
     const vide = { ...preset, profil: { descRef: { book: LIVRE, ch: '01', parts: [] } } } as unknown as PresetPnj;
     const PARTS: Segment[] = ['profil', 'descRef', 'parts'];
-    const choisie = choixDuChamp('presetsPnj', vide, PARTS, cadre(CHARGEE))?.map((c) => c.valeur).find((v) => (v as Fragment[])[0]?.kind === 'blocs');
-    const ecrite = avecLaValeurDuPorteur('presetsPnj', vide, PARTS, choisie, cadre(CHARGEE));
+    const choisie = choixDuChamp('presetsPnj', vide, [...PARTS, 0], cadre(CHARGEE))?.map((c) => c.valeur).find((v) => (v as Fragment).kind === 'blocs');
+    const ecrite = avecLaValeurDuPorteur('presetsPnj', vide, [...PARTS, 0], choisie, cadre(CHARGEE));
     expect(ecrite.ok && (ecrite.valeur.profil as { descRef: DescRef }).descRef.parts).toEqual([{ ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }]);
-    expect(avecLaValeurDuPorteur('presetsPnj', vide, PARTS, [{ ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }], cadre({ ...CHARGEE, chapitres: {} })), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
+    expect(avecLaValeurDuPorteur('presetsPnj', vide, [...PARTS, 0], { ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }, cadre({ ...CHARGEE, chapitres: {} })), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
   });
 });
 

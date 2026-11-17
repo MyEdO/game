@@ -149,8 +149,8 @@ export function ChoixDeSpecs({ type, id, value, onChange, label }: {
 }) {
   const [saisie, setSaisie] = useState('');
   const courantes = value ?? [];
-  const catalogue = id === '' ? [] : catalogueSpecs(type, id);
-  const ouverte = id !== '' && entreeOuverte(type, id);
+  const catalogue = catalogueSpecs(type, id);
+  const ouverte = entreeOuverte(type, id);
   const offertes = [...catalogue, ...courantes.filter((s) => !catalogue.includes(s))];
   if (!offertes.length && !ouverte) return null;
   const cfg = cfgDuType(type);
@@ -193,7 +193,7 @@ export function typeDuDataset(ds: DatasetKey): TypeEntite {
 export function ChoixDeSpec({ type, id, value, onChange, ariaLabel }: {
   type: TypeEntite; id: string; value: string | undefined; onChange: (spec: string | undefined) => void; ariaLabel: string;
 }) {
-  if (id === '' || !estSpecialisable(type, id)) return null;
+  if (!estSpecialisable(type, id)) return null;
   if (entreeOuverte(type, id)) {
     return <input aria-label={ariaLabel} placeholder="spécialisation" style={{ width: 120 }} value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} />;
   }

@@ -3229,8 +3229,8 @@ async function parcoursEditeur() {
   const ligneDeLAdresse = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/etat')?.texte ?? ''`
   await choisirAuChamp(`${adresse}/ajouter`, (v) => v.book === 'livre-de-base', montre(`${adresse}/ch`))
   await choisirAuChamp(`${adresse}/ch`, (v) => v === '64', `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/ch')?.valeurs.find((b) => b.presse)?.jeu.args[2] === '64'`)
-  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/parts/ajouter')?.valeurs ?? []).some((b) => b.jeu.args[2]?.at(-1)?.kind === 'cellule')`, { timeoutMs: 30000 })
-  await choisirAuChamp(`${adresse}/parts/ajouter`, (v) => v.at(-1).kind === 'cellule', montre(`${adresse}/parts/0/row`))
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/parts/ajouter')?.valeurs ?? []).some((b) => b.jeu.args[2]?.kind === 'cellule')`, { timeoutMs: 30000 })
+  await choisirAuChamp(`${adresse}/parts/ajouter`, (v) => v.kind === 'cellule', montre(`${adresse}/parts/0/row`))
   e = await editeur()
   const ligneVoulue = inspecte(e, `${adresse}/parts/0/row`).valeurs.find((b) => !b.presse && b.refus === null)
   await choisirAuChamp(`${adresse}/parts/0/row`, (v) => v === ligneVoulue.jeu.args[2], `(${ligneDeLAdresse}).startsWith('Passage : ') && globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/parts/0/row')?.valeurs.find((b) => b.presse)?.libelle === ${JSON.stringify(ligneVoulue.libelle)}`)
@@ -3432,7 +3432,7 @@ async function parcoursEditeur() {
   e = await editeur()
   const dialogue = inspecte(e, 'nommer').champs[0].valeur
   assert.equal(boutonDeLEditeur(e, `logique/dialogue/${dialogue}`)?.presse, true, '« Ajouter un dialogue » : le dialogue neuf, pressé à la zone Logique, à l’inspecteur')
-  await choisirAuChamp('valeur/nodes/ajouter', (v) => v.at(-1)?.id === 'n2', montre('dialogue/noeud/n2'))
+  await choisirAuChamp('valeur/nodes/ajouter', (v) => v?.id === 'n2', montre('dialogue/noeud/n2'))
   const ligneDuNoeud = (id) => `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'dialogue/noeud/${id}')?.texte`
   await choisirAuChamp('valeur/start/id', (v) => v === 'n2', `${ligneDuNoeud('n2')} === '▶ n2'`)
   await taper('saisieTexte/identifier/noeud/n2/id', 'accueil')
