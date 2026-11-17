@@ -26,11 +26,9 @@
 #chronique.haut{bottom:244px}
 #systeme{position:absolute;right:22px;top:18px}
 #systeme .bouton-rond{width:44px;height:44px;padding:4px}
-#carnet{position:absolute;right:24px;display:flex;align-items:center;gap:9px;font-size:13.5px;color:#f0e2c2}
-#carnet .bouton-rond{width:30px;height:30px}
 
 /* les gestes du groupe, au coin gauche */
-#gestes-groupe{position:absolute;left:30px;top:634px;display:flex;flex-direction:column;gap:12px}
+#gestes-groupe{position:absolute;left:30px;bottom:30px;display:flex;flex-direction:column;gap:12px}
 #gestes-groupe>div{display:flex;align-items:center;gap:12px}
 #gestes-groupe .bouton-rond{width:52px;height:52px;padding:4px}
 #gestes-groupe span{font-size:14.5px;color:#f0e2c2;white-space:nowrap}
@@ -119,3 +117,45 @@
 #remis .t .note{display:flex;align-items:center;gap:8px;margin-top:7px;font-style:italic;font-size:13.5px;color:#e6dabd;white-space:nowrap}
 #remis .plaque{flex:none;width:176px;height:46px}
 #remis .plaque>div{font-size:16.5px}
+
+/* la désignation d'un héros : le bandeau du jet, une carte par héros (`carte`, `../combat/jet.js`) */
+#jet .fond.debut{gap:12px;padding-top:28px}
+#jet .fond.debut .plaque.carte{width:270px}
+
+/* le carnet d'enquête : un panneau posé sur le jeu, les affaires au rail, l'affaire ouverte sur sa page */
+#documents{left:24px;top:330px;width:300px}
+#documents .fond{padding:20px 12px 12px;display:flex;flex-direction:column;gap:7px}
+#documents .plaque{flex:none;height:38px}
+#documents .plaque>div{gap:11px;font-size:14.5px}
+#documents .plaque svg{flex:none}
+#documents .plaque span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#documents .pied{font-size:11.5px;color:var(--creme-2);text-align:center;margin-top:3px}
+#rail .plaque .prix{margin-left:auto}
+#carnet{left:350px;top:20px;width:1262px;height:740px}
+#carnet>.fond{padding:26px 30px 0}
+#carnet .tete{display:flex;justify-content:space-between;align-items:flex-end}
+#carnet h3{font-size:30px;line-height:42px;margin:-8px 0 -8px}
+#carnet .indice{display:flex;align-items:center;gap:10px}
+#carnet .indice b{font-size:24px;line-height:30px;color:#3a1a10;margin-right:6px}
+.chip{padding:0 9px 1px;font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35)}
+.chip.neuf{color:#fbe9d2;border-color:#5a130b;background:linear-gradient(180deg,#9c2a1a,#6b1c10)}
+#carnet .plaque.epingle{flex:none;width:136px;height:32px;margin-left:auto}
+#carnet .plaque.epingle>div{font-size:13.5px}
+#carnet .deux{display:grid;grid-template-columns:430px 1fr;column-gap:30px;margin-top:14px}
+#carnet .r{font-size:12.5px;color:#6b1c10;margin-bottom:7px}
+.lu{padding:14px 20px 12px;border-radius:2px;background:rgba(255,245,215,.34);box-shadow:0 0 0 1px rgba(60,40,20,.5),0 3px 8px rgba(60,35,5,.3)}
+.lu .tete{margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(60,40,20,.4)}
+.lu .tete b{font-size:21px;line-height:24px;color:#3a1a10}
+.lu .tete span{font-size:11.5px;color:#5a2a12}
+#carnet .lu p{margin:0 0 6px;font-family:"Fell";font-style:normal;font-size:15px;line-height:20.5px;color:#2a1d12}
+#carnet .lu.italique p{font-style:italic}
+.lu.attenue{opacity:.82}
+
+/* le regard tenu parmi les trois vues, la touche d'un geste du clavier */
+#regard{right:24px;top:20px;padding:6px}
+#regard .fond{display:flex;align-items:center;gap:10px;padding:6px 10px}
+#regard .rubrique{font-size:12.5px;color:var(--creme-2)}
+.touche{display:inline-grid;place-items:center;min-width:20px;height:20px;box-sizing:border-box;padding:0 5px;border-radius:3px;font-size:11.5px;color:#e9dcc0;background:#150c07;box-shadow:0 0 0 1px rgba(226,192,106,.45),0 2px 0 #000}
+/* par les yeux du meneur : le point de mire, au centre de l'écran */
+#mire{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;background:#f6ecd0;box-shadow:0 0 0 1px #0c0705,0 0 6px rgba(0,0,0,.8)}
+.apercu .geste em .touche{margin-right:3px;font-style:normal}

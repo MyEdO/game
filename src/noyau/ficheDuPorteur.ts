@@ -200,7 +200,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),
     armes: c.weapons.map((w) => ({
       ...renvoyable('trappings', w.trappingId ?? w.builtinId, w.label), valeur: testValue(c, attackTestOf(c, w, w.type)), stats: weaponStatParts(w, force),
-      qualites: resolveQualities(w).map((q) => instance('qualities', q.id, qualityRefLabel({ id: q.id, value: q.indice }))),
+      qualites: resolveQualities(w).map((q) => instance('qualities', q.id, qualityRefLabel(q.instance))),
     })),
     armure: LOCALISATIONS_DE_COUP.flatMap((l) => {
       const pa = effectiveArmourAt(c, l);

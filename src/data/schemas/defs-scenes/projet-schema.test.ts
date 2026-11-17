@@ -307,7 +307,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
       places: [{ id: 'lieu-1', label: 'Port', pos: { x: 1, y: 2 }, scene: { id: 'scene-1' }, port }],
       routes: [],
     });
-    expect(projetSchema.safeParse(projet({ worldMap: carte({ ref: 'marienburg', lighthouse: true }) })).success).toBe(true);
+    expect(projetSchema.safeParse(projet({ worldMap: carte({ ref: 'marienburg', signal: 'phare' }) })).success).toBe(true);
     expect(fautes(projet({ worldMap: carte({ taille: 3 }) }))).toEqual([
       expect.stringContaining('Carte du monde › lieux « lieu-1 » › port › richesse'),
       expect.stringContaining('Carte du monde › lieux « lieu-1 » › port › production'),

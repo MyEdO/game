@@ -74,11 +74,11 @@ describe('parseProject — validation du format projet', () => {
   });
 
   it('MapPlace.port (Index des ports, MDG 15) survit au round-trip via parseProject', () => {
-    // Un Lieu-port complet : taille/richesse/production/surplus/demande/cosmopolite/lighthouse — édité
+    // Un Lieu-port complet : taille/richesse/production/surplus/demande/cosmopolite/signal — édité
     // par la section « Port » de WorldMapEditor, préservé tel quel par le round-trip du projet.
     const port = {
       taille: 4, richesse: 5, production: ['commerce-mer', 'produits-de-luxe-mer'],
-      surplus: { 'produits-de-luxe-mer': 1 }, demande: { cereales: 2 }, cosmopolite: true, lighthouse: true,
+      surplus: { 'produits-de-luxe-mer': 1 }, demande: { cereales: 2 }, cosmopolite: true, signal: 'phare',
     };
     const mapWithPort = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Marienburg', pos: { x: 50, y: 50 }, scene: { id: 's1' }, port }], routes: [] };
     const doc = projet([scene('s1')], { worldMap: mapWithPort as never });
@@ -124,12 +124,18 @@ describe('parseProject — validation du format projet', () => {
     expect(resolvePortRef(port)).toBe(port);
   });
 
-  it('#217 : resolvePortRef({ ref, lighthouse }) SPARSE (picker) — le catalogue l\'emporte, lighthouse local préservé', () => {
+  it('#217 : resolvePortRef({ ref }) SPARSE (picker) — le catalogue l\'emporte sur le port neuf de l\'éditeur', () => {
     // Verrou anti-régression : le port neuf de l'éditeur (`portNeuf`, taille:2, richesse:2) ne doit JAMAIS écraser le catalogue.
-    const resolved = resolvePortRef({ ref: 'salzenmund', lighthouse: true });
+    const resolved = resolvePortRef({ ref: 'salzenmund' });
     expect(resolved!.taille).toBe(4); // Salzenmund, MDG 15 l.452 — pas le défaut d'auteur (2)
     expect(resolved!.richesse).toBe(4);
-    expect(resolved!.lighthouse).toBe(true);
+  });
+
+  it('#4357 : le signal du port vient du catalogue (Bilbali, clocher — MDG 13 l.351), une surcharge locale l\'emporte', () => {
+    expect(resolvePortRef({ ref: 'bilbali' })!.signal).toBe('clocher');
+    expect(resolvePortRef({ ref: 'salzenmund', signal: 'phare' })!.signal).toBe('phare');
+    expect(portVersDepot(resolvePortRef({ ref: 'salzenmund', signal: 'phare' }))).toEqual({ ref: 'salzenmund', signal: 'phare' });
+    expect(portVersDepot(resolvePortRef({ ref: 'bilbali', signal: 'clocher' }))).toEqual({ ref: 'bilbali' });
   });
 
   it('WorldMap.background (vraie carte de fond) survit au round-trip via parseProject', () => {
@@ -155,7 +161,6 @@ describe('portVersDepot — forme canonique : une surcharge égale au catalogue 
       const resolu = resolvePortRef({ ref: id });
       expect(portVersDepot(resolu), id).toEqual({ ref: id });
       expect(resolvePortRef(portVersDepot(resolu)), id).toEqual(resolu);
-      expect(portVersDepot(resolvePortRef({ ref: id, lighthouse: true })), `${id} + phare`).toEqual({ ref: id, lighthouse: true });
     }
   });
 

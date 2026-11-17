@@ -34,6 +34,10 @@ theme/custom="res://art/theme.tres"
 scene={
 "meshes/ensure_tangents": false
 }
+texture={
+"compress/mode": 1,
+"detect_3d/compress_to": 0
+}
 
 [input]
 

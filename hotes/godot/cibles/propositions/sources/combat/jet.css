@@ -2,6 +2,8 @@
    `../lieux-et-nuit/commun.css` le lie après sa feuille commune. */
 #jet{left:264px;top:560px;width:1180px;height:212px}
 #jet .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
+/* un choix à la place du jet : ses cartes en rang, centrées */
+#jet .fond.debut{display:flex;justify-content:center;align-items:flex-start;gap:14px;padding-top:26px}
 .camp{display:flex;gap:14px;align-items:flex-start}
 .camp.droite{flex-direction:row-reverse;text-align:right}
 .camp .portrait{width:78px;height:96px}

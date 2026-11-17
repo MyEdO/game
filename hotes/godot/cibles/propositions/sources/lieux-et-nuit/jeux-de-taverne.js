@@ -63,10 +63,7 @@ el(S, 'rect', { width: 380, height: H, fill: '#000', opacity: .3 });
 const pieces = [];
 pieces.push(titre({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Bonne auberge · Teuerberg, Bögenhafen', largeur: 430 }));
 const SERVICES = [['lit', 'La nuit et le repas'], ['bulle', 'La salle commune'], ['des', 'Les jeux', 1], ['soin', 'Le barbier'], ['fer_a_cheval', 'L’écurie']];
-pieces.push(`<div id="rail" class="cadre bois" data-piece="services"><div class="fond bois">
-  ${SERVICES.map(([i, n, a]) => plaque(n, { icone: i, armee: !!a })).join('')}
-  <div class="pied rubrique">Odelina Landau, l’aubergiste</div>
-</div><div class="ruban rubrique">Services de la maison</div>${ferrures}</div>`);
+pieces.push(rail('Services de la maison', SERVICES, 'Odelina Landau, l’aubergiste'));
 const POSTES = [
   [640, 226, { nom: 'Le brasseur', sous: 'Tient les dés', heros: 'brasseur' }],
   [850, 222, { nom: 'Un batelier du Reik', sous: 'A misé', heros: 'batelier' }],

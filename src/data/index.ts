@@ -44,7 +44,7 @@ import {
 } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { ENGINS_DE_SIEGE, INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
-import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
+import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualiteDObjetRef, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import {
   natureDeMentionSchema,
@@ -995,8 +995,8 @@ export interface TrappingData {
   pa?: number | null;
   /** Dégâts d'arme STRUCTURÉS (cf. `WeaponDamageSpec`) — remplace la chaîne « +BF+4 » re-parsée au runtime. */
   damage?: import('../engine/types').WeaponDamageSpec | null;
-  /** Qualités d'arme/armure (`QualityRef` : id + Indice éventuel « Solide 3 » → value, spec = arg éventuel). */
-  qualities: QualityRef[];
+  /** Qualités d'arme/armure (`QualityRef` : id + Indice éventuel « Solide 3 » → value), ou majorée d'une munition. */
+  qualities: QualiteDObjetRef[];
   desc?: string;
   /** Effet d'un CONSOMMABLE (potion/drogue/bandage — LDB 71/72/67) en **Flow** (noyau `engine/flowCore`) :
    *  feuilles `do` d'ops (MÊME vocabulaire que sorts/passifs), branches `if` (Fleur de lune par race),
@@ -2588,9 +2588,10 @@ export function refLabel(category: string, ref: RefASpecialisation): PlayerText 
   const base = dataLabel(findById(category, ref.id)?.label, ref.id);
   return ref.spec ? dataLabel(`${base} (${specLabel(category, ref.id, ref.spec)})`) : base;
 }
-/** Copie une `QualityRef` de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}`) — objet neuf
- *  (le runtime mute `qualities` : enchantements, munitions). Plus d'aplatissement en chaîne « id value ». */
-export function qualityInstance(q: QualityRef): import('../engine/types').QualityInstance {
+/** Copie une qualité de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}` ou `{id, majoration}`) — objet
+ *  neuf (le runtime mute `qualities` : enchantements, munitions). */
+export function qualityInstance(q: QualiteDObjetRef): import('../engine/types').QualityInstance {
+  if ('majoration' in q) return { id: q.id, majoration: q.majoration };
   return {
     id: q.id,
     ...(q.value != null ? { value: q.value } : {}),
@@ -2609,6 +2610,7 @@ export function idDObjet(v: string | undefined): Id<'trapping'> | undefined {
  *  il la parenthèse (`AA 08 l.136` « Taillade (1A) », l.304 « Taillade (2A) »). Zéro branche par id. */
 export function qualityRefLabel(q: import('../engine/types').QualityInstance): PlayerText {
   const base = refLabel('qualities', q);
+  if (q.majoration != null) return dataLabel(`${base} +${q.majoration}`);
   if (q.value == null) return base;
   const unite = qualiteParId(q.id)?.indice?.unite;
   return dataLabel(unite ? `${base} (${q.value}${unite})` : `${base} ${q.value}`);

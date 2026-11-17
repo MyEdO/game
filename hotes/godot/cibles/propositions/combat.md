@@ -1,6 +1,6 @@
 # Propositions : combat (2026-11-16, #3935)
 
-Compte rendu des vingt-six états dessinés (onze le 2026-11-16, quinze écrans neufs le 2026-11-17, #4411) depuis la cible écrite `../ecrites/combat.md`, le contrat `../combat.md` et les
+Compte rendu des trente et un états dessinés (onze le 2026-11-16, vingt écrans neufs le 2026-11-17, #4411) depuis la cible écrite `../ecrites/combat.md`, le contrat `../combat.md` et les
 maquettes validées (`../maquettes/`). Sources au dépôt : `sources/combat/`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 
@@ -102,7 +102,7 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 
 # Écrans neufs (2026-11-17, #4411)
 
-Quinze états, tous joués par Berta (Soldate, Épée et Bouclier ; Arbalète au second set) : sa fiche est celle de
+Vingt états, tous joués par Berta (Soldate, Épée et Bouclier ; Arbalète au second set) : sa fiche est celle de
 `fiche-au-clic` (CC 41, Ag 34). Aucun verbe à créer : chaque geste dessiné a son verbe dans
 `src/hote/verbes.generated.ts`. Socle étendu : `sources/combat/socle.js` (second rang de plaques du meuble, États
 portés, pictogrammes) ; les états vivent dans `sources/combat/combat.js`.
@@ -120,7 +120,7 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/combat.js`.
 - À valider : deux images parce que le noyau n'offre jamais Porte-bouclier et Riposte ensemble (l'un veut un bouclier
   qui pare, l'autre une arme Rapide) ; la Rapière de `defense-riposte` est un exemple hors de la fiche de Berta ;
   colonnes inégales (330, centre, 384) pour loger le dé tombé de l'attaquant ; un réglage que le jet n'offre pas est
-  absent, jamais grisé ; la substitution sociale (LDB 09 l.207) serait une troisième carte.
+  absent, jamais grisé ; la substitution sociale : `defense-sociale`, plus bas.
 
 ## meuble-engage-a-terre, meuble-tireur, meuble-chef-de-piece (écran 2)
 - Le meuble garde ses trois plaques ; un second rang de plaques sans pictogramme n'existe que s'il porte une offre
@@ -167,8 +167,8 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/combat.js`.
   réglage : `src/noyau/fenetreDAttaque.ts:166-253` ; libellés `reglage.attaque.*`, `attaque.armeSecondaire`,
   `attaque.empoigner.note` (`src/i18n/messages/fr.ts:215-221`, `fr.ts:1187`, `fr.ts:1208`).
 - À valider : deux images, le noyau n'offrant « Empoigner » qu'à mains nues, sans choix d'arme ; « Des deux armes »
-  allumée retire la rangée « Arme » ; « Tirer sans la corde » (ADE II 02 l.677) et « Localisation du Critique »
-  (après le dé) restent à dessiner.
+  allumée retire la rangée « Arme » ; « Tirer sans la corde » et « Localisation du Critique » : `jet-avant-le-de-harpon`
+  et `localisation-du-critique`, plus bas.
 
 ## seconde-frappe, frappe-mortelle (écran 6)
 - Le bandeau du bas se réduit à qui frappe, à la consigne du jeu et à un geste de sortie ; le champ reste à cliquer,
@@ -179,7 +179,8 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/combat.js`.
 - Réfs : LDB 10 l.767-773 ; LDB 14 l.5-9 (option Frappe mortelle) ; `fenetre.secondeFrappe`, `fenetre.frappeMortelle`,
   `consigne.deuxArmes`, `consigne.frappeMortelle` (`src/i18n/messages/fr.ts:489-490`, `fr.ts:4451-4452`).
 - À valider : bandeau de 170 px au lieu de 212 ; aucune plaque de laiton plein (le clic du champ commet) ; les dés
-  vides de l'enchaînement annoncent le jet à venir ; la cible montée et la visée de siège restent à dessiner.
+  vides de l'enchaînement annoncent le jet à venir ; la cible montée et la visée de siège : `cible-montee` et
+  `visee-de-siege`, plus bas.
 
 ## debut-du-round-tir-rapide (écran 6)
 - Le bandeau « Début du round » porte deux choix côte à côte : « Agir en premier » (Berta, 1 Chance) et
@@ -193,3 +194,57 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/combat.js`.
 - À valider : « Préempter » est le libellé du jeu, « Tir rapide » le nom du Talent ; l'étiquette « Action et
   Mouvement » ; Berta porte ici son Arbalète.
 
+## defense-sociale (écran 1)
+- État de `defense-avant-le-de` : une troisième carte de réaction, « Intimidation ≤ 38 », choisie ; le camp de Berta
+  porte la Compétence et son seuil. Pas de « Parer avec » ni de Porte-bouclier : ils ne s'offrent qu'à la Parade.
+  Sous les cartes, « À la place de Corps à corps » (mots du livre) et ce qui ouvre la substitution : « Orc a peur de
+  Berta ».
+- Verbes : `jetRegler('defense', 'reaction', 'social')`, `jetLancer('defense')`, `jetForcerLaReussite('defense')`.
+- Réfs : LDB 09 l.287 (Intimidation), LDB 09 l.207 (Dressage) ; offerte en mêlée à qui possède la Compétence, face à
+  qui a peur de lui (`combatSubstitute`, `src/engine/skillCombatApps.ts:54-66` ; `src/noyau/fenetreDeDefense.ts:71-87`).
+- À valider : trois cartes serrées à la mesure de leur nom ; la raison de l'offre en étiquette ; seuil 38 d'exemple
+  (Force de Berta, Compétence de base) ; la Peur de l'Orc est supposée pour l'image.
+
+## jet-avant-le-de-harpon (écran 6)
+- État de `jet-avant-le-de-armes`, pour un tir : la bascule « Tirer sans la corde (60 m, sans Immobilisante) »,
+  éteinte, et sa note du jeu (« Corde tenue : Immobilisante, Portée 20. ») ; à droite la cible du tir, sans dé.
+- Verbes : `jetRegler('attaque', 'sansLaCorde', bool)`, `jetRegler('attaque', 'localisation', lieu)`,
+  `jetLancer('attaque')`, `jetForcerLaReussite('attaque')`, `jetAnnuler('attaque')`.
+- Réfs : ADE II 02 l.677 ; offerte au tir d'un héros dont l'arme porte `ropeMode` (`src/noyau/fenetreDAttaque.ts:182`,
+  `:244-246`, `src/data/trappings.json`, `lance-harpon`) ; libellés `reglage.attaque.sansLaCorde`,
+  `attaque.sansLaCorde.noteTenue` (`src/i18n/messages/fr.ts:221`, `fr.ts:1204`).
+- À valider : le Lance-harpon, arme d'ogre, est hors de la fiche de Berta ; seuil 33 d'exemple (CT de Berta) ; la
+  cible d'un tir en bloc sans dé, comme celle d'un sort (`vise`, `sources/combat/socle.js`).
+
+## localisation-du-critique (écran 4)
+- Après le dé : Berta a choisi son résultat (« Je ne faillirai pas ! », étiquette « Résultat choisi », 11 sous 41) et
+  inflige un Coup Critique ; au centre la silhouette redevient pressable, « Localisation du Critique », la zone
+  choisie en laiton plein (Tête). « Appliquer » commet ; « Relancer » et « Résilience » fermées (jet réussi), la
+  Résilience de Berta à 0.
+- Verbes : `jetRegler('attaque', 'localisationDuCritique', lieu)`, `jetValider('attaque')`.
+- Réfs : LDB 17 l.68 ; `critiqueALocaliser` (`src/noyau/fenetreDAttaque.ts:288-291`) ;
+  `reglage.attaque.localisationDuCritique` (`src/i18n/messages/fr.ts:216`).
+- À valider : la silhouette d'avant le dé reprise après le dé ; aucun malus affiché (le choix est gratuit) ; dés et
+  seuils d'exemple.
+
+## cible-montee (écran 6)
+- Berta frappe un couple monté : le bandeau « Combat monté » pose deux cartes, le cavalier (« Tireur gobelin »,
+  « −10 au Test ») et sa monture (« Cheval ») ; la carte pressée passe en laiton plein, « Cibler » commet, « Annuler »
+  referme. Sur le champ, le couple est cerné de cire.
+- Verbes : `fenetreChoisir('cibleDeMonture', 'cible', id)`, `fenetreFermer('cibleDeMonture')`.
+- Réfs : LDB 14 l.180 (cavalier ou monture ; −10 en combat rapproché à qui vise le cavalier et est plus petit que la
+  monture) ; `src/noyau/choixDeFenetre.ts:247-252`, `src/noyau/modalArbiter.ts:170` ; `fenetre.cibleDeMonture`,
+  `verbe.cibleDeMonture.cible`, `verbe.cibleDeMonture.fermer` (`src/i18n/messages/fr.ts:458`, `fr.ts:295`, `fr.ts:354`).
+- À valider : carte puis plaque alors que le noyau clôt la fenêtre à la pose du choix (l'hôte tient la carte) ; le
+  malus écrit sur la carte du cavalier ; gobelin à cheval dessiné pour l'image.
+
+## visee-de-siege (écran 6)
+- Berta sert un Mortier, pièce à tir indirect : armer son tir ouvre la pose de la zone. Le bandeau réduit porte la
+  servante, « Pilonnage », la consigne du jeu (« Cliquez la case où poser la zone. ») et « Annuler » ; sur le champ,
+  l'aire du tir suit la case survolée, son centre plus marqué.
+- Verbes : la case, `cliquerLaCase` ; « Annuler », `fenetreFermer('viseeDeSiege')`.
+- Réfs : AA 10 l.169, l.171 (catapulte, mortier : tir indirect) ; `src/noyau/combatSlice.ts:1024-1031`, `:2602`,
+  `src/noyau/modalArbiter.ts:345`, `src/noyau/combatFlow.ts:5949` ; `fenetre.viseeDeSiege`, `consigne.poseDeLaZone`,
+  `verbe.viseeDeSiege.fermer` (`src/i18n/messages/fr.ts:484`, `fr.ts:4454`, `fr.ts:372`).
+- À valider : le gabarit de `seconde-frappe` (consigne et un geste de sortie, aucune plaque pleine) ; aire d'une case
+  de rayon, exemple (le noyau la lit à l'arme, `siegeBlastRadiusTiles`) ; mortier dessiné pour l'image.

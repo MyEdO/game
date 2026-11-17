@@ -26,15 +26,26 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
 - Entrées : pré-tirés (`src/hote/groupe.ts:83`, `src/data/pregens.json`), onglets Pré-tirés et Mes personnages,
   « Créer un personnage », « Importer un personnage… » (`groupe.ts:89`), « Recruter », « Renvoyer », « Lancer » ;
   campagnes (`groupe.ts:91-93`, `src/scenes/campaign.ts:171-182`) et campagne publiée (`src/hote/bibliotheque.ts`).
-- À valider : cinq voyageurs visibles à la fois ; espèce absente de l'étiquette ; Supprimer et Exporter du roster non
-  dessinés ; textes ajoutés (« La Compagnie », « Place libre ») ; nom de campagne publiée d'exemple.
+- État `roster` (`nouvelle-partie-roster`) : onglet « Mes personnages » ; sous « Recruter » du personnage pointé, deux
+  pastilles « Exporter » et « Supprimer » (`{roster:{exporter}}`, `{roster:{retirer}}`, `src/hote/groupe.ts:86-90`).
+- État `coop` (`nouvelle-partie-coop`) : la « Place libre » porte le choix de son siège
+  (`affecterLEmplacementAuSiege(emplacement, siege)`, `src/noyau/sieges.ts:143` ; refus « Cet emplacement est déjà
+  occupé. », « Ce siège n’est pas à la table. »), décidé par l'hôte seul.
+- Dans ces deux états, « Modifier » à côté de « Renvoyer » ouvre la création sur le héros. Verbe à modifier :
+  `{creation:{geste:'ouvrir', args:[heroId?]}}` (brouillon de `draftFromHero`, `src/noyau/creation/brouillon.ts:227`) ;
+  l'engagement émet déjà `remplacerLeHeros(heroId, heros)`.
+- À valider : cinq voyageurs visibles à la fois ; espèce absente de l'étiquette ; « Modifier » vaut pour tout
+  l'écran, l'image de base est laissée telle quelle ; noms de personnages et de joueurs d'exemple ; textes ajoutés
+  (« La Compagnie », « Place libre », « Siège ») ; nom de campagne publiée d'exemple.
 
 ## sauvegardes
 - Quatre feuillets sur la table, l'automatique d'abord : ce que la sauvegarde porte, rien d'autre (lieu en
   gothique, date impériale, heure réelle : `src/noyau/persistance/save.ts:26-34`) ; avis de retrait scellé.
 - Entrées : emplacements (`src/hote/sauvegardes.ts:32-34`, `:139`), Charger si plein (`:146`), Sauvegarder sur les
   manuels (`:147`), avis de retrait (`:153`).
-- À valider : états sans partie et sauvegarde refusée non dessinés.
+- État `combat` (`sauvegardes-combat`) : chaque « Sauvegarder » fermé, « Impossible de sauvegarder en plein combat. »
+  au survol (`MESSAGE_DU_REFUS`, `src/hote/sauvegardes.ts`) ; chez l'invité, « Seul l’hôte de la partie sauvegarde. ».
+- À valider : état sans partie non dessiné.
 
 ## menu-de-la-partie
 - Le jeu flouté et assombri ; la colonne de l'accueil : Sauvegardes, Options, Jouer en ligne, Quitter la partie
@@ -49,8 +60,14 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   son compte), douze règles par feuillet ; l'aide se déplie sur la règle pointée ; une règle modifiée passe au rouge
   avec « Défaut » (`src/hote/reglages.ts:59-92`, `docs/regles-optionnelles.md`).
 - À valider : un signet par domaine ; douze règles par feuillet ; libellés lisibles des options de liste (le jeu
-  montre les ids) ; volumes en pourcentage ; règles verrouillées en combat non dessinées ; action « Regagner la
-  Chance » de la règle `chance-en-cours-de-session` (signet « Destin & Résistance », non ouvert ici).
+  montre les ids) ; volumes en pourcentage.
+- État `verrou` (`options-verrou`) : en combat, chaque contrôle de règle est fermé ; la raison du noyau au survol
+  (`houseRules.lockedInBattle`, `src/hote/reglages.ts:81-82`) ; chez l'invité, « L’hôte règle les règles maison. ».
+  Les préférences restent ouvertes.
+- État `chance` (`options-chance`) : signet « Destin & Résistance », règle `chance-en-cours-de-session` sur `manual`
+  (`src/data/reglesOptionnelles.json:128-147` ; LDB 17 l.47) et sa plaque « Regagner la Chance maintenant »
+  (`restaurerLaFortune()`). Besoin : `zonesDesReglages` sert `OptionalRule.action` en bouton quand la règle vaut
+  `action.when`. Les valeurs `off | manual | auto` sont celles que le noyau sert en libellé (`reglages.ts:62`).
 
 ## ouverture-de-chapitre
 - Carton plein écran : l'auberge-relais, les deux lunes, la diligence ; sur-titre, titre, tome, chapitre sur toile

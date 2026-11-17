@@ -1,9 +1,10 @@
 /* L'événement de route et son issue (cible écrite `ecrites/voyage.md`, « L'événement de route »). La péripétie
    « Voyage éreintant ! » : LDB 51 l.215 ; `src/noyau/travelFlow.ts:1418`. Le Test s'ouvre au bandeau du jet, le testeur
-   s'y désigne. */
+   s'y désigne ; échoué, il s'y relance (LDB 17 l.23). Cadence : `src/noyau/voyageEnVue.ts:56`, `ecran.cadence.*`. */
 const ETAT = document.getElementById('ecran').dataset.etat;
 poser(interieur(D.route({ pont: true })));
-if (ETAT === 'evenement-de-route') assombrir();
+const ROULE = ETAT === 'evenement-de-route-issue';
+if (!ROULE) assombrir();
 fermer();
 const vignette = `<svg viewBox="0 0 250 250"><rect width="250" height="250" fill="#d8c493"/><g opacity=".35">${V.monts(150, 70, '#5c4326', 3, 40, 250).replace('780L0 780', '250L0 250')}</g>
   ${V.sapins(0, 250, 168, 60, '#2a1d12', 6, 16)}<rect y="165" width="250" height="85" fill="#2a1d12"/>
@@ -11,9 +12,9 @@ const vignette = `<svg viewBox="0 0 250 250"><rect width="250" height="250" fill
   <path d="M40 232c60-10 130-10 190 0M60 242c50-8 100-8 150 0" stroke="#8c7446" stroke-width="2" fill="none"/>
   <circle cx="196" cy="54" r="20" fill="#9c2a1a" opacity=".85"/></svg>`;
 const pieces = [];
-pieces.push(temps({ jour: 'Marktag', date: '14 Pflugzeit · 2ᵉ jour de route', meteo: 'Crépuscule, temps sec' }));
+pieces.push(temps({ jour: 'Marktag', date: '14 Pflugzeit · 2ᵉ jour de route', meteo: 'Crépuscule, temps sec', cadence: ROULE ? 'jourParJour' : null }));
 pieces.push(carteDuTrajet({ titre: 'La route d’Altdorf', de: 'Sept Rayons', vers: 'Altdorf', part: .55 }));
-if (ETAT === 'evenement-de-route') {
+if (!ROULE) {
   pieces.push(`<div id="evenement" class="cadre bois court" data-piece="evenement"><div class="fond parchemin">
     <div class="vignette">${vignette}</div>
     <div class="corps"><div class="tete"><h2 data-texte="titre de l'événement">Voyage éreintant !</h2><span class="rubrique">Sur la route d’Altdorf · 2ᵉ jour</span></div>
@@ -21,9 +22,16 @@ if (ETAT === 'evenement-de-route') {
     </div><div class="sceau de"><b>4</b><i>d10</i></div>
   </div><div class="ruban gothique">Péripétie de la route</div>${ferrures}</div>`);
   const bjorn = HEROS.find((h) => h.id === 'bjorn');
-  pieces.push(bandeauDuJet('Test de Survie en extérieur', '', `
-    ${camp({ portrait: portrait('bjorn'), nom: 'Bjorn', carac: 'Survie en extérieur', seuil: 61, modif: 'Accessible (+20)', sous: testeurs(HEROS.map((h) => portrait(h.id))) })}
-    ${reglages('Voyage éreintant ! · 2ᵉ jour de route', '<div class="dr gothique">Test simple</div><p>Sinon tout le monde arrive un jour plus tard avec un État Exténué.</p>')}
+  const BJORN = { portrait: portrait('bjorn'), nom: 'Bjorn', carac: 'Survie en extérieur', seuil: 61, modif: 'Accessible (+20)' };
+  const SOUS = 'Voyage éreintant ! · 2ᵉ jour de route', SINON = 'Sinon tout le monde arrive un jour plus tard avec un État Exténué.';
+  pieces.push(ETAT === 'evenement-de-route-echec'
+    ? bandeauDuJet('Test de Survie en extérieur', '', `
+    ${camp({ ...BJORN, des: ['70', '8'], total: 78, dr: '−1' })}
+    ${verdict(SOUS, 'DR −1', SINON)}
+    <div></div>`, apresLeDe({ heros: bjorn, echec: true }))
+    : bandeauDuJet('Test de Survie en extérieur', '', `
+    ${camp({ ...BJORN, sous: testeurs(HEROS.map((h) => portrait(h.id))) })}
+    ${reglages(SOUS, `<div class="dr gothique">Test simple</div><p>${SINON}</p>`)}
     <div></div>`, avantLeDe({ heros: bjorn })));
 } else {
   pieces.push(recit('Sur la route d’Altdorf · Voyage éreintant !', 'Le pont a cédé sous la crue. Bjorn trouve un gué en amont, et la diligence repasse la rivière avant la nuit.').replace('id="recit"', 'id="recit" class="route"'));
@@ -38,4 +46,4 @@ if (ETAT === 'evenement-de-route') {
 }
 pieces.push(coins());
 monter(pieces);
-if (ETAT === 'evenement-de-route') clouer(document.getElementById('jet'));
+if (!ROULE) clouer(document.getElementById('jet'));

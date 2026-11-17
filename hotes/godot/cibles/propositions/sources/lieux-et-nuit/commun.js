@@ -1,19 +1,8 @@
 /* Socle commun des images d'intention (#3935), né avec « lieux et nuit » : matières, pictogrammes, portraits,
    bandeau des héros, postes, silhouettes de décor. Se charge après `../gestes.js` et `bustes.js`. Maquette hors du jeu. */
-const NS = 'http://www.w3.org/2000/svg';
-const W = 1707, H = 780;
-const el = (hote, tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; hote.appendChild(e); return e; };
-const alea = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-const melange = (c1, c2, t) => { const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)); const a = p(c1), b = p(c2); return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
-const svgUrl = (s) => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
 
-document.documentElement.style.setProperty('--tex-bois', svgUrl(`<svg xmlns='${NS}' width='600' height='300'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.22' numOctaves='4' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.42  0 0 0 0 0.30  0.9 0.9 0.9 0 -0.75'/></filter><rect width='100%' height='100%' fill='#c9a57a'/><rect width='100%' height='100%' filter='url(#f)'/></svg>`));
-document.documentElement.style.setProperty('--tex-parchemin', svgUrl(`<svg xmlns='${NS}' width='500' height='400'><filter id='a' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.32  0 0 0 0 0.16  0.9 0.9 0.9 0 -0.95'/></filter><filter id='b' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='5' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.12  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' fill='#fff'/><rect width='100%' height='100%' filter='url(#a)'/><rect width='100%' height='100%' filter='url(#b)'/></svg>`));
 
 /* ───────── le décor : outils de dessin ───────── */
-const S = document.getElementById('scene');
-const defs = el(S, 'defs');
-const grad = (id, stops, attrs = { x1: 0, y1: 0, x2: 0, y2: 1 }, type = 'linearGradient') => { const g = el(defs, type, { id, ...attrs }); stops.forEach(([o, c, a]) => el(g, 'stop', { offset: o, 'stop-color': c, 'stop-opacity': a ?? 1 })); return g; };
 const radial = (id, stops, attrs = { cx: .5, cy: .5, r: .5 }) => grad(id, stops, attrs, 'radialGradient');
 const flou = (id, d) => { const f = el(defs, 'filter', { id, x: '-40%', y: '-40%', width: '180%', height: '180%' }); el(f, 'feGaussianBlur', { stdDeviation: d }); };
 flou('f1', 0.8); flou('f2', 2); flou('f4', 4); flou('f8', 8); flou('f18', 18);
@@ -75,7 +64,6 @@ const BUSTES = {
 };
 const portrait = (genre, { classe = '', style = '' } = {}) => `<div class="portrait ${BUSTES_PNJ.has(genre) ? 'pnj fer' : 'laiton'} ${classe}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" fill="${BUSTES_PNJ.has(genre) ? '#14100c' : '#2a1f17'}">${BUSTES[genre]}</svg></div></div>`;
 const BUSTES_PNJ = new Set(['hote', 'docteur', 'brasseur', 'batelier', 'cocher']);
-const ferrures = '<i class="ferrure hg"></i><i class="ferrure hd"></i><i class="ferrure bg"></i><i class="ferrure bd"></i>';
 const picto = (nom, taille = 22, couleur = '#e2c06a', trait = 1.6) => `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="${couleur}" stroke-width="${trait}" stroke-linecap="round" stroke-linejoin="round">${PICTOS[nom]}</svg>`;
 const PICTOS = {
   journal: '<path d="M4 5c3-1.200 5.500-1.200 8 0v14c-2.500-1.200-5-1.200-8 0zM20 5c-3-1.200-5.500-1.200-8 0v14c2.500-1.200 5-1.200 8 0z"/>',
@@ -120,6 +108,7 @@ const PICTOS = {
   croix: '<path d="M6 6l12 12M18 6L6 18"/>',
   goutte: '<path d="M12 4c3 4 5 6.500 5 9.500a5 5 0 0 1-10 0C7 10.500 9 8 12 4z"/>',
   botte: '<path d="M9 3v9.500l-4 3.500v4h14v-2.500c0-2-2.500-3-6-3.500V3zM9 7h4M9 10.500h4M5 17.500h14"/>',
+  reseau: '<circle cx="6" cy="12" r="2.500"/><circle cx="18" cy="6" r="2.500"/><circle cx="18" cy="18" r="2.500"/><path d="M8.200 10.900l7.600-3.800M8.200 13.100l7.600 3.800"/>',
   roue: '<circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="2"/><path d="M12 3.500v6.500M12 14v6.500M3.500 12H10M14 12h6.500M6 6l4.500 4.500M13.500 13.500L18 18M6 18l4.500-4.500M13.500 10.500L18 6"/>',
 };
 const rond = (nom, taille, { ferme = false, couleur } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'}"><div>${picto(nom, taille, couleur ?? (ferme ? '#7d7668' : '#e2c06a'))}</div></div>`;
@@ -139,6 +128,14 @@ const bandeau = (dits = {}, { bourses = false } = {}) => `<div id="bandeau" clas
       ${d.html ?? ''}
     </div>
   </div>`; }).join('')}</div>${ferrures}</div>`;
+/* le rail des services d'un lieu : services = [icône, nom, armé] */
+const rail = (ruban, services, pied) => `<div id="rail" class="cadre bois" data-piece="services"><div class="fond bois">
+  ${services.map(([i, n, a]) => plaque(n, { icone: i, armee: !!a })).join('')}
+  <div class="pied rubrique">${pied}</div>
+</div><div class="ruban rubrique">${ruban}</div>${ferrures}</div>`;
+/* un choix parmi quelques valeurs nommées : la valeur tenue est dorée */
+const segments = (options, la) => `<span class="segments">${options.map((o) => `<b class="${o === la ? 'la' : ''}">${o}</b>`).join('')}</span>`;
+const ouiNon = (v) => `<span class="oui-non"><b class="${v ? '' : 'la'}">Non</b><b class="${v ? 'la' : ''}">Oui</b></span>`;
 const coins = () => `<div id="coins" data-piece="coins">${rond('journal', 23)}${rond('systeme', 23)}</div>`;
 /* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus */
 const poste = (cx, y, { nom, sous, icone, heros = [], ferme = false, vise = false, plus = false }) => { const tenants = [heros].flat(); return `<div class="poste ${tenants.length ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}" style="left:${cx - 80}px;top:${y}px">
@@ -151,4 +148,4 @@ const monter = (pieces) => {
   document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay';
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { alea, melange, rims, sapin, perso, flammes, fermer, plaque, titre, bandeau, coins, poste, monter });
+Object.assign(globalThis, { rims, sapin, perso, flammes, fermer, plaque, titre, bandeau, rail, segments, ouiNon, coins, poste, monter });

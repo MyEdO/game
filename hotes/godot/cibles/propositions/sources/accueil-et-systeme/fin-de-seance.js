@@ -8,7 +8,7 @@ const feuillet = (h) => { const f = SEANCE[h.id]; return `
     <div class="tete">${portrait(h.id)}<div class="qui"><div class="n gothique" data-texte="héros ${h.nom}">${h.nom}</div><div class="c rubrique">${h.car}</div></div>${gainDuHeros(h.id)}</div>
     ${bloc('Motivation', `Détermination ${h.determination} / ${h.resilience}`, `${ecrit(f.motivation)}${cochable('A agi selon sa Motivation', '+1 Détermination', f.coches.motivation)}`)}
     ${bloc('Ambition à court terme', '', `${ecrit(f.courte, 'Aucune Ambition à court terme notée')}${cochable('Ambition à court terme accomplie', `+${PX_D_AMBITION.courte} PX`, f.coches.courte)}
-      ${f.coches.courte ? `<div class="champ">${picto('plume', 15, '#5a2a12', 1.7)}<em>Nouvelle Ambition à court terme</em><i></i></div>` : ''}`)}
+      ${f.coches.courte ? `<div class="nouvelle-ambition">${picto('plume', 15, '#5a2a12', 1.7)}<em>Nouvelle Ambition à court terme</em><i></i></div>` : ''}`)}
     ${bloc('Ambition à long terme', '', `${ecrit(f.longue, 'Aucune Ambition à long terme notée')}${cochable('Ambition à long terme accomplie', `+${PX_D_AMBITION.longue} PX`, f.coches.longue)}`)}
   </div>${ferrures}</div>`; };
 el(S, 'rect', { width: W, height: H, fill: '#04030a', opacity: .38 });

@@ -1,5 +1,7 @@
 /* La carte du monde : le Reikland à l'encre, les seuls lieux que le groupe connaît, le trajet choisi et ce qu'il
-   coûte. Images d'intention (#3935), maquette hors du jeu. */
+   coûte. « carte-du-monde-depart-de-nuit » : le départ pressé de nuit, que la porte de départ diffère à l'aube.
+   Images d'intention (#3935, #4411), maquette hors du jeu. */
+const NUIT = document.getElementById('ecran').dataset.etat === 'carte-du-monde-depart-de-nuit';
 const CW = 1225, CH = 572;
 const LIEUX = [
   { id: 'diligence', x: 318, y: 389, icone: 'lit', nom: 'Auberge La Diligence', quoi: 'Le groupe est ici', ici: true, sous: true },
@@ -8,19 +10,26 @@ const LIEUX = [
   { id: 'altdorf', x: 882, y: 149, icone: 'ville', nom: 'Altdorf', quoi: 'Capitale de l’Empire · 190 km', choisi: true },
 ];
 const pieces = [];
-pieces.push(titre({ icone: 'carte', nom: 'Le Reikland', sous: 'Carte du monde · lieux connus du groupe', largeur: 400 }));
+pieces.push(titre({ icone: 'carte', nom: 'Le Reikland', sous: `Carte du monde · ${NUIT ? 'la nuit' : 'lieux connus du groupe'}`, largeur: 400 }));
 const etape = (nom, ici) => `<div class="e ${ici ? 'ici' : ''}"><i></i><span class="rubrique">${nom}</span></div>`, troncon = (km) => `<div class="t"><u></u><span class="lin">${km} km</span></div>`;
 pieces.push(`<div id="trajet" class="cadre bois" data-piece="trajet"><div class="fond bois">
   <h3 data-texte="destination">Altdorf</h3><div class="s rubrique">Par la grand-route · 190 km</div>
   <p data-texte="prose du lieu">Les murs blancs d’Altdorf, capitale de l’Empire, la plus grande et la plus riche de ses cités.</p>
   <div class="etapes">${etape('La Diligence', true)}${troncon(75)}${etape('Les Sept Rayons')}${troncon(115)}${etape('Altdorf')}</div>
-  <div class="moyen pris">${medaillon('roue', { petit: true })}<div class="q"><b>En diligence</b><span class="c rubrique">2 jours · une nuit à l’auberge</span></div><div class="px lin">4/– dehors<br>8/– dedans<small>par tête</small></div></div>
-  <div class="moyen">${medaillon('botte', { petit: true })}<div class="q"><b>À pied</b><span class="c rubrique">6 jours · cinq nuits en route</span></div><div class="px lin">sans frais</div></div>
-  ${plaque('Prendre la route', { armee: true, icone: 'route', classe: 'partir' })}
+  <div class="moyen ${NUIT ? '' : 'pris'}">${medaillon('roue', { petit: true })}<div class="q"><b>En diligence</b><span class="c rubrique">2 jours · une nuit à l’auberge</span></div><div class="px lin">4/– dehors<br>8/– dedans<small>par tête</small></div></div>
+  <div class="moyen ${NUIT ? 'pris' : ''}">${medaillon('botte', { petit: true })}<div class="q"><b>À pied</b><span class="c rubrique">6 jours · cinq nuits en route</span></div><div class="px lin">sans frais</div></div>
+  ${plaque('Prendre la route', { armee: !NUIT, fermee: NUIT, icone: 'route', classe: 'partir' })}
 </div><div class="ruban rubrique">Destination</div>${ferrures}</div>`);
 pieces.push(`<div id="carte" class="cadre bois" data-piece="carte"><div class="fond parchemin"><svg viewBox="0 0 ${CW} ${CH}" preserveAspectRatio="none"></svg>
   ${LIEUX.filter((l) => !l.etape).map((l) => `<div class="lieu bois ${l.choisi ? 'choisi' : ''} ${l.sous ? 'sous' : ''}" style="left:${l.x}px;top:${l.y}px">${medaillon(l.icone, { petit: true, taille: 17 })}<div><b>${l.nom}</b><span class="rubrique">${l.quoi}</span></div>${l.ici ? `<div class="ici">${HEROS.map((h) => portrait(h.id)).join('')}</div>` : ''}</div>`).join('')}
 </div>${ferrures}</div>`);
+/* #340, règle maison `voyage-heure-de-depart` ; `fenetreValider('depart')`, `fenetreFermer('depart')`
+   (`src/noyau/modalArbiter.ts:362`, `src/noyau/travelFlow.ts:303-329`) ; `wm.departDeNuit`, `wm.nuitTombee`,
+   `verbe.depart.valider`, `verbe.depart.fermer` (`src/i18n/messages/fr.ts:3605-3606`, `:286`, `:301`) */
+if (NUIT) pieces.push(`<div id="depart" class="apercu parchemin vers-droite" style="left:450px;top:262px;width:296px;--pointe:148px">
+  <div class="tete"><span class="n gothique">Départ de nuit</span></div>
+  <p data-texte="départ de nuit">La nuit est tombée — un voyage à pied ne s’ébranle qu’au grand jour. Prochain départ possible à l’aube (6 h).</p>
+  <div class="gestes">${plaque('Attendre l’aube', { armee: true, icone: 'sommeil' })}${plaque('Rester')}</div></div>`);
 pieces.push(bandeau({}, { bourses: true }));
 pieces.push(retour('Revenir à l’auberge', 'porte'), coins());
 monter(pieces);

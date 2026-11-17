@@ -44,10 +44,7 @@
 .porteur span{display:block;font-size:12px;color:#4a3420;white-space:nowrap;margin:1px 0 5px}
 .quantite{display:flex;align-items:center;gap:12px}
 .quantite .bouton-rond{width:30px;height:30px;padding:2px}
-.quantite .reglette{position:relative;flex:1;height:18px}
-.quantite .reglette::before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;border-radius:2px;background:rgba(60,40,20,.5);box-shadow:inset 0 1px 1px rgba(0,0,0,.5)}
-.quantite .reglette u{position:absolute;left:0;top:8px;height:3px;border-radius:2px;background:#7c1f14}
-.quantite .reglette i{position:absolute;top:3px;width:12px;height:12px;margin-left:-6px;transform:rotate(45deg);background:linear-gradient(135deg,#f3dc93,#a8842f);box-shadow:0 0 0 1px #2a1a08,0 1px 3px rgba(0,0,0,.6)}
+.quantite .reglette{flex:1}
 .quantite .val{flex:none;width:86px;text-align:right;font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:26px;color:#3a1a10;white-space:nowrap}
 .quantite .bornes{display:flex;justify-content:space-between;font-size:11px;color:#5a4530;margin-top:1px}
 #page .compte td:first-child span{font-size:11.5px;color:#5a4530;margin-left:6px}
@@ -112,3 +109,23 @@
 #page .qui-paie .rubrique{font-size:12px;color:#6b1c10}
 #page[data-piece="chargement"] .filet{margin:8px 0}
 #page .qui-paie .part .moins-plus b{min-width:98px}
+
+/* les pages du port : lignes à choisir ou à régler, travaux du chantier */
+#page .lignes{display:flex;flex-direction:column;margin-top:9px}
+.ligne{display:grid;grid-template-columns:auto 1fr 84px 96px;align-items:center;column-gap:10px;height:27px;padding:0 8px;border-top:1px solid rgba(60,40,20,.28);font-size:13.5px;color:#2a1d12;white-space:nowrap}
+.ligne b{font-family:"Grenze Gotisch";font-weight:600;font-size:17.5px;letter-spacing:.3px}
+.ligne .c{font-size:12px;color:#5a4530}
+.ligne .px{text-align:right;font-weight:600}
+.ligne .n{text-align:right;font-weight:600}
+.ligne .moins-plus{justify-content:flex-end}
+.ligne .moins-plus b{min-width:34px;text-align:center;font-family:"Lineale","Open Sans",sans-serif;font-size:13.5px;letter-spacing:.2px}
+.ligne.prise{border:2px solid #a8842f;border-radius:3px;background:rgba(255,240,190,.5);box-shadow:0 0 0 1px rgba(60,40,10,.6),0 2px 6px rgba(60,35,5,.35);padding:0 6px}
+.ligne.prise+.ligne{border-top:0}
+#page .regle{margin-top:8px;font-size:12.5px;line-height:16px}
+.combien{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.combien .r{margin:0 !important}
+.combien .moins-plus b{min-width:34px;text-align:center;font-size:15px;font-weight:600}
+#page .deux{display:flex;gap:8px}
+#page .deux .plaque{flex:1}
+.lot.ferme{opacity:.5}
+#page[data-piece="chantier"] .voies .soin{padding-top:6px;padding-bottom:6px}
