@@ -106,10 +106,9 @@ ARETE = 0.08
 CUVETTE = (0.82, 0.55, 0.25)
 """Les anneaux du creux d'une assise, chacun la part du contour de l'assise qu'il garde."""
 
-# Profil d'un pied carré à chanfreins arrêtés, du sol à la tête : (part de la longueur, part du demi-côté, chanfrein en
-# fraction du demi-côté).
-PIED_CARRE = ((0.0, 0.86, 0.08), (0.02, 1.0, 0.08), (0.30, 1.0, 0.08), (0.36, 1.0, 0.38), (0.72, 1.0, 0.38), (0.78, 1.0, 0.08),
-              (1.0, 1.0, 0.08))
+# Profil d'un pied carré à chanfreins arrêtés, du sol à la tête (`geometrie.profilee`).
+PIED_CARRE = ((0.0, 0.86, 0.86, 0.08), (0.02, 1.0, 1.0, 0.08), (0.30, 1.0, 1.0, 0.08), (0.36, 1.0, 1.0, 0.38),
+              (0.72, 1.0, 1.0, 0.38), (0.78, 1.0, 1.0, 0.08), (1.0, 1.0, 1.0, 0.08))
 
 # Plateau de planches jointes (`modele.plateau`) : `planches` : nombre ; `largeurs` : part de chacune, tirée ; `bouts` :
 # retrait d'un bout (fraction de la demi-largeur du plateau, tiré jusqu'à cette borne) ; `affleurement` : ce dont une
@@ -193,8 +192,9 @@ CHAISE = {
     "pied": {"cotes": 10,
              "profil": ((0.0, 0.58), (0.03, 0.74), (0.09, 0.62), (0.13, 0.92), (0.17, 0.62), (0.30, 0.86), (0.44, 0.94), (0.52, 0.70),
                         (0.56, 0.92), (0.60, 0.70), (0.86, 0.96), (0.95, 0.80), (1.0, 0.80))},
-    "montant": ((0.0, 0.84, 0.10), (0.02, 1.0, 0.10), (0.10, 1.0, 0.10), (0.14, 1.0, 0.40), (0.37, 1.0, 0.40), (0.41, 1.0, 0.10),
-                (0.965, 1.0, 0.10), (0.985, 0.90, 0.30), (1.0, 0.55, 0.30)),
+    "montant": ((0.0, 0.84, 0.84, 0.10), (0.02, 1.0, 1.0, 0.10), (0.10, 1.0, 1.0, 0.10), (0.14, 1.0, 1.0, 0.40),
+                (0.37, 1.0, 1.0, 0.40), (0.41, 1.0, 1.0, 0.10), (0.965, 1.0, 1.0, 0.10), (0.985, 0.90, 0.90, 0.30),
+                (1.0, 0.55, 0.55, 0.30)),
     "barreaux": {"rayon": 0.95, "cotes": 6, "profil": ((0.0, 0.70), (0.25, 1.0), (0.44, 0.80), (0.50, 1.15), (0.56, 0.80), (0.75, 1.0), (1.0, 0.70)),
                  "cotes_h": 0.52, "arriere_h": 0.36},
     "dossier": {"epaisseur": 0.50, "lattes": (-2, 0, 2), "latte": (0.85, 0.36), "cintre": 0.85, "stations": 7},
@@ -216,7 +216,7 @@ CHAISE = {
 BUREAU = {
     "plateau": 0, "caisson": 1, "tiroirs": (2, -3), "pieds": (-3, -2), "traverse": -1, **PLANCHES,
     "pied": {"cote": 0.92, "profil": PIED_CARRE},
-    "poteau": ((0.0, 0.84, 0.08), (0.03, 1.0, 0.08), (1.0, 1.0, 0.08)),
+    "poteau": ((0.0, 0.84, 0.84, 0.08), (0.03, 1.0, 1.0, 0.08), (1.0, 1.0, 1.0, 0.08)),
     "ceinture": {"hauteur": 1.3, "epaisseur": 0.30, "retrait": 0.22},
     "cheville": 0.20,
     "entretoise": (0.9, 0.8),
@@ -274,7 +274,8 @@ ARMOIRE = {
 # caisse et du couvercle (fractions de la profondeur de la tablette), débord du couvercle, son chanfrein (en arêtes).
 ETAGERE = {
     "montants": (0, 1), "tablettes": (2, 3, 4), **PLANCHES, "planches": 3,
-    "poteau": {"cote": 0.82, "profil": ((0.0, 0.86, 0.08), (0.012, 1.0, 0.08), (0.975, 1.0, 0.08), (0.988, 0.85, 0.25), (1.0, 0.45, 0.25))},
+    "poteau": {"cote": 0.82, "profil": ((0.0, 0.86, 0.86, 0.08), (0.012, 1.0, 1.0, 0.08), (0.975, 1.0, 1.0, 0.08),
+                                        (0.988, 0.85, 0.85, 0.25), (1.0, 0.45, 0.45, 0.25))},
     "traverse": (0.42, 0.85), "basse": 0.07,
     "cheville": 0.22,
     "croix": {"section": (0.16, 0.50), "marge": 0.06},
@@ -308,9 +309,11 @@ RABAT = {"arrondi": 0.40, "par_coin": 2, "profil": ((0.0, 0.0), (0.86, 0.0), (0.
 LIT = {
     "rangs": {"cadre": 0, "matelas": 1, "oreiller": 2, "couverture": 3, "chevet": 4},
     "poteau": 0.92,
-    "tete": ((0.0, 0.86, 0.08), (0.015, 1.0, 0.08), (0.46, 1.0, 0.08), (0.50, 1.0, 0.36), (0.88, 1.0, 0.36), (0.92, 1.0, 0.08),
-             (0.97, 1.0, 0.08), (0.985, 0.88, 0.25), (1.0, 0.50, 0.25)),
-    "pied": ((0.0, 0.86, 0.08), (0.035, 1.0, 0.08), (0.93, 1.0, 0.08), (0.965, 0.88, 0.25), (1.0, 0.50, 0.25)),
+    "tete": ((0.0, 0.86, 0.86, 0.08), (0.015, 1.0, 1.0, 0.08), (0.46, 1.0, 1.0, 0.08), (0.50, 1.0, 1.0, 0.36),
+             (0.88, 1.0, 1.0, 0.36), (0.92, 1.0, 1.0, 0.08), (0.97, 1.0, 1.0, 0.08), (0.985, 0.88, 0.88, 0.25),
+             (1.0, 0.50, 0.50, 0.25)),
+    "pied": ((0.0, 0.86, 0.86, 0.08), (0.035, 1.0, 1.0, 0.08), (0.93, 1.0, 1.0, 0.08), (0.965, 0.88, 0.88, 0.25),
+             (1.0, 0.50, 0.50, 0.25)),
     "longeron": {"hauteur": 0.66, "demi": 0.27, "epaisseur": 0.40, "retrait": 0.18, "chevilles": (-0.5, 0.5)},
     "cheville": 0.20,
     "chevet": {"basse": 0.50, "haute": 0.905, "traverse": (1.0, 0.42), "panneaux": 3, "montant": (0.55, 0.42), "saillie": 0.30},

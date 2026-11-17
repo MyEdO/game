@@ -79,10 +79,6 @@ PLINTHE = ((0.0, 0.05, 0.05), (0.10, 0.0, 0.08), (0.60, 0.0, 0.08), (1.0, 0.32, 
 PAVE = ((0.0, 0.0, 0.03), (1.0, 0.0, 0.03))
 """Profil d'un bloc droit (`modele.dalle`)."""
 
-# Poteau à chanfreins arrêtés (`geometrie.profilee`) : (part de la longueur, part du demi-côté, chanfrein).
-POTEAU = ((0.0, 1.0, 0.08), (0.06, 1.0, 0.08), (0.10, 1.0, 0.30), (0.86, 1.0, 0.30), (0.90, 1.0, 0.08),
-          (1.0, 1.0, 0.08))
-
 # Puits : rangs du mur, des poteaux, de l'arbre du treuil, des versants, du seau et de la corde dans la recette.
 PUITS = {
     "mur": 0, "poteaux": (2, 3), "arbre": 4, "versants": (5, 6), "seau": 7, "corde": 8,

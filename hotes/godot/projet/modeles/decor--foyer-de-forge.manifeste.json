@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "foyer-de-forge"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "cuir",
+      "palette": "accent",
+      "matiere": "prop--cuir-tanne"
+    },
+    {
+      "nom": "braises",
+      "palette": "accent",
+      "matiere": "prop--braises"
+    }
+  ],
+  "glb": {
+    "sha256": "9ae62da7e829c5448d81dcccdb5ace91bbce8f8f8f01827f3d15e8c13e577553",
+    "octets": 251440
+  }
+}

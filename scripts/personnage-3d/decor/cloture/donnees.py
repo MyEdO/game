@@ -54,8 +54,7 @@ CLOU = (0.075, 0.04)
 REFENDUE = {"stations": 7, "section": (0.60, 0.94), "ecart": 0.06, "chanfrein": (0.22, 0.60)}
 
 # Barrière : rang des poteaux et des lisses, la basse puis la haute, dans la recette.
-# `poteau` : demi-côté (fraction de celui de la primitive) et profil (part de la longueur, part du demi-côté,
-# chanfrein en fraction du demi-côté).
+# `poteau` : demi-côté (fraction de celui de la primitive) et profil (`geometrie.profilee`).
 # `cheville` : rayon (fraction du demi-côté du poteau).
 # `echarpe`, `montant` : demi-épaisseur (fraction de la demi-épaisseur d'une lisse), demi-largeur (fraction de la
 # demi-hauteur d'une lisse) ; `pose` : distance de leur face de pose à l'axe des lisses (fraction de la demi-épaisseur
@@ -65,9 +64,10 @@ REFENDUE = {"stations": 7, "section": (0.60, 0.94), "ecart": 0.06, "chanfrein": 
 BARRIERE = {
     "poteaux": (0, 1), "lisses": (2, 3),
     "poteau": {"cote": 0.90,
-               "profil": ((0.0, 0.88, 0.08), (0.02, 1.0, 0.08), (0.07, 1.0, 0.08), (0.10, 1.0, 0.36), (0.33, 1.0, 0.36),
-                          (0.36, 1.0, 0.08), (0.50, 1.0, 0.08), (0.53, 1.0, 0.36), (0.73, 1.0, 0.36), (0.76, 1.0, 0.08),
-                          (0.93, 1.0, 0.08), (1.0, 0.30, 0.08))},
+               "profil": ((0.0, 0.88, 0.88, 0.08), (0.02, 1.0, 1.0, 0.08), (0.07, 1.0, 1.0, 0.08),
+                          (0.10, 1.0, 1.0, 0.36), (0.33, 1.0, 1.0, 0.36), (0.36, 1.0, 1.0, 0.08),
+                          (0.50, 1.0, 1.0, 0.08), (0.53, 1.0, 1.0, 0.36), (0.73, 1.0, 1.0, 0.36),
+                          (0.76, 1.0, 1.0, 0.08), (0.93, 1.0, 1.0, 0.08), (1.0, 0.30, 0.30, 0.08))},
     "cheville": 0.20,
     "pose": 0.70,
     "echarpe": {"section": (0.34, 0.85), "portee": 0.84, "chevilles": (0.035, 0.965)},
@@ -128,8 +128,8 @@ BALUSTRADE = {
                  "profil": ((0.0, 1.0), (0.06, 1.0), (0.08, 0.62), (0.16, 0.55), (0.32, 0.98), (0.46, 0.86),
                             (0.76, 0.42), (0.86, 0.50), (0.89, 0.95), (1.0, 0.95))},
     "poteau": {"cote": 0.97,
-               "profil": ((0.0, 1.0, 0.08), (0.14, 1.0, 0.08), (0.18, 1.0, 0.34), (0.84, 1.0, 0.34), (0.88, 1.0, 0.08),
-                          (1.0, 1.0, 0.08))},
+               "profil": ((0.0, 1.0, 1.0, 0.08), (0.14, 1.0, 1.0, 0.08), (0.18, 1.0, 1.0, 0.34), (0.84, 1.0, 1.0, 0.34),
+                          (0.88, 1.0, 1.0, 0.08), (1.0, 1.0, 1.0, 0.08))},
     "pommeau": {"rayon": 0.90, "cotes": 8,
                 "profil": ((0.0, 0.78), (0.12, 0.78), (0.20, 0.45), (0.30, 0.50), (0.45, 0.90), (0.62, 1.0),
                            (0.80, 0.85), (0.93, 0.50), (1.0, 0.15))},
@@ -149,8 +149,8 @@ BASTINGAGE = {
     "profil_serre": ((0.99, 0.0), (0.99, 0.52), (0.90, 0.78), (0.64, 1.0)),
     "profil_lisse": ((0.78, 0.0), (0.85, 0.18), (0.99, 0.30), (0.99, 0.60), (0.93, 0.84), (0.76, 1.0)),
     "jambette": {"cotes": (0.94, 0.97),
-                 "profil": ((0.0, 1.0, 0.08), (0.08, 1.0, 0.08), (0.12, 1.0, 0.30), (0.88, 1.0, 0.30),
-                            (0.92, 1.0, 0.08), (1.0, 1.0, 0.08))},
+                 "profil": ((0.0, 1.0, 1.0, 0.08), (0.08, 1.0, 1.0, 0.08), (0.12, 1.0, 1.0, 0.30),
+                            (0.88, 1.0, 1.0, 0.30), (0.92, 1.0, 1.0, 0.08), (1.0, 1.0, 1.0, 0.08))},
     "virures": {"nombre": 4, "ecart": 0.14, "epaisseur": (0.78, 0.98), "jour": 0.006, "chanfrein": 0.22},
     "gournable": {"rayon": 0.26, "deport": 0.40},
 }
