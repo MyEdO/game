@@ -48,7 +48,7 @@ Les trois suivantes sont destinées à la noblesse, et chacune bénéficie d'une
 
 
 
-### <span id="page-41-0" data-folio="40"></span>**L'AVENTURE**
+### <span id="page-39-0" data-folio="38"></span><span id="page-40-0" data-folio="39"></span><span id="page-41-0" data-folio="40"></span>**L'AVENTURE**
 
 L'aventure commence en début de soirée, lorsque les Personnages arrivent à l'Opéra.
 

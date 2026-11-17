@@ -45,7 +45,7 @@ Les écuries et une petite forge se dressent contre les murs intérieurs. Un mem
 
 
 
-<span id="page-58-0" data-folio="57"></span>La remise à calèche se trouve à côté des écuries. Étant donné le nombre de visiteurs qui ont besoin d'une écurie pour leurs chevaux, une zone a été délimitée entre les écuries et les jardins à la mode ; plusieurs carrosses y sont garés et leurs chevaux sont attachés en ligne, occupés à manger des bottes de foin.
+<span id="page-57-0" data-folio="56"></span><span id="page-58-0" data-folio="57"></span>La remise à calèche se trouve à côté des écuries. Étant donné le nombre de visiteurs qui ont besoin d'une écurie pour leurs chevaux, une zone a été délimitée entre les écuries et les jardins à la mode ; plusieurs carrosses y sont garés et leurs chevaux sont attachés en ligne, occupés à manger des bottes de foin.
 
 En face de l'écurie se trouve un bâtiment en pierre dédié aux plus grands plaisirs du Graf : la chasse et la fauconnerie. L'agitation actuelle a perturbé les faucons et les chiens, qui sont beaucoup plus bruyants que d'habitude.
 

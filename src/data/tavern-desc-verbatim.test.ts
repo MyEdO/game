@@ -16,6 +16,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { TAVERN_GAMES } from './index';
+import { stripSpans } from './source/decoupe';
 
 const CHAPITRE = 'Source/Warhammer v4 - Nuits agitees & dures journees/16 - JEUX DE TAVERNE.md';
 
@@ -28,7 +29,8 @@ function blocsDeJeu(): { brut: string[]; recolle: string[] } {
   const recolle: string[] = [];
   L.forEach((l, i) => {
     if (!l.startsWith('**Jeu :**')) return;
-    const tete = l.replace(/^\*\*Jeu :\*\* /, '');
+    // Une ancre de folio posée en fin de ligne (page suivante sans texte) n'est pas de la prose.
+    const tete = stripSpans(l).replace(/^\*\*Jeu :\*\* /, '');
     brut.push(tete);
     let suite = tete;
     for (let k = i + 1; k < L.length; k++) {

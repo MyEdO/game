@@ -332,7 +332,7 @@ En plus du personnel, 2d10 clients sont également des membres des Doigts Crochu
 
 Il est tout à fait possible que le premier aperçu que les Personnages aient des Piques Croisées soit sa cave, si l'entrée secrète qui donne sur les égouts et permet aux Doigts Crochus d'accéder aux cellules de la caserne a été découverte. Si ce n'est pas le cas, tout individu lié au milieu du crime pourra les orienter vers l'établissement. Ils entreront alors dans l'auberge par la porte principale, comme tous les autres clients.
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 #### **Un tour au bar**
 

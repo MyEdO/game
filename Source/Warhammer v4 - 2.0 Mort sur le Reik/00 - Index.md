@@ -15,7 +15,7 @@
 ---
 
 <span id="page-0-0" data-folio="1"></span>
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 <span id="page-1-0" data-folio="2"></span>
 # SOMMAIRE

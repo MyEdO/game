@@ -363,7 +363,7 @@ En années humaines, Tiasmara semble avoir la trentaine, mais elle a en réalit�
 
 ### LA MAIN POURPRE : RÉSUMÉ
 
-<span id="page-28-0" data-folio="26"></span>I
+<span id="page-27-0" data-folio="25"></span><span id="page-28-0" data-folio="26"></span>I
 
 Depuis leur arrivée à Altdorf dans *L'Ennemi dans l'Ombre*, les Personnages sont surveillés par des agents de la Main Pourpre. Les dirigeants de cette secte sont convaincus que l'un des Personnages est un membre de la Main Pourpre de haut rang, Kastor Lieberung, qui a récemment reçu un héritage conséquent. Malgré plusieurs tentatives de contact, « Lieberung » ne s'est pas montré enclin à remettre sa fortune aux dirigeants du culte, comme cela lui a été ordonné. En réalité, il n'y a aucun héritage, il s'agissait d'un mensonge raconté par un chasseur de primes pour tendre un piège aux cultistes, mais les dirigeants de la Main Pourpre ne le savent pas. Les Personnages eux-mêmes l'ont appris à leurs dépens lors de leur visite à Bögenhafen.
 

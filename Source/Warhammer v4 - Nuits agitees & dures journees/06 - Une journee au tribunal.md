@@ -18,7 +18,7 @@ La gravin Maria Ulrike et sa suite, qui inclut maintenant les Personnages, ont q
 
 
 
-### <span id="page-26-0" data-folio="25"></span>**Une aventure indépendante**
+### <span id="page-25-0" data-folio="24"></span><span id="page-26-0" data-folio="25"></span>**Une aventure indépendante**
 
 Si ce scénario est joué seul, les aventuriers peuvent se rendre au tribunal pour diverses raisons. Ils ont peut-être eu des problèmes juridiques à Kemperbad, ou dans l'un des villages ou des villes qui en dépendent, et ils doivent répondre aux accusations ou intenter une action en justice contre un PNJ. Ils peuvent avoir été engagés pour payer la caution d'un prisonnier, par exemple un extravagant jeune noble qui a contrarié le conseil de la ville, bien connu pour son manque d'humour, et doivent l'escorter sain et sauf jusqu'au domaine familial. Ils pourraient être chargés d'une mission moins respectable, comme faire évader un condamné à mort. La loi impériale est complexe, puissante et vaste, et offre d'innombrables façons de rendre difficile la vie d'un groupe d'aventuriers. Une fois que les Personnages sont là, tout ce dont vous avez besoin est de trouver une raison pour que la Gravin, un peu désespérée, décide d'embaucher l'un d'entre eux comme champion.
 
@@ -221,7 +221,7 @@ Les détails varient fortement : certains avancent que l'évasion a réussi, d'a
 
 prétendent que le mur
 
-manu mirof - emmanuel.mirof@gmail.com
+
 
 d'autres que l'explosion n'a causé aucun dégât. Certains disent que le condamné était un meurtrier, d'autres affirment que c'était un rançonneur et d'autres encore sont surs qu'il s'agissait d'une lavandière accusée de sorcellerie, qui s'est échappée grâce à un sort. C'est à vous de décider du résultat de la tentative d'évasion de Kappan, mais tout Personnage qui se trouvait dans la prison (voir *10h45*) peut aisément s'enfuir dans la confusion et rejoindre le groupe. Pendant ce temps, les deux champions s'avancent et le magistrat lâche son mouchoir à nouveau pour redémarrer le combat.
 

@@ -2247,6 +2247,7 @@ export const fr = {
   'cf.sortResiste': '{name} résiste à {spell} (Test opposé).',
   'cf.priereInterdite': '{spell} échoue automatiquement sur {name}.',
   'cf.incantationImparfaiteSansCible': '{label} : aucune cible à frapper.',
+  'cf.zoneSansCible': '{spell} : la zone ne touche personne.',
   'cf.immuniteAuDomaine': '{name} est immunisé aux Sorts de ce Domaine : {spell} est sans effet.',
   'cf.pousse': '{name} est repoussé de {m} m.',
   'cf.percuteUnObstacle': '{name} percute un obstacle (Dégâts = distance restante — arbitrage MJ).',

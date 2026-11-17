@@ -76,7 +76,7 @@ La gravin Maria Ulrike assiste au bal pour l'une des raisons suivantes, selon le
 
 
 
-### <span id="page-73-0" data-folio="72"></span>**Les invités**
+### <span id="page-72-0" data-folio="71"></span><span id="page-73-0" data-folio="72"></span>**Les invités**
 
 Au cours de l'aventure, les PNJ clés se promènent d'une pièce à l'autre au gré des événements, mais ont tendance à graviter autour de certains endroits. Si vous ne savez pas où se trouve un PNJ en particulier, consultez la liste suivante.
 

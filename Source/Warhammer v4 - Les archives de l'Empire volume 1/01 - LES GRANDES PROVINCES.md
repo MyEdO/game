@@ -467,7 +467,7 @@ Ostermark est située dans l'est du Talabecland, où l'autorité de l'Empire s'a
 
 Les habitants d'Ostermark sont généralement robustes, avec des cheveux bruns et une peau olivâtre, et leurs yeux bruns révèlent souvent une ascendance orientale de leurs ancêtres Ostagoths. Les hommes préfèrent porter de longues moustaches épaisses plutôt qu'une barbe, alors que les femmes portent leurs cheveux détachés lorsqu'elles sont célibataires, ou une longue tresse enroulée sur la nuque lorsqu'elles sont mariées. Les habitants de la Ligue honorent tous les dieux, mais tiennent Morr en plus haute estime. Les Ostermarkers organisent des festivités publiques avec des danses et des jeux qui peuvent sembler bizarres aux étrangers, avec des os, des voix étranges et une forte consommation d'alcool. Bechafen, ville principale et siège du chancelier, abrite cependant le plus grand temple sigmarite de l'est.
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 
 ## <span id="page-20-0" data-folio="20"></span>**TALABHEIM**

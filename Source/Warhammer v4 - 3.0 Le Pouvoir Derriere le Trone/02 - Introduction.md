@@ -58,7 +58,7 @@ L'intrigue de ce scénario est extrêmement complexe, et implique un grand nombr
 
 
 
-# <span id="page-8-0" data-folio="6"></span>CHAPITRE 1
+# <span id="page-7-0" data-folio="5"></span><span id="page-8-0" data-folio="6"></span>CHAPITRE 1
 
 À la fin de *Mort sur le Reik*, les Personnages viennent d'arriver à Altdorf et ont été engagés pour transporter une caisse vers Middenheim. La capitale, vaste et animée, offre de nombreuses tentations, mais ils doivent se dépêcher s'ils veulent livrer leur cargaison à temps et obtenir leur paiement.
 

@@ -313,7 +313,7 @@ Wasmeier contrôle 9 des 17 votes, ce qui lui assure la victoire, même si les a
 
 
 
-# <span id="page-159-0" data-folio="157"></span>**LE COLLÈGE ROYAL DE MUSIQUE**
+# <span id="page-158-0" data-folio="156"></span><span id="page-159-0" data-folio="157"></span>**LE COLLÈGE ROYAL DE MUSIQUE**
 
 | Jour      | Heure        | Spectacle                                                         |
 |-----------|--------------|-------------------------------------------------------------------|
@@ -385,4 +385,4 @@ POUR KARL
 
 *Tous mes vœux de santé et de bonheur,*
 
- *MM*
+ *MM*<span id="page-161-0" data-folio="159"></span><span id="page-162-0" data-folio="160"></span><span id="page-163-0" data-folio="161"></span><span id="page-166-0" data-folio="164"></span>

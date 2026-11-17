@@ -50,6 +50,14 @@ export const icons: IconFamily = [
       `<path ${KF} d="M10.5 5.8 C11.1 5.2 11.6 5.2 11.9 5.7 M11.9 5.7 C12.2 5.2 12.7 5.2 13.3 5.8"/>`,
   },
   {
+    id: 'navigation/atelier',
+    label: 'Atelier',
+    // Enclume du forgeron sur son billot.
+    svg:
+      `<path ${K} d="M4 8 H17 C17 10 15.5 11.5 13 11.5 V15 H16 V19 H7 V15 H10 V11.5 C7 11.5 4 10.5 4 8 Z"/>` +
+      `<path ${K} d="M17 8 H20.5"/>`,
+  },
+  {
     id: 'navigation/regles-maison',
     label: 'Règles maison',
     // Feuillet scellé à la cire, ruban pendant.
