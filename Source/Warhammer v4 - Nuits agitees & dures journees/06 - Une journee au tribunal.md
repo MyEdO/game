@@ -18,7 +18,7 @@ La gravin Maria Ulrike et sa suite, qui inclut maintenant les Personnages, ont q
 
 
 
-### <span id="page-26-0" data-folio="25"></span>**Une aventure indépendante**
+### <span id="page-25-0" data-folio="24"></span><span id="page-26-0" data-folio="25"></span>**Une aventure indépendante**
 
 Si ce scénario est joué seul, les aventuriers peuvent se rendre au tribunal pour diverses raisons. Ils ont peut-être eu des problèmes juridiques à Kemperbad, ou dans l'un des villages ou des villes qui en dépendent, et ils doivent répondre aux accusations ou intenter une action en justice contre un PNJ. Ils peuvent avoir été engagés pour payer la caution d'un prisonnier, par exemple un extravagant jeune noble qui a contrarié le conseil de la ville, bien connu pour son manque d'humour, et doivent l'escorter sain et sauf jusqu'au domaine familial. Ils pourraient être chargés d'une mission moins respectable, comme faire évader un condamné à mort. La loi impériale est complexe, puissante et vaste, et offre d'innombrables façons de rendre difficile la vie d'un groupe d'aventuriers. Une fois que les Personnages sont là, tout ce dont vous avez besoin est de trouver une raison pour que la Gravin, un peu désespérée, décide d'embaucher l'un d'entre eux comme champion.
 

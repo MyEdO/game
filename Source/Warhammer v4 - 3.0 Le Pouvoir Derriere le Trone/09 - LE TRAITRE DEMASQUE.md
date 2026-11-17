@@ -302,7 +302,7 @@ Les Middenmarshalls exigeront des explications et un récapitulatif complet des 
 
 
 
-<span id="page-106-0" data-folio="104"></span>#### **Une sinistre découverte**
+<span id="page-105-0" data-folio="103"></span><span id="page-106-0" data-folio="104"></span>#### **Une sinistre découverte**
 
 Quand les Middenmarshalls ont fini d'interroger les Personnages, un chevalier apparaît et s'entretient à voix basse avec le commandant Schutzmann. Schutzmann écoute, hoche la tête, avant de se tourner vers le groupe et de leur dire « *Suivez-moi* ». Ils sont conduits dans les appartements de Hoflich, qui ont l'air d'avoir été minutieusement fouillés.
 
@@ -432,7 +432,7 @@ Elle peut aussi allumer une ou plusieurs lampes… avant de déclencher l'explos
 
 
 
-<span id="page-110-0" data-folio="108"></span>#### **Palier**
+<span id="page-109-0" data-folio="107"></span><span id="page-110-0" data-folio="108"></span>#### **Palier**
 
 L'éclairage provient d'une grande fenêtre de toit fermée de l'intérieur. La décoration consiste en plusieurs plantes en pots.
 

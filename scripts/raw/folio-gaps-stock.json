@@ -10,13 +10,6 @@
     },
     {
       "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/02 - Introduction.md",
-      "ref": "PDT 2 4→6",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/02 - Introduction.md",
       "ref": "PDT 2 6→8",
       "occurrence": 1,
       "lot": "#1711",
@@ -31,52 +24,15 @@
     },
     {
       "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/03 - En route vers Middenheim.md",
-      "ref": "PDT 3 24→26",
-      "occurrence": 1,
-      "lot": "#4388",
-      "date": "2026-11-16"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/03 - En route vers Middenheim.md",
       "ref": "PDT 3 6→14",
       "occurrence": 1,
       "lot": "#4388",
       "date": "2026-11-16"
     },
     {
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/06 - Enquetes preliminaires.md",
-      "ref": "PDT 6 56→57",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/09 - LE TRAITRE DEMASQUE.md",
-      "ref": "PDT 9 102→104",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/09 - LE TRAITRE DEMASQUE.md",
-      "ref": "PDT 9 106→108",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
       "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/14 - CALENDRIER DES ATTRACTIONS PRINCIPALES.md",
-      "ref": "PDT 14 155→157",
-      "occurrence": 1,
-      "lot": "#4388",
-      "date": "2026-11-16"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/14 - CALENDRIER DES ATTRACTIONS PRINCIPALES.md",
-      "ref": "PDT 14 158→164",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
+      "ref": "PDT 14 161→164",
+      "occurrence": 1
     },
     {
       "fichier": "Source/Warhammer v4 - Aldorf la Couronne de l'Empire/01 - La Couronne de l'Empire.md",
@@ -128,46 +84,11 @@
       "date": "2026-09-12"
     },
     {
-      "fichier": "Source/Warhammer v4 - Aldorf la Couronne de l'Empire/12 - Activites.md",
-      "ref": "ACE 12 223→224",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Les archives de l'Empire volume 1/08 - Annexe II.md",
-      "ref": "ADE I 8 95→97",
-      "occurrence": 1,
-      "lot": "#4388",
-      "date": "2026-11-16"
-    },
-    {
       "fichier": "Source/Warhammer v4 - Les archives de l'Empire volume 2/02 - Les ogres.md",
       "ref": "ADE II 2 21→23",
       "occurrence": 1,
       "lot": "#1711",
       "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Les archives de l'Empire volume 2/08 - Le theatre de la guerre.md",
-      "ref": "ADE II 8 90→91",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Les archives de l'Empire volume 2/09 - Annexe I.md",
-      "ref": "ADE II 9 92→95",
-      "occurrence": 1,
-      "lot": "#4388",
-      "date": "2026-11-16"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Les archives de l'Empire volume 2/09 - Annexe I.md",
-      "ref": "ADE II 9 95→96",
-      "occurrence": 1,
-      "lot": "#4388",
-      "date": "2026-11-16"
     },
     {
       "fichier": "Source/Warhammer v4 - Livre de base version corrigee/03 - _GoBack.md",
@@ -191,67 +112,11 @@
       "date": "2026-09-12"
     },
     {
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/51 - Magie du Chaos.md",
-      "ref": "LDB 51 264→265",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
       "fichier": "Source/Warhammer v4 - Livre de base version corrigee/85 - Traits de creature.md",
       "ref": "LDB 85 346→349",
       "occurrence": 1,
       "lot": "#4388",
       "date": "2026-11-16"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/85 - Traits de creature.md",
-      "ref": "LDB 85 351→353",
-      "occurrence": 1,
-      "lot": "#4388",
-      "date": "2026-11-16"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Middenheim la cite du Loup Blanc/04 - Bestiaire.md",
-      "ref": "MCLB 4 117→118",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/06 - Une journee au tribunal.md",
-      "ref": "NADJ 6 23→25",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/08 - Une nuit a l'Opera.md",
-      "ref": "NADJ 8 37→40",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/10 - le mariage de nastassia.md",
-      "ref": "NADJ 10 55→57",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/13 - SEIGNEUR D'UBERSREIK -.md",
-      "ref": "NADJ 13 70→72",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/16 - JEUX DE TAVERNE.md",
-      "ref": "NADJ 16 95→96",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
     }
   ]
 }
