@@ -6,6 +6,7 @@ config_version=5
 
 config/name="WFRP — hôte Godot"
 run/main_scene="res://scenes/Accueil.tscn"
+run/main_scene.web="res://scenes/Demarrage.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]

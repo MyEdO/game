@@ -19,3 +19,5 @@ export function piloter(options: {
 export function signaturesDu(dossier: string): Record<string, string>;
 
 export function ecartsDeLaCopie(avant: Readonly<Record<string, string>>, apres: Readonly<Record<string, string>>): { copier: string[]; retirer: string[] };
+
+export function fichiersAuDelaDeGitHub(dossier: string): { fichier: string; taille: number }[];
