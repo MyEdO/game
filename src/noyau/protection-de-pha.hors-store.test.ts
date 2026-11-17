@@ -96,7 +96,7 @@ describe('Protection de Phâ — incantation pose la Zone (intégration applyCas
     caster.characteristics['force-mentale'] = 40; // BFM 4
     caster.pos = { x: 7, y: 7 };
     const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(banc.getState, banc.setState, caster, caster, findSpellById('protection-de-pha')!, ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('protection-de-pha')!, ok, false, false);
 
     const z = (banc.getState().battle!.zones ?? []).find((x) => x.label === 'Protection de Phâ')!;
     expect(z).toBeTruthy();

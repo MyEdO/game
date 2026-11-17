@@ -188,7 +188,7 @@ function deuxHerosBlindes() {
 /** L'Incantation critique du Sort à Dégâts de E sur `cibles` (LDB 46 l.30), chaque Critique à la Tête (01) et Décapitation (100). */
 function sortCritique(banc: ReturnType<typeof ouvrirLeBanc>, E: Combatant, [cible, ...autres]: Combatant[]): void {
   imposerLesD100(...[cible, ...autres].flatMap(() => [1, 100]));
-  applyCast(banc.getState, banc.setState, E, cible, SORT_A_DEGATS, INCANTATION_CRITIQUE, false, false, 'critique', autres.length ? { extraTargets: autres } : undefined);
+  applyCast(banc.getState, banc.setState, E, [cible, ...autres], SORT_A_DEGATS, INCANTATION_CRITIQUE, false, false, 'critique');
 }
 
 describe('« Comment ça a pu rater ? » sur le Critique d’un Sort à Dégâts suspendu à l’étape Dévier/Subir (LDB 46 l.30 ; LDB 17 l.32)', () => {

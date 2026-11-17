@@ -26,6 +26,7 @@ import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { CritChoice, CastResult } from '../engine/magic';
+import { objetDeTest } from '../engine/objetsDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -828,4 +829,51 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
       expect(banc.getState().pendingCascade!.cursor).toBe(1);
     });
   }
+
+  describe('#4255 lot 2 — toute tentative de ZdE se résout par `applyCast`', () => {
+    const rate: CastResult = { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: 'raté' };
+
+    it('ZdE non posée ratée, focalisée : l’Action et le focus sont consommés, l’Imparfaite Mineure suit l’hôte (LDB 46 l.132)', () => {
+      const { heros } = duel();
+      heros.focus = { spell: 'explosion', dr: 4 };
+      incanteZone(heros, rate);
+      banc.setState({ pendingCast: { ...banc.getState().pendingCast!, focused: true } });
+      banc.getState().jetValider('incantation');
+      expect(banc.getState().pendingCast).toBeNull();
+      expect(banc.getState().battle!.acted, 'la tentative consomme l’Action').toBe(true);
+      expect(heros.focus, 'l’énergie focalisée est perdue').toBeUndefined();
+      expect(genres()).toEqual(['incantation[C]', 'tableDIncantationImparfaite']);
+    });
+
+    it('ZdE non posée en Maladresse : l’hôte validé, le Tableau d’Imparfaite suit dans la cascade (LDB 46 l.85)', () => {
+      const { heros } = duel();
+      incanteZone(heros, { ...rate, roll: 99, isFumble: true, log: 'Maladresse !' });
+      banc.getState().jetValider('incantation');
+      expect(genres()).toEqual(['incantation[C]', 'tableDIncantationImparfaite']);
+      expect(banc.getState().pendingCascade!.cursor).toBe(1);
+      expect(banc.getState().battle!.acted).toBe(true);
+    });
+
+    it('ZdE DISSIPÉE : aucun effet, l’Action est consommée', () => {
+      const { heros, ennemi } = duel();
+      const avant = { h: heros.wounds.current, e: ennemi.wounds.current };
+      incanteZone(heros, { cast: false, dispelled: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'dissipé' });
+      banc.getState().jetValider('incantation');
+      expect(banc.getState().pendingCast).toBeNull();
+      expect(banc.getState().battle!.acted).toBe(true);
+      expect({ h: heros.wounds.current, e: ennemi.wounds.current }, 'personne n’est touché').toEqual(avant);
+    });
+
+    it('ZdE posée dans une zone vide : le composant est consumé (LDB 46 l.111), l’Action consommée, personne n’est touché', () => {
+      const { heros, ennemi } = duel();
+      heros.items = [...(heros.items ?? []), objetDeTest('composant-d-incantation', { uid: 'comp-explosion', sortLie: 'explosion' })];
+      const avant = { h: heros.wounds.current, e: ennemi.wounds.current };
+      incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' });
+      banc.getState().jetValider('incantation');
+      commitPlacedZone(banc.getState, banc.setState, { x: 10, y: 14 });
+      expect(banc.getState().battle!.acted).toBe(true);
+      expect((heros.items ?? []).some((it) => it.uid === 'comp-explosion'), 'le composant est consumé').toBe(false);
+      expect({ h: heros.wounds.current, e: ennemi.wounds.current }).toEqual(avant);
+    });
+  });
 });

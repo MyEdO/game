@@ -79,6 +79,7 @@ import {
   spellSightOf,
   castZoneSpell,
   castCommitZone,
+  resoudreLeSortDeZone,
   zoneRadiusTilesAt,
   routeCounterspell,
   applyCounterspellOutcome,
@@ -3273,13 +3274,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // déjà ses jets.
       if (pc.zone && !pc.zone.center) {
         const castable = castAfterCrit(lance, pc.critChoice);
-        // Sort qui n'aboutit PAS (raté / DISSIPÉ par Contre-sort, LDB 46 l.156) : aucune zone à poser →
-        // l'hôte se clôt par la sortie d'hôte (#4255) — pas de soft-lock, cibles intactes.
+        // Sort qui n'aboutit PAS (raté / DISSIPÉ par Contre-sort, LDB 46 l.156) : aucune zone à poser, aucune
+        // cible (LDB 47 l.28) — la tentative se résout sans cible, puis l'IA reprend.
         if (!castable) {
-          const caster = actorIn(get(), pc.casterId);
-          sortirDeLHote(get, set, { pendingCast: null }, () => {
-            if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
-          });
+          const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
+          resoudreLeSortDeZone(get, set, pc, caster, garanti(effectiveSpellOf(pc), pc.spellId, 'sort'), lance, []);
+          if (aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
           return;
         }
         // Lançable → la confirmation EST le passage en pose (la vraie application se fait à la pose,
@@ -3317,13 +3317,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ pendingCast: null }); // ferme le JET ; la cascade d'incantation reste active (cursor sur 'incantation')
       if (caster && target && spell) {
         const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
-        applyCast(get, set, caster, target, spell, lance, pc.missile, pc.focused, pc.critChoice, {
+        applyCast(get, set, caster, [target, ...extras], spell, lance, pc.missile, pc.focused, pc.critChoice, {
           durationMult: ocDur.mult,
           durationBonusRounds: ocDur.bonusRounds,
           overcastDurationSteps: pc.overcast?.duration ?? 0,
           overcastDamageSteps: pc.overcast?.damage ?? 0,
           chosenTableRolls: pc.chosenTableRolls,
-          extraTargets: extras,
           conjureForm: pc.conjureForm,
           opposedOutcome: pc.opposedOutcome,
         });
