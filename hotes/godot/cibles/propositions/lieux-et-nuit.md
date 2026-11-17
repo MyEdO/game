@@ -61,6 +61,8 @@ rail de services à gauche et panneau de parchemin à droite forment le gabarit 
   d'onglets sur la page) ; soins : Panser (Guérison, LDB 09 l.260), Recoudre (Chirurgie, LDB 10 l.184, LDB 18 l.314).
 - Payer : chaque acte se paie au lancer du Test (`src/noyau/medicFlow.ts:182`), par le bénéficiaire (#3004) :
   « À payer », « Bourse de Greta » par `bourse(…)`, « Payer et soigner ».
+- Mutualisation du 2026-11-17 (#4411) : la page des soins vit dans `sources/lieux-et-nuit/soins.js` et `soins.css`,
+  que posent aussi les soins entre héros (`exploration-et-recit`) ; image inchangée au pixel.
 - La Chirurgie à 15/– est dite « valeur maison » sur l'image : aucun prix aux livres (LDB 75 l.19 ne donne que la
   visite, « 4-6 pistoles »).
 - À valider : visite à 5/– dans la fourchette du livre, à tracer en valeur maison elle aussi ; le noyau débite le

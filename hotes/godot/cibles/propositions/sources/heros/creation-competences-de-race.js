@@ -4,7 +4,6 @@ const COMPETENCES = [
   ['Int', 'Évaluation', '', 5], ['Int', 'Langue', 'Bretonnien', 0], ['Int', 'Langue', 'Wastelander', 0], ['Soc', 'Marchandage', '', 3],
   ['CT', 'Projectiles', 'Arc', 0], ['Soc', 'Ragot', '', 5], ['Int', 'Savoir', 'Reikland', 0], ['Int', 'Soin aux animaux', '', 0],
 ];
-const nomDe = (n, spec) => `${n}${spec ? ` <small>(${spec})</small>` : ''}`;
 const ligneDeRace = ([c, n, spec, palier]) => `<div class="ligne">${car(c)}<span class="n" data-texte="${n} ${spec}">${nomDe(n, spec)}</span>
   <div class="paliers">${[0, 3, 5].map((p) => `<span class="palier ${p === palier ? (p ? 'pris' : 'zero') : p === 5 ? 'ferme' : ''}">${p ? `+${p}` : '0'}</span>`).join('')}</div></div>`;
 const carte = (c, n, base, plus) => `<div class="carte">${car(c)}<div class="anneau petit">${base + plus}</div><div class="n">${n}</div><div class="pied"><span class="calc">${c} ${base} &nbsp;+${plus}</span></div></div>`;

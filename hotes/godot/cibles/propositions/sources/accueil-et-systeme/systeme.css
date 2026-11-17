@@ -19,28 +19,6 @@
 .filet-l::before,.filet-l::after{content:"";flex:1;height:1px;background:currentColor;opacity:.55}
 .filet-l i{width:8px;height:8px;transform:rotate(45deg);background:currentColor}
 
-/* contrôles de réglage : sur parchemin ou sur bois */
-.oui-non{display:inline-flex;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1px rgba(60,40,20,.7)}
-.oui-non b{font-family:"Fell SC";font-weight:400;font-size:13px;letter-spacing:1px;padding:3px 0 4px;width:46px;text-align:center;color:#5a4530;background:rgba(255,245,215,.25)}
-.oui-non b.la{background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830);color:#2a1a08;box-shadow:inset 0 0 0 1px rgba(60,40,10,.8)}
-.bois .oui-non{box-shadow:0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.3)}
-.bois .oui-non b{color:#a8997a;background:#150c07}
-.bois .oui-non b.la{color:#2a1a08;background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830)}
-.reglette{position:relative;height:18px}
-.reglette::before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;border-radius:2px;background:rgba(60,40,20,.5);box-shadow:inset 0 1px 1px rgba(0,0,0,.5)}
-.reglette u{position:absolute;left:0;top:8px;height:3px;border-radius:2px;background:#7c1f14}
-.reglette i{position:absolute;top:3px;width:12px;height:12px;margin-left:-6px;transform:rotate(45deg);background:linear-gradient(135deg,#f3dc93,#a8842f);box-shadow:0 0 0 1px #2a1a08,0 1px 3px rgba(0,0,0,.6)}
-.bois .reglette::before{background:#0d0806;box-shadow:0 0 0 1px rgba(226,192,106,.3)}
-.bois .reglette u{background:linear-gradient(180deg,#b9412c,#7c1f14)}
-.segments{display:inline-flex;border-radius:3px;overflow:hidden;box-shadow:0 0 0 1px rgba(60,40,20,.7)}
-.segments b{font-family:"Fell SC";font-weight:400;font-size:13px;letter-spacing:.8px;padding:3px 11px 4px;color:#5a4530;background:rgba(255,245,215,.25);white-space:nowrap}
-.segments b+b{border-left:1px solid rgba(60,40,20,.45)}
-.segments b.la{background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830);color:#2a1a08;box-shadow:inset 0 0 0 1px rgba(60,40,10,.8)}
-.bois .segments{box-shadow:0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.3)}
-.bois .segments b{color:#a8997a;background:#150c07}
-.bois .segments b+b{border-left:1px solid rgba(226,192,106,.2)}
-.bois .segments b.la{color:#2a1a08;background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830)}
-
 /* le cartouche de titre : la gothique respire (aucun jambage coupé) */
 #titre .n{line-height:50px;margin:-9px 0 -8px}
 

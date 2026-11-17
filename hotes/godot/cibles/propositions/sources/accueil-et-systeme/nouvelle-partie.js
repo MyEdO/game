@@ -1,5 +1,9 @@
 /* Composer le groupe et choisir la campagne (#3935) : la salle commune d'une auberge-relais. Le groupe est attablé,
-   les voyageurs à recruter se tiennent dans la salle, les campagnes sont des avis cloués au panneau. */
+   les voyageurs à recruter se tiennent dans la salle, les campagnes sont des avis cloués au panneau.
+   États : `roster`, l'onglet « Mes personnages » (zonesDeLaPartie, src/hote/groupe.ts:86-90) ; `coop`, le siège de la place
+   libre (attribuerLEmplacement, src/noyau/sieges.ts:143). */
+const ETAT = document.getElementById('ecran').dataset.etat ?? '';
+const ROSTER = ETAT === 'roster';
 radial('mur', [[0, '#c98a4a'], [.3, '#8f5a2e'], [.65, '#4f301a'], [1, '#22140b']], { cx: .5, cy: .52, r: .62 });
 grad('sol', [[0, '#3a2414'], [1, '#0e0805']]);
 grad('nuit-f', [[0, '#141a3a'], [1, '#33305c']]);
@@ -63,7 +67,11 @@ el(S, 'rect', { x: 0, y: 470, width: W, height: 310, fill: 'url(#sol)' });
   el(S, 'ellipse', { cx: 880, cy: 500, rx: 420, ry: 60, fill: 'url(#lueur)', opacity: .55 });
 }
 // les voyageurs, debout dans la salle
-const VOYAGEURS = [
+const VOYAGEURS = ROSTER ? [
+  { id: 'kirsten', nom: 'Astrid Holz', car: 'Artiste', x: 568, h: 160, coiffe: 'bonnet', extra: '' },
+  { id: 'harbull', nom: 'Odo Brandebouc', car: 'Batelier', x: 716, h: 108, coiffe: '', extra: '', vise: true },
+  { id: 'sigrid', nom: 'Greta Vogt', car: 'Soldate', x: 1056, h: 166, coiffe: 'chignon', extra: '' },
+] : [
   { id: 'wanda', nom: 'Wanda Weltschmertz', car: 'Sorcière', x: 414, h: 168, coiffe: 'capuche', extra: `<path d="M19,-66L23,-128" stroke="${N}" stroke-width="3.200" fill="none"/><path d="M23,-128l-5,-8l5,-6l5,6z"/>` },
   { id: 'kirsten', nom: 'Kirsten Krank', car: 'Voleuse', x: 568, h: 160, coiffe: 'bonnet', extra: '<path d="M-15,-70C-24,-50 -24,-20 -20,0L-10,0Z"/>' },
   { id: 'harbull', nom: 'Harbull Piedvelu', car: 'Herboriste', x: 716, h: 108, coiffe: '', extra: '<path d="M14,-52h14v22h-14z"/><path d="M-12,-98c4,-8 20,-8 24,0z"/>', vise: true },
@@ -111,15 +119,15 @@ const GROUPE = HEROS.slice(0, 3);
 monter([
   titre({ icone: 'chope', nom: 'La Compagnie', sous: 'Composer le groupe · 3 sur 4', largeur: 392 }),
   `<div id="rail" class="cadre bois" data-piece="recruter"><div class="fond bois"><span class="ruban rubrique">Recruter</span>
-     <div class="deux">${plaque('Pré-tirés', { armee: true })}${plaque('Mes personnages')}</div>
-     <div class="pied rubrique">5 voyageurs dans la salle, sur 15</div>
+     <div class="deux">${plaque('Pré-tirés', { armee: !ROSTER })}${plaque('Mes personnages', { armee: ROSTER })}</div>
+     <div class="pied rubrique">${ROSTER ? '3 personnages dans la salle, sur 3' : '5 voyageurs dans la salle, sur 15'}</div>
      <div class="tourne">${rond('gauche', 17)}<span class="rubrique">D’autres voyageurs</span>${rond('droite', 17)}</div>
      <div class="trait"></div>
      ${plaque('Créer un personnage', { icone: 'plume', classe: 'gauche' })}
      ${plaque('Importer un personnage…', { icone: 'disque', classe: 'gauche' })}
    </div>${ferrures}</div>`,
   `<div id="salle" data-piece="voyageurs">${VOYAGEURS.map(recrue).join('')}
-     <div id="recruter" style="left:${716 - 75}px;top:${472 - 108 - 132 + 100}px">${plaque('Recruter', { armee: true, icone: 'plus' })}</div></div>`,
+     <div id="recruter" style="left:${716 - 75}px;top:${472 - 108 - 132 + 100}px">${plaque('Recruter', { armee: true, icone: 'plus' })}${ROSTER ? `<div class="du-roster">${outil('disque', 'Exporter')}${outil('croix', 'Supprimer')}</div>` : ''}</div></div>`,
   `<div id="panneau" class="cadre bois" data-piece="campagnes"><div class="fond bois"><span class="ruban gothique">Campagnes</span>
      <div class="affiche parchemin"><i class="clou" style="left:14px"></i><i class="clou" style="right:14px"></i>
        <div class="sur rubrique">On recherche : aventuriers courageux</div>
@@ -140,12 +148,12 @@ monter([
        <div class="qui"><div class="nom gothique" data-texte="héros ${h.nom}">${h.nom}</div>
          <div class="l2"><span class="car rubrique">${h.car}</span><span class="pv lin">${h.max} / ${h.max}</span></div>
          <div class="vie"><i style="width:100%"></i></div>
-         <div class="renvoi">${picto('croix', 11, '#c9b995', 1.8)}<span class="rubrique">Renvoyer</span></div>
+         <div class="renvoi">${picto('croix', 11, '#c9b995', 1.8)}<span class="rubrique">Renvoyer</span>${ETAT ? `<i></i>${picto('plume', 12, '#c9b995', 1.6)}<span class="rubrique">Modifier</span>` : ''}</div>
        </div>
      </div>`).join('')}
      <div class="heros libre"><div class="portrait fer vide"><div>${picto('plus', 26, '#c9b995', 1.4)}</div></div>
        <div class="qui"><div class="nom gothique">Place libre</div><div class="l2"><span class="car rubrique">Un voyageur, ou personne</span></div>
-       <div class="dit"><p>Le groupe peut partir à trois.</p></div></div>
+       ${ETAT === 'coop' ? `<div class="siege"><span class="rubrique">Siège</span>${segments(['Vous', 'Lena', 'Otto'], 'Lena')}</div>` : '<div class="dit"><p>Le groupe peut partir à trois.</p></div>'}</div>
      </div>
    </div>${ferrures}</div>`,
   croix(),

@@ -5,7 +5,6 @@ const COMPETENCES = [
   ['Soc', 'Marchandage', '', 38], ['I', 'Perception', '', 46], ['Soc', 'Ragot', '', 45], ['E', 'Résistance', '', 36], ['E', "Résistance à l'alcool", '', 35],
 ];
 const comp = ([c, n, spec, v]) => `<div class="ligne" style="height:26px;padding:0 2px;font-size:14.500px;gap:7px">${car(c)}<span class="n" data-texte="${n}">${n}${spec ? ` <small>(${spec})</small>` : ''}</span><span class="val" style="font-size:13.500px">${v}</span></div>`;
-const reserve = (n, nom) => `<div class="reserve"><div class="medaillon fer"><div>${n}</div></div><span class="rub">${nom}</span></div>`;
 
 poser([
   frise(10),

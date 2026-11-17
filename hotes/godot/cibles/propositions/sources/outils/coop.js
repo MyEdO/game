@@ -50,9 +50,9 @@ if (SALON) {
       siege(...POSES[3], { vide: true }),
     ], 'Le monde est tenu par l’hôte tant qu’aucun siège n’est Maître du Jeu'),
     `<div id="attribution" class="cadre bois" data-piece="attribution"><div class="fond parchemin">
-       ${HEROS.map((h) => `<div class="rang">${portrait(h.id)}<div><b class="gothique" data-texte="héros ${h.nom}">${h.nom}</b><span class="c rubrique">${h.car}</span></div><span class="segments">${JOUEURS.map((j) => `<b class="${TIENT[h.id] === j ? 'la' : ''}">${j}</b>`).join('')}</span></div>`).join('')}
+       ${HEROS.map((h) => `<div class="rang">${portrait(h.id)}<div><b class="gothique" data-texte="héros ${h.nom}">${h.nom}</b><span class="c rubrique">${h.car}</span></div>${segments(JOUEURS, TIENT[h.id])}</div>`).join('')}
        <div class="mj"><div class="r"><b class="gothique">Maître du Jeu</b><i>Un seul siège, ou personne</i></div>
-         <span class="segments"><b class="la">IA (aucun MJ)</b>${JOUEURS.map((j) => `<b>${j}</b>`).join('')}</span></div>
+         ${segments(['IA (aucun MJ)', ...JOUEURS], 'IA (aucun MJ)')}</div>
      </div><div class="ruban gothique">Attribution des héros</div>${ferrures}</div>`,
   );
 } else {

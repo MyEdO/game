@@ -1,11 +1,9 @@
 /* Accueil et système, images d'intention (#3935). Ajouts au kit commun (commun.js) : pictogrammes, bustes des
    pré-tirés, outils de paysage, Altdorf. Maquette hors du jeu. */
 Object.assign(PICTOS, {
-  croix: '<path d="M6 6l12 12M18 6L6 18"/>',
   gauche: '<path d="M14.500 5.500L8 12l6.500 6.500"/>',
   droite: '<path d="M9.500 5.500L16 12l-6.500 6.500"/>',
   plume: '<path d="M20 4c-7 0-12 4-13 11l-3 5M7 15c5 0 9-2 11-6M10.500 11.500l4 .5"/>',
-  reseau: '<circle cx="6" cy="12" r="2.500"/><circle cx="18" cy="6" r="2.500"/><circle cx="18" cy="18" r="2.500"/><path d="M8.200 10.900l7.600-3.800M8.200 13.100l7.600 3.800"/>',
   disque: '<path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6"/>',
   retour: '<path d="M9 6.500L4.500 11 9 15.500M4.500 11h9.500a4.500 4.500 0 0 1 0 9H10"/>',
   jouer: '<path d="M8 5l11 7-11 7z"/>',
@@ -22,6 +20,10 @@ Object.assign(BUSTES, {
   malmir: '<path d="M16 90c0-17 7-25 19-27l-2-8c-6-5-8-15-5-23 3-8 19-8 22 0 3 8 1 18-5 23l-2 8c12 2 19 10 19 27z"/><path d="M25 37l-10-10 10 3zM53 37l10-10-10 3z"/><path d="M24 30c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" fill="#1c1410"/>',
 });
 const buste = (genre, style = '', classe = '') => `<div class="portrait laiton ${classe}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" fill="#2a1f17">${BUSTES[genre]}</svg></div></div>`;
+/* la table : le fond des écrans posés hors du jeu */
+const fondDeTable = () => { el(S, 'rect', { width: W, height: H, fill: '#150c07' }); return `<div class="calque bois" id="table"></div><div class="calque" id="lueur-table"></div>`; };
+/* les quatre clous d'un registre relié */
+const CLOUS = '<i class="clou" style="left:8px;top:8px"></i><i class="clou" style="right:8px;top:8px"></i><i class="clou" style="left:8px;bottom:8px"></i><i class="clou" style="right:8px;bottom:8px"></i>';
 const outil = (icone, libelle) => `<div class="outil">${rond(icone, 23)}<span class="rubrique ombre">${libelle}</span></div>`;
 
 /* ───────── paysage ───────── */
@@ -63,4 +65,4 @@ const altdorf = (hote) => {
   [[770, 6], [912, 8], [1050, 5], [1311, 7], [1480, 6]].forEach(([x, dy]) => el(fen, 'rect', { x, y: base - 16 - dy, width: 3, height: 5, opacity: .8 }));
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { buste, outil, etoiles, crete, massif, nuages, lisiere, altdorf });
+Object.assign(globalThis, { buste, fondDeTable, CLOUS, outil, etoiles, crete, massif, nuages, lisiere, altdorf });

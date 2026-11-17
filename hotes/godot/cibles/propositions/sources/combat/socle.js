@@ -1,20 +1,8 @@
 /* Socle du combat, images d'intention (#3935) : outils de dessin, matières, grille isométrique et pièces d'interface
    (portraits, pastilles, plaques, ordre, journal, bandeau du jet), sans décor. `combat.js` y pose la cour, `../voyage/`
    la mer du combat naval. Se charge après `../gestes.js` et `jet.js`. Maquette hors du jeu. */
-const NS = 'http://www.w3.org/2000/svg';
-const W = 1707, H = 780;
-const el = (hote, tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; hote.appendChild(e); return e; };
-const alea = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-const melange = (c1, c2, t) => { const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)); const a = p(c1), b = p(c2); return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
-const svgUrl = (s) => `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
 
-/* textures : bois et parchemin, en bruit (les mêmes que l'écran de voyage) */
-document.documentElement.style.setProperty('--tex-bois', svgUrl(`<svg xmlns='${NS}' width='600' height='300'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.22' numOctaves='4' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.42  0 0 0 0 0.30  0.9 0.9 0.9 0 -0.75'/></filter><rect width='100%' height='100%' fill='#c9a57a'/><rect width='100%' height='100%' filter='url(#f)'/></svg>`));
-document.documentElement.style.setProperty('--tex-parchemin', svgUrl(`<svg xmlns='${NS}' width='500' height='400'><filter id='a' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.32  0 0 0 0 0.16  0.9 0.9 0.9 0 -0.95'/></filter><filter id='b' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='5' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.12  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' fill='#fff'/><rect width='100%' height='100%' filter='url(#a)'/><rect width='100%' height='100%' filter='url(#b)'/></svg>`));
 
-const S = document.getElementById('scene');
-const defs = el(S, 'defs');
-const grad = (id, stops, attrs = { x1: 0, y1: 0, x2: 0, y2: 1 }, type = 'linearGradient') => { const g = el(defs, type, { id, ...attrs }); stops.forEach(([o, c, a]) => el(g, 'stop', { offset: o, 'stop-color': c, 'stop-opacity': a ?? 1 })); return g; };
 const flou = (id, d) => { const f = el(defs, 'filter', { id, x: '-30%', y: '-30%', width: '160%', height: '160%' }); el(f, 'feGaussianBlur', { stdDeviation: d }); };
 flou('f1', 0.8); flou('f2', 2); flou('f6', 6); flou('f18', 18);
 grad('vignette', [[.5, '#000', 0], [.82, '#000', .4], [1, '#000', .8]], { cx: .5, cy: .44, r: .74 }, 'radialGradient');
@@ -34,7 +22,6 @@ const BUSTES = {
   orc: '<path d="M4 90c0-22 11-30 25-32l-1-6c-8-5-11-17-7-26 4-9 32-9 36 0 4 9 1 21-7 26l-1 6c14 2 25 10 25 32z"/><path d="M21 33c7-6 29-6 36 0l-3 5c-9-4-21-4-30 0z" fill="#0c0605"/><path d="M29 54l-2-11 6 8zM49 54l2-11-6 8z" fill="#e6d6b0"/>',
 };
 const portrait = (genre, camp, style = '') => `<div class="portrait ${camp === 'ennemi' ? 'ennemi fer' : 'laiton'}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" fill="${camp === 'ennemi' ? '#170a08' : '#2a1f17'}">${BUSTES[genre]}</svg></div></div>`;
-const ferrures = '<i class="ferrure hg"></i><i class="ferrure hd"></i><i class="ferrure bg"></i><i class="ferrure bd"></i>';
 const picto = (d, taille = 22, couleur = '#e2c06a', trait = 1.6) => `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="${couleur}" stroke-width="${trait}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const PICTOS = {
   attaque: '<path d="M4 4l11 11M4 4v3.500M4 4h3.500M13 17l4-4M16.500 16.500L20 20M20 4L9 15M20 4v3.500M20 4h-3.500M11 17l-4-4M7.500 16.500L4 20"/>',
@@ -83,6 +70,11 @@ const ETATS = { aTerre: 'À Terre', hemorragique: 'Hémorragique' };
 const etatPorte = (id, { n = 1, presse = false } = {}) => `<div class="etat-porte${presse ? ' presse' : ''}"><i class="sceau">${picto(PICTOS[id], 13, '#3a0c06', 2)}</i><span class="rubrique">${ETATS[id]}</span>${n > 1 ? `<b>${n}</b>` : ''}</div>`;
 const JETONS = `<div class="jeton"><div class="sceau">${picto(PICTOS.epee, 18, '#3a0c06', 1.7)}</div><div class="v"><span class="rubrique">Action</span> <em>disponible</em></div></div>
   <div class="jeton"><div class="chiffre">0</div><div class="v"><span class="rubrique">Avantage</span></div></div>`;
+/* le médaillon de Détermination se presse : il est de laiton, à côté de l'Avantage (transversal §2) ; sans réserve, il manque */
+const jetons = (determination = null) => `<div class="jetons">${JETONS}${determination === null ? '' : `<div class="jeton"><div class="bouton-rond laiton"><div>${determination}</div></div><div class="v"><span class="rubrique">Détermination</span></div></div>`}</div>`;
+/* un rang de pas en losanges : `pleins` sur `total` */
+const rangDePas = (pleins, total, classe = '') => `<div class="pas ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
+const pas = (n) => `<div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>${n} / ${n}</b></div>${rangDePas(n, n)}</div>`;
 const meuble = ({ genre, camp = 'heros', nom, sous, etat, plaques, conditionnelles = '', pastilles, adverse = false, ouverte = null }) => [
   `<div id="tour-outils" data-piece="tour-outils">${rond('annuler', 19, { ferme: true })}${rond('pause', 19, { ferme: true })}</div>`,
   `<div id="barre" class="cadre bois${adverse ? ' adverse' : ''}" data-piece="barre"><div class="fond">
@@ -107,4 +99,4 @@ const monter = (ui) => {
   document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay;opacity:.3';
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { W, H, alea, melange, P, losange, rang, borne, vieux, neuf, borneJ, medaillon, SYSTEME, plaque, mesure, etatPorte, JETONS, meuble, vise, RESERVES, monter });
+Object.assign(globalThis, { P, losange, rang, borne, vieux, neuf, borneJ, medaillon, SYSTEME, plaque, mesure, etatPorte, JETONS, jetons, rangDePas, pas, meuble, vise, RESERVES, monter });

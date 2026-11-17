@@ -1,52 +1,12 @@
 @import url(../gestes.css);
 @import url(jet.css);
-@font-face{font-family:"Grenze Gotisch";src:url(../polices/GrenzeGotisch-wght.ttf);font-weight:100 900}
-@font-face{font-family:"Fell SC";src:url(../polices/IMFeENsc28P.ttf)}
-@font-face{font-family:"Fell";src:url(../polices/IMFeENrm28P.ttf)}
-@font-face{font-family:"Fell";src:url(../polices/IMFeENit28P.ttf);font-style:italic}
-@font-face{font-family:"Spectral";src:url(../polices/Spectral-Regular.ttf)}
-@font-face{font-family:"Spectral";src:url(../polices/Spectral-Italic.ttf);font-style:italic}
-@font-face{font-family:"Spectral";src:url(../polices/Spectral-SemiBold.ttf);font-weight:600}
-:root{
-  --creme:#e9dcc0; --creme-2:#c9b995; --encre:#2a1d12; --encre-2:#5a4530;
-  --or:#e2c06a; --or-sombre:#8a6a26; --cire:#9c2a1a; --cire-clair:#c8452c;
-  --bois:#2a1a10; --fer:#1a1917;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:#000}
-#ecran{position:relative;width:1707px;height:780px;overflow:hidden;font-family:"Spectral",serif;color:var(--creme)}
-#scene{position:absolute;inset:0;width:1707px;height:780px}
-#ui{position:absolute;inset:0}
-.calque{position:absolute;inset:0;pointer-events:none}
 
 /* matières, reprises de l'écran de voyage */
-.bois{background-color:#2b1b11;background-image:var(--tex-bois),linear-gradient(180deg,#3a2517 0%,#24160d 55%,#1a0f08 100%);background-blend-mode:multiply,normal}
-.parchemin{background-color:#d8c49a;background-image:var(--tex-parchemin),radial-gradient(120% 90% at 50% 40%,#e6d5ad 0%,#d6c196 55%,#b89f6e 100%);background-blend-mode:multiply,normal;color:var(--encre)}
-.laiton{background:linear-gradient(135deg,#4a3410 0%,#a8842f 22%,#f3dc93 45%,#b8923a 62%,#5d4313 100%)}
-.fer{background:linear-gradient(135deg,#3a3833 0%,#17161a 40%,#4a4740 55%,#121114 100%)}
-.cadre{position:absolute;border-radius:5px;padding:9px;box-shadow:0 14px 34px rgba(0,0,0,.6),0 2px 0 rgba(255,220,160,.10) inset,0 -2px 0 rgba(0,0,0,.55) inset,0 0 0 1px #0c0705}
-.cadre>.fond{position:relative;width:100%;height:100%;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.65),0 0 0 2px rgba(226,192,106,.35),inset 0 0 26px rgba(70,40,10,.55),inset 0 0 4px rgba(40,20,5,.8)}
-.ferrure{position:absolute;width:30px;height:30px;background:linear-gradient(135deg,#34322e,#141311 60%,#26241f);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 2px 4px rgba(0,0,0,.6)}
-.ferrure::after{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8f8a7d,#2b2924 60%,#0a0908);box-shadow:0 1px 1px rgba(0,0,0,.7)}
-.ferrure.hg{left:-3px;top:-3px;clip-path:polygon(0 0,100% 0,100% 34%,34% 34%,34% 100%,0 100%);border-radius:5px 0 0 0}.ferrure.hg::after{left:4px;top:4px}
-.ferrure.hd{right:-3px;top:-3px;clip-path:polygon(0 0,100% 0,100% 100%,66% 100%,66% 34%,0 34%);border-radius:0 5px 0 0}.ferrure.hd::after{right:4px;top:4px}
-.ferrure.bg{left:-3px;bottom:-3px;clip-path:polygon(0 0,34% 0,34% 66%,100% 66%,100% 100%,0 100%);border-radius:0 0 0 5px}.ferrure.bg::after{left:4px;bottom:4px}
-.ferrure.bd{right:-3px;bottom:-3px;clip-path:polygon(66% 0,100% 0,100% 100%,0 100%,0 66%,66% 66%);border-radius:0 0 5px 0}.ferrure.bd::after{right:4px;bottom:4px}
-.clou{position:absolute;width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#a39c8c,#33302a 60%,#0a0908);box-shadow:0 1px 1px rgba(0,0,0,.8)}
-.gothique{font-family:"Grenze Gotisch",serif;font-weight:600;letter-spacing:.3px}
-.rubrique{font-family:"Fell SC",serif;letter-spacing:1.1px}
-.ombre{text-shadow:0 1px 2px #000,0 0 10px rgba(0,0,0,.9),0 0 22px rgba(0,0,0,.7)}
 .ruban{position:absolute;padding:2px 22px 4px;font-size:14px;color:#f0e2c2;background:linear-gradient(180deg,#5b1d14,#3c110b);box-shadow:0 2px 5px rgba(0,0,0,.6),inset 0 0 0 1px rgba(226,192,106,.45);clip-path:polygon(0 0,100% 0,calc(100% - 9px) 50%,100% 100%,0 100%,9px 50%);white-space:nowrap}
 
 /* portraits */
-.portrait{position:relative;flex:none;padding:4px;border-radius:3px;box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #1a1005}
-.portrait>div{width:100%;height:100%;overflow:hidden;background:radial-gradient(90% 80% at 50% 28%,#d9c69b,#a58d62 62%,#6d5a3c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.7),inset 0 0 12px rgba(0,0,0,.6)}
 .portrait.ennemi{box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #000}
 .portrait.ennemi>div{background:radial-gradient(90% 80% at 50% 28%,#9a4030,#6a2015 60%,#2e0c08)}
-.portrait svg{display:block;width:100%;height:100%}
-.vie{position:relative;height:6px;background:#0d0806;border-radius:1px;box-shadow:0 0 0 1px rgba(226,192,106,.35),inset 0 1px 2px #000}
-.vie>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(180deg,#b9412c,#7c1f14);border-radius:1px}
-.parchemin .vie{box-shadow:0 0 0 1px rgba(60,40,20,.75),inset 0 1px 2px #000}
 
 /* le round */
 #round{left:22px;top:16px;width:214px;height:66px}
@@ -107,10 +67,6 @@ html,body{margin:0;background:#000}
 .pastilles{display:flex;justify-content:space-between;margin-top:10px;padding:0 2px}
 .outil{width:88px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .outil span{font-size:11.5px;color:var(--creme-2);white-space:nowrap;letter-spacing:.7px}
-.bouton-rond{flex:none;border-radius:50%;padding:3px;box-shadow:0 4px 8px rgba(0,0,0,.7),0 0 0 1px #150d04}
-.bouton-rond>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3b2718,#1b100a 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8),inset 0 2px 5px rgba(0,0,0,.8)}
-.bouton-rond.ferme{box-shadow:0 3px 6px rgba(0,0,0,.6),0 0 0 1px #000}
-.bouton-rond.ferme>div{background:radial-gradient(circle at 40% 30%,#26231f,#131210 70%)}
 
 /* la fin du tour */
 #fin{position:absolute;left:1560px;top:640px;width:104px;display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -221,8 +177,7 @@ html,body{margin:0;background:#000}
 #critique .dr{font-size:31px;line-height:36px;color:#3a1a10}
 #critique p{margin:5px 0 0;max-width:640px;font-size:15.5px;line-height:21px;color:#2a1d12}
 
-/* le début du round : un choix, à la place du jet */
-#jet .fond.debut{display:flex;justify-content:center;align-items:flex-start;gap:14px;padding-top:26px}
+/* le début du round : un choix, à la place du jet (`#jet .fond.debut`, `jet.css`) */
 .annonce{height:92px;margin-right:8px;padding:12px 22px 0 0;text-align:right;border-right:1px solid rgba(60,40,20,.4)}
 .annonce .dr{font-size:34px;line-height:38px;color:#3a1a10}
 .annonce .sous{font-size:13.5px;color:#4a3420}

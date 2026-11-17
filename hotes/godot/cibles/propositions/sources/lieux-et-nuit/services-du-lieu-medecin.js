@@ -73,26 +73,18 @@ el(S, 'rect', { width: 380, height: H, fill: '#000', opacity: .3 });
 const pieces = [];
 pieces.push(titre({ icone: 'soin', nom: 'Guilde des Médecins', sous: 'Teuerberg, Bögenhafen', largeur: 400 }));
 const SERVICES = [['lit', 'La Fin du Voyage'], ['chope', 'Les Piques croisées'], ['balance', 'Guilde des Joailliers'], ['soin', 'Guilde des Médecins', 1], ['bouclier', 'Caserne du Guet']];
-pieces.push(`<div id="rail" class="cadre bois" data-piece="services"><div class="fond bois">
-  ${SERVICES.map(([i, n, a]) => plaque(n, { icone: i, armee: !!a })).join('')}
-  <div class="pied rubrique">On passe de l’un à l’autre sans ressortir</div>
-</div><div class="ruban rubrique">Services de Teuerberg</div>${ferrures}</div>`);
+pieces.push(rail('Services de Teuerberg', SERVICES, 'On passe de l’un à l’autre sans ressortir'));
 pieces.push(`<div id="docteur" class="hote cadre bois" data-piece="docteur"><div class="fond bois">
   <div class="tete">${medaillon('soin', { petit: true })}<div><div class="n gothique" data-texte="docteur">Le docteur de la guilde</div><div class="s rubrique">Docteur en médecine · Guérison 62</div></div></div>
   <p>Asseyez-vous sous la fenêtre et montrez-moi cela. Et ne bougez plus.</p>
 </div><i class="pointe" style="left:152px;bottom:-8px"></i>${ferrures}</div>`);
 /* LDB 75 l.19 ; `src/noyau/medicFlow.ts:182`, `src/noyau/acteDeSoin.ts:30-36` ; #3004. Le patient se choisit au bandeau. */
-pieces.push(`<div id="soins" class="page cadre bois" data-piece="soins"><div class="fond parchemin">
-  <div class="patient"><div class="etat"><div class="l"><h3 data-texte="patient">Greta Hartmann</h3><span class="sous rubrique">Blessures <span class="lin">8 / 14</span></span></div><div class="vie"><i style="width:57%"></i></div></div></div>
-  <div class="mal">${sceau('goutte', 12)}<span>Cuisse lacérée, jambe gauche : la plaie attend d’être recousue.</span></div>
-  <div class="filet"></div>
-  <div class="soin pris"><div class="ic">${picto('soin', 19, '#5a2a12')}</div><div class="t"><b>Panser les Blessures</b><span class="c">Guérison</span><i>Lui rend le Bonus d’Intelligence du docteur, plus ses degrés de réussite.</i></div><span class="px lin">5/–</span></div>
-  <div class="soin"><div class="ic">${picto('scalpel', 19, '#5a2a12')}</div><div class="t"><b>Recoudre la cuisse lacérée</b><span class="c">Chirurgie</span><i>Longue opération : chaque passe lui coûte 1d10 Blessures et une Hémorragie.</i></div><span class="px lin">15/–<small>valeur maison</small></span></div>
-  <div class="filet"></div>
-  <table class="compte"><tr class="total"><td>À payer</td><td>5/–</td></tr></table>
+pieces.push(pageDesSoins({ ruban: 'Les soins du docteur', patient: 'Greta Hartmann', blessures: 8, max: 14, mal: 'Cuisse lacérée, jambe gauche : la plaie attend d’être recousue.',
+  actes: `${acteDeSoin('soin', 'Panser les Blessures', 'Guérison', 'Lui rend le Bonus d’Intelligence du docteur, plus ses degrés de réussite.', { pris: true, prix: '5/–' })}
+  ${acteDeSoin('scalpel', 'Recoudre la cuisse lacérée', 'Chirurgie', 'Longue opération : chaque passe lui coûte 1d10 Blessures et une Hémorragie.', { prix: '15/–<small>valeur maison</small>' })}`,
+  pied: `<table class="compte"><tr class="total"><td>À payer</td><td>5/–</td></tr></table>
   ${bourse({ heros: 'Greta', avoir: '1 CO 3/–' })}
-  ${plaque('Payer et soigner', { armee: true, icone: 'bourse', classe: 'payer' })}
-</div><div class="ruban gothique">Les soins du docteur</div>${ferrures}</div>`);
+  ${plaque('Payer et soigner', { armee: true, icone: 'bourse', classe: 'payer' })}` }));
 pieces.push(bandeau({ greta: { choisi: true, mal: true, icone: 'goutte', texte: 'Cuisse lacérée, à recoudre' } }, { bourses: true }));
 pieces.push(retour('Retour au quartier'), coins());
 monter(pieces);

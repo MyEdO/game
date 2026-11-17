@@ -353,9 +353,6 @@ if (!FIN) {
 /* ───────── le meuble étendu : ce que la situation de l'actif ouvre, ses États, sa Détermination ───────── */
 /* une pastille posée sur l'entité du champ qui porte l'offre (`surface: 'pastille-entite'`, `src/data/actions.json`) */
 const surLEntite = ([i, j], haut, icone, libelle) => { const [x, y] = P(i, j); return `<div class="pastille-entite" data-piece="pastille ${libelle}" style="left:${x}px;top:${y - haut}px">${rond(icone, 16)}<span class="rubrique ombre">${libelle}</span></div>`; };
-/* le médaillon de Détermination se presse : il est de laiton, à côté de l'Avantage (transversal §2) */
-const jetons = (determination) => `<div class="jetons">${JETONS}<div class="jeton"><div class="bouton-rond laiton"><div>${determination}</div></div><div class="v"><span class="rubrique">Détermination</span></div></div></div>`;
-const pas = (n) => `<div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>${n} / ${n}</b></div><div class="pas">${'<i></i>'.repeat(n)}</div></div>`;
 /* libellés du registre (`label`, `src/data/actions.json` ; pastilles : `ecran.offre.*`, `src/i18n/messages/fr.ts:538-557`) ;
    raison : `agate.prone` (`fr.ts:4376`) */
 const MEUBLES = {
@@ -393,7 +390,7 @@ if (!jeu && BERTA_JOUE) {
   const adv = VAR === 'adverse';
   ui.push(...meuble({
     ...(adv ? { genre: 'orc', camp: 'ennemi', nom: 'Orc', sous: 'Hache', etat: mesure('Blessures', '14 / 14') }
-      : { genre: 'ilyanwe', nom: 'Ilyanwe la Voilée', sous: 'Bâton de combat', etat: `${mesure('Blessures', '17 / 17')}<div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>4 / 4</b></div><div class="pas"><i></i><i></i><i></i><i></i></div></div>${JETONS}` }),
+      : { genre: 'ilyanwe', nom: 'Ilyanwe la Voilée', sous: 'Bâton de combat', etat: `${mesure('Blessures', '17 / 17')}${pas(4)}${JETONS}` }),
     adverse: adv, ouverte: VAR === 'liste' ? 'sort' : null,
     plaques: `${plaque('Attaque', { armee: SURVOL, icone: 'attaque', fermee: adv })}${plaque('Course', { icone: 'course', fermee: adv })}${plaque('Défensive', { icone: 'defensive', fermee: adv })}`,
     pastilles: [['sort', 'Sort'], ['focaliser', 'Focaliser'], ['competence', 'Compétence'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
