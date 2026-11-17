@@ -52,30 +52,44 @@ const PICTOS = {
   systeme: '<circle cx="12" cy="12" r="3.200"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.600 5.600l2.100 2.100M16.300 16.300l2.100 2.100M5.600 18.400l2.100-2.100M16.300 7.700l2.100-2.100"/>',
   epee: '<path d="M6 18L17 7l2-3-3 2L5 17zM8 13l3 3M4 20l2-2"/>',
   croix: '<path d="M6 6l12 12M18 6L6 18"/>',
+  munition: '<path d="M5 19L18 6M18 6h-5.500M18 6v5.500M5 19l.500-4.500M5 19l4.500-.500"/>',
+  objet: '<path d="M8.500 8.500c-3 3-4.500 6-4.500 8.500a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3c0-2.500-1.500-5.500-4.500-8.500zM9 4h6l-1 4.500h-4z"/>',
+  monter: '<path d="M5 20v-6l4-6.500 5-3.500 1 3.500 4 3-2 3-4-1-2.500 3V20"/>',
+  servir: '<circle cx="12" cy="12" r="7.500"/><path d="M12 4.500v15M4.500 12h15M6.700 6.700l10.600 10.600M17.300 6.700L6.700 17.300"/>',
+  pousser: '<path d="M4 12h11M11 7l5 5-5 5M20 5v14"/>',
+  quitter: '<path d="M10 4.500H5v15h5M14 8l4 4-4 4M9 12h9"/>',
+  aTerre: '<path d="M3.500 18.500h17M6 14.500h8.500l3.500-3.500"/><circle cx="19.500" cy="9" r="1.800"/>',
+  hemorragique: '<path d="M12 4c3 5 5.500 7.500 5.500 10.500a5.500 5.500 0 0 1-11 0C6.500 11.500 9 9 12 4z"/>',
 };
 const rond = (nom, taille, { ferme = false, couleur } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'}"><div>${picto(PICTOS[nom], taille, couleur ?? (ferme ? '#7d7668' : '#e2c06a'))}</div></div>`;
 const plaque = (libelle, { armee = false, icone = null, classe = '', fermee = false } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'}${armee ? ' armee' : ''} ${classe}"><div>${icone ? picto(PICTOS[icone], 21, armee ? '#2a1a08' : fermee ? '#7d7668' : '#e2c06a', 1.7) : ''}${libelle}</div></div>`;
 
-const rang = (genre, camp, nom, pv, max, classe = '') => `
+/* `etats` : les États que porte le combattant (`etatPorte`), sous sa barre */
+const rang = (genre, camp, nom, pv, max, classe = '', etats = '') => `
   <div class="rang ${camp === 'ennemi' ? 'ennemi' : ''} ${classe}">${portrait(genre, camp)}
     <div class="qui"><div class="nom ${classe.includes('actif') ? '' : 'rubrique'} ombre" data-texte="rang ${nom}">${nom}</div>
-    ${classe.includes('fantome') ? '' : `<div class="ligne"><div class="vie"><i style="width:${100 * pv / max}%"></i></div><span class="pv ombre">${pv} / ${max}</span></div>`}</div>
+    ${classe.includes('fantome') ? '' : `<div class="ligne"><div class="vie"><i style="width:${100 * pv / max}%"></i></div><span class="pv ombre">${pv} / ${max}</span></div>`}${etats ? `<div class="etats">${etats}</div>` : ''}</div>
   </div>`;
 const borne = (n) => `<div class="borne"><div class="disque fer"><div>${n}</div></div><span class="rubrique ombre">Round ${n}</span><i></i></div>`;
 const vieux = (t) => `<p class="vieux ombre">${t}</p>`, neuf = (t) => `<p class="ombre">${t}</p>`, borneJ = (t) => `<p class="borne-j ombre">${t}</p>`;
 const medaillon = (n, t) => `<div class="medaillon"><div class="disque fer"><div>${n}</div></div><span class="rubrique">${t}</span></div>`;
 /* la pièce fixe : le système */
 const SYSTEME = `<div id="systeme" data-piece="systeme">${rond('systeme', 22, { couleur: '#c9b995' })}</div>`;
-/* le meuble de l'actif : les outils du tour, la barre (état, plaques, pastilles), son portrait et son nom */
-const mesure = (nom, valeur, classe = '') => `<div class="mesure ${classe}"><div class="tete rubrique"><span>${nom}</span><b>${valeur}</b></div><div class="vie"><i style="width:100%"></i></div></div>`;
+/* le meuble de l'actif : les outils du tour, la barre (état, plaques, pastilles), son portrait et son nom ;
+   `conditionnelles` : le second rang de plaques, celles que la situation de l'actif ouvre */
+const mesure = (nom, valeur, classe = '') => { const [a, b] = valeur.split(' / '); return `<div class="mesure ${classe}"><div class="tete rubrique"><span>${nom}</span><b>${valeur}</b></div><div class="vie"><i style="width:${100 * a / b}%"></i></div></div>`; };
+/* LDB 16 : un État porté, en sceau de cire ; `n` : ses exemplaires cumulés ; `presse` : celui que le joueur vient de presser */
+const ETATS = { aTerre: 'À Terre', hemorragique: 'Hémorragique' };
+const etatPorte = (id, { n = 1, presse = false } = {}) => `<div class="etat-porte${presse ? ' presse' : ''}"><i class="sceau">${picto(PICTOS[id], 13, '#3a0c06', 2)}</i><span class="rubrique">${ETATS[id]}</span>${n > 1 ? `<b>${n}</b>` : ''}</div>`;
 const JETONS = `<div class="jeton"><div class="sceau">${picto(PICTOS.epee, 18, '#3a0c06', 1.7)}</div><div class="v"><span class="rubrique">Action</span> <em>disponible</em></div></div>
   <div class="jeton"><div class="chiffre">0</div><div class="v"><span class="rubrique">Avantage</span></div></div>`;
-const meuble = ({ genre, camp = 'heros', nom, sous, etat, plaques, pastilles, adverse = false, ouverte = null }) => [
+const meuble = ({ genre, camp = 'heros', nom, sous, etat, plaques, conditionnelles = '', pastilles, adverse = false, ouverte = null }) => [
   `<div id="tour-outils" data-piece="tour-outils">${rond('annuler', 19, { ferme: true })}${rond('pause', 19, { ferme: true })}</div>`,
   `<div id="barre" class="cadre bois${adverse ? ' adverse' : ''}" data-piece="barre"><div class="fond">
     <div id="etat">${etat}</div>
     <div id="gestes">
-      <div class="plaques">${plaques}</div>
+      <div class="plaques">${plaques}</div>${conditionnelles ? `
+      <div class="plaques conditionnelles">${conditionnelles}</div>` : ''}
       <div class="pastilles">${pastilles.map(([p, l]) => `<div class="outil${p === ouverte ? ' ouvert' : ''}"><div style="width:34px;height:34px;display:flex">${rond(p, 18, { ferme: adverse }).replace('class="bouton-rond', 'style="width:34px;height:34px" class="bouton-rond')}</div><span class="rubrique">${l}</span></div>`).join('')}</div>
     </div>
   </div><div class="ruban rubrique" style="left:880px;top:-9px">Action</div>${ferrures}</div>`,
@@ -93,4 +107,4 @@ const monter = (ui) => {
   document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay;opacity:.3';
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { W, H, alea, melange, P, losange, rang, borne, vieux, neuf, borneJ, medaillon, SYSTEME, plaque, mesure, JETONS, meuble, vise, RESERVES, monter });
+Object.assign(globalThis, { W, H, alea, melange, P, losange, rang, borne, vieux, neuf, borneJ, medaillon, SYSTEME, plaque, mesure, etatPorte, JETONS, meuble, vise, RESERVES, monter });

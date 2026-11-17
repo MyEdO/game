@@ -38,10 +38,17 @@ Les images de la page « Images cibles des écrans », sous `maquettes/`. Celles
 | `incantation` | J10 | cible à droite en bloc sans dé, sort en gothique au centre |
 | `coup-critique` | C1, C2, C3 | victime et silhouette à gauche, texte du livre à droite, un seul geste ; la barre compte le coup et le Critique |
 | `debut-du-round` | R1 | « Agir en premier » : carte du héros offert et son coût, sa Chance en réserve, puis la plaque |
-| `fin-victoire`, `fin-defaite` | F1, F2 | le reste de l'interface s'efface, un seul bouton « Reprendre » |
+| `fin-victoire` | F1 | le cartouche puis, dans le bandeau du bas, Expérience, Argent, vaincus, « Dépecer », butin à attribuer par héros ; « Reprendre » |
+| `fin-defaite`, `fin-repli`, `fin-aneantissement` | F2 | un cartouche par fenêtre du noyau, sa conséquence en une ligne, le bouton au libellé du jeu |
 | `journal-ouvert` | T19 | panneau au-dessus de sa pastille, rangé par round |
 | `fiche-au-clic` | T21 | quatre panneaux entre l'ordre et le journal, les ancrages restent visibles |
 | `cible-survolee` | T14, T15, T16 | aucun |
+| `defense-avant-le-de`, `defense-riposte` | J1 à J8, avant le dé | réaction en deux cartes à seuil, « Parer avec », Porte-bouclier ou Riposte en petites plaques ; colonnes inégales ; pas d'« Annuler » |
+| `meuble-engage-a-terre`, `meuble-tireur`, `meuble-chef-de-piece` | T3 à T13, point 11 | second rang de plaques pour les offres de la situation ; pastilles à libellé en ligne ; États en sceaux de cire au meuble et dans l'ordre ; raison d'un refus en bulle ; offres portées par la monture et la pièce |
+| `determination`, `determination-etat` | aucun | médaillon de laiton au meuble ; trois cartes puis « Dépenser » ; l'État pressé arrive carte choisie ; « Annuler » |
+| `jet-avant-le-de-armes`, `jet-avant-le-de-empoigner` | J9 | réglages en rangées : Arme, Localisation, « Des deux armes », « Retenir ses coups », « Empoigner » et sa note |
+| `seconde-frappe`, `frappe-mortelle` | aucun | bandeau bas réduit à la consigne et à un geste de sortie ; cibles permises cernées de cire ; dé inversé montré |
+| `debut-du-round-tir-rapide` | R1 | deux choix côte à côte, « Agir en premier » et « Préempter · Tir rapide » ; le tir part au clic d'une cible cernée |
 
 ## Lieux et nuit (2026-11-16)
 
@@ -66,9 +73,11 @@ Aucune cible écrite. Le contenu vient de `src/hote/accueil.ts`, `groupe.ts`, `s
 | `accueil` | la compagnie face à Altdorf, jeu en plaques, outils en pastilles | « Continuer » en premier, qui charge la dernière sauvegarde ; sur-titre et sous-titre ajoutés |
 | `nouvelle-partie` | la salle d'une auberge-relais, le groupe attablé, les voyageurs à recruter, les campagnes en avis cloués | cinq voyageurs visibles à la fois ; espèce absente de l'étiquette |
 | `sauvegardes` | quatre feuillets sur la table, l'automatique d'abord, chacun ce que la sauvegarde porte | états sans partie et refus non dessinés |
-| `menu-de-la-partie` | le jeu assombri, la colonne de l'accueil | geste « Reprendre » ; « Terminer la séance » sans son écran ; colonne à gauche |
+| `menu-de-la-partie` | le jeu assombri, la colonne de l'accueil | geste « Reprendre » ; refus de « Terminer la séance » non dessiné ; colonne à gauche |
 | `options` | préférences sur un volet, règles maison dans un registre à quinze signets | douze règles par feuillet ; libellés lisibles des options |
 | `ouverture-de-chapitre` | carton plein écran du chapitre, « Commencer » | compagnie affichée ; texte sur l'image |
+| `fin-de-seance` | par-dessus le jeu assombri : un feuillet par héros (ce qu'il a écrit, ses trois cases, son gain), les cases du groupe, « Terminer la séance » | croix plutôt que « Continuer » ; gain par héros à servir ; Ambition de groupe sans verbe d'écriture |
+| `fin-de-chapitre` | pendant de l'ouverture : la clôture, les objectifs soldés et les PX, les lieux, les tombés, puis les cases de la séance ; « Clore le chapitre », « Plus tard » | un écran au lieu de deux volets ; Ambitions écrites absentes des colonnes |
 
 ## Héros : création et progression (2026-11-16)
 
@@ -93,7 +102,7 @@ Sans cible écrite ; compte rendu dans `propositions/exploration-et-recit.md` : 
 `jet-de-competence` (dans le bandeau du bas, comme le jet de combat), `butin` (chaque objet va sur un héros),
 `document`, `carte-du-monde`. Le voyage, la suite du combat, le commerce et les outils ont depuis leurs sections
 ci-dessous. Manquent encore, relevés à leurs comptes rendus : la décision qui ouvre une course-poursuite en mer ; le
-facteur environnemental tiré d'une bataille de masse ; le Test de Corruption tombé et le Test de Résistance raté avant
+facteur environnemental tiré d'une bataille de masse ; le Test de Résistance raté avant
 la mutation ; « Chance : +1 DR », la raison au survol de « Relancer » fermée, l'axe « Dégâts » de la surincantation
 révisée ; à la halle et au port, les refus, l'acheteur introuvable, la moitié du lot proposée, l'évaluation du vin
 résolue, le Marchandage de vente, le Marchandage perdu, le chantier naval, le recrutement et l'avitaillement ; en
@@ -121,25 +130,31 @@ des livres : LDB 51 l.191-221, MSRC 7, MDG 12 à 15.
 
 ## Suite du combat (2026-11-17)
 
-Aucune cible écrite : le contrat `combat.md` dit la bataille de masse hors de son périmètre. Onze états dans le
-bandeau du jet de combat, trois sur l'écran de voyage. Ce qui se joue vient des livres : LDB 12, 14, 15, 17, 19, 46,
-47, ADE II 08, MDG 13 et 14.
+Aucune cible écrite : le contrat `combat.md` dit la bataille de masse hors de son périmètre. Seize états dans le
+bandeau du jet de combat, quatre sur l'écran de voyage. Ce qui se joue vient des livres : LDB 10, 12, 14, 15, 17, 19,
+46, 47, ADE II 08, MDG 13 et 14.
 
 | État | Intention | Choix à valider |
 |---|---|---|
 | `surincantation` | le bandeau après le dé : le sort, les pas à répartir par axe, les cibles désignées | pas en losanges avec − et + ; axe « sans objet » grisé ; axe « Dégâts » de la règle révisée absent |
+| `incantation-critique` | le Critique au jet d'Incantation : le jet du lanceur, puis trois cartes d'effet | sous-titres des cartes ; jet sur le Tableau non annoncé ; « Jets de table choisis » non dessiné |
 | `contre-sort-declaration`, `contre-sort` | deux temps : la déclaration en trois cartes, avec la portée, puis le Test opposé tombé | « S'unir » fermée sans autre lanceur ; « Un seul Contre-sort par Round » sous « Passer » ; gestes « Déclarer », « Annuler » |
+| `dissipation-entree` | le porteur désigné : le dissipeur, son seuil et le coût de l'Action, une carte par Sort durable, « Dissiper », « Annuler » | carte puis plaque ; Soutien du même Domaine non montré |
 | `dissipation` | le Test étendu contre un sort qui dure, cumul des DR, le coût de l'Action, le sort visible sur le champ | cumul en losanges ; le Dôme en exemple ; ruban « Dissipation » |
+| `focalisation` | le Test étendu de Focalisation dans le gabarit de la Dissipation : cumul des DR, ce qu'il ouvre | colonne « Ce que la Focalisation ouvre » ; Vent non nommé ; cumul atteint et Critique sans image |
 | `incantation-imparfaite` | le gabarit du coup critique : dés du jet, d100 de la table, texte du livre | « Malignité » lue comme les Influences malfaisantes ; ni Chance ni Résilience |
 | `test-de-corruption` | hors combat, avant le dé : l'exposition, la nature en deux cartes, ce que le Test décide, les réserves | table des enjeux avant le dé ; sous-titres absents du jeu ; « Lancer », « Résilience » |
+| `test-de-corruption-tombe` | le Test tombé : les Points gagnés, la ligne de la table marquée, les gestes d'après le dé et « Résistance » | « Résistance » en sixième plaque, fermée sans le Talent ; plaque ouverte sans image |
 | `corruption-mutation` | le seuil manqué arrête le jeu avant tout tirage : « Je te renie ! » ou « Muter », en deux cartes | carte puis « Confirmer » ; ruban « La mutation menace » ; « Muter » en lettres de cire |
 | `maladresse` | le gabarit du coup critique : le double raté, le Tableau des Oups | titre « Oups ! » ; dés du tirage montrés, double rappelé en rubrique |
 | `desengagement` | le choix dans le bandeau, trois cartes, la refusée en fer, ce que coûte « Fuir » | raison du refus en billet au survol ; sous-titres des cartes ; la plaque porte le nom de l'acte choisi ; « Annuler » |
+| `fuite` | la suite de « Fuir » : le coup dans le dos à +20, le Test de Calme du fuyard touché, les États Brisé | un verdict pour deux Tests non opposés ; Dégâts non montrés ; coup manqué sans image |
 | `sauvetage-par-le-destin` | le coup fatal arrête le jeu dans le bandeau, trois cartes, la réserve de Destin | carte puis « Confirmer » ; « Accepter son sort » en lettres de cire |
 | `relance-a-la-chance` | le jet après une relance, le premier jet rappelé barré, les trois réserves, « Relancer » fermée et sa raison | réserves en médaillons à gauche des gestes ; raison du refus en billet au survol |
 | `bataille-de-masse` | le champ sur le socle du voyage, les Scènes du Round posées, les Puissances en jauges | socle du voyage plutôt que champ tactique ; place des Scènes ; aucune sortie |
 | `bataille-de-masse-test-de-puissance` | le Test spectaculaire tombé dans un parchemin au-dessus des héros, le Rassemblement héros par héros | contenant en bas et non au centre ; ni Chance ni Résilience ; chiffres d'exemple |
 | `course-poursuite-en-mer` | la traversée continue, le poursuivant dans le sillage, la Distance en frise, le gain net de la manche du jour | frise de Distance à la place du trajet ; repère « Départ · 50 » ; Bjorn en Mousse |
+| `course-poursuite-en-mer-test` | le Test d'équipage à lancer, rôle après rôle : rangées du billet, la rangée qui joue, ses réserves, « Lancer », « Résilience » | gestes au pied du billet ; ordre des rangées ; après le dé sans image |
 
 ## Commerce (2026-11-17)
 

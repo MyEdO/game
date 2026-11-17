@@ -70,3 +70,19 @@
 /* la relance : le premier jet reste lisible */
 .relance{color:#5a2a12;white-space:nowrap}
 .relance s{text-decoration-thickness:1.5px}
+
+/* l'entrée de la Dissipation : le dissipeur et son prix, les Sorts du porteur, le porteur */
+.camp.dissipeur .modif{margin-top:9px}
+#jet .fond.destin .camp.visee{margin:0 0 0 6px;padding:0 0 0 14px;border-right:0;border-left:1px solid rgba(60,40,20,.4)}
+
+/* l'Incantation Critique : le jet du lanceur, puis l'effet à choisir */
+#jet .fond.effet-critique{gap:12px}
+#jet .fond.effet-critique .camp{height:92px;margin-right:2px;padding-right:16px;border-right:1px solid rgba(60,40,20,.4)}
+#jet .fond.effet-critique .plaque.carte{width:226px}
+
+/* la Focalisation : le cumul, et ce qu'il ouvre */
+#jet .fond.focal{grid-template-columns:372px 1fr 336px}
+
+/* le Test de Corruption tombé : la ligne de l'enjeu que le dé désigne */
+#jet .fond.corruption.tombe{grid-template-columns:372px 1fr 290px}
+.enjeu tr.tombee td{color:#7c1f14;font-weight:600}
