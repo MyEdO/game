@@ -33,3 +33,10 @@
 #epreuve .gestes{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:9px}
 #epreuve .gestes .plaque{flex:none;width:190px;height:40px}
 .jouera.joue span{color:#eadfc4}
+
+/* le Test d'équipage à lancer : la rangée du rôle qui joue, ses gestes au pied du billet */
+.apercu td .courant{font-weight:600;color:#7c1f14}
+.apercu .pied .gestes{display:flex;align-items:center;gap:9px;font-style:normal}
+.apercu .pied .gestes .en-reserve{flex:none;margin-right:5px}
+.apercu .pied .gestes .plaque{flex:1;height:36px}
+.apercu .pied .gestes .plaque>div{font-size:14px;padding:0 8px}

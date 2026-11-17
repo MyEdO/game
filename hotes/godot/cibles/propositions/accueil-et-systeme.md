@@ -1,11 +1,12 @@
 # Propositions : accueil et système (2026-11-16, #3935)
 
-Compte rendu des six écrans, sans cible écrite, dessinés dans le style des maquettes validées. Contenu lu au code, pas
+Compte rendu des huit écrans, sans cible écrite, dessinés dans le style des maquettes validées. Contenu lu au code, pas
 le design. Sources au dépôt : `sources/accueil-et-systeme/`. Rien n'est
 validé.
 
 Pièces neuves : registre relié et ses signets ; contrôles de réglage (oui/non, réglette, segments, pas-à-pas) ;
-affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé laiton.
+affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé laiton ; case à cocher et son octroi
+(`seance.js`, `seance.css`, communs aux deux écrans de fin de séance).
 
 ## accueil
 - La compagnie de dos sur une crête, Altdorf au couchant, la comète à deux queues ; titre gothique doré ; trois
@@ -38,7 +39,8 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
 ## menu-de-la-partie
 - Le jeu flouté et assombri ; la colonne de l'accueil : Sauvegardes, Options, Jouer en ligne, Quitter la partie
   (`src/hote/groupe.ts:72-75`), et « Terminer la séance » (`ouvrirLaFinDeSeance`, `src/noyau/actionsDuNoyau.ts:224`).
-- À valider : écran « Fin de séance » non dessiné ; geste « Reprendre » absent du jeu ; sur-titre « Partie en pause » ; colonne à gauche plutôt qu'au
+- À valider : la plaque ouvre `fin-de-seance` ; son refus hors exploration ou chez l'invité (`refusDeFinDeSeance`,
+  `src/noyau/partyFlow.ts:682`) non dessiné ; geste « Reprendre » absent du jeu ; sur-titre « Partie en pause » ; colonne à gauche plutôt qu'au
   centre.
 
 ## options
@@ -56,3 +58,36 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   « Commencer ».
 - À valider : la compagnie affichée (le bloc d'ouverture ne la porte pas) ; mention de la page source ; texte posé
   sur l'image plutôt que sur parchemin.
+
+## fin-de-seance
+- Ouverte du menu de la partie, par-dessus le jeu assombri : un feuillet par héros avec ce qu'il a écrit (Motivation,
+  Ambitions à court et à long terme), ses trois cases et ce que chacune octroie, sa Détermination sur son maximum, et
+  en tête ce que la séance lui vaut ; le groupe en bande, ses deux cases ; « Terminer la séance » ; la croix referme
+  sans rien octroyer. Une Ambition cochée ouvre le champ de la suivante.
+- Règles : Ambition à court terme accomplie +50 PX, à long terme +500 PX, et une nouvelle se choisit en fin de séance
+  (LDB 05 l.795-799) ; Ambitions de groupe, +50 et +500 PX à chaque héros (LDB 05 l.837-841) ; +1 Détermination pour
+  qui a agi selon sa Motivation, plafonnée (LDB 17 l.81, `src/engine/session.ts:28-45`) ; la Chance revient à la
+  séance suivante (LDB 17 l.41). Libellés des cases : `verbe.finDeSeance.*`.
+- Verbes : `ouvrirLaFinDeSeance()` (plaque du menu), `fenetreChoisir('finDeSeance', axe, booléen, heroId?)` par case,
+  `fenetreValider('finDeSeance')` sur « Terminer la séance », `fenetreFermer('finDeSeance')` sur la croix,
+  `ecrireLHistorique(heroId, { ambitionShort | ambitionLong | motivation })` pour le champ ouvert
+  (`src/noyau/partyFlow.ts:650-716`).
+- À valider : la croix plutôt que la plaque « Continuer » du jeu (`verbe.finDeSeance.fermer`) ; le gain par héros en
+  tête du feuillet, qu'aucune vue de `src/hote` ne sert (`heroSessionXp`) ; Motivations et Ambitions d'exemple, celles
+  de LDB 05 l.444, l.776-778, l.786-788 ; « Aucune Ambition … notée » (`src/ui/SessionEndModal.tsx:70-74`) ; la
+  retraite du héros à l'Ambition à long terme accomplie (LDB 05 l.799) n'est pas offerte, le jeu ne l'a pas.
+- Verbe qui manque : l'Ambition de groupe n'est écrite nulle part (ni champ d'état, ni verbe) : l'écran ne montre que
+  ses cases ; l'écrire et la réécrire demande un verbe neuf.
+
+## fin-de-chapitre
+- Pendant de `ouverture-de-chapitre` : Altdorf au petit matin, le titre de clôture sur toile rouge et son sous-titre
+  (`src/scenes/diligence/diligence-projet.json:3775-3789`), « Ce que la route retiendra » (les objectifs soldés et les
+  PX du chapitre), « Lieux révélés », « Tombés en chemin » (`src/noyau/chapitreRecap.ts:34-68`, `chap.*`) ; dessous, la
+  fin de séance que le récap ouvre : une colonne par héros et celle du groupe, les mêmes cases que `fin-de-seance` ;
+  « Clore le chapitre » et « Plus tard ».
+- Verbes : `fenetreChoisir('finDeSeance', …)` par case, `fenetreValider('finDeChapitre')` sur « Clore le chapitre »
+  (termine la séance, consomme la clôture, borne le chapitre suivant : `chapitreRecap.ts:105-112`),
+  `fenetreFermer('finDeChapitre')` sur « Plus tard » (ajourne, rien n'est appliqué : `:118`).
+- À valider : un seul écran quand le jeu en fait deux volets (`chap.poursuivre`) ; les Ambitions écrites absentes des
+  colonnes, lisibles sur `fin-de-seance` ; le champ de l'Ambition suivante (`ecrireLHistorique`) n'y est pas ;
+  « +140 PX » d'exemple ; l'état de l'invité (« Masquer », `chap.refusHote`) non dessiné.
