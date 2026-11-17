@@ -35,6 +35,8 @@ const rail = (ruban, services, pied) => `<div id="rail" class="cadre bois" data-
   ${services.map(([i, n, a]) => plaque(n, { icone: i, armee: !!a })).join('')}
   <div class="pied rubrique">${pied}</div>
 </div><div class="ruban rubrique">${ruban}</div>${ferrures}</div>`;
+/* la page de droite, sur parchemin : ce que l'on compose ou traite ; `piece` la nomme au rapport de rendu */
+const page = (piece, ruban, corps, classe = '') => `<div id="page" class="page cadre bois ${classe}" data-piece="${piece}" style="height:auto"><div class="fond parchemin">${corps}</div><div class="ruban gothique">${ruban}</div>${ferrures}</div>`;
 const quantite = (v, min, max, unite = 'Enc') => `<div class="quantite">${rond('moins', 15)}<div style="flex:1"><div class="reglette"><u style="width:${100 * (v - min) / (max - min)}%"></u><i style="left:${100 * (v - min) / (max - min)}%"></i></div><div class="bornes lin"><span>${min}</span><span>${max}</span></div></div>${rond('plus', 15)}<span class="val">${v} ${unite}</span></div>`;
 const voie = (icone, nom, comp, texte, prix, pris = false) => `<div class="soin ${pris ? 'pris' : ''}"><div class="ic">${picto(icone, 19, '#5a2a12')}</div><div class="t"><b>${nom}</b><span class="c">${comp}</span><i>${texte}</i></div>${prix ? `<span class="px lin">${prix}</span>` : ''}</div>`;
 
@@ -221,4 +223,4 @@ function sceneDuQuai() {
 }
 const nuagesDuSoir = () => { const g = el(S, 'g'); for (const [cx, cy, rx, ry, o] of [[420, 150, 260, 22, .5], [760, 96, 220, 16, .4], [1180, 190, 300, 20, .45], [980, 290, 240, 14, .35], [560, 300, 200, 12, .3]]) el(g, 'ellipse', { cx, cy, rx, ry, fill: '#2a2238', opacity: o, filter: 'url(#f8)' }); };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { mesures, cartouche, jauge, rail, quantite, voie, sceneDeLaHalle, sceneDuQuai });
+Object.assign(globalThis, { mesures, cartouche, jauge, rail, page, quantite, voie, sceneDeLaHalle, sceneDuQuai });

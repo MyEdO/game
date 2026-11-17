@@ -42,7 +42,10 @@ const figure = (pose, { palette = false } = {}) => {
 </svg>`;
 };
 
-const cadre = (id, x, y, w, h, matiere, contenu, { ruban = null, classe = '' } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-piece="${id}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"><div class="fond ${matiere}">${contenu}</div>${ruban ? `<div class="ruban gothique">${ruban}</div>` : ''}${ferrures}</div>`;
+/* `ruban` : le titre du panneau ; `tete` : ce qui se pose à sa place sur le bord haut (les onglets de ses sections) */
+const cadre = (id, x, y, w, h, matiere, contenu, { ruban = null, classe = '', tete = '' } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-piece="${id}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"><div class="fond ${matiere}">${contenu}</div>${ruban ? `<div class="ruban gothique">${ruban}</div>` : ''}${tete}${ferrures}</div>`;
+/* les sections d'un panneau en onglets : l'active est le ruban, les autres des plaques (`ecrites/heros.md`) */
+const onglets = (noms, active) => `<div class="onglets">${noms.map((s) => (s === active ? `<span class="ruban gothique" data-texte="section">${s}</span>` : plaque(s))).join('')}</div>`;
 const sep = () => '<div class="sep"><i></i></div>';
 const rub = (t, note = '') => `<div class="rub">${t}${note ? ` <span class="note">${note}</span>` : ''}</div>`;
 const car = (ab) => `<span class="tag">${ab}</span>`;
@@ -90,13 +93,16 @@ const groupeEnCreation = (neuf = {}) => bandeauDe([
   { id: 'mira', nom: 'Mira', car: 'Éclaireuse', pv: 11, max: 11 },
   { id: 'astrid', nom: 'Nouveau héros', car: 'Artiste', choisi: true, esquisse: true, ...neuf },
 ]);
-const groupeDIlyanwe = () => bandeauDe([
-  { id: 'ilyanwe', nom: 'Ilyanwe la Voilée', car: 'Sorcière', pv: 17, max: 17, choisi: true },
-  { id: 'berta', nom: 'Berta', car: 'Soldate', pv: 12, max: 12 },
+const groupeDIlyanwe = (lu = 'ilyanwe') => bandeauDe([
+  { id: 'ilyanwe', nom: 'Ilyanwe la Voilée', car: 'Sorcière', pv: 17, max: 17, choisi: lu === 'ilyanwe' },
+  { id: 'berta', nom: 'Berta', car: 'Soldate', pv: 12, max: 12, choisi: lu === 'berta' },
 ]);
 
-/* ───────── la bande de profil ───────── */
+/* ───────── la bande de profil, les réserves ───────── */
 const ABR = ['M', 'CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc', 'B'];
+/* une case de la bande : [valeur, Augmentations, prix de la suivante, de la carrière] */
+const caseDeCarac = ([v, aug, cout, carriere], i) => `<div class="c ${carriere ? 'carr' : ''}"><span class="ab">${ABR[i]}</span><span class="v">${v}</span><span class="aug">${aug ? `+${aug}` : ''}</span>${cout ? `<span class="jeton ${carriere ? 'or' : 'fer'}">${cout} PX</span>` : ''}</div>`;
+const reserve = (n, nom) => `<div class="reserve"><div class="medaillon fer"><div>${n}</div></div><span class="rub">${nom}</span></div>`;
 
 const poser = (pieces) => {
   document.getElementById('ui').innerHTML = '<div id="mur" class="bois"></div>' + pieces.join('');
@@ -110,4 +116,4 @@ const ACQUIS = [
   ['Signe astral', 'Le Trait du Peintre', '+25 PX'],
 ];
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { sep, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, poser, ACQUIS });
+Object.assign(globalThis, { sep, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, caseDeCarac, reserve, onglets, poser, ACQUIS });

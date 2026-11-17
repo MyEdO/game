@@ -106,8 +106,9 @@ const tabouret = (g, x, y) => { el(g, 'path', { d: `M${x - 6},${y + 2}v-9M${x + 
 
 /* ───────── la salle commune de La Diligence ─────────
    groupe : 'entree' (le groupe traverse la salle) ou 'comptoir' (il parle à Gustav) ; survol : 'gustav' ;
-   trajet : le chemin pointé ; avis : l'avis placardé luit ; sombre : la scène recule derrière une page */
-function sceneAuberge({ groupe = 'entree', survol = null, trajet = false, parle = false, avis = false, sombre = 0, colonne = false } = {}) {
+   trajet : le chemin pointé ; avis : l'avis placardé luit ; sombre : la scène recule derrière une page ;
+   auSol : la case d'un objet posé au sol ; croisee : la croisée du mur de droite luit, on peut l'enjamber */
+function sceneAuberge({ groupe = 'entree', survol = null, trajet = false, parle = false, avis = false, sombre = 0, colonne = false, auSol = null, croisee = false } = {}) {
   const HM = 96;
   el(S, 'rect', { width: W, height: H, fill: '#07080d' });
   // le plancher
@@ -132,8 +133,8 @@ function sceneAuberge({ groupe = 'entree', survol = null, trajet = false, parle 
     for (let j = 22; j >= -1; j--) { const F = seF(j); quad(g, F, 0, 0, 1, .09, bois); quad(g, F, 0, .9, 1, 1, bois); if (j % 2 === 0) quad(g, F, 0, .09, .11, .9, bois); if (j % 4 === 1) el(g, 'path', { d: `M${F(.11, .9).join(',')}L${F(1, .09).join(',')}`, stroke: '#2e1f14', 'stroke-width': 5 }); }
     for (let i = 4; i <= 26; i++) { const F = soF(i); quad(g, F, 0, 0, 1, .09, bois); quad(g, F, 0, .9, 1, 1, bois); if (i % 2 === 0) quad(g, F, .89, .09, 1, .9, bois); if (i % 4 === 3) el(g, 'path', { d: `M${F(0, .09).join(',')}L${F(.89, .9).join(',')}`, stroke: '#2e1f14', 'stroke-width': 5 }); }
     // fenêtres, la nuit dehors
-    const fenetre = (F) => { quad(g, F, .22, .4, .8, .82, { fill: '#1b2540', stroke: '#2e1f14', 'stroke-width': 3 }); el(g, 'path', { d: `M${F(.51, .4).join(',')}L${F(.51, .82).join(',')}M${F(.22, .61).join(',')}L${F(.8, .61).join(',')}`, stroke: '#2e1f14', 'stroke-width': 1.6 }); };
-    fenetre(seF(1)); fenetre(seF(15)); fenetre(soF(6)); fenetre(soF(14));
+    const fenetre = (F, luit = false) => { if (luit) el(g, 'circle', { cx: F(.51, .61)[0], cy: F(.51, .61)[1], r: 50, fill: 'url(#coeur)', opacity: .85, style: 'mix-blend-mode:screen' }); quad(g, F, .22, .4, .8, .82, { fill: '#1b2540', stroke: luit ? '#f3dc93' : '#2e1f14', 'stroke-width': 3 }); el(g, 'path', { d: `M${F(.51, .4).join(',')}L${F(.51, .82).join(',')}M${F(.22, .61).join(',')}L${F(.8, .61).join(',')}`, stroke: '#2e1f14', 'stroke-width': 1.6 }); };
+    fenetre(seF(1)); fenetre(seF(15)); fenetre(soF(6)); fenetre(soF(14), croisee);
     // la porte de la cour, mur de gauche
     { const F = seF(11); quad(g, F, .08, 0, .92, .8, { fill: '#2e1f14' }); quad(g, F, .14, 0, .86, .76, { fill: '#5a3d24', stroke: '#120b06', 'stroke-width': .8 });
       for (const u of [.32, .5, .68]) el(g, 'path', { d: `M${F(u, 0).join(',')}L${F(u, .76).join(',')}`, stroke: '#2a1a0e', 'stroke-width': 1 });
@@ -176,6 +177,7 @@ function sceneAuberge({ groupe = 'entree', survol = null, trajet = false, parle 
   objet(15, 7, (g, [x, y]) => tabouret(g, x, y)); objet(16, 6, (g, [x, y]) => tabouret(g, x - 4, y));
   objet(4, 14, (g, [x, y]) => { el(g, 'ellipse', { cx: x + 6, cy: y + 8, rx: 40, ry: 16, fill: '#000', opacity: .4, filter: 'url(#f2)' }); boite(g, x, y, 30, 15, 26, BOIS, 0, '#15100a'); el(g, 'path', { d: `M${x - 30},${y - 17}L${x},${y - 2}L${x + 30},${y - 17}M${x - 10},${y - 21}v18M${x + 10},${y - 21}v18`, fill: 'none', stroke: '#c39c44', 'stroke-width': 2, opacity: .85 }); });
   objet(4, 4, (g, [x, y]) => { tonneau(g, x - 4, y); });
+  if (auSol) objet(...auSol, (g, [x, y]) => { el(g, 'ellipse', { cx: x, cy: y, rx: 34, ry: 16, fill: '#ffd98a', opacity: .55, filter: 'url(#f6)' }); el(g, 'path', { d: `M${x - 15},${y + 5}L${x + 9},${y - 5}`, stroke: '#d5d8de', 'stroke-width': 3, 'stroke-linecap': 'round' }); el(g, 'path', { d: `M${x + 5},${y - 9}l7,9M${x + 9},${y - 5}l8,-3.500`, stroke: '#3a2c1a', 'stroke-width': 3, 'stroke-linecap': 'round' }); });
   // les gens
   objet(11, 1, (g, [x, y]) => pion(g, [x - 22, y + 1], 'gustav', { camp: 'pnj', vise: survol === 'gustav' || parle }), -.2);
   Object.entries(GROUPE).forEach(([nom, c]) => objet(...c, (g, p) => pion(g, p, nom, { mene: nom === 'mira' })));
