@@ -65,3 +65,6 @@ export const pastille = disque(17, 3);
 
 /** Un bouton rond : un disque à listel de 42 de rayon, posé à 84 de côté (la fin du tour, `art/fin_du_tour.tres`). */
 export const boutonRond = disque(42, 6);
+
+/** Un outil : un disque à listel de 23 de rayon, posé à 46 de côté (les outils de l'accueil, `art/accueil.tres`). */
+export const outil = disque(23, 4);
