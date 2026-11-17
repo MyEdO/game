@@ -2,7 +2,7 @@
 name: ecraniste
 description: Dessine ou retouche un écran de l'hôte Godot depuis sa maquette validée et sa cible écrite, sur le lot de pièces spécifié par l'orchestrateur. Pour tout travail de design ou d'interface sous Godot.
 tools: Read, Edit, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_patch, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, Write, Bash, PowerShell, Skill
-model: fable
+model: opus
 effort: medium
 ---
 
