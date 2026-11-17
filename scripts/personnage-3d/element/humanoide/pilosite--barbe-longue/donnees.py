@@ -94,11 +94,14 @@ BARBE = {
     'jeu': 0.016,
     # illustration : une masse ondulée. Écart au-delà du jeu, nul à la mâchoire : `periodes` ondes le long de la tombée,
     # décalées de `dephasage` période d'une colonne à la suivante (HYPOTHÈSE : ampleur et nombre)
-    'ondes': {'ampleur': 0.007, 'periodes': 1.5, 'dephasage': 0.5},
-    'stries': 0.008,                    # HYPOTHÈSE : m, au bas, une colonne sur deux plus écartée de l'axe : des mèches
+    'ondes': {'ampleur': 0.007, 'periodes': 1.5, 'dephasage': 0.25},
+    # HYPOTHÈSE : m, au bas, une colonne sur deux plus écartée de l'axe : des mèches ; à 8 mm et des ondes en opposition
+    # d'une colonne à l'autre, les plis se retournaient (`enroulement/triangle-retourne`, 11 triangles)
+    'stries': 0.004,
     'ventre': 0.012,                    # HYPOTHÈSE : m, ce dont la masse s'épaissit à mi-longueur
     'meches': {'graine': 'barbe-longue-barbe', 'profondeur': 0.050, 'creux': 0.2},   # m, pointes inégales du bas
-    # m sous la mâchoire : où la tombée cesse de suivre la tête seule, et où elle suit le corps seul (cou et torse).
+    # m sous la mâchoire : où la tombée cesse de suivre la tête seule, et où elle suit ce sur quoi elle repose seul (la
+    # robe, le cou, le torse : liée au seul corps, la robe passait devant elle, 27 mm en Sword_Regular_A).
     # HYPOTHÈSE : la barbe repose sur la poitrine, sa pointe ne balaie pas la robe quand la tête tourne
     'poids': (0.015, 0.090),
 }

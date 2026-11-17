@@ -6,7 +6,7 @@ de liaison `squelette` que bâtit `element/construire.py`.
 silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface), découpe de la
 pièce par zone. Le reste se compose dans le
 modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux orienté vers l'extérieur (`Maillage`),
-des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`).
+des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`) ou une nappe simple (`nappe_simple`).
 """
 import math
 import random

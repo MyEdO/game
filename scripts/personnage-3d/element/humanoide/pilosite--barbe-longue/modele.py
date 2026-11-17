@@ -8,7 +8,7 @@ nappes de colonnes en azimut posées sur la peau de la tête publiée, qui la qu
   de la joue) à la mâchoire, de plus en plus fournis ; sous la mâchoire, chaque colonne tombe de sa longueur, se
   resserre vers le milieu et recule vers la poitrine, jamais à moins du jeu de la robe et du corps, ondulée, en pointes.
 
-Double nappe ; poids de la peau de la tête, fondus sous la mâchoire vers ceux du cou et du torse ; silhouettes et clés
+Double nappe ; poids de la peau de la tête, fondus sous la mâchoire vers ceux de la robe, du cou et du torse ; silhouettes et clés
 `gabarit_*` transférées des zones de la base sous la pièce. Toute cote vient de `donnees.py`.
 """
 import math
@@ -30,10 +30,11 @@ def au_jeu(D, surfaces, axe, d, rayon, jeu):
     return rayon
 
 
-def mailler(colonnes, pole=None):
+def mailler(colonnes, centre, pole=None):
     """La nappe des `colonnes` (`{rang: point}` par colonne) : un quad entre deux colonnes voisines là où toutes deux
     portent deux rangs consécutifs ; `pole` ferme en éventail le plus haut rang d'un tour complet. Rend positions,
-    triangles orientés vers le dehors de l'axe du cou et normales."""
+    triangles et normales, orientés vers le dehors de `centre` sur la peau (rangs positifs), de l'axe du cou dans la
+    tombée."""
     M = Maillage()
     indices = [{k: M.ajouter([p], k)[0] for k, p in sorted(c.items())} for c in colonnes]
     voisines = list(zip(indices, indices[1:] + indices[:1])) if pole is not None else list(zip(indices, indices[1:]))
@@ -45,12 +46,12 @@ def mailler(colonnes, pole=None):
     for a, b_ in voisines:
         for k in sorted(set(a) & set(b_)):
             if k + 1 in a and k + 1 in b_:
-                M.quad(a[k], b_[k], b_[k + 1], a[k + 1], ref(a[k], b_[k], b_[k + 1], a[k + 1]))
+                M.quad(a[k], b_[k], b_[k + 1], a[k + 1], centre if k >= 0 else ref(a[k], b_[k], b_[k + 1], a[k + 1]))
     if pole is not None:
         haut = max(indices[0])
         sommet = M.ajouter([pole], haut + 1)[0]
         for a, b_ in voisines:
-            M.triangle(a[haut], b_[haut], sommet, ref(a[haut], b_[haut], sommet))
+            M.triangle(a[haut], b_[haut], sommet, centre)
     return M.orienter()
 
 
@@ -82,7 +83,7 @@ def cheveux(D, b, tete, toutes):
                 colonne[-i] = O + au_jeu(D, toutes, O, d, 0.75 * rayon, c['jeu']) * d
         colonnes.append(colonne)
     pole, _ = sur_le_porteur(tete, C, np.array([0.0, 0.0, 1.0]), D['PORTEE'])
-    return colonnes, pole + np.array([0.0, 0.0, c['hauteur'][1]])
+    return colonnes, pole + np.array([0.0, 0.0, c['hauteur'][1]]), C
 
 
 def barbe(D, b, tete, dessous):
@@ -117,7 +118,7 @@ def barbe(D, b, tete, dessous):
                 relief = c['ondes']['ampleur'] * t * onde + c['stries'] * t * (j % 2) + c['ventre'] * math.sin(math.pi * t)
                 colonne[-i] = O + (au_jeu(D, dessous, O, d, rayon - c['recul'] * t, c['jeu']) + relief) * d
         colonnes.append(colonne)
-    return colonnes, machoires
+    return colonnes, machoires, C
 
 
 
@@ -126,19 +127,19 @@ def construire(D, materiaux, b):
     peau = b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES']['tete'])
     robe = b.matieres_publiees(D['CONTOURNE']['robe'], D['MATIERES']['robe'])
     corps = [b.corps(z) for z in D['ZONES_DU_CORPS']]
-    tete, porteur_corps = porteur_de(*peau), b.porteur(D['ZONES_DU_CORPS'])
+    tete = porteur_de(*peau)
     toutes, dessous = porteur_de(*joindre_les_surfaces([peau] + corps)), porteur_de(*joindre_les_surfaces([robe] + corps))
 
     def poids(X, part):
-        return np.array([(1 - t) * emprunter(p, tete)[0] + t * emprunter(p, porteur_corps)[0] for p, t in zip(X, part)])
+        return np.array([(1 - t) * emprunter(p, tete)[0] + t * emprunter(p, dessous)[0] for p, t in zip(X, part)])
 
-    colonnes, pole = cheveux(D, b, tete, toutes)
-    X, orientes, normales = mailler(colonnes, pole)
+    colonnes, pole, centre = cheveux(D, b, tete, toutes)
+    X, orientes, normales = mailler(colonnes, centre, pole)
     W = lisser(poids(X, np.zeros(len(X))), voisinage(orientes, len(X)), D['LISSAGE_DES_POIDS'])
     nappes = [b.nappe('barbe_longue', X, normales, W, orientes, materiaux['poil'], D['EPAISSEUR'])]
 
-    colonnes, machoires = barbe(D, b, tete, dessous)
-    X, orientes, normales = mailler(colonnes)
+    colonnes, machoires, centre = barbe(D, b, tete, dessous)
+    X, orientes, normales = mailler(colonnes, centre)
     haut, bas = D['BARBE']['poids']
     sous = float(np.mean(machoires)) - X[:, 2]
     W = lisser(poids(X, np.array([fondu((s - haut) / (bas - haut)) for s in sous])), voisinage(orientes, len(X)),

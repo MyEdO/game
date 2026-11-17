@@ -33,9 +33,9 @@ def tube(sections, cotes, boucle):
     return sommets, faces
 
 
-def repere(tangente, sortante):
-    """Deux axes de section normaux à `tangente`, le premier au plus près de `sortante`."""
-    e1 = unitaire(sortante - (sortante @ tangente) * tangente)
+def repere(tangente, dehors):
+    """Deux axes de section normaux à `tangente`, le premier au plus près de `dehors`."""
+    e1 = unitaire(dehors - (dehors @ tangente) * tangente)
     return e1, np.cross(tangente, e1)
 
 

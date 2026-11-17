@@ -67,9 +67,10 @@ CAPUCHON = {
     'ouverture': {'demi': 58.0, 'milieu': -0.5, 'haut': 37.0},
     # Pointe : anneaux (recul, hauteur depuis le centre, rayon, inclinaison vers l'arrière en degrés) au-dessus du
     # dernier rang, puis le bout (recul, hauteur). Illustration : la pointe monte en arrière du crâne, casse, et son
-    # bout retombe derrière ; HYPOTHÈSE : 13 cm au-dessus du crâne (à 8 cm, la pointe se lisait comme un bouton, rendu de dos)
-    'pointe': [(0.055, 0.170, 0.055, 25.0), (0.115, 0.215, 0.032, 55.0)],
-    'bout': (0.185, 0.185),
+    # bout retombe derrière ; HYPOTHÈSE : 10 cm au-dessus du crâne (à 8 cm et des anneaux plus étroits, la pointe se
+    # lisait comme un bouton, rendu de dos ; à 13 cm et peu inclinée, comme un bonnet pointu dressé, rendu de face)
+    'pointe': [(0.070, 0.150, 0.055, 35.0), (0.140, 0.185, 0.030, 70.0)],
+    'bout': (0.200, 0.150),
     'lissage_des_poids': 3,             # HYPOTHÈSE : passes laplaciennes des poids empruntés à la peau de la tête
 }
 
@@ -94,10 +95,13 @@ ECHARPE = {
     # 10 mm de la robe, 4 mm d'épaisseur) et la sangle d'une bandoulière passent dessous
     'jeu': 0.022,
     'plis': 3,                          # contrat : trois gros plis
-    'ampleur': 0.018,                   # illustration : m, des bourrelets épais ; nuls au haut et au bord
+    'ampleur': 0.026,                   # illustration : m, des bourrelets épais ; nuls au haut et au bord (à 18 mm,
+                                        # les trois plis ne se lisaient pas au rendu de face)
     'inegalite': 0.25,                  # HYPOTHÈSE : part de l'ampleur qui varie autour du cou (le drapé n'est pas tourné)
     'bords': {'profondeur': 3.0, 'creux': 0.3, 'graine': 'humanoide--vetement--capuche'},   # degrés : bord flottant
-    'haut_au_corps': 2,                 # rangs du haut dont les clés viennent du corps, au plus près ; les suivants, de la robe
+    # rangs du haut dont les clés viennent du corps, au plus près ; les suivants, de la robe. À 2, le devant de l'écharpe
+    # ne suivait pas le menton qui descend sous `gabarit_head_plus` (`suiviDuCorps/cle-inerte`, 30 mm pour 35)
+    'haut_au_corps': 5,
     'os_reportes': {'Head': 'neck_01', 'upperarm_l': 'clavicle_l', 'upperarm_r': 'clavicle_r'},
     'lissage_des_poids': 8,
 }

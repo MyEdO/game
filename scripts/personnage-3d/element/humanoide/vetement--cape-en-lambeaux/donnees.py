@@ -35,7 +35,9 @@ ZONES_DE_LA_ROBE = ['torse', 'hanches', 'cuisse_g', 'cuisse_d', 'genou_g', 'geno
 """La robe du Sorcier, sous la cape, ses matières et les zones de ses meshes : la cape la contourne et en emprunte, au
 plus proche, les poids et les clés (procédure, section 3 : transférées du corps, deux couches divergent sous
 silhouette)."""
-ZONES_DU_CORPS = ['torse', 'hanches']   # zones de la base contournées avec la robe
+ZONES_DU_CORPS = ['cou', 'torse', 'hanches']
+"""Zones de la base contournées avec la robe : le col se pose au pied du cou, que l'encolure de la robe laisse nu (sans
+`cou`, les rayons du col sortaient par l'encolure sans rien rencontrer)."""
 ZONES_DU_COL = ['cou']                  # zone dont l'empiècement prend aussi ses clés, avec la robe
 
 BUDGET_TRIANGLES = 2500                 # procédure du skill, section 7 : vêtement par pièce
@@ -54,9 +56,10 @@ RANGS = 12                              # HYPOTHÈSE de maillage : intervalles d
 OURLET = 0.30
 """Illustration : les pointes les plus basses, à mi-mollet (contrat : « du dos au mollet » ; base : mollet de z 0,15 à
 0,48)."""
-DEMI_OUVERTURE = (50.0, 65.0)
-"""(à `HAUT`, à l'ourlet), degrés d'azimut de chaque bord depuis le dos. Haut, HYPOTHÈSE : derrière l'épaule, en dedans
-de l'emmanchure (x ~0,185). Ourlet : en deçà du brin de bord du filet `cape` (67,5°), au-delà duquel rien ne porte la
+DEMI_OUVERTURE = (44.0, 65.0)
+"""(à `HAUT`, à l'ourlet), degrés d'azimut de chaque bord depuis le dos. Haut, HYPOTHÈSE : derrière l'épaule, sur
+l'omoplate, en dedans de l'emmanchure (x ~0,165) ; à 50° (x ~0,185), le haut de la manche de la robe passait devant la
+cape quand le bras bouge (`couche-traversee`, 34 mm en Death01, 17 mm en Sword_Regular_A). Ourlet : en deçà du brin de bord du filet `cape` (67,5°), au-delà duquel rien ne porte la
 nappe ; à ce rayon (0,43 m) la cape déborde la hanche de 20 cm, comme sur l'illustration."""
 JEU = 0.010                             # HYPOTHÈSE : m, au-delà du rayon du filet
 JEU_MIN = 0.008                         # HYPOTHÈSE : m, au plus près de la robe et du corps
@@ -71,7 +74,7 @@ TROUS = [(-0.45, 0.78, 0.10, 0.07), (0.30, 0.62, 0.09, 0.06), (0.62, 0.98, 0.08,
 """Contrat : quelques trous. (u, z, demi-largeur en u, demi-hauteur en m) d'ellipses dont les triangles sont ôtés.
 HYPOTHÈSE : trois, places et tailles (l'illustration en montre de petits, près du bord gauche et du bas)."""
 
-EMPIECEMENT = {'os': 'neck_01', 'centre': (0.0, -0.020, -0.130), 'demi_ouverture': 70.0, 'polaire': 31.0, 'rangs': 3,
+EMPIECEMENT = {'os': 'neck_01', 'centre': (0.0, -0.020, -0.130), 'demi_ouverture': 60.0, 'polaire': 31.0, 'rangs': 3,
                'jeu': 0.010, 'portee_du_col': 0.30, 'portee': 0.08}
 """Contrat : attachée sous l'écharpe. Le col : un point par colonne, sur `demi_ouverture` degrés d'azimut de chaque côté
 du dos, sur la demi-droite d'angle `polaire` (depuis la verticale) partie du centre (depuis la tête de `os` : base, sur
