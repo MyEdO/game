@@ -9,33 +9,31 @@ const LIEUX = [
   { x: 268, y: 524, icone: 'epee', nom: 'Le maître d’armes', quoi: 'Entraînement' },
 ];
 const pieces = [];
-pieces.push(titre({ icone: 'ville', nom: 'Bögenhafen', sous: 'Entre deux aventures · trois semaines', largeur: 400 }));
+pieces.push(titre({ icone: 'ville', nom: 'Bögenhafen', sous: 'Entre deux aventures', largeur: 400 }));
 pieces.push(`<div id="lieu" class="cadre bois" data-piece="lieu"><div class="fond bois">
   <h3 data-texte="lieu">Taverne d’Altstadt</h3>
   <div class="pnj">${portrait('hote')}<div><b>Le tenancier</b><p>Les bateliers parlent, pour peu qu’on paie la tournée.</p></div></div>
-  <div class="activite prise">${medaillon('bulle', { petit: true })}<div><b>Dernières nouvelles</b><span class="c rubrique">Ragot · une semaine</span><i>Une rumeur venue de loin, et une de plus par degré de réussite.</i></div></div>
-  <div class="activite">${medaillon('goutte', { petit: true })}<div><b>Semer la dissension</b><span class="c rubrique">Deux semaines</span><i>Monter le quartier contre un homme, une guilde ou le Guet.</i></div></div>
+  <div class="activite prise">${medaillon('bulle', { petit: true })}<div><b>Dernières nouvelles</b><span class="c rubrique">Ragot · une Activité</span><i>Une rumeur venue de loin, et une de plus par degré de réussite.</i></div></div>
+  <div class="activite">${medaillon('goutte', { petit: true })}<div><b>Semer la dissension</b><span class="c rubrique">Ragot, puis Charme · deux Activités</span><i>Monter le quartier contre un homme, une guilde ou le Guet.</i></div></div>
   ${plaque('Envoyer Mira à la taverne', { armee: true, icone: 'route', classe: 'envoyer' })}
   <div class="pied rubrique">Une activité par semaine, trois au plus</div>
 </div><div class="ruban rubrique">Altstadt</div>${ferrures}</div>`);
 pieces.push(`<div id="carte" class="cadre bois" data-piece="carte"><div class="fond parchemin"><svg viewBox="0 0 844 572" preserveAspectRatio="none"></svg>
   ${LIEUX.map((l) => `<div class="lieu bois ${l.choisi ? 'choisi' : ''}" style="left:${l.x}px;top:${l.y}px">${medaillon(l.icone, { petit: true, taille: 17 })}<div><b>${l.nom}</b><span class="rubrique">${l.quoi}</span></div>${l.heros ? portrait(l.heros) : ''}${l.fantome ? portrait(l.fantome, { classe: 'fantome' }) : ''}</div>`).join('')}
 </div>${ferrures}</div>`);
-const fait = (lieu, ok = true) => `<div class="case">${ok ? pastille('coche') : sceau('croix', 10)}<span class="rubrique">${lieu}</span></div>`;
-const ici = (lieu) => `<div class="case ici"><span class="rubrique">${lieu}</span></div>`;
-const libre = '<div class="case libre"></div>';
+/* LDB 22 l.5 ; LDB 23 l.5, l.15 ; `src/noyau/interludeEnVue.ts:48-52` */
+const restantes = (n) => `<div class="pips">${[0, 1, 2].map((k) => `<i class="${k < n ? '' : 'vide'}"></i>`).join('')}</div>`;
+const rang = (id, nom, evenement, n, choisi) => `${portrait(id, { classe: choisi ? 'choisi' : '' })}<div class="q"><b>${nom}</b><span class="rubrique">Événement · ${evenement}</span></div><div class="r">${restantes(n)}<span class="rubrique">${n} sur 3</span></div>`;
 pieces.push(`<div id="interlude" class="cadre bois" data-piece="interlude"><div class="fond bois">
-  <h3>Deuxième semaine</h3><div class="s rubrique">Chacun choisit où passer la sienne</div>
-  <div class="semaines">
-    <span></span><span class="tete rubrique">Semaine 1</span><span class="tete ici rubrique">Semaine 2</span><span class="tete rubrique">Semaine 3</span>
-    ${portrait('bjorn')}${fait('Les quais')}${ici('Les quais')}${libre}
-    ${portrait('mira', { classe: 'choisi' })}${fait('La forge')}<div class="case attend"><span class="rubrique">À envoyer</span></div>${libre}
-    ${portrait('aldric')}${fait('Comptoir')}${ici('Temple de Verena')}${libre}
-    ${portrait('greta')}${fait('Caserne', false)}${ici('Caserne du Guet')}${libre}
+  <h3>Activités restantes</h3><div class="s rubrique">Une par semaine, trois au plus</div>
+  <div class="rangs">
+    ${rang('bjorn', 'Bjorn', 'Profits abondants', 1)}
+    ${rang('mira', 'Mira', 'Rien à signaler', 2, true)}
+    ${rang('aldric', 'Aldric', 'Enchères ésotériques', 1)}
+    ${rang('greta', 'Greta', 'Festivités', 2)}
   </div>
   <div class="filet"></div>
   <div class="avis">${sceau('pieces', 13)}<span>À la reprise, les bourses seront vides : seul l’argent déposé au comptoir est gardé.</span></div>
-  ${plaque('Passer la semaine', { armee: true, icone: 'sablier', classe: 'passer' })}
 </div><div class="ruban rubrique">L’interlude</div>${ferrures}</div>`);
 pieces.push(bandeau({
   bjorn: { icone: 'ancre', texte: 'décharge les barges sur les quais' },

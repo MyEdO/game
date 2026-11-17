@@ -4,20 +4,18 @@
 #nuit .n{font-size:22px;line-height:30px;margin:-4px 0 -5px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
 #nuit .s{font-size:11.5px;color:var(--creme-2)}
 #nuit .dit{margin:7px 0 9px;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
-.grille{display:grid;grid-template-columns:152px repeat(3,1fr);gap:6px 7px;align-items:center}
-.grille .q{text-align:center;font-size:12px;color:var(--or)}
+.grille{display:grid;grid-template-columns:1fr auto 96px;gap:5px 12px;align-items:center}
+.grille .q{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
 .grille .l{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#eadfc4;white-space:nowrap}
-.grille .plaque{height:32px}
+.grille .plaque{height:30px}
 .grille .plaque>div{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.2px;padding:0 4px}
-.renvoi{display:flex;gap:9px;align-items:flex-start;margin-top:9px;font-style:italic;font-size:12.5px;line-height:16px;color:var(--creme-2)}
-.renvoi .sceau{width:20px;height:20px}
-.renvoi .pst{width:20px;height:20px}
+.chambree{display:flex;align-items:center;gap:6px;margin-top:9px;font-size:12.5px;color:var(--or)}
+.chambree .rubrique{margin-right:auto}
+.chambree .portrait{width:28px;height:34px;padding:2px}
+.chambree i{margin-left:6px;font-size:12.5px;color:var(--creme-2)}
+#nuit .qui-paie{color:#eadfc4}
+#nuit .qui-paie .rubrique{font-size:12px;color:var(--creme-2)}
+#nuit .qui-paie .part{height:19px;font-size:13.5px}
 #nuit .filet{height:1px;background:linear-gradient(90deg,rgba(201,185,149,0),rgba(201,185,149,.45),rgba(201,185,149,0));margin:10px 0 7px}
-#nuit table{width:100%;border-collapse:collapse;font-size:13px;color:#eadfc4}
-#nuit td{padding:1px 0}
-#nuit td:last-child{text-align:right;white-space:nowrap;font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:12.5px}
-#nuit tr.total td{font-family:"Grenze Gotisch";font-weight:600;font-size:20px;line-height:26px;color:#f4e8ca}
-#nuit tr.total td:last-child{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:16px;font-weight:600;color:var(--or)}
-#nuit tr.reste td{color:var(--creme-2);font-size:12px}
 #nuit .plaque.nuit{height:42px;margin-top:9px}
 #nuit .plaque.nuit>div{font-size:16.5px}

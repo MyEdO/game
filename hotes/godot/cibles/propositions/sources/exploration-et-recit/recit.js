@@ -14,8 +14,9 @@ Object.assign(PICTOS, {
   lettre: '<path d="M4 6h16v12H4zM4 7l8 6 8-6"/>',
   de: '<path d="M12 3l8 6-3 11H7L4 9zM12 3l4 9-4 4-4-4zM4 9l4 3M20 9l-4 3M12 16v4"/>',
 });
-const groupe = () => `<div id="groupe" data-piece="groupe">${HEROS.map((h) => `
-  <div class="rang ${h.id === 'mira' ? 'mene' : ''}">${portrait(h.id)}<div><div class="nom ${h.id === 'mira' ? '' : 'rubrique'} ombre">${h.nom}</div>
+/* `role` : ce que la colonne dit du héros éclairé ; au dialogue, un clic sur un autre portrait change le testeur */
+const groupe = (role = '') => `<div id="groupe" data-piece="groupe">${HEROS.map((h) => `
+  <div class="rang ${h.id === 'mira' ? 'mene' : ''}">${portrait(h.id)}<div><div class="nom ${h.id === 'mira' ? '' : 'rubrique'} ombre">${h.nom}</div>${h.id === 'mira' && role ? `<div class="role rubrique ombre">${role}</div>` : ''}
     <div class="ligne"><div class="vie"><i style="width:${100 * h.pv / h.max}%"></i></div><span class="pv ombre">${h.pv} / ${h.max}</span></div></div></div>`).join('')}</div>`;
 const chronique = (lignes, classe = '', style = '') => `<div id="chronique" class="${classe}" style="${style}" data-piece="chronique"><div class="tete rubrique ombre">Chronique</div>${lignes.map(([g, t]) => `<p class="${g} ombre">${t}</p>`).join('')}</div>`;
 const marque = (x, y, icone) => `<div class="marque" style="left:${x}px;top:${y}px">${medaillon(icone, { petit: true, taille: 17 })}</div>`;
@@ -39,7 +40,7 @@ if (ETAT === 'exploration') {
 
 if (ETAT === 'dialogue' || ETAT === 'jet-de-competence') {
   sceneAuberge({ groupe: 'comptoir', parle: true, colonne: true });
-  pieces.push(LIEU, groupe(), `<div id="systeme" data-piece="systeme">${rond('systeme', 22, { couleur: '#c9b995' })}</div>`);
+  pieces.push(LIEU, groupe(ETAT === 'dialogue' ? 'Portera le Test' : ''), `<div id="systeme" data-piece="systeme">${rond('systeme', 22, { couleur: '#c9b995' })}</div>`);
 }
 if (ETAT === 'dialogue') {
   const reponse = (n, texte, { annonce, cout, visee } = {}) => `<div class="reponse laiton ${visee ? 'visee' : ''}"><div><b>${n}</b>${annonce ? `<span class="annonce">${picto('de', 14, '#2a1a08', 1.7)}${annonce}</span>` : ''}<span data-texte="réponse ${n}">${texte}</span>${cout ? `<span class="cout lin">${cout}</span>` : ''}</div></div>`;

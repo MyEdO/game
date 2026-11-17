@@ -107,25 +107,22 @@ fermer();
 el(S, 'rect', { width: 560, height: H, fill: '#000', opacity: .28 });
 
 const pieces = [];
-pieces.push(titre({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Bonne auberge · Teuerberg, Bögenhafen · le soir', largeur: 446 }));
-const P = (libelle, armee) => plaque(libelle, { armee });
+pieces.push(titre({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Auberge · Teuerberg, Bögenhafen · le soir', largeur: 446 }));
+/* LDB 66 l.5, l.12-16, l.28 ; `src/noyau/restFlow.ts:567-575`, `:692` ; #3004 */
+const offre = (icone, nom, sous, prix, prise) => `<span class="l rubrique">${picto(icone, 17)}${nom}</span><span class="q rubrique">${sous}</span>${plaque(prix, { armee: prise })}`;
+const NOTE = '6/–';
 pieces.push(`<div id="nuit" class="cadre bois" data-piece="la nuit"><div class="fond bois">
   <div class="tete">${medaillon('chope', { petit: true })}<div><div class="n gothique" data-texte="hôte">Odelina Landau</div><div class="s rubrique">L’aubergiste</div></div></div>
-  <div class="dit">Un lit chaud, un bon repas et pas de questions : c’est tout ce qu’on demande ici.</div>
+  <div class="dit">Un lit chaud, un bon repas et pas de questions.</div>
   <div class="grille">
-    <span></span><span class="q rubrique">Piètre</span><span class="q rubrique">Courante</span><span class="q rubrique">Grande</span>
-    <span class="l rubrique">${picto('lit', 17)}Chambre commune</span>${P('5 sc')}${P('10 sc')}${P('20 sc')}
-    <span class="l rubrique">${picto('cle', 17)}Chambre privée</span>${P('5/–')}${P('10/–', true)}${P('20/–')}
-    <span class="l rubrique">${picto('bol', 17)}Repas</span>${P('6 sc')}${P('1/–', true)}${P('2/–')}
+    ${offre('lit', 'Chambre commune', 'par tête', '10 sc')}
+    ${offre('cle', 'Chambre privée', '2 lits', '10/–')}
+    ${offre('cle', 'Grande chambre', '4 lits', '20/–', true)}
+    ${offre('bol', 'Repas', 'par tête', '1/–', true)}
   </div>
-  <div class="renvoi">${sceau('goutte', 11)}<span>Piètre chère : une chance sur dix d’y prendre la Courante galopante. En chambre commune, gare aux voleurs.</span></div>
+  <div class="chambree"><span class="rubrique">Grande chambre</span>${HEROS.map((h) => portrait(h.id)).join('')}<i>4 lits sur 4</i></div>
   <div class="filet"></div>
-  <table>
-    <tr><td>2 chambres privées, à deux par chambre</td><td>20/–</td></tr>
-    <tr><td>4 repas</td><td>4/–</td></tr>
-    <tr class="total"><td>La note</td><td>1 CO 4/–</td></tr>
-    <tr class="reste"><td>Bourse du groupe</td><td>5 CO 6/–</td></tr>
-  </table>
+  ${bourse({ parts: HEROS.map((h) => [h.nom.split(' ')[0], NOTE, h.bourse]), total: '1 CO 4/–' })}
   ${plaque('Passer la nuit', { armee: true, icone: 'lune', classe: 'nuit' })}
 </div>${ferrures}</div>`);
 const POSTES = [

@@ -15,7 +15,7 @@
 .lieu.sous::after{bottom:auto;top:-6px;box-shadow:-1px -1px 0 #0c0705}
 #trajet{left:24px;top:136px;width:400px;height:474px}
 #trajet .fond{padding:22px 16px 0}
-#trajet h3{margin:-4px 0 -3px;font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:38px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
+#trajet h3{margin:-6px 0 -5px;font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:42px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
 #trajet .s{font-size:12px;color:var(--or)}
 #trajet>.fond>p{margin:6px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
 .etapes{display:flex;align-items:flex-start;margin:13px 2px 0}

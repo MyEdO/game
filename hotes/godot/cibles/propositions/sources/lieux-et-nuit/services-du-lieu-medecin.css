@@ -1,5 +1,5 @@
 #soins{left:1180px;top:20px;width:503px;height:590px}
-#soins .patient{display:flex;align-items:center;gap:12px;margin-top:13px}
+#soins .patient{display:flex;align-items:center;gap:12px}
 #soins .patient .etat{flex:1}
 #soins .patient .l{display:flex;justify-content:space-between;align-items:baseline}
 #soins .patient .vie{height:7px;margin-top:5px}
@@ -9,3 +9,7 @@
 #soins .plaque.payer{height:44px;margin-top:12px}
 #soins .plaque.payer>div{font-size:16.5px}
 #docteur{left:800px;top:292px;width:322px}
+#soins .soin .px{text-align:right}
+#soins .soin .px small{display:block;font-family:"Fell SC";font-weight:400;font-size:10.5px;letter-spacing:.8px;color:#6b1c10}
+#soins .qui-paie{margin-top:8px;color:#2a1d12}
+#soins .qui-paie .rubrique{color:#5a2a12}

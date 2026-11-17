@@ -30,29 +30,41 @@ rail de services à gauche et panneau de parchemin à droite forment le gabarit 
 - Absent du code : veille de nuit ; abri de fortune complet ; sac de couchage +20 ; boire une pinte.
 
 ## bivouac
-- Clairière de nuit (lune, lisière, feu, tente, diligence dételée). Les huit Activités d'Étape sont huit postes dans
-  la scène ; un héros posé remplace le médaillon. Billet d'aperçu de « Rester aux aguets » (Perception
-  Intermédiaire, pas de surprise, échec Exténué).
-- Panneau « Le campement » : abri Tente ou Belle étoile, couchage (sacs), vivres (rations), temps ; « Ce que la nuit
-  jouera » : campement, activités, repos ; plaque « Passer la nuit » ; pastille « Lever le camp ».
-- À valider : « Rester aux aguets » tient lieu de veille (ni tour ni relève) ; les huit postes offerts à toute halte
-  alors que le code les éteint par défaut ; tente sans effet chiffré ; poste fermé visible en fer ou caché ;
-  « Lever le camp » sans règle de marche forcée.
+- Clairière de nuit (lune, lisière, feu, tente, diligence dételée). Les choix se font par héros, sur sa carte du
+  bandeau : couchage (« Dehors », seul couchage de la halte) et nourriture (« Ration » ou « Rien »), libellés de
+  `src/i18n/messages/fr.ts:325`, `:439-444`, choix de `src/noyau/restFlow.ts:163`.
+- Panneau « Le campement » : l'abri se lit (la tente est possédée ou non, elle ne se choisit pas), le temps ; « Ce que
+  la nuit jouera » : le froid (Résistance), le repos ; plaque « Passer la nuit ». Aucune sortie : la halte de voyage
+  ne se quitte pas (`src/noyau/modalArbiter.ts:192`).
+- Retouche du 2026-11-17 (#4411) : les huit postes d'Activité d'Étape et leur billet sortent de la halte (une
+  Activité par Étape se joue dans la journée, EDOC 08 l.131, `src/noyau/travelPostes.ts`, règle `voyage-etapes`
+  éteinte par défaut) ; « Tente / Belle étoile », le couchage et les vivres du groupe sortent du panneau.
+- À valider : tente sans effet chiffré aux livres (LDB 74 l.62, règle maison `exposition-tente-annule`) ; le sac de
+  couchage (LDB 74 l.60) non montré, le noyau ne l'applique pas ; la ligne « Le froid » sous la tente dépend de la
+  sévérité du temps (`exposureTestCount`, `src/noyau/restFlow.ts:486-512`), non relue pour le gel.
 
 ## nuit-a-l-auberge
-- La salle de La Fin du Voyage ; l'aubergiste et sa grille chambre commune, chambre privée, repas par qualité
-  (piètre la moitié, grande le double, LDB 66 l.5, l.12-16) ; la note ; « Passer la nuit ». Postes de soirée :
-  boire, écouter les rumeurs, jouer, se faire soigner, dormir.
-- À valider : qualité au choix du joueur alors que `logis-qualites` en fait une donnée de la maison ; bourse du groupe
-  alors que la cible lieu dit une bourse par héros ; une seule activité de soirée par héros (transposition de
-  l'Étape) ; grande chambre absente ; boire une pinte absent du code.
+- La salle de La Fin du Voyage ; l'aubergiste et ses offres au prix de la maison, sans choix de qualité (la qualité
+  est une donnée de l'établissement, `src/noyau/restFlow.ts`, `p.quality`) : chambre commune 10 sc par tête, chambre
+  privée 10/– (2 lits), grande chambre 20/– (4 lits, LDB 66 l.28), repas 1/– par tête (LDB 66 l.12-16).
+- Qui dort où : les quatre portraits posés dans la grande chambre, « 4 lits sur 4 ». Tarif par personne (#3004) :
+  « Bourses du groupe » par `bourse(…)`, la part de chacun (6/–) sous son nom, réglable, et le total ; « Passer la
+  nuit ». Postes de soirée : boire (bière, la pinte 3 sc, LDB 66), écouter les rumeurs, jouer, se faire soigner,
+  dormir.
+- À valider : une seule activité de soirée par héros (transposition de l'Étape, aucun RAW) ; « Boire » demande une
+  offre au noyau (M12 de l'audit ; la règle d'ivresse existe, LDB 09 l.475) ; écurie à la nuit (LDB 66 l.14) non
+  offerte.
 
 ## services-du-lieu-medecin
 - La page des services du quartier (rail : auberge, armurier, guilde des Joailliers, guilde des Médecins, Guet),
-  le cabinet en image, le docteur et son boniment ; soins par patient : Panser (Guérison, LDB 09 l.260), Recoudre
-  (Chirurgie, LDB 10 l.184, LDB 18 l.314) ; compte et « Payer le docteur ».
-- À valider : visite à 5/– (le livre dit 4-6 pistoles, LDB 75 l.19) ; Chirurgie à 15/– (aucun prix aux livres) ;
-  docteur anonyme ; rail du quartier ou du bâtiment.
+  le cabinet en image, le docteur et son boniment ; le patient se choisit par son portrait dans le bandeau (plus
+  d'onglets sur la page) ; soins : Panser (Guérison, LDB 09 l.260), Recoudre (Chirurgie, LDB 10 l.184, LDB 18 l.314).
+- Payer : chaque acte se paie au lancer du Test (`src/noyau/medicFlow.ts:182`), par le bénéficiaire (#3004) :
+  « À payer », « Bourse de Greta » par `bourse(…)`, « Payer et soigner ».
+- La Chirurgie à 15/– est dite « valeur maison » sur l'image : aucun prix aux livres (LDB 75 l.19 ne donne que la
+  visite, « 4-6 pistoles »).
+- À valider : visite à 5/– dans la fourchette du livre, à tracer en valeur maison elle aussi ; le noyau débite le
+  groupe, pas le patient ; docteur anonyme ; rail du quartier ou du bâtiment.
 
 ## jeux-de-taverne
 - La même page à l'auberge, onglet « Les jeux » : la table sous sa lanterne, trois joueurs PNJ, la place libre ;
@@ -62,8 +74,10 @@ rail de services à gauche et panneau de parchemin à droite forment le gabarit 
 
 ## interlude-en-ville
 - Le plan de Bögenhafen ; sept lieux épinglés, chacun une Activité et son hôte (LDB 23 l.132-240) ; le lieu choisi
-  à gauche avec ses seules activités ; à droite le tableau des trois semaines par héros ; avis « Argent à
-  gaspiller » (LDB 23 l.13-19).
+  à gauche avec ses seules activités et « Envoyer Mira à la taverne » ; avis « Argent à gaspiller » (LDB 23 l.13-19).
+- À droite, par héros : l'Événement de sa période (LDB 22 l.5, LDB 23 l.15, `eventRoll`) et le compteur de ses
+  Activités restantes sur trois (LDB 23 l.5, `src/noyau/interludeEnVue.ts:48-52`). La sortie est la pastille
+  « Reprendre la route » ; « Passer la semaine » et le tableau des semaines sortent (le noyau ne tient pas de semaine
+  courante). « Semer la dissension » dit ses deux Activités (LDB 23 l.240).
 - À valider : rattacher chaque Activité à un lieu et à un PNJ est une adaptation de scénario ; restriction par
-  Classe (LDB 23 l.195) ; trois semaines fixes ; Événements (LDB 22) non montrés ; plusieurs Activités absentes du
-  plan.
+  Classe (LDB 23 l.195) ; plusieurs Activités absentes du plan ; l'effet de l'Événement n'est pas montré.

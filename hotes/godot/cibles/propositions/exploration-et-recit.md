@@ -16,20 +16,28 @@ chronique en trois lignes à droite ; avis de parchemin plein écran ; carte des
 - À valider : verbes du survol dans l'infobulle ; chef du groupe seul déplacé ; aucune barre d'actions hors combat.
 
 ## dialogue
-- Le bandeau de parchemin : portrait du PNJ, nom, titre, réplique ; à droite les réponses numérotées, le héros qui
-  répond, un Test de Charme en étiquette sur la réponse qui le demande, un prix sur celle qui coûte.
-- À valider : le héros qui parle se choisit dans la colonne de gauche ; réponse longue qui déborde de sa plaque.
+- Le bandeau de parchemin : portrait du PNJ, nom, titre, réplique ; à droite les réponses numérotées, un Test de
+  Charme en étiquette sur la réponse qui le demande, un prix sur celle qui coûte. La colonne des héros, à gauche,
+  dit qui « portera le Test » : un clic sur un autre portrait change le testeur (`jetRegler('test','testeur', id)`).
+- Retouche du 2026-11-17 (#4411) : l'en-tête « Mira répond » sort des réponses, la colonne du bandeau porte le choix ;
+  la colonne des réponses s'élargit, la réponse 2 tient dans sa plaque.
+- À valider : le coût d'une réponse (« 4 sc ») dit sans payeur, le noyau le prend au total des bourses
+  (`src/noyau/dialogue.ts`, `partyMoneyTotal`).
 
 ## jet-de-competence
 - Le même bandeau que le jet d'attaque : le héros, son seuil, les dés, le sceau de réussite et ses DR ; le PNJ en
-  face ; « Appliquer », « Relancer », « Chance : +1 DR », « Pacte », « Résilience ».
-- À valider : l'interlocuteur montré en face ; gestes absents quand la réserve est vide, ou grisés.
+  face ; les réserves du héros, « Appliquer », « Relancer » et « Résilience » fermées sur une réussite (LDB 17 l.23,
+  l.68), « Chance : +1 DR » (LDB 17 l.24), « Pacte ». Image inchangée depuis le socle du jet (lot A).
+- À valider : l'interlocuteur montré en face.
 
 ## butin
-- Le corps fouillé en titre, l'argent qui va à la bourse du héros qui fouille, chaque objet sur une ligne avec son
-  Encombrement et une case par héros (pleine si choisi, barrée si trop chargé) ; « Emporter », « Évaluer », « Tout
-  laisser ».
-- À valider : tout objet va sur un héros, pas de sac de groupe ; Encombrement de chaque héros en tête de colonne.
+- Le corps fouillé en titre, l'argent « réparti entre les bourses » (`src/noyau/bourseFlow.ts`), chaque objet sur
+  une ligne avec son Encombrement, une case par héros et une case « Laisser ». Une case donne l'objet tout de suite
+  (`src/noyau/combatEffects.ts:348`) : la ligne prise quitte la liste (la lettre, prise par Aldric, est à la
+  chronique). Un héros chargé à plein reste pressable, son Encombrement passe en rouge (LDB 61 l.33). « Emporter le
+  reste » et sa note disent à qui va le non attribué (`src/noyau/issueDeCombat.ts:90`) ; « Évaluer ».
+- À valider : « Laisser » demande un verbe au noyau (M3 de l'audit : `fC('butin','laisser', uid)`, la ligne posée au
+  sol) ; tout objet va sur un héros, pas de sac de groupe.
 
 ## document
 - L'avis en grand sur parchemin cloué, gothique et italique, sceau ; dans le bandeau, la mention « consigné à la
@@ -41,5 +49,6 @@ chronique en trois lignes à droite ; avis de parchemin plein écran ; carte des
 - La carte du Reikland à la plume (Reik, Talabec, Drakwald, Reikwald), les lieux connus en étiquettes, le groupe sur
   son lieu ; à gauche la destination avec ses étapes et distances, les moyens (diligence au prix par tête, à pied) et
   « Prendre la route » ; bandeau des héros et leur bourse ; « Revenir à l'auberge ».
+- Retouche du 2026-11-17 (#4411) : le nom de la destination n'est plus coupé par sa ligne.
 - À valider : distances, durées et tarifs d'exemple, non relus au livre ; seuls les lieux connus du groupe montrés ;
-  la carte ouverte depuis le lieu, pas depuis la route.
+  la carte ouverte depuis le lieu, pas depuis la route ; « Reprendre le voyage » (`carteEnVue.reprendre`) non dessiné.
