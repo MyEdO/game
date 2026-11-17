@@ -47,7 +47,7 @@ if (ETAT === 'dialogue') {
     <div class="orateur">${portrait('gustav')}</div>
     <div class="dit"><div class="n gothique" data-texte="orateur">Gustav Fondleburger</div><div class="c rubrique">Propriétaire de La Diligence</div>
       <p data-texte="réplique">« La diligence d’Altdorf ? Elle repart demain à l’aube, si ses cochers tiennent debout d’ici là. Voyez ça avec eux, moi je ne vends que la bière et les lits. »</p></div>
-    <div class="reponses"><div class="tete rubrique">${portrait('mira')}Mira répond</div>
+    <div class="reponses">
       ${reponse(1, 'Et cet avis placardé au mur, ce prince qui recrute ?')}
       ${reponse(2, 'À quel prix cèdent-ils leurs places, entre nous ?', { annonce: 'Test de Charme · Intermédiaire', visee: true })}
       ${reponse(3, 'Servez-nous quatre chopes, et parlons.', { cout: '4 sc' })}
@@ -68,24 +68,25 @@ if (ETAT === 'jet-de-competence') {
 
 if (ETAT === 'butin') {
   sceneRoute();
-  const ENC = { bjorn: [5, 8, 0], mira: [4, 6, 1], aldric: [6, 6, 0], greta: [7, 8, 1] };
-  const col = (h) => { const [a, m, plus] = ENC[h.id]; const plein = a + plus >= m;
-    return `<div class="col">${portrait(h.id)}<div class="q"><b>${h.nom.split(' ')[0]}</b><span class="lin ${plein ? 'plein' : ''}">Enc ${a + plus} / ${m}</span><div class="enc ${plein ? 'plein' : ''}"><i style="width:${100 * a / m}%"></i>${plus ? `<u style="left:${100 * a / m}%;width:${100 * plus / m}%"></u>` : ''}</div></div></div>`; };
-  const oui = `<div class="prise oui laiton"><div>${picto('coche', 14, '#2a1a08', 2.2)}</div></div>`, libre = '<div class="prise"></div>', non = `<div class="prise non">${picto('croix', 10, '#7c1f14', 2)}</div>`;
-  const ligne = (icone, nom, enc, cases) => `<div class="objet"><div class="ic">${picto(icone, 17, '#3a2a18', 1.6)}</div><b>${nom}</b><span class="lin">Enc ${enc}</span></div>${cases.join('')}`;
+  /* LDB 61 l.33 ; `src/noyau/combatEffects.ts:348`, `src/noyau/issueDeCombat.ts:90` */
+  const ENC = { bjorn: [5, 8], mira: [4, 6], aldric: [6, 6], greta: [7, 8] };
+  const col = (h) => { const [a, m] = ENC[h.id]; const plein = a >= m;
+    return `<div class="col">${portrait(h.id)}<div class="q"><b>${h.nom.split(' ')[0]}</b><span class="lin ${plein ? 'plein' : ''}">Enc ${a} / ${m}</span><div class="enc ${plein ? 'plein' : ''}"><i style="width:${100 * a / m}%"></i></div></div></div>`; };
+  const libre = '<div class="prise"></div>';
+  const ligne = (icone, nom, enc) => `<div class="objet"><div class="ic">${picto(icone, 17, '#3a2a18', 1.6)}</div><b>${nom}</b><span class="lin">Enc ${enc}</span></div>${libre.repeat(HEROS.length + 1)}`;
   pieces.push(titre({ icone: 'route', nom: 'La route d’Altdorf', sous: 'Dans la forêt · la nuit', largeur: 392 }));
   pieces.push(`<div id="butin" class="cadre bois arret" data-piece="butin"><div class="fond parchemin">
     <div class="trouve"><div class="n gothique" data-texte="butin titre">Le corps du voyageur</div><div class="c rubrique">Fouillé par Mira</div>
       <p data-texte="butin récit">Un carreau d’arbalète dans le dos. Ses poches n’ont pas été vidées.</p>
-      <div class="bourse">${sceau('pieces', 14)}<span><b class="lin">2 CO 10/–</b> vont à la bourse de Mira</span></div></div>
-    <div class="partage"><div class="tete-o rubrique">Chaque objet va sur un héros</div>${HEROS.map(col).join('')}
-      ${ligne('epee', 'Épée', 1, [libre, libre, non, oui])}
-      ${ligne('habit', 'Vêtements de bonne facture', 1, [libre, oui, non, libre])}
-      ${ligne('lettre', 'Lettre cachetée', 0, [libre, libre, oui, libre])}
+      <div class="bourse">${sceau('pieces', 14)}<span><b class="lin">2 CO 10/–</b> répartis entre les bourses</span></div></div>
+    <div class="partage"><div class="tete-o rubrique">Une case donne l’objet à ce héros</div>${HEROS.map(col).join('')}<div class="col laisser">${picto('croix', 15, '#5a2a12', 1.8)}<b>Laisser</b></div>
+      ${ligne('epee', 'Épée', 1)}
+      ${ligne('habit', 'Vêtements de bonne facture', 1)}
     </div>
-    <div id="suites">${plaque('Emporter', { armee: true, icone: 'sac' })}${plaque('Évaluer', { icone: 'oeil' })}${plaque('Tout laisser')}</div>
+    <div id="suites">${plaque('Emporter le reste', { armee: true, icone: 'sac', classe: 'large' })}${plaque('Évaluer', { icone: 'oeil' })}</div>
+    <div class="reste">Ce qui reste à la fermeture va à ${HEROS[0].nom}.</div>
   </div><div class="ruban gothique">Butin</div>${ferrures}</div>`);
-  pieces.push(chronique([['borne-j', 'La nuit, sur la route d’Altdorf'], ['vieux', 'Un corps gît en travers de la chaussée.'], ['', 'Mira fouille le corps du voyageur.']], 'haut', 'bottom:286px'), coins());
+  pieces.push(chronique([['borne-j', 'La nuit, sur la route d’Altdorf'], ['vieux', 'Mira fouille le corps du voyageur.'], ['', 'Aldric prend la lettre cachetée.']], 'haut', 'bottom:286px'), coins());
 }
 
 if (ETAT === 'document') {

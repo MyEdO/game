@@ -1,6 +1,6 @@
 /* Création 7/10 : les Talents (LDB 05 l.484, l.514-531, l.535 ; species.json, careerLevels.json, talents.json). */
 const tire = (jet, nom, extra = '') => `<div style="display:flex;align-items:center;gap:11px;height:47px"><div class="de petit">${jet}</div><div class="ligne" style="flex:1;border-bottom:1px solid rgba(60,40,20,.28)"><span class="n" data-texte="${nom}">${nom}</span>${extra}</div></div>`;
-const option = (nom, { choisie = false, raison = '' } = {}) => `<div class="ligne ${choisie ? 'choisie' : ''} ${raison ? 'refusee' : ''}">${choisie ? picto('coche', 15, '#2a1d12', 2) : '<i class="losange"></i>'}<span class="n" data-texte="${nom}">${nom}</span>${raison ? `<span class="raison">${raison}</span>` : ''}</div>`;
+const option = (nom, { choisie = false, refus = '' } = {}) => `<div class="ligne ${choisie ? 'choisie' : ''} ${refus ? 'refusee' : ''}">${choisie ? picto('coche', 15, '#2a1d12', 2) : '<i class="losange"></i>'}<span class="n" data-texte="${nom}">${nom}</span>${refus ? raison(refus) : ''}</div>`;
 
 poser([
   frise(7),
@@ -20,7 +20,7 @@ poser([
     ${rub('Talent de carrière', 'un seul')}
     <div class="deux" style="margin-top:3px">
       <div class="lignes">${option('Artiste <small>(Au choix)</small>')}${option('Infatigable', { choisie: true })}</div>
-      <div class="lignes">${option('Persévérant')}${option('Vivacité', { raison: 'Maxi atteint' })}</div>
+      <div class="lignes">${option('Persévérant')}${option('Vivacité', { refus: 'Maxi atteint' })}</div>
     </div>`),
   centre('Talent de carrière', `
     <div class="medaillon laiton" style="width:64px;height:64px;margin-top:16px"><div>${picto('poing', 32, '#e2c06a', 1.4)}</div></div>

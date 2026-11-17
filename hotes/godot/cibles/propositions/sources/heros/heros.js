@@ -63,15 +63,14 @@ const frise = (rang) => {
 /* ───────── les trois panneaux ───────── */
 const gauche = (contenu) => cadre('choix', 26, 96, 610, 512, 'parchemin', contenu, { classe: 'pan' });
 const centre = (ruban, contenu) => cadre('page', 653, 96, 482, 512, 'parchemin', `<div class="page-c">${contenu}</div>`, { ruban, classe: 'pan' });
-/* acquis : [rubrique, valeur, jeton] ; gestes : { suivant, refus } */
+/* acquis : [rubrique, valeur, jeton] ; gestes : { suivant, refus } ; `refus` ferme « Suivant » et se dit au survol */
 const herosNeuf = ({ nom = 'Nouveau héros', acquis, pose, suivant = 'Suivant', refus = null, palette = false }) => cadre('heros-neuf', 1152, 96, 529, 512, 'bois', `
   <div class="niche laiton"><div>${figure(pose, { palette })}</div></div>
   <div class="acquis">
     <div class="qui" data-texte="nom du héros">${nom}</div>
     ${acquis.map(([r, v, j]) => `<div class="a"><i>${r}</i><b>${v}${j ? `<span class="jeton">${j}</span>` : ''}</b></div>`).join('')}
     <div class="gestes">
-      ${refus ? `<div class="refus">${refus}</div>` : ''}
-      ${refus ? plaque(`${suivant} ${picto('chevron_d', 16, '#8d8474', 2)}`, { fermee: true }) : plaque(`${suivant} ${picto('chevron_d', 16, '#2a1a08', 2)}`, { armee: true })}
+      ${refus ? plaque(`${suivant} ${picto('chevron_d', 16, '#8d8474', 2)}${raison(refus)}`, { fermee: true }) : plaque(`${suivant} ${picto('chevron_d', 16, '#2a1a08', 2)}`, { armee: true })}
       ${plaque(`${picto('chevron_g', 15, '#e2c06a', 2)} Précédent`)}
     </div>
   </div>`, { classe: 'pan' });

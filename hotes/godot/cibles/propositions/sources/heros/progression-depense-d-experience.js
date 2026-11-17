@@ -1,4 +1,4 @@
-/* Progression : la dépense d'expérience (LDB 07 l.41-105 ; src/noyau/monde/advancement.ts, src/engine/advancement.ts). */
+/* Progression : la dépense d'expérience (LDB 07 l.41-105, l.118, l.137, l.144 ; src/noyau/monde/advancement.ts, src/engine/advancement.ts). */
 const PROFIL = [[5], [33, 2, 25, true], [30, 0, 50], [26, 0, 50], [45, 0, 50], [62, 0, 50], [58, 0, 50], [52, 0, 50], [80, 5, 25, true], [70, 6, 30, true], [29, 0, 50], [17]];
 const caseDeCarac = ([v, aug, cout, carriere], i) => `<div class="c ${carriere ? 'carr' : ''}"><span class="ab">${ABR[i]}</span><span class="v">${v}</span><span class="aug">${aug ? `+${aug}` : ''}</span>${cout ? `<span class="jeton ${carriere ? 'or' : 'fer'}">${cout} PX</span>` : ''}</div>`;
 const COMPETENCES = [
@@ -10,10 +10,10 @@ const achat = ([c, n, spec, aug, test, cout, vise]) => `<div class="achat ${vise
 const talent = (icone, nom, sous, cout, clos = false) => `<div class="talent ${clos ? 'clos' : ''}"><div class="medaillon petit ${clos ? 'fer' : 'laiton'}"><div>${picto(icone, 19, clos ? '#8d8474' : '#e2c06a')}</div></div><div class="t"><b data-texte="${nom}">${nom}</b><i>${sous}</i></div>${plaque(cout, { fermee: clos })}</div>`;
 
 poser([
-  identite({ px: 285, apres: '275 après cet achat', niveau: 'Sorcière novice',
+  identite({ px: 285, apres: '275 après cet achat', niveau: 'Sorcière novice', rang: 1,
     exigences: [[false, 'Cinq Augmentations en CC, Int et FM', '2 / 3'], [false, 'Cinq dans huit Compétences', '6 / 8'], [true, 'Un Talent du niveau']],
-    pied: `${plaque('Changer de carrière', { prix: '200 PX', classe: 'gauche', style: 'height:38px' })}<div class="rub" style="margin-top:7px"><span class="note">100 PX une fois le niveau achevé.</span></div>` }),
-  cadre('bande', 443, 20, 1238, 132, 'parchemin', PROFIL.map(caseDeCarac).join(''), { ruban: 'Caractéristiques', classe: 'bande' }),
+    pied: `${plaque('Niveau suivant', { fermee: true, classe: 'gauche', style: 'height:38px' })}<div style="height:9px"></div>${plaque('Autre carrière', { prix: '200 PX', classe: 'gauche', style: 'height:38px' })}<div class="rub" style="margin-top:7px"><span class="note">Niveau achevé : 100 PX. Hors de sa Classe : 100 PX de plus.</span></div>` }),
+  cadre('bande', 443, 20, 1172, 132, 'parchemin', PROFIL.map(caseDeCarac).join(''), { ruban: 'Caractéristiques', classe: 'bande' }),
   cadre('competences', 443, 170, 640, 438, 'parchemin', `
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin:6px 4px 2px 2px">${rub('De la carrière', 'une Augmentation à la fois')}<span class="rub">Test &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Coût &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
     ${COMPETENCES.map(achat).join('')}
@@ -25,6 +25,6 @@ poser([
     ${talent('feu', 'Magie mineure', 'Acquis · Maxi : 1', 'Maxi atteint', true)}
     ${talent('oeil', 'Seconde vue', "Acquis une fois · Maxi : Bonus d'Initiative", '200 PX')}`, { ruban: 'Talents', classe: 'pan' }),
   groupeDIlyanwe(),
-  retour('Fermer'),
+  croix(),
   coins(),
 ]);

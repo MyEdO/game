@@ -1,19 +1,19 @@
-/* Création 9/10 : l'identité (LDB 05 l.705-768 ; src/data/details.json, eyes.json, hairs.json, names.json). */
+/* Création 9/10 : l'identité (LDB 05 l.432, l.590, l.705-768 ; src/data/details.json, eyes.json, hairs.json, names.json). */
 const mesure = (jet, libelle, de, valeur) => `<div class="mesure"><div class="de moyen">${jet}</div><div>${rub(libelle, de)}<b>${valeur}</b></div></div>`;
-const champ = (libelle, texte, saisi = false) => `<div class="champ ${saisi ? 'saisi' : ''}">${rub(libelle)}<div class="ecrit" data-texte="${libelle}">${texte}${saisi ? '<u></u>' : ''}</div></div>`;
+/* un champ qui s'écrit : la plume le dit ; `saisi` = celui où l'on écrit */
+const champ = (libelle, texte, saisi = false) => `<div class="champ ${saisi ? 'saisi' : ''}">${rub(libelle)}<div class="ecrit" data-texte="${libelle}">${texte}${saisi ? '<u></u>' : ''}${picto('plume', 16, '#5a3a1c', 1.5)}</div></div>`;
 
 poser([
   frise(9),
   gauche(`
     <div class="deux" style="column-gap:26px">
       <div>${rub('Sexe')}<div class="onglets-m" style="margin-top:6px">${plaque('Masculin')}${plaque('Féminin', { armee: true })}</div></div>
-      <div>${rub('Nom')}<div class="onglets-m" style="margin-top:6px">${plaque('Nom aux dés', { icone: 'de20' })}</div></div>
+      <div>${rub('Nom', 'tiré ou écrit')}<div class="onglets-m" style="margin-top:6px">${plaque('Nom aux dés', { icone: 'de20' })}</div></div>
     </div>
-    <div style="margin-top:14px">${rub('Tiré')}</div>
-    <div class="ligne choisie" style="height:38px;margin-top:4px">${picto('plume', 17, '#2a1d12', 1.5)}<span class="n" style="font-size:18px" data-texte="nom tiré">Astrid Altdorfer</span><span class="raison" style="color:#5a3a1c">Se réécrit à la plume</span></div>
+    ${champ('Nom', 'Astrid Altdorfer')}
     ${sep()}
-    ${rub('Physique aux dés')}
-    <div class="physique" style="margin-top:12px">
+    <div class="deux" style="column-gap:26px;align-items:center">${rub('Physique', 'un seul tirage')}<div class="onglets-m">${plaque('Physique aux dés', { icone: 'de20' })}</div></div>
+    <div class="physique" style="margin-top:14px">
       ${mesure(8, 'Âge', '15 + d10', '23 ans')}
       ${mesure(27, 'Taille', '145 + 5d10', '172 cm')}
       ${mesure(16, 'Yeux', '2d10', 'Marron')}

@@ -9,7 +9,7 @@ const $ = (s) => document.querySelector(s);
 /* ───────── pièces du bandeau ───────── */
 const pas = (pleins, total, classe = '') => `<div class="pas petit ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
 /* le bandeau de l'état de base cède sa place à celui de la suite */
-const poser = (titre, classe, contenu, suites) => { $('#jet').outerHTML = bandeauDuJet(titre, classe, contenu, suites); clouer($('#jet')); };
+const poser = (titre, classe, contenu, suites) => { $('#jet, #issue').outerHTML = bandeauDuJet(titre, classe, contenu, suites); clouer($('#jet')); };
 
 /* ───────── l'ordre, le round, le journal ───────── */
 const CHAMANE = 'Chamane gobelin';
@@ -57,18 +57,16 @@ const ETATS = {
     round(1, 'tour 3<br>sur 4');
     ordre(G('actif', CHAMANE), O(), borne(2), I('fantome'), Be('fantome loin'));
     journal(vieux('Ilyanwe la Voilée lance Fléchette sur Orc.'), vieux('Berta se met en Défensive.'), neuf(`${CHAMANE} incante Fléchette sur Berta.`));
-    const lanceur = { cote: 'droite', portrait: portrait('gobelin', 'ennemi'), nom: CHAMANE, carac: 'Langue (Magick)', seuil: 52 };
-    const contre = { portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85 };
-    if (!tombe) poser('Contre-sort', 'avant', `
-      ${camp(contre)}
-      ${reglages('Fléchette · Cible : Berta', `<div class="l rubrique">Ilyanwe la Voilée chante un Contre-sort</div>
-        ${options([['Contrer seul', { armee: true }], ['S’unir', { fermee: true }], ['Passer']])}
-        <span class="modif rubrique">Un seul Contre-sort par Round</span>`, 'declaration')}
-      ${camp(lanceur)}`, plaque('Déclarer', { armee: true }));
+    if (!tombe) poser('Contre-sort', 'debut', `
+      <div class="annonce"><div class="dr gothique">Fléchette</div><div class="sous rubrique">${CHAMANE} · Cible : Berta</div></div>
+      ${carte('Contrer seul', 'Langue (Magick) ≤ 85 contre ≤ 52<br>Berta à 6 m · portée 62 m', { armee: true })}
+      ${carte('S’unir', 'Test Soutenu, même Domaine', { fermee: true })}
+      ${carte('Passer', 'Un seul Contre-sort par Round')}`,
+    `${plaque('Déclarer', { armee: true })}${plaque('Annuler')}`);
     else poser('Contre-sort', '', `
-      ${camp({ ...contre, des: ['40', '2'], total: 42, dr: '+4', reussite: true })}
+      ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['40', '2'], total: 42, dr: '+4', reussite: true })}
       ${verdict('Fléchette · Cible : Berta', 'DR net +2', 'Contre-sort d’Ilyanwe la Voilée : le Sort est dissipé.')}
-      ${camp({ ...lanceur, des: ['7', '30'], total: 37, dr: '+2', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe }));
+      ${camp({ cote: 'droite', portrait: portrait('gobelin', 'ennemi'), nom: CHAMANE, carac: 'Langue (Magick)', seuil: 52, des: ['7', '30'], total: 37, dr: '+2', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe }));
   },
 
   /* LDB 46 l.160 ; `src/noyau/pendings.ts:735`, `cs.dispelRoll` */
@@ -82,7 +80,7 @@ const ETATS = {
     journal(vieux(`${CHAMANE} s’abrite sous un Dôme.`), vieux('Berta se met en Défensive.'), neuf('Ilyanwe la Voilée entame la Dissipation du Dôme.'));
     poser('Dissipation', 'seul', `
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['50', '1'], total: 51, dr: '+3', reussite: true })}
-      <div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation 7</div><div class="dr gothique">Dôme</div>
+      <div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation 7 · coûte l’Action</div><div class="dr gothique">Dôme</div>
         <div class="cumul">${pas(5, 7)}<b class="rubrique" data-texte="cumul">5 DR sur 7</b></div>
         <p data-texte="phrase d'issue">Le Dôme vacille : encore 2 DR pour le dissiper.</p></div>
       ${vise('gobelin', CHAMANE, 'Lanceur du Sort visé', '11 / 11')}`, apresLeDe({ heros: RESERVES.ilyanwe }));
@@ -101,11 +99,10 @@ const ETATS = {
     plaque('Continuer', { armee: true }));
   },
 
-  /* LDB 19 l.29, l.47 ; `src/noyau/fenetreDeCorruption.ts:32`, `reglage.corruption.nature` */
+  /* LDB 19 l.29, l.47 ; `src/noyau/fenetreDeCorruption.ts:32`, `reglage.corruption.nature`. Hors combat : la cour
+     vidée de ses adversaires (`data-variante="victoire"`), sans le voile de fin. */
   'test-de-corruption'() {
-    round(1, 'tour 2<br>sur 4');
-    ordre(Be('actif'), G(), O(), borne(2), I('fantome'), Be('fantome loin'));
-    journal(vieux('Ilyanwe la Voilée lance Fléchette sur Orc.'), vieux('Berta ramasse l’amulette de l’Orc.'), neuf('Berta s’expose à la Corruption.'));
+    S.querySelector('rect[fill="#06040a"]').remove();
     poser('Corruption', 'corruption', `
       <div class="camp expose">${portrait('berta', 'heros')}
         <div><div class="n gothique">Berta</div><div class="c rubrique">Exposition modérée</div>
@@ -115,23 +112,23 @@ const ETATS = {
         <div class="deux">${carte('Résistance', 'Influence physique · ≤ 45', { armee: true })}${carte('Calme', 'Corruption spirituelle · ≤ 40')}</div></div>
       <div class="enjeu"><div class="l rubrique">Ce que le Test décide</div>
         <table><tr><td>Échec</td><td>+2 Points</td></tr><tr><td>Succès Minime, 0 ou 1 DR</td><td>+1 Point</td></tr><tr><td>Succès, 2 DR et plus</td><td>aucun</td></tr></table></div>`,
-    `${plaque('Lancer', { armee: true })}`);
+    avantLeDe({ heros: RESERVES.berta }));
   },
 
-  /* LDB 19 l.70-76, l.118 ; LDB 17 l.67 ; `cor.revealTitle`, `cor.renounceTitle` */
+  /* LDB 19 l.70, l.76 ; LDB 17 l.67 ; #3001 ; `src/noyau/corruptionFlow.ts:369-371`, `cor.thresholdFail`,
+     `cor.renounceTitle`, `src/noyau/choixDeFenetre.ts:246` */
   'corruption-mutation'() {
     round(1, 'tour 2<br>sur 4');
     ordre(Be('actif'), G(), O(), borne(2), I('fantome'), Be('fantome loin'));
-    journal(vieux('Berta : +2 Points de Corruption (total 7).'), vieux('Berta échoue à contenir sa Corruption.'), neuf('Berta mute : Pattes d’animaux.'));
-    poser('Mutation', 'critique', `
+    journal(vieux('Berta : +2 Points de Corruption (total 7).'), vieux('Berta : la Corruption déborde son seuil.'), neuf('Berta échoue à contenir sa Corruption.'));
+    poser('La mutation menace', 'debut destin', `
       <div class="camp touche lanceur">${portrait('berta', 'heros')}
-        <div><div class="n gothique">Berta</div><div class="c rubrique">Corruption physique</div>
-        <div class="des"><div class="resultat">03</div><div class="issue"><b>Tableau de</b><b>Corruption physique</b></div></div></div>
+        <div><div class="n gothique">Berta</div><div class="c rubrique">Points de Corruption 7 / 6</div>
+        ${reserves([RESERVES.berta.resilience, 'Résilience'])}</div>
       </div>
-      <div id="critique"><div class="dr gothique">Pattes d’animaux</div>
-        <p data-texte="texte de la table">+1 Mouvement</p>
-        <p class="note" data-texte="suite">Berta perd 3 Points de Corruption, son Bonus de Force Mentale : il lui en reste 4.</p></div>`,
-    `${reserves([RESERVES.berta.resilience, 'Résilience'])}${plaque('Continuer', { armee: true })}${plaque('Je te renie !', { classe: 'large' })}`);
+      ${carte('Je te renie !', '−1 Résilience · aucune mutation<br>Les Points de Corruption restent', { armee: true })}
+      ${carte('Muter', '−3 Points, le Bonus de Force Mentale<br>La mutation se tire au d100', { classe: 'funeste' })}`,
+    plaque('Confirmer', { armee: true }));
   },
 
   /* LDB 14 l.17-30 ; `src/data/oups.json`, `jet.maladresse`, `if.fumble` */
@@ -154,9 +151,9 @@ const ETATS = {
     poser('Se désengager', 'debut', `
       <div class="annonce"><div class="dr gothique">Engagée</div><div class="sous rubrique">Avantage 0 · Orc 1</div></div>
       ${carte('Sacrifier l’Avantage', `Quitter le combat sans Test${raison('Il faut plus d’Avantages que l’adversaire.')}`, { fermee: true })}
-      ${carte('Esquive', 'Test opposé ≤ 44 · coûte l’Action', { armee: true })}
-      ${carte('Fuir', 'Coup dans le dos · Orc +20 au toucher')}`,
-    `${plaque('Lancer', { armee: true })}${plaque('Annuler')}`);
+      ${carte('Esquive', 'Test opposé ≤ 44 · coûte l’Action')}
+      ${carte('Fuir', 'Orc : +1 Avantage, coup dans le dos +20<br>Touchée : +1 Avantage, Test de Calme', { armee: true })}`,
+    `${plaque('Fuir', { armee: true })}${plaque('Annuler')}`);
   },
 
   /* LDB 17 l.29-32 ; `src/noyau/choixDeFenetre.ts:234`, `valeur.issue.*`, `ecran.destin.*`, `fenetre.destin` */
@@ -172,7 +169,7 @@ const ETATS = {
       ${carte('Éviter le coup', '−1 Destin · elle reste au combat', { armee: true })}
       ${carte('Survivre hors du combat', '−1 Destin · elle quitte la rencontre')}
       ${carte('Accepter son sort', 'Sans sacrifice, le héros meurt.', { classe: 'funeste' })}`,
-    `<span class="consigne">Un clic choisit, un second confirme.</span>`);
+    plaque('Confirmer', { armee: true }));
   },
 
   /* LDB 17 l.23-25 ; LDB 12 l.38 ; `verbe.relancer`, `verbe.ajouterUnDR`, `jet.ferme.sansChance` */
@@ -182,7 +179,7 @@ const ETATS = {
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['20', '7'], total: 27, dr: '+2', modif: 'Avantage +10', reussite: true })}
       ${verdict('Bâton de combat · Cible : Orc', 'DR net +6', 'Ilyanwe la Voilée touche Orc au corps.<br><span class="relance rubrique">Relancé par la Chance · premier jet <s>98</s></span>')}
       ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`,
-    apresLeDe({ heros: { ...RESERVES.ilyanwe, chance: 1 }, relance: true }));
+    apresLeDe({ heros: { ...RESERVES.ilyanwe, chance: 1 }, relance: true, survol: 'relancer' }));
   },
 };
 ETATS[SUITE]();

@@ -36,8 +36,8 @@ Les images de la page « Images cibles des écrans », sous `maquettes/`. Celles
 | `jet-avant-le-de` | J9 | zone choisie en laiton plein, « −20 au Test » en étiquette, gestes « Lancer » et « Annuler » |
 | `jet-de-defense` | J1 à J8 | réussite en sceau de cire verte |
 | `incantation` | J10 | cible à droite en bloc sans dé, sort en gothique au centre |
-| `coup-critique` | C1, C2, C3 | victime et silhouette à gauche, texte du livre à droite, un seul geste |
-| `debut-du-round` | R1 | « Agir en premier » en cartes de héros pressables |
+| `coup-critique` | C1, C2, C3 | victime et silhouette à gauche, texte du livre à droite, un seul geste ; la barre compte le coup et le Critique |
+| `debut-du-round` | R1 | « Agir en premier » : carte du héros offert et son coût, sa Chance en réserve, puis la plaque |
 | `fin-victoire`, `fin-defaite` | F1, F2 | le reste de l'interface s'efface, un seul bouton « Reprendre » |
 | `journal-ouvert` | T19 | panneau au-dessus de sa pastille, rangé par round |
 | `fiche-au-clic` | T21 | quatre panneaux entre l'ordre et le journal, les ancrages restent visibles |

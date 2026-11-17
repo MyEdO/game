@@ -27,6 +27,7 @@ const scene = (cx, y, { nom, effet, position, heros = [], icone, geste, vise = f
   <div class="et bois"><b>${nom}</b><span class="rubrique">${effet}</span>${position ? `<span class="rubrique position">${position}</span>` : ''}${plaque(geste, { armee: vise })}</div></div>`;
 const armees = (allies, ennemis, suite) => `<div id="bord" class="cadre bois bord armees" data-piece="les armées"><div class="fond bois">
   ${ligne('Armée des Personnages', `<span class="lin">${allies} · départ 50</span>`)}${jauge(allies / 100)}
+  ${ligne('Tests de Puissance ce Round', '<span class="lin">+10</span>')}
   ${ligne('Horde ennemie', `<span class="lin">${ennemis} · départ 55</span>`)}${jauge(ennemis / 100, 'cire')}
   <div class="filet"></div>${suite}
 </div><div class="ruban rubrique">Puissance</div>${ferrures}</div>`;
@@ -54,16 +55,16 @@ if (!JOUE) {
   const armee = (cote, nom, seuil, de, dr, perte) => `<div class="ost ${cote}"><div class="sceau de ${dr > 0 ? 'reussite' : ''}"><b>${de}</b><i>d100</i></div>
     <div><div class="n">${nom}</div><div class="c rubrique">Puissance ≤ ${seuil}</div><div class="issue ${dr > 0 ? 'reussite' : ''}"><b>${dr > 0 ? 'Réussite' : 'Échec'} · DR ${dr > 0 ? '+' : '−'}${Math.abs(dr)}</b> · ôte ${perte}</div></div></div>`;
   pieces.push(recit('Le terrain', 'La plaine boueuse s’étend devant les remparts ; la horde dévale la pente en hurlant.').replace('id="recit"', 'id="recit" class="terrain"'));
-  pieces.push(armees(42, 36, `<div class="t rubrique">Ce que le Round a joué</div>
+  pieces.push(armees(42, 35, `<div class="t rubrique">Ce que le Round a joué</div>
     <div class="jouera joue">${pastille('arc')}Pluie de flèches<span class="rubrique">Horde −5</span></div>
     <div class="jouera joue">${pastille('bouclier')}Tenez votre position<span class="rubrique">Horde −2 · rupture 3/10</span></div>
     <div class="jouera joue">${pastille('couronne')}Motivation<span class="rubrique">échouée, aucun effet</span></div>`));
   pieces.push(`<div id="epreuve" class="cadre bois" data-piece="test spectaculaire"><div class="fond parchemin">
-    ${armee('', 'Armée des Personnages', 50, 31, 2, 12)}
-    <div class="milieu"><div class="sous rubrique">Round de bataille 1 / 3</div><div class="dr">42 contre 36</div>
-      <p data-texte="phrase d'issue">Les Personnages réduisent l’ennemi de 12, l’ennemi réduit les Personnages de 8.</p></div>
+    ${armee('', 'Armée des Personnages', '50 + 10', 31, 3, 13)}
+    <div class="milieu"><div class="sous rubrique">Round de bataille 1 / 3</div><div class="dr">42 contre 35</div>
+      <p data-texte="phrase d'issue">Les Personnages réduisent l’ennemi de 13, l’ennemi réduit les Personnages de 8.</p></div>
     ${armee('droite', 'Horde ennemie', 48, 67, -2, 8)}
-    <div class="gestes">${plaque('Rassemblement')}${plaque('Round suivant', { armee: true })}</div>
+    <div class="gestes">${plaque('Rassemblement : Bjorn', { classe: 'large' })}${plaque('Round suivant', { armee: true })}</div>
   </div><div class="ruban gothique">Test spectaculaire de Puissance</div>${ferrures}</div>`);
   pieces.push(bandeau({
     bjorn: { texte: 'a tenu la position aux côtés de Greta' },

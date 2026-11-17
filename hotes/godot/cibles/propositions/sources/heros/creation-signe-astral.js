@@ -1,10 +1,12 @@
 /* Création 4/10 : le signe astral (ADE II 03 l.36-63 ; src/data/stars.json). */
 const SIGNES = ["Wymund l'Anachorète", 'La Grande Croix', 'Le Trait du Peintre', 'Gnuthus le Buffle', 'Dragomas le Dragon', 'Le Crépuscule', 'Le Fourreau de Grungni', 'Mammit le Sage', 'Mummit le Fou', 'Les Deux Bœufs',
-  'Le Danseur', 'Le Tambour', 'Le Flûtiste', 'Vobist le Pâle', 'La Charrette Brisée', 'La Chèvre Sauvage', 'Le Chaudron de Rhya', 'Cackelfax le Coq', 'La Scie à Os', "L'Étoile du Sorcier"];
+  'Le Danseur', 'Le Tambour', 'Le Flûtiste', 'Vobist le Pâle', 'La Charrette Brisée', 'La Chèvre Sauvage', 'Le Chaudron de Rhya', 'Cackelfax le Coq', 'La Scie à Os'];
+/* quatre signes sous un même rang du d100, départagés au d10 (stars.json, `sub`) : [d10, variante] */
+const ETOILE_DU_SORCIER = [['1-3', 'Sixième sens'], ['4-6', 'Seconde vue'], ['7-9', 'Magie mineure'], ['10', 'Sorcier !']];
 const CHOISI = 'Le Trait du Peintre';
 const ligneDeSigne = (s) => s === CHOISI
-  ? `<div class="ligne choisie">${picto('etoile', 16, '#2a1d12', 1.5)}<span class="n" data-texte="${s}">${s}</span></div>`
-  : `<div class="ligne"><i class="losange"></i><span class="n" data-texte="${s}">${s}</span></div>`;
+  ? `<div class="ligne choisie" style="height:27px">${picto('etoile', 16, '#2a1d12', 1.5)}<span class="n" data-texte="${s}">${s}</span></div>`
+  : `<div class="ligne" style="height:27px"><i class="losange"></i><span class="n" data-texte="${s}">${s}</span></div>`;
 
 /* le ciel : l'archer bandant son arc, au-dessus des toits */
 const ciel = () => {
@@ -31,15 +33,17 @@ poser([
       <div class="col">${rub('Signe au d100')}<div class="de">13</div></div>
       <div class="col" style="flex:1">${rub('Tiré')}
         <div class="ligne choisie" style="width:286px;height:34px">${picto('etoile', 17, '#2a1d12', 1.5)}<span class="n" data-texte="signe tiré">Le Trait du Peintre</span><span class="jeton or">+25 PX</span></div>
-        <div class="rub"><span class="note">Le signe gardé tel que le dé l'a tiré vaut ses PX ; un autre n'en vaut pas.</span></div>
+        <div class="rub" style="white-space:normal"><span class="note">Le signe gardé tel que le dé l'a tiré vaut ses PX ; un autre n'en vaut pas.</span></div>
       </div>
+      <div class="col">${rub('Variante au d10')}<div style="display:flex;align-items:center;gap:9px"><div class="de petit vide"></div><span class="rub" style="white-space:normal;width:92px"><span class="note">L'Étoile du Sorcier seule</span></span></div></div>
     </div>
     ${sep()}
     ${rub('Signe astral')}
     <div class="deux" style="margin-top:4px">
       <div class="lignes">${SIGNES.slice(0, 10).map(ligneDeSigne).join('')}</div>
       <div class="lignes">${SIGNES.slice(10).map(ligneDeSigne).join('')}</div>
-    </div>`),
+    </div>
+    <div class="ligne" style="height:34px;border-bottom:0;padding-right:0"><i class="losange"></i><span class="n" data-texte="L'Étoile du Sorcier">L'Étoile du Sorcier</span><div class="pills" style="flex:none;flex-wrap:nowrap;gap:5px">${ETOILE_DU_SORCIER.map(([d, v]) => `<span class="pill" style="padding:0 8px"><b class="lin" style="font-size:10.5px;margin-right:5px">${d}</b>${v}</span>`).join('')}</div></div>`),
   centre('Signe de la Précision', `
     <div class="vignette laiton" style="height:140px;margin-top:10px">${ciel()}</div>
     <div class="nom" style="margin-top:9px" data-texte="nom du signe">Le Trait du Peintre</div>
