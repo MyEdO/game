@@ -1,5 +1,4 @@
-const module = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
-const { chromium } = module.default ?? module;
+import { chromium } from 'playwright';
 (async () => {
   const [, , html, png, echelle = '2'] = process.argv;
   const b = await chromium.launch();
