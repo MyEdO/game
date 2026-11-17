@@ -203,21 +203,15 @@ RIDEAU = {
     "cordon": {"rayon": 0.95, "brin": 0.28, "segments": (14, 5)},
 }
 
-# Escalier : rangs des marches, de la plus basse à la plus haute ; rang de la lisse basse ; `pilastres` : rang du
-# poteau et de sa boule, celui du bas puis celui du haut.
-# `pilastre` : son demi-côté (part du rayon du poteau) ; `ancrage` : part de la hauteur de la lisse où il entre.
-# `boule` : profil (part de la hauteur, part du rayon de la primitive), `cotes`, part de sa hauteur dont elle entre
-# dans le pilastre.
-# `rampe` : hauteur de la main courante sous la tête d'un pilastre et du limon sur son pied (parts de la hauteur du
-# poteau du bas) ; demi-largeur et demi-hauteur de leur section (parts du rayon du poteau).
-# `balustres` : leur nombre, leur rayon (part de celui du poteau), `cotes`.
+# Escalier : rangs des marches, de la plus basse à la plus haute ; `rampe` (`geometrie.rampe`) : rang de la lisse
+# basse ; `poteaux` : rang du pilastre et de sa boule, celui du bas puis celui du haut ; la boule de laiton.
 ESCALIER = {
-    "marches": (0, 1, 2, 3), "lisse": 4, "pilastres": ((5, 7), (6, 8)),
-    "pilastre": {"cote": 0.9, "ancrage": 0.3},
-    "boule": {"profil": ((0.0, 0.5), (0.08, 0.5), (0.14, 0.72), (0.3, 0.95), (0.5, 1.0), (0.72, 0.9), (0.9, 0.6),
-                         (1.0, 0.25)), "cotes": 10, "ancrage": 0.15},
-    "rampe": {"main": 0.1, "limon": 0.1, "section": (0.75, 0.6)},
-    "balustres": {"nombre": 7, "rayon": 0.62, "cotes": 6},
+    "marches": (0, 1, 2, 3),
+    "rampe": {"lisse": 4, "poteaux": ((5, 7), (6, 8)), "poteau": {"cote": 0.9, "ancrage": 0.3},
+              "pommeau": {"profil": ((0.0, 0.5), (0.08, 0.5), (0.14, 0.72), (0.3, 0.95), (0.5, 1.0), (0.72, 0.9),
+                                     (0.9, 0.6), (1.0, 0.25)), "cotes": 10, "ancrage": 0.15},
+              "main": 0.1, "rampante": 0.1, "section": (0.75, 0.6),
+              "balustres": {"nombre": 7, "rayon": 0.62, "profil": BALUSTRE, "cotes": 6}},
 }
 
 # Lustre : rang du cul-de-lampe, de la corbeille, de la tige et de la chaîne ; `etages` : par couronne, rang d'une

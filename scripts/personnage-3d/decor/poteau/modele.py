@@ -8,7 +8,6 @@ et une étoffe, la coque de leurs sections. Chaque matériau du décor est un n�
 de caractères de l'id du décor : deux constructions rendent les mêmes octets."""
 import math
 
-import numpy as np
 from mathutils import Vector
 
 import geometrie
@@ -423,8 +422,6 @@ def banniere(D, G, pieces, a):
     tetiere = (ct - guindant).dot(monte)
     e = epais / 2 * E["epaisseur"]
     phase = a.uniform(0, 2 * math.pi)
-    pentes = G.normales @ np.array(travers)
-    bornees = pentes != 0
     rangs = []
     for i in range(E["rangs"] + 1):
         t = i / E["rangs"]
@@ -433,7 +430,7 @@ def banniere(D, G, pieces, a):
             s = j / E["colonnes"]
             chute = haut_e / 2 + haut_p * lineaire(V["bord"], s)
             p = guindant + long * (large * s) + monte * (tetiere - (tetiere + chute) * t)
-            jeu = ((G.bornes - D["RETRAIT"] - G.normales @ np.array(p))[bornees] / np.abs(pentes[bornees])).min()
+            jeu = min(G.portee(p, sens, D["RETRAIT"]) for sens in (travers, -travers))
             creux = max(0.0, min(jeu * Pl["part"] - e, large * Pl["creux"]))
             creux *= E["tetiere"] + (1 - E["tetiere"]) * t
             p += travers * (creux * math.sin(2 * math.pi * (Pl["ondes"] * s + Pl["derive"] * t) + phase))
@@ -452,7 +449,7 @@ BATIR = {"gibet": gibet, "pilori": pilori, "cage": cage, "enseigne": enseigne, "
 
 
 def construire(D, id_):
-    return geometrie.par_noeuds(D, id_, {nom: (nom,) for nom in D["MATERIAUX"][id_]}, BATIR[id_])
+    return geometrie.par_noeuds(D, id_, geometrie.par_materiau(D["MATERIAUX"][id_]), BATIR[id_])
 
 
 def elements(D):

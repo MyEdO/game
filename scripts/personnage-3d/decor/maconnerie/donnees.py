@@ -103,11 +103,9 @@ PUITS = {
     # Versant, en fractions de sa hauteur sauf mention : `chevron` : profondeur de son axe sous le plan du toit,
     # demi-hauteur, demi-largeur (fraction du côté d'un poteau), part de la pente qu'il laisse à l'égout ; `volige` :
     # profondeur de son axe, demi-épaisseur, demi-largeur (fraction de celle du versant), part de la pente laissée à
-    # chaque bout ; `ardoises` : rangs, nombre par rang, écart d'un joint (`geometrie.partage`), épaisseur, jeu sous le
-    # plan du toit, recouvrement (fraction d'un rang), jour entre deux ardoises (fraction de la largeur du versant),
-    # `bascule` : ce dont sa tête s'enfonce sous le plan du toit plus que son pied (en épaisseurs d'ardoise).
+    # chaque bout ; `ardoises` (`geometrie.ardoises`), en fractions de la hauteur du versant.
     "chevron": (0.18, 0.07, 0.26, 0.04), "volige": (0.090, 0.022, 0.975, 0.015),
-    "ardoises": {"rangs": 5, "nombre": 6, "ecart": 0.22, "epaisseur": 0.03, "jeu": 0.012, "recouvrement": 0.35,
+    "ardoises": {"rangs": 5, "nombre": (6, 6), "ecart": 0.22, "epaisseur": 0.03, "jeu": 0.012, "recouvrement": 0.35,
                  "jour": 0.004, "bascule": 1.0},
     # Treuil, en fractions du rayon de l'arbre sauf mention : `depasse` : ce dont il dépasse l'axe de chaque poteau
     # (fraction du côté d'un poteau) ; son profil, tourillons et tambour ; `spires` : nombre de tours de corde, leur
