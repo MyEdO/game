@@ -11,14 +11,12 @@
 - Le pan : une bande qui sort de sous le bord de l'écharpe à l'avant gauche et tombe sur la poitrine.
 
 Double nappe ; poids du capuchon empruntés à la peau de la tête, ceux de l'écharpe et du pan à la robe et au corps, la
-tête et les bras reportés ; clés du capuchon reprises de la tête, celles de l'écharpe et du pan de la robe, le haut de
-l'écharpe du corps. Toute cote vient de `donnees.py`.
+tête et les bras reportés ; clés reprises du corps, au plus près. Toute cote vient de `donnees.py`.
 """
 import math
 
 import numpy as np
 from mathutils import Vector
-from mathutils.kdtree import KDTree
 
 from tissu import Maillage, direction_spatiale, emprunter, joindre, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
 
@@ -156,7 +154,6 @@ def construire(D, materiaux, b):
     dessous = porteur_de(*joindre_les_surfaces([robe] + corps))
     autres = porteur_de(*joindre_les_surfaces([robe, coiffure] + corps))
     rangs, O = echarpe(D, b, autres, capuchon_)
-    haut = [p for rang in rangs[:e['haut_au_corps'] + 1] for p in rang]
     ref = O + np.array([0.0, 0.0, -0.10])
     for M in (nappe_des_rangs(rangs, ref, True),
               nappe_des_rangs(pan(D, autres, O, e), ref, False)):
@@ -167,14 +164,6 @@ def construire(D, materiaux, b):
             W[:, b.indice_os[a]] = 0.0
         W = lisser(W, voisinage(orientes, len(X)), e['lissage_des_poids'])
         nappes.append(b.nappe('echarpe', X, normales, W, orientes, materiaux['capuche'], D['EPAISSEUR']))
-    du_capuchon = len(nappes[0].data.vertices)
     piece = joindre(nappes)
-    arbre = KDTree(len(haut))
-    for k, p in enumerate(haut):
-        arbre.insert(Vector(p.tolist()), k)
-    arbre.balance()
-    sur_la_robe = [i >= du_capuchon and arbre.find(v.co)[2] > D['EPAISSEUR'] + 1e-4 for i, v in enumerate(piece.data.vertices)]
-    b.transferer(piece, D['ZONES_DES_CLES'],
-                 masques=[([i < du_capuchon for i in range(len(piece.data.vertices))], D['ZONES_DES_CLES_DU_CAPUCHON'], {}),
-                          (sur_la_robe, [], {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']})])
+    b.transferer(piece, D['ZONES_DES_CLES'])
     return piece

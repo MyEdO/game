@@ -5,8 +5,9 @@ nappes de colonnes en azimut posées sur la peau de la tête publiée, qui la qu
   du dehors vers le centre et posé à sa hauteur au-dessus de la peau ; au-delà de la tempe, la colonne quitte le crâne à
   son bord et tombe droit jusqu'à la mâchoire, au jeu de l'oreille et du cou, en pointes inégales.
 - La barbe : colonnes d'un favori à l'autre autour d'un centre derrière la bouche, rangs du bord haut (moustache, ligne
-  de la joue) à la mâchoire, de plus en plus fournis ; sous la mâchoire, chaque colonne tombe de sa longueur, se
-  resserre vers le milieu et recule vers la poitrine, jamais à moins du jeu de la robe et du corps, ondulée, en pointes.
+  de la joue) à la mâchoire, de plus en plus fournis ; sous la mâchoire, chaque colonne tombe, par rangs communs à toutes,
+  jusqu'à sa longueur, se resserre vers le milieu et recule vers la poitrine, jamais à moins du jeu de la robe et du corps, ondulée, son
+  dernier rang en pointes.
 
 Double nappe ; poids de la peau de la tête, fondus sous la mâchoire vers ceux de la robe, du cou et du torse ; silhouettes et clés
 `gabarit_*` transférées des zones de la base sous la pièce. Toute cote vient de `donnees.py`.
@@ -88,14 +89,16 @@ def cheveux(D, b, tete, toutes):
 
 def barbe(D, b, tete, dessous):
     """Les colonnes de la barbe, d'un favori à l'autre : rangs positifs sur la peau, du bord haut (le plus grand) à la
-    mâchoire (0), négatifs sous elle (la tombée) ; et la hauteur de la mâchoire de chaque colonne."""
+    mâchoire (0), négatifs sous elle (la tombée, aux mêmes hauteurs d'une colonne à l'autre, chaque colonne arrêtée à sa
+    longueur) ; par point, dans l'ordre des colonnes et des rangs, sa profondeur sous la mâchoire du milieu ; et le
+    centre."""
     c = D['BARBE']
     C = np.array(b.tete(c['os_du_centre'])) + np.asarray(c['centre'], float)
     axe = np.array([*D['AXE'], 0.0])
     n = c['colonnes']
     phis = np.linspace(-c['demi_ouverture'], c['demi_ouverture'], n)
     pointes = lambeaux(c['meches'], n)
-    colonnes, machoires = [], []
+    colonnes = []
     for j, phi in enumerate(phis):
         colonne = {}
         for k, t in enumerate(np.linspace(0.0, 1.0, c['rangs'] + 1)):
@@ -103,22 +106,25 @@ def barbe(D, b, tete, dessous):
             d = direction_spatiale(phi, e)
             peau, _ = sur_le_porteur(tete, C, d, D['PORTEE'])
             colonne[k] = peau + (c['hauteur'][1] + t * (c['hauteur'][0] - c['hauteur'][1])) * d
-        depart = colonne[0]
-        machoires.append(depart[2])
-        longueur = selon(c['longueur'], phi)
-        if longueur > 0:
-            longueur += pointes[j]
-            for i in range(1, c['rangs_de_tombee'] + 1):
-                t = i / c['rangs_de_tombee']
-                p = np.array([depart[0] * (1.0 - c['resserrement'] * t), depart[1], depart[2] - t * longueur])
-                O = np.array([axe[0], axe[1], p[2]])
-                rayon = float(np.linalg.norm((p - O)[:2]))
-                d = (p - O) / rayon
-                onde = 0.5 * (1.0 + math.sin(2 * math.pi * (c['ondes']['periodes'] * t + c['ondes']['dephasage'] * j)))
-                relief = c['ondes']['ampleur'] * t * onde + c['stries'] * t * (j % 2) + c['ventre'] * math.sin(math.pi * t)
-                colonne[-i] = O + (au_jeu(D, dessous, O, d, rayon - c['recul'] * t, c['jeu']) + relief) * d
         colonnes.append(colonne)
-    return colonnes, machoires, C
+    z0 = colonnes[n // 2][0][2]
+    profondeurs = []
+    for j, (phi, colonne) in enumerate(zip(phis, colonnes)):
+        depart = colonne[0]
+        for i in range(1, c['rangs_de_tombee'] + 1):
+            t = i / c['rangs_de_tombee']
+            if t * c['longueur'][0][1] > selon(c['longueur'], phi) + 1e-9:
+                break
+            pointe = pointes[j] if i == c['rangs_de_tombee'] else 0.0
+            p = np.array([depart[0] * (1.0 - c['resserrement'] * t), depart[1], z0 - t * c['longueur'][0][1] - pointe])
+            O = np.array([axe[0], axe[1], p[2]])
+            rayon = float(np.linalg.norm((p - O)[:2]))
+            d = (p - O) / rayon
+            onde = 0.5 * (1.0 + math.sin(2 * math.pi * c['ondes']['periodes'] * t))
+            relief = c['ondes']['ampleur'] * t * onde + c['ventre'] * math.sin(math.pi * t)
+            colonne[-i] = O + (au_jeu(D, dessous, O, d, rayon - c['recul'] * t, c['jeu']) + relief) * d
+        profondeurs += [max(0.0, z0 - colonne[k][2]) if k < 0 else 0.0 for k in sorted(colonne)]
+    return colonnes, profondeurs, C
 
 
 
@@ -138,10 +144,9 @@ def construire(D, materiaux, b):
     W = lisser(poids(X, np.zeros(len(X))), voisinage(orientes, len(X)), D['LISSAGE_DES_POIDS'])
     nappes = [b.nappe('barbe_longue', X, normales, W, orientes, materiaux['poil'], D['EPAISSEUR'])]
 
-    colonnes, machoires, centre = barbe(D, b, tete, dessous)
+    colonnes, sous, centre = barbe(D, b, tete, dessous)
     X, orientes, normales = mailler(colonnes, centre)
     haut, bas = D['BARBE']['poids']
-    sous = float(np.mean(machoires)) - X[:, 2]
     W = lisser(poids(X, np.array([fondu((s - haut) / (bas - haut)) for s in sous])), voisinage(orientes, len(X)),
                D['LISSAGE_DES_POIDS'])
     nappes.append(b.nappe('barbe', X, normales, W, orientes, materiaux['poil'], D['EPAISSEUR']))

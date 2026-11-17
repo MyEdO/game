@@ -19,7 +19,8 @@ import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-from tissu import lambeaux, tirage, voisinage
+from maille import tirage
+from tissu import lambeaux, voisinage
 
 
 def table(points, x):

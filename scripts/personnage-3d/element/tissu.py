@@ -9,7 +9,6 @@ modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux
 des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`) ou une nappe simple (`nappe_simple`).
 """
 import math
-import random
 
 import bmesh
 import bpy
@@ -20,6 +19,7 @@ from mathutils.bvhtree import BVHTree
 from anatomie import AXES_DU_PERSONNAGE, attache
 from filets import filets_au_repos
 from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
+from maille import tirage
 
 BORNES_DES_CLES = (0.4, 2.5)
 """Rapport de longueur d'arête sous une clé transférée (clé / repos) hors duquel `Base.transferer` lisse la clé : marge
@@ -65,11 +65,6 @@ def fondu(x):
 
 def unitaire(x):
     return x / np.linalg.norm(x)
-
-
-def tirage(graine):
-    """Tirage déterministe, graine des codes de caractères de `graine` (procédure, section 6)."""
-    return random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(graine)))
 
 
 class Filet:
@@ -262,15 +257,16 @@ class Base:
         personnage."""
         self.offrir(nom, emprunter(point, porteur_)[0], point, np.array(AXES_DU_PERSONNAGE).T)
 
-    def nappe_simple(self, nom, sommets, faces, W, mat, teintes, angle_vif):
+    def nappe_simple(self, nom, sommets, faces, W, mat, teintes=(), angle_vif=None):
         """La nappe simple skinnée `nom` : ses `faces` au matériau `mat`, la face k à celui de `teintes[k]` s'il n'est pas
-        `None` (`teindre`), ses poids `W` par os de la base, lisse hors des arêtes de plus d'`angle_vif` degrés ; chaque
-        sommet est son propre jumeau."""
+        `None` (`teindre`), ses poids `W` par os de la base, lisse, hors des arêtes de plus d'`angle_vif` degrés s'il est
+        donné ; chaque sommet est son propre jumeau."""
         piece = maillage_skinne(nom, sommets, faces, mat, self.rig, poids_normalises(W, self.os))
         for polygone in piece.data.polygons:
             polygone.use_smooth = True
         teindre(piece, teintes)
-        piece.data.set_sharp_from_angle(angle=math.radians(angle_vif))
+        if angle_vif is not None:
+            piece.data.set_sharp_from_angle(angle=math.radians(angle_vif))
         piece.data.attributes.new(JUMEAU, 'INT', 'POINT')
         return piece
 
@@ -402,7 +398,7 @@ def decouper(piece, parties):
 def lambeaux(L, n):
     """La profondeur de chacune des `n` colonnes d'un bord en lambeaux `L` : une pointe sur deux, de 50 à 100 % de
     `profondeur`, l'autre un creux d'au plus `creux` fois la profondeur ; tirage déterministe, graine des codes de
-    caractères de `graine` (`tirage`)."""
+    caractères de `graine` (`maille.tirage`)."""
     hasard = tirage(L['graine'])
     return [L['profondeur'] * (hasard.uniform(0.5, 1.0) if j % 2 == 0 else hasard.uniform(0.0, L['creux']))
             for j in range(n)]
@@ -420,13 +416,22 @@ def viser(porteur_, origine, direction, portee):
                                       portee)
 
 
-def sur_le_porteur(porteur_, origine, direction, portee):
-    """Le point et la normale sortante de la surface porteuse touchés par la visée (`viser`) ; sans surface, une erreur."""
+def toucher(porteur_, origine, direction, portee):
+    """Le point et la normale sortante de la surface porteuse touchés par la visée (`viser`), `None` sans surface."""
     touche = viser(porteur_, origine, direction, portee)
     if touche[0] is None:
-        raise ValueError(f'{origine} : aucune surface porteuse le long de {direction}')
+        return None
     normale = np.array(touche[1])
     return np.array(touche[0]), normale if normale @ direction > 0 else -normale
+
+
+def sur_le_porteur(porteur_, origine, direction, portee):
+    """Le point et la normale sortante de la surface porteuse touchés par la visée (`toucher`) ; sans surface, une
+    erreur."""
+    touche = toucher(porteur_, origine, direction, portee)
+    if touche is None:
+        raise ValueError(f'{origine} : aucune surface porteuse le long de {direction}')
+    return touche
 
 
 def repere_de_plan(normale, haut, signe):

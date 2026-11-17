@@ -13,9 +13,9 @@ import math
 from mathutils import Vector
 
 import habillage
-from geometrie import HAUT, alea, cap, coque, lisse, normale
+from geometrie import HAUT, cap, coque, lisse, normale
 from gabarit import NOEUD_EMISSIF, Gabarit, boite
-from maille import Maille, cylindre, lineaire, objet, poutre, tour
+from maille import Maille, cylindre, lineaire, objet, poutre, tirage, tour
 
 DECORS = ("feu-camp", "brasero", "lampadaire")
 NOEUDS = {
@@ -257,7 +257,7 @@ def construire(D, id_):
     G = Gabarit(id_)
     mats = habillage.materiaux(D["MATERIAUX"][id_])
     pieces = {noeud: Maille([mats[nom] for nom in noms]) for noeud, noms in NOEUDS[id_].items()}
-    BATIR[id_](D, G, pieces, alea(id_))
+    BATIR[id_](D, G, pieces, tirage(id_))
     objets = []
     for noeud, maille in pieces.items():
         maille.v = [tuple(p) for p in G.rentrer(maille.v, D["RETRAIT"])]

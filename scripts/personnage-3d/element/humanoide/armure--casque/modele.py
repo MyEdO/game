@@ -13,10 +13,8 @@ Silhouettes et clés `gabarit_*` transférées des zones de la tête. Toute cote
 import math
 
 import numpy as np
-from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, direction, joindre, maillage_skinne, selon
+from tissu import Maillage, direction, joindre, maillage_skinne, porteur_de, selon, viser
 
 HAUT = np.array([0.0, 0.0, 1.0])
 
@@ -51,7 +49,7 @@ class Coque:
         d = p - origine
         portee = float(np.linalg.norm(d))
         d /= portee
-        touche = self.peau.ray_cast(Vector((origine + 0.3 * d).tolist()), Vector((-d).tolist()), 0.3)[0]
+        touche = viser(self.peau, origine, d, 0.3)[0]
         if touche is not None:
             portee = max(portee, float(np.linalg.norm(np.array(touche) - origine)) + self.jeu)
         return origine + portee * d
@@ -169,8 +167,7 @@ def fleuron(D, b, forme, metal, medaillon):
 
 def construire(D, materiaux, b):
     b.exiger(D['ZONES_DES_CLES'])
-    P, T, _ = b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES_DE_LA_TETE'])
-    peau = BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
+    peau = porteur_de(*b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES_DE_LA_TETE']))
     forme = Coque(D, np.array(b.tete(D['OS'])) + np.asarray(D['CENTRE'], float), peau)
     piece = joindre([coque(D, b, forme, materiaux['metal']), bandeau(D, b, forme, materiaux['metal'], materiaux['cordon']),
                      *fleuron(D, b, forme, materiaux['metal'], materiaux['fleuron'])])

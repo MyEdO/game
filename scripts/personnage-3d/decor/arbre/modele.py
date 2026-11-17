@@ -6,7 +6,7 @@ caractères de l'id du décor : deux constructions rendent les mêmes octets.
 
 Saisons. Un décor de `CADUCS` (`donnees.py`) perd ses feuilles en hiver : son feuillage est le nœud `sans-hiver`
 (`NOEUD_DU_FEUILLAGE`), caché en hiver, et sa ramure nue, des brindilles en éventail là où chaque masse de feuillage se
-tient, le nœud `avec-hiver` (`NOEUD_DE_LA_RAMURE`), montré en hiver seulement ; son aléa est à part (`alea` de l'id suivi
+tient, le nœud `avec-hiver` (`NOEUD_DE_LA_RAMURE`), montré en hiver seulement ; son aléa est à part (`maille.tirage` de l'id suivi
 d'« hiver »), si bien que la ramure ne change rien au reste. Un décor que nomme `SELON` (`donnees.py`) porte au
 manifeste ce qui change selon la saison : par saison, `{ palette? }` ; `SELON` nomme l'hiver de chaque décor caduc."""
 import math
@@ -14,9 +14,9 @@ import math
 from mathutils import Vector
 
 import habillage
-from geometrie import HAUT, alea, cap, coque, lisse, normale
+from geometrie import HAUT, cap, coque, lisse, normale
 from gabarit import Gabarit
-from maille import Maille, lineaire, objet
+from maille import Maille, lineaire, objet, tirage
 
 DECORS = ("arbre", "hetre", "orme", "pin", "arbre-mort", "souche", "buisson")
 NOEUD_DU_FEUILLAGE = "sans-hiver"
@@ -374,7 +374,7 @@ def buisson(D, tiges, feuilles, nues, a, hiver):
 
 
 def construire(D, id_):
-    G, a, hiver = Gabarit(id_), alea(id_), alea(f"{id_} hiver")
+    G, a, hiver = Gabarit(id_), tirage(id_), tirage(f"{id_} hiver")
     mats = habillage.materiaux(D["MATERIAUX"][id_])
     pieces = {nom: Maille([mat]) for nom, mat in mats.items()}
     caduc = id_ in D["CADUCS"]

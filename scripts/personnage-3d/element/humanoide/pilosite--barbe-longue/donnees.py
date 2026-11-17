@@ -78,30 +78,34 @@ BARBE = {
     # (azimut, élévation) du bord haut : la moustache, sous le nez (tête : narines à z 1,656, soit -1° ; à -1°, la barbe
     # masquait le bas du nez, rendu de face), puis la ligne de la joue
     'haut': [(0.0, -10.0), (14.0, -9.0), (24.0, -3.0), (40.0, 6.0), (60.0, 14.0), (80.0, 26.0)],
-    # (azimut, élévation) du bord de la mâchoire, d'où la barbe tombe (tête : devant du menton à -41°, son dessous à -56°)
-    'machoire': [(0.0, -48.0), (30.0, -46.0), (50.0, -40.0), (66.0, -30.0), (80.0, -14.0)],
+    # (azimut, élévation) du bord de la mâchoire, d'où la barbe tombe (tête : devant du menton à -41°, son dessous à
+    # -56° ; plus bas que le devant du menton, les visées rasent le dessous de la mâchoire et la nappe s'y retournait)
+    'machoire': [(0.0, -42.0), (30.0, -38.0), (50.0, -32.0), (66.0, -24.0), (80.0, -12.0)],
     'rangs': 5,                         # HYPOTHÈSE de maillage : intervalles du bord haut à la mâchoire
     'hauteur': (0.003, 0.020),          # illustration : m au-dessus de la peau, rase à la joue, fournie au menton
     # (azimut, m) : longueur de la tombée sous la mâchoire. Illustration : 0,185 m au milieu, jusqu'au sternum (base : z
     # ~1,40) ; HYPOTHÈSE : 0,21 m, pour que la masse qui ressort sous l'écharpe du capuchon garde ses ~10 cm, bras en T
     # comme en pose ; elle se resserre en pointe, les favoris ne tombent pas
-    'longueur': [(0.0, 0.210), (27.0, 0.185), (40.0, 0.120), (53.0, 0.060), (67.0, 0.020), (80.0, 0.0)],
+    # Comptée sous la mâchoire du milieu, par rangs communs à toutes les colonnes (la première valeur, la plus longue,
+    # divisée en `rangs_de_tombee`) : des rangs propres à chaque colonne vrillaient les quads d'une colonne longue à sa
+    # voisine courte (`enroulement/triangle-retourne`, 6 triangles à x ±0,042 et ±0,067, sonde)
+    'longueur': [(0.0, 0.210), (14.0, 0.210), (27.0, 0.175), (40.0, 0.105), (53.0, 0.070), (60.0, 0.0), (80.0, 0.0)],
     'rangs_de_tombee': 6,               # HYPOTHÈSE de maillage
-    'resserrement': 0.45,               # illustration : la masse perd ~45 % de sa largeur de la mâchoire à la pointe
+    'resserrement': 0.35,               # illustration : la masse perd ~35 % de sa largeur de la mâchoire à la pointe
     'recul': 0.030,                     # HYPOTHÈSE : m, ce dont la pointe se rapproche de l'axe du cou, avant le jeu
     # HYPOTHÈSE : m, de la barbe à la robe, au cou et au torse ; au-delà de `PERCEE_M` (1 cm, `hotes/godot/asset/pile.ts`),
     # en deçà duquel la pile des couches retient une couche derrière sa voisine
     'jeu': 0.016,
     # illustration : une masse ondulée. Écart au-delà du jeu, nul à la mâchoire : `periodes` ondes le long de la tombée,
-    # décalées de `dephasage` période d'une colonne à la suivante (HYPOTHÈSE : ampleur et nombre)
-    'ondes': {'ampleur': 0.007, 'periodes': 1.5, 'dephasage': 0.25},
-    # HYPOTHÈSE : m, au bas, une colonne sur deux plus écartée de l'axe : des mèches ; à 8 mm et des ondes en opposition
-    # d'une colonne à l'autre, les plis se retournaient (`enroulement/triangle-retourne`, 11 triangles)
-    'stries': 0.004,
+    # les mêmes d'une colonne à l'autre (HYPOTHÈSE : ampleur et nombre ; décalées par colonne et doublées de stries, les
+    # plis se retournaient, `enroulement/triangle-retourne`, 9 à 11 triangles en deux essais)
+    'ondes': {'ampleur': 0.010, 'periodes': 2.0},
     'ventre': 0.012,                    # HYPOTHÈSE : m, ce dont la masse s'épaissit à mi-longueur
-    'meches': {'graine': 'barbe-longue-barbe', 'profondeur': 0.050, 'creux': 0.2},   # m, pointes inégales du bas
-    # m sous la mâchoire : où la tombée cesse de suivre la tête seule, et où elle suit ce sur quoi elle repose seul (la
-    # robe, le cou, le torse : liée au seul corps, la robe passait devant elle, 27 mm en Sword_Regular_A).
+    'meches': {'graine': 'barbe-longue-barbe', 'profondeur': 0.030, 'creux': 0.2},   # m, pointes inégales du dernier rang
+    # m sous la mâchoire du milieu : où la tombée cesse de suivre la tête seule, et où elle suit ce sur quoi elle repose seul (la
+    # robe, le cou, le torse : liée au seul corps, la robe passait devant elle, 27 mm en Sword_Regular_A). Fondue sur
+    # 5,5 puis 9 cm, ses arêtes s'étiraient quand la tête tourne sous `head` 1,9 (`etirement`, 26 puis 12 arêtes en
+    # Sword_Regular_A).
     # HYPOTHÈSE : la barbe repose sur la poitrine, sa pointe ne balaie pas la robe quand la tête tourne
-    'poids': (0.015, 0.090),
+    'poids': (0.030, 0.140),
 }

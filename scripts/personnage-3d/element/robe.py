@@ -126,7 +126,7 @@ def construire(D, materiaux, b):
     robe = Nappe()
     m = D['SEGMENTS_CORPS']
     thetas = [360.0 * i / m for i in range(m)]
-    corsage = anneaux(D, b, robe, porteurs['T'], [(ancre, dz, e) for ancre, dz, e, _ in D['CORSAGE']], m, TRONC + COU)
+    corsage = anneaux(D, b, robe, porteurs['T'], D['CORSAGE'], m, TRONC + COU)
 
     # Jupe : sous la charnière, sur le filet `jupe` de la base.
     zones_jupe = TRONC + JAMBES

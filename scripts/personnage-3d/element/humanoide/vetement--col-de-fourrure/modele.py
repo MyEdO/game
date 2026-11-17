@@ -10,12 +10,12 @@ entre le col et le bord (`GONFLEMENT`), en touffes (`TOUFFES`). Double nappe, po
 reprises de la bure et du corps. Toute cote vient de `donnees.py`.
 """
 import math
-import random
 
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
+from maille import tirage
 from tissu import Maillage, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
 
 
@@ -55,7 +55,7 @@ def construire(D, materiaux, b):
     C = np.array(b.tete(D['CENTRE']['os'])) + np.array([0.0, D['CENTRE']['dy'], 0.0])
     C[2] = D['CENTRE']['z']
     meches = lambeaux(D['LAMBEAUX'], m)
-    touffes = random.Random(sum(ord(x) * (i + 1) for i, x in enumerate(D['TOUFFES']['graine'])))
+    touffes = tirage(D['TOUFFES']['graine'])
     colonnes = []
     for j, psi in enumerate(psis):
         # Le profil de la colonne : le col puis une visée par pas d'élévation jusqu'au bord ; les rangs s'y posent à

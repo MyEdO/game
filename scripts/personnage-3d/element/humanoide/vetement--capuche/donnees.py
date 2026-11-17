@@ -34,14 +34,15 @@ CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite
              'robe': 'humanoide--vetement--robe'}
 """La tête publiée et la coiffure du Sorcier, que le capuchon enveloppe et par-dessus la barbe de laquelle passe
 l'écharpe ; la robe du Sorcier, sur les épaules et la poitrine de laquelle l'écharpe repose : elle en emprunte les poids
-et les clés (procédure, section 3)."""
+(procédure, section 3)."""
 MATIERES = {'tete': ['peau'], 'coiffure': ['poil'], 'robe': ['robe', 'galon', 'dessous']}
-ZONES_DE_LA_ROBE = ['cou', 'torse', 'bras_haut_g', 'bras_haut_d']   # zones des meshes de la robe sous l'écharpe
 ZONES_DU_CORPS = ['cou', 'torse']       # zones de la base que l'écharpe contourne avec la robe
-ZONES_DES_CLES = ['tete', 'visage', 'cou', 'torse']
-ZONES_DES_CLES_DU_CAPUCHON = ['tete', 'visage']
-"""Le capuchon prend ses clés de la tête seule (procédure, section 3 : lié aussi au cou, qui monte sous `carrure_plus`
-quand la tête ne bouge pas, son bas se replie)."""
+ZONES_DES_CLES = ['tete', 'visage', 'cou', 'torse', 'bras_haut_g', 'bras_haut_d']
+"""Zones de la base dont la pièce prend ses clés, au plus près. Repris par liaison de surface de la tête seule, le
+capuchon s'écartait du corps voisin sous `gabarit_head_plus` de plus que son jeu (`suiviDuCorps/cle-non-suivie`, jusqu'à
+66 mm pour 52) ; reprise des meshes de la robe, l'écharpe ne suivait pas le corps qui bouge sous elle sous la même clé
+(`suiviDuCorps/cle-inerte`, 26 à 34 mm pour 35, quatre partages essayés) : elle tient à 22 mm de la robe, au-delà de
+l'écart de deux couches liées au même corps."""
 
 BUDGET_TRIANGLES = 2500                 # procédure du skill, section 7 : vêtement par pièce
 EPAISSEUR = 0.004                       # HYPOTHÈSE : drap de laine, double nappe
@@ -58,8 +59,10 @@ CAPUCHON = {
     'elevations': (-38.0, -25.5, -13.0, -0.5, 12.0, 24.5, 37.0, 49.5, 62.0),
     # Demi-axes (m) de l'ellipsoïde du capuchon autour du centre : la forme du drap, loin du crâne (illustration :
     # un volume, plus large que la tête, profond derrière, dont le bord avance devant le front). Base : la tête a
-    # 0,091 de demi-largeur, 0,096 derrière le centre, 0,110 au-dessus, le front à 0,100 devant
-    'forme': {'cote': 0.122, 'devant': 0.150, 'derriere': 0.155, 'haut': 0.140, 'bas': 0.120},
+    # 0,091 de demi-largeur, 0,096 derrière le centre, 0,110 au-dessus, le front à 0,100 devant. `bas` : le capuchon se
+    # resserre vers le cou ; à 0,120, sa nuque, à 6 cm du corps, ne le suivait plus sous `gabarit_head_plus`
+    # (`suiviDuCorps/cle-non-suivie`, 63 mm pour 59)
+    'forme': {'cote': 0.122, 'devant': 0.150, 'derriere': 0.155, 'haut': 0.140, 'bas': 0.090},
     'jeu': 0.012,                       # HYPOTHÈSE : m, au plus près de la tête et de la coiffure, là où la forme les frôle
     # Ouverture du visage : demi-ouverture en azimut jusqu'à l'élévation `milieu`, puis refermée en ellipse jusqu'au
     # bord haut. Illustration : le bord passe devant l'oreille, à la joue, et se ferme au-dessus du front, qu'il ombre
@@ -99,9 +102,6 @@ ECHARPE = {
                                         # les trois plis ne se lisaient pas au rendu de face)
     'inegalite': 0.25,                  # HYPOTHÈSE : part de l'ampleur qui varie autour du cou (le drapé n'est pas tourné)
     'bords': {'profondeur': 3.0, 'creux': 0.3, 'graine': 'humanoide--vetement--capuche'},   # degrés : bord flottant
-    # rangs du haut dont les clés viennent du corps, au plus près ; les suivants, de la robe. À 2, le devant de l'écharpe
-    # ne suivait pas le menton qui descend sous `gabarit_head_plus` (`suiviDuCorps/cle-inerte`, 30 mm pour 35)
-    'haut_au_corps': 5,
     'os_reportes': {'Head': 'neck_01', 'upperarm_l': 'clavicle_l', 'upperarm_r': 'clavicle_r'},
     'lissage_des_poids': 8,
 }

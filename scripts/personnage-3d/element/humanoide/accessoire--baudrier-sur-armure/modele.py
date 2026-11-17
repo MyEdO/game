@@ -4,11 +4,7 @@ silhouettes et clés `gabarit_*` reprises du plastron comme celles de la sangle.
 import numpy as np
 
 from sangle import construire as sangle
-from tissu import Maillage, emprunter, joindre, porteur_de
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
+from tissu import Maillage, emprunter, joindre, porteur_de, unitaire
 
 
 def construire(D, materiaux, b):

@@ -14,12 +14,7 @@ Silhouettes et clés `gabarit_*` transférées du support publié sous la sangle
 import math
 
 import numpy as np
-from mathutils import Vector
-from tissu import Maillage, centre_de, emprunter, lisser, porteur_de, voisinage
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
+from tissu import Maillage, centre_de, emprunter, lisser, porteur_de, unitaire, viser, voisinage
 
 
 def points_d_attache(b, D, support):
@@ -56,8 +51,7 @@ def construire(D, materiaux, b):
         distances = []
         for k in (-1, 0, 1):
             origine = epaule + k * demi * n + centre[0] * e1 + centre[1] * e2
-            touche = support['arbre'].ray_cast(Vector((origine + D['PORTEE'] * d).tolist()), Vector((-d).tolist()),
-                                            D['PORTEE'])
+            touche = viser(support, origine, d, D['PORTEE'])
             if touche[0] is not None:
                 distances.append(D['PORTEE'] - touche[3])
         if not distances:

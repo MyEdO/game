@@ -20,8 +20,9 @@ l'avant-bras d'un bloc ; les jupes prennent les os des deux brins voisins du fil
 import math
 
 import numpy as np
+from maille import tirage
 from robe import BRAS, COU, JAMBES, PORTEUSES, TRONC, Nappe, ancres_du_corps, bras_de, fermer_a_l_epaule, sur_le_tronc
-from tissu import direction, emprunter, enveloppe_convexe, fondu, joindre, lambeaux, rayon_a_l_enveloppe, selon, tirage
+from tissu import direction, emprunter, enveloppe_convexe, fondu, joindre, lambeaux, rayon_a_l_enveloppe, selon
 
 
 class Toile(Nappe):

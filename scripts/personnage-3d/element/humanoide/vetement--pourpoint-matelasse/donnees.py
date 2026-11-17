@@ -45,7 +45,7 @@ LISSAGE_POIDS = 2                  # passes laplaciennes des poids du corsage et
 BORNES_DES_CLES = (0.27, 2.5)      # #3743 : rapport d'arête sous une clé transférée hors duquel `tissu` lisse la clé ; marge
                                    # prise sur la porte d'étirement au repos de l'évaluateur ([0,25 ; 4])
 
-# --- Corsage : (ancre, décalage, aisance, demi-ouverture) ; ancres lues sur la base (`robe.ancres_du_corps`) : `bas` =
+# --- Corsage : (ancre, décalage, aisance) ; ancres lues sur la base (`robe.ancres_du_corps`) : `bas` =
 # bas de la zone `torse`, `aisselle` = bas des zones `bras_haut_*`, `cou` = bas de la zone `cou`. Fermé à
 # chaque anneau. Les côtes : un anneau creux (couture, `AISANCE_COUTURE`) puis un anneau gonflé (`AISANCE_COTE`), à
 # ~4 cm l'un de l'autre, des basques au col (illustration : ~25 px entre deux coutures). La première côte à 2 cm au-dessus
@@ -54,20 +54,18 @@ BORNES_DES_CLES = (0.27, 2.5)      # #3743 : rapport d'arête sous une clé tran
 AISANCE_COUTURE = 0.010            # HYPOTHÈSE : la couture piquée, au plus près du corps sous la doublure
 AISANCE_COTE = 0.036               # HYPOTHÈSE : la côte gonfle d'environ 25 mm (illustration : les côtes ressortent en
                                    # bourrelets nets au contour des bras et du dos)
-CORSAGE = [('bas', 0.02, AISANCE_COTE, 0.0), ('bas', 0.06, AISANCE_COUTURE, 0.0), ('bas', 0.10, AISANCE_COTE, 0.0),
-           ('bas', 0.14, AISANCE_COUTURE, 0.0), ('aisselle', -0.12, AISANCE_COTE, 0.0),
-           ('aisselle', -0.08, AISANCE_COUTURE, 0.0), ('aisselle', -0.04, AISANCE_COTE, 0.0),
-           ('aisselle', 0.0, AISANCE_COUTURE, 0.0), ('aisselle', 0.045, AISANCE_COTE, 0.0),
-           ('aisselle', 0.09, AISANCE_COUTURE, 0.0), ('cou', -0.03, 0.026, 0.0), ('cou', 0.0, 0.026, 0.0),
-           ('cou', 0.015, 0.026, 0.0)]
+CORSAGE = [('bas', 0.02, AISANCE_COTE), ('bas', 0.06, AISANCE_COUTURE), ('bas', 0.10, AISANCE_COTE),
+           ('bas', 0.14, AISANCE_COUTURE), ('aisselle', -0.12, AISANCE_COTE),
+           ('aisselle', -0.08, AISANCE_COUTURE), ('aisselle', -0.04, AISANCE_COTE),
+           ('aisselle', 0.0, AISANCE_COUTURE), ('aisselle', 0.045, AISANCE_COTE),
+           ('aisselle', 0.09, AISANCE_COUTURE), ('cou', -0.03, 0.026), ('cou', 0.0, 0.026),
+           ('cou', 0.015, 0.026)]
 # Le col, à 26 mm au bas du cou (#3743 : plus serré, le cou le traverse sous `carrure_plus`), sous le foulard
 # (`vetement--foulard`).
 
 # --- Basques : rangées sous le corsage, posées et pondérées sur le filet `jupe` de la base (`tissu.Filet`) ---
 OURLET_ROBE = 0.86                 # illustration : le bas du pourpoint tombe sous le haut des hanches (y ~700 px)
 RANGEES_JUPE = [1.00, 0.93]        # HYPOTHÈSE de maillage
-OUVERTURE_TAILLE = 0.0             # illustration : fermé
-OUVERTURE_OURLET = 0.0
 
 # --- Manches : anneaux perpendiculaires à `upperarm` (fraction de l'os, au-delà de 1 passé le coude ; aisance ; pan :
 # longueur ajoutée en lobe vers `ANGLE_DU_PAN`, nulle ici). Ajustées jusqu'au poignet : chaque anneau emprunte ses poids au bras, sommet par

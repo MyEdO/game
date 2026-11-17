@@ -1,16 +1,10 @@
-"""La géométrie commune aux modèles des décors (#4335) : l'aléa semé de l'id, le cap d'un azimut, la normale d'une
+"""La géométrie commune aux modèles des décors (#4335) : le cap d'un azimut, la normale d'une
 tangente, la courbe lissée par des points et la coque close d'une suite d'anneaux."""
 import math
-import random
 
 from mathutils import Vector
 
 HAUT = Vector((0, 0, 1))
-
-
-def alea(id_):
-    """Le générateur semé des codes de caractères de `id_`."""
-    return random.Random(sum((i + 1) * ord(c) for i, c in enumerate(id_)))
 
 
 def cap(azimut):

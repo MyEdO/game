@@ -10,13 +10,9 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 from robe import COU, TRONC, Nappe, piece_de
-from tissu import anneau, centre_de, direction, emprunter, porteur_de
+from tissu import anneau, centre_de, direction, emprunter, porteur_de, unitaire
 
 ZONES = TRONC + COU + ['bras_haut_g', 'bras_haut_d']
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
 
 
 def construire(D, materiaux, b):

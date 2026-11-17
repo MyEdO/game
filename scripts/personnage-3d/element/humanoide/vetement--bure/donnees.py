@@ -41,12 +41,12 @@ LISSAGE_POIDS = 2                  # passes laplaciennes des poids du corsage et
 BORNES_DES_CLES = (0.27, 2.5)      # #3743 : la jupe longue suit le bas de jambe, tassé à ~0,28 sous `gabarit_legs_moins` ;
                                    # marge prise sur la porte d'étirement au repos de l'évaluateur ([0,25 ; 4])
 
-# --- Corsage : (ancre, décalage, aisance, demi-ouverture) ; ancres lues sur la base (`robe.ancres_du_corps`) : `bas` =
+# --- Corsage : (ancre, décalage, aisance) ; ancres lues sur la base (`robe.ancres_du_corps`) : `bas` =
 # bas de la zone `torse`, `aisselle` = bas des zones `bras_haut_*`, `cou` = bas de la zone `cou`. Fermé à chaque anneau
 # (illustration : aucune ouverture devant ; le col, sous la fourrure, ne se voit pas) ---
-CORSAGE = [('bas', 0.0, 0.008, 0.0), ('bas', 0.12, 0.014, 0.0), ('aisselle', -0.12, 0.018, 0.0),
-           ('aisselle', -0.04, 0.018, 0.0), ('aisselle', 0.03, 0.020, 0.0), ('aisselle', 0.09, 0.022, 0.0),
-           ('cou', -0.03, 0.026, 0.0), ('cou', 0.0, 0.026, 0.0), ('cou', 0.015, 0.030, 0.0)]
+CORSAGE = [('bas', 0.0, 0.008), ('bas', 0.12, 0.014), ('aisselle', -0.12, 0.018),
+           ('aisselle', -0.04, 0.018), ('aisselle', 0.03, 0.020), ('aisselle', 0.09, 0.022),
+           ('cou', -0.03, 0.026), ('cou', 0.0, 0.026), ('cou', 0.015, 0.030)]
 # Aisances : celles du premier Sorcier (#3743), un peu plus amples sous la poitrine (HYPOTHÈSE : la bure tombe des
 # pectoraux sur le ventre). Le col,
 # fermé, s'arrête 15 mm au-dessus du bas du cou, sous le col de fourrure (`vetement--col-de-fourrure`) : monté à 30 mm
@@ -62,8 +62,6 @@ LAMBEAUX_ROBE = {'profondeur': 0.08, 'creux': 0.15, 'graine': 'humanoide--veteme
 """Illustration : les lambeaux de l'ourlet montent d'environ 35 px au-dessus de leurs pointes (985 à 1025 px), 8 cm
 (`tissu.lambeaux`)."""
 RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60, 0.44, 0.28]   # hauteurs des rangées intermédiaires, m (HYPOTHÈSE de maillage)
-OUVERTURE_TAILLE = 0.0             # illustration : la bure est fermée devant
-OUVERTURE_OURLET = 0.0
 
 # --- Manches : anneaux perpendiculaires à `upperarm` (fraction de l'os, au-delà de 1 passé le coude ; aisance ; pan) ;
 # `pan` : longueur ajoutée en lobe (cos²) vers `ANGLE_DU_PAN` dans le plan de l'anneau, incliné de `INCLINAISON_DU_PAN`

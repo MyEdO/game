@@ -8,6 +8,7 @@ haut) place l'avant vers +z. Un décor, de même, le front de sa recette vers -y
 construit dans le repère de sa prise (`element/construire.py`).
 """
 import math
+import random
 
 import bmesh
 import bpy
@@ -16,6 +17,11 @@ from mathutils import Vector
 
 AUTRES_AXES = np.array([[1, 2], [0, 2], [0, 1]])
 """Par axe dominant de la normale d'une face, les deux axes qui portent ses UV (`uv_cubiques`)."""
+
+
+def tirage(graine):
+    """Tirage déterministe, graine des codes de caractères de `graine` (procédure, section 6)."""
+    return random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(graine)))
 
 
 class Maille:

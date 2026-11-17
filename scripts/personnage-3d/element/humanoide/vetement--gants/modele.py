@@ -4,8 +4,7 @@ anneau ajusté sur la coupe de la main de la base (`donnees.py`). Une nappe simp
 par sommet puis lissés, silhouettes et clés `gabarit_*` transférées."""
 import numpy as np
 
-from tissu import (JUMEAU, Maillage, anneau, centre_de, emprunter, joindre, lisser, maillage_skinne, poids_normalises,
-                   repere_de_plan, voisinage)
+from tissu import Maillage, anneau, centre_de, emprunter, joindre, lisser, repere_de_plan, voisinage
 
 HAUT = np.array([0.0, 0.0, 1.0])
 
@@ -82,15 +81,12 @@ def main(D, b, c, mat):
     X, orientes, _ = M.orienter()
     porteur = b.porteur(zones)
     W = lisser(np.array([emprunter(p, porteur)[0] for p in X]), voisinage(orientes, len(X)), D['LISSAGE_POIDS'])
-    return maillage_skinne(f'gant_{c}', [tuple(p) for p in X], orientes, mat, b.rig, poids_normalises(W, b.os))
+    return b.nappe_simple(f'gant_{c}', [tuple(p) for p in X], orientes, W, mat)
 
 
 def construire(D, materiaux, b):
     b.exiger(D['ZONES']['g'] + D['ZONES']['d'])
     piece = joindre([main(D, b, c, materiaux['cuir']) for c in 'gd'])
     piece.name = 'gants'
-    for polygone in piece.data.polygons:
-        polygone.use_smooth = True
-    piece.data.attributes.new(JUMEAU, 'INT', 'POINT')   # nappe simple : chaque sommet est son propre jumeau
     b.transferer(piece, D['ZONES']['g'] + D['ZONES']['d'])
     return piece
