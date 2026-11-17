@@ -18,11 +18,13 @@
 // (`hotes/godot/recettes/editeur.ts`) et le dégagement du combat (`hotes/godot/recettes/degagement.ts`) écrits dans la copie,
 // chaque recette lancée avec `--pont=<vivant.mjs>` ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
-// puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
+// puis l'export Web du projet (`export_presets.cfg`), sans les dossiers de `PAQUETS_DU_WEB`, chacun exporté à côté en
+// paquet `<dossier>.pck` que la page charge avant l'accueil (#4402), et, à côté, le dossier des modèles et son listage
 // (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), les avis
 // de licence de ce qu'il embarque sous `licences/` (`avis.mjs`, #4063 : le moteur, les paquets npm du bundle, les
 // assets du projet ; un avis qui manque fait échouer l'export), et les planches figées par le pont sur ces modèles
-// (`figerLesPlanches`, `deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
+// (`figerLesPlanches`, `deposerLesPlanches`, #3935) ; un fichier de la sortie au-delà de `LIMITE_DE_GITHUB` le fait
+// échouer (`fichiersAuDelaDeGitHub`) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie jetable du projet sous le dossier temporaire, tirée de sa copie importée gardée hors de
@@ -57,7 +59,7 @@ import { Linter } from 'eslint'
 import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
-import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
+import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { estGroupeVivant } from '../../scripts/guards/lib/pid.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { prendreVerrouAsync } from '../../scripts/test/verrou.mjs'
@@ -76,7 +78,7 @@ const VIVANT = join(RACINE, 'hotes', 'godot', 'vivant.mjs')
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir | --coop
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
-  --export            le bundle, l'export Web du projet, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
+  --export            le bundle, l'export Web du projet et ses paquets, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --rendus            le projet importé et les recettes rendues jouées en rendu réel sous chacun des deux rendus, Forward+ et compatibilité, par l'éditeur Godot épinglé
   --bureau            l'exécutable de bureau de cette plateforme, son noyau embarqué, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, puis la partie vivante jouée par l'exécutable
   --ouvrir            les GLB tirés de la Release et le catalogue des dessins déposés, puis l'éditeur Godot épinglé ouvert sur le projet en place, qui y joue sur le noyau vivant
@@ -349,6 +351,40 @@ async function editeur() {
 
 /** Le préréglage d'export du projet, relatif au projet (et à sa copie). */
 const PRESETS = 'export_presets.cfg'
+
+/** Les dossiers du projet que l'export Web sert hors de `index.pck`, chacun en paquet `<dossier>.pck` à côté de la page
+ *  (#4402), nommés dans `PAQUETS`, que la scène de démarrage de la page lit (`projet/scripts/demarrage.gd`). */
+const PAQUETS_DU_WEB = ['textures', 'kit']
+/** La liste des paquets écrite à côté de la page. */
+const PAQUETS = 'paquets.json'
+/** Le préréglage qui exporte chaque paquet (`export_presets.cfg`), son `include_filter` réécrit par paquet. */
+const PRESET_DES_PAQUETS = 'Paquet Web'
+/** La taille d'un fichier au-delà de laquelle GitHub refuse un push, en octets (100 Mo). */
+const LIMITE_DE_GITHUB = 100 * 1024 * 1024
+
+/** Chaque fichier de `dossier`, à toute profondeur, au-delà de `LIMITE_DE_GITHUB` : `{ fichier, taille }`, son chemin
+ *  relatif et sa taille en octets. */
+export const fichiersAuDelaDeGitHub = (dossier) => listerArbre(dossier)
+  .map((fichier) => ({ fichier, taille: statSync(join(dossier, fichier)).size }))
+  .filter(({ taille }) => taille > LIMITE_DE_GITHUB)
+
+/** Le préréglage `preset` du fichier des préréglages de la copie `copie` réécrit : chaque clé de `reecrire`, une ligne
+ *  `cle="…"` du préréglage ou de ses options, reçoit ce que sa fonction rend de sa valeur d'avant. Rend l'erreur qui
+ *  le refuse, ou `null`. */
+function reglerLePreset(copie, preset, reecrire) {
+  const presets = join(copie, PRESETS)
+  const sections = readFileSync(presets, 'utf8').split(/^(?=\[preset\.\d+\]\r?$)/m)
+  const rang = sections.findIndex((section) => new RegExp(`^name=${JSON.stringify(preset)}\\r?$`, 'm').test(section))
+  if (rang < 0) return `${PRESETS} : préréglage ${preset} absent`
+  for (const [cle, valeur] of Object.entries(reecrire)) {
+    const ligne = new RegExp(`^${cle}=("[^\\r\\n]*")(\\r?)$`, 'm')
+    const avant = sections[rang].match(ligne)
+    if (!avant) return `${PRESETS} : ${cle} absent du préréglage ${preset}`
+    sections[rang] = sections[rang].replace(ligne, () => `${cle}=${JSON.stringify(valeur(JSON.parse(avant[1])))}${avant[2]}`)
+  }
+  writeFileSync(presets, sections.join(''))
+  return null
+}
 
 /** Le modèle d'export Web que le préréglage `cfg` consomme en release : son entrée dans l'archive des modèles, au nom
  *  que Godot cherche (`platform/web/export/export_plugin.h`, `_get_template_name`, Godot 4.7-stable). */
@@ -830,21 +866,27 @@ function fabriquer(binaire, copie, modeles) {
 const AVIS_DU_MOTEUR = 'res://outils/avis_du_moteur.gd'
 
 /** L'export en release du préréglage `preset` du projet vers `fichier` de `sortie`, sur le modèle `modele` : le
- *  préréglage de la copie le reçoit par `custom_template/release` ; puis, à côté, le dossier des modèles
+ *  préréglage de la copie le reçoit par `custom_template/release` ; chaque dossier de `paquets` exclu de l'export,
+ *  exporté à côté en paquet `<dossier>.pck` par `PRESET_DES_PAQUETS`, et leur liste écrite dans `PAQUETS` ; puis, à
+ *  côté, le dossier des modèles
  *  `DOSSIER_DES_MODELES` déposé, ses scènes fabriquées sur la même copie, et les avis de licence de ce que l'export
  *  embarque (`deposerLesAvis`) : ceux du moteur, des assets du projet, et `embarques`, ceux de ce que la fabrication
  *  ajoute à côté. */
-function exporter(binaire, { preset, fichier, modele }, sortie, { DOSSIER_DES_MODELES, figerLesDessins }, embarques) {
+function exporter(binaire, { preset, fichier, modele, paquets = [] }, sortie, { DOSSIER_DES_MODELES, figerLesDessins }, embarques) {
   return surUneCopie(binaire, figerLesDessins, (copie) => {
-    const presets = join(copie, PRESETS)
-    const sections = readFileSync(presets, 'utf8').split(/^(?=\[preset\.\d+\]\r?$)/m)
-    const rang = sections.findIndex((section) => new RegExp(`^name=${JSON.stringify(preset)}\\r?$`, 'm').test(section))
-    const release = /^custom_template\/release=.*$/m
-    if (rang < 0 || !release.test(sections[rang])) return [`${PRESETS} : préréglage ${preset} ou son custom_template/release absent`]
-    sections[rang] = sections[rang].replace(release, `custom_template/release=${JSON.stringify(modele.split(sep).join('/'))}`)
-    writeFileSync(presets, sections.join(''))
+    const release = { 'custom_template/release': () => modele.split(sep).join('/') }
+    const exclus = paquets.length ? { exclude_filter: (avant) => [avant, ...paquets.map((dossier) => `${dossier}/*`)].join(',') } : {}
+    const refus = reglerLePreset(copie, preset, { ...release, ...exclus })
+    if (refus) return [refus]
     const { erreurs } = godot(binaire, copie, ['--export-release', preset, join(sortie, fichier)])
     if (erreurs.length) return erreurs
+    for (const dossier of paquets) {
+      const refusDuPaquet = reglerLePreset(copie, PRESET_DES_PAQUETS, { ...release, include_filter: () => `${dossier}/*` })
+      if (refusDuPaquet) return [refusDuPaquet]
+      const paquet = godot(binaire, copie, ['--export-pack', PRESET_DES_PAQUETS, join(sortie, `${dossier}.pck`)])
+      if (paquet.erreurs.length) return paquet.erreurs
+    }
+    if (paquets.length) writeFileSync(join(sortie, PAQUETS), JSON.stringify(paquets))
     const fabrication = deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
     if (fabrication.length) return fabrication
     const moteur = join(copie, 'avis-du-moteur.json')
@@ -963,9 +1005,14 @@ async function principal() {
   if (bundle.statut) return bundle.statut
   const a = await deposerLesAssets()
   const modele = await modeleDExport(modeleDuPreset(readFileSync(join(PROJET, PRESETS), 'utf8')))
-  const sortie = verdict(await exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a, avisDesPaquets(bundle.modules)))
+  const sortie = verdict(await exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele, paquets: PAQUETS_DU_WEB }, options.sortie, a, avisDesPaquets(bundle.modules)))
   if (sortie) return sortie
   await deposerLesPlanchesFigees(options.sortie, a)
+  const lourds = fichiersAuDelaDeGitHub(options.sortie)
+  if (lourds.length) {
+    console.error(`[godot] export Web : au-delà des ${octets(LIMITE_DE_GITHUB)} qu'un fichier poussé sur GitHub tient :\n  ${lourds.map(({ fichier, taille }) => `${fichier} ${octets(taille)}`).join('\n  ')}`)
+    return 1
+  }
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
   return 0
 }
