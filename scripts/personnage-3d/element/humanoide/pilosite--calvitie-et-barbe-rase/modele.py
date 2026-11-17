@@ -17,10 +17,9 @@ import math
 
 import numpy as np
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
 from maille import tirage
-from tissu import lambeaux, voisinage
+from tissu import arbre_de, lambeaux, voisinage
 
 
 def table(points, x):
@@ -82,7 +81,7 @@ def masque(D, b, X):
 def a_l_air(X, N, T, portee):
     """Par sommet, si sa normale sort à l'air libre : un sommet dont la normale rencontre la peau à moins de `portee`
     est au creux d'une cavité (l'intérieur de la bouche), où aucun poil ne pousse."""
-    arbre = BVHTree.FromPolygons([tuple(p) for p in X], T.tolist(), all_triangles=True)
+    arbre = arbre_de(X, T)
     return np.array([arbre.ray_cast(Vector((p + 1e-4 * n).tolist()), Vector(n.tolist()), portee)[0] is None
                      for p, n in zip(X, N)])
 

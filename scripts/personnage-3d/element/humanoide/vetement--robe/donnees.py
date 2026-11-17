@@ -41,7 +41,7 @@ COLONNES = 24                      # colonnes du corsage et de la jupe de dessus
 COLONNES_OUVERTURE = 6             # intervalles de la robe de dessous dans l'ouverture, pair : un sommet sur l'axe ;
                                    # deux plis dans le devant
 EPAISSEUR = 0.003                  # HYPOTHÈSE : écart de la doublure des manches à leur endroit
-DEGAGEMENT_MIN = 0.004             # HYPOTHÈSE : jeu minimal au corps, comme le pourpoint du Soldat
+DEGAGEMENT_MIN = 0.004             # HYPOTHÈSE : jeu minimal au corps
 LISSAGE_POIDS = 2                  # passes laplaciennes des poids du corsage et du raccord des manches
 BORNES_DES_CLES = (0.27, 2.5)      # rapport d'arête sous une clé transférée hors duquel `tissu` lisse la clé : sous
                                    # `gabarit_legs_moins`, le bas de la jambe de la base se tasse à ~0,28 ;
@@ -102,7 +102,6 @@ tombe sur lui (`couche-traversee`, 22 cm en Sprint_Loop)."""
 # dessus ; poche) ; `poche` : ce dont le dessous pend sous le bras, en lobe (cos^`GALBE_DE_LA_POCHE`) vers
 # `ANGLE_DE_LA_POCHE` dans le plan de l'anneau, incliné de `INCLINAISON_DE_LA_POCHE` sur l'axe du bras ---
 COUPE_MIN = 0.06                   # fraction de `upperarm` en deçà de laquelle la coupe du bras se prend là (épaule)
-CREUX_DE_LA_RACINE = 0.0           # le fond du cône qui ferme la manche, au centre de son premier anneau, dans l'épaule
 RAYON_DE_COUPE_MAX = 0.12          # rayon au-delà duquel un point de la coupe n'est pas du bras (tronc)
 AZIMUTS_DE_MANCHE = [0.0, 40.0, 80.0, 110.0, 132.0, 150.0, 166.0, 180.0, 194.0, 210.0, 228.0, 250.0, 280.0, 320.0]
 """Azimuts des colonnes (0 = dessus du bras en T, 180 = dessous) : serrées dessous, où la poche pend et se plisse."""

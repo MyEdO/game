@@ -15,13 +15,12 @@ Silhouettes et clés `gabarit_*` transférées. Chaque emplacement de `EMPLACEME
 à la surface de la robe (`Base.offrir_sur`).
 
 Un vêtement d'une autre coupe compose les mêmes pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
-`anneaux`, `bras_de`, `fermer_a_l_epaule`, `manches`, `piece_de`.
+`anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de`.
 """
 import math
 
 import numpy as np
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
 from anatomie import EMPLACEMENTS
 from tissu import (Maillage, anneau, centre_de, direction, emprunter, enveloppe_convexe, lambeaux, lisser, porteur_de,
@@ -55,6 +54,11 @@ class Nappe(Maillage):
         return X, orientes, normales, W
 
 
+def tour(n):
+    """Les `n` angles réguliers d'un tour, en degrés."""
+    return [360.0 * i / n for i in range(n)]
+
+
 def hauteurs(z, n, ourlet, L):
     """Les hauteurs des `n` colonnes d'une rangée de jupe à `z` : à l'`ourlet` en lambeaux `L`, chaque colonne remonte de
     la profondeur que lui laisse `lambeaux`."""
@@ -67,11 +71,11 @@ def deplacer(b, robe, nom):
     os_, ancre, d = EMPLACEMENTS[nom]
     bone = b.rig.data.bones[os_]
     point = b.rig.matrix_world @ bone.head_local.lerp(bone.tail_local, ancre)
-    X, T = np.array(robe.sommets), np.array(robe.triangles)
-    touche = BVHTree.FromPolygons([tuple(p) for p in X], T.tolist(), all_triangles=True).ray_cast(point - Vector(d), Vector(d))[0]
+    surface = porteur_de(np.array(robe.sommets), np.array(robe.triangles), np.array(robe.poids))
+    touche = surface['arbre'].ray_cast(point - Vector(d), Vector(d))[0]
     if touche is None:
         raise ValueError(f'emplacement {nom} : aucune robe sous {tuple(point - Vector(d))}')
-    b.offrir_sur(nom, np.array(touche), porteur_de(X, T, np.array(robe.poids)))
+    b.offrir_sur(nom, np.array(touche), surface)
 
 
 def ancres_du_corps(b):
@@ -84,8 +88,9 @@ def ancres_du_corps(b):
 
 def sur_le_tronc(D, b, porteur, zones, z):
     """La coupe horizontale des zones `zones` à la hauteur `z` : `poser(nappe, thetas, aisance)` pose sur `nappe` un
-    sommet par angle de `thetas`, sur l'enveloppe de la coupe plus la plus grande de l'aisance et de `DEGAGEMENT_MIN`,
-    aux poids de `porteur` sous lui, et rend ses sommets et son centre ; `rayon(theta)`, le rayon de l'enveloppe."""
+    sommet par angle de `thetas` (`tissu.anneau`, au plus près : sur l'enveloppe de la coupe plus la plus grande de
+    l'aisance et de `DEGAGEMENT_MIN`), aux poids de `porteur` sous lui, et rend ses sommets et son centre ;
+    `rayon(theta)`, le rayon de l'enveloppe."""
     P = b.coupe(zones, (0.0, 0.0, z), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), minimum=1)
     centre, H = centre_de(P), enveloppe_convexe(P)
 
@@ -93,18 +98,20 @@ def sur_le_tronc(D, b, porteur, zones, z):
         return rayon_a_l_enveloppe(H, centre, direction(theta))
 
     def poser(nappe, thetas, aisance):
-        pts = [np.append(centre + (rayon(t) + max(aisance, D['DEGAGEMENT_MIN'])) * direction(t), z) for t in thetas]
+        pts = [np.append(p, z) for p in anneau(P, centre, [direction(t) for t in thetas], [aisance] * len(thetas),
+                                               D['DEGAGEMENT_MIN'], au_plus_pres=True)]
         return nappe.poser(pts, [emprunter(p, porteur)[0] for p in pts]), np.array([centre[0], centre[1], z])
     return poser, rayon
 
 
 def anneaux(D, b, nappe, porteur, liste, m, au_cou=COU):
     """Les anneaux horizontaux fermés de `liste` (ancre de `ancres_du_corps`, décalage, aisance), `m` colonnes, coupés
-    dans le tronc et le cou, dans `au_cou` au-dessus du bas du cou (la coupe du tronc y passe encore sur le trapèze,
-    jusqu'aux épaules), reliés en bandes : le corps fermé d'une chemise, d'un pourpoint ou d'une robe. Rend les anneaux
-    (sommets, centre)."""
+    dans le tronc et le cou, dans `au_cou` au-dessus du bas du cou, reliés en bandes : le corps fermé d'une chemise,
+    d'un pourpoint ou d'une robe. Au-dessus du bas du cou, la coupe du tronc passe encore sur le trapèze, jusqu'aux
+    épaules : le col droit d'une chemise ne s'y coupe que dans le cou ; une robe y garde le tronc (`TRONC + COU`), son
+    col couvre le trapèze des épaules au cou. Rend les anneaux (sommets, centre)."""
     ancres = ancres_du_corps(b)
-    thetas = [360.0 * i / m for i in range(m)]
+    thetas = tour(m)
     faits = []
     for ancre, dz, e in liste:
         poser, _ = sur_le_tronc(D, b, porteur, au_cou if ancre == 'cou' and dz > 0 else TRONC + COU, ancres[ancre] + dz)
@@ -125,13 +132,12 @@ def construire(D, materiaux, b):
                 'd': b.porteur(['torse'] + BRAS['d'])}
     robe = Nappe()
     m = D['SEGMENTS_CORPS']
-    thetas = [360.0 * i / m for i in range(m)]
+    thetas = tour(m)
     corsage = anneaux(D, b, robe, porteurs['T'], D['CORSAGE'], m, TRONC + COU)
 
     # Jupe : sous la charnière, sur le filet `jupe` de la base.
     zones_jupe = TRONC + JAMBES
     filet = b.filet('jupe')
-    centre_j = filet.axe
     z_haut = D['RANGEES_JUPE'][0]
     if filet.part(z_haut) < 1:
         raise ValueError(f'robe : la première rangée de la jupe ({z_haut} m) monte au-dessus de la charnière du filet `jupe`')
@@ -140,16 +146,13 @@ def construire(D, materiaux, b):
     def rayon(z, theta):
         """Rayon de la robe à la hauteur `z`, direction `theta`."""
         Pz = b.coupe(zones_jupe, (0.0, 0.0, max(z, D['OURLET_ROBE'])), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0))
-        appui = float(np.linalg.norm(anneau(Pz, centre_j, [direction(theta)], [0.0], 0.0, au_plus_pres=True)[0] - centre_j))
+        appui = float(np.linalg.norm(anneau(Pz, filet.axe, [direction(theta)], [0.0], 0.0, au_plus_pres=True)[0] - filet.axe))
         return max(filet.point(z, theta)[0] + jeu, appui + jeu)
 
     jupe = []
     for z in D['RANGEES_JUPE'] + [D['OURLET_ROBE']]:
         zs = hauteurs(z, m, D['OURLET_ROBE'], D.get('LAMBEAUX_ROBE'))
-        pts = [np.array([centre_j[0], centre_j[1], z_]) + np.append(rayon(z_, t) * direction(t), 0.0)
-               for z_, t in zip(zs, thetas)]
-        jupe.append((robe.poser(pts, [filet.poids(z_, t) for z_, t in zip(zs, thetas)], fixes=True),
-                     np.array([centre_j[0], centre_j[1], float(np.mean(zs))])))
+        jupe.append(rangee(robe, filet, zs, thetas, [rayon(z_, t) for z_, t in zip(zs, thetas)]))
     for (A, ca), (B, cb) in zip(corsage[:1] + jupe, jupe):
         robe.bande(A, B, (ca + cb) / 2)
 
@@ -163,14 +166,23 @@ def construire(D, materiaux, b):
     return piece
 
 
-def bras_de(D, b, c, signe, dirs, porteur):
-    """Le bras `c` sous une manche d'anneaux perpendiculaires à `upperarm`, un sommet par direction de `dirs` dans leur
-    plan : son axe ; `anneau_de_bras(f, aisances)`, l'anneau à la fraction `f` de l'os (au-delà de 1 passé le coude), ses
-    points à leurs aisances, son centre et la peau de la coupe, prise à `COUPE_MIN` en deçà et sans ce qui passe
-    `RAYON_DE_COUPE_MAX` ; les poids d'un bloc, moyenne de ceux de `porteur` sous la peau à `COUPE_DES_POIDS`."""
+def rangee(nappe, filet, zs, thetas, rayons):
+    """Une rangée de jupe posée sur `nappe` : un sommet par (hauteur, angle, rayon) autour de l'axe du filet `filet`, à
+    ses poids, sans lissage. Rend ses sommets et son centre."""
+    pts = [np.append(filet.axe + r * direction(t), z) for z, t, r in zip(zs, thetas, rayons)]
+    return (nappe.poser(pts, [filet.poids(z, t) for z, t in zip(zs, thetas)], fixes=True),
+            np.array([filet.axe[0], filet.axe[1], float(np.mean(zs))]))
+
+
+def bras_de(D, b, c, signe, phis, porteur):
+    """Le bras `c` sous une manche d'anneaux perpendiculaires à `upperarm`, un sommet par azimut de `phis` (degrés) dans
+    leur plan : son axe ; `anneau_de_bras(f, aisances)`, l'anneau à la fraction `f` de l'os (au-delà de 1 passé le
+    coude), ses points à leurs aisances, son centre et la peau de la coupe, prise à `COUPE_MIN` en deçà et sans ce qui
+    passe `RAYON_DE_COUPE_MAX` ; les poids d'un bloc, moyenne de ceux de `porteur` sous la peau à `COUPE_DES_POIDS`."""
     o0, o1 = (np.array(b.tete(o)) for o in OS_BRAS[c])
     axe = unitaire(o1 - o0)
     u, v = repere_de_plan(axe, (0.0, 0.0, 1.0), signe)
+    dirs = [np.array([math.cos(math.radians(t)), math.sin(math.radians(t))]) for t in phis]
 
     def anneau_de_bras(f, aisances):
         O = o0 + f * (o1 - o0)
@@ -185,12 +197,17 @@ def bras_de(D, b, c, signe, dirs, porteur):
     return axe, anneau_de_bras, np.mean([emprunter(q, porteur)[0] for q in peau], axis=0)
 
 
-def fermer_a_l_epaule(D, nappe, liste, porteur):
-    """Ferme à l'épaule la manche d'anneaux `liste` (sommets, centre) : un cône de son premier anneau à un fond dans le
-    corps, rentré de `CREUX_DE_LA_RACINE` dans l'axe de la manche, aux poids de `porteur` sous le centre de l'anneau."""
+def dents_de_manche(D, c, n):
+    """La profondeur des `n` colonnes du bord en lambeaux (`LAMBEAUX_MANCHE`) de la manche du bras `c`, tirage propre à
+    chaque côté."""
+    return lambeaux(dict(D['LAMBEAUX_MANCHE'], graine=D['LAMBEAUX_MANCHE']['graine'] + c), n)
+
+
+def fermer_a_l_epaule(nappe, liste, porteur):
+    """Ferme à l'épaule la manche d'anneaux `liste` (sommets, centre) : un cône de son premier anneau à un fond en son
+    milieu, dans le corps, aux poids de `porteur` sous le centre de l'anneau."""
     (racine, centre), (_, suivant) = liste[:2]
-    fond = nappe.poser([np.mean([nappe.sommets[i] for i in racine], axis=0)
-                        + D['CREUX_DE_LA_RACINE'] * unitaire(centre - suivant)], [emprunter(centre, porteur)[0]])[0]
+    fond = nappe.poser([np.mean([nappe.sommets[i] for i in racine], axis=0)], [emprunter(centre, porteur)[0]])[0]
     for i in range(len(racine)):
         nappe.triangle(racine[i], racine[(i + 1) % len(racine)], fond, centre + (centre - suivant))
 
@@ -199,12 +216,11 @@ def manches(D, b, robe, porteurs):
     """Chaque manche de `robe`, anneaux perpendiculaires à `upperarm` (`MANCHE`), fermée à l'épaule par un cône dans le
     corps."""
     s = D['SEGMENTS_MANCHE']
-    phis = [360.0 * i / s for i in range(s)]
-    dirs_m = [np.array([math.cos(math.radians(t)), math.sin(math.radians(t))]) for t in phis]
+    phis = tour(s)
     lobe = [max(0.0, math.cos(math.radians(t - D['ANGLE_DU_PAN']))) ** 2 for t in phis]
     radial, axial = math.sin(math.radians(D['INCLINAISON_DU_PAN'])), math.cos(math.radians(D['INCLINAISON_DU_PAN']))
     for c, signe in (('g', 1.0), ('d', -1.0)):
-        axe, anneau_de_bras, poids_du_bras = bras_de(D, b, c, signe, dirs_m, porteurs[c])
+        axe, anneau_de_bras, poids_du_bras = bras_de(D, b, c, signe, phis, porteurs[c])
         liste = []
         for f, e, pend in D['MANCHE']:
             pts, centre, _ = anneau_de_bras(f, [e + pend * radial * l for l in lobe])
@@ -214,11 +230,10 @@ def manches(D, b, robe, porteurs):
             liste.append((robe.poser(pts, poids, fixes=not raccord), centre))
         if 'LAMBEAUX_MANCHE' in D:
             # Le bord en lambeaux : chaque colonne du dernier anneau recule le long de la manche de la profondeur que lui
-            # laisse `lambeaux`, tirage propre à chaque côté.
-            L = dict(D['LAMBEAUX_MANCHE'], graine=D['LAMBEAUX_MANCHE']['graine'] + c)
-            for i, j, d in zip(liste[-2][0], liste[-1][0], lambeaux(L, s)):
+            # laissent ses dents.
+            for i, j, d in zip(liste[-2][0], liste[-1][0], dents_de_manche(D, c, s)):
                 pente = robe.sommets[j] - robe.sommets[i]
-                robe.sommets[j] = robe.sommets[j] - (L['profondeur'] - d) * unitaire(pente)
+                robe.sommets[j] = robe.sommets[j] - (D['LAMBEAUX_MANCHE']['profondeur'] - d) * unitaire(pente)
         for (A, ca), (B, cb) in zip(liste, liste[1:]):
             robe.bande(A, B, (ca + cb) / 2)
-        fermer_a_l_epaule(D, robe, liste, porteurs[c])
+        fermer_a_l_epaule(robe, liste, porteurs[c])

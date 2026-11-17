@@ -17,7 +17,7 @@ from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
 from anatomie import AXES_DU_PERSONNAGE, attache
-from filets import filets_au_repos
+from filets import filets_au_repos, unitaire  # noqa: F401
 from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
 from maille import tirage
 
@@ -61,10 +61,6 @@ def selon(table, phi):
 def fondu(x):
     x = min(1.0, max(0.0, x))
     return x * x * (3 - 2 * x)
-
-
-def unitaire(x):
-    return x / np.linalg.norm(x)
 
 
 class Filet:
@@ -404,14 +400,19 @@ def lambeaux(L, n):
             for j in range(n)]
 
 
+def arbre_de(P, T):
+    """L'arbre de recherche des triangles `T` aux positions `P`."""
+    return BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
+
+
 def porteur_de(P, T, W):
     """Une surface porteuse : positions `P`, triangles `T`, poids `W` par os de la base et arbre de recherche."""
-    return {'P': P, 'T': T, 'W': W, 'arbre': BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)}
+    return {'P': P, 'T': T, 'W': W, 'arbre': arbre_de(P, T)}
 
 
 def viser(porteur_, origine, direction, portee):
     """La visée de `origine` + `portee` · `direction` vers `origine` : le point, la normale, la face et la distance de la
-    surface porteuse touchée (`BVHTree.ray_cast`), `None` sans surface le long d'elle."""
+    surface porteuse touchée (`BVHTree.ray_cast`), le point `None` sans surface le long d'elle."""
     return porteur_['arbre'].ray_cast(Vector((origine + portee * direction).tolist()), Vector((-direction).tolist()),
                                       portee)
 
@@ -692,7 +693,7 @@ def deplacer_au_plus_pres(source, cible, noms):
     source.data.calc_loop_triangles()
     T = np.array([t.vertices[:] for t in source.data.loop_triangles])
     Xs = np.array([v.co[:] for v in source.data.vertices]) @ Ms[:3, :3].T + Ms[:3, 3]
-    arbre = BVHTree.FromPolygons([tuple(p) for p in Xs], T.tolist(), all_triangles=True)
+    arbre = arbre_de(Xs, T)
     Xc = np.array([v.co[:] for v in cible.data.vertices]) @ Mc[:3, :3].T + Mc[:3, 3]
     idx, bary = [], []
     for p in Xc:

@@ -13,7 +13,6 @@ import math
 
 import numpy as np
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
 from maille import tirage
 from tissu import Maillage, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
@@ -24,7 +23,8 @@ def construire(D, materiaux, b):
     b.exiger(zones_des_cles)
     publies = [b.matieres_publiees(id_, D['MATIERES'][nom]) for nom, id_ in D['CONTOURNE'].items()]
     P, T, W = joindre_les_surfaces(publies + [b.corps(z) for z in D['ZONES_DU_CORPS']])
-    arbre = BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
+    porteur = porteur_de(P, T, W)
+    arbre = porteur['arbre']
 
     def vise(depart, d, portee, pas, jeu):
         """Le point le plus extérieur de la demi-droite (`depart`, `d`), sous `portee`, au `jeu` de la nappe intérieure aux
@@ -85,7 +85,6 @@ def construire(D, materiaux, b):
     for A, B in zip(lignes, lignes[1:]):
         M.bande(A, B, C)
     X, orientes, normales = M.orienter()
-    porteur = porteur_de(P, T, W)
     Wx = lisser(np.array([emprunter(p, porteur)[0] for p in X]), voisinage(orientes, len(X)), D['LISSAGE_POIDS'])
     piece = b.nappe('fourrure', X, normales, Wx, orientes, materiaux['fourrure'], D['EPAISSEUR'])
     b.transferer(piece, zones_des_cles, masques=[([True] * len(piece.data.vertices), D['ZONES_DU_CORPS'],

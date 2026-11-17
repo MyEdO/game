@@ -14,7 +14,7 @@ import math
 
 import numpy as np
 
-from tissu import Maillage, direction, joindre, maillage_skinne, porteur_de, selon, viser
+from tissu import Maillage, direction, joindre, porteur_de, selon, viser
 
 HAUT = np.array([0.0, 0.0, 1.0])
 
@@ -70,6 +70,13 @@ class Coque:
         return self.point(phi, haut * math.sin(psi))
 
 
+def rigide(D, b, n):
+    """Les poids de `n` sommets liés rigides à l'os du casque."""
+    W = np.zeros((n, len(b.os)))
+    W[:, b.indice_os[D['OS']]] = 1.0
+    return W
+
+
 def coque(D, b, forme, mat):
     n, m = D['COLONNES'], D['RANGS']
     phis = [-180.0 + 360.0 * k / n for k in range(n)]
@@ -90,18 +97,13 @@ def coque(D, b, forme, mat):
     for k in range(n):
         M.triangle(anneaux[-1][k], anneaux[-1][(k + 1) % n], pole, forme.C)
     X, orientes, normales = M.orienter()
-    W = np.zeros((len(X), len(b.os)))
-    W[:, b.indice_os[D['OS']]] = 1.0
-    return b.nappe('casque', X, normales, W, orientes, mat, D['EPAISSEUR'])
+    return b.nappe('casque', X, normales, rigide(D, b, len(X)), orientes, mat, D['EPAISSEUR'])
 
 
 def solide(D, b, nom, M, mat):
     """Le maillage `M`, fermé, lié rigide à l'os du casque."""
     X, faces, _ = M.orienter()
-    objet = maillage_skinne(nom, [tuple(p) for p in X], [tuple(f) for f in faces], mat, b.rig, [{D['OS']: 1.0}] * len(X))
-    for polygone in objet.data.polygons:
-        polygone.use_smooth = True
-    return objet
+    return b.nappe_simple(nom, [tuple(p) for p in X], [tuple(f) for f in faces], rigide(D, b, len(X)), mat)
 
 
 def bandeau(D, b, forme, mat, cordon):

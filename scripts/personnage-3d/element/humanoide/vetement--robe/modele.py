@@ -19,9 +19,9 @@ l'avant-bras d'un bloc ; les jupes prennent les os des deux brins voisins du fil
 """
 import math
 
-import numpy as np
 from maille import tirage
-from robe import BRAS, COU, JAMBES, PORTEUSES, TRONC, Nappe, ancres_du_corps, bras_de, fermer_a_l_epaule, sur_le_tronc
+from robe import (BRAS, COU, JAMBES, PORTEUSES, TRONC, Nappe, ancres_du_corps, bras_de, dents_de_manche, fermer_a_l_epaule,
+                  rangee, sur_le_tronc)
 from tissu import direction, emprunter, enveloppe_convexe, fondu, joindre, lambeaux, rayon_a_l_enveloppe, selon
 
 
@@ -100,7 +100,6 @@ def construire(D, materiaux, b):
     # Jupes : de la taille au filet `jupe` de la base.
     zones_jupe = TRONC + JAMBES
     filet = b.filet('jupe')
-    centre = filet.axe
     z_taille = ancres['bas']
     ourlets = D['OURLET_PAR_AZIMUT']
     z_ourlet = ourlets[0][1]
@@ -111,7 +110,7 @@ def construire(D, materiaux, b):
         if z not in enveloppes:
             enveloppes[z] = enveloppe_convexe(b.coupe(zones_jupe, (0.0, 0.0, z), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0),
                                                       (0.0, 1.0, 0.0)))
-        return rayon_a_l_enveloppe(enveloppes[z], centre, direction(theta))
+        return rayon_a_l_enveloppe(enveloppes[z], filet.axe, direction(theta))
 
     def rayon(z, theta, creux=0.0):
         """Rayon de la robe de dessus à la hauteur `z`, direction `theta` : à l'aisance de la taille en haut, au jeu sur
@@ -146,11 +145,9 @@ def construire(D, materiaux, b):
         `PLIS['hauteur']` plus bas."""
         return D['PLIS']['amplitude'] * pli * min(1.0, max(0.0, (z_taille - z) / D['PLIS']['hauteur']))
 
-    def rangee(toile, zs, thetas, plis, ecart):
-        """Une rangée de jupe : un sommet par (hauteur, angle, pli), aux poids du filet."""
-        pts = [np.append(centre + (rayon(z, t, creux(z, p)) - ecart) * direction(t), z) for z, t, p in zip(zs, thetas, plis)]
-        return (toile.poser(pts, [filet.poids(z, t) for z, t in zip(zs, thetas)], fixes=True),
-                np.array([centre[0], centre[1], float(np.mean(zs))]))
+    def plissee(toile, zs, thetas, plis, ecart):
+        """Une rangée de jupe (`robe.rangee`) : un sommet par (hauteur, angle, pli), à `ecart` sous la robe de dessus."""
+        return rangee(toile, filet, zs, thetas, [rayon(z, t, creux(z, p)) - ecart for z, t, p in zip(zs, thetas, plis)])
 
     dents = lambeaux(D['LAMBEAUX_ROBE'], m + 1)
     jupe = []
@@ -158,7 +155,7 @@ def construire(D, materiaux, b):
         t = angles(z)      # les deux dernières rangées, celles du galon de l'ourlet, suivent ses dents
         mordu = D['LAMBEAUX_ROBE']['profondeur'] if k >= len(D['RANGEES_JUPE']) else None
         zs = [niveau(z + (mordu - d if mordu else 0.0), a) for a, d in zip(t, dents)]
-        jupe.append(rangee(robe, zs, t, plis, 0.0))
+        jupe.append(plissee(robe, zs, t, plis, 0.0))
     for k, ((A, ca), (B, cb)) in enumerate(zip([corsage[0][0]] + jupe, jupe)):
         robe.relier(A, B, (ca + cb) / 2, m, range(m) if k == len(jupe) - 1 else bords)
 
@@ -170,7 +167,7 @@ def construire(D, materiaux, b):
     for z in D['RANGEES_DESSOUS'] + [D['OURLET_DESSOUS']]:
         t = angles(z) + dans_l_ouverture(ouverture(z))
         zs = [z + (D['LAMBEAUX_DESSOUS']['profondeur'] - d if z == D['OURLET_DESSOUS'] else 0.0) for d in dents]
-        sous.append(rangee(dessous, zs, t, plis + plis_de_l_ouverture, D['ECART_DESSOUS']))
+        sous.append(plissee(dessous, zs, t, plis + plis_de_l_ouverture, D['ECART_DESSOUS']))
     for (A, ca), (B, cb) in zip(sous, sous[1:]):
         dessous.bande(A, B, (ca + cb) / 2)
 
@@ -191,13 +188,12 @@ def manches(D, b, materiaux):
     toile = Toile()
     M, G, phis = D['MANCHE'], D['GODETS'], D['AZIMUTS_DE_MANCHE']
     s = len(phis)
-    dirs = [np.array([math.cos(math.radians(t)), math.sin(math.radians(t))]) for t in phis]
     lobe = [max(0.0, math.cos(math.radians(t - D['ANGLE_DE_LA_POCHE']))) ** D['GALBE_DE_LA_POCHE'] for t in phis]
     radial, axial = math.sin(math.radians(D['INCLINAISON_DE_LA_POCHE'])), math.cos(math.radians(D['INCLINAISON_DE_LA_POCHE']))
     for c, signe in (('g', 1.0), ('d', -1.0)):
         porteur = b.porteur(['torse'] + BRAS[c])
-        axe, anneau_de_bras, poids_de_l_avant_bras = bras_de(D, b, c, signe, dirs, porteur)
-        dents = lambeaux(dict(D['LAMBEAUX_MANCHE'], graine=D['LAMBEAUX_MANCHE']['graine'] + c), s)
+        axe, anneau_de_bras, poids_de_l_avant_bras = bras_de(D, b, c, signe, phis, porteur)
+        dents = dents_de_manche(D, c, s)
         liste = []
         for k, (f, dessus, poche) in enumerate(M):
             godet = G['creux'] * min(1.0, max(0.0, (f - G['debut']) / (M[-1][0] - G['debut'])))
@@ -211,7 +207,7 @@ def manches(D, b, materiaux):
             liste.append((toile.poser(pts, poids, fixes=not au_bras), milieu))
         for k, ((A, ca), (B, cb)) in enumerate(zip(liste, liste[1:])):
             toile.relier(A, B, (ca + cb) / 2, s, range(s) if k == len(liste) - 2 else ())
-        fermer_a_l_epaule(D, toile, liste, porteur)
+        fermer_a_l_epaule(toile, liste, porteur)
     X, orientes, normales, W = toile.lisses(D['LISSAGE_POIDS'])
     piece = b.nappe('manches', X, normales, W, orientes, materiaux['robe'], D['EPAISSEUR'],
                     [(materiaux[matiere] if matiere else None, materiaux['doublure']) for matiere in toile.matieres])

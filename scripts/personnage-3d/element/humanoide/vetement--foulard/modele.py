@@ -14,14 +14,9 @@ import math
 
 import numpy as np
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
 
-from tissu import Maillage, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
-
-
-def arbre_de(P, T):
-    return BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
+from tissu import Maillage, arbre_de, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
 
 
 def bourrelet(D, b, psis, obstacles):

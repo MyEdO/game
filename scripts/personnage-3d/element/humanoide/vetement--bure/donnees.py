@@ -35,9 +35,9 @@ bourse du preset `pretre`."""
 BUDGET_TRIANGLES = 2500            # procédure, section 7 : vêtement par pièce
 SEGMENTS_CORPS = 24                # colonnes du corsage et de la jupe (HYPOTHÈSE de maillage : une pointe de lambeau sur deux)
 SEGMENTS_MANCHE = 12               # HYPOTHÈSE de maillage
-EPAISSEUR = 0.002                  # HYPOTHÈSE : double nappe d'un drap de laine, comme les vêtements du Soldat
-DEGAGEMENT_MIN = 0.004             # HYPOTHÈSE : jeu minimal au corps, comme le pourpoint du Soldat
-LISSAGE_POIDS = 2                  # passes laplaciennes des poids du corsage et des manches (la jupe n'est pas lissée)
+EPAISSEUR = 0.002                  # HYPOTHÈSE : double nappe d'un drap de laine
+DEGAGEMENT_MIN = 0.004             # HYPOTHÈSE : jeu minimal au corps
+LISSAGE_POIDS = 2                  # passes laplaciennes des poids du corsage et du raccord des manches (la jupe n'est pas lissée)
 BORNES_DES_CLES = (0.27, 2.5)      # #3743 : la jupe longue suit le bas de jambe, tassé à ~0,28 sous `gabarit_legs_moins` ;
                                    # marge prise sur la porte d'étirement au repos de l'évaluateur ([0,25 ; 4])
 
@@ -67,7 +67,6 @@ RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60, 0.44, 0.28]   # hauteurs des rangées in
 # `pan` : longueur ajoutée en lobe (cos²) vers `ANGLE_DU_PAN` dans le plan de l'anneau, incliné de `INCLINAISON_DU_PAN`
 # sur l'axe du bras ---
 COUPE_MIN = 0.06                   # #3743 : fraction de `upperarm` en deçà de laquelle la coupe du bras se prend là (épaule)
-CREUX_DE_LA_RACINE = 0.0           # #3743 : le fond du cône qui ferme la manche, au centre de son premier anneau
 RAYON_DE_COUPE_MAX = 0.12          # #3743 : rayon au-delà duquel un point de la coupe n'est pas du bras (tronc)
 MANCHE = [(-0.10, 0.024, 0.0), (0.15, 0.022, 0.0), (0.55, 0.026, 0.0), (0.95, 0.050, 0.02), (1.15, 0.080, 0.14),
           (1.40, 0.100, 0.42)]

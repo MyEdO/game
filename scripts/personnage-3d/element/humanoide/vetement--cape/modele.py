@@ -14,9 +14,8 @@ import math
 
 import numpy as np
 from mathutils import Vector
-from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, direction, emprunter, enveloppe_convexe, joindre_les_surfaces, lambeaux, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
+from tissu import Maillage, arbre_de, direction, emprunter, enveloppe_convexe, joindre_les_surfaces, lambeaux, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
 
 
 def aretes(T):
@@ -91,11 +90,11 @@ def empiecement(D, b, morceaux, bas):
     le col aussi sur les zones `ZONES_DU_COL`."""
     e = D['EMPIECEMENT']
 
-    def arbre_de(morceaux_):
+    def sans_bras(morceaux_):
         P, T, _ = joindre_les_surfaces(morceaux_)
-        return BVHTree.FromPolygons([tuple(p) for p in P], sans_les_bras(D, P, T).tolist(), all_triangles=True)
+        return arbre_de(P, sans_les_bras(D, P, T))
 
-    arbres = {'col': arbre_de(morceaux + [b.corps(z) for z in D['ZONES_DU_COL']]), 'rangs': arbre_de(morceaux)}
+    arbres = {'col': sans_bras(morceaux + [b.corps(z) for z in D['ZONES_DU_COL']]), 'rangs': sans_bras(morceaux)}
 
     def vise(depart, d, portee, jeu, arbre):
         """Le point le plus extérieur de la demi-droite (`depart`, `d`), sous `portee`, au jeu des surfaces de `arbre`."""

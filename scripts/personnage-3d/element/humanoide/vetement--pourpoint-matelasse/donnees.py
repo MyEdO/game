@@ -35,7 +35,7 @@ MATERIAUX = {'robe': ('vet2', 'drap-terne')}   # l'emplacement du pourpoint publ
 BUDGET_TRIANGLES = 2500            # procédure, section 7 : vêtement par pièce
 SEGMENTS_CORPS = 20                # HYPOTHÈSE de maillage : le budget, tenu par les anneaux des côtes
 SEGMENTS_MANCHE = 10               # HYPOTHÈSE de maillage
-EPAISSEUR = 0.002                  # HYPOTHÈSE : double nappe d'un drap de laine, comme les vêtements du Soldat
+EPAISSEUR = 0.002                  # HYPOTHÈSE : double nappe d'un drap de laine
 DEGAGEMENT_MIN = 0.010             # HYPOTHÈSE : les basques posées 6 mm au-dessus de la jupe (`vetement--jupe`, 0,004)
 """Sous la charnière du filet `jupe` (1,04 m, base), basques et jupe se posent sur le filet au même jeu, dégagement plus
 épaisseur (`robe.py`, `rayon`) : à 0,004 comme la jupe, la jupe sortait devant les basques (porte, `couche-traversee`
@@ -71,7 +71,6 @@ RANGEES_JUPE = [1.00, 0.93]        # HYPOTHÈSE de maillage
 # longueur ajoutée en lobe vers `ANGLE_DU_PAN`, nulle ici). Ajustées jusqu'au poignet : chaque anneau emprunte ses poids au bras, sommet par
 # sommet (`RACCORD_EPAULE` au-delà du dernier anneau), et suit l'avant-bras plié ---
 COUPE_MIN = 0.06                   # #3743 : fraction de `upperarm` en deçà de laquelle la coupe du bras se prend là (épaule)
-CREUX_DE_LA_RACINE = 0.0           # #3743 : le fond du cône qui ferme la manche, au centre de son premier anneau
 RAYON_DE_COUPE_MAX = 0.12          # #3743 : rayon au-delà duquel un point de la coupe n'est pas du bras (tronc)
 _COTES_DE_MANCHE = [-0.10, 0.08, 0.24, 0.40, 0.56, 0.72, 0.88, 1.04, 1.20, 1.36, 1.52, 1.68, 1.80]
 """Fractions de `upperarm` (base : avant-bras ~0,85 fois le bras), une côte puis une couture tous les ~4 cm, de l'épaule

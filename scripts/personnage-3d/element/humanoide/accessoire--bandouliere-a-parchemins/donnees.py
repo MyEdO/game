@@ -37,7 +37,7 @@ CONTOURNE = {'robe': 'humanoide--vetement--robe'}
 `ZONES_DU_SUPPORT`), comme le pan et le bas de l'écharpe de la capuche, posés sur la même robe
 (`vetement--capuche/donnees.py`, `MATIERES_DE_LA_ROBE`) ; elle passe sous ce pan et sous l'écharpe. Liée au seul tronc et
 posée à 4,4 cm de lui, elle passait devant l'écharpe et le pan (jusqu'à 19,8 mm en ClimbUp_1m, porte r25)."""
-MATIERES_DU_SUPPORT = ['robe', 'dessous', 'poitrine']
+MATIERES_DU_SUPPORT = ['robe', 'dessous']
 ZONES_DU_SUPPORT = ['torse', 'hanches', 'bras_haut_d']
 
 EPAULE = -0.12
