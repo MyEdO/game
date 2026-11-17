@@ -128,18 +128,18 @@ bandeau du jet de combat, trois sur l'écran de voyage. Ce qui se joue vient des
 | État | Intention | Choix à valider |
 |---|---|---|
 | `surincantation` | le bandeau après le dé : le sort, les pas à répartir par axe, les cibles désignées | pas en losanges avec − et + ; axe « sans objet » grisé ; axe « Dégâts » de la règle révisée absent |
-| `contre-sort-declaration`, `contre-sort` | deux temps : la déclaration avant les dés, puis le Test opposé tombé | « S'unir » fermée sans autre lanceur ; étiquette « Un seul Contre-sort par Round » ; geste « Déclarer » |
-| `dissipation` | le Test étendu contre un sort qui dure, cumul des DR, le sort visible sur le champ | cumul en losanges ; le Dôme en exemple ; ruban « Dissipation » |
+| `contre-sort-declaration`, `contre-sort` | deux temps : la déclaration en trois cartes, avec la portée, puis le Test opposé tombé | « S'unir » fermée sans autre lanceur ; « Un seul Contre-sort par Round » sous « Passer » ; gestes « Déclarer », « Annuler » |
+| `dissipation` | le Test étendu contre un sort qui dure, cumul des DR, le coût de l'Action, le sort visible sur le champ | cumul en losanges ; le Dôme en exemple ; ruban « Dissipation » |
 | `incantation-imparfaite` | le gabarit du coup critique : dés du jet, d100 de la table, texte du livre | « Malignité » lue comme les Influences malfaisantes ; ni Chance ni Résilience |
-| `test-de-corruption` | avant le dé : l'exposition, la nature en deux cartes, ce que le Test décide | table des enjeux avant le dé ; sous-titres absents du jeu ; l'état montré en combat |
-| `corruption-mutation` | le gabarit du coup critique : le d100 du tableau, la mutation, les Points perdus | « Je te renie ! » à côté de « Continuer » ; ruban « Mutation » |
+| `test-de-corruption` | hors combat, avant le dé : l'exposition, la nature en deux cartes, ce que le Test décide, les réserves | table des enjeux avant le dé ; sous-titres absents du jeu ; « Lancer », « Résilience » |
+| `corruption-mutation` | le seuil manqué arrête le jeu avant tout tirage : « Je te renie ! » ou « Muter », en deux cartes | carte puis « Confirmer » ; ruban « La mutation menace » ; « Muter » en lettres de cire |
 | `maladresse` | le gabarit du coup critique : le double raté, le Tableau des Oups | titre « Oups ! » ; dés du tirage montrés, double rappelé en rubrique |
-| `desengagement` | le choix dans le bandeau, trois cartes, la refusée en fer | raison du refus en billet au survol ; sous-titres des cartes ; « Lancer », « Annuler » |
-| `sauvetage-par-le-destin` | le coup fatal arrête le jeu dans le bandeau, trois cartes, la réserve de Destin | un clic choisit, un second confirme ; « Accepter son sort » en lettres de cire |
-| `relance-a-la-chance` | le jet après une relance, le premier dé rappelé barré, la Chance restante | réserve en médaillon à gauche des gestes ; une seule réserve montrée |
+| `desengagement` | le choix dans le bandeau, trois cartes, la refusée en fer, ce que coûte « Fuir » | raison du refus en billet au survol ; sous-titres des cartes ; la plaque porte le nom de l'acte choisi ; « Annuler » |
+| `sauvetage-par-le-destin` | le coup fatal arrête le jeu dans le bandeau, trois cartes, la réserve de Destin | carte puis « Confirmer » ; « Accepter son sort » en lettres de cire |
+| `relance-a-la-chance` | le jet après une relance, le premier jet rappelé barré, les trois réserves, « Relancer » fermée et sa raison | réserves en médaillons à gauche des gestes ; raison du refus en billet au survol |
 | `bataille-de-masse` | le champ sur le socle du voyage, les Scènes du Round posées, les Puissances en jauges | socle du voyage plutôt que champ tactique ; place des Scènes ; aucune sortie |
-| `bataille-de-masse-test-de-puissance` | le Test spectaculaire tombé dans un parchemin au-dessus des héros | contenant en bas et non au centre ; ni Chance ni Résilience ; chiffres d'exemple |
-| `course-poursuite-en-mer` | la traversée continue, le poursuivant dans le sillage, la Distance en frise | frise de Distance à la place du trajet ; repère « Départ · 50 » ; Bjorn en Mousse |
+| `bataille-de-masse-test-de-puissance` | le Test spectaculaire tombé dans un parchemin au-dessus des héros, le Rassemblement héros par héros | contenant en bas et non au centre ; ni Chance ni Résilience ; chiffres d'exemple |
+| `course-poursuite-en-mer` | la traversée continue, le poursuivant dans le sillage, la Distance en frise, le gain net de la manche du jour | frise de Distance à la place du trajet ; repère « Départ · 50 » ; Bjorn en Mousse |
 
 ## Commerce (2026-11-17)
 

@@ -79,8 +79,8 @@ const ETATS = {
     ordre(I('actif'), Be(), G('', CHAMANE), O(), borne(3), I('fantome'), Be('fantome loin'));
     journal(vieux(`${CHAMANE} s’abrite sous un Dôme.`), vieux('Berta se met en Défensive.'), neuf('Ilyanwe la Voilée entame la Dissipation du Dôme.'));
     poser('Dissipation', 'seul', `
-      ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['50', '1'], total: 51, dr: '+3', reussite: true })}
-      <div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation 7 · coûte l’Action</div><div class="dr gothique">Dôme</div>
+      ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick) · coûte l’Action', seuil: 85, des: ['50', '1'], total: 51, dr: '+3', reussite: true })}
+      <div id="verdict" class="sort etendu"><div class="sous rubrique">Test étendu · Niveau d’incantation 7</div><div class="dr gothique">Dôme</div>
         <div class="cumul">${pas(5, 7)}<b class="rubrique" data-texte="cumul">5 DR sur 7</b></div>
         <p data-texte="phrase d'issue">Le Dôme vacille : encore 2 DR pour le dissiper.</p></div>
       ${vise('gobelin', CHAMANE, 'Lanceur du Sort visé', '11 / 11')}`, apresLeDe({ heros: RESERVES.ilyanwe }));
@@ -152,7 +152,7 @@ const ETATS = {
       <div class="annonce"><div class="dr gothique">Engagée</div><div class="sous rubrique">Avantage 0 · Orc 1</div></div>
       ${carte('Sacrifier l’Avantage', `Quitter le combat sans Test${raison('Il faut plus d’Avantages que l’adversaire.')}`, { fermee: true })}
       ${carte('Esquive', 'Test opposé ≤ 44 · coûte l’Action')}
-      ${carte('Fuir', 'Orc : +1 Avantage, coup dans le dos +20<br>Touchée : +1 Avantage, Test de Calme', { armee: true })}`,
+      ${carte('Fuir', 'Orc : +1 Avantage, coup dans le dos +20<br>Touchée : encore +1, Test de Calme', { armee: true })}`,
     `${plaque('Fuir', { armee: true })}${plaque('Annuler')}`);
   },
 
@@ -177,7 +177,7 @@ const ETATS = {
     journal(vieux('Ilyanwe la Voilée charge Orc (+1 Avantage).'), vieux('Ilyanwe la Voilée rate son attaque (98).'), neuf('Ilyanwe la Voilée relance son Test (Chance).'));
     poser('Attaque', '', `
       ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['20', '7'], total: 27, dr: '+2', modif: 'Avantage +10', reussite: true })}
-      ${verdict('Bâton de combat · Cible : Orc', 'DR net +6', 'Ilyanwe la Voilée touche Orc au corps.<br><span class="relance rubrique">Relancé par la Chance · premier jet <s>98</s></span>')}
+      ${verdict('Bâton de combat · Orc · <span class="relance">relancé, <s>98</s></span>', 'DR net +6', 'Ilyanwe la Voilée touche Orc au corps.')}
       ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`,
     apresLeDe({ heros: { ...RESERVES.ilyanwe, chance: 1 }, relance: true, survol: 'relancer' }));
   },
