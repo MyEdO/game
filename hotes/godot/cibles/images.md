@@ -87,10 +87,19 @@ n'a pas de cible écrite (`src/noyau/monde/advancement.ts`, LDB 07).
 | `progression-depense-d-experience` | la fiche dont profil, Compétences et Talents deviennent pressables, avec leur prix | onglet de la fiche ou écran à part ; achat immédiat |
 | `progression-changement-de-carriere` | le chemin des quatre niveaux, le niveau suivant, une autre carrière par Classe | carrières listées par livre ; niveaux fermés |
 
-## Exploration et récit (2026-11-16, inachevé)
+## Exploration et récit (2026-11-16)
 
-Sans cible écrite ; contenu de `src/hote/ecran.ts` et `src/noyau/modalArbiter.ts`. Dessinés sans le relevé de leur
-auteur (lot interrompu) : `exploration`, `dialogue`, `jet-de-competence` (dans le bandeau du bas, comme le jet de
-combat), `butin` (chaque objet va sur un héros), `document`. Manquent la carte du monde, puis le voyage (événement de
-route, arrivée, fleuve, mer, navire, combat naval), la bataille de masse, la magie, les réactions de combat, la halle,
-le port et le marchandage : liste complète des écrans au commentaire de #3935.
+Sans cible écrite ; compte rendu dans `propositions/exploration-et-recit.md` : `exploration`, `dialogue`,
+`jet-de-competence` (dans le bandeau du bas, comme le jet de combat), `butin` (chaque objet va sur un héros),
+`document`, `carte-du-monde`. Manquent le voyage (événement de route, arrivée, fleuve, mer, navire, combat naval), la
+bataille de masse, la magie, les réactions de combat, la halle, le port et le marchandage : liste complète des écrans
+au commentaire de #3935.
+
+## Sources des propositions
+
+Chaque proposition a sa source HTML, CSS et JS sous `propositions/sources/<famille>/`, polices communes sous
+`propositions/sources/polices/` (OFL). Une image se refait depuis sa source, jamais à la main :
+`node propositions/sources/rendre.mjs <chemin absolu du .html> <sortie.png> [échelle]`, Playwright résolu depuis le script (il n'est pas une dépendance du dépôt : `npm i --no-save playwright`, ou dans le conteneur cloud un lien `node_modules/playwright` vers `/opt/node-tools/node_modules/playwright`) (vue 1707 × 780, rapport des
+pièces qui débordent ou se chevauchent). Les pages d'une famille partagent sa feuille et son script communs ; une pièce
+neuve s'y ajoute plutôt que dans une page.
+

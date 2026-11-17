@@ -1,8 +1,7 @@
 # Propositions : création et progression (2026-11-16, #3935)
 
 Compte rendu des neuf écrans dessinés à la suite des maquettes validées `creation-carriere` et `fiche-du-heros`
-(`../maquettes/`), depuis la cible écrite `../ecrites/heros.md`. Sources HTML hors dépôt :
-`/mnt/project-files/interface-3935/maquettes/heros/`. Rien n'est validé.
+(`../maquettes/`), depuis la cible écrite `../ecrites/heros.md`. Sources au dépôt : `sources/heros/`. Rien n'est validé.
 
 La création suit le découpage du code (`src/noyau/creation/vueDeLaCreation.ts:402-413`) : dix étapes, dont « Signe
 astral » seulement si la règle `creation-signes-astraux` est active (`src/noyau/creation/brouillon.ts:845-848`).
