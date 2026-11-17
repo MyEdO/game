@@ -6,10 +6,9 @@ offert sur la face du plastron (`Base.offrir`)."""
 import math
 
 import numpy as np
-from mathutils import Vector
 
 from robe import COU, TRONC, Nappe, piece_de
-from tissu import anneau, centre_de, direction, emprunter, porteur_de, unitaire
+from tissu import anneau, centre_de, direction, emprunter, porteur_de, toucher, unitaire, viser
 
 ZONES = TRONC + COU + ['bras_haut_g', 'bras_haut_d']
 
@@ -78,7 +77,7 @@ def construire(D, materiaux, b):
             ligne = [haut[devant]]
             for f in D['TRAVERSE_DE_BRETELLE']:
                 p = a + f * (bb - a)
-                touche = tronc['arbre'].ray_cast(Vector((p[0], p[1], p[2] + 0.5)), Vector((0.0, 0.0, -1.0)), 1.0)[0]
+                touche = viser(tronc, np.array([p[0], p[1], p[2] - 0.5]), np.array([0.0, 0.0, 1.0]), 1.0)[0]
                 if touche is None:
                     raise ValueError(f'bretelle : aucune épaule sous {tuple(p)}')
                 q = np.array([p[0], p[1], max(p[2], touche.z + D['JEU_DE_BRETELLE'])])
@@ -106,11 +105,10 @@ def poitrine(D, b, M):
     la normale sortante, son +Y vers le haut, ses poids ceux du plastron sous le point."""
     plastron = porteur_de(np.array(M.sommets), np.array(M.triangles), np.array(M.poids))
     x, z = D['POITRINE']
-    touche, normale, _, _ = plastron['arbre'].ray_cast(Vector((x, -1.0, z)), Vector((0.0, 1.0, 0.0)), 2.0)
+    touche = toucher(plastron, np.array([x, 1.0, z]), np.array([0.0, -1.0, 0.0]), 2.0)
     if touche is None:
         raise ValueError(f'poitrine : aucun plastron en ({x}, {z})')
-    p = np.array(touche)
-    nz = unitaire(np.array(normale) * (1 if normale.y < 0 else -1))
+    p, nz = touche[0], unitaire(touche[1])
     ny = unitaire(np.array([0.0, 0.0, 1.0]) - nz[2] * nz)
     nx = np.cross(ny, nz)
     w = emprunter(p, plastron)[0]

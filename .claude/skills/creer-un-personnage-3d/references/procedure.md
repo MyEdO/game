@@ -257,7 +257,9 @@ dague : un dossier ne porte que son `donnees.py` et `from lame import construire
 robe longue fermée sur le filet `jupe` (bure, jupe, pourpoint matelassé) ; un vêtement d'une autre coupe (robe du
 Sorcier, chemise, pourpoint) compose ses pièces dans son `modele.py` : `Nappe`, `ancres_du_corps`, `sur_le_tronc`,
 `anneaux`, `rangee`, `bras_de`, `dents_de_manche`, `fermer_a_l_epaule`, `manches`, `piece_de` ; `element/taille.py` pour
-ce qui ceint la taille sur une robe publiée (cordelière, ceinture à boucle : `axe_du_corps`, `ceindre`) et
+ce qui ceint la taille sur une robe publiée (cordelière, ceinture à boucle : `axe_du_corps`, `ceindre`),
+`element/tete.py` pour une tête de race sur la couture du cou (un dossier ne porte que son `donnees.py` et
+`from tete import construire`) et
 `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
 qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
@@ -754,7 +756,7 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 |---|---|---|
 | base hachée et porte complète, chaînes/silhouettes et matrice | constructeur humanoïde, manifeste livré, rapports et revue | L1 |
 | garde-robe (têtes, coiffures, pièces, ensembles) résolvant la clé | données du jeu et identité publiée par le noyau | T |
-| constructeur de l'élément (rigide, skinné ; tête à venir) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`) | #3743, migration des éléments publiés |
+| constructeur de l'élément (rigide, skinné, tête) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`, `tete.py`) | #3743, migration des éléments publiés |
 | couverture, liaison et autres gardes complètes | appels de gardes de l'évaluateur Node | L1 |
 | import contrôlé schéma 3, unicité, rapport de couverture | importeur d'assets et ses tests | L3 |
 | montage par ids, couches et emplacements, contrôles de retrait | pont et hôte Godot | L4 |
