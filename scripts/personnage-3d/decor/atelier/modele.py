@@ -1,25 +1,24 @@
 """L'atelier (#4335) : un GLB par décor de `DECORS`, bâti dans l'enveloppe convexe des primitives de sa recette
 (`gabarit.py`), dont il lit les cotes (`geometrie.pave` et `geometrie.rond`) et où `Gabarit.rentrer` ramène le sommet
-qui en sortirait. Chaque pièce est une coque close : un rondin, son écorce sur son bois (`rondin`) ; une pierre taillée
-(`moellon`) ; une lame plate, son contour d'une face à l'autre (`lame`) ; un semis de charbons (`charbons`) ; une
-pièce équarrie, une planche, une pièce profilée, une pièce tournée, une pièce ronde courbée, une cheville, un clou et
-un cercle, ceux de `geometrie` ; une poutre et une révolution, celles de `maille` (`poutre`, `tour`). Chaque matériau
-du décor est un nœud à son nom, les braises celui qui luit (`gabarit.NOEUD_EMISSIF`). L'aléa est semé des codes de
-caractères de l'id du décor : deux constructions rendent les mêmes octets."""
+qui en sortirait. Chaque pièce est une coque close : un rondin, son écorce sur son bois (`rondin`) ; une lame plate, son
+contour d'une face à l'autre (`lame`) ; un massif de pierres taillées en assises harpées, une pierre taillée, un semis
+de charbons, une pièce équarrie, une planche, une pièce profilée, une pièce tournée, une pièce ronde courbée, une
+cheville, un clou et un cercle, ceux de `geometrie` ; une poutre et une révolution, celles de `maille` (`poutre`,
+`tour`). Chaque matériau du décor est un nœud à son nom, les braises celui qui luit (`gabarit.NOEUD_EMISSIF`). L'aléa
+est semé des codes de caractères de l'id du décor : deux constructions rendent les mêmes octets."""
 import math
 
 from mathutils import Vector
 
 import geometrie
-from geometrie import (ANGLES, AXES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, barre, cap, cercle, cheville, clou,
-                       coque, courbee, normales, partage, pave, planche, profilee, rond, tournee)
+from geometrie import (ANGLES, AXES, BRAISES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, barre, cap, cercle,
+                       charbons, cheville, clou, coque, courbee, normales, partage, pave, planche, profilee, rond,
+                       tournee)
 from gabarit import NOEUD_EMISSIF, VERSANTS
-from maille import point, poutre, tour
+from maille import poutre, tour
 
 DECORS = ("enclume", "foyer-de-forge", "cuve-brasserie", "marmite", "roue-dentee", "scie-chevalet", "rack-armes",
           "rack-lances")
-BRAISES = "braises"
-"""Le matériau de ce qui luit, que porte le nœud `gabarit.NOEUD_EMISSIF`."""
 
 
 def rondin(pieces, p0, p1, rayon, R):
@@ -32,15 +31,6 @@ def rondin(pieces, p0, p1, rayon, R):
     tournee(pieces[MAT], p0, p1, u, v, rayon * coeur, CYLINDRE, R["cotes"])
 
 
-def moellon(m, face, dehors, u, du, dv, queue, K, a):
-    """Une pierre taillée dont `face` est le milieu du parement, tourné vers `dehors`, de demi-côtés `du` sur `u` et
-    `dv` en travers, enfoncée de `queue`, d'après `K` (`TAILLE`, ou la `taille` d'une bordure)."""
-    joint, arete = dv * K["joint"], dv * K["arete"]
-    p = face - dehors * (dv * a.uniform(*K["parement"]))
-    barre(m, [(p - dehors * queue, du - joint, dv - joint, arete), (p - dehors * arete, du - joint, dv - joint, arete),
-              (p, du - joint - arete, dv - joint - arete, arete / 2)], u, dehors.cross(u), "pierre")
-
-
 def lame(m, origine, u, v, contour, demi, fil, mat):
     """Une lame plate de demi-épaisseur `demi` : son `contour` [(a, b)] posé en `origine` + a·`u` + b·`v` à
     mi-épaisseur, chaque face réduite à la part `fil` de ce contour autour de son centre."""
@@ -49,15 +39,6 @@ def lame(m, origine, u, v, contour, demi, fil, mat):
     centre = sum(points, Vector()) / len(points)
     coque(m, [[centre.lerp(p, part) + n * (demi * cote) for p in points]
               for cote, part in ((-1, fil), (0, 1), (1, fil))], mat)
-
-
-def charbons(m, dessus, du, dv, L, a):
-    """Des charbons en pointe semés sur le lit de braises de milieu `dessus`, dans ses demi-côtés `du` (x) et `dv`
-    (y), d'après `L` : chacun de demi-côté tiré dans `grosseur` (fractions de `du`), enfoncé de la part `enfonce`."""
-    for _ in range(L["charbons"]):
-        demi = du * a.uniform(*L["grosseur"])
-        pose = dessus + X * (du * a.uniform(-1, 1)) + Y * (dv * a.uniform(-1, 1)) - HAUT * (demi * L["enfonce"])
-        clou(m, pose, HAUT, L["charbon"], demi, BRAISES)
 
 
 def enclume(D, G, pieces, a):
@@ -116,20 +97,9 @@ def foyer(D, G, pieces, a):
     soufflet à deux flasques, son cuir, sa buse dans les braises."""
     F, m, K = D["FOYER"], pieces["pierre"], D["TAILLE"]
     for nom, P in F["parements"]:
-        c, (lx, ly, lz) = pave(G.primitives[F[nom]])
-        lit, tete = (c.z - lz / 2 + lz * part for part in P["entre"])
-        queue = min(lx, ly) / 2 * P["queue"]
-        haut = (tete - lit) / P["assises"]
-        for k in range(P["assises"]):
-            milieu = Vector((c.x, c.y, lit + haut * (k + 0.5)))
-            for rang, (dehors, u, demi, portee) in enumerate(((X, Y, lx / 2, ly / 2), (Y, X, ly / 2, lx / 2))):
-                courte = portee - (queue if (k + rang) % 2 else 0)
-                for cote in COTES:
-                    bornes = [courte * (2 * part - 1) for part in partage(a, P["pierres"][rang], P["ecart"])]
-                    for b0, b1 in zip(bornes, bornes[1:]):
-                        moellon(m, milieu + dehors * (cote * demi) + u * ((b0 + b1) / 2), dehors * cote, u,
-                                (b1 - b0) / 2, haut / 2, queue, K, a)
-        poutre(m, (c.x, c.y, lit), (c.x, c.y, tete - haut * P["retrait"]), lx - queue, ly - queue, Y, "pierre")
+        c, cotes = pave(G.primitives[F[nom]])
+        lit, tete = (c.z - cotes[2] / 2 + cotes[2] * part for part in P["entre"])
+        geometrie.appareil(m, c, cotes, lit, tete, P, K, a, {})
 
     H = F["manteau"]
     hotte, (hx, hy, hz) = pave(G.primitives[F["hotte"]])
@@ -272,8 +242,9 @@ def marmite(D, G, pieces, a):
         dehors = cap(360 * (k + 0.5) / cotes)
         demi_h = h_foyer * B["hauteur"] / 2
         face = atre + dehors * (r_foyer * math.cos(math.pi / cotes) * B["parement"]) + HAUT * demi_h
-        moellon(pieces["pierre"], face, dehors, HAUT.cross(dehors), r_foyer * math.sin(math.pi / cotes) * B["largeur"],
-                demi_h, r_foyer * B["queue"], B["taille"], a)
+        geometrie.moellon(pieces["pierre"], face, dehors, HAUT.cross(dehors),
+                          r_foyer * math.sin(math.pi / cotes) * B["largeur"], demi_h, r_foyer * B["queue"], B["taille"],
+                          a)
     for azimut in Bu["azimuts"]:
         p0, p1 = (dessus + cap(azimut) * (r_foyer * part) + HAUT * (r_foyer * Bu["rayon"] * Bu["pose"])
                   for part in Bu["portee"])
@@ -287,7 +258,7 @@ def roue(D, G, pieces, a):
     jante = G.primitives[R["roue"]]
     centre, rayon, epais = rond(jante)
     axe, essieu = AXES[jante["axis"]]
-    u, w = (Vector(point(axe, (0, 0, 0), *repere)) for repere in ((0, 1, 0), (0, 0, 1)))
+    u, w = geometrie.repere(axe)
     apotheme = rayon * math.cos(math.pi / jante["sides"])
 
     def vers(tours):
@@ -498,8 +469,7 @@ BATIR = {"enclume": enclume, "foyer-de-forge": foyer, "cuve-brasserie": cuve, "m
 
 
 def construire(D, id_):
-    noeuds = {NOEUD_EMISSIF if nom == BRAISES else nom: (nom,) for nom in D["MATERIAUX"][id_]}
-    return geometrie.par_noeuds(D, id_, noeuds, BATIR[id_])
+    return geometrie.par_noeuds(D, id_, geometrie.par_materiau(D["MATERIAUX"][id_], BRAISES), BATIR[id_])
 
 
 def elements(D):

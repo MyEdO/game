@@ -12,7 +12,7 @@ from mathutils import Vector
 import geometrie
 from geometrie import (AXES, COTES, HAUT, MAT, X, Y, barre, cap, cercle, cheville, coque, courbee, lisse, normales,
                        partage, pave, planche, profilee, rampant, rond, tournee)
-from maille import lineaire, point, tore
+from maille import lineaire, tore
 
 DECORS = ("ancre-de-navire", "barre-de-navire", "cabestan", "mat-de-navire", "rouleau-de-cordage", "ecoutille",
           "passerelle-d-embarquement")
@@ -93,7 +93,7 @@ def barre_a_roue(D, G, pieces, a):
     cj, r_jante, l_jante = rond(jante)
     _, r_rayon, _ = rond(G.primitives[B["rayon"]])
     axe, essieu = AXES[moyeu["axis"]]
-    u, v = (Vector(point(axe, (0, 0, 0), *repere)) for repere in ((0, 1, 0), (0, 0, 1)))
+    u, v = geometrie.repere(axe)
     arriere = essieu * math.copysign(1, (c - cm).dot(essieu))
 
     K = B["colonne"]
@@ -420,7 +420,7 @@ BATIR = {"ancre-de-navire": ancre, "barre-de-navire": barre_a_roue, "cabestan": 
 
 
 def construire(D, id_):
-    return geometrie.par_noeuds(D, id_, {nom: (nom,) for nom in D["MATERIAUX"][id_]}, BATIR[id_])
+    return geometrie.par_noeuds(D, id_, geometrie.par_materiau(D["MATERIAUX"][id_]), BATIR[id_])
 
 
 def elements(D):

@@ -1,19 +1,21 @@
 """La géométrie commune aux modèles des décors (#4335) : les axes, ceux d'un cylindre de la recette, les coins d'un
-carré, les deux côtés d'un axe, la boîte et le cylindre d'une primitive en `Vector`, le rampant d'un prisme, l'aléa
-semé de l'id, le cap d'un azimut, les normales d'une tangente, le point d'un chemin à une hauteur, la courbe lissée par
-des points, l'anneau régulier, la section bosselée et la coque close d'une suite d'anneaux ; les pièces que les
-familles partagent (pièce équarrie, planche, planche rampante, pièce profilée et son profil de poteau à chanfreins
-arrêtés, pièce tournée et son profil droit, pièce ronde courbée, cheville et ses cotes, clou, anneau plat de section
-rectangulaire, chaîne pendue, bougie sur sa bobèche) et le partage inégal d'une longueur ; et la déclaration des
-éléments d'une famille, avec la construction d'un décor dont les nœuds se bâtissent ensemble."""
+carré, les deux côtés d'un axe, la boîte et le cylindre d'une primitive en `Vector`, le rampant d'un prisme et le
+point sous lui, l'aléa semé de l'id, le repère normal à un axe, le cap d'un azimut, les normales d'une tangente, le
+point d'un chemin à une hauteur, la courbe lissée par des points, l'anneau régulier, la section bosselée et la coque
+close d'une suite d'anneaux ; les pièces que les familles partagent (pièce équarrie, planche, planche rampante, pièce
+profilée et son profil de poteau à chanfreins arrêtés, pièce tournée et son profil droit, pièce ronde courbée,
+cheville et ses cotes, clou, anneau plat de section rectangulaire, chaîne pendue, bougie sur sa bobèche, étoffe
+plissée et dais, rampe d'escalier, pierre taillée, assise et massif harpé, charbons, ardoises, planches côte à côte,
+pièce plate découpée) et le partage inégal d'une longueur ; et la déclaration des éléments d'une famille, avec ses
+nœuds par matériau et la construction d'un décor dont les nœuds se bâtissent ensemble."""
 import math
 import random
 
 from mathutils import Vector
 
 import habillage
-from gabarit import VERSANTS, Gabarit, boite
-from maille import Maille, cylindre, objet, tore, tour
+from gabarit import NOEUD_EMISSIF, VERSANTS, Gabarit, boite
+from maille import Maille, cylindre, objet, point, poutre, tore, tour
 
 X, Y, HAUT = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
 ANGLES = ((1, 1), (-1, 1), (-1, -1), (1, -1))
@@ -23,7 +25,9 @@ COTES = (-1, 1)
 AXES = {"x": ("x", X), "y": ("y", Y), "h": ("z", HAUT)}
 """L'axe de `maille` (`point`, `tour`, `tore`) et le vecteur unitaire de l'`axis` d'un cylindre de la recette."""
 MAT = "bois"
-"""Le matériau d'une pièce de bois (`barre`, `planche`, `profilee`, `tournee`, `cheville`)."""
+"""Le matériau d'une pièce de bois (`barre`, `planche`, `profilee`, `tournee`, `cheville`, `bordage`)."""
+BRAISES = "braises"
+"""Le matériau des braises et de leurs charbons (`charbons`), qui luit (`par_materiau`)."""
 
 
 def pave(primitive):
@@ -52,6 +56,18 @@ def rampant(primitive):
 def alea(id_):
     """Le générateur semé des codes de caractères de `id_`."""
     return random.Random(sum((i + 1) * ord(c) for i, c in enumerate(id_)))
+
+
+def repere(axe):
+    """Les deux vecteurs unitaires `(u, w)` du plan normal à l'axe `axe` de `maille` ('x', 'y' ou 'z'), dans l'ordre
+    des décalages de `maille.point`."""
+    return tuple(Vector(point(axe, (0, 0, 0), *decale)) for decale in ((0, 1, 0), (0, 0, 1)))
+
+
+def sous_le_rampant(pente, p, sous):
+    """Le point à l'aplomb de `p`, à `sous` (m) sous le rampant `pente` (`rampant`)."""
+    descend, crete, egout, long, _ = pente
+    return Vector((p.x, p.y, crete.z + (p - crete).dot(descend) * (egout.z - crete.z) / long - sous))
 
 
 def cap(azimut):
@@ -232,6 +248,192 @@ def bougie(bobeche, cire, flamme, pied, demi, haut, sommet, B):
 def partage(a, nombre, ecart):
     """Les bornes de `nombre` parts de [0, 1], chaque borne du dedans écartée d'au plus `ecart` de sa part."""
     return [0.0] + [(k + a.uniform(-ecart, ecart)) / nombre for k in range(1, nombre)] + [1.0]
+
+
+def onde(c, u, n, demi, epais, creux, plis, phase, pas, festons, chute):
+    """Le contour clos d'une étoffe d'épaisseur `epais`, de demi-largeur `demi` le long de `u` autour de `c`, qui
+    ondule de `creux` le long de `n` en `plis` plis de `pas` points, le premier à `phase`, et se déplace de `chute`
+    au milieu de chacun de ses `festons` : sa face du côté de `n`, puis l'autre au retour."""
+    points = plis * pas
+    fil = [c + u * (demi * (2 * j / points - 1)) + n * (creux * math.cos(2 * math.pi * j / pas + phase))
+           + chute * abs(math.sin(math.pi * festons * j / points)) for j in range(points + 1)]
+    return [p + n * (epais / 2) for p in fil] + [p - n * (epais / 2) for p in reversed(fil)]
+
+
+def dais(m, pente, V, tombee, chute, chevron, a):
+    """La toile d'un dais sur le rampant `pente` (`rampant`), d'après `V`, en fractions de sa largeur : `epais`,
+    `creux` de son onde sur la pente, `pli` de son lambrequin ; `largeur`, sa demi-largeur (part de celle du
+    rampant) ; `pente`, ses rangs de la crête à l'égout (parts de la pente) ; `lambrequin`, ses rangs pendus à
+    l'égout (part de `tombee`, part de `chute`) ; `plis`, `pas`, `festons` (`onde`). Ses chevrons ont la hauteur et
+    entrent de la part de celle-ci dans leur sablière de `chevron`. Rend la normale de la toile vers le dessus, le
+    point de l'axe d'un chevron à l'aplomb d'un point, et le dessus d'une sablière à l'aplomb d'un point."""
+    descend, crete, egout, _, large = pente
+    travers = descend.cross(HAUT)
+    n = travers.cross((egout - crete).normalized())
+    epais, creux, pli = (large * V[nom] for nom in ("epais", "creux", "pli"))
+    rangs = [(crete.lerp(egout, t) - n * (creux + epais / 2), n, creux, 0) for t in V["pente"]]
+    rangs += [(egout - descend * (pli + epais / 2) - HAUT * (tombee * t), descend, pli, feston)
+              for t, feston in V["lambrequin"]]
+    phase = a.uniform(0, 2 * math.pi)
+    coque(m, [onde(p, travers, vers, large / 2 * V["largeur"], epais, ampleur, V["plis"], phase, V["pas"],
+                   V["festons"], chute * feston) for p, vers, ampleur, feston in rangs], "toile")
+    haut, entaille = chevron
+    sous = (creux + epais + haut / 2) / n.z
+
+    def axe(p):
+        """Le point de l'axe d'un chevron à l'aplomb de `p`."""
+        return sous_le_rampant(pente, p, sous)
+
+    def appui(p):
+        """La hauteur du dessus d'une sablière à l'aplomb de `p`, où entre un chevron."""
+        return axe(p).z - haut / 2 / n.z * (1 - entaille)
+    return n, axe, appui
+
+
+def rampe(m, G, R, arete, pommeau):
+    """Une rampe d'après `R`, son bois dans `m`, ses arêtes adoucies d'`arete` (fraction de l'épaisseur d'une pièce) :
+    la lisse basse de la boîte de rang `lisse` de la recette ; par paire de `poteaux` (rangs du cylindre d'un poteau
+    et de celui de son pommeau), un poteau à chanfreins arrêtés (`POTEAU`) de demi-côté `poteau["cote"]` (part du
+    rayon de son cylindre), dressé de la part `poteau["ancrage"]` de la hauteur de la lisse sous son dessus, coiffé de
+    son pommeau tourné dans `pommeau` (maille, matériau), de `pommeau["profil"]` (part de la hauteur, part du rayon),
+    `pommeau["cotes"]`, entré dans le poteau de la part `pommeau["ancrage"]` de sa hauteur ; une main courante sous la
+    tête des poteaux et une lisse rampante sur leur pied (hauteurs `main` et `rampante`, parts de la hauteur du
+    premier poteau), de demi-largeur et demi-hauteur `section` (parts de son rayon) ; entre elles, `balustres` :
+    `nombre`, `rayon` (part de celui du poteau), `profil`, `cotes`."""
+    cl, (lx, ly, lz) = pave(G.primitives[R["lisse"]])
+    long = Y if ly > lx else X
+    planche(m, cl - long * (max(lx, ly) / 2), cl + long * (max(lx, ly) / 2), long.cross(HAUT), HAUT, min(lx, ly) / 2,
+            lz / 2, lz * arete)
+    Po, Pm = R["poteau"], R["pommeau"]
+    pied_z = cl.z + lz / 2 - lz * Po["ancrage"]
+    tetes = []
+    for poteau, boule in R["poteaux"]:
+        cp, r, h = rond(G.primitives[poteau])
+        tete = cp + HAUT * (h / 2)
+        profilee(m, Vector((cp.x, cp.y, pied_z)), tete, (r * Po["cote"],) * 2, POTEAU)
+        cb, rb, hb = rond(G.primitives[boule])
+        tournee(pommeau[0], cb - HAUT * (hb / 2 + hb * Pm["ancrage"]), cb + HAUT * (hb / 2), X, Y, rb, Pm["profil"],
+                Pm["cotes"], pommeau[1])
+        tetes.append((tete, r, h))
+    (t0, r, h), (t1, _, _) = tetes
+    main = [t - HAUT * (h * R["main"]) for t in (t0, t1)]
+    depart = Vector((t0.x, t0.y, pied_z + h * R["rampante"]))
+    basse = (depart, depart + main[1] - main[0])
+    demi_l, demi_h = (r * part for part in R["section"])
+    for bas, haut in (main, basse):
+        rampante(m, bas, haut, demi_l, demi_h, demi_h * 2 * arete)
+    B = R["balustres"]
+    for k in range(1, B["nombre"] + 1):
+        t = k / (B["nombre"] + 1)
+        tournee(m, basse[0].lerp(basse[1], t), main[0].lerp(main[1], t), X, Y, r * B["rayon"], B["profil"],
+                B["cotes"])
+
+
+def moellon(m, face, dehors, u, du, dv, queue, K, a):
+    """Une pierre taillée dont `face` est le milieu du parement, tourné vers `dehors`, de demi-côtés `du` sur `u` et
+    `dv` en travers, enfoncée de `queue`, d'après `K` (en fractions de `dv` : `joint`, demi-joint laissé sur son
+    pourtour ; `arete`, chanfrein de ses arêtes ; `parement`, recul de sa face, tiré entre ces bornes)."""
+    joint, arete = dv * K["joint"], dv * K["arete"]
+    p = face - dehors * (dv * a.uniform(*K["parement"]))
+    barre(m, [(p - dehors * queue, du - joint, dv - joint, arete), (p - dehors * arete, du - joint, dv - joint, arete),
+              (p, du - joint - arete, dv - joint - arete, arete / 2)], u, dehors.cross(u), "pierre")
+
+
+def assise(m, centre, dehors, u, bornes, nombre, ecart, dv, queue, K, a):
+    """Une assise du parement tourné vers `dehors` : `nombre` moellons (`moellon`) le long de `u`, depuis `centre`, de
+    `bornes[0]` à `bornes[1]`, de demi-hauteur `dv`, enfoncés de `queue`, leurs joints écartés d'au plus `ecart`
+    (`partage`)."""
+    t0, t1 = bornes
+    milieu, demi = (t0 + t1) / 2, (t1 - t0) / 2
+    limites = [milieu + demi * (2 * part - 1) for part in partage(a, nombre, ecart)]
+    for b0, b1 in zip(limites, limites[1:]):
+        moellon(m, centre + u * ((b0 + b1) / 2), dehors, u, (b1 - b0) / 2, dv, queue, K, a)
+
+
+def appareil(m, c, cotes, lit, tete, P, K, a, baies):
+    """Le massif de pierres taillées de la boîte de centre `c` et de `cotes` (x, y, z), du `lit` à la `tete`, d'après
+    `P` : par assise (`assises`), par face normale à x puis normale à y, de chaque côté, une assise (`assise`) de
+    `pierres` moellons (par face normale à x, puis à y) taillés d'après `K`, enfoncés de `queue` (fraction de son plus
+    petit demi-côté), leurs joints écartés d'au plus `ecart`, harpée aux angles : une assise sur deux, de parités
+    alternées d'une face à l'autre, s'arrête à `queue` de chaque bout ; devant un blocage plein dont le dessus reste
+    à `retrait` (fraction d'une assise) sous la tête. `baies` {côté : (bornes sur x depuis `c`, bornes en hauteur)}
+    ouvre ses faces normales à y : l'assise dont le milieu tombe entre ces hauteurs n'y garde que ses deux côtés,
+    chacun de la moitié de ses pierres. Rend le dessus du blocage et la queue."""
+    lx, ly, _ = cotes
+    queue = min(lx, ly) / 2 * P["queue"]
+    haut = (tete - lit) / P["assises"]
+    for k in range(P["assises"]):
+        milieu = Vector((c.x, c.y, lit + haut * (k + 0.5)))
+        for rang, (dehors, u, demi, portee) in enumerate(((X, Y, lx / 2, ly / 2), (Y, X, ly / 2, lx / 2))):
+            courte = portee - (queue if (k + rang) % 2 else 0)
+            nombre = P["pierres"][rang]
+            for cote in COTES:
+                troncons = [((-courte, courte), nombre)]
+                baie = baies.get(cote) if rang else None
+                if baie and baie[1][0] < milieu.z < baie[1][1]:
+                    troncons = [((-courte, baie[0][0]), -(-nombre // 2)), ((baie[0][1], courte), -(-nombre // 2))]
+                for bornes, pierres in troncons:
+                    assise(m, milieu + dehors * (cote * demi), dehors * cote, u, bornes, pierres, P["ecart"], haut / 2,
+                           queue, K, a)
+    dessus = tete - haut * P["retrait"]
+    poutre(m, (c.x, c.y, lit), (c.x, c.y, dessus), lx - queue, ly - queue, Y, "pierre")
+    return dessus, queue
+
+
+def charbons(m, dessus, du, dv, L, a):
+    """Des charbons en pointe semés sur le lit de braises de milieu `dessus`, dans ses demi-côtés `du` (x) et `dv`
+    (y), d'après `L` : leur nombre `charbons` ; chacun de demi-côté tiré dans `grosseur` (fractions de `du`), enfoncé
+    de la part `enfonce`, taillé d'après `charbon` (`clou`)."""
+    for _ in range(L["charbons"]):
+        demi = du * a.uniform(*L["grosseur"])
+        pose = dessus + X * (du * a.uniform(-1, 1)) + Y * (dv * a.uniform(-1, 1)) - HAUT * (demi * L["enfonce"])
+        clou(m, pose, HAUT, L["charbon"], demi, BRAISES)
+
+
+def ardoises(m, crete, fil, travers, n, pente, large, mesure, A, a):
+    """Les ardoises d'un versant posées sous sa face de normale `n`, de sa `crete` (milieu) le long de `fil` sur
+    `pente` (m), larges de `large` le long de `travers`, d'après `A` : `rangs` ; `recouvrement` d'un rang par le
+    suivant (part d'un rang) ; `nombre` d'ardoises d'un rang pair, puis d'un rang impair ; `ecart` de leurs joints
+    (`partage`) ; `jour` entre deux (fraction de `large`) ; en fractions de `mesure`, leur `epaisseur` et le `jeu`
+    laissé sous la face ; `bascule` : ce dont la tête d'une ardoise s'enfonce plus que son pied (en épaisseurs)."""
+    e, jeu = mesure * A["epaisseur"], mesure * A["jeu"]
+    for rang in range(A["rangs"]):
+        t0, t1 = max(rang - A["recouvrement"], 0) / A["rangs"], (rang + 1) / A["rangs"]
+        bornes = partage(a, A["nombre"][rang % 2], A["ecart"])
+        for x0, x1 in zip(bornes, bornes[1:]):
+            axe = crete + travers * (large * ((x0 + x1) / 2 - 1 / 2))
+            poutre(m, axe + fil * (pente * t0) - n * (jeu + e / 2 + e * A["bascule"]),
+                   axe + fil * (pente * t1) - n * (jeu + e / 2), large * (x1 - x0 - A["jour"]), e, n, "ardoise")
+
+
+def bordage(m, centre, fil, travers, long, large, epais, P, D, a, mat=MAT):
+    """Des planches côte à côte autour de `centre`, longues de `long` le long de `fil`, réparties sur `large` le long
+    de `travers`, épaisses de `epais`, leurs arêtes adoucies de `D["ARETE"]`, d'après `P` : leur nombre `planches`,
+    l'`ecart` de leur partage (`partage`), le `jour` entre deux (fraction de `large`), la part de sa longueur dont
+    chacune s'arrête avant son bout du côté de `fil` (`bout`, tirée). Rend l'axe de chacune, à mi-longueur."""
+    bornes = [large * (part - 1 / 2) for part in partage(a, P["planches"], P["ecart"])]
+    axes = [centre + travers * ((g0 + g1) / 2) for g0, g1 in zip(bornes, bornes[1:])]
+    for axe, g0, g1 in zip(axes, bornes, bornes[1:]):
+        planche(m, axe - fil * (long / 2), axe + fil * (long / 2 - long * a.uniform(*P["bout"])), travers,
+                fil.cross(travers), (g1 - g0) / 2 - large * P["jour"], epais / 2, epais * D["ARETE"], mat)
+    return axes
+
+
+def decoupee(m, contour, n, faces, arete, mat):
+    """Une pièce plate de `contour` plan (points), ses deux faces aux distances `faces` de son plan le long de `n`
+    unitaire, chacune réduite d'`arete` vers le milieu du contour."""
+    centre = sum(contour, Vector()) / len(contour)
+    petit = [centre.lerp(p, 1 - arete / (p - centre).length) for p in contour]
+    s0, s1 = faces
+    sens = math.copysign(arete, s1 - s0)
+    coque(m, [[p + n * s for p in tranche]
+              for tranche, s in ((petit, s0), (contour, s0 + sens), (contour, s1 - sens), (petit, s1))], mat)
+
+
+def par_materiau(materiaux, emissif=None):
+    """Les nœuds d'un décor de `materiaux` : un par matériau, à son nom, celui d'`emissif`, s'il en est un, qui luit,
+    au nom `gabarit.NOEUD_EMISSIF`."""
+    return {NOEUD_EMISSIF if nom == emissif else nom: (nom,) for nom in materiaux}
 
 
 def par_noeuds(D, id_, noeuds, batir):

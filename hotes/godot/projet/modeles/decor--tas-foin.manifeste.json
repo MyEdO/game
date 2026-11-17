@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "tas-foin"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "paille",
+      "palette": "vegetal",
+      "matiere": "prop--paille"
+    }
+  ],
+  "glb": {
+    "sha256": "e8d0e195630ffb8015930538db289653f34c179f51fa3009426150baeed24e2c",
+    "octets": 50240
+  }
+}

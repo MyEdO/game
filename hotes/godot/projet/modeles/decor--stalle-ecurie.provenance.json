@@ -1,0 +1,13 @@
+{
+  "model": "decor--stalle-ecurie.glb",
+  "model_sha256": "66e8d0c63129da80f25c56159873d05df08151e16c0ab73c2fb12fb7ea374d25",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
