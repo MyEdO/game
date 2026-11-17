@@ -940,6 +940,27 @@ describe('Munitions & rechargement', () => {
     // La Flèche n'a pas de modificateur de Dégâts → reste +9.
     expect(damageString(w.damage)).toBe('+9');
   });
+  describe('weaponWithAmmo : qualité de la munition majorée (+N) ou à Indice (#4346, #4361)', () => {
+    const arme = (id: string) => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
+    const tir = (armeId: string, munitionId: string) => weaponWithAmmo(arme(armeId), itemFromTrappingById(munitionId, idsDeTest)!);
+    const indice = (w: Weapon, id: string) => w.qualities.find((q) => q.id === id)?.value;
+    it.each([
+      ['tromblon', 'petites-munitions-et-poudre', 'a-explosion', 4], // Explosion 3 + 1 : CRB 086 l.150, arbitrage #4346 « +1 (Recommandé) »
+      ['tromblon-a-meche', 'petites-munitions-et-poudre', 'a-explosion', 1], // arme sans Explosion : arbitrage #4346 « La qualité à N (Recommandé) »
+      ['tromblon-a-meche', 'ferraille-et-poudre', 'tir-de-zone', 6], // Tir de zone 3 + 3 : AA 08 l.496
+      ['mortier-a-main', 'grappin-munition', 'recharge', 4], // Recharge 2 + 2 : AA 08 l.497
+      ['mortier-ade2', 'bombe-incendiaire-mortier', 'a-explosion', 4], // la munition remplace : arbitrage #4361 « Celle de la munition (Recommandé) »
+      ['canon-ade2', 'boulet-et-poudre', 'a-explosion', 2],
+    ])('%s + %s : %s %d, et l’arme tirée ne porte aucune majoration', (armeId, munitionId, qualite, attendu) => {
+      const w = tir(armeId, munitionId);
+      expect(indice(w, qualite)).toBe(attendu);
+      expect(w.qualities.filter((q) => q.majoration != null)).toEqual([]);
+    });
+    it('une qualité de munition sans Indice laisse celle de l’arme inchangée (Empaleuse de la Flèche)', () => {
+      const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'empaleuse' }], subType: 'arc', reload: 0 };
+      expect(weaponWithAmmo(arc, itemFromTrappingById('fleche', idsDeTest)!).qualities).toEqual([{ id: 'empaleuse' }]);
+    });
+  });
   it('compatibleAmmo filtre par subType et qty>0', () => {
     const c = { items: [itemFromTrappingById('fleche', idsDeTest), itemFromTrappingById('carreau', idsDeTest)] } as unknown as Combatant;
     const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [], subType: 'arc', reload: 0 };

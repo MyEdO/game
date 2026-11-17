@@ -34,7 +34,7 @@ import {
 } from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
-import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
+import type { Combatant, ItemInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { SceneEntity } from '../noyau/monde/scene';
 import { Coins } from './Coins';
@@ -192,7 +192,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     // Qualités : NOM = chip canonique (`EntityRef`, popover Codex → type Atout/Défaut + source) ;
     // la description d'achat reste sous le chip. Atouts d'abord, Défauts ensuite.
     const quals = resolveQualities(item)
-      .map((r): QualityInstance => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }))
+      .map((r) => r.instance)
       .flatMap((q) => { const info = describeQuality(q); return info ? [{ q, info }] : []; })
       .sort((a, b) => (a.info.polarite === 'defaut' ? 1 : 0) - (b.info.polarite === 'defaut' ? 1 : 0));
     const canCompare = item.kind === 'melee' || item.kind === 'distance' || item.kind === 'armor';

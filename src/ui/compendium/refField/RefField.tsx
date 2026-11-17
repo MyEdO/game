@@ -21,6 +21,7 @@ import type { JSX } from 'react';
 import { useId, useMemo, useState } from 'react';
 import { entreesDuDataset, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
+import { metaDesChamps } from '../../../data/schemas/grammaire/meta';
 import {
   TYPES,
   catalogueSpecs,
@@ -50,8 +51,9 @@ import { videDuNoeud } from '../../../noyau/codex/editFields';
  *  schéma — celle-ci se lit sur le NŒUD du champ (`noeud`, `refusDuNoeud`). */
 type RefDatasetCfg = { ds: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean };
 /** Mode `liste` : une rangée par réf, aucun contrôle unique ; `value` = un indice par rangée, `spec` = la
- *  spécialisation de chaque rangée (`ChoixDeSpec`). */
-type ListeRefCfg = RefDatasetCfg & { value?: boolean; spec?: boolean; single?: false; freeText?: false };
+ *  spécialisation de chaque rangée (`ChoixDeSpec`), `majoration` = un « +N » par rangée, exclusif de son indice
+ *  (`qualiteDObjetRefSchema`). */
+type ListeRefCfg = RefDatasetCfg & { value?: boolean; majoration?: boolean; spec?: boolean; single?: false; freeText?: false };
 /** Mode `single` avec `spec` : le `<select>` ET le contrôle de spécialisation (`ChoixDeSpec`), aucun contrôle unique ;
  *  `sujet` complète leurs deux noms. */
 type SpecRefCfg = RefDatasetCfg & { single: true; freeText?: false; spec: true };
@@ -81,6 +83,7 @@ export type RefFieldCfg = ListeRefCfg | SpecRefCfg | PolymorpheCfg | RefFieldCfg
 export const REF_FIELD: Record<string, RefFieldCfg> = {
   // ── listes (Ref[]) — existant ───────────────────────────────────────────────
   qualities: { ds: 'qualities', value: true },
+  'trappings.qualities': { ds: 'qualities', value: true, majoration: true },
   grantsManeuvers: { ds: 'maneuvers' },
   // Atouts d'une Structure de siège : réfs NUES de Trait (`ref('trait')`, ADE II 8), sans Indice ni pose.
   'structures.traits': { ds: 'traits' },
@@ -249,7 +252,20 @@ const fournies = (cfg: RefFieldCfg): cfg is EntreesCfg => 'entrees' in cfg;
 const entryLabel = (e: Record<string, unknown>): string =>
   String(e.label ?? e.id ?? '');
 
-interface RefEntry { id: string; spec?: string; value?: number }
+interface RefEntry { id: string; spec?: string; value?: number; majoration?: number }
+
+/** La rangée `r` reposée sur la grandeur `cle` (`n`, ou aucune) : l'indice et la majoration s'excluent, poser l'un ôte l'autre. */
+function poserGrandeur(r: RefEntry, cle: 'value' | 'majoration', n: number | null): RefEntry {
+  const { value: _value, majoration: _majoration, ...reste } = r;
+  return n === null ? reste : { ...reste, [cle]: n };
+}
+
+/** Libellé de la clé `majoration` que l'élément du champ déclare (`metaDesChamps`) ; LÈVE s'il n'en déclare aucune. */
+function libelleDeMajoration(noeud: unknown): string {
+  const label = elementDeListe(noeud).map((n) => metaDesChamps(n)?.majoration?.label).find((l) => l !== undefined);
+  if (label === undefined) throw new Error('RefField : `majoration` configurée sur un champ dont l’élément ne déclare aucune majoration.');
+  return label;
+}
 interface SpecRef { id: string; spec?: string }
 
 /** Nom d'AUTEUR d'un dataset : le libellé de sa catégorie au Codex (`CATEGORY_DATASET_DERIVE`, puis
@@ -584,8 +600,9 @@ const elementEstUnId = (noeud: unknown): boolean => elementDeListe(noeud).some(e
  *  +Ajouter / ✕, `value` (Indice) si `cfg.value`. */
 function ListRefField(
   { label, sujet, cfg, champ, value, onChange }:
-  { label?: string; sujet?: string; cfg: { ds: DatasetKey; value?: boolean; spec?: boolean }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
+  { label?: string; sujet?: string; cfg: { ds: DatasetKey; value?: boolean; majoration?: boolean; spec?: boolean }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
 ) {
+  const majoration = cfg.majoration ? libelleDeMajoration(champ.noeud) : undefined;
   const options = useOptions(cfg, champ.noeud, useUnivers(cfg.ds, champ.entreesEnTete));
   const nus = elementEstUnId(champ.noeud);
   const list: RefEntry[] = nus ? ((value as string[] | undefined) ?? []).map((id) => ({ id })) : (value as RefEntry[]) ?? [];
@@ -608,8 +625,14 @@ function ListRefField(
           )}
           {cfg.value && (
             <NumberField
-              variant="nu" label={`Indice — ${label}`} placeholder="Indice" width={64}
-              vide value={ref.value} onChange={(n) => set(list.map((r, j) => (j === i ? { ...r, value: n ?? undefined } : r)))}
+              variant="nu" label={`Indice — ${rangee(i)}`} placeholder="Indice" width={64}
+              vide value={ref.value} onChange={(n) => set(list.map((r, j) => (j === i ? poserGrandeur(r, 'value', n) : r)))}
+            />
+          )}
+          {majoration !== undefined && (
+            <NumberField
+              variant="nu" label={`${majoration} — ${rangee(i)}`} placeholder="+N" width={64} min={1}
+              vide value={ref.majoration} onChange={(n) => set(list.map((r, j) => (j === i ? poserGrandeur(r, 'majoration', n) : r)))}
             />
           )}
           <button className="btn small danger" title="Retirer" aria-label={`Retirer ${rangee(i)}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>

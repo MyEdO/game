@@ -534,7 +534,7 @@ export function withGiveQualities(base: QualityInstance[], give: { qualities?: s
  *  magiques ajoutées. Même liste que l'objet effectivement reçu (apply) → sert l'AFFICHAGE des chips de
  *  butin, qu'elles vivent dans la def (objet catalogué) ou sur l'Effet (magique). */
 export function giveTrappingQualities(give: { trappingId?: string; custom?: string; qualities?: string[] }, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
-  return resolveQualities(gabaritDuDon(give, undefined, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
+  return resolveQualities(gabaritDuDon(give, undefined, resolveTrapping)).map((r) => r.instance);
 }
 
 /** Libellé d'affichage d'un Effet `giveTrapping` (catalogue → label, sinon nom custom). */
@@ -1596,12 +1596,22 @@ export function consumeAmmo(c: Combatant, used: ItemInstance): void {
 
 /** Arme à distance « augmentée » par la munition tirée : Dégâts combinés (flats additionnés, BF si l'un
  *  l'utilise ; arme à Dégâts « – » : ceux de la munition, AA 10 l.192) et Atouts fusionnés (ex. Empaleuse
- *  de la Flèche). */
+ *  de la Flèche). Qualité de la munition : majorée, l'Indice de l'arme + `majoration` (`majoration` si l'arme ne
+ *  l'a pas) ; à Indice, il remplace celui de l'arme ; sans Indice, ajoutée si l'arme ne l'a pas. #4346 ; #4361 ;
+ *  CRB 086 l.150 ; AA 08 l.496-497 */
 export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const w = weapon.damage;
   const a = ammo.damage;
-  const qualities = [...weapon.qualities];
-  for (const q of ammo.qualities) if (!qualities.some((x) => x.id === q.id)) qualities.push(q);
+  const qualities: QualityInstance[] = weapon.qualities.map((q) => ({ ...q }));
+  for (const q of ammo.qualities) {
+    const i = qualities.findIndex((x) => x.id === q.id);
+    const deLArme = i < 0 ? undefined : qualities[i];
+    const fusionnee: QualityInstance = q.majoration != null ? { id: q.id, value: (deLArme?.value ?? 0) + q.majoration }
+      : q.value != null ? { id: q.id, value: q.value }
+        : deLArme ?? { id: q.id };
+    if (i < 0) qualities.push(fusionnee);
+    else qualities[i] = fusionnee;
+  }
   const damage: WeaponDamageSpec = 'flat' in w
     ? { plusBF: w.plusBF || (a != null && 'plusBF' in a && a.plusBF), flat: w.flat + (a != null && 'flat' in a ? a.flat : 0) }
     : 'aucun' in w ? (a ?? w) : w; // arme « Spécial » (literal) → inchangée

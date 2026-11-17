@@ -71,7 +71,7 @@ function zonesOf(it: ItemInstance): string[] {
  *  via `qualityRefLabel`). */
 function weaponQualities(it: ItemInstance): string {
   return resolveQualities(it)
-    .map((r) => qualityRefLabel({ id: r.id, value: r.indice }))
+    .map((r) => qualityRefLabel(r.instance))
     .filter(Boolean)
     .join(', ');
 }
@@ -371,7 +371,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                     {(() => {
                       const resolved = resolveQualities(w);
                       return resolved.length > 0 && (
-                        <span className="weap-quals"> · <QualityChips qualities={resolved.map((r) => ({ id: r.id, value: r.indice }))} /></span>
+                        <span className="weap-quals"> · <QualityChips qualities={resolved.map((r) => r.instance)} /></span>
                       );
                     })()}
                     {ammo != null && <span className="eq-ammo" title="Munitions compatibles dans le sac"> · <Icon id="objet/munition" size="sm" /> Munitions {ammo}</span>}

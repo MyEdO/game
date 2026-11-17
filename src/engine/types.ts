@@ -267,13 +267,20 @@ export type RangeBandId = RangeeDe<'portee-d-une-arme'>;
  *  registre + Indice éventuel) — miroir runtime de `QualityRef` de la donnée, sans l'aplatissement en
  *  chaîne « id value » re-parsée par regex. `value` = Indice (Solide N, Recharge N, Protectrice N) OU
  *  magnitude d'une pénalité de port (`en-discretion` −10). Affichage dérivé par `qualityRefLabel`. */
-export interface QualityInstance {
+export type QualityInstance = {
   /** id STABLE du registre de qualités (`QualityData.id` / `QualityRef.id`) — jamais un libellé FR. */
   id: string;
   /** Indice / magnitude éventuelle (Solide 3, Recharge 2, Taillade 1A — `AA 08 l.87` —, « -10% en
    *  Discrétion » → −10). L'UNITÉ d'affichage vit dans le registre (`QualityData.indice.unite`). */
   value?: number;
-}
+  majoration?: never;
+} | {
+  id: string;
+  /** Qualité MAJORÉE d'une munition (« Explosion +1 ») : s'ajoute à l'Indice de la même qualité de l'arme à la fusion
+   *  `weaponWithAmmo`, qui ne la transmet jamais. #4346 */
+  majoration: number;
+  value?: never;
+};
 
 /** Les côtés de montage d'une pièce d'artillerie sur un navire (`FireArc`), dans l'ordre horaire depuis la proue. */
 export const FIRE_ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
