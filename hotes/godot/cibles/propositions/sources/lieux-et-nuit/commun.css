@@ -1,3 +1,4 @@
+@import url(../gestes.css);
 @font-face{font-family:"Grenze Gotisch";src:url(../polices/GrenzeGotisch-wght.ttf);font-weight:100 900}
 @font-face{font-family:"Fell SC";src:url(../polices/IMFeENsc28P.ttf)}
 @font-face{font-family:"Fell";src:url(../polices/IMFeENrm28P.ttf)}
@@ -16,6 +17,7 @@ html,body{margin:0;background:#000}
 #scene{position:absolute;inset:0;width:1707px;height:780px}
 #ui{position:absolute;inset:0}
 .calque{position:absolute;inset:0;pointer-events:none}
+#grain{opacity:.2}
 
 /* matières du kit (reprises de la maquette de combat) */
 .bois{background-color:#2b1b11;background-image:var(--tex-bois),linear-gradient(180deg,#3a2517 0%,#24160d 55%,#1a0f08 100%);background-blend-mode:multiply,normal}
@@ -96,9 +98,6 @@ html,body{margin:0;background:#000}
 .heros.choisi{background:radial-gradient(120% 100% at 30% 40%,rgba(255,214,140,.16),rgba(255,214,140,0) 70%)}
 
 /* coins */
-#sortie{position:absolute;left:30px;top:694px;display:flex;align-items:center;gap:13px}
-#sortie .bouton-rond{width:52px;height:52px;padding:4px}
-#sortie span{font-size:14.5px;color:#f0e2c2;white-space:nowrap}
 #coins{position:absolute;left:1626px;top:642px;display:flex;flex-direction:column;gap:14px}
 #coins .bouton-rond{width:50px;height:50px;padding:4px}
 
@@ -106,6 +105,8 @@ html,body{margin:0;background:#000}
 .poste{position:absolute;width:160px;display:flex;flex-direction:column;align-items:center}
 .poste .portrait{width:48px;height:58px;padding:3px;z-index:1}
 .poste .medaillon{width:44px;height:44px;z-index:1}
+.poste .tenants{display:flex;align-items:center;gap:6px;z-index:1}
+.poste .tenants .medaillon{width:30px;height:30px}
 .poste .et{margin-top:-5px;padding:7px 12px 4px;text-align:center;border-radius:2px;box-shadow:0 4px 9px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
 .poste .et b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:17px;letter-spacing:.3px;color:#f4e8ca;white-space:nowrap}
 .poste .et span{display:block;font-size:11px;line-height:13px;color:var(--creme-2);white-space:nowrap;margin-top:1px}

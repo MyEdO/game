@@ -208,12 +208,14 @@ function pion(g, [x, y], { genre, camp, actif, cible, pv }) {
   el(g, 'rect', { x: x - w / 2, y: yb, width: w * pv, height: 4, fill: '#b9412c' });
 }
 const CALME = VAR === 'round' || FIN;
+/* LDB 14 l.3 : 10 dégâts − 7 (BE 4 + PA 3) = 3 Blessures du coup, puis 2 du Critique (LDB 18 l.65) */
+const PV_ORC = VAR === 'critique' ? 9 : 14;
 if (VAR !== 'defaite') {
   objet(...HEROS, (g, p) => pion(g, p, { genre: 'ilyanwe', camp: 'heros', actif: !ADVERSE && !CALME, pv: 1 }));
   objet(...BERTA, (g, p) => pion(g, p, { genre: 'berta', camp: 'heros', pv: 1 }));
 }
 if (VAR !== 'victoire') {
-  objet(...ORC, (g, p) => pion(g, p, { genre: 'orc', camp: 'ennemi', cible: !CALME, pv: VAR === 'critique' ? 12 / 14 : 1 }));
+  objet(...ORC, (g, p) => pion(g, p, { genre: 'orc', camp: 'ennemi', cible: !CALME, pv: PV_ORC / 14 }));
   objet(...GOBELIN, (g, p) => pion(g, p, { genre: 'gobelin', camp: 'ennemi', pv: 1 }));
 }
 { const g = el(S, 'g'); objets.sort((p, q) => p.z - q.z).forEach((o) => o.dessine(g, o.p)); }
@@ -264,7 +266,6 @@ const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}"
 
 const jeu = ETAT === 'jet';
 const ui = [];
-const PV_ORC = VAR === 'critique' ? 12 : 14;
 const I = (c = '', pv = 17) => rang('ilyanwe', 'heros', 'Ilyanwe la Voilée', pv, 17, c);
 const Be = (c = '') => rang('berta', 'heros', 'Berta', 12, 12, c);
 const G = (c = '', nom = 'Tireur gobelin') => rang('gobelin', 'ennemi', nom, 11, 11, c);
@@ -284,7 +285,7 @@ if (!FIN) {
   const LIGNES = {
     adverse: vieux('Berta se met en Défensive.') + vieux(TIR) + neuf(AVANCE),
     defense: vieux(TIR) + vieux(AVANCE) + neuf('Orc attaque Ilyanwe la Voilée.'),
-    critique: vieux(ORCP) + vieux(CHARGE) + neuf('Ilyanwe la Voilée touche Orc à la tête.'),
+    critique: vieux(ORCP) + vieux(CHARGE) + neuf('Ilyanwe la Voilée touche Orc (Tête) : 10 dégâts − 7 (BE+PA) = 3 Blessures — CRITIQUE !'),
     round: vieux(TIR) + vieux(AVANCE) + borneJ('Round 2'),
     journal: '',
   }[VAR] ?? (jeu && VAR !== 'incantation' ? vieux(GOB) + vieux(ORCP) + neuf(CHARGE) : borneJ('Le combat commence ! (Round 1)') + vieux(GOB) + neuf(ORCP));
@@ -348,44 +349,44 @@ if (!jeu) {
       ${arme('<path d="M18 62L58 22l6-8-8 6L16 60z" fill="#d9d3c2" stroke="#1a1005" stroke-width="1.500"/><path d="M14 52l14 14M12 68l6-6" stroke="#e2c06a" stroke-width="3.500"/>', 'Épée', 41, '+BF+4 (7)', 'Moyenne', [])}
       ${arme('<path d="M40 12l24 8v18c0 15-10 25-24 30-14-5-24-15-24-30V20z" fill="#6f4d30" stroke="#1a1005" stroke-width="1.500"/><path d="M40 12v56M16 34h48" stroke="#e2c06a" stroke-width="2.500"/><circle cx="40" cy="34" r="6" fill="#b9b3a4" stroke="#1a1005" stroke-width="1.500"/>', 'Bouclier', 41, '+BF+2 (5)', 'Très courte', ['Bouclier 2', 'Défensive', 'Assommante'])}
     </div><div class="onglets"><div class="ruban titre">Attaques</div>${['Compétences', 'Talents', 'Possessions'].map((t) => plaque(t)).join('')}</div>${ferrures}</div>`);
-    ui.push(FERMER);
+    ui.push(croix());
   }
 } else if (FIN) {
   ui.push(`<div id="issue" data-piece="issue"><div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="issue">${VAR === 'victoire' ? 'Victoire' : 'Défaite'}</span></div></div>${plaque('Reprendre', { armee: true })}</div>`);
 } else {
-  if (VAR === 'avant') ui.push(bandeau('Attaque', 'avant', `
+  if (VAR === 'avant') ui.push(bandeauDuJet('Attaque', 'avant', `
     ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 28, modif: 'Avantage +10' })}
     <div id="verdict" class="reglages">
       <div class="rangee">${silhouette(102, { tete: 'choisie' })}
         <div class="choix"><div class="sous rubrique">Bâton de combat · Cible : Orc</div><div class="l rubrique">Localisation</div>
           <div class="v"><span class="gothique">Tête</span><span class="modif rubrique">−20 au Test</span></div>
-          <div class="bas"><div class="plaque laiton mini"><div>Au hasard</div></div><div class="bascule"><i class="fer"><b class="laiton"></b></i><span class="rubrique">Retenir ses coups</span></div></div>
+          <div class="bas">${options([['Au hasard']])}${bascule('Retenir ses coups')}</div>
         </div></div></div>
     ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35 })}`,
-    `${plaque('Lancer', { armee: true })}${plaque('Annuler')}`));
-  else if (VAR === 'defense') ui.push(bandeau('Défense', '', `
+    avantLeDe({ heros: RESERVES.ilyanwe, annuler: true })));
+  else if (VAR === 'defense') ui.push(bandeauDuJet('Défense', '', `
     ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 38, des: ['60', '1'], total: 61, dr: '−3' })}
     ${verdict('Hache · Cible : Ilyanwe la Voilée', 'DR net +4', 'Orc touche Ilyanwe la Voilée au bras droit.')}
-    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Corps à corps (Base)', seuil: 35, des: ['4', '20'], total: 24, dr: '+1', reussite: true })}`, APRES()));
-  else if (VAR === 'incantation') ui.push(bandeau('Incantation', 'seul', `
+    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Corps à corps (Base)', seuil: 35, des: ['4', '20'], total: 24, dr: '+1', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe, echec: true })));
+  else if (VAR === 'incantation') ui.push(bandeauDuJet('Incantation', 'seul', `
     ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['30', '4'], total: 34, dr: '+5', reussite: true })}
     <div id="verdict" class="sort"><div class="sous rubrique">Sort · Niveau d’incantation 0</div><div class="dr gothique">Fléchette</div><p>Ilyanwe la Voilée lance Fléchette sur Orc.</p></div>
-    ${vise('orc', 'Orc', 'Cible du sort', '14 / 14')}`, APRES()));
-  else if (VAR === 'critique') ui.push(bandeau('Coup critique', 'critique', `
+    ${vise('orc', 'Orc', 'Cible du sort', '14 / 14')}`, apresLeDe({ heros: RESERVES.ilyanwe, survol: 'relancer' })));
+  else if (VAR === 'critique') ui.push(bandeauDuJet('Coup critique', 'critique', `
     <div class="camp touche">${portrait('orc', 'ennemi')}${silhouette(100, { tete: 'touchee' })}
       <div><div class="n gothique">Orc</div><div class="c rubrique">Touché à la tête</div>
       <div class="des"><div class="resultat">2</div><div class="issue"><b>Blessures</b><b>perdues</b></div></div></div>
     </div>
     <div id="critique"><div class="dr gothique">Coup percutant</div><p data-texte="texte du critique">Le sang obscurcit votre vision, et vous percevez des points blancs et des flashs de lumière. Vous obtenez 1 État Sonné.</p></div>`,
     plaque('Continuer', { armee: true })));
-  else if (VAR === 'round') ui.push(bandeau('Début du round', 'debut', `
+  else if (VAR === 'round') ui.push(bandeauDuJet('Début du round', 'debut', `
     <div class="annonce"><div class="dr gothique">Round 2</div><div class="sous rubrique">Agir en premier</div></div>
-    ${[['ilyanwe', 'Ilyanwe la Voilée', 'Sorcière', 1], ['berta', 'Berta', 'Soldate', 0]].map(([g, n, m, a]) => `<div class="plaque laiton carte${a ? ' armee' : ''}"><div>${portrait(g, 'heros')}<div class="qui"><div class="n gothique">${n}</div><div class="c">${m}</div></div></div></div>`).join('')}`,
-    plaque('Commencer le round', { armee: true, large: true })));
-  else ui.push(bandeau('Attaque', '', `
+    ${carte('Berta', 'Soldate <span class="modif rubrique">1 Chance</span>', { armee: true, portrait: portrait('berta', 'heros') })}`,
+    `${reserves([RESERVES.berta.chance, 'Chance de Berta'])}${plaque('Commencer le round', { armee: true, classe: 'large' })}`));
+  else ui.push(bandeauDuJet('Attaque', '', `
     ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['90', '8'], total: 98, dr: '−5', modif: 'Avantage +10' })}
     <div id="verdict"><div class="sous rubrique">Bâton de combat · Cible : Orc</div><div class="dr gothique">DR net +1</div><p>Ilyanwe la Voilée rate son attaque ; Orc gagne +1 Avantage.</p></div>
-    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`, APRES()));
+    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`, apresLeDe({ heros: RESERVES.ilyanwe, echec: true })));
 }
 monter(ui);
 if (VAR === 'fiche') FIGURES.berta(document.getElementById('figure-lue'));

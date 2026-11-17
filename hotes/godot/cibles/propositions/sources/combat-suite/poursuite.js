@@ -14,7 +14,7 @@ pieces.push(recit('En mer · Course-poursuite', 'Une voile noire grossit dans le
 pieces.push(`<div id="navire" class="cadre bois bord" data-piece="la poursuite"><div class="fond bois">
   ${ligne('Poursuivant', 'Cogue pirate')}
   ${ligne('Distance', `<span class="lin">${DISTANCE} / ${SEMES}</span>`)}${jauge(DISTANCE / SEMES)}
-  ${ligne('Ce Round', '<span class="lin">+2 contre +1</span>')}
+  ${ligne('Manche du jour', '<span class="lin">+1</span>')}
   ${ligne('Temps dégagé', 'semés à 100')}
   ${ligne('Distance 0', 'collision et abordage')}
 </div><div class="ruban rubrique">La poursuite</div>${ferrures}</div>`);
@@ -31,5 +31,5 @@ pieces.push(bandeau({
   aldric: { icone: 'etoile', texte: 'Navigateur : coupe par les hauts-fonds' },
   greta: { icone: 'couronne', texte: 'Capitaine : presse l’équipage à la manœuvre' },
 }));
-pieces.push(sortie('cordage', 'Postes de bord'), coins());
+pieces.push(ouvrir('Postes de bord', 'cordage', 502), coins());
 monter(pieces);

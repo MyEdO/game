@@ -130,10 +130,10 @@ monter([
        ${plaque('Lancer', { armee: true, icone: 'route' })}
        <div class="cachet">${sceau('route', 17)}</div>
      </div>
-     ${avis('', 'left:18px;top:320px;transform:rotate(-1.6deg)', 'ancre', 'La Barge du Sel')}
-     ${avis('', 'left:36px;top:375px;transform:rotate(1.2deg)', 'ancre', 'Le Loup et la Saumure')}
-     ${avis('', 'left:20px;top:430px;transform:rotate(-.8deg)', 'epee', 'L’Arène')}
-     ${avis('', 'left:34px;top:485px;transform:rotate(1deg)', 'plume', 'Les Caves de Weissbruck')}
+     ${avis('', 'left:18px;top:292px;transform:rotate(-1.6deg)', 'ancre', 'La Barge du Sel')}
+     ${avis('', 'left:36px;top:345px;transform:rotate(1.2deg)', 'ancre', 'Le Loup et la Saumure')}
+     ${avis('', 'left:20px;top:398px;transform:rotate(-.8deg)', 'epee', 'L’Arène')}
+     ${avis('', 'left:34px;top:451px;transform:rotate(1deg)', 'plume', 'Les Caves de Weissbruck')}
    </div>${ferrures}</div>`,
   `<div id="bandeau" class="cadre bois" data-piece="bandeau"><div class="fond bois">${GROUPE.map((h) => `
      <div class="heros">${portrait(h.id)}
@@ -148,6 +148,6 @@ monter([
        <div class="dit"><p>Le groupe peut partir à trois.</p></div></div>
      </div>
    </div>${ferrures}</div>`,
-  sortie('sortie', 'Quitter la partie'),
+  croix(),
   `<div id="coins" data-piece="coins">${rond('systeme', 23)}</div>`,
 ]);

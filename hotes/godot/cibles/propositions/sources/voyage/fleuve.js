@@ -17,26 +17,26 @@ if (PERIL) {
     <div class="vignette">${vignette}</div>
     <div class="corps"><div class="tete"><h2 data-texte="titre de l'événement">Barrage de débris</h2><span class="rubrique">Sur le Reik · 1ᵉʳ jour</span></div>
       <p data-texte="texte du livre">Là où le cours d’eau est étroit ou l’eau est peu profonde, les débris se sont peut-être agglomérés et forment un barrage qui doit être dégagé avant de continuer.</p>
-      ${plaque('Enfoncer le barrage en se servant de la barge comme d’un bélier.', { armee: true, icone: 'coque', prix: '+10 Dégâts à la coque · 60 / 60' })}
-      ${plaque('Dégager les débris à la main.', { icone: 'sablier', prix: 'Du temps perdu · la coque est épargnée' })}
+      <div class="choix">${carte('Forcer au bélier', '+10 Dégâts à la coque · 60 / 60', { armee: true })}${carte('Déblayer à la main', 'Du temps perdu · la coque est épargnée')}</div>
+      ${plaque('Enfoncer le barrage', { armee: true, icone: 'coque', classe: 'commet' })}
     </div>
   </div><div class="ruban gothique">Péril du fleuve</div>${ferrures}</div>`);
   pieces.push(bandeau({
     bjorn: { texte: 'jauge le courant à la perche' },
-    mira: { texte: 'tient la barge bout au courant' },
+    mira: { texte: 'Barre : tient la barge bout au courant' },
     aldric: { texte: 'compte les troncs pris dans le barrage' },
     greta: { texte: 'a déjà ôté ses bottes' },
   }));
 } else {
   pieces.push(recit('Sur le Reik · Journée de descente', 'Le vent prend la barge par le travers. Mira louvoie et le capte : la voile porte, le courant fait le reste.').replace('id="recit"', 'id="recit" class="route"'));
   pieces.push(frise({ de: 'Grünburg', vers: 'Altdorf', fait: .4, reste: 27 }));
-  pieces.push(billet({ x: 575, y: 428, largeur: 300, nom: 'Navigation', qui: 'Mira · à la barre', lignes: [['Voile', 'Accessible (+20) · 54'], ['Dé', '31'], ['Réussite', '+2 degrés'], ['Vent de côté capté', '+5 % de vitesse']] }));
+  pieces.push(billet({ x: 575, y: 374, largeur: 300, nom: 'Navigation', qui: 'Mira · à la barre', lignes: [['Voile', 'Accessible (+20) · 54'], ['Dé', '31'], ['Réussite', '+2 degrés'], ['Vent de côté capté', '+5 % de vitesse']], pied: chanceDe('mira') }));
   pieces.push(bandeau({
     bjorn: { texte: 'sonde le chenal à la perche' },
-    mira: { icone: 'barre', texte: 'louvoie et capte le vent de côté' },
+    mira: { icone: 'barre', texte: 'Barre : louvoie et capte le vent de côté' },
     aldric: { texte: 'suit les bornes du chemin de halage' },
     greta: { texte: 'veille sur la cargaison, à l’avant' },
   }));
 }
-pieces.push(sortie('tente', 'Faire halte'), coins());
+pieces.push(coins());
 monter(pieces);

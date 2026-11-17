@@ -1,5 +1,6 @@
 /* L'événement de route et son issue (cible écrite `ecrites/voyage.md`, « L'événement de route »). La péripétie
-   « Voyage éreintant ! » : LDB 51 l.215 ; `src/noyau/travelFlow.ts:1418`. */
+   « Voyage éreintant ! » : LDB 51 l.215 ; `src/noyau/travelFlow.ts:1418`. Le Test s'ouvre au bandeau du jet, le testeur
+   s'y désigne. */
 const ETAT = document.getElementById('ecran').dataset.etat;
 poser(interieur(D.route({ pont: true })));
 if (ETAT === 'evenement-de-route') assombrir();
@@ -13,25 +14,21 @@ const pieces = [];
 pieces.push(temps({ jour: 'Marktag', date: '14 Pflugzeit · 2ᵉ jour de route', meteo: 'Crépuscule, temps sec' }));
 pieces.push(carteDuTrajet({ titre: 'La route d’Altdorf', de: 'Sept Rayons', vers: 'Altdorf', part: .55 }));
 if (ETAT === 'evenement-de-route') {
-  pieces.push(`<div id="evenement" class="cadre bois" data-piece="evenement"><div class="fond parchemin">
+  pieces.push(`<div id="evenement" class="cadre bois court" data-piece="evenement"><div class="fond parchemin">
     <div class="vignette">${vignette}</div>
     <div class="corps"><div class="tete"><h2 data-texte="titre de l'événement">Voyage éreintant !</h2><span class="rubrique">Sur la route d’Altdorf · 2ᵉ jour</span></div>
-      <p data-texte="texte du livre">La route est bloquée. Un pont peut être effondré, une rivière bloquée ou une route inondée, ou quelque autre obstacle insurmontable.</p>
-      ${plaque('Chercher un bon itinéraire de substitution.', { armee: true, icone: 'route', prix: 'Survie en extérieur · Accessible (+20) · Bjorn' })}
-      ${plaque('Attendre que la route se dégage.', { icone: 'sablier', prix: 'Un jour plus tard · chacun Exténué' })}
-      ${plaque('Rebrousser chemin jusqu’aux Sept Rayons.', { fermee: true, icone: 'roue', prix: 'Fermé · le billet ne vaut que pour Altdorf' })}
+      <p data-texte="texte du livre">La route est bloquée. Un pont peut être effondré, une rivière bloquée ou une route inondée, ou quelque autre obstacle insurmontable. Un Personnage effectue un Test de Survie en extérieur Accessible (+20) pour trouver un bon itinéraire de substitution, sinon tout le monde arrive un jour plus tard avec un État Exténué.</p>
     </div><div class="sceau de"><b>4</b><i>d10</i></div>
   </div><div class="ruban gothique">Péripétie de la route</div>${ferrures}</div>`);
-  pieces.push(bandeau({
-    bjorn: { choisi: true, html: '<span class="attend rubrique">Désigné · Survie</span>' },
-    mira: { html: '<span class="attend sombre rubrique">Désigner</span>' },
-    aldric: { texte: 'n’a jamais dormi hors d’un lit' },
-    greta: { html: '<span class="attend sombre rubrique">Désigner</span>' },
-  }));
+  const bjorn = HEROS.find((h) => h.id === 'bjorn');
+  pieces.push(bandeauDuJet('Test de Survie en extérieur', '', `
+    ${camp({ portrait: portrait('bjorn'), nom: 'Bjorn', carac: 'Survie en extérieur', seuil: 61, modif: 'Accessible (+20)', sous: testeurs(HEROS.map((h) => portrait(h.id))) })}
+    ${reglages('Voyage éreintant ! · 2ᵉ jour de route', '<div class="dr gothique">Test simple</div><p>Sinon tout le monde arrive un jour plus tard avec un État Exténué.</p>')}
+    <div></div>`, avantLeDe({ heros: bjorn })));
 } else {
   pieces.push(recit('Sur la route d’Altdorf · Voyage éreintant !', 'Le pont a cédé sous la crue. Bjorn trouve un gué en amont, et la diligence repasse la rivière avant la nuit.').replace('id="recit"', 'id="recit" class="route"'));
   pieces.push(frise({ de: 'Auberge des Sept Rayons', vers: 'Altdorf', fait: .55, nuits: [.33], reste: 52 }));
-  pieces.push(billet({ x: 300, y: 452, nom: 'Survie en extérieur', qui: 'Bjorn', lignes: [['Seuil', 'Accessible (+20) · 61'], ['Dé', '27'], ['Réussite', '+4 degrés']] }));
+  pieces.push(billet({ x: 300, y: 398, nom: 'Survie en extérieur', qui: 'Bjorn', lignes: [['Seuil', 'Accessible (+20) · 61'], ['Dé', '27'], ['Réussite', '+4 degrés']], pied: chanceDe('bjorn') }));
   pieces.push(bandeau({
     bjorn: { icone: 'route', texte: 'trouve un gué en amont du pont' },
     mira: { texte: 'guide les chevaux dans le courant' },
@@ -39,6 +36,6 @@ if (ETAT === 'evenement-de-route') {
     greta: { texte: 'pousse à la roue, de l’eau jusqu’aux genoux' },
   }));
 }
-pieces.push(sortie('tente', 'Faire halte'), coins());
+pieces.push(coins());
 monter(pieces);
-if (ETAT === 'evenement-de-route') marquer('aldric', 'ferme');
+if (ETAT === 'evenement-de-route') clouer(document.getElementById('jet'));

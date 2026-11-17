@@ -1,5 +1,5 @@
 /* Socle commun des images d'intention (#3935), né avec « lieux et nuit » : matières, pictogrammes, portraits,
-   bandeau des héros, postes, silhouettes de décor. Se charge après `bustes.js`. Maquette hors du jeu. */
+   bandeau des héros, postes, silhouettes de décor. Se charge après `../gestes.js` et `bustes.js`. Maquette hors du jeu. */
 const NS = 'http://www.w3.org/2000/svg';
 const W = 1707, H = 780;
 const el = (hote, tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; hote.appendChild(e); return e; };
@@ -129,12 +129,6 @@ const pastille = (nom) => `<div class="pst laiton"><div>${picto(nom, 14, '#2a1a0
 const sceau = (nom, t = 14) => `<div class="sceau">${picto(nom, t, '#3a0c06', 1.9)}</div>`;
 
 const titre = ({ icone, nom, sous, largeur }) => `<div id="titre" class="cadre bois" data-piece="titre" style="width:${largeur}px"><div class="fond bois">${`<div class="medaillon fer"><div>${picto(icone, 27, '#e9dcc0')}</div></div>`}<div><div class="n gothique" data-texte="titre">${nom}</div><div class="s rubrique">${sous}</div></div></div>${ferrures}</div>`;
-const HEROS = [
-  { id: 'bjorn', nom: 'Bjorn', car: 'Chasseur', pv: 16, max: 16, bourse: '14/–' },
-  { id: 'mira', nom: 'Mira', car: 'Éclaireuse', pv: 11, max: 11, bourse: '9/– 4 sc' },
-  { id: 'aldric', nom: 'Aldric', car: 'Érudit', pv: 12, max: 12, bourse: '2 CO 6/–' },
-  { id: 'greta', nom: 'Greta Hartmann', car: 'Soldate', pv: 8, max: 14, bourse: '1 CO 3/–' },
-];
 /* dits : par héros, { texte, icone, mal, choisi, bourse } */
 const bandeau = (dits = {}, { bourses = false } = {}) => `<div id="bandeau" class="cadre bois" data-piece="bandeau"><div class="fond bois">${HEROS.map((h) => { const d = dits[h.id] ?? {}; return `
   <div class="heros ${d.choisi ? 'choisi' : ''}">${portrait(h.id, { classe: d.choisi ? 'choisi' : '' })}
@@ -145,17 +139,16 @@ const bandeau = (dits = {}, { bourses = false } = {}) => `<div id="bandeau" clas
       ${d.html ?? ''}
     </div>
   </div>`; }).join('')}</div>${ferrures}</div>`;
-const sortie = (icone, libelle) => `<div id="sortie" data-piece="sortie">${rond(icone, 24)}<span class="rubrique ombre">${libelle}</span></div>`;
 const coins = () => `<div id="coins" data-piece="coins">${rond('journal', 23)}${rond('systeme', 23)}</div>`;
-/* un poste dans la scène : cx = centre, y = haut */
-const poste = (cx, y, { nom, sous, icone, heros, ferme = false, vise = false }) => `<div class="poste ${heros ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}" style="left:${cx - 80}px;top:${y}px">
-  ${heros ? portrait(heros) : medaillon(icone, { ferme, taille: 21 })}
-  <div class="et bois"><b>${nom}</b>${sous ? `<span class="rubrique">${sous}</span>` : ''}</div></div>`;
+/* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus */
+const poste = (cx, y, { nom, sous, icone, heros = [], ferme = false, vise = false, plus = false }) => { const tenants = [heros].flat(); return `<div class="poste ${tenants.length ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}" style="left:${cx - 80}px;top:${y}px">
+  ${tenants.length ? `<div class="tenants">${tenants.map((h) => portrait(h)).join('')}${plus ? medaillon('plus', { petit: true }) : ''}</div>` : medaillon(icone, { ferme, taille: 21 })}
+  <div class="et bois"><b>${nom}</b>${sous ? `<span class="rubrique">${sous}</span>` : ''}</div></div>`; };
 const monter = (pieces) => {
   document.getElementById('ui').innerHTML = pieces.join('');
   const b = document.getElementById('bandeau');
   if (b) [[296, 3], [592, 3], [889, 3], [296, 143], [592, 143], [889, 143], [60, 3], [1120, 3], [60, 143], [1120, 143]].forEach(([x, y]) => { const c = document.createElement('i'); c.className = 'clou'; c.style.left = x + 'px'; c.style.top = y + 'px'; b.appendChild(c); });
-  document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay;opacity:.2';
+  document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay';
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { alea, melange, rims, sapin, perso, flammes, fermer, plaque, titre, bandeau, sortie, coins, poste, monter });
+Object.assign(globalThis, { alea, melange, rims, sapin, perso, flammes, fermer, plaque, titre, bandeau, coins, poste, monter });

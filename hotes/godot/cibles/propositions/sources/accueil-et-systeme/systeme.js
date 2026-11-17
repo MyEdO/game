@@ -22,7 +22,6 @@ Object.assign(BUSTES, {
   malmir: '<path d="M16 90c0-17 7-25 19-27l-2-8c-6-5-8-15-5-23 3-8 19-8 22 0 3 8 1 18-5 23l-2 8c12 2 19 10 19 27z"/><path d="M25 37l-10-10 10 3zM53 37l10-10-10 3z"/><path d="M24 30c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" fill="#1c1410"/>',
 });
 const buste = (genre, style = '', classe = '') => `<div class="portrait laiton ${classe}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" fill="#2a1f17">${BUSTES[genre]}</svg></div></div>`;
-const fermerRond = () => `<div id="fermer" data-piece="fermer">${rond('croix', 20)}</div>`;
 const outil = (icone, libelle) => `<div class="outil">${rond(icone, 23)}<span class="rubrique ombre">${libelle}</span></div>`;
 
 /* ───────── paysage ───────── */
@@ -32,4 +31,4 @@ const massif = (g, pts, bas, fill, extra = {}) => el(g, 'path', { d: 'M' + pts.m
 const nuages = (g, bandes, fill, filtre = 'f8') => bandes.forEach(([cx, cy, rx, ry, o]) => el(g, 'ellipse', { cx, cy, rx, ry, fill, opacity: o, filter: `url(#${filtre})` }));
 const lisiere = (g, y, n, hMin, hMax, fill, graine, x0 = 0, x1 = W) => { const r = alea(graine); const a = []; for (let i = 0; i < n; i++) a.push([x0 + r() * (x1 - x0), y + r() * 10, hMin + r() * (hMax - hMin)]); a.sort((p, q) => p[1] - q[1]).forEach(([x, yy, h]) => sapin(g, x, yy, h, fill)); };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { buste, fermerRond, outil, etoiles, crete, massif, nuages, lisiere });
+Object.assign(globalThis, { buste, outil, etoiles, crete, massif, nuages, lisiere });

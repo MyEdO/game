@@ -206,9 +206,9 @@ const ligne = (lab, val, classe = '') => `<div class="ligne ${classe}"><span cla
 const jauge = (part, classe = '') => `<div class="jauge ${classe}"><i style="width:${Math.round(100 * part)}%"></i></div>`;
 const interieur = (svg) => svg.replace(/^\s*<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
 const assombrir = (a = .58) => el(S, 'rect', { width: W, height: H, fill: '#080504', opacity: a });
-/* marque une carte de héros après le montage : `ferme` l'efface, sa raison reste lisible */
-const marquer = (id, classe) => document.querySelectorAll('#bandeau .heros')[HEROS.findIndex((h) => h.id === id)].classList.add(classe);
 /* le départ d'un trajet, sur le poteau des routes : la destination, sa longueur, un moyen par plaque et sa durée */
-const depart = ({ nom, sous, modes, refus }) => `<div class="depart"><div><b>${nom}</b><span class="s rubrique">${sous}</span>${refus ? `<p>${refus}</p>` : ''}</div><div class="modes">${modes.map(([icone, jours, o = {}]) => plaque(`${jours} j`, { icone, ...o })).join('')}</div></div>`;
+const depart = ({ nom, sous, modes, note }) => `<div class="depart"><div><b>${nom}</b><span class="s rubrique">${sous}</span>${note ? `<p>${note}</p>` : ''}</div><div class="modes">${modes.map(([icone, jours, o = {}]) => plaque(`${jours} j`, { icone, ...o })).join('')}</div></div>`;
+/* au pied d'un billet de jet : la Chance qui reste à ceux qui l'ont lancé (LDB 17 l.23-24) */
+const chanceDe = (...ids) => `<div class="chance"><span class="rubrique">Chance</span>${reserves(...ids.map((id) => { const h = HEROS.find((x) => x.id === id); return [h.chance, h.nom.split(' ')[0]]; }))}</div>`;
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { poser, temps, carteDuTrajet, frise, recit, billet, ligne, jauge, interieur, assombrir, marquer, depart });
+Object.assign(globalThis, { poser, temps, carteDuTrajet, frise, recit, billet, ligne, jauge, interieur, assombrir, depart, chanceDe });

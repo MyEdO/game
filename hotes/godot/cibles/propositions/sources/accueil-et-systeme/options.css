@@ -1,6 +1,5 @@
 #titre{top:14px;height:90px}
-#fermer{right:14px;top:8px}
-#fermer .bouton-rond{width:44px;height:44px}
+.croix{right:14px;top:8px}
 
 /* le volet des préférences */
 #preferences{left:24px;top:124px;width:400px}

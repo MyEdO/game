@@ -57,21 +57,20 @@ const frise = (rang) => {
     if (i === rang - 1) return `<div class="etape" style="left:${x(i)}px"><div class="ruban gothique" data-texte="étape">${p}<small class="lin">${rang}/${PAGES.length}</small></div></div>`;
     return `<div class="etape a-venir" style="left:${x(i)}px"><i class="clou"></i>${i === rang ? `<span class="rubrique">${p}</span>` : ''}</div>`;
   }).join('');
-  return cadre('frise', 26, 12, 1655, 74, 'bois', `<i class="rail fait" style="left:${x(0)}px;width:${x(rang - 1) - x(0)}px"></i><i class="rail" style="left:${x(rang - 1)}px;width:${x(9) - x(rang - 1)}px"></i>${etapes}<div id="fermer-creation" class="bouton-rond laiton"><div>${picto('croix', 17)}</div></div>`);
+  return cadre('frise', 26, 12, 1655, 74, 'bois', `<i class="rail fait" style="left:${x(0)}px;width:${x(rang - 1) - x(0)}px"></i><i class="rail" style="left:${x(rang - 1)}px;width:${x(9) - x(rang - 1)}px"></i>${etapes}${croix({ dansLePanneau: true })}`);
 };
 
 /* ───────── les trois panneaux ───────── */
 const gauche = (contenu) => cadre('choix', 26, 96, 610, 512, 'parchemin', contenu, { classe: 'pan' });
 const centre = (ruban, contenu) => cadre('page', 653, 96, 482, 512, 'parchemin', `<div class="page-c">${contenu}</div>`, { ruban, classe: 'pan' });
-/* acquis : [rubrique, valeur, jeton] ; gestes : { suivant, refus } */
+/* acquis : [rubrique, valeur, jeton] ; gestes : { suivant, refus } ; `refus` ferme « Suivant » et se dit au survol */
 const herosNeuf = ({ nom = 'Nouveau héros', acquis, pose, suivant = 'Suivant', refus = null, palette = false }) => cadre('heros-neuf', 1152, 96, 529, 512, 'bois', `
   <div class="niche laiton"><div>${figure(pose, { palette })}</div></div>
   <div class="acquis">
     <div class="qui" data-texte="nom du héros">${nom}</div>
     ${acquis.map(([r, v, j]) => `<div class="a"><i>${r}</i><b>${v}${j ? `<span class="jeton">${j}</span>` : ''}</b></div>`).join('')}
     <div class="gestes">
-      ${refus ? `<div class="refus">${refus}</div>` : ''}
-      ${refus ? plaque(`${suivant} ${picto('chevron_d', 16, '#8d8474', 2)}`, { fermee: true }) : plaque(`${suivant} ${picto('chevron_d', 16, '#2a1a08', 2)}`, { armee: true })}
+      ${refus ? plaque(`${suivant} ${picto('chevron_d', 16, '#8d8474', 2)}${raison(refus)}`, { fermee: true }) : plaque(`${suivant} ${picto('chevron_d', 16, '#2a1a08', 2)}`, { armee: true })}
       ${plaque(`${picto('chevron_g', 15, '#e2c06a', 2)} Précédent`)}
     </div>
   </div>`, { classe: 'pan' });

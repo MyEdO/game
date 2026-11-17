@@ -1,5 +1,5 @@
-/* Exploration et récit (#3935) : pièces reprises de la maquette de combat (colonne des portraits, lignes du journal,
-   bandeau de jet) et pièces propres aux six écrans. */
+/* Exploration et récit (#3935) : pièces reprises de la maquette de combat (colonne des portraits, lignes du journal)
+   et pièces propres aux six écrans. */
 #ecran{background:#07080d}
 .lin{font-family:"Lineale","Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-weight:500;letter-spacing:.1px}
 @font-face{font-family:"Lineale";src:url(../polices/Inter-Medium.otf);font-weight:500}
@@ -15,6 +15,7 @@
 .rang.mene .portrait{width:66px;height:80px;padding:4px;box-shadow:0 3px 7px rgba(0,0,0,.7),0 0 0 1px #1a1005,0 0 18px rgba(255,214,140,.55)}
 .rang.mene .nom{font-family:"Grenze Gotisch";font-weight:600;font-size:19px;color:#f6ead0;letter-spacing:.3px}
 .rang.mene .vie{width:98px;height:6px}
+.rang .role{font-size:11.5px;color:var(--or);white-space:nowrap;margin-top:1px}
 
 /* la chronique : trois lignes dans le coin */
 #chronique{position:absolute;right:24px;bottom:164px;width:330px;text-align:right}
@@ -47,45 +48,20 @@
 .arret{left:264px;top:560px;width:1180px;height:212px}
 .arret .ruban{top:-6px}
 .arret .ruban.gothique{font-size:19px;padding:1px 34px 4px;letter-spacing:.6px}
-#suites{position:absolute;left:20px;right:20px;bottom:13px;display:flex;justify-content:center;gap:9px}
-#suites .plaque{flex:none;width:150px;height:40px}
-#suites .plaque.large{width:176px}
-#suites .plaque>div{font-size:15px}
 
-/* le jet : un seul camp */
-#jet .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
-.camp{display:flex;gap:14px;align-items:flex-start}
-.camp.droite{flex-direction:row-reverse;text-align:right}
-.camp .portrait{width:78px;height:96px}
-.camp .n{font-size:21px;line-height:22px;color:#3a1a10;white-space:nowrap}
-.camp .c{font-size:12.5px;color:#4a3420;margin-top:1px;white-space:nowrap}
-.camp .des{display:flex;align-items:center;gap:10px;margin-top:7px}
-.camp .seuil{font-family:"Grenze Gotisch";font-weight:600;font-size:30px;line-height:34px;color:#2a1d12;white-space:nowrap}
-.camp .issue{line-height:17px}
-.camp .issue b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;letter-spacing:1px;color:#7c1f14}
-.camp .issue span{font-size:14px;color:#2a1d12;font-weight:600}
-.camp .issue.reussite b{color:#3d5a26}
-.resultat{flex:none;width:50px;height:50px;display:grid;place-items:center;font-family:"Grenze Gotisch";font-weight:600;font-size:27px;color:#fbe9d2;background:radial-gradient(circle at 38% 30%,#d2553a,#9c2a1a 50%,#5a130b 100%);border-radius:48% 52% 55% 45%/52% 46% 54% 48%;box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 0 0 3px rgba(60,10,5,.45),inset 2px 2px 3px rgba(255,170,140,.35)}
-.resultat.reussite{background:radial-gradient(circle at 38% 30%,#86a35a,#4c6a30 50%,#22361a 100%);box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 0 0 3px rgba(15,35,8,.45),inset 2px 2px 3px rgba(210,240,170,.35)}
-.modif{display:inline-block;padding:0 9px 1px;font-size:12.5px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35);white-space:nowrap}
-#verdict{text-align:center;padding:2px 12px 0;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:104px}
-#verdict .sous{font-size:12.5px;color:#4a3420;white-space:nowrap}
-#verdict .dr{font-size:32px;line-height:36px;color:#3a1a10;margin-top:2px}
-#verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
+/* le Test de compétence : le bandeau du socle du jet (`../combat/jet.css`, lié avant cette feuille) ; à droite, l'enjeu */
 .enjeu p{margin:8px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#3a2a18;max-width:250px;margin-left:auto}
 
 /* la conversation */
 #parole{top:548px;height:224px}
-#parole .fond{display:grid;grid-template-columns:118px 1fr 590px;column-gap:20px;padding:20px 18px 0 20px}
+#parole .fond{display:grid;grid-template-columns:118px 1fr 640px;column-gap:20px;padding:20px 18px 0 20px}
 #parole .orateur .portrait{width:118px;height:146px;padding:5px}
 #parole .dit{padding-top:1px}
 #parole .dit .n{font-size:27px;line-height:38px;margin:-6px 0 -4px;color:#3a1a10;white-space:nowrap}
 #parole .dit .c{font-size:12.5px;color:#5a2a12;white-space:nowrap}
 #parole .dit p{margin:11px 0 0;font-size:17.5px;line-height:25px;color:#2a1d12}
-#parole .reponses{border-left:1px solid rgba(60,40,20,.4);padding-left:20px;height:184px}
-#parole .reponses .tete{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#5a2a12;height:30px;margin-top:-4px}
-#parole .reponses .tete .portrait{width:26px;height:30px;padding:2px}
-.reponse{position:relative;height:33px;margin-top:5px;padding:2px;border-radius:3px;box-shadow:0 2px 5px rgba(40,20,5,.55),0 0 0 1px #150d04}
+#parole .reponses{border-left:1px solid rgba(60,40,20,.4);padding-left:20px;height:184px;display:flex;flex-direction:column;justify-content:center;gap:9px}
+.reponse{position:relative;height:35px;padding:2px;border-radius:3px;box-shadow:0 2px 5px rgba(40,20,5,.55),0 0 0 1px #150d04}
 .reponse>div{height:100%;display:flex;align-items:center;gap:10px;padding:0 11px 0 8px;border-radius:2px;background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,220,160,.12);font-size:14.5px;color:#f0e2c2;white-space:nowrap}
 .reponse b{flex:none;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:#120b07;box-shadow:0 0 0 1px rgba(226,192,106,.6);font-family:"Fell SC";font-weight:400;font-size:12px;color:#f0e2c2}
 .reponse .annonce{flex:none;display:flex;align-items:center;gap:6px;padding:1px 9px 2px 6px;border-radius:2px;font-family:"Fell SC";font-size:12.5px;letter-spacing:.8px;color:#2a1a08;background:linear-gradient(180deg,#f3dc93,#c39c44);box-shadow:0 0 0 1px #150d04}
@@ -101,7 +77,7 @@
 #butin .trouve p{margin:7px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#3a2a18}
 #butin .bourse{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:#2a1d12}
 #butin .bourse b{font-weight:600}
-.partage{display:grid;grid-template-columns:1fr repeat(4,128px);border-left:1px solid rgba(60,40,20,.4);padding-left:18px;align-items:center;row-gap:5px;height:168px;align-content:start}
+.partage{display:grid;grid-template-columns:1fr repeat(4,112px) 84px;border-left:1px solid rgba(60,40,20,.4);padding-left:18px;align-items:center;row-gap:5px;height:168px;align-content:start}
 .partage .col{display:flex;align-items:center;gap:8px;padding:0 6px 6px;border-bottom:1px solid rgba(60,40,20,.4)}
 .partage .col .portrait{width:34px;height:40px;padding:2px}
 .partage .col .q{min-width:0;flex:1}
@@ -110,18 +86,16 @@
 .partage .col .q span.plein{color:#7c1f14}
 .enc{position:relative;height:5px;margin-top:2px;background:rgba(40,25,10,.25);box-shadow:0 0 0 1px rgba(60,40,20,.7)}
 .enc i{position:absolute;left:0;top:0;bottom:0;background:#5a4530}
-.enc u{position:absolute;top:0;bottom:0;background:#c39c44;box-shadow:0 0 0 1px #5d4313}
 .enc.plein i{background:#7c1f14}
 .partage .tete-o{font-size:12px;color:#5a2a12;padding-bottom:6px;border-bottom:1px solid rgba(60,40,20,.4);align-self:end;height:47px;display:flex;align-items:flex-end}
 .objet{display:flex;align-items:center;gap:9px;height:31px;min-width:0}
 .objet .ic{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(60,40,20,.6);background:rgba(60,40,20,.08)}
 .objet b{font-family:"Grenze Gotisch";font-weight:600;font-size:18px;line-height:20px;color:#2a1d12;letter-spacing:.3px;white-space:nowrap}
 .objet span{font-size:12px;color:#5a2a12;white-space:nowrap}
-.objet .pst{width:22px;height:22px;margin-left:2px}
 .prise{justify-self:center;width:26px;height:26px;border-radius:50%;border:1px dashed rgba(60,40,20,.55)}
-.prise.oui{border:0;padding:2px;box-shadow:0 2px 4px rgba(40,20,5,.6),0 0 0 1px #150d04}
-.prise.oui>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#f3dc93,#b8923a 70%)}
-.prise.non{border:1px solid rgba(124,31,20,.6);background:rgba(124,31,20,.12);display:grid;place-items:center}
+.partage .col.laisser{align-self:stretch;justify-content:center;gap:6px;border-left:1px solid rgba(60,40,20,.4)}
+.partage .col.laisser b{font-family:"Fell SC";font-weight:400;font-size:12.5px;letter-spacing:1px;color:#5a2a12}
+#butin .reste{position:absolute;right:22px;bottom:24px;font-style:italic;font-size:13px;color:#4a3420}
 
 /* le document : une feuille tenue devant la scène */
 #feuille{position:absolute;left:52px;top:22px;width:620px;height:736px;transform:rotate(-1.200deg);filter:drop-shadow(0 18px 26px rgba(0,0,0,.75))}

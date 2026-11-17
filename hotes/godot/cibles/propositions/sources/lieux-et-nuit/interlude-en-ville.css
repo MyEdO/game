@@ -24,21 +24,18 @@
 .activite i{display:block;font-size:12.5px;line-height:16px;color:#d9ccac;margin-top:1px}
 #lieu .plaque.envoyer{height:42px;margin-top:11px}
 #lieu .plaque.envoyer>div{font-size:16px}
-#lieu .pied{font-size:11.5px;color:var(--creme-2);text-align:center;margin-top:8px}
 #interlude{left:1323px;top:20px;width:360px}
 #interlude .fond{padding:22px 16px 14px}
 #interlude h3{margin:-4px 0 -3px;font-family:"Grenze Gotisch";font-weight:600;font-size:23px;line-height:32px;color:#f4e8ca;text-shadow:0 1px 2px #000}
 #interlude .s{font-size:12px;color:var(--creme-2)}
-.semaines{display:grid;grid-template-columns:44px repeat(3,1fr);gap:7px 6px;align-items:center;margin-top:11px}
-.semaines .tete{text-align:center;font-size:11.5px;color:var(--creme-2)}
-.semaines .tete.ici{color:var(--or)}
-.semaines .portrait{width:38px;height:46px;padding:2px}
-.case{height:46px;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(201,185,149,.22);font-size:10.5px;color:#e2d5b6;text-align:center;line-height:12px}
-.case .pst,.case .sceau{width:18px;height:18px}
-.case.ici{box-shadow:inset 0 0 0 1px rgba(226,192,106,.7)}
-.case.libre{background:none;box-shadow:none;border:1px dashed rgba(201,185,149,.3)}
-.case.attend{background:linear-gradient(180deg,#f3dc93,#c39c44);color:#2a1a08;box-shadow:0 0 0 1px #150d04,0 0 12px rgba(255,214,140,.5)}
+.rangs{display:grid;grid-template-columns:44px 1fr auto;gap:9px 10px;align-items:center;margin-top:12px}
+.rangs .portrait{width:38px;height:46px;padding:2px}
+.rangs .q b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18px;line-height:22px;letter-spacing:.3px;color:#f4e8ca}
+.rangs .q span{display:block;font-size:11px;color:var(--creme-2);white-space:nowrap}
+.rangs .r{text-align:right}
+.rangs .r span{display:block;margin-top:6px;font-size:11px;color:var(--or);white-space:nowrap}
+.pips{display:flex;gap:7px;padding:0 3px;justify-content:flex-end}
+.pips i{width:11px;height:11px;transform:rotate(45deg);background:linear-gradient(135deg,#f0e4c6,#b9a57b);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.8)}
+.pips i.vide{background:#120b07;box-shadow:0 0 0 1px rgba(201,185,149,.4),inset 0 1px 2px #000}
 #interlude .filet{height:1px;background:linear-gradient(90deg,rgba(201,185,149,0),rgba(201,185,149,.45),rgba(201,185,149,0));margin:13px 0 10px}
 #interlude .avis{display:flex;gap:10px;align-items:flex-start;font-style:italic;font-size:12.5px;line-height:16.5px;color:#e6dabd}
-#interlude .plaque.passer{height:44px;margin-top:13px}
-#interlude .plaque.passer>div{font-size:16.5px}

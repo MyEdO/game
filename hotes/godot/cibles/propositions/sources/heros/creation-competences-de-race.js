@@ -14,13 +14,13 @@ poser([
   gauche(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">${rub('Compétences de race')}${plaque('Répartition par défaut', { style: 'flex:none;width:214px;height:32px' })}</div>
     <div class="lignes">${COMPETENCES.map(ligneDeRace).join('')}</div>
-    <div style="display:flex;align-items:center;gap:9px;margin-top:13px"><span class="jeton fer">À +5 &nbsp;·&nbsp; 3 / 3</span><span class="jeton or">À +3 &nbsp;·&nbsp; 2 / 3</span><span class="rub" style="margin-left:4px"><span class="note">Encore une Compétence à +3.</span></span></div>`),
+    <div style="display:flex;align-items:center;gap:9px;margin-top:13px"><span class="jeton fer">À +5 &nbsp;·&nbsp; 3 / 3</span><span class="jeton or">À +3 &nbsp;·&nbsp; 2 / 3</span></div>`),
   centre('Humains (Reiklander)', `
     <div class="nom" style="margin-top:12px" data-texte="titre de page">Compétences de race</div>
     <div class="sous">Trois à +5 · trois à +3</div>
     ${sep()}
     <div style="align-self:stretch;margin:2px 0 7px">${rub('Cinq Augmentations')}</div>
-    <div class="rangee">${carte('Soc', 'Charme', 35, 5)}${carte('Int', 'Évaluation', 32, 5)}${carte('Soc', 'Ragot', 35, 5)}</div>
+    <div class="rangee">${carte('Soc', 'Charme', 35, 5)}${carte('Int', 'Évaluation', 37, 5)}${carte('Soc', 'Ragot', 35, 5)}</div>
     <div style="align-self:stretch;margin:16px 0 7px">${rub('Trois Augmentations')}</div>
     <div class="rangee">${carte('FM', 'Calme', 29, 3)}${carte('Soc', 'Marchandage', 35, 3)}<div class="carte vide"><span>À choisir</span></div></div>
     <svg class="filigrane" width="92" height="92" viewBox="0 0 100 100" fill="none" stroke="rgba(90,58,28,.45)" stroke-width="1"><circle cx="50" cy="30" r="22"/><circle cx="50" cy="70" r="22"/><circle cx="30" cy="50" r="22"/><circle cx="70" cy="50" r="22"/><path d="M50 38l12 12-12 12-12-12z"/></svg>`),

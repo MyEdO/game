@@ -18,7 +18,7 @@ const barre = () => `<div id="barre" class="cadre bois" data-piece="barre"><div 
   <div class="sep"></div>
   ${petite('Enregistrer', { icone: 'disque' })}${petite('Tester la scène', { icone: 'jouer', armee: true })}
   <div class="sep"></div>
-  ${rond('croix', 17)}
+  ${croix({ dansLePanneau: true })}
 </div>${ferrures}</div>`;
 
 /* ───────── la scène vue de dessus ───────── */

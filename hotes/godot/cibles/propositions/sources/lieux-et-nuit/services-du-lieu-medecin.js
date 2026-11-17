@@ -81,22 +81,18 @@ pieces.push(`<div id="docteur" class="hote cadre bois" data-piece="docteur"><div
   <div class="tete">${medaillon('soin', { petit: true })}<div><div class="n gothique" data-texte="docteur">Le docteur de la guilde</div><div class="s rubrique">Docteur en médecine · Guérison 62</div></div></div>
   <p>Asseyez-vous sous la fenêtre et montrez-moi cela. Et ne bougez plus.</p>
 </div><i class="pointe" style="left:152px;bottom:-8px"></i>${ferrures}</div>`);
-const onglet = (id, nom, actif) => `<div class="onglet ${actif ? 'actif' : ''}">${portrait(id)}<span class="rubrique">${nom}</span></div>`;
+/* LDB 75 l.19 ; `src/noyau/medicFlow.ts:182`, `src/noyau/acteDeSoin.ts:30-36` ; #3004. Le patient se choisit au bandeau. */
 pieces.push(`<div id="soins" class="page cadre bois" data-piece="soins"><div class="fond parchemin">
-  <div class="onglets">${onglet('bjorn', 'Bjorn')}${onglet('mira', 'Mira')}${onglet('aldric', 'Aldric')}${onglet('greta', 'Greta', 1)}</div>
   <div class="patient"><div class="etat"><div class="l"><h3 data-texte="patient">Greta Hartmann</h3><span class="sous rubrique">Blessures <span class="lin">8 / 14</span></span></div><div class="vie"><i style="width:57%"></i></div></div></div>
   <div class="mal">${sceau('goutte', 12)}<span>Cuisse lacérée, jambe gauche : la plaie attend d’être recousue.</span></div>
   <div class="filet"></div>
   <div class="soin pris"><div class="ic">${picto('soin', 19, '#5a2a12')}</div><div class="t"><b>Panser les Blessures</b><span class="c">Guérison</span><i>Lui rend le Bonus d’Intelligence du docteur, plus ses degrés de réussite.</i></div><span class="px lin">5/–</span></div>
-  <div class="soin"><div class="ic">${picto('scalpel', 19, '#5a2a12')}</div><div class="t"><b>Recoudre la cuisse lacérée</b><span class="c">Chirurgie</span><i>Longue opération : chaque passe lui coûte 1d10 Blessures et une Hémorragie.</i></div><span class="px lin">15/–</span></div>
+  <div class="soin"><div class="ic">${picto('scalpel', 19, '#5a2a12')}</div><div class="t"><b>Recoudre la cuisse lacérée</b><span class="c">Chirurgie</span><i>Longue opération : chaque passe lui coûte 1d10 Blessures et une Hémorragie.</i></div><span class="px lin">15/–<small>valeur maison</small></span></div>
   <div class="filet"></div>
-  <table class="compte">
-    <tr class="total"><td>À payer</td><td>5/–</td></tr>
-    <tr><td>Bourse de Greta</td><td class="lin">1 CO 3/–</td></tr>
-    <tr><td>Il lui restera</td><td class="lin">18/–</td></tr>
-  </table>
-  ${plaque('Payer le docteur', { armee: true, icone: 'bourse', classe: 'payer' })}
+  <table class="compte"><tr class="total"><td>À payer</td><td>5/–</td></tr></table>
+  ${bourse({ heros: 'Greta', avoir: '1 CO 3/–' })}
+  ${plaque('Payer et soigner', { armee: true, icone: 'bourse', classe: 'payer' })}
 </div><div class="ruban gothique">Les soins du docteur</div>${ferrures}</div>`);
 pieces.push(bandeau({ greta: { choisi: true, mal: true, icone: 'goutte', texte: 'Cuisse lacérée, à recoudre' } }, { bourses: true }));
-pieces.push(sortie('sortie', 'Retour au quartier'), coins());
+pieces.push(retour('Retour au quartier'), coins());
 monter(pieces);

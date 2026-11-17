@@ -2,9 +2,9 @@
 
 Compte rendu des six états dessinés pour la coop, l'éditeur de campagne et le Compendium, des écrans sans image
 d'intention ni cible écrite. Contenu lu au code (`src/hote/`, `src/noyau/`, `server/`, `src/i18n/messages/fr.ts`),
-jamais le design d'un écran existant. Sources au dépôt : `sources/outils/` ; elles lient le socle de
-`sources/accueil-et-systeme/` et, pour `coop-la-main`, la halle de `sources/commerce/` sur le socle commun de
-`sources/lieux-et-nuit/`.
+jamais le design d'un écran existant. Sources au dépôt : `sources/outils/` ; elles lient le socle commun de
+`sources/lieux-et-nuit/`, les pièces de `sources/accueil-et-systeme/systeme.js` et, pour `coop-la-main`, la halle de
+`sources/commerce/`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (`coop.*` l.1408-1430, `ecran.salon.*` l.1466-1477,
@@ -20,7 +20,7 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 
 ## coop-ouvrir
 - Depuis l'accueil, aucune partie ouverte (`src/hote/salon.ts:67-74`). Une tablée vide au centre, quatre sièges « Un
-  siège à pourvoir » : l'hôte et jusqu'à trois invités (`server/src/roomLogic.ts:6`).
+  siège à pourvoir », inertes, : l'hôte et jusqu'à trois invités (`server/src/roomLogic.ts:6`).
 - « Rejoindre une partie » : code en six cases (`src/hote/coop/salon.ts`), « Le code de room fait 6 caractères. »,
   « Votre nom », « Rejoindre » armée.
 - « Héberger une partie » : aide du jeu, « Votre nom », « Héberger » en fer et son refus « Ouvrez une partie pour
@@ -32,7 +32,9 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - L'hôte en session (`src/hote/salon.ts:24-36`). Volet « Inviter — partagez le code » : le code en grand, « Joueurs
   connectés » (« (vous) », « — reconnexion… »), « Quitter le salon ».
 - La tablée : un siège par joueur, les héros qu'il tient posés devant lui, le siège absent marqué de cire, un siège
-  à pourvoir (`src/noyau/sieges.ts:41`).
+  à pourvoir (`src/noyau/sieges.ts:41`) en simple mention, sans médaillon : il ne se presse pas, l'invité entre par
+  le code. Un emplacement vide du groupe aurait sa rangée sur la page (`affecterLEmplacementAuSiege`,
+  `sieges.ts:180`) ; le groupe dessiné est complet.
 - Page « Attribution des héros » : une rangée par héros, un segment par siège ; « Maître du Jeu » : « IA (aucun MJ) »
   ou un siège (`src/noyau/sieges.ts:169`). Fermer en haut à droite.
 - À valider : l'attribution lue deux fois, sur la tablée et sur la page ; un segment par siège plutôt qu'une liste
@@ -42,6 +44,7 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - La halle vue du siège d'un invité. Cartouche « La main est à l'hôte » en haut ; les gestes sur la bourse et la cale
   sont en fer, avec la raison du jeu : « L'hôte seul engage la bourse et la cale du groupe. »
   (`src/noyau/intentionsDeSiege.ts:154-161`, `src/noyau/halle.hors-store.test.ts:130`).
+- « Bourses du groupe » montre la part de chacun sans − ni + (`bourse({ reglable: false })`) : l'invité ne règle rien.
 - Chaque héros du bandeau dit qui le joue : « Lena (vous) » en laiton, les autres en fer, « Otto — reconnexion… ».
 - Qui tient la main : `src/noyau/netOwnership.ts:713` (le concerné de la modale, sinon le combattant actif, sinon
   l'hôte).
@@ -80,7 +83,8 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - Un registre relié, repris de celui des règles maison. Un signet par famille (les sept du jeu), « Compétences »
   ouverte ; volet « Catégories » : Compétences (48), Talents (187), Axes de forces (9), « Rechercher », filtre
   « Livre » et ses comptes, « Nouvelle entrée » (`src/hote/compendium.ts:43-68`).
-- Page de gauche : les entrées de la catégorie avec leur source, « Négociateur » pointé, feuillets.
+- Page de gauche : en tête la catégorie, sous-titrée de sa famille et de son compte (« Famille Compétences · 187
+  talents ») ; les entrées de la catégorie avec leur source, « Négociateur » pointé, feuillets.
 - Page de droite : la fiche (Max, Test, source, description verbatim, lien « Compétence Marchandage »), ses renvois
   (Races 2, Carrières (par rang) 24, Créatures 19), « Modifier ».
 - À valider : le Compendium en registre relié, familles en signets ; la liste paginée en feuillets plutôt qu'en longue

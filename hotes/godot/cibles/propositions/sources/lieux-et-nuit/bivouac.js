@@ -1,4 +1,4 @@
-/* Le bivouac : la halte du soir en voyage. Chaque héros se pose sur un poste de la clairière. */
+/* Le bivouac : la halte du soir en voyage. Chaque héros règle son couchage et sa nourriture sur sa carte du bandeau. */
 rims('#e09a48', '#0b0806');
 grad('ciel', [[0, '#070a18'], [.38, '#121a3c'], [.74, '#2c3566'], [1, '#575a8c']]);
 grad('sol', [[0, '#24253a'], [.35, '#17161f'], [1, '#07060a']]);
@@ -70,7 +70,7 @@ el(G, 'path', { d: 'M632,580c10,0 14,6 14,14l-2,6l-14,0z', fill: '#a06a38' });
 el(G, 'ellipse', { cx: 556, cy: 586, rx: 11, ry: 8, fill: '#6a5038' });
 el(G, 'path', { d: 'M985,590L985,516M962,534L1008,534M985,516a9,9 0 1 0 .1,0', stroke: '#1a100a', 'stroke-width': 7, 'stroke-linecap': 'round', fill: '#1a100a' });
 el(G, 'path', { d: 'M981,590L981,520M962,531L984,531', stroke: '#c98a48', 'stroke-width': 1.6, opacity: .8 });
-// les héros à leur poste
+// les héros dans la clairière
 perso(G, 110, 566, 72, { pose: 'accroupi', coiffe: 'bonnet', fill: '#1b2242', vers: -1, extra: '<path d="M-26,0C-40,-8 -48,-22 -44,-40" stroke="#1b2242" stroke-width="2.500" fill="none"/>' });
 perso(G, 272, 414, 62, { coiffe: 'capuche', fill: '#080a14' });
 el(G, 'ellipse', { cx: 770, cy: 592, rx: 40, ry: 7, fill: '#000', opacity: .5, filter: 'url(#f2)' });
@@ -86,41 +86,18 @@ el(S, 'rect', { width: 520, height: 260, fill: 'url(#haut)', opacity: .5 });
 
 const pieces = [];
 pieces.push(titre({ icone: 'lune', nom: 'La halte du soir', sous: `14 Pflugzeit · troisième nuit · ${picto('flocon', 13, '#c9b995')} ciel clair, gel`, largeur: 436 }));
-pieces.push(`<div id="recit" data-piece="recit"><div class="r rubrique ombre">Dans le Reikwald, à l’écart du chemin</div><p class="ombre">La clairière est sèche et le bois mort ne manque pas. Reste à dire qui veille, qui chasse et qui dort.</p></div>`);
-const POSTES = [
-  [110, 400, { nom: 'Approvisionnement', sous: 'Survie en extérieur', heros: 'bjorn' }],
-  [272, 250, { nom: 'Plein air', sous: 'Survie en extérieur', heros: 'mira' }],
-  [440, 344, { nom: 'Monter un camp', sous: 'Survie ou Guérison', icone: 'tente' }],
-  [598, 476, { nom: 'Récupérer', sous: 'Une nuit de repos', icone: 'sommeil' }],
-  [760, 404, { nom: 'Établir des cartes', sous: 'Cartographe ou Dessin', heros: 'aldric' }],
-  [985, 414, { nom: 'Pratiquer une Compétence', sous: 'Au choix', icone: 'epee' }],
-  [1110, 284, { nom: 'Rester aux aguets', sous: 'Perception', icone: 'oeil', vise: true }],
-  [1222, 378, { nom: 'Recueillir des informations', sous: 'Route déserte', icone: 'bulle', ferme: true }],
-];
-pieces.push(`<div data-piece="postes">${POSTES.map((p) => poste(...p)).join('')}</div>`);
-pieces.push(`<div class="apercu parchemin vers-droite" style="left:748px;top:226px;width:270px;--pointe:74px">
-  <div class="tete"><span class="n gothique">Rester aux aguets</span><span class="c rubrique">Greta</span></div>
-  <table><tr><td>Perception</td><td>≤ 41</td></tr><tr><td>Difficulté</td><td>Intermédiaire</td></tr></table>
-  <div class="pied">Réussie, sa veille garde le groupe de toute surprise pendant l’Étape. Manquée, elle la laisse exténuée.</div>
-</div>`);
+pieces.push(`<div id="recit" data-piece="recit"><div class="r rubrique ombre">Dans le Reikwald, à l’écart du chemin</div><p class="ombre">La clairière est sèche et le bois mort ne manque pas.</p></div>`);
+/* `src/noyau/restFlow.ts:163` (couchage et pitance par héros), `:486-512` ; `docs/regles-optionnelles.md:256` */
 pieces.push(`<div id="camp" class="cadre bois" data-piece="campement"><div class="fond bois">
-  <div class="rang-c"><span class="lab rubrique">Abri</span>${plaque('Tente', { armee: true, icone: 'tente' })}${plaque('Belle étoile', { icone: 'lune' })}</div>
-  <div class="note-c">Quatre dormeurs côte à côte sous la toile.</div>
-  <div class="rang-c"><span class="lab rubrique">Couchage</span><div class="pips"><i></i><i></i><i></i><i class="vide"></i></div><span class="v">3 sacs de couchage <em>pour 4</em></span></div>
-  <div class="rang-c"><span class="lab rubrique">Vivres</span><div class="chiffre">9</div><span class="v">rations <em>· 4 mangées ce soir</em></span></div>
+  <div class="rang-c"><span class="lab rubrique">Abri</span>${medaillon('tente', { petit: true })}<span class="v">Tente <em>· quatre dormeurs sous la toile</em></span></div>
   <div class="rang-c" style="margin-bottom:0"><span class="lab rubrique">Temps</span>${sceau('flocon')}<span class="v">Gel cette nuit : il faudra tenir contre le froid.</span></div>
   <div class="filet"></div>
   <div class="t rubrique">Ce que la nuit jouera</div>
-  <div class="jouera">${pastille('tente')}Le campement<span class="rubrique">Survie en extérieur</span></div>
-  <div class="jouera">${pastille('feu')}Les activités du soir<span class="rubrique">une par héros</span></div>
-  <div class="jouera">${pastille('sommeil')}Le repos<span class="rubrique">Résistance</span></div>
+  <div class="jouera">${pastille('flocon')}Le froid<span class="rubrique">Résistance</span></div>
+  <div class="jouera">${pastille('sommeil')}Le repos<span class="rubrique">une nuit</span></div>
   ${plaque('Passer la nuit', { armee: true, icone: 'lune', classe: 'nuit' })}
 </div><div class="ruban rubrique">Le campement</div>${ferrures}</div>`);
-pieces.push(bandeau({
-  bjorn: { icone: 'arc', texte: 'pose ses collets à la lisière' },
-  mira: { icone: 'ciel', texte: 'lit le ciel et le vent pour demain' },
-  aldric: { icone: 'carte', texte: 'reporte la route sur le vélin' },
-  greta: { choisi: true, html: '<span class="attend rubrique">À poster dans le camp</span>' },
-}));
-pieces.push(sortie('route', 'Lever le camp'), coins());
+const choix = (ration) => ({ html: `<div class="choix-h"><span class="rubrique">Couchage</span><b>Dehors</b></div><div class="choix-h"><span class="rubrique">Nourriture</span>${plaque('Ration', { armee: ration })}${plaque('Rien', { armee: !ration })}</div>` });
+pieces.push(bandeau({ bjorn: choix(true), mira: choix(true), aldric: choix(true), greta: choix(false) }));
+pieces.push(coins());
 monter(pieces);

@@ -61,5 +61,5 @@ monter([
      </div>
      <i class="clou" style="left:8px;top:8px"></i><i class="clou" style="right:8px;top:8px"></i><i class="clou" style="left:8px;bottom:8px"></i><i class="clou" style="right:8px;bottom:8px"></i>
    </div>`,
-  fermerRond(),
+  croix(),
 ]);

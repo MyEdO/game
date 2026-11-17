@@ -1,6 +1,6 @@
 /* Socle du combat, images d'intention (#3935) : outils de dessin, matières, grille isométrique et pièces d'interface
    (portraits, pastilles, plaques, ordre, journal, bandeau du jet), sans décor. `combat.js` y pose la cour, `../voyage/`
-   la mer du combat naval. Se charge après `jet.js`. Maquette hors du jeu. */
+   la mer du combat naval. Se charge après `../gestes.js` et `jet.js`. Maquette hors du jeu. */
 const NS = 'http://www.w3.org/2000/svg';
 const W = 1707, H = 780;
 const el = (hote, tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; hote.appendChild(e); return e; };
@@ -51,9 +51,10 @@ const PICTOS = {
   journal: '<path d="M4 5c3-1.200 5.500-1.200 8 0v14c-2.500-1.200-5-1.200-8 0zM20 5c-3-1.200-5.500-1.200-8 0v14c2.500-1.200 5-1.200 8 0z"/>',
   systeme: '<circle cx="12" cy="12" r="3.200"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.600 5.600l2.100 2.100M16.300 16.300l2.100 2.100M5.600 18.400l2.100-2.100M16.300 7.700l2.100-2.100"/>',
   epee: '<path d="M6 18L17 7l2-3-3 2L5 17zM8 13l3 3M4 20l2-2"/>',
+  croix: '<path d="M6 6l12 12M18 6L6 18"/>',
 };
 const rond = (nom, taille, { ferme = false, couleur } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'}"><div>${picto(PICTOS[nom], taille, couleur ?? (ferme ? '#7d7668' : '#e2c06a'))}</div></div>`;
-const plaque = (libelle, { armee = false, icone = null, large = false, fermee = false } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'}${armee ? ' armee' : ''}${large ? ' large' : ''}"><div>${icone ? picto(PICTOS[icone], 21, armee ? '#2a1a08' : fermee ? '#7d7668' : '#e2c06a', 1.7) : ''}${libelle}</div></div>`;
+const plaque = (libelle, { armee = false, icone = null, classe = '', fermee = false } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'}${armee ? ' armee' : ''} ${classe}"><div>${icone ? picto(PICTOS[icone], 21, armee ? '#2a1a08' : fermee ? '#7d7668' : '#e2c06a', 1.7) : ''}${libelle}</div></div>`;
 
 const rang = (genre, camp, nom, pv, max, classe = '') => `
   <div class="rang ${camp === 'ennemi' ? 'ennemi' : ''} ${classe}">${portrait(genre, camp)}
@@ -63,9 +64,8 @@ const rang = (genre, camp, nom, pv, max, classe = '') => `
 const borne = (n) => `<div class="borne"><div class="disque fer"><div>${n}</div></div><span class="rubrique ombre">Round ${n}</span><i></i></div>`;
 const vieux = (t) => `<p class="vieux ombre">${t}</p>`, neuf = (t) => `<p class="ombre">${t}</p>`, borneJ = (t) => `<p class="borne-j ombre">${t}</p>`;
 const medaillon = (n, t) => `<div class="medaillon"><div class="disque fer"><div>${n}</div></div><span class="rubrique">${t}</span></div>`;
-/* les pièces fixes : le système, la fermeture d'une fiche */
+/* la pièce fixe : le système */
 const SYSTEME = `<div id="systeme" data-piece="systeme">${rond('systeme', 22, { couleur: '#c9b995' })}</div>`;
-const FERMER = `<div id="fermer" data-piece="fermer"><span class="rubrique ombre">Fermer</span>${rond('annuler', 20)}</div>`;
 /* le meuble de l'actif : les outils du tour, la barre (état, plaques, pastilles), son portrait et son nom */
 const mesure = (nom, valeur, classe = '') => `<div class="mesure ${classe}"><div class="tete rubrique"><span>${nom}</span><b>${valeur}</b></div><div class="vie"><i style="width:100%"></i></div></div>`;
 const JETONS = `<div class="jeton"><div class="sceau">${picto(PICTOS.epee, 18, '#3a0c06', 1.7)}</div><div class="v"><span class="rubrique">Action</span> <em>disponible</em></div></div>
@@ -82,14 +82,10 @@ const meuble = ({ genre, camp = 'heros', nom, sous, etat, plaques, pastilles, ad
   portrait(genre, camp, '').replace('class="portrait', 'id="actif-portrait" class="portrait'),
   `<div id="actif-nom"><div class="n gothique" data-texte="nom de l'actif">${nom}</div><div class="a rubrique">${sous}</div></div>`,
 ];
-/* le bandeau du jet, à la place de la barre */
-const bandeau = (titre, classe, contenu, suites) => `<div id="jet" class="cadre bois" data-piece="jet"><div class="fond parchemin ${classe}">
-  ${contenu}
-  <div id="suites">${suites}</div>
-</div><div class="ruban titre">${titre}</div>${ferrures}</div>`;
 /* la cible d'un sort, sans dé */
 const vise = (genre, nom, role, pv) => `<div class="camp droite visee">${portrait(genre, 'ennemi')}<div><div class="n gothique">${nom}</div><div class="c rubrique">${role}</div>${pv ? `<div class="pv"><div class="vie"><i style="width:100%"></i></div><b class="rubrique">${pv}</b></div>` : ''}</div></div>`;
-const APRES = ({ relance = true } = {}) => `${plaque('Appliquer', { armee: true })}${plaque('Relancer', { fermee: !relance })}${plaque('Chance : +1 DR', { large: true })}${plaque('Pacte')}${plaque('Résilience')}`;
+/* les réserves des deux héros de la cour ; Ilyanwe : la fiche validée (`../../../maquettes/fiche-du-heros.jpg`) */
+const RESERVES = { ilyanwe: { chance: 4, resilience: 3, determination: 3 }, berta: { chance: 2, resilience: 1, determination: 1 } };
 /* pose les pièces, cloue le meuble du bas, passe le grain */
 const monter = (ui) => {
   document.getElementById('ui').innerHTML = ui.join('');
@@ -97,4 +93,4 @@ const monter = (ui) => {
   document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay;opacity:.3';
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { W, H, alea, melange, P, losange, rang, borne, vieux, neuf, borneJ, medaillon, SYSTEME, FERMER, mesure, JETONS, meuble, bandeau, vise, APRES, monter });
+Object.assign(globalThis, { W, H, alea, melange, P, losange, rang, borne, vieux, neuf, borneJ, medaillon, SYSTEME, plaque, mesure, JETONS, meuble, vise, RESERVES, monter });

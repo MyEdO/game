@@ -19,7 +19,7 @@ const table = () => `<svg viewBox="0 0 640 520"><defs>
   <g fill="#3a2414" stroke="#150c07" stroke-width="1.500"><circle cx="246" cy="160" r="13"/><circle cx="404" cy="176" r="13"/></g><g fill="#7a4a1c"><circle cx="246" cy="160" r="8"/><circle cx="404" cy="176" r="8"/></g>
 </svg>`;
 const siege = (x, y, { nom, sous, heros = [], vous = false, absent = false, vide = false }) => vide
-  ? `<div class="siege vide" style="left:${x}px;top:${y}px"><div class="q">${medaillon('plus', { petit: true, ferme: true })}<div><b>Un siège à pourvoir</b></div></div></div>`
+  ? `<div class="siege vide" style="left:${x}px;top:${y}px"><div class="q"><div><b>Un siège à pourvoir</b></div></div></div>`
   : `<div class="siege bois ${vous ? 'vous' : ''} ${absent ? 'absent' : ''}" style="left:${x}px;top:${y}px">
       <div class="q">${absent ? sceau('reseau', 15) : medaillon('personnage', { petit: true })}<div><b class="gothique" data-texte="siège ${nom}">${nom}</b><span class="rubrique">${sous}</span></div></div>
       <div class="tient">${heros.length ? heros.map((h) => portrait(h)).join('') : '<i>Aucun héros</i>'}</div></div>`;
@@ -73,5 +73,5 @@ if (SALON) {
      </div>${ferrures}</div>`,
   );
 }
-pieces.push(fermerRond());
+pieces.push(croix());
 monter(pieces);

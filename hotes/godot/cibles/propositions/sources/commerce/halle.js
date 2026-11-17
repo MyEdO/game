@@ -5,6 +5,10 @@
 const ETAT = document.getElementById('ecran').dataset.etat;
 const COOP = ETAT === 'coop-la-main';
 const VENTE = ETAT === 'halle-vente', JET = ETAT.startsWith('marchandage'), AVANT = ETAT === 'marchandage-avant-le-de';
+const MARCHANDE = JET && !AVANT;
+/* #3004 : la cargaison est une entreprise commune, chacun règle sa part avant de conclure */
+const [bjorn, mira, aldric, greta] = HEROS;
+const PARTS = bourse({ parts: [[bjorn.nom, '10/–', bjorn.bourse], [mira.nom, '5/–', mira.bourse], [aldric.nom, MARCHANDE ? '1 CO 4/– 6 sc' : '1 CO 10/–', aldric.bourse], ['Greta', '10/–', greta.bourse]], total: MARCHANDE ? '2 CO 9/– 6 sc' : '2 CO 15/–', reglable: !COOP });
 sceneDeLaHalle({ charge: VENTE ? 3 : 0 });
 
 const pieces = [];
@@ -56,35 +60,35 @@ if (VENTE) {
     <table class="compte">
       <tr><td>Prix de base<span class="lin">25 Enc à 2/–</span></td><td class="lin">2 CO 10/–</td></tr>
       <tr><td>Lot partagé<span class="lin">+10 %</span></td><td class="lin">5/–</td></tr>
-      ${JET && !AVANT ? '<tr><td>Marchandage gagné<span class="lin">−10 %</span></td><td class="lin">−5/– 6 sc</td></tr>' : ''}
-      <tr class="total"><td>${JET && !AVANT ? 'Prix marchandé' : 'Estimation'}</td><td>${JET && !AVANT ? '2 CO 9/– 6 sc' : '2 CO 15/–'}</td></tr>
-      <tr><td>Bourse du groupe</td><td class="lin">4 CO 12/– 4 sc</td></tr>
+      ${MARCHANDE ? '<tr><td>Marchandage gagné<span class="lin">−10 %</span></td><td class="lin">−5/– 6 sc</td></tr>' : ''}
+      <tr class="total"><td>${MARCHANDE ? 'Prix marchandé' : 'Estimation'}</td><td>${MARCHANDE ? '2 CO 9/– 6 sc' : '2 CO 15/–'}</td></tr>
     </table>
+    ${PARTS}
     ${JET ? '' : COOP ? `${plaque('Conclure l’achat', { fermee: true, icone: 'balance', classe: 'conclure' })}
-    <div class="note refus">${sceau('reseau', 12)}<i data-texte="refus">L’hôte seul engage la bourse et la cale du groupe.</i></div>`
+    <div class="note refus">${sceau('reseau', 12)}<i data-texte="refus">L’hôte seul engage les bourses et la cale du groupe.</i></div>`
     : `${plaque('Conclure l’achat', { armee: true, icone: 'balance', classe: 'conclure' })}
     <div class="note"><i>Le Marchandage se joue à la conclusion, contre le négociant.</i></div>`}
   </div><div class="ruban gothique">Le chargement</div>${ferrures}</div>`);
 }
 
 if (JET) {
-  pieces.push(`<div id="jet" class="cadre bois" data-piece="jet"><div class="fond parchemin">
-    ${AVANT ? camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, modif: 'Soutien du groupe' })
-      : camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, des: ['20', '7'], total: 27, dr: '+2', reussite: true, verdict: 'Réussite' })}
-    ${AVANT ? `<div id="verdict"><div class="sous rubrique" data-texte="sous-titre">Laine · 25 Enc · estimation 2 CO 15/–</div><div class="dr gothique">Test opposé</div>
-        <div class="enjeux"><span class="modif rubrique">Gagné : −10 %</span><span class="modif rubrique">Succès Stupéfiant : −20 %</span></div></div>`
-      : `<div id="verdict"><div class="sous rubrique" data-texte="sous-titre">Laine · 25 Enc</div><div class="dr gothique">DR net +4</div>
-        <p>Gagné (−10 % à l’achat)</p><div class="prix lin"><s>2 CO 15/–</s><b>2 CO 9/– 6 sc</b></div></div>`}
-    ${AVANT ? camp({ cote: 'droite', portrait: portrait('drapier'), nom: 'Le négociant en laine', carac: 'Marchandage', seuil: '?' })
-      : camp({ cote: 'droite', portrait: portrait('drapier'), nom: 'Le négociant en laine', carac: 'Marchandage', seuil: '?', des: ['1', '60'], total: 61, dr: '−2', verdict: 'Échec' })}
-    <div id="suites">${AVANT ? `${plaque('Lancer', { armee: true })}${plaque('Annuler')}` : `${plaque('Conclure', { armee: true })}${plaque('Relancer')}${plaque('Chance : +1 DR', { classe: 'large' })}${plaque('Refuser le marché', { classe: 'large' })}`}</div>
-  </div><div class="ruban gothique">Marchander l’achat</div>${ferrures}</div>`);
+    const negociant = { cote: 'droite', portrait: portrait('drapier'), nom: 'Le négociant en laine', carac: 'Marchandage', seuil: '?' };
+  /* MSRC 13 l.127 ; LDB 59 l.43 ; `src/noyau/landMarketFlow.ts:325` */
+  pieces.push(bandeauDuJet('Marchander l’achat', '', AVANT ? `
+    ${camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, modif: 'Soutien du groupe' })}
+    ${reglages('Laine · 25 Enc · estimation 2 CO 15/–', '<div class="dr gothique">Test opposé</div><div class="enjeux"><span class="modif rubrique">Gagné : −10 %</span><span class="modif rubrique">Succès Stupéfiant : −20 %</span><span class="modif rubrique">Perdu : +10 %</span><span class="modif rubrique">Négociateur : 10 % de plus</span></div>')}
+    ${camp(negociant)}` : `
+    ${camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, des: ['20', '7'], total: 27, dr: '+2', reussite: true, verdict: 'Réussite' })}
+    <div id="verdict"><div class="sous rubrique" data-texte="sous-titre">Laine · 25 Enc</div><div class="dr gothique">DR net +4</div>
+      <p>Gagné (−10 % à l’achat)</p><div class="prix lin"><s>2 CO 15/–</s><b>2 CO 9/– 6 sc</b></div></div>
+    ${camp({ ...negociant, des: ['1', '60'], total: 61, dr: '−2', verdict: 'Échec' })}`,
+  AVANT ? avantLeDe({ heros: aldric, annuler: true }) : `${apresLeDe({ heros: aldric, valider: 'Conclure' })}${plaque('Refuser le marché', { classe: 'large' })}`));
   pieces.push(`<div id="coins" data-piece="coins" style="top:706px">${rond('systeme', 23)}</div>`);
 } else {
   const joue = (qui, moi) => ({ html: `<span class="attend rubrique ${moi ? '' : 'autre'}">${qui}</span>` });
   if (COOP) pieces.push(`<div id="main" class="cadre bois" data-piece="main"><div class="fond bois">${medaillon('reseau', { petit: true })}<div><b class="gothique" data-texte="main">La main est à l’hôte</b><span class="rubrique">Karl compose l’achat · partie K7M2QX</span></div></div>${ferrures}</div>`);
   pieces.push(bandeau(COOP ? { bjorn: joue('Karl · hôte'), mira: joue('Lena (vous)', true), aldric: { ...joue('Karl · hôte'), choisi: true }, greta: joue('Otto — reconnexion…') } : { aldric: { icone: 'balance', texte: 'mènera le Marchandage' } }, { bourses: true }));
-  pieces.push(sortie('sortie', 'Quitter la halle'), coins());
+  pieces.push(retour('Quitter la halle'), coins());
 }
 monter(pieces);
 if (JET) clouer(document.getElementById('jet'));

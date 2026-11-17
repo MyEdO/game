@@ -76,9 +76,6 @@
 .service .gestes .plaque>div{font-size:13px;gap:6px;padding:0 9px;letter-spacing:.8px}
 #carte{left:1322px;top:20px;width:361px;height:238px}
 #carte svg{display:block;width:100%;height:100%}
-#ouvrir-carte{position:absolute;left:1500px;top:266px;width:176px;display:flex;align-items:center;justify-content:flex-end;gap:12px}
-#ouvrir-carte .bouton-rond{width:34px;height:34px;padding:3px}
-#ouvrir-carte span{font-size:13px;color:#f0e2c2;white-space:nowrap}
 #partir{left:1322px;top:320px;width:361px}
 #partir .fond{padding:17px 14px 9px}
 .depart{display:flex;align-items:center;gap:10px;padding:6px 2px}
@@ -90,17 +87,16 @@
 .depart .moyen .bouton-rond{width:36px;height:36px;padding:3px}
 
 /* le Marchandage : le bandeau de jet du combat (`../combat/jet.css`, lié avant cette feuille), à sa place ; ce que la
-   famille y change : un centre plus large pour les prix, le ruban du socle commun, des libellés sur une ligne */
+   famille y change : un centre plus large pour les prix, des libellés sur une ligne */
 #jet .fond{grid-template-columns:1fr 340px 1fr}
-#jet .ruban{top:-6px;font-size:19px;padding:1px 34px 4px;letter-spacing:.6px}
 .camp .issue b{text-transform:none}
 .modif{margin-top:0;white-space:nowrap}
 #verdict .sous,#verdict .dr{white-space:nowrap}
-#verdict .enjeux{display:flex;justify-content:center;gap:7px;margin-top:7px}
+#verdict .enjeux{display:flex;flex-wrap:wrap;justify-content:center;gap:5px 7px;margin-top:7px}
 #verdict .prix{display:flex;justify-content:center;align-items:baseline;gap:10px;margin-top:3px;font-size:14px;color:#2a1d12;white-space:nowrap}
 #verdict .prix s{color:#6a5236}
 #verdict .prix b{font-weight:600}
-#suites .plaque.large{width:190px}
+#suites .plaque.large{flex-basis:190px}
 #page.courte{height:524px}
 
 /* la halle vue d'un siège invité */
@@ -111,3 +107,8 @@
 .heros .attend.autre{background:linear-gradient(180deg,#3a3630,#1e1c18);color:#cfc5ae;box-shadow:0 0 0 1px #000,0 2px 4px rgba(0,0,0,.6)}
 #page .note.refus{display:flex;align-items:center;gap:8px;color:#6b1c10}
 #page .note.refus .sceau{flex:none;width:22px;height:22px}
+/* les parts de l'achat, sous le compte */
+#page .qui-paie{margin-top:5px;padding-top:5px;border-top:1px solid rgba(60,40,20,.42);color:#2a1d12}
+#page .qui-paie .rubrique{font-size:12px;color:#6b1c10}
+#page[data-piece="chargement"] .filet{margin:8px 0}
+#page .qui-paie .part .moins-plus b{min-width:98px}

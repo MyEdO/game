@@ -22,7 +22,7 @@ pieces.push(`<div id="carte" class="cadre bois" data-piece="carte"><div class="f
   ${LIEUX.filter((l) => !l.etape).map((l) => `<div class="lieu bois ${l.choisi ? 'choisi' : ''} ${l.sous ? 'sous' : ''}" style="left:${l.x}px;top:${l.y}px">${medaillon(l.icone, { petit: true, taille: 17 })}<div><b>${l.nom}</b><span class="rubrique">${l.quoi}</span></div>${l.ici ? `<div class="ici">${HEROS.map((h) => portrait(h.id)).join('')}</div>` : ''}</div>`).join('')}
 </div>${ferrures}</div>`);
 pieces.push(bandeau({}, { bourses: true }));
-pieces.push(sortie('porte', 'Revenir à l’auberge'), coins());
+pieces.push(retour('Revenir à l’auberge', 'porte'), coins());
 monter(pieces);
 
 {

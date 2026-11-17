@@ -15,7 +15,7 @@ Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (`ecran.marche.*` 
 l.1899-1910, `lm.rumeur` l.2589, `port.*` l.4061-4104) ; répliques d'accueil de `src/data/lieux-services.json` ; port
 de Salzenmund de `src/data/naval-ports.json`.
 
-Exemples chiffrés, sans valeur de règle : bourses des héros et bourse du groupe, seuil de Marchandage d'Aldric (45),
+Exemples chiffrés, sans valeur de règle : bourses des héros et part de chacun, seuil de Marchandage d'Aldric (45),
 dés tirés, cale 240 / 300 Enc et coque 52 / 60 de la cogue, durées de mer (3 j, 2 j).
 
 Pièces neuves : cartouche d'offre pointé sur son PNJ ; jauge de porteur ; réglette de quantité ; voies d'un lot. Le
@@ -27,7 +27,8 @@ bandeau de jet opposé est celui du combat.
   son PNJ (Laine 350 Enc à 2/– / Enc ; Vin 280 Enc à 6/– / Enc, « Évaluer le vin »).
 - Les porteurs du groupe au premier plan (charrette 25 Enc, `src/data/vehicles.json` ; mule 14 Enc).
 - Page « Le chargement » : porteur et sa jauge, Enc à acheter (de 10 à 25), prix de base, lot partagé +10 %,
-  estimation, bourse du groupe, « Conclure l'achat » (`src/noyau/marcheEnVue.ts:50-88`, `src/hote/ecran.ts:837-871`).
+  estimation, « Bourses du groupe » par `bourse(…)` (entreprise commune, #3004 : la part de chaque héros réglable et
+  le total), « Conclure l'achat » (`src/noyau/marcheEnVue.ts:50-88`, `src/hote/ecran.ts:837-871`).
 - Billet de rumeur cloué : « Vivres, Bois se vendraient le double à Eilhart. »
 - RAW : disponibilité (Taille + Richesse) × 10 MSRC 13 l.26 ; taille de cargaison l.38 ; prix de base l.86-91 (laine,
   printemps) ; vin et Évaluation l.95-104 ; lot partagé +10 %, pas moins de 10 Enc l.131 ; rumeur l.180 ; Kemperbad
@@ -52,9 +53,10 @@ bandeau de jet opposé est celui du combat.
 
 ## marchandage-avant-le-de
 - Le bandeau de jet du combat prend la place du bandeau des héros : Aldric (≤ 45) contre « Le négociant en laine »
-  (seuil masqué « ? », `src/engine/combat.ts:519`), « Test opposé », les deux enjeux (Gagné −10 %, Succès Stupéfiant
-  −20 %), « Lancer », « Annuler ». Le cartouche du négociant et la page du chargement restent lisibles au-dessus.
-- RAW : Marchandage −10 %, jusqu'à 20 % sur Succès Stupéfiant (+6) ou avec Négociateur LDB 59 l.43, MSRC 13 l.127 ;
+  (seuil masqué « ? », `src/engine/combat.ts:519`), « Test opposé », les enjeux (Gagné −10 %, Succès Stupéfiant −20 %,
+  Perdu +10 %, Négociateur 10 % de plus), les réserves, « Lancer », « Résilience », « Annuler ». Le cartouche du négociant et la page du chargement restent lisibles au-dessus.
+- RAW : Marchandage, « augmenter ou diminuer le prix de 10 % », jusqu'à 20 % sur Succès Stupéfiant (+6) ou avec
+  Négociateur LDB 59 l.43, MSRC 13 l.127 ; le marchand qui gagne monte le prix (`src/noyau/landMarketFlow.ts:325`) ;
   marchand 2d10+30 MSRC 13 l.129. Code : `src/engine/bargain.ts:15-29`, `src/noyau/merchantFlow.ts:236`, `:861`.
 - À valider : le Marchandage dans le bandeau de jet, la halle restant visible ; les enjeux affichés avant le dé ; le
   seuil du négociant masqué ; « Soutien du groupe » en pastille près du nom.
@@ -62,7 +64,8 @@ bandeau de jet opposé est celui du combat.
 ## marchandage
 - Le jet résolu : dés et DR des deux camps, « DR net +4 », « Gagné (−10 % à l'achat) », prix barré et prix marchandé
   (2 CO 15/– vers 2 CO 9/– 6 sc), ligne « Marchandage gagné −10 % » ajoutée au compte de la page.
-- Suites : « Conclure », « Relancer », « Chance : +1 DR », « Refuser le marché » (`src/noyau/merchantFlow.ts:879`,
+- Les parts des bourses suivent le prix marchandé. Suites : les réserves, « Conclure », « Relancer » et « Résilience »
+  fermées sur une réussite, « Chance : +1 DR », « Pacte », « Refuser le marché » (`src/noyau/merchantFlow.ts:879`,
   `:897-916`).
 - RAW : LDB 59 l.43 ; MSRC 13 l.127.
 - À valider : le verdict au centre avec le prix avant et après ; les suites en plaques sous le verdict, « Conclure »
@@ -92,6 +95,7 @@ bandeau de jet opposé est celui du combat.
   rail de la ville.
 
 ## Non dessiné
+- L'achat à l'échoppe (acte individuel, payé par l'acheteur, #3004) n'a pas d'image dans cette famille.
 - Halle et port : refus (bourse sous le plancher, porteur plein), aucun acheteur trouvé, moitié du lot proposée,
   évaluation du vin résolue, Marchandage de vente, Marchandage perdu.
 - Port : pages du chantier naval, du recrutement et de l'avitaillement (aucun tarif de réparation ni de carénage
