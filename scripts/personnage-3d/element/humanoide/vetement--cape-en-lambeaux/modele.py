@@ -14,7 +14,8 @@ import math
 import numpy as np
 from mathutils import Vector
 
-from tissu import Maillage, direction, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de, voisinage
+from tissu import (Maillage, direction, direction_spatiale, emprunter, joindre_les_surfaces, lambeaux, lisser, porteur_de,
+                   sans_les_bras, voisinage)
 
 
 def au_jeu(D, surfaces, origine, d, rayon, jeu):
@@ -80,8 +81,7 @@ def construire(D, materiaux, b):
     b.exiger(sorted(set(zones) | set(D['ZONES_DU_COL'])))
     robe = b.matieres_publiees(D['CONTOURNE']['robe'], D['MATIERES_DE_LA_ROBE'])
     P, T, W = joindre_les_surfaces([robe] + [b.corps(z) for z in D['ZONES_DU_CORPS']])
-    centres = P[T].mean(axis=1)
-    surfaces = porteur_de(P, T[(centres[:, 2] <= D['Z_BRAS']) | (np.abs(centres[:, 0]) <= D['X_BRAS'])], W)
+    surfaces = porteur_de(P, sans_les_bras(P, T, D['X_BRAS'], D['Z_BRAS']), W)
     filet = b.filet('cape')
     M = Maillage()
     us, lignes = [], []
@@ -122,6 +122,7 @@ def construire(D, materiaux, b):
         Wx[i] = (1 - part) * Wx[i] + part * filet.poids(p[2], filet.azimut(p))
     piece = b.nappe('cape_en_lambeaux', X, normales, Wx, orientes, materiaux['cape'], D['EPAISSEUR'])
     publies = {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']}
-    b.transferer(piece, zones, masques=[([True] * len(piece.data.vertices), [], publies),
-                                        ([v.co.z > D['HAUT'] for v in piece.data.vertices], D['ZONES_DU_COL'], publies)])
+    b.transferer(piece, zones, D['BORNES_DES_CLES'],
+                 [([True] * len(piece.data.vertices), [], publies),
+                  ([v.co.z > D['HAUT'] for v in piece.data.vertices], D['ZONES_DU_COL'], publies)])
     return piece

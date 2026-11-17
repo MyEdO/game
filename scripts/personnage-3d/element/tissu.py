@@ -405,6 +405,12 @@ def arbre_de(P, T):
     return BVHTree.FromPolygons([tuple(p) for p in P], T.tolist(), all_triangles=True)
 
 
+def sans_les_bras(P, T, x_bras, z_bras):
+    """Les triangles `T` hors des bras et des manches : au-dessus de `z_bras`, ceux dont le centre est à |x| <= `x_bras`."""
+    centres = P[T].mean(axis=1)
+    return T[(centres[:, 2] <= z_bras) | (np.abs(centres[:, 0]) <= x_bras)]
+
+
 def porteur_de(P, T, W):
     """Une surface porteuse : positions `P`, triangles `T`, poids `W` par os de la base et arbre de recherche."""
     return {'P': P, 'T': T, 'W': W, 'arbre': arbre_de(P, T)}

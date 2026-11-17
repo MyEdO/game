@@ -83,6 +83,13 @@ z ~1,57), marché depuis `portee_du_col`, sous l'écharpe, posée à 22 mm de la
 rangs sur la droite du col au point de `HAUT`, chacun visé du centre et arrêté au jeu (`portee` : départ de la marche
 au-delà du point visé)."""
 
+BORNES_DES_CLES = (0.5, 1.8)
+"""Rapport d'arête sous une clé transférée hors duquel `tissu` lisse la clé. Mesuré sur l'export : reprise de la robe
+plissée, `carrure_plus` écarte de 3 à 4 cm deux colonnes voisines de la cape (arêtes de 23 à 30 mm entre colonnes
+à 0,43 ou 2,5 fois leur longueur, aux bornes par défaut de `tissu`), et la moindre flexion en clip passait la porte
+d'étirement de l'évaluateur (3,51 : 71 `arete-etiree`, jusqu'à 4,17 au torse en Sword_Regular_A). À 1,8, une arête
+garde une marge de 1,95 en clip (HYPOTHÈSE : les bornes de `vetement--haut-de-chausses`)."""
+
 LISSAGE_POIDS = 6
 OS_REPORTES = {'upperarm_l': 'clavicle_l', 'upperarm_r': 'clavicle_r'}
 """Passes laplaciennes des poids empruntés et os reportés, ceux de la pièce commune `vetement--cape` (mêmes causes

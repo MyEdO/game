@@ -15,7 +15,8 @@ import math
 import numpy as np
 from mathutils import Vector
 
-from tissu import Maillage, arbre_de, direction, emprunter, enveloppe_convexe, joindre_les_surfaces, lambeaux, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
+from tissu import (Maillage, arbre_de, direction, emprunter, enveloppe_convexe, joindre_les_surfaces, lambeaux, lisser,
+                   porteur_de, rayon_a_l_enveloppe, sans_les_bras, voisinage)
 
 
 def aretes(T):
@@ -79,19 +80,13 @@ def profils(D, P, A, filet):
     return rangs, np.maximum(lisse, sur_le_filet) + D['JEU'] + D['EPAISSEUR'] + plis
 
 
-def sans_les_bras(D, P, T):
-    """Les triangles `T` hors des bras et des manches : au-dessus de `Z_BRAS`, ceux dont le centre est à |x| <= `X_BRAS`."""
-    centres = P[T].mean(axis=1)
-    return T[(centres[:, 2] <= D['Z_BRAS']) | (np.abs(centres[:, 0]) <= D['X_BRAS'])]
-
-
 def empiecement(D, b, arbre, morceaux, bas):
     """Les rangs de l'empiècement, du col au rang au-dessus de `bas` (le rang de `HAUT`), sur les surfaces `morceaux`
     sans les bras, d'arbre de recherche `arbre`, le col aussi sur les zones `ZONES_DU_COL`."""
     e = D['EMPIECEMENT']
 
     P, T, _ = joindre_les_surfaces(morceaux + [b.corps(z) for z in D['ZONES_DU_COL']])
-    arbres = {'col': arbre_de(P, sans_les_bras(D, P, T)), 'rangs': arbre}
+    arbres = {'col': arbre_de(P, sans_les_bras(P, T, D['X_BRAS'], D['Z_BRAS'])), 'rangs': arbre}
 
     def vise(depart, d, portee, jeu, cle):
         """Le point le plus extérieur de la demi-droite (`depart`, `d`), sous `portee`, au jeu des surfaces de l'arbre
@@ -146,7 +141,7 @@ def construire(D, materiaux, b):
     publies = [b.matieres_publiees(id_, D['MATIERES'][nom]) for nom, id_ in D['CONTOURNE'].items()]
     morceaux = publies + [b.corps(z) for z in D['ZONES_DU_CORPS']]
     P, T, W = joindre_les_surfaces(morceaux)
-    porteur = porteur_de(P, sans_les_bras(D, P, T), W)
+    porteur = porteur_de(P, sans_les_bras(P, T, D['X_BRAS'], D['Z_BRAS']), W)
     filet = b.filet('cape')
     O = filet.axe
     rangs, r = profils(D, P, aretes(T), filet)
