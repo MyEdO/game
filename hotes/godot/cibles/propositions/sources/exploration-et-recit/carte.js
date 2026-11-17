@@ -1,9 +1,5 @@
 /* La carte du monde : le Reikland à l'encre, les seuls lieux que le groupe connaît, le trajet choisi et ce qu'il
    coûte. Images d'intention (#3935), maquette hors du jeu. */
-Object.assign(PICTOS, {
-  botte: '<path d="M9 3v9.500l-4 3.500v4h14v-2.500c0-2-2.500-3-6-3.500V3zM9 7h4M9 10.500h4M5 17.500h14"/>',
-  roue: '<circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="2"/><path d="M12 3.500v6.500M12 14v6.500M3.500 12H10M14 12h6.500M6 6l4.500 4.500M13.500 13.500L18 18M6 18l4.500-4.500M13.500 10.500L18 6"/>',
-});
 const CW = 1225, CH = 572;
 const LIEUX = [
   { id: 'diligence', x: 318, y: 389, icone: 'lit', nom: 'Auberge La Diligence', quoi: 'Le groupe est ici', ici: true, sous: true },

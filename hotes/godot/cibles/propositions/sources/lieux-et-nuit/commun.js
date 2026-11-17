@@ -1,5 +1,5 @@
-/* Lieux et nuit, images d'intention (#3935). Pièces communes aux cinq écrans : matières, pictogrammes, portraits,
-   bandeau des héros, postes, silhouettes de décor. Maquette hors du jeu. */
+/* Socle commun des images d'intention (#3935), né avec « lieux et nuit » : matières, pictogrammes, portraits,
+   bandeau des héros, postes, silhouettes de décor. Se charge après `bustes.js`. Maquette hors du jeu. */
 const NS = 'http://www.w3.org/2000/svg';
 const W = 1707, H = 780;
 const el = (hote, tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; hote.appendChild(e); return e; };
@@ -65,12 +65,8 @@ const fermer = () => { // le fond se ferme : coins, bas sous l'interface
 };
 
 /* ───────── l'interface ───────── */
-const BASE = '<path d="M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z"/>';
 const BUSTES = {
-  bjorn: BASE + '<path d="M24 31c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" fill="#1c1410"/>',
-  mira: BASE + '<path d="M22 40c-3-17 5-29 17-29s20 12 17 29c4 10 4 22 2 33l-8-6c2-10 1-20-3-27-4-5-12-5-16 0-4 7-5 17-3 27l-8 6c-2-11-2-23 2-33z" fill="#1c1410"/>',
-  aldric: BASE + '<path d="M25 30c0-11 6-18 14-18s14 7 14 18c-9-4-19-4-28 0z" fill="#1c1410"/><path d="M25 27c9-4 19-4 28 0v5c-9-4-19-4-28 0z" fill="#e9dcc0"/>',
-  greta: BASE + '<circle cx="39" cy="8" r="6.500" fill="#1c1410"/><path d="M24 33c-1-13 6-21 15-21s16 8 15 21c-4-7-9-10-15-10s-11 3-15 10z" fill="#1c1410"/>',
+  ...COMPAGNIE,
   hote: BASE + '<path d="M22 34c-2-14 6-23 17-23s19 9 17 23c-3-8-9-12-17-12s-14 4-17 12z" fill="#15100c"/><circle cx="39" cy="9" r="5" fill="#15100c"/>',
   docteur: BASE + '<path d="M21 28h36l-3 6H24zM27 28c0-11 5-17 12-17s12 6 12 17z" fill="#15100c"/>',
   brasseur: '<path d="M8 90c0-20 10-27 24-29l-1-7c-7-5-9-17-5-25 4-8 22-8 26 0 4 8 2 20-5 25l-1 7c14 2 24 9 24 29z"/><path d="M25 30c0-10 6-16 14-16s14 6 14 16c-9-3-19-3-28 0z" fill="#15100c"/>',
@@ -123,6 +119,8 @@ const PICTOS = {
   coche: '<path d="M5 12.500l4.500 4.500L19 7"/>',
   croix: '<path d="M6 6l12 12M18 6L6 18"/>',
   goutte: '<path d="M12 4c3 4 5 6.500 5 9.500a5 5 0 0 1-10 0C7 10.500 9 8 12 4z"/>',
+  botte: '<path d="M9 3v9.500l-4 3.500v4h14v-2.500c0-2-2.500-3-6-3.500V3zM9 7h4M9 10.500h4M5 17.500h14"/>',
+  roue: '<circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="2"/><path d="M12 3.500v6.500M12 14v6.500M3.500 12H10M14 12h6.500M6 6l4.500 4.500M13.500 13.500L18 18M6 18l4.500-4.500M13.500 10.500L18 6"/>',
 };
 const rond = (nom, taille, { ferme = false, couleur } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'}"><div>${picto(nom, taille, couleur ?? (ferme ? '#7d7668' : '#e2c06a'))}</div></div>`;
 const plaque = (libelle, { armee = false, fermee = false, icone = null, prix = null, classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'}${armee ? ' armee' : ''} ${classe}" style="${style}"><div>${icone ? picto(icone, 19, armee ? '#2a1a08' : fermee ? '#8d8474' : '#e2c06a', 1.7) : ''}${libelle}${prix ? `<span class="prix">${prix}</span>` : ''}</div></div>`;
