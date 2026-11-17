@@ -1,0 +1,13 @@
+{
+  "model": "decor--grille.glb",
+  "model_sha256": "bc424361a5aac1e74c8d40dbc4d2832e346c4ca8a3ba8d5e00c4d60853498609",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -164,11 +164,6 @@ export function isUnbreakable(w: QualityCarrier | undefined): boolean {
   return resolveQualities(w).some((r) => r.caps?.unbreakable);
 }
 
-/** L'arme est-elle une arme à feu (Poudre noire / Explosion) ? (remplace les regex /poudre|explos/i sur les qualités). */
-export function isFirearmQuality(w: QualityCarrier | undefined): boolean {
-  return resolveQualities(w).some((r) => r.caps?.firearm);
-}
-
 /** Ajustement de DR d'un Test RATÉ utilisant l'objet : Pratique +1, Peu Fiable -1 (LDB 60 l.22/58).
  *  Renvoie 0 si le test est RÉUSSI (la règle ne vise que les échecs). */
 export function craftTestDRAdjust(w: QualityCarrier | undefined, success: boolean): number {

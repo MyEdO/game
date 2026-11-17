@@ -43,6 +43,9 @@ const LECTURES_DE_LA_SORTIE := 10_000
 const PAUSE_US := 200
 ## La ligne qui annonce les octets d'une réponse, suivie de leur nombre.
 const ANNONCE_DES_OCTETS := "octets "
+## Le plus grand bloc que HTTPRequest lit par image : un GLB de base de 42 Mo s'y reçoit en peu d'images (#3470), pas en
+## plus de 600 par 64 Kio.
+const BLOC_DE_TELECHARGEMENT := 16777216
 const TYPES := {png = "image/png", jpg = "image/jpeg", jpeg = "image/jpeg", webp = "image/webp", json = "application/json"}
 
 signal _ouvert(pret: bool)
@@ -207,6 +210,43 @@ func exposer(nom: String, rappel: Callable) -> void:
 
 func adresse(relative: String) -> String:
 	return "%s%s" % [_url, relative]
+
+
+## Par HTTPRequest, le silence compté par un `Timer` en temps de l'arbre : il repart à chaque image où HTTPRequest a lu
+## un bloc, car la durée d'un téléchargement suit la fréquence d'image (#3470).
+func requeter(relative: String, recueil: Array[String], methode: HTTPClient.Method, corps: String, entetes: PackedStringArray) -> PackedByteArray:
+	var requete := HTTPRequest.new()
+	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
+	add_child(requete)
+	var code := requete.request(adresse(relative), entetes, methode, corps)
+	if code != OK:
+		requete.queue_free()
+		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
+		return PackedByteArray()
+	var resultat := []
+	requete.request_completed.connect(func(issue: int, statut: int, en_tete: PackedStringArray, recu: PackedByteArray) -> void:
+		resultat.append_array([issue, statut, en_tete, recu]), CONNECT_ONE_SHOT)
+	var silence := Timer.new()
+	silence.one_shot = true
+	requete.add_child(silence)
+	silence.start(PontDuNoyau.SILENCE_S)
+	var recus := 0
+	while resultat.is_empty() and not silence.is_stopped():
+		await get_tree().process_frame
+		if requete.get_downloaded_bytes() != recus:
+			recus = requete.get_downloaded_bytes()
+			silence.start(PontDuNoyau.SILENCE_S)
+	if resultat.is_empty():
+		requete.cancel_request()
+		requete.queue_free()
+		recueil.append("requete-silencieuse : %s (aucun octet en %s s, %s reçus)" % [relative, PontDuNoyau.SILENCE_S, recus])
+		return PackedByteArray()
+	requete.queue_free()
+	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
+		var raison: String = resultat[3].get_string_from_utf8()
+		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)%s" % [relative, resultat[0], resultat[1], " : " + raison if raison != "" else ""])
+		return PackedByteArray()
+	return resultat[3]
 
 
 func choisir_un_fichier(genre: Dictionary) -> Dictionary:

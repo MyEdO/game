@@ -8022,31 +8022,6 @@
     }
   },
   {
-    "id": "poulet",
-    "type": "trappings",
-    "label": "Poulet",
-    "categorie": "trapping",
-    "subType": {
-      "id": "animaux-et-vehicules"
-    },
-    "enc": 1,
-    "availability": "commune",
-    "reach": null,
-    "loc": null,
-    "pa": null,
-    "damage": null,
-    "qualities": [],
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 5
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 306
-    }
-  },
-  {
     "id": "selle-et-harnais",
     "type": "trappings",
     "label": "Selle et Harnais",
@@ -8063,31 +8038,6 @@
     "qualities": [],
     "price": {
       "gold": 6,
-      "silver": 0,
-      "brass": 0
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 306
-    }
-  },
-  {
-    "id": "singe",
-    "type": "trappings",
-    "label": "Singe",
-    "categorie": "trapping",
-    "subType": {
-      "id": "animaux-et-vehicules"
-    },
-    "enc": 2,
-    "availability": "rare",
-    "reach": null,
-    "loc": null,
-    "pa": null,
-    "damage": null,
-    "qualities": [],
-    "price": {
-      "gold": 10,
       "silver": 0,
       "brass": 0
     },
@@ -8137,7 +8087,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Extrait des oursins caméléons des marais de l'Empire, cet hallucinogène extraordinairement puissant donne des visions d'un désir profond, comme un amour perdu, un ami décédé ou un enfant disparu. Appelé Bave dans les rues, il est populaire auprès des personnes désespérées. Après l'exposition, vous devez réussir un Test d'Endurance Très difficile (-30) ou être perdu dans un fantasme très réaliste, que le MJ doit gérer. Durée: 1d10 minutes.",
+    "desc": "Extrait des oursins caméléons des marais de l'Empire, cet hallucinogène extraordinairement puissant donne des visions d'un désir profond, comme un amour perdu, un ami décédé ou un enfant disparu. Appelé Bave dans les rues, il est populaire auprès des personnes désespérées. Après l'exposition, vous devez réussir un Test d'Endurance Très difficile (-30) ou être perdu dans un fantasme très réaliste, que le MJ doit gérer. Durée : 1d10 minutes.",
     "price": {
       "gold": 1,
       "silver": 5,
@@ -8187,7 +8137,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Ces champignons hallucinogènes sont consommés par les gobelins fanatiques avant la bataille. Ils induisent une rage berserk, ajoutant +10 en Force, +4 Blessures et le Talent Frénésie. Quand l'effet se dissipe, l'utilisateur perd 1d10 Points de Blessure. Tous ceux qui ne sont pas des peaux-vertes doivent aussi réussir un Test de Résistance Intermédiaire (+0) ou contracter une Infection mineure. Durée: actif tant qu'il est mâché plus 2d10 minutes supplémentaires.",
+    "desc": "Ces champignons hallucinogènes sont consommés par les gobelins fanatiques avant la bataille. Ils induisent une rage berserk, ajoutant +10 en Force, +4 Blessures et le Talent Frénésie. Quand l'effet se dissipe, l'utilisateur perd 1d10 Points de Blessure. Tous ceux qui ne sont pas des peaux-vertes doivent aussi réussir un Test de Résistance Intermédiaire (+0) ou contracter une Infection mineure. Durée : actif tant qu'il est mâché plus 2d10 minutes supplémentaires.",
     "price": {
       "gold": 5,
       "silver": 0,
@@ -8363,7 +8313,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Ce stimulant très addictif est un composé synthétique à base de soufre, de mercure et d'autres éléments. Inhaler la poudre octroie un bonus de +1 en Mouvement, et de +10 en F, E, Ag et CC. Cela dure trois heures, après lesquelles l'utilisateur subit une pénalité de -2 en Mouvement et -20 en Capacité de Combat, Endurance, Force et Agilité. Durée: 1 jour.",
+    "desc": "Ce stimulant très addictif est un composé synthétique à base de soufre, de mercure et d'autres éléments. Inhaler la poudre octroie un bonus de +1 en Mouvement, et de +10 en F, E, Ag et CC. Cela dure trois heures, après lesquelles l'utilisateur subit une pénalité de -2 en Mouvement et -20 en Capacité de Combat, Endurance, Force et Agilité. Durée : 1 jour.",
     "price": {
       "gold": 0,
       "silver": 18,
@@ -8455,7 +8405,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Ce tranquillisant est une mousse séchée qui pousse seulement sur les feuilles de la forêt Laurelorn. Les elfes utilisent la Fleur de lune pour traiter la Peste noire, octroyant un bonus de +30 à tous les Tests associés pour résister à la maladie, mais elle n'a aucun effet sur les autres races. Les autres peuvent inhaler les vapeurs en faisant bouillir la mousse et s'ils ratent un Test de Force Mentale Très difficile (-30) gagnent un État Inconscient. Sur un succès, ils reçoivent un bonus de +20 aux Tests de Calme et gagnent 1 État Exténué. La Fleur de lune est utilisée comme anesthésique par les médecins réputés et onéreux. Durée: 1d10 + 5 heures.",
+    "desc": "Ce tranquillisant est une mousse séchée qui pousse seulement sur les feuilles de la forêt Laurelorn. Les elfes utilisent la Fleur de lune pour traiter la Peste noire, octroyant un bonus de +30 à tous les Tests associés pour résister à la maladie, mais elle n'a aucun effet sur les autres races. Les autres peuvent inhaler les vapeurs en faisant bouillir la mousse et s'ils ratent un Test de Force Mentale Très difficile (-30) gagnent un État Inconscient. Sur un succès, ils reçoivent un bonus de +20 aux Tests de Calme et gagnent 1 État Exténué. La Fleur de lune est utilisée comme anesthésique par les médecins réputés et onéreux. Durée : 1d10 + 5 heures.",
     "price": {
       "gold": 5,
       "silver": 0,
@@ -8747,7 +8697,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "L'une des drogues de rue les plus courantes de l'Empire, la mystracine doit être mâchée, pour apporter une sensation d'euphorie et des hallucinations agréables qui, selon les dires de certains, pourraient être reliées aux Vents de la Magie. La drogue donne un bonus de +10 aux Tests d'Endurance et de Force Mentale, mais une pénalité de -10 aux Tests d'Agilité, d'Initiative et d'Intelligence. Durée: active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
+    "desc": "L'une des drogues de rue les plus courantes de l'Empire, la mystracine doit être mâchée, pour apporter une sensation d'euphorie et des hallucinations agréables qui, selon les dires de certains, pourraient être reliées aux Vents de la Magie. La drogue donne un bonus de +10 aux Tests d'Endurance et de Force Mentale, mais une pénalité de -10 aux Tests d'Agilité, d'Initiative et d'Intelligence. Durée : active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
     "price": {
       "gold": 0,
       "silver": 4,
@@ -8755,7 +8705,7 @@
     },
     "source": {
       "book": "livre-de-base",
-      "page": 306
+      "page": 307
     },
     "consumable": {
       "kind": "effet",
@@ -8819,7 +8769,7 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "Cette substance hallucinogène extrêmement addictive pousse sous les potences et elle est mâchée pour calmer un esprit agité. Les utilisateurs doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ; de plus, le Mouvement est réduit de moitié. Cependant, les Tests de Calme reçoivent un bonus de +20. Durée: active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
+    "desc": "Cette substance hallucinogène extrêmement addictive pousse sous les potences et elle est mâchée pour calmer un esprit agité. Les utilisateurs doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ; de plus, le Mouvement est réduit de moitié. Cependant, les Tests de Calme reçoivent un bonus de +20. Durée : active tant qu'elle est mâchée plus 1d10 x 10 minutes supplémentaires.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -8827,7 +8777,7 @@
     },
     "source": {
       "book": "livre-de-base",
-      "page": 306
+      "page": 307
     },
     "consumable": {
       "kind": "effet",
@@ -12566,9 +12516,9 @@
     "id": "baton-pointu",
     "type": "trappings",
     "label": "Bâton pointu",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "arc"
     },
     "enc": 0,
     "availability": "commune",
@@ -12609,9 +12559,10 @@
     "id": "fleche-barbelee",
     "type": "trappings",
     "label": "Flèche barbelée",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "arc"
     },
     "enc": 0,
     "availability": "limitee",
@@ -12644,9 +12595,10 @@
     "id": "fleche-bodkin",
     "type": "trappings",
     "label": "Flèche bodkin",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "arc"
     },
     "enc": 0,
     "availability": "limitee",
@@ -12678,9 +12630,10 @@
     "id": "bille-de-plomb",
     "type": "trappings",
     "label": "Bille de plomb",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "fronde"
     },
     "enc": 0,
     "availability": "commune",
@@ -12699,11 +12652,10 @@
         "id": "assommante"
       }
     ],
-    "desc": "Munition de fronde en plomb, vendue par lot de 12.",
     "price": {
       "gold": 0,
-      "silver": 4,
-      "brass": 0
+      "silver": 0,
+      "brass": 4
     },
     "source": {
       "book": "aux-armes",
@@ -12714,9 +12666,9 @@
     "id": "caillou",
     "type": "trappings",
     "label": "Caillou",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "fronde"
     },
     "enc": 0,
     "availability": "commune",
@@ -13234,9 +13186,10 @@
     "id": "balle-de-gros-calibre-et-poudre",
     "type": "trappings",
     "label": "Balle de gros calibre et poudre",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "limitee",
@@ -13273,9 +13226,9 @@
     "id": "bombe-explosive",
     "type": "trappings",
     "label": "Bombe explosive",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "limitee",
@@ -13313,9 +13266,10 @@
     "id": "cartouche-en-papier",
     "type": "trappings",
     "label": "Cartouche en papier",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "limitee",
@@ -13349,9 +13303,9 @@
     "id": "cartouche-et-poudre-de-precision",
     "type": "trappings",
     "label": "Cartouche et poudre de précision",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "commune",
@@ -13388,9 +13342,9 @@
     "id": "ferraille-et-poudre",
     "type": "trappings",
     "label": "Ferraille et poudre",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "commune",
@@ -13427,9 +13381,9 @@
     "id": "grappin-munition",
     "type": "trappings",
     "label": "Grappin (munition)",
-    "categorie": "distance",
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 1,
     "availability": "limitee",
@@ -13466,9 +13420,10 @@
     "id": "poudre-impregnee-d-aqshy",
     "type": "trappings",
     "label": "Poudre imprégnée d'Aqshy",
-    "categorie": "distance",
+    "packSize": 12,
+    "categorie": "ammunition",
     "subType": {
-      "id": "munitions"
+      "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
     "availability": "exotique",
@@ -16921,6 +16876,9 @@
       {
         "id": "equipe",
         "value": 4
+      },
+      {
+        "id": "a-poudre-noire"
       }
     ],
     "desc": "L'école impériale des ingénieurs a créé ces projectiles incroyablement dangereux et imprécis en s'inspirant des feux d'artifice. Ils sont réputés pour le bruit aigu qu'ils produisent en virevoltant dans les airs, et les conséquences dévastatrices de leurs explosions.\n\n*Les armes de siège à distance ne peuvent pas être utilisées à Bout Portant.*",
@@ -16932,7 +16890,13 @@
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 88
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 122
+      }
+    ]
   },
   {
     "id": "canon-a-repetition-feu-d-enfer-ade2",

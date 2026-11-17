@@ -2295,8 +2295,8 @@ export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, Tra
 export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | null }): G | undefined {
   return arme.weaponGroup ?? arme.subType ?? undefined;
 }
-/** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
-const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
+/** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156). */
+const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege']);
 /** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` hors « Mains nues »
  *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
  *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`

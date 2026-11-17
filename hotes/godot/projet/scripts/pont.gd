@@ -12,13 +12,9 @@ extends Node
 signal refus(message: String)
 signal panne(message: String)
 
-## Le plus long silence du réseau qu'un téléchargement tolère, compté par un `Timer` en temps de l'arbre : le délai
-## repart à chaque bloc reçu, car la durée d'un téléchargement suit la fréquence d'image (#3470).
+## Le plus long silence du réseau qu'un téléchargement tolère (`requeter`) : le délai repart à chaque bloc reçu, jamais
+## une borne de sa durée totale (#3470).
 const SILENCE_S := 10.0
-## Le plus grand bloc que HTTPRequest lit par image. Sur le Web, une image lit au plus un bloc du flux de la page
-## (`platform/web/js/libs/library_godot_fetch.js`, `godot_js_fetch_read_chunk`, Godot 4.7-stable), jusqu'à 2 Mio
-## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
-const BLOC_DE_TELECHARGEMENT := 16777216
 
 ## Un genre de fichier que le joueur choisit ou enregistre : `accepte`, ce que le champ de fichier de la page admet ;
 ## `filtre`, celui du dialogue du système ; `type`, le type MIME du fichier remis par la page.
@@ -80,6 +76,9 @@ var _transport: Transport
 	@abstract func exposer(nom: String, rappel: Callable) -> void
 
 	@abstract func adresse(relative: String) -> String
+
+	## Le corps de la réponse à `methode` sur `relative` (`PontDuNoyau.requeter`), attendu sans tenir l'image.
+	@abstract func requeter(relative: String, recueil: Array[String], methode: HTTPClient.Method, corps: String, entetes: PackedStringArray) -> PackedByteArray
 
 	@abstract func choisir_un_fichier(genre: Dictionary) -> Dictionary
 
@@ -489,46 +488,11 @@ func adresse(relative: String) -> String:
 
 
 ## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` et les
-## en-têtes `entetes` envoyés ;
+## en-têtes `entetes` envoyés, par le transport (`Transport.requeter`) ;
 ## vide, et une erreur à `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi),
-## ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un
-## bloc.
+## ou si `SILENCE_S` passe sans qu'un octet arrive.
 func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "", entetes := PackedStringArray()) -> PackedByteArray:
-	var requete := HTTPRequest.new()
-	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
-	# Sur le Web, le navigateur a déjà décompressé un corps `Content-Encoding: gzip` (GitHub Pages, #3778) : HTTPRequest
-	# ne le décompresse pas une seconde fois (`RESULT_BODY_DECOMPRESS_FAILED`).
-	requete.accept_gzip = false
-	add_child(requete)
-	var code := requete.request(adresse(relative), entetes, methode, corps)
-	if code != OK:
-		requete.queue_free()
-		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
-		return PackedByteArray()
-	var resultat := []
-	requete.request_completed.connect(func(issue: int, statut: int, en_tete: PackedStringArray, recu: PackedByteArray) -> void:
-		resultat.append_array([issue, statut, en_tete, recu]), CONNECT_ONE_SHOT)
-	var silence := Timer.new()
-	silence.one_shot = true
-	requete.add_child(silence)
-	silence.start(SILENCE_S)
-	var recus := 0
-	while resultat.is_empty() and not silence.is_stopped():
-		await get_tree().process_frame
-		if requete.get_downloaded_bytes() != recus:
-			recus = requete.get_downloaded_bytes()
-			silence.start(SILENCE_S)
-	if resultat.is_empty():
-		requete.cancel_request()
-		requete.queue_free()
-		recueil.append("requete-silencieuse : %s (aucun octet en %s s, %s reçus)" % [relative, SILENCE_S, recus])
-		return PackedByteArray()
-	requete.queue_free()
-	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
-		var raison: String = resultat[3].get_string_from_utf8()
-		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)%s" % [relative, resultat[0], resultat[1], " : " + raison if raison != "" else ""])
-		return PackedByteArray()
-	return resultat[3]
+	return await _transport.requeter(relative, recueil, methode, corps, entetes)
 
 
 ## Le fichier du genre `genre` (`IMAGES`, `HEROS`) que le joueur choisit sur son disque : `{ octets, type }`, son contenu

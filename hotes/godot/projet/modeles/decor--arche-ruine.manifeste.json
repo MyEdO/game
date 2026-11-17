@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "arche-ruine"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    }
+  ],
+  "glb": {
+    "sha256": "ad777ac58dd01044e07f18569f11b9cc93a424f425912f7a217ff80d5cf5d401",
+    "octets": 110568
+  }
+}

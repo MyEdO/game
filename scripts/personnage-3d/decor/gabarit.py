@@ -196,6 +196,13 @@ class Gabarit:
         normales, self.bornes = enveloppe(self.polygones)
         self.normales = normales * (1, -1, 1)
 
+    def portee(self, p, d, retrait):
+        """La distance de `p` (Blender), le long de `d`, jusqu'à `retrait` (m) sous l'enveloppe : la plus courte sur
+        les faces vers lesquelles `d` avance."""
+        pentes = self.normales @ np.asarray(d, dtype=np.float64)
+        vers = pentes > 0
+        return ((self.bornes - retrait - self.normales @ np.asarray(p, dtype=np.float64))[vers] / pentes[vers]).min()
+
     def rentrer(self, points, retrait):
         """Les points `(n, 3)` de Blender, chacun de ceux qui dépassent une face de l'enveloppe ramené à `retrait` (m)
         sous elle, face après face jusqu'à ce qu'aucun ne dépasse."""

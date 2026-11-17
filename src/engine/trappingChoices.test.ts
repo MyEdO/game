@@ -219,13 +219,12 @@ describe('emplacementTranche — le joueur a-t-il tranché ?', () => {
 describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
   const emplacement = (adresse: string) => emplacementsDeDotation(dotationsDuHeros(CARRIERE_FIXTURE)).find((e) => e.adresse === adresse)!;
   const groupeDe = (id: string) => groupeDeLArme(findTrappingById(id)!)?.id;
-  const FAMILLES_SERVIES = ['armes-de-siege', 'munitions'];
 
   it('aucune pièce de siège ni munition parmi les armes d’un joker, nu ou de groupe (#156)', () => {
     avecFixture(() => {
       for (const adresse of [dot([1]), dot([6]), dot([7])]) {
-        const familles = valeursDeLEmplacement(emplacement(adresse), { size: 'moyenne' }).map((id) => findTrappingById(String(id))!.subType?.id);
-        expect(familles.filter((f) => FAMILLES_SERVIES.includes(f ?? '')), adresse).toEqual([]);
+        const objets = valeursDeLEmplacement(emplacement(adresse), { size: 'moyenne' }).map((id) => findTrappingById(String(id))!);
+        expect(objets.filter((t) => t.subType?.id === 'armes-de-siege' || t.categorie === 'ammunition').map((t) => t.id), adresse).toEqual([]);
       }
     });
   });
