@@ -51,6 +51,12 @@ def vers_blender(x, y, h):
     return (x, -y, h)
 
 
+VERSANTS = {"x+": vers_blender(1, 0, 0), "x-": vers_blender(-1, 0, 0), "y+": vers_blender(0, 1, 0),
+            "y-": vers_blender(0, -1, 0)}
+"""Le sens (x, y, z) de Blender où descend un prisme de la recette, par `slope` (`polygonesDePrimitive`,
+`src/data/props.types.ts`)."""
+
+
 def boite(primitive):
     """Le centre et les demi-côtés (x, y, z) de la boîte de `primitive` (boîte, prisme, ou cylindre d'axe vertical),
     dans le repère de Blender."""

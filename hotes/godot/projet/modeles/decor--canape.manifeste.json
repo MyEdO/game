@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "canape"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "rouge",
+      "palette": "vet1",
+      "matiere": "prop--toile-rouge"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "72ebb8e2f5814574fe667da8558229bbb8b0cf726870749ab172c2b51a3ba470",
+    "octets": 56396
+  }
+}

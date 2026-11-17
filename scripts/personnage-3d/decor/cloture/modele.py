@@ -10,7 +10,8 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import HAUT, MAT, X, Y, barre, cheville, clou, coque, partage, pave, planche, profilee, rond, tournee
+from geometrie import (COTES, HAUT, MAT, X, Y, barre, cheville, clou, coque, partage, pave, planche, profilee,
+                       rond, tournee)
 from maille import plaque
 
 DECORS = ("barriere", "cloture", "palissade", "balustrade-bois", "bastingage")
@@ -18,7 +19,6 @@ NOEUDS = {"cloture": {MAT: (MAT,), "clous": ("fer",)}, "palissade": {"pieux": ("
           "bastingage": {MAT: (MAT, "vieux")}}
 """Les nœuds d'un décor qui en a d'autres que celui de son bois, et les matériaux de chacun (`MATERIAUX` de
 `donnees.py`)."""
-COTES = (-1, 1)
 
 
 def refendue(m, p0, p1, u, du, dv, R, a):
@@ -44,7 +44,7 @@ def filee(m, pied, demi_longueur, demi_largeur, hauteur, profil):
 
 def barriere(D, G, pieces, a):
     """Une barrière d'après `BARRIERE` : poteaux à tête de diamant, lisses refendues chevillées, écharpe, montant."""
-    B, K, m = D["BARRIERE"], D["CHEVILLE"], pieces[MAT]
+    B, m = D["BARRIERE"], pieces[MAT]
     for rang in B["poteaux"]:
         c, (cote, _, haut) = pave(G.primitives[rang])
         demi = cote / 2 * B["poteau"]["cote"]
@@ -58,7 +58,7 @@ def barriere(D, G, pieces, a):
         refendue(m, c - X * longueur / 2, c + X * longueur / 2, Y, epais / 2, haut / 2, D["REFENDUE"], a)
         for sx in COTES:
             for sy in COTES:
-                cheville(m, Vector((sx * place, c.y + sy * demi, c.z)), Y * sy, rayon, K, a)
+                cheville(m, Vector((sx * place, c.y + sy * demi, c.z)), Y * sy, rayon, a)
     (basse, (_, epais, haut)), (haute, _) = lisses
     pose = epais / 2 * B["pose"]
 
@@ -68,7 +68,7 @@ def barriere(D, G, pieces, a):
     p1 = Vector((place * E["portee"], haute.y - pose - e, haute.z))
     planche(m, p0, p1, Y, (p1 - p0).normalized().cross(Y), e, largeur, e * 2 * D["ARETE"])
     for part in E["chevilles"]:
-        cheville(m, p0.lerp(p1, part) - Y * e, -Y, rayon, K, a)
+        cheville(m, p0.lerp(p1, part) - Y * e, -Y, rayon, a)
 
     M = B["montant"]
     e, largeur = epais / 2 * M["section"][0], haut / 2 * M["section"][1]
@@ -76,7 +76,7 @@ def barriere(D, G, pieces, a):
     bas, tete = basse.z - haut * M["depasse"], haute.z + haut * M["depasse"]
     planche(m, axe + HAUT * bas, axe + HAUT * tete, X, Y, largeur, e, e * 2 * D["ARETE"])
     for c, _ in lisses:
-        cheville(m, axe + Y * e + HAUT * c.z, Y, rayon, K, a)
+        cheville(m, axe + Y * e + HAUT * c.z, Y, rayon, a)
 
 
 def cloture(D, G, pieces, a):
@@ -158,7 +158,7 @@ def palissade(D, G, pieces, a):
         portee = X * (longueur / 2 * part_l)
         refendue(m, milieu - portee, milieu + portee, Y, epais * part_e, haut * part_d, D["REFENDUE"], a)
         for axe in axes:
-            cheville(m, Vector((axe.x, face, milieu.z)), Y * dehors, haut * P["cheville"], D["CHEVILLE"], a)
+            cheville(m, Vector((axe.x, face, milieu.z)), Y * dehors, haut * P["cheville"], a)
 
 
 def balustrade(D, G, pieces, a):
@@ -192,7 +192,7 @@ def balustrade(D, G, pieces, a):
         for ((centre, (_, large, haut)), _), part in zip(lisses, K["hauteurs"]):
             for sy in COTES:
                 tete = Vector((c.x, centre.y + sy * large / 2 * K["tete"], centre.z - haut / 2 + haut * part))
-                cheville(m, tete, Y * sy, demi * K["rayon"], D["CHEVILLE"], a)
+                cheville(m, tete, Y * sy, demi * K["rayon"], a)
 
 
 def bastingage(D, G, pieces, a):
@@ -220,7 +220,7 @@ def bastingage(D, G, pieces, a):
         for sy in COTES:
             for z in milieux:
                 tete = Vector((c.x + dx * a.uniform(-N["deport"], N["deport"]), c.y + sy * dy, z))
-                cheville(m, tete, Y * sy, dx * N["rayon"], D["CHEVILLE"], a)
+                cheville(m, tete, Y * sy, dx * N["rayon"], a)
 
 
 BATIR = {"barriere": barriere, "cloture": cloture, "palissade": palissade, "balustrade-bois": balustrade,

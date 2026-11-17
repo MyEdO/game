@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "fontaine"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "eau",
+      "palette": "accent",
+      "matiere": "prop--eau-dormante"
+    }
+  ],
+  "glb": {
+    "sha256": "9fd9ce44b395ac721700148ffc8132fee9b64e7fb6dadaf5212f8d0068226d03",
+    "octets": 135068
+  }
+}
