@@ -1,12 +1,13 @@
 /* Le voyage fluvial et son péril (cible écrite `ecrites/voyage.md`). Vent : MSRC 7 l.23-39 ; barrage de débris :
-   MSRC 7 l.128 ; `src/noyau/riverVoyageFlow.ts`, `fleuve.*` de `src/i18n/messages/fr.ts`. */
+   MSRC 7 l.128 ; `src/noyau/riverVoyageFlow.ts`, `fleuve.*` de `src/i18n/messages/fr.ts`. Cadence :
+   `src/noyau/voyageEnVue.ts:56`, `ecran.cadence.*`. */
 const ETAT = document.getElementById('ecran').dataset.etat;
 const PERIL = ETAT === 'voyage-fluvial-peril';
 poser(interieur(D.fleuve({ barrage: PERIL })));
 if (PERIL) assombrir();
 fermer();
 const pieces = [];
-pieces.push(temps({ teinte: 'jour', jour: 'Festag', date: '16 Pflugzeit · 1ᵉʳ jour de descente', meteo: 'Vent modéré, de côté', icone: 'vent' }));
+pieces.push(temps({ teinte: 'jour', jour: 'Festag', date: '16 Pflugzeit · 1ᵉʳ jour de descente', meteo: 'Vent modéré, de côté', icone: 'vent', cadence: PERIL ? null : 'commande' }));
 pieces.push(carteDuTrajet({ titre: 'Le Reik', de: 'Grünburg', vers: 'Altdorf', part: PERIL ? .62 : .4, eau: 'fleuve-voie' }));
 if (PERIL) {
   const vignette = `<svg viewBox="0 0 250 250"><rect width="250" height="250" fill="#d8c493"/>${V.sapins(0, 250, 96, 46, '#8c7446', 6, 14)}<rect y="94" width="250" height="156" fill="#b9a26c"/>

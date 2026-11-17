@@ -1,6 +1,6 @@
 # Propositions : exploration et récit (2026-11-16, #3935)
 
-Compte rendu des douze états dessinés sans cible écrite, dans le style des maquettes validées, contenu lu à
+Compte rendu des quatorze états dessinés sans cible écrite, dans le style des maquettes validées, contenu lu à
 `src/hote/ecran.ts` et `src/noyau/modalArbiter.ts`. Sources au dépôt : `sources/exploration-et-recit/`, sur le socle
 commun de `sources/lieux-et-nuit/`. Le lot a été
 interrompu avant son propre relevé : ce compte rendu est fait d'après les images et les sources, les valeurs
@@ -10,7 +10,8 @@ Pièces neuves : bandeau du bas en parchemin partagé par le dialogue, le jet et
 chronique en trois lignes à droite ; avis de parchemin plein écran ; carte dessinée à la plume.
 
 ## exploration
-- La salle de l'auberge en vue iso, le chef du groupe et le trajet en pointillé ; infobulle de parchemin sur un PNJ
+- La salle de l'auberge en vue iso, le chef du groupe et le trajet en pointillé, sans case d'arrivée (retirée le
+  2026-11-17 : en exploration aucune case ne se dessine au sol, décision citée à `exploration-premiere-personne`) ; infobulle de parchemin sur un PNJ
   (« Parler ») et sur un avis (« Lire ») ; bandeau des quatre héros avec « Mène le groupe » ; « Le lieu » et « Carte
   du monde » en pastilles à gauche ; chronique à droite.
 - À valider : verbes du survol dans l'infobulle ; chef du groupe seul déplacé ; aucune barre d'actions hors combat.
@@ -36,6 +37,8 @@ chronique en trois lignes à droite ; avis de parchemin plein écran ; carte des
   (`src/noyau/combatEffects.ts:348`) : la ligne prise quitte la liste (la lettre, prise par Aldric, est à la
   chronique). Un héros chargé à plein reste pressable, son Encombrement passe en rouge (LDB 61 l.33). « Emporter le
   reste » et sa note disent à qui va le non attribué (`src/noyau/issueDeCombat.ts:90`) ; « Évaluer ».
+- Sur la route, le corps garde son halo ; la case pointillée qui l'entourait est retirée, ici et sur
+  `designation-d-un-heros` (2026-11-17 : aucune case au sol en exploration).
 - À valider : « Laisser » demande un verbe au noyau (M3 de l'audit : `fC('butin','laisser', uid)`, la ligne posée au
   sol) ; tout objet va sur un héros, pas de sac de groupe.
 
@@ -56,6 +59,41 @@ chronique en trois lignes à droite ; avis de parchemin plein écran ; carte des
 - RAW : LDB 12 l.200 ; LDB 15 l.55 ; LDB 18 l.296-298.
 - À valider : les gestes du groupe en pastilles empilées, absentes quand la situation les ferme ; le ramassage par
   le héros qui mène ; l'arête franchissable dite sur la scène, pas dans une liste.
+
+## exploration-dessus (2026-11-17, #4411)
+- Nouvel état de la page d'exploration : la salle de `exploration-gestes`, vue du dessus. Seule la caméra change : mêmes
+  pions (anneau des héros, halo de celui qui mène), mêmes pastilles sur la porte, le coffre, le cocher et la dague, même
+  infobulle « Ramasser », même poste « Enjamber la fenêtre » sur la croisée, mêmes gestes à gauche, carnet, chronique
+  et bandeau des héros. Les trois vues lisent la même salle (`SALLE`, `sources/exploration-et-recit/scene.js`).
+- En haut à droite, le cartouche « Regard » : « Isométrique », « Dessus », « Première personne », le regard tenu doré,
+  et sa touche (V, exemple : la touche par défaut de `changer_de_regard`, `hotes/godot/projet/project.godot:52`).
+- Verbes : ceux de `exploration-gestes`. Le regard se change par la méthode du pont `regarder({ regard })`
+  (`hotes/godot/pont/pont.ts:1432`), l'un de `REGARDS` = `tactique`, `plateau`, `immersion`
+  (`src/noyau/monde/aretes.ts:125`) ; la touche joue `plateau.regardSuivant` (`src/noyau/monde/aretes.ts:269`,
+  `hotes/godot/projet/scripts/combat.gd:464`). Aucun verbe à créer : le regard est un état de l'hôte, pas du noyau
+  (à l'hôte web : `toggleViewMode`, `togglePov`, `src/state/store.ts:248`).
+- Décision : « les trois vues restent supportées » (utilisateur, 2026-11-17, consignée sur #3935).
+- À valider : le cartouche « Regard » à trois segments cliquables, que le pont ne sert pas encore (seul le regard
+  suivant se joue, à la touche) ; sa pose sur `exploration` et `exploration-gestes`, où il n'est pas dessiné ; les
+  libellés « Isométrique », « Dessus », « Première personne » pour `tactique`, `plateau`, `immersion`.
+
+## exploration-premiere-personne (2026-11-17, #4411)
+- Nouvel état de la page d'exploration : la même salle par les yeux de Mira, qui mène le groupe, tournée vers le mur de
+  l'âtre. Marche libre, comme l'immersion de l'hôte Godot (`hotes/godot/projet/scripts/immersion.gd`) : la souris,
+  captive, mène le regard ; le clavier marche en continu (`avant`, `arriere`, `gauche`, `droite`, `courir` tenu) ; le
+  point de mire reste au centre de l'écran. Aucune case au sol, ni boussole, ni flèche : l'immersion n'en a pas. Les
+  héros ne se voient pas (`hotes/godot/projet/scripts/plateau.gd:80`). Le chrome est celui de `exploration-gestes`.
+- Désigner : ce que vise le point de mire prend l'infobulle des autres vues, dont le geste se joue par `agir`, « E ou
+  clic » (touche d'exemple : celle de `agir`, `hotes/godot/projet/project.godot`). Ici la dague, « Ramasser ». La porte
+  de la cour et la voyageuse attablée portent la pastille des choses à portée.
+- Verbes : `agir` joue la case visée par le clic du champ (`case_jouee`, `immersion.gd`), donc `jouerAction(entityId,
+  actionId)` ou `ramasserLObjet(entityId, key, heroId?)` selon ce qu'elle porte. `ui_cancel` libère la souris pour le
+  chrome, un clic la reprend. Regard : comme `exploration-dessus`.
+- Décision : « Pourquoi faut réinventer le mode libre ? Pour moi les cases n ont de sens qu en combat mais c est
+  tout » (utilisateur, 2026-11-17). `pivoterLeGroupe` et `avancerDUnPas` (`src/noyau/actionsDuNoyau.ts:254`, `:258`)
+  sont donc à retirer du noyau : aucune vue ne les joue.
+- À valider : l'infobulle sur ce que vise le point de mire et les pastilles des choses à portée, que l'immersion
+  n'affiche pas aujourd'hui ; les PNJ visibles dans cette vue.
 
 ## soins-entre-heros (2026-11-17, #4411)
 - La page des soins du médecin (`sources/lieux-et-nuit/soins.js`), sans prix ni docteur : Greta à 8 / 14, « Panser

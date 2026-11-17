@@ -40,3 +40,28 @@
 .apercu .pied .gestes .en-reserve{flex:none;margin-right:5px}
 .apercu .pied .gestes .plaque{flex:1;height:36px}
 .apercu .pied .gestes .plaque>div{font-size:14px;padding:0 8px}
+
+/* les poursuites : l'abandon au pied du panneau, les gestes d'une rangée tombée, la plaque d'un acte au long libellé */
+.bord.poursuite .plaque{height:34px}
+.bord.poursuite .plaque>div{font-size:13.5px}
+.apercu .pied .gestes .plaque.large{flex:1.35}
+#suites .plaque.longue{flex-basis:300px}
+
+/* poster un héros : la place offerte sur la Scène, un geste par héros libre dans le billet de la Scène */
+.scene .postes-de-scene{align-items:center}
+.scene .postes-de-scene .medaillon.petit{width:30px;height:30px}
+.apercu td .plaque{display:inline-block;box-sizing:border-box;width:138px;height:24px;vertical-align:middle}
+.apercu td .plaque>div{font-size:12px;padding:0 8px}
+.apercu td:has(.plaque){padding:2px 0}
+
+/* l'issue de la bataille : la phrase d'issue prend le centre */
+#epreuve.issue .fond{grid-template-columns:1fr 430px 1fr}
+#epreuve .gestes .plaque.armee:only-child{width:220px}
+
+/* la préparation de la bataille, au lieu de l'interlude : six Activités, les fermées en fer, leur raison au survol */
+#lieu.preparation{top:128px;z-index:2}
+#lieu.preparation .fermees{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#lieu.preparation .forces{font-size:12px;color:var(--creme-2)}
+#lieu.preparation .activite{position:relative;margin-top:6px;padding:6px 11px}
+#lieu.preparation .activite.fermee b{color:#8d8474}
+#lieu.preparation .plaque.envoyer{margin-top:9px}

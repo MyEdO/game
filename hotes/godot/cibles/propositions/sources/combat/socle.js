@@ -20,6 +20,7 @@ const BUSTES = {
   berta: '<path d="M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28z"/><path d="M24 31c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" fill="#1c1410"/><path d="M52 33c7 9 7 22 2 33l-6-3c4-10 4-19-1-27z" fill="#1c1410"/>',
   gobelin: '<path d="M18 90c0-14 8-20 17-22l-1-5c-8-4-11-13-8-21 3-8 23-8 26 0 3 8 0 17-8 21l-1 5c9 2 17 8 17 22z"/><path d="M27 45L5 34l20 21zM51 45l22-11-20 21z"/><path d="M24 47c-2-16 5-27 15-31 10 4 17 15 15 31-10-6-20-6-30 0z" fill="#0c0605"/>',
   orc: '<path d="M4 90c0-22 11-30 25-32l-1-6c-8-5-11-17-7-26 4-9 32-9 36 0 4 9 1 21-7 26l-1 6c14 2 25 10 25 32z"/><path d="M21 33c7-6 29-6 36 0l-3 5c-9-4-21-4-30 0z" fill="#0c0605"/><path d="M29 54l-2-11 6 8zM49 54l2-11-6 8z" fill="#e6d6b0"/>',
+  cheval: '<path d="M10 90c0-24 6-38 18-46l-6-20 9 6c4-8 10-12 18-12l2-12 7 13c8 6 13 16 14 28l-12 10-8-10c-4 6-5 14-3 22l6 21z"/><path d="M33 22c-2 14 0 26 6 36l-9 6c-6-12-7-26-3-40z" fill="#0c0605"/>',
 };
 const portrait = (genre, camp, style = '') => `<div class="portrait ${camp === 'ennemi' ? 'ennemi fer' : 'laiton'}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" fill="${camp === 'ennemi' ? '#170a08' : '#2a1f17'}">${BUSTES[genre]}</svg></div></div>`;
 const picto = (d, taille = 22, couleur = '#e2c06a', trait = 1.6) => `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="${couleur}" stroke-width="${trait}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
