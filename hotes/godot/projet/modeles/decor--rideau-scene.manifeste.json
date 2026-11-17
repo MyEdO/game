@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "rideau-scene"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "toile",
+      "palette": "vet1",
+      "matiere": "prop--toile-rouge"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "c0117d1ea0fd97e4737b8de890414188615743516a5a43bd67017eadd40f944b",
+    "octets": 145204
+  }
+}

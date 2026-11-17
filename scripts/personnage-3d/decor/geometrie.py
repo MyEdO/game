@@ -1,18 +1,19 @@
 """La géométrie commune aux modèles des décors (#4335) : les axes, ceux d'un cylindre de la recette, les coins d'un
-carré, les deux côtés d'un axe, la boîte et le cylindre d'une primitive en `Vector`, l'aléa semé de l'id, le cap d'un
-azimut, les normales d'une tangente, le point d'un chemin à une hauteur, la courbe lissée par des points, l'anneau
-régulier et la coque close d'une suite d'anneaux ; les pièces que les familles partagent (pièce équarrie, planche,
-pièce profilée et son profil de poteau à chanfreins arrêtés, pièce tournée et son profil droit, pièce ronde courbée,
-cheville et ses cotes, clou, anneau plat de section rectangulaire) et le partage inégal d'une longueur ; et la
-déclaration des éléments d'une famille, avec la construction d'un décor dont les nœuds se bâtissent ensemble."""
+carré, les deux côtés d'un axe, la boîte et le cylindre d'une primitive en `Vector`, le rampant d'un prisme, l'aléa
+semé de l'id, le cap d'un azimut, les normales d'une tangente, le point d'un chemin à une hauteur, la courbe lissée par
+des points, l'anneau régulier, la section bosselée et la coque close d'une suite d'anneaux ; les pièces que les
+familles partagent (pièce équarrie, planche, planche rampante, pièce profilée et son profil de poteau à chanfreins
+arrêtés, pièce tournée et son profil droit, pièce ronde courbée, cheville et ses cotes, clou, anneau plat de section
+rectangulaire, chaîne pendue, bougie sur sa bobèche) et le partage inégal d'une longueur ; et la déclaration des
+éléments d'une famille, avec la construction d'un décor dont les nœuds se bâtissent ensemble."""
 import math
 import random
 
 from mathutils import Vector
 
 import habillage
-from gabarit import Gabarit, boite
-from maille import Maille, objet, tour
+from gabarit import VERSANTS, Gabarit, boite
+from maille import Maille, cylindre, objet, tore, tour
 
 X, Y, HAUT = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
 ANGLES = ((1, 1), (-1, 1), (-1, -1), (1, -1))
@@ -36,6 +37,16 @@ def rond(primitive):
     """Le centre, le rayon et la longueur du cylindre `primitive` de la recette (`pave`)."""
     centre, (diametre, _, longueur) = pave(primitive)
     return centre, diametre / 2, longueur
+
+
+def rampant(primitive):
+    """Le rampant du prisme `primitive` de la recette : le sens horizontal unitaire où il descend (`VERSANTS`), le
+    milieu de sa crête, celui de son égout, sa longueur dans ce sens et sa largeur en travers."""
+    c, (lx, ly, lz) = pave(primitive)
+    descend = Vector(VERSANTS[primitive["slope"]])
+    long = abs(descend.x) * lx + abs(descend.y) * ly
+    return (descend, c - descend * (long / 2) + HAUT * (lz / 2), c + descend * (long / 2) - HAUT * (lz / 2), long,
+            lx + ly - long)
 
 
 def alea(id_):
@@ -83,6 +94,17 @@ def anneau(centre, u, v, rayon, cotes):
     return [centre + (u * math.cos(2 * math.pi * j / cotes) + v * math.sin(2 * math.pi * j / cotes)) * rayon for j in range(cotes)]
 
 
+def bosselee(a, u, v, cotes, bosse):
+    """La section bosselée de `cotes` côtés dans le plan de `u` et `v` (triplets), chacun à une part du rayon tirée
+    dans `bosse`, tournée d'un angle tiré ensuite : la fonction qui rend ses sommets autour d'un centre, à un rayon,
+    chacun calculé en double précision avant son `Vector`."""
+    bosses = [a.uniform(*bosse) for _ in range(cotes)]
+    phase = a.uniform(0, 2 * math.pi)
+    angles = [phase + 2 * math.pi * j / cotes for j in range(cotes)]
+    return lambda centre, rayon: [Vector([p + (du * math.cos(t) + dv * math.sin(t)) * (rayon * b)
+                                          for p, du, dv in zip(centre, u, v)]) for t, b in zip(angles, bosses)]
+
+
 def coque(m, anneaux, mat, pointe=None):
     """La coque close des `anneaux` successifs (listes de points de même longueur) : le premier fermé à plat, le
     dernier à plat aussi, ou en cône vers `pointe`."""
@@ -117,6 +139,14 @@ def planche(m, a, b, u, v, du, dv, chanfrein, mat=MAT):
     d = (b - a).normalized() * chanfrein
     barre(m, [(a, du - chanfrein, dv - chanfrein, chanfrein / 2), (a + d, du, dv, chanfrein), (b - d, du, dv, chanfrein),
               (b, du - chanfrein, dv - chanfrein, chanfrein / 2)], u, v, mat)
+
+
+def rampante(m, a, b, du, dv, chanfrein, mat=MAT):
+    """Une planche de `a` à `b` (`planche`), de demi-côtés `du` en travers, horizontal, et `dv` dans son plan
+    vertical."""
+    fil = (b - a).normalized()
+    travers = fil.cross(HAUT).normalized()
+    planche(m, a, b, travers, fil.cross(travers), du, dv, chanfrein, mat)
 
 
 def profilee(m, a, b, demi, profil, mat=MAT, u=X, v=Y):
@@ -178,6 +208,25 @@ def cercle(m, axe, centre, r, h, e, segments, mat):
     le long de l'axe, son épaisseur `e`."""
     tour(m, [(-h / 2, r - e / 2), (h / 2, r - e / 2), (h / 2, r + e / 2), (-h / 2, r + e / 2)], axe, centre, segments,
          mat, ferme=True)
+
+
+def chaine(m, x, y, z0, z1, nombre, grand, petit, segments, mat):
+    """Une chaîne de `nombre` maillons à l'aplomb de (`x`, `y`), leurs centres de `z0` à `z1`, chacun un tore de rayon
+    `grand` et de fer `petit` (`segments` du tour et de la section), le premier normal à x, les suivants alternés."""
+    for k in range(nombre):
+        tore(m, "xy"[k % 2], (x, y, z0 + (z1 - z0) * k / (nombre - 1)), grand, petit, *segments, mat)
+
+
+def bougie(bobeche, cire, flamme, pied, demi, haut, sommet, B):
+    """Une bougie d'après `B`, ses rayons et la hauteur de sa flamme en fractions de `demi` : sa bobèche et son binet,
+    tournés dans `bobeche`, leur profil en parts de `haut` au-dessus de `pied` ; sa cire dans `cire`, de `haut`
+    au-dessus de `pied` à la hauteur `sommet` ; sa flamme dans `flamme`, sur la cire."""
+    axe = (pied.x, pied.y, 0)
+    segments, pans = B["segments"]
+    tour(bobeche, [(pied.z + part * haut, f * demi) for part, f in B["bobeche"]], "z", axe, segments, "laiton")
+    cylindre(cire, pied.z + haut, sommet, B["cire"] * demi, "z", axe, segments, "cire")
+    hauteur, profil = B["flamme"]
+    tour(flamme, [(sommet + part * hauteur * demi, f * demi) for part, f in profil], "z", axe, pans, "flamme")
 
 
 def partage(a, nombre, ecart):

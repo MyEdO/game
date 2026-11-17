@@ -12,7 +12,7 @@ from mathutils import Vector
 
 import geometrie
 from geometrie import (COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, barre, cap, cercle, cheville, coque, lisse, octogone,
-                       partage, pave, planche, profilee, rond, tournee)
+                       partage, pave, planche, profilee, rampant, rond, tournee)
 from gabarit import VERSANTS
 from maille import poutre, tube
 
@@ -97,10 +97,9 @@ def puits(D, G, pieces, a):
         profilee(bois, c - HAUT * (haut_p / 2 + haut_p * P["poteau"]["ancrage"]), c + HAUT * (haut_p / 2), (demi, demi),
                  POTEAU)
 
-    versants = [(pave(G.primitives[rang]), Vector(VERSANTS[G.primitives[rang]["slope"]])) for rang in P["versants"]]
+    versants = [(pave(G.primitives[rang]), rampant(G.primitives[rang])) for rang in P["versants"]]
     A = P["ardoises"]
-    for (c, (large, long, haut)), descend in versants:
-        faite, egout = c - descend * (long / 2) + HAUT * (haut / 2), c + descend * (long / 2) - HAUT * (haut / 2)
+    for (c, (large, _, haut)), (_, faite, egout, _, _) in versants:
         d, pente = (egout - faite).normalized(), (egout - faite).length
         n = d.cross(X)
         n *= math.copysign(1, n.z)
@@ -445,8 +444,8 @@ def colonne(D, G, pieces, a):
     eclat = G.primitives[K["eclat"]]
     e, (ex, ey, ez) = pave(eclat)
     E = K["eclat_forme"]
-    monte = -Vector(VERSANTS[eclat["slope"]])
-    demi = abs(monte.x) * ex / 2 + abs(monte.y) * ey / 2
+    descend, _, _, long, _ = rampant(eclat)
+    monte, demi = -descend, long / 2
     base = e - HAUT * (ez / 2)
     h_median, part, deport = E["median"]
     median = ovale(base + HAUT * (ez * h_median) + monte * (demi * deport), ex / 2 * part, ey / 2 * part, E, a)
