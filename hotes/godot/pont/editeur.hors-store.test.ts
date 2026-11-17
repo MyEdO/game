@@ -350,7 +350,7 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     expect(boutonDe(opaque, 'zone/blocksLoS').presse).toBe(true);
     const barree = presser(boutonDe(opaque, 'zone/barrier'));
     expect([boutonDe(barree, 'zone/barrier').presse, boutonDe(presser(boutonDe(barree, 'zone/barrier')), 'zone/barrier').presse]).toEqual([true, false]);
-    expect(valeursDeLInspecteur(barree, 'valeur/barrier/blockGroups/ajouter').map((v) => (v.jeu as { args: unknown[] }).args.slice(1)), 'barrée, elle offre les groupes qu’elle bloque, au catalogue des Groupes d’appartenance').toEqual(idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE).map((id) => [['barrier', 'blockGroups'], [id]]));
+    expect(valeursDeLInspecteur(barree, 'valeur/barrier/blockGroups/ajouter').map((v) => (v.jeu as { args: unknown[] }).args.slice(1)), 'barrée, elle offre les groupes qu’elle bloque, au catalogue des Groupes d’appartenance').toEqual(idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE).map((id) => [['barrier', 'blockGroups', 0], id]));
     expect(inspecteur(opaque).some((el) => el.id.startsWith('valeur/barrier')), 'ouverte, aucun').toBe(false);
 
     expect(inspecteur(posee).find((el) => el.id === 'zone/couvre')).toMatchObject({ type: 'ligne', texte: 'Aucune entrée de fiche couverte.' });
@@ -686,7 +686,7 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(departs.map((b) => b.libelle)).toEqual(['Le Bourg de l’Arène', 'La Vieille Futaie']);
     const depuis = presser(departs[0]);
     const suites = valeursDeLInspecteur(depuis, 'valeur/billets/diligence/suite/ajouter');
-    expect(suites.map((b) => b.id), 'les autres routes du mode seules').toEqual([`valeur/billets/diligence/suite/ajouter/${JSON.stringify(['route-felsbach'])}`]);
+    expect(suites.map((b) => b.id), 'les autres routes du mode seules').toEqual([`valeur/billets/diligence/suite/ajouter/${JSON.stringify('route-felsbach')}`]);
     const suite = presser(suites[0]);
     const vendu = presser(boutonDe(suite, 'valeur/billets/diligence/marchandage/ajouter'));
     const vendeurs = valeursDeLInspecteur(vendu, 'valeur/billets/diligence/marchandage/presetId');
@@ -1171,7 +1171,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ligneDe = (e: Edition, id: string) => (e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Ligne | undefined)?.texte;
-    const ajout = (e: Edition, id: string) => valeursDeLInspecteur(e, 'valeur/combat/spells/ajouter').find((b) => { const l = (b.jeu as { args: unknown[][] }).args[2]; return l[l.length - 1] === id; });
+    const ajout = (e: Edition, id: string) => valeursDeLInspecteur(e, 'valeur/combat/spells/ajouter').find((b) => (b.jeu as { args: unknown[] }).args[2] === id);
     presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
     jouer({ geste: 'appui', point: point(1, 1) });
     const pnj = presser(boutonDe(jouer({ geste: 'relache', point: point(1, 1) }), 'valeur/combat/ajouter'));
@@ -1384,7 +1384,7 @@ describe('l’éditeur de carte par le pont, l’adresse de prose (#3606 M2g)', 
     expect(erreurDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '02', texte: TEXTE } })).message, 'un autre chapitre que l’attendu se refuse').toBe('editer : chapitre, livre-de-base ch.02 n’est pas le chapitre attendu');
     const charge = editionDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '01', texte: TEXTE } }));
     expect(charge.chapitre, 'reçu, il ne se redemande pas').toBeUndefined();
-    let e = choisir(charge, `${D}/parts/ajouter`, (v) => (v as Fragment[])[0].kind === 'cellule');
+    let e = choisir(charge, `${D}/parts/ajouter`, (v) => (v as Fragment).kind === 'cellule');
     e = choisir(e, `${D}/parts/0/row`, (v) => v === 'Épée');
     e = choisir(e, `${D}/parts/0/table`, (v) => v === 'table des armes#1');
     e = choisir(e, `${D}/parts/0/col`, (v) => v === 'Prix');

@@ -111,8 +111,9 @@ import { tableTotale } from '../lib/tableTotale';
  * référence de catalogue ; et l'un des choix admis que le contexte de son porteur y pose (`choixDuChamp`), ou, sans
  * eux, une valeur de la sorte du champ : l'une de ses valeurs pour un choix (`choixDuNoeud`), la valeur neuve d'un
  * objet (`valeurNeuveDe`), l'une de ses variantes à choisir pour une union (`variantesAChoisir`), ou ce qu'admet sa
- * variante courante, union ou liste, la liste après l'un de ses gestes (`gestesDeLaListe`), sinon ce que le schéma du
- * champ parse ; `valeur` absente retire le champ si son absence est admise ou si c'est l'entrée d'un record, sinon, à
+ * variante courante, union ou liste, au rang qui suit le dernier élément d'une liste sa valeur neuve, sinon ce que le
+ * schéma du champ parse ; `valeur` absente retire le champ si son absence est admise, si c'est l'entrée d'un record
+ * ou l'élément d'une liste, qui en part, sinon, à
  * travers les clés des objets qui le portent tant qu'aucun ne porte d'autre donnée exigée présente (un champ dont
  * l'absence n'est pas admise, hors du discriminant que tient le choix de sa variante), le plus proche dont l'absence
  * est admise, entier, ses champs facultatifs avec lui ; sinon le champ est requis, et le geste refusé ; une liste
@@ -437,10 +438,11 @@ export interface ZonesDeLEditeur {
    * d'une variante hors objet, la saisie de sa valeur (le nombre d'une formule, au pas de 1 s'il est entier) ; un objet
    * d'une union sans variantes nommées, sa ligne titre et les champs de la branche qu'il dessine (`formeAuPoint`) ;
    *
-   * une liste présente, sa ligne titre, puis chaque élément, ses éléments, « Retirer » et, hors du premier, « Monter »,
-   * enfin « Ajouter », qui pose un élément neuf en fin, ou, d'un élément à choix, le choix de l'élément ajouté en fin,
-   * parmi ceux que son contexte pose au rang neuf, chacun de ces boutons écrivant la liste entière (`gestesDeLaListe`),
-   * et absente, « Ajouter » seul ; une liste que son porteur n'écrit pas entière, sa ligne titre et les éléments de
+   * une liste présente, sa ligne titre, puis chaque élément, ses éléments, « Retirer » (`{ geste: 'valeur' }` sans
+   * valeur à son rang) et, hors du premier, « Monter » (`{ geste: 'monter' }` à son rang, qui le passe avant le
+   * précédent), enfin « Ajouter », qui pose un élément neuf au rang neuf, ou, d'un élément à choix, le choix de
+   * l'élément parmi ceux que son contexte y pose, chacun de ces boutons n'écrivant que l'élément à son rang, et
+   * absente, « Ajouter » seul ; une liste que son porteur n'écrit pas entière, sa ligne titre et les éléments de
    * chaque élément seuls, puis `valeur/<chemin>/ajouter`, l'élément neuf que son contexte pose au rang neuf, écrit à ce
    * rang, de plusieurs leur liste, chacun `valeur/<chemin>/ajouter/<k>` ; l'élément d'une liste à clé, la clé à son
    * libellé ;

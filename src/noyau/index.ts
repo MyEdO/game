@@ -240,7 +240,7 @@ export {
   varianteCourante,
   type FieldDesc,
 } from './codex/editFields';
-export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
+export { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
 export {
   atelierIdentifiable,

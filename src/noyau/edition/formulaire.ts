@@ -20,10 +20,10 @@ import {
   type ContexteDuChamp,
   type FieldDesc,
 } from '../codex/editFields';
-import { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
+import { valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { estObjet } from '../../lib/objet.mjs';
-import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive, type SourceDeLEdition } from './adresseDeProse';
+import { adresseRecalee, adresseRescellee, adressesScellees, auChemin, estCheminDerive, type SourceDeLEdition } from './adresseDeProse';
 
 /** Un pas du chemin d'un champ dans sa donnée : une clé d'objet, ou un rang de liste. */
 export type Segment = string | number;
@@ -90,8 +90,7 @@ const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
 /** La valeur `valeur` est-elle de la sorte du nœud `noeud`, où la valeur `actuelle` est écrite ? `undefined` : s'il
  *  admet le retrait ; d'un champ à choix, l'une de ses valeurs (`choixDuNoeud`) ; d'un objet, sa valeur neuve
  *  (`valeurNeuveDe`) ; d'une union, l'une de ses variantes à choisir (`variantesAChoisir`), ou de l'union ou de la liste
- *  qu'est sa variante courante ; d'une liste, l'actuelle après l'un de ses gestes (`gestesDeLaListe`) ; sinon, et pour une union
- *  ou une liste saisie entière, une valeur que le nœud parse. */
+ *  qu'est sa variante courante ; sinon, et pour une union ou une liste saisie entière, une valeur que le nœud parse. */
 function admise(noeud: unknown, actuelle: unknown, valeur: unknown): boolean {
   if (valeur === undefined) return retirable(noeud);
   const choix = choixDuNoeud(noeud);
@@ -105,28 +104,26 @@ function admise(noeud: unknown, actuelle: unknown, valeur: unknown): boolean {
     return variantesAChoisir(noeud, actuelle)!.some((v) => jsonCanonique(v.valeur) === jouee)
       || ((unionDuNoeud(courante) !== undefined || elementDuNoeud(courante) !== undefined) && admise(courante, actuelle, valeur)) || parse();
   }
-  const element = elementDuNoeud(noeud);
-  if (element !== undefined) {
-    const gestes = gestesDeLaListe(Array.isArray(actuelle) ? actuelle : [], valeurNeuveDe(element));
-    return [gestes.ajouter, ...gestes.elements.flatMap((e) => [e.retirer, e.monter])].some((l) => l && jsonCanonique(l) === jouee) || parse();
-  }
   return parse();
 }
 
 /** Le conteneur `o` où le champ au chemin `[cle, ...reste]` vaut `valeur`, posé par `champ` (un élément de liste se
- *  remplace à son rang, s'ajoute en fin au rang qui suit le dernier) ; un objet que ce retrait vide, au rang `rang` du
- *  chemin, en part aussi quand `vidable(rang)`. */
+ *  remplace à son rang, s'ajoute en fin au rang qui suit le dernier, d'une liste absente au rang 0, et se retire de la
+ *  liste, absent) ; un objet que ce retrait vide, au rang `rang` du chemin, en part aussi quand `vidable(rang)`. */
 function ecrit(o: unknown, [cle, ...reste]: readonly Segment[], valeur: unknown, vidable: (rang: number) => boolean, rang = 0): unknown {
-  const sous = (o as Record<Segment, unknown>)[cle];
+  const sous = (o as Record<Segment, unknown> | undefined)?.[cle];
   const suite = reste.length ? ecrit(sous, reste, valeur, vidable, rang + 1) : valeur;
-  if (Array.isArray(o)) return cle === o.length ? (suite === undefined ? o : [...o, suite]) : o.map((e, i) => (i === cle ? suite : e));
-  const vide = valeur === undefined && reste.length > 0 && Object.keys(sous as object).length > 0 && !Object.keys(suite as object).length;
+  if (typeof cle === 'number') {
+    const liste = (o ?? []) as unknown[];
+    return suite === undefined ? liste.filter((_, i) => i !== cle) : cle === liste.length ? [...liste, suite] : liste.map((e, i) => (i === cle ? suite : e));
+  }
+  const vide = valeur === undefined && reste.length > 0 && Object.keys(sous ?? {}).length > 0 && !Object.keys(suite as object).length;
   return champ(o as Objet, cle as string, vide && vidable(rang) ? undefined : suite);
 }
 
 /** Le nœud du pas `pas` depuis le point de nœud `noeud` et de valeur `point`, où le contexte pose les choix `poses` : le
  *  rang d'un élément d'une liste présente (`elementDuNoeud`), la variante courante d'une union comprise (`formeAuPoint`),
- *  ou celui qui suit son dernier, où l'élément s'ajoute ; une clé du record présent (`recordDuNoeud`) qu'il porte, ou
+ *  ou celui qui suit son dernier, où l'élément s'ajoute (0 d'une liste absente) ; une clé du record présent (`recordDuNoeud`) qu'il porte, ou
  *  qu'il offre (`champsDuRecord`) : l'un des choix admis que le contexte y pose, sinon une clé qu'admet son nœud ; une clé
  *  déclarée de l'objet présent (`champsDeclares`), à travers ses unions (`formeAuPoint`), ni discriminant que tient le
  *  choix d'une variante, ni l'identité `tenue` que tient la liste qui le porte (`identiteTenue`) ; `undefined` si le
@@ -134,7 +131,8 @@ function ecrit(o: unknown, [cle, ...reste]: readonly Segment[], valeur: unknown,
 function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => readonly ChoixDuContexte[] | undefined, tenue: readonly string[]): unknown {
   if (typeof pas === 'number') {
     const element = elementDuNoeud(formeAuPoint(noeud, point)?.noeud ?? noeud);
-    return element !== undefined && Array.isArray(point) && Number.isInteger(pas) && pas >= 0 && pas <= point.length ? element : undefined;
+    const longueur = Array.isArray(point) ? point.length : point === undefined ? 0 : -1;
+    return element !== undefined && Number.isInteger(pas) && pas >= 0 && pas <= longueur ? element : undefined;
   }
   if (!estObjet(point)) return undefined;
   const record = recordDuNoeud(noeud);
@@ -161,7 +159,7 @@ function noeudsDuChemin(objet: unknown, donnee: Objet, chemin: readonly Segment[
     const noeud = noeudDuPas(parent, point, pas, () => choix(chemin.slice(0, rang)), tenue);
     if (noeud === undefined) return undefined;
     noeuds.push(noeud);
-    const suivant = (point as Record<Segment, unknown>)[pas];
+    const suivant = (point as Record<Segment, unknown> | undefined)?.[pas];
     tenue = typeof pas === 'number' ? identiteTenue(formeAuPoint(parent, point)?.noeud ?? parent, suivant) : [];
     point = suivant;
   }
@@ -177,17 +175,19 @@ function porteUneAutreExigee(noeud: unknown, point: unknown, cle: Segment): bool
 }
 
 /** Le chemin où s'écrit le retrait du champ au chemin `chemin` de la donnée `donnee` de l'objet de schéma `objet`, aux
- *  choix `choix` : le sien si son absence est admise (son nœud l'admet, ou il est l'entrée d'un record) ; sinon, de
+ *  choix `choix` : le sien si son absence est admise (son nœud l'admet, il est l'entrée d'un record ou l'élément
+ *  présent d'une liste, qui s'en retire) ; sinon, de
  *  proche en proche à travers les clés des objets qui le portent, tant que chacun ne porte aucune autre donnée exigée
  *  présente (`porteUneAutreExigee`), celui du plus proche dont l'absence est admise, qui se retire entier, ses champs
  *  facultatifs avec lui ; ou son refus : un chemin que le formulaire n'offre pas (`nonOffert`), un champ que son objet
  *  exige (`requis`). */
 function cheminDuRetrait(objet: unknown, donnee: Objet, chemin: readonly Segment[], choix: ChoixDuFormulaire): readonly Segment[] | 'nonOffert' | 'requis' {
-  const noeuds = noeudsDuChemin(objet, donnee, chemin, choix)?.noeuds;
-  if (!noeuds) return 'nonOffert';
+  const pas = noeudsDuChemin(objet, donnee, chemin, choix);
+  if (!pas) return 'nonOffert';
+  const { noeuds } = pas;
   const absenceAdmise = (rang: number) => retirable(noeuds[rang]) || recordDuNoeud(rang ? noeuds[rang - 1] : objet) !== undefined;
-  if (absenceAdmise(noeuds.length - 1)) return chemin;
-  const points = chemin.reduce<unknown[]>((pts, pas) => [...pts, (pts[pts.length - 1] as Record<Segment, unknown>)[pas]], [donnee]);
+  if (absenceAdmise(noeuds.length - 1) || (typeof chemin[chemin.length - 1] === 'number' && pas.point !== undefined)) return chemin;
+  const points = [donnee, ...chemin.map((_, i) => auChemin(donnee, chemin.slice(0, i + 1)))];
   for (let rang = noeuds.length - 2; rang >= 0 && typeof chemin[rang + 1] === 'string'; rang--) {
     if (porteUneAutreExigee(noeuds[rang], points[rang + 1], chemin[rang + 1])) return 'requis';
     if (absenceAdmise(rang)) return chemin.slice(0, rang + 1);
@@ -223,11 +223,11 @@ export function fauteNeuve(objet: unknown, avant: unknown, apres: unknown): stri
 }
 
 /** La donnée `donnee` de l'objet de schéma `objet` où `valeur` s'écrit au chemin `chemin` (`ecrit`), le champ retiré si
- *  elle vaut `undefined` (l'entrée d'un record partiel ou à clé ouverte, `recordDuNoeud`, se retire toujours), une liste
- *  vidée retirée si son nœud admet l'absence ; ou son refus : un pas que le formulaire n'offre pas (`noeudDuPas`), une
- *  valeur qui n'est pas l'un des choix admis que le contexte de son porteur y pose (`choix`, qui, d'un record, pose ses
- *  clés), ou, sans eux, pas de la sorte du champ (`admise`) ni, d'une liste, elle où s'ajoute en fin l'un des choix
- *  admis que ce contexte pose au rang qui suit son dernier élément ; un retrait (le champ retiré, la liste raccourcie) dont
+ *  elle vaut `undefined` (l'entrée d'un record partiel ou à clé ouverte, `recordDuNoeud`, et l'élément présent d'une
+ *  liste, qui s'en retire, se retirent toujours), une liste vidée retirée si son nœud admet l'absence ; ou son refus : un
+ *  pas que le formulaire n'offre pas (`noeudDuPas`), une valeur qui n'est pas l'un des choix admis que le contexte de son
+ *  porteur y pose (`choix`, qui, d'un record, pose ses clés), ou, sans eux, pas de la sorte du champ (`admise`) ni, au
+ *  rang qui suit le dernier élément d'une liste, sa valeur neuve (`valeurNeuveDe`) ; un retrait (le champ retiré, la liste raccourcie) dont
  *  l'objet écrit porte une faute de son parse que la donnée ne portait pas (`fauteNeuve`), dite. Hors retrait, le schéma
  *  entier ne se vérifie qu'à l'enregistrement et à l'essai (#3606, décision 3). */
 export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown, choix: ChoixDuFormulaire = () => undefined): EcritureDeValeur<Objet> {
@@ -237,10 +237,10 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
   const dernier = noeuds[noeuds.length - 1];
   const ecrite = Array.isArray(valeur) && !valeur.length && elementDuNoeud(dernier) !== undefined && retirable(dernier) ? undefined : valeur;
   const poses = ecrite === undefined || recordDuNoeud(dernier) ? undefined : choix(chemin);
-  const entreeRetiree = ecrite === undefined && recordDuNoeud(noeuds.length > 1 ? noeuds[noeuds.length - 2] : objet) !== undefined;
-  const liste = Array.isArray(point) ? point : [];
-  const ajoutee = () => elementDuNoeud(dernier) !== undefined && !!choix([...chemin, liste.length])?.some((c) => c.refus === null && jsonCanonique([...liste, c.valeur]) === jsonCanonique(ecrite));
-  const ecrivable = poses ? poses.some((c) => c.refus === null && jsonCanonique(c.valeur) === jsonCanonique(ecrite)) : entreeRetiree || admise(dernier, point, ecrite) || ajoutee();
+  const rang = typeof chemin[chemin.length - 1] === 'number';
+  const retiree = ecrite === undefined && ((rang && point !== undefined) || recordDuNoeud(noeuds.length > 1 ? noeuds[noeuds.length - 2] : objet) !== undefined);
+  const neuve = () => rang && point === undefined && jsonCanonique(ecrite) === jsonCanonique(valeurNeuveDe(dernier));
+  const ecrivable = poses ? poses.some((c) => c.refus === null && jsonCanonique(c.valeur) === jsonCanonique(ecrite)) : retiree || admise(dernier, point, ecrite) || neuve();
   if (!ecrivable) return { ok: false, refus: valeur === null ? 'illisible' : 'horsSorte' };
   const apres = ecrit(donnee, chemin, ecrite, (rang) => retirable(noeuds[rang])) as Objet;
   const retrait = ecrite === undefined || (Array.isArray(point) && Array.isArray(ecrite) && ecrite.length < point.length);
@@ -248,32 +248,18 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
   return faute === undefined ? { ok: true, valeur: apres } : { ok: false, refus: { regle: faute } };
 }
 
-/** Le retrait déclaré au chemin `chemin` des retraits `retraits` du formulaire (`FormeDuFormulaire`), de la donnée `donnee` :
- *  d'un rang, la liste qui le porte, sans l'élément ; d'une clé, l'objet qu'elle porte, par le chemin de son retrait
- *  `ecrit` (`cheminDuRetrait`), s'il ne remonte pas au-delà ; `undefined` hors d'eux. */
-function retraitDeclare(retraits: CheminsOfferts, donnee: unknown, chemin: readonly Segment[], ecrit: readonly Segment[] | 'nonOffert' | 'requis'): { ecrit: readonly Segment[]; valeur: unknown } | undefined {
-  if (!retraits.some((r) => jsonCanonique(r) === jsonCanonique(chemin))) return undefined;
-  const rang = chemin[chemin.length - 1];
-  if (typeof rang === 'string') return typeof ecrit !== 'string' && jsonCanonique(ecrit) === jsonCanonique(chemin) ? { ecrit, valeur: undefined } : undefined;
-  const parent = chemin.slice(0, -1);
-  const liste = parent.reduce<unknown>((o, pas) => (o as Record<Segment, unknown>)[pas], donnee) as readonly unknown[];
-  return { ecrit: parent, valeur: liste.filter((_, i) => i !== rang) };
-}
-
-
-/** Où s'écrit `valeur` au chemin `chemin` du formulaire de forme `forme`, de donnée `donnee`, aux choix `choix`, et ce
- *  qui s'y écrit : `valeur` au chemin, ou, `valeur` absente, le retrait déclaré qu'est ce chemin (`retraitDeclare`),
- *  sinon le retrait au chemin du sien (`cheminDuRetrait`) ; ou son refus : celui du retrait, une écriture hors de ses
- *  champs, ou qui emporte un champ qu'ils n'offrent pas (`ecritureOfferte`), hors d'un retrait déclaré, à ce qu'une
- *  adresse de prose dérive (`estCheminDerive`), n'est pas offerte. */
-function ouSEcrit({ noeud, champs: offerts, retraits }: FormeDuFormulaire, donnee: unknown, chemin: readonly Segment[], valeur: unknown, choix: ChoixDuFormulaire): { ok: true; ecrit: readonly Segment[]; valeur: unknown } | { ok: false; refus: RefusDeValeur } {
-  const retrait = valeur === undefined ? cheminDuRetrait(noeud, donnee as Objet, chemin, choix) : chemin;
-  const declare = valeur === undefined ? retraitDeclare(retraits, donnee, chemin, retrait) : undefined;
-  if (!declare && typeof retrait === 'string') return { ok: false, refus: retrait };
-  const ecrit = declare?.ecrit ?? (retrait as readonly Segment[]);
-  const actuelle = ecrit.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
-  const offerte = declare !== undefined || ecritureOfferte(offerts, ecrit, actuelle);
-  return offerte && !estCheminDerive(noeud, donnee, ecrit) ? { ok: true, ecrit, valeur: declare ? declare.valeur : valeur } : { ok: false, refus: 'nonOffert' };
+/** Où s'écrit `valeur` au chemin `chemin` du formulaire de forme `forme`, de donnée `donnee`, aux choix `choix` : au
+ *  chemin, ou, `valeur` absente, au chemin de son retrait (`cheminDuRetrait`) ; ou son refus : celui du retrait, une
+ *  écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas (`ecritureOfferte`, sur la liste entière
+ *  pour le retrait d'un de ses éléments, qui décale ceux qui le suivent), hors d'un retrait déclaré qu'est ce chemin
+ *  (`FormeDuFormulaire.retraits`), à ce qu'une adresse de prose dérive (`estCheminDerive`), n'est pas offerte. */
+function ouSEcrit({ noeud, champs: offerts, retraits }: FormeDuFormulaire, donnee: unknown, chemin: readonly Segment[], valeur: unknown, choix: ChoixDuFormulaire): { ok: true; ecrit: readonly Segment[] } | { ok: false; refus: RefusDeValeur } {
+  const ecrit = valeur === undefined ? cheminDuRetrait(noeud, donnee as Objet, chemin, choix) : chemin;
+  if (typeof ecrit === 'string') return { ok: false, refus: ecrit };
+  const declare = valeur === undefined && jsonCanonique(ecrit) === jsonCanonique(chemin) && retraits.some((r) => jsonCanonique(r) === jsonCanonique(chemin));
+  const porte = valeur === undefined && typeof ecrit[ecrit.length - 1] === 'number' ? ecrit.slice(0, -1) : ecrit;
+  const offerte = declare || ecritureOfferte(offerts, porte, auChemin(donnee, porte));
+  return offerte && !estCheminDerive(noeud, donnee, ecrit) ? { ok: true, ecrit } : { ok: false, refus: 'nonOffert' };
 }
 
 /** Le retrait de chaque champ, à son chemin, du formulaire de forme `forme`, de donnée `donnee`, aux choix `choix`,
@@ -283,16 +269,38 @@ export const retraitAuFormulaire = (forme: FormeDuFormulaire, donnee: unknown, c
 
 /** La donnée `donnee` du formulaire de forme `forme` où `valeur` s'écrit au chemin `chemin`, là où elle s'écrit
  *  (`ouSEcrit` ; `avecLaValeur`, aux choix `choix`), son adresse de prose recalée (`adresseRecalee`) et chaque
- *  fragment d'adresse scellé sur le `Source/` `source` (`adressesScellees`) ; ou son refus : celui de `ouSEcrit`, ou
- *  une écriture qui apporte un fragment que seul un chapitre non chargé scellerait, n'est pas offerte. */
+ *  fragment d'adresse scellé sur le `Source/` `source` (`scellee`) ; ou son refus : celui de `ouSEcrit`, d'`avecLaValeur`
+ *  ou de `scellee`. */
 export function ecritureAuFormulaire<T>(forme: FormeDuFormulaire, donnee: T, chemin: readonly Segment[], valeur: unknown, choix: ChoixDuFormulaire, source: SourceDeLEdition): EcritureDeValeur<T> {
   const ou = ouSEcrit(forme, donnee, chemin, valeur, choix);
   if (!ou.ok) return ou;
   const { noeud } = forme;
-  const ecrite = avecLaValeur(noeud, donnee as Objet, ou.ecrit, ou.valeur, choix);
-  if (!ecrite.ok) return ecrite;
-  const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, ou.ecrit), source);
-  return scellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: scellee as T };
+  const ecrite = avecLaValeur(noeud, donnee as Objet, ou.ecrit, valeur, choix);
+  return ecrite.ok ? scellee(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, ou.ecrit), source) : ecrite;
+}
+
+/** La donnée `apres`, écrite depuis `donnee` de schéma `noeud`, chaque fragment d'adresse scellé sur le `Source/`
+ *  `source` (`adressesScellees`) ; ou son refus : un fragment que seul un chapitre non chargé scellerait n'est pas
+ *  offert. */
+function scellee<T>(noeud: unknown, donnee: T, apres: unknown, source: SourceDeLEdition): EcritureDeValeur<T> {
+  const ecrite = adressesScellees(noeud, donnee, apres, source);
+  return ecrite === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: ecrite as T };
+}
+
+/** La donnée `donnee` du formulaire de forme `forme` où l'élément au chemin `chemin`, le rang d'une liste, passe avant
+ *  le précédent, aux choix `choix`, chaque fragment d'adresse scellé sur le `Source/` `source` (`scellee`) ; ou son
+ *  refus : un chemin que le formulaire n'offre pas (`noeudsDuChemin`), qui ne désigne pas un élément présent après le
+ *  premier, ou une liste qu'il n'écrit pas entière (`ecritureOfferte`) ou qu'une adresse de prose dérive
+ *  (`estCheminDerive`), n'est pas offert. */
+export function monteeAuFormulaire<T>({ noeud, champs }: FormeDuFormulaire, donnee: T, chemin: readonly Segment[], choix: ChoixDuFormulaire, source: SourceDeLEdition): EcritureDeValeur<T> {
+  const rang = chemin[chemin.length - 1];
+  const ici = chemin.slice(0, -1);
+  const liste = auChemin(donnee, ici);
+  const offerte = typeof rang === 'number' && rang > 0 && Array.isArray(liste) && rang < liste.length && noeudsDuChemin(noeud, donnee as Objet, chemin, choix) !== undefined
+    && ecritureOfferte(champs, ici, liste) && !estCheminDerive(noeud, donnee, ici);
+  if (!offerte) return { ok: false, refus: 'nonOffert' };
+  const montee = liste.map((e, i) => (i === rang - 1 ? liste[rang] : i === rang ? liste[rang - 1] : e));
+  return scellee(noeud, donnee, ecrit(donnee, ici, montee, () => false), source);
 }
 
 /** La donnée `donnee` du formulaire de forme `forme` où l'adresse de prose au chemin `chemin` est rescellée après

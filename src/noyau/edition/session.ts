@@ -85,6 +85,7 @@ import {
   renameEffectZone,
   avecLaValeurDuPorteur,
   avecLAdresseRescellee,
+  avecLElementMonte,
   renameEntry,
   setPosteCrew,
   setPosteEngine,
@@ -533,7 +534,7 @@ export interface SessionDEdition {
  *  sélectionné un établissement du type `kind` (`typesDEtablissement`, `etablissementAjoute`), faire vendre à son établissement
  *  d'hébergement `etablissement` l'offre du livre `offre` ou la lui retirer (`offreAjoutee`, `offreRetiree`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
- *  retire le champ, ou l'objet ou l'élément d'un retrait déclaré, `retraitsDuPorteur`), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
+ *  retire le champ, ou l'objet ou l'élément d'un retrait déclaré, `retraitsDuPorteur`), y monter l'élément de liste au chemin `chemin` avant le précédent (`avecLElementMonte`), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
  *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou sans sélection le porteur singulier du
  *  document ouvert qui se nomme (`gestesDuSingulier`, la scène) (`nom` absent : l'entité
  *  reprend le nom de sa fiche ; le déclencheur, le dialogue et la rencontre y prennent leur identifiant, par la table de leur
@@ -577,6 +578,7 @@ export type GesteDEdition =
   | { geste: 'ajouterOffre' | 'retirerOffre'; etablissement: string; offre: OffreDAuberge['id'] }
   | { geste: 'document'; document: SorteDeDocument }
   | { geste: 'valeur'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[]; valeur?: unknown }
+  | { geste: 'monter'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[] }
   | { geste: 'resceller'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[] }
   | { geste: 'corps'; id: string }
   | { geste: 'batir'; ouvrage: Ouvrage }
@@ -1187,8 +1189,10 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const ecrite = projetAvecLaValeur(s, g);
       return ecrite.ok ? ecrireSurLesPorteurs(s, g.porteur.sorte, ecrite.valeur) : s;
     }
+    case 'monter':
     case 'resceller': {
-      const ecrite = projetAvecLaDonnee(s, g.porteur, (sorte, donnee, cadre) => avecLAdresseRescellee(sorte, donnee, g.chemin, cadre));
+      const ecriture = g.geste === 'monter' ? avecLElementMonte : avecLAdresseRescellee;
+      const ecrite = projetAvecLaDonnee(s, g.porteur, (sorte, donnee, cadre) => ecriture(sorte, donnee, g.chemin, cadre));
       return ecrite.ok ? ecrireSurLesPorteurs(s, g.porteur.sorte, ecrite.valeur) : s;
     }
     case 'nommer': {
