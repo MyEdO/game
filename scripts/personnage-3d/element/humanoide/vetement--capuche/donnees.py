@@ -3,8 +3,8 @@
 
 Illustration directrice : « Sorcier | sorcier | `carrieres/sorcier.png` » (`INDEX.md` du recueil `illustrations-wfrp`),
 LDB folio 92, hors dépôt. Ce qu'elle montre (signe identitaire 1 du contrat) : un capuchon ample de drap bleu-gris
-tirant sur le vert, loin du crâne au-dessus et derrière, dont le bord avant dépasse le front et l'ombre ; sa pointe
-monte en arrière du crâne puis casse et retombe vers l'arrière ; au bord, l'envers plus clair, ocre-olive, se voit ; une
+tirant sur le vert, rond et souple, loin du crâne au-dessus et derrière, dont le bord avant dépasse le front et
+l'ombre, et dont le drap en trop retombe dans le dos ; au bord, l'envers plus clair, ocre-olive, se voit ; une
 écharpe du même drap, large, en trois gros plis concentriques, couvre le cou, les épaules jusqu'à leur pointe et le haut
 de la poitrine ; le bas du capuchon y entre, la barbe passe sous elle et ressort dessous ; un pan en tombe sur l'avant
 gauche du personnage (contrat). Le dos ne se voit pas : HYPOTHÈSE du contrat, le capuchon est cousu à l'écharpe, qui
@@ -30,9 +30,9 @@ MATERIAUX = {'capuche': ('accent', 'laine'), 'doublure': ('vet2', 'toile-ecrue')
 """Illustration : drap bleu-gris (`accent`) ; l'envers du capuchon, ocre-olive clair, proche de la robe de dessous
 (`vet2`, HYPOTHÈSE : aucun emplacement de palette n'est propre à une doublure)."""
 
-CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--barbe-longue',
+CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--barbe-courte',
              'robe': 'humanoide--vetement--robe'}
-"""La tête publiée et la coiffure du Sorcier, que le capuchon enveloppe et par-dessus la barbe de laquelle passe
+"""La tête publiée et la coiffure du preset `sorcier`, que le capuchon enveloppe et par-dessus la barbe de laquelle passe
 l'écharpe ; la robe du Sorcier, sur les épaules et la poitrine de laquelle l'écharpe repose : elle en emprunte les poids
 (procédure, section 3)."""
 MATIERES = {'tete': ['peau'], 'coiffure': ['poil'], 'robe': ['robe', 'galon', 'dessous']}
@@ -54,9 +54,9 @@ CAPUCHON = {
     'os_du_centre': 'Head',
     'centre': (0.0, -0.0074, 0.1007),   # base : (0 ; 0,010 ; 1,710) au repos, le centre du crâne, à la hauteur des yeux
     'colonnes': 20,                     # HYPOTHÈSE de maillage : intervalles d'un bord de l'ouverture à l'autre
-    # élévations des rangs, du bas au dernier avant la pointe. Bas : sous la mâchoire (base : coin de la mâchoire à
+    # élévations des rangs, du bas au dernier avant le sommet. Bas : sous la mâchoire (base : coin de la mâchoire à
     # z ~1,61), dans l'écharpe
-    'elevations': (-38.0, -25.5, -13.0, -0.5, 12.0, 24.5, 37.0, 49.5, 62.0),
+    'elevations': (-38.0, -25.5, -13.0, -0.5, 12.0, 24.5, 37.0, 49.5, 62.0, 74.5),
     # Demi-axes (m) de l'ellipsoïde du capuchon autour du centre : la forme du drap, loin du crâne (illustration :
     # un volume, plus large que la tête, profond derrière, dont le bord avance devant le front). Base : la tête a
     # 0,091 de demi-largeur, 0,096 derrière le centre, 0,110 au-dessus, le front à 0,100 devant. `bas` : le capuchon se
@@ -68,12 +68,11 @@ CAPUCHON = {
     # bord haut. Illustration : le bord passe devant l'oreille, à la joue, et se ferme au-dessus du front, qu'il ombre
     # (base : sourcils à z ~1,74, soit 17° ; bord haut à 37°, z ~1,79, 2,4 cm devant le front)
     'ouverture': {'demi': 58.0, 'milieu': -0.5, 'haut': 37.0},
-    # Pointe : anneaux (recul, hauteur depuis le centre, rayon, inclinaison vers l'arrière en degrés) au-dessus du
-    # dernier rang, puis le bout (recul, hauteur). Illustration : la pointe monte en arrière du crâne, casse, et son
-    # bout retombe derrière ; HYPOTHÈSE : 10 cm au-dessus du crâne (à 8 cm et des anneaux plus étroits, la pointe se
-    # lisait comme un bouton, rendu de dos ; à 13 cm et peu inclinée, comme un bonnet pointu dressé, rendu de face)
-    'pointe': [(0.070, 0.150, 0.055, 35.0), (0.140, 0.185, 0.030, 70.0)],
-    'bout': (0.200, 0.150),
+    # Retombée : ce que la forme gagne en rayon derrière la tête, par élévation (degrés, m), entière au-delà du second
+    # azimut, nulle en deçà du premier. Illustration : le capuchon est rond et souple, son drap en trop retombe dans le
+    # dos, par-dessus l'écharpe ; HYPOTHÈSE (dos non montré) : une poche qui pend jusqu'au haut du dos (z ~1,56)
+    'retombee': {'azimuts': (115.0, 160.0),
+                 'surplus': [(-38.0, 0.130), (-25.5, 0.095), (-13.0, 0.060), (-0.5, 0.032), (12.0, 0.012), (24.5, 0.0)]},
     'lissage_des_poids': 3,             # HYPOTHÈSE : passes laplaciennes des poids empruntés à la peau de la tête
 }
 
@@ -90,6 +89,7 @@ ECHARPE = {
     # qu'il enveloppe (illustration)
     'haut': [(0.0, 0.175), (40.0, 0.190), (90.0, 0.240), (180.0, 0.240)],
     'portee_du_haut': 0.17,             # base : en deçà des épaules
+    'sous_la_retombee': 115.0,          # azimut au-delà duquel le haut passe sous la retombée du capuchon, autour du cou
     # (azimut, angle polaire) du bord : devant, sur le haut de la poitrine (illustration : ~55 px sous le menton,
     # z ~1,49) ; sur les côtés, à la pointe de l'épaule (`x_max`) ; derrière (HYPOTHÈSE), sur le haut du dos
     'bord': [(0.0, 66.0), (40.0, 62.0), (60.0, 48.0), (90.0, 41.0), (120.0, 41.0), (145.0, 58.0), (180.0, 66.0)],

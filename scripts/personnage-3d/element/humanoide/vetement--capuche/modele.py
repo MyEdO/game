@@ -2,10 +2,10 @@
 
 - Le capuchon : rangs en élévation autour du centre du crâne, chacun d'un bord de l'ouverture du visage à l'autre par
   la nuque, fermé au-dessus du front ; chaque point est sur l'ellipsoïde du capuchon (`forme`), jamais à moins du jeu
-  de la tête et de la coiffure ; au-dessus du dernier rang, les anneaux de la pointe, inclinés vers l'arrière, et son
-  bout. Son envers porte la doublure.
+  de la tête et de la coiffure ; derrière la tête, la forme s'allonge vers le bas en une poche qui retombe dans le dos ;
+  le sommet est rond, fermé en éventail. Son envers porte la doublure.
 - L'écharpe : colonnes en azimut autour de l'axe du cou ; le haut, un anneau marché à l'horizontale vers l'axe jusqu'au
-  jeu du capuchon, de la coiffure et du cou (sous le menton, autour du bas du capuchon) ; sous lui, rangs en angle
+  jeu du capuchon, de la coiffure et du cou (sous le menton, autour du bas du capuchon, sous sa retombée derrière) ; sous lui, rangs en angle
   polaire depuis un centre dans le torse jusqu'au bord (épaules, poitrine, haut du dos), chaque point le plus extérieur
   de son rayon au jeu de la robe, du corps et de la coiffure, plus le pli de son rang.
 - Le pan : une bande qui sort de sous le bord de l'écharpe à l'avant gauche et tombe sur la poitrine.
@@ -18,7 +18,7 @@ import math
 import numpy as np
 from mathutils import Vector
 
-from tissu import Maillage, direction_spatiale, emprunter, joindre, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
+from tissu import Maillage, direction_spatiale, emprunter, fondu, joindre, joindre_les_surfaces, lambeaux, lisser, porteur_de, selon, voisinage
 
 
 def exterieur(D, surfaces, origine, d, portee, jeu, plancher=None):
@@ -38,11 +38,10 @@ def exterieur(D, surfaces, origine, d, portee, jeu, plancher=None):
 
 
 def capuchon(D, b, surfaces):
-    """Les rangs du capuchon, du bas au bout de la pointe (indices de sommets, un rang fermé répète son premier), dans
-    le maillage rendu avec le centre du crâne."""
+    """Le maillage du capuchon : rangs du bas au sommet, celui-ci fermé en éventail."""
     c = D['CAPUCHON']
     C = np.array(b.tete(c['os_du_centre'])) + np.asarray(c['centre'], float)
-    f, o, n = c['forme'], c['ouverture'], c['colonnes'] + 1
+    f, o, n, t = c['forme'], c['ouverture'], c['colonnes'] + 1, c['retombee']
     M = Maillage()
     rangs = []
     for e in c['elevations']:
@@ -54,27 +53,17 @@ def capuchon(D, b, surfaces):
             d = direction_spatiale(phi, e)
             forme = 1.0 / math.sqrt((d[0] / f['cote']) ** 2 + (d[1] / (f['devant'] if d[1] < 0 else f['derriere'])) ** 2
                                     + (d[2] / (f['haut'] if d[2] > 0 else f['bas'])) ** 2)
+            derriere = fondu((abs(phi - 180.0) - (180.0 - t['azimuts'][1])) / (t['azimuts'][1] - t['azimuts'][0]))
+            forme += (1.0 - derriere) * float(np.interp(e, *zip(*t['surplus'])))
             points.append(C + exterieur(D, surfaces, C, d, D['PORTEE'], c['jeu'], plancher=forme) * d)
         rang = M.ajouter(points, 'capuchon')
         rangs.append(rang + rang[:1] if ferme else rang)
-    dernier = np.array([M.sommets[i] for i in rangs[-1][:-1]])
-    G = dernier.mean(axis=0)
-    rayon = float(np.linalg.norm(dernier - G, axis=1).mean())
-    centres = [G]
-    for recul, hauteur, r, inclinaison in c['pointe']:
-        a = -math.radians(inclinaison)
-        R = np.array([[1.0, 0.0, 0.0], [0.0, math.cos(a), -math.sin(a)], [0.0, math.sin(a), math.cos(a)]])
-        K = C + np.array([0.0, recul, hauteur])
-        rang = M.ajouter(list(K + (dernier - G) * (r / rayon) @ R.T), 'capuchon')
-        rangs.append(rang + rang[:1])
-        centres.append(K)
-    bout = M.ajouter([C + np.array([0.0, *c['bout']])], 'capuchon')[0]
-    refs = [C] * (len(c['elevations']) - 1) + [0.5 * (p + q) for p, q in zip(centres, centres[1:])]
-    for A, B, ref in zip(rangs, rangs[1:], refs):
+    sommet = M.ajouter([C + np.array([0.0, 0.0, f['haut']])], 'capuchon')[0]
+    for A, B in zip(rangs, rangs[1:]):
         for i in range(n - 1):
-            M.quad(A[i], A[i + 1], B[i + 1], B[i], ref)
+            M.quad(A[i], A[i + 1], B[i + 1], B[i], C)
     for i in range(n - 1):
-        M.triangle(rangs[-1][i], rangs[-1][i + 1], bout, centres[-1])
+        M.triangle(rangs[-1][i], rangs[-1][i + 1], sommet, C)
     return M
 
 
@@ -91,7 +80,8 @@ def echarpe(D, b, surfaces, capuchon_):
         psi = 360.0 * j / m
         d = direction_spatiale(psi)
         A = O + np.array([0.0, 0.0, selon(e['haut'], psi)])
-        rangs[0].append(A + exterieur(D, autour, A, d, e['portee_du_haut'], e['jeu']) * d)
+        devant = abs((psi + 180.0) % 360.0 - 180.0) <= e['sous_la_retombee']
+        rangs[0].append(A + exterieur(D, autour if devant else surfaces, A, d, e['portee_du_haut'], e['jeu']) * d)
         haut = math.degrees(math.atan2(math.hypot(*(rangs[0][j] - O)[:2]), rangs[0][j][2] - O[2]))
         bas = selon(e['bord'], psi) + bords[j]
         ampleur = e['ampleur'] * (1.0 + e['inegalite'] * math.sin(math.radians(2.0 * psi) + 1.3))
