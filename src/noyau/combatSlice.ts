@@ -2408,12 +2408,11 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       },
     },
     desengagement: {
-      // « Sacrifier l'Avantage » (l.87) → ramener l'Avantage à 0, partir libre. L'Action N'EST PAS consommée.
+      // LDB 15 l.47
       sacrifier: () => {
         const { battle, scene, pendingDisengage: pd } = get();
         if (!battle || !scene || !pd) return;
-        const mover = inBattleId(battle, pd.moverId);
-        if (!mover) return set({ pendingDisengage: null, pendingCascade: null });
+        const mover = garanti(inBattleId(battle, pd.moverId), pd.moverId, 'désengagé');
         const foes = (mover.engagedWith ?? [])
           .map((id) => inBattleId(battle, id))
           .filter((c): c is Combatant => !!c);
@@ -2423,18 +2422,20 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         // niveau Avantages au lieu de tomber à 0.
         if (groupAdvantage()) campSpend(get, mover, retreatAdvantageCost(mover));
         else mover.advantage = Math.min(mover.advantage, keptAdvantageOnDisengage(mover));
-        for (const f of foes) disengageFrom(mover, f); // se place hors de portée de TOUS (l.87)
-        set({
-          pendingDisengage: null,
-          pendingCascade: null, // ferme la cascade-hôte du Désengagement
-          battle: {
-            ...battle,
-            action: null, // mouvement libre rouvert (clic-sol), sans pénalité (l.87) ; Action préservée
-            reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(battle, mover)),
-            log: [...battle.log, ev('fuite', t('cs.disengageSacrifice', { name: mover.label }), mover.id)],
-          },
+        for (const f of foes) disengageFrom(mover, f); // LDB 15 l.47
+        // L'hôte `desengagement` se clôt par la sortie d'hôte (#4255) : l'issue est sa suite.
+        sortirDeLHote(get, set, { pendingDisengage: null }, () => {
+          const b = get().battle!;
+          set({
+            battle: {
+              ...b,
+              action: null, // LDB 15 l.47
+              reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(b, mover)),
+              log: [...b.log, ev('fuite', t('cs.disengageSacrifice', { name: mover.label }), mover.id)],
+            },
+          });
+          bus.emit(EVT.SCENE_DIRTY);
         });
-        bus.emit(EVT.SCENE_DIRTY);
       },
       // ── « Fuir » (LDB 15 l.59-68) : OUVRE le flux MULTI `flee` — un slot par acteur (coup dans le dos
       //    du FRAPPEUR, Test de la fiche `fuite` du FUYARD). Aucun jet ni aucune conséquence ici : `jetValider('fuite')`
@@ -2442,9 +2443,8 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       fuir: () => {
         const { battle, pendingDisengage: pd } = get();
         if (!battle || !pd) return;
-        const mover = inBattleId(battle, pd.moverId);
-        const foe = inBattleId(battle, pd.foeId);
-        if (!mover || !foe) return set({ pendingDisengage: null, pendingCascade: null });
+        const mover = garanti(inBattleId(battle, pd.moverId), pd.moverId, 'fuyard');
+        const foe = garanti(inBattleId(battle, pd.foeId), pd.foeId, 'adversaire de la Fuite');
         if (isActionLocked(mover)) lacherLeBouclierDuBinome(get, set, mover); // fuite forcée : ZI 13 l.193
         campGain(get, foe); // l'adversaire gagne immédiatement +1 Avantage (l.63)
         foe.gainedAdvThisRound = true;
@@ -2647,41 +2647,40 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // La Maladresse est l'étape COURANTE de la cascade combat → enchaîner le curseur (sa clôture reprend l'IA).
       validerLEtape(get, set);
     },
-    // « Appliquer » : l'Esquive consomme l'Action dans les DEUX issues (l.89).
+    // LDB 15 l.49
     desengagement: () => {
       const { battle, scene, pendingDisengage: pd } = get();
       if (!battle || !scene || !pd) return;
-      const mover = inBattleId(battle, pd.moverId);
-      const foe = inBattleId(battle, pd.foeId);
-      set({ pendingDisengage: null, pendingCascade: null });
-      if (!mover || !foe) return;
-      const b = markActed(get, set); // le Test d'Esquive EST l'Action : scellé AVANT la copie du journal
-      const log = [...b.log];
-      if (pd.result === 'reussite') {
-        campGain(get, mover); // +1 Avantage (l.89)
-        mover.gainedAdvThisRound = true;
-        // Esquive réussie = on s'extrait du corps à corps → libéré de TOUS les Engagements
-        // (cohérent avec l'option A, qui libère aussi tous les foes).
-        const foes = (mover.engagedWith ?? [])
-          .map((id) => inBattleId(battle, id))
-          .filter((c): c is Combatant => !!c);
-        for (const f of foes) disengageFrom(mover, f);
-        log.push(ev('fuite', t('cs.disengageDodge', { name: mover.label }), mover.id, foe.id));
-        set({
-          battle: { ...b, action: null, reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(battle, mover)), log },
-        });
-      } else if (pd.result === 'egalite') {
-        // Égalité parfaite du Test opposé : statu quo — pas de fuite, mais pas d'avantage à
-        // l'adversaire non plus (LDB Tests). L'Action est consommée par la tentative d'Esquive.
-        log.push(ev('fuite', t('cs.disengageNeutral', { name: mover.label }), mover.id, foe.id));
-        set({ battle: { ...b, action: null, reachable: new Map(), log } });
-      } else {
-        campGain(get, foe); // l'adversaire gagne +1, la fuite échoue (l.89)
-        foe.gainedAdvThisRound = true;
-        log.push(ev('fuite', t('cs.disengageFail', { name: mover.label, foe: foe.label }), mover.id, foe.id));
-        set({ battle: { ...b, action: null, reachable: new Map(), log } });
-      }
-      bus.emit(EVT.SCENE_DIRTY);
+      const mover = garanti(inBattleId(battle, pd.moverId), pd.moverId, 'désengagé');
+      const foe = garanti(inBattleId(battle, pd.foeId), pd.foeId, 'adversaire du Désengagement');
+      // L'hôte `desengagement` se clôt par la sortie d'hôte (#4255) : l'issue de l'Esquive est sa suite.
+      sortirDeLHote(get, set, { pendingDisengage: null }, () => {
+        const b = markActed(get, set); // le Test d'Esquive EST l'Action : scellé AVANT la copie du journal
+        const log = [...b.log];
+        if (pd.result === 'reussite') {
+          campGain(get, mover); // LDB 15 l.49
+          mover.gainedAdvThisRound = true;
+          // LDB 15 l.49
+          const foes = (mover.engagedWith ?? [])
+            .map((id) => inBattleId(b, id))
+            .filter((c): c is Combatant => !!c);
+          for (const f of foes) disengageFrom(mover, f);
+          log.push(ev('fuite', t('cs.disengageDodge', { name: mover.label }), mover.id, foe.id));
+          set({
+            battle: { ...b, action: null, reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(b, mover)), log },
+          });
+        } else if (pd.result === 'egalite') {
+          // LDB 12 l.160 ; LDB 15 l.49
+          log.push(ev('fuite', t('cs.disengageNeutral', { name: mover.label }), mover.id, foe.id));
+          set({ battle: { ...b, action: null, reachable: new Map(), log } });
+        } else {
+          campGain(get, foe); // LDB 15 l.49
+          foe.gainedAdvThisRound = true;
+          log.push(ev('fuite', t('cs.disengageFail', { name: mover.label, foe: foe.label }), mover.id, foe.id));
+          set({ battle: { ...b, action: null, reachable: new Map(), log } });
+        }
+        bus.emit(EVT.SCENE_DIRTY);
+      });
     },
     // ── « Fuir » — « Appliquer » : applique le coup dans le dos par l'applicateur CANONIQUE d'attaque
     //    (Coup Critique sur double LDB 13 l.183, Blessure critique + À Terre au dépassement LDB 13 l.161,
@@ -2693,9 +2692,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
     fuite: () => {
       const { battle, scene, pendingDisengage: pd } = get();
       if (!battle || !scene || !pd?.fuir) return;
-      const mover = inBattleId(battle, pd.moverId);
-      const foe = inBattleId(battle, pd.foeId);
-      if (!mover || !foe) return set({ pendingDisengage: null, pendingCascade: null });
+      const mover = garanti(inBattleId(battle, pd.moverId), pd.moverId, 'fuyard');
+      const foe = garanti(inBattleId(battle, pd.foeId), pd.foeId, 'adversaire de la Fuite');
       const res = garanti(fleeBackstab(pd)?.result, pd.moverId, 'coup dans le dos de la Fuite');
       const toucheSlot = fleeTouche(pd);
       if (fleeToucheDu(pd) && !toucheSlot?.jet) {
@@ -3062,14 +3060,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // n'est déplacé (ils vivent dans `advanceTurn` et `ouvrirLeRound`). La fenêtre du
         // défenseur surfacé s'est interposée plus haut (#997) : on arrive ici avec le résultat opposé.
         attacker.loseNextAction = true; attacker.loseNextMovement = true; // PRIX du tir, payé AVANT le coup (LDB 11 l.97-103)
-        const suspendu = applyAttackResult(get, set, attacker, victim, weapon, lance, { suite: { enchainement: { mode: 'aucun' } } });
-        // Le coup SUSPENDU (sauvegarde « 1d10 ≥ Indice » LDB 85 l.98, Déviation) a poussé SON étape DANS
-        // cette cascade-hôte : la refermer détruirait l'étape et le coup avec elle. On avance alors le
-        // curseur dessus (MÊME couture que toute chaîne d'attaque, `advanceCombatJet`) et c'est la
-        // cascade qui se referme au bout de ses propres étapes — sans avancer le tour, le tireur n'étant
-        // pas actif (pause de début de Round, `turn: -1` : `resumeSuspendedAI`/`advanceTurn` y sont no-op).
-        set({ battle: { ...get().battle! }, ...(suspendu ? {} : { pendingCascade: null }) }); // referme la cascade-hôte du tir SANS avancer le tour (le tireur n'est pas actif)
-        if (suspendu) advanceCombatJet(get);
+        jouerFlowEntier(applyAttackResult(get, set, attacker, victim, weapon, lance, { suite: { enchainement: { mode: 'aucun' } } }));
+        // L'hôte `attaque` (ou `defense`) se clôt par sa clôture canonique (#4255) : les étapes que le coup a
+        // poussées derrière lui se jouent, puis la cascade se referme au bout. Le tour n'avance pas : à la
+        // pause de début de Round (`turn: -1`), `resumeSuspendedAI`/`advanceTurn` sont no-op.
+        set({ battle: { ...get().battle! } });
+        advanceCombatJet(get);
         bus.emit(EVT.SCENE_DIRTY);
         checkBattleOver(get, set);
         return;
@@ -3289,16 +3285,16 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // un lanceur aiDriven FOURNIT son clic — le centre décidé par l'IA pure (`pc.zone.autoCenter`,
         // équivalent du curseur souris). On pose ici via le MÊME `castCommitZone`, puis on reprend le tour
         // de l'IA UNE seule fois.
-        const caster = actorIn(get(), pc.casterId);
-        if (caster && aiDriven(get(), caster) && pc.zone.autoCenter && get().battle) {
+        const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
+        if (aiDriven(get(), caster) && pc.zone.autoCenter && get().battle) {
           castCommitZone(get, set, pc.zone.autoCenter);
           if (get().battle) resumeEnemyTurn(get, set);
         }
         return;
       }
-      const caster = actorIn(get(), pc.casterId);
-      const target = actorIn(get(), pc.targetId);
-      const spell = effectiveSpellOf(pc); // NI ×2 si lecture au grimoire (LDB 47 l.21)
+      const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
+      const target = garanti(actorIn(get(), pc.targetId), pc.targetId, 'cible du sort');
+      const spell = garanti(effectiveSpellOf(pc), pc.spellId, 'sort'); // NI ×2 si lecture au grimoire (LDB 47 l.21)
       // Surincantation : cibles supplémentaires + multiplicateur de durée (LDB 47 l.28-31).
       // ZdE : TOUTES les cibles de la zone sont visées (pas de budget de Surincantation).
       const extras = castExtraTargets(get, pc);
@@ -3315,18 +3311,16 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const castStepIdx = cascBefore && cascBefore.purpose === 'combat' && cascBefore.participants[cascBefore.cursor]?.jet === 'incantation'
         ? cascBefore.cursor : -1;
       set({ pendingCast: null }); // ferme le JET ; la cascade d'incantation reste active (cursor sur 'incantation')
-      if (caster && target && spell) {
-        const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
-        applyCast(get, set, caster, [target, ...extras], spell, lance, pc.missile, pc.focused, pc.critChoice, {
-          durationMult: ocDur.mult,
-          durationBonusRounds: ocDur.bonusRounds,
-          overcastDurationSteps: pc.overcast?.duration ?? 0,
-          overcastDamageSteps: pc.overcast?.damage ?? 0,
-          chosenTableRolls: pc.chosenTableRolls,
-          conjureForm: pc.conjureForm,
-          opposedOutcome: pc.opposedOutcome,
-        });
-      }
+      const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
+      applyCast(get, set, caster, [target, ...extras], spell, lance, pc.missile, pc.focused, pc.critChoice, {
+        durationMult: ocDur.mult,
+        durationBonusRounds: ocDur.bonusRounds,
+        overcastDurationSteps: pc.overcast?.duration ?? 0,
+        overcastDamageSteps: pc.overcast?.damage ?? 0,
+        chosenTableRolls: pc.chosenTableRolls,
+        conjureForm: pc.conjureForm,
+        opposedOutcome: pc.opposedOutcome,
+      });
       // L'étape `jet:'incantation'` encore au curseur se clôt par la sortie d'hôte (#4248), qui décide seule
       // de la suite : conséquences appendues (Critique/Imparfaite/Colère) jouées, ou situation fermée. Sans
       // hôte au curseur (test/IA direct), la cascade que les conséquences ont démarrée reste intacte.
@@ -3335,7 +3329,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Lanceur ENNEMI (modale témoin) : le tour de l'IA était suspendu → reprise. No-op si une autre
       // interaction bloquante s'est ouverte (Destin, révélations, OU la cascade de conséquences encore
       // ouverte) — elle reprendra elle-même (validation d'étape → resumeSuspendedAI à la clôture).
-      const reprendreLEnnemi = (): void => { if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set); };
+      const reprendreLEnnemi = (): void => { if (aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set); };
       if (sortDeLHote) sortirDeLHote(get, set, { pendingCast: null }, reprendreLEnnemi);
       else reprendreLEnnemi();
     },
