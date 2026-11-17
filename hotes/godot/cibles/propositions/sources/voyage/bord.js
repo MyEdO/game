@@ -20,7 +20,7 @@ if (ETAT === 'activites-en-mer') {
   ${poste(628, 198, { nom: 'Aucune Activité', sous: 'La semaine passe', icone: 'sommeil', heros: ['bjorn', 'greta'] })}
   ${poste(360, 328, { nom: 'Commerce d’opportunité', sous: 'Marchandage · Complexe (–10)', heros: 'mira', vise: true })}
   ${poste(840, 328, { nom: 'Cartographie', sous: 'Métier (Cartographe) · Complexe (–10)', heros: 'aldric' })}
-  ${poste(628, 458, { nom: `Entraînement d’équipage${raison('L’équipage du navire de campagne est tenu par les PJ — aucun équipage PNJ à entraîner.')}`, sous: 'Commandement · Difficile (–20)', icone: 'couronne', ferme: true })}
+  ${poste(628, 474, { nom: `Entraînement d’équipage${raison('L’équipage du navire de campagne est tenu par les PJ — aucun équipage PNJ à entraîner.')}`, sous: 'Commandement · Difficile (–20)', icone: 'couronne', ferme: true })}
 </div>`);
   pieces.push(billet({ x: 40, y: 150, largeur: 336, pointe: 272, nom: 'Commerce d’opportunité', qui: 'Test étendu', lignes: [['À atteindre', '10 DR en 3 tentatives'], ['Succès de 6 DR', 'la mise +20 %'], ['Succès', 'la mise +10 %'], ['Échec', 'la moitié de la mise'], ['Échec de 6 DR', 'la mise perdue']] }));
   pieces.push(`<div id="bord" class="cadre bois bord semaine" data-piece="le bord"><div class="fond bois">

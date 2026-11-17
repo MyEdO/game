@@ -33,7 +33,7 @@ if (ETAT === 'combat-naval-bordee') {
   ui.push(bandeauDuJet('Tir de batterie', 'avant', `
   ${camp({ portrait: portrait('bjorn', 'heros'), nom: 'Bjorn', carac: 'Artilleur · Projectiles (Poudre noire)', seuil: 47, modif: 'Rôle essentiel ×2' })}
   ${reglages('Test d’équipage · bordée de bâbord sur la Cogue pirate', `<div class="l rubrique">Munition des pièces qui portent</div>${options([['Boulet et poudre', { armee: true }], ['Mitraille et poudre']])}
-    <div class="enjeux"><span class="modif rubrique">2 pièces à bâbord</span><span class="modif rubrique">Le total de DR vaut pour chacune</span></div>`)}
+    <div class="enjeux"><span class="modif rubrique">2 pièces à bâbord</span><span class="modif rubrique">Un DR pour toutes</span></div>`)}
   <div class="rangees"><div class="t rubrique">Chacun lance son jet, les DR s’additionnent</div>
     ${rangee('greta', 'Greta Hartmann', 'Capitaine · Commandement', 44)}${rangee('mira', 'Mira', 'Timonier · Voile', 41)}</div>`,
   avantLeDe({ heros: de('bjorn') })));

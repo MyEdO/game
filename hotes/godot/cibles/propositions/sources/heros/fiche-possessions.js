@@ -56,9 +56,8 @@ const OUVERTS = {
     gestes: [plaque('Porter', { icone: 'coche' }), plaque('Donner à', { prix: 'Ilyanwe' }), plaque('Poser au sol', { style: large })] }),
   faveur: () => cartouche({ icone: 'parchemin', nom: 'Faveur Majeure', sous: 'Due au capitaine Blucher',
     corps: `<p class="prose" style="font-style:italic;margin-top:9px" data-texte="nature de la Faveur">Escorter son chariot de solde jusqu’à Weissbruck.</p>
-      <div class="achat" style="margin-top:6px"><span class="n">Activités consécutives à l’interlude</span><span class="val">1 / 2</span></div>
-      <div class="rub" style="margin-top:9px;color:#6b1c10">Rompre : Niveau de carrière réduit de 1</div>`,
-    gestes: [plaque('Rompre la Faveur', { style: large })] }),
+      <div class="achat" style="margin-top:6px"><span class="n">Activités consécutives à l’interlude</span><span class="val">1 / 2</span></div>`,
+    gestes: [`<div class="rub" style="${large};color:#6b1c10">Rompre : Niveau de carrière réduit de 1</div>`, plaque('Rompre la Faveur', { style: large })] }),
 };
 
 const liste = ETAT === 'arme' || ETAT === 'composant'

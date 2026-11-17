@@ -1,6 +1,6 @@
 # Propositions : voyage (2026-11-17, #3935)
 
-Compte rendu des neuf états dessinés depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
+Compte rendu des vingt états dessinés (neuf d'origine, onze ajoutés par l'audit des verbes, #4411) depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
 l'arrivée), la doctrine `user-doctrine-la-cible-prime-sur-l-ancien-ecran` et les propositions déjà au dépôt
 (`exploration-et-recit/carte-du-monde.jpg`, `combat/`). Sources au dépôt : `sources/voyage/`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
@@ -114,6 +114,10 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : panneau « La cogue » sous la carte (Coque, Moral, Eau douce, Vivres de l'équipage, valeurs du scénario
   de test 14) ; DR du billet d'exemple ; trajet Salzenmund, Erengrad de la campagne `loup-et-saumure` (550 milles),
   « 385 milles avant Erengrad » d'exemple ; date impériale d'exemple.
+- Changement voulu (#4411) : l'objet du temps porte la « Cadence du voyage », deux plaques, « Jour par jour » et
+  « Sous vos ordres » (armée) : `fixerLaCadence(cadence)` (`src/noyau/actionsDuNoyau.ts:303`,
+  `src/noyau/voyageEnVue.ts:56`, libellés `ecran.cadence.*`). À valider : la cadence dans l'objet du temps, et la
+  même pièce sur la route et le fleuve (`temps({ cadence })` de `voyage.js`, non posée sur ces deux écrans).
 
 ## postes-de-bord
 - Doctrine : l'affectation suit la lignée des postes de la halte, aucun choix en liste ; chaque rôle est un poste
@@ -132,8 +136,34 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - Règle montrée : les neuf rôles et leur compétence (MDG 14 l.17-32, `src/data/crew-roles.json`) ; le Capitaine,
   rôle essentiel du Test de Progression, compte double (MDG 14 l.17-32, l.61-65) ; `src/noyau/shipCrew.ts:87`.
 - À valider : la place de chaque poste sur la silhouette ; les rôles tenus par les marins montrés en médaillon sans
-  portrait ; le billet du rôle visé ; la station à bord (`affecterALaStation`) n'est pas dessinée : la zone du
-  navire où le poste est posé la dirait (audit M6) ; le rôle de chaque héros rappelé sur sa carte.
+  portrait ; le billet du rôle visé ; le rôle de chaque héros rappelé sur sa carte.
+
+## postes-de-bord-station
+- État de `postes-de-bord` (`bord.js`). Bjorn est au poste « Repos » (aucun rôle, `affecterAuRoleABord(crewId, null)`),
+  la Vigie est vide. Greta, choisie au bandeau, ouvre le panneau « Station de Greta » : une plaque par station que
+  le navire offre, « Pont » armée, la phrase du livre de la station tenue dessous.
+- Verbe : `affecterALaStation(crewId, station | null)` (`src/noyau/actionsDuNoyau.ts:314`, `src/noyau/shipCrew.ts:669`).
+- Règle montrée : les stations et leur effet lors d'un Critique de navire (MDG 13 l.714, l.730, l.751,
+  `src/data/ship-stations.json`, phrase verbatim) ; une station ne s'offre que si le navire la porte
+  (`src/engine/shipCritical.ts:208`) : la Cogue offre le gréement, le pont et les avirons.
+- À valider : la station en panneau du héros choisi plutôt qu'en zone du navire ; le « Repos » comme un poste ;
+  l'ancienne prose « Vigie, au nid-de-pie » nomme un lieu que la Cogue n'offre pas comme station.
+
+## activites-en-mer
+- État de `postes-de-bord` (`bord.js`) : même navire, les postes sont les Activités de la semaine ; chaque héros se
+  presse au bandeau puis son Activité. « Aucune Activité » tient Bjorn et Greta, Mira est au « Commerce
+  d'opportunité », Aldric à la « Cartographie ». « Entraînement d'équipage » est fermé, sa raison au survol
+  (`sact.crewIsPlayers`, verbatim).
+- Panneau « La semaine » : la mise de Mira (−, +, « Plafond de la mise », « Enc libre du navire »), la planque
+  d'Aldric, puis « Valider la semaine », seule plaque pleine. Billet du Commerce d'opportunité : Test étendu et ses
+  quatre issues.
+- Fenêtre : `fC('activitesEnMer', 'activite', …)`, `fC('activitesEnMer', 'investir', …)`,
+  `fC('activitesEnMer', 'cacher', …)`, puis `fV('activitesEnMer')` (`src/noyau/seaActivities.ts`).
+- Règle montrée : Activités en mer (MDG 15 l.266-300, `src/data/activities.json`). Mise, plafond, Enc libre et
+  seuils sont des exemples.
+- À valider : les Activités sur le gabarit des postes ; le panneau de la semaine à droite ; l'Entraînement
+  d'équipage toujours fermé au noyau (`src/noyau/seaActivities.ts:103-105`) alors que le navire a des marins PNJ
+  (MDG 15 l.294-300) : écart à trancher, hors de ce lot.
 
 ## dossier-du-navire
 - Modèle : la fiche lue en combat (`combat/fiche-au-clic`), mêmes quatre panneaux : identité, profil, figure,
@@ -149,6 +179,34 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : onglets « État », « Équipage », « Cargaison », « Améliorations » ; Moral en barre d'or sous la Coque ;
   trois médaillons (Équipage, Aux voiles, Héros à un poste) ; les traits sur le gabarit des armes de la fiche ;
   « Salissures » et « Avaries » écrits « aucune » quand rien n'est à dire.
+
+## dossier-du-navire-cargaison
+- État de `dossier-du-navire` (`dossier-du-navire.js`), onglet « Cargaison » : la cale (130 / 300), ses lots
+  (Laine 60, Sel 40, Métaux 30), puis « Déplacer le sel vers » : une carte par autre porteur du groupe
+  (« Charrette 0 / 25 »), la quantité réglée par − et + (25 Enc), la plaque « Déplacer ». Dessous, « À bord » :
+  la mule Marguerite (15 Enc) et son « Débarquer ».
+- Verbes : `deplacerLaCargaison(lotId, toId, enc)` (`src/noyau/actionsDuNoyau.ts:349`), `debarquer(possessionUid)`
+  (`:327`).
+- À valider : la cargaison se déplace depuis le dossier du porteur qui la tient ; carte puis plaque ; l'Enc d'une
+  possession embarquée et celui de la cargaison se comptent à part au noyau (`src/engine/possession.ts:238-244`).
+  Lots, Enc et noms sont des exemples.
+
+## dossier-de-la-bete
+- Même dossier (`dossier({ genre })`), pour une bête : « Marguerite », mule ; le nom est en saisie
+  (`renommerLaPossession(possessionUid, label)`, `:319`) ; profil et traits de la mule, phrase de chaque trait
+  verbatim.
+- Gestes : « Laisser ici » (`remiserLaPossession`, `:321`), « Embarquer » armée, « Abandonner »
+  (`cederLaPossession`, `:329`). « Embarquer » ouvre une carte par hôte possible (« La Sterne »), puis la plaque
+  « Embarquer sur La Sterne » : `embarquer(possessionUid, hostUid)` (`:325`).
+- À valider : un dossier par possession, bête et véhicule compris, sur le gabarit du navire ; le nom saisi dans le
+  titre (le verbe joue à chaque saisie, sans validation) ; l'hôte choisi en carte.
+
+## dossier-du-vehicule
+- Même dossier, pour un véhicule remisé : la Charrette « à l'écurie ». « Reprendre » (`recupererLaPossession`,
+  `:323`) ; « Embarquer » fermée, sa raison au survol (« Cette possession doit être avec le groupe pour
+  embarquer. », texte du jeu) ; « Abandonner » pressée devient « Confirmer l'abandon » et « Annuler ».
+- À valider : l'abandon, irréversible, en deux pressions sur place plutôt qu'en fenêtre ; le lieu de remise écrit
+  sur le dossier.
 
 ## combat-naval
 - Modèle : l'écran de combat proposé (`combat/`) : round, ordre, journal, fin du tour. La grille est sur l'eau, les
@@ -172,8 +230,72 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   manœuvre (plaques « Manœuvrer », « Bordée », « Attaque ») n'est plus l'image ; la Distance de course-poursuite
   (MDG 13 l.354-403) se joue pendant la traversée, son écran est `combat-suite/course-poursuite-en-mer.jpg`.
 
-## Payer en mer : non dessiné
-Aucune des neuf images ne débite une bourse. Les gages (conseil de bord, `fC('conseil', 'paie', id)`, MDG 14
-l.293-302) et l'avitaillement (`avitaillerLeNavire`, page du port de la famille commerce) n'ont pas d'image ; ce sont
-des entreprises communes (#3004) : leur écran montrera la part de chaque héros, réglable avant validation, par
-`bourse({ parts, total })` de `sources/gestes.js`, jamais « Bourse du groupe » au singulier.
+## combat-naval-bordee
+- État de `combat-naval` (`combat-naval.js`) : « Bordée » ouvre le bandeau « Tir de batterie », avant le dé. À
+  gauche l'Artilleur, Bjorn, rôle essentiel compté double ; au centre la munition des pièces qui portent, en deux
+  options (« Boulet et poudre » armée, « Mitraille et poudre »), et deux étiquettes (« 2 pièces à bâbord », « Un DR
+  pour toutes ») ; à droite les rangées des autres rôles du Test. « Lancer », « Résilience ».
+- Flux `tirDeBatterie` (`src/noyau/combatSlice.ts:1131-1150`, `src/noyau/modalArbiter.ts:179`).
+- Règle montrée : Tir de batterie, Test d'équipage (MDG 14 l.126-130) ; munitions de `src/data/trappings.json`
+  (MDG 12). Seuils d'exemple.
+- À valider : la munition réglée dans le bandeau pour tout le bord, alors que `approvisionnerLaPiece(posteUid,
+  ammoUid | null)` (`:317`) la pose pièce par pièce : réglage de flux à créer,
+  `jetRegler('tirDeBatterie', 'munition', ammoUid)`, qui approvisionne chaque pièce qui porte.
+
+## combat-naval-chanson
+- État de `combat-naval` : « Chanson de marin » ouvre son bandeau, avant le dé. À gauche le Chansonnier, Aldric ; au
+  centre le Test et la durée de l'effet ; à droite les chansons du jeu en cartes, la première armée.
+- Verbe `chanterLaChanson(shipId)` (`:112`), réglage `jR('chansonDeMarin', 'chanson', id)`
+  (`src/noyau/combatSlice.ts:1186`, `src/noyau/shipCrew.ts:245`, `:609`).
+- Règle montrée : Chanson de marin (MDG 09 l.32-40, `src/data/sea-shanties.json`, titres et effets du jeu).
+- À valider : les chansons en cartes dans la colonne de droite du bandeau ; « une seule chanson par quart » en
+  sous-titre.
+
+## meuble-piece-de-bord
+- État de `combat-naval` : le tour de Bjorn, qui sert le « Canon (petit) de bâbord ». Le meuble de l'actif
+  (`combat/meuble-chef-de-piece`) : Blessures, « Chargé 1 / 1 », réserves, « Quitter la pièce » ; plaques
+  « Manœuvrer », « Bordée », « Attaque » ; conditionnelles « Recharger » (fermée, la pièce est chargée), « Diriger
+  l'équipe », « Chanson de marin » ; la pastille « Munition » ouverte sur « Approvisionner la pièce », deux cartes
+  et leur stock en soute.
+- Verbes : `servirLePoste(posteUid?)` (`:98`), `quitterLePoste()` (`:100`), `approvisionnerLaPiece(posteUid,
+  ammoUid | null)` (`:317`), `manoeuvrerLeNavire` (`:110`) ; `src/noyau/combatSlice.ts:1222-1250`,
+  `src/noyau/shipCrew.ts:670`.
+- Règle montrée : servir et recharger une pièce (LDB 13 l.106). Stocks d'exemple.
+- À valider : la munition en pastille du meuble, à côté de « Compétence », « Objet », « Armes » ; les trois plaques
+  du bord sur le tour de tout héros à un poste.
+
+## mer-relache
+- État de `voyage-en-mer` (`mer.js`), à l'accostage : le contenant d'événement « Relâche à terre », la phrase du
+  livre, deux cartes (« Accorder la relâche », armée ; « Refuser la relâche ») et la plaque qui commet, libellée de
+  la carte choisie.
+- Fenêtre : `fC('relacheATerre', 'accorder', bool)` (`src/noyau/seaVoyageFlow.ts:2469`).
+- Règle montrée : relâche à terre, désertion sur 04 ou moins (MDG 15 l.245) ; son effet sur le Moral au prochain
+  conseil (MDG 14 l.159, l.167, l.192-202).
+- À valider : carte puis plaque pour un choix que le noyau clôt à la pose (l'hôte tient la sélection).
+
+## mer-conseil-de-bord
+- État de `voyage-en-mer` : « Conseil de bord », la paie de la semaine. Quatre cartes, leur effet sur le Moral et
+  leur coût : régulière (armée), généreuse (fermée, « Bourse insuffisante. » au survol), chiche, pas de paie ; la
+  plaque « Payer ». À droite « Bourses du groupe » : la part de chaque héros, réglable (#3004,
+  `bourse({ parts, total })`).
+- Fenêtre : `fC('conseil', 'paie', id)` puis `fF('conseil')` (`src/noyau/shipCrew.ts:402-605`).
+- Règle montrée : la paie et le Moral (MDG 14 l.139, l.147-179, `src/data/crew-morale.json`). Soldes, parts et
+  avoirs sont des exemples.
+- À valider : la part de chacun avant « Payer » ; le noyau ne la reçoit pas : `fC('conseil', 'paie', id)` débite
+  sans répartition. Choix à créer, `fC('conseil', 'parts', { [heroId]: sous })`, sur le modèle de
+  `payWithAllocation` (`src/noyau/bourseFlow.ts`).
+
+## mer-fuite-de-vapeur
+- État de `voyage-en-mer` : la panne en contenant d'événement, le dé de la table en sceau, l'entrée du livre
+  entière ; dessous, le bandeau du jet avant le dé : Aldric, au moteur, Test d'Initiative, l'enjeu au centre,
+  « Lancer » et ses réserves.
+- Flux `fuiteDeVapeur` (`src/noyau/seaVoyageFlow.ts:1982-1997`).
+- Règle montrée : Fuite de vapeur, 1d10–5 Dégâts (1 minimum) qui ignorent l'Armure (MDG 12 l.322-328). Seuil et dé
+  d'exemple.
+- À valider : la panne dans le contenant d'événement de la route ; le décor n'a pas de silhouette de navire à
+  vapeur (la mer seule).
+
+## Payer en mer
+Les gages sont dessinés (`mer-conseil-de-bord`). L'avitaillement (`avitaillerLeNavire`) reste à la page du port de
+la famille commerce : entreprise commune (#3004), `bourse({ parts, total })` de `sources/gestes.js`, jamais « Bourse
+du groupe » au singulier.

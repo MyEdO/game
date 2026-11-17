@@ -55,6 +55,6 @@
 .rangees.chansons .plaque.carte .n{font-size:15.5px;line-height:18px;white-space:nowrap}
 .rangees.chansons .plaque.carte .c{font-size:12px;line-height:15px}
 /* la munition de la pièce servie, ouverte au-dessus du meuble */
-#munitions{position:absolute;left:938px;top:536px;width:406px;height:84px}
+#munitions{position:absolute;left:938px;top:498px;width:406px;height:122px}
 #munitions .fond{display:flex;flex-wrap:wrap;gap:8px;padding:9px 12px 0}
 #munitions .t{flex:0 0 100%;font-size:12px;color:var(--creme-2)}

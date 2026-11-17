@@ -102,6 +102,8 @@ const groupeDIlyanwe = (lu = 'ilyanwe') => bandeauDe([
 const ABR = ['M', 'CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc', 'B'];
 /* une case de la bande : [valeur, Augmentations, prix de la suivante, de la carrière] */
 const caseDeCarac = ([v, aug, cout, carriere], i) => `<div class="c ${carriere ? 'carr' : ''}"><span class="ab">${ABR[i]}</span><span class="v">${v}</span><span class="aug">${aug ? `+${aug}` : ''}</span>${cout ? `<span class="jeton ${carriere ? 'or' : 'fer'}">${cout} PX</span>` : ''}</div>`;
+/* régler une répartition : − et +, le + fermé quand elle est pleine */
+const pm = (plein) => `<div class="pm"><div class="pst laiton"><div>${picto('moins', 12, '#2a1a08', 2.2)}</div></div><div class="pst ${plein ? 'fer' : 'laiton'}"><div>${picto('plus', 12, plein ? '#8d8474' : '#2a1a08', 2.2)}</div></div></div>`;
 const reserve = (n, nom) => `<div class="reserve"><div class="medaillon fer"><div>${n}</div></div><span class="rub">${nom}</span></div>`;
 
 const poser = (pieces) => {
@@ -116,4 +118,4 @@ const ACQUIS = [
   ['Signe astral', 'Le Trait du Peintre', '+25 PX'],
 ];
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { sep, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, caseDeCarac, reserve, onglets, poser, ACQUIS });
+Object.assign(globalThis, { sep, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, caseDeCarac, pm, reserve, onglets, poser, ACQUIS });

@@ -1,8 +1,12 @@
 /* L'éditeur de campagne (#3935) : un plan de travail, pas un lieu. La barre porte le projet, ses trois documents et les
    gestes d'édition ; à gauche les scènes ou les lieux et l'outil ; au centre la scène vue de dessus ou la carte du
    monde ; à droite l'inspecteur de ce qui est choisi, la logique et la validation. Le plan dessiné est une esquisse,
-   pas le relevé de la scène du projet. */
-const CARTE = document.getElementById('ecran').dataset.etat === 'editeur-carte-du-monde';
+   pas le relevé de la scène du projet. États de la scène : une porte choisie (`editeur-scene`), l'outil « Terrain » et
+   ses options (`editeur-outil-terrain`), un personnage choisi et son « Supprimer » (`editeur-supprimer`). */
+const ETAT = document.getElementById('ecran').dataset.etat;
+const CARTE = ETAT === 'editeur-carte-du-monde';
+const TERRAIN = ETAT === 'editeur-outil-terrain';
+const SUPPRIMER = ETAT === 'editeur-supprimer';
 const petite = (libelle, o = {}) => plaque(libelle, o);
 const outilDePalette = ([icone, nom, la]) => `<div class="o ${la ? 'la' : ''}">${picto(icone, 20, la ? '#2a1a08' : '#e2c06a', 1.5)}<span>${nom}</span></div>`;
 const volet = (id, x, y, ruban, corps) => `<div id="${id}" class="volet cadre bois" data-piece="${id}" style="left:${x}px;top:${y}px;width:270px"><div class="fond bois"><span class="ruban rubrique">${ruban}</span>${corps}</div>${ferrures}</div>`;
@@ -30,11 +34,12 @@ const planDeScene = () => {
   const porte = (x1, y1, x2, y2, choisie = false) => `<path d="M${x1 * C},${y1 * C}L${x2 * C},${y2 * C}" stroke="${choisie ? '#f3dc93' : '#b8843f'}" stroke-width="${choisie ? 7 : 5}"/>${choisie ? `<path d="M${x1 * C},${y1 * C}L${x2 * C},${y2 * C}" stroke="#fff3c8" stroke-width="13" opacity=".28"/><rect x="${x1 * C - 5}" y="${y1 * C - 5}" width="10" height="10" fill="#f3dc93" stroke="#2a1a08"/><rect x="${x2 * C - 5}" y="${y2 * C - 5}" width="10" height="10" fill="#f3dc93" stroke="#2a1a08"/>` : ''}`;
   const tableRonde = (x, y) => `<circle cx="${x * C}" cy="${y * C}" r="17" fill="#4a2f18" stroke="#1a100a" stroke-width="1.500"/>${[[-25, 0], [25, 0], [0, -25], [0, 25]].map(([a, b]) => `<circle cx="${x * C + a}" cy="${y * C + b}" r="6" fill="#3a2414" stroke="#1a100a"/>`).join('')}`;
   const fut = (x, y) => `<circle cx="${(x + .5) * C}" cy="${(y + .5) * C}" r="11" fill="#5d3d22" stroke="#1a100a" stroke-width="1.500"/><circle cx="${(x + .5) * C}" cy="${(y + .5) * C}" r="6" fill="none" stroke="#2a180b"/>`;
-  const pion = (x, y, c = '#8f8672') => `<circle cx="${(x + .5) * C}" cy="${(y + .5) * C}" r="11" fill="${c}" stroke="#14100c" stroke-width="2"/><path d="M${(x + .5) * C - 5},${(y + .5) * C + 6}c0,-5 2,-7 5,-7s5,2 5,7zM${(x + .5) * C - 3},${(y + .5) * C - 4}a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" fill="#14100c"/>`;
+  const pion = (x, y, choisi = false) => `${choisi ? `<circle cx="${(x + .5) * C}" cy="${(y + .5) * C}" r="19" fill="#fff3c8" opacity=".3"/><circle cx="${(x + .5) * C}" cy="${(y + .5) * C}" r="15" fill="none" stroke="#f3dc93" stroke-width="2.500"/>` : ''}<circle cx="${(x + .5) * C}" cy="${(y + .5) * C}" r="11" fill="#8f8672" stroke="#14100c" stroke-width="2"/><path d="M${(x + .5) * C - 5},${(y + .5) * C + 6}c0,-5 2,-7 5,-7s5,2 5,7zM${(x + .5) * C - 3},${(y + .5) * C - 4}a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" fill="#14100c"/>`;
   o.push(`<rect width="1053" height="622" fill="#2f3a26"/>`);
   for (let i = 0; i < 90; i++) o.push(`<circle cx="${r() * 1053}" cy="${r() * 622}" r="${1 + r() * 2}" fill="#3d4a30"/>`);
   o.push(caseR(2, 3, 31, 16, '#5c4c38'));                       // la cour
   for (let i = 0; i < 160; i++) o.push(`<circle cx="${60 + r() * 930}" cy="${90 + r() * 480}" r="${1 + r() * 2.5}" fill="${r() > .5 ? '#6b5a44' : '#4e4030'}"/>`);
+  if (TERRAIN) o.push(caseR(15, 14, 5, 5, '#77706a'), caseR(12, 15, 3, 3, '#77706a'), ...[[15, 14], [17, 14], [16, 15], [18, 15], [15, 16], [12, 16], [13, 15], [17, 17], [19, 18]].map(([x, y]) => caseR(x + .08, y + .1, .84, .8, '#8a837b'))); // les pavés déjà peints
   o.push(caseR(4, 5, 15, 8, '#7a5a38'));                        // l'auberge
   for (let y = 5; y < 13; y++) o.push(`<path d="M${4 * C},${y * C}H${19 * C}" stroke="#5f4428" stroke-width="1"/>`);
   o.push(caseR(15, 5, 4, 8, '#6d6458'));                        // la cuisine, dallée
@@ -54,14 +59,15 @@ const planDeScene = () => {
   o.push(porte(15, 19, 19, 19));
   // les murs de l'auberge, ses portes
   o.push(mur(4, 5, 19, 5), mur(4, 5, 4, 13), mur(19, 5, 19, 13), mur(4, 13, 9, 13), mur(10, 13, 19, 13), mur(15, 5, 15, 8), mur(15, 9, 15, 13));
-  o.push(porte(9, 13, 10, 13), porte(15, 8, 15, 9, true));
+  o.push(porte(9, 13, 10, 13), porte(15, 8, 15, 9, !TERRAIN && !SUPPRIMER));
   o.push(mur(23, 5, 32, 5, '#3a2414'), mur(23, 5, 23, 10, '#3a2414'), mur(32, 5, 32, 10, '#3a2414'));
   // les personnages, le départ, l'entrée
-  o.push(pion(7, 5.300), pion(24, 10.500), pion(27, 10.800), pion(29, 14.200), pion(12, 8.500));
+  o.push(pion(7, 5.300), pion(24, 10.500), pion(27, 10.800), pion(29, 14.200), pion(12, 8.500, SUPPRIMER));
   o.push(`<g transform="translate(${16 * C} ${16 * C})"><rect width="${2 * C}" height="${2 * C}" fill="#e2c06a" opacity=".22" stroke="#e2c06a" stroke-dasharray="5 4"/>${[[.5, .5], [1.5, .5], [.5, 1.5], [1.5, 1.5]].map(([a, b]) => `<circle cx="${a * C}" cy="${b * C}" r="9" fill="#e2c06a" stroke="#2a1a08" stroke-width="2"/>`).join('')}</g>`);
   o.push(`<path d="M${17 * C},${20.600 * C}v-34M${17 * C},${19.400 * C}l-8,10M${17 * C},${19.400 * C}l8,10" stroke="#f3dc93" stroke-width="3" fill="none" stroke-linecap="round"/>`);
   const etiquette = (x, y, t) => `<g transform="translate(${x * C} ${y * C})"><rect x="0" y="-13" width="${t.length * 7.200 + 16}" height="20" rx="2" fill="#150c07" stroke="#8a6a26" opacity=".92"/><text x="8" y="2" font-family="Fell SC" font-size="13" letter-spacing=".8" fill="#f0e2c2">${t}</text></g>`;
-  o.push(etiquette(18.300, 17.200, 'Départ des héros'), etiquette(17.700, 20.300, 'Entrée'), etiquette(15.500, 8.200, 'Porte'));
+  o.push(etiquette(18.300, 17.200, 'Départ des héros'), etiquette(17.700, 20.300, 'Entrée'), SUPPRIMER ? etiquette(13.200, 9.100, 'Gustav') : TERRAIN ? '' : etiquette(15.500, 8.200, 'Porte'));
+  if (TERRAIN) o.push(`<rect x="${9 * C}" y="${15 * C}" width="${3 * C}" height="${3 * C}" fill="#77706a" opacity=".55" stroke="#f3dc93" stroke-width="2.500"/><path d="M${10 * C},${15 * C}v${3 * C}M${11 * C},${15 * C}v${3 * C}M${9 * C},${16 * C}h${3 * C}M${9 * C},${17 * C}h${3 * C}" stroke="#f3dc93" stroke-opacity=".5"/>`); // le pinceau de 3×3 sous le pointeur
   // règles de coordonnées
   for (let x = 5; x < 35; x += 5) o.push(`<text x="${x * C + 4}" y="${21 * C - 12}" font-family="DejaVu Sans,Arial" font-size="10" fill="#e9dcc0" opacity=".65">${x}</text>`);
   for (let y = 5; y < 21; y += 5) o.push(`<text x="5" y="${y * C + 13}" font-family="DejaVu Sans,Arial" font-size="10" fill="#e9dcc0" opacity=".65">${y}</text>`);
@@ -113,17 +119,16 @@ if (CARTE) {
      </div><div class="ruban gothique">Inspecteur</div>${ferrures}</div>`,
   );
 } else {
-  const OUTILS = [['selection', 'Sélection', 1], ['terrain', 'Terrain'], ['hauteur', 'Hauteur'], ['murs', 'Murs'], ['volee', 'Volée'], ['crenelage', 'Crénelage'], ['decor', 'Décor'], ['personnage', 'Personnage'], ['navire', 'Navire'], ['baliste', 'Emplacement de siège'], ['depart', 'Départ'], ['porte', 'Entrée'], ['ville', 'Architecture'], ['zone', 'Zone'], ['gomme', 'Gomme']];
-  pieces.push(
-    volet('scenes', 12, 84, '4 scènes au projet', `${['La Diligence', 'Altdorf — la porte sud', 'La route principale — le virage', 'Auberge des Sept Rayons'].map((n, i) => ligneDeListe(n, '', { la: i === 0 })).join('')}
-      <div class="gestes">${plaque('Nouvelle scène', { icone: 'plus' })}</div><div class="gestes">${plaque('Dupliquer la scène')}${plaque('Retirer la scène')}</div>`),
-    volet('outil', 12, 348, 'Outil', `<div class="outils">${OUTILS.map(outilDePalette).join('')}</div>`),
-    `<div id="plan" class="cadre bois" data-piece="plan"><div class="fond">${planDeScene()}</div>
-       <div id="couches">${plaque('Couche 0', { armee: true, icone: 'couches' })}${plaque('Couche 1')}${plaque('Ajouter une couche', { icone: 'plus' })}</div>
-       <div id="nord" class="rubrique ombre">${picto('route', 18)}Nord : 0° dans le sens horaire</div>${ferrures}</div>`,
-    `<div id="pied" class="bois" data-piece="pied">${picto('selection', 16)}<span data-texte="arête">Arête 14, 8 E · couche 0 · Porte · Mur à ossature en bois</span><span class="v" style="color:var(--creme-2);font-style:normal">32 × 38 cases · 22 entités</span></div>`,
-    `<div id="inspecteur" class="cadre bois" data-piece="inspecteur"><div class="fond parchemin">
-       <h3 class="gothique" data-texte="choisi">Porte</h3><div class="sous rubrique">Arête 14, 8 E · couche 0</div>
+  const OUTILS = [['selection', 'Sélection', !TERRAIN], ['terrain', 'Terrain', TERRAIN], ['hauteur', 'Hauteur'], ['murs', 'Murs'], ['volee', 'Volée'], ['crenelage', 'Crénelage'], ['decor', 'Décor'], ['personnage', 'Personnage'], ['navire', 'Navire'], ['baliste', 'Emplacement de siège'], ['depart', 'Départ'], ['porte', 'Entrée'], ['ville', 'Architecture'], ['zone', 'Zone'], ['gomme', 'Gomme']];
+  const pied = (icone, texte) => `<div id="pied" class="bois" data-piece="pied">${picto(icone, 16)}<span data-texte="pointé">${texte}</span><span class="v" style="color:var(--creme-2);font-style:normal">32 × 38 cases · 22 entités</span></div>`;
+  const PIED = {
+    'editeur-scene': pied('selection', 'Arête 14, 8 E · couche 0 · Porte · Mur à ossature en bois'),
+    'editeur-outil-terrain': pied('terrain', 'Case 10, 16 · couche 0 · Terre battue · 0 m'),
+    'editeur-supprimer': pied('selection', 'Personnage « Gustav » · case 12, 8 · couche 0'),
+  };
+  const TERRAINS = ['Sous-bois', 'Boue', 'Cendre', 'Dallage', 'Eau', 'Fosse', 'Herbe', 'Lave', 'Marbre', 'Mur', 'Neige', 'Ossuaire', 'Pavés', 'Pierre', 'Plancher', 'Planches', 'Porte', 'Roche', 'Chemin', 'Sable', 'Sol ensanglanté', 'Sol nu', 'Terre battue', 'Tourbe', 'Vide (étage)'];
+  const INSPECTEUR = {
+    'editeur-scene': `<h3 class="gothique" data-texte="choisi">Porte</h3><div class="sous rubrique">Arête 14, 8 E · couche 0</div>
        <div class="trait"></div>
        <div class="prop"><span>Type</span><span class="segments"><b>Cloison</b><b class="la">Porte</b></span></div>
        <div class="prop"><span>Fermée au départ</span>${`<span class="oui-non"><b>Non</b><b class="la">Oui</b></span>`}</div>
@@ -134,8 +139,36 @@ if (CARTE) {
        <div class="prop"><span>Apparence</span><span class="v">Dérivée de la structure</span></div>
        <div class="r rubrique">Logique de la scène</div>
        ${renvoi('Déclencheurs (1)')}${renvoi('Dialogues (0)')}${renvoi('Rencontres (0)')}
-       ${validation}
-     </div><div class="ruban gothique">Inspecteur</div>${ferrures}</div>`,
+       ${validation}`,
+    'editeur-outil-terrain': `<h3 class="gothique" data-texte="choisi">Terrain</h3><div class="sous rubrique">Options de l’outil</div>
+       <div class="trait"></div>
+       <div class="r rubrique">Pinceau</div>
+       <span class="segments large">${['1×1', '3×3', '5×5', 'Rectangle'].map((n) => `<b class="${n === '3×3' ? 'la' : ''}">${n}</b>`).join('')}</span>
+       <div class="r rubrique">Terrains</div>
+       <div class="terrains">${TERRAINS.map((n) => `<b class="${n === 'Pavés' ? 'la' : ''}">${n}</b>`).join('')}</div>`,
+    'editeur-supprimer': `<h3 class="gothique" data-texte="choisi">Personnage</h3><div class="sous rubrique">Case 12, 8 · couche 0</div>
+       <div class="trait"></div>
+       ${champ('Nom', 'Gustav')}
+       <div class="prop" style="margin-top:6px"><span>Fiche</span><span class="v">Citadin</span></div>
+       <div class="prop"><span>Orientation</span><span class="pas-a-pas">${picto('gauche', 13, '#5a4530', 2)}<b class="rubrique">Sud</b>${picto('droite', 13, '#5a4530', 2)}</span></div>
+       <div class="prop"><span>Couche</span><span class="segments"><b class="la">0</b><b>1</b></span></div>
+       <div class="r rubrique">Inventaire</div>
+       <div class="prop gris"><span>Aucun objet dans l’inventaire.</span></div>
+       ${plaque('Ajouter un objet à l’inventaire', { icone: 'plus' })}
+       <div class="r rubrique">Poser une troupe</div>
+       <div class="prop"><span>Copies</span>${moinsPlus({ entre: '<b class="copies">3</b>' })}</div>
+       ${renvoi('Carrière')}${renvoi('Rencontres (0)')}
+       <div class="au-pied">${plaque('Supprimer', { icone: 'croix' })}</div>`,
+  };
+  pieces.push(
+    volet('scenes', 12, 84, '4 scènes au projet', `${['La Diligence', 'Altdorf — la porte sud', 'La route principale — le virage', 'Auberge des Sept Rayons'].map((n, i) => ligneDeListe(n, '', { la: i === 0 })).join('')}
+      <div class="gestes">${plaque('Nouvelle scène', { icone: 'plus' })}</div><div class="gestes">${plaque('Dupliquer la scène')}${plaque('Retirer la scène')}</div>`),
+    volet('outil', 12, 348, 'Outil', `<div class="outils">${OUTILS.map(outilDePalette).join('')}</div>`),
+    `<div id="plan" class="cadre bois" data-piece="plan"><div class="fond">${planDeScene()}</div>
+       <div id="couches">${plaque('Couche 0', { armee: true, icone: 'couches' })}${plaque('Couche 1')}${plaque('Ajouter une couche', { icone: 'plus' })}${SUPPRIMER ? plaque(`Retirer cette couche${raison('Le rez ne se retire pas')}`, { fermee: true }) : ''}</div>
+       <div id="nord" class="rubrique ombre">${picto('route', 18)}Nord : 0° dans le sens horaire</div>${ferrures}</div>`,
+    PIED[ETAT],
+    `<div id="inspecteur" class="cadre bois" data-piece="inspecteur"><div class="fond parchemin">${INSPECTEUR[ETAT]}</div><div class="ruban gothique">Inspecteur</div>${ferrures}</div>`,
   );
 }
 monter(pieces);

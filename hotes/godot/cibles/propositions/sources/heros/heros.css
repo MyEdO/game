@@ -307,3 +307,28 @@
 #autre .onglets-m{gap:6px;margin:-5px 0 -3px}
 #autre .onglets-m .plaque{height:26px}
 #autre .onglets-m .plaque>div{font-size:11.5px;padding:0 4px}
+
+/* ───────── création, Caractéristiques : méthode, profil au dé ou en points ───────── */
+.methodes .plaque{height:34px}
+.methodes .plaque>div{font-size:12.5px;gap:6px;padding:0 9px}
+.methodes .plaque .prix{font-size:11px}
+.tirage-c{display:flex;align-items:center;gap:12px;height:48px;margin-top:11px}
+.tirage-c .plaque>div{font-size:12.5px;padding:0 10px}
+.tirage-c .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;font-size:12.5px;letter-spacing:0;color:#c9b995}
+.profil-c{align-self:stretch;margin-top:13px;border:1px solid rgba(60,40,20,.4);border-radius:3px;background:rgba(255,246,218,.25)}
+.profil-c .c{gap:3px;padding:8px 0 7px}
+.profil-c .c .pts{height:34px;display:grid;place-items:center;font-family:"Fell SC";font-size:10.5px;letter-spacing:.8px;color:#5a3a1c}
+.profil-c .c .pts.nb{font-family:"Open Sans","Noto Sans","DejaVu Sans",Arial,sans-serif;font-size:13.5px;font-weight:600;letter-spacing:0;color:#4a3420}
+.profil-c .c.carr::before{inset:3px 3px 3px}
+.profil-c .pm{margin-top:1px;gap:4px}
+.profil-c .pm .pst{width:20px;height:20px}
+.jets{align-self:stretch;display:grid;grid-template-columns:repeat(10,1fr);justify-items:center}
+.jet{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 3px 2px;border:2px solid transparent;border-radius:3px}
+.jet i{font-family:"Fell SC";font-style:normal;font-size:10.5px;letter-spacing:.8px;color:#5a3a1c}
+.jet.pris{border-color:#a8842f;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px rgba(60,40,10,.7)}
+
+/* ───────── création, Talents : les sorts de Magie mineure ───────── */
+.mineurs{gap:5px 5px}
+.mineurs .pill{position:relative;height:22px;padding:0 9px;font-size:11px}
+.mineurs .pill.fermee{color:rgba(42,29,18,.45);border-color:rgba(60,40,20,.3);background:none}
+.ligne .plaque>div{font-size:11.5px;padding:0 8px}

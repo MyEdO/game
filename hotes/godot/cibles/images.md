@@ -72,9 +72,14 @@ Aucune cible écrite. Le contenu vient de `src/hote/accueil.ts`, `groupe.ts`, `s
 |---|---|---|
 | `accueil` | la compagnie face à Altdorf, jeu en plaques, outils en pastilles | « Continuer » en premier, qui charge la dernière sauvegarde ; sur-titre et sous-titre ajoutés |
 | `nouvelle-partie` | la salle d'une auberge-relais, le groupe attablé, les voyageurs à recruter, les campagnes en avis cloués | cinq voyageurs visibles à la fois ; espèce absente de l'étiquette |
-| `sauvegardes` | quatre feuillets sur la table, l'automatique d'abord, chacun ce que la sauvegarde porte | états sans partie et refus non dessinés |
+| `nouvelle-partie-roster` | état : « Mes personnages », Exporter et Supprimer sur le personnage pointé, « Modifier » au bandeau | verbe d'ouverture de la création sur un héros à modifier |
+| `nouvelle-partie-coop` | état : le siège de la « Place libre » | noms des sièges |
+| `sauvegardes` | quatre feuillets sur la table, l'automatique d'abord, chacun ce que la sauvegarde porte | état sans partie non dessiné |
+| `sauvegardes-combat` | état : « Sauvegarder » fermé en combat, raison au survol | aucun |
 | `menu-de-la-partie` | le jeu assombri, la colonne de l'accueil | geste « Reprendre » ; refus de « Terminer la séance » non dessiné ; colonne à gauche |
 | `options` | préférences sur un volet, règles maison dans un registre à quinze signets | douze règles par feuillet ; libellés lisibles des options |
+| `options-verrou` | état : règles fermées pendant un combat, raison au survol | aucun |
+| `options-chance` | état : signet « Destin & Résistance », « Regagner la Chance maintenant » | l'action de règle à servir par `zonesDesReglages` ; libellés `off / manual / auto` |
 | `ouverture-de-chapitre` | carton plein écran du chapitre, « Commencer » | compagnie affichée ; texte sur l'image |
 | `fin-de-seance` | par-dessus le jeu assombri : un feuillet par héros (ce qu'il a écrit, ses trois cases, son gain), les cases du groupe, « Terminer la séance » | croix plutôt que « Continuer » ; gain par héros à servir ; Ambition de groupe sans verbe d'écriture |
 | `fin-de-chapitre` | pendant de l'ouverture : la clôture, les objectifs soldés et les PX, les lieux, les tombés, puis les cases de la séance ; « Clore le chapitre », « Plus tard » | un écran au lieu de deux volets ; Ambitions écrites absentes des colonnes |
@@ -86,26 +91,39 @@ n'a pas de cible écrite (`src/noyau/monde/advancement.ts`, LDB 07).
 
 | État | Intention | Choix à valider |
 |---|---|---|
+| `creation-caracteristiques` | la méthode en plaques, les Augmentations et Destin / Résilience en clous, le profil au dé | prose de la Caractéristique non servie |
+| `creation-caracteristiques-reassigner` | état : les dix jets à échanger sous la Caractéristique pressée | aucun |
+| `creation-caracteristiques-points` | état : cent points au − / +, « Suivant » fermé tant qu'il en reste | aucun |
 | `creation-signe-astral` | le dé puis les vingt signes, la page du signe au centre | champ « Dieux » |
 | `creation-competences-de-race` | douze lignes à trois paliers, six cartes au centre | aucun |
 | `creation-competences-de-carriere` | huit lignes à dix clous, l'Augmentation de race en pastille à part, la Compétence pressée au centre | « Suivant » refusé tant qu'il reste des points |
 | `creation-talents` | race et carrière sur une page, tirages en sceaux | pastille « Utilisation » |
+| `creation-talents-doublon` | état : Talent tiré déjà possédé, « Relancer » | aucun |
+| `creation-talents-sorts-mineurs` | état : les Sorts de Magie mineure en pastilles, quota du Bonus de FM | liste servie par le noyau |
 | `creation-possessions` | la bourse au dé, le bagage en vignettes | pictogrammes d'objets neufs |
 | `creation-identite` | ce que les dés donnent, nom, Motivation et Ambitions à la plume | saisies non servies par la vue de l'hôte (#3009) |
 | `creation-presentation` | le héros achevé, « Engager » | la vue ne sert pas tout ce qui est dessiné |
-| `progression-depense-d-experience` | la fiche dont profil, Compétences et Talents deviennent pressables, avec leur prix | onglet de la fiche ou écran à part ; achat immédiat ; créneaux au choix et sorts |
-| `progression-changement-de-carriere` | le chemin des quatre niveaux, inférieur et suivant pressables, une autre carrière par Classe | carrières listées par livre ; saut de niveau |
+| `progression-depense-d-experience` | la fiche dont profil, Compétences et Talents deviennent pressables, avec leur prix ; onglets « Talents, Sorts » | onglet de la fiche ou écran à part ; achat immédiat |
+| `progression-depense-d-experience-creneaux` | état : un emplacement « (Au choix) » déplié, « Désigner » ou acheter | « Désigner » séparé de l'achat |
+| `progression-depense-d-experience-sorts` | état : Sorts à apprendre et composants des Sorts connus | aucun |
+| `progression-changement-de-carriere` | le chemin des quatre niveaux, inférieur et suivant pressables, une autre carrière par Classe ; refus du saut au survol | carrières listées par livre |
+| `progression-changement-de-carriere-saut` | état : règle du saut de niveau active, toute station pressable | restriction des Sorciers non vérifiée par le noyau |
+| `fiche-possessions` | section « Possessions » de la fiche : sets d'armes, objets, cartouche de la ligne pressée | « Sets d'armes » ou « Panoplies » |
+| `fiche-possessions-composant` | état : lier un composant à un Sort connu | aucun |
+| `fiche-possessions-prothese` | état : paliers d'entraînement d'une prothèse | aucun |
+| `fiche-possessions-faveur` | état : une Faveur due, « Rompre la Faveur » | aucun |
 
 ## Exploration et récit (2026-11-16)
 
 Sans cible écrite ; compte rendu dans `propositions/exploration-et-recit.md` : `exploration`, `dialogue`,
 `jet-de-competence` (dans le bandeau du bas, comme le jet de combat), `butin` (chaque objet va sur un héros),
-`document`, `carte-du-monde`. Le voyage, la suite du combat, le commerce et les outils ont depuis leurs sections
+`document`, `carte-du-monde` ; écran 13 (2026-11-17, #4411) : `exploration-gestes`, `soins-entre-heros`,
+`designation-d-un-heros`, `document-relu`, `carnet`, `carte-du-monde-depart-de-nuit`. Le voyage, la suite du combat, le commerce et les outils ont depuis leurs sections
 ci-dessous. Manquent encore, relevés à leurs comptes rendus : la décision qui ouvre une course-poursuite en mer ; le
 facteur environnemental tiré d'une bataille de masse ; le Test de Résistance raté avant
 la mutation ; « Chance : +1 DR », la raison au survol de « Relancer » fermée, l'axe « Dégâts » de la surincantation
 révisée ; à la halle et au port, les refus, l'acheteur introuvable, la moitié du lot proposée, l'évaluation du vin
-résolue, le Marchandage de vente, le Marchandage perdu, le chantier naval, le recrutement et l'avitaillement ; en
+résolue, le Marchandage de vente, le Marchandage perdu ; en
 coop, l'ouverture en cours, l'échec, le hors réseau, le salon vu d'un invité, l'hôte déconnecté ; à l'éditeur, le
 document « Narratif », les outils autres que « Sélection », la validation avec défauts ; au Compendium, l'atelier, la
 recherche active, une table et son dé : liste complète des écrans au commentaire de #3935.
@@ -123,9 +141,20 @@ des livres : LDB 51 l.191-221, MSRC 7, MDG 12 à 15.
 | `arrivee` | l'écran du lieu, sa première ligne est le récit du trajet ; services sur leurs bâtiments, départs sous la carte, le prix de la diligence sous chaque départ | Sept Rayons n'a aucun service en donnée ; durées des départs en plaques ; bourses au bandeau |
 | `voyage-fluvial` | le décor en plans, la barge, le Test de Navigation en pastille sur le poste « Barre » | vent du jour dans l'objet du temps ; le barreur se pose aux postes de bord |
 | `voyage-fluvial-peril` | le contenant d'événement, les deux choix que le jeu pose en cartes, la plaque qui commet | état de la coque sur le choix qui la coûte ; libellé de la plaque selon la carte ; pas de sceau du dé |
-| `voyage-en-mer` | la cogue au centre, frise en milles, Tests d'équipage en pastilles par rôle, Chance au pied du billet | panneau « La cogue » ; pastilles « Dossier du navire » et « Postes de bord » |
+| `voyage-en-mer` | la cogue au centre, frise en milles, Tests d'équipage en pastilles par rôle, Chance au pied du billet, la cadence du voyage dans l'objet du temps | panneau « La cogue » ; pastilles « Dossier du navire » et « Postes de bord » ; cadence en deux plaques |
 | `postes-de-bord` | les neuf rôles et le repos en postes posés sur le navire, plusieurs titulaires aux postes qui l'admettent | place de chaque poste ; rôles des marins sans portrait ; panneau « Le bord » et ses Tests du jour |
 | `dossier-du-navire` | la fiche lue en combat appliquée au navire : son nom, renommable, puis identité, profil, figure, sections | onglets ; Moral en barre d'or ; nom d'exemple |
+| `postes-de-bord-station` | la station du héros choisi en panneau, une plaque par station que le navire offre ; le « Repos » tenu comme un poste | station en panneau plutôt qu'en zone du navire |
+| `activites-en-mer` | les Activités de la semaine sur le gabarit des postes, mise et planque réglées dans « La semaine », une plaque valide | Entraînement d'équipage fermé au noyau ; panneau de la semaine |
+| `dossier-du-navire-cargaison` | onglet « Cargaison » : lots de la cale, déplacement vers un autre porteur (carte, quantité, plaque), possessions à bord et « Débarquer » | déplacer depuis le dossier du porteur ; Enc embarqué compté à part |
+| `dossier-de-la-bete` | le même dossier pour une bête : nom en saisie, « Laisser ici », « Embarquer » et son hôte en carte, « Abandonner » | un dossier par possession ; nom saisi dans le titre |
+| `dossier-du-vehicule` | le dossier d'un véhicule remisé : « Reprendre », « Embarquer » refusé au survol, abandon confirmé sur place | abandon en deux pressions ; lieu de remise écrit |
+| `mer-relache` | l'accostage en contenant d'événement : accorder ou refuser la relâche, carte puis plaque | carte puis plaque sur un choix clos à la pose |
+| `mer-conseil-de-bord` | la paie de la semaine en quatre cartes, la part de chaque héros dans « Bourses du groupe » | répartition à créer au noyau |
+| `mer-fuite-de-vapeur` | la panne en contenant d'événement, le Test d'Initiative au bandeau du jet | contenant de la route repris ; pas de silhouette de vapeur |
+| `combat-naval-bordee` | le Tir de batterie au bandeau : l'Artilleur, la munition du bord au centre, les rangées | munition réglée pour tout le bord : réglage à créer |
+| `combat-naval-chanson` | la Chanson de marin au bandeau, les chansons en cartes | chansons en colonne de droite |
+| `meuble-piece-de-bord` | le tour d'un héros qui sert une pièce : meuble de l'actif, « Quitter la pièce », munition en pastille | munition en pastille du meuble |
 | `combat-naval` | la manœuvre au bandeau du jet : virage réglé au centre, une rangée par héros en rôle ; la grille sur l'eau, les navires en pièces du champ | libellés du virage ; rangées à droite ; cases dorées et rouges |
 
 ## Suite du combat (2026-11-17)
@@ -169,6 +198,10 @@ de design du 2026-11-16. Ce qui se joue vient des livres : MSRC 13, MDG 15 l.321
 | `marchandage` | le jet résolu, le prix avant et après, les suites en plaques | verdict au centre ; « Conclure » armée ; compte de la page mis à jour dès le verdict |
 | `port` | le port est un lieu : services en cartouches sur le quai, le navire à l'amarre, départs en mer | état du navire lu sur le navire ; un seul cartouche déplié à la fois |
 | `port-negoce` | le négoce de mer sur la page des services du port, la cale seul porteur | même mise en scène que la halle ; avantages de DR annoncés avant le jet ; rail propre au port |
+| `port-achat` | l'achat d'un lot : Encombrement réglé, lot partiel, parts des bourses | parts par bourse que le noyau ne prend pas ; +1 DR annoncé avant le jet |
+| `port-chantier` | le constructeur et ses Améliorations, trois voies : réparer, caréner, poser | une voie à la fois ; durée de pose et Métier du constructeur en valeurs maison |
+| `port-recrutement` | les neuf rôles, leur solde à la semaine, embaucher et débarquer | sept soldes en correspondance maison ; rien débité à l'embauche |
+| `port-avitaillement` | les vivres en réglettes, le devis, les parts des bourses | jours de vivres non montrés, sans lecteur |
 
 ## Hors partie et outils (2026-11-17)
 
@@ -183,6 +216,9 @@ Aucune cible écrite. Le contenu vient de `src/hote/salon.ts`, `src/hote/coop/sa
 | `editeur-scene` | un plan de travail en trois colonnes : scènes et outils, plan, inspecteur | matières du jeu plutôt qu'outil neutre ; palette d'icônes libellées ; vue de dessus |
 | `editeur-carte-du-monde` | le même plan de travail sur la carte, lieux et routes listés et choisis sur la carte | route éditée dans l'inspecteur du lieu ; sens d'une route en flèche |
 | `compendium` | un registre relié, un signet par famille, la liste en feuillets sous-titrée de sa famille, la fiche et ses renvois | liste paginée ; renvois tronqués avec leur reste ; « Modifier » visible à la consultation |
+| `compendium-atelier` | l'atelier sur la page de droite : formulaire de l'entrée, identifiant, « Enregistrer », « Abandonner », « Supprimer » refusé au survol | champs absents en puces « Ajouter » ; suppression en deux pressions |
+| `editeur-outil-terrain` | l'outil « Terrain » armé, ses options (pinceau, terrains) à la place de l'inspecteur, le pinceau sur le plan | options d'outil dans l'inspecteur ; même gabarit pour les autres outils |
+| `editeur-supprimer` | un personnage choisi, son inspecteur, « Supprimer » au pied ; un retrait refusé en fer, raison au survol | « Supprimer » en une pression, défait par « Annuler » |
 
 ## Sources des propositions
 

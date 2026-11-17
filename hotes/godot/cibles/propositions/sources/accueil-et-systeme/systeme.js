@@ -22,6 +22,8 @@ Object.assign(BUSTES, {
   malmir: '<path d="M16 90c0-17 7-25 19-27l-2-8c-6-5-8-15-5-23 3-8 19-8 22 0 3 8 1 18-5 23l-2 8c12 2 19 10 19 27z"/><path d="M25 37l-10-10 10 3zM53 37l10-10-10 3z"/><path d="M24 30c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" fill="#1c1410"/>',
 });
 const buste = (genre, style = '', classe = '') => `<div class="portrait laiton ${classe}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" fill="#2a1f17">${BUSTES[genre]}</svg></div></div>`;
+/* un choix parmi quelques valeurs nommées : la valeur tenue est dorée */
+const segments = (options, la) => `<span class="segments">${options.map((o) => `<b class="${o === la ? 'la' : ''}">${o}</b>`).join('')}</span>`;
 const outil = (icone, libelle) => `<div class="outil">${rond(icone, 23)}<span class="rubrique ombre">${libelle}</span></div>`;
 
 /* ───────── paysage ───────── */
@@ -63,4 +65,4 @@ const altdorf = (hote) => {
   [[770, 6], [912, 8], [1050, 5], [1311, 7], [1480, 6]].forEach(([x, dy]) => el(fen, 'rect', { x, y: base - 16 - dy, width: 3, height: 5, opacity: .8 }));
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { buste, outil, etoiles, crete, massif, nuages, lisiere, altdorf });
+Object.assign(globalThis, { buste, outil, segments, etoiles, crete, massif, nuages, lisiere, altdorf });

@@ -1,6 +1,6 @@
 # Propositions : hors partie et outils (2026-11-17, #3935)
 
-Compte rendu des six états dessinés pour la coop, l'éditeur de campagne et le Compendium, des écrans sans image
+Compte rendu des neuf états dessinés (six d'origine, trois ajoutés par l'audit des verbes, #4411) pour la coop, l'éditeur de campagne et le Compendium, des écrans sans image
 d'intention ni cible écrite. Contenu lu au code (`src/hote/`, `src/noyau/`, `server/`, `src/i18n/messages/fr.ts`),
 jamais le design d'un écran existant. Sources au dépôt : `sources/outils/` ; elles lient le socle commun de
 `sources/lieux-et-nuit/`, les pièces de `sources/accueil-et-systeme/systeme.js` et, pour `coop-la-main`, la halle de
@@ -91,8 +91,49 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   liste défilante ; les renvois en liens soulignés, tronqués avec leur reste (« et 14 autres ») ; « Modifier » et «
   Nouvelle entrée » visibles à la consultation ; le filtre « Livre » en puces à comptes.
 
+## compendium-atelier
+- État de `compendium` (`compendium.js`) : « Modifier » a ouvert l'atelier, la page de droite porte le formulaire de
+  l'entrée, sous-titrée « Atelier : Talents ». Champs tirés du schéma du Talent (`src/data/schemas/defs/talents.ts:89-90` :
+  « Maximum » et son aide, « Test associé » et ses correspondances), « Nom », « Identifiant », « Description » (le
+  Markdown de la donnée, verbatim), livre et page ; « Champs que l'entrée ne porte pas » : une puce « Ajouter :
+  {libellé} » par champ facultatif absent (`ecran.formulaire.valeur.ajouter`).
+- Gestes de l'atelier (`GesteDuCompendium`, `src/noyau/codex/session.ts:94-111` ; `atelierDe`,
+  `src/hote/compendium.ts:162-181`) : `valeur { chemin, valeur }` par champ, `identifier { id }`, `enregistrer`
+  (plaque pleine, à gauche), `abandonner`, `supprimer`. « Supprimer » est fermée, sa raison au survol
+  (`ecran.compendium.refus.designee`, `fr.ts:905` ; la liste des désignations est un exemple). « Nouvelle entrée »
+  est fermée tant que l'atelier est ouvert (`ecran.compendium.refus.atelierOuvert`).
+- À valider : l'atelier sur la page de droite du registre, la liste restant à gauche ; les champs absents en puces
+  « Ajouter » plutôt qu'en champs vides ; « Supprimer » ouvert se joue en deux pressions sur place (« Confirmer la
+  suppression », « Annuler »), comme l'abandon d'une possession : le compendium n'a pas d'« Annuler » d'historique.
+  Libellés « Nom », « Livre », « Page » : exemples, le schéma les fournit.
+
+## editeur-outil-terrain
+- État de `editeur-scene` (`editeur.js`) : l'outil « Terrain » armé dans la palette, rien de choisi. L'inspecteur
+  porte les options de l'outil : « Pinceau » (1×1, 3×3 armé, 5×5, « Rectangle ») et « Terrains », les vingt-cinq de
+  `src/data/terrains.json`, « Pavés » armé. Sur le plan, le pinceau de 3×3 sous le pointeur et les cases déjà
+  peintes ; au pied, « Case 10, 16 · couche 0 · Terre battue · 0 m » (`ecran.editeur.pointee`).
+- Gestes (`src/noyau/edition/session.ts:557-558`, `src/hote/editeur.ts:643-648`) : `{ geste: 'outil', outil: {
+  mode: 'terrain', terrain } }`, `{ geste: 'pinceau', taille }` (`PINCEAUX` 1, 3, 5), `{ geste: 'rectangle',
+  actif }`.
+- À valider : les options de l'outil à la place de l'inspecteur tant que rien n'est choisi, la même manière pour
+  les autres outils à options (Hauteur, Murs, Crénelage, Décor, Personnage, Navire, Zone) ; les terrains en grille
+  de deux colonnes.
+
+## editeur-supprimer
+- État de `editeur-scene` : un personnage choisi sur le plan (« Gustav », nom d'exemple). Inspecteur de l'entité
+  (`inspecteurDEntite`, `src/hote/editeur.ts:807-828`) : « Nom », « Fiche », « Orientation », « Couche »,
+  « Inventaire », « Poser une troupe » et ses « Copies » (`{ geste: 'troupe', nombre }`), puis « Supprimer » au
+  pied (`{ geste: 'supprimer' }`, `src/noyau/edition/session.ts:598`, `:1327`).
+- Sur le plan, « Retirer cette couche » est fermée pour le rez, sa raison au survol (« Le rez ne se retire pas »,
+  `ecran.editeur.couche.rez`).
+- À valider : « Supprimer » au pied de l'inspecteur de toute sélection (entité, arête, zone, entrée,
+  architecture), en une pression : « Annuler » de la barre le défait ; un retrait refusé (`refusDeRetrait`) est une
+  plaque de fer, sa raison au survol.
+
 ## Non dessiné
 - Coop : ouverture en cours, échec (« Service coop injoignable — réessayez. »), sans réseau, salon vu d'un invité,
   hôte déconnecté.
-- Éditeur : document « Narratif », outils autres que « Sélection » et leurs options, validation avec défauts.
-- Compendium : l'atelier (édition d'une entrée), la recherche active, une table et son dé.
+- Éditeur : document « Narratif », les options des outils autres que « Terrain » (même gabarit), l'architecture
+  (`corps`, `batir`, `baie`), les calques (`planche`, `calque`, `caler`), validation avec défauts.
+- Compendium : la recherche active, une table et son dé (« Dé de la table », `enTete`), l'adresse d'un passage
+  (`resceller`).

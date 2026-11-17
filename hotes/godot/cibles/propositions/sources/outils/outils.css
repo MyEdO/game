@@ -163,3 +163,28 @@
 #routes .ligne span small{display:block;font-family:"Open Sans","DejaVu Sans",Arial,sans-serif;font-size:10.5px;color:var(--creme-2)}
 .valide{display:flex;gap:7px;align-items:flex-start;font-size:12px;line-height:15.5px;color:#2f4416}
 .valide svg{flex:none;margin-top:1px}
+
+/* l'atelier du Compendium */
+.atelier .fiche{gap:9px;padding-top:6px}
+.atelier .deux{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.atelier .champ>b{height:34px;font-size:15.5px}
+.atelier .champ.long>b{height:auto;display:block;padding:8px 12px 9px;white-space:normal;font-size:14px;line-height:19px}
+.atelier .champ .curseur-texte{display:none}
+.atelier .deux:first-child .champ:first-child .curseur-texte{display:block}
+.atelier .aide{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:-5px;font-style:italic;font-size:12.5px;color:#4a3420}
+.atelier .aide .lien{padding:0 2px 1px;font-style:normal}
+.atelier .fiche .r{margin:4px 0 -3px}
+.atelier .facettes b{color:#3a2a18;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.55)}
+.atelier .pied{justify-content:flex-start;gap:10px}
+.atelier .pied .plaque{position:relative;z-index:2}
+.atelier .pied .bulle-refus{white-space:normal;width:330px;text-align:center}
+
+/* l'éditeur : les options d'un outil, la suppression de ce qui est choisi */
+#inspecteur .segments.large{display:flex;margin-top:4px}
+#inspecteur .segments.large b{flex:1;text-align:center;font-size:13px;padding:5px 0 6px}
+.terrains{display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;margin-top:5px}
+.terrains b{font-weight:400;font-size:13.5px;line-height:30px;height:30px;padding:0 9px;border-radius:2px;color:#2a1d12;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.5);white-space:nowrap}
+.terrains b.la{font-weight:600;background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830);box-shadow:0 0 0 1px rgba(60,40,10,.85)}
+#inspecteur .moins-plus .copies{min-width:26px;text-align:center;font-size:15px;color:#2a1d12}
+#inspecteur .au-pied{margin-top:auto}
+#couches .plaque{position:relative}
