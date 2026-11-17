@@ -604,7 +604,7 @@ export function humanizeOp(o: GameOp): string {
     case 'critOnRoll': return t('codex.op.critiqueSurJet');
     case 'spendAdvantage': return o.amount == null ? t('codex.op.depenseDAvantage.tout') : t('codex.op.depenseDAvantage', { n: o.amount });
     case 'light': return t('codex.op.lumiere', { n: o.radiusM });
-    case 'intoxicate': return t('codex.op.ivresse');
+    case 'intoxicate': return o.tantQuIvre?.length ? t('codex.op.ivresse.effet', { ops: o.tantQuIvre.map(humanizeOp).join(' ; ') }) : t('codex.op.ivresse');
     case 'narrative': return o.nombre === undefined ? o.text : t('codex.op.nombreNarratif', { text: o.text, n: humanizeFormula(o.nombre) });
     case 'shipMorale': return t('codex.op.moralDEquipage', { delta: formatEffetSigne(o.delta) });
     case 'manann': return o.factorId !== undefined

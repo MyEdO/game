@@ -1,0 +1,41 @@
+#ecran{background:#140c07}
+#carte{left:440px;top:20px;width:862px;height:590px}
+#carte .fond{overflow:hidden}
+#carte .fond>svg{position:absolute;inset:0;width:100%;height:100%}
+.lieu{position:absolute;display:flex;align-items:center;gap:8px;padding:4px 11px 4px 5px;border-radius:3px;transform:translate(-50%,-100%);margin-top:-12px;box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3);white-space:nowrap}
+.lieu::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
+.lieu .medaillon{width:32px;height:32px;padding:2px}
+.lieu b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:15.5px;line-height:17px;letter-spacing:.3px;color:#f4e8ca}
+.lieu span{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
+.lieu .portrait{width:32px;height:40px;padding:2px;margin:-10px -4px -10px 3px}
+.lieu.choisi{box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.9),0 0 18px rgba(255,214,140,.75)}
+.lieu .portrait.fantome{opacity:.55;outline:1px dashed #f3dc93;outline-offset:1px}
+#lieu{left:24px;top:136px;width:400px}
+#lieu .fond{padding:22px 16px 13px}
+#lieu h3{margin:-4px 0 -3px;font-family:"Grenze Gotisch";font-weight:600;font-size:26px;line-height:36px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
+#lieu .pnj{display:flex;gap:12px;align-items:center;margin-top:9px}
+#lieu .pnj .portrait{width:48px;height:58px;padding:3px}
+#lieu .pnj b{font-family:"Fell SC";font-weight:400;font-size:13px;letter-spacing:1px;color:var(--or)}
+#lieu .pnj p{margin:2px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
+.activite{display:flex;gap:11px;align-items:center;margin-top:9px;padding:8px 11px;border-radius:3px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(201,185,149,.22)}
+.activite.prise{background:rgba(226,192,106,.1);box-shadow:inset 0 0 0 1px rgba(226,192,106,.85),0 0 12px rgba(255,214,140,.2)}
+.activite b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18.5px;line-height:24px;margin:-3px 0 -2px;color:#f4e8ca;letter-spacing:.3px}
+.activite .c{font-size:11.5px;color:var(--or)}
+.activite i{display:block;font-size:12.5px;line-height:16px;color:#d9ccac;margin-top:1px}
+#lieu .plaque.envoyer{height:42px;margin-top:11px}
+#lieu .plaque.envoyer>div{font-size:16px}
+#interlude{left:1323px;top:20px;width:360px}
+#interlude .fond{padding:22px 16px 14px}
+#interlude h3{margin:-4px 0 -3px;font-family:"Grenze Gotisch";font-weight:600;font-size:23px;line-height:32px;color:#f4e8ca;text-shadow:0 1px 2px #000}
+#interlude .s{font-size:12px;color:var(--creme-2)}
+.rangs{display:grid;grid-template-columns:44px 1fr auto;gap:9px 10px;align-items:center;margin-top:12px}
+.rangs .portrait{width:38px;height:46px;padding:2px}
+.rangs .q b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18px;line-height:22px;letter-spacing:.3px;color:#f4e8ca}
+.rangs .q span{display:block;font-size:11px;color:var(--creme-2);white-space:nowrap}
+.rangs .r{text-align:right}
+.rangs .r span{display:block;margin-top:6px;font-size:11px;color:var(--or);white-space:nowrap}
+.pips{display:flex;gap:7px;padding:0 3px;justify-content:flex-end}
+.pips i{width:11px;height:11px;transform:rotate(45deg);background:linear-gradient(135deg,#f0e4c6,#b9a57b);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.8)}
+.pips i.vide{background:#120b07;box-shadow:0 0 0 1px rgba(201,185,149,.4),inset 0 1px 2px #000}
+#interlude .filet{height:1px;background:linear-gradient(90deg,rgba(201,185,149,0),rgba(201,185,149,.45),rgba(201,185,149,0));margin:13px 0 10px}
+#interlude .avis{display:flex;gap:10px;align-items:flex-start;font-style:italic;font-size:12.5px;line-height:16.5px;color:#e6dabd}

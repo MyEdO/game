@@ -1,0 +1,13 @@
+{
+  "model": "decor--arche-ruine.glb",
+  "model_sha256": "ad777ac58dd01044e07f18569f11b9cc93a424f425912f7a217ff80d5cf5d401",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

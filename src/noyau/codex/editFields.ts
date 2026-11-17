@@ -17,6 +17,7 @@ import { choixDeLaFeuilleDId } from '../../data';
 import type { GameOp } from '../../engine/ops';
 import { libelleDuLitteral } from '../libelles';
 import { estObjet } from '../../lib/objet.mjs';
+import { memoByRef } from '../monde/sceneMemo';
 import type { SourceDeLEdition } from '../edition/adresseDeProse';
 
 export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
@@ -142,11 +143,15 @@ export function kindDuNoeud(key: string, noeud: unknown): FieldKind {
   return e === SANS_FORME ? 'json' : kindOf(key, e);
 }
 
-/** La seule forme concrète de la fermeture `ouverts` du nœud ; `undefined` quand elle en a plusieurs ou aucune. */
-function seuleForme(noeud: unknown): unknown {
+/** La seule forme de `seuleForme`, retenue par nœud (`memoByRef`) : un nœud de schéma ne change pas. */
+const seuleFormeDuNoeud = memoByRef((noeud: object): unknown => {
   const formes = ouverts([noeud]).filter((n) => !estTransparent(n));
   return formes.length === 1 ? formes[0] : undefined;
-}
+});
+
+/** La seule forme concrète de la fermeture `ouverts` du nœud ; `undefined` quand elle en a plusieurs ou aucune, et hors
+ *  d'un nœud, dont la fermeture est vide. */
+const seuleForme = (noeud: unknown): unknown => (noeud !== null && typeof noeud === 'object' ? seuleFormeDuNoeud(noeud) : undefined);
 
 /** Les bornes du nœud quand sa seule forme est un nombre ; `undefined` sinon. */
 export function bornesDuNoeud(noeud: unknown): BornesDuNombre | undefined {

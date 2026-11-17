@@ -1,6 +1,6 @@
 *Pages PDF 194-196*
 
-# **ÉVÉNEMENTS**
+# <span id="page-193-0" data-folio="192"></span>**ÉVÉNEMENTS**
 
 Avant de choisir vos Activités, lancez d'abord 1d100 sur le tableau des Événements ci-après. Certains Événements n'affecteront que vous, alors que d'autres concerneront le groupe tout entier.
 

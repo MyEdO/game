@@ -166,6 +166,7 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   reach: true,
   range: true,
   perteSansEquipe: true,
+  bouclierDEquipe: true,
   indirect: true,
   bladed: true,
   organicProjectile: true,
@@ -1413,7 +1414,7 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
   if (melee.length) melee.sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0].equipped = true;
   if (ranged.length) ranged[0].equipped = true;
   const holder = { items } as Combatant; // equipConflicts lit c.items (équipés au fil de l'eau)
-  const armours = items.filter((i) => i.kind === 'armor').sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
+  const armours = items.filter((i) => i.kind === 'armor' && !itemCapability(i, 'armureDeMonture')).sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
   for (const a of armours) if (!equipConflicts(holder, a).length) a.equipped = true;
   // LDB 61 l.21
   for (const it of items) if (it.kind !== 'armor' && isWearable(it) && !equipConflicts(holder, it).length) it.equipped = true;

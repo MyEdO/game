@@ -347,7 +347,7 @@ La salle commune est tenue par Vikram et Karga Svensson, du clan de brasseurs Ge
 Lorsqu'ils pénètrent au niveau supérieur de Karaz Azgaraz, généralement par la porte secondaire plutôt que par la gigantesque Porte des ancêtres (*Barak Gromthi*), les nouveaux arrivants se retrouvent dans un grand atrium éclairé par plusieurs milliers de cristaux de quartz sur lesquels la *Rune de Lumière* a été gravée. Chaque cristal émet autant de lumière qu'une lanterne traditionnelle, et la salle est ainsi plongée dans une pénombre solennelle.
 
 
-#### UNE HISTOIRE À DORMIR DEBOUT
+#### <span id="page-67-0" data-folio="67"></span>UNE HISTOIRE À DORMIR DEBOUT
 
 - 0 Karga Svensson a fait un rêve dans lequel elle se promenait sur les flancs au-dessus de l'auberge, côté ouest. Soudain, la terre trembla et l'entrée d'une caverne se dévoila à elle. Alors qu'elle s'approchait, elle sentit des regards malveillants se poser sur elle. Elle se réveilla avec un mauvais pressentiment. Vikram demande aux Personnages de mener l'enquête. Il est sûr que ce n'est rien, mais on n'est jamais trop prudent.
 - 0 On raconte qu'une caravane naine transportant de la bière douce à destination des marchands humains a été massacrée sur la route du comptoir commercial d'Azgaraz, et que la marchandise a disparu. Les Personnages sont recrutés pour châtier les coupables et récupérer la marchandise volée.
@@ -483,7 +483,7 @@ Les tribus de gobelins sont une véritable plaie pour les nains, car ces peaux-v
 Après une série de défaites au combat, les gobelins de la tribu du Chien fou semblent se concentrer (du moins pour l'instant) sur le harcèlement des marchands et autres voyageurs qui circulent dans la Passe de la Dame Grise, entre le Rocher des murmures et La Maisontaal.
 
 
-Les gobelins du Pieu sanglant, des chevaucheurs de loups, doivent eux aussi reprendre des forces après plusieurs affrontements désastreux avec Karak Azgaraz. La tribu s'est réfugiée au cœur du Bois Noir (Drazhwut), mais des patrouilleurs nains ont signalé que leur nouveau chef avait été repéré en contrebas des flancs au nord du Frugelhorn.
+<span id="page-71-0" data-folio="71"></span>Les gobelins du Pieu sanglant, des chevaucheurs de loups, doivent eux aussi reprendre des forces après plusieurs affrontements désastreux avec Karak Azgaraz. La tribu s'est réfugiée au cœur du Bois Noir (Drazhwut), mais des patrouilleurs nains ont signalé que leur nouveau chef avait été repéré en contrebas des flancs au nord du Frugelhorn.
 
 La tribu de la Lune sanglante, sur laquelle Thuringar concentre ses efforts afin de venger l'assassinat de son père et de son frère, est particulièrement mal en point. Les gobelins restent sur la falaise qui sépare le royaume nain de la Marche d'Hupeberg pour éviter tout encerclement.
 

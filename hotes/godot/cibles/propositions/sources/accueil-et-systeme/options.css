@@ -1,0 +1,59 @@
+#titre{top:14px;height:90px}
+.croix{right:14px;top:8px}
+
+/* le volet des préférences */
+#preferences{left:24px;top:124px;width:400px}
+#preferences .fond{padding:30px 18px 20px;display:flex;flex-direction:column;gap:22px}
+.pref .l{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pref b{font-weight:400;font-size:15.5px;color:#f0e2c2;white-space:nowrap}
+.pref p{margin:5px 0 0;font-style:italic;font-size:13px;line-height:17px;color:var(--creme-2)}
+#preferences .trait{height:1px;background:rgba(226,192,106,.28);margin:2px 0}
+.curseur{display:inline-flex;align-items:center;gap:12px}
+.curseur .val{width:44px;text-align:right;font-size:19px;line-height:20px;color:#3a1a10;white-space:nowrap}
+.bois .curseur .val{color:#f3e6c6;width:54px;font-size:18px}
+.pref .segments b{padding:3px 9px 4px}
+
+/* le registre : reliure de cuir, deux pages */
+#registre{position:absolute;left:446px;top:60px;width:1078px;height:700px;padding:11px 13px 15px;border-radius:7px;display:flex;
+  background:linear-gradient(180deg,#4a2416,#2a130b 60%,#1c0c06);box-shadow:0 18px 40px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 2px rgba(226,192,106,.22),inset 0 0 0 3px rgba(0,0,0,.5)}
+#registre .tranche{position:absolute;left:13px;right:13px;bottom:8px;height:9px;background:repeating-linear-gradient(180deg,#e2d2a8 0 1px,#8f7d58 1px 3px);border-radius:0 0 2px 2px;box-shadow:inset 0 0 6px rgba(40,20,5,.7)}
+.feuille{position:relative;flex:1;display:flex;flex-direction:column;padding:16px 26px 10px 30px;box-shadow:inset 0 0 30px rgba(90,60,20,.4)}
+.feuille.g{border-radius:3px 0 0 3px;padding:16px 34px 10px 26px}
+.feuille.d{border-radius:0 3px 3px 0}
+.feuille.g::after,.feuille.d::after{content:"";position:absolute;top:0;bottom:0;width:46px;pointer-events:none}
+.feuille.g::after{right:0;background:linear-gradient(90deg,rgba(60,35,10,0),rgba(40,20,5,.5))}
+.feuille.d::after{left:0;background:linear-gradient(90deg,rgba(40,20,5,.55),rgba(60,35,10,0))}
+.feuille .tete{display:flex;justify-content:space-between;align-items:baseline;height:46px}
+.feuille .dom{font-size:38px;line-height:58px;margin:-8px 0 -4px;color:#3a1a10}
+.feuille .sous{font-size:13px;color:#5a2a12;white-space:nowrap}
+.feuille.d .tete{align-items:flex-end;padding-bottom:6px}
+.feuille .filet-l{color:#5a4530;margin:4px 0 4px}
+.regle{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:14px;padding:10px 8px 10px 8px;border-bottom:1px solid rgba(60,40,20,.28);min-height:81px;position:relative;z-index:1}
+.regle .t b{display:block;font-weight:600;font-size:15.5px;line-height:20px;color:#2a1d12}
+.regle .ref{display:block;font-size:12.5px;color:#4a2f16;margin-top:2px}
+.regle .c{display:flex;align-items:center;gap:10px}
+.regle .aide{grid-column:1/3;margin:7px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#3a2a18}
+.regle.pointee{background:rgba(255,244,206,.5);box-shadow:0 0 0 1px rgba(138,106,38,.9),0 2px 7px rgba(60,35,5,.3);border-radius:2px;border-bottom-color:transparent}
+.regle.modifiee .t b{color:#7c1f14}
+.regle.modifiee::before{content:"";position:absolute;left:-13px;top:50%;width:13px;height:13px;margin-top:-7px;border-radius:48% 52% 55% 45%/52% 46% 54% 48%;background:radial-gradient(circle at 38% 30%,#d2553a,#9c2a1a 50%,#5a130b);box-shadow:0 1px 2px rgba(0,0,0,.6)}
+.defaut{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#6b1c10;padding:2px 8px 3px;border:1px solid rgba(107,28,16,.6);border-radius:2px;background:rgba(255,245,215,.3);white-space:nowrap}
+.pas-a-pas{display:inline-flex;align-items:center;gap:6px;padding:2px 5px 3px;border-radius:3px;box-shadow:0 0 0 1px rgba(60,40,20,.7);background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830)}
+.pas-a-pas b{font-weight:400;font-size:13px;color:#2a1a08;white-space:nowrap;min-width:92px;text-align:center}
+.pas-a-pas svg{stroke:#2a1a08}
+.feuille .pied{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:14px;height:40px}
+.feuille .pied .bouton-rond{width:32px;height:32px}
+.feuille .pied .folio{font-size:12.5px;color:#5a4530;white-space:nowrap}
+.feuille .pied .marque{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12.5px;color:#6b1c10;white-space:nowrap}
+.feuille .pied .marque .sceau{width:20px;height:20px}
+.feuille .pied .suite{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13.5px;color:#3a2a18}
+
+/* les signets : un domaine chacun, la matière du ruban */
+#signets{position:absolute;left:1524px;top:74px;display:flex;flex-direction:column;gap:6px}
+.signet{display:flex;align-items:center;gap:7px;width:160px;height:38px;padding:0 20px 2px 13px;color:#f0e2c2;background:linear-gradient(180deg,#5b1d14,#3c110b);box-shadow:inset 0 0 0 1px rgba(226,192,106,.4);clip-path:polygon(0 0,100% 0,calc(100% - 10px) 50%,100% 100%,0 100%);filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.signet span{font-size:13px;white-space:nowrap;letter-spacing:.6px}
+.signet em{margin-left:auto;font-style:normal;font-size:10.5px;color:#d9b9a6}
+.signet .cire{flex:none;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3dc93,#b8923a)}
+.signet.ouvert{width:176px;background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);color:#2a1a08;box-shadow:inset 0 0 0 1px rgba(60,40,10,.85)}
+.signet.ouvert span{font-size:14.5px}
+.signet.ouvert em{color:#3a2a12}
+.signet.ouvert .cire{background:radial-gradient(circle at 38% 30%,#d2553a,#9c2a1a 50%,#5a130b)}

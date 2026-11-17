@@ -24,12 +24,6 @@
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "Le Pouvoir derrière le Trône, ch.8 — cité par l'instruction des candidats « porte à enfoncer » (#1117) ; aucune fiche de l'Atlas ne cite ce chapitre."
-    },
-    "B2 LDB 38": {
-      "sites": ["docs/raw/4e/catalogue-divin.md"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "Livre de base, ch.38 « Les dieux halflings » — décrit par l'Atlas, jamais référencé par le code ni crédité par une source folio de src/data."
     }
   }
 }

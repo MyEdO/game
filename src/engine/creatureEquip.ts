@@ -20,6 +20,7 @@ import {
   type TrappingResolver,
 } from './items';
 import { armureDuTrait } from './armourBypass';
+import { itemCapability } from './capabilities';
 import type { WeaponDamageSpec } from './types';
 import { traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
@@ -137,12 +138,13 @@ export function armourFromTraits(traits: TraitList): ArmourPoints {
 export const armesDuProfil = (traits: TraitList): Weapon[] =>
   renderWeaponsFromTraits(traits.filter((t) => !findTraitById(t.id)?.passive?.some((op) => op.op === 'grantNaturalWeapon')));
 
-/** Les Traits `traits` qui restent devant les objets réels `objets` : le Trait Armure cède à une armure portée, un
+/** Les Traits `traits` qui restent devant les objets réels `objets` : le Trait Armure cède à une armure portée hors armure
+ *  de monture (`armureDeMonture`, arbitrage du 2026-11-16, #4135), un
  *  Trait dont l'arme est une vraie arme (`estUneVraieArme`) cède à un objet tenu (`peutEtreTenu`) du même type.
  *  LDB 85 l.31, l.39 ; arbitrage du 2026-11-08 (#773). */
 export function traitsDevantLEquipement(traits: readonly TraitInstance[], objets: readonly GabaritDObjet[], resolveTrapping: TrappingResolver = findTrappingById): TraitInstance[] {
   const tenus = new Set(objets.filter(peutEtreTenu).map((o) => o.kind));
-  const armurePortee = objets.some((o) => o.equipped && o.kind === 'armor');
+  const armurePortee = objets.some((o) => o.equipped && o.kind === 'armor' && !itemCapability(o, 'armureDeMonture'));
   return traits.filter((t) => {
     if (armurePortee && armureDuTrait([t])) return false;
     const w = weaponFromTrait(t, resolveTrapping);

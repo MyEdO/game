@@ -1,6 +1,7 @@
 /**
  * L'Atout ZAP ! et la décharge de la malelame à deux mains jouent par l'arme de CATALOGUE que désigne l'`arg`
- * d'un Trait Arme de statbloc. MDG 16 l.536 ; ZI 13 l.199 ; LDB 85 l.31-35 ; #4202.
+ * d'un Trait Arme de statbloc, et la décharge du technomage par celle de son Trait À distance. MDG 16 l.536 ;
+ * ZI 13 l.199 ; ZI 13 l.222 ; LDB 85 l.9, l.31-35 ; #4202.
  */
 import { describe, it, expect } from 'vitest';
 import type { Combatant, Weapon } from './types';
@@ -12,6 +13,7 @@ import { weaponFromTrait } from './creatureEquip';
 import { bonus } from './characteristics';
 import { qualityArmourBypasses } from './qualities/dispatch';
 import { applyEnchants, improvisedProfile } from './weaponDamage';
+import { findCreatureById } from '../data';
 
 /** Profil de créature de fixture : seuls son Endurance et son Trait Armure comptent ici. */
 const cible = (armure: TraitInstance): Combatant =>
@@ -73,5 +75,34 @@ describe('la décharge de la malelame à deux mains ignore les PA des armures m�
     const temoin = improvisedProfile(weaponFromTrait({ id: 'arme', value: 8, arg: 'Électro-Lame' })!);
     expect(blessuresDe(improvisee, c)).toBe(blessuresDe(temoin, c));
     expect(blessuresDe(improvisee, c)).toBeLessThan(100 - bonus(c.characteristics.endurance));
+  });
+});
+
+/** L'arme du Trait À distance « Malelame » +7 (48) du technomage, lue sur le statbloc réel apparu (ZI 13 l.222). */
+const decharge = (): Weapon => {
+  const technomage = creatureToCombatant(findCreatureById('technomage-du-clan-skryre')!, 'technomage', { x: 0, y: 0 });
+  const trait = technomage.traits!.find((t) => t.id === 'a-distance' && t.value === 7)!;
+  return weaponFromTrait(trait)!;
+};
+const CUIR: TraitInstance = { id: 'armure', parLocalisation: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, matiere: 'leather' };
+
+describe('la décharge de malelame du technomage ignore les PA des armures métalliques (ZI 13 l.199, l.222)', () => {
+  it('porte les Dégâts et la Portée du statbloc', () => {
+    expect(decharge()).toMatchObject({ trappingId: 'decharge-de-malelame', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 48 });
+  });
+
+  it('ignore les PA d’une armure en métal', () => {
+    const c = cible(MAILLES);
+    expect(blessuresDe(decharge(), c)).toBe(100 - bonus(c.characteristics.endurance));
+  });
+
+  it('compte tous les PA d’une armure de cuir', () => {
+    const c = cible(CUIR);
+    expect(blessuresDe(decharge(), c)).toBe(100 - bonus(c.characteristics.endurance) - 3);
+  });
+
+  it('sans Atout de mêlée ni Test de Sonné de la malelame', () => {
+    expect(decharge().onHitEffects).toBeUndefined();
+    expect(decharge().qualities).toEqual([]);
   });
 });

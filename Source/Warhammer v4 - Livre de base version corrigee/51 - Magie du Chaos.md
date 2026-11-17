@@ -1,6 +1,6 @@
 *Pages PDF 259-267*
 
-# **MAGIE DU CHAOS**
+# <span id="page-258-0" data-folio="257"></span>**MAGIE DU CHAOS**
 
 Trois des quatre Grandes Puissances du Chaos possèdent un Domaine de Magie unique — seul Khorne, le dieu du Sang, qui exècre la Magie et tout ce qui s'y rapporte, ne possède pas de Domaine. Vous trouverez ici un Sort pour chacun de ces Domaines du Chaos, afin de pouvoir apporter de la consistance à vos cultistes du Chaos et les ajouter aux Sorts d'Arcane et du Domaine de Démonologie.
 

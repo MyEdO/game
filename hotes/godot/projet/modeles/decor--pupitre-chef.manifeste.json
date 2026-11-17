@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "pupitre-chef"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "papier",
+      "palette": "corps",
+      "matiere": "prop--albatre"
+    }
+  ],
+  "glb": {
+    "sha256": "95eecfd10f6d27d0db2faf9aa29c356d59bd36c95239a7e849fa4e507dbc218b",
+    "octets": 40748
+  }
+}

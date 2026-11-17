@@ -1,0 +1,97 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Meuble" type="HBoxContainer"]
+theme_type_variation = &"RangeeDuMeuble"
+
+[node name="Gauche" type="MarginContainer" parent="."]
+custom_minimum_size = Vector2(405, 0)
+theme_type_variation = &"GaucheDuMeuble"
+
+[node name="Pile" type="VBoxContainer" parent="Gauche"]
+theme_type_variation = &"PileTassee"
+
+[node name="Colonnes" type="HBoxContainer" parent="Gauche/Pile"]
+theme_type_variation = &"RangeeDuMeuble"
+
+[node name="Etat" type="VBoxContainer" parent="Gauche/Pile/Colonnes"]
+size_flags_horizontal = 3
+theme_type_variation = &"RangsDuMeuble"
+
+[node name="Vie" type="HBoxContainer" parent="Gauche/Pile/Colonnes/Etat"]
+custom_minimum_size = Vector2(0, 40)
+
+[node name="Zone" type="Node" parent="Gauche/Pile/Colonnes/Etat/Vie"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("blessures")
+formes = PackedStringArray("jauge:mesure")
+
+[node name="Action" type="HBoxContainer" parent="Gauche/Pile/Colonnes/Etat"]
+
+[node name="Zone" type="Node" parent="Gauche/Pile/Colonnes/Etat/Action"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("action")
+formes = PackedStringArray("puce:sceau")
+
+[node name="Tour" type="VBoxContainer" parent="Gauche/Pile/Colonnes"]
+size_flags_horizontal = 3
+theme_type_variation = &"RangsDuMeuble"
+
+[node name="Mouvement" type="HBoxContainer" parent="Gauche/Pile/Colonnes/Tour"]
+custom_minimum_size = Vector2(0, 40)
+
+[node name="Zone" type="Node" parent="Gauche/Pile/Colonnes/Tour/Mouvement"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("mouvement")
+formes = PackedStringArray("entite:jetons")
+
+[node name="Avantage" type="HBoxContainer" parent="Gauche/Pile/Colonnes/Tour"]
+
+[node name="Zone" type="Node" parent="Gauche/Pile/Colonnes/Tour/Avantage"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("avantage")
+formes = PackedStringArray("puce:compte")
+
+[node name="Etats" type="HFlowContainer" parent="Gauche/Pile"]
+theme_type_variation = &"FluxSerre"
+
+[node name="Zone" type="Node" parent="Gauche/Pile/Etats" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("etat/")
+masque = NodePath("..")
+
+[node name="Centre" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(136, 0)
+size_flags_vertical = 0
+theme_type_variation = &"PileTassee"
+
+[node name="Portrait" type="HBoxContainer" parent="Centre"]
+alignment = 1
+
+[node name="Zone" type="Node" parent="Centre/Portrait"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("portrait")
+formes = PackedStringArray("portrait:portraitDeLActif")
+
+[node name="Nom" type="Label" parent="Centre"]
+mouse_filter = 1
+theme_type_variation = &"NomDeHeros"
+horizontal_alignment = 1
+text_overrun_behavior = 3
+
+[node name="nom" type="Node" parent="Centre/Nom"]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="infobulle" type="Node" parent="Centre/Nom"]
+script = ExtResource("1_liaison")
+champ = "nom"
+propriete = &"tooltip_text"

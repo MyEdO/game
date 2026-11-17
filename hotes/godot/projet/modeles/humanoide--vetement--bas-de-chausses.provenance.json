@@ -1,0 +1,21 @@
+{
+  "model": "humanoide--vetement--bas-de-chausses.glb",
+  "model_sha256": "11d6c9e2546a8a4b2085f428e98034497f18217e38154363d65417786f7e526f",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

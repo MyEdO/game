@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "etendard"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "toile",
+      "palette": "vet1",
+      "matiere": "prop--toile-rouge"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "8633698e3ea0099626ac5ae60e32ee980498d7ae3f16396e01651fcc789dfda6",
+    "octets": 59036
+  }
+}

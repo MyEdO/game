@@ -57,6 +57,15 @@ class Decision(unittest.TestCase):
         self.assertFalse(est_entree(f'{E}vetement--bure/donnees.py', CORDELIERE, SUJETS, RACINES))
         self.assertFalse(est_entree(f'{V}caraque/modele.py', BURE, SUJETS, RACINES))
 
+    def test_les_ids_lus_sont_les_contournes_et_l_offrant(self):
+        with tempfile.TemporaryDirectory() as dossier:
+            donnees = Path(dossier) / 'donnees.py'
+            donnees.write_text("CONTOURNE = {'tete': 'humanoide--a', 'cou': 'humanoide--b'}\nOFFRANT = 'humanoide--c'\nAUTRE = 3\n",
+                               encoding='utf-8')
+            self.assertEqual(entrees.ids_lus(donnees), ('humanoide--a', 'humanoide--b', 'humanoide--c'))
+            donnees.write_text('AUTRE = 3\n', encoding='utf-8')
+            self.assertEqual(entrees.ids_lus(donnees), ())
+
 
 class Changements(unittest.TestCase):
 
@@ -76,6 +85,30 @@ class Changements(unittest.TestCase):
     def test_une_panne_leve(self):
         with mock.patch.object(entrees.subprocess, 'run', return_value=mock.Mock(returncode=1, stdout='', stderr='git')):
             self.assertRaises(RuntimeError, entrees.changements)
+
+
+class GlbLocaux(unittest.TestCase):
+    """`--local <id>=<glb>` de `element/construire.py` (#4338)."""
+
+    LUS = {'humanoide--vetement--bure', 'humanoide--accessoire--cordeliere'}
+
+    def test_chaque_id_lu_a_son_glb(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bure, corde = Path(tmp) / 'bure.glb', Path(tmp) / 'corde.glb'
+            bure.write_bytes(b'glTF')
+            corde.write_bytes(b'glTF')
+            self.assertEqual(entrees.glb_locaux([f'humanoide--vetement--bure={bure}', f'humanoide--accessoire--cordeliere={corde}'], self.LUS),
+                             {'humanoide--vetement--bure': bure.resolve(), 'humanoide--accessoire--cordeliere': corde.resolve()})
+            self.assertEqual(entrees.glb_locaux([], self.LUS), {})
+
+    def test_refuse_un_id_non_lu_repete_ou_sans_glb(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            glb = Path(tmp) / 'bure.glb'
+            glb.write_bytes(b'glTF')
+            for paires in ([f'humanoide--armure--plastron={glb}'], [str(glb)], [f'humanoide--vetement--bure={glb}'] * 2,
+                           [f'humanoide--vetement--bure={Path(tmp) / "absent.glb"}'], [f'humanoide--vetement--bure={tmp}']):
+                with self.subTest(paires=paires), self.assertRaises(ValueError):
+                    entrees.glb_locaux(paires, self.LUS)
 
 
 class Releve(unittest.TestCase):

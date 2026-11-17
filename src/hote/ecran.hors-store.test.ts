@@ -1,16 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as fiches from '../noyau/ficheDuPorteur';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
-import { lignesDuJournal, zonesDeLEcran } from './ecran';
+import { lignesDuJournal, TETE_DU_ROUND_SUIVANT, zonesDeLEcran } from './ecran';
 import { SANS_ROSTER } from './roster';
 import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
-import { dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
+import { ACTIONS, dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
 import { choixPiegeLame } from '../noyau/combatFlow';
 import { choiceStep } from '../noyau/rollSeam';
-import { t } from '../i18n';
+import { estUneCle, t } from '../i18n';
 import type { Bouton, Entite } from './elements';
 import { ouvrirLeBanc } from '../noyau/banc.testkit';
 import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
@@ -61,6 +61,14 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
     } finally {
       partie.fermer();
     }
+  });
+});
+
+describe('la pastille d’une offre par candidat (`combat.offres`)', () => {
+  it('le catalogue nomme court chaque action qui s’offre par candidat (`ecran.offre.<id>`)', () => {
+    const parCandidat = ACTIONS.filter((a) => a.candidates).map((a) => a.id);
+    expect(parCandidat, 'des actions s’offrent par candidat').toContain('incantation');
+    expect(parCandidat.filter((id) => !estUneCle(`ecran.offre.${id}`))).toEqual([]);
   });
 });
 
@@ -142,6 +150,30 @@ describe('le début du Round (`fenetre.gestes`)', () => {
   });
 });
 
+describe('l’ordre du tour (`combat.ordre`)', () => {
+  it('le héros qui agit en premier ce Round reprend au Round suivant sa place de l’ordre canonique', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const debut = partie.etat().battle!;
+      const base = debut.baseOrder ?? debut.order;
+      const promu = [...base].reverse().find((id) => debut.combatants.find((c) => c.id === id)?.kind === 'heros')!;
+      expect(base.indexOf(promu), 'témoin : le héros promu n’ouvre pas l’ordre canonique').toBeGreaterThan(0);
+      partie.envoyer({ type: 'fenetreChoisir', args: ['debutDuRound', 'promouvoir', promu] });
+      partie.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
+      const etat = partie.etat();
+      expect(etat.battle!.order[0], 'témoin : il ouvre le Round courant').toBe(promu);
+      const colonne = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null, SANS_ROSTER)['combat.ordre'];
+      const enVue = new Set(colonne.flatMap((r) => (r.id.startsWith('ordre/') ? [r.id.slice('ordre/'.length)] : [])));
+      expect(enVue.size, 'témoin : plus de combattants en vue que la tête du round suivant n’en montre').toBeGreaterThan(TETE_DU_ROUND_SUIVANT);
+      expect(colonne.filter((r) => r.id.startsWith('suite/')).map((r) => r.id).reverse(), 'la tête du round suivant, de bas en haut : l’ordre canonique')
+        .toEqual(base.filter((id) => enVue.has(id)).slice(0, TETE_DU_ROUND_SUIVANT).map((id) => `suite/${id}`));
+      expect(colonne.find((r) => r.id === 'round'), 'sous lui, le round qui commence').toMatchObject({ type: 'ligne', texte: t('ecran.round', { round: etat.battle!.round + 1 }) });
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
 describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
   it('le choix d’une parade Piège-lame dit sa portée et son issue avant qu’on tranche', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
@@ -163,7 +195,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
 
 describe('la carte d’un héros lit l’en-tête de sa fiche, pas la fiche (#3975)', () => {
   it('dessiner l’écran sans fiche ouverte ne calcule aucune fiche', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(nouvelEntete('porte-close', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
       const ns = fiches as unknown as Record<string, unknown>;

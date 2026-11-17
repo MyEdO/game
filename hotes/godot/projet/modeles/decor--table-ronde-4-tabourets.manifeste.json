@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "table-ronde-4-tabourets"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "d7b25d58d580d759bc80af2e0fce72f9cae2eb2c8d9f5cb314ab35c2b5fece07",
+    "octets": 149560
+  }
+}

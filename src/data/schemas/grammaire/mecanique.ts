@@ -786,6 +786,10 @@ const DECLARATIONS_D_OPS = {
     allyOfCaster: z.boolean().optional(),
     cancelFlag: z.string().optional(),
   }), { op: { label: "opération"  }, ref: { label: "référence" , texte: { regime: "technique"} }, delayDays: { label: "délai en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, allyOfCaster: { label: "allié du lanceur" }, cancelFlag: { label: "drapeau d’annulation" , texte: { regime: "technique"} } }),
+  intoxicate: nommerChamps(z.strictObject({
+    op: z.literal('intoxicate'),
+    tantQuIvre: executeesDe(z.lazy(() => gameOpSchema)).optional(),
+  }), { op: { label: "opération"  }, tantQuIvre: { label: "tant qu’ivre" } }),
   polymorph: nommerChamps(z.strictObject({ op: z.literal('polymorph'), ref: idDe('creature') }), { op: { label: "opération"  }, ref: { label: "référence" , texte: { regime: "technique"} } }),
   transform: nommerChamps(z.strictObject({
     op: z.literal('transform'),
@@ -958,7 +962,7 @@ export const OPS_NON_TYPEES: readonly string[] = [
   'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod', 'breakBlade', 'crewTestMod',
   'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm', 'endTransform',
   'freeReroll', 'grantFreeAttack', 'handGate', 'ignoreAnimosity', 'ignoreStatePenalties', 'interruptFocus',
-  'intoxicate', 'martyr', 'mitigateIncoming', 'reduceToZero', 'removeShipPoste',
+  'martyr', 'mitigateIncoming', 'reduceToZero', 'removeShipPoste',
   'senseLoss', 'statusMod', 'suppressPsych', 'teamCommander', 'weaponDamageMod', 'weaponRollMod',
   'weatherWard',
 ];
@@ -1480,7 +1484,8 @@ export const effectTargetingSchema = z.union([
  *  Mâchoires d'acier : « chaque fois que vous gagnez un État Sonné »).
  *  `onWoundLoss` se produit pour TOUTE perte de PB (mêlée OU distance) ; le TYPE d'attaque voyage dans le
  *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
- *  `onCrit` : chaque Blessure critique non létale infligée ; son origine voyage dans le contexte
+ *  `onCrit` : chaque Blessure critique non létale infligée, et le Critique refusé par une coque routière,
+ *  où seuls les effets `coupCritique` jouent (EDOC 07 l.334 ; #4202) ; son origine voyage dans le contexte
  *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
  *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
  *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).

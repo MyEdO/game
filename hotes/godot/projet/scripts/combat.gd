@@ -1,31 +1,32 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il ouvre une partie au
-## groupe (`ouvrir`, l'entrée `jouer` de `PontDuNoyau.entree`), que le joueur compose puis lance sur une campagne du jeu (`lancer`),
-## charge une sauvegarde (`charger`, `PontDuNoyau.a_charger`), montre celles à charger (l'entrée `reprendre`) ou le panneau
-## du salon (l'entrée `salon`, `PanneauDuSalon`), ou démarre la partie des
-## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
-## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
-## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
-## scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), ce que le regard en retire (`retrait`), à
-## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), ce que le groupe en connaît
-## (`vision`, `VolumeDeScene.voir`), à nouveau chaque fois que sa clé change (`vue.vision`), la première vision d'une
-## scène posée sans fondu depuis celle de la scène d'avant, et ses arêtes (`aretes`), à nouveau
-## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
-## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
-## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que les suites ont ajouté depuis le début de la
-## partie, `zones` : les lignes du journal, qu'une zone posée plus tard reçoit donc toutes) ;
-## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
-## (`Zone.geste` ; la fiche d'un combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la
-## méthode `creation`), un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
-## `null`, le champ ne se clique pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant
-## d'une case lu dans `vue.occupants`. Une recette pose la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran
-## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
-## (`MontageDeComposition.indexer_les_modeles`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne
-## (un listage illisible aussi à la console), et la partie ne s'ouvre pas : aucun corps ne se monte sans eux. Chaque
-## vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque cadrage du monde, il publie ce que
-## l'écran porte, une fois l'interface mise en page (`PublicationDeLEcran`), que la recette lit ; hors recette, rien. La
-## bulle de l'aperçu
-## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de la fenêtre
-## que l'ossature de l'interface lui laisse, sur laquelle des panneaux se posent.
+## groupe (`ouvrir`, l'entrée `jouer` de `PontDuNoyau.entree`), que le joueur compose puis lance sur une campagne du jeu
+## (`lancer`), charge une sauvegarde (`charger`, `PontDuNoyau.a_charger`), montre celles à charger (l'entrée
+## `reprendre`) ou le panneau du salon (l'entrée `salon`, `PanneauDuSalon`), ou démarre la partie des paramètres
+## `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
+## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau
+## le monde de sa scène (son manifeste, `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau
+## chaque fois que la partie change de scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), ce
+## que le regard en retire (`retrait`), à nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`),
+## ce que le groupe en connaît (`vision`, `VolumeDeScene.voir`), à nouveau chaque fois que sa clé change (`vue.vision`),
+## la première vision d'une scène posée sans fondu depuis celle de la scène d'avant, et ses arêtes (`aretes`), à nouveau
+## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa
+## lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la
+## disposition que la vue nomme (`vue.disposition`, `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène
+## `Ecran` sans script) reçoit les éléments de sa source qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce
+## que les suites ont ajouté depuis le début de la partie, `zones` : les lignes du journal, qu'une zone posée plus tard
+## reçoit donc toutes) ; le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son
+## échéance. Chaque geste du joueur part en intention : celle de l'élément pressé (`Zone.geste` ; la fiche d'un
+## combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode `creation`), un clic du
+## champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ; `null`, le champ ne se clique
+## pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant d'une case lu dans
+## `vue.occupants`. Une recette pose la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran reste tel quel,
+## saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
+## (`MontageDeComposition.indexer_les_modeles`), que chaque corps du plateau monte ; un échec se dit dans l'avis de
+## panne (un listage illisible aussi à la console), et la partie ne s'ouvre pas : aucun corps ne se monte sans eux.
+## Chaque vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque cadrage du monde, il publie ce
+## que l'écran porte, une fois l'interface mise en page (`PublicationDeLEcran`), que la recette lit ; hors recette,
+## rien. La bulle de l'aperçu (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène
+## (`Monde.cadre`), la part de la fenêtre que l'ossature de l'interface lui laisse, sur laquelle des panneaux se posent.
 extends Node
 
 ## @contrat L'écran de Godot
@@ -33,35 +34,46 @@ extends Node
 ## une scène sans script (`projet/scenes/Ecran.tscn`) : chaque zone y est un nœud `Zone` (`projet/scripts/zone.gd`) posé
 ## dans le conteneur qui la montre, sa `source` une clé de `vue.zones` ou des `zones` de la suite, qu'elle ajoute
 ## (`ajout`) au lieu de les remplacer. Une zone dessine chaque élément par le composant de son type
-## (`projet/composants/<type>.tscn`, une scène sans script), ou par celui qu'elle donne à ce type à cet usage
-## (`formes`, `<type>:<forme>` : `projet/composants/<forme>.tscn`), le réconcilie par type et par id, et le pose sur son
-## composant : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en
-## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
-## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
-## }` à `creation`, `{ roster }` à `roster`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, `{ sauvegardes }`
-## au panneau des sauvegardes (`sauvegardes`), `{ reglages }` au panneau des réglages (`reglages`,
-## `projet/scripts/reglages.gd`), `{ sauvegarder }` à `sauvegarder`, `{ charger }` à `charger`, la partie
-## ouverte quittée d'abord et le combat rechargé, `{ salon }` au panneau du salon (`salon`, `projet/scripts/salon.gd`),
-## `{ compendium }` au panneau du Compendium (`compendium`, `projet/scripts/panneau_du_compendium.gd`),
-## toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
-## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
-## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
-## projet (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul composant qui se dessine : son
-## contrôle `Plan` (`projet/scripts/plan.gd`) trace chaque trait d'un point à l'autre et chaque point à sa place dans le
-## contrôle, chacun à la couleur de son ton, et pose sous chaque point son composant (`point` : son nom, puis ses
-## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
-## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent en cartes au pied de
-## l'écran (`projet/composants/heros.tscn` : le portrait, le nom, la carrière, les Blessures en trait, puis une ligne
-## de ce que la carte porte d'autre), « Quitter la partie » et « Nouveau héros » au pied du journal ; avant le lancement, les
-## pré-tirés à recruter et les campagnes à lancer se rangent en deux colonnes sur la scène ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
-## en onglet, sauf la part du tour (`economie/aucun`), au panneau de l'actif ; la création ouverte se pose au centre,
-## sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas
-## au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose
-## à gauche de la scène, qu'elle rétrécit, en statbloc au thème `art/statbloc.tres` (papier, encre), chaque section en
-## onglet, la possession choisie et ses gestes sous ses sections.
-## Un clic droit sur une case occupée ouvre la fiche de son occupant (`case_inspectee`, `projet/scripts/plateau.gd`). Un
-## refus se dit au-dessus de l'écran, qui reste tel quel, saisies comprises. Changer l'écran, c'est éditer ces scènes ;
-## un type d'élément nouveau, c'est un composant.
+## (`projet/composants/<type>.tscn`, une scène sans script), ou par celui qu'elle donne à ce type à cet usage (`formes`,
+## `<type>:<forme>` : `projet/composants/<forme>.tscn`), le réconcilie par type et par id, et le pose sur son composant
+## : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en variation du
+## thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de la zone (un
+## bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation }` à
+## `creation`, `{ roster }` à `roster`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil,
+## `{ sauvegardes }` au panneau des sauvegardes (`sauvegardes`), `{ reglages }` au panneau des réglages (`reglages`,
+## `projet/scripts/reglages.gd`), `{ sauvegarder }` à `sauvegarder`, `{ charger }` à `charger`, la partie ouverte
+## quittée d'abord et le combat rechargé, `{ salon }` au panneau du salon (`salon`, `projet/scripts/salon.gd`),
+## `{ compendium }` au panneau du Compendium (`compendium`, `projet/scripts/panneau_du_compendium.gd`), toute
+## autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone imbriquée y montre le champ
+## que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de leur dessin : `Dessin`
+## (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le projet
+## (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul
+## composant qui se dessine : son contrôle `Plan` (`projet/scripts/plan.gd`) trace chaque trait d'un point à l'autre et
+## chaque point à sa place dans le contrôle, chacun à la couleur de son ton, et pose sous chaque point son composant
+## (`point` : son nom, puis ses éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle`
+## (`projet/scripts/bulle.gd`), qui couvre le composant et montre au survol la bulle du thème repliée au mot. Les héros
+## du groupe se rangent en cartes au pied de l'écran hors combat (`projet/composants/heros.tscn` : le portrait, le nom,
+## la carrière, les Blessures en trait, puis une ligne de ce que la carte porte d'autre), « Quitter la partie » et «
+## Nouveau héros » au pied du journal ; avant le lancement, les pré-tirés à recruter et les campagnes à lancer se
+## rangent en deux colonnes sur la scène ; la barre du combat (`combat.offres`) tient le meuble de l'actif, à droite de
+## son portrait : l'Action (`economie/action`) en plaques larges sous son ruban (`plaques`), sous elles chaque autre
+## choix en pastille (`pastilleDeChoix`), en colonnes, son libellé entier sous elle, qui ouvre
+## au-dessus du meuble sa liste, son libellé en titre et ses
+## valeurs en plaques en colonne, une seule liste ouverte dans l'écran, menu de la partie compris (`Ouvrante`), sauf la
+## part du tour (`economie/aucun`), en bas à droite
+## de la scène ; en combat, le panneau du journal se cache et ses lignes passent à la chronique : ses trois dernières
+## s'écrivent sur la scène, en bas à droite au-dessus de la fin du tour (`Chronique`, `Zone.derniers`), et sa pastille
+## (`journal.titre`, en `pictogramme`) l'ouvre entière, en défilement sur un parchemin
+## (`Disposition.ouvrir_la_chronique`) ; le menu de la partie monte en haut à droite (`MenuDeLaPartie.ancrer`) ; une
+## fenêtre de jet prend la place du meuble de l'actif, que la vue ne sert pas sous elle ; la victoire et la défaite
+## (`victoire`, `defaite`, `projet/cadres/fin_du_combat.tscn`) se posent au centre sur un voile qui assombrit la
+## scène ; la création ouverte se pose au centre, sa page titrée en tête, ses rubriques défilant dessous, ses gestes
+## en rangée au pied ; la conversation se pose en bas au centre, son interlocuteur en titre, sa réplique, puis ses
+## réponses l'une sous l'autre ; la fiche ouverte se pose à gauche de la scène, qu'elle rétrécit, en statbloc au
+## thème `art/statbloc.tres` (papier, encre), chaque section en onglet, la possession choisie et ses gestes sous ses sections. Un clic droit sur une case
+## occupée ouvre la fiche de son occupant (`case_inspectee`, `projet/scripts/plateau.gd`). Un refus se dit au-dessus de
+## l'écran, qui reste tel quel, saisies comprises. Changer l'écran, c'est éditer ces scènes ; un type d'élément nouveau,
+## c'est un composant.
 
 @onready var _plateau: Plateau = $Plateau
 @onready var _lumiere: Lumiere = $Plateau/Monde/Lumiere
@@ -75,7 +87,6 @@ extends Node
 @onready var _scenarios: Control = $Scenarios/Cadre
 @onready var _sauvegardes: Control = $Sauvegardes/Cadre
 @onready var _reglages: PanneauDesReglages = $Reglages
-@onready var _menu: MenuDeLaPartie = $Ecran/Interface/MenuDeLaPartie
 @onready var _salon: PanneauDuSalon = $Salon
 @onready var _compendium: PanneauDuCompendium = $Compendium
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
@@ -119,7 +130,6 @@ func _ready() -> void:
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
-	_menu.change.connect(_publier_l_ecran)
 	_salon.change.connect(_publier_l_ecran)
 	_salon.ferme.connect(_fermer_le_salon)
 	_salon.suite.connect(_suivre)
@@ -165,7 +175,7 @@ func _choisir_un_scenario() -> String:
 	var barre := (_scenarios.get_node("Defilement") as ScrollContainer).get_v_scroll_bar()
 	barre.value_changed.connect(_republier)
 	_scenarios.visible = true
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 	var jeu: Dictionary = await zones[0].geste
 	barre.value_changed.disconnect(_republier)
 	_scenarios.visible = false
@@ -183,10 +193,11 @@ func _indexer_les_modeles() -> bool:
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
-## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
-## `sauvegardes` ou à fermer (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à
-## `_charger`, le panneau des réglages à ouvrir à `PanneauDesReglages.ouvrir`, le panneau du salon à ouvrir à
-## `PanneauDuSalon.ouvrir`, le renvoi d'un terme de la fiche à `PanneauDuCompendium.ouvrir`, toute autre à `jouer`.
+## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à
+## quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à `sauvegardes` ou à fermer
+## (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à `_charger`, le panneau des
+## réglages à ouvrir à `PanneauDesReglages.ouvrir`, le panneau du salon à ouvrir à `PanneauDuSalon.ouvrir`, le renvoi d'un terme
+## de la fiche à `PanneauDuCompendium.ouvrir`, toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("quitter"):
 		_quitter()
@@ -249,7 +260,7 @@ func _montrer_les_sauvegardes(reponse: Dictionary) -> void:
 		return
 	Zone.montrer_toutes(Zone.racines(_sauvegardes), reponse.zones)
 	_sauvegardes.visible = true
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 
 
 ## Le panneau des sauvegardes fermé : sur la partie ouverte, ou, sans partie, sur l'accueil.
@@ -258,7 +269,7 @@ func _fermer_les_sauvegardes() -> void:
 		_pont.revenir_a_l_accueil()
 		return
 	_sauvegardes.visible = false
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 
 
 ## La sauvegarde de l'emplacement `emplacement` à charger : la partie ouverte quittée (`quitter`, son point de reprise
@@ -314,7 +325,7 @@ func _suivre(reponse: Dictionary) -> void:
 	if _vue.lumiere != null:
 		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
 	_musique.jouer(_vue.musique)
-	if _disposition.disposer(_vue.disposition):
+	if _disposition.disposer(_vue.disposition, _vue.projection.combat != null):
 		_relier()
 	Portrait.corps = _vue.corps.combattants
 	for source in reponse.zones:
@@ -323,7 +334,7 @@ func _suivre(reponse: Dictionary) -> void:
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_salon.relire()
-	_publier_l_ecran.call_deferred()
+	_publier_l_ecran()
 
 
 ## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
@@ -388,17 +399,12 @@ func _process(_delta: float) -> void:
 		_apercu.position = MiseEnPage.bulle_au_dessus(point, _apercu.size.x, _apercu.size.y)
 
 
-## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu ; chaque défilement republie l'écran, ses
-## boutons à l'écran changeant avec lui.
+## Les zones de l'écran, la disposition posée : chacune relie son geste au jeu ; chaque onglet changé republie l'écran.
 func _relier() -> void:
 	_zones = Zone.racines(_ecran)
 	for zone in _zones:
 		if not zone.geste.is_connected(_jouer):
 			zone.geste.connect(_jouer)
-	for defilement: ScrollContainer in _ecran.find_children("*", "ScrollContainer", true, false):
-		for barre: ScrollBar in [defilement.get_v_scroll_bar(), defilement.get_h_scroll_bar()]:
-			if not barre.value_changed.is_connected(_republier):
-				barre.value_changed.connect(_republier)
 	for onglets in _ecran.find_children("*", "TabContainer", true, false):
 		if not (onglets as TabContainer).tab_changed.is_connected(_republier):
 			(onglets as TabContainer).tab_changed.connect(_republier)

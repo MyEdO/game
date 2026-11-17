@@ -246,20 +246,27 @@ export function magazineSize(w: QualityCarrier | undefined): number | undefined 
   return r ? r.indice ?? 1 : undefined;
 }
 
-/** Protectrice (Indice) : PA conférés à TOUTES les localisations quand on OPPOSE l'attaque avec
- *  cette arme (LDB 62 l.296). 0 si la qualité est absente. */
-export function protectriceAP(parryWeapon: QualityCarrier | undefined): number {
-  const r = resolveQualities(parryWeapon).find((x) => x.caps?.parryAP);
+/** Indice de Protectrice de `w` (LDB 62 l.296), 0 si la qualité est absente. */
+function indiceDeProtectrice(w: QualityCarrier | undefined): number {
+  const r = resolveQualities(w).find((x) => x.caps?.parryAP);
   return r ? r.indice ?? 1 : 0;
 }
 
-/** Protectrice ≥ 2 : permet d'OPPOSER les projectiles tirés en Ligne de Vue (LDB 62 l.296).
- *  Renvoie l'arme protectrice utilisable, ou undefined. */
+/** Protectrice (Indice) : PA conférés à TOUTES les localisations quand on OPPOSE l'attaque avec
+ *  cette arme (LDB 62 l.296), ou au plus haut du bouclier du binôme (`bouclierDuBinome`, ZI 13 l.193). 0 si la
+ *  qualité est absente des deux. */
+export function protectriceAP(parryWeapon: QualityCarrier | undefined, bouclierDuBinome?: QualityCarrier): number {
+  return Math.max(indiceDeProtectrice(parryWeapon), indiceDeProtectrice(bouclierDuBinome));
+}
+
+/** Protectrice ≥ 2 : `w` permet d'OPPOSER les projectiles tirés en Ligne de Vue (LDB 62 l.296). */
+export function pareLesTirs(w: QualityCarrier | undefined): boolean {
+  return indiceDeProtectrice(w) >= 2;
+}
+
+/** L'arme de `weapons` qui pare les tirs (`pareLesTirs`), ou undefined. */
 export function rangedOpposeWeapon(weapons: Weapon[] | undefined): Weapon | undefined {
-  return (weapons ?? []).find((w) => {
-    const r = resolveQualities(w).find((x) => x.caps?.parryAP);
-    return r && (r.indice ?? 1) >= 2;
-  });
+  return (weapons ?? []).find(pareLesTirs);
 }
 
 /** Perturbante (LDB 62 l.272-274) : l'arme peut repousser au lieu de blesser. */

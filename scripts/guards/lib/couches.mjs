@@ -55,7 +55,7 @@ export const COUCHES = Object.freeze({
     dossier: 'hotes',
     ...DROITS_DES_HOTES,
     outillage: {
-      'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/fileBornee.mjs', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/pid.mjs'],
+      'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/fileBornee.mjs', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/test/verrou.mjs'],
       'hotes/godot/avis.mjs': ['scripts/guards/lib/lister.mjs'],
       'hotes/godot/asset/charger.mjs': ['scripts/entree-d-hote.mjs'],
       'hotes/godot/asset/importer.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
@@ -63,6 +63,7 @@ export const COUCHES = Object.freeze({
       'hotes/godot/etalons.mjs': ['scripts/guards/lib/fileBornee.mjs', 'scripts/recette/lib.mjs', 'scripts/qc/lib/pngDecode.mjs'],
       'hotes/godot/lot-de-recettes.mjs': ['scripts/guards/lib/fileBornee.mjs'],
       'hotes/godot/pilotage/': ['scripts/recette/lib.mjs'],
+      'hotes/godot/planches.mjs': ['scripts/qc/lib/pngDecode.mjs'],
       'hotes/godot/recette.mjs': ['scripts/guards/lib/projetsLivres.mjs', 'scripts/qc/lib/pngDecode.mjs', 'scripts/docs/lib/cibles-registres.mjs'],
       'hotes/godot/servir.mjs': ['scripts/guards/lib/projetsLivres.mjs', 'scripts/source/projetLivre.mjs', 'scripts/source/resoudre.mjs', 'scripts/source/prose-source-plugin.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/docs/lib/cibles-registres.mjs'],
     },

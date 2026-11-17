@@ -12,6 +12,14 @@ script = ExtResource("2_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("lieu/carte")
 
+[node name="Date" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Date"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("lieu/date")
+formes = PackedStringArray("ligne:rubrique")
+
 [node name="Description" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Description" node_paths=PackedStringArray("masque")]

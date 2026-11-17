@@ -508,6 +508,12 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
     expect(worn.filter((id) => id === 'justaucorps-de-cuir' || id === 'veste-de-cuir')).toHaveLength(1);
   });
 
+  it('buildInventory garde au sac, sans l’équiper, l’armure de monture d’une dotation (#4135)', () => {
+    const items = buildInventory([{ id: 'justaucorps-de-cuir' }, { id: 'barde' }], makeRNG(1), idsDeTest);
+    expect(items.map((i) => [i.trappingId, i.equipped])).toEqual([['justaucorps-de-cuir', true], ['barde', false]]);
+    expect(wornArmourPoints(items)).toEqual(wornArmourPoints(buildInventory([{ id: 'justaucorps-de-cuir' }], makeRNG(1), idsDeTest)));
+  });
+
   it('buildInventory fusionne les Atouts ATTACHÉS de la ref (`qualities`) aux qualités de base du catalogue (#657 Lot 1)', () => {
     const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide' }] }], makeRNG(1), idsDeTest);
     const ids = item.qualities.map((q) => q.id);
@@ -540,6 +546,9 @@ describe('buildInventory — quantité d’une dotation (LDB 74 l.41 ; `merchant
   it('une munition garde sa quantité en un seul paquet', () => {
     const items = buildInventory([{ id: 'fleche', count: { fixed: 12 } }], makeRNG(5), idsDeTest);
     expect(items.map((i) => i.qty)).toEqual([12]);
+  });
+  it('Petites munitions et poudre : un lot de 12 à l’achat (AA 08 l.499)', () => {
+    expect(itemFromTrappingById('petites-munitions-et-poudre', idsDeTest)!.qty).toBe(12);
   });
 });
 

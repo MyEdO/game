@@ -7,7 +7,9 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
+import type { ReactElement } from 'react';
 import {
+  cfgDuNoeudType,
   ChoixDeSpec,
   ChoixDeSpecs,
   RefField,
@@ -45,6 +47,7 @@ import {
   specEntryLabel,
   charAbr,
   findCreatureById,
+  findTrappingById,
   findVehicleById,
   idDObjet,
   trappingsInstanciables,
@@ -56,7 +59,7 @@ import {
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
-import { traitAdmet, type TraitPose } from '../../../data/schemas/grammaire/reference';
+import { dotationDePossessionSchema, traitAdmet, type TraitPose } from '../../../data/schemas/grammaire/reference';
 import { formatTrait, optionalLabel, traitLisible } from '../../../engine/traits/dispatch';
 import { relireTrait } from '../../../data/refFormatLivre';
 import { ProvenanceDeValeur } from '../ProvenanceDeValeur';
@@ -522,6 +525,8 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
   const refCfg = { ds: 'trappings' as const, single: true as const };
   const vehicleCfg = { ds: 'vehicles' as const, single: true as const };
   const creatureCfg = { ds: 'creatures' as const, single: true as const };
+  // L'engin : la feuille de sa branche (`dotationDePossessionSchema`) restreint le sélecteur à la sous-liste des engins de siège.
+  const engin = cfgDuNoeudType(dotationDePossessionSchema)?.polymorphe.find((b) => b.type === 'engin');
   // Quantité : nombre fixe « (3) » OU jet « (1d10) » — une seule entrée texte, jet si elle contient un d.
   const countOf = (t: TrappingRef): string => ('count' in t && t.count ? ('fixed' in t.count ? String(t.count.fixed) : formatDice(t.count.roll)) : '');
   const parseCount = (s: string): CountSpec | undefined => {
@@ -530,10 +535,24 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
     const dc = parseDice(v);
     return dc ? { roll: dc } : { fixed: Number(v) || 1 };
   };
-  const kindOf = (t: TrappingRef): 'text' | 'vehicle' | 'creature' | 'ref' => (isText(t) ? 'text' : isPossession(t) ? t.type : 'ref');
+  const kindOf = (t: TrappingRef): 'text' | DotationDePossession['type'] | 'ref' => (isText(t) ? 'text' : isPossession(t) ? t.type : 'ref');
+  const champDePossession = (i: number, t: DotationDePossession): ReactElement => {
+    const choisir = (v: unknown) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) });
+    const nom = (catalogue: string | undefined) => (
+      <label className="dr">nom<input placeholder={catalogue ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
+    );
+    switch (t.type) {
+      case 'vehicle':
+        return <><RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={choisir} />{nom(findVehicleById(t.id)?.label)}</>;
+      case 'creature':
+        return <><RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={choisir} />{nom(findCreatureById(t.id)?.label)}</>;
+      case 'engin':
+        return <>{engin && <RefField cfg={engin.cfg} noeud={engin.feuille} fieldKey="engin" value={t.id} onChange={choisir} />}{nom(findTrappingById(t.id)?.label)}</>;
+    }
+  };
   return (
     <div className="ed-field">
-      <span>possessions — par id du catalogue (+ quantité), dotation véhicule (catalogue des véhicules), dotation bête (bestiaire), ou texte narratif hors catalogue</span>
+      <span>possessions — par id du catalogue (+ quantité), dotation véhicule (catalogue des véhicules), dotation bête (bestiaire), dotation engin de siège, ou texte narratif hors catalogue</span>
       {list.map((t, i) => (
         <div className="ed-subfield" key={i}>
           <div className="fieldrow">
@@ -543,13 +562,14 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
                 const c = 'count' in t ? t.count : undefined;
                 const id = premierObjet();
                 if (e.target.value === 'text') set(i, { text: '', count: c });
-                else if (e.target.value === 'vehicle' || e.target.value === 'creature') set(i, { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) });
+                else if (e.target.value === 'vehicle' || e.target.value === 'creature' || e.target.value === 'engin') set(i, { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) });
                 else if (id) set(i, { id, count: c });
               }}
             >
               <option value="ref">Réf. (catalogue)</option>
               <option value="vehicle">Véhicule (vehicles.json)</option>
               <option value="creature">Bête (creatures.json)</option>
+              <option value="engin">Engin de siège (trappings.json)</option>
               <option value="text">Texte (narratif)</option>
             </select>
             <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) } as TrappingRef)} /></label>
@@ -557,20 +577,8 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
           </div>
           {isText(t)
             ? <input placeholder="possession narrative (ex. Pile de prospectus)" value={t.text} onChange={(e) => set(i, { text: e.target.value, count: t.count })} />
-            : isPossession(t) && t.type === 'vehicle'
-              ? (
-                <>
-                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
-                  <label className="dr">nom<input placeholder={findVehicleById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
-                </>
-              )
-              : isPossession(t)
-                ? (
-                  <>
-                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={(v) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
-                    <label className="dr">nom<input placeholder={findCreatureById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
-                  </>
-                )
+            : isPossession(t)
+              ? champDePossession(i, t)
                 : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => { const id = idDObjet(idDuChoix(v)); if (id) set(i, { id, count: 'count' in t ? t.count : undefined }); }} />}
         </div>
       ))}

@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "coiffeuse"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "glace",
+      "palette": "corps",
+      "matiere": "prop--albatre"
+    }
+  ],
+  "glb": {
+    "sha256": "10c1f2767f9a84a5ffe53decd60eefee99ba7817ddab3a74f106d6b6a100d2ed",
+    "octets": 91756
+  }
+}

@@ -13,10 +13,14 @@ export type { Get } from './flowTypes';
 export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
-export { previewAttack, activeCombatant } from './combatFlow';
+export { previewAttack, activeCombatant, ordreDuRoundSuivant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
+export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, formatDateImperiale, formatImperial, formatJourImperial, toDate } from '../engine/clock';
+export { currentSeason } from '../engine/travelStages';
+export type { Season } from '../engine/travelStages';
+export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export {
   advancementLabel,
   careers,
@@ -30,6 +34,7 @@ export {
   matieresDe,
   props,
   refLabel,
+  seasonLabel,
   siegeEngines,
   structureAppearances,
   trappingRefLabel,
@@ -45,7 +50,6 @@ export {
   talentsDuParcours,
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
-export { entitySize } from './monde/spawn';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {
@@ -53,6 +57,7 @@ export {
   emplacementsDeDotation,
   estEmplacementRacine,
   libelleDeLaValeur,
+  porteurDuProfil,
   sousEmplacementActif,
   valeursDeLEmplacement,
   type EmplacementDeDotation,
@@ -65,7 +70,9 @@ export type { Equipe } from '../engine/relations';
 export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 export { valeurConforme, type FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
+export { emplacementsRapides } from './emplacementsRapides';
 export { ACTIONS } from '../data/index';
+export { DESSINS_DES_PARTS } from '../data/schemas/defs/actions';
 export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/icons';
 export { CADRE_DES_CADRES, CADRES } from '../data/cadres';
 export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
@@ -144,15 +151,17 @@ export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,
   matieresDeDecor,
+  posesDesDecors,
   retraitDuMonde,
   toitsDuMonde,
   volumeDuMonde,
   type MorceauDuMonde,
   type NappeDuMonde,
+  type PoseDeDecor,
   type RetraitDuMonde,
   type VolumeDuMonde,
 } from './monde/volume/volume';
-export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
+export { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export {
   avertissementsDeLaSession,
@@ -231,7 +240,7 @@ export {
   varianteCourante,
   type FieldDesc,
 } from './codex/editFields';
-export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
+export { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 export { type CheminsOfferts, type RefusDeValeur, type Segment } from './edition/formulaire';
 export {
   atelierIdentifiable,
@@ -315,7 +324,6 @@ export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue } from './marchandEnVue';
 export { marcheEnVue } from './marcheEnVue';
 export { voyageEnVue } from './voyageEnVue';
-export type { VoyageCadence } from './voyageCadence';
 export { recitEnVue } from './recitEnVue';
 export { interludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';

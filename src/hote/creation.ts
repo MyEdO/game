@@ -34,7 +34,7 @@ import {
 const RANGEE_AU_PLUS = 11;
 
 const bouton = (id: string, libelle: string, creation: GesteDeLaCreation | null, refus: string | null = null, presse = false, focus = false): Bouton => ({
-  type: 'bouton', id, libelle, jeu: { creation }, presse, focus, refus,
+  type: 'bouton', id, libelle, jeu: { creation }, presse, focus, detail: null, touche: null, refus,
 });
 
 /** Une rubrique de la page en élément : un geste en bouton, un jet tombé, un choix en rangée ou en liste (chaque option
@@ -42,7 +42,7 @@ const bouton = (id: string, libelle: string, creation: GesteDeLaCreation | null,
 function element(r: RubriqueDeCreation): Element {
   switch (r.genre) {
     case 'geste': return bouton(r.id, r.libelle, r.geste, r.refus, r.presse);
-    case 'jet': return { type: 'jet', id: r.id, ton: 'neutre', qui: null, libelle: r.libelle, cible: null, resultat: r.resultat, dr: null, verdict: null, modificateurs: [], detail: r.detail } satisfies Jet;
+    case 'jet': return { type: 'jet', id: r.id, ton: 'neutre', qui: null, combattant: null, libelle: r.libelle, cible: null, resultat: r.resultat, dr: null, verdict: null, modificateurs: [], detail: r.detail } satisfies Jet;
     case 'choix': return {
       type: r.options.length > RANGEE_AU_PLUS ? 'liste' : 'choix', id: r.id, ton: 'neutre', libelle: r.libelle, focus: false, refus: null,
       valeurs: r.options.map((o, i) => bouton(`${r.id}/${i}`, o.libelle, o.geste, o.refus, o.choisie)),

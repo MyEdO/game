@@ -843,20 +843,6 @@
     "hint": "LDB 07 l.89 : une Augmentation de Caractéristique/Compétence HORS carrière (déjà au coût doublé) exige de trouver un mentor. Activé, ces Augmentations sont bloquées tant que le flag de groupe/scène « mentor » n’est pas posé (Effet d’éditeur setFlag « mentor »). Désactivé par défaut."
   },
   {
-    "id": "magie-composant",
-    "type": "reglesOptionnelles",
-    "label": "Composants d'incantation",
-    "ref": "LDB 46 l.107",
-    "source": {
-      "book": "livre-de-base",
-      "page": 236
-    },
-    "group": "Magie",
-    "kind": "flag",
-    "default": false,
-    "hint": "Un lanceur peut focaliser sa magie via un composant adapté à un Sort d'Arcane/Domaine (acheté pour ce Sort, coût = NI pistoles d'argent). Sur une Incantation Imparfaite, le composant l'absorbe : Majeure → Mineure, Mineure → annulée. Consumé à l'incantation, même sans Imparfaite. Composants gérés sur la fiche du personnage. Désactivé par défaut."
-  },
-  {
     "id": "vents-tourbillonnants",
     "type": "reglesOptionnelles",
     "label": "Vents Tourbillonnants",
@@ -923,7 +909,7 @@
     "ref": "LDB 49 l.5",
     "source": {
       "book": "livre-de-base",
-      "page": 255
+      "page": 254
     },
     "group": "Magie",
     "kind": "flag",
@@ -965,7 +951,7 @@
     "ref": "EDOC 12 l.63",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 65
+      "page": 66
     },
     "group": "Corruption",
     "kind": "mode",

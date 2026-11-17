@@ -8,11 +8,11 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene, type Scene } from './monde/scene';
 import { buildEncounter } from './monde/encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
-import { campaignStart, toDate } from '../engine/clock';
+import { campaignStart } from '../engine/clock';
 import { setRule, resetRule, rule } from '../engine/policy';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { resetCadence } from '../engine/cadence';
-import { seasonOfMonth } from '../engine/travelStages';
+import { currentSeason } from '../engine/travelStages';
 import { t } from '../i18n';
 import { activeDayWeather, activeExposureSeverity } from './combatFlow';
 import { tableSpec, tableStepDef } from './cascade';
@@ -74,7 +74,7 @@ function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Comb
 /** POSE le dé de Météo d'Étape (« Dés fixés ») sur la rangée `id` de la table de la saison courante. */
 function poseMeteo(id: string): void {
   const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'etape-meteo')!;
-  const saison = seasonOfMonth(toDate(get().gameTime).month);
+  const saison = currentSeason(get().gameTime);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
 }

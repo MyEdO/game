@@ -1,6 +1,7 @@
 ## Le style d'un panneau à matière (#3935) : sous lui, son ombre portée (`ombre`, un style tracé dessous et hors du
-## rectangle) ; puis une matière du projet (`matiere`, `projet/textures/<matiere>.jpg`, répétée et teintée de `teinte`,
-## omise si le projet ne la porte pas) ; puis le cadre `cadre` du catalogue des dessins (`dessin.gd`, famille `cadre`) en
+## rectangle) ; puis une matière du projet (`matiere` : la récupérée `projet/textures/<matiere>.jpg`, sinon la dessinée
+## `projet/art/matiere--<matiere>.tres`, répétée à son pas et teintée de `teinte`, omise si le projet ne la porte pas) ;
+## puis le cadre `cadre` du catalogue des dessins (`dessin.gd`, famille `cadre`) en
 ## neuf tranches, angles fixes, bords et centre répétés à un nombre entier de motifs. Le cadre est tracé à la finesse
 ## de l'écran (`mise_en_page.gd`, `echelle_de_dessin` de l'échelle de la fenêtre) et retracé quand la fenêtre change de taille :
 ## le style se dit changé, le thème le redit à chaque contrôle qui le porte. Ses marges de contenu sont celles du style, et
@@ -51,8 +52,8 @@ func _trace(famille: Dictionary) -> ImageTexture:
 
 
 func _matiere() -> Texture2D:
-	var chemin := "res://textures/%s.jpg" % matiere
-	if matiere.is_empty() or not ResourceLoader.exists(chemin):
-		return null
-	_matiere_tenue = load(chemin)
-	return _matiere_tenue
+	for chemin in ["res://textures/%s.jpg" % matiere, "res://art/matiere--%s.tres" % matiere]:
+		if not matiere.is_empty() and ResourceLoader.exists(chemin):
+			_matiere_tenue = load(chemin)
+			return _matiere_tenue
+	return null

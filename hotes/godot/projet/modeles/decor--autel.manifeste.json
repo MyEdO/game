@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "autel"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "marbre",
+      "palette": "corps",
+      "matiere": "prop--albatre"
+    },
+    {
+      "nom": "sang",
+      "palette": "accent",
+      "matiere": "prop--sang-repandu"
+    },
+    {
+      "nom": "meche",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    }
+  ],
+  "glb": {
+    "sha256": "8c29fcdfb836a3d1d4b977dda609a12abd3ee662288c88e0cc26e0b820e9a121",
+    "octets": 98004
+  }
+}

@@ -7,7 +7,7 @@
  */
 import {
   bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, clesPosees, cleDeLElement, designeDesEntrees, elementDuNoeud,
-  estChampDAdresse, etatDeLAdresse, formeAuPoint, gestesDeLaListe, identiteTenue, PHRASE_REFUS, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir,
+  estChampDAdresse, etatDeLAdresse, formeAuPoint, identiteTenue, PHRASE_REFUS, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir,
   type CheminsOfferts, type FieldDesc, type RefusDeValeur, type Segment, type SourceDeLEdition,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -18,8 +18,9 @@ import { bouton, choix, elementsDesGestes, ligne, SANS_BORNE, type Bouton, type 
 import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
 
 /** Un geste d'un formulaire tiré du schéma sur le porteur `P` : écrire `valeur` au chemin `chemin` (absente : le champ
- *  se retire), ou resceller l'adresse de prose au chemin `chemin`. */
-export type GesteDuFormulaire<P> = { geste: 'valeur'; porteur: P; chemin: Segment[]; valeur?: unknown } | { geste: 'resceller'; porteur: P; chemin: Segment[] };
+ *  se retire, l'élément d'une liste en part), monter l'élément de liste au chemin `chemin` avant le précédent, ou
+ *  resceller l'adresse de prose au chemin `chemin`. */
+export type GesteDuFormulaire<P> = { geste: 'valeur'; porteur: P; chemin: Segment[]; valeur?: unknown } | { geste: 'monter' | 'resceller'; porteur: P; chemin: Segment[] };
 
 /** Ce qu'un porteur de formulaire donne à ses éléments : lui-même, en JSON, en tête des arguments du verbe `valeur` et
  *  dans chaque geste de ses boutons (`GesteDuFormulaire`), et le jeu qui emballe un tel geste. */
@@ -53,9 +54,13 @@ export function elementsDuFormulaireTire<P>(ecrivain: EcrivainDuFormulaire<P>, c
   return retraits.reduce((els, chemin) => retraitDeclare(ecrivain as EcrivainDuFormulaire, els, [...chemin]), elements);
 }
 
+/** Les chemins `a` et `b` ont-ils les mêmes pas ? */
+const memeChemin = (a: unknown, b: unknown): boolean =>
+  Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((pas, i) => pas === b[i]);
+
 /** Ce que joue le formulaire `jeu` du verbe `valeur` parmi les éléments `elements` : son porteur, son chemin et sa
  *  valeur saisie (absente : le champ se retire), quand un formulaire des éléments porte ce porteur et ce chemin, ou
- *  qu'une valeur d'un de leurs choix joue ce jeu même ; `undefined` sinon. */
+ *  qu'une valeur d'un de leurs choix, à ce porteur et à ce chemin, joue ce jeu même ; `undefined` sinon. */
 export function valeurDuFormulaire(elements: readonly unknown[], jeu: unknown): Extract<GesteDuFormulaire<unknown>, { geste: 'valeur' }> | undefined {
   if (!estObjet(jeu) || Object.keys(jeu).length !== 2 || jeu.type !== 'valeur' || !Array.isArray(jeu.args)) return undefined;
   const [porteur, chemin, ...valeur] = jeu.args as unknown[];
@@ -63,7 +68,10 @@ export function valeurDuFormulaire(elements: readonly unknown[], jeu: unknown): 
   const joue = jsonCanonique(jeu);
   const els = elements as ElementDuFormulaire[];
   const offert = els.some((f) => f.type === 'formulaire' && f.verbe === 'valeur' && jsonCanonique(f.champs.slice(0, 2).map((c) => (c.type === 'fixe' ? c.valeur : undefined))) === pose)
-    || els.some((e) => (e.type === 'choix' || e.type === 'liste') && e.valeurs.some((b) => jsonCanonique(b.jeu) === joue));
+    || els.some((e) => (e.type === 'choix' || e.type === 'liste') && e.valeurs.some((b) => {
+      const args = (b.jeu as { args?: unknown }).args;
+      return Array.isArray(args) && memeChemin(args[1], chemin) && jsonCanonique(b.jeu) === joue;
+    }));
   return offert && valeur.length <= 1 ? { geste: 'valeur', porteur, chemin: chemin as Segment[], ...(valeur.length ? { valeur: valeur[0] } : {}) } : undefined;
 }
 
@@ -229,8 +237,8 @@ function elementsDeLUnion(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur: 
 /** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
  *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), la clé qui l'identifie à son libellé
  *  (`cleDeLElement`, sinon son identifiant s'il en porte un, #3606), ses éléments hors de l'identité que la liste tient
- *  (`identiteTenue`), « Retirer » et, hors du premier,
- *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). Une liste
+ *  (`identiteTenue`), « Retirer » (le geste `valeur` sans valeur à son rang) et, hors du premier, « Monter » (le geste
+ *  `monter` à son rang) ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton n'écrit que l'élément à son rang. Une liste
  *  à laquelle rien ne s'ajoute (un élément récursif, sans valeur neuve ni choix) : la saisie de sa valeur entière
  *  (`argumentDeValeur`), en JSON. Une liste que son contexte n'écrit pas entière (`ContexteDuChamp.ecrivable`) : son
  *  libellé et les éléments de chacun, la clé qui l'identifie à son libellé, sans « Retirer » ni « Monter », puis
@@ -245,17 +253,16 @@ function elementsDeLaListe(ecrivain: EcrivainDuFormulaire, f: FieldDesc, valeur:
   };
   if (!(f.contexte?.ecrivable(ici, valeur) ?? true)) return [ligne(id, f.label), ...liste.flatMap((e, rang) => elementsDuChamp(ecrivain, champ(e, rang), e, [...ici, rang], identiteTenue(f.noeud, e))), ...ajoutAuRangNeuf(ecrivain, f, [...ici, liste.length])];
   const element = elementDuNoeud(f.noeud);
-  const gestes = gestesDeLaListe(liste, valeurNeuveDe(element));
   const elements = liste.flatMap((e, rang) => {
     const { label } = champ(e, rang);
-    const { retirer, monter } = gestes.elements[rang];
+    const la = [...ici, rang];
     return [
-      ...elementsDuChamp(ecrivain, champ(e, rang), e, [...ici, rang], identiteTenue(f.noeud, e)),
-      bouton(`${id}/${rang}/retirer`, t('ecran.formulaire.valeur.retirer', { libelle: label }), ecrire(ecrivain, ici, retirer)),
-      ...(monter ? [bouton(`${id}/${rang}/monter`, t('ecran.formulaire.valeur.monter', { libelle: label }), ecrire(ecrivain, ici, monter))] : []),
+      ...elementsDuChamp(ecrivain, champ(e, rang), e, la, identiteTenue(f.noeud, e)),
+      bouton(`${id}/${rang}/retirer`, t('ecran.formulaire.valeur.retirer', { libelle: label }), ecrire(ecrivain, la)),
+      ...(rang ? [bouton(`${id}/${rang}/monter`, t('ecran.formulaire.valeur.monter', { libelle: label }), ecrivain.emballe({ geste: 'monter', porteur: ecrivain.porteur, chemin: la }))] : []),
     ];
   });
-  const ajouter = ajoutALaListe(ecrivain, f, liste, ici, element, gestes.ajouter);
+  const ajouter = ajoutALaListe(ecrivain, f, liste, ici, element);
   if (!ajouter) return [elementDeValeur(id, ecrivain, ici, f, argumentDeValeur(f, valeur, ici))];
   return valeur === undefined ? [ajouter] : [ligne(id, f.label), ...elements, ajouter];
 }
@@ -284,15 +291,19 @@ function ajoutDeLObjet(ecrivain: EcrivainDuFormulaire, f: FieldDesc, ici: Segmen
   return valeurs.length ? [elementDeValeur(id, ecrivain, ici, { ...f, label: libelle }, a)] : [];
 }
 
-/** « Ajouter » à la liste `liste` du champ `f`, au chemin `ici`, d'élément `element`, d'id `valeur/<chemin>/ajouter` :
- *  le choix de l'élément ajouté en fin, parmi ceux que son contexte pose au rang qui suit le dernier
- *  (`FieldDesc.contexte`), sinon, d'un élément à choix (`choixDuNoeud`), parmi ses valeurs ; sinon, le bouton qui écrit
- *  `neuve`, la liste où s'ajoute un élément neuf (`valeurNeuveDe`) ; `undefined` sans elle. */
-function ajoutALaListe(ecrivain: EcrivainDuFormulaire, f: FieldDesc, liste: readonly unknown[], ici: Segment[], element: unknown, neuve: unknown[] | null): Bouton | Choix | Formulaire | undefined {
+/** « Ajouter » à la liste `liste` du champ `f`, au chemin `ici`, d'élément `element`, d'id `valeur/<chemin>/ajouter`,
+ *  écrit au rang qui suit le dernier : le choix de l'élément, parmi ceux que son contexte y pose (`FieldDesc.contexte`),
+ *  sinon, d'un élément à choix (`choixDuNoeud`), parmi ses valeurs ; sinon, le bouton qui écrit sa valeur neuve
+ *  (`valeurNeuveDe`) ; `undefined` sans elle. */
+function ajoutALaListe(ecrivain: EcrivainDuFormulaire, f: FieldDesc, liste: readonly unknown[], ici: Segment[], element: unknown): Bouton | Choix | Formulaire | undefined {
   const id = `valeur/${ici.join('/')}/ajouter`;
   const libelle = t('ecran.formulaire.valeur.ajouter', { libelle: f.label });
-  const valeurs = f.contexte?.choix([...ici, liste.length]) ?? choixDuNoeud(element)?.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null }));
-  if (!valeurs) return neuve ? bouton(id, libelle, ecrire(ecrivain, ici, neuve)) : undefined;
-  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle, valeur: null, valeurs: valeurs.map((v) => ({ ...v, valeur: [...liste, v.valeur] })), bornes: null, note: null, champs: null };
-  return elementDeValeur(id, ecrivain, ici, { ...f, label: libelle, noeud: element }, a);
+  const rangNeuf = [...ici, liste.length];
+  const valeurs = f.contexte?.choix(rangNeuf) ?? choixDuNoeud(element)?.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null }));
+  if (!valeurs) {
+    const neuve = valeurNeuveDe(element);
+    return neuve === undefined ? undefined : bouton(id, libelle, ecrire(ecrivain, rangNeuf, neuve));
+  }
+  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle, valeur: null, valeurs: [...valeurs], bornes: null, note: null, champs: null };
+  return elementDeValeur(id, ecrivain, rangNeuf, { ...f, label: libelle, noeud: element }, a);
 }

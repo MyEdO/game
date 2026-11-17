@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "tente"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "toile",
+      "palette": "vet1",
+      "matiere": "prop--toile-ecrue"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    },
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    }
+  ],
+  "glb": {
+    "sha256": "7da2fcd806abf63e3d054f9e64c19b5518ce7196436d81e31fe4454df02e7fcc",
+    "octets": 54044
+  }
+}

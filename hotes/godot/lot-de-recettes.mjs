@@ -3,17 +3,24 @@
 // export (`--natif`, #3945, `jeuxPilotesDeFront`, #3412). Le journal et les captures de chaque jeu vont sous
 // `--captures/<nom du jeu>/` ; le verdict de chacun s'imprime à sa fin, la fin d'un journal rouge aussi, et le code est
 // non nul dès qu'un jeu est rouge. Joué chaque semaine par `.github/workflows/canari.yml`.
-//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif) --captures <dossier> [--jeux combat,relief]
+// Avec `--rendu`, chaque jeu natif se joue en rendu réel : ses captures montrent l'écran (`npm run godot:regarder`).
+// Le jeu `planche:<nom>`, que seul `--jeux` nomme, montre et capture la planche `<nom>` (parcours `planche`) : sa capture
+// `<nom>.png` et son journal `<nom>.journal.txt` vont sous `--captures/planche/`, et, la planche verte et sa maquette
+// déclarée (`MAQUETTES`, `planches.mjs`), son côte à côte `<nom>-cote-a-cote.png`, dont le chemin s'imprime.
+//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu]) --captures <dossier> [--jeux combat,planche:<nom>]
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
-import { closeSync, mkdirSync, openSync, readFileSync } from 'node:fs'
+import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { jeuxPilotesDeFront } from './construire.mjs'
+import { MAQUETTES, coteACote } from './planches.mjs'
 
 const DOSSIER = '<dossier>'
+/** Le préfixe d'un jeu de planche, `planche:<nom>`. */
+const PLANCHE = 'planche:'
 
 /**
  * Les jeux de chaque parcours de `recette.mjs`, `{ nom du jeu: arguments après --parcours <parcours> }` ; `DOSSIER` y
@@ -55,6 +62,7 @@ export const JEUX_DU_PARCOURS = {
   compendium: { compendium: [] },
   atelier: { atelier: [] },
   composition: {},
+  planche: {},
   preset: { preset: ['--preset', 'sorcier'] },
 }
 
@@ -64,7 +72,7 @@ const HORS_NATIF = {
   'combat-statique': '`--statique` sert l’export tel que le site le publie, sans objet hors d’une page',
 }
 
-/** Les jeux qu'une recette native joue en rendu réel (`--rendu`), sous le rendu de la page, les autres sans écran :
+/** Les jeux qu'une recette native joue toujours en rendu réel, sous le rendu de la page, les autres sans écran hors `--rendu` :
  *  `vision` et `murs` lisent les pixels de leurs captures, `wfrpCadrer` (`cadrages`) attend l'image dessinée de la
  *  caméra posée, et l'atelier (`preset`) mesure ses meshes skinnés aux os que le serveur de rendu leur pourvoit. */
 const RENDUS_EN_NATIF = new Set(['vision', 'murs', 'cadrages', 'preset'])
@@ -92,13 +100,17 @@ async function jouer(args, sortie) {
 const QUEUE = 15
 
 if (import.meta.main) {
-  const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
-  if (!o.web === !o.natif || !o.captures) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif) --captures <dossier> [--jeux <nom>,<nom>]')
-  const lieu = (nom) => (!o.natif ? ['--web', resolve(o.web)] : RENDUS_EN_NATIF.has(nom) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
-  const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args })))
+  const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, rendu: { type: 'boolean' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
+  if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif [--rendu]) --captures <dossier> [--jeux <nom>,<nom>]')
+  const lieu = (nom) => (!o.natif ? ['--web', resolve(o.web)] : o.rendu || RENDUS_EN_NATIF.has(nom) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
+  const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args, dossier: nom, journal: 'journal.txt' })))
   const voulus = o.jeux?.split(',') ?? jeux.map((j) => j.nom)
+  for (const nom of voulus.filter((v) => v.startsWith(PLANCHE) && v.length > PLANCHE.length)) {
+    const planche = nom.slice(PLANCHE.length)
+    jeux.push({ nom, parcours: 'planche', args: ['--planche', planche], dossier: 'planche', journal: `${planche}.journal.txt` })
+  }
   const inconnus = voulus.filter((nom) => !jeux.some((j) => j.nom === nom))
-  if (inconnus.length) throw new Error(`--jeux ${inconnus.join(',')} : ${jeux.map((j) => j.nom).join(' ou ')} attendu`)
+  if (inconnus.length) throw new Error(`--jeux ${inconnus.join(',')} : ${jeux.map((j) => j.nom).join(' ou ')} ou ${PLANCHE}<nom> attendu`)
   const horsNatif = (nom) => o.natif && Object.hasOwn(HORS_NATIF, nom)
   const refuses = (o.jeux ? voulus : []).filter(horsNatif)
   if (refuses.length) throw new Error(`--natif ne joue pas ${refuses.map((nom) => `${nom} (${HORS_NATIF[nom]})`).join(', ')}`)
@@ -106,10 +118,10 @@ if (import.meta.main) {
     if (horsNatif(nom)) console.log(`${nom} : hors natif, ${HORS_NATIF[nom]}`)
     return !horsNatif(nom)
   })
-  const verdicts = await enFileBornee(joues.map(({ nom, parcours, args }) => async () => {
-    const dossier = resolve(o.captures, nom)
+  const verdicts = await enFileBornee(joues.map(({ nom, parcours, args, dossier: sous, journal: fichier }) => async () => {
+    const dossier = resolve(o.captures, sous)
     mkdirSync(dossier, { recursive: true })
-    const journal = resolve(dossier, 'journal.txt')
+    const journal = resolve(dossier, fichier)
     const sortie = openSync(journal, 'w')
     const debut = Date.now()
     const pret = !PREPARER[nom] || PREPARER[nom](dossier, sortie) === 0
@@ -117,6 +129,13 @@ if (import.meta.main) {
     closeSync(sortie)
     console.log(`${nom} : ${status === 0 ? 'vert' : 'ROUGE'} (${Math.round((Date.now() - debut) / 1000)} s)`)
     if (status !== 0) console.log(readFileSync(journal, 'utf8').trimEnd().split('\n').slice(-QUEUE).map((ligne) => `  ${ligne}`).join('\n'))
+    if (status === 0 && parcours === 'planche') {
+      const planche = nom.slice(PLANCHE.length)
+      const cote = coteACote(planche, readFileSync(resolve(dossier, `${planche}.png`)), JSON.parse(readFileSync(MAQUETTES, 'utf8')))
+      const chemin = resolve(dossier, `${planche}-cote-a-cote.png`)
+      if (cote?.image) writeFileSync(chemin, cote.image)
+      if (cote) console.log(`${nom} : ${cote.image ? `côte à côte ${chemin}` : cote.avis}`)
+    }
     return { nom, vert: status === 0 }
   }), { deFront: o.natif ? jeuxPilotesDeFront() : 1 })
   const rouges = verdicts.filter((v) => !v.vert).map((v) => v.nom)

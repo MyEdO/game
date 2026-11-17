@@ -102,7 +102,7 @@ Il n'y a pas de place pour l'incertitude dans le cœur de ceux nés sous le sign
 En effet, si leur route est toute tracée, pourquoi s'en écarter ? Il est vital qu'ils trouvent une cause pour laquelle se battre, au risque de se laisser éternellement porter au fil des eaux du destin.
 
 
-#### **L e Trait d u Peintre**
+#### <span id="page-42-0" data-folio="41"></span>**L e Trait d u Peintre**
 
 **Signe de la Précision Nom classique :** Verros
 

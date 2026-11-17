@@ -210,7 +210,7 @@ export const ACTION_GATES: Record<GateDAction, (ctx: ActionCtx) => ActionGate> =
   'mouvement-restant': ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))),
   desengagement: desengagementGate,
   /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `ouvrirLaCourse` et `computeRunReach`. */
-  'course-possible': ({ active, battle }) => verdict(refusDeCourse(battle, active)),
+  'course-possible': ({ active, battle, scene }) => verdict(refusDeCourse(scene, battle, active)),
   /** Verdict `refusDeDetermination` (LDB 17 l.59-61, LDB 20 l.188), que lisent aussi `depenserLaDetermination` et `DeterminationButton`. */
   'determination-en-reserve': ({ active, args }) => verdict(refusDeDetermination(active, args?.conditionId) ?? null),
   'attaque-libre-frenesie': ({ active }) =>

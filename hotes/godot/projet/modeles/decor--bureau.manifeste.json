@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "bureau"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    }
+  ],
+  "glb": {
+    "sha256": "6736f6d6317061d338e17002dd03076437d63e3bb8a6d9506e44e72a2e7d6594",
+    "octets": 73192
+  }
+}

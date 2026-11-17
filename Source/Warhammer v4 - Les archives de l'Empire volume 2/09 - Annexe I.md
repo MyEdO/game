@@ -35,7 +35,7 @@ Vous faites des efforts concertés pour vous reposer et réfléchir, et tenter d
 
 
 
-| A                           | E                                 | O                                |
+<span id="page-96-0" data-folio="95"></span>| A                           | E                                 | O                                |
 |-----------------------------|-----------------------------------|----------------------------------|
 | Activités de bataille84     | Écuries et réserve72              | Objets insolites67               |
 | Adalmann von Hopfberg78     | Égorgeuse55                       | Option :                         |

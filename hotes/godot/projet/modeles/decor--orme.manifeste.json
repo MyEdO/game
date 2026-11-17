@@ -1,0 +1,39 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "orme"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "selon": {
+    "printemps": {
+      "palette": {
+        "vegetal": "#62a03a"
+      }
+    },
+    "automne": {
+      "palette": {
+        "vegetal": "#d8ac34"
+      }
+    },
+    "hiver": {}
+  },
+  "surfaces": [
+    {
+      "nom": "ecorce",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "feuillage",
+      "palette": "vegetal",
+      "matiere": "prop--feuillage"
+    }
+  ],
+  "glb": {
+    "sha256": "171868ac0f3b0af3677b7b8a88319e6599d2d82b68a370cce044513dbd3c78f4",
+    "octets": 394796
+  }
+}

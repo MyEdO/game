@@ -1,6 +1,6 @@
 /**
  * BUILDER de PROPS — produit les éléments `prop` du pivot (cf. ./types) : le DÉCOR de scène (entités
- * `kind:'prop'` — tonneaux, cadavres, tentes…), les OVERLAYS de TERRAIN à décor (tuile `bois → 'arbre'`),
+ * `kind:'prop'` — tonneaux, cadavres, tentes…), les OVERLAYS de TERRAIN à décor (`decorDuTerrain` : une essence du `bois`),
  * les FEATURES de façade authorées et les ORNEMENTS d'identité d'un bâtiment. Chaque site d'émission
  * DÉCLARE un ancrage (`AncrageDecor` : point monde, cap, sol, case porteuse) et un SEUL émetteur
  * (`elDeDecor`) tranche : un type qui porte une recette volumique (`PropData.volume`) sort en faces
@@ -18,7 +18,7 @@ import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdi
 import { ancreDuDecor, decorFootGeometry } from '../../noyau/monde/footprint';
 import { findPropById, refEstVolumique } from '../../data';
 import { facesDuDecor } from '../../noyau/monde/volume/propVolumes';
-import { terrainOverlayProp } from '../../noyau/monde/terrain';
+import { decorDuTerrain } from '../../noyau/monde/terrain';
 import { buildingFeatures } from '../../noyau/monde/buildings';
 import { edgeKey, facadeFeatureViz } from '../../noyau/monde/facades';
 import { WALL_H_M } from '../../noyau/monde/iso';
@@ -128,23 +128,24 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
   const mpt = sceneMetresPerTile(scene);
   const viewZ = view?.viewZ ?? null;
   const out: PropEl[] = [];
-  // Overlays de TERRAIN à DÉCOR (bois → arbre) — un billboard par tuile (couche de base), MÊME chemin de
-  // rendu que les props de scène. `visible` suit le brouillard comme un prop : en vue → au-dessus du voile
+  // Overlays de TERRAIN à DÉCOR (`decorDuTerrain` : le décor et le cap de la case) — un décor par tuile, MÊME
+  // chemin de rendu que les props de scène. `visible` suit le brouillard comme un prop : en vue → au-dessus du voile
   // (donc VISIBLE en POV) ; mémorisé → sous le voile. Éditeur/QC (`visible` absent) → tout visible.
   const { w, h } = scene.dimensions;
   for (const lvl of scene.layers) {
     if (viewZ != null && lvl.z !== viewZ) continue;
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
-        const ref = terrainOverlayProp(tileAt(scene, x, y, lvl.z));
-        if (!ref) continue;
+        const decor = decorDuTerrain(tileAt(scene, x, y, lvl.z), x, y, lvl.z);
+        if (!decor) continue;
         out.push(elDeDecor({
           key: `ov:${x},${y},${lvl.z}`,
           cell: { x, y, z: lvl.z },
           ancre: { x, y },
           solM: heightAt(scene, x, y, lvl.z),
           source: 'terrain',
-          ref,
+          ref: decor.prop,
+          facing: decor.cap,
           states: { visible: !visible || visible.has(`${x},${y},${lvl.z}`) },
         }, mpt));
       }

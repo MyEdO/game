@@ -1,0 +1,56 @@
+[gd_resource type="Theme" load_steps=7 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="1_rubriques"]
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="2_cadre"]
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Repos"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+script = ExtResource("2_cadre")
+cadre = "bouton"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Survol"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+script = ExtResource("2_cadre")
+cadre = "bouton-survol"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Armee"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+script = ExtResource("2_cadre")
+cadre = "bouton-arme"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Fermee"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+script = ExtResource("2_cadre")
+cadre = "bouton-ferme"
+
+[resource]
+Button/colors/font_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/font_hover_color = Color(0.937, 0.847, 0.569, 1)
+Button/colors/font_focus_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/font_pressed_color = Color(0.133, 0.102, 0.067, 1)
+Button/colors/font_hover_pressed_color = Color(0.133, 0.102, 0.067, 1)
+Button/colors/font_disabled_color = Color(0.42, 0.4, 0.37, 1)
+Button/colors/icon_pressed_color = Color(0.2, 0.15, 0.1, 1)
+Button/colors/icon_hover_pressed_color = Color(0.2, 0.15, 0.1, 1)
+Button/colors/icon_disabled_color = Color(0.5, 0.5, 0.5, 1)
+Button/constants/h_separation = 8
+Button/constants/icon_max_width = 20
+Button/font_sizes/font_size = 15
+Button/fonts/font = ExtResource("1_rubriques")
+Button/styles/normal = SubResource("Repos")
+Button/styles/hover = SubResource("Survol")
+Button/styles/pressed = SubResource("Armee")
+Button/styles/hover_pressed = SubResource("Armee")
+Button/styles/disabled = SubResource("Fermee")

@@ -90,9 +90,21 @@ describe('volumeDepuis : la reprise rend le calcul entier (#3993)', () => {
     reprendEgal(moveEntityTo(s, 'tonneau-1', { x: 5, y: 10 }), avant.etat, 'tonneau déplacé');
     reprendEgal(moveEntityTo(s, 'table-1', { x: 12, y: 3 }), avant.etat, 'table déplacée');
     const releve = paintHeight(s, { x: 10, y: 5 }, 0.8, 1, 0);
-    const lettre = (e: EtatDuVolume) => e.decorsDEntite.get('lettre-1')!;
-    expect(lettre(entier(releve).etat).pied, 'le pied de la lettre suit son support').not.toBe(lettre(avant.etat).pied);
+    const lettre = (e: EtatDuVolume) => e.decors.get('entite/lettre-1')!.pose;
+    expect(lettre(entier(releve).etat).piedM, 'le pied de la lettre suit son support').not.toBe(lettre(avant.etat).piedM);
     reprendEgal(releve, avant.etat, 'support relevé');
+  });
+
+  it('un décor tourné sur place se reprend tourné', () => {
+    const scene = (facing?: 'E' | 'S'): Scene => {
+      const c = emptyScene('cap', 4, 1);
+      c.entities.push({ id: 't', kind: 'prop', decor: { id: 'arbre-mort' }, pos: { x: 1, y: 0 }, ...(facing ? { facing } : {}) });
+      return c;
+    };
+    const avantCap = entier(scene());
+    const repris = reprendEgal(scene('E'), avantCap.etat, 'décor tourné');
+    expect(repris.volume, 'le cap change le volume').not.toEqual(avantCap.volume);
+    expect(repris.etat.decors.get('entite/t')!.pose.cap).toBe('E');
   });
 
   it('un décor qui s’allume puis s’éteint : ses surfaces portent `luminaire` exactement quand il éclaire', () => {

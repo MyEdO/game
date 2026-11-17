@@ -7,7 +7,9 @@ import type { IconFamily } from '../types';
    cohérent avec Ornaments.tsx et la direction du rendu iso.
    Silhouette PLEINE (fill currentColor) pour le motif porteur dès que l'icône doit rester
    lisible à 14px ; UNE seule métaphore par icône, pas de micro-détails, pas de texte.
-   Couleur : currentColor UNIQUEMENT (accent var(--gold) toléré avec parcimonie), jamais de hex.
+   Couleur : currentColor (accent var(--gold) toléré avec parcimonie) ; une pièce pleine à ses matières (le dé
+   de navigation/des) nomme les jetons de la palette, var(--…), que le web (src/ui/styles/base.css) et le thème
+   de l'hôte définissent l'un et l'autre ; jamais de hex.
    ════════════════════════════════════════════════════════════════════════════ */
 
 /** Trait principal. */
