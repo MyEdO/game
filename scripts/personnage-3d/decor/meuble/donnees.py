@@ -1,7 +1,9 @@
-"""Données des meubles (#4335) : un GLB par décor `table`, `table-2x1`, `chaise`, `banc`, `tabouret`, `armoire`, `bureau`,
-`bureau-2x1`, `etagere` et `lit` de `src/data/props.json`, bâti dans l'enveloppe convexe des primitives de sa recette (`gabarit.py`). Aucune illustration au
-corpus : proportions d'adaptation, du mobilier d'auberge menuisé, chacune en fraction de la primitive qui la porte (son
-rang dans la recette), dans le repère de `gabarit.py` (x à l'est, le front de la recette vers -y, z vers le haut).
+"""Données des meubles (#4335) : un GLB par décor `table`, `table-2x1`, `chaise`, `banc`, `tabouret`, `armoire`,
+`bureau`, `bureau-2x1`, `etagere`, `lit`, `comptoir-droit`, `comptoir-angle`, `etabli` et `etabli-2x1` de
+`src/data/props.json`, bâti dans l'enveloppe convexe des primitives de sa recette (`gabarit.py`). Aucune illustration
+au corpus : proportions d'adaptation, du mobilier d'auberge menuisé, chacune en fraction de la primitive qui la porte
+(son rang dans la recette), dans le repère de `gabarit.py` (x à l'est, le front de la recette vers -y, z vers le
+haut).
 
 - `table`, `table-2x1` : un plateau de planches jointes, rives adoucies, bouts inégaux ; quatre pieds carrés à
   chanfreins arrêtés ; une ceinture de quatre traverses chevillées ; un piétement en H, deux traverses basses et une
@@ -29,9 +31,21 @@ rang dans la recette), dans le repère de `gabarit.py` (x à l'est, le front de 
 - `lit` : deux poteaux de tête et deux poteaux de pied, deux longerons et deux traverses chevillés ; un chevet haut
   de trois panneaux à plate-bande entre deux traverses et deux montants ; le pied du lit, sa traverse ; un matelas, un
   oreiller, une couverture qui retombe sur les longerons et le drap rabattu sur elle.
+- `comptoir-droit`, `comptoir-angle` : un corps plein sur sa plinthe en retrait, sous un plateau de planches égales en
+  débord, épaissi d'un chant sous chaque rive de façade ; chaque façade, un cadre chevillé de montants et de deux
+  traverses autour des panneaux à plate-bande de la recette ; chaque bout, le même cadre sous la face du corps, en
+  retrait de la tête de ses chevilles ; le dos du comptoir droit, côté service, une niche ouverte sur sa tablette ; le
+  repose-pied de fer de la recette sur ses supports à manchon. Le comptoir d'angle est deux corps d'onglet : ses
+  planches suivent chaque façade et se joignent sur la diagonale. Les rives de bout sont à fleur, les planches de même
+  largeur d'un comptoir à l'autre : les comptoirs se suivent.
+- `etabli`, `etabli-2x1` : un plateau de madriers ; quatre pieds à chanfreins arrêtés, une ceinture chevillée, une
+  traverse basse à chaque bout, l'entretoise de la recette, tenons clavetés, et une tablette basse de planches ; à la
+  place de l'étau de la recette, une presse à deux mors de bois dressés sur le plateau, sa vis et son levier de fer ;
+  un maillet posé ; sur l'établi long, la scie de la recette, lame à plat et poignée de bois.
 
 Matières : celles des recettes. L'armoire prend `fer-noirci` pour ses pentures comme pour ses boutons ; les livres de
-l'étagère, dont la recette est toute de `bois-chene`, sont de `cuir-tanne`."""
+l'étagère, dont la recette est toute de `bois-chene`, sont de `cuir-tanne` ; les mors de la presse d'un établi, dont
+la recette fait un bloc de `fer-noirci`, sont de `bois-chene`, sa vis et son levier seuls de fer."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}
@@ -40,12 +54,15 @@ MATERIAUX = {
     "armoire": {**BOIS, "fer": ("metal", "fer-noirci")},
     "etagere": {**BOIS, "cuir": ("cuir", "cuir-tanne")},
     "lit": {**BOIS, "ecru": ("vet1", "toile-ecrue"), "rouge": ("vet2", "toile-rouge")},
+    **{id_: {**BOIS, "fer": ("metal", "fer-noirci")}
+       for id_ in ("comptoir-droit", "comptoir-angle", "etabli", "etabli-2x1")},
 }
 
 BUDGET_TRIANGLES = {"table": 1400, "table-2x1": 1400, "chaise": 2000, "banc": 1200, "tabouret": 1300, "armoire": 2400,
-                    "bureau": 2000, "bureau-2x1": 2200, "etagere": 2300, "lit": 2200}
+                    "bureau": 2000, "bureau-2x1": 2200, "etagere": 2300, "lit": 2200,
+                    "comptoir-droit": 2400, "comptoir-angle": 2300, "etabli": 2000, "etabli-2x1": 2100}
 
-ANGLE_LISSE = {"bois": 40, "ferrures": 30, "objets": 40, "literie": 50}
+ANGLE_LISSE = {"bois": 40, "ferrures": 30, "objets": 40, "literie": 50, "fers": 50}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : un chanfrein garde ses arêtes,
 une pièce tournée est ronde."""
 
@@ -77,7 +94,8 @@ PANNEAU = {"biseau": 0.24, "champ": 0.55}
 """Plate-bande d'un panneau : largeur de son biseau (fraction de son plus petit demi-côté) et part de sa saillie que le
 biseau prend."""
 
-# Table (`table`, `table-2x1`) : rang du plateau, de la ceinture et des pieds dans la recette ; son plateau (`PLANCHES`).
+# Table (`table`, `table-2x1`) : rang du plateau, de la ceinture et des pieds dans la recette ; son plateau
+# (`PLANCHES`).
 # `pied` : son demi-côté (fraction de celui de la primitive) et son profil.
 # `ceinture` : hauteur (fraction de celle de la primitive), demi-épaisseur et retrait de sa face sous celle du pied
 # (fractions du demi-côté du pied), hauteurs de ses chevilles (fractions de sa demi-hauteur).
@@ -189,10 +207,11 @@ BUREAU = {
 # les montants (fraction de leur demi-côté).
 # `flanc` : hauteurs de ses traverses (parts de celle du corps), leur demi-hauteur, leur demi-épaisseur et le retrait
 # de leur face (fractions du demi-côté du montant).
-# `porte` : `jeu` autour d'elle (fraction du demi-côté du montant) ; `saillie` de sa face sur celle du corps (part de
-# la saillie du battement) ; `cadre` : demi-largeur de ses montants et de ses traverses (fraction du demi-côté du
-# montant) ; `traverse` : épaisseur de ses traverses (part de celle de ses montants) ; `milieu` : hauteur de sa traverse du milieu (part de celle de la porte) ; `panneau` : sa saillie (part
-# de celle de la porte) ; `cheville` : rayon (fraction du demi-côté du montant).
+# `porte` : `jeu` autour d'elle (fraction du demi-côté du montant) ; `saillie` de sa face sur celle du corps (part de la
+# saillie du battement) ; `cadre` : demi-largeur de ses montants et de ses traverses (fraction du demi-côté du
+# montant) ; `traverse` : épaisseur de ses traverses (part de celle de ses montants) ; `milieu` : hauteur de sa
+# traverse du milieu (part de celle de la porte) ; `panneau` : sa saillie (part de celle de la porte) ; `cheville` :
+# rayon (fraction du demi-côté du montant).
 # `penture` : hauteurs (parts de celle de la porte), longueur (part de la largeur de la porte), demi-hauteur et
 # épaisseur (fractions du demi-côté du montant), places de ses clous (parts de sa longueur), leur rayon (fraction de
 # sa demi-hauteur) ; `noeud` : rayon et demi-hauteur (fractions du demi-côté du montant), côtés.
@@ -271,4 +290,84 @@ LIT = {
     "matelas": {"enfonce": 0.40, "dessus": 0.90, "demi": 0.985},
     "oreiller": {"enfonce": 0.12},
     "couverture": {"tombee": 0.55, "dessus": 0.93, "rabat": 0.065},
+}
+
+# Comptoir (`comptoir-droit`, `comptoir-angle`) : `rangs` dans la recette du corps, du socle, du plateau (`PLANCHES`),
+# d'un panneau de devant qui donne leur mesure aux cadres, des barres du repose-pied et de leurs supports ; `faces` :
+# ses quatre faces dans l'ordre de `modele.CAPS`, chacune son genre (`facade` en saillie sur le corps, `bout` sous sa
+# face, `niche` ouverte) et le rang des panneaux que la recette y pose, dans le sens de la face.
+# `cadre` : son épaisseur (part de celle d'un panneau de la recette) ; `traverse` : épaisseur de ses traverses (part
+# de la sienne) ; `panneau` : saillie d'un panneau (part de l'épaisseur du cadre) ; `cheville` : rayon (fraction de
+# l'épaisseur du cadre).
+# `jours` : nombre de panneaux d'un bout ou de jours d'une niche ; `bord`, `montant` : largeur de ses montants de rive
+# et de ses montants du milieu (parts de celle d'un panneau de la recette).
+# `niche` : sa profondeur (part de celle du corps) ; `tablette` : sa hauteur (part de celle du corps) et sa
+# demi-épaisseur (fraction de l'épaisseur du cadre).
+# `chant` : sa largeur (part du débord du plateau sur le cadre), sa hauteur (part de celle de la traverse haute), son
+# chanfrein (fraction de sa demi-largeur).
+# `barre` : rayon (fraction de la demi-hauteur de sa primitive), côtés.
+# `support` : rayon (fraction du plus petit demi-côté de sa primitive), côtés, `tete` : ce dont il dépasse l'axe de
+# la barre (en rayons de la barre), profil (part de la longueur, part du rayon).
+COMPTOIR = {
+    "rangs": {
+        "comptoir-droit": {"corps": 0, "socle": 1, "plateau": 6, "panneau": 2, "barres": (7,), "supports": (8, 9),
+                           "faces": (("facade", (5, 4, 3, 2)), ("bout", ()), ("niche", ()), ("bout", ()))},
+        "comptoir-angle": {"corps": 0, "socle": 1, "plateau": 6, "panneau": 2, "barres": (7, 8), "supports": (9,),
+                           "faces": (("facade", (3, 2)), ("facade", (4, 5)), ("bout", ()), ("bout", ()))},
+    },
+    **PLANCHES, "planches": 6, "largeurs": (1.0, 1.0), "bouts": 0.0,
+    "cadre": 0.75, "traverse": 0.8, "panneau": 0.55, "cheville": 0.28,
+    "jours": 2, "bord": 0.28, "montant": 0.34,
+    "niche": 0.30, "tablette": (0.52, 0.40),
+    "chant": (0.80, 0.42, 0.30),
+    "barre": {"rayon": 1.0, "cotes": 10},
+    "support": {"rayon": 0.55, "cotes": 10, "tete": 1.9,
+                "profil": ((0.0, 1.7), (0.05, 1.7), (0.10, 1.0), (0.60, 1.0), (0.64, 1.65), (0.92, 1.65), (0.96, 1.1),
+                           (1.0, 0.6))},
+}
+
+# Établi (`etabli`, `etabli-2x1`) : `rangs` dans la recette du plateau (`PLANCHES`), des pieds, de l'entretoise et de
+# l'étau ; `scie` : par décor qui en a une, le rang de sa lame et de sa poignée.
+# `pied` : son demi-côté (fraction de celui de la primitive) et son profil.
+# `ceinture` : demi-hauteur, demi-épaisseur et retrait de sa face (fractions du demi-côté du pied), hauteurs de ses
+# chevilles (fractions de sa demi-hauteur) ; `cheville` : rayon (fraction du demi-côté du pied).
+# `basse` : demi-épaisseur et demi-hauteur de la traverse basse (fractions du demi-côté du pied).
+# `tenon` : sa demi-largeur et sa demi-hauteur (fractions de celles de l'entretoise), `saillie` au-delà de l'axe de la
+# traverse (fraction du demi-côté du pied) ; `clavette` : comme celle d'une table.
+# `tablette` : nombre de planches, leur demi-épaisseur (fraction du demi-côté du pied), part du jour entre les pieds
+# qu'elles prennent.
+# `presse` : place de ses deux mors le long de la primitive (parts de sa longueur) ; `mors` : demi-épaisseur (part de
+# la longueur de la primitive), demi-largeur (part de la largeur de la primitive), ce dont il s'enfonce dans le
+# plateau (part de sa hauteur au-dessus), chanfrein (fraction de sa demi-épaisseur) ; `vis` : hauteur de son axe et
+# rayon (parts de la hauteur de la primitive au-dessus du plateau), départ (part de la longueur de la primitive),
+# côtés, profil jusqu'au bout de la primitive ; `levier` : sa place sur la vis (part de sa longueur), sa
+# demi-longueur (part de la largeur de la primitive), sa pente, son rayon (fraction de celui de la vis), côtés,
+# profil.
+# `maillet` : sa place (fractions de la demi-longueur et de la demi-profondeur du plateau) ; `tete` : demi-longueur,
+# demi-largeur, demi-hauteur (parts de l'épaisseur du plateau) ; `manche` : sa direction (x, y), sa longueur et son
+# rayon (parts de l'épaisseur du plateau), côtés.
+# `lame` : demi-épaisseur (part de la hauteur de sa primitive), demi-largeur au talon et à la pointe (parts de celle
+# de sa primitive) ; `poignee` : demi-largeur (part de la demi-largeur de sa primitive), demi-épaisseur (part de la
+# hauteur de sa primitive), chanfrein (fraction de sa demi-épaisseur).
+ETABLI = {
+    "rangs": {"plateau": 0, "pieds": (1, 2, 3, 4), "entretoise": 5, "etau": 6}, "scie": {"etabli-2x1": (8, 9)},
+    **PLANCHES, "planches": 4,
+    "pied": {"cote": 0.92, "profil": PIED_CARRE},
+    "ceinture": {"hauteur": 1.0, "epaisseur": 0.30, "retrait": 0.22, "chevilles": (-0.45, 0.45)},
+    "cheville": 0.17,
+    "basse": (0.45, 0.85),
+    "tenon": (0.55, 0.60), "saillie": 1.1,
+    "clavette": {"place": 0.62, "demi": (0.30, 0.60), "depasse": (1.6, 2.0), "pointe": 0.55},
+    "tablette": {"planches": 3, "epaisseur": 0.22, "largeur": 0.96},
+    "presse": {"places": (0.20, 0.60),
+               "mors": {"epaisseur": 0.085, "largeur": 0.46, "enfonce": 0.25, "chanfrein": 0.30},
+               "vis": {"hauteur": 0.46, "rayon": 0.24, "depart": 0.06, "cotes": 10,
+                       "profil": ((0.0, 0.8), (0.80, 0.8), (0.82, 1.5), (0.95, 1.5), (0.97, 1.0), (1.0, 0.7))},
+               "levier": {"place": 0.885, "demi": 0.44, "pente": 0.18, "rayon": 0.42, "cotes": 6,
+                          "profil": ((0.0, 1.2), (0.03, 1.9), (0.07, 1.9), (0.10, 1.0), (0.90, 1.0), (0.93, 1.9),
+                                     (0.97, 1.9), (1.0, 1.2))}},
+    "maillet": {"place": (0.30, -0.42),
+                "tete": (0.32, 0.19, 0.16),
+                "manche": {"direction": (-0.92, 0.38), "longueur": 1.35, "rayon": 0.06, "cotes": 6}},
+    "lame": (0.06, 1.0, 0.55), "poignee": (0.90, 0.14, 0.60),
 }

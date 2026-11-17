@@ -1,49 +1,38 @@
 """Les meubles (#4335) : un GLB par décor de `DECORS`, bâti dans l'enveloppe convexe des primitives de sa recette
 (`gabarit.py`), dont il lit les cotes (`geometrie.pave`) et où `Gabarit.rentrer` ramène le sommet qui en sortirait.
-Chaque pièce est une coque close (`geometrie.coque`) d'anneaux pris dans des plans parallèles : une pièce équarrie, des rectangles aux coins abattus (`barre`) ; une pièce
-tournée, des cercles (`tournee`) ; une assise, les contours emboîtés d'un plateau creusé (`galette`) ; une pièce de
-literie, ceux d'un coussin (`coussin`). Un pied en dévers
-garde ses anneaux horizontaux : il pose à plat. Les pièces s'assemblent en se pénétrant, tenon dans mortaise ; une
-cheville en marque chaque assemblage. L'aléa est semé des codes de caractères de l'id du décor : deux constructions
-rendent les mêmes octets."""
+Chaque pièce est une coque close (`geometrie.coque`) d'anneaux pris dans des plans parallèles : une pièce équarrie, des
+rectangles aux coins abattus (`geometrie.barre`) ; une pièce tournée, des cercles (`geometrie.tournee`) ; une assise,
+les contours emboîtés d'un plateau creusé (`galette`) ; une pièce de literie, ceux d'un coussin (`coussin`). Seule
+exception, une planche du plateau d'un comptoir d'angle (`comptoir`) : son dernier anneau, l'onglet, est coupé sur la
+diagonale de l'angle. Un pied en dévers garde ses anneaux horizontaux : il pose à plat. Les pièces s'assemblent en se
+pénétrant, tenon dans mortaise ; une cheville en marque chaque assemblage. L'aléa est semé des codes de caractères de
+l'id du décor : deux constructions rendent les mêmes octets."""
 import math
 
 from mathutils import Vector
 
 import geometrie
-from geometrie import ANGLES, HAUT, X, Y, a_la_hauteur, anneau, coque, normales, pave
+from geometrie import (ANGLES, HAUT, MAT, X, Y, a_la_hauteur, anneau, barre, cheville, coque, normales, octogone, pave,
+                       planche, profilee, tournee)
 
-DECORS = ("table", "table-2x1", "chaise", "banc", "tabouret", "armoire", "bureau", "bureau-2x1", "etagere", "lit")
-MAT = "bois"
+DECORS = ("table", "table-2x1", "chaise", "banc", "tabouret", "armoire", "bureau", "bureau-2x1", "etagere", "lit",
+          "comptoir-droit", "comptoir-angle", "etabli", "etabli-2x1")
 NOEUDS = {"armoire": {MAT: (MAT,), "ferrures": ("fer",)}, "etagere": {MAT: (MAT,), "objets": ("cuir",)},
-          "lit": {MAT: (MAT,), "literie": ("ecru", "rouge")}}
-"""Les nœuds d'un décor qui en a d'autres que celui de son bois, et les matériaux de chacun (`MATERIAUX` de `donnees.py`)."""
+          "lit": {MAT: (MAT,), "literie": ("ecru", "rouge")},
+          **{id_: {MAT: (MAT,), "fers": ("fer",)}
+             for id_ in ("comptoir-droit", "comptoir-angle", "etabli", "etabli-2x1")}}
+"""Les nœuds d'un décor qui en a d'autres que celui de son bois, et les matériaux de chacun (`MATERIAUX` de
+`donnees.py`)."""
 AXES = (X, Y)
-
-
-def octogone(c, u, v, du, dv, chanfrein):
-    """Le rectangle de centre `c` et de demi-côtés `du` sur `u`, `dv` sur `v`, ses coins abattus de `chanfrein`."""
-    return [c + u * x + v * y for x, y in ((du - chanfrein, -dv), (du, -dv + chanfrein), (du, dv - chanfrein), (du - chanfrein, dv),
-                                           (-du + chanfrein, dv), (-du, dv - chanfrein), (-du, -dv + chanfrein), (-du + chanfrein, -dv))]
-
-
-def barre(m, stations, u, v, mat=MAT):
-    """Une pièce équarrie aux arêtes abattues : la coque des sections `stations` [(centre, du, dv, chanfrein)], chacune
-    dans le plan de `u` et `v`."""
-    coque(m, [octogone(c, u, v, du, dv, chanfrein) for c, du, dv, chanfrein in stations], mat)
+CAPS = (-Y, X, Y, -X)
+"""Les normales des quatre faces d'un corps, du devant de la recette et dans le sens direct ; chaque face se parcourt
+le long de `HAUT.cross(normale)`."""
 
 
 def droite(m, a, b, u, v, du, dv, arete, mat=MAT):
     """Une pièce équarrie de `a` à `b`, de section constante, ses bouts pris dans les pièces qu'elle joint."""
     chanfrein = min(du, dv) * arete
     barre(m, [(a, du, dv, chanfrein), (b, du, dv, chanfrein)], u, v, mat)
-
-
-def planche(m, a, b, u, v, du, dv, chanfrein, mat=MAT):
-    """Une planche de `a` à `b`, ses rives et ses bouts adoucis de `chanfrein`."""
-    d = (b - a).normalized() * chanfrein
-    barre(m, [(a, du - chanfrein, dv - chanfrein, chanfrein / 2), (a + d, du, dv, chanfrein), (b - d, du, dv, chanfrein),
-              (b, du - chanfrein, dv - chanfrein, chanfrein / 2)], u, v, mat)
 
 
 def panneau(m, c, n, u, v, du, dv, saillie, P, arete):
@@ -61,26 +50,9 @@ def moulure(m, c, hauteur, dedans, dehors, profil, arete):
               for t, part in profil], X, Y)
 
 
-def profilee(m, a, b, demi, profil):
-    """Une pièce équarrie dressée de `a` à `b`, sections horizontales, de demi-côtés `demi` (x, y) d'après `profil`
-    [(part de la longueur, part du demi-côté, chanfrein en fraction du plus petit demi-côté)]."""
-    barre(m, [(a.lerp(b, t), demi[0] * part, demi[1] * part, min(demi) * chanfrein) for t, part, chanfrein in profil], X, Y)
-
-
-def tournee(m, a, b, u, v, rayon, profil, cotes, mat=MAT):
-    """Une pièce tournée de `a` à `b`, ses cercles dans le plan de `u` et `v`, de `rayon` d'après `profil`
-    [(part de la longueur, part du rayon)]."""
-    coque(m, [anneau(a.lerp(b, t), u, v, rayon * part, cotes) for t, part in profil], mat)
-
-
 def barreau(m, a, b, rayon, B):
     """Un barreau tourné horizontal de `a` à `b`, d'après `B` (côtés, profil)."""
     tournee(m, a, b, HAUT, (b - a).cross(HAUT).normalized(), rayon, B["profil"], B["cotes"])
-
-
-def cheville(m, p, n, rayon, K, a, mat=MAT):
-    """Une cheville de `rayon` enfoncée en `p` dans la face de normale `n`, sa tête en saillie, d'après `K` (`CHEVILLE`)."""
-    tournee(m, p - n * (rayon * K["enfonce"]), p + n * (rayon * a.uniform(*K["saillie"])), *normales(n), rayon, K["profil"], K["cotes"], mat)
 
 
 def contour(du, dv, rayon, par_coin):
@@ -114,11 +86,12 @@ def coussin(m, c, du, dv, epaisseur, K, mat):
 
 def plateau(m, primitive, P, a):
     """Le plateau de planches jointes que porte `primitive`, d'après `P` (`PLANCHES`) : rives adoucies, bouts inégaux ;
-    rend la hauteur de son dessous."""
+    rend la hauteur de son dessous et celle du plus bas des dessus de ses planches."""
     c, cotes = pave(primitive)
     ex, ey, ez = (k / 2 for k in cotes)
     largeurs = [a.uniform(*P["largeurs"]) for _ in range(P["planches"])]
     y = c.y - ey
+    dessus = c.z + ez
     for part in largeurs:
         demi_largeur = ey * part / sum(largeurs)
         enfonce = ez * a.uniform(*P["affleurement"])
@@ -126,7 +99,8 @@ def plateau(m, primitive, P, a):
         planche(m, Vector((c.x - bouts[0], y + demi_largeur, c.z - enfonce)), Vector((c.x + bouts[1], y + demi_largeur, c.z - enfonce)),
                 Y, HAUT, demi_largeur, ez - enfonce, ez * P["rive"])
         y += 2 * demi_largeur
-    return c.z - ez
+        dessus = min(dessus, c.z + ez - 2 * enfonce)
+    return c.z - ez, dessus
 
 
 def quatre_pieds(G, rangs, tete):
@@ -158,6 +132,36 @@ def traverses(m, pieds, z, sens, ecart, section, arete, face, chevilles, K, a):
                  ecart, section, arete, face, chevilles, K, a)
 
 
+def pieds_droits(m, G, rangs, tete, P):
+    """Les quatre pieds dressés (`quatre_pieds`), de demi-côté et de profil d'après `P` (`cote`, `profil`) : leurs axes
+    et leur demi-côté."""
+    pieds, cote = quatre_pieds(G, rangs, tete)
+    cote *= P["cote"]
+    for bas, haut in pieds.values():
+        profilee(m, bas, haut, (cote, cote), P["profil"])
+    return pieds, cote
+
+
+def traverses_basses(m, pieds, z, section, rayon, arete, cote, K, a):
+    """Les traverses (`traverses`) qui joignent le long de y, à la hauteur `z`, les pieds de demi-côté `cote`, de
+    `section`, une cheville de `rayon` à chaque bout : le milieu de chacune, de x croissant."""
+    traverses(m, pieds, z, 1, 0.0, section, arete, cote, [(rayon, 0.0)], K, a)
+    return [(a_la_hauteur(pieds[(sx, -1)], z) + a_la_hauteur(pieds[(sx, 1)], z)) / 2 for sx in (-1, 1)]
+
+
+def pietement(m, pieds, cote, dessous, C, demi_haut, rayon, z, basse, saillie, corps, tenon, clavette, arete, K, a):
+    """Le piétement en H des `pieds` de demi-côté `cote` sous un plateau de `dessous` : sa ceinture d'après `C`
+    (`epaisseur`, `retrait`, `chevilles`), de `demi_haut`, chevillée de `rayon` ; ses traverses basses
+    (`traverses_basses`) à `z`, de section `basse` ; l'entretoise qui les joint (`entretoise`, `saillie`, `corps`,
+    `tenon`, `clavette`) ; rend le milieu de chaque traverse basse."""
+    for sens in (0, 1):
+        traverses(m, pieds, dessous - demi_haut, sens, cote * (1 - C["retrait"] - C["epaisseur"]),
+                  (cote * C["epaisseur"], demi_haut), arete, cote, [(rayon, h) for h in C["chevilles"]], K, a)
+    gauche, droit = traverses_basses(m, pieds, z, basse, rayon, arete, cote, K, a)
+    entretoise(m, gauche, droit, saillie, corps, tenon, clavette, arete)
+    return gauche, droit
+
+
 def entretoise(m, gauche, droit, saillie, corps, tenon, C, arete):
     """L'entretoise de `gauche` à `droit`, axes des traverses qu'elle joint : son `corps` et son `tenon` (demi-largeur,
     demi-hauteur), qui traverse chacune et la dépasse de `saillie`, claveté d'après `C` (`clavette`, en fractions de la
@@ -174,23 +178,16 @@ def entretoise(m, gauche, droit, saillie, corps, tenon, C, arete):
 
 
 def table(D, G, pieces, a):
-    """Une table d'après `TABLE` : plateau de planches, pieds à chanfreins arrêtés, ceinture chevillée, piétement en H."""
+    """Une table d'après `TABLE` : plateau de planches, pieds à chanfreins arrêtés, ceinture chevillée, piétement en
+    H."""
     T, arete, m = D["TABLE"], D["ARETE"], pieces[MAT]
-    dessous = plateau(m, G.primitives[T["plateau"]], T, a)
-    pieds, cote = quatre_pieds(G, T["pieds"], lambda c: Vector((c.x, c.y, dessous)))
-    cote *= T["pied"]["cote"]
-    for bas, haut in pieds.values():
-        profilee(m, bas, haut, (cote, cote), T["pied"]["profil"])
-    C = T["ceinture"]
-    demi_haut = pave(G.primitives[T["ceinture_lue"]])[1][2] / 2 * C["hauteur"]
-    for sens in (0, 1):
-        traverses(m, pieds, dessous - demi_haut, sens, cote * (1 - C["retrait"] - C["epaisseur"]), (cote * C["epaisseur"], demi_haut), arete,
-                  cote, [(cote * T["cheville"], h) for h in C["chevilles"]], D["CHEVILLE"], a)
-    E = T["entretoise"]
-    z = dessous * E["hauteur"]
-    traverses(m, pieds, z, 1, 0.0, tuple(cote * f for f in E["traverse"]), arete, cote, [(cote * T["cheville"], 0.0)], D["CHEVILLE"], a)
-    gauche, droit = [(a_la_hauteur(pieds[(sx, -1)], z) + a_la_hauteur(pieds[(sx, 1)], z)) / 2 for sx in (-1, 1)]
-    entretoise(m, gauche, droit, cote * E["saillie"], tuple(cote * f for f in E["corps"]), tuple(cote * f for f in E["tenon"]), E["clavette"], arete)
+    dessous, _ = plateau(m, G.primitives[T["plateau"]], T, a)
+    pieds, cote = pieds_droits(m, G, T["pieds"], lambda c: Vector((c.x, c.y, dessous)), T["pied"])
+    C, E = T["ceinture"], T["entretoise"]
+    pietement(m, pieds, cote, dessous, C, pave(G.primitives[T["ceinture_lue"]])[1][2] / 2 * C["hauteur"],
+              cote * T["cheville"], dessous * E["hauteur"], tuple(cote * f for f in E["traverse"]), cote * E["saillie"],
+              tuple(cote * f for f in E["corps"]), tuple(cote * f for f in E["tenon"]), E["clavette"], arete,
+              D["CHEVILLE"], a)
 
 
 def banc(D, G, pieces, a):
@@ -201,16 +198,15 @@ def banc(D, G, pieces, a):
     galette(m, c + HAUT * ez, 2 * ez, lambda retrait: contour(ex - retrait, ey - retrait, ey * B["arrondi"] - retrait, B["par_coin"]),
             ez * B["chanfrein"], 2 * ez * B["creux"], D["CUVETTE"])
     dessous = c.z - ez
-    pieds, cote = quatre_pieds(G, B["pieds"], lambda c: Vector((c.x * (1 - B["devers"][0]), c.y * (1 - B["devers"][1]), dessous)))
-    cote *= B["pied"]["cote"]
-    for bas, haut in pieds.values():
-        profilee(m, bas, haut, (cote, cote), B["pied"]["profil"])
+    pieds, cote = pieds_droits(m, G, B["pieds"],
+                               lambda c: Vector((c.x * (1 - B["devers"][0]), c.y * (1 - B["devers"][1]), dessous)),
+                               B["pied"])
     centre, (lx, ly, lz) = pave(G.primitives[B["entretoise"]])
-    cheville_ = [(cote * B["cheville"], 0.0)]
+    rayon = cote * B["cheville"]
     haute = tuple(cote * f for f in B["traverse"])
-    traverses(m, pieds, dessous - haute[1], 1, 0.0, haute, arete, cote, cheville_, D["CHEVILLE"], a)
-    traverses(m, pieds, centre.z, 1, 0.0, tuple(cote * f for f in B["traverse_basse"]), arete, cote, cheville_, D["CHEVILLE"], a)
-    gauche, droit = [(a_la_hauteur(pieds[(sx, -1)], centre.z) + a_la_hauteur(pieds[(sx, 1)], centre.z)) / 2 for sx in (-1, 1)]
+    traverses(m, pieds, dessous - haute[1], 1, 0.0, haute, arete, cote, [(rayon, 0.0)], D["CHEVILLE"], a)
+    gauche, droit = traverses_basses(m, pieds, centre.z, tuple(cote * f for f in B["traverse_basse"]), rayon, arete,
+                                     cote, D["CHEVILLE"], a)
     entretoise(m, gauche, droit, centre.x + lx / 2 - droit.x, (ly / 2, lz / 2), (ly / 2 * B["tenon"][0], lz / 2 * B["tenon"][1]), B["clavette"], arete)
 
 
@@ -294,7 +290,7 @@ def bureau(D, G, pieces, a):
     """Un bureau d'après `BUREAU` : plateau de planches, caisson à tiroirs entre quatre poteaux, deux pieds à l'autre
     bout, ceinture chevillée, traverse basse et entretoise."""
     B, arete, K, m = D["BUREAU"], D["ARETE"], D["CHEVILLE"], pieces[MAT]
-    dessous = plateau(m, G.primitives[B["plateau"]], B, a)
+    dessous, _ = plateau(m, G.primitives[B["plateau"]], B, a)
     jambes = {}
     for rang in B["pieds"]:
         c, cotes = pave(G.primitives[rang])
@@ -442,7 +438,7 @@ def etagere(D, G, pieces, a):
     for rang in E["tablettes"]:
         t, cotes = pave(G.primitives[rang])
         dessus[rang] = (t, cotes)
-        dessous[rang] = plateau(m, G.primitives[rang], E, a)
+        dessous[rang], _ = plateau(m, G.primitives[rang], E, a)
         z = dessous[rang] - section[1]
         traverses(m, poteaux, z, 1, 0.0, section, arete, cote, chevilles, K, a)
         traverse(m, [a_la_hauteur(poteaux[(sx, 1)], z) for sx in (-1, 1)], Y, 1, 0.0, section, arete, cote, chevilles, K, a)
@@ -540,8 +536,187 @@ def lit(D, G, pieces, a):
     coussin(literie, Vector((tete + rabat, couverture.y, pose)), rabat, vy_ / 2, haut, D["RABAT"], "ecru")
 
 
+def le_long(axe, cotes):
+    """Le côté, le long de l'`axe` horizontal X ou Y ou de son opposé, du pavé de `cotes` (x, y, z)."""
+    return abs(axe.x) * cotes[0] + abs(axe.y) * cotes[1]
+
+
+def cadre(m, origine, u, n, largeur, hauteurs, jours, epais, C, D, a):
+    """Le cadre chevillé d'une face de normale `n`, parcourue le long de `u` sur `largeur` depuis `origine`, point bas
+    de sa face de dehors : d'`epais`, un montant de part et d'autre de chacun des `jours` [(abscisse de son axe,
+    demi-largeur)] et deux traverses de l'axe du premier montant à celui du dernier, entre les `hauteurs` (bas du
+    cadre, bas des jours, haut des jours, haut du cadre), d'après `C` (`COMPTOIR`) ; rend le centre de chaque jour, au
+    fond du cadre."""
+    bas, z0, z1, haut = hauteurs
+    fine = epais * C["traverse"] / 2
+    bords = [0.0, *(s + cote * demi for s, demi in jours for cote in (-1, 1)), largeur]
+    for dessous, dessus in ((bas, z0), (z1, haut)):
+        axe = origine - n * (epais - fine) + HAUT * ((dessous + dessus) / 2 - bas)
+        droite(m, axe + u * (bords[1] / 2), axe + u * ((bords[-2] + largeur) / 2), n, HAUT, fine,
+               (dessus - dessous) / 2, D["ARETE"])
+    for gauche, droit in zip(bords[::2], bords[1::2]):
+        pied = origine + u * ((gauche + droit) / 2)
+        droite(m, pied - n * (epais / 2), pied - n * (epais / 2) + HAUT * (haut - bas), u, n, (droit - gauche) / 2,
+               epais / 2, D["ARETE"])
+        for h in ((bas + z0) / 2, (z1 + haut) / 2):
+            cheville(m, pied + HAUT * (h - bas), n, epais * C["cheville"], D["CHEVILLE"], a)
+    return [origine + u * s - n * epais + HAUT * ((z0 + z1) / 2 - bas) for s, _ in jours]
+
+
+def comptoir(D, G, pieces, a):
+    """Un comptoir d'après `COMPTOIR` : corps sur sa plinthe, une face par cap de `CAPS` (façade à panneaux en
+    saillie sur le corps ; bout ou niche de service, en retrait de la tête de leurs chevilles sous la face du corps),
+    plateau en débord sur son chant, d'onglet là où deux façades se suivent, repose-pied de fer sur ses supports."""
+    C, arete, m, fers = D["COMPTOIR"], D["ARETE"], pieces[MAT], pieces["fers"]
+    R = C["rangs"][G.id]
+    (corps, cotes), (socle, (sx_, sy_, sz_)), (dessus, table_) = (pave(G.primitives[R[cle]])
+                                                                  for cle in ("corps", "socle", "plateau"))
+    etalon, (large, epais, haut_panneau) = pave(G.primitives[R["panneau"]])
+    bas, haut = corps.z - cotes[2] / 2, corps.z + cotes[2] / 2
+    hauteurs = (bas, etalon.z - haut_panneau / 2, etalon.z + haut_panneau / 2, haut)
+    e = epais * C["cadre"]
+    jeu = e * C["cheville"] * D["CHEVILLE"]["saillie"][1]
+    barre(m, [(Vector((socle.x, socle.y, h)), sx_ / 2, sy_ / 2, sz_ * arete) for h in (socle.z - sz_ / 2, bas)], X, Y)
+
+    saillante = [genre == "facade" for genre, _ in R["faces"]]
+    retraits = []
+    for k, (n, (genre, rangs)) in enumerate(zip(CAPS, R["faces"])):
+        u = HAUT.cross(n)
+        avant, apres = saillante[k - 1], saillante[(k + 1) % len(CAPS)]
+        portee, recul = le_long(u, cotes), le_long(n, cotes) / 2
+        niche = le_long(n, cotes) * C["niche"] if genre == "niche" else 0.0
+        retraits.append((0.0 if saillante[k] else e + jeu) + niche)
+        dehors = recul + (e if saillante[k] else -jeu)
+        debut = -portee / 2 + (0.0 if saillante[k] or avant else e)
+        fin = portee / 2 + (e if saillante[k] and apres else 0.0)
+        pied = Vector((corps.x, corps.y, bas)) + n * dehors
+        if rangs:
+            jours = []
+            for rang in rangs:
+                c, panneau_ = pave(G.primitives[rang])
+                jours.append(((c - pied).dot(u) - debut, le_long(u, panneau_) / 2))
+        else:
+            bord, montant = large * C["bord"], large * C["montant"]
+            demi = (fin - debut - 2 * bord - (C["jours"] - 1) * montant) / C["jours"] / 2
+            jours = [(bord + demi + i * (2 * demi + montant), demi) for i in range(C["jours"])]
+        centres = cadre(m, pied + u * debut, u, n, fin - debut, hauteurs, jours, e, C, D, a)
+        if genre == "niche":
+            T = C["tablette"]
+            axe = pied - n * (e + niche / 2) + HAUT * ((haut - bas) * T[0])
+            planche(m, axe + u * (-portee / 2 + e), axe + u * (portee / 2 - e), n, HAUT, niche / 2, e * T[1],
+                    e * T[1] * 2 * arete)
+        else:
+            for c, (_, demi) in zip(centres, jours):
+                panneau(m, c, n, u, HAUT, demi, haut_panneau / 2, e * C["panneau"], D["PANNEAU"], arete)
+        if saillante[k]:
+            H = C["chant"]
+            demi_large = ((dessus - corps).dot(n) + le_long(n, table_) / 2 - dehors) * H[0] / 2
+            demi_haut = (haut - hauteurs[2]) * H[1] / 2
+            axe = pied + n * demi_large + HAUT * (haut - bas - demi_haut)
+            planche(m, axe + u * (-portee / 2 - (e if avant else 0.0)),
+                    axe + u * (portee / 2 + (e + 2 * demi_large if apres else 0.0)), n, HAUT, demi_large, demi_haut,
+                    demi_large * H[2])
+    devant, est, dos, ouest = retraits
+    barre(m, [(Vector((corps.x + (ouest - est) / 2, corps.y + (devant - dos) / 2, h)), (cotes[0] - ouest - est) / 2,
+               (cotes[1] - devant - dos) / 2, e * arete) for h in (bas, haut)], X, Y)
+
+    coin = next((k for k in range(len(CAPS)) if saillante[k] and saillante[(k + 1) % len(CAPS)]), None)
+    if coin is None:
+        plateau(m, G.primitives[R["plateau"]], C, a)
+    else:
+        ez = table_[2] / 2
+        rive = ez * C["rive"]
+        for n, vers in ((CAPS[coin], CAPS[(coin + 1) % len(CAPS)]), (CAPS[(coin + 1) % len(CAPS)], CAPS[coin])):
+            demi = le_long(n, table_) / 2 / C["planches"]
+            angle = dessus + n * (le_long(n, table_) / 2) + vers * (le_long(vers, table_) / 2)
+            for k in range(C["planches"]):
+                enfonce = ez * a.uniform(*C["affleurement"])
+                onglet = angle - (n + vers) * ((2 * k + 1) * demi) - HAUT * enfonce
+                bout = angle - n * ((2 * k + 1) * demi) - vers * le_long(vers, table_) - HAUT * enfonce
+                coque(m, [octogone(bout, n, HAUT, demi - rive, ez - enfonce - rive, rive / 2),
+                          octogone(bout + vers * rive, n, HAUT, demi, ez - enfonce, rive),
+                          octogone(onglet, n + vers, HAUT, demi, ez - enfonce, rive)], MAT)
+
+    B, S = C["barre"], C["support"]
+    rayons = {}
+    for rang in R["barres"]:
+        c, tube = pave(G.primitives[rang])
+        axe = X if tube[0] > tube[1] else Y
+        rayons[rang] = tube[2] / 2 * B["rayon"]
+        tournee(fers, c - axe * (le_long(axe, tube) / 2), c + axe * (le_long(axe, tube) / 2), *normales(axe),
+                rayons[rang], ((0.0, 1.0), (1.0, 1.0)), B["cotes"], "fer")
+    tete = rayons[R["barres"][-1]] * S["tete"]
+    for rang in R["supports"]:
+        c, (lx, ly, lz) = pave(G.primitives[rang])
+        tournee(fers, c - HAUT * (lz / 2), c + HAUT * (lz / 2 + tete), X, Y, min(lx, ly) / 2 * S["rayon"], S["profil"],
+                S["cotes"], "fer")
+
+
+def etabli(D, G, pieces, a):
+    """Un établi d'après `ETABLI` : plateau de madriers, pieds à chanfreins arrêtés, ceinture chevillée, traverses
+    basses, entretoise clavetée et tablette basse, presse à mors de bois et vis de fer, maillet, scie de la
+    recette."""
+    E, arete, K, m, fers = D["ETABLI"], D["ARETE"], D["CHEVILLE"], pieces[MAT], pieces["fers"]
+    R = E["rangs"]
+    table_, (px_, py_, pz_) = pave(G.primitives[R["plateau"]])
+    dessous, dessus = plateau(m, G.primitives[R["plateau"]], E, a)
+    pieds, cote = pieds_droits(m, G, R["pieds"], lambda c: Vector((c.x, c.y, dessous)), E["pied"])
+    centre, (_, ly, lz) = pave(G.primitives[R["entretoise"]])
+    basse = tuple(cote * f for f in E["basse"])
+    gauche, droit = pietement(m, pieds, cote, dessous, E["ceinture"], cote * E["ceinture"]["hauteur"],
+                              cote * E["cheville"], centre.z, basse, cote * E["saillie"], (ly / 2, lz / 2),
+                              (ly / 2 * E["tenon"][0], lz / 2 * E["tenon"][1]), E["clavette"], arete, K, a)
+    T = E["tablette"]
+    demi, epais = (pieds[(1, 1)][0].y - centre.y - cote) * T["largeur"], cote * T["epaisseur"]
+    pose = centre.z + basse[1] + epais
+    for k in range(T["planches"]):
+        y = centre.y + demi * (2 * k + 1 - T["planches"]) / T["planches"]
+        planche(m, Vector((gauche.x - basse[0], y, pose)), Vector((droit.x + basse[0], y, pose)), Y, HAUT,
+                demi / T["planches"], epais, epais * E["rive"])
+
+    S = E["presse"]
+    etau, (ex_, ey_, ez_) = pave(G.primitives[R["etau"]])
+    depart, sommet = etau.x - ex_ / 2, etau.z + ez_ / 2
+    M, V, L = S["mors"], S["vis"], S["levier"]
+    for part in S["places"]:
+        x = depart + ex_ * part
+        planche(m, Vector((x, etau.y, dessus - (sommet - dessus) * M["enfonce"])), Vector((x, etau.y, sommet)), X, Y,
+                ex_ * M["epaisseur"], ey_ * M["largeur"], ex_ * M["epaisseur"] * M["chanfrein"])
+    axe = Vector((depart + ex_ * V["depart"], etau.y, dessus + (sommet - dessus) * V["hauteur"]))
+    bout = Vector((etau.x + ex_ / 2, axe.y, axe.z))
+    rayon = (sommet - dessus) * V["rayon"]
+    tournee(fers, axe, bout, *normales(X), rayon, V["profil"], V["cotes"], "fer")
+    bras = (Y + HAUT * L["pente"]) * (ey_ * L["demi"])
+    moyeu = axe.lerp(bout, L["place"])
+    tournee(fers, moyeu - bras, moyeu + bras, *normales(bras.normalized()), rayon * L["rayon"], L["profil"], L["cotes"],
+            "fer")
+
+    Q = E["maillet"]
+    longue, large, haute = (pz_ * f for f in Q["tete"])
+    manche = Vector((*Q["manche"]["direction"], 0)).normalized()
+    tete = Vector((table_.x + px_ / 2 * Q["place"][0], table_.y + py_ / 2 * Q["place"][1], dessus + haute))
+    planche(m, tete - HAUT.cross(manche) * longue, tete + HAUT.cross(manche) * longue, manche, HAUT, large, haute,
+            haute * 2 * arete)
+    rayon = pz_ * Q["manche"]["rayon"]
+    bout = Vector((tete.x, tete.y, dessus + rayon)) + manche * (pz_ * Q["manche"]["longueur"])
+    tournee(m, tete, bout, *normales((bout - tete).normalized()), rayon, ((0.0, 1.0), (1.0, 1.0)), Q["manche"]["cotes"])
+
+    if G.id in E["scie"]:
+        (lame, (bx, by, bz)), (poignee, (hx, hy, hz)) = (pave(G.primitives[rang]) for rang in E["scie"][G.id])
+        sens = Vector((lame.x - poignee.x, 0, 0)).normalized()
+        fine, talon, pointe = bz * E["lame"][0], by / 2 * E["lame"][1], by / 2 * E["lame"][2]
+        pose = Vector((lame.x, lame.y, dessus + fine))
+        barre(fers, [(pose - sens * (bx / 2), talon, fine, fine * arete),
+                     (pose + sens * (bx / 2), pointe, fine, fine * arete)], Y, HAUT, "fer")
+        demi_large, demi_haut = hy / 2 * E["poignee"][0], hz * E["poignee"][1]
+        chanfrein = demi_haut * E["poignee"][2]
+        pose = Vector((poignee.x, poignee.y, dessus + demi_haut))
+        planche(m, pose - sens * (hx / 2), pose + sens * (hx / 2), Y, HAUT, demi_large, demi_haut, chanfrein)
+
+
 CONSTRUCTEURS = {"table": table, "table-2x1": table, "chaise": chaise, "banc": banc, "tabouret": tabouret, "armoire": armoire,
-                 "bureau": bureau, "bureau-2x1": bureau, "etagere": etagere, "lit": lit}
+                 "bureau": bureau, "bureau-2x1": bureau, "etagere": etagere, "lit": lit,
+                 "comptoir-droit": comptoir, "comptoir-angle": comptoir, "etabli": etabli, "etabli-2x1": etabli}
 
 
 def construire(D, id_):
