@@ -2,7 +2,6 @@
 la robe. Le `modele.py` de la pièce bâtit ses sommets, ses faces et ses poids autour de l'axe du corps ; le kit en fait la
 pièce skinnée, aux clés de la robe qu'elle ceint.
 """
-import math
 
 import numpy as np
 
@@ -12,12 +11,6 @@ def axe_du_corps(b, zones, hauteur):
     P = np.concatenate([b.corps(z)[0] for z in zones])
     tranche = P[np.abs(P[:, 2] - hauteur) < 0.02]
     return np.array([(tranche[:, 0].min() + tranche[:, 0].max()) / 2, (tranche[:, 1].min() + tranche[:, 1].max()) / 2, 0.0])
-
-
-def sortante(theta):
-    """La direction horizontale qui sort de l'axe du corps à l'angle `theta` (radians, depuis l'avant -Y vers la gauche
-    +X)."""
-    return np.array([math.sin(theta), -math.cos(theta), 0.0])
 
 
 def ceindre(b, nom, sommets, faces, mat, teintes, W, angle_vif, zones, publie, zones_du_publie):

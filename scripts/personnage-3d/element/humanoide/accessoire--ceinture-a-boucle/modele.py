@@ -15,8 +15,8 @@ import math
 
 import numpy as np
 from maille import Maille, poutre, tore
-from taille import axe_du_corps, ceindre, sortante
-from tissu import emprunter, porteur_de, sur_le_porteur
+from taille import axe_du_corps, ceindre
+from tissu import direction_spatiale, emprunter, porteur_de, sur_le_porteur
 
 HAUT = np.array([0.0, 0.0, 1.0])
 
@@ -26,7 +26,7 @@ def construire(D, materiaux, b):
     robe = porteur_de(*b.matieres_publiees(D['CONTOURNE']['robe'], D['MATIERES_DE_LA_ROBE']))
     axe = axe_du_corps(b, D['ZONES'], D['HAUTEUR'])
     s, demi = D['SEGMENTS'], D['LARGEUR'] / 2
-    angles = [2 * math.pi * (i + 0.5) / s for i in range(s)]
+    angles = [360.0 * (i + 0.5) / s for i in range(s)]
 
     def rayons(dz):
         """Par section, la distance à l'axe de l'envers du cuir à la hauteur `HAUTEUR + dz` : la robe plus le jeu,
@@ -34,7 +34,7 @@ def construire(D, materiaux, b):
         r = []
         for theta in angles:
             o = axe + HAUT * (D['HAUTEUR'] + dz)
-            p, _ = sur_le_porteur(robe, o, sortante(theta), D['PORTEE'])
+            p, _ = sur_le_porteur(robe, o, direction_spatiale(theta), D['PORTEE'])
             r.append(float(np.linalg.norm((p - o)[:2])) + D['JEU'])
         for _ in range(D['PASSES_DE_PONT']):
             r = [max(r[i], (r[i - 1] + r[(i + 1) % s]) / 2) for i in range(s)]
@@ -44,7 +44,7 @@ def construire(D, materiaux, b):
     m, poids = Maille(list(materiaux.values())), []
     cuir = []
     for i, theta in enumerate(angles):
-        d = sortante(theta)
+        d = direction_spatiale(theta)
         for r, dz in ((bas[i], -demi), (bas[i] + D['EPAISSEUR'], -demi), (haut[i] + D['EPAISSEUR'], demi), (haut[i], demi)):
             cuir.append(axe + HAUT * (D['HAUTEUR'] + dz) + r * d)
         poids += [emprunter(axe + HAUT * D['HAUTEUR'] + (bas[i] + haut[i]) / 2 * d, robe)[0]] * 4
@@ -58,7 +58,7 @@ def construire(D, materiaux, b):
         u = abscisse / devant / (2 * math.pi / s) - 0.5
         i, f = math.floor(u), u - math.floor(u)
         r = sum(((1 - f) * c[i % s] + f * c[(i + 1) % s]) / 2 for c in (bas, haut)) + D['EPAISSEUR']
-        d = sortante(abscisse / devant)
+        d = direction_spatiale(math.degrees(abscisse / devant))
         return axe + HAUT * D['HAUTEUR'] + r * d, (np.cross(HAUT, d), HAUT, d)
 
     def barre(c, repere, demis):

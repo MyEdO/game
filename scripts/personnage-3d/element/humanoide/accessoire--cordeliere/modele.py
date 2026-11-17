@@ -16,8 +16,8 @@ la bure publiée sous la corde.
 import math
 
 import numpy as np
-from taille import axe_du_corps, ceindre, sortante
-from tissu import emprunter, lisser, porteur_de, sur_le_porteur, unitaire, voisinage
+from taille import axe_du_corps, ceindre
+from tissu import direction_spatiale, emprunter, lisser, porteur_de, sur_le_porteur, unitaire, voisinage
 
 
 def tube(sections, cotes, boucle):
@@ -46,13 +46,13 @@ def construire(D, materiaux, b):
     haut = np.array([0.0, 0.0, 1.0])
     R, s = D['RAYON'], D['SEGMENTS']
 
-    def point(theta):
-        d = sortante(theta)
-        o = axe + haut * (D['HAUTEUR'] - D['PENTE'] / 2 * math.cos(theta))
+    def point(phi):
+        d = direction_spatiale(phi)
+        o = axe + haut * (D['HAUTEUR'] - D['PENTE'] / 2 * math.cos(math.radians(phi)))
         p, _ = sur_le_porteur(bure, o, d, D['PORTEE'])
         return p + d * (D['JEU'] + R), d
 
-    anneau = [point(2 * math.pi * (i + 0.5) / s) for i in range(s)]
+    anneau = [point(360.0 * (i + 0.5) / s) for i in range(s)]
     sections = []
     for i, (c, d) in enumerate(anneau):
         t = unitaire(anneau[(i + 1) % s][0] - anneau[i - 1][0])
