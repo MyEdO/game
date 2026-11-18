@@ -2060,12 +2060,12 @@ export function reussiteSansObjet(c: Combatant, ops: readonly GameOp[], ctx: Con
 type OpTable = Extract<GameOp, { op: 'rollTable' }>;
 
 /** Les rangées d'une op `rollTable` : en ligne (`entries`) ou référencées (`tableId` → tables.json, fail-fast). */
-export function rangeesDeLaTable(o: OpTable): { min: number; max: number; ops: GameOp[] }[] {
+function rangeesDeLaTable(o: OpTable): { min: number; max: number; ops: GameOp[] }[] {
   return 'tableId' in o ? findEffectTableById(o.tableId).entries : o.entries;
 }
 
 /** Une rangée tirée d'une `rollTable` : ses ops et le dé tiré (`rolled` des ops de la rangée). */
-export interface RangeeTiree { ops: GameOp[]; rolled: number }
+interface RangeeTiree { ops: GameOp[]; rolled: number }
 
 /** Développe une op `rollTable` en rangées tirées, sans rien appliquer : un jet par rangée rendue, tiré à la
  *  demande (l'appelant qui applique une rangée avant la suivante garde l'ordre des tirages de `rng`).
@@ -2622,7 +2622,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'exposeDisease': {
-        // SILENCIEUX : l'exposition ne s'exprime qu'au bilan de fin de combat.
+        // SILENCIEUX : l'exposition se résout au bilan de fin de combat, ou hors combat par `ouvrirLesContagions`.
         target.diseaseExposure = exposerALaMaladie(target.diseaseExposure, o);
         break;
       }
