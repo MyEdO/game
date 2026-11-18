@@ -3,11 +3,10 @@
  * écran 'dataEditor'). Les *.json de ce dossier sont la SOURCE CANONIQUE app-owned, curée à la main :
  * aucune migration ne les régénère.
  */
-import type { IconId } from './icons/types';
 import type { EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { listeEt, t, type MsgKey } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
   catalogueSpecs,
   dansLaSousListe,
@@ -279,7 +278,7 @@ import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
-import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type StakeForm, type PerteSansEquipe } from '../engine/types';
+import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type PerteSansEquipe } from '../engine/types';
 import { formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
 // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
@@ -287,7 +286,6 @@ import {
   sizeFromProfile,
   sizeFromTalents,
 } from '../engine/size';
-import type { VarianteDeCible } from './schemas/grammaire/valeurs';
 import type * as seaNavigationDef from './schemas/defs/sea-navigation';
 import type * as seaCargoDef from './schemas/defs/sea-cargo';
 import type * as propsDef from './schemas/defs/props';
@@ -1072,111 +1070,11 @@ export type HarvestDanger = z.infer<typeof harvestDangerSchema>;
 
 /** Créature du bestiaire (LDB 76), son id fermé sur l'union générée (`Id<'creature'>`). */
 export type CreatureData = EntreeDe<typeof creaturesDef>;
-/** Base d'un état psychologique porté (LDB 21, `PsychologyData`), de même vocabulaire que l'État (LDB 16,
- *  `EtatData`, dérivé de `schemas/defs/etats.ts`). Porte le vocabulaire commun : modificateurs PASSIFS
- *  (`passive: OpPassive[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
- *  (`effects: TriggeredEffect[]`). Folding UNIQUE : `passiveMods` (passifs) + `fireStatusEffects` (déclenchés)
- *  itèrent indifféremment États et états psy → zéro duplication de schéma ni de collecteur. */
-export interface StatusData {
-  /** id STABLE (slug du libellé) — cible des instances (`ConditionInstance.name` / `PsychAffliction.type`). */
-  id: string;
-  type: 'psychology';
-  label: string;
-  /** Prose : `desc` inline ou son adresse `descRef` (#1389), que le plugin `wfrp:prose-source` matérialise en `desc`
-   *  au chargement (V1 du refine `grammaire/prose.ts`). */
-  desc?: string;
-  descRef?: DescRef;
-  source: SourceRef;
-  /** Modificateurs PASSIFS continus (pénalité de Test, `incomingAttackMod`, `sbBonus`…) en `OpPassive[]`, lus
-   *  par `passiveMods` (kind `etat` : pool non-cumul, le pire seul, LDB 16 l.13). MÊME éditeur GameOpEditor. */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Effets DÉCLENCHÉS (dégâts par round → `onRoundEnd` ; sortie de Frénésie → `onTurnStart`…) en
-   *  `TriggeredEffect[]`, diffusés par `fireStatusEffects` — le même cœur `applyTriggeredEffects`. */
-  effects?: TriggeredEffect[];
-  /** Restriction d'Action / de Mouvement / de défense imposée par le STATUT (États : À Terre/Sonné/
-   *  Inconscient/Surpris/Empêtré ; et Psychologie — « Etat comme Psy »), lue en DONNÉES par les prédicats
-   *  moteur `canTakeAction`/`effectiveMovement`/`cannotDefend` via le collecteur `conditionGating` (jamais
-   *  une branche par-nom). Même forme que le `gating` de l'État (`schemas/defs/etats.ts`). */
-  gating?: { action?: 'none'; movement?: 'none' | 'half' | 'crawl'; cannotDefend?: true };
-}
-
 /** État (LDB 16), son id fermé sur l'union générée (`Id<'etat'>`). */
 export type EtatData = EntreeDe<typeof etatsDef>;
 
-/** État PSYCHOLOGIQUE en DONNÉES (LDB 21) — `id` = `PsychType` (`frenesie`, à terme `peur`/`terreur`/…).
- *  Étend `StatusData` (passive/effects mutualisés) ; n'ajoute que la capacité propre à la psychologie. */
-export interface PsychologyData extends StatusData {
-  /** ENJEU du Test de cette affliction (#1117 L2) — porté par l'ENTRÉE (patron `ActivityDef.stake`) :
-   *  ses conséquences lui sont propres (`resolution`/`failCondition`/`failAmount`/`becomes`), un texte
-   *  au `kind` serait tautologique. Résolu par `resolveStake` via l'`entryId` de l'étape. */
-  stake?: string;
-  stakeForm?: StakeForm;
-  /** AFFICHAGE (couche UI, hors RAW LDB 21) : icône du registre `<Icon>` (id `famille/nom`), à l'égal
-   *  d'`EtatData.icon`. Lu par `cibleLabel` (engine/psychology.ts). */
-  icon?: IconId;
-  /** Porter cet état psy IMMUNISE à la Psychologie (Frénésie, LDB 21 l.33) — lu GÉNÉRIQUEMENT par
-   *  `isPsychImmune` (jamais codé par-nom), à l'égal du drapeau de trait « Immunité (Psychologie) ». */
-  psychImmune?: boolean;
-  /** Variantes de Cible admises (Groupe, individu) d'un Trait psychologique CIBLÉ (LDB 21) ; leur présence
-   *  fait le type ciblé (`estCibleType`), lues par `varianteAdmise` (`engine/psych/ciblage.ts`). #3045 */
-  cibles?: VarianteDeCible[];
-  /** RAW LDB 21 : cette affliction CIBLÉE cesse dès que son porteur tombe sous un AUTRE effet psychologique
-   *  « dominant » (Peur/Terreur/Haine…) — « Animosité est annulé par Peur et Terreur » ; Préjugé idem. */
-  endedByOtherPsych?: boolean;
-  /** RAW LDB 21 l.41 : tant que cette affliction CIBLÉE est active, son porteur est IMMUNISÉ aux CANAUX
-   *  listés causés par un membre de sa Cible (Haine → `['peur']` ; l'Intimidation du RAW attend sa mécanique, #1234).
-   *  Lu par `psychImmuneToFrom` (siège unique : `fearSourceFor` + `psychDRAdjust`). */
-  immuneToFromTarget?: string[];
-  /** Contribution de cet état psy au DEGRÉ DE RÉUSSITE de l'ATTAQUE de son porteur (LDB 21, ±1 DR) — lu
-   *  par `psychDRAdjust` (plus de ±1 codé par-nom). `vs:'source'` = Peur vs sa source (`sousPeur`,
-   *  l.29) ; `vs:'group'` = Haine/Animosité vs le groupe ciblé actif (l.22/41), qui oriente aussi le
-   *  vivier de l'IA (`noyau/monde/ai.ts`) ; `vs:'any'` = Amour/
-   *  Camaraderie en défense, dès lors qu'actif (l.77/82). */
-  attackDR?: { amount: number; vs: 'source' | 'group' | 'any' };
-  /** RAW LDB 21 l.75 : tant que cette affliction est active, son porteur est IMMUNISÉ aux CANAUX listés,
-   *  mais SEULEMENT tant que l'affliction est ACTIVE, ce que `refreshDefendedPsych` conditionne à la présence
-   *  d'un membre de sa Cible en état d'être défendu (Amour → `['peur']`). Même siège `psychImmuneToFrom`. */
-  immuneWhileActive?: string[];
-  /** RAW LDB 21 l.19/l.48 : modificateur aux Tests de Sociabilité envers la Cible que subit le porteur du
-   *  Trait tant qu'il n'est PAS en affliction active (issue du Test de Psychologie RÉUSSI — Animosité −20,
-   *  Préjugé −10). Lu par `socialPsychMod`/`socialPsychLabel` (plus de −20/−10 ni de type codé par-nom). */
-  containedSocialMod?: number;
-  /** RAW LDB 21 l.87 : l'OBJET de ce Trait CIBLÉ est traité comme CAUSANT l'état psy `kind` d'Indice
-   *  `indice` (Phobie → Peur 1) — l'entrée n'a donc pas de Test propre : tout le régime de `kind` s'applique.
-   *  `indice` est le DÉFAUT, surchargé par l'Indice de l'instance possédée (« Vous pouvez vouloir augmenter
-   *  l'Indice de Peur si la Phobie est particulièrement forte » — éditable au Codex). Lu par `fearSourceFor`. */
-  targetCauses?: { kind: string; indice: number };
-  /** SITUATION qui EXPOSE au Trait CIBLÉ (LDB 21 l.9), lue par `targetedTrigger` — jamais un camp.
-   *  `'encounter'` (défaut) : « chaque fois que vous rencontrez l'un de ces groupes » (Animosité l.19,
-   *  Préjugé l.45 ; Haine l.39 « Lorsque vous rencontrez ceux qui vous provoquent la Haine »).
-   *  `'threatened'` : « Vous devez venir en aide à quelqu'un que vous aimez s'il se retrouve menacé »
-   *  (Amour l.75 ; Camaraderie l.81 « si ce groupe est menacé ») — un tiers doit être agressif envers
-   *  le membre de la Cible (`agressifEnvers`). */
-  triggerOn?: 'encounter' | 'threatened';
-  /** Moment du re-test d'une affliction ciblée active ; absent = début du Round. LDB 21 l.9, l.19, l.39, l.48 */
-  retestAt?: 'roundStart' | 'roundEnd';
-  /** Mode de RÉSOLUTION du Test de Psychologie (LDB 21), lu par l'applier GÉNÉRIQUE `psychologieDeCombat` (jamais
-   *  un dispatch `kind === 'terreur'` codé) : `'etendu'` = Test ÉTENDU de Calme cumulant le DR vers l'Indice
-   *  (Peur, l.27) ; `'terreur'` = Test SIMPLE dont l'échec inflige `failCondition` (Indice + |DR négatifs|)
-   *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'simple'` = Test SIMPLE (LDB 12 l.3-7) activant l'affliction
-   *  CIBLÉE (traits ciblés). Absent (Frénésie/trauma) = pas de Test de résolution surmontable. */
-  resolution?: 'etendu' | 'terreur' | 'simple';
-  /** (résolution `'terreur'`) État infligé à l'ÉCHEC (`EtatData.id`) ; la QUANTITÉ est déclarée par
-   *  `failAmount` (défaut = Indice + |DR négatifs|, LDB 21 l.54). */
-  failCondition?: { id: string };
-  /** (résolution `'terreur'`) QUANTITÉ d'état infligée à l'échec, EN DONNÉES (`failConditionAmount`) :
-   *  `base` (l'Indice de l'affliction via `'indice'`, ou un nombre FIXE) + `perDegreeOfFailure` par DR
-   *  négatif. Défauts `{ base:'indice', perDegreeOfFailure:1 }` = la règle Brisé Terreur — plus de calcul
-   *  codé : un nouvel État/Psy déclare ICI sa quantité (fixe, ou par degrés seuls). */
-  failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number };
-  /** (résolution `'terreur'`) État psychologique SUBSÉQUENT au Test (la Terreur devient une Peur, l.55). */
-  becomes?: { id: string };
-  /** Paramètres du Test de Psychologie (LDB 21) : `skill` (compétence stable, défaut `calme` — la valeur
-   *  NUE est lue par `skillBaseValue`) + `difficulty` (défaut Intermédiaire +0). Lu par `psychStepFor`/
-   *  l'encounter, plus de Calme/Intermédiaire codé : un nouvel État/Psy déclare ICI son Test (ex. testé en
-   *  Résistance, ou à une difficulté propre). « Sans Peur (Ennemi) » force Accessible à part (par-combattant). */
-  test?: { skill?: RefDesignee; difficulty?: import('../engine/types').Difficulty };
-}
+/** État psychologique (LDB 21), son id fermé sur l'union générée (`Id<'psychology'>`). */
+export type PsychologyData = EntreeDe<typeof psychologyDef>;
 /** Rangée des Tableaux de couleur des yeux / des cheveux (LDB 05 l.742-768), par colonne `RaceKey` (#313). */
 export type DetailColorData = RangeeDe<typeof couleurDesYeux>;
 /** Manœuvre au catalogue (LDB 85), son id fermé sur l'union générée (`Id<'maneuver'>`) ; la joue `resolveManeuver` (`noyau/combatManeuvers`). */
@@ -1933,7 +1831,7 @@ export function findConditionById(id: string): EtatData | undefined {
 
 /** États PSYCHOLOGIQUES (LDB 21) — base app-owned éditable au Codex, prose ADRESSÉE au `Source/`
  *  (`descRef`, #1389 : première famille migrée). */
-export const psychologies: PsychologyData[] = datasetDe<typeof psychologyDef>(psychologyJson);
+export const psychologies = datasetDe<typeof psychologyDef>(psychologyJson);
 const psychologieParId = indexParId('psychologies', psychologies);
 /** Résout un état psychologique par son `id` STABLE (`PsychType`). Absent → undefined (folding inerte). */
 export function findPsychologyById(id: string): PsychologyData | undefined {

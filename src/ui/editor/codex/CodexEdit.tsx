@@ -120,7 +120,9 @@ import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureD
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
 import { specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../../../data/refFormatLivre';
-import type { SecondaryRef, SourceRef, Variant } from '../../../data/schemas/grammaire/valeurs';
+import type { SecondaryRef, SourceRef } from '../../../data/schemas/grammaire/valeurs';
+import type { VarianteReglee } from '../../../engine/variants';
+import type { EnveloppeDocument } from '../../../data/schemas/grammaire/document';
 import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/policy';
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../../data/schemas/defs/spells';
@@ -400,8 +402,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isSpell = categoryKey === 'spells';
   // Porteurs d'effets DÉCLENCHÉS (mêmes `TriggeredEffect` éditables) : Traits, Atouts d'arme, Domaines
   // (riders « à la touche »…) ET Talents (Assaut féroce onHit, Frappe réactive onCharged…).
-  // États psychologiques (`psychologies`, LDB 21, #157) ÉTENDENT le même `StatusData` que les États
-  // (`passive`/`effects` mutualisés) — même patron de rendu.
+  // États psychologiques (`psychologies`, LDB 21, #157) : mêmes `passive`/`effects` que les États
+  // (`defs/psychology.ts`, `defs/etats.ts`) — même patron de rendu.
   const isTriggered = categoryKey === 'traits' || categoryKey === 'qualities' || categoryKey === 'domains' || categoryKey === 'talents' || categoryKey === 'etats' || categoryKey === 'psychologies' || categoryKey === 'symptoms' || categoryKey === 'mutations' || categoryKey === 'trappings';
   // Manœuvre = ENTITÉ de 1ʳᵉ classe : profil dédié + ses effets AUTHORÉS (Dégâts + États) en GameOp.
   const isManeuver = categoryKey === 'maneuvers';
@@ -692,7 +694,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isDisease && <DiseaseDailyTestField value={entry.dailyTest as DiseaseDailyTest | undefined} onChange={(v) => edit('dailyTest', v)} />}
         {hasCombat && <TalentTestField value={entry.test as TalentTest | undefined} onChange={(v) => edit('test', v)} />}
         {hasCombat && <CombatField value={entry.combat as Partial<CombatFeature> | undefined} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('combat', v)} />}
-        {variantFields && <VariantsField chemin={chemin('variants')} value={entry.variants as Variant[] | undefined} resolved={variantFields} entryFields={allFields} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('variants', v.length ? v : undefined)} />}
+        {variantFields && <VariantsField chemin={chemin('variants')} value={entry.variants as VarianteEditee[] | undefined} resolved={variantFields} entryFields={allFields} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('variants', v.length ? v : undefined)} />}
         {hasAlsoIn && <AlsoInField chemin={chemin('alsoIn')} value={entry.alsoIn as SecondaryRef[] | undefined} onChange={(v) => edit('alsoIn', v.length ? v : undefined)} />}
         {hasSpecs && <SpecsField value={entry.specs as SpecEntry[] | undefined} onChange={(v) => edit('specs', v)} />}
         {hasAdvancement && <AdvancementRefField ds="skills" label="Compétences" value={entry.skills as AdvancementRef[] | undefined} onChange={(v) => edit('skills', v)} />}
@@ -1186,12 +1188,14 @@ function TraumaListField({ value, onChange }: { value: string[] | undefined; onC
   );
 }
 
-/** Variantes RÉGLÉES d'une entrée sous une règle optionnelle (`variants: Variant[]`, #563/#564) —
+/** Variantes RÉGLÉES d'une entrée sous une règle optionnelle (`variants`, #563/#564) —
  *  `when.rule` est un id du registre `OPTIONAL_RULES` (`engine/policy.ts`, SELECT peuplé, jamais une
  *  saisie libre : pas de gate fantôme, doctrine id/label). Les champs republiables sont ceux que le
  *  DATASET résout (`resolved` = sa `VARIANT_RESOLVED_FIELDS`) : `combat` réutilise `CombatField`,
  *  `effects` le même éditeur de Flow que l'entrée de base, et tout autre champ (NI, Durée…) reprend
  *  son gabarit inféré (`entryFields`) — aucune liste de champs écrite à la main ici. */
+/** Une variante sous l'éditeur, de dataset inconnu : sa garde, sa prose, et les champs que ce dataset republie. */
+type VarianteEditee = VarianteReglee & Partial<Pick<EnveloppeDocument, 'desc' | 'source'>> & Record<string, unknown>;
 /** Coerce la valeur SAISIE de `when.equals` au type que la règle compare au runtime (`activeVariant`
  *  fait `rule(id) === equals`, stricte égalité) : `flag`→boolean, `param`→number, `mode`/défaut→string.
  *  Sans ça une chaîne « true »/« 2 » ne serait jamais `===` au boolean/number réel — gate cassé en silence. */
@@ -1202,9 +1206,9 @@ function coerceRuleValue(raw: string, kind: RuleKind | undefined): RuleValue | u
   return raw;
 }
 
-function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onChange }: { chemin: string; value: Variant[] | undefined; resolved: readonly string[]; entryFields: FieldDesc[]; allFeatures: (Partial<CombatFeature> | undefined)[]; onChange: (v: Variant[]) => void }) {
+function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onChange }: { chemin: string; value: VarianteEditee[] | undefined; resolved: readonly string[]; entryFields: FieldDesc[]; allFeatures: (Partial<CombatFeature> | undefined)[]; onChange: (v: VarianteEditee[]) => void }) {
   const list = value ?? [];
-  const set = (next: Variant[]) => onChange(next);
+  const set = (next: VarianteEditee[]) => onChange(next);
   const patch = (i: number, key: string, v: unknown) => set(list.map((x, j) => (j === i ? { ...x, [key]: v } : x)));
   // Champs republiables SANS éditeur bespoke ci-dessous : rendus par le gabarit de l'entrée de base.
   const generic = entryFields.filter((f) => resolved.includes(f.key) && !['desc', 'source', 'combat', 'effects'].includes(f.key));
