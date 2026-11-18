@@ -41,7 +41,7 @@ import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
 import { BORNES_DE_LA_SUBSTITUTION } from '../../../data/schemas/defs/careers';
-import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
+import { charKeySchema, equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
 import {
   ChoixDeSpec,
@@ -112,7 +112,7 @@ import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
 import type { DomainData, EffectTableRow } from '../../../data';
-import type { CharKey, Difficulty, Trauma, VehicleData } from '../../../engine/types';
+import type { Difficulty, Trauma, VehicleData } from '../../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
@@ -700,7 +700,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {hasAdvancement && <AdvancementRefField ds="skills" label="Compétences" value={entry.skills as AdvancementRef[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAdvancement && <AdvancementRefField ds="talents" label="Talents" value={entry.talents as AdvancementRef[] | undefined} onChange={(v) => edit('talents', v)} />}
         {hasTrappings && <TrappingRefField value={entry.trappings as TrappingRef[] | undefined} onChange={(v) => edit('trappings', v)} />}
-        {hasCharKeys && <CharKeysField value={entry.characteristics as CharKey[] | undefined} onChange={(v) => edit('characteristics', v)} />}
+        {hasCharKeys && <CharKeysField value={charKeySchema.array().safeParse(entry.characteristics).data} onChange={(v) => edit('characteristics', v)} />}
         {hasStarSub && (
           <PlageField
             label="Sous-tirage"
@@ -962,7 +962,7 @@ function MeasureField({ label, value, onChange }: { label: string; value: Maneuv
   };
   return (
     <label className="dr">{label}
-      <select value={v.bonusOf ?? ''} onChange={(e) => upd({ bonusOf: (e.target.value || undefined) as CharKey | undefined })}>
+      <select value={v.bonusOf ?? ''} onChange={(e) => upd({ bonusOf: charKeySchema.safeParse(e.target.value).data })}>
         <option value="">— (aucun)</option>
         {CHAR_KEYS.map((k) => <option key={k} value={k}>Bonus de {CHAR_LABELS[k]}</option>)}
       </select>
@@ -1267,7 +1267,7 @@ function ChampsDuTest({ test, index, onChange, difficulteFacultative = false }: 
       {test.skill
         ? <ChoixDeSpec type="skill" id={test.skill.id} value={test.skill.spec} ariaLabel={`Spécialisation — Test ${index + 1}`} onChange={(spec) => onChange({ skill: { id: test.skill!.id, spec } })} />
         : (
-          <select value={test.characteristic ?? ''} onChange={(e) => onChange({ characteristic: (e.target.value || undefined) as CharKey | undefined })}>
+          <select value={test.characteristic ?? ''} onChange={(e) => onChange({ characteristic: charKeySchema.safeParse(e.target.value).data })}>
             <option value="">— (choisir une Caractéristique) —</option>
             {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
           </select>

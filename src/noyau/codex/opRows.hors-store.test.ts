@@ -10,7 +10,6 @@ import { opRow, opRows, tableRows } from './opRows';
 import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
 import {
-  characteristics,
   talents,
   skills,
   traits,
@@ -25,7 +24,7 @@ import {
   effectTables,
   groupLabel,
 } from '../../data';
-import type { CharKey } from '../../engine/types';
+import { CHAR_KEYS } from '../../engine/types';
 import { psychBranchOps } from '../../engine/psychology';
 import { spellOps } from '../../engine/flowCore';
 import { opPsy } from '../../engine/psych/opsPsy';
@@ -105,11 +104,11 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
   /** Résolvabilité des ancres — DATA-DRIVEN (zéro id en dur) : chaque kind à ancre nominative
    *  d'`opRows.ts` produit un `{t:'ref'}` dont l'id RÉSOUT réellement dans le Codex (même lookup
    *  que `CodexRef.tsx:131`, `codexLookupById`). L'id de fixture est le PREMIER item du dataset réel
-   *  de la catégorie visée — une dérive id↔catégorie future (mauvais champ, mauvaise catégorie,
+   *  de la catégorie visée, la première clé de `CHAR_KEYS` pour une Caractéristique — une dérive id↔catégorie future (mauvais champ, mauvaise catégorie,
    *  dataset renommé) casse ce test au lieu de fuiter en silence sur une chip Codex morte. */
   const ANCHOR_FIXTURES: { kind: GameOp['op']; category: string; build: () => GameOp }[] = [
-    { kind: 'charMod', category: 'characteristics', build: () => ({ op: 'charMod', characteristic: characteristics[0].id as CharKey, mod: -10 }) },
-    { kind: 'charDRBonus', category: 'characteristics', build: () => ({ op: 'charDRBonus', characteristic: characteristics[0].id as CharKey, bonus: 1 }) },
+    { kind: 'charMod', category: 'characteristics', build: () => ({ op: 'charMod', characteristic: CHAR_KEYS[0], mod: -10 }) },
+    { kind: 'charDRBonus', category: 'characteristics', build: () => ({ op: 'charDRBonus', characteristic: CHAR_KEYS[0], bonus: 1 }) },
     // Mouvement/Blessure voyagent par leur propre famille d'ops (hors `CharKey`) mais s'affichent
     // COMME une Caractéristique (arbitrage user 2026-07-17) — même catégorie `characteristics`.
     { kind: 'moveMod', category: 'characteristics', build: () => ({ op: 'moveMod', mod: -1 }) },
