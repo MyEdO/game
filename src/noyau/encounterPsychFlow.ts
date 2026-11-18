@@ -30,7 +30,7 @@ import {
   libelleDeSource,
   sourceCombattant,
   type SourceEnVue,
-  PsychType,
+  PSY,
   psychTest,
   failConditionAmount,
   psychResolution,
@@ -60,7 +60,7 @@ import { battleRng } from './battleRng';
  *  (l'applier en construit une à partir de l'étape de cascade). */
 export interface PendingEncounterPsych {
   heroId: string;
-  kind: PsychType;
+  kind: string;
   sourceId: string;
   sourceName: PlayerText;
   indice: number;
@@ -90,7 +90,7 @@ interface PsychDue { hero: Combatant; decl: PsychBandDecl; icon: IconId; label: 
 
 /** RANGÉE d'une bande : le Test de CE héros, `psychTest` (mêmes données que le combat), monté par le
  *  monteur canonique (`rollStep`) : base nue, pénalité d'États nommée (LDB 16 l.90, l.125), cible bornée. */
-function psychRow(hero: Combatant, kind: PsychType, sansPeur: boolean): BatchParticipant {
+function psychRow(hero: Combatant, kind: string, sansPeur: boolean): BatchParticipant {
   const { skill, difficulty } = psychTest(kind, sansPeur);
   const label = refLabel('skills', skill);
   return {
@@ -159,7 +159,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
     dues.push({
       hero, sansPeur: sansPeurFace(hero, trig.kind, src),
       decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: libelleDeSource(src), indice: trig.indice, cible: trig.cible },
-      icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur'),
+      icon: cl?.icon ?? (trig.kind === PSY.terreur ? 'creature/hurlement' : 'drapeau/peur'),
       label: cl
         ? libelleDePsy(trig.kind, trig.cible, nomDIndividu(s))
         : stepDetail(stepPsych(trig.kind, trig.indice), libelleDeSource(src) || dataLabel(undefined, '?')),
@@ -186,7 +186,7 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
     if (hero.dead || isPsychImmune(hero)) continue;
     dues.push({
       hero, decl,
-      icon: kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur',
+      icon: kind === PSY.terreur ? 'creature/hurlement' : 'drapeau/peur',
       label: stepDetail(stepPsych(kind, indice), dataLabel(label)),
     });
   }

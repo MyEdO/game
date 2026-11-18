@@ -514,7 +514,7 @@ import {
   psychBranchOps,
   psychBranchFlow,
   cibleLabel,
-  PsychType,
+  PSY,
   type PsychAffliction,
   psychTest,
   sousPeur,
@@ -8555,7 +8555,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   // de la CLÉ de bande (deux Indices = deux règles en jeu, donc deux fenêtres).
   const testFor = (indice: number): FlowTest & { difficulty: Difficulty; label: string } => ({
     ...testDeRegle('calme-d-approche', 'source-se-rapproche'),
-    stake: combatStakeRef('combat-psychologie', { entryId: 'peur', values: { indice } }),
+    stake: combatStakeRef('combat-psychologie', { entryId: PSY.peur, values: { indice } }),
   });
   const branches = {
     onSuccess: EMPTY_FLOW, // réussite : garde son sang-froid, rien à faire
@@ -8668,10 +8668,10 @@ export function appliquerLaRecharge(get: Get, set: SetFn, pr: PendingReload, arm
 
 /** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue), allégé par Sans Peur
  *  (`sansPeurFace`) face à une source neuve. */
-type PsychDue = { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
+type PsychDue = { kind: string; sourceId: string; sourceName: PlayerText; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
 
 /** Une source de Peur ou de Terreur en vue, neuve pour le porteur (`sourceDejaAffrontee` faux). */
-type SourceNeuve = { source: SourceEnVue; id: string; label: PlayerText; kind: 'peur' | 'terreur'; indice: number };
+type SourceNeuve = { source: SourceEnVue; id: string; label: PlayerText; kind: string; indice: number };
 
 /** Plus grand Avantage des Engagés de `c`, que lit Belliqueux. LDB 85 l.51 ; LDB 13 l.169-171 */
 function avantageDesEngages(battle: BattleState, c: Combatant): number | undefined {
@@ -8730,7 +8730,7 @@ export function collectRoundStartPsych(get: Get, c: Combatant, round: number): P
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
+    ...l.neuves.filter((n) => n.kind === PSY.terreur || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
     ...retestsCibles(c, l.sources, round, 'roundStart'),
     ...targetedTriggers(c, l.sources).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: nomDeLaSource(l, tt.sourceId), indice: 0, prevDR: 0, cible: tt.cible, sansPeur: false })),
   ];
@@ -8743,9 +8743,9 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'peur').map((n) => dueDeSource(c, n)),
+    ...l.neuves.filter((n) => n.kind === PSY.peur).map((n) => dueDeSource(c, n)),
     ...(c.psychState ?? []).filter((p) => sousPeur(p) && p.lastTestRound !== round).map((p): PsychDue => ({
-      kind: 'peur', sourceId: p.sourceId!, sourceName: nomDeLaSource(l, p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
+      kind: PSY.peur, sourceId: p.sourceId!, sourceName: nomDeLaSource(l, p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
     })),
     ...retestsCibles(c, l.sources, round, 'roundEnd'),
   ];
@@ -8754,9 +8754,9 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
 /** Pose sans Test les Peurs neuves de `c` (Sans Peur excepté, testé par `collectRoundStartPsych`) et rend
  *  les lignes de journal. LDB 21 l.25 ; #3045 */
 function enregistrerLesPeursNeuves(get: Get, c: Combatant): string[] {
-  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === 'peur' && !sansPeurVs(c, n.source));
+  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === PSY.peur && !sansPeurVs(c, n.source));
   if (!neuves.length) return [];
-  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: 'peur', sourceId: n.id, indice: n.indice, calmeDR: 0 }))];
+  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: PSY.peur, sourceId: n.id, indice: n.indice, calmeDR: 0 }))];
   return [...neuves.map((n) => tr('turn.fear', { name: c.label, foe: n.label })), ...supersededLines(c, c.label)];
 }
 
@@ -8811,7 +8811,7 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
       ...(extended ? { extendedDrTarget: t.indice, extendedDrDone: t.prevDR } : {}),
       ...(sansPeur ? { meta: { sansPeur: true } } : {}),
     },
-    icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur'),
+    icon: cl?.icon ?? (t.kind === PSY.terreur ? 'creature/hurlement' : 'drapeau/peur'),
     label: cl ? libelleDePsy(t.kind, t.cible, nomDIndividu(get())) : stepPsych(t.kind, t.indice),
   };
 }

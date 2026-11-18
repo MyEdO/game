@@ -4,7 +4,7 @@
  * `refDeCible`. #1468 #1463 #3045
  */
 import type { GameOp } from '../ops';
-import type { PsychTrait, PsychType } from '../psychology';
+import type { PsychTrait } from '../psychology';
 import { psychologyLabel } from '../../data';
 import { t } from '../../i18n';
 import type { PlayerText } from '../../i18n/playerText';
@@ -43,7 +43,7 @@ export const opPsy = {
 
 /** Le Trait psychologique qu'accorde un `grantPsychTrait` : SEUL lecteur de ses références. */
 export function traitOctroye(op: OpDe<'grantPsychTrait'>): Pick<PsychTrait, 'type' | 'cible'> {
-  return { type: op.psychType.id as PsychType, ...(op.cible !== undefined ? { cible: cibleDeRef(op.cible) } : {}) };
+  return { type: op.psychType.id, ...(op.cible !== undefined ? { cible: cibleDeRef(op.cible) } : {}) };
 }
 
 /** Le libellé joueur du Trait qu'accorde un `grantPsychTrait` : « Préjugé (Nains) », ou « Préjugé (une personne

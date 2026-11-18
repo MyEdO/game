@@ -74,7 +74,7 @@ import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type Ec
 import { type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
-import { sansPeurLabel } from '../engine/psychology';
+import { PSY, sansPeurLabel } from '../engine/psychology';
 import type { MenaceId } from '../engine/menace';
 
 /** Agrégation d'un jet multi (porte/contresort/équipage) — SEULE variation de la famille multi.
@@ -210,8 +210,8 @@ export function stepProlonger(quoi: PlayerText, question = false): PlayerText {
 }
 
 /** « Terreur/Peur {indice} » : l'entrée de psychologie affrontée, nommée par son type et son Indice. */
-export function stepPsych(kind: 'terreur' | 'peur' | string, indice: number | string): PlayerText {
-  return t('step.psychIndice', { kind: t(kind === 'terreur' ? 'step.terreur' : 'step.peur'), indice });
+export function stepPsych(kind: string, indice: number | string): PlayerText {
+  return t('step.psychIndice', { kind: t(kind === PSY.terreur ? 'step.terreur' : 'step.peur'), indice });
 }
 
 /** « {compétence} · Sans Peur » : la RANGÉE dont le Test est allégé par Sans Peur (Ennemi). LDB 10 l.1051 */
