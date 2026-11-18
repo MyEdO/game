@@ -281,6 +281,10 @@ export interface PaquetALancer {
  *  UN type, lu par l'état comme par son poseur : les deux ne peuvent plus diverger. */
 export type PendingInteract = { id: string; actionId?: string; at: Pt };
 
+/** Les registres de l'équipage par rôle : les salariés (`crew`), puis les recueillis sans solde. MDG 14 l.293-302 ; MDG 15 l.258 */
+export const REGISTRES_DU_BORD = ['crew', 'recueillisSansSolde'] as const satisfies readonly (keyof CampaignVessel)[];
+export type RegistreDuBord = (typeof REGISTRES_DU_BORD)[number];
+
 /** Navire que le groupe possède/commande en campagne — survit aux jours et aux combats (≠ la coque
  *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). Ses champs
  *  d'état sont OPTIONNELS : une save antérieure charge tel quel, chaque point de lecture porte son

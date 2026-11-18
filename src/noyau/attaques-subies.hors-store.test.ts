@@ -31,6 +31,8 @@ import { resetRule, setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { garanti } from '../lib/garanti';
 import { WORLD_STEP_OWNER } from './pendings';
+import { posteDuMembre, shipboardSouls } from './shipCrew';
+import type { CampaignVessel } from './etat';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -712,6 +714,23 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     expect(s.journal.join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
   });
 
+  it('le membre tiré pèse le compte de son rôle, registre plus court ou plus long que l’effectif présent (MDG 14 l.15 ; MDG 12 l.85)', () => {
+    const repartition = (vessel: Partial<CampaignVessel>) => {
+      const s = { party: [], vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...vessel } };
+      const n: Record<string, number> = {};
+      for (let i = 0; i < shipboardSouls(s).crew; i++) {
+        const p = posteDuMembre(s, i);
+        const k = p.registre ? `${p.roleId}@${p.registre}` : p.roleId;
+        n[k] = (n[k] ?? 0) + 1;
+      }
+      return n;
+    };
+    expect(repartition({ crew: [{ roleId: 'timonier', count: 3 }, { roleId: 'chirurgien', count: 1 }] }))
+      .toEqual({ 'timonier@crew': 3, 'chirurgien@crew': 1, mousse: 11 });
+    expect(repartition({ crewLost: 5, crew: [{ roleId: 'timonier', count: 10 }, { roleId: 'vigie', count: 3 }, { roleId: 'chirurgien', count: 1 }] }))
+      .toEqual({ 'timonier@crew': 7, 'vigie@crew': 2, 'chirurgien@crew': 1 });
+  });
+
   it('un membre hors registre tient le rôle par défaut : un Mousse (MDG 14 l.15)', () => {
     const { membre } = serieSurLeMembre([{ roleId: 'chirurgien', count: 1 }], touches, 1);
     expect(membre()).toMatchObject({ creatureId: 'mousse', label: 'Mousse' });
@@ -729,7 +748,10 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
 
   it('`combat-mort-subite` désactivée, Critique mortel : l’effectif perd un membre, son rôle au registre aussi (LDB 18 l.34)', () => {
     const { banc, membre } = serieSurLeMembre([{ roleId: 'timonier', count: 15 }], [11, 99, 100, 100, 100], 3, op, { 'combat-mort-subite': 'off' });
-    draineCascade(banc.getState, 30, (e) => (e.kind === 'deviation' ? 100 : undefined), (e) => (e.kind === 'deviation' ? 'subir' : undefined));
+    const cascade = garanti(banc.getState().pendingCascade, 'pendingCascade', 'séquence du Critique');
+    expect(cascade.participants[cascade.cursor]).toMatchObject({ kind: 'deviation', actorId: membre().id, table: { result: { roll: 100 } } });
+    expect(cascade.participants[cascade.cursor].options).toBeUndefined();
+    expect(draineCascade(banc.getState)).toEqual(['deviation']);
     expect(membre().dead).toBe(true);
     const s = banc.getState();
     expect(s.serieSubie).toBeNull();

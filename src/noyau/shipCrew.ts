@@ -30,7 +30,7 @@ import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
-import type { BattleState, CampaignVessel, Jeu } from './etat';
+import { REGISTRES_DU_BORD, type BattleState, type CampaignVessel, type Jeu, type RegistreDuBord } from './etat';
 import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
@@ -710,31 +710,30 @@ export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string
 /** Le rôle tenu par défaut par un membre de l'équipage sans autre poste. MDG 14 l.15 */
 const roleParDefaut = () => crewRoles.find((r) => r.parDefaut);
 
-/** Les registres de l'équipage par rôle : les salariés (`crew`), puis les recueillis sans solde. MDG 14 l.293-302 ; MDG 15 l.258 */
-const REGISTRES = ['crew', 'recueillisSansSolde'] as const;
-
 /** Le poste d'un membre de l'équipage : son rôle, et le registre qui l'y compte ; sans registre, il tient le rôle par
  *  défaut (`roleParDefaut`). */
-export interface PosteDuBord { roleId: string; registre?: (typeof REGISTRES)[number] }
+export interface PosteDuBord { roleId: string; registre?: RegistreDuBord }
 
 /** Le `poste` dans le `meta` d'une étape (`posteDeLEtape`). */
 export const metaDuPoste = (poste: PosteDuBord): CascadeStepMeta => ({ roleDuMembre: poste.roleId, ...(poste.registre ? { registreDuMembre: poste.registre } : {}) });
 
 /** Le poste que porte le `meta` d'une étape (`metaDuPoste`), s'il en porte un. */
 export function posteDeLEtape(meta: CascadeStepMeta | undefined): PosteDuBord | undefined {
-  const roleId = meta?.roleDuMembre;
-  if (typeof roleId !== 'string') return undefined;
-  const registre = REGISTRES.find((r) => r === meta?.registreDuMembre);
-  return { roleId, ...(registre ? { registre } : {}) };
+  const registre = meta?.registreDuMembre;
+  return meta?.roleDuMembre === undefined ? undefined : { roleId: meta.roleDuMembre, ...(registre ? { registre } : {}) };
 }
 
 /** Le poste du membre d'indice `i` de l'effectif présent (`shipboardSouls`) : les registres remplissent les postes
- *  nominaux dans leur ordre, au plus l'effectif présent ; le reste tient le rôle par défaut. MDG 14 l.15 ; MDG 12 l.85 */
-export function posteDuMembre(s: Pick<Jeu, 'vessel'>, i: number): PosteDuBord {
-  let reste = i;
-  for (const registre of REGISTRES) for (const h of s.vessel?.[registre] ?? []) {
-    if (reste < h.count) return { roleId: h.roleId, registre };
-    reste -= Math.max(0, h.count);
+ *  nominaux dans leur ordre ; le reste tient le rôle par défaut. Des inscrits plus nombreux que les présents : l'indice
+ *  se projette au centre de sa tranche du registre, chaque rôle pesant son compte. MDG 14 l.15 ; MDG 12 l.85 */
+export function posteDuMembre(s: Pick<Jeu, 'party' | 'vessel'>, i: number): PosteDuBord {
+  const postes = REGISTRES_DU_BORD.flatMap((registre) => (s.vessel?.[registre] ?? []).map((h) => ({ ...h, registre })));
+  const inscrits = postes.reduce((n, h) => n + h.count, 0);
+  const presents = shipboardSouls(s).crew;
+  let reste = inscrits > presents ? Math.floor(((2 * i + 1) * inscrits) / (2 * presents)) : i;
+  for (const h of postes) {
+    if (reste < h.count) return { roleId: h.roleId, registre: h.registre };
+    reste -= h.count;
   }
   return { roleId: garanti(roleParDefaut(), 'parDefaut', 'rôle d’équipage par défaut').id };
 }

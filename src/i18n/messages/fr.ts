@@ -3047,7 +3047,7 @@ export const fr = {
   'eff.membreAuHasardMarin': 'Le sort tombe sur un marin de l’équipage : ce qui le frappe n’est pas joué.',
   'eff.membreDuBordAttaque': 'Un membre de l’équipage est attaqué par {assaillant} : {role}.',
   'eff.membreDuBordMort': '{role} de l’équipage ne s’en relève pas.',
-  'eff.membreDuBordRevient': '{role} retourne à son poste.',
+  'eff.membreDuBordRevient': '{role} rejoint l’équipage.',
   'eff.maladieDeLEquipageEnCombat': 'Une maladie tombe sur un marin de l’équipage pendant une bataille : elle ne se joue qu’hors bataille.',
   'eff.volontairesHorsFlow': 'Feuille « volontaires » ({question}) hors d’un Flow : seul `runFlow` pose la question à chaque héros.',
   'eff.volontairesAucun': '{question} : aucun héros.',
