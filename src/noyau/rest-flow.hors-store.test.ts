@@ -34,7 +34,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import { WORLD_STEP_OWNER, type CascadeStep } from './pendings';
 import { deFixe } from '../engine/dice.testkit';
 import { setCadence } from '../engine/cadence';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, draineCascade } from './cascade.testkit';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -519,13 +519,9 @@ describe('Contagion de nuit à bord — l’équipage collectif (MDG 14 l.208 ; 
   }
   const rangeesDeContagion = () => banc.getState().pendingCascade!.participants
     .filter((s) => s.kind === 'contagion').flatMap((s) => s.participants!.map((r) => r.id));
-  /** Déroule la nuit : les Tests de Contagion échouent, les autres se lancent. */
+  /** Déroule la nuit : les Tests de Contagion échouent (dé 100), les autres se lancent. */
   function nuitAvecContagionRatee(): void {
-    for (let guard = 0; banc.getState().pendingCascade && guard < 60; guard++) {
-      const p = banc.getState().pendingCascade!;
-      if (p.participants[p.cursor].kind === 'contagion') failCurrent(); else rollCurrent();
-      banc.getState().jetValider('cascade');
-    }
+    draineCascade(banc.getState, 60, (etape) => (etape.kind === 'contagion' ? 100 : undefined));
   }
 
   it('un PJ contagieux à bord expose l’équipage : sa rangée de monde rejoint la bande, l’échec lui donne la maladie', () => {
