@@ -21,7 +21,7 @@ describe('talents-aleatoires.json — références de Talent et couverture du d�
     const doc = clone();
     const [retiree] = doc[0].entries.splice(5, 1);
     expect(validateDataset('talents-aleatoires.json', doc)).toMatch(
-      new RegExp(`talents-aleatoires : les rangées ne couvrent pas le d100 d'un seul tenant — .*${retiree.min}`),
+      new RegExp(`talents-aleatoires : les rangées ne couvrent pas le 1d100 d'un seul tenant — .*${retiree.min}`),
     );
   });
 });

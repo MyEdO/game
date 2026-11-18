@@ -3,7 +3,10 @@
     "id": "races-ldb",
     "type": "especes-aleatoires",
     "label": "Tableau des Races aléatoires",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 24,
@@ -41,7 +44,10 @@
     "id": "races-gnome",
     "type": "especes-aleatoires",
     "label": "Tableau des Races aléatoires — avec le Gnome",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 87,
@@ -84,7 +90,10 @@
     "id": "races-ogre",
     "type": "especes-aleatoires",
     "label": "Tableau des Races aléatoires — avec l’Ogre",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 18,
@@ -127,7 +136,10 @@
     "id": "races-gnome-et-ogre",
     "type": "especes-aleatoires",
     "label": "Tableau des Races aléatoires — avec le Gnome et l’Ogre",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 87,

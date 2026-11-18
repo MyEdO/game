@@ -46,18 +46,20 @@ function saisir(champ: HTMLInputElement, valeur: string) {
   act(() => { champ.blur(); });
 }
 
+/** Les saisies du dé de la table (`DeDeTirageField`) : son nombre de dés, puis ses faces. */
+const champsDuDe = () => (['nombre de dés', 'faces'] as const).map((part) => container.querySelector<HTMLInputElement>(`input[aria-label="Dé de tirage — ${part}"]`));
+const valeursDuDe = () => champsDuDe().map((c) => c?.value);
+function saisirLeDe(n: number, sides: number) {
+  const [nombre, faces] = champsDuDe();
+  saisir(nombre!, String(n));
+  saisir(faces!, String(sides));
+}
+
 function choisir(champ: HTMLSelectElement, valeur: string) {
   act(() => {
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(champ, valeur);
     champ.dispatchEvent(new Event('change', { bubbles: true }));
   });
-}
-
-/** Le champ du formulaire que nomme son libellé (`<label><span>libellé</span><input/></label>`). */
-function champNomme(libelle: string): HTMLInputElement {
-  const label = [...container.querySelectorAll('label.ed-field')].find((l) => l.querySelector('span')?.textContent === libelle);
-  expect(label, `aucun champ « ${libelle} »`).toBeDefined();
-  return label!.querySelector('input')!;
 }
 
 async function enregistrer() {
@@ -79,20 +81,18 @@ describe('atelier du Codex — tables tirées', () => {
   it('une rangée d’Incantation Imparfaite révisée offre le dé de son document et s’enregistre par le seam', async () => {
     const rangee = (datasetArray('imparfaiteMineureVdm') as { id: string }[])[0];
     monter('imparfaiteMineureVdm', rangee.id);
-    const de = container.querySelector<HTMLInputElement>('input[aria-label="Dé de tirage"]')!;
-    expect(de.value).toBe('d100');
-    saisir(de, '2d50');
+    expect(valeursDuDe()).toEqual(['1', '100']);
+    saisirLeDe(2, 50);
     await enregistrer();
-    expect(deDeLaTable('imparfaiteMineureVdm')).toBe('2d50');
+    expect(deDeLaTable('imparfaiteMineureVdm')).toEqual({ n: 2, sides: 50 });
   });
 
   it('un palier du Voyage rapide offre l’éditeur de sa conséquence et le dé de sa table, enregistré par le seam', async () => {
     monter('seaFastVoyage', 'desastreux');
     const champs = [...container.querySelectorAll('.ed-field > span')].map((s) => s.textContent ?? '');
     expect(champs.some((t) => t.startsWith('conséquence de l’événement')), 'la conséquence s’édite au FlowEditor').toBe(true);
-    const de = container.querySelector<HTMLInputElement>('input[aria-label="Dé de tirage"]')!;
-    expect(de.value).toBe('d10');
-    saisir(de, 'd20');
+    expect(valeursDuDe()).toEqual(['1', '10']);
+    saisirLeDe(1, 20);
     await enregistrer();
     expect(deDuVoyageRapide()).toMatchObject({ n: 1, sides: 20 });
   });
@@ -107,7 +107,7 @@ describe('atelier du Codex — tables tirées', () => {
     saisir(container.querySelector<HTMLInputElement>('input[aria-label="Minimum de la rangée 1 de Rangées"]')!, '2');
     saisir(container.querySelector<HTMLInputElement>('input[aria-label="Maximum de la rangée 1 de Rangées"]')!, String(premiere.max + 1));
     saisir(container.querySelector<HTMLInputElement>('input[aria-label="Minimum de la rangée 2 de Rangées"]')!, String(seconde.min + 1));
-    saisir(champNomme('Dé de tirage'), '2d50');
+    for (const [part, v] of [['nombre', '2'], ['faces', '50']]) saisir(container.querySelector<HTMLInputElement>(`input[aria-label="${part} de Dé de tirage"]`)!, v);
     await enregistrer();
     const [p, s] = rangeesDesTalentsAleatoires();
     expect(p).toEqual({ id: horsTableau, min: 2, max: premiere.max + 1 });
@@ -125,7 +125,7 @@ describe('atelier du Codex — tables tirées', () => {
     saisir(container.querySelector<HTMLInputElement>('input[aria-label="Minimum de la rangée 1 de Rangées"]')!, '2');
     saisir(container.querySelector<HTMLInputElement>('input[aria-label="Maximum de la rangée 1 de Rangées"]')!, String(premiere.max + 1));
     saisir(container.querySelector<HTMLInputElement>('input[aria-label="Minimum de la rangée 2 de Rangées"]')!, String(seconde.min + 1));
-    saisir(champNomme('Dé de tirage'), '2d50');
+    for (const [part, v] of [['nombre', '2'], ['faces', '50']]) saisir(container.querySelector<HTMLInputElement>(`input[aria-label="${part} de Dé de tirage"]`)!, v);
     await enregistrer();
     const table = tableDeCarrieres('humain', false);
     expect(table.entries.slice(0, 2)).toEqual([
@@ -140,10 +140,8 @@ describe('atelier du Codex — tables tirées', () => {
     ['hairs', 'auburn', hairsDie],
   ] as const)('une couleur de %s offre le dé de son tableau, et le lecteur suit (#3578)', async (categorie, id, de) => {
     monter(categorie, id);
-    const champ = container.querySelector<HTMLInputElement>('input[aria-label="Dé de tirage"]');
-    expect(champ, 'le dé du tableau s’édite avec sa rangée').not.toBeNull();
-    expect(champ!.value).toBe('2d10');
-    saisir(champ!, '1d10');
+    expect(valeursDuDe(), 'le dé du tableau s’édite avec sa rangée').toEqual(['2', '10']);
+    saisirLeDe(1, 10);
     await enregistrer();
     expect(de()).toMatchObject({ n: 1, sides: 10 });
   });

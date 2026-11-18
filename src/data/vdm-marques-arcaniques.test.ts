@@ -32,7 +32,7 @@ describe('Marques Arcaniques (VDM) — 8 tables d10, une par Domaine de Couleur'
 
   it('chaque table : 1d10, une rangée par face, contiguës depuis 1, source VDM avec folio', () => {
     for (const t of marques) {
-      expect(t.die).toBe('d10');
+      expect(t.die).toEqual({ n: 1, sides: 10 });
       expect(t.entries).toHaveLength(facesDuDe(deDeLaTableTiree(t)));
       t.entries.forEach((r, i) => {
         expect(r.min, `${t.id} rangée ${i + 1}`).toBe(i + 1);

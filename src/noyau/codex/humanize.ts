@@ -552,7 +552,7 @@ export function humanizeOp(o: GameOp): string {
     case 'rollThreshold': return t('codex.op.seuilDeJet', { faces: o.sides });
     case 'rollTable': return t('codex.op.jetSurTable', {
       table: 'tableId' in o ? t('codex.op.jetSurTable.table', { table: findEffectTableById(o.tableId).label }) : t('codex.op.jetSurTable.uneTable'),
-      de: 'tableId' in o ? formatDice(effectTableDie(o.tableId)) : o.die,
+      de: formatDice('tableId' in o ? effectTableDie(o.tableId) : o.die),
       negatifs: o.addNegativeSL ? t('codex.op.jetSurTable.negatifs') : '',
       extra: o.extraRollsPerStep ? t('codex.op.jetSurTable.supplement', { n: o.extraRollsPerStep }) : '',
     }) + ('entries' in o ? rangeesLisibles(o) : '');

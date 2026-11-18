@@ -109,7 +109,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
   it('déclaration : le dé de l’étape est le `die` du tableau de la Localisation, lu VIVANT (LDB 18 l.53 ; #1667)', () => {
     const { H } = startFight();
     expect(tableSpec(critSeverityDecl(H, 'corps', 0))).toEqual({ n: 1, sides: 100 });
-    sousLeDe('criticalsCorps', '2d10', () => {
+    sousLeDe('criticalsCorps', { n: 2, sides: 10 }, () => {
       expect(tableSpec(critSeverityDecl(H, 'corps', 0)), 'le dé suit la donnée').toEqual({ n: 2, sides: 10 });
     });
   });

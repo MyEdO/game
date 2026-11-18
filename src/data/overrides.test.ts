@@ -42,9 +42,9 @@ describe('overrides — en-tête d’une catégorie de niche, porte `setEnTete` 
 
   it('écrit le dé du document de la table, versionne son fichier, et le lecteur le suit', () => {
     expect(ancetreDuDe('criticalsCorps')).toBe('[criticals-ldb-corps]');
-    expect(deDeLaTable('criticalsCorps')).toBe('d100');
+    expect(deDeLaTable('criticalsCorps')).toEqual({ n: 1, sides: 100 });
     const v0 = versionDuDataset('criticalsTete');
-    setEnTete('criticalsCorps', [{ ancetre: '[criticals-ldb-corps]', champ: 'die', valeur: '2d10' }]);
+    setEnTete('criticalsCorps', [{ ancetre: '[criticals-ldb-corps]', champ: 'die', valeur: { n: 2, sides: 10 } }]);
     expect(critiqueDie('ldb', 'corps')).toEqual({ n: 2, sides: 10 });
     expect(critiqueDie('ldb', 'tete'), 'les autres documents gardent leur dé').toEqual({ n: 1, sides: 100 });
     expect(versionDuDataset('criticalsTete'), 'toutes les clés du fichier sont versionnées').toBeGreaterThan(v0);
@@ -54,8 +54,8 @@ describe('overrides — en-tête d’une catégorie de niche, porte `setEnTete` 
     const cles = ['rencontresPositives', 'rencontresFortuites', 'rencontresDangereuses'] as const;
     expect(cles.map(ancetreDuDe)).toEqual(['', '', '']);
     const v0 = cles.map(versionDuDataset);
-    setEnTete('rencontresFortuites', [{ ancetre: '', champ: 'die', valeur: 'd6' }]);
-    expect(cles.map(deDeLaTable)).toEqual(['d6', 'd6', 'd6']);
+    setEnTete('rencontresFortuites', [{ ancetre: '', champ: 'die', valeur: { n: 1, sides: 6 } }]);
+    expect(cles.map(deDeLaTable)).toEqual(cles.map(() => ({ n: 1, sides: 6 })));
     expect(encounterDie()).toEqual({ n: 1, sides: 6 });
     cles.forEach((c, i) => expect(versionDuDataset(c), c).toBeGreaterThan(v0[i]));
   });
@@ -70,28 +70,28 @@ describe('overrides — en-tête d’une catégorie de niche, porte `setEnTete` 
   });
 
   it('un nœud tableau n’a pas d’en-tête ; un ancêtre qui n’est pas un préfixe de la collection est refusé', () => {
-    expect(() => setEnTete('criticalsCorps', [{ ancetre: '', champ: 'die', valeur: 'd6' }])).toThrow('nœud tableau');
-    expect(() => setEnTete('criticalsCorps', [{ ancetre: '[criticals-ldb-tete]', champ: 'die', valeur: 'd6' }])).toThrow(/n.est pas un ancêtre/);
-    expect(() => setEnTete('mutationTables', [{ ancetre: '', champ: 'die', valeur: 'd10' }])).toThrow('setDataset');
+    expect(() => setEnTete('criticalsCorps', [{ ancetre: '', champ: 'die', valeur: { n: 1, sides: 6 } }])).toThrow('nœud tableau');
+    expect(() => setEnTete('criticalsCorps', [{ ancetre: '[criticals-ldb-tete]', champ: 'die', valeur: { n: 1, sides: 6 } }])).toThrow(/n.est pas un ancêtre/);
+    expect(() => setEnTete('mutationTables', [{ ancetre: '', champ: 'die', valeur: { n: 1, sides: 10 } }])).toThrow('setDataset');
     expect(deDeLaTable('mutationTables'), 'le dé d’une Table de Corruption est un champ de son entrée').toBeUndefined();
   });
 
   it('une écriture refusée n’écrit rien, même celles qui la précèdent dans le lot', () => {
     expect(() => setEnTete('seaBoardEvents', [
-      { ancetre: 'boardEvents', champ: 'die', valeur: 'd10' },
+      { ancetre: 'boardEvents', champ: 'die', valeur: { n: 1, sides: 10 } },
       { ancetre: '', champ: 'manann', valeur: {} },
     ])).toThrow(/hors de l.en-tête/);
-    expect(deDeLaTable('seaBoardEvents')).toBe('d100');
+    expect(deDeLaTable('seaBoardEvents')).toEqual({ n: 1, sides: 100 });
   });
 
   it('resetData restaure l’en-tête : un champ modifié reprend sa graine, un champ ajouté est retiré', () => {
     setEnTete('seaBoardEvents', [
-      { ancetre: 'boardEvents', champ: 'die', valeur: 'd10' },
+      { ancetre: 'boardEvents', champ: 'die', valeur: { n: 1, sides: 10 } },
       { ancetre: '', champ: 'ajout', valeur: 'x' },
     ]);
     expect(champDEnTete('seaBoardEvents', '', 'ajout')).toBe('x');
     resetData();
-    expect(deDeLaTable('seaBoardEvents')).toBe('d100');
+    expect(deDeLaTable('seaBoardEvents')).toEqual({ n: 1, sides: 100 });
     expect(champDEnTete('seaBoardEvents', '', 'ajout')).toBeUndefined();
   });
 });

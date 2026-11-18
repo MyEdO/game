@@ -679,7 +679,7 @@ describe('critWoundLocation — règle UNIQUE de localisation du Coup Critique (
 
 describe('CriticalResolved.naturel : le dé du tableau, avant le modificateur de sévérité (LDB 10 l.773 ; #1595 c.6227274650 Q3)', () => {
   it('le naturel se tire au dé que porte le tableau de la localisation (LDB 18 l.53 ; AA 07 l.32 ; #1667)', () => {
-    setEnTete('aaCriticalsCorps', [{ ancetre: '[criticals-aa-corps]', champ: 'die', valeur: 'd10' }]);
+    setEnTete('aaCriticalsCorps', [{ ancetre: '[criticals-aa-corps]', champ: 'die', valeur: { n: 1, sides: 10 } }]);
     try {
       const naturels = Array.from({ length: 50 }, (_, s) => resolveCritique('aa', cible(), 'corps', makeRNG(s + 1)).naturel);
       expect(Math.max(...naturels)).toBeLessThanOrEqual(10);
@@ -689,7 +689,7 @@ describe('CriticalResolved.naturel : le dé du tableau, avant le modificateur de
     }
   });
   it('sous `twice`, les deux lancers se tirent au dé du tableau (LDB 41 l.170 ; LDB 18 l.53 ; #1667)', () => {
-    setEnTete('aaCriticalsCorps', [{ ancetre: '[criticals-aa-corps]', champ: 'die', valeur: 'd10' }]);
+    setEnTete('aaCriticalsCorps', [{ ancetre: '[criticals-aa-corps]', champ: 'die', valeur: { n: 1, sides: 10 } }]);
     try {
       const doubles = Array.from({ length: 50 }, (_, s) => resolveCritique('aa', cible(), 'corps', makeRNG(s + 1), { twice: true }).naturel);
       expect(Math.max(...doubles)).toBeLessThanOrEqual(10);

@@ -250,7 +250,10 @@
       "tribordMax": 5
     },
     "changementDeCap": {
-      "die": "d10",
+      "die": {
+        "n": 1,
+        "sides": 10
+      },
       "entries": [
         {
           "min": 1,

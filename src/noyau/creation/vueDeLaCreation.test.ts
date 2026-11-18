@@ -135,7 +135,7 @@ describe('les tirages disent le dé de leur table, jamais un littéral (#3578)',
   const libelle = (d: CreatorDraft, page: Parameters<typeof rubriquesDeLaPage>[1]) => rubrique(rubriquesDeLaPage(d, page), 'tirage').libelle;
   const sousLeDeDe = <K extends DatasetKey>(cle: K, documents: Parameters<typeof setDataset<K>>[1], corps: () => void) => {
     const imprimes = [...documents];
-    setDataset(cle, imprimes.map((x) => (typeof x === 'object' && 'die' in x ? { ...x, die: 'd10' } : x)));
+    setDataset(cle, imprimes.map((x) => (typeof x === 'object' && 'die' in x ? { ...x, die: { n: 1, sides: 10 } } : x)));
     try { corps(); } finally { setDataset(cle, imprimes); }
   };
   const humain = () => withSpecies(newDraft(1), 'humains-reiklander');

@@ -2,7 +2,10 @@
   "id": "ship-criticals",
   "type": "ship-criticals",
   "label": "Blessures critiques sur un navire",
-  "die": "d10",
+  "die": {
+    "n": 1,
+    "sides": 10
+  },
   "source": {
     "book": "mer-des-griffes",
     "page": 124

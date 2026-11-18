@@ -2,7 +2,10 @@
   "id": "dispersion",
   "type": "dispersion",
   "label": "Dispersion",
-  "die": "d10",
+  "die": {
+    "n": 1,
+    "sides": 10
+  },
   "entries": [
     {
       "id": "dispersion-1",

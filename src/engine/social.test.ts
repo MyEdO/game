@@ -80,7 +80,7 @@ describe('tirerLaReactionAuStatut — la table de Réaction au Statut (LDB 08 l.
   });
 
   it('le tirage se fait au dé que porte la table', () => {
-    sousLeDe('reactionAuStatut', 'd4', () => {
+    sousLeDe('reactionAuStatut', { n: 1, sides: 4 }, () => {
       const plages: [number, number][] = [];
       tirerLaReactionAuStatut(deSelonLaPlage((min, max) => { plages.push([min, max]); return max; }));
       expect(plages).toEqual([[1, 4]]);

@@ -23,6 +23,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estUnDeDeTirage } from './lib/deDeTirage.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -61,7 +62,7 @@ for (const fichier of Object.keys(TABLES_DE)) {
   }
   for (const [t, ou] of tables) {
     if (!Array.isArray(t.entries)) arrets.push(`${fichier} ${ou} : aucune rangée sous \`entries\``);
-    if (typeof t.die !== 'string') arrets.push(`${fichier} ${ou} : aucun dé de tirage \`die\``);
+    if (!estUnDeDeTirage(t.die)) arrets.push(`${fichier} ${ou} : aucun dé de tirage \`die\``);
   }
   const out = serializeDataset(doc);
   if (out !== brut) ecritures.push([chemin, fichier, out]);

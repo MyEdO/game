@@ -32,6 +32,7 @@ import {
 // vient déjà d'`engine/massBattle.ts`). Le module JSON est un singleton ESM : cette référence EST la
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
 import { TRAUMA_FICHES } from '../engine/trauma';
+import type { DiceSpec } from '../engine/dice';
 import { versDisque } from './schemas/grammaire/prose';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
@@ -495,13 +496,13 @@ export function ancetreDuDe(cle: DatasetKey): string | undefined {
   if (!suite) return undefined;
   const fichier = DATASET_FICHIER_DERIVE[cle];
   const prefixes = pasDeLaSuite(suite).slice(0, -1).reduce((acc, pas) => [...acc, suiteAvecPas(acc[acc.length - 1], pas)], ['']);
-  return prefixes.reverse().find((a) => { const n = noeudAuPrefixe(fichier, a); return estObjet(n) && typeof n.die === 'string'; });
+  return prefixes.reverse().find((a) => { const n = noeudAuPrefixe(fichier, a); return estObjet(n) && estObjet(n.die); });
 }
 
 /** Le DÉ DE TIRAGE de la table du dataset `key`, quand un ancêtre de sa collection le porte (`ancetreDuDe`). */
-export function deDeLaTable(key: DatasetKey): string | undefined {
+export function deDeLaTable(key: DatasetKey): DiceSpec | undefined {
   const ancetre = ancetreDuDe(key);
-  return ancetre === undefined ? undefined : (champDEnTete(key, ancetre, 'die') as string);
+  return ancetre === undefined ? undefined : (champDEnTete(key, ancetre, 'die') as DiceSpec);
 }
 
 /** Ce dataset a-t-il une route d'ÉDITION déclarée ? (sinon `datasetFile` refuse — #1530) */

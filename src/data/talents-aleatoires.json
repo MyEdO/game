@@ -3,7 +3,10 @@
     "id": "talents-aleatoires",
     "type": "talents-aleatoires",
     "label": "Tableau des Talents aléatoires",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 36,
