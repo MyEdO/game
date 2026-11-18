@@ -28,24 +28,24 @@ el(S, 'rect', { x: 0, y: 0, width: 1040, height: H, fill: 'url(#ombre-g)' });
 el(S, 'rect', { width: W, height: H, fill: 'url(#vignette)', opacity: .8 });
 el(S, 'rect', { x: 0, y: 500, width: W, height: 280, fill: 'url(#bas)', opacity: .9 });
 
-const solde = (texte) => `<div class="solde">${pastille('coche')}<span class="ombre" data-texte="objectif ${texte.slice(0, 14)}">${texte}</span></div>`;
-const colonne = (h) => `<div class="col"><div class="tete">${portrait(h.id)}<div class="qui"><div class="n gothique" data-texte="héros ${h.nom}">${h.nom}</div><div class="c rubrique">${h.car}</div></div>${gainDuHeros(h.id)}</div>
+const solde = (texte) => `<div class="solde">${rond('coche', 'menu', { arme: true })}<span class="ombre" data-texte="objectif ${texte.slice(0, 14)}">${texte}</span></div>`;
+const colonne = (h) => `<div class="col"><div class="tete">${portrait(h.id, { taille: 'petit' })}<div class="qui"><div class="n gothique" data-texte="héros ${h.nom}">${h.nom}</div><div class="c rubrique">${h.car}</div></div>${gainDuHeros(h.id)}</div>
   ${cochable('A agi selon sa Motivation', '+1 Détermination', SEANCE[h.id].coches.motivation)}${cochable('Ambition à court terme accomplie', `+${PX_D_AMBITION.courte} PX`, SEANCE[h.id].coches.courte)}${cochable('Ambition à long terme accomplie', `+${PX_D_AMBITION.longue} PX`, SEANCE[h.id].coches.longue)}</div>`;
 monter([
   `<div id="carton" data-piece="carton">
      <div class="sur rubrique ombre">L’Ennemi Intérieur · Fin de chapitre</div>
      <div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="chapitre">Chapitre 1 — la route d’Altdorf</span></div></div>
      <p class="ombre" data-texte="sous-titre">Le reste du trajet n’a rien de remarquable : la compagnie arrive à Altdorf.</p>
-     <div class="bande rubrique ombre"><span>Ce que la route retiendra</span><b class="lin">+140 PX</b></div>
+     <div class="bande rubrique ombre"><span>Ce que la route retiendra</span><b class="chiffres">+140 PX</b></div>
      ${['Trouver une place à bord d’une diligence pour Altdorf.', 'Examiner les lieux de l’embuscade.', 'Se rendre à Altdorf.'].map(solde).join('')}
      <div class="deux">
        <div><div class="bande rubrique ombre"><span>Lieux révélés</span></div><p class="ombre" data-texte="lieux">Auberge La Diligence · La route principale · Auberge des Sept Rayons · Altdorf</p></div>
        <div><div class="bande rubrique ombre"><span>Tombés en chemin</span></div><p class="ombre" data-texte="tombés">Aucune perte — la compagnie est entière.</p></div>
      </div>
    </div>`,
-  `<div id="seance" class="cadre bois" data-piece="fin de séance"><div class="fond bois"><span class="ruban rubrique">Fin de séance</span>
+  `<div id="seance" class="cadre bois" data-piece="fin de séance"><div class="fond bois">
      ${HEROS.map(colonne).join('')}
      <div class="col groupe"><div class="tete"><div class="qui"><div class="n gothique">Le groupe</div><div class="c rubrique">Chance restaurée à la prochaine séance</div></div></div>${casesDuGroupe()}</div>
-   </div>${ferrures}</div>`,
+   </div>${ruban('Fin de séance')}${ferrures}</div>`,
   `<div id="clore" data-piece="clore">${plaque('Clore le chapitre', { armee: true, icone: 'sceau' })}${plaque('Plus tard')}</div>`,
 ]);

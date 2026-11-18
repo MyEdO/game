@@ -9,18 +9,18 @@ const mainDuSet = (libelle, arme, fermee = false) => `<div class="main ${arme ? 
 /* un set d'armes : `enMain` = le set actif ; `oter` = le refus de le supprimer, `survole` le dit */
 const setDArmes = ({ main, secondaire = null, enMain = false, deuxMains = false, oter = '', survole = false }) => `<div class="set ${enMain ? 'en-main' : ''}">
   ${mainDuSet('Main principale', main)}${mainDuSet('Main secondaire', secondaire, deuxMains)}
-  <div class="oter pst ${oter ? 'fer' : 'laiton'}"><div>${picto('croix', 10, oter ? '#8d8474' : '#2a1a08', 2.6)}</div>${survole ? raison(oter) : ''}</div></div>`;
+  <div class="oter">${rond('croix', 'menu', oter ? { ferme: true } : { arme: true })}${survole ? raison(oter) : ''}</div></div>`;
 const sets = (liste) => `<div class="tete-de-liste">${rub("Sets d'armes", 'celui que le héros tient est cerné de laiton')}</div>
   <div class="sets">${liste.map(setDArmes).join('')}<div class="set neuf">${picto('plus', 18, '#4a3420', 1.8)}</div></div>`;
 const objet = (icone, nom, etat, { vise = false, sous = '' } = {}) => `<div class="ligne ${vise ? 'choisie' : ''}">${picto(icone, 17, ENCRE, 1.5)}<span class="n" data-texte="${nom} ${sous}">${nom}${sous ? ` <small>(${sous})</small>` : ''}</span><span class="raison" style="color:#5a3a1c">${etat}</span></div>`;
-const faveur = (creancier, niveau, { vise = false } = {}) => `<div class="ligne ${vise ? 'choisie' : ''}">${sceau('parchemin', 11)}<span class="n" data-texte="${creancier}">${creancier}</span><span class="raison">${niveau}</span></div>`;
+const faveur = (creancier, niveau, { vise = false } = {}) => `<div class="ligne ${vise ? 'choisie' : ''}">${sceau('parchemin', 'menu')}<span class="n" data-texte="${creancier}">${creancier}</span><span class="raison">${niveau}</span></div>`;
 /* le cartouche de la ligne pressée : son nom, ce qu'elle est, puis ses gestes en plaques */
 const cartouche = ({ icone, nom, sous, corps = '', gestes }) => `<div class="ouvert">
-  <div class="tete-o"><div class="medaillon laiton"><div>${picto(icone, 24)}</div></div><div><b class="gothique" data-texte="objet ouvert">${nom}</b><i>${sous}</i></div></div>
+  <div class="tete-o">${medaillon(icone, { taille: 'moyen' })}<div><b class="gothique" data-texte="objet ouvert">${nom}</b><i>${sous}</i></div></div>
   ${corps}<div class="gestes-o">${gestes.join('')}</div></div>`;
 const large = 'grid-column:1 / -1';
 const mesure = (r, v) => `<div class="fait">${rub(r)}<b>${v}</b></div>`;
-const palier = (fait, texte, prix) => `<div class="achat">${fait ? coche(20) : '<i class="trou"></i>'}<span class="n" data-texte="${texte}">${texte}</span>${fait ? `<span class="rub">${prix} · acquis</span>` : plaque(prix)}</div>`;
+const palier = (fait, texte, prix) => `<div class="achat">${fait ? coche() : '<i class="trou"></i>'}<span class="n" data-texte="${texte}">${texte}</span>${fait ? `<span class="rub">${prix} · acquis</span>` : plaque(prix)}</div>`;
 
 const D_ILYANWE = {
   sets: [
@@ -44,7 +44,7 @@ const D_BERTA = {
 const SPELLS = [['Carreau', 4, true], ['Cautériser', 4], ['Dôme', 7], ['Mur de feu', 6]];
 const OUVERTS = {
   arme: () => cartouche({ icone: 'dague', nom: 'Dague', sous: 'Arme de mêlée · Base',
-    corps: `<div class="faits">${mesure('Dégâts', '+BF+2')}${mesure('Allonge', 'Très courte')}${mesure('Enc.', '<span class="lin">0</span>')}</div>`,
+    corps: `<div class="faits">${mesure('Dégâts', '+BF+2')}${mesure('Allonge', 'Très courte')}${mesure('Enc.', '<span class="chiffres">0</span>')}</div>`,
     gestes: [plaque('Main principale'), plaque(`Main secondaire${raison('Arme à deux mains — pas de seconde main.')}`, { fermee: true }), plaque('Ranger dans', { prix: 'Sac à dos' }), plaque('Donner à', { prix: 'Berta' }), plaque('Poser au sol', { style: large })] }),
   composant: () => cartouche({ icone: 'fiole', nom: "Composant d'incantation", sous: 'À lier',
     corps: `<div class="tete-de-liste">${rub('Lier à un sort', "d'Arcane ou de Domaine, connu")}</div>

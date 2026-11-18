@@ -14,9 +14,9 @@ const SEANCE = {
 HEROS.find((h) => h.id === 'mira').determination = 1;
 const pxDeLaSeance = (id) => ['courte', 'longue'].reduce((n, terme) => n + PX_D_AMBITION[terme] * (!!SEANCE[id].coches[terme] + GROUPE[terme]), 0);
 /* une case : cochée en laiton plein ; son libellé, puis ce qu'elle octroie */
-const cochable = (libelle, gain, cochee = false) => `<div class="cochable${cochee ? ' cochee' : ''}"><i class="case ${cochee ? 'laiton' : 'fer'}">${cochee ? picto('coche', 13, '#2a1a08', 2.8) : ''}</i><span>${libelle}</span><b class="lin">${gain}</b></div>`;
+const cochable = (libelle, gain, cochee = false) => `<div class="cochable${cochee ? ' cochee' : ''}"><i class="case ${cochee ? 'laiton' : 'fer'}">${cochee ? picto('coche', 13, '#2a1a08', 2.8) : ''}</i><span>${libelle}</span><b class="chiffres">${gain}</b></div>`;
 const casesDuGroupe = () => `${cochable('Ambition de groupe à court terme accomplie', `+${PX_D_AMBITION.courte} PX à chaque héros`, GROUPE.courte)}${cochable('Ambition de groupe à long terme accomplie', `+${PX_D_AMBITION.longue} PX à chaque héros`, GROUPE.longue)}`;
 /* ce que la séance vaut au héros */
-const gainDuHeros = (id) => `<div class="gain"><b class="lin">+${pxDeLaSeance(id)} PX</b>${SEANCE[id].coches.motivation ? '<span class="rubrique">+1 Détermination</span>' : ''}</div>`;
+const gainDuHeros = (id) => `<div class="gain"><b class="chiffres">+${pxDeLaSeance(id)} PX</b>${SEANCE[id].coches.motivation ? '<span class="rubrique">+1 Détermination</span>' : ''}</div>`;
 // Partagé avec les scripts de page chargés après celui-ci.
 Object.assign(globalThis, { PX_D_AMBITION, SEANCE, cochable, casesDuGroupe, gainDuHeros });

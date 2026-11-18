@@ -18,7 +18,7 @@ const LANGUES = ['Albionais', 'Bretonnien', 'Classique', 'Elthárin', 'Estalien'
 const creneau = (ouvert) => `<div class="achat creneau ${ouvert ? 'vise' : ''}"><span class="fait"></span>${car('Int')}<span class="n" data-texte="Langue (Au choix)">Langue <small>(Au choix)</small></span>
   ${ouvert ? `<span class="aug">+0</span><span class="val" style="min-width:74px">80 <span style="font-weight:400">→</span> 81</span>${plaque('10 PX', { armee: true })}` : `<span class="rub" style="color:#6b1c10">À désigner</span>${picto('chevron_d', 15, '#5a4530', 2)}`}</div>
   ${ouvert ? `<div class="depli"><div class="pills">${LANGUES.map((l) => `<span class="pill ${l === 'Bretonnien' ? 'prise' : ''}">${l}</span>`).join('')}</div>${plaque('Désigner', { prix: 'sans achat' })}</div>` : ''}`;
-const talent = (icone, nom, sous, cout, clos = false) => `<div class="talent ${clos ? 'clos' : ''}"><div class="medaillon petit ${clos ? 'fer' : 'laiton'}"><div>${picto(icone, 19, clos ? '#8d8474' : '#e2c06a')}</div></div><div class="t"><b data-texte="${nom}">${nom}</b><i>${sous}</i></div>${plaque(cout, { fermee: clos })}</div>`;
+const talent = (icone, nom, sous, cout, clos = false) => `<div class="talent ${clos ? 'clos' : ''}">${medaillon(icone, { taille: 'moyen', ferme: clos })}<div class="t"><b data-texte="${nom}">${nom}</b><i>${sous}</i></div>${plaque(cout, { fermee: clos })}</div>`;
 /* un Sort : connu, il offre son composant, payé de la bourse du héros (LDB 46 l.113) ; sinon son prix en PX */
 const sort = (nom, ni, prix) => `<div class="achat sort"><span class="n" data-texte="${nom}">${nom}</span><span class="cout">NI ${ni}</span>${prix.endsWith('PX') ? plaque(prix) : `<span class="rub">Connu</span>${plaque('Composant', { prix })}`}</div>`;
 

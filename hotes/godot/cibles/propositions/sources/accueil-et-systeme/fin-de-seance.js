@@ -17,9 +17,9 @@ monter([
   titre({ icone: 'plume', nom: 'Fin de séance', sous: 'Steinbruck · 14 Pflugzeit 2512 CI · 18:20', largeur: 430 }),
   croix(),
   `<div id="feuillets" data-piece="héros">${HEROS.map(feuillet).join('')}</div>`,
-  `<div id="groupe" class="cadre bois" data-piece="groupe"><div class="fond bois"><span class="ruban rubrique">Le groupe</span>
+  `<div id="groupe" class="cadre bois" data-piece="groupe"><div class="fond bois">
      <div class="cases">${casesDuGroupe()}</div>
      <p data-texte="chance">La Chance du groupe sera restaurée pour la prochaine séance.</p>
-   </div>${ferrures}</div>`,
+   </div>${ruban('Le groupe')}${ferrures}</div>`,
   `<div id="terminer" data-piece="terminer">${plaque('Terminer la séance', { armee: true, icone: 'plume' })}</div>`,
 ]);

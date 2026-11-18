@@ -12,7 +12,7 @@ const $ = (s) => document.querySelector(s);
 const poser = (titre, classe, contenu, suites) => {
   const [premier, ...autres] = document.querySelectorAll('#jet, #issue');
   autres.forEach((e) => e.remove());
-  premier.outerHTML = bandeauDuJet(titre, classe, contenu, suites); clouer($('#jet'));
+  premier.outerHTML = bandeauDuJet(titre, classe, contenu, suites);
 };
 
 /* ───────── l'ordre, le round, le journal ───────── */
@@ -50,10 +50,10 @@ const etendu = (cumul, phrase) => `<div id="verdict" class="sort etendu"><div cl
 const enjeuFocal = (tombee = '') => `<div class="enjeu"><div class="l rubrique">Ce que la Focalisation ouvre</div>
         <table>${[['cumul', '7 DR cumulés', 'NI 0 au prochain Round'], ['critique', 'Critique', 'lançable au prochain Round'], ['manque', 'Incantation manquée', 'magie perdue']].map(([cle, cas, effet]) => `<tr${cle === tombee ? ' class="tombee"' : ''}><td>${cas}</td><td>${effet}</td></tr>`).join('')}</table></div>`;
 /* une table à tirer : le sceau du d100 vide, la règle qui exige le tirage, « Lancer le dé » (`verbe.cascadeTirage.lancer`) */
-const aTirer = (titre, table, regle) => `<div id="critique"><div class="tete-c"><div class="dr gothique">${titre}</div><div class="tirage"><div class="resultat vide"></div><span class="rubrique">${table}<br>à tirer au d100</span></div></div>
+const aTirer = (titre, table, regle) => `<div id="critique"><div class="tete-c"><div class="dr gothique">${titre}</div><div class="tirage">${sceau('', 'moyen', { etat: 'vide' })}<span class="rubrique">${table}<br>à tirer au d100</span></div></div>
         <p data-texte="texte de la règle">${regle}</p></div>`;
 const LANCER_LE_DE = plaque('Lancer le dé', { armee: true });
-const ILYANWE = { portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée' };
+const ILYANWE = { portrait: portrait('ilyanwe', { taille: 'grand' }), nom: 'Ilyanwe la Voilée' };
 
 const ETATS = {
   /* LDB 47 l.15-17 ; `src/noyau/fenetreDIncantation.ts:44`, `ecran.incantation.pas`, `ecran.incantation.cibles` */
@@ -70,7 +70,7 @@ const ETATS = {
         <div class="axes"><div class="t"><span class="rubrique">Surincantation</span><b class="gothique" data-texte="pas">1 pas sur 2</b></div>
           ${axe('Cibles', 1, '2 cibles')}${axe('Portée', 0, '×1')}${sansObjet('Zone')}${sansObjet('Durée')}</div>
       </div>
-      <div class="cibles-du-sort">${[['orc', 'Orc', 'Cible du sort'], ['gobelin', 'Tireur gobelin', 'Cible supplémentaire']].map(([g, n, r]) => `<div class="c-s">${portrait(g, 'ennemi')}<div><div class="n gothique">${n}</div><div class="c rubrique">${r}</div></div></div>`).join('')}</div>`, apresLeDe({ heros: RESERVES.ilyanwe }));
+      <div class="cibles-du-sort">${[['orc', 'Orc', 'Cible du sort'], ['gobelin', 'Tireur gobelin', 'Cible supplémentaire']].map(([g, n, r]) => `<div class="c-s">${portrait(g, { camp: 'ennemi', taille: 'petit' })}<div><div class="n gothique">${n}</div><div class="c rubrique">${r}</div></div></div>`).join('')}</div>`, apresLeDe({ heros: RESERVES.ilyanwe }));
   },
 
   /* LDB 46 l.26-32 ; `reglage.incantation.effetCritique`, `src/noyau/fenetreDIncantation.ts:107-113`,
@@ -101,7 +101,7 @@ const ETATS = {
     else poser('Contre-sort', '', `
       ${camp({ ...ILYANWE, carac: 'Langue (Magick)', seuil: 85, des: ['40', '2'], total: 42, dr: '+4', reussite: true })}
       ${verdict('Fléchette · Cible : Berta', 'DR net +2', 'Contre-sort d’Ilyanwe la Voilée : le Sort est dissipé.')}
-      ${camp({ cote: 'droite', portrait: portrait('gobelin', 'ennemi'), nom: CHAMANE, carac: 'Langue (Magick)', seuil: 52, des: ['7', '30'], total: 37, dr: '+2', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe }));
+      ${camp({ cote: 'droite', portrait: portrait('gobelin', { camp: 'ennemi', taille: 'grand' }), nom: CHAMANE, carac: 'Langue (Magick)', seuil: 52, des: ['7', '30'], total: 37, dr: '+2', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe }));
   },
 
   /* LDB 46 l.158-160 ; `src/noyau/combatSlice.ts:2002-2006`, `ecran.offre.dissipation`, `src/data/spells.json`
@@ -112,7 +112,7 @@ const ETATS = {
     ordre(I('actif'), Be(), G('', CHAMANE), O(), borne(3), I('fantome'), Be('fantome loin'));
     journal(vieux(`${CHAMANE} lance Arme aethyrique.`), vieux(`${CHAMANE} s’abrite sous un Dôme.`), neuf('Berta se met en Défensive.'));
     poser('Dissipation', 'debut destin', `
-      <div class="camp dissipeur">${portrait('ilyanwe', 'heros')}
+      <div class="camp dissipeur">${portrait('ilyanwe', { taille: 'grand' })}
         <div><div class="n gothique">Ilyanwe la Voilée</div><div class="c rubrique">Langue (Magick) ≤ 85</div>
         <span class="modif rubrique">Coûte l’Action</span></div>
       </div>
@@ -161,11 +161,11 @@ const ETATS = {
   'incantation-imparfaite'(tombe = true) {
     journal(vieux('Orc maîtrise sa psychologie (Animosité).'), vieux(tombe ? 'Ilyanwe la Voilée lance Fléchette sur Orc.' : 'Ilyanwe la Voilée incante Fléchette : Critique (33) !'), neuf('Les Vents s’emballent autour d’Ilyanwe la Voilée.'));
     poser('Incantation Imparfaite', 'critique', `
-      <div class="camp touche lanceur">${portrait('ilyanwe', 'heros')}
+      <div class="camp touche lanceur">${portrait('ilyanwe', { taille: 'grand' })}
         <div><div class="n gothique">Ilyanwe la Voilée</div><div class="c rubrique">${tombe ? 'Influence malfaisante' : 'Incantation Critique'}</div>
         <div class="des">${tombe ? `${d10('10')}${d10('8')}<div class="issue"><b>8 aux unités</b>` : `${d10('30')}${d10('3')}<div class="issue"><b>Critique : 33</b>`}<span>du jet d’Incantation</span></div></div></div>
       </div>
-      ${tombe ? `<div id="critique"><div class="tete-c"><div class="dr gothique">Rupture</div><div class="tirage"><div class="resultat">33</div><span class="rubrique">Incantation Imparfaite Mineure<br>tirée au d100</span></div></div>
+      ${tombe ? `<div id="critique"><div class="tete-c"><div class="dr gothique">Rupture</div><div class="tirage">${sceau(33, 'moyen')}<span class="rubrique">Incantation Imparfaite Mineure<br>tirée au d100</span></div></div>
         <p data-texte="texte de la table">Votre nez, vos yeux et vos oreilles saignent abondamment. Gagnez 1d10 États Hémorragique.</p></div>`
     : aTirer('Les Vents s’emballent', 'Incantation Imparfaite Mineure', 'À moins que vous n’ayez le Talent Diction instinctive, effectuez un lancer sur le Tableau des Incantations Imparfaites Mineures lorsque la puissance dépasse votre contrôle.')}`,
     tombe ? plaque('Continuer', { armee: true }) : LANCER_LE_DE);
@@ -176,7 +176,7 @@ const ETATS = {
   'test-de-corruption'() {
     S.querySelector('rect[fill="#06040a"]').remove();
     poser('Corruption', 'corruption', `
-      <div class="camp expose">${portrait('berta', 'heros')}
+      <div class="camp expose">${portrait('berta', { taille: 'grand' })}
         <div><div class="n gothique">Berta</div><div class="c rubrique">Exposition modérée</div>
         <div class="points"><div class="l rubrique"><span>Points de Corruption</span><b>2 / 6</b></div>${rangDePas(2, 6, 'petit cire')}</div></div>
       </div>
@@ -193,7 +193,7 @@ const ETATS = {
   corruptionTombee(talent) {
     S.querySelector('rect[fill="#06040a"]').remove();
     poser('Corruption', 'corruption tombe', `
-      ${camp({ portrait: portrait('berta', 'heros'), nom: 'Berta', carac: 'Résistance · Exposition modérée', seuil: 45, des: ['70', '2'], total: 72, dr: '−3', ...(talent ? { modif: 'Résistance (Corruption)' } : {}) })}
+      ${camp({ portrait: portrait('berta', { taille: 'grand' }), nom: 'Berta', carac: 'Résistance · Exposition modérée', seuil: 45, des: ['70', '2'], total: 72, dr: '−3', ...(talent ? { modif: 'Résistance (Corruption)' } : {}) })}
       ${verdict('Influence physique · Points de Corruption 2 / 6', '+2 Points', 'Berta cède à l’Influence corruptrice : 4 Points de Corruption sur 6.')}
       ${enjeuModere('echec')}`,
     `${apresLeDe({ heros: RESERVES.berta, echec: true })}${plaque('Résistance', { fermee: !talent })}`);
@@ -203,7 +203,7 @@ const ETATS = {
   'test-de-corruption-resilience'() {
     S.querySelector('rect[fill="#06040a"]').remove();
     poser('Corruption', 'corruption tombe', `
-      ${camp({ portrait: portrait('berta', 'heros'), nom: 'Berta', carac: 'Résistance · Je ne faillirai pas !', seuil: 45, des: ['0', '1'], regles: true, total: '01', dr: '+4', reussite: true })}
+      ${camp({ portrait: portrait('berta', { taille: 'grand' }), nom: 'Berta', carac: 'Résistance · Je ne faillirai pas !', seuil: 45, des: ['0', '1'], regles: true, total: '01', dr: '+4', reussite: true })}
       ${verdict('Influence physique · Points de Corruption 2 / 6', 'Aucun Point', 'Berta choisit son résultat : l’Influence corruptrice ne la marque pas.')}
       ${enjeuModere('succes')}`,
     apresLeDe({ heros: { ...RESERVES.berta, resilience: RESERVES.berta.resilience - 1 } }));
@@ -216,13 +216,12 @@ const ETATS = {
     ordre(Be('actif'), G(), O(), borne(2), I('fantome'), Be('fantome loin'));
     journal(vieux('Berta : +2 Points de Corruption (total 7).'), vieux('Berta : la Corruption déborde son seuil.'), neuf('Berta échoue à contenir sa Corruption.'));
     poser('La mutation menace', 'debut destin', `
-      <div class="camp touche lanceur">${portrait('berta', 'heros')}
-        <div><div class="n gothique">Berta</div><div class="c rubrique">Points de Corruption 7 / 6</div>
-        ${reserves([RESERVES.berta.resilience, 'Résilience'])}</div>
+      <div class="camp touche lanceur">${portrait('berta', { taille: 'grand' })}
+        <div><div class="n gothique">Berta</div><div class="c rubrique">Points de Corruption 7 / 6</div></div>
       </div>
       ${carte('Je te renie !', '−1 Résilience · aucune mutation<br>Les Points de Corruption restent', { armee: true })}
       ${carte('Muter', '−3 Points, le Bonus de Force Mentale<br>La mutation se tire au d100', { classe: 'funeste' })}`,
-    plaque('Confirmer', { armee: true }));
+    `${reserves([[RESERVES.berta.resilience, 'Résilience']])}${plaque('Confirmer', { armee: true })}`);
   },
 
   /* LDB 14 l.17-30 ; `src/data/oups.json`, `jet.maladresse`, `if.fumble` ; le tirage : `src/noyau/flowVerbs.ts:118` */
@@ -230,9 +229,9 @@ const ETATS = {
   maladresse(tombe = true) {
     journal(vieux('Orc maîtrise sa psychologie (Animosité).'), vieux('Ilyanwe la Voilée charge Orc (+1 Avantage).'), neuf('Ilyanwe la Voilée : maladresse (66) !'));
     poser('Maladresse', 'critique', `
-      <div class="camp touche lanceur">${portrait('ilyanwe', 'heros')}
+      <div class="camp touche lanceur">${portrait('ilyanwe', { taille: 'grand' })}
         <div><div class="n gothique">Ilyanwe la Voilée</div><div class="c rubrique">Échec sur un double : 66</div>
-        <div class="des">${tombe ? `${d10('60')}${d10('4')}<div class="resultat">64</div>` : `${d10('60')}${d10('6')}`}<div class="issue"><b>Tableau</b><b>des Oups !</b></div></div></div>
+        <div class="des">${tombe ? `${d10('60')}${d10('4')}${sceau(64, 'grand')}` : `${d10('60')}${d10('6')}`}<div class="issue"><b>Tableau</b><b>des Oups !</b></div></div></div>
       </div>
       ${tombe ? `<div id="critique"><div class="dr gothique">Oups !</div>
         <p data-texte="texte de la table">Vous trébuchez franchement et peinez à vous redresser. Vous perdez votre prochain Mouvement.</p></div>`
@@ -245,7 +244,7 @@ const ETATS = {
   desengagement() {
     journal(vieux('Ilyanwe la Voilée charge Orc (+1 Avantage).'), vieux('Orc touche Ilyanwe la Voilée au bras droit.'), neuf('Ilyanwe la Voilée veut rompre le combat.'));
     poser('Se désengager', 'debut', `
-      <div class="annonce"><div class="dr gothique">Engagée</div><div class="sous rubrique">Avantage 0 · Orc 1</div></div>
+      <div class="camp">${portrait('ilyanwe', { taille: 'grand' })}<div><div class="n gothique">Ilyanwe la Voilée</div><div class="c rubrique">Engagée · Avantage 0 · Orc 1</div></div></div>
       ${carte('Sacrifier l’Avantage', `Quitter le combat sans Test${raison('Il faut plus d’Avantages que l’adversaire.')}`, { fermee: true })}
       ${carte('Esquive', 'Test opposé ≤ 44 · coûte l’Action')}
       ${carte('Fuir', 'Orc : +1 Avantage, coup dans le dos +20<br>Touchée : encore +1, Test de Calme', { armee: true })}`,
@@ -259,7 +258,7 @@ const ETATS = {
     poser('Fuite', '', `
       ${camp({ ...ILYANWE, carac: 'Calme · Touché en fuyant', seuil: 52, des: ['70', '1'], total: 71, dr: '−2' })}
       ${verdict('Hache · coup dans le dos', '3 États Brisé', 'Orc touche Ilyanwe la Voilée dans le dos : elle fuit, Brisée.')}
-      ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Corps à corps (Base) · Avantage 2', seuil: 75, des: ['4', '20'], total: 24, dr: '+5', modif: 'Dos tourné +20', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe, echec: true }));
+      ${camp({ cote: 'droite', portrait: portrait('orc', { camp: 'ennemi', taille: 'grand' }), nom: 'Orc', carac: 'Corps à corps (Base) · Avantage 2', seuil: 75, des: ['4', '20'], total: 24, dr: '+5', modif: 'Dos tourné +20', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe, echec: true }));
   },
 
   /* LDB 17 l.29-32 ; `src/noyau/choixDeFenetre.ts:234`, `valeur.issue.*`, `ecran.destin.*`, `fenetre.destin` */
@@ -268,14 +267,13 @@ const ETATS = {
     S.querySelector('rect[fill="#b9412c"][x="681"]').setAttribute('width', 0);
     journal(vieux('Orc s’avance vers Ilyanwe la Voilée.'), vieux('Orc attaque Ilyanwe la Voilée.'), neuf('Orc touche Ilyanwe la Voilée : un coup fatal.'));
     poser('Le Destin', 'debut destin', `
-      <div class="camp touche lanceur">${portrait('ilyanwe', 'heros')}
-        <div><div class="n gothique">Ilyanwe la Voilée</div><div class="c rubrique">Un coup fatal.</div>
-        ${reserves([2, 'Destin'])}</div>
+      <div class="camp touche lanceur">${portrait('ilyanwe', { taille: 'grand' })}
+        <div><div class="n gothique">Ilyanwe la Voilée</div><div class="c rubrique">Un coup fatal.</div></div>
       </div>
       ${carte('Éviter le coup', '−1 Destin · elle reste au combat', { armee: true })}
       ${carte('Survivre hors du combat', '−1 Destin · elle quitte la rencontre')}
       ${carte('Accepter son sort', 'Sans sacrifice, le héros meurt.', { classe: 'funeste' })}`,
-    plaque('Confirmer', { armee: true }));
+    `${reserves([[2, 'Destin']])}${plaque('Confirmer', { armee: true })}`);
   },
 
   /* LDB 17 l.23-25 ; LDB 12 l.38 ; `verbe.relancer`, `verbe.ajouterUnDR`, `jet.ferme.sansChance` */
@@ -284,7 +282,7 @@ const ETATS = {
     poser('Attaque', '', `
       ${camp({ ...ILYANWE, carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['20', '7'], total: 27, dr: '+2', modif: 'Avantage +10', reussite: true })}
       ${verdict('Bâton de combat · Orc · <span class="relance">relancé, <s>98</s></span>', 'DR net +6', 'Ilyanwe la Voilée touche Orc au corps.')}
-      ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`,
+      ${camp({ cote: 'droite', portrait: portrait('orc', { camp: 'ennemi', taille: 'grand' }), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`,
     apresLeDe({ heros: { ...RESERVES.ilyanwe, chance: RESERVES.ilyanwe.chance - 1 }, relance: true, survol: 'relancer' }));
   },
 };

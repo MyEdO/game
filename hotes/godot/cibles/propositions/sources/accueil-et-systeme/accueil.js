@@ -72,7 +72,7 @@ monter([
   `<div id="blason" data-piece="titre">
      <div class="sur rubrique ombre">Jeu de rôle dans le Vieux Monde</div>
      <div class="nom gothique" data-texte="titre">Warhammer Fantasy</div>
-     <div class="filet-l"><i></i></div>
+     ${filet({ losange: true, or: true })}
      <div class="camp gothique ombre">L’Ennemi Intérieur</div>
    </div>`,
   `<div id="entrees" data-piece="entrées">
@@ -81,5 +81,5 @@ monter([
      ${plaque('Jouer', { icone: 'route' })}
      ${plaque('Jouer en ligne', { icone: 'reseau' })}
    </div>`,
-  `<div id="outils" data-piece="outils">${outil('epee', 'Combat')}${outil('enclume', 'Atelier')}${outil('plume', 'Éditeur')}${outil('livre', 'Compendium')}${outil('systeme', 'Options')}</div>`,
+  `<div id="outils" data-piece="outils">${[['epee', 'Combat'], ['enclume', 'Atelier'], ['plume', 'Éditeur'], ['livre', 'Compendium'], ['systeme', 'Options']].map(([i, l]) => outil(i, l, { taille: 'grand' })).join('')}</div>`,
 ]);

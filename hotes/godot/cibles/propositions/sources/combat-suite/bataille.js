@@ -27,24 +27,24 @@ const pieces = [];
 pieces.push(titre({ icone: 'epee', nom: 'Bataille de masse', sous: ISSUE ? 'La bataille est terminée' : 'Round de bataille 1 / 3', largeur: 452 }));
 /* `plus` : la Scène offre une place au héros choisi dans le bandeau */
 const scene = (cx, y, { nom, effet, position, heros = [], icone, geste, vise = false, plus = false }) => `<div class="poste scene ${heros.length ? 'occupe' : 'vide'} ${vise ? 'vise' : ''}" style="left:${cx - 115}px;top:${y}px">
-  <div class="postes-de-scene">${heros.length ? heros.map((h) => portrait(h)).join('') : medaillon(icone, { taille: 21 })}${plus ? medaillon('plus', { petit: true }) : ''}</div>
+  <div class="postes-de-scene">${heros.length ? heros.map((h) => portrait(h)).join('') : medaillon(icone, { taille: 'moyen' })}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>
   <div class="et bois"><b>${nom}</b><span class="rubrique">${effet}</span>${position ? `<span class="rubrique position">${position}</span>` : ''}${plaque(geste, { armee: vise })}</div></div>`;
 const armees = (allies, ennemis, suite, bonus = '+10') => `<div id="bord" class="cadre bois bord armees" data-piece="les armées"><div class="fond bois">
-  ${ligne('Armée des Personnages', `<span class="lin">${allies} · départ 50</span>`)}${jauge(allies / 100)}${bonus ? `
-  ${ligne('Tests de Puissance ce Round', `<span class="lin">${bonus}</span>`)}` : ''}
-  ${ligne('Horde ennemie', `<span class="lin">${ennemis} · départ 55</span>`)}${jauge(ennemis / 100, 'cire')}
-  <div class="filet"></div>${suite}
-</div><div class="ruban rubrique">Puissance</div>${ferrures}</div>`;
+  ${ligne('Armée des Personnages', `<span class="chiffres">${allies} · départ 50</span>`)}${jauge(allies / 100, { teinte: 'or', taille: 'forte' })}${bonus ? `
+  ${ligne('Tests de Puissance ce Round', `<span class="chiffres">${bonus}</span>`)}` : ''}
+  ${ligne('Horde ennemie', `<span class="chiffres">${ennemis} · départ 55</span>`)}${jauge(ennemis / 100, { taille: 'forte' })}
+  ${filet({ fondu: true })}${suite}
+</div>${ruban('Puissance')}${ferrures}</div>`;
 /* le parchemin posé au-dessus des héros : les deux armées, ce qui les départage, les gestes */
-const ost = (cote, nom, sceau, unite, gagne, sous, issue) => `<div class="ost ${cote}"><div class="sceau de ${gagne ? 'reussite' : ''}"><b>${sceau}</b><i>${unite}</i></div>
+const ost = (cote, nom, sceau, unite, gagne, sous, issue) => `<div class="ost ${cote}"><div class="sceau maitre de ${gagne ? 'reussite' : ''}"><b>${sceau}</b><i>${unite}</i></div>
     <div><div class="n">${nom}</div><div class="c rubrique">${sous}</div><div class="issue ${gagne ? 'reussite' : ''}">${issue}</div></div></div>`;
 const armee = (cote, nom, seuil, de, dr, perte) => ost(cote, nom, de, 'd100', dr > 0, `Puissance ≤ ${seuil}`, `<b>${dr > 0 ? 'Réussite' : 'Échec'} · DR ${dr > 0 ? '+' : '−'}${Math.abs(dr)}</b> · ôte ${perte}`);
-const epreuve = (ruban, gauche, milieu, droite, gestes, classe = '') => `<div id="epreuve" class="cadre bois ${classe}" data-piece="${ruban}"><div class="fond parchemin">
+const epreuve = (intitule, gauche, milieu, droite, gestes, classe = '') => `<div id="epreuve" class="cadre bois ${classe}" data-piece="${intitule}"><div class="fond parchemin">
     ${gauche}
     <div class="milieu">${milieu}</div>
     ${droite}
     <div class="gestes">${gestes}</div>
-  </div><div class="ruban gothique">${ruban}</div>${ferrures}</div>`;
+  </div>${ruban(intitule, { gothique: true })}${ferrures}</div>`;
 if (ISSUE) {
   pieces.push(armees(46, 21, `<div class="t rubrique">Ce que la bataille a joué</div>
     ${ligne('Round 1', '42 contre 35')}${ligne('Round 2', '44 contre 27')}${ligne('Round 3', '46 contre 21')}`, null));
@@ -58,7 +58,7 @@ if (ISSUE) {
     greta: { mal: true, icone: 'goutte', texte: 'blessée, debout sur la brèche' },
   }));
 } else if (!JOUE) {
-  pieces.push(recit('Le terrain', 'La plaine boueuse s’étend devant les remparts ; la horde dévale la pente en hurlant.').replace('id="recit"', 'id="recit" class="terrain"'));
+  pieces.push(recit('Le terrain', 'La plaine boueuse s’étend devant les remparts ; la horde dévale la pente en hurlant.'));
   pieces.push(`<div data-piece="scenes">
     ${scene(1150, 96, { nom: 'Pluie de flèches', effet: '−1/touche · −2/vaincu Puiss. ennemie', icone: 'arc', geste: 'Engager le combat' })}
     ${scene(760, 398, { nom: 'Tenez votre position', effet: '−2 Puiss. ennemie', position: 'Point de rupture 0/10', heros: ['greta', 'bjorn'], geste: 'Résoudre', vise: !POSTER, plus: POSTER })}
@@ -72,11 +72,11 @@ if (ISSUE) {
       ['Greta Hartmann · Commandement ≤ 36', plaque('Poster')]] })
     : billet({ x: 596, y: 246, largeur: 328, pointe: 158, nom: 'Tenez votre position', qui: 'Postés', lignes: [['Greta Hartmann', 'Corps à corps'], ['Bjorn', 'en Soutien'], ['Test opposé', 'chaque Round'], ['Déroute', 'à 10, ou au bout de 5 Rounds']] }));
   pieces.push(armees(50, 55, `<div class="t rubrique">Ce que le Round jouera</div>
-    <div class="jouera">${pastille('arc')}Pluie de flèches<span class="rubrique">Tout le groupe</span></div>
-    <div class="jouera">${pastille('bouclier')}Tenez votre position<span class="rubrique">Greta, Bjorn</span></div>
-    <div class="jouera">${pastille('couronne')}Motivation<span class="rubrique">Aldric</span></div>
-    ${plaque('Tirer un facteur (1d10)', { icone: 'des' })}
-    ${plaque('Test spectaculaire de Puissance', { armee: true, icone: 'epee', classe: 'grand' })}`));
+    <div class="jouera">${rond('arc', 'menu', { arme: true })}Pluie de flèches<span class="rubrique">Tout le groupe</span></div>
+    <div class="jouera">${rond('bouclier', 'menu', { arme: true })}Tenez votre position<span class="rubrique">Greta, Bjorn</span></div>
+    <div class="jouera">${rond('couronne', 'menu', { arme: true })}Motivation<span class="rubrique">Aldric</span></div>
+    ${plaque('Test spectaculaire de Puissance', { armee: true, icone: 'epee', classe: 'grand' })}
+    ${plaque('Tirer un facteur (1d10)', { icone: 'des' })}`));
   pieces.push(bandeau({
     bjorn: { icone: 'bouclier', texte: 'Posté : Tenez votre position' },
     mira: POSTER ? { choisi: true, html: '<span class="attend rubrique">À poster sur une Scène</span>' } : { html: '<span class="attend sombre rubrique">Libre · à poster</span>' },
@@ -84,14 +84,14 @@ if (ISSUE) {
     greta: { choisi: !POSTER, icone: 'bouclier', texte: 'Postée : Tenez votre position' },
   }));
 } else {
-  pieces.push(recit('Le terrain', 'La plaine boueuse s’étend devant les remparts ; la horde dévale la pente en hurlant.').replace('id="recit"', 'id="recit" class="terrain"'));
+  pieces.push(recit('Le terrain', 'La plaine boueuse s’étend devant les remparts ; la horde dévale la pente en hurlant.'));
   pieces.push(armees(42, 35, `<div class="t rubrique">Ce que le Round a joué</div>
-    <div class="jouera joue">${pastille('arc')}Pluie de flèches<span class="rubrique">Horde −5</span></div>
-    <div class="jouera joue">${pastille('bouclier')}Tenez votre position<span class="rubrique">Horde −2 · rupture 3/10</span></div>
-    <div class="jouera joue">${pastille('couronne')}Motivation<span class="rubrique">échouée, aucun effet</span></div>`));
+    <div class="jouera joue">${rond('arc', 'menu', { arme: true })}Pluie de flèches<span class="rubrique">Horde −5</span></div>
+    <div class="jouera joue">${rond('bouclier', 'menu', { arme: true })}Tenez votre position<span class="rubrique">Horde −2 · rupture 3/10</span></div>
+    <div class="jouera joue">${rond('couronne', 'menu', { arme: true })}Motivation<span class="rubrique">échouée, aucun effet</span></div>`));
   pieces.push(epreuve('Test spectaculaire de Puissance', armee('', 'Armée des Personnages', '50 + 10', 31, 3, 13), `<div class="sous rubrique">Round de bataille 1 / 3</div><div class="dr">42 contre 35</div>
       <p data-texte="phrase d'issue">Les Personnages réduisent l’ennemi de 13, l’ennemi réduit les Personnages de 8.</p>`, armee('droite', 'Horde ennemie', 48, 67, -2, 8),
-  `${plaque('Rassemblement : Bjorn', { classe: 'large' })}${plaque('Round suivant', { armee: true })}`));
+  `${plaque('Round suivant', { armee: true })}${plaque('Rassemblement : Bjorn', { classe: 'large' })}`));
   pieces.push(bandeau({
     bjorn: { texte: 'a tenu la position aux côtés de Greta' },
     mira: { texte: 'trois flèches au but depuis le rempart' },

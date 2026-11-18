@@ -89,15 +89,15 @@ pieces.push(titre({ icone: 'lune', nom: 'La halte du soir', sous: `14 Pflugzeit 
 pieces.push(`<div id="recit" data-piece="recit"><div class="r rubrique ombre">Dans le Reikwald, à l’écart du chemin</div><p class="ombre">La clairière est sèche et le bois mort ne manque pas.</p></div>`);
 /* `src/noyau/restFlow.ts:163` (couchage et pitance par héros), `:486-512` ; `docs/regles-optionnelles.md:256` */
 pieces.push(`<div id="camp" class="cadre bois" data-piece="campement"><div class="fond bois">
-  <div class="rang-c"><span class="lab rubrique">Abri</span>${medaillon('tente', { petit: true })}<span class="v">Tente <em>· quatre dormeurs sous la toile</em></span></div>
+  <div class="rang-c"><span class="lab rubrique">Abri</span>${medaillon('tente', { taille: 'petit' })}<span class="v">Tente <em>· quatre dormeurs sous la toile</em></span></div>
   <div class="rang-c" style="margin-bottom:0"><span class="lab rubrique">Temps</span>${sceau('flocon')}<span class="v">Gel cette nuit : il faudra tenir contre le froid.</span></div>
-  <div class="filet"></div>
+  ${filet({ fondu: true })}
   <div class="t rubrique">Ce que la nuit jouera</div>
-  <div class="jouera">${pastille('flocon')}Le froid<span class="rubrique">Résistance</span></div>
-  <div class="jouera">${pastille('sommeil')}Le repos<span class="rubrique">une nuit</span></div>
+  <div class="jouera">${rond('flocon', 'menu', { arme: true })}Le froid<span class="rubrique">Résistance</span></div>
+  <div class="jouera">${rond('sommeil', 'menu', { arme: true })}Le repos<span class="rubrique">une nuit</span></div>
   ${plaque('Passer la nuit', { armee: true, icone: 'lune', classe: 'nuit' })}
-</div><div class="ruban rubrique">Le campement</div>${ferrures}</div>`);
+</div>${ruban('Le campement')}${ferrures}</div>`);
 const choix = (ration) => ({ html: `<div class="choix-h"><span class="rubrique">Couchage</span><b>Dehors</b></div><div class="choix-h"><span class="rubrique">Nourriture</span>${plaque('Ration', { armee: ration })}${plaque('Rien', { armee: !ration })}</div>` });
 pieces.push(bandeau({ bjorn: choix(true), mira: choix(true), aldric: choix(true), greta: choix(false) }));
-pieces.push(coins());
+pieces.push(retour('Reprendre la route', 'route'), coins());
 monter(pieces);

@@ -9,15 +9,8 @@
 .toile::before{content:"";position:absolute;inset:9px 46px;border:1px solid rgba(226,192,106,.45)}
 .toile span{color:#f3e6c6;text-shadow:0 3px 4px rgba(0,0,0,.75);white-space:nowrap}
 
-/* l'outil : pastille ronde et son libellé (repris de la barre de combat) */
-.outil{display:flex;flex-direction:column;align-items:center;gap:6px;width:92px}
-.outil .bouton-rond{width:50px;height:50px;padding:4px}
-.outil span{font-size:13px;color:#f0e2c2;white-space:nowrap}
 
 /* filet à losange (repris de la création) */
-.filet-l{display:flex;align-items:center;gap:10px}
-.filet-l::before,.filet-l::after{content:"";flex:1;height:1px;background:currentColor;opacity:.55}
-.filet-l i{width:8px;height:8px;transform:rotate(45deg);background:currentColor}
 
 /* le cartouche de titre : la gothique respire (aucun jambage coupé) */
 #titre .n{line-height:50px;margin:-9px 0 -8px}

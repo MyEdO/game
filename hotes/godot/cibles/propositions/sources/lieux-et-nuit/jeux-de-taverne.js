@@ -73,22 +73,22 @@ const POSTES = [
   [690, 512, { nom: 'L’Al-zahr', sous: 'La place de Bjorn', icone: 'des', vise: true }],
 ];
 pieces.push(`<div data-piece="table">${POSTES.map((p) => poste(...p)).join('')}</div>`);
-const siege = (id, nom, sous, choisi) => `<div class="siege">${portrait(id, { classe: choisi ? 'choisi' : '' })}<b>${nom}</b><span class="rubrique">${sous}</span></div>`;
+const siege = (id, nom, sous, choisi) => `<div class="siege">${portrait(id, { choisi })}<b>${nom}</b><span class="rubrique">${sous}</span></div>`;
 const pile = `<svg width="38" height="34" viewBox="0 0 38 34">${[28, 23, 18, 13].map((y) => `<ellipse cx="15" cy="${y}" rx="12" ry="4.200" fill="#c9a44c" stroke="#5d4313" stroke-width="1"/>`).join('')}<ellipse cx="28" cy="27" rx="8" ry="3" fill="#c9a44c" stroke="#5d4313" stroke-width="1"/></svg>`;
 pieces.push(`<div id="partie" class="page cadre bois" data-piece="partie"><div class="fond parchemin">
   <h3 data-texte="jeu">L’Al-zahr</h3>
   <div class="sous rubrique">Jeu de dés · chacun met au pot</div>
   <p style="margin-top:7px">Deux dés pour toucher le nombre cible. Le premier qui l’atteint emporte le pot.</p>
   <div class="autres">${plaque('L’Al-zahr', { armee: true, icone: 'des' })}${plaque('Les fléchettes', { icone: 'cible' })}${plaque('Le bras de fer', { icone: 'poing' })}</div>
-  <div class="filet"></div>
+  ${filet()}
   <div class="t rubrique">À la table</div>
   <div class="sieges">${siege('bjorn', 'Bjorn', 'Votre joueur', 1)}${siege('brasseur', 'Le brasseur', 'La maison')}${siege('batelier', 'Un batelier', 'Habitué')}${siege('cocher', 'Un cocher', 'De passage')}</div>
-  <div class="filet"></div>
+  ${filet()}
   <div class="t rubrique">La mise de Bjorn</div>
-  <div class="mise">${rond('moins', 17)}<div class="somme">${pile}<b class="lin" style="font-family:inherit">6 sc</b></div>${rond('plus', 17)}
-    <table class="compte"><tr><td>Le pot, à quatre</td><td class="lin">2/–</td></tr><tr><td>Bourse de Bjorn</td><td class="lin">14/–</td></tr></table></div>
+  <div class="mise">${rond('moins', 'petit')}<div class="somme">${pile}<b class="chiffres" style="font-family:inherit">6 sc</b></div>${rond('plus', 'petit')}
+    <table class="compte"><tr><td>Le pot, à quatre</td><td class="chiffres">2/–</td></tr><tr><td>Bourse de Bjorn</td><td class="chiffres">14/–</td></tr></table></div>
   ${plaque('S’asseoir et lancer les dés', { armee: true, icone: 'des', classe: 'jouer' })}
-</div><div class="ruban gothique">La partie</div>${ferrures}</div>`);
+</div>${ruban('La partie', { gothique: true })}${ferrures}</div>`);
 pieces.push(bandeau({ bjorn: { choisi: true, icone: 'des', texte: 'prend la place libre à la table de dés' } }, { bourses: true }));
 pieces.push(retour('Quitter la table'), coins());
 monter(pieces);

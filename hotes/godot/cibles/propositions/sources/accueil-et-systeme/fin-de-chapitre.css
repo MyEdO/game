@@ -8,7 +8,6 @@
 #carton .bande{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 7px 4px;padding-bottom:3px;border-bottom:1px solid rgba(226,192,106,.45);font-size:13.5px;letter-spacing:1.6px;color:var(--or)}
 #carton .bande b{font-weight:600;font-size:17px;letter-spacing:.2px;color:#f6e9c8}
 .solde{display:flex;align-items:center;gap:11px;height:29px;margin-left:4px;font-size:16.5px;color:#efe4c8;white-space:nowrap}
-.solde .pst{width:22px;height:22px}
 #carton .deux{display:grid;grid-template-columns:1fr 1fr;column-gap:30px}
 #carton .deux .bande{margin-top:14px}
 #carton .deux p{font-size:15px;line-height:21px}
@@ -17,7 +16,6 @@
 #seance .col{padding:0 13px;border-left:1px solid rgba(226,192,106,.18)}
 #seance .col:first-of-type{border-left:0}
 #seance .tete{display:flex;align-items:center;gap:10px;height:56px;margin-bottom:7px}
-#seance .tete .portrait{width:42px;height:50px;padding:3px}
 #seance .tete .qui{flex:1;min-width:0}
 #seance .tete .n{font-size:20px;line-height:30px;margin:-4px 0 -4px;color:#f4e8ca;white-space:nowrap}
 #seance .tete .c{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
@@ -28,7 +26,7 @@
 #seance .groupe .tete{height:42px}
 #seance .groupe .cochable{height:auto;flex-wrap:wrap;margin-bottom:3px}
 #seance .groupe .cochable b{flex:0 0 100%;text-align:right;line-height:13px}
-#clore{position:absolute;left:24px;top:694px;width:500px;display:flex;gap:12px}
+#clore{position:absolute;right:24px;bottom:28px;width:500px;display:flex;gap:12px}
 #clore .plaque{height:52px}
 #clore .plaque>div{font-size:18px;letter-spacing:1.4px;gap:12px}
 #clore .plaque:last-child{flex:0 0 170px}

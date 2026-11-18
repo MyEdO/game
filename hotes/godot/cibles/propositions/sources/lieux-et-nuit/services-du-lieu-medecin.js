@@ -75,7 +75,7 @@ pieces.push(titre({ icone: 'soin', nom: 'Guilde des Médecins', sous: 'Teuerberg
 const SERVICES = [['lit', 'La Fin du Voyage'], ['chope', 'Les Piques croisées'], ['balance', 'Guilde des Joailliers'], ['soin', 'Guilde des Médecins', 1], ['bouclier', 'Caserne du Guet']];
 pieces.push(rail('Services de Teuerberg', SERVICES, 'On passe de l’un à l’autre sans ressortir'));
 pieces.push(`<div id="docteur" class="hote cadre bois" data-piece="docteur"><div class="fond bois">
-  <div class="tete">${medaillon('soin', { petit: true })}<div><div class="n gothique" data-texte="docteur">Le docteur de la guilde</div><div class="s rubrique">Docteur en médecine · Guérison 62</div></div></div>
+  <div class="tete">${medaillon('soin', { taille: 'moyen' })}<div><div class="n gothique" data-texte="docteur">Le docteur de la guilde</div><div class="s rubrique">Docteur en médecine · Guérison 62</div></div></div>
   <p>Asseyez-vous sous la fenêtre et montrez-moi cela. Et ne bougez plus.</p>
 </div><i class="pointe" style="left:152px;bottom:-8px"></i>${ferrures}</div>`);
 /* LDB 75 l.19 ; `src/noyau/medicFlow.ts:182`, `src/noyau/acteDeSoin.ts:30-36` ; #3004. Le patient se choisit au bandeau. */

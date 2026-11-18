@@ -9,19 +9,18 @@ const TERRAIN = ETAT === 'editeur-outil-terrain';
 const SUPPRIMER = ETAT === 'editeur-supprimer';
 const petite = (libelle, o = {}) => plaque(libelle, o);
 const outilDePalette = ([icone, nom, la]) => `<div class="o ${la ? 'la' : ''}">${picto(icone, 20, la ? '#2a1a08' : '#e2c06a', 1.5)}<span>${nom}</span></div>`;
-const volet = (id, x, y, ruban, corps) => `<div id="${id}" class="volet cadre bois" data-piece="${id}" style="left:${x}px;top:${y}px;width:270px"><div class="fond bois"><span class="ruban rubrique">${ruban}</span>${corps}</div>${ferrures}</div>`;
+const volet = (id, x, y, intitule, corps) => `<div id="${id}" class="volet cadre bois" data-piece="${id}" style="left:${x}px;top:${y}px;width:270px"><div class="fond bois">${corps}</div>${ruban(intitule)}${ferrures}</div>`;
 const barre = () => `<div id="barre" class="cadre bois" data-piece="barre"><div class="fond bois">
-  <div class="medaillon petit fer"><div>${picto('plume', 19, '#e9dcc0')}</div></div>
+  ${medaillon('plume', { taille: 'moyen', inerte: true })}
   <div><div class="nom gothique" data-texte="titre">Éditeur de campagne</div><div class="s rubrique">L’Ennemi Intérieur — chapitre 1 : la route d’Altdorf</div></div>
   <div class="sep"></div>
   ${segments(['Scène', 'Carte du monde', 'Narratif'], CARTE ? 'Carte du monde' : 'Scène')}
   <div class="espace"></div>
-  ${petite('Annuler', { icone: 'retour' })}${petite('Rétablir', { icone: 'refaire', fermee: true })}
+  ${petite('Annuler', { icone: 'annuler' })}${petite('Rétablir', { icone: 'refaire', fermee: true })}
   <div class="sep"></div>
   ${petite('Copier')}${petite('Coller', { fermee: true })}${petite('Dupliquer')}
   <div class="sep"></div>
   ${petite('Enregistrer', { icone: 'disque' })}${petite('Tester la scène', { icone: 'jouer', armee: true })}
-  <div class="sep"></div>
   ${croix({ dansLePanneau: true })}
 </div>${ferrures}</div>`;
 
@@ -113,10 +112,10 @@ if (CARTE) {
        <div class="r rubrique">Établissements (0)</div>
        ${plaque('Ajouter un établissement', { icone: 'plus' })}
        <div class="r rubrique">Routes (1)</div>
-       <div class="prop"><span>La route principale</span><span class="v lin" style="font-style:normal">40 km</span></div>
+       <div class="prop"><span>La route principale</span><span class="v chiffres" style="font-style:normal">40 km</span></div>
        <div class="prop" style="flex-direction:column;align-items:flex-start;padding:6px 0 8px;gap:5px"><span>Sens</span>${segments(['Les deux sens', 'Depuis Auberge La Diligence'], 'Depuis Auberge La Diligence')}</div>
        ${validation}
-     </div><div class="ruban gothique">Inspecteur</div>${ferrures}</div>`,
+     </div>${ruban('Inspecteur', { gothique: true })}${ferrures}</div>`,
   );
 } else {
   const OUTILS = [['selection', 'Sélection', !TERRAIN], ['terrain', 'Terrain', TERRAIN], ['hauteur', 'Hauteur'], ['murs', 'Murs'], ['volee', 'Volée'], ['crenelage', 'Crénelage'], ['decor', 'Décor'], ['personnage', 'Personnage'], ['navire', 'Navire'], ['baliste', 'Emplacement de siège'], ['depart', 'Départ'], ['porte', 'Entrée'], ['ville', 'Architecture'], ['zone', 'Zone'], ['gomme', 'Gomme']];
@@ -168,7 +167,7 @@ if (CARTE) {
        <div id="couches">${plaque('Couche 0', { armee: true, icone: 'couches' })}${plaque('Couche 1')}${plaque('Ajouter une couche', { icone: 'plus' })}${SUPPRIMER ? plaque(`Retirer cette couche${raison('Le rez ne se retire pas')}`, { fermee: true }) : ''}</div>
        <div id="nord" class="rubrique ombre">${picto('route', 18)}Nord : 0° dans le sens horaire</div>${ferrures}</div>`,
     PIED[ETAT],
-    `<div id="inspecteur" class="cadre bois" data-piece="inspecteur"><div class="fond parchemin">${INSPECTEUR[ETAT]}</div><div class="ruban gothique">Inspecteur</div>${ferrures}</div>`,
+    `<div id="inspecteur" class="cadre bois" data-piece="inspecteur"><div class="fond parchemin">${INSPECTEUR[ETAT]}</div>${ruban('Inspecteur', { gothique: true })}${ferrures}</div>`,
   );
 }
 monter(pieces);

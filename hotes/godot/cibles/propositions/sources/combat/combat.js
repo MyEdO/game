@@ -37,6 +37,7 @@ grad('feu', [[0, '#ffdf9a', .85], [.16, '#ffb65a', .55], [.45, '#e07a2c', .2], [
 grad('coeur', [[0, '#fff3c8', .95], [.3, '#ffc76e', .6], [1, '#ff9a3a', 0]], { cx: .5, cy: .5, r: .5 }, 'radialGradient');
 grad('droite', [[0, '#000', .7], [.55, '#000', .35], [1, '#000', 0]], { cx: .5, cy: .5, r: .5 }, 'radialGradient');
 grad('froid', [[0, '#2a3a6a', 0], [1, '#2a3a6a', .55]], { cx: .5, cy: .5, r: .5 }, 'radialGradient');
+grad('ciel', [[0, '#080a14', .78], [1, '#080a14', 0]]);
 const teinte = (id, clair, sombre) => grad(id, [[0, clair], [.55, sombre], [1, melange(sombre, '#000000', .35)]], { x1: 0, y1: 0, x2: 1, y2: 1 });
 teinte('t-robe', '#7c88ad', '#2b3350'); teinte('t-cuir', '#b98a58', '#5a3d2a'); teinte('t-orc', '#7b8f5c', '#2f3a26'); teinte('t-gob', '#8ea064', '#3b4a2b');
 teinte('t-bois', '#8a6a44', '#3f2c1a');
@@ -54,7 +55,7 @@ el(S, 'rect', { width: W, height: H, fill: 'url(#nuit)' });
     for (let k = n; k >= 1; k--) { const yy = y - h + h * .94 * k / n, ww = w * k / n; d += `L${x - ww * .35},${yy - h * .02}L${x - ww},${yy}L${x - ww * .55},${yy - h * .035}`; }
     el(S, 'path', { d: d + 'Z', fill: melange('#0c0e18', '#1a1d2b', t * .8) });
   }
-  el(S, 'rect', { width: W, height: 380, fill: 'url(#haut)' });
+  el(S, 'rect', { width: W, height: 380, fill: 'url(#ciel)' });
 }
 
 // le sol : des dalles
@@ -305,16 +306,16 @@ const fiche = (classe, style) => `<div id="apercu" class="parchemin ${classe}" d
     <div class="pied">Un clic arme le sort, un second sur la cible le lance.</div>
   </div>`;
 const rapides = (armee, noms = ['Fléchette', 'Dôme', 'Bouclier', 'Lumière', null, null]) => `<div id="rapides" class="cadre bois" data-piece="rapides"><div class="fond">
-      ${noms.map((n, i) => [n, i === 0 && armee]).map(([n, a], i) => `<div class="case-r"><div class="plaque laiton${a ? ' armee' : ''}${n ? '' : ' vide'}"><div>${n ? picto(PICTOS.sort, 20, a ? '#2a1a08' : '#e2c06a', 1.6) : ''}</div><b>${i + 1}</b></div><span class="rubrique">${n ?? 'Libre'}</span></div>`).join('')}
+      ${noms.map((n, i) => [n, i === 0 && armee]).map(([n, a], i) => `<div class="case-r"><div class="plaque laiton${a ? ' armee' : ''}${n ? '' : ' vide'}"><div>${n ? picto('sort', 20) : ''}</div><b>${i + 1}</b></div><span class="rubrique">${n ?? 'Libre'}</span></div>`).join('')}
     </div>${ferrures}</div>`;
 const VARIANTE = () => {
   if (VAR === 'liste') return [
     `<div id="liste" class="cadre bois" data-piece="liste"><div class="fond"><div class="t rubrique">Lancer ce sort</div>
-      ${[['Dôme', 0], ['Bouclier anti-flèches', 0], ['Fléchette', 1], ['Lumière', 0]].map(([n, a]) => `<div class="plaque laiton ligne-l${a ? ' armee' : ''}"><div>${n}</div></div>`).join('')}
+      ${[['Dôme', 0], ['Bouclier anti-flèches', 0], ['Fléchette', 1], ['Lumière', 0]].map(([n, a]) => plaque(n, { armee: !!a, classe: 'ligne-l' })).join('')}
     </div>${ferrures}</div>`,
-    fiche('a-gauche', 'left:588px;top:334px;width:322px'),
+    fiche('a-gauche', 'left:588px;top:334px;width:300px'),
   ];
-  return [rapides(1), fiche('a-gauche', 'left:588px;top:334px;width:322px')];
+  return [rapides(1), fiche('a-gauche', 'left:588px;top:334px;width:300px')];
 };
 
 /* la silhouette des localisations : six zones, trois états (libre, choisie, touchee) */
@@ -372,23 +373,23 @@ if (!FIN) {
     journal: '',
   }[VAR] ?? (jeu && VAR !== 'incantation' ? vieux(GOB) + vieux(ORCP) + neuf(CHARGE) : borneJ('Le combat commence ! (Round 1)') + vieux(GOB) + neuf(ORCP));
   ui.push(`<div id="journal" data-piece="journal">
-  <div class="tete rubrique ombre${VAR === 'journal' ? ' ouvert' : ''}">Journal ${rond('journal', 17, { couleur: VAR === 'journal' ? '#2a1a08' : '#e2c06a' })}</div>
+  <div class="tete rubrique ombre${VAR === 'journal' ? ' ouvert' : ''}">Journal ${rond('journal', 'petit', { arme: VAR === 'journal' })}</div>
   ${LIGNES}
 </div>`);
   const fermee = jeu || VAR === 'adverse';
-  ui.push(`<div id="fin" class="${fermee ? 'ferme' : ''}" data-piece="fin">${rond('fin', 44, { ferme: fermee })}<span class="rubrique ombre">Fin du tour</span></div>`);
+  ui.push(`<div id="fin" class="${fermee ? 'ferme' : ''}" data-piece="fin">${rond('fin', 'maitre', { ferme: fermee })}<span class="rubrique ombre">Fin du tour</span></div>`);
 }
 
 /* ───────── le meuble étendu : ce que la situation de l'actif ouvre, ses États, sa Détermination ───────── */
 /* une pastille posée sur l'entité du champ qui porte l'offre (`surface: 'pastille-entite'`, `src/data/actions.json`) */
-const surLEntite = ([i, j], haut, icone, libelle) => { const [x, y] = P(i, j); return `<div class="pastille-entite" data-piece="pastille ${libelle}" style="left:${x}px;top:${y - haut}px">${rond(icone, 16)}<span class="rubrique ombre">${libelle}</span></div>`; };
+const surLEntite = ([i, j], haut, icone, libelle) => { const [x, y] = P(i, j); return `<div class="pastille-entite" data-piece="pastille ${libelle}" style="left:${x}px;top:${y - haut}px">${rond(icone, 'petit')}<span class="rubrique ombre">${libelle}</span></div>`; };
 /* libellés du registre (`label`, `src/data/actions.json` ; pastilles : `ecran.offre.*`, `src/i18n/messages/fr.ts:538-557`) ;
    raison : `agate.prone` (`fr.ts:4376`) */
 const MEUBLES = {
   /* LDB 15 l.45-49 ; LDB 16 l.35 ; LDB 10 l.103, l.364 ; LDB 21 l.31 */
   aTerre: {
     sous: 'Épée', portes: etatPorte('aTerre'),
-    plaques: `${plaque('Attaque', { icone: 'attaque' })}${plaque(`Course${raison('ne peut que ramper : se relever d’abord')}`, { icone: 'course', fermee: true })}${plaque('Défensive', { icone: 'defensive' })}`,
+    plaques: `${plaque('Attaque', { icone: 'attaque' })}${plaque(`Course${raison('ne peut que ramper : se relever d’abord')}`, { icone: 'botte', fermee: true })}${plaque('Défensive', { icone: 'defensive' })}`,
     conditionnelles: ['Se désengager', 'Se relever', 'Battement', 'Distraire', 'Frénésie'].map((o) => plaque(o)).join(''),
     pastilles: [['competence', 'Compétence'], ['objet', 'Objet'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
   },
@@ -401,8 +402,8 @@ const MEUBLES = {
   },
   /* LDB 13 l.106 ; MDG 09 l.44-46 ; `docs/raw/4e/combat.md:262` */
   piece: {
-    sous: 'Baliste', portes: plaque('Quitter la pièce', { icone: 'quitter' }),
-    conditionnelles: `${plaque('Recharger')}${plaque('Diriger l’équipe')}`,
+    sous: 'Baliste', portes: '',
+    conditionnelles: `${plaque('Recharger')}${plaque('Diriger l’équipe')}${plaque('Quitter la pièce', { icone: 'sortie' })}`,
     pastilles: [['competence', 'Compétence'], ['objet', 'Objet'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
     entites: surLEntite([11.5, 8.5], 86, 'pousser', 'Pousser'),
   },
@@ -411,8 +412,8 @@ if (!jeu && BERTA_JOUE) {
   const m = MEUBLES[VAR];
   ui.push(...meuble({
     genre: 'berta', nom: 'Berta', sous: m.sous,
-    etat: `${mesure('Blessures', `${PV_BERTA} / 12`)}${pas(PORTEE)}${jetons(RESERVES.berta.determination)}<div class="portes"><span class="rubrique">${VAR === 'piece' ? 'Poste' : 'États'}</span>${m.portes || '<em>aucun</em>'}</div>`,
-    plaques: m.plaques ?? `${plaque('Attaque', { icone: 'attaque' })}${plaque('Course', { icone: 'course' })}${plaque('Défensive', { icone: 'defensive' })}`,
+    etat: `${mesure('Blessures', `${PV_BERTA} / 12`)}${pas(PORTEE)}${jetons(RESERVES.berta.determination)}<div class="portes"><span class="rubrique">États</span>${m.portes || '<em>aucun</em>'}</div>`,
+    plaques: m.plaques ?? `${plaque('Attaque', { icone: 'attaque' })}${plaque('Course', { icone: 'botte' })}${plaque('Défensive', { icone: 'defensive' })}`,
     conditionnelles: m.conditionnelles, pastilles: m.pastilles,
   }), rapides(0, Array(6).fill(null)), m.entites ?? '');
 } else if (!jeu) {
@@ -421,12 +422,12 @@ if (!jeu && BERTA_JOUE) {
     ...(adv ? { genre: 'orc', camp: 'ennemi', nom: 'Orc', sous: 'Hache', etat: mesure('Blessures', '14 / 14') }
       : { genre: 'ilyanwe', nom: 'Ilyanwe la Voilée', sous: 'Bâton de combat', etat: `${mesure('Blessures', '17 / 17')}${pas(4)}${JETONS}` }),
     adverse: adv, ouverte: VAR === 'liste' ? 'sort' : null,
-    plaques: `${plaque('Attaque', { armee: SURVOL, icone: 'attaque', fermee: adv })}${plaque('Course', { icone: 'course', fermee: adv })}${plaque('Défensive', { icone: 'defensive', fermee: adv })}`,
+    plaques: `${plaque('Attaque', { armee: SURVOL, icone: 'attaque', fermee: adv })}${plaque('Course', { icone: 'botte', fermee: adv })}${plaque('Défensive', { icone: 'defensive', fermee: adv })}`,
     pastilles: [['sort', 'Sort'], ['focaliser', 'Focaliser'], ['competence', 'Compétence'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
   }));
   if (SURVOL) ui.push(`<div id="apercu" class="parchemin" data-piece="apercu">
     <div class="tete"><span class="n gothique">Orc</span><span class="c rubrique">Cible</span></div>
-    <div class="pv"><div class="vie"><i style="width:100%"></i></div><b>14 / 14</b></div>
+    <div class="pv">${jauge(1, { taille: 'forte' })}<b>14 / 14</b></div>
     <div class="titre rubrique">Attaque · Bâton de combat</div>
     <table>
       <tr class="seuil"><td>Corps à corps (Armes d’hast)</td><td>≤ 48</td></tr>
@@ -443,30 +444,30 @@ if (!jeu && BERTA_JOUE) {
     ui.push(`<div id="journal-entier" class="cadre bois" data-piece="journal-entier"><div class="fond parchemin">
       ${r('Round 1')}${['Le combat commence !', 'Tireur gobelin maîtrise sa psychologie (Animosité).', 'Orc maîtrise sa psychologie (Animosité).', 'Ilyanwe la Voilée rate son incantation (Fléchette).', 'Berta se met en Défensive.', 'Tireur gobelin tire sur Berta et la manque.', 'Orc s’avance dans la cour.'].map(l).join('')}
       ${r('Round 2')}${['Tireur gobelin maîtrise sa psychologie (Animosité).', 'Orc maîtrise sa psychologie (Animosité).'].map(l).join('')}
-    </div><div class="ruban titre">Journal</div>${ferrures}</div>`);
+    </div>${ruban('Journal', { gothique: true })}${ferrures}</div>`);
   }
   if (VAR === 'fiche') {
     const arme = (dessin, nom, test, degats, allonge, atouts) => `<div class="arme">
         <div class="vignette laiton"><div><svg viewBox="0 0 80 80" fill="none" stroke-linecap="round" stroke-linejoin="round">${dessin}</svg></div></div>
         <div class="texte"><div class="n gothique">${nom}</div>
-          <div class="mesures"><div class="anneau fer"><div>${test}</div></div><span class="rubrique t">Test</span>
+          <div class="mesures">${disque(test, { taille: 'grand' })}<span class="rubrique t">Test</span>
             <div class="m"><span class="rubrique">Dégâts</span><b>${degats}</b></div><div class="m"><span class="rubrique">Allonge</span><b>${allonge}</b></div></div>
           <div class="atouts">${atouts.map((a) => `<span class="rubrique">${a}</span>`).join('')}</div></div>
       </div>`;
     ui.push(`<div id="f-identite" class="cadre bois" data-piece="fiche-identite"><div class="fond parchemin">
-      <div class="tete">${portrait('berta', 'heros')}<div><div class="n gothique">Berta</div><div class="c rubrique">Humains<br>(Reiklander)</div><div class="c rubrique">Soldate</div></div></div>
-      <div class="mesure"><div class="tete rubrique"><span>Blessures</span><b class="lineale">12 / 12</b></div><div class="vie"><i style="width:100%"></i></div></div>
-      <div class="orne"><i></i><b></b><i></i></div>
-      <div class="reserves">${medaillon(2, 'Destin')}${medaillon(2, 'Chance')}${medaillon(1, 'Résilience')}${medaillon(1, 'Détermination')}</div>
+      <div class="tete">${portrait('berta', { taille: 'maitre' })}<div><div class="n gothique">Berta</div><div class="c rubrique">Humains<br>(Reiklander)</div><div class="c rubrique">Soldate</div></div></div>
+      ${mesure('Blessures', '12 / 12')}
+      ${filet({ losange: true })}
+      <div class="reserves">${compteur(2, 'Destin')}${compteur(2, 'Chance')}${compteur(1, 'Résilience')}${compteur(1, 'Détermination')}</div>
     </div>${ferrures}</div>`);
     ui.push(`<div id="f-profil" class="cadre bois" data-piece="fiche-profil"><div class="fond parchemin">
-      ${[['M', 4], ['CC', 41], ['CT', 33], ['F', 38], ['E', 35], ['I', 31], ['Ag', 34], ['Dex', 28], ['Int', 27], ['FM', 35], ['Soc', 30], ['B', 12]].map(([a, v]) => `<div class="carac"><span class="rubrique">${a}</span><b class="lineale">${v}</b></div>`).join('')}
-    </div><div class="ruban titre">Caractéristiques</div>${ferrures}</div>`);
+      ${[['M', 4], ['CC', 41], ['CT', 33], ['F', 38], ['E', 35], ['I', 31], ['Ag', 34], ['Dex', 28], ['Int', 27], ['FM', 35], ['Soc', 30], ['B', 12]].map(([a, v]) => `<div class="carac"><span class="rubrique">${a}</span><b class="chiffres">${v}</b></div>`).join('')}
+    </div>${ruban('Caractéristiques', { gothique: true })}${ferrures}</div>`);
     ui.push(`<div id="f-figure" class="cadre bois" data-piece="fiche-figure"><div class="fond bois"><div class="niche laiton"><div><svg viewBox="-34 -82 68 96" id="figure-lue"></svg></div></div></div>${ferrures}</div>`);
     ui.push(`<div id="f-sections" class="cadre bois" data-piece="fiche-sections"><div class="fond parchemin">
       ${arme('<path d="M18 62L58 22l6-8-8 6L16 60z" fill="#d9d3c2" stroke="#1a1005" stroke-width="1.500"/><path d="M14 52l14 14M12 68l6-6" stroke="#e2c06a" stroke-width="3.500"/>', 'Épée', 41, '+BF+4 (7)', 'Moyenne', [])}
       ${arme('<path d="M40 12l24 8v18c0 15-10 25-24 30-14-5-24-15-24-30V20z" fill="#6f4d30" stroke="#1a1005" stroke-width="1.500"/><path d="M40 12v56M16 34h48" stroke="#e2c06a" stroke-width="2.500"/><circle cx="40" cy="34" r="6" fill="#b9b3a4" stroke="#1a1005" stroke-width="1.500"/>', 'Bouclier', 41, '+BF+2 (5)', 'Très courte', ['Bouclier 2', 'Défensive', 'Assommante'])}
-    </div><div class="onglets"><div class="ruban titre">Attaques</div>${['Compétences', 'Talents', 'Possessions'].map((t) => plaque(t)).join('')}</div>${ferrures}</div>`);
+    </div><div class="onglets">${ruban('Attaques', { gothique: true })}${['Compétences', 'Talents', 'Possessions'].map((t) => plaque(t)).join('')}</div>${ferrures}</div>`);
     ui.push(croix());
   }
 } else if (FIN) {
@@ -480,9 +481,9 @@ if (!jeu && BERTA_JOUE) {
   /* `PendingVictory` (`src/noyau/pendings.ts:84-99`) ; `ecran.victoire.*` (`fr.ts:1128-1130`) ; `verbe.victoire.ligne`,
      `verbe.victoire.depecer` (`fr.ts:307-308`) ; ZI 13 l.304-316 */
   if (VAR === 'victoire') {
-    const ligne = (objet) => `<div class="ligne-b"><span data-texte="butin ${objet}">${objet}</span><i class="rubrique">Attribuer</i>${portrait('ilyanwe', 'heros')}${portrait('berta', 'heros')}</div>`;
+    const ligne = (objet) => `<div class="ligne-b"><span data-texte="butin ${objet}">${objet}</span><i class="rubrique">Attribuer</i>${portrait('ilyanwe', { taille: 'menu' })}${portrait('berta', { taille: 'menu' })}</div>`;
     ui.push(bandeauDuJet('Butin', 'butin', `
-      <div class="gains">${reserves([20, 'Expérience'])}<div class="argent"><b class="gothique">14/6</b><span class="rubrique">Argent</span></div></div>
+      <div class="gains">${reserves([[20, 'Expérience']], 'grand')}<div class="argent"><b class="gothique">14/6</b><span class="rubrique">Argent</span></div></div>
       <div class="vaincus"><div class="t rubrique">Vaincus</div>
         <div class="v">Orc ×1</div><div class="v">Tireur gobelin ×1</div>
         <div class="v">Grand Loup ×1${options([['Dépecer']])}</div></div>
@@ -490,7 +491,7 @@ if (!jeu && BERTA_JOUE) {
     plaque('Reprendre', { armee: true })));
   }
 } else {
-  const BERTA_P = portrait('berta', 'heros'), ORC_P = portrait('orc', 'ennemi');
+  const BERTA_P = portrait('berta', { taille: 'grand' }), ORC_P = portrait('orc', { camp: 'ennemi', taille: 'grand' });
   const regle = (libelle, corps) => `<div class="regle"><span class="l rubrique">${libelle}</span>${corps}</div>`;
   const courte = (nom, seuil, armee) => carte(nom, `≤ ${seuil}`, { armee, classe: 'courte' });
   /* LDB 13 l.167 ; LDB 13 l.123 ; AA 13 l.84 ; LDB 10 l.1037 ; `src/noyau/fenetreDeDefense.ts` ; `reglage.defense.*`,
@@ -526,11 +527,11 @@ if (!jeu && BERTA_JOUE) {
   /* LDB 17 l.57-61 ; `depenserLaDetermination` ; libellés des offres `determination-*` (`src/data/actions.json`) ;
      `cs.fragGettingUp` (`fr.ts:2087`) */
   else if (est('determination', 'retirer')) ui.push(bandeauDuJet('Détermination', 'debut trois', `
-    <div class="annonce"><div class="dr gothique">Berta</div><div class="sous rubrique">1 Point de Détermination</div></div>
+    <div class="camp">${portrait('berta', { taille: 'grand' })}<div><div class="n gothique">Berta</div><div class="c rubrique">1 Point de Détermination</div></div></div>
     ${carte('Immunité Psychologie', 'jusqu’à la fin du prochain Round', { armee: VAR === 'determination' })}
     ${carte('Ignorer les modificateurs de critique', 'jusqu’au début du prochain Round')}
     ${carte('Retirer un État', 'À Terre (+1 PB en se relevant)', { armee: VAR === 'retirer' })}`,
-  `${reserves([RESERVES.berta.determination, 'Détermination de Berta'])}${plaque('Dépenser', { armee: true })}${plaque('Annuler')}`));
+  `${reserves([[RESERVES.berta.determination, 'Détermination de Berta']])}${plaque('Dépenser', { armee: true })}${plaque('Annuler')}`));
   /* LDB 10 l.767-773 ; LDB 14 l.5-9 ; `fenetre.secondeFrappe`, `fenetre.frappeMortelle`, `consigne.deuxArmes`,
      `consigne.frappeMortelle`, `verbe.secondeFrappe.fermer`, `verbe.frappeMortelle.fermer` (`fr.ts:489-490`, `fr.ts:4451-4452`, `fr.ts:283-284`) */
   else if (VAR === 'seconde') ui.push(bandeauDuJet('Second coup', 'consigne', `
@@ -545,17 +546,17 @@ if (!jeu && BERTA_JOUE) {
      (`fr.ts:322-323`, `fr.ts:399`) ; `src/noyau/choixDeFenetre.ts:358-364` */
   else if (VAR === 'tirRapide') ui.push(bandeauDuJet('Début du round', 'debut deux', `
     <div class="annonce"><div class="dr gothique">Round 2</div><div class="sous rubrique">le round débute</div></div>
-    <div class="groupe"><div class="t rubrique">Agir en premier</div>${carte('Berta', 'Soldate <span class="modif rubrique">1 Chance</span>', { portrait: BERTA_P })}</div>
+    <div class="groupe"><div class="t rubrique">Agir en premier</div>${carte('Berta', 'Soldate <span class="modif rubrique">1 Chance</span>', { portrait: portrait('berta') })}</div>
     <div class="groupe"><div class="t rubrique">Préempter · Tir rapide</div><div class="cartes">
       ${carte('Aucune visée', '')}
-      ${carte('Berta', 'Arbalète chargée<br><span class="modif rubrique">Action et Mouvement</span>', { armee: true, portrait: BERTA_P })}</div></div>`,
-  `${reserves([RESERVES.berta.chance, 'Chance de Berta'])}${plaque('Commencer le round', { armee: true, classe: 'large' })}`));
+      ${carte('Berta', 'Arbalète chargée<br><span class="modif rubrique">Action et Mouvement</span>', { armee: true, portrait: portrait('berta') })}</div></div>`,
+  `${reserves([[RESERVES.berta.chance, 'Chance de Berta']])}${plaque('Commencer le round', { armee: true, classe: 'large' })}`));
   /* LDB 14 l.180 ; `fenetre.cibleDeMonture`, `verbe.cibleDeMonture.cible`, `verbe.cibleDeMonture.fermer` (`fr.ts:458`,
      `fr.ts:295`, `fr.ts:354`) ; `src/noyau/choixDeFenetre.ts:247-252` */
   else if (VAR === 'montee') ui.push(bandeauDuJet('Combat monté', 'debut', `
-    <div class="annonce"><div class="dr gothique">Berta</div><div class="sous rubrique">Épée</div></div>
-    ${carte('Tireur gobelin', 'Cavalier <span class="modif rubrique">−10 au Test</span>', { armee: true, portrait: portrait('gobelin', 'ennemi') })}
-    ${carte('Cheval', 'Monture', { portrait: portrait('cheval', 'ennemi') })}`,
+    <div class="camp">${portrait('berta', { taille: 'grand' })}<div><div class="n gothique">Berta</div><div class="c rubrique">Épée</div></div></div>
+    ${carte('Tireur gobelin', 'Cavalier <span class="modif rubrique">−10 au Test</span>', { armee: true, portrait: portrait('gobelin', { camp: 'ennemi' }) })}
+    ${carte('Cheval', 'Monture', { portrait: portrait('cheval', { camp: 'ennemi' }) })}`,
   `${plaque('Cibler', { armee: true })}${plaque('Annuler')}`));
   /* AA 10 l.169, l.171 ; `fenetre.viseeDeSiege`, `consigne.poseDeLaZone`, `verbe.viseeDeSiege.fermer` (`fr.ts:484`,
      `fr.ts:4454`, `fr.ts:372`) ; `src/noyau/combatSlice.ts:1024-1031`, `src/noyau/combatFlow.ts:5949` */
@@ -574,38 +575,39 @@ if (!jeu && BERTA_JOUE) {
     ${camp({ cote: 'droite', portrait: ORC_P, nom: 'Orc', carac: 'Parade', seuil: 35, des: ['60', '2'], total: 62, dr: '−3' })}`,
     apresLeDe({ heros: { ...RESERVES.berta, resilience: 0 } })));
   else if (VAR === 'avant') ui.push(bandeauDuJet('Attaque', 'avant', `
-    ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 28, modif: 'Avantage +10' })}
+    ${camp({ portrait: portrait('ilyanwe', { taille: 'grand' }), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 28, modif: 'Avantage +10' })}
     <div id="verdict" class="reglages">
       <div class="rangee">${silhouette(102, { tete: 'choisie' })}
         <div class="choix"><div class="sous rubrique">Bâton de combat · Cible : Orc</div><div class="l rubrique">Localisation</div>
           <div class="v"><span class="gothique">Tête</span><span class="modif rubrique">−20 au Test</span></div>
           <div class="bas">${options([['Au hasard']])}${bascule('Retenir ses coups')}</div>
         </div></div></div>
-    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35 })}`,
+    ${camp({ cote: 'droite', portrait: portrait('orc', { camp: 'ennemi', taille: 'grand' }), nom: 'Orc', carac: 'Parade', seuil: 35 })}`,
     avantLeDe({ heros: RESERVES.ilyanwe, annuler: true })));
   else if (VAR === 'defense') ui.push(bandeauDuJet('Défense', '', `
-    ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 38, des: ['60', '1'], total: 61, dr: '−3' })}
+    ${camp({ portrait: portrait('ilyanwe', { taille: 'grand' }), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 38, des: ['60', '1'], total: 61, dr: '−3' })}
     ${verdict('Hache · Cible : Ilyanwe la Voilée', 'DR net +4', 'Orc touche Ilyanwe la Voilée au bras droit.')}
-    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Corps à corps (Base)', seuil: 35, des: ['4', '20'], total: 24, dr: '+1', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe, echec: true })));
+    ${camp({ cote: 'droite', portrait: portrait('orc', { camp: 'ennemi', taille: 'grand' }), nom: 'Orc', carac: 'Corps à corps (Base)', seuil: 35, des: ['4', '20'], total: 24, dr: '+1', reussite: true })}`, apresLeDe({ heros: RESERVES.ilyanwe, echec: true })));
   else if (VAR === 'incantation') ui.push(bandeauDuJet('Incantation', 'seul', `
-    ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['30', '4'], total: 34, dr: '+5', reussite: true })}
+    ${camp({ portrait: portrait('ilyanwe', { taille: 'grand' }), nom: 'Ilyanwe la Voilée', carac: 'Langue (Magick)', seuil: 85, des: ['30', '4'], total: 34, dr: '+5', reussite: true })}
     <div id="verdict" class="sort"><div class="sous rubrique">Sort · Niveau d’incantation 0</div><div class="dr gothique">Fléchette</div><p>Ilyanwe la Voilée lance Fléchette sur Orc.</p></div>
     ${vise('orc', 'Orc', 'Cible du sort', '14 / 14')}`, apresLeDe({ heros: RESERVES.ilyanwe, survol: 'relancer' })));
-  else if (VAR === 'critique') ui.push(bandeauDuJet('Coup critique', 'critique', `
-    <div class="camp touche">${portrait('orc', 'ennemi')}${silhouette(100, { tete: 'touchee' })}
+  else if (VAR === 'critique') ui.push(bandeauDuJet('Coup critique', 'critique duel', `
+    <div class="camp">${portrait('ilyanwe', { taille: 'grand' })}<div><div class="n gothique">Ilyanwe la Voilée</div><div class="c rubrique">Critique sur Orc</div></div></div>
+    <div id="critique"><div class="dr gothique">Coup percutant</div><p data-texte="texte du critique">Le sang obscurcit votre vision, et vous percevez des points blancs et des flashs de lumière. Vous obtenez 1 État Sonné.</p></div>
+    <div class="camp droite touche">${portrait('orc', { camp: 'ennemi', taille: 'grand' })}${silhouette(100, { tete: 'touchee' })}
       <div><div class="n gothique">Orc</div><div class="c rubrique">Touché à la tête</div>
-      <div class="des"><div class="resultat">2</div><div class="issue"><b>Blessures</b><b>perdues</b></div></div></div>
-    </div>
-    <div id="critique"><div class="dr gothique">Coup percutant</div><p data-texte="texte du critique">Le sang obscurcit votre vision, et vous percevez des points blancs et des flashs de lumière. Vous obtenez 1 État Sonné.</p></div>`,
+      <div class="des">${sceau(2, 'grand')}<div class="issue"><b>Blessures</b><b>perdues</b></div></div></div>
+    </div>`,
     plaque('Continuer', { armee: true })));
   else if (VAR === 'round') ui.push(bandeauDuJet('Début du round', 'debut', `
     <div class="annonce"><div class="dr gothique">Round 2</div><div class="sous rubrique">Agir en premier</div></div>
-    ${carte('Berta', 'Soldate <span class="modif rubrique">1 Chance</span>', { armee: true, portrait: portrait('berta', 'heros') })}`,
-    `${reserves([RESERVES.berta.chance, 'Chance de Berta'])}${plaque('Commencer le round', { armee: true, classe: 'large' })}`));
+    ${carte('Berta', 'Soldate <span class="modif rubrique">1 Chance</span>', { armee: true, portrait: portrait('berta') })}`,
+    `${reserves([[RESERVES.berta.chance, 'Chance de Berta']])}${plaque('Commencer le round', { armee: true, classe: 'large' })}`));
   else ui.push(bandeauDuJet('Attaque', '', `
-    ${camp({ portrait: portrait('ilyanwe', 'heros'), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['90', '8'], total: 98, dr: '−5', modif: 'Avantage +10' })}
+    ${camp({ portrait: portrait('ilyanwe', { taille: 'grand' }), nom: 'Ilyanwe la Voilée', carac: 'Corps à corps (Armes d’hast)', seuil: 48, des: ['90', '8'], total: 98, dr: '−5', modif: 'Avantage +10' })}
     <div id="verdict"><div class="sous rubrique">Bâton de combat · Cible : Orc</div><div class="dr gothique">DR net +1</div><p>Ilyanwe la Voilée rate son attaque ; Orc gagne +1 Avantage.</p></div>
-    ${camp({ cote: 'droite', portrait: portrait('orc', 'ennemi'), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`, apresLeDe({ heros: RESERVES.ilyanwe, echec: true })));
+    ${camp({ cote: 'droite', portrait: portrait('orc', { camp: 'ennemi', taille: 'grand' }), nom: 'Orc', carac: 'Parade', seuil: 35, des: ['0', '70'], total: 70, dr: '−4' })}`, apresLeDe({ heros: RESERVES.ilyanwe, echec: true })));
 }
 monter(ui);
 if (VAR === 'fiche') FIGURES.berta(document.getElementById('figure-lue'));

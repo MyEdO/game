@@ -91,7 +91,7 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - Quatre panneaux entre l'ordre et le journal, au-dessus du meuble, repris de la maquette de fiche : identité, bande
   de profil, niche à figure, onglets ; champ assombri à 42 % ; la croix de laiton de la charte (`sources/gestes.js`) sous la pastille du système.
 - À valider : la fiche ne prend pas tout l'écran, les ancrages restent visibles ; montrée sur Berta (un héros qui
-  n'est pas l'actif) ; réserves sur une colonne ; linéale Inter Medium ; pas d'onglet « Sorts » (Berta n'est pas
+  n'est pas l'actif) ; réserves sur une colonne ; chiffres en Open Sans SemiBold, ceux des disques en Grenze ; pas d'onglet « Sorts » (Berta n'est pas
   lanceuse).
 - « M 2 » de la maquette de fiche contre 4 / 4 au meuble : sans objet. La fiche validée montre Ilyanwe À Terre
   (0 / 17), son Mouvement effectif est la moitié de 4 (`src/engine/encumbrance.ts:53-66`) ; debout, le meuble dit 4.

@@ -6,7 +6,7 @@ monter([
   `<div id="pause" data-piece="titre">
      <div class="sur rubrique ombre">Partie en pause</div>
      <div class="nom gothique" data-texte="titre">Menu de la partie</div>
-     <div class="filet-l"><i></i></div>
+     ${filet({ losange: true, or: true })}
      <div class="ou ombre"><span class="rubrique">Steinbruck</span> · 14 Pflugzeit 2512 CI · 18:20</div>
    </div>`,
   `<div id="entrees" data-piece="entrées">
@@ -19,5 +19,5 @@ monter([
      ${plaque('Quitter la partie', { icone: 'sortie' })}
      <div class="dernier ombre">Dernière sauvegarde automatique à 18:05.</div>
    </div>`,
-  `<div id="pastille" data-piece="pastille"><div class="bouton-rond laiton ouvert"><div>${picto('systeme', 23, '#2a1a08')}</div></div></div>`,
+  `<div id="pastille" data-piece="pastille">${rond('systeme', 'grand', { arme: true })}</div>`,
 ]);

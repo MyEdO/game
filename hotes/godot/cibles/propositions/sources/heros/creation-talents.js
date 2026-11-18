@@ -8,10 +8,10 @@ const option = (nom, { choisie = false, refus = '' } = {}) => `<div class="ligne
 const MINEURS = ['Alerte', 'Amitié animale', 'Bruits', 'Choc', 'Conservation', 'Coup de vent', 'Créer un petit animal', 'Drain', 'Éblouissant', 'En catimini', 'Feux follets', 'Flamme magique', 'Fléchette', 'Lumière', 'Murmures', 'Pas léger', 'Protection contre la pluie', 'Purification de l\'eau', 'Putréfaction', 'Repères', 'Secousse', 'Serrure ouverte', 'Sommeil', 'Source', 'Tendre l\'oreille'];
 const RETENUS = ['Fléchette', 'Lumière', 'Sommeil'];
 const pageDuTalent = `
-    <div class="medaillon laiton" style="width:64px;height:64px;margin-top:16px"><div>${picto('poing', 32, '#e2c06a', 1.4)}</div></div>
+    <div style="margin-top:16px">${medaillon('poing')}</div>
     <div class="nom" style="margin-top:8px" data-texte="titre de page">Infatigable</div>
     <div class="sous">Artiste Apprentie</div>
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     <div class="faits" style="margin-top:2px">
       <div class="fait">${rub('Maxi')}<b>Bonus de Force</b></div>
       <div class="fait">${rub('Tests')}<b>Ramer et Natation</b></div>
@@ -31,7 +31,7 @@ poser([
   gauche(`
     ${rub('Talents de race')}
     <div class="deux" style="margin-top:3px;align-items:end">
-      <div class="ligne">${coche(20)}<span class="n">Destinée</span><span class="raison" style="color:#5a3a1c">Acquis</span></div>
+      <div class="ligne">${coche()}<span class="n">Destinée</span><span class="raison" style="color:#5a3a1c">Acquis</span></div>
       <div></div>
     </div>
     <div style="margin-top:13px">${rub('Au choix')}</div>
@@ -40,7 +40,7 @@ poser([
     ${tire(15, 'Artiste <small>(Peinture)</small>', `<span class="pill" style="height:20px">Utilisation ${picto('chevron_d', 12, '#3a2a18', 2)}</span>`)}
     ${ETAT === 'doublon' ? tire(68, 'Perspicace', `<span class="raison">Maxi atteint : sans effet si gardé</span>${plaque('Relancer Perspicace', { style: 'flex:none;width:168px;height:26px' })}`) : tire(24, 'Chanceux')}
     ${tire(99, 'Vivacité')}
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     ${rub('Talent de carrière', 'un seul')}
     <div class="deux" style="margin-top:3px">
 ${SORCIERE

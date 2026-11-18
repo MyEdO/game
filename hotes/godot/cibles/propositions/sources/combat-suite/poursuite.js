@@ -18,12 +18,12 @@ const friseDeDistance = ({ distance, semes, depart, note = '' }) => { const x1 =
 /* le panneau de la poursuite : qui poursuit, la Distance en jauge, ce qui la clôt */
 const laPoursuite = (id, poursuivant, distance, semes, lignes, pied = '') => `<div id="${id}" class="cadre bois bord poursuite" data-piece="la poursuite"><div class="fond bois">
   ${ligne('Poursuivant', poursuivant)}
-  ${ligne('Distance', `<span class="lin">${distance} / ${semes}</span>`)}${jauge(distance / semes)}
+  ${ligne('Distance', `<span class="chiffres">${distance} / ${semes}</span>`)}${jauge(distance / semes, { teinte: 'or', taille: 'forte' })}
   ${lignes.map(([a, b]) => ligne(a, b)).join('\n  ')}${pied}
-</div><div class="ruban rubrique">La poursuite</div>${ferrures}</div>`;
+</div>${ruban('La poursuite')}${ferrures}</div>`;
 /* un arrêt à trancher, dans le bandeau du bas : qui décide, une carte par voie, la plaque qui commet la carte choisie */
 const decision = (titre, qui, sous, cartes, commet) => bandeauDuJet(titre, 'debut destin', `
-  <div class="camp">${portrait(qui.id)}<div><div class="n gothique">${qui.nom}</div><div class="c rubrique">${sous}</div></div></div>
+  <div class="camp">${portrait(qui.id, { taille: 'grand' })}<div><div class="n gothique">${qui.nom}</div><div class="c rubrique">${sous}</div></div></div>
   ${cartes}`, commet);
 const pieces = [];
 if (ETAT.startsWith('poursuite-terrestre')) {
@@ -36,9 +36,9 @@ if (ETAT.startsWith('poursuite-terrestre')) {
   pieces.push(titre({ icone: 'botte', nom: 'Poursuite', sous: RATTRAPES ? 'Rattrapés !' : 'Manche 2', largeur: 452 }));
   pieces.push(recit(RATTRAPES ? 'Poursuite — rattrapés !' : 'Poursuite — manche 2', RATTRAPES
     ? 'Manche 2 : les poursuivants gagnent du terrain (−4 → Distance 0/10). Aldric, à bout de souffle, traîne derrière les autres.'
-    : 'Le groupe prend la fuite. Trois Brigands dévalent le chemin derrière lui, leurs torches dansent entre les troncs.').replace('id="recit"', 'id="recit" class="route"'));
+    : 'Le groupe prend la fuite. Trois Brigands dévalent le chemin derrière lui, leurs torches dansent entre les troncs.'));
   pieces.push(laPoursuite('bord', '3 Brigands', DISTANCE, SEMES, [['Test de Mouvement', 'Athlétisme'], ['Distance 0', 'rattrapés'], ['Distance 10', 'semés']],
-    `<div class="filet"></div>${plaque('Abandonner la fuite')}`));
+    `${filet()}${plaque('Abandonner la fuite')}`));
   if (RATTRAPES) {
     pieces.push(decision('Rattrapés — que fait le groupe ?', heros('bjorn'), 'décide pour le groupe', `
   ${carte('Abandonner Aldric', 'Laissé derrière, il ralentit<br>les poursuivants', { portrait: portrait('aldric'), classe: 'funeste' })}
@@ -77,13 +77,13 @@ if (ETAT.startsWith('poursuite-terrestre')) {
   if (ARRET) {
     pieces.push(recit('En mer · Cogue pirate', SOMMATION
       ? 'Cogue pirate. Une cogue avec un équipage de 25 personnes et 6 grands canons apparaît à l’horizon.'
-      : 'Les forbans fouillent la cale et emportent 12 Enc de cargaison (100 %).').replace('id="recit"', 'id="recit" class="route"'));
+      : 'Les forbans fouillent la cale et emportent 12 Enc de cargaison (100 %).'));
     pieces.push(`<div id="navire" class="cadre bois bord" data-piece="la cale"><div class="fond bois">
   ${ligne('Navire hostile', 'Cogue pirate')}
   ${ligne('Équipage', '25 forbans')}
   ${ligne('Cargaison en cale', SOMMATION ? '12 Enc' : 'pillée')}
   ${ligne('Pillage, si soumission', '100 % · valeur maison')}
-</div><div class="ruban rubrique">La sommation</div>${ferrures}</div>`);
+</div>${ruban('La sommation')}${ferrures}</div>`);
     pieces.push(SOMMATION
       ? decision('Cogue pirate', heros('bjorn'), 'décide pour le bord', `
   ${carte('Prendre la fuite', 'Course-poursuite :<br>distancer la cogue', { armee: true })}
@@ -95,8 +95,8 @@ if (ETAT.startsWith('poursuite-terrestre')) {
   ${carte('Refuser', 'Les forbans passent à l’abordage')}`,
       plaque('Livrer un membre d’équipage', { armee: true, classe: 'longue' })));
   } else {
-    pieces.push(recit('En mer · Course-poursuite', `Une voile noire grossit dans le sillage : la Cogue pirate a pris la chasse. ${AU_TEST ? 'L’équipage court à ses postes.' : 'L’équipage borde la toile, le navire creuse l’écart.'}`).replace('id="recit"', 'id="recit" class="route"'));
-    pieces.push(laPoursuite('navire', 'Cogue pirate', DISTANCE, SEMES, [['Manche du jour', AU_TEST ? 'Test d’équipage' : '<span class="lin">+1</span>'], ['Temps dégagé', 'semés à 100'], ['Distance 0', 'collision et abordage']]));
+    pieces.push(recit('En mer · Course-poursuite', `Une voile noire grossit dans le sillage : la Cogue pirate a pris la chasse. ${AU_TEST ? 'L’équipage court à ses postes.' : 'L’équipage borde la toile, le navire creuse l’écart.'}`));
+    pieces.push(laPoursuite('navire', 'Cogue pirate', DISTANCE, SEMES, [['Manche du jour', AU_TEST ? 'Test d’équipage' : '<span class="chiffres">+1</span>'], ['Temps dégagé', 'semés à 100'], ['Distance 0', 'collision et abordage']]));
     pieces.push(friseDeDistance({ distance: DISTANCE, semes: SEMES, depart: 50, note: AU_TEST ? '' : ' · le navire creuse l’écart, +1' }));
     if (A_LANCER) {
       pieces.push(billet({ x: 868, y: 340, largeur: 442, pointe: 378, nom: 'Poursuite', qui: 'Test d’équipage', lignes: [
@@ -115,7 +115,7 @@ if (ETAT.startsWith('poursuite-terrestre')) {
         ['Somme', '+4 DR']], pied: `<div class="gestes">${apresLeDe({ heros: heros('mira'), echec: true, valider: 'Continuer' })}</div>` }));
       pieces.push(bandeau({ ...ROLES, mira: { ...ROLES.mira, choisi: true } }));
     } else {
-      pieces.push(billet({ x: 1010, y: 384, largeur: 300, pointe: 236, nom: 'Poursuite', qui: 'Test d’équipage', lignes: [['Bjorn, Mousse', '+1 DR, compte double'], ['Greta, Capitaine', '+1 DR'], ['Mira, Timonier', '+1 DR'], ['Aldric, Navigateur', '+1 DR'], ['Somme', '+5 DR']] }));
+      pieces.push(billet({ x: 1010, y: 384, pointe: 236, nom: 'Poursuite', qui: 'Test d’équipage', lignes: [['Bjorn, Mousse', '+1 DR, compte double'], ['Greta, Capitaine', '+1 DR'], ['Mira, Timonier', '+1 DR'], ['Aldric, Navigateur', '+1 DR'], ['Somme', '+5 DR']] }));
       pieces.push(bandeau(ROLES));
     }
     pieces.push(ouvrir('Postes de bord', 'cordage', 502));
@@ -123,4 +123,3 @@ if (ETAT.startsWith('poursuite-terrestre')) {
 }
 pieces.push(coins());
 monter(pieces);
-if (document.getElementById('jet')) clouer(document.getElementById('jet'));

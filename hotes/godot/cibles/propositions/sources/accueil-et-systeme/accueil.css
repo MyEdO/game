@@ -1,8 +1,8 @@
 #blason{position:absolute;left:84px;top:70px;width:900px}
 #blason .sur{font-size:15.5px;letter-spacing:2.4px;color:var(--or);margin-left:4px}
 #blason .nom{font-size:96px;line-height:150px;margin:-27px 0 -29px;width:max-content;padding-right:8px;white-space:nowrap;letter-spacing:.5px;color:#f6e9c8;background:linear-gradient(180deg,#fff4d4 12%,#f0d48a 52%,#b88a36 92%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 2px rgba(0,0,0,.85)) drop-shadow(0 0 22px rgba(0,0,0,.7))}
-#blason .filet-l{width:560px;color:var(--or);margin:10px 0 6px 4px}
-#blason .filet-l::before{flex:0 0 150px}
+#blason .filet{width:560px;margin:10px 0 6px 4px}
+#blason .filet::before{flex:0 0 150px}
 #blason .camp{font-size:34px;line-height:42px;color:#efe2c0;margin-left:4px;font-weight:500;letter-spacing:.6px}
 
 #entrees{position:absolute;left:88px;top:356px;width:330px;display:flex;flex-direction:column;gap:12px}
@@ -12,3 +12,5 @@
 #entrees .dernier .rubrique{font-style:normal;color:#f0e2c2}
 
 #outils{position:absolute;right:30px;bottom:26px;display:flex;gap:6px}
+#outils .outil{gap:6px;width:92px}
+#outils .outil span{font-size:13px;color:var(--ivoire)}

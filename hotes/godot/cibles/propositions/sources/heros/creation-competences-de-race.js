@@ -17,7 +17,7 @@ poser([
   centre('Humains (Reiklander)', `
     <div class="nom" style="margin-top:12px" data-texte="titre de page">Compétences de race</div>
     <div class="sous">Trois à +5 · trois à +3</div>
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     <div style="align-self:stretch;margin:2px 0 7px">${rub('Cinq Augmentations')}</div>
     <div class="rangee">${carte('Soc', 'Charme', 35, 5)}${carte('Int', 'Évaluation', 37, 5)}${carte('Soc', 'Ragot', 35, 5)}</div>
     <div style="align-self:stretch;margin:16px 0 7px">${rub('Trois Augmentations')}</div>

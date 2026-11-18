@@ -7,8 +7,6 @@
 .scene .et span.position{color:var(--or)}
 .scene .et .plaque{height:28px;margin-top:7px}
 .scene .et .plaque>div{font-size:12.5px}
-#recit.terrain{left:40px;top:150px;width:520px}
-#recit.terrain p{font-size:19px;line-height:27px}
 #bord.armees .ligne b{font-family:"Grenze Gotisch";font-weight:600;font-size:17px;letter-spacing:.3px;color:#f4e8ca}
 #bord.armees .plaque{height:36px;margin-top:8px}
 #bord.armees .plaque.grand{margin-top:9px}
@@ -20,7 +18,6 @@
 .ost{display:flex;align-items:center;gap:18px}
 .ost.droite{flex-direction:row-reverse;text-align:right}
 .ost .sceau.de{position:relative;right:auto;top:auto;flex:none}
-.ost .sceau.de.reussite{background:radial-gradient(circle at 38% 30%,#7fae5e,#3f7a35 50%,#1f4a1c 100%);box-shadow:0 2px 4px rgba(0,0,0,.75),inset 0 0 0 3px rgba(10,40,10,.45),inset 2px 2px 3px rgba(200,255,170,.35);color:#eefbe0}
 .ost .n{font-family:"Grenze Gotisch";font-weight:600;font-size:25px;line-height:28px;color:#3a1a10;white-space:nowrap}
 .ost .c{font-size:12.5px;color:var(--encre-2);white-space:nowrap}
 .ost .issue{margin-top:6px;font-size:14px;color:#7c1f14;white-space:nowrap}
@@ -49,7 +46,6 @@
 
 /* poster un héros : la place offerte sur la Scène, un geste par héros libre dans le billet de la Scène */
 .scene .postes-de-scene{align-items:center}
-.scene .postes-de-scene .medaillon.petit{width:30px;height:30px}
 .apercu td .plaque{display:inline-block;box-sizing:border-box;width:138px;height:24px;vertical-align:middle}
 .apercu td .plaque>div{font-size:12px;padding:0 8px}
 .apercu td:has(.plaque){padding:2px 0}
@@ -59,7 +55,7 @@
 #epreuve .gestes .plaque.armee:only-child{width:220px}
 
 /* la préparation de la bataille, au lieu de l'interlude : six Activités, les fermées en fer, leur raison au survol */
-#lieu.preparation{top:128px;z-index:2}
+#lieu.preparation{z-index:2}
 #lieu.preparation .fermees{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 #lieu.preparation .forces{font-size:12px;color:var(--creme-2)}
 #lieu.preparation .activite{position:relative;margin-top:6px;padding:6px 11px}

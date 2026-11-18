@@ -19,10 +19,10 @@ if (!ROULE) {
     <div class="vignette">${vignette}</div>
     <div class="corps"><div class="tete"><h2 data-texte="titre de l'événement">Voyage éreintant !</h2><span class="rubrique">Sur la route d’Altdorf · 2ᵉ jour</span></div>
       <p data-texte="texte du livre">La route est bloquée. Un pont peut être effondré, une rivière bloquée ou une route inondée, ou quelque autre obstacle insurmontable. Un Personnage effectue un Test de Survie en extérieur Accessible (+20) pour trouver un bon itinéraire de substitution, sinon tout le monde arrive un jour plus tard avec un État Exténué.</p>
-    </div><div class="sceau de"><b>4</b><i>d10</i></div>
-  </div><div class="ruban gothique">Péripétie de la route</div>${ferrures}</div>`);
+    </div><div class="sceau maitre de"><b>4</b><i>d10</i></div>
+  </div>${ruban('Péripétie de la route', { gothique: true })}${ferrures}</div>`);
   const bjorn = HEROS.find((h) => h.id === 'bjorn');
-  const BJORN = { portrait: portrait('bjorn'), nom: 'Bjorn', carac: 'Survie en extérieur', seuil: 61, modif: 'Accessible (+20)' };
+  const BJORN = { portrait: portrait('bjorn', { taille: 'grand' }), nom: 'Bjorn', carac: 'Survie en extérieur', seuil: 61, modif: 'Accessible (+20)' };
   const SOUS = 'Voyage éreintant ! · 2ᵉ jour de route', SINON = 'Sinon tout le monde arrive un jour plus tard avec un État Exténué.';
   pieces.push(ETAT === 'evenement-de-route-echec'
     ? bandeauDuJet('Test de Survie en extérieur', '', `
@@ -30,11 +30,11 @@ if (!ROULE) {
     ${verdict(SOUS, 'DR −1', SINON)}
     <div></div>`, apresLeDe({ heros: bjorn, echec: true }))
     : bandeauDuJet('Test de Survie en extérieur', '', `
-    ${camp({ ...BJORN, sous: testeurs(HEROS.map((h) => portrait(h.id))) })}
+    ${camp({ ...BJORN, sous: testeurs(HEROS.map((h) => h.id)) })}
     ${reglages(SOUS, `<div class="dr gothique">Test simple</div><p>${SINON}</p>`)}
     <div></div>`, avantLeDe({ heros: bjorn })));
 } else {
-  pieces.push(recit('Sur la route d’Altdorf · Voyage éreintant !', 'Le pont a cédé sous la crue. Bjorn trouve un gué en amont, et la diligence repasse la rivière avant la nuit.').replace('id="recit"', 'id="recit" class="route"'));
+  pieces.push(recit('Sur la route d’Altdorf · Voyage éreintant !', 'Le pont a cédé sous la crue. Bjorn trouve un gué en amont, et la diligence repasse la rivière avant la nuit.'));
   pieces.push(frise({ de: 'Auberge des Sept Rayons', vers: 'Altdorf', fait: .55, nuits: [.33], reste: 52 }));
   pieces.push(billet({ x: 300, y: 398, nom: 'Survie en extérieur', qui: 'Bjorn', lignes: [['Seuil', 'Accessible (+20) · 61'], ['Dé', '27'], ['Réussite', '+4 degrés']], pied: chanceDe('bjorn') }));
   pieces.push(bandeau({
@@ -46,4 +46,3 @@ if (!ROULE) {
 }
 pieces.push(coins());
 monter(pieces);
-if (!ROULE) clouer(document.getElementById('jet'));

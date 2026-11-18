@@ -19,7 +19,7 @@ poser([
   centre('Artiste Apprentie', `
     <div class="nom" style="margin-top:12px" data-texte="titre de page">Art</div>
     <div class="sous">Peinture · Dextérité</div>
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     <div style="display:flex;align-items:center;gap:14px;align-self:stretch;margin-top:2px"><div class="anneau">49</div><div>${rub('Test')}<div class="fell" style="font-size:15.500px;color:#2a1d12">Dextérité 39, dix Augmentations</div></div></div>
     <div style="align-self:stretch;margin:16px 0 7px">${rub("Spécialisation d'Art")}</div>
     <div class="pills" style="align-self:stretch">${SPECS.map((s) => `<span class="pill ${s === 'Peinture' ? 'prise' : ''}">${s}</span>`).join('')}</div>

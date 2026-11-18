@@ -21,8 +21,8 @@ const table = () => `<svg viewBox="0 0 640 520"><defs>
 const siege = (x, y, { nom, sous, heros = [], vous = false, absent = false, vide = false }) => vide
   ? `<div class="siege vide" style="left:${x}px;top:${y}px"><div class="q"><div><b>Un siège à pourvoir</b></div></div></div>`
   : `<div class="siege bois ${vous ? 'vous' : ''} ${absent ? 'absent' : ''}" style="left:${x}px;top:${y}px">
-      <div class="q">${absent ? sceau('reseau', 15) : medaillon('personnage', { petit: true })}<div><b class="gothique" data-texte="siège ${nom}">${nom}</b><span class="rubrique">${sous}</span></div></div>
-      <div class="tient">${heros.length ? heros.map((h) => portrait(h)).join('') : '<i>Aucun héros</i>'}</div></div>`;
+      <div class="q">${absent ? sceau('reseau') : medaillon('personnage', { taille: 'moyen' })}<div><b class="gothique" data-texte="siège ${nom}">${nom}</b><span class="rubrique">${sous}</span></div></div>
+      <div class="tient">${heros.length ? heros.map((h) => portrait(h, { taille: 'petit' })).join('') : '<i>Aucun héros</i>'}</div></div>`;
 const tablee = (x, sieges, legende) => `<div id="tablee" data-piece="tablée" style="left:${x}px;top:${SALON ? 150 : 140}px">${table()}${sieges.join('')}<div class="legende rubrique ombre">${legende}</div></div>`;
 const POSES = [[0, 6], [426, 6], [0, 352], [426, 352]];
 
@@ -32,17 +32,17 @@ if (SALON) {
   const TIENT = { bjorn: 'Karl', mira: 'Lena', aldric: 'Karl', greta: 'Otto' };
   pieces.push(
     titre({ icone: 'reseau', nom: 'Salon — hôte', sous: 'Partie K7M2QX', largeur: 400 }),
-    `<div id="invitation" class="cadre bois" data-piece="invitation"><div class="fond bois"><span class="ruban rubrique">Inviter — partagez le code</span>
+    `<div id="invitation" class="cadre bois" data-piece="invitation"><div class="fond bois">
        <div class="code parchemin gothique" data-texte="code">K7M2QX</div>
        <div class="r rubrique">Joueurs connectés</div>
        <div>
          <div class="joueur"><i class="pt"></i>Karl (vous)</div>
          <div class="joueur"><i class="pt"></i>Lena</div>
-         <div class="joueur absent">${sceau('reseau', 11)}Otto — reconnexion…</div>
+         <div class="joueur absent">${sceau('reseau', 'menu')}Otto — reconnexion…</div>
        </div>
        <div class="trait"></div>
        ${plaque('Quitter le salon', { icone: 'sortie' })}
-     </div>${ferrures}</div>`,
+     </div>${ruban('Inviter — partagez le code')}${ferrures}</div>`,
     tablee(472, [
       siege(...POSES[0], { nom: 'Karl', sous: 'Hôte · vous', heros: ['bjorn', 'aldric'], vous: true }),
       siege(...POSES[1], { nom: 'Lena', sous: 'Invitée', heros: ['mira'] }),
@@ -53,24 +53,24 @@ if (SALON) {
        ${HEROS.map((h) => `<div class="rang">${portrait(h.id)}<div><b class="gothique" data-texte="héros ${h.nom}">${h.nom}</b><span class="c rubrique">${h.car}</span></div>${segments(JOUEURS, TIENT[h.id])}</div>`).join('')}
        <div class="mj"><div class="r"><b class="gothique">Maître du Jeu</b><i>Un seul siège, ou personne</i></div>
          ${segments(['IA (aucun MJ)', ...JOUEURS], 'IA (aucun MJ)')}</div>
-     </div><div class="ruban gothique">Attribution des héros</div>${ferrures}</div>`,
+     </div>${ruban('Attribution des héros', { gothique: true })}${ferrures}</div>`,
   );
 } else {
   pieces.push(
     titre({ icone: 'reseau', nom: 'Jouer en ligne', sous: 'Aucune partie ouverte', largeur: 400 }),
-    `<div class="feuillet-coop cadre bois" data-piece="rejoindre" style="left:44px;top:150px"><div class="fond parchemin"><span class="ruban rubrique">Rejoindre une partie</span>
+    `<div class="feuillet-coop cadre bois" data-piece="rejoindre" style="left:44px;top:150px"><div class="fond parchemin">
        <label class="champ"><span class="rubrique">Code de la partie</span><div class="cases gothique">${[...'K7M2QX'].map((c) => `<b>${c}</b>`).join('')}</div></label>
        <div class="indice">Le code de room fait 6 caractères.</div>
        ${champ('Votre nom', 'Lena')}
        ${plaque('Rejoindre', { armee: true, icone: 'reseau' })}
-     </div>${ferrures}</div>`,
+     </div>${ruban('Rejoindre une partie')}${ferrures}</div>`,
     tablee(534, POSES.map((p) => siege(...p, { vide: true })), 'Une tablée : l’hôte et jusqu’à trois invités'),
-    `<div class="feuillet-coop cadre bois" data-piece="héberger" style="left:1223px;top:150px"><div class="fond parchemin"><span class="ruban rubrique">Héberger une partie</span>
+    `<div class="feuillet-coop cadre bois" data-piece="héberger" style="left:1223px;top:150px"><div class="fond parchemin">
        <p data-texte="aide">Le groupe se compose ensemble : vous attribuerez les emplacements aux joueurs connectés.</p>
        ${champ('Votre nom', '', { attente: 'Nom de joueur' })}
        ${plaque('Héberger', { fermee: true })}
-       <div class="refus">${sceau('disque', 12)}<span>Ouvrez une partie pour l’héberger.</span></div>
-     </div>${ferrures}</div>`,
+       <div class="refus">${sceau('disque', 'menu')}<span>Ouvrez une partie pour l’héberger.</span></div>
+     </div>${ruban('Héberger une partie')}${ferrures}</div>`,
   );
 }
 pieces.push(croix());

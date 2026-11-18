@@ -1,8 +1,6 @@
-#titre{top:14px;height:90px}
-.croix{right:14px;top:8px}
 
 /* le volet des préférences */
-#preferences{left:24px;top:124px;width:400px}
+#preferences{left:24px;top:136px;width:400px}
 #preferences .fond{padding:30px 18px 20px;display:flex;flex-direction:column;gap:22px}
 .pref .l{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .pref b{font-weight:400;font-size:15.5px;color:#f0e2c2;white-space:nowrap}
@@ -27,7 +25,7 @@
 .feuille .dom{font-size:38px;line-height:58px;margin:-8px 0 -4px;color:#3a1a10}
 .feuille .sous{font-size:13px;color:#5a2a12;white-space:nowrap}
 .feuille.d .tete{align-items:flex-end;padding-bottom:6px}
-.feuille .filet-l{color:#5a4530;margin:4px 0 4px}
+.feuille .filet{margin:4px 0 4px}
 .regle{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:14px;padding:10px 8px 10px 8px;border-bottom:1px solid rgba(60,40,20,.28);min-height:81px;position:relative;z-index:1}
 .regle .t b{display:block;font-weight:600;font-size:15.5px;line-height:20px;color:#2a1d12}
 .regle .ref{display:block;font-size:12.5px;color:#4a2f16;margin-top:2px}
@@ -41,10 +39,8 @@
 .pas-a-pas b{font-weight:400;font-size:13px;color:#2a1a08;white-space:nowrap;min-width:92px;text-align:center}
 .pas-a-pas svg{stroke:#2a1a08}
 .feuille .pied{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:14px;height:40px}
-.feuille .pied .bouton-rond{width:32px;height:32px}
 .feuille .pied .folio{font-size:12.5px;color:#5a4530;white-space:nowrap}
 .feuille .pied .marque{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12.5px;color:#6b1c10;white-space:nowrap}
-.feuille .pied .marque .sceau{width:20px;height:20px}
 .feuille .pied .suite{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13.5px;color:#3a2a18}
 
 /* les signets : un domaine chacun, la matière du ruban */

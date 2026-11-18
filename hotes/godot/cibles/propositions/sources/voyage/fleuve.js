@@ -21,7 +21,7 @@ if (PERIL) {
       <div class="choix">${carte('Forcer au bélier', '+10 Dégâts à la coque · 60 / 60', { armee: true })}${carte('Déblayer à la main', 'Du temps perdu · la coque est épargnée')}</div>
       ${plaque('Enfoncer le barrage', { armee: true, icone: 'coque', classe: 'commet' })}
     </div>
-  </div><div class="ruban gothique">Péril du fleuve</div>${ferrures}</div>`);
+  </div>${ruban('Péril du fleuve', { gothique: true })}${ferrures}</div>`);
   pieces.push(bandeau({
     bjorn: { texte: 'jauge le courant à la perche' },
     mira: { texte: 'Barre : tient la barge bout au courant' },
@@ -29,15 +29,16 @@ if (PERIL) {
     greta: { texte: 'a déjà ôté ses bottes' },
   }));
 } else {
-  pieces.push(recit('Sur le Reik · Journée de descente', 'Le vent prend la barge par le travers. Mira louvoie et le capte : la voile porte, le courant fait le reste.').replace('id="recit"', 'id="recit" class="route"'));
+  pieces.push(recit('Sur le Reik · Journée de descente', 'Le vent prend la barge par le travers. Mira louvoie et le capte : la voile porte, le courant fait le reste.'));
   pieces.push(frise({ de: 'Grünburg', vers: 'Altdorf', fait: .4, reste: 27 }));
-  pieces.push(billet({ x: 575, y: 374, largeur: 300, nom: 'Navigation', qui: 'Mira · à la barre', lignes: [['Voile', 'Accessible (+20) · 54'], ['Dé', '31'], ['Réussite', '+2 degrés'], ['Vent de côté capté', '+5 % de vitesse']], pied: chanceDe('mira') }));
+  pieces.push(billet({ x: 575, y: 374, nom: 'Navigation', qui: 'Mira · à la barre', lignes: [['Voile', 'Accessible (+20) · 54'], ['Dé', '31'], ['Réussite', '+2 degrés'], ['Vent de côté capté', '+5 % de vitesse']], pied: chanceDe('mira') }));
   pieces.push(bandeau({
     bjorn: { texte: 'sonde le chenal à la perche' },
     mira: { icone: 'barre', texte: 'Barre : louvoie et capte le vent de côté' },
     aldric: { texte: 'suit les bornes du chemin de halage' },
     greta: { texte: 'veille sur la cargaison, à l’avant' },
   }));
+  pieces.push(retour('Faire halte', 'ancre'));
 }
 pieces.push(coins());
 monter(pieces);

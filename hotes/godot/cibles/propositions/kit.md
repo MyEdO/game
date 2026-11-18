@@ -65,9 +65,9 @@ leurs matrices telles quelles : ce sont des images, pas des teintes.
 | `--ombre`, `--ombre-forte` | `rgba(0,0,0,.6)`, `rgba(0,0,0,.8)` | `.55`, `.65`, `.7`, `.75`, `.85` | ombres portées et intérieures |
 | `--noir` | `#000` | | fonds, dégradés d'écran |
 
-Police des chiffres : une seule classe `.lineale` (`"Lineale"` = `polices/Inter-Medium.otf`, `combat.css:133-134`).
-Écartée : `.lin` (`commun.css:5`, Open Sans / Noto Sans, 84 emplois) : ces polices ne sont pas dans `S/polices/`, le
-rendu tombait sur la police de repli de la machine. Voir § 6, point 1.
+Police des chiffres : une seule classe `.chiffres` (`"Chiffres"` = Open Sans SemiBold, celle du jeu Godot, lue à
+`../../projet/polices/OpenSans-SemiBold.ttf`) ; Grenze pour le chiffre d'un disque ou d'un sceau. Écartées : `.lin`
+et `.lineale` (Inter). Voir § 6, point 1.
 
 ## 2. Pièces : valeur retenue, valeurs écartées, raison
 

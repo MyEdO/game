@@ -20,17 +20,17 @@ if (VENTE) {
   pieces.push(cartouche({ id: 'offre-laine', classe: 'offre enseigne', x: 372, y: 150, l: 236, icone: 'ballot', nom: 'Laine', sous: 'À vendre · 350 Enc', pointe: 200 }));
   pieces.push(cartouche({ id: 'offre-vin', classe: 'offre enseigne', x: 900, y: 150, l: 236, icone: 'tonneau', nom: 'Vin', sous: 'À vendre · 280 Enc', pointe: 56 }));
   pieces.push(cartouche({ id: 'porteur-mule', classe: 'offre enseigne', x: 346, y: 384, l: 200, icone: 'fer_a_cheval', nom: 'Mule', sous: 'Porteur du groupe', pointe: 84,
-    corps: `<div class="porteur-ligne"><span>Vide</span><b class="lin">14 / 14 Enc libres</b></div>${jauge(0, 14)}` }));
+    corps: `<div class="porteur-ligne"><span>Vide</span><b class="chiffres">14 / 14 Enc libres</b></div>${jauge(0 / 14, { teinte: 'or', taille: 'forte' })}` }));
   pieces.push(cartouche({ id: 'porteur-charrette', classe: 'offre choisie', x: 640, y: 292, l: 262, icone: 'charrette', nom: 'Charrette', sous: 'Porteur du groupe', pointe: 120,
-    corps: `<div class="porteur-ligne"><span>Pleine</span><b class="lin">0 / 25 Enc libres</b></div>${jauge(25, 25)}<div class="lot pris">${picto('ballot', 16, '#2a1a08')}<span>Laine</span><span class="lin">25 Enc</span></div>` }));
+    corps: `<div class="porteur-ligne"><span>Pleine</span><b class="chiffres">0 / 25 Enc libres</b></div>${jauge(25 / 25, { teinte: 'or', taille: 'forte' })}<div class="lot pris">${picto('ballot', 16, '#2a1a08')}<span>Laine</span><span class="chiffres">25 Enc</span></div>` }));
   pieces.push(page('lot', 'Le lot', `
     <div class="tete"><h3 data-texte="lot">Laine</h3><span class="sous rubrique">25 Enc sur la charrette</span></div>
-    <div class="filet"></div>
+    ${filet()}
     <table class="faits">
-      <tr><td>Prix de base<span class="lin">25 Enc à 2/–</span></td><td class="lin">2 CO 10/–</td></tr>
-      <tr><td>Mise à prix à Kemperbad<span class="lin">+5 %</span></td><td class="lin">2 CO 12/– 6 sc</td></tr>
+      <tr><td>Prix de base<span class="chiffres">25 Enc à 2/–</span></td><td class="chiffres">2 CO 10/–</td></tr>
+      <tr><td>Mise à prix à Kemperbad<span class="chiffres">+5 %</span></td><td class="chiffres">2 CO 12/– 6 sc</td></tr>
     </table>
-    <div class="filet"></div>
+    ${filet()}
     <div class="voies">
       ${voie('balance', 'Vendre', 'Recherche d’acheteur, puis Marchandage', 'Un acheteur se trouve sur 60 ou moins au d100 ; sinon la moitié du lot se propose.', '2 CO 12/– 6 sc', true)}
       ${voie('moitie', 'Brader', 'Sans Test', 'Une place de commerce reprend tout lot à la moitié de son prix de base.', '1 CO 5/–')}
@@ -46,47 +46,46 @@ if (VENTE) {
   pieces.push(page('chargement', 'Le chargement', `
     <div class="tete"><h3 data-texte="denrée">Laine</h3><span class="sous rubrique">${COOP ? 'Composé par l’hôte' : 'Achat en composition'}</span></div>
     <p style="margin-top:4px">Le négociant cède son lot entier, ou une part d’au moins 10 Enc.</p>
-    <div class="filet"></div>
+    ${filet()}
     <div class="r">Porteur</div>
     <div class="porteurs">
-      <div class="porteur pris"><div class="l">${picto('charrette', 18, '#5a2a12')}<b>Charrette</b></div><span class="lin">25 / 25 Enc libres</span>${jauge(0, 25, 25)}</div>
-      <div class="porteur"><div class="l">${picto('fer_a_cheval', 18, '#5a2a12')}<b>Mule</b></div><span class="lin">14 / 14 Enc libres</span>${jauge(0, 14)}</div>
+      <div class="porteur pris"><div class="l">${picto('charrette', 18, '#5a2a12')}<b>Charrette</b></div><span class="chiffres">25 / 25 Enc libres</span>${jauge(0 / 25, { teinte: 'or', taille: 'forte', ajout: 25 / 25 })}</div>
+      <div class="porteur"><div class="l">${picto('fer_a_cheval', 18, '#5a2a12')}<b>Mule</b></div><span class="chiffres">14 / 14 Enc libres</span>${jauge(0 / 14, { teinte: 'or', taille: 'forte' })}</div>
     </div>
-    <div class="filet"></div>
+    ${filet()}
     <div class="r">Enc à acheter</div>
     ${quantite(25, 10, 25)}
-    <div class="filet"></div>
+    ${filet()}
     <table class="compte">
-      <tr><td>Prix de base<span class="lin">25 Enc à 2/–</span></td><td class="lin">2 CO 10/–</td></tr>
-      <tr><td>Lot partagé<span class="lin">+10 %</span></td><td class="lin">5/–</td></tr>
-      ${MARCHANDE ? '<tr><td>Marchandage gagné<span class="lin">−10 %</span></td><td class="lin">−5/– 6 sc</td></tr>' : ''}
+      <tr><td>Prix de base<span class="chiffres">25 Enc à 2/–</span></td><td class="chiffres">2 CO 10/–</td></tr>
+      <tr><td>Lot partagé<span class="chiffres">+10 %</span></td><td class="chiffres">5/–</td></tr>
+      ${MARCHANDE ? '<tr><td>Marchandage gagné<span class="chiffres">−10 %</span></td><td class="chiffres">−5/– 6 sc</td></tr>' : ''}
       <tr class="total"><td>${MARCHANDE ? 'Prix marchandé' : 'Estimation'}</td><td>${MARCHANDE ? '2 CO 9/– 6 sc' : '2 CO 15/–'}</td></tr>
     </table>
     ${PARTS}
     ${JET ? '' : COOP ? `${plaque('Conclure l’achat', { fermee: true, icone: 'balance', classe: 'conclure' })}
-    <div class="note refus">${sceau('reseau', 12)}<i data-texte="refus">L’hôte seul engage les bourses et la cale du groupe.</i></div>`
+    <div class="note refus">${sceau('reseau', 'menu')}<i data-texte="refus">L’hôte seul engage les bourses et la cale du groupe.</i></div>`
     : `${plaque('Conclure l’achat', { armee: true, icone: 'balance', classe: 'conclure' })}
     <div class="note"><i>Le Marchandage se joue à la conclusion, contre le négociant.</i></div>`}`, JET ? 'courte' : ''));
 }
 
 if (JET) {
-    const negociant = { cote: 'droite', portrait: portrait('drapier'), nom: 'Le négociant en laine', carac: 'Marchandage', seuil: '?' };
+    const negociant = { cote: 'droite', portrait: portrait('drapier', { camp: 'pnj', taille: 'grand' }), nom: 'Le négociant en laine', carac: 'Marchandage', seuil: '?' };
   /* MSRC 13 l.127 ; LDB 59 l.43 ; `src/noyau/landMarketFlow.ts:325` */
   pieces.push(bandeauDuJet('Marchander l’achat', '', AVANT ? `
-    ${camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, modif: 'Soutien du groupe' })}
+    ${camp({ portrait: portrait('aldric', { taille: 'grand' }), nom: 'Aldric', carac: 'Marchandage', seuil: 45, modif: 'Soutien du groupe' })}
     ${reglages('Laine · 25 Enc · estimation 2 CO 15/–', '<div class="dr gothique">Test opposé</div><div class="enjeux"><span class="modif rubrique">Gagné : −10 %</span><span class="modif rubrique">Succès Stupéfiant : −20 %</span><span class="modif rubrique">Perdu : +10 %</span><span class="modif rubrique">Négociateur : 10 % de plus</span></div>')}
     ${camp(negociant)}` : `
-    ${camp({ portrait: portrait('aldric'), nom: 'Aldric', carac: 'Marchandage', seuil: 45, des: ['20', '7'], total: 27, dr: '+2', reussite: true, verdict: 'Réussite' })}
+    ${camp({ portrait: portrait('aldric', { taille: 'grand' }), nom: 'Aldric', carac: 'Marchandage', seuil: 45, des: ['20', '7'], total: 27, dr: '+2', reussite: true, verdict: 'Réussite' })}
     <div id="verdict"><div class="sous rubrique" data-texte="sous-titre">Laine · 25 Enc</div><div class="dr gothique">DR net +4</div>
-      <p>Gagné (−10 % à l’achat)</p><div class="prix lin"><s>2 CO 15/–</s><b>2 CO 9/– 6 sc</b></div></div>
+      <p>Gagné (−10 % à l’achat)</p><div class="prix chiffres"><s>2 CO 15/–</s><b>2 CO 9/– 6 sc</b></div></div>
     ${camp({ ...negociant, des: ['1', '60'], total: 61, dr: '−2', verdict: 'Échec' })}`,
   AVANT ? avantLeDe({ heros: aldric, annuler: true }) : `${apresLeDe({ heros: aldric, valider: 'Conclure' })}${plaque('Refuser le marché', { classe: 'large' })}`));
-  pieces.push(`<div id="coins" data-piece="coins" style="top:706px">${rond('systeme', 23)}</div>`);
+  pieces.push(coins());
 } else {
   const joue = (qui, moi) => ({ html: `<span class="attend rubrique ${moi ? '' : 'autre'}">${qui}</span>` });
-  if (COOP) pieces.push(`<div id="main" class="cadre bois" data-piece="main"><div class="fond bois">${medaillon('reseau', { petit: true })}<div><b class="gothique" data-texte="main">La main est à l’hôte</b><span class="rubrique">Karl compose l’achat · partie K7M2QX</span></div></div>${ferrures}</div>`);
+  if (COOP) pieces.push(`<div id="main" class="cadre bois" data-piece="main"><div class="fond bois">${medaillon('reseau', { taille: 'moyen' })}<div><b class="gothique" data-texte="main">La main est à l’hôte</b><span class="rubrique">Karl compose l’achat · partie K7M2QX</span></div></div>${ferrures}</div>`);
   pieces.push(bandeau(COOP ? { bjorn: joue('Karl · hôte'), mira: joue('Lena (vous)', true), aldric: { ...joue('Karl · hôte'), choisi: true }, greta: joue('Otto — reconnexion…') } : { aldric: { icone: 'balance', texte: 'mènera le Marchandage' } }, { bourses: true }));
   pieces.push(retour('Quitter la halle'), coins());
 }
 monter(pieces);
-if (JET) clouer(document.getElementById('jet'));

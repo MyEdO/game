@@ -1,20 +1,19 @@
 /* La carte du monde (#3935) : la disposition de l'interlude en ville, la carte au lieu de la ville. */
 #ecran{background:#140c07}
-#carte{left:440px;top:20px;width:1243px;height:590px}
+#carte{left:62px;top:20px;width:1243px;height:590px}
 #carte .fond{overflow:hidden}
 #carte .fond>svg{position:absolute;inset:0;width:100%;height:100%}
 .lieu{position:absolute;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 5px;border-radius:3px;transform:translate(-50%,-100%);margin-top:-14px;box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3);white-space:nowrap}
 .lieu::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
-.lieu .medaillon{width:32px;height:32px;padding:2px}
 .lieu b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:18px;letter-spacing:.3px;color:#f4e8ca}
 .lieu span{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
 .lieu.choisi{box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.9),0 0 18px rgba(255,214,140,.75)}
 .lieu .ici{display:flex;margin:-9px -5px -9px 4px}
-.lieu .ici .portrait{width:26px;height:32px;padding:2px;margin-left:-7px}
+.lieu .ici .portrait{margin-left:-7px}
 .lieu.sous{transform:translate(-50%,0);margin-top:14px}
 .lieu.sous::after{bottom:auto;top:-6px;box-shadow:-1px -1px 0 #0c0705}
-#trajet{left:24px;top:136px;width:400px;height:474px}
-#trajet .fond{padding:22px 16px 0}
+#trajet{left:1323px;top:20px;width:360px}
+#trajet .fond{padding:22px 16px 22px}
 #trajet h3{margin:-6px 0 -5px;font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:42px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
 #trajet .s{font-size:12px;color:var(--or)}
 #trajet>.fond>p{margin:6px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
@@ -34,10 +33,7 @@
 .moyen i{display:block;font-size:12.5px;line-height:16px;color:#d9ccac;margin-top:1px}
 .moyen .px{flex:none;text-align:right;font-size:12.5px;line-height:17px;color:#f0e2c2;white-space:nowrap}
 .moyen .px small{display:block;font-family:"Fell SC";font-size:10.5px;letter-spacing:.8px;color:var(--creme-2)}
-#trajet .plaque.partir{height:42px;margin-top:11px}
-#trajet .plaque.partir>div{font-size:16px}
+#trajet .plaque.partir{margin-top:16px}
 /* la porte de départ de nuit : le billet posé sur le lieu du groupe */
 #depart{z-index:2}
 #depart .gestes{display:flex;gap:8px;margin-top:10px}
-#depart .gestes .plaque{height:36px}
-#depart .gestes .plaque>div{font-size:13.5px;gap:7px;padding:0 6px}

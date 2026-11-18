@@ -1,6 +1,6 @@
-/* Pièces navales au-dessus du socle du combat (`../combat/socle.js`) : la compagnie du voyage (`../lieux-et-nuit/bustes.js`)
+/* Pièces navales au-dessus du socle du combat (`../combat/socle.js`) : la compagnie du voyage (bustes du kit, `../gestes.js`)
    et le buste d'un navire dans l'ordre du tour, un navire sur la grille, la mer du combat. */
-Object.assign(BUSTES, COMPAGNIE, {
+Object.assign(BUSTES, {
   navire: '<path d="M6 66h66l-9 17H16z"/><path d="M37 12h4v54h-4z"/><path d="M13 23c17 5 35 5 52 0 3 12 3 25-1 35-17 5-33 5-50 0-4-10-4-23-1-35z"/><path d="M41 12l14 4-14 4z"/>',
 });
 /* un navire sur la grille : coque le long de l'axe i, proue vers +i (sens = 1) ou −i (sens = −1) */

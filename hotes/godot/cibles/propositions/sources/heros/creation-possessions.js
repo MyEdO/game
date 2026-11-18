@@ -19,11 +19,11 @@ poser([
     <div class="tirage">
       <div class="col">${rub('Bourse')}<div class="de">7</div></div>
       <div class="col" style="flex:1;padding-top:23px">
-        <div style="display:flex;align-items:baseline;gap:12px"><span class="lin" style="font-size:25px;font-weight:600;color:#2a1d12">7/–</span><span class="fell" style="font-size:16px;color:#2a1d12">sept pistoles d'argent</span></div>
+        <div style="display:flex;align-items:baseline;gap:12px"><span class="chiffres" style="font-size:25px;font-weight:600;color:#2a1d12">7/–</span><span class="fell" style="font-size:16px;color:#2a1d12">sept pistoles d'argent</span></div>
         <div class="rub">Statut · Argent 1 <span class="note">1d10 pistoles d'argent × Standing</span></div>
       </div>
     </div>
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     ${rub("Au choix · Artiste Apprentie", 'un seul')}
     <div class="deux" style="margin-top:4px;grid-template-columns:1fr 1fr 1fr;column-gap:14px">${option('Pinceau <small>(brosse)</small>', true)}${option('Ciseau')}${option("Plume d'oie")}</div>
     <div style="margin-top:24px">${rub('Dotation des Courtisans')}</div>
@@ -36,12 +36,12 @@ poser([
   centre('Possessions', `
     <div class="nom" style="margin-top:12px" data-texte="titre de page">Le bagage</div>
     <div class="sous">Sept possessions · bourse 7/–</div>
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     <div class="objets" style="margin-top:4px">
       ${objet('costume', 'Vêtements', { note: 'Raffiné' })}${objet('dague', 'Dague')}${objet('bourse', 'Bourse', { note: '7/–' })}${objet('pinceau', 'Pinceau', { note: 'Au choix', choisi: true })}
       ${objet('pince', 'Pince à épiler')}${objet('cure', 'Cure-oreille', { note: '× 2' })}${objet('peigne', 'Peigne')}
     </div>
-    <div class="cartouche"><div class="medaillon petit laiton"><div>${picto('palette', 19)}</div></div><div><b>Pinceau (brosse)</b><i>Outils et nécessaires · Encombrement 0</i></div><span class="lin">4/–</span></div>`),
+    <div class="cartouche">${medaillon('palette', { taille: 'moyen' })}<div><b>Pinceau (brosse)</b><i>Outils et nécessaires · Encombrement 0</i></div><span class="chiffres">4/–</span></div>`),
   herosNeuf({ acquis: [...ACQUIS, ['Compétences', 'Six de race, huit de carrière'], ['Talents', 'Six acquis'], ['Possessions', 'Sept, et 7/– en bourse']], pose: .8 }),
   groupeEnCreation(),
   coins(),
