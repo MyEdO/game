@@ -29,12 +29,14 @@ export interface EdgeBlend {
   terrain: string;
 }
 
-/** Voisins de plus haute précédence qui « débordent » sur la tuile (x,y) du niveau `z`. */
+/** Voisins de la grille de plus haute précédence qui « débordent » sur la tuile (x,y) du niveau `z` ; au-delà du bord,
+ *  le sol du hors-carte prolonge le bord (#4392) : rien n'y déborde. */
 export function edgeBlends(scene: SceneDuVolume, x: number, y: number, z = 0): EdgeBlend[] {
   const self = terrainPriority(tileAt(scene, x, y, z));
   const out: EdgeBlend[] = [];
   for (const dir of SIDES) {
     const [dx, dy] = NEIGHBOURS[dir];
+    if (!presenteDansLaGrille(scene, x + dx, y + dy, z)) continue;
     const nt = tileAt(scene, x + dx, y + dy, z);
     if (terrainPriority(nt) > self) out.push({ dir, terrain: nt });
   }
