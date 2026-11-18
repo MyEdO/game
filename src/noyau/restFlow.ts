@@ -328,13 +328,12 @@ function contagionBands(get: Get, porteurs: readonly PorteurABord[], dues: reado
     const bande = bandes.find((b) => b.diseaseName === c.diseaseName && !b.ids.includes(c.porteurId))
       ?? bandes[bandes.push({ diseaseName: c.diseaseName, ids: [], porteurs: [] }) - 1];
     bande.ids.push(c.porteurId);
-    bande.porteurs.push({ ...aLui.contraction(c.diseaseName), difficulty: c.difficulty, menace: 'maladie', meta: { diseaseName: c.diseaseName } });
+    bande.porteurs.push({ ...aLui.contraction(c.diseaseName), difficulty: c.difficulty, meta: { diseaseName: c.diseaseName } });
   }
   return bandes.flatMap(({ diseaseName, porteurs: rangees }, i) => buildBand(get, {
     id: `contagion-${diseaseName}-${i}`, kind: 'contagion', icon: 'medical/infection',
     label: stepPrecision(t('step.contagion'), diseaseLabel(diseaseName)),
     stake: nightStakeRef('contagion'),
-    menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
     meta: { diseaseName },
     difficulty: rangees[0].difficulty ?? 'accessible',
     porteurs: rangees,

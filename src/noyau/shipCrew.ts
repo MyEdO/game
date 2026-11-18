@@ -214,14 +214,16 @@ export interface PorteurABord {
   porteur: PorteurDeMaladies;
   /** Sa rangée de Test de Résistance. */
   rangee: BandPorteur;
-  /** Sa rangée de Test de Contraction contre `diseaseId` : celle du PJ porte en lignes nommées sur la cible les bonus
-   *  d'effet scopés à cette maladie (`diseaseTestModLines`). LDB 20 l.25 */
+  /** Sa rangée de Test de Contraction contre `diseaseId`, taguée de la menace `maladie` : celle du PJ porte en lignes
+   *  nommées sur la cible les bonus d'effet scopés à cette maladie (`diseaseTestModLines`). LDB 10 l.1016-1020 ; LDB 20 l.25 */
   contraction: (diseaseId: string) => BandPorteur;
   /** Écrit l'état muté de `porteur` dans le jeu. */
   ecrire: () => void;
 }
 
 const RESISTANCE: SujetDuJet = { skill: { id: 'resistance' }, characteristic: 'endurance' };
+/** La rangée `r` en Test de Contraction, qui résiste à la menace maladie. LDB 10 l.1016-1020 */
+const enContraction = (r: BandPorteur): BandPorteur => ({ ...r, menace: 'maladie' });
 
 /** Le navire `vessel` qui porte `equipage` comme équipage collectif ; sans maladie ni régime, le champ tombe. */
 function avecLEquipage(vessel: CampaignVessel, equipage: CampaignVessel['porteurDeLEquipage']): CampaignVessel {
@@ -247,7 +249,7 @@ export function porteursABord(get: Get, set: SetFn): PorteurABord[] {
     id: h.id,
     porteur: h,
     rangee: { actor: h, ligne: { test: RESISTANCE } },
-    contraction: (diseaseId) => ({ actor: h, ligne: { test: RESISTANCE, surLaCible: diseaseTestModLines(h, diseaseId) } }),
+    contraction: (diseaseId) => enContraction({ actor: h, ligne: { test: RESISTANCE, surLaCible: diseaseTestModLines(h, diseaseId) } }),
     ecrire: ecrire(),
   }));
   if (!s.vessel || !shipboardSouls(s).crew) return pjs;
@@ -257,7 +259,7 @@ export function porteursABord(get: Get, set: SetFn): PorteurABord[] {
     id: WORLD_STEP_OWNER,
     porteur: equipage,
     rangee,
-    contraction: () => rangee,
+    contraction: () => enContraction(rangee),
     ecrire: ecrire(equipage),
   }];
 }

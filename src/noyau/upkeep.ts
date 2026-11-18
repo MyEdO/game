@@ -30,7 +30,7 @@ import { battleRng } from './battleRng';
 import { porteursABord, tickCampaignVesselWeek } from './shipCrew';
 import { WORLD_STEP_OWNER } from './pendings';
 import { avancerLesMaladies } from '../engine/disease';
-import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
+import { dayIndex } from '../engine/clock';
 import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, noterLeRepas, rationsDeCale } from '../engine/provisions';
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -105,7 +105,7 @@ function avancerLEquipage(get: Get, set: Set, minutes: number): string[] {
   if (!equipage) return [];
   const now = get().gameTime;
   if (get().vessel?.escale !== undefined) {
-    for (let jour = dayIndex(now - minutes) + 1; jour <= dayIndex(now); jour++) noterLeRepas(equipage.porteur, 'repas', jour * MINUTES_PER_DAY);
+    for (let jours = dayIndex(now) - dayIndex(now - minutes); jours > 0; jours--) noterLeRepas(equipage.porteur, 'repas');
   }
   const lignes = avancerLesMaladies(equipage.porteur, minutes, battleRng());
   equipage.ecrire();
@@ -223,7 +223,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
           });
         };
       // 1. Nourriture (LDB 18 l.337-343).
-      const r = dailyFoodUpkeep(h, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), d * MINUTES_PER_DAY, defer);
+      const r = dailyFoodUpkeep(h, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (r.rationConsumed) rations++;
       if (r.damage > 0) loseWounds(h, r.damage);
       lines.push(...r.log);

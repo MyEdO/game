@@ -415,7 +415,7 @@ function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   set({ vessel: { ...vessel, provisions, morale: { ...vessel.morale, factors } } });
   const equipage = porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER);
   if (equipage) {
-    repas.forEach((r, k) => noterLeRepas(equipage.porteur, r, now + k * MINUTES_PER_DAY));
+    for (const r of repas) noterLeRepas(equipage.porteur, r);
     equipage.ecrire();
   }
   return [short

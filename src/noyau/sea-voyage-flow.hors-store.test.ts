@@ -1818,7 +1818,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
 
   /** Pose `jours` repas par le geste du jeu (`noterLeRepas`) : `soupe` jours de soupe, le reste en biscuits. */
   function repasSansFrais(porteur: Pick<Combatant, 'regimeDeBord'>, jours: number, soupe = 0): void {
-    for (let k = 0; k < jours; k++) noterLeRepas(porteur, k < soupe ? SOUPE : BISCUITS, get().gameTime);
+    for (let k = 0; k < jours; k++) noterLeRepas(porteur, k < soupe ? SOUPE : BISCUITS);
   }
 
   /** Chaque Personnage a passé 30 jours sans vivre frais. MDG 14 l.230 */
@@ -1870,10 +1870,9 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
   });
 
   it('Scorbut : un jour de vivre frais remet le mois à zéro, aucun Test au 30e jour (MDG 14 l.230-232)', () => {
-    const repas = get().gameTime;
     journeeDeLEquipage(29, { [FRAIS]: 500 }, 99);
     expect(scorbutDeLEquipage()).toEqual([]);
-    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord).toEqual({ dernierVivreFrais: repas, joursSansVivreFrais: 0, joursDeSoupe: 0 });
+    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord).toEqual({ joursSansVivreFrais: 0, joursDeSoupe: 0 });
   });
 
   it('Scorbut : 15 jours de soupe mangée par l’équipage font son Test Facile, 80 (MDG 14 l.230)', () => {
@@ -1891,6 +1890,20 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
     get().avancerLeTemps(MINUTES_PER_DAY);
     expect(aLAuberge.diseases![0].minutesLeft).toBe(avant - MINUTES_PER_DAY);
     expect(enMer.diseases![0].minutesLeft).toBe(avant);
+  });
+
+  it('Résistance (Maladie) : chaque rangée de Test de contraction, PJ et équipage, porte la menace maladie — scorbut et tonneau exposé (LDB 10 l.1016-1020 ; MDG 14 l.209, l.230)', () => {
+    moisSansFraisDuGroupe();
+    const equipage: Pick<Combatant, 'regimeDeBord'> = {};
+    repasSansFrais(equipage, 29);
+    set({ vessel: { ...get().vessel!, waterLitres: 1000, provisions: lotsDeCale({ [BISCUITS]: 500 }, get().gameTime), porteurDeLEquipage: { regimeDeBord: equipage.regimeDeBord } } });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50, weather: { ...plan.sea!.weather, vent: 'calme-plat' }, waterContaminated: { diseaseId: 'courante-galopante' } } } });
+    continueSeaDayAfterCascade(get, set);
+    const rangees = (kind: string) => get().pendingCascade!.participants.find((st) => st.kind === kind)!.participants!.map((r) => [r.id, r.menace]);
+    const attendu = [...get().party.filter((h) => !h.dead).map((h) => [h.id, 'maladie']), [WORLD_STEP_OWNER, 'maladie']];
+    expect(rangees('mer-tonneau-expose')).toEqual(attendu);
+    expect(rangees('mer-scorbut')).toEqual(attendu);
   });
 
   it('Scorbut : 15 jours de soupe MANGÉE font le Test Facile du Personnage, la soupe portée sans être mangée non (MDG 14 l.230)', () => {

@@ -3,12 +3,16 @@ import { Combatant } from './types';
 import { RNG, makeRNG } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { avancerLesMaladies, applyContraction, contagiousDiseases, contractDisease, contractionDue, tickDisease, type PorteurDeMaladies } from './disease';
+import { mangerLaCale, noterLeRepas, type LotDeVivres } from './provisions';
+import type { Id } from '../data/schemas/grammaire/ref';
 import { porteEntretien, applique } from './upkeepPorte.testkit';
 import { desDuTest, desEnSuite } from './dice.testkit';
 
 /** RNG scripté : renvoie les valeurs dans l'ordre. */
 const seq = (values: number[]): RNG => desEnSuite(values);
 const sick = (over: Partial<Combatant> = {}): Combatant => ({ label: 'Marin', diseases: [], conditions: [], skills: [], ...over }) as Combatant;
+const FRAIS = 'nourriture-courses-journee' as Id<'trapping'>;
+const BISCUITS = 'ration-biscuits-de-mer' as Id<'trapping'>;
 
 /**
  * Maladies marines (MDG 14) — réutilisent le CYCLE de maladie EXISTANT (`disease.ts` + `maladies.json`),
@@ -53,9 +57,11 @@ describe('Scorbut (MDG 14 l.232) — la Durée ne décroît qu’aux jours de vi
   });
 
   it('aux jours de vivres frais : −1 jour par jour, puis guérison', () => {
-    const c = sick({ diseases: [scorbutDe(2)], regimeDeBord: { dernierVivreFrais: 0, joursSansVivreFrais: 0, joursDeSoupe: 0 } });
+    const c = sick({ diseases: [scorbutDe(2)] });
+    noterLeRepas(c, FRAIS);
     tickDisease(c, MINUTES_PER_DAY, seq([]), () => {});
     expect(c.diseases![0].minutesLeft).toBe(MINUTES_PER_DAY);
+    noterLeRepas(c, FRAIS);
     const log = tickDisease(c, MINUTES_PER_DAY, seq([]), () => {});
     expect(c.diseases).toEqual([]);
     expect(log.some((l) => l.includes('Scorbut'))).toBe(true);
@@ -89,8 +95,23 @@ describe('Porteur sans fiche (`PorteurDeMaladies`) — même cycle qu’un PJ', 
     const equipage: PorteurDeMaladies = { label: 'L’équipage', diseases: [contractDisease('scorbut', seq([]), { incubation: 0, duration: 1 })!], regimeDeBord: { joursSansVivreFrais: 3, joursDeSoupe: 0 } };
     avancerLesMaladies(equipage, 4 * MINUTES_PER_DAY, makeRNG(1));
     expect(equipage.diseases!.map((d) => d.id)).toEqual(['scorbut']);
-    equipage.regimeDeBord = { dernierVivreFrais: 4 * MINUTES_PER_DAY, joursSansVivreFrais: 0, joursDeSoupe: 0 };
+    noterLeRepas(equipage, FRAIS);
     avancerLesMaladies(equipage, MINUTES_PER_DAY, makeRNG(1));
     expect(equipage.diseases).toEqual([]);
+  });
+
+  /** Jours de Durée que décompte l'horloge après `jours` repas de la cale `lots`, en pas de `pas` jours. */
+  const decompte = (lots: LotDeVivres[], jours: number, pas: number): number => {
+    const equipage: PorteurDeMaladies = { label: 'L’équipage', diseases: [contractDisease('scorbut', seq([]), { incubation: 0, duration: 10 })!] };
+    for (const repas of mangerLaCale(lots, 1, jours, 0).repas) noterLeRepas(equipage, repas);
+    for (let k = 0; k < jours / pas; k++) avancerLesMaladies(equipage, pas * MINUTES_PER_DAY, makeRNG(1));
+    return 10 - equipage.diseases![0].minutesLeft / MINUTES_PER_DAY;
+  };
+
+  it('la Durée décompte un jour par jour de vivre frais mangé, quel que soit le découpage de l’horloge (MDG 14 l.232)', () => {
+    const fraisPuisBiscuits = [{ vivre: FRAIS, entre: 0, rations: 3 }, { vivre: BISCUITS, entre: 0, rations: 10 }];
+    expect(decompte(fraisPuisBiscuits, 4, 4)).toBe(3);
+    expect(decompte(fraisPuisBiscuits, 4, 1)).toBe(3);
+    expect(decompte([{ vivre: FRAIS, entre: 0, rations: 10 }], 4, 4)).toBe(4);
   });
 });

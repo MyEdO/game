@@ -116,8 +116,9 @@ export interface Disease {
 
 /** Régime de bord d'un porteur. MDG 14 l.230-232 */
 export interface RegimeDeBord {
-  /** Minute `gameTime` du dernier vivre frais mangé (`vivrePerissable`). */
-  dernierVivreFrais?: number;
+  /** Minutes de vivre frais mangé, à décompter de la Durée d'une maladie à `dureeAuFrais` au fil de l'horloge
+   *  (`noterLeRepas` les acquiert, `avancerLesMaladies` les consomme). MDG 14 l.232 */
+  minutesAuFrais?: number;
   /** Jours sans vivre frais, à terre comme en mer, remis à 0 par un vivre frais mangé (`noterLeRepas`). */
   joursSansVivreFrais: number;
   /** Jours de soupe de chou fermenté mangée depuis le dernier vivre frais ou le dernier Test de scorbut. */
@@ -605,9 +606,15 @@ export interface CycleDeFiche {
   finDeDuree(dz: Disease): boolean;
 }
 
-/** Le porteur mange-t-il du frais au jour du pas ? MDG 14 l.232 */
-function mangeDuFrais(r: RegimeDeBord | undefined): boolean {
-  return r?.dernierVivreFrais !== undefined && r.joursSansVivreFrais === 0;
+/** Consomme au régime de `p` les minutes de vivre frais que couvre un pas de `pas` minutes ; RENVOIE les minutes de
+ *  Durée au frais du pas, jamais plus que le pas. MDG 14 l.232 */
+function decompterLeFrais(p: PorteurDeMaladies, pas: number): number {
+  const r = p.regimeDeBord;
+  const auFrais = Math.min(pas, r?.minutesAuFrais ?? 0);
+  if (!r || auFrais === 0) return 0;
+  const { minutesAuFrais: _consommees, ...reste } = r;
+  p.regimeDeBord = r.minutesAuFrais! > auFrais ? { ...reste, minutesAuFrais: r.minutesAuFrais! - auFrais } : reste;
+  return auFrais;
 }
 
 /**
@@ -617,8 +624,8 @@ function mangeDuFrais(r: RegimeDeBord | undefined): boolean {
  *
  * Le délai est découpé en PAS : autant de JOURNÉES PLEINES (`MINUTES_PER_DAY`) que possible, puis un
  * reliquat sous-journalier ; le cycle de fiche ne tombe que sur une journée pleine (LDB 20, Tests « par
- * jour »). Une maladie à `dureeAuFrais` ne décompte sa Durée qu'au pas où le porteur mange du frais
- * (`regimeDeBord`, MDG 14 l.232).
+ * jour »). Une maladie à `dureeAuFrais` ne décompte de sa Durée que les minutes de vivre frais que le pas consomme
+ * au régime de bord (`decompterLeFrais`), MDG 14 l.232.
  */
 export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: RNG, fiche?: CycleDeFiche): string[] {
   if (minutes <= 0 || !p.diseases?.length) return [];
@@ -642,6 +649,7 @@ export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: R
   if (remainder > 0) steps.push(remainder);
 
   for (const stepMin of steps) {
+    const auFrais = decompterLeFrais(p, stepMin);
     const survivors: Disease[] = [];
     for (const dz of p.diseases) {
       dz.infectedMinutes = (dz.infectedMinutes ?? 0) + stepMin; // MSRC 16 l.138
@@ -663,11 +671,12 @@ export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: R
           continue;
         }
       }
-      if (diseaseDefs()[dz.id]?.dureeAuFrais && !mangeDuFrais(p.regimeDeBord)) {
+      const ecoule = diseaseDefs()[dz.id]?.dureeAuFrais ? auFrais : stepMin;
+      if (ecoule === 0) {
         survivors.push(dz);
         continue;
       }
-      dz.minutesLeft -= stepMin;
+      dz.minutesLeft -= ecoule;
       if (dz.minutesLeft > 0) {
         survivors.push(dz);
         continue;

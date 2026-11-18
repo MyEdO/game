@@ -41,7 +41,7 @@ import { rollTest } from './tests';
 import { hasActiveFlag } from './activeFlags';
 import { itemCapability } from './capabilities';
 import { dailyWaterLitres } from './seaWeather';
-import { findTraitById, findTrappingById, refLabel } from '../data';
+import { findDiseaseById, findTraitById, findTrappingById, refLabel } from '../data';
 import { garanti } from '../lib/garanti';
 import { rule } from './policy';
 import { dayIndex, MINUTES_PER_DAY } from './clock';
@@ -191,7 +191,7 @@ export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: R
  * avec la pénalité cumulative (−10 × Tests déjà tentés, LDB 18 l.338) pour qu'il devienne une ÉTAPE
  * influençable (résolue par `applyFaimTest`). Sans `deferTest` (contextes eager), le jet est roulé ici.
  */
-export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: RNG, now: number, deferTest?: UpkeepDeferTest): FoodUpkeepResult {
+export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: RNG, deferTest?: UpkeepDeferTest): FoodUpkeepResult {
   const res: FoodUpkeepResult = { ate: false, rationConsumed: false, damage: 0, log: [] };
   if (c.dead) return res;
   // Sustentation magique (Graisse de la terre, LDB 48 : « n'a pas besoin de manger ou de boire ») :
@@ -199,7 +199,7 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
   if (hasActiveFlag(c, 'noHunger')) {
     res.ate = true;
     c.hunger = undefined;
-    noterLeRepas(c, undefined, now);
+    noterLeRepas(c, undefined);
     return res;
   }
   const brouet = hasBrouet(c);
@@ -224,7 +224,7 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
       res.rationConsumed = true;
     }
   }
-  noterLeRepas(c, repas, now);
+  noterLeRepas(c, repas);
 
   if (res.ate) {
     if (h.days > 0 || h.failures > 0) res.log.push(t('prov.fedAgain', { name: c.label }));
@@ -399,20 +399,22 @@ export interface RepasDeLaCale { lots: LotDeVivres[]; manque: number; repas: (Id
  *  (auberge, hôte : `feedFromMeal`), absent s'il n'a pas mangé ou a mêlé plusieurs vivres. */
 export type RepasDuJour = Id<'trapping'> | 'repas' | undefined;
 
-/** Écrit le régime de bord d'un porteur pour UN jour où il a mangé `repas` à la minute `now` : un vivre frais remet
- *  le mois à zéro, sinon un jour de plus sans frais, et de soupe si le vivre porte `scurvyGuard`. Geste unique des
- *  deux mangeurs, `dailyFoodUpkeep` (PJ) et `mangerLaCale` via `consumeCrewProvisions` (équipage). MDG 14 l.230-232 */
-export function noterLeRepas(p: Pick<PorteurDeMaladies, 'regimeDeBord'>, repas: RepasDuJour, now: number): void {
-  if (repas === 'repas' || (repas !== undefined && vivrePerissable(repas))) {
-    p.regimeDeBord = { dernierVivreFrais: now, joursSansVivreFrais: 0, joursDeSoupe: 0 };
-    return;
-  }
-  const soupe = repas !== undefined && itemCapability(garanti(findTrappingById(repas), repas, 'vivre mangé'), 'scurvyGuard');
+/** Écrit le régime de bord d'un porteur pour UN jour où il a mangé `repas` : un vivre frais remet le mois à zéro, sinon
+ *  un jour de plus sans frais, et de soupe si le vivre porte `scurvyGuard`. Le porteur d'une maladie à `dureeAuFrais`
+ *  acquiert un jour de vivre frais à décompter (`minutesAuFrais`, consommé par `avancerLesMaladies`) ; sans elle, il
+ *  n'en garde aucun. Geste unique des deux mangeurs, `dailyFoodUpkeep` (PJ) et `mangerLaCale` via
+ *  `consumeCrewProvisions` (équipage). MDG 14 l.230-232 */
+export function noterLeRepas(p: Pick<PorteurDeMaladies, 'regimeDeBord' | 'diseases'>, repas: RepasDuJour): void {
+  const frais = repas === 'repas' || (repas !== undefined && vivrePerissable(repas));
+  const soupe = !frais && repas !== undefined && itemCapability(garanti(findTrappingById(repas), repas, 'vivre mangé'), 'scurvyGuard');
   const r = p.regimeDeBord;
+  const auFrais = (p.diseases ?? []).some((d) => findDiseaseById(d.id)?.dureeAuFrais)
+    ? (r?.minutesAuFrais ?? 0) + (frais ? MINUTES_PER_DAY : 0)
+    : 0;
   p.regimeDeBord = {
-    ...r,
-    joursSansVivreFrais: (r?.joursSansVivreFrais ?? 0) + 1,
-    joursDeSoupe: (r?.joursDeSoupe ?? 0) + (soupe ? 1 : 0),
+    joursSansVivreFrais: frais ? 0 : (r?.joursSansVivreFrais ?? 0) + 1,
+    joursDeSoupe: frais ? 0 : (r?.joursDeSoupe ?? 0) + (soupe ? 1 : 0),
+    ...(auFrais ? { minutesAuFrais: auFrais } : {}),
   };
 }
 
