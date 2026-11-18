@@ -107,7 +107,7 @@ fermer();
 el(S, 'rect', { width: 560, height: H, fill: '#000', opacity: .28 });
 
 const pieces = [];
-pieces.push(titre({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Auberge · Teuerberg, Bögenhafen · le soir', largeur: 446 }));
+pieces.push(cartouche({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Auberge · Teuerberg, Bögenhafen · le soir', taille: 'titre', largeur: 446 }));
 /* LDB 66 l.5, l.12-16, l.28 ; `src/noyau/restFlow.ts:567-575`, `:692` ; #3004 */
 const offre = (icone, nom, sous, prix, prise) => `<span class="l rubrique">${picto(icone, 17)}${nom}</span><span class="q rubrique">${sous}</span>${plaque(prix, { armee: prise, taille: 'petite' })}`;
 const NOTE = '6/–';

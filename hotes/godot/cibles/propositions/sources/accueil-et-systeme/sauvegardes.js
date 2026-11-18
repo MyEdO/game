@@ -13,7 +13,7 @@ const feuillet = ({ nom, lieu, date, reel, sauver = true, charge = false, vide =
   </div>${ruban(nom)}${ferrures}</div>`;
 monter([
   fondDeTable(),
-  titre({ icone: 'disque', nom: 'Sauvegardes', sous: 'Steinbruck · 14 Pflugzeit 2512 CI · 18:20', largeur: 430 }),
+  cartouche({ icone: 'disque', nom: 'Sauvegardes', sous: 'Steinbruck · 14 Pflugzeit 2512 CI · 18:20', taille: 'titre', largeur: 430 }),
   croix(),
   `<div id="feuillets" data-piece="emplacements">
     ${feuillet({ nom: 'Emplacement automatique', lieu: 'Steinbruck', date: '14 Pflugzeit 2512 CI · 18:05', reel: '16/11/2026 21:48', sauver: false, charge: true })}

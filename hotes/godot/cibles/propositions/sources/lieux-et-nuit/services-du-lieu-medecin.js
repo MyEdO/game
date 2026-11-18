@@ -71,7 +71,7 @@ fermer();
 el(S, 'rect', { width: 380, height: H, fill: '#000', opacity: .3 });
 
 const pieces = [];
-pieces.push(titre({ icone: 'soin', nom: 'Guilde des Médecins', sous: 'Teuerberg, Bögenhafen', largeur: 400 }));
+pieces.push(cartouche({ icone: 'soin', nom: 'Guilde des Médecins', sous: 'Teuerberg, Bögenhafen', taille: 'titre', largeur: 400 }));
 const SERVICES = [['lit', 'La Fin du Voyage'], ['chope', 'Les Piques croisées'], ['balance', 'Guilde des Joailliers'], ['soin', 'Guilde des Médecins', 1], ['bouclier', 'Caserne du Guet']];
 pieces.push(rail('Services de Teuerberg', SERVICES, 'On passe de l’un à l’autre sans ressortir'));
 pieces.push(hote({ id: 'docteur', x: 800, y: 292, l: 322, icone: 'soin', nom: 'Le docteur de la guilde', sous: 'Docteur en médecine · Guérison 62', pointe: 152,

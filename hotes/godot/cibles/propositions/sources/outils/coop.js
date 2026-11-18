@@ -31,7 +31,7 @@ if (SALON) {
   const JOUEURS = ['Karl', 'Lena', 'Otto'];
   const TIENT = { bjorn: 'Karl', mira: 'Lena', aldric: 'Karl', greta: 'Otto' };
   pieces.push(
-    titre({ icone: 'reseau', nom: 'Salon — hôte', sous: 'Partie K7M2QX', largeur: 400 }),
+    cartouche({ icone: 'reseau', nom: 'Salon — hôte', sous: 'Partie K7M2QX', taille: 'titre', largeur: 400 }),
     `<div id="invitation" class="cadre bois" data-piece="invitation"><div class="fond bois">
        <div class="code parchemin gothique" data-texte="code">K7M2QX</div>
        <div class="r rubrique">Joueurs connectés</div>
@@ -57,7 +57,7 @@ if (SALON) {
   );
 } else {
   pieces.push(
-    titre({ icone: 'reseau', nom: 'Jouer en ligne', sous: 'Aucune partie ouverte', largeur: 400 }),
+    cartouche({ icone: 'reseau', nom: 'Jouer en ligne', sous: 'Aucune partie ouverte', taille: 'titre', largeur: 400 }),
     `<div class="feuillet-coop cadre bois" data-piece="rejoindre" style="left:44px;top:150px"><div class="fond parchemin">
        <label class="champ"><span class="rubrique">Code de la partie</span><div class="cases gothique">${[...'K7M2QX'].map((c) => `<b>${c}</b>`).join('')}</div></label>
        <div class="indice">Le code de room fait 6 caractères.</div>

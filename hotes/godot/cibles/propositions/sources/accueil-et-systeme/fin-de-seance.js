@@ -14,12 +14,12 @@ const feuillet = (h) => { const f = SEANCE[h.id]; return `
 el(S, 'rect', { width: W, height: H, fill: '#04030a', opacity: .38 });
 el(S, 'rect', { width: W, height: H, fill: 'url(#vignette)', opacity: .7 });
 monter([
-  titre({ icone: 'plume', nom: 'Fin de séance', sous: 'Steinbruck · 14 Pflugzeit 2512 CI · 18:20', largeur: 430 }),
+  cartouche({ icone: 'plume', nom: 'Fin de séance', sous: 'Steinbruck · 14 Pflugzeit 2512 CI · 18:20', taille: 'titre', largeur: 430 }),
   croix(),
   `<div id="feuillets" data-piece="héros">${HEROS.map(feuillet).join('')}</div>`,
   `<div id="groupe" class="cadre bois" data-piece="groupe"><div class="fond bois">
      <div class="cases">${casesDuGroupe()}</div>
      <p data-texte="chance">La Chance du groupe sera restaurée pour la prochaine séance.</p>
    </div>${ruban('Le groupe')}${ferrures}</div>`,
-  `<div id="terminer" data-piece="terminer">${plaque('Terminer la séance', { armee: true, icone: 'plume', taille: 'appel' })}</div>`,
+  `<div class="action-de-coin" data-piece="terminer">${plaque('Terminer la séance', { armee: true })}</div>`,
 ]);

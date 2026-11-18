@@ -47,7 +47,7 @@ teinte('t-bois', '#8a6a44', '#3f2c1a');
 // l'extérieur : la nuit et la lisière, derrière les murs
 el(S, 'rect', { width: W, height: H, fill: 'url(#nuit)' });
 {
-  const r = alea(3); const murY = (x) => (x < 838 ? 54 - (x - 608) / 2 : -176 + (x - 608) / 2);
+  const r = alea(3); const murY = (x) => (x < OX + 230 ? OY + 138 - (x - OX) / 2 : OY - 92 + (x - OX) / 2);
   const arbres = []; for (let n = 0; n < 150; n++) { const x = r() * W; const y = murY(x) - 26 - r() * 170; if (y > -10) arbres.push([x, y, 46 + r() * 70, r()]); }
   arbres.sort((p, q) => p[1] - q[1]);
   for (const [x, y, h, t] of arbres) {
@@ -289,8 +289,8 @@ if (VAR !== 'victoire') {
 // le fond se ferme : coins, haut, bords et bas sous l'interface
 el(S, 'rect', { width: W, height: H, fill: 'url(#vignette)' });
 el(S, 'rect', { x: 0, y: 0, width: 330, height: H, fill: 'url(#gauche)' });
-el(S, 'ellipse', { cx: 1640, cy: 600, rx: 430, ry: 260, fill: 'url(#droite)' });
-el(S, 'rect', { x: 0, y: 500, width: W, height: 280, fill: 'url(#bas)' });
+el(S, 'ellipse', { cx: W - 67, cy: H - 180, rx: 430, ry: 260, fill: 'url(#droite)' });
+el(S, 'rect', { x: 0, y: H - 280, width: W, height: 280, fill: 'url(#bas)' });
 if (FIN || VAR === 'fiche') el(S, 'rect', { width: W, height: H, fill: '#06040a', opacity: FIN ? .66 : .42 });
 
 /* les marques de la suite du combat que l'écran nomme (`#ecran` : `data-marques`) : la cible passée au Tireur gobelin

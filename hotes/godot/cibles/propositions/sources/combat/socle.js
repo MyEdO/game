@@ -3,7 +3,7 @@
    du combat naval. Se charge après `../gestes.js` et `jet.js`. Maquette hors du jeu. */
 grad('gauche', [[0, '#000', .62], [1, '#000', 0]], { x1: 0, y1: 0, x2: 1, y2: 0 });
 /* la grille isométrique */
-const A = 46, B = 23, OX = 608, OY = -84;
+const A = 46, B = 23, OX = 394, OY = -114;
 const P = (i, j) => [OX + (i - j) * A, OY + (i + j) * B];
 const losange = (x, y, a = A, b = B) => `M${x},${y - b}L${x + a},${y}L${x},${y + b}L${x - a},${y}Z`;
 

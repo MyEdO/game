@@ -41,8 +41,6 @@
 .points .pas{margin-top:9px;margin-left:5px;gap:13px}
 .nature{padding:0 22px;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:108px}
 .deux{display:flex;gap:12px;margin-top:8px}
-.deux .plaque.carte{width:auto;flex:1;height:76px}
-.deux .plaque.carte>div{padding:0 16px}
 
 /* ce qu'un Test décide, la ligne que le dé désigne */
 .enjeu{padding-left:22px}
@@ -53,9 +51,7 @@
 .enjeu tr.tombee td{color:#7c1f14;font-weight:600}
 
 /* le désengagement et le Destin : trois cartes, la raison d'un refus au survol */
-#jet .fond.debut .plaque.carte{width:258px}
 #jet .fond.destin{gap:12px}
-#jet .fond.destin .plaque.carte{width:250px}
 
 /* la relance : le premier jet reste lisible */
 .relance{color:#5a2a12;white-space:nowrap}

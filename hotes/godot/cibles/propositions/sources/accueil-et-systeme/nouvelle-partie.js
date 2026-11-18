@@ -114,7 +114,7 @@ fermer();
 const avis = (classe, style, icone, nom) => `<div class="avis parchemin ${classe}" style="${style}"><i class="clou"></i>${picto(icone, 17, '#5a2a12', 1.6)}<b class="gothique">${nom}</b></div>`;
 const GROUPE = HEROS.slice(0, 3);
 monter([
-  titre({ icone: 'chope', nom: 'La Compagnie', sous: 'Composer le groupe · 3 sur 4', largeur: 392 }),
+  cartouche({ icone: 'chope', nom: 'La Compagnie', sous: 'Composer le groupe · 3 sur 4', taille: 'titre', largeur: 392 }),
   `<div id="rail" class="cadre bois" data-piece="recruter"><div class="fond bois">
      <div class="deux">${plaque('Pré-tirés', { armee: !ROSTER })}${plaque('Mes personnages', { armee: ROSTER })}</div>
      <div class="pied rubrique">${ROSTER ? '3 personnages dans la salle, sur 3' : '5 voyageurs dans la salle, sur 15'}</div>

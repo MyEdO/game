@@ -1,6 +1,6 @@
 // LE RENDU DES MAQUETTES (#3935, #4411), sous Playwright, avec le relevé des pièces d'interface hors de la vue, croisées,
 // débordées par ce qu'elles portent, au texte coupé ou recouvert, et du défilement de la page :
-//   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1707 × 780, à l'échelle (2 par défaut)
+//   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
 //     `rendu.html` dans le format physique `<format>` (`FORMATS`). L'état, une donnée écrite (`maquettes/maquette.ts`),
@@ -64,7 +64,7 @@ const releve = ([largeur, hauteur]) => {
 const [, , cible, png, ...reste] = process.argv
 const option = (nom) => (reste.includes(nom) ? reste[reste.indexOf(nom) + 1] : undefined)
 const page = cible.endsWith('.html')
-const format = page ? { largeur: 1707, hauteur: 780, facteur: Number(reste[0] ?? 2) } : FORMATS[option('--format')]
+const format = page ? { ...FORMATS['16:9'], facteur: Number(reste[0] ?? FORMATS['16:9'].facteur) } : FORMATS[option('--format')]
 if (!format) throw new Error(`rendre.mjs <écran> <sortie.png> --format ${Object.keys(FORMATS).join('|')} [--etat <état>]`)
 const etat = option('--etat')
 const etats = page ? null : await chargerLEcran(cible, etat)

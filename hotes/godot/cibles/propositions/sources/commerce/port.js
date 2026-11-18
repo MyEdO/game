@@ -10,7 +10,7 @@ const enseigne = (o) => hote({ classe: 'service enseigne', ...o });
 const SERVICES = { negoce: ['ballot', 'Négoce de cargaison'], chantier: ['marteau', 'Chantier naval'], recrutement: ['equipage', 'Recrutement'], avitaillement: ['tonneau', 'Avitaillement'] };
 const services = (ouvert) => {
   el(S, 'rect', { width: 380, height: H, fill: '#000', opacity: .3 });
-  pieces.push(titre({ icone: 'ancre', nom: 'Le port', sous: `${SERVICES[ouvert][1]} · Salzenmund · printemps`, largeur: 420 }));
+  pieces.push(cartouche({ icone: 'ancre', nom: 'Le port', sous: `${SERVICES[ouvert][1]} · Salzenmund · printemps`, taille: 'titre', largeur: 420 }));
   pieces.push(rail('Services du port', Object.entries(SERVICES).map(([id, [icone, nom]]) => [icone, nom, id === ouvert ? 1 : 0]), 'Le navire reste à quai'));
 };
 const quitter = (dits = {}, bourses = false) => pieces.push(bandeau(dits, { bourses }), retour('Quitter le port'), coins());
@@ -144,7 +144,7 @@ if (ETAT === 'port-avitaillement') {
 }
 
 if (ETAT === 'port') {
-  pieces.push(titre({ icone: 'ancre', nom: 'Salzenmund', sous: `Port · Nordland · ${picto('systeme', 13, '#c9b995', 1.6)} Beau temps`, largeur: 400 }));
+  pieces.push(cartouche({ icone: 'ancre', nom: 'Salzenmund', sous: `Port · Nordland · ${picto('systeme', 13, '#c9b995', 1.6)} Beau temps`, taille: 'titre', largeur: 400 }));
   pieces.push(`<div id="recit" data-piece="récit"><p class="ombre">Capitale du Nordland, Grand Temple d’Ulric et temple de Manann Resplendissant. Votre cogue est amarrée au quai des marchands.</p></div>`);
   pieces.push(enseigne({ id: 'chantier', x: 340, y: 336, l: 254, icone: 'marteau', nom: 'Chantier naval', sous: 'Réparer · caréner · améliorer', pointe: 96 }));
   pieces.push(hote({ id: 'entrepot', classe: 'service', x: 548, y: 86, l: 276, icone: 'ballot', nom: 'L’entrepôt', sous: 'Négoce de cargaison', pointe: 86,

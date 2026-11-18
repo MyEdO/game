@@ -61,7 +61,7 @@ fermer();
 el(S, 'rect', { width: 380, height: H, fill: '#000', opacity: .3 });
 
 const pieces = [];
-pieces.push(titre({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Bonne auberge · Teuerberg, Bögenhafen', largeur: 430 }));
+pieces.push(cartouche({ icone: 'lit', nom: 'La Fin du Voyage', sous: 'Bonne auberge · Teuerberg, Bögenhafen', taille: 'titre', largeur: 430 }));
 const SERVICES = [['lit', 'La nuit et le repas'], ['bulle', 'La salle commune'], ['des', 'Les jeux', 1], ['soin', 'Le barbier'], ['fer_a_cheval', 'L’écurie']];
 pieces.push(rail('Services de la maison', SERVICES, 'Odelina Landau, l’aubergiste'));
 const POSTES = [

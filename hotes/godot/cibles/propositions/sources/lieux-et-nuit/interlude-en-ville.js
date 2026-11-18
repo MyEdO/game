@@ -9,7 +9,7 @@ const LIEUX = [
   { x: 268, y: 524, icone: 'epee', nom: 'Le maître d’armes', quoi: 'Entraînement' },
 ];
 const pieces = [];
-pieces.push(titre({ icone: 'ville', nom: 'Bögenhafen', sous: 'Entre deux aventures', largeur: 400 }));
+pieces.push(cartouche({ icone: 'ville', nom: 'Bögenhafen', sous: 'Entre deux aventures', taille: 'titre', largeur: 400 }));
 pieces.push(`<div id="lieu" class="cadre bois" data-piece="lieu"><div class="fond bois">
   <h3 data-texte="lieu">Taverne d’Altstadt</h3>
   <div class="pnj">${portrait('hote')}<div><b>Le tenancier</b><p>Les bateliers parlent, pour peu qu’on paie la tournée.</p></div></div>

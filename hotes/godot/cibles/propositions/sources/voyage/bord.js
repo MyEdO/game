@@ -15,7 +15,7 @@ const etatDuBord = `${ligne('Moral', '<span class="chiffres">75</span>')}${jauge
   ${ligne('Eau douce', '<span class="chiffres">2 900 L</span>')}
   ${ligne('Vivres de l’équipage', '<span class="chiffres">735 rations</span>')}`;
 if (ETAT === 'activites-en-mer') {
-  pieces.push(titre({ icone: 'cordage', nom: 'Activités de la semaine', sous: 'La Sterne · 8ᵉ jour en mer · une Activité par héros', largeur: 492 }));
+  pieces.push(cartouche({ icone: 'cordage', nom: 'Activités de la semaine', sous: 'La Sterne · 8ᵉ jour en mer · une Activité par héros', taille: 'titre', largeur: 492 }));
   pieces.push(`<div data-piece="postes">
   ${poste(628, 198, { nom: 'Aucune Activité', sous: 'La semaine passe', icone: 'sommeil', heros: ['bjorn', 'greta'] })}
   ${poste(360, 328, { nom: 'Commerce d’opportunité', sous: 'Marchandage · Complexe (–10)', heros: 'mira', vise: true })}
@@ -39,7 +39,7 @@ if (ETAT === 'activites-en-mer') {
   }));
   pieces.push(retour('Revenir à la traversée', 'route'), coins());
 } else {
-  pieces.push(titre({ icone: 'cordage', nom: 'Postes de bord', sous: 'La cogue · 15 marins · 3ᵉ jour en mer', largeur: 452 }));
+  pieces.push(cartouche({ icone: 'cordage', nom: 'Postes de bord', sous: 'La cogue · 15 marins · 3ᵉ jour en mer', taille: 'titre', largeur: 452 }));
   pieces.push(`<div data-piece="postes">
     ${poste(628, 58, STATION ? { nom: 'Vigie', sous: 'Perception', icone: 'oeil' } : { nom: 'Vigie', sous: 'Perception', heros: 'bjorn', plus: true })}
     ${poste(628, 198, { nom: 'Mousse', sous: 'Voile ou Ramer', icone: 'cordage' })}

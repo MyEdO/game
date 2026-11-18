@@ -35,5 +35,5 @@
 .moyen .px small{display:block;font-family:"Fell SC";font-size:10.5px;letter-spacing:.8px;color:var(--creme-2)}
 #trajet .plaque.partir{margin-top:16px}
 /* la porte de départ de nuit : le billet posé sur le lieu du groupe */
-#depart{z-index:2}
-#depart .gestes{display:flex;gap:8px;margin-top:10px}
+.apercu{z-index:2}
+.apercu .gestes{display:flex;gap:8px;margin-top:10px}

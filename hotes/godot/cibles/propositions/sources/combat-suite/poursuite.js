@@ -33,7 +33,7 @@ if (ETAT.startsWith('poursuite-terrestre')) {
   poser(interieur(D.route({ lanterne: false })).replace(D.cavalier(610, 656, 0.9), '').replace(D.diligence(860, 648, 1, false), ''));
   poser(`${coureurs(RATTRAPES ? 760 : 420, 3, 46, true)}${coureurs(900, 4, 52, false)}`);
   fermer();
-  pieces.push(titre({ icone: 'botte', nom: 'Poursuite', sous: RATTRAPES ? 'Rattrapés !' : 'Manche 2', largeur: 452 }));
+  pieces.push(cartouche({ icone: 'botte', nom: 'Poursuite', sous: RATTRAPES ? 'Rattrapés !' : 'Manche 2', taille: 'titre', largeur: 452 }));
   pieces.push(recit(RATTRAPES ? 'Poursuite — rattrapés !' : 'Poursuite — manche 2', RATTRAPES
     ? 'Manche 2 : les poursuivants gagnent du terrain (−4 → Distance 0/10). Aldric, à bout de souffle, traîne derrière les autres.'
     : 'Le groupe prend la fuite. Trois Brigands dévalent le chemin derrière lui, leurs torches dansent entre les troncs.'));

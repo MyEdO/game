@@ -3,8 +3,7 @@
    Maquette hors du jeu. */
 /* ───────── l'interface ───────── */
 
-const fiche = (classe, style) => `<div id="apercu" class="parchemin ${classe}" data-piece="fiche" style="${style}">
-    <div class="tete"><span class="n gothique">Fléchette</span><span class="c rubrique">${VAR === 'rapides' ? 'Touche 1' : 'Sort'}</span></div>
+const fiche = (style) => apercu({ nom: 'Fléchette', sous: VAR === 'rapides' ? 'Touche 1' : 'Sort', vers: 'droite', style: `${style};--pointe:208px`, corps: `
     <div class="titre rubrique" style="margin-top:8px">Sort · coûte l’Action</div>
     <table>
       <tr><td>Niveau d’incantation</td><td>0</td></tr>
@@ -12,8 +11,7 @@ const fiche = (classe, style) => `<div id="apercu" class="parchemin ${classe}" d
       <tr><td>Cible</td><td>1</td></tr>
       <tr><td>Durée</td><td>Instantanée</td></tr>
     </table>
-    <div class="pied">Un clic arme le sort, un second sur la cible le lance.</div>
-  </div>`;
+    <div class="pied">Un clic arme le sort, un second sur la cible le lance.</div>` });
 const rapides = (armee, noms = ['Fléchette', 'Dôme', 'Bouclier', 'Lumière', null, null]) => `<div id="rapides" class="cadre bois" data-piece="rapides"><div class="fond">
       ${noms.map((n, i) => [n, i === 0 && armee]).map(([n, a], i) => `<div class="case-r">${plaque('', { icone: n ? 'sort' : null, numero: i + 1, armee: a, fermee: !n })}<span class="rubrique">${n ?? 'Libre'}</span></div>`).join('')}
     </div>${ferrures}</div>`;
@@ -22,9 +20,9 @@ const VARIANTE = () => {
     `<div id="liste" class="cadre bois" data-piece="liste"><div class="fond"><div class="t rubrique">Lancer ce sort</div>
       ${[['Dôme', 0], ['Bouclier anti-flèches', 0], ['Fléchette', 1], ['Lumière', 0]].map(([n, a]) => plaque(n, { armee: !!a, classe: 'ligne-l' })).join('')}
     </div>${ferrures}</div>`,
-    fiche('a-gauche', 'left:588px;top:334px;width:300px'),
+    fiche('left:588px;top:334px'),
   ];
-  return [rapides(1), fiche('a-gauche', 'left:588px;top:334px;width:300px')];
+  return [rapides(1), fiche('left:588px;top:334px')];
 };
 
 const jeu = ETAT === 'jet';
@@ -108,8 +106,7 @@ if (!jeu && BERTA_JOUE) {
     plaques: `${plaque('Attaque', { armee: SURVOL, icone: 'attaque', fermee: adv })}${plaque('Course', { icone: 'botte', fermee: adv })}${plaque('Défensive', { icone: 'defensive', fermee: adv })}`,
     pastilles: [['sort', 'Sort'], ['focaliser', 'Focaliser'], ['competence', 'Compétence'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
   }));
-  if (SURVOL) ui.push(`<div id="apercu" class="parchemin" data-piece="apercu">
-    <div class="tete"><span class="n gothique">Orc</span><span class="c rubrique">Cible</span></div>
+  if (SURVOL) ui.push(apercu({ nom: 'Orc', sous: 'Cible', vers: 'gauche', style: 'left:1046px;top:292px;--pointe:70px', corps: `
     <div class="pv">${jauge(1, { taille: 'forte' })}<b>14 / 14</b></div>
     <div class="titre rubrique">Attaque · Bâton de combat</div>
     <table>
@@ -118,8 +115,7 @@ if (!jeu && BERTA_JOUE) {
       <tr><td>Dégâts</td><td>+6</td></tr>
       <tr><td>L’Orc oppose</td><td>Parade</td></tr>
     </table>
-    <div class="pied">Charge : +1 Avantage. Un second clic confirme.</div>
-  </div>`);
+    <div class="pied">Charge : +1 Avantage. Un second clic confirme.</div>` }));
   if (VAR === 'liste' || VAR === 'rapides') ui.push(...VARIANTE());
   if (VAR === 'cible' || VAR === 'journal' || VAR === 'fiche') ui.push(rapides(0));
   if (VAR === 'journal') {
@@ -155,7 +151,7 @@ if (!jeu && BERTA_JOUE) {
   }
 } else if (FIN) {
   /* `fenetre.victoire` (`src/i18n/messages/fr.ts:483`) */
-  ui.push(`<div id="issue" data-piece="issue"><div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="issue">Victoire</span></div></div></div>`);
+  ui.push(issue('Victoire'));
   if (VAR === 'victoire') {
     const ligne = (objet) => `<div class="ligne-b"><span data-texte="butin ${objet}">${objet}</span><i class="rubrique">Attribuer</i>${portrait('ilyanwe', { taille: 'menu' })}${portrait('berta', { taille: 'menu' })}</div>`;
     ui.push(bandeauDuJet('Butin', 'butin', `

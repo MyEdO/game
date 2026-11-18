@@ -45,7 +45,7 @@ function flammes(g, x, y, s = 1) {
 }
 const fermer = () => { // le fond se ferme : coins, bas sous l'interface
   el(S, 'rect', { width: W, height: H, fill: 'url(#vignette)' });
-  el(S, 'rect', { x: 0, y: 520, width: W, height: 260, fill: 'url(#bas)' });
+  el(S, 'rect', { x: 0, y: H - 260, width: W, height: 260, fill: 'url(#bas)' });
 };
 
 /* ───────── l'interface ───────── */

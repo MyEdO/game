@@ -44,7 +44,7 @@ const atelier = `<div class="feuille d parchemin atelier">
      </div>`;
 monter([
   fondDeTable(),
-  titre({ icone: 'livre', nom: 'Compendium', sous: 'Règles et données', largeur: 392 }),
+  cartouche({ icone: 'livre', nom: 'Compendium', sous: 'Règles et données', taille: 'titre', largeur: 392 }),
   `<div id="categories" class="cadre bois" data-piece="catégories"><div class="fond bois">
      <div>${ligneDeListe('Compétences', 48)}${ligneDeListe('Talents', 187, { la: true })}${ligneDeListe('Axes de forces', 9)}</div>
      <div class="trait"></div>
@@ -54,7 +54,7 @@ monter([
      <div class="trait"></div>
      ${plaque('Nouvelle entrée', { icone: 'plus', fermee: ATELIER })}
    </div>${ruban('Catégories')}${ferrures}</div>`,
-  `<div id="signets" data-piece="signets">${FAMILLES.map((n) => `<div class="signet ${n === 'Compétences' ? 'ouvert' : ''}"><span class="rubrique">${n}</span></div>`).join('')}</div>`,
+  signets(FAMILLES.map((nom) => ({ nom })), 'Compétences'),
   `<div id="registre" data-piece="registre"><div class="tranche"></div>
      <div class="feuille g parchemin">
        <div class="tete"><span class="dom gothique" data-texte="catégorie">Talents</span><span class="sous rubrique">Famille Compétences · 187 talents</span></div>

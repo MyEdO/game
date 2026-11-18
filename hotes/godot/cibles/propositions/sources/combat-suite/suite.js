@@ -10,7 +10,7 @@ const $ = (s) => document.querySelector(s);
 /* ───────── pièces du bandeau ───────── */
 /* le bandeau et l'annonce de l'état de base cèdent leur place au bandeau de la suite */
 const poser = (titre, classe, contenu, suites) => {
-  const [premier, ...autres] = document.querySelectorAll('#jet, #issue');
+  const [premier, ...autres] = document.querySelectorAll('#jet, .issue-du-combat');
   autres.forEach((e) => e.remove());
   premier.outerHTML = bandeauDuJet(titre, classe, contenu, suites);
 };

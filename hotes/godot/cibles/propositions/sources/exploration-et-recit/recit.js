@@ -10,16 +10,15 @@ Object.assign(BUSTES, {
 /* `role` : ce que la colonne dit du héros éclairé ; au dialogue, un clic sur un autre portrait change le testeur */
 const chronique = (lignes, classe = '', style = '') => `<div id="chronique" class="${classe}" style="${style}" data-piece="journal"><div class="tete rubrique ombre">Journal</div>${lignes.map(([g, t]) => `<p class="${g} ombre">${t}</p>`).join('')}</div>`;
 const marque = (x, y, icone) => `<div class="marque" style="left:${x}px;top:${y}px">${medaillon(icone, { taille: 'petit' })}</div>`;
-const LIEU = titre({ icone: 'lit', nom: 'La Diligence', sous: 'Auberge-relais · salle commune', largeur: 392 });
+const LIEU = cartouche({ icone: 'lit', nom: 'La Diligence', sous: 'Auberge-relais · salle commune', taille: 'titre', largeur: 392 });
 const JOUR = ['borne-j', 'Le soir, à La Diligence'];
 const pieces = [];
 
 /* ce que le curseur survole, ou que vise le point de mire : son nom, ce qu'on en sait, son geste et `par` quoi il se
    joue ; `sens` : le côté de sa pointe */
-const apercu = (sens, x, y, nom, texte, icone, geste, par = 'clic') => `<div class="apercu parchemin vers-${sens}" data-piece="apercu" style="left:${x}px;top:${y}px;--pointe:52px">
-    <div class="tete"><span class="n gothique">${nom}</span></div>
+const survol = (sens, x, y, nom, texte, icone, geste, par = 'clic') => apercu({ nom, vers: sens, style: `left:${x}px;top:${y}px;--pointe:52px`, corps: `
     <p>${texte}</p>
-    <div class="geste">${rond(icone, 'menu', { arme: true })}${geste}<em>${par}</em></div></div>`;
+    <div class="geste">${rond(icone, 'menu', { arme: true })}${geste}<em>${par}</em></div>` });
 /* une chose de la scène que l'on vise : sa pastille et son geste */
 const visee = (piece, cx, y, o) => poste(cx, y, { ...o, vise: true }).replace('class="poste', `data-piece="${piece}" class="poste`);
 /* les gestes du groupe, au coin gauche : ceux que la situation ouvre s'empilent au-dessus du retour à la vue du lieu ;
@@ -41,7 +40,7 @@ if (ETAT === 'exploration') {
   sceneAuberge({ survol: 'gustav', trajet: true, avis: true });
   pieces.push(LIEU);
   pieces.push(marque(263, 296, 'porte'), marque(984, 436, 'bulle'), marque(148, 428, 'cle'));
-  pieces.push(apercu('gauche', 1102, 214, 'Gustav Fondleburger', 'Le propriétaire, derrière son comptoir.', 'bulle', 'Parler'));
+  pieces.push(survol('gauche', 1102, 214, 'Gustav Fondleburger', 'Le propriétaire, derrière son comptoir.', 'bulle', 'Parler'));
   pieces.push(visee('avis', 1505, 268, { nom: 'Avis placardé', sous: 'Lire', icone: 'livre' }));
   pieces.push(bandeau(MENE), ...gestesDuGroupe());
   pieces.push(chronique([JOUR, ['vieux', 'Le groupe entre dans la salle commune.'], ['', 'Un avis est placardé près du comptoir.']]), coins());
@@ -54,7 +53,7 @@ if (ETAT === 'exploration-gestes') {
   sceneAuberge({ auSol: [10, 10], croisee: true, colonne: true });
   pieces.push(LIEU);
   pieces.push(marque(263, 296, 'porte'), marque(984, 436, 'bulle'), marque(148, 428, 'cle'), marque(608, 488, 'main'));
-  pieces.push(apercu('droite', 274, 464, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser'));
+  pieces.push(survol('droite', 274, 464, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser'));
   pieces.push(visee('croisée', 1321, 172, { nom: 'Croisée', sous: 'Enjamber la fenêtre', icone: 'porte' }));
   pieces.push(...chromeDesGestes('Le groupe fouille la pièce.'));
 }
@@ -65,7 +64,7 @@ if (ETAT === 'exploration-dessus') {
   const [dx, dy] = lieu(...DAGUE), [cx, cy] = lieu(SALLE.fenetresDeDroite[1], SALLE.mur[1]);
   pieces.push(LIEU, regard('Dessus'));
   pieces.push(sur([SALLE.mur[0], SALLE.porte], 'porte'), sur(SALLE.gens.cocher, 'bulle'), sur(SALLE.coffre, 'cle'), sur(DAGUE, 'main'));
-  pieces.push(apercu('droite', dx - 334, dy - 56, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser'));
+  pieces.push(survol('droite', dx - 334, dy - 56, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser'));
   pieces.push(visee('croisée', cx, cy - 104, { nom: 'Croisée', sous: 'Enjamber la fenêtre', icone: 'porte' }));
   pieces.push(...chromeDesGestes('Le groupe fouille la pièce.'));
 }
@@ -77,7 +76,7 @@ if (ETAT === 'exploration-premiere-personne') {
   const sur = ([x, y], icone) => marque(x, y - 26, icone);
   pieces.push(LIEU, regard('Première personne'));
   pieces.push(sur(lieu(SALLE.mur[0] + .5, SALLE.porte, 1.16), 'porte'), sur(lieu(SALLE.gens.cliente[0] - .15, SALLE.gens.cliente[1], 1), 'bulle'));
-  pieces.push(apercu('droite', MIRE[0] - 360, MIRE[1] - 56, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser', `${touche('E')} ou clic`));
+  pieces.push(survol('droite', MIRE[0] - 360, MIRE[1] - 56, 'Dague', 'Posée au sol. Mira, qui mène le groupe, la prendra.', 'main', 'Ramasser', `${touche('E')} ou clic`));
   pieces.push(`<i id="mire" data-piece="mire"></i>`);
   pieces.push(...chromeDesGestes('Le groupe fouille la pièce.'));
 }
@@ -135,7 +134,7 @@ if (ETAT === 'butin') {
     return `<div class="col">${portrait(h.id, { taille: 'petit' })}<div class="q"><b>${h.nom.split(' ')[0]}</b><span class="chiffres ${plein ? 'plein' : ''}">Enc ${a} / ${m}</span><div class="enc ${plein ? 'plein' : ''}"><i style="width:${100 * a / m}%"></i></div></div></div>`; };
   const libre = '<div class="prise"></div>';
   const ligne = (icone, nom, enc) => `<div class="objet"><div class="ic">${picto(icone, 17, '#3a2a18', 1.6)}</div><b>${nom}</b><span class="chiffres">Enc ${enc}</span></div>${libre.repeat(HEROS.length + 1)}`;
-  pieces.push(titre({ icone: 'route', nom: 'La route d’Altdorf', sous: 'Dans la forêt · la nuit', largeur: 392 }));
+  pieces.push(cartouche({ icone: 'route', nom: 'La route d’Altdorf', sous: 'Dans la forêt · la nuit', taille: 'titre', largeur: 392 }));
   pieces.push(`<div id="butin" class="cadre bois arret" data-piece="butin"><div class="fond parchemin">
     <div class="trouve"><div class="n gothique" data-texte="butin titre">Le corps du voyageur</div><div class="c rubrique">Fouillé par Mira</div>
       <p data-texte="butin récit">Un carreau d’arbalète dans le dos. Ses poches n’ont pas été vidées.</p>
@@ -155,10 +154,9 @@ if (ETAT === 'butin') {
    `src/scenes/diligence/diligence-projet.json`) */
 if (ETAT === 'designation-d-un-heros') {
   sceneRoute();
-  pieces.push(titre({ icone: 'route', nom: 'La route d’Altdorf', sous: 'Dans la forêt · la nuit', largeur: 392 }));
-  pieces.push(`<div class="apercu parchemin vers-droite" data-piece="invite" style="left:472px;top:318px;--pointe:70px">
-    <div class="tete"><span class="n gothique">Le corps du voyageur</span></div>
-    <p data-texte="invite">En retournant le cadavre, vous découvrez avec stupeur qu’il est le sosie de l’un d’entre vous. Lequel ?</p></div>`);
+  pieces.push(cartouche({ icone: 'route', nom: 'La route d’Altdorf', sous: 'Dans la forêt · la nuit', taille: 'titre', largeur: 392 }));
+  pieces.push(apercu({ nom: 'Le corps du voyageur', vers: 'droite', style: 'left:472px;top:318px;--pointe:70px', corps: `
+    <p data-texte="invite">En retournant le cadavre, vous découvrez avec stupeur qu’il est le sosie de l’un d’entre vous. Lequel ?</p>` }));
   pieces.push(bandeauDuJet('Désigner un héros', 'debut', HEROS.map((h) => carte(h.nom, h.car, { portrait: portrait(h.id), armee: h.id === 'aldric' })).join(''), plaque('Désigner', { armee: true })));
   pieces.push(chronique([['borne-j', 'La nuit, sur la route d’Altdorf'], ['', 'Mira retourne le corps du voyageur.']], 'haut', 'bottom:234px'), coins());
 }
@@ -186,7 +184,7 @@ if (ETAT === 'document' || RELU) {
 if (ETAT === 'carnet') {
   sceneAuberge({ sombre: .62 });
   const lu = (titre, source, texte, classe = '') => `<div class="lu ${classe}"><div class="tete"><b class="gothique">${titre}</b><span class="rubrique">${source}</span></div>${texte.map((p) => `<p>${p}</p>`).join('')}</div>`;
-  pieces.push(titre({ icone: 'livre', nom: 'Carnet d’enquête', sous: 'Affaires et indices', largeur: 312 }));
+  pieces.push(cartouche({ icone: 'livre', nom: 'Carnet d’enquête', sous: 'Affaires et indices', taille: 'titre', largeur: 312 }));
   pieces.push(rail('Affaires', [['cle', 'Épinglés<span class="prix">1</span>'], ['oeil', 'Un héritage à Bögenhafen<span class="prix">1</span>', 1]], 'Un indice caché ne s’y lit pas'));
   pieces.push(`<div id="documents" class="cadre bois" data-piece="documents"><div class="fond bois">
     ${['On recherche ! Aventuriers courageux !', 'L’héritage', 'L’affidavit'].map((d) => plaque(`<span>${d}</span>`, { icone: 'lettre', classe: 'gauche' })).join('')}

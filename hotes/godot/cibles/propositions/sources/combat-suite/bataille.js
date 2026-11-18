@@ -24,7 +24,7 @@ const JOUE = ETAT === 'bataille-de-masse-test-de-puissance', POSTER = ETAT === '
 el(S, 'rect', { width: W, height: H, fill: '#080504', opacity: .2 });
 fermer();
 const pieces = [];
-pieces.push(titre({ icone: 'epee', nom: 'Bataille de masse', sous: ISSUE ? 'La bataille est terminée' : 'Round de bataille 1 / 3', largeur: 452 }));
+pieces.push(cartouche({ icone: 'epee', nom: 'Bataille de masse', sous: ISSUE ? 'La bataille est terminée' : 'Round de bataille 1 / 3', taille: 'titre', largeur: 452 }));
 /* `plus` : la Scène offre une place au héros choisi dans le bandeau */
 const scene = (cx, y, { nom, effet, position, heros = [], icone, geste, vise = false, plus = false }) => `<div class="poste scene ${heros.length ? 'occupe' : 'vide'} ${vise ? 'vise' : ''}" style="left:${cx - 115}px;top:${y}px">
   <div class="postes-de-scene">${heros.length ? heros.map((h) => portrait(h)).join('') : medaillon(icone, { taille: 'moyen' })}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>

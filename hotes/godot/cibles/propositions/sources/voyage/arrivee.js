@@ -6,7 +6,7 @@ poser(interieur(D.relais()));
 fermer();
 el(S, 'rect', { width: 560, height: 280, fill: 'url(#haut)', opacity: .55 });
 const pieces = [];
-pieces.push(titre({ icone: 'lit', nom: 'Auberge des Sept Rayons', sous: `Auberge-relais · mur d’enceinte · ${picto('soleil', 13, '#c9b995')} temps sec`, largeur: 452 }));
+pieces.push(cartouche({ icone: 'lit', nom: 'Auberge des Sept Rayons', sous: `Auberge-relais · mur d’enceinte · ${picto('soleil', 13, '#c9b995')} temps sec`, taille: 'titre', largeur: 452 }));
 pieces.push(recit('Arrivée à Auberge des Sept Rayons · Voyage de 5 h.', 'Une auberge-relais liée aux Lignes du Rochet, disposée comme La Diligence. Trois diligences s’y sont arrêtées pour la nuit et les lieux sont bondés ; on y colporte toutes les rumeurs de la route.').replace('id="recit"', 'id="recit" class="lieu"'));
 pieces.push(hote({ id: 'service auberge', x: 520, y: 20, l: 490, icone: 'lit', nom: 'Auberge', pointe: 90,
   corps: `<p>« Trois voitures ce soir ! Il reste de la paille au dortoir, et du ragoût tant qu’il y en a. »</p>

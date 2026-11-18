@@ -63,7 +63,7 @@
       <div class="des">${sceau(t.blessures, 'grand')}<div class="issue"><b>Blessures</b><b>perdues</b></div></div></div></div>`,
   };
 
-  /* une carte de choix : son nom ou le combattant qu'elle nomme, son détail ligne à ligne, sa marque */
+  /* une carte de choix : son nom ou le combattant qu'elle nomme, son détail ligne à ligne (une ligne en liste), sa marque */
   const ligneDeCarte = (l) => (typeof l === 'string' ? echapper(l)
     : 'contre' in l ? `${echapper(l.test)} ≤ ${l.seuil} contre ≤ ${l.contre}`
       : 'seuil' in l ? `${echapper(l.test)} · ≤ ${l.seuil}`
@@ -75,7 +75,7 @@
     const marque = c.marque && modif(c.marque.valeur === undefined ? echapper(c.marque.nom) : `${c.marque.valeur} ${echapper(c.marque.nom)}`);
     /* la marque suit la dernière ligne quand elle y tient, sinon passe dessous */
     const derniere = lignes.length ? lignes.pop() : '';
-    const sous = [...lignes, marque ? (`${derniere}${c.marque.nom}`.length > 24 ? `${derniere}<br>${marque}` : `${derniere} ${marque}`) : derniere].join('<br>');
+    const sous = [...lignes, marque ? (`${derniere}${c.marque.nom}`.length > 24 ? `${derniere} <br>${marque}` : `${derniere} ${marque}`) : derniere].join('<span class="sep"> · </span><br>');
     return carte(echapper(c.nom ?? qui(c.qui).nom), sous, { armee: !!c.choisie, fermee: !!c.refus, classe: c.funeste ? 'funeste' : '', portrait: c.qui ? portrait(qui(c.qui).buste, { camp: qui(c.qui).ennemi ? 'ennemi' : 'heros' }) : '' });
   };
   const cartesDu = (g) => (g.cartes.length === 1 ? carteDe(g.cartes[0]) : `<div class="cartes">${g.cartes.map(carteDe).join('')}</div>`);
@@ -107,7 +107,7 @@
       const annonce = !c.annonce ? '' : 'round' in c.annonce
         ? `<div class="annonce"><div class="dr gothique">Round ${c.annonce.round}</div><div class="sous rubrique">${echapper(c.annonce.sous)}</div></div>`
         : `<div class="annonce"><div class="dr gothique">${echapper(c.annonce.sort)}</div><div class="sous rubrique">${echapper(qui(c.annonce.lanceur).nom)} · Cible : ${echapper(qui(c.annonce.cible).nom)}</div></div>`;
-      const groupes = c.groupes.length === 1 && !c.groupes[0].libelle ? c.groupes[0].cartes.map(carteDe).join('')
+      const groupes = c.groupes.length === 1 && !c.groupes[0].libelle ? cartesDu(c.groupes[0])
         : c.groupes.map((g) => `<div class="groupe"><div class="t rubrique">${echapper(g.libelle)}</div>${cartesDu(g)}</div>`).join('');
       const classe = ['debut', f.autre ? 'destin' : '', c.groupes.length > 1 ? 'deux' : '', f.heros?.role === 'testeur' ? 'effet-critique' : c.groupes[0].cartes.length === 3 && f.heros ? 'trois' : ''].filter(Boolean).join(' ');
       return [classe, `${annonce}${groupes}`];
@@ -166,9 +166,9 @@
     const domaine = o.domaines.find((d) => d.nom === ouvert.domaine);
     const modifiees = ouvert.gauche.concat(ouvert.droite).filter((r) => r.modifiee).length;
     return [fondDeTable(),
-      titre({ icone: 'systeme', nom: echapper(o.titre.nom), sous: echapper(o.titre.sous), largeur: 392 }),
+      cartouche({ icone: 'systeme', nom: echapper(o.titre.nom), sous: echapper(o.titre.sous), taille: 'titre', largeur: 392 }),
       `<div id="preferences" class="cadre bois" data-piece="préférences"><div class="fond bois">${o.son.map(pref).join('')}<div class="trait"></div>${o.jeu.map(pref).join('')}</div>${ruban('Préférences')}${ferrures}</div>`,
-      `<div id="signets" data-piece="signets">${o.domaines.map((d) => `<div class="signet ${d.nom === ouvert.domaine ? `ouvert ${d.nom.length > 12 ? 'serre' : ''}` : ''}"><span class="rubrique">${echapper(d.nom)}</span>${d.modifiees ? '<i class="cire"></i>' : ''}<em class="chiffres">${d.regles}</em></div>`).join('')}</div>`,
+      signets(o.domaines.map((d) => ({ nom: echapper(d.nom), compte: d.regles, marque: !!d.modifiees })), echapper(ouvert.domaine)),
       `<div id="registre" data-piece="registre"><div class="tranche"></div>
         <div class="feuille g parchemin">
           <div class="tete"><span class="dom gothique" data-texte="domaine">${echapper(domaine.nom)}</span><span class="sous rubrique">Règles maison · ${pluriel(domaine.regles, 'règle')}</span></div>
@@ -188,7 +188,7 @@
   const PICTO_DE_LA_NUIT = { froid: 'flocon', repos: 'sommeil' };
   const PICTO_DU_TEMPS = { gel: 'flocon' };
   const bivouac = (b) => [
-    titre({ icone: 'lune', nom: echapper(b.titre), sous: `${b.date.jour} ${echapper(b.date.mois)} · ${echapper(b.moment)} · ${picto(PICTO_DU_TEMPS[b.meteo.temps], 13, '#c9b995')} ${echapper(b.meteo.ciel)}`, largeur: 436 }),
+    cartouche({ icone: 'lune', nom: echapper(b.titre), sous: `${b.date.jour} ${echapper(b.date.mois)} · ${echapper(b.moment)} · ${picto(PICTO_DU_TEMPS[b.meteo.temps], 13, '#c9b995')} ${echapper(b.meteo.ciel)}`, taille: 'titre', largeur: 436 }),
     `<div id="recit" data-piece="recit"><div class="r rubrique ombre">${echapper(b.lieu)}</div><p class="ombre">${echapper(b.recit)}</p></div>`,
     `<div id="camp" class="cadre bois" data-piece="campement"><div class="fond bois">
       <div class="rang-c"><span class="lab rubrique">Abri</span>${medaillon('tente', { taille: 'petit' })}<span class="v">${echapper(b.abri.nom)} <em>· ${echapper(b.abri.detail)}</em></span></div>
@@ -208,8 +208,8 @@
   const GABARITS = {
     /* 6. Fenêtre du bas, posée sur le combat ou, hors combat, seule sur la cour */
     'fenetre-du-bas': { ...COUR, poser: (e) => [SYSTEME, ...(e.combat ? combat(e.combat) : []), fenetre(e.fenetre)] },
-    /* 7. Issue d'un combat : le titre en toile, l'action unique dessous, le système */
-    recit: { ...COUR, poser: (e) => [SYSTEME, `<div id="issue" data-piece="issue"><div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="issue">${echapper(e.titre)}</span></div></div>${e.suite ? `<p class="ombre" data-texte="suite de l'issue">${echapper(e.suite)}</p>` : ''}${plaque(echapper(e.action), { armee: true, taille: 'appel' })}</div>`] },
+    /* 7. Issue d'un combat : la bannière, l'action unique dessous, le système */
+    recit: { ...COUR, poser: (e) => [SYSTEME, issue(echapper(e.titre), { suite: e.suite ? echapper(e.suite) : '', action: echapper(e.action) })] },
     /* 2. Gestion */
     gestion: { feuilles: ['lieux-et-nuit/commun.css', 'accueil-et-systeme/systeme.css', 'accueil-et-systeme/options.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'accueil-et-systeme/systeme.js'], poser: ecranDesOptions },
     /* 4. Lieu et voyage */

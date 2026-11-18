@@ -12,7 +12,7 @@ const PARTS = bourse({ parts: [[bjorn.nom, '10/–', bjorn.bourse], [mira.nom, '
 sceneDeLaHalle({ charge: VENTE ? 3 : 0 });
 
 const pieces = [];
-pieces.push(titre({ icone: 'panier', nom: 'La halle', sous: 'Marché de Kemperbad · printemps', largeur: 372 }));
+pieces.push(cartouche({ icone: 'panier', nom: 'La halle', sous: 'Marché de Kemperbad · printemps', taille: 'titre', largeur: 372 }));
 pieces.push(rail('Services de Kemperbad', [['lit', 'Auberge'], ['panier', 'Marché', 1], ['enclume', 'Forgeron'], ['livre', 'Temple'], ['ancre', 'Port']], 'On passe de l’un à l’autre sans ressortir'));
 pieces.push(`<div id="rumeur" class="parchemin" data-piece="rumeur" style="top:450px"><i class="clou"></i><div class="r">Rumeur au marché</div><p data-texte="rumeur">Vivres, Bois se vendraient le double à Eilhart.</p></div>`);
 

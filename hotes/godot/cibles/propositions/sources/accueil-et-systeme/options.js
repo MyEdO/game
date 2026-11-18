@@ -39,7 +39,7 @@ const volume = (v) => curseur(v, 0, 100, v + ' %', 104);
 
 monter([
   fondDeTable(),
-  titre({ icone: 'systeme', nom: 'Options', sous: 'Préférences et règles maison', largeur: 392 }),
+  cartouche({ icone: 'systeme', nom: 'Options', sous: 'Préférences et règles maison', taille: 'titre', largeur: 392 }),
   `<div id="preferences" class="cadre bois" data-piece="préférences"><div class="fond bois">
      ${pref('Couper le son', ouiNon(false))}
      ${pref('Volume de la musique', volume(70))}
@@ -50,7 +50,7 @@ monter([
      ${pref('Cadence de combat', segments(['Manuel', 'Rapide', 'Auto'], 'Manuel'), 'Chaque jet d’un héros passe par sa modale.')}
      ${pref('Dés fixés', ouiNon(false), 'Un champ pour saisir vous-même la valeur du d100, sur les jets que vous contrôlez.')}
    </div>${ruban('Préférences')}${ferrures}</div>`,
-  `<div id="signets" data-piece="signets">${DOMAINES.map(([n, k]) => `<div class="signet ${n === OUVERT.nom ? `ouvert ${n.length > 12 ? 'serre' : ''}` : ''}"><span class="rubrique">${n}</span>${MODIFIES[n] ? '<i class="cire"></i>' : ''}<em class="chiffres">${k}</em></div>`).join('')}</div>`,
+  signets(DOMAINES.map(([nom, compte]) => ({ nom, compte, marque: !!MODIFIES[nom] })), OUVERT.nom),
   `<div id="registre" class="${ETAT === 'verrou' ? 'verrou' : ''}" data-piece="registre"><div class="tranche"></div>
      <div class="feuille g parchemin">
        <div class="tete"><span class="dom gothique" data-texte="domaine">${OUVERT.nom}</span><span class="sous rubrique">Règles maison · ${OUVERT.n} règle${OUVERT.n > 1 ? 's' : ''}</span></div>
