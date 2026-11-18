@@ -108,7 +108,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     }
   });
 
-  it('dialecte miscast : un État hors du registre est refusé au chargement, par la référence d’État de l’op `condition` (#1473)', () => {
+  it('ops de miscast : un État hors du registre est refusé au chargement, par la référence d’État de l’op `condition` (#1473)', () => {
     expect(validateDataset('miscast.json', MISCAST_TABLES)).toBeNull();
     for (const op of ['condition', 'removeCondition']) {
       const doc = structuredClone(MISCAST_TABLES);
@@ -117,10 +117,10 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     }
   });
 
-  it('dialecte miscast : une op `condition` sans État est refusée au chargement', () => {
+  it('ops de miscast : une op `condition` sans État est refusée au chargement, par son payload canonique', () => {
     const doc = structuredClone(MISCAST_TABLES);
     Reflect.deleteProperty(premiereCondition(doc), 'id');
-    expect(validateDataset('miscast.json', doc)).toContain('`condition` exige son État.');
+    expect(validateDataset('miscast.json', doc)).toMatch(/GameOp « condition » .*id/s);
   });
 
   it('une op inconnue des DEUX registres est NOMMÉE en erreur', () => {

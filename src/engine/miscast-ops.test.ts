@@ -156,9 +156,8 @@ describe('tables migrées — sweep d\'application', () => {
     }
   });
 
-  it('« Tenue indisciplinée » (LDB 46) : escapeStrength (1d10×5) SURVIT à expandOp → GameOp résolu', () => {
-    // Preuve TDD de la propagation `JsonOp.escapeStrength` → `GameOp.escapeStrength` par `expandOp`
-    // (`engine/miscast.ts`) : sans elle, l'Empêtré de cette entrée perd sa Force d'évasion à la
+  it('« Tenue indisciplinée » (LDB 46) : escapeStrength (1d10×5) SURVIT à l’expansion → GameOp résolu', () => {
+    // Propagation de `escapeStrength` de la rangée au `GameOp` par `lierLesOps` (`engine/miscast.ts`) : sans elle, l'Empêtré de cette entrée perd sa Force d'évasion à la
     // résolution (silencieusement, un Test opposé simple au lieu du 1d10×5 RAW).
     let found = false;
     for (let seed = 0; seed < 400 && !found; seed++) {
@@ -244,10 +243,10 @@ describe('tables migrées — sweep d\'application', () => {
   });
 });
 
-// Mitigation des Blessures : `miscast.json` la DÉCLARE par entrée (`ignoreTB`/`ignoreAP`), `expandOp`
+// Mitigation des Blessures : `miscast.json` la DÉCLARE par entrée (`ignoreTB`/`ignoreAP`), `lierLesOps`
 // (`miscast.ts`) la recopie sur le `GameOp` `wounds`, `applyOps` la déduit (`ops.ts`). Trois entrées
 // aux trois régimes du RAW — le câblage saute si l'un des trois étages perd les champs.
-describe('mitigation déclarée des Blessures — donnée → expandOp → applyOps', () => {
+describe('mitigation déclarée des Blessures — donnée → lierLesOps → applyOps', () => {
   function woundsOf(sev: Parameters<typeof rollMiscast>[0], rowId: string) {
     for (let seed = 0; seed < 600; seed++) {
       const r = rollMiscast(sev, makeRNG(seed), 3);

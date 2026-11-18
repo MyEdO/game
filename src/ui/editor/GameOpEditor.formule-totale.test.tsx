@@ -13,11 +13,10 @@ import { FormulaField, GameOpEditor, LIBELLE_DE_FORME, type DialecteDeFormule } 
 import { formulaForShape, shapeOf } from '../../noyau/valeursNeuves';
 import { formulaSummary } from './interne/resumeDOp';
 import type { Formula, GameOp } from '../../engine/ops';
-import type { JsonFormula } from '../../engine/miscast';
-import { admetLePeche, formulaSchema, formulaSinSchema, sinPointsSchema } from '../../data/schemas/grammaire/valeurs';
+import { admetLePeche, formulaSchema, formulaSinSchema, sinPointsSchema, type FormuleAuPeche } from '../../data/schemas/grammaire/valeurs';
 import { gameOpSchema } from '../../data/schemas/grammaire/mecanique';
 import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
-import { noeudDeLEntree, noeudObjet } from '../../data/schemas/validate';
+import { noeudDeLEntree, payloadDeFamille } from '../../data/schemas/validate';
 import { datasetArray } from '../../data/overrides';
 
 beforeAll(() => {
@@ -89,7 +88,7 @@ describe('FormulaField — totalité sur la grammaire (#2099)', () => {
       expect(options.length).toBeGreaterThan(0);
     });
     options.forEach((option, i) => {
-      const brut = echantillon(option) as JsonFormula;
+      const brut = echantillon(option) as FormuleAuPeche;
       it(`${nom} |${i} ${JSON.stringify(brut)} : forme, terme, résumé et éditeur`, () => {
         const forme = shapeOf(brut);
         expect(LIBELLE_DE_FORME[forme]).toBeTruthy();
@@ -115,9 +114,9 @@ describe('FormulaField — totalité sur la grammaire (#2099)', () => {
 });
 
 /** Monte le champ, élit la forme `s` au sélecteur racine, rend la valeur émise. */
-function emise(dialecte: DialecteDeFormule, depart: JsonFormula, s: string): unknown {
+function emise(dialecte: DialecteDeFormule, depart: FormuleAuPeche, s: string): unknown {
   let dernier: unknown = depart;
-  mount(<FormulaField label="Durée" dialecte={dialecte} value={depart} onChange={(f: JsonFormula) => { dernier = f; }} />);
+  mount(<FormulaField label="Durée" dialecte={dialecte} value={depart} onChange={(f: FormuleAuPeche) => { dernier = f; }} />);
   const [racine] = selecteurs();
   act(() => {
     racine.value = s;
@@ -128,7 +127,7 @@ function emise(dialecte: DialecteDeFormule, depart: JsonFormula, s: string): unk
 }
 
 describe('FormulaField — dialecte du Péché (#2099)', () => {
-  const PECHE: JsonFormula = { sum: [{ dice: { n: 1, sides: 10 } }, { sinPoints: true }] };
+  const PECHE: FormuleAuPeche = { sum: [{ dice: { n: 1, sides: 10 } }, { sinPoints: true }] };
 
   it('dialecte général : le Péché n’est offert à aucune position', () => {
     mount(<FormulaField label="Durée" value={{ sum: [{ dice: { n: 1, sides: 10 } }, 0] }} onChange={() => {}} />);
@@ -156,7 +155,7 @@ describe('FormulaField — dialecte du Péché (#2099)', () => {
     ] as const) {
       const formes = Object.keys(LIBELLE_DE_FORME).filter((s) => s !== 'peche' || dialecte !== 'general');
       for (const s of formes) {
-        const v = emise(dialecte, depart as JsonFormula, s);
+        const v = emise(dialecte, depart as FormuleAuPeche, s);
         expect((schema as z.ZodType).safeParse(v).success, `${dialecte} : « ${s} » depuis ${JSON.stringify(depart)} rend ${JSON.stringify(v)}`).toBe(true);
       }
     }
@@ -179,7 +178,7 @@ describe('FormulaField — dialecte du Péché (#2099)', () => {
     return formesOffertes(champ!.querySelector<HTMLSelectElement>(':scope > .fml-row > select.fml-shape')!);
   };
 
-  it('GameOpEditor : le dialecte est celui du CHAMP — Péché sur `value`/`amount` (formulaSinSchema), jamais sur `escapeStrength`', () => {
+  it('GameOpEditor : le dialecte est celui du CHAMP — Péché sur toute formule d’une op de rangée de miscast, jamais sur une op ordinaire', () => {
     const ops = [
       { op: 'condition', id: { id: 'empetre' }, value: 1, escapeStrength: { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } } },
       { op: 'wounds', amount: { sum: [{ dice: { n: 1, sides: 10 } }, { sinPoints: true }] } },
@@ -187,16 +186,17 @@ describe('FormulaField — dialecte du Péché (#2099)', () => {
     mount(<GameOpEditor noeud={opsDeMiscast()} ops={ops} onChange={() => {}} />);
     expect(formesDuChamp('Intensité'), 'Péché absent de `value`').toContain('peche');
     expect(formesDuChamp('Quantité'), 'Péché absent de `amount`').toContain('peche');
-    expect(formesDuChamp('Force'), 'Péché offert sur `escapeStrength`').not.toContain('peche');
+    expect(formesDuChamp('Force'), 'Péché absent de `escapeStrength`').toContain('peche');
     demonter();
     mount(<GameOpEditor ops={ops} onChange={() => {}} />);
     expect(formesDuChamp('Intensité'), 'Péché offert sur une op ordinaire').not.toContain('peche');
+    expect(formesDuChamp('Force'), 'Péché offert sur une op ordinaire').not.toContain('peche');
   });
 
-  /** Nœud d'un champ de l'op de rangée de miscast (liste `ops`, enveloppes `optional` déroulées). */
+  /** Nœud d'un champ de l'op `condition` d'une rangée de miscast (payload de la famille de la liste `ops`, enveloppes `optional` déroulées). */
   const champDOpDeMiscast = (champ: string): z.ZodType => {
     const deroule = (n: unknown): unknown => (defDe(n)?.type === 'optional' ? deroule(enfantsDe(n)[0]?.noeud) : n);
-    return deroule(enfantsDe(noeudObjet(opsDeMiscast())).find((e) => e.cle === champ)?.noeud) as z.ZodType;
+    return deroule(enfantsDe(payloadDeFamille(opsDeMiscast(), 'condition')).find((e) => e.cle === champ)?.noeud) as z.ZodType;
   };
 
   it('GameOpEditor : chaque forme OFFERTE sur `escapeStrength` d’une rangée de miscast rend une valeur que le nœud du champ accepte', () => {

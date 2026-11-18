@@ -7,7 +7,7 @@
  */
 import type { Formula, GameOp } from '../engine/ops';
 import { VIVRES_DE_CALE } from '../engine/seaNavigation';
-import type { JsonFormula } from '../engine/miscast';
+import type { FormuleAuPeche } from '../data/schemas/grammaire/valeurs';
 import { opPsy } from '../engine/psych/opsPsy';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { memoParVersion } from '../data';
@@ -56,25 +56,25 @@ export const FORME_DE_CLE: Readonly<Record<string, FormulaShape>> = {
 };
 
 /** Termes CONSTANTS : leur forme est leur valeur, sans champ à saisir. */
-const TERME_CONSTANT: Partial<Record<FormulaShape, JsonFormula>> = {
+const TERME_CONSTANT: Partial<Record<FormulaShape, FormuleAuPeche>> = {
   rolled: { rolled: true }, indice: { indiceOf: true }, pions: { stacks: 'self' }, ecartAvantage: { engagedAdvantageGap: true },
   blessuresInfligees: { woundsDealt: true }, blessuresMax: { blessuresMax: true }, tailleDuNavire: { tailleDuNavire: true },
   valeurCargaison: { valeurCargaison: true }, dr: { sl: true }, peche: { sinPoints: true },
 };
 
-export const shapeOf = (f: JsonFormula | undefined): FormulaShape => {
+export const shapeOf = (f: FormuleAuPeche | undefined): FormulaShape => {
   if (typeof f === 'number' || f == null) return 'lit';
   const forme = Object.keys(f).map((k) => FORME_DE_CLE[k]).find((s) => s !== undefined);
   if (forme === undefined) throw new Error(`shapeOf : terme de Formula hors grammaire (${JSON.stringify(f)})`);
   return forme;
 };
 
-export const contientLePeche = (f: JsonFormula): boolean =>
+export const contientLePeche = (f: FormuleAuPeche): boolean =>
   typeof f === 'object' && ('sinPoints' in f || ('sum' in f && f.sum.some(contientLePeche)));
 
 /** Formule par défaut d'une forme — utilisée au CHANGEMENT de forme. Préserve le littéral courant
  *  quand on bascule vers « Nombre » ; ne touche JAMAIS une formule dont la forme est déjà la bonne. */
-export function formulaForShape(s: FormulaShape, current: JsonFormula | undefined): JsonFormula {
+export function formulaForShape(s: FormulaShape, current: FormuleAuPeche | undefined): FormuleAuPeche {
   if (current != null && s === shapeOf(current)) return current; // déjà la bonne forme → inchangée (pas de clobber)
   // QUITTER la borne basse rend la formule qu'elle enveloppait — symétrique de l'enveloppement
   // ci-dessous : l'aller-retour Minimum → autre forme ne jette pas la quantité éditée.

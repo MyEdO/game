@@ -960,12 +960,11 @@ function barterRatiosSection(rows: (typeof disponibilite)['barterRatios']): Code
 }
 
 // ── LOT 3 #422 (FINAL) : exemptions AUDIT — Empoignade (LDB 14, fiche de règle
-//    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, DIALECTE compilé — PAS de vrais
-//    `GameOp`, cf. `MiscastRowEntry`/`engine/miscast.ts::JsonRow` — renderer DÉDIÉ ci-dessous, jamais
-//    `passiveSection`). ──
+//    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, ops au terme de Péché non lié,
+//    cf. `MiscastRowEntry` — renderer DÉDIÉ ci-dessous, jamais `passiveSection`). ──
 
-/** Libellé lisible d'un montant du DIALECTE miscast (nombre / dé / terme de Péché / somme —
- *  `JsonFormula`, `engine/miscast.ts`). Le terme de Péché n'est résolu qu'à l'exécution (Points de
+/** Libellé lisible d'un montant au dialecte du Péché (nombre / dé / terme de Péché / somme —
+ *  `FormuleAuPeche`, `grammaire/valeurs.ts`). Le terme de Péché n'est résolu qu'à l'exécution (Points de
  *  Péché du lanceur) : ici, affichage d'AUTEUR (« 1d10 + Points de Péché »), jamais une valeur bakée. */
 function miscastAmountLabel(a: unknown): string {
   if (typeof a === 'number') return String(a);
@@ -977,9 +976,9 @@ function miscastAmountLabel(a: unknown): string {
   return String(a);
 }
 
-/** Une op du DIALECTE miscast (`JsonOp`) → sa ligne Codex — sous-ensemble des `op` réellement présents
- *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`, cf.
- *  `engine/miscast.ts::expandOp`). Chip cross-réf pour l'État ; texte structuré pour le reste. */
+/** Une op de rangée de miscast (`opsAuPecheSchema`) → sa ligne Codex — sous-ensemble des `op` réellement présents
+ *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`).
+ *  Chip cross-réf pour l'État ; texte structuré pour le reste. */
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
     case 'condition': {

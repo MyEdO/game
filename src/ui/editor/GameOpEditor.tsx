@@ -14,7 +14,7 @@ import { ProseField } from '../ProseField';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { tableTotale } from '../../lib/tableTotale';
 import { Formula, GameOp, type PerSL, type ResolveWindow } from '../../engine/ops';
-import type { JsonFormula } from '../../engine/miscast';
+import type { FormuleAuPeche } from '../../data/schemas/grammaire/valeurs';
 import type { DiceSpec } from '../../engine/dice';
 import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
@@ -222,11 +222,17 @@ const varianteDOp = (noeudListe: unknown, op: string): unknown =>
   payloadDeFamille(noeudListe, op) ?? noeudObjet(noeudListe, (n) => accepteLOp(enfantsDe(n).find((e) => e.cle === 'op')?.noeud, op));
 
 /** Une `Formula` sans terme de Péché est une `Formula` du moteur. */
-const estFormuleGenerale = (f: JsonFormula): f is Formula => !contientLePeche(f);
+const estFormuleGenerale = (f: FormuleAuPeche): f is Formula => !contientLePeche(f);
+
+/** Un terme de la somme de tête de `formulaSinSchema` : une `Formula` du moteur ou le terme de Péché, jamais une somme au Péché. */
+function termeDeSomme(t: FormuleAuPeche): Extract<FormuleAuPeche, { sum: unknown }>['sum'][number] {
+  if (estFormuleGenerale(t) || 'sinPoints' in t) return t;
+  throw new Error(`FormulaField : somme au Péché émise comme terme de somme (${JSON.stringify(t)})`);
+}
 
 
 /** CharKey portée par une Formula de carac. (Bonus/Valeur) — défaut F pour le sélecteur. */
-const charOfFormula = (f: JsonFormula | undefined): CharKey =>
+const charOfFormula = (f: FormuleAuPeche | undefined): CharKey =>
   f && typeof f === 'object' ? ('bonusOf' in f ? f.bonusOf : 'charOf' in f ? f.charOf : 'force') : 'force';
 
 /** Saisie du DÉ DE TIRAGE d'une table (`deDeTirageSchema`) : son nombre de dés et ses faces, entiers de 1. */
@@ -245,11 +251,11 @@ export function DeDeTirageField({ value, onChange }: { value: DiceSpec; onChange
  *  Le terme de Péché n'est offert que dans le dialecte qui l'admet : celui du nœud de SON `champ` dans
  *  la variante d'op (`NoeudDOpContext`), ou le `dialecte` d'une position de formule composée. Sans
  *  l'un ni l'autre, le champ est une `Formula` du moteur, et son `onChange` n'en reçoit jamais d'autre. */
-type FormulaFieldProps = { label: string; value: JsonFormula | undefined; min?: number } & (
+type FormulaFieldProps = { label: string; value: FormuleAuPeche | undefined; min?: number } & (
   | { champ?: undefined; dialecte?: undefined; onChange: (f: Formula) => void }
-  | { champ: string; dialecte?: undefined; onChange: (f: JsonFormula) => void }
+  | { champ: string; dialecte?: undefined; onChange: (f: FormuleAuPeche) => void }
   | { champ?: undefined; dialecte: DialecteSansPeche; onChange: (f: Formula) => void }
-  | { champ?: undefined; dialecte: DialecteDeFormule; onChange: (f: JsonFormula) => void }
+  | { champ?: undefined; dialecte: DialecteDeFormule; onChange: (f: FormuleAuPeche) => void }
 );
 
 export function FormulaField(props: FormulaFieldProps) {
@@ -258,7 +264,7 @@ export function FormulaField(props: FormulaFieldProps) {
   const dialecte: DialecteDeFormule = props.dialecte
     ?? (props.champ !== undefined ? dialecteDuNoeud(noeudDuChamp(noeudDOp, props.champ)) : 'general');
   const onChange = (f: Formula) => props.onChange(f);
-  const emet = (f: JsonFormula): void => {
+  const emet = (f: FormuleAuPeche): void => {
     if (estFormuleGenerale(f)) props.onChange(f);
     else if (props.champ !== undefined) props.onChange(f);
     else if (props.dialecte === 'peche' || props.dialecte === 'termeDePeche') props.onChange(f);
@@ -319,9 +325,9 @@ export function FormulaField(props: FormulaFieldProps) {
             facteurs sont édités par le MÊME `FormulaField` (récursif) — aucun des deux n'est un littéral forcé. */}
         {shape === 'times' && typeof value === 'object' && value != null && 'times' in value && (
           <span className="fml-dice">
-            <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.times.of} onChange={(of: JsonFormula) => emet({ times: { of, factor: value.times.factor } })} />
+            <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.times.of} onChange={(of: Formula) => onChange({ times: { of, factor: value.times.factor } })} />
             ×
-            <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.times.factor} onChange={(factor: JsonFormula) => emet({ times: { of: value.times.of, factor } })} />
+            <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.times.factor} onChange={(factor: Formula) => onChange({ times: { of: value.times.of, factor } })} />
           </span>
         )}
         {/* `minimum` = BORNE BASSE de la formule enveloppée (AA 07 l.113) : `of` s'édite par le MÊME
@@ -356,7 +362,7 @@ export function FormulaField(props: FormulaFieldProps) {
               <span key={i} className="fml-dice">
                 {i > 0 && '+'}
                 <FormulaField label="" dialecte={dialecteDesTermes(dialecte)} value={terme}
-                  onChange={(t: JsonFormula) => emet({ sum: value.sum.map((x, j) => (j === i ? t : x)) })} />
+                  onChange={(t: FormuleAuPeche) => emet({ sum: value.sum.map((x, j) => (j === i ? termeDeSomme(t) : x)) })} />
                 <button type="button" className="btn small danger" title="retirer ce terme" aria-label="retirer ce terme"
                   onClick={() => emet({ sum: value.sum.filter((_, j) => j !== i) })}>−</button>
               </span>
@@ -429,7 +435,7 @@ function ListeDIdsDOp({ champ, ...props }: { champ: string; label: string; value
  *  donc la borne basse d'une entrée (`{minimum, of}` — AA 07 l.113) s'y édite comme toute autre forme.
  *  ABSENTE = la durée du CONTEXTE (`durationFromCtx`). SOURCE UNIQUE des ops à durée de Rounds SEULE
  *  (`moveScale`, `maxWeaponHands`) ; `condition` et `charMod` portent TROIS échelles (`DureesPropresField`). */
-function DureeRoundsField({ value, onChange }: { value: JsonFormula | undefined; onChange: (f: JsonFormula | undefined) => void }) {
+function DureeRoundsField({ value, onChange }: { value: FormuleAuPeche | undefined; onChange: (f: FormuleAuPeche | undefined) => void }) {
   return (
     <>
       <label className="dr"><input type="checkbox" checked={value != null}
@@ -456,7 +462,7 @@ function PerSLField({ libelle, value, onChange }: { libelle: string; value: PerS
   );
 }
 
-type DureesPropres = { durationRounds?: JsonFormula; durationMinutes?: JsonFormula; durationHours?: JsonFormula };
+type DureesPropres = { durationRounds?: FormuleAuPeche; durationMinutes?: FormuleAuPeche; durationHours?: FormuleAuPeche };
 
 /** Durée PROPRE à TROIS échelles EXCLUSIVES entre elles (JSDoc des ops `condition` et `charMod`) : cocher
  *  une échelle efface les deux autres. ABSENTE = la durée du CONTEXTE (`durationFromCtx`). SOURCE UNIQUE
