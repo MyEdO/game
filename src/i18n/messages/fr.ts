@@ -889,6 +889,8 @@ export const fr = {
   'ecran.compendium.categories': 'Catégories',
   'ecran.compendium.creer': 'Nouvelle entrée',
   'ecran.compendium.de': 'Dé de la table',
+  'ecran.compendium.de.n': 'Nombre de dés',
+  'ecran.compendium.de.sides': 'Faces',
   'ecran.compendium.description': 'Description',
   'ecran.compendium.enregistrer': 'Enregistrer',
   'ecran.compendium.familles': 'Familles',

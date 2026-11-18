@@ -3,7 +3,10 @@
   "type": "river-navigation",
   "label": "Navigation fluviale",
   "windForces": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "id": "calme",
@@ -63,7 +66,10 @@
     ]
   },
   "windDirections": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "id": "arriere",

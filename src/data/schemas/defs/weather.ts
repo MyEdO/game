@@ -3,6 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
 import { charKeySchema, difficultySchema, ecartsDuDeDeLaTable, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { formatDice, type DiceSpec } from '../../../engine/dice';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'weather.json';
@@ -108,14 +109,14 @@ const doc = document(
           });
         }
 
-        const saisons = (v as { seasons: { id: string; die: string; entries: { min: number; max: number; weather: string }[] }[] }).seasons;
+        const saisons = (v as { seasons: { id: string; die: DiceSpec; entries: { min: number; max: number; weather: string }[] }[] }).seasons;
         for (const [i, s] of saisons.entries()) {
           const ecarts = ecartsDuDeDeLaTable(s, s.entries, (r) => `« ${r.weather} » (${r.min}-${r.max})`);
           if (ecarts.length) {
             ctx.addIssue({
               code: 'custom',
               path: ['seasons', i, 'entries'],
-              message: `weather.json › saison « ${s.id} » : le ${s.die} n'est pas couvert EXACTEMENT une fois — ${ecarts.join(' ; ')}. Un trou fait tomber le tirage sur la DERNIÈRE rangée (repli de \`findTableEntry\`), un chevauchement rend la seconde rangée inatteignable : dans les deux cas la météo tirée ment sans un mot.`,
+              message: `weather.json › saison « ${s.id} » : le ${formatDice(s.die)} n'est pas couvert EXACTEMENT une fois — ${ecarts.join(' ; ')}. Un trou fait tomber le tirage sur la DERNIÈRE rangée (repli de \`findTableEntry\`), un chevauchement rend la seconde rangée inatteignable : dans les deux cas la météo tirée ment sans un mot.`,
             });
           }
         }

@@ -35,7 +35,7 @@ describe('SeaVoyageBody — événement de bord raconté en carte-parchemin', ()
   });
 
   it('le sceau dit le dé de la table des Événements de bord', () => {
-    sousLeDe('seaBoardEvents', 'd10', () => {
+    sousLeDe('seaBoardEvents', { n: 1, sides: 10 }, () => {
       const html = renderToStaticMarkup(<SeaVoyageBody day={day([{ title: 'Calme plat', text: 'Les vents vous abandonnent.', roll: 7 }])} />);
       expect(html).toContain('<span class="parchment-seal-label">1d10</span>');
     });

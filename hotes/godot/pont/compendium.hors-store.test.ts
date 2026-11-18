@@ -79,6 +79,19 @@ describe('compendium', () => {
     expect(encore.donnees.avant).toBe(hash32(readFileSync('src/data/talents.json', 'utf8')));
   });
 
+  it('le dé de la table s’écrit par deux saisies de nombre entier de 1, enregistré avec l’entrée ; zéro dé refusé (#4056)', () => {
+    const { appel } = table();
+    const [rangee] = datasetArray('drunkenness');
+    const atelier = zonesDe(appel('compendium', boutonDe(zonesDe(appel('compendium', { ouvrir: true, categorie: 'drunkenness', id: rangee.id })), 'modifier').jeu));
+    const de = atelier['compendium.atelier'].find((e): e is Formulaire => e.type === 'formulaire' && e.id === 'enTete')!;
+    expect(de.champs.map((c) => [c.type, c.nom, 'min' in c ? c.min : null, 'pas' in c ? c.pas : null, 'valeur' in c ? c.valeur : null])).toEqual([['saisieNombre', 'n', 1, 1, 1], ['saisieNombre', 'sides', 1, 1, 10]]);
+    expect(erreurDe(appel('compendium', { type: 'enTete', args: [0, 10] })).categorie).toBe('validation');
+    expect(erreurDe(appel('compendium', { type: 'enTete', args: ['2d10'] })).categorie).toBe('validation');
+    const ecrit = zonesDe(appel('compendium', { type: 'enTete', args: [2, 10] }));
+    const r = appel('compendium', boutonDe(ecrit, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
+    expect(JSON.parse(r.donnees.texte).die).toEqual({ n: 2, sides: 10 });
+  });
+
   it('supprimer une entrée désignée est refusé en règle, sa raison dite', () => {
     const { appel } = table();
     appel('compendium', { ouvrir: true, categorie: 'talents', id: TALENT });

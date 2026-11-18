@@ -1003,7 +1003,7 @@ export type GameOp =
    *  LDB 47 l.13-17 / EDOC 13 l.230+270-276 : « pour chaque +2 DR […] vous POUVEZ à la fois prolonger
    *  la durée et refaire un jet sur le Tableau » — déclinable ; la durée se prolonge sur TOUS les pas
    *  alloués quel que soit le choix). Généralise tout « lancez 1dN [+ modif], consultez le tableau ». */
-  | { op: 'rollTable'; die: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; entries: { min: number; max: number; ops: GameOp[] }[] }
+  | { op: 'rollTable'; die: DiceSpec; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; entries: { min: number; max: number; ops: GameOp[] }[] }
   | { op: 'rollTable'; die?: never; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
   /** Tirage d'une MUTATION sur une table de Corruption (`mutationTables.json`, par id `table`) —
    *  réutilise `rollMutation()` + `attachMutation()` (`corruption.ts`/`mutations.ts`). DURÉE identique à

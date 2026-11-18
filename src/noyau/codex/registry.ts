@@ -1142,7 +1142,7 @@ export function optionBody(o: { label: string; desc: string }): string {
 /** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette, au dé que porte `porteurDuDe`. */
 function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires | typeof mutationNature)[number], porteurDuDe: PorteurDeDe, category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
-    sub: tr('codex.fiche.plages', { length: t.entries.length, die: porteurDuDe.die }),
+    sub: tr('codex.fiche.plages', { length: t.entries.length, die: formatDice(porteurDuDe.die) }),
     sections: sections({
       title: tr('codex.fiche.tirages'), layout: 'list',
       rows: t.entries.map((r) => {
@@ -1205,8 +1205,8 @@ const CODEX_SPECS = {
           ),
         })),
         ...d.tables.map((t) => depuisEnveloppe(t, {
-          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
-          sections: sections({ title: tr('codex.fiche.tirage', { die: t.die }), layout: 'list', rows: arcaneTableRows(t) }),
+          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: formatDice(t.die) }),
+          sections: sections({ title: tr('codex.fiche.tirage', { die: formatDice(t.die) }), layout: 'list', rows: arcaneTableRows(t) }),
         })),
       ];
     },
@@ -1646,7 +1646,7 @@ const CODEX_SPECS = {
   mutationTables: {
     label: 'codex.fiche.tablesDeCorruption', group: 'effets',
     build: () => mutationTables.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+      sub: tr('codex.fiche.plages', { length: t.entries.length, die: formatDice(t.die) }),
       // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
       sections: sections({
         title: tr('codex.fiche.tirageMutation', { die: formatDice(deDeLaTableTiree(t)) }), layout: 'list',
@@ -1662,8 +1662,8 @@ const CODEX_SPECS = {
     // Tables `[min,max] → GameOp[]` référencées par l'op `rollTable` (Allure démoniaque : Tableau des
     // aspects démoniaques par Domaine du Chaos). Chaque rangée = fourchette + ops (chips codex-liées).
     build: () => effectTables.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
-      sections: sections({ title: tr('codex.fiche.tirageEffet', { die: t.die }), layout: 'list', rows: tableRows(t) }),
+      sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: formatDice(t.die) }),
+      sections: sections({ title: tr('codex.fiche.tirageEffet', { die: formatDice(t.die) }), layout: 'list', rows: tableRows(t) }),
     })),
   },
   maneuvers: {
@@ -1859,7 +1859,7 @@ const CODEX_SPECS = {
   },
   weather: {
     label: 'codex.fiche.meteoDeVoyage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: s.die }) })),
+    build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: formatDice(s.die) }) })),
   },
   weatherConditions: {
     label: 'codex.fiche.conditionsMeteo', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',

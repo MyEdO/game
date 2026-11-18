@@ -64,7 +64,7 @@ import { ProseField } from '../../ProseField';
 import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../../SourceRefField';
 import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField';
-import { type DiceSpec, formatDice, parseDice, totalDuDe } from '../../../engine/dice';
+import { type DiceSpec, formatDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema, type RaceKey } from '../../../data/schemas/grammaire/valeurs';
@@ -72,7 +72,7 @@ import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../
 import { armesDEntite } from '../../../noyau/equipementDessine';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
 import { ctxDeCatalogue } from '../EffectList';
-import { GameOpEditor, FormulaField } from '../GameOpEditor';
+import { GameOpEditor, FormulaField, DeDeTirageField } from '../GameOpEditor';
 import type { GameOp } from '../../../engine/ops';
 import type { ConsumableDuration } from '../../../engine/consumables';
 import { JsonField } from '../JsonField';
@@ -118,7 +118,7 @@ import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
-import { deDeTirageSchema, specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
+import { specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../../../data/refFormatLivre';
 import type { SecondaryRef, SourceRef, Variant } from '../../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/policy';
@@ -436,7 +436,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isWeather = categoryKey === 'weather';
   // Table d'effets : ses `entries` (plages de son dé → opérations) ont leur éditeur dédié (#1667).
   const isEffectTable = categoryKey === 'effectTables';
-  const deDeLEntree = typeof entry.die === 'string' ? parseDice(entry.die) : null;
+  const deDeLEntree = entry.die as DiceSpec | undefined;
   // Arme DÉRIVÉE (WeaponField) : portée par une Mutation (Tentacule…) OU une Possession (prothèse-arme).
   const hasDerivedWeapon = categoryKey === 'mutations' || categoryKey === 'trappings';
   const hasConsumable = categoryKey === 'trappings';
@@ -1580,21 +1580,8 @@ function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefin
  *  `BY_ID.get(range.mutation)`). */
 interface MutationRange { min: number; max: number; mutation: string; }
 
-/** DOMAINE d'une plage tirée au dé de sa table (`die`) : son nom et ses bornes de saisie — aucun tant
- *  que la chaîne en cours d'édition ne se lit pas (le schéma la refuse à l'enregistrement). */
-/** Saisie du DÉ DE TIRAGE d'une table (`deDeTirageSchema`) : une expression illisible n'est pas retenue. */
-function DeDeTirageField({ value, onChange }: { value: string; onChange: (die: string) => void }) {
-  return (
-    <label className="dr">Dé
-      <SaisieEnBrouillon
-        ariaLabel="Dé de tirage" placeholder="ex. d10, 2d10" value={value} afficher={(d) => d}
-        relire={(texte, avant) => (deDeTirageSchema.safeParse(texte.trim()).success ? texte.trim() : avant)}
-        onChange={onChange} />
-    </label>
-  );
-}
-
-function domaineDuDe(spec: DiceSpec | null): PlageDomaine {
+/** DOMAINE d'une plage tirée au dé de sa table (`die`) : son nom et ses bornes de saisie — aucun quand l'entrée ne porte pas de dé. */
+function domaineDuDe(spec: DiceSpec | undefined): PlageDomaine {
   return spec ? { nom: formatDice(spec), min: totalDuDe(spec, spec.n), max: totalDuDe(spec, spec.n * spec.sides) } : {};
 }
 

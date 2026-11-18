@@ -3,6 +3,7 @@ import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, ecartsDeCouverture, ecartsDuDeDeLaTable, enumNomme, plageSchema } from '../grammaire/valeurs';
+import { formatDice, type DiceSpec } from '../../../engine/dice';
 import { idDe, ref } from '../grammaire/ref';
 
 export const file = 'carrieres-aleatoires.json';
@@ -38,9 +39,9 @@ const LIBELLES_DE_KIND = { colonne: 'Colonne', portion: 'Portion', variante: 'Va
 
 /** Un document du tableau tel que le lit l'affinage du fichier : sa charge, bornée par sa sorte
  *  (`espace.chargeParDiscriminant`), y est encore celle de la donnée, que `refusDeCharge` nomme. */
-type Document = { id: string; die?: string; kind: keyof typeof LIBELLES_DE_KIND; colonne?: string; carriere?: string; entries: z.output<typeof rangee>[] };
+type Document = { id: string; die?: DiceSpec; kind: keyof typeof LIBELLES_DE_KIND; colonne?: string; carriere?: string; entries: z.output<typeof rangee>[] };
 /** Un document qui porte le dé de son tirage : une colonne, une variante (`chargeParDiscriminant`). */
-type DocumentADe = Document & { die: string };
+type DocumentADe = Document & { die: DiceSpec };
 
 const nomDeRangee = (r: z.output<typeof rangee>) => `la rangée ${r.min}-${r.max} (${r.id})`;
 
@@ -92,7 +93,7 @@ const doc = document(
           const chevauchantes = base.entries.filter((r) => (r.min < min && r.max >= min) || (r.min <= max && r.max > max));
           for (const r of chevauchantes) refus(i, 'entries', `${nomDeRangee(r)} de la colonne « ${base.id} » chevauche une borne de l'étendue ${min}-${max} de la portion`);
           const effective = ecartsDuDeDeLaTable(base, tableDeCarrieres(base.entries, p.entries), nomDeRangee);
-          if (effective.length) refus(i, 'entries', `la table de « ${base.id} » avec la portion ne couvre pas le ${base.die} d'un seul tenant — ${effective.join(' ; ')}`);
+          if (effective.length) refus(i, 'entries', `la table de « ${base.id} » avec la portion ne couvre pas le ${formatDice(base.die)} d'un seul tenant — ${effective.join(' ; ')}`);
         }
         /** AA 02 l.115-128 */
         const variantes = new Map<string, string>();

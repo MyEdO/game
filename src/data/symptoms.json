@@ -555,7 +555,10 @@
             "ops": [
               {
                 "op": "rollTable",
-                "die": "d10",
+                "die": {
+                  "n": 1,
+                  "sides": 10
+                },
                 "addNegativeSL": true,
                 "entries": [
                   {

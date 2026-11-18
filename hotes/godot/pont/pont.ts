@@ -1950,7 +1950,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         let geste;
         if ('type' in e) {
           geste = gesteDuCompendium(z, s, e);
-          valider(geste, 'compendium : un formulaire des zones compendium.*, { type: recherche | identifier | enTete, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
+          valider(geste, 'compendium : un formulaire des zones compendium.*, { type: recherche | identifier, args: [texte] }, { type: enTete, args: [nombre, faces] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
         } else if (estLIssueDUneTransaction(e.compendium)) {
           valider(transactionDemandee(s), 'compendium : aucun enregistrement ni suppression en cours');
           if (!e.compendium.reussi) reprise?.();

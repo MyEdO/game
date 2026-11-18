@@ -19,7 +19,7 @@ const SOURCE = { book: 'livre-de-base', page: 218, note: 'Tableau de la Colère 
 
 /** Un document-table minimal portant UNE rangée dont les `ops` sont celles qu'on éprouve. */
 const table = (ops: unknown[]) => ([{
-  id: 'miscast-colere', type: 'miscast', label: 'Colère des dieux', die: 'd100', source: SOURCE,
+  id: 'miscast-colere', type: 'miscast', label: 'Colère des dieux', die: { n: 1, sides: 100 }, source: SOURCE,
   entries: [{ id: 'colere-eprouvee', min: 1, max: 5, label: 'Éprouvée', ops, source: SOURCE }],
 }]);
 

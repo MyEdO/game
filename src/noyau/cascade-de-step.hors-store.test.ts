@@ -160,7 +160,7 @@ describe('INVARIANCE — une table rend le même dé après la séparation tirag
   beforeEach(() => {
     avecLesTables({ tablesTirables: { [T]: {
       label: 'Table d’invariance',
-      die: deDeLaTableTiree({ die: 'd100' }),
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       // La table COUVRE au-delà de 100 : les déclarations à `mod` positif doivent RESTER résolubles,
       // sinon la mesure d'invariance testerait le fail-fast de plage au lieu du dé (patron
       // `miscast-colere`, dont les Points de Péché poussent le dé effectif au-dessus de 100).
@@ -168,7 +168,7 @@ describe('INVARIANCE — une table rend le même dé après la séparation tirag
       lines: (die) => [`ligne ${die}`],
     }, [T2D10]: {
       label: 'Table d’invariance à 2d10',
-      die: deDeLaTableTiree({ die: '2d10' }),
+      die: deDeLaTableTiree({ die: { n: 2, sides: 10 } }),
       rows: [{ min: 1, max: 12, id: 'a' }, { min: 13, max: 30, id: 'b' }],
       lines: (die) => [`ligne ${die}`],
     } } });

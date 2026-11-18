@@ -134,9 +134,9 @@ describe('atelier', () => {
   it('le dé d’en-tête s’écrit sur une table qui en porte un, vide s’il est le dé imprimé ; refusé ailleurs', () => {
     const rangee = categoryByKey('drunkenness')!.items[0].id;
     const s = jouer(ouvert('drunkenness', rangee), { geste: 'modifier' });
-    expect(compendium(s, { geste: 'enTete', valeur: '2d10' }).atelier!.enTete).toEqual([{ ancetre: '', champ: 'die', valeur: '2d10' }]);
-    expect(compendium(compendium(s, { geste: 'enTete', valeur: '2d10' }), { geste: 'enTete', valeur: deDeLaTable('drunkenness')! }).atelier!.enTete).toEqual([]);
-    expect(jouer(ouvert('talents', TALENT_CITE), { geste: 'modifier' }, { geste: 'enTete', valeur: 'd10' }).refus).toBe('Cette table ne porte pas de dé d’en-tête.');
+    expect(compendium(s, { geste: 'enTete', valeur: { n: 2, sides: 10 } }).atelier!.enTete).toEqual([{ ancetre: '', champ: 'die', valeur: { n: 2, sides: 10 } }]);
+    expect(compendium(compendium(s, { geste: 'enTete', valeur: { n: 2, sides: 10 } }), { geste: 'enTete', valeur: deDeLaTable('drunkenness')! }).atelier!.enTete).toEqual([]);
+    expect(jouer(ouvert('talents', TALENT_CITE), { geste: 'modifier' }, { geste: 'enTete', valeur: { n: 1, sides: 10 } }).refus).toBe('Cette table ne porte pas de dé d’en-tête.');
   });
 
   it('enregistrer décrit la transaction, refusée tant que l’entrée est invalide ; son issue ferme l’atelier sur l’entrée', () => {

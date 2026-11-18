@@ -190,7 +190,7 @@ const FIXTURE: FixtureDeTables = {
   tablesTirables: {
     [TABLE]: {
       label: fixtureText('Table de parité'),
-      die: deDeLaTableTiree({ die: 'd100' }),
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
       lines: () => ['ligne de parité'],
     },

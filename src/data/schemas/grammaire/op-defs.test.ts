@@ -166,9 +166,9 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
 
   it('`rollTable` : table EXCLUSIVE — `entries` OU `tableId`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
     const entries = [{ min: 1, max: 10, ops: [{ op: 'kill' }] }];
-    expect(gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', entries }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'rollTable', die: { n: 1, sides: 10 }, entries }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'rollTable', tableId: 'mendier-ennuis' }).success).toBe(true);
-    for (const table of [{ die: 'd10', entries, tableId: 'mendier-ennuis' }, {}]) {
+    for (const table of [{ die: { n: 1, sides: 10 }, entries, tableId: 'mendier-ennuis' }, {}]) {
       const res = gameOpSchema.safeParse({ op: 'rollTable', ...table });
       expect(res.success).toBe(false);
       expect(res.error!.issues.map((i) => i.code)).toEqual(['invalid_union']);
@@ -179,14 +179,14 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       ['tableId', 'GameOp « rollTable » : « table-fantome » est absent du catalogue des tables (tables.json).'],
     ]);
     // Les ops de rangée sont PARSÉES : une op fantôme sous `entries` est refusée à son chemin.
-    const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
+    const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
     expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['entries.0.ops.0.disease']);
   });
 
   // VDM 12 l.920 ; #4095 : sous `tableId`, le dé est celui de la table.
   it('`rollTable` à `tableId` ne porte pas de `die`, au type comme au schéma', () => {
     // @ts-expect-error -- `die?: never` sur la variante `tableId`.
-    const op: GameOp = { op: 'rollTable', die: 'd10', tableId: 'vdm-maladie-coups-de-poing-maudits' };
+    const op: GameOp = { op: 'rollTable', die: { n: 1, sides: 10 }, tableId: 'vdm-maladie-coups-de-poing-maudits' };
     const res = gameOpSchema.safeParse(op);
     expect(res.success).toBe(false);
     expect(JSON.stringify(res.error!.issues)).toMatch(/die/);
