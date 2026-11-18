@@ -6,6 +6,8 @@
  * le `Chrome/<version>` d'`EPINGLE` sous Linux x86-64, et nomme sinon ce qu'il a lu, ce qu'il attend et la commande
  * d'installation. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte. `coteACote` pose la maquette
  * déclarée, ramenée à la taille de la capture, au-dessus de la capture et de leur fondu, ou dit pourquoi il ne le peut.
+ * La vue de base du projet est la vue de référence ramenée à 720 de haut : l'interface s'y dessine comme sur sa maquette
+ * à toute fenêtre, plus large en ratio que la maquette ou non.
  */
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -14,6 +16,7 @@ import { dirname, join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs';
+import VUES_RECETTE from '../../scripts/recette/vues-recette.json';
 import { coteACote, deposerLesPlanches, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur } from './planches.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
@@ -104,5 +107,15 @@ describe('coteACote', () => {
     const declarees: Record<string, { chemin: string; sha256: string }> = JSON.parse(readFileSync(MAQUETTES, 'utf8'));
     const lues = Object.fromEntries(Object.entries(declarees).map(([nom, { chemin }]) => [nom, createHash('sha256').update(readFileSync(resolve(dirname(MAQUETTES), chemin))).digest('hex')]));
     expect(lues).toEqual(Object.fromEntries(Object.entries(declarees).map(([nom, { sha256 }]) => [nom, sha256])));
+  });
+});
+
+describe('la vue de base du projet', () => {
+  it('est la vue de référence ramenée à 720 de haut, sa hauteur bornant encore l’échelle à la vue de référence', () => {
+    const projet = readFileSync(new URL('./projet/project.godot', import.meta.url), 'utf8');
+    const lue = (cle: string) => Number(new RegExp(`^window/size/${cle}=(\\d+)$`, 'm').exec(projet)?.[1]);
+    const hauteur = 720;
+    const reference = VUES_RECETTE.find((v) => v.nom === 'bureau')!;
+    expect({ largeur: lue('viewport_width'), hauteur: lue('viewport_height') }).toEqual({ largeur: Math.floor((reference.largeur * hauteur) / reference.hauteur), hauteur });
   });
 });

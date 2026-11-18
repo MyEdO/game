@@ -82,7 +82,7 @@ const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord 
 const ECART_DE_BULLE := 12.0
 ## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
 const ECART_DU_MEUBLE := 8.0
-## La largeur la plus grande d'un bandeau de jet, en unités de la vue de 1280 × 720.
+## La largeur la plus grande d'un bandeau de jet, en pixels.
 const LARGEUR_DU_BANDEAU := 1091.0
 ## La largeur la plus étroite de la chronique posée sur la scène en combat, sa pastille comprise, en pixels.
 const LARGEUR_DE_LA_CHRONIQUE := 310.0
