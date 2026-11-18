@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { OPTIONAL_RULES, rule, ruleDef, resetRule, type OptionalRule } from './policy';
 import { books } from '../data';
-import { ecartsDeLaRegle } from '../data/schemas/defs/reglesOptionnelles';
+import { ecartsDeLaRegle, schema } from '../data/schemas/defs/reglesOptionnelles';
 
 /**
  * Le registre des RÈGLES OPTIONNELLES est une DONNÉE (V9 #1318) : `src/engine/policy.ts` n'en garde
@@ -88,7 +88,10 @@ describe('registre des règles optionnelles — LU de src/data/reglesOptionnelle
     expect(ecartsDeLaRegle({ kind: 'mode', options: ['a', 'b'], default: 'a', libelles: { a: 'A', b: 'B' } })).toEqual([]);
     expect(ecartsDeLaRegle({ kind: 'mode', options: ['a', 'b'], default: 'a', libelles: { c: 'C' } })).toEqual(['libelles : « c » n\'est pas un choix de la règle']);
     expect(ecartsDeLaRegle({ kind: 'param', min: 0, max: 100, default: 30, modificateur: 'malus' })).toEqual([]);
-    expect(ecartsDeLaRegle({ kind: 'flag', default: true, modificateur: 'bonus' })).toEqual(['modificateur : seul un nombre (kind « param ») se lit signé']);
+    const drapeau = { id: 'sonde', type: 'reglesOptionnelles', label: 'Sonde', ref: 'LDB 12', group: 'Tests', source: { book: 'livre-de-base', page: 150 }, kind: 'flag', default: true };
+    expect(schema.safeParse([drapeau]).error?.issues).toBeUndefined();
+    const refus = schema.safeParse([{ ...drapeau, modificateur: 'bonus' }]).error?.issues.map((i) => i.message) ?? [];
+    expect(refus, 'un `modificateur` hors d’un `param`').toEqual([expect.stringMatching(/« modificateur » n’appartient qu’au\(x\) cas kind « param »/)]);
   });
 
   it('FORME : un `param` borne son défaut (min ≤ défaut ≤ max), un `flag` vaut un booléen', () => {

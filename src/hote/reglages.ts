@@ -16,8 +16,8 @@ import {
   ruleOverrides,
   type Jeu as Partie,
   type Difficulty,
-  type FormeDeControle,
   type OptionalRule,
+  type Preference,
   type PrefValue,
   type RuleValue,
 } from '../noyau/index';
@@ -59,9 +59,11 @@ export interface ZonesDesReglages {
  * (`REGLES_PAR_PAGE` sur chacune de ses deux pages), dans l'ordre du registre.
  */
 export interface FeuilletDesReglages {
+  /** `entite`. */
   type: 'entite';
   /** `feuillet/<domaine>/<n>`, `n` compté de 1. */
   id: string;
+  /** `neutre`. */
   ton: Ton;
   /** le domaine. */
   nom: string;
@@ -81,7 +83,8 @@ export interface FeuilletDesReglages {
   elements: Element[];
 }
 
-type Forme = FormeDeControle & { id: string; label: string; libelles?: Readonly<Record<string, string>> };
+/** Une entrée des réglages : une règle maison ou une préférence de confort. */
+type Forme = OptionalRule | Preference;
 
 /** Au-delà de ce nombre d'options, un `mode` se choisit en liste plutôt qu'en rangée (`Choix`). */
 const OPTIONS_EN_RANGEE = 3;

@@ -1,8 +1,7 @@
-[gd_resource type="Theme" load_steps=31 format=3]
+[gd_resource type="Theme" load_steps=30 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 [ext_resource type="StyleBox" path="res://art/bouton_focus.tres" id="b_focus"]
-[ext_resource type="FontVariation" path="res://art/police_penchee.tres" id="p_penchee"]
 
 [sub_resource type="StyleBoxFlat" id="Piste_de_glissiere"]
 bg_color = Color(0.32, 0.31, 0.3, 1)
@@ -376,7 +375,6 @@ Discret/colors/font_color = Color(0.725, 0.671, 0.573, 1)
 TooltipPanel/styles/panel = SubResource("Fond_de_bulle")
 TooltipLabel/colors/font_color = Color(0.165, 0.114, 0.071, 1)
 TooltipLabel/font_sizes/font_size = 12
-TooltipLabel/fonts/font = ExtResource("p_penchee")
 BulleSerree/base_type = &"VBoxContainer"
 BulleSerree/constants/separation = 0
 BulleAPointe/base_type = &"TooltipPanel"

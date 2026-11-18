@@ -57,22 +57,22 @@ function formeDeLEntree(entry: Readonly<Record<string, unknown>>): FormeDeContro
 /**
  * Règle optionnelle (V9 #1318) : ses VALEURS (`default`, `action.when`) sont de sa forme (`ecartDeValeur`), celle que
  * rend `rule(id)` (`ValeurDeRegle`, `engine/policy.ts`) ; un `mode` propose au moins deux valeurs, chaque clé de ses
- * `libelles` en est une ; un `param` déclare ses bornes, et seul il se lit en `modificateur`. Porté par le schéma au chargement (`affinerEntree`) et par l'atelier du Codex avant l'enregistrement
- * (`validateEntry`, `atelierDuCodex.ts`), en plus du contrôle typé du formulaire (`RuleValueField`).
+ * `libelles` en est une ; un `param` déclare ses bornes. Porté par le schéma au chargement (`affinerEntree`) et par
+ * l'atelier du Codex avant l'enregistrement (`validateEntry`, `atelierDuCodex.ts`), en plus du contrôle typé du
+ * formulaire (`RuleValueField`).
  */
 export function ecartsDeLaRegle(entry: Readonly<Record<string, unknown>>): string[] {
   const forme = formeDeLEntree(entry);
   if (forme === undefined) return [];
   if (typeof forme === 'string') return [forme];
   const action = entry.action as { when?: unknown } | undefined;
-  const libelles = estObjet(entry.libelles) ? Object.keys(entry.libelles) : [];
+  const horsChoix = forme.kind === 'mode' && estObjet(entry.libelles) ? Object.keys(entry.libelles).filter((cle) => !forme.options.includes(cle)) : [];
   return [
     ...([['default', entry.default], ['action.when', action?.when]] as const).flatMap(([champ, v]) => {
       const ecart = v === undefined ? undefined : ecartDeValeur(forme, v);
       return ecart ? [`${champ} : ${ecart}`] : [];
     }),
-    ...libelles.flatMap((cle) => (forme.kind === 'mode' && forme.options.includes(cle) ? [] : [`libelles : « ${cle} » n'est pas un choix de la règle`])),
-    ...(entry.modificateur !== undefined && forme.kind !== 'param' ? ['modificateur : seul un nombre (kind « param ») se lit signé'] : []),
+    ...horsChoix.map((cle) => `libelles : « ${cle} » n'est pas un choix de la règle`),
   ];
 }
 
@@ -111,7 +111,7 @@ const doc = document(
       hint: 'Interrupteur / paramètre chiffré / mode à choix',
     },
     default: { label: 'Valeur par défaut' },
-    options: { label: 'Valeurs des choix', hint: 'Pour une règle de type mode : l’id stable de chaque choix' },
+    options: { label: 'Valeurs des choix', hint: 'Pour une règle de type mode : la valeur enregistrée de chaque choix' },
     libelles: { label: 'Libellés des choix', hint: 'Le libellé affiché de chaque choix, par sa valeur ; une Difficulté a le sien' },
     min: { label: 'Minimum réglable', hint: 'Borne basse de saisie du paramètre chiffré' },
     max: { label: 'Maximum réglable', hint: 'Borne haute de saisie du paramètre chiffré' },
@@ -125,6 +125,13 @@ const doc = document(
     edit: { dataset: 'reglesOptionnelles' },
   },
   {
+    // Charge par `kind` (`espace.chargeParDiscriminant`) : `libelles` n'appartient qu'au `mode`, `modificateur` et
+    // `step` qu'au `param`.
+    espace: {
+      discriminant: 'kind',
+      chargeParDiscriminant: { flag: [], mode: ['options', 'libelles'], param: ['min', 'max', 'step', 'modificateur'] },
+      requisesParDiscriminant: { mode: ['options'], param: ['min', 'max'] },
+    },
     // Le refine du nœud `bornesSchema` ne traverse pas le spread de sa shape : la co-présence des
     // deux bornes se re-branche ICI, sur la MÊME fonction partagée (`ecartDeCoPresenceDesBornes`,
     // `grammaire/valeurs.ts`) — la règle n'a qu'un porteur.
