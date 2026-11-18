@@ -3,7 +3,7 @@
  * réservé à `src/ui/editor/` (#495, #2724).
  */
 import type { GameOp } from '../../../engine/ops';
-import type { JsonFormula } from '../../../engine/miscast';
+import type { FormuleAuPeche } from '../../../data/schemas/grammaire/valeurs';
 import type { DatasetKey } from '../../../data/overrides';
 import { charAbr, conditionLabel, findCrewTestTypeById, psychologyLabel, qualityRefLabel, refLabel } from '../../../data';
 import { cibleDeRef, libelleDePsy } from '../../../engine/psych/ciblage';
@@ -28,7 +28,7 @@ import { opMissingRefs } from '../../../data/refsDOp';
 import { libelleDeLaNature } from './libelleDeLaNature';
 
 /** Résumé court d'une Formula (lecture sans perte dans les résumés d'op). */
-export function formulaSummary(f: JsonFormula | undefined): string {
+export function formulaSummary(f: FormuleAuPeche | undefined): string {
   if (f == null) return '0';
   if (typeof f === 'number') return String(f);
   if ('bonusOf' in f) return `B${charAbr(f.bonusOf)}`;

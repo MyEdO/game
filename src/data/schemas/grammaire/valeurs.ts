@@ -1367,8 +1367,8 @@ export const formuleSansTirageSchema: z.ZodType<FormuleSansTirage> = z.lazy(() =
   { error: (iss) => messageDeTermeDeJet(iss.input) },
 )) as z.ZodType<FormuleSansTirage>;
 
-/** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
- *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à
+/** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Lié à
+ *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::lierLesOps`), jamais à
  *  l'application de l'op : le Péché est expié AVANT `applyOps` (`noyau/combatFlow.ts`). */
 export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.literal(true) }), { sinPoints: { label: "Points de Péché" } });
 
@@ -1379,6 +1379,7 @@ export const formulaSinSchema = z.union([
   sinPointsSchema,
   nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
+export type FormuleAuPeche = z.output<typeof formulaSinSchema>;
 
 /** Le nœud est-il, sous ses seules enveloppes (`optional`, `lazy`…), la grammaire SANS TIRAGE
  *  (`formuleSansTirageSchema`) ? C'est le DIALECTE d'un champ de `Formula` lu sur son schéma, comme

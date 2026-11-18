@@ -1,15 +1,7 @@
 /**
- * `miscast.json` — le dialecte porte les DURÉES en formules sin-paramétrées et l'État RÉCURRENT.
- *
- * `days` porte une `Formula` sin-paramétrée (`formulaSinSchema`), comme `rounds`/`hours`/`minutes` : le
- * moteur la résout ainsi (`GameOp['castPenalty'].days`, `engine/ops.ts`), le dialecte l'accepte donc au
- * même titre. Un nombre nu EST une `Formula` valide — la donnée (`colere-pensez-a-vos-actes`,
- * `"days": 7`) l'atteste. Les durées sin-paramétrées de la Colère des dieux passent par la durée canonique
- * (`OpDuree`) : `suppressTalents.durationDays` (LDB 40 l.80, l.82), `deitySkillMod.durationHours`/`durationDays`
- * (LDB 40 l.61, l.70).
- *
- * `perRound` + `unlessCondition` + `durationRounds` entrent au dialecte : la forme de « Purifier la
- * chair » (`LDB 40 l.75`, `LDB 16 l.117`). Le dialecte reste CLOS (`strictObject`).
+ * `miscast.json` — les ops d'une rangée sont le vocabulaire canonique (`OP_DEFS`) au dialecte du Péché
+ * (`opsAuPecheSchema`) : toute feuille de `Formula` de premier niveau admet le terme « (Points de Péché) ».
+ * LDB 40 l.46, l.61, l.70, l.75, l.80, l.82 ; LDB 16 l.117.
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './miscast';
@@ -67,12 +59,21 @@ describe('miscast.json — `days` formulaire et État RÉCURRENT à durée intri
     expect(schema.safeParse(table(ops)).success).toBe(true);
   });
 
-  it('le dialecte n’accueille QUE ce que la table utilise : `onlyIfCondition` est REFUSÉ (aucune rangée ne le pose)', () => {
-    const ops = [{ op: 'condition', id: { id: 'inconscient' }, value: 1, onlyIfCondition: { id: 'a-terre' } }];
-    expect(refus(table(ops))).toContain('onlyIfCondition');
+  it('une op inconnue du vocabulaire canonique est REFUSÉE en la nommant', () => {
+    expect(refus(table([{ op: 'opInconnue', amount: 1 }]))).toContain('opInconnue');
   });
 
-  it('le dialecte est CLOS : un champ qu’il ne déclare pas est REFUSÉ en le nommant', () => {
+  it('le terme de Péché est REFUSÉ hors d’une feuille de `Formula` : `castPenalty.mod` est un nombre', () => {
+    expect(refus(table([{ op: 'castPenalty', skill: { id: 'priere' }, mod: { sum: [1, { sinPoints: true }] } }]))).not.toBe('');
+  });
+
+  it('les ops d’échec d’un Test imbriqué sont la famille FERMÉE : le terme de Péché y est REFUSÉ', () => {
+    const rangee = (onFail: unknown[]) => [{ ...table([])[0], entries: [{ ...table([])[0].entries[0], ops: undefined, test: { test: { characteristic: 'force-mentale', difficulty: 'accessible' }, onFail } }] }];
+    expect(schema.safeParse(rangee([{ op: 'condition', id: { id: 'sonne' }, value: 1 }])).success).toBe(true);
+    expect(refus(rangee([{ op: 'condition', id: { id: 'sonne' }, value: { sum: [1, { sinPoints: true }] } }]))).not.toBe('');
+  });
+
+  it('la payload est CLOSE : un champ que l’op ne déclare pas est REFUSÉ en le nommant', () => {
     const ops = [{ op: 'condition', id: { id: 'inconscient' }, value: 1, champInconnu: { dice: { n: 1, sides: 10 } } }];
     expect(refus(table(ops))).toContain('champInconnu');
   });
