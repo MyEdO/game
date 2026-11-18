@@ -10,10 +10,10 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (ANGLES, AXES, COTES, CYLINDRE, FRONT, HAUT, MAT, POTEAU, X, Y, apotheme, barre, bosselee, cap,
-                       cercle, clou, coque, courbee, decoupee, froncee, lisse, normales, onde, pave, planche, profile,
-                       profilee, rampant, rond, tourne, tournee)
-from maille import lineaire, tore, tour
+from geometrie import (ANGLES, AXES, COTES, CYLINDRE, FRONT, HAUT, MAT, POTEAU, X, Y, apotheme, autour, bosselee, cap,
+                       cercle, clou, coque, courbee, decoupee, feuille, froncee, lisse, normales, onde, pave, planche,
+                       profile, profilee, rampant, rond, tourne, tournee)
+from maille import tore, tour
 
 DECORS = ("miroir", "mannequin", "mannequin-couturier", "plante-pot", "bourse", "cle", "lettre", "tas-or")
 
@@ -177,15 +177,9 @@ def plante(D, G, pieces, a):
         for k in range(nombre):
             vers = cap(azimut + 360 * k / nombre + a.uniform(-ecart_azimut, ecart_azimut))
             pente = math.radians(elevation + a.uniform(-ecart_elevation, ecart_elevation))
-            d = vers * math.cos(pente) + HAUT * math.sin(pente)
-            travers = HAUT.cross(vers)
-            dessus = d.cross(travers)
+            d = autour(vers, HAUT, pente)
             long = G.portee(depart, d, D["RETRAIT"]) * part
-            chemin = lisse([depart + d * (long * t) + dessus * (long * fleche) for t, fleche in P["nervure"]],
-                           P["pas"])
-            barre(pieces["feuillage"],
-                  [(p, long * largeur * lineaire(P["limbe"], i / (len(chemin) - 1)), epais, epais * P["biseau"])
-                   for i, p in enumerate(chemin)], travers, dessus, "feuillage")
+            feuille(pieces["feuillage"], depart, d, HAUT.cross(vers), long, P, long * largeur, epais, "feuillage")
 
 
 def bourse(D, G, pieces, a):

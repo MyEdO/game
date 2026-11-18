@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, deDeTirageSchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
-import { executeesDe, flowTestSchema, porteurDeTestFixe, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
+import { executeesDe, testFixeSchema, porteurDeTestFixe, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
 import { specialSchema } from '../grammaire/jeu-de-taverne';
 import { idDe } from '../grammaire/ref';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
@@ -67,7 +67,7 @@ const doc = document(
     /** Options de Test d'une manche (Middenball l.119 : Bagarre (+20) OU Athlétisme (+0)) — le choix
      *  va au joueur ; la 1ʳᵉ option est celle que suivent les porteurs sans siège et les figurants. */
     options: z.array(nommerChamps(porteurDeTestFixe(z.strictObject({
-      test: flowTestSchema,
+      test: testFixeSchema,
       /** LDB 14 l.215 */
       combatTest: z.boolean().optional(),
     }), 'difficulty'), {
@@ -155,7 +155,7 @@ const doc = document(
      *  du balayage final des trop sobres (`sobrietyPoints`). Consommée par
      *  `SequenceParams.throwerPenalty` (`src/noyau/sequenceCore.ts`). */
     throwerPenalty: nommerChamps(porteurDeTestFixe(z.strictObject({
-      test: flowTestSchema,
+      test: testFixeSchema,
       label: z.string().optional(),
       points: z.number().optional(),
       ops: executeesDe().optional(),

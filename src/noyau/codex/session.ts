@@ -15,10 +15,12 @@ import {
   type PaquetLu,
 } from '../../data/atelierDuCodex';
 import { ancetreDuDe, champDEnTete, datasetObject, entreesDuDataset, type EcritureDEnTete } from '../../data/overrides';
+import type { DiceSpec } from '../../engine/dice';
 import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
 import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
 import { noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
 import { noeudsAuChemin } from '../../data/schemas/grammaire/descente';
+import { deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
 import type { Manifeste } from '../../data/source/chapitres';
 import { t as tr } from '../../i18n';
 import { CODEX_GROUPS, categoryByKey, clustersIn, codexLookupById, type CibleDuCompendium, type CodexGroup, type CodexItem } from './registry';
@@ -103,7 +105,7 @@ export type GesteDuCompendium =
   | { geste: 'monter'; chemin: Segment[] }
   | { geste: 'resceller'; chemin: Segment[] }
   | { geste: 'identifier'; id: string }
-  | { geste: 'enTete'; valeur: string }
+  | { geste: 'enTete'; valeur: DiceSpec }
   | { geste: 'abandonner' }
   | { geste: 'enregistrer' }
   | { geste: 'supprimer' }
@@ -179,12 +181,12 @@ export function transactionDemandee(s: SessionDuCompendium): TransactionDuCompen
 export const atelierIdentifiable = (a: AtelierDuCompendium): boolean => editableDataset(a.categorie) !== undefined;
 
 /** Le dé d'en-tête de la table de l'atelier `a` (`ancetreDuDe`), saisi sinon imprimé ; `undefined` si sa table n'en porte pas. */
-export function deDeLAtelier(a: AtelierDuCompendium): string | undefined {
+export function deDeLAtelier(a: AtelierDuCompendium): DiceSpec | undefined {
   const ds = editableDataset(a.categorie);
   const ancetre = ds && ancetreDuDe(ds);
   if (!ds || ancetre === undefined) return undefined;
   const saisi = a.enTete.find((e) => e.champ === 'die');
-  return String(saisi ? saisi.valeur : champDEnTete(ds, ancetre, 'die'));
+  return (saisi ? saisi.valeur : champDEnTete(ds, ancetre, 'die')) as DiceSpec;
 }
 
 /** Les catégories de la famille de `s`, à plat et par sous-groupe (`clustersIn`). */
@@ -297,7 +299,10 @@ function travailler(s: SessionDuCompendium, a: AtelierDuCompendium, g: Extract<G
     case 'enTete': {
       const ancetre = ds && ancetreDuDe(ds);
       if (!ds || ancetre === undefined) return refusee(s, tr('ecran.compendium.refus.sansDe'));
-      return avec({ enTete: g.valeur === champDEnTete(ds, ancetre, 'die') ? [] : [{ ancetre, champ: 'die', valeur: g.valeur }] });
+      const lu = deDeTirageSchema.safeParse(g.valeur);
+      if (!lu.success) return refusee(s, lu.error.issues[0]!.message);
+      const imprime = champDEnTete(ds, ancetre, 'die') as DiceSpec;
+      return avec({ enTete: g.valeur.n === imprime.n && g.valeur.sides === imprime.sides ? [] : [{ ancetre, champ: 'die', valeur: g.valeur }] });
     }
     case 'enregistrer': {
       const erreurs = ds ? validateEntry(a.categorie, a.entree, entreesDuDataset(ds), a.index) : [];

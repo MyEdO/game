@@ -2,7 +2,10 @@
   "id": "tableau-des-evenements",
   "type": "interludeEvents",
   "label": "Tableau des Événements",
-  "die": "d100",
+  "die": {
+    "n": 1,
+    "sides": 100
+  },
   "source": {
     "book": "livre-de-base",
     "page": 193,

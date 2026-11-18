@@ -748,7 +748,7 @@ Toutes les Armures et les Armes portées par les cibles affectées subissent 1 D
 
 
 
-<span id="page-354-0" data-folio="353"></span># Des aventures sombres et périlleuses dans le Vieux Monde !
+<span id="page-353-0" data-folio="352"></span><span id="page-354-0" data-folio="353"></span># Des aventures sombres et périlleuses dans le Vieux Monde !
 
 *Vous ne pouvez pas lâcher l'affaire, hein ? Vous savez pourtant ce que vous allez découvrir. Vous les avez vus, les impitoyables, les arrogants, les damnés. Vous voudriez bien tourner les talons. La vie serait alors si belle. Vous êtes conscient que, tout en essayant de vous convaincre que vous ne convoitez que le butin, ou que vous ne savez pas résister à un bon combat, vous foncez. Personne n'est dupe. Alors préparez votre épée, nettoyez votre pistolet et prenez garde à ce chien, bien trop féroce pour sa petite taille.* 
 

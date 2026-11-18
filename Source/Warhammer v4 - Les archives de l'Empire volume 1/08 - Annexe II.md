@@ -239,7 +239,7 @@ Fort Tarnhelm ........................ 21 Fraisedébois.........................
 
 
 
-<span id="page-97-0" data-folio="97"></span>*Bienvenue dans les Archives de l'Empire : Volume I. Une fascinante série de rapports concernant tout le Vieux Monde. Le premier volume se concentre sur certaines autres races, nains, elfes et halfl ings, dont la présence enrichit (ou fait enrager) le monde de Warhammer Fantasy le Jeu de Rôle. Cet ouvrage explore en détail de nouveaux lieux, carrières et PNJ, des ajouts parfaits à votre prochaine aventure.*
+<span id="page-96-0" data-folio="96"></span><span id="page-97-0" data-folio="97"></span>*Bienvenue dans les Archives de l'Empire : Volume I. Une fascinante série de rapports concernant tout le Vieux Monde. Le premier volume se concentre sur certaines autres races, nains, elfes et halfl ings, dont la présence enrichit (ou fait enrager) le monde de Warhammer Fantasy le Jeu de Rôle. Cet ouvrage explore en détail de nouveaux lieux, carrières et PNJ, des ajouts parfaits à votre prochaine aventure.*
 
 - 0 **Karak Azgaraz :** l'exploration d'une forteresse naine qui, même si elle a connue des jours meilleurs, s'élève encore fi èrement dans les montagnes qui se dessinent au-delà d'Ubersreik, aux limites mêmes de l'Empire. Les nains impériaux, même s'ils considèrent les *karak* comme leurs véritables foyers, n'ont pour la plupart jamais posé le pied sur ces terres ancestrales, et vivent au cœur même de l'Empire.
 - 0 **Clans halfl ings :** des Bordéchardes aux Pavéderonces, des Rumsters aux Havrebas, apprenez-en plus les clans élargis et les nombreuses familles des halfl ings de l'Empire.

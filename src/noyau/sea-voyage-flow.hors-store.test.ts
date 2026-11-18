@@ -1575,7 +1575,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
 
   it('l’étape d’événement de bord tire au `die` de la table en donnée, jamais à un dé recopié (MDG 15 l.134 ; #1667)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
-    sousLeDe('seaBoardEvents', 'd10', () => {
+    sousLeDe('seaBoardEvents', { n: 1, sides: 10 }, () => {
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
       runSeaDay(get, set);
       const etape = get().pendingCascade!.participants.find((s) => s.kind === 'mer-evenement-de-bord')!;
@@ -2297,7 +2297,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
     const st = apply('equipage-progression', 2, true)?.insert?.find((s) => s.kind === 'mer-degagement-debris');
     expect(st).toBeTruthy();
-    expect(st?.stake?.key?.kind).toBe('mer-degagement-debris');
+    expect(st?.stake).toHaveProperty('key.kind', 'mer-degagement-debris');
     expect(resolveStake(st!.stake!).text).toContain(`total de ${need} DR`); // MDG 13 l.491
   });
 

@@ -2,7 +2,10 @@
   "id": "reaction-au-statut",
   "type": "reaction-au-statut",
   "label": "Réaction au Statut",
-  "die": "d10",
+  "die": {
+    "n": 1,
+    "sides": 10
+  },
   "entries": [
     {
       "id": "reaction-au-statut-1-2",

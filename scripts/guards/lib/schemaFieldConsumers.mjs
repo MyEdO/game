@@ -19,7 +19,7 @@ const norm = p => p.replaceAll('\\', '/')
  *  fichier qui en porte plusieurs). `datasetDe` (`src/data/datasets.ts`) rend le nœud lui-même et `rangeesDe`
  *  (`src/data/rangees.ts`) son `entries`, au type dérivé du schéma ; `deDeTirageDe` (même module) lit `die`,
  *  et `deDeLaTableTiree` (`src/engine/tables.ts`) le `die` du nœud : tous deux rendent un `DeDeTable`,
- *  jamais une valeur JSON. */
+ *  jamais une valeur JSON. Le type que rend une porte TYPE le nœud qu'elle lit (claim), ses champs compris. */
 const PORTES = {
   datasetDe: { module: 'src/data/datasets.ts', champ: null, rendJson: true },
   rangeesDe: { module: 'src/data/rangees.ts', champ: 'entries', rendJson: true },
@@ -267,7 +267,7 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
         const porte = porteDuDocument(node)
         if (porte) {
           const lu = { file: porte.file, path: porte.path }
-          if (porte.rendJson) claims.push({ ...lu, type: checker.getTypeAtLocation(node), node })
+          claims.push({ ...lu, type: checker.getTypeAtLocation(node), node })
           reads.push(lu)
         }
         if (ts.isCallExpression(node) && node.typeArguments?.length) {

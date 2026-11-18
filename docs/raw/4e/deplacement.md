@@ -1111,9 +1111,37 @@ Réparation permanente : **Test de Métier (Constructeur de navires)** (ou **Mé
 
 **Réparations temporaires** : sans cale sèche, **Métier (Constructeur de navires/Charpentier)** de **Complexe (–10)** à **Très Difficile (–30)** ; succès = 1 heure, restaure **1d10 Blessures**. Mais le navire fait ensuite un **Test d'Endurance** par jour complet de voyage et à chaque Test de Manœuvre ; chaque échec inflige **1d10–4 Dégâts** (la réparation cède). `MDG 13 l.647-651`
 
+**Réparation par le groupe au chantier** : à quai, le meilleur réparateur du groupe (Soutien compris) fait un Test de **Métier (Constructeur de navires)**, ou de **Métier (Charpentier)** sous la pénalité de –10 ; matériaux = pièces détachées de navire au barème de l'Entretien (**2 Enc par tranche de 5 Blessures**, +50 % sur coque lissée), outils fournis par le chantier (`maison`). `MDG 13 l.641` ; `MDG 15 l.306` ; `MDG 14 l.283` ; `MDG 12 l.295`
+
+> « Si votre bateau a perdu des Blessures, vous pouvez les réparer pour un coût de 2 points d'Encombrement de pièces détachées de navire par tranche de 5 Blessures restaurées. » — `MDG 15 l.306`
+
+**Durée des réparations temporaires** (`maison`) : l'heure de chaque réparation temporaire s'écoule dans la journée de voyage, dont l'horloge court jusqu'au crépuscule, ou de 24 h à l'arrivée ; aucune horloge propre ne s'y ajoute. `MDG 13 l.649`
+
 **Voir aussi :** [Salissures de coque (MDG)](#salissures-de-coque-mdg), [Entretien du navire (Activité en mer) (MDG)](#entretien-du-navire-activité-en-mer-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg) (Entretien).
 
 **Implémente :** [État calculé](../implemente.generated.md#4edeplacementreparer-un-navire-mdg)
+
+---
+
+## Réparer des bateaux (MSRC)
+
+**Source :** MSRC 7 l.107-117
+
+> « Des Dégâts subis par un bateau peuvent être réparés définitivement avec un Test de **Métier (Construction de bateaux)**. Il est possible de remplacer ce Test par un Test de **Métier (Charpentier)**, mais avec un malus de –10 à tous les lancers de dés. » — `MSRC 7 l.109`
+
+> « Les dégâts à la coque ne peuvent être réparés de façon permanente que si le bateau est tiré hors de l'eau et placé sur une cale sèche, par exemple. » — `MSRC 7 l.109`
+
+Un constructeur de bateaux PNJ (Artisan, Métier (Construction de bateaux)) installé sur les cours d'eau fréquentés répare pour **1 CO par point de Dégât** restauré ; chaque Test réussi prend **1d10 heures** et restaure **1d10 Dégâts**. `MSRC 7 l.111`
+
+**Réparations temporaires** : sans mise au sec, **Métier (Construction de bateaux)** ou **Métier (Charpentier)** de **Complexe (–10)** à **Très Difficile (–30)** ; succès = **20 minutes**, restaure **1d10 Dégâts**. Le bateau fait ensuite un **Test d'Endurance Accessible (+20)** par jour de voyage, chaque échec infligeant **1d10–4 Dégâts**. `MSRC 7 l.115-117`
+
+> « Si le Test est réussi, chaque réparation prend 20 minutes et restaure 1d10 Dégâts. Cependant, le bateau doit faire un Test d'**Endurance Accessible (+20)** par jour de voyage : chaque échec inflige 1d10-4 Dégâts au bateau, là où la réparation temporaire se fragilise. » — `MSRC 7 l.117`
+
+**Durée des réparations temporaires** (`maison`) : les 20 minutes s'écoulent dans la journée de voyage, dont l'horloge court jusqu'au crépuscule, ou de 24 h à l'arrivée. `MSRC 7 l.117`
+
+**Voir aussi :** [Réparer un navire (MDG)](#réparer-un-navire-mdg).
+
+**Implémente :** [État calculé](../implemente.generated.md#4edeplacementreparer-des-bateaux-msrc)
 
 ---
 

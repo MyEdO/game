@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { executeesDe } from '../grammaire/mecanique';
 import { couvertureDuDeParDocument, plageOuverteSchema } from '../grammaire/valeurs';
+import type { DiceSpec } from '../../../engine/dice';
 
 export const file = 'tables.json';
 export const famille = 'entite';
@@ -31,7 +32,7 @@ const doc = document(
     rangee,
     deDeTirage: true,
     // VDM 12 l.435 ; patron `structure-criticals.ts`.
-    affinerDataset: couvertureDuDeParDocument<{ id: string; die: string; entries: z.output<typeof rangee>[] }>(file, (r, t) => `la rangée n° ${t.entries.indexOf(r) + 1}`),
+    affinerDataset: couvertureDuDeParDocument<{ id: string; die: DiceSpec; entries: z.output<typeof rangee>[] }>(file, (r, t) => `la rangée n° ${t.entries.indexOf(r) + 1}`),
   },
 );
 

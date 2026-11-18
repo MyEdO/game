@@ -1,8 +1,8 @@
 """Données de la scène (#4335) : un GLB par décor `pupitre-chef`, `tribune`, `balustrade-loge`, `rangee-sieges`,
-`rideau-scene`, `escalier-loge`, `lustre-opera` et `portant-costumes` de `src/data/props.json`, bâti dans l'enveloppe
-convexe des primitives de sa recette (`gabarit.py`). Aucune illustration au corpus : proportions d'adaptation, chacune
-en fraction de la primitive qui la porte (son rang dans la recette), dans le repère de `gabarit.py` (x à l'est, le
-front de la recette vers -y, z vers le haut).
+`rideau-scene`, `escalier-loge`, `lustre-opera`, `portant-costumes` et `decor-flat` de `src/data/props.json`, bâti dans
+l'enveloppe convexe des primitives de sa recette (`gabarit.py`). Aucune illustration au corpus : proportions
+d'adaptation, chacune en fraction de la primitive qui la porte (son rang dans la recette), dans le repère de
+`gabarit.py` (x à l'est, le front de la recette vers -y, z vers le haut).
 
 - `pupitre-chef` : une estrade de planches sur sa ceinture ; un pied de fer tourné, un fût à bagues ; une tablette de
   fer inclinée, son rebord au bas de la pente ; une partition ouverte, deux pages posées sur la tablette.
@@ -26,16 +26,22 @@ front de la recette vers -y, z vers le haut).
   bougie et sa flamme.
 - `portant-costumes` : deux patins et deux montants de fer, une entretoise basse, une tringle à pommes ; quatre
   costumes pendus à leur crochet, épaules, taille et bas évasé à godets.
+- `decor-flat` : un châssis de décor ; deux montants à chanfreins arrêtés, une traverse haute et une basse, deux
+  traverses entre elles et une écharpe à chaque angle, derrière la toile ; la toile peinte, prise dans les montants ;
+  devant elle, un pilastre doré, base, fût et chapiteau ; derrière, une équerre : jambe dressée contre le châssis,
+  semelle au sol, étai de l'une à l'autre.
 
 Écarts aux recettes. Le rideau serre chaque pan vers le dehors, et son embrasse le ceint là, non à sa rive du dedans
 où la recette pose une boîte de laiton. La tribune arrête ses poteaux de devant sous le dais, que ceux de la recette
 traversent. L'escalier prolonge le pilastre du haut jusqu'à la lisse basse, et ajoute le limon et les balustres. Le
 lustre remplace les traverses droites par des bras cintrés et le cadre carré par des tringles entre bras voisins. La
-rangée ajoute une joue et une manchette à chaque fauteuil. Le portant ajoute une entretoise basse.
+rangée ajoute une joue et une manchette à chaque fauteuil. Le portant ajoute une entretoise basse. Le châssis ajoute
+ses traverses du dedans et ses écharpes, et fait de l'étai plein de la recette une équerre de trois pièces.
 
 Matières : celles des recettes, sauf le costume que la recette fait de `bois-chene`, un plancher, qui prend
 `cuir-tanne`. Le catalogue n'a ni velours, ni cire, ni flamme, ni cristal : étoffes en `toile-rouge`, bougies en
-`albatre`, que la recette leur donne, flammes en `braises`, aucune pendeloque."""
+`albatre`, que la recette leur donne, flammes en `braises`, aucune pendeloque. Il n'a pas de toile peinte : celle du
+châssis garde l'`albatre` de sa recette, son décor peint le `laiton-dore`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}
@@ -52,13 +58,15 @@ MATERIAUX = {
     "lustre-opera": {**LAITON, **FER, "cire": ("corps", "albatre"), "flamme": ("accent", "braises")},
     "portant-costumes": {**FER, "rouge": ("vet1", "toile-rouge"), "ardoise": ("vet2", "prop-ardoise"),
                          "blanc": ("corps", "albatre"), "brun": ("cuir", "cuir-tanne")},
+    "decor-flat": {**BOIS, **LAITON, "peinte": ("corps", "albatre")},
 }
 
 BUDGET_TRIANGLES = {"pupitre-chef": 1500, "tribune": 4500, "balustrade-loge": 3200, "rangee-sieges": 4500,
-                    "rideau-scene": 5000, "escalier-loge": 3000, "lustre-opera": 5000, "portant-costumes": 3000}
+                    "rideau-scene": 5000, "escalier-loge": 3000, "lustre-opera": 5000, "portant-costumes": 3000,
+                    "decor-flat": 1200}
 
 ANGLE_LISSE = {"bois": 40, "fer": 40, "laiton": 40, "toile": 60, "papier": 30, "cire": 40, "emet": 40, "rouge": 60,
-               "ardoise": 60, "blanc": 60, "brun": 60}
+               "ardoise": 60, "blanc": 60, "brun": 60, "peinte": 30}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : un chanfrein garde ses
 arêtes, une pièce tournée et une étoffe sont rondes."""
 
@@ -269,4 +277,27 @@ PORTANT = {
     "coupe": ((0.0, 0.14, 0.3, 0.0), (0.03, 0.5, 0.45, 0.0), (0.08, 0.98, 0.6, 0.0), (0.2, 0.88, 0.7, 0.1),
               (0.4, 0.62, 0.62, 0.3), (0.7, 0.86, 0.85, 0.8), (1.0, 1.0, 1.0, 1.0)),
     "godet": (0.25, 0.4), "plis": 7, "pas": 4,
+}
+
+# Châssis : rang de la toile peinte, des montants, de la traverse haute, de la traverse basse, du motif doré et de
+# l'étai dans la recette.
+# `traverse` : demi-profondeur de la traverse haute et de la basse (part de celle de leur boîte), en retrait des faces
+# des montants.
+# `etoffe` : épaisseur de la toile (part de la profondeur de sa boîte), plaquée au front de cette boîte ; `feuillure` :
+# ce dont elle entre dans chaque montant (part de sa largeur).
+# `dedans` : les pièces derrière la toile, du dos des traverses à la toile ; `section` : leur demi-hauteur (part de la
+# largeur d'un montant) ; `mediane` : hauteur de la seconde traverse du dedans (part de la hauteur de la tête de
+# l'équerre, où passe la première, à la traverse haute) ; `echarpe` : côté de l'angle que coupe une écharpe (part de la
+# largeur de la toile).
+# `pilastre` : profil du motif doré (`geometrie.profilee`), du bas en haut, de la toile au front de sa boîte.
+# `equerre`, en parts de la demi-largeur du prisme : `largeur` de la jambe et de la semelle, `etai` : celle de l'étai,
+# `epaisseur` : demi-épaisseur des trois pièces.
+CHASSIS = {
+    "toile": 0, "montants": (1, 2), "haute": 3, "basse": 4, "motif": 5, "etai": 6,
+    "traverse": 0.9, "etoffe": 0.3, "feuillure": 0.25,
+    "dedans": {"section": 0.45, "mediane": 0.5, "echarpe": 0.22},
+    "pilastre": ((0.0, 1.0, 1.0, 0.1), (0.05, 1.0, 1.0, 0.1), (0.06, 0.8, 0.9, 0.1), (0.09, 0.8, 0.9, 0.1),
+                 (0.1, 0.62, 0.75, 0.1), (0.88, 0.55, 0.75, 0.1), (0.89, 0.8, 0.9, 0.1), (0.93, 0.8, 0.9, 0.1),
+                 (0.94, 1.0, 1.0, 0.1), (1.0, 1.0, 1.0, 0.1)),
+    "equerre": {"largeur": 0.9, "etai": 0.6, "epaisseur": 0.4},
 }

@@ -49,7 +49,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [SYNTH]: {
       label: 'Table synthétique',
-      die: deDeLaTableTiree({ die: 'd100' }),
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ min: 1, max: 50, id: 'basse' }, { min: 51, max: 100, id: 'haute' }],
       lines: (die) => [`ligne ${die <= 50 ? 'basse' : 'haute'} (dé ${die})`, 'note de la ligne'],
     } }, appliers: { ...tablesDuJeu().appliers, tableSpy: spyApplier(applied, (step) => ({
@@ -225,7 +225,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [T]: {
       label: 'Table du mode',
-      die: deDeLaTableTiree({ die: 'd100' }),
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
       lines: (die) => [`ligne ${die <= 50 ? 'basse' : 'haute'} (dé ${die})`],
     } }, appliers: { ...tablesDuJeu().appliers, tableModeSpy: spyApplier(applied, (s) => ({ id: s.table!.result!.id, roll: s.table!.result!.roll, die: s.table!.result!.die })) } });
@@ -364,7 +364,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [NEUTRE]: {
       label: 'Table sans catégorie',
-      die: deDeLaTableTiree({ die: 'd100' }),
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ min: 1, max: 100, id: 'unique' }],
       lines: () => ['x'],
     } }, appliers: { ...tablesDuJeu().appliers, stakeSpy: spyApplier([], () => undefined) } });
@@ -381,7 +381,8 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   it('AVANT le dé, l’enjeu reste au `kind` (aucune ligne n’a encore été jouée)', () => {
     const st = structureStep('s0');
-    expect(st.stake!.key!.entryId).toBeUndefined();
+    expect(st.stake).toHaveProperty('key');
+    expect(st.stake).not.toHaveProperty('key.entryId');
     expect(ruleOf(st)).toBeUndefined(); // l'entrée `structure-critique` n'a que sa catégorie d'entrées
   });
 
@@ -422,7 +423,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
     banc.getState().jetLancer('cascadeTirage', 'n1');
     const apres = banc.getState().pendingCascade!.participants[0];
-    expect(apres.stake!.key!.entryId).toBeUndefined();
+    expect(apres.stake).not.toHaveProperty('key.entryId');
     expect(apres.stake).toEqual(st.stake);
   });
 

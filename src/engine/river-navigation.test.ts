@@ -35,7 +35,7 @@ describe('Table des vents (MSRC 7 l.21-33)', () => {
   it('force et direction se tirent au `die` VIVANT de leur table (l.25, l.27 ; #1667)', () => {
     const imprime = structuredClone(datasetObject('riverNavigation'));
     try {
-      setObjectDataset('riverNavigation', { ...imprime, windForces: { ...imprime.windForces, die: 'd2' }, windDirections: { ...imprime.windDirections, die: 'd3' } });
+      setObjectDataset('riverNavigation', { ...imprime, windForces: { ...imprime.windForces, die: { n: 1, sides: 2 } }, windDirections: { ...imprime.windDirections, die: { n: 1, sides: 3 } } });
       expect(rollRiverWind(hi), 'd2 → Calme, d3 → Vent arrière').toEqual({ force: 'calme', dir: 'arriere' });
     } finally {
       setObjectDataset('riverNavigation', imprime);

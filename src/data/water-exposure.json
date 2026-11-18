@@ -158,7 +158,10 @@
     }
   ],
   "diseases": {
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,

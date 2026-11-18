@@ -367,7 +367,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   it('une op gatée atteinte par un dé SOUS le rejeu annonce une POSE, jamais « le tient toujours »', () => {
     const c = hero();
     const roulee: GameOp = {
-      op: 'rollTable', die: 'd10',
+      op: 'rollTable', die: { n: 1, sides: 10 },
       entries: [{ min: 1, max: 10, ops: [{ op: 'condition', id: { id: 'aveugle' }, value: 1, unlessCondition: { id: 'aveugle' } }] }],
     };
     c.activeEffects = [{ label: 'Nuée', bonus: 0, duration: { scale: 'rounds', left: 2 }, opsPerRound: [roulee] }];
@@ -421,7 +421,7 @@ describe('enjeu du Test imbriqué d’une rangée tirée (#1667)', () => {
       const r = rollMiscast('mineure', makeRNG(1), 0, undefined, 53);
       expect(r.rowId).toBe('mineure-vdm-visions-impies');
       const test = r.testFlow as Extract<Flow, { kind: 'test' }>;
-      expect(test.test.stake?.key).toMatchObject({ entryId: 'mineure-vdm-visions-impies', entryCategory: 'imparfaiteMineureVdm' });
+      expect(test.test.stake).toMatchObject({ key: { entryId: 'mineure-vdm-visions-impies', entryCategory: 'imparfaiteMineureVdm' } });
     } finally {
       resetRule('magie-vdm-incantation');
     }

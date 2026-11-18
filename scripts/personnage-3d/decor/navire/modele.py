@@ -1,21 +1,23 @@
 """L'accastillage (#4335) : un GLB par décor de `DECORS`, bâti dans l'enveloppe convexe des primitives de sa recette
-(`gabarit.py`), dont il lit les cotes (`geometrie.pave` et `geometrie.rond`) et où `Gabarit.rentrer` ramène le sommet
-qui en sortirait. Chaque pièce est une coque close : une pièce équarrie dressée contre un axe (`console`) ; un anneau
-de fer, le tore de `maille` (`anneau_de_fer`) ; une pièce tournée, une planche, une pièce équarrie, une pièce
-profilée, une pièce ronde courbée, une cheville et un cercle, ceux de `geometrie` ; une voile ferlée, la coque de ses
-sections ovales pendues à la vergue. Chaque matériau du décor est un nœud à son
-nom. L'aléa est semé des codes de caractères de l'id du décor : deux constructions rendent les mêmes octets."""
+(`gabarit.py`), dont il lit les cotes (`geometrie.pave`, `geometrie.rond`, `geometrie.bouts`, `geometrie.apotheme`,
+`Gabarit.portee`) et où `Gabarit.rentrer` ramène le sommet qui en sortirait. Chaque pièce est une coque close : une
+pièce équarrie dressée contre un axe (`console`) ; un anneau de fer, le tore de `maille` (`anneau_de_fer`) ; une
+pièce tournée, une planche, une pièce équarrie, une pièce profilée, une pièce ronde courbée, une pièce plate
+découpée, une cheville et un cercle, ceux de `geometrie` ; une voile ferlée, la coque de ses sections ovales pendues
+à la vergue. Chaque matériau du décor est un nœud à son nom. L'aléa est semé des codes de caractères de l'id du
+décor : deux constructions rendent les mêmes octets."""
 import math
 
 from mathutils import Vector
 
 import geometrie
-from geometrie import (AXES, COTES, HAUT, MAT, X, Y, barre, cap, cercle, cheville, coque, courbee, lisse, normales,
-                       partage, pave, planche, profilee, rampant, rond, tournee)
+from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, X, Y, apotheme, autour, barre, bouts, cap, cercle, cheville,
+                       coque, courbee, decoupee, lisse, normales, partage, pave, planche, profilee, rampant, rond,
+                       tournee)
 from maille import lineaire, tore
 
 DECORS = ("ancre-de-navire", "barre-de-navire", "cabestan", "mat-de-navire", "rouleau-de-cordage", "ecoutille",
-          "passerelle-d-embarquement")
+          "passerelle-d-embarquement", "canon-de-pont")
 
 
 def anneau_de_fer(m, axe, centre, rayon, petit, N):
@@ -116,7 +118,7 @@ def barre_a_roue(D, G, pieces, a):
     cercle(bois, AXES[jante["axis"]][0], tuple(cj), r, h, r_jante * J["largeur"], J["segments"], MAT)
     for k in range(R["nombre"]):
         t = 2 * math.pi * k / R["nombre"]
-        d = u * math.cos(t) + v * math.sin(t)
+        d = autour(u, v, t)
         jante = cj + d * r
         tournee(bois, cj + d * (r_moyeu * R["pied"]), jante, essieu, d.cross(essieu), r_rayon, R["profil"],
                 R["cotes"])
@@ -415,8 +417,98 @@ def passerelle(D, G, pieces, a):
             Fi["cotes"], "corde")
 
 
+def canon(D, G, pieces, a):
+    """Un canon de pont d'après `CANON` : culasse, fût et bouche tournés, tourillons, flasques à redans, sole,
+    entretoise, coussin et coin de mire, essieux, roues pleines chevillées, anneaux de brague."""
+    C, bois, fer = D["CANON"], pieces[MAT], pieces["fer"]
+    fut, culasse, bouche = (G.primitives[C[nom]] for nom in ("fut", "culasse", "bouche"))
+    tir = (rond(bouche)[0] - rond(culasse)[0]).normalized()
+    travers = tir.cross(HAUT)
+    tube = {}
+    for nom, profil in C["tournes"]:
+        arriere, avant, u, w, _ = bouts(G.primitives[C[nom]])
+        if (avant - arriere).dot(tir) < 0:
+            arriere, avant = avant, arriere
+        tournee(fer, arriere, avant, u, w, apotheme(G.primitives[C[nom]]), profil, C["cotes"], "fer")
+        tube[nom] = (arriere, avant, profil)
+    tonnerre, volee, renforts = tube["fut"]
+
+    T = C["tourillon"]
+    axe = tonnerre.lerp(volee, T["place"]) - HAUT * (apotheme(fut) * T["bas"])
+    r = apotheme(fut) * T["rayon"]
+    for s in COTES:
+        tournee(fer, axe, axe + travers * (s * G.portee(axe + HAUT * r, travers * s, D["RETRAIT"])), tir, HAUT, r,
+                CYLINDRE, T["cotes"], "fer")
+
+    F = C["flasque"]
+    c, (lx, ly, lz) = pave(G.primitives[C["affut"]])
+    long, large = (abs(d.dot(Vector((lx, ly, 0)))) for d in (tir, travers))
+    recul = c - tir * (long / 2) - HAUT * (lz / 2)
+    haut = axe.z - recul.z
+    e, entre = large * F["epais"], large / 2 * F["place"]
+    for s in COTES:
+        joue = recul + travers * (s * entre)
+        decoupee(bois, [joue + tir * (long * t) + HAUT * (haut * h) for t, h in F["contour"]], travers,
+                 (-e / 2, e / 2), e * D["ARETE"], MAT)
+
+    part, (debut, fin) = C["sole"]
+    e_sole = lz * part
+    lit = recul + HAUT * (e_sole / 2)
+    planche(bois, lit + tir * (long * debut), lit + tir * (long * fin), travers, HAUT, entre, e_sole / 2,
+            e_sole * D["ARETE"])
+    dessus, ancrage = recul.z + e_sole, e_sole * C["ancrage"]
+
+    def traverse(place, demi, tete):
+        """Une pièce en travers de la sole, d'une flasque à l'autre, à la part `place` de la longueur de l'affût,
+        entrée dans la sole, de demi-épaisseur `demi`, jusqu'à la hauteur `tete`."""
+        milieu = recul + tir * (long * place) + HAUT * ((dessus - ancrage + tete) / 2 - recul.z)
+        planche(bois, milieu - travers * entre, milieu + travers * entre, tir, HAUT, demi,
+                (tete - dessus + ancrage) / 2, e_sole * D["ARETE"])
+
+    place, demi, tete = C["entretoise"]
+    traverse(place, long * demi, recul.z + haut * tete)
+
+    K = C["coin"]
+    gros, mince = (recul + tir * (long * t) for t in K["bouts"])
+    milieu = gros.lerp(mince, 1 / 2)
+    sous = tonnerre.z - apotheme(fut) * lineaire(renforts, (milieu - tonnerre).dot(tir) / (volee - tonnerre).length)
+    table = sous + ancrage
+    demi_coin = entre * K["largeur"]
+    epais = [(sous - dessus) * part for part in K["epais"]]
+    barre(bois, [(Vector((p.x, p.y, table - h / 2)), demi_coin, h / 2, h * D["ARETE"])
+                 for p, h in zip((gros, mince), epais)], travers, HAUT)
+    traverse(K["bouts"][0] + C["coussin"], long * C["coussin"], table - epais[0] + ancrage)
+
+    R = C["roue"]
+    nombre, face, distance, grosseur = R["chevilles"]
+    truck = G.primitives[C["roues"][0][0]]
+    demi = bouts(truck)[4] * C["essieu"]
+    for essieu in C["roues"]:
+        moyeux = []
+        for rang in essieu:
+            roue = G.primitives[rang]
+            dedans, dehors, u, w, rayon = bouts(roue)
+            if (dehors - dedans).dot(dedans - c) < 0:
+                dedans, dehors = dehors, dedans
+            tournee(bois, dedans, dehors, u, w, rayon, R["profil"], roue["sides"])
+            for k in range(nombre):
+                tours = 2 * math.pi * (k + 1 / 2) / nombre
+                cheville(bois, dedans.lerp(dehors, face) + autour(u, w, tours) * (rayon * distance),
+                         (dehors - dedans).normalized(), rayon * grosseur, a)
+            moyeux.append(dedans.lerp(dehors, 1 / 2))
+        planche(bois, *moyeux, tir, HAUT, demi, demi, demi * D["ARETE"])
+
+    N = C["anneau"]
+    le_long, en_haut = N["place"]
+    petit = bouts(truck)[4] * N["petit"]
+    for s in COTES:
+        anneau_de_fer(fer, AXES[truck["axis"]][0], recul + tir * (long * le_long) + HAUT * (haut * en_haut) + travers
+                      * (s * (entre + e / 2 + petit * (1 - N["pose"]))), bouts(truck)[4], petit, N)
+
+
 BATIR = {"ancre-de-navire": ancre, "barre-de-navire": barre_a_roue, "cabestan": cabestan, "mat-de-navire": mat,
-         "rouleau-de-cordage": rouleau, "ecoutille": ecoutille, "passerelle-d-embarquement": passerelle}
+         "rouleau-de-cordage": rouleau, "ecoutille": ecoutille, "passerelle-d-embarquement": passerelle,
+         "canon-de-pont": canon}
 
 
 def construire(D, id_):

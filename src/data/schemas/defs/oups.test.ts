@@ -16,7 +16,7 @@ const SOURCE = { book: 'livre-de-base', page: 160, note: 'Tableau des Oups !, LD
 const BANDE = { id: 'bande', min: 1, max: 20, kind: 'selfWound', label: 'Vous vous blessez.', source: SOURCE } as const;
 const MISFIRE = { id: 'misfire', kind: 'misfire', label: 'Incident de Tir !', source: SOURCE } as const;
 /** Le document mono-table qui porte `lignes`. */
-const table = (...lignes: object[]) => ({ id: 'tableau-des-oups', type: 'oups', label: 'Tableau des Oups !', die: 'd100', source: SOURCE, entries: lignes });
+const table = (...lignes: object[]) => ({ id: 'tableau-des-oups', type: 'oups', label: 'Tableau des Oups !', die: { n: 1, sides: 100 }, source: SOURCE, entries: lignes });
 
 const sans = <T extends object, K extends keyof T>(o: T, k: K): Omit<T, K> => {
   const { [k]: _, ...reste } = o;

@@ -7,7 +7,7 @@ import { battleRng } from './battleRng';
 import { applyStructureCriticalToTarget } from './combatFlow';
 
 it('le chemin de combat tire le dé de structure authoré', () => {
-  sousLeDe('structureCriticals', 'd6', () => {
+  sousLeDe('structureCriticals', { n: 1, sides: 6 }, () => {
     const banc = ouvrirLeBanc();
     const target = { ...tousLesHerosDeScenario(idsDeTest)[0], kind: 'ennemi' as const, id: 'mur' };
     const int = vi.spyOn(battleRng(), 'int').mockReturnValue(3);

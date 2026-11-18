@@ -2,10 +2,10 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.83-129 */
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
-import { ecartsDeCouverture, effetSigneSchema, maisonSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { deDuParse, ecartsDeCouverture, effetSigneSchema, maisonSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
-import { parseDice, totalDuDe } from '../../../engine/dice';
-import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
+import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
+import { facesDuDe } from '../../../engine/tables';
 import { flowSchema } from '../grammaire/mecanique';
 
 export const file = 'sea-events.json';
@@ -117,14 +117,14 @@ const doc = document(
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         type Bande = { id?: string; min?: number | null; max?: number | null };
-        type Table = { die: string; entries: Bande[] };
+        type Table = { die: DiceSpec; entries: Bande[] };
         const d = v as { boardEvents?: Table; fastVoyage?: Table; portEvents?: Table; manann?: { portEventMod?: number } };
         const modDePort = d.manann?.portEventMod ?? 0;
-        const deDePort = d.portEvents && parseDice(d.portEvents.die) ? deDeLaTableTiree(d.portEvents) : null;
+        const deDePort = d.portEvents ? deDuParse(d.portEvents) : null;
         const tables: [(string | number)[], string, Bande[], number | 'ouverte', number | 'ouverte'][] = [
           [['boardEvents', 'entries'], "le jet d'Événement de bord", d.boardEvents?.entries ?? [], 'ouverte', 'ouverte'],
-          [['fastVoyage', 'entries'], `le ${d.fastVoyage?.die} du Voyage rapide`, d.fastVoyage?.entries ?? [], 'ouverte', 'ouverte'],
-          ...(deDePort ? [[['portEvents', 'entries'], `le ${d.portEvents!.die} de l'escale, Humeur de Manann comprise`, d.portEvents!.entries, totalDuDe(deDePort, deDePort.n) - modDePort, facesDuDe(deDePort) + modDePort] as [(string | number)[], string, Bande[], number, number]] : []),
+          [['fastVoyage', 'entries'], `le ${d.fastVoyage ? formatDice(d.fastVoyage.die) : ''} du Voyage rapide`, d.fastVoyage?.entries ?? [], 'ouverte', 'ouverte'],
+          ...(deDePort ? [[['portEvents', 'entries'], `le ${formatDice(deDePort)} de l'escale, Humeur de Manann comprise`, d.portEvents!.entries, totalDuDe(deDePort, deDePort.n) - modDePort, facesDuDe(deDePort) + modDePort] as [(string | number)[], string, Bande[], number, number]] : []),
         ];
         for (const [path, domaine, bandes, depuis, jusqua] of tables) {
           const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la bande « ${b.id} »`);

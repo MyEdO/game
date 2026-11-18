@@ -15,11 +15,12 @@ import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { tableTotale } from '../../lib/tableTotale';
 import { Formula, GameOp, type PerSL, type ResolveWindow } from '../../engine/ops';
 import type { JsonFormula } from '../../engine/miscast';
+import type { DiceSpec } from '../../engine/dice';
 import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
-import { acteDeDeverrouillageSchema, chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
+import { acteDeDeverrouillageSchema, chaosAlignSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
 import {
   SUJETS_DE_VERROU,
@@ -227,6 +228,16 @@ const estFormuleGenerale = (f: JsonFormula): f is Formula => !contientLePeche(f)
 /** CharKey portée par une Formula de carac. (Bonus/Valeur) — défaut F pour le sélecteur. */
 const charOfFormula = (f: JsonFormula | undefined): CharKey =>
   f && typeof f === 'object' ? ('bonusOf' in f ? f.bonusOf : 'charOf' in f ? f.charOf : 'force') : 'force';
+
+/** Saisie du DÉ DE TIRAGE d'une table (`deDeTirageSchema`) : son nombre de dés et ses faces, entiers de 1. */
+export function DeDeTirageField({ value, onChange }: { value: DiceSpec; onChange: (die: DiceSpec) => void }) {
+  return (
+    <label className="dr">Dé
+      <NumberField variant="nu" label="Dé de tirage — nombre de dés" min={1} width={56} value={value.n} onChange={(n) => onChange({ ...value, n })} />d
+      <NumberField variant="nu" label="Dé de tirage — faces" min={1} width={64} value={value.sides} onChange={(sides) => onChange({ ...value, sides })} />
+    </label>
+  );
+}
 
 /** Éditeur RÉUTILISABLE d'une `Formula` : sélecteur de FORME + champs adaptés. AUCUNE forme
  *  existante n'est dégradée — un littéral reste littéral, un `{dice}`/`{charOf}` est édité tel quel.
@@ -980,7 +991,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             <label className="dr">Source de table
               <select value={'tableId' in o ? 'ref' : 'inline'} onChange={(e) => onChange(e.target.value === 'ref'
                 ? { op: 'rollTable', ...(o.addNegativeSL ? { addNegativeSL: true } : {}), ...(o.extraRollsPerStep ? { extraRollsPerStep: o.extraRollsPerStep } : {}), tableId: '' }
-                : { op: 'rollTable', die: 'd10', ...(o.addNegativeSL ? { addNegativeSL: true } : {}), ...(o.extraRollsPerStep ? { extraRollsPerStep: o.extraRollsPerStep } : {}), entries: [] })}>
+                : { op: 'rollTable', die: { n: 1, sides: 10 }, ...(o.addNegativeSL ? { addNegativeSL: true } : {}), ...(o.extraRollsPerStep ? { extraRollsPerStep: o.extraRollsPerStep } : {}), entries: [] })}>
                 <option value="inline">Rangées inline</option>
                 <option value="ref">Table référencée (tables.json)</option>
               </select>
@@ -996,12 +1007,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
               </label>
             ) : (
               <>
-                <label className="dr">Dé
-                  <SaisieEnBrouillon
-                    ariaLabel="Dé de tirage" placeholder="ex. d10, 2d10" value={o.die ?? 'd10'} afficher={(die) => die}
-                    relire={(texte, avant) => (deDeTirageSchema.safeParse(texte.trim()).success ? texte.trim() : avant)}
-                    onChange={(die) => upd({ die })} />
-                </label>
+                <DeDeTirageField value={o.die} onChange={(die) => upd({ die })} />
                 <RollTableRowsField rows={o.entries ?? []} onChange={(entries) => upd({ entries })} />
               </>
             )}

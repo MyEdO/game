@@ -30,7 +30,7 @@ import {
 import { t } from '../i18n';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from '../lib/objet.mjs';
-import { bouton, choix, ligne, type Bouton, type Choix, type Entite, type Formulaire, type Ligne, type Puce } from './elements';
+import { bouton, choix, ligne, SANS_BORNE, type Bouton, type Choix, type Entite, type Formulaire, type Ligne, type Puce } from './elements';
 import { elementsDuFormulaireTire, refusDeValeurDit, valeurDuFormulaire, type ElementDuFormulaire, type EcrivainDuFormulaire } from './formulaire';
 
 /**
@@ -150,6 +150,13 @@ const ecrivainDe = (categorie: string): EcrivainDuFormulaire<string> => ({
   emballe: ({ porteur: _, ...g }) => jeu(g),
 });
 
+/** Le formulaire du dé de la table de l'atelier (`enTete`), valant `de` : son nombre de dés et ses faces, entiers de 1
+ *  (`deDeTirageSchema`). */
+const formulaireDuDe = (de: NonNullable<ReturnType<typeof deDeLAtelier>>): Formulaire => ({
+  type: 'formulaire', id: 'enTete', libelle: t('ecran.compendium.de'), verbe: 'enTete', focus: false, refus: null,
+  champs: (['n', 'sides'] as const).map((nom) => ({ type: 'saisieNombre', id: nom, ton: 'neutre', nom, optionnel: false, libelle: t(`ecran.compendium.de.${nom}`), valeur: de[nom], min: 1, max: SANS_BORNE.max, pas: 1 })),
+});
+
 /** Le formulaire de verbe `verbe`, d'une saisie de texte `nom` valant `valeur`. */
 const formulaireDeTexte = (id: string, libelle: string, verbe: string, nom: string, valeur: string, refus: string | null = null): Formulaire => ({
   type: 'formulaire', id, libelle, verbe, focus: false, refus,
@@ -173,7 +180,7 @@ function atelierDe(s: SessionDuCompendium): (Ligne | Bouton | Choix | Formulaire
     ligne('titre', t('ecran.compendium.atelier', { categorie: categoryByKey(a.categorie)!.label })),
     ...elements,
     ...(atelierIdentifiable(a) ? [formulaireDeTexte('identifier', t('ecran.compendium.identifiant'), 'identifier', 'id', id)] : []),
-    ...(de === undefined ? [] : [formulaireDeTexte('enTete', t('ecran.compendium.de'), 'enTete', 'valeur', de)]),
+    ...(de === undefined ? [] : [formulaireDuDe(de)]),
     boutonDuGeste(s, 'abandonner', t('ecran.compendium.abandonner'), { geste: 'abandonner' }),
     boutonDuGeste(s, 'enregistrer', t('ecran.compendium.enregistrer'), { geste: 'enregistrer' }),
     boutonDuGeste(s, 'supprimer', t('ecran.compendium.supprimer'), { geste: 'supprimer' }),
@@ -207,7 +214,7 @@ export function zonesDuCompendium(s: SessionDuCompendium): ZonesDuCompendium {
 const VERBES = ['recherche', 'identifier', 'enTete', 'valeur'] as const;
 
 /** Le geste du Compendium que joue le formulaire `jeu` (`{ type, args }`) des zones `z` : la recherche, son terme ;
- *  l'identifiant de l'entrée ouverte ; le dé de sa table ; une valeur du formulaire tiré du schéma de l'atelier
+ *  l'identifiant de l'entrée ouverte ; le dé de sa table, son nombre de dés et ses faces ; une valeur du formulaire tiré du schéma de l'atelier
  *  (`valeurDuFormulaire`), son porteur la catégorie ouverte ; `undefined` si les zones ne portent pas ce formulaire ou
  *  si `args` n'est pas ce qu'il saisit. */
 export function gesteDuCompendium(z: ZonesDuCompendium, s: SessionDuCompendium, jeuJoue: unknown): GesteDuCompendium | undefined {
@@ -218,10 +225,15 @@ export function gesteDuCompendium(z: ZonesDuCompendium, s: SessionDuCompendium, 
     return { geste: 'valeur', chemin: lu.chemin, ...('valeur' in lu ? { valeur: lu.valeur } : {}) };
   }
   const offert = [...z['compendium.recherche'], ...z['compendium.atelier']].some((e) => e.type === 'formulaire' && e.verbe === jeuJoue.type);
+  if (!offert) return undefined;
+  if (jeuJoue.type === 'enTete') {
+    const [n, sides, ...reste] = jeuJoue.args as unknown[];
+    return !reste.length && typeof n === 'number' && typeof sides === 'number' ? { geste: 'enTete', valeur: { n, sides } } : undefined;
+  }
   const [texte, ...reste] = jeuJoue.args as unknown[];
-  if (!offert || reste.length || (texte !== undefined && typeof texte !== 'string')) return undefined;
+  if (reste.length || (texte !== undefined && typeof texte !== 'string')) return undefined;
   const valeur = (texte as string | undefined) ?? '';
-  return jeuJoue.type === 'recherche' ? { geste: 'recherche', terme: valeur } : jeuJoue.type === 'identifier' ? { geste: 'identifier', id: valeur } : { geste: 'enTete', valeur };
+  return jeuJoue.type === 'recherche' ? { geste: 'recherche', terme: valeur } : { geste: 'identifier', id: valeur };
 }
 
 /** Le bouton des zones `z` qui joue `{ compendium: geste }`, celui qui l'offre sans refus d'abord ; `undefined` sans lui. */

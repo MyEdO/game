@@ -52,7 +52,6 @@ import {
   testValue,
 } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, tirerLeCapricieux, tirerLaReactionAuStatut } from '../engine/social';
-import { statutDeDonnee } from '../engine/money';
 import { restoreFortune } from '../engine/fortune';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
@@ -972,7 +971,7 @@ export function openSkillTest(
   // Modulateurs sociaux PAR ACTEUR (un Test social vs un interlocuteur) : malus psy Animosité/Préjugé
   // (LDB 21) + mod de Statut Échelon/Standing (LDB 08). Le Statut compare l'acteur à la cible `vsStatus`.
   const isSocial = isSocialTest(spec);
-  const tgtStatus = isSocial && spec.vsStatus ? statutDeDonnee(spec.vsStatus) : undefined;
+  const tgtStatus = isSocial ? spec.vsStatus : undefined;
   const psychMod = spec.vsGroups?.length && isSocial ? (c: Combatant) => socialPsychMod(c, spec.vsGroups!) : undefined;
   // Réaction au Statut (option, LDB 08 l.38-46) tirée UNE fois par Test (RNG seedé) — appliquée à
   // tous les candidats de façon cohérente (la réaction de l'interlocuteur ne dépend pas du héros choisi).

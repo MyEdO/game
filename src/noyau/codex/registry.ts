@@ -129,7 +129,7 @@ import { skillBaseValue } from '../../engine/skills';
 import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
-import { formatMoney, priceToMoney, type Money } from '../../engine/money';
+import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
@@ -478,7 +478,7 @@ const careerStatusRange = (levels: import('../../data').CareerLevelData[]): stri
   if (!levels.length) return null;
   const first = levels[0].status;
   const last = levels[levels.length - 1].status;
-  return first === last ? first : `${first} → ${last}`;
+  return memeStatut(first, last) ? libelleDuStatut(first) : `${libelleDuStatut(first)} → ${libelleDuStatut(last)}`;
 };
 
 /**
@@ -1142,7 +1142,7 @@ export function optionBody(o: { label: string; desc: string }): string {
 /** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette, au dé que porte `porteurDuDe`. */
 function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires | typeof mutationNature)[number], porteurDuDe: PorteurDeDe, category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
-    sub: tr('codex.fiche.plages', { length: t.entries.length, die: porteurDuDe.die }),
+    sub: tr('codex.fiche.plages', { length: t.entries.length, die: formatDice(porteurDuDe.die) }),
     sections: sections({
       title: tr('codex.fiche.tirages'), layout: 'list',
       rows: t.entries.map((r) => {
@@ -1205,8 +1205,8 @@ const CODEX_SPECS = {
           ),
         })),
         ...d.tables.map((t) => depuisEnveloppe(t, {
-          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
-          sections: sections({ title: tr('codex.fiche.tirage', { die: t.die }), layout: 'list', rows: arcaneTableRows(t) }),
+          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: formatDice(t.die) }),
+          sections: sections({ title: tr('codex.fiche.tirage', { die: formatDice(t.die) }), layout: 'list', rows: arcaneTableRows(t) }),
         })),
       ];
     },
@@ -1432,7 +1432,7 @@ const CODEX_SPECS = {
       // Les 4 échelons réunis en UN onglet « Progression » (au lieu d'un onglet par niveau) → la
       // montée en Carrière se lit d'un trait ; la description flavor gagne en proéminence relative.
       const levelSections: CodexSection[] = levels.map((lv) => ({
-        title: tr('codex.fiche.niveau', { level: lv.level, label: lv.label, status: lv.status }),
+        title: tr('codex.fiche.niveau', { level: lv.level, label: lv.label, status: libelleDuStatut(lv.status) }),
         layout: 'chips' as const,
         rows: [
           // Les Caractéristiques avancées sont des IDS (`CharKey` = id de `characteristics.json`) :
@@ -1646,7 +1646,7 @@ const CODEX_SPECS = {
   mutationTables: {
     label: 'codex.fiche.tablesDeCorruption', group: 'effets',
     build: () => mutationTables.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+      sub: tr('codex.fiche.plages', { length: t.entries.length, die: formatDice(t.die) }),
       // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
       sections: sections({
         title: tr('codex.fiche.tirageMutation', { die: formatDice(deDeLaTableTiree(t)) }), layout: 'list',
@@ -1662,8 +1662,8 @@ const CODEX_SPECS = {
     // Tables `[min,max] → GameOp[]` référencées par l'op `rollTable` (Allure démoniaque : Tableau des
     // aspects démoniaques par Domaine du Chaos). Chaque rangée = fourchette + ops (chips codex-liées).
     build: () => effectTables.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
-      sections: sections({ title: tr('codex.fiche.tirageEffet', { die: t.die }), layout: 'list', rows: tableRows(t) }),
+      sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: formatDice(t.die) }),
+      sections: sections({ title: tr('codex.fiche.tirageEffet', { die: formatDice(t.die) }), layout: 'list', rows: tableRows(t) }),
     })),
   },
   maneuvers: {
@@ -1818,7 +1818,7 @@ const CODEX_SPECS = {
     // celui de la DONNÉE (#1467 L1b V-P1) — le registre ne recompose plus d'identité.
     build: () => careerLevels.map((lv) => depuisEnveloppe(lv, {
       label: entryKey(lv as unknown as Record<string, unknown>),
-      sub: lv.status, group: findCareerById(lv.career.id)?.label ?? lv.career.id,
+      sub: libelleDuStatut(lv.status), group: findCareerById(lv.career.id)?.label ?? lv.career.id,
       sections: sections(
         lv.characteristics.length ? { title: tr('codex.fiche.caracteristiquesAvancees'), layout: 'chips', rows: charRefRows(lv.characteristics) } : null,
         chips(tr('codex.fiche.competences'), lv.skills.map((a) => advancementRow('skills', a))),
@@ -1859,7 +1859,7 @@ const CODEX_SPECS = {
   },
   weather: {
     label: 'codex.fiche.meteoDeVoyage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: s.die }) })),
+    build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: formatDice(s.die) }) })),
   },
   weatherConditions: {
     label: 'codex.fiche.conditionsMeteo', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',

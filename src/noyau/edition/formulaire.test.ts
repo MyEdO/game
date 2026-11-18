@@ -122,7 +122,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(choixDuNoeud(elementDuNoeud(groupes.noeud))?.map((o) => o.valeur)).toEqual(idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE));
   });
 
-  it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu choisi par variante', () => {
+  it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu authoré (#4056)', () => {
     const z = zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } });
     const champs = formulaireDe('zone', z, CADRE_VIDE);
     const competence = champ(champs, z, 'crossTest', 'skill', 'id');
@@ -139,7 +139,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(unionDuNoeud(champ(champs, z, 'crossTest', 'gate').noeud)?.discriminant).toBe('kind');
     expect(valeurNeuveDe(elementDuNoeud(champ(champs, z, 'crossTest', 'difficultyBy').noeud))).toEqual({ cond: CONDITION_TOUJOURS, difficulty: 'tresFacile' });
     const enjeu = champ(champs, z, 'crossTest', 'stake');
-    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit par ses branches, de clé leur rang').toEqual([undefined, ['0', '1'], undefined]);
+    expect([champsDeclares(enjeu.noeud)?.map(([cle]) => cle), unionDuNoeud(enjeu.noeud)], 'l’enjeu d’un Test de scène est la phrase que la scène écrit').toEqual([['authored', 'source', 'adapteDe'], undefined]);
   });
 
   it('une référence se choisit dans la sous-liste que sa feuille déclare', () => {

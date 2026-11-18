@@ -18,7 +18,6 @@ import {
   weaponDamageSpecSchema,
 } from '../valeurs';
 import { CHAMPS_PROSE_DE_SCENE, PROSES_NOMMEES } from '../champs-prose-de-scene';
-import { flowTestSchema } from '../mecanique';
 import { marchandageDeBilletSchema, palierDeBilletSchema, provenanceDeValeurSchema, provenancesDeRouteSchema, routeBilletSchema } from '../route';
 import {
   clotureSchema,
@@ -86,7 +85,7 @@ const POSES_DE_GRAMMAIRE = {
   'effet-narratif-document': documentSchema,
   'effet-narratif-indice': revealClueSchema,
   'special-de-jeu': specialSchema,
-  test: flowTestSchema,
+  test: classe('testDeDonnee', ['test']),
 };
 
 export type IdConceptPose = keyof typeof POSES_DE_GRAMMAIRE;

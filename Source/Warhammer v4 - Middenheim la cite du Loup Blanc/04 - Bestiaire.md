@@ -71,4 +71,4 @@ Aux yeux du clergé d'Ulric, les loups blancs sont des créatures sacrées qui i
 
 Pisteur, Taille (Grande),Vision nocturne **Options :** Belliqueux, Béni (Ulric), Bestial, Frénésie,
 
-Furtif, Increvable, Rapide
+Furtif, Increvable, Rapide<span id="page-120-0" data-folio="118"></span>

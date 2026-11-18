@@ -11,9 +11,9 @@ import type { Formula, FormuleSansTirage } from '../../../engine/ops';
 import type { RegleOptionnelleId } from '../../../engine/policy';
 import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
-import { parseStatus, type Money } from '../../../engine/money';
-import { parseDice, totalDuDe } from '../../../engine/dice';
-import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
+import { ECHELONS_DE_STATUT, libelleDEchelon, type Money, type Status } from '../../../engine/money';
+import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe, type DeDeTable, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
 import { estObjet } from '../../../lib/objet.mjs';
 import type { TrappingData } from '../../index';
@@ -133,13 +133,6 @@ export type QualiteDeRepos = z.output<typeof qualiteDeReposSchema>;
 /** Les rôles d'animation d'ambiance d'une entité de scène. */
 export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
-
-/** Dé de TIRAGE d'une table à fourchettes (`die`) : une expression de dé (« d10 », « 2d10 ») que
- *  `parseDice` (`src/engine/dice.ts`) lit en `DiceSpec`. UNE déclaration pour la fabrique
- *  (`options.deDeTirage`, `grammaire/document.ts`), les tables de `arcane-phenomena.json`, les porteurs
- *  de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`) et l'op `rollTable`
- *  (`grammaire/mecanique.ts`). #1669 */
-export const deDeTirageSchema = z.string().refine((s) => parseDice(s) !== null, { message: 'dé de tirage illisible : une expression « NdM » (ex. « d10 », « 2d10 »)' });
 
 /** Maniement d'une arme : l'axe d'ANIMATION (prise physique), distinct du Groupe de règles — UNE déclaration
  *  pour les racines de `apparences.json` (`defs/apparences.ts`) et les Groupes d'arme de `weaponGroups.json`
@@ -261,8 +254,11 @@ export const LIBELLES_DE_DISPONIBILITE = { commune: 'Commune', limitee: 'Limité
 export const availabilitySchema = enumNomme(LIBELLES_DE_DISPONIBILITE);
 /** Les Disponibilités qui se testent au d100 (`TestedAvailability`). LDB 59 l.25-30 */
 export const dispoPctAvailabilitySchema = enumNomme({ limitee: LIBELLES_DE_DISPONIBILITE.limitee, rare: LIBELLES_DE_DISPONIBILITE.rare } satisfies Record<TestedAvailability, string>);
-/** Libellé de Statut (« Argent 2 ») : lisible par `parseStatus`, que `statutDeDonnee` garantit ensuite. LDB 08 l.9 */
-export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'Statut illisible : « Bronze N », « Argent N » ou « Or N » attendu.');
+/** Statut (`Status`, `src/engine/money.ts`) : un Échelon et un Standing entier, de 0 sans borne haute. LDB 08 l.9, l.101 */
+export const statutSchema = nommerChamps(
+  z.strictObject({ tier: enumNomme(tableTotale(ECHELONS_DE_STATUT, libelleDEchelon)), standing: z.number().int().min(0) }),
+  { tier: { label: 'échelon' }, standing: { label: 'standing' } },
+) satisfies z.ZodType<Status>;
 
 /**
  * Rareté d'une pièce de créature récoltée (`HarvestRarity`, `src/data/index.ts`) = les paliers de
@@ -949,6 +945,16 @@ export const moneyPartialSchema = nommerChamps(z.strictObject({ gold: z.number()
 /** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `CountSpec.roll`, `Formula.dice` et `details`. */
 export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), fois: z.number().positive().optional(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, fois: { label: "multiplicateur" }, plus: { label: "ajout" } });
 
+/** Dé de TIRAGE d'une table à fourchettes (`die`) : le `DiceSpec` restreint à NdM, N et M entiers de 1. UNE
+ *  déclaration pour la fabrique (`options.deDeTirage`, `grammaire/document.ts`), les tables de
+ *  `arcane-phenomena.json`, les porteurs de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`,
+ *  `defs/tavernGames.ts`) et l'op `rollTable` (`grammaire/mecanique.ts`). #1669 #4056 */
+const metaDuDe = metaDesChamps(diceSpecSchema, { exigees: true });
+export const deDeTirageSchema = nommerChamps(
+  z.strictObject({ n: diceSpecSchema.shape.n.int().min(1), sides: diceSpecSchema.shape.sides.int().min(1) }),
+  { n: metaDuDe.n, sides: metaDuDe.sides },
+) satisfies z.ZodType<DiceSpec>;
+
 /** `ShipSize` (`src/data/index.ts`) — les sept Tailles de bateau du tableau standard (`MDG 12 l.122-129`),
  *  dérivées de la LONGUEUR par `shipSizeOfLength` (`src/engine/shipBuild.ts`). Déclarées ICI une fois :
  *  `ship-construction` (colonne Taille), `sea-perils` (bornes min/max) et `ship-criticals` (bandes de la
@@ -1558,24 +1564,27 @@ export function ecartsDeCouverture<F extends { min?: number | null; max?: number
   return ecarts;
 }
 
+/** Le dé de `table` (`deDeLaTableTiree`) pour un raffinement de dataset, `null` hors NdM : un raffinement court sur un
+ *  dé que son champ (`deDeTirageSchema`) refuse déjà, nominativement. */
+export const deDuParse = (table: PorteurDeDe): DeDeTable | null => (deDeTirageSchema.safeParse(table.die).success ? deDeLaTableTiree(table) : null);
+
 /**
  * COUVERTURE DU DÉ d'une table tirée : ses fourchettes couvrent le dé que porte la table
  * (`deDeLaTableTiree`, `src/engine/tables.ts`) d'un seul tenant, de son plus petit total à son plus
- * grand (`facesDuDe`), ouverte en haut quand une fourchette l'est (`max: null`). Un dé illisible rend
- * `[]` : son champ (`deDeTirageSchema`) le refuse déjà, nominativement.
+ * grand (`facesDuDe`), ouverte en haut quand une fourchette l'est (`max: null`) ; aucun écart hors NdM (`deDuParse`).
  */
 export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: number | null }>(
   table: PorteurDeDe,
   fourchettes: readonly F[],
   nom: (f: F) => string,
 ): string[] {
-  if (parseDice(table.die) === null) return [];
-  const de = deDeLaTableTiree(table);
+  const de = deDuParse(table);
+  if (!de) return [];
   return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
 
 /** Un document d'un fichier de tables tirées : son dé et ses rangées. */
-type TableTiree = { readonly id: string; readonly die: string; readonly entries: readonly { min?: number | null; max?: number | null }[] };
+type TableTiree = { readonly id: string; readonly die: DiceSpec; readonly entries: readonly { min?: number | null; max?: number | null }[] };
 
 /** Le refus nominatif d'un document `t` dont les rangées ne couvrent pas le dé, posé sur `chemin`. */
 function refuserLaCouverture<T extends TableTiree>(
@@ -1583,7 +1592,7 @@ function refuserLaCouverture<T extends TableTiree>(
 ): void {
   const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
   if (ecarts.length) {
-    ctx.addIssue({ code: 'custom', path: chemin, message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
+    ctx.addIssue({ code: 'custom', path: chemin, message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${formatDice(t.die)} d'un seul tenant — ${ecarts.join(' ; ')}.` });
   }
 }
 

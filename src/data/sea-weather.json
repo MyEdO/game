@@ -3,7 +3,10 @@
   "type": "sea-weather",
   "label": "Météo de la Mer des Griffes",
   "table": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,
@@ -448,7 +451,10 @@
   "windTickThreshold": 1,
   "windTicksPerDay": 4,
   "roseDesVents": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,

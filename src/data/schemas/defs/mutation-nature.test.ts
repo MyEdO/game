@@ -7,7 +7,7 @@ import { raceKeySchema } from '../grammaire/valeurs';
 const FICHIER = 'mutation-nature.json';
 type Rangee = { id: string; min: number; max: number };
 const document = (race: string, entries: Rangee[]) => ({
-  id: `nature-${race}`, type: 'mutation-nature', label: race, race, die: 'd100', source: { book: 'livre-de-base', page: 183 }, entries,
+  id: `nature-${race}`, type: 'mutation-nature', label: race, race, die: { n: 1, sides: 100 }, source: { book: 'livre-de-base', page: 183 }, entries,
 });
 const moitie: Rangee[] = [{ id: 'physique', min: 1, max: 50 }, { id: 'mentale', min: 51, max: 100 }];
 const toutes = () => raceKeySchema.options.map((race) => document(race, moitie));
@@ -20,7 +20,7 @@ describe('mutation-nature.json — un document par race, son dé couvert', () =>
   it('REFUSE, en le nommant, un trou entre deux rangées', () => {
     const docs = toutes();
     docs[0] = document(docs[0].race, [{ id: 'physique', min: 1, max: 50 }, { id: 'mentale', min: 52, max: 100 }]);
-    expect(validateDataset(FICHIER, docs)).toMatch(/mutation-nature\.json › nature-humain : les rangées ne couvrent pas le d100 d'un seul tenant/);
+    expect(validateDataset(FICHIER, docs)).toMatch(/mutation-nature\.json › nature-humain : les rangées ne couvrent pas le 1d100 d'un seul tenant/);
   });
 
   it('REFUSE, en la nommant, une race tirée par deux documents', () => {

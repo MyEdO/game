@@ -246,4 +246,4 @@ Récompenser les Joueurs par des Points de Destin ou de Résilience est égaleme
 | Performance    | Récompense en PX | Performance    | Récompense en PX | Performance     | Récompense en PX |
 | Insuffisante   | 75               | Insuffisante   | 100              | Insuffisante    | 150              |
 | Bonne          | 100              | Bonne          | 150              | Bonne           | 200              |
-| Exceptionnelle | 125              | Exceptionnelle | 200              | Exceptionnelle  | 250              |
+| Exceptionnelle | 125              | Exceptionnelle | 200              | Exceptionnelle  | 250              |<span id="page-266-0" data-folio="265"></span>

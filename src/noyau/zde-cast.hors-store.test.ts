@@ -117,8 +117,8 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // toujours en pose
     banc.getState().cliquerLaCase({ x: 4, y: 4 }); // dans la portée, PERSONNE dans le rayon
     expect(banc.getState().pendingCast).toBeNull();
-    // En combat, la sortie commune (finishPlayerAction) écrit dans le LOG de combat.
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/ne touche personne/);
+    // La zone vide se résout par `applyCast`, sans cible (LDB 47 l.28).
+    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/la zone ne touche personne/);
     expect(banc.getState().battle!.acted).toBe(true);
   });
 

@@ -9,6 +9,7 @@
 import type { z } from 'zod';
 import type { DocumentARangees, FamilleDocument } from './schemas/grammaire/document';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
+import type { DiceSpec } from '../engine/dice';
 
 /** Le module d'un def de document à rangées : sa famille, le schéma de sa rangée et celui de son fichier. */
 interface DefARangees {
@@ -29,7 +30,7 @@ type AdresseDuDocument<D extends DefARangees> = D['famille'] extends 'entite' ? 
 
 /** Le document de `D` dans `racine`, le module JSON de son fichier — FAIL-FAST : un document absent
  *  laisserait un lecteur sur un tableau vide, sans un mot. */
-function documentDe<D extends DefARangees>(racine: object, adresse: AdresseDuDocument<D>): DocumentARangees<RangeeDe<D>> & { die?: string } {
+function documentDe<D extends DefARangees>(racine: object, adresse: AdresseDuDocument<D>): DocumentARangees<RangeeDe<D>> & { die?: DiceSpec } {
   const lue = racine as DocumentARangees<RangeeDe<D>> | DocumentARangees<RangeeDe<D>>[];
   const [id] = adresse;
   const document = Array.isArray(lue) ? lue.find((d) => d.id === id) : lue;
@@ -50,5 +51,5 @@ export function deDeTirageDe<D extends DefARangees>(racine: object, ...adresse: 
   const document = documentDe<D>(racine, adresse);
   const { die } = document;
   if (die === undefined) throw new Error(`deDeTirageDe : le document « ${document.id} » ne porte aucun dé de tirage (\`die\`).`);
-  return deDeLaTableTiree({ die, id: document.id });
+  return deDeLaTableTiree({ die });
 }

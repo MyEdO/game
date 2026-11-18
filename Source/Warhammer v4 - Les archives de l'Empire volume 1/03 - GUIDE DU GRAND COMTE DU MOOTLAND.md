@@ -324,10 +324,10 @@ La zone au nord de l'Aver faisait autrefois partie du territoire du Stirland. C'
 *Les vers sont en supplément* 
 
 
-<span id="page-43-0" data-folio="43"></span>Yanick Bedard - pumpkinhead83@hotmail.fr
 
 
-## <span id="page-44-0" data-folio="44"></span>**Les Feuillevertes**
+
+## <span id="page-43-0" data-folio="43"></span><span id="page-44-0" data-folio="44"></span>**Les Feuillevertes**
 
 En raison d'une erreur de cartographie lors de la création du Moot, une minuscule partie de l'Empire n'était possédée par aucun comté. Le Duché des Collines en Jachère était la plus petite province. Lorsque le noble qui la possédait l'a finalement vendue au Moot, ses nouveaux propriétaires en ont tiré un grand profit avec le tabac. Même s'ils n'ont aucun scrupule à s'enrichir grâce à la demande étrangère pour leur produit, les habitants des Feuillevertes sont les Mootlanders les moins susceptibles d'accepter les visiteurs de la mauvaise taille. Ils entretiennent également un important commerce avec les nains dans les montagnes et les habitants des Principautés frontalières. Avec la prospérité, cette région s'urbanise et s'éloigne de la ruralité propre au reste du Moot. Certains habitants des Feuillevertes prétendent ne pas avoir besoin du reste du Moot ou même de l'Empire, de toute façon Altdorf est loin et le sud sait s'occuper de ses voisins halflings.
 

@@ -60,7 +60,7 @@ export type CleCharge = 'entries' | 'die';
  */
 export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
   entries: { label: 'Rangées', hint: 'Contenu du document, dans l’ordre authoré' },
-  die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour tirer une rangée (ex. « 1d10 », « d100 »)' },
+  die: { label: 'Dé de tirage', hint: 'Dé lancé pour tirer une rangée : nombre de dés et faces (ex. 1 dé à 100 faces)' },
 };
 
 /**
@@ -81,7 +81,7 @@ export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record
  * `deDeLaTableTiree` (`src/engine/tables.ts`). #1667
  */
 export const sousTirage = nommerChamps(z.strictObject({ die: deDeTirageSchema }), {
-  die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour ce sous-tirage (ex. « d10 »)' },
+  die: { label: 'Dé de tirage', hint: 'Dé lancé pour ce sous-tirage : nombre de dés et faces (ex. 1 dé à 10 faces)' },
 });
 
 /** Les RANGÉES d'une charge (`entries`), collection à clé `id` quand la rangée en déclare un, sous l'`espace` de
@@ -241,7 +241,7 @@ export type DatasetDuDocument<T extends string, F extends FamilleDocument, C ext
 /**
  * Vue TS d'un document à RANGÉES (`options.rangee`) : l'enveloppe, plus la charge que la fabrique
  * pose. Un def qui exporte la vue TS de son document la compose ICI — `DocumentARangees<z.infer<typeof
- * saRangee>>` —, sans jamais re-taper `entries` (un document à `deDeTirage` y ajoute `& { die: string }`, aux seuls cas qui le portent quand
+ * saRangee>>` —, sans jamais re-taper `entries` (un document à `deDeTirage` y ajoute `& { die: DiceSpec }`, aux seuls cas qui le portent quand
  * `espace.chargeParDiscriminant` le nomme).
  */
 export type DocumentARangees<L> = EnveloppeDocument & { entries: L[] };

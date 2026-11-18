@@ -20445,7 +20445,10 @@
               "ops": [
                 {
                   "op": "rollTable",
-                  "die": "d10",
+                  "die": {
+                    "n": 1,
+                    "sides": 10
+                  },
                   "entries": [
                     {
                       "min": 1,
@@ -21894,7 +21897,10 @@
             "ops": [
               {
                 "op": "rollTable",
-                "die": "d10",
+                "die": {
+                  "n": 1,
+                  "sides": 10
+                },
                 "entries": [
                   {
                     "min": 1,
@@ -23897,7 +23903,10 @@
                   },
                   {
                     "op": "rollTable",
-                    "die": "d10",
+                    "die": {
+                      "n": 1,
+                      "sides": 10
+                    },
                     "entries": [
                       {
                         "min": 1,

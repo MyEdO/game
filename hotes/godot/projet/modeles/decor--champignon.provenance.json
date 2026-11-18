@@ -1,0 +1,13 @@
+{
+  "model": "decor--champignon.glb",
+  "model_sha256": "63e8ea5d22fa2dc384964b698a886fe25110f0c1ff3989d3d9ca338140702b38",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
