@@ -2455,7 +2455,6 @@ export const STYLE_INLINE_RATCHET = [
   { fichier: 'src/ui/editor/codex/CodexEdit.tsx', ref: 'input :: width', occurrence: 2 },
   { fichier: 'src/ui/editor/codex/StructFields.tsx', ref: 'button.btn :: marginLeft', occurrence: 1 },
   { fichier: 'src/ui/editor/codex/StructFields.tsx', ref: 'div.fieldrow :: marginLeft', occurrence: 1 },
-  { fichier: 'src/ui/editor/codex/StructFields.tsx', ref: 'input :: width', occurrence: 1 },
   { fichier: 'src/ui/editor/worldMapPickers.tsx', ref: 'div :: marginTop,maxWidth', occurrence: 1 },
   { fichier: 'src/ui/gallery/registry.tsx', ref: 'div :: alignItems,display,gap', occurrence: 1 },
   { fichier: 'src/ui/gallery/registry.tsx', ref: 'div :: display,flexDirection,gap', occurrence: 1 },

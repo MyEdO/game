@@ -12,7 +12,7 @@ import { IDS_PAR_ESPACE } from '../_ids.generated';
 
 type Entree = { id: string; type: string; label: string; [k: string]: unknown };
 const VARIANTE: Entree = { id: 'variante-de-fixture', type: 'apparences', label: 'Variante de fixture', forme: { id: 'epee' }, especes: ['humains-reiklander'], classes: ['courtisans'], qualites: ['raffine'] };
-const avec = (...entrees: Entree[]): Entree[] => [...(structuredClone(apparencesJson) as Entree[]), ...entrees];
+const avec = (...entrees: Entree[]): Entree[] => [...structuredClone(apparencesJson), ...entrees];
 const refus = (doc: unknown): string => {
   const r = schema.safeParse(doc);
   expect(r.success, 'le document a parsé alors qu’il devait être REFUSÉ').toBe(false);

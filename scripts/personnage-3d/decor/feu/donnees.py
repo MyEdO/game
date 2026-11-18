@@ -27,11 +27,11 @@ l'aplomb du centre de la primitive `emet` de la recette, où le noyau pose le fo
 morceaux de braises du feu de camp, le tas du brasero, les vitres du lampadaire, du fanal et de la lanterne de poupe,
 les flammes des trois bougies du chandelier et de l'applique, dont celle du milieu tient cet aplomb.
 
-Matières : l'écorce des bûches prend `bois-mort`, dont la texture est une écorce, et leurs bouts sciés `bois-chene`,
-que la recette nomme pour la bûche entière. Le catalogue n'a ni verre ni cendre : les vitres du lampadaire prennent
-`braises`, la matière que la recette donne au corps de sa lanterne, comme celles du fanal et de la lanterne de poupe,
-et le lit du feu de camp est tout de braises. Il n'a ni cire ni flamme : les bougies prennent `albatre`, que la recette
-du chandelier leur donne, et leurs flammes `braises`."""
+Matières : l'écorce des bûches prend `bois-mort`, dont la texture est une écorce, et leurs bouts sciés `bois-chene`, que
+la recette nomme pour la bûche entière. Les vitres du lampadaire, du fanal et de la lanterne de poupe prennent
+`braises`, que la recette donne au corps de leur lanterne : leur nœud `emet` luit de la couleur de sa matière
+(`MontageDesModeles._allumer`). Le catalogue n'a ni cendre ni flamme : le lit du feu de camp est tout de braises, les
+flammes des bougies aussi."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {
@@ -40,8 +40,8 @@ MATERIAUX = {
     "brasero": {"fer": ("metal", "fer-noirci"), "braises": ("accent", "braises")},
     "lampadaire": {"pierre": ("corps", "pierre-atre"), "fer": ("metal", "fer-noirci"), "laiton": ("metal2", "laiton-dore"),
                    "vitres": ("accent", "braises")},
-    "chandelier": {"laiton": ("metal", "laiton-dore"), "cire": ("corps", "albatre"), "flamme": ("accent", "braises")},
-    "applique-murale": {"laiton": ("metal", "laiton-dore"), "cire": ("corps", "albatre"), "flamme": ("accent", "braises")},
+    "chandelier": {"laiton": ("metal", "laiton-dore"), "cire": ("corps", "cire"), "flamme": ("accent", "braises")},
+    "applique-murale": {"laiton": ("metal", "laiton-dore"), "cire": ("corps", "cire"), "flamme": ("accent", "braises")},
     "fanal": {"bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci"), "vitres": ("accent", "braises")},
     "lanterne-de-poupe": {"bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci"), "laiton": ("metal2", "laiton-dore"),
                           "vitres": ("accent", "braises")},

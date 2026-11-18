@@ -16,7 +16,7 @@ import { setRule, resetRule } from './policy';
 import { CRITIQUE_DOCS, critiqueTable, type JeuDeCritique } from '../data/criticals';
 import { findTableEntryIndex } from './tables';
 import { setEnTete, resetData } from '../data/overrides';
-import locJson from '../data/localisation.json';
+import { tablesDeLocalisation } from '../data';
 import type { Combatant, HitLocation } from './types';
 import { desDuTest, desEnSuite } from './dice.testkit';
 import { LOCALISATIONS_DE_COUP } from './types';
@@ -116,7 +116,7 @@ describe.each(JEUX)('resolveCritique (%s) — invariants partagés par les deux 
    * décrivez le résultat de façon appropriée. ») — garde EXHAUSTIVE, la classe et pas les cas.
    */
   describe('critiqueTable — repli Tableau des Bras (LDB 76 l.21)', () => {
-    const shapes = (locJson as { personnage: { shapes: Record<string, { loc: HitLocation }[]> } }).personnage.shapes;
+    const shapes = tablesDeLocalisation.personnage.shapes;
     const producedLocs = new Set<HitLocation>();
     for (const entries of Object.values(shapes)) for (const e of entries) producedLocs.add(e.loc);
 
@@ -232,7 +232,7 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
 
   it('« Bouche explosée » : le 1d10 de la LIGNE (`unites`) pilote le comptage de bout en bout', () => {
     // d100=83 → « Bouche explosée » (81-85) ; le 1d10 des dents DÉCLARÉ par la ligne (`amputation.unites`)
-    // est désormais tiré par l'op, à l'application — c'est une QUANTITÉ, pas un Test.
+    // est tiré par l'op, à l'application — c'est une QUANTITÉ, pas un Test.
     const [, perte] = flowEtapes(resolveCritique('ldb', cible(30), 'tete', seq(83)).testFlow);
     const c = cible(30);
     applyOps(c, opsDe(perte), { idNeuf: idsDeTest, rng: seq(7) });

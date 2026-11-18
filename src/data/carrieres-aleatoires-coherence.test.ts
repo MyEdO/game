@@ -8,13 +8,11 @@
  *    l'admettent au tirage.
  */
 import { describe, expect, it } from 'vitest';
-import careersJson from './careers.json';
-import carrieresAleatoiresJson from './carrieres-aleatoires.json';
+import { careers, carrieresAleatoires } from './index';
 import { tableDeCarrieres } from './schemas/defs/carrieres-aleatoires';
 
-type Rangee = { id: string; min: number; max: number };
-type Colonne = { id: string; kind: string; colonne?: string; carriere?: string; entries: Rangee[] };
-type Carriere = { id: string; class: { id: string }; races?: string[]; aLaPlaceDe?: { id: string } };
+type Colonne = (typeof carrieresAleatoires)[number];
+type Carriere = (typeof careers)[number];
 
 /** Les écarts de sens de chaque portion de `documents`, nommés. */
 function ecartsDeSens(documents: readonly Colonne[], careers: readonly Carriere[]): string[] {
@@ -44,8 +42,8 @@ function sansRaces(documents: readonly Colonne[], careers: readonly Carriere[]):
   return careers.filter((c) => offertes.has(c.id) && !c.races?.length).map((c) => c.id);
 }
 
-const DOCUMENTS = carrieresAleatoiresJson as Colonne[];
-const CARRIERES = careersJson as Carriere[];
+const DOCUMENTS = carrieresAleatoires;
+const CARRIERES = careers;
 
 describe('portions du Tableau des Classes et Carrières aléatoires — remplacement d’une Classe (MDG 09 l.9)', () => {
   it('chaque portion est d’une Classe, et remplace une étendue d’une seule autre Classe', () => {

@@ -943,13 +943,14 @@ export type NatureDeMention = z.infer<typeof natureDeMentionSchema>;
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */
 export const moneyPartialSchema = nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
 
-/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `CountSpec.roll`, `Formula.dice` et `details`. */
+/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `Formula.dice` et `details`. */
 export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), fois: z.number().positive().optional(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, fois: { label: "multiplicateur" }, plus: { label: "ajout" } });
 
-/** Dé de TIRAGE d'une table à fourchettes (`die`) : le `DiceSpec` restreint à NdM, N et M entiers de 1. UNE
- *  déclaration pour la fabrique (`options.deDeTirage`, `grammaire/document.ts`), les tables de
- *  `arcane-phenomena.json`, les porteurs de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`,
- *  `defs/tavernGames.ts`) et l'op `rollTable` (`grammaire/mecanique.ts`). #1669 #4056 */
+/** Dé de TIRAGE d'une table à fourchettes (`die`) ou d'une quantité (`CountSpec.roll`) : le `DiceSpec` restreint
+ *  à NdM, N et M entiers de 1. UNE déclaration pour la fabrique (`options.deDeTirage`, `grammaire/document.ts`),
+ *  les tables de `arcane-phenomena.json`, les porteurs de N tables (`defs/rencontres-edoc.ts`,
+ *  `defs/ship-criticals.ts`, `defs/tavernGames.ts`), l'op `rollTable` (`grammaire/mecanique.ts`) et
+ *  `countSpecSchema`. #1669 #4056 */
 const metaDuDe = metaDesChamps(diceSpecSchema, { exigees: true });
 export const deDeTirageSchema = nommerChamps(
   z.strictObject({ n: diceSpecSchema.shape.n.int().min(1), sides: diceSpecSchema.shape.sides.int().min(1) }),
@@ -1140,10 +1141,10 @@ export const castingNumberModSchema = nommerChamps(z
     message: 'castingNumberMod : un modificateur sans `multiply`/`divide`/`delta` ne modifie rien',
   }), { multiply: { label: "multiplier" }, divide: { label: "diviser" }, round: { label: "arrondi" }, delta: { label: "variation" }, min: { label: "minimum" }, scope: { label: "portée" }, maison: { label: "arbitrage maison" }, source: { label: "source" }, desc: { label: "texte" } });
 
-/** Quantité fixe ou tirage de dés (`CountSpec`). */
+/** Quantité fixe ou tirage de dés (`CountSpec`) : un entier de 1, ou un dé de tirage NdM. LDB 08 l.238, l.965, l.1667 #4056 */
 export const countSpecSchema = z.union([
-  nommerChamps(z.strictObject({ fixed: z.number() }), { fixed: { label: "fixé" } }),
-  nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
+  nommerChamps(z.strictObject({ fixed: z.number().int().min(1) }), { fixed: { label: "fixé" } }),
+  nommerChamps(z.strictObject({ roll: deDeTirageSchema }), { roll: { label: "jet" } }),
 ]);
 /** Quantité d'une dotation : nombre fixe ou jet de dés. */
 export type CountSpec = z.infer<typeof countSpecSchema>;

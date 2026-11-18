@@ -34,8 +34,7 @@ describe('careerLevels — `status` est un Statut en ids (`statutSchema`)', () =
   });
 });
 
-type NiveauDeCarriere = { id: string; career: { id: string }; level: number; characteristics: string[]; [k: string]: unknown };
-const reel = (): NiveauDeCarriere[] => structuredClone(careerLevelsJson) as unknown as NiveauDeCarriere[];
+const reel = () => structuredClone(careerLevelsJson);
 
 describe('careerLevels — identité `<career>-<level>`, quatre Niveaux, Schéma de Progression 3/1/1/1 (LDB 07 l.26 ; LDB 07 l.41-43)', () => {
   it('la donnée réelle passe', () => {

@@ -157,14 +157,14 @@ def couturier(D, G, pieces, a):
 
 def plante(D, G, pieces, a):
     """Une plante en pot d'après `PLANTE` : pot tourné sous son bord, terre en butte, tronc, couronnes de feuilles."""
-    P, bois = D["PLANTE"], pieces["bois"]
-    tourne(bois, G.primitives[P["pot"]], P["pot_tourne"], P["cotes"], MAT)
+    P, bois, pot = D["PLANTE"], pieces["bois"], pieces["pot"]
+    tourne(pot, G.primitives[P["pot"]], P["pot_tourne"], P["cotes"], "pot")
     rp = apotheme(G.primitives[P["pot"]])
     bord = G.primitives[P["bord"]]
     cb, _, hb = rond(bord)
     dedans = rp * P["levre"]
-    cercle(bois, AXES[bord["axis"]][0], cb, (apotheme(bord) + dedans) / 2, hb, apotheme(bord) - dedans, P["cotes"],
-           MAT)
+    cercle(pot, AXES[bord["axis"]][0], cb, (apotheme(bord) + dedans) / 2, hb, apotheme(bord) - dedans, P["cotes"],
+           "pot")
     tournee(pieces["terre"], cb - HAUT * (hb / 2), cb + HAUT * (hb / 2 + hb * P["butte"]), X, Y, rp * P["terre"],
             P["motte"], P["cotes"], "terre")
     F, tronc = P["fut"], G.primitives[P["tronc"]]

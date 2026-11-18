@@ -65,11 +65,10 @@ haut).
   recette, trois pieds tournés en dévers dans l'emprise de son fût et trois barreaux.
 
 Matières : celles des recettes. L'armoire prend `fer-noirci` pour ses pentures comme pour ses boutons ; les livres de
-l'étagère, dont la recette est toute de `bois-chene`, sont de `cuir-tanne` ; les mors de la presse d'un établi, dont
-la recette fait un bloc de `fer-noirci`, sont de `bois-chene`, sa vis et son levier seuls de fer. Le catalogue n'a
-ni velours ni tissu d'ameublement : la garniture des sièges garde `toile-rouge` ; il n'a pas de verre : la glace de la
-coiffeuse garde `albatre`. Les tabourets des tables, dont la recette fait le fût de `fer-noirci`, sont de
-`bois-chene` ; le fût de la table ronde aussi, son cercle et sa bague seuls de fer."""
+l'étagère, dont la recette est toute de `bois-chene`, sont de `cuir-tanne` ; l'établi et la table ronde prennent
+`fer-noirci`, que leur recette ne nomme pas, l'un pour la vis et le levier de sa presse, l'autre pour le cercle de son
+plateau et la bague de son fût ; l'établi long aussi, pour les mêmes pièces de sa presse. Le catalogue n'a ni velours ni
+tissu d'ameublement : la garniture des sièges garde `toile-rouge`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}
@@ -79,10 +78,11 @@ MATERIAUX = {
     "etagere": {**BOIS, "cuir": ("cuir", "cuir-tanne")},
     "lit": {**BOIS, "ecru": ("vet1", "toile-ecrue"), "rouge": ("vet2", "toile-rouge")},
     **{id_: {**BOIS, "fer": ("metal", "fer-noirci")}
-       for id_ in ("comptoir-droit", "comptoir-angle", "etabli", "etabli-2x1", "table-ronde-4-tabourets")},
+       for id_ in ("comptoir-droit", "comptoir-angle", "etabli", "table-ronde-4-tabourets")},
+    "etabli-2x1": {**BOIS, "fer": ("metal", "fer-noirci"), "acier": ("metal2", "acier-battu")},
     **{id_: {**BOIS, "rouge": ("vet1", "toile-rouge"), "laiton": ("metal", "laiton-dore")}
        for id_ in ("siege", "fauteuil-loge", "canape")},
-    "coiffeuse": {**BOIS, "glace": ("corps", "albatre")},
+    "coiffeuse": {**BOIS, "glace": ("corps", "verre")},
     "table-murale-2-tabourets": BOIS,
 }
 
@@ -92,8 +92,8 @@ BUDGET_TRIANGLES = {"table": 1400, "table-2x1": 1400, "chaise": 2000, "banc": 12
                     "siege": 2400, "fauteuil-loge": 2400, "canape": 2000, "coiffeuse": 2600,
                     "table-ronde-4-tabourets": 6000, "table-murale-2-tabourets": 3400}
 
-ANGLE_LISSE = {"bois": 40, "ferrures": 30, "objets": 40, "literie": 50, "fers": 50, "garniture": 50, "dorures": 40,
-               "glace": 30}
+ANGLE_LISSE = {"bois": 40, "ferrures": 30, "objets": 40, "literie": 50, "fers": 50, "lame": 50, "garniture": 50,
+               "dorures": 40, "glace": 30}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : un chanfrein garde ses arêtes,
 une pièce tournée est ronde."""
 

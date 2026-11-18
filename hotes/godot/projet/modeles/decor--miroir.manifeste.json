@@ -16,11 +16,11 @@
     {
       "nom": "glace",
       "palette": "corps",
-      "matiere": "prop--albatre"
+      "matiere": "prop--verre"
     }
   ],
   "glb": {
-    "sha256": "6de2785e5ba8d20e5ca9c05d509385cd743201732e7305d70d5591edbfda3efa",
-    "octets": 53920
+    "sha256": "f91d6c6d40fa4aefaec62d976207913b3e8de02014b41fdfe04fd46a7a52f261",
+    "octets": 53924
   }
 }

@@ -28,23 +28,22 @@ couvre de part et d'autre, en stations et en degrés ; la part du rayon qu'il aj
   plates bosselées, une rune en relief sur chacune ; un cercle tracé au sol qui passe sous les pierres.
 
 Matières : celles des recettes, sauf : le cadavre prend `cuir-tanne`, que sa recette toute de drap ne nomme pas, pour
-ses bottes et sa ceinture, qui sont de cuir ; ses cheveux et les sabots du cheval sont du `drap-terne` de leur
-recette, la plus sombre de ses matières ; les pierres du cercle, que la recette fait de `rune-chaos`, sont de la
-`pierre-chaos` de sa dalle et gardent `rune-chaos` pour leur rune ; la butte du tas est de la `terre-battue` de sa
-recette. Le catalogue n'a pas de terre cuite (#4423) : la cruche garde la `terre-battue` que la recette donne à son
-cylindre. Il n'a ni crin (`drap-terne` pour la crinière, que la recette donne à la queue), ni cheveux, ni corne, ni
-sang frais ni sang séché (`sang-repandu`). Aucun emplacement de palette ne nomme la peau, la terre, l'os ni la
-pierre : ils prennent `corps` ; le sang, le crin, la corne, les cheveux et la rune, `accent` ; le drap, `vet1`."""
+ses bottes et sa ceinture, qui sont de cuir, et `chevelure` pour sa calotte ; le cheval prend `corne` pour ses sabots et,
+pour sa crinière, le `crin` que la recette donne à sa queue ; les pierres du cercle, que la recette fait de
+`rune-chaos`, sont de la `pierre-chaos` de sa dalle et gardent `rune-chaos` pour leur rune ; la butte du tas est de la
+`terre-battue` de sa recette. Le catalogue n'a ni sang frais ni sang séché (`sang-repandu`). Aucun emplacement de
+palette ne nomme la peau, la terre, la terre cuite, l'os ni la pierre : ils prennent `corps` ; le sang, le crin, la
+corne, les cheveux et la rune, `accent` ; le drap, `vet1`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 PEAU = {"peau": ("corps", "peau-morte")}
 SANG = {"sang": ("accent", "sang-repandu")}
 MATERIAUX = {
     "cadavre": {**PEAU, **SANG, "drap": ("vet1", "drap-terne"), "cuir": ("cuir", "cuir-tanne"),
-                "cheveux": ("accent", "drap-terne")},
-    "cheval-mort": {**PEAU, **SANG, "crin": ("accent", "drap-terne"), "corne": ("accent", "drap-terne")},
-    "detritus": {"bois": ("bois", "bois-mort"), "terre": ("corps", "terre-battue"), "drap": ("vet1", "drap-terne"),
-                 "os": ("corps", "os")},
+                "cheveux": ("accent", "chevelure")},
+    "cheval-mort": {**PEAU, **SANG, "crin": ("accent", "crin"), "corne": ("accent", "corne")},
+    "detritus": {"bois": ("bois", "bois-mort"), "terre": ("corps", "terre-battue"), "cruche": ("corps", "terre-cuite"),
+                 "drap": ("vet1", "drap-terne"), "os": ("corps", "os")},
     "mare-sang": {**SANG},
     "cercle-runique": {"pierre": ("corps", "pierre-chaos"), "rune": ("accent", "rune-chaos")},
 }
@@ -52,7 +51,7 @@ MATERIAUX = {
 BUDGET_TRIANGLES = {"cadavre": 4000, "cheval-mort": 4900, "detritus": 2600, "mare-sang": 2000, "cercle-runique": 1900}
 
 ANGLE_LISSE = {"peau": 60, "drap": 60, "cuir": 50, "cheveux": 60, "crin": 60, "corne": 40, "sang": 60, "bois": 40,
-               "terre": 50, "os": 50, "pierre": 30, "rune": 30}
+               "terre": 50, "cruche": 50, "os": 50, "pierre": 30, "rune": 30}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : une chair, une étoffe, une
 flaque et une motte sont rondes, une planche, une pierre et une rune gardent leurs arêtes."""
 

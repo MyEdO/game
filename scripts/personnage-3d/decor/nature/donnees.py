@@ -25,27 +25,25 @@ la recette, des primitives qu'elle lit.
 plaque. La toile fait des trois carrés le cadre et les tours de la spirale, et de la croix de la recette deux de ses
 rayons, dans la même enveloppe. Le cocon ajoute ses fils et ses haubans. Les roseaux ajoutent leurs feuilles.
 
-Matières : celles des recettes. Le catalogue n'a ni chitine pour l'araignée, que la recette fait d'`ombre`, ni pétale
-ni étamine pour la fleur du nénuphar, tout entière d'`albatre` ; les lamelles, la collerette et les verrues du
-champignon prennent l'`os` de son pied."""
+Matières : celles des recettes. Le catalogue n'a pas d'étamine : le cœur de la fleur du nénuphar est du `petale` de sa
+corolle ; les lamelles, la collerette et les verrues du champignon prennent la `chair-champignon` de son pied."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 SOIE = {"soie": ("corps", "soie")}
-OMBRE = {"ombre": ("accent", "ombre")}
 MATERIAUX = {
-    "terrier": {"terre": ("corps", "terre-battue"), **OMBRE},
+    "terrier": {"terre": ("corps", "terre-battue"), "ombre": ("accent", "ombre")},
     "cocon": SOIE,
-    "toile": {**SOIE, **OMBRE},
-    "champignon": {"chair": ("corps", "os"), "chapeau": ("vegetal", "chapeau-rouge")},
-    "nenuphars": {"feuille": ("vegetal", "feuillage"), "fleur": ("corps", "albatre")},
-    "roseaux": {"roseau": ("vegetal", "roseau"), "massette": ("corps", "terre-battue")},
+    "toile": {**SOIE, "chitine": ("accent", "chitine")},
+    "champignon": {"chair": ("corps", "chair-champignon"), "chapeau": ("vegetal", "chapeau-rouge")},
+    "nenuphars": {"feuille": ("vegetal", "feuillage"), "fleur": ("corps", "petale")},
+    "roseaux": {"roseau": ("vegetal", "roseau"), "massette": ("corps", "massette")},
 }
 
 BUDGET_TRIANGLES = {"terrier": 1600, "cocon": 1400, "toile": 2500, "champignon": 2600, "nenuphars": 2900,
                     "roseaux": 3900}
 
-ANGLE_LISSE = {"terre": 35, "ombre": 30, "soie": 50, "chair": 40, "chapeau": 50, "feuille": 30, "fleur": 30,
-               "roseau": 30, "massette": 50}
+ANGLE_LISSE = {"terre": 35, "ombre": 30, "chitine": 30, "soie": 50, "chair": 40, "chapeau": 50, "feuille": 30,
+               "fleur": 30, "roseau": 30, "massette": 50}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : la terre, un limbe et un
 pétale gardent leurs arêtes, la soie, un chapeau et une massette sont ronds."""
 

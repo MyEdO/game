@@ -12,9 +12,7 @@ import { join, resolve } from 'node:path';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
 import { z } from 'zod';
 import merchantsJson from '../../merchants.json';
-import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
-import traitsJson from '../../traits.json';
 import {
   adressesDesEntreesEmbarquees,
   document,
@@ -36,7 +34,7 @@ import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import type { DescRef as DescRefParseur } from '../../source/decoupe';
 import { ref, refs, specRef, refOuSpec, pick, tirageSurTable, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
 import { flowTestSchema } from './mecanique';
-import { byId, type SkillData, type TypeResolu } from '../../index';
+import { byId, skills, talents, traits, type SkillData, type TypeResolu } from '../../index';
 import { avancement } from './avancement';
 import { SANS_LIVRE_DEFINITIF } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
@@ -48,9 +46,9 @@ import { noeudObjet, validateDataset } from '../validate';
 import { estObjet } from '../../../lib/objet.mjs';
 
 type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string };
-const UNE_COMPETENCE = skillsJson[0] as { id: string };
-const UNE_COMPETENCE_GROUPEE = (skillsJson as EntreeASpecs[]).find((s) => s.specs?.length)!;
-const UN_TALENT_A_SPECS = (talentsJson as EntreeASpecs[]).find((t) => t.specs?.length)!;
+const UNE_COMPETENCE = skills[0];
+const UNE_COMPETENCE_GROUPEE = skills.find((s) => s.specs?.length)!;
+const UN_TALENT_A_SPECS = talents.find((t) => t.specs?.length)!;
 const declareDesSpecs = (e: EntreeASpecs) => !!(e.specs?.length || e.specsSource);
 
 const SOURCE_REELLE = { book: 'livre-de-base', page: 118 };
@@ -1044,7 +1042,7 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
     const def = SCHEMA_DEFS.find((d) => d.file === 'merchants.json')!;
     const merchants = def.schema.parse(JSON.parse(JSON.stringify(merchantsJson)));
     expect(Array.isArray(merchants)).toBe(true);
-    const faux = JSON.parse(JSON.stringify(merchantsJson)) as { curated?: string[] }[];
+    const faux = structuredClone(merchantsJson);
     const porteur = faux.find((m) => m.curated?.length)!;
     porteur.curated![0] = 'objet-qui-n-existe-pas';
     const res = def.schema.safeParse(faux);
@@ -1057,8 +1055,8 @@ describe('specRef() — l’ENTRÉE visée dit si sa spécialisation est ouverte
   type EntreeOuvrable = EntreeASpecs & { specsOpen?: boolean };
   const aSpecsInline = (e: EntreeOuvrable) => !!e.specs?.length && !e.specsSource;
   const cas = [
-    ['skill', skillsJson as EntreeOuvrable[]],
-    ['talent', talentsJson as EntreeOuvrable[]],
+    ['skill', skills],
+    ['talent', talents],
   ] as const;
 
   for (const [type, entrees] of cas) {
@@ -1083,7 +1081,7 @@ describe('specRef() — l’ENTRÉE visée dit si sa spécialisation est ouverte
   }
 
   it('trait : `entreeOuverte` suit le `specsOpen` de CHAQUE entrée de traits.json', () => {
-    const entrees = traitsJson as EntreeOuvrable[];
+    const entrees = traits;
     const ouvertes = entrees.filter((e) => e.specsOpen === true).map((e) => e.id);
     expect(ouvertes.length).toBeGreaterThan(0);
     expect(entrees.filter((e) => entreeOuverte('trait', e.id)).map((e) => e.id)).toEqual(ouvertes);
@@ -1097,20 +1095,20 @@ describe('specRef() — l’ENTRÉE visée dit si sa spécialisation est ouverte
   });
 
   it('REFUSE « spec » sur une Compétence qui n’est pas Groupée (`LDB 09 l.36-40`)', () => {
-    const athletisme = (skillsJson as EntreeASpecs[]).find((s) => s.id === 'athletisme')!;
+    const athletisme = skills.find((s) => s.id === 'athletisme')!;
     expect(declareDesSpecs(athletisme)).toBe(false);
     expect(estSpecialisable('skill', 'athletisme')).toBe(false);
     const res = specRef('skill').safeParse({ id: 'athletisme', spec: 'bidon' });
     expect(res.success).toBe(false);
     expect(JSON.stringify(res.error?.issues)).toMatch(/ne déclare aucune spécialisation/);
 
-    const savoir = (skillsJson as EntreeASpecs[]).find((s) => s.id === 'savoir')!;
+    const savoir = skills.find((s) => s.id === 'savoir')!;
     expect(declareDesSpecs(savoir)).toBe(true);
     expect(specRef('skill').safeParse({ id: 'savoir', spec: 'loi' }).success).toBe(true);
   });
 
   it('REFUSE « choix » quand l’univers de specs de l’entité est VIDE', () => {
-    const aleatoire = (talentsJson as EntreeASpecs[]).find((t) => t.id === 'talent-aleatoire')!;
+    const aleatoire = talents.find((t) => t.id === 'talent-aleatoire')!;
     expect(declareDesSpecs(aleatoire)).toBe(false);
     expect(specRef('talent').safeParse({ id: 'talent-aleatoire', choix: true }).success).toBe(false);
     expect(specRef('talent').safeParse({ id: 'talent-aleatoire', choix: [] }).success).toBe(false);
@@ -1118,7 +1116,7 @@ describe('specRef() — l’ENTRÉE visée dit si sa spécialisation est ouverte
   });
 
   it('un Talent à pool DÉRIVÉ (`specsSource`) est spécialisable et résout ses specs réelles', () => {
-    const magie = (talentsJson as EntreeASpecs[]).find((t) => t.id === 'magie-des-arcanes')!;
+    const magie = talents.find((t) => t.id === 'magie-des-arcanes')!;
     expect(magie.specsSource).toBeTruthy();
     expect(magie.specs).toBeUndefined();
     expect(estSpecialisable('talent', 'magie-des-arcanes')).toBe(true);
@@ -1254,9 +1252,9 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
   });
 
   it('une réf inventée est refusée AU CHARGEMENT par sa feuille, qui nomme le catalogue — `nue` ne change que le type de sortie (#1473)', () => {
-    const talents = structuredClone(talentsJson) as { source: { book: string } }[];
-    talents[0].source.book = 'livre-invente';
-    expect(validateDataset('talents.json', talents)).toContain('« livre-invente » est absent du catalogue des livres (books.json).');
+    const copie = structuredClone(talentsJson);
+    copie[0].source.book = 'livre-invente';
+    expect(validateDataset('talents.json', copie)).toContain('« livre-invente » est absent du catalogue des livres (books.json).');
     expectTypeOf(idDe('book', undefined, { nue: true }).parse(talentsJson[0].source.book)).toEqualTypeOf<string>();
   });
 

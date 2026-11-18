@@ -16,11 +16,11 @@
     {
       "nom": "toile",
       "palette": "vet1",
-      "matiere": "prop--albatre"
+      "matiere": "prop--toile-ecrue"
     }
   ],
   "glb": {
-    "sha256": "6e6b3d3dd41a59c34106b4d7d359804e0d5752c9257d283bcf6b3fc3b7840340",
-    "octets": 63000
+    "sha256": "0164364f60018215182fd797ea194dc63a82debec4f6b2e907972dccb7cd8e33",
+    "octets": 62996
   }
 }

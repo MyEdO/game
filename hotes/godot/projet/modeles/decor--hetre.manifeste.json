@@ -24,7 +24,7 @@
     {
       "nom": "ecorce",
       "palette": "bois",
-      "matiere": "prop--laine"
+      "matiere": "prop--ecorce-hetre"
     },
     {
       "nom": "feuillage",
@@ -33,7 +33,7 @@
     }
   ],
   "glb": {
-    "sha256": "912f823d0e79dca4444e89fd37e8d507d1709dea6ec2d13a49dcfbb112c4f98d",
+    "sha256": "1c685de1b538c84a86a86fee65b70ea37613e029da8b4792961c3778333f88ab",
     "octets": 349892
   }
 }

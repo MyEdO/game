@@ -4,7 +4,6 @@ import type { Combatant, Trauma, ItemInstance } from '../engine/types';
 import type { Disease } from '../engine/disease';
 import { ciblePsy, libelleDeCible } from '../engine/psych/ciblage';
 import { groups, psychologies, psychologyLabel } from '../data';
-import type { PsychType } from '../engine/psychology';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Héros de test minimal — mêmes caractéristiques que le patron `EquipmentPanel.test.tsx` (mkHero). */
@@ -91,8 +90,8 @@ describe('sheetAlarms', () => {
     expect(type).toBeDefined();
     const hero = mkHero((c) => {
       c.psychState = [
-        { type: type!.id as PsychType, cible: ciblePsy.groupe(groupe.id), active: true },
-        { type: type!.id as PsychType, cible: ciblePsy.individu('pnj'), active: true },
+        { type: type!.id, cible: ciblePsy.groupe(groupe.id), active: true },
+        { type: type!.id, cible: ciblePsy.individu('pnj'), active: true },
       ];
     });
     const nom = (id: string) => (id === 'pnj' ? 'Nom du PNJ' : undefined);

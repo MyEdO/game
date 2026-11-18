@@ -19,6 +19,11 @@
       "matiere": "prop--albatre"
     },
     {
+      "nom": "cire",
+      "palette": "corps",
+      "matiere": "prop--cire"
+    },
+    {
       "nom": "sang",
       "palette": "accent",
       "matiere": "prop--sang-repandu"
@@ -30,7 +35,7 @@
     }
   ],
   "glb": {
-    "sha256": "8c29fcdfb836a3d1d4b977dda609a12abd3ee662288c88e0cc26e0b820e9a121",
-    "octets": 98004
+    "sha256": "556f4e3e988a927f6793d483028e733e6081dcc51492a09f376153e0e52a5df7",
+    "octets": 98812
   }
 }

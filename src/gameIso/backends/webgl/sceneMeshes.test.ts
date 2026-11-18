@@ -966,21 +966,21 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
  * matériau monté). C'est ce découpage qui donne au même décor plusieurs plages de picking disjointes.
  */
 describe('GROUPES DE SURFACE — un décor à recette se groupe par MATÉRIAU', () => {
-  const scèneMeuble = () => {
+  const scèneTonneau = () => {
     const s = emptyScene('scene-test', 8, 8);
-    s.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S' }] as typeof s.entities;
+    s.entities = [{ id: 'tonneau-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'tonneau' }, facing: 'S' }] as typeof s.entities;
     return s;
   };
 
   it('les faces du décor entrent dans `worldFaces`, chacune porteuse de son entité', () => {
-    const facesProp = worldFaces(scèneMeuble(), 'jeu').filter((wf) => wf.face.material.domain === 'prop');
+    const facesProp = worldFaces(scèneTonneau(), 'jeu').filter((wf) => wf.face.material.domain === 'prop');
     expect(facesProp.length).toBeGreaterThan(0);
-    expect(facesProp.every((wf) => wf.face.entId === 'table-1')).toBe(true);
+    expect(facesProp.every((wf) => wf.face.entId === 'tonneau-1')).toBe(true);
     expect(facesProp.every((wf) => wf.el.kind === 'prop')).toBe(true);
   });
 
   it('un groupe par matériau de recette, porteur de la réponse à la lumière AUTHORÉE', () => {
-    const listées = worldFaces(scèneMeuble(), 'jeu');
+    const listées = worldFaces(scèneTonneau(), 'jeu');
     const { groups } = surfaceGrouping(listées, 2);
     const groupesProp = groups.filter((g) => g.key.startsWith('prop|'));
     expect(groupesProp.map((g) => g.key).sort()).toEqual(['prop|bois-chene', 'prop|fer-noirci']);
@@ -994,8 +994,8 @@ describe('GROUPES DE SURFACE — un décor à recette se groupe par MATÉRIAU', 
   });
 
   it('deux matériaux ⇒ le décor occupe DEUX plages de picking disjointes dans la géométrie cuite', () => {
-    const world = buildWorldGeometry(scèneMeuble(), 2, 'jeu', () => 1);
-    const plages = world.userData.propVertexRanges.filter((r) => r.entId === 'table-1');
+    const world = buildWorldGeometry(scèneTonneau(), 2, 'jeu', () => 1);
+    const plages = world.userData.propVertexRanges.filter((r) => r.entId === 'tonneau-1');
     expect(plages.length).toBe(2);
     const [a, b] = [...plages].sort((x, y) => x.vertexStart - y.vertexStart);
     expect(a.vertexStart + a.vertexCount).toBeLessThanOrEqual(b.vertexStart); // disjointes, jamais fusionnées

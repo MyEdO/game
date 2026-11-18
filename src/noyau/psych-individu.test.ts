@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
-  ciblesDePulsion, psychBranchOps, psychImmuneToFrom, sansCiblesPsyInconnues, targetedTrigger, vise, sourceCombattant, type PsychType,
+  ciblesDePulsion, psychBranchOps, psychImmuneToFrom, sansCiblesPsyInconnues, targetedTrigger, vise, sourceCombattant,
 } from '../engine/psychology';
 import { psychDRAdjust } from '../engine/combat';
 import { applyOps } from '../engine/ops';
@@ -76,7 +76,7 @@ describe('vise — un individu ne vise que le combattant de son id', () => {
 
 describe('le combat : déclencheur, +1 DR, immunité', () => {
   it('le Trait se déclenche à la vue de l’individu, d’une seule instance, et non à celle d’un homonyme de Groupe', () => {
-    const obs = mk('o', 'heros', { psychTraits: [{ type: mixte!.id as PsychType, cible: ciblePsy.individu('p') }] });
+    const obs = mk('o', 'heros', { psychTraits: [{ type: mixte!.id, cible: ciblePsy.individu('p') }] });
     expect(targetedTrigger(obs, [sourceCombattant(mk('q', 'ennemi', { groups: [groupe.id] }))])).toBeNull();
     const tt = targetedTrigger(obs, [sourceCombattant(mk('q', 'ennemi')), sourceCombattant(mk('p', 'ennemi'))]);
     expect(tt).toMatchObject({ sourceId: 'p', cible: ciblePsy.individu('p') });
@@ -94,20 +94,20 @@ describe('le combat : déclencheur, +1 DR, immunité', () => {
   });
 
   it('+DR d’attaque contre l’individu seul (LDB 21 l.41)', () => {
-    const att = mk('a', 'ennemi', { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('p'), active: true }] });
+    const att = mk('a', 'ennemi', { psychState: [{ type: pulsion!.id, cible: ciblePsy.individu('p'), active: true }] });
     expect(psychDRAdjust(att, mk('p', 'heros'))).toBe(pulsion!.attackDR!.amount);
     expect(psychDRAdjust(att, mk('q', 'heros'))).toBe(0);
   });
 
   it('immunité causée par l’individu seul (LDB 21 l.41)', () => {
     const canal = immunisant!.immuneToFromTarget![0];
-    const self = mk('s', 'heros', { psychState: [{ type: immunisant!.id as PsychType, cible: ciblePsy.individu('p'), active: true }] });
+    const self = mk('s', 'heros', { psychState: [{ type: immunisant!.id, cible: ciblePsy.individu('p'), active: true }] });
     expect(psychImmuneToFrom(self, sourceCombattant(mk('p', 'ennemi')), canal)).toBe(true);
     expect(psychImmuneToFrom(self, sourceCombattant(mk('q', 'ennemi')), canal)).toBe(false);
   });
 
   it('malus social contenu : l’interlocuteur d’un Test social n’a pas d’id, un individu ne s’y applique pas', () => {
-    const tester = mk('t', 'heros', { psychTraits: [{ type: contenu!.id as PsychType, cible: ciblePsy.individu('p') }] });
+    const tester = mk('t', 'heros', { psychTraits: [{ type: contenu!.id, cible: ciblePsy.individu('p') }] });
     expect(socialPsychMod(tester, [groupe.id])).toBe(0);
   });
 });
@@ -234,7 +234,7 @@ describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', (
   });
 
   it('`ciblesDePulsion` rend les combattants en action visés par une affliction active à pulsion, alliés compris', () => {
-    const e = mk('e', 'ennemi', { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
+    const e = mk('e', 'ennemi', { psychState: [{ type: pulsion!.id, cible: ciblePsy.individu('allie'), active: true }] });
     const allie = mk('allie', 'ennemi');
     const autre = mk('autre', 'ennemi');
     expect(ciblesDePulsion(e, [e, allie, autre, mk('h', 'heros')]).map((c) => c.id)).toEqual(['allie']);
@@ -243,7 +243,7 @@ describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', (
   });
 
   it('un PNJ s’en prend au combattant de son propre `kind` que vise sa pulsion', () => {
-    const e = mk('e', 'ennemi', { pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
+    const e = mk('e', 'ennemi', { pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id, cible: ciblePsy.individu('allie'), active: true }] });
     const heros = mk('h', 'heros', { pos: { x: 5, y: 4 }, wounds: blessuresDeBase(10, 1) });
     const allie = mk('allie', 'ennemi', { pos: { x: 5, y: 6 } });
     const action = chooseEnemyAction(input(e, [heros], { ciblesDePulsion: [allie] }));
@@ -259,7 +259,7 @@ describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', (
   it('`aiApproachPlan` juge la Charge au contact de la cible de pulsion, non du premier héros', () => {
     const characteristics = tableTotale(CHAR_KEYS, () => 30);
     const loin = emptyScene('s', 40, 40);
-    const e = mk('e', 'ennemi', { characteristics, pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
+    const e = mk('e', 'ennemi', { characteristics, pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id, cible: ciblePsy.individu('allie'), active: true }] });
     const allie = mk('allie', 'ennemi', { characteristics, pos: { x: 5, y: 12 } });
     const h = mk('h', 'heros', { characteristics, pos: { x: 30, y: 30 } });
     const entree: EnemyTurnInput = { enemy: e, heroes: [h], ciblesDePulsion: [allie], scene: loin, blocked: new Set(['5,12', '30,30']), movement: 4, spells: [] };
