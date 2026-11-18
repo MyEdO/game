@@ -23,12 +23,15 @@
  * le voyage terrestre et la journée de mer avancent l'horloge et DIFFÈRENT l'entretien à la cascade
  * de nuit.
  *
- * N'importe QUE du moteur + battleRng + le bus d'horloge `clockHooks` (pas de cycle avec les flux).
+ * Importe le moteur, les données, l'i18n et, du noyau : `battleRng`, `rollSeam`, le bus d'horloge (`clockHooks`, `bus`,
+ * `flowTypes`), les porteurs à bord (`shipCrew`) et `pendings`.
  */
 import { battleRng } from './battleRng';
-import { tickCampaignVesselWeek } from './shipCrew';
+import { porteursABord, tickCampaignVesselWeek } from './shipCrew';
+import { WORLD_STEP_OWNER } from './pendings';
+import { avancerLesMaladies } from '../engine/disease';
 import { dayIndex } from '../engine/clock';
-import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, rationsDeCale } from '../engine/provisions';
+import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, noterLeRepas, rationsDeCale } from '../engine/provisions';
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
@@ -90,8 +93,24 @@ const dissipationsDHorloge: string[] = [];
  *  (`avancerLHorloge`, écrivain unique de `gameTime` : avancerLeTemps, repos, voyages terrestre, fluvial et en
  *  mer, chantier naval) dissipe ce qui est échu, y compris ceux qui n'appellent PAS `runDailyUpkeep` (le voyage terrestre et la journée de
  *  mer diffèrent l'entretien à la cascade de nuit). Les lignes attendent le prochain bilan. */
-export function purgeSurAvanceDHorloge(get: Get, set: Set): void {
-  dissipationsDHorloge.push(...purgeClockEffects(get, set), ...jeterLesVivresPourris(get, set));
+export function purgeSurAvanceDHorloge(get: Get, set: Set, minutes: number): void {
+  dissipationsDHorloge.push(...purgeClockEffects(get, set), ...jeterLesVivresPourris(get, set), ...avancerLEquipage(get, set, minutes));
+}
+
+/** Les maladies de l'équipage collectif (`porteursABord`) avancent de `minutes`, sans cycle de fiche, au port comme
+ *  en mer. Navire à quai (`escale`), chaque journée franchie compte un repas frais, noté avant le pas. RENVOIE les
+ *  lignes (déjà au journal). MDG 14 l.39, l.208, l.232 ; #4243 */
+function avancerLEquipage(get: Get, set: Set, minutes: number): string[] {
+  const equipage = porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER);
+  if (!equipage) return [];
+  const now = get().gameTime;
+  if (get().vessel?.escale !== undefined) {
+    for (let jours = dayIndex(now) - dayIndex(now - minutes); jours > 0; jours--) noterLeRepas(equipage.porteur, 'repas');
+  }
+  const lignes = avancerLesMaladies(equipage.porteur, minutes, battleRng());
+  equipage.ecrire();
+  if (lignes.length) get().ecrireAuJournal(lignes);
+  return lignes;
 }
 
 /** Jette de la cale du navire de campagne les lots de vivres pourris (`lotPerime`) à l'heure de jeu, au port

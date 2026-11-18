@@ -1459,6 +1459,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   it('Avitaillement à quai : les vivres achetables sont ceux qui tiennent en mer, le frais n’en est pas (MDG 14 l.238)', () => {
     aQuai(null);
     expect(vivresAchetables(get().vessel!)).toEqual([
+      { id: 'ration-soupe-chou-fermente', prix: { gold: 0, silver: 3, brass: 0 } },
       { id: PRESERVEE, prix: { gold: 0, silver: 2, brass: 0 } },
       { id: BISCUITS, prix: { gold: 0, silver: 1, brass: 0 } },
     ]);

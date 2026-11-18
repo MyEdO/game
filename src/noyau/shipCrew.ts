@@ -20,8 +20,8 @@ import {
   isFreePayChoice,
   freePayChoiceId,
   recommendedPayChoiceId,
-  facteursDeContagionABord,
-  contagionABord,
+  facteursDeMaladieFaitRage,
+  maladieFaitRage,
   type CrewAssignment,
   type UndercrewPenalty,
 } from '../engine/crewMorale';
@@ -58,6 +58,11 @@ import { spawnEnemy } from './monde/spawn';
 import { posteDeLaBataille } from './monde/shipPostes';
 import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import { diseaseTestModLines, type PorteurDeMaladies } from '../engine/disease';
+import { rule } from '../engine/policy';
+import { WORLD_STEP_OWNER } from './pendings';
+import type { BandPorteur } from './rollSeam';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 
 /**
  * Assignation de l'équipage APTE d'un navire aux rôles qui contribuent à `testTypeId` (MDG 14). Chaque marin tient
@@ -199,6 +204,64 @@ export function shipboardSouls(s: Pick<Jeu, 'party' | 'vessel'>): { heroes: numb
   const nominal = vessel ? findVehicleById(vessel.vehicleId)?.ship?.crew ?? 0 : 0;
   const crew = Math.max(0, nominal - (vessel?.crewLost ?? 0));
   return { heroes, crew, total: heroes + crew };
+}
+
+/** Un porteur de maladies à bord (`porteursABord`). */
+export interface PorteurABord {
+  /** L'id de sa rangée de bande (`BandPorteur`) : le héros, ou `WORLD_STEP_OWNER` pour l'équipage collectif. */
+  id: string;
+  /** Ce que le moteur maladie lit et mute ; une COPIE pour l'équipage collectif, à écrire par `ecrire`. */
+  porteur: PorteurDeMaladies;
+  /** Sa rangée de Test de Résistance. */
+  rangee: BandPorteur;
+  /** Sa rangée de Test de Contraction contre `diseaseId`, taguée de la menace `maladie` : celle du PJ porte en lignes
+   *  nommées sur la cible les bonus d'effet scopés à cette maladie (`diseaseTestModLines`). LDB 10 l.1016-1020 ; LDB 20 l.25 */
+  contraction: (diseaseId: string) => BandPorteur;
+  /** Écrit l'état muté de `porteur` dans le jeu. */
+  ecrire: () => void;
+}
+
+const RESISTANCE: SujetDuJet = { skill: { id: 'resistance' }, characteristic: 'endurance' };
+/** La rangée `r` en Test de Contraction, qui résiste à la menace maladie. LDB 10 l.1016-1020 */
+const enContraction = (r: BandPorteur): BandPorteur => ({ ...r, menace: 'maladie' });
+
+/** Le navire `vessel` qui porte `equipage` comme équipage collectif ; sans maladie ni régime, le champ tombe. */
+function avecLEquipage(vessel: CampaignVessel, equipage: CampaignVessel['porteurDeLEquipage']): CampaignVessel {
+  const { porteurDeLEquipage: _ancien, ...reste } = vessel;
+  const diseases = equipage?.diseases?.length ? equipage.diseases : undefined;
+  const regimeDeBord = equipage?.regimeDeBord;
+  return diseases || regimeDeBord ? { ...reste, porteurDeLEquipage: { ...(diseases ? { diseases } : {}), ...(regimeDeBord ? { regimeDeBord } : {}) } } : reste;
+}
+
+/**
+ * Les PORTEURS DE MALADIES à bord du navire de campagne : les PJ vivants, puis l'équipage PNJ collectif
+ * (`CampaignVessel.porteurDeLEquipage`) tant que son effectif présent (`shipboardSouls`) n'est pas nul. Chacun dit sa
+ * rangée de Test et écrit son état : le collectif teste à la valeur maison `mer-resistance-de-l-equipage`, en rangée de
+ * monde. MDG 14 l.172, l.208-209, l.230 ; #4243
+ */
+export function porteursABord(get: Get, set: SetFn): PorteurABord[] {
+  const s = get();
+  const ecrire = (equipage?: PorteurDeMaladies) => () => set((e) => ({
+    party: [...e.party],
+    ...(equipage && e.vessel ? { vessel: avecLEquipage(e.vessel, equipage) } : {}),
+  }));
+  const pjs = s.party.filter((h) => !h.dead).map((h): PorteurABord => ({
+    id: h.id,
+    porteur: h,
+    rangee: { actor: h, ligne: { test: RESISTANCE } },
+    contraction: (diseaseId) => enContraction({ actor: h, ligne: { test: RESISTANCE, surLaCible: diseaseTestModLines(h, diseaseId) } }),
+    ecrire: ecrire(),
+  }));
+  if (!s.vessel || !shipboardSouls(s).crew) return pjs;
+  const equipage: PorteurDeMaladies = { label: t('crew.lEquipage'), ...structuredClone(s.vessel.porteurDeLEquipage ?? {}) };
+  const rangee: BandPorteur = { monde: true, ligne: { test: RESISTANCE, valeur: rule('mer-resistance-de-l-equipage') } };
+  return [...pjs, {
+    id: WORLD_STEP_OWNER,
+    porteur: equipage,
+    rangee,
+    contraction: () => enContraction(rangee),
+    ecrire: ecrire(equipage),
+  }];
 }
 
 /**
@@ -445,11 +508,11 @@ type MoraleRoll = { id: string; label: string; rolled: number };
  * de groupe (gages, sans bénéficiaire unique) est appliqué par l'appelant via `payFromGroup`. La solde =
  * `payChoiceCostBrass(barème, decision)` (le barème `wageMul` de chaque choix, en donnée) ; un choix
  * GRATUIT (`wageMul: 0`, ou un groupe insolvable qui s'y replie) cumule la solde due dans `wagesOwed`. Le facteur de
- * paie et, sous `contagion` (`contagionABord`, calculé par l'appelant), les facteurs `contagionABord` de la donnée ne
+ * paie et, sous `maladie` (`maladieFaitRage`, calculé par l'appelant), les facteurs `maladieFaitRage` de la donnée ne
  * sont injectés que pour le recalcul de CETTE semaine, jamais persistés dans `morale.factors` (édités par l'auteur).
  * MDG 14 l.172, l.208 ; #216/#229/#4058. RNG injecté.
  */
-export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision: string | null, week: number, contagion: boolean, rng: RNG): VesselWeekOutcome {
+export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision: string | null, week: number, maladie: boolean, rng: RNG): VesselWeekOutcome {
   const wageBrass = weeklyCrewWageBrass(vessel.crew);
   const lines: string[] = [];
   let paidFactor: string | null = null;
@@ -478,7 +541,7 @@ export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision
     }
     lines.push(paidLine);
   }
-  const injectes = [...(paidFactor ? [paidFactor] : []), ...(contagion ? facteursDeContagionABord() : [])];
+  const injectes = [...(paidFactor ? [paidFactor] : []), ...(maladie ? facteursDeMaladieFaitRage() : [])];
   const factorsThisWeek = [...vessel.morale.factors, ...injectes.filter((f) => !vessel.morale.factors.includes(f))];
   const before = vessel.morale.score;
   const r = recalcMorale(before, factorsThisWeek, rng);
@@ -544,10 +607,10 @@ export function semainesDuConseil(s: Jeu): number {
  *  chaque semaine lit la bourse restante). Renvoie le procès-verbal cumulé du bloc. */
 function reglerLesSemaines(get: Get, set: SetFn, decision: string | null, week: number, rng: RNG): Pick<VesselWeekOutcome, 'factorRolls' | 'delta' | 'before' | 'after' | 'lines'> {
   let vessel = garanti(get().vessel, week, 'navire de campagne');
-  const contagion = contagionABord(get().party);
+  const maladie = maladieFaitRage(get().party, porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER)?.porteur);
   const bloc = { factorRolls: [] as MoraleRoll[], delta: 0, before: vessel.morale.score, after: vessel.morale.score, lines: [] as string[] };
   for (let w = vessel.morale.lastMoraleWeek + 1; w <= week; w++) {
-    const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, w, contagion, rng);
+    const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, w, maladie, rng);
     if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
     vessel = out.vessel;
     set({ vessel });
@@ -625,7 +688,8 @@ export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string
   const before = vessel.crewLost ?? 0;
   const after = Math.max(0, Math.min(nominal, before + delta));
   if (after === before) return [];
-  set({ vessel: { ...vessel, crewLost: after } });
+  const crewLost = { ...vessel, crewLost: after };
+  set({ vessel: after < nominal ? crewLost : avecLEquipage(crewLost, undefined) });
   return [t('crew.crewDelta', { delta: `${after > before ? '−' : '+'}${Math.abs(after - before)}`, left: Math.max(0, nominal - after), nominal })];
 }
 

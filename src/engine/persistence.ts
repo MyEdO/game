@@ -75,7 +75,7 @@ export const REPORT_DE_COMBATTANT = {
   critEntriesSuffered: PERSISTE,
   woundDressed: rencontre(REGLE, false), // LDB 09 l.260
   traumas: PERSISTE, handGates: PERSISTE, corruption: PERSISTE, mutations: PERSISTE, damned: PERSISTE, nightmares: PERSISTE,
-  diseases: PERSISTE, hunger: PERSISTE, thirst: PERSISTE, drunk: PERSISTE, diseaseImmunities: PERSISTE, residualDiseaseTestMod: PERSISTE,
+  diseases: PERSISTE, hunger: PERSISTE, thirst: PERSISTE, drunk: PERSISTE, diseaseImmunities: PERSISTE, residualDiseaseTestMod: PERSISTE, regimeDeBord: PERSISTE,
   diseaseExposure: rencontre(REGLE), // LDB 20 l.25
   nextActionPenalty: rencontre(REGLE), // LDB 14 l.26
   loseNextAction: rencontre(REGLE), // LDB 14 l.28

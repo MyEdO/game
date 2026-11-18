@@ -395,9 +395,9 @@ const enfantsAuSegment = (n: unknown, garde: (segment: string) => boolean): unkn
 
 /**
  * Ce qu'admet `n` (`Admis`). LIBRE : chaîne hors feuille `idDe`, nœud non validant, `transform` hors d'un pipe, `catch`,
- * record, objet dont l'`id` n'est pas une référence, objet sans `id` dont un champ n'est pas clos (hors tirage `pick`,
- * `grammaire/ref.ts`), liste ou ensemble dont un élément admet une valeur libre, pipe dont l'ENTRÉE est un `transform`
- * (`z.preprocess`). Un pipe dont la SORTIE est un `transform` admet ce qu'admet son entrée. Un nœud déjà en cours de
+ * record, objet dont l'`id` n'est pas une référence, ou est une référence emboîtée (porteur), objet sans `id` dont un
+ * champ n'est pas clos (hors tirage `pick`, `grammaire/ref.ts`), liste ou ensemble dont un élément admet une valeur
+ * libre, pipe dont l'ENTRÉE est un `transform` (`z.preprocess`). Un pipe dont la SORTIE est un `transform` admet ce qu'admet son entrée. Un nœud déjà en cours de
  * descente (récursion `z.lazy`) n'ajoute rien.
  */
 function admisDe(n: unknown, descente: Descente = { enCours: new Set(), boucle: false }): Admis {
@@ -425,6 +425,17 @@ type Descente = { readonly enCours: Set<unknown>; boucle: boolean };
 /** `admisDe` des nœuds dont la descente n'a revu aucun nœud en cours. */
 const ADMIS = new WeakMap<object, Admis>();
 
+/** Si `n`, à travers enveloppes, alternatives et entrée de pipe, admet un objet : un `id` qui l'atteint est une
+ *  référence EMBOÎTÉE, son objet la porte. */
+function atteintObjet(n: unknown): boolean {
+  const type = defDe(n)?.type;
+  if (type === 'object') return true;
+  if (type !== undefined && ENVELOPPES.has(type)) return enfantsAuSegment(n, (s) => s === '').some(atteintObjet);
+  if (type === 'union') return enfantsAuSegment(n, (s) => s.startsWith('|')).some(atteintObjet);
+  if (type === 'pipe') return enfantsAuSegment(n, (s) => s === '').slice(0, 1).some(atteintObjet);
+  return false;
+}
+
 /** Ce qu'admet `n` selon son type, ses enfants lus par `de`. */
 function admisSansMemoire(n: unknown, def: NonNullable<ReturnType<typeof defDe>>, de: (m: unknown) => Admis): Admis {
   const declares = declarationDEnfants(n);
@@ -441,7 +452,7 @@ function admisSansMemoire(n: unknown, def: NonNullable<ReturnType<typeof defDe>>
   }
   if (type === 'object') {
     const id = enfantsDe(n).find((e) => e.cle === 'id');
-    if (id !== undefined) return de(id.noeud) === 'ref' ? 'ref' : 'libre';
+    if (id !== undefined) return de(id.noeud) === 'ref' && !atteintObjet(id.noeud) ? 'ref' : 'libre';
     const champs = enfantsAuSegment(n, (s) => s.startsWith('.')).map(de);
     if (classeDeProduit(n)?.fabrique === 'pick') return auMoins(champs);
     return champs.every((a) => a === 'clos') ? 'clos' : 'libre';
