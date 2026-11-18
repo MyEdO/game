@@ -11,16 +11,16 @@
     {
       "nom": "papier",
       "palette": "corps",
-      "matiere": "prop--toile-ecrue"
+      "matiere": "prop--papier"
     },
     {
       "nom": "cire",
       "palette": "accent",
-      "matiere": "prop--toile-rouge"
+      "matiere": "prop--cire-a-cacheter"
     }
   ],
   "glb": {
-    "sha256": "71c881031aaf1f40a0b05881f1ea6e45f73f8d64662789d0c423b2d0a5909abb",
-    "octets": 17568
+    "sha256": "dadf1883391aa15eb5d2fe213d12e0c8aedfbac56a1023ed01216435aa3fe92e",
+    "octets": 17576
   }
 }

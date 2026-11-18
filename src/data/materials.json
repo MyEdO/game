@@ -288,6 +288,150 @@
     "metalness": 0.4
   },
   {
+    "id": "verre",
+    "type": "materials",
+    "label": "Verre",
+    "domain": "prop",
+    "color": "#4a5a63",
+    "roughness": 0.1,
+    "metalness": 0.5
+  },
+  {
+    "id": "papier",
+    "type": "materials",
+    "label": "Papier",
+    "domain": "prop",
+    "color": "#ddd3b8",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
+    "id": "cire",
+    "type": "materials",
+    "label": "Cire",
+    "domain": "prop",
+    "color": "#e0d2a8",
+    "roughness": 0.4,
+    "metalness": 0
+  },
+  {
+    "id": "cire-a-cacheter",
+    "type": "materials",
+    "label": "Cire à cacheter",
+    "domain": "prop",
+    "color": "#8c1f1c",
+    "roughness": 0.35,
+    "metalness": 0
+  },
+  {
+    "id": "terre-cuite",
+    "type": "materials",
+    "label": "Terre cuite",
+    "domain": "prop",
+    "color": "#a4583a",
+    "roughness": 0.85,
+    "metalness": 0
+  },
+  {
+    "id": "chitine",
+    "type": "materials",
+    "label": "Chitine",
+    "domain": "prop",
+    "color": "#1d1a17",
+    "roughness": 0.35,
+    "metalness": 0
+  },
+  {
+    "id": "petale",
+    "type": "materials",
+    "label": "Pétale",
+    "domain": "prop",
+    "color": "#ead9dc",
+    "roughness": 0.6,
+    "metalness": 0
+  },
+  {
+    "id": "toile-peinte",
+    "type": "materials",
+    "label": "Toile peinte",
+    "domain": "prop",
+    "color": "#8ea39b",
+    "roughness": 0.85,
+    "metalness": 0
+  },
+  {
+    "id": "crin",
+    "type": "materials",
+    "label": "Crin",
+    "domain": "prop",
+    "color": "#2a2420",
+    "roughness": 0.7,
+    "metalness": 0
+  },
+  {
+    "id": "corne",
+    "type": "materials",
+    "label": "Corne",
+    "domain": "prop",
+    "color": "#3b332b",
+    "roughness": 0.5,
+    "metalness": 0
+  },
+  {
+    "id": "cheveux",
+    "type": "materials",
+    "label": "Cheveux",
+    "domain": "prop",
+    "color": "#3a2c20",
+    "roughness": 0.8,
+    "metalness": 0
+  },
+  {
+    "id": "chair-champignon",
+    "type": "materials",
+    "label": "Chair de champignon",
+    "domain": "prop",
+    "color": "#d9cfb6",
+    "roughness": 0.75,
+    "metalness": 0
+  },
+  {
+    "id": "massette",
+    "type": "materials",
+    "label": "Massette",
+    "domain": "prop",
+    "color": "#4a3524",
+    "roughness": 0.95,
+    "metalness": 0
+  },
+  {
+    "id": "ecorce",
+    "type": "materials",
+    "label": "Écorce",
+    "domain": "prop",
+    "color": "#6b5d4c",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
+    "id": "ecorce-hetre",
+    "type": "materials",
+    "label": "Écorce de hêtre",
+    "domain": "prop",
+    "color": "#8a8272",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
+    "id": "ecorce-pin",
+    "type": "materials",
+    "label": "Écorce de pin",
+    "domain": "prop",
+    "color": "#7a4a30",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",

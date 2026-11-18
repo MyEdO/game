@@ -16,7 +16,7 @@
     {
       "nom": "cire",
       "palette": "corps",
-      "matiere": "prop--albatre"
+      "matiere": "prop--cire"
     },
     {
       "nom": "flamme",
@@ -25,7 +25,7 @@
     }
   ],
   "glb": {
-    "sha256": "1f6496c4b08838f440586556955b4c98d8a6024834efbef86a5bff1f6bbe86fa",
+    "sha256": "20516798e51d941fb8f6a54b605b7ab6d6e8752a44317a6acc6174062ec38f32",
     "octets": 55800
   }
 }

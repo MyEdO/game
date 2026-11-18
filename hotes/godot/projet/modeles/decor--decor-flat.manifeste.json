@@ -21,11 +21,11 @@
     {
       "nom": "peinte",
       "palette": "corps",
-      "matiere": "prop--albatre"
+      "matiere": "prop--toile-peinte"
     }
   ],
   "glb": {
-    "sha256": "38bf4cdcb4b0adf827eb62c043160573657c21de017bfe59c781195b63cd51a0",
+    "sha256": "ef6a3923273c605c2f572eacafc1421aa577fe530e68676b54b504a4f2e09782",
     "octets": 43732
   }
 }

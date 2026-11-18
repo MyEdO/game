@@ -15,7 +15,7 @@ verticale, nul au front, le même des deux côtés.
   bras, une voile festonnée sous le rampant du prisme de la recette, ses doigts, et la voile qui la relie au dos.
 - `idole-chaos` : un emmarchement de pierre ; sur son piédestal, un colosse : deux jambes, un pagne froncé, un torse
   galbé (pectoraux, sillons du ventre et du dos), le cou, les bras pendants aux mains griffues, une tête à mufle et
-  arcades dont le bandeau de rune tient la place des yeux, deux défenses et deux cornes d'os coudées vers le haut.
+  arcades dont le bandeau de rune tient la place des yeux, deux défenses d'os et deux cornes coudées vers le haut.
 - `urne` : un socle à deux corps ; une panse à godrons, l'épaule, le col et sa lèvre, le couvercle, son bouton, deux
   anses.
 - `oeuf-dragon` : un nid, son bourrelet et ses brins de paille couchés en rond ; l'œuf, ses rangs d'écailles en
@@ -26,24 +26,25 @@ verticale, nul au front, le même des deux côtés.
   lui, deux pendus à la traverse par une corde nouée.
 - `ossements` : quatre os longs à épiphyses, un crâne, une cage : des vertèbres en file et leurs côtes courbes.
 
-Matières : celles des recettes. Le trophée prend `corde`, que sa recette ne nomme pas, pour pendre ses deux crânes de
-côté, que la recette place sous la traverse sans les y relier. Le matériau `sculpture` de la gargouille est la
-`pierre-atre` de son pilier, à part pour que la bête se lisse sous un angle plus ouvert que lui (`ANGLE_LISSE`). Aucun
-emplacement de palette ne nomme la pierre, l'os, la paille ni l'écaille : ils prennent `corps` ; l'ombre, la rune et la
-corde, `accent`."""
+Matières : celles des recettes. L'idole prend `os`, que sa recette ne nomme pas, pour ses défenses. Le trophée prend
+`corde`, que sa recette ne nomme pas, pour pendre ses deux crânes de côté, que la recette place sous la traverse sans
+les y relier. Le matériau `sculpture` de la gargouille est la `pierre-atre` de son pilier, à part pour que la bête se
+lisse sous un angle plus ouvert que lui (`ANGLE_LISSE`). Aucun emplacement de palette ne nomme la pierre, l'os, la
+paille ni l'écaille : ils prennent `corps` ; l'ombre, la rune, la corne et la corde, `accent`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 PIERRE = {"pierre": ("corps", "pierre-atre")}
 MARBRE = {"marbre": ("corps", "albatre")}
 OS = {"os": ("corps", "os")}
+CORNE = {"corne": ("accent", "corne")}
 OMBRE = {"ombre": ("accent", "ombre")}
 MATERIAUX = {
     "statue": {**PIERRE, **MARBRE},
     "gargouille": {**PIERRE, "sculpture": ("corps", "pierre-atre")},
-    "idole-chaos": {**PIERRE, **OS, "chaos": ("corps", "pierre-chaos"), "rune": ("accent", "rune-chaos")},
+    "idole-chaos": {**PIERRE, **OS, **CORNE, "chaos": ("corps", "pierre-chaos"), "rune": ("accent", "rune-chaos")},
     "urne": {**PIERRE, **MARBRE},
     "oeuf-dragon": {"paille": ("corps", "paille"), "ecaille": ("corps", "ecaille")},
-    "crane-monstre": {**OS, **OMBRE},
+    "crane-monstre": {**OS, **CORNE, **OMBRE},
     "trophee-cranes": {**PIERRE, **OS, **OMBRE, "bois": ("bois", "bois-chene"), "corde": ("accent", "corde")},
     "ossements": {**OS, **OMBRE},
 }
@@ -51,7 +52,7 @@ MATERIAUX = {
 BUDGET_TRIANGLES = {"statue": 3300, "gargouille": 3300, "idole-chaos": 4900, "urne": 2400, "oeuf-dragon": 4400,
                     "crane-monstre": 2600, "trophee-cranes": 4000, "ossements": 3600}
 
-ANGLE_LISSE = {"pierre": 30, "marbre": 50, "sculpture": 50, "chaos": 50, "os": 50, "rune": 30, "ombre": 40,
+ANGLE_LISSE = {"pierre": 30, "marbre": 50, "sculpture": 50, "chaos": 50, "os": 50, "corne": 50, "rune": 30, "ombre": 40,
                "paille": 50, "ecaille": 35, "bois": 40, "corde": 50}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : un socle garde ses arêtes,
 une figure, un os et un brin sont ronds, une écaille garde son arête."""

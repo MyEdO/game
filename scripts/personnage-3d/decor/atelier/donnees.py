@@ -42,12 +42,10 @@ bord. `rack-lances` : les lances penchent, chaque pointe sous le rampant du pris
 
 Matières : celles des recettes, sauf l'écorce des rondins (`bois-mort`, dont la texture est une écorce), le cuir du
 soufflet (`cuir-tanne`), la corde des ligatures (`corde`), les os du ragoût (`os`), la bordure du foyer de la marmite
-(`pierre-atre`), le bois du soufflet et le fer de sa buse (`bois-chene`, `fer-noirci`) et l'acier des lames
-(`acier-battu`, plus clair que le `fer-noirci` que la recette leur donne, pour qu'un fer se lise sur sa hampe). Le
-catalogue n'a ni charbon ni cendre (les charbons sont de `braises`), ni bière ni bouillon (`eau-dormante` pour le
-moût et le ragoût).
-Aucun emplacement de palette ne nomme la pierre ni l'os : ils prennent `corps` ; le cuir, la corde, l'eau et les
-braises, `accent`."""
+(`pierre-atre`), le bois du soufflet et le fer de sa buse (`bois-chene`, `fer-noirci`) et le fer des douilles des
+râteliers (`fer-noirci`). Le catalogue n'a ni charbon ni cendre (les charbons sont de `braises`), ni bière ni bouillon
+(`eau-dormante` pour le moût et le ragoût). Aucun emplacement de palette ne nomme la pierre ni l'os : ils prennent
+`corps` ; le cuir, la corde, l'eau et les braises, `accent`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}

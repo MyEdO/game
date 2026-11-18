@@ -21,12 +21,12 @@
     {
       "nom": "ardoise",
       "palette": "vet2",
-      "matiere": "prop--prop-ardoise"
+      "matiere": "prop--drap-terne"
     },
     {
       "nom": "blanc",
       "palette": "corps",
-      "matiere": "prop--albatre"
+      "matiere": "prop--toile-ecrue"
     },
     {
       "nom": "brun",
@@ -35,7 +35,7 @@
     }
   ],
   "glb": {
-    "sha256": "6edf24a4cefa238795ac33cd99ca096951bca95e50bb36d4deb4c3bd0f96b83d",
-    "octets": 63736
+    "sha256": "da56a0ee3e63682d5a3e45745ac462b9ff9f1508f1767a8fbf9584ce82e902fd",
+    "octets": 63732
   }
 }
