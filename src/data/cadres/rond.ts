@@ -68,3 +68,6 @@ export const boutonRond = disque(42, 6);
 
 /** Un outil : un disque à listel de 23 de rayon, posé à 46 de côté (les outils de l'accueil, `art/accueil.tres`). */
 export const outil = disque(23, 4);
+
+/** Un médaillon de titre : un disque à listel de 25 de rayon, posé à 50 de côté (le cartouche d'un titre, `art/options.tres`). */
+export const medaillonDeTitre = disque(25, 4);

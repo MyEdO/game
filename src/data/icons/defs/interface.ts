@@ -166,6 +166,36 @@ export const icons: IconFamily = [
       `<circle ${F} cx="17.1" cy="17.6" r="1.7"/>`,
   },
   {
+    id: 'interface/precedent',
+    label: 'Précédent',
+    // Chevron vers la gauche : le feuillet, la valeur d'avant.
+    svg: `<path ${K} d="M14.5 5.5 L8 12 L14.5 18.5"/>`,
+  },
+  {
+    id: 'interface/suivant',
+    label: 'Suivant',
+    // Chevron vers la droite : le feuillet, la valeur d'après.
+    svg: `<path ${K} d="M9.5 5.5 L16 12 L9.5 18.5"/>`,
+  },
+  {
+    id: 'interface/losange',
+    label: 'Losange',
+    // Le curseur d'une glissière : un losange de laiton, éclairé en haut à gauche, cerné d'encre.
+    svg:
+      `<path fill="var(--laiton)" stroke="none" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/>` +
+      `<path fill="var(--or-eclat)" stroke="none" d="M12 2.5 L16.75 7.25 L7.25 16.75 L2.5 12 Z"/>` +
+      `<path fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/>`,
+  },
+  {
+    id: 'interface/cire',
+    label: 'Cire',
+    // La goutte de cire d'un signet dont une règle est modifiée : un disque de cire, éclairé en haut à gauche.
+    svg:
+      `<circle fill="var(--cire)" stroke="none" cx="12" cy="12" r="9"/>` +
+      `<circle fill="var(--cire-claire)" stroke="none" cx="9.5" cy="9" r="4"/>` +
+      `<circle fill="none" stroke="var(--cire-sombre)" stroke-width="1.6" cx="12" cy="12" r="9"/>`,
+  },
+  {
     id: 'interface/fermer',
     label: 'Fermer',
     // Croix simple (fermer un panneau/dialogue).

@@ -20,7 +20,7 @@ import {
 } from '../noyau/index';
 import { t } from '../i18n';
 import type { Stockage } from '../lib/stockage';
-import { ligne, type Bouton, type Element, type Entite, type Ligne } from './elements';
+import { ligne, type Bouton, type Element, type Entite, type Ligne, type Ton } from './elements';
 import { reglerUnePreference } from './preferences';
 import { ErreurDeGeste } from './partie';
 import { prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleMaison } from './reglesMaison';
@@ -28,19 +28,20 @@ import { prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleM
 /**
  * @contrat Vue
  * Les zones des réglages, que la méthode `reglages` rend avec ou sans partie ouverte. Chaque entrée y est rendue par
- * la forme de son contrôle : `flag` en choix « Non » ou « Oui », `mode` en liste de ses options, `param` en
- * curseur à ses bornes et à son pas. Le `jeu` d'une valeur, ou le geste du curseur, est le geste que la méthode
- * `reglages` reçoit : `{ type: 'preference' | 'regle', args: [id, valeur] }`, la préférence ou la règle maison `id`
- * réglée à `valeur`.
+ * la forme de son contrôle : `flag` en choix « Non » ou « Oui », `mode` en choix de ses options, en liste au-delà de
+ * trois (`OPTIONS_EN_RANGEE`), `param` en curseur à ses bornes et à son pas. Le `jeu` d'une valeur, ou le geste du
+ * curseur, est le geste que la méthode `reglages` reçoit : `{ type: 'preference' | 'regle', args: [id, valeur] }`, la
+ * préférence ou la règle maison `id` réglée à `valeur` ; `{ type: 'pourcent', args: [id, valeur] }`, la préférence
+ * bornée à [0, 1] réglée à `valeur` pour cent.
  */
 export interface ZonesDesReglages {
-  /** chaque préférence de confort de la table du noyau (`PREFERENCES`) : son contrôle, puis son aide en ligne. */
+  /** chaque préférence de confort de la table du noyau (`PREFERENCES`) : son contrôle, puis son aide en ligne ; une
+   *  préférence bornée à [0, 1] (un volume) en curseur de 0 à 100 pour cent, au verbe `pourcent`. */
   'reglages.preferences': Element[];
   /**
-   * chaque sous-système des règles optionnelles en entité, dans l'ordre du registre ; sous lui, pour chaque règle, la
-   * ligne de sa référence au livre (son aide et la justification d'une valeur maison au détail), son contrôle, et
-   * « Défaut » quand elle est surchargée, dont le `jeu` est `{ type: 'retablir', args: [id] }`. En combat et chez un
-   * invité, chaque contrôle est refusé avec la raison du noyau (`reglesMaisonMutables`).
+   * chaque domaine des règles optionnelles en entité, dans l'ordre du registre (`regles/<domaine>`, nommée du
+   * domaine) : le nombre de ses règles (`nombre`), la cire (`cire`, une icône) quand l'une d'elles est surchargée,
+   * puis ses feuillets (`feuillet/<domaine>/<n>`).
    */
   'reglages.regles': Entite[];
   /** les règles maison que le registre a refusées à leur chargement, dites une fois. */
@@ -49,7 +50,43 @@ export interface ZonesDesReglages {
   'reglages.gestes': Bouton[];
 }
 
+/**
+ * @contrat Vue
+ * Un feuillet du registre des règles maison, entité nommée de son domaine : douze règles au plus
+ * (`REGLES_PAR_PAGE` sur chacune de ses deux pages), dans l'ordre du registre.
+ */
+export interface FeuilletDesReglages {
+  type: 'entite';
+  /** `feuillet/<domaine>/<n>`, `n` compté de 1. */
+  id: string;
+  ton: Ton;
+  /** le domaine. */
+  nom: string;
+  /**
+   * en lignes : le compte des règles du domaine (`compte`), son rang parmi les feuillets du domaine (`folio`), le
+   * compte de ses règles surchargées (`modifiees`, absente sans surcharge) ; quand la page de droite porte des
+   * règles, la suite du domaine (`suite`) et la plage de ses règles (`plage`). Puis chaque règle en entité nommée de
+   * son libellé, `gauche/<id>` sur la page de gauche, `droite/<id>` sur celle de droite, au ton `alerte` quand elle
+   * est surchargée : la ligne de sa référence au livre (`ref`, la justification d'une valeur maison au détail), celle
+   * de son aide (`aide`), son contrôle (`regle/<id>`), « Défaut » quand elle est surchargée (`retablir/<id>`, dont le
+   * `jeu` est `{ type: 'retablir', args: [id] }`), et le bouton de son action quand elle vaut `action.when`
+   * (`action/<id>`, dont le `jeu` `{ suite: [{ type: run, args: [] }] }` est un geste de la partie, refusé sans
+   * partie ouverte). En combat et chez un invité, chaque contrôle et chaque action sont refusés avec la raison du
+   * noyau (`reglesMaisonMutables`).
+   */
+  elements: Element[];
+}
+
 type Forme = FormeDeControle & { id: string; label: string };
+
+/** Au-delà de ce nombre d'options, un `mode` se choisit en liste plutôt qu'en rangée (`Choix`). */
+const OPTIONS_EN_RANGEE = 3;
+
+/** Les règles d'une page du registre ; un feuillet en porte deux pages. */
+export const REGLES_PAR_PAGE = 6;
+
+/** Si l'entrée `f` est un réglage borné à [0, 1], qui se règle en pour cent. */
+const enPourcent = (f: Forme): boolean => f.kind === 'param' && f.min === 0 && f.max === 1;
 
 /** Le contrôle de l'entrée `f`, de valeur `valeur`, dont le geste est le verbe `verbe` des réglages. */
 function controle(verbe: 'preference' | 'regle', f: Forme, valeur: PrefValue, refus: string | null): Element {
@@ -59,21 +96,63 @@ function controle(verbe: 'preference' | 'regle', f: Forme, valeur: PrefValue, re
     case 'flag':
       return { type: 'choix', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: [valeurDe(false, t('valeur.non')), valeurDe(true, t('valeur.oui'))] };
     case 'mode':
-      return { type: 'liste', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: f.options.map((o) => valeurDe(o, o)) };
+      return { type: f.options.length > OPTIONS_EN_RANGEE ? 'liste' : 'choix', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: f.options.map((o) => valeurDe(o, o)) };
     case 'param':
-      return { type: 'curseur', id, ton: 'neutre', libelle: f.label, valeur: valeur as number, min: f.min, max: f.max, pas: f.step ?? 1, verbe, arguments: [f.id], refus };
+      return enPourcent(f)
+        ? { type: 'curseur', id, ton: 'neutre', libelle: f.label, valeur: Math.round((valeur as number) * 100), min: 0, max: 100, pas: Math.round((f.step ?? 0.01) * 100), verbe: 'pourcent', arguments: [f.id], refus }
+        : { type: 'curseur', id, ton: 'neutre', libelle: f.label, valeur: valeur as number, min: f.min, max: f.max, pas: f.step ?? 1, verbe, arguments: [f.id], refus };
   }
 }
 
-/** Les éléments de la règle `r` : sa référence, son contrôle, et « Défaut » quand `surcharges` la porte. */
-function elementsDeLaRegle(r: OptionalRule, surcharges: Readonly<Record<string, RuleValue>>, refus: string | null): Element[] {
+/** Le pluriel d'un compte `n`, pour les patrons à `{s}`. */
+const pluriel = (n: number) => ({ n, s: n > 1 ? 's' : '' });
+
+/** La règle `r` en entité, `cote` sa page : sa référence, son aide, son contrôle, « Défaut » quand `surcharges` la
+ *  porte, son action quand elle vaut `action.when`. `refus` : le verrou du noyau ; `horsPartie` : aucune partie
+ *  ouverte, où son action ne se joue pas. */
+function regleEnEntite(r: OptionalRule, cote: 'gauche' | 'droite', surcharges: Readonly<Record<string, RuleValue>>, refus: string | null, horsPartie: boolean): Entite {
   const surchargee = r.id in surcharges;
-  const detail = [r.hint, r.maison].filter((x) => x !== undefined).join('\n\n');
-  return [
-    ligne(`regle/${r.id}/ref`, r.ref, 'neutre', detail || null),
-    controle('regle', r, surchargee ? surcharges[r.id] : r.default, refus),
-    ...(surchargee ? [{ type: 'bouton' as const, id: `retablir/${r.id}`, libelle: t('ecran.reglages.defaut'), jeu: { type: 'retablir', args: [r.id] }, presse: false, focus: false, detail: null, touche: null, refus }] : []),
-  ];
+  const valeur = surchargee ? surcharges[r.id] : r.default;
+  const ref = r.maison === undefined ? r.ref : t('ecran.reglages.valeurMaison', { ref: r.ref });
+  const action = r.action !== undefined && r.action.when === valeur ? r.action : null;
+  return {
+    type: 'entite', id: `${cote}/${r.id}`, ton: surchargee ? 'alerte' : 'neutre', nom: r.label,
+    elements: [
+      ligne('ref', ref, 'neutre', r.maison ?? null),
+      ...(r.hint ? [ligne('aide', r.hint)] : []),
+      controle('regle', r, valeur, refus),
+      ...(surchargee ? [{ type: 'bouton' as const, id: `retablir/${r.id}`, libelle: t('ecran.reglages.defaut'), jeu: { type: 'retablir', args: [r.id] }, presse: false, focus: false, detail: null, touche: null, refus, icone: 'interface/revenir' }] : []),
+      ...(action ? [{ type: 'bouton' as const, id: `action/${r.id}`, libelle: action.label, jeu: { suite: [{ type: action.run, args: [] }] }, presse: false, focus: false, detail: null, touche: null, refus: refus ?? (horsPartie ? t('ecran.reglages.horsPartie') : null), icone: action.icon }] : []),
+    ],
+  };
+}
+
+/** Le domaine `groupe` en entité : son nombre de règles, sa cire, ses feuillets. */
+function domaineEnEntite(groupe: string, surcharges: Readonly<Record<string, RuleValue>>, refus: string | null, horsPartie: boolean): Entite {
+  const regles = OPTIONAL_RULES.filter((r) => r.group === groupe);
+  const modifiees = regles.filter((r) => r.id in surcharges).length;
+  const parFeuillet = 2 * REGLES_PAR_PAGE;
+  const total = Math.ceil(regles.length / parFeuillet);
+  const feuillets = Array.from({ length: total }, (_, i): FeuilletDesReglages => {
+    const gauche = regles.slice(i * parFeuillet, i * parFeuillet + REGLES_PAR_PAGE);
+    const droite = regles.slice(i * parFeuillet + REGLES_PAR_PAGE, (i + 1) * parFeuillet);
+    const premiere = i * parFeuillet + REGLES_PAR_PAGE + 1;
+    return {
+      type: 'entite', id: `feuillet/${groupe}/${i + 1}`, ton: 'neutre', nom: groupe,
+      elements: [
+        ligne('compte', t('ecran.reglages.compte', pluriel(regles.length))),
+        ligne('folio', t('ecran.reglages.feuillet', { n: i + 1, total })),
+        ...(modifiees ? [ligne('modifiees', t('ecran.reglages.modifiees', pluriel(modifiees)))] : []),
+        ...(droite.length ? [ligne('suite', t('ecran.reglages.suite', { domaine: groupe })), ligne('plage', t('ecran.reglages.plage', { de: premiere, a: premiere + droite.length - 1, n: regles.length }))] : []),
+        ...gauche.map((r) => regleEnEntite(r, 'gauche', surcharges, refus, horsPartie)),
+        ...droite.map((r) => regleEnEntite(r, 'droite', surcharges, refus, horsPartie)),
+      ],
+    };
+  });
+  return {
+    type: 'entite', id: `regles/${groupe}`, ton: 'neutre', nom: groupe,
+    elements: [ligne('nombre', String(regles.length)), ...(modifiees ? [{ type: 'icone' as const, id: 'cire', icone: 'interface/cire' }] : []), ...feuillets],
+  };
 }
 
 /** Les zones des réglages sur `stockage` ; `etat` : la partie ouverte, `null` sans partie. */
@@ -85,12 +164,9 @@ export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, '
   const retraits = prendreLeTemoinDesReglesMaison(stockage);
   return {
     'reglages.preferences': PREFERENCES.flatMap((p) => [controle('preference', p, p.get(), null), ...(p.hint ? [ligne(`preference/${p.id}/aide`, p.hint)] : [])]),
-    'reglages.regles': groupes.map((groupe): Entite => ({
-      type: 'entite', id: `regles/${groupe}`, ton: 'neutre', nom: groupe,
-      elements: OPTIONAL_RULES.filter((r) => r.group === groupe).flatMap((r) => elementsDeLaRegle(r, surcharges, refus)),
-    })),
+    'reglages.regles': groupes.map((groupe) => domaineEnEntite(groupe, surcharges, refus, etat === null)),
     'reglages.avis': retraits ? [ligne('retraits', t('houseRules.retirees', { liste: nommerLesRetraits(retraits) }), 'alerte')] : [],
-    'reglages.gestes': [{ type: 'bouton', id: 'fermer', libelle: t('ecran.reglages.fermer'), jeu: { reglages: false }, presse: false, focus: false, detail: null, touche: null, refus: null }],
+    'reglages.gestes': [{ type: 'bouton', id: 'fermer', libelle: t('ecran.reglages.fermer'), jeu: { reglages: false }, presse: false, focus: false, detail: null, touche: null, refus: null, icone: 'interface/fermer' }],
   };
 }
 
@@ -104,12 +180,14 @@ export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'ba
     throw new ErreurDeGeste(categorie, `reglages : ${raison}`);
   };
   if (typeof id !== 'string') return refuser('validation', 'args, l’id du réglage d’abord');
-  if (geste.type === 'preference') {
-    if (args.length !== 2 || !preferenceDef(id)) return refuser('validation', t('ecran.reglages.inconnu', { id }));
-    if (!reglerUnePreference(stockage, id, valeur)) return refuser('validation', t('ecran.reglages.nonConforme', { valeur: JSON.stringify(valeur), id }));
+  if (geste.type === 'preference' || geste.type === 'pourcent') {
+    const def = preferenceDef(id);
+    if (args.length !== 2 || !def || (geste.type === 'pourcent' && !enPourcent(def))) return refuser('validation', t('ecran.reglages.inconnu', { id }));
+    const conforme = geste.type !== 'pourcent' ? valeur : typeof valeur === 'number' ? valeur / 100 : undefined;
+    if (!reglerUnePreference(stockage, id, conforme)) return refuser('validation', t('ecran.reglages.nonConforme', { valeur: JSON.stringify(valeur), id }));
     return;
   }
-  if (geste.type !== 'regle' && geste.type !== 'retablir') return refuser('validation', 'type, `preference`, `regle` ou `retablir`');
+  if (geste.type !== 'regle' && geste.type !== 'retablir') return refuser('validation', 'type, `preference`, `pourcent`, `regle` ou `retablir`');
   const regle = OPTIONAL_RULES.find((r) => r.id === id);
   if (!regle || args.length !== (geste.type === 'regle' ? 2 : 1)) return refuser('validation', t('houseRules.refus.inconnue', { id }));
   const conforme = valeurConforme(regle, valeur);

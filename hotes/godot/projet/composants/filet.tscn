@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[node name="Filet" type="HBoxContainer"]
+custom_minimum_size = Vector2(0, 7)
+mouse_filter = 2
+theme_type_variation = &"FiletALosange"
+
+[node name="Avant" type="HSeparator" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"FiletDOr"
+
+[node name="Place" type="Control" parent="."]
+custom_minimum_size = Vector2(7, 7)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Losange" type="Panel" parent="Place"]
+layout_mode = 0
+offset_right = 7.0
+offset_bottom = 7.0
+rotation = 0.785398
+pivot_offset = Vector2(3.5, 3.5)
+mouse_filter = 2
+theme_type_variation = &"Losange"
+
+[node name="Apres" type="HSeparator" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"FiletDOr"

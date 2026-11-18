@@ -1,0 +1,50 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/geste.gd" id="2_geste"]
+
+[node name="Reglette" type="HBoxContainer"]
+size_flags_horizontal = 8
+size_flags_vertical = 4
+theme_type_variation = &"Reglette"
+
+[node name="Glissiere" type="HSlider" parent="."]
+custom_minimum_size = Vector2(109, 0)
+size_flags_vertical = 4
+scrollable = false
+theme_type_variation = &"Glissiere"
+
+[node name="min" type="Node" parent="Glissiere"]
+script = ExtResource("1_liaison")
+champ = "min"
+propriete = &"min_value"
+
+[node name="max" type="Node" parent="Glissiere"]
+script = ExtResource("1_liaison")
+champ = "max"
+propriete = &"max_value"
+
+[node name="pas" type="Node" parent="Glissiere"]
+script = ExtResource("1_liaison")
+champ = "pas"
+propriete = &"step"
+
+[node name="valeur" type="Node" parent="Glissiere"]
+script = ExtResource("1_liaison")
+champ = "valeur"
+propriete = &"value"
+
+[node name="infobulle" type="Node" parent="Glissiere"]
+script = ExtResource("1_liaison")
+champ = "refus"
+propriete = &"tooltip_text"
+
+[node name="Geste" type="Node" parent="Glissiere" node_paths=PackedStringArray("boite")]
+script = ExtResource("2_geste")
+boite = NodePath("../../Nombre")
+
+[node name="Nombre" type="SpinBox" parent="."]
+custom_minimum_size = Vector2(46, 0)
+size_flags_vertical = 4
+alignment = 2
+theme_type_variation = &"NombreDeReglette"

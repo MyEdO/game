@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://composants/plaque.tscn" id="1_plaque"]
+
+[node name="Defaut" instance=ExtResource("1_plaque")]
+size_flags_horizontal = 0
+size_flags_vertical = 4
+
+[node name="Presser" parent="." index="0"]
+custom_minimum_size = Vector2(0, 0)
+theme_type_variation = &"Defaut"

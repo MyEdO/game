@@ -1,71 +1,229 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/reglages.gd" id="1_reglages"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
-[ext_resource type="Theme" path="res://art/cartes.tres" id="t_cartes"]
+[ext_resource type="Theme" path="res://art/options.tres" id="3_options"]
+[ext_resource type="Theme" path="res://art/registre.tres" id="4_registre"]
+[ext_resource type="Script" path="res://scripts/dessin.gd" id="5_dessin"]
+[ext_resource type="PackedScene" path="res://composants/grain.tscn" id="6_grain"]
 
 [node name="Reglages" type="CanvasLayer"]
 layer = 3
 script = ExtResource("1_reglages")
 
-[node name="Cadre" type="PanelContainer" parent="."]
+[node name="Cadre" type="Control" parent="."]
 visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -360.0
-offset_top = -300.0
-offset_right = 360.0
-offset_bottom = 300.0
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("t_cartes")
-theme_type_variation = &"Fenetre"
+theme = ExtResource("3_options")
 
-[node name="Pile" type="VBoxContainer" parent="Cadre"]
-theme_type_variation = &"PileAeree"
+[node name="Table" type="Panel" parent="Cadre"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"Table"
+
+[node name="Lueur" type="TextureRect" parent="Cadre"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Titre" type="PanelContainer" parent="Cadre"]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 13.0
+offset_right = 384.0
+offset_bottom = 96.0
+mouse_filter = 2
+theme_type_variation = &"Cartouche"
+
+[node name="Marges" type="MarginContainer" parent="Cadre/Titre"]
 layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"MargesDuTitre"
 
-[node name="Avis" type="VBoxContainer" parent="Cadre/Pile"]
+[node name="Rangee" type="HBoxContainer" parent="Cadre/Titre/Marges"]
 layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RangeeDuTitre"
 
-[node name="Zone" type="Node" parent="Cadre/Pile/Avis"]
-script = ExtResource("2_zone")
-source = "reglages.avis"
-
-[node name="Defilement" type="ScrollContainer" parent="Cadre/Pile"]
-unique_name_in_owner = true
+[node name="Medaillon" type="PanelContainer" parent="Cadre/Titre/Marges/Rangee"]
+custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"Medaillon"
 
-[node name="Colonne" type="VBoxContainer" parent="Cadre/Pile/Defilement"]
-theme_type_variation = &"PileAeree"
+[node name="Picto" type="TextureRect" parent="Cadre/Titre/Marges/Rangee/Medaillon"]
+custom_minimum_size = Vector2(25, 25)
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Preferences" type="VBoxContainer" parent="Cadre/Pile/Defilement/Colonne"]
-theme_type_variation = &"PileSerree"
+[node name="Dessin" type="Node" parent="Cadre/Titre/Marges/Rangee/Medaillon/Picto"]
+script = ExtResource("5_dessin")
+champ = "icone"
+nomme = "interface/reglages"
+
+[node name="Pile" type="VBoxContainer" parent="Cadre/Titre/Marges/Rangee"]
 layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"PileDuTitre"
 
-[node name="Zone" type="Node" parent="Cadre/Pile/Defilement/Colonne/Preferences"]
+[node name="Nom" type="Label" parent="Cadre/Titre/Marges/Rangee/Pile"]
+layout_mode = 2
+theme_type_variation = &"TitreDesOptions"
+text = "Options"
+
+[node name="Sous" type="Label" parent="Cadre/Titre/Marges/Rangee/Pile"]
+layout_mode = 2
+theme_type_variation = &"SousTitreDesOptions"
+text = "Préférences et règles maison"
+
+[node name="Volet" type="PanelContainer" parent="Cadre"]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 114.0
+offset_right = 391.0
+offset_bottom = 114.0
+mouse_filter = 2
+theme_type_variation = &"Volet"
+
+[node name="Marges" type="MarginContainer" parent="Cadre/Volet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"MargesDuVolet"
+
+[node name="Pile" type="VBoxContainer" parent="Cadre/Volet/Marges"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PileDuVolet"
+
+[node name="Sons" type="VBoxContainer" parent="Cadre/Volet/Marges/Pile"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PileDuVolet"
+
+[node name="Zone" type="Node" parent="Cadre/Volet/Marges/Pile/Sons"]
 script = ExtResource("2_zone")
 source = "reglages.preferences"
+ids = PackedStringArray("preference/son-coupe", "preference/volume-musique", "preference/volume-ambiance", "preference/volume-effets", "preference/volume-interface")
+formes = PackedStringArray("choix:reglageEnSegments", "curseur:reglageEnPourcent")
 
-[node name="Regles" type="VBoxContainer" parent="Cadre/Pile/Defilement/Colonne"]
-theme_type_variation = &"PileAeree"
+[node name="Trait" type="HSeparator" parent="Cadre/Volet/Marges/Pile"]
 layout_mode = 2
+theme_type_variation = &"FiletDuVolet"
 
-[node name="Zone" type="Node" parent="Cadre/Pile/Defilement/Colonne/Regles"]
+[node name="Jeu" type="VBoxContainer" parent="Cadre/Volet/Marges/Pile"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PileDesReglages"
+
+[node name="Zone" type="Node" parent="Cadre/Volet/Marges/Pile/Jeu"]
+script = ExtResource("2_zone")
+source = "reglages.preferences"
+formes = PackedStringArray("choix:reglageEnSegments", "curseur:reglageEnPourcent", "ligne:aide")
+
+[node name="Avis" type="VBoxContainer" parent="Cadre/Volet/Marges/Pile"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Cadre/Volet/Marges/Pile/Avis"]
+script = ExtResource("2_zone")
+source = "reglages.avis"
+formes = PackedStringArray("ligne:aide")
+repli = true
+
+[node name="Tete" type="CenterContainer" parent="Cadre"]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 106.0
+offset_right = 391.0
+offset_bottom = 106.0
+mouse_filter = 2
+
+[node name="Ruban" type="PanelContainer" parent="Cadre/Tete"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Ruban"
+
+[node name="Titre" type="Label" parent="Cadre/Tete/Ruban"]
+layout_mode = 2
+theme_type_variation = &"TitreDuRuban"
+text = "Préférences"
+horizontal_alignment = 1
+
+[node name="Registre" type="PanelContainer" parent="Cadre"]
+layout_mode = 0
+offset_left = 412.0
+offset_top = 55.0
+offset_right = 1407.0
+offset_bottom = 701.0
+mouse_filter = 2
+theme = ExtResource("4_registre")
+theme_type_variation = &"Reliure"
+
+[node name="Domaines" type="TabContainer" parent="Cadre/Registre"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Domaines"
+tabs_visible = false
+
+[node name="Zone" type="Node" parent="Cadre/Registre/Domaines"]
 script = ExtResource("2_zone")
 source = "reglages.regles"
+formes = PackedStringArray("entite:domaine")
 
-[node name="Gestes" type="HBoxContainer" parent="Cadre/Pile"]
-layout_mode = 2
+[node name="Signets" type="VBoxContainer" parent="Cadre"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1407.0
+offset_top = 68.0
+offset_right = 1407.0
+offset_bottom = 68.0
+mouse_filter = 2
+theme_type_variation = &"Signets"
+
+[node name="Zone" type="Node" parent="Cadre/Signets"]
+script = ExtResource("2_zone")
+source = "reglages.regles"
+formes = PackedStringArray("entite:signet")
+
+[node name="Croix" type="HBoxContainer" parent="Cadre"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -50.0
+offset_top = 7.0
+offset_right = -13.0
+offset_bottom = 47.0
+grow_horizontal = 0
+mouse_filter = 2
 alignment = 2
 
-[node name="Zone" type="Node" parent="Cadre/Pile/Gestes"]
+[node name="Zone" type="Node" parent="Cadre/Croix"]
 script = ExtResource("2_zone")
 source = "reglages.gestes"
+formes = PackedStringArray("bouton:pastilleDeBouton")
+
+[node name="Grain" parent="Cadre" instance=ExtResource("6_grain")]
+layout_mode = 1

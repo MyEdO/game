@@ -1,0 +1,135 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Script" path="res://scripts/pointee.gd" id="3_pointee"]
+
+[node name="Regle" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 75)
+size_flags_horizontal = 3
+theme_type_variation = &"Regle"
+
+[node name="Pointee" type="Node" parent="." node_paths=PackedStringArray("deplie")]
+script = ExtResource("3_pointee")
+deplie = NodePath("../Pile/Aide")
+variation_pointee = &"ReglePointee"
+
+[node name="Marge" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Cire" type="Panel" parent="Marge"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = -19.0
+offset_top = -6.0
+offset_right = 31.0
+offset_bottom = 44.0
+scale = Vector2(0.24, 0.24)
+mouse_filter = 2
+
+[node name="ton" type="Node" parent="Marge/Cire"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Pile" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PileDeRegle"
+
+[node name="Rangee" type="HBoxContainer" parent="Pile"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_type_variation = &"RangeeDeRegle"
+
+[node name="Tete" type="VBoxContainer" parent="Pile/Rangee"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"TeteDeRegle"
+
+[node name="Libelle" type="Label" parent="Pile/Rangee/Tete"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="nom" type="Node" parent="Pile/Rangee/Tete/Libelle"]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="ton" type="Node" parent="Pile/Rangee/Tete/Libelle"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Reference" type="HBoxContainer" parent="Pile/Rangee/Tete"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Pile/Rangee/Tete/Reference"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("ref")
+formes = PackedStringArray("ligne:rubrique")
+
+[node name="Controle" type="HBoxContainer" parent="Pile/Rangee"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"ControleDeRegle"
+
+[node name="Defaut" type="HBoxContainer" parent="Pile/Rangee/Controle"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Pile/Rangee/Controle/Defaut"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("retablir/")
+formes = PackedStringArray("bouton:defaut")
+
+[node name="Valeur" type="HBoxContainer" parent="Pile/Rangee/Controle"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Zone" type="Node" parent="Pile/Rangee/Controle/Valeur"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("regle/")
+formes = PackedStringArray("choix:segments", "liste:pasAPas", "curseur:reglette")
+
+[node name="Aide" type="VBoxContainer" parent="Pile"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Pile/Aide"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("aide")
+formes = PackedStringArray("ligne:aide")
+
+[node name="Action" type="HBoxContainer" parent="Pile"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Plaque" type="HBoxContainer" parent="Pile/Action"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Pile/Action/Plaque" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("action/")
+formes = PackedStringArray("bouton:plaqueArmee")
+masque = NodePath("../..")
+
+[node name="Reste" type="Control" parent="Pile/Action"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.6
+mouse_filter = 2
