@@ -120,6 +120,8 @@ describe('les réglages par le pont', () => {
     const modes = OPTIONAL_RULES.filter((r): r is Extract<OptionalRule, { kind: 'mode' }> => r.kind === 'mode');
     const nus = modes.flatMap((r) => (regle(z, r.id) as Choix).valeurs.filter((v) => v.libelle === (v.jeu as { args: unknown[] }).args[1]).map((v) => `${r.id} ${v.libelle}`));
     expect(nus, 'un choix affiché par sa valeur').toEqual([]);
+    const cadence = preference(z, 'combat-cadence') as Choix;
+    expect(cadence.valeurs.map((v) => v.libelle), 'une préférence à choix, à ses libellés').toEqual(['Manuel', 'Rapide', 'Auto']);
     const croisee = regle(z, 'combat-croisee-melee-difficulte') as Choix;
     expect(croisee.valeurs.find((v) => (v.jeu as { args: unknown[] }).args[1] === 'tresDifficile')!.libelle, 'une Difficulté à son nom').toBe(t('difficulty.tresDifficile'));
     const lue = (id: string) => texte(entiteDe(z, id).elements, 'valeur');
@@ -152,6 +154,8 @@ describe('les réglages par le pont', () => {
     drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
     const verrou = t('houseRules.lockedInBattle');
     expect(curseur(regle(zones(appel), PLAFOND.id)).refus).toBe(verrou);
+    const malus = entiteDe(zones(appel), 'combat-plafond-malus-difficulte').elements.find((e) => e.id === 'valeur') as Ligne;
+    expect(malus.ton, 'la valeur lue d’un contrôle refusé, fermée avec lui').toBe('ferme');
     expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] }))).toEqual({ categorie: 'regle', message: `reglages : ${verrou}` });
     expect(pressee(preference(zones(appel, { type: 'preference', args: ['des-fixes', true] }), 'des-fixes'))).toBe(true);
   });

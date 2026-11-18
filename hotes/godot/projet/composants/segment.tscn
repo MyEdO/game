@@ -5,5 +5,6 @@
 [node name="Segment" instance=ExtResource("1_bouton")]
 
 [node name="Presser" parent="." index="0"]
+a_droite = true
 focus_mode = 0
 theme_type_variation = &"Segment"

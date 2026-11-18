@@ -839,6 +839,11 @@ static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> V
 	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)
 
 
+## Le coin d'une bulle de `largeur` sur `hauteur`, alignée à droite du point `point` de l'écran, au-dessus de lui.
+static func bulle_au_dessus_a_droite(point: Vector2, largeur: float, hauteur: float) -> Vector2:
+	return Vector2(point.x - largeur, point.y - hauteur - ECART_DE_BULLE)
+
+
 ## Le décalage vertical du bas d'une fenêtre posée en bas de la scène, au-dessus d'un meuble de `hauteur` (0 : aucun
 ## meuble), à `ECART_DU_MEUBLE` de lui et du bas de la scène.
 static func au_dessus_du_meuble(hauteur: float) -> float:

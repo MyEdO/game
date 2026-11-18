@@ -71,7 +71,8 @@ export interface FeuilletDesReglages {
    * règles, la suite du domaine (`suite`) et la plage de ses règles (`plage`). Puis chaque règle en entité nommée de
    * son libellé, `gauche/<id>` sur la page de gauche, `droite/<id>` sur celle de droite, au ton `alerte` quand elle
    * est surchargée : la ligne de sa référence au livre (`ref`, la justification d'une valeur maison au détail), celle
-   * de son aide (`aide`), celle de sa valeur quand elle est un nombre (`valeur`, signée pour un modificateur), son contrôle (`regle/<id>`), « Défaut » quand elle est surchargée (`retablir/<id>`, dont le
+   * de son aide (`aide`), celle de sa valeur quand elle est un nombre (`valeur`, signée pour un modificateur, au ton
+   * `ferme` quand son contrôle est refusé), son contrôle (`regle/<id>`), « Défaut » quand elle est surchargée (`retablir/<id>`, dont le
    * `jeu` est `{ type: 'retablir', args: [id] }`), et le bouton de son action quand elle vaut `action.when`
    * (`action/<id>`, dont le `jeu` `{ suite: [{ type: run, args: [] }] }` est un geste de la partie, refusé sans
    * partie ouverte). En combat et chez un invité, chaque contrôle et chaque action sont refusés avec la raison du
@@ -132,7 +133,7 @@ function regleEnEntite(r: OptionalRule, cote: 'gauche' | 'droite', surcharges: R
     elements: [
       ligne('ref', ref, 'neutre', r.maison ?? null),
       ...(r.hint ? [ligne('aide', r.hint)] : []),
-      ...(r.kind === 'param' ? [ligne('valeur', lecture(r, valeur as number))] : []),
+      ...(r.kind === 'param' ? [ligne('valeur', lecture(r, valeur as number), refus === null ? 'neutre' : 'ferme')] : []),
       controle('regle', r, valeur, refus),
       ...(surchargee ? [{ type: 'bouton' as const, id: `retablir/${r.id}`, libelle: t('ecran.reglages.defaut'), jeu: { type: 'retablir', args: [r.id] }, presse: false, focus: false, detail: null, touche: null, refus, icone: 'interface/revenir' }] : []),
       ...(action ? [{ type: 'bouton' as const, id: `action/${r.id}`, libelle: action.label, jeu: { suite: [{ type: action.run, args: [] }] }, presse: false, focus: false, detail: null, touche: null, refus: refus ?? (horsPartie ? t('ecran.reglages.horsPartie') : null), icone: action.icon }] : []),

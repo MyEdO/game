@@ -111,7 +111,7 @@ mouse_filter = 2
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("valeur")
-formes = PackedStringArray("ligne:lecture")
+formes = PackedStringArray("ligne.ferme:lectureFermee", "ligne:lecture")
 masque = NodePath("..")
 
 [node name="Aide" type="VBoxContainer" parent="Pile"]

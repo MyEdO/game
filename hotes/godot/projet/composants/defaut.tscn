@@ -7,5 +7,6 @@ size_flags_horizontal = 0
 size_flags_vertical = 4
 
 [node name="Presser" parent="." index="0"]
+a_droite = true
 custom_minimum_size = Vector2(0, 0)
 theme_type_variation = &"Defaut"

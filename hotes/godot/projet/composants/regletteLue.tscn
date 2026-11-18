@@ -4,5 +4,8 @@
 
 [node name="Reglette" instance=ExtResource("1_reglette")]
 
+[node name="Glissiere" parent="." index="0"]
+a_droite = true
+
 [node name="Nombre" parent="." index="1"]
 visible = false
