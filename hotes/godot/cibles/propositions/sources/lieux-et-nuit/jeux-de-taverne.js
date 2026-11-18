@@ -79,7 +79,7 @@ pieces.push(`<div id="partie" class="page cadre bois" data-piece="partie"><div c
   <h3 data-texte="jeu">L’Al-zahr</h3>
   <div class="sous rubrique">Jeu de dés · chacun met au pot</div>
   <p style="margin-top:7px">Deux dés pour toucher le nombre cible. Le premier qui l’atteint emporte le pot.</p>
-  <div class="autres">${plaque('L’Al-zahr', { armee: true, icone: 'des' })}${plaque('Les fléchettes', { icone: 'cible' })}${plaque('Le bras de fer', { icone: 'poing' })}</div>
+  <div class="autres">${plaque('L’Al-zahr', { armee: true, icone: 'des', taille: 'petite' })}${plaque('Les fléchettes', { icone: 'cible', taille: 'petite' })}${plaque('Le bras de fer', { icone: 'poing', taille: 'petite' })}</div>
   ${filet()}
   <div class="t rubrique">À la table</div>
   <div class="sieges">${siege('bjorn', 'Bjorn', 'Votre joueur', 1)}${siege('brasseur', 'Le brasseur', 'La maison')}${siege('batelier', 'Un batelier', 'Habitué')}${siege('cocher', 'Un cocher', 'De passage')}</div>

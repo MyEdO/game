@@ -306,7 +306,7 @@ const fiche = (classe, style) => `<div id="apercu" class="parchemin ${classe}" d
     <div class="pied">Un clic arme le sort, un second sur la cible le lance.</div>
   </div>`;
 const rapides = (armee, noms = ['Fléchette', 'Dôme', 'Bouclier', 'Lumière', null, null]) => `<div id="rapides" class="cadre bois" data-piece="rapides"><div class="fond">
-      ${noms.map((n, i) => [n, i === 0 && armee]).map(([n, a], i) => `<div class="case-r"><div class="plaque laiton${a ? ' armee' : ''}${n ? '' : ' vide'}"><div>${n ? picto('sort', 20) : ''}</div><b>${i + 1}</b></div><span class="rubrique">${n ?? 'Libre'}</span></div>`).join('')}
+      ${noms.map((n, i) => [n, i === 0 && armee]).map(([n, a], i) => `<div class="case-r">${plaque('', { icone: n ? 'sort' : null, numero: i + 1, armee: a, fermee: !n })}<span class="rubrique">${n ?? 'Libre'}</span></div>`).join('')}
     </div>${ferrures}</div>`;
 const VARIANTE = () => {
   if (VAR === 'liste') return [
@@ -331,10 +331,10 @@ const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}"
 
 const jeu = ETAT === 'jet';
 const ui = [];
-const I = (c = '', pv = 17) => rang('ilyanwe', 'heros', 'Ilyanwe la Voilée', pv, 17, c);
-const Be = (c = '') => rang('berta', 'heros', 'Berta', c.includes('fantome') ? 12 : PV_BERTA, 12, c, COUCHEE && !c.includes('fantome') ? etatPorte('aTerre', { presse: VAR === 'retirer' }) : '');
-const G = (c = '', nom = 'Tireur gobelin') => rang('gobelin', 'ennemi', nom, 11, 11, c);
-const O = (c = '') => rang('orc', 'ennemi', 'Orc', PV_ORC, 14, c, COUCHEE ? etatPorte('hemorragique', { n: 2 }) : '');
+const I = (c = '', pv = 17) => combattant('ilyanwe', 'heros', 'Ilyanwe la Voilée', pv, 17, c);
+const Be = (c = '') => combattant('berta', 'heros', 'Berta', c.includes('fantome') ? 12 : PV_BERTA, 12, c, COUCHEE && !c.includes('fantome') ? etatPorte('aTerre', { presse: VAR === 'retirer' }) : '');
+const G = (c = '', nom = 'Tireur gobelin') => combattant('gobelin', 'ennemi', nom, 11, 11, c);
+const O = (c = '') => combattant('orc', 'ennemi', 'Orc', PV_ORC, 14, c, COUCHEE ? etatPorte('hemorragique', { n: 2 }) : '');
 const SECOND = DEBUT || VAR === 'journal';
 const ROUND = DEBUT ? 'le round<br>débute' : ADVERSE ? 'tour 4<br>sur 4' : VAR === 'mortelle' ? 'tour 2<br>sur 3' : BERTA_JOUE ? 'tour 2<br>sur 4' : 'tour 1<br>sur 4';
 ui.push(SYSTEME);
@@ -390,20 +390,20 @@ const MEUBLES = {
   aTerre: {
     sous: 'Épée', portes: etatPorte('aTerre'),
     plaques: `${plaque('Attaque', { icone: 'attaque' })}${plaque(`Course${raison('ne peut que ramper : se relever d’abord')}`, { icone: 'botte', fermee: true })}${plaque('Défensive', { icone: 'defensive' })}`,
-    conditionnelles: ['Se désengager', 'Se relever', 'Battement', 'Distraire', 'Frénésie'].map((o) => plaque(o)).join(''),
+    conditionnelles: ['Se désengager', 'Se relever', 'Battement', 'Distraire', 'Frénésie'].map((o) => plaque(o, { taille: 'petite' })).join(''),
     pastilles: [['competence', 'Compétence'], ['objet', 'Objet'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
   },
   /* LDB 14 (Tableau des Difficultés de Combat, « Viser ») ; LDB 62 (Recharge) */
   tireur: {
     sous: 'Arbalète', portes: '',
-    conditionnelles: `${plaque('Viser')}${plaque('Recharger', { fermee: true })}`,
+    conditionnelles: `${plaque('Viser', { taille: 'petite' })}${plaque('Recharger', { fermee: true, taille: 'petite' })}`,
     pastilles: [['munition', 'Munition'], ['competence', 'Compétence'], ['objet', 'Objet'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
     entites: surLEntite(MONTURE, 138, 'monter', 'Monter') + surLEntite([11.5, 8.5], 86, 'servir', 'Servir'),
   },
   /* LDB 13 l.106 ; MDG 09 l.44-46 ; `docs/raw/4e/combat.md:262` */
   piece: {
     sous: 'Baliste', portes: '',
-    conditionnelles: `${plaque('Recharger')}${plaque('Diriger l’équipe')}${plaque('Quitter la pièce', { icone: 'sortie' })}`,
+    conditionnelles: `${plaque('Recharger', { taille: 'petite' })}${plaque('Diriger l’équipe', { taille: 'petite' })}${plaque('Quitter la pièce', { icone: 'sortie', taille: 'petite' })}`,
     pastilles: [['competence', 'Compétence'], ['objet', 'Objet'], ['poser', 'Poser au sol'], ['armes', 'Armes']],
     entites: surLEntite([11.5, 8.5], 86, 'pousser', 'Pousser'),
   },
@@ -467,7 +467,7 @@ if (!jeu && BERTA_JOUE) {
     ui.push(`<div id="f-sections" class="cadre bois" data-piece="fiche-sections"><div class="fond parchemin">
       ${arme('<path d="M18 62L58 22l6-8-8 6L16 60z" fill="#d9d3c2" stroke="#1a1005" stroke-width="1.500"/><path d="M14 52l14 14M12 68l6-6" stroke="#e2c06a" stroke-width="3.500"/>', 'Épée', 41, '+BF+4 (7)', 'Moyenne', [])}
       ${arme('<path d="M40 12l24 8v18c0 15-10 25-24 30-14-5-24-15-24-30V20z" fill="#6f4d30" stroke="#1a1005" stroke-width="1.500"/><path d="M40 12v56M16 34h48" stroke="#e2c06a" stroke-width="2.500"/><circle cx="40" cy="34" r="6" fill="#b9b3a4" stroke="#1a1005" stroke-width="1.500"/>', 'Bouclier', 41, '+BF+2 (5)', 'Très courte', ['Bouclier 2', 'Défensive', 'Assommante'])}
-    </div><div class="onglets">${ruban('Attaques', { gothique: true })}${['Compétences', 'Talents', 'Possessions'].map((t) => plaque(t)).join('')}</div>${ferrures}</div>`);
+    </div>${onglets(['Attaques', 'Compétences', 'Talents', 'Possessions'], 'Attaques')}${ferrures}</div>`);
     ui.push(croix());
   }
 } else if (FIN) {
@@ -477,7 +477,7 @@ if (!jeu && BERTA_JOUE) {
   const SORTIE = { defaite: 'Reprendre', repli: 'Poursuivre la bataille', aneantissement: 'Retour au menu' }[VAR];
   /* ADE II 08 l.175, l.223 ; `src/noyau/issueDeCombat.ts:67-84` */
   const SUITE = { repli: 'Les héros sont soignés, la bataille continue.', aneantissement: 'Aucun héros ne tient debout.' }[VAR];
-  ui.push(`<div id="issue" data-piece="issue"><div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="issue">${TITRE}</span></div></div>${SUITE ? `<p class="ombre" data-texte="suite de l'issue">${SUITE}</p>` : ''}${SORTIE ? plaque(SORTIE, { armee: true }) : ''}</div>`);
+  ui.push(`<div id="issue" data-piece="issue"><div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="issue">${TITRE}</span></div></div>${SUITE ? `<p class="ombre" data-texte="suite de l'issue">${SUITE}</p>` : ''}${SORTIE ? plaque(SORTIE, { armee: true, taille: 'appel' }) : ''}</div>`);
   /* `PendingVictory` (`src/noyau/pendings.ts:84-99`) ; `ecran.victoire.*` (`fr.ts:1128-1130`) ; `verbe.victoire.ligne`,
      `verbe.victoire.depecer` (`fr.ts:307-308`) ; ZI 13 l.304-316 */
   if (VAR === 'victoire') {

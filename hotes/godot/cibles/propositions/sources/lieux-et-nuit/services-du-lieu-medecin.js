@@ -74,10 +74,8 @@ const pieces = [];
 pieces.push(titre({ icone: 'soin', nom: 'Guilde des Médecins', sous: 'Teuerberg, Bögenhafen', largeur: 400 }));
 const SERVICES = [['lit', 'La Fin du Voyage'], ['chope', 'Les Piques croisées'], ['balance', 'Guilde des Joailliers'], ['soin', 'Guilde des Médecins', 1], ['bouclier', 'Caserne du Guet']];
 pieces.push(rail('Services de Teuerberg', SERVICES, 'On passe de l’un à l’autre sans ressortir'));
-pieces.push(`<div id="docteur" class="hote cadre bois" data-piece="docteur"><div class="fond bois">
-  <div class="tete">${medaillon('soin', { taille: 'moyen' })}<div><div class="n gothique" data-texte="docteur">Le docteur de la guilde</div><div class="s rubrique">Docteur en médecine · Guérison 62</div></div></div>
-  <p>Asseyez-vous sous la fenêtre et montrez-moi cela. Et ne bougez plus.</p>
-</div><i class="pointe" style="left:152px;bottom:-8px"></i>${ferrures}</div>`);
+pieces.push(hote({ id: 'docteur', x: 800, y: 292, l: 322, icone: 'soin', nom: 'Le docteur de la guilde', sous: 'Docteur en médecine · Guérison 62', pointe: 152,
+  corps: '<p>Asseyez-vous sous la fenêtre et montrez-moi cela. Et ne bougez plus.</p>' }));
 /* LDB 75 l.19 ; `src/noyau/medicFlow.ts:182`, `src/noyau/acteDeSoin.ts:30-36` ; #3004. Le patient se choisit au bandeau. */
 pieces.push(pageDesSoins({ ruban: 'Les soins du docteur', patient: 'Greta Hartmann', blessures: 8, max: 14, mal: 'Cuisse lacérée, jambe gauche : la plaie attend d’être recousue.',
   actes: `${acteDeSoin('soin', 'Panser les Blessures', 'Guérison', 'Lui rend le Bonus d’Intelligence du docteur, plus ses degrés de réussite.', { pris: true, prix: '5/–' })}

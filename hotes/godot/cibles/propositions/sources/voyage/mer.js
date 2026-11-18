@@ -16,11 +16,11 @@ pieces.push(temps(SEMAINE
   : { teinte: 'gris', jour: 'Wellentag', date: '21 Sigmarzeit · 3ᵉ jour en mer', meteo: 'Brise fraîche, vent latéral', icone: 'vent', cadence: ARRET ? null : 'commande' }));
 pieces.push(carteDuTrajet({ titre: 'La mer des Griffes', de: 'Salzenmund', vers: 'Erengrad', part: AU_PORT ? 1 : SEMAINE ? .8 : .3, eau: 'mer' }));
 /* le contenant d'événement de la mer : vignette, titre, texte du livre, corps */
-const arret = ({ ruban: intitule, titre: t, sous, texte, vignette, corps = '', sceau = '', court = false }) => `<div id="evenement" class="cadre bois${court ? ' court' : ''}" data-piece="evenement"><div class="fond parchemin">
+const arret = ({ ruban: intitule, titre: t, sous, texte, vignette, corps = '', jet = '', court = false }) => `<div id="evenement" class="cadre bois${court ? ' court' : ''}" data-piece="evenement"><div class="fond parchemin">
     <div class="vignette"><svg viewBox="0 0 250 250"><rect width="250" height="250" fill="#d8c493"/>${vignette}</svg></div>
     <div class="corps"><div class="tete"><h2 data-texte="titre de l'événement">${t}</h2><span class="rubrique">${sous}</span></div>
       <p data-texte="texte du livre">${texte}</p>${corps}
-    </div>${sceau}
+    </div>${jet}
   </div>${ruban(intitule, { gothique: true })}${ferrures}</div>`;
 const ENCRE = 'fill="#2a1d12"';
 if (ETAT === 'mer-relache') {
@@ -53,7 +53,7 @@ if (ETAT === 'mer-relache') {
   pieces.push(arret({ court: true, ruban: 'Panne de vapeur', titre: 'Fuite de vapeur', sous: 'À la chaudière · 3ᵉ jour en mer',
     texte: 'Fuite de vapeur : un jet de vapeur jaillit de la chaudière. La personne qui s’occupe du moteur doit réussir un Test d’Initiative sous peine d’être ébouillantée et de subir 1d10–5 Dégâts (1 minimum), qui ignorent l’Armure.',
     vignette: `<rect y="190" width="250" height="60" fill="#b9a26c"/><g ${ENCRE}><path d="M50 190v-80c0-22 16-36 40-36h30c24 0 40 14 40 36v80z"/><path d="M150 96h46v14h-46zM186 96h12v94h-12z"/><path d="M92 74V42h26v32z"/></g><circle cx="105" cy="136" r="22" fill="#d8c493"/><path d="M105 136l12-12" stroke="#2a1d12" stroke-width="4"/><g fill="none" stroke="#8c7446" stroke-width="3" stroke-linecap="round"><path d="M160 120c20-10 30 6 50-6M162 140c22-8 34 8 58-4M160 160c18-6 30 8 46 0"/></g>`,
-    sceau: '<div class="sceau maitre de"><b>47</b><i>d100</i></div>' }));
+    jet: sceau(47, 'maitre', { de: 'd100' }) }));
   pieces.push(bandeauDuJet('Test d’Initiative', '', `
     ${camp({ portrait: portrait('aldric', { taille: 'grand' }), nom: 'Aldric', carac: 'Au moteur · Initiative', seuil: 38, modif: 'Intermédiaire (+0)' })}
     ${reglages('Fuite de vapeur · 3ᵉ jour en mer', '<div class="dr gothique">Test simple</div><p>Sinon ébouillanté : 1d10–5 Dégâts (1 minimum), qui ignorent l’Armure.</p>')}

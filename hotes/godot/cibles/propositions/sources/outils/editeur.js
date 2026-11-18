@@ -7,7 +7,6 @@ const ETAT = document.getElementById('ecran').dataset.etat;
 const CARTE = ETAT === 'editeur-carte-du-monde';
 const TERRAIN = ETAT === 'editeur-outil-terrain';
 const SUPPRIMER = ETAT === 'editeur-supprimer';
-const petite = (libelle, o = {}) => plaque(libelle, o);
 const outilDePalette = ([icone, nom, la]) => `<div class="o ${la ? 'la' : ''}">${picto(icone, 20, la ? '#2a1a08' : '#e2c06a', 1.5)}<span>${nom}</span></div>`;
 const volet = (id, x, y, intitule, corps) => `<div id="${id}" class="volet cadre bois" data-piece="${id}" style="left:${x}px;top:${y}px;width:270px"><div class="fond bois">${corps}</div>${ruban(intitule)}${ferrures}</div>`;
 const barre = () => `<div id="barre" class="cadre bois" data-piece="barre"><div class="fond bois">
@@ -16,11 +15,11 @@ const barre = () => `<div id="barre" class="cadre bois" data-piece="barre"><div 
   <div class="sep"></div>
   ${segments(['Scène', 'Carte du monde', 'Narratif'], CARTE ? 'Carte du monde' : 'Scène')}
   <div class="espace"></div>
-  ${petite('Annuler', { icone: 'annuler' })}${petite('Rétablir', { icone: 'refaire', fermee: true })}
+  ${plaque('Annuler', { icone: 'annuler', taille: 'petite' })}${plaque('Rétablir', { icone: 'refaire', fermee: true, taille: 'petite' })}
   <div class="sep"></div>
-  ${petite('Copier')}${petite('Coller', { fermee: true })}${petite('Dupliquer')}
+  ${plaque('Copier', { taille: 'petite' })}${plaque('Coller', { fermee: true, taille: 'petite' })}${plaque('Dupliquer', { taille: 'petite' })}
   <div class="sep"></div>
-  ${petite('Enregistrer', { icone: 'disque' })}${petite('Tester la scène', { icone: 'jouer', armee: true })}
+  ${plaque('Enregistrer', { icone: 'disque', taille: 'petite' })}${plaque('Tester la scène', { icone: 'jouer', armee: true, taille: 'petite' })}
   ${croix({ dansLePanneau: true })}
 </div>${ferrures}</div>`;
 
@@ -110,7 +109,7 @@ if (CARTE) {
        <div class="r rubrique">Plan du lieu</div>
        <div class="plan-du-lieu">Aucun point d’intérêt désigné sur le plan.</div>
        <div class="r rubrique">Établissements (0)</div>
-       ${plaque('Ajouter un établissement', { icone: 'plus' })}
+       ${plaque('Ajouter un établissement', { icone: 'plus', taille: 'petite' })}
        <div class="r rubrique">Routes (1)</div>
        <div class="prop"><span>La route principale</span><span class="v chiffres" style="font-style:normal">40 km</span></div>
        <div class="prop" style="flex-direction:column;align-items:flex-start;padding:6px 0 8px;gap:5px"><span>Sens</span>${segments(['Les deux sens', 'Depuis Auberge La Diligence'], 'Depuis Auberge La Diligence')}</div>
@@ -153,18 +152,18 @@ if (CARTE) {
        <div class="prop"><span>Couche</span>${segments(['0', '1'], '0')}</div>
        <div class="r rubrique">Inventaire</div>
        <div class="prop gris"><span>Aucun objet dans l’inventaire.</span></div>
-       ${plaque('Ajouter un objet à l’inventaire', { icone: 'plus' })}
+       ${plaque('Ajouter un objet à l’inventaire', { icone: 'plus', taille: 'petite' })}
        <div class="r rubrique">Poser une troupe</div>
        <div class="prop"><span>Copies</span>${moinsPlus({ entre: '<b class="copies">3</b>' })}</div>
        ${renvoi('Carrière')}${renvoi('Rencontres (0)')}
-       <div class="au-pied">${plaque('Supprimer', { icone: 'croix' })}</div>`,
+       <div class="au-pied">${plaque('Supprimer', { icone: 'croix', taille: 'petite' })}</div>`,
   };
   pieces.push(
     volet('scenes', 12, 84, '4 scènes au projet', `${['La Diligence', 'Altdorf — la porte sud', 'La route principale — le virage', 'Auberge des Sept Rayons'].map((n, i) => ligneDeListe(n, '', { la: i === 0 })).join('')}
-      <div class="gestes">${plaque('Nouvelle scène', { icone: 'plus' })}</div><div class="gestes">${plaque('Dupliquer la scène')}${plaque('Retirer la scène')}</div>`),
+      <div class="gestes">${plaque('Nouvelle scène', { icone: 'plus', taille: 'petite' })}</div><div class="gestes">${plaque('Dupliquer la scène', { taille: 'petite' })}${plaque('Retirer la scène', { taille: 'petite' })}</div>`),
     volet('outil', 12, 348, 'Outil', `<div class="outils">${OUTILS.map(outilDePalette).join('')}</div>`),
     `<div id="plan" class="cadre bois" data-piece="plan"><div class="fond">${planDeScene()}</div>
-       <div id="couches">${plaque('Couche 0', { armee: true, icone: 'couches' })}${plaque('Couche 1')}${plaque('Ajouter une couche', { icone: 'plus' })}${SUPPRIMER ? plaque(`Retirer cette couche${raison('Le rez ne se retire pas')}`, { fermee: true }) : ''}</div>
+       <div id="couches">${plaque('Couche 0', { armee: true, icone: 'couches', taille: 'petite' })}${plaque('Couche 1', { taille: 'petite' })}${plaque('Ajouter une couche', { icone: 'plus', taille: 'petite' })}${SUPPRIMER ? plaque(`Retirer cette couche${raison('Le rez ne se retire pas')}`, { fermee: true, taille: 'petite' }) : ''}</div>
        <div id="nord" class="rubrique ombre">${picto('route', 18)}Nord : 0° dans le sens horaire</div>${ferrures}</div>`,
     PIED[ETAT],
     `<div id="inspecteur" class="cadre bois" data-piece="inspecteur"><div class="fond parchemin">${INSPECTEUR[ETAT]}</div>${ruban('Inspecteur', { gothique: true })}${ferrures}</div>`,

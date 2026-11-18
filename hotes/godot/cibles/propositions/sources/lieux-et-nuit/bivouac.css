@@ -6,11 +6,10 @@
 .rang-c .v em{color:var(--creme-2)}
 #camp .filet{margin:13px 0 9px}
 #camp .t{font-size:12.5px;color:var(--or);margin-bottom:7px}
-#camp .plaque.nuit{height:44px;margin-top:12px}
+#camp .plaque.nuit{margin-top:12px}
 #camp .plaque.nuit>div{font-size:16.5px}
 .choix-h{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12.5px;color:#eadfc4}
 .choix-h .rubrique{flex:none;width:64px;font-size:11px;color:var(--creme-2)}
 .choix-h b{font-weight:400}
-.choix-h .plaque{height:24px}
 .choix-h .plaque{flex:none}
 .choix-h .plaque>div{font-size:11.5px;letter-spacing:.6px;padding:0 7px}

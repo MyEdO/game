@@ -84,5 +84,5 @@ monter([
      <div class="source rubrique ombre">L’Ennemi dans l’Ombre, p. 11</div>
    </div>`,
   bandeau({}, { ruban: 'La compagnie' }),
-  `<div id="commencer" data-piece="commencer">${plaque('Commencer', { armee: true, icone: 'route' })}</div>`,
+  `<div id="commencer" data-piece="commencer">${plaque('Commencer', { armee: true, icone: 'route', taille: 'appel' })}</div>`,
 ]);

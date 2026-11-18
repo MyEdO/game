@@ -111,9 +111,6 @@ const VOYAGEURS = ROSTER ? [
 }
 fermer();
 
-const recrue = (v) => `<div class="poste occupe ${v.vise ? 'vise' : ''}" style="left:${v.x - 80}px;top:${472 - v.h - 132}px">
-  ${portrait(v.id, { choisi: v.vise })}
-  <div class="et bois"><b>${v.nom}</b><span class="rubrique">${v.car}</span></div></div>`;
 const avis = (classe, style, icone, nom) => `<div class="avis parchemin ${classe}" style="${style}"><i class="clou"></i>${picto(icone, 17, '#5a2a12', 1.6)}<b class="gothique">${nom}</b></div>`;
 const GROUPE = HEROS.slice(0, 3);
 monter([
@@ -126,8 +123,8 @@ monter([
      ${plaque('Créer un personnage', { icone: 'plume', classe: 'gauche' })}
      ${plaque('Importer un personnage…', { icone: 'disque', classe: 'gauche' })}
    </div>${ruban('Recruter')}${ferrures}</div>`,
-  `<div id="salle" data-piece="voyageurs">${VOYAGEURS.map(recrue).join('')}
-     <div id="recruter" style="left:${716 - 75}px;top:${472 - 108 - 132 + 100}px">${plaque('Recruter', { armee: true, icone: 'plus' })}${ROSTER ? `<div class="du-roster">${outil('disque', 'Exporter')}${outil('croix', 'Supprimer')}</div>` : ''}</div></div>`,
+  `<div id="salle" data-piece="voyageurs">${VOYAGEURS.map((v) => poste(v.x, 472 - v.h - 132, { nom: v.nom, sous: v.car, heros: v.id, vise: v.vise })).join('')}
+     <div id="recruter" style="left:${716 - 75}px;top:${472 - 108 - 132 + 100}px">${plaque('Recruter', { armee: true, icone: 'plus', taille: 'petite' })}${ROSTER ? `<div class="du-roster">${outil('disque', 'Exporter')}${outil('croix', 'Supprimer')}</div>` : ''}</div></div>`,
   `<div id="panneau" class="cadre bois" data-piece="campagnes"><div class="fond bois">
      <div class="affiche parchemin"><i class="clou" style="left:14px"></i><i class="clou" style="right:14px"></i>
        <div class="sur rubrique">On recherche : aventuriers courageux</div>
@@ -143,18 +140,9 @@ monter([
      ${avis('', 'left:20px;top:398px;transform:rotate(-.8deg)', 'epee', 'L’Arène')}
      ${avis('', 'left:34px;top:451px;transform:rotate(1deg)', 'plume', 'Les Caves de Weissbruck')}
    </div>${ruban('Campagnes', { gothique: true })}${ferrures}</div>`,
-  `<div id="bandeau" class="cadre bois" data-piece="bandeau"><div class="fond bois">${GROUPE.map((h) => `
-     <div class="heros">${portrait(h.id, { taille: 'grand' })}
-       <div class="qui"><div class="nom gothique" data-texte="héros ${h.nom}">${h.nom}</div>
-         <div class="l2"><span class="car rubrique">${h.car}</span><span class="pv chiffres">${h.max} / ${h.max}</span></div>
-         ${vie(h.max, h.max)}
-         <div class="renvoi">${picto('croix', 11, '#c9b995', 1.8)}<span class="rubrique">Renvoyer</span>${ETAT ? `<i></i>${picto('plume', 12, '#c9b995', 1.6)}<span class="rubrique">Modifier</span>` : ''}</div>
-       </div>
-     </div>`).join('')}
-     <div class="heros libre"><div class="portrait fer vide grand"><div>${picto('plus', 26, '#c9b995', 1.4)}</div></div>
-       <div class="qui"><div class="nom gothique">Place libre</div><div class="l2"><span class="car rubrique">Un voyageur, ou personne</span></div>
-       ${ETAT === 'coop' ? `<div class="siege"><span class="rubrique">Siège</span>${segments(['Vous', 'Lena', 'Otto'], 'Lena')}</div>` : '<div class="dit"><p>Le groupe peut partir à trois.</p></div>'}</div>
-     </div>
-   </div>${ferrures}</div>`,
+  bandeau({
+    ...Object.fromEntries(GROUPE.map((h) => [h.id, { html: `<div class="renvoi">${picto('croix', 11, undefined, 1.8)}<span class="rubrique">Renvoyer</span>${ETAT ? `<i></i>${picto('plume', 12, undefined, 1.6)}<span class="rubrique">Modifier</span>` : ''}</div>` }])),
+    libre: ETAT === 'coop' ? { html: `<div class="siege"><span class="rubrique">Siège</span>${segments(['Vous', 'Lena', 'Otto'], 'Lena')}</div>` } : { texte: 'Le groupe peut partir à trois.' },
+  }, { groupe: [...GROUPE, { nom: 'Place libre', car: 'Un voyageur, ou personne' }] }),
   croix(),
 ]);

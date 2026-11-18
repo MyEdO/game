@@ -26,7 +26,7 @@ const fiche = `<div class="feuille d parchemin">
          <div class="r rubrique">Créatures <em>19</em></div>
          ${liens(CREATURES, 13)}
        </div>
-       <div class="pied">${plaque('Modifier', { icone: 'plume' })}<span class="marque"><i>Atelier : Talents</i></span></div>
+       <div class="pied">${plaque('Modifier', { icone: 'plume', taille: 'petite' })}<span class="marque"><i>Atelier : Talents</i></span></div>
      </div>`;
 const atelier = `<div class="feuille d parchemin atelier">
        <div class="tete"><span class="dom gothique" data-texte="entrée">Négociateur</span><span class="sous rubrique">Atelier : Talents</span></div>
@@ -40,7 +40,7 @@ const atelier = `<div class="feuille d parchemin atelier">
          <div class="r rubrique">Champs que l’entrée ne porte pas</div>
          <div class="facettes">${AJOUTS.map((n) => `<b>Ajouter : ${n}</b>`).join('')}</div>
        </div>
-       <div class="pied">${plaque('Enregistrer', { icone: 'disque', armee: true })}${plaque('Abandonner')}${plaque(`Supprimer${raison('D’autres données désignent cette entrée, elle ne se supprime pas : 2 races, 24 carrières, 19 créatures')}`, { fermee: true })}</div>
+       <div class="pied">${plaque('Enregistrer', { icone: 'disque', armee: true, taille: 'petite' })}${plaque('Abandonner', { taille: 'petite' })}${plaque(`Supprimer${raison('D’autres données désignent cette entrée, elle ne se supprime pas : 2 races, 24 carrières, 19 créatures')}`, { fermee: true, taille: 'petite' })}</div>
      </div>`;
 monter([
   fondDeTable(),

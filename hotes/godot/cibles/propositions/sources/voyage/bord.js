@@ -62,7 +62,7 @@ if (ETAT === 'activites-en-mer') {
   </div>${ruban('Le bord')}${ferrures}</div>`);
   pieces.push(ouvrir('Dossier du navire', 'coque', 356));
   if (STATION) pieces.push(`<div id="station" class="cadre bois bord" data-piece="station"><div class="fond bois">
-    <div class="stations">${plaque('Gréement')}${plaque('Pont', { armee: true })}${plaque('Avirons')}</div>
+    <div class="stations">${plaque('Gréement', { taille: 'petite' })}${plaque('Pont', { armee: true, taille: 'petite' })}${plaque('Avirons', { taille: 'petite' })}</div>
     <p data-texte="station">Si un Personnage se trouve sur le pont, il doit réussir un Test d’Athlétisme Accessible (+20) sous peine de subir l’État À Terre.</p>
   </div>${ruban('Station de Greta')}${ferrures}</div>`);
   pieces.push(bandeau({

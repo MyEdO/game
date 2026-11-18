@@ -28,7 +28,7 @@ pieces.push(titre({ icone: 'epee', nom: 'Bataille de masse', sous: ISSUE ? 'La b
 /* `plus` : la Scène offre une place au héros choisi dans le bandeau */
 const scene = (cx, y, { nom, effet, position, heros = [], icone, geste, vise = false, plus = false }) => `<div class="poste scene ${heros.length ? 'occupe' : 'vide'} ${vise ? 'vise' : ''}" style="left:${cx - 115}px;top:${y}px">
   <div class="postes-de-scene">${heros.length ? heros.map((h) => portrait(h)).join('') : medaillon(icone, { taille: 'moyen' })}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>
-  <div class="et bois"><b>${nom}</b><span class="rubrique">${effet}</span>${position ? `<span class="rubrique position">${position}</span>` : ''}${plaque(geste, { armee: vise })}</div></div>`;
+  <div class="et bois"><b>${nom}</b><span class="rubrique">${effet}</span>${position ? `<span class="rubrique position">${position}</span>` : ''}${plaque(geste, { armee: vise, taille: 'petite' })}</div></div>`;
 const armees = (allies, ennemis, suite, bonus = '+10') => `<div id="bord" class="cadre bois bord armees" data-piece="les armées"><div class="fond bois">
   ${ligne('Armée des Personnages', `<span class="chiffres">${allies} · départ 50</span>`)}${jauge(allies / 100, { teinte: 'or', taille: 'forte' })}${bonus ? `
   ${ligne('Tests de Puissance ce Round', `<span class="chiffres">${bonus}</span>`)}` : ''}
@@ -36,7 +36,7 @@ const armees = (allies, ennemis, suite, bonus = '+10') => `<div id="bord" class=
   ${filet({ fondu: true })}${suite}
 </div>${ruban('Puissance')}${ferrures}</div>`;
 /* le parchemin posé au-dessus des héros : les deux armées, ce qui les départage, les gestes */
-const ost = (cote, nom, sceau, unite, gagne, sous, issue) => `<div class="ost ${cote}"><div class="sceau maitre de ${gagne ? 'reussite' : ''}"><b>${sceau}</b><i>${unite}</i></div>
+const ost = (cote, nom, jet, unite, gagne, sous, issue) => `<div class="ost ${cote}">${sceau(jet, 'maitre', { etat: gagne ? 'reussite' : '', de: unite })}
     <div><div class="n">${nom}</div><div class="c rubrique">${sous}</div><div class="issue ${gagne ? 'reussite' : ''}">${issue}</div></div></div>`;
 const armee = (cote, nom, seuil, de, dr, perte) => ost(cote, nom, de, 'd100', dr > 0, `Puissance ≤ ${seuil}`, `<b>${dr > 0 ? 'Réussite' : 'Échec'} · DR ${dr > 0 ? '+' : '−'}${Math.abs(dr)}</b> · ôte ${perte}`);
 const epreuve = (intitule, gauche, milieu, droite, gestes, classe = '') => `<div id="epreuve" class="cadre bois ${classe}" data-piece="${intitule}"><div class="fond parchemin">

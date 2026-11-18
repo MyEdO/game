@@ -255,9 +255,10 @@ qu'elle prolonge, et une pièce neuve s'ajoute à ce socle plutôt que dans une 
 (`lieux-et-nuit/commun.css`, `commun.js`, `bustes.js`), que lient `heros`, `exploration-et-recit`, `voyage`,
 `commerce` et les écrans hors champ de `combat-suite` ; celui du combat (`combat/combat.css`, `socle.js`), que lient
 `combat-suite` et le combat naval de `voyage`. `accueil-et-systeme`, que prolonge `outils`, garde sa propre feuille
-commune. Deux socles de gestes se posent sur les trois, et aucune famille n'en recopie une pièce. La charte
-(`gestes.css`, `gestes.js`, que toute page charge) : la croix qui ferme un panneau, la pastille de retour d'un lieu,
-le réglage − +, la bulle de la raison d'un refus au survol, le médaillon de bourse qui dit qui paie (#3004). Le jet
+commune. Deux socles de gestes se posent sur les trois, et aucune famille n'en recopie une pièce. Le kit
+(`gestes.css`, `gestes.js`, que toute page charge avant son socle) : la définition unique de chaque pièce d'interface,
+cotes et signatures dans `propositions/kit.md`, chacune posée à chaque taille et dans chaque état sur la planche
+(`sources/kit/planche-*.html`). Le jet
 (`combat/jet.css`, `jet.js`) : le bandeau du bas, ses camps et son verdict, le testeur et les réglages d'avant le dé,
 les réserves du héros, les gestes d'avant et d'après le dé ouverts ou fermés selon la règle (LDB 17 l.23-24, l.68),
 les dés réglables de la Résilience, le choix par carte.

@@ -22,14 +22,14 @@ pieces.push(`<div id="carte" class="cadre bois" data-piece="carte"><div class="f
 </div>${ferrures}</div>`);
 /* LDB 22 l.5 ; LDB 23 l.5, l.15 ; `src/noyau/interludeEnVue.ts:48-52` */
 const restantes = (n) => `<div class="pips">${[0, 1, 2].map((k) => `<i class="${k < n ? '' : 'vide'}"></i>`).join('')}</div>`;
-const rang = (id, nom, evenement, n, choisi) => `${portrait(id, { taille: 'petit', choisi })}<div class="q"><b>${nom}</b><span class="rubrique">Événement · ${evenement}</span></div><div class="r">${restantes(n)}<span class="rubrique">${n} sur 3</span></div>`;
+const activites = (id, nom, evenement, n, choisi) => rang(id, { taille: 'petit', choisi, nom, gothique: true, sous: `Événement · ${evenement}`, fin: `<div class="r">${restantes(n)}<span class="rubrique">${n} sur 3</span></div>` });
 pieces.push(`<div id="interlude" class="cadre bois" data-piece="interlude"><div class="fond bois">
   <h3>Activités restantes</h3><div class="s rubrique">Une par semaine, trois au plus</div>
   <div class="rangs">
-    ${rang('bjorn', 'Bjorn', 'Profits abondants', 1)}
-    ${rang('mira', 'Mira', 'Rien à signaler', 2, true)}
-    ${rang('aldric', 'Aldric', 'Enchères ésotériques', 1)}
-    ${rang('greta', 'Greta', 'Festivités', 2)}
+    ${activites('bjorn', 'Bjorn', 'Profits abondants', 1)}
+    ${activites('mira', 'Mira', 'Rien à signaler', 2, true)}
+    ${activites('aldric', 'Aldric', 'Enchères ésotériques', 1)}
+    ${activites('greta', 'Greta', 'Festivités', 2)}
   </div>
   ${filet({ fondu: true })}
   <div class="avis">${sceau('pieces')}<span>À la reprise, les bourses seront vides : seul l’argent déposé au comptoir est gardé.</span></div>

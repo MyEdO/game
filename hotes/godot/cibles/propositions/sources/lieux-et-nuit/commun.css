@@ -5,7 +5,7 @@
 
 /* le bandeau des quatre héros */
 #bandeau{left:260px;top:620px;width:1186px;height:152px}
-#bandeau .fond{display:grid;grid-template-columns:repeat(4,1fr)}
+#bandeau .fond{display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
 .heros{position:relative;display:flex;gap:13px;padding:11px 14px 0 13px;min-width:0}
 .heros+.heros{border-left:1px solid rgba(0,0,0,.6);box-shadow:inset 1px 0 0 rgba(255,220,160,.07)}
 .heros .qui{flex:1;min-width:0}
@@ -49,12 +49,9 @@
 .apercu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
 .apercu .pied{margin-top:7px;padding-top:6px;border-top:1px solid rgba(60,40,20,.45);font-style:italic;font-size:13px;line-height:17px;color:#4a3420}
 
-/* le cartouche d'un hôte : médaillon, nom, boniment, pointe */
+/* l'hôte : son cartouche, son boniment, sa pointe */
 .hote{position:absolute}
 .hote>.fond{padding:11px 16px 12px 13px}
-.hote .tete{display:flex;align-items:center;gap:11px}
-.hote .n{font-size:22px;line-height:30px;margin:-4px 0 -5px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
-.hote .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
 .hote p{margin:8px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
 .pointe{position:absolute;width:18px;height:18px;transform:rotate(45deg);background:#1f130b;box-shadow:2px 2px 0 #0c0705,inset -1px -1px 0 rgba(226,192,106,.3)}
 

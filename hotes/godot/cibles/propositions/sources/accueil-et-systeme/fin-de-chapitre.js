@@ -47,5 +47,5 @@ monter([
      ${HEROS.map(colonne).join('')}
      <div class="col groupe"><div class="tete"><div class="qui"><div class="n gothique">Le groupe</div><div class="c rubrique">Chance restaurée à la prochaine séance</div></div></div>${casesDuGroupe()}</div>
    </div>${ruban('Fin de séance')}${ferrures}</div>`,
-  `<div id="clore" data-piece="clore">${plaque('Clore le chapitre', { armee: true, icone: 'sceau' })}${plaque('Plus tard')}</div>`,
+  `<div id="clore" data-piece="clore">${plaque('Clore le chapitre', { armee: true, icone: 'sceau', taille: 'appel' })}${plaque('Plus tard', { taille: 'appel' })}</div>`,
 ]);

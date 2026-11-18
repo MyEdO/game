@@ -38,7 +38,7 @@ if (ETAT.startsWith('poursuite-terrestre')) {
     ? 'Manche 2 : les poursuivants gagnent du terrain (−4 → Distance 0/10). Aldric, à bout de souffle, traîne derrière les autres.'
     : 'Le groupe prend la fuite. Trois Brigands dévalent le chemin derrière lui, leurs torches dansent entre les troncs.'));
   pieces.push(laPoursuite('bord', '3 Brigands', DISTANCE, SEMES, [['Test de Mouvement', 'Athlétisme'], ['Distance 0', 'rattrapés'], ['Distance 10', 'semés']],
-    `${filet()}${plaque('Abandonner la fuite')}`));
+    `${filet()}${plaque('Abandonner la fuite', { taille: 'petite' })}`));
   if (RATTRAPES) {
     pieces.push(decision('Rattrapés — que fait le groupe ?', heros('bjorn'), 'décide pour le groupe', `
   ${carte('Abandonner Aldric', 'Laissé derrière, il ralentit<br>les poursuivants', { portrait: portrait('aldric'), classe: 'funeste' })}

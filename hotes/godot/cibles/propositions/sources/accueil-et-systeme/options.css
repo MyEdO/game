@@ -60,7 +60,7 @@
 .regle .c .bulle-refus{left:auto;right:0;transform:none;width:430px;white-space:normal}
 .regle .c .bulle-refus::before{left:auto;right:34px}
 .regle .action{grid-column:1/3;margin-top:10px}
-.regle .action .plaque{width:300px;height:38px}
+.regle .action .plaque{width:300px}
 .regle .action .plaque>div{font-size:14.5px}
 .signet.ouvert.serre{gap:5px;padding-right:17px}
 .signet.ouvert.serre span{font-size:12.5px;letter-spacing:.2px}

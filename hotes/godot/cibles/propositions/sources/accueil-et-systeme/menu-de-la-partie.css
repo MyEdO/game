@@ -6,8 +6,8 @@
 #pause .ou{font-style:italic;font-size:16px;color:#e6dabd;margin-left:4px}
 #pause .ou .rubrique{font-style:normal;color:#f0e2c2;font-size:17px}
 #entrees{position:absolute;left:88px;top:296px;width:330px;display:flex;flex-direction:column;gap:12px}
-#entrees .plaque{flex:none;height:50px}
-#entrees .plaque>div{justify-content:flex-start;padding:0 20px;gap:14px;font-size:18px;letter-spacing:1.4px}
+#entrees .plaque{flex:none}
+#entrees .plaque>div{justify-content:flex-start;padding:0 20px;gap:14px}
 #entrees .trait{height:1px;background:linear-gradient(90deg,rgba(226,192,106,.55),rgba(226,192,106,0));margin:8px 0}
 #entrees .dernier{font-style:italic;font-size:14px;color:#cfc2a4;margin:2px 0 0 4px}
 #pastille{position:absolute;left:1625px;top:705px}

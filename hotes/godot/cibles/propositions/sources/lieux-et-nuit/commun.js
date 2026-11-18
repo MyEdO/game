@@ -49,16 +49,19 @@ const fermer = () => { // le fond se ferme : coins, bas sous l'interface
 };
 
 /* ───────── l'interface ───────── */
-/* dits : par héros, { texte, icone, mal, choisi, bourse } */
-const bandeau = (dits = {}, { bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', HEROS.map((h) => { const d = dits[h.id] ?? {}; return `
+/* `groupe` : les héros du bandeau, une place sans `id` est libre ; `dits` : par id, { texte, icone, mal, choisi, html } */
+const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', groupe.map((h) => { const d = dits[h.id ?? 'libre'] ?? {}; return `
   <div class="heros ${d.choisi ? 'choisi' : ''}">${portrait(h.id, { taille: 'grand', choisi: d.choisi })}
     <div class="qui"><div class="nom gothique" data-texte="héros ${h.nom}">${h.nom}</div>
-      <div class="l2"><span class="car rubrique">${h.car}${bourses ? ` <span class="bourse chiffres">· ${h.bourse}</span>` : ''}</span><span class="pv chiffres">${h.pv} / ${h.max}</span></div>
-      ${vie(h.pv, h.max)}
+      <div class="l2"><span class="car rubrique">${h.car}${bourses ? ` <span class="bourse chiffres">· ${h.bourse}</span>` : ''}</span>${h.max ? `<span class="pv chiffres">${h.pv} / ${h.max}</span>` : ''}</div>
+      ${h.max ? vie(h.pv, h.max) : ''}
       ${d.texte ? `<div class="dit">${d.mal ? sceau(d.icone) : d.icone ? rond(d.icone, 'menu', { arme: true }) : ''}<p>${d.texte}</p></div>` : ''}
       ${d.html ?? ''}
     </div>
-  </div>`; }).join(''), { tete: (titre ? ruban(titre) : '') + clouer('quarts') });
+  </div>`; }).join(''), { classe: `b${groupe.length}`, tete: (titre ? ruban(titre) : '') + clouer(groupe.length) });
+/* l'hôte posé dans la scène : (x, y) son coin, `l` sa largeur, `pointe` l'abscisse de sa pointe depuis son bord gauche */
+const hote = ({ id, classe = '', x, y, l, icone, nom, sous, marque, corps = '', pointe = 60 }) => `<div class="hote ${classe} cadre bois" data-piece="${id}" style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
+  ${cartouche({ icone, nom, sous, marque, texte: id })}${corps}</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
 /* le rail des services d'un lieu : services = [icône, nom, armé] */
 const rail = (titre, services, pied) => cadre('rail', null, null, null, null, 'bois', `
   ${services.map(([i, n, a]) => plaque(n, { icone: i, armee: !!a })).join('')}
@@ -66,7 +69,7 @@ const rail = (titre, services, pied) => cadre('rail', null, null, null, null, 'b
 `, { tete: ruban(titre) });
 /* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus */
 const poste = (cx, y, { nom, sous, icone, heros = [], ferme = false, vise = false, plus = false }) => { const tenants = [heros].flat(); return `<div class="poste ${tenants.length ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}" style="left:${cx - 80}px;top:${y}px">
-  ${tenants.length ? `<div class="tenants">${tenants.map((h) => portrait(h)).join('')}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>` : medaillon(icone, { taille: 'moyen', ferme })}
+  ${tenants.length ? `<div class="tenants">${tenants.map((h) => portrait(h, { choisi: vise })).join('')}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>` : medaillon(icone, { taille: 'moyen', ferme })}
   <div class="et bois"><b>${nom}</b>${sous ? `<span class="rubrique">${sous}</span>` : ''}</div></div>`; };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { radial, rims, sapin, perso, flammes, fermer, bandeau, rail, poste });
+Object.assign(globalThis, { radial, rims, sapin, perso, flammes, fermer, bandeau, hote, rail, poste });

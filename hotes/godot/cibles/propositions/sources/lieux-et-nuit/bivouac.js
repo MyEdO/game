@@ -97,7 +97,7 @@ pieces.push(`<div id="camp" class="cadre bois" data-piece="campement"><div class
   <div class="jouera">${rond('sommeil', 'menu', { arme: true })}Le repos<span class="rubrique">une nuit</span></div>
   ${plaque('Passer la nuit', { armee: true, icone: 'lune', classe: 'nuit' })}
 </div>${ruban('Le campement')}${ferrures}</div>`);
-const choix = (ration) => ({ html: `<div class="choix-h"><span class="rubrique">Couchage</span><b>Dehors</b></div><div class="choix-h"><span class="rubrique">Nourriture</span>${plaque('Ration', { armee: ration })}${plaque('Rien', { armee: !ration })}</div>` });
+const choix = (ration) => ({ html: `<div class="choix-h"><span class="rubrique">Couchage</span><b>Dehors</b></div><div class="choix-h"><span class="rubrique">Nourriture</span>${plaque('Ration', { armee: ration, taille: 'petite' })}${plaque('Rien', { armee: !ration, taille: 'petite' })}</div>` });
 pieces.push(bandeau({ bjorn: choix(true), mira: choix(true), aldric: choix(true), greta: choix(false) }));
 pieces.push(retour('Reprendre la route', 'route'), coins());
 monter(pieces);

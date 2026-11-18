@@ -19,7 +19,7 @@ if (!ROULE) {
     <div class="vignette">${vignette}</div>
     <div class="corps"><div class="tete"><h2 data-texte="titre de l'événement">Voyage éreintant !</h2><span class="rubrique">Sur la route d’Altdorf · 2ᵉ jour</span></div>
       <p data-texte="texte du livre">La route est bloquée. Un pont peut être effondré, une rivière bloquée ou une route inondée, ou quelque autre obstacle insurmontable. Un Personnage effectue un Test de Survie en extérieur Accessible (+20) pour trouver un bon itinéraire de substitution, sinon tout le monde arrive un jour plus tard avec un État Exténué.</p>
-    </div><div class="sceau maitre de"><b>4</b><i>d10</i></div>
+    </div>${sceau(4, 'maitre', { de: 'd10' })}
   </div>${ruban('Péripétie de la route', { gothique: true })}${ferrures}</div>`);
   const bjorn = HEROS.find((h) => h.id === 'bjorn');
   const BJORN = { portrait: portrait('bjorn', { taille: 'grand' }), nom: 'Bjorn', carac: 'Survie en extérieur', seuil: 61, modif: 'Accessible (+20)' };

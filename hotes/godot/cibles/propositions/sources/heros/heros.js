@@ -1,14 +1,6 @@
 /* Héros : création et progression, images d'intention (#3935). Pièces de la famille : frise des étapes, panneaux,
-   héros qui se dessine, bande de profil, bandeau. Posé sur commun.js. Maquette hors du jeu. */
-Object.assign(BUSTES, {
-  ilyanwe: BASE + '<path fill-rule="evenodd" d="M15 90C9 54 15 9 39 9s30 45 24 81zM27 43c0 9 5 15 12 15s12-6 12-15c0-10-5-17-12-17s-12 7-12 17z" fill="#1c1410"/><path d="M27 34c7-4 17-4 24 0l1 4c-8-4-18-4-26 0z" fill="#e9dcc0"/>',
-  berta: BASE + '<circle cx="39" cy="8" r="6.500" fill="#1c1410"/><path d="M24 33c-1-13 6-21 15-21s16 8 15 21c-4-7-9-10-15-10s-11 3-15 10z" fill="#1c1410"/>',
-  astrid: BASE + '<path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" fill="#1c1410"/><path d="M23 34c-1 8 0 16 2 22l5-3c-2-7-2-13 0-19zM55 34c1 8 0 16-2 22l-5-3c2-7 2-13 0-19z" fill="#1c1410"/>',
-});
+   héros qui se dessine, bande de profil. Posé sur commun.js, dont il prend le bandeau. Maquette hors du jeu. */
 const SANG = '#8f2a1a';
-/* le buste à l'esquisse : au trait de sanguine, avec ses repères */
-const BUSTE_ESQUISSE = `<g fill="none" stroke="${SANG}" stroke-width="1.300"><path d="M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28"/><path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" fill="rgba(143,42,26,.25)"/><path d="M39 2v88M10 42h58" stroke-dasharray="2 3" stroke-width=".7"/></g>`;
-const portraitEsquisse = (classe = '') => `<div class="portrait esquisse laiton grand ${classe}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice">${BUSTE_ESQUISSE}</svg></div></div>`;
 
 /* la figure du héros neuf : `pose` dit jusqu'où la sanguine est posée (0 = tout au trait, 1 = achevée) */
 const figure = (pose, { palette = false } = {}) => {
@@ -29,8 +21,6 @@ const figure = (pose, { palette = false } = {}) => {
 </svg>`;
 };
 
-/* les sections d'un panneau en onglets : l'active est le ruban, les autres des plaques (`ecrites/heros.md`) */
-const onglets = (noms, active) => `<div class="onglets">${noms.map((s) => (s === active ? ruban(s, { gothique: true }) : plaque(s))).join('')}</div>`;
 /* une Compétence et sa spécialité */
 const nomDe = (n, spec) => `${n}${spec ? ` <small>(${spec})</small>` : ''}`;
 const rub = (t, note = '') => `<div class="rub">${t}${note ? ` <span class="note">${note}</span>` : ''}</div>`;
@@ -59,30 +49,19 @@ const herosNeuf = ({ nom = 'Nouveau héros', acquis, pose, suivant = 'Suivant', 
     <div class="qui" data-texte="nom du héros">${nom}</div>
     ${acquis.map(([r, v, j]) => `<div class="a"><i>${r}</i><b>${v}${j ? `<span class="jeton">${j}</span>` : ''}</b></div>`).join('')}
     <div class="gestes">
-      ${refus ? plaque(`${suivant} ${picto('chevron_d', 16, '#8d8474', 2)}${raison(refus)}`, { fermee: true }) : plaque(`${suivant} ${picto('chevron_d', 16, '#2a1a08', 2)}`, { armee: true })}
-      ${plaque(`${picto('chevron_g', 15, '#e2c06a', 2)} Précédent`)}
+      ${refus ? plaque(`${suivant} ${picto('chevron_d', 16, undefined, 2)}${raison(refus)}`, { fermee: true, taille: 'petite' }) : plaque(`${suivant} ${picto('chevron_d', 16, undefined, 2)}`, { armee: true })}
+      ${plaque(`${picto('chevron_g', 15, undefined, 2)} Précédent`, { taille: 'petite' })}
     </div>
   </div>`, { classe: 'pan' });
 
 /* ───────── le bandeau : le groupe, le héros lu ou à venir éclairé ───────── */
-const caseHeros = ({ id, nom, car: c, pv, max, choisi = false, esquisse = false, etat = null }) => `
-  <div class="heros ${choisi ? 'choisi' : ''}">${esquisse ? portraitEsquisse(choisi ? 'choisi' : '') : portrait(id, { taille: 'grand', choisi })}
-    <div class="qui"><div class="nom gothique" data-texte="héros ${nom}">${nom}</div>
-      <div class="l2"><span class="car rubrique">${c}</span>${max ? `<span class="pv chiffres">${pv} / ${max}</span>` : ''}</div>
-      ${max ? `${vie(pv, max)}` : ''}
-      ${etat ? `<div class="etat">${sceau('sortie')}${etat}</div>` : ''}
-    </div>
-  </div>`;
-const bandeauDe = (cases) => `<div id="bandeau" class="cadre bois b${cases.length}" data-piece="bandeau"><div class="fond bois">${cases.map(caseHeros).join('')}</div>${ferrures}</div>`;
-const groupeEnCreation = (neuf = {}) => bandeauDe([
-  { id: 'bjorn', nom: 'Bjorn', car: 'Chasseur', pv: 16, max: 16 },
-  { id: 'mira', nom: 'Mira', car: 'Éclaireuse', pv: 11, max: 11 },
-  { id: 'astrid', nom: 'Nouveau héros', car: 'Artiste', choisi: true, esquisse: true, ...neuf },
-]);
-const groupeDIlyanwe = (lu = 'ilyanwe') => bandeauDe([
-  { id: 'ilyanwe', nom: 'Ilyanwe la Voilée', car: 'Sorcière', pv: 17, max: 17, choisi: lu === 'ilyanwe' },
-  { id: 'berta', nom: 'Berta', car: 'Soldate', pv: 12, max: 12, choisi: lu === 'berta' },
-]);
+/* le groupe en création : le héros neuf se dessine tant qu'il n'a pas de portrait (`neuf.id`) */
+const groupeEnCreation = (neuf = {}) => { const h = { id: 'esquisse', nom: 'Nouveau héros', car: 'Artiste', ...neuf };
+  return bandeau({ [h.id]: { choisi: true } }, { groupe: [...HEROS.slice(0, 2), h] }); };
+const groupeDIlyanwe = (lu = 'ilyanwe') => bandeau({ [lu]: { choisi: true } }, { groupe: [
+  { id: 'ilyanwe', nom: 'Ilyanwe la Voilée', car: 'Sorcière', pv: 17, max: 17 },
+  { id: 'berta', nom: 'Berta', car: 'Soldate', pv: 12, max: 12 },
+] });
 
 /* ───────── la bande de profil, les réserves ───────── */
 const ABR = ['M', 'CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc', 'B'];
@@ -104,4 +83,4 @@ const ACQUIS = [
   ['Signe astral', 'Le Trait du Peintre', '+25 PX'],
 ];
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { nomDe, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, caseDeCarac, pm, reserve, onglets, poser, ACQUIS });
+Object.assign(globalThis, { nomDe, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, caseDeCarac, pm, reserve, poser, ACQUIS });

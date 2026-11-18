@@ -26,7 +26,7 @@ const nomme = (nom, saisie) => (saisie
 /* où se trouve la possession, et les gestes qui la déplacent ; `confirme` : l'abandon demandé attend sa confirmation */
 const lieuEtGestes = (ou, gestes, suite = '') => `<div class="ou"><div class="l"><span class="rubrique">Se trouve</span><b>${ou}</b></div>
   <div class="plaques">${gestes}</div>${suite}</div>`;
-const dossier = ({ genre, nom, saisie = false, lignes, mesures, medaillons, titre, profil, onglets, ouvert, section }) => `<div id="dossier">
+const dossier = ({ genre, nom, saisie = false, lignes, mesures, medaillons, titre, profil, sections, ouvert, section }) => `<div id="dossier">
 <div id="f-identite" class="cadre bois" data-piece="dossier-identite"><div class="fond parchemin">
   <div class="tete">${portrait(genre, { taille: 'affiche' })}<div>${nomme(nom, saisie)}${lignes.map((l) => `<div class="c rubrique">${l}</div>`).join('')}<div class="renommer${saisie ? ' en-saisie' : ''}">${rond('plume', 'menu', { arme: saisie })}<span class="rubrique">Renommer</span></div></div></div>
   ${mesures.map(([n, v, c], k) => barre(n, v, c, k ? 'margin-top:14px' : '')).join('')}
@@ -39,13 +39,13 @@ const dossier = ({ genre, nom, saisie = false, lignes, mesures, medaillons, titr
 <div id="f-figure" class="cadre bois" data-piece="dossier-figure"><div class="fond bois"><div class="niche laiton"><div>${FIGURES[genre]}</div></div></div>${ferrures}</div>
 <div id="f-sections" class="cadre bois" data-piece="dossier-sections"><div class="fond parchemin">
   ${section}
-</div><div class="onglets">${onglets.map((t) => (t === ouvert ? ruban(t, { gothique: true }) : plaque(t))).join('')}</div>${ferrures}</div>
+</div>${onglets(sections, ouvert)}${ferrures}</div>
 </div>`;
 const STERNE = {
   genre: 'navire', nom: 'La Sterne', lignes: ['Cogue', 'Navire à voile', '25 mètres · 300 CO'],
   mesures: [['Coque', '50 / 50'], ['Moral', '75', 'or']], medaillons: [[15, 'Équipage'], [8, 'Aux voiles'], [4, 'Héros à un poste']],
   titre: 'Profil du navire', profil: [['M', 5], ['E', 45], ['B', 50], ['Man', '−1'], ['Équipage', 15], ['Capacité', 300]],
-  onglets: ['État', 'Équipage', 'Cargaison', 'Améliorations'],
+  sections: ['État', 'Équipage', 'Cargaison', 'Améliorations'],
 };
 const titreDeBloc = (t, droite = '') => `<div class="bloc-t"><span class="rubrique">${t}</span>${droite}</div>`;
 const DOSSIERS = {
@@ -68,7 +68,7 @@ const DOSSIERS = {
     genre: 'mule', nom: 'Marguerit', saisie: true, lignes: ['Mule', 'Bête de Bjorn', '5 CO'],
     mesures: [['Blessures', '12 / 12'], ['Charge', '9 / 14', 'or']], medaillons: [[14, 'Enc de charge'], [6, 'Enc de place à bord'], [4, 'Mouvement']],
     titre: 'Profil de la bête', profil: [['M', 4], ['CC', 25], ['CT', '–'], ['F', 30], ['E', 45], ['I', 20], ['Ag', 30], ['Dex', '–'], ['Int', 10], ['FM', 10], ['Soc', 10], ['B', 12]],
-    onglets: ['État', 'Charge'], ouvert: 'État', section: `
+    sections: ['État', 'Charge'], ouvert: 'État', section: `
   ${trait('dresse', 'Dressé (Trait)', 'L’animal est entraîné à tirer un carrosse, un chariot, une charrue, une carriole ou similaire.')}
   ${trait('nerveux', 'Nerveux', 'La créature est facilement effrayée par la magie ou les bruits forts. Si cela se produit, elle gagne +3 État Brisé.')}
   ${lieuEtGestes('Avec le groupe · Salzenmund', `${plaque('Laisser ici')}${plaque('Embarquer', { armee: true })}${plaque('Abandonner')}`, `
@@ -80,7 +80,7 @@ const DOSSIERS = {
     genre: 'charrette', nom: 'Charrette', lignes: ['Charrette', 'Véhicule de Bjorn', '20 CO'],
     mesures: [['Chargement', '0 / 25', 'or']], medaillons: [[25, 'Enc de chargement'], [10, 'Enc du véhicule'], [1, 'Bête de trait']],
     titre: 'Profil du véhicule', profil: [['Enc', 10], ['Chargement', 25], ['Attelage', '1 bête']],
-    onglets: ['État', 'Chargement'], ouvert: 'État', section: `
+    sections: ['État', 'Chargement'], ouvert: 'État', section: `
   <p class="livre" data-texte="texte du livre">Les charrettes sont de petits véhicules à deux roues de toutes sortes, y compris les charrettes à âne, les chars et les cabriolets. Les charrettes de passagers comprennent une banquette pouvant accueillir jusqu’à deux personnes, tandis que celles qui transportent des marchandises ont un siège plus petit avec un côté ouvert pour le chargement. Les charrettes sont tirées par un seul animal. Des bras dépassent de chaque côté du châssis, auxquels est attaché un harnais, ou un collier.</p>
   ${lieuEtGestes('À l’écurie · Salzenmund', `${plaque('Reprendre')}${plaque(`Embarquer${raison('Cette possession doit être avec le groupe pour embarquer.')}`, { fermee: true })}${plaque('Abandonner', { armee: true })}`, `
   ${titreDeBloc('Abandonner la charrette')}

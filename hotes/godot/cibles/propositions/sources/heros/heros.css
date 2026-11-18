@@ -85,19 +85,17 @@
 .pills{display:flex;flex-wrap:wrap;gap:6px}
 .pill{display:inline-flex;align-items:center;height:23px;padding:0 11px;border-radius:12px;border:1px solid rgba(60,40,20,.6);font-family:"Fell SC";font-size:11.5px;letter-spacing:.9px;color:#3a2a18;background:rgba(255,245,215,.3);white-space:nowrap}
 .pill.prise{border-color:#5d4313;background:linear-gradient(180deg,#f3dc93,#c39c44);color:#2a1a08;box-shadow:0 1px 3px rgba(60,35,5,.5)}
-.anneau{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3b2718,#150c07 72%);box-shadow:0 0 0 2px #1a1005,0 0 0 3px rgba(168,132,47,.9),0 3px 6px rgba(40,25,5,.6);font-family:"Chiffres";font-size:18px;font-weight:600;color:#f4e8ca}
-.anneau.petit{width:36px;height:36px;font-size:14.5px}
 .filigrane{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);opacity:.5}
 
 /* cartes de Compétence (page du centre) */
 .rangee{align-self:stretch;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.carte{position:relative;height:92px;padding:9px 10px 8px;border:1px solid rgba(60,40,20,.5);border-radius:3px;background:rgba(255,246,218,.3);box-shadow:0 2px 5px rgba(60,35,5,.2)}
-.carte .n{font-family:"Fell";font-size:15.5px;line-height:18px;color:#2a1d12;white-space:nowrap;margin-top:15px}
-.carte .anneau{position:absolute;right:9px;top:9px}
-.carte .pied{margin-top:3px}
-.carte .calc{font-family:"Chiffres";font-size:11.5px;color:#4a3420}
-.carte.vide{border:1.5px dashed rgba(60,40,20,.5);background:none;box-shadow:none;display:grid;place-items:center}
-.carte.vide span{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:#6b1c10}
+.competence{position:relative;height:92px;padding:9px 10px 8px;border:1px solid rgba(60,40,20,.5);border-radius:3px;background:rgba(255,246,218,.3);box-shadow:0 2px 5px rgba(60,35,5,.2)}
+.competence .n{font-family:"Fell";font-size:15.5px;line-height:18px;color:#2a1d12;white-space:nowrap;margin-top:15px}
+.competence .disque{position:absolute;right:9px;top:9px}
+.competence .pied{margin-top:3px}
+.competence .calc{font-family:"Chiffres";font-size:11.5px;color:#4a3420}
+.competence.vide{border:1.5px dashed rgba(60,40,20,.5);background:none;box-shadow:none;display:grid;place-items:center}
+.competence.vide span{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:#6b1c10}
 
 /* le héros qui se dessine */
 #heros-neuf .fond{display:flex;gap:18px}
@@ -111,17 +109,12 @@
 .acquis .a b .jeton{height:19px;font-size:11px;padding:0 8px}
 .acquis .a i{display:block;font-family:"Fell SC";font-style:normal;font-size:11px;letter-spacing:1px;color:var(--creme-2);white-space:nowrap}
 .acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:9px}
-.acquis .gestes .plaque{flex:none;height:42px}
+.acquis .gestes .plaque{flex:none}
 .acquis .gestes .plaque.armee>div{font-size:16px;letter-spacing:1.6px}
-.acquis .gestes .plaque:not(.armee){height:34px}
 
 /* bandeau des héros de la famille (deux ou trois cases) */
 #bandeau.b3{left:410px;top:621px;width:887px;height:151px}
-#bandeau.b3 .fond{grid-template-columns:repeat(3,1fr)}
 #bandeau.b2{left:553px;top:621px;width:600px;height:151px}
-#bandeau.b2 .fond{grid-template-columns:repeat(2,1fr)}
-.portrait.esquisse>div{background:radial-gradient(90% 80% at 50% 28%,#efe1bc,#d6c296 62%,#b79e6c)}
-.heros .etat{display:flex;align-items:center;gap:8px;margin-top:8px;font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:#e6b9a8}
 
 /* ───────── possessions ───────── */
 .objets{align-self:stretch;display:grid;grid-template-columns:repeat(4,1fr);gap:12px 11px}
@@ -137,7 +130,6 @@
 
 /* ───────── identité ───────── */
 .onglets-m{display:flex;gap:9px}
-.onglets-m .plaque{height:36px}
 .physique{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px}
 .mesure{display:flex;align-items:center;gap:12px}
 .mesure b{display:block;font-family:"Fell";font-weight:400;font-size:18px;line-height:22px;color:#2a1d12;white-space:nowrap}
@@ -177,14 +169,14 @@
 .achat .n small{font-size:13.5px;color:#4a3420}
 .achat .aug{flex:none;width:30px;text-align:right;font-family:"Chiffres";font-size:12.5px;color:#5a4530}
 .achat .fait{flex:none;width:18px;display:grid;place-items:center}
-.achat .plaque{flex:none;width:86px;height:30px}
+.achat .plaque{flex:none;width:86px}
 .achat .plaque>div{font-family:"Chiffres";font-size:12.5px;font-weight:600;letter-spacing:.2px;padding:0 6px}
 .achat.vise{border:2px solid #a8842f;border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px rgba(60,40,10,.75),0 2px 5px rgba(60,35,5,.35);padding:0 2px 0 0}
 .talent{display:flex;align-items:center;gap:13px;padding:10px 12px;border:1px solid rgba(60,40,20,.4);border-radius:3px;background:rgba(255,246,218,.28);margin-top:9px}
 .talent .t{flex:1;min-width:0}
 .talent .t b{display:block;margin:-3px 0 -2px;font-family:"Grenze Gotisch";font-weight:600;font-size:20px;line-height:28px;letter-spacing:.3px;color:#2a1d12;white-space:nowrap}
 .talent .t i{display:block;font-family:"Fell SC";font-style:normal;font-size:11.5px;line-height:15px;letter-spacing:1px;color:#5a3a1c;white-space:nowrap}
-.talent .plaque{flex:none;width:112px;height:34px}
+.talent .plaque{flex:none;width:112px}
 .talent .plaque>div{font-family:"Chiffres";font-size:12.5px;font-weight:600;letter-spacing:.2px;padding:0 6px}
 .talent .plaque.fermee>div{font-family:"Fell SC";font-weight:400;font-size:11.5px;letter-spacing:.9px}
 .talent.clos b{color:rgba(42,29,18,.6)}
@@ -217,10 +209,8 @@
 .cout{margin-left:auto;font-family:"Chiffres";font-size:11.5px;font-weight:600;color:#4a3420}
 .ligne.choisie .cout{color:#2a1a08}
 
-.cartouche{align-self:stretch;display:flex;align-items:center;gap:13px;padding:10px 13px;border:1px solid rgba(60,40,20,.45);border-radius:3px;background:rgba(255,246,218,.3);margin-top:auto}
-.cartouche b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:20px;line-height:23px;letter-spacing:.3px;color:#2a1d12;white-space:nowrap}
-.cartouche i{display:block;font-family:"Fell SC";font-style:normal;font-size:12px;line-height:16px;letter-spacing:1px;color:#4f2f14;white-space:nowrap}
-.cartouche .chiffres{margin-left:auto;font-size:15px;font-weight:600;color:#2a1d12}
+.objet-pris{align-self:stretch;display:flex;align-items:center;gap:13px;padding:10px 13px;border:1px solid rgba(60,40,20,.45);border-radius:3px;background:rgba(255,246,218,.3);margin-top:auto}
+.objet-pris .chiffres{margin-left:auto;font-size:15px;font-weight:600;color:#2a1d12}
 .ident .plaque>div{font-size:14px}
 .mesure .de{width:54px;height:54px;font-size:21px}
 .physique{gap:24px 22px}
@@ -228,14 +218,10 @@
 /* ───────── la fiche : figure, sections en onglets ───────── */
 .figure>.fond.bois{padding:14px}
 .figure .niche{width:100%}
-.onglets{position:absolute;left:30px;top:-7px;display:flex;align-items:center;gap:9px;z-index:2}
-.onglets .ruban{position:static;transform:none}
-.onglets .plaque{flex:none;height:30px}
-.onglets .plaque>div{padding:0 15px;font-size:12.5px}
 .sections>.fond{padding:30px 21px 16px;display:flex;flex-direction:column}
 .tete-de-liste{margin:9px 0 3px}
 
-/* ───────── possessions : sets d'armes, objets, cartouche de la ligne pressée ───────── */
+/* ───────── possessions : sets d'armes, objets, ligne pressée, ouverte ───────── */
 .sets{display:flex;gap:11px}
 .set{position:relative;flex:1;display:grid;grid-template-columns:1fr 1fr;height:50px;border:1px solid rgba(60,40,20,.5);border-radius:3px;background:rgba(255,246,218,.3);box-shadow:0 2px 5px rgba(60,35,5,.2)}
 .set.en-main{border:2px solid #a8842f;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px rgba(60,40,10,.75),0 2px 5px rgba(60,35,5,.35)}
@@ -250,17 +236,13 @@
 .possessions{flex:1;min-height:0;display:grid;grid-template-columns:1fr 372px;column-gap:22px;margin-top:12px}
 .possessions .ligne{height:29px;font-size:15px}
 .ouvert{display:flex;flex-direction:column;padding:11px 13px 12px;border:1px solid rgba(60,40,20,.5);border-radius:3px;background:rgba(255,246,218,.34);box-shadow:0 2px 6px rgba(60,35,5,.25);min-width:0}
-.tete-o{display:flex;align-items:center;gap:12px}
-.tete-o b{display:block;font-size:22px;line-height:32px;margin:-6px 0 -5px;color:#3a1a10;white-space:nowrap}
-.tete-o i{display:block;font-family:"Fell SC";font-style:normal;font-size:11.5px;line-height:15px;letter-spacing:1px;color:#5a2a12;white-space:nowrap}
 .ouvert .faits{grid-template-columns:repeat(3,auto);justify-content:space-between;margin-top:12px}
 .ouvert .ligne{height:28px;font-size:14.5px;padding:0 6px}
 .ouvert .achat{height:42px;gap:9px}
 .ouvert .achat .n{font-size:14.5px;line-height:17px;white-space:normal}
 .ouvert .achat .trou{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(60,40,20,.55);background:rgba(60,40,20,.08)}
-.ouvert .achat .plaque{width:78px;height:28px}
+.ouvert .achat .plaque{width:78px}
 .gestes-o{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.gestes-o .plaque{height:31px}
 .gestes-o .plaque>div{font-size:13px;padding:0 10px}
 .gestes-o .plaque .prix{font-family:"Fell";font-weight:400;font-size:13.5px;letter-spacing:0;color:#f0e2c2}
 .gestes-o .bulle-refus{left:auto;right:0;transform:none}
@@ -273,7 +255,7 @@
 .depli{display:flex;align-items:flex-end;gap:12px;padding:8px 6px 9px 30px;border-bottom:1px solid rgba(60,40,20,.25);background:rgba(255,246,208,.35)}
 .depli .pills{flex:1;gap:5px}
 .depli .pill{height:21px;padding:0 9px;font-size:11px}
-.depli .plaque{flex:none;width:168px;height:30px}
+.depli .plaque{flex:none;width:168px}
 .depli .plaque>div{font-size:12.5px;padding:0 10px}
 .depli .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;font-size:12.5px;letter-spacing:0;color:#c9b995}
 .defile{position:absolute;right:7px;top:46px;bottom:60px;width:3px;border-radius:2px;background:rgba(60,40,20,.18)}
@@ -289,11 +271,9 @@
 /* le chemin : station ouverte par la règle des sauts, refus d'une station au survol, niveau d'une autre carrière */
 .station.ouverte .pt.clou-fer{background:radial-gradient(circle at 35% 30%,#f7e3a2,#b8923a 60%,#5d4313);box-shadow:0 1px 2px rgba(0,0,0,.7),0 0 0 3px rgba(168,132,47,.35)}
 #autre .onglets-m{gap:6px;margin:-5px 0 -3px}
-#autre .onglets-m .plaque{height:26px}
 #autre .onglets-m .plaque>div{font-size:11.5px;padding:0 4px}
 
 /* ───────── création, Caractéristiques : méthode, profil au dé ou en points ───────── */
-.methodes .plaque{height:34px}
 .methodes .plaque>div{font-size:12.5px;gap:6px;padding:0 9px}
 .methodes .plaque .prix{font-size:11px}
 .tirage-c{display:flex;align-items:center;gap:12px;height:48px;margin-top:11px}

@@ -9,11 +9,11 @@ const losange = (x, y, a = A, b = B) => `M${x},${y - b}L${x + a},${y}L${x},${y +
 
 /* ───────── les gabarits de l'écran ───────── */
 /* `etats` : les États que porte le combattant (`etatPorte`), sous sa barre ; l'actif et le lu sont choisis */
-const rang = (genre, camp, nom, pv, max, classe = '', etats = '') => `
-  <div class="rang ${camp === 'ennemi' ? 'ennemi' : ''} ${classe}">${portrait(genre, { camp, taille: classe.includes('actif') ? 'grand' : classe.includes('fantome') ? 'petit' : 'moyen', choisi: /actif|lu/.test(classe) })}
-    <div class="qui"><div class="nom ${classe.includes('actif') ? '' : 'rubrique'} ombre" data-texte="rang ${nom}">${nom}</div>
-    ${classe.includes('fantome') ? '' : `<div class="ligne">${vie(pv, max)}<span class="pv ombre">${pv} / ${max}</span></div>`}${etats ? `<div class="etats">${etats}</div>` : ''}</div>
-  </div>`;
+const combattant = (genre, camp, nom, pv, max, classe = '', etats = '') => rang(genre, {
+  camp, nom, classe, gothique: classe.includes('actif'), choisi: /actif|lu/.test(classe),
+  taille: classe.includes('actif') ? 'grand' : classe.includes('fantome') ? 'petit' : 'moyen',
+  corps: `${classe.includes('fantome') ? '' : `<div class="ligne">${vie(pv, max)}<span class="pv ombre">${pv} / ${max}</span></div>`}${etats ? `<div class="etats">${etats}</div>` : ''}`,
+});
 const borne = (n) => `<div class="borne">${disque(n)}<span class="rubrique ombre">Round ${n}</span><i></i></div>`;
 const vieux = (t) => `<p class="vieux ombre">${t}</p>`, neuf = (t) => `<p class="ombre">${t}</p>`, borneJ = (t) => `<p class="borne-j ombre">${t}</p>`;
 /* la pièce fixe : le système */
@@ -27,7 +27,7 @@ const etatPorte = (id, { n = 1, presse = false } = {}) => `<div class="etat-port
 const JETONS = `<div class="jeton">${sceau('epee')}<div class="v"><span class="rubrique">Action</span> <em>disponible</em></div></div>
   <div class="jeton"><div class="chiffre">0</div><div class="v"><span class="rubrique">Avantage</span></div></div>`;
 /* le médaillon de Détermination se presse : il est de laiton, à côté de l'Avantage (transversal §2) ; sans réserve, il manque */
-const jetons = (determination = null) => `<div class="jetons">${JETONS}${determination === null ? '' : `<div class="jeton"><div class="bouton-rond laiton"><div>${determination}</div></div><div class="v"><span class="rubrique">Détermination</span></div></div>`}</div>`;
+const jetons = (determination = null) => `<div class="jetons">${JETONS}${determination === null ? '' : `<div class="jeton">${rond(determination, 'petit')}<div class="v"><span class="rubrique">Détermination</span></div></div>`}</div>`;
 const pas = (n) => `<div class="mesure"><div class="tete rubrique"><span>Mouvement</span><b>${n} / ${n}</b></div>${rangDePas(n, n)}</div>`;
 const meuble = ({ genre, camp = 'heros', nom, sous, etat, plaques, conditionnelles = '', pastilles, adverse = false, ouverte = null }) => [
   `<div id="tour-outils" data-piece="tour-outils">${rond('annuler', 'petit', { ferme: true })}${rond('pause', 'petit', { ferme: true })}</div>`,
@@ -47,4 +47,4 @@ const vise = (genre, nom, role, pv) => `<div class="camp droite visee">${portrai
 /* les réserves des deux héros de la cour ; Ilyanwe : la fiche validée (`../../../maquettes/fiche-du-heros.jpg`) */
 const RESERVES = { ilyanwe: { chance: 4, resilience: 3, determination: 3 }, berta: { chance: 2, resilience: 1, determination: 1 } };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { P, losange, rang, borne, vieux, neuf, borneJ, SYSTEME, mesure, etatPorte, JETONS, jetons, pas, meuble, vise, RESERVES });
+Object.assign(globalThis, { P, losange, combattant, borne, vieux, neuf, borneJ, SYSTEME, mesure, etatPorte, JETONS, jetons, pas, meuble, vise, RESERVES });

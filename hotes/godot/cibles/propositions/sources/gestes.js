@@ -178,17 +178,20 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     brasseur: '<path d="M8 90c0-20 10-27 24-29l-1-7c-7-5-9-17-5-25 4-8 22-8 26 0 4 8 2 20-5 25l-1 7c14 2 24 9 24 29z"/><path d="M25 30c0-10 6-16 14-16s14 6 14 16c-9-3-19-3-28 0z" class="s"/>',
     batelier: BASE + '<path d="M18 30h42l-2 5H20zM25 30c1-12 6-18 14-18s13 6 14 18z" class="s"/>',
     cocher: BASE + '<path d="M17 27h44v4H17zM27 27V13h24v14z" class="s"/>',
+    astrid: BASE + '<path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" class="s"/><path d="M23 34c-1 8 0 16 2 22l5-3c-2-7-2-13 0-19zM55 34c1 8 0 16-2 22l-5-3c2-7 2-13 0-19z" class="s"/>',
+    /* le héros qui se dessine : au trait de sanguine, avec ses repères */
+    esquisse: '<path d="M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28"/><path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" class="s"/><path d="M39 2v88M10 42h58" class="repere"/>',
   };
-  const PNJ = new Set(['hote', 'docteur', 'brasseur', 'batelier', 'cocher']);
-  const MATIERE = { heros: 'laiton', ennemi: 'fer', pnj: 'fer' };
-  /* `taille` : menu, petit, moyen, grand, maitre, affiche */
-  const portrait = (genre, { camp = PNJ.has(genre) ? 'pnj' : 'heros', taille = 'moyen', choisi = false, classe = '', style = '' } = {}) => `<div class="portrait ${MATIERE[camp]} ${camp} ${taille}${choisi ? ' choisi' : ''} ${classe}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice">${BUSTES[genre]}</svg></div></div>`;
+  const CAMP = { hote: 'pnj', docteur: 'pnj', brasseur: 'pnj', batelier: 'pnj', cocher: 'pnj', esquisse: 'esquisse' };
+  const MATIERE = { heros: 'laiton', esquisse: 'laiton', ennemi: 'fer', pnj: 'fer' };
+  /* `taille` : menu, petit, moyen, grand, maitre, affiche ; sans `genre`, la place est libre */
+  const portrait = (genre, { camp = CAMP[genre] ?? 'heros', taille = 'moyen', choisi = false, classe = '', style = '' } = {}) => `<div class="portrait ${genre ? `${MATIERE[camp]} ${camp}` : 'fer vide'} ${taille}${choisi ? ' choisi' : ''} ${classe}" style="${style}"><div>${genre ? `<svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice">${BUSTES[genre]}</svg>` : picto('plus', 26, undefined, 1.4)}</div></div>`;
 
-  /* le bouton rond : `taille` menu, petit, moyen, grand, maitre ; le pictogramme suit */
+  /* le bouton rond : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; le pictogramme suit */
   const ROND = { menu: [11, 3], petit: [18, 1.6], moyen: [20, 1.6], grand: [24, 1.6], maitre: [44, 1.6] };
-  const rond = (nom, taille = 'moyen', { ferme = false, arme = false, survol = false } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'} ${taille}${arme ? ' arme' : ''}${survol ? ' survol' : ''}"><div>${picto(nom, ROND[taille][0], undefined, ROND[taille][1])}</div></div>`;
-  /* la plaque : `taille` moyenne ou petite ; `prix` à droite */
-  const plaque = (libelle, { armee = false, fermee = false, survol = false, icone = null, prix = null, taille = 'moyenne', classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}${survol ? ' survol' : ''} ${classe}" style="${style}"><div>${icone ? picto(icone, 19, undefined, 1.7) : ''}${libelle}${prix ? `<span class="prix chiffres">${prix}</span>` : ''}</div></div>`;
+  const rond = (contenu, taille = 'moyen', { ferme = false, arme = false, survol = false } = {}) => `<div class="bouton-rond ${ferme ? 'fer ferme' : 'laiton'} ${taille}${arme ? ' arme' : ''}${survol ? ' survol' : ''}"><div>${PICTOS[contenu] ? picto(contenu, ROND[taille][0], undefined, ROND[taille][1]) : `<b>${contenu}</b>`}</div></div>`;
+  /* la plaque : `taille` appel, moyenne ou petite ; `numero` : sa touche, en tête ; `prix` à droite */
+  const plaque = (libelle, { armee = false, fermee = false, survol = false, icone = null, numero = null, prix = null, taille = 'moyenne', classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}${survol ? ' survol' : ''} ${classe}" style="${style}"><div>${numero == null ? '' : `<b class="numero">${numero}</b>`}${icone ? picto(icone, 19, undefined, 1.7) : ''}${libelle}${prix ? `<span class="prix chiffres">${prix}</span>` : ''}</div></div>`;
   /* choisir par carte : la plaque haute, un portrait et deux lignes */
   const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c">${sous}</div></div></div></div>`;
   /* l'outil : un rond et son libellé ; `ouvert` : son écran est posé ; `taille` du rond, `grand` hors du jeu */
@@ -199,17 +202,27 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le disque numéroté : `taille` grand, moyen, petit ; `vide` : la réserve est épuisée */
   const disque = (n, { taille = 'moyen', vide = false } = {}) => `<div class="disque fer ${taille}${vide ? ' vide' : ''}"><div>${n}</div></div>`;
   const compteur = (n, libelle) => `<div class="compteur">${disque(n, { taille: 'grand' })}<span class="rubrique">${libelle}</span></div>`;
-  /* le sceau de cire : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; `etat` reussite ou vide */
+  /* le sceau de cire : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; `etat` reussite ou vide ;
+     `de` : le dé dont le chiffre est le jet, écrit dessous */
   const SCEAU = { menu: 12, petit: 15, moyen: 20, grand: 26, maitre: 32 };
-  const sceau = (contenu, taille = 'petit', { etat = '', classe = '' } = {}) => `<div class="sceau ${taille} ${etat} ${classe}">${PICTOS[contenu] ? picto(contenu, SCEAU[taille], undefined, 1.9) : `<b>${contenu}</b>`}</div>`;
+  const sceau = (contenu, taille = 'petit', { etat = '', classe = '', de = '' } = {}) => `<div class="sceau ${taille} ${etat}${de ? ' de' : ''} ${classe}">${PICTOS[contenu] ? picto(contenu, SCEAU[taille], undefined, 1.9) : `<b>${contenu}</b>`}${de ? `<i>${de}</i>` : ''}</div>`;
   /* le ruban : centré sur son `left` ; `gothique` : le titre d'un panneau */
   const ruban = (texte, { gothique = false, style = '' } = {}) => `<div class="ruban ${gothique ? 'gothique' : 'rubrique'}" style="${style}">${texte}</div>`;
   /* le cadre de chêne ferré : géométrie en px (une cote `null` reste à la feuille), `matiere` du fond, `ruban` gothique,
      `tete` : ce qui se pose sur le bord haut */
   const cadre = (id, x, y, w, h, matiere, contenu, { ruban: titre = null, classe = '', tete = '' } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-piece="${id}" style="${[['left', x], ['top', y], ['width', w], ['height', h]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${v}px`).join(';')}"><div class="fond ${matiere}">${contenu}</div>${titre ? ruban(titre, { gothique: true }) : ''}${tete}${ferrures}</div>`;
-  /* les clous d'un meuble : `meuble` (barre, jet, arrêt) ou `quarts` (bandeau des quatre héros) */
-  const CLOUS = { meuble: [[.0593, .2797, .7203, .9407], [.0593, .2797, .5, .7203, .9407]], quarts: [[.05, .25, .5, .75, .945], [.05, .25, .5, .75, .945]] };
-  const clouer = (rythme = 'meuble') => CLOUS[rythme].map((rang, k) => rang.map((t) => `<i class="clou" style="left:${(100 * t).toFixed(2)}%;${k ? 'bottom' : 'top'}:3px"></i>`).join('')).join('');
+  /* les clous d'un meuble (barre, jet, arrêt), ou d'un bandeau de `cases` héros : aux bords et entre deux cases */
+  const MEUBLE = [[.0593, .2797, .7203, .9407], [.0593, .2797, .5, .7203, .9407]];
+  const clouer = (cases = null) => (cases ? [0, 1].map(() => [.05, ...Array.from({ length: cases - 1 }, (_, k) => (k + 1) / cases), .945]) : MEUBLE)
+    .map((ligne, k) => ligne.map((t) => `<i class="clou" style="left:${(100 * t).toFixed(2)}%;${k ? 'bottom' : 'top'}:3px"></i>`).join('')).join('');
+  /* le cartouche : le médaillon de ce dont on parle, son nom et ce qu'il est */
+  const cartouche = ({ icone, nom, sous = '', marque = '', texte = nom }) => `<div class="cartouche">${medaillon(icone, { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${sous ? `<div class="s rubrique">${sous}</div>` : ''}</div></div>`;
+  /* le rang d'un personnage : son portrait, son nom (`gothique` : celui qui agit), `sous` ce qu'il est, `corps` sous son nom,
+     `fin` au bout du rang */
+  const rang = (genre, { camp, taille = 'moyen', choisi = false, nom, gothique = false, sous = '', corps = '', fin = '', classe = '' }) => `<div class="rang ${camp === 'ennemi' ? 'ennemi' : ''} ${classe}">${portrait(genre, { camp, taille, choisi })}
+    <div class="qui"><div class="nom ${gothique ? 'gothique' : 'rubrique'} ombre" data-texte="rang ${nom}">${nom}</div>${sous ? `<div class="s rubrique">${sous}</div>` : ''}${corps}</div>${fin}</div>`;
+  /* les sections d'un panneau en onglets, sur son bord haut : l'active est le ruban, les autres des plaques */
+  const onglets = (noms, active) => `<div class="onglets">${noms.map((s) => (s === active ? ruban(s, { gothique: true }) : plaque(s, { taille: 'petite' }))).join('')}</div>`;
   /* le cartouche du lieu, en haut à gauche */
   const titre = ({ icone, nom, sous, largeur }) => cadre('titre', null, null, largeur, null, 'bois', `${medaillon(icone, { inerte: true })}<div><div class="n gothique" data-texte="titre">${nom}</div><div class="s rubrique">${sous}</div></div>`);
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
@@ -255,7 +268,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, ruban, cadre, clouer, titre,
+    picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, ruban, cadre, clouer, cartouche, rang, onglets, titre,
     filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ,
   });
 }

@@ -15,7 +15,7 @@ const pageDuNiveau = ({ ruban, nom, sous, ouvre, note, devenir }) => cadre('suiv
     ${filet({ fondu: true, losange: true })}
     <div class="ouvre">${ouvre.map(([r, noms]) => `${rub(r)}${pills(noms)}`).join('')}</div>
     <p class="prose" style="font-style:italic;margin-top:13px;text-align:center">${note}</p>
-    <div style="margin-top:auto;width:390px;display:flex">${plaque(devenir, { armee: true, prix: '100 PX', style: 'height:44px' })}</div></div>`, { ruban, classe: 'pan' });
+    <div style="margin-top:auto;width:390px;display:flex">${plaque(devenir, { armee: true, prix: '100 PX' })}</div></div>`, { ruban, classe: 'pan' });
 
 poser([
   identite({ px: 180, niveau: 'Sorcière', rang: 2,
@@ -38,7 +38,7 @@ poser([
   cadre('autre', 1100, 170, 581, 438, 'parchemin', `
     <div class="deux" style="margin-top:8px;column-gap:20px">
       <div>${rub('Classe')}<div class="lignes" style="margin-top:4px">${CLASSES.map(classe).join('')}</div></div>
-      <div>${SAUT ? `<div class="onglets-m">${plaque('Premier niveau')}${plaque('Même niveau', { armee: true })}</div>` : rub('Carrière', 'au premier niveau')}<div class="lignes" style="margin-top:4px">${['Apothicaire', 'Érudit', 'Ingénieur', 'Juriste', 'Médecin', 'Nonne', 'Prêtre'].map(carriere).join('')}</div></div>
+      <div>${SAUT ? `<div class="onglets-m">${plaque('Premier niveau', { taille: 'petite' })}${plaque('Même niveau', { armee: true, taille: 'petite' })}</div>` : rub('Carrière', 'au premier niveau')}<div class="lignes" style="margin-top:4px">${['Apothicaire', 'Érudit', 'Ingénieur', 'Juriste', 'Médecin', 'Nonne', 'Prêtre'].map(carriere).join('')}</div></div>
     </div>
     <div class="rub" style="margin-top:15px"><span class="note">${SAUT ? 'Au même niveau : dans sa Classe seulement, niveau achevé.' : 'Hors de sa Classe, le changement coûte 100 PX de plus.'}</span></div>`, { ruban: 'Autre carrière', classe: 'pan' }),
   groupeDIlyanwe(),

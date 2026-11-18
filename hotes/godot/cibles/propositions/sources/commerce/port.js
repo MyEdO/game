@@ -5,7 +5,7 @@
 const ETAT = document.getElementById('ecran').dataset.etat;
 sceneDuQuai();
 const pieces = [];
-const enseigne = (o) => cartouche({ classe: 'service enseigne', ...o });
+const enseigne = (o) => hote({ classe: 'service enseigne', ...o });
 /* la page des services : son service ouvert, armé au rail */
 const SERVICES = { negoce: ['ballot', 'Négoce de cargaison'], chantier: ['marteau', 'Chantier naval'], recrutement: ['equipage', 'Recrutement'], avitaillement: ['tonneau', 'Avitaillement'] };
 const services = (ouvert) => {
@@ -14,7 +14,7 @@ const services = (ouvert) => {
   pieces.push(rail('Services du port', Object.entries(SERVICES).map(([id, [icone, nom]]) => [icone, nom, id === ouvert ? 1 : 0]), 'Le navire reste à quai'));
 };
 const quitter = (dits = {}, bourses = false) => pieces.push(bandeau(dits, { bourses }), retour('Quitter le port'), coins());
-const cale = (corps, classe = 'enseigne') => cartouche({ id: 'cale', classe: `offre ${classe}`, x: 846, y: 216, l: 300, icone: 'navire', nom: 'La cale', sous: 'Cogue du groupe', pointe: 92, corps });
+const cale = (corps, classe = 'enseigne') => hote({ id: 'cale', classe: `offre ${classe}`, x: 846, y: 216, l: 300, icone: 'navire', nom: 'La cale', sous: 'Cogue du groupe', pointe: 92, corps });
 const cereales = (pris = false) => `<div class="lot ${pris ? 'pris' : ''}">${picto('epi', 16, pris ? '#2a1a08' : '#e2c06a')}<span>Céréales</span><span class="chiffres">60 Enc</span></div>`;
 /* #3004 : le navire, sa cargaison et ses vivres sont une entreprise commune, chacun règle sa part avant de valider.
    Les avoirs sont ceux d'un groupe qui vient de vendre ses céréales : des exemples. */
@@ -25,8 +25,8 @@ const ligne = (nom, sous, prix, fin, pris = false) => `<div class="ligne ${pris 
 
 if (ETAT === 'port-negoce') {
   services('negoce');
-  pieces.push(cartouche({ id: 'offre-bois', classe: 'offre enseigne', x: 350, y: 372, l: 232, icone: 'planches', nom: 'Bois', sous: '320 Enc · 1 CO 10/– / Enc', pointe: 196 }));
-  pieces.push(cartouche({ id: 'offre-luxe', classe: 'offre enseigne', x: 520, y: 196, l: 296, icone: 'joyau', nom: 'Produits de luxe', marque: 'Surplus', sous: '360 Enc · 25 CO / Enc', pointe: 112 }));
+  pieces.push(hote({ id: 'offre-bois', classe: 'offre enseigne', x: 350, y: 372, l: 232, icone: 'planches', nom: 'Bois', sous: '320 Enc · 1 CO 10/– / Enc', pointe: 196 }));
+  pieces.push(hote({ id: 'offre-luxe', classe: 'offre enseigne', x: 520, y: 196, l: 296, icone: 'joyau', nom: 'Produits de luxe', marque: 'Surplus', sous: '360 Enc · 25 CO / Enc', pointe: 112 }));
   pieces.push(cale(`<div class="porteur-ligne"><span>Chargée</span><b class="chiffres">240 / 300 Enc libres</b></div>${jauge(60 / 300, { teinte: 'or', taille: 'forte' })}${cereales(true)}`, 'choisie'));
   pieces.push(page('lot', 'Le lot', `
     <div class="tete"><h3 data-texte="lot">Céréales</h3><span class="sous rubrique">60 Enc dans la cale</span></div>
@@ -50,9 +50,9 @@ if (ETAT === 'port-negoce') {
 /* MDG 15 l.331-341 ; `src/noyau/portFlow.ts:188-201`, `:315` */
 if (ETAT === 'port-achat') {
   services('negoce');
-  pieces.push(cartouche({ id: 'offre-luxe', classe: 'offre enseigne', x: 520, y: 172, l: 296, icone: 'joyau', nom: 'Produits de luxe', marque: 'Surplus', sous: '360 Enc · 25 CO / Enc', pointe: 112 }));
-  pieces.push(cartouche({ id: 'offre-bois', classe: 'offre choisie', x: 350, y: 256, l: 336, icone: 'planches', nom: 'Bois', sous: 'Un négociant du quai', pointe: 196,
-    corps: `${mesures([['Disponible', '320 Enc'], ['Prix de base', '1 CO 10/– / Enc'], ['Estimation avant Marchandage', '90 CO']])}<div class="gestes">${plaque('Acheter', { armee: true, icone: 'balance' })}</div>` }));
+  pieces.push(hote({ id: 'offre-luxe', classe: 'offre enseigne', x: 520, y: 172, l: 296, icone: 'joyau', nom: 'Produits de luxe', marque: 'Surplus', sous: '360 Enc · 25 CO / Enc', pointe: 112 }));
+  pieces.push(hote({ id: 'offre-bois', classe: 'offre choisie', x: 350, y: 256, l: 336, icone: 'planches', nom: 'Bois', sous: 'Un négociant du quai', pointe: 196,
+    corps: `${mesures([['Disponible', '320 Enc'], ['Prix de base', '1 CO 10/– / Enc'], ['Estimation avant Marchandage', '90 CO']])}<div class="gestes">${plaque('Acheter', { armee: true, icone: 'balance', taille: 'petite' })}</div>` }));
   pieces.push(cale(`<div class="porteur-ligne"><span>Chargée</span><b class="chiffres">240 / 300 Enc libres</b></div>${jauge(60 / 300, { teinte: 'or', taille: 'forte', ajout: 60 / 300 })}${cereales()}`));
   pieces.push(page('chargement', 'Le chargement', `
     <div class="tete"><h3 data-texte="denrée">Bois</h3><span class="sous rubrique">Achat en composition</span></div>
@@ -78,9 +78,9 @@ if (ETAT === 'port-achat') {
 if (ETAT === 'port-chantier') {
   services('chantier');
   const pose = (nom, enc, prix, o = {}) => `<div class="lot ${o.pris ? 'pris' : ''} ${o.ferme ? 'ferme' : ''}"><span>${nom}</span><span class="chiffres">${enc ? `${enc} Enc · ` : ''}${prix}</span></div>`;
-  pieces.push(cartouche({ id: 'constructeur', classe: 'offre choisie', x: 350, y: 132, l: 330, icone: 'marteau', nom: 'Le constructeur naval', sous: 'Améliorations à poser', pointe: 84,
+  pieces.push(hote({ id: 'constructeur', classe: 'offre choisie', x: 350, y: 132, l: 330, icone: 'marteau', nom: 'Le constructeur naval', sous: 'Améliorations à poser', pointe: 84,
     corps: `${pose('Ancre', 50, '10 CO')}${pose('Bélier', 60, '30 CO')}${pose('Figure de proue', 10, '2 CO')}${pose('Nid-de-pie', 5, '5 CO', { pris: true })}${pose('Sabord', 0, '15 CO')}${pose('Blindage (bronze)', 875, '1 250 CO', { ferme: true })}` }));
-  pieces.push(cartouche({ id: 'navire', classe: 'offre enseigne', x: 846, y: 196, l: 300, icone: 'navire', nom: 'Votre cogue', sous: 'Navire du groupe · 25 m · à quai', pointe: 92,
+  pieces.push(hote({ id: 'navire', classe: 'offre enseigne', x: 846, y: 196, l: 300, icone: 'navire', nom: 'Votre cogue', sous: 'Navire du groupe · 25 m · à quai', pointe: 92,
     corps: `<div class="porteur-ligne"><span>Coque</span><b class="chiffres">52 / 60</b></div><div style="margin-top:5px">${jauge(52 / 60)}</div><div class="porteur-ligne"><span>Salissures</span><b>niveau <span class="chiffres">1</span></b></div>` }));
   pieces.push(page('chantier', 'Le chantier', `
     <div class="tete"><h3 data-texte="navire">Votre cogue</h3><span class="sous rubrique">Un travail à la fois</span></div>
@@ -100,7 +100,7 @@ if (ETAT === 'port-chantier') {
 if (ETAT === 'port-recrutement') {
   services('recrutement');
   pieces.push(enseigne({ id: 'taverne', x: 878, y: 300, l: 256, icone: 'equipage', nom: 'Taverne des marins', sous: 'Recruter l’équipage', pointe: 226 }));
-  pieces.push(cartouche({ id: 'navire', classe: 'offre enseigne', x: 560, y: 150, l: 280, icone: 'navire', nom: 'Votre cogue', sous: 'Navire du groupe · à quai', pointe: 236,
+  pieces.push(hote({ id: 'navire', classe: 'offre enseigne', x: 560, y: 150, l: 280, icone: 'navire', nom: 'Votre cogue', sous: 'Navire du groupe · à quai', pointe: 236,
     corps: `<div class="porteur-ligne"><span>Équipage</span><b class="chiffres">13 sur 15</b></div>${jauge(13 / 15, { teinte: 'or', taille: 'forte', ajout: 2 / 15 })}` }));
   const ROLES = [['Capitaine', '5 CO', 0], ['Timonier', '3 CO 12/–', 1], ['Vigie', '3 CO 12/–', 1], ['Mousse', '1 CO 4/–', 6], ['Navigateur', '5 CO', 0], ['Artilleur', '3 CO 12/–', 0], ['Cuisinier', '1 CO 4/–', 1], ['Chirurgien', '5 CO', 0], ['Chansonnier', '3 CO 12/–', 0]];
   pieces.push(page('equipage', 'L’équipage', `
@@ -147,9 +147,9 @@ if (ETAT === 'port') {
   pieces.push(titre({ icone: 'ancre', nom: 'Salzenmund', sous: `Port · Nordland · ${picto('systeme', 13, '#c9b995', 1.6)} Beau temps`, largeur: 400 }));
   pieces.push(`<div id="recit" data-piece="récit"><p class="ombre">Capitale du Nordland, Grand Temple d’Ulric et temple de Manann Resplendissant. Votre cogue est amarrée au quai des marchands.</p></div>`);
   pieces.push(enseigne({ id: 'chantier', x: 340, y: 336, l: 254, icone: 'marteau', nom: 'Chantier naval', sous: 'Réparer · caréner · améliorer', pointe: 96 }));
-  pieces.push(cartouche({ id: 'entrepot', classe: 'service', x: 548, y: 86, l: 276, icone: 'ballot', nom: 'L’entrepôt', sous: 'Négoce de cargaison', pointe: 86,
-    corps: `<p>Bienvenue à quai ! Amarrage, fret et passage — ici on négocie tout ce qui flotte, et le reste aussi.</p><div class="gestes">${plaque('Entrer', { icone: 'porte' })}</div>` }));
-  pieces.push(cartouche({ id: 'navire', classe: 'offre enseigne', x: 838, y: 24, l: 250, icone: 'navire', nom: 'Votre cogue', sous: 'Navire du groupe · à quai', pointe: 100,
+  pieces.push(hote({ id: 'entrepot', classe: 'service', x: 548, y: 86, l: 276, icone: 'ballot', nom: 'L’entrepôt', sous: 'Négoce de cargaison', pointe: 86,
+    corps: `<p>Bienvenue à quai ! Amarrage, fret et passage — ici on négocie tout ce qui flotte, et le reste aussi.</p><div class="gestes">${plaque('Entrer', { icone: 'porte', taille: 'petite' })}</div>` }));
+  pieces.push(hote({ id: 'navire', classe: 'offre enseigne', x: 838, y: 24, l: 250, icone: 'navire', nom: 'Votre cogue', sous: 'Navire du groupe · à quai', pointe: 100,
     corps: `<div class="porteur-ligne"><span>Coque</span><b class="chiffres">52 / 60</b></div><div style="margin-top:5px">${jauge(52 / 60)}</div><div class="porteur-ligne"><span>Cale</span><b class="chiffres">240 / 300 Enc libres</b></div>${jauge(60 / 300, { teinte: 'or', taille: 'forte' })}` }));
   pieces.push(enseigne({ id: 'taverne', x: 1060, y: 268, l: 256, icone: 'equipage', nom: 'Taverne des marins', sous: 'Recruter l’équipage', pointe: 112 }));
   pieces.push(enseigne({ id: 'avitailleur', x: 1446, y: 474, l: 232, icone: 'tonneau', nom: 'L’avitailleur', sous: 'Vivres et eau douce', pointe: 70 }));

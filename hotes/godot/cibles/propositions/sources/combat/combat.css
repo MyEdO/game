@@ -9,14 +9,9 @@
 
 /* l'ordre du tour : colonne du bord gauche, l'actif en bas */
 #ordre{position:absolute;left:22px;bottom:12px;width:226px;display:flex;flex-direction:column-reverse;gap:8px}
-.rang{display:flex;align-items:center;gap:10px}
-.rang .qui{min-width:0}
-.rang .nom{font-size:13.5px;color:#eadfc4;white-space:nowrap}
-.rang.ennemi .nom{color:#f0a48e}
 .rang .jauge{width:92px;margin-top:5px}
 .rang .pv{font-family:"Fell SC";font-size:11.5px;color:var(--creme-2);margin-left:8px;white-space:nowrap}
 .rang .ligne{display:flex;align-items:center}
-.rang.actif .nom{font-family:"Grenze Gotisch";font-weight:600;font-size:19px;color:#f6ead0;letter-spacing:.3px}
 .rang.actif .jauge{width:98px}
 .rang.fantome{opacity:.42}
 .rang.fantome.loin{opacity:.22}
@@ -93,10 +88,8 @@
 #rapides{left:939px;top:540px;width:404px;height:82px}
 #rapides .fond{background:none;box-shadow:none;display:flex;justify-content:space-between;align-items:flex-start;padding:5px 10px 0;box-sizing:border-box}
 .case-r{width:60px;display:flex;flex-direction:column;align-items:center;gap:3px}
-.case-r .plaque{flex:none;width:44px;height:40px}
-.case-r .plaque.vide{opacity:.5}
-.case-r .plaque.vide>div{background:#120b07}
-.case-r b{position:absolute;left:-7px;top:-7px;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;background:#120b07;box-shadow:0 0 0 1px rgba(226,192,106,.6);font-family:"Fell SC";font-weight:400;font-size:11.5px;color:#f0e2c2}
+.case-r .plaque{flex:none;width:44px}
+.case-r .numero{position:absolute;left:-7px;top:-7px}
 .case-r span{font-size:11px;color:var(--creme-2);white-space:nowrap;letter-spacing:.6px}
 
 /* ───────── états ajoutés (#3935) : tour adverse, jets, critique, début du round, fin, journal, fiche ───────── */
@@ -156,8 +149,8 @@
 .toile span{font-size:84px;line-height:126px;letter-spacing:1px;color:#f3e6c6;text-shadow:0 3px 4px rgba(0,0,0,.75)}
 #ecran[data-etat^=fin-]:not([data-etat=fin-victoire]) .toile{background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(255,220,160,.05) 0 1px,transparent 1px 3px),linear-gradient(180deg,#3f1712,#1d0906)}
 #ecran[data-etat^=fin-]:not([data-etat=fin-victoire]) .toile span{color:#d9cbb0}
-#issue .plaque{flex:none;min-width:214px;height:48px}
-#issue .plaque>div{font-size:17px;padding:0 24px}
+#issue .plaque{flex:none;min-width:214px}
+#issue .plaque>div{padding:0 24px}
 
 /* le journal entier */
 #ecran[data-etat=journal-ouvert] #journal{padding-bottom:72px}
@@ -192,10 +185,6 @@
 .niche svg{width:190px;height:268px;filter:sepia(.4) saturate(.85) drop-shadow(0 4px 3px rgba(40,20,5,.45))}
 #f-sections{left:804px;top:112px;width:566px;height:418px}
 #f-sections .fond{padding:36px 18px 0}
-.onglets{position:absolute;left:28px;top:-7px;display:flex;align-items:center;gap:8px}
-.onglets .ruban{position:relative;left:auto;top:auto;transform:none;margin-right:4px}
-.onglets .plaque{flex:none;height:30px}
-.onglets .plaque>div{padding:0 14px;font-size:13.5px}
 .arme{display:flex;gap:18px;padding:12px;margin-bottom:12px;border:1px solid rgba(60,40,20,.45);background:rgba(255,245,215,.22);box-shadow:inset 0 0 14px rgba(120,90,40,.25)}
 .vignette{flex:none;width:112px;height:112px;padding:3px;box-shadow:0 2px 5px rgba(0,0,0,.5),0 0 0 1px #1a1005}
 .vignette>div{height:100%;background:radial-gradient(circle at 50% 40%,#4a3020,#1b100a 80%);box-shadow:inset 0 0 0 1px #000}
@@ -220,14 +209,11 @@
 .jetons,.portes{grid-column:1 / 3;display:flex;align-items:center}
 .jetons{justify-content:space-between}
 .jetons .jeton{margin-top:0;gap:8px}
-.jetons .bouton-rond{width:30px;height:30px}
-.jetons .bouton-rond>div{font-family:"Grenze Gotisch";font-weight:600;font-size:18px;color:#f3e6c6}
 .portes{gap:12px;height:24px;font-size:12px;color:var(--creme-2)}
 .portes em{font-size:13px}
 #ecran[data-etat^=meuble-] #gestes{top:7px}
-#ecran[data-etat^=meuble-] #gestes .plaque{height:36px}
 .plaques.conditionnelles{margin-top:6px;gap:6px}
-#ecran[data-etat^=meuble-] #gestes .conditionnelles .plaque{flex:0 1 auto;height:29px}
+#ecran[data-etat^=meuble-] #gestes .conditionnelles .plaque{flex:0 1 auto}
 .plaques.conditionnelles .plaque>div{padding:0 6px;font-size:12.5px;letter-spacing:.7px}
 #ecran[data-etat^=meuble-] .pastilles{margin-top:7px;justify-content:flex-start;gap:9px}
 #ecran[data-etat^=meuble-] .outil{width:auto;flex-direction:row;gap:5px}
@@ -254,7 +240,7 @@
 .regle{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;text-align:left}
 .regle .l{font-size:12px;color:#4a3420;white-space:nowrap}
 #jet .regle .options{gap:6px}
-#jet .regle .options .plaque{min-width:0;height:26px}
+#jet .regle .options .plaque{min-width:0}
 #jet .regle .options .plaque>div{padding:0 9px;font-size:12.5px;letter-spacing:.6px}
 .fond.armes .rangee{gap:16px;align-items:flex-start;margin-top:3px}
 .fond.armes .choix{flex:1}
@@ -290,7 +276,7 @@ p.consigne{margin:14px 0 0;padding-left:24px;border-left:1px solid rgba(60,40,20
 .vaincus,.lignes-b{padding-left:22px;border-left:1px solid rgba(60,40,20,.4);height:108px}
 .vaincus .t,.lignes-b .t{font-size:12.5px;color:#5a2a12;margin-bottom:3px}
 .vaincus .v{display:flex;align-items:center;justify-content:space-between;height:28px;font-size:14.5px;color:#2a1d12}
-#jet .vaincus .options .plaque{min-width:0;height:26px}
+#jet .vaincus .options .plaque{min-width:0}
 .ligne-b{display:flex;align-items:center;gap:9px;height:28px;font-size:14.5px;color:#2a1d12;border-bottom:1px solid rgba(60,40,20,.25)}
 .ligne-b span{flex:1}
 .ligne-b i{font-style:normal;font-size:11.5px;color:#5a4530}

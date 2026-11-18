@@ -6,7 +6,7 @@
 #soins .patient .jauge{margin-top:5px}
 #soins .mal{display:flex;align-items:center;gap:9px;margin-top:9px;font-size:13.5px;color:#2a1d12}
 #soins h3{line-height:32px;margin:-4px 0 -4px}
-#soins .plaque.payer{height:44px;margin-top:12px}
+#soins .plaque.payer{margin-top:12px}
 #soins .plaque.payer>div{font-size:16.5px}
 #soins .soin .px{text-align:right}
 #soins .soin .px small{display:block;font-family:"Fell SC";font-weight:400;font-size:10.5px;letter-spacing:.8px;color:#6b1c10}

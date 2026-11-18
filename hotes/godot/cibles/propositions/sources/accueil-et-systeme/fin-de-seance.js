@@ -21,5 +21,5 @@ monter([
      <div class="cases">${casesDuGroupe()}</div>
      <p data-texte="chance">La Chance du groupe sera restaurée pour la prochaine séance.</p>
    </div>${ruban('Le groupe')}${ferrures}</div>`,
-  `<div id="terminer" data-piece="terminer">${plaque('Terminer la séance', { armee: true, icone: 'plume' })}</div>`,
+  `<div id="terminer" data-piece="terminer">${plaque('Terminer la séance', { armee: true, icone: 'plume', taille: 'appel' })}</div>`,
 ]);

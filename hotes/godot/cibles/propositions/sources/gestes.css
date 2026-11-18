@@ -23,7 +23,7 @@
   --toile-clair:#d9c69b; --toile:#a58d62; --toile-sombre:#6d5a3c;
   --ennemi-clair:#9a4030; --ennemi:#6a2015; --ennemi-sombre:#2e0c08;
   --pnj-clair:#8f8672; --pnj:#5f5747; --pnj-sombre:#37322a;
-  --buste:#2a1f17; --buste-ennemi:#170a08; --buste-pnj:#14100c; --chevelure:#1c1410;
+  --buste:#2a1f17; --buste-ennemi:#170a08; --buste-pnj:#14100c; --chevelure:#1c1410; --sanguine:#8f2a1a; --sanguine-voile:rgba(143,42,26,.25);
   --clou-clair:#a39c8c; --clou:#33302a; --clou-sombre:#0a0908;
   --contour:#150d04; --filet-or:rgba(226,192,106,.35); --filet-or-vif:rgba(226,192,106,.8);
   --filet-encre:rgba(60,40,20,.45); --trait-encre:rgba(60,40,20,.7); --filet-creme:rgba(201,185,149,.45);
@@ -89,6 +89,32 @@ html,body{margin:0;background:var(--noir)}
 .portrait.grand{width:74px;height:92px;padding:4px}
 .portrait.maitre{width:96px;height:118px;padding:4px}
 .portrait.affiche{width:136px;height:168px;padding:5px}
+.portrait.esquisse>div{background:radial-gradient(90% 80% at 50% 28%,#efe1bc,#d6c296 62%,#b79e6c)}
+.portrait.esquisse svg{fill:none;stroke:var(--sanguine);stroke-width:1.3}
+.portrait.esquisse .s{fill:var(--sanguine-voile)}
+.portrait.esquisse .repere{stroke-dasharray:2 3;stroke-width:.7}
+.portrait.vide>div{display:grid;place-items:center;background:radial-gradient(90% 80% at 50% 28%,#2a2420,#14110e 70%);box-shadow:inset 0 0 0 1px var(--ombre)}
+.portrait.vide svg{width:36%;height:auto;fill:none;color:var(--creme-2)}
+/* le rang d'un personnage */
+.rang{display:flex;align-items:center;gap:10px}
+.rang .qui{min-width:0}
+.rang .nom{font-size:13.5px;color:#eadfc4;white-space:nowrap}
+.rang .nom.gothique{font-size:19px;color:#f6ead0;letter-spacing:.3px}
+.rang.ennemi .nom{color:#f0a48e}
+.rang .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+.parchemin .rang .nom{color:var(--sepia);text-shadow:none}
+.parchemin .rang .s{color:var(--rouille)}
+/* le cartouche : médaillon, nom, ce qu'il est */
+.cartouche{display:flex;align-items:center;gap:11px;min-width:0}
+.cartouche .n{font-size:22px;line-height:30px;margin:-4px 0 -5px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
+.cartouche .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+.parchemin .cartouche .n{color:var(--sepia);text-shadow:none}
+.parchemin .cartouche .s{color:var(--rouille)}
+.onglets{position:absolute;left:30px;top:-9px;display:flex;align-items:center;gap:9px;z-index:2}
+.onglets .ruban{position:static;transform:none}
+.onglets .plaque{flex:none}
+.onglets .plaque>div{padding:0 15px;font-size:12.5px}
+.cartouche .marque{display:inline-block;margin-left:8px;padding:0 7px 1px;font-family:"Fell SC";font-size:11px;letter-spacing:1px;color:var(--encre);border-radius:2px;background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));vertical-align:3px}
 
 /* la jauge : teinte cire (la vie) ou or, fine ou forte */
 .jauge{position:relative;background:var(--lit);border-radius:1px;box-shadow:0 0 0 1px var(--filet-or),inset 0 1px 2px var(--noir)}
@@ -110,6 +136,9 @@ html,body{margin:0;background:var(--noir)}
 .plaque>div{height:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:0 10px;border-radius:2px;background:radial-gradient(120% 140% at 50% 0%,var(--chene),var(--chene-nuit) 75%);box-shadow:inset 0 0 0 1px var(--ombre-forte),inset 0 1px 0 var(--reflet);font-family:"Fell SC";font-size:15px;letter-spacing:1px;color:var(--or);white-space:nowrap}
 .plaque.petite{height:28px}
 .plaque.petite>div{font-size:13px}
+.plaque.appel{height:52px}
+.plaque.appel>div{font-size:18px;letter-spacing:1.4px;gap:12px}
+.plaque .numero{flex:none;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:var(--lit);box-shadow:0 0 0 1px var(--filet-or-vif);font-family:"Fell SC";font-size:12px;letter-spacing:0;color:var(--ivoire)}
 .plaque.survol{box-shadow:0 3px 6px var(--ombre-forte),0 0 0 1px var(--contour),0 0 8px var(--halo)}
 .plaque.survol>div{color:var(--or-eclat);box-shadow:inset 0 0 0 1px var(--filet-or-vif),inset 0 1px 0 var(--reflet)}
 .plaque.armee{box-shadow:0 2px 4px var(--ombre-forte),0 0 0 1px var(--contour),0 0 14px var(--halo)}
@@ -156,6 +185,9 @@ html,body{margin:0;background:var(--noir)}
 .sceau.moyen{width:38px;height:38px;font-size:20px}
 .sceau.grand{width:50px;height:50px;font-size:27px}
 .sceau.maitre{width:62px;height:62px;font-size:32px}
+.sceau.de{display:flex;flex-direction:column}
+.sceau.de b{font-weight:700;font-size:28px;line-height:26px}
+.sceau.de i{font-family:"Fell SC";font-style:normal;font-size:10px;letter-spacing:1px;line-height:10px;color:var(--ivoire)}
 
 /* le filet : deux traits, un losange au milieu s'il en porte un ; teinte du fond */
 .filet{display:flex;align-items:center;margin:11px 0;color:var(--creme-2)}
@@ -209,9 +241,11 @@ html,body{margin:0;background:var(--noir)}
 .qui-paie{display:flex;align-items:center;gap:11px}
 .qui-paie.parts{align-items:flex-start}
 .qui-paie .q{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:12.5px}
-.qui-paie.parts .q{display:block}
+.qui-paie.parts .q{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:0 10px;grid-auto-rows:minmax(19px,auto)}
+.qui-paie.parts .q>:is(.rubrique,.total){grid-column:1 / -1}
 .qui-paie b{font-size:13.5px;white-space:nowrap}
-.qui-paie .part{display:grid;grid-template-columns:1fr auto 92px;align-items:center;column-gap:10px;height:19px;font-size:13.5px}
+.qui-paie .part{display:contents;font-size:13.5px}
+.qui-paie .part>span{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .qui-paie .part .moins-plus b{min-width:74px;text-align:center}
 .qui-paie .part i{font-size:12px;opacity:.75;text-align:right;white-space:nowrap}
 .qui-paie .total{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;padding-top:4px;border-top:1px solid currentColor}
@@ -234,6 +268,7 @@ html,body{margin:0;background:var(--noir)}
 .bouton-rond.moyen{width:44px;height:44px;padding:4px}
 .bouton-rond.grand{width:52px;height:52px;padding:4px}
 .bouton-rond.maitre{width:92px;height:92px;padding:5px}
+.bouton-rond b{font-family:"Grenze Gotisch";font-weight:600;font-size:18px;color:var(--ivoire)}
 .bouton-rond.survol{box-shadow:0 4px 8px var(--ombre-forte),0 0 0 1px var(--contour),0 0 8px var(--halo)}
 .bouton-rond.arme{color:var(--encre);box-shadow:0 0 0 1px var(--contour),0 0 14px var(--halo-vif)}
 .bouton-rond.arme>div{background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen) 55%,var(--or-sombre))}

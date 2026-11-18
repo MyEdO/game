@@ -1,5 +1,5 @@
 /* Commerce, images d'intention (#3935). Ajouts au kit de « lieux et nuit » (../lieux-et-nuit/commun.js) : pictogrammes
-   de denrées et de porteurs, bustes des négociants, cartouches d'offre et de porteur, les deux décors (la halle, le
+   de denrées et de porteurs, bustes des négociants, hôtes d'offre et de porteur, les deux décors (la halle, le
    quai). Maquette hors du jeu. */
 Object.assign(BUSTES, {
   drapier: BASE + '<path d="M22 31c0-13 8-20 17-20s17 7 17 20c-5-5-11-7-17-7s-12 2-17 7z" fill="#15100c"/><path d="M22 30h34v4H22z" fill="#15100c"/>',
@@ -9,12 +9,8 @@ Object.assign(BUSTES, {
 
 /* ───────── les pièces ───────── */
 const mesures = (lignes) => `<table>${lignes.map(([k, v, c]) => `<tr><td>${k}</td><td class="${c ?? ''}">${v}</td></tr>`).join('')}</table>`;
-/* un cartouche posé dans la scène : (x, y) son coin, pointe = abscisse de sa pointe depuis son bord gauche */
-const cartouche = ({ id, classe = '', x, y, l, icone, nom, sous, corps = '', pointe = 60, marque = '' }) => `<div class="hote ${classe} cadre bois" data-piece="${id}" style="left:${x}px;top:${y}px;width:${l}px"><div class="fond bois">
-  <div class="tete">${medaillon(icone, { taille: 'moyen' })}<div><div class="n gothique" data-texte="${id}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div><div class="s rubrique">${sous}</div></div></div>${corps}
-</div><i class="pointe" style="left:${pointe}px;bottom:-8px"></i>${ferrures}</div>`;
 /* la page de droite, sur parchemin : ce que l'on compose ou traite ; `piece` la nomme au rapport de rendu */
-const page = (piece, intitule, corps, classe = '') => `<div id="page" class="page cadre bois ${classe}" data-piece="${piece}" style="height:auto"><div class="fond parchemin">${corps}</div>${ruban(intitule, { gothique: true })}${ferrures}</div>`;
+const page = (piece, intitule, corps) => `<div id="page" class="page cadre bois" data-piece="${piece}"><div class="fond parchemin">${corps}</div>${ruban(intitule, { gothique: true })}${ferrures}</div>`;
 const quantite = (v, min, max, unite = 'Enc') => `<div class="quantite">${rond('moins', 'petit')}<div style="flex:1">${reglette((v - min) / (max - min), null)}<div class="bornes chiffres"><span>${min}</span><span>${max}</span></div></div>${rond('plus', 'petit')}<span class="val">${v} ${unite}</span></div>`;
 const voie = (icone, nom, comp, texte, prix, pris = false) => `<div class="soin ${pris ? 'pris' : ''}"><div class="ic">${picto(icone, 19, '#5a2a12')}</div><div class="t"><b>${nom}</b><span class="c">${comp}</span><i>${texte}</i></div>${prix ? `<span class="px chiffres">${prix}</span>` : ''}</div>`;
 
@@ -201,4 +197,4 @@ function sceneDuQuai() {
 }
 const nuagesDuSoir = () => { const g = el(S, 'g'); for (const [cx, cy, rx, ry, o] of [[420, 150, 260, 22, .5], [760, 96, 220, 16, .4], [1180, 190, 300, 20, .45], [980, 290, 240, 14, .35], [560, 300, 200, 12, .3]]) el(g, 'ellipse', { cx, cy, rx, ry, fill: '#2a2238', opacity: o, filter: 'url(#f8)' }); };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { mesures, cartouche, page, quantite, voie, sceneDeLaHalle, sceneDuQuai });
+Object.assign(globalThis, { mesures, page, quantite, voie, sceneDeLaHalle, sceneDuQuai });

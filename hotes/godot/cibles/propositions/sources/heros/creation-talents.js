@@ -38,7 +38,7 @@ poser([
     <div class="deux" style="margin-top:3px">${option('Affable')}${option('Perspicace', { choisie: true })}</div>
     <div style="margin-top:15px">${rub('Trois Talents au d100')}</div>
     ${tire(15, 'Artiste <small>(Peinture)</small>', `<span class="pill" style="height:20px">Utilisation ${picto('chevron_d', 12, '#3a2a18', 2)}</span>`)}
-    ${ETAT === 'doublon' ? tire(68, 'Perspicace', `<span class="raison">Maxi atteint : sans effet si gardé</span>${plaque('Relancer Perspicace', { style: 'flex:none;width:168px;height:26px' })}`) : tire(24, 'Chanceux')}
+    ${ETAT === 'doublon' ? tire(68, 'Perspicace', `<span class="raison">Maxi atteint : sans effet si gardé</span>${plaque('Relancer Perspicace', { style: 'flex:none;width:168px', taille: 'petite' })}`) : tire(24, 'Chanceux')}
     ${tire(99, 'Vivacité')}
     ${filet({ fondu: true, losange: true })}
     ${rub('Talent de carrière', 'un seul')}

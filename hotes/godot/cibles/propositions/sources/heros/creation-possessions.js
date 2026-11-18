@@ -41,7 +41,7 @@ poser([
       ${objet('costume', 'Vêtements', { note: 'Raffiné' })}${objet('dague', 'Dague')}${objet('bourse', 'Bourse', { note: '7/–' })}${objet('pinceau', 'Pinceau', { note: 'Au choix', choisi: true })}
       ${objet('pince', 'Pince à épiler')}${objet('cure', 'Cure-oreille', { note: '× 2' })}${objet('peigne', 'Peigne')}
     </div>
-    <div class="cartouche">${medaillon('palette', { taille: 'moyen' })}<div><b>Pinceau (brosse)</b><i>Outils et nécessaires · Encombrement 0</i></div><span class="chiffres">4/–</span></div>`),
+    <div class="objet-pris">${cartouche({ icone: 'palette', nom: 'Pinceau (brosse)', sous: 'Outils et nécessaires · Encombrement 0' })}<span class="chiffres">4/–</span></div>`),
   herosNeuf({ acquis: [...ACQUIS, ['Compétences', 'Six de race, huit de carrière'], ['Talents', 'Six acquis'], ['Possessions', 'Sept, et 7/– en bourse']], pose: .8 }),
   groupeEnCreation(),
   coins(),

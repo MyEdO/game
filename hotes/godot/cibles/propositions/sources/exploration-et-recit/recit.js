@@ -101,9 +101,9 @@ if (ETAT === 'dialogue' || ETAT === 'jet-de-competence') {
   pieces.push(LIEU, coins());
 }
 if (ETAT === 'dialogue') {
-  const reponse = (n, texte, { annonce, cout, visee } = {}) => `<div class="reponse laiton ${visee ? 'visee' : ''}"><div><b>${n}</b>${annonce ? `<span class="annonce">${picto('de', 14, '#2a1a08', 1.7)}${annonce}</span>` : ''}<span data-texte="réponse ${n}">${texte}</span>${cout ? `<span class="cout chiffres">${cout}</span>` : ''}</div></div>`;
+  const reponse = (n, texte, { annonce, cout, visee } = {}) => plaque(`${annonce ? `<span class="annonce">${picto('de', 14, undefined, 1.7)}${annonce}</span>` : ''}<span data-texte="réponse ${n}">${texte}</span>`, { numero: n, survol: visee, prix: cout, classe: 'gauche' });
   pieces.push(`<div id="parole" class="cadre bois arret" data-piece="parole"><div class="fond parchemin">
-    <div class="heros">${portrait('mira', { taille: 'grand', choisi: true })}</div>
+    <div class="porteur">${portrait('mira', { taille: 'grand', choisi: true })}</div>
     <div class="reponses">
       <div class="qui"><div class="n gothique" data-texte="héros">Mira</div><div class="c rubrique">Portera le Test</div></div>
       ${reponse(1, 'Et cet avis placardé au mur, ce prince qui recrute ?')}
@@ -195,7 +195,7 @@ if (ETAT === 'carnet') {
   pieces.push(`<div id="carnet" class="page cadre bois" data-piece="carnet"><div class="fond parchemin">
     <div class="tete"><h3 data-texte="affaire">Un héritage à Bögenhafen</h3><span class="sous rubrique">1 indice</span></div>
     ${filet()}
-    <div class="indice"><b class="gothique">L’héritage</b><span class="chip">Indice</span><span class="chip neuf">Nouveau</span>${plaque('Épingler', { icone: 'cle', classe: 'epingle' })}</div>
+    <div class="indice"><b class="gothique">L’héritage</b><span class="chip">Indice</span><span class="chip neuf">Nouveau</span>${plaque('Épingler', { icone: 'cle', classe: 'epingle', taille: 'petite' })}</div>
     <div class="deux">
       <div><div class="r rubrique">Dernière lecture</div>
         ${lu('L’affidavit', 'EDO p. 28', ['Nous, soussignés, jurons solennellement que le porteur de ce document se nomme Kastor Aloysius Lieberung.', 'Ingrid Zicherman, prêtresse', 'Temple de Sigmar, Nuln', 'Oskar Helmut, maître de guilde', 'Guilde des marchands, Nuln', 'Sous le regard de', 'Julius Schwungrad, Honorable Société des Avocats, Nuln'])}</div>

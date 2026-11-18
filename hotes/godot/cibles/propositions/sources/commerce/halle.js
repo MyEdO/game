@@ -17,11 +17,11 @@ pieces.push(rail('Services de Kemperbad', [['lit', 'Auberge'], ['panier', 'March
 pieces.push(`<div id="rumeur" class="parchemin" data-piece="rumeur" style="top:450px"><i class="clou"></i><div class="r">Rumeur au marché</div><p data-texte="rumeur">Vivres, Bois se vendraient le double à Eilhart.</p></div>`);
 
 if (VENTE) {
-  pieces.push(cartouche({ id: 'offre-laine', classe: 'offre enseigne', x: 372, y: 150, l: 236, icone: 'ballot', nom: 'Laine', sous: 'À vendre · 350 Enc', pointe: 200 }));
-  pieces.push(cartouche({ id: 'offre-vin', classe: 'offre enseigne', x: 900, y: 150, l: 236, icone: 'tonneau', nom: 'Vin', sous: 'À vendre · 280 Enc', pointe: 56 }));
-  pieces.push(cartouche({ id: 'porteur-mule', classe: 'offre enseigne', x: 346, y: 384, l: 200, icone: 'fer_a_cheval', nom: 'Mule', sous: 'Porteur du groupe', pointe: 84,
+  pieces.push(hote({ id: 'offre-laine', classe: 'offre enseigne', x: 372, y: 150, l: 236, icone: 'ballot', nom: 'Laine', sous: 'À vendre · 350 Enc', pointe: 200 }));
+  pieces.push(hote({ id: 'offre-vin', classe: 'offre enseigne', x: 900, y: 150, l: 236, icone: 'tonneau', nom: 'Vin', sous: 'À vendre · 280 Enc', pointe: 56 }));
+  pieces.push(hote({ id: 'porteur-mule', classe: 'offre enseigne', x: 346, y: 384, l: 200, icone: 'fer_a_cheval', nom: 'Mule', sous: 'Porteur du groupe', pointe: 84,
     corps: `<div class="porteur-ligne"><span>Vide</span><b class="chiffres">14 / 14 Enc libres</b></div>${jauge(0 / 14, { teinte: 'or', taille: 'forte' })}` }));
-  pieces.push(cartouche({ id: 'porteur-charrette', classe: 'offre choisie', x: 640, y: 292, l: 262, icone: 'charrette', nom: 'Charrette', sous: 'Porteur du groupe', pointe: 120,
+  pieces.push(hote({ id: 'porteur-charrette', classe: 'offre choisie', x: 640, y: 292, l: 262, icone: 'charrette', nom: 'Charrette', sous: 'Porteur du groupe', pointe: 120,
     corps: `<div class="porteur-ligne"><span>Pleine</span><b class="chiffres">0 / 25 Enc libres</b></div>${jauge(25 / 25, { teinte: 'or', taille: 'forte' })}<div class="lot pris">${picto('ballot', 16, '#2a1a08')}<span>Laine</span><span class="chiffres">25 Enc</span></div>` }));
   pieces.push(page('lot', 'Le lot', `
     <div class="tete"><h3 data-texte="lot">Laine</h3><span class="sous rubrique">25 Enc sur la charrette</span></div>
@@ -39,10 +39,10 @@ if (VENTE) {
     ${plaque('Vendre', { armee: true, icone: 'balance', classe: 'conclure' })}
     <div class="note"><i>Refuser la mise à prix garde le lot sur la charrette.</i></div>`));
 } else {
-  pieces.push(cartouche({ id: 'offre-laine', classe: `offre ${JET ? '' : 'choisie'}`, x: 372, y: JET ? 196 : 150, l: 300, icone: 'ballot', nom: 'Laine', sous: 'Un négociant en laine', pointe: 218,
-    corps: `${mesures([['Disponible', '350 Enc'], ['Prix de base', '2/– / Enc'], ...(JET ? [] : [['Estimation avant Marchandage', '2 CO 15/–']])])}${JET ? '' : `<div class="gestes">${plaque('Acheter', { armee: !COOP, fermee: COOP, icone: 'balance' })}</div>`}` }));
-  if (!JET) pieces.push(cartouche({ id: 'offre-vin', classe: 'offre', x: 876, y: 130, l: 296, icone: 'tonneau', nom: 'Vin', sous: 'Un vigneron · qualité incertaine', pointe: 84,
-    corps: `${mesures([['Disponible', '280 Enc'], ['Prix de base', '6/– / Enc'], ['Estimation avant Marchandage', '8 CO 5/–']])}<div class="gestes">${plaque('Évaluer le vin', { icone: 'loupe', fermee: COOP })}${plaque('Acheter', { icone: 'balance', fermee: COOP })}</div>` }));
+  pieces.push(hote({ id: 'offre-laine', classe: `offre ${JET ? '' : 'choisie'}`, x: 372, y: JET ? 196 : 150, l: 300, icone: 'ballot', nom: 'Laine', sous: 'Un négociant en laine', pointe: 218,
+    corps: `${mesures([['Disponible', '350 Enc'], ['Prix de base', '2/– / Enc'], ...(JET ? [] : [['Estimation avant Marchandage', '2 CO 15/–']])])}${JET ? '' : `<div class="gestes">${plaque('Acheter', { armee: !COOP, fermee: COOP, icone: 'balance', taille: 'petite' })}</div>`}` }));
+  if (!JET) pieces.push(hote({ id: 'offre-vin', classe: 'offre', x: 876, y: 130, l: 296, icone: 'tonneau', nom: 'Vin', sous: 'Un vigneron · qualité incertaine', pointe: 84,
+    corps: `${mesures([['Disponible', '280 Enc'], ['Prix de base', '6/– / Enc'], ['Estimation avant Marchandage', '8 CO 5/–']])}<div class="gestes">${plaque('Évaluer le vin', { icone: 'loupe', fermee: COOP, taille: 'petite' })}${plaque('Acheter', { icone: 'balance', fermee: COOP, taille: 'petite' })}</div>` }));
   pieces.push(page('chargement', 'Le chargement', `
     <div class="tete"><h3 data-texte="denrée">Laine</h3><span class="sous rubrique">${COOP ? 'Composé par l’hôte' : 'Achat en composition'}</span></div>
     <p style="margin-top:4px">Le négociant cède son lot entier, ou une part d’au moins 10 Enc.</p>
@@ -66,7 +66,7 @@ if (VENTE) {
     ${JET ? '' : COOP ? `${plaque('Conclure l’achat', { fermee: true, icone: 'balance', classe: 'conclure' })}
     <div class="note refus">${sceau('reseau', 'menu')}<i data-texte="refus">L’hôte seul engage les bourses et la cale du groupe.</i></div>`
     : `${plaque('Conclure l’achat', { armee: true, icone: 'balance', classe: 'conclure' })}
-    <div class="note"><i>Le Marchandage se joue à la conclusion, contre le négociant.</i></div>`}`, JET ? 'courte' : ''));
+    <div class="note"><i>Le Marchandage se joue à la conclusion, contre le négociant.</i></div>`}`));
 }
 
 if (JET) {

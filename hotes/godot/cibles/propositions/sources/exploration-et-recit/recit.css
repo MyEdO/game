@@ -33,23 +33,18 @@
 
 /* la conversation */
 #parole{top:506px;height:266px}
-#parole .fond{display:grid;grid-template-columns:74px 620px 1fr 74px;column-gap:20px;padding:22px 20px 0 20px}
+#parole .fond{display:grid;grid-template-columns:74px 660px 1fr 74px;column-gap:20px;padding:22px 20px 13px}
 #parole .dit{padding-top:1px}
 #parole .dit .n{font-size:27px;line-height:38px;margin:-6px 0 -4px;color:#3a1a10;white-space:nowrap}
 #parole .dit .c{font-size:12.5px;color:#5a2a12;white-space:nowrap}
 #parole .dit p{margin:11px 0 0;font-size:17.5px;line-height:25px;color:#2a1d12}
-#parole .reponses{border-right:1px solid rgba(60,40,20,.4);padding-right:20px;height:226px;display:flex;flex-direction:column;justify-content:center;gap:9px}
+#parole .reponses{border-right:1px solid rgba(60,40,20,.4);padding-right:20px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+#parole .reponses .plaque{flex:none}
 #parole .qui{display:flex;align-items:baseline;gap:12px;margin:-4px 0 2px}
 #parole .qui .n{font-size:24px;line-height:32px;color:#3a1a10}
 #parole .qui .c{font-size:12.5px;color:#5a2a12}
 #parole .dit{text-align:right}
-.reponse{position:relative;height:35px;padding:2px;border-radius:3px;box-shadow:0 2px 5px rgba(40,20,5,.55),0 0 0 1px #150d04}
-.reponse>div{height:100%;display:flex;align-items:center;gap:10px;padding:0 11px 0 8px;border-radius:2px;background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,220,160,.12);font-size:14.5px;color:#f0e2c2;white-space:nowrap}
-.reponse b{flex:none;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:#120b07;box-shadow:0 0 0 1px rgba(226,192,106,.6);font-family:"Fell SC";font-weight:400;font-size:12px;color:#f0e2c2}
-.reponse .annonce{flex:none;display:flex;align-items:center;gap:6px;padding:1px 9px 2px 6px;border-radius:2px;font-family:"Fell SC";font-size:12.5px;letter-spacing:.8px;color:#2a1a08;background:linear-gradient(180deg,#f3dc93,#c39c44);box-shadow:0 0 0 1px #150d04}
-.reponse .cout{margin-left:auto;flex:none;font-size:12.5px;color:var(--or)}
-.reponse.visee{box-shadow:0 2px 5px rgba(40,20,5,.55),0 0 0 1px #150d04,0 0 14px rgba(255,214,140,.75)}
-.reponse.visee>div{background:radial-gradient(120% 140% at 50% 0%,#5a3d22,#2b1a0e 75%);color:#fff6dc}
+#parole .annonce{flex:none;display:flex;align-items:center;gap:6px;padding:1px 9px 2px 6px;border-radius:2px;font-family:"Fell SC";font-size:12.5px;letter-spacing:.8px;color:#2a1a08;background:linear-gradient(180deg,#f3dc93,#c39c44);box-shadow:0 0 0 1px #150d04}
 
 /* le butin */
 #butin{top:506px;height:266px}
@@ -103,7 +98,7 @@
 /* le carnet d'enquête : un panneau posé sur le jeu, les affaires au rail, l'affaire ouverte sur sa page */
 #documents{left:24px;top:330px;width:300px}
 #documents .fond{padding:20px 12px 12px;display:flex;flex-direction:column;gap:7px}
-#documents .plaque{flex:none;height:38px}
+#documents .plaque{flex:none}
 #documents .plaque>div{gap:11px;font-size:14.5px}
 #documents .plaque svg{flex:none}
 #documents .plaque span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -117,7 +112,7 @@
 #carnet .indice b{font-size:24px;line-height:30px;color:#3a1a10;margin-right:6px}
 .chip{padding:0 9px 1px;font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:#3a2a12;border:1px solid rgba(60,40,20,.55);border-radius:2px;background:rgba(255,245,215,.35)}
 .chip.neuf{color:#fbe9d2;border-color:#5a130b;background:linear-gradient(180deg,#9c2a1a,#6b1c10)}
-#carnet .plaque.epingle{flex:none;width:136px;height:32px;margin-left:auto}
+#carnet .plaque.epingle{flex:none;width:136px;margin-left:auto}
 #carnet .plaque.epingle>div{font-size:13.5px}
 #carnet .deux{display:grid;grid-template-columns:430px 1fr;column-gap:30px;margin-top:14px}
 #carnet .r{font-size:12.5px;color:#6b1c10;margin-bottom:7px}

@@ -38,6 +38,6 @@ poser([
     <div class="pills" style="align-self:stretch">${['Artiste (Peinture)', 'Chanceux', 'Destinée', 'Infatigable', 'Perspicace', 'Vivacité'].map((t) => `<span class="pill">${t}</span>`).join('')}</div>`),
   herosNeuf({ nom: 'Astrid Altdorfer', pose: 1, palette: true, suivant: 'Engager',
     acquis: [['Race tirée au d100', 'Humains (Reiklander)', '+20 PX'], ['Carrière tirée au d100', 'Artiste', '+50 PX'], ['Caractéristiques', 'Jets gardés', '+50 PX'], ['Signe tiré au d100', 'Le Trait du Peintre', '+25 PX'], ['PX de création', '<span class="chiffres" style="font-size:19px;font-weight:600;color:#f3dc93">145 PX</span>']] }),
-  groupeEnCreation({ nom: 'Astrid Altdorfer', esquisse: false, pv: 10, max: 10 }),
+  groupeEnCreation({ id: 'astrid', nom: 'Astrid Altdorfer', pv: 10, max: 10 }),
   coins(),
 ]);

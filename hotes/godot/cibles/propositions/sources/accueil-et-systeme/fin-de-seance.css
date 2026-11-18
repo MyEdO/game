@@ -20,5 +20,3 @@
 #groupe .cochable{height:27px;font-size:14.5px}
 #groupe p{flex:1;margin:0;text-align:right;font-style:italic;font-size:15px;color:#cfc2a4}
 #terminer{position:absolute;right:24px;bottom:28px;width:290px}
-#terminer .plaque{height:52px}
-#terminer .plaque>div{font-size:18px;letter-spacing:1.4px;gap:12px}

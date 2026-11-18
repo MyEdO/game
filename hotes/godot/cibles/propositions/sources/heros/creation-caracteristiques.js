@@ -20,10 +20,10 @@ poser([
   frise(3),
   gauche(`
     ${rub('Méthode')}
-    <div class="onglets-m methodes" style="margin-top:4px">${METHODES.map(([m, px, e]) => plaque(m, { armee: e === ETAT, prix: px })).join('')}</div>
+    <div class="onglets-m methodes" style="margin-top:4px">${METHODES.map(([m, px, e]) => plaque(m, { armee: e === ETAT, prix: px, taille: 'petite' })).join('')}</div>
     <div class="tirage-c">${ETAT === 'points'
     ? `<span class="jeton ${reste ? 'cire' : 'or'}">À répartir &nbsp;·&nbsp; ${reste} / 100</span><span class="rub"><span class="note">De quatre à dix-huit points par Caractéristique.</span></span>`
-    : `<div class="de moyen">${picto('des', 20, '#2a0906', 1.6)}</div><div style="flex:1">${rub('Les dix 2d10', 'tirés')}</div>${plaque('Relancer les dix 2d10', { prix: 'sans PX', style: 'flex:none;width:262px;height:32px' })}`}</div>
+    : `<div class="de moyen">${picto('des', 20, '#2a0906', 1.6)}</div><div style="flex:1">${rub('Les dix 2d10', 'tirés')}</div>${plaque('Relancer les dix 2d10', { prix: 'sans PX', style: 'flex:none;width:262px', taille: 'petite' })}`}</div>
     ${filet({ fondu: true, losange: true })}
     <div style="display:flex;align-items:center;justify-content:space-between">${rub('Augmentations de carrière', 'Artiste Apprentie')}<span class="jeton or">À répartir &nbsp;·&nbsp; 0 / 5</span></div>
     <div class="lignes" style="margin-top:3px">${repartie('F', 'Force', 0, 5, valeur(2), true)}${repartie('I', 'Initiative', 2, 5, valeur(4), true)}${repartie('Dex', 'Dextérité', 3, 5, valeur(6), true)}</div>
