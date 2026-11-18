@@ -3514,7 +3514,7 @@ export const fr = {
   'sv.paceWon': "+{m} M aujourd'hui.",
   'sv.paceLost': 'le navire garde son allure.',
   'sv.paceRefus': 'Forcer le rythme : {refus} Le navire garde son allure.',
-  'sv.scurvyGot': '{name} — scorbut (un mois en mer{soup}) : contracté.',
+  'sv.scurvyGot': '{name} — scorbut (un mois sans vivre frais{soup}) : contracté.',
   'sv.fragSoup': ', soupe de chou',
   'sv.seasickGot': '{name} — mal de mer : contracté.',
   'sv.waterDiseaseGot': "{name} — tonneau d'eau contaminé ({disease}) : contracté.",

@@ -27,7 +27,7 @@
  */
 import { battleRng } from './battleRng';
 import { tickCampaignVesselWeek } from './shipCrew';
-import { dayIndex } from '../engine/clock';
+import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, rationsDeCale } from '../engine/provisions';
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -204,7 +204,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
           });
         };
       // 1. Nourriture (LDB 18 l.337-343).
-      const r = dailyFoodUpkeep(h, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
+      const r = dailyFoodUpkeep(h, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), d * MINUTES_PER_DAY, defer);
       if (r.rationConsumed) rations++;
       if (r.damage > 0) loseWounds(h, r.damage);
       lines.push(...r.log);

@@ -37,6 +37,9 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate, tableSpec } from './cascade';
+import { feedFromMeal, noterLeRepas } from '../engine/provisions';
+import { MINUTES_PER_DAY } from '../engine/clock';
+import type { Id } from '../data/schemas/grammaire/ref';
 import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { savoirOceansBonus } from '../engine/seaNavigation';
@@ -1810,6 +1813,85 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
 describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la surface se DÉRIVE des porteurs, #1479)', () => {
   beforeEach(freshState);
 
+  const BISCUITS = 'ration-biscuits-de-mer' as Id<'trapping'>, SOUPE = 'ration-soupe-chou-fermente' as Id<'trapping'>;
+  const FRAIS = 'nourriture-courses-journee' as Id<'trapping'>;
+
+  /** Pose `jours` repas par le geste du jeu (`noterLeRepas`) : `soupe` jours de soupe, le reste en biscuits. */
+  function repasSansFrais(porteur: Pick<Combatant, 'regimeDeBord'>, jours: number, soupe = 0): void {
+    for (let k = 0; k < jours; k++) noterLeRepas(porteur, k < soupe ? SOUPE : BISCUITS, get().gameTime);
+  }
+
+  /** Chaque Personnage a passé 30 jours sans vivre frais. MDG 14 l.230 */
+  function moisSansFraisDuGroupe(): void {
+    for (const h of get().party) repasSansFrais(h, 30);
+  }
+
+  /** Une journée de mer sous ordres commandés (bande jouée d'office) : l'équipage mange `cale` et a déjà passé `jours`
+   *  jours sans frais, dont `soupe` de soupe ; le d100 de sa rangée vaut `de`. */
+  function journeeDeLEquipage(jours: number, cale: Record<string, number>, de: number, soupe = 0): void {
+    const equipage: Pick<Combatant, 'regimeDeBord'> = {};
+    repasSansFrais(equipage, jours, soupe);
+    set({ vessel: { ...get().vessel!, provisions: lotsDeCale(cale, get().gameTime), porteurDeLEquipage: { regimeDeBord: equipage.regimeDeBord } } });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    set({ travelPlan: { ...plan, orders: { cadence: 'commande' }, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 50, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
+    imposerLesD100(de);
+    continueSeaDayAfterCascade(get, set);
+  }
+  const scorbutDeLEquipage = () => (get().vessel!.porteurDeLEquipage?.diseases ?? []).map((d) => d.id);
+  const ligneDeLEquipage = () => get().journal.some((l) => l === t('sv.scurvyGot', { name: t('crew.lEquipage'), soup: '' }));
+
+  it('Scorbut : au 30e jour de biscuits, l’équipage collectif teste à 40 ; l’échec lui donne le scorbut (MDG 14 l.230 ; #4243)', () => {
+    journeeDeLEquipage(29, { [BISCUITS]: 500 }, 41);
+    expect(scorbutDeLEquipage(), 'd100 41 contre 40 : échec').toEqual(['scorbut']);
+    expect(ligneDeLEquipage(), 'la ligne du journal nomme l’équipage').toBe(true);
+    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord).toEqual({ joursSansVivreFrais: 30, joursDeSoupe: 0 });
+  });
+
+  it('Scorbut : la rangée collective réussit à 40 (MDG 14 l.230)', () => {
+    journeeDeLEquipage(29, { [BISCUITS]: 500 }, 40);
+    expect(scorbutDeLEquipage()).toEqual([]);
+  });
+
+  it('Scorbut : un jour de vivre frais remet le mois à zéro, aucun Test au 30e jour (MDG 14 l.230-232)', () => {
+    const repas = get().gameTime;
+    journeeDeLEquipage(29, { [FRAIS]: 500 }, 99);
+    expect(scorbutDeLEquipage()).toEqual([]);
+    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord).toEqual({ dernierVivreFrais: repas, joursSansVivreFrais: 0, joursDeSoupe: 0 });
+  });
+
+  it('Scorbut : 15 jours de soupe mangée par l’équipage font son Test Facile, 80 (MDG 14 l.230)', () => {
+    journeeDeLEquipage(29, { [SOUPE]: 500 }, 80, 14);
+    expect(scorbutDeLEquipage(), 'le 15e jour de soupe est celui de la journée').toEqual([]);
+    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord!.joursDeSoupe, 'le mois de soupe repart à zéro après le Test').toBe(0);
+  });
+
+  it('Scorbut d’un Personnage : sa Durée ne décompte qu’au jour où il mange du frais, le repas écrit avant le pas de maladie (MDG 14 l.232)', () => {
+    const [aLAuberge, enMer] = get().party;
+    for (const h of [aLAuberge, enMer]) h.diseases = [contractDisease('scorbut', makeRNG(2))!];
+    const avant = aLAuberge.diseases![0].minutesLeft;
+    feedFromMeal(aLAuberge);
+    enMer.items = [...(enMer.items ?? []), itemFromTrappingById(BISCUITS, idsDeTest)!];
+    get().avancerLeTemps(MINUTES_PER_DAY);
+    expect(aLAuberge.diseases![0].minutesLeft).toBe(avant - MINUTES_PER_DAY);
+    expect(enMer.diseases![0].minutesLeft).toBe(avant);
+  });
+
+  it('Scorbut : 15 jours de soupe MANGÉE font le Test Facile du Personnage, la soupe portée sans être mangée non (MDG 14 l.230)', () => {
+    const [mangeur, porteur] = get().party;
+    repasSansFrais(mangeur, 30, 15);
+    repasSansFrais(porteur, 30, 14);
+    porteur.items = [...(porteur.items ?? []), itemFromTrappingById(SOUPE, idsDeTest)!];
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 50, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
+    continueSeaDayAfterCascade(get, set);
+    const bande = get().pendingCascade!.participants.find((st) => st.kind === 'mer-scorbut')!;
+    const resistance = (h: Combatant) => testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' });
+    const cible = (h: Combatant) => bande.participants!.find((r) => r.id === h.id)!.target;
+    expect(cible(mangeur)).toBe(resistance(mangeur) + DIFFICULTY_MODIFIERS.facile);
+    expect(cible(porteur)).toBe(resistance(porteur) + DIFFICULTY_MODIFIERS.intermediaire);
+    expect(bande.participants!.map((r) => r.id)).toEqual([mangeur.id, porteur.id]);
+  });
+
   /**
    * #1479 — « À partir du moment où je dois faire un jet, il doit apparaitre. Y'a pas de "classe
    * spéciale" […] face a ... une maladie » (utilisateur, 2026-08-24). Le Scorbut est un Test de
@@ -1817,6 +1899,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
    */
   it('Scorbut : en solo jour-par-jour, la BANDE s’ouvre (M) — un jet subi n’est plus silencieux', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    moisSansFraisDuGroupe();
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50 } } });
     continueSeaDayAfterCascade(get, set);
     const casc = get().pendingCascade!;
@@ -1832,6 +1915,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
 
   it('Scorbut : sous ORDRES COMMANDÉS, aucune fenêtre — la journée va d’un trait jusqu’à la halte', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    moisSansFraisDuGroupe();
     set({ travelPlan: { ...plan, orders: { cadence: 'commande' }, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50 } } });
     continueSeaDayAfterCascade(get, set);
     expect(get().pendingCascade, 'traversée commandée = sans fenêtre (attendu validé en recette #1426)').toBeNull();
@@ -1842,6 +1926,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
   it('Scorbut : AVEC siège MJ, l’étape SURFACE (V) — plus d’auto-résolution silencieuse ; la journée reprend après résolution', () => {
     set({ net: mjAuSiege1(get().net) });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    moisSansFraisDuGroupe();
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50 } } });
     continueSeaDayAfterCascade(get, set);
     expect(get().pendingCascade).toBeTruthy();

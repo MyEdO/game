@@ -38,7 +38,7 @@ import { lieuDuGroupe, placeById, type WorldMap, type MapPlace, type MapRoute } 
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import { noteEvent, rangerLesEvenements } from './evenementDuJour';
-import type { BatchParticipant } from './pendings';
+import { WORLD_STEP_OWNER, type BatchParticipant } from './pendings';
 import {
   crewTestContributors,
   equipageImplique,
@@ -49,6 +49,7 @@ import {
   resolveShoreLeaveDesertion,
   shipboardSouls,
   shipUndercrew,
+  porteursABord,
 } from './shipCrew';
 import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
 
@@ -104,7 +105,6 @@ import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type Su
 import { buildWeapon } from '../engine/items';
 import { applyOps, resolveFormula, type Formula, type GameOp, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
-import { itemCapability } from '../engine/capabilities';
 import { MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
 import { currentSeason } from '../engine/travelStages';
 import {
@@ -159,7 +159,7 @@ import {
   rudeEpreuveMoraleDelta,
   SUCCES_MINIME_CAP,
 } from '../engine/crewMorale';
-import { mangerLaCale, provisioningManifest, rationsDeCale, type LotDeVivres } from '../engine/provisions';
+import { mangerLaCale, noterLeRepas, provisioningManifest, rationsDeCale, type LotDeVivres } from '../engine/provisions';
 import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
@@ -167,7 +167,7 @@ import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog, jouerFlowEntier, revealPurpose, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
-import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
+import { applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
 import {
   DIFFICULTE_PAR_DEFAUT,
   DIFFICULTY_LABELS,
@@ -391,8 +391,9 @@ const FOOD_SHORTAGE_FACTOR = 'nourriture-insuffisante';
  * VIVRES de l'équipage PNJ sur `days` jour(s) depuis l'heure de jeu : l'effectif nominal (`shipboardSouls().crew`)
  * mange une ration par marin et par jour sur `vessel.provisions` (`mangerLaCale`). Le dernier jour fait la nourriture
  * du prochain recalcul hebdomadaire : à court, `nourriture-insuffisante` ; couvert par un seul vivre, le facteur qui
- * le déclare (`vivreSeul`, crew-morale.json) ; les deux s'excluent. `provisions` absent : vivres non suivis, aucune
- * consommation. MDG 14 l.143, l.156, l.166, l.171, l.238, l.263 ; #245 ; #1652 ; #4058
+ * le déclare (`vivreSeul`, crew-morale.json) ; les deux s'excluent. Le repas de chaque jour écrit le régime de bord
+ * de l'équipage collectif (`noterLeRepas`). `provisions` absent : vivres non suivis, aucune consommation.
+ * MDG 14 l.143, l.156, l.166, l.171, l.230-232, l.238, l.263 ; #245 ; #1652 ; #4058 ; #4243
  */
 function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   const vessel = get().vessel;
@@ -400,9 +401,11 @@ function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   const crew = shipboardSouls(get()).crew;
   const need = crew * Math.max(0, days);
   if (vessel.provisions == null || need <= 0) return [];
-  const { lots: provisions, manque, seul: vivre } = mangerLaCale(vessel.provisions, crew, days, get().gameTime);
+  const now = get().gameTime;
+  const { lots: provisions, manque, repas } = mangerLaCale(vessel.provisions, crew, days, now);
   const left = rationsDeCale(provisions);
   const short = manque > 0;
+  const vivre = repas[repas.length - 1];
   const seul = vivre ? facteurDuVivreSeul(vivre)?.id : undefined;
   const actif = short ? FOOD_SHORTAGE_FACTOR : seul ?? null;
   const deVivreSeul = facteursDeVivreSeul();
@@ -411,6 +414,11 @@ function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
     ...(actif ? [actif] : []),
   ];
   set({ vessel: { ...vessel, provisions, morale: { ...vessel.morale, factors } } });
+  const equipage = porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER);
+  if (equipage) {
+    repas.forEach((r, k) => noterLeRepas(equipage.porteur, r, now + k * MINUTES_PER_DAY));
+    equipage.ecrire();
+  }
   return [short
     ? t('sv.crewFoodOut')
     : t('sv.crewFoodLeft', { need, left, s: left > 1 ? 's' : '' })];
@@ -1563,28 +1571,29 @@ function buildSeasicknessSteps(get: Get, sea: SeaVoyageState): BuiltCascadeStep[
   return out;
 }
 
+/** Jours du mois de MDG 14 l.230 ; « régulièrement » : au moins la moitié de ses jours. #4243 */
+const JOURS_DU_MOIS = 30;
+const JOURS_DE_SOUPE_REGULIERS = 15;
+
 /**
- * SCORBUT (MDG 14 l.230) — UNE bande dont les Personnages appelés sont les RANGÉES, comme le Mal de mer
- * ci-dessus : « pour chaque mois passé sans nourriture correcte », Test de Résistance Intermédiaire
- * (+0), Facile (+40) pour qui porte de la soupe de chou fermenté (`scurvyGuard`, difficulté de RANGÉE —
- * elle diverge d'un porteur à l'autre). Les rations de bord ne sont pas de la nourriture fraîche : le
- * mois EN MER compte.
+ * SCORBUT — UNE bande dont les porteurs à bord appelés sont les RANGÉES (`porteursABord` : PJ et équipage
+ * collectif), comme le Mal de mer ci-dessus. Appelé : le porteur dont les jours sans vivre frais
+ * (`regimeDeBord`) atteignent un multiple de `JOURS_DU_MOIS`. Difficulté de RANGÉE : Facile pour qui a mangé
+ * `JOURS_DE_SOUPE_REGULIERS` jours de soupe de chou fermenté, Intermédiaire sinon. MDG 14 l.230-232
  */
-function buildScurvySteps(get: Get, daysAtSea: number): BuiltCascadeStep[] {
-  if (daysAtSea % 30 !== 0) return [];
-  const appeles = get().party.filter((h) => !h.dead && !(h.diseases ?? []).some((d) => d.id === 'scorbut'));
+function buildScurvySteps(get: Get, set: Set): BuiltCascadeStep[] {
+  const appeles = porteursABord(get, set).filter(({ porteur }) => {
+    const jours = porteur.regimeDeBord?.joursSansVivreFrais ?? 0;
+    return jours > 0 && jours % JOURS_DU_MOIS === 0 && contractionDue(porteur, 'scorbut');
+  });
   if (!appeles.length) return [];
   const bande = buildBand(get, {
     id: 'mer-scorbut', kind: 'mer-scorbut', label: t('sv.scurvy'),
     stake: voyageStakeRef('mer-scorbut', { disease: diseaseLabel('scorbut') }),
     difficulty: 'intermediaire',
-    porteurs: appeles.map((h) => {
-      const soup = (h.items ?? []).some((it) => itemCapability(it, 'scurvyGuard'));
-      return {
-        actor: h, ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
-        ...(soup ? { difficulty: 'facile' as Difficulty } : {}),
-        meta: { soup },
-      };
+    porteurs: appeles.map(({ porteur, rangee }) => {
+      const soup = (porteur.regimeDeBord?.joursDeSoupe ?? 0) >= JOURS_DE_SOUPE_REGULIERS;
+      return { ...rangee, ...(soup ? { difficulty: 'facile' as Difficulty } : {}), meta: { soup } };
     }),
   });
   return bande ? [bande] : [];
@@ -1646,8 +1655,7 @@ export function continueSeaDayAfterCascade(get: Get, set: Set): void {
   // mer (l.211-222, `buildSeasicknessSteps`) + Scorbut (l.230, `buildScurvySteps`). Chaque règle porte
   // son `kind` VÉRIDIQUE — la surface de la journée se dérive des étapes elles-mêmes, plus d'un `kind`
   // de convenance qui en clé trois (#1479).
-  const daysAtSea = sea.daysAtSea + 1;
-  const diseaseSteps: BuiltCascadeStep[] = [...buildBarrelSteps(get, sea, vessel0), ...buildSeasicknessSteps(get, sea), ...buildScurvySteps(get, daysAtSea)];
+  const diseaseSteps: BuiltCascadeStep[] = [...buildBarrelSteps(get, sea, vessel0), ...buildSeasicknessSteps(get, sea), ...buildScurvySteps(get, set)];
   if (diseaseSteps.length) {
     const resolues = openSequence(get, set, { title: 'Entretien — Maladies', icon: 'medical/infection', purpose: 'seaScorbut', steps: diseaseSteps });
     if (!resolues) return; // fenêtre ouverte : clôture reprise par `dispatchCascadeDone` (`combatSlice.ts`) → `continueSeaDayAfterScorbut`
@@ -2671,20 +2679,22 @@ export const TABLES = {
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
-    /** Scorbut (MDG 14 l.230) : BANDE — le verdict se lit RANGÉE PAR RANGÉE (patron Mal de mer ci-dessous),
-     *  chaque porteur portant sa soupe de chou fermenté dans `row.meta`. */
+    /** Scorbut (MDG 14 l.230) : BANDE — le verdict se lit RANGÉE PAR RANGÉE (patron Mal de mer ci-dessous) ;
+     *  chaque rangée retrouve son porteur à bord (`porteursABord`), dont le mois de soupe repart à zéro. */
     'mer-scorbut': (get, set, step) => {
       const lignes: FreeConsLine[] = [];
+      const aBord = porteursABord(get, set);
       for (const row of step.participants ?? []) {
-        const hero = actorIn(get(), row.id);
+        const aLui = aBord.find((p) => p.id === row.id);
+        if (!aLui || !row.result) continue;
+        const { porteur } = aLui;
+        if (porteur.regimeDeBord) porteur.regimeDeBord = { ...porteur.regimeDeBord, joursDeSoupe: 0 };
         // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
-        // Succès sans effet (l'exposition « pour cette fois » n'a rien à ajouter) → aucune conséquence.
-        if (!hero || !row.result || row.result.success) continue;
-        const d = contractDisease('scorbut', battleRng());
-        if (d) hero.diseases = [...(hero.diseases ?? []), d];
-        lignes.push({ text: t('sv.scurvyGot', { name: hero.label, soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
+        if (applyContraction(porteur, 'scorbut', row.result.success, battleRng()).length) {
+          lignes.push({ text: t('sv.scurvyGot', { name: porteur.label, soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
+        }
+        aLui.ecrire();
       }
-      touchParty(get, set);
       return { consequences: freeCons(lignes) };
     },
     /** Mal de mer (MDG 14 l.217-220) : échec → contracté. `applyContraction` dédoublonne si

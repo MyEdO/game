@@ -115,7 +115,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/state/devtools.ts': 1,
   'src/noyau/interludeFlow.ts': 1,
   'src/noyau/mount.ts': 1,
-  'src/noyau/seaVoyageFlow.ts': 3,
+  'src/noyau/seaVoyageFlow.ts': 2,
   'src/noyau/travelFlow.ts': 6,
   'src/noyau/travelPostes.ts': 1,
   'src/noyau/verdictsDInterlude.ts': 1,

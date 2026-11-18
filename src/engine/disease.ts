@@ -118,9 +118,9 @@ export interface Disease {
 export interface RegimeDeBord {
   /** Minute `gameTime` du dernier vivre frais mangé (`vivrePerissable`). */
   dernierVivreFrais?: number;
-  /** Jours en mer sans vivre frais, remis à 0 par un vivre frais mangé. */
+  /** Jours sans vivre frais, à terre comme en mer, remis à 0 par un vivre frais mangé (`noterLeRepas`). */
   joursSansVivreFrais: number;
-  /** Jours de soupe de chou fermenté mangée dans la fenêtre courante. */
+  /** Jours de soupe de chou fermenté mangée depuis le dernier vivre frais ou le dernier Test de scorbut. */
   joursDeSoupe: number;
 }
 

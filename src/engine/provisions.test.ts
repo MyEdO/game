@@ -16,7 +16,11 @@ import {
   isDeprived,
   thirstCharPenalties,
   provisioningManifest,
+  feedFromMeal,
+  mangerLaCale,
 } from './provisions';
+import { MINUTES_PER_DAY } from './clock';
+import type { Id } from '../data/schemas/grammaire/ref';
 import { lotsDeCale } from './caleDeTest.testkit';
 import { rule } from './policy';
 import { effectiveChar } from './characteristics';
@@ -54,7 +58,7 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('consomme 1 ration/jour ; nourri = pas de faim', () => {
     const c = hero({ rations: 2 });
-    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1), 0);
     expect(r.ate).toBe(true);
     expect(r.rationConsumed).toBe(true);
     expect(rationCount(c)).toBe(1);
@@ -63,11 +67,11 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('#513 — ogre (ADE II 2 l.708) : consomme 2 rations/jour, insuffisant si une seule dispo', () => {
     const c = hero({ rations: 2, traits: [{ id: 'ogre' }] });
-    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1), 0);
     expect(r.ate).toBe(true);
     expect(rationCount(c)).toBe(0); // les 2 rations consommées d'un coup
     const c2 = hero({ rations: 1, traits: [{ id: 'ogre' }] });
-    const r2 = dailyFoodUpkeep(c2, 30, 3, fixed(95));
+    const r2 = dailyFoodUpkeep(c2, 30, 3, fixed(95), 0);
     expect(r2.ate).toBe(false); // 1 ration ne suffit pas à un ogre (facteur ×2)
     expect(rationCount(c2)).toBe(1); // rien consommé faute du compte
   });
@@ -76,7 +80,7 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
     const c = hero({ rations: 0 });
     c.hunger = { days: 3, tests: 2, failures: 1 }; // affamé avant le Sort
     c.activeEffects = [{ label: 'Graisse de la terre', bonus: 0, duration: { scale: 'permanent' }, noHunger: true }];
-    const r = dailyFoodUpkeep(c, 30, 3, fixed(95));
+    const r = dailyFoodUpkeep(c, 30, 3, fixed(95), 0);
     expect(r.ate).toBe(true);
     expect(r.rationConsumed).toBe(false); // rien à consommer (sustentation magique)
     expect(r.damage).toBe(0);
@@ -85,23 +89,23 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('sans nourriture : Test de Résistance tous les 2 jours seulement', () => {
     const c = hero({ rations: 0 });
-    const d1 = dailyFoodUpkeep(c, 30, 3, fixed(95));
+    const d1 = dailyFoodUpkeep(c, 30, 3, fixed(95), 0);
     expect(d1.log).toEqual([]); // jour 1 : pas encore de Test
     expect(isStarving(c)).toBe(true);
-    const d2 = dailyFoodUpkeep(c, 30, 3, fixed(95));
+    const d2 = dailyFoodUpkeep(c, 30, 3, fixed(95), 0);
     expect(d2.log.join(' ')).toContain('Test de Résistance');
   });
 
   it('1ᵉʳ échec → −10 F et E (effectiveChar) ; 2ᵉ échec → dégâts ignorant les PA (min 1) + −10 ailleurs', () => {
     const c = hero({ rations: 0, endurance: 30 });
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // j1
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // j2 : Test raté → 1ᵉʳ échec
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // j1
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // j2 : Test raté → 1ᵉʳ échec
     expect(c.hunger?.failures).toBe(1);
     expect(effectiveChar(c, 'force')).toBe(20);
     expect(effectiveChar(c, 'endurance')).toBe(20);
     expect(effectiveChar(c, 'agilite')).toBe(30); // pas encore
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // j3
-    const d4 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // j4 : 2ᵉ échec
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // j3
+    const d4 = dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // j4 : 2ᵉ échec
     expect(c.hunger?.failures).toBe(2);
     expect(d4.damage).toBe(7); // d10 forcé à 10 − BE 3 = 7
     expect(effectiveChar(c, 'agilite')).toBe(20);
@@ -110,22 +114,22 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('les Tests sont de plus en plus difficiles : −10 par Test déjà tenté (LDB 18 l.338)', () => {
     const c = hero({ rations: 0 });
-    dailyFoodUpkeep(c, 30, 3, fixed(95));
-    const d2 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // 1ᵉʳ Test : cible 30
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0);
+    const d2 = dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // 1ᵉʳ Test : cible 30
     expect(d2.log[0]).toContain('30');
-    dailyFoodUpkeep(c, 30, 3, fixed(95));
-    const d4 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // 2ᵉ Test : cible 30 − 10 = 20
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0);
+    const d4 = dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // 2ᵉ Test : cible 30 − 10 = 20
     expect(d4.log[0]).toContain('(−10)');
     expect(d4.log[0]).toContain('20');
   });
 
   it('manger à nouveau efface compteurs et malus (choix documenté)', () => {
     const c = hero({ rations: 0 });
-    dailyFoodUpkeep(c, 30, 3, fixed(95));
-    dailyFoodUpkeep(c, 30, 3, fixed(95));
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0);
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0);
     expect(effectiveChar(c, 'force')).toBe(20);
     c.items!.push(ration('r9'));
-    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1), 0);
     expect(r.ate).toBe(true);
     expect(r.log.join(' ')).toContain('mange enfin à sa faim');
     expect(isStarving(c)).toBe(false);
@@ -134,16 +138,16 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('Brouet (LDB 10 l.139) : 1 ration couvre 2 jours, Test de faim tous les 3 jours', () => {
     const c = hero({ rations: 1, brouet: true });
-    const d1 = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    const d1 = dailyFoodUpkeep(c, 30, 3, makeRNG(1), 0);
     expect(d1.rationConsumed).toBe(true);
-    const d2 = dailyFoodUpkeep(c, 30, 3, makeRNG(1)); // jour « gratuit »
+    const d2 = dailyFoodUpkeep(c, 30, 3, makeRNG(1), 0); // jour « gratuit »
     expect(d2.ate).toBe(true);
     expect(d2.rationConsumed).toBe(false);
     // Puis plus rien : Test au 3ᵉ jour de jeûne (pas au 2ᵉ).
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // jeûne j1
-    const j2 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // jeûne j2 : pas de Test
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // jeûne j1
+    const j2 = dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // jeûne j2 : pas de Test
     expect(j2.log).toEqual([]);
-    const j3 = dailyFoodUpkeep(c, 30, 3, fixed(95)); // jeûne j3 : Test
+    const j3 = dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // jeûne j3 : Test
     expect(j3.log.join(' ')).toContain('Test de Résistance');
   });
 
@@ -156,10 +160,10 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
 
   it('deferTest (cascade de nuit) : un Test de Faim DÛ est DIFFÉRÉ, pas roulé ici', () => {
     const c = hero({ rations: 0 });
-    dailyFoodUpkeep(c, 30, 3, fixed(95)); // jeûne j1 (pas de Test)
+    dailyFoodUpkeep(c, 30, 3, fixed(95), 0); // jeûne j1 (pas de Test)
     let kind = '';
     let mods: Parameters<UpkeepDeferTest>[0]['mods'];
-    const r = dailyFoodUpkeep(c, 30, 3, fixed(95), (spec) => { kind = spec.kind; mods = spec.mods; }); // j2 : Test DÛ → différé
+    const r = dailyFoodUpkeep(c, 30, 3, fixed(95), 0, (spec) => { kind = spec.kind; mods = spec.mods; }); // j2 : Test DÛ → différé
     expect(kind).toBe('faim');
     // La pénalité voyage NOMMÉE avec sa règle depuis le producteur (jamais étiquetée à la couture d'entretien).
     expect(mods).toEqual([{ value: 0, label: 'Tests déjà subis', famille: 'jet', ref: RULE_REF['faim-et-soif'] }]); // 1ᵉʳ Test → pénalité 0
@@ -360,5 +364,56 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
     expect(isThirsty(c)).toBe(true);
     expect(isDeprived(c)).toBe(true);
     expect(needsRecoveryRoll(blessuresSurLeProfil({ ...c, wounds: blessuresDeBase(12, 5) }) as typeof c)).toBe(false);
+  });
+});
+
+/** Régime de bord : manger l'écrit, pour le PJ (`dailyFoodUpkeep`) comme pour l'équipage (`mangerLaCale`). MDG 14 l.230-232 ; #4243 */
+describe('régime de bord — écrit en mangeant (MDG 14 l.230-232)', () => {
+  const SOUPE = 'ration-soupe-chou-fermente' as Id<'trapping'>, FRAIS = 'nourriture-courses-journee' as Id<'trapping'>;
+  const BISCUITS = 'ration-biscuits-de-mer' as Id<'trapping'>;
+  const soupe = (uid: string): ItemInstance => ({ ...itemFromTrappingById(SOUPE, idsDeTest)!, uid });
+
+  it('une ration ordinaire : un jour de plus sans frais ; une ration de soupe : et un jour de soupe', () => {
+    const c = hero({ rations: 1 });
+    c.items = [...c.items!, soupe('s1')];
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1), 0);
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 1, joursDeSoupe: 0 });
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1), MINUTES_PER_DAY);
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 2, joursDeSoupe: 1 });
+  });
+
+  it('porter de la soupe sans la manger ne compte pas : seul le vivre mangé fait le jour', () => {
+    const c = hero({ rations: 1 });
+    c.items = [...c.items!, soupe('s1')];
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1), 0);
+    expect(c.items!.map((it) => it.trappingId)).toEqual([SOUPE]);
+    expect(c.regimeDeBord!.joursDeSoupe).toBe(0);
+  });
+
+  it('un repas pris (auberge) est un vivre frais : le mois repart à zéro, soupe comprise', () => {
+    const c = hero({ rations: 0 });
+    c.regimeDeBord = { joursSansVivreFrais: 12, joursDeSoupe: 7 };
+    feedFromMeal(c);
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1), 5 * MINUTES_PER_DAY);
+    expect(c.regimeDeBord).toEqual({ dernierVivreFrais: 5 * MINUTES_PER_DAY, joursSansVivreFrais: 0, joursDeSoupe: 0 });
+  });
+
+  it('Brouet (LDB 10 l.139) : le jour couvert par la demi-ration est fait du même vivre, jamais du frais', () => {
+    const c = hero({ rations: 0, brouet: true });
+    c.items = [soupe('s1')];
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1), 0);
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1), MINUTES_PER_DAY);
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 2, joursDeSoupe: 2 });
+  });
+
+  it('un jour sans manger : un jour de plus sans frais', () => {
+    const c = hero({ rations: 0 });
+    dailyFoodUpkeep(c, 30, 3, fixed(1), 0);
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 1, joursDeSoupe: 0 });
+  });
+
+  it('mangerLaCale rend le repas de chaque jour : le vivre qui a nourri seul toutes les bouches, absent si mêlé ou à court', () => {
+    const cale = lotsDeCale({ [FRAIS]: 4, [SOUPE]: 5, [BISCUITS]: 2 }, 0);
+    expect(mangerLaCale(cale, 3, 4, 0).repas).toEqual([FRAIS, undefined, SOUPE, undefined]);
   });
 });
