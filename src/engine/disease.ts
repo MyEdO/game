@@ -25,7 +25,7 @@
  *    (Blessé/Gangrène), `amputation` (Gangrène), `contagious` (Toux),
  *    `nausea` (combat), `endTest` (Persistant).
  */
-import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type ModLine, type TestIds } from './types';
+import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type DiseaseExposure, type ModLine, type TestIds } from './types';
 import type { Duration } from './duration';
 import { RNG, roll, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
@@ -515,6 +515,20 @@ export function contagiousDiseases(c: PorteurDeMaladies): Disease[] {
   return (c.diseases ?? []).filter((d) => maladieDeclaree(d) && diseaseHasCapability(d, 'contagious'));
 }
 
+/** Les `expositions` après l'op `exposeDisease` `o` : entrée neuve, ou fusion avec celle de la même maladie
+ *  qui garde la plus dure (cran le plus bas, `instant` si l'une l'impose). PUR. LDB 20 l.25/51 ; EDO App.2 l.228-230 */
+export function exposerALaMaladie(expositions: readonly DiseaseExposure[] | undefined, o: Extract<GameOp, { op: 'exposeDisease' }>): DiseaseExposure[] {
+  const entry: DiseaseExposure = { disease: o.disease, ...(o.difficultyShift ? { difficultyShift: o.difficultyShift } : {}), ...(o.incubation === 'instant' ? { instant: true } : {}) };
+  const prev = (expositions ?? []).find((e) => e.disease === o.disease);
+  if (!prev) return [...(expositions ?? []), entry];
+  const shift = Math.min(prev.difficultyShift ?? 0, entry.difficultyShift ?? 0);
+  return (expositions ?? []).map((e) => e !== prev ? e : {
+    disease: e.disease,
+    ...(shift !== 0 ? { difficultyShift: shift } : {}),
+    ...(e.instant || entry.instant ? { instant: true } : {}),
+  });
+}
+
 /** Exposition d'un personnage à une maladie. Mute `c.diseases` directement (appelé HORS itération —
  *  par les applicateurs de cascade). SAIN → contraction ; DÉJÀ PORTEUR → ré-exposition, la durée se
  *  prolonge du temps authoré `reExposition.prolonge` (EDOC 08 l.122) — sans ce champ, rien.
@@ -525,7 +539,7 @@ export function contagiousDiseases(c: PorteurDeMaladies): Disease[] {
  *  - `contraction` : `false` n'ouvre QUE la ré-exposition (l'appelant sait que la condition de
  *    contraction neuve n'est pas réunie — saison de l'Exposition de voyage). */
 export function contractDiseaseOnce(
-  c: Combatant,
+  c: PorteurDeMaladies,
   name: string,
   rng: RNG,
   opts?: { incubation?: 'instantanee' | 'raw'; message?: MsgKey; contraction?: boolean },
@@ -558,7 +572,7 @@ export function declareDisease(c: PorteurDeMaladies, dz: Disease, rng: RNG): str
 /** Prolonge la DURÉE d'une maladie EN COURS de `days` jours. La durée active porte l'allonge ; si la
  *  maladie est encore en incubation, seul le capital de durée grossit (le décompte d'incubation, lui,
  *  reste celui qui a été tiré). Renvoie `false` si la maladie n'est pas portée. */
-export function prolongDisease(c: Combatant, name: string, days: number): boolean {
+export function prolongDisease(c: PorteurDeMaladies, name: string, days: number): boolean {
   const dz = (c.diseases ?? []).find((d) => d.id === name);
   if (!dz || days <= 0) return false;
   const extra = days * MINUTES_PER_DAY;

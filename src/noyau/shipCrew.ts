@@ -58,9 +58,9 @@ import { spawnEnemy } from './monde/spawn';
 import { posteDeLaBataille } from './monde/shipPostes';
 import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
-import { diseaseTestModLines, type PorteurDeMaladies } from '../engine/disease';
+import { applyContraction, diseaseTestModLines, type PorteurDeMaladies } from '../engine/disease';
 import { rule } from '../engine/policy';
-import { WORLD_STEP_OWNER } from './pendings';
+import { WORLD_STEP_OWNER, type BatchParticipant } from './pendings';
 import type { BandPorteur } from './rollSeam';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 
@@ -262,6 +262,19 @@ export function porteursABord(get: Get, set: SetFn): PorteurABord[] {
     contraction: () => enContraction(rangee),
     ecrire: ecrire(equipage),
   }];
+}
+
+/** Le verdict de la rangée `row` d'une bande de Contraction contre `diseaseId` : son porteur à bord
+ *  (`porteursABord`) contracte sur échec, puis son état s'écrit. Rend le porteur et les lignes de la contraction ;
+ *  rien sans porteur ni dé. LDB 20 l.25 ; MDG 14 l.208-209 */
+export function contracterABord(
+  get: Get, set: SetFn, row: BatchParticipant, diseaseId: string, rng: RNG, opts?: { instant?: boolean },
+): { porteur: PorteurDeMaladies; lignes: string[] } | undefined {
+  const aLui = porteursABord(get, set).find((p) => p.id === row.id);
+  if (!aLui || !row.result) return undefined;
+  const lignes = applyContraction(aLui.porteur, diseaseId, row.result.success, rng, opts);
+  aLui.ecrire();
+  return { porteur: aLui.porteur, lignes };
 }
 
 /**

@@ -346,6 +346,8 @@ Pour créer une maladie, définir :
 
 **Cas Rongeur Infecté** : un rongeur (dont skavens) avec Infecté qui blesse un héros → Tests de **Résistance Accessible (+20)** pour *Fièvre du Rongeur* (en plus du Test Blessure Purulente). Source : `LDB 20 l.51` (Fièvre du Rongeur § Contraction).
 
+**Cas équipage collectif** : la fièvre du rongeur d'une infestation de bord tirée sur un marin se porte par l'équipage collectif du navire, qui fait le Test de Contraction de la maladie. Source : `MDG 15 l.161`, `MDG 15 l.176`.
+
 **Qualité Infecté (arme)** : les munitions portant la qualité Infecté (Aux Armes — ferraille/débris souillés) exposent aussi à la Blessure Purulente.
 
 ### Maladie (Type)

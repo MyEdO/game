@@ -37,7 +37,17 @@ import type {
 } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
-import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type CoverClass, type EffectSource, type Main } from '../engine/types';
+import {
+  Combatant,
+  HitLocation,
+  Weapon,
+  Difficulty,
+  type ShipPoste,
+  type CoverClass,
+  type EffectSource,
+  type Main,
+  type DiseaseExposure,
+} from '../engine/types';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evDEtat, evLines, journaliser, type CombatEvent, type CombatEventKind } from './combatLog';
@@ -370,7 +380,7 @@ function critRollTwiceFor(c: Combatant | undefined | null): boolean {
 import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironmentBonus } from '../engine/domainAttributes';
 import { decayZones, discTiles, wallTiles, clampZoneTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
-import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
+import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs, type PorteurDeMaladies } from '../engine/disease';
 import {
   resolveCritique,
   jeuDeCritique,
@@ -7292,19 +7302,19 @@ function decideCombatEndHeroTests(
   // maladie (`def.contractDifficulty`), décalée des crans de l'exposition (Contagieux, EDO App.2
   // l.228-230 : « 2 niveaux plus difficile » → shift −2 ; « incubation “Instantanée” » → `instant`).
   // 'off' : aucune contraction.
-  diseases.push(...contagionsDues(c));
+  if (!c.dead) diseases.push(...contagionsDues(c, c.diseaseExposure ?? []));
   c.diseaseExposure = undefined;
   return { diseases, corruption: c.dead ? null : worstCorruption };
 }
 
-/** Les Tests de Contraction que doivent les EXPOSITIONS de `c` (`diseaseExposure`, op `exposeDisease`) : la
+/** Les Tests de Contraction que doivent les `expositions` du `porteur` (op `exposeDisease`) : la
  *  difficulté de la maladie (`def.contractDifficulty`), décalée des crans de l'exposition. PUR. LDB 20 l.25/51 ;
  *  EDO App.2 l.228-230 */
-function contagionsDues(c: Combatant): CombatEndDiseaseTest[] {
-  if (rule('maladie-mode') === 'off' || c.dead) return [];
-  return (c.diseaseExposure ?? []).flatMap((exp) => {
+export function contagionsDues(porteur: PorteurDeMaladies, expositions: readonly DiseaseExposure[]): CombatEndDiseaseTest[] {
+  if (rule('maladie-mode') === 'off') return [];
+  return expositions.flatMap((exp) => {
     const def = diseaseDefs()[exp.disease];
-    return def && contractionDue(c, def.id) ? [{
+    return def && contractionDue(porteur, def.id) ? [{
       entry: 'contagion' as const,
       disease: def.id,
       difficulty: easeDifficulty(def.contractDifficulty, exp.difficultyShift ?? 0),
@@ -7322,7 +7332,7 @@ export function ouvrirLesContagions(get: Get, set: SetFn, ids: readonly string[]
   if (!exposes.length) return;
   const bandes = new Map<string, { test: CombatEndDiseaseTest; porteurs: Combatant[] }>();
   for (const h of exposes) {
-    for (const d of contagionsDues(h)) {
+    for (const d of h.dead ? [] : contagionsDues(h, h.diseaseExposure ?? [])) {
       const cle = `${d.disease}|${d.difficulty}|${d.instant ? 'instant' : ''}`;
       const bande = bandes.get(cle) ?? { test: d, porteurs: [] };
       bande.porteurs.push(h);

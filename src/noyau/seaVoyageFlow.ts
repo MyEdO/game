@@ -50,6 +50,7 @@ import {
   shipboardSouls,
   shipUndercrew,
   porteursABord,
+  contracterABord,
 } from './shipCrew';
 import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
 
@@ -2809,18 +2810,13 @@ export const TABLES = {
       return { consequences: freeCons(lignes) };
     },
     /** Tonneau d'eau — EXPOSITION (MDG 14 l.209) : BANDE, verdict lu rangée par rangée sur le porteur à bord
-     *  (`porteursABord`, patron Scorbut) ; l'échec contracte la maladie qui a contaminé le tonneau. */
+     *  (`contracterABord`) ; l'échec contracte la maladie qui a contaminé le tonneau. */
     'mer-tonneau-expose': (get, set, step) => {
       const diseaseId = String(step.meta?.diseaseId ?? '');
       const lignes: FreeConsLine[] = [];
-      const aBord = porteursABord(get, set);
       for (const row of step.participants ?? []) {
-        const aLui = aBord.find((p) => p.id === row.id);
-        if (!aLui || !row.result || row.result.success) continue;
-        if (applyContraction(aLui.porteur, diseaseId, false, battleRng()).length) {
-          lignes.push({ text: t('sv.waterDiseaseGot', { name: aLui.porteur.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' });
-        }
-        aLui.ecrire();
+        const verdict = contracterABord(get, set, row, diseaseId, battleRng());
+        if (verdict?.lignes.length) lignes.push({ text: t('sv.waterDiseaseGot', { name: verdict.porteur.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' });
       }
       return { consequences: freeCons(lignes) };
     },
