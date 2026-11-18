@@ -2323,19 +2323,19 @@
   {
     "id": "ciblesAcquises",
     "type": "primitives.manifest",
-    "label": "CiblesAcquises/ciblesDAnimositeAcquise/ciblesDePhobieDuNoir/traitAcquis/traitsPsyPossedes/TypeAcquis",
+    "label": "CiblesAcquises/ciblesDAnimositeAcquise/ciblesDePhobieDuNoir/ciblesDeTrauma/TRAITS_DE_TRAUMA/calmeDAcquisition/traitAcquis/traitsPsyPossedes/TypeAcquis",
     "fichier": "src/engine/psychology.ts",
-    "concept": "les Cibles d’un Trait psy acquis en cours de partie (ADE II 09 l.9, l.15, règle `psycho-acquisition-optionnelle`) : les candidats et la Cible par défaut (`CiblesAcquises`) de l’Animosité qu’offre le tueur (`ciblesDAnimositeAcquise`, Races de l’appartenance du porteur et vue perçue du tueur) et de la Phobie du noir qu’offrent les Terreurs subies (`ciblesDePhobieDuNoir`, `Combatant.terreursSubies`), et le Trait acquis envers la Cible retenue avec les Traits possédés qu’il remplace (`traitAcquis`, `traitsPsyPossedes` : fiche et suspensions d’un effet) — lectures révisables #3045",
-    "perimetre": "Animosité sur un Destin dépensé, Phobie du noir sur une Terreur ratée",
-    "verrou": "src/engine/animosite-acquise.test.ts, src/engine/phobie-du-noir.test.ts"
+    "concept": "les Cibles d’un Trait psy acquis en cours de partie (ADE II 09 l.9, l.15, règle `psycho-acquisition-optionnelle`) : les candidats et la Cible par défaut (`CiblesAcquises`) de l’Animosité qu’offre le tueur (`ciblesDAnimositeAcquise`, Races de l’appartenance du porteur et vue perçue du tueur) de la Phobie du noir qu’offrent les Terreurs subies (`ciblesDePhobieDuNoir`, `Combatant.terreursSubies`) et du Trait d’un Trauma (`ciblesDeTrauma`, les Groupes d’appartenance, sans défaut ; `TRAITS_DE_TRAUMA`, ADE II 09 l.21, LDB 21 l.93), le Test de Calme d’acquisition à sa difficulté (`calmeDAcquisition`), et le Trait acquis envers la Cible retenue avec les Traits possédés qu’il remplace (`traitAcquis`, `traitsPsyPossedes` : fiche et suspensions d’un effet) — lectures révisables #3045",
+    "perimetre": "Animosité sur un Destin dépensé, Phobie du noir sur une Terreur ratée, Trauma sur une Ambition anéantie",
+    "verrou": "src/engine/animosite-acquise.test.ts, src/engine/phobie-du-noir.test.ts, src/engine/psychology.test.ts"
   },
   {
     "id": "cibleAcquise",
     "type": "primitives.manifest",
-    "label": "acquerirLeTrait/poserLeTraitAcquis/subirLaTerreur",
+    "label": "acquerirLeTrait/ouvrirLeTrauma/poserLeTraitAcquis/subirLaTerreur",
     "fichier": "src/noyau/cibleAcquise.ts",
-    "concept": "la Cible d’un Trait psy acquis envers une Cible, retenue par le porteur surfacé à l’étape `cibleAcquise` (`combat/triggeredTest.ts`) quand plusieurs s’offrent, sinon la Cible par défaut posée d’office (`acquerirLeTrait`) ; seul poseur d’un Trait acquis envers une Cible et de sa ligne de journal (`poserLeTraitAcquis`, par `grantPsychTrait`) ; seul point d’écriture d’une Terreur subie, par un combattant qui suit les règles de Personnage (`subirLaTerreur`, `followsCharacterRules`)",
-    "perimetre": "Animosité sur un Destin dépensé (`combatSlice.ts`), Phobie du noir sur une Terreur ratée (`combatFlow.ts`, `combat/turnHooks.ts`, `encounterPsychFlow.ts`, sa cause parmi les sources de la scène)",
+    "concept": "la Cible d’un Trait psy acquis envers une Cible, retenue par le porteur surfacé à l’étape `cibleAcquise` (`combat/triggeredTest.ts`) quand plusieurs s’offrent ou sans Cible par défaut, sinon la Cible par défaut posée d’office (`acquerirLeTrait`) ; le Trait d’un Trauma choisi à l’étape `traitDeTraumatisme`, sans défaut, avant sa Cible (`ouvrirLeTrauma`) ; seul poseur d’un Trait acquis envers une Cible et de sa ligne de journal (`poserLeTraitAcquis`, par `grantPsychTrait`) ; seul point d’écriture d’une Terreur subie, par un combattant qui suit les règles de Personnage (`subirLaTerreur`, `followsCharacterRules`)",
+    "perimetre": "Animosité sur un Destin dépensé (`combatSlice.ts`), Trauma sur une Ambition anéantie (Effet `ambitionLost`, `combatEffects.ts`), Phobie du noir sur une Terreur ratée (`combatFlow.ts`, `combat/turnHooks.ts`, `encounterPsychFlow.ts`, sa cause parmi les sources de la scène)",
     "verrou": "src/noyau/psych-acquisition.hors-store.test.ts"
   },
   {

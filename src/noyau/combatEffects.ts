@@ -54,8 +54,8 @@ import {
 import { statusCharmMod, statusCharmLabel, actorStatus, tirerLeCapricieux, tirerLaReactionAuStatut } from '../engine/social';
 import { restoreFortune } from '../engine/fortune';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { traumaOnImpossibleAmbition } from '../engine/psychology';
-import { grantPsychTrait } from '../engine/grantedTraits';
+import { calmeDAcquisition } from '../engine/psychology';
+import { ouvrirLeTrauma } from './cibleAcquise';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
 import type { IdDeLigneDeButin } from './designations';
@@ -2006,15 +2006,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // ADE II 09 l.21
       const cible = env.hero(e.heroId);
       if (!cible) return;
-      const res = traumaOnImpossibleAmbition(cible, battleRng());
-      if (!res) return;
-      const trait = res.trait;
-      const acquired = !!trait;
-      const who = trait ? env.mutateHero(cible.id, (h) => { const pose = { ...h }; grantPsychTrait(pose, trait.type); return pose; }) : cible;
-      if (!who) return;
-      const line = t(acquired ? 'eff.ambitionTraumatisme' : 'eff.ambitionEncaissee', { name: who.label, roll: res.test.roll, target: res.test.target });
+      const calme = calmeDAcquisition(cible, 'accessible', battleRng());
+      if (!calme) return;
+      const line = t(calme.success ? 'eff.ambitionEncaissee' : 'eff.ambitionTraumatisme', { name: cible.label, roll: calme.roll, target: calme.target });
       env.log(line);
-      if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.titreDAmbition'), lines: [line], subjectId: who.id });
+      if (calme.success) return;
+      env.pushReveal({ kind: 'effet', title: t('eff.titreDAmbition'), lines: [line], subjectId: cible.id });
+      ouvrirLeTrauma(env.set, cible);
     },
   },
   inflictPsychology: {

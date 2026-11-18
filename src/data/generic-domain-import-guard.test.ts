@@ -79,7 +79,7 @@ describe('garde-fou « le générique n’importe pas le domanial » (#329)', ()
 
   it('FAIL-CLOSED : un module partagé par 2 systèmes (infra transverse) n’est PAS signalé', () => {
     const ownerSystems = new Map<string, string[]>([['src/engine/psychology.ts', ['combat', 'psychologie']]]);
-    const contenu = "import type { PsychType } from '../../engine/psychology';\n";
+    const contenu = "import type { TypeAcquis } from '../../engine/psychology';\n";
     const found = scanGenericDomainImport('src/noyau/pendings.ts', contenu, ownerSystems);
     expect(found).toEqual([]);
   });
