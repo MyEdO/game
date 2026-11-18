@@ -22,6 +22,7 @@ import {
   type Condition,
   type EffectOp,
   type Flow,
+  type FlowTest,
   type FlowTestNode,
 } from '../../../engine/flowCore';
 import {
@@ -1416,7 +1417,7 @@ export interface OptionsNoeudTest {
  * Un Flow est-il une branche PLATE ? — que des `sequence`/`effet` : aucun embranchement dont `spellOps`
  * (extraction plate) promettrait les ops des deux côtés. Rend le `kind` fautif, ou `null`.
  */
-function kindDEmbranchement(flow: Flow<unknown>): string | null {
+function kindDEmbranchement(flow: Flow<unknown, unknown, unknown>): string | null {
   if (flow.kind === 'sequence') {
     for (const e of flow.etapes) {
       const k = kindDEmbranchement(e);
@@ -1445,18 +1446,19 @@ export function noeudTestFixe<B extends z.ZodType>(branche: B, options: Pick<Opt
 }
 
 /** Le nœud `test` de `noeudTest`, sur le Test `test` : de flux, fixe, ou de scène. */
-function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema | typeof testDeSceneSchema, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
+function noeudDeTest<T extends z.ZodType, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
   const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
   const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
-    // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
-    // FORME du nœud de Flow est inspectée — celle que `flowCore.ts` déclare pour tout `Flow<E>`.
-    const v = valeur as FlowTestNode<unknown>;
+    // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : la sortie d'un objet zod sur un `B` générique est un
+    // type mappé DIFFÉRÉ, que TS ne réduit pas à sa contrainte ; seule la FORME du nœud de Flow est inspectée —
+    // celle que `flowCore.ts` déclare pour tout `Flow<E, T, C>`.
+    const v = valeur as FlowTestNode<unknown, unknown, unknown>;
     if (v.reussite.kind !== 'sequence' || v.reussite.etapes.length > 0) {
       ctx.addIssue({
         code: 'custom',
-        path: ['reussite' satisfies keyof FlowTestNode<unknown>],
+        path: ['reussite' satisfies keyof FlowTestNode<unknown, unknown, unknown>],
         message:
           'ce nœud ne SERT que sa branche d’ÉCHEC : une branche « reussite » peuplée ne serait jamais jouée. '
           + 'Elle s’écrit vide : {kind:"sequence",etapes:[]}.',
@@ -1466,7 +1468,7 @@ function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema | t
     if (embranchement) {
       ctx.addIssue({
         code: 'custom',
-        path: ['echec' satisfies keyof FlowTestNode<unknown>],
+        path: ['echec' satisfies keyof FlowTestNode<unknown, unknown, unknown>],
         message:
           'branche d’ÉCHEC à EMBRANCHEMENT (« ' + embranchement + ' ») : ce nœud est lu par extraction PLATE '
           + '(spellOps), qui appliquerait les ops des DEUX côtés. La branche d’échec ne porte que des feuilles « effet ».',
@@ -1808,10 +1810,11 @@ function refuserLaZoneSansDuree(flow: Flow<EffectOp>, ctx: z.RefinementCtx): voi
   });
 }
 
-/** `Flow<E>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
- *  par sa feuille `effet`, sa `Condition`, le coût d'Avantage de son `choix` et le Test de ses nœuds `test`. */
-export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>, test: typeof flowTestSchema | typeof testDeSceneSchema): z.ZodType<Flow<E>> {
-  const flow: z.ZodType<Flow<E>> = z.lazy(() =>
+/** `Flow<E, T, C>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
+ *  par sa feuille `effet`, sa `Condition`, le coût d'Avantage de son `choix` et le Test de ses nœuds `test` :
+ *  la sortie de chacun de ces schémas est le paramètre de type du Flow produit. */
+export function arbreDeFlow<E, T, C>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<C>, test: z.ZodType<T>): z.ZodType<Flow<E, T, C>> {
+  const flow: z.ZodType<Flow<E, T, C>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
       variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('sequence'), etapes: z.array(flow) }), { kind: { label: "type"  }, etapes: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
       variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('effet'), effet: feuille }), { kind: { label: "type"  }, effet: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
@@ -1906,7 +1909,7 @@ function construire(regimes: Regimes) {
 
   // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
   // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
-  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE), flowTestSchema);
+  const flow = arbreDeFlow<EffectOp, FlowTest, number | typeof INDICE_TEMPLATE>(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE), flowTestSchema);
 
   const triggeredEffect = effetDeclencheSur(flow);
 

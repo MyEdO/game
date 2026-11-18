@@ -14,8 +14,8 @@ import { Stack } from '../Layout';
  * (algèbre flag/horaire/ET/OU/NON, partagé avec le `when` des triggers/dialogues).
  */
 import { FlowTest, EMPTY_FLOW } from '../../engine/flowCore';
-import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
-import type { FlowTestNode } from '../../engine/flowCore';
+import type { Effect, TestDeScene } from '../../data/schemas/defs-scenes/effets';
+import type { Flow as CoreFlow, FlowTestNode } from '../../engine/flowCore';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { Icon } from '../Icon';
 import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
@@ -42,14 +42,19 @@ import { blocNeuf, noeudTestNeuf } from '../../data/valeursNeuves';
 import { ConditionEditor } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';
 
+/** Le Flow qu'édite l'éditeur : feuille `Effect`, Test `T` et coût `C` du PORTEUR, élargis de ce que
+ *  l'éditeur écrit (un Test de scène neuf, un coût littéral) — un Flow de document de scène (`T`, `C` à
+ *  `never`) en ressort tel, un Flow de catalogue garde son Test et son coût. */
+export type FlowEdite<T extends FlowTest = never, C = never> = CoreFlow<Effect, T | TestDeScene, C | number>;
+
 /** Normalise un Flow en liste de blocs éditables (un `sequence` expose ses étapes ; sinon bloc unique). */
-function asSteps(flow: Flow): Flow[] {
+function asSteps<T extends FlowTest, C>(flow: FlowEdite<T, C>): FlowEdite<T, C>[] {
   return flow.kind === 'sequence' ? flow.etapes : [flow];
 }
-const seqOf = (steps: Flow[]): Flow => ({ kind: 'sequence', etapes: steps });
+const seqOf = <T extends FlowTest, C>(steps: FlowEdite<T, C>[]): FlowEdite<T, C> => ({ kind: 'sequence', etapes: steps });
 
 /** Résumé HUMAIN d'un nœud Flow (rangée repliée). */
-function nodeSummary(node: Flow, ctx: Ctx): string | JSX.Element {
+function nodeSummary<T extends FlowTest, C>(node: FlowEdite<T, C>, ctx: Ctx): string | JSX.Element {
   switch (node.kind) {
     case 'effet': return <><Icon id={EFFECT_ICON[node.effet.type]} size="sm" /> {effectSummary(node.effet, ctx)}</>;
     case 'si': return <><Icon id="interface/branchement" size="sm" /> Si {condSummary(node.condition, ctx.narratif)}{node.sinon != null ? ' · sinon…' : ''}</>;
@@ -122,14 +127,14 @@ export function NoeudTestField({ value, onChange, desc, racine, retirable = true
  * optionnels sans refinement, et `testValue` (`engine/skills.ts`) lit `characteristic` comme la carac
  * EXPLICITE contre laquelle le jet roule, celle de la Compétence n'étant que le défaut.
  */
-export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: FlowTest) => void }) {
+export function TestFields<T extends FlowTest = never>({ test, onChange }: { test: T | TestDeScene; onChange: (t: T | TestDeScene) => void }) {
   const identite = useId();
   // lecture déclarée : l'éditeur montre et réécrit les valeurs authorées
   const { difficulty, easierIf, gate } = test;
-  const upd = (patch: Partial<FlowTest>) => onChange({ ...test, ...patch });
+  const upd = (patch: Partial<TestDeScene>) => onChange({ ...test, ...patch });
   const enjeu = test.stake;
   const authore = enjeu && 'authored' in enjeu ? enjeu : undefined;
-  const setEase = (patch: Partial<NonNullable<FlowTest['easierIf']>>) => {
+  const setEase = (patch: Partial<NonNullable<TestDeScene['easierIf']>>) => {
     const m = { ...(easierIf ?? {}), ...patch };
     upd({ easierIf: m.hasSkill || m.hasTalent ? m : undefined });
   };
@@ -237,7 +242,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
 }
 
 /** Menu « + Bloc » : un nœud logique (si/test) ou une feuille d'effet (do, par catégorie). */
-function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) {
+function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: FlowEdite) => void; ctx: Ctx }) {
   return (
     <AddMenu
       label="+ Bloc"
@@ -268,10 +273,10 @@ function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) 
   );
 }
 
-export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: Flow) => void; ctx: Ctx }) {
+export function FlowEditor<T extends FlowTest = never, C = never>({ flow, onChange, ctx }: { flow: FlowEdite<T, C>; onChange: (f: FlowEdite<T, C>) => void; ctx: Ctx }) {
   const steps = asSteps(flow);
-  const set = (next: Flow[]) => onChange(seqOf(next));
-  const updAt = (i: number, node: Flow) => set(steps.map((s, j) => (j === i ? node : s)));
+  const set = (next: FlowEdite<T, C>[]) => onChange(seqOf(next));
+  const updAt = (i: number, node: FlowEdite<T, C>) => set(steps.map((s, j) => (j === i ? node : s)));
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= steps.length) return;
     const next = [...steps];

@@ -8,7 +8,7 @@
 import { EMPTY_FLOW, type Condition, type FlowTestNode } from '../engine/flowCore';
 import type { CustomStatblock } from '../engine/statblock';
 import { semencesDeScene, type CreatureData } from './index';
-import type { Effect, Flow } from './schemas/defs-scenes/effets';
+import type { Effect, FlowDeScene, TestDeScene } from './schemas/defs-scenes/effets';
 import { actorRefSchema, partyWhoSchema, startleCauseSchema } from './schemas/grammaire/mecanique';
 import { adresseUnPassage, hitLocationSchema } from './schemas/grammaire/valeurs';
 
@@ -115,11 +115,12 @@ export function statblockDeLaCreature(c: CreatureData): CustomStatblock {
   };
 }
 
-/** Nœud `test` NEUF : la compétence est la seule saisie laissée à l'auteur (sentinelle vide). */
-export const noeudTestNeuf = (): FlowTestNode<Effect> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
+/** Nœud `test` NEUF : la compétence est la seule saisie laissée à l'auteur (sentinelle vide). Un nœud de
+ *  document de scène, donc une instance de tout Flow de feuille `Effect`. */
+export const noeudTestNeuf = (): FlowTestNode<Effect, TestDeScene, number> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
 
 /** Bloc NEUF du menu « + Bloc » d'un Flow : condition, test de compétence ou choix du joueur. */
-export function blocNeuf(kind: Exclude<Flow['kind'], 'sequence' | 'effet'>): Flow {
+export function blocNeuf(kind: Exclude<FlowDeScene['kind'], 'sequence' | 'effet'>): FlowDeScene {
   switch (kind) {
     case 'si': return { kind: 'si', condition: { kind: 'flag', expr: '' }, alors: EMPTY_FLOW };
     case 'test': return noeudTestNeuf();

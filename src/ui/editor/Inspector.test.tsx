@@ -14,7 +14,7 @@ import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { diligenceCampaign } from '../../scenes/campaign';
 import { parseProject } from '../../noyau/worldMap';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import type { FlowDeScene } from '../../data/schemas/defs-scenes/effets';
 import { flowEffects, racinesDeFlow } from '../../engine/flowCore';
 import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 
@@ -932,9 +932,10 @@ describe('Inspector — un Effet `document` s’insère au clic dans la fouille 
     const ici = brut.scenes.findIndex((s) => s.entities.some((e) => e.id === 'cadavre-kastor-lieberung'));
     const cadavre = () => brut.scenes[ici].entities.find((e) => e.id === 'cadavre-kastor-lieberung')!;
     const fouiller = () => cadavre().usable!.actions!.find((a) => a.id === 'fouiller')!;
-    const etapes = () => (fouiller().flow as { etapes: { kind: string; effet?: { type: string; documentId?: string } }[] }).etapes;
-    const avecQuatre = etapes().filter((s) => s.effet?.documentId === 'edo-document-4-affidavit').length;
-    fouiller().flow = { kind: 'sequence', etapes: etapes().filter((s) => s.effet?.documentId !== 'edo-document-4-affidavit') } as Flow;
+    const etapes = () => { const f = fouiller().flow; return f.kind === 'sequence' ? f.etapes : [f]; };
+    const estLeQuatre = (s: FlowDeScene) => s.kind === 'effet' && s.effet.type === 'document' && s.effet.documentId === 'edo-document-4-affidavit';
+    const avecQuatre = etapes().filter(estLeQuatre).length;
+    fouiller().flow = { kind: 'sequence', etapes: etapes().filter((s) => !estLeQuatre(s)) };
     let latest = brut.scenes[ici];
     const montage = monterRacine(null);
     const rendre = (s: Scene) => montage.rendre(
@@ -956,7 +957,7 @@ describe('Inspector — un Effet `document` s’insère au clic dans la fouille 
       neuf.dispatchEvent(new Event('change', { bubbles: true }));
     });
     const scenes = brut.scenes.map((s, i) => (i === ici ? latest : s));
-    const remis = racinesDeFlow(latest).flatMap((r) => flowEffects(r.flow as Flow)).filter((e) => e.type === 'document' && e.documentId === 'edo-document-4-affidavit');
+    const remis = racinesDeFlow(latest).flatMap((r) => flowEffects(r.flow as FlowDeScene)).filter((e) => e.type === 'document' && e.documentId === 'edo-document-4-affidavit');
     expect(remis.length).toBe(avecQuatre);
     expect(() => parseProject({ ...brut, scenes })).not.toThrow();
   });

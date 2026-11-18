@@ -579,15 +579,19 @@ export const petitePriereSchema = z.strictObject({
 /** Effet PROGRAMMÉ (Lot 0, étendu #668) — l'une des DEUX variantes dont le corps reste manuscrit :
  *  elle porte un `Flow`, donc elle est MUTUELLEMENT récursive avec l'union `Effect`, et ce
  *  corps est l'ANNOTATION de `delayedEffectSchema`. */
-export type DelayedEffect = { type: 'delayedEffect'; flow: Flow; cancelFlag?: string } & ScheduleSpec;
+export type DelayedEffect = { type: 'delayedEffect'; flow: FlowDeScene; cancelFlag?: string } & ScheduleSpec;
 
 /** « Petites Prières » — seconde variante récursive (son `reward` est un `Flow`) ; ANNOTE
  *  `petitePriereSchema`. */
-export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow };
+export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: FlowDeScene };
 
-/** Flow de SCÈNE/campagne : la feuille `do` porte l'union `Effect` COMPLÈTE. Spécialise le `Flow<E>`
- *  générique de `engine/flowCore`. */
+/** Flow JOUABLE de la couche monde : feuille `Effect` complète, Test et coût du moteur (`FlowTest`, enjeu de
+ *  catalogue ; `$indice`). Un `FlowDeScene` en est une instance ; l'inverse n'est pas vrai. */
 export type Flow = CoreFlow<Effect>;
+/** Le Test d'un document de scène : la sortie de `testDeSceneSchema`. */
+export type TestDeScene = z.output<typeof testDeSceneSchema>;
+/** Le Flow d'un document de scène : la sortie de `sceneFlowSchema`. */
+export type FlowDeScene = z.output<typeof sceneFlowSchema>;
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
@@ -732,9 +736,10 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   ]),
 );
 
-/** `Flow<Effect>` (`engine/flowCore.ts:559`) — l'arbre `arbreDeFlow` de feuille `do` l'union `Effect`
- *  de scène, au coût de `choice` littéral (le template `$indice` n'a pas de porteur en scène). */
-export const sceneFlowSchema: z.ZodType<Flow> = arbreDeFlow(effectSchema, conditionSchema, z.number(), testDeSceneSchema);
+/** L'arbre `arbreDeFlow` (`grammaire/mecanique.ts`) de feuille l'union `Effect`, de Test `testDeSceneSchema`
+ *  et de coût de `choix` littéral (le template `$indice` n'a pas de porteur en scène) : sa sortie est
+ *  `FlowDeScene`. */
+export const sceneFlowSchema = arbreDeFlow(effectSchema, conditionSchema, z.number(), testDeSceneSchema);
 
 function nommerEffet<N extends z.ZodType>(noeud: N, label: string): N {
   return nommerNoeud(noeud, { label, nom: `effet ${label}` });
