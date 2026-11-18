@@ -16,7 +16,7 @@ import { couvertDArete } from '../noyau/monde/lineOfSight';
 import { cranDeCouvertEnMoins } from '../engine/cover';
 import { buildOpaque } from '../noyau/monde/vision';
 import { structures, findStructureById } from '../data';
-import diligenceCampaign from './diligence/diligence-projet.json';
+import { diligenceCampaign, paquetDuJeu } from './campaign';
 import { schema as schemaStructures } from '../data/schemas/defs/structures';
 import { refsInLine } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 
@@ -126,7 +126,7 @@ describe('La Diligence — les six box migrées prennent le profil AA du clayonn
     { x: 19, y: 31 }, { x: 19, y: 32 }, { x: 21, y: 29 },
     { x: 21, y: 30 }, { x: 23, y: 29 }, { x: 23, y: 30 },
   ];
-  const scene = diligenceCampaign.scenes[0] as unknown as Scene;
+  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
   const segDe = ({ x, y }: { x: number; y: number }) =>
     scene.walls!.find((w) => w.x === x && w.y === y && w.side === 'E' && (w.z ?? 0) === 0)!;
 

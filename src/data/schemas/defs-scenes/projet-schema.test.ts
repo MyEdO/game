@@ -403,7 +403,7 @@ describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () 
   });
 
   it('la DONNÉE livrée traverse : aucune arête dupliquée dans les scènes de la Diligence', () => {
-    const scenes = (JSON.parse(JSON.stringify(diligenceProjet)) as { scenes: { walls?: Jouet[] }[] }).scenes;
+    const scenes = diligenceProjet.scenes;
     expect(scenes.flatMap((s) => s.walls ?? []).length).toBeGreaterThan(0);
     expect(projetSchema.safeParse(versDisque(diligenceProjet)).success).toBe(true);
   });
@@ -449,7 +449,7 @@ describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEM
   });
 
   it('la DONNÉE livrée traverse : les couches de la Diligence sont au cardinal', () => {
-    const scenes = (diligenceProjet as { scenes: { layers?: { tiles: string[] }[] }[] }).scenes;
+    const scenes = diligenceProjet.scenes;
     expect(scenes.flatMap((s) => s.layers ?? []).length).toBeGreaterThan(0);
     expect(projetSchema.safeParse(versDisque(diligenceProjet)).success).toBe(true);
   });
