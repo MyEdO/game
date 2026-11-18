@@ -1126,7 +1126,7 @@ export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
 export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur: readonly z.ZodType<O>[] = []): z.ZodType<Parmi<number, O | RefASpecialisation>> {
-  return parmi<O | RefASpecialisation, number>([ref(type), specRef(type), ...optionsDuPorteur], nombreDeTirages());
+  return parmi<O | RefASpecialisation, number>([nommerNoeud(ref(type), { label: 'référence' }), specRef(type), ...optionsDuPorteur], nombreDeTirages());
 }
 
 /**

@@ -6,6 +6,7 @@
 import type { GameOp } from '../engine/ops';
 import type { DatasetKey } from './overrides';
 import { OP_LABEL } from './schemas/grammaire/mecanique';
+import { auChemin } from '../lib/objet.mjs';
 
 /** Champ d'une op portant une RÉFÉRENCE de registre : `ds` = dataset où elle doit résoudre,
  *  `required` = l'op est inapplicable tant que rien n'est élu. Un champ à union FERMÉE (`characteristic`,
@@ -16,7 +17,7 @@ export interface OpRefField { field: string; ds: DatasetKey; label: string; requ
 /** Valeur d'un champ-réf d'op — `field` est un CHEMIN (`skill.id` pour une référence EMBOÎTÉE,
  *  `traitId` pour une référence à plat). PURE. */
 export function opRefValue(op: unknown, field: string): unknown {
-  return field.split('.').reduce<unknown>((n, k) => (n && typeof n === 'object' ? (n as Record<string, unknown>)[k] : undefined), op);
+  return auChemin(op, field.split('.'));
 }
 
 /** Même chemin, en ÉCRITURE : rend une COPIE de `op` dont `field` porte `valeur`. PURE. */

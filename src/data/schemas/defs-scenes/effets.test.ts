@@ -37,6 +37,7 @@ import type { PursuitSpec } from '../../../noyau/pursuitFlow';
 import type { MassBattleSpec } from '../../../engine/massBattle';
 import type { FavorLevel } from '../../../engine/favor';
 import type { CrewHire } from '../../../engine/crewMorale';
+import { auChemin } from '../../../lib/objet.mjs';
 
 const ROOT = join(__dirname, '../../../..');
 
@@ -105,7 +106,7 @@ const effetsDuDataset = (chemin: string): { noeud: z.ZodType; valeur: unknown } 
   const noeud = m ? (noeudDuChamp(m[1], 'effects') as z.ZodType | undefined) : undefined;
   if (!m || !noeud) return undefined;
   const cles = [...m[2].matchAll(/\[(\d+)\]|\.([^.[]+)/g)].map((c) => c[1] ?? c[2]);
-  const valeur = cles.reduce<unknown>((n, k) => (n as Record<string, unknown>)[k], JSON.parse(readFileSync(join(ROOT, 'src/data', m[1]), 'utf8')));
+  const valeur = auChemin(JSON.parse(readFileSync(join(ROOT, 'src/data', m[1]), 'utf8')), cles);
   return { noeud, valeur };
 };
 

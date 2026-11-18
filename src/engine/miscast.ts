@@ -125,7 +125,7 @@ interface Row {
   /** Ops IMMÉDIATS aux cibles de l'incantation, closés sur les Points de Péché. */
   targetOps?: (sin: number) => GameOp[];
   /** Clé de table déclarée par le Domaine du lanceur (`JsonRow.domainTable`). */
-  domainTable?: string;
+  domainTable?: JsonRow['domainTable'];
   /** Test imbriqué de l'entrée (« … ou Sonné »), résolu cadence-aware. */
   test?: NestedTest;
   /** Relance : sur le Tableau Majeur (cascade) ou deux fois sur le Mineur (multiplication). */

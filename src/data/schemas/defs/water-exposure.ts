@@ -18,11 +18,11 @@ export const waterAppliesToSchema = enumNomme({ ingestion: 'Ingestion', immersio
 /** Union PLATE (pas `discriminatedUnion` — `woundsLost` a 2 formes selon `op`, discriminant non-unique
  *  sur `kind` seul). */
 const waterExposureAutoSchema = z.union([
-  nommerChamps(z.strictObject({ kind: z.literal('woundsRemaining'), op: z.literal('<='), value: z.number() }), { kind: { label: 'Type' }, op: { label: 'Opération' }, value: { label: 'Valeur' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('woundsLost'), op: z.literal('>='), value: z.number() }), { kind: { label: 'Type' }, op: { label: 'Opération' }, value: { label: 'Valeur' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('woundsLost'), op: z.literal('between'), ...plageSchema.shape }), { kind: { label: 'Type' }, op: { label: 'Opération' }, ...metaDesChamps(plageSchema, { exigees: true }) }),
-  nommerChamps(z.strictObject({ kind: z.literal('perCondition'), condition: idDe('etat') }), { kind: { label: 'Type' }, condition: { label: 'Condition' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('hasCondition'), condition: idDe('etat') }), { kind: { label: 'Type' }, condition: { label: 'Condition' } }),
+  nommerChamps(z.strictObject({ kind: z.literal('woundsRemaining'), op: z.literal('<='), value: z.number() }), { kind: { label: 'Type' }, op: { label: 'Opération' }, value: { label: 'Valeur' } }, { label: 'Blessures restantes au plus' }),
+  nommerChamps(z.strictObject({ kind: z.literal('woundsLost'), op: z.literal('>='), value: z.number() }), { kind: { label: 'Type' }, op: { label: 'Opération' }, value: { label: 'Valeur' } }, { label: 'Blessures perdues au moins' }),
+  nommerChamps(z.strictObject({ kind: z.literal('woundsLost'), op: z.literal('between'), ...plageSchema.shape }), { kind: { label: 'Type' }, op: { label: 'Opération' }, ...metaDesChamps(plageSchema, { exigees: true }) }, { label: 'Blessures perdues entre' }),
+  nommerChamps(z.strictObject({ kind: z.literal('perCondition'), condition: idDe('etat') }), { kind: { label: 'Type' }, condition: { label: 'Condition' } }, { label: 'Par État' }),
+  nommerChamps(z.strictObject({ kind: z.literal('hasCondition'), condition: idDe('etat') }), { kind: { label: 'Type' }, condition: { label: 'Condition' } }, { label: 'Sous un État' }),
 ]);
 
 const doc = document(

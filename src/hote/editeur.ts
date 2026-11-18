@@ -18,7 +18,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, QUALITES_DE_REPOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, formulaireDe, refusDeLaValeur, type Segment,
+  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, formulaireDe, refusDeLaValeur,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -32,7 +32,7 @@ import { pluriel, t, type MsgKey } from '../i18n';
 import { libelleDuStatut } from '../noyau/index';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
-import { estObjet } from '../lib/objet.mjs';
+import { auChemin, estObjet } from '../lib/objet.mjs';
 import { bouton, choix, ligne, type Bouton, type Choix, type Formulaire, type Ligne, type Plan } from './elements';
 import { planDeLaCarte } from './ecran';
 import { elementsDuFormulaireTire, refusDeValeurDit, valeurDuFormulaire, type EcrivainDuFormulaire } from './formulaire';
@@ -1626,7 +1626,7 @@ function propresDuLieu(s: SessionDEdition, lieu: DonneeDuPorteur['lieu']): (Choi
 function sousEntreesDuRegistre<R extends keyof typeof SOUS_ENTREES>(registre: R) {
   return (s: SessionDEdition, donnee: DonneeDuPorteur[R]): (Choix | Ligne | Bouton | Formulaire)[] => SOUS_ENTREES[registre]!.flatMap(({ chemin, famille }) => {
     const texte = (suffixe: string) => `ecran.editeur.sousEntree.${famille}.${suffixe}` as MsgKey;
-    const elements = chemin.reduce<unknown>((o, cle) => (o as Record<Segment, unknown> | undefined)?.[cle], donnee) as readonly { id: string }[] | undefined;
+    const elements = auChemin(donnee, chemin) as readonly { id: string }[] | undefined;
     if (!elements) return [];
     return [
       ...elements.flatMap(({ id }) => [

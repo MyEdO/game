@@ -23,9 +23,11 @@ import { memoByRef } from './monde/sceneMemo';
 import { EFFECT_HANDLERS } from './combatEffects';
 import {
   admetUneListe,
+  ariteDuNoeud,
   bornesDuNoeud,
   champsDeclares,
   choixDuNoeud,
+  elementDuNoeud,
   kindDuNoeud,
   recordDuNoeud,
   unionDuNoeud,
@@ -271,8 +273,8 @@ export function newEffect(type: Effect['type']): Effect {
 
 /** La valeur NEUVE du nœud de schéma `noeud` : d'un champ à choix, sa première valeur (`choixDuNoeud`) ; d'un objet,
  *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'une union, celle
- *  de sa première variante (`neuveDeLaVariante`) ; d'un record, {} ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
- *  texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un objet neuf ne porte pas. */
+ *  de sa première variante (`neuveDeLaVariante`) ; d'un record, {} ; d'un tuple, la valeur neuve de chacune de ses positions
+ *  (`ariteDuNoeud`) ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un objet neuf ne porte pas. */
 export function valeurNeuveDe(noeud: unknown): unknown {
   const choix = choixDuNoeud(noeud);
   if (choix) return choix[0]?.valeur;
@@ -284,6 +286,8 @@ export function valeurNeuveDe(noeud: unknown): unknown {
   const u = unionDuNoeud(noeud);
   if (u) return u.variantes.length ? neuveDeLaVariante(u, u.variantes[0], undefined) : undefined;
   if (recordDuNoeud(noeud)) return {};
+  const arite = ariteDuNoeud(noeud);
+  if (arite !== undefined) return Array.from({ length: arite }, (_, rang) => valeurNeuveDe(elementDuNoeud(noeud, rang)));
   const bornes = bornesDuNoeud(noeud);
   if (bornes) return bornes.min !== null && bornes.min > 0 ? bornes.min : 0;
   const kind = kindDuNoeud('', noeud);
@@ -293,13 +297,28 @@ export function valeurNeuveDe(noeud: unknown): unknown {
 
 /** La valeur NEUVE de la variante `v` de l'union `u`, depuis la valeur `actuelle` : d'une op, celle de sa fabrique
  *  (`newOp`) ; d'une Condition, union dont une variante est le produit de la Condition de sa clé, celle de `recast`,
- *  qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche, sa valeur neuve, son discriminant posé, sauf pour
- *  la variante qui ne le porte pas (clé vide) et pour une union sans discriminant. */
+ *  qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche, sa valeur neuve, ce qui désigne sa variante
+ *  posé : son discriminant, sauf pour la variante qui ne le porte pas (clé vide), et, d'une union sans discriminant,
+ *  le premier de ses champs déclarés qui la fait lire comme elle (`distinguee`). */
 function neuveDeLaVariante(u: UnionDuNoeud, v: VarianteDuNoeud, actuelle: unknown): unknown {
   if (declarationDEnfants(u.noeud)) return newOp(v.cle);
   if (recastee(u)) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
   const neuve = valeurNeuveDe(v.noeud);
-  return v.cle === '' || u.discriminant === '' ? neuve : { ...(neuve as object), [u.discriminant]: v.cle };
+  if (u.discriminant === '') return distinguee(u, v, neuve);
+  return v.cle === '' ? neuve : { ...(neuve as object), [u.discriminant]: v.cle };
+}
+
+/** La valeur `neuve` de la variante `v` de l'union sans discriminant `u`, telle que `varianteCourante` la lise comme
+ *  `v` : elle-même si c'est déjà le cas ; sinon, d'un objet, complétée du premier champ déclaré de `v` qu'elle ne porte
+ *  pas, à sa valeur neuve, qui la fait lire comme `v` ; elle-même sans un tel champ. */
+function distinguee(u: UnionDuNoeud, v: VarianteDuNoeud, neuve: unknown): unknown {
+  if (varianteCourante(u, neuve) === v || typeof neuve !== 'object' || neuve === null) return neuve;
+  for (const [cle, n] of champsDeclares(v.noeud) ?? []) {
+    const champ = cle in neuve ? undefined : valeurNeuveDe(n);
+    const complete = champ === undefined ? undefined : { ...neuve, [cle]: champ };
+    if (complete && varianteCourante(u, complete) === v) return complete;
+  }
+  return neuve;
 }
 
 /** Une valeur du choix de la variante d'une union : la clé et le libellé de la variante, la valeur qu'elle pose, et si
