@@ -1,26 +1,29 @@
 /**
- * La maladresse (#4411) : l'attaque d'Ilyanwe échoue sur un double, le Tableau des Oups ! à tirer puis tiré
- * (LDB 14 l.17-20 ; `src/data/oups.json`, `jet.maladresse`), sur la cour (`../../combat-suite.md`, sections
- * `maladresse`).
+ * La maladresse (#4411) : l'attaque d'Ilyanwe échoue sur un double, le Tableau des Oups ! à tirer puis tiré (LDB 14
+ * l.17-20), sur la cour (`../../combat-suite.md`, sections `maladresse`).
  */
-import { fenetreSurLeDome, geste, gesteDeJet, ILYANWE, jet, tirage, TOUR_D_ILYANWE } from './dome';
-import type { Ecran } from './maquette';
+import { COMBATTANTS, DIT, TOUR_D_ILYANWE } from './dome.ts';
+import type { Ecran, EtatDeCombat, Fenetre } from './maquette.ts';
 
-/** Le jet raté d'Ilyanwe, le double 66. */
-const DOUBLE = { ...jet('jet', ILYANWE, 'Échec sur un double : 66', null, { resultat: '66', dr: '', reussite: false, verdict: 'Tableau' }), dr: 'des Oups !' };
-const TOUR = { ...TOUR_D_ILYANWE, journal: ['Orc maîtrise sa psychologie (Animosité).', 'Ilyanwe la Voilée charge Orc (+1 Avantage).', 'Ilyanwe la Voilée : maladresse (66) !'] };
+/** L'état `nom` sur le tour d'Ilyanwe. */
+const maladresse = (nom: string, fenetre: Fenetre): EtatDeCombat => ({
+  nom, gabarit: 'fenetre-du-bas', cour: { etat: 'jet' }, combattants: COMBATTANTS, combat: TOUR_D_ILYANWE([DIT.orc, DIT.charge, 'Ilyanwe la Voilée : maladresse (66) !']), fenetre,
+});
+const OUPS = { tableau: 'Oups !' };
 
 export default {
   etats: [
-    fenetreSurLeDome('maladresse-tirage', 'maladresse, le Tableau des Oups ! à tirer', 'jet', TOUR, {
+    maladresse('maladresse-tirage', {
       titre: 'Maladresse',
-      corps: [DOUBLE, ...tirage('Oups !', 'Tout Test de combat qui est un échec et dont le résultat du jet est un double est une Maladresse, ce qui signifie que quelque chose de très déplaisant vient de se produire.', 'Tableau des Oups !', null)],
-      gestes: [geste(gesteDeJet('lancer', 'cascadeTirage'), 'Lancer le dé', { focus: true })],
+      heros: { role: 'subit', qui: 'ilyanwe', motif: { double: 66 }, des: [60, 6], issue: OUPS },
+      centre: { role: 'table', nom: 'Oups !', table: 'Tableau des Oups !', tire: null, texte: 'Tout Test de combat qui est un échec et dont le résultat du jet est un double est une Maladresse, ce qui signifie que quelque chose de très déplaisant vient de se produire.' },
+      gestes: [{ libelle: 'Lancer le dé', principal: true }], reserves: [],
     }),
-    fenetreSurLeDome('maladresse', 'maladresse, le Tableau des Oups ! tiré', 'jet', TOUR, {
+    maladresse('maladresse', {
       titre: 'Maladresse',
-      corps: [DOUBLE, ...tirage('Oups !', 'Vous trébuchez franchement et peinez à vous redresser. Vous perdez votre prochain Mouvement.', 'Tableau des Oups !', '64')],
-      gestes: [geste(gesteDeJet('valider', 'cascade'), 'Continuer', { focus: true })],
+      heros: { role: 'subit', qui: 'ilyanwe', motif: { double: 66 }, des: [60, 4], tire: 64, issue: OUPS },
+      centre: { role: 'table', nom: 'Oups !', table: 'Tableau des Oups !', texte: 'Vous trébuchez franchement et peinez à vous redresser. Vous perdez votre prochain Mouvement.' },
+      gestes: [{ libelle: 'Continuer', principal: true }], reserves: [],
     }),
   ],
 } satisfies Ecran;

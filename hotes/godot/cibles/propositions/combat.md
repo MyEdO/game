@@ -2,7 +2,7 @@
 
 Compte rendu des trente et un états dessinés (onze le 2026-11-16, vingt écrans neufs le 2026-11-17, #4411) depuis la cible écrite `../ecrites/combat.md`, le contrat `../combat.md` et les
 maquettes validées (`../maquettes/`). Sources au dépôt : un écran par fichier de `sources/maquettes/`, la liste de ses
-états, chacun écrit dans la forme du contrat ou capturé (l'état du jeu que nomme sa planche), dessiné par
+états, chacun une donnée écrite au format de `sources/maquettes/maquette.ts`, dessinée par
 `sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png> --format 16:9 [--etat <état>]`) : `jet-avant-le-de`,
 `defense`, `jet-d-attaque`, `coup-critique`, `debut-du-round`, `determination`, `fin-du-combat`. Le tour de l'actif,
 `fin-victoire`, `cible-montee` et `visee-de-siege` restent des pages de `sources/combat/`.

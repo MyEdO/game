@@ -371,9 +371,3 @@ export interface GesteFermable { geste: GesteDuNoyau; refus: string | null }
 /** Le clic du champ, en combat comme en exploration : la case, et ce qu'elle porte. En combat, un premier clic pose
  *  l'aperçu, le même clic le confirme (`battle.preview`). */
 export const CLIC_DU_CHAMP = 'cliquerLaCase' satisfies keyof ActionsDuNoyau;
-
-/** Le verbe qui valide une fenêtre (`ActionsDuNoyau.fenetreValider`). */
-export const VERBE_DE_VALIDATION = 'fenetreValider' as const satisfies keyof ActionsDuNoyau;
-
-/** Le verbe qui ferme une fenêtre (`ActionsDuNoyau.fenetreFermer`). */
-export const VERBE_DE_SORTIE = 'fenetreFermer' as const satisfies keyof ActionsDuNoyau;

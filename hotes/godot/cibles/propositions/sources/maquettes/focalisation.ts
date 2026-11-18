@@ -1,30 +1,34 @@
 /**
  * La Focalisation (#4411) : Ilyanwe focalise la magie du Dôme en Test étendu, avant le dé, tombée, le Niveau
- * d'incantation atteint, puis sur un Critique (LDB 46 l.128-136 ; `fenetre.focalisation`, `cs.focusProgress`,
- * `out.focusDone`, `cs.focusCrit`), ce que la Focalisation ouvre à côté, sur la cour (`../../combat-suite.md`, sections
- * `focalisation`).
+ * d'incantation atteint, puis sur un Critique (LDB 46 l.128-136), et ce que la Focalisation ouvre, sur la cour
+ * (`../../combat-suite.md`, sections `focalisation`).
  */
-import { ligne } from '../../../../../../src/hote/elements';
-import { apresLeDe, avantLeDe, cumul, enjeu, fenetreSurLeDome, ILYANWE, jet, RESERVES, reserves, TOUR_D_ILYANWE } from './dome';
-import type { Ecran } from './maquette';
+import { apresLeDe, avantLeDe, COMBATTANTS, DIT, RESERVES, reserves, TOUR_D_ILYANWE } from './dome.ts';
+import type { Ecran, EtatDeCombat, JetTombe } from './maquette.ts';
 
 /** Ce que la Focalisation ouvre (LDB 46 l.132, l.136). */
-const OUVRE: [string, string][] = [['7 DR cumulés', 'NI 0 au prochain Round'], ['Critique', 'lançable au prochain Round'], ['Incantation manquée', 'magie perdue']];
-/** L'état `nom` : le jet tombé `tombe` ou avant le dé, le cumul, la phrase, la ligne atteinte, ce que dit le journal. */
-const focaliser = (nom: string, titre: string, tombe: { resultat: string; dr: string; critique?: true } | null, cumule: number, phrase: string, atteinte: number | null, dit: string) =>
-  fenetreSurLeDome(nom, titre, 'incantation', { ...TOUR_D_ILYANWE, journal: ['Orc maîtrise sa psychologie (Animosité).', 'Berta se met en Défensive.', dit] }, {
+const OUVRE = [
+  { issue: '7 DR cumulés', effet: 'NI 0 au prochain Round' },
+  { issue: 'Critique', effet: 'lançable au prochain Round' },
+  { issue: 'Incantation manquée', effet: 'magie perdue' },
+];
+/** L'état `nom` : le jet tombé ou avant le dé, le cumul, la phrase, la ligne atteinte, ce que dit le journal. */
+const focaliser = (nom: string, jet: JetTombe | null, cumul: number, phrase: string, tombee: number | null, dit: string): EtatDeCombat => ({
+  nom, gabarit: 'fenetre-du-bas', cour: { etat: 'incantation' }, combattants: COMBATTANTS, combat: TOUR_D_ILYANWE([DIT.orc, DIT.defensive, dit]),
+  fenetre: {
     titre: 'Focalisation',
-    corps: [ligne('sort/ni', 'Test étendu · Niveau d’incantation 7'), jet('jet', ILYANWE, 'Focalisation', '≤ 62', tombe ? { resultat: tombe.resultat, dr: tombe.dr, reussite: true, ...(tombe.critique ? { verdict: 'critique' } : {}) } : undefined),
-      ligne('sort', 'Dôme'), cumul(cumule, 7), ligne('issue', phrase), enjeu('Ce que la Focalisation ouvre', OUVRE, atteinte)],
-    gestes: tombe ? apresLeDe('focalisation', { reussi: true, chance: RESERVES.ilyanwe.chance, resilience: RESERVES.ilyanwe.resilience }) : avantLeDe('focalisation', { annuler: true, resilience: RESERVES.ilyanwe.resilience }),
-    reserves: reserves(RESERVES.ilyanwe),
-  });
+    heros: { role: 'testeur', qui: 'ilyanwe', test: 'Focalisation', seuil: 62, ...(jet ? { jet } : {}) },
+    centre: { role: 'etendu', ni: 7, sort: 'Dôme', cumul, phrase, enjeu: { libelle: 'Ce que la Focalisation ouvre', issues: OUVRE, tombee } },
+    gestes: jet ? apresLeDe(RESERVES.ilyanwe) : avantLeDe(RESERVES.ilyanwe, { annuler: true }), reserves: reserves(RESERVES.ilyanwe),
+  },
+});
+const FOCALISE = 'Ilyanwe la Voilée focalise la magie du Dôme.';
 
 export default {
   etats: [
-    focaliser('focalisation-avant-le-de', 'Focalisation avant le dé', null, 0, 'Focalisation : 0/7 DR.', null, 'Ilyanwe la Voilée focalise la magie du Dôme.'),
-    focaliser('focalisation', 'Focalisation tombée', { resultat: '24', dr: '+4' }, 4, 'Focalisation : 4/7 DR.', null, 'Ilyanwe la Voilée focalise la magie du Dôme.'),
-    focaliser('focalisation-atteinte', 'Focalisation, le Niveau d’incantation atteint', { resultat: '31', dr: '+3' }, 7, 'Focalisation complète — le NI du Sort est atteint.', 0, 'Ilyanwe la Voilée a focalisé assez de magie pour lancer Dôme (NI 0).'),
-    focaliser('focalisation-critique', 'Focalisation sur un Critique', { resultat: '33', dr: '+3', critique: true }, 3, 'Dôme est lançable au prochain Round (NI 0) !', 1, 'Ilyanwe la Voilée — Focalisation CRITIQUE : Dôme est lançable au prochain Round (NI 0) !'),
+    focaliser('focalisation-avant-le-de', null, 0, 'Focalisation : 0/7 DR.', null, FOCALISE),
+    focaliser('focalisation', { des: [20, 4], dr: 4, reussite: true }, 4, 'Focalisation : 4/7 DR.', null, FOCALISE),
+    focaliser('focalisation-atteinte', { des: [30, 1], dr: 3, reussite: true }, 7, 'Focalisation complète — le NI du Sort est atteint.', 0, 'Ilyanwe la Voilée a focalisé assez de magie pour lancer Dôme (NI 0).'),
+    focaliser('focalisation-critique', { des: [30, 3], dr: 3, reussite: true, critique: true }, 3, 'Dôme est lançable au prochain Round (NI 0) !', 1, 'Ilyanwe la Voilée — Focalisation CRITIQUE : Dôme est lançable au prochain Round (NI 0) !'),
   ],
 } satisfies Ecran;

@@ -83,13 +83,6 @@ script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("bataille/geste/0", "bataille/geste/1")
 
-[node name="Reserves" type="HBoxContainer" parent="Colonne/Bas"]
-
-[node name="Zone" type="Node" parent="Colonne/Bas/Reserves"]
-script = ExtResource("1_zone")
-source = "fenetre.reserves"
-repli = true
-
 [node name="Gestes" type="HBoxContainer" parent="Colonne/Bas"]
 theme_type_variation = &"RangeeSerree"
 alignment = 2

@@ -9,7 +9,6 @@ import { fenetreDuJeu, TOUT_RESOUDRE, type FenetreDuJeu } from './combatAuto';
 import { resoutLaRangeeIci, stepInteraction } from './cascade';
 import type { PendingCascade } from './pendings';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
-import { VERBE_DE_SORTIE, VERBE_DE_VALIDATION } from './actionsDuNoyau';
 import { cleDuGeste, type CleDeRegistre, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
 import { fermetureDeLaSortie } from './sortieDeFenetre';
 import { fermetureDeLaValidation } from './validationDeFenetre';
@@ -90,8 +89,8 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
   };
   const propres: Partial<Record<string, FermetureDuJet | null>> = FERMETURES_DES_VERBES[fenetre.cle]?.(s) ?? {};
   for (const g of fenetre.gestes) {
-    if (g.verbe === VERBE_DE_VALIDATION) { out.set(cleDuGeste(g), fermetureDeLaValidation(s, g.fenetre as FenetreAValider)); continue; }
-    if (g.verbe === VERBE_DE_SORTIE) { out.set(cleDuGeste(g), fermetureDeLaSortie(s, g.fenetre as FenetreQuiSeFerme)); continue; }
+    if (g.verbe === 'fenetreValider') { out.set(cleDuGeste(g), fermetureDeLaValidation(s, g.fenetre as FenetreAValider)); continue; }
+    if (g.verbe === 'fenetreFermer') { out.set(cleDuGeste(g), fermetureDeLaSortie(s, g.fenetre as FenetreQuiSeFerme)); continue; }
     if (cleDuGeste(g) in propres) {
       out.set(cleDuGeste(g), propres[cleDuGeste(g)] ?? null);
       continue;

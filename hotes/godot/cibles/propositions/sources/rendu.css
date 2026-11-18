@@ -9,6 +9,8 @@
 #jet .camp>div{max-width:272px}
 #verdict{padding:2px 4px 0}
 #verdict .dr{line-height:normal;margin:0}
+#verdict>.sous{font-size:11.5px;line-height:14px}
+#verdict>p{font-size:13px;line-height:17px}
 #jet .camp .n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal;line-height:normal;margin-top:-4px}
 #jet .camp.droite .n{justify-content:flex-end}
 #jet .camp .n .modif{margin-top:0}
@@ -17,12 +19,9 @@
 #verdict .sous .rubrique{font-size:12.5px;color:#4a3420}
 #jet .fond.debut .annonce{flex:none;white-space:nowrap}
 #jet .annonce .dr{line-height:normal}
-#jet:has(.fond.liste){height:266px}
-#jet .liste-de-choix{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:8px}
-#jet .liste-de-choix .groupe .plaque.carte{height:60px}
-#jet .liste-de-choix .groupe .plaque.carte .c{white-space:nowrap;font-size:12.5px}
-#ecran:has(.fond.liste) #journal{top:auto;bottom:286px}
 #jet .fond.debut>.camp{flex:none}
+#jet .fond.debut>.plaque.carte{flex:1 1 0;width:auto;min-width:0}
+#jet .fond.debut>.plaque.carte :is(.n,.c){white-space:normal}
 #jet .groupe{flex:1 1 auto;min-width:0}
 #jet .groupe .plaque.carte{flex:1 1 0;width:auto;min-width:0}
 #jet .groupe .plaque.carte :is(.n,.c){white-space:normal}
@@ -43,6 +42,12 @@
 #verdict.sort.reglages>.rangee{grid-column:2;grid-row:1/span 4;align-self:center}
 #verdict.sort.reglages .dr{font-size:24px;line-height:normal}
 #verdict.sort.reglages p{font-size:12px;line-height:16px}
+#verdict.surinc{grid-template-columns:minmax(0,1fr) 192px;column-gap:12px;height:auto;padding:0 6px 0 10px}
+#verdict.surinc .axe{grid-template-columns:52px 40px 1fr 40px}
+#verdict.surinc .sort .dr{font-size:26px;line-height:32px}
+#verdict.surinc .sort p{font-size:12px;line-height:16px}
+#jet .cibles-du-sort{padding-left:10px}
+#jet .c-s .n{font-size:16px}
 #critique .tete-c{display:flex;align-items:center;gap:18px}
 #critique .tete-c .dr{white-space:nowrap}
 #critique .tete-c .tirage{min-width:0}
@@ -59,36 +64,23 @@
    du bas puis il défile ; le registre tendu jusqu'aux signets, au bord droit, et à 24 du bas, ses lignes défilent */
 #preferences{max-height:calc(100% - 160px)}
 #preferences .fond{overflow-y:auto;scrollbar-width:none}
-#preferences .pref+.aide,#preferences .aide{margin:-17px 0 0;font-style:italic;font-size:13px;line-height:17px;color:var(--creme-2)}
 #registre{right:186px;width:auto;top:60px;bottom:24px;height:auto}
-#registre .domaine,#registre .feuillet{display:none}
-#registre .domaine.ouvert,#registre .feuillet.ouvert{display:contents}
 #registre .feuille{min-width:0;overflow-y:auto;scrollbar-width:none}
 #registre .regle{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
 #registre .regle .t{flex:1 1 190px;min-width:0}
 #registre .regle .c{margin-left:auto}
 #registre .regle .aide,#registre .regle .action{flex:1 0 100%;margin-top:0}
+#registre .feuille .tete{gap:12px}
 #registre .feuille .tete .rubrique{font-size:13px;color:#5a2a12;white-space:nowrap}
-#registre .regle .ref .rubrique{display:block;font-size:12.5px;color:#4a2f16;margin-top:2px}
-#registre .regle .lecture{width:44px;text-align:right;font-size:19px;line-height:20px;color:#3a1a10;white-space:nowrap}
-#registre .regle .lecture.ferme{opacity:.42}
 #registre .feuille .pied .rubrique{font-size:12.5px;color:#5a4530;white-space:nowrap}
 #registre .feuille .pied .marque .rubrique{color:#6b1c10}
 #signets{left:calc(100% - 184px);top:66px;gap:4px}
 
 /* 4. Lieu : le cartouche 24 / 20, le récit 20 dessous, le panneau d'activité au coin haut-droit 24 / 20, le bandeau
-   centré à 8 du bas, le journal et le système au coin bas-droit 30 / 23 */
+   centré à 8 du bas, le retour 30 / 34 du coin bas-gauche, le système au coin bas-droit 30 / 23 */
 .paysage{width:100%;height:100%}
-#titre .s .mention{display:inline-flex;align-items:center}
-#titre .s .mention+.mention::before{content:"";width:3px;height:3px;margin:0 7px 0 1px;border-radius:50%;background:currentColor}
 #recit{width:340px}
-#activite{left:auto;right:24px;top:20px;width:360px}
-#activite .fond{padding:24px 16px 14px}
-.rang-c{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.rang-c .lab{flex:none;width:76px;font-size:12.5px;color:var(--creme-2)}
-.rang-c .v{font-size:13.5px;color:#eadfc4;line-height:17px}
-.en-jeu .t{font-size:12.5px;color:var(--or);margin:13px 0 7px}
-#activite .plaque{margin-top:12px}
+#camp{left:auto;right:24px}
 #bandeau{left:calc(50% - 480px);top:auto;bottom:8px;width:960px}
 #bandeau .heros{gap:9px;padding:11px 10px 0}
 #bandeau .heros .nom{font-size:17.5px}
@@ -97,13 +89,12 @@
 .choix-h b{font-weight:400}
 .choix-h .plaque{flex:none}
 .choix-h .plaque>div{font-size:10px;letter-spacing:.2px;padding:0 4px}
+.retour{top:auto;bottom:34px;flex-direction:column-reverse;align-items:flex-start;gap:6px}
+.retour span{max-width:124px;white-space:normal;line-height:18px}
 #coins{left:auto;top:auto;right:30px;bottom:23px}
 
 /* 5. Combat : la borne du round 22 / 16, l'ordre du tour au bord gauche dans la marge de 160 sous la borne, l'actif en
    bas et le haut replié ; le journal 24 du bord droit, au-dessus de la fenêtre du bas ; la fin du tour 49 / 48 */
-#round{width:auto}
-#round .fond{padding:0 18px}
-#round .n{font-size:24px;line-height:normal}
 #ordre{top:96px;bottom:8px;width:134px;flex-direction:column;justify-content:flex-end;overflow:hidden}
 #ordre .rang{flex:none}
 #ordre .rang .nom{white-space:normal;line-height:normal}
@@ -111,6 +102,7 @@
 #ordre .rang.actif{flex-direction:column;align-items:flex-start;gap:4px}
 #ordre .rang.actif .nom{font-size:16px}
 #ordre .rang.actif .jauge{width:74px}
+#ordre .rang:not(.actif) .etat-porte .rubrique{display:none}
 #journal .lignes{max-height:190px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;mask-image:linear-gradient(transparent,#000 48px)}
 #fin{left:auto;top:auto;right:43px;bottom:22px}
 

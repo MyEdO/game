@@ -7,7 +7,7 @@
  */
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import type { ActionsDuNoyau, VERBE_DE_VALIDATION } from './actionsDuNoyau';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import { libelleDeLaFermeture } from './libelles';
@@ -62,7 +62,7 @@ export function refusDeLaValidationNommee(s: Jeu, fenetre: FenetreAValider): str
 
 /** Le verbe de validation du noyau sur `get`/`set` : il refuse, et le dit, la validation que `refusDeLaValidation`
  *  refuse, sinon joue le corps de la fenêtre (`validations`), au quorum pour une fenêtre à quorum (`jouerOuMarquer`). */
-export function creerValidationDeFenetre(get: Get, set: Set, validations: ValidationsDeFenetre): Pick<ActionsDuNoyau, typeof VERBE_DE_VALIDATION> {
+export function creerValidationDeFenetre(get: Get, set: Set, validations: ValidationsDeFenetre): Pick<ActionsDuNoyau, 'fenetreValider'> {
   return {
     fenetreValider: (fenetre) => {
       const refus = refusDeLaValidation(get(), fenetre);

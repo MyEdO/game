@@ -38,8 +38,6 @@ import { prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleM
  * bornée à [0, 1] réglée à `valeur` pour cent.
  */
 export interface ZonesDesReglages {
-  /** le titre du panneau : `nom`, son nom et le dessin de son médaillon (`icone`), puis `sous`, ce qu'il règle. */
-  'reglages.titre': Ligne[];
   /** chaque préférence de confort de la table du noyau (`PREFERENCES`) : son contrôle, puis son aide en ligne ; une
    *  préférence bornée à [0, 1] (un volume) en curseur de 0 à 100 pour cent, au verbe `pourcent`. */
   'reglages.preferences': Element[];
@@ -182,7 +180,6 @@ export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, '
   const groupes = [...new Set(OPTIONAL_RULES.map((r) => r.group))];
   const retraits = prendreLeTemoinDesReglesMaison(stockage);
   return {
-    'reglages.titre': [{ ...ligne('nom', t('ecran.reglages.titre')), icone: 'interface/reglages' }, ligne('sous', t('ecran.reglages.sousTitre'))],
     'reglages.preferences': PREFERENCES.flatMap((p) => [controle('preference', p, p.get(), null), ...(p.hint ? [ligne(`preference/${p.id}/aide`, p.hint)] : [])]),
     'reglages.regles': groupes.map((groupe) => domaineEnEntite(groupe, surcharges, refus, etat === null)),
     'reglages.avis': retraits ? [ligne('retraits', t('houseRules.retirees', { liste: nommerLesRetraits(retraits) }), 'alerte')] : [],

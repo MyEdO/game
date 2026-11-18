@@ -15,9 +15,8 @@ import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte' | 'ferme';
 
 /** Une ligne de texte. `detail` : ce qu'elle tait, montré à la demande ; `touche` : la touche qu'elle imprime sans la
- *  jouer (la case libre d'un emplacement rapide) ; `icone` : l'id de son dessin au registre des icônes
- *  (`src/data/icons`), absent sans dessin (le médaillon du titre d'un panneau). */
-export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string; detail: string | null; touche: Touche | null; icone?: string }
+ *  jouer (la case libre d'un emplacement rapide). */
+export interface Ligne { type: 'ligne'; id: string; ton: Ton; texte: string; detail: string | null; touche: Touche | null }
 
 /** Les touches des emplacements rapides, rang par rang : des actions d'entrée de l'hôte. */
 export const TOUCHES_RAPIDES = ['rapide_1', 'rapide_2', 'rapide_3', 'rapide_4', 'rapide_5', 'rapide_6'] as const;

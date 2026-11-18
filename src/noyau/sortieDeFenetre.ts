@@ -6,7 +6,7 @@
  */
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import type { ActionsDuNoyau, VERBE_DE_SORTIE } from './actionsDuNoyau';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { libelleDeLaFermeture } from './libelles';
@@ -81,7 +81,7 @@ export function refusDeLaSortieNommee(s: Jeu, fenetre: FenetreQuiSeFerme): strin
 
 /** Le verbe de sortie du noyau sur `get`/`set` : il refuse, et le dit, la sortie que `refusDeLaSortie` refuse, sinon
  *  joue le corps de la fenêtre (`sorties`), au quorum pour une sortie à quorum. */
-export function creerSortieDeFenetre(get: Get, set: Set, sorties: SortiesDeFenetre): Pick<ActionsDuNoyau, typeof VERBE_DE_SORTIE> {
+export function creerSortieDeFenetre(get: Get, set: Set, sorties: SortiesDeFenetre): Pick<ActionsDuNoyau, 'fenetreFermer'> {
   return {
     fenetreFermer: (fenetre) => {
       const refus = refusDeLaSortie(get(), fenetre);

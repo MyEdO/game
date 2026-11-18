@@ -44,7 +44,6 @@ import {
 import { maladresseCourante, stepInteraction } from './cascade';
 import type { HostJet } from './slotsDeJet';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';
-import { VERBE_DE_SORTIE, VERBE_DE_VALIDATION } from './actionsDuNoyau';
 import { influencesLocally, ownsLocal } from './netOwnership';
 import { seatOwns } from './sieges';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
@@ -149,7 +148,7 @@ const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
 export const TOUT_RESOUDRE: GesteDuJeu = { verbe: NOM_DU_VERBE_DE_JET.lancer, flux: 'cascade', toutes: true };
 
 /** La navigation de la cascade : valider l'étape (la clôture de son flux), tout résoudre, terminer le bilan (sa sortie). */
-export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.valider, flux: 'cascade' }, TOUT_RESOUDRE, { verbe: VERBE_DE_SORTIE, fenetre: 'cascade' }];
+export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.valider, flux: 'cascade' }, TOUT_RESOUDRE, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
 
 /** Les gestes `gestes`, chacun une fois (`cleDuGeste`), dans leur premier ordre. */
 const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(gestes.map((g) => [cleDuGeste(g), g])).values()];
@@ -189,8 +188,8 @@ const gestesDuDrive = (pol: AutoPolicy): readonly GesteDuJeu[] => (pol.mode === 
 /** Les gestes d'issue d'une fenêtre qui les déclare : sa validation (`validation` : `fenetreValider`), puis sa sortie
  *  (`sortie` : `fenetreFermer`), la fenêtre en argument. */
 const issuesDe = (def: ModalDef | HorsModalDef | SurfaceHorsPendingDef): GesteDuJeu[] => [
-  ...(def.validation ? [{ verbe: VERBE_DE_VALIDATION, fenetre: def.key as FenetreAValider }] : []),
-  ...(def.sortie ? [{ verbe: VERBE_DE_SORTIE, fenetre: def.key as FenetreQuiSeFerme }] : []),
+  ...(def.validation ? [{ verbe: 'fenetreValider' as const, fenetre: def.key as FenetreAValider }] : []),
+  ...(def.sortie ? [{ verbe: 'fenetreFermer' as const, fenetre: def.key as FenetreQuiSeFerme }] : []),
 ];
 
 /** Les choix d'une fenêtre (`fenetreChoisir`), un par axe que `ChoixDesFenetres` lui déclare. */

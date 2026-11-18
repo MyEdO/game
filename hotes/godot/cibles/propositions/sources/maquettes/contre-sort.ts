@@ -1,35 +1,42 @@
 /**
  * Le contre-sort (#4411) : le Chamane gobelin incante Fléchette sur Berta ; Ilyanwe déclare son Contre-sort avant les
- * jets (LDB 46 l.156 ; `reglage.contreSort.declaration`, fiche `user-doctrine-declaration-avant-jets`), seule, unie à un
- * lanceur du même Domaine (LDB 46 l.162) ou en passant, puis son jet opposé tombé, sur la cour (`../../combat-suite.md`,
- * sections `contre-sort`).
+ * jets (LDB 46 l.156 ; fiche `user-doctrine-declaration-avant-jets`), seule, unie à un lanceur du même Domaine (LDB 46
+ * l.162) ou en passant, puis son jet opposé tombé, sur la cour (`../../combat-suite.md`, sections `contre-sort`).
  */
-import { ligne } from '../../../../../../src/hote/elements';
-import { apresLeDe, BERTA, cartes, CHAMANE, fenetreSurLeDome, ILYANWE, jet, ORC, reglageDe, RESERVES, reserves, type TourDuDome } from './dome';
-import type { Ecran } from './maquette';
+import { apresLeDe, COMBATTANTS, RESERVES, reserves, TOUR } from './dome.ts';
+import type { Ecran } from './maquette.ts';
 
-const TOUR: TourDuDome = {
-  tour: 'Round 1 · tour 3 sur 4', suite: [ILYANWE, BERTA], round: 'Round 2', ordre: [ORC, CHAMANE],
-  journal: ['Ilyanwe la Voilée lance Fléchette sur Orc.', 'Berta se met en Défensive.', 'Chamane gobelin incante Fléchette sur Berta.'],
-};
+const COMBAT = TOUR(3, 4, ['chamane', 'orc'], ['Ilyanwe la Voilée lance Fléchette sur Orc.', 'Berta se met en Défensive.', 'Chamane gobelin incante Fléchette sur Berta.']);
+const COUR = { etat: 'jet-de-defense', marques: ['vise' as const] };
 
 export default {
   etats: [
-    fenetreSurLeDome('contre-sort-declaration', 'Contre-sort, la déclaration avant les jets', 'jet-de-defense', TOUR, {
-      titre: 'Contre-sort',
-      corps: [ligne('annonce', 'Fléchette', 'neutre', 'Chamane gobelin · Cible : Berta')],
-      reglages: [cartes(reglageDe('contreSort', 'declaration'), 'Déclarer le Contre-sort', [
-        ['seul', 'Contrer seul', 'Langue (Magick) ≤ 85 contre ≤ 52\nBerta à 6 m · portée 62 m'],
-        ['unir', 'S’unir', 'Test Soutenu, même Domaine', 'Aucun lanceur du même Domaine à portée.'],
-        ['passer', 'Passer', 'Un seul Contre-sort par Round'],
-      ], 0)],
-      gestes: [],
-    }),
-    fenetreSurLeDome('contre-sort', 'Contre-sort, les jets opposés tombés', 'jet-de-defense', TOUR, {
-      titre: 'Contre-sort',
-      corps: [ligne('arme', 'Fléchette'), ligne('cible', 'Cible : Berta'), jet('jet', ILYANWE, 'Langue (Magick)', '≤ 85', { resultat: '42', dr: '+4', reussite: true }),
-        jet('defense', CHAMANE, 'Langue (Magick)', '≤ 52', { resultat: '37', dr: '+2', reussite: true }), ligne('drNet', 'DR net +2'), ligne('issue', 'Contre-sort d’Ilyanwe la Voilée : le Sort est dissipé.')],
-      gestes: apresLeDe('contreSort', { reussi: true, chance: RESERVES.ilyanwe.chance, resilience: RESERVES.ilyanwe.resilience }), reserves: reserves(RESERVES.ilyanwe),
-    }),
+    {
+      nom: 'contre-sort-declaration', gabarit: 'fenetre-du-bas', cour: COUR, combattants: COMBATTANTS, combat: COMBAT,
+      fenetre: {
+        titre: 'Contre-sort',
+        centre: {
+          role: 'choix', annonce: { sort: 'Fléchette', lanceur: 'chamane', cible: 'berta' },
+          groupes: [{
+            cartes: [
+              { nom: 'Contrer seul', detail: [{ test: 'Langue (Magick)', seuil: 85, contre: 52 }, { qui: 'berta', distance: 6, portee: 62 }], choisie: true },
+              { nom: 'S’unir', detail: ['Test Soutenu, même Domaine'], refus: 'Aucun lanceur du même Domaine à portée.' },
+              { nom: 'Passer', detail: ['Un seul Contre-sort par Round'] },
+            ],
+          }],
+        },
+        gestes: [{ libelle: 'Déclarer', principal: true }, { libelle: 'Annuler' }], reserves: [],
+      },
+    },
+    {
+      nom: 'contre-sort', gabarit: 'fenetre-du-bas', cour: COUR, combattants: COMBATTANTS, combat: COMBAT,
+      fenetre: {
+        titre: 'Contre-sort',
+        heros: { role: 'testeur', qui: 'ilyanwe', test: 'Langue (Magick)', seuil: 85, jet: { des: [40, 2], dr: 4, reussite: true } },
+        centre: { role: 'verdict', porte: { arme: 'Fléchette', cible: 'berta' }, drNet: 2, issue: 'Contre-sort d’Ilyanwe la Voilée : le Sort est dissipé.' },
+        autre: { role: 'testeur', qui: 'chamane', test: 'Langue (Magick)', seuil: 52, jet: { des: [30, 7], dr: 2, reussite: true } },
+        gestes: apresLeDe(RESERVES.ilyanwe), reserves: reserves(RESERVES.ilyanwe),
+      },
+    },
   ],
 } satisfies Ecran;

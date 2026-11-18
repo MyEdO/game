@@ -128,7 +128,7 @@ export { fermerLeSiege, siegeDe, siegesDeLaTable, siegesOfferts } from './sieges
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
 export { DESIGNATIONS, type Designation } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
-export { CLIC_DU_CHAMP, VERBE_DE_SORTIE, VERBE_DE_VALIDATION, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
+export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
 export { capDuGroupe, casesDuGroupe, porteurParId, PARTY_MAX } from './monde/combatants';
 export { labelEmplacement, seatSlotsOf, type SeatOccupant } from './monde/seating';
 export { assoirALaPlace, ECRITURES_DES_PORTEURS, retraitOffert, type PatchDeZone } from './sceneEdit';
@@ -342,7 +342,7 @@ export {
 } from './libelles';
 export { argumentsPosesDuGeste, fermeturesDeLaFenetre } from './verbesOuverts';
 export { cleDuGeste, type GesteDuJeu } from './modalArbiter';
-export { NOM_DU_VERBE_DE_JET, verbeDeJetDe, viseUneRangee, type FlowKey } from './flowVerbs';
+export { verbeDeJetDe, viseUneRangee, type FlowKey } from './flowVerbs';
 export { FERMETURES_DITES } from './rollFlowFactory';
 export { effetDuGeste, reglagesDesElements, type Reglage, type ValeurDuReglage } from './reglages';
 export { declarationDuReglageNomme, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE } from './reglagesDuJet';

@@ -25,9 +25,11 @@ const RACINE = new URL('../../', import.meta.url);
 const DOSSIERS = HOTES_DU_NOYAU.map(dossierDe).filter((d) => existsSync(new URL(d, RACINE)));
 
 /** Les fichiers de code des hôtes, relatifs à la racine du dépôt : TypeScript ou GDScript, ni test, ni table de test, ni
- *  cible générée. */
+ *  cible générée, ni cible de design (`hotes/godot/cibles/`, #4411 : des maquettes qui écrivent leurs gestes en donnée,
+ *  pas du code d'hôte). */
 const fichiersDesHotes = (): string[] =>
-  DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.(ts|gd)$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && !/\.generated\.ts$/.test(f) }).map((f) => `${d}/${f}`));
+  DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.(ts|gd)$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && !/\.generated\.ts$/.test(f) }).map((f) => `${d}/${f}`))
+    .filter((f) => !f.startsWith('hotes/godot/cibles/'));
 const estGdscript = (f: string): boolean => f.endsWith('.gd');
 
 /** Un id d'une chaîne, et s'il suit un `@` : la fenêtre d'un id de geste (`'<verbe>@<clé>#axe'`). */

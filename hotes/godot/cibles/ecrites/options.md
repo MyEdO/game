@@ -1,7 +1,7 @@
 # Cible de finition des options (#3935), 2026-11-18
 
 Maquettes : `maquettes/options.png`, `options-chance.png`, `options-verrou.png`, rendues à l'échelle 1 depuis leur
-source : `propositions/sources/maquettes/options.ts` (les zones des réglages du noyau, dessinées par `rendu.html`) pour
+source : `propositions/sources/maquettes/options.ts` (l'état écrit au format de `maquette.ts`, dessiné par `rendu.html`) pour
 la première, `propositions/sources/accueil-et-systeme/options-*.html` (`options.css`, `options.js`) pour les deux autres. Les cotes, polices,
 couleurs et l'ordre des pièces se lisent à la source ; l'image ne sert qu'au côte à côte. Compte rendu :
 `propositions/accueil-et-systeme.md`, section `options`. Choix de Laurent du 2026-11-18 : « Ok le suivant c est la

@@ -292,3 +292,27 @@ el(S, 'rect', { x: 0, y: 0, width: 330, height: H, fill: 'url(#gauche)' });
 el(S, 'ellipse', { cx: 1640, cy: 600, rx: 430, ry: 260, fill: 'url(#droite)' });
 el(S, 'rect', { x: 0, y: 500, width: W, height: 280, fill: 'url(#bas)' });
 if (FIN || VAR === 'fiche') el(S, 'rect', { width: W, height: H, fill: '#06040a', opacity: FIN ? .66 : .42 });
+
+/* les marques de la suite du combat que l'écran nomme (`#ecran` : `data-marques`) : la cible passée au Tireur gobelin
+   (sa case et son halo), sa case cernée d'une cible supplémentaire, le Dôme sur son pion */
+{
+  const MARQUES = (ECRAN.dataset.marques ?? '').split(' ').filter(Boolean);
+  const CASE_CIBLE = S.querySelector('path.case-cible');
+  const HALO = S.querySelector('ellipse[fill="#e0553a"]');
+  const PIONS = HALO?.parentNode;
+  const sousLesPions = (tag, attrs) => S.insertBefore(el(S, tag, attrs), PIONS);
+  const surLesPions = (tag, attrs) => S.insertBefore(el(S, tag, attrs), PIONS.nextSibling);
+  if (MARQUES.includes('vise')) {
+    const [x, y] = P(...GOBELIN);
+    CASE_CIBLE.setAttribute('d', caseDeCible(...GOBELIN).d);
+    HALO.remove();
+    sousLesPions('ellipse', { cx: x, cy: y, rx: 42, ry: 20, fill: '#e0553a', opacity: .5, filter: 'url(#f6)' });
+  }
+  if (MARQUES.includes('cerne')) sousLesPions('path', caseDeCible(...GOBELIN));
+  if (MARQUES.includes('dome')) {
+    const [x, y] = P(...GOBELIN);
+    grad('dome', [[0, '#bcd3ff', .05], [.7, '#8fb0f0', .16], [1, '#dbe6ff', .5]], { cx: .5, cy: .9, r: .9 }, 'radialGradient');
+    surLesPions('path', { d: `M${x - 66},${y + 2}A66,30 0 0 0 ${x + 66},${y + 2}`, fill: 'none', stroke: '#dbe6ff', 'stroke-width': 1, 'stroke-opacity': .5, 'stroke-dasharray': '3 5' });
+    surLesPions('path', { d: `M${x - 66},${y + 2}A66,74 0 0 1 ${x + 66},${y + 2}A66,30 0 0 1 ${x - 66},${y + 2}Z`, fill: 'url(#dome)', stroke: '#dbe6ff', 'stroke-width': 1.3, 'stroke-opacity': .75 });
+  }
+}

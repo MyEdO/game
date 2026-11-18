@@ -1,28 +1,35 @@
 /**
- * Le début du round (#4411) : la fenêtre `debutDuRound`, « Agir en premier » telle que le dôme la sert, puis avec la
- * préemption du Tir rapide (LDB 11 l.97-103 ; `verbe.debutDuRound.viser`, `valeur.viser.aucun`,
- * `src/noyau/choixDeFenetre.ts:358-364`), sur la cour (`../../combat.md`, section `debut-du-round`).
+ * Le début du round (#4411) : « Agir en premier » (LDB 17 l.25), puis avec la préemption du Tir rapide (LDB 11
+ * l.97-103), sur la cour (`../../combat.md`, section `debut-du-round`).
  */
-import { VERBE_DE_VALIDATION } from '../../../../../../src/noyau/index';
-import { BERTA, cartes, choixDe, fenetreSurLeDome, geste, ILYANWE, ORC, reserve, RESERVES, TIREUR } from './dome';
-import { BUSTES_DU_DOME, type Ecran } from './maquette';
-import { ligne } from '../../../../../../src/hote/elements';
+import { COMBATTANTS, DIT, RESERVES } from './dome.ts';
+import type { Combat, Ecran, Fenetre } from './maquette.ts';
+
+/** Le deuxième round qui débute : aucun combattant n'a encore la main. */
+const ROUND_2: Combat = { round: 2, tour: null, ordre: ['ilyanwe', 'berta', 'gobelin', 'orc'], suivant: ['ilyanwe', 'berta'], journal: [DIT.tir, 'Orc s’avance vers Ilyanwe la Voilée.', { round: 2 }] };
+/** Ce qui se dépense et se presse au début du round. */
+const SUITES: Pick<Fenetre, 'gestes' | 'reserves'> = { gestes: [{ libelle: 'Commencer le round', principal: true }], reserves: [{ nom: 'Chance', valeur: RESERVES.berta.chance, porteur: 'berta' }] };
+const BERTA_EN_PREMIER = { qui: 'berta', detail: ['Soldate'], marque: { nom: 'Chance', valeur: 1 } };
 
 export default {
   etats: [
-    { nom: 'debut-du-round', planche: 'combat-debut-du-round', gabarits: ['combat', 'fenetre-du-bas'], decor: { scene: 'cour', variante: 'debut-du-round', bustes: BUSTES_DU_DOME } },
-    fenetreSurLeDome('debut-du-round-tir-rapide', 'début du round, la préemption du Tir rapide', 'debut-du-round-tir-rapide', {
-      tour: 'Round 2', suite: [], round: 'Round 3', ordre: [ORC, TIREUR, BERTA, ILYANWE], sansActif: true,
-      journal: ['Tireur gobelin tire sur Berta et la manque.', 'Orc s’avance vers Ilyanwe la Voilée.', 'Round 2'],
-    }, {
-      titre: 'Début du round',
-      corps: [ligne('annonce', 'Round 2', 'neutre', 'le round débute')],
-      reglages: [
-        cartes(choixDe('debutDuRound', 'promouvoir'), 'Agir en premier', [[BERTA, 'Berta', 'Soldate · 1 Chance']], -1),
-        cartes(choixDe('debutDuRound', 'viser'), 'Préempter · Tir rapide', [[null, 'Aucune visée', ''], [BERTA, 'Berta', 'Arbalète chargée\nAction et Mouvement']], 1),
-      ],
-      gestes: [geste({ verbe: VERBE_DE_VALIDATION, fenetre: 'debutDuRound' }, 'Commencer le round', { focus: true })],
-      reserves: reserve('chance', 'Chance de Berta', RESERVES.berta.chance),
-    }),
+    {
+      nom: 'debut-du-round', gabarit: 'fenetre-du-bas', cour: { etat: 'debut-du-round' }, combattants: COMBATTANTS, combat: ROUND_2,
+      fenetre: { titre: 'Début du round', centre: { role: 'choix', annonce: { round: 2, sous: 'Agir en premier' }, groupes: [{ cartes: [{ ...BERTA_EN_PREMIER, choisie: true }] }] }, ...SUITES },
+    },
+    {
+      nom: 'debut-du-round-tir-rapide', gabarit: 'fenetre-du-bas', cour: { etat: 'debut-du-round-tir-rapide' }, combattants: COMBATTANTS, combat: ROUND_2,
+      fenetre: {
+        titre: 'Début du round',
+        centre: {
+          role: 'choix', annonce: { round: 2, sous: 'le round débute' },
+          groupes: [
+            { libelle: 'Agir en premier', cartes: [BERTA_EN_PREMIER] },
+            { libelle: 'Préempter · Tir rapide', cartes: [{ nom: 'Aucune visée', detail: [] }, { qui: 'berta', detail: ['Arbalète chargée'], marque: { nom: 'Action et Mouvement' }, choisie: true }] },
+          ],
+        },
+        ...SUITES,
+      },
+    },
   ],
 } satisfies Ecran;
