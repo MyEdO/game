@@ -87,19 +87,9 @@ export const totalDuDe = (dc: DiceSpec, naturel: number): number => naturel * (d
 export const rollDice = (dc: DiceSpec, rng: RNG): number => totalDuDe(dc, roll(dc.n, dc.sides, rng));
 
 /** Écriture canonique d'un `DiceSpec` (« 1d10 », « 3d10+5 », « 1d10×2,5+100 ») — formateur
- *  d'affichage/édition. */
+ *  d'affichage. */
 export const formatDice = (dc: DiceSpec): string =>
   `${dc.n}d${dc.sides}${dc.fois !== undefined ? `×${String(dc.fois).replace('.', ',')}` : ''}${dc.plus ? (dc.plus > 0 ? `+${dc.plus}` : `${dc.plus}`) : ''}`;
-/** Inverse de `formatDice` : « NdM(×F)(+P) » → `DiceSpec` (N implicite = 1, F décimal à virgule ou
- *  à point). null si non reconnu (authoring). */
-export function parseDice(s: string): DiceSpec | null {
-  const m = s.trim().match(/^(\d*)\s*d\s*(\d+)\s*(?:×\s*(\d+(?:[.,]\d+)?)\s*)?([+-]\s*\d+)?$/i);
-  if (!m) return null;
-  const dc: DiceSpec = { n: m[1] ? parseInt(m[1], 10) : 1, sides: parseInt(m[2], 10) };
-  if (m[3]) dc.fois = parseFloat(m[3].replace(',', '.'));
-  if (m[4]) dc.plus = parseInt(m[4].replace(/\s+/g, ''), 10);
-  return dc;
-}
 
 /** Valeur authorée TIRÉE au dé (`tirageSchema`, `src/data/schemas/grammaire/valeurs.ts`). #1652 */
 export interface Tirage { dice: DiceSpec }
