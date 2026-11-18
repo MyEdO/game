@@ -88,15 +88,15 @@ func eclairer(lumiere: Dictionary, plateau: Dictionary) -> void:
 	_environnement.fog_light_color = Color(lumiere.brume.couleur)
 	_environnement.volumetric_fog_enabled = rendu_complet()
 	_brume = lumiere.brume
-	_poser_le_hors_carte(lumiere.horsCarte, Color(lumiere.brume.couleur), plateau)
+	_poser_le_hors_carte(lumiere.horsCarte, plateau)
 	_poser_les_sources(lumiere.sources, plateau.metresParCase)
 
 
 ## Le sol du hors-carte `hors_carte` (`horsCarte` de la vue) autour du plateau `plateau`, qu'il déborde
 ## (`MiseEnPage.centre_du_hors_carte`, `etendue_du_hors_carte`) : sa matière habillée comme le dessus d'une case
-## (`VolumeDeScene.texturer`) si sa texture est au projet, sinon sa couleur, comme une case, perdue dans la `penombre`
-## en `fonduCases` cases depuis le bord, ou dans la seule brume ; aucun sans sol.
-func _poser_le_hors_carte(hors_carte: Dictionary, penombre: Color, plateau: Dictionary) -> void:
+## (`VolumeDeScene.texturer`) si sa texture est au projet, sinon sa couleur, comme une case, effacée dans le fond en
+## `fonduCases` cases depuis le bord, ou dans la seule brume ; aucun sans sol.
+func _poser_le_hors_carte(hors_carte: Dictionary, plateau: Dictionary) -> void:
 	_hors_carte.visible = hors_carte.sol != null
 	if hors_carte.sol == null:
 		return
@@ -112,7 +112,6 @@ func _poser_le_hors_carte(hors_carte: Dictionary, penombre: Color, plateau: Dict
 	sol_hors_carte.set_shader_parameter("metres_par_case", plateau.metresParCase)
 	sol_hors_carte.set_shader_parameter("plateau", Vector2(taille))
 	sol_hors_carte.set_shader_parameter("fondu_cases", 0.0 if hors_carte.fonduCases == null else hors_carte.fonduCases)
-	sol_hors_carte.set_shader_parameter("penombre", penombre)
 
 
 ## Un foyer par source de `sources`, réconcilié par sa clé (`cle`) : celui d'une source déjà posée reste, à son point,
