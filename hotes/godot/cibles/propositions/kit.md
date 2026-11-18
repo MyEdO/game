@@ -67,7 +67,7 @@ leurs matrices telles quelles : ce sont des images, pas des teintes.
 
 Police des chiffres : une seule classe `.chiffres` (`"Chiffres"` = Open Sans SemiBold, celle du jeu Godot, lue à
 `../../projet/polices/OpenSans-SemiBold.ttf`) ; Grenze pour le chiffre d'un disque ou d'un sceau. Écartées : `.lin`
-et `.lineale` (Inter). Voir § 6, point 1.
+(la même police sous un second nom) et `.lineale` (Inter). Voir § 6, point 1.
 
 ## 2. Pièces : valeur retenue, valeurs écartées, raison
 
@@ -75,7 +75,7 @@ et `.lineale` (Inter). Voir § 6, point 1.
 |---|---|---|---|
 | **Cadre** (`.cadre`, `.fond`, ferrures, clou) | `S/gestes.css:25-34` tel quel ; liseré du fond = `--filet-or`, y compris sur `.fond.bois` | `commun.css:4` (liseré `.3`, ombre intérieure `30px` noire) | une seule règle de fond ; l'écart `.3`/`.35` ne se voit pas |
 | **Cadre : fonction** | `cadre(id, x, y, w, h, matiere, contenu, { ruban, classe, tete })` de `S/heros/heros.js:46`, montée dans `gestes.js` | assemblages à la main de `titre`, `bandeau`, `rail` (`commun.js:120-135`), `meuble` (`socle.js:76`), `bandeauDuJet` (`jet.js:14`) | seule fonction existante, déjà la plus générale |
-| **Clous d'un meuble** | `clouer(cases)` : sans `cases`, le rythme du meuble (haut .0593 .2797 .7203 .9407, bas + .5 ; y = 3) ; avec `cases`, celui d'un bandeau de `cases` héros (.05, chaque séparation, .945, haut et bas : .05 .25 .5 .75 .945 pour quatre) | positions en pixels du bandeau (`commun.js:144`) ; `clouer` logé dans `jet.js:19` | les clous `quarts` tombent sur les séparations des quatre héros : deux rythmes réels, pas un |
+| **Clous d'un meuble** | `clouer(cases)` : sans `cases`, le rythme du meuble (haut .0593 .2797 .7203 .9407, bas + .5 ; y = 3) ; avec `cases`, celui d'un bandeau de `cases` héros (.05, chaque séparation, .945, haut et bas : .05 .25 .5 .75 .945 pour quatre) | positions en pixels du bandeau (`commun.js:144`) ; `clouer` logé dans `jet.js:19` | les clous `quarts` tombent sur les séparations des quatre héros : deux rythmes réels, pas un. **Clous et ruban** : le ruban se dessine au-dessus de tout son cadre, clous compris, et aucun clou du haut ne reste à moins de 12 px d'un bord du ruban (queues comprises) : `cadre(…, { ruban })` retire ce clou, il ne le déplace pas. Les clous du bas ne sont jamais touchés |
 | **Grain** | opacité `.2`, posée par `#grain` en CSS ; `monter(pieces)` unique = pose des pièces + grain, sans clou | `.3` en ligne (`socle.js:100`) ; `monter` à clous (`socle.js:97-101`, `commun.js:141-146`) | `.2` sert 97 pages et laisse les petits corps italiques nets ; les clous relèvent du gabarit, qui appelle `clouer` |
 | **Dégradé `vignette`** | `#000` 0 à .5, .4 à .82, **.8** à 1 ; centre .5/.44, rayon .74 | .82 (`commun.js:9`) | écart invisible ; valeur du socle le plus ancien |
 | **Dégradé `haut`** | `#000` **.6** → 0 | `#080a14` .78 (`socle.js:10`) | le bleu nuit est le ciel de la cour, pas une matière : il assombrirait les 97 scènes de jour ; la cour le repose dans `cour.js` si elle le veut |
@@ -88,8 +88,8 @@ et `.lineale` (Inter). Voir § 6, point 1.
 | **Plaque : survol** | repos + texte `--or-eclat`, liseré intérieur `--filet-or-vif`, halo `0 0 8px var(--halo)` | aucun état dessiné dans les maquettes ; Godot a `bouton-survol` | l'état manquait : il annonce l'armé sans le plagier, avec les jetons existants |
 | **Plaque : armée** | linéaire `--or-eclat` / `--or-moyen` 55 % / `--or-sombre`, texte `--encre`, intérieur `inset 0 0 0 1px` + arête `inset 0 1px 0 var(--reflet-vif)`, extérieur `0 2px 4px` + halo `0 0 14px var(--halo)` | creux `inset 0 2px 5px rgba(60,35,5,.55)`, portée `0 1px 2px` (`combat.css:65-66`) ; halo .45 (`commun.css:32`) ; sans halo (`jet.css:27`) | l'arête claire dit « laiton plein » ; le creux la faisait lire comme enfoncée, et `jet.css:28` le défaisait déjà |
 | **Plaque : fermée** | radial `--fer-mat` → `--fer-sombre`, texte et pictogramme `--eteint`, sans arête | `#2a2824` / `#141311` (`commun.css:34`) ; pictogramme `#7d7668` (`socle.js:52`) | mêmes teintes que le bouton rond fermé (`gestes.css:84`) ; libellé et pictogramme d'une même teinte |
-| **Plaque : prix** | `.prix` à droite (`margin-left:auto`), `.lineale` 12.5 px | Open Sans 600 (`commun.css:35`) | police de chiffres unique |
-| **Plaque : carte** | `262 × 92`, contenu à gauche, écart 13, portrait `moyen`, nom gothique 20/23, sous-titre Spectral 13/17 (`jet.css:66-74`) | portrait `54 × 66` (`jet.css:68`) → `moyen` 48 × 58 | une seule source ; le portrait rejoint l'échelle |
+| **Plaque : prix** | `.prix` à droite (`margin-left:auto`), `.chiffres` 12.5 px | `.lineale` (Inter) ; `font-family` écrite en ligne (`commun.css:35`) | police de chiffres unique (§ 1) |
+| **Plaque : carte** | hauteur fixe **92**, largeur élastique de **200 à 262** : les cartes d'une rangée se partagent à parts égales la place du centre, écart 9 ; contenu à gauche, écart 13, portrait `moyen`, nom gothique **16/19** et sous-titre Spectral **13/16**, chacun sur deux lignes au plus, avec ou sans portrait. Sous 200 de large la rangée n'existe plus : les choix se lisent en liste (fenêtre de 266) | largeur fixe 262 et nom 20/23 sur une ligne (`jet.css:66-74`) ; portrait `54 × 66` (`jet.css:68`) → `moyen` 48 × 58 ; tailles de texte reposées par le rendu (`rendu.css:28-29`) | trois cartes de 262 ne tiennent pas entre les deux camps d'une fenêtre de 960 ; une seule taille de texte, lisible à 200 comme à 262. C'est la seule pièce du kit qui s'étire, et seulement en largeur |
 | **Plaque : variantes** | `.gauche` (contenu à gauche) gardée ; `plaque(libelle, { armee, fermee, survol, icone, numero, prix, taille, classe, style })` ; `numero` : la touche en tête, rond `--lit` de 19 px liseré `--filet-or-vif` (réponses du dialogue, sorts rapides) | signature sans `prix`/`style` (`socle.js:52`) | l'union des deux signatures, compatibles |
 | **Bouton rond : gabarit** | `gestes.css:80-84` tel quel ; pictogramme `--or` ; fermé = fer, pictogramme `--eteint` ; armé (outil ouvert) = laiton plein, pictogramme `--encre`, halo `0 0 14px var(--halo-vif)` ; survol = halo `0 0 8px var(--halo)` | fermé `#7d7668` (`socle.js:51`, `commun.js:113`, `gestes.js:27`) | une teinte d'éteint ; l'armé reprend `combat.css:112-114` |
 | **Bouton rond : échelle** | `menu` **20** (marge 2, picto 11 trait 3) · `petit` **34** (marge 3, picto 18) · `moyen` **44** (marge 4, picto 20) · `grand` **52** (marge 4, picto 24) · `maitre` **92** (marge 5, picto 44) | 16 (`jet.css:59`), 24 → `menu` ; 30 (`combat.css:85`), 32, 36, 38 (`combat.css:77`) → `petit` ; 40 (`gestes.css:57`) → `moyen` ; 50 (`commun.css:63`) → `grand` | treize tailles pour cinq rôles : réglage, outil, coin de panneau, sortie de lieu, fin du tour |
@@ -107,7 +107,10 @@ et `.lineale` (Inter). Voir § 6, point 1.
 | **Sceau** | radial `circle at 38% 30%`, `--cire-clair` → `--cire` 50 % → `--cire-sombre`, rayon `48% 52% 55% 45% / 52% 46% 54% 48%`, ombre et reliefs de `commun.css:19` ; contenu : pictogramme `--encre-cire` trait 1.9, ou chiffre Grenze 600 ; états `reussite` (verts) et `vide` (empreinte, `jet.css:30`) | `#d2553a` → `--cire-clair` ; deux règles identiques (`combat.css:57`, `commun.css:19`) ; `.resultat` à part (`jet.css:19`) | le résultat du jet est le même sceau, plus grand |
 | **Sceau : échelle** | `menu` **20** (picto 12) · `petit` **28** (picto 15) · `moyen` **38** (picto 20) · `grand` **50** (picto 26, chiffre 27 px) · `maitre` **62** (picto 32) | 19 (`.etat-porte`), 22, 24 → `menu` ; 26 (`commun.css:19`), 30 (`combat.css:57`) → `petit` ; 58 (`recit.css:110`) → `maitre` ; pictos libres 11 à 17 | 26 et 30 tranchés au milieu : aucun des deux ne l'emporte, 28 existe déjà (`sauvegardes.css:17`) |
 | **Ruban** | marge `2px 26px 4px`, **14.5 px**, `--ivoire`, `--lie` → `--lie-sombre`, liseré `--filet-or`, queues 9 px ; centré sur son cadre (`left:50%`, `top:-9px`, `translateX(-50%)`) ; variante `gothique` **18 px**, marge `1px 34px 4px`, interlettrage .6 ; `ruban(texte, { gothique, style })` | marge 22, 14 px, non centré (`combat.css:5`) ; 19 px, `top:-6px` (`jet.css:29`) | centré est le cas de tous les cadres sauf un ; 18 et 19 ne se distinguent pas |
-| **Cartouche de titre** | `titre({ icone, nom, sous, largeur })` : cadre bois h 96, médaillon `grand` inerte, nom gothique 31/44 `--ivoire`, sous-titre rubrique 12.5 px `--creme-2`, écart 14 (`commun.css:38-46`, `commun.js:119`) | `#round` (`combat.css:12-15`, 66 de haut, 30 px) reste propre au combat | une seule définition existait ; elle monte telle quelle |
+| **Cartouche** | une pièce, deux tailles : `cartouche({ icone, nom, sous, marque, taille, largeur })`. `titre` : posé dans un cadre bois h 96 (104 avec la ligne de météo), médaillon `grand` inerte, nom gothique 31/44 `--ivoire`, sous-titre rubrique 12.5 px `--creme-2`, écart 14 ; `ligne` (défaut) : sans cadre, médaillon `moyen`, nom gothique 22/30, sous-titre rubrique 11.5 px, écart 11 ; sur parchemin `--sepia` / `--rouille` | la fonction `titre()` à part (`commun.css:38-46`, `commun.js:119`) ; `#round` (`combat.css:12-15`, 66 de haut, 30 px) reste propre au combat | même dessin (médaillon, nom gothique, sous-titre) à deux échelles : comme le portrait ou le sceau, une pièce et une échelle nommée |
+| **Signets** | `signets(sections, ouverte)` : colonne de fanions, chacun **160 × 38**, écart 4, pointe rentrante de 10 px à droite, `--lie` → `--lie-sombre`, liseré `--filet-or` ; libellé rubrique 13 px `--ivoire`, interlettrage .6 ; compte à droite en `.chiffres` 10.5 px ; marque de section modifiée : point de cire de 8 px après le libellé. Ouvert : **176** de large (il dépasse de 16 px), laiton armé, texte `--encre`, libellé 14.5 px. Quinze signets au plus à l'écran, puis la colonne défile | définition de page (`accueil-et-systeme/options.css:48-55`), montage dans `rendu.js:171` | c'est la forme verticale des onglets (`dispositions.md`, arbitrage 21) : pièce commune aux options et au compendium |
+| **Aperçu au survol** | `apercu({ nom, sous, corps, vers })` : parchemin, largeur **300**, la hauteur suit le texte, marge `11px 14px`, rayon 2, ombre portée `0 10px 22px var(--ombre)` ; tête : nom gothique 22/24 `--sepia`, à droite rubrique 12 px `--rouille` ; corps Spectral 14/19 ; pointe : losange de 16 px `--parchemin` sur le bord tourné vers l'élément survolé (`vers` : `gauche`, `droite`, `haut`, `bas`), à 12 px de lui | trois définitions et trois largeurs : `#apercu` (`combat.css:60-65`, 300), `.apercu` de `commun.css` (236), fiche d'un sort (322) | une largeur pour un rôle (`dispositions.md`, arbitrage 23) |
+| **Bannière d'issue** | `issue(texte)` : ruban large **560 × 150**, queues en pointe rentrante, `--lie` → `--lie-sombre`, deux liserés `--filet-or` (bord, et un cadre intérieur à 10 px), titre gothique **60 px** `--ivoire` centré ; une plaque `appel` centrée 28 px dessous | carton de 960 pour un simple verdict | « Victoire », « Défaite », « Repli » sont une annonce, pas un texte à lire : la bannière est le ruban à l'échelle de l'écran. Place : `dispositions.md`, gabarit 7 |
 | **Filets : famille** | une classe `.filet` : deux traits de 1 px (`::before`, `::after`) à opacité .5, teinte héritée : `--creme-2` sur bois, `--encre-2` sur parchemin, `--or` avec `.or`. Paramètres : `.fondu` (les traits s'éteignent vers les bords), `<i class="losange">` au milieu (écart 10). Marge par défaut `11px 0`. `filet({ fondu, losange, or })` | trois copies du dégradé crème (`voyage.css:21`, `interlude-en-ville.css:40`, `nuit-a-l-auberge.css:18`) ; `.page .filet` (`commun.css:111`, .42) ; `#feuille .filet` (`recit.css:103-105`, .6) ; `.orne` (`combat.css:219-221`, .45) ; `.filet-l` (`systeme.css:18-20`, .55) | quatre dessins = deux paramètres et une teinte de contexte |
 | **Losange** | `.losange` : plein, **7 px**, teinte du filet | 8 px (`systeme.css:20`) ; 6 px évidé, bord 1.2 px (`heros.css:45`) | plein partout ailleurs ; l'évidé de 6 px ne se lit pas à l'échelle 1 |
 | **Segments** | `.segments` : Fell SC 13 px, interlettrage **.8**, marge `3px 11px 4px`, rayon 3, contour `--trait-encre`, repos `--voile` + `--encre-2`, tenu = `--or-eclat` / `--or-moyen` 60 % / `--laiton` + `--encre`, séparation `--filet-encre` ; sur bois : repos `--lit` + `#a8997a` → `--creme-2`, contour `--contour` + `--filet-or` (`commun.css:157-164`) | `#a8997a` (`commun.css:153,162`) | `--creme-2` existe et se lit mieux sur le lit sombre |
@@ -189,7 +192,7 @@ libre : fer, fond sombre, pictogramme `plus` `--creme-2`.
 | `.orne`, `#feuille .filet` (`i` + `b`) | `filet({ losange: true })` |
 | `.filet-l` (+ `i`) | `filet({ losange: true })`, `filet({ losange: true, or: true })` à l'accueil ; le `::before` court de `accueil.css:5` reste une règle de page |
 | `.losange` (`heros.css:45`) | `<i class="losange">` du kit, marge de page gardée |
-| `class="lin"` | `class="lineale"` |
+| `class="lin"`, `class="lineale"` | `class="chiffres"` |
 | `clouer(b)` | `clouer()` ; bandeau des héros : `clouer(cases)` |
 | `monter(ui)` | `monter(pieces)` puis, dans le gabarit, `clouer` de son meuble |
 
@@ -200,17 +203,18 @@ voit pas à l'échelle 1.
 
 | Dossier | Pages touchées | Ce qui change |
 |---|---|---|
-| `combat/` (33) | toutes | plaques du meuble 44 → 40 et 15.5 → 15 px ; plaque armée à arête claire au lieu du creux ; haut de l'écran noir .6 au lieu de bleu nuit .78 ; grain .3 → .2 ; sceaux 30 → 28 ; outils du tour 38 → 34 ; ruban « Action » 14 → 14.5 px ; rangs : portraits 46×56 → 48×58, actif 66×80 → 74×92, fantôme inchangé (38×46), vie 5 → 6. Fiche (`fiche-*.html`) : chiffres des compteurs en Grenze au lieu de Lineale ; listes ouvertes : plaques 34 → 40 (`#liste` à rehausser de 18 px) |
+| `combat/` (33) | toutes | plaques du meuble 44 → 40 et 15.5 → 15 px ; plaque armée à arête claire au lieu du creux ; haut de l'écran noir .6 au lieu de bleu nuit .78 ; grain .3 → .2 ; sceaux 30 → 28 ; outils du tour 38 → 34 ; ruban « Action » 14 → 14.5 px ; rangs : portraits 46×56 → 48×58, actif 66×80 → 74×92, fantôme inchangé (38×46), vie 5 → 6. Fiche (`fiche-*.html`) : chiffres des compteurs en Grenze au lieu d'Inter ; toutes les autres valeurs d'Inter (`.lineale`) en Open Sans (`.chiffres`) ; listes ouvertes : plaques 34 → 40 (`#liste` à rehausser de 18 px) |
 | `combat-suite/` (36) | les 24 du socle combat : comme `combat/` ; les 12 du socle commun : comme `lieux-et-nuit/` | en plus, bandeau du jet (toutes celles qui lancent) : ronds de réglage des dés 16 → 20, ruban 19 → 18 px, portraits des testeurs 26×30 → 26×32, cartes : portrait 54×66 → 48×58 |
-| `voyage/` (21) | les 8 du socle combat : comme `combat/` ; les 13 du socle commun | pastille « ouvrir » 40 → 44 ; jauges 8 inchangées ; sceau du dé 62 inchangé ; chiffres `.lin` → Lineale |
-| `lieux-et-nuit/` (5) | toutes | pastilles de jet 26 → 20 ; sceaux 26 → 28 (soins : 22 → 20) ; coins 50 → 52 ; médaillons 38 → 40, postes 44 → 40 ; rail : plaques 38 → 40 (rail + 14 px) ; chiffres `.lin` → Lineale ; portraits du bandeau 74×94 → 74×92 |
-| `commerce/` (10) | toutes | comme `lieux-et-nuit/` ; prix des plaques en Lineale ; jauge de charge 7 → 8 ; sceau des refus 22 → 20 |
+| `voyage/` (21) | les 8 du socle combat : comme `combat/` ; les 13 du socle commun | pastille « ouvrir » 40 → 44 ; jauges 8 inchangées ; sceau du dé 62 inchangé ; chiffres `.lin` → `.chiffres` |
+| `lieux-et-nuit/` (5) | toutes | pastilles de jet 26 → 20 ; sceaux 26 → 28 (soins : 22 → 20) ; coins 50 → 52 ; médaillons 38 → 40, postes 44 → 40 ; rail : plaques 38 → 40 (rail + 14 px) ; chiffres `.lin` → `.chiffres` ; portraits du bandeau 74×94 → 74×92 |
+| `commerce/` (10) | toutes | comme `lieux-et-nuit/` ; prix des plaques en `.chiffres` ; jauge de charge 7 → 8 ; sceau des refus 22 → 20 |
 | `exploration-et-recit/` (14) | toutes | comme `lieux-et-nuit/` ; cachet de la feuille 58 → 62 ; filet à losange .6 → .5 |
 | `heros/` (21) | toutes | comme `lieux-et-nuit/` ; losanges de séparation évidés 6 → pleins 7 ; portraits de fiche 118×146 → 136×168 et 88×108 → 96×118 là où ils existent ; sceaux des possessions 20 inchangés |
-| `accueil-et-systeme/` (13) | toutes | coins 50 → 52 ; losange des filets 8 → 7 ; cachet de l'affiche 38 inchangé ; sceau de l'avis 28 inchangé ; chiffres en Lineale |
+| `accueil-et-systeme/` (13) | toutes | coins 50 → 52 ; losange des filets 8 → 7 ; cachet de l'affiche 38 inchangé ; sceau de l'avis 28 inchangé ; chiffres en `.chiffres` |
 | `outils/` (9) | toutes | comme `lieux-et-nuit/` ; sceau des refus 24 → 20 |
 
-Le changement le plus large est la police des chiffres (`.lin`, 84 emplois sur le socle commun) ; le plus visible à
+Le changement le plus large est la classe des chiffres : `.lin` (84 emplois sur le socle commun) change de nom sans
+changer de police, `.lineale` (socle combat) passe d'Inter à Open Sans ; le plus visible à
 l'œil, la plaque du meuble de combat et le haut d'écran sans bleu.
 
 ## 5. Ce que le migrateur retire de chaque socle
@@ -259,13 +263,11 @@ pictogramme tant que la classe n'est pas renommée `.compteur`.
 
 ## 6. Ce qui n'a pas pu être tranché seul
 
-1. **Police des chiffres.** Les maquettes en nomment trois : Open Sans / Noto Sans (`.lin`, absente de `S/polices/`,
-   mais c'est celle du jeu Godot, `police.tres`), Inter (`.lineale`, présente), Grenze dans les disques. Retenu ici :
-   Inter pour les valeurs, Grenze pour le chiffre d'un disque ou d'un sceau. Si le kit Godot garde Open Sans, la
-   planche ne lui ressemblera pas : à l'utilisateur de dire laquelle fait foi, et d'ajouter le fichier si c'est
-   Open Sans.
+1. **Police des chiffres : tranché.** Open Sans SemiBold, classe `.chiffres`, pour toute valeur ; Grenze pour le
+   chiffre d'un disque ou d'un sceau. Inter (`.lineale`) et le nom `.lin` sortent des 162 pages. *Raison :* c'est la
+   police du jeu Godot (`police.tres`), et la planche doit ressembler au jeu.
 2. **Chiffre des compteurs de la fiche.** La fiche validée (`../maquettes/fiche-du-heros.jpg`) les porte en linéale
-   18 px ; je les passe en Grenze pour n'avoir qu'un disque. C'est le seul arbitrage qui s'écarte d'une page jugée.
+   18 px (Inter) ; je les passe en Grenze pour n'avoir qu'un disque. C'est le seul arbitrage qui s'écarte d'une page jugée.
 3. **Haut d'écran du combat.** Le bleu nuit `#080a14` .78 figure sur les maquettes de combat validées. Je le sors du
    kit comme une lumière de scène ; s'il doit rester sur tous les combats, il revient à `cour.js`, pas au kit.
 4. **Hauteur de plaque.** 40 l'emporte au nombre ; le meuble de combat validé est à 44. Le kit Godot est à 42 / 46 :
@@ -273,7 +275,7 @@ pictogramme tant que la classe n'est pas renommée `.compteur`.
 5. **Survol.** Aucune maquette ne dessine l'état de survol d'une plaque ou d'un rond : celui du § 2 est une
    proposition, à juger sur la planche.
 6. **Doublons 7 et 8 de l'inventaire, tranchés au second passage** : un `cartouche({ icone, nom, sous, marque })` au
-   kit (médaillon `moyen`, nom gothique 22/30, sous-titre rubrique 11.5 px ; sur parchemin `--sepia` / `--rouille`), que
+   kit, à sa taille `ligne` (§ 2 : la taille `titre` est l'ancien `titre()`), que
    portent l'hôte posé dans la scène (`hote()` de `commun.js`, avec sa pointe), la ligne ouverte de la fiche et l'objet
    pris de la création ; un `rang(genre, { nom, gothique, sous, corps, fin })` au kit (nom rubrique 13.5 px, `gothique`
    19 px pour celui qui agit), que portent l'ordre du combat (`combattant()`), l'attribution du salon et les activités

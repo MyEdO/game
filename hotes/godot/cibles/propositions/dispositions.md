@@ -11,6 +11,9 @@ toutes les tailles sont réglées pour 720 de haut. Toutes les valeurs de ce doc
 rapport au dessin d'origine, la vue perd 427 px de large et 60 px de haut ; aucune pièce du kit n'est trop grande
 pour elle.
 
+**1280 × 720 est aussi le canevas du dessin** : pages, planches du kit et décor se dessinent à cette base, sans
+facteur ni recadrage (le décor est un 16:9 tendu sur la vue). 1707 × 780 n'est plus la base de rien.
+
 **Une place ne s'écrit jamais en x, y depuis le coin haut-gauche.** Elle s'écrit de l'une de ces quatre façons :
 
 | Ancrage | Écriture | Ce qui l'emploie |
@@ -27,7 +30,7 @@ gagnée. La vue ne descend jamais sous 1280 × 720 logiques ; un écran plus pet
 
 **Quand la largeur manque**, dans cet ordre : la pièce tendue rétrécit ; puis une colonne de trop devient un onglet
 de sa voisine ; puis le détail d'une ligne se pose par-dessus (aperçu, écran posé) au lieu d'occuper une colonne.
-Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
+Une pièce du kit ne rétrécit jamais (seule la carte de choix s'étire, de 200 à 262 de large) et rien ne défile de côté.
 
 ## Les règles qui valent pour toute l'application
 
@@ -40,10 +43,13 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 | **Action qui fait avancer** | toujours la première de sa rangée (à gauche, ou au-dessus si les plaques sont empilées) ; ce qui annule ou revient en arrière vient en dernier |
 | **Ruban d'un cadre** | à cheval sur le bord haut, 9 px au-dessus, centré sur le cadre |
 | **Grands cadres du bas** (bandeau des héros, fenêtre du bas, barre de combat, carton) | **largeur fixe 960, centrés**, ancrés au bas (1186 au dessin). Pas une proportion : il reste 160 px de chaque côté pour le retour, les pastilles, l'ordre d'initiative et la fin du tour ; sur un écran plus large ils gardent 960 |
-| **Panneaux latéraux** | largeur fixe, ancrés à leur bord (24 px) et au haut (20 px) ; leur hauteur suit leur contenu et s'arrête au plus tard à 164 px du bas, puis défile |
-| **Registre** | tendu : du panneau de gauche (ou de la marge gauche) à 24 px du bord droit, et jusqu'à 24 px du bas |
+| **Panneaux latéraux** | largeur fixe, ancrés à leur bord (24 px) et au haut (20 px) ; leur hauteur suit leur contenu et s'arrête au plus tard à la ligne basse, puis défile |
+| **Ligne basse** (limite du bas des panneaux latéraux et du fil) | elle dépend du cadre du bas : **164 px du bas** sous un bandeau ou une barre ; **20 px au-dessus d'une fenêtre du bas** (198, 240 ou 294 px du bas pour 170, 212, 266) ; **24 px du bas** quand l'écran n'a aucun cadre du bas (écran de gestion) |
+| **Registre** | tendu : du panneau de gauche (ou de la marge gauche) à 24 px du bord droit (186 px s'il porte des signets : 160 de signet, 2 d'écart), de **60 px du haut** jusqu'à 24 px du bas (80 px si l'écran a une action de coin : elle passe dessous) |
 | **Bulle de refus** | au-dessus de l'élément refusé, centrée sur lui, 11 px ; décalée seulement pour rester dans l'écran |
-| **Aperçu au survol** | une seule largeur : 300 px |
+| **Aperçu au survol** | une seule largeur : 300 px ; à côté de l'élément survolé, sa pointe vers lui, à 12 px ; décalé seulement pour rester dans l'écran |
+| **Signets** | colonne au bord droit du registre, 24 px du bord droit de l'écran, premier signet à 66 px du haut (sous la croix) |
+| **Action de coin** (elle concerne tout l'écran) | pile de plaques `moyenne` larges de 136, coin bas-droit, 24 / 28, écart 9 ; la principale au-dessus, la secondaire dessous. 136 parce que c'est ce qui reste à droite d'un cadre de 960 |
 
 ## Par type d'écran
 
@@ -53,7 +59,7 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 |---|---|
 | Titre | grand titre libre, 84 px du bord gauche |
 | Entrées | colonne de plaques, 88 px du bord gauche, sous le titre, la principale en tête |
-| Continuer (écrans de chapitre) | coin bas-droit, 24 / 28 |
+| Continuer (écrans de chapitre) | action de coin : « Continuer » au-dessus, « Plus tard » dessous (bas de la pile à 28 px du bas) |
 | Système | accueil : « Options » au bout de la rangée d'outils du bas ; menu : pastille 30 / 23 du coin bas-droit ; chapitres : aucune |
 | Groupe | bandeau centré, 960 × 152, à 8 px du bas |
 | Dans 1280 × 720 | tout tient : seule l'image perd de la largeur. Le bandeau passe de 296 à 240 px par héros |
@@ -64,9 +70,9 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 |---|---|
 | Titre | cartouche, 24 / 20 du coin haut-gauche, hauteur 96 |
 | Fermer | croix 22 / 18 ; pas de retour, pas de pastille du système |
-| Panneau de commande | à gauche, 24 px du bord, 20 px sous le cartouche, largeur gardée |
-| Sections | jusqu'à 6 : onglets horizontaux ; au-delà : signets verticaux au bord droit du registre |
-| Action principale | au pied de l'objet qu'elle concerne ; si elle concerne tout l'écran : coin bas-droit, 24 / 28 |
+| Panneau de commande | à gauche, 24 px du bord, 20 px sous le cartouche, largeur gardée ; panneau latéral sans cadre du bas : il descend jusqu'à 24 px du bas |
+| Sections | jusqu'à 6 : onglets horizontaux ; au-delà : signets verticaux au bord droit du registre, 15 au plus à l'écran puis ils défilent |
+| Action principale | au pied de l'objet qu'elle concerne ; si elle concerne tout l'écran : action de coin, sous le registre qui s'arrête alors à 80 px du bas |
 | Dans 1280 × 720 | le registre rétrécit seul (427 px de moins) et montre moins de lignes, qui défilent. S'il avait une colonne de détail (entrée du compendium, sauvegarde choisie), elle ne tient plus à côté de la liste : le détail se pose par-dessus le registre, fermé par sa croix |
 
 **3. Fiche** (fiche du héros, progression, création, dossiers, fiche d'un combattant)
@@ -78,7 +84,7 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 | Sections | onglets horizontaux à cheval sur le bord haut du panneau |
 | Fermer | croix 22 / 18 ; création : dans la frise, 51 / 27 ; en combat : 22 / 76 |
 | Journal et système | coin bas-droit, 30 / 23 et le journal 14 px au-dessus ; en combat : système seul en haut à droite |
-| Groupe | bandeau réduit en bas, centré |
+| Groupe | bandeau réduit en bas, centré, à 8 px du bas : même hauteur 152, une case de 240 par héros autre que celui de la fiche (720 pour trois) |
 | Action principale | au pied de son panneau, au-dessus de « Précédent » à la création |
 | Dans 1280 × 720 | l'identité perd 60 px, le profil rétrécit. Un panneau de section montre deux colonnes au plus : une troisième devient un onglet de plus (dans la limite de 6, puis signets). Création : choix à gauche et héros à droite gardent leur largeur, le détail tendu au milieu absorbe la perte |
 
@@ -95,7 +101,7 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 | Groupe | bandeau centré, 960 × 152, à 8 px du bas |
 | Retour | 30 / 34 du coin bas-gauche dès qu'on peut partir sans rien résoudre |
 | Journal et système | coin bas-droit, 30 / 23 et le journal 14 px au-dessus |
-| Fil des évènements | 24 px du bord droit, largeur 300, bas à 164 px du bas de l'écran ; il grandit vers le haut |
+| Fil des évènements | 24 px du bord droit, largeur 300, bas à la ligne basse (164 px du bas de l'écran au-dessus du bandeau) ; il grandit vers le haut |
 | Dans 1280 × 720 | c'est le décor qui paie : entre le récit et la colonne il reste 524 px de décor, 404 avec la grande page. Le fil et le panneau d'activité partagent la colonne de droite et ne se montrent jamais ensemble : le panneau ouvert replie le fil dans la pastille du journal |
 
 **5. Combat**
@@ -105,8 +111,8 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 | Titre | borne du round, 22 / 16 du coin haut-gauche |
 | Ordre d'initiative | colonne au bord gauche, sous la borne, dans la marge de 160 px, l'actif en bas |
 | Système | coin haut-droit, 22 / 18, 44 px |
-| Journal | libellé « Journal » + rond 34 px au-dessus du fil (24 px du bord droit, largeur 300, bas à 164 px du bas) |
-| Barre de l'actif | centrée, largeur 960, au bas ; valeurs à gauche, portrait au centre, actions à droite |
+| Journal | libellé « Journal » + rond 34 px au-dessus du fil (24 px du bord droit, largeur 300, bas à la ligne basse : 164 px du bas au-dessus de la barre, 20 px au-dessus d'une fenêtre du bas) |
+| Barre de l'actif | centrée, 960 × 138, bas à 8 px du bas de l'écran ; valeurs à gauche, portrait au centre, actions à droite |
 | Fin du tour | grand rond 92 px, coin bas-droit, 49 / 48 |
 | Dans 1280 × 720 | la barre perd 226 px : valeurs et portrait gardent leur place, les actions se rangent par familles en onglets au-dessus de leur rangée au lieu de s'étaler toutes. La colonne d'initiative montre moins de combattants et se replie par le haut. Le fil passe par-dessus le champ, sans fond plein |
 
@@ -121,7 +127,7 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 | Actions | rangée centrée, 22 px du bas de la fenêtre, la principale en premier |
 | Réserve dépensée | disques à gauche de la rangée d'actions |
 | Groupe | la fenêtre remplace le bandeau (hors combat) ou la barre (en combat) |
-| Dans 1280 × 720 | les deux camps gardent leur place, le centre rétrécit : trois cartes de choix côte à côte au plus ; à partir de quatre, la fenêtre prend la hauteur 266 et les choix se lisent en liste. Les hauteurs ne changent pas |
+| Dans 1280 × 720 | les deux camps gardent leur place, le centre rétrécit : trois cartes de choix côte à côte au plus, larges de 200 à 262 selon la place du centre (`kit.md`, § 2) ; à partir de quatre, la fenêtre prend la hauteur 266 et les choix se lisent en liste. Les hauteurs ne changent pas |
 
 **7. Récit, document et issue**
 
@@ -129,7 +135,7 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 |---|---|
 | Carton | centré, largeur 960, bas à 170 px du bas de l'écran (10 px au-dessus du bandeau, qui reste) ; il grandit vers le haut, jusqu'à 20 px du haut (530 de haut au plus), puis défile |
 | Action principale | centrée sous les cartes ou au pied du cadre, 22 px du bas du cadre |
-| Issue d'un combat | carton centré, action unique centrée dessous |
+| Issue d'un combat | bannière d'issue (`kit.md`, § 2) : 560 × 150, centrée, haut à 190 px du haut, action unique centrée 28 px dessous ; pas de bandeau. Ce que l'issue rend (gains, pertes) se lit ensuite dans une fenêtre du bas. Une issue qui porte un texte (bataille de masse) reste un carton |
 | Dans 1280 × 720 | le texte y gagne (lignes plus courtes) ; trois cartes côte à côte au plus, une quatrième ouvre une seconde rangée |
 
 **8. Outil d'édition**
@@ -161,8 +167,8 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
    Un cadre qui doit laisser le bandeau visible est un carton (type 7), posé au-dessus. *Changent :* dialogue et jet de
    compétence (la colonne du groupe à gauche disparaît). Bataille de masse (issue, test de puissance) : inchangées,
    rangées parmi les cartons. *Raison :* la colonne à gauche est le signe du combat.
-5. **« Continuer » sur un écran de passage.** Coin bas-droit, 24 / 28 ; la secondaire (« Plus
-   tard ») à sa droite, contre le bord. *Changent :* fin de chapitre et fin de séance (de bas-gauche à bas-droite).
+5. **« Continuer » sur un écran de passage.** Action de coin : pile de plaques larges de 136 à 24 / 28 du coin
+   bas-droit, « Continuer » au-dessus, « Plus tard » dessous (une rangée ne tient pas à droite du bandeau de 960). *Changent :* fin de chapitre et fin de séance (de bas-gauche à bas-droite).
    *Raison :* le bas-gauche est le retour ; on avance vers la droite, comme la fin du tour.
 6. **Action sous des cartes de choix.** Centrée, 22 px du bas du cadre. *Changent :* relâche en mer, conseil de bord,
    péril fluvial (plaque recentrée) ; document lu et relu (« Replier » centré au pied du bandeau). *Raison :* 60 pages
@@ -181,8 +187,8 @@ Une pièce du kit ne rétrécit jamais et rien ne défile de côté.
 10. **Ruban.** À cheval, 9 px au-dessus du bord, partout, fenêtre du bas comprise. *Changent :* les 19 pages
     d'ouverture, de gestion et de l'éditeur (34 rubans remontent de 9 px), dont salon en ligne et éditeur qui mêlaient
     les deux. *Raison :* c'est une erreur de montage, pas un choix.
-11. **Journal et chronique.** Un seul nom, « Journal », une seule colonne : 24 px du bord droit, largeur 300, bas à 164 px
-    du bas.
+11. **Journal et chronique.** Un seul nom, « Journal », une seule colonne : 24 px du bord droit, largeur 300, bas à la
+    ligne basse (164 px du bas, ou 20 px au-dessus d'une fenêtre du bas).
     Hors combat il se déplie par la pastille du journal, juste dessous ; en combat par le rond au-dessus du fil.
     *Changent :* les 4 pages d'exploration (« Chronique » renommée, 30 px plus étroite et recalée). *Raison :* même
     rôle, même colonne.
