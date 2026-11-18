@@ -23,17 +23,17 @@ const FLAMMES := {id = "sort-feu", fichiers = ["sort-feu-1.ogg", "sort-feu-2.ogg
 const CASES := [{x = 5, y = 0}, {x = 6, y = 0}, {x = 7, y = 0}]
 const TEINTES_DES_TRAITS := [Color("#3a7fd0"), Color("#c04030")]
 const EFFETS := [
-	{quoi = "coup", de = "canonnier", vers = "cible", issue = "touche", couleur = "#ffa040",
+	{quoi = Noyau.Effet.COUP, de = "canonnier", vers = "cible", issue = Noyau.IssueDuCoup.TOUCHE, couleur = "#ffa040",
 		depart = {visuel = "eclair-de-bouche", son = CANON}, trajet = {projectile = "boulet", dureeS = 0.15, hauteurM = 0.5},
 		arrivee = {visuel = "explosion", son = EXPLOSION}, flottants = [BLESSURES, HORS_DE_COMBAT]},
-	{quoi = "incantation", de = "sorciere", vers = "cible", reussie = true, couleur = "#9b7bff",
+	{quoi = Noyau.Effet.INCANTATION, de = "sorciere", vers = "cible", reussie = true, couleur = "#9b7bff",
 		depart = {visuel = "canalisation", son = INCANTATION}, arrivee = {visuel = "halo", son = null}, flottants = []},
-	{quoi = "son", son = PORTE, fois = 1, ecartS = 0.0},
-	{quoi = "zone", de = "dragon", centre = {x = 6, y = 0}, cases = CASES, couleur = "#ff6a20",
+	{quoi = Noyau.Effet.SON, son = PORTE, fois = 1, ecartS = 0.0},
+	{quoi = Noyau.Effet.ZONE, de = "dragon", centre = {x = 6, y = 0}, cases = CASES, couleur = "#ff6a20",
 		depart = {visuel = null, son = SOUFFLE}, trajet = {projectile = "jet-de-flammes", dureeS = 0.2, hauteurM = 0.0},
 		nappe = {visuel = "nappe-de-flammes", son = FLAMMES}},
-	{quoi = "flottant", sur = null, case = {x = 5, y = 0}, flottant = SOIN},
-	{quoi = "son", son = PAS, fois = 3, ecartS = 0.1},
+	{quoi = Noyau.Effet.FLOTTANT, sur = null, case = {x = 5, y = 0}, flottant = SOIN},
+	{quoi = Noyau.Effet.SON, son = PAS, fois = 3, ecartS = 0.1},
 ]
 const LIEUX := {"canonnier": Vector3(0.0, 0.0, 0.0), "sorciere": Vector3(0.0, 0.0, 3.0), "cible": Vector3(6.0, 0.0, 0.0), "dragon": Vector3(0.0, 0.0, -3.0),
 	"5,0,0": Vector3(5.0, 0.0, 0.0), "6,0,0": Vector3(6.0, 0.0, 0.0), "7,0,0": Vector3(7.0, 0.0, 0.0)}

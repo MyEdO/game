@@ -135,7 +135,7 @@ static func monde_du_bati(racine: Node) -> Monde:
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [sol]}, toits = toits, couronnes = couronnes},
 		{volume = [sol], toits = toits, couronnes = couronnes})
 	monde.volume.poser_les_aretes([MUR, BOITE].map(func(a: Dictionary) -> Dictionary:
-		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, piece = "mur", bloc = "0/0/0"})))
+		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, piece = Noyau.Piece.MUR, bloc = "0/0/0"})))
 	return monde
 
 
