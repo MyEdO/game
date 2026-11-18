@@ -55,13 +55,13 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
   });
 
   it('REFUSE une espèce dont `refCareer` désigne une portion', () => {
-    const especes = structuredClone(speciesJson) as { refCareer: string }[];
+    const especes = structuredClone(speciesJson);
     especes[0].refCareer = 'cotiers-humain';
     expect(validateDataset('species.json', especes)).toMatch(/« cotiers-humain » est hors de la sous-liste « colonne »/);
   });
 
   it('REFUSE une espèce dont `refCareer` désigne une variante', () => {
-    const especes = structuredClone(speciesJson) as { refCareer: string }[];
+    const especes = structuredClone(speciesJson);
     especes[0].refCareer = 'variantes-soldat';
     expect(validateDataset('species.json', especes)).toMatch(/« variantes-soldat » est hors de la sous-liste « colonne »/);
   });

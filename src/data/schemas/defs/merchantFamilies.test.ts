@@ -3,10 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import merchantFamiliesJson from '../../merchantFamilies.json';
 
-type Famille = { id: string; match: Record<string, unknown>; [k: string]: unknown };
-const reel = (): Famille[] => structuredClone(merchantFamiliesJson) as unknown as Famille[];
+const reel = () => structuredClone(merchantFamiliesJson);
 /** La famille `id` du document réel, clonée sous `idNeuf`. */
-const cloneDe = (doc: Famille[], id: string, idNeuf: string): Famille => {
+const cloneDe = (doc: ReturnType<typeof reel>, id: string, idNeuf: string) => {
   const f = doc.find((x) => x.id === id);
   expect(f, `la famille « ${id} » manque à merchantFamilies.json`).toBeDefined();
   return { ...structuredClone(f!), id: idNeuf };

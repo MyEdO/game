@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, EnemyTurnInput } from './ai';
 import { emptyScene } from './scene';
 import type { Combatant, Weapon } from '../../engine/types';
-import type { PsychType } from '../../engine/psychology';
 import { psychologies, traits } from '../../data';
 import { ciblePsy } from '../../engine/psych/ciblage';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
@@ -51,7 +50,7 @@ describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
     expect(traitAGroupe).toBeDefined();
     const pulsion = psychologies.find((p) => p.attackDR?.vs === 'group');
     expect(pulsion).toBeDefined();
-    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: pulsion!.id, cible: ciblePsy.groupe(groupe), active: true }] });
     const membre = mk('membre', 'heros', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id, hidden: true }] });
     const faible = mk('faible', 'heros', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1) });
     expect(cible(chooseEnemyAction(input(e, [membre, faible])))).toBe('membre');
@@ -60,7 +59,7 @@ describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
   it('le vivier ne se restreint que pour une affliction dont la donnée vise le groupe (`attackDR.vs`)', () => {
     const autre = psychologies.find((p) => p.cibles && p.attackDR?.vs !== 'group');
     expect(autre).toBeDefined();
-    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: autre!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: autre!.id, cible: ciblePsy.groupe(groupe), active: true }] });
     const membre = mk('membre', 'heros', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id }] });
     const faible = mk('faible', 'heros', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1) });
     expect(cible(chooseEnemyAction(input(e, [membre, faible])))).toBe('faible');

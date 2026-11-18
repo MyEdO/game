@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import talentsAleatoiresJson from '../../talents-aleatoires.json';
 
-type Table = { id: string; die: string; entries: { id: string; min: number; max: number }[] };
-const clone = () => structuredClone(talentsAleatoiresJson) as unknown as Table[];
+const clone = () => structuredClone(talentsAleatoiresJson);
 
 describe('talents-aleatoires.json — références de Talent et couverture du dé', () => {
   it('le schéma accepte le document RÉEL', () => {

@@ -7,8 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
 import { generateName } from './names';
-import { names as N } from '../data';
-import speciesJson from '../data/species.json';
+import { names as N, species } from '../data';
 import { sexeSchema, type RaceKey } from '../data/schemas/grammaire/valeurs';
 const startsWithOne = (name: string, pool: string[]) => pool.some((p) => name.startsWith(p + ' '));
 const endsWithOne = (name: string, pool: string[]) => pool.some((p) => name.endsWith(' ' + p));
@@ -59,7 +58,6 @@ describe('generateName — banque names.json + canon nain (LDB 05 l.627-633)', (
   it('CHAQUE species de species.json résout son pool (par refChar) et produit un nom (M et F)', () => {
     // Preuve du routage par refChar : on parcourt les VRAIES espèces (les 20 variantes régionales
     // partagent la banque de leur race — `humain`, `halfling`, `nain`…).
-    const species = speciesJson as { label: string; refChar: RaceKey }[];
     for (const sp of species) {
       expect(N.find((n) => n.id === sp.refChar), `${sp.label} → refChar ${JSON.stringify(sp.refChar)} absent de names.json`).toBeTruthy();
       for (const sex of sexeSchema.options) {

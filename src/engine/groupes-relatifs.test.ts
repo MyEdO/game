@@ -4,7 +4,7 @@
  * Fiches fabriquées ; les entrées de donnée sont choisies par leur forme, sauf une Race que nomme un livre.
  */
 import { describe, it, expect } from 'vitest';
-import { targetedTrigger, vise, type PsychType, sourceCombattant } from './psychology';
+import { targetedTrigger, vise, sourceCombattant } from './psychology';
 import { ciblePsy } from './psych/ciblage';
 import { attachMutation } from './corruption';
 import { relatifSchema, type Relatif } from '../data/schemas/defs/groups';
@@ -66,21 +66,21 @@ describe('Étrangers au porteur (Q15 A)', () => {
   });
 
   it('ni l’individu ni le Groupe que vise un lien du porteur (Amour, Camaraderie) n’est étranger', () => {
-    const parIndividu = mk('p', 'heros', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.individu('e') }] });
+    const parIndividu = mk('p', 'heros', { psychTraits: [{ type: lien!.id, cible: ciblePsy.individu('e') }] });
     expect(vise(cible(), sourceCombattant(mk('e', 'ennemi')), 'percu', parIndividu)).toBe(false);
     expect(vise(cible(), sourceCombattant(mk('f', 'ennemi')), 'percu', parIndividu)).toBe(true);
-    const parGroupe = mk('p', 'heros', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.groupe(sansRace!.id) }] });
+    const parGroupe = mk('p', 'heros', { psychTraits: [{ type: lien!.id, cible: ciblePsy.groupe(sansRace!.id) }] });
     expect(vise(cible(), sourceCombattant(mk('e', 'ennemi', { groups: [sansRace!.id] })), 'percu', parGroupe)).toBe(false);
   });
 
   it('un interlocuteur est étranger, sauf si ses Groupes sont visés par un lien du porteur', () => {
-    const porteur = mk('p', 'heros', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.groupe(sansRace!.id) }] });
+    const porteur = mk('p', 'heros', { psychTraits: [{ type: lien!.id, cible: ciblePsy.groupe(sansRace!.id) }] });
     expect(vise(cible(), { genre: 'interlocuteur', groups: [] }, 'percu', porteur)).toBe(true);
     expect(vise(cible(), { genre: 'interlocuteur', groups: [sansRace!.id] }, 'percu', porteur)).toBe(false);
   });
 
   it('un lien à Cible relative ne retire personne des étrangers', () => {
-    const porteur = mk('p', 'heros', { psychTraits: [{ type: lien!.id as PsychType, cible: cible() }] });
+    const porteur = mk('p', 'heros', { psychTraits: [{ type: lien!.id, cible: cible() }] });
     expect(vise(cible(), sourceCombattant(mk('e', 'ennemi')), 'percu', porteur)).toBe(true);
   });
 });

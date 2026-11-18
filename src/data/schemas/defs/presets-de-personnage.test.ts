@@ -10,7 +10,7 @@ import { findEnsembleParHabille, findPresetDePersonnageById, piecesDeLObjet, tra
 
 type Entree = { id: string; [k: string]: unknown };
 const avec = (champs: Record<string, unknown>): Entree[] => {
-  const doc = structuredClone(presetsJson) as Entree[];
+  const doc: Entree[] = structuredClone(presetsJson);
   Object.assign(doc.find((e) => e.id === 'soldat')!, champs);
   return doc;
 };

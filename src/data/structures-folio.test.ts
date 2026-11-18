@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { auditFolio } from '../../scripts/guards/lib/folioIntegrity.mjs';
-import structures from './structures.json';
+import { structures } from './index';
 
 /**
  * Garde-fou « le folio déclaré par une structure est celui où vit sa `desc` » (#1467 L1b V-Src).
@@ -21,9 +21,7 @@ import structures from './structures.json';
  * « BARRICADES ET PROTECTIONS TYPIQUES », folio gouvernant 89), relevé au geste de migration.
  */
 
-type Structure = { id: string; source: { book: string; page: number }; desc?: string };
-
-const ENTREES = structures as Structure[];
+const ENTREES = structures;
 const AUX_ARMES = ENTREES.filter((s) => s.source.book === 'aux-armes');
 const ADE_II = ENTREES.filter((s) => s.source.book === 'archives-de-l-empire-2');
 

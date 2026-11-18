@@ -196,7 +196,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
   });
 
   /** Position d'un jeu de taverne par son ID (jamais par sa place : la donnée est réordonnable au Codex). */
-  const jeuDeTaverne = (id: string) => String((tavernGames as ReadonlyArray<{ id: string }>).findIndex((j) => j.id === id));
+  const jeuDeTaverne = (id: string) => String(tavernGames.findIndex((j) => j.id === id));
   /** Position d'un document-table de Blessures critiques par son ID — même règle : jamais par son rang. */
   const docCritique = (id: string) => String(CRITIQUE_DOCS.findIndex((d) => d.id === id));
 
@@ -378,7 +378,7 @@ describe('plageOuverteSchema — la bande EXTRÊME reste OUVERTE', () => {
   });
 
   it('advancementCosts.json : sa donnée réelle passe, la MÊME bande sans `min` est REFUSÉE', () => {
-    const bandes = advancementCosts as ReadonlyArray<Record<string, unknown>>;
+    const bandes = advancementCosts;
     expect(validateDataset('advancementCosts.json', bandes)).toBeNull();
     expect(bandes.filter((b) => b.max === null).length, 'plus aucune bande OUVERTE : la sonde ne mesure rien.').toBe(1);
     const { min: _absente, ...ampute } = bandes[0];
@@ -412,7 +412,7 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
   });
 
   it('reglesOptionnelles.json : sa donnée réelle passe, le MÊME réglage privé de `max` est REFUSÉ', () => {
-    const regles = reglesOptionnelles as ReadonlyArray<Record<string, unknown>>;
+    const regles: ReadonlyArray<Record<string, unknown>> = reglesOptionnelles;
     expect(validateDataset('reglesOptionnelles.json', regles)).toBeNull();
     const bornees = regles.filter((r) => typeof r.min === 'number' && typeof r.max === 'number');
     expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBeGreaterThan(0);
@@ -428,7 +428,7 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
   });
 
   it('reglesOptionnelles.json : un `param` sans ses bornes et un `mode` sans ses `options` sont REFUSÉS (#4081)', () => {
-    const regles = reglesOptionnelles as ReadonlyArray<Record<string, unknown>>;
+    const regles: ReadonlyArray<Record<string, unknown>> = reglesOptionnelles;
     const refus = (kind: string, champs: readonly string[]): string | null => {
       const i = regles.findIndex((r) => r.kind === kind);
       expect(i, `aucune règle \`${kind}\` : la sonde ne mesure rien`).toBeGreaterThanOrEqual(0);
@@ -470,8 +470,8 @@ describe('water-exposure › auto.between — les deux bornes du prédicat', () 
  */
 describe('vehicles.json › ship.traits — foyer disjoint du bestiaire (#1463 L-gram-2)', () => {
   it('Traits navals, AUCUN au bestiaire', () => {
-    const bestiaire = new Set((traits as ReadonlyArray<{ id: string }>).map((e) => e.id));
-    const vus = (vehicles as ReadonlyArray<{ ship?: { traits?: ReadonlyArray<{ id: string }> } }>).flatMap((v) => v.ship?.traits ?? []);
+    const bestiaire = new Set(traits.map((e) => e.id));
+    const vus = vehicles.flatMap((v) => v.ship?.traits ?? []);
     expect(vus.length, 'la population des Traits de navire a disparu.').toBeGreaterThan(0);
     expect(
       vus.filter((t) => bestiaire.has(t.id)),
