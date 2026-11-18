@@ -35,6 +35,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { auChemin } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const echecs = [];
@@ -85,7 +86,7 @@ for (const [rel] of DATA_CIBLES) {
 for (const [rel, ...chemins] of DATA_CIBLES) {
   const etat = docs.get(rel);
   if (!etat) continue;
-  const chemin = chemins.find((c) => Array.isArray(c.reduce((n, k) => n?.[k], etat.doc))) ?? chemins[0];
+  const chemin = chemins.find((c) => Array.isArray(auChemin(etat.doc, c))) ?? chemins[0];
   let parent = etat.doc;
   for (const k of chemin.slice(0, -1)) parent = parent?.[k];
   const cle = chemin.length ? chemin[chemin.length - 1] : null;
