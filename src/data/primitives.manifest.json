@@ -1974,7 +1974,7 @@
     "type": "primitives.manifest",
     "label": "capaciteDuLanceur",
     "fichier": "scripts/test/partition.mjs",
-    "concept": "capacité servie par le lanceur de tests sous un environnement et un régime de lancement (`lot` / `suite`, `EMPREINTES_WORKER_MO`) : cœurs, mémoire disponible, empreinte d’un worker",
+    "concept": "capacité servie par le lanceur de tests sous un environnement, un régime de lancement (`lot` / `suite`, `EMPREINTES_WORKER_MO`) et les fichiers lancés (`fichiersNommes`) : cœurs, mémoire disponible, empreinte d’un worker",
     "perimetre": "workers de `run.mjs` et mur estimé de `perimetre.mjs`",
     "verrou": "—"
   },
