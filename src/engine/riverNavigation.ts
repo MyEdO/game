@@ -29,6 +29,7 @@ import { riverNavigation, type RiverNavigationData } from '../data';
 import riverPerilsJson from '../data/river-perils.json';
 import { datasetDe } from '../data/datasets';
 import type * as riverPerilsDef from '../data/schemas/defs/river-perils';
+import type { RiverWindDirId } from '../data/schemas/defs/river-navigation';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { deDeLaTableTiree, findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
@@ -42,11 +43,8 @@ import { t } from '../i18n';
 
 // ── Types de la table des vents (l.21-41) ────────────────────────────────────────────────────────
 
-/** Direction du vent RELATIVE au bateau (MSRC 7 l.25-33) — pas une direction cardinale (≠ mer). */
-export type RiverWindDirId = 'arriere' | 'cote' | 'contraire';
-
 /** Cellule d'EFFET DU VENT (l.29-33). */
-export type RiverWindEffect = RiverNavigationData['windEffect'][string][RiverWindDirId];
+export type RiverWindEffect = RiverNavigationData['windForces']['entries'][number]['effet'][RiverWindDirId];
 
 interface CritDef { driftUntilRepair?: boolean; hole?: boolean }
 
@@ -71,7 +69,7 @@ export function rollRiverWind(rng: RNG): { force: string; dir: RiverWindDirId } 
   const { windForces, windDirections } = DATA;
   return {
     force: findTableEntry(windForces.entries, rollDice(deDeLaTableTiree(windForces), rng)).id,
-    dir: findTableEntry(windDirections.entries, rollDice(deDeLaTableTiree(windDirections), rng)).id as RiverWindDirId,
+    dir: findTableEntry(windDirections.entries, rollDice(deDeLaTableTiree(windDirections), rng)).id,
   };
 }
 
@@ -87,7 +85,9 @@ export function tickRiverWindDay(current: string, rng: RNG): string {
 
 /** Effet du vent pour une force × direction relative (Tableau des vents, l.29-33). PUR. */
 export function riverWindEffect(force: string, dir: RiverWindDirId): RiverWindEffect {
-  return DATA.windEffect[force]?.[dir] ?? {};
+  const rangee = DATA.windForces.entries.find((f) => f.id === force);
+  if (!rangee) throw new Error(`river-navigation.json : force de vent « ${force} » absente de windForces (ids : ${riverForces().join(', ')}).`);
+  return rangee.effet[dir];
 }
 
 // ── Navigation (l.11-17) ─────────────────────────────────────────────────────────────────────────
