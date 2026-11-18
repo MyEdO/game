@@ -1530,7 +1530,7 @@ const reTape = (remplace: (source: string) => string) => (schemas: string) => {
 };
 
 /** Le Test COMPOSÉ de `sea-perils.ts › freeTest`, tel que le def l'écrit. */
-const FREE_TEST_COMPOSE = 'z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape })';
+const FREE_TEST_COMPOSE = 'z.strictObject({ test: testFixeSchema, ...cibleEtendueSchema.shape })';
 
 /** Une contrefaçon RE-TAPÉE dans `sea-perils.ts` d'une racine : le littéral de `freeTest` à plat, `cles` à la
  *  place du Test composé, sa cible re-tapée. */

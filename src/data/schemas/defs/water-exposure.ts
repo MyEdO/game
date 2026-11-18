@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
 import { enumNomme, plageSchema } from '../grammaire/valeurs';
-import { flowTestSchema, porteurDeTestFixe } from '../grammaire/mecanique';
+import { testFixeSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 import { idDe } from '../grammaire/ref';
 
 export const file = 'water-exposure.json';
@@ -29,7 +29,7 @@ const doc = document(
   'water-exposure',
   famille,
   {
-  test: flowTestSchema,
+  test: testFixeSchema,
   rollModPerNegativeSL: z.number(),
   modifiers: z.array(
     nommerChamps(z.strictObject({

@@ -71,7 +71,7 @@ const feed = (): string => banc.getState().battle!.log.map((e) => e.text).join('
 function castMissile(caster: Combatant, target: Combatant, sl: number, extraTargets: Combatant[] = [], ni?: number): void {
   const spell = missileSpell();
   const mres = evaluateMissile(caster, target, spell, cr(sl, ni));
-  applyCast(banc.getState, banc.setState, caster, target, spell, mres, true, false, undefined, extraTargets.length ? { extraTargets } : undefined);
+  applyCast(banc.getState, banc.setState, caster, [target, ...extraTargets], spell, mres, true, false);
 }
 
 
@@ -120,7 +120,7 @@ describe('#1007 DIVERGENCE 3 (périmètre) — Sort NON-Projectile : `ctx.sl` r�
   const cast = (t: Combatant, sl: number, extraTargets: Combatant[] = [], bystanders: Combatant[] = [], ni?: number) => {
     const w = mk('heros', 'mage');
     setBattle([w, t, ...extraTargets, ...bystanders]);
-    applyCast(banc.getState, banc.setState, w, t, stateSpell(), cr(sl, ni), false, false, undefined, extraTargets.length ? { extraTargets } : undefined);
+    applyCast(banc.getState, banc.setState, w, [t, ...extraTargets], stateSpell(), cr(sl, ni), false, false);
   };
 
   it('DIFFÉRENTIEL : sans résistance, DR 6 → 1 + 3 = 4 pions d’Aveugle', () => {
@@ -157,7 +157,7 @@ describe('#1007 sous-point NI (arbitrage utilisateur 2026-07-31) — DR réduit 
   const castState = (t: Combatant, sl: number, ni: number, extraTargets: Combatant[] = []) => {
     const w = mk('heros', 'mage');
     setBattle([w, t, ...extraTargets]);
-    applyCast(banc.getState, banc.setState, w, t, stateSpell(), cr(sl, ni), false, false, undefined, extraTargets.length ? { extraTargets } : undefined);
+    applyCast(banc.getState, banc.setState, w, [t, ...extraTargets], stateSpell(), cr(sl, ni), false, false);
   };
 
   it('chemin Projectile : DR 4 − 2 = 2 < NI 4 → aucune Blessure, et le feed porte les deux lignes', () => {

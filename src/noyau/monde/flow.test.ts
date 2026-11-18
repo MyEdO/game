@@ -125,10 +125,10 @@ describe('evalCondition — Conditions PARTY-level (#711 : skill/career/species/
   it('status : dérivé d’un VRAI Combatant (createHero) — carrière/niveau réels', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 }); // niveau 1 → « Argent 1 »
     const party = [hero];
-    expect(evalCondition({ kind: 'status', atLeast: 'Bronze 1' }, { ...base, party })).toBe(true); // Échelon supérieur
-    expect(evalCondition({ kind: 'status', atLeast: 'Argent 1' }, { ...base, party })).toBe(true); // seuil atteint pile
-    expect(evalCondition({ kind: 'status', atLeast: 'Argent 5' }, { ...base, party })).toBe(false); // même Échelon, Standing insuffisant
-    expect(evalCondition({ kind: 'status', atLeast: 'Or 1' }, { ...base, party })).toBe(false); // Échelon insuffisant
+    expect(evalCondition({ kind: 'status', atLeast: { tier: 'bronze', standing: 1 } }, { ...base, party })).toBe(true); // Échelon supérieur
+    expect(evalCondition({ kind: 'status', atLeast: { tier: 'argent', standing: 1 } }, { ...base, party })).toBe(true); // seuil atteint pile
+    expect(evalCondition({ kind: 'status', atLeast: { tier: 'argent', standing: 5 } }, { ...base, party })).toBe(false); // même Échelon, Standing insuffisant
+    expect(evalCondition({ kind: 'status', atLeast: { tier: 'or', standing: 1 } }, { ...base, party })).toBe(false); // Échelon insuffisant
   });
   it('un `when` de dialogue simulé (`conditionCtx`) lit le chemin PARTY-level hors combat', () => {
     const party = [{ skills: [{ id: 'dresser', advances: 1 }], career: 'soldat', species: REIK }];
@@ -173,8 +173,8 @@ describe('evalCondition — états de campagne (#2539 : Condition `etat`, sélec
     expect(evalCondition({ kind: 'species', id: REIK, who: designe }, c)).toBe(true);
     expect(evalCondition({ kind: 'species', id: 'nains', who: designe }, c)).toBe(false); // l'autre héros ne compte pas
     const hero = { ...createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'soldat', label: 'S', seed: 3 }), id: 'h-sosie' };
-    expect(evalCondition({ kind: 'status', atLeast: 'Argent 1', who: designe }, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [hero]))).toBe(true);
-    expect(evalCondition({ kind: 'status', atLeast: 'Or 1', who: designe }, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [hero]))).toBe(false);
+    expect(evalCondition({ kind: 'status', atLeast: { tier: 'argent', standing: 1 }, who: designe }, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [hero]))).toBe(true);
+    expect(evalCondition({ kind: 'status', atLeast: { tier: 'or', standing: 1 }, who: designe }, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [hero]))).toBe(false);
   });
 
   it('`partyDead {who: {etat}}` : vrai quand le sosie est mort, faux quand un AUTRE l’est', () => {

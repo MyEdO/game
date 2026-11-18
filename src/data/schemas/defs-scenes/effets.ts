@@ -27,7 +27,15 @@ import {
   natureDInfluenceSchema,
   qualiteDeReposSchema,
 } from '../grammaire/valeurs';
-import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
+import {
+  arbreDeFlow,
+  conditionSchema,
+  effectOpSchema,
+  executeesDe,
+  extendedTestSchema,
+  refuserLeVivreDuNavire,
+  testDeSceneSchema,
+} from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, recordDIds, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
@@ -43,7 +51,7 @@ import {
   wallSideSchema,
 } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest } from '../../../engine/flowCore';
+import type { EffectOp, Flow as CoreFlow } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -583,14 +591,12 @@ export type Flow = CoreFlow<Effect>;
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
-/** L'Effet `extendedTest` : sa décision (`difficulty`, `CHAMPS_DE_DECISION`) est celle d'un `FlowTest`, que
- *  `resoudreFlowTest` (`engine/decisionDuTest.ts`) lit seule. */
-export type TestEtendu = Omit<z.infer<typeof extendedTestSchema>, ChampDeDecision | 'difficulty'> & Pick<FlowTest, ChampDeDecision | 'difficulty'>;
+/** L'Effet `extendedTest`. */
+export type TestEtendu = z.infer<typeof extendedTestSchema>;
 
 /**
  * Union des variantes d'effet de scène + la feuille `ops`. Chaque variante est le
- * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites) et `TestEtendu`
- * (décision typée par `FlowTest`). `EffectOp` (`type:'ops'`) est le membre POSSÉDÉ par le moteur
+ * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites). `EffectOp` (`type:'ops'`) est le membre POSSÉDÉ par le moteur
  * (feuille par défaut du `Flow<E>` générique).
  */
 export type Effect =
@@ -728,7 +734,7 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
 
 /** `Flow<Effect>` (`engine/flowCore.ts:559`) — l'arbre `arbreDeFlow` de feuille `do` l'union `Effect`
  *  de scène, au coût de `choice` littéral (le template `$indice` n'a pas de porteur en scène). */
-export const sceneFlowSchema: z.ZodType<Flow> = arbreDeFlow(effectSchema, conditionSchema, z.number());
+export const sceneFlowSchema: z.ZodType<Flow> = arbreDeFlow(effectSchema, conditionSchema, z.number(), testDeSceneSchema);
 
 function nommerEffet<N extends z.ZodType>(noeud: N, label: string): N {
   return nommerNoeud(noeud, { label, nom: `effet ${label}` });

@@ -2,7 +2,7 @@
  * #1657 B2b — le cycle quotidien des maladies porte son JET dans le nœud `test` du Flow.
  *
  * Contrat POSITIF, mesuré sur la donnée RÉELLE (`symptoms.json`, `maladies.json`) :
- *  1. le nœud est LU par la grammaire partagée — `noeudTest(flowSchema, { difficulteRequise: true })`
+ *  1. le nœud est LU par la grammaire partagée — `noeudTestFixe(flowSchema, { echecSeulServi: true })`
  *     accepte les nœuds de la base, et REFUSE nominativement un nœud sans `difficulty` ;
  *  2. le porteur ne garde que ce qu'il DÉCRIT (QUI/QUAND/CE QU'ON DEVIENT) : `symptomId`,
  *     `afterDays`/`once`, `difficultyBySeverity` ; il ne redit ni le jet ni la conséquence ;
@@ -22,7 +22,7 @@ import { makeRNG } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { contractDisease, tickDisease, symptomOnTick, diseaseDefs } from './disease';
 import { spellOps, walkFlow } from './flowCore';
-import { flowSchema, noeudTest } from '../data/schemas/grammaire/mecanique';
+import { flowSchema, noeudTestFixe } from '../data/schemas/grammaire/mecanique';
 import { maladies, symptoms } from '../data';
 import * as defSymptoms from '../data/schemas/defs/symptoms';
 import * as defMaladies from '../data/schemas/defs/maladies';
@@ -41,7 +41,7 @@ const lire = (f: string): Record<string, unknown>[] => {
 };
 
 /** LE schéma du nœud, tel que les deux defs le composent (`defs/symptoms.ts`, `defs/maladies.ts`). */
-const noeudDuCycle = noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true });
+const noeudDuCycle = noeudTestFixe(flowSchema, { echecSeulServi: true });
 
 /** Les porteurs de cycle, LUS dans la donnée — jamais une liste d'ids écrite ici. */
 const cycles = () => symptoms.flatMap((s) => (s.onTick ? [{ id: s.id, tick: s.onTick }] : []));
@@ -70,7 +70,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
   });
 
   it('MORSURE : un cycle dont le nœud perd sa `difficulty` est REFUSÉ nommément PAR LE DOCUMENT', () => {
-    // Le refus doit venir des DEFS (`noeudTest(…, { difficulteRequise: true })`), pas d'un schéma
+    // Le refus doit venir des DEFS (`noeudTestFixe`, qui exige `difficulty`), pas d'un schéma
     // reconstruit ici : c'est l'ADOPTION du resserrement qui se vérifie, pas la grammaire seule.
     for (const [nom, sch, mute] of [
       ['symptoms.json', defSymptoms.schema, (base: Record<string, unknown>[]) => base.map((s) => {
@@ -127,7 +127,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
   });
 
   it('MORSURE : le porteur REFUSE une branche `reussite` peuplée et une branche `echec` à embranchement', () => {
-    // AFFORDANCE MORTE, verrouillée PAR CONSTRUCTION (`noeudTest`, option `echecSeulServi`) : le canal
+    // AFFORDANCE MORTE, verrouillée PAR CONSTRUCTION (`noeudTestFixe`, option `echecSeulServi`) : le canal
     // différé (`bandeDeNuit`, applier `maladie-test-quotidien`, `noyau/restFlow.ts`) rend une liste VIDE sur
     // une réussite, et `spellOps` extrait les ops À PLAT — un `si` sous `echec` promettrait les ops des
     // deux côtés. Les deux formes seraient authorables sans effet, donc menteuses.
@@ -152,7 +152,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
     // Le MÊME nœud passe le contrat NON resserré : c'est bien `echecSeulServi` qui mord.
     const nu = structuredClone((base.find((s) => s.id === 'blesse')!.onTick as { test: unknown }).test) as Record<string, unknown>;
     nu.reussite = { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'kill' }], on: 'target' } };
-    expect(noeudTest(flowSchema, { difficulteRequise: true }).safeParse(nu).success).toBe(true);
+    expect(noeudTestFixe(flowSchema).safeParse(nu).success).toBe(true);
     expect(noeudDuCycle.safeParse(nu).success).toBe(false);
   });
   it('la branche `reussite` de chaque nœud est VIDE : le canal différé n’applique que l’échec', () => {

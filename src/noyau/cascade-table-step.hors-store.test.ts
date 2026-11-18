@@ -381,7 +381,8 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   it('AVANT le dé, l’enjeu reste au `kind` (aucune ligne n’a encore été jouée)', () => {
     const st = structureStep('s0');
-    expect(st.stake!.key!.entryId).toBeUndefined();
+    expect(st.stake).toHaveProperty('key');
+    expect(st.stake).not.toHaveProperty('key.entryId');
     expect(ruleOf(st)).toBeUndefined(); // l'entrée `structure-critique` n'a que sa catégorie d'entrées
   });
 
@@ -422,7 +423,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
     banc.getState().jetLancer('cascadeTirage', 'n1');
     const apres = banc.getState().pendingCascade!.participants[0];
-    expect(apres.stake!.key!.entryId).toBeUndefined();
+    expect(apres.stake).not.toHaveProperty('key.entryId');
     expect(apres.stake).toEqual(st.stake);
   });
 

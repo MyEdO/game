@@ -5991,8 +5991,7 @@ export function commitPlacedZone(get: Get, set: SetFn, pt: Pt): void {
 
 /** POSE de la zone d'un SORT (après le jet et la Surincantation) : gates portée (LDB 47) + Ligne
  *  de Vue vers le point (LDB 46 l.121), puis applique le MÊME jet à tous les combattants du
- *  rayon FINAL — parité avec l'ancien flux (premier = target, reste = extraTargets,
- *  evaluateMissile par cible). Zone posée dans le vide : Sort lancé, Action consommée. */
+ *  rayon FINAL (`resoudreLeSortDeZone`), zone vide comprise. */
 export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const pc = get().pendingCast;
   const battle = get().battle;
@@ -6025,16 +6024,18 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const inZone = battle.combatants.filter((c) => !isOutOfAction(c) && c.pos && (c.pos.z ?? 0) === (pt.z ?? 0) && chebyshev(c.pos, pt) <= radius && (!excludesCaster || c.id !== caster.id) && affected(c));
   set({ pendingCast: { ...pc, zone: { ...pc.zone, center: { ...pt }, placing: false } } });
   bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...pt }, tiles: clampZoneTiles(discTiles(pt, radius, pt.z), get().scene?.dimensions), sort: spell.id });
-  if (!inZone.length) {
-    // TERMINAL : l'hôte se clôt par la sortie d'hôte (#4255), la zone à vide est sa suite.
-    sortirDeLHote(get, set, { pendingCast: null }, () => {
-      if (pc.focused) caster.focus = undefined; // le sort focalisé est consommé même à vide
-      finishPlayerAction(get, set, [`${spell.label} : la zone ne touche personne.`], 'sort');
-    });
-    return;
-  }
-  const first = inZone[0];
-  const r1 = pc.missile && res.cast ? evaluateMissile(caster, first, spell, res) : res;
+  resoudreLeSortDeZone(get, set, pc, caster, spell, res, inZone);
+}
+
+/** Résout la tentative d'un Sort de ZONE sur `targets`, vides pour une zone jamais posée ou posée dans le
+ *  vide (LDB 47 l.28) : ferme le jet, `applyCast`, PUIS clôt par la sortie d'hôte l'étape d'incantation
+ *  restée au curseur (#4248). La reprise de l'IA revient à l'appelant. */
+export function resoudreLeSortDeZone(
+  get: Get, set: SetFn, pc: PendingCast, caster: Combatant, spell: NonNullable<ReturnType<typeof effectiveSpellOf>>,
+  res: CastResult & Partial<MissileResult>, targets: readonly Combatant[],
+): void {
+  const [ancre] = targets;
+  const r1 = pc.missile && res.cast && ancre ? evaluateMissile(caster, ancre, spell, res) : res;
   // FOLD (parité jetValider('incantation')) : ne ferme QUE le jet ; la cascade d'incantation reste active pour
   // qu'un Critique de Sort / Imparfaite s'y appendent. Repère l'étape `jet:'incantation'` AVANT applyCast.
   const cascBefore = get().pendingCascade;
@@ -6042,15 +6043,13 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
     ? cascBefore.cursor : -1;
   set({ pendingCast: null }); // ferme le jet ; cascade d'incantation conservée
   const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
-  applyCast(get, set, caster, first, spell, r1, pc.missile, pc.focused, pc.critChoice, {
+  applyCast(get, set, caster, targets, spell, r1, pc.missile, pc.focused, pc.critChoice, {
     durationMult: ocDur.mult,
     durationBonusRounds: ocDur.bonusRounds,
     overcastDurationSteps: pc.overcast?.duration ?? 0,
     overcastDamageSteps: pc.overcast?.damage ?? 0,
     chosenTableRolls: pc.chosenTableRolls,
-    extraTargets: inZone.slice(1),
   });
-  // L'hôte d'incantation se clôt par la sortie d'hôte (#4248) ; la reprise de l'IA revient à l'appelant.
   const casc = get().pendingCascade;
   if (castStepIdx >= 0 && casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) sortirDeLHote(get, set, { pendingCast: null }, () => {});
 }
@@ -6674,18 +6673,19 @@ function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string
   return lignes;
 }
 
-/** Applique un résultat d'incantation DÉJÀ obtenu (mute caster/cible, consomme l'Action). */
+/** Applique un résultat d'incantation DÉJÀ obtenu (mute caster/cibles, consomme l'Action). `targets` : les
+ *  cibles dans l'ordre de la zone, la première est l'ancre ; vide pour une tentative sans cible (LDB 47 l.28). */
 export function applyCast(
   get: Get,
   set: SetFn,
   caster: Combatant,
-  target: Combatant,
+  targets: readonly Combatant[],
   spell: NonNullable<ReturnType<typeof findSpell>>,
   res: CastResult & Partial<MissileResult>,
   missile: boolean,
   focusedNI0: boolean,
   critChoice?: CritChoice,
-  extras?: { durationMult?: number; durationBonusRounds?: number; overcastDurationSteps?: number; overcastDamageSteps?: number; chosenTableRolls?: number; extraTargets?: Combatant[]; conjureForm?: ConjureForm; opposedOutcome?: Record<string, { resisted: boolean; margin: number }> },
+  extras?: { durationMult?: number; durationBonusRounds?: number; overcastDurationSteps?: number; overcastDamageSteps?: number; chosenTableRolls?: number; conjureForm?: ConjureForm; opposedOutcome?: Record<string, { resisted: boolean; margin: number }> },
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
   // Durée surincantée DÉCOMPOSÉE (engine/overcast) : `rounds = base × mult + bonus`. Arcane/Miracle :
@@ -6703,20 +6703,19 @@ export function applyCast(
   const overcastDamageSteps = Math.max(0, extras?.overcastDamageSteps ?? 0);
   const chosenTableRolls = extras?.chosenTableRolls;
   let teleportReach: Map<string, number> | null = null; // Téléportation (Jalon 2.6) : posé APRÈS finishPlayerAction
-  const extraTargets = extras?.extraTargets ?? [];
+  const [ancre, ...autres] = targets;
   // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le modificateur du TALENT est celui de la
   // ZONE des cibles de ce lancement (un seul pour tout le Sort) ; celui du TRAIT reste per-cible. Une
   // cible touchée HORS de cette zone (rebond d'une attaque en chaîne) est sa propre zone.
   // « la zone de sa cible » (LDB 10 l.1026) est LUE comme les CIBLES du lancement, jamais l'aire
   // géométrique : un porteur du Talent présent sur le terrain mais NON ciblé ne confère rien
   // (rétrécissement assumé — lecture retenue, réf #1007).
-  const zoneTargets = [target, ...extraTargets];
   // Projectile magique (LDB 46) : c'est une ATTAQUE (jet du lanceur opposé à la défense de la cible) —
   // trace orientée du Round posée par le MÊME helper que les armes (`markAttacked`, LDB 85 l.383). Les
   // autres Sorts passent ici aussi bien pour soigner que pour nuire : rien ne s'y marque.
-  if (missile) for (const t of zoneTargets) markAttacked(caster, t);
-  const zoneTalentMod = zoneTalentSpellDRMod(zoneTargets);
-  const zoneMod = (t: Combatant): number => (zoneTargets.includes(t) ? zoneTalentMod : talentSpellDRMod(t));
+  if (missile) for (const t of targets) markAttacked(caster, t);
+  const zoneTalentMod = zoneTalentSpellDRMod(targets);
+  const zoneMod = (t: Combatant): number => (targets.includes(t) ? zoneTalentMod : talentSpellDRMod(t));
   /** DR du Sort tel que le subit `t` — SITE UNIQUE lu par les Flows, les zones, l'invocation, le NI. */
   const slFor = (t: Combatant): number => spellSLFor(res.sl, t, zoneMod(t));
 
@@ -6730,21 +6729,22 @@ export function applyCast(
   const crit = !!res.isCritical && isSort && !res.dispelled;
   // Axe Dégâts de la Surincantation (`VDM 02 l.198`) : le résultat FIGÉ au jet (`pc.result`) ignorait
   // l'allocation (encore à venir) — on la reverse ici, avant tout autre recalcul de Projectile.
-  if (missile && res.cast && overcastDamageSteps > 0) {
-    res = evaluateMissile(caster, target, spell, res, undefined, overcastDamageSteps);
+  if (missile && res.cast && overcastDamageSteps > 0 && ancre) {
+    res = evaluateMissile(caster, ancre, spell, res, undefined, overcastDamageSteps);
   }
   const choice = critChoice;
   if (crit) {
     if (choice === 'puissance') {
       const full = applyFullPower(res);
       if (full !== res) {
-        res = missile
-          ? evaluateMissile(caster, target, spell, full, undefined, overcastDamageSteps)
+        res = missile && ancre
+          ? evaluateMissile(caster, ancre, spell, full, undefined, overcastDamageSteps)
           : { ...full, log: `${caster.label} lance ${spell.label} (Puissance totale — Critique).` };
       }
     }
   }
   const logLines: string[] = res.touche ? [] : [res.log];
+  if (res.cast && !ancre) logLines.push(tr('cf.zoneSansCible', { spell: spell.label })); // LDB 47 l.28
   // LDB 46 l.111 ; LDB 46 l.113
   const componentUsed = isSort && useSpellComponent(caster, spell.id, logLines);
   if (isSort) faimALIncantation(get, caster, spell, componentUsed, logLines);
@@ -6770,7 +6770,7 @@ export function applyCast(
   /** Contrecoup de CE lancement : les cibles de l'incantation reçoivent les `targetOps` de la ligne
    *  tirée (« vos cibles », LDB 40 l.64). */
   const contrecoup = (severity: MiscastSeverity, opts: Parameters<typeof applyMiscast>[4] = {}): string[] =>
-    applyMiscast(get, set, caster, severity, { ...opts, targetIds: zoneTargets.map((t) => t.id) });
+    applyMiscast(get, set, caster, severity, { ...opts, targetIds: targets.map((t) => t.id) });
   /** Options du contrecoup d'un SORT (composant, Sorcellerie, Domaine). */
   const optsDuSort = { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId?.id };
   /** Imparfaite ADDITIONNELLE due aux Influences malfaisantes / à la Sorcellerie, appliquée UNE fois après le Sort. */
@@ -6788,12 +6788,12 @@ export function applyCast(
   const domaine = spell.domainId?.id;
   if (battle && isSort && domaine && res.cast) {
     const marks = battle.domainCasts ?? [];
-    if (marks.some((m) => m.targetId === target.id && m.domain === domaine)) {
+    if (ancre && marks.some((m) => m.targetId === ancre.id && m.domain === domaine)) {
       campGain(get, caster);
       caster.gainedAdvThisRound = true;
-      logLines.push(tr('cf.ventsConvergent', { name: caster.label, wind: spell.subType ?? domaine, target: target.label }));
+      logLines.push(tr('cf.ventsConvergent', { name: caster.label, wind: spell.subType ?? domaine, target: ancre.label }));
     }
-    battle.domainCasts = [...marks, ...[target, ...extraTargets].map((t) => ({ targetId: t.id, domain: domaine }))];
+    battle.domainCasts = [...marks, ...targets.map((t) => ({ targetId: t.id, domain: domaine }))];
   }
 
   if (missile) {
@@ -6815,28 +6815,28 @@ export function applyCast(
     // rebondit sur une autre cible » — DÉCLARÉ ici sur la touche initiale (max BFM rebonds, saut de
     // BFM m, portée INITIALE du sort), JOUÉ par `jouerLeRebond` une fois la touche close.
     const chainOp = spellOps(spell.effects, 'caster').find((o): o is Extract<GameOp, { op: 'chain' }> => o.op === 'chain');
-    const rebond: RebondDeChaine | undefined = chainOp && res.cast && battle && caster.pos
+    const rebond: RebondDeChaine | undefined = chainOp && res.cast && battle && caster.pos && ancre
       ? {
-        hitIds: [target.id, ...extraTargets.map((t) => t.id)], bounce: 0,
+        hitIds: targets.map((t) => t.id), bounce: 0,
         maxBounces: Math.max(0, resolveFormula(chainOp.maxBounces, caster, battleRng())),
         hopTiles: porteeEnCases(Math.max(0, resolveFormula(chainOp.hopMeters, caster, battleRng())), sceneMetresPerTile(get().scene)),
         initialRange: spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene)), res,
       }
       : undefined;
     // Sort offensif : lanceur vers la cible, cible vers le lanceur.
-    if (caster.pos && target.pos && caster.id !== target.id) {
-      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!), [target.id]: facingToward(target.pos!, caster.pos!) } }));
+    if (ancre && caster.pos && ancre.pos && caster.id !== ancre.id) {
+      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, ancre.pos!), [ancre.id]: facingToward(ancre.pos!, caster.pos!) } }));
     }
-    const toucheInitiale = toucheDe(target, res, rebond);
-    const initiale = appliquerTouchePourCible(get, set, target, toucheInitiale);
-    logLines.push(...initiale.lignes);
+    const toucheInitiale = ancre ? toucheDe(ancre, res, rebond) : undefined;
+    const initiale = ancre && toucheInitiale ? appliquerTouchePourCible(get, set, ancre, toucheInitiale) : undefined;
+    if (initiale) logLines.push(...initiale.lignes);
     // Nerveux (effet déclenché onStartled : magie → +3 Brisé) — dispatcher générique (noyau/triggeredEffects).
     // Cause 'magic' (présence de magie) → exemption Dressé (Magie) lue par la Condition Flow `startleCause`.
-    for (const t of [target, ...extraTargets]) {
+    for (const t of targets) {
       if (res.cast && !isOutOfAction(t)) emitCombatEvent('onStartled', { get, set, battle: get().battle!, self: t, sink: (line) => logLines.push(line), triggerCtx: { rng: battleRng(), startleCause: 'magic' } });
     }
     // Surincantation « Cible » (LDB 47 l.28-31) : le MÊME jet frappe les cibles supplémentaires.
-    for (const t2 of extraTargets) {
+    for (const t2 of autres) {
       if (!res.cast) break;
       const r2 = evaluateMissile(caster, t2, spell, res, undefined, overcastDamageSteps);
       const touche2 = appliquerTouchePourCible(get, set, t2, toucheDe(t2, r2));
@@ -6844,10 +6844,10 @@ export function applyCast(
     }
     // Le rebond DÉCLARÉ plus haut ne se joue ICI que si la touche initiale est CLOSE : suspendue
     // (sauvegarde, Déviation Critique), c'est SA reprise qui le jouera, sur des PB frais.
-    if (rebond && initiale.issue === 'appliquee') logLines.push(...jouerLeRebond(get, set, toucheInitiale));
+    if (rebond && toucheInitiale && initiale?.issue === 'appliquee') logLines.push(...jouerLeRebond(get, set, toucheInitiale));
     // Zone persistante d'un Projectile (Grands feux d'U'Zhul : « le feu continue de brûler
     // dans la Zone d'Effet pour la durée du Sort ») — posée autour de la cible touchée.
-    if (res.cast) placeSpellZone(get, caster, target, spell, missileSpec, slFor(target), durationMult, durationBonusRounds, logLines);
+    if (res.cast && ancre) placeSpellZone(get, caster, ancre, spell, missileSpec, slFor(ancre), durationMult, durationBonusRounds, logLines);
     // LDB 46 l.85 ; LDB 46 l.132
     if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
@@ -6862,8 +6862,8 @@ export function applyCast(
       const duree = dureeDuLancer(get, caster, spell, durationMult, durationBonusRounds);
       if ((durationMult > 1 || durationBonusRounds > 0) && duree.defaultDurationRounds != null) logLines.push(tr('cf.surincantationDuree', { rounds: String(duree.defaultDurationRounds) }));
       if (durationMult > 1 && duree.defaultUntilTime != null) logLines.push(tr('cf.surincantationDureeMin', { mult: durationMult }));
-      for (const t of [target, ...extraTargets]) {
-        if (t !== target) logLines.push(tr('cf.sortProlonge', { spell: spell.label, name: t.label }));
+      for (const t of targets) {
+        if (t !== ancre) logLines.push(tr('cf.sortProlonge', { spell: spell.label, name: t.label }));
         // OPPOSITION (spec.opposed) résolue dans la modale : une cible qui l'a emporté RÉSISTE (aucune
         // op) ; sinon les ops portent sur la MARGE de DR (l'écart de l'opposition → échelles `perSL`).
         const opp = extras?.opposedOutcome?.[t.id];
@@ -6905,7 +6905,7 @@ export function applyCast(
       for (const op of spellOps(spell.effects, 'caster')) {
         if (op.op !== 'push' || !battle || !caster.pos) continue;
         const pushTiles = casesDansLaPortee(resolveFormula(op.meters, caster, battleRng()), sceneMetresPerTile(get().scene));
-        for (const t of [target, ...extraTargets]) {
+        for (const t of targets) {
           if (t.id === caster.id || !t.pos || isOutOfAction(t)) continue;
           const r = pushAway(get().scene!, caster.pos, t.pos, pushTiles, { blocked: occupied(battle, t) });
           if (r.pushed > 0) {
@@ -6922,7 +6922,7 @@ export function applyCast(
       // le Trait Souffle » — délégué à l'attaque de ZONE du Trait, centrée sur la CIBLE du sort,
       // Dégâts = Bonus d'Endurance du lanceur, Type mappé du Domaine. Sans coût d'Avantage (le
       // sort EST l'activation). Hors combat : pas de grille → journalisé.
-      if (spec.breathAttack) {
+      if (spec.breathAttack && ancre) {
         if (battle && caster.pos) {
           const type = domainBreathType(caster);
           // Indice = Bonus d'Endurance du lanceur (RAW : « Dégâts = Bonus d'Endurance »). Coût d'Avantage 0
@@ -6932,14 +6932,14 @@ export function applyCast(
           applyAreaAttack(get, set, caster, {
             cle: sDef.id, kind: 'souffle', label: sDef.label, bonus: indice, indice, def: sDef,
             trigger: 'free', avantage: 0, aoe: true, magic: true, ...(type ? { type } : {}),
-          }, target);
+          }, ancre);
           if (!type) logLines.push(tr('cf.souffleSansGenre'));
         } else {
           logLines.push(tr('cf.souffleRecit', { name: caster.label }));
         }
       }
       // Zone persistante d'un sort de soutien/zone (Mur de feu : « Quiconque traverse… »).
-      if (res.cast) placeSpellZone(get, caster, target, spell, spec, slFor(target), durationMult, durationBonusRounds, logLines);
+      if (res.cast && ancre) placeSpellZone(get, caster, ancre, spell, spec, slFor(ancre), durationMult, durationBonusRounds, logLines);
       // TÉLÉPORTATION (Jalon 2.6 — « vous vous téléportez de BFM mètres (+BFM par +2 DR) »,
       // LDB 47 l.517-519) : le choix de la case d'arrivée suit l'Appliquer (mode 'teleportation',
       // cases = survol des obstacles, atterrissage libre — cliquerLaCaseDuCombat).
@@ -6971,15 +6971,15 @@ export function applyCast(
     // d'incantation → halo/aura tinté à l'école.
     // Soutien : le lanceur se tourne vers la cible ; pas de réaction de la cible (ce n'est pas une frappe).
     // Hors combat (pas de file/token tactique), on n'anime pas le geste iso.
-    if (battle && caster.pos && target.pos && caster.id !== target.id) {
-      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!) } }));
+    if (battle && ancre && caster.pos && ancre.pos && caster.id !== ancre.id) {
+      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, ancre.pos!) } }));
     }
-    if (battle) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: target.id, result: res, kind: 'spell', projectile: false, spell: spell.id, defense: 'aucune' });
+    if (battle && ancre) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: ancre.id, result: res, kind: 'spell', projectile: false, spell: spell.id, defense: 'aucune' });
   }
 
   // Attributs de Domaine (LDB 48 — L14) : riders post-lancement d'un Sort « issu du Domaine ».
   if (res.cast) {
-    for (const t of [target, ...extraTargets]) {
+    for (const t of targets) {
       // Une cible qui a EMPORTÉ l'opposition (spec.opposed) résiste au Sort entier : pas de rider de Domaine.
       if (extras?.opposedOutcome?.[t.id]?.resisted) continue;
       // Immunité de Domaine (`domainesImmunises`) : le rider est un effet du Sort. VDM 13 l.24, l.61 ; ZI 08 l.28
@@ -7027,7 +7027,7 @@ export function applyCast(
   // Effet déclenché « après incantation résolue » (réussie ou non) — dispatcher générique via le bus.
   // Point d'émission = incantation résolue (LDB 46, post-runCastFlow). Inerte sans donnée. Hors combat :
   // battle absent, runCombatHooks('onCastResolved') est un no-op (aucune machinerie abonnée).
-  emitCombatEvent('onCastResolved', { get, set, battle: battle!, self: caster, sink: (line) => logLines.push(line), triggerCtx: { victim: target, rng: battleRng() } });
+  emitCombatEvent('onCastResolved', { get, set, battle: battle!, self: caster, sink: (line) => logLines.push(line), triggerCtx: { ...(ancre ? { victim: ancre } : {}), rng: battleRng() } });
   finishPlayerAction(get, set, logLines, 'sort'); // sortie commune combat (log+conso Action) / hors combat (journal)
   // Téléportation (Jalon 2.6) : le choix de case suit la clôture du cast (qui remet action: null).
   if (teleportReach && get().battle) {

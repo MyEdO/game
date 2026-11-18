@@ -1790,9 +1790,9 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(inspecteur().some((el) => el.id === 'valeur/onCross'), 'vidée, la liste quitte la zone').toBe(false);
     presser('valeur/crossTest/ajouter');
     choisir('valeur/crossTest/characteristic', 'Force');
-    choisir('valeur/crossTest/stake/forme', 'clé');
-    expect(inspecteur().filter((el) => el.id.startsWith('valeur/crossTest/stake/key/')).map((el) => [el.id.slice('valeur/crossTest/stake/key/'.length), el.type]), 'la forme authorée d’un enjeu au catalogue est sa clé seule, chaque champ à son contrôle (#3606 M2e3)').toEqual([['dataset', 'choix'], ['kind', 'formulaire'], ['entryId', 'formulaire'], ['entryCategory', 'formulaire']]);
-    presser('valeur/crossTest/stake/forme/aucune');
+    presser('valeur/crossTest/stake/ajouter');
+    expect(inspecteur().filter((el) => el.id.startsWith('valeur/crossTest/stake')).map((el) => [el.id.slice('valeur/crossTest/stake'.length), el.type]), 'l’enjeu du Test de traversée est la phrase que le document écrit, sans clé de catalogue à choisir (#4056 E7)').toEqual([['', 'ligne'], ['/source/ajouter', 'bouton'], ['/authored', 'formulaire'], ['/adapteDe/ajouter', 'bouton'], ['/retirer', 'bouton']]);
+    presser('valeur/crossTest/stake/retirer');
     presser('valeur/onCross/ajouter');
     choisir('valeur/onCross/0/op', 'Points de Corruption');
     saisir('valeur/onCross/0/amount', 2);

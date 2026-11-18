@@ -424,7 +424,7 @@ describe('Structures de siège — Projectile magique (AA 10 l.114 ; LDB 18 l.17
     (banc.getState().battle?.log ?? []).filter((e) => (typeof e === 'string' ? e : (e as { text?: string }).text ?? '').includes('Critique de Structure')).length;
   const lancer = (H: Combatant, S: Combatant, lost: number): void => {
     const spell = findSpellById('flechette')!;
-    applyCast(banc.getState, banc.setState, H, S, spell, { ...evaluateMissile(H, S, spell, cr), hit: true, woundsLost: lost }, true, false);
+    applyCast(banc.getState, banc.setState, H, [S], spell, { ...evaluateMissile(H, S, spell, cr), hit: true, woundsLost: lost }, true, false);
   };
 
   for (const mode of ['ldb', 'aa'] as const) {

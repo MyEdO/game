@@ -600,7 +600,7 @@
     "type": "primitives.manifest",
     "label": "inferFields/FieldDesc/choixDuNoeud/champsDeclares/bornesDuNoeud/unionDuNoeud/elementDuNoeud",
     "fichier": "src/noyau/codex/editFields.ts",
-    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste (`elementDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui ajoute, retire ou monte un élément de liste à son rang, retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `ecritureAuFormulaire`, `monteeAuFormulaire`, `src/noyau/edition/formulaire.ts`)",
+    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste, spécialisation d'une entrée fermée à son catalogue, `choixDeLaSpec`, le `spec` d'une référence à spécialisation lu au point de son `id`, `noeudDuChampAuPoint`), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste (`elementDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui ajoute, retire ou monte un élément de liste à son rang, retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `ecritureAuFormulaire`, `monteeAuFormulaire`, `src/noyau/edition/formulaire.ts`)",
     "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en éléments par `src/hote/formulaire.ts` (`elementsDuFormulaireTire`, `valeurDuFormulaire`) et joué par le geste `valeur` de la session d'édition",
     "verrou": "src/noyau/edition/formulaire.test.ts"
   },
@@ -1066,7 +1066,16 @@
     "fichier": "src/ui/MetalStatus.tsx",
     "concept": "chip de statut métallisé Bronze/Argent/Or avec son échelon",
     "perimetre": "tout affichage de statut social",
-    "verrou": "—"
+    "verrou": "libellé par libelleDuStatut (src/engine/money.ts)"
+  },
+  {
+    "id": "champDeStatut",
+    "type": "primitives.manifest",
+    "label": "ChampDeStatut",
+    "fichier": "src/ui/editor/ChampDeStatut.tsx",
+    "concept": "saisie d’un Statut en ids : choix d’Échelon puis Standing",
+    "perimetre": "tout champ `statutSchema` d’un éditeur web",
+    "verrou": "options lues sur le nœud `statutSchema.shape.tier` (optionsDuNoeud)"
   },
   {
     "id": "waxSeal",

@@ -12,6 +12,7 @@ import {
   elementDuNoeud,
   formeAuPoint,
   inferFields,
+  noeudDuChampAuPoint,
   recordDuNoeud,
   unionDuNoeud,
   varianteCourante,
@@ -143,7 +144,7 @@ function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => r
   }
   const forme = formeAuPoint(noeud, point);
   const n = forme && champsDeclares(forme.noeud)?.find(([cle]) => cle === pas)?.[1];
-  return n !== undefined && !forme!.tenus.includes(pas) && !tenue.includes(pas) ? n : undefined;
+  return n !== undefined && !forme!.tenus.includes(pas) && !tenue.includes(pas) ? noeudDuChampAuPoint(noeud, point, pas, n) : undefined;
 }
 
 /** Les nœuds de chaque pas du chemin `chemin` (`noeudDuPas`) depuis la donnée `donnee` de l'objet de schéma `objet`, aux

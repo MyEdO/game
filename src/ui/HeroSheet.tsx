@@ -1,3 +1,4 @@
+import { actorStatus } from '../engine/social';
 import type { ReactNode } from 'react';
 import { CHAR_KEYS, CHAR_LABELS, type Combatant, type CharKey } from '../engine/types';
 import { dominantAxes } from '../engine/axes';
@@ -14,7 +15,7 @@ import { MetalStatus } from './MetalStatus';
 import { RoseAxes } from './RoseAxes';
 import { SkillChip, TalentChip, TraitChips, EntityRef } from './EntityChip';
 import { CodexRef } from './compendium/CodexRef';
-import { axisDataFor, heroRoseAxes, heroStatusLabel, heroSubtitle } from './CharCard';
+import { axisDataFor, heroRoseAxes, heroSubtitle } from './CharCard';
 import { t } from '../i18n';
 import { Row } from './Layout';
 import { ModChips } from './RollLine';
@@ -128,7 +129,7 @@ export function HeroSheet({
               label={hero.label}
               sub={heroSubtitle(hero)}
               meta={<>
-                <MetalStatus status={heroStatusLabel(hero)} size="chip" />
+                <MetalStatus status={actorStatus(hero)} size="chip" />
                 {bourse != null && <span className="chip">{t('picker.hero.purse')} {bourse}</span>}
               </>}
             />

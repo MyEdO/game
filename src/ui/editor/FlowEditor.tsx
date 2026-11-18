@@ -21,8 +21,9 @@ import { Icon } from '../Icon';
 import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
+import { ChampDeStatut } from './ChampDeStatut';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
-import { flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
+import { facilitationSchema, flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';
@@ -126,6 +127,8 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
   // lecture déclarée : l'éditeur montre et réécrit les valeurs authorées
   const { difficulty, easierIf, gate } = test;
   const upd = (patch: Partial<FlowTest>) => onChange({ ...test, ...patch });
+  const enjeu = test.stake;
+  const authore = enjeu && 'authored' in enjeu ? enjeu : undefined;
   const setEase = (patch: Partial<NonNullable<FlowTest['easierIf']>>) => {
     const m = { ...(easierIf ?? {}), ...patch };
     upd({ easierIf: m.hasSkill || m.hasTalent ? m : undefined });
@@ -162,14 +165,14 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
           la scène — `validateScene` refuse un jet muet. Un enjeu de CATALOGUE (Flow produit par le
           moteur, jamais par cet éditeur) reste en lecture seule : sa phrase vit dans la donnée. */}
       <div className="tf-row">
-        {test.stake?.key ? (
+        {enjeu && 'key' in enjeu ? (
           <span className="dr" title="Enjeu servi par un dataset du moteur — il s’édite dans sa donnée, pas dans la scène.">
-            Enjeu : {test.stake.key.dataset}/{test.stake.key.kind} (catalogue)
+            Enjeu : {enjeu.key.dataset}/{enjeu.key.kind} (catalogue)
           </span>
         ) : (
           <Stack>
-            <ProseField label="Enjeu du jet" value={test.stake?.authored ?? ''} onChange={(authored) => upd({ stake: authored.trim() ? { authored, ...(test.stake?.authored !== undefined ? { source: test.stake.source, adapteDe: test.stake.adapteDe } : {}) } : undefined })} />
-            {test.stake?.authored !== undefined && <ProvenanceDuTexte copie identite={`${identite}/enjeu`} sujet="de l'enjeu" value={test.stake} onChange={(patch) => upd({ stake: { authored: test.stake!.authored!, ...patch } })} />}
+            <ProseField label="Enjeu du jet" value={authore?.authored ?? ''} onChange={(authored) => upd({ stake: authored.trim() ? { authored, ...(authore ? { source: authore.source, adapteDe: authore.adapteDe } : {}) } : undefined })} />
+            {authore && <ProvenanceDuTexte copie identite={`${identite}/enjeu`} sujet="de l'enjeu" value={authore} onChange={(patch) => upd({ stake: { authored: authore.authored, ...patch } })} />}
           </Stack>
         )}
       </div>
@@ -187,14 +190,18 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
             label="Groupes de l’interlocuteur"
             title="Animosité et Préjugé du jeteur envers ces Groupes modifient le Test de Sociabilité"
             value={test.vsGroups}
-            onChange={(vsGroups) => upd({ vsGroups })}
+            onChange={(ids) => { const lus = flowTestSchema.shape.vsGroups.safeParse(ids); upd({ vsGroups: lus.success ? lus.data : undefined }); }}
           />
+          <label className="dr" title="Le Statut de l’interlocuteur module le Test de Sociabilité selon celui du jeteur">
+            Statut de l’interlocuteur
+            <ChampDeStatut value={test.vsStatus} onChange={(vsStatus) => upd({ vsStatus })} echelon="Échelon de l’interlocuteur" standing="Standing de l’interlocuteur" facultatif />
+          </label>
         </div>
       )}
       <div className="tf-row">
         <span className="dr">Plus facile si</span>
         <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="compétence" value={easierIf?.hasSkill} onChange={(v) => setEase({ hasSkill: (v as { id: string; spec?: string } | null) ?? undefined })} nullable />
-        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={easierIf?.hasTalent} onChange={(v) => setEase({ hasTalent: (v as string | null) || undefined })} nullable />
+        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={easierIf?.hasTalent} onChange={(v) => { const lu = facilitationSchema.shape.hasTalent.safeParse(v || undefined); setEase({ hasTalent: lu.success ? lu.data : undefined }); }} nullable />
         <label className="dr">−<NumberField variant="nu" label="Crans de facilité" min={1} value={easierIf?.steps ?? 1} onChange={(steps) => setEase({ steps })} /> cran(s)</label>
         {/* Menace du talent « Résistance (Menace) » (LDB 10) : tag qui offre son auto-succès sur CE Test.
             Les options sont les SPECS AUTHORÉES du talent (`menaceIds`, lues au catalogue) — l'auteur

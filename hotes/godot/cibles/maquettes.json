@@ -10,5 +10,11 @@
     "sha256": "e68618eaa90cce09b93a3f7f41ece9df2339be88610784036b98813a6d38d268",
     "facteur": 1,
     "date": "2026-11-13"
+  },
+  "accueil": {
+    "chemin": "maquettes/accueil.png",
+    "sha256": "3b3360cf354f9055db0462527a115ed545e7a80a14cfc6fe6198befd6c9ed0b8",
+    "facteur": 1,
+    "date": "2026-11-17"
   }
 }

@@ -34,6 +34,7 @@ import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
 import { marquerProduit, produitDe } from './interne/produits';
 import { declarationDeFeuilleDId as declarationLue, declarerFeuilleDId, estFeuilleDId as feuilleLue, typeDeFeuilleDId as typeLu } from './interne/feuilles';
+import { declarationDeFeuilleDeSpec as declarationDeSpecLue, declarerFeuilleDeSpec } from './interne/feuillesDeSpec';
 import { enfantsDe } from './descente';
 
 /** Clé générée (`IdsParEspace`) de la sous-liste DISCRIMINÉE `S` de l'espace de `T` (`<espace>?<champ>=<S>`), `never` pour
@@ -429,6 +430,16 @@ export interface FeuilleDId {
   readonly portee?: PorteeLocale;
   readonly repereDuPorteur?: true;
 }
+
+/** Ce qu'une feuille `specDe` déclare : l'entrée (`type`, `id`) dont elle porte la spécialisation. */
+export interface FeuilleDeSpec {
+  readonly type: TypeEntite;
+  readonly id: string;
+}
+
+/** La déclaration (`FeuilleDeSpec`) d'une feuille construite par `specDe` ou `specFermeeDe`, `undefined` si le nœud
+ *  n'en est pas une : la porte du registre des feuilles de spécialisation (`interne/feuillesDeSpec.ts`). */
+export const declarationDeFeuilleDeSpec = (noeud: unknown): FeuilleDeSpec | undefined => declarationDeSpecLue(noeud);
 
 /** La déclaration (`FeuilleDId`) d'une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une :
  *  la porte du registre des feuilles (`interne/feuilles.ts`), que lit la garde du masquage (`parse-de-mesure.test.ts`). */
@@ -906,10 +917,18 @@ export function messageDeRefusDeSpec(type: TypeEntite, id: string, spec: string,
  * la donnée ne porte que la Spécialisation) : validée par `refusDeSpec`, ses trois refus nommés.
  */
 export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
-  return z.string().min(1).superRefine((spec, ctx) => {
+  return feuilleDeSpec(type, id, false);
+}
+
+/** La feuille de spécialisation de l'entrée `id` de `type`, déclarée (`declarerFeuilleDeSpec`) : `refusDeSpec`, plus,
+ *  `fermee`, le refus d'une entrée OUVERTE. Une seule feuille porte les deux raffinements, puisque `.superRefine` clone
+ *  le nœud que le registre déclare. */
+function feuilleDeSpec(type: TypeEntite, id: string, fermee: boolean): z.ZodType<string> {
+  return declarerFeuilleDeSpec(z.string().min(1).superRefine((spec, ctx) => {
     const refus = refusDeSpec(type, id, spec);
     if (refus) ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, id, spec, refus, false) });
-  });
+    if (fermee && entreeOuverte(type, id)) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
+  }), { type, id });
 }
 
 /** Union GÉNÉRÉE des spécialisations de l'entrée `I` de `T` : l'espace `<espace>#[<id>].specs`
@@ -933,9 +952,7 @@ export type RenvoiCodexSansEspace = { readonly category: Exclude<CategorieCodexD
  */
 export function specFermeeDe<T extends TypeEntite, const I extends string>(type: T, id: I): z.ZodType<SpecId<T, I>>;
 export function specFermeeDe(type: TypeEntite, id: string): z.ZodType<string> {
-  return specDe(type, id).superRefine((_spec, ctx) => {
-    if (entreeOuverte(type, id)) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
-  });
+  return feuilleDeSpec(type, id, true);
 }
 
 /**

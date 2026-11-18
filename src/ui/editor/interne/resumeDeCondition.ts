@@ -18,7 +18,7 @@ import {
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
 import { findTrappingById, refLabel } from '../../../data';
 import { cfgDeLaFeuille } from '../../compendium/refField/RefField';
-import { formatMoney } from '../../../engine/money';
+import { formatMoney, libelleDuStatut } from '../../../engine/money';
 import { libelleDEtat } from '../../../noyau/codex/libellesNarratifs';
 
 /** Libellé d'affichage d'un `trappingId` (objet catalogué) — repli sur l'id brut (objet CUSTOM par nom). */
@@ -98,7 +98,7 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'talent': return `${quiResume(c.who, narratif)} : Talent « ${c.id ? refLabel('talents', { id: c.id, spec: c.spec }) : '?'} »`;
     case 'career': return `${quiResume(c.who, narratif)} : carrière « ${c.id || '?'} »`;
     case 'species': return `${quiResume(c.who, narratif)} : espèce « ${c.id || '?'} »`;
-    case 'status': return `${quiResume(c.who, narratif)} : Statut ≥ « ${c.atLeast || '?'} »`;
+    case 'status': return `${quiResume(c.who, narratif)} : Statut ≥ « ${libelleDuStatut(c.atLeast)} »`;
     case 'all': return c.of.length ? c.of.map((x) => condSummary(x, narratif)).join(' ET ') : 'toujours';
     case 'any': return c.of.length ? c.of.map((x) => condSummary(x, narratif)).join(' OU ') : 'jamais';
     case 'not': return `NON(${condSummary(c.of, narratif)})`;

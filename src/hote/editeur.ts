@@ -29,6 +29,7 @@ import {
   OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, refusDeForme, FORMES_D_ETAT, type FormeDEtatKind, planDuLieuOuvert, nomDuPoi, offresDeLEtablissement, placeServices, typesDEtablissement, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
 } from '../noyau/index';
 import { pluriel, t, type MsgKey } from '../i18n';
+import { libelleDuStatut } from '../noyau/index';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from '../lib/objet.mjs';
@@ -1026,7 +1027,7 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
   const niveau = actuelle && levelsForCareer(actuelle.id).find((l) => l.level === actuelle.niveau);
   const liste = (cle: 'competences' | 'talents' | 'possessions', elements: string[]) => ligne(`profil/${cle}`, t(`ecran.editeur.profil.${cle}`, { liste: elements.join(', ') || t('ecran.editeur.profil.aucun') }));
   return [
-    ...(niveau ? [ligne('profil/statut', t('ecran.editeur.profil.statut', { niveau: niveau.label, statut: niveau.status }))] : []),
+    ...(niveau ? [ligne('profil/statut', t('ecran.editeur.profil.statut', { niveau: niveau.label, statut: libelleDuStatut(niveau.status) }))] : []),
     ligne('profil/caracteristiques', t('ecran.editeur.profil.caracteristiques', { liste: fiche.caracteristiques.map((c) => `${c.abrege} ${c.valeur}`).join(' · '), blessures: fiche.blessures[1] })),
     liste('competences', fiche.competences.map((c) => `${c.libelle} ${c.valeur}`)),
     liste('talents', fiche.talents.map((x) => (x.fois > 1 ? `${x.libelle} ×${x.fois}` : x.libelle))),

@@ -135,7 +135,7 @@ describe('statusCharmLabel', () => {
 describe('Statut EFFECTIF — le Standing temporaire de Réputation compte pendant l’aventure (LDB 23 l.234)', () => {
   it('un héros Argent 1 passe la Condition « au moins Argent 2 » une fois son Standing monté de +1', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
-    const cond = { kind: 'status' as const, atLeast: 'Argent 2' };
+    const cond = { kind: 'status' as const, atLeast: { tier: 'argent' as const, standing: 2 } };
     const ctx = () => conditionCtx({ flags: {}, gameTime: 0, party: [h] });
     expect(evalCondition(cond, ctx()), 'témoin : Argent 1 de carrière').toBe(false);
     applyOps(h, [{ op: 'statusMod', amount: 1 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Réputation' });

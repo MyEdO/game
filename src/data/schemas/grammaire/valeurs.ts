@@ -11,7 +11,7 @@ import type { Formula, FormuleSansTirage } from '../../../engine/ops';
 import type { RegleOptionnelleId } from '../../../engine/policy';
 import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
-import { parseStatus, type Money } from '../../../engine/money';
+import { ECHELONS_DE_STATUT, libelleDEchelon, type Money, type Status } from '../../../engine/money';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
@@ -261,8 +261,11 @@ export const LIBELLES_DE_DISPONIBILITE = { commune: 'Commune', limitee: 'Limité
 export const availabilitySchema = enumNomme(LIBELLES_DE_DISPONIBILITE);
 /** Les Disponibilités qui se testent au d100 (`TestedAvailability`). LDB 59 l.25-30 */
 export const dispoPctAvailabilitySchema = enumNomme({ limitee: LIBELLES_DE_DISPONIBILITE.limitee, rare: LIBELLES_DE_DISPONIBILITE.rare } satisfies Record<TestedAvailability, string>);
-/** Libellé de Statut (« Argent 2 ») : lisible par `parseStatus`, que `statutDeDonnee` garantit ensuite. LDB 08 l.9 */
-export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'Statut illisible : « Bronze N », « Argent N » ou « Or N » attendu.');
+/** Statut (`Status`, `src/engine/money.ts`) : un Échelon et un Standing entier, de 0 sans borne haute. LDB 08 l.9, l.101 */
+export const statutSchema = nommerChamps(
+  z.strictObject({ tier: enumNomme(tableTotale(ECHELONS_DE_STATUT, libelleDEchelon)), standing: z.number().int().min(0) }),
+  { tier: { label: 'échelon' }, standing: { label: 'standing' } },
+) satisfies z.ZodType<Status>;
 
 /**
  * Rareté d'une pièce de créature récoltée (`HarvestRarity`, `src/data/index.ts`) = les paliers de

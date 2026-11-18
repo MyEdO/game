@@ -32,6 +32,7 @@ import {
 import type { Camp, Relation } from '../../engine/relations';
 import { ChoixDeSpec, RefField, reposerLId } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
+import { ChampDeStatut } from './ChampDeStatut';
 import { CONDITION_TOUJOURS, recast } from '../../data/valeursNeuves';
 import { unionDuNoeud } from '../../noyau/codex/editFields';
 import { ATTACK_KIND_LABELS, valeurDeHas } from './interne/resumeDeCondition';
@@ -367,7 +368,7 @@ export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = condi
       )}
       {cond.kind === 'status' && (
         <span className="cond-time">
-          <input className="cond-flag" value={cond.atLeast} placeholder="Statut (ex. Argent 2)" onChange={(e) => onChange({ ...cond, atLeast: e.target.value })} />
+          <ChampDeStatut value={cond.atLeast} onChange={(atLeast) => atLeast && onChange({ ...cond, atLeast })} echelon="Échelon minimum" standing="Standing minimum" />
           <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
         </span>
       )}

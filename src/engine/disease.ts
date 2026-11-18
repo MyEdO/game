@@ -304,9 +304,7 @@ export function symptomOnTick(inst: DiseaseSymptom, severite: 'moderee' | 'grave
   };
   if (!tick.test) return { onFail: tick.ops ?? [], ...cadence };
   const bySeverity = severite && tick.difficultyBySeverity?.[severite];
-  // `difficulty` REQUISE au schéma du cycle (`noeudTest(…, { difficulteRequise: true })`, defs/symptoms) —
-  // `FlowTest` la laisse optionnelle pour les jets dont elle vient d'ailleurs.
-  const difficulty = bySeverity || tick.test.test.difficulty!;
+  const difficulty = bySeverity || tick.test.test.difficulty;
   return { difficulty, test: idsDuNoeud(tick.test), onFail: opsDeLEchec(tick.test), ...cadence };
 }
 
@@ -690,9 +688,7 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
         // d'ingénierie #674, hors source (`LDB 72 l.28` ne porte que sur les effets du symptôme).
         const daily = structuredClone(diseaseDefs()[dz.id]?.dailyTest); // #2097
         if (daily && !symptomSuppressed(c, daily.symptomId)) {
-          // `difficulty` REQUISE au schéma du porteur (`noeudTest(…, { difficulteRequise: true })`,
-          // `defs/maladies.ts`) — `FlowTest` la laisse optionnelle pour les jets dont elle vient d'ailleurs.
-          const difficulty = daily.test.test.difficulty!;
+          const difficulty = daily.test.test.difficulty;
           const onFail = opsDeLEchec(daily.test);
           defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(daily.symptomId), precision: diseaseLabel(dz.id) }), test: idsDuNoeud(daily.test), difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: daily.symptomId, opsEchec: onFail } });
         }
