@@ -822,7 +822,9 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
                             dynamicMarks/interactHalos/tokenChrome. Un builder n'importe NI caméra NI
                             Dims — sa sortie survit à toute rotation et sert les deux vues.
                             Chaque site de `buildProps` (entité, feature de façade, ornement de
-                            bâtiment) DÉCLARE son ancrage et un émetteur unique tranche par
+                            bâtiment) DÉCLARE son ancrage — celui des features et ornements du bâti
+                            lu sur `ornementsDuBati` (`src/noyau/monde/volume/ornements.ts`), qui les
+                            pose aussi dans le volume du monde des hôtes — et un émetteur unique tranche par
                             `facesDuDecor` (`src/noyau/monde/volume/propVolumes.ts`, compilation PURE
                             de la recette volumique d'un décor, que le volume du monde des hôtes lit
                             aussi) : recette → volume, sinon billboard

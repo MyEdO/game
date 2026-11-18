@@ -1,7 +1,8 @@
 /**
  * BUILDER de PROPS — produit les éléments `prop` du pivot (cf. ./types) : le DÉCOR de scène (entités
  * `kind:'prop'` — tonneaux, cadavres, tentes…), les OVERLAYS de TERRAIN à décor (`decorDuTerrain` : une essence du `bois`),
- * les FEATURES de façade authorées et les ORNEMENTS d'identité d'un bâtiment. Chaque site d'émission
+ * les ornements du BÂTI posés par le noyau (`ornementsDuBati` : features de façade authorées, ornements
+ * d'identité d'un bâtiment). Chaque site d'émission
  * DÉCLARE un ancrage (`AncrageDecor` : point monde, cap, sol, case porteuse) et un SEUL émetteur
  * (`elDeDecor`) tranche : un type qui porte une recette volumique (`PropData.volume`) sort en faces
  * MONDE (`propVolumes.ts`), cuites dans la masse commune ; tout autre sort en BILLBOARD du SVG
@@ -12,22 +13,18 @@
  * Consommé par l'hôte du monde de campagne (`stage/MondeDeCampagne`, qui le sert à SES DEUX regards)
  * et par l'éditeur — mêmes décors partout.
  */
-import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, wallEnds, type ArchitectureRect } from '../../noyau/monde/scene';
-import { roofHidden, massFootBBox } from '../../noyau/monde/buildings';
-import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdit';
+import { Scene, tileAt, heightAt, sceneMetresPerTile } from '../../noyau/monde/scene';
+import { roofHidden } from '../../noyau/monde/buildings';
 import { ancreDuDecor, decorFootGeometry } from '../../noyau/monde/footprint';
 import { findPropById, refEstVolumique } from '../../data';
 import { facesDuDecor } from '../../noyau/monde/volume/propVolumes';
+import { ornementsDuBati } from '../../noyau/monde/volume/ornements';
+import { resolveNappes } from '../../noyau/monde/volume/toits';
 import { decorDuTerrain } from '../../noyau/monde/terrain';
-import { buildingFeatures } from '../../noyau/monde/buildings';
-import { edgeKey, facadeFeatureViz } from '../../noyau/monde/facades';
-import { WALL_H_M } from '../../noyau/monde/iso';
 import { capVolumique, empreinteDuProp } from '../../data/props.types';
-import { DIR8_DELTA, type Dir4, type Dir8 } from '../../geometry/dir8';
-import { fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from '../../noyau/monde/volume/toits';
+import type { Dir8 } from '../../geometry/dir8';
 import type { FloorView } from '../../noyau/monde/volume/floors';
 import type { PropEl, OrigineDecor } from './types';
-import { outwardSide } from './walls';
 
 /** La scène porte-t-elle AU MOINS un décor volumique désignable ? Ce que le pointeur demande pour
  *  savoir si une face du monde peut nommer une entité sous le pixel — seul un décor d'ENTITÉ porte un
@@ -109,14 +106,6 @@ function elDeDecor(a: AncrageDecor, mpt: number): PropEl {
   };
 }
 
-/** CAP d'un ornement de FAÎTE, lu sur la nappe RÉSOLUE : l'axe de faîtage authoré fait foi (`ridge`,
- *  `resolveMassRidge`), jamais la boîte englobante de l'empreinte. Un profil sans faîte franc (croupe,
- *  toit plat) n'oriente rien : cap canonique `S`. */
-export function capDuFaite(shape: RoofShapeSpec): Dir8 {
-  if (shape.profile === 'hip' || shape.profile === 'flat') return 'S';
-  return shape.ridge === 'x' ? 'E' : 'S';
-}
-
 /** Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`,
  *  demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). La VISIBILITÉ D'ÉTAGE n'est PAS
  *  une loi de builder : elle appartient à l'écran, qui l'applique APRÈS coup à la MÊME identité que la
@@ -176,196 +165,59 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
       states: { visible: !visible || visible.has(`${ent.pos.x},${ent.pos.y},${z}`) },
     }, mpt));
   }
-  const physicalEdges = new Set((scene.walls ?? []).map((wall) => edgeKey(wall)));
-  const emittedFeatures = new Set<string>();
+  // Ornements du BÂTI (`ornementsDuBati`) : la pose vient du noyau, le web n'y ajoute que son affichage — repli
+  // billboard d'un ornement sans cap, vérités de vue, faîte sauté sous un toit levé, nappe porteuse
+  // (`nappePorteuse`).
   const nappes = resolveNappes(scene);
-  for (const body of scene.architecture ?? []) {
-    for (const section of body.facades) {
-      const sectionEdges = new Set(section.edges.map((edge) =>
-        edgeKey({ ...edge, z: edge.z ?? section.z })));
-      for (const feature of section.features ?? []) {
-        const edge = { ...feature.edge, z: feature.edge.z ?? section.z };
-        const z = edge.z;
-        if (viewZ != null && z !== viewZ) continue;
-        const edgeId = edgeKey(edge);
-        const featureId = `${body.id}:${section.id}:${feature.id}`;
-        if (emittedFeatures.has(featureId) || !sectionEdges.has(edgeId) || !physicalEdges.has(edgeId)) continue;
-        const viz = facadeFeatureViz(section.appearance, feature.kind);
-        if (!viz) continue;
-        emittedFeatures.add(featureId);
-        const offset = feature.offset ?? DEFAUTS_D_OUVERTURE.offset;
-        const [a, b] = wallEnds(edge);
-        const ancre = {
-          x: a.x + (b.x - a.x) * offset,
-          y: a.y + (b.y - a.y) * offset,
-        };
-        const [nx, ny] = WALL_NB[edge.side];
-        // CÔTÉ SORTANT (`outwardSide`, l'unique lecture du dehors du dépôt) : le cap vers lequel le décor
-        // habille le mur. Indéterminé (arête diagonale ou intérieure) ⇒ repli billboard déclaré.
-        const sortant = outwardSide(scene, edge);
-        const solM = heightAt(scene, edge.x, edge.y, z);
-        // SURFACE de référence du décalage, DÉCLARÉE par la vignette (`FacadeFeatureViz.base`) : le sol
-        // de la case, ou la COUVERTURE à l'aplomb de l'ancre. La surelévation totale est calculée ICI,
-        // une fois, et sert les DEUX représentations — le volume la reçoit dans son pied
-        // (`baseHeightM`), le billboard la porte en `liftM`.
-        const couverture = viz.base === 'toit'
-          ? hauteurDeCouverture(nappes, [{ x: edge.x, y: edge.y }, { x: edge.x + nx, y: edge.y + ny }], ancre)
-          : null;
-        const surelevation = viz.base === 'toit' && couverture == null
-          ? 0 // repli DÉCLARÉ : pas de couverture, donc rien à quoi rapporter le décalage
-          : (couverture != null ? couverture - solM : 0) + (viz.liftM ?? 0);
-        out.push(elDeDecor({
-          key: `arch:${featureId}`,
-          cell: { x: edge.x, y: edge.y, z },
-          ancre,
-          echelle: viz.scale ?? 1,
-          solM,
-          ...(surelevation !== 0 ? { liftM: surelevation } : {}),
-          source: 'architecture',
-          architectureFeatureId: featureId,
-          ref: feature.appearance ?? viz.prop,
-          ...(sortant ? { facing: sortant } : { sansVolume: true }),
-          states: {
-            visible: !visible ||
-              visible.has(`${edge.x},${edge.y},${z}`) ||
-              visible.has(`${edge.x + nx},${edge.y + ny},${z}`),
-          },
-        }, mpt));
-      }
+  for (const o of ornementsDuBati(scene)) {
+    const z = o.case.z;
+    const porteuse = o.nappe ? nappes.get(o.nappe) : undefined;
+    const surLaNappe = porteuse ? {
+      nappe: {
+        sectionId: porteuse.mass.id,
+        cells: [...porteuse.cells].map((k) => {
+          const [x, y] = k.split(',').map(Number);
+          return { x, y };
+        }),
+      },
+      ...(porteuse.roomZoneIds.length ? { roomZoneIds: porteuse.roomZoneIds } : {}),
+    } : {};
+    if (o.source === 'architecture') {
+      if (viewZ != null && z !== viewZ) continue;
+      out.push(elDeDecor({
+        key: `arch:${o.id}`,
+        cell: o.case,
+        ancre: o.ancre,
+        echelle: o.echelle,
+        solM: o.solM,
+        ...(o.sureleveM !== 0 ? { liftM: o.sureleveM } : {}),
+        source: 'architecture',
+        architectureFeatureId: o.id,
+        ref: o.prop,
+        ...surLaNappe,
+        ...(o.cap ? { facing: o.cap } : { sansVolume: true }),
+        states: { visible: !visible || o.cotes.some((c) => visible.has(`${c.x},${c.y},${z}`)) },
+      }, mpt));
+      continue;
     }
-  }
-  // Ornements d'IDENTITÉ par TYPE de bâtiment (clocheton/cheminée/enseigne/étal) — dérivés de
-  // `buildingFeatures(body.style)`, un jeu par MASSE (#822), posés SUR (faîte/façade) ou DEVANT (étal) le
-  // bâtiment. 100 % donnée : aucun cas en dur par id de scène.
-  for (const body of effectiveArchitecture(scene)) {
-    const feats = buildingFeatures(body.style);
-    if (!feats.length) continue;
-    for (const mass of body.masses) {
-      const z = mass.z;
-      const f = massFootBBox(mass.footprint);
-      // Égout et FAÎTE lus sur le CHAMP de la nappe (`resolveNappes`) — la MÊME hauteur que les pans
-      // que `buildRoofs` émet, jamais une seconde formule. Un ornement de FAÎTE se pose à ~60 % de la
-      // pente sous l'apex.
-      const { cells, field, roomZoneIds } = nappes.get(nappeKey(body.id, mass.id))!;
-      const eaveM = field.shape.eaveHeightM;
-      let apexM = eaveM;
-      for (const key of cells) {
-        const [x, y] = key.split(',').map(Number);
-        for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const)
-          apexM = Math.max(apexM, fieldHeightAt(field, { x: x + dx, y: y + dy }));
-      }
-      const cx = f.x + Math.floor(f.w / 2), cy = f.y + Math.floor(f.h / 2);
-      const vis = roofFootVisible(f, z, visible);
-      // Cutaway : toit LEVÉ pour montrer l'intérieur (un allié sous l'empreinte) → un ornement de FAÎTE
-      // flotterait au-dessus du vide ; on le SAUTE (MÊME `roofHidden` que `buildRoofs`). Façade/étal, au
-      // sol, restent — le toit levé ne les occulte pas.
-      const roofCut = !!view?.allies && roofHidden(f, view.allies);
-      let door: DoorAnchor | null = null; // résolu PARESSEUSEMENT (façade/front seulement)
-      feats.forEach((feat, i) => {
-        const base = {
-          key: `orn:${body.id}:${mass.id}:${i}`,
-          source: 'ornament' as const,
-          ref: feat.id,
-          states: { visible: vis },
-        };
-        if (feat.anchor === 'ridge') {
-          // REPLI BILLBOARD seulement : ce saut ne gouverne QUE le faîteau dessiné (l'appelant qui
-          // passe une vue — POV, éditeur). Un faîteau VOLUMIQUE, lui, est cuit dans la masse commune
-          // par un appel SANS vue et se retire par la nappe qu'il déclare (`nappePorteuse`, loi de
-          // dégagement de l'hôte, parité testée dans `stage/monde-de-campagne.test.tsx`) : deux
-          // représentations, deux lois.
-          if (roofCut) return;
-          // Faîte : ancré au MILIEU de l'empreinte du toit et surélevé sur la pente (posé, pas
-          // flottant), au cap du faîtage résolu. La NAPPE porteuse est déclarée : l'ornement volumique
-          // se lève et retombe avec elle (`nappePorteuse`, loi de dégagement de l'hôte).
-          out.push(elDeDecor({
-            ...base,
-            cell: { x: f.x, y: f.y, z },
-            ancre: { x: f.x + (f.w - 1) / 2, y: f.y + (f.h - 1) / 2 },
-            facing: capDuFaite(field.shape),
-            solM: heightAt(scene, cx, cy, z),
-            liftM: eaveM - heightAt(scene, cx, cy, z) + 0.6 * (apexM - eaveM),
-            nappe: { sectionId: mass.id, cells: cellsOf(cells) },
-            ...(roomZoneIds?.length ? { roomZoneIds } : {}),
-          }, mpt));
-          return;
-        }
-        door ??= buildingDoor(scene, f, z);
-        // 'facade' comme 'front' : ancré à la case JUSTE À L'EXTÉRIEUR de la porte (le mur PLEIN, +0.45 de
-        // profondeur, masquerait un décor posé à l'intérieur). L'ENSEIGNE s'ancre une demi-case plus au
-        // large — son billboard, dessiné à plat sur la case, mordrait sinon cette profondeur de mur — et
-        // pend en haut de la façade ; l'ÉTAL reste plaqué au sol devant la porte. Les deux tournés vers
-        // l'EXTÉRIEUR (face à qui approche).
-        const { gx: ox, gy: oy } = DIR8_DELTA[door.facing];
-        const facade = feat.anchor === 'facade';
-        out.push(elDeDecor({
-          ...base,
-          cell: { x: door.frontCell.x, y: door.frontCell.y, z },
-          ancre: {
-            x: door.frontCell.x + (facade ? ox * 0.5 : 0),
-            y: door.frontCell.y + (facade ? oy * 0.5 : 0),
-          },
-          facing: door.facing, // Dir8 vers l'EXTÉRIEUR
-          solM: heightAt(scene, door.frontCell.x, door.frontCell.y, z),
-          liftM: facade ? WALL_H_M * 0.55 : 0, // enseigne : haut de la façade ; étal : au sol
-        }, mpt));
-      });
-    }
+    // Cutaway : un faîteau DESSINÉ (appelant qui passe une vue — POV, éditeur) flotterait au-dessus du toit levé
+    // (MÊME `roofHidden` que `buildRoofs`) ; un faîteau VOLUMIQUE, cuit sans vue, se retire par la nappe qu'il
+    // déclare (`nappePorteuse`, loi de dégagement de l'hôte, `stage/monde-de-campagne.test.tsx`).
+    if (o.nappe && view?.allies && roofHidden(o.emprise, view.allies)) continue;
+    out.push(elDeDecor({
+      key: `orn:${o.id}`,
+      cell: o.case,
+      ancre: o.ancre,
+      ...(o.cap ? { facing: o.cap } : {}),
+      solM: o.solM,
+      liftM: o.sureleveM,
+      source: 'ornament',
+      ref: o.prop,
+      ...surLaNappe,
+      states: { visible: roofFootVisible(o.emprise, z, visible) },
+    }, mpt));
   }
   return out;
-}
-
-/**
- * Hauteur (m) de la COUVERTURE à l'aplomb d'un point d'ancrage d'arête, ou `null` si aucune nappe ne
- * couvre l'une des cases candidates (celle de l'arête et sa voisine d'en face : une cheminée est
- * ASSISE sur le mur, la couverture qui la porte est d'un côté ou de l'autre). Lit le CHAMP des nappes
- * (`resolveNappes` + `fieldHeightAt`), la source unique des hauteurs de toit — jamais une seconde
- * formule. Le repère du champ est celui des COINS de case (coin nord-ouest de `(x,y)` = point
- * `(x,y)`), là où l'ancre vit dans le repère graphique (centre de case en `(x,y)`) : d'où le `+0.5`.
- * Deux nappes couvrent le point ? La PLUS HAUTE gagne — un décor perce la couverture qui le coiffe.
- */
-function hauteurDeCouverture(
-  nappes: ReadonlyMap<string, { cells: ReadonlySet<string>; field: RoofField }>,
-  cases: readonly { x: number; y: number }[],
-  ancre: { x: number; y: number },
-): number | null {
-  let haut: number | null = null;
-  for (const nappe of nappes.values()) {
-    if (!cases.some((c) => nappe.cells.has(`${c.x},${c.y}`))) continue;
-    const h = fieldHeightAt(nappe.field, { x: ancre.x + 0.5, y: ancre.y + 0.5 });
-    if (haut === null || h > haut) haut = h;
-  }
-  return haut;
-}
-
-/** Cellules d'une nappe (clés « x,y ») en points de grille — la forme que porte l'élément. */
-const cellsOf = (cells: ReadonlySet<string>): { x: number; y: number }[] =>
-  [...cells].map((key) => {
-    const [x, y] = key.split(',').map(Number);
-    return { x, y };
-  });
-
-/** Ancrage EXTÉRIEUR de la PORTE d'un bâtiment (résolu depuis `scene.walls`) : case juste À L'EXTÉRIEUR de
- *  la porte + cap cardinal SORTANT. Robuste à la canonisation N/E des arêtes (une porte 'S'/'O' est
- *  stockée sur la case voisine). Une porte SECRÈTE n'est jamais l'entrée (`porteNonSecrete`). Repli :
- *  façade SUD, sous le centre bas de l'empreinte. */
-interface DoorAnchor {
-  frontCell: { x: number; y: number };
-  facing: Dir4;
-}
-function buildingDoor(scene: Scene, f: ArchitectureRect, z: number): DoorAnchor {
-  const x0 = f.x, y0 = f.y, x1 = f.x + f.w - 1, y1 = f.y + f.h - 1;
-  for (const w of scene.walls ?? []) {
-    if (!porteNonSecrete(w) || (w.z ?? 0) !== z) continue;
-    if (w.side === 'N') {
-      if (w.x >= x0 && w.x <= x1 && w.y === y0) return { frontCell: { x: w.x, y: y0 - 1 }, facing: 'N' };
-      if (w.x >= x0 && w.x <= x1 && w.y === y1 + 1) return { frontCell: { x: w.x, y: y1 + 1 }, facing: 'S' };
-    } else if (w.side === 'E') {
-      if (w.y >= y0 && w.y <= y1 && w.x === x1) return { frontCell: { x: x1 + 1, y: w.y }, facing: 'E' };
-      if (w.y >= y0 && w.y <= y1 && w.x === x0 - 1) return { frontCell: { x: x0 - 1, y: w.y }, facing: 'O' };
-    }
-  }
-  return { frontCell: { x: f.x + Math.floor(f.w / 2), y: y1 + 1 }, facing: 'S' };
 }
 
 /** Un ornement de toit est VISIBLE dès qu'une case de l'empreinte ÉLARGIE d'1 est en vue (règle IDENTIQUE

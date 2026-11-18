@@ -1,16 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity, type WallSeg } from '../../noyau/monde/scene';
-import { buildProps, capDuFaite } from './props';
+import { buildProps } from './props';
+import { capDuFaite } from '../../noyau/monde/volume/ornements';
 import { buildWalls } from './walls';
 import { buildPropVolumes } from '../../noyau/monde/volume/propVolumes';
 import { decorDuTerrain } from '../../noyau/monde/terrain';
 import { findPropById } from '../../data';
 import { capVolumique } from '../../data/props.types';
 import { missingPropSvg, propSvg } from '../catalog/decor';
-import { estPropVolumique, type BillboardPropEl, type PropEl, type VolumePropEl } from './types';
+import { estPropVolumique, nappePorteuse, type BillboardPropEl, type PropEl, type VolumePropEl } from './types';
 import type { Dir8 } from '../../geometry/dir8';
 import { buildRoofs, fieldHeightAt, nappeKey, resolveNappes, ROOF_SLOPE_M } from '../../noyau/monde/volume/toits';
 import { REF_HORS_CATALOGUE } from '../../noyau/monde/volume/decorVolumique.testkit';
+import { laRue, NAPPE_DE_LA_CHAPELLE } from '../../noyau/monde/volume/ornements.testkit';
 
 /** Le décor BILLBOARD d'une sortie de builder : un décor VOLUMIQUE n'a ni empreinte de billboard, ni
  *  surélévation, ni feature de façade à juger — il porte des faces. */
@@ -563,5 +565,24 @@ describe('buildProps — features de façade authorées', () => {
     const chimney = buildProps(authoredFacade()).find((prop) => prop.key.endsWith(':cheminee-est'))!;
     expect((chimney as { liftM?: number }).liftM).toBeUndefined();
     expect(socleM(chimney)).toBe(0);
+  });
+});
+
+/** La NAPPE PORTEUSE d'un ornement du bâti (#4471) : la loi de dégagement de l'hôte lève avec son toit tout décor
+ *  volumique qui la déclare (`nappePorteuse`), celle que le noyau lui donne (`OrnementDuBati.nappe`). */
+describe('buildProps — nappe porteuse des ornements du bâti', () => {
+  it('la cheminée de façade et le clocheton se lèvent avec le toit de la chapelle, l’enseigne au mur non', () => {
+    const scene = laRue();
+    const toit = resolveNappes(scene).get(NAPPE_DE_LA_CHAPELLE)!;
+    const volumes = buildProps(scene).filter(estPropVolumique);
+    const porteuses = Object.fromEntries(volumes.map((el) => [el.key, nappePorteuse(el)]));
+    const chapelle = { sectionId: toit.mass.id, cells: [...toit.cells].map((k) => k.split(',').map(Number)) };
+    const lue = (key: string) => {
+      const n = porteuses[key];
+      return n && { sectionId: n.sectionId, cells: n.cells.map(({ x, y }) => [x, y]) };
+    };
+    expect(lue('arch:chapelle:rue:cheminee')).toEqual(chapelle);
+    expect(lue('orn:chapelle:corps:0')).toEqual(chapelle);
+    expect(porteuses['arch:chapelle:rue:enseigne']).toBeNull();
   });
 });
