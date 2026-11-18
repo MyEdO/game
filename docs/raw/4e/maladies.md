@@ -748,6 +748,8 @@ La promiscuité à bord et la mauvaise qualité de la nourriture et de la boisso
 
 > « Si un membre d'équipage souffrant de la *peste noire*, du *flux sanglant*, de la *courante galopante* ou de la vé*role urticante* boit dans un tonneau d'eau, il doit effectuer un Test de **Résistance Intermédiaire (+0)**. En cas d'échec, le tonneau devient une source de contagion pour quiconque boit dedans ensuite. La *petite bière* n'est pas soumise à cette règle. » — `MDG 14 l.209`
 
+**Dans le jeu** : les porteurs à bord sont les Personnages vivants et l'équipage PNJ, porteur de maladies collectif (`CampaignVessel.porteurDeLEquipage`) qui teste sa Résistance à la valeur maison `mer-resistance-de-l-equipage`, en un seul Test pour tout l'effectif. Chaque nuit à bord, la contagion joue dans les deux sens : l'équipage porteur d'une maladie contagieuse expose chaque Personnage, un Personnage contagieux expose l'équipage. `MDG 14 l.208` Le tonneau : chaque porteur d'une maladie déclarée qui contamine l'eau, l'équipage compris, fait le Test de Résistance Intermédiaire (+0) ; le lendemain d'un échec, tout porteur qui boit au tonneau est exposé. `MDG 14 l.209` La contagion se teste une fois par nuit, pas une fois par heure entamée (`LDB 20 l.206`, #4445).
+
 **Voir aussi** : [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Toux et Éternuements) ; [Litanie de la Pestilence — 9 maladies LDB](#litanie-de-la-pestilence--9-maladies-ldb) (peste noire / flux sanglant / courante galopante / vérole urticante) ; [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (petite bière) ; `docs/raw/4e/etats.md`.
 
 **Implémente :** [État calculé](../implemente.generated.md#4emaladiesmaladies-a-bord-contagion-et-tonneaux-contamines-mdg)
@@ -801,6 +803,8 @@ Maladie de **privation prolongée** qui frappe ceux qui restent longtemps en mer
 > « la maladie persiste jusqu'à 1d10 jours après avoir recommencé à manger régulièrement des fruits et des légumes frais. » — `MDG 14 l.232`
 
 > « **Symptômes :** blessé, intoxication alimentaire, malaise, nausée. 1 % de chances de perdre une dent chaque jour. » — `MDG 14 l.234`
+
+**Dans le jeu** : « nourriture correcte » est un vivre frais de la cale pour l'équipage collectif, et un repas pris pour un Personnage, qui ne mange que ses rations. Chaque porteur à bord, Personnage ou équipage collectif, compte ses jours sans vivre frais et fait le Test de contraction au jour de mer joué jour par jour où ce compte tombe sur un multiple de 30 ; le voyage rapide n'en joue aucun. Le Test est Facile (+40) si le porteur a mangé de la soupe de chou fermenté au moins 15 jours de ce mois. `MDG 14 l.230` Un jour de vivre frais remet les deux compteurs à zéro. La Durée du scorbut décompte un jour par jour de vivre frais mangé, quel que soit le découpage de l'horloge ; à quai, l'équipage mange à terre et chaque jour franchi lui compte un jour de frais. `MDG 14 l.232`
 
 **Voir aussi** : [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (soupe de chou fermenté ; biscuits de mer ≠ nourriture correcte) ; [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Blessé, Intoxication Alimentaire, Malaise, Nausée) ; `docs/raw/4e/etats.md`.
 

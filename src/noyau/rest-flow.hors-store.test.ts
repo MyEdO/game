@@ -31,9 +31,10 @@ import { stacks, addCondition } from '../engine/conditions';
 
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant, ItemInstance } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import { WORLD_STEP_OWNER, type CascadeStep } from './pendings';
+import { deFixe } from '../engine/dice.testkit';
 import { setCadence } from '../engine/cadence';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, draineCascade } from './cascade.testkit';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -499,5 +500,45 @@ describe('CHEMIN RÉEL — la règle d’une étape de maladie est celle du SYMP
     expect(recovery!.stake).toHaveProperty('key');
     expect(recovery!.stake, 'aucune entrée jouée : pas d’entryId fabriqué').not.toHaveProperty('key.entryId');
     expect(resolveStake(recovery!.stake!).rule).toEqual({ category: 'regles', id: 'guerison-des-blessures' });
+  });
+});
+
+/** MDG 14 l.208 : la nuit à bord, l'équipage collectif (`porteursABord`) expose et est exposé comme un PJ. #4243 */
+describe('Contagion de nuit à bord — l’équipage collectif (MDG 14 l.208 ; #4243)', () => {
+  const verole = () => contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 5 })!;
+
+  /** Le groupe `party` dort `places` avec la cogue de campagne, dont l'équipage porte `equipage`. */
+  function dormir(party: Combatant[], places: { bord?: boolean; camp?: boolean }, equipage: { diseases?: ReturnType<typeof verole>[] } = {}): void {
+    banc.setState({
+      party, scene: emptyScene('scene-test', 6, 6),
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...(equipage.diseases ? { porteurDeLEquipage: equipage } : {}) },
+    } as never);
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places });
+    for (const h of party) banc.getState().fenetreChoisir('repos', 'pitance', 'rien', h.id);
+    banc.getState().fenetreValider('repos');
+  }
+  const rangeesDeContagion = () => banc.getState().pendingCascade!.participants
+    .filter((s) => s.kind === 'contagion').flatMap((s) => s.participants!.map((r) => r.id));
+  /** Déroule la nuit : les Tests de Contagion échouent (dé 100), les autres se lancent. */
+  function nuitAvecContagionRatee(): void {
+    draineCascade(banc.getState, 60, (etape) => (etape.kind === 'contagion' ? 100 : undefined));
+  }
+
+  it('un PJ contagieux à bord expose l’équipage : sa rangée de monde rejoint la bande, l’échec lui donne la maladie', () => {
+    dormir([hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1', label: 'Sain' })], { bord: true });
+    expect(rangeesDeContagion()).toEqual(['s1', WORLD_STEP_OWNER]);
+    nuitAvecContagionRatee();
+    expect(banc.getState().vessel!.porteurDeLEquipage?.diseases?.map((d) => d.id)).toEqual(['verole-urticante']);
+    expect(banc.getState().party.find((h) => h.id === 's1')!.diseases?.map((d) => d.id)).toEqual(['verole-urticante']);
+  });
+
+  it('hors du bord, l’équipage n’est ni exposé ni source', () => {
+    dormir([hero({ id: 'm1', diseases: [verole()] }), hero({ id: 's1', label: 'Sain' })], { camp: true });
+    expect(rangeesDeContagion()).toEqual(['s1']);
+  });
+
+  it('l’équipage contagieux à bord expose chaque PJ sain, une rangée chacun', () => {
+    dormir([hero({ id: 's1' }), hero({ id: 's2', label: 'Bruno' })], { bord: true }, { diseases: [verole()] });
+    expect(rangeesDeContagion()).toEqual(['s1', 's2']);
   });
 });

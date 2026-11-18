@@ -93,7 +93,7 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     fresh([dormeur]);
     const { steps } = buildNightCascade(get, set, restPending([dormeur]), {
       fedDaily: true,
-      extraContagion: [{ heroId: dormeur.id, diseaseName: 'courante-galopante', difficulty: 'accessible' }],
+      extraContagion: [{ porteurId: dormeur.id, diseaseName: 'courante-galopante', difficulty: 'accessible' }],
     } as never);
 
     const contagion = jetDe(steps.find((s) => s.kind === 'contagion')!);

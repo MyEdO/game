@@ -154,8 +154,9 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
     return noms;
   };
 
-  it('un champ par vivre achetable : biscuits et préservée, jamais le frais hors Bonne pêche, puis les tonneaux', () => {
+  it('un champ par vivre achetable : soupe de chou fermenté, préservée et biscuits, jamais le frais hors Bonne pêche, puis les tonneaux', () => {
     expect(champsDEscale({ escale: 'A' })).toEqual([
+      'Ration de soupe de chou fermenté pour un jour à embarquer',
       'Ration de nourriture préservée pour un jour à embarquer',
       'Ration de biscuits de mer pour un jour à embarquer',
       'Tonneaux d’eau douce à embarquer',
@@ -165,6 +166,7 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
   it('Bonne pêche à l’escale : le frais s’ajoute aux vivres achetables, à 3 sc la ration-jour', () => {
     expect(champsDEscale({ escale: 'A', rationsDEscale: 3 })).toEqual([
       'Nourriture, courses/journée à embarquer',
+      'Ration de soupe de chou fermenté pour un jour à embarquer',
       'Ration de nourriture préservée pour un jour à embarquer',
       'Ration de biscuits de mer pour un jour à embarquer',
       'Tonneaux d’eau douce à embarquer',
