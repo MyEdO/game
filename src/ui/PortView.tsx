@@ -23,6 +23,7 @@ import {
   refusDeGesteAQuai,
 } from '../noyau/portFlow';
 import { devisDeChantier, ameliorationsAuChantier, type PendingShoreLeave } from '../noyau/seaVoyageFlow';
+import { t } from '../i18n';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Prose } from './Prose';
@@ -187,6 +188,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const close = () => fermer('port');
   const choisir = useGame((s) => s.fenetreChoisir);
   const repair = useGame((s) => s.reparerLeNavire);
+  const repairParLeGroupe = useGame((s) => s.reparerParLeGroupe);
   const careen = useGame((s) => s.carenerLeNavire);
   const install = useGame((s) => s.installerLAmelioration);
   const hire = useGame((s) => s.recruterLEquipage);
@@ -206,7 +208,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   };
   // L'achat de l'offre se compose avant d'être réglé ou conclu (`cargaison.ts`).
   const composer = (cargoId: string) => { if (useGame.getState().port?.achat?.offre !== cargoId) choisir('port', 'offre', cargoId); };
-  const chantier = devisDeChantier(vessel, money, refusDuQuai);
+  const chantier = devisDeChantier(vessel, money, refusDuQuai, party);
   const cale = caleALEscale(vessel);
   const { max: woundsMax, current: woundsCur, missing, lissage, reparationGold: repairCost, carenagePct: careenPct, carenageGold: careenCost } = chantier;
   const cargo = vessel.cargo ?? [];
@@ -245,6 +247,14 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                 {...raisonSi(chantier.refusReparation)}
                 descOfferte={`${formatMoney(toMoney({ gold: REPARATION.portCostGoldPerWound }))} par Blessure restaurée${lissage ? ` · +${REPARATION.lissageRepairSurcoutPct} % coque lissée` : ''}`}
                 onClick={repair}
+                primary={false}
+              />
+              <GatedAction
+                id="port-repair-groupe"
+                label={<><Icon id="voyage/reparer" size="sm" /> {t('port.reparerParLeGroupe')}</>}
+                enabled={!chantier.refusReparationParLeGroupe}
+                {...raisonSi(chantier.refusReparationParLeGroupe)}
+                onClick={repairParLeGroupe}
                 primary={false}
               />
               <NotchGauge

@@ -250,9 +250,26 @@ export function installCost(install: NavalInstall, lengthM: number, units = 1): 
 
 export interface RepairTick { roll: number; target: number; success: boolean; wounds: number; hours: number; costGold: number }
 
+/** Facteur du coût de réparation d'une coque lissée ou non. MDG 12 l.295 */
+const facteurDeLissage = (lissage: boolean): number => (lissage ? 1 + REPARATION.lissageRepairSurcoutPct / 100 : 1);
+
 /** Prix au port de `wounds` Blessures restaurées, coque lissée ou non. MDG 13 l.643 ; MDG 12 l.295 */
 export const prixDeLaReparation = (wounds: number, lissage: boolean): number =>
-  wounds * REPARATION.portCostGoldPerWound * (lissage ? 1 + REPARATION.lissageRepairSurcoutPct / 100 : 1);
+  wounds * REPARATION.portCostGoldPerWound * facteurDeLissage(lissage);
+
+/** Enc de pièces détachées de navire que coûtent `wounds` Blessures restaurées, tranche entamée comptée, arrondi
+ *  au-dessus, coque lissée ou non. MDG 15 l.306 ; MDG 12 l.295 */
+export function piecesDeLaReparation(wounds: number, lissage: boolean): number {
+  const { piecesEncParTranche: encParTranche, piecesBlessuresParTranche: blessuresParTranche } = REPARATION;
+  return Math.ceil(Math.ceil(wounds / blessuresParTranche) * encParTranche * facteurDeLissage(lissage));
+}
+
+/** Blessures que `enc` Enc de pièces détachées de navire paient au plus, en tranches entières (réciproque de
+ *  `piecesDeLaReparation`). MDG 15 l.306 ; MDG 12 l.295 */
+export function blessuresPayeesParLesPieces(enc: number, lissage: boolean): number {
+  const { piecesEncParTranche: encParTranche, piecesBlessuresParTranche: blessuresParTranche } = REPARATION;
+  return blessuresParTranche * Math.floor(enc / (encParTranche * facteurDeLissage(lissage)));
+}
 
 /** UNE passe de réparation au PORT : Test de Métier (Constructeur de navires) à `skillValue`, ou de Métier
  *  (Charpentier) déjà pénalisé par l'appelant. MDG 13 l.641-643 ; MDG 12 l.295. PUR (RNG injecté). */

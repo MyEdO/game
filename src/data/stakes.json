@@ -447,6 +447,40 @@
     }
   },
   {
+    "id": "mer-reparation-du-groupe",
+    "type": "stakes",
+    "label": "Réparation au chantier",
+    "cascade": "voyage",
+    "template": "Réussite : la coque regagne 1d10 Blessures, au plus {plafond}, contre des pièces détachées. Réussite ou échec : 1d10 heures de travail.",
+    "form": "descripteur",
+    "rule": {
+      "id": "reparer-les-navires",
+      "type": "regle"
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 116,
+      "note": "MDG 13 l.641-643"
+    }
+  },
+  {
+    "id": "mer-reparation-du-groupe-permanente",
+    "type": "stakes",
+    "label": "Réparation au chantier",
+    "cascade": "voyage",
+    "template": "Réussite : la réparation temporaire devient permanente. Réussite ou échec : 1d10 heures de travail.",
+    "form": "descripteur",
+    "rule": {
+      "id": "reparer-les-navires",
+      "type": "regle"
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 116,
+      "note": "MDG 13 l.641-643"
+    }
+  },
+  {
     "id": "mer-reparation-temporaire",
     "type": "stakes",
     "label": "Réparation temporaire",
