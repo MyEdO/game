@@ -31,7 +31,6 @@ import { resetRule, setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { garanti } from '../lib/garanti';
 import { WORLD_STEP_OWNER } from './pendings';
-import { posteDuMembre, shipboardSouls } from './shipCrew';
 import type { CampaignVessel } from './etat';
 
 afterEach(() => {
@@ -682,13 +681,13 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
   /** L'attaque qui touche (5) contre la Défense d'office perdue (99), autant de fois que la série en joue. */
   const touches = Array.from({ length: 20 }, (_, i) => [5, 99][i % 2]);
 
-  /** Le héros du groupe à bord d'une Cogue (15 marins) au registre `crew` ; l'op `o` sur `membreAuHasard`, le dernier
-   *  membre de l'effectif tiré (d100 100), puis le dé `nombre` posé à `nombre` et les d100 de la série imposés. Rend le
-   *  banc, le héros et le membre à son dernier état dans la série. */
-  function serieSurLeMembre(crew: { roleId: string; count: number }[], des: number[], nombre: number, o = op, reglesMaison?: EntreesDuBanc['reglesMaison']) {
+  /** Le héros du groupe à bord d'une Cogue (15 marins) aux `registres` ; l'op `o` sur `membreAuHasard`, le membre tiré
+   *  au d100 `tirage` (100 : le dernier poste de l'effectif), puis le dé `nombre` posé à `nombre` et les d100 de la série
+   *  imposés. Rend le banc, le héros et le membre à son dernier état dans la série. */
+  function serieSurLeMembre(registres: Partial<CampaignVessel>, des: number[], nombre: number, o = op, { reglesMaison, tirage = 100 }: { reglesMaison?: EntreesDuBanc['reglesMaison']; tirage?: number } = {}) {
     const { banc, H } = horsBataille(testScene(), reglesMaison);
-    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew } });
-    imposerLesD100(100);
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...registres } });
+    imposerLesD100(tirage);
     applyEffects(banc.getState, banc.setState, [auHasard(o)]);
     const etape = banc.getState().pendingCascade!.participants[0];
     expect(etape).toMatchObject({ kind: 'nombreDAttaquesSubies', worldOwner: true });
@@ -704,7 +703,7 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
   const bandeDeLEquipage = (banc: Banc) => banc.getState().pendingCascade?.participants.find((x) => x.kind === 'maladieDeLEquipage');
 
   it('le membre tiré au registre prend le profil de son rôle, en camp `pnj`, nommé par son rôle ; la série le frappe, le groupe intact (MDG 15 l.161 ; MDG 14 l.305-380)', () => {
-    const { banc, H, membre } = serieSurLeMembre([{ roleId: 'timonier', count: 15 }], touches, 1);
+    const { banc, H, membre } = serieSurLeMembre({ crew: [{ roleId: 'timonier', count: 15 }] }, touches, 1);
     expect(membre()).toMatchObject({ creatureId: 'marin', kind: 'pnj', label: 'Timonier' });
     expect(membre().wounds.current).toBeLessThan(membre().wounds.max);
     const s = banc.getState();
@@ -714,30 +713,51 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     expect(s.journal.join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
   });
 
-  it('le membre tiré pèse le compte de son rôle, registre plus court ou plus long que l’effectif présent (MDG 14 l.15 ; MDG 12 l.85)', () => {
-    const repartition = (vessel: Partial<CampaignVessel>) => {
-      const s = { party: [], vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...vessel } };
+  it('chaque âme à bord pèse une part égale du tirage : un héros, un inscrit au registre ou un membre hors registre, que les inscrits soient moins ou plus nombreux que l’effectif présent (MDG 15 l.161, l.176 ; MDG 14 l.15)', () => {
+    const { banc } = horsBataille(testScene());
+    /** Le tirage du membre aux `registres`, énuméré sur tous ses indices : combien de fois chaque cible est atteinte. */
+    const avant = banc.getState();
+    const repartition = (registres: Partial<CampaignVessel>) => {
       const n: Record<string, number> = {};
-      for (let i = 0; i < shipboardSouls(s).crew; i++) {
-        const p = posteDuMembre(s, i);
-        const k = p.registre ? `${p.roleId}@${p.registre}` : p.roleId;
+      let indices = 1;
+      for (let i = 0; i < indices; i++) {
+        banc.setState({ ...avant, vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...registres } });
+        let tire = false;
+        vi.spyOn(battleRng(), 'int').mockImplementation((min, max) => {
+          if (tire) return min;
+          tire = true;
+          indices = max - min + 1;
+          return min + i;
+        });
+        applyEffects(banc.getState, banc.setState, [auHasard(op)]);
+        vi.restoreAllMocks();
+        const etape = banc.getState().pendingCascade!.participants[0];
+        const k = etape.actorId ? 'heros' : `${etape.meta?.roleDuMembre}@${etape.meta?.registreDuMembre ?? ''}`;
         n[k] = (n[k] ?? 0) + 1;
       }
       return n;
     };
+    // 1 héros, 15 présents, 4 inscrits : 15 postes.
     expect(repartition({ crew: [{ roleId: 'timonier', count: 3 }, { roleId: 'chirurgien', count: 1 }] }))
-      .toEqual({ 'timonier@crew': 3, 'chirurgien@crew': 1, mousse: 11 });
+      .toEqual({ heros: 15, 'timonier@crew': 3 * 15, 'chirurgien@crew': 15, 'mousse@': 11 * 15 });
+    // 1 héros, 10 présents, 14 inscrits : 14 postes.
     expect(repartition({ crewLost: 5, crew: [{ roleId: 'timonier', count: 10 }, { roleId: 'vigie', count: 3 }, { roleId: 'chirurgien', count: 1 }] }))
-      .toEqual({ 'timonier@crew': 7, 'vigie@crew': 2, 'chirurgien@crew': 1 });
+      .toEqual({ heros: 14, 'timonier@crew': 10 * 10, 'vigie@crew': 3 * 10, 'chirurgien@crew': 10 });
+    // 1 héros, 10 présents, 30 inscrits dont le chirurgien en tête : 30 postes.
+    expect(repartition({ crewLost: 5, crew: [{ roleId: 'chirurgien', count: 1 }, { roleId: 'timonier', count: 29 }] }))
+      .toEqual({ heros: 30, 'chirurgien@crew': 10, 'timonier@crew': 29 * 10 });
+    // Les recueillis sans solde après les salariés : 15 postes.
+    expect(repartition({ crew: [{ roleId: 'timonier', count: 2 }], recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }] }))
+      .toEqual({ heros: 15, 'timonier@crew': 2 * 15, 'navigateur@recueillisSansSolde': 15, 'mousse@': 12 * 15 });
   });
 
   it('un membre hors registre tient le rôle par défaut : un Mousse (MDG 14 l.15)', () => {
-    const { membre } = serieSurLeMembre([{ roleId: 'chirurgien', count: 1 }], touches, 1);
+    const { membre } = serieSurLeMembre({ crew: [{ roleId: 'chirurgien', count: 1 }] }, touches, 1);
     expect(membre()).toMatchObject({ creatureId: 'mousse', label: 'Mousse' });
   });
 
   it('`combat-mort-subite` figurants : le membre tombe Inconscient et revient à l’équipage, effectif et registre inchangés (LDB 18 l.46)', () => {
-    const { banc, membre } = serieSurLeMembre([{ roleId: 'timonier', count: 15 }], touches, 10);
+    const { banc, membre } = serieSurLeMembre({ crew: [{ roleId: 'timonier', count: 15 }] }, touches, 10);
     expect(membre().conditions).toContainEqual({ id: 'inconscient', value: 1 });
     expect(membre().dead).toBeFalsy();
     const s = banc.getState();
@@ -748,7 +768,7 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
 
   // Navigateur : profil « Officier » sans Armure, MDG 14 l.342-353 ; LDB 63 l.30.
   it('`combat-mort-subite` désactivée, Critique mortel : l’effectif perd un membre, son rôle au registre aussi (LDB 18 l.34)', () => {
-    const { banc, membre } = serieSurLeMembre([{ roleId: 'navigateur', count: 15 }], [11, 99, 100, 100, 100], 3, op, { 'combat-mort-subite': 'off' });
+    const { banc, membre } = serieSurLeMembre({ crew: [{ roleId: 'navigateur', count: 15 }] }, [11, 99, 100, 100, 100], 3, op, { reglesMaison: { 'combat-mort-subite': 'off' } });
     const cascade = garanti(banc.getState().pendingCascade, 'pendingCascade', 'séquence du Critique');
     expect(cascade.participants[cascade.cursor]).toMatchObject({ kind: 'deviation', actorId: membre().id, table: { result: { roll: 100 } } });
     expect(cascade.participants[cascade.cursor].options).toBeUndefined();
@@ -760,8 +780,18 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     expect(s.journal.join('\n')).toContain(t('eff.membreDuBordMort', { role: 'Navigateur' }));
   });
 
+  it('un recueilli sans solde tiré meurt : l’effectif perd un membre, son rôle aux recueillis aussi (LDB 18 l.34 ; MDG 15 l.258)', () => {
+    // d100 21 : l'indice 49 des 240 (1 héros et 15 présents, 15 postes), le troisième poste, le navigateur recueilli.
+    const { banc, membre } = serieSurLeMembre({ crew: [{ roleId: 'timonier', count: 2 }], recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }] },
+      [11, 99, 100, 100, 100], 3, op, { reglesMaison: { 'combat-mort-subite': 'off' }, tirage: 21 });
+    expect(membre()).toMatchObject({ label: 'Navigateur' });
+    expect(draineCascade(banc.getState)).toEqual(['deviation']);
+    expect(membre().dead).toBe(true);
+    expect(banc.getState().vessel).toMatchObject({ crewLost: 1, crew: [{ roleId: 'timonier', count: 2 }], recueillisSansSolde: [] });
+  });
+
   it('rats géants : la touche qui blesse expose le membre, l’équipage revenu ouvre sa bande de Contraction (MDG 15 l.164 ; LDB 20 l.25)', () => {
-    const { banc, membre } = serieSurLeMembre([{ roleId: 'timonier', count: 15 }], touches, 1, ratsGeants);
+    const { banc, membre } = serieSurLeMembre({ crew: [{ roleId: 'timonier', count: 15 }] }, touches, 1, ratsGeants);
     expect(membre().diseaseExposure).toEqual([{ disease: 'fievre-du-rongeur' }]);
     const bande = bandeDeLEquipage(banc);
     expect(bande?.meta).toEqual({ disease: 'fievre-du-rongeur' });
@@ -769,7 +799,7 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
   });
 
   it('rats : la touche qui blesse n’expose à aucune maladie, aucune bande (MDG 15 l.178)', () => {
-    const { banc } = serieSurLeMembre([{ roleId: 'timonier', count: 15 }], touches, 1);
+    const { banc } = serieSurLeMembre({ crew: [{ roleId: 'timonier', count: 15 }] }, touches, 1);
     expect(bandeDeLEquipage(banc)).toBeUndefined();
   });
 

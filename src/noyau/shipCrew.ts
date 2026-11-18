@@ -723,15 +723,20 @@ export function posteDeLEtape(meta: CascadeStepMeta | undefined): PosteDuBord | 
   return meta?.roleDuMembre === undefined ? undefined : { roleId: meta.roleDuMembre, ...(registre ? { registre } : {}) };
 }
 
-/** Le poste du membre d'indice `i` de l'effectif présent (`shipboardSouls`) : les registres remplissent les postes
- *  nominaux dans leur ordre ; le reste tient le rôle par défaut. Des inscrits plus nombreux que les présents : l'indice
- *  se projette au centre de sa tranche du registre, chaque rôle pesant son compte. MDG 14 l.15 ; MDG 12 l.85 */
-export function posteDuMembre(s: Pick<Jeu, 'party' | 'vessel'>, i: number): PosteDuBord {
-  const postes = REGISTRES_DU_BORD.flatMap((registre) => (s.vessel?.[registre] ?? []).map((h) => ({ ...h, registre })));
-  const inscrits = postes.reduce((n, h) => n + h.count, 0);
-  const presents = shipboardSouls(s).crew;
-  let reste = inscrits > presents ? Math.floor(((2 * i + 1) * inscrits) / (2 * presents)) : i;
-  for (const h of postes) {
+/** Les postes du bord dans leur ordre : les registres de l'équipage par rôle (`REGISTRES_DU_BORD`), chaque inscrit à son
+ *  rôle. MDG 14 l.293-302 */
+const inscritsDuBord = (s: Pick<Jeu, 'vessel'>) => REGISTRES_DU_BORD.flatMap((registre) => (s.vessel?.[registre] ?? []).map((h) => ({ ...h, registre })));
+
+/** Le nombre de postes sur lequel se tire un membre de l'équipage : les inscrits aux registres, ou l'effectif présent
+ *  (`shipboardSouls`) s'il est plus nombreux ; au moins un. MDG 14 l.15 ; MDG 12 l.85 */
+export const postesDuTirage = (s: Pick<Jeu, 'party' | 'vessel'>): number =>
+  Math.max(1, shipboardSouls(s).crew, inscritsDuBord(s).reduce((n, h) => n + h.count, 0));
+
+/** Le poste d'indice `i` parmi les `postesDuTirage` : les inscrits aux registres dans leur ordre, chaque inscrit un
+ *  poste ; les postes au-delà tiennent le rôle par défaut (`roleParDefaut`). MDG 14 l.15 ; MDG 12 l.85 */
+export function posteDuMembre(s: Pick<Jeu, 'vessel'>, i: number): PosteDuBord {
+  let reste = i;
+  for (const h of inscritsDuBord(s)) {
     if (reste < h.count) return { roleId: h.roleId, registre: h.registre };
     reste -= h.count;
   }

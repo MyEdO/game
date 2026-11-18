@@ -82,6 +82,7 @@ import {
   perdreUnMembreDuBord,
   porteursABord,
   posteDuMembre,
+  postesDuTirage,
   semaineDuJour,
   shipboardSouls,
   type PorteurABord,
@@ -919,14 +920,16 @@ function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, suje
 
 /** Un membre du bord tiré au hasard, au prorata des âmes à bord (`shipboardSouls`) : un héros vivant, ou un membre de
  *  l'effectif PNJ à son poste (`posteDuMembre`), que porte l'équipage collectif (`porteursABord`) ; `null` sans âme à
- *  bord. MDG 15 l.161, l.176 */
+ *  bord. Un seul tirage sur les âmes fois les `postesDuTirage` : chaque héros en tient autant que de postes, chaque
+ *  poste autant que l'effectif présent. MDG 15 l.161, l.176 ; MDG 14 l.15 */
 function membreDuBordAuHasard(get: Get, set: SetFn, rng: RNG): { heros: Combatant } | { equipage: PorteurABord; poste: PosteDuBord } | null {
   const heros = effectTargets(get, 'groupe');
-  const ames = heros.length + shipboardSouls(get()).crew;
-  if (!ames) return null;
-  const i = rng.int(0, ames - 1);
-  if (i < heros.length) return { heros: heros[i] };
-  return { equipage: equipageABord(get, set), poste: posteDuMembre(get(), i - heros.length) };
+  const presents = shipboardSouls(get()).crew;
+  if (!heros.length && !presents) return null;
+  const postes = postesDuTirage(get());
+  const i = rng.int(0, (heros.length + presents) * postes - 1);
+  if (i < heros.length * postes) return { heros: heros[Math.floor(i / postes)] };
+  return { equipage: equipageABord(get, set), poste: posteDuMembre(get(), Math.floor((i - heros.length * postes) / presents)) };
 }
 
 /** L'équipage collectif à bord (`porteursABord`). */
