@@ -291,7 +291,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { FIL_DE_LA_PAGE_MS } from './servir.mjs'
-import { encoderPng } from './planches.mjs'
+import { VUE_DE_BASE, encoderPng } from './planches.mjs'
 import { LISTAGE } from './listage.mjs'
 import { JEUX_DU_PARCOURS } from './lot-de-recettes.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -338,8 +338,9 @@ const DOSSIER_SERVI = o.modeles ?? fileURLToPath(new URL('./projet/modeles', imp
  *  (`--natif`). Les deux portent les mêmes noms. */
 const lieu = o.natif ? await import('./pilotage/natif.mjs') : await import('./pilotage/page.mjs')
 /** La fenêtre du jeu d'un parcours joué, `[x, y, largeur, hauteur]`, sous les deux lieux : celle que le lanceur passe au
- *  pilote natif (`ouvrir` de `pilotage/natif.mjs`), la page de `pilotage/page.mjs`. */
-const FENETRE = [0, 0, 1280, 720]
+ *  pilote natif (`ouvrir` de `pilotage/natif.mjs`), la page de `pilotage/page.mjs`. C'est la vue de base du projet
+ *  (`VUE_DE_BASE`) : l'interface y est à l'échelle 1, et les points que l'écran publie sont ceux où le parcours clique. */
+const FENETRE = [0, 0, VUE_DE_BASE.largeur, VUE_DE_BASE.hauteur]
 const { ATTENTE_ECHUE, clic, evaluate, geste, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } = lieu
 const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] } })
 const noter = (t) => console.log('·', t)

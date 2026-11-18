@@ -20,6 +20,13 @@ export const DOSSIER_DES_ETALONS = fileURLToPath(new URL('./etalons', import.met
 export const VALIDES = join(DOSSIER_DES_ETALONS, 'valides.json')
 /** Les maquettes des planches : par nom de planche, `chemin` du PNG depuis `cibles/`, `sha256`, `facteur` (sa taille sur celle de la
  *  capture) et `date` de sa validation. */
+/** La vue de base du projet (`display/window/size/viewport_*` de `projet/project.godot`), `{ largeur, hauteur }` : à
+ *  cette fenêtre, l'échelle de l'interface vaut 1, et ce que l'écran publie est en pixels de la fenêtre. */
+export const VUE_DE_BASE = (() => {
+  const projet = readFileSync(new URL('./projet/project.godot', import.meta.url), 'utf8')
+  const lue = (cle) => Number(new RegExp(`^window/size/viewport_${cle}=(\\d+)$`, 'm').exec(projet)[1])
+  return Object.freeze({ largeur: lue('width'), hauteur: lue('height') })
+})()
 export const MAQUETTES = fileURLToPath(new URL('./cibles/maquettes.json', import.meta.url))
 /** Le build du navigateur des étalons : la version de Playwright qui l'installe, et celle de Chrome for Testing qu'il
  *  installe. Monter l'épingle, c'est reposer tous les étalons dans le même commit. */

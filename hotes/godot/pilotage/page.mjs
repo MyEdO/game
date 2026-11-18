@@ -3,6 +3,7 @@
 // l'un des deux à son lancement.
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { VUE_DE_BASE } from '../planches.mjs'
 import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from '../servir.mjs'
 import { consoleGuard, evaluate, launchSession, poserFichier, sleep, waitFor } from '../../../scripts/recette/lib.mjs'
 
@@ -13,11 +14,11 @@ const CHAMP_DU_FICHIER = 'input[data-fichier]'
 /** Le plus long temps d'un téléchargement de la page. */
 const TELECHARGEMENT_MS = 10000
 
-/** L'export `web` servi, Chromium ouvert sur son menu d'entrée sous `?recette=1` : la session, le serveur du jeu et la
- *  garde de la console. */
-export async function ouvrir({ web, modeles, statique, depot, scenario, graine }) {
+/** L'export `web` servi, Chromium ouvert sur son menu d'entrée sous `?recette=1`, à la fenêtre `fenetre`, `{ largeur,
+ *  hauteur }` : la session, le serveur du jeu et la garde de la console. */
+export async function ouvrir({ web, modeles, statique, depot, scenario, graine, fenetre }) {
   const srv = await servir({ web, ...(modeles && { modeles }), ...(statique && { statique: true }), ...(depot && { depot }) })
-  const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
+  const session = await launchSession({ width: fenetre.largeur, height: fenetre.hauteur, timeoutMs: 30000, args: WEBGL_LOGICIEL })
   const garde = consoleGuard(session)
   await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${scenario}&graine=${graine}&recette=1` })
   return { session, srv, garde }
@@ -26,9 +27,9 @@ export async function ouvrir({ web, modeles, statique, depot, scenario, graine }
 /** La page rechargée : son pont et ce que Godot y publie repartent de rien, son stockage reste. */
 export const recharger = (session) => session.rpc('Page.reload')
 
-/** La page rechargée à deviceScaleFactor 2. */
+/** La page rechargée à deviceScaleFactor 2, à la vue de base du projet (`VUE_DE_BASE`). */
 export async function enHauteDefinition(session) {
-  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
+  await session.rpc('Emulation.setDeviceMetricsOverride', { width: VUE_DE_BASE.largeur, height: VUE_DE_BASE.hauteur, deviceScaleFactor: 2, mobile: false })
   await recharger(session)
 }
 

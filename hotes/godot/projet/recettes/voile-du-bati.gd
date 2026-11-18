@@ -143,7 +143,7 @@ static func monde_du_bati(racine: Node) -> Monde:
 static func regarder(monde: Monde, regard: String) -> void:
 	monde.regarder(regard)
 	if regard == "immersion":
-		monde.poser_l_oeil(Vector3(LARGEUR / 2.0, 7.0, HAUTEUR + 4.0), 0.0, -1.0)
+		monde.poser_l_oeil(Vector3(LARGEUR / 2.0, 8.0, HAUTEUR + 4.0), 0.0, -0.8)
 	else:
 		monde.cadrer(Vector3(LARGEUR / 2.0, 0.0, HAUTEUR / 2.0), 0.0, 14.0)
 
