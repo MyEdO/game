@@ -11,7 +11,7 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (ANGLES, AXES, BRAISES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, barre, cap, cercle,
+from geometrie import (ANGLES, AXES, BRAISES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, autour, barre, cap, cercle,
                        charbons, cheville, clou, coque, courbee, normales, partage, pave, planche, profilee, rond,
                        tournee)
 from gabarit import NOEUD_EMISSIF, VERSANTS
@@ -202,7 +202,7 @@ def marmite(D, G, pieces, a):
     for p, _ in perches:
         tournee(m, p - HAUT * (haut / 2), p + HAUT * (haut / 2), X, Y, r, P["profil"], P["cotes"])
         epaule = Vector((p.x, p.y, clef.z))
-        tournee(m, epaule, clef, *normales((clef - epaule).normalized()), r, CYLINDRE, P["cotes"])
+        geometrie.fil(m, epaule, clef, r, P["cotes"])
         noeuds.append(epaule)
     for noeud in noeuds:
         tournee(pieces["corde"], noeud - HAUT * (r * Li["dessous"]), noeud + HAUT * (r * Li["dessus"]), X, Y,
@@ -215,7 +215,7 @@ def marmite(D, G, pieces, a):
     O = M["os"]
     for (dx, dy), azimut, elevation, longueur in O["poses"]:
         p0 = fond.lerp(bord, dessous) + (X * dx + Y * dy) * rayon
-        vers = cap(azimut) * math.cos(math.radians(elevation)) + HAUT * math.sin(math.radians(elevation))
+        vers = autour(cap(azimut), HAUT, math.radians(elevation))
         tournee(pieces["os"], p0, p0 + vers * (rayon * longueur), *normales(vers), rayon * O["rayon"], O["profil"],
                 O["cotes"], "os")
 
@@ -262,7 +262,7 @@ def roue(D, G, pieces, a):
     apotheme = geometrie.apotheme(jante)
 
     def vers(tours):
-        return u * math.cos(2 * math.pi * tours) + w * math.sin(2 * math.pi * tours)
+        return autour(u, w, 2 * math.pi * tours)
     J, T, Ra = R["jante"], R["dents"], R["rayons"]
     dedans, dehors = (apotheme * part for part in J["rayons"])
     demi_e = epais / 2 * J["epaisseur"]

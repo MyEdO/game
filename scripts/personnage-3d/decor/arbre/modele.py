@@ -15,7 +15,7 @@ from mathutils import Vector
 
 import habillage
 import geometrie
-from geometrie import HAUT, a_la_hauteur, alea, anneau, cap, coque, lisse, normale, normales
+from geometrie import HAUT, a_la_hauteur, alea, anneau, autour, cap, coque, lisse, normale, normales
 from gabarit import Gabarit
 from maille import Maille, lineaire, objet
 
@@ -69,7 +69,7 @@ def branche(m, points, rayons, S, mat, a, cassure=None, contreforts=None, creux=
         cercle = []
         for j in range(k):
             angle = 2 * math.pi * j / k + S["torsion"] * longueur
-            d = n * math.cos(angle) + b * math.sin(angle)
+            d = autour(n, b, angle)
             f = 1 + stries[j] + a.uniform(-S["grain"], S["grain"])
             if contreforts:
                 f *= evasement(d, p.z, contreforts)

@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "champignon"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "chair",
+      "palette": "corps",
+      "matiere": "prop--os"
+    },
+    {
+      "nom": "chapeau",
+      "palette": "vegetal",
+      "matiere": "prop--chapeau-rouge"
+    }
+  ],
+  "glb": {
+    "sha256": "63e8ea5d22fa2dc384964b698a886fe25110f0c1ff3989d3d9ca338140702b38",
+    "octets": 81768
+  }
+}
