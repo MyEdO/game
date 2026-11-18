@@ -71,7 +71,7 @@ import type {
 } from './pendings';
 import type { MedicState } from './acteDeSoin';
 import type { PendingRest } from './restFlow';
-import type { PendingCouncil } from './shipCrew';
+import type { PendingCouncil, PosteDuBord } from './shipCrew';
 import type { Scene, VictoryCondition } from './monde/scene';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { Pt } from './monde/path';
@@ -116,8 +116,14 @@ export interface TourEnCours {
 }
 
 /** La série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`). `apresSuite` : la suite que le dé `nombre` faisait
- *  attendre (#1508), remise par son applier et jouée à la sortie unique de la série (`fermerLaSerieSubie`). */
-export interface SerieSubie { assaillant: Combatant; cibleId: string; avant: Combatant; restantes: number; apresSuite?: Suite }
+ *  attendre (#1508), remise par son applier et jouée à la sortie unique de la série (`fermerLaSerieSubie`). L'hôte de
+ *  la cible : le groupe, qui la rend telle qu'`avant` la rencontre (`sortieDeRencontre`), ou la série, qui héberge le
+ *  `membre` de l'équipage tiré à son `poste` (`MembreDuBord`). MDG 15 l.161-164, l.176-178 */
+export type SerieSubie = { assaillant: Combatant; cibleId: string; restantes: number; apresSuite?: Suite }
+  & ({ avant: Combatant; membre?: never } | { membre: MembreDuBord; avant?: never });
+
+/** Un membre de l'équipage que la série d'attaques subies héberge : son combattant, au profil de son rôle, et son poste. */
+export interface MembreDuBord { combattant: Combatant; poste: PosteDuBord }
 
 /** Une Blessure critique suspendue à son étape (`etapeId`, Déviation `self` ou Piège-à-lame) : `avantLeCoup`, le porteur
  *  tel qu'avant le coup (`instantaneAvantLeCoup`), lu et retiré par l'applier de l'étape. LDB 17 l.32 */

@@ -1002,7 +1002,7 @@ export interface TrappingData {
    *  jamais une constante de code. Absent = 1 (défaut). */
   niConsumedPerDR?: number;
   /** Arbitrage NON-verbatim documentant un ou plusieurs champs (ex. `niConsumedPerDR`) — même patron
-   *  que `CreatureData.maison`/`NavalTraitData.maison`/`CrewRoleData.wage.maison`. */
+   *  que `CreatureData.maison`/`NavalTraitData.maison`. */
   maison?: string;
   /** Colonne « Prix »/« Coût ». Honnête, comme `enc` : un montant chiffré, la MARQUE `'ND'` que le
    *  livre imprime (LDB 62 l.28 Mains nues, l.31 Arme improvisée, LDB 68 l.11 Licence de Guilde), ou

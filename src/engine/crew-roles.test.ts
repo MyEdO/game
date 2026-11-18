@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveCrewTestByRoles, crewRoleValue, undercrewPenalty, weeklyCrewWageBrass, crewTestSuccess } from './crewMorale';
 import { toBrass, priceToMoney } from './money';
-import { crewRoles, crewTestTypes, findCrewRoleById } from '../data';
+import { crewRoles, crewTestTypes, findCreatureById, findCrewRoleById } from '../data';
 import { traumaById } from './trauma';
 import type { Combatant, SkillInstance } from './types';
 import type { RNG } from './dice';
@@ -46,22 +46,24 @@ describe('Catalogue des rôles d’équipage + types de Test (MDG 14) — donné
 });
 
 describe('Barème de solde (MDG 14 l.293-302) — lu depuis la donnée, #216', () => {
-  it('chaque rôle porte un barème quotidien + hebdomadaire et un tag (source RAW ou maison)', () => {
+  it('chaque rôle porte son profil du bestiaire et la ligne de barème de ce profil (MDG 14 l.297-302)', () => {
+    const LIGNE: Record<string, number> = {
+      mousse: 297, marin: 298, 'nautonier-mer-des-griffes': 299, 'officier-mer-des-griffes': 300, 'mercenaire-experimente': 301, 'medecin-de-bord': 302,
+    };
+    expect(Object.fromEntries(crewRoles.map((r) => [r.id, r.profil.id]))).toEqual({
+      capitaine: 'officier-mer-des-griffes', navigateur: 'officier-mer-des-griffes',
+      timonier: 'marin', vigie: 'marin', chansonnier: 'marin',
+      mousse: 'mousse', artilleur: 'mercenaire-experimente', cuisinier: 'nautonier-mer-des-griffes', chirurgien: 'medecin-de-bord',
+    });
     for (const r of crewRoles) {
-      expect(r.wage).toBeDefined();
-      expect(r.wage!.daily).toBeDefined();
-      expect(r.wage!.weekly).toBeDefined();
-      expect(!!r.wage!.source || !!r.wage!.maison).toBe(true); // exactement l'un des deux
+      expect(findCreatureById(r.profil.id), r.id).toBeDefined();
+      expect(r.wage!.source, r.id).toEqual({ book: 'mer-des-griffes', page: 126, note: `MDG 14 l.${LIGNE[r.profil.id]}` });
     }
-    // Correspondances RAW EXPLICITES (nom identique au barème) — MDG 14 page 126.
-    expect(findCrewRoleById('mousse')!.wage!.source).toEqual({ book: 'mer-des-griffes', page: 126 });
-    expect(findCrewRoleById('chirurgien')!.wage!.source).toEqual({ book: 'mer-des-griffes', page: 126 });
+    // Le Mousse porte le nom de son profil ; les autres rôles portent leur correspondance au champ `maison`.
+    for (const r of crewRoles) expect(!!r.maison, r.id).toBe(r.id !== 'mousse');
     // Mousse : 3/– par jour, 1 CO 4/– par semaine (colonnes NON multiples l'une de l'autre, verbatim).
     expect(findCrewRoleById('mousse')!.wage!.daily).toEqual({ gold: 0, silver: 3, brass: 0 });
     expect(findCrewRoleById('mousse')!.wage!.weekly).toEqual({ gold: 1, silver: 4, brass: 0 });
-    // Correspondances arbitrées → tag maison (pas de tag source).
-    expect(findCrewRoleById('capitaine')!.wage!.maison).toBeTruthy();
-    expect(findCrewRoleById('capitaine')!.wage!.source).toBeUndefined();
   });
 
   it('weeklyCrewWageBrass = Σ count × coût hebdomadaire (sous de cuivre) ; roster absent/inconnu = 0', () => {

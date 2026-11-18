@@ -30,7 +30,7 @@ export function actorIn(state: Jeu, id: string): Combatant | undefined {
 /** Les combattants qu'HÉBERGE la série d'attaques subies (`serieSubie`), hors du groupe : seul univers lu par
  *  `actorIn`, `porteurParId` et `sansCorps`. MDG 15 l.163-164 */
 export function combattantsDeLaSerie(s: Partial<Pick<Jeu, 'serieSubie'>>): Combatant[] {
-  return s.serieSubie ? [s.serieSubie.assaillant] : [];
+  return s.serieSubie ? [s.serieSubie.assaillant, ...(s.serieSubie.membre ? [s.serieSubie.membre.combattant] : [])] : [];
 }
 
 /**
