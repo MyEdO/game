@@ -78,7 +78,7 @@ def modelee(m, centre, demi, F, mat):
 
 
 def corne(pieces, G, rangs, K):
-    """Une corne d'os le long des deux cylindres de rangs `rangs` de la recette, le couché puis le dressé, d'après
+    """Une corne le long des deux cylindres de rangs `rangs` de la recette, le couché puis le dressé, d'après
     `K` : de sa racine, prolongée de la part `ancrage` de la longueur du couché dans ce qui la porte, par la part
     `coude` du couché et la part `montee` du dressé, à sa pointe, au bout du dressé ; ses `rayons` en parts du plus
     petit de leurs deux apothèmes."""
@@ -89,8 +89,8 @@ def corne(pieces, G, rangs, K):
     rayon = min(apotheme(couche), apotheme(dresse))
     points = [racine + (racine - coude) * K["ancrage"], racine.lerp(coude, K["coude"]), pied.lerp(cime, K["montee"]),
               cime]
-    membre(pieces["os"], points, [(rayon * part, rayon * part) for part in K["rayons"]],
-           (coude - racine).cross(cime - pied).normalized(), K["taille"], "os", True)
+    membre(pieces["corne"], points, [(rayon * part, rayon * part) for part in K["rayons"]],
+           (coude - racine).cross(cime - pied).normalized(), K["taille"], "corne", True)
 
 
 def crane(pieces, G, rangs, C):
@@ -218,7 +218,7 @@ def gargouille(D, G, pieces, a):
 
 def idole(D, G, pieces, a):
     """Une idole du Chaos d'après `IDOLE` : emmarchement, piédestal, colosse (jambes, pagne, torse, cou, bras et
-    griffes, tête), bandeau de rune, cornes d'os."""
+    griffes, tête), bandeau de rune, cornes."""
     Id, m = D["IDOLE"], pieces["chaos"]
     profile(pieces["pierre"], G.primitives[Id["marches"]], "h", Id["emmarchement"], "pierre")
     profile(m, G.primitives[Id["piedestal"]], "h", D["DE"], "chaos")

@@ -14,6 +14,11 @@
       "matiere": "prop--bois-chene"
     },
     {
+      "nom": "pot",
+      "palette": "corps",
+      "matiere": "prop--terre-cuite"
+    },
+    {
       "nom": "terre",
       "palette": "corps",
       "matiere": "prop--terre-battue"
@@ -25,7 +30,7 @@
     }
   ],
   "glb": {
-    "sha256": "b96ab84c9b57e61d93657862a17ae5bd775aba38fb8f1d7e988d436b9f67a867",
-    "octets": 94076
+    "sha256": "d88a0770418022f3937ee0c64eeb99677a4bd4fc1efb74da948d15f61c57a89c",
+    "octets": 94916
   }
 }

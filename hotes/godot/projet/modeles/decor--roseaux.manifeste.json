@@ -16,11 +16,11 @@
     {
       "nom": "massette",
       "palette": "corps",
-      "matiere": "prop--terre-battue"
+      "matiere": "prop--massette"
     }
   ],
   "glb": {
-    "sha256": "2b80a1145a3fefc88d07cb384ba9a45101e093b43143ffd3e5ac756fd1832628",
+    "sha256": "ccddb943e5cb4836c4c39f89c027d9269b18322a0b28ea6f59cdfcd15ba1064c",
     "octets": 121480
   }
 }

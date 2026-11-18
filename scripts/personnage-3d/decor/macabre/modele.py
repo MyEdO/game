@@ -167,7 +167,7 @@ def detritus(D, G, pieces, a):
 
     cruche = G.primitives[T["cruche"]]
     profil, cotes = T["cruche_tournee"]
-    tourne(terre, cruche, profil, cotes, "terre")
+    tourne(pieces["cruche"], cruche, profil, cotes, "cruche")
     _, _, h_cruche = rond(cruche)
 
     M = T["motte"]

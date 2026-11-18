@@ -14,13 +14,18 @@
       "matiere": "prop--os"
     },
     {
+      "nom": "corne",
+      "palette": "accent",
+      "matiere": "prop--corne"
+    },
+    {
       "nom": "ombre",
       "palette": "accent",
       "matiere": "prop--ombre"
     }
   ],
   "glb": {
-    "sha256": "e75bcf2d512ab3abfaaa95af9c541339c9bfe10c56b755c2bf0948f0581bed32",
-    "octets": 52808
+    "sha256": "a7378805e2b3134b6d4ceedc2725de0ddb3221bb9f57819571919803aeb36eef",
+    "octets": 53648
   }
 }

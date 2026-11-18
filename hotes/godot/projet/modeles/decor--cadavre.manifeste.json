@@ -31,11 +31,11 @@
     {
       "nom": "cheveux",
       "palette": "accent",
-      "matiere": "prop--drap-terne"
+      "matiere": "prop--chevelure"
     }
   ],
   "glb": {
-    "sha256": "5afb94ce8a6746771d74bcbf8ea5b11dfefbeb0bffdb69d5bf5b9d7a3f20f1a4",
+    "sha256": "f660ce1383323da112865ffea24162a8ca893ab45df68263a20069de02b883b6",
     "octets": 76144
   }
 }
