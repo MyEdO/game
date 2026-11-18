@@ -108,7 +108,6 @@
 .zone.touchee{fill:#9c2a1a;stroke:#4a0f08;stroke-width:1.5}
 
 /* le bandeau avant le dé : les réglages au centre, les sceaux encore vides */
-#jet .fond.avant{grid-template-columns:1fr 380px 1fr}
 .reglages .rangee{display:flex;justify-content:center;align-items:center;gap:20px;text-align:left}
 #round .n,#round .t{white-space:nowrap}
 .choix .l{font-size:12px;color:#4a3420;margin-top:3px}
@@ -224,8 +223,6 @@
 .pastille-entite span{font-size:12px;color:#f0e2c2;white-space:nowrap}
 
 /* avant le dé, les réglages en rangées : la défense, les armes de l'attaque */
-#jet .fond.defense{grid-template-columns:330px 1fr 384px}
-#jet .fond.armes{grid-template-columns:1fr 430px 1fr}
 #verdict.reglages.haut{height:116px}
 .reactions{display:flex;gap:8px;margin:3px 0 5px}
 .plaque.carte.courte{flex:1;width:auto;height:31px}
@@ -242,17 +239,8 @@
 #jet .regle .options{gap:6px}
 #jet .regle .options .plaque{min-width:0}
 #jet .regle .options .plaque>div{padding:0 9px;font-size:12.5px;letter-spacing:.6px}
-.fond.armes .rangee{gap:16px;align-items:flex-start;margin-top:3px}
-.fond.armes .choix{flex:1}
-.bascules{display:flex;gap:16px;margin-top:7px}
-.fond.armes .choix p{margin:5px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12;white-space:nowrap}
 
-/* la Détermination : trois cartes */
-#jet .fond.trois .plaque.carte{width:266px}
-#jet .fond.trois .plaque.carte .n{font-size:16px;line-height:21px;white-space:nowrap}
-/* le début du round à deux choix : agir en premier, préempter */
-#jet .fond.deux{padding-top:16px;gap:16px}
-#jet .fond.deux .annonce{margin-top:10px}
+/* les cartes d'un choix en groupe */
 .groupe .t{font-size:12.5px;color:#4a3420;margin-bottom:3px;text-align:left}
 .groupe .cartes{display:flex;gap:10px}
 .groupe .plaque.carte{height:86px}

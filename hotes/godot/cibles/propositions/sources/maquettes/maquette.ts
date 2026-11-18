@@ -3,7 +3,8 @@
  * réponses du pont par méthode telles que Godot les reçoit, et, à côté du contrat, les gabarits qu'elle empile et le
  * décor illustré que le jeu dessine en 3D. La page de rendu (`../rendu.html`, `../rendu.js`) la dessine avec les pièces
  * du kit (`../gestes.js`), `../rendre.mjs` la capture. Gabarits : `../../dispositions.md` § « Par type d'écran ». Une
- * maquette d'un état que le jeu fige (`figerLesPlanches`) le nomme (`MaquetteCapturee`) : elle ne le recopie pas.
+ * maquette d'un état que le jeu fige (`figerLesPlanches`) le nomme (`MaquetteCapturee`) : elle ne le recopie pas. Un
+ * fichier de `maquettes/` est un écran (`Ecran`) : la liste de ses états, chacun une maquette nommée.
  */
 import type { Planche, PlancheDeLEcran } from '../../../../recettes/ecran';
 import type { Suite, VueDuPont } from '../../../../pont/pont';
@@ -23,8 +24,10 @@ export type Gabarit = 'ouverture' | 'gestion' | 'fiche' | 'lieu-et-voyage' | 'co
  *  et par combattant de la planche le buste qui le dessine (`BUSTES`, `../gestes.js`) : le jeu tire le portrait du corps
  *  3D, la maquette d'un dessin. */
 export interface Decor {
-  scene: 'cour';
-  variante: 'jet' | 'jet-avant-le-de' | 'jet-de-defense' | 'fin-defaite';
+  /** `cour-videe` : la cour sans son voile de fin, ses adversaires tombés, pour ce qui suit le combat. */
+  scene: 'cour' | 'cour-videe';
+  /** L'état de la cour (`NEUFS`, `../combat/cour.js`). */
+  variante: string;
   bustes: Record<string, string>;
 }
 
@@ -42,8 +45,14 @@ interface AcoteDuContrat {
 /** Une maquette écrite : une planche, pour un état que le jeu ne fige pas. */
 export type Maquette = Planche & AcoteDuContrat;
 
-/** Une maquette capturée : la planche que `figerLesPlanches` fige sous le nom `planche`, lue au rendu (`../rendre.mjs`). */
-export type MaquetteCapturee = { planche: string } & AcoteDuContrat;
+/** Une maquette capturée : l'état `nom`, la planche que `figerLesPlanches` fige sous le nom `planche`, lue au rendu
+ *  (`../rendre.mjs`). */
+export type MaquetteCapturee = { nom: string; planche: string } & AcoteDuContrat;
+
+/** Un écran : ses états, chacun une maquette écrite ou capturée, à son nom. */
+export interface Ecran {
+  etats: [Maquette | MaquetteCapturee, ...(Maquette | MaquetteCapturee)[]];
+}
 
 /** La part d'une vue qu'une maquette écrit : ses zones non vides, sa disposition, et ce que la projection dit du
  *  combat, de l'exploration et de la fenêtre. */

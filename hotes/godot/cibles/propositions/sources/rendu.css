@@ -15,6 +15,45 @@
 #verdict .sous{display:flex;justify-content:center;align-items:center;gap:7px}
 #verdict .sous .point{width:3px;height:3px;border-radius:50%;background:currentColor}
 #verdict .sous .rubrique{font-size:12.5px;color:#4a3420}
+#jet .fond.debut .annonce{flex:none;white-space:nowrap}
+#jet .annonce .dr{line-height:normal}
+#jet:has(.fond.liste){height:266px}
+#jet .liste-de-choix{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:8px}
+#jet .liste-de-choix .groupe .plaque.carte{height:60px}
+#jet .liste-de-choix .groupe .plaque.carte .c{white-space:nowrap;font-size:12.5px}
+#ecran:has(.fond.liste) #journal{top:auto;bottom:286px}
+#jet .fond.debut>.camp{flex:none}
+#jet .groupe{flex:1 1 auto;min-width:0}
+#jet .groupe .plaque.carte{flex:1 1 0;width:auto;min-width:0}
+#jet .groupe .plaque.carte :is(.n,.c){white-space:normal}
+#jet .groupe .plaque.carte .n{font-size:16px;line-height:19px}
+#jet .groupe .plaque.carte .c{font-size:13px;line-height:16px}
+#verdict .groupe .plaque.carte{height:52px}
+#verdict .groupe .cartes{gap:8px}
+#verdict .groupe{margin-top:6px}
+#verdict .groupe .plaque.carte .c{white-space:nowrap}
+#jet:has(.fond.consigne){top:auto;height:170px}
+#jet .fond.consigne{grid-template-columns:auto minmax(0,1fr)}
+#jet .fond.critique{grid-template-columns:auto minmax(0,1fr)}
+#jet .fond.critique.duel{grid-template-columns:auto minmax(0,1fr) auto}
+#verdict .regle{gap:6px}
+#jet #verdict .regle .options .plaque>div{padding:0 6px;letter-spacing:.2px}
+#verdict.sort.reglages{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-auto-rows:max-content;column-gap:14px;align-content:start}
+#verdict.sort.reglages>:not(.rangee){grid-column:1}
+#verdict.sort.reglages>.rangee{grid-column:2;grid-row:1/span 4;align-self:center}
+#verdict.sort.reglages .dr{font-size:24px;line-height:normal}
+#verdict.sort.reglages p{font-size:12px;line-height:16px}
+#critique .tete-c{display:flex;align-items:center;gap:18px}
+#critique .tete-c .dr{white-space:nowrap}
+#critique .tete-c .tirage{min-width:0}
+#verdict.etendu .dr{font-size:24px}
+#critique .dr{line-height:normal}
+#critique .tirage .sceau b{font-size:14px}
+#jet .fond.enjeu{grid-template-columns:auto minmax(0,1fr) 262px}
+#jet .enjeu{padding-left:14px}
+#jet .enjeu table{font-size:13px;line-height:17px}
+#jet .enjeu td:first-child{white-space:nowrap;padding-right:8px}
+#jet .enjeu td:last-child{font-size:12px;white-space:normal}
 
 /* 2. Gestion : le cartouche 24 / 20, la croix 22 / 18, le panneau de commande à gauche sous le cartouche, jusqu'à 24
    du bas puis il défile ; le registre tendu jusqu'aux signets, au bord droit, et à 24 du bas, ses lignes défilent */

@@ -181,42 +181,113 @@
       return `<div class="heros">${b.portrait}${b.fiche}<div class="qui"><div class="nom gothique" data-texte="${echapper(e.id)}">${echapper(e.nom)}</div>
         <div class="l2"><span class="car">${b.carriere}</span>${blessures ? `<span class="pv chiffres">${echapper(blessures.texte)}</span>` : ''}</div>${b.blessures}${b.choix}</div></div>`;
     },
+    /* une carte par valeur du choix, sous son libellé ; la valeur qui nomme un combattant porte son buste */
+    cartes: (c) => `<div class="groupe"><div class="t rubrique">${echapper(c.libelle)}</div><div class="cartes">${c.valeurs.map(carteDeLaValeur).join('')}</div></div>`,
+    reactions: (c) => `<div class="reactions">${c.valeurs.map((v) => carte(echapper(v.libelle), echapper(v.detail), { armee: v.presse, fermee: !!v.refus, classe: 'courte' })).join('')}</div>`,
+    annonce: (e) => `<div class="annonce"><div class="dr gothique" data-texte="${echapper(e.id)}">${echapper(e.texte)}</div><div class="sous rubrique">${echapper(e.detail)}</div></div>`,
+    consigne: (e) => `<p class="consigne" data-texte="${echapper(e.id)}">${echapper(e.texte)}</p>`,
+    titreDuCritique: (e) => `<div class="dr gothique" data-texte="${echapper(e.id)}">${echapper(e.texte)}</div>`,
+    texteDuCritique: (e) => `<p data-texte="${echapper(e.id)}">${echapper(e.texte)}</p>`,
+    sceauDuTirage: (e) => `${sceau(echapper(e.valeur ?? ''), 'moyen', { etat: e.valeur === null ? 'vide' : '' })}<span class="rubrique">${echapper(e.libelle).replace(/\n/g, '<br>')}</span>`,
+    cumul: (e) => `<div class="cumul">${rangDePas(e.courant, e.max, 'petit')}<b class="rubrique" data-texte="${echapper(e.id)}">${echapper(e.texte)}</b></div>`,
+    /* le héros d'une fenêtre sans dé : son buste, son nom, ce qui le met en jeu ; au ton `echec`, il subit */
+    campSansDe: (e, sous) => {
+      sous({ portrait: { source: 'elements', ids: ['portrait'], formes: ['portrait:surLeRang'] }, lignes: { source: 'elements', formes: ['ligne:surLeRang', 'puce:surLeRang'] } });
+      const p = e.elements.find((x) => x.type === 'portrait');
+      const modif = e.elements.filter((x) => x.type === 'puce').map((x) => `<span class="modif rubrique">${echapper(x.libelle)}</span>`).join('');
+      return `<div class="camp ${e.ton === 'echec' ? 'touche lanceur' : ''}">${portrait(buste(p.combattant), { taille: 'grand' })}<div><div class="n gothique" data-texte="${echapper(e.id)}">${echapper(e.nom)}</div>${e.elements.filter((x) => x.type === 'ligne').map((x) => `<div class="c rubrique">${echapper(x.texte)}</div>`).join('')}${modif}</div></div>`;
+    },
+    /* ce que vise le jet, sans dé : son buste, son nom, son rôle, ses Blessures */
+    visee: (e, sous) => {
+      sous({ portrait: { source: 'elements', ids: ['portrait'], formes: ['portrait:surLeRang'] }, role: { source: 'elements', ids: ['role'], formes: ['ligne:surLeRang'] }, blessures: { source: 'elements', ids: ['blessures'], formes: ['jauge:surLeRang'] } });
+      const p = e.elements.find((x) => x.type === 'portrait');
+      const j = e.elements.find((x) => x.type === 'jauge');
+      return `<div class="camp droite visee">${portrait(buste(p.combattant), { camp: e.ton === 'echec' ? 'ennemi' : 'heros', taille: 'grand' })}<div><div class="n gothique" data-texte="${echapper(e.id)}">${echapper(e.nom)}</div><div class="c rubrique">${echapper(e.elements.find((x) => x.id === 'role')?.texte)}</div>${j ? `<div class="pv">${jauge(j.courant / j.max, { taille: 'forte' })}<b class="rubrique">${echapper(j.texte)}</b></div>` : ''}</div></div>`;
+    },
+    /* ce que le Test décide : une rangée par issue, celle qui est tombée au ton `alerte` */
+    enjeu: (e, sous) => {
+      sous({ issues: { source: 'elements', formes: ['puce:surLeRang'] } });
+      return `<div class="enjeu"><div class="l rubrique">${echapper(e.nom)}</div><table>${e.elements.map((p) => `<tr class="${p.ton === 'alerte' ? 'tombee' : ''}"><td>${echapper(p.libelle)}</td><td>${echapper(p.valeur)}</td></tr>`).join('')}</table></div>`;
+    },
     paysage: (e) => `<svg class="calque paysage" viewBox="0 0 ${dessins.cadreDesPaysages.largeur} ${dessins.cadreDesPaysages.hauteur}" preserveAspectRatio="xMidYMid slice">${e.paysage.map((c) => dessins.paysage[c]).join('')}</svg>`,
+  };
+  /* la carte d'une valeur de choix : son libellé, son détail ligne à ligne, le buste du combattant que sa valeur nomme */
+  const carteDeLaValeur = (v) => {
+    const brut = v.id.slice(v.id.lastIndexOf('/') + 1);
+    const qui = brut.startsWith('"') ? maquette.decor?.bustes[JSON.parse(brut)] : null;
+    return carte(echapper(v.libelle), echapper(v.detail).replace(/\n/g, '<br>'), { armee: v.presse, fermee: !!v.refus, portrait: qui ? portrait(qui) : '' });
   };
   /* le premier domaine des règles, ouvert comme l'onglet courant d'un `TabContainer` neuf */
   const premier = (e) => (zones()['reglages.regles'] ?? []).find((x) => x.type === e.type) ?? e;
 
   /* ───────── les gabarits : leurs blocs, puis leur pose ───────── */
   /* les gestes que la pastille du menu de la partie ouvre (`MenuDeLaPartie.tscn`), qu'aucune disposition ne pose */
+  /* les choix d'une fenêtre qui se lisent en cartes, une par valeur, plutôt qu'en options sur une règle */
+  const CARTES = ['fenetreChoisir@debutDuRound#promouvoir', 'fenetreChoisir@debutDuRound#viser', 'offre/determination',
+    'jetRegler@incantation#effetCritique', 'jetRegler@contreSort#declaration', 'offre/dissipation', 'offre/dissipation/soutien', 'jetRegler@corruption#nature'];
   const GESTES_DU_MENU = {
     groupe: { source: 'groupe.gestes', formes: ['bouton:dansLeMenu'] },
     partie: { source: 'partie.gestes', formes: ['bouton:dansLeMenu'] },
   };
   const GABARITS = {
     'fenetre-du-bas': {
-      feuilles: ['combat/jet.css'], scripts: ['combat/jet.js'],
+      feuilles: ['combat/jet.css', 'combat/combat.css', 'combat-suite/suite.css'], scripts: ['combat/jet.js'],
       blocs: {
         titre: { source: 'fenetre.titre', formes: ['ligne:ruban'] },
         etape: { source: 'fenetre.etape', formes: ['ligne:rubrique'] },
         camp: { source: 'fenetre.corps', ids: ['jet', 'defense/jet', 'jets/0/1'], formes: ['jet:jetDuCamp'] },
+        heros: { source: 'fenetre.corps', ids: ['heros'], formes: ['entite:campSansDe'] },
         arme: { source: 'fenetre.corps', ids: ['arme'], formes: ['ligne:rubrique'] },
-        cible: { source: 'fenetre.corps', ids: ['cible', 'sansEquipe'], formes: ['ligne:rubrique'] },
+        cible: { source: 'fenetre.corps', ids: ['cible', 'sansEquipe', 'sort/ni', 'relance'], formes: ['ligne:rubrique'] },
         qui: { source: 'fenetre.corps', ids: ['defense/qui'], formes: ['ligne:rubrique'] },
-        degats: { source: 'fenetre.corps', ids: ['degats', 'tirDansLeTas', 'tirImmobile'], formes: ['puce:puceEnMention'] },
+        degats: { source: 'fenetre.corps', ids: ['degats', 'tirDansLeTas', 'tirImmobile', 'surincantation', 'sociale'], formes: ['puce:puceEnMention'] },
+        annonce: { source: 'fenetre.corps', ids: ['annonce'], formes: ['ligne:annonce'] },
+        sort: { source: 'fenetre.corps', ids: ['sort'], formes: ['ligne:drNet'] },
+        cumul: { source: 'fenetre.corps', ids: ['cumul'], formes: ['jauge:cumul'] },
         drNet: { source: 'fenetre.corps', ids: ['drNet', 'jets/0/drNet'], formes: ['ligne:drNet'] },
+        consigne: { source: 'fenetre.corps', ids: ['consigne'], formes: ['ligne:consigne'] },
+        critiqueTitre: { source: 'fenetre.corps', ids: ['critique/effet/0', 'tirage/nom'], formes: ['ligne:titreDuCritique'] },
+        critiqueTexte: { source: 'fenetre.corps', ids: ['critique/effet/1', 'tirage/texte'], formes: ['ligne:texteDuCritique'] },
+        critiqueDe: { source: 'fenetre.corps', ids: ['critique/localisation', 'critique/blessures', 'tirage/de'], formes: ['puce:sceauDuTirage'] },
         issue: { source: 'fenetre.corps', formes: ['ligne:issue'] },
         miroir: { source: 'fenetre.corps', ids: ['defense', 'jets/0/0'], formes: ['jet:jetDuCampEnMiroir'] },
-        localisation: { source: 'fenetre.reglages', ids: ['jetRegler@attaque#localisation'], formes: ['choix:silhouette'] },
-        localisationLue: { source: 'fenetre.reglages', ids: ['jetRegler@attaque#localisation'], formes: ['choix:choixLu'] },
+        visee: { source: 'fenetre.corps', ids: ['visee'], formes: ['entite:visee'] },
+        enjeu: { source: 'fenetre.corps', ids: ['enjeu'], formes: ['entite:enjeu'] },
+        cartes: { source: 'fenetre.reglages', ids: CARTES, formes: ['choix:cartes'] },
+        reactions: { source: 'fenetre.reglages', ids: ['jetRegler@defense#reaction'], formes: ['choix:reactions'] },
+        localisation: { source: 'fenetre.reglages', ids: ['jetRegler@attaque#localisation', 'jetRegler@attaque#localisationDuCritique'], formes: ['choix:silhouette'] },
+        localisationLue: { source: 'fenetre.reglages', ids: ['jetRegler@attaque#localisation', 'jetRegler@attaque#localisationDuCritique'], formes: ['choix:choixLu'] },
         reglages: { source: 'fenetre.reglages', formes: ['choix:choixEnLigne'] },
         reserves: { source: 'fenetre.reserves', formes: ['puce:disque'] },
         gestes: { source: 'fenetre.gestes', formes: ['bouton:plaque'] },
+        /* la fenêtre remplace la barre de l'actif (`../dispositions.md`, type 6) */
+        actif: { source: 'combat.actif', formes: ['entite:surLeRang'] },
       },
+      /* le centre de la fenêtre : le Critique ou la table tirée, la consigne, les cartes du choix, sinon le verdict du
+         jet ; la mise en page de chaque cas (`combat/combat.css`, `combat-suite/suite.css`) suit ce qu'il porte */
       poser: (b) => {
-        const regle = b.localisation || b.localisationLue || b.reglages;
-        return [cadre('jet', null, null, null, null, 'parchemin', `${b.camp}
-        <div id="verdict" class="${regle ? 'reglages' : ''}"><div class="sous">${[b.etape, b.arme, b.cible, b.qui, b.degats].filter(Boolean).join('<i class="point"></i>')}</div>${b.drNet}${b.issue}${regle
-          ? `<div class="rangee">${b.localisation}<div class="choix">${b.localisationLue}${b.reglages}</div></div>` : ''}</div>${b.miroir}
+        const gauche = b.camp || b.heros;
+        const droite = b.miroir || b.visee || b.enjeu;
+        const regle = b.reactions || b.localisation || b.localisationLue || b.reglages;
+        const sous = [b.etape, b.arme, b.cible, b.qui, b.degats].filter(Boolean).join('<i class="point"></i>');
+        let classe, centre;
+        if (b.critiqueTitre) {
+          classe = droite ? 'critique duel' : 'critique';
+          centre = `<div id="critique"><div class="tete-c">${b.critiqueTitre}${b.critiqueDe ? `<div class="tirage">${b.critiqueDe}</div>` : ''}</div>${b.critiqueTexte}${b.issue}</div>`;
+        } else if (b.consigne) {
+          classe = 'consigne';
+          centre = b.consigne;
+        } else if (b.cartes && !b.enjeu) {
+          /* trois cartes côte à côte au plus ; dès quatre, la fenêtre prend la hauteur 266 et les choix se lisent en liste */
+          const liste = zones()['fenetre.reglages'].filter((c) => nomme(CARTES, c.id)).reduce((n, c) => n + c.valeurs.length, 0) > 3;
+          classe = liste ? 'debut liste' : 'debut';
+          centre = liste ? `${b.annonce}<div class="liste-de-choix">${b.cartes}${b.issue}</div>` : `${b.annonce}${b.cartes}${b.issue}`;
+        } else {
+          classe = b.enjeu ? 'enjeu' : '';
+          centre = `<div id="verdict" class="${regle ? 'reglages haut' : ''}${b.sort ? ' sort' : ''}${b.cumul ? ' sort etendu' : ''}">${b.annonce}<div class="sous">${sous}</div>${b.sort}${b.cumul}${b.drNet}${b.issue}${b.cartes}${b.reactions}${regle && !b.reactions
+            ? `<div class="rangee">${b.localisation}<div class="choix">${b.localisationLue}${b.reglages}</div></div>` : b.reglages}</div>`;
+        }
+        return [cadre('jet', null, null, null, null, `parchemin ${classe}`, `${gauche}${centre}${droite}
         <div id="suites">${b.reserves ? `<div class="en-reserve">${b.reserves}</div>` : ''}${b.gestes}</div>`, { tete: b.titre + clouer() })];
       },
     },
@@ -246,11 +317,14 @@
       feuilles: ['combat/combat.css'], scripts: [],
       blocs: {
         titre: { source: 'fenetre.titre', formes: ['ligne:issueDuCombat'] },
+        suite: { source: 'fenetre.corps', formes: ['ligne:recit'] },
+        /* sous la toile de l'issue, le combat ne se montre plus : ni la borne, ni l'ordre, ni le journal */
+        ...Object.fromEntries(['combat.tour', 'combat.ordre', 'combat.offres', 'journal.titre', 'journal.lignes'].map((source) => [source, { source, formes: ['ligne:surLeRang', 'entite:surLeRang', 'choix:surLeRang'] }])),
         gestes: { source: 'fenetre.gestes', formes: ['bouton:plaqueAppel'] },
         menu: { source: 'partie.menu', formes: ['entite:systeme'] },
         ...GESTES_DU_MENU,
       },
-      poser: (b) => [b.menu, `<div id="issue" data-piece="issue">${b.titre}${b.gestes}</div>`],
+      poser: (b) => [b.menu, `<div id="issue" data-piece="issue">${b.titre}${b.suite}${b.gestes}</div>`],
     },
     gestion: {
       feuilles: ['lieux-et-nuit/commun.css', 'accueil-et-systeme/systeme.css', 'accueil-et-systeme/options.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'accueil-et-systeme/systeme.js'],
@@ -301,8 +375,10 @@
   const zones = () => maquette.reponses.reglages?.zones ?? { ...maquette.reponses.demarrer.vue.zones, ...maquette.reponses.demarrer.zones };
   const charger = (src) => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error(`script ${src}`)); document.body.append(s); });
   const lier = (href) => new Promise((ok, ko) => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.onload = ok; l.onerror = () => ko(new Error(`feuille ${href}`)); document.head.append(l); });
-  /* le décor `cour` : la cour du combat à l'état que nomme sa variante (`combat/cour.js`) */
-  const DECORS = { cour: { feuilles: [], scripts: ['combat/jet.js', 'combat/socle.js', 'combat/cour.js'] } };
+  /* le décor `cour` : la cour du combat à l'état que nomme sa variante (`combat/cour.js`) ; `cour-videe`, la même sans
+     son voile de fin */
+  const COUR = ['combat/jet.js', 'combat/socle.js', 'combat/cour.js'];
+  const DECORS = { cour: { feuilles: [], scripts: COUR }, 'cour-videe': { feuilles: [], scripts: COUR, apres: () => document.querySelector('#scene rect[fill="#06040a"]')?.remove() } };
 
   (async () => {
     const gabarits = maquette.gabarits.map((g) => {
@@ -315,6 +391,7 @@
     await Promise.all([...new Set([...(decor?.feuilles ?? []), ...gabarits.flatMap((g) => g.feuilles)])].map(lier));
     await lier('rendu.css');
     for (const s of scripts) await charger(s);
+    decor?.apres?.();
     const sources = zones();
     const blocs = Object.fromEntries(maquette.gabarits.flatMap((g) => Object.entries(GABARITS[g].blocs).map(([nom, b]) => [`${g}|${nom}`, b])));
     const html = poser(blocs, sources, '', Object.keys(sources));

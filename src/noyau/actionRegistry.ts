@@ -20,7 +20,7 @@ import type { BattleState, Jeu } from './etat';
 import type { Scene } from './monde/scene';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
-import type { ActionsDuNoyau, GesteDuNoyau, VerbesDeLaBarre } from './actionsDuNoyau';
+import { VERBE_DE_SORTIE, VERBE_DE_VALIDATION, type ActionsDuNoyau, type GesteDuNoyau, type VerbesDeLaBarre } from './actionsDuNoyau';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type {
   IdDAttaque, IdDeCombattant, IdDeCompetence, IdDeCondition, IdDeManoeuvre, IdDEntiteDeScene, IdDeSort, IdDePanoplie, IdDObjet,
@@ -799,13 +799,13 @@ const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<Exclude<RunDAction, k
   retirerUnEtat: duTour((o) => avec(o.args.conditionId, (etat) => geste('depenserLaDetermination', idDeLActif(o), 'retirerUnEtat', etat))),
   /** PORTE UNIQUE de la pause d'initiative (LDB 17 l.25) : la validation de la pause, qui marque le siège PRÊT — c'est le
    *  quorum (sièges requis) qui lance, jamais un client ; en solo, le quorum est ce siège. */
-  lancerLeRound: horsDuTour(() => geste('fenetreValider', 'debutDuRound')),
+  lancerLeRound: horsDuTour(() => geste(VERBE_DE_VALIDATION, 'debutDuRound')),
   /** Demande de pause au prochain Round — INTERRUPTEUR, lu dans l'état de l'émetteur : son siège l'a déjà posée, elle se
    *  retire (annulation gratuite), sinon elle se pose. */
   leverLaMain: horsDuTour(({ etat }) => geste('leverLaMain', !(etat.battle?.handRaisedBy ?? []).includes(decidingSeat(etat)))),
   // ── SORTIES D'INTERLUDE (`surface: 'interlude'`) : une entrée NOMMÉE par interlude, chacune la sortie de sa fenêtre.
-  fermerLeBalayage: horsDuTour(() => geste('fenetreFermer', 'frappeMortelle')),
-  renoncerALaSecondeFrappe: horsDuTour(() => geste('fenetreFermer', 'secondeFrappe')),
+  fermerLeBalayage: horsDuTour(() => geste(VERBE_DE_SORTIE, 'frappeMortelle')),
+  renoncerALaSecondeFrappe: horsDuTour(() => geste(VERBE_DE_SORTIE, 'secondeFrappe')),
   renoncerALaCarte: horsDuTour(() => geste('jetRegler', 'incantation', 'carte', null)),
   /** Sortie du placeur de zone, ROUTÉE PAR LA SOURCE que mesure `placingZoneOf` — symétrique de `commitPlacedZone` (même
    *  aiguilleur pour poser et pour renoncer) : un sort revient à sa modale, un pilonnage referme son placeur. */
@@ -814,7 +814,7 @@ const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<Exclude<RunDAction, k
     if (!pz) return null;
     switch (pz.source) {
       case 'incantation': return geste('jetRegler', 'incantation', 'carte', null);
-      case 'siege': return geste('fenetreFermer', 'viseeDeSiege');
+      case 'siege': return geste(VERBE_DE_SORTIE, 'viseeDeSiege');
       default: return pz.source satisfies never;
     }
   }),

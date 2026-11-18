@@ -33,6 +33,7 @@ import {
   type NomDeVerbeDeJet,
   type RollVerb,
 } from './flowVerbs';
+import { VERBE_DE_SORTIE, VERBE_DE_VALIDATION } from './actionsDuNoyau';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { PendingKey } from './stateFields';
 import { declarationDuReglage, estFluxRegle } from './reglagesDuJet';
@@ -685,8 +686,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // Le réglage d'un jet en attente (`routeDuReglage`).
     ['jetRegler', ROUTE_DU_REGLAGE],
     // La sortie et la validation d'une fenêtre, par ce que son registre déclare (`routeDuGesteDeFenetre`).
-    ['fenetreFermer', routeDuGesteDeFenetre((args) => sortieDeLaFenetre(args[0]))],
-    ['fenetreValider', routeDuGesteDeFenetre((args) => validationDeLaFenetre(args[0]))],
+    [VERBE_DE_SORTIE, routeDuGesteDeFenetre((args) => sortieDeLaFenetre(args[0]))],
+    [VERBE_DE_VALIDATION, routeDuGesteDeFenetre((args) => validationDeLaFenetre(args[0]))],
     // Le choix d'une fenêtre (`fenetreChoisir`), par ce que sa déclaration nomme (`CHOIX_DES_FENETRES`) : le siège du
     // propriétaire de la fenêtre nommée, pas celui de la modale prioritaire (`modalOwnerOf`), sur une rangée celui de
     // son héros (`pid`, 4ᵉ argument), et celui du combattant que la valeur nomme (`porteurDeLaValeur` : la Chance

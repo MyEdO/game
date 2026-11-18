@@ -8,7 +8,7 @@
  */
 import type { Equipe } from '../engine/relations';
 import type { Jeu } from './etat';
-import type { GesteDuNoyau } from './actionsDuNoyau';
+import { VERBE_DE_VALIDATION, type GesteDuNoyau } from './actionsDuNoyau';
 import {
   armyMight, armyStartMight, battleSceneById, battleSceneEffectLabel, herosLibres, massBattleThreatPenalty, type MassBattleState,
 } from './massBattleFlow';
@@ -27,11 +27,11 @@ export interface GesteDeBataille { libelle: string; geste: GesteDuNoyau; refus: 
 
 type GesteDeLaFenetre =
   | { verbe: 'fenetreChoisir'; args: ['batailleDeMasse', AxeDe<'batailleDeMasse'>, unknown] }
-  | { verbe: 'fenetreValider'; args: ['batailleDeMasse'] };
+  | { verbe: typeof VERBE_DE_VALIDATION; args: ['batailleDeMasse'] };
 
 /** Le geste de la fenêtre et son refus, lu là où le verbe le lit (`refusDuChoix`, `refusDeLaValidation`). */
 function gesteDeBataille(s: Jeu, libelle: string, geste: GesteDeLaFenetre): GesteDeBataille {
-  const refus = geste.verbe === 'fenetreValider' ? refusDeLaValidationNommee(s, geste.args[0]) : refusDuChoixNomme(s, ...geste.args);
+  const refus = geste.verbe === VERBE_DE_VALIDATION ? refusDeLaValidationNommee(s, geste.args[0]) : refusDuChoixNomme(s, ...geste.args);
   return { libelle, geste, refus };
 }
 
@@ -111,7 +111,7 @@ export function batailleEnVue(s: Jeu): BatailleEnVue | null {
     gestes: !enRound ? [] : mb.awaitingNext
       ? [
           gesteDeBataille(s, t('mbf.rallyLabel'), { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'rallier', true] }),
-          gesteDeBataille(s, t('mbf.roundSuivant'), { verbe: 'fenetreValider', args: ['batailleDeMasse'] }),
+          gesteDeBataille(s, t('mbf.roundSuivant'), { verbe: VERBE_DE_VALIDATION, args: ['batailleDeMasse'] }),
         ]
       : [gesteDeBataille(s, t('mbf.testSpectaculaire'), { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'engager', true] })],
     issue: mb.phase === 'over' ? issueDe(mb) : null,
