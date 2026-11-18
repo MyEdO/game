@@ -331,7 +331,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     for (const e of s.entities) {
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       else if (aUnRoleEnJeu(s, e)) {
-        const horsZone = entiteFootTiles(e, sceneMetresPerTile(s)).filter((t) => !dansLaZoneJouable(s, t.x, t.y));
+        // Une case hors de la grille se dit « hors de la carte » (empreinte des membres de rencontre, plus bas).
+        const horsZone = entiteFootTiles(e, sceneMetresPerTile(s)).filter((t) => within(t.x, t.y) && !dansLaZoneJouable(s, t.x, t.y));
         if (horsZone.length)
           add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors de la zone jouable — ${horsZone.map((t) => `(${t.x},${t.y})`).join(' ')} : il a un rôle en jeu (rencontre, dialogue, marchand, usage ou départ du groupe) — ramène-le dans la zone au glissé, ou agrandis la zone.`);
       }
