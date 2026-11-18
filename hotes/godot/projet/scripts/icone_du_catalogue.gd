@@ -21,7 +21,7 @@ func _has_alpha() -> bool:
 
 
 func _draw(to_canvas_item: RID, pos: Vector2, modulate: Color, transpose: bool) -> void:
-	_trace().draw(to_canvas_item, pos, modulate, transpose)
+	_trace().draw_rect(to_canvas_item, Rect2(pos, get_size()), false, modulate, transpose)
 
 
 func _draw_rect(to_canvas_item: RID, rect: Rect2, tile: bool, modulate: Color, transpose: bool) -> void:

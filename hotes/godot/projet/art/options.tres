@@ -88,7 +88,7 @@ cadre = "piste-pleine"
 [sub_resource type="Texture2D" script_class="IconeDuCatalogue" id="Losange"]
 script = ExtResource("2_icone_du_catalogue")
 dessin = "interface/losange"
-taille = 13
+taille = 21
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_repos"]
 content_margin_left = 12.0
