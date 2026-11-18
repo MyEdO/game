@@ -1,3 +1,5 @@
+Ticket: #4411
+
 > Critère de fusion en vigueur depuis le 2026-11-18 : même gabarit, mêmes pièces, données différentes (l'ancien critère « mêmes zones du contrat » ci-dessous ne vaut plus).
 
 # Maquettes qui sont le même écran dans des états différents (lot 2, #4411, 2026-11-18)

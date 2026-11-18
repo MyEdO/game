@@ -1,5 +1,8 @@
 ## Atterrissage — 2026-11-18, 20 h 45 (heure de Paris). Le lot est LIBRE : Statut et Tenu par sont vidés.
 
+Ticket: #4411
+
+
 Laurent a demandé d'atterrir, parce que la limite d'usage hebdomadaire approche. Ce commentaire remplace l'état publié plus haut : https://github.com/MyEdO/game/issues/4411#issuecomment-6986987473. Il garde le même cap et les mêmes doctrines.
 
 **Branche** `chantier/4411-kit`, HEAD `932cc1d35`, PR #4465 (brouillon). Hors `hotes/godot/cibles/` et `.claude/memory/`, le diff contre main se réduit au filtre de la garde `src/hote/derive-du-noyau.hors-store.test.ts`.

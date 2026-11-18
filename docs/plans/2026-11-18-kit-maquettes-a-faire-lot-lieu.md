@@ -1,5 +1,8 @@
 # À intégrer au lot « lieu et voyage » (2026-11-18, demande de l'utilisateur)
 
+Ticket: #4411
+
+
 - Écran unique de la nuit (fenêtre `repos`) : nuit-a-l-auberge + bivouac (voir doublons.md).
 - Un seul panneau « Qui dort où » pour les deux états : lits d'une chambre (auberge) ou places sous une tente
   (bivouac), portraits posés dedans, ceux qui restent dehors à part. Aujourd'hui : chambre en panneau à l'auberge,

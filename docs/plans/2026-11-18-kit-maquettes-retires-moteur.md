@@ -1,5 +1,8 @@
 # Retiré des maquettes pour une raison de MOTEUR : DELTA seul
 
+Ticket: #4411
+
+
 Sources lues : `hotes/godot/cibles/propositions/*.md` (9 notes de famille), `git log -p` des notes (commits `cc2cd66c7`,
 `444ceaecb`, `4aa0029d2`, `bc1619095`, `d76592fb5`, `dd177b34e`, `ab9feee21`, `853454977`), état initial `a774927cf`,
 `/mnt/project-files/audit-verbes-3935/dette-verifiee.md` (DV) et `transversal.md` (T §4A-E, §1c, §1d).

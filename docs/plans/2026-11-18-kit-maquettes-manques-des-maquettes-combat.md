@@ -1,5 +1,8 @@
 # Ce que le jeu montre en combat et que les maquettes ne savent pas dire (#4411), 2026-11-18
 
+Ticket: #4411
+
+
 Lecture seule, famille combat. Verbatim de l'utilisateur (2026-11-18) : « si la maquette ne permet pas d exprimer des
 informations importantes, c est un manque de la maquette ».
 

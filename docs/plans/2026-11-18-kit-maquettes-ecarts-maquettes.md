@@ -1,5 +1,8 @@
 # Écarts des maquettes de la famille combat, options et bivouac (#4411, lot 4), 2026-11-18
 
+Ticket: #4411
+
+
 Référence : `propositions/kit.md` et `propositions/dispositions.md` d'abord (ils priment, `dispositions.md:233-251`),
 puis les premières maquettes de l'historique : `69165bf15^` pour la plupart des pages de combat, `79e39ce84^` pour
 `fin-defaite`, `jet-avant-le-de` et `jet-de-defense`, `455f733c7^` pour `combat-jet-d-attaque`, `options` et

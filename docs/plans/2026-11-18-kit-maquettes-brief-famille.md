@@ -1,5 +1,8 @@
 # Brief type : migrer une famille de pages HTML vers les maquettes JSON (#4411)
 
+Ticket: #4411
+
+
 Dépôt /home/user/game, branche `chantier/4411-kit`. Ne committe pas : l'orchestrateur relit et enregistre.
 
 ## Invariant (verbatims utilisateur 2026-11-18)
