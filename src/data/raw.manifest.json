@@ -100,13 +100,6 @@
     "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Le refus de la Blessure Critique est joué, et seuls les effets du Coup Critique (`coupCritique`) s'exercent"
   },
   {
-    "id": "4e/deplacement#humeur-de-manann-et-evenements-en-mer-mdg",
-    "type": "raw.manifest",
-    "label": "Humeur de Manann et événements en mer (MDG)",
-    "ticket": "#1652",
-    "bloque": "Infestation : quand l'étape d'Extermination à DR négatif tire un marin PNJ comme membre d'équipage attaqué par les rats, l'attaque n'est pas jouée, l'effectif n'ayant pas de fiche de combat (MDG 15 l.162-164, l.177-178), #4458."
-  },
-  {
     "id": "4e/maladies#maladie-type",
     "type": "raw.manifest",
     "label": "Maladie (Type)",

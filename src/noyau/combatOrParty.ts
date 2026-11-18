@@ -28,8 +28,8 @@ import { pointDeCase, type Pt } from './monde/path';
 import { champAttendSaFenetre } from './targetingHolder';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
- *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et l'assaillant de la série
- *  d'attaques subies (`serieSubie`). */
+ *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et la série d'attaques subies,
+ *  l'hôte de ses combattants (`combattantsDeLaSerie`). */
 export function touchActors(state: Jeu): PatchDeFlux {
   if (state.battle) return { battle: { ...state.battle, combatants: [...state.battle.combatants] } };
   return { party: [...state.party], ...(state.serieSubie ? { serieSubie: { ...state.serieSubie } } : {}) };

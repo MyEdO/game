@@ -10,7 +10,7 @@ import { REPARATION } from '../engine/seaNavigation';
 import { humanizeFormula } from '../noyau/codex/humanize';
 import { findCargoEntryById } from '../engine/cargo';
 import { toMoney, priceToMoney, fromBrass, formatMoney, PA_PER_CO, type Money } from '../engine/money';
-import { moraleBand } from '../engine/crewMorale';
+import { moraleBand, soldeDuRole } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
 import {
   devisDAchatEnPort,
@@ -144,7 +144,7 @@ export function EscaleTab({ vessel, bourse, refusDuQuai, pendingShoreLeave, onHi
               <div key={role.id} className="port-upgrade">
                 <div className="port-upgrade-head">
                   <b>{role.label}{n > 0 ? ` ×${n}` : ''}</b>
-                  <span className="port-hint"><Coins money={priceToMoney(role.wage!.weekly)} />/sem.</span>
+                  <span className="port-hint"><Coins money={priceToMoney(soldeDuRole(role)!.weekly)} />/sem.</span>
                 </div>
                 <div className="port-crew-actions">
                   <GatedAction

@@ -298,7 +298,7 @@ import {
   SPEC_SOURCES,
 } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
-import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
+import { endShanty, membreDuBord, metaDuPoste, monterLesVagues, posteDeLEtape, resolveShipUnits, withCrewActed, type PosteDuBord } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
@@ -581,6 +581,7 @@ import {
   nePeutPasDifferer,
   jouerFlowEntier,
   jouerLesClotures,
+  rendreALEquipage,
   OPS_DIFFEREES,
   type Applique,
 } from './combatEffects';
@@ -4286,32 +4287,41 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   return applyAttackResult(get, set, attacker, r.victim ?? target, r.weapon, r.res, { suite });
 }
 
-/** OUVRE à la porte le dé `nombre` de l'op `attaquesSubies` sur le héros `cible` (patron `ouvrirChute`) : l'op voyage
- *  dans le `meta` de l'étape, la cible est son `actorId` ; l'applier `nombreDAttaquesSubies` ouvre la série au dé tombé.
+/** La cible de la série d'attaques subies : un héros du groupe, ou le membre de l'équipage tiré à son `poste`. */
+export type CibleDeLaSerie = { heros: Combatant } | { poste: PosteDuBord };
+
+/** OUVRE à la porte le dé `nombre` de l'op `attaquesSubies` sur la `cible` (patron `ouvrirChute`) : l'op voyage dans le
+ *  `meta` de l'étape ; le héros est son `actorId`, le poste du membre de l'équipage est porté par le monde
+ *  (`worldOwner`) et voyage dans le `meta`. L'applier `nombreDAttaquesSubies` ouvre la série au dé tombé.
  *  MDG 15 l.163-164, l.177-178 */
-export function ouvrirLeNombreDAttaquesSubies(set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>): void {
+export function ouvrirLeNombreDAttaquesSubies(set: SetFn, op: Extract<GameOp, { op: 'attaquesSubies' }>, cible: CibleDeLaSerie): void {
   pushDie(set, {
-    id: `nombreDAttaquesSubies-${cible.id}`,
+    id: `nombreDAttaquesSubies-${'heros' in cible ? cible.heros.id : 'equipage'}`,
     kind: 'nombreDAttaquesSubies',
     label: tr('step.nombreDAttaquesSubies'),
     icon: 'action/attaquer',
     spec: op.nombre.dice,
-    actorId: cible.id,
-    meta: { differeLaSuite: true, attaquesSubies: [op] },
+    ...('heros' in cible ? { actorId: cible.heros.id } : { worldOwner: true }),
+    meta: { differeLaSuite: true, attaquesSubies: [op], ...('poste' in cible ? metaDuPoste(cible.poste) : {}) },
   }, revealPurpose('sequence', false));
 }
 
-/** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur le héros `cible`, hors bataille : l'assaillant naît de son statbloc
- *  (`spawnEnemy`, sans case), le héros entre dans la rencontre (`entreeEnRencontre`), `restantes` est le dé tombé
+/** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur la `cible`, hors bataille : l'assaillant naît de son statbloc
+ *  (`spawnEnemy`, sans case) ; un héros entre dans la rencontre (`entreeEnRencontre`) et le groupe l'héberge, un membre
+ *  de l'équipage naît au profil de son rôle (`membreDuBord`) et la série l'héberge. `restantes` est le dé tombé
  *  à la porte, `apresSuite` la suite que ce dé faisait attendre (#1508), gardée par la série jusqu'à sa fermeture ;
  *  puis la première attaque part par `doAttack`, sa suite déclarée `subie` (`poursuivreLaSerie`).
- *  MDG 15 l.163-164, l.177-178 */
-export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
+ *  MDG 15 l.161-164, l.176-178 */
+export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: CibleDeLaSerie, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
   const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
-  const heros = entreeEnRencontre(cible);
-  const serieSubie = { assaillant, cibleId: cible.id, avant: cible, restantes, ...(apresSuite ? { apresSuite } : {}) };
-  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === cible.id ? heros : h)), serieSubie }));
-  return doAttack(get, set, assaillant, heros, { mode: 'subie' });
+  const enJeu = 'poste' in cible ? membreDuBord(cible.poste, get().forgerUnId('membre-du-bord')) : entreeEnRencontre(cible.heros);
+  const hote = 'poste' in cible ? { membre: { combattant: enJeu, poste: cible.poste } } : { avant: cible.heros };
+  set((s: Jeu) => ({
+    ...('avant' in hote ? { party: s.party.map((h) => (h.id === enJeu.id ? enJeu : h)) } : {}),
+    serieSubie: { assaillant, cibleId: enJeu.id, restantes, ...(apresSuite ? { apresSuite } : {}), ...hote },
+  }));
+  if ('membre' in hote) get().ecrireAuJournal(tr('eff.membreDuBordAttaque', { assaillant: assaillant.label, role: enJeu.label }));
+  return doAttack(get, set, assaillant, enJeu, { mode: 'subie' });
 }
 
 /** Le temps `suite` d'un coup de la série d'attaques subies (`enchainement: 'subie'`). `restantes` compte les attaques
@@ -4326,7 +4336,7 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
   if (get().pendingFateSave) return OPS_DIFFEREES;
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   const restantes = serie.restantes - 1;
-  const cible = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
   if (restantes <= 0 || isOutOfAction(cible)) {
     fermerLaSerieSubie(get, set);
     return undefined;
@@ -4342,21 +4352,24 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
   return get().serieSubie ? poursuivreLaSerie(get, set) : undefined;
 }
 
-/** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants, le héros et
- *  l'assaillant (`ouvrirLaFinDeRencontre`) — ses Tests, amputation différée comprise, en étapes de la séquence, que le
- *  héros jette relu par son id —, puis le héros rendu au groupe par la couture de retour
- *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite et les
- *  Tests ouverts), PUIS sa suite jouée (`jouerLesClotures`), qui n'attend pas les Tests de fin de rencontre. Un Test ou
- *  un choix poussé par le dernier coup est déjà résolu : il portait l'après-coup qui ferme la série
- *  (`applyAttackResult`, #4011). Dans cet ordre : la décision
- *  lit les marqueurs de rencontre que la sortie efface, la suite s'applique au héros rendu, que la sortie n'écrase
- *  plus, et hors de toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 */
+/** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants
+ *  (`ouvrirLaFinDeRencontre`) — ses Tests, amputation différée comprise, en étapes de la séquence, que le héros jette
+ *  relu par son id —, puis la cible rendue à son hôte et la série vidée, PUIS sa suite jouée (`jouerLesClotures`), qui
+ *  n'attend pas les Tests de fin de rencontre. Hôte groupe : la décision porte sur le héros et l'assaillant, le héros
+ *  revient au groupe par la couture de retour (`sortieDeRencontre`), la défaite du groupe constatée
+ *  (`checkPartyWiped`, qui purge la suite et les Tests ouverts). Hôte série : la décision porte sur l'assaillant seul, le
+ *  membre revient à l'équipage (`rendreALEquipage`). Un Test ou un choix poussé par le dernier coup est déjà résolu : il
+ *  portait l'après-coup qui ferme la série (`applyAttackResult`, #4011). Dans cet ordre : la décision lit les marqueurs
+ *  de rencontre que la sortie efface, la suite s'applique à la cible rendue, que la sortie n'écrase plus, et hors de
+ *  toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 ; MDG 15 l.161-164 */
 export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
-  const heros = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
-  ouvrirLaFinDeRencontre(get, set, [heros, serie.assaillant], {});
-  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
-  if (checkPartyWiped(get, set)) return;
+  const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  const { avant, membre } = serie;
+  ouvrirLaFinDeRencontre(get, set, avant ? [cible, serie.assaillant] : [serie.assaillant], {});
+  set((s: Jeu) => ({ ...(avant ? { party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(avant, h) : h)) } : {}), serieSubie: null }));
+  if (membre) rendreALEquipage(get, set, cible, membre.poste);
+  else if (checkPartyWiped(get, set)) return;
   jouerLesClotures(get, set, serie.apresSuite ?? []);
 }
 
@@ -9510,14 +9523,16 @@ export const TABLES = {
      *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`jetValider('cascade')`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
-    /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape
-     *  (`ouvrirLaSerieSubie`) et garde la suite de l'étape (`suiteGardee`). Héros introuvable = conséquence PERDUE :
-     *  elle se DIT (patron `chuteDe`). */
+    /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape ou
+     *  le membre de l'équipage de son `meta` (`ouvrirLaSerieSubie`) et garde la suite de l'étape (`suiteGardee`). Héros
+     *  introuvable = conséquence PERDUE : elle se DIT (patron `chuteDe`). */
     nombreDAttaquesSubies: (get, set, step, heros) => {
       const op = step.meta?.attaquesSubies?.[0];
       if (!op || !step.de?.result) return;
-      if (!heros) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      jouerFlowEntier(ouvrirLaSerieSubie(get, set, heros, op, step.de.result.total, step.meta?.apresSuite));
+      const poste = posteDeLEtape(step.meta);
+      const cible: CibleDeLaSerie | undefined = poste ? { poste } : heros && { heros };
+      if (!cible) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      jouerFlowEntier(ouvrirLaSerieSubie(get, set, cible, op, step.de.result.total, step.meta?.apresSuite));
       return { consequences: freeCons([]), suiteGardee: true };
     },
     deviation: (get, set, step) => {
