@@ -5,7 +5,7 @@
  * quatre ans durant `{n, sides, sinPlus:true}` — un dé porteur d'un drapeau que seul
  * `engine/miscast.ts` savait lire, invisible au `DiceSpec` du moteur (`src/engine/dice.ts`) comme à
  * `rollDice`/`formatDice`. Un dé authoré n'a que les clés de `diceSpecSchema` (`{n, sides, fois?, plus?}`,
- * toutes lues par `rollDice`/`formatDice`/`parseDice`) ; ce que le RAW ajoute au dé hors de ces clés
+ * toutes lues par `rollDice`/`formatDice`) ; ce que le RAW ajoute au dé hors de ces clés
  * (« 1d10 + (Points de Péché) », LDB 40 l.58/62/65/68/73/75) est un TERME DE FORMULE
  * (`{sum:[{dice}, {sinPoints:true}]}`), jamais une clé de plus sur le dé.
  *
