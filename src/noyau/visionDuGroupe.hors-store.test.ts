@@ -90,6 +90,14 @@ describe('connaissanceDuGroupe, visionDuMonde — vue, explorée, inconnue', () 
     expect([vision.largeur, vision.rangees, vision.rangeesParPlan, depuisBase64(vision.masque).length]).toEqual([w, h * scene.layers.length, h, w * h * scene.layers.length]);
   });
 
+  it('hors de la zone jouable, une case de la grille est au moins explorée, vue si la vue l’atteint (#4392)', () => {
+    banc.setState({ scene: { ...etat().scene!, zoneJouable: { x: 0, y: 30, w: 15, h: 5 } } });
+    const connue = connaissanceDuGroupe(etat());
+    const DEHORS: Case = { x: 0, y: 0, z: 0 };
+    expect([connue(cle(VUE_LIBRE)), connue(cle(DEHORS)), connue(cle(LOIN)), connue(cle(NON_VUE))]).toEqual(['visible', 'explored', 'unknown', 'unknown']);
+    expect(connue(cle({ x: -1, y: 0, z: 0 })), 'hors grille : rien n’est connu').toBe('unknown');
+  });
+
   it('la clé de la vision : la même sur une relecture du même état, une autre après le pas d’un héros', () => {
     const avant = cleDeLaVision(avecScene());
     banc.setState({ flags: { ...etat().flags, relue: true } });

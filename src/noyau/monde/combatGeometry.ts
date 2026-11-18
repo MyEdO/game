@@ -6,7 +6,7 @@
 import type { BattleState } from '../etat';
 import type { Combatant } from '../../engine/types';
 import type { Dir8 } from '../../geometry/dir8';
-import { Scene, isWalkable } from './scene';
+import { Scene, isWalkable, rectJouable } from './scene';
 import { Pt, MoveEnv, tileKey, climbTraverseFor, walkComponentsFrom, walkComponentAt } from './path';
 import { footprintTiles, footprintN, occupiesTile, distanceDeContact, porteParLaScene } from './footprint';
 import { inBattleId } from './combatants';
@@ -154,19 +154,22 @@ export function tientDebout(scene: Scene, depart: Pt, tenues: ReadonlySet<string
 
 /**
  * FORMATION des héros au début d'un combat : la colonne (`x − 1`, `y + i`) à côté de la position du groupe,
- * à son étage. Chaque héros tient debout (`tientDebout`) sur une case distincte, hors des cases `prises`
- * (adversaires posés). Une case de la colonne qui ne l'est pas cède la place à la case valable la plus proche du
+ * à son étage, bornée des deux côtés de chaque axe au rectangle jouable (`rectJouable`). Chaque héros tient debout
+ * (`tientDebout`) sur une case distincte, hors des cases `prises` (adversaires posés). Une case de la colonne qui ne l'est pas cède la place à la case valable la plus proche du
  * groupe (`premiereCaseEnAnneaux`) ; aucune case valable à l'étage : la case de la colonne. PUR.
  */
+/** `v` ramené dans les `n` entiers depuis `debut`. */
+const dansLIntervalle = (v: number, debut: number, n: number): number => Math.max(debut, Math.min(debut + n - 1, v));
+
 export function formationDeCombat(scene: Scene, groupe: Pt, n: number, prises: ReadonlySet<string> = new Set()): Pt[] {
   const z = groupe.z ?? 0;
-  const { w, h } = scene.dimensions;
+  const r = rectJouable(scene);
   const tenues = new Set(prises);
   const tient = tientDebout(scene, groupe, tenues);
   const out: Pt[] = [];
   for (let i = 0; i < n; i++) {
-    const colonne = { x: Math.max(0, groupe.x - 1), y: Math.min(h - 1, groupe.y + i) };
-    const p = tient(colonne.x, colonne.y) ? colonne : premiereCaseEnAnneaux(groupe, 0, Math.max(w, h), tient) ?? colonne;
+    const colonne = { x: dansLIntervalle(groupe.x - 1, r.x, r.w), y: dansLIntervalle(groupe.y + i, r.y, r.h) };
+    const p = tient(colonne.x, colonne.y) ? colonne : premiereCaseEnAnneaux(groupe, 0, Math.max(scene.dimensions.w, scene.dimensions.h), tient) ?? colonne;
     tenues.add(tileKey(p.x, p.y, z));
     out.push(z ? { ...p, z } : p);
   }

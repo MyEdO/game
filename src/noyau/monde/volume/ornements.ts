@@ -5,7 +5,8 @@
  * bâti d'où une arête tire son côté sortant (`dehorsDeScene`, `outwardSide`). Le volume du monde les pose
  * (`posesDuVolume`, `./volume.ts`), le rendu web les dessine (`buildProps`, `src/gameIso/builders/props.ts`). PUR.
  */
-import { heightAt, porteNonSecrete, wallEnds, type ArchitectureRect, type SceneDesToits, type WallSeg } from '../scene';
+import type { RectDeCases } from '../../../data/schemas/grammaire/valeurs';
+import { heightAt, porteNonSecrete, wallEnds, type SceneDesToits, type WallSeg } from '../scene';
 import { buildingFeatures, massFootBBox, massFootprintCells } from '../buildings';
 import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../sceneEdit';
 import { interiorCells } from '../../planDefects';
@@ -109,7 +110,7 @@ type OrnementDuBati = PoseDOrnement & (
     /** ornement d'identité du type de son bâtiment (`buildingFeatures`). */
     source: 'ornament';
     /** la boîte englobante de l'empreinte de sa masse (`massFootBBox`). */
-    emprise: ArchitectureRect;
+    emprise: RectDeCases;
   }
 );
 
@@ -139,7 +140,7 @@ function hauteurDeCouverture(
  *  la porte + cap cardinal SORTANT. Robuste à la canonisation N/E des arêtes (une porte 'S'/'O' est
  *  stockée sur la case voisine). Une porte SECRÈTE n'est jamais l'entrée (`porteNonSecrete`). Repli :
  *  façade SUD, sous le centre bas de l'empreinte. */
-function buildingDoor(scene: SceneDesToits, f: ArchitectureRect, z: number): { frontCell: Point; facing: Dir4 } {
+function buildingDoor(scene: SceneDesToits, f: RectDeCases, z: number): { frontCell: Point; facing: Dir4 } {
   const x0 = f.x, y0 = f.y, x1 = f.x + f.w - 1, y1 = f.y + f.h - 1;
   for (const w of scene.walls ?? []) {
     if (!porteNonSecrete(w) || (w.z ?? 0) !== z) continue;

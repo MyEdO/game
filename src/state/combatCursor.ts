@@ -10,7 +10,7 @@ import type { Get, Set } from '../noyau/flowTypes';
 import type { GameState } from './store';
 import type { Combatant } from '../engine/types';
 import { tileCenter, type Dims } from '../geometry/iso';
-import { isWalkable, liftDe, tileAt, type Scene } from '../noyau/monde/scene';
+import { liftDe, solPraticable, tileAt, type Scene } from '../noyau/monde/scene';
 import { estAbsent } from '../noyau/monde/terrain';
 import { jouerLeClicDeCase } from '../noyau/combatOrParty';
 import { currentTargetingMode, type TargetingMode } from '../noyau/targetingModes';
@@ -66,7 +66,7 @@ export function screenStepDot(scene: Scene, from: Pt, to: Pt, dir: ScreenDir, di
  */
 export function resolveCursorZ(scene: Scene, x: number, y: number): number {
   const zsDesc = scene.layers.map((l) => l.z).sort((a, b) => b - a);
-  for (const z of zsDesc) if (isWalkable(scene, x, y, z)) return z; // surface marchable réelle
+  for (const z of zsDesc) if (solPraticable(scene, x, y, z)) return z; // surface marchable réelle
   for (const z of zsDesc) { if (!estAbsent(tileAt(scene, x, y, z))) return z; } // case réelle non marchable
   return 0;
 }

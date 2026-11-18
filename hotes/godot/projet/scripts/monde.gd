@@ -104,14 +104,14 @@ func _ready() -> void:
 ## Le monde du manifeste `monde` (`{ monde, toits, couronnes }`, méthode `monde`) posé par le volume
 ## (`VolumeDeScene.poser`, les géométries reçues `recus`, réponse de `morceaux`), chaque morceau en forme sous le corps
 ## du monde, réconciliée comme lui (`VolumeDeScene.reconcilier`, `_forme_de`), le sol de chaque case de chaque couche, et
-## la caméra centrée sur lui.
-func poser(monde: Dictionary, recus: Dictionary) -> void:
+## la caméra centrée sur le rectangle de cases `zone` (la zone jouable), sur toute la carte sans lui.
+func poser(monde: Dictionary, recus: Dictionary, zone := Rect2i()) -> void:
 	volume.poser(monde, recus)
 	VolumeDeScene.reconcilier(_corps, monde.monde.morceaux, VolumeDeScene.par_cle(recus.volume), _forme_de)
 	_sols.clear()
 	for couche in monde.monde.hauteurs:
 		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.monde.metresParCase)))
-	_pivot.position = MiseEnPage.centre_du_plateau(taille())
+	_pivot.position = MiseEnPage.centre_de_la_zone(zone.position.x, zone.position.y, zone.size.x, zone.size.y) if zone.has_area() else MiseEnPage.centre_du_plateau(taille())
 
 
 ## La forme du morceau `morceau` (`MorceauDuMonde`) que le rayon du pointeur touche des deux côtés, hors des mers des

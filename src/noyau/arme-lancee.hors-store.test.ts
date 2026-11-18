@@ -10,7 +10,7 @@ import { deMin } from '../engine/dice.testkit';
 import { findCreatureById } from '../data';
 import { t as tr } from '../i18n';
 import { seedBattleRng } from './battleRng';
-import { emptyScene } from './monde/scene';
+import { dansLaZoneJouable, emptyScene, isWalkable, type Scene } from './monde/scene';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
@@ -36,12 +36,12 @@ const cible = (): Combatant => (blessuresSurLeProfil({
   movement: 4, skills: [], talents: [], engagedWith: [], pos: { x: 8, y: 7 }, size: 'moyenne', weapons: [], items: [], armour: ARMURE,
 }) as unknown as Combatant);
 
-function poserLaBataille(cs: Combatant[]): void {
+function poserLaBataille(cs: Combatant[], zoneJouable?: Scene['zoneJouable']): void {
   const battle = {
     combatants: cs, order: cs.map((c) => c.id), baseOrder: cs.map((c) => c.id), turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, zones: [],
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', scene: { ...emptyScene('scene-test'), metresPerTile: 1 }, gameTime: 12 * 60, pendingCascade: null, pendingFateSave: null });
+  banc.setState({ battle, mode: 'battle', scene: { ...emptyScene('scene-test'), metresPerTile: 1, ...(zoneJouable ? { zoneJouable } : {}) }, gameTime: 12 * 60, pendingCascade: null, pendingFateSave: null });
 }
 
 describe('arme lancée (LDB 14 l.142 ; #4330)', () => {
@@ -94,6 +94,20 @@ describe("l'arme lancée quitte la main et tombe au sol (#4330)", () => {
     const arrivee = lancer(a, e, tenue(a, 'javelot'), false);
     expect(arrivee).toBeDefined();
     expect(auSol()).toEqual([{ pos: { x: arrivee!.x, y: arrivee!.y }, lot: [expect.objectContaining({ trappingId: 'javelot' })] }]);
+  });
+
+  it('javelot raté qui retombe hors de la zone jouable : il y tombe, sur une case où nul ne va le ramasser (#4392)', () => {
+    const rangee = { x: 2, y: 7, w: 7, h: 1 };
+    const dehors = [1, 2, 3, 4, 5, 6, 7, 8].map((graine) => {
+      seedBattleRng(graine);
+      poserLaBataille([heros('javelot'), cible()], rangee);
+      banc.setState({ objetsAuSol: {} });
+      const [a, e] = banc.getState().battle!.combatants;
+      const arrivee = lancer(a, e, tenue(a, 'javelot'), false)!;
+      return { arrivee, sol: auSol()[0].pos };
+    }).filter(({ arrivee }) => !dansLaZoneJouable(banc.getState().scene!, arrivee.x, arrivee.y));
+    expect(dehors.length, 'au moins une Dispersion retombe hors de la zone').toBeGreaterThan(0);
+    expect(dehors.every(({ arrivee, sol }) => sol.x === arrivee.x && sol.y === arrivee.y && !isWalkable(banc.getState().scene!, sol.x, sol.y))).toBe(true);
   });
 
   it.each(['bombe', 'bombe-fumigene'])('%s : quitte la main, détruite, rien au sol', (id) => {

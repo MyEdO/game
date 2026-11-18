@@ -1,6 +1,6 @@
 /** Entrée en scène : partie neuve (`lancerLaScene`, `chargerLeProjet`) et changement de scène (`quitterLaScene`). */
 import { registerScene, sceneDuRegistre } from './monde/registreDesScenes';
-import { startOf } from './monde/scene';
+import { rectJouable, startOf } from './monde/scene';
 import { findFreeTile } from './monde/combatGeometry';
 import { spawnFacing } from './monde/exploreNav';
 import { poserCapDuGroupe } from './monde/combatants';
@@ -34,7 +34,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`).
       const { screen, party, net, prochainId, lignesAuJournal, combatsOuverts } = get();
       const journal = scene.startMessage ? [scene.startMessage.texte] : [];
-      const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
+      const capEntrant = start?.facing ?? spawnFacing(pos, rectJouable(scene));
       set({
         ...etatInitialDuJeu(),
         screen, party, net, prochainId, combatsOuverts,
@@ -128,7 +128,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         sceneInstances,
         mode: 'exploration',
         partyPos: { ...start },
-        facing: poserCapDuGroupe(s.facing, authored ?? spawnFacing(start, target.dimensions)),
+        facing: poserCapDuGroupe(s.facing, authored ?? spawnFacing(start, rectJouable(target))),
         lightLevel: null, // nouvelle scène → lumière auto (un setLight ne se propage pas d'une scène à l'autre)
         // flags persistants : on conserve l'état narratif et on ajoute les
         // valeurs par défaut de la nouvelle scène pour les clés absentes.

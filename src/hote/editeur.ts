@@ -11,22 +11,170 @@
  * qu'il garde (`cheminDeLaPlanche`) et ce qu'il garde des calques (`memoireDesCalques`).
  */
 import {
-  calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
-  capDeLEntite, capsOfferts, entiteDeLaSelection, ficheEditee, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
-  assoirALaPlace, idDuCorps, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
-  DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, idDeLaSceneEditee, projetEdite, sceneEditee, secretAuteur,
-  segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, QUALITES_DE_REPOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
-  type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, formulaireDe, refusDeLaValeur,
-  allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
-  isWearable, objetsDeLInventaire, trappingsInstanciables,
-  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
-  findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacementActif, talentsDuParcours,
-  porteurDuProfil, trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
-  findSpellById, listesDeSorts, sortsImprimes,
-  aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
-  OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, refusDeForme, FORMES_D_ETAT, type FormeDEtatKind, planDuLieuOuvert, nomDuPoi, offresDeLEtablissement, placeServices, typesDEtablissement, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
+  calqueDeLaCouche,
+  calquesAStocker,
+  coinsDuCalque,
+  planDuCalque,
+  type CalquesStockes,
+  capDeLEntite,
+  capsOfferts,
+  entiteDeLaSelection,
+  ficheEditee,
+  fichesDePersonnage,
+  nomDEntite,
+  presetDuNarratif,
+  props,
+  assoirALaPlace,
+  idDuCorps,
+  labelEmplacement,
+  lightTones,
+  lumiereAllumee,
+  PARTY_MAX,
+  seatSlotsOf,
+  siegeEngines,
+  type SeatOccupant,
+  DIFFICULTE_PAR_DEFAUT,
+  DIFFICULTY_LABELS,
+  FACES_D_ARETE,
+  FIRE_ARCS,
+  HAUTEURS,
+  PINCEAUX,
+  planDeLaVolee,
+  areteDessinee,
+  heightAt,
+  libelleDeStructure,
+  porteAuteur,
+  idDeLaSceneEditee,
+  projetEdite,
+  sceneEditee,
+  secretAuteur,
+  segmentDeLaSelection,
+  structureAppearances,
+  structuresCrenelables,
+  structuresDeLArete,
+  crenellatedAt,
+  terrainIds,
+  terrainLabel,
+  tileAt,
+  ACTIONS_D_ARCHITECTURE,
+  avertissementsDeLaSession,
+  cadreDeLaSession,
+  BORNES_DE_LA_TROUPE,
+  casesDuDefaut,
+  PLAN_DEFECT_FAMILIES,
+  versLaFautive,
+  AMBIANCES,
+  ENVIRONNEMENTS,
+  METEOS,
+  QUALITES_DE_REPOS,
+  PARTS_RELIEF,
+  lightLevels,
+  matieresDe,
+  reposDeScene,
+  sceneMetresPerTile,
+  matieresCouvrantes,
+  PENTE_TOIT_DEG,
+  PROFILS_DE_TOIT,
+  toitureEffective,
+  BORNES_D_OUVERTURE,
+  buildingsMeta,
+  corpsActif,
+  DEFAUTS_D_OUVERTURE,
+  FACADE_APPEARANCE_IDS,
+  SORTES_D_OUVERTURE,
+  OUVRAGES,
+  refusDOuvrage,
+  selRect,
+  effectZoneRect,
+  ENTREES_DE_DOSSIER,
+  isRoomZone,
+  poigneeDeLaSelection,
+  sameSel,
+  sceneZoneTiles,
+  type AreteDessinee,
+  type BrouillonDArete,
+  type Difficulty,
+  type GesteDEdition,
+  type PatchDArete,
+  type PatchDEntite,
+  type PatchDeScene,
+  type PatchDeZone,
+  type RectDeCases,
+  type Scene,
+  type Sel,
+  type SessionDEdition,
+  type WallPaint,
+  ZONE_VARIANTS,
+  ECRITURES_DES_PORTEURS,
+  FORMULAIRES,
+  accesDe,
+  retraitOffert,
+  retraitsDuPorteur,
+  porteurDeLaSel,
+  porteurDuProjet,
+  porteursDuProjet,
+  idDuPorteur,
+  SOUS_ENTREES,
+  refusDeRetrait,
+  type DonneeDuPorteur,
+  type SorteDePorteur,
+  formulaireDe,
+  refusDeLaValeur,
+  allMusicDefs,
+  apparencesDeLOuverture,
+  ciblesDAncreDeBataille,
+  groupesDuLieu,
+  isWearable,
+  objetsDeLInventaire,
+  trappingsInstanciables,
+  candidatsDuSlot,
+  carriereActuelle,
+  careers,
+  designationsDeCarriere,
+  dotationsDuPnj,
+  emplacementsDeDotation,
+  estEmplacementRacine,
+  ficheDuCombattant,
+  findCareerById,
+  levelsForCareer,
+  libelleDeLaValeur,
+  parcoursDe,
+  parcoursRetouche,
+  parseRefKey,
+  prisParLesAutres,
+  refKey,
+  refLabel,
+  skillSlots,
+  sousEmplacementActif,
+  talentsDuParcours,
+  porteurDuProfil,
+  trappingRefLabel,
+  valeursDeLEmplacement,
+  type EmplacementDeDotation,
+  type ParcoursDeCarriere,
+  findSpellById,
+  listesDeSorts,
+  sortsImprimes,
+  aLEchelleDesPonts,
+  CAPS_DES_PONTS,
+  TYPES_DE_NAVIRE,
+  vueDeLaScene,
+  OUTILS_DE_LA_CARTE,
+  OUTILS_DU_PLAN_DU_LIEU,
+  UNITES_DU_PLAN_DE_CARTE,
+  orienterRoute,
+  refusDeForme,
+  FORMES_D_ETAT,
+  type FormeDEtatKind,
+  planDuLieuOuvert,
+  nomDuPoi,
+  offresDeLEtablissement,
+  placeServices,
+  typesDEtablissement,
+  type OutilDeLaCarte,
+  type OutilDuPlanDuLieu,
+  type PlanDeLaCarte,
+  type SorteDeDocument,
 } from '../noyau/index';
 import { pluriel, t, type MsgKey } from '../i18n';
 import { libelleDuStatut } from '../noyau/index';
@@ -181,9 +329,11 @@ export interface ZonesDeLEditeur {
    * partie de l'étage de la couche éditée sur la dernière case appuyée, l'étage au-dessus du corps actif, qui devient
    * la couche éditée, une masse de toiture sur la dernière case appuyée, chacun refusé avec sa raison
    * (`refusDOuvrage` : sans corps, sans étage du corps sur la couche, sans case appuyée sur la couche) et sélectionné
-   * une fois bâti ; à la zone, la sorte de zone que le rectangle tiré pose, pièce, déclencheur, repos ou piège
-   * (`validerRectangle`) ; à l'emprise d'une zone d'effet, armée de son inspecteur, ajouter ou retirer les cases que le
-   * pinceau couvre (`paintEffectZone`), et la terminer
+   * une fois bâti ; à la zone, la sorte de zone que le rectangle tiré pose, pièce, déclencheur, repos, piège ou zone
+   * jouable (`validerRectangle`) ; à la zone jouable, le rectangle posé, plafonné à la grille (`setZoneJouable`), puis
+   * « Toute la carte », pressé sans zone, qui la retire : `{ geste: 'scene', patch: { zoneJouable: null } }` ; à
+   * l'emprise d'une zone d'effet, armée de son inspecteur, ajouter ou retirer les cases que le pinceau couvre
+   * (`paintEffectZone`), et la terminer
    */
   'editeur.options': (Choix | Ligne | Bouton)[];
   /**
@@ -240,7 +390,8 @@ export interface ZonesDeLEditeur {
   'editeur.logique': (Choix | Ligne | Bouton)[];
   /**
    * l'inspecteur de la sélection ; sans elle, celui de la scène : le formulaire qui la nomme, celui qui change son
-   * identifiant, celui qui la décrit, sa largeur et sa hauteur en cases à la réglette (au moins 5, `resizeGrid`), les
+   * identifiant, celui qui la décrit, une réglette par bord, ouest, est, nord et sud, qui y ajoute ou retire une colonne
+   * ou une rangée de cases (au moins 5, `resizeGrid`, la scène suivant son bord ouest ou nord par `decalage`), les
    * entrées de fiche qu'elle couvre comme celles d'une zone, de même ses groupes de lieu parmi ceux du schéma
    * (`groupesDuLieu`), son ambiance (`AMBIANCES`), son échelle en mètres par case à la réglette (au moins 1), sa
    * lumière ambiante en liste, automatique ou l'une de `lightLevels`, son nord à la réglette au pas de 15° ou vers le
@@ -257,9 +408,9 @@ export interface ZonesDeLEditeur {
    *
    * Chaque bouton joue `{ geste: 'scene', patch }` (`PatchDeScene`), `patch` portant `scalaires` (`desc`, `ambiance`,
    * `weather`, `couvre`, `groups`, `metresPerTile`, `ambientLight`, `environment`, `null` retirant le champ),
-   * `dimensions`, `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `qualite`), `drapeaux`
+   * `dimensions` (`{ w, h, decalage? }`), `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `qualite`), `drapeaux`
    * (`null` retirant le drapeau), `musique` (`{ piste, id }`, `id` `null` : silence, absent : automatique) ou `stations` (`{ ajouter }`, `{ rang, sceneId?, pos? }`
-   * ou `{ retirer }`, refusé à un rang absent).
+   * ou `{ retirer }`, refusé à un rang absent). `zoneJouable: null` (option de l'outil zone jouable) retire la zone jouable.
    *
    * D'une entité : le formulaire qui la nomme, prérempli de son nom d'auteur ; le type d'un décor ou la fiche d'un
    * personnage du bestiaire, en liste ; son cap parmi ceux que son type admet (`capsOfferts` : les cardinaux d'un
@@ -572,6 +723,8 @@ export interface SurcoucheDeLEdition {
   reperes: RepereDeLEdition[];
   zones: ZoneDeLEdition[];
   poignee: { x: number; y: number; z: number } | null;
+  /** Les cases du bord de la zone jouable sur la couche éditée (`contourDeLaZoneJouable`) ; aucune sans elle. */
+  zoneJouable: { x: number; y: number; z: number }[];
 }
 
 /** Le calque de la couche éditée tel que l'hôte le pose sur le monde : la planche qu'il garde (`cheminDeLaPlanche`),
@@ -608,17 +761,28 @@ function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bou
   ];
 }
 
+/** Les options de la zone jouable de `scene` : son rectangle, s'il est posé, et le bouton qui la retire (« Toute la
+ *  carte », `PatchDeScene.zoneJouable`), pressé quand toute la carte se joue. */
+function optionsDeLaZoneJouable(scene: Scene): (Ligne | Bouton)[] {
+  const zone = scene.zoneJouable;
+  return [
+    ...(zone ? [ligne('zone/jouable', t('ecran.editeur.zone.jouable.rect', { ...zone }))] : []),
+    boutonDEdition('zone/jouable/toute', t('ecran.editeur.zone.jouable.toute'), { geste: 'scene', patch: { zoneJouable: null } }, !zone),
+  ];
+}
+
 /** Les options de l'outil actif : la taille du pinceau (et le rectangle du terrain), puis les terrains, les hauteurs ou
  *  la structure du parapet, ou la gomme de sa marque ; la sorte et le matériau d'une arête ; la volée ; la sorte de
- *  zone à tracer ; le sens du pinceau d'emprise et sa fin ; le type et le cap du navire à poser. La gomme n'en a
- *  aucune : elle efface la chose de la case. */
+ *  zone à tracer, et pour la zone jouable ses options (`optionsDeLaZoneJouable`) ; le sens du pinceau d'emprise et sa
+ *  fin ; le type et le cap du navire à poser. La gomme n'en a aucune : elle efface la chose de la case. */
 function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
   if (outil.mode === 'selection' || outil.mode === 'gomme' || outil.mode === 'entree' || outil.mode === 'lieu' || outil.mode === 'chemin' || outil.mode === 'epingler' || (outil.mode === 'entite' && outil.kind === 'heroStart')) return [];
   if (outil.mode === 'escalier') return optionsDeLaVolee(s, outil.toZ);
   if (outil.mode === 'zone') {
-    return [choix('zones', t('ecran.editeur.zones'),
-      ZONE_VARIANTS.map((zone) => boutonDEdition(`zone/${zone}`, t(`ecran.editeur.zone.${zone}`), { geste: 'outil', outil: { mode: 'zone', zone } }, outil.zone === zone)))];
+    const zones = choix('zones', t('ecran.editeur.zones'),
+      ZONE_VARIANTS.map((zone) => boutonDEdition(`zone/${zone}`, t(`ecran.editeur.zone.${zone}`), { geste: 'outil', outil: { mode: 'zone', zone } }, outil.zone === zone)));
+    return outil.zone === 'jouable' ? [zones, ...optionsDeLaZoneJouable(sceneEditee(s))] : [zones];
   }
   if (outil.mode === 'architecture') return optionsDArchitecture(s, outil.action);
   if (outil.mode === 'casesDeZone') return [...emprise(outil.zoneId, outil), boutonDEdition('emprise/finir', t('ecran.editeur.zone.emprise.finir'), { geste: 'outil', outil: { mode: 'selection' } })];
@@ -1081,10 +1245,9 @@ function inspecteurDEntree(s: SessionDEdition, entree: { nom: string; z: number 
 /** Les lieux de repos qu'une scène ou une zone de repos offre. */
 const LIEUX = ['auberge', 'maison', 'camp'] as const;
 
-type Rect = { x: number; y: number; w: number; h: number };
 
 /** Les cases du rectangle `r`, ligne à ligne. */
-const casesDuRect = (r: Rect): { x: number; y: number }[] =>
+const casesDuRect = (r: RectDeCases): { x: number; y: number }[] =>
   Array.from({ length: r.w * r.h }, (_, i) => ({ x: r.x + (i % r.w), y: r.y + Math.floor(i / r.w) }));
 
 /** Une zone de la scène telle que l'éditeur la lit : sa sélection, sa sorte, son nom (l'id d'un déclencheur, le
@@ -1093,7 +1256,7 @@ interface ZoneLue {
   sel: Sel;
   sorte: SorteDeZone;
   nom: string;
-  rect: Rect;
+  rect: RectDeCases;
   z: number;
   cases: { x: number; y: number }[];
 }
@@ -1773,8 +1936,10 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     formulaireDuNom(scene.label, false),
     formulaireDeLIdentifiant(scene.id),
     formulaireAUnChamp('decrire', t('ecran.editeur.scene.decrire'), 'desc', t('ecran.editeur.scene.description'), scene.desc ?? '', true),
-    ...reglette('scene/largeur', t('ecran.editeur.scene.largeur', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h } })),
-    ...reglette('scene/hauteur', t('ecran.editeur.scene.hauteur', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v } })),
+    ...reglette('scene/bord/ouest', t('ecran.editeur.scene.bord.ouest', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h, decalage: { x: v - w, y: 0 } } })),
+    ...reglette('scene/bord/est', t('ecran.editeur.scene.bord.est', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h } })),
+    ...reglette('scene/bord/nord', t('ecran.editeur.scene.bord.nord', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v, decalage: { x: 0, y: v - h } } })),
+    ...reglette('scene/bord/sud', t('ecran.editeur.scene.bord.sud', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v } })),
     ...couverture('scene/couvre', scene.couvre, (couvre) => scalaire({ couvre })),
     ...listeDIds('scene/groupes', 'scene.groupes', scene.groups, new Map(groupesDuLieu().map((g) => [String(g.valeur), g.libelle])), (groups) => scalaire({ groups })),
     choix('scene/ambiance', t('ecran.editeur.scene.ambiance'), AMBIANCES.map((a) => boutonDEdition(`scene/ambiance/${a}`, t(`ecran.editeur.scene.ambiance.${a}`), scalaire({ ambiance: a }), (scene.ambiance ?? 'exterieur') === a))),
@@ -1916,7 +2081,8 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * plan suivi, tant que la validation le relève (`defaut`, « Défaut », ses cases sur la couche éditée, `casesDuDefaut`,
  * choisi) ; `surcouche.poignee`, la case `{ x, y, z }` du coin sud-est du rectangle de la sélection sur la couche
  * éditée (`poigneeDeLaSelection`), `null` sans elle : l'appui de la sélection sur elle redimensionne la sélection au
- * glissé (`resizeSel`) ; `surcouche.reperes`, chaque entité puis chaque entrée de la couche éditée, `{ sorte, id, x, y,
+ * glissé (`resizeSel`) ; `surcouche.zoneJouable`, les cases `{ x, y, z }` du bord de la zone jouable sur la couche
+ * éditée, aucune sans elle ; `surcouche.reperes`, chaque entité puis chaque entrée de la couche éditée, `{ sorte, id, x, y,
  * z, nom, choisi }` (plusieurs peuvent tenir dans une case : deux décors calés, un objet posé sur une table ; l'hôte y
  * montre la plaque de la sélection et joint leurs noms) (`prop`, `personnage`, `heroStart` ou `entree`, son nom comme à
  * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée hors des ponts des
@@ -2146,7 +2312,14 @@ export function surcoucheDeLEdition(s: SessionDEdition): SurcoucheDeLEdition {
       ...defautSuivi(s),
     ],
     poignee: poignee && aLaCouche(poignee),
+    zoneJouable: contourDeLaZoneJouable(scene).map(aLaCouche),
   };
+}
+
+/** Les cases du bord du rectangle de la zone jouable de `scene` ; aucune sans elle (toute la carte se joue). #4392 */
+function contourDeLaZoneJouable(scene: Scene): { x: number; y: number }[] {
+  const r = scene.zoneJouable;
+  return r ? casesDuRect(r).filter((c) => c.x === r.x || c.y === r.y || c.x === r.x + r.w - 1 || c.y === r.y + r.h - 1) : [];
 }
 
 /** Le défaut de plan que suit la session `s`, ses cases de la couche éditée, choisi ; aucun sans lui, ou corrigé. */
