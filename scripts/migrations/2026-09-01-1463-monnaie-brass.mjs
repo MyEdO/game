@@ -10,12 +10,12 @@
  * ORDRE DES CLÉS : `brass` prend la PLACE de `bronze` dans l'objet (les catalogues sont sérialisés
  * tels quels ; l'ordre alphabétique n'est pas une propriété du format).
  * ENTRÉES : les 3 catalogues qui chiffrent un montant, chacun par son chemin de schéma exact — aucun
- * autre fichier n'est lu. Cardinal ASSERTÉ chemin par chemin, total 451 :
- *  - `src/data/trappings.json` `[].price` — 392 (la colonne Prix chiffrée ; `'ND'` et `null` ne sont
- *    pas des montants et n'entrent pas au compte) ;
- *  - `src/data/vehicles.json` `[].purchase.price` — 31 (les 31 entrées portent toutes leur achat) ;
- *  - `src/data/creatures.json` `[].purchase.price` — 14 (les seules créatures ACHETABLES du bestiaire) ;
- *  - `src/data/creatures.json` `[].embauche.daily` et `[].embauche.weekly` — 6 et 6 (les profils de mercenaire,
+ * autre fichier n'est lu ; le nombre de montants par chemin n'est pas asserté (`CHEMINS`) :
+ *  - `src/data/trappings.json` `[].price` (la colonne Prix chiffrée ; `'ND'` et `null` ne sont pas des
+ *    montants) ;
+ *  - `src/data/vehicles.json` `[].purchase.price` ;
+ *  - `src/data/creatures.json` `[].purchase.price` (les créatures ACHETABLES du bestiaire) ;
+ *  - `src/data/creatures.json` `[].embauche.daily` et `[].embauche.weekly` (les profils de mercenaire,
  *    barème quotidien ET hebdomadaire, colonnes non-multiples l'une de l'autre, MDG 14 l.293-302).
  * RENAME PUR : aucune valeur ne change. PREUVE : les deux artefacts (avant, après) ramenés à la
  * graphie `bronze` sont deep-equal.

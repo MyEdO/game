@@ -713,7 +713,7 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     expect(s.journal.join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
   });
 
-  it('chaque âme à bord pèse une part égale du tirage : un héros, un inscrit au registre ou un membre hors registre, que les inscrits soient moins ou plus nombreux que l’effectif présent (MDG 15 l.161, l.176 ; MDG 14 l.15)', () => {
+  it('chaque âme présente pèse une part égale du tirage, un héros comme un membre de l’effectif ; parmi l’effectif, un rôle pèse son compte parmi les postes, que les inscrits soient moins ou plus nombreux que l’effectif présent (MDG 15 l.161, l.176 ; MDG 14 l.15)', () => {
     const { banc } = horsBataille(testScene());
     /** Le tirage du membre aux `registres`, énuméré sur tous ses indices : combien de fois chaque cible est atteinte. */
     const avant = banc.getState();
@@ -749,6 +749,21 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     // Les recueillis sans solde après les salariés : 15 postes.
     expect(repartition({ crew: [{ roleId: 'timonier', count: 2 }], recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }] }))
       .toEqual({ heros: 15, 'timonier@crew': 2 * 15, 'navigateur@recueillisSansSolde': 15, 'mousse@': 12 * 15 });
+  });
+
+  it.each<[string, Partial<CampaignVessel> | null, [number, number], string]>([
+    ['sans effectif ni inscrit, l’effectif perdu : un poste, le héros', { crewLost: 15 }, [0, 0], 'heros'],
+    ['sans navire : un poste, le héros', null, [0, 0], 'heros'],
+    ['sans effectif, 3 inscrits : 3 postes, le héros', { crewLost: 15, crew: [{ roleId: 'timonier', count: 3 }] }, [0, 2], 'heros'],
+    ['15 présents sans inscrit : 15 postes, le dernier tient le rôle par défaut', {}, [0, 16 * 15 - 1], 'mousse'],
+  ])('bornes du tirage, %s (MDG 15 l.161 ; MDG 14 l.15)', (_, registres, bornes, cible) => {
+    const { banc } = horsBataille(testScene());
+    banc.setState({ vessel: registres && { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...registres } });
+    imposerLesD100(100);
+    applyEffects(banc.getState, banc.setState, [auHasard(op)]);
+    expect(vi.mocked(battleRng().int).mock.calls[0]).toEqual(bornes);
+    const etape = banc.getState().pendingCascade!.participants[0];
+    expect(etape.actorId ? 'heros' : etape.meta?.roleDuMembre).toBe(cible);
   });
 
   it('un membre hors registre tient le rôle par défaut : un Mousse (MDG 14 l.15)', () => {
