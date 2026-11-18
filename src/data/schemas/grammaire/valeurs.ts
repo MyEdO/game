@@ -983,12 +983,11 @@ export type ProfilDeVoile = z.output<typeof profilDeVoileSchema>;
 
 /** Axes de la MÉTÉO MARINE (`SeaWeather`, `engine/seaWeather.ts`) : une rangée de sa table, ou le climat
  *  qu'un événement impose. MDG 13 l.170 */
-export const ventMarinSchema = z.enum(['calme-plat', 'legere-brise', 'brise-fraiche', 'vent-modere', 'vent-violent', 'violente-tempete']);
 const AXES_DE_LA_METEO_MARINE = {
-  precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
-  temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
-  visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
-  vent: ventMarinSchema,
+  precipitations: ref('seaPrecipitation'),
+  temperature: ref('seaTemperature'),
+  visibilite: ref('seaVisibility'),
+  vent: ref('seaWind'),
 };
 const META_DE_LA_METEO_MARINE = {
   precipitations: { label: 'Précipitations' },
@@ -997,13 +996,14 @@ const META_DE_LA_METEO_MARINE = {
   vent: { label: 'Vent' },
 };
 export const meteoMarineSchema = nommerChamps(z.strictObject(AXES_DE_LA_METEO_MARINE), META_DE_LA_METEO_MARINE);
-/** Climat IMPOSÉ : les seuls axes qu'il fixe (`Partial<SeaWeather>`), un au moins. MDG 15 l.189, l.199, l.248 */
+/** Climat IMPOSÉ : les seuls axes qu'il fixe, un au moins. MDG 15 l.189, l.199, l.248 */
 export const meteoImposeeSchema = nommerChamps(z.strictObject({
   precipitations: AXES_DE_LA_METEO_MARINE.precipitations.optional(),
   temperature: AXES_DE_LA_METEO_MARINE.temperature.optional(),
   visibilite: AXES_DE_LA_METEO_MARINE.visibilite.optional(),
   vent: AXES_DE_LA_METEO_MARINE.vent.optional(),
 }).refine((m) => Object.keys(m).length > 0, { message: 'météo imposée VIDE : nommer au moins un axe (précipitations, température, visibilité, vent).' }), META_DE_LA_METEO_MARINE);
+export type MeteoImposee = z.output<typeof meteoImposeeSchema>;
 
 /** `ShipLocation` (`src/engine/combat.ts`) — les Localisations de coque des DEUX jeux de Critiques
  *  (MDG naval : cargaison/gréement/coque/avirons/équipements ; MSRC fluvial : gouvernail/superstructure). */
