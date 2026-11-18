@@ -1446,7 +1446,7 @@ export function noeudTestFixe<B extends z.ZodType>(branche: B, options: Pick<Opt
 }
 
 /** Le nœud `test` de `noeudTest`, sur le Test `test` : de flux, fixe, ou de scène. */
-function noeudDeTest<T extends z.ZodType, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
+function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema | typeof testDeSceneSchema, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
   const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
   const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   if (!options.echecSeulServi) return noeud;
@@ -1813,7 +1813,7 @@ function refuserLaZoneSansDuree(flow: Flow<EffectOp>, ctx: z.RefinementCtx): voi
 /** `Flow<E, T, C>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
  *  par sa feuille `effet`, sa `Condition`, le coût d'Avantage de son `choix` et le Test de ses nœuds `test` :
  *  la sortie de chacun de ces schémas est le paramètre de type du Flow produit. */
-export function arbreDeFlow<E, T, C>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<C>, test: z.ZodType<T>): z.ZodType<Flow<E, T, C>> {
+export function arbreDeFlow<E, T, C>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<C>, test: (typeof flowTestSchema | typeof testDeSceneSchema) & z.ZodType<T>): z.ZodType<Flow<E, T, C>> {
   const flow: z.ZodType<Flow<E, T, C>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
       variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('sequence'), etapes: z.array(flow) }), { kind: { label: "type"  }, etapes: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
