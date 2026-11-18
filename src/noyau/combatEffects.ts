@@ -2337,7 +2337,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && distanceDeContact(env.get().scene, leader, c) <= 1 : undefined;
       const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;
       if (!best) return;
-      const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), groupe: env.get().party });
+      const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), sujet: best.actor, groupe: env.get().party });
       if (!joue) return;
       // Cible montée par le MONTEUR CANONIQUE : la valeur SOUTENUE de `partyAssisted` se déclare avec
       // son Soutien, l'écrêtage est celui de `rollTest` (`clampTarget`), plus une borne recopiée ici.

@@ -488,7 +488,7 @@ export interface FlowTest extends Omit<z.output<typeof flowTestSchema>, 'stake'>
 }
 
 /** Les champs de la DÉCISION d'un `FlowTest`, lus par `resoudreFlowTest` (`engine/decisionDuTest.ts`) seul. */
-export const CHAMPS_DE_DECISION = ['gate', 'difficultyBy', 'easierIf'] satisfies readonly (keyof FlowTest)[];
+export const CHAMPS_DE_DECISION = ['gate', 'onlyGroups', 'exceptGroups', 'difficultyBy', 'easierIf'] satisfies readonly (keyof FlowTest)[];
 /** Un champ de `CHAMPS_DE_DECISION`. */
 export type ChampDeDecision = (typeof CHAMPS_DE_DECISION)[number];
 

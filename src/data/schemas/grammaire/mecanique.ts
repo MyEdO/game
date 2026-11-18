@@ -1237,7 +1237,9 @@ export const decisionDuTestSchema = nommerChamps(z.strictObject({
   gate: conditionSchema.optional(),
   /** LDB 16 l.54 */
   difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
-}), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" } });
+  onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+  exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+}), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} } });
 
 /** Le Test qui PEUT porter une décision, tel que le DÉCLARENT `jetSchema` et `decisionDuTestSchema` : la cible de
  *  `src/decision-du-test-guard.test.ts`. */
@@ -1279,9 +1281,6 @@ const champsDuTestAvantLaDecision = {
 
 /** Les champs d'un Test de donnée qui suivent sa décision. */
 const champsDuTestApresLaDecision = {
-  argDifficulty: z.boolean().optional(),
-  onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
-  exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
   /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT authoré : absent = défaut de la VOIE qui ouvre le Test (scène/
    *  dialogue : soutenable ; effet déclenché / consommable : non soutenable) ; `true` = jamais
    *  soutenable ; `false` = soutenable malgré la voie (Test de soin d'un nécessaire). */
@@ -1292,7 +1291,7 @@ const champsDuTestApresLaDecision = {
 };
 
 const metaDuTestAvantLaDecision: MetaDesChamps<typeof champsDuTestAvantLaDecision> = { ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" } };
-const metaDuTestApresLaDecision: MetaDesChamps<typeof champsDuTestApresLaDecision> = { argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } };
+const metaDuTestApresLaDecision: MetaDesChamps<typeof champsDuTestApresLaDecision> = { noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } };
 
 /** UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
  *  calculer : `testValue` rend 0 et le jet devient un auto-échec SILENCIEUX, sur une cible qui n'est
@@ -1321,16 +1320,21 @@ function nommerCeQueTesteLeJet(v: { stake?: unknown; skill?: unknown; characteri
 }
 
 /** Le Test de DONNÉE, la forme UNIQUE du jet en donnée, avec l'ENJEU (#1117) qu'un document peut lui écrire et
- *  la `decision` qu'il porte : celle de `decisionDuTestSchema`, ou aucune (`testFixeSchema`). */
-function testDeDonnee<E extends z.ZodType, D extends z.core.$ZodShape>(enjeu: E, decision: D, metaDeLaDecision: MetaDesChamps<D>) {
+ *  ce que le Test NON FIXE `ajoute` : sa décision (`decisionDuTestSchema`), ou rien (`testFixeSchema`). */
+function testDeDonnee<E extends z.ZodType, A extends z.core.$ZodShape>(enjeu: E, ajoute: A, metaDeLAjout: MetaDesChamps<A>) {
   return marquerProduit(nommerChamps(
-    z.strictObject({ stake: enjeu.optional(), ...champsDuTestAvantLaDecision, ...decision, ...champsDuTestApresLaDecision }).superRefine(nommerCeQueTesteLeJet),
-    { stake: { label: "enjeu" }, ...metaDuTestAvantLaDecision, ...metaDeLaDecision, ...metaDuTestApresLaDecision },
+    z.strictObject({ stake: enjeu.optional(), ...champsDuTestAvantLaDecision, ...ajoute, ...champsDuTestApresLaDecision }).superRefine(nommerCeQueTesteLeJet),
+    { stake: { label: "enjeu" }, ...metaDuTestAvantLaDecision, ...metaDeLAjout, ...metaDuTestApresLaDecision },
   ), 'testDeDonnee', 'test');
 }
 
-/** Le Test de flux : il porte sa décision (`decisionDuTestSchema`), que `resoudreFlowTest` lit seule. */
-export const flowTestSchema = testDeDonnee(stakeRefSchema, decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
+/** Le Test de flux : il porte sa décision (`decisionDuTestSchema`), que `resoudreFlowTest` lit seule, et le
+ *  marqueur `argDifficulty` (LDB 85 l.423-425) que `withArg` (`noyau/triggeredEffects.ts`) remplace AVANT elle. */
+export const flowTestSchema = testDeDonnee(
+  stakeRefSchema,
+  { ...decisionDuTestSchema.shape, argDifficulty: z.boolean().optional() },
+  { ...metaDesChamps(decisionDuTestSchema, { exigees: true }), argDifficulty: { label: "difficulté de l’argument" } },
+);
 
 /** Le Test FIXE : sans aucun champ de décision, sa Difficulté est celle qu'il déclare. La forme du Test d'un
  *  porteur qui la fixe (`porteurDeTestFixe`, `noeudTestFixe`). */
