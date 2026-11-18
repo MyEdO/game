@@ -37,7 +37,17 @@ import type {
 } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
-import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type CoverClass, type EffectSource, type Main } from '../engine/types';
+import {
+  Combatant,
+  HitLocation,
+  Weapon,
+  Difficulty,
+  type ShipPoste,
+  type CoverClass,
+  type EffectSource,
+  type Main,
+  type DiseaseExposure,
+} from '../engine/types';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evDEtat, evLines, journaliser, type CombatEvent, type CombatEventKind } from './combatLog';
@@ -288,7 +298,7 @@ import {
   SPEC_SOURCES,
 } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
-import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
+import { endShanty, membreDuBord, metaDuPoste, monterLesVagues, posteDeLEtape, resolveShipUnits, withCrewActed, type PosteDuBord } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
@@ -370,7 +380,7 @@ function critRollTwiceFor(c: Combatant | undefined | null): boolean {
 import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironmentBonus } from '../engine/domainAttributes';
 import { decayZones, discTiles, wallTiles, clampZoneTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
-import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
+import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs, type PorteurDeMaladies } from '../engine/disease';
 import {
   resolveCritique,
   jeuDeCritique,
@@ -504,7 +514,7 @@ import {
   psychBranchOps,
   psychBranchFlow,
   cibleLabel,
-  PsychType,
+  PSY,
   type PsychAffliction,
   psychTest,
   sousPeur,
@@ -571,6 +581,7 @@ import {
   nePeutPasDifferer,
   jouerFlowEntier,
   jouerLesClotures,
+  rendreALEquipage,
   OPS_DIFFEREES,
   type Applique,
 } from './combatEffects';
@@ -4276,32 +4287,41 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   return applyAttackResult(get, set, attacker, r.victim ?? target, r.weapon, r.res, { suite });
 }
 
-/** OUVRE à la porte le dé `nombre` de l'op `attaquesSubies` sur le héros `cible` (patron `ouvrirChute`) : l'op voyage
- *  dans le `meta` de l'étape, la cible est son `actorId` ; l'applier `nombreDAttaquesSubies` ouvre la série au dé tombé.
+/** La cible de la série d'attaques subies : un héros du groupe, ou le membre de l'équipage tiré à son `poste`. */
+export type CibleDeLaSerie = { heros: Combatant } | { poste: PosteDuBord };
+
+/** OUVRE à la porte le dé `nombre` de l'op `attaquesSubies` sur la `cible` (patron `ouvrirChute`) : l'op voyage dans le
+ *  `meta` de l'étape ; le héros est son `actorId`, le poste du membre de l'équipage est porté par le monde
+ *  (`worldOwner`) et voyage dans le `meta`. L'applier `nombreDAttaquesSubies` ouvre la série au dé tombé.
  *  MDG 15 l.163-164, l.177-178 */
-export function ouvrirLeNombreDAttaquesSubies(set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>): void {
+export function ouvrirLeNombreDAttaquesSubies(set: SetFn, op: Extract<GameOp, { op: 'attaquesSubies' }>, cible: CibleDeLaSerie): void {
   pushDie(set, {
-    id: `nombreDAttaquesSubies-${cible.id}`,
+    id: `nombreDAttaquesSubies-${'heros' in cible ? cible.heros.id : 'equipage'}`,
     kind: 'nombreDAttaquesSubies',
     label: tr('step.nombreDAttaquesSubies'),
     icon: 'action/attaquer',
     spec: op.nombre.dice,
-    actorId: cible.id,
-    meta: { differeLaSuite: true, attaquesSubies: [op] },
+    ...('heros' in cible ? { actorId: cible.heros.id } : { worldOwner: true }),
+    meta: { differeLaSuite: true, attaquesSubies: [op], ...('poste' in cible ? metaDuPoste(cible.poste) : {}) },
   }, revealPurpose('sequence', false));
 }
 
-/** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur le héros `cible`, hors bataille : l'assaillant naît de son statbloc
- *  (`spawnEnemy`, sans case), le héros entre dans la rencontre (`entreeEnRencontre`), `restantes` est le dé tombé
+/** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur la `cible`, hors bataille : l'assaillant naît de son statbloc
+ *  (`spawnEnemy`, sans case) ; un héros entre dans la rencontre (`entreeEnRencontre`) et le groupe l'héberge, un membre
+ *  de l'équipage naît au profil de son rôle (`membreDuBord`) et la série l'héberge. `restantes` est le dé tombé
  *  à la porte, `apresSuite` la suite que ce dé faisait attendre (#1508), gardée par la série jusqu'à sa fermeture ;
  *  puis la première attaque part par `doAttack`, sa suite déclarée `subie` (`poursuivreLaSerie`).
- *  MDG 15 l.163-164, l.177-178 */
-export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
+ *  MDG 15 l.161-164, l.176-178 */
+export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: CibleDeLaSerie, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
   const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
-  const heros = entreeEnRencontre(cible);
-  const serieSubie = { assaillant, cibleId: cible.id, avant: cible, restantes, ...(apresSuite ? { apresSuite } : {}) };
-  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === cible.id ? heros : h)), serieSubie }));
-  return doAttack(get, set, assaillant, heros, { mode: 'subie' });
+  const enJeu = 'poste' in cible ? membreDuBord(cible.poste, get().forgerUnId('membre-du-bord')) : entreeEnRencontre(cible.heros);
+  const hote = 'poste' in cible ? { membre: { combattant: enJeu, poste: cible.poste } } : { avant: cible.heros };
+  set((s: Jeu) => ({
+    ...('avant' in hote ? { party: s.party.map((h) => (h.id === enJeu.id ? enJeu : h)) } : {}),
+    serieSubie: { assaillant, cibleId: enJeu.id, restantes, ...(apresSuite ? { apresSuite } : {}), ...hote },
+  }));
+  if ('membre' in hote) get().ecrireAuJournal(tr('eff.membreDuBordAttaque', { assaillant: assaillant.label, role: enJeu.label }));
+  return doAttack(get, set, assaillant, enJeu, { mode: 'subie' });
 }
 
 /** Le temps `suite` d'un coup de la série d'attaques subies (`enchainement: 'subie'`). `restantes` compte les attaques
@@ -4316,7 +4336,7 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
   if (get().pendingFateSave) return OPS_DIFFEREES;
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   const restantes = serie.restantes - 1;
-  const cible = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
   if (restantes <= 0 || isOutOfAction(cible)) {
     fermerLaSerieSubie(get, set);
     return undefined;
@@ -4332,21 +4352,24 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
   return get().serieSubie ? poursuivreLaSerie(get, set) : undefined;
 }
 
-/** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants, le héros et
- *  l'assaillant (`ouvrirLaFinDeRencontre`) — ses Tests, amputation différée comprise, en étapes de la séquence, que le
- *  héros jette relu par son id —, puis le héros rendu au groupe par la couture de retour
- *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite et les
- *  Tests ouverts), PUIS sa suite jouée (`jouerLesClotures`), qui n'attend pas les Tests de fin de rencontre. Un Test ou
- *  un choix poussé par le dernier coup est déjà résolu : il portait l'après-coup qui ferme la série
- *  (`applyAttackResult`, #4011). Dans cet ordre : la décision
- *  lit les marqueurs de rencontre que la sortie efface, la suite s'applique au héros rendu, que la sortie n'écrase
- *  plus, et hors de toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 */
+/** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants
+ *  (`ouvrirLaFinDeRencontre`) — ses Tests, amputation différée comprise, en étapes de la séquence, que le héros jette
+ *  relu par son id —, puis la cible rendue à son hôte et la série vidée, PUIS sa suite jouée (`jouerLesClotures`), qui
+ *  n'attend pas les Tests de fin de rencontre. Hôte groupe : la décision porte sur le héros et l'assaillant, le héros
+ *  revient au groupe par la couture de retour (`sortieDeRencontre`), la défaite du groupe constatée
+ *  (`checkPartyWiped`, qui purge la suite et les Tests ouverts). Hôte série : la décision porte sur l'assaillant seul, le
+ *  membre revient à l'équipage (`rendreALEquipage`). Un Test ou un choix poussé par le dernier coup est déjà résolu : il
+ *  portait l'après-coup qui ferme la série (`applyAttackResult`, #4011). Dans cet ordre : la décision lit les marqueurs
+ *  de rencontre que la sortie efface, la suite s'applique à la cible rendue, que la sortie n'écrase plus, et hors de
+ *  toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 ; MDG 15 l.161-164 */
 export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
-  const heros = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
-  ouvrirLaFinDeRencontre(get, set, [heros, serie.assaillant], {});
-  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
-  if (checkPartyWiped(get, set)) return;
+  const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  const { avant, membre } = serie;
+  ouvrirLaFinDeRencontre(get, set, avant ? [cible, serie.assaillant] : [serie.assaillant], {});
+  set((s: Jeu) => ({ ...(avant ? { party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(avant, h) : h)) } : {}), serieSubie: null }));
+  if (membre) rendreALEquipage(get, set, cible, membre.poste);
+  else if (checkPartyWiped(get, set)) return;
   jouerLesClotures(get, set, serie.apresSuite ?? []);
 }
 
@@ -7292,19 +7315,19 @@ function decideCombatEndHeroTests(
   // maladie (`def.contractDifficulty`), décalée des crans de l'exposition (Contagieux, EDO App.2
   // l.228-230 : « 2 niveaux plus difficile » → shift −2 ; « incubation “Instantanée” » → `instant`).
   // 'off' : aucune contraction.
-  diseases.push(...contagionsDues(c));
+  if (!c.dead) diseases.push(...contagionsDues(c, c.diseaseExposure ?? []));
   c.diseaseExposure = undefined;
   return { diseases, corruption: c.dead ? null : worstCorruption };
 }
 
-/** Les Tests de Contraction que doivent les EXPOSITIONS de `c` (`diseaseExposure`, op `exposeDisease`) : la
+/** Les Tests de Contraction que doivent les `expositions` du `porteur` (op `exposeDisease`) : la
  *  difficulté de la maladie (`def.contractDifficulty`), décalée des crans de l'exposition. PUR. LDB 20 l.25/51 ;
  *  EDO App.2 l.228-230 */
-function contagionsDues(c: Combatant): CombatEndDiseaseTest[] {
-  if (rule('maladie-mode') === 'off' || c.dead) return [];
-  return (c.diseaseExposure ?? []).flatMap((exp) => {
+export function contagionsDues(porteur: PorteurDeMaladies, expositions: readonly DiseaseExposure[]): CombatEndDiseaseTest[] {
+  if (rule('maladie-mode') === 'off') return [];
+  return expositions.flatMap((exp) => {
     const def = diseaseDefs()[exp.disease];
-    return def && contractionDue(c, def.id) ? [{
+    return def && contractionDue(porteur, def.id) ? [{
       entry: 'contagion' as const,
       disease: def.id,
       difficulty: easeDifficulty(def.contractDifficulty, exp.difficultyShift ?? 0),
@@ -7322,7 +7345,7 @@ export function ouvrirLesContagions(get: Get, set: SetFn, ids: readonly string[]
   if (!exposes.length) return;
   const bandes = new Map<string, { test: CombatEndDiseaseTest; porteurs: Combatant[] }>();
   for (const h of exposes) {
-    for (const d of contagionsDues(h)) {
+    for (const d of h.dead ? [] : contagionsDues(h, h.diseaseExposure ?? [])) {
       const cle = `${d.disease}|${d.difficulty}|${d.instant ? 'instant' : ''}`;
       const bande = bandes.get(cle) ?? { test: d, porteurs: [] };
       bande.porteurs.push(h);
@@ -8545,7 +8568,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   // de la CLÉ de bande (deux Indices = deux règles en jeu, donc deux fenêtres).
   const testFor = (indice: number): FlowTest & { difficulty: Difficulty; label: string } => ({
     ...testDeRegle('calme-d-approche', 'source-se-rapproche'),
-    stake: combatStakeRef('combat-psychologie', { entryId: 'peur', values: { indice } }),
+    stake: combatStakeRef('combat-psychologie', { entryId: PSY.peur, values: { indice } }),
   });
   const branches = {
     onSuccess: EMPTY_FLOW, // réussite : garde son sang-froid, rien à faire
@@ -8658,10 +8681,10 @@ export function appliquerLaRecharge(get: Get, set: SetFn, pr: PendingReload, arm
 
 /** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue), allégé par Sans Peur
  *  (`sansPeurFace`) face à une source neuve. */
-type PsychDue = { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
+type PsychDue = { kind: string; sourceId: string; sourceName: PlayerText; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
 
 /** Une source de Peur ou de Terreur en vue, neuve pour le porteur (`sourceDejaAffrontee` faux). */
-type SourceNeuve = { source: SourceEnVue; id: string; label: PlayerText; kind: 'peur' | 'terreur'; indice: number };
+type SourceNeuve = { source: SourceEnVue; id: string; label: PlayerText; kind: string; indice: number };
 
 /** Plus grand Avantage des Engagés de `c`, que lit Belliqueux. LDB 85 l.51 ; LDB 13 l.169-171 */
 function avantageDesEngages(battle: BattleState, c: Combatant): number | undefined {
@@ -8720,7 +8743,7 @@ export function collectRoundStartPsych(get: Get, c: Combatant, round: number): P
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
+    ...l.neuves.filter((n) => n.kind === PSY.terreur || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
     ...retestsCibles(c, l.sources, round, 'roundStart'),
     ...targetedTriggers(c, l.sources).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: nomDeLaSource(l, tt.sourceId), indice: 0, prevDR: 0, cible: tt.cible, sansPeur: false })),
   ];
@@ -8733,9 +8756,9 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'peur').map((n) => dueDeSource(c, n)),
+    ...l.neuves.filter((n) => n.kind === PSY.peur).map((n) => dueDeSource(c, n)),
     ...(c.psychState ?? []).filter((p) => sousPeur(p) && p.lastTestRound !== round).map((p): PsychDue => ({
-      kind: 'peur', sourceId: p.sourceId!, sourceName: nomDeLaSource(l, p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
+      kind: PSY.peur, sourceId: p.sourceId!, sourceName: nomDeLaSource(l, p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
     })),
     ...retestsCibles(c, l.sources, round, 'roundEnd'),
   ];
@@ -8744,9 +8767,9 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
 /** Pose sans Test les Peurs neuves de `c` (Sans Peur excepté, testé par `collectRoundStartPsych`) et rend
  *  les lignes de journal. LDB 21 l.25 ; #3045 */
 function enregistrerLesPeursNeuves(get: Get, c: Combatant): string[] {
-  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === 'peur' && !sansPeurVs(c, n.source));
+  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === PSY.peur && !sansPeurVs(c, n.source));
   if (!neuves.length) return [];
-  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: 'peur', sourceId: n.id, indice: n.indice, calmeDR: 0 }))];
+  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: PSY.peur, sourceId: n.id, indice: n.indice, calmeDR: 0 }))];
   return [...neuves.map((n) => tr('turn.fear', { name: c.label, foe: n.label })), ...supersededLines(c, c.label)];
 }
 
@@ -8801,7 +8824,7 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
       ...(extended ? { extendedDrTarget: t.indice, extendedDrDone: t.prevDR } : {}),
       ...(sansPeur ? { meta: { sansPeur: true } } : {}),
     },
-    icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur'),
+    icon: cl?.icon ?? (t.kind === PSY.terreur ? 'creature/hurlement' : 'drapeau/peur'),
     label: cl ? libelleDePsy(t.kind, t.cible, nomDIndividu(get())) : stepPsych(t.kind, t.indice),
   };
 }
@@ -9500,14 +9523,16 @@ export const TABLES = {
      *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`jetValider('cascade')`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
-    /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape
-     *  (`ouvrirLaSerieSubie`) et garde la suite de l'étape (`suiteGardee`). Héros introuvable = conséquence PERDUE :
-     *  elle se DIT (patron `chuteDe`). */
+    /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape ou
+     *  le membre de l'équipage de son `meta` (`ouvrirLaSerieSubie`) et garde la suite de l'étape (`suiteGardee`). Héros
+     *  introuvable = conséquence PERDUE : elle se DIT (patron `chuteDe`). */
     nombreDAttaquesSubies: (get, set, step, heros) => {
       const op = step.meta?.attaquesSubies?.[0];
       if (!op || !step.de?.result) return;
-      if (!heros) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      jouerFlowEntier(ouvrirLaSerieSubie(get, set, heros, op, step.de.result.total, step.meta?.apresSuite));
+      const poste = posteDeLEtape(step.meta);
+      const cible: CibleDeLaSerie | undefined = poste ? { poste } : heros && { heros };
+      if (!cible) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      jouerFlowEntier(ouvrirLaSerieSubie(get, set, cible, op, step.de.result.total, step.meta?.apresSuite));
       return { consequences: freeCons([]), suiteGardee: true };
     },
     deviation: (get, set, step) => {

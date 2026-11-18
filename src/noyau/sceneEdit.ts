@@ -7,6 +7,7 @@
  * vit hors du store. Les lectures (outil, sélection, picking, emprise du pinceau) vivent dans
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
+import type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 import {
   ActionAuthoree,
   DEFAULT_TERRAIN,
@@ -39,7 +40,6 @@ import {
   ArchitecturePart,
   type ArchitectureStorey,
   type FacadeFeature,
-  RectDeCases,
   FacadeSection,
   BuildingMass,
   RoofDefaults,

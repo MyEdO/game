@@ -183,7 +183,7 @@ func _creer_un_heros() -> String:
 			break
 		for id: String in ["tirage", "defaut", "bourse", "nom", "physique"]:
 			var tirage: Variant = _element(zones["creation.corps"], id)
-			if tirage != null and tirage.type == "bouton" and tirage.refus == null:
+			if tirage != null and tirage.type == Noyau.TypeDElement.BOUTON and tirage.refus == null:
 				zones = _creation(zones, tirage)
 		for e: Dictionary in zones["creation.corps"]:
 			if str(e.id).begins_with("augmentation/"):
@@ -231,7 +231,7 @@ func _a_trancher(corps: Array) -> Dictionary:
 	for e: Dictionary in corps:
 		if e.type in ["choix", "liste"] and not e.valeurs.any(func(b: Dictionary) -> bool: return b.presse):
 			return e.valeurs.filter(func(b: Dictionary) -> bool: return b.refus == null)[0]
-	return corps.filter(func(e: Dictionary) -> bool: return e.type == "bouton" and not e.presse and e.refus == null)[0]
+	return corps.filter(func(e: Dictionary) -> bool: return e.type == Noyau.TypeDElement.BOUTON and not e.presse and e.refus == null)[0]
 
 
 ## « Jouer » pressé à l'accueil, la carte du héros `nom` au roster : « Recruter » de sa carte le fait entrer au groupe,

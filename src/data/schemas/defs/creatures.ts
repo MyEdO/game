@@ -6,7 +6,15 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
+import {
+  availabilitySchema,
+  baremeDEmbaucheSchema,
+  harvestDangerSchema,
+  harvestRaritySchema,
+  entityAppearanceSchema,
+  moneySchema,
+  profilChiffreSchema,
+} from '../grammaire/valeurs';
 import { optionalSwapSchema, talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
@@ -76,6 +84,8 @@ const champs = {
       price: moneySchema,
       availability: availabilitySchema.optional(),
     }), { price: { label: "prix" }, availability: { label: "disponibilité" } }).optional(),
+    /** Facette EMBAUCHE (mercenaires, MDG 14 l.293-302). */
+    embauche: baremeDEmbaucheSchema.optional(),
 };
 
 const doc = document(
@@ -115,6 +125,7 @@ const doc = document(
     },
     corruption: { label: 'Points de Corruption', hint: 'Points de Corruption imprimés par le profil (LDB 19)' },
     purchase: { label: 'Facette Achat', hint: 'Prix et Disponibilité à l’achat (montures)' },
+    embauche: { label: 'Facette Embauche', hint: 'Coût quotidien et hebdomadaire de ce profil embauché comme mercenaire' },
   },
   {
     codex: { keys: ['creatures'] },

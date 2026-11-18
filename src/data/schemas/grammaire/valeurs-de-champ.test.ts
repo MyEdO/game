@@ -270,6 +270,12 @@ const NOMMES = [
   Object.keys(itemCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
   'personne|bete|vehicule|immeuble|titre|intangible',
+  // `topUpAdvantage.amount` (`grammaire/mecanique.ts`, `ouReserve`) : le gabarit d'instance `INDICE_TEMPLATE`
+  // (`engine/flowCore`), réservé à côté de la formule et nommé « valeur de l'indice ».
+  '$indice',
+  // `cleDeTableDuDomaineSchema` (`defs/domains.ts`) : la clé de rôle d'une table d'un Domaine (`tables`), visée par
+  // `domainTable` d'une rangée de miscast, VDM 02 l.238.
+  'arcaneMark',
 ].sort();
 
 /**
@@ -293,15 +299,12 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'armyMight',
   'arriere|cote|contraire',
   'auberge|maison|camp',
-  'aucune|legeres|abondantes|tres-abondantes',
   'aucun|retard|quart-de-tour|demi-tour',
   'bete|serviteur|vehicule',
   'bete|vehicule-terrestre',
   'blessures|hemorragie|traumatisme|chirurgie',
   'bout-portant|courte|moyenne|longue|extreme',
   'brasPrincipal|random',
-  'calme-plat|legere-brise|brise-fraiche|vent-modere|vent-violent|violente-tempete',
-  'caniculaire|chaude|mediane|froide|glaciale',
   'cargaison|greement|coque|avirons|equipements|gouvernail|superstructure',
   'chaleur|froid',
   'classe|relais|compagnie|peage|patrouille',
@@ -314,7 +317,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'declare|tirage',
   'deduite-du-set|geste-d-etat|grille|gouttiere-arche|selecteur-de-sets|coin-de-tour|bandeau-de-phase|interlude|pastille-etat|pastille-entite|frise|geste-secondaire',
   'defense|attaque|lesDeux',
-  'degage|brume|brouillard|puree-de-pois',
   'dominant|nord|sud|ouest|est',
   'douleur|mobilite|structurel|sensoriel|maladie|faim|magique|etat|ivresse|intrinseque',
   'dr|dr-ecrete|toute-la-reserve|points-de-la-ligne|points-de-la-ligne-suivante|chiffres-du-de|gain-au-choix|aucun-gain|termine-le-passage',

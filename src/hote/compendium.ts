@@ -25,6 +25,7 @@ import {
   type CodexRow,
   type GesteDuCompendium,
   type RefusDuCompendium,
+  type Segment,
   type SessionDuCompendium,
 } from '../noyau/index';
 import { t } from '../i18n';
@@ -58,8 +59,9 @@ export interface ZonesDuCompendium {
    */
   'compendium.fiche': Entite[];
   /**
-   * l'atelier : « Modifier » et « Nouvelle entrée » hors de lui ; ouvert, son formulaire tiré du schéma, son
-   * identifiant, le dé de sa table, « Abandonner », « Enregistrer », « Supprimer »
+   * l'atelier : « Modifier » et « Nouvelle entrée » hors de lui ; ouvert, son formulaire tiré du schéma, l'identifiant
+   * de chaque élément d'une liste à clé, `{ type: 'identifier', args: [chemin, id] }`, son identifiant,
+   * `{ type: 'identifier', args: [id] }`, le dé de sa table, « Abandonner », « Enregistrer », « Supprimer »
    */
   'compendium.atelier': (Ligne | Bouton | Choix | Formulaire)[];
   /** le refus du dernier geste, en clair, ou rien */
@@ -144,10 +146,12 @@ function ficheDe(s: SessionDuCompendium, categorie: string, item: CodexItem, ins
   return [tete, ...sections, ...prose, ...renvois];
 }
 
-/** L'écrivain du formulaire de l'atelier, porteur la catégorie ouverte : ses gestes se jouent en gestes du Compendium. */
+/** L'écrivain du formulaire de l'atelier, porteur la catégorie ouverte : ses gestes se jouent en gestes du Compendium ;
+ *  l'identité d'un élément de liste à clé, au formulaire `identifier/<chemin>`, son chemin fixé en tête. */
 const ecrivainDe = (categorie: string): EcrivainDuFormulaire<string> => ({
   porteur: categorie,
   emballe: ({ porteur: _, ...g }) => jeu(g),
+  identifie: (chemin, id) => formulaireDeTexte(`identifier/${chemin.join('/')}`, t('ecran.compendium.identifiant'), 'identifier', 'id', id, null, [{ type: 'fixe', id: 'chemin', nom: 'chemin', optionnel: false, valeur: chemin }]),
 });
 
 /** Le formulaire du dé de la table de l'atelier (`enTete`), valant `de` : son nombre de dés et ses faces, entiers de 1
@@ -157,16 +161,16 @@ const formulaireDuDe = (de: NonNullable<ReturnType<typeof deDeLAtelier>>): Formu
   champs: (['n', 'sides'] as const).map((nom) => ({ type: 'saisieNombre', id: nom, ton: 'neutre', nom, optionnel: false, libelle: t(`ecran.compendium.de.${nom}`), valeur: de[nom], min: 1, max: SANS_BORNE.max, pas: 1 })),
 });
 
-/** Le formulaire de verbe `verbe`, d'une saisie de texte `nom` valant `valeur`. */
-const formulaireDeTexte = (id: string, libelle: string, verbe: string, nom: string, valeur: string, refus: string | null = null): Formulaire => ({
+/** Le formulaire de verbe `verbe`, ses champs fixés `fixes` en tête, puis une saisie de texte `nom` valant `valeur`. */
+const formulaireDeTexte = (id: string, libelle: string, verbe: string, nom: string, valeur: string, refus: string | null = null, fixes: Formulaire['champs'] = []): Formulaire => ({
   type: 'formulaire', id, libelle, verbe, focus: false, refus,
-  champs: [{ type: 'saisieTexte', id: nom, ton: 'neutre', nom, optionnel: true, libelle, valeur }],
+  champs: [...fixes, { type: 'saisieTexte', id: nom, ton: 'neutre', nom, optionnel: true, libelle, valeur }],
 });
 
-/** Les éléments de l'atelier de `s` : fermé, « Modifier » et « Nouvelle entrée » ; ouvert, son formulaire tiré du schéma
- *  (`formulaireDeLAtelier`, `elementsDuFormulaireTire`), le formulaire de son identifiant, celui du dé de sa table s'il en
- *  porte un, et ses trois boutons. */
-function atelierDe(s: SessionDuCompendium): (Ligne | Bouton | Choix | Formulaire)[] {
+/** Les éléments de l'atelier de `s`, sa zone `compendium.atelier` : fermé, « Modifier » et « Nouvelle entrée » ;
+ *  ouvert, son formulaire tiré du schéma (`formulaireDeLAtelier`, `elementsDuFormulaireTire`), le formulaire de son
+ *  identifiant, celui du dé de sa table s'il en porte un, et ses trois boutons. */
+function atelierDuCompendium(s: SessionDuCompendium): (Ligne | Bouton | Choix | Formulaire)[] {
   const a = s.atelier;
   if (!a) {
     if (s.categorie === null || !isEditableCategory(s.categorie)) return [];
@@ -205,7 +209,7 @@ export function zonesDuCompendium(s: SessionDuCompendium): ZonesDuCompendium {
     ],
     'compendium.liste': s.categorie === null ? [] : [choix('entrees', categoryByKey(s.categorie)!.label, entreesListees(s).map((i) => bouton(i.id, i.label, jeu({ geste: 'montrer', id: i.id }), s.montree?.id === i.id)), 'liste')],
     'compendium.fiche': montree && s.categorie !== null ? ficheDe(s, s.categorie, montree, s.montree?.instance) : [],
-    'compendium.atelier': atelierDe(s),
+    'compendium.atelier': atelierDuCompendium(s),
     'compendium.etat': refus === null ? [] : [ligne('refus', refusDuCompendiumDit(refus), 'alerte')],
   };
 }
@@ -214,9 +218,10 @@ export function zonesDuCompendium(s: SessionDuCompendium): ZonesDuCompendium {
 const VERBES = ['recherche', 'identifier', 'enTete', 'valeur'] as const;
 
 /** Le geste du Compendium que joue le formulaire `jeu` (`{ type, args }`) des zones `z` : la recherche, son terme ;
- *  l'identifiant de l'entrée ouverte ; le dé de sa table, son nombre de dés et ses faces ; une valeur du formulaire tiré du schéma de l'atelier
- *  (`valeurDuFormulaire`), son porteur la catégorie ouverte ; `undefined` si les zones ne portent pas ce formulaire ou
- *  si `args` n'est pas ce qu'il saisit. */
+ *  l'identifiant de l'entrée ouverte, ou d'un élément de liste à clé, son chemin fixé ; le dé de sa table, son nombre
+ *  de dés et ses faces ; une valeur du formulaire tiré du schéma de l'atelier (`valeurDuFormulaire`), son porteur la
+ *  catégorie ouverte ; `undefined` si les zones ne portent pas ce formulaire, ses champs fixés en tête de `args`, ou si
+ *  le reste n'est pas ce qu'il saisit. */
 export function gesteDuCompendium(z: ZonesDuCompendium, s: SessionDuCompendium, jeuJoue: unknown): GesteDuCompendium | undefined {
   if (!estObjet(jeuJoue) || !VERBES.includes(jeuJoue.type as (typeof VERBES)[number]) || !Array.isArray(jeuJoue.args)) return undefined;
   if (jeuJoue.type === 'valeur') {
@@ -224,16 +229,20 @@ export function gesteDuCompendium(z: ZonesDuCompendium, s: SessionDuCompendium, 
     if (!lu || lu.porteur !== s.atelier?.categorie) return undefined;
     return { geste: 'valeur', chemin: lu.chemin, ...('valeur' in lu ? { valeur: lu.valeur } : {}) };
   }
-  const offert = [...z['compendium.recherche'], ...z['compendium.atelier']].some((e) => e.type === 'formulaire' && e.verbe === jeuJoue.type);
-  if (!offert) return undefined;
+  const args = jeuJoue.args as unknown[];
   if (jeuJoue.type === 'enTete') {
-    const [n, sides, ...reste] = jeuJoue.args as unknown[];
-    return !reste.length && typeof n === 'number' && typeof sides === 'number' ? { geste: 'enTete', valeur: { n, sides } } : undefined;
+    const offert = z['compendium.atelier'].some((e) => e.type === 'formulaire' && e.verbe === 'enTete');
+    const [n, sides, ...reste] = args;
+    return offert && !reste.length && typeof n === 'number' && typeof sides === 'number' ? { geste: 'enTete', valeur: { n, sides } } : undefined;
   }
-  const [texte, ...reste] = jeuJoue.args as unknown[];
-  if (reste.length || (texte !== undefined && typeof texte !== 'string')) return undefined;
+  const fixes = (f: Formulaire) => f.champs.flatMap((c) => (c.type === 'fixe' ? [c.valeur] : []));
+  const offert = [...z['compendium.recherche'], ...z['compendium.atelier']].find((e): e is Formulaire =>
+    e.type === 'formulaire' && e.verbe === jeuJoue.type && args.length - fixes(e).length <= 1 && jsonCanonique(fixes(e)) === jsonCanonique(args.slice(0, fixes(e).length)));
+  const texte = offert ? args[fixes(offert).length] : undefined;
+  if (!offert || (texte !== undefined && typeof texte !== 'string')) return undefined;
   const valeur = (texte as string | undefined) ?? '';
-  return jeuJoue.type === 'recherche' ? { geste: 'recherche', terme: valeur } : { geste: 'identifier', id: valeur };
+  const [chemin] = fixes(offert) as Segment[][];
+  return jeuJoue.type === 'recherche' ? { geste: 'recherche', terme: valeur } : { geste: 'identifier', id: valeur, ...(chemin === undefined ? {} : { chemin }) };
 }
 
 /** Le bouton des zones `z` qui joue `{ compendium: geste }`, celui qui l'offre sans refus d'abord ; `undefined` sans lui. */

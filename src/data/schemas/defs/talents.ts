@@ -1,4 +1,4 @@
-import { nommerChamps } from '../grammaire/meta';
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /** LDB 05 l.484 */
 import { z } from 'zod';
 import { combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema, termeBonusDe, maxiSortsDuDomaine } from '../grammaire/valeurs';
@@ -65,7 +65,7 @@ const doc = document(
   'talents',
   famille,
   {
-    max: z.union([z.number(), termeBonusDe, maxiSortsDuDomaine]).nullable(),
+    max: z.union([nommerNoeud(z.number(), { label: 'nombre' }), termeBonusDe, maxiSortsDuDomaine]).nullable(),
     test: talentTestSchema.nullable(),
     specs: specsSchema.optional(),
     size: sizeCategorySchema.optional(),

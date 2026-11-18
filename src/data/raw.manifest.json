@@ -100,13 +100,6 @@
     "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Le refus de la Blessure Critique est joué, et seuls les effets du Coup Critique (`coupCritique`) s'exercent"
   },
   {
-    "id": "4e/deplacement#humeur-de-manann-et-evenements-en-mer-mdg",
-    "type": "raw.manifest",
-    "label": "Humeur de Manann et événements en mer (MDG)",
-    "ticket": "#1652",
-    "bloque": "Fièvre du rongeur : quand le tirage d'un membre d'équipage tombe sur un marin PNJ, l'exposition de l'équipage collectif est perdue, la feuille `rollTable` de l'infestation ne se résolvant que sur une fiche (MDG 15 l.161-164, l.176), #4448."
-  },
-  {
     "id": "4e/maladies#maladie-type",
     "type": "raw.manifest",
     "label": "Maladie (Type)",

@@ -194,7 +194,6 @@ export type AuMoinsUnPorteurDeFiche = {
 export const idDuCorps = (ent: Pick<SceneEntity, 'decor' | 'creature' | 'vehicule' | 'engin'>): string | undefined =>
   (ent.decor ?? ent.creature ?? ent.vehicule ?? ent.engin)?.id;
 
-export type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
 export type ArchitectureEdgeRef = z.infer<typeof architectureEdgeRefSchema>;
 export type ArchitecturePart = z.infer<typeof architecturePartSchema>;
 export type ArchitectureStorey = z.infer<typeof architectureStoreySchema>;
@@ -396,9 +395,17 @@ export interface Scene {
   groups?: string[];
 }
 
-/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : le type de sa vue
+/** Les champs de la scène que lisent ses audits d'auteur spatiaux — défauts de plan (`scenePlanDefects`) et pièces
+ *  inatteignables (`unreachableDescriptiveZones`) : marche, relief, murs, décors, drapeaux, zones d'effet et zone
+ *  jouable (la marche s'y borne, `isWalkable`). Les dépendances de leurs mémos en sont tirées (`champsDuPlan`). */
+export const CHAMPS_DU_PLAN = [
+  'dimensions', 'metresPerTile', 'reliefDefaults', 'layers', 'walls', 'entities', 'flags', 'effectZones', 'zoneJouable',
+] as const satisfies readonly (keyof Scene)[];
+
+/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : ceux du plan, et
+ *  l'architecture et la toiture d'où se posent les ornements du bâti (`ornementsDuBati`). Le type de sa vue
  *  (`SceneDuVolume`), sa projection et les dépendances de son mémo en sont tirés. */
-export const CHAMPS_DU_VOLUME = ['dimensions', 'metresPerTile', 'reliefDefaults', 'layers', 'walls', 'entities', 'flags'] as const;
+export const CHAMPS_DU_VOLUME = [...CHAMPS_DU_PLAN, 'architecture', 'roofDefaults'] as const;
 
 /** Les champs de la scène que lisent ses nappes de toit (`toitsDuMonde`) et ses couronnes (`couronnesDuMonde`,
  *  `src/noyau/monde/volume/volume.ts`) : le type de leur vue (`SceneDesToits`, `SceneDesCouronnes`) et les dépendances
@@ -414,12 +421,6 @@ export type SceneDesToits = Pick<Scene, (typeof CHAMPS_DES_TOITS)[number]>;
 
 /** La scène vue par ses couronnes (`CHAMPS_DES_COURONNES`). */
 export type SceneDesCouronnes = Pick<Scene, (typeof CHAMPS_DES_COURONNES)[number]>;
-
-/** Les champs de la scène que lisent ses audits d'auteur spatiaux — défauts de plan (`scenePlanDefects`) et pièces
- *  inatteignables (`unreachableDescriptiveZones`) : ceux du volume (marche, relief, murs, décors, drapeaux), les zones
- *  d'effet et la zone jouable (la marche s'y borne, `isWalkable`). Les dépendances de leurs mémos en sont tirées
- *  (`champsDuPlan`). */
-export const CHAMPS_DU_PLAN = [...CHAMPS_DU_VOLUME, 'effectZones', 'zoneJouable'] as const;
 
 /** Les valeurs des `CHAMPS_DU_PLAN` de `scene`, dans leur ordre : une écriture qui n'en touche aucun les rend identiques. */
 export const champsDuPlan = (scene: Scene): readonly unknown[] => CHAMPS_DU_PLAN.map((c) => scene[c]);

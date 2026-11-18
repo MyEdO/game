@@ -20,8 +20,8 @@ import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
-import { acteDeDeverrouillageSchema, chaosAlignSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
-import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
+import { acteDeDeverrouillageSchema, chaosAlignSchema, charKeySchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
+import { CHAR_KEYS, CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
 import {
   SUJETS_DE_VERROU,
   CHAMPS_EXCLUS_DE_CARRIED,
@@ -67,7 +67,6 @@ import { FORME_DE_CLE, contientLePeche, formulaForShape, newOp, paramsDeRegle, s
 
 const SIZES = Object.keys(SIZE_LABEL) as SizeCategory[];
 
-const CHARS = Object.keys(CHAR_LABELS) as CharKey[];
 
 // ---------------------------------------------------------------------------
 // Vocabulaire COMPLET — libellé + menu groupé par intention
@@ -305,8 +304,8 @@ export function FormulaField(props: FormulaFieldProps) {
         )}
         {(shape === 'bonus' || shape === 'char') && (
           <select value={charOfFormula(value)}
-            onChange={(e) => onChange(shape === 'bonus' ? { bonusOf: e.target.value as CharKey } : { charOf: e.target.value as CharKey })}>
-            {CHARS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
+            onChange={(e) => onChange(shape === 'bonus' ? { bonusOf: charKeySchema.parse(e.target.value) } : { charOf: charKeySchema.parse(e.target.value) })}>
+            {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
           </select>
         )}
         {shape === 'dice' && typeof value === 'object' && value != null && 'dice' in value && (
@@ -727,9 +726,9 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <>
             <label className="dr">Modif.<NumberField variant="nu" label="Modificateur de Test" value={o.amount ?? 0} onChange={(amount) => upd({ amount })} /></label>
             <label className="dr">Carac.
-              <select value={o.characteristic ?? ''} onChange={(e) => upd({ characteristic: (e.target.value || undefined) as CharKey | undefined })}>
+              <select value={o.characteristic ?? ''} onChange={(e) => upd({ characteristic: charKeySchema.safeParse(e.target.value).data })}>
                 <option value="">— tous les Tests —</option>
-                {CHARS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
+                {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
               </select>
             </label>
           </>
@@ -792,8 +791,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         )}
         {op.op === 'charMod' && (
           <>
-            <select value={o.characteristic} onChange={(e) => upd({ characteristic: e.target.value as CharKey })}>
-              {CHARS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
+            <select value={o.characteristic} onChange={(e) => upd({ characteristic: charKeySchema.parse(e.target.value) })}>
+              {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
             </select>
             <label className="dr">Modif.<NumberField variant="nu" label="Modificateur de caractéristique" value={o.mod} onChange={(mod) => upd({ mod })} /></label>
             {/* Plancher : champ RÉSERVÉ, offert là seulement où la famille du porteur l'admet (EDO 11 l.190). */}

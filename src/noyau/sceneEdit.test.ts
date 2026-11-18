@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 import {
   crenellatedAt,
   DEFAULT_RELIEF_DEFAULTS,
@@ -7,7 +8,6 @@ import {
   emptyScene,
   tileAt,
   type ArchitectureBody,
-  type RectDeCases,
   type BuildingMass,
   type Scene,
 } from './monde/scene';

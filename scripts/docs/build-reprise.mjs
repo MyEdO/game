@@ -483,7 +483,7 @@ Le partage de la suite (\`${script('test')}\`) est décidé par \`repartitionWor
 ${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. Les
 cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (\`capacite\`) : autant de workers que
 la mémoire en porte, à l'empreinte d'un worker de son régime (\`EMPREINTES_WORKER_MO\`, \`--regime\` de
-\`scripts/test/run.mjs\`), avec refus sous le minimum empirique de \`MINIMUM_WORKERS\` quand les cœurs le permettent ; une réserve
+\`scripts/test/run.mjs\`), avec refus sous le minimum empirique de \`MINIMUM_WORKERS\` quand les cœurs et les fichiers nommés (\`fichiersNommes\`) le permettent ; une réserve
 (\`PARENT_MO\`) déduite par processus Vitest. Les variables
 d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures (seule façon
 de jouer l'autre chemin sur une machine quelconque).

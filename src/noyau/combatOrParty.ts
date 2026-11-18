@@ -22,15 +22,14 @@ import type { Get, PatchDeFlux } from './flowTypes';
 import { currentTargetingMode, type OptionsDuClic } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
-import type { SeaWind } from '../engine/domainAttributes';
 import { inBattleId } from './monde/combatants';
 import { combatantAtTile } from './monde/combatGeometry';
 import { pointDeCase, type Pt } from './monde/path';
 import { champAttendSaFenetre } from './targetingHolder';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
- *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et l'assaillant de la série
- *  d'attaques subies (`serieSubie`). */
+ *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et la série d'attaques subies,
+ *  l'hôte de ses combattants (`combattantsDeLaSerie`). */
 export function touchActors(state: Jeu): PatchDeFlux {
   if (state.battle) return { battle: { ...state.battle, combatants: [...state.battle.combatants] } };
   return { party: [...state.party], ...(state.serieSubie ? { serieSubie: { ...state.serieSubie } } : {}) };
@@ -45,7 +44,7 @@ export function touchActors(state: Jeu): PatchDeFlux {
  * seule source de vent connue de l'état) ; `undefined` hors voyage maritime actif (silence RAW —
  * `domainSeaIncantationDR` neutralise déjà un vent inconnu).
  */
-export function seaMagicContext(state: Jeu): { atSea: boolean; wind: SeaWind | undefined } {
+export function seaMagicContext(state: Jeu): { atSea: boolean; wind: string | undefined } {
   const vessel = state.vessel;
   const boarding = !!vessel && !!state.battle?.combatants.some((c) => c.creatureId === vessel.vehicleId);
   const atSea = state.travelPlan?.mode === 'mer' || boarding;

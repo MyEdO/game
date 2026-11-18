@@ -16,6 +16,7 @@ import { applierDe } from './cascade';
 import { draineEtapes, draineEtLit } from './cascade.testkit';
 import { bandStep, resultLines } from './rollSeam';
 import { groupLabel, psychologyLabel } from '../data';
+import { ciblesDeTrauma, TRAITS_DE_TRAUMA } from '../engine/psychology';
 import { t } from '../i18n';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -352,24 +353,65 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
   });
 });
 
-describe('#62 — Trauma sur Ambition anéantie (Effet d’auteur `ambitionLost`)', () => {
-  beforeEach(() => { banc.setState({ battle: null, mode: 'exploration', journal: [] }); });
+describe('#4056 — Trauma sur Ambition anéantie (Effet d’auteur `ambitionLost`, ADE II 09 l.21)', () => {
+  beforeEach(() => { banc.setState({ battle: null, mode: 'exploration', journal: [], pendingCascade: null }); });
 
-  it('règle ON + Calme Accessible (+20) ÉCHOUE → Trauma posé sur le héros visé', () => {
-    setRule('psycho-acquisition-optionnelle', true);
-    const h = hero({ id: 'h1', characteristics: { ...CHARS, 'force-mentale': 10 } }); // Calme +20 → cible 30
-    banc.setState({ party: [h] });
-    seedBattleRng(1); // 1ᵉʳ jet > 30 → Calme échoue
+  /** L'Ambition de `h1` anéantie, son Test de Calme Accessible (+20) seedé par `graine` (Calme 10 + 20 = 30 :
+   *  la graine 1 échoue, la graine 7 réussit). */
+  const ambitionAneantie = (graine: number) => {
+    banc.setState({ party: [hero({ id: 'h1', characteristics: { ...CHARS, 'force-mentale': 10 } })] });
+    seedBattleRng(graine);
     applyEffects(banc.getState, banc.setState, [{ type: 'ambitionLost', heroId: 'h1' }]);
-    expect(banc.getState().party[0].psychTraits).toEqual([{ type: 'trauma' }]);
+  };
+  const traitsDuGroupe = () => banc.getState().party[0].psychTraits ?? [];
+  const CHOIX = ['traitDeTraumatisme', 'cibleAcquise'];
+  /** Draine la séquence en choisissant `trait` puis `cible` ; rend les étapes de choix vues. */
+  const choisir = (trait: string, cible: string) =>
+    draineEtapes(banc.getState, 10, undefined, (e) => (e.kind === 'traitDeTraumatisme' ? trait : e.kind === 'cibleAcquise' ? cible : undefined))
+      .filter((e) => CHOIX.includes(e.kind));
+
+  it('Calme raté : le joueur choisit Haine, Hostilité (Animosité) ou Phobie, puis la Cible parmi les Groupes, sans défaut', () => {
+    setRule('psycho-acquisition-optionnelle', true);
+    try {
+      ambitionAneantie(1);
+      expect(traitsDuGroupe(), 'rien de posé avant les choix').toEqual([]);
+      const vues = choisir('phobie', ciblePsy.groupe('skaven'));
+      expect(vues.map((v) => v.kind)).toEqual(CHOIX);
+      const [trait, cible] = vues;
+      expect(trait.actorId).toBe('h1');
+      expect(trait.options?.map((o) => [o.key, o.label])).toEqual(TRAITS_DE_TRAUMA.map((p) => [p, psychologyLabel(p)]));
+      expect(trait.defaultChoice).toBeUndefined();
+      expect(cible.actorId).toBe('h1');
+      expect(cible.options?.map((o) => o.key)).toEqual(ciblesDeTrauma().candidats);
+      expect(cible.defaultChoice).toBeUndefined();
+      expect(traitsDuGroupe()).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('skaven') }]);
+    } finally { resetRule('psycho-acquisition-optionnelle'); }
+  });
+
+  it('chaque Trait offert se pose tel que choisi, envers la Cible choisie', () => {
+    setRule('psycho-acquisition-optionnelle', true);
+    try {
+      for (const type of TRAITS_DE_TRAUMA) {
+        ambitionAneantie(1);
+        choisir(type, ciblePsy.groupe('elfe'));
+        expect(traitsDuGroupe(), type).toEqual([{ type, cible: ciblePsy.groupe('elfe') }]);
+      }
+    } finally { resetRule('psycho-acquisition-optionnelle'); }
+  });
+
+  it('Calme réussi : aucun choix, aucun Trait', () => {
+    setRule('psycho-acquisition-optionnelle', true);
+    try {
+      ambitionAneantie(7);
+      expect(choisir('haine', ciblePsy.groupe('elfe'))).toEqual([]);
+      expect(traitsDuGroupe()).toEqual([]);
+    } finally { resetRule('psycho-acquisition-optionnelle'); }
   });
 
   it('règle OFF → effet inerte (aucun Trauma)', () => {
-    const h = hero({ id: 'h1' });
-    banc.setState({ party: [h] });
-    seedBattleRng(1);
-    applyEffects(banc.getState, banc.setState, [{ type: 'ambitionLost', heroId: 'h1' }]);
-    expect(banc.getState().party[0].psychTraits ?? []).toEqual([]);
+    ambitionAneantie(1);
+    expect(banc.getState().pendingCascade).toBeNull();
+    expect(traitsDuGroupe()).toEqual([]);
   });
 });
 

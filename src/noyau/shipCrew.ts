@@ -13,6 +13,7 @@ import {
   moraleBase,
   undercrewPenalty,
   weeklyCrewWageBrass,
+  ajouterAuRoster,
   recalcMorale,
   payChoiceCostBrass,
   payChoices,
@@ -29,11 +30,11 @@ import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
-import type { BattleState, CampaignVessel, Jeu } from './etat';
+import { REGISTRES_DU_BORD, type BattleState, type CampaignVessel, type Jeu, type RegistreDuBord } from './etat';
 import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
-import { crewRoles, findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
+import { crewRoles, dataLabel, findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
@@ -58,9 +59,9 @@ import { spawnEnemy } from './monde/spawn';
 import { posteDeLaBataille } from './monde/shipPostes';
 import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
-import { diseaseTestModLines, type PorteurDeMaladies } from '../engine/disease';
+import { applyContraction, diseaseTestModLines, type PorteurDeMaladies } from '../engine/disease';
 import { rule } from '../engine/policy';
-import { WORLD_STEP_OWNER } from './pendings';
+import { WORLD_STEP_OWNER, type BatchParticipant, type CascadeStepMeta } from './pendings';
 import type { BandPorteur } from './rollSeam';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 
@@ -96,7 +97,7 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string, navigati
   const apte = exposedCrew(crew);
   const free = new Set<string>();
   for (const c of apte) { if (c.shipRole) out.set(c.id, c.shipRole); else free.add(c.id); } // épinglés respectés (dont 'repos')
-  const parDefaut = crewRoles.find((r) => r.parDefaut)?.id;
+  const parDefaut = roleParDefaut()?.id;
   // Rôles SPÉCIFIQUES (hors rôle par défaut), ESSENTIEL d'abord : UN titulaire chacun = le meilleur marin FORMÉ encore libre.
   const specific = testType.roles.filter((r) => r !== parDefaut)
     .sort((a, b) => (a === testType.essential.id ? -1 : b === testType.essential.id ? 1 : 0));
@@ -262,6 +263,19 @@ export function porteursABord(get: Get, set: SetFn): PorteurABord[] {
     contraction: () => enContraction(rangee),
     ecrire: ecrire(equipage),
   }];
+}
+
+/** Le verdict de la rangée `row` d'une bande de Contraction contre `diseaseId` : son porteur à bord
+ *  (`porteursABord`) contracte sur échec, puis son état s'écrit. Rend le porteur et les lignes de la contraction ;
+ *  rien sans porteur ni dé. LDB 20 l.25 ; MDG 14 l.208-209 */
+export function contracterABord(
+  get: Get, set: SetFn, row: BatchParticipant, diseaseId: string, rng: RNG, opts?: { instant?: boolean },
+): { porteur: PorteurDeMaladies; lignes: string[] } | undefined {
+  const aLui = porteursABord(get, set).find((p) => p.id === row.id);
+  if (!aLui || !row.result) return undefined;
+  const lignes = applyContraction(aLui.porteur, diseaseId, row.result.success, rng, opts);
+  aLui.ecrire();
+  return { porteur: aLui.porteur, lignes };
 }
 
 /**
@@ -691,6 +705,59 @@ export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string
   const crewLost = { ...vessel, crewLost: after };
   set({ vessel: after < nominal ? crewLost : avecLEquipage(crewLost, undefined) });
   return [t('crew.crewDelta', { delta: `${after > before ? '−' : '+'}${Math.abs(after - before)}`, left: Math.max(0, nominal - after), nominal })];
+}
+
+/** Le rôle tenu par défaut par un membre de l'équipage sans autre poste. MDG 14 l.15 */
+const roleParDefaut = () => crewRoles.find((r) => r.parDefaut);
+
+/** Le poste d'un membre de l'équipage : son rôle, et le registre qui l'y compte ; sans registre, il tient le rôle par
+ *  défaut (`roleParDefaut`). */
+export interface PosteDuBord { roleId: string; registre?: RegistreDuBord }
+
+/** Le `poste` dans le `meta` d'une étape (`posteDeLEtape`). */
+export const metaDuPoste = (poste: PosteDuBord): CascadeStepMeta => ({ roleDuMembre: poste.roleId, ...(poste.registre ? { registreDuMembre: poste.registre } : {}) });
+
+/** Le poste que porte le `meta` d'une étape (`metaDuPoste`), s'il en porte un. */
+export function posteDeLEtape(meta: CascadeStepMeta | undefined): PosteDuBord | undefined {
+  const registre = meta?.registreDuMembre;
+  return meta?.roleDuMembre === undefined ? undefined : { roleId: meta.roleDuMembre, ...(registre ? { registre } : {}) };
+}
+
+/** Les postes du bord dans leur ordre : les registres de l'équipage par rôle (`REGISTRES_DU_BORD`), chaque inscrit à son
+ *  rôle. MDG 14 l.293-302 */
+const inscritsDuBord = (s: Pick<Jeu, 'vessel'>) => REGISTRES_DU_BORD.flatMap((registre) => (s.vessel?.[registre] ?? []).map((h) => ({ ...h, registre })));
+
+/** Le nombre de postes sur lequel se tire un membre de l'équipage : les inscrits aux registres, ou l'effectif présent
+ *  (`shipboardSouls`) s'il est plus nombreux ; au moins un. MDG 14 l.15 ; MDG 12 l.85 */
+export const postesDuTirage = (s: Pick<Jeu, 'party' | 'vessel'>): number =>
+  Math.max(1, shipboardSouls(s).crew, inscritsDuBord(s).reduce((n, h) => n + h.count, 0));
+
+/** Le poste d'indice `i` parmi les `postesDuTirage` : les inscrits aux registres dans leur ordre, chaque inscrit un
+ *  poste ; les postes au-delà tiennent le rôle par défaut (`roleParDefaut`). MDG 14 l.15 ; MDG 12 l.85 */
+export function posteDuMembre(s: Pick<Jeu, 'vessel'>, i: number): PosteDuBord {
+  let reste = i;
+  for (const h of inscritsDuBord(s)) {
+    if (reste < h.count) return { roleId: h.roleId, registre: h.registre };
+    reste -= h.count;
+  }
+  return { roleId: garanti(roleParDefaut(), 'parDefaut', 'rôle d’équipage par défaut').id };
+}
+
+/** Le membre de l'équipage au `poste` comme combattant : le profil de son rôle (`CrewRoleData.profil`), nommé par son
+ *  rôle, en camp `pnj`, sans case. MDG 14 l.305-380 */
+export function membreDuBord(poste: PosteDuBord, id: string): Combatant {
+  const role = garanti(findCrewRoleById(poste.roleId), poste.roleId, 'rôle d’équipage');
+  return { ...spawnEnemy({ ref: role.profil.id }, id, undefined), kind: 'pnj', label: dataLabel(role.label) };
+}
+
+/** Un membre de l'équipage au `poste` meurt : l'effectif perd une personne (`applyVesselCrewLoss`), et son registre une
+ *  personne à son rôle. Rend le journal. LDB 18 l.34 ; MDG 14 l.293-302 */
+export function perdreUnMembreDuBord(get: Get, set: SetFn, poste: PosteDuBord): string[] {
+  const lignes = applyVesselCrewLoss(get, set, 1);
+  const vessel = get().vessel;
+  const { registre } = poste;
+  if (vessel && registre) set({ vessel: { ...vessel, [registre]: ajouterAuRoster(vessel[registre], poste.roleId, -1).filter((h) => h.count > 0) } });
+  return lignes;
 }
 
 /**

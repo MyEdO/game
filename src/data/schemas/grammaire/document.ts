@@ -76,12 +76,13 @@ export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
  * TABLE TIRÉE nichée dans un document : la charge d'un document à rangées tiré au dé
  * (`options.rangee` + `options.deDeTirage`), posée sous un champ — son dé `die` (`deDeTirageSchema`) et
  * ses rangées `entries` (au moins une), nommés par `META_CHARGE`. L'`enveloppe` apporte les champs propres à la table
- * (`weather.json › seasons[]` : `id`, `label`, `source`), chacun avec sa méta.
+ * (`weather.json › seasons[]` : `id`, `label`, `source`), chacun avec sa méta. `espace` fait des ids de ses rangées un
+ * espace de noms (`EspaceDeNoms`), comme les rangées d'un document `config`.
  */
-export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record<never, never>>(rangee: R, enveloppe?: { champs: E; meta: MetaDesChamps<E> }) {
+export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record<never, never>>(rangee: R, enveloppe?: { champs: E; meta: MetaDesChamps<E> }, espace?: EspaceDeNoms) {
   const champs = enveloppe?.champs ?? ({} as E);
   const meta = { ...enveloppe?.meta, ...META_CHARGE } as MetaDesChamps<E & Record<CleCharge, z.ZodType>>;
-  return marquerProduit(nommerChamps(z.strictObject({ ...champs, die: deDeTirageSchema, entries: rangeesDeCharge(z.array(rangee).min(1)) }), meta), 'tableTiree', 'table', champs);
+  return marquerProduit(nommerChamps(z.strictObject({ ...champs, die: deDeTirageSchema, entries: rangeesDeCharge(z.array(rangee).min(1), espace) }), meta), 'tableTiree', 'table', champs);
 }
 
 /**

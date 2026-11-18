@@ -52,7 +52,7 @@ import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical�
 
 /** Les 12 États CANONIQUES (LDB 16) à comportement moteur, par `id` STABLE (slug d'etats.json). Le
  *  moteur (pénalités, fin de Round, récupération) les référence via ces constantes — JAMAIS de chaîne
- *  magique. `ConditionInstance.name` reste OUVERT (string) : le Codex peut créer d'AUTRES États (posés/
+ *  magique. `ConditionInstance.id` reste OUVERT (string) : le Codex peut créer d'AUTRES États (posés/
  *  affichés ; leur mécanique RAW serait à câbler). Chaque valeur est typée par l'espace `etats.json` de
  *  `IdsParEspace` : un id hors catalogue ne compile pas. */
 export const COND = {

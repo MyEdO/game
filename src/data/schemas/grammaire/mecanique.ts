@@ -41,6 +41,7 @@ import {
   shipLocationSchema,
   exposureLevelSchema,
   formulaSchema,
+  formuleNommee,
   formulaSinSchema,
   formuleSansTirageSchema,
   genreDArmeSchema,
@@ -610,7 +611,7 @@ const DECLARATIONS_D_OPS = {
   }),
   healCaster: nommerChamps(z.strictObject({ op: z.literal('healCaster'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   gainAdvantage: nommerChamps(z.strictObject({ op: z.literal('gainAdvantage'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-  topUpAdvantage: nommerChamps(z.strictObject({ op: z.literal('topUpAdvantage'), amount: ouReserve(formulaSchema, INDICE_TEMPLATE), feedOpposingPool: z.boolean().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, feedOpposingPool: { label: "réserve adverse" } }),
+  topUpAdvantage: nommerChamps(z.strictObject({ op: z.literal('topUpAdvantage'), amount: ouReserve(formuleNommee, nommerNoeud(enumNomme({ [INDICE_TEMPLATE]: 'valeur de l’indice' }), { label: 'valeur de l’indice' })), feedOpposingPool: z.boolean().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, feedOpposingPool: { label: "réserve adverse" } }),
   spendAdvantage: nommerChamps(z.strictObject({ op: z.literal('spendAdvantage'), amount: z.number().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" } }),
   kill: nommerChamps(z.strictObject({ op: z.literal('kill') }), { op: { label: "opération"  } }),
   /** LDB 09 l.260 */
@@ -1071,7 +1072,7 @@ const compareSubjectSchema = z.union([
  *  `etats.json` #14 « inondation » — `{who,characteristic:'endurance',factor:0.5}` — vérifié en isolation). La forme
  *  fidèle est donc l'UNION des 3 branches de `CompareSubject`, chacune portant son `factor`. */
 const compareValueSchema = z.union([
-  z.number(),
+  nommerNoeud(z.number(), { label: 'nombre' }),
   nommerChamps(z.strictObject({
     who: actorRefSchema,
     field: actorFieldSchema,
@@ -1081,31 +1082,30 @@ const compareValueSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
 ]);
 
-/** Condition `skill` : sa Compétence et sa spécialisation résolvent au catalogue (`refOuSpec`). Le nœud de la
- *  fabrique est un objet discriminable par `kind`, ce que sa signature générique ne porte pas. */
+/** Condition `skill` : sa Compétence et sa spécialisation résolvent au catalogue (`refOuSpec`). */
 const conditionDeCompetenceSchema = refOuSpec('skill', {
   kind: nommerNoeud(z.literal('skill'), { nom: 'type' }),
   advances: nommerNoeud(z.number().optional(), { nom: 'augmentations' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'skill' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** `{ kind: 'talent' }` — un héros du groupe porte le Talent (Béni (Manann) : MDG 15 l.197-198). */
 const conditionDeTalentSchema = refOuSpec('talent', {
   kind: nommerNoeud(z.literal('talent'), { nom: 'type' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** `{ kind: 'career' }` — un héros du groupe exerce la Carrière (`flowCore.ts`, `evalCondition`). */
 const conditionDeCarriereSchema = ref('career', {
   kind: nommerNoeud(z.literal('career'), { nom: 'type' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'career' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** `{ kind: 'species' }` — un héros du groupe est de l'Espèce (`flowCore.ts`, `evalCondition`). */
 const conditionDEspeceSchema = ref('species', {
   kind: nommerNoeud(z.literal('species'), { nom: 'type' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'species' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
@@ -1373,14 +1373,35 @@ function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
 export function porteurDeTestFixe<S extends z.ZodType<object>, const K extends ChampExigibleDuTest>(porteur: S, ...champs: readonly K[]) {
   type Sortie = z.output<S>;
   type Test = z.output<typeof testFixeSchema>;
-  return porteur.superRefine(exigerDuTest(...champs)).refine(
+  const fixe = porteur.superRefine(exigerDuTest(...champs)).refine(
     (v: Sortie): v is Sortie & { test: Required<Pick<Test, K>> } => {
       const test: unknown = Reflect.get(v, 'test');
       return estObjet(test) && champs.every((c) => test[c] !== undefined);
     },
     { when: (p) => p.issues.length === 0 },
   );
+  return declarerTestFixe(fixe, champs);
 }
+
+/** Ce qu'un porteur de Test fixe (`porteurDeTestFixe`) déclare : le nœud du Test qu'il compose (`testFixeSchema`), et
+ *  le nœud de chacun des champs de ce Test qu'il exige. */
+export interface TestFixe {
+  readonly test: unknown;
+  readonly exiges: readonly unknown[];
+}
+
+/** Les porteurs construits par `porteurDeTestFixe`, avec leur déclaration. */
+const TESTS_FIXES = new WeakMap<object, TestFixe>();
+
+/** Déclare `porteur`, dont le Test exige les `champs`, et le rend. */
+function declarerTestFixe<N extends z.ZodType>(porteur: N, champs: readonly ChampExigibleDuTest[]): N {
+  TESTS_FIXES.set(porteur, { test: testFixeSchema, exiges: champs.map((c) => testFixeSchema.shape[c]) });
+  return porteur;
+}
+
+/** La déclaration (`TestFixe`) d'un porteur construit par `porteurDeTestFixe`, `undefined` si le nœud n'en est pas un. */
+export const declarationDeTestFixe = (noeud: unknown): TestFixe | undefined =>
+  typeof noeud === 'object' && noeud !== null ? TESTS_FIXES.get(noeud) : undefined;
 
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à sa cible
  *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite).

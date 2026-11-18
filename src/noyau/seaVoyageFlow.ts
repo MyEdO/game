@@ -50,6 +50,7 @@ import {
   shipboardSouls,
   shipUndercrew,
   porteursABord,
+  contracterABord,
 } from './shipCrew';
 import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
 
@@ -114,7 +115,7 @@ import { currentSeason } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, directionOpposee, VENT_DOMINANT, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
-  type SeaWeather, type WindDirection, type WindAspect, type SeaPrecipitationId,
+  axesImposes, type SeaWeather, type WindDirection, type WindAspect,
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
@@ -344,7 +345,7 @@ const SEA_WEEK_DAYS = 8;
 /** Précipitations du jour de mer ACTIF (MDG 13 l.185) — la déclaration `pont` d'une ligne de jet
  *  (`ligneDeJet.rollLine`) hors combat, et la source de `Combatant.envPrecipitation` à l'ouverture d'un combat. `undefined` hors
  *  voyage maritime. */
-export function activeSeaPrecipitation(get: Get): SeaPrecipitationId | undefined {
+export function activeSeaPrecipitation(get: Get): string | undefined {
   return get().travelPlan?.sea?.weather.precipitations;
 }
 
@@ -1218,8 +1219,8 @@ function meteoDuJour(get: Get, coque: Combatant, ventDeLaVeille: SeaWeather['ven
   if (ventDeLaVeille) weather = { ...weather, vent: tickWindForceDay(ventDeLaVeille, rng) };
   const windFrom = rollWindDirection(rng, verrous.some((v) => v.ventInverse) ? directionOpposee(VENT_DOMINANT) : VENT_DOMINANT);
   for (const v of verrous) {
-    if (v.meteo) weather = { ...weather, ...v.meteo };
-    if (v.aggravation && resolveFormula(v.aggravation.de, coque, rng) >= v.aggravation.seuil) weather = { ...weather, ...v.aggravation.meteo };
+    if (v.meteo) weather = { ...weather, ...axesImposes(v.meteo) };
+    if (v.aggravation && resolveFormula(v.aggravation.de, coque, rng) >= v.aggravation.seuil) weather = { ...weather, ...axesImposes(v.aggravation.meteo) };
   }
   return { weather, windFrom };
 }
@@ -2809,18 +2810,13 @@ export const TABLES = {
       return { consequences: freeCons(lignes) };
     },
     /** Tonneau d'eau — EXPOSITION (MDG 14 l.209) : BANDE, verdict lu rangée par rangée sur le porteur à bord
-     *  (`porteursABord`, patron Scorbut) ; l'échec contracte la maladie qui a contaminé le tonneau. */
+     *  (`contracterABord`) ; l'échec contracte la maladie qui a contaminé le tonneau. */
     'mer-tonneau-expose': (get, set, step) => {
       const diseaseId = String(step.meta?.diseaseId ?? '');
       const lignes: FreeConsLine[] = [];
-      const aBord = porteursABord(get, set);
       for (const row of step.participants ?? []) {
-        const aLui = aBord.find((p) => p.id === row.id);
-        if (!aLui || !row.result || row.result.success) continue;
-        if (applyContraction(aLui.porteur, diseaseId, false, battleRng()).length) {
-          lignes.push({ text: t('sv.waterDiseaseGot', { name: aLui.porteur.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' });
-        }
-        aLui.ecrire();
+        const verdict = contracterABord(get, set, row, diseaseId, battleRng());
+        if (verdict?.lignes.length) lignes.push({ text: t('sv.waterDiseaseGot', { name: verdict.porteur.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' });
       }
       return { consequences: freeCons(lignes) };
     },

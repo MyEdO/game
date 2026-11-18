@@ -322,7 +322,7 @@ export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
  */
 export const sourceRefSchema = nommerChamps(z.strictObject({
   book: idDe('book', undefined, { nue: true }),
-  page: z.number(),
+  page: z.number().int(),
   /** Précision optionnelle (ch./l. du passage, portée VERBATIM…). Aucune LOGIQUE DE JEU ne la lit ;
    *  une GARDE la lit : quand elle est de la forme `<ABRÉV> <ch> l.<ligne>`,
    *  `scripts/guards/lib/folioLineAlign.mjs` la confronte au marqueur `data-folio` qui gouverne cette
@@ -735,7 +735,7 @@ export const detailRecipeSchema = nommerChamps(z.strictObject({
       blockWM: z.tuple([z.number(), z.number()]).optional(),
       edgeWobble: z.number().optional(),
       paletteVar: z.number().optional(),
-    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "bloquer la carte du monde" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
+    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "largeur de bloc en mètres" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
     .optional(),
   bands: z.array(nommerChamps(z.strictObject({ atV: z.number(), hM: z.number(), color: z.string() }), { atV: { label: "position verticale" }, hM: { label: "hauteur en mètres" }, color: { label: "couleur" } })).optional(),
   timber: nommerChamps(z
@@ -929,8 +929,15 @@ export const entrainementDeProtheseSchema = nommerChamps(z.strictObject({ px: z.
 export const contenantSchema = nommerChamps(z.strictObject({ capacity: z.number() }), { capacity: { label: 'Capacité' } });
 
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
- *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
+ *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } }, { label: 'montant' });
+
+/** Barème d'embauche d'un mercenaire, coût quotidien et hebdomadaire. MDG 14 l.293-302 */
+export const baremeDEmbaucheSchema = nommerChamps(z.strictObject({ daily: moneySchema, weekly: moneySchema, source: sourceRefSchema }), {
+  daily: { label: 'paie quotidienne' },
+  weekly: { label: 'paie hebdomadaire' },
+  source: { label: 'source' },
+});
 
 /** La pièce d'une somme (`keyof Money`), ses libellés au pluriel. LDB 57 */
 export const monnaieSchema = enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' } satisfies Record<keyof Money, string>);
@@ -983,12 +990,11 @@ export type ProfilDeVoile = z.output<typeof profilDeVoileSchema>;
 
 /** Axes de la MÉTÉO MARINE (`SeaWeather`, `engine/seaWeather.ts`) : une rangée de sa table, ou le climat
  *  qu'un événement impose. MDG 13 l.170 */
-export const ventMarinSchema = z.enum(['calme-plat', 'legere-brise', 'brise-fraiche', 'vent-modere', 'vent-violent', 'violente-tempete']);
 const AXES_DE_LA_METEO_MARINE = {
-  precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
-  temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
-  visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
-  vent: ventMarinSchema,
+  precipitations: ref('seaPrecipitation'),
+  temperature: ref('seaTemperature'),
+  visibilite: ref('seaVisibility'),
+  vent: ref('seaWind'),
 };
 const META_DE_LA_METEO_MARINE = {
   precipitations: { label: 'Précipitations' },
@@ -997,13 +1003,14 @@ const META_DE_LA_METEO_MARINE = {
   vent: { label: 'Vent' },
 };
 export const meteoMarineSchema = nommerChamps(z.strictObject(AXES_DE_LA_METEO_MARINE), META_DE_LA_METEO_MARINE);
-/** Climat IMPOSÉ : les seuls axes qu'il fixe (`Partial<SeaWeather>`), un au moins. MDG 15 l.189, l.199, l.248 */
+/** Climat IMPOSÉ : les seuls axes qu'il fixe, un au moins. MDG 15 l.189, l.199, l.248 */
 export const meteoImposeeSchema = nommerChamps(z.strictObject({
   precipitations: AXES_DE_LA_METEO_MARINE.precipitations.optional(),
   temperature: AXES_DE_LA_METEO_MARINE.temperature.optional(),
   visibilite: AXES_DE_LA_METEO_MARINE.visibilite.optional(),
   vent: AXES_DE_LA_METEO_MARINE.vent.optional(),
 }).refine((m) => Object.keys(m).length > 0, { message: 'météo imposée VIDE : nommer au moins un axe (précipitations, température, visibilité, vent).' }), META_DE_LA_METEO_MARINE);
+export type MeteoImposee = z.output<typeof meteoImposeeSchema>;
 
 /** `ShipLocation` (`src/engine/combat.ts`) — les Localisations de coque des DEUX jeux de Critiques
  *  (MDG naval : cargaison/gréement/coque/avirons/équipements ; MSRC fluvial : gouvernail/superstructure). */
@@ -1315,7 +1322,7 @@ export const messageDeTermeDeJet = (f: unknown): string | undefined => {
  *  qui n'admettent que lui (`max` d'un Talent). */
 export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } });
 /** Le Maxi d'un Talent « Nombre de Sorts disponibles dans le Domaine de Magie du Chaos choisi » (`LDB 10 l.704`). */
-export const maxiSortsDuDomaine = z.literal('sortsDuDomaine');
+export const maxiSortsDuDomaine = nommerNoeud(z.literal('sortsDuDomaine'), { label: 'Sorts du Domaine' });
 
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */
@@ -1372,17 +1379,22 @@ export const formuleSansTirageSchema: z.ZodType<FormuleSansTirage> = z.lazy(() =
   { error: (iss) => messageDeTermeDeJet(iss.input) },
 )) as z.ZodType<FormuleSansTirage>;
 
+/** La grammaire d'une quantité (`formulaSchema`), nommée « formule » en variante d'une union qui l'admet à côté
+ *  d'autres formes ; `formulaSchema` garde son nom. */
+export const formuleNommee = nommerNoeud(z.lazy(() => formulaSchema), { label: 'formule' });
+
 /** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Lié à
  *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::lierLesOps`), jamais à
  *  l'application de l'op : le Péché est expié AVANT `applyOps` (`noyau/combatFlow.ts`). */
 export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.literal(true) }), { sinPoints: { label: "Points de Péché" } });
 
-/** `Formula` du dialecte de la Colère des dieux : une formule GÉNÉRALE, le terme de Péché, ou leur
- *  SOMME — la seule composition que le livre imprime (« 1d10 + (Points de Péché) »). */
+/** `Formula` du dialecte de la Colère des dieux : leur SOMME — la seule composition que le livre imprime
+ *  (« 1d10 + (Points de Péché) ») —, une formule GÉNÉRALE, ou le terme de Péché. La somme d'abord : une somme se lit
+ *  à la variante qui admet le terme de Péché (`varianteCourante`), jamais à la somme de la formule générale. */
 export const formulaSinSchema = z.union([
-  formulaSchema,
+  nommerChamps(z.strictObject({ sum: z.array(z.union([formuleNommee, sinPointsSchema])) }), { sum: { label: "somme" } }),
+  formuleNommee,
   sinPointsSchema,
-  nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
 export type FormuleAuPeche = z.output<typeof formulaSinSchema>;
 

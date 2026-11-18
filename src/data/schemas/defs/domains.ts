@@ -7,6 +7,9 @@ import { executeesDe, flowTestSchema, triggeredEffectSchema } from '../grammaire
 import { idDe, ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
+/** Clé de rôle d'une table déclarée par un Domaine (`tables`), visée par `domainTable` d'une rangée de miscast. VDM 02 l.238. */
+export const cleDeTableDuDomaineSchema = enumNomme({ arcaneMark: 'Marques Arcaniques' });
+
 export const file = 'domains.json';
 export const famille = 'entite';
 
@@ -63,7 +66,7 @@ const doc = document(
     /** LDB 50 l.9 ; EDOC 13 l.606 */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** VDM 02 l.238. */
-    tables: z.record(z.string(), idDe('table')).optional(),
+    tables: z.partialRecord(cleDeTableDuDomaineSchema, idDe('table')).optional(),
 
     effects: z.array(triggeredEffectSchema).optional(),
 

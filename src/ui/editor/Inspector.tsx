@@ -7,6 +7,7 @@ import type { JSX } from 'react';
  * Composant de PRÉSENTATION : la scène et la sélection vivent dans Editor.
  */
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
+import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
 import {
   Scene,
   SceneEntity,
@@ -20,7 +21,6 @@ import {
   type FacadeSection,
   type BuildingMass,
   type RoofDefaults,
-  type RectDeCases,
   type SceneStationAnchor,
   type FaceDArete,
   type WallSecret,

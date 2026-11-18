@@ -8,6 +8,7 @@
  */
 import {
   designations,
+  designationsDeLElement,
   editableDataset,
   editableObjectDataset,
   isEditableCategory,
@@ -19,16 +20,19 @@ import type { DiceSpec } from '../../engine/dice';
 import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
 import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
 import { noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
-import { noeudsAuChemin } from '../../data/schemas/grammaire/descente';
-import { deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
+import { estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
+import { apparencesDObjetsSchema, deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
+import { findTrappingById } from '../../data/apparencesObjets';
 import type { Manifeste } from '../../data/source/chapitres';
 import { t as tr } from '../../i18n';
 import { CODEX_GROUPS, categoryByKey, clustersIn, codexLookupById, type CibleDuCompendium, type CodexGroup, type CodexItem } from './registry';
 import { facetRows, filterItems, type FacetSelection } from './search';
 import { reverseGroups, type ReverseGroup } from './relations';
-import { champsOfferts, type FieldDesc } from './editFields';
+import { champsOfferts, identiteFigee, identiteTenue, type FieldDesc } from './editFields';
 import { valeurNeuveDe } from '../valeursNeuves';
-import { choixDeLaReferenceLocale } from '../sceneEditLecture';
+import { choixDeLaReferenceLocale, choixDesApparencesDObjets } from '../sceneEditLecture';
+import { armesDEntite } from '../equipementDessine';
+import { auChemin } from '../../lib/objet.mjs';
 import {
   champsDuFormulaire,
   cheminOffert,
@@ -90,7 +94,8 @@ export interface SessionDuCompendium {
 /** Un geste du Compendium. Consultation : choisir la famille, la catégorie, le terme de recherche, basculer une valeur
  *  de facette, montrer une entrée, suivre un renvoi vers une entrée d'une autre catégorie. Atelier : modifier l'entrée
  *  montrée, en créer une, écrire une valeur au chemin `chemin` du brouillon (`valeur` absente : le champ se retire), y
- *  monter l'élément d'une liste avant le précédent, y resceller une adresse de prose, donner son identifiant, écrire le dé d'en-tête de sa table, abandonner, demander son
+ *  monter l'élément d'une liste avant le précédent, y resceller une adresse de prose, donner son identifiant ou, au chemin `chemin`, celui
+ *  de l'élément d'une liste à clé, écrire le dé d'en-tête de sa table, abandonner, demander son
  *  enregistrement ou sa suppression, puis l'issue que l'hôte en rapporte ; l'issue du chargement du chapitre attendu. */
 export type GesteDuCompendium =
   | { geste: 'famille'; famille: CodexGroup }
@@ -104,7 +109,7 @@ export type GesteDuCompendium =
   | { geste: 'valeur'; chemin: Segment[]; valeur?: unknown }
   | { geste: 'monter'; chemin: Segment[] }
   | { geste: 'resceller'; chemin: Segment[] }
-  | { geste: 'identifier'; id: string }
+  | { geste: 'identifier'; id: string; chemin?: Segment[] }
   | { geste: 'enTete'; valeur: DiceSpec }
   | { geste: 'abandonner' }
   | { geste: 'enregistrer' }
@@ -133,22 +138,46 @@ export function ouvrirLeCompendium(manifeste: Manifeste | null, paquets: readonl
 /** La clé du dataset de la catégorie éditable `categorie` : son dataset-liste, ou son dataset-objet. */
 const datasetDe = (categorie: string): string => editableDataset(categorie) ?? editableObjectDataset(categorie)!.ds;
 
+/** Le champ d'identité d'une entrée, que seul `identifier` écrit, et seulement d'un atelier identifiable (`atelierIdentifiable`). */
+export const CLE_D_IDENTITE = 'id';
+
 /** La forme du formulaire de l'atelier `a` : le nœud de son entrée (`noeudDeLEntree`), ouvert sur son cas, chacun de ses
  *  champs offerts (`champsOfferts`) hors de son identité, que change `identifier`, et de ce qu'une adresse de prose
  *  dérive (`estCheminDerive`), aucun retrait déclaré. */
 function formeDeLAtelier(a: AtelierDuCompendium): FormeDuFormulaire {
   const noeud = noeudDeLEntree(datasetDe(a.categorie), a.entree);
-  const champs = champsOfferts(noeud, a.entree, ['id']).filter((f) => !estCheminDerive(noeud, a.entree, [f.key])).map((f) => [f.key]);
+  const champs = champsOfferts(noeud, a.entree, [CLE_D_IDENTITE]).filter((f) => !estCheminDerive(noeud, a.entree, [f.key])).map((f) => [f.key]);
   return { noeud, champs, retraits: [] };
 }
 
 /** Les choix que le contexte de l'atelier `a`, de nœud `noeud`, pose à un chemin de son brouillon : sous une adresse de
- *  prose, ceux du `Source/` `source` (`choixSousUneAdresse`) ; d'une référence locale, ceux de la portée que l'entrée ou
- *  la racine de son fichier ouvre (`choixDeLaReferenceLocale`) ; sinon ceux du nœud. */
+ *  prose, ceux du `Source/` `source` (`choixSousUneAdresse`) ; sous une apparence d'objets, ceux des armes de l'entrée
+ *  (`choixSousLesApparencesDObjets`) ; d'une référence locale, ceux de la portée que l'entrée ou la racine de son fichier
+ *  ouvre (`choixDeLaReferenceLocale`) ; sinon ceux du nœud. */
 function choixDeLAtelier(a: AtelierDuCompendium, noeud: unknown, source: SourceServie): ChoixDuFormulaire {
   const fichier = DATASET_FICHIER_DERIVE[datasetDe(a.categorie)];
   const ouvreurs = [[noeud, a.entree], [schemaForFile(fichier), RACINES_VIVANTES[fichier]]] as const;
-  return (chemin) => choixSousUneAdresse(noeud, a.entree, chemin, source) ?? choixDeLaReferenceLocale(noeudsAuChemin(noeud, a.entree, chemin), ouvreurs);
+  return (chemin) =>
+    choixSousUneAdresse(noeud, a.entree, chemin, source) ??
+    choixSousLesApparencesDObjets(noeud, a.entree, chemin) ??
+    choixDeLaReferenceLocale(noeudsAuChemin(noeud, a.entree, chemin), ouvreurs);
+}
+
+/** Les choix que l'entrée `entree`, de nœud `noeud`, pose au chemin `chemin` sous la première apparence d'objets
+ *  (`apparencesDObjetsSchema`) qu'il traverse ou désigne : ceux des armes de son profil (`armesDEntite`), comme un PNJ
+ *  (`choixDuPreset`), par `choixDesApparencesDObjets` ; `undefined` hors d'elle. #2948 */
+function choixSousLesApparencesDObjets(noeud: unknown, entree: Entree, chemin: readonly Segment[]): ReturnType<ChoixDuFormulaire> {
+  let valeur: unknown = entree;
+  let noeuds = ouverts([noeud], valeur);
+  for (let k = 0; ; k++) {
+    if (noeuds.includes(apparencesDObjetsSchema)) {
+      const { traits, char } = entree as NonNullable<Parameters<typeof armesDEntite>[2]>;
+      return choixDesApparencesDObjets(() => armesDEntite(findTrappingById, undefined, { traits, char }), findTrappingById, chemin.slice(k));
+    }
+    if (k === chemin.length) return undefined;
+    valeur = estConteneur(valeur) ? valeur[chemin[k]] : undefined;
+    noeuds = ouverts(pasDeDonnee(noeuds, chemin[k]), valeur);
+  }
 }
 
 /** Ce dont l'hôte tire les éléments du formulaire de l'atelier (`elementsDuFormulaireTire`) : ses champs décrits
@@ -268,8 +297,44 @@ function ouvrir(s: SessionDuCompendium, g: { geste: 'modifier' | 'creer' }): Ses
   if (g.geste === 'creer') return ds ? atelier(valeurNeuveDe(noeudsDesEntrees(ds)[0]) as Entree, -1, null) : refusee(s, tr('ecran.compendium.refus.creerConfiguration'));
   if (!ds) return atelier(datasetObject(editableObjectDataset(categorie)!.ds) as unknown as Entree, -1, null);
   const id = s.montree?.id;
-  const index = id === undefined ? -1 : entreesDuDataset(ds).findIndex((e) => e.id === id);
+  const index = id === undefined ? -1 : entreesDuDataset(ds).findIndex((e) => e[CLE_D_IDENTITE] === id);
   return index < 0 ? refusee(s, tr('ecran.compendium.refus.sansEntree')) : atelier(entreesDuDataset(ds)[index], index, id!);
+}
+
+/** La session `s` où l'identité `actuel` devient `brut`, rogné, écrite par `ecrire` ; refusée vide, déjà prise (le refus
+ *  que dit `pris`), ou, changée, désignée (`designations`). */
+function renommee(s: SessionDuCompendium, brut: string, actuel: string | null, pris: (id: string) => string | false, designations: () => string | undefined, ecrire: (id: string) => SessionDuCompendium): SessionDuCompendium {
+  const id = brut.trim();
+  if (!id) return refusee(s, tr('ecran.compendium.refus.idVide'));
+  const refus = pris(id);
+  if (refus) return refusee(s, refus);
+  const par = id === actuel ? undefined : designations();
+  return par ? refusee(s, tr('ecran.compendium.refus.idDesigne', { id: actuel!, designations: par })) : ecrire(id);
+}
+
+/** La session `s` où l'élément au chemin `chemin` du brouillon de l'atelier `a`, élément d'une liste à clé
+ *  (`identiteTenue`), prend l'identifiant `brut` (`renommee`) : refusée hors d'un tel élément, d'une clé que le code fige
+ *  (`identiteFigee`), d'un identifiant que porte un autre élément de sa liste, ou de l'élément enregistré que d'autres
+ *  données désignent (`designationsDeLElement`). */
+function identifierLElement(s: SessionDuCompendium, a: AtelierDuCompendium, chemin: readonly Segment[], brut: string): SessionDuCompendium {
+  const liste = chemin.slice(0, -1);
+  const rang = chemin[chemin.length - 1];
+  const { noeud } = formeDeLAtelier(a);
+  const elements = auChemin(a.entree, liste);
+  const element = Array.isArray(elements) && typeof rang === 'number' ? elements[rang] : undefined;
+  const noeudDeLaListe = element === undefined ? undefined : noeudsAuChemin(noeud, a.entree, liste).find((n) => identiteTenue(n, element).length);
+  if (noeudDeLaListe === undefined) return refusee(s, tr('ecran.compendium.refus.elementSansIdentite'));
+  const [cle] = identiteTenue(noeudDeLaListe, element);
+  const actuel = String((element as Entree)[cle]);
+  if (identiteFigee(noeudDeLaListe, element)) return refusee(s, tr('ecran.compendium.refus.idFige', { id: actuel }));
+  const soeurs = elements as readonly Entree[];
+  const pris = (id: string) => soeurs.some((e, i) => i !== rang && e[cle] === id) && tr('ecran.compendium.refus.idPrisDansLaListe', { id });
+  const par = () => designationsDeLElement(a.categorie, a.index, liste, cle, actuel, s.paquets).join(' ; ') || undefined;
+  return renommee(s, brut, actuel, pris, par, (id) => {
+    const entree = structuredClone(a.entree);
+    (auChemin(entree, liste) as Entree[])[rang as number][cle] = id;
+    return { ...s, atelier: { ...a, entree } };
+  });
 }
 
 /** La session `s` où le geste d'atelier `g` est joué sur l'atelier `a` ; refusé pendant une transaction demandée. */
@@ -289,12 +354,10 @@ function travailler(s: SessionDuCompendium, a: AtelierDuCompendium, g: Extract<G
       return ecrite.ok ? avec({ entree: ecrite.valeur }) : refusee(s, { chemin: g.chemin, refus: ecrite.refus });
     }
     case 'identifier': {
+      if (g.chemin !== undefined) return identifierLElement(s, a, g.chemin, g.id);
       if (!ds) return refusee(s, tr('ecran.compendium.refus.sansIdentite'));
-      const id = g.id.trim();
-      if (!id) return refusee(s, tr('ecran.compendium.refus.idVide'));
-      if (entreesDuDataset(ds).some((e, i) => i !== a.index && e.id === id)) return refusee(s, tr('ecran.compendium.refus.idPris', { id }));
-      const par = id === a.idDOrigine ? undefined : designee(s, a);
-      return par ? refusee(s, tr('ecran.compendium.refus.idDesigne', { id: a.idDOrigine!, designations: par })) : avec({ entree: { ...a.entree, id } });
+      const pris = (id: string) => entreesDuDataset(ds).some((e, i) => i !== a.index && e[CLE_D_IDENTITE] === id) && tr('ecran.compendium.refus.idPris', { id });
+      return renommee(s, g.id, a.idDOrigine, pris, () => designee(s, a), (id) => avec({ entree: { ...a.entree, [CLE_D_IDENTITE]: id } }));
     }
     case 'enTete': {
       const ancetre = ds && ancetreDuDe(ds);
@@ -323,7 +386,7 @@ function recevoir(s: SessionDuCompendium, g: Extract<GesteDuCompendium, { geste:
   const a = s.atelier;
   if (!a?.enCours) return refusee(s, tr('ecran.compendium.refus.aucuneTransaction'));
   if (!g.reussi) return { ...s, atelier: { ...a, enCours: null }, refus: g.refus ?? tr('ecran.compendium.refus.echec') };
-  const id = a.entree.id;
+  const id = a.entree[CLE_D_IDENTITE];
   const montree = a.enCours === 'supprimer' ? null : typeof id === 'string' && editableDataset(a.categorie) ? { id } : s.montree;
   return { ...s, atelier: null, montree };
 }

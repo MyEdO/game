@@ -24,7 +24,7 @@ import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement } from '../mount';
 import { materialiserLaBarre } from '../dispositionConsole';
-import { isFrenzied, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
+import { isFrenzied, PSY, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
 import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
 import { combatStakeRef } from '../../data';
 import { hasRage } from '../../engine/traits/dispatch';
@@ -139,7 +139,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   // perturbation du flux `battleRng` quand on diffère, golden RNG préservé sinon.
   if (aiJetteraitUnSort(get, enemy.id)) return;
   if (resolveFrenzyEntry(testValue(enemy, { characteristic: 'force-mentale' }), battleRng()).success) {
-    (enemy.psychState ??= []).push({ type: 'frenesie' });
+    (enemy.psychState ??= []).push({ type: PSY.frenesie });
     set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
   }
 }
@@ -200,16 +200,16 @@ export const TABLES = {
         const adv = enemy.advantage ?? 0;
         if (adv >= 3) {
           campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
-          (enemy.psychState ??= []).push({ type: 'frenesie' });
+          (enemy.psychState ??= []).push({ type: PSY.frenesie });
           battle.log.push(ev('frenesie', t('turn.rageEnter', { name: enemy.label }), enemy.id));
           set({ battle: { ...battle } });
           return;
         }
         if (adv < 1) return;
-        if ((enemy.psychState ?? []).some((p) => p.type === 'haine' && p.active === true && p.cible === HAINE_DE_RAGE)) return;
+        if ((enemy.psychState ?? []).some((p) => p.type === PSY.haine && p.active === true && p.cible === HAINE_DE_RAGE)) return;
         if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, sourceCombattant(f), 'appartenance', enemy))) return;
         campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
-        (enemy.psychState ??= []).push({ type: 'haine', cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
+        (enemy.psychState ??= []).push({ type: PSY.haine, cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
         battle.log.push(ev('peur', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
         set({ battle: { ...battle } });
       },

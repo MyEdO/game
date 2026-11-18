@@ -23,6 +23,7 @@ import { makeRNG, type DiceSpec } from '../engine/dice';
 import { deSelonLaPlage } from '../engine/dice.testkit';
 import { scatter } from '../engine/scatter';
 import { tirerLaReactionAuStatut, tirerLeCapricieux } from '../engine/social';
+import { auChemin } from '../lib/objet.mjs';
 
 type Entree = Record<string, unknown>;
 const traits = () => datasetArray('traits');
@@ -259,7 +260,7 @@ describe('designations et supprimerEntree — ce qui désigne une entrée, et so
 
   it('un paquet passé compte : sa référence le désigne, dite sous son fichier', () => {
     const repere = reperesDuParse(projetSchema, versDisque(diligence)).find((r) => r.type === 'creature' && !r.parCle)!;
-    const id = repere.path.reduce<unknown>((o, pas) => (o as Record<PropertyKey, unknown>)[pas], diligence) as string;
+    const id = auChemin(diligence, repere.path) as string;
     const paquet = { fichier: 'diligence-projet.json', projet: diligence };
     expect(designations('creatures', id, [paquet]).filter((d) => d.startsWith('diligence-projet.json › ')).length).toBeGreaterThan(0);
     expect(designations('creatures', id, []).filter((d) => d.startsWith('diligence-projet.json › '))).toEqual([]);

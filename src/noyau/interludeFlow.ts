@@ -70,7 +70,7 @@ import {
 } from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { findTableEntry } from '../engine/tables';
-import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
+import { type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans plusieurs flux
@@ -936,7 +936,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
     const entraine = structuredClone(lu);
     const fortuneBefore = fortuneMax(entraine);
     const resolveBefore = resolveMax(entraine);
-    if (kind === 'caracteristique') r = engineBuyCharAdvance(entraine, id as CharKey, false);
+    if (kind === 'caracteristique') r = engineBuyCharAdvance(entraine, id, false);
     else {
       if (!entraine.skills.some((k) => k.id === id && memeSpecialisation(k.spec, spec))) {
         entraine.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });

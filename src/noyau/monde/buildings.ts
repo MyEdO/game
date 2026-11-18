@@ -25,7 +25,8 @@
 import { buildings } from '../../data/index';
 import { memoParVersion } from '../../data/versionDataset';
 import type { BuildingDef, BuildingFeature } from '../../data/index';
-import type { RectDeCases } from './scene';
+import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
+import type { } from './scene';
 
 
 /** Ce qu'un porteur de type de bâtiment NOMME à l'écran : l'id qu'il référence et son libellé FR. */
