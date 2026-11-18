@@ -54,7 +54,7 @@ import {
 } from './lib/fraicheur-docs.mjs'
 
 import { GENERATORS, SOURCES_LUES, ciblesLitterales, estCiblePure } from './lib/cibles-generees.mjs'
-export { GENERATORS, SOURCES_LUES, ciblesLitterales, estCiblePure } from './lib/cibles-generees.mjs'
+export { GENERATORS, LUS_PAR_LES_GENERATEURS, SOURCES_LUES, ciblesLitterales, estCiblePure } from './lib/cibles-generees.mjs'
 
 export const ciblesPures = (cwd, generateurs = GENERATORS) =>
   [...new Set([...ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd), SOURCES_LUES])].sort()

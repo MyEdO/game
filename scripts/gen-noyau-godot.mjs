@@ -36,8 +36,13 @@ const ELEMENTS = 'src/hote/elements.ts'
 
 const absolu = (racine, module) => path.resolve(racine, module).replaceAll('\\', '/')
 const membres = (t) => (t.isUnionType() || t.isIntersectionType?.() ? t.getTypes() : [t])
+const fichier = ({ program }, racine, module) => {
+  const source = program.getSourceFile(absolu(racine, module))
+  if (!source) throw new Error(`gen-noyau-godot : ${module} absent du programme`)
+  return source
+}
 const declaration = ({ program }, racine, module, nom) => {
-  const decl = program.getSourceFile(absolu(racine, module))?.statements.find((st) => st.name?.text === nom)
+  const decl = fichier({ program }, racine, module).statements.find((st) => st.name?.text === nom)
   if (!decl) throw new Error(`gen-noyau-godot : \`${nom}\` introuvable dans ${module}`)
   return decl
 }
@@ -56,7 +61,7 @@ function valeursDe({ checker, program }, racine, f) {
 function sourcesDe({ checker, program }, racine) {
   let methodes = null
   const chercher = (n) => { if (ts.isVariableDeclaration(n) && n.name.text === 'methodes') methodes = n.initializer; else if (!methodes) n.forEachChild(chercher) }
-  chercher(program.getSourceFile(absolu(racine, PONT)))
+  chercher(fichier({ program }, racine, PONT))
   if (!methodes) throw new Error(`gen-noyau-godot : \`methodes\` introuvable dans ${PONT}`)
   const cles = []
   const vus = new Set()
