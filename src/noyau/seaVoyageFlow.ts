@@ -2516,9 +2516,8 @@ function reparerLaCoqueParLeGroupe(get: Get, set: Set, tirees: number): string {
     cale = { lots: r.lots, removed: cale.removed + r.removed };
   }
   consommerLaCapacite(party, 'shipParts', enc - cale.removed);
-  set({ party, vessel: { ...vessel, ...(cale.removed > 0 ? { cargo: cale.lots } : {}) } });
+  set({ party, vessel: { ...vessel, ...(cale.removed > 0 ? { cargo: cale.lots } : {}), reparationTemporaire: undefined } });
   setVesselHull(get, set, current + n, max);
-  set({ vessel: { ...get().vessel!, reparationTemporaire: undefined } });
   return t('sv.reparationDuGroupeReussie', { n, enc });
 }
 
