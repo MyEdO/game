@@ -146,7 +146,7 @@ export {
   type PlateauDeLaScene,
   type Regard,
 } from './monde/aretes';
-export type { Scene } from './monde/scene';
+export type { RectDeCases, Scene } from './monde/scene';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,

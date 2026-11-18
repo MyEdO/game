@@ -308,7 +308,7 @@ import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
-import { isMerScene, sceneMetresPerTile } from './monde/scene';
+import { dansLaZoneJouable, isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
 import {
   advanceCascade,
@@ -490,14 +490,13 @@ function applyNavalSurprisePosition(get: Get, set: Set, surprisedSide: 'groupe' 
   const mpt = sceneMetresPerTile(scene);
   const gap = Math.max(1, Math.round(75 / mpt)); // ~portée moyenne du canon (MDG 12 l.401)
   const facing = { ...get().facing };
-  const { w, h } = scene.dimensions;
   for (const amb of ambushers) {
     const victim = victims.reduce((a, b) => (chebyshev(amb.pos!, b.pos!) < chebyshev(amb.pos!, a.pos!) ? b : a));
-    // Rapprochement le long de l'axe ambusher→victime, arrêt à ~`gap` cases (jamais plus près, jamais hors bornes).
+    // Rapprochement le long de l'axe ambusher→victime, arrêt à ~`gap` cases (jamais plus près, jamais hors de la zone jouable).
     const dx = Math.sign(victim.pos!.x - amb.pos!.x), dy = Math.sign(victim.pos!.y - amb.pos!.y);
     let nx = amb.pos!.x, ny = amb.pos!.y;
     while (chebyshev({ x: nx + dx, y: ny + dy }, victim.pos!) >= gap
-      && nx + dx >= 0 && ny + dy >= 0 && nx + dx < w && ny + dy < h) { nx += dx; ny += dy; }
+      && dansLaZoneJouable(scene, nx + dx, ny + dy)) { nx += dx; ny += dy; }
     if (nx !== amb.pos!.x || ny !== amb.pos!.y) placeCombatant(amb, scene, { x: nx, y: ny });
     // Bord le plus armé DÉJÀ aligné en batterie sur la victime (l'assaillant a choisi son bord d'attaque).
     const primary = mostArmedSide(amb);

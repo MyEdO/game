@@ -94,6 +94,7 @@ import {
   patchStation,
   removeStation,
   setSceneMusic,
+  setZoneJouable,
   type PatchDeZone,
   type Pt,
 } from '../sceneEdit';
@@ -215,7 +216,8 @@ export type Ouvrage = (typeof OUVRAGES)[number];
  *  son nord (`null` : vers le haut du plan), les matières de son relief, sa toiture par défaut, son repos sur place
  *  (lieux offerts, sa qualité (`QUALITES_DE_REPOS`)), ses drapeaux de départ (`null` retire le drapeau) ; une piste de sa musique
  *  (`setSceneMusic` : `id` absent, la piste du contexte ; `null`, le silence) ; ses ancres de bataille, une ajoutée vers la Scène de
- *  Round `ajouter`, celle de rang `rang` patchée, ou celle de rang `retirer` retirée. */
+ *  Round `ajouter`, celle de rang `rang` patchée, ou celle de rang `retirer` retirée ; sa zone jouable retirée (`null` : toute
+ *  la carte se joue, `setZoneJouable`). */
 export interface PatchDeScene {
   scalaires?: { [K in keyof ScalairesDeScene]?: ScalairesDeScene[K] | null };
   dimensions?: { w: number; h: number };
@@ -226,6 +228,7 @@ export interface PatchDeScene {
   drapeaux?: Record<string, boolean | null>;
   musique?: { piste: keyof NonNullable<Scene['music']>; id?: string | null };
   stations?: { ajouter: string } | { rang: number; sceneId?: string; pos?: SceneStationAnchor['pos'] } | { retirer: number };
+  zoneJouable?: null;
 }
 
 /** Les groupes que le lieu déclare (`Scene.groups`), chacun sa valeur et son libellé (`choixDuNoeud`). */
@@ -250,10 +253,10 @@ export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
 const porteurDeLAvertissement = (s: SessionDEdition, w: Warning) => porteurDeLaPortee(w.scope, w.refId, projetEdite(s), idDeLaSceneEditee(s));
 
 /** L'avertissement `w` de la session `s` désigne-t-il un fautif que l'éditeur sélectionne : un défaut de plan, un ouvrage
- *  d'architecture, ou un porteur de formulaire de son projet (`porteurDeLAvertissement`) ? Les autres se corrigent
- *  ailleurs. */
+ *  d'architecture, un point d'entrée ou une ancre de bataille (`Warning.fautif`), ou un porteur de formulaire de son
+ *  projet (`porteurDeLAvertissement`) ? Les autres se corrigent ailleurs. */
 export const versLaFautive = (s: SessionDEdition, w: Warning): boolean =>
-  !!w.plan || !!architectureSelectionForWarning(w) || porteurDeLAvertissement(s, w) !== undefined;
+  !!w.plan || !!w.fautif || !!architectureSelectionForWarning(w) || porteurDeLAvertissement(s, w) !== undefined;
 
 /** Les cases du défaut de plan que suit la session `s`, tant que la validation le relève ; aucune sinon. */
 export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: number }[] {
@@ -262,7 +265,8 @@ export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: nu
 }
 
 /** La session `s` amenée au fautif de l'avertissement `w` de sa scène `scene`, à sa couche : un défaut de plan, suivi,
- *  à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une ; un ouvrage d'architecture sélectionné à
+ *  à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une ; un point d'entrée sélectionné, à sa couche ;
+ *  une ancre de bataille, sans sélection : l'inspecteur de la scène, qui la pose ; un ouvrage d'architecture sélectionné à
  *  l'outil d'architecture ; un porteur de formulaire (`porteurDeLAvertissement`), son document ouvert, sélectionné à
  *  l'outil de sélection (`selDuPorteur`), à sa couche s'il est posé sur le plan de la scène (`selPos`, `selZ`). */
 function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): SessionDEdition {
@@ -273,6 +277,11 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
     const at = w.plan.at;
     const zone = at.kind === 'zone' ? scene.effectZones?.find((z) => z.id === at.zoneId) : undefined;
     return vers(at.z, zone ? { type: 'effectZone', id: zone.id } : null, { mode: 'selection' }, planDefectKey(w.plan));
+  }
+  if (w.fautif) {
+    if ('station' in w.fautif) return { ...vers(0, null, { mode: 'selection' }), document: 'scene' };
+    const sel: Sel = { type: 'entry', id: w.fautif.entree };
+    return { ...vers(selZ(scene, sel), sel, { mode: 'selection' }), document: 'scene' };
   }
   const archi = architectureSelectionForWarning(w);
   if (archi) {
@@ -379,6 +388,7 @@ function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
   for (const [cle, valeur] of Object.entries(patch.drapeaux ?? {})) sc = valeur === null ? removeSceneFlag(sc, cle) : setSceneFlags(sc, { [cle]: valeur });
   if (patch.musique) sc = setSceneMusic(sc, patch.musique.piste, patch.musique.id);
   if (patch.stations) sc = stationsPatchees(sc, patch.stations);
+  if (patch.zoneJouable === null) sc = setZoneJouable(sc, null);
   return sc;
 }
 

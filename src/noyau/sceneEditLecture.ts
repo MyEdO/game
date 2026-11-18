@@ -21,6 +21,7 @@ import {
   type WallSeg,
   type WallSide,
   type ZoneArea,
+  type RectDeCases,
   type CellSide,
   canonEdge,
   porteAuteur,
@@ -132,7 +133,7 @@ import { choixSousUneAdresse, type SourceDeLEdition } from './edition/adresseDeP
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
-import type { Rect, Pt, EffectZoneSeed } from './sceneEdit';
+import type { Pt, EffectZoneSeed } from './sceneEdit';
 import { champsDuFormulaire, type CheminsOfferts, type FormeDuFormulaire, type Segment } from './edition/formulaire';
 import { tableTotale } from '../lib/tableTotale';
 
@@ -173,8 +174,9 @@ export type Tool =
   | { mode: 'gomme' };
 
 /** Variantes de l'outil ZONE (rail « zone » de la Palette), la pièce d'abord. `room` et `effect` produisent toutes
- *  deux une `SceneEffectZone` ; ce qui les distingue est leur GRAINE ci-dessous, pas le créateur. */
-export const ZONE_VARIANTS = ['room', 'trigger', 'rest', 'effect'] as const;
+ *  deux une `SceneEffectZone` ; ce qui les distingue est leur GRAINE ci-dessous, pas le créateur. `jouable` pose le
+ *  rectangle où se joue la scène (`Scene.zoneJouable`, `setZoneJouable`). */
+export const ZONE_VARIANTS = ['room', 'trigger', 'rest', 'effect', 'jouable'] as const;
 export type ZoneVariant = (typeof ZONE_VARIANTS)[number];
 
 /** Ce que chaque variante de zone d'effet DONNE à la zone qu'elle dessine — déclaré ICI, à côté du
@@ -241,8 +243,8 @@ export function flowEffectCount(flow: Flow): number {
   return n;
 }
 
-/** Rect englobant l'aire d'une zone d'effet (disque → sa boîte). */
-export function effectZoneRect(area: ZoneArea): Rect {
+/** Rectangle englobant l'aire d'une zone d'effet (disque → sa boîte). */
+export function effectZoneRect(area: ZoneArea): RectDeCases {
   if (area.kind === 'disc') return { x: area.cx - area.radius, y: area.cy - area.radius, w: area.radius * 2 + 1, h: area.radius * 2 + 1 };
   return { x: area.x, y: area.y, w: area.w, h: area.h };
 }
@@ -250,7 +252,7 @@ export function effectZoneRect(area: ZoneArea): Rect {
 /** Aire de forme `kind` occupant la boîte `r` : un disque prend le centre de la boîte et le rayon qui
  *  y tient (côté impair → boîte exacte). Conversion RÉVERSIBLE d'un aller-retour rect→disc→rect sur
  *  une boîte carrée impaire ; l'auteur reste maître du rayon exact par le champ dédié. */
-export function effectZoneArea(kind: ZoneArea['kind'], r: Rect): ZoneArea {
+export function effectZoneArea(kind: ZoneArea['kind'], r: RectDeCases): ZoneArea {
   if (kind === 'rect') return { kind: 'rect', ...r };
   const radius = Math.max(0, Math.floor((Math.max(r.w, r.h) - 1) / 2));
   return { kind: 'disc', cx: r.x + Math.floor(r.w / 2), cy: r.y + Math.floor(r.h / 2), radius };
@@ -311,7 +313,7 @@ export function empriseDuPinceau(dimensions: { w: number; h: number }, p: Pt, ta
   return cases;
 }
 
-const inRect = (p: Pt, r: Rect) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
+const inRect = (p: Pt, r: RectDeCases) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
 
 /** Deux sélections désignent-elles le même élément ? */
 export function sameSel(a: Sel, b: Sel): boolean {
@@ -375,8 +377,8 @@ export function hitAt(scene: Scene, p: Pt, layers: Layers, currentLayer = 0, act
   return null;
 }
 
-/** Rect occupé par la sélection (poignée de resize, surlignage) — null si la sélection est ponctuelle. */
-export function selRect(scene: Scene, sel: Sel): Rect | null {
+/** Rectangle occupé par la sélection (poignée de resize, surlignage) — null si la sélection est ponctuelle. */
+export function selRect(scene: Scene, sel: Sel): RectDeCases | null {
   if (sel?.type === 'trigger') return scene.triggers.find((t) => t.id === sel.id)?.rect ?? null;
   if (sel?.type === 'restZone') return scene.restZones?.[sel.idx]?.rect ?? null;
   if (sel?.type === 'effectZone') { const z = scene.effectZones?.find((ez) => ez.id === sel.id); return z ? effectZoneRect(z.area) : null; }

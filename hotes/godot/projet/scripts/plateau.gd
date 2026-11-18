@@ -269,10 +269,11 @@ func _cases_des(ids: Array) -> Array:
 
 
 ## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume, ses nappes de toit et
-## ses couronnes crénelées (`Monde.poser`, les géométries reçues `recus`, réponse de `morceaux`), et sa météo
+## ses couronnes crénelées (`Monde.poser`, les géométries reçues `recus`, réponse de `morceaux`), la caméra sur le
+## centre de la zone jouable `zone` (`plateau.zoneJouable`, toute la carte sans elle), et sa météo
 ## (`Monde.poser_la_meteo`).
-func poser_le_monde(monde: Dictionary, recus: Dictionary) -> void:
-	_monde.poser(monde, recus)
+func poser_le_monde(monde: Dictionary, recus: Dictionary, zone := Rect2i()) -> void:
+	_monde.poser(monde, recus, zone)
 	_monde.poser_la_meteo(monde.meteo)
 
 

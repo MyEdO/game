@@ -1,10 +1,22 @@
-import { groupePosable, heightAt, idDuCorps, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
+import {
+  dansLaZoneJouable,
+  groupePosable,
+  heightAt,
+  idDuCorps,
+  isMerScene,
+  isWalkable,
+  sceneMetresPerTile,
+  solPraticable,
+  startOf,
+  type Scene,
+} from './monde/scene';
+import { aUnRoleEnJeu } from './monde/usable';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { unreachableDescriptiveZones } from './mapQC';
 import { isRoomZone } from './monde/rooms';
 import { footprintTiles, sizeFootprint } from './monde/footprint';
-import { entitySize } from './monde/spawn';
+import { entiteFootTiles, entitySize } from './monde/spawn';
 import { METRES_PER_LEVEL } from './monde/relief';
 import { borneALaCarte, realFloorAt } from './sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
@@ -68,6 +80,8 @@ export interface Warning {
   architectureRef?: ArchitectureWarningRef;
   /** Défaut de PLAN (`scope: 'plan'`) : famille + endroit à corriger, pour que l'éditeur y emmène. */
   plan?: { family: PlanDefectFamily; at: PlanDefectAt };
+  /** Le point d'entrée (`entree`, son id) ou l'ancre de bataille (`station`, son rang) fautifs, où l'éditeur emmène. */
+  fautif?: { entree: string } | { station: number };
   message: string;
 }
 
@@ -316,6 +330,11 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const realFloor = realFloorAt(s); // plancher RÉEL par étage — la vérité partagée avec la dérivation
     for (const e of s.entities) {
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
+      else if (aUnRoleEnJeu(s, e)) {
+        const horsZone = entiteFootTiles(e, sceneMetresPerTile(s)).filter((t) => !dansLaZoneJouable(s, t.x, t.y));
+        if (horsZone.length)
+          add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors de la zone jouable — ${horsZone.map((t) => `(${t.x},${t.y})`).join(' ')} : il a un rôle en jeu (rencontre, dialogue, marchand, usage ou départ du groupe) — ramène-le dans la zone au glissé, ou agrandis la zone.`);
+      }
       if (e.z && !couchesDesEntites.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
       const appui = fauteDAppui(vue, e);
       if (appui) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} ${DIT_DE_L_APPUI[appui.faute](appui.support)} — repose-le au glissé`);
@@ -326,9 +345,13 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Point d'entrée hors de la convention de pose du noyau (`borneALaCarte`) : une scène chargée, importée
     // ou écrite à la main n'est pas passée par `editEntry`.
     for (const [id, pos] of Object.entries(s.entryPoints ?? {})) {
-      const borne = borneALaCarte(s, pos);
+      const borne = borneALaCarte(s, pos, false);
       if (borne.x !== pos.x || borne.y !== pos.y) add('warn', 'scene', id, `Point d'entrée « ${id} » hors carte ou hors d'une case entière (${pos.x},${pos.y}) — le groupe y arriverait hors de la grille. Repose-le sur une case de la carte.`);
+      else if (!dansLaZoneJouable(s, pos.x, pos.y)) out.push({ level: 'error', sceneId: s.id, scope: 'scene', refId: id, fautif: { entree: id }, message: `Point d'entrée « ${id} » hors de la zone jouable (${pos.x},${pos.y}) — le groupe y arriverait là où rien ne se joue. Repose-le dans la zone.` });
     }
+    (s.stations ?? []).forEach((st, rang) => {
+      if (!dansLaZoneJouable(s, st.pos.x, st.pos.y)) out.push({ level: 'error', sceneId: s.id, scope: 'scene', refId: st.sceneId, fautif: { station: rang }, message: `Ancre de bataille « ${st.sceneId} » hors de la zone jouable (${st.pos.x},${st.pos.y}) — repose-la dans la zone.` });
+    });
     // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `noyau/monde/seating`, source
     // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).
     for (const defect of seatAssignmentDefects(s)) add('error', 'entity', defect.at, defect.message);
@@ -341,7 +364,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // `walkNeighbors` au jeu). Une pièce nommée qu'aucun chemin ne rejoint est du contenu écrit pour rien.
     const start = startOf(s);
     const startEntity = s.entities.find((e) => e.kind === 'heroStart');
-    if (start && startEntity && echelleDuPas) {
+    // Hors de la zone jouable, l'erreur de pose ci-dessus (`aUnRoleEnJeu`) est le seul défaut du départ.
+    if (start && startEntity && echelleDuPas && dansLaZoneJouable(s, start.x, start.y)) {
       if (!isWalkable(vue, start.x, start.y, start.z)) {
         add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z ?? 0} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
       } else {
@@ -538,7 +562,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         const dehors = tuiles.filter((t) => !within(t.x, t.y));
         if (dehors.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} débordant hors de la carte — ${dehors.map((t) => `(${t.x},${t.y})`).join(' ')}.`);
-        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !isWalkable(vue, t.x, t.y, z)) : [];
+        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !solPraticable(vue, t.x, t.y, z)) : [];
         if (barrees.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} posée sur ${barrees.length} case(s) non marchable(s) (mur, eau ou décor) — ${barrees.map((t) => `(${t.x},${t.y})`).join(' ')} à l'étage ${z}.`);
       }

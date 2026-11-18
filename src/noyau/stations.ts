@@ -9,7 +9,7 @@ import type { IconId } from '../data/icons';
 import { isPosteManned } from './monde/shipPostes';
 import { battleSceneById } from './massBattleFlow';
 import type { Combatant, ShipPoste, FireArc } from '../engine/types';
-import type { Scene } from './monde/scene';
+import { rectJouable, type Scene } from './monde/scene';
 
 export type StationKind = 'poste' | 'battleScene';
 
@@ -84,18 +84,17 @@ export function battleScenesToStations(
   scene: Scene | null | undefined,
 ): Station[] {
   const anchors = new Map((scene?.stations ?? []).map((a) => [a.sceneId, a.pos] as const));
-  const w = scene?.dimensions.w ?? 20;
-  const h = scene?.dimensions.h ?? 12;
+  const zone = scene ? rectJouable(scene) : { x: 0, y: 0, w: 20, h: 12 };
   const out: Station[] = [];
   situation.forEach((sceneId, i) => {
     const def = battleSceneById(sceneId);
     if (!def) return;
     // Ancre authorée prioritaire ; sinon étalement déterministe en grille sur le tiers droit du champ
-    // (côté ennemi) pour que la démo sans ancres reste lisible, borné dans les dimensions de la scène.
+    // (côté ennemi) pour que la démo sans ancres reste lisible, borné au rectangle jouable (`rectJouable`).
     const anchor = anchors.get(sceneId);
     const pos = anchor ?? {
-      x: Math.min(w - 1, Math.round(w * 0.5) + (i % 3) * 2),
-      y: Math.min(h - 1, 2 + Math.floor(i / 3) * 3),
+      x: zone.x + Math.min(zone.w - 1, Math.round(zone.w * 0.5) + (i % 3) * 2),
+      y: zone.y + Math.min(zone.h - 1, 2 + Math.floor(i / 3) * 3),
     };
     const heroIds = assignment[sceneId] ?? [];
     out.push({

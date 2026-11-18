@@ -6,6 +6,7 @@
 import { structureAppearances } from '../../data';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data';
 import type { EntreeVivante } from '../../data/datasets';
+import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import { walkNeighbors, type Pt } from './path';
 import { inMapBounds } from './zones';
@@ -14,9 +15,10 @@ import { METRES_PER_LEVEL } from './relief';
 import {
   casesDeFace,
   heightAt,
-  isWalkable,
+  solPraticable,
   piedDeLArete,
   porteEnJeu,
+  rectJouable,
   sceneMetresPerTile,
   structureIsDown,
   tileAt,
@@ -221,14 +223,14 @@ function cleDuMonde(scene: Scene, regard: Regard): string {
 
 /** La hauteur de l'œil de chaque case marchable de `scene` où elle est plus basse que debout (`hauteurDeLOeil`), par
  *  sa clé `x,y,z` (`spaceCellKey`). Retenue par scène et par la version des datasets (`versionDesDatasets` : la marche
- *  et le plafond lisent le catalogue des terrains, `isWalkable`, `estAbsent`). */
+ *  et le plafond lisent le catalogue des terrains, `solPraticable`, `estAbsent`). */
 const oeilsSousPlafond = memoByRef((scene: Scene): Record<string, number> => {
   const { w, h } = scene.dimensions;
   const oeils: Record<string, number> = {};
   for (const { z } of scene.layers)
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
-        if (!isWalkable(scene, x, y, z)) continue;
+        if (!solPraticable(scene, x, y, z)) continue;
         const oeil = hauteurDeLOeil(scene, { x, y, z });
         if (oeil < EYE_H) oeils[spaceCellKey(x, y, z)] = oeil;
       }
@@ -252,6 +254,11 @@ export interface PlateauDeLaScene {
   w: number;
   /** ses dimensions : sa hauteur, en cases. */
   h: number;
+  /**
+   * le rectangle de cases où se joue la scène, `{ x, y, w, h }` (`rectJouable` : toute la grille sans zone jouable) ;
+   * le cadrage de départ vise son centre.
+   */
+  zoneJouable: RectDeCases;
   /** son échelle en mètres par case (lue de la scène par `sceneMetresPerTile`, LDB 15 l.12). */
   metresParCase: number;
   /** la hauteur de l'œil au-dessus du sol, debout (`EYE_H`). */
@@ -328,7 +335,8 @@ export const aretesDeLaScene = (scene: Scene): AreteDessinee[] => aretesEtEmprei
 const plateauRetenu = memoByRefDeps<Scene, PlateauDeLaScene>();
 
 /**
- * Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, l'empreinte de ses arêtes
+ * Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, sa zone jouable
+ * (`rectJouable`), l'empreinte de ses arêtes
  * (`cleDesAretes`, `aretesDeLaScene`), son échelle métrique (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du
  * sol debout (`EYE_H`) et sous le plafond de chaque case qui l'abaisse (`oeilsSousPlafond`), le regard et celui qui le
  * suit dans `REGARDS`, la clé du monde (`cleDuMonde` : météo que le regard montre, décors, tuiles effondrées, navires
@@ -353,7 +361,7 @@ function plateauDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): P
     return dessinees.filter((seg) => (seg.z ?? 0) > coucheDuGroupe(scene, allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
   };
   return {
-    w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, oeilsSousPlafond: oeilsSousPlafond(scene), regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
+    w, h, zoneJouable: rectJouable(scene), metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, oeilsSousPlafond: oeilsSousPlafond(scene), regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
     cleDuMonde: cleDuMonde(scene, regard),
     cleDuRetrait: hash32AuMillieme(octetsDuRetrait(scene, activeZ, couvercle)).toString(36),
     cleDesAretes: aretesEtEmpreinte(scene).cle, aretesDegagees: aretesRetirees(),

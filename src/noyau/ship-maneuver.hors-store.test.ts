@@ -246,6 +246,14 @@ describe('avancerLeNavire (action store) — avance coque + équipage le long du
     expect(b.combatants.find((c) => c.id === 'm1')!.pos).toEqual({ x: 5, y: 5 }); // +1 (même moved)
   });
 
+  it('s’arrête au bord de la zone jouable, pas à celui de la grille (#4392)', () => {
+    const m1 = sailor('m1', { x: 4, y: 5 });
+    const scene = { ...emptyScene('scene-test', 12, 10), zoneJouable: { x: 0, y: 0, w: 7, h: 10 } };
+    banc.setState({ battle: { combatants: [hull({ crewIds: ['m1'] }), m1], order: ['ship'], turn: 0 } as never, facing: { ship: 'E' }, scene });
+    expect(banc.getState().avancerLeNavire('ship', 5)).toBe(1);
+    expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 6, y: 5 });
+  });
+
   it('cap absent OU 0 case dispo → no-op, renvoie 0 (aucune mutation)', () => {
     banc.setState({ battle: { combatants: [hull()], order: ['ship'], turn: 0 } as never, facing: {}, scene: null as never });
     expect(banc.getState().avancerLeNavire('ship', 3)).toBe(0); // pas de cap

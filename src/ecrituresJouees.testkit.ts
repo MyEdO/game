@@ -277,7 +277,15 @@ function poserUnNavire(s: SessionDEdition, x: number, y: number, out: EcritureJo
   return suite;
 }
 
-/** Les écritures jouées sur l'inspecteur d'une scène neuve de la première campagne du jeu sans sélection, puis sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`) et un personnage de chacune des `FICHES` d'une
+/** La zone jouable que l'outil Zone trace dans la scène de la session `s`, de la case `(1, 1)` à la case `(2, 2)` ; son
+ *  écriture, au chemin `zoneJouable` de la scène, s'ajoute à `out` (#4392). */
+function tracerLaZoneJouable(s: SessionDEdition, out: EcritureJouee[]): void {
+  const outil = presser(presser(s, 'outil/zone'), 'zone/jouable');
+  const tracee = jouer(jouer(outil, { geste: 'appui', point: point(1, 1) }), { geste: 'relache', point: point(2, 2) });
+  out.push({ avant: documentDu(s, 'scene'), apres: documentDu(tracee, 'scene'), chemin: ['zoneJouable'], valeur: sceneEditee(tracee).zoneJouable, saisie: 'bouton' });
+}
+
+/** Les écritures jouées sur l'inspecteur d'une scène neuve de la première campagne du jeu sans sélection, puis sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`), la zone jouable tracée (`tracerLaZoneJouable`) et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, le manifeste du `Source/` servi, chacun posé à son outil (Zone,
  *  Personnage), un dialogue que la zone Logique y ajoute, dont l'adresse de prose d'un nœud se compose, une réponse ajoutée à chaque nœud (`REPONSE_AJOUTEE`), puis chacun de ses nœuds et de leurs réponses renommé (`identifierChaque`), une rencontre que la zone Logique y ajoute, où un
  *  personnage d'`ENROLE` et un de la première des `FICHES` s'enrôlent (`enroler`), le second fait monture et chevauché
@@ -300,6 +308,7 @@ export function ecrituresJouees(): EcritureJouee[] {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     s = jouerLInspecteur(boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) })), out);
   }
+  tracerLaZoneJouable(s, out);
   FICHES.forEach(([fiche, branches], rang) => { s = jouerLInspecteur(poserPersonnage(s, fiche, 5 + rang, 5), out, branches); });
   const dialogue = jouerLInspecteur(ajouter(s, 'dialogue', out), out);
   const repondu = choixDe(dialogue, REPONSE_AJOUTEE).reduce((x, id) => presser(x, choixDeLInspecteur(x, id).valeurs[0].id), dialogue);

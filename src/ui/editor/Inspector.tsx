@@ -20,7 +20,7 @@ import {
   type FacadeSection,
   type BuildingMass,
   type RoofDefaults,
-  type ArchitectureRect,
+  type RectDeCases,
   type SceneStationAnchor,
   type FaceDArete,
   type WallSecret,
@@ -377,7 +377,7 @@ export function Inspector({
   const poseToiture = (champ: keyof RoofDefaults, valeur: RoofDefaults[keyof RoofDefaults] | undefined) => {
     if (architectureBody) setScene(poseToitureDuCorps(scene, architectureBody.id, champ, valeur));
   };
-  const patchExclusion = (i: number, patch: Partial<{ z: number; rect: ArchitectureRect }>) => {
+  const patchExclusion = (i: number, patch: Partial<{ z: number; rect: RectDeCases }>) => {
     if (architectureBody) setScene(patchRoofExclusion(scene, architectureBody.id, i, patch));
   };
   const addExclusion = () => {

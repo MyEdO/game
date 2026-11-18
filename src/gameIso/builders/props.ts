@@ -12,7 +12,7 @@
  * Consommé par l'hôte du monde de campagne (`stage/MondeDeCampagne`, qui le sert à SES DEUX regards)
  * et par l'éditeur — mêmes décors partout.
  */
-import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, wallEnds, type ArchitectureRect } from '../../noyau/monde/scene';
+import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, wallEnds, type RectDeCases } from '../../noyau/monde/scene';
 import { roofHidden, massFootBBox } from '../../noyau/monde/buildings';
 import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdit';
 import { ancreDuDecor, decorFootGeometry } from '../../noyau/monde/footprint';
@@ -353,7 +353,7 @@ interface DoorAnchor {
   frontCell: { x: number; y: number };
   facing: Dir4;
 }
-function buildingDoor(scene: Scene, f: ArchitectureRect, z: number): DoorAnchor {
+function buildingDoor(scene: Scene, f: RectDeCases, z: number): DoorAnchor {
   const x0 = f.x, y0 = f.y, x1 = f.x + f.w - 1, y1 = f.y + f.h - 1;
   for (const w of scene.walls ?? []) {
     if (!porteNonSecrete(w) || (w.z ?? 0) !== z) continue;
