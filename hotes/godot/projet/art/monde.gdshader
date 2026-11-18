@@ -8,7 +8,7 @@
 // l'état de la case sous le fragment, lu au plan de sa couche et fondu depuis la vision d'avant, multiplie l'albédo par
 // sa teinte, en lumière linéaire : sous `OUTPUT_IS_SRGB` (rendu de compatibilité), l'albédo est en sRGB et le moteur le
 // linéarise après `fragment()` (`recettes/voile-de-la-vision.gd`) ; sans vision liée, la texture blanche et les teintes
-// à 1 : rien n'est voilé ; la vision, sa part de lumière (`part_de_lumiere`) et `en_srgb` viennent de
+// à 1 : rien n'est voilé ; la vision, sa part de lumière (`part_de_lumiere`), `en_lineaire` et `en_srgb` viennent de
 // `art/vision.gdshaderinc`, que le voile d'un navire lit aussi. La part de lumière a sa jumelle en GDScript pour la
 // teinte d'une instance d'arête (`MiseEnPage.teinte_d_instance`), tenue égale par `recettes/voile-du-bati.gd`.
 // `vertex()` sans branche, comme le code généré : sous une branche, le pilote arrondit autrement la projection des
@@ -31,13 +31,6 @@ varying vec3 uv1_triplanar_pos;
 varying vec3 uv1_power_normal;
 varying vec2 vision_case;
 varying flat float vision_premiere_rangee;
-
-vec3 en_lineaire(vec3 couleur) {
-	return mix(
-			pow((couleur + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)),
-			couleur * (1.0 / 12.92),
-			lessThan(couleur, vec3(0.04045)));
-}
 
 void vertex() {
 	TANGENT = vec3(0.0, 0.0, -1.0) * abs(NORMAL.x);

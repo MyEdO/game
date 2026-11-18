@@ -92,8 +92,9 @@ var _vision_en_attente: Variant = null
 ## liée à la vision comme les nappes.
 var _sols: ImageTexture = null
 var _voiles := {}
-## La matière de la brume de la vision (`brumer`), liée à la vision et aux sols comme un voile, `null` sans elle.
-var _brume: ShaderMaterial = null
+## Les matières de la lumière que la vision voile (`lier_a_la_vision` : la brume de la vision, le sol du hors-carte),
+## liées à la vision et aux sols comme un voile.
+var _liees: Array[ShaderMaterial] = []
 ## Les groupes d'arêtes à teindre à la prochaine image dessinée (`_teindre_le_pose`), chacun en clé, et ceux que chaque
 ## pas du fondu reteint (`avancer_le_fondu`) : ceux dont une case change d'état d'une vision à l'autre
 ## (`_change_d_etat`), tous quand la vision se pose sans fondu (`_mesurer_le_fondu`).
@@ -274,13 +275,13 @@ func _lier_la_vision() -> void:
 		_lier_la_vision_a(matiere)
 
 
-## Les matières qui lisent la vision : celles des morceaux, des nappes, des voiles des navires et de la brume.
+## Les matières qui lisent la vision : celles des morceaux, des nappes, des voiles des navires et de la lumière
+## (`lier_a_la_vision`).
 func _matieres_de_la_vision() -> Array[ShaderMaterial]:
 	var matieres: Array[ShaderMaterial] = []
 	for parmi: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
 		matieres.append_array(parmi.values())
-	if _brume != null:
-		matieres.append(_brume)
+	matieres.append_array(_liees)
 	return matieres
 
 
@@ -330,12 +331,13 @@ func voile(cle: String) -> ShaderMaterial:
 	return _voiles[cle]
 
 
-## La matière `matiere` de la brume de la vision (`Lumiere.brume`, `art/brume-de-la-vision.gdshader`) liée, comme un
-## voile, à la vision posée (`voir`) et au sol de chaque case du volume posé (`_batir_les_sols`), son fondu compris.
-func brumer(matiere: ShaderMaterial) -> void:
-	_brume = matiere
-	_brume.set_shader_parameter("sols", _sols)
-	_lier_la_vision_a(_brume)
+## La matière `matiere` de la lumière (la brume de la vision, `Lumiere.brume`, `art/brume-de-la-vision.gdshader` ; le sol
+## du hors-carte, `Lumiere.sol_hors_carte`, `art/hors-carte.gdshader`) liée, comme un voile, à la vision posée (`voir`)
+## et au sol de chaque case du volume posé (`_batir_les_sols`), son fondu compris.
+func lier_a_la_vision(matiere: ShaderMaterial) -> void:
+	_liees.append(matiere)
+	matiere.set_shader_parameter("sols", _sols)
+	_lier_la_vision_a(matiere)
 
 
 ## Le voile du modèle posé sous la clé `cle` (`voile`) oublié.
@@ -357,8 +359,8 @@ func _batir_les_sols(hauteurs: Array) -> void:
 	_sols = ImageTexture.create_from_image(image)
 	for matiere: ShaderMaterial in _voiles.values():
 		matiere.set_shader_parameter("sols", _sols)
-	if _brume != null:
-		_brume.set_shader_parameter("sols", _sols)
+	for matiere in _liees:
+		matiere.set_shader_parameter("sols", _sols)
 
 
 ## Rien de posé : ni morceau, ni nappe, ni arête.
