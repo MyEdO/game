@@ -324,7 +324,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
-		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
+		_lumiere.eclairer(_vue.lumiere, _vue.plateau)
 	_musique.jouer(_vue.musique)
 	if _disposition.disposer(_vue.disposition, _vue.projection.combat != null):
 		_relier()

@@ -2,8 +2,8 @@
 // d'un navire (`art/voile.gdshader`) et la brume de la vision (`art/brume-de-la-vision.gdshader`) lisent, liée par
 // `VolumeDeScene._lier_la_vision_a` : la texture d'un octet par case, un plan de `vision_rangees_par_plan` rangées par
 // couche, celle d'où le fondu part, la part du fondu et les teintes (inconnue, explorée, vue) ; l'état fondu depuis
-// celui d'avant (`etat_du_fondu`), la part de lumière linéaire d'un état (`part_de_lumiere`) et l'encodage sRGB
-// (`en_srgb`). Sans vision liée, la texture blanche et les teintes à 1 : la part vaut 1. Pour un point de la carte
+// celui d'avant (`etat_du_fondu`), la part de lumière linéaire d'un état (`part_de_lumiere`), le décodage et l'encodage
+// sRGB (`en_lineaire`, `en_srgb`). Sans vision liée, la texture blanche et les teintes à 1 : la part vaut 1. Pour un point de la carte
 // (`etat_regarde`, le voile et la brume), le sol de chaque case (`sols`, `VolumeDeScene._batir_les_sols`, en unités de
 // plateau, infini hors des cases) : dans sa colonne, la case dont le sol est le plus haut à sa hauteur ou dessous, la
 // plus basse de la colonne si aucune ; dans le plan de cette case, l'état se mêle à celui des trois cases voisines vers
@@ -15,6 +15,13 @@ uniform float vision_fondu : hint_range(0.0, 1.0) = 1.0;
 uniform vec3 vision_teintes = vec3(1.0);
 uniform int vision_rangees_par_plan = 1;
 uniform sampler2D sols : filter_nearest, hint_default_black;
+
+vec3 en_lineaire(vec3 couleur) {
+	return mix(
+			pow((couleur + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)),
+			couleur * (1.0 / 12.92),
+			lessThan(couleur, vec3(0.04045)));
+}
 
 vec3 en_srgb(vec3 couleur) {
 	return mix(

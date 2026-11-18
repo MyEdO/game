@@ -1,7 +1,8 @@
 ## La lumière de la scène que le noyau publie (`vue.lumiere`, `CONTRAT.md`, section « Lumière ») : le soleil de l'heure,
-## l'ambiante, le ciel d'un extérieur ou le fond d'un intérieur, la brume de profondeur au-delà du point que la caméra
-## vise ou depuis l'œil, et un foyer par source de lumière de la scène (`Foyer` : sa lampe, sa flamme, son son). Sans `eclairer`, la lumière fixe de la scène reste
-## (l'atelier).
+## l'ambiante, le ciel nuageux d'un extérieur en immersion (`art/ciel.gdshader`) ou le fond de la brume, la brume de
+## profondeur au-delà du point que la caméra vise ou depuis l'œil, le sol du hors-carte (`HorsCarte`,
+## `art/hors-carte.gdshader`) et un foyer par source de lumière de la scène (`Foyer` : sa lampe, sa flamme, son son).
+## Sans `eclairer`, la lumière fixe de la scène reste (l'atelier).
 class_name Lumiere
 extends Node3D
 
@@ -25,10 +26,13 @@ extends Node3D
 @onready var _environnement: Environment = ($Environnement as WorldEnvironment).environment
 @onready var _soleil: DirectionalLight3D = $Soleil
 @onready var _sources: Node3D = $Sources
+@onready var _hors_carte: MeshInstance3D = $HorsCarte
+## La matière du sol du hors-carte, que la vision voile (`VolumeDeScene.lier_a_la_vision`).
+@onready var sol_hors_carte: ShaderMaterial = _hors_carte.get_surface_override_material(0)
 
 var _brume: Dictionary = {}
 ## Sous Forward+ seul (`rendu_complet`), la matière du volume de brouillard de toute la scène, qui porte la densité du
-## brouillard volumétrique de l'environnement (`_porter_la_brume`), et que la vision voile (`VolumeDeScene.brumer`) ;
+## brouillard volumétrique de l'environnement (`_porter_la_brume`), et que la vision voile (`VolumeDeScene.lier_a_la_vision`) ;
 ## `null` sous le rendu de compatibilité, qui ne charge pas un shader de brouillard.
 var brume: ShaderMaterial = null
 
@@ -57,8 +61,8 @@ func _porter_la_brume() -> void:
 	add_child(volume)
 
 
-## Pose `lumiere` sur un plateau de `metres_par_case` mètres par case.
-func eclairer(lumiere: Dictionary, metres_par_case: float) -> void:
+## Pose `lumiere` sur le plateau `plateau` (`vue.plateau` : `w` cases sur `h`, `metresParCase` mètres par case).
+func eclairer(lumiere: Dictionary, plateau: Dictionary) -> void:
 	var soleil: Variant = lumiere.soleil
 	_soleil.visible = soleil != null
 	if soleil != null:
@@ -69,20 +73,46 @@ func eclairer(lumiere: Dictionary, metres_par_case: float) -> void:
 	_environnement.ambient_light_energy = lumiere.ambiante.energie
 	var ciel: Variant = lumiere.ciel
 	if ciel != null:
-		var materiau := _environnement.sky.sky_material as ProceduralSkyMaterial
-		materiau.sky_top_color = Color(ciel.zenith)
-		materiau.sky_horizon_color = Color(ciel.horizon)
-		materiau.ground_horizon_color = Color(ciel.horizon)
-		materiau.ground_bottom_color = Color(lumiere.brume.couleur)
+		var materiau := _environnement.sky.sky_material as ShaderMaterial
+		materiau.set_shader_parameter("zenith", Color(ciel.zenith))
+		materiau.set_shader_parameter("horizon", Color(ciel.horizon))
+		materiau.set_shader_parameter("sol", Color(lumiere.brume.couleur))
 		_environnement.background_mode = Environment.BG_SKY
+		# Le ciel porte la brume à son horizon : la brume de profondeur, qui couvrirait ses nuages, ne le voile pas.
+		_environnement.fog_sky_affect = 0.0
 	else:
 		_environnement.background_mode = Environment.BG_COLOR
 		_environnement.background_color = Color(lumiere.brume.couleur)
+		_environnement.fog_sky_affect = 1.0
 	_environnement.fog_enabled = true
 	_environnement.fog_light_color = Color(lumiere.brume.couleur)
 	_environnement.volumetric_fog_enabled = rendu_complet()
 	_brume = lumiere.brume
-	_poser_les_sources(lumiere.sources, metres_par_case)
+	_poser_le_hors_carte(lumiere.horsCarte, Color(lumiere.brume.couleur), plateau)
+	_poser_les_sources(lumiere.sources, plateau.metresParCase)
+
+
+## Le sol du hors-carte `hors_carte` (`horsCarte` de la vue) autour du plateau `plateau`, qu'il déborde
+## (`MiseEnPage.centre_du_hors_carte`, `etendue_du_hors_carte`) : sa matière habillée comme le dessus d'une case
+## (`VolumeDeScene.texturer`) si sa texture est au projet, sinon sa couleur, comme une case, perdue dans la `penombre`
+## en `fonduCases` cases depuis le bord, ou dans la seule brume ; aucun sans sol.
+func _poser_le_hors_carte(hors_carte: Dictionary, penombre: Color, plateau: Dictionary) -> void:
+	_hors_carte.visible = hors_carte.sol != null
+	if hors_carte.sol == null:
+		return
+	var taille := Vector2i(plateau.w, plateau.h)
+	var texture := VolumeDeScene.texture_de(hors_carte.sol.matiere)
+	var texturee := ResourceLoader.exists(texture)
+	_hors_carte.position = MiseEnPage.centre_du_hors_carte(taille)
+	_hors_carte.scale = MiseEnPage.etendue_du_hors_carte(taille)
+	sol_hors_carte.set_shader_parameter("albedo_texture", null)
+	sol_hors_carte.set_shader_parameter("normal_enabled", false)
+	VolumeDeScene.texturer(sol_hors_carte, hors_carte.sol.matiere, texture, false)
+	sol_hors_carte.set_shader_parameter("teinte", Color.WHITE if texturee else Color(hors_carte.sol.couleur))
+	sol_hors_carte.set_shader_parameter("metres_par_case", plateau.metresParCase)
+	sol_hors_carte.set_shader_parameter("plateau", Vector2(taille))
+	sol_hors_carte.set_shader_parameter("fondu_cases", 0.0 if hors_carte.fonduCases == null else hors_carte.fonduCases)
+	sol_hors_carte.set_shader_parameter("penombre", penombre)
 
 
 ## Un foyer par source de `sources`, réconcilié par sa clé (`cle`) : celui d'une source déjà posée reste, à son point,

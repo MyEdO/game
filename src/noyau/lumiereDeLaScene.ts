@@ -12,7 +12,10 @@ import { sonDEffet, type SonDEffet } from '../data/sons/registre';
 import { parseHex } from '../lib/couleurHex';
 import type { Regard } from './monde/aretes';
 import { sceneBrume, sceneWeatherFx } from './monde/meteo';
-import { heightAt, isIndoor, type Scene } from './monde/scene';
+import { heightAt, isIndoor, tileAt, type Scene } from './monde/scene';
+import { terrainOpaque, terrainWalkable } from './monde/terrain';
+import { couleurDeMatiere } from './monde/volume/matieres';
+import { nomDeMatiere } from './monde/volume/volume';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from './monde/volume/missing';
 import { shelterField, shelterSectionAt } from './monde/volume/toits';
 import { ambientScalar, FLAME_LIFT_M } from './monde/vision';
@@ -35,6 +38,8 @@ const AMBIANTE_PLEINE = 0.75;
 const NUIT = '#141c33';
 /** Teinte de l'ambiante d'un intérieur. */
 const AMBIANTE_INTERIEURE = '#e8c9a0';
+/** La largeur (cases) du fondu où le sol du hors-carte se perd dans la pénombre, hors de l'immersion. */
+const FONDU_DU_HORS_CARTE_CASES = 6;
 /** Énergie d'une source de ton d'intensité 1. */
 const ENERGIE_DES_SOURCES = 2.5;
 /** Le ton de repli visible d'un id hors de `lightTones.json` : la couleur d'alarme, sans vacillement. */
@@ -76,11 +81,16 @@ export interface LumiereDeLaScene {
   /** Direction unitaire VERS le soleil, null sans soleil (intérieur, nuit). */
   soleil: { vers: { x: number; y: number; z: number }; couleur: string; energie: number } | null;
   ambiante: { couleur: string; energie: number };
-  /** Dégradé du ciel d'un extérieur ; null en intérieur, dont le fond est la brume. */
+  /** Dégradé du ciel d'un extérieur en immersion ; null en intérieur et hors de l'immersion, dont le fond est la
+   *  brume. */
   ciel: { zenith: string; horizon: string } | null;
-  /** Brume de profondeur : sa teinte, puis où elle commence et où elle couvre tout, en cases au-delà du point visé, ou
-   *  depuis l'œil (`depuisLOeil`) en immersion : celle d'un intérieur quand le groupe est sous un toit (`shelterField`),
-   *  sinon resserrée par la brume de la météo (`povTightenK`). */
+  /** Ce que la caméra voit au-delà des bords de la carte (#4392) : le sol de son pourtour (`solDuPourtour`), sa matière
+   *  et sa couleur de base, perdu dans la brume en `fonduCases` cases depuis le bord, hors de l'immersion ; `null` en
+   *  immersion, où seule la brume de profondeur le voile. */
+  horsCarte: { sol: { matiere: string; couleur: string } | null; fonduCases: number | null };
+  /** Brume de profondeur : sa teinte, la pénombre du hors-carte hors de l'immersion (`ambiance.json › iso.stageBg`),
+   *  puis où elle commence et où elle couvre tout, en cases au-delà du point visé, ou depuis l'œil (`depuisLOeil`) en
+   *  immersion : celle d'un intérieur quand le groupe est sous un toit (`shelterField`), sinon resserrée par la brume de la météo (`povTightenK`). */
   brume: { couleur: string; debutCases: number; finCases: number; depuisLOeil: boolean };
   sources: SourceDeLumiere[];
 }
@@ -98,18 +108,38 @@ function melange(a: string, b: string, t: number): string {
  * partie, que le noyau calcule entière : Godot n'en pose que les valeurs. Le soleil (`soleil` : la direction unitaire
  * vers lui dans le repère du monde, sa couleur `#rrggbb`, son énergie ; `null` en intérieur et la nuit) suit l'heure et
  * le nord de la scène (`src/noyau/monde/soleil.ts`) ; l'ambiante (`ambiante`) suit le palier de lumière
- * (`ambientScalar`) ; le ciel (`ciel` : zénith et horizon, `null` en intérieur, dont le fond est la brume) et la brume
- * de profondeur (`brume` : sa couleur, puis où elle commence et où elle couvre tout, en cases au-delà du point que la
- * caméra vise, ou depuis l'œil en immersion, `depuisLOeil` : celle d'un intérieur quand le groupe est sous un toit,
- * sinon resserrée par la brume de la météo, `povTightenK`) viennent de l'ambiance du lieu, la nuit et la météo les
- * teintent ; chaque source ponctuelle (`sources` : sa clé, la même d'une vue à l'autre, son foyer en cases, sa couche,
- * sa hauteur en mètres, son rayon en cases, sa couleur, son énergie, son vacillement ou `null`, ce qu'elle montre, `visuel` (`feu`, `flammeche`, `lueur`)
- * ou `null`, et le son qu'elle joue en boucle, `son` ou `null`, tous deux de son ton, `lightTones.json`, #3783) vient
- * des lumières posées et portées de la scène (`sceneLightSources`, `sourceDuTon`).
- * Ce que le groupe ne voit pas ne se montre pas (#3950) : une source portée par un porteur hors de vue (`porteurEnVue`)
- * n'est pas servie ; une source posée sur une case que le groupe ne voit pas garde sa lampe, sans `visuel` ni `son`.
+ * (`ambientScalar`) ; le ciel (`ciel` : zénith et horizon, `null` en intérieur et hors de l'immersion, dont le fond est
+ * la brume) et la brume de profondeur (`brume` : sa couleur, la pénombre du hors-carte hors de l'immersion, puis où
+ * elle commence et où elle couvre tout, en cases au-delà du point que la caméra vise, ou depuis l'œil en immersion,
+ * `depuisLOeil` : celle d'un intérieur quand le groupe est sous un toit, sinon resserrée par la brume de la météo,
+ * `povTightenK`) viennent de l'ambiance du lieu, la nuit et la météo les teintent ; chaque source ponctuelle (`sources`
+ * : sa clé, la même d'une vue à l'autre, son foyer en cases, sa couche, sa hauteur en mètres, son rayon en cases, sa
+ * couleur, son énergie, son vacillement ou `null`, ce qu'elle montre, `visuel` (`feu`, `flammeche`, `lueur`) ou `null`,
+ * et le son qu'elle joue en boucle, `son` ou `null`, tous deux de son ton, `lightTones.json`, #3783) vient des lumières
+ * posées et portées de la scène (`sceneLightSources`, `sourceDuTon`). Au-delà des bords de la carte, le hors-carte
+ * (`horsCarte`, #4392). Ce que le groupe ne voit pas ne se montre pas (#3950) : une source portée par un porteur hors
+ * de vue (`porteurEnVue`) n'est pas servie ; une source posée sur une case que le groupe ne voit pas garde sa lampe,
+ * sans `visuel` ni `son`.
  * @contrat Lumière
  */
+
+/** Le sol du pourtour de `scene`, que le hors-carte prolonge : le terrain le plus fréquent parmi les cases de sol du
+ *  bord de sa couche 0 (marchables, sans le vantail opaque d'une porte), le premier rencontré à égalité ; `null` en
+ *  intérieur ou sans case de sol au bord. */
+function solDuPourtour(scene: Scene): LumiereDeLaScene['horsCarte']['sol'] {
+  if (isIndoor(scene)) return null;
+  const { w, h } = scene.dimensions;
+  const comptes = new Map<string, number>();
+  for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) {
+    if (x > 0 && y > 0 && x < w - 1 && y < h - 1) continue;
+    const terrain = tileAt(scene, x, y);
+    if (terrainWalkable(terrain) && !terrainOpaque(terrain)) comptes.set(terrain, (comptes.get(terrain) ?? 0) + 1);
+  }
+  const [premier] = [...comptes].sort(([, a], [, b]) => b - a);
+  if (!premier) return null;
+  const ref = { domain: 'terrain', id: premier[0] } as const;
+  return { matiere: nomDeMatiere(ref), couleur: couleurDeMatiere(ref) };
+}
 
 /** La lumière de la scène de `etat` à son heure, sous le regard `regard`, telle que le groupe la voit. */
 export function lumiereDeLaScene(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaissance & { scene: Scene }, regard: Regard): LumiereDeLaScene {
@@ -138,9 +168,10 @@ export function lumiereDeLaScene(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaiss
       couleur: interieur ? AMBIANTE_INTERIEURE : deNuit(pov.skyTop),
       energie: AMBIANTE_NOIRE + (AMBIANTE_PLEINE - AMBIANTE_NOIRE) * palier,
     },
-    ciel: interieur ? null : { zenith: deNuit(pov.skyTop), horizon: deNuit(pov.fogOutdoor) },
+    ciel: interieur || !depuisLOeil ? null : { zenith: deNuit(pov.skyTop), horizon: deNuit(pov.fogOutdoor) },
+    horsCarte: { sol: solDuPourtour(scene), fonduCases: depuisLOeil ? null : FONDU_DU_HORS_CARTE_CASES },
     brume: {
-      couleur: dedans ? pov.fogIndoor : deNuit(pov.fogOutdoor),
+      couleur: !depuisLOeil ? ambiance.iso.stageBg : dedans ? pov.fogIndoor : deNuit(pov.fogOutdoor),
       debutCases: profondeur.fogStartT * resserrement,
       finCases: profondeur.farTiles * resserrement,
       depuisLOeil,
