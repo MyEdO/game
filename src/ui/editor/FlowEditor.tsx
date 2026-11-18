@@ -18,12 +18,13 @@ import type { Effect, TestDeScene } from '../../data/schemas/defs-scenes/effets'
 import type { Flow as CoreFlow, FlowTestNode } from '../../engine/flowCore';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { Icon } from '../Icon';
-import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
 import { ChampDeStatut } from './ChampDeStatut';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
 import { facilitationSchema, flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
+import { charKeySchema } from '../../data/schemas/grammaire/valeurs';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';
@@ -150,7 +151,7 @@ export function TestFields<T extends FlowTest = never>({ test, onChange }: { tes
           aria-label="Caractéristique testée"
           title={test.skill ? 'Caractéristique testée à la place de celle de la Compétence (ses avances comptent toujours)' : 'Caractéristique testée — sans Compétence, le jet roule dessus seule'}
           value={test.characteristic ?? ''}
-          onChange={(e) => upd({ characteristic: (e.target.value || undefined) as CharKey | undefined })}
+          onChange={(e) => upd({ characteristic: charKeySchema.safeParse(e.target.value).data })}
         >
           <option value="">{test.skill ? '— Caractéristique de la Compétence —' : '— aucune Caractéristique —'}</option>
           {CHAR_KEYS.map((k) => (

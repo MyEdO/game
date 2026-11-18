@@ -37,7 +37,6 @@ import {
   diseaseDefs,
   contagiousDiseases,
   contractionDue,
-  applyContraction,
   applyDiseaseGangrene,
 } from '../engine/disease';
 import { applyOps } from '../engine/ops';
@@ -62,7 +61,7 @@ import { startCascade, runCascadeImmediate } from './cascade';
 import { nightBands, bandeDeNuit, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand } from './nightBands';
 import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
 import { freeCons, monoStep, choiceStep, pousseSi, buildBand, resultLines, type BandPorteur } from './rollSeam';
-import { porteursABord, type PorteurABord } from './shipCrew';
+import { contracterABord, porteursABord, type PorteurABord } from './shipCrew';
 import { WORLD_STEP_OWNER } from './pendings';
 import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeStepMeta } from './pendings';
@@ -1054,17 +1053,14 @@ export const TABLES = {
       // `applyDiseaseEnd` (engine/rest) est le foyer unique, ici comme dans toute autre voie.
       return { consequences: freeCons(applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng())) };
     }),
-    /** Contagion : BANDE dont chaque rangée retrouve son porteur (`porteursABord`, l'équipage collectif compris) et
+    /** Contagion : BANDE dont chaque rangée retrouve son porteur (`contracterABord`, l'équipage collectif compris) et
      *  écrit son état. LDB 20 l.25 ; MDG 14 l.208 */
     contagion: (get, set, step) => {
       if (!step.participants) return;
-      const aBord = porteursABord(get, set);
       for (const row of step.participants) {
-        const aLui = aBord.find((x) => x.id === row.id);
-        if (!aLui || !row.result) { row.outcome = []; continue; }
-        row.outcome = resultLines(freeCons(applyContraction(aLui.porteur, String(row.meta?.diseaseName ?? ''), row.result.success, battleRng())));
+        const verdict = contracterABord(get, set, row, String(row.meta?.diseaseName ?? ''), battleRng());
+        row.outcome = verdict ? resultLines(freeCons(verdict.lignes)) : [];
         for (const l of row.outcome) get().ecrireAuJournal(l.text);
-        aLui.ecrire();
       }
       return { consequences: [] };
     },

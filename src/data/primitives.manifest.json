@@ -252,6 +252,33 @@
     "verrou": "table-lookup-guard.test.ts"
   },
   {
+    "id": "tirerLaTable",
+    "type": "primitives.manifest",
+    "label": "tirerLaTable",
+    "fichier": "src/engine/ops.ts",
+    "concept": "développement d'une op `rollTable` en rangées tirées (ops + dé `rolled`), sans rien appliquer : table en ligne ou `tableId`, `mod`, `addNegativeSL` sur le `sl` du contexte, `extraRollsPerStep` borné aux pas de Surincantation ; un jet par rangée rendue, à la demande",
+    "perimetre": "`applyOps` (rangée appliquée à la cible), `appliquerAuNavire` (rangées remises en file du navire), tout appelant sans fiche qui tire une table d'ops",
+    "verrou": "src/engine/tirer-la-table.test.ts"
+  },
+  {
+    "id": "exposerALaMaladie",
+    "type": "primitives.manifest",
+    "label": "exposerALaMaladie",
+    "fichier": "src/engine/disease.ts",
+    "concept": "fusion d'une op `exposeDisease` dans une liste d'expositions : entrée neuve, ou celle de la même maladie gardée la plus dure (cran le plus bas, `instant` si l'une l'impose)",
+    "perimetre": "`applyOps` (`diseaseExposure` d'un Combatant), toute liste d'expositions d'un porteur sans fiche",
+    "verrou": "src/engine/tirer-la-table.test.ts"
+  },
+  {
+    "id": "contracterABord",
+    "type": "primitives.manifest",
+    "label": "contracterABord",
+    "fichier": "src/noyau/shipCrew.ts",
+    "concept": "verdict d'une rangée de bande de Contraction : son porteur à bord (`porteursABord`, héros ou équipage collectif) contracte la maladie sur échec (`applyContraction`), puis son état s'écrit",
+    "perimetre": "appliers `contagion` (nuit), `mer-tonneau-expose` (tonneau d'eau) et `maladieDeLEquipage` (maladie tirée sur un marin), toute bande de Contraction dont une rangée peut être l'équipage collectif",
+    "verrou": "src/noyau/navire-flow.hors-store.test.ts"
+  },
+  {
     "id": "findTierEntry",
     "type": "primitives.manifest",
     "label": "findTierEntry",
@@ -1974,7 +2001,7 @@
     "type": "primitives.manifest",
     "label": "capaciteDuLanceur",
     "fichier": "scripts/test/partition.mjs",
-    "concept": "capacité servie par le lanceur de tests sous un environnement et un régime de lancement (`lot` / `suite`, `EMPREINTES_WORKER_MO`) : cœurs, mémoire disponible, empreinte d’un worker",
+    "concept": "capacité servie par le lanceur de tests sous un environnement, un régime de lancement (`lot` / `suite`, `EMPREINTES_WORKER_MO`) et les fichiers lancés (`fichiersNommes`) : cœurs, mémoire disponible, empreinte d’un worker",
     "perimetre": "workers de `run.mjs` et mur estimé de `perimetre.mjs`",
     "verrou": "—"
   },

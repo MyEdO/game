@@ -37,7 +37,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars, refKey } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
-import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT } from './types';
+import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, estCharKey } from './types';
 import { isTradable } from './disponibilite';
 import type { EntreeDe, EntreeVivante } from '../data/datasets';
 import type * as activitiesDef from '../data/schemas/defs/activities';
@@ -664,11 +664,11 @@ export function entrainementTutorRange(advanced: boolean): { minBrass: number; m
   return advanced ? { minBrass: 2, maxBrass: 20 } : { minBrass: 1, maxBrass: 10 };
 }
 
-export interface EntrainementOption {
-  kind: 'competence' | 'caracteristique';
-  /** `id` STABLE de la Compétence ou clé `CharKey` de la Caractéristique. */
-  id: string;
-  spec?: string;
+export type EntrainementOption = EntrainementCommun & (
+  | { kind: 'caracteristique'; id: CharKey; spec?: undefined }
+  | { kind: 'competence'; id: string; spec?: string }
+);
+interface EntrainementCommun {
   label: string;
   /** Compétence Avancée (LDB 23 l.136 : « le tutorat […] coûte le double ») — toujours false pour une Caractéristique. */
   advanced: boolean;
@@ -686,7 +686,7 @@ export const cleDEntrainement = (o: Pick<EntrainementOption, 'id' | 'spec'>): st
 
 /** Le libellé d'une option d'Entraînement, lu de son id et de sa spécialisation (`cleDEntrainement`). */
 export const libelleDEntrainement = ({ id, spec }: Pick<EntrainementOption, 'id' | 'spec'>): string =>
-  id in CHAR_LABELS ? CHAR_LABELS[id as CharKey] : refLabel('skills', { id, spec });
+  estCharKey(id) ? CHAR_LABELS[id] : refLabel('skills', { id, spec });
 
 /** Options d'Entraînement (LDB 23 l.132-136) : Compétences et Caractéristiques HORS carrière
  *  seulement — celles DE carrière s'achètent par l'Avancement normal (`buySkillAdvance`/
