@@ -1145,7 +1145,14 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     expect(bandeDeLEquipage()?.participants?.map((p) => p.id)).toEqual([WORLD_STEP_OWNER]);
   });
 
-  it('`maladie-mode` désactivée : l’équipage tiré n’est pas exposé (LDB 20 l.25)', () => {
+  it('un marin tiré, `contractDisease` : l’équipage porte la maladie sans bande (`contractDisease`, #4448)', () => {
+    imposerLesD100(100);
+    feuilleAuHasard([{ op: 'contractDisease', disease: 'fievre-du-rongeur' }]);
+    expect(maladiesDeLEquipage()).toEqual(['fievre-du-rongeur']);
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('`maladie-mode` désactivée : l’équipage tiré n’est pas exposé (LDB 20 l.35)', () => {
     setRule('maladie-mode', 'off');
     imposerLesD100(100, 30);
     feuilleAuHasard([fievreA30]);

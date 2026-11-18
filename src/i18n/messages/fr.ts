@@ -3044,7 +3044,7 @@ export const fr = {
   'eff.provisionsSansSuivi': 'Provisions de bord : le ravitaillement de l’équipage n’est pas suivi sur ce navire — sans effet.',
   'eff.pendantJours': '{label} : pendant {n} jour(s).',
   'eff.roleSansTitulaire': 'Aucun marin ne tient le rôle « {role} » : sans effet.',
-  'eff.membreAuHasardMarin': 'Le sort tombe sur un marin de l’équipage : ce qui le frappe hors maladie n’est pas joué.',
+  'eff.membreAuHasardMarin': 'Le sort tombe sur un marin de l’équipage : ce qui le frappe n’est pas joué.',
   'eff.maladieDeLEquipageEnCombat': 'Une maladie tombe sur un marin de l’équipage pendant une bataille : elle ne se joue qu’hors bataille.',
   'eff.volontairesHorsFlow': 'Feuille « volontaires » ({question}) hors d’un Flow : seul `runFlow` pose la question à chaque héros.',
   'eff.volontairesAucun': '{question} : aucun héros.',
