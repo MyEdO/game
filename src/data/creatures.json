@@ -20450,6 +20450,183 @@
     ]
   },
   {
+    "id": "marin",
+    "type": "creatures",
+    "label": "Marin",
+    "title": "Marin (Argent 3)",
+    "folder": "Bestiaire de la Mer des Griffes",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 31,
+      "capacite-de-tir": 31,
+      "force": 36,
+      "endurance": 31,
+      "initiative": 36,
+      "agilite": 41,
+      "dexterite": 41,
+      "intelligence": 31,
+      "force-mentale": 41,
+      "sociabilite": 36,
+      "B": 13
+    },
+    "traits": [
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "dague"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "gaffe-2"
+      },
+      {
+        "id": "armure",
+        "parLocalisation": {
+          "tete": 0,
+          "brasG": 0,
+          "brasD": 0,
+          "corps": 1,
+          "jambeG": 0,
+          "jambeD": 0
+        },
+        "matiere": "leather"
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "corps-a-corps",
+        "value": 41,
+        "spec": "bagarre"
+      },
+      {
+        "id": "corps-a-corps",
+        "value": 41,
+        "spec": "base"
+      },
+      {
+        "id": "escalade",
+        "value": 46
+      },
+      {
+        "id": "esquive",
+        "value": 46
+      },
+      {
+        "id": "langue",
+        "value": 36,
+        "spec": "wastelander"
+      },
+      {
+        "id": "musicien",
+        "value": 51,
+        "spec": "flutiau"
+      },
+      {
+        "id": "natation",
+        "value": 46
+      },
+      {
+        "id": "pari",
+        "value": 41
+      },
+      {
+        "id": "ragot",
+        "value": 41
+      },
+      {
+        "id": "ramer",
+        "value": 46
+      },
+      {
+        "id": "resistance",
+        "value": 36
+      },
+      {
+        "id": "resistance-a-l-alcool",
+        "value": 41
+      },
+      {
+        "id": "savoir",
+        "value": 41,
+        "spec": "pays-etrangers"
+      },
+      {
+        "id": "voile",
+        "choix": true,
+        "value": 51
+      }
+    ],
+    "talents": [
+      {
+        "id": "coeur-vaillant"
+      },
+      {
+        "id": "destinee"
+      },
+      {
+        "id": "infatigable"
+      },
+      {
+        "id": "pecheur"
+      },
+      {
+        "id": "pied-marin"
+      }
+    ],
+    "trappings": [
+      {
+        "id": "besace"
+      },
+      {
+        "id": "flasque"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "brosse"
+      },
+      {
+        "id": "cape"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "gaffe-2"
+      },
+      {
+        "id": "justaucorps-de-cuir"
+      },
+      {
+        "id": "seau"
+      },
+      {
+        "id": "serpillere"
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "spells": [],
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 127,
+      "note": "MDG 14 l.316-324"
+    },
+    "appearance": {
+      "species": "humain",
+      "tenue": "marin",
+      "armurePortee": true
+    },
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
+  },
+  {
     "id": "anguille-du-reik",
     "type": "creatures",
     "label": "Anguille du Reik",
