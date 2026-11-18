@@ -213,13 +213,15 @@ func poser_les_cases_jouables(cases: Array[Vector3i]) -> void:
 		_cases_jouables[case] = true
 
 
-## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.
+## Le point de l'écran du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y` : son centre, poussé
+## hors des diagonales de la case (`MiseEnPage.point_publie`), dont l'une est l'arête de ses deux triangles, qu'un
+## rayon tombé dessus peut traverser sans toucher ni l'un ni l'autre (`touche_sous`).
 func points(z := 0) -> Dictionary:
 	var points := {}
 	var t := taille()
 	for y in t.y:
 		for x in t.x:
-			var point: Variant = a_l_ecran(lieu(Vector2i(x, y), z))
+			var point: Variant = a_l_ecran(MiseEnPage.point_publie(lieu(Vector2i(x, y), z)))
 			if point != null:
 				points["%d,%d" % [x, y]] = [point.x, point.y]
 	return points

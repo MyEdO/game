@@ -67,7 +67,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { assetsDeLHote } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
-import { deposerLesPlanches } from './planches.mjs'
+import { deposerLesPlanches, VUE_DE_BASE } from './planches.mjs'
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs'
 import { stockageDuProcessus } from './stockage.mjs'
 
@@ -765,8 +765,8 @@ const RENDUS = ['forward_plus', 'gl_compatibility']
 /** L'écran virtuel de `largeur` × `hauteur` qui porte un rendu réel là où aucun écran n'est ouvert (la CI, un
  *  conteneur). */
 const ecranVirtuel = ({ largeur, hauteur }) => process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', `-screen 0 ${largeur}x${hauteur}x24`] : []
-/** L'écran virtuel des recettes rendues (`rendre`). */
-const ECRAN_VIRTUEL = ecranVirtuel({ largeur: 1280, hauteur: 720 })
+/** L'écran virtuel des recettes rendues (`rendre`), à la vue de base du projet. */
+const ECRAN_VIRTUEL = ecranVirtuel(VUE_DE_BASE)
 
 /** Les cœurs que tient une recette rendue : son moteur en rendu réel et son pont (#3950). */
 const COEURS_D_UNE_RECETTE_RENDUE = 2

@@ -57,7 +57,7 @@ import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, possessionASaTaille, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
-import { isPsychImmune, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
+import { isPsychImmune, PSY, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
 import {
   qualitySum,
   attackModQualityIds,
@@ -810,7 +810,7 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
   // Peur ANNULÉE si une affliction active immunise l'attaquant à ce CANAL (Haine vs son groupe l.41,
   // Amour l.75 dont l’`active` porte déjà « tant que vous défendez ») — siège UNIQUE `psychImmuneToFrom`,
   // partagé avec `fearSourceFor` et la porte hors combat : un seul verdict, aucun roster requis ici.
-  const fearCancelled = psychImmuneToFrom(attacker, sourceCombattant(target), 'peur');
+  const fearCancelled = psychImmuneToFrom(attacker, sourceCombattant(target), PSY.peur);
   // Chaque état psy porte sa contribution `attackDR` (±1) + son ciblage `vs` en DONNÉES — plus de ±1 ni de
   // type (`peur`/`haine`/…) codé par-nom : un nouvel état psy (Phobie…) déclare son DR dans le JSON.
   let dr = 0;

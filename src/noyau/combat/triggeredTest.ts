@@ -59,8 +59,9 @@ import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../trigger
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId, rencontreEngagee } from '../monde/combatants';
 import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
-import { poserLeTraitAcquis } from '../cibleAcquise';
+import { acquerirLeTrait, poserLeTraitAcquis } from '../cibleAcquise';
 import { ciblePsyLue } from '../../engine/psych/ciblage';
+import { ciblesDeTrauma, TRAITS_DE_TRAUMA } from '../../engine/psychology';
 import { touchActors } from '../combatOrParty';
 import { campSpend, spendableAdvantage } from './advantagePool';
 import { t } from '../../i18n';
@@ -840,7 +841,7 @@ export function handleConditionGained(get: Get, set: SetFn, c: Combatant, name: 
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['testDeclencheEnBande', 'testDeclenche', 'choixDeclenche', 'personneChoisie', 'cibleAcquise'] as const;
+export const GENRES_D_ETAPE = ['testDeclencheEnBande', 'testDeclenche', 'choixDeclenche', 'personneChoisie', 'cibleAcquise', 'traitDeTraumatisme'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -977,6 +978,18 @@ export const TABLES = {
       const ligne = cible ? poserLeTraitAcquis(get, hero, type, cible) : t('op.cibleAcquiseAbsente', { name: hero.label });
       set(touchActors(get()));
       return { consequences: freeCons([ligne]) };
+    },
+    /**
+     * Étape `traitDeTraumatisme` (ADE II 09 l.21 ; LDB 21 l.93 ; #4056) : le porteur a choisi (`chosen`) le Trait de son
+     * Trauma parmi `TRAITS_DE_TRAUMA`, dont il choisit la Cible à l'étape `cibleAcquise` qui suit
+     * (`acquerirLeTrait`, `ciblesDeTrauma`). Un porteur qui n'est plus en jeu refuse la conséquence ; un Trait
+     * hors des options laisse le Trauma sans effet, et le journal le dit.
+     */
+    traitDeTraumatisme: (get, set, step, hero) => {
+      if (!hero || hero.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const type = TRAITS_DE_TRAUMA.find((p) => p === step.chosen);
+      if (!type) return { consequences: freeCons([t('op.traumatismeSansTrait', { name: hero.label })]) };
+      acquerirLeTrait(get, set, hero, type, ciblesDeTrauma());
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

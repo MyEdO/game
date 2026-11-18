@@ -183,7 +183,7 @@ import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurat
 import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
-import { spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
+import { spendResolveForPsychImmunity, calmeDAcquisition, ciblesDAnimositeAcquise, PSY } from '../engine/psychology';
 import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback } from '../engine/qualities/dispatch';
@@ -366,15 +366,15 @@ function refuseParSonEntree(get: Get, set: Set, entree: string, active: Combatan
   return true;
 }
 
-/** Animosité & Haine sur Destin dépensé (ADE II 09 l.15) : sur un Test de Calme raté (`calmeDeLAnimositeAcquise`), le
+/** Animosité & Haine sur Destin dépensé (ADE II 09 l.15) : sur un Test de Calme raté (`calmeDAcquisition`), le
  *  Trait envers l'une des Cibles qu'offre le tueur `foeId` (`ciblesDAnimositeAcquise`, `acquerirLeTrait`) ; rend
  *  sa ligne de journal, `null` sans Trait posé d'office. */
 function acquireAnimositeOnFate(get: Get, set: Set, hero: Combatant, foeId: string | undefined): string | null {
   const tueur = foeId === undefined ? undefined : porteurParId(get(), foeId);
   if (!tueur) return null;
-  const calme = calmeDeLAnimositeAcquise(hero, battleRng());
+  const calme = calmeDAcquisition(hero, 'intermediaire', battleRng());
   if (!calme || calme.success) return null;
-  return acquerirLeTrait(get, set, hero, 'animosite', ciblesDAnimositeAcquise(hero, tueur));
+  return acquerirLeTrait(get, set, hero, PSY.animosite, ciblesDAnimositeAcquise(hero, tueur));
 }
 
 /** Hors bataille, le Destin résolu rend la main à la série d'attaques subies ouverte (`poursuivreLaSerie`), qui l'attendait.
@@ -3456,7 +3456,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!c) return;
       // ISSUE dérivée par le goulot (`FLOWS.frenesie.apply`, canal COMBAT) : pending FOURNI (fermé juste avant).
       const log = FLOWS.frenesie.apply(get, { p: pf });
-      if (lance.success) (c.psychState ??= []).push({ type: 'frenesie' });
+      if (lance.success) (c.psychState ??= []).push({ type: PSY.frenesie });
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ...evLines(log, 'frenesie', c.id)] } });
       checkBattleOver(get, set);
     },
