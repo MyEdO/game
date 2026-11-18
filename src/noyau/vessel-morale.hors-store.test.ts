@@ -115,11 +115,13 @@ describe('#4243 — l’équipage PNJ, porteur collectif : « La maladie fait ra
   afterEach(() => resetRule('mer-moral-maladie-contagieuse-a-bord'));
   const MALADIE = findMoraleFactor('maladie-fait-rage')!.label;
   const equipage = () => porteursABord(banc.getState, banc.setState).find((p) => p.id === WORLD_STEP_OWNER);
-  /** L'équipage collectif contracte `maladie` par la couture de bord, puis une semaine passe. */
-  function equipageMalade(maladie: string): void {
+  /** L'équipage collectif contracte `maladie` par la couture de bord (incubation de `incubationJours` quand elle est
+   *  posée), puis une semaine passe, la maladie avançant avec l'horloge. */
+  function equipageMalade(maladie: string, incubationJours?: number): void {
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
     const e = equipage()!;
-    applyContraction(e.porteur, maladie, false, makeRNG(1));
+    if (incubationJours === undefined) applyContraction(e.porteur, maladie, false, makeRNG(1));
+    else e.porteur.diseases = [contractDisease(maladie, makeRNG(1), { incubation: incubationJours })!];
     e.ecrire();
     banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
   }
@@ -135,7 +137,7 @@ describe('#4243 — l’équipage PNJ, porteur collectif : « La maladie fait ra
   });
 
   it('maladie du collectif encore en incubation → aucun facteur de maladie', () => {
-    equipageMalade('verole-urticante');
+    equipageMalade('verole-urticante', 30);
     expect(banc.getState().vessel!.porteurDeLEquipage?.diseases?.[0]?.phase).toBe('incubation');
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
     expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);

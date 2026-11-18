@@ -62,7 +62,9 @@ import { applyForcedMarch } from '../engine/travel';
 import { startCascade, runCascadeImmediate } from './cascade';
 import { nightBands, bandeDeNuit, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand } from './nightBands';
 import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
-import { freeCons, monoStep, choiceStep, pousseSi } from './rollSeam';
+import { freeCons, monoStep, choiceStep, pousseSi, buildBand, resultLines, type BandPorteur } from './rollSeam';
+import { porteursABord, type PorteurABord } from './shipCrew';
+import { WORLD_STEP_OWNER } from './pendings';
 import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeStepMeta } from './pendings';
 import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
@@ -261,7 +263,7 @@ export function sleepParty(
 
   // Contagion de promiscuité (chambrée/campement — Toux et éternuements, LDB 20 l.206) : 1 Test de Contraction par nuit de repos.
   // Règle optionnelle « Utilisation des Maladies » : désactivée si maladie-mode = off.
-  for (const c of rule('maladie-mode') === 'off' ? [] : runContagion(party, n, rng)) {
+  for (const c of rule('maladie-mode') === 'off' ? [] : runContagion(get, set, n, rng)) {
     entries.push({ actorId: c.actorId, icon: 'medical/infection', label: t('rf.contagionLabel', { disease: diseaseLabel(c.dz) }), text: c.log.join(' '), tone: 'echec' });
     journal.push(...c.log);
   }
@@ -274,44 +276,74 @@ export function sleepParty(
 }
 
 /** Contagion de promiscuité (Toux et éternuements, LDB 20 l.206 ; 1 Test/nuit) — chemin EAGER (sleepParty,
- *  multi-jours), roule le Test. La cascade utilise `collectContagion` (jet différé en étape). */
-function runContagion(party: Combatant[], n: number, rng: RNG): { actorId: string; dz: string; log: string[] }[] {
+ *  multi-jours, hors du bord), roule le Test. Même source que la cascade : `collectContagion`. */
+function runContagion(get: Get, set: Set, n: number, rng: RNG): { actorId: string; dz: string; log: string[] }[] {
   const out: { actorId: string; dz: string; log: string[] }[] = [];
-  for (const sick of party) {
-    for (const dz of contagiousDiseases(sick)) {
-      for (const other of party) {
-        if (other === sick || other.dead) continue;
-        const def = diseaseDefs()[dz.id];
-        for (let d = 0; d < n; d++) {
-          const log = rollContraction(other, dz.id, testValue(other, { skill: { id: 'resistance' } }), def?.contractDifficulty ?? 'accessible', rng);
-          if (log.length) out.push({ actorId: other.id, dz: dz.id, log });
-        }
+  const party = get().party;
+  for (const c of collectContagion(porteursDeLaNuit(get, set, false))) {
+    const other = party.find((h) => h.id === c.porteurId);
+    if (!other) continue;
+    for (let d = 0; d < n; d++) {
+      const log = rollContraction(other, c.diseaseName, testValue(other, { skill: { id: 'resistance' } }), c.difficulty, rng);
+      if (log.length) out.push({ actorId: other.id, dz: c.diseaseName, log });
+    }
+  }
+  return out;
+}
+
+/** Un Test de Contraction d'entretien différé (contagion de promiscuité OU tambouille piètre) ; `porteurId` est l'id
+ *  de rangée du porteur (`PorteurABord.id`). */
+interface ContagionSpec { porteurId: string; diseaseName: string; difficulty: Difficulty; }
+
+/** Les porteurs de maladies de la nuit : les PJ vivants, et l'équipage collectif sur une nuit à bord. MDG 14 l.208 */
+function porteursDeLaNuit(get: Get, set: Set, aBord: boolean): PorteurABord[] {
+  return porteursABord(get, set).filter((p) => aBord || p.id !== WORLD_STEP_OWNER);
+}
+
+/** RECENSE les Tests de Contraction de promiscuité DÛS (sans les rouler) : chaque porteur sain résiste à la maladie
+ *  contagieuse d'un autre porteur (1 jet par paire, dédoublonné). LDB 20 l.206 ; MDG 14 l.208 */
+function collectContagion(porteurs: readonly PorteurABord[]): ContagionSpec[] {
+  const out: ContagionSpec[] = [];
+  const seen = new Set<string>();
+  for (const sick of porteurs) {
+    for (const dz of contagiousDiseases(sick.porteur)) {
+      for (const other of porteurs) {
+        if (other === sick) continue;
+        const key = `${other.id}:${dz.id}`;
+        if (seen.has(key) || !contractionDue(other.porteur, dz.id)) continue;
+        seen.add(key);
+        out.push({ porteurId: other.id, diseaseName: dz.id, difficulty: diseaseDefs()[dz.id]?.contractDifficulty ?? 'accessible' });
       }
     }
   }
   return out;
 }
 
-/** Un Test de Contraction d'entretien différé (contagion de promiscuité OU tambouille piètre). */
-interface ContagionSpec { heroId: string; diseaseName: string; difficulty: Difficulty; }
-
-/** RECENSE les Tests de Contraction de promiscuité DÛS (sans les rouler) — pour la cascade de nuit :
- *  chaque héros sain résiste à la maladie contagieuse d'un compagnon (1 jet par paire, dédoublonné). */
-function collectContagion(party: Combatant[]): ContagionSpec[] {
-  const out: ContagionSpec[] = [];
-  const seen = new Set<string>();
-  for (const sick of party) {
-    for (const dz of contagiousDiseases(sick)) {
-      for (const other of party) {
-        if (other === sick || other.dead) continue;
-        const key = `${other.id}:${dz.id}`;
-        if (seen.has(key) || !contractionDue(other, dz.id)) continue;
-        seen.add(key);
-        out.push({ heroId: other.id, diseaseName: dz.id, difficulty: diseaseDefs()[dz.id]?.contractDifficulty ?? 'accessible' });
-      }
-    }
+/** Les bandes de Contraction de la nuit : une par maladie, une rangée par porteur exposé (`porteursABord`) ; un
+ *  porteur exposé deux fois à la même maladie ouvre une bande de plus. LDB 20 l.25, l.206 ; MDG 14 l.208 */
+function contagionBands(get: Get, porteurs: readonly PorteurABord[], dues: readonly ContagionSpec[]): BuiltCascadeStep[] {
+  const bandes: { diseaseName: string; ids: string[]; porteurs: BandPorteur[] }[] = [];
+  for (const c of dues) {
+    const aLui = porteurs.find((p) => p.id === c.porteurId);
+    if (!aLui) continue;
+    const { rangee } = aLui;
+    // Contraction = « Test de Résistance » (`LDB 20 l.25`) : les bonus d'effet SCOPÉS à cette maladie (Fleur de lune,
+    // Tonique digestif) en lignes NOMMÉES sur la cible d'un porteur à fiche.
+    const ligne: BandPorteur = rangee.actor ? { ...rangee, ligne: { ...rangee.ligne, surLaCible: diseaseTestModLines(rangee.actor, c.diseaseName) } } : rangee;
+    const bande = bandes.find((b) => b.diseaseName === c.diseaseName && !b.ids.includes(c.porteurId))
+      ?? bandes[bandes.push({ diseaseName: c.diseaseName, ids: [], porteurs: [] }) - 1];
+    bande.ids.push(c.porteurId);
+    bande.porteurs.push({ ...ligne, difficulty: c.difficulty, menace: 'maladie', meta: { diseaseName: c.diseaseName } });
   }
-  return out;
+  return bandes.flatMap(({ diseaseName, porteurs: rangees }, i) => buildBand(get, {
+    id: `contagion-${diseaseName}-${i}`, kind: 'contagion', icon: 'medical/infection',
+    label: stepPrecision(t('step.contagion'), diseaseLabel(diseaseName)),
+    stake: nightStakeRef('contagion'),
+    menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
+    meta: { diseaseName },
+    difficulty: rangees[0].difficulty ?? 'accessible',
+    porteurs: rangees,
+  }) ?? []);
 }
 
 // ── CASCADE de NUIT (régime SÉQUENTIEL influençable, cf. cascade.ts) : chaque jet subi devient une
@@ -469,20 +501,10 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
   steps.push(...deferredUpkeepSteps(party, deferred, steps.length));
-  // CONTAGION (promiscuité — Toux et éternuements, LDB 20 l.206 + repas de la qualité à risque, LDB 66 l.5) → un jet de Résistance influençable par héros exposé.
-  for (const c of [...collectContagion(party), ...(opts.extraContagion ?? [])]) {
-    const h = party.find((x) => x.id === c.heroId);
-    if (!h || h.dead) continue;
-    const st = monoStep({ id: `contagion-${c.heroId}-${steps.length}`, kind: 'contagion', actor: h, label: stepPrecision(t('step.contagion'), diseaseLabel(c.diseaseName)), icon: 'medical/infection',
-      rollLabel: SKILL_RESISTANCE(), difficulty: c.difficulty,
-      stake: nightStakeRef('contagion'),
-      // Contraction = « Test de Résistance » (`LDB 20 l.25`) : valeur de la porte, et les bonus d'effet
-      // SCOPÉS à cette maladie (Fleur de lune, Tonique digestif) en lignes NOMMÉES sur la cible.
-      ligne: { test: { skill: { id: 'resistance' } }, surLaCible: diseaseTestModLines(h, c.diseaseName) },
-      meta: { diseaseName: c.diseaseName },
-      menace: 'maladie' }); // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
-    pousseSi(steps, st);
-  }
+  // CONTAGION (promiscuité — Toux et éternuements, LDB 20 l.206, MDG 14 l.208 à bord + repas de la qualité à risque,
+  // LDB 66 l.5) → une bande de Résistance influençable par maladie, une rangée par porteur exposé.
+  const porteurs = porteursDeLaNuit(get, set, toitDeLaNuit(p, party) === 'bord');
+  steps.push(...contagionBands(get, porteurs, [...collectContagion(porteurs), ...(opts.extraContagion ?? [])]));
   // Campement : Exposition (intempéries) — abri de fortune (STEP) → insère les jets d'Exposition.
   const campers = party.filter((h) => !h.dead && p.perHero[h.id]?.lodging === 'dehors');
   const severity = activeExposureSeverity(get);
@@ -839,7 +861,7 @@ function dormir(get: Get, set: Set): void {
     // 'ration' : consommée par l'entretien quotidien (#T3) ; 'rien' : la Faim suivra son cours.
     for (const { maladie, pourcent } of risquesDesOffres(p, cfg)) {
       if (rng.int(1, 100) <= pourcent && contractionDue(h, maladie)) {
-        extraContagion.push({ heroId: h.id, diseaseName: maladie, difficulty: diseaseDefs()[maladie]?.contractDifficulty ?? 'accessible' });
+        extraContagion.push({ porteurId: h.id, diseaseName: maladie, difficulty: diseaseDefs()[maladie]?.contractDifficulty ?? 'accessible' });
       }
     }
   }
@@ -1038,8 +1060,19 @@ export const TABLES = {
       // `applyDiseaseEnd` (engine/rest) est le foyer unique, ici comme dans toute autre voie.
       return { consequences: freeCons(applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng())) };
     }),
-    contagion: bandeDeNuit((_get, _set, _band, row, hero) => {
-      return { consequences: freeCons(applyContraction(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, battleRng())) };
-    }),
+    /** Contagion : BANDE dont chaque rangée retrouve son porteur (`porteursABord`, l'équipage collectif compris) et
+     *  écrit son état. LDB 20 l.25 ; MDG 14 l.208 */
+    contagion: (get, set, step) => {
+      if (!step.participants) return;
+      const aBord = porteursABord(get, set);
+      for (const row of step.participants) {
+        const aLui = aBord.find((x) => x.id === row.id);
+        if (!aLui || !row.result) { row.outcome = []; continue; }
+        row.outcome = resultLines(freeCons(applyContraction(aLui.porteur, String(row.meta?.diseaseName ?? ''), row.result.success, battleRng())));
+        for (const l of row.outcome) get().ecrireAuJournal(l.text);
+        aLui.ecrire();
+      }
+      return { consequences: [] };
+    },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;
