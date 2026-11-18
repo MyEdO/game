@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { estObjet } from '../../../lib/objet.mjs';
 import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
-import { declarerEnfants } from './descente';
+import { declarerEnfants, defDe } from './descente';
 import { marquerProduit } from './interne/produits';
 import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
@@ -56,6 +56,7 @@ import {
   sizeCategorySchema,
   symptomSeveritySchema,
   tirageSchema,
+  type FormuleAuPeche,
 } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import {
@@ -1763,12 +1764,12 @@ function payloadAuPeche(noeud: z.ZodType, op: string): z.ZodType {
   if (noeud instanceof z.ZodObject) {
     const shape: z.ZodRawShape = Object.fromEntries(Object.entries(noeud.shape).map(([champ, v]) => [champ, feuilleAuPeche(v)]));
     if (Object.entries(shape).every(([champ, v]) => v === noeud.shape[champ])) return noeud;
-    return marquerProduit(noeud.clone(z.util.mergeDefs(noeud._zod.def, { shape }), { parent: true }), 'payloadsDe', op);
+    return marquerProduit(noeud.clone(z.util.mergeDefs({ ...defDe(noeud) }, { shape }), { parent: true }), 'payloadsDe', op);
   }
   if (noeud instanceof z.ZodUnion) {
     const options = noeud.options.map((o) => (o instanceof z.ZodType ? payloadAuPeche(o, op) : o));
     if (options.every((o, i) => o === noeud.options[i])) return noeud;
-    return marquerProduit(noeud.clone(z.util.mergeDefs(noeud._zod.def, { options }), { parent: true }), 'payloadsDe', op);
+    return marquerProduit(noeud.clone(z.util.mergeDefs({ ...defDe(noeud) }, { options }), { parent: true }), 'payloadsDe', op);
   }
   return noeud;
 }
@@ -2095,10 +2096,18 @@ export function executeesDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodArray<z.
   return liste;
 }
 
-/** Liste d'ops EXÉCUTÉE au dialecte du Péché (régime `formule: 'peche'`), portée par une rangée de `miscast.json` : sa
- *  sortie reste la forme LOOSE en donnée, le moteur la lit par `gameOpSchema` après avoir lié le Péché
- *  (`engine/miscast.ts`). LDB 40 l.46 */
-export const opsAuPecheSchema: z.ZodType<z.output<typeof OP_EN_DONNEE>[]> = executeesDe(mecaniqueDe({ formule: 'peche' }).gameOp);
+/** Un champ `T` de payload au régime `formule: 'peche'` : une `Formula` (facultative ou non) admet `FormuleAuPeche`, comme
+ *  `feuilleAuPeche` la substitue au schéma. */
+type FeuilleAuPeche<T> = [Exclude<T, undefined>] extends [Formula]
+  ? [Formula] extends [Exclude<T, undefined>] ? FormuleAuPeche | Extract<T, undefined> : T
+  : T;
+
+/** Une op `O` au régime `formule: 'peche'` : chacun de ses champs de premier niveau passe par `FeuilleAuPeche`. */
+type AuPeche<O> = O extends unknown ? { [K in keyof O]: FeuilleAuPeche<O[K]> } : never;
+
+/** Liste d'ops EXÉCUTÉE au dialecte du Péché (régime `formule: 'peche'`), portée par une rangée de `miscast.json` : le
+ *  moteur la lit par `gameOpSchema` après avoir lié le Péché (`engine/miscast.ts`). LDB 40 l.46 */
+export const opsAuPecheSchema: z.ZodType<AuPeche<GameOp>[]> = executeesDe(mecaniqueDe({ formule: 'peche' }).gameOp);
 export const effectOpSchema = FERMEE.effectOp;
 export const flowSchema: z.ZodType<Flow<EffectOp>> = FERMEE.flow;
 export const triggeredEffectSchema: ReturnType<typeof effetDeclencheSur> = FERMEE.triggeredEffect;
