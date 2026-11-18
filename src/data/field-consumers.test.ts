@@ -33,9 +33,7 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
  *  Seul le rapport dérivé est retenu, aucun Program. */
 const rapport = detenteur(buildFieldConsumersMd);
 
-const STOCK_CHAMPS_DE_SCHEMA: readonly (readonly [string, string])[] = [
-  ["talents.json:[].variants", "Lecteur vérifié : src/engine/variants.ts:29-31 via src/engine/magic.ts:365, careerSlots.ts:295 et combatFeatures/dispatch.ts:20/56/61 ; provenance générique non reliée par le scanner."],
-];
+const STOCK_CHAMPS_DE_SCHEMA: readonly (readonly [string, string])[] = [];
 
 describe('champs de schéma de dataset — type explicite ou lecteur relié', () => {
   it('les champs sans type ni lecteur sont exactement ceux du stock nominatif motivé', () => {

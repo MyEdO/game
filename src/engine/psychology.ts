@@ -6,7 +6,7 @@
  */
 import type { IconId } from '../data/icons';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, type EffectSource, type TerreurSubie } from './types';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import type { Id, RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
 import { RNG } from './dice';
 import { rollTest, extendedTestStep, jetPose, type JetPose } from './tests';
@@ -261,7 +261,7 @@ export function isPsychAfflictionActive(p: PsychAffliction): boolean {
  *  requis ICI — les 3 résolutions d'attaque (`combineOpposed`/`resolveMeleePassive`/`resolveRanged`)
  *  n'en ont aucun en portée et lisent pourtant le MÊME verdict que `fearSourceFor`/`psychologieDeRencontre`.
  *  Data-driven : aucune entité nommée, aucun canal codé. */
-export function psychImmuneToFrom(self: Combatant, s: SourcePsy, channel: string): boolean {
+export function psychImmuneToFrom(self: Combatant, s: SourcePsy, channel: Id<'psychology'>): boolean {
   for (const p of self.psychState ?? []) {
     if (p.active !== true) continue;
     const d = findPsychologyById(p.type);

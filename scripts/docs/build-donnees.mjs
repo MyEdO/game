@@ -230,7 +230,7 @@ function rendu() {
   out += `  }\n`
   out += '  ```\n'
   out += `  (Lot 2, #563 : 15 entrées migrées — republications identiques et scissions prose/ligne-de-stats.)\n`
-  out += `- **\`variants?: Variant[]\`** (#563/#564) — variante RÉGLÉE d'une entrée sous une **règle optionnelle**\n`
+  out += `- **\`variants?\`** (#563/#564, \`variantOf\`) — variante RÉGLÉE d'une entrée sous une **règle optionnelle**\n`
   out += `  du registre \`OPTIONAL_RULES\` (\`src/engine/policy.ts\`, lue par \`rule(id)\`) : \`when.rule\` est\n`
   out += `  un id du registre, refusé au parse hors de ses ids (\`idDe('regleOptionnelle')\`,\n`
   out += `  \`src/data/schemas/grammaire/valeurs.ts\`), \`when.equals\` défaut \`true\` ; \`desc\`/\`source\` PROPRES\n`

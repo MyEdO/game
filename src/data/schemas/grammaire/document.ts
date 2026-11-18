@@ -12,7 +12,16 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { deDeTirageSchema, idDIconeSchema, maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
+import {
+  deDeTirageSchema,
+  idDIconeSchema,
+  maisonSchema,
+  sourceRefSchema,
+  secondarySourceRefSchema,
+  variantOf,
+  type variantWhenSchema,
+  type GenreDeFragment,
+} from './valeurs';
 import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
@@ -219,11 +228,20 @@ type SortieAffinee<O extends OptionsDocument, E> = O extends { readonly affinerE
 /** `T` réduit, cas par cas, à ses clés de `K`. */
 type SurLesClesDe<T, K extends PropertyKey> = T extends unknown ? { [P in keyof T as P extends K ? P : never]: T[P] } : never;
 
-/** L'entrée d'un document avant son affinage : enveloppe, champs du def, charge, sous la charge par discriminant de son
- *  espace (une entrée de liste). */
+/** Les `variants` que la fabrique compose depuis `options.variantes` (`variantOf`) : chaque variante, les champs
+ *  déclarés de l'entrée `E` en partiel, et sa garde `when`. Rien sans `options.variantes`. */
+type VariantesDuDocument<E, O extends OptionsDocument> = O extends { readonly variantes: readonly (infer K extends string)[] }
+  ? { variants?: (Partial<Pick<E, K & keyof E>> & { when: z.output<typeof variantWhenSchema> })[] }
+  : unknown;
+
+/** L'entrée d'un document avant son affinage, sans sa charge : enveloppe, champs du def. */
+type EntreeSansCharge<T extends string, C extends Record<string, z.ZodType>, O extends OptionsDocument> = EnveloppeDuDocument<T, O> & ChampsDuDocument<C>;
+
+/** L'entrée d'un document avant son affinage : enveloppe, champs du def, variantes, charge, sous la charge par
+ *  discriminant de son espace (une entrée de liste). */
 type EntreeBrute<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = F extends 'entite'
-  ? ChargeDiscriminee<EnveloppeDuDocument<T, O> & ChampsDuDocument<C> & ChargeDuDocument<F, O>, EspaceDe<O>>
-  : EnveloppeDuDocument<T, O> & ChampsDuDocument<C> & ChargeDuDocument<F, O>;
+  ? ChargeDiscriminee<EntreeSansCharge<T, C, O> & VariantesDuDocument<EntreeSansCharge<T, C, O>, O> & ChargeDuDocument<F, O>, EspaceDe<O>>
+  : EntreeSansCharge<T, C, O> & VariantesDuDocument<EntreeSansCharge<T, C, O>, O> & ChargeDuDocument<F, O>;
 
 /** L'ENTRÉE d'un document au type : son entrée brute, et ce que son affinage garantit. */
 type EntreeDuDocument<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = EntreeBrute<T, F, C, O> &
@@ -231,8 +249,8 @@ type EntreeDuDocument<T extends string, F extends FamilleDocument, C extends Rec
 
 /**
  * Le DATASET d'un document au type, tel que son fichier le porte : liste d'entrées (`entite`), l'entrée
- * seule (`config`, `record`). Hors type : `variants` (`options.variantes`) et ce qu'`affinerDataset`
- * transformerait — son nœud rend `z.ZodType<unknown>`.
+ * seule (`config`, `record`). Hors type : ce qu'`affinerDataset` transformerait — son nœud rend
+ * `z.ZodType<unknown>`.
  */
 export type DatasetDuDocument<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = F extends 'entite'
   ? EntreeDuDocument<T, F, C, O>[]
