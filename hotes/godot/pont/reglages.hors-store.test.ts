@@ -115,6 +115,17 @@ describe('les réglages par le pont', () => {
     }
   });
 
+  it('chaque choix d’un `mode` se dit par son libellé, jamais par sa valeur ; un nombre se lit, signé s’il modifie un Test', () => {
+    const z = zones(table().appel);
+    const modes = OPTIONAL_RULES.filter((r): r is Extract<OptionalRule, { kind: 'mode' }> => r.kind === 'mode');
+    const nus = modes.flatMap((r) => (regle(z, r.id) as Choix).valeurs.filter((v) => v.libelle === (v.jeu as { args: unknown[] }).args[1]).map((v) => `${r.id} ${v.libelle}`));
+    expect(nus, 'un choix affiché par sa valeur').toEqual([]);
+    const croisee = regle(z, 'combat-croisee-melee-difficulte') as Choix;
+    expect(croisee.valeurs.find((v) => (v.jeu as { args: unknown[] }).args[1] === 'tresDifficile')!.libelle, 'une Difficulté à son nom').toBe(t('difficulty.tresDifficile'));
+    const lue = (id: string) => texte(entiteDe(z, id).elements, 'valeur');
+    expect([lue('combat-plafond-bonus-difficulte'), lue('combat-plafond-malus-difficulte'), lue(PLAFOND.id)], 'un bonus, un malus, un nombre').toEqual(['+60', '−30', String(PLAFOND.default)]);
+  });
+
   it('l’action d’une règle se montre à la valeur qui l’offre, refusée sans partie ouverte', () => {
     const r = OPTIONAL_RULES.find((x) => x.action !== undefined)!;
     const { appel } = table();

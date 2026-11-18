@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[node name="BulleAPointe" type="VBoxContainer"]
+theme_type_variation = &"BulleSerree"
+
+[node name="Corps" type="PanelContainer" parent="."]
+layout_mode = 2
+theme_type_variation = &"CorpsDeBulle"
+
+[node name="Texte" type="Label" parent="Corps"]
+layout_mode = 2
+theme_type_variation = &"TooltipLabel"
+autowrap_mode = 3
+
+[node name="Queue" type="Control" parent="."]
+custom_minimum_size = Vector2(0, 7)
+layout_mode = 2
+
+[node name="Pointe" type="Panel" parent="Queue"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 4.0
+offset_bottom = 4.0
+rotation = 0.785398
+pivot_offset = Vector2(4, 4)
+theme_type_variation = &"PointeDeBulle"

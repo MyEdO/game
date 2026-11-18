@@ -4,6 +4,8 @@
  * une, persisté dans le `Stockage` de l'hôte (`hote/preferences.ts`, `hote/reglesMaison.ts`).
  */
 import {
+  avecSigne,
+  DIFFICULTY_LABELS,
   initialNet,
   OPTIONAL_RULES,
   PREFERENCES,
@@ -13,6 +15,7 @@ import {
   nommerLesRetraits,
   ruleOverrides,
   type Jeu as Partie,
+  type Difficulty,
   type FormeDeControle,
   type OptionalRule,
   type PrefValue,
@@ -28,7 +31,7 @@ import { prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleM
 /**
  * @contrat Vue
  * Les zones des réglages, que la méthode `reglages` rend avec ou sans partie ouverte. Chaque entrée y est rendue par
- * la forme de son contrôle : `flag` en choix « Non » ou « Oui », `mode` en choix de ses options, en liste au-delà de
+ * la forme de son contrôle : `flag` en choix « Non » ou « Oui », `mode` en choix de ses options, chacune à son libellé, en liste au-delà de
  * trois (`OPTIONS_EN_RANGEE`), `param` en curseur à ses bornes et à son pas. Le `jeu` d'une valeur, ou le geste du
  * curseur, est le geste que la méthode `reglages` reçoit : `{ type: 'preference' | 'regle', args: [id, valeur] }`, la
  * préférence ou la règle maison `id` réglée à `valeur` ; `{ type: 'pourcent', args: [id, valeur] }`, la préférence
@@ -68,7 +71,7 @@ export interface FeuilletDesReglages {
    * règles, la suite du domaine (`suite`) et la plage de ses règles (`plage`). Puis chaque règle en entité nommée de
    * son libellé, `gauche/<id>` sur la page de gauche, `droite/<id>` sur celle de droite, au ton `alerte` quand elle
    * est surchargée : la ligne de sa référence au livre (`ref`, la justification d'une valeur maison au détail), celle
-   * de son aide (`aide`), son contrôle (`regle/<id>`), « Défaut » quand elle est surchargée (`retablir/<id>`, dont le
+   * de son aide (`aide`), celle de sa valeur quand elle est un nombre (`valeur`, signée pour un modificateur), son contrôle (`regle/<id>`), « Défaut » quand elle est surchargée (`retablir/<id>`, dont le
    * `jeu` est `{ type: 'retablir', args: [id] }`), et le bouton de son action quand elle vaut `action.when`
    * (`action/<id>`, dont le `jeu` `{ suite: [{ type: run, args: [] }] }` est un geste de la partie, refusé sans
    * partie ouverte). En combat et chez un invité, chaque contrôle et chaque action sont refusés avec la raison du
@@ -77,7 +80,7 @@ export interface FeuilletDesReglages {
   elements: Element[];
 }
 
-type Forme = FormeDeControle & { id: string; label: string };
+type Forme = FormeDeControle & { id: string; label: string; libelles?: Readonly<Record<string, string>> };
 
 /** Au-delà de ce nombre d'options, un `mode` se choisit en liste plutôt qu'en rangée (`Choix`). */
 const OPTIONS_EN_RANGEE = 3;
@@ -88,6 +91,15 @@ export const REGLES_PAR_PAGE = 6;
 /** Si l'entrée `f` est un réglage borné à [0, 1], qui se règle en pour cent. */
 const enPourcent = (f: Forme): boolean => f.kind === 'param' && f.min === 0 && f.max === 1;
 
+/** Le libellé du choix `o` de l'entrée `f` : celui que sa donnée lui donne (`libelles`), sinon le nom d'une
+ *  Difficulté (LDB 12 l.143-151), sinon sa valeur. */
+const libelleDuChoix = (f: Forme, o: string): string =>
+  f.libelles?.[o] ?? (o in DIFFICULTY_LABELS ? t(`difficulty.${o as Difficulty}`) : o);
+
+/** La valeur `v` de la règle `r` telle qu'elle se lit : signée pour un modificateur, en négatif pour un malus. */
+const lecture = (r: OptionalRule, v: number): string =>
+  r.kind !== 'param' || r.modificateur === undefined ? String(v) : avecSigne(r.modificateur === 'malus' ? -v : v);
+
 /** Le contrôle de l'entrée `f`, de valeur `valeur`, dont le geste est le verbe `verbe` des réglages. */
 function controle(verbe: 'preference' | 'regle', f: Forme, valeur: PrefValue, refus: string | null): Element {
   const id = `${verbe}/${f.id}`;
@@ -96,7 +108,7 @@ function controle(verbe: 'preference' | 'regle', f: Forme, valeur: PrefValue, re
     case 'flag':
       return { type: 'choix', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: [valeurDe(false, t('valeur.non')), valeurDe(true, t('valeur.oui'))] };
     case 'mode':
-      return { type: f.options.length > OPTIONS_EN_RANGEE ? 'liste' : 'choix', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: f.options.map((o) => valeurDe(o, o)) };
+      return { type: f.options.length > OPTIONS_EN_RANGEE ? 'liste' : 'choix', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: f.options.map((o) => valeurDe(o, libelleDuChoix(f, o))) };
     case 'param':
       return enPourcent(f)
         ? { type: 'curseur', id, ton: 'neutre', libelle: f.label, valeur: Math.round((valeur as number) * 100), min: 0, max: 100, pas: Math.round((f.step ?? 0.01) * 100), verbe: 'pourcent', arguments: [f.id], refus }
@@ -120,6 +132,7 @@ function regleEnEntite(r: OptionalRule, cote: 'gauche' | 'droite', surcharges: R
     elements: [
       ligne('ref', ref, 'neutre', r.maison ?? null),
       ...(r.hint ? [ligne('aide', r.hint)] : []),
+      ...(r.kind === 'param' ? [ligne('valeur', lecture(r, valeur as number))] : []),
       controle('regle', r, valeur, refus),
       ...(surchargee ? [{ type: 'bouton' as const, id: `retablir/${r.id}`, libelle: t('ecran.reglages.defaut'), jeu: { type: 'retablir', args: [r.id] }, presse: false, focus: false, detail: null, touche: null, refus, icone: 'interface/revenir' }] : []),
       ...(action ? [{ type: 'bouton' as const, id: `action/${r.id}`, libelle: action.label, jeu: { suite: [{ type: action.run, args: [] }] }, presse: false, focus: false, detail: null, touche: null, refus: refus ?? (horsPartie ? t('ecran.reglages.horsPartie') : null), icone: action.icon }] : []),

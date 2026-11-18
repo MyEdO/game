@@ -100,7 +100,19 @@ size_flags_vertical = 4
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("regle/")
-formes = PackedStringArray("choix:segments", "liste:pasAPas", "curseur:reglette")
+formes = PackedStringArray("choix:segments", "liste:pasAPas", "curseur:regletteLue")
+
+[node name="Lecture" type="HBoxContainer" parent="Pile/Rangee/Controle"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Pile/Rangee/Controle/Lecture" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("valeur")
+formes = PackedStringArray("ligne:lecture")
+masque = NodePath("..")
 
 [node name="Aide" type="VBoxContainer" parent="Pile"]
 layout_mode = 2
