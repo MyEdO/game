@@ -21,8 +21,8 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[clips-du-vehicule] version=", Engine.get_version_info().string)
-	await _verifier("pièce de tir", {repos = "repos", marche = "marche", tir = "tir"}, "tir")
-	await _verifier("bélier", {repos = "repos", marche = "marche", melee = "coup"}, "melee")
+	await _verifier("pièce de tir", {Noyau.Role.REPOS: "repos", Noyau.Role.MARCHE: "marche", Noyau.Role.TIR: "tir"}, Noyau.Role.TIR)
+	await _verifier("bélier", {Noyau.Role.REPOS: "repos", Noyau.Role.MARCHE: "marche", Noyau.Role.MELEE: "coup"}, Noyau.Role.MELEE)
 	for faute in _fautes:
 		push_error("[clips-du-vehicule] " + faute)
 	print("[clips-du-vehicule] erreurs=", _fautes.size())
@@ -51,7 +51,7 @@ func _verifier(cas: String, clips: Dictionary, attaque: String) -> void:
 	combattant._brancher()
 	var arbre: AnimationTree = combattant.get_node("Etats")
 	var etats: AnimationNodeStateMachinePlayback = arbre.get("parameters/playback")
-	for role in ["repos", "marche"]:
+	for role in [Noyau.Role.REPOS, Noyau.Role.MARCHE]:
 		if lecteur.get_animation("role/" + role).loop_mode != Animation.LOOP_LINEAR:
 			_fautes.append("%s : l'alias de %s ne boucle pas" % [cas, role])
 		if bibliotheque.get_animation(clips[role]).loop_mode != Animation.LOOP_NONE:
@@ -64,12 +64,12 @@ func _verifier(cas: String, clips: Dictionary, attaque: String) -> void:
 	if etats.get_current_node() != attaque or lecteur.assigned_animation != clips[attaque]:
 		_fautes.append("%s : attaque à l'état %s (clip marqué %s), attendu %s (%s)" % [cas, etats.get_current_node(), lecteur.assigned_animation, attaque, clips[attaque]])
 	await create_timer(FIN_S).timeout
-	if etats.get_current_node() != "repos" or lecteur.assigned_animation != clips.repos:
+	if etats.get_current_node() != Noyau.Role.REPOS or lecteur.assigned_animation != clips.repos:
 		_fautes.append("%s : après l'attaque, état %s (clip marqué %s), attendu repos" % [cas, etats.get_current_node(), lecteur.assigned_animation])
 	combattant._aller(Vector3(2.0, 0.0, 0.0))
 	await process_frame
 	await process_frame
-	if etats.get_current_node() != "marche":
+	if etats.get_current_node() != Noyau.Role.MARCHE:
 		_fautes.append("%s : déplacement à l'état %s, attendu marche" % [cas, etats.get_current_node()])
 	combattant.queue_free()
 	await process_frame

@@ -25,7 +25,7 @@ const SOLS := [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
 const LARGEUR := 3
 const RANGEES := 12
 const ETAGE_AU_MASQUE := 6
-const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, piece = "mur", bloc = "0/0/0"}
+const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, piece = Noyau.Piece.MUR, bloc = "0/0/0"}
 var _fautes: Array[String] = []
 
 

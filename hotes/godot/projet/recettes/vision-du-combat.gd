@@ -178,9 +178,9 @@ func _sans_auteur(plateau: Plateau, actif: String) -> void:
 	var case: Array = plateau.get("_vue").projection.combat.actif.pos
 	var arrivee := {visuel = VISUEL, son = null}
 	plateau.jouer_les_effets([
-		{quoi = "coup", de = null, vers = actif, issue = "touche", couleur = "#ffffff", depart = null, trajet = null, arrivee = arrivee, flottants = []},
-		{quoi = "incantation", de = null, vers = actif, reussie = true, couleur = "#ffffff", depart = null, arrivee = arrivee, flottants = []},
-		{quoi = "zone", de = null, centre = {x = case[0], y = case[1], z = case[2]}, cases = [{x = case[0], y = case[1], z = case[2]}], couleur = "#ffffff", depart = null, trajet = null, nappe = arrivee},
+		{quoi = Noyau.Effet.COUP, de = null, vers = actif, issue = Noyau.IssueDuCoup.TOUCHE, couleur = "#ffffff", depart = null, trajet = null, arrivee = arrivee, flottants = []},
+		{quoi = Noyau.Effet.INCANTATION, de = null, vers = actif, reussie = true, couleur = "#ffffff", depart = null, arrivee = arrivee, flottants = []},
+		{quoi = Noyau.Effet.ZONE, de = null, centre = {x = case[0], y = case[1], z = case[2]}, cases = [{x = case[0], y = case[1], z = case[2]}], couleur = "#ffffff", depart = null, trajet = null, nappe = arrivee},
 	])
 	await create_timer(Effets.ECART_S * 3.0).timeout
 	effets.depart.disconnect(compter)
@@ -197,8 +197,8 @@ func _en_cours(plateau: Plateau, actif: String, ennemi: String) -> void:
 	var compter := func(qui: String, _touche: bool) -> void: arrivees.append(qui)
 	(plateau.get_node("Effets") as Effets).arrivee.connect(compter)
 	plateau.jouer_les_effets([
-		{quoi = "deplacement", qui = ennemi, cases = [{x = vers[0], y = vers[1], z = vers[2], metres = 0.0}, {x = vers[0], y = vers[1], z = vers[2], metres = 0.0}]},
-		{quoi = "coup", de = actif, vers = ennemi, issue = "touche", couleur = "#ffffff", depart = null, trajet = {projectile = "fleche", dureeS = 0.4, hauteurM = 0.5}, arrivee = null, flottants = []},
+		{quoi = Noyau.Effet.DEPLACEMENT, qui = ennemi, cases = [{x = vers[0], y = vers[1], z = vers[2], metres = 0.0}, {x = vers[0], y = vers[1], z = vers[2], metres = 0.0}]},
+		{quoi = Noyau.Effet.COUP, de = actif, vers = ennemi, issue = Noyau.IssueDuCoup.TOUCHE, couleur = "#ffffff", depart = null, trajet = {projectile = "fleche", dureeS = 0.4, hauteurM = 0.5}, arrivee = null, flottants = []},
 	])
 	plateau.case_cliquee.emit(CASE_DU_PAS)
 	plateau.case_cliquee.emit(CASE_DU_PAS)
