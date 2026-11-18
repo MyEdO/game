@@ -869,8 +869,9 @@ describe('l’éditeur de carte par le pont, la scène', () => {
     expect(champ(editionDe(appel('editer', { type: 'decrire', args: ['Une note'] })), 'decrire')).toMatchObject({ valeur: 'Une note' });
     expect(champ(editionDe(appel('editer', { type: 'decrire', args: [] })), 'decrire')).toMatchObject({ valeur: '' });
 
-    const large = presser(boutonDe(ouverte, 'scene/largeur/plus'));
-    expect(nombre(large, 'scene/largeur')).toBe(nombre(ouverte, 'scene/largeur') + 1);
+    const large = presser(boutonDe(ouverte, 'scene/bord/ouest/plus'));
+    expect(nombre(large, 'scene/bord/est')).toBe(nombre(ouverte, 'scene/bord/est') + 1);
+    expect(nombre(presser(boutonDe(large, 'scene/bord/nord/moins')), 'scene/bord/sud')).toBe(nombre(large, 'scene/bord/sud') - 1);
     expect(texte(large, 'scene/nord'), 'aucune scène livrée ne déclare son nord').toBe('Nord : vers le haut du plan');
     const tourne = presser(boutonDe(large, 'scene/nord/plus'));
     expect(texte(tourne, 'scene/nord')).toBe('Nord : 15° dans le sens horaire');

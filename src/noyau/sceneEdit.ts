@@ -48,6 +48,7 @@ import {
   rectJouable,
 } from './monde/scene';
 import { aretesA } from './monde/wallIndex';
+import { translaterLaScene } from './translationDeLaScene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
@@ -451,25 +452,38 @@ export function fillTerrainRect(scene: Scene, rect: RectDeCases, terrain: Terrai
  * La pose passe par `putLayer`, jamais par une reconstruction directe de `layers` : le CARDINAL de la
  * grille (#1789) est gardé là et nulle part ailleurs. Les nouvelles dimensions sont posées D'ABORD,
  * c'est contre elles que le cardinal se mesure. PUR — l'éditeur n'en tient que l'appel.
+ *
+ * `decalage` place l'ancienne grille dans la nouvelle : la case (x,y) va en (x+dx, y+dy), et tout ce que la scène
+ * positionne la suit (`translaterLaScene`) ; la zone jouable est rognée à la nouvelle grille, retirée si rien n'en
+ * reste. #4392
  */
-export function resizeGrid(scene: Scene, w: number, h: number): Scene {
-  return scene.layers.reduce<Scene>((s, layer) => {
+export function resizeGrid(scene: Scene, w: number, h: number, decalage: { x: number; y: number } = { x: 0, y: 0 }): Scene {
+  const { x: dx, y: dy } = decalage;
+  const retissee = scene.layers.reduce<Scene>((s, layer) => {
     const semence: Terrain = layer.z === 0 ? DEFAULT_TERRAIN : terrainAbsent();
     const tiles = new Array(w * h).fill(semence) as Terrain[];
     const height = new Array(w * h).fill(0) as number[];
     const crenellated = new Array(w * h).fill(null) as (string | null)[];
     let hasHeight = false;
     let hasCrenellated = false;
-    for (let y = 0; y < Math.min(h, scene.dimensions.h); y++)
-      for (let x = 0; x < Math.min(w, scene.dimensions.w); x++) {
-        tiles[y * w + x] = tileAt(scene, x, y, layer.z);
+    for (let y = Math.max(0, -dy); y < Math.min(scene.dimensions.h, h - dy); y++)
+      for (let x = Math.max(0, -dx); x < Math.min(scene.dimensions.w, w - dx); x++) {
+        const i = (y + dy) * w + x + dx;
+        tiles[i] = tileAt(scene, x, y, layer.z);
         const hv = heightAt(scene, x, y, layer.z);
-        if (hv) { height[y * w + x] = hv; hasHeight = true; }
+        if (hv) { height[i] = hv; hasHeight = true; }
         const cv = crenellatedAt(scene, x, y, layer.z);
-        if (cv) { crenellated[y * w + x] = cv; hasCrenellated = true; }
+        if (cv) { crenellated[i] = cv; hasCrenellated = true; }
       }
     return putLayer(s, layer.z, tiles, hasHeight ? height : undefined, hasCrenellated ? crenellated : undefined);
   }, { ...scene, dimensions: { w, h }, layers: [] });
+  const translatee = translaterLaScene(retissee, dx, dy);
+  const zone = translatee.zoneJouable;
+  if (!zone) return translatee;
+  const x0 = Math.max(0, zone.x), y0 = Math.max(0, zone.y);
+  const x1 = Math.min(w, zone.x + zone.w), y1 = Math.min(h, zone.y + zone.h);
+  const { zoneJouable: _rognee, ...sansZone } = translatee;
+  return x1 <= x0 || y1 <= y0 ? sansZone : { ...translatee, zoneJouable: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } };
 }
 
 /** Ajoute une couche à la cote `z` (grille « vide » = transparente, à construire), triée par z. No-op si

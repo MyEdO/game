@@ -220,7 +220,8 @@ export type Ouvrage = (typeof OUVRAGES)[number];
  *  la carte se joue, `setZoneJouable`). */
 export interface PatchDeScene {
   scalaires?: { [K in keyof ScalairesDeScene]?: ScalairesDeScene[K] | null };
-  dimensions?: { w: number; h: number };
+  /** `decalage` : où la case (0,0) de l'ancienne grille se pose dans la nouvelle, la scène et ses calques suivant (`resizeGrid`). */
+  dimensions?: { w: number; h: number; decalage?: { x: number; y: number } };
   nord?: number | null;
   relief?: Partial<ReliefDefaults>;
   toiture?: Partial<SceneRoofDefaults>;
@@ -377,7 +378,7 @@ function sceneRenommee(s: SessionDEdition, scene: Scene, id: string): SessionDEd
 function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
   let sc = scene;
   if (patch.scalaires) sc = setSceneScalaires(sc, Object.fromEntries(Object.entries(patch.scalaires).map(([k, v]) => [k, v ?? undefined])));
-  if (patch.dimensions) sc = resizeGrid(sc, patch.dimensions.w, patch.dimensions.h);
+  if (patch.dimensions) sc = resizeGrid(sc, patch.dimensions.w, patch.dimensions.h, patch.dimensions.decalage);
   if (patch.nord !== undefined) sc = setNorthDeg(sc, patch.nord ?? undefined);
   for (const part of PARTS_RELIEF) {
     const matiere = patch.relief?.[part];
@@ -668,6 +669,14 @@ const HORS_DU_CALAGE: CalibProgress = { step: 'idle' };
 
 /** Le calque de la couche éditée de la session `s`, `undefined` sans lui. */
 export const calqueDeLaCouche = (s: SessionDEdition): CalqueDeCouche | undefined => s.calques[idDeLaSceneEditee(s)]?.[String(s.z)];
+
+/** Les calques de la session `s`, ceux de la scène `sceneId` décalés de `d` cases. */
+function calquesDecales(s: SessionDEdition, sceneId: string, d: { x: number; y: number }): CalquesDuProjet {
+  const siens = s.calques[sceneId];
+  if (!siens) return s.calques;
+  const decales = Object.fromEntries(Object.entries(siens).map(([z, c]) => [z, { ...c, calage: { ...c.calage, tx: c.calage.tx + d.x, ty: c.calage.ty + d.y } }]));
+  return { ...s.calques, [sceneId]: decales };
+}
 
 /** Les calques de la session `s`, celui de la couche `z` de la scène `sceneId` posé à `calque`, retiré s'il est `null`. */
 function avecLeCalque(s: SessionDEdition, sceneId: string, z: number, calque: CalqueDeCouche | null): CalquesDuProjet {
@@ -1296,7 +1305,10 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'scene': {
       const patchee = scenePatchee(scene, g.patch);
-      return patchee === scene ? s : ecrire(s, patchee, s.sel);
+      if (patchee === scene) return s;
+      const ecrite = ecrire(s, patchee, s.sel);
+      const decalage = g.patch.dimensions?.decalage;
+      return decalage ? { ...ecrite, calques: calquesDecales(ecrite, idDeLaSceneEditee(ecrite), decalage) } : ecrite;
     }
     case 'identifier': {
       if (g.element !== undefined) {

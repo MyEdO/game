@@ -390,7 +390,8 @@ export interface ZonesDeLEditeur {
   'editeur.logique': (Choix | Ligne | Bouton)[];
   /**
    * l'inspecteur de la sélection ; sans elle, celui de la scène : le formulaire qui la nomme, celui qui change son
-   * identifiant, celui qui la décrit, sa largeur et sa hauteur en cases à la réglette (au moins 5, `resizeGrid`), les
+   * identifiant, celui qui la décrit, une réglette par bord, ouest, est, nord et sud, qui y ajoute ou retire une colonne
+   * ou une rangée de cases (au moins 5, `resizeGrid`, la scène suivant son bord ouest ou nord par `decalage`), les
    * entrées de fiche qu'elle couvre comme celles d'une zone, de même ses groupes de lieu parmi ceux du schéma
    * (`groupesDuLieu`), son ambiance (`AMBIANCES`), son échelle en mètres par case à la réglette (au moins 1), sa
    * lumière ambiante en liste, automatique ou l'une de `lightLevels`, son nord à la réglette au pas de 15° ou vers le
@@ -407,7 +408,7 @@ export interface ZonesDeLEditeur {
    *
    * Chaque bouton joue `{ geste: 'scene', patch }` (`PatchDeScene`), `patch` portant `scalaires` (`desc`, `ambiance`,
    * `weather`, `couvre`, `groups`, `metresPerTile`, `ambientLight`, `environment`, `null` retirant le champ),
-   * `dimensions`, `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `qualite`), `drapeaux`
+   * `dimensions` (`{ w, h, decalage? }`), `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `qualite`), `drapeaux`
    * (`null` retirant le drapeau), `musique` (`{ piste, id }`, `id` `null` : silence, absent : automatique) ou `stations` (`{ ajouter }`, `{ rang, sceneId?, pos? }`
    * ou `{ retirer }`, refusé à un rang absent). `zoneJouable: null` (option de l'outil zone jouable) retire la zone jouable.
    *
@@ -1935,8 +1936,10 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     formulaireDuNom(scene.label, false),
     formulaireDeLIdentifiant(scene.id),
     formulaireAUnChamp('decrire', t('ecran.editeur.scene.decrire'), 'desc', t('ecran.editeur.scene.description'), scene.desc ?? '', true),
-    ...reglette('scene/largeur', t('ecran.editeur.scene.largeur', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h } })),
-    ...reglette('scene/hauteur', t('ecran.editeur.scene.hauteur', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v } })),
+    ...reglette('scene/bord/ouest', t('ecran.editeur.scene.bord.ouest', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h, decalage: { x: v - w, y: 0 } } })),
+    ...reglette('scene/bord/est', t('ecran.editeur.scene.bord.est', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h } })),
+    ...reglette('scene/bord/nord', t('ecran.editeur.scene.bord.nord', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v, decalage: { x: 0, y: v - h } } })),
+    ...reglette('scene/bord/sud', t('ecran.editeur.scene.bord.sud', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v } })),
     ...couverture('scene/couvre', scene.couvre, (couvre) => scalaire({ couvre })),
     ...listeDIds('scene/groupes', 'scene.groupes', scene.groups, new Map(groupesDuLieu().map((g) => [String(g.valeur), g.libelle])), (groups) => scalaire({ groups })),
     choix('scene/ambiance', t('ecran.editeur.scene.ambiance'), AMBIANCES.map((a) => boutonDEdition(`scene/ambiance/${a}`, t(`ecran.editeur.scene.ambiance.${a}`), scalaire({ ambiance: a }), (scene.ambiance ?? 'exterieur') === a))),
