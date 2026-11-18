@@ -66,8 +66,8 @@ import {
   riverControlKept, capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes, riverCritical, findRiverPeril,
   resolveRiverImpact, rollBarrage, rollBarrageClearing, echouageDamage, navBaseDifficulty, tackDifficulty,
   CAPSIZE, TEMPORARY_REPAIR, riverForceLabel,
-  type RiverWindDirId,
 } from '../engine/riverNavigation';
+import type { RiverWindDirId } from '../data/schemas/defs/river-navigation';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { jouerLaJournee, type CascadeApplier } from './cascade';
 import { checkPartyWiped } from './partyWipe';

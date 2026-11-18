@@ -39,7 +39,7 @@ import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
-import type { SeaWeather } from './seaWeather';
+import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import type { CustomStatblock } from './statblock';
 import { ALL_MAGIC, type CastPenalty, type Difficulty, type Main } from './types';
 import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
@@ -100,7 +100,7 @@ import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { retraitsDits } from './weaponDamage';
-import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
+import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
@@ -699,7 +699,7 @@ export type GameOp =
    *  instance, pas une par jour). */
   | { op: 'removeTrait'; trait: { id: string } }
   /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
-   *  `c.psychTraits` à l'attache. `psychType.id` = `PsychType` (frenesie, peur…). Champs réservés aux sorts
+   *  `c.psychTraits` à l'attache. `psychType.id` = un id de `psychology.json` (frenesie, peur…). Champs réservés aux sorts
    *  (`grammaire/mecanique.ts`) : `envers` vise une personne que le DÉCIDEUR choisit (VDM 10 l.327), résolue
    *  par le noyau en `cible` d'individu AVANT `applyOps` (`noyau/personneChoisie.ts`) ; `resistanceSiAmis`, le
    *  Test qui permet à la cible de résister quand elle et la personne sont amies (VDM 10 l.327) ;
@@ -1308,7 +1308,7 @@ export type GameOp =
    *  souffle à l'opposé des dominants (`ventInverse`), et chaque matin `aggravation.de` ≥ `seuil` impose en
    *  plus `aggravation.meteo`. Posée sur le navire, elle vaut au départ d'un port. Op de NAVIRE.
    *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
-  | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo }
+  | { op: 'meteoImposee'; jours: Formula; meteo?: MeteoImposee; ventInverse?: true; aggravation?: AggravationMeteo }
   /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
    *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port ; OU
    *  `perduePct` % de l'Enc de la cale perdus ; OU `perdueEnc` Enc de la cale perdus. Op de NAVIRE.
@@ -1372,7 +1372,7 @@ export type GameOp =
   | { op: 'marcheDuPort'; demande: number; jours: Formula; colonnes?: never; offre?: never };
 
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
-export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
+export interface AggravationMeteo { de: Formula; seuil: number; meteo: MeteoImposee }
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
@@ -2318,7 +2318,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // UPSERT par identité pour un Trait CIBLÉ, par (`type` + `sourceId`) sinon : un re-Test contre la
         // MÊME source met à jour SON entrée au lieu d'en empiler une seconde.
         const list = [...(target.psychState ?? [])];
-        const type = o.type.id as PsychType;
+        const type = o.type.id;
         const cible = o.cible === undefined ? undefined : cibleDeRef(o.cible);
         const identite = identiteDeCiblage(type, cible);
         const at = list.findIndex((p) => (cible !== undefined ? identiteDeCiblage(p.type, p.cible) === identite : p.type === type && p.sourceId === o.sourceId));

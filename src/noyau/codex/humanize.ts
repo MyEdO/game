@@ -36,7 +36,7 @@ import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
 import { formatMoney, fromBrass, libelleDuStatut } from '../../engine/money';
 import { formatDice, formatEffetSigne } from '../../engine/dice';
-import { seaWeatherLabel } from '../../engine/seaWeather';
+import { axesImposes, seaWeatherLabel } from '../../engine/seaWeather';
 import { shipLocationLabel } from '../../engine/shipCritical';
 import { findSeaHazard, findWhirlpool } from '../../engine/seaPerils';
 import { rule, ruleDef } from '../../engine/policy';
@@ -623,7 +623,7 @@ export function humanizeOp(o: GameOp): string {
       duree: o.jusqua === 'carenage' ? t('eff.jusquAuCarenage') : o.jusqua === 'evenementDeBord' ? t('eff.jusquAuProchainEvenement') : t('codex.op.pendantJours', { n: humanizeFormula(o.jusqua.jours) }),
     });
     case 'meteoImposee': return t('codex.op.meteoImposee', {
-      meteo: [...(o.meteo ? [seaWeatherLabel(o.meteo)] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
+      meteo: [...(o.meteo ? [seaWeatherLabel(axesImposes(o.meteo))] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
       n: humanizeFormula(o.jours),
     });
     case 'cargaison': return o.perteAuDechargement !== undefined

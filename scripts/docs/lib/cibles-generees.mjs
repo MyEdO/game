@@ -6,6 +6,7 @@ import {
   SORTIE_VERBES as SORTIE_DES_VERBES,
   SORTIE_NOMS_DE_PARAMETRE,
   SORTIE_COMBATTANTS_DE_L_ETAT,
+  SORTIE_NOYAU_GODOT,
 } from './cibles-registres.mjs'
 
 /** Les cibles LITTÉRALES (sans joker) de `cibles` : celles dont la présence se mesure sur le disque. PURE. */
@@ -24,6 +25,7 @@ export const GENERATORS = Object.freeze([
   { runner: 'node', script: 'scripts/gen-formats.mjs', targets: [SORTIE_DES_FORMATS] },
   { runner: 'node', script: 'scripts/gen-verbes.mjs', targets: [SORTIE_DES_VERBES, SORTIE_NOMS_DE_PARAMETRE] },
   { runner: 'node', script: 'scripts/gen-combattants-de-l-etat.mjs', targets: [SORTIE_COMBATTANTS_DE_L_ETAT] },
+  { runner: 'node', script: 'scripts/gen-noyau-godot.mjs', targets: [SORTIE_NOYAU_GODOT] },
   { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: ['docs/raw/atlas.generated.md'] },
   { runner: 'node', script: 'scripts/raw/build-catalogs.mjs', targets: [MOTIF_CATALOGUES] },
   { runner: 'node', script: 'scripts/raw/build-implemente.mjs', targets: ['docs/raw/implemente.generated.md'] },

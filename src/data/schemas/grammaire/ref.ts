@@ -107,6 +107,11 @@ export const TYPES = {
   // MDG 13 l.475-499, l.514-537 : le péril d'une op `perilDeMer` et l'évitement d'une op `navireMod` résolvent AU PARSE.
   seaHazard: { espace: 'sea-perils.json#hazards', catalogue: 'périls en mer' },
   tourbillon: { espace: 'sea-perils.json#tourbillons', catalogue: 'tourbillons' },
+  // MDG 13 l.170 : les axes d'une rangée de la météo marine et d'une op `meteoImposee` résolvent AU PARSE.
+  seaPrecipitation: { espace: 'sea-weather.json#precipitations', catalogue: 'précipitations en mer' },
+  seaTemperature: { espace: 'sea-weather.json#temperatures', catalogue: 'températures en mer' },
+  seaVisibility: { espace: 'sea-weather.json#visibilites', catalogue: 'visibilités en mer' },
+  seaWind: { espace: 'sea-weather.json#vents', catalogue: 'forces de vent en mer' },
   // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },

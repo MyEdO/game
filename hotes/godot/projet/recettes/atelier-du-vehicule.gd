@@ -114,25 +114,25 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 		var source: Dictionary = lumiere.source
 		_verifier(source.visuel == null or ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_FLAMMES, source.visuel)), "visuel de lumière inconnu de Godot : %s" % source.visuel)
 		if source.son != null:
-			_connu({quoi = "son", son = source.son})
+			_connu({quoi = Noyau.Effet.SON, son = source.son})
 	for zone in vitrine.zonesQuiDurent:
 		cles_des_boutons.append("zone-qui-dure/%s" % zone.id)
 		_verifier(ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_VISUELS, zone.zone.visuel)), "visuel de zone qui dure inconnu de Godot : %s" % zone.zone.visuel)
 		if zone.zone.boucle != null:
-			_connu({quoi = "son", son = zone.zone.boucle})
+			_connu({quoi = Noyau.Effet.SON, son = zone.zone.boucle})
 	for marque in vitrine.marques:
 		cles_des_boutons.append("marque/%s" % marque.id)
 		_verifier(marque.marque.visuel == null or ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_FLAMMES, marque.marque.visuel)), "visuel de marque inconnu de Godot : %s" % marque.marque.visuel)
 		if marque.marque.son != null:
-			_connu({quoi = "son", son = marque.marque.son})
+			_connu({quoi = Noyau.Effet.SON, son = marque.marque.son})
 	for meteo in vitrine.meteos:
 		cles_des_boutons.append("meteo/%s" % meteo.id)
 		if meteo.meteo.son != null:
-			_connu({quoi = "son", son = meteo.meteo.son})
+			_connu({quoi = Noyau.Effet.SON, son = meteo.meteo.son})
 	for musique in vitrine.musiques:
 		cles_des_boutons.append("musique/%s" % musique.id)
 		for piste in musique.musique.pistes:
-			_connu({quoi = "son", son = piste})
+			_connu({quoi = Noyau.Effet.SON, son = piste})
 	for cle in cles_des_boutons:
 		_controle(atelier, cle)
 	(_controle_par_nom(atelier, "OngletEffets") as Button).pressed.emit()
@@ -168,12 +168,12 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	await _images(2)
 	_verifier(noeud_des_effets.get_node_or_null("pierre") != null, "la pierre du trébuchet ne vole pas")
 	_verifier(lecteur.get_animation(montage.clips.tir).loop_mode == Animation.LOOP_LINEAR, "l'atelier ne boucle pas le clip de tir du trébuchet à son lecteur")
-	var vers_le_tir := await FonduDeLArbre.fondre(self, etats, "tir")
-	_verifier(FonduDeLArbre.tenu(vers_le_tir, "repos"), "« Attaquer » vers le tir : états quittés %s, attendu repos puis rien" % [vers_le_tir])
-	_verifier(etats.active and etats.lecture().get_current_node() == "tir" and lecteur.assigned_animation == montage.clips.tir and not lecteur.is_playing(),
+	var vers_le_tir := await FonduDeLArbre.fondre(self, etats, Noyau.Role.TIR)
+	_verifier(FonduDeLArbre.tenu(vers_le_tir, Noyau.Role.REPOS), "« Attaquer » vers le tir : états quittés %s, attendu repos puis rien" % [vers_le_tir])
+	_verifier(etats.active and etats.lecture().get_current_node() == Noyau.Role.TIR and lecteur.assigned_animation == montage.clips.tir and not lecteur.is_playing(),
 			"« Attaquer » : arbre actif %s à l'état %s, clip marqué %s, lecteur brut en lecture %s ; attendu l'arbre actif au tir, le lecteur brut arrêté" % [etats.active, etats.lecture().get_current_node(), lecteur.assigned_animation, lecteur.is_playing()])
-	var vers_le_repos := await FonduDeLArbre.fondre(self, etats, "repos")
-	_verifier(FonduDeLArbre.tenu(vers_le_repos, "tir"), "« Attaquer » vers le repos : états quittés %s, attendu tir puis rien" % [vers_le_repos])
+	var vers_le_repos := await FonduDeLArbre.fondre(self, etats, Noyau.Role.REPOS)
+	_verifier(FonduDeLArbre.tenu(vers_le_repos, Noyau.Role.TIR), "« Attaquer » vers le repos : états quittés %s, attendu tir puis rien" % [vers_le_repos])
 	await FonduDeLArbre.rendre(self, etats)
 	_verifier(not etats.active and etats.anim_player.is_empty() and lecteur.is_playing() and lecteur.current_animation == montage.clips.repos,
 			"après « Attaquer » : arbre actif %s à l'état %s, lecteur brut en lecture %s sur %s ; attendu l'arbre débranché, le lecteur brut au repos %s" % [etats.active, etats.lecture().get_current_node(), lecteur.is_playing(), lecteur.current_animation, montage.clips.repos])
@@ -259,7 +259,7 @@ func _ecouter(atelier: Node, musiques: Array) -> void:
 ## chaque son de fichiers posés sous `res://sons/`, sur un canal qui est un bus d'`AudioServer`.
 func _connu(effet: Dictionary) -> void:
 	var sons: Array = []
-	if effet.quoi == "son":
+	if effet.quoi == Noyau.Effet.SON:
 		sons.append(effet.son)
 	for cle in ["depart", "arrivee", "nappe"]:
 		var phase: Variant = effet.get(cle)

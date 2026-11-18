@@ -26,7 +26,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
-import { estObjet } from '../../src/lib/objet.mjs';
+import { auChemin, estObjet } from '../../src/lib/objet.mjs';
 import { estUnDeDeTirage } from './lib/deDeTirage.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -52,7 +52,7 @@ for (const [fichier, tables] of Object.entries(TABLES)) {
   if (brut !== serializeDataset(doc)) { arrets.push(`${fichier} : forme non canonique`); continue; }
   for (const [champ, die] of tables) {
     const ou = `${fichier} › ${champ.join('.')}`;
-    const parent = champ.slice(0, -1).reduce((n, k) => n?.[k], doc);
+    const parent = auChemin(doc, champ.slice(0, -1));
     const cle = champ[champ.length - 1];
     const valeur = parent?.[cle];
     if (estNoeud(valeur)) continue;
@@ -62,7 +62,7 @@ for (const [fichier, tables] of Object.entries(TABLES)) {
     for (const [k, v] of copie) parent[k] = k === cle ? { die, entries: v } : v;
   }
   for (const [champ] of tables) {
-    if (!estNoeud(champ.reduce((n, k) => n?.[k], doc))) arrets.push(`${fichier} › ${champ.join('.')} : pas un nœud \`{ die, entries }\` après migration`);
+    if (!estNoeud(auChemin(doc, champ))) arrets.push(`${fichier} › ${champ.join('.')} : pas un nœud \`{ die, entries }\` après migration`);
   }
   const out = serializeDataset(doc);
   if (out !== brut) ecritures.push([chemin, fichier, out]);

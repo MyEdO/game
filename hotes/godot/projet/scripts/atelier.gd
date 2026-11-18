@@ -61,8 +61,8 @@ const PAVILLON := "vehicule"
 const PAR_DEFAUT := "Par défaut"
 ## Le côté, en pixels, de la pastille d'une couleur du nuancier.
 const COTE_DE_LA_PASTILLE := 16
-## Le texte du bouton de chaque variante de la vitrine des effets (`VarianteDeVitrine`).
-const VARIANTES := {"touche": "Touché", "manque": "Manqué", "pare": "Paré", "incantation": "Incantation", "incantation-ratee": "Ratée", "zone": "Zone"}
+## Le texte du bouton de chaque variante de la vitrine des effets (`Noyau.Variante`).
+const VARIANTES := {Noyau.Variante.TOUCHE: "Touché", Noyau.Variante.MANQUE: "Manqué", Noyau.Variante.PARE: "Paré", Noyau.Variante.INCANTATION: "Incantation", Noyau.Variante.INCANTATION_RATEE: "Ratée", Noyau.Variante.ZONE: "Zone"}
 ## Les mètres que vaut une unité de la scène de l'atelier : ses modèles sont à leur taille réelle.
 const METRES_PAR_UNITE := 1.0
 
@@ -321,7 +321,7 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 	_poser_les_clips()
 	_poser_le_gabarit()
 	_montage.poser_les_morphes()
-	_marche.suivre(_montage.modele, _montage.lecteur, _montage.clip.bind("marche"), _montage.base.get("vitesseAuSol", 0.0))
+	_marche.suivre(_montage.modele, _montage.lecteur, _montage.clip.bind(EtatsDuCorps.MARCHE), _montage.base.get("vitesseAuSol", 0.0))
 	for aide in _aides:
 		_montrer_l_aide(_aides[aide], aide)
 	_montrer_l_etat()
@@ -1061,8 +1061,8 @@ func _jouer_le_clip(nom: String) -> void:
 ## Le clip du rôle `repos` de la composition montée (`MontageDeComposition.clip`, à deux mains quand la main libre tient
 ## une seconde prise) joué, s'il est au lecteur ; sans lui, le squelette reste à sa pose de repos.
 func _jouer_le_repos() -> void:
-	if _montage.lecteur != null and _montage.lecteur.has_animation(_montage.clip("repos")):
-		_jouer_le_clip(_montage.clip("repos"))
+	if _montage.lecteur != null and _montage.lecteur.has_animation(_montage.clip(EtatsDuCorps.REPOS)):
+		_jouer_le_clip(_montage.clip(EtatsDuCorps.REPOS))
 	else:
 		_publier()
 

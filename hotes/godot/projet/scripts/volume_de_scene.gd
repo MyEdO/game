@@ -873,9 +873,9 @@ func translation_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Ve
 ## mur.
 func _boite(piece: String) -> BoxMesh:
 	match piece:
-		"porte-ouverte", "breche":
+		Noyau.Piece.PORTE_OUVERTE, Noyau.Piece.BRECHE:
 			return mesh_seuil
-		"porte-fermee":
+		Noyau.Piece.PORTE_FERMEE:
 			return mesh_porte
 	return mesh_mur
 

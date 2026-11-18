@@ -22,7 +22,6 @@ import type { Get, PatchDeFlux } from './flowTypes';
 import { currentTargetingMode, type OptionsDuClic } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
-import type { SeaWind } from '../engine/domainAttributes';
 import { inBattleId } from './monde/combatants';
 import { combatantAtTile } from './monde/combatGeometry';
 import { pointDeCase, type Pt } from './monde/path';
@@ -45,7 +44,7 @@ export function touchActors(state: Jeu): PatchDeFlux {
  * seule source de vent connue de l'état) ; `undefined` hors voyage maritime actif (silence RAW —
  * `domainSeaIncantationDR` neutralise déjà un vent inconnu).
  */
-export function seaMagicContext(state: Jeu): { atSea: boolean; wind: SeaWind | undefined } {
+export function seaMagicContext(state: Jeu): { atSea: boolean; wind: string | undefined } {
   const vessel = state.vessel;
   const boarding = !!vessel && !!state.battle?.combatants.some((c) => c.creatureId === vessel.vehicleId);
   const atSea = state.travelPlan?.mode === 'mer' || boarding;
