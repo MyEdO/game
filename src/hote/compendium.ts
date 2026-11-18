@@ -228,7 +228,7 @@ export function gesteDuCompendium(z: ZonesDuCompendium, s: SessionDuCompendium, 
   if (!offert) return undefined;
   if (jeuJoue.type === 'enTete') {
     const [n, sides, ...reste] = jeuJoue.args as unknown[];
-    return !reste.length && Number.isInteger(n) && Number.isInteger(sides) && (n as number) >= 1 && (sides as number) >= 1 ? { geste: 'enTete', valeur: { n: n as number, sides: sides as number } } : undefined;
+    return !reste.length && typeof n === 'number' && typeof sides === 'number' ? { geste: 'enTete', valeur: { n, sides } } : undefined;
   }
   const [texte, ...reste] = jeuJoue.args as unknown[];
   if (reste.length || (texte !== undefined && typeof texte !== 'string')) return undefined;

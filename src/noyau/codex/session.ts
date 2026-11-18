@@ -20,6 +20,7 @@ import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
 import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
 import { noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
 import { noeudsAuChemin } from '../../data/schemas/grammaire/descente';
+import { deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
 import type { Manifeste } from '../../data/source/chapitres';
 import { t as tr } from '../../i18n';
 import { CODEX_GROUPS, categoryByKey, clustersIn, codexLookupById, type CibleDuCompendium, type CodexGroup, type CodexItem } from './registry';
@@ -298,6 +299,8 @@ function travailler(s: SessionDuCompendium, a: AtelierDuCompendium, g: Extract<G
     case 'enTete': {
       const ancetre = ds && ancetreDuDe(ds);
       if (!ds || ancetre === undefined) return refusee(s, tr('ecran.compendium.refus.sansDe'));
+      const lu = deDeTirageSchema.safeParse(g.valeur);
+      if (!lu.success) return refusee(s, lu.error.issues[0]!.message);
       const imprime = champDEnTete(ds, ancetre, 'die') as DiceSpec;
       return avec({ enTete: g.valeur.n === imprime.n && g.valeur.sides === imprime.sides ? [] : [{ ancetre, champ: 'die', valeur: g.valeur }] });
     }
