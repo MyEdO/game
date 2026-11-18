@@ -16,6 +16,7 @@ import { spawnBorne } from './lib/processusBorne.mjs'
 import { cleDeSite } from './lib/stock.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { diffDuCommit } from '../git-hooks/porte-du-commit.mjs'
+import { LUS_PAR_LES_GENERATEURS } from '../docs/build-all.mjs'
 import { coeurs } from '../test/partition.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
@@ -406,7 +407,7 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
   try {
     const reel = depotDe(RACINE, { env: envDeDepotForge() })
-    const suivis = listerImage(reel, SUIVI, 'src', 'Source', 'docs/dossiers', 'scripts', 'package.json', 'tsconfig.json')
+    const suivis = listerImage(reel, SUIVI, 'src', 'Source', 'docs/dossiers', ...LUS_PAR_LES_GENERATEURS, 'scripts', 'package.json', 'tsconfig.json')
     for (const rel of suivis) {
       mkdirSync(dirname(join(dossier, rel)), { recursive: true })
       writeFileSync(join(dossier, rel), readFileSync(join(RACINE, rel)))
