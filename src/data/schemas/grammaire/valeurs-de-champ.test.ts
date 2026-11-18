@@ -270,6 +270,12 @@ const NOMMES = [
   Object.keys(itemCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
   'personne|bete|vehicule|immeuble|titre|intangible',
+  // `topUpAdvantage.amount` (`grammaire/mecanique.ts`, `ouReserve`) : le gabarit d'instance `INDICE_TEMPLATE`
+  // (`engine/flowCore`), réservé à côté de la formule et nommé « valeur de l'indice ».
+  '$indice',
+  // `cleDeTableDuDomaineSchema` (`defs/domains.ts`) : la clé de rôle d'une table d'un Domaine (`tables`), visée par
+  // `domainTable` d'une rangée de miscast, VDM 02 l.238.
+  'arcaneMark',
 ].sort();
 
 /**

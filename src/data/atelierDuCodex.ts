@@ -22,7 +22,7 @@ import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from './schemas/expos
 import { cheminLisible, lieuDe, schemaForFile, validateDataset } from './schemas/validate';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE } from './schemas/_cles-de-dataset.generated';
-import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { cleNichee, suiteAvecPas, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { reperesDuParse, TYPES, type CibleDeReference } from './schemas/grammaire/ref';
 import { projetSchema } from './schemas/defs-scenes/projet';
 import { versDisque } from './schemas/grammaire/prose';
@@ -31,7 +31,7 @@ import { serializeDataset } from './serialize';
 import { entryKey } from './index';
 import { opsMissingRefs } from './refsDOp';
 import { ecartsDeLaRegle } from './schemas/defs/reglesOptionnelles';
-import { estObjet } from '../lib/objet.mjs';
+import { auChemin, estObjet } from '../lib/objet.mjs';
 
 type Entry = Record<string, unknown>;
 
@@ -196,7 +196,7 @@ function indexDesReferences(paquets: readonly PaquetLu[]): IndexDesReferences {
     const cheminsTypes = new Set<string>();
     for (const r of reperesDuParse(schema as Parameters<typeof reperesDuParse>[0], versDisque(document))) {
       const chemin = r.path as readonly (string | number)[];
-      const id = r.parCle ? chemin[chemin.length - 1] : chemin.reduce<unknown>((o, pas) => (o as Record<string | number, unknown>)[pas], document);
+      const id = r.parCle ? chemin[chemin.length - 1] : auChemin(document, chemin);
       if (!r.parCle) cheminsTypes.add(JSON.stringify(chemin));
       if (typeof id === 'string') ranger(typees, cleDeReference(r.type, id), { fichier, schema, document, chemin });
     }
@@ -238,19 +238,45 @@ const traverse = (document: unknown, chemin: readonly (string | number)[], entre
   return noeud === entree;
 };
 
+/** Les désignations de l'id `id` (`indexDesReferences`) : une référence typée de l'une des cibles `cibles`, ou une
+ *  chaîne égale à `id` qu'aucune référence typée n'attribue à un autre espace, hors de l'objet `hors` qui le porte ;
+ *  chacune dite « fichier › chemin » (`cheminLisible`). Une collision d'ids entre espaces non typés désigne. */
+function designationsHors(cibles: readonly CibleDeReference[], id: string, hors: unknown, paquets: readonly PaquetLu[], memeDocument?: (d: Designation) => boolean): string[] {
+  const { typees, chaines } = indexDesReferences(paquets);
+  return [...cibles.flatMap((cible) => (typees.get(cleDeReference(cible, id)) ?? []).filter((d) => !cible.startsWith('local:') || memeDocument!(d))), ...(chaines.get(id) ?? [])]
+    .filter((d) => hors === undefined || !traverse(d.document, d.chemin, hors))
+    .map((d) => `${d.fichier} › ${cheminLisible(lieuDe(d.schema, d.document, d.chemin))}`);
+}
+
 /** Qui désigne l'entrée `id` de la catégorie `categoryKey` dans `src/data` et dans les paquets `paquets`
- *  (`indexDesReferences`) : une référence typée de son espace, ou une chaîne égale à `id` qu'aucune référence typée
- *  n'attribue à un autre espace, hors de l'entrée elle-même ; chaque désignation dite « fichier › chemin »
- *  (`cheminLisible`). Une collision d'ids entre espaces non typés désigne : la suppression se refuse. Aucune pour un
- *  dataset-objet, qu'aucune référence ne vise. */
+ *  (`designationsHors`), une référence typée de son espace, hors de l'entrée elle-même : la suppression se refuse.
+ *  Aucune pour un dataset-objet, qu'aucune référence ne vise. */
 export function designations(categoryKey: string, id: string, paquets: readonly PaquetLu[]): string[] {
   const ds = editableDataset(categoryKey);
   if (!ds) return [];
-  const entree = entreesDuDataset(ds).find((e) => e.id === id);
-  const { typees, chaines } = indexDesReferences(paquets);
-  return [...typesDeLaCategorie(categoryKey).flatMap((type) => typees.get(cleDeReference(type, id)) ?? []), ...(chaines.get(id) ?? [])]
-    .filter((d) => entree === undefined || !traverse(d.document, d.chemin, entree))
-    .map((d) => `${d.fichier} › ${cheminLisible(lieuDe(d.schema, d.document, d.chemin))}`);
+  return designationsHors(typesDeLaCategorie(categoryKey), id, entreesDuDataset(ds).find((e) => e.id === id), paquets);
+}
+
+/** Qui désigne l'élément de clé `cle` valant `id` de la liste au chemin `liste` de l'entrée enregistrée au rang `index`
+ *  de la catégorie `categoryKey` (sa configuration, d'un dataset-objet), hors de l'élément lui-même
+ *  (`designationsHors`) : une référence typée de l'espace de la liste (`fichier#…`, `cleNichee`), une référence locale
+ *  de sa collection dans son propre document, ou une chaîne égale ; aucune si l'entrée enregistrée ne porte pas cet
+ *  élément. */
+export function designationsDeLElement(categoryKey: string, index: number, liste: readonly (string | number)[], cle: string, id: string, paquets: readonly PaquetLu[]): string[] {
+  const ds = editableDataset(categoryKey);
+  const objet = editableObjectDataset(categoryKey)?.ds;
+  const entree: unknown = ds ? entreesDuDataset(ds)[index] : datasetObject(objet!);
+  const elements = auChemin(entree, liste);
+  const element = Array.isArray(elements) ? elements.find((e) => estObjet(e) && e[cle] === id) : undefined;
+  if (element === undefined) return [];
+  const { fichier, chemin } = ds ? DATASET_DE_LA_CATEGORIE[categoryKey] : { fichier: datasetObjectFile(objet!), chemin: [] };
+  const versLEntree = chemin.reduce((suite, pas) => suiteAvecPas(suite, pas), '');
+  const suite = liste.reduce<string>((x, pas) => suiteAvecPas(x, typeof pas === 'number' ? { rang: true } : { champ: pas }), ds ? suiteAvecPas(versLEntree, { cle: String((entree as Entry).id) }) : versLEntree);
+  const espace = cleNichee(fichier, suite);
+  const champs = liste.filter((pas): pas is string => typeof pas === 'string');
+  const collection = champs[champs.length - 1];
+  const cibles: CibleDeReference[] = [...(Object.keys(TYPES) as (keyof typeof TYPES)[]).filter((t) => TYPES[t].espace === espace), `local:${collection}`];
+  return designationsHors(cibles, id, element, paquets, (d) => d.document === RACINES_VIVANTES[fichier]);
 }
 
 /**

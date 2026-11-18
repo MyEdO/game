@@ -322,7 +322,7 @@ export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
  */
 export const sourceRefSchema = nommerChamps(z.strictObject({
   book: idDe('book', undefined, { nue: true }),
-  page: z.number(),
+  page: z.number().int(),
   /** Précision optionnelle (ch./l. du passage, portée VERBATIM…). Aucune LOGIQUE DE JEU ne la lit ;
    *  une GARDE la lit : quand elle est de la forme `<ABRÉV> <ch> l.<ligne>`,
    *  `scripts/guards/lib/folioLineAlign.mjs` la confronte au marqueur `data-folio` qui gouverne cette
@@ -735,7 +735,7 @@ export const detailRecipeSchema = nommerChamps(z.strictObject({
       blockWM: z.tuple([z.number(), z.number()]).optional(),
       edgeWobble: z.number().optional(),
       paletteVar: z.number().optional(),
-    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "bloquer la carte du monde" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
+    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "largeur de bloc en mètres" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
     .optional(),
   bands: z.array(nommerChamps(z.strictObject({ atV: z.number(), hM: z.number(), color: z.string() }), { atV: { label: "position verticale" }, hM: { label: "hauteur en mètres" }, color: { label: "couleur" } })).optional(),
   timber: nommerChamps(z
@@ -1317,7 +1317,7 @@ export const messageDeTermeDeJet = (f: unknown): string | undefined => {
  *  qui n'admettent que lui (`max` d'un Talent). */
 export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } });
 /** Le Maxi d'un Talent « Nombre de Sorts disponibles dans le Domaine de Magie du Chaos choisi » (`LDB 10 l.704`). */
-export const maxiSortsDuDomaine = z.literal('sortsDuDomaine');
+export const maxiSortsDuDomaine = nommerNoeud(z.literal('sortsDuDomaine'), { label: 'Sorts du Domaine' });
 
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */
@@ -1374,17 +1374,22 @@ export const formuleSansTirageSchema: z.ZodType<FormuleSansTirage> = z.lazy(() =
   { error: (iss) => messageDeTermeDeJet(iss.input) },
 )) as z.ZodType<FormuleSansTirage>;
 
+/** La grammaire d'une quantité (`formulaSchema`), nommée « formule » en variante d'une union qui l'admet à côté
+ *  d'autres formes ; `formulaSchema` garde son nom. */
+export const formuleNommee = nommerNoeud(z.lazy(() => formulaSchema), { label: 'formule' });
+
 /** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Lié à
  *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::lierLesOps`), jamais à
  *  l'application de l'op : le Péché est expié AVANT `applyOps` (`noyau/combatFlow.ts`). */
 export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.literal(true) }), { sinPoints: { label: "Points de Péché" } });
 
-/** `Formula` du dialecte de la Colère des dieux : une formule GÉNÉRALE, le terme de Péché, ou leur
- *  SOMME — la seule composition que le livre imprime (« 1d10 + (Points de Péché) »). */
+/** `Formula` du dialecte de la Colère des dieux : leur SOMME — la seule composition que le livre imprime
+ *  (« 1d10 + (Points de Péché) ») —, une formule GÉNÉRALE, ou le terme de Péché. La somme d'abord : une somme se lit
+ *  à la variante qui admet le terme de Péché (`varianteCourante`), jamais à la somme de la formule générale. */
 export const formulaSinSchema = z.union([
-  formulaSchema,
+  nommerChamps(z.strictObject({ sum: z.array(z.union([formuleNommee, sinPointsSchema])) }), { sum: { label: "somme" } }),
+  formuleNommee,
   sinPointsSchema,
-  nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
 export type FormuleAuPeche = z.output<typeof formulaSinSchema>;
 

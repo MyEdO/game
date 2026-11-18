@@ -47,6 +47,7 @@ import { adresseDeCreation } from '../../../engine/adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
 import { WATER_EXPOSURE, type CareerLevelData } from '../../index';
 import { CRITIQUE_DOCS } from '../../criticals';
+import { auChemin } from '../../../lib/objet.mjs';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
@@ -283,12 +284,10 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     return { ...(v as Record<string, unknown>), [tete]: ampute((v as Record<string, unknown>)[tete], suite) };
   };
 
-  const descend = (v: unknown, chemin: readonly string[]) =>
-    chemin.reduce<unknown>((acc, k) => (acc as Record<string, unknown>)[k], v);
 
   for (const [fichier, data, sous = []] of SITES) {
     it(`${fichier}${sous.length ? ` › ${sous.join('.')}` : ''} : sa donnée réelle passe, la MÊME rangée sans \`min\` est REFUSÉE`, () => {
-      const relatif = premiereFourchette(descend(data, sous));
+      const relatif = premiereFourchette(auChemin(data, sous));
       const chemin = relatif && [...sous, ...relatif];
       expect(chemin, `aucune rangée {min,max} trouvée dans ${fichier}`).not.toBeNull();
       expect(validateDataset(fichier, data)).toBeNull();

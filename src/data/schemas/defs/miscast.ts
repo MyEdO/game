@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import { plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { cleDeTableDuDomaineSchema } from './domains';
 import { executeesDe, gameOpSchema, opsAuPecheSchema, testFixeSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 
 export const file = 'miscast.json';
@@ -33,7 +34,7 @@ export const rangee = nommerChamps(z.strictObject({
   test: testImbriqueSchema.optional(),
   reroll: z.enum(['majeure', 'mineure-x2']).optional(),
   /** VDM 02 l.238. */
-  domainTable: z.string().optional(),
+  domainTable: cleDeTableDuDomaineSchema.optional(),
   source: sourceRefSchema.optional(),
 }), {
   ...metaDesChamps(plageOuverteSchema, { exigees: true }),
