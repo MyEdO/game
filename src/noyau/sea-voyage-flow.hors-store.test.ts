@@ -597,7 +597,6 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     expect(s.travelPlan!.kmDone).toBeGreaterThan(0);
     expect(s.pendingRest).toBeTruthy();
     expect(s.vessel!.infestation!.assaillie).toBeUndefined();
-    expect(s.journal).toContain(t('eff.membreAuHasardMarin'));
     expect(s.journal).toContain(t('eff.cargaisonPerdueEnc', { enc: 0 }));
     expect(s.pendingCascade).toMatchObject({ purpose: 'sequence' });
     const [etape, ...autres] = etapesDAttaques(s);
@@ -660,7 +659,7 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     expect(ligneDe(pd.atkCompo!.difficultyParts, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
   });
 
-  it('un marin tiré au sort : aucune série, une ligne au journal (MDG 15 l.161)', () => {
+  it('un marin tiré au sort sous l’attaque des rats : l’attaque n’est pas jouée (#4458), le journal le dit une fois (MDG 15 l.161)', () => {
     const avant = get().journal.length;
     const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible + 10, 13);
     expect(s.pendingRest).toBeTruthy();

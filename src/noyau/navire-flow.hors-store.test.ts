@@ -23,6 +23,9 @@ import { findVehicleById } from '../data';
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG, rollDice, type RNG } from '../engine/dice';
 import { imposerLesD100 } from './battleRng.testkit';
+import { WORLD_STEP_OWNER } from './pendings';
+import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
+import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade, draineCascade, membresHorsDifficulte } from './cascade.testkit';
 import { acheterAuMarche } from './cargaison.testkit';
 import { applierDe } from './cascade';
@@ -1037,7 +1040,7 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
 
 describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194-198, l.230-232)', () => {
   beforeEach(etatFrais);
-  afterEach(() => resetData());
+  afterEach(() => { resetData(); resetRule('maladie-mode'); vi.restoreAllMocks(); });
 
   const sansMarins = () => set({ vessel: { ...get().vessel!, crewLost: 99 } });
   const consequence = (id: string): Flow => BOARD_EVENTS.find((e) => e.id === id)!.consequence!;
@@ -1080,11 +1083,91 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     expect(bandeDeContraction()?.participants).toHaveLength(1);
   });
 
-  it('`membreAuHasard` : un marin PNJ tiré ne touche aucun héros, le journal le dit', () => {
+  const bandeDeLEquipage = () => get().pendingCascade?.participants.find((s) => s.kind === 'maladieDeLEquipage');
+  const maladiesDeLEquipage = () => (get().vessel!.porteurDeLEquipage?.diseases ?? []).map((d) => d.id);
+  const feuilleAuHasard = (ops: GameOp[], sl?: number) =>
+    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops } as never }, 'Rats', sl));
+  /** La table de l'Infestation de rats géants : 30 % d'exposition à la fièvre du rongeur. MDG 15 l.161 */
+  const fievreA30: GameOp = { op: 'rollTable', die: { n: 1, sides: 100 }, entries: [
+    { min: 1, max: 30, ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] }, { min: 31, max: 100, ops: [] },
+  ] };
+  /** Le dé 1d10 + |DR négatif| (`addNegativeSL`) : 6 et plus expose. MSRC 16 l.90 */
+  const parLeDRNegatif: GameOp = { op: 'rollTable', die: { n: 1, sides: 10 }, addNegativeSL: true, entries: [
+    { min: 1, max: 5, ops: [] }, { min: 6, max: 99, ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] },
+  ] };
+
+  it('un marin tiré, dé 1-30 : la bande de l’équipage seul ; son échec lui donne la fièvre du rongeur (MDG 15 l.161)', () => {
+    imposerLesD100(100, 30);
+    feuilleAuHasard([fievreA30]);
+    const bande = bandeDeLEquipage();
+    expect(bande?.meta).toEqual({ disease: 'fievre-du-rongeur' });
+    expect(bande?.participants?.map((p) => p.id)).toEqual([WORLD_STEP_OWNER]);
+    draineCascade(get, 20, (_e, rangee) => (rangee ? 100 : undefined));
+    expect(maladiesDeLEquipage()).toEqual(['fievre-du-rongeur']);
+    expect(get().journal).not.toContain(t('eff.membreAuHasardMarin'));
+  });
+
+  it('un marin tiré, dé 1-30 : sa réussite le laisse sain (MDG 15 l.161)', () => {
+    imposerLesD100(100, 30);
+    feuilleAuHasard([fievreA30]);
+    expect(bandeDeLEquipage()?.participants?.map((p) => p.id)).toEqual([WORLD_STEP_OWNER]);
+    draineCascade(get, 20, (_e, rangee) => (rangee ? 1 : undefined));
+    expect(maladiesDeLEquipage()).toEqual([]);
+  });
+
+  it('un marin tiré, dé 31-100 : ni bande ni ligne « marin » (MDG 15 l.161)', () => {
+    const avant = get().journal.length;
+    imposerLesD100(100, 31);
+    feuilleAuHasard([fievreA30]);
+    expect(get().pendingCascade).toBeNull();
+    expect(get().journal.slice(avant)).toEqual([]);
+  });
+
+  it('aucune âme à bord : ni bande ni ligne « marin »', () => {
     set({ party: [] });
-    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'membreAuHasard', ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] } as never }, 'Rats'));
-    expect(bandeDeContraction()).toBeUndefined();
-    expect(get().journal.some((l) => String(l).includes(t('eff.membreAuHasardMarin', { label: 'Rats' })))).toBe(true);
+    sansMarins();
+    const avant = get().journal.length;
+    feuilleAuHasard([fievreA30]);
+    expect(get().pendingCascade).toBeNull();
+    expect(get().journal.slice(avant)).toEqual([]);
+  });
+
+  it('une table à `addNegativeSL` se lit pareil sur un héros et sur l’équipage (MSRC 16 l.90)', () => {
+    set({ party: get().party.slice(0, 1) });
+    sansMarins();
+    imposerLesD100(50, 10);
+    feuilleAuHasard([parLeDRNegatif], -5);
+    expect(bandeDeContraction()?.participants?.map((p) => p.id)).toEqual([get().party[0].id]);
+    etatFrais();
+    set({ party: [] });
+    imposerLesD100(50, 10);
+    feuilleAuHasard([parLeDRNegatif], -5);
+    expect(bandeDeLEquipage()?.participants?.map((p) => p.id)).toEqual([WORLD_STEP_OWNER]);
+  });
+
+  it('un marin tiré, `contractDisease` : l’équipage porte la maladie sans bande (`contractDisease`, #4448)', () => {
+    imposerLesD100(100);
+    feuilleAuHasard([{ op: 'contractDisease', disease: 'fievre-du-rongeur' }]);
+    expect(maladiesDeLEquipage()).toEqual(['fievre-du-rongeur']);
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('`maladie-mode` désactivée : l’équipage tiré n’est pas exposé (LDB 20 l.35)', () => {
+    setRule('maladie-mode', 'off');
+    imposerLesD100(100, 30);
+    feuilleAuHasard([fievreA30]);
+    expect(get().pendingCascade).toBeNull();
+    expect(maladiesDeLEquipage()).toEqual([]);
+  });
+
+  it('en bataille : la maladie tirée sur l’équipage se refuse, l’équipage reste sain', () => {
+    const { vessel } = get();
+    heroFaceAUnEnnemi(banc, testScene());
+    set({ vessel });
+    expect(get().battle).toBeTruthy();
+    imposerLesD100(100, 30);
+    expect(() => applyEffects(get, set, [{ type: 'ops', on: 'membreAuHasard', ops: [fievreA30] } as never])).toThrow(t('eff.maladieDeLEquipageEnCombat'));
+    expect(maladiesDeLEquipage()).toEqual([]);
   });
 
   it('Infestations : la donnée porte la RAW (Complexe 25 DR / 3d10 Enc / 30 % ; Intermédiaire 10 DR / 1d10 Enc / 15 %)', () => {
