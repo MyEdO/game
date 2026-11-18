@@ -653,7 +653,7 @@ export interface CastTestModsContext {
   /** Le Sort incanté ou focalisé. Absent en `dissipation`. */
   spell?: SpellLike | null;
   /** Magie des mers (MDG 02 l.178-186). */
-  sea?: { atSea?: boolean; wind?: import('./domainAttributes').SeaWind | null };
+  sea?: { atSea?: boolean; wind?: string | null };
   /** Rubrique de VENT du Domaine (VDM 04 l.48-56 et ses 7 homologues). */
   wind?: WindContext;
   /** État magique du LIEU (VDM 14, option `magie-vdm-environnementale`). */
@@ -729,7 +729,7 @@ export function resolveCasting(
    *  « N'écoutez point la Sorcière », LDB 42 : −20 si le Sort cible la zone du prêtre). */
   extraMod = 0,
   /** Magie des mers (MDG 02 l.178-186) : contexte navigation + vent, fourni par l'appelant. */
-  sea: { atSea?: boolean; wind?: import('./domainAttributes').SeaWind | null } = {},
+  sea: { atSea?: boolean; wind?: string | null } = {},
   /** Rubrique de VENT du Domaine (`VDM 04 l.48-56` et ses 7 homologues) : circonstances du monde
    *  courant, fournies par l'appelant (état). */
   wind: WindContext = {},
@@ -1040,7 +1040,7 @@ export function resolveMagicMissile(
   extraMod = 0,
   /** Magie des mers (MDG 02 l.178-186) : le Projectile magique EST un Test d'Incantation
    *  (LDB 46 l.24 : « Pour lancer un Sort, effectuez un Test de Langue (Magick) ») — même contexte que `resolveCasting`. */
-  sea: { atSea?: boolean; wind?: import('./domainAttributes').SeaWind | null } = {},
+  sea: { atSea?: boolean; wind?: string | null } = {},
   /** Rubrique de VENT du Domaine — même contexte que `resolveCasting`. */
   wind: WindContext = {},
   /** Magie ENVIRONNEMENTALE (`VDM 14`) — même contexte que `resolveCasting`. */

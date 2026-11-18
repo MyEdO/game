@@ -1,5 +1,5 @@
 import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
-import { windForces, windForceLabel, type SeaWindForceId } from '../engine/seaWeather';
+import { windForces, windForceLabel } from '../engine/seaWeather';
 
 /**
  * Rose des vents compacte (SVG) — 8 directions (vocabulaire `Dir8` du projet), flèche de PROVENANCE
@@ -10,8 +10,8 @@ import { windForces, windForceLabel, type SeaWindForceId } from '../engine/seaWe
 export interface WindRoseProps {
   /** Provenance du vent sur la rose (rose des vents, MDG 13) — la flèche pointe vers ce cap. */
   dir: Dir8;
-  /** Force du vent (`SeaWindForceId`, MDG 13). */
-  force: SeaWindForceId;
+  /** Force du vent : id d'une entrée de `sea-weather.json › vents` (MDG 13). */
+  force: string;
   /** Cap du navire (second index optionnel, aiguille dorée). */
   heading?: Dir8;
   size?: 'sm' | 'md';

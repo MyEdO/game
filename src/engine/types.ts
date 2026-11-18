@@ -1729,7 +1729,7 @@ export interface Combatant {
   /** Précipitations du jour de mer sous lesquelles ce combattant agit (MDG 13 l.185, #1936) : posées à
    *  l'ouverture d'un combat survenant pendant un voyage maritime. SEULE source du canal
    *  `precipitationTestMods` en combat. Transitoire (non persistée hors combat). */
-  envPrecipitation?: import('./seaWeather').SeaPrecipitationId;
+  envPrecipitation?: string;
   /** Adversaires avec qui ce combattant est Engagé en mêlée (LDB 13 l.169-171).
    *  Relationnel et symétrique ; purgé par paire en fin de Round si aucune attaque échangée. */
   engagedWith?: string[];

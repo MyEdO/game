@@ -245,7 +245,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'manann': return { op: 'manann', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
     case 'shipCritical': return { op: 'shipCritical', location: 'aleatoire', count: 1 };
     case 'navireMod': return { op: 'navireMod', m: -1, jusqua: 'carenage' };
-    case 'meteoImposee': return { op: 'meteoImposee', jours: { dice: { n: 1, sides: 10 } }, meteo: { vent: 'calme-plat' } };
+    case 'meteoImposee': return { op: 'meteoImposee', jours: { dice: { n: 1, sides: 10 } }, meteo: { vent: { id: 'calme-plat' } } };
     case 'cargaison': return { op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } };
     case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } }, vivre: { id: VIVRES_DE_CALE.vivres[0] } };
     case 'equipage': return { op: 'equipage', delta: 1 };

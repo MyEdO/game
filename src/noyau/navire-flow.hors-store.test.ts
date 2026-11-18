@@ -310,9 +310,9 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   });
 
   it('Calme plat : la météo imposée tient au lendemain, puis expire (l.189)', () => {
-    consequenceDeBord('calme-plat', surLeNavire([{ op: 'meteoImposee', jours: 3, meteo: { vent: 'calme-plat' } }]));
+    consequenceDeBord('calme-plat', surLeNavire([{ op: 'meteoImposee', jours: 3, meteo: { vent: { id: 'calme-plat' } } }]));
     jour('calme-plat');
-    expect(get().vessel!.meteosImposees).toEqual([expect.objectContaining({ jusqua: ilYA(3), meteo: { vent: 'calme-plat' } })]);
+    expect(get().vessel!.meteosImposees).toEqual([expect.objectContaining({ jusqua: ilYA(3), meteo: { vent: { id: 'calme-plat' } } })]);
     draineCascade(get);
     expect(get().travelPlan!.sea!.weather.vent).toBe('calme-plat');
   });
@@ -320,7 +320,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   it('une météo imposée au navire tient dès l’appareillage, et pas au-delà de son échéance', () => {
     const vent = (jusqua: number) => {
       etatFrais();
-      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Calme plat', jusqua, meteo: { vent: 'calme-plat' } }] } });
+      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Calme plat', jusqua, meteo: { vent: { id: 'calme-plat' } } }] } });
       return buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!.sea!.weather.vent;
     };
     expect(vent(ilYA(2))).toBe('calme-plat');
@@ -330,7 +330,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   it('Tempête : chaque matin, 1d10 ≥ 8 aggrave en Violente tempête (l.248)', () => {
     const vent = (de: number) => {
       etatFrais();
-      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Tempête', jusqua: ilYA(2), meteo: { vent: 'vent-violent' }, aggravation: { de, seuil: 8, meteo: { vent: 'violente-tempete' } } }] } });
+      set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Tempête', jusqua: ilYA(2), meteo: { vent: { id: 'vent-violent' } }, aggravation: { de, seuil: 8, meteo: { vent: { id: 'violente-tempete' } } } }] } });
       return buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!.sea!.weather.vent;
     };
     expect(vent(8)).toBe('violente-tempete');

@@ -7,10 +7,12 @@ import { difficultySchema, maisonSchema, plageSchema, sourceRefSchema, tirageSch
 export const file = 'river-navigation.json';
 export const famille = 'config';
 
+/** MSRC 7 l.25-33 */
 const riverWindDirId = z.enum(['arriere', 'cote', 'contraire']);
+export type RiverWindDirId = z.output<typeof riverWindDirId>;
 
-/** `BandRow` (`src/engine/riverNavigation.ts`) — rangée d'une table de tirage par fourchette. */
-const bandRow = nommerChamps(z.strictObject({ ...plageSchema.shape, id: z.string(), label: z.string() }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: 'Identifiant' }, label: { label: 'Libellé' } });
+/** Rangée d'une table de tirage par fourchette, d'id `id`. */
+const bandRow = <I extends z.ZodType<string, string>>(id: I) => nommerChamps(z.strictObject({ ...plageSchema.shape, id, label: z.string(), source: sourceRefSchema }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: 'Identifiant' }, label: { label: 'Libellé' }, source: { label: 'Source' } });
 
 /** `RiverWindEffect` (`src/engine/riverNavigation.ts`). */
 const riverWindEffect = nommerChamps(z.strictObject({
@@ -27,14 +29,15 @@ const riverWindEffect = nommerChamps(z.strictObject({
   risqueDeGreement: { label: 'Risque pour le gréement' },
 });
 
+const forceRow = bandRow(z.string());
+
 const champs = {
   /** MSRC 7 l.27 */
-  windForces: tableTiree(nommerChamps(bandRow.extend({ source: sourceRefSchema }), { ...metaDesChamps(bandRow, { exigees: true }), source: { label: 'Source' } })),
+  windForces: tableTiree(nommerChamps(forceRow.extend({ effet: z.record(riverWindDirId, riverWindEffect) }), { ...metaDesChamps(forceRow, { exigees: true }), effet: { label: 'Effet du vent' } })),
   /** MSRC 7 l.25 */
-  windDirections: tableTiree(nommerChamps(bandRow.extend({ source: sourceRefSchema }), { ...metaDesChamps(bandRow, { exigees: true }), source: { label: 'Source' } })),
+  windDirections: tableTiree(bandRow(riverWindDirId)),
   windTickThreshold: z.number(),
   windTicksPerDay: z.number(),
-  windEffect: z.record(z.string(), z.record(riverWindDirId, riverWindEffect)),
   driftPctOfSpeed: z.number(),
   driftNavPenalty: z.number(),
   navBaseDifficulty: difficultySchema,
@@ -73,14 +76,13 @@ const doc = document(
   famille,
   champs,
   {
-    windForces: { label: 'Forces de vent', hint: 'Table de tirage des forces de vent fluviales' },
+    windForces: { label: 'Forces de vent', hint: 'Table de tirage des forces de vent fluviales, et l’effet de chacune par vent relatif (% de vitesse, dérive, virement, risque de chavirage/gréement)' },
     windDirections: { label: 'Vent relatif', hint: 'Table de tirage du vent relatif au bateau' },
     windTickThreshold: {
       label: 'Résultat de bascule du vent',
       hint: 'Résultat exact du d10 qui fait changer la FORCE du vent d’un cran (la direction n’est tirée qu’au départ)',
     },
     windTicksPerDay: { label: 'Bascules par jour', hint: 'Nombre de tirages de vent par journée de navigation' },
-    windEffect: { label: 'Effet du vent', hint: '% de vitesse, dérive, virement, risque de chavirage/gréement par force×direction' },
     driftPctOfSpeed: { label: '% de dérive', hint: 'Part de la vitesse perdue en dérive' },
     driftNavPenalty: { label: 'Malus de dérive', hint: 'Pénalité au Test de Navigation en dérive' },
     navBaseDifficulty: { label: 'Difficulté de base', hint: 'Difficulté de base du Test de Navigation fluviale' },
