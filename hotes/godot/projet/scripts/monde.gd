@@ -24,6 +24,9 @@ const DUREE_QUART_S := 0.25
 const TANGAGE_TACTIQUE := -0.9
 ## Une hauteur sous tout monde, où finit le rayon qui cherche le sol sous un lieu.
 const SOUS_LE_MONDE := -1000.0
+## L'écart, au centre d'une case, du point de son sol que l'écran publie (`points`) : assez pour quitter l'arête de
+## ses deux triangles, trop peu pour changer ce que le point désigne.
+const DANS_LA_CASE := Vector3(MiseEnPage.DEMI_CASE / 32.0, 0.0, 0.0)
 ## Le nombre de lancers au plus d'un rayon (`_toucher`) : le premier, chaque reprise au-delà d'une case que le masque du
 ## volume retire et chaque tronçon qui suit un tronçon qui ne touche rien.
 const LANCERS_DU_RAYON := 64
@@ -213,13 +216,15 @@ func poser_les_cases_jouables(cases: Array[Vector3i]) -> void:
 		_cases_jouables[case] = true
 
 
-## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.
+## Le point de l'écran du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y` : son centre, poussé à
+## l'est (`DANS_LA_CASE`) hors des diagonales de la case, dont l'une est l'arête de ses deux triangles, qu'un rayon
+## tombé dessus peut traverser sans toucher ni l'un ni l'autre (`touche_sous`).
 func points(z := 0) -> Dictionary:
 	var points := {}
 	var t := taille()
 	for y in t.y:
 		for x in t.x:
-			var point: Variant = a_l_ecran(lieu(Vector2i(x, y), z))
+			var point: Variant = a_l_ecran(lieu(Vector2i(x, y), z) + DANS_LA_CASE)
 			if point != null:
 				points["%d,%d" % [x, y]] = [point.x, point.y]
 	return points

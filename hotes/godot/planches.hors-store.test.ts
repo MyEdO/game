@@ -17,7 +17,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs';
 import VUES_RECETTE from '../../scripts/recette/vues-recette.json';
-import { coteACote, deposerLesPlanches, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur } from './planches.mjs';
+import { coteACote, deposerLesPlanches, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur, VUE_DE_BASE } from './planches.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
 afterAll(() => rmSync(racine, { recursive: true, force: true }));
@@ -112,10 +112,8 @@ describe('coteACote', () => {
 
 describe('la vue de base du projet', () => {
   it('est la vue de référence ramenée à 720 de haut, sa hauteur bornant encore l’échelle à la vue de référence', () => {
-    const projet = readFileSync(new URL('./projet/project.godot', import.meta.url), 'utf8');
-    const lue = (cle: string) => Number(new RegExp(`^window/size/${cle}=(\\d+)$`, 'm').exec(projet)?.[1]);
     const hauteur = 720;
     const reference = VUES_RECETTE.find((v) => v.nom === 'bureau')!;
-    expect({ largeur: lue('viewport_width'), hauteur: lue('viewport_height') }).toEqual({ largeur: Math.floor((reference.largeur * hauteur) / reference.hauteur), hauteur });
+    expect(VUE_DE_BASE).toEqual({ largeur: Math.floor((reference.largeur * hauteur) / reference.hauteur), hauteur });
   });
 });
