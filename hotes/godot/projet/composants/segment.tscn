@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://composants/bouton.tscn" id="1_bouton"]
+
+[node name="Segment" instance=ExtResource("1_bouton")]
+
+[node name="Presser" parent="." index="0"]
+a_droite = true
+focus_mode = 0
+theme_type_variation = &"Segment"

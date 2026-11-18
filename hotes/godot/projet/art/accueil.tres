@@ -26,25 +26,33 @@ bg_color = Color(0.886, 0.753, 0.416, 1)
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_repos"]
 content_margin_left = 18.0
+content_margin_top = 11.0
 content_margin_right = 18.0
+content_margin_bottom = 11.0
 script = ExtResource("4_cadre")
 cadre = "bouton"
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_survol"]
 content_margin_left = 18.0
+content_margin_top = 11.0
 content_margin_right = 18.0
+content_margin_bottom = 11.0
 script = ExtResource("4_cadre")
 cadre = "bouton-survol"
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_armee"]
 content_margin_left = 18.0
+content_margin_top = 11.0
 content_margin_right = 18.0
+content_margin_bottom = 11.0
 script = ExtResource("4_cadre")
 cadre = "bouton-arme"
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_fermee"]
 content_margin_left = 18.0
+content_margin_top = 11.0
 content_margin_right = 18.0
+content_margin_bottom = 11.0
 script = ExtResource("4_cadre")
 cadre = "bouton-ferme"
 
@@ -65,7 +73,7 @@ SurTitre/constants/shadow_outline_size = 6
 SurTitre/font_sizes/font_size = 15
 SurTitre/fonts/font = SubResource("Rubriques_espacees")
 TitreDuJeu/base_type = &"Label"
-TitreDuJeu/colors/font_color = Color(0.941, 0.831, 0.541, 1)
+TitreDuJeu/colors/font_color = Color(1, 1, 1, 1)
 TitreDuJeu/colors/font_shadow_color = Color(0, 0, 0, 0.85)
 TitreDuJeu/constants/shadow_offset_x = 0
 TitreDuJeu/constants/shadow_offset_y = 3
@@ -91,29 +99,29 @@ EntreesDeLAccueil/base_type = &"VBoxContainer"
 EntreesDeLAccueil/constants/separation = 11
 OutilsDeLAccueil/base_type = &"HBoxContainer"
 OutilsDeLAccueil/constants/separation = 6
-PlaqueDEntree/base_type = &"Button"
-PlaqueDEntree/colors/font_color = Color(0.886, 0.753, 0.416, 1)
-PlaqueDEntree/colors/font_hover_color = Color(0.937, 0.847, 0.569, 1)
-PlaqueDEntree/colors/font_focus_color = Color(0.886, 0.753, 0.416, 1)
-PlaqueDEntree/colors/font_pressed_color = Color(0.165, 0.102, 0.031, 1)
-PlaqueDEntree/colors/font_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
-PlaqueDEntree/colors/font_disabled_color = Color(0.553, 0.518, 0.455, 1)
-PlaqueDEntree/colors/icon_normal_color = Color(0.886, 0.753, 0.416, 1)
-PlaqueDEntree/colors/icon_hover_color = Color(0.937, 0.847, 0.569, 1)
-PlaqueDEntree/colors/icon_focus_color = Color(0.886, 0.753, 0.416, 1)
-PlaqueDEntree/colors/icon_pressed_color = Color(0.165, 0.102, 0.031, 1)
-PlaqueDEntree/colors/icon_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
-PlaqueDEntree/colors/icon_disabled_color = Color(0.553, 0.518, 0.455, 1)
-PlaqueDEntree/constants/h_separation = 13
-PlaqueDEntree/constants/icon_max_width = 18
-PlaqueDEntree/font_sizes/font_size = 17
-PlaqueDEntree/fonts/font = SubResource("Rubriques_des_plaques")
-PlaqueDEntree/styles/normal = SubResource("Plaque_repos")
-PlaqueDEntree/styles/hover = SubResource("Plaque_survol")
-PlaqueDEntree/styles/pressed = SubResource("Plaque_armee")
-PlaqueDEntree/styles/hover_pressed = SubResource("Plaque_armee")
-PlaqueDEntree/styles/disabled = SubResource("Plaque_fermee")
-PlaqueArmee/base_type = &"PlaqueDEntree"
+Plaque/base_type = &"Button"
+Plaque/colors/font_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/font_hover_color = Color(0.937, 0.847, 0.569, 1)
+Plaque/colors/font_focus_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/font_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/font_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/font_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Plaque/colors/icon_normal_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/icon_hover_color = Color(0.937, 0.847, 0.569, 1)
+Plaque/colors/icon_focus_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/icon_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/icon_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/icon_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Plaque/constants/h_separation = 13
+Plaque/constants/icon_max_width = 18
+Plaque/font_sizes/font_size = 17
+Plaque/fonts/font = SubResource("Rubriques_des_plaques")
+Plaque/styles/normal = SubResource("Plaque_repos")
+Plaque/styles/hover = SubResource("Plaque_survol")
+Plaque/styles/pressed = SubResource("Plaque_armee")
+Plaque/styles/hover_pressed = SubResource("Plaque_armee")
+Plaque/styles/disabled = SubResource("Plaque_fermee")
+PlaqueArmee/base_type = &"Plaque"
 PlaqueArmee/colors/font_color = Color(0.165, 0.102, 0.031, 1)
 PlaqueArmee/colors/font_hover_color = Color(0.165, 0.102, 0.031, 1)
 PlaqueArmee/colors/font_focus_color = Color(0.165, 0.102, 0.031, 1)

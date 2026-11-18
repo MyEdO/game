@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=28 format=3]
+[gd_resource type="Theme" load_steps=30 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 [ext_resource type="StyleBox" path="res://art/bouton_focus.tres" id="b_focus"]
@@ -32,20 +32,31 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="Fond_de_bulle"]
-bg_color = Color(0.89, 0.83, 0.7, 0.98)
+bg_color = Color(0.847, 0.769, 0.604, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.45, 0.35, 0.22, 1)
+border_color = Color(0.157, 0.098, 0.039, 0.9)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0, 0, 0, 0.6)
+shadow_size = 6
+shadow_offset = Vector2(0, 5)
 content_margin_left = 10.0
-content_margin_top = 6.0
+content_margin_top = 4.0
 content_margin_right = 10.0
-content_margin_bottom = 6.0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Pointe_de_bulle"]
+bg_color = Color(0.804, 0.722, 0.541, 1)
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.157, 0.098, 0.039, 0.9)
+
+[sub_resource type="StyleBoxEmpty" id="Sans_fond_de_bulle"]
 
 [sub_resource type="StyleBoxFlat" id="Fond_de_jauge"]
 bg_color = Color(0.16, 0.14, 0.12, 1)
@@ -362,7 +373,16 @@ Chiffre/font_sizes/font_size = 30
 Discret/base_type = &"Label"
 Discret/colors/font_color = Color(0.725, 0.671, 0.573, 1)
 TooltipPanel/styles/panel = SubResource("Fond_de_bulle")
-TooltipLabel/colors/font_color = Color(0.18, 0.13, 0.08, 1)
+TooltipLabel/colors/font_color = Color(0.165, 0.114, 0.071, 1)
+TooltipLabel/font_sizes/font_size = 12
+BulleSerree/base_type = &"VBoxContainer"
+BulleSerree/constants/separation = 0
+BulleAPointe/base_type = &"TooltipPanel"
+BulleAPointe/styles/panel = SubResource("Sans_fond_de_bulle")
+CorpsDeBulle/base_type = &"PanelContainer"
+CorpsDeBulle/styles/panel = SubResource("Fond_de_bulle")
+PointeDeBulle/base_type = &"Panel"
+PointeDeBulle/styles/panel = SubResource("Pointe_de_bulle")
 ProgressBar/styles/background = SubResource("Fond_de_jauge")
 ProgressBar/styles/fill = SubResource("Plein_de_jauge")
 Button/colors/font_color = Color(0.953, 0.902, 0.784, 1)
@@ -503,6 +523,26 @@ Dessin/colors/altdorf_toits_clairs = Color(0.173, 0.129, 0.275, 1)
 Dessin/colors/altdorf_fenetre = Color(1, 0.851, 0.541, 1)
 Dessin/colors/altdorf_rempart = Color(0.078, 0.059, 0.141, 1)
 Dessin/colors/altdorf_porte = Color(1, 0.812, 0.502, 1)
+Dessin/colors/cuir_haut = Color(0.29, 0.141, 0.086, 1)
+Dessin/colors/cuir = Color(0.165, 0.075, 0.043, 1)
+Dessin/colors/cuir_bas = Color(0.11, 0.047, 0.024, 1)
+Dessin/colors/filet_or = Color(0.886, 0.753, 0.416, 1)
+Dessin/colors/tranche_claire = Color(0.886, 0.824, 0.659, 1)
+Dessin/colors/tranche_sombre = Color(0.561, 0.49, 0.345, 1)
+Dessin/colors/vignette_de_page = Color(0.353, 0.235, 0.078, 1)
+Dessin/colors/ombre_du_pli = Color(0.157, 0.078, 0.02, 1)
+Dessin/colors/signet_haut = Color(0.357, 0.114, 0.078, 1)
+Dessin/colors/signet_bas = Color(0.235, 0.067, 0.043, 1)
+Dessin/colors/or_eclat = Color(0.953, 0.863, 0.576, 1)
+Dessin/colors/or_plein = Color(0.765, 0.612, 0.267, 1)
+Dessin/colors/or_patine = Color(0.541, 0.416, 0.149, 1)
+Dessin/colors/or_ombre = Color(0.604, 0.471, 0.188, 1)
+Dessin/colors/nuit_de_bois = Color(0.082, 0.047, 0.027, 1)
+Dessin/colors/encre_de_page = Color(0.235, 0.157, 0.078, 1)
+Dessin/colors/titre_haut = Color(1.0, 0.957, 0.831, 1)
+Dessin/colors/titre_milieu = Color(0.941, 0.831, 0.541, 1)
+Dessin/colors/lueur_de_table = Color(1, 0.745, 0.431, 1)
+Dessin/colors/titre_bas = Color(0.722, 0.541, 0.212, 1)
 PileTassee/base_type = &"VBoxContainer"
 PileTassee/constants/separation = 5
 RangeeDeCarte/base_type = &"HBoxContainer"

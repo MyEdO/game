@@ -1,0 +1,356 @@
+[gd_resource type="Theme" load_steps=31 format=3]
+
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="1_cadre"]
+[ext_resource type="Script" path="res://scripts/icone_du_catalogue.gd" id="2_icone_du_catalogue"]
+[ext_resource type="StyleBox" path="res://art/cadre_de_fenetre.tres" id="3_cadre_de_fenetre"]
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="4_police_des_titres"]
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_police_des_rubriques"]
+[ext_resource type="FontVariation" path="res://art/police_a_empattements.tres" id="6_police_a_empattements"]
+[ext_resource type="FontVariation" path="res://art/police_penchee.tres" id="7_police_penchee"]
+
+[sub_resource type="StyleBoxEmpty" id="Rien"]
+
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Table"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+script = ExtResource("1_cadre")
+cadre = "nu"
+matiere = "prop--bois-chene"
+teinte = Color(0.42, 0.33, 0.27, 1)
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Medaillon"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+script = ExtResource("1_cadre")
+cadre = "medaillon-fer"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Ruban"]
+content_margin_left = 24.0
+content_margin_top = 0.0
+content_margin_right = 24.0
+content_margin_bottom = 1.0
+script = ExtResource("1_cadre")
+cadre = "ruban"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Reliure"]
+content_margin_left = 12.0
+content_margin_top = 10.2
+content_margin_right = 12.0
+content_margin_bottom = 13.8
+script = ExtResource("1_cadre")
+cadre = "reliure"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Segment"]
+content_margin_left = 8.3
+content_margin_top = 2.8
+content_margin_right = 8.3
+content_margin_bottom = 3.7
+script = ExtResource("1_cadre")
+cadre = "segment"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Segment_presse"]
+content_margin_left = 8.3
+content_margin_top = 2.8
+content_margin_right = 8.3
+content_margin_bottom = 3.7
+script = ExtResource("1_cadre")
+cadre = "segment-presse"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Segment_ferme"]
+content_margin_left = 8.3
+content_margin_top = 2.8
+content_margin_right = 8.3
+content_margin_bottom = 3.7
+script = ExtResource("1_cadre")
+cadre = "segment-ferme"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Piste"]
+content_margin_left = 0.0
+content_margin_top = 1.5
+content_margin_right = 0.0
+content_margin_bottom = 1.5
+script = ExtResource("1_cadre")
+cadre = "piste"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Piste_pleine"]
+content_margin_left = 0.0
+content_margin_top = 1.5
+content_margin_right = 0.0
+content_margin_bottom = 1.5
+script = ExtResource("1_cadre")
+cadre = "piste-pleine"
+
+[sub_resource type="Texture2D" script_class="IconeDuCatalogue" id="Losange"]
+script = ExtResource("2_icone_du_catalogue")
+dessin = "interface/losange"
+taille = 13
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_repos"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+script = ExtResource("1_cadre")
+cadre = "bouton"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_survol"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+script = ExtResource("1_cadre")
+cadre = "bouton-survol"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_armee"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+script = ExtResource("1_cadre")
+cadre = "bouton-arme"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_fermee"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+script = ExtResource("1_cadre")
+cadre = "bouton-ferme"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille"]
+content_margin_left = 9.5
+content_margin_top = 9.5
+content_margin_right = 9.5
+content_margin_bottom = 9.5
+script = ExtResource("1_cadre")
+cadre = "pastille"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_survol"]
+content_margin_left = 9.5
+content_margin_top = 9.5
+content_margin_right = 9.5
+content_margin_bottom = 9.5
+script = ExtResource("1_cadre")
+cadre = "pastille-survol"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_presse"]
+content_margin_left = 9.5
+content_margin_top = 9.5
+content_margin_right = 9.5
+content_margin_bottom = 9.5
+script = ExtResource("1_cadre")
+cadre = "pastille-presse"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Pastille_ferme"]
+content_margin_left = 9.5
+content_margin_top = 9.5
+content_margin_right = 9.5
+content_margin_bottom = 9.5
+script = ExtResource("1_cadre")
+cadre = "pastille-ferme"
+
+[sub_resource type="StyleBoxLine" id="Filet_d_or"]
+color = Color(0.886, 0.753, 0.416, 0.28)
+thickness = 1
+
+[sub_resource type="PlaceholderTexture2D" id="Sans_fleches"]
+size = Vector2(0, 0)
+
+[sub_resource type="FontVariation" id="Rubriques_des_segments"]
+base_font = ExtResource("5_police_des_rubriques")
+spacing_glyph = 1
+
+[sub_resource type="StyleBoxEmpty" id="Pied_d_aide"]
+content_margin_bottom = 16.0
+
+[resource]
+Table/base_type = &"Panel"
+Table/styles/panel = SubResource("Table")
+Cartouche/base_type = &"PanelContainer"
+Cartouche/styles/panel = ExtResource("3_cadre_de_fenetre")
+Volet/base_type = &"PanelContainer"
+Volet/styles/panel = ExtResource("3_cadre_de_fenetre")
+Medaillon/base_type = &"PanelContainer"
+Medaillon/styles/panel = SubResource("Medaillon")
+MargesDuTitre/base_type = &"MarginContainer"
+MargesDuTitre/constants/margin_left = 3
+MargesDuTitre/constants/margin_right = 11
+MargesDuTitre/constants/margin_top = 0
+MargesDuTitre/constants/margin_bottom = 0
+MargesDuVolet/base_type = &"MarginContainer"
+MargesDuVolet/constants/margin_left = 7
+MargesDuVolet/constants/margin_right = 7
+MargesDuVolet/constants/margin_top = 18
+MargesDuVolet/constants/margin_bottom = 9
+RangeeDuTitre/base_type = &"HBoxContainer"
+RangeeDuTitre/constants/separation = 13
+PileDuTitre/base_type = &"VBoxContainer"
+PileDuTitre/constants/separation = 0
+TitreDesOptions/base_type = &"Label"
+TitreDesOptions/colors/font_color = Color(0.957, 0.91, 0.792, 1)
+TitreDesOptions/colors/font_shadow_color = Color(0.0, 0.0, 0.0, 1)
+TitreDesOptions/constants/shadow_offset_x = 0
+TitreDesOptions/constants/shadow_offset_y = 2
+TitreDesOptions/constants/shadow_outline_size = 3
+TitreDesOptions/font_sizes/font_size = 29
+TitreDesOptions/fonts/font = ExtResource("4_police_des_titres")
+SousTitreDesOptions/base_type = &"Label"
+SousTitreDesOptions/colors/font_color = Color(0.788, 0.725, 0.584, 1)
+SousTitreDesOptions/font_sizes/font_size = 12
+SousTitreDesOptions/fonts/font = ExtResource("5_police_des_rubriques")
+Ruban/base_type = &"PanelContainer"
+Ruban/styles/panel = SubResource("Ruban")
+TitreDuRuban/base_type = &"Label"
+TitreDuRuban/colors/font_color = Color(0.941, 0.886, 0.761, 1)
+TitreDuRuban/font_sizes/font_size = 13
+TitreDuRuban/fonts/font = ExtResource("5_police_des_rubriques")
+PileDuVolet/base_type = &"VBoxContainer"
+PileDuVolet/constants/separation = 20
+Reglage/base_type = &"HBoxContainer"
+Reglage/constants/separation = 9
+NomDeReglage/base_type = &"Label"
+NomDeReglage/colors/font_color = Color(0.941, 0.886, 0.761, 1)
+NomDeReglage/font_sizes/font_size = 14
+NomDeReglage/fonts/font = ExtResource("6_police_a_empattements")
+Aide/base_type = &"Label"
+Aide/colors/font_color = Color(0.788, 0.725, 0.584, 1)
+Aide/constants/line_spacing = -2
+Aide/font_sizes/font_size = 12
+Aide/fonts/font = ExtResource("7_police_penchee")
+Aide/styles/normal = SubResource("Pied_d_aide")
+PileDesReglages/base_type = &"VBoxContainer"
+PileDesReglages/constants/separation = 5
+FiletDuVolet/base_type = &"HSeparator"
+FiletDuVolet/constants/separation = 2
+FiletDuVolet/styles/separator = SubResource("Filet_d_or")
+Segments/base_type = &"HBoxContainer"
+Segments/constants/separation = -1
+Segment/base_type = &"Button"
+Segment/colors/font_color = Color(0.659, 0.6, 0.478, 1)
+Segment/colors/font_hover_color = Color(0.886, 0.753, 0.416, 1)
+Segment/colors/font_focus_color = Color(0.659, 0.6, 0.478, 1)
+Segment/colors/font_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Segment/colors/font_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Segment/colors/font_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Segment/font_sizes/font_size = 12
+Segment/fonts/font = SubResource("Rubriques_des_segments")
+Segment/styles/normal = SubResource("Segment")
+Segment/styles/hover = SubResource("Segment")
+Segment/styles/pressed = SubResource("Segment_presse")
+Segment/styles/hover_pressed = SubResource("Segment_presse")
+Segment/styles/disabled = SubResource("Segment_ferme")
+Segment/styles/focus = SubResource("Rien")
+Reglette/base_type = &"HBoxContainer"
+Reglette/constants/separation = 11
+Glissiere/base_type = &"HSlider"
+Glissiere/styles/slider = SubResource("Piste")
+Glissiere/styles/grabber_area = SubResource("Piste_pleine")
+Glissiere/styles/grabber_area_highlight = SubResource("Piste_pleine")
+Glissiere/icons/grabber = SubResource("Losange")
+Glissiere/icons/grabber_highlight = SubResource("Losange")
+Glissiere/icons/grabber_disabled = SubResource("Losange")
+NombreDeReglette/base_type = &"SpinBox"
+NombreDeReglette/constants/buttons_width = 0
+NombreDeReglette/icons/updown = SubResource("Sans_fleches")
+NombreDeReglette/icons/up = SubResource("Sans_fleches")
+NombreDeReglette/icons/up_hover = SubResource("Sans_fleches")
+NombreDeReglette/icons/up_pressed = SubResource("Sans_fleches")
+NombreDeReglette/icons/up_disabled = SubResource("Sans_fleches")
+NombreDeReglette/icons/down = SubResource("Sans_fleches")
+NombreDeReglette/icons/down_hover = SubResource("Sans_fleches")
+NombreDeReglette/icons/down_pressed = SubResource("Sans_fleches")
+NombreDeReglette/icons/down_disabled = SubResource("Sans_fleches")
+NombreDeReglette/styles/up_background = SubResource("Rien")
+NombreDeReglette/styles/up_background_hovered = SubResource("Rien")
+NombreDeReglette/styles/up_background_pressed = SubResource("Rien")
+NombreDeReglette/styles/up_background_disabled = SubResource("Rien")
+NombreDeReglette/styles/down_background = SubResource("Rien")
+NombreDeReglette/styles/down_background_hovered = SubResource("Rien")
+NombreDeReglette/styles/down_background_pressed = SubResource("Rien")
+NombreDeReglette/styles/down_background_disabled = SubResource("Rien")
+LineEdit/colors/font_color = Color(0.953, 0.902, 0.776, 1)
+LineEdit/colors/font_uneditable_color = Color(0.953, 0.902, 0.776, 1)
+LineEdit/font_sizes/font_size = 17
+LineEdit/fonts/font = ExtResource("4_police_des_titres")
+LineEdit/styles/normal = SubResource("Rien")
+LineEdit/styles/focus = SubResource("Rien")
+LineEdit/styles/read_only = SubResource("Rien")
+Signets/base_type = &"VBoxContainer"
+Signets/constants/separation = 6
+Reliure/base_type = &"PanelContainer"
+Reliure/styles/panel = SubResource("Reliure")
+Domaines/base_type = &"TabContainer"
+Domaines/styles/panel = SubResource("Rien")
+Domaines/styles/tabbar_background = SubResource("Rien")
+Feuillets/base_type = &"TabContainer"
+Feuillets/styles/panel = SubResource("Rien")
+Feuillets/styles/tabbar_background = SubResource("Rien")
+Plaque/base_type = &"Button"
+Plaque/colors/font_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/font_hover_color = Color(0.937, 0.847, 0.569, 1)
+Plaque/colors/font_focus_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/font_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/font_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/font_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Plaque/colors/icon_normal_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/icon_hover_color = Color(0.937, 0.847, 0.569, 1)
+Plaque/colors/icon_focus_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/icon_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/icon_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/icon_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Plaque/constants/h_separation = 8
+Plaque/constants/icon_max_width = 17
+Plaque/font_sizes/font_size = 13
+Plaque/fonts/font = ExtResource("5_police_des_rubriques")
+Plaque/styles/normal = SubResource("Plaque_repos")
+Plaque/styles/hover = SubResource("Plaque_survol")
+Plaque/styles/pressed = SubResource("Plaque_armee")
+Plaque/styles/hover_pressed = SubResource("Plaque_armee")
+Plaque/styles/disabled = SubResource("Plaque_fermee")
+Plaque/styles/focus = SubResource("Rien")
+PlaqueArmee/base_type = &"Plaque"
+PlaqueArmee/colors/font_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/font_hover_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/font_focus_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/font_pressed_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/font_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/font_disabled_color = Color(0.553, 0.518, 0.455, 1)
+PlaqueArmee/colors/icon_normal_color = Color(0.2, 0.14, 0.07, 1)
+PlaqueArmee/colors/icon_hover_color = Color(0.2, 0.14, 0.07, 1)
+PlaqueArmee/colors/icon_focus_color = Color(0.2, 0.14, 0.07, 1)
+PlaqueArmee/colors/icon_pressed_color = Color(0.2, 0.14, 0.07, 1)
+PlaqueArmee/colors/icon_hover_pressed_color = Color(0.2, 0.14, 0.07, 1)
+PlaqueArmee/colors/icon_disabled_color = Color(0.553, 0.518, 0.455, 1)
+PlaqueArmee/font_sizes/font_size = 13
+PlaqueArmee/fonts/font = ExtResource("5_police_des_rubriques")
+PlaqueArmee/styles/normal = SubResource("Plaque_armee")
+PlaqueArmee/styles/hover = SubResource("Plaque_armee")
+PlaqueArmee/styles/pressed = SubResource("Plaque_armee")
+PlaqueArmee/styles/hover_pressed = SubResource("Plaque_armee")
+PlaqueArmee/styles/disabled = SubResource("Plaque_fermee")
+PlaqueArmee/styles/focus = SubResource("Rien")
+Feuilleter/base_type = &"Button"
+Feuilleter/colors/font_color = Color(0.886, 0.753, 0.416, 1)
+Feuilleter/colors/font_hover_color = Color(0.886, 0.753, 0.416, 1)
+Feuilleter/colors/font_focus_color = Color(0.886, 0.753, 0.416, 1)
+Feuilleter/colors/font_pressed_color = Color(0.886, 0.753, 0.416, 1)
+Feuilleter/colors/font_hover_pressed_color = Color(0.886, 0.753, 0.416, 1)
+Feuilleter/colors/font_disabled_color = Color(0.886, 0.753, 0.416, 1)
+Feuilleter/colors/icon_normal_color = Color(1.0, 1.0, 1.0, 1)
+Feuilleter/colors/icon_hover_color = Color(1.0, 1.0, 1.0, 1)
+Feuilleter/colors/icon_focus_color = Color(1.0, 1.0, 1.0, 1)
+Feuilleter/colors/icon_pressed_color = Color(1.0, 1.0, 1.0, 1)
+Feuilleter/colors/icon_hover_pressed_color = Color(1.0, 1.0, 1.0, 1)
+Feuilleter/colors/icon_disabled_color = Color(0.58, 0.55, 0.49, 1)
+Feuilleter/constants/icon_max_width = 15
+Feuilleter/font_sizes/font_size = 12
+Feuilleter/fonts/font = ExtResource("5_police_des_rubriques")
+Feuilleter/styles/normal = SubResource("Pastille")
+Feuilleter/styles/hover = SubResource("Pastille_survol")
+Feuilleter/styles/pressed = SubResource("Pastille_presse")
+Feuilleter/styles/disabled = SubResource("Pastille_ferme")

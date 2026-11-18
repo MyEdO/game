@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/geste.gd" id="2_geste"]
+[ext_resource type="Script" path="res://scripts/bulle.gd" id="3_bulle"]
 
 [node name="Curseur" type="HBoxContainer"]
 theme_type_variation = &"RangeeSerree"
@@ -22,6 +23,7 @@ champ = "ton"
 propriete = &"theme_type_variation"
 
 [node name="Glissiere" type="HSlider" parent="."]
+script = ExtResource("3_bulle")
 custom_minimum_size = Vector2(180, 0)
 size_flags_horizontal = 3
 size_flags_vertical = 4

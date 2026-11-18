@@ -30,7 +30,7 @@ func poser(element: Dictionary) -> void:
 	var texture: ImageTexture = null
 	if nommes != null:
 		var famille := famille_du_catalogue(type)
-		var cote := float(cible.get_theme_constant(&"icon_max_width", &"Button"))
+		var cote := float(cible.get_theme_constant(&"icon_max_width"))
 		var taille := cible.custom_minimum_size if cible is TextureRect else Vector2(cote, cote)
 		var couches: Array = nommes if nommes is Array else [nommes]
 		texture = trace(type, couches, MiseEnPage.echelle_de_dessin(taille.x, taille.y, famille.largeur, famille.hauteur))

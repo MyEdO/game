@@ -130,6 +130,7 @@ func _ready() -> void:
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
+	_reglages.joue.connect(_jouer)
 	_salon.change.connect(_publier_l_ecran)
 	_salon.ferme.connect(_fermer_le_salon)
 	_salon.suite.connect(_suivre)

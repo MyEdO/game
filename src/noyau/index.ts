@@ -68,7 +68,7 @@ export type { Cadence } from '../engine/cadence';
 export type { FabriqueDId, FabriqueDuRoster } from '../engine/fabriqueDId';
 export type { Equipe } from '../engine/relations';
 export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
-export { valeurConforme, type FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
+export { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
 export { emplacementsRapides } from './emplacementsRapides';
 export { ACTIONS } from '../data/index';

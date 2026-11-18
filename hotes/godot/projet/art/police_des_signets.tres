@@ -1,0 +1,7 @@
+[gd_resource type="FontVariation" load_steps=2 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="1_rubriques"]
+
+[resource]
+base_font = ExtResource("1_rubriques")
+spacing_glyph = 0

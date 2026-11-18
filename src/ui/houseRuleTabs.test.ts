@@ -3,8 +3,10 @@ import { describe, it, expect } from 'vitest';
 import { OPTIONAL_RULES, type OptionalRule } from '../engine/policy';
 import { houseRuleTabs, MISC_TAB_KEY, OWN_TAB_MIN } from './houseRuleTabs';
 
-const fake = (id: string, group: string): OptionalRule => ({
-  id: idDeFixture('regleOptionnelle', id), type: 'reglesOptionnelles', group, label: id, ref: 'LDB 12 l.1', kind: 'flag', default: false,
+/** Un interrupteur de fixture : son id, hors du registre, se prend dans l'espace des interrupteurs. */
+type Interrupteur = Extract<OptionalRule, { kind: 'flag' }>;
+const fake = (id: string, group: string): Interrupteur => ({
+  id: idDeFixture('regleOptionnelle', id) as Interrupteur['id'], type: 'reglesOptionnelles', group, label: id, ref: 'LDB 12 l.1', kind: 'flag', default: false,
 });
 
 describe('houseRuleTabs — découpe dérivée du registre des règles optionnelles (#839)', () => {
