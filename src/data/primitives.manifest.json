@@ -344,9 +344,9 @@
   {
     "id": "actorIn",
     "type": "primitives.manifest",
-    "label": "actorIn/inBattleId/ecrireActeur",
+    "label": "actorIn/inBattleId/ecrireActeur/combattantsDeLaSerie",
     "fichier": "src/noyau/monde/combatants.ts",
-    "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
+    "concept": "combattant par id — combat, ou groupe et combattants de la série d'attaques subies, vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
     "perimetre": "toute résolution d'acteur ; toute écriture d'un héros ou d'un combattant par id (#2312)",
     "verrou": "in-battle-find-guard.test.ts"
   },
@@ -355,7 +355,7 @@
     "type": "primitives.manifest",
     "label": "touchActors",
     "fichier": "src/noyau/combatOrParty.ts",
-    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
+    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe et la série d'attaques subies",
     "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
     "verrou": "couture-de-retour.hors-store.test.ts"
   },

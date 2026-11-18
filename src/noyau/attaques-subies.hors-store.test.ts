@@ -17,7 +17,8 @@ import { refusDeSauvegarde } from './persistance/save';
 import { applyOps } from '../engine/ops';
 import { touchActors } from './combatOrParty';
 import { fenetreDeDefense } from './fenetreDeDefense';
-import { porteurParId } from './monde/combatants';
+import { actorIn, combattantsDeLaSerie, porteurParId } from './monde/combatants';
+import { sansCorps } from './slotsDeJet';
 import { markFixedDie } from './fixedDieMark';
 import { testScene } from '../scenes/test-fixture';
 import { entreeEnRencontre } from '../engine/persistence';
@@ -80,10 +81,22 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(s.party[0]).toEqual(entreeEnRencontre(H));
   });
 
-  it('`porteurParId` rend l’assaillant de la série', () => {
-    const { banc } = serieOuverte();
+  it('un seul univers des combattants de la série : `porteurParId`, `actorIn` et `sansCorps` voient l’assaillant, lui seul hors du groupe, jusqu’à la fermeture', () => {
+    const { banc, H } = serieOuverte();
     const s = banc.getState();
-    expect(porteurParId(s, s.serieSubie!.assaillant.id)).toBe(s.serieSubie!.assaillant);
+    const { assaillant } = s.serieSubie!;
+    expect(combattantsDeLaSerie(s)).toEqual([assaillant]);
+    expect(porteurParId(s, assaillant.id)).toBe(assaillant);
+    expect(actorIn(s, assaillant.id)).toBe(assaillant);
+    expect(actorIn(s, H.id)).toBe(s.party[0]);
+    const defense = s.pendingCascade!.participants.find((e) => e.jet === 'defense');
+    expect(defense).toMatchObject({ actorId: H.id });
+    expect(sansCorps(s, defense)).toBe(false);
+    fermerLaSerieSubie(banc.getState, banc.setState);
+    const apres = banc.getState();
+    expect(combattantsDeLaSerie(apres)).toEqual([]);
+    expect(porteurParId(apres, assaillant.id)).toBeUndefined();
+    expect(actorIn(apres, assaillant.id)).toBeUndefined();
   });
 
   it('la Défense du héros s’ouvre : `pendingDefense` posé, fenêtre de Défense non nulle', () => {
