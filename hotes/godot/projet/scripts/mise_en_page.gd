@@ -389,6 +389,12 @@ static func centre_de_case(case: Vector2i, sol: float) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, sol, case.y + DEMI_CASE)
 
 
+## Le point du sol d'une case que l'écran publie, de son centre `centre` : poussé à l'est assez pour quitter l'arête
+## des deux triangles du sol, trop peu pour changer ce que le point désigne (`Monde.points`).
+static func point_publie(centre: Vector3) -> Vector3:
+	return centre + Vector3(DEMI_CASE / 32.0, 0.0, 0.0)
+
+
 ## Le point du plateau au-dessus du point (`x`, `y`) de la carte, en cases continues (une case centrée sur l'entier), à
 ## `hauteur`.
 static func point_de_la_carte(x: float, y: float, hauteur: float) -> Vector3:
