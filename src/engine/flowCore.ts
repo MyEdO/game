@@ -488,7 +488,7 @@ export interface FlowTest extends Omit<z.output<typeof flowTestSchema>, 'stake'>
 }
 
 /** Les champs de la DÉCISION d'un `FlowTest`, lus par `resoudreFlowTest` (`engine/decisionDuTest.ts`) seul. */
-export const CHAMPS_DE_DECISION = ['gate', 'difficultyBy', 'easierIf'] satisfies readonly (keyof FlowTest)[];
+export const CHAMPS_DE_DECISION = ['gate', 'onlyGroups', 'exceptGroups', 'difficultyBy', 'easierIf'] satisfies readonly (keyof FlowTest)[];
 /** Un champ de `CHAMPS_DE_DECISION`. */
 export type ChampDeDecision = (typeof CHAMPS_DE_DECISION)[number];
 
@@ -498,7 +498,9 @@ export type JetFixe<K extends 'skill' | 'difficulty' = never> = z.output<typeof 
 
 /**
  * Un nœud de Flow, GÉNÉRIQUE sur le type de sa FEUILLE `E` (défaut `EffectOp` — engine pur ; la couche
- * `state` instancie `Flow<Effect>`). Cinq formes, RÉCURSIVES, jamais cycliques :
+ * `state` instancie `Flow<Effect>`), du Test `T` de ses nœuds `test` et du coût d'Avantage `C` de ses
+ * `choix` : un schéma (`arbreDeFlow`, `grammaire/mecanique.ts`) fait passer ses trois sorties dans le type
+ * qu'il produit (le Flow de scène, `FlowDeScene`). Cinq formes, RÉCURSIVES, jamais cycliques :
  *  - `sequence` : exécute `etapes` dans l'ordre (forme Flow d'une liste d'effets) ;
  *  - `effet`    : une feuille — applique un effet `E` (action) ;
  *  - `si`       : évalue `condition` (PUR) → `alors` / `sinon` ;
@@ -509,12 +511,12 @@ export type JetFixe<K extends 'skill' | 'difficulty' = never> = z.output<typeof 
  *    terme, des choix de dialogue/pièges. Son exécuteur (`resolveFlowChoice`) pousse une étape-choix
  *    GÉNÉRIQUE `choixDeclenche` (`pushCombatStep` oui/non + applier unique) — il n'invente pas de mécanisme.
  */
-export type Flow<E = EffectOp> =
-  | { kind: 'sequence'; etapes: Flow<E>[] }
+export type Flow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate> =
+  | { kind: 'sequence'; etapes: Flow<E, T, C>[] }
   | { kind: 'effet'; effet: E }
-  | { kind: 'si'; condition: Condition; alors: Flow<E>; sinon?: Flow<E> }
-  | { kind: 'test'; test: FlowTest; reussite: Flow<E>; echec: Flow<E> }
-  | { kind: 'choix'; invite: string; source?: SourceRef; adapteDe?: SourceRef; coutEnAvantage?: number | IndiceTemplate; icon?: IconId; oui: Flow<E>; non?: Flow<E> };
+  | { kind: 'si'; condition: Condition; alors: Flow<E, T, C>; sinon?: Flow<E, T, C> }
+  | { kind: 'test'; test: T; reussite: Flow<E, T, C>; echec: Flow<E, T, C> }
+  | { kind: 'choix'; invite: string; source?: SourceRef; adapteDe?: SourceRef; coutEnAvantage?: C; icon?: IconId; oui: Flow<E, T, C>; non?: Flow<E, T, C> };
 
 /** TEMPLATE d'instance du coût d'Avantage d'un `choix` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
  *  `AA 08 l.87`), substitué par `withArg` (`noyau/triggeredEffects`) avant exécution. Resté tel quel, le
@@ -530,11 +532,11 @@ export type ArgTemplate = typeof ARG_TEMPLATE;
 
 /** Le NŒUD `test` seul — la forme UNIQUE du jet en donnée (jet + conséquence des deux branches), telle
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */
-export type FlowTestNode<E = EffectOp> = Extract<Flow<E>, { kind: 'test' }>;
+export type FlowTestNode<E = EffectOp, T = FlowTest, C = number | IndiceTemplate> = Extract<Flow<E, T, C>, { kind: 'test' }>;
 
 /** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. Partagé
  *  par la donnée comme par l'état : gelé à sa définition (#2097). */
-export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'sequence', etapes: [] });
+export const EMPTY_FLOW: Flow<never, never, never> = gelerLaConstante({ kind: 'sequence', etapes: [] });
 
 /** DÉCLENCHEUR d'un effet déclenché : la sortie d'`effectTriggerSchema` (`data/schemas/grammaire/mecanique.ts`). */
 export type EffectTrigger = z.output<typeof effectTriggerSchema>;
@@ -554,7 +556,7 @@ export type TriggeredEffect = z.output<typeof triggeredEffectSchema> & {
 /** Enveloppe une liste d'effets-feuilles (`Effect[]`) en un Flow `sequence` de `effet` — pont de
  *  migration des consommateurs (`Trigger.effects`, `DialogueChoice.effects`) vers le Flow, sans réécrire
  *  la donnée. GÉNÉRIQUE sur la feuille (défaut `EffectOp`). */
-export function flowFromEffects<E = EffectOp>(effects: E[] | undefined): Flow<E> {
+export function flowFromEffects<E = EffectOp, T = FlowTest, C = number | IndiceTemplate>(effects: E[] | undefined): Flow<E, T, C> {
   return { kind: 'sequence', etapes: (effects ?? []).map((effet) => ({ kind: 'effet', effet })) };
 }
 
@@ -797,7 +799,7 @@ export function flowHasFreeAttack<E = EffectOp>(flow: Flow<E>): boolean {
 
 /** Constructeur d'un nœud `test` (jet → réussite/échec). Sucre pour les PRODUCTEURS de Flow (récolte,
  *  saut…) : un jet se POSE en nœud de Flow, jamais poussé dans une liste d'effets. */
-export function testFlow<E = EffectOp>(test: FlowTest, success: Flow<E>, fail: Flow<E>): Flow<E> {
+export function testFlow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate>(test: T, success: Flow<E, T, C>, fail: Flow<E, T, C>): Flow<E, T, C> {
   return { kind: 'test', test, reussite: success, echec: fail };
 }
 

@@ -1,8 +1,8 @@
 import { flowStakeRef } from '../../data';
 import { rule } from '../../engine/policy';
 import { t } from '../../i18n';
-import { flowFromEffects, testFlow } from './flow';
-import { EMPTY_FLOW } from '../../engine/flowCore';
+import { flowFromEffects } from './flow';
+import { EMPTY_FLOW, testFlow } from '../../engine/flowCore';
 import {
   casesDeFace,
   porteMasquee,
@@ -27,6 +27,10 @@ import type { RoomFocus } from './rooms';
  * FOUILLANT la pièce (`fouilleDeLaPiece`), joué par le verbe `fouillerLaPiece` (`noyau/interactionsDExploration.ts`).
  */
 
+/** Un déclencheur EN JEU : authoré (`Trigger`) ou dérivé d'une porte secrète, dont le Flow JOUABLE porte un
+ *  Test d'enjeu de catalogue (`testDePorteSecrete`). Même patron d'élargissement que `Layer` (`./scene`). */
+export type TriggerEnJeu = Omit<Trigger, 'flow'> & { flow: Flow };
+
 /** Porte secrète encore à DÉCOUVRIR : masquée ET jamais tentée. */
 export function porteADecouvrir(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
   return porteMasquee(scene, seg) && !porteTentee(scene, seg);
@@ -43,7 +47,7 @@ export function testDePorteSecrete(seg: WallSeg): Flow {
     kind: 'sequence',
     etapes: [
       { kind: 'effet', effet: { ...arete, attempted: true } as Effect },
-      testFlow(
+      testFlow<Effect>(
         { skill: { id: 'perception' }, difficulty: secret.difficulty, label: t('eff.porteSecreteTest'), stake: flowStakeRef('perception-detecter') },
         flowFromEffects([{ ...arete, revealed: true }, { type: 'journal', desc: t('eff.porteSecreteTrouvee') }] as Effect[]),
         EMPTY_FLOW,
@@ -79,12 +83,12 @@ export function idDeTriggerDePorte(scene: Pick<Scene, 'id'>, seg: WallSeg): stri
  *  la face découvrable est VUE par le groupe (`casesVues`, clés `"x,y,z"` de la vision canonique
  *  `computeStateVisible` — lumière, fumée, murs). `casesVues` n'est évalué que si une porte est à
  *  découvrir. Aucun `once` : la marque « tentée » de `testDePorteSecrete` retire la porte. PUR. */
-export function triggersDePortesSecretes(scene: Scene, casesVues: () => ReadonlySet<string>): Trigger[] {
+export function triggersDePortesSecretes(scene: Scene, casesVues: () => ReadonlySet<string>): TriggerEnJeu[] {
   const portes = (scene.walls ?? []).filter((w) => porteADecouvrir(scene, w));
   if (!portes.length) return [];
   const vues = casesVues();
   const n = profondeurDApproche(scene);
-  const out: Trigger[] = [];
+  const out: TriggerEnJeu[] = [];
   for (const seg of portes) {
     const face = secretAuteur(seg)!.face;
     const rect = rectDApproche(seg, face, n);
@@ -97,7 +101,7 @@ export function triggersDePortesSecretes(scene: Scene, casesVues: () => Readonly
 
 /** Les Triggers EN JEU d'une scène : authorés (`scene.triggers`) puis dérivés des portes secrètes.
  *  Seul lecteur runtime : `checkTriggers`. Un dérivé ne se dessine jamais. */
-export function triggersEnJeu(scene: Scene, casesVues: () => ReadonlySet<string>): Trigger[] {
+export function triggersEnJeu(scene: Scene, casesVues: () => ReadonlySet<string>): TriggerEnJeu[] {
   const derives = triggersDePortesSecretes(scene, casesVues);
   return derives.length ? [...scene.triggers, ...derives] : scene.triggers;
 }

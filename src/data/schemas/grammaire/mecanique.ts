@@ -22,6 +22,7 @@ import {
   type Condition,
   type EffectOp,
   type Flow,
+  type FlowTest,
   type FlowTestNode,
 } from '../../../engine/flowCore';
 import {
@@ -1237,7 +1238,9 @@ export const decisionDuTestSchema = nommerChamps(z.strictObject({
   gate: conditionSchema.optional(),
   /** LDB 16 l.54 */
   difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
-}), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" } });
+  onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+  exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+}), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} } });
 
 /** Le Test qui PEUT porter une décision, tel que le DÉCLARENT `jetSchema` et `decisionDuTestSchema` : la cible de
  *  `src/decision-du-test-guard.test.ts`. */
@@ -1279,9 +1282,6 @@ const champsDuTestAvantLaDecision = {
 
 /** Les champs d'un Test de donnée qui suivent sa décision. */
 const champsDuTestApresLaDecision = {
-  argDifficulty: z.boolean().optional(),
-  onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
-  exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
   /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT authoré : absent = défaut de la VOIE qui ouvre le Test (scène/
    *  dialogue : soutenable ; effet déclenché / consommable : non soutenable) ; `true` = jamais
    *  soutenable ; `false` = soutenable malgré la voie (Test de soin d'un nécessaire). */
@@ -1292,7 +1292,7 @@ const champsDuTestApresLaDecision = {
 };
 
 const metaDuTestAvantLaDecision: MetaDesChamps<typeof champsDuTestAvantLaDecision> = { ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" } };
-const metaDuTestApresLaDecision: MetaDesChamps<typeof champsDuTestApresLaDecision> = { argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } };
+const metaDuTestApresLaDecision: MetaDesChamps<typeof champsDuTestApresLaDecision> = { noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } };
 
 /** UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
  *  calculer : `testValue` rend 0 et le jet devient un auto-échec SILENCIEUX, sur une cible qui n'est
@@ -1321,16 +1321,21 @@ function nommerCeQueTesteLeJet(v: { stake?: unknown; skill?: unknown; characteri
 }
 
 /** Le Test de DONNÉE, la forme UNIQUE du jet en donnée, avec l'ENJEU (#1117) qu'un document peut lui écrire et
- *  la `decision` qu'il porte : celle de `decisionDuTestSchema`, ou aucune (`testFixeSchema`). */
-function testDeDonnee<E extends z.ZodType, D extends z.core.$ZodShape>(enjeu: E, decision: D, metaDeLaDecision: MetaDesChamps<D>) {
+ *  ce que le Test NON FIXE `ajoute` : sa décision (`decisionDuTestSchema`), ou rien (`testFixeSchema`). */
+function testDeDonnee<E extends z.ZodType, A extends z.core.$ZodShape>(enjeu: E, ajoute: A, metaDeLAjout: MetaDesChamps<A>) {
   return marquerProduit(nommerChamps(
-    z.strictObject({ stake: enjeu.optional(), ...champsDuTestAvantLaDecision, ...decision, ...champsDuTestApresLaDecision }).superRefine(nommerCeQueTesteLeJet),
-    { stake: { label: "enjeu" }, ...metaDuTestAvantLaDecision, ...metaDeLaDecision, ...metaDuTestApresLaDecision },
+    z.strictObject({ stake: enjeu.optional(), ...champsDuTestAvantLaDecision, ...ajoute, ...champsDuTestApresLaDecision }).superRefine(nommerCeQueTesteLeJet),
+    { stake: { label: "enjeu" }, ...metaDuTestAvantLaDecision, ...metaDeLAjout, ...metaDuTestApresLaDecision },
   ), 'testDeDonnee', 'test');
 }
 
-/** Le Test de flux : il porte sa décision (`decisionDuTestSchema`), que `resoudreFlowTest` lit seule. */
-export const flowTestSchema = testDeDonnee(stakeRefSchema, decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
+/** Le Test de flux : il porte sa décision (`decisionDuTestSchema`), que `resoudreFlowTest` lit seule, et le
+ *  marqueur `argDifficulty` (LDB 85 l.423-425) que `withArg` (`noyau/triggeredEffects.ts`) remplace AVANT elle. */
+export const flowTestSchema = testDeDonnee(
+  stakeRefSchema,
+  { ...decisionDuTestSchema.shape, argDifficulty: z.boolean().optional() },
+  { ...metaDesChamps(decisionDuTestSchema, { exigees: true }), argDifficulty: { label: "difficulté de l’argument" } },
+);
 
 /** Le Test FIXE : sans aucun champ de décision, sa Difficulté est celle qu'il déclare. La forme du Test d'un
  *  porteur qui la fixe (`porteurDeTestFixe`, `noeudTestFixe`). */
@@ -1412,7 +1417,7 @@ export interface OptionsNoeudTest {
  * Un Flow est-il une branche PLATE ? — que des `sequence`/`effet` : aucun embranchement dont `spellOps`
  * (extraction plate) promettrait les ops des deux côtés. Rend le `kind` fautif, ou `null`.
  */
-function kindDEmbranchement(flow: Flow<unknown>): string | null {
+function kindDEmbranchement(flow: Flow<unknown, unknown, unknown>): string | null {
   if (flow.kind === 'sequence') {
     for (const e of flow.etapes) {
       const k = kindDEmbranchement(e);
@@ -1446,13 +1451,14 @@ function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema | t
   const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
-    // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
-    // FORME du nœud de Flow est inspectée — celle que `flowCore.ts` déclare pour tout `Flow<E>`.
-    const v = valeur as FlowTestNode<unknown>;
+    // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : la sortie d'un objet zod sur un `B` générique est un
+    // type mappé DIFFÉRÉ, que TS ne réduit pas à sa contrainte ; seule la FORME du nœud de Flow est inspectée —
+    // celle que `flowCore.ts` déclare pour tout `Flow<E, T, C>`.
+    const v = valeur as FlowTestNode<unknown, unknown, unknown>;
     if (v.reussite.kind !== 'sequence' || v.reussite.etapes.length > 0) {
       ctx.addIssue({
         code: 'custom',
-        path: ['reussite' satisfies keyof FlowTestNode<unknown>],
+        path: ['reussite' satisfies keyof FlowTestNode<unknown, unknown, unknown>],
         message:
           'ce nœud ne SERT que sa branche d’ÉCHEC : une branche « reussite » peuplée ne serait jamais jouée. '
           + 'Elle s’écrit vide : {kind:"sequence",etapes:[]}.',
@@ -1462,7 +1468,7 @@ function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema | t
     if (embranchement) {
       ctx.addIssue({
         code: 'custom',
-        path: ['echec' satisfies keyof FlowTestNode<unknown>],
+        path: ['echec' satisfies keyof FlowTestNode<unknown, unknown, unknown>],
         message:
           'branche d’ÉCHEC à EMBRANCHEMENT (« ' + embranchement + ' ») : ce nœud est lu par extraction PLATE '
           + '(spellOps), qui appliquerait les ops des DEUX côtés. La branche d’échec ne porte que des feuilles « effet ».',
@@ -1804,10 +1810,11 @@ function refuserLaZoneSansDuree(flow: Flow<EffectOp>, ctx: z.RefinementCtx): voi
   });
 }
 
-/** `Flow<E>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
- *  par sa feuille `effet`, sa `Condition`, le coût d'Avantage de son `choix` et le Test de ses nœuds `test`. */
-export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>, test: typeof flowTestSchema | typeof testDeSceneSchema): z.ZodType<Flow<E>> {
-  const flow: z.ZodType<Flow<E>> = z.lazy(() =>
+/** `Flow<E, T, C>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
+ *  par sa feuille `effet`, sa `Condition`, le coût d'Avantage de son `choix` et le Test de ses nœuds `test` :
+ *  la sortie de chacun de ces schémas est le paramètre de type du Flow produit. */
+export function arbreDeFlow<E, T, C>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<C>, test: (typeof flowTestSchema | typeof testDeSceneSchema) & z.ZodType<T>): z.ZodType<Flow<E, T, C>> {
+  const flow: z.ZodType<Flow<E, T, C>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
       variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('sequence'), etapes: z.array(flow) }), { kind: { label: "type"  }, etapes: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
       variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('effet'), effet: feuille }), { kind: { label: "type"  }, effet: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
@@ -1902,7 +1909,7 @@ function construire(regimes: Regimes) {
 
   // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
   // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
-  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE), flowTestSchema);
+  const flow = arbreDeFlow<EffectOp, FlowTest, number | typeof INDICE_TEMPLATE>(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE), flowTestSchema);
 
   const triggeredEffect = effetDeclencheSur(flow);
 

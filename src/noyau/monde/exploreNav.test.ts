@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, type Scene, type SceneEntity } from './scene';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import type { FlowDeScene } from '../../data/schemas/defs-scenes/effets';
 import { aPorteeDe, cheminsDuGroupe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, spawnFacing } from './exploreNav';
 import { chebyshev } from '../../engine/grid';
 import { seatSlotsOf } from './seating';
@@ -9,7 +9,7 @@ import { cheminsDepuis, type Pt } from './path';
 /** Les chemins du groupe depuis `depart`, sans case bloquée. */
 const depuis = (sc: Scene, depart: Pt) => cheminsDepuis(sc, depart, { blocked: new Set() });
 
-const emptyFlow: Flow = { kind: 'sequence', etapes: [] };
+const emptyFlow: FlowDeScene = { kind: 'sequence', etapes: [] };
 
 function sceneWith(entities: SceneEntity[]): Scene {
   const sc = emptyScene('scene-test', 10, 10); // grille entièrement 'herbe' (marchable)

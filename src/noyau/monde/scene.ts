@@ -9,7 +9,7 @@
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
 import type { QualiteDeRepos, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import type { FlowDeScene, TestDeScene } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
 // optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment par `z.infer`. Import de TYPE
 // seul — aucun cycle runtime.
@@ -60,7 +60,7 @@ import type { SeatAssignments } from './seating';
 export interface ActionAuthoree {
   id: string;
   label?: string;
-  flow: Flow;
+  flow: FlowDeScene;
   consume?: boolean;
   unique?: boolean;
   /** Ce que l'action coûte à l'horloge, en MINUTES (« tout est horodaté »). Absent = `TIME_COST.search`,
@@ -244,10 +244,9 @@ export type ZoneArea = z.infer<typeof zoneAreaSchema>;
  *  Tous les champs mécaniques (`onCross`/`perRound`/`crossTest`/`barrier`/`blocksLoS`) sont OPTIONNELS —
  *  une zone `{id,label,area}` sans aucun d'eux est DESCRIPTIVE (nom de pièce, #782) : inerte au combat,
  *  affichée seulement (`isDescriptiveZone`). */
-/** RESTE MANUSCRIT : `crossTest` NOMME ici le type moteur `FlowTest` (`engine/flowCore`), là où le
- *  schéma compose `flowTestSchema`, nœud-FRONTIÈRE du vocabulaire partagé ; `tiles` NOMME de même
- *  `Pt` (`noyau/monde/path`), là où le schéma compose `ptSchema` — divergence NOMINALE seule, assignabilité
- *  mutuelle intacte dans les deux sens. */
+/** RESTE MANUSCRIT : `crossTest` est la sortie du Test de scène (`TestDeScene`, `testDeSceneSchema`) ;
+ *  `tiles` NOMME `Pt` (`noyau/monde/path`), là où le schéma compose `ptSchema` — divergence NOMINALE seule,
+ *  assignabilité mutuelle intacte dans les deux sens. */
 export interface SceneEffectZone {
   id: string;
   label: string;
@@ -264,7 +263,7 @@ export interface SceneEffectZone {
   perRound?: import('../../engine/ops').GameOp[];
   /** GATE de Test à la traversée (cf. `BattleZone.crossTest`, zones.ts) — même sémantique pour une
    *  zone authorée (piège/hasard de scène). */
-  crossTest?: import('../../engine/flowCore').FlowTest;
+  crossTest?: TestDeScene;
   /** BARRIÈRE infranchissable : aucune créature ne peut PÉNÉTRER dans l'aire (mur magique, cercle de
    *  ward). `blockGroups` vide/absent = bloque TOUT le monde ; sinon ne bloque que les créatures dont
    *  un Groupe correspond (ids, ex. `['demon', 'mort-vivant']` = barrière sacrée, profanes tenus à l'écart —

@@ -31,7 +31,8 @@ import { mesurerLibellesDeReponse } from '../../scripts/guards/lib/dialogueLabel
 import { avisLibelleRecopie, validateScene } from '../noyau/validateScene';
 import { testScenarios } from './test-scenarios';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import { testFlow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 
 /** Le vocabulaire que la garde ne redéclare pas : il vient de SA source. */
 const VOC = { carac: CHAR_LABELS, difficultes: DIFFICULTY_LABELS, monnaie: { formater: formatMoney, epeler: spellMoney } };
@@ -145,7 +146,7 @@ describe('#1869 — le MÊME masque à la validation de scène rendue à l’éd
     ...emptyScene('scene-test'),
     id: 'jouet',
     entities: [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, dialogueId: { id: 'd' } }],
-    dialogues: [{ id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'choix', label, flow: fluxDeTest() as Flow }] }] }],
+    dialogues: [{ id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'choix', label, flow: testFlow({ skill: { id: 'crochetage' }, difficulty: 'difficile', label: 'Crocheter la cage' }, EMPTY_FLOW, EMPTY_FLOW) }] }] }],
   }];
   const avertissements = (label: string) => validateScene(projet(label)).filter((w) => w.scope === 'dialogue' && w.level === 'warn');
 

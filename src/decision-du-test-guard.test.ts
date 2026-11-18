@@ -9,7 +9,8 @@ import { detenteur } from './lib/detenteur.testkit';
 
 /**
  * LA DÉCISION D'UN TEST A UNE SOURCE (#1874) — `resoudreFlowTest` (`src/engine/decisionDuTest.ts`) est le
- * seul lecteur de `difficulty`, `gate`, `difficultyBy` et `easierIf` d'un Test qui PEUT porter une décision.
+ * seul lecteur de `difficulty`, `gate`, `onlyGroups`, `exceptGroups`, `difficultyBy` et `easierIf` d'un Test qui
+ * PEUT porter une décision.
  * La cible est le DÉCLARANT de ces champs, `JetDecidable` (`jetSchema` et `decisionDuTestSchema`,
  * `grammaire/mecanique.ts`) : tout Test qui en dérive les porte sous les mêmes déclarations de propriété
  * (`FlowTest`, `TestEtendu`, un Test de rangée de document). Le champ se lit au VÉRIFICATEUR DE TYPES
@@ -17,8 +18,8 @@ import { detenteur } from './lib/detenteur.testkit';
  */
 const GARDE = {
   question:
-    'Quel site de `src/` lit la Difficulté, le `gate`, les `difficultyBy` ou l’`easierIf` d’un Test qui peut '
-    + 'porter une décision, hors de `resoudreFlowTest` ? Une lecture à cru ignore la décision que la donnée déclare.',
+    'Quel site de `src/` lit la Difficulté, le `gate`, les `onlyGroups`/`exceptGroups`, les `difficultyBy` ou '
+    + 'l’`easierIf` d’un Test qui peut porter une décision, hors de `resoudreFlowTest` ? Une lecture à cru ignore la décision que la donnée déclare.',
   primitive: '`scanFieldReads` (`scripts/guards/lib/fieldConsumers.mjs`), Program du dépôt tenu par `detenteur`.',
   perimetre: '`src/` de production (`listProdFiles`, tests exclus)',
   exemption:
@@ -76,7 +77,7 @@ describe('decision-du-test-guard', () => {
     expect(orphelins, 'marqueur qui ne couvre aucune lecture').toEqual([]);
   }, 150_000);
 
-  it('contrat positif : la résolution lit les quatre champs', () => {
+  it('contrat positif : la résolution lit la Difficulté et chaque champ de décision', () => {
     const lus = new Set(lectures().filter((h) => h.file === RESOLUTION).map((h) => h.field));
     expect([...lus].sort()).toEqual([...CHAMPS].sort());
   }, 150_000);

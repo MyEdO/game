@@ -2,8 +2,8 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runFlow } from './combatEffects';
-import { testFlow } from './monde/flow';
-import { EMPTY_FLOW } from '../engine/flowCore';
+import { EMPTY_FLOW, testFlow } from '../engine/flowCore';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { combatStakeRef, resolveStake, findSpellById } from '../data';
 import { routeTriggeredTest } from './combat/triggeredTest';
 import { planClimb } from './monde/climbMove';
@@ -52,7 +52,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
 
   it('`openSkillTest` transporte `spec.stake` jusqu’à l’étape de la cascade', () => {
     const stake = combatStakeRef('escalade-test', { values: { metres: 4 } });
-    runFlow(banc.getState, banc.setState, testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
+    runFlow(banc.getState, banc.setState, testFlow<Effect>({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const step = firstStep();
     expect(step.stake, 'étape muette : le joueur ne saurait pas ce que ce jet met en jeu').toEqual(stake);
     expect(resolveStake(step.stake!).text).toContain('4 m de chute');
@@ -60,7 +60,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
   });
 
   it('sans enjeu déclaré NI porteur, l’étape reste sans `stake` (le transport n’en invente pas)', () => {
-    runFlow(banc.getState, banc.setState, testFlow({ skill: { id: 'escalade' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
+    runFlow(banc.getState, banc.setState, testFlow<Effect>({ skill: { id: 'escalade' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     expect(firstStep().stake).toBeUndefined();
   });
 
@@ -74,7 +74,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
    */
   it('étage 2 : un jet MUET exigé par une entité DÉRIVE son enjeu du porteur, jusqu’à l’étape', () => {
     routeTriggeredTest(banc.getState, banc.setState, banc.getState().party[0], banc.getState().party[0],
-      testFlow({ skill: { id: 'escalade' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'sort', id: 'chute' } });
+      testFlow<Effect>({ skill: { id: 'escalade' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'sort', id: 'chute' } });
     const stake = firstStep().stake;
     expect(stake, 'jet muet : le porteur n’a pas été lu').toBeTruthy();
     const resolu = resolveStake(stake!);
@@ -85,7 +85,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
   it('étage 1 : l’enjeu DÉCLARÉ prime — la dérivation ne recouvre jamais l’auteur', () => {
     const stake = combatStakeRef('escalade-test', { values: { metres: 4 } });
     routeTriggeredTest(banc.getState, banc.setState, banc.getState().party[0], banc.getState().party[0],
-      testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'sort', id: 'chute' } });
+      testFlow<Effect>({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'sort', id: 'chute' } });
     expect(firstStep().stake).toEqual(stake);
   });
 
@@ -97,7 +97,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
    */
   it('un enjeu AUTHORÉ par le document descend jusqu’à l’étape et se résout tel qu’écrit', () => {
     const stake = { authored: 'Franchir la corniche sans tomber : sinon la chute, et l’alerte donnée.' };
-    runFlow(banc.getState, banc.setState, testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
+    runFlow(banc.getState, banc.setState, testFlow<Effect>({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const step = firstStep();
     expect(step.stake).toEqual(stake);
     expect(resolveStake(step.stake!).text).toBe(stake.authored);
