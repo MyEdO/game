@@ -539,6 +539,9 @@
       }
     },
     "lissageRepairSurcoutPct": 50,
+    "charpentierMalus": -10,
+    "piecesEncParTranche": 2,
+    "piecesBlessuresParTranche": 5,
     "temporaire": {
       "woundsPerRepair": {
         "dice": {
@@ -567,6 +570,6 @@
         "sides": 10
       }
     },
-    "maison": "Le constructeur naval local (MDG 13 l.643) n'a pas de profil : il teste son Métier (Constructeur de navires) à 50 (consigne utilisateur 2026-11-07). Une Amélioration dont le livre ne chiffre pas la pose (MDG 12 l.195-364) prend 1d10 jours, la durée d’un travail du Constructeur de navires itinérant (MDG 15 l.255)."
+    "maison": "Le constructeur naval local (MDG 13 l.643) n'a pas de profil : il teste son Métier (Constructeur de navires) à 50 (consigne utilisateur 2026-11-07). Une Amélioration dont le livre ne chiffre pas la pose (MDG 12 l.195-364) prend 1d10 jours, la durée d’un travail du Constructeur de navires itinérant (MDG 15 l.255). La réparation par le groupe au chantier (MDG 13 l.641) a ses outils fournis par le chantier ; ses matériaux sont des pièces détachées de navire (MDG 14 l.283) au barème de l’Entretien du navire (MDG 15 l.306), +50 % sur une coque lissée (MDG 12 l.295). Un Test raté prend aussi 1d10 heures de travail, la durée d’un Test réussi (MDG 13 l.643). La durée d’une réparation temporaire (MDG 13 l.649) s’écoule dans la journée de voyage : l’horloge du jour court jusqu’au crépuscule, ou de 24 h à l’arrivée."
   }
 }

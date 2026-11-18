@@ -90,7 +90,9 @@ export type RuleId =
   /** Précipitations de la Mer des Griffes, qui modulent les Tests en mer (`MDG 13`). */
   | 'meteo-maritime'
   | 'echouer-en-mer'
-  | 'navigation-echouage';
+  | 'navigation-echouage'
+  /** Métier (Charpentier) au lieu de Métier (Constructeur de navires) pour réparer un navire (`MDG 13 l.641`). */
+  | 'reparer-les-navires';
 
 /**
  * Les règles CHIFFRÉES et les rangées que le moteur lit de leur fiche (`regles.json`, champ `rangees`) :
@@ -180,4 +182,5 @@ export const RULE_REF: Record<Exclude<RuleId, RegleChiffree>, CodexTarget> = gel
   'meteo-maritime': { category: 'seaWeather', id: 'seaWeather' },
   'echouer-en-mer': { category: 'seaPerils', id: 'seaPerils' },
   'navigation-echouage': { category: 'regles', id: 'navigation-echouage' },
+  'reparer-les-navires': { category: 'regles', id: 'reparer-les-navires' },
 } satisfies Record<Exclude<RuleId, RegleChiffree>, RenvoiCodex | RenvoiCodexSansEspace>); // #2097

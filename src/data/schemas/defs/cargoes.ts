@@ -54,6 +54,8 @@ const doc = document(
     price: z.union([prixSaisonnierSchema, tirageSchema]).optional(),
     /** MSRC 13 l.93-104 */
     wine: z.boolean().optional(),
+    /** MDG 15 l.306, l.418, l.434 */
+    shipParts: z.literal(true).optional(),
     /** Qualificatif d'affichage ÉDITABLE d'un marqueur, entre parenthèses après son `label`. MSRC 13 l.28 ; MSRC 13 l.119 */
     hint: z.string().optional(),
     /** MDG 15 l.321 ; MSRC 13 l.24-28 */
@@ -64,6 +66,7 @@ const doc = document(
     echangeable: { label: 'Échangeable', hint: 'Faux sur un marqueur de colonne Production/Produits (Commerce, Minimum vital, Subsistance)' },
     price: { label: 'Prix' },
     wine: { label: 'Vin', hint: 'Prix tiré à la table de qualité secrète du Vin/Eau-de-vie' },
+    shipParts: { label: 'Pièces détachées de navire', hint: 'Le lot de cale paie la réparation du navire par le groupe' },
     hint: { label: 'Aide' },
     tradeHub: { label: 'Centre de commerce' },
   },

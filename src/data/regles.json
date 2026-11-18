@@ -1694,6 +1694,30 @@
     }
   },
   {
+    "id": "reparer-les-navires",
+    "type": "regles",
+    "label": "Réparer les navires",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "reparer-les-navires",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 1,
+          "sum": "372a4db60352d087"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 116,
+      "note": "MDG 13 l.641-643"
+    }
+  },
+  {
     "id": "reparation-temporaire-navire",
     "type": "regles",
     "label": "Réparations temporaires d’un navire",
