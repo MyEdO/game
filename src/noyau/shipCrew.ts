@@ -58,7 +58,7 @@ import { spawnEnemy } from './monde/spawn';
 import { posteDeLaBataille } from './monde/shipPostes';
 import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
-import type { PorteurDeMaladies } from '../engine/disease';
+import { diseaseTestModLines, type PorteurDeMaladies } from '../engine/disease';
 import { rule } from '../engine/policy';
 import { WORLD_STEP_OWNER } from './pendings';
 import type { BandPorteur } from './rollSeam';
@@ -214,6 +214,9 @@ export interface PorteurABord {
   porteur: PorteurDeMaladies;
   /** Sa rangée de Test de Résistance. */
   rangee: BandPorteur;
+  /** Sa rangée de Test de Contraction contre `diseaseId` : celle du PJ porte en lignes nommées sur la cible les bonus
+   *  d'effet scopés à cette maladie (`diseaseTestModLines`). LDB 20 l.25 */
+  contraction: (diseaseId: string) => BandPorteur;
   /** Écrit l'état muté de `porteur` dans le jeu. */
   ecrire: () => void;
 }
@@ -244,14 +247,17 @@ export function porteursABord(get: Get, set: SetFn): PorteurABord[] {
     id: h.id,
     porteur: h,
     rangee: { actor: h, ligne: { test: RESISTANCE } },
+    contraction: (diseaseId) => ({ actor: h, ligne: { test: RESISTANCE, surLaCible: diseaseTestModLines(h, diseaseId) } }),
     ecrire: ecrire(),
   }));
   if (!s.vessel || !shipboardSouls(s).crew) return pjs;
   const equipage: PorteurDeMaladies = { label: t('crew.lEquipage'), ...structuredClone(s.vessel.porteurDeLEquipage ?? {}) };
+  const rangee: BandPorteur = { monde: true, ligne: { test: RESISTANCE, valeur: rule('mer-resistance-de-l-equipage') } };
   return [...pjs, {
     id: WORLD_STEP_OWNER,
     porteur: equipage,
-    rangee: { monde: true, ligne: { test: RESISTANCE, valeur: rule('mer-resistance-de-l-equipage') } },
+    rangee,
+    contraction: () => rangee,
     ecrire: ecrire(equipage),
   }];
 }

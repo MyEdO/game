@@ -23,7 +23,8 @@
  * le voyage terrestre et la journée de mer avancent l'horloge et DIFFÈRENT l'entretien à la cascade
  * de nuit.
  *
- * N'importe QUE du moteur + battleRng + le bus d'horloge `clockHooks` (pas de cycle avec les flux).
+ * Importe le moteur, les données, l'i18n et, du noyau : `battleRng`, `rollSeam`, le bus d'horloge (`clockHooks`, `bus`,
+ * `flowTypes`), les porteurs à bord (`shipCrew`) et `pendings`.
  */
 import { battleRng } from './battleRng';
 import { porteursABord, tickCampaignVesselWeek } from './shipCrew';

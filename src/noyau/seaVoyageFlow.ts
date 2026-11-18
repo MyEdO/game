@@ -1514,7 +1514,7 @@ function buildBarrelSteps(get: Get, set: Set, sea: SeaVoyageState, vessel: Campa
       id: 'mer-tonneau-expose', kind: 'mer-tonneau-expose', label: t('sv.waterBarrelTainted'),
       stake: voyageStakeRef('mer-tonneau-expose', { disease: diseaseLabel(diseaseId) }), meta: { diseaseId },
       difficulty: diseaseDefs()[diseaseId]?.contractDifficulty ?? DIFFICULTE_PAR_DEFAUT,
-      porteurs: aBord.filter(({ porteur }) => contractionDue(porteur, diseaseId)).map(({ rangee }) => rangee),
+      porteurs: aBord.filter(({ porteur }) => contractionDue(porteur, diseaseId)).map((p) => p.contraction(diseaseId)),
     });
     return bande ? [bande] : [];
   }
@@ -1579,9 +1579,9 @@ function buildScurvySteps(get: Get, set: Set): BuiltCascadeStep[] {
     id: 'mer-scorbut', kind: 'mer-scorbut', label: t('sv.scurvy'),
     stake: voyageStakeRef('mer-scorbut', { disease: diseaseLabel('scorbut') }),
     difficulty: 'intermediaire',
-    porteurs: appeles.map(({ porteur, rangee }) => {
+    porteurs: appeles.map(({ porteur, contraction }) => {
       const soup = (porteur.regimeDeBord?.joursDeSoupe ?? 0) >= JOURS_DE_SOUPE_REGULIERS;
-      return { ...rangee, ...(soup ? { difficulty: 'facile' as Difficulty } : {}), meta: { soup } };
+      return { ...contraction('scorbut'), ...(soup ? { difficulty: 'facile' as Difficulty } : {}), meta: { soup } };
     }),
   });
   return bande ? [bande] : [];

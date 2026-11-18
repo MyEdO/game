@@ -39,7 +39,6 @@ import {
   contractionDue,
   applyContraction,
   applyDiseaseGangrene,
-  diseaseTestModLines,
 } from '../engine/disease';
 import { applyOps } from '../engine/ops';
 import { rule } from '../engine/policy';
@@ -326,14 +325,10 @@ function contagionBands(get: Get, porteurs: readonly PorteurABord[], dues: reado
   for (const c of dues) {
     const aLui = porteurs.find((p) => p.id === c.porteurId);
     if (!aLui) continue;
-    const { rangee } = aLui;
-    // Contraction = « Test de Résistance » (`LDB 20 l.25`) : les bonus d'effet SCOPÉS à cette maladie (Fleur de lune,
-    // Tonique digestif) en lignes NOMMÉES sur la cible d'un porteur à fiche.
-    const ligne: BandPorteur = rangee.actor ? { ...rangee, ligne: { ...rangee.ligne, surLaCible: diseaseTestModLines(rangee.actor, c.diseaseName) } } : rangee;
     const bande = bandes.find((b) => b.diseaseName === c.diseaseName && !b.ids.includes(c.porteurId))
       ?? bandes[bandes.push({ diseaseName: c.diseaseName, ids: [], porteurs: [] }) - 1];
     bande.ids.push(c.porteurId);
-    bande.porteurs.push({ ...ligne, difficulty: c.difficulty, menace: 'maladie', meta: { diseaseName: c.diseaseName } });
+    bande.porteurs.push({ ...aLui.contraction(c.diseaseName), difficulty: c.difficulty, menace: 'maladie', meta: { diseaseName: c.diseaseName } });
   }
   return bandes.flatMap(({ diseaseName, porteurs: rangees }, i) => buildBand(get, {
     id: `contagion-${diseaseName}-${i}`, kind: 'contagion', icon: 'medical/infection',
