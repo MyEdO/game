@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
+
+[node name="Domaine" type="TabContainer"]
+mouse_filter = 2
+theme_type_variation = &"Feuillets"
+tabs_visible = false
+
+[node name="Zone" type="Node" parent="."]
+script = ExtResource("1_zone")
+source = "elements"
+ids = PackedStringArray("feuillet/")
+formes = PackedStringArray("entite:feuillet")

@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://composants/bulleAPointe.tscn" id="1_bulle"]
+
+[node name="BulleAPointe" instance=ExtResource("1_bulle")]
+
+[node name="Pointe" parent="Queue" index="0"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_right = -32.0

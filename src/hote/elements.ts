@@ -10,8 +10,9 @@ import type { AnySlot, SaveSlot } from './sauvegardes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 
-/** Le ton d'un élément : le nom d'une variation du thème de l'hôte. */
-export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
+/** Le ton d'un élément : le nom d'une variation du thème de l'hôte ; `ferme`, la valeur lue d'un contrôle refusé, qui se
+ *  montre fermée avec lui. */
+export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte' | 'ferme';
 
 /** Une ligne de texte. `detail` : ce qu'elle tait, montré à la demande ; `touche` : la touche qu'elle imprime sans la
  *  jouer (la case libre d'un emplacement rapide). */
