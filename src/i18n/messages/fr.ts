@@ -3423,6 +3423,9 @@ export const fr = {
   'crew.soldeDue': 'Solde due (paie régulière, {n} semaine{s})',
   'crew.factorMorale': '{delta} Moral',
   'crew.lEquipage': "l'équipage",
+  'crew.santeDeLEquipage': "Santé de l'équipage",
+  'crew.maladieEnIncubation': 'en incubation',
+  'crew.maladieDeclaree': 'déclarée',
   'crew.crewDelta': 'Équipage : {delta} membre(s) (reste {left}/{nominal}).',
   'crew.desertion': 'Relâche à terre : {n} marin(s) ne sont pas revenus à bord.',
 

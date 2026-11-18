@@ -101,9 +101,9 @@ export function facteursDeVivreSeul(): string[] {
   return MORALE_FACTORS.filter((f) => f.vivreSeul).map((f) => f.id);
 }
 
-/** Les ids des facteurs de Moral que pose une maladie contagieuse à bord (`contagionABord`). MDG 14 l.172, l.208 */
-export function facteursDeContagionABord(): string[] {
-  return MORALE_FACTORS.filter((f) => f.contagionABord).map((f) => f.id);
+/** Les ids des facteurs de Moral que pose une maladie qui fait rage à bord (`maladieFaitRage`). MDG 14 l.172 */
+export function facteursDeMaladieFaitRage(): string[] {
+  return MORALE_FACTORS.filter((f) => f.maladieFaitRage).map((f) => f.id);
 }
 
 /** Un Personnage vivant de `personnages` porte-t-il une maladie contagieuse déclarée (`contagiousDiseases`), sous la règle
@@ -112,7 +112,7 @@ function contagionABord(personnages: readonly Combatant[]): boolean {
   return rule('mer-moral-maladie-contagieuse-a-bord') && personnages.some((p) => !p.dead && contagiousDiseases(p).length > 0);
 }
 
-/** Les facteurs `contagionABord` comptent-ils cette semaine : une maladie déclarée du porteur collectif de l'équipage
+/** Les facteurs `maladieFaitRage` comptent-ils cette semaine : une maladie déclarée du porteur collectif de l'équipage
  *  (`porteursABord`), ou la contagion d'un Personnage (`contagionABord`). MDG 14 l.172 */
 export function maladieFaitRage(personnages: readonly Combatant[], equipage: PorteurDeMaladies | undefined): boolean {
   return (equipage?.diseases ?? []).some(maladieDeclaree) || contagionABord(personnages);

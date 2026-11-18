@@ -20,7 +20,7 @@ import {
   isFreePayChoice,
   freePayChoiceId,
   recommendedPayChoiceId,
-  facteursDeContagionABord,
+  facteursDeMaladieFaitRage,
   maladieFaitRage,
   type CrewAssignment,
   type UndercrewPenalty,
@@ -506,7 +506,7 @@ type MoraleRoll = { id: string; label: string; rolled: number };
  * de groupe (gages, sans bénéficiaire unique) est appliqué par l'appelant via `payFromGroup`. La solde =
  * `payChoiceCostBrass(barème, decision)` (le barème `wageMul` de chaque choix, en donnée) ; un choix
  * GRATUIT (`wageMul: 0`, ou un groupe insolvable qui s'y replie) cumule la solde due dans `wagesOwed`. Le facteur de
- * paie et, sous `maladie` (`maladieFaitRage`, calculé par l'appelant), les facteurs `contagionABord` de la donnée ne
+ * paie et, sous `maladie` (`maladieFaitRage`, calculé par l'appelant), les facteurs `maladieFaitRage` de la donnée ne
  * sont injectés que pour le recalcul de CETTE semaine, jamais persistés dans `morale.factors` (édités par l'auteur).
  * MDG 14 l.172, l.208 ; #216/#229/#4058. RNG injecté.
  */
@@ -539,7 +539,7 @@ export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision
     }
     lines.push(paidLine);
   }
-  const injectes = [...(paidFactor ? [paidFactor] : []), ...(maladie ? facteursDeContagionABord() : [])];
+  const injectes = [...(paidFactor ? [paidFactor] : []), ...(maladie ? facteursDeMaladieFaitRage() : [])];
   const factorsThisWeek = [...vessel.morale.factors, ...injectes.filter((f) => !vessel.morale.factors.includes(f))];
   const before = vessel.morale.score;
   const r = recalcMorale(before, factorsThisWeek, rng);

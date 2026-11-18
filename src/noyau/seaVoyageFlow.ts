@@ -167,7 +167,7 @@ import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog, jouerFlowEntier, revealPurpose, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
-import { applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
+import { applyContraction, contractionDue, diseaseDefs, maladieDeclaree, type Disease } from '../engine/disease';
 import {
   DIFFICULTE_PAR_DEFAUT,
   DIFFICULTY_LABELS,
@@ -589,13 +589,15 @@ function joursDeVivres(lots: readonly LotDeVivres[], bouches: number, now: numbe
 }
 
 /** Dossier d'un navire de campagne : coque, cale (MDG 12 l.70-75), refus d'appareiller, population
- *  embarquée (`shipboardSouls`, MDG 14 l.238), autonomies et soldes. Vue PURE lue par l'écran du dossier. */
+ *  embarquée (`shipboardSouls`, MDG 14 l.238), autonomies, soldes et maladies du porteur collectif de l'équipage
+ *  (`CampaignVessel.porteurDeLEquipage`, MDG 14 l.172). Vue PURE lue par l'écran du dossier. */
 export interface DossierDuNavire {
   woundsMax: number; woundsCur: number; missing: number;
   capacity: number; cargoEnc: number; overload: CargoOverload; cargoMax: number; cargoMarks: number[];
   refusDAppareiller: string | null;
   heroes: number; crewCount: number; autonomyDays: number | null; provisionDays: number | null; weeklyWageBrass: number;
   soldesParRole: { roleId: string; count: number; weeklyBrass: number }[];
+  maladiesDeLEquipage: Pick<Disease, 'id' | 'phase'>[];
 }
 
 /** `null` : le type du navire n'a pas de profil naval. */
@@ -617,6 +619,7 @@ export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[], now:
     provisionDays: vessel.provisions != null && crewCount > 0 ? joursDeVivres(vessel.provisions, crewCount, now) : null,
     weeklyWageBrass: weeklyCrewWageBrass(vessel.crew),
     soldesParRole: (vessel.crew ?? []).map((h) => ({ roleId: h.roleId, count: h.count, weeklyBrass: weeklyCrewWageBrass([h]) })),
+    maladiesDeLEquipage: (vessel.porteurDeLEquipage?.diseases ?? []).map(({ id, phase }) => ({ id, phase })),
   };
 }
 
