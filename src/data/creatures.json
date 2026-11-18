@@ -20627,6 +20627,867 @@
     ]
   },
   {
+    "id": "mousse",
+    "type": "creatures",
+    "label": "Mousse",
+    "title": "Mousse (Argent 1)",
+    "folder": "Bestiaire de la Mer des Griffes",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 31,
+      "capacite-de-tir": 31,
+      "force": 31,
+      "endurance": 31,
+      "initiative": 31,
+      "agilite": 36,
+      "dexterite": 36,
+      "intelligence": 31,
+      "force-mentale": 31,
+      "sociabilite": 36,
+      "B": 12
+    },
+    "traits": [
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "dague"
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "corps-a-corps",
+        "value": 36,
+        "spec": "bagarre"
+      },
+      {
+        "id": "corps-a-corps",
+        "value": 36,
+        "spec": "base"
+      },
+      {
+        "id": "escalade",
+        "value": 36
+      },
+      {
+        "id": "langue",
+        "value": 36,
+        "spec": "wastelander"
+      },
+      {
+        "id": "natation",
+        "value": 36
+      },
+      {
+        "id": "pari",
+        "value": 36
+      },
+      {
+        "id": "ramer",
+        "value": 36
+      },
+      {
+        "id": "resistance-a-l-alcool",
+        "value": 36
+      },
+      {
+        "id": "savoir",
+        "value": 36,
+        "spec": "oceans"
+      },
+      {
+        "id": "voile",
+        "choix": true,
+        "value": 41
+      }
+    ],
+    "talents": [
+      {
+        "id": "coeur-vaillant"
+      },
+      {
+        "id": "destinee"
+      },
+      {
+        "id": "infatigable"
+      },
+      {
+        "id": "pecheur"
+      }
+    ],
+    "trappings": [
+      {
+        "id": "besace"
+      },
+      {
+        "id": "flasque"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "brosse"
+      },
+      {
+        "id": "cape"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "seau"
+      },
+      {
+        "id": "serpillere"
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 127,
+      "note": "MDG 14 l.305-314"
+    },
+    "appearance": {
+      "species": "humain",
+      "tenue": "marin"
+    },
+    "spells": [],
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
+  },
+  {
+    "id": "mercenaire-experimente",
+    "type": "creatures",
+    "label": "Mercenaire expérimenté",
+    "title": "Mercenaire expérimenté (Argent 3)",
+    "folder": "Bestiaire de la Mer des Griffes",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 46,
+      "capacite-de-tir": 41,
+      "force": 36,
+      "endurance": 41,
+      "initiative": 36,
+      "agilite": 31,
+      "dexterite": 31,
+      "intelligence": 31,
+      "force-mentale": 41,
+      "sociabilite": 36,
+      "B": 15
+    },
+    "traits": [
+      {
+        "id": "a-distance",
+        "value": 9,
+        "arg": "arbalete",
+        "range": 60
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "hallebarde"
+      },
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "dague"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "arme-simple"
+      },
+      {
+        "id": "armure",
+        "value": 2
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "athletisme",
+        "value": 41
+      },
+      {
+        "id": "calme",
+        "value": 56
+      },
+      {
+        "id": "charme",
+        "value": 41
+      },
+      {
+        "id": "commandement",
+        "value": 41
+      },
+      {
+        "id": "corps-a-corps",
+        "value": 51,
+        "spec": "armes-d-hast"
+      },
+      {
+        "id": "corps-a-corps",
+        "value": 61,
+        "spec": "base"
+      },
+      {
+        "id": "escalade",
+        "value": 46
+      },
+      {
+        "id": "esquive",
+        "value": 41
+      },
+      {
+        "id": "evaluation",
+        "value": 34
+      },
+      {
+        "id": "langue",
+        "value": 41,
+        "spec": "bataille"
+      },
+      {
+        "id": "marchandage",
+        "value": 39
+      },
+      {
+        "id": "musicien",
+        "value": 41,
+        "spec": "tambour"
+      },
+      {
+        "id": "pari",
+        "value": 36
+      },
+      {
+        "id": "projectiles",
+        "value": 46,
+        "spec": "arbalete"
+      },
+      {
+        "id": "ragot",
+        "value": 41
+      },
+      {
+        "id": "resistance",
+        "value": 51
+      },
+      {
+        "id": "resistance-a-l-alcool",
+        "value": 46
+      },
+      {
+        "id": "survie-en-exterieur",
+        "value": 36
+      }
+    ],
+    "talents": [
+      {
+        "id": "affable"
+      },
+      {
+        "id": "coude-a-coude"
+      },
+      {
+        "id": "destinee"
+      },
+      {
+        "id": "guerrier-ne"
+      },
+      {
+        "id": "tireur-de-precision"
+      },
+      {
+        "id": "tres-fort"
+      },
+      {
+        "id": "vivacite"
+      }
+    ],
+    "trappings": [
+      {
+        "id": "bourse"
+      },
+      {
+        "text": "casque"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "pick": 1,
+        "of": [
+          {
+            "id": "hallebarde"
+          },
+          {
+            "lot": [
+              {
+                "id": "arbalete"
+              },
+              {
+                "id": "carreau",
+                "count": {
+                  "fixed": 10
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "plastron"
+      },
+      {
+        "id": "uniforme"
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 127,
+      "note": "MDG 14 l.329-340"
+    },
+    "appearance": {
+      "species": "humain",
+      "tenue": "garde",
+      "armurePortee": true
+    },
+    "spells": [],
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
+  },
+  {
+    "id": "officier-mer-des-griffes",
+    "type": "creatures",
+    "label": "Officier",
+    "title": "Officier (Argent 5)",
+    "folder": "Bestiaire de la Mer des Griffes",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 41,
+      "capacite-de-tir": 36,
+      "force": 31,
+      "endurance": 31,
+      "initiative": 31,
+      "agilite": 31,
+      "dexterite": 31,
+      "intelligence": 41,
+      "force-mentale": 31,
+      "sociabilite": 46,
+      "B": 12
+    },
+    "traits": [
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "dague"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "arme-simple"
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "athletisme",
+        "value": 41
+      },
+      {
+        "id": "calme",
+        "value": 36
+      },
+      {
+        "id": "charme",
+        "value": 51
+      },
+      {
+        "id": "commandement",
+        "value": 56
+      },
+      {
+        "id": "corps-a-corps",
+        "value": 51,
+        "spec": "base"
+      },
+      {
+        "id": "escalade",
+        "value": 41
+      },
+      {
+        "id": "intimidation",
+        "value": 36
+      },
+      {
+        "id": "langue",
+        "value": 51,
+        "spec": "wastelander"
+      },
+      {
+        "id": "marchandage",
+        "value": 49
+      },
+      {
+        "id": "natation",
+        "value": 41
+      },
+      {
+        "id": "orientation",
+        "value": 36
+      },
+      {
+        "id": "perception",
+        "value": 41
+      },
+      {
+        "id": "ragot",
+        "value": 56
+      },
+      {
+        "id": "ramer",
+        "value": 41
+      },
+      {
+        "id": "survie-en-exterieur",
+        "value": 51
+      },
+      {
+        "id": "voile",
+        "choix": true,
+        "value": 41
+      }
+    ],
+    "talents": [
+      {
+        "id": "affable"
+      },
+      {
+        "id": "coeur-vaillant"
+      },
+      {
+        "id": "commandant-emerite"
+      },
+      {
+        "id": "destinee"
+      },
+      {
+        "id": "lire-ecrire"
+      },
+      {
+        "id": "savoir-vivre",
+        "spec": "equipage"
+      },
+      {
+        "id": "sens-de-l-orientation"
+      }
+    ],
+    "trappings": [
+      {
+        "id": "besace"
+      },
+      {
+        "id": "flasque"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "cape"
+      },
+      {
+        "id": "coffre"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "uniforme",
+        "qualityChoice": "qualite"
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 127,
+      "note": "MDG 14 l.342-353"
+    },
+    "appearance": {
+      "species": "humain",
+      "tenue": "marin"
+    },
+    "spells": [],
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
+  },
+  {
+    "id": "nautonier-mer-des-griffes",
+    "type": "creatures",
+    "label": "Nautonier",
+    "title": "Nautonier (Argent 1)",
+    "folder": "Bestiaire de la Mer des Griffes",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 41,
+      "capacite-de-tir": 31,
+      "force": 31,
+      "endurance": 41,
+      "initiative": 41,
+      "agilite": 31,
+      "dexterite": 31,
+      "intelligence": 31,
+      "force-mentale": 36,
+      "sociabilite": 36,
+      "B": 14
+    },
+    "traits": [
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "dague"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "gaffe-2"
+      },
+      {
+        "id": "armure",
+        "parLocalisation": {
+          "tete": 0,
+          "brasG": 0,
+          "brasD": 0,
+          "corps": 1,
+          "jambeG": 0,
+          "jambeD": 0
+        },
+        "matiere": "leather"
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "corps-a-corps",
+        "value": 51,
+        "spec": "base"
+      },
+      {
+        "id": "escalade",
+        "value": 36
+      },
+      {
+        "id": "intuition",
+        "value": 51
+      },
+      {
+        "id": "langue",
+        "value": 36,
+        "spec": "wastelander"
+      },
+      {
+        "id": "natation",
+        "value": 41
+      },
+      {
+        "id": "orientation",
+        "value": 51
+      },
+      {
+        "id": "perception",
+        "value": 51
+      },
+      {
+        "id": "ragot",
+        "value": 41
+      },
+      {
+        "id": "ramer",
+        "value": 41
+      },
+      {
+        "id": "resistance-a-l-alcool",
+        "value": 51
+      },
+      {
+        "id": "savoir",
+        "value": 41,
+        "spec": "oceans"
+      },
+      {
+        "id": "savoir",
+        "value": 41,
+        "spec": "region"
+      }
+    ],
+    "talents": [
+      {
+        "id": "coeur-vaillant"
+      },
+      {
+        "id": "destinee"
+      },
+      {
+        "id": "infatigable"
+      },
+      {
+        "id": "loup-de-mer"
+      },
+      {
+        "id": "sens-de-l-orientation"
+      }
+    ],
+    "trappings": [
+      {
+        "id": "barque-fluviale",
+        "type": "vehicle"
+      },
+      {
+        "id": "besace"
+      },
+      {
+        "id": "flasque"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "cape"
+      },
+      {
+        "id": "corde"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "gaffe-2"
+      },
+      {
+        "id": "justaucorps-de-cuir"
+      },
+      {
+        "id": "lampe-tempete"
+      },
+      {
+        "id": "huile-de-lampe"
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 127,
+      "note": "MDG 14 l.355-366"
+    },
+    "appearance": {
+      "species": "humain",
+      "tenue": "marin",
+      "armurePortee": true
+    },
+    "spells": [],
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
+  },
+  {
+    "id": "medecin-de-bord",
+    "type": "creatures",
+    "label": "Médecin de bord",
+    "title": "Médecin de bord (Argent 5)",
+    "folder": "Bestiaire de la Mer des Griffes",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 31,
+      "capacite-de-tir": 31,
+      "force": 31,
+      "endurance": 31,
+      "initiative": 31,
+      "agilite": 36,
+      "dexterite": 41,
+      "intelligence": 41,
+      "force-mentale": 46,
+      "sociabilite": 36,
+      "B": 13
+    },
+    "traits": [
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "dague"
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "calme",
+        "value": 61
+      },
+      {
+        "id": "charme",
+        "value": 46
+      },
+      {
+        "id": "conduite-d-attelage",
+        "value": 46
+      },
+      {
+        "id": "corps-a-corps",
+        "value": 36,
+        "spec": "base"
+      },
+      {
+        "id": "escamotage",
+        "value": 51
+      },
+      {
+        "id": "evaluation",
+        "value": 44
+      },
+      {
+        "id": "guerison",
+        "value": 51
+      },
+      {
+        "id": "langue",
+        "value": 36,
+        "spec": "guilde"
+      },
+      {
+        "id": "marchandage",
+        "value": 44
+      },
+      {
+        "id": "metier",
+        "value": 46,
+        "spec": "barbier"
+      },
+      {
+        "id": "perception",
+        "value": 41
+      },
+      {
+        "id": "ragot",
+        "value": 46
+      },
+      {
+        "id": "resistance",
+        "value": 41
+      },
+      {
+        "id": "savoir",
+        "value": 46,
+        "spec": "anatomie"
+      },
+      {
+        "id": "savoir",
+        "value": 46,
+        "spec": "medecine"
+      },
+      {
+        "id": "subornation",
+        "value": 46
+      }
+    ],
+    "talents": [
+      {
+        "id": "affable"
+      },
+      {
+        "id": "chirurgie"
+      },
+      {
+        "id": "destinee"
+      },
+      {
+        "id": "lire-ecrire"
+      },
+      {
+        "id": "pansement-de-fortune"
+      },
+      {
+        "id": "perspicace"
+      },
+      {
+        "id": "resistance",
+        "spec": "maladie"
+      }
+    ],
+    "trappings": [
+      {
+        "id": "bandages"
+      },
+      {
+        "id": "besace"
+      },
+      {
+        "id": "outils-professionnels-medecin"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "potion-de-guerison"
+      },
+      {
+        "id": "licence-de-guilde"
+      },
+      {
+        "id": "livre-medecine"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "id": "parchemin",
+        "count": {
+          "fixed": 5
+        }
+      },
+      {
+        "id": "vetements"
+      }
+    ],
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 127,
+      "note": "MDG 14 l.368-379"
+    },
+    "appearance": {
+      "species": "humain",
+      "tenue": "medecin"
+    },
+    "spells": [],
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "humain"
+    ]
+  },
+  {
     "id": "anguille-du-reik",
     "type": "creatures",
     "label": "Anguille du Reik",
