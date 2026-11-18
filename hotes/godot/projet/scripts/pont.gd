@@ -395,8 +395,8 @@ static func boutons_a_l_ecran(racines: Array, defiles := false) -> Array:
 				var publie := {texte = bouton.text, x = centre.x, y = centre.y}
 				if bouton.has_meta("cle"):
 					publie.cle = bouton.get_meta("cle")
-				if bouton.owner != null and bouton.owner.has_meta(Zone.META):
-					publie.element = bouton.owner.get_meta(Zone.META)
+				if element_de(bouton) != null:
+					publie.element = element_de(bouton)
 				if bouton is OptionButton:
 					var liste := bouton as OptionButton
 					publie.choix = range(liste.item_count).map(func(rang: int) -> String: return liste.get_item_text(rang))
@@ -418,10 +418,20 @@ static func saisies_a_l_ecran(racines: Array, defiles := false) -> Array:
 			var centre: Vector2 = champ.get_global_rect().get_center()
 			if champ.is_visible_in_tree() and champ.editable and (defiles or a_l_ecran(champ, centre)):
 				var publie := {texte = champ.text, x = centre.x, y = centre.y}
-				if champ.owner != null and champ.owner.has_meta(Zone.META):
-					publie.element = champ.owner.get_meta(Zone.META)
+				if element_de(champ) != null:
+					publie.element = element_de(champ)
 				saisies.append(publie)
 	return saisies
+
+
+## L'élément que dessine le composant de `noeud` (`Zone.META`), lu sur le premier de ses propriétaires qui le porte : un
+## composant qui en instancie un autre (`reglageEnPourcent.tscn` et sa réglette) le porte à sa racine ; `null` hors
+## d'un composant.
+static func element_de(noeud: Node) -> Variant:
+	var porteur := noeud.owner
+	while porteur != null and not porteur.has_meta(Zone.META):
+		porteur = porteur.owner
+	return null if porteur == null else porteur.get_meta(Zone.META)
 
 
 ## Les curseurs à l'écran sous `racines` : la glissière (`Slider`) réglable et visible de chaque composant qui dessine
@@ -431,9 +441,9 @@ static func curseurs_a_l_ecran(racines: Array, defiles := false) -> Array:
 	var curseurs := []
 	for racine in racines:
 		for glissiere: Slider in racine.find_children("*", "Slider", true, false):
-			if glissiere.is_visible_in_tree() and glissiere.editable and glissiere.owner != null and glissiere.owner.has_meta(Zone.META) and (defiles or a_l_ecran(glissiere, glissiere.get_global_rect().get_center())):
+			if glissiere.is_visible_in_tree() and glissiere.editable and element_de(glissiere) != null and (defiles or a_l_ecran(glissiere, glissiere.get_global_rect().get_center())):
 				var publie := glissiere_publiee(glissiere)
-				publie.element = glissiere.owner.get_meta(Zone.META)
+				publie.element = element_de(glissiere)
 				curseurs.append(publie)
 	return curseurs
 

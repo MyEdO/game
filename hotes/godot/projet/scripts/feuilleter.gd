@@ -9,25 +9,40 @@ extends Node
 
 
 func _ready() -> void:
-	var bouton := get_parent() as BaseButton
-	bouton.pressed.connect(func() -> void: _onglets().current_tab += pas)
-	_onglets().tab_changed.connect(_poser.unbind(1))
+	(get_parent() as BaseButton).pressed.connect(func() -> void: _onglets().current_tab = _vise())
+
+
+## Les onglets suivis tant que le feuillet est dans l'arbre : sa zone le retire avant de libérer ses pages.
+func _enter_tree() -> void:
+	_onglets().tab_changed.connect(_au_changement)
 	_onglets().child_order_changed.connect(_poser)
-	_poser.call_deferred()
+	_poser()
 
 
-## L'onglet de la page qui porte le bouton, et le bouton fermé ou caché au bout des onglets.
+func _exit_tree() -> void:
+	_onglets().tab_changed.disconnect(_au_changement)
+	_onglets().child_order_changed.disconnect(_poser)
+
+
+func _au_changement(_onglet: int) -> void:
+	_poser()
+
+
+## Le bouton fermé, et `masque` caché, quand aucun onglet n'est à `pas` de la page qui le porte.
 func _poser() -> void:
+	var ouvert := _vise() != -1
+	(get_parent() as BaseButton).disabled = not ouvert
+	if masque != null:
+		masque.visible = ouvert
+
+
+## Le rang de l'onglet à `pas` de la page qui porte le bouton, -1 au bout des onglets.
+func _vise() -> int:
 	var onglets := _onglets()
 	var page := get_parent() as Node
 	while page.get_parent() != onglets:
 		page = page.get_parent()
-	var vise := onglets.get_tab_idx_from_control(page as Control) + pas
-	var ouvert := vise >= 0 and vise < onglets.get_tab_count()
-	var bouton := get_parent() as BaseButton
-	bouton.disabled = not ouvert
-	if masque != null:
-		masque.visible = ouvert
+	return int(MiseEnPage.onglet_a_pas(onglets.get_tab_idx_from_control(page as Control), pas, onglets.get_tab_count()))
 
 
 func _onglets() -> TabContainer:

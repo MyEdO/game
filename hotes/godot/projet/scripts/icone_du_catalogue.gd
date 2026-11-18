@@ -30,12 +30,12 @@ func _draw_rect(to_canvas_item: RID, rect: Rect2, tile: bool, modulate: Color, t
 
 func _draw_rect_region(to_canvas_item: RID, rect: Rect2, src_rect: Rect2, modulate: Color, transpose: bool, clip_uv: bool) -> void:
 	var trace := _trace()
-	var echelle := Vector2(trace.get_size()) / float(taille)
-	trace.draw_rect_region(to_canvas_item, rect, Rect2(src_rect.position * echelle, src_rect.size * echelle), modulate, transpose, clip_uv)
+	var echelle := MiseEnPage.echelle_du_trace(trace.get_width(), taille)
+	trace.draw_rect_region(to_canvas_item, rect, Rect2(MiseEnPage.a_l_echelle(src_rect.position, echelle), MiseEnPage.a_l_echelle(src_rect.size, echelle)), modulate, transpose, clip_uv)
 
 
 ## Le dessin tracé à la finesse de l'écran, assez fin pour `taille` à toute échelle de la fenêtre.
 func _trace() -> ImageTexture:
 	var famille := Dessin.famille_du_catalogue("icone")
 	var ecran := (Engine.get_main_loop() as SceneTree).root.get_final_transform().get_scale()
-	return Dessin.trace("icone", [dessin], MiseEnPage.echelle_de_dessin(taille * ecran.x, taille * ecran.y, famille.largeur, famille.hauteur))
+	return Dessin.trace("icone", [dessin], MiseEnPage.echelle_d_icone(taille, ecran, famille.largeur, famille.hauteur))
