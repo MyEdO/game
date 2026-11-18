@@ -903,13 +903,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "scripts/migrations/2026-09-01-1463-monnaie-brass.mjs",
-    motif: "désormais",
-    ancre: "portent désormais `brass`) — un montant oublié ailleurs dans ces 4 documents est une anomalie.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "scripts/migrations/2026-09-02-1680-props-provenance.mjs",
     motif: "désormais",
     ancre: "`affinerEntree` (`src/data/schemas/defs/props.ts`) l'exige désormais à l'entrée.",

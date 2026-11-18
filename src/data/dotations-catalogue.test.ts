@@ -104,9 +104,9 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
 
   /**
    * ARBITRAGE ÉPINGLÉ : deux entrées du catalogue portent le MÊME libellé « Carreau » — `carreau`
-   * (munition d'arbalète) et `carreau-de-baliste` (munition de siège). Les six dotations que le livre
+   * (munition d'arbalète) et `carreau-de-baliste` (munition de siège). Les sept dotations que le livre
    * écrit « arbalète (de poing) et dix carreaux » (`LDB 08` l.1435, l.1543, l.2826, l.3239, l.3396 ;
-   * `MDG 09` l.401) visent l'arbalète — distinction que `MDG 12` l.379 pose explicitement. L'index
+   * `MDG 09` l.401 ; `MDG 14` l.340) visent l'arbalète — distinction que `MDG 12` l.379 pose explicitement. L'index
    * libellé → ids n'est donc PAS injectif : sans cet arbitrage, un appariement par libellé peut poser
    * la mauvaise munition en silence.
    */
@@ -122,8 +122,8 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
     ).toEqual([]);
     expect(
       munitions.length,
-      'les 6 « Carreaux » migrés, le site historique `patrouilleur-routier-1` et `specialiste-de-siege-1` (AA 04 l.275)',
-    ).toBe(8);
+      'les 6 « Carreaux » migrés, le site historique `patrouilleur-routier-1`, `specialiste-de-siege-1` (AA 04 l.275) et `mercenaire-experimente` (« arbalète avec 10 carreaux », MDG 14 l.340)',
+    ).toBe(9);
   });
 
   it('chaque forme de dotation a son libellé : somme, objet valant sa somme, mention et son nombre, choix de mentions', () => {

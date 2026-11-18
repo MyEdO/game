@@ -20482,15 +20482,7 @@
       },
       {
         "id": "armure",
-        "parLocalisation": {
-          "tete": 0,
-          "brasG": 0,
-          "brasD": 0,
-          "corps": 1,
-          "jambeG": 0,
-          "jambeD": 0
-        },
-        "matiere": "leather"
+        "value": 1
       }
     ],
     "optionals": [],
@@ -20615,6 +20607,23 @@
       "book": "mer-des-griffes",
       "page": 127,
       "note": "MDG 14 l.316-324"
+    },
+    "embauche": {
+      "daily": {
+        "gold": 0,
+        "silver": 9,
+        "brass": 0
+      },
+      "weekly": {
+        "gold": 3,
+        "silver": 12,
+        "brass": 0
+      },
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 126,
+        "note": "MDG 14 l.298"
+      }
     },
     "appearance": {
       "species": "humain",
@@ -20748,6 +20757,23 @@
       "book": "mer-des-griffes",
       "page": 127,
       "note": "MDG 14 l.305-314"
+    },
+    "embauche": {
+      "daily": {
+        "gold": 0,
+        "silver": 3,
+        "brass": 0
+      },
+      "weekly": {
+        "gold": 1,
+        "silver": 4,
+        "brass": 0
+      },
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 126,
+        "note": "MDG 14 l.297"
+      }
     },
     "appearance": {
       "species": "humain",
@@ -20914,7 +20940,8 @@
         "id": "bourse"
       },
       {
-        "text": "casque"
+        "id": "heaume",
+        "spec": "casque"
       },
       {
         "id": "dague"
@@ -20957,6 +20984,23 @@
       "book": "mer-des-griffes",
       "page": 127,
       "note": "MDG 14 l.329-340"
+    },
+    "embauche": {
+      "daily": {
+        "gold": 0,
+        "silver": 9,
+        "brass": 0
+      },
+      "weekly": {
+        "gold": 3,
+        "silver": 12,
+        "brass": 0
+      },
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 126,
+        "note": "MDG 14 l.301"
+      }
     },
     "appearance": {
       "species": "humain",
@@ -21130,6 +21174,23 @@
       "page": 127,
       "note": "MDG 14 l.342-353"
     },
+    "embauche": {
+      "daily": {
+        "gold": 0,
+        "silver": 15,
+        "brass": 0
+      },
+      "weekly": {
+        "gold": 5,
+        "silver": 0,
+        "brass": 0
+      },
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 126,
+        "note": "MDG 14 l.300"
+      }
+    },
     "appearance": {
       "species": "humain",
       "tenue": "marin"
@@ -21173,15 +21234,7 @@
       },
       {
         "id": "armure",
-        "parLocalisation": {
-          "tete": 0,
-          "brasG": 0,
-          "brasD": 0,
-          "corps": 1,
-          "jambeG": 0,
-          "jambeD": 0
-        },
-        "matiere": "leather"
+        "value": 1
       }
     ],
     "optionals": [],
@@ -21299,6 +21352,23 @@
       "book": "mer-des-griffes",
       "page": 127,
       "note": "MDG 14 l.355-366"
+    },
+    "embauche": {
+      "daily": {
+        "gold": 0,
+        "silver": 3,
+        "brass": 0
+      },
+      "weekly": {
+        "gold": 1,
+        "silver": 4,
+        "brass": 0
+      },
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 126,
+        "note": "MDG 14 l.299"
+      }
     },
     "appearance": {
       "species": "humain",
@@ -21476,6 +21546,23 @@
       "book": "mer-des-griffes",
       "page": 127,
       "note": "MDG 14 l.368-379"
+    },
+    "embauche": {
+      "daily": {
+        "gold": 0,
+        "silver": 15,
+        "brass": 0
+      },
+      "weekly": {
+        "gold": 5,
+        "silver": 0,
+        "brass": 0
+      },
+      "source": {
+        "book": "mer-des-griffes",
+        "page": 126,
+        "note": "MDG 14 l.302"
+      }
     },
     "appearance": {
       "species": "humain",

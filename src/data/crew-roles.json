@@ -12,24 +12,7 @@
     "profil": {
       "id": "officier-mer-des-griffes"
     },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 15,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 5,
-        "silver": 0,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.300"
-      }
-    },
-    "maison": "Correspondance maison : le Capitaine prend le profil et le barème « Officier » (MDG 14 l.300, l.342), charge de commandement du bord. #216"
+    "maison": "Correspondance maison : le Capitaine prend le profil « Officier » (MDG 14 l.342), charge de commandement du bord. #216"
   },
   {
     "id": "timonier",
@@ -44,24 +27,7 @@
     "profil": {
       "id": "marin"
     },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 9,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 3,
-        "silver": 12,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.298"
-      }
-    },
-    "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : le Timonier est un marin expérimenté à la barre. #216"
+    "maison": "Correspondance maison → profil « Marin » (MDG 14 l.316) : le Timonier est un marin expérimenté à la barre. #216"
   },
   {
     "id": "vigie",
@@ -76,24 +42,7 @@
     "profil": {
       "id": "marin"
     },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 9,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 3,
-        "silver": 12,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.298"
-      }
-    },
-    "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : la Vigie est un marin de quart posté en observation. #216"
+    "maison": "Correspondance maison → profil « Marin » (MDG 14 l.316) : la Vigie est un marin de quart posté en observation. #216"
   },
   {
     "id": "mousse",
@@ -110,23 +59,6 @@
     "desc": "Les Mousses accomplissent tous les travaux manuels à bord. Malgré leur rang très bas dans la hiérarchie, leur travail demande beaucoup de compétences et est vital pour que le vaisseau soit bien géré.",
     "profil": {
       "id": "mousse"
-    },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 3,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 1,
-        "silver": 4,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.297"
-      }
     },
     "parDefaut": true,
     "source": {
@@ -147,24 +79,7 @@
     "profil": {
       "id": "officier-mer-des-griffes"
     },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 15,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 5,
-        "silver": 0,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.300"
-      }
-    },
-    "maison": "Correspondance maison → mercenaire « Officier » (MDG 14 l.300) : la navigation d'un grand vaisseau est une charge d'officier. #216"
+    "maison": "Correspondance maison → profil « Officier » (MDG 14 l.342) : la navigation d'un grand vaisseau est une charge d'officier. #216"
   },
   {
     "id": "artilleur",
@@ -180,24 +95,7 @@
     "profil": {
       "id": "mercenaire-experimente"
     },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 9,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 3,
-        "silver": 12,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.301"
-      }
-    },
-    "maison": "Correspondance maison → mercenaire « Mercenaire expérimenté » (MDG 14 l.301) : l'Artilleur est un combattant spécialiste des pièces. #216"
+    "maison": "Correspondance maison → profil « Mercenaire expérimenté » (MDG 14 l.329) : l'Artilleur est un combattant spécialiste des pièces. #216"
   },
   {
     "id": "cuisinier",
@@ -213,24 +111,7 @@
     "profil": {
       "id": "nautonier-mer-des-griffes"
     },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 3,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 1,
-        "silver": 4,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.299"
-      }
-    },
-    "maison": "Correspondance maison → mercenaire « Nautonier » (MDG 14 l.299) : non-combattant de bord sans part de prise. #216"
+    "maison": "Correspondance maison → profil « Nautonier » (MDG 14 l.355) : non-combattant de bord sans part de prise. #216"
   },
   {
     "id": "chirurgien",
@@ -245,28 +126,11 @@
     "profil": {
       "id": "medecin-de-bord"
     },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 15,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 5,
-        "silver": 0,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.302"
-      }
-    },
     "source": {
       "book": "mer-des-griffes",
       "page": 121
     },
-    "maison": "Correspondance maison : le Chirurgien prend le profil et le barème « Médecin de bord » (MDG 14 l.302, l.368), seul soignant des mercenaires de bord. #216"
+    "maison": "Correspondance maison : le Chirurgien prend le profil « Médecin de bord » (MDG 14 l.368), seul soignant des mercenaires de bord. #216"
   },
   {
     "id": "chansonnier",
@@ -282,23 +146,6 @@
     "profil": {
       "id": "marin"
     },
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 9,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 3,
-        "silver": 12,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126,
-        "note": "MDG 14 l.298"
-      }
-    },
-    "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : le Chansonnier est un marin qui mène le chant. #216"
+    "maison": "Correspondance maison → profil « Marin » (MDG 14 l.316) : le Chansonnier est un marin qui mène le chant. #216"
   }
 ]

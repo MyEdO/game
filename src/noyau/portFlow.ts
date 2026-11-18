@@ -40,7 +40,7 @@ import { findVehicleById, findCrewRoleById, findTrappingById, crewRoles, combatS
 import { VIVRES_DE_CALE } from '../engine/seaNavigation';
 import { ajouterDeLEau, ajouterDesRations } from './navireOps';
 import { t } from '../i18n';
-import { ajouterAuRoster, weeklyCrewWageBrass } from '../engine/crewMorale';
+import { ajouterAuRoster, soldeDuRole, weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
   sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc,
@@ -496,15 +496,16 @@ export function jeterAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   log(get, set, [t('port.dumped', { enc: lot.enc, label, pct, money: formatMoney(fromBrass(gross * PA_PER_CO)) })]);
 }
 
-/** Rôles recrutables à quai : ceux qui portent un barème de solde (MDG 14 l.293-302, `crew-roles.json`). */
+/** Rôles recrutables à quai : ceux dont le profil porte un barème d'embauche (`soldeDuRole`, MDG 14 l.293-302). */
 export function rolesRecrutables(): CrewRoleData[] {
-  return crewRoles.filter((r) => r.wage?.weekly);
+  return crewRoles.filter((r) => soldeDuRole(r));
 }
 
 /** Refus d'embaucher au rôle `roleId` : `refusDuQuai` (`refusDeGesteAQuai`), ou rôle sans barème ; `null` sinon.
  *  Tombe dans `recruterLEquipage`, lu par l'écran d'escale. */
 export function refusDEmbauche(roleId: string, refusDuQuai: string | null): string | null {
-  return refusDuQuai ?? (findCrewRoleById(roleId)?.wage?.weekly ? null : t('port.roleSansSolde', { role: findCrewRoleById(roleId)?.label ?? roleId }));
+  const role = findCrewRoleById(roleId);
+  return refusDuQuai ?? (role && soldeDuRole(role) ? null : t('port.roleSansSolde', { role: role?.label ?? roleId }));
 }
 
 /** Refus de débarquer un membre du rôle `roleId` : `refusDuQuai` (`refusDeGesteAQuai`), ou aucun membre de ce rôle
@@ -514,19 +515,20 @@ export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refus
 }
 
 /** RECRUTEMENT à quai (#228, escale-hub) : embauche `count` PNJ salariés au rôle `roleId` — fusionné
- *  dans le roster `vessel.crew` (`CrewHire[]`, #216). La solde HEBDOMADAIRE (`crew-roles.json`,
+ *  dans le roster `vessel.crew` (`CrewHire[]`, #216). La solde HEBDOMADAIRE (`soldeDuRole`,
  *  MDG 14 l.293-302) est prélevée à l'entretien (`resolveVesselWeek`) : le moteur ne débite JAMAIS à
- *  l'embauche (aucune avance dans le modèle), la bourse ne bouge pas ici. Un rôle sans barème (`wage`
- *  absent) n'est pas recrutable. Renvoie le journal (ligne de solde totale recalculée). */
+ *  l'embauche (aucune avance dans le modèle), la bourse ne bouge pas ici. Un rôle sans barème n'est
+ *  pas recrutable. Renvoie le journal (ligne de solde totale recalculée). */
 export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
   const refus = refusDEmbauche(roleId, refusDeGesteAQuai(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire de l’embauche');
   const role = garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage');
-  if (count <= 0 || !role.wage) return [];
+  const solde = soldeDuRole(role);
+  if (count <= 0 || !solde) return [];
   const next = ajouterAuRoster(vessel.crew, roleId, count);
   set({ vessel: { ...vessel, crew: next } });
-  const lines = [t('port.hired', { count, role: role.label, wage: formatMoney(priceToMoney(role.wage.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(next))) })];
+  const lines = [t('port.hired', { count, role: role.label, wage: formatMoney(priceToMoney(solde.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(next))) })];
   log(get, set, lines);
   return lines;
 }

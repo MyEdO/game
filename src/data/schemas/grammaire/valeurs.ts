@@ -929,8 +929,15 @@ export const entrainementDeProtheseSchema = nommerChamps(z.strictObject({ px: z.
 export const contenantSchema = nommerChamps(z.strictObject({ capacity: z.number() }), { capacity: { label: 'Capacité' } });
 
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
- *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
+ *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } }, { label: 'montant' });
+
+/** Barème d'embauche d'un mercenaire, coût quotidien et hebdomadaire. MDG 14 l.293-302 */
+export const baremeDEmbaucheSchema = nommerChamps(z.strictObject({ daily: moneySchema, weekly: moneySchema, source: sourceRefSchema }), {
+  daily: { label: 'paie quotidienne' },
+  weekly: { label: 'paie hebdomadaire' },
+  source: { label: 'source' },
+});
 
 /** La pièce d'une somme (`keyof Money`), ses libellés au pluriel. LDB 57 */
 export const monnaieSchema = enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' } satisfies Record<keyof Money, string>);

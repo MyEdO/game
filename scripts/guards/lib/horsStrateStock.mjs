@@ -63,7 +63,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#creatures', ref: '[].purchase', occurrence: 1 },
   { fichier: 'src/data#crew-morale', ref: '.bands[]', occurrence: 1 },
   { fichier: 'src/data#crew-morale', ref: '.factors[]', occurrence: 1 },
-  { fichier: 'src/data#crew-roles', ref: '[].wage', occurrence: 1 },
   { fichier: 'src/data#crew-test-types', ref: '.types[]', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[]', occurrence: 1 },
   { fichier: 'src/data#criticals', ref: '[].entries[].amputation', occurrence: 1 },

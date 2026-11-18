@@ -746,8 +746,9 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     expect(s.journal.join('\n')).toContain(t('eff.membreDuBordRevient', { role: 'Timonier' }));
   });
 
+  // Navigateur : profil « Officier » sans Armure, MDG 14 l.342-353 ; LDB 63 l.30.
   it('`combat-mort-subite` désactivée, Critique mortel : l’effectif perd un membre, son rôle au registre aussi (LDB 18 l.34)', () => {
-    const { banc, membre } = serieSurLeMembre([{ roleId: 'timonier', count: 15 }], [11, 99, 100, 100, 100], 3, op, { 'combat-mort-subite': 'off' });
+    const { banc, membre } = serieSurLeMembre([{ roleId: 'navigateur', count: 15 }], [11, 99, 100, 100, 100], 3, op, { 'combat-mort-subite': 'off' });
     const cascade = garanti(banc.getState().pendingCascade, 'pendingCascade', 'séquence du Critique');
     expect(cascade.participants[cascade.cursor]).toMatchObject({ kind: 'deviation', actorId: membre().id, table: { result: { roll: 100 } } });
     expect(cascade.participants[cascade.cursor].options).toBeUndefined();
@@ -755,8 +756,8 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     expect(membre().dead).toBe(true);
     const s = banc.getState();
     expect(s.serieSubie).toBeNull();
-    expect(s.vessel).toMatchObject({ crewLost: 1, crew: [{ roleId: 'timonier', count: 14 }] });
-    expect(s.journal.join('\n')).toContain(t('eff.membreDuBordMort', { role: 'Timonier' }));
+    expect(s.vessel).toMatchObject({ crewLost: 1, crew: [{ roleId: 'navigateur', count: 14 }] });
+    expect(s.journal.join('\n')).toContain(t('eff.membreDuBordMort', { role: 'Navigateur' }));
   });
 
   it('rats géants : la touche qui blesse expose le membre, l’équipage revenu ouvre sa bande de Contraction (MDG 15 l.164 ; LDB 20 l.25)', () => {

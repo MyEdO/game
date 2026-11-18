@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveCrewTestByRoles, crewRoleValue, undercrewPenalty, weeklyCrewWageBrass, crewTestSuccess } from './crewMorale';
+import { resolveCrewTestByRoles, crewRoleValue, undercrewPenalty, weeklyCrewWageBrass, crewTestSuccess, soldeDuRole } from './crewMorale';
 import { toBrass, priceToMoney } from './money';
 import { crewRoles, crewTestTypes, findCreatureById, findCrewRoleById } from '../data';
 import { traumaById } from './trauma';
@@ -45,25 +45,28 @@ describe('Catalogue des rôles d’équipage + types de Test (MDG 14) — donné
   });
 });
 
-describe('Barème de solde (MDG 14 l.293-302) — lu depuis la donnée, #216', () => {
-  it('chaque rôle porte son profil du bestiaire et la ligne de barème de ce profil (MDG 14 l.297-302)', () => {
-    const LIGNE: Record<string, number> = {
-      mousse: 297, marin: 298, 'nautonier-mer-des-griffes': 299, 'officier-mer-des-griffes': 300, 'mercenaire-experimente': 301, 'medecin-de-bord': 302,
-    };
+describe('Barème d’embauche (MDG 14 l.293-302) — porté par le profil du bestiaire, #216', () => {
+  it('chaque rôle prend un profil du bestiaire, et ce profil porte son barème (MDG 14 l.297-302)', () => {
     expect(Object.fromEntries(crewRoles.map((r) => [r.id, r.profil.id]))).toEqual({
       capitaine: 'officier-mer-des-griffes', navigateur: 'officier-mer-des-griffes',
       timonier: 'marin', vigie: 'marin', chansonnier: 'marin',
       mousse: 'mousse', artilleur: 'mercenaire-experimente', cuisinier: 'nautonier-mer-des-griffes', chirurgien: 'medecin-de-bord',
     });
-    for (const r of crewRoles) {
-      expect(findCreatureById(r.profil.id), r.id).toBeDefined();
-      expect(r.wage!.source, r.id).toEqual({ book: 'mer-des-griffes', page: 126, note: `MDG 14 l.${LIGNE[r.profil.id]}` });
-    }
+    for (const r of crewRoles) expect(soldeDuRole(r), r.id).toEqual(findCreatureById(r.profil.id)!.embauche);
+    // MDG 14 l.297-302 : une ligne par profil, colonnes NON multiples l'une de l'autre (verbatim).
+    const bareme = (id: string) => findCreatureById(id)!.embauche;
+    const ligne = (note: string, daily: [number, number], weekly: [number, number]) => ({
+      daily: { gold: daily[0], silver: daily[1], brass: 0 }, weekly: { gold: weekly[0], silver: weekly[1], brass: 0 },
+      source: { book: 'mer-des-griffes', page: 126, note },
+    });
+    expect(bareme('mousse')).toEqual(ligne('MDG 14 l.297', [0, 3], [1, 4]));
+    expect(bareme('marin')).toEqual(ligne('MDG 14 l.298', [0, 9], [3, 12]));
+    expect(bareme('nautonier-mer-des-griffes')).toEqual(ligne('MDG 14 l.299', [0, 3], [1, 4]));
+    expect(bareme('officier-mer-des-griffes')).toEqual(ligne('MDG 14 l.300', [0, 15], [5, 0]));
+    expect(bareme('mercenaire-experimente')).toEqual(ligne('MDG 14 l.301', [0, 9], [3, 12]));
+    expect(bareme('medecin-de-bord')).toEqual(ligne('MDG 14 l.302', [0, 15], [5, 0]));
     // Le Mousse porte le nom de son profil ; les autres rôles portent leur correspondance au champ `maison`.
     for (const r of crewRoles) expect(!!r.maison, r.id).toBe(r.id !== 'mousse');
-    // Mousse : 3/– par jour, 1 CO 4/– par semaine (colonnes NON multiples l'une de l'autre, verbatim).
-    expect(findCrewRoleById('mousse')!.wage!.daily).toEqual({ gold: 0, silver: 3, brass: 0 });
-    expect(findCrewRoleById('mousse')!.wage!.weekly).toEqual({ gold: 1, silver: 4, brass: 0 });
   });
 
   it('weeklyCrewWageBrass = Σ count × coût hebdomadaire (sous de cuivre) ; roster absent/inconnu = 0', () => {
@@ -71,7 +74,7 @@ describe('Barème de solde (MDG 14 l.293-302) — lu depuis la donnée, #216', (
     expect(weeklyCrewWageBrass([{ roleId: 'mousse', count: 1 }])).toBe(288);
     expect(weeklyCrewWageBrass([{ roleId: 'capitaine', count: 1 }])).toBe(1200);
     expect(weeklyCrewWageBrass([{ roleId: 'mousse', count: 2 }, { roleId: 'capitaine', count: 1 }])).toBe(288 * 2 + 1200);
-    expect(weeklyCrewWageBrass([{ roleId: 'mousse', count: 1 }])).toBe(toBrass(priceToMoney(findCrewRoleById('mousse')!.wage!.weekly)));
+    expect(weeklyCrewWageBrass([{ roleId: 'mousse', count: 1 }])).toBe(toBrass(priceToMoney(soldeDuRole(findCrewRoleById('mousse')!)!.weekly)));
     expect(weeklyCrewWageBrass(undefined)).toBe(0);
     expect(weeklyCrewWageBrass([])).toBe(0);
     expect(weeklyCrewWageBrass([{ roleId: 'inexistant', count: 3 }])).toBe(0);
