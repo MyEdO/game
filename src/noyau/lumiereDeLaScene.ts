@@ -77,6 +77,12 @@ export function sourceDuTon(ton: EntreeVivante<LightToneDef>, foyer: Pick<Source
   };
 }
 
+/** Le sol du hors-carte : la matière du terrain qu'il prolonge (`terrain--<id>`) et sa couleur de base. */
+interface SolDuHorsCarte {
+  matiere: string;
+  couleur: string;
+}
+
 export interface LumiereDeLaScene {
   /** Direction unitaire VERS le soleil, null sans soleil (intérieur, nuit). */
   soleil: { vers: { x: number; y: number; z: number }; couleur: string; energie: number } | null;
@@ -87,7 +93,7 @@ export interface LumiereDeLaScene {
   /** Ce que la caméra voit au-delà des bords de la carte (#4392) : le sol de son pourtour (`solDuPourtour`), sa matière
    *  et sa couleur de base, perdu dans la brume en `fonduCases` cases depuis le bord, hors de l'immersion ; `null` en
    *  immersion, où seule la brume de profondeur le voile. */
-  horsCarte: { sol: { matiere: string; couleur: string } | null; fonduCases: number | null };
+  horsCarte: { sol: SolDuHorsCarte | null; fonduCases: number | null };
   /** Brume de profondeur : sa teinte, la pénombre du hors-carte hors de l'immersion (`ambiance.json › iso.stageBg`),
    *  puis où elle commence et où elle couvre tout, en cases au-delà du point visé, ou depuis l'œil (`depuisLOeil`) en
    *  immersion : celle d'un intérieur quand le groupe est sous un toit (`shelterField`), sinon resserrée par la brume de la météo (`povTightenK`). */
@@ -126,7 +132,7 @@ function melange(a: string, b: string, t: number): string {
 /** Le sol du pourtour de `scene`, que le hors-carte prolonge : le terrain le plus fréquent parmi les cases de sol du
  *  bord de sa couche 0 (marchables, sans le vantail opaque d'une porte), le premier rencontré à égalité ; `null` en
  *  intérieur ou sans case de sol au bord. */
-function solDuPourtour(scene: Scene): LumiereDeLaScene['horsCarte']['sol'] {
+function solDuPourtour(scene: Scene): SolDuHorsCarte | null {
   if (isIndoor(scene)) return null;
   const { w, h } = scene.dimensions;
   const comptes = new Map<string, number>();
