@@ -36,7 +36,8 @@ import { fileURLToPath } from 'node:url'
 import { PERIMETRE, rejouer } from './replay.mjs'
 import { blobsDe, comparer, empreinteDe, rapportDEcart } from './lib/empreinteRejeu.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { GENERATORS, estCiblePure, genererCode } from '../docs/build-all.mjs'
+import { GENERATORS, LUS_PAR_LES_GENERATEURS, estCiblePure, genererCode } from '../docs/build-all.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 /** Racine de TOUS les exports — PARTAGÉE entre processus. Le préfixe est court (MAX_PATH) et
  *  l'effacement ne s'autorise QUE sous lui : un `rmSync` récursif ne se pointe pas sur un chemin
@@ -63,6 +64,7 @@ export const CHEMINS_EXPORTES = {
   scripts: 'les migrations elles-mêmes, leurs libs (`scripts/guards/lib`, `scripts/data/lib`, `scripts/raw`) et les générateurs d’authoring du périmètre',
   'docs/raw': 'l’Atlas RAW, lu par `scripts/raw/_lib.mjs` et par `scripts/raw/build-implemente.mjs`',
   'docs/dossiers': 'les fiches de dossier, que `scripts/gen-registry.mjs` inscrit en `src/data/_dossiers.generated.ts`, cible de code que `preparerExport` produit',
+  ...tableTotale(LUS_PAR_LES_GENERATEURS, () => 'lu par un générateur que `preparerExport` rejoue (`LUS_PAR_LES_GENERATEURS`)'),
   Source: 'les livres, lus de façon non bornée : `scripts/raw/_lib.mjs` dérive les dossiers de `books.json`',
   'package.json': 'racine de projet (`type: module`) — sans lui, node refuse les `.mjs` relatifs du lot',
   'package-lock.json': 'lu par les gardes de dépendances que certaines migrations importent',

@@ -12,6 +12,10 @@ import {
 /** Les cibles LITTÉRALES (sans joker) de `cibles` : celles dont la présence se mesure sur le disque. PURE. */
 export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.includes('*'))
 
+/** Les dossiers hors de `src/` que le vérificateur de types résout pour un générateur : `scripts/gen-noyau-godot.mjs`
+ *  lit `hotes/godot/pont/pont.ts`, qui importe `hotes/godot/asset`. Un export qui rejoue `GENERATORS` les porte. */
+export const LUS_PAR_LES_GENERATEURS = Object.freeze(['hotes/godot/pont', 'hotes/godot/asset'])
+
 /** `{ runner, script, targets }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
  *  EN ENTIER (glob toléré), jamais commités (`ciblesPures`).
  *  Tout générateur sait `--check` : un de plus coûte une ligne ici, et rien d'autre.
