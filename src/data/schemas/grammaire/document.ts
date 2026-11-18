@@ -12,7 +12,16 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { deDeTirageSchema, idDIconeSchema, maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
+import {
+  deDeTirageSchema,
+  idDIconeSchema,
+  maisonSchema,
+  sourceRefSchema,
+  secondarySourceRefSchema,
+  variantOf,
+  type variantWhenSchema,
+  type GenreDeFragment,
+} from './valeurs';
 import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
@@ -60,7 +69,7 @@ export type CleCharge = 'entries' | 'die';
  */
 export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
   entries: { label: 'Rangées', hint: 'Contenu du document, dans l’ordre authoré' },
-  die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour tirer une rangée (ex. « 1d10 », « d100 »)' },
+  die: { label: 'Dé de tirage', hint: 'Dé lancé pour tirer une rangée : nombre de dés et faces (ex. 1 dé à 100 faces)' },
 };
 
 /**
@@ -81,7 +90,7 @@ export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record
  * `deDeLaTableTiree` (`src/engine/tables.ts`). #1667
  */
 export const sousTirage = nommerChamps(z.strictObject({ die: deDeTirageSchema }), {
-  die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour ce sous-tirage (ex. « d10 »)' },
+  die: { label: 'Dé de tirage', hint: 'Dé lancé pour ce sous-tirage : nombre de dés et faces (ex. 1 dé à 10 faces)' },
 });
 
 /** Les RANGÉES d'une charge (`entries`), collection à clé `id` quand la rangée en déclare un, sous l'`espace` de
@@ -219,11 +228,20 @@ type SortieAffinee<O extends OptionsDocument, E> = O extends { readonly affinerE
 /** `T` réduit, cas par cas, à ses clés de `K`. */
 type SurLesClesDe<T, K extends PropertyKey> = T extends unknown ? { [P in keyof T as P extends K ? P : never]: T[P] } : never;
 
-/** L'entrée d'un document avant son affinage : enveloppe, champs du def, charge, sous la charge par discriminant de son
- *  espace (une entrée de liste). */
+/** Les `variants` que la fabrique compose depuis `options.variantes` (`variantOf`) : chaque variante, les champs
+ *  déclarés de l'entrée `E` en partiel, et sa garde `when`. Rien sans `options.variantes`. */
+type VariantesDuDocument<E, O extends OptionsDocument> = O extends { readonly variantes: readonly (infer K extends string)[] }
+  ? { variants?: (Partial<Pick<E, K & keyof E>> & { when: z.output<typeof variantWhenSchema> })[] }
+  : unknown;
+
+/** L'entrée d'un document avant son affinage, sans sa charge : enveloppe, champs du def. */
+type EntreeSansCharge<T extends string, C extends Record<string, z.ZodType>, O extends OptionsDocument> = EnveloppeDuDocument<T, O> & ChampsDuDocument<C>;
+
+/** L'entrée d'un document avant son affinage : enveloppe, champs du def, variantes, charge, sous la charge par
+ *  discriminant de son espace (une entrée de liste). */
 type EntreeBrute<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = F extends 'entite'
-  ? ChargeDiscriminee<EnveloppeDuDocument<T, O> & ChampsDuDocument<C> & ChargeDuDocument<F, O>, EspaceDe<O>>
-  : EnveloppeDuDocument<T, O> & ChampsDuDocument<C> & ChargeDuDocument<F, O>;
+  ? ChargeDiscriminee<EntreeSansCharge<T, C, O> & VariantesDuDocument<EntreeSansCharge<T, C, O>, O> & ChargeDuDocument<F, O>, EspaceDe<O>>
+  : EntreeSansCharge<T, C, O> & VariantesDuDocument<EntreeSansCharge<T, C, O>, O> & ChargeDuDocument<F, O>;
 
 /** L'ENTRÉE d'un document au type : son entrée brute, et ce que son affinage garantit. */
 type EntreeDuDocument<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = EntreeBrute<T, F, C, O> &
@@ -231,8 +249,8 @@ type EntreeDuDocument<T extends string, F extends FamilleDocument, C extends Rec
 
 /**
  * Le DATASET d'un document au type, tel que son fichier le porte : liste d'entrées (`entite`), l'entrée
- * seule (`config`, `record`). Hors type : `variants` (`options.variantes`) et ce qu'`affinerDataset`
- * transformerait — son nœud rend `z.ZodType<unknown>`.
+ * seule (`config`, `record`). Hors type : ce qu'`affinerDataset` transformerait — son nœud rend
+ * `z.ZodType<unknown>`.
  */
 export type DatasetDuDocument<T extends string, F extends FamilleDocument, C extends Record<string, z.ZodType>, O extends OptionsDocument> = F extends 'entite'
   ? EntreeDuDocument<T, F, C, O>[]
@@ -241,7 +259,7 @@ export type DatasetDuDocument<T extends string, F extends FamilleDocument, C ext
 /**
  * Vue TS d'un document à RANGÉES (`options.rangee`) : l'enveloppe, plus la charge que la fabrique
  * pose. Un def qui exporte la vue TS de son document la compose ICI — `DocumentARangees<z.infer<typeof
- * saRangee>>` —, sans jamais re-taper `entries` (un document à `deDeTirage` y ajoute `& { die: string }`, aux seuls cas qui le portent quand
+ * saRangee>>` —, sans jamais re-taper `entries` (un document à `deDeTirage` y ajoute `& { die: DiceSpec }`, aux seuls cas qui le portent quand
  * `espace.chargeParDiscriminant` le nomme).
  */
 export type DocumentARangees<L> = EnveloppeDocument & { entries: L[] };

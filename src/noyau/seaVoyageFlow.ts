@@ -82,10 +82,13 @@ import {
   type SteamBreakdownEntry,
 } from '../data';
 import { profilNavalDe } from '../engine/coque';
+import { findCargoById } from '../engine/cargo';
 import {
   installAmount,
   installCost,
   prixDeLaReparation,
+  piecesDeLaReparation,
+  blessuresPayeesParLesPieces,
   rollPortRepair,
   rollSteamBreakdown,
   steamBreakdownTriggered,
@@ -102,7 +105,8 @@ import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleM
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
-import { buildWeapon } from '../engine/items';
+import { buildWeapon, consommerLaCapacite, encDeLaCapacite } from '../engine/items';
+import { maxBy } from '../engine/pick';
 import { applyOps, resolveFormula, type Formula, type GameOp, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
@@ -124,7 +128,7 @@ import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findSeaHazard, findWhirlpool, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, manannBase, seaBoardEventById,
-  spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
+  spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, removeCargo, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
   type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
@@ -181,7 +185,7 @@ import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
-import { refusDeGesteAQuai } from './portFlow';
+import { refusAQuai, refusDeGesteAQuai } from './portFlow';
 import {
   openWorldTest,
   composeRollLabel,
@@ -196,9 +200,10 @@ import {
   openChoice,
   pousseSi,
   type Consequence,
+  type RollRequest,
   type FreeConsLine,
 } from './rollSeam';
-import { rollLine } from './ligneDeJet';
+import { rollLine, type RollLineDecl } from './ligneDeJet';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, jouerLaJournee, pushStep, type CascadeApplier, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
@@ -2362,13 +2367,16 @@ function joursDuChantier(get: Get, set: Set, f: Formula, rng: RNG): number {
 
 /** Devis du CHANTIER naval d'un navire contre la bourse `bourse` du groupe : réparation (ch.13 l.643 ;
  *  ch.12 l.295) et carénage (ch.13 l.150-159), avec le refus de chaque geste (`null` : le geste passe).
- *  SOURCE UNIQUE de `portRepairVessel`, `portCareenVessel` et de l'écran du port. PUR. */
+ *  SOURCE UNIQUE de `portRepairVessel`, `reparerParLeGroupe` (son réparateur et les pièces détachées de `party`),
+ *  `portCareenVessel` et de l'écran du port. PUR. */
 export interface DevisDeChantier {
   max: number; current: number; missing: number; lissage: boolean; reparationGold: number; refusReparation: string | null;
+  /** Refus de la réparation par le groupe lui-même (`reparerParLeGroupe`), `null` : le geste passe. MDG 13 l.641 */
+  refusReparationParLeGroupe: string | null;
   foulLevel: number; carenagePct: number; carenageGold: number; refusCarenage: string | null;
 }
 
-export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusDuQuai: string | null): DevisDeChantier {
+export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusDuQuai: string | null, party: Combatant[]): DevisDeChantier {
   const v = findVehicleById(vessel.vehicleId);
   const { max, current, missing } = blessuresDeCoqueARestaurer(vessel);
   const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
@@ -2380,6 +2388,11 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusDuQu
     max, current, missing, lissage, reparationGold, foulLevel, carenagePct, carenageGold,
     refusReparation: refusDuQuai ?? (missing <= 0 && !vessel.criticals?.length && !vessel.reparationTemporaire ? t('sv.hullIntact')
       : !canAfford(bourse, toMoney({ gold: reparationGold })) ? t('sv.yardTooExpensive', { cost: reparationGold })
+      : null),
+    // MDG 13 l.641 ; MDG 15 l.306
+    refusReparationParLeGroupe: refusDuQuai ?? (missing <= 0 && !vessel.reparationTemporaire ? t('sv.aucuneBlessureARestaurer')
+      : !reparateurDuGroupe(party) ? t('sv.sansReparateur')
+      : missing > 0 && plafondDeLaReparationDuGroupe(vessel, party) <= 0 ? t('sv.sansPiecesDetachees', { enc: piecesDeLaReparation(1, lissage) })
       : null),
     refusCarenage: refusDuQuai ?? (foulLevel <= 0 && !modificateursAuCarenage(vessel.modificateurs).length ? t('sv.hullClean')
       : carenageGold > 0 && !canAfford(bourse, toMoney({ gold: carenageGold })) ? t('sv.careenTooExpensive', { cost: carenageGold, pct: carenagePct })
@@ -2395,7 +2408,7 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   if (!vessel || !v?.hull) { refuserGeste(get, set, t('sv.noVesselToRepair')); return []; }
-  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()));
+  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()), get().party);
   if (devis.refusReparation) { refuserGeste(get, set, devis.refusReparation); return []; }
   const { max, missing, lissage } = devis;
   const rng = battleRng();
@@ -2417,6 +2430,97 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   return [t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed', { pct: REPARATION.lissageRepairSurcoutPct }) : '', duree, competence, reussis, tests })];
 }
 
+/** Le lot de cale `l` est-il des pièces détachées de navire : sa marchandise déclare `shipParts`.
+ *  MDG 15 l.418, l.434 ; MDG 14 l.283 */
+const lotDePieces = (l: CargoLot): boolean => findCargoById(l.cargoId)?.shipParts === true;
+
+/** Enc de pièces détachées de navire du groupe : en cale (`CargoLot.enc`) et sur les héros (`shipParts`).
+ *  MDG 14 l.283 ; MDG 15 l.418, l.434 */
+function encDePiecesDetachees(vessel: Pick<CampaignVessel, 'cargo'>, party: readonly Combatant[]): number {
+  return (vessel.cargo ?? []).filter(lotDePieces).reduce((s, l) => s + l.enc, 0) + encDeLaCapacite(party, 'shipParts');
+}
+
+/** Blessures que la réparation par le groupe peut restaurer à `vessel` : au plus les manquantes et ce que paient les
+ *  pièces détachées du groupe (`encDePiecesDetachees`). MDG 15 l.306 ; MDG 12 l.295 */
+function plafondDeLaReparationDuGroupe(vessel: CampaignVessel, party: readonly Combatant[]): number {
+  const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
+  return Math.min(blessuresDeCoqueARestaurer(vessel).missing, blessuresPayeesParLesPieces(encDePiecesDetachees(vessel, party), lissage));
+}
+
+/** Les voies du réparateur d'un navire, par ids STABLES de spécialisation (`skills.json`) : Métier (Constructeur de
+ *  navires), ou Métier (Charpentier) sous son malus. MDG 13 l.641 */
+const VOIES_DU_REPARATEUR = [
+  { spec: 'constructeur-de-navires', malus: 0 },
+  { spec: 'charpentier', malus: REPARATION.charpentierMalus },
+] as const;
+
+/** Le réparateur du groupe au chantier : sur chaque voie le meilleur soutenu (LDB 12), puis la voie à la meilleure cible,
+ *  malus compris ; sa ligne de jet nomme le malus du Charpentier. `null` : personne ne peut tenter. MDG 13 l.641 */
+export function reparateurDuGroupe(party: Combatant[]): { actor: Combatant; test: RollRequest['test']; ligne: RollLineDecl } | null {
+  const r = maxBy(VOIES_DU_REPARATEUR.flatMap((voie) => {
+    const test = { skill: { id: 'metier', spec: voie.spec } };
+    const a = partyAssisted(party, test);
+    return a ? [{ voie, test, a }] : [];
+  }), (x) => x.a.value + x.voie.malus);
+  if (!r) return null;
+  const { voie, test, a } = r.item;
+  const malus: ModLine[] = voie.malus ? [{ label: t('sv.malusDuCharpentier'), famille: 'circonstance', value: voie.malus, ref: RULE_REF['reparer-les-navires'] }] : [];
+  return { actor: a.actor, test, ligne: { test, valeur: a.value, soutien: a.support, ...(malus.length ? { surLaCible: malus } : {}) } };
+}
+
+/** RÉPARATION par le groupe au chantier : UN Test de Métier de son réparateur (`reparateurDuGroupe`), sous le refus du
+ *  devis ; l'issue se joue à l'applier `mer-reparation-du-groupe`. MDG 13 l.641-643 */
+export function reparerParLeGroupe(get: Get, set: Set): void {
+  const vessel = get().vessel;
+  if (!vessel || !findVehicleById(vessel.vehicleId)?.hull) { refuserGeste(get, set, t('sv.noVesselToRepair')); return; }
+  const party = get().party;
+  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()), party);
+  if (devis.refusReparationParLeGroupe) { refuserGeste(get, set, devis.refusReparationParLeGroupe); return; }
+  const { actor, test, ligne } = garanti(reparateurDuGroupe(party), 'groupe', 'réparateur du navire');
+  const plafond = plafondDeLaReparationDuGroupe(vessel, party);
+  const titre = t('sv.reparationDuGroupe');
+  const st = monoStep({
+    id: idDansLaSequence(get, 'mer-reparation-du-groupe', 'test'), kind: 'mer-reparation-du-groupe', actor, icon: 'voyage/reparer',
+    label: composeRollLabel(actor, titre, test), difficulty: DIFFICULTE_PAR_DEFAUT,
+    ligne, stake: devis.missing > 0 ? voyageStakeRef('mer-reparation-du-groupe', { plafond }) : voyageStakeRef('mer-reparation-du-groupe-permanente'),
+  });
+  if (st) openSequence(get, set, { title: titre, icon: 'voyage/reparer', purpose: 'test', steps: [st] });
+}
+
+/** Les dés de l'issue de la réparation par le groupe, sur `step` : la réussite tire ses Blessures si la coque en a perdu
+ *  (`blessures`), puis sa durée ; l'échec sa seule durée. MDG 13 l.643 */
+function desDeLaReparationDuGroupe(step: CascadeStep, blessures: boolean): BuiltCascadeStep[] {
+  const de = (kind: 'mer-reparation-du-groupe-blessures' | 'mer-reparation-du-groupe-duree', label: PlayerText, tirage: Tirage, unite?: string) => dieStep({
+    id: `${step.id}-${kind}`, kind, worldOwner: true, icon: 'voyage/reparer', label, spec: tirage.dice, ...(unite ? { unite } : {}),
+  });
+  return [
+    ...(blessures ? [de('mer-reparation-du-groupe-blessures', t('sv.reparationDuGroupeBlessures'), REPARATION.woundsPerTest)] : []),
+    de('mer-reparation-du-groupe-duree', t('sv.reparationDuGroupeDuree'), REPARATION.testHours, 'h'),
+  ].filter((x): x is BuiltCascadeStep => !!x);
+}
+
+/** Blessures `tirees` de la réparation par le groupe, au plus les manquantes et ce que paient les pièces détachées du
+ *  groupe (`encDePiecesDetachees`), qu'elle consomme, la cale d'abord, puis les héros dans l'ordre du groupe ; le
+ *  marqueur de réparation temporaire est levé, les Critiques restent. Rend la ligne.
+ *  MDG 13 l.641-643 ; MDG 15 l.306, l.418 ; MDG 12 l.295 */
+function reparerLaCoqueParLeGroupe(get: Get, set: Set, tirees: number): string {
+  const vessel = garanti(get().vessel, 'navire', 'navire réparé au chantier');
+  const { max, current } = blessuresDeCoqueARestaurer(vessel);
+  const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
+  const party = structuredClone(get().party);
+  const n = Math.min(tirees, plafondDeLaReparationDuGroupe(vessel, party));
+  const enc = piecesDeLaReparation(n, lissage);
+  let cale = { lots: vessel.cargo ?? [], removed: 0 };
+  for (const id of new Set(cale.lots.filter(lotDePieces).map((l) => l.cargoId))) {
+    const r = removeCargo(cale.lots, id, enc - cale.removed);
+    cale = { lots: r.lots, removed: cale.removed + r.removed };
+  }
+  consommerLaCapacite(party, 'shipParts', enc - cale.removed);
+  set({ party, vessel: { ...vessel, ...(cale.removed > 0 ? { cargo: cale.lots } : {}), reparationTemporaire: undefined } });
+  setVesselHull(get, set, current + n, max);
+  return t('sv.reparationDuGroupeReussie', { n, enc });
+}
+
 /** CARÉNAGE en cale sèche (Salissures, ch.13 l.150-159) : « pour récurer un bateau de Taille Moyenne ou
  *  plus, il doit être emmené dans une cale sèche » — coût = % du coût de base par NIVEAU (colonne
  *  Réparation du tableau). Lève aussi les modificateurs « jusqu'au carénage » (`modificateursAuCarenage`). */
@@ -2424,7 +2528,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   if (!vessel || !v) { refuserGeste(get, set, t('sv.noVesselToCareen')); return []; }
-  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()));
+  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()), get().party);
   if (devis.refusCarenage) { refuserGeste(get, set, devis.refusCarenage); return []; }
   const { carenageGold: cost, carenagePct: pct } = devis;
   const costMoney = toMoney({ gold: cost });
@@ -2616,6 +2720,7 @@ export function choixDuVoyageEnMer(get: Get, set: Set) {
 export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
   return {
     reparerLeNavire: () => portRepairVessel(get, set).forEach((l) => get().ecrireAuJournal(l)),
+    reparerParLeGroupe: () => reparerParLeGroupe(get, set),
     carenerLeNavire: () => portCareenVessel(get, set).forEach((l) => get().ecrireAuJournal(l)),
     installerLAmelioration: (traitId, units) => installerLAmelioration(get, set, traitId, units).forEach((l) => get().ecrireAuJournal(l)),
   } satisfies FabriqueDuNoyau;
@@ -2625,7 +2730,7 @@ export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
 export const GENRES_D_ETAPE = [
   SEA_BOARD_EVENT_KIND, 'mer-forcer-le-rythme', 'mer-scorbut', 'mer-mal-de-mer',
   'mer-tonneau-expose', 'mer-tonneau-contamine', 'mer-epuisement', 'equipage-progression', 'mer-survitesse',
-  'mer-salissures', 'mer-reparation-temporaire', 'reparation-temporaire-degats', 'equipage-affaler', 'testDEquipage', 'equipage-orientation', 'equipage-phare', 'equipage-embuscade',
+  'mer-salissures', 'mer-reparation-du-groupe', 'mer-reparation-du-groupe-blessures', 'mer-reparation-du-groupe-duree', 'mer-reparation-temporaire', 'reparation-temporaire-degats', 'equipage-affaler', 'testDEquipage', 'equipage-orientation', 'equipage-phare', 'equipage-embuscade',
   'merProgressionChoix', 'merProgressionNavigation', 'equipage-poursuite', 'equipage-tourbillon', 'equipage-extermination',
   'mer-degagement', 'mer-degagement-debris', 'equipage-voyage-rapide', 'equipage-entretien', 'merPiratesSommation',
   'merPiratesTribut', 'merDesertion',
@@ -2799,6 +2904,34 @@ export const TABLES = {
         : t('sv.foulingMax', { level: r.level });
       noteSeaLine(get, set, [line]);
       return { consequences: freeCons([line]) };
+    },
+    /** Réparation par le groupe au chantier, navire à quai (`refusAQuai`) : l'issue du Test ouvre ses dés, celui des
+     *  Blessures si les pièces du groupe en paient (`plafondDeLaReparationDuGroupe`) ; une réussite sur une coque sans
+     *  Blessure perdue lève le seul marqueur de réparation temporaire. MDG 13 l.641-643 */
+    'mer-reparation-du-groupe': (get, set, step) => {
+      if (!step.result) return;
+      const horsQuai = refusAQuai(get());
+      if (horsQuai) return { consequences: freeCons([horsQuai]) };
+      const vessel = garanti(get().vessel, 'navire', 'navire réparé au chantier');
+      const blessures = step.result.success && plafondDeLaReparationDuGroupe(vessel, get().party) > 0;
+      if (step.result.success && blessuresDeCoqueARestaurer(vessel).missing <= 0) set({ vessel: { ...vessel, reparationTemporaire: undefined } });
+      const line = t(step.result.success ? 'sv.reparationDuGroupeTient' : 'sv.reparationDuGroupeRatee');
+      return { consequences: freeCons([line]), insert: desDeLaReparationDuGroupe(step, blessures) };
+    },
+    'mer-reparation-du-groupe-blessures': (get, set, step) => {
+      if (!step.de?.result) return;
+      const horsQuai = refusAQuai(get());
+      return { consequences: freeCons([horsQuai ?? reparerLaCoqueParLeGroupe(get, set, step.de.result.total)]) };
+    },
+    /** Durée d'un Test de réparation au chantier : MDG 13 l.643 pour un Test réussi ; un Test raté, valeur maison
+     *  (`sea-navigation.json`, `reparation.maison`). */
+    'mer-reparation-du-groupe-duree': (get, _set, step) => {
+      if (!step.de?.result) return;
+      const horsQuai = refusAQuai(get());
+      if (horsQuai) return { consequences: freeCons([horsQuai]) };
+      const heures = step.de.result.total;
+      get().avancerLeTemps(heures * 60);
+      return { consequences: freeCons([t('sv.dureeHeures', { n: heures })]) };
     },
     'mer-reparation-temporaire': (get, set, step) => appliquerLaReparationTemporaire(get, set, step, REPARATION.temporaire.failDamage),
     /** Dégâts de la réparation temporaire qui cède, à la coque qui a joué le Test, planchés à 0. MDG 13 l.651 ; MSRC 7 l.117 */

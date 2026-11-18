@@ -102,7 +102,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
 
   it('le sceau de la chronique dit le dé de la table des Événements', () => {
     const seam = buildSeam();
-    sousLeDe('interludeEvents', 'd10', () => {
+    sousLeDe('interludeEvents', { n: 1, sides: 10 }, () => {
       const html = renderToStaticMarkup(<InterludeScreen seam={seam} />);
       expect(html).toContain('<span class="parchment-seal-label">1d10</span>');
     });

@@ -82,7 +82,7 @@ describe('Orientation — Repères & Changement de cap (MDG 13 l.307-331)', () =
   it('Changement de cap se tire au `die` VIVANT de sa table (MDG 13 l.326 ; #1667)', () => {
     const imprime = structuredClone(datasetObject('seaNavigation'));
     try {
-      setObjectDataset('seaNavigation', { ...imprime, orientation: { ...imprime.orientation, changementDeCap: { ...imprime.orientation.changementDeCap, die: 'd3' } } });
+      setObjectDataset('seaNavigation', { ...imprime, orientation: { ...imprime.orientation, changementDeCap: { ...imprime.orientation.changementDeCap, die: { n: 1, sides: 3 } } } });
       expect(rollCourseChange(deMax), 'd3 au max → 3 : Sans conséquences').toMatchObject({ roll: 3, outcome: 'aucun' });
     } finally {
       setObjectDataset('seaNavigation', imprime);

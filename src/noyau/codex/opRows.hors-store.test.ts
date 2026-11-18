@@ -199,7 +199,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     it('table IMBRIQUÉE dans une rangée déjà expansée (rollTable → rollTable) : libellé + lien codex, jamais ré-expansée (borne l’imbrication)', () => {
       const nested: import('../../engine/ops').GameOp = {
         op: 'rollTable',
-        die: 'd10',
+        die: { n: 1, sides: 10 },
         entries: [{ min: 1, max: 10, ops: [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }] }],
       };
       const rows = opRows([nested]);

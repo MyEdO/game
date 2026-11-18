@@ -3,7 +3,7 @@
 de sa recette (`gabarit.py`). Aucune illustration au corpus : proportions d'adaptation, chacune en fraction de la
 primitive qui la porte (son rang dans la recette), dans le repère de `gabarit.py` (x à l'est, z vers le haut). Une
 position `(x, y, z)` se compte en demi-côtés depuis le centre de la primitive qui la porte, `y` vers le front de la
-recette, `x` vers le dehors pour une pièce d'un côté (`modele.cadre`) ; un azimut est un angle en degrés autour de la
+recette, `x` vers le dehors pour une pièce d'un côté (`geometrie.cadre`) ; un azimut est un angle en degrés autour de la
 verticale, nul au front, le même des deux côtés.
 
 - `statue` : un socle à deux corps moulurés ; une figure drapée, sa robe à plis creusés du socle aux épaules, le cou,

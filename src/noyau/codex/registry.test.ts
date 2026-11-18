@@ -20,6 +20,7 @@ import { datasetObject, setDataset } from '../../data/overrides';
 import { sousLeDe } from '../../data/deDeLaTable.testkit';
 import { CHAR_KEYS } from '../../engine/types';
 import { deDeLaTableTiree, facesDuDe } from '../../engine/tables';
+import type { DiceSpec } from '../../engine/dice';
 import { charAbr } from '../../data';
 import { MORALE_BANDS } from '../../engine/crewMorale';
 
@@ -488,7 +489,7 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
   });
 
   it('« Changement de cap » (MDG 13 l.324-331) : le titre porte le dé ET le bonus de dérive majeure qui mène ses bandes au-delà de 10', () => {
-    const n = datasetObject('seaNavigation') as { orientation: { bonusDeDeriveMajeure: number; changementDeCap: { die: string; entries: { max: number }[] } } };
+    const n = datasetObject('seaNavigation') as { orientation: { bonusDeDeriveMajeure: number; changementDeCap: { die: DiceSpec; entries: { max: number }[] } } };
     const sec = categoryByKey('seaNavigation')!.items[0].sections!.find((s) => s.title.startsWith('Changement de cap'))!;
     expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.bonusDeDeriveMajeure} à DR `), sec.title).toBe(true);
     expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap)) + n.orientation.bonusDeDeriveMajeure);
@@ -698,7 +699,7 @@ describe('Codex — Tableaux de couleur des yeux et des cheveux (#3578)', () => 
     expect(gnome('blond-blanc')).toMatchObject({ v: 'Noir' });
   });
   it('la bande suit le dé posé sur la table par le seam', () => {
-    sousLeDe('eyes', '1d10', () => {
+    sousLeDe('eyes', { n: 1, sides: 10 }, () => {
       expect(sousTitres('eyes').slice(0, 5)).toEqual(['1d10 1–2', '1d10 3', '1d10 4', '1d10 5–7', '1d10 8–11']);
     });
   });

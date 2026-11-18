@@ -35,7 +35,7 @@ describe('cargaisons-aleatoires.json — les refus MORDENT et NOMMENT', () => {
         colonne(docs, voie, 'hiver').entries[0].min = 3;
       });
       expect(messages.length, `${voie} : un trou ouvert dans la colonne hiver n’a levé AUCUN refus.`).toBe(1);
-      expect(messages[0]).toMatch(new RegExp(`cargaisons-aleatoires\\.json › cargaisons-${voie}-hiver : les rangées ne couvrent pas le d100 d'un seul tenant`));
+      expect(messages[0]).toMatch(new RegExp(`cargaisons-aleatoires\\.json › cargaisons-${voie}-hiver : les rangées ne couvrent pas le 1d100 d'un seul tenant`));
     }
   });
 

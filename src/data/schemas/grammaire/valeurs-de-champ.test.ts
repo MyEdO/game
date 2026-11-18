@@ -122,6 +122,8 @@ const NOMMES = [
   'vue|ouie',
   'action|free|charge',
   'base|avancee',
+  // `modificateur` (`reglesOptionnelles.ts`) : la lecture signée d'une règle chiffrée, bonus tel quel, malus en négatif.
+  'bonus|malus',
   'capacite-de-combat|capacite-de-tir',
   // `charKeySchema` (#3606) : les 10 Caractéristiques, nommées par `CHAR_LABELS`.
   'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',

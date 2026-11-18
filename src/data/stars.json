@@ -2,9 +2,15 @@
   "id": "signes-astrologiques",
   "type": "stars",
   "label": "Tableau des Signes astrologiques",
-  "die": "d100",
+  "die": {
+    "n": 1,
+    "sides": 100
+  },
   "sub": {
-    "die": "d10"
+    "die": {
+      "n": 1,
+      "sides": 10
+    }
   },
   "source": {
     "book": "archives-de-l-empire-2",

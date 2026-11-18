@@ -2,8 +2,8 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 21 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { enumNomme, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
-import { flowTestSchema, mecaniqueDe, passifsDe } from '../grammaire/mecanique';
+import { enumNomme, gatingDeStatutSchema, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
+import { mecaniqueDe, passifsDe, testFixeSchema } from '../grammaire/mecanique';
 import { idDe, ref, refs } from '../grammaire/ref';
 
 export const file = 'psychology.json';
@@ -17,17 +17,7 @@ const doc = document(
     /** Effets d'une affliction : seuls à lire son instance (`endPsych.instance`) et sa Cible en vue (Condition
      *  `cibleEnVue`). LDB 21 l.19, l.39, l.48 */
     effects: z.array(mecaniqueDe({ 'endPsych.instance': 'admis', 'condition.cibleEnVue': 'admis' }).triggeredEffect).optional(),
-    gating: nommerChamps(z
-      .strictObject({
-        action: z.literal('none').optional(),
-        movement: z.enum(['none', 'half', 'crawl']).optional(),
-        cannotDefend: z.literal(true).optional(),
-      }), {
-      action: { label: 'Action' },
-      movement: { label: 'Déplacement' },
-      cannotDefend: { label: 'Défense impossible' },
-    })
-      .optional(),
+    gating: gatingDeStatutSchema.optional(),
     psychImmune: z.boolean().optional(),
     cibles: z.array(varianteDeCibleSchema).min(1).optional(),
     endedByOtherPsych: z.boolean().optional(),
@@ -54,7 +44,7 @@ const doc = document(
       }), { base: { label: 'Base' }, perDegreeOfFailure: { label: 'Par degré d’échec' } })
       .optional(),
     becomes: ref('psychology').optional(),
-    test: flowTestSchema.optional(),
+    test: testFixeSchema.optional(),
   },
   {
     passive: { label: 'Effets passifs' },

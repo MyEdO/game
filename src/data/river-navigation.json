@@ -3,7 +3,10 @@
   "type": "river-navigation",
   "label": "Navigation fluviale",
   "windForces": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "id": "calme",
@@ -63,7 +66,10 @@
     ]
   },
   "windDirections": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "id": "arriere",
@@ -212,7 +218,8 @@
       "book": "mort-sur-le-reik-compagnon",
       "page": 30,
       "note": "ch.5 « Navigation fluviale » — Réparations temporaires (l.113-117)."
-    }
+    },
+    "maison": "La durée d’une réparation temporaire (MSRC 7 l.117) s’écoule dans la journée de voyage : l’horloge du jour court jusqu’au crépuscule, ou de 24 h à l’arrivée."
   },
   "source": {
     "book": "mort-sur-le-reik-compagnon",

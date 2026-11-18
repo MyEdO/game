@@ -602,7 +602,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
     const c = consequence('canot-de-sauvetage') as Extract<Flow, { kind: 'choix' }>;
     expect(c.invite).toBe('Recueillir les rescapés');
     const table = (c.oui as Extract<Flow, { kind: 'effet' }>).effet.ops[0] as Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
-    expect(table.die).toBe('1d10');
+    expect(table.die).toEqual({ n: 1, sides: 10 });
     expect(table.entries.map((r) => [r.min, r.max, r.ops])).toEqual([
       [1, 3, [{ op: 'equipage', delta: 2 }]],
       [4, 6, [{ op: 'equipage', delta: 1 }]],
@@ -615,7 +615,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
 
   it('une table d’ops de navire se tire à la portée du navire (l.213-218)', () => {
     perdus(5);
-    applyEffects(get, set, [surLeNavire([{ op: 'rollTable', die: '1d10', entries: [{ min: 1, max: 10, ops: [{ op: 'equipage', delta: 2 }] }] }])]);
+    applyEffects(get, set, [surLeNavire([{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 10, ops: [{ op: 'equipage', delta: 2 }] }] }])]);
     expect(get().vessel!.crewLost).toBe(3);
   });
 
@@ -1182,18 +1182,18 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     const combat = (id: string, nombre = 1, extra: object = {}) => ({ op: 'combatEnMer', adversaire: { id, nombre, ...extra }, repousseAPct: 50 });
     expect(consequence('triton')).toEqual(surLeNavire([{ // l.136-139
       op: 'combatEnMer', adversaire: { id: 'triton', nombre: 1 },
-      victoire: surLeNavire([{ op: 'rollTable', die: '1d10', entries: [
+      victoire: surLeNavire([{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [
         { min: 1, max: 5, ops: [{ op: 'manann', delta: { sign: 1, ...d(2, 10) } }] },
         { min: 6, max: 10, ops: [{ op: 'manann', delta: { sign: -1, ...d(2, 10) } }] },
       ] }]),
     }]));
-    expect(consequence('puissant-monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: '1d10', entries: [ // l.142-143
+    expect(consequence('puissant-monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [ // l.142-143
       { min: 1, max: 3, ops: [combat('hydre-d-os')] },
       { min: 4, max: 5, ops: [combat('sangsue-des-abysses')] },
       { min: 6, max: 9, ops: [combat('gargantuan')] },
       { min: 10, max: 10, ops: [combat('leviathan-noir')] },
     ] }]));
-    expect(consequence('monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: '1d10', entries: [ // l.165-168
+    expect(consequence('monstre-marin')).toEqual(surLeNavire([{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [ // l.165-168
       { min: 1, max: 3, ops: [combat('kharibde')] },
       { min: 4, max: 5, ops: [combat('anguille-macheprise', 1, { optionals: [{ id: 'nuee' }] })] },
       { min: 6, max: 9, ops: [combat('syrene-bleue', 3)] },
@@ -1631,7 +1631,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
       oui: { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [
         { op: 'provisions', eauTonneaux: { dice: { n: 2, sides: 10 } } },
         { op: 'provisions', jours: { dice: { n: 1, sides: 10 } }, vivre: { id: FRAIS } },
-        { op: 'rollTable', die: '1d10', entries: [{ min: 1, max: 2, ops: [{ op: 'perilDeMer', collision: { id: 'bas-fonds' } }] }, { min: 3, max: 10, ops: [] }] },
+        { op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 2, ops: [{ op: 'perilDeMer', collision: { id: 'bas-fonds' } }] }, { min: 3, max: 10, ops: [] }] },
       ] } },
     });
     set({ vessel: { ...get().vessel!, waterLitres: 0, provisions: vivres({}) } });

@@ -1,0 +1,13 @@
+{
+  "model": "decor--cheval-mort.glb",
+  "model_sha256": "b92589d2b19131908a785a7bce1468e6974e34b1e91989fa939f68813c743c84",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

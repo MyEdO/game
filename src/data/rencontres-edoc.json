@@ -2,7 +2,10 @@
   "id": "rencontres-edoc",
   "type": "rencontres-edoc",
   "label": "Rencontres de voyage",
-  "die": "d100",
+  "die": {
+    "n": 1,
+    "sides": 100
+  },
   "source": {
     "book": "ennemi-dans-l-ombre-compagnon",
     "page": 36

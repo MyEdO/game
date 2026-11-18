@@ -65,7 +65,7 @@ function estListeDeDocumentsPorteurs(data) {
 
 /** Nœud `{ die, entries }` d'une sous-table tirée (`tableTiree`, `src/data/schemas/grammaire/document.ts`). */
 function estTableTiree(v) {
-  return estObjet(v) && Object.keys(v).length === 2 && typeof v.die === 'string' && Array.isArray(v.entries);
+  return estObjet(v) && Object.keys(v).length === 2 && estObjet(v.die) && Array.isArray(v.entries);
 }
 
 /**

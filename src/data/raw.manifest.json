@@ -67,6 +67,13 @@
     "bloque": "Réparation des Structures, aucun site ne la résout (train Corr-C) : Test de Métier (Charpentier) ou (Maçon) Accessible (+20) hors combat (AA 10 l.132) ; Test étendu Très Difficile (−30), 20 DR, en combat (AA 10 l.134)"
   },
   {
+    "id": "4e/deplacement#reparer-des-bateaux-msrc",
+    "type": "raw.manifest",
+    "label": "Réparer des bateaux (MSRC)",
+    "ticket": "#4435",
+    "bloque": "Réparation définitive fluviale : aucun quai ni cale sèche fluviale n'est modélisé, le geste du chantier n'existe qu'en mer (MSRC 7 l.109-111)"
+  },
+  {
     "id": "4e/deplacement#option-attraper-froid",
     "type": "raw.manifest",
     "label": "Option « Attraper Froid »",

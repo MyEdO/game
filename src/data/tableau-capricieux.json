@@ -2,7 +2,10 @@
   "id": "tableau-capricieux",
   "type": "tableau-capricieux",
   "label": "Tableau Capricieux",
-  "die": "d10",
+  "die": {
+    "n": 1,
+    "sides": 10
+  },
   "entries": [
     {
       "id": "tableau-capricieux-1",

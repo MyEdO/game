@@ -3,7 +3,10 @@
     "id": "physique",
     "type": "mutationTables",
     "label": "Tableau de Corruption physique",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -116,7 +119,10 @@
     "id": "mentale",
     "type": "mutationTables",
     "label": "Tableau de Corruption mentale",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -229,7 +235,10 @@
     "id": "edoc-mental-toute",
     "type": "mutationTables",
     "label": "Mentale — Toute Puissance (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -412,7 +421,10 @@
     "id": "edoc-mental-khorne",
     "type": "mutationTables",
     "label": "Mentale — Khorne (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -560,7 +572,10 @@
     "id": "edoc-mental-nurgle",
     "type": "mutationTables",
     "label": "Mentale — Nurgle (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -713,7 +728,10 @@
     "id": "edoc-mental-slaanesh",
     "type": "mutationTables",
     "label": "Mentale — Slaanesh (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -876,7 +894,10 @@
     "id": "edoc-mental-tzeentch",
     "type": "mutationTables",
     "label": "Mentale — Tzeentch (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -1029,7 +1050,10 @@
     "id": "edoc-phys-toute",
     "type": "mutationTables",
     "label": "Physique — Toute Puissance (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -1352,7 +1376,10 @@
     "id": "edoc-phys-khorne",
     "type": "mutationTables",
     "label": "Physique — Khorne (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -1605,7 +1632,10 @@
     "id": "edoc-phys-nurgle",
     "type": "mutationTables",
     "label": "Physique — Nurgle (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -1838,7 +1868,10 @@
     "id": "edoc-phys-slaanesh",
     "type": "mutationTables",
     "label": "Physique — Slaanesh (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -2091,7 +2124,10 @@
     "id": "edoc-phys-tzeentch",
     "type": "mutationTables",
     "label": "Physique — Tzeentch (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -2369,7 +2405,10 @@
     "id": "edoc-tete-bestiale-toute",
     "type": "mutationTables",
     "label": "Tête Bestiale — Toute Puissance (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -2432,7 +2471,10 @@
     "id": "edoc-tete-bestiale-khorne",
     "type": "mutationTables",
     "label": "Tête Bestiale — Khorne (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -2485,7 +2527,10 @@
     "id": "edoc-tete-bestiale-nurgle",
     "type": "mutationTables",
     "label": "Tête Bestiale — Nurgle (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -2538,7 +2583,10 @@
     "id": "edoc-tete-bestiale-slaanesh",
     "type": "mutationTables",
     "label": "Tête Bestiale — Slaanesh (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -2591,7 +2639,10 @@
     "id": "edoc-tete-bestiale-tzeentch",
     "type": "mutationTables",
     "label": "Tête Bestiale — Tzeentch (EDOC)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,

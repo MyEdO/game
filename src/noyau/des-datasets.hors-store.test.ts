@@ -6,7 +6,7 @@ import { rollTableStep } from './cascade';
 import { buildStageSteps, TABLES } from './travelPostes';
 
 it('l’agrégation de voyage fait tirer la Rencontre au dé authoré', () => {
-  sousLeDe('rencontresPositives', 'd6', () => {
+  sousLeDe('rencontresPositives', { n: 1, sides: 6 }, () => {
     const banc = ouvrirLeBanc();
     banc.setState({ party: [], travelPlan: { routeId: 'r', km: 24, postes: { h: { activityId: 'etablir-cartes' } } } as never });
     const steps = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete');

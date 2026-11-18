@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "cocon"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "soie",
+      "palette": "corps",
+      "matiere": "prop--soie"
+    }
+  ],
+  "glb": {
+    "sha256": "f07eb9ec971cdda94abcae0b2c819bf2c4a00c23c94cac3dcaa52a4ccd67d212",
+    "octets": 30224
+  }
+}

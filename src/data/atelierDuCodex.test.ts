@@ -19,7 +19,7 @@ import { effectTableDie, findEffectTableById } from './effectTables';
 import { findTableEntry } from '../engine/tables';
 import { miscastDie, miscastRowAt } from '../engine/miscast';
 import { deDuVoyageRapide, resolveFastVoyage } from '../engine/seaVoyage';
-import { makeRNG } from '../engine/dice';
+import { makeRNG, type DiceSpec } from '../engine/dice';
 import { deSelonLaPlage } from '../engine/dice.testkit';
 import { scatter } from '../engine/scatter';
 import { tirerLaReactionAuStatut, tirerLeCapricieux } from '../engine/social';
@@ -104,32 +104,32 @@ describe('enregistrerEntree — une référence morte d’un champ typé est ref
 describe('enregistrerEntree — écritures d’en-tête de la table (#1667)', () => {
   afterEach(() => resetData());
   const rangees = () => datasetArray('drunkenness');
-  const de = (valeur: string) => [{ ancetre: '', champ: 'die', valeur }];
+  const de = (valeur: DiceSpec) => [{ ancetre: '', champ: 'die', valeur }];
 
   it('le dé posé s’écrit avec l’entrée, et la forme disque le porte', () => {
-    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, de('2d10'));
+    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, de({ n: 2, sides: 10 }));
     expect(issue.ok).toBe(true);
     if (!issue.ok) return;
-    expect(deDeLaTable('drunkenness')).toBe('2d10');
-    expect(issue.texte).toContain('"die": "2d10"');
+    expect(deDeLaTable('drunkenness')).toEqual({ n: 2, sides: 10 });
+    expect(issue.texte).toMatch(/"die": \{\s*"n": 2,\s*"sides": 10\s*\}/);
   });
 
-  it('un dé illisible : la racine refusée REPREND l’en-tête', () => {
-    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, de('beaucoup'));
+  it('un dé hors NdM (zéro dé) : la racine refusée REPREND l’en-tête', () => {
+    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, de({ n: 0, sides: 10 }));
     expect(issue.ok).toBe(false);
-    expect(deDeLaTable('drunkenness')).toBe('d10');
+    expect(deDeLaTable('drunkenness')).toEqual({ n: 1, sides: 10 });
   });
 
   it('une racine refusée par son schéma REPREND l’entrée ET l’en-tête, champ ajouté compris', () => {
     const entree = rangees()[0];
-    const issue = enregistrerEntree('drunkenness', { ...entree, label: 42 }, 0, [...de('2d10'), { ancetre: '', champ: 'ajout', valeur: 'x' }]);
+    const issue = enregistrerEntree('drunkenness', { ...entree, label: 42 }, 0, [...de({ n: 2, sides: 10 }), { ancetre: '', champ: 'ajout', valeur: 'x' }]);
     expect(issue.ok).toBe(false);
     expect(rangees()[0]).toBe(entree);
-    expect(deDeLaTable('drunkenness')).toBe('d10');
+    expect(deDeLaTable('drunkenness')).toEqual({ n: 1, sides: 10 });
     expect(champDEnTete('drunkenness', '', 'ajout')).toBeUndefined();
   });
 
-  it('toute catégorie dont un ancêtre porte le dé refuse un dé illisible et garde le sien', () => {
+  it('toute catégorie dont un ancêtre porte le dé refuse un dé hors NdM et garde le sien', () => {
     const portees = Object.entries(CATEGORY_DATASET_DERIVE).flatMap(([categorie, ds]) => {
       const ancetre = ancetreDuDe(ds as DatasetKey);
       return ancetre === undefined ? [] : [{ categorie, ds: ds as DatasetKey, ancetre }];
@@ -137,9 +137,9 @@ describe('enregistrerEntree — écritures d’en-tête de la table (#1667)', ()
     expect(portees.length).toBeGreaterThan(0);
     for (const { categorie, ds, ancetre } of portees) {
       const avantDe = deDeLaTable(ds);
-      const issue = enregistrerEntree(categorie, entreesDuDataset(ds)[0], 0, [{ ancetre, champ: 'die', valeur: 'beaucoup' }]);
+      const issue = enregistrerEntree(categorie, entreesDuDataset(ds)[0], 0, [{ ancetre, champ: 'die', valeur: { n: 0, sides: 10 } }]);
       expect(issue.ok, categorie).toBe(false);
-      expect(deDeLaTable(ds), categorie).toBe(avantDe);
+      expect(deDeLaTable(ds), categorie).toEqual(avantDe);
     }
   });
 });
@@ -153,7 +153,7 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     const table = tables[index];
     expect(findTableEntry(findEffectTableById('allure-demoniaque-nurgle').entries, 10).label).toBe(table.entries[9].label);
     const entries = table.entries.map((r, i) => (i === table.entries.length - 1 ? { ...r, max: 20, label: 'Rangée éditée' } : r));
-    expect(enregistrerEntree('effectTables', { ...table, die: 'd20', entries }, index).ok).toBe(true);
+    expect(enregistrerEntree('effectTables', { ...table, die: { n: 1, sides: 20 }, entries }, index).ok).toBe(true);
     expect(effectTableDie('allure-demoniaque-nurgle').sides).toBe(20);
     expect(findTableEntry(findEffectTableById('allure-demoniaque-nurgle').entries, 15).label).toBe('Rangée éditée');
   });
@@ -164,7 +164,7 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe(rangees[0].label);
     expect(enregistrerEntree('imparfaiteMineureVdm', { ...rangees[0], label: 'Contrecoup édité' }, 0).ok).toBe(true);
     expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe('Contrecoup édité');
-    expect(enregistrerEntree('imparfaiteMineureVdm', rangees[1], 1, [{ ancetre: '[miscast-mineure-vdm]', champ: 'die', valeur: '2d50' }]).ok).toBe(true);
+    expect(enregistrerEntree('imparfaiteMineureVdm', rangees[1], 1, [{ ancetre: '[miscast-mineure-vdm]', champ: 'die', valeur: { n: 2, sides: 50 } }]).ok).toBe(true);
     expect(miscastDie('miscast-mineure-vdm')).toMatchObject({ n: 2, sides: 50 });
   });
 
@@ -175,14 +175,14 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe(paliers[parfait].label);
     expect(enregistrerEntree('seaFastVoyage', { ...paliers[parfait], label: 'Palier édité' }, parfait).ok).toBe(true);
     expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe('Palier édité');
-    expect(enregistrerEntree('seaFastVoyage', paliers[0], 0, [{ ancetre: 'fastVoyage', champ: 'die', valeur: 'd20' }]).ok).toBe(true);
+    expect(enregistrerEntree('seaFastVoyage', paliers[0], 0, [{ ancetre: 'fastVoyage', champ: 'die', valeur: { n: 1, sides: 20 } }]).ok).toBe(true);
     expect(deDuVoyageRapide()).toMatchObject({ n: 1, sides: 20 });
   });
 
   it('Dispersion : le dé édité est celui que tire le lecteur', () => {
     const rangees = datasetArray('dispersion');
     setDataset('dispersion', rangees.filter((r) => r.max <= 8));
-    expect(enregistrerEntree('dispersion', rangees[0], 0, [{ ancetre: ancetreDuDe('dispersion')!, champ: 'die', valeur: 'd8' }]).ok).toBe(true);
+    expect(enregistrerEntree('dispersion', rangees[0], 0, [{ ancetre: ancetreDuDe('dispersion')!, champ: 'die', valeur: { n: 1, sides: 8 } }]).ok).toBe(true);
     const plages: number[] = [];
     const de = deSelonLaPlage((_min, max) => { plages.push(max); return max; });
     // Face 8 du d8 = (+1, +1) ; 2d10 = 20 m, demi-distance 20 m → 10 tuiles.
@@ -195,11 +195,11 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     const de = deSelonLaPlage((_min, max) => { plages.push(max); return max; });
     const capricieux = datasetArray('tableauCapricieux');
     setDataset('tableauCapricieux', capricieux.filter((r) => r.max <= 3));
-    expect(enregistrerEntree('tableauCapricieux', capricieux[0], 0, [{ ancetre: ancetreDuDe('tableauCapricieux')!, champ: 'die', valeur: 'd3' }]).ok).toBe(true);
+    expect(enregistrerEntree('tableauCapricieux', capricieux[0], 0, [{ ancetre: ancetreDuDe('tableauCapricieux')!, champ: 'die', valeur: { n: 1, sides: 3 } }]).ok).toBe(true);
     expect(tirerLeCapricieux(de)).toEqual({ roll: 3, dr: -1 });
     const reaction = datasetArray('reactionAuStatut');
     setDataset('reactionAuStatut', reaction.filter((r) => r.max <= 2));
-    expect(enregistrerEntree('reactionAuStatut', reaction[0], 0, [{ ancetre: ancetreDuDe('reactionAuStatut')!, champ: 'die', valeur: 'd2' }]).ok).toBe(true);
+    expect(enregistrerEntree('reactionAuStatut', reaction[0], 0, [{ ancetre: ancetreDuDe('reactionAuStatut')!, champ: 'die', valeur: { n: 1, sides: 2 } }]).ok).toBe(true);
     expect(tirerLaReactionAuStatut(de)).toBe('braver-le-statut');
     expect(plages).toEqual([3, 2]);
   });

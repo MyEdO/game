@@ -112,9 +112,11 @@ bandeau de jet opposé est celui du combat.
   Nid-de-pie, Sabord ; Blindage (bronze) fermé : Salzenmund n'a pas de chantier spécialisé). Page « Le chantier » :
   l'état de la coque et des Salissures, trois voies (Réparer 8 CO, Caréner 15 CO, Poser le Nid-de-pie 5 CO), la
   voie choisie armée, les parts (2 CO chacun), « Réparer la coque ».
-- Verbes : `reparerLeNavire()`, `carenerLeNavire()`, `installerLAmelioration(traitId, units?)`.
-- RAW : réparation 1 CO par Blessure, 1d10 heures MDG 13 l.643 ; Salissures MDG 13 l.144-159 ; Améliorations MDG 12
-  l.195-364 ; pose MDG 15 l.255. Code : `src/noyau/seaVoyageFlow.ts:2345-2463`.
+- Verbes : `reparerLeNavire()`, `reparerParLeGroupe()`, `carenerLeNavire()`, `installerLAmelioration(traitId, units?)`.
+- RAW : réparation 1 CO par Blessure, 1d10 heures MDG 13 l.643 ; par le groupe, Charpentier −10 MDG 13 l.641,
+  pièces détachées MDG 15 l.306 ; Salissures MDG 13 l.144-159 ; Améliorations MDG 12 l.195-364 ; pose MDG 15 l.255.
+  Code : `src/noyau/seaVoyageFlow.ts` (`devisDeChantier`, `portRepairVessel`, `reparerParLeGroupe`,
+  `portCareenVessel`, `installerLAmelioration`).
 - À valider : une voie à la fois, pas de devis cumulé ; la durée de pose (1d10 jours) et le Métier 50 du constructeur
   sont des valeurs maison du noyau ; le carénage à 15 CO est 5 % des 300 CO de la cogue, Salissures de niveau 1.
 

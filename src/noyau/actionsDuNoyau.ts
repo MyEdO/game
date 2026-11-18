@@ -331,6 +331,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLePort: () => void;
   /** Répare la coque au chantier (1 CO/Blessure, MDG 13 l.643) — journalise le résultat. */
   reparerLeNavire: () => void;
+  /** Le groupe répare lui-même la coque au chantier : un Test de Métier, des pièces détachées (MDG 13 l.641-643). */
+  reparerParLeGroupe: () => void;
   /** Carène en cale sèche (Salissures, MDG 13 l.150-159). */
   carenerLeNavire: () => void;
   /** Installe une Amélioration navale (coût par bande de Taille, MDG 12). */

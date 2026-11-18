@@ -16,7 +16,7 @@ describe('tirerLeCapricieux — la table Capricieux (MSRC 15 l.151-159)', () => 
   });
 
   it('le tirage se fait au dé que porte la table', () => {
-    sousLeDe('tableauCapricieux', 'd4', () => {
+    sousLeDe('tableauCapricieux', { n: 1, sides: 4 }, () => {
       const plages: [number, number][] = [];
       tirerLeCapricieux(deSelonLaPlage((min, max) => { plages.push([min, max]); return max; }));
       expect(plages).toEqual([[1, 4]]);

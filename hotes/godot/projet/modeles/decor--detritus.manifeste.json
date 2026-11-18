@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "detritus"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "terre",
+      "palette": "corps",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "drap",
+      "palette": "vet1",
+      "matiere": "prop--drap-terne"
+    },
+    {
+      "nom": "os",
+      "palette": "corps",
+      "matiere": "prop--os"
+    }
+  ],
+  "glb": {
+    "sha256": "e54a3ed0eccf8a3b695c5ea4909ebf50c18cbf7343f66bc71e92416d2d8c3f9f",
+    "octets": 66244
+  }
+}

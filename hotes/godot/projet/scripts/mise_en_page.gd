@@ -15,7 +15,8 @@
 ## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
 ## morceau ou d'une nappe) et à celui de la vision, la part d'un fondu de la vision après un pas de temps, l'état fondu
 ## d'une case et le plus grand de deux, la teinte d'instance d'un état, le relief d'un matériau à son facteur, et l'abscisse
-## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
+## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend,
+## l'échelle du tracé d'une icône et l'onglet à un pas d'un autre. Seul
 ## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
 ## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
@@ -499,6 +500,28 @@ static func echelle_de_dessin(largeur: float, hauteur: float, largeur_du_cadre: 
 	return FINESSE_DE_DESSIN * maxf(largeur / largeur_du_cadre, hauteur / hauteur_du_cadre)
 
 
+## L'échelle du tracé d'une icône de `taille` unités de côté, à l'échelle `ecran` de la fenêtre, au cadre de sa
+## famille de `largeur_du_cadre` sur `hauteur_du_cadre` unités.
+static func echelle_d_icone(taille: float, ecran: Vector2, largeur_du_cadre: float, hauteur_du_cadre: float) -> float:
+	return echelle_de_dessin(taille * ecran.x, taille * ecran.y, largeur_du_cadre, hauteur_du_cadre)
+
+
+## L'échelle du tracé carré de `cote_du_trace` pixels d'une icône de `taille` unités de côté.
+static func echelle_du_trace(cote_du_trace: float, taille: float) -> float:
+	return cote_du_trace / taille
+
+
+## Le vecteur `v` à l'échelle `echelle`.
+static func a_l_echelle(v: Vector2, echelle: float) -> Vector2:
+	return v * echelle
+
+
+## Le rang de l'onglet à `pas` de l'onglet `rang` parmi `nombre`, -1 hors des onglets.
+static func onglet_a_pas(rang: int, pas: int, nombre: int) -> float:
+	var vise := rang + pas
+	return vise if vise >= 0 and vise < nombre else -1
+
+
 ## Le pas d'image d'un clip de `duree` secondes, sa piste suivante de `cles` clés réparties sur le clip retenue si son pas
 ## est plus fin que `pas` (0 : aucune piste retenue encore).
 static func pas_d_image(pas: float, duree: float, cles: int) -> float:
@@ -814,6 +837,11 @@ static func faces_du_d100(resultat: int) -> Vector2i:
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
 static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> Vector2:
 	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)
+
+
+## Le coin d'une bulle de `largeur` sur `hauteur`, alignée à droite du point `point` de l'écran, au-dessus de lui.
+static func bulle_au_dessus_a_droite(point: Vector2, largeur: float, hauteur: float) -> Vector2:
+	return Vector2(point.x - largeur, point.y - hauteur - ECART_DE_BULLE)
 
 
 ## Le décalage vertical du bas d'une fenêtre posée en bas de la scène, au-dessus d'un meuble de `hauteur` (0 : aucun

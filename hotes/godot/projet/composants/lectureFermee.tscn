@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://composants/lecture.tscn" id="1_lecture"]
+[ext_resource type="Material" path="res://art/ferme.tres" id="2_ferme"]
+
+[node name="Lecture" instance=ExtResource("1_lecture")]
+material = ExtResource("2_ferme")

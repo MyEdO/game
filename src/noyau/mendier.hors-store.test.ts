@@ -200,7 +200,7 @@ describe('Échec Stupéfiant (LDB 09 l.97 : « des ennuis ») — la bande RENVO
 
   it('les trois volets NOMMÉS par le livre sont tirables, et seuls les deux premiers marquent le héros', () => {
     const table = findEffectTableById('mendier-ennuis');
-    expect(table.die).toBe('d10');
+    expect(table.die).toEqual({ n: 1, sides: 10 });
     expect(table.entries.map((r) => `${r.min}-${r.max}`)).toEqual(['1-3', '4-7', '8-10']);
     setRule('mendier-amende-sous', 12);
     for (const r of table.entries) {

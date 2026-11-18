@@ -345,11 +345,11 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
 
   it('document à `rangee` : `entries` POSÉE par la fabrique, et `die` REQUIS dès `deDeTirage`', () => {
     const { schema } = REPLIQUES.rangees;
-    const t = { ...ENV('table-jouet'), die: '1d100', entries: [{ id: 'rien', min: 1, max: 10, label: 'Rien' }] };
+    const t = { ...ENV('table-jouet'), die: { n: 1, sides: 100 }, entries: [{ id: 'rien', min: 1, max: 10, label: 'Rien' }] };
     expect(schema.safeParse([t]).success).toBe(true);
-    // `deDeTirage` déclaré : le dé est REQUIS, et une chaîne vide ne le satisfait pas.
+    // `deDeTirage` déclaré : le dé est REQUIS, et une expression textuelle ne le satisfait pas.
     expect(schema.safeParse([{ ...t, die: undefined }]).success).toBe(false);
-    expect(schema.safeParse([{ ...t, die: '' }]).success).toBe(false);
+    expect(schema.safeParse([{ ...t, die: '1d100' }]).success).toBe(false);
     // Le fichier porte une LISTE de documents : le document nu n'est pas le dataset.
     expect(schema.safeParse(t).success).toBe(false);
     // `entries` est une LISTE ordonnée (là où la famille `record` en fait une map).
@@ -361,16 +361,15 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     const double = schema.safeParse([{ ...t, entries: [...t.entries, { ...t.entries[0], min: 11, max: 20 }] }]);
     expect(double.success).toBe(false);
     expect(double.error?.issues.map((i) => i.message)).toContain('« rien » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.');
-    // Le dé se lit en `DiceSpec` (`deDeTirageSchema`) : 2d10 passe, une expression illisible est refusée.
-    expect(schema.safeParse([{ ...t, die: '2d10' }]).success).toBe(true);
-    expect(schema.safeParse([{ ...t, die: 'un dé' }]).success).toBe(false);
+    // Le dé est un `DiceSpec` NdM (`deDeTirageSchema`) : 2d10 passe.
+    expect(schema.safeParse([{ ...t, die: { n: 2, sides: 10 } }]).success).toBe(true);
   });
 
   it('document à `rangee` SANS `id` : `entries` est une liste ordonnée, chaque rangée validée', () => {
     const { schema } = REPLIQUES.rangeesSansId;
     const rangee = { min: 1, max: 10, label: 'Rien' };
-    expect(schema.safeParse([{ ...ENV('table-sans-id-jouet'), die: 'd10', entries: [rangee, { ...rangee, min: 11, max: 20 }] }]).success).toBe(true);
-    expect(schema.safeParse([{ ...ENV('table-sans-id-jouet'), die: 'd10', entries: [{ ...rangee, id: 'rien' }] }]).success).toBe(false);
+    expect(schema.safeParse([{ ...ENV('table-sans-id-jouet'), die: { n: 1, sides: 10 }, entries: [rangee, { ...rangee, min: 11, max: 20 }] }]).success).toBe(true);
+    expect(schema.safeParse([{ ...ENV('table-sans-id-jouet'), die: { n: 1, sides: 10 }, entries: [{ ...rangee, id: 'rien' }] }]).success).toBe(false);
   });
 
   it('`rangee` en famille `config` : le document EST son fichier, et porte sa charge', () => {
@@ -378,7 +377,7 @@ describe('document() — emballage du DATASET par famille (#1467 L1b)', () => {
     const t = { ...ENV('config-table-jouet'), entries: [{ id: 'rien', min: 1, max: 10, label: 'Rien' }] };
     expect(schema.safeParse(t).success).toBe(true);
     // SANS `deDeTirage`, `die` n'existe pas sur le document : le sceau le refuse comme clé en trop.
-    expect(schema.safeParse({ ...t, die: '1d10' }).success).toBe(false);
+    expect(schema.safeParse({ ...t, die: { n: 1, sides: 10 } }).success).toBe(false);
     expect(schema.safeParse([t]).success).toBe(false);
     expect(schema.safeParse({ ...t, entries: [{ min: 1, max: 10 }] }).success).toBe(false);
   });
