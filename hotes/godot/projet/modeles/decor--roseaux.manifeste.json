@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "roseaux"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "roseau",
+      "palette": "vegetal",
+      "matiere": "prop--roseau"
+    },
+    {
+      "nom": "massette",
+      "palette": "corps",
+      "matiere": "prop--terre-battue"
+    }
+  ],
+  "glb": {
+    "sha256": "2b80a1145a3fefc88d07cb384ba9a45101e093b43143ffd3e5ac756fd1832628",
+    "octets": 121480
+  }
+}

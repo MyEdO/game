@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "toile"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "soie",
+      "palette": "corps",
+      "matiere": "prop--soie"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    }
+  ],
+  "glb": {
+    "sha256": "e683f22cbcf0703f84d601968c54f3cf692675cca322c87a92c004905902c089",
+    "octets": 110104
+  }
+}

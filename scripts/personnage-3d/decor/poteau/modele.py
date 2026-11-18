@@ -11,8 +11,8 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, X, Y, barre, bosselee, cap, cercle, chaine, cheville, clou,
-                       coque, courbee, lisse, normales, partage, pave, planche, profilee, rampant, rampante, rond,
+from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, X, Y, autour, barre, bosselee, cap, cercle, chaine, cheville,
+                       clou, coque, courbee, lisse, normales, partage, pave, planche, profilee, rampant, rampante, rond,
                        tournee)
 from gabarit import VERSANTS
 from maille import lineaire, tore
@@ -269,8 +269,7 @@ def enseigne(D, G, pieces, a):
     profilee(fer, mur, mur + avant * by, (bx / 2, bz / 2), E["potence"], "fer", u=X, v=HAUT)
     T = E["tirant"]
     scelle, prise = dos + HAUT * (pz * T["pied"]), mur + avant * (by * T["portee"])
-    tournee(fer, scelle, prise, *normales((prise - scelle).normalized()), bx / 2 * T["rayon"], CYLINDRE, T["cotes"],
-            "fer")
+    geometrie.fil(fer, scelle, prise, bx / 2 * T["rayon"], T["cotes"], "fer")
 
     M = E["chaine"]
     petit = bx / 2 * M["petit"]
@@ -407,7 +406,7 @@ def banniere(D, G, pieces, a):
     barre(ferrure, [(sur_la_tete(part), r_f * du, r_f * dv, r_f * min(du, dv) * F["chanfrein"])
                     for part, du, dv in F["fer"]], long, monte.cross(long), "ferrure")
     for azimut in K["azimuts"]:
-        d = u * math.cos(math.radians(azimut)) + v * math.sin(math.radians(azimut))
+        d = autour(u, v, math.radians(azimut))
         bout = sur_la_tete(K["pied"] + K["montee"]) + d * (r_f * K["portee"])
         tournee(ferrure, sur_la_tete(K["pied"]), bout, *normales((bout - sur_la_tete(K["pied"])).normalized()),
                 r_f * K["rayon"], K["profil"], K["cotes"], "ferrure")

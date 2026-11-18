@@ -12,7 +12,7 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (ANGLES, AXES, BRAISES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, appareil, cap, chaine,
+from geometrie import (ANGLES, AXES, BRAISES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, appareil, autour, cap, chaine,
                        charbons, cheville, clou, coque, decoupee, normales, pave, planche, profilee, rampant, rond,
                        tournee)
 from gabarit import NOEUD_EMISSIF
@@ -41,7 +41,7 @@ def claveau(m, centre, bornes, angles, demi, K, a):
     joint = demi * K["joint"]
     t0, t1 = sorted(angles)
     ecart = joint / bornes((t0 + t1) / 2)[0]
-    rangs = [(X * math.cos(t) + HAUT * math.sin(t), bornes(t)) for t in (t0 + ecart, (t0 + t1) / 2, t1 - ecart)]
+    rangs = [(autour(X, HAUT, t), bornes(t)) for t in (t0 + ecart, (t0 + t1) / 2, t1 - ecart)]
     contour = [centre + rayon * (dedans + joint) for rayon, (dedans, _) in rangs]
     contour += [centre + rayon * (dehors - joint) for rayon, (_, dehors) in reversed(rangs)]
     face = demi - demi * a.uniform(*K["parement"])

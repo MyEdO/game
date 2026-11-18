@@ -769,7 +769,7 @@ def etabli(D, G, pieces, a):
             haute * 2 * arete)
     rayon = pz_ * Q["manche"]["rayon"]
     bout = Vector((tete.x, tete.y, dessus + rayon)) + manche * (pz_ * Q["manche"]["longueur"])
-    tournee(m, tete, bout, *normales((bout - tete).normalized()), rayon, CYLINDRE, Q["manche"]["cotes"])
+    geometrie.fil(m, tete, bout, rayon, Q["manche"]["cotes"])
 
     if G.id in E["scie"]:
         (lame, (bx, by, bz)), (poignee, (hx, hy, hz)) = (pave(G.primitives[rang]) for rang in E["scie"][G.id])

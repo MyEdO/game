@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "nenuphars"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "feuille",
+      "palette": "vegetal",
+      "matiere": "prop--feuillage"
+    },
+    {
+      "nom": "fleur",
+      "palette": "corps",
+      "matiere": "prop--albatre"
+    }
+  ],
+  "glb": {
+    "sha256": "e01ccc48d3639855909caef032f3303f376ee31db4778315238cf3e5bdce9a58",
+    "octets": 112192
+  }
+}

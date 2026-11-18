@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "decor-flat"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "peinte",
+      "palette": "corps",
+      "matiere": "prop--albatre"
+    }
+  ],
+  "glb": {
+    "sha256": "38bf4cdcb4b0adf827eb62c043160573657c21de017bfe59c781195b63cd51a0",
+    "octets": 43732
+  }
+}

@@ -1,16 +1,17 @@
 """La géométrie commune aux modèles des décors (#4335) : les axes, le front de la recette, les axes d'une primitive de
 la recette, les coins d'un carré, les deux côtés d'un axe, la boîte et le cylindre d'une primitive en `Vector`,
 l'apothème d'un cylindre et les bouts de son axe, le rampant d'un prisme et le point sous lui, l'aléa semé de l'id, le
-repère normal à un axe, le cap d'un azimut, les normales d'une tangente, le point d'un chemin à une hauteur, la courbe
-lissée par des points, l'anneau régulier, la section bosselée et la coque close d'une suite d'anneaux ; les pièces que
+repère normal à un axe, le point d'une boîte de la recette compté en demi-côtés, le cap d'un azimut, le vecteur d'un
+plan à un angle, les normales d'une tangente, le point d'un chemin à une hauteur, la courbe lissée par des points, le
+facteur d'un relief, l'anneau régulier, la section bosselée et la coque close d'une suite d'anneaux ; les pièces que
 les familles partagent
-(pièce équarrie, planche, planche rampante, pièce profilée, son profil de poteau à chanfreins arrêtés et la pièce
-profilée dans une boîte de la recette, pièce tournée, son profil droit et la pièce tournée dans un cylindre de la
-recette, prolongée dans ses voisines, étoffe froncée et le point de sa surface, pièce ronde courbée, cheville et ses
-cotes, clou, anneau plat de section rectangulaire, chaîne pendue, bougie sur sa bobèche, étoffe plissée et dais,
-rampe d'escalier, pierre taillée, assise et massif harpé, charbons, ardoises, planches côte à côte, pièce plate
-découpée) et le partage inégal d'une longueur ; et la déclaration des éléments d'une famille, avec ses nœuds par
-matériau et la construction d'un décor dont les nœuds se bâtissent ensemble."""
+(coque bosselée, pièce équarrie, planche, planche rampante, pièce profilée, son profil de poteau à chanfreins arrêtés
+et la pièce profilée dans une boîte de la recette, pièce tournée, son profil droit, le fil droit et la pièce tournée
+dans un cylindre de la recette, prolongée dans ses voisines, étoffe froncée et le point de sa surface, pièce ronde
+courbée, feuille en lame, cheville et ses cotes, clou, anneau plat de section rectangulaire, chaîne pendue, bougie sur
+sa bobèche, étoffe plissée et dais, rampe d'escalier, pierre taillée, assise et massif harpé, charbons, ardoises,
+planches côte à côte, pièce plate découpée) et le partage inégal d'une longueur ; et la déclaration des éléments d'une
+famille, avec ses nœuds par matériau et la construction d'un décor dont les nœuds se bâtissent ensemble."""
 import math
 import random
 
@@ -18,7 +19,7 @@ from mathutils import Vector
 
 import habillage
 from gabarit import NOEUD_EMISSIF, VERSANTS, Gabarit, boite, vers_blender
-from maille import Maille, cylindre, objet, point, poutre, tore, tour
+from maille import Maille, cylindre, lineaire, objet, point, poutre, tore, tour
 
 X, Y, HAUT = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
 FRONT = Vector(vers_blender(0, 1, 0))
@@ -84,6 +85,13 @@ def repere(axe):
     return tuple(Vector(point(axe, (0, 0, 0), *decale)) for decale in ((0, 1, 0), (0, 0, 1)))
 
 
+def cadre(primitive, cote):
+    """La fonction qui rend le point de position `(x, y, z)` dans la boîte de `primitive`, comptée en demi-côtés depuis
+    son centre : `x` du côté `cote` (-1 ou 1), `y` vers le front, `z` vers le haut."""
+    c, (lx, ly, lz) = pave(primitive)
+    return lambda p: c + X * (cote * p[0] * lx / 2) + FRONT * (p[1] * ly / 2) + HAUT * (p[2] * lz / 2)
+
+
 def sous_le_rampant(pente, p, sous):
     """Le point à l'aplomb de `p`, à `sous` (m) sous le rampant `pente` (`rampant`)."""
     descend, crete, egout, long, _ = pente
@@ -93,6 +101,12 @@ def sous_le_rampant(pente, p, sous):
 def cap(azimut):
     """Le vecteur horizontal unitaire d'`azimut` degrés."""
     return Vector((math.cos(math.radians(azimut)), math.sin(math.radians(azimut)), 0))
+
+
+def autour(u, w, angle):
+    """Le vecteur `u cos(angle) + w sin(angle)` : à `angle` radians de `u` vers `w` s'ils sont unitaires et normaux,
+    sinon le point de l'ellipse de demi-axes `u` et `w`."""
+    return u * math.cos(angle) + w * math.sin(angle)
 
 
 def normale(t):
@@ -125,11 +139,18 @@ def lisse(points, pas):
     return chemin + [points[-1]]
 
 
+def relief(e1, e2, part):
+    """Le facteur d'un relief à l'écart `(e1, e2)` de son milieu, compté en demi-étendues sur chacun de ses deux
+    sens : il gonfle de `part` en son milieu, ou creuse si elle est négative, jusqu'à rien à son bord et au-delà."""
+    if abs(e1) < 1 and abs(e2) < 1:
+        return 1 + part * (math.cos(math.pi * e1 / 2) * math.cos(math.pi * e2 / 2)) ** 2
+    return 1.0
+
+
 def anneau(centre, u, v, rayon, cotes):
     """Les `cotes` sommets du polygone régulier de `rayon` autour de `centre`, dans le plan de `u` et `v` unitaires, le
     premier sur `u`, dans le sens de `u` vers `v`."""
-    return [centre + (u * math.cos(2 * math.pi * j / cotes) + v * math.sin(2 * math.pi * j / cotes)) * rayon
-            for j in range(cotes)]
+    return [centre + autour(u, v, 2 * math.pi * j / cotes) * rayon for j in range(cotes)]
 
 
 def bosselee(a, u, v, cotes, bosse):
@@ -158,6 +179,15 @@ def coque(m, anneaux, mat, pointe=None):
         faces += [[dernier + j, dernier + (j + 1) % k, len(sommets)] for j in range(k)]
         sommets.append(tuple(pointe))
     m.ajouter(sommets, faces, mat)
+
+
+def bossue(m, a, b, section, rayon, profil, mat, pointe):
+    """Une coque bosselée de `a` à `b` : un anneau de `section` (la fonction de ses sommets autour d'un centre, à un
+    rayon : `bosselee`) par rang de `profil` [(part de la longueur, part de `rayon`)], fermée en cône vers `pointe`.
+    Rend ses anneaux."""
+    anneaux = [section(a.lerp(b, t), rayon * part) for t, part in profil]
+    coque(m, anneaux, mat, pointe)
+    return anneaux
 
 
 def octogone(c, u, v, du, dv, chanfrein):
@@ -224,6 +254,11 @@ CYLINDRE = ((0.0, 1.0), (1.0, 1.0))
 """Le profil d'une pièce tournée de rayon constant (`tournee`)."""
 
 
+def fil(m, a, b, rayon, cotes, mat=MAT):
+    """Un fil droit de `a` à `b`, de `rayon`, à `cotes` côtés."""
+    tournee(m, a, b, *normales((b - a).normalized()), rayon, CYLINDRE, cotes, mat)
+
+
 def tourne(m, primitive, profil, cotes, mat, ancrage=(0.0, 0.0)):
     """La pièce tournée dans le cylindre `primitive` de la recette, de rayon son apothème d'après `profil` [(part de la
     longueur, part de l'apothème)] (`tournee`), prolongée au-delà du premier et du second des bouts de son axe
@@ -259,6 +294,16 @@ def courbee(m, chemin, axe, rayons, cotes, mat):
         t = (chemin[min(i + 1, dernier)] - chemin[max(i - 1, 0)]).normalized()
         anneaux.append(anneau(p, axe, t.cross(axe), rayons[0] + (rayons[1] - rayons[0]) * i / dernier, cotes))
     coque(m, anneaux, mat)
+
+
+def feuille(m, depart, d, travers, long, F, large, epais, mat):
+    """Une feuille en lame de `long` depuis `depart`, dans le sens `d` unitaire, de demi-largeur `large` sur
+    `travers` unitaire, normal à `d`, et de demi-épaisseur `epais`, d'après `F` : son fil lissé par `nervure`
+    (`lisse`, `pas` points par tronçon), sa demi-largeur le long du fil (`limbe`), ses rives biseautées (`biseau`)."""
+    dessus = d.cross(travers)
+    chemin = lisse([depart + d * (long * t) + dessus * (long * fleche) for t, fleche in F["nervure"]], F["pas"])
+    barre(m, [(p, large * lineaire(F["limbe"], i / (len(chemin) - 1)), epais, epais * F["biseau"])
+              for i, p in enumerate(chemin)], travers, dessus, mat)
 
 
 # Cheville (`cheville`) : côtés ; part de son rayon enfoncée dans le bois ; saillie de sa tête (fraction de son rayon,

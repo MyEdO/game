@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "terrier"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "terre",
+      "palette": "corps",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    }
+  ],
+  "glb": {
+    "sha256": "9666f1d00037a237681fd2618912f1b4e3fa4f71a70418e1c07b22faf24bd09b",
+    "octets": 43636
+  }
+}
