@@ -25,7 +25,7 @@
  *    (Blessé/Gangrène), `amputation` (Gangrène), `contagious` (Toux),
  *    `nausea` (combat), `endTest` (Persistant).
  */
-import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type ModLine, type TestIds } from './types';
+import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type DiseaseExposure, type ModLine, type TestIds } from './types';
 import type { Duration } from './duration';
 import { RNG, roll, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
@@ -513,6 +513,20 @@ export function diseaseBlesseCount(c: Combatant): number {
 /** Maladies ACTIVES contagieuses (capacité `contagious` — Toux & éternuements, l.206) — contagion au repos. */
 export function contagiousDiseases(c: PorteurDeMaladies): Disease[] {
   return (c.diseases ?? []).filter((d) => maladieDeclaree(d) && diseaseHasCapability(d, 'contagious'));
+}
+
+/** Les `expositions` après l'op `exposeDisease` `o` : entrée neuve, ou fusion avec celle de la même maladie
+ *  qui garde la plus dure (cran le plus bas, `instant` si l'une l'impose). PUR. LDB 20 l.25/51 ; EDO App.2 l.228-230 */
+export function exposerALaMaladie(expositions: readonly DiseaseExposure[] | undefined, o: Extract<GameOp, { op: 'exposeDisease' }>): DiseaseExposure[] {
+  const entry: DiseaseExposure = { disease: o.disease, ...(o.difficultyShift ? { difficultyShift: o.difficultyShift } : {}), ...(o.incubation === 'instant' ? { instant: true } : {}) };
+  const prev = (expositions ?? []).find((e) => e.disease === o.disease);
+  if (!prev) return [...(expositions ?? []), entry];
+  const shift = Math.min(prev.difficultyShift ?? 0, entry.difficultyShift ?? 0);
+  return (expositions ?? []).map((e) => e !== prev ? e : {
+    disease: e.disease,
+    ...(shift !== 0 ? { difficultyShift: shift } : {}),
+    ...(e.instant || entry.instant ? { instant: true } : {}),
+  });
 }
 
 /** Exposition d'un personnage à une maladie. Mute `c.diseases` directement (appelé HORS itération —

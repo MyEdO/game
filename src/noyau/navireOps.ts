@@ -6,11 +6,9 @@
  */
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import { rollDice, tirerSigne, type RNG } from '../engine/dice';
-import { findTableEntry } from '../engine/tables';
-import { deDeTirageDe } from '../data/rangees';
+import { tirerSigne } from '../engine/dice';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { estOpDuNavire, nomDeSource, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
+import { estOpDuNavire, nomDeSource, rangeesDeLaTable, resolveFormula, tirerLaTable, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 import { caracDuCombattant, type Referent } from '../engine/formule';
@@ -308,15 +306,10 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   return true;
 }
 
-type TableEnLigne = Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
-
-/** Une table à rangées en ligne dont une rangée porte une op de NAVIRE : elle se tire à la portée du navire,
+/** Une table dont une rangée porte une op de NAVIRE : elle se tire à la portée du navire,
  *  où ses ops se résolvent ; `applyOps` les laisserait inertes. MDG 15 l.213-218, l.258 */
-const estTableDuNavire = (o: GameOp): o is TableEnLigne =>
-  o.op === 'rollTable' && 'entries' in o && o.entries.some((r) => r.ops.some((x) => estOpDuNavire(x) || estTableDuNavire(x)));
-
-/** La rangée tirée d'une table de navire : son dé, `mod` compris. */
-const rangeeTiree = (o: TableEnLigne, rng: RNG) => findTableEntry(o.entries, rollDice(deDeTirageDe(o), rng) + (o.mod ?? 0));
+const estTableDuNavire = (o: GameOp): o is Extract<GameOp, { op: 'rollTable' }> =>
+  o.op === 'rollTable' && rangeesDeLaTable(o).some((r) => r.ops.some((x) => estOpDuNavire(x) || estTableDuNavire(x)));
 
 /** Applique la feuille `e` (`on: 'navire'`) au navire de campagne, ops dans l'ordre authoré ; rend les
  *  lignes du journal (aussi posées au recap du jour en mer). */
@@ -338,7 +331,7 @@ export function appliquerAuNavire(get: Get, set: Set, e: EffectOp, base: OpsCtx)
   const file = [...e.ops];
   while (file.length) {
     const o = file.shift()!;
-    if (estTableDuNavire(o)) { file.unshift(...rangeeTiree(o, ctx.rng).ops); continue; }
+    if (estTableDuNavire(o)) { file.unshift(...[...tirerLaTable(o, ctx, ctx.rng)].flatMap((r) => r.ops)); continue; }
     if (o.op === 'delayed') { scheduleDelayedOps(get, set, coque, o, { now: get().gameTime, label: nomDeSource(ctx) }, { on: 'navire' }); continue; }
     if (!estOpDuNavire(o)) { pures.push(o); continue; }
     viderLesPures();
