@@ -1173,6 +1173,24 @@
     "hint": "« se contenter d'acheter n'importe quelle nourriture disponible sur le marché revient à risquer un désastre lors d'une longue expédition, car elle va vite pourrir » : le canon ne chiffre pas la durée. Défaut : 7 jours après l'embarquement, le lot de vivres frais est jeté ; les biscuits de mer et la nourriture préservée ne périment pas."
   },
   {
+    "id": "mer-resistance-de-l-equipage",
+    "type": "reglesOptionnelles",
+    "label": "Résistance de l'équipage aux maladies",
+    "ref": "MDG 14 l.230",
+    "maison": "MDG 14 l.230 fait tester la Résistance « le Personnage » et ne chiffre pas l'équipage, dont MDG 14 l.297-302 ne donne que des soldes ; l'équipage PNJ teste en un seul porteur collectif. Valeur dérivée des voisins : Endurance humaine moyenne (LDB 05 l.358, 2d10+20, soit 31) plus la Compétence Résistance de la carrière Marin niveau 2 (LDB 08 l.2747-2751), arrondie à 10 avances : 40.",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 125,
+      "note": "MDG 14 l.230"
+    },
+    "group": "Voyage",
+    "kind": "param",
+    "default": 40,
+    "min": 1,
+    "max": 100,
+    "hint": "La valeur du Test de Résistance de l'équipage PNJ, porteur collectif de ses maladies (scorbut, tonneau, contagion à bord). Défaut : 40."
+  },
+  {
     "id": "mer-moral-maladie-contagieuse-a-bord",
     "type": "reglesOptionnelles",
     "label": "La maladie contagieuse d’un Personnage fait rage au sein de l’équipage",

@@ -33,7 +33,7 @@ import { effectRef, type Combatant, type Difficulty } from './types';
 import type { ModLine } from './combat';
 import type { PairedSense } from './ops';
 import { precipitationTestMods } from './seaWeather';
-import { contagiousDiseases } from './disease';
+import { contagiousDiseases, maladieDeclaree, type PorteurDeMaladies } from './disease';
 
 const MORAL = datasetDe<typeof crewMoraleDef>(crewMoraleJson);
 /** Facteur de Moral (MODIFICATEURS DE MORAL, MDG 14). */
@@ -108,8 +108,14 @@ export function facteursDeContagionABord(): string[] {
 
 /** Un Personnage vivant de `personnages` porte-t-il une maladie contagieuse déclarée (`contagiousDiseases`), sous la règle
  *  maison `mer-moral-maladie-contagieuse-a-bord` ? MDG 14 l.143, l.172, l.208 */
-export function contagionABord(personnages: readonly Combatant[]): boolean {
+function contagionABord(personnages: readonly Combatant[]): boolean {
   return rule('mer-moral-maladie-contagieuse-a-bord') && personnages.some((p) => !p.dead && contagiousDiseases(p).length > 0);
+}
+
+/** Les facteurs `contagionABord` comptent-ils cette semaine : une maladie déclarée du porteur collectif de l'équipage
+ *  (`porteursABord`), ou la contagion d'un Personnage (`contagionABord`). MDG 14 l.172 */
+export function maladieFaitRage(personnages: readonly Combatant[], equipage: PorteurDeMaladies | undefined): boolean {
+  return (equipage?.diseases ?? []).some(maladieDeclaree) || contagionABord(personnages);
 }
 
 /** Un CHOIX de paie du Conseil de bord : le facteur de Moral + son multiplicateur de solde. */

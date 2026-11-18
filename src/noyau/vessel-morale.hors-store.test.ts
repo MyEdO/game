@@ -2,7 +2,8 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts, resolveVesselWeek } from './shipCrew';
+import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts, resolveVesselWeek, porteursABord, applyVesselCrewLoss } from './shipCrew';
+import { WORLD_STEP_OWNER } from './pendings';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { MINUTES_PER_DAY, campaignStart, dayIndex } from '../engine/clock';
 import { applyEffects } from './combatEffects';
@@ -13,7 +14,7 @@ import { t } from '../i18n';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
-import { contractDisease, contagiousDiseases } from '../engine/disease';
+import { contractDisease, contagiousDiseases, applyContraction } from '../engine/disease';
 import { deFixe } from '../engine/dice.testkit';
 import { findMoraleFactor } from '../engine/crewMorale';
 import { setRule, resetRule } from '../engine/policy';
@@ -107,6 +108,49 @@ describe('#4058 — « La maladie fait rage au sein de l’équipage » (MDG 14 
     expect(contagiousDiseases(banc.getState().party[0]).length).toBe(1);
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
     expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+  });
+});
+
+describe('#4243 — l’équipage PNJ, porteur collectif : « La maladie fait rage au sein de l’équipage » (MDG 14 l.172)', () => {
+  afterEach(() => resetRule('mer-moral-maladie-contagieuse-a-bord'));
+  const MALADIE = findMoraleFactor('maladie-fait-rage')!.label;
+  const equipage = () => porteursABord(banc.getState, banc.setState).find((p) => p.id === WORLD_STEP_OWNER);
+  /** L'équipage collectif contracte `maladie` par la couture de bord, puis une semaine passe. */
+  function equipageMalade(maladie: string): void {
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
+    const e = equipage()!;
+    applyContraction(e.porteur, maladie, false, makeRNG(1));
+    e.ecrire();
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
+  }
+
+  it('scorbut déclaré du collectif → −2d10 au procès-verbal de la semaine, règle des Personnages désactivée comprise', () => {
+    setRule('mer-moral-maladie-contagieuse-a-bord', false);
+    equipageMalade('scorbut');
+    const v = banc.getState().vessel!;
+    expect(v.porteurDeLEquipage?.diseases?.map((d) => `${d.id}/${d.phase}`)).toEqual(['scorbut/active']);
+    expect(v.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).toContain(`${MALADIE} : -`);
+    expect(v.morale.factors).toEqual([]);
+  });
+
+  it('maladie du collectif encore en incubation → aucun facteur de maladie', () => {
+    equipageMalade('verole-urticante');
+    expect(banc.getState().vessel!.porteurDeLEquipage?.diseases?.[0]?.phase).toBe('incubation');
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+  });
+
+  it('effectif PNJ à 0 → le collectif est vidé et n’est plus énuméré', () => {
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
+    const e = equipage()!;
+    applyContraction(e.porteur, 'scorbut', false, makeRNG(1));
+    e.ecrire();
+    expect(banc.getState().vessel!.porteurDeLEquipage?.diseases).toHaveLength(1);
+    applyVesselCrewLoss(banc.getState, banc.setState, 1000);
+    expect(banc.getState().vessel!.porteurDeLEquipage).toBeUndefined();
+    expect(equipage()).toBeUndefined();
+    expect(porteursABord(banc.getState, banc.setState).map((p) => p.id)).toEqual(banc.getState().party.map((h) => h.id));
   });
 });
 

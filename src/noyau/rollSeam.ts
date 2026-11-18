@@ -848,13 +848,19 @@ export function refusePorte(msg: string): void {
  *  garde son exclusivité (un `soutien` sans `valeur` reste inexprimable). */
 export type BandLigne = RollLineDecl extends infer U ? (U extends unknown ? Omit<U, 'actor'> : never) : never;
 
-/** UN porteur d'une bande : qui teste, et la LIGNE de son jet. */
-export interface BandPorteur {
-  /** Le porteur — la rangée prend son id, et sa SURFACE se déduit de lui (`surfaceRow`). */
-  actor: Combatant;
+/** UN porteur d'une bande : qui teste, et la LIGNE de son jet — deux régimes EXCLUSIFS, calqués sur
+ *  `MonoSpec` :
+ *  - `actor` : le porteur à fiche — la rangée prend son id, et sa SURFACE se déduit de lui (`surfaceRow`) ;
+ *  - `monde` : un porteur SANS fiche (l'équipage collectif, `shipCrew.porteursABord`) qui teste à une
+ *    valeur POSÉE (`LigneMonde`) — la rangée prend l'id `WORLD_STEP_OWNER`, que le socle résout déjà
+ *    (`sieges.tenuParUnHumain`, `netOwnership.seatInfluences`, `cascade.porteurDe`). */
+export type BandPorteur = BandPorteurBase & (
   /** Ligne du jet — le porteur NOMME ce qu'il teste (`test`) ou pose sa valeur (`valeur`). Omise sur
    *  une rangée à jet, la porte REFUSE : elle jouerait sur une valeur de 0 (#1657 B3-3). */
-  ligne?: BandLigne;
+  | { actor: Combatant; monde?: never; ligne?: BandLigne }
+  | { monde: true; actor?: never; ligne: LigneMonde }
+);
+interface BandPorteurBase {
   /** Difficulté de CETTE rangée, quand elle diverge de celle de la bande (allègement porté par un
    *  Talent du seul porteur). Absente : celle de la bande. */
   difficulty?: Difficulty;
@@ -877,7 +883,7 @@ function bandRow(p: BandPorteur, difficulty: Difficulty): BatchParticipant {
   const test = p.ligne?.test;
   const label = p.label ?? testSkillLabel(test ?? {});
   return {
-    id: p.actor.id,
+    id: p.monde ? WORLD_STEP_OWNER : p.actor.id,
     result: null,
     interactive: true,
     difficulty: diff,
@@ -937,7 +943,7 @@ function rowSurfacee(get: Get, r: Omit<BatchParticipant, 'interactive'>, cle: st
  */
 export function buildBand(get: Get, spec: BandRowsSpec): BuiltCascadeStep | undefined {
   const rows = spec.porteurs
-    ? spec.porteurs.map((p) => surfaceRow(get, p.actor?.id, bandRow(p, spec.difficulty)))
+    ? spec.porteurs.map((p) => { const row = bandRow(p, spec.difficulty); return surfaceRow(get, row.id, row); })
     : (spec.rows ?? []).flatMap((r) => rowSurfacee(get, r, spec.id) ?? []);
   return bandStep(spec, rows);
 }

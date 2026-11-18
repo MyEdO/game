@@ -322,6 +322,9 @@ export interface CampaignVessel {
    *  plafonné au complément nominal du type (`vehicles.json` ship.crew — `applyVesselCrewLoss`). Absent
    *  = aucune perte. #150. */
   crewLost?: number;
+  /** L'équipage PNJ, UN porteur de maladies collectif sans fiche ; lu et écrit par `porteursABord` (`shipCrew.ts`), vidé
+   *  quand l'effectif PNJ tombe à 0 (`applyVesselCrewLoss`). MDG 14 l.172, l.208-209, l.230-232. Absent = équipage sain. #4243 */
+  porteurDeLEquipage?: Pick<import('../engine/disease').PorteurDeMaladies, 'diseases' | 'regimeDeBord'>;
   /** #216 — Équipage SALARIÉ embauché (barème `crew-roles.json`). Absent/vide = aucun équipage salarié
    *  = aucune paie prélevée à l'entretien hebdomadaire. */
   crew?: import('../engine/crewMorale').CrewHire[];

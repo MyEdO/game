@@ -14,7 +14,7 @@ import { startCascade } from './cascade';
 import { ownsLocal } from './netOwnership';
 import { seatOwns } from './sieges';
 import { setCadence } from '../engine/cadence';
-import type { CascadeStep } from './pendings';
+import { WORLD_STEP_OWNER, type CascadeStep } from './pendings';
 import type { Combatant } from '../engine/types';
 import { cleDeFixture } from './noyau.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
@@ -148,6 +148,41 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
       id: 'vide', kind: cleDeFixture('k'), label: fixtureText('L'), title: 'T', purpose: 'test', difficulty: 'intermediaire', porteurs: [],
     });
     expect(banc.getState().pendingCascade).toBeNull();
+  });
+
+  it('#4243 — porteur MONDE (sans fiche) : la rangée se monte à sa valeur posée, sans `test`, et le siège qui tient le monde la joue', () => {
+    const h1 = hero('H1');
+    deuxSieges([h1]);
+    setCadence('manuel');
+    openBand(banc.getState, banc.setState, {
+      id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
+      difficulty: 'intermediaire',
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'endurance' } } }, { monde: true, ligne: { valeur: 40 } }],
+    });
+    const step = etapeCourante();
+    expect(step.groupOwner, 'un héros et le monde : deux porteurs, bande de GROUPE').toBe(true);
+    const monde = step.participants!.find((p) => p.id === WORLD_STEP_OWNER)!;
+    expect(monde.target, 'valeur posée 40, Difficulté intermédiaire +0').toBe(40);
+    expect(monde.interactive, 'l’hôte tient le monde sans siège MJ : la rangée est à jouer').toBe(true);
+    expect(monde.result).toBeNull();
+    expect(seatOwns(banc.getState(), 0, WORLD_STEP_OWNER)).toBe(true);
+  });
+
+  it('#4243 — porteur MONDE seul, cadence AUTO : l’étape appartient au monde et sa rangée naît roulée à 40', () => {
+    deuxSieges([hero('H1')]);
+    setCadence('rapide');
+    openBand(banc.getState, banc.setState, {
+      id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
+      difficulty: 'intermediaire',
+      porteurs: [{ monde: true, ligne: { valeur: 40 } }],
+    });
+    const step = etapeCourante();
+    expect(step.actorId).toBe(WORLD_STEP_OWNER);
+    expect(modalOwnerOf(banc.getState())).toBe(WORLD_STEP_OWNER);
+    const [monde] = step.participants!;
+    expect(monde.interactive).toBe(false);
+    expect(monde.result!.target).toBe(40);
+    expect(typeof monde.result!.roll).toBe('number');
   });
 
   it('les DEUX entrées s’excluent au TYPE (porteurs XOR rangées montées)', () => {
