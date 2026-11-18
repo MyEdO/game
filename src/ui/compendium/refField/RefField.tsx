@@ -644,13 +644,21 @@ function ListRefField(
 }
 
 /** Liste d'ids NUS d'un champ `refs` : le catalogue est celui que désigne l'élément de son nœud
- *  (`cfgDeLaListe`) ; une liste vidée rend `undefined` (clé ôtée). */
+ *  (`cfgDeLaListe`) ; une liste vidée rend `undefined` (clé ôtée). Une rangée ajoutée et pas encore
+ *  choisie est un BROUILLON du contrôle : seuls les ids choisis partent dans la donnée. */
 export function ListeDIds({ noeud, label, title, value, onChange }: {
   noeud: unknown; label: string; title?: string; value: readonly string[] | undefined; onChange: (ids: string[] | undefined) => void;
 }) {
+  const [brouillons, setBrouillons] = useState(0);
   const cfg = cfgDeLaListe(noeud);
   if (!cfg) throw new Error(`ListeDIds « ${label} » : l'élément du nœud n'est pas une feuille \`idDe\` fermée.`);
-  return <RefField cfg={cfg} noeud={noeud} label={label} title={title} value={value ?? []} onChange={(v) => { const ids = v as string[]; onChange(ids.length ? ids : undefined); }} />;
+  const affichees = [...(value ?? []), ...Array.from({ length: brouillons }, () => '')];
+  return <RefField cfg={cfg} noeud={noeud} label={label} title={title} value={affichees} onChange={(v) => {
+    const rangees = v as string[];
+    const ids = rangees.filter((id) => id !== '');
+    setBrouillons(rangees.length - ids.length);
+    if (ids.length !== (value ?? []).length || ids.some((id, i) => id !== value?.[i])) onChange(ids.length ? ids : undefined);
+  }} />;
 }
 
 /** Nom d'AUTEUR de la source de chaque registre désigné, affiché au sélecteur. */

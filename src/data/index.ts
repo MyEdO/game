@@ -9,6 +9,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { listeEt, t, type MsgKey } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
+  catalogueSpecs,
   dansLaSousListe,
   espaceDe,
   idDe,
@@ -16,6 +17,7 @@ import {
   idsDeLaSousListe,
   lireLEspace,
   porteLeMarqueur,
+  type FeuilleDeSpec,
   type FeuilleDId,
   type Id,
   type RefASpecialisation,
@@ -61,6 +63,7 @@ import { libelleDeValeur } from './schemas/grammaire/meta';
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { z } from 'zod';
 import type { traitCapabilitiesSchema } from './schemas/defs/traits';
+import type { authoredStakeSchema } from './schemas/grammaire/mecanique';
 import type { TriggeredEffect } from '../engine/flowCore';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
@@ -363,55 +366,36 @@ export interface StakeKey {
   entryCategory?: string;
 }
 
-/** RÉFÉRENCE d'enjeu vers un DATASET : la clé de la donnée + les valeurs CALCULÉES par le flux pour
- *  ses trous. Seule forme ouverte au MOTEUR — un littéral de texte au call-site n'y compile pas
- *  (arbitrage Z5 appliqué à la zone d'enjeu), les producteurs passent par la porte fail-closed
- *  `stakeRef`, sous ses signatures typées par famille (`combatStakeRef`, `flowStakeRef`, `nightStakeRef`,
- *  `voyageStakeRef`, `activityStakeRef`, `weatherStakeRef`, `stateRecoveryStakeRef`). */
+/** RÉFÉRENCE d'enjeu vers un DATASET, forme du MOTEUR : la clé de la donnée + les valeurs CALCULÉES par le flux
+ *  pour ses trous. Un document n'en écrit que la clé (`catalogStakeSchema`, `grammaire/mecanique.ts`). Seule
+ *  forme ouverte au MOTEUR — un littéral de texte au call-site n'y compile pas (arbitrage Z5 appliqué à la zone
+ *  d'enjeu), les producteurs passent par la porte fail-closed `stakeRef`, sous ses signatures typées par famille
+ *  (`combatStakeRef`, `flowStakeRef`, `nightStakeRef`, `voyageStakeRef`, `activityStakeRef`, `weatherStakeRef`,
+ *  `stateRecoveryStakeRef`). */
 export interface CatalogStake {
   key: StakeKey;
   values?: Record<string, string | number>;
-  authored?: never;
-  from?: never;
 }
 
-/** ENJEU AUTHORÉ par un DOCUMENT DE CONTENU (Flow d'une scène/campagne) — arbitrage user 2026-08-12
- *  (#1262) : « l'enjeu d'un Flow authoré s'AUTHORE DANS LA SCÈNE — champ stake dans l'éditeur de Flow,
- *  comme le reste du contenu de campagne ». Un jet de scène met en jeu SA situation, pas une règle du
- *  moteur : son enjeu voyage avec le document (JSON portable), il ne pointe aucun dataset app-owned —
- *  une réf de catalogue y serait pendante à la première campagne tierce.
+/** ENJEU AUTHORÉ par un DOCUMENT DE CONTENU (Flow d'une scène/campagne), la sortie d'`authoredStakeSchema` —
+ *  arbitrage user 2026-08-12 (#1262) : « l'enjeu d'un Flow authoré s'AUTHORE DANS LA SCÈNE — champ stake dans
+ *  l'éditeur de Flow, comme le reste du contenu de campagne ». Son enjeu voyage avec le document (JSON
+ *  portable), il ne pointe aucun dataset app-owned.
  *
  *  RÉSERVÉ au contenu : `src/noyau`/`src/engine` n'en écrivent aucun (garde
- *  `cascade-step-stake-guard.test.ts`, volet « l'enjeu AUTHORÉ reste au contenu ») — c'est la porte
- *  ouverte par l'arbitrage, pas une amnistie du texte au call-site. Aucun foyer de règle : le
+ *  `cascade-step-stake-guard.test.ts`, volet « l'enjeu AUTHORÉ reste au contenu »). Aucun foyer de règle : le
  *  document ne renvoie à aucune fiche Codex. */
-export interface AuthoredStake {
-  authored: string;
-  source?: SourceRef;
-  adapteDe?: SourceRef;
-  key?: never;
-  values?: never;
-  from?: never;
-}
+export type AuthoredStake = z.output<typeof authoredStakeSchema>;
 
-/** ENJEU DÉRIVÉ DU PORTEUR — arbitrage user 2026-08-12 (#1262), verbatim au ticket : « Le socle dérive
- *  l'enjeu de l'entité porteuse ("ce qui se joue : [sort/objet X]" + renvoi Codex — même motif que
- *  l'arbitrage Activités de mer : l'enjeu EST l'entité choisie). Zéro saisie […]. Un auteur PEUT
- *  toujours surcharger par un texte authoré. »
+/** ENJEU DÉRIVÉ DU PORTEUR, forme du MOTEUR — arbitrage user 2026-08-12 (#1262), verbatim au ticket : « Le socle
+ *  dérive l'enjeu de l'entité porteuse ("ce qui se joue : [sort/objet X]" + renvoi Codex — même motif que
+ *  l'arbitrage Activités de mer : l'enjeu EST l'entité choisie). Zéro saisie […]. Un auteur PEUT toujours
+ *  surcharger par un texte authoré. »
  *
- *  C'est la forme des jets exigés par une ENTITÉ (un `FlowTest` authoré en donnée app-owned : sort,
- *  consommable, Trait, Talent, Atout, État, symptôme, manœuvre) — l'entité qui exige le jet EST ce qui
- *  se joue, et elle porte déjà sa règle en `desc` verbatim dans sa fiche Codex.
- *
- *  IDS SEULEMENT (`EffectSource` = `{kind, id}`) : le libellé est résolu À L'AFFICHAGE par
- *  `resolveStake`. La forme est CALCULÉE au montage de l'étape par le socle (`derivedStake`), jamais
- *  authorée en JSON — aucune migration de sauvegarde : une étape déjà persistée garde la forme sous
- *  laquelle elle a été mintée. */
+ *  IDS SEULEMENT (`EffectSource` = `{kind, id}`) : le libellé est résolu À L'AFFICHAGE par `resolveStake`. La
+ *  forme est CALCULÉE au montage de l'étape par le socle (`derivedStake`), jamais authorée en JSON. */
 export interface DerivedStake {
   from: EffectSource;
-  key?: never;
-  values?: never;
-  authored?: never;
 }
 
 /** ENJEU d'une entrée de jet (étape de cascade, pending, `FlowTest`) : réf de dataset, texte authoré
@@ -650,7 +634,7 @@ function stakeRef<D extends StakeDataset>(
 }
 
 /** Enjeu d'une étape de cascade de VOYAGE (`stakeRef`) : les valeurs remplissent les trous du gabarit. */
-export function voyageStakeRef(id: VoyageStakeId, values?: Record<string, string | number>): StakeRef {
+export function voyageStakeRef(id: VoyageStakeId, values?: Record<string, string | number>): CatalogStake {
   return stakeRef('voyage', id, { values });
 }
 
@@ -659,13 +643,13 @@ export function voyageStakeRef(id: VoyageStakeId, values?: Record<string, string
 export function combatStakeRef(
   id: CombatStakeId,
   opts?: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> },
-): StakeRef {
+): CatalogStake {
   return stakeRef('combat', id, opts);
 }
 
 /** Enjeu d'une étape de NUIT (`stakeRef`) : le TYPE ferme l'id (`NightStakeId`, généré) en PREMIER
  *  rideau, le throw est le second. `entryId` = le symptôme joué par une étape de maladie. */
-export function nightStakeRef(id: NightStakeId, entryId?: string): StakeRef {
+export function nightStakeRef(id: NightStakeId, entryId?: string): CatalogStake {
   return stakeRef('nuit', id, { entryId });
 }
 
@@ -678,19 +662,19 @@ export function hasActivityStake(activityId: string): boolean {
 
 /** Enjeu d'une ACTIVITÉ (#1117 L3, `stakeRef`) : le renvoi vise le foyer déclaré, à défaut la fiche
  *  Codex de l'Activité elle-même. */
-export function activityStakeRef(activityId: string): StakeRef {
+export function activityStakeRef(activityId: string): CatalogStake {
   return stakeRef('activite', activityId);
 }
 
 /** Enjeu de MÉTÉO (Test de Résistance de traversée, `stakeRef`) : l'appelant n'appelle QUE si la
  *  condition déclare un Test (`weatherResistanceTest`). */
-export function weatherStakeRef(weatherId: string): StakeRef {
+export function weatherStakeRef(weatherId: string): CatalogStake {
   return stakeRef('meteo', weatherId);
 }
 
 /** Enjeu de RÉCUPÉRATION d'un État (`stakeRef`) : l'appelant n'appelle QUE pour un État qui déclare
  *  `recover` (`etats.json`), dont `enjeu` est exigé au schéma. */
-export function stateRecoveryStakeRef(etatId: string): StakeRef {
+export function stateRecoveryStakeRef(etatId: string): CatalogStake {
   return stakeRef('etat', etatId);
 }
 
@@ -703,7 +687,7 @@ export function flowStakeRef(id: FlowStakeId, opts: { entryId?: string; values: 
 export function flowStakeRef(
   id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
-): CatalogStake {
+): CatalogStake & { key: { dataset: 'flux' } } {
   return stakeRef('flux', id, opts);
 }
 
@@ -721,7 +705,7 @@ function derivedEntry(from: EffectSource): { category: string; entry: { label: s
  *  (`combatStakeRef`…) et du document (`AuthoredStake`). Rend `undefined` quand la source manque ou
  *  ne nomme aucune fiche : le producteur n'a alors rien à dire, et il vaut mieux se taire qu'inventer.
  *  PURE : aucun texte ici — seuls les IDS entrent dans la référence. */
-export function derivedStake(from: EffectSource | undefined): StakeRef | undefined {
+export function derivedStake(from: EffectSource | undefined): DerivedStake | undefined {
   return from && derivedEntry(from) ? { from: { kind: from.kind, id: from.id } } : undefined;
 }
 
@@ -733,8 +717,8 @@ export function derivedStake(from: EffectSource | undefined): StakeRef | undefin
  *  enjeu DÉRIVÉ parle si son entité porteuse a toujours sa fiche. PUR. */
 export function stakeSpeaks(stake: StakeRef | undefined): boolean {
   if (!stake) return false;
-  if (stake.from != null) return !!derivedEntry(stake.from);
-  return stake.authored != null ? !!stake.authored.trim() : true;
+  if ('from' in stake) return !!derivedEntry(stake.from);
+  return 'authored' in stake ? !!stake.authored.trim() : true;
 }
 
 /** RÉSOLVEUR UNIQUE d'enjeu (#1117) — la seule porte qui transforme une `StakeRef` en texte affichable.
@@ -749,12 +733,12 @@ export function stakeSpeaks(stake: StakeRef | undefined): boolean {
  *  (l'étape ne porte que des ids) et sa fiche est le foyer de règle. La porte reste UNIQUE : la
  *  surface ne connaît toujours que `resolveStake`. */
 export function resolveStake(ref: StakeRef): ResolvedStake {
-  if (ref.from != null) {
+  if ('from' in ref) {
     const found = derivedEntry(ref.from);
     if (!found) throw new Error(`resolveStake(dérivé '${ref.from.kind}/${ref.from.id}') : entité porteuse introuvable — une surface qui LANCE dit ce qu'elle met en jeu`);
     return { text: `Ce qui se joue : ${found.entry.label}.`, rule: { category: found.category, id: ref.from.id } };
   }
-  if (ref.authored != null) {
+  if ('authored' in ref) {
     if (!stakeSpeaks(ref)) throw new Error('resolveStake(authoré) : enjeu vide — un Flow qui LANCE dit ce qu\'il met en jeu');
     return { text: ref.authored };
   }
@@ -2495,6 +2479,12 @@ export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type'
   const entrees = entreesDuType(type);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
   return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
+}
+/** Les choix `{ id, label }` d'une feuille `specDe(type, id)` : le catalogue de spécialisations de l'entrée
+ *  (`catalogueSpecs`), chacune à son libellé (`specLabel`). */
+export function choixDeLaSpec({ type, id }: FeuilleDeSpec): { id: string; label: string }[] {
+  const categorie = datasetDeLEspaceDuType(type) ?? '';
+  return catalogueSpecs(type, id).map((s) => ({ id: s, label: specLabel(categorie, id, s) }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */

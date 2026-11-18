@@ -2297,7 +2297,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
     const st = apply('equipage-progression', 2, true)?.insert?.find((s) => s.kind === 'mer-degagement-debris');
     expect(st).toBeTruthy();
-    expect(st?.stake?.key?.kind).toBe('mer-degagement-debris');
+    expect(st?.stake).toHaveProperty('key.kind', 'mer-degagement-debris');
     expect(resolveStake(st!.stake!).text).toContain(`total de ${need} DR`); // MDG 13 l.491
   });
 

@@ -3,7 +3,7 @@ import { nomDuSiege } from '../noyau/sieges';
 import { useGame } from '../state/store';
 import { interludeEventDie, interludeEventFor } from '../data/interludeEvents';
 import { formatDice } from '../engine/dice';
-import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
+import { formatMoney, formuleDeRevenus, libelleDuStatut, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
 import { interludeCatalog, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
@@ -568,7 +568,7 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
         <CharFrame c={hero} variant="identity" size="sm" />
         <span className="interlude-left">
           {!canDrive && <span className="interlude-owner"><Icon id="navigation/proprietaire-du-siege" size="sm" /> {ownerName ?? 'autre joueur'} · </span>}
-          {t('interlude.statut', { echelon: libelleDEchelon(status.tier), standing: status.standing })}
+          {t('interlude.statut', { statut: libelleDuStatut(status) })}
         </span>
       </h3>
       {ev

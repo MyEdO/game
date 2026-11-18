@@ -41,7 +41,7 @@ import {
   libelleDeClasse,
   libelleOuAbsence,
 } from '../data';
-import { heroStatusLabel } from './CharCard';
+import { actorStatus } from '../engine/social';
 import { MetalStatus } from './MetalStatus';
 import { CodexRef } from './compendium/CodexRef';
 import { CharValue } from './CharValue';
@@ -205,7 +205,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
               </div>
               <div className="sheet-idrow">
                 <span className="sheet-idrow-label">Statut</span>
-                <span className="sheet-idrow-value"><MetalStatus status={heroStatusLabel(hero)} /></span>
+                <span className="sheet-idrow-value"><MetalStatus status={actorStatus(hero)} /></span>
               </div>
               <div className="sheet-idrow">
                 <span className="sheet-idrow-label">Bourse</span>

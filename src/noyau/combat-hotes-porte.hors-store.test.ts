@@ -307,6 +307,6 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     // L'enjeu du mint est la référence de règle descendue à la ligne tirée (`stakeAtTableRow`), au champ près.
     const decl = st.table!;
     expect(st.stake).toEqual(stakeAtTableRow(combatStakeRef('structure-critique'), { ...decl, result: undefined } as never, decl.result!));
-    expect(st.stake!.key!.entryId, 'l’enjeu descend à la LIGNE jouée, pas au `kind`').toBeTruthy();
+    expect(st.stake, 'l’enjeu descend à la LIGNE jouée, pas au `kind`').toMatchObject({ key: { entryId: expect.stringMatching(/./) } });
   });
 });

@@ -16,7 +16,6 @@ import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpP
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import {
   ARG_TEMPLATE,
-  CHAMPS_DE_DECISION,
   INDICE_TEMPLATE,
   flowHasFreeAttack,
   walkFlow,
@@ -1143,7 +1142,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('Talent du groupe', conditionDeTalentSchema),
       variante('Carrière du groupe', conditionDeCarriereSchema),
       variante('Espèce du groupe', conditionDEspeceSchema),
-      variante('Statut du groupe ≥', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.status')),
+      variante('Statut du groupe ≥', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" }, who: { label: "acteur"  } }), 'conditionDe', 'condition.status')),
       variante('État du porteur (comparaison)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.compare')),
       variante('Marge (DR)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.slThreshold')),
       variante('Localisation touchée', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.location')),
@@ -1178,7 +1177,6 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
 export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
 
-/** `FlowTest` (`engine/flowCore.ts`) — jet différé (→ modale), tout le métier hors branches. */
 /** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
  *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
@@ -1235,25 +1233,52 @@ export const menaceSchema = specFermeeDe('talent', 'resistance');
  *  forme partagée du Test de flux et du Test étendu, sans refine. */
 export const decisionDuTestSchema = nommerChamps(z.strictObject({
   easierIf: facilitationSchema.optional(),
+  /** MDG 15 l.197, l.231 */
   gate: conditionSchema.optional(),
+  /** LDB 16 l.54 */
   difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
 }), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" } });
 
-export const flowTestSchema = nommerChamps(z.strictObject({
-  /** ENJEU du Test (#1117) — cf. `stakeRefSchema`. */
-  stake: stakeRefSchema.optional(),
+/** Le Test qui PEUT porter une décision, tel que le DÉCLARENT `jetSchema` et `decisionDuTestSchema` : la cible de
+ *  `src/decision-du-test-guard.test.ts`. */
+export type JetDecidable = z.output<typeof jetSchema> & z.output<typeof decisionDuTestSchema>;
+
+/** Test OPPOSÉ d'un Test de donnée (LDB 62 l.235). */
+const opposeSchema = nommerChamps(z
+  .strictObject({
+    attacker: charKeySchema,
+    attackerSkill: idDe('skill').optional(),
+    attackerLabel: z.string().optional(),
+    /** LDB 62 l.280 */
+    bonusSL: z.number().optional(),
+    /** LDB 85 */
+    attackerBonusSL: z.number().optional(),
+    /** LDB 62 l.235, l.280 ; LDB 12 l.160 */
+    defenderMustWin: z.boolean().optional(),
+  }), { attacker: { label: "attaquant"  }, attackerSkill: { label: "Compétence de l’attaquant" , texte: { regime: "technique"} }, attackerLabel: { label: "nom de l’attaquant" , texte: { regime: "technique"} }, bonusSL: { label: "bonus de DR" }, attackerBonusSL: { label: "bonus de DR de l’attaquant" }, defenderMustWin: { label: "le défenseur doit l’emporter" } });
+
+/** Les champs d'un Test de donnée qui précèdent sa décision. */
+const champsDuTestAvantLaDecision = {
   ...jetSchema.shape,
+  /** LDB 18 */
   sense: senseSchema.optional(),
   /** MDG 15 l.144-145 */
   crewTestType: idDe('crewTestType').optional(),
   requireSL: z.number().optional(),
   label: z.string().optional(),
   tool: z.string().optional(),
+  /** LDB 21 */
   vsGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
+  /** LDB 08 */
   vsStatus: statutSchema.optional(),
+  /** LDB 08 l.63 */
   begging: z.boolean().optional(),
+  /** MSRC 15 l.149-159 */
   vsCapricieux: z.boolean().optional(),
-  ...decisionDuTestSchema.shape,
+};
+
+/** Les champs d'un Test de donnée qui suivent sa décision. */
+const champsDuTestApresLaDecision = {
   argDifficulty: z.boolean().optional(),
   onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
   exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
@@ -1263,20 +1288,17 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   noSupport: z.boolean().optional(),
   /** Tag MENACE du talent « Résistance (Menace) » (LDB 10 l.1016-1020). */
   menace: menaceSchema.optional(),
-  opposed: nommerChamps(z
-    .strictObject({
-      attacker: charKeySchema,
-      attackerSkill: idDe('skill').optional(),
-      attackerLabel: z.string().optional(),
-      bonusSL: z.number().optional(),
-      attackerBonusSL: z.number().optional(),
-    }), { attacker: { label: "attaquant"  }, attackerSkill: { label: "Compétence de l’attaquant" , texte: { regime: "technique"} }, attackerLabel: { label: "nom de l’attaquant" , texte: { regime: "technique"} }, bonusSL: { label: "bonus de DR" }, attackerBonusSL: { label: "bonus de DR de l’attaquant" } })
-    .optional(),
-}).superRefine((v, ctx) => {
-  // UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
-  // calculer : `testValue` rend 0 et le jet devient un auto-échec SILENCIEUX, sur une cible qui n'est
-  // la valeur de personne. Les deux peuvent coexister — une Compétence jouée sur une autre
-  // Caractéristique que la sienne (Venin : Résistance sur Endurance, `LDB 20`) est une forme RAW.
+  opposed: opposeSchema.optional(),
+};
+
+const metaDuTestAvantLaDecision: MetaDesChamps<typeof champsDuTestAvantLaDecision> = { ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" } };
+const metaDuTestApresLaDecision: MetaDesChamps<typeof champsDuTestApresLaDecision> = { argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } };
+
+/** UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
+ *  calculer : `testValue` rend 0 et le jet devient un auto-échec SILENCIEUX, sur une cible qui n'est
+ *  la valeur de personne. Les deux peuvent coexister — une Compétence jouée sur une autre
+ *  Caractéristique que la sienne (Venin : Résistance sur Endurance, `LDB 20`) est une forme RAW. */
+function nommerCeQueTesteLeJet(v: { stake?: unknown; skill?: unknown; characteristic?: unknown; crewTestType?: unknown }, ctx: z.RefinementCtx): void {
   if (v.crewTestType) {
     if (!v.stake) {
       ctx.addIssue({ code: 'custom', path: ['stake'], message: 'Test d’équipage SANS enjeu : le Test nomme ce qu’il met en jeu (`stake`).' });
@@ -1296,15 +1318,34 @@ export const flowTestSchema = nommerChamps(z.strictObject({
     message: 'jet SANS compétence ni caractéristique : la porte le jouerait sur une valeur de 0 '
       + '(auto-échec muet). Nommer `skill` (id de compétence), `characteristic`, ou `crewTestType`.',
   });
-}), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, ...metaDesChamps(decisionDuTestSchema, { exigees: true }), argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } });
+}
+
+/** Le Test de DONNÉE, la forme UNIQUE du jet en donnée, avec l'ENJEU (#1117) qu'un document peut lui écrire et
+ *  la `decision` qu'il porte : celle de `decisionDuTestSchema`, ou aucune (`testFixeSchema`). */
+function testDeDonnee<E extends z.ZodType, D extends z.core.$ZodShape>(enjeu: E, decision: D, metaDeLaDecision: MetaDesChamps<D>) {
+  return marquerProduit(nommerChamps(
+    z.strictObject({ stake: enjeu.optional(), ...champsDuTestAvantLaDecision, ...decision, ...champsDuTestApresLaDecision }).superRefine(nommerCeQueTesteLeJet),
+    { stake: { label: "enjeu" }, ...metaDuTestAvantLaDecision, ...metaDeLaDecision, ...metaDuTestApresLaDecision },
+  ), 'testDeDonnee', 'test');
+}
+
+/** Le Test de flux : il porte sa décision (`decisionDuTestSchema`), que `resoudreFlowTest` lit seule. */
+export const flowTestSchema = testDeDonnee(stakeRefSchema, decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
+
+/** Le Test FIXE : sans aucun champ de décision, sa Difficulté est celle qu'il déclare. La forme du Test d'un
+ *  porteur qui la fixe (`porteurDeTestFixe`, `noeudTestFixe`). */
+export const testFixeSchema = testDeDonnee(stakeRefSchema, {}, {});
+
+/** Le Test d'un document de SCÈNE : son enjeu est la phrase que le document écrit (`authoredStakeSchema`,
+ *  arbitrage user 2026-08-12, #1262), jamais une clé du catalogue du moteur. */
+export const testDeSceneSchema = testDeDonnee(authoredStakeSchema, decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
 
 
-/** Champ que `flowTestSchema` laisse FACULTATIF et qu'un porteur peut exiger. */
+/** Champ que le Test de donnée (`testDeDonnee`) laisse FACULTATIF et qu'un porteur peut exiger. */
 type ChampExigibleDuTest = 'skill' | 'difficulty';
 
 /** RESSERREMENT, au PORTEUR, du Test qu'il compose par identité sous sa clé `test` : les `champs` que le
- *  nœud partagé laisse facultatifs y sont exigés. Un clone resserré du nœud perdrait sa pose
- *  (`interne/concepts.ts`) ; le `superRefine` du porteur la garde. */
+ *  nœud partagé laisse facultatifs y sont exigés. */
 function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
   return (porteur: object, ctx: z.RefinementCtx): void => {
     const test: unknown = Reflect.get(porteur, 'test');
@@ -1315,33 +1356,14 @@ function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
   };
 }
 
-/** Refuse au Test de `porteur` tout champ de DÉCISION (`CHAMPS_DE_DECISION`) : c'est le porteur qui la tient. */
-function refuserLaDecision(porteur: object, ctx: z.RefinementCtx, raison: string): void {
-  const test: unknown = Reflect.get(porteur, 'test');
-  if (typeof test !== 'object' || test === null) return;
-  for (const champ of CHAMPS_DE_DECISION)
-    if (Reflect.get(test, champ) !== undefined)
-      ctx.addIssue({ code: 'custom', path: ['test', champ], message: `Test : \`${champ}\` refusé — ${raison}` });
-}
-
-/** Le Test que son PORTEUR fixe (`JetFixe`, `engine/flowCore.ts`) : les `champs` exigés (`exigerDuTest`),
- *  aucun champ de décision — sa Difficulté est celle qu'il déclare. */
-function fixerLeTest(...champs: readonly ChampExigibleDuTest[]) {
-  const exiger = exigerDuTest(...champs);
-  return (porteur: object, ctx: z.RefinementCtx): void => {
-    exiger(porteur, ctx);
-    refuserLaDecision(porteur, ctx, 'ce porteur fixe sa Difficulté, il ne la décide pas.');
-  };
-}
-
-/** Le `porteur` dont le Test fixe les `champs` (`fixerLeTest`), sa sortie resserrée d'autant (`JetFixe`, `engine/flowCore.ts`) :
- *  le prédicat ne se joue que sur un porteur sans faute, dont `fixerLeTest` a vérifié le Test. Le porteur est un nœud
- *  qui compose `flowTestSchema` sous `test`, ou l'entrée d'un document (`affinerEntree`) dont le schéma le compose. */
+/** Le `porteur` dont le Test FIXE (`testFixeSchema`) exige les `champs` (`exigerDuTest`), sa sortie resserrée d'autant
+ *  (`JetFixe`, `engine/flowCore.ts`) : le prédicat ne se joue que sur un porteur sans faute. Le porteur est un nœud qui
+ *  compose `testFixeSchema` sous `test`, ou l'entrée d'un document (`affinerEntree`) dont le schéma le compose. */
 export function porteurDeTestFixe<S extends z.ZodType<object>, const K extends ChampExigibleDuTest>(porteur: S, ...champs: readonly K[]) {
   type Sortie = z.output<S>;
-  type Test = z.output<typeof flowTestSchema>;
-  return porteur.superRefine(fixerLeTest(...champs)).refine(
-    (v: Sortie): v is Sortie & { test: Test & Required<Pick<Test, K>> } => {
+  type Test = z.output<typeof testFixeSchema>;
+  return porteur.superRefine(exigerDuTest(...champs)).refine(
+    (v: Sortie): v is Sortie & { test: Required<Pick<Test, K>> } => {
       const test: unknown = Reflect.get(v, 'test');
       return estObjet(test) && champs.every((c) => test[c] !== undefined);
     },
@@ -1359,8 +1381,8 @@ export const extendedTestSchema = nommerChamps(z.strictObject({
   label: z.string(),
   ...cibleEtendueSchema.shape,
   flag: z.string().optional(),
-  /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
-   *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
+  /** ENJEU du Test (#1117) — l'enjeu d'un document (`stakeRefSchema`), résolu par `resolveStake` et
+   *  affiché par la modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
   stake: stakeRefSchema.optional(),
 }), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), ...metaDesChamps(decisionDuTestSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
 
@@ -1384,11 +1406,6 @@ export interface OptionsNoeudTest {
    * `spellOps` APLATIRAIT les ops — promises quelle que soit l'issue. Le contrat les REFUSE.
    */
   readonly echecSeulServi?: boolean;
-  /**
-   * La Difficulté du nœud se décide au PORTEUR (`difficultyBySeverity` du cycle de maladie, lu par
-   * `engine/disease.ts`) : le Test ne porte aucun champ de décision (`NoeudDecideAuPorteur`).
-   */
-  readonly decisionAuPorteur?: boolean;
 }
 
 /**
@@ -1414,11 +1431,19 @@ function kindDEmbranchement(flow: Flow<unknown>): string | null {
  * par sa branche — `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
  */
 export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeudTest = {}) {
-  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test: flowTestSchema, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
-  const exige = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
-  const noeud = options.decisionAuPorteur
-    ? exige.superRefine((v, ctx) => refuserLaDecision(v, ctx, 'la Difficulté de ce nœud se décide au porteur.'))
-    : exige;
+  return noeudDeTest(flowTestSchema, branche, options);
+}
+
+/** NŒUD `test` dont le PORTEUR décide la Difficulté (`difficultyBySeverity` du cycle de maladie, lu par
+ *  `engine/disease.ts`) : son Test est FIXE (`porteurDeTestFixe`), `difficulty` exigée. */
+export function noeudTestFixe<B extends z.ZodType>(branche: B, options: Pick<OptionsNoeudTest, 'echecSeulServi'> = {}) {
+  return porteurDeTestFixe(noeudDeTest(testFixeSchema, branche, options), 'difficulty');
+}
+
+/** Le nœud `test` de `noeudTest`, sur le Test `test` : de flux, fixe, ou de scène. */
+function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema | typeof testDeSceneSchema, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
+  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
+  const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
     // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
@@ -1780,14 +1805,14 @@ function refuserLaZoneSansDuree(flow: Flow<EffectOp>, ctx: z.RefinementCtx): voi
 }
 
 /** `Flow<E>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
- *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
-export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
+ *  par sa feuille `effet`, sa `Condition`, le coût d'Avantage de son `choix` et le Test de ses nœuds `test`. */
+export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>, test: typeof flowTestSchema | typeof testDeSceneSchema): z.ZodType<Flow<E>> {
   const flow: z.ZodType<Flow<E>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
       variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('sequence'), etapes: z.array(flow) }), { kind: { label: "type"  }, etapes: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
       variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('effet'), effet: feuille }), { kind: { label: "type"  }, effet: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
       variante('Si', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('si'), condition, alors: flow, sinon: flow.optional() }), { kind: { label: "type"  }, condition: { label: "condition" }, alors: { label: "alors" }, sinon: { label: "sinon" } }), 'arbreDeFlow', 'flow.if')),
-      variante('Test', noeudTest(flow)),
+      variante('Test', noeudDeTest(test, flow, {})),
       variante('Choix', proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choix'),
         coutEnAvantage: coutDAvantage.optional(),
@@ -1877,7 +1902,7 @@ function construire(regimes: Regimes) {
 
   // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
   // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
-  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE));
+  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE), flowTestSchema);
 
   const triggeredEffect = effetDeclencheSur(flow);
 
@@ -1897,10 +1922,10 @@ function construire(regimes: Regimes) {
      *  déduite de son id. Une entrée sans `mount` ne laisse aucune séquelle. */
     mount: marquerProduit(nommerChamps(z.strictObject({
       /** Test du CAVALIER, sous peine de chute de `fallM` mètres (l.166/l.171). */
-      riderTest: marquerProduit(nommerChamps(z.strictObject({
-        test: flowTestSchema,
+      riderTest: porteurDeTestFixe(marquerProduit(nommerChamps(z.strictObject({
+        test: testFixeSchema,
         fallM: z.number(),
-      }).superRefine(fixerLeTest('skill', 'difficulty')), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
+      }), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest'), 'skill', 'difficulty').optional(),
       /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
       ridingPenalty: z.number().optional(),
       /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */

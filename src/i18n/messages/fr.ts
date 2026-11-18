@@ -1511,7 +1511,7 @@ export const fr = {
   'interlude.fx.moinsUneActivite': '−1 Activité',
   'interlude.fx.chance': '+{n} Point{s} de Chance',
   'interlude.fx.revenus': 'Revenus {sign}{pct} %',
-  'interlude.statut': 'Statut {echelon} {standing}',
+  'interlude.statut': 'Statut {statut}',
   'interlude.choisir.activite': 'Choisissez une Activité à gauche pour voir sa description et le jet à faire.',
   'interlude.choisir.ouvrage': 'Choisissez un équipement du catalogue.',
   'interlude.choisir.depot': 'Choisissez le dépôt : investir, planquer ou Mécénat.',

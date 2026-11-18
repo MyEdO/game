@@ -3,7 +3,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { cibleEtendueSchema, difficultySchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { flowTestSchema, porteurDeTestFixe } from '../grammaire/mecanique';
+import { testFixeSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'sea-perils.json';
@@ -32,7 +32,7 @@ const seaHazardDef = nommerChamps(z.strictObject({
       }),
     )
     .optional(),
-  freeTest: nommerChamps(porteurDeTestFixe(z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape }), 'difficulty'), {
+  freeTest: nommerChamps(porteurDeTestFixe(z.strictObject({ test: testFixeSchema, ...cibleEtendueSchema.shape }), 'difficulty'), {
     test: { label: 'Test' },
     ...metaDesChamps(cibleEtendueSchema, { exigees: true }),
   }).optional(),
@@ -96,7 +96,7 @@ const champs = {
   detroits: z.array(straitDef),
   /** L'espace des tourbillons : le `tourbillon` d'une op `perilDeMer` y résout. */
   tourbillons: listeCle(whirlpoolDef, 'id', { espace: {} }),
-  tourbillonSwim: nommerChamps(porteurDeTestFixe(z.strictObject({ test: flowTestSchema, source: sourceRefSchema }), 'skill', 'difficulty'), { test: { label: 'Test' }, source: { label: 'Source' } }),
+  tourbillonSwim: nommerChamps(porteurDeTestFixe(z.strictObject({ test: testFixeSchema, source: sourceRefSchema }), 'skill', 'difficulty'), { test: { label: 'Test' }, source: { label: 'Source' } }),
   gestionDesPerils: z.array(
     nommerChamps(z.strictObject({ distanceM: z.number(), spot: difficultySchema, avoid: difficultySchema, source: sourceRefSchema }), {
       distanceM: { label: 'Distance (m)' },
