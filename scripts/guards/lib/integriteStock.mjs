@@ -47,6 +47,7 @@ export const MAISON_SANS_SOURCE = [
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mer-carte-orientation-dr","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mer-eau-litres-mediane","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mer-moral-maladie-contagieuse-a-bord","maison","",""]', occurrence: 1 },
+  { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mer-resistance-de-l-equipage","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mer-naufrage-natation","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mer-reparation-temporaire-difficulte","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mer-reparation-temporaire-reparation-difficulte","maison","",""]', occurrence: 1 },
