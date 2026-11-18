@@ -22,6 +22,7 @@ import {
   repartitionWorkers,
   resumeLancement,
   separerArguments,
+  fichiersNommes,
   SENTINELLES,
   compterSentinelles,
   bilanDiagnostic,
@@ -268,17 +269,38 @@ test('mémoire disponible sous cgroup : le cache de fichiers est disponible, bor
 
 test('invariant mémoire : sous le minimum refus, chaque admission couvre les parents et workers', () => {
   for (const [regime, empreinte] of Object.entries(EMPREINTES_WORKER_MO)) {
-    for (let cpus = 1; cpus <= 32; cpus++) {
-      for (let memoire = 1000; memoire <= 64000; memoire += 250) {
-        const c = capacite(cpus, memoire, regime)
-        const minimum = PARENT_MO + Math.min(MINIMUM_WORKERS, workersServis(cpus)) * empreinte
-        assert.equal(c.refus, memoire < minimum ? 'MEMOIRE_INSUFFISANTE' : null)
-        if (c.refus) continue
-        assert.ok(c.parents * PARENT_MO + workersServis(c.servis) * empreinte <= memoire)
-        assert.ok(workersServis(c.servis) <= workersServis(cpus))
+    for (const fichiers of [1, 2, 3, Infinity]) {
+      for (let cpus = 1; cpus <= 32; cpus++) {
+        for (let memoire = 1000; memoire <= 64000; memoire += 250) {
+          const c = capacite(cpus, memoire, regime, fichiers)
+          const minimum = PARENT_MO + Math.min(MINIMUM_WORKERS, workersServis(cpus), fichiers) * empreinte
+          assert.equal(c.refus, memoire < minimum ? 'MEMOIRE_INSUFFISANTE' : null)
+          if (c.refus) continue
+          assert.ok(c.parents * PARENT_MO + workersServis(c.servis) * empreinte <= memoire)
+          assert.ok(workersServis(c.servis) <= workersServis(cpus))
+        }
       }
     }
   }
+})
+
+test('admission d’un lancement d’UN fichier : un worker, minimum d’un parent et d’un worker ; la suite garde le sien (#4409)', () => {
+  const lot = { cpus: 4, memoireMo: 4500, regime: 'lot', empreinteMo: 1973, servis: 2, portes: 1, parents: 1, borne: 'mémoire' }
+  // Mémoire de `suite 1/3` en file de fusion : 4 290 à 4 768 Mo disponibles.
+  assert.deepEqual(capacite(4, 4500, 'lot', 1), { ...lot, refus: null, minimumMo: 3435 })
+  assert.deepEqual(capacite(4, 4500, 'lot'), { ...lot, refus: 'MEMOIRE_INSUFFISANTE', minimumMo: 5408 })
+  assert.deepEqual(capacite(4, 4500, 'lot', 2), { ...lot, refus: 'MEMOIRE_INSUFFISANTE', minimumMo: 5408 })
+  assert.equal(capacite(4, 6141, 'suite').refus, 'MEMOIRE_INSUFFISANTE')
+  assert.equal(capacite(4, 6142, 'suite').refus, null)
+  assert.equal(capacite(4, 3434, 'lot', 1).refus, 'MEMOIRE_INSUFFISANTE')
+})
+
+test('fichiers lancés : le compte des filtres qui nomment chacun un fichier, sinon Infinity', () => {
+  const estFichier = (f) => f.endsWith('.ts')
+  assert.equal(fichiersNommes(['src/a.test.ts'], estFichier), 1)
+  assert.equal(fichiersNommes(['src/a.test.ts', 'src/b.test.ts'], estFichier), 2)
+  assert.equal(fichiersNommes(['src/a.test.ts', 'src/engine'], estFichier), Infinity)
+  assert.equal(fichiersNommes([], estFichier), Infinity)
 })
 
 test('régime : table à deux régimes, un régime inconnu lève', () => {
