@@ -12,6 +12,7 @@ import { DEFS_DE_DOCUMENT, noeudDeLEntree, noeudObjet, validateDataset } from '.
 import { etats } from '../../index';
 import tavernGames from '../../tavernGames.json';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const champ = (noeud: unknown, cle: string): unknown => enfantsDe(noeudObjet(noeud)).find((e) => e.cle === cle)?.noeud;
 const CLES = ['skill', 'characteristic', 'difficulty'] as const;
@@ -60,7 +61,7 @@ const TEST_MINIMAL = { skill: { id: 'athletisme' }, difficulty: 'intermediaire' 
 
 /** Chaque document qui compose `testFixeSchema`, avec le chemin de donnée de son premier Test fixe. */
 const PORTEURS_FIXES = DEFS_DE_DOCUMENT.flatMap((def) => {
-  const donnee: unknown = JSON.parse(readFileSync(new URL(`../../../../${def.root}/${def.file}`, import.meta.url), 'utf8'));
+  const donnee: unknown = JSON.parse(readFileSync(join(process.cwd(), def.root, def.file), 'utf8'));
   let chemin: readonly (string | number)[] | undefined;
   coDescendre(def.schema, donnee, (p) => {
     if (!p.noeuds.includes(testFixeSchema)) return;
