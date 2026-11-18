@@ -10,6 +10,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openBand, openChoice, choiceStep, bandStep, type BandOpenSpec, type BandPorteur } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { modalOwnerOf } from './modalArbiter';
+import { FLOWS } from './rollFlowSpecs';
 import { startCascade } from './cascade';
 import { ownsLocal } from './netOwnership';
 import { seatOwns } from './sieges';
@@ -265,6 +266,31 @@ describe('#1262 — « `result` ⇒ close » ne vaut QU’À L’OUVERTURE', () 
     const jouee = etapeCourante().participants!.find((p) => p.id === 'H1')!;
     expect(jouee.result, 'le dé est tombé').toBeTruthy();
     expect(jouee.interactive, 'la rangée reste influençable — c’est pourquoi la règle de la porte ne vaut qu’au montage').toBe(true);
+  });
+});
+
+describe('#4243 — la rangée de MONDE se JOUE comme toute rangée', () => {
+  it('cadence jour par jour, solo : le verbe générique la lance à sa valeur, aucune influence ne s’offre, la cascade avance', () => {
+    banc.setState({ party: [hero('H1')] } as never);
+    setCadence('manuel');
+    openBand(banc.getState, banc.setState, {
+      id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
+      difficulty: 'intermediaire',
+      porteurs: [{ monde: true, ligne: { valeur: 40 } }],
+    });
+    expect(etapeCourante().participants![0].interactive, 'jour par jour : la rangée est à jouer').toBe(true);
+    banc.getState().jetLancer('cascadeEnBande', WORLD_STEP_OWNER);
+    const jouee = etapeCourante().participants![0];
+    expect(jouee.result?.target, 'le dé tombe contre la valeur posée').toBe(40);
+    expect(typeof jouee.result?.roll).toBe('number');
+    const f = FLOWS.cascadeEnBande.fermetures(banc.getState, WORLD_STEP_OWNER);
+    const influences = { relancer: f.relancer, ajouterUnDR: f.ajouterUnDR, pactiser: f.pactiser, forcerLaReussite: f.forcerLaReussite, resister: f.resister, inverser: f.inverser };
+    const fermee = expect.any(String);
+    expect(influences, 'sans fiche, aucune influence de personnage : chacune est fermée').toEqual({
+      relancer: fermee, ajouterUnDR: fermee, pactiser: fermee, forcerLaReussite: fermee, resister: fermee, inverser: fermee,
+    });
+    banc.getState().jetValider('cascade');
+    expect(banc.getState().pendingCascade, 'la bande validée, la cascade avance').toBeNull();
   });
 });
 

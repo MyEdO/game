@@ -195,7 +195,6 @@ import {
   choiceStep,
   openChoice,
   pousseSi,
-  type RollRequest,
   type Consequence,
   type FreeConsLine,
 } from './rollSeam';
@@ -1502,44 +1501,33 @@ function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
   return [t('sv.progressOfDay', { miles, dr: `${progressionDR >= 0 ? '+' : ''}${progressionDR}` })];
 }
 
-/** Étapes du tonneau d'eau contaminé (MDG 14 l.209) — DEUX volets INDÉPENDANTS, dans CET ordre : (a)
- *  EXPOSITION de qui boit AUJOURD'HUI à un tonneau contaminé la veille (`sea.waterContaminated`, jamais
- *  le jour même — « pour quiconque y boit ENSUITE ») ; (b) Test de Résistance Intermédiaire (+0) de
- *  chaque porteur ACTIF d'une maladie qui DÉCLARE `contaminatesWaterBarrel` (`maladies.json`) et boit au
- *  tonneau aujourd'hui → échec CONTAMINE le tonneau (effet visible dès demain). Ne lit QUE
- *  `vessel.waterLitres` — la petite bière
- *  (`tonneau-de-petite-biere`) y échappe (l.209), jamais lue ici. */
-function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel | null): BuiltCascadeStep[] {
+/** Tonneau d'eau contaminé (MDG 14 l.209) — DEUX volets INDÉPENDANTS, chacun UNE bande dont les porteurs à bord
+ *  (`porteursABord` : PJ et équipage collectif) sont les RANGÉES : (a) EXPOSITION de qui boit AUJOURD'HUI au tonneau
+ *  contaminé la veille (`sea.waterContaminated`) ; (b) sinon, Test de Résistance de chaque porteur d'une maladie
+ *  DÉCLARÉE qui `contaminatesWaterBarrel` (`maladies.json`). Ne lit QUE `vessel.waterLitres`. MDG 14 l.209 */
+function buildBarrelSteps(get: Get, set: Set, sea: SeaVoyageState, vessel: CampaignVessel | null): BuiltCascadeStep[] {
   if (vessel?.waterLitres == null) return [];
-  const out: BuiltCascadeStep[] = [];
-  const test: RollRequest['test'] = { skill: { id: 'resistance' }, characteristic: 'endurance' };
+  const aBord = porteursABord(get, set);
   if (sea.waterContaminated) {
     const diseaseId = sea.waterContaminated.diseaseId;
-    const diff: Difficulty = diseaseDefs()[diseaseId]?.contractDifficulty ?? DIFFICULTE_PAR_DEFAUT;
-    for (const h of get().party.filter((c) => !c.dead && contractionDue(c, diseaseId))) {
-      pousseSi(out, monoStep({
-        id: `mer-tonneau-expose-${h.id}`, kind: 'mer-tonneau-expose', actor: h,
-        label: composeRollLabel(h, t('sv.waterBarrelTainted'), test), difficulty: diff,
-        rollLabel: refLabel('skills', { id: 'resistance' }),
-        ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
-        stake: voyageStakeRef('mer-tonneau-expose', { disease: diseaseLabel(diseaseId) }), meta: { diseaseId },
-      }));
-    }
-  } else {
-    for (const h of get().party) {
-      if (h.dead) continue;
-      const dz = (h.diseases ?? []).find((d) => maladieDeclaree(d) && diseaseDefs()[d.id]?.contaminatesWaterBarrel);
-      if (!dz) continue;
-      pousseSi(out, monoStep({
-        id: `mer-tonneau-contamine-${h.id}`, kind: 'mer-tonneau-contamine', actor: h,
-        label: composeRollLabel(h, t('sv.waterBarrel'), test), difficulty: 'intermediaire',
-        rollLabel: refLabel('skills', { id: 'resistance' }),
-        ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
-        stake: voyageStakeRef('mer-tonneau-contamine', { disease: diseaseLabel(dz.id) }), meta: { diseaseId: dz.id },
-      }));
-    }
+    const bande = buildBand(get, {
+      id: 'mer-tonneau-expose', kind: 'mer-tonneau-expose', label: t('sv.waterBarrelTainted'),
+      stake: voyageStakeRef('mer-tonneau-expose', { disease: diseaseLabel(diseaseId) }), meta: { diseaseId },
+      difficulty: diseaseDefs()[diseaseId]?.contractDifficulty ?? DIFFICULTE_PAR_DEFAUT,
+      porteurs: aBord.filter(({ porteur }) => contractionDue(porteur, diseaseId)).map(({ rangee }) => rangee),
+    });
+    return bande ? [bande] : [];
   }
-  return out;
+  const porteurs = aBord.flatMap(({ porteur, rangee }) => {
+    const dz = (porteur.diseases ?? []).find((d) => maladieDeclaree(d) && diseaseDefs()[d.id]?.contaminatesWaterBarrel);
+    return dz ? [{ ...rangee, meta: { diseaseId: dz.id } }] : [];
+  });
+  const bande = buildBand(get, {
+    id: 'mer-tonneau-contamine', kind: 'mer-tonneau-contamine', label: t('sv.waterBarrel'),
+    stake: voyageStakeRef('mer-tonneau-contamine', { disease: [...new Set(porteurs.map((r) => diseaseLabel(r.meta.diseaseId)))].join(', ') }),
+    difficulty: 'intermediaire', porteurs,
+  });
+  return bande ? [bande] : [];
 }
 
 /** Immunité elfe au mal de mer (MDG 14 l.215) : groupe `elfe` de l'espèce (`grantGroups`). */
@@ -1655,7 +1643,7 @@ export function continueSeaDayAfterCascade(get: Get, set: Set): void {
   // mer (l.211-222, `buildSeasicknessSteps`) + Scorbut (l.230, `buildScurvySteps`). Chaque règle porte
   // son `kind` VÉRIDIQUE — la surface de la journée se dérive des étapes elles-mêmes, plus d'un `kind`
   // de convenance qui en clé trois (#1479).
-  const diseaseSteps: BuiltCascadeStep[] = [...buildBarrelSteps(get, sea, vessel0), ...buildSeasicknessSteps(get, sea), ...buildScurvySteps(get, set)];
+  const diseaseSteps: BuiltCascadeStep[] = [...buildBarrelSteps(get, set, sea, vessel0), ...buildSeasicknessSteps(get, sea), ...buildScurvySteps(get, set)];
   if (diseaseSteps.length) {
     const resolues = openSequence(get, set, { title: 'Entretien — Maladies', icon: 'medical/infection', purpose: 'seaScorbut', steps: diseaseSteps });
     if (!resolues) return; // fenêtre ouverte : clôture reprise par `dispatchCascadeDone` (`combatSlice.ts`) → `continueSeaDayAfterScorbut`
@@ -2712,25 +2700,29 @@ export const TABLES = {
       touchParty(get, set);
       return { consequences: freeCons(lignes) };
     },
-    /** Tonneau d'eau — EXPOSITION (MDG 14 l.209) : boire au tonneau contaminé la veille
-     *  expose au Test de Contraction propre à la maladie qui l'a contaminé (même cycle générique que
-     *  Scorbut ci-dessus, difficulté lue sur `diseaseDefs()[…].contractDifficulty`). */
-    'mer-tonneau-expose': (get, set, step, hero) => {
-      if (!step.result || !hero) return;
+    /** Tonneau d'eau — EXPOSITION (MDG 14 l.209) : BANDE, verdict lu rangée par rangée sur le porteur à bord
+     *  (`porteursABord`, patron Scorbut) ; l'échec contracte la maladie qui a contaminé le tonneau. */
+    'mer-tonneau-expose': (get, set, step) => {
       const diseaseId = String(step.meta?.diseaseId ?? '');
-      const j = step.result.success ? [] : applyContraction(hero, diseaseId, false, battleRng());
-      touchParty(get, set);
-      return { consequences: freeCons(j.length ? [{ text: t('sv.waterDiseaseGot', { name: hero.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' }] : []) };
+      const lignes: FreeConsLine[] = [];
+      const aBord = porteursABord(get, set);
+      for (const row of step.participants ?? []) {
+        const aLui = aBord.find((p) => p.id === row.id);
+        if (!aLui || !row.result || row.result.success) continue;
+        if (applyContraction(aLui.porteur, diseaseId, false, battleRng()).length) {
+          lignes.push({ text: t('sv.waterDiseaseGot', { name: aLui.porteur.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' });
+        }
+        aLui.ecrire();
+      }
+      return { consequences: freeCons(lignes) };
     },
-    /** Tonneau d'eau — CONTAMINATION (MDG 14 l.209) : un porteur boit au tonneau, échoue son
-     *  Test de Résistance Intermédiaire (+0) → le tonneau devient une source de contagion (effet visible
-     *  dès DEMAIN, jamais le jour même — le garde `!waterContaminated` évite qu'un second porteur en échec
-     *  le même jour n'écrase la maladie déjà posée par le premier). */
+    /** Tonneau d'eau — CONTAMINATION (MDG 14 l.209) : BANDE ; la première rangée en échec contamine le tonneau de SA
+     *  maladie (`meta.diseaseId` de la rangée), effet lu dès DEMAIN par `buildBarrelSteps`. */
     'mer-tonneau-contamine': (get, set, step) => {
-      if (!step.result) return;
-      if (step.result.success) return { consequences: freeCons([]) };
-      const diseaseId = String(step.meta?.diseaseId ?? '');
-      if (!get().travelPlan?.sea?.waterContaminated) patchSea(get, set, { waterContaminated: { diseaseId } });
+      const echec = (step.participants ?? []).find((row) => row.result && !row.result.success);
+      if (!echec || get().travelPlan?.sea?.waterContaminated) return { consequences: freeCons([]) };
+      const diseaseId = String(echec.meta?.diseaseId ?? '');
+      patchSea(get, set, { waterContaminated: { diseaseId } });
       return { consequences: freeCons([{ text: t('sv.waterContaminated', { disease: diseaseLabel(diseaseId) }), tone: 'echec' }]) };
     },
     /** Épuisement (MDG 13 l.111) : BANDE, verdict lu rangée par rangée (patron Scorbut ci-dessus). */

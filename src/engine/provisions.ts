@@ -163,11 +163,6 @@ export interface FoodUpkeepResult {
 }
 
 /**
- * Entretien quotidien de nourriture d'UN personnage (une journée écoulée). Mute `c` (rations,
- * compteur de faim). `resVal` = valeur du Test de Résistance ; `be` = Bonus d'Endurance — passés
- * par l'appelant (cycle d'import, cf. en-tête). L'appelant applique `damage` via `loseWounds`.
- */
-/**
  * Applique le RÉSULTAT d'un Test de Faim DIFFÉRÉ (différé/influençable en cascade de nuit) : compte
  * le Test (LDB 18 l.338), et sur un échec applique les pénalités (LDB 18 l.342 : 1ᵉʳ → −10 F/E ; 2ᵉ+ → −10 autres
  * + 1d10 Dégâts réduits du BE, min 1). Mute `c.hunger` ; renvoie le journal + les Dégâts à appliquer
