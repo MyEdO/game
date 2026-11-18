@@ -33,7 +33,7 @@ import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
   tickRiverWind, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods,
-  capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
+  capsizeRightDifficulty, capsizeRightCumulative,
 } from '../engine/riverNavigation';
 import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
 import { overloadMaxEnc, offerPricePct } from '../engine/seaVoyage';
@@ -274,14 +274,14 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
   it('la fiche de Navigation fluviale ÉDITÉE : forces de vent et scalaires servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('riverNavigation'));
     const [calme, second] = fiche.windForces.entries;
-    expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe(second.id);
+    expect(tickRiverWind(calme.id, deFixe(1))).toBe(second.id);
     setObjectDataset('riverNavigation', {
       ...fiche,
       windForces: { ...fiche.windForces, entries: fiche.windForces.entries.map((f, i) => (i === 1 ? { ...f, id: 'brise-qc' } : f)) },
       navBaseDifficulty: 'difficile', tackDifficulty: 'difficile', driftPctOfSpeed: 40, driftNavPenalty: -30,
       capsize: { ...fiche.capsize, rightDifficulty: 'difficile', rightCumulativePenalty: -15 },
     });
-    expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe('brise-qc');
+    expect(tickRiverWind(calme.id, deFixe(1))).toBe('brise-qc');
     expect(navBaseDifficulty()).toBe('difficile');
     expect(tackDifficulty()).toBe('difficile');
     expect(driftPctOfSpeed()).toBe(40);

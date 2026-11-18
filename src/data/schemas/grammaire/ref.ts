@@ -982,7 +982,7 @@ function noeudASpecialisation<T extends TypeEntite>(
   type: T,
   extra: Record<string, z.ZodType> | undefined,
   regime: RegimeDeSpec,
-): z.ZodType<RefASpecialisation> {
+): z.ZodType<RefASpecialisation> & z.core.$ZodTypeDiscriminable {
   const espace = espaceDe(type);
   const catalogue = TYPES[type].catalogue;
   const unRegime = (id: unknown): string =>
@@ -1060,22 +1060,22 @@ type ExtraDe<E extends Record<string, z.ZodType>> = [keyof E] extends [never] ? 
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
-): z.ZodType<RefDesignee & ExtraDe<E>>;
+): z.ZodType<RefDesignee & ExtraDe<E>> & z.core.$ZodTypeDiscriminable;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: 'specOuChoixFacultatifs',
-): z.ZodType<RefASpecialisation & ExtraDe<E>>;
+): z.ZodType<RefASpecialisation & ExtraDe<E>> & z.core.$ZodTypeDiscriminable;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: RegimeDePorteur,
-): z.ZodType<RefASpecialisation & ExtraDe<E>>;
+): z.ZodType<RefASpecialisation & ExtraDe<E>> & z.core.$ZodTypeDiscriminable;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
   regime: RegimeDePorteur = 'specSeule',
-): z.ZodType<RefASpecialisation> {
+): z.ZodType<RefASpecialisation> & z.core.$ZodTypeDiscriminable {
   return noeudASpecialisation(type, extra, regime);
 }
 

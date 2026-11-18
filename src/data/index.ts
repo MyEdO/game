@@ -48,6 +48,7 @@ import { ENGINS_DE_SIEGE, INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousLi
 import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualiteDObjetRef, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import {
+  charKeySchema,
   natureDeMentionSchema,
   symptomSeveritySchema,
   type NatureDeMention,
@@ -1134,7 +1135,7 @@ export const charAbr = (k: CharKey): PlayerText => dataLabel(charARoulerParId(k)
 /** La caractéristique à jet qu'abrège un sigle imprimé (« F », « FM »), casse ignorée — inverse de
  *  `charAbr`, lu par la saisie d'un Indice relatif (`lireIndiceRelatif`). */
 export const caracDuSigle = (sigle: string): CharKey | undefined =>
-  characteristics.find((c) => c.nature === 'roll' && c.abr != null && norm(c.abr) === norm(sigle))?.id as CharKey | undefined;
+  charKeySchema.safeParse(characteristics.find((c) => c.nature === 'roll' && c.abr != null && norm(c.abr) === norm(sigle))?.id).data;
 export const species = datasetDe<typeof speciesDef>(speciesJson);
 export const classes = datasetDe<typeof classesDef>(classesJson);
 export const careers = datasetDe<typeof careersDef>(careersJson);

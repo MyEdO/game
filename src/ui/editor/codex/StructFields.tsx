@@ -37,7 +37,14 @@ import type {
   TestMatch,
   SpecEntry,
 } from '../../../data';
-import { countSpecSchema, harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
+import {
+  charKeySchema,
+  countSpecSchema,
+  harvestDangerSchema,
+  harvestRaritySchema,
+  matiereDArmureSchema,
+  type MatiereDArmure,
+} from '../../../data/schemas/grammaire/valeurs';
 import type { Id, RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
@@ -293,7 +300,7 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
               <option value="@char">▸ Caractéristique…</option>
             </select>
             {m.characteristic != null && (
-              <select value={m.characteristic} onChange={(e) => setM(i, { characteristic: e.target.value as CharKey })}>
+              <select value={m.characteristic} onChange={(e) => setM(i, { characteristic: charKeySchema.parse(e.target.value) })}>
                 {CHAR_KEYS.map((ck) => <option key={ck} value={ck}>{CHAR_LABELS[ck]}</option>)}
               </select>
             )}
@@ -700,7 +707,7 @@ export function DomainEffectsField(
               </select>
             </label>
             <label className="dr">rayon B-carac.
-              <select value={castBonus.radiusStat} onChange={(e) => onCastBonus({ ...castBonus, radiusStat: e.target.value as CharKey })}>
+              <select value={castBonus.radiusStat} onChange={(e) => onCastBonus({ ...castBonus, radiusStat: charKeySchema.parse(e.target.value) })}>
                 {CHAR_KEYS.map((k) => <option key={k} value={k}>{CHAR_LABELS[k]}</option>)}
               </select>
             </label>
