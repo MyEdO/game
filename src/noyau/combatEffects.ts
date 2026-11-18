@@ -97,12 +97,12 @@ import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
 import { mouvementDeLaBourseDuGroupe, condCtx, partyMoneyTotal } from './bourseFlow';
 import { alterLeMarche } from './portFlow';
-import { groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './monde/scene';
-import { triggersEnJeu } from './monde/decouvertePorteSecrete';
+import { groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee } from './monde/scene';
+import { triggersEnJeu, type TriggerEnJeu } from './monde/decouvertePorteSecrete';
 import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
-import { flowFromEffects, testFlow } from './monde/flow';
+import { flowFromEffects } from './monde/flow';
 import {
   type FlowTest,
   type ConditionCtx,
@@ -116,6 +116,7 @@ import {
   leafOpsCtx,
   lierLesTirages,
   EMPTY_FLOW,
+  testFlow,
   type ArretDeFlow,
   type ResteDuFlow,
 } from '../engine/flowCore';
@@ -284,7 +285,7 @@ export function checkTriggers(get: Get, set: SetFn) {
 
 /** UN déclencheur de zone en FLOW pur (#1508) : sa garde `when` devient le `si` de la grammaire, son
  *  marquage `once` l'Effet `setFlag` — le tour de boucle, en donnée différable. */
-function enFlowDeDeclencheur(trig: Trigger): Flow {
+function enFlowDeDeclencheur(trig: TriggerEnJeu): Flow {
   const corps: Flow = trig.once
     ? { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: `__trigger_${trig.id}`, value: true } as Effect }, trig.flow] }
     : trig.flow;
@@ -391,7 +392,7 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   const admis = testsDeRecolte(c);
   const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
-  jouerFlowEntier(runFlow(get, set, testFlow(
+  jouerFlowEntier(runFlow(get, set, testFlow<Effect>(
     { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('recolte-creature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
     pieces(0),
     parDegre(0),
@@ -2337,7 +2338,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && distanceDeContact(env.get().scene, leader, c) <= 1 : undefined;
       const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;
       if (!best) return;
-      const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), groupe: env.get().party });
+      const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), sujet: best.actor, groupe: env.get().party });
       if (!joue) return;
       // Cible montée par le MONTEUR CANONIQUE : la valeur SOUTENUE de `partyAssisted` se déclare avec
       // son Soutien, l'écrêtage est celui de `rollTest` (`clampTarget`), plus une borne recopiée ici.

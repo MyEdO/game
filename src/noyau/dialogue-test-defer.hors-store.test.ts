@@ -7,14 +7,14 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
 import type { Dialogue } from './monde/scene';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-const setFlag = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+const setFlag = (flag: string): FlowDeScene => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
 
 /** Dialogue à deux nœuds ; le choix `withFlow` porte un Test + un `next` vers n2. */
 function makeDialogue(withFlow: boolean): Dialogue {
@@ -27,7 +27,7 @@ function makeDialogue(withFlow: boolean): Dialogue {
           id: 'tenter',
           label: 'Tenter',
           next: { id: 'n2' },
-          ...(withFlow ? { flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, reussite: setFlag('gagne'), echec: setFlag('perd') } as Flow } : {}),
+          ...(withFlow ? { flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, reussite: setFlag('gagne'), echec: setFlag('perd') } } : {}),
         }],
       },
       { id: 'n2', desc: 'Suite', choices: [] },

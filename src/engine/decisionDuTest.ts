@@ -1,6 +1,6 @@
 /**
  * LA DÉCISION d'un `FlowTest` (#1874) : joué ou non, Difficulté EFFECTIVE, cause d'allègement, sujet du
- * jet. Seul lecteur de `gate`, `difficultyBy`, `easierIf` et `difficulty` (garde
+ * jet. Seul lecteur de `gate`, `onlyGroups`, `exceptGroups`, `difficultyBy`, `easierIf` et `difficulty` (garde
  * `src/decision-du-test-guard.test.ts`) : les ouvreurs (`openSkillTest`, `simpleTriggeredTestStep`, bandes),
  * l'annonce de dialogue (`testAnnonce`) et la voie inline la consomment. PUR.
  */
@@ -13,14 +13,15 @@ import { easeDifficulty } from './tests';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { JetDecidable, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 
-/** Ce que la décision lit d'un Test : le jet et sa décision, ses Groupes, son soutien. */
-type TestAResoudre = JetDecidable & Pick<FlowTest, 'noSupport' | 'onlyGroups' | 'exceptGroups'>;
+/** Ce que la décision lit d'un Test : le jet et sa décision, son soutien. */
+type TestAResoudre = JetDecidable & Pick<FlowTest, 'noSupport'>;
 
 /** Ce que la décision lit hors du Test. */
 export interface ContexteDuTest {
   /** Évalue `gate` et chaque `difficultyBy[].cond`. */
   cc: ConditionCtx;
-  /** Celui qui jette, quand la voie l'impose : ses Groupes décident `onlyGroups`/`exceptGroups`. */
+  /** Celui qui jette, quand la voie le connaît avant la décision : ses Groupes décident `onlyGroups`/`exceptGroups`.
+   *  Absent : les Groupes ne ferment pas le Test. */
   sujet?: Combatant;
   /** Les membres dont un vivant allège un Test que le sujet ne subit pas (`easierIf`). Absent : le sujet seul. */
   groupe?: readonly Combatant[];

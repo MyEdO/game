@@ -236,6 +236,7 @@ import {
   flattenFlow,
   reecrireLesOps,
   EMPTY_FLOW,
+  testFlow,
   type FlowTest,
   type EffectTrigger,
 } from '../engine/flowCore';
@@ -615,8 +616,7 @@ import {
   distraireAttackBase,
   distraireDefenseBase,
 } from './combatManeuvers';
-import { testFlow } from './monde/flow';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import {
   runCascadeImmediate,
   rollTableStep,
@@ -948,7 +948,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'groupe' | 'e
   const surprise: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: COND.surpris }, value: 1 }] } };
   const onLose: Flow = {
     kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
-    alors: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
+    alors: testFlow<Effect>({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
     sinon: surprise,
   };
   // Embusqueur (Discrétion, FIGÉE comme attaquant opposé) vs guetteurs (Perception, les défenseurs qui jettent).
@@ -968,7 +968,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'groupe' | 'e
   if (step) pushCombatStep(set, step);
   for (const c of surprised) {
     if (surfaceOf(get, c.id)) continue; // sa rangée est dans la bande
-    runCombatFlow({ get, set, target: c, caster: sneak, label: 'Surprise', opposedFreeze: aT }, testFlow(test, branches.onSuccess, branches.onFail));
+    runCombatFlow({ get, set, target: c, caster: sneak, label: 'Surprise', opposedFreeze: aT }, testFlow<Effect>(test, branches.onSuccess, branches.onFail));
   }
   // Inline (embusqué ennemi / héros auto) : les lignes partent dans la file différée → on les folde dans le
   // journal de combat. Le héros manuel suspend (cascade) et n'en pousse aucune.
@@ -3489,7 +3489,7 @@ export function checkFocusInterruption(get: Get, set: SetFn, target: Combatant):
   // Branche d'échec : marqueur `interruptFocus` sur la cible (le focaliseur) → hook injecté. Succès = rien
   // (concentration maintenue, DR conservés). Le nœud `test` est résolu cadence-aware par `runCombatFlow`.
   const test = testDeRegle('interruption-de-focalisation', 'maintenir');
-  const flow = testFlow(
+  const flow = testFlow<Effect>(
     { ...test, stake: combatStakeRef('focalisation-interrompue') },
     EMPTY_FLOW,
     { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
@@ -8570,7 +8570,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   for (const d of dues) {
     if (surfaceOf(get, d.c.id)) continue; // sa rangée est dans la bande
     const ft = testFor(d.indice);
-    runCombatFlow({ get, set, target: d.c, caster: d.c, label: ft.label }, testFlow(ft, branches.onSuccess, branches.onFail));
+    runCombatFlow({ get, set, target: d.c, caster: d.c, label: ft.label }, testFlow<Effect>(ft, branches.onSuccess, branches.onFail));
   }
   // Inline (mover ennemi → héros auto/ennemi craintif) : les lignes partent dans la file différée. Le héros
   // manuel suspend (cascade) et n'en pousse aucune. On les folde dans le `battle.log` que le `move` réécrit.
@@ -9617,7 +9617,7 @@ export const TABLES = {
       // avec le DR de l'attaquant qu'IL jette (`attackerSL`) → la conséquence recompose la marge nette, sans
       // double-jet. `runCombatFlow` route le Test (héros manuel → cascade influençable ; ennemi/auto → inline).
       const bt: BladeTrapFreeze = { attackerId: attacker.id, weaponUid: pbt.weapon.uid!, defSL: pbt.defSL, attackerSL: 0 };
-      const flow = testFlow(
+      const flow = testFlow<Effect>(
         // `defenderMustWin` : ici « vous » (LDB 62 l.280 « Si vous l'emportez ») est le PIÉGEUR, qui est le
         // jeteur de ce Test — la lame ne s'arrache qu'à SA victoire, jamais sur une égalité.
         { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('piege-lame-force'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
