@@ -269,7 +269,7 @@ export type Preference = { nom: string; aide?: string } & ({ oui: boolean } | { 
 
 /** Une règle maison : son nom, sa référence, sa valeur ; `maison`, une valeur maison ; `modifiee`, écartée du défaut ;
  *  son aide, son action. */
-export type RegleMaison = { nom: string; ref: string; maison?: true; modifiee?: true; aide?: string; action?: string } & (
+export type RegleMaison = { nom: string; maison?: true; modifiee?: true; aide?: string; action?: string } & (
   | { oui: boolean }
   | { valeur: number; min: number; max: number; signe?: true }
   | { valeurs: string[]; tenue: number }

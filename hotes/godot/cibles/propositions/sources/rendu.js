@@ -158,7 +158,7 @@
         : curseur(p.valeur, p.min, p.max, p.signe ? signe(p.valeur) : p.valeur, l));
   const pref = (p) => `<div class="pref"><div class="l"><b>${echapper(p.nom)}</b>${valeurDe(p, 104)}</div>${p.aide ? `<p>${echapper(p.aide)}</p>` : ''}</div>`;
   const regleMaison = (r) => `<div class="regle ${r.aide ? 'pointee' : ''} ${r.modifiee ? 'modifiee' : ''}">
-    <div class="t"><b data-texte="règle ${echapper(r.nom)}">${echapper(r.nom)}</b><span class="ref rubrique">${echapper(r.ref)}${r.maison ? ' · valeur maison' : ''}</span></div>
+    <div class="t"><b data-texte="règle ${echapper(r.nom)}">${echapper(r.nom)}</b>${r.maison ? '<span class="ref rubrique">valeur maison</span>' : ''}</div>
     <div class="c">${r.modifiee ? `<span class="defaut rubrique">${picto('annuler', 12, '#6b1c10', 2)}Défaut</span>` : ''}${valeurDe(r, 118)}</div>
     ${r.aide ? `<p class="aide" data-texte="aide">${echapper(r.aide)}</p>` : ''}${r.action ? `<div class="action">${plaque(echapper(r.action), { armee: true, icone: 'etoile' })}</div>` : ''}</div>`;
   const ecranDesOptions = (o) => {
