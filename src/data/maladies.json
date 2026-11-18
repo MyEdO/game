@@ -427,6 +427,7 @@
       },
       "unit": "days"
     },
+    "dureeAuFrais": true,
     "symptoms": [
       {
         "symptomId": "blesse"

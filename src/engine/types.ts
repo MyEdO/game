@@ -1599,6 +1599,8 @@ export interface Combatant {
   /** Maladies et infections en cours (LDB 20) — incubation/durée décomptées au repos ; symptômes =
    *  donnée (`symptoms.json`) lus par `diseasePassiveOps` (fièvre…) / `rest.ts` (Malaise→Exténué, Blessé). */
   diseases?: import('./disease').Disease[];
+  /** Régime de bord : vivres frais et soupe de chou mangés. MDG 14 l.230-232 */
+  regimeDeBord?: import('./disease').RegimeDeBord;
   /** Faim (LDB 18 l.337-343) : jours sans manger, Tests tentés (−10 cumulatif), échecs (malus de
    *  caracs lus par `hungerCharPenalties`). Absent = nourri. Entretien quotidien : `dailyFoodUpkeep`. */
   hunger?: import('./provisions').HungerState;
