@@ -1452,6 +1452,8 @@ export const fr = {
   'ecran.groupe.lancer': 'Lancer',
   'ecran.partie.sauvegardes': 'Sauvegardes',
   'ecran.partie.reglages': 'Options',
+  'ecran.reglages.titre': 'Options',
+  'ecran.reglages.sousTitre': 'Préférences et règles maison',
   'ecran.reglages.fermer': 'Fermer',
   'ecran.reglages.defaut': 'Défaut',
   'ecran.reglages.compte': 'Règles maison · {n} règle{s}',

@@ -47,7 +47,7 @@ extends Node
 ## élément ne se perd. Les jets de combat sont des bandeaux qui héritent du cadre `projet/cadres/fenetre_de_jet.tscn`
 ## (groupe `bandeau`) : posé dans le poste de l'actif (`Actif`), à la place du meuble, que la vue ne sert pas sous un
 ## jet, il en prend l'ancrage et le calage, quel que soit le jet ; un parchemin dans le chêne ferré, le titre sur un
-## ruban (`art/bandeau_de_jet.tres`), le corps à l'encre (`art/statbloc.tres`), les gestes en rangée dessous, celui que
+## ruban (`art/bandeau_de_jet.tres`), le corps à l'encre (`art/statbloc.tres`), les réserves du jet en puces (`fenetre.reserves`), les gestes en rangée dessous, celui que
 ## l'Entrée joue en laiton plein. Le camp du joueur à gauche (`jetDuCamp`), l'autre à droite en miroir
 ## (`jetDuCampEnMiroir`), chacun son portrait au bord (`Jet.combattant` : le joueur dans le laiton, l'autre sur la cire,
 ## les cadres des rangs de `art/rang.tres`, aucun sans combattant), son nom, sa compétence, son seuil, ses deux dés à dix faces (`navigation/des`, la face

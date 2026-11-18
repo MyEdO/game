@@ -105,7 +105,7 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 Vingt états, tous joués par Berta (Soldate, Épée et Bouclier ; Arbalète au second set) : sa fiche est celle de
 `fiche-au-clic` (CC 41, Ag 34). Aucun verbe à créer : chaque geste dessiné a son verbe dans
 `src/hote/verbes.generated.ts`. Socle étendu : `sources/combat/socle.js` (second rang de plaques du meuble, États
-portés, pictogrammes) ; les états vivent dans `sources/combat/combat.js`.
+portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
 
 ## defense-avant-le-de, defense-riposte (écran 1)
 - Bandeau « Défense » avant le dé du défenseur : le dé de l'Orc est tombé à droite (24 sous 35, DR +1) ; au centre la

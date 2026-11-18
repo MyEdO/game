@@ -1,0 +1,61 @@
+/* La page de rendu des maquettes (#4411) : chaque bloc d'un gabarit ancré dans la vue logique (`../dispositions.md`,
+   § « Vue de référence et ancrages »), par-dessus les feuilles des pièces qu'elle charge. Se lie en dernier. */
+#scene{width:100%;height:100%}
+
+/* 6. Fenêtre du bas : centrée, 960 de large, à 8 du bas ; les deux camps gardent leur place, le centre rétrécit */
+#jet{left:calc(50% - 480px);top:auto;bottom:8px;width:960px;height:212px}
+#jet .fond{grid-template-columns:auto minmax(0,1fr) auto;column-gap:10px;padding:22px 16px 0}
+#jet .camp .des{gap:6px}
+#jet .camp>div{max-width:272px}
+#verdict{padding:2px 4px 0}
+#verdict .dr{line-height:normal;margin:0}
+#jet .camp .n{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;white-space:normal;line-height:normal;margin-top:-4px}
+#jet .camp.droite .n{justify-content:flex-end}
+#jet .camp .n .modif{margin-top:0}
+#verdict .sous{display:flex;justify-content:center;align-items:center;gap:7px}
+#verdict .sous .point{width:3px;height:3px;border-radius:50%;background:currentColor}
+#verdict .sous .rubrique{font-size:12.5px;color:#4a3420}
+
+/* 2. Gestion : le cartouche 24 / 20, la croix 22 / 18, le panneau de commande à gauche sous le cartouche, jusqu'à 24
+   du bas puis il défile ; le registre tendu jusqu'aux signets, au bord droit, et à 24 du bas, ses lignes défilent */
+#preferences{max-height:calc(100% - 160px)}
+#preferences .fond{overflow-y:auto;scrollbar-width:none}
+#preferences .pref+.aide,#preferences .aide{margin:-17px 0 0;font-style:italic;font-size:13px;line-height:17px;color:var(--creme-2)}
+#registre{right:186px;width:auto;top:60px;bottom:24px;height:auto}
+#registre .domaine,#registre .feuillet{display:none}
+#registre .domaine.ouvert,#registre .feuillet.ouvert{display:contents}
+#registre .feuille{min-width:0;overflow-y:auto;scrollbar-width:none}
+#registre .regle{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+#registre .regle .t{flex:1 1 190px;min-width:0}
+#registre .regle .c{margin-left:auto}
+#registre .regle .aide,#registre .regle .action{flex:1 0 100%;margin-top:0}
+#registre .feuille .tete .rubrique{font-size:13px;color:#5a2a12;white-space:nowrap}
+#registre .regle .ref .rubrique{display:block;font-size:12.5px;color:#4a2f16;margin-top:2px}
+#registre .regle .lecture{width:44px;text-align:right;font-size:19px;line-height:20px;color:#3a1a10;white-space:nowrap}
+#registre .regle .lecture.ferme{opacity:.42}
+#registre .feuille .pied .rubrique{font-size:12.5px;color:#5a4530;white-space:nowrap}
+#registre .feuille .pied .marque .rubrique{color:#6b1c10}
+#signets{left:calc(100% - 184px);top:66px;gap:4px}
+
+/* 4. Lieu : le cartouche 24 / 20, le récit 20 dessous, le panneau d'activité au coin haut-droit 24 / 20, le bandeau
+   centré à 8 du bas, le journal et le système au coin bas-droit 30 / 23 */
+.paysage{width:100%;height:100%}
+#titre .s .mention{display:inline-flex;align-items:center}
+#titre .s .mention+.mention::before{content:"";width:3px;height:3px;margin:0 7px 0 1px;border-radius:50%;background:currentColor}
+#recit{width:340px}
+#activite{left:auto;right:24px;top:20px;width:360px}
+#activite .fond{padding:24px 16px 14px}
+.rang-c{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rang-c .lab{flex:none;width:76px;font-size:12.5px;color:var(--creme-2)}
+.rang-c .v{font-size:13.5px;color:#eadfc4;line-height:17px}
+.en-jeu .t{font-size:12.5px;color:var(--or);margin:13px 0 7px}
+#activite .plaque{margin-top:12px}
+#bandeau{left:calc(50% - 480px);top:auto;bottom:8px;width:960px}
+#bandeau .heros{gap:9px;padding:11px 10px 0}
+#bandeau .heros .nom{font-size:17.5px}
+.choix-h{display:flex;align-items:center;gap:4px;margin-top:6px;font-size:12.5px;color:#eadfc4}
+.choix-h .rubrique{flex:none;width:54px;font-size:9.5px;letter-spacing:0;color:var(--creme-2)}
+.choix-h b{font-weight:400}
+.choix-h .plaque{flex:none}
+.choix-h .plaque>div{font-size:10px;letter-spacing:.2px;padding:0 4px}
+#coins{left:auto;top:auto;right:30px;bottom:23px}

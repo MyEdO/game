@@ -159,6 +159,9 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
   'fenetre.reglages': (Bouton | Choix | Formulaire)[];
   /** les pas de sa séquence. */
   'fenetre.gestes': (Bouton | Choix | Formulaire)[];
+  /** quand le corps porte le jet de qui tient la main (`Jet.combattant`), les réserves que ses gestes dépensent : ses
+   *  Points de Chance, de Résilience et de Détermination, une puce chacun, quand il en a ; aucune sans son jet. */
+  'fenetre.reserves': Puce[];
   /** le round et le tour. */
   'combat.tour': Ligne[];
   /**
@@ -228,10 +231,7 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * avec sa raison.
    */
   'dialogue.reponses': Bouton[];
-  /**
-   * en combat, le journal en pastille, son nom et son dessin :
-   * elle ouvre la chronique entière ; hors combat, aucune.
-   */
+  /** le journal en pastille, son nom et son dessin : elle ouvre la chronique entière. */
   'journal.titre': Entite[];
   /** hors combat, chaque héros du groupe en carte (`herosDuGroupe`) ; en combat, aucune : l'ordre du tour les porte.
    *  Chaque carte : sa carrière, ses Blessures, le bouton qui ouvre sa fiche,
@@ -1201,13 +1201,22 @@ const etatsEnPuces = (etats: FicheDuPorteur['etats']): Puce[] => etats.map((e) =
   return terme(puce(`etat/${e.id}`, libelle, String(e.valeur), null, 'alerte'), { libelle, renvoi: cibleDuCodex('etats', e.id) });
 });
 
+/** Les points de chaque réserve d'un porteur, par son id, et leur libellé. */
+const RESERVES = { destin: 'ecran.destin', chance: 'ecran.fiche.chance', resilience: 'ecran.fiche.resilience', determination: 'ecran.fiche.determination' } as const;
+
+/** Les réserves que les gestes d'un jet dépensent (`fenetre.reserves`). */
+const RESERVES_DU_JET = ['chance', 'resilience', 'determination'] as const;
+
+/** Chaque réserve `ids` de `f` en puce, dans cet ordre, quand il en a. */
+const pointsDuPorteur = (f: FicheDuPorteur, ids: readonly (keyof typeof RESERVES)[]): Puce[] =>
+  ids.flatMap((id) => (f[id] === null ? [] : [puce(id, t(RESERVES[id]), String(f[id]))]));
+
 /** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en puce qui ouvre le
  *  Compendium sur elle (`terme`) ; ses Blessures en jauge ;
  *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; sa bourse, s'il est un héros du groupe ; chacun de ses États en puce ;
  *  le bouton qui ouvre le Compendium sur la créature du bestiaire qu'il désigne. */
 function porteurDeLaFiche(etat: Jeu, f: FicheDuPorteur): Entite {
-  const points = ([['destin', t('ecran.destin'), f.destin], ['chance', t('ecran.fiche.chance'), f.chance], ['resilience', t('ecran.fiche.resilience'), f.resilience], ['determination', t('ecran.fiche.determination'), f.determination]] as const)
-    .flatMap(([id, libelle, valeur]) => (valeur === null ? [] : [puce(id, libelle, String(valeur))]));
+  const points = pointsDuPorteur(f, ['destin', ...RESERVES_DU_JET]);
   return {
     type: 'entite', id: f.id, ton: 'neutre', nom: f.nom,
     elements: [
@@ -1360,6 +1369,12 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
   };
 }
 
+/** Les réserves du jet du porteur `id` (`fenetre.reserves`) ; aucune sans lui, ou lui hors de vue. */
+function reservesDuJet(etat: Jeu, id: string | null | undefined): Puce[] {
+  const f = id && porteurEnVue(etat, id) && ficheDuPorteur(etat, id);
+  return f ? pointsDuPorteur(f, RESERVES_DU_JET) : [];
+}
+
 /** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre`, du
  *  panneau que l'hôte tient ouvert `panneau` : la fiche ou la création (`zonesDeLaCreation`), et du roster `roster` que
  *  l'hôte montre au groupe à composer (`zonesDeLaPartie`). */
@@ -1379,6 +1394,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.corps': corps,
     'fenetre.reglages': gestes.filter((g) => reglages.has(g.id) && !portes.has(g.id)),
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id) && !portes.has(g.id)),
+    'fenetre.reserves': reservesDuJet(etat, ditParSonJet ? proprietaire : null),
     'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.ordre': c ? ordreDuTour(etat, c, fiche) : [],
     'combat.actif': c?.actif && !c.fin && !fenetreDuJeu(etat)?.etape?.jet ? [actifDuCombat(c.actif)] : [],
@@ -1390,7 +1406,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
       type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, detail: null, touche: null, refus: g.refus ?? null,
     })),
     ...zonesDuDialogue(etat, fenetre !== null),
-    'journal.titre': c ? [{ type: 'entite', id: 'journal', ton: 'neutre', nom: t('ecran.journal'), elements: [{ type: 'icone', id: 'icone', icone: 'navigation/carnet' }] }] : [],
+    'journal.titre': [{ type: 'entite', id: 'journal', ton: 'neutre', nom: t('ecran.journal'), elements: [{ type: 'icone', id: 'icone', icone: 'navigation/carnet' }] }],
     'groupe.heros': c ? [] : herosDuGroupe(etat, fiche, gestesSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),

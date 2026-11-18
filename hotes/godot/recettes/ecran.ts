@@ -31,6 +31,7 @@ import { clicDuCombattant, creerPont, type MondeDuPont, type Suite } from '../po
 import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
+import type { ZonesDesReglages } from '../../../src/hote/reglages';
 import {
   elementsDesGestes,
   ligne,
@@ -59,25 +60,46 @@ export interface VueFigee {
 }
 
 /**
- * Une planche (#3935) : un état de partie tel que le pont le rend, que le jeu montre sans le jouer
- * (`projet/scripts/pont_de_planche.gd`). Ses réponses, propres (`reponses`) et communes (`communes`), sont tout ce
- * que le pont de la planche sert : chaque méthode que l'écran demande en la montrant y a la sienne, par son nom.
+ * Une planche (#3935) : un état d'écran tel que le pont le rend, que le jeu montre sans le jouer
+ * (`projet/scripts/pont_de_planche.gd`). Ses réponses (`reponses`, et pour une partie `communes`) sont tout ce que le
+ * pont de la planche sert : chaque méthode que l'écran demande en la montrant y a la sienne, par son nom. Une planche de
+ * partie montre un état de la partie de son scénario, son monde compris ; une planche de l'écran, l'écran d'un état sans
+ * son monde (`&monde=sans`) ; une planche des réglages, le panneau des réglages seul.
  */
-export interface Planche {
+export type Planche = PlancheDeLaPartie | PlancheDeLEcran | PlancheDesReglages;
+
+/** Ce que toute planche porte. */
+interface TeteDeLaPlanche {
   /** La planche dans l'adresse (`?planche=<nom>`) et dans son fichier (`<export>/planches/<nom>.json`). */
   nom: string;
   /** Ce qu'elle montre. */
   titre: string;
+}
+
+/** Une planche de partie, que `figerLesPlanches` fige. */
+export interface PlancheDeLaPartie extends TeteDeLaPlanche {
   /** Le scénario de sa partie, que l'adresse d'une partie nomme (`?scenario=`). */
   parametres: { scenario: string };
   /** Les réponses du pont propres à cet état. */
-  reponses: ReponsesDeLaPlanche;
+  reponses: ReponsesDeLaPartie;
   /** Les réponses du pont que partagent les planches de son scénario. */
   communes: ReponsesCommunes;
 }
 
-/** Les réponses du pont propres à l'état d'une planche, par méthode. */
-export interface ReponsesDeLaPlanche {
+/** Une planche de l'écran : la suite d'un état, sans son monde. */
+export interface PlancheDeLEcran extends TeteDeLaPlanche {
+  /** La suite de l'état. */
+  reponses: Pick<ReponsesDeLaPartie, 'demarrer'>;
+}
+
+/** Une planche des réglages : le panneau des réglages, sans partie. */
+export interface PlancheDesReglages extends TeteDeLaPlanche {
+  /** La réponse de la méthode `reglages`. */
+  reponses: ReponsesDesReglages;
+}
+
+/** Les réponses du pont propres à un état de la partie, par méthode. */
+export interface ReponsesDeLaPartie {
   /** La suite de l'état, sans effet ni jeton, le journal de la partie entier sous `journal.lignes`. */
   demarrer: { ok: true } & Suite;
   /** Le masque du regard. */
@@ -88,7 +110,13 @@ export interface ReponsesDeLaPlanche {
   aretes: unknown;
 }
 
-/** Les réponses du pont que partagent les planches d'un scénario, par méthode, déposées une fois
+/** La réponse du pont au panneau des réglages. */
+export interface ReponsesDesReglages {
+  /** Les zones des réglages (`zonesDesReglages`). */
+  reglages: { ok: true; zones: ZonesDesReglages };
+}
+
+/** Les réponses du pont que partagent les planches de partie d'un scénario, par méthode, déposées une fois
  *  (`<export>/planches/communes/<scenario>.json`). */
 export interface ReponsesCommunes {
   /** Le manifeste du monde de sa scène. */
@@ -102,6 +130,14 @@ export interface ReponsesCommunes {
   /** Les zones du salon, sans entrée. */
   salon: unknown;
 }
+
+/** Les zones de l'écran, chacune vide. */
+export const ZONES_VIDES: Readonly<ZonesDeLEcran> = {
+  'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [], 'fenetre.reserves': [],
+  'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'combat.rapides': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
+  'groupe.heros': [], 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [],
+  'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': [], 'partie.menu': [],
+};
 
 /** L'entrée de `morceaux` qui demande à la partie chaque clé du manifeste `monde` (la réponse de `monde`). */
 export const toutesLesCles = ({ monde, toits, couronnes }: MondeDuPont) => ({
@@ -183,10 +219,10 @@ const formulaires = (elements: readonly Element[]): Formulaire[] =>
 
 /** Les vues figées de l'écran, et la planche de chacune de celles qu'une partie montre ; avec `listage`, chaque pont
  *  indexe d'abord ses modèles (`modeles`), et chaque planche porte les corps de ses combattants (`vue.corps`). */
-function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Planche[] } {
+function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: PlancheDeLaPartie[] } {
   const lignes: Ligne[] = [];
   const vues: VueFigee[] = [];
-  const planches: Planche[] = [];
+  const planches: PlancheDeLaPartie[] = [];
   /** Un pont neuf et ses appels ; `jouer` rejoue les jetons de chaque suite sur l'horloge virtuelle et verse les lignes
    *  de chaque suite à `journal`. L'écran de la recette ne fait qu'ajouter à son journal et les ids d'une ligne
    *  repartent de zéro à chaque partie : seul le combat du dôme verse au journal des vues. `planche` rend la planche
@@ -206,7 +242,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
       const monde = reponse('monde') as MondeDuPont;
       return { monde, morceaux: reponse('morceaux', toutesLesCles(monde)), modeles, preferences: reponse('preferences'), salon: reponse('salon') };
     };
-    const planche = (nom: string, titre: string, s: Suite): Planche => ({
+    const planche = (nom: string, titre: string, s: Suite): PlancheDeLaPartie => ({
       nom, titre,
       parametres: { scenario },
       reponses: {
@@ -428,12 +464,6 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   figer(port.p, 'port', 'escale maritime : la bourse et la cale du navire', port.m);
   port.p.fermer();
 
-  const vides: ZonesDeLEcran = {
-    'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
-    'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'combat.rapides': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
-    'groupe.heros': [], 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [],
-    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': [], 'partie.menu': [],
-  };
   const atelier = unPont([]);
   s = viderLesFenetres(atelier.jouer, atelier.jouer('demarrer', { scenario: 'marche-equipement', graine: 7 }));
   /** Le geste de la création que l'élément `id` de `zone` offre, ou celle de ses valeurs que dit `valeur`. */
@@ -462,7 +492,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     nom: 'formulaire de chaque saisie',
     disposition: null,
     combat: false,
-    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.corps': [CURSEUR], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
+    zones: { ...ZONES_VIDES, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.corps': [CURSEUR], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
     attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE }, [CASES.id]: { type: CASES.verbe, args: [['a']] } },
   });
   return { vues, planches };
@@ -470,4 +500,4 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
 
 export const figerVuesDeLEcran = (): VueFigee[] => figerLEcran(null).vues;
 /** Les planches de l'écran, leurs corps composés sur les modèles de `listage`. */
-export const figerLesPlanches = (listage: Listage): Planche[] => figerLEcran(listage).planches;
+export const figerLesPlanches = (listage: Listage): PlancheDeLaPartie[] => figerLEcran(listage).planches;

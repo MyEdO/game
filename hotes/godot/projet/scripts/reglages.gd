@@ -28,7 +28,6 @@ const SIGNET_OUVERT := preload("res://art/signet_ouvert.tres")
 func _ready() -> void:
 	for zone in Zone.racines(_cadre):
 		zone.geste.connect(_jouer)
-	($Cadre/Titre/Marges/Rangee/Medaillon/Picto/Dessin as Dessin).poser({})
 	_domaines.tab_changed.connect(_marquer_les_signets.unbind(1))
 
 

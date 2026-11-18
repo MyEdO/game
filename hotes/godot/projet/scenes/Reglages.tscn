@@ -1,10 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/reglages.gd" id="1_reglages"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 [ext_resource type="Theme" path="res://art/options.tres" id="3_options"]
 [ext_resource type="Theme" path="res://art/registre.tres" id="4_registre"]
-[ext_resource type="Script" path="res://scripts/dessin.gd" id="5_dessin"]
 [ext_resource type="PackedScene" path="res://composants/grain.tscn" id="6_grain"]
 
 [node name="Reglages" type="CanvasLayer"]
@@ -67,19 +66,11 @@ size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"Medaillon"
 
-[node name="Picto" type="TextureRect" parent="Cadre/Titre/Marges/Rangee/Medaillon"]
-custom_minimum_size = Vector2(25, 25)
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Dessin" type="Node" parent="Cadre/Titre/Marges/Rangee/Medaillon/Picto"]
-script = ExtResource("5_dessin")
-champ = "icone"
-nomme = "interface/reglages"
+[node name="Zone" type="Node" parent="Cadre/Titre/Marges/Rangee/Medaillon"]
+script = ExtResource("2_zone")
+source = "reglages.titre"
+ids = PackedStringArray("nom")
+formes = PackedStringArray("ligne:pictoDuMedaillon")
 
 [node name="Pile" type="VBoxContainer" parent="Cadre/Titre/Marges/Rangee"]
 layout_mode = 2
@@ -87,15 +78,25 @@ size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"PileDuTitre"
 
-[node name="Nom" type="Label" parent="Cadre/Titre/Marges/Rangee/Pile"]
+[node name="Nom" type="VBoxContainer" parent="Cadre/Titre/Marges/Rangee/Pile"]
 layout_mode = 2
-theme_type_variation = &"TitreDesOptions"
-text = "Options"
+mouse_filter = 2
 
-[node name="Sous" type="Label" parent="Cadre/Titre/Marges/Rangee/Pile"]
+[node name="Zone" type="Node" parent="Cadre/Titre/Marges/Rangee/Pile/Nom"]
+script = ExtResource("2_zone")
+source = "reglages.titre"
+ids = PackedStringArray("nom")
+formes = PackedStringArray("ligne:titreDesOptions")
+
+[node name="Sous" type="VBoxContainer" parent="Cadre/Titre/Marges/Rangee/Pile"]
 layout_mode = 2
-theme_type_variation = &"SousTitreDesOptions"
-text = "Préférences et règles maison"
+mouse_filter = 2
+
+[node name="Zone" type="Node" parent="Cadre/Titre/Marges/Rangee/Pile/Sous"]
+script = ExtResource("2_zone")
+source = "reglages.titre"
+ids = PackedStringArray("sous")
+formes = PackedStringArray("ligne:sousTitreDesOptions")
 
 [node name="Volet" type="PanelContainer" parent="Cadre"]
 layout_mode = 0

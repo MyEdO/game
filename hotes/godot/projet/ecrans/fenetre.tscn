@@ -48,6 +48,13 @@ source = "fenetre.reglages"
 
 [node name="Pied" type="HSeparator" parent="Colonne"]
 
+[node name="Reserves" type="HBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Reserves"]
+script = ExtResource("1_zone")
+source = "fenetre.reserves"
+repli = true
+
 [node name="Gestes" type="VBoxContainer" parent="Colonne"]
 
 [node name="Zone" type="Node" parent="Colonne/Gestes"]

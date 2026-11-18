@@ -41,6 +41,13 @@ script = ExtResource("1_zone")
 source = "fenetre.titre"
 masque = NodePath("../../../../..")
 
+[node name="Reserves" type="HBoxContainer" parent="Cadre/Marges/Colonne/Tete"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Tete/Reserves"]
+script = ExtResource("1_zone")
+source = "fenetre.reserves"
+repli = true
+
 [node name="Gestes" type="HBoxContainer" parent="Cadre/Marges/Colonne/Tete"]
 theme_type_variation = &"RangeeSerree"
 size_flags_vertical = 4

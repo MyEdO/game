@@ -1,8 +1,8 @@
 /* Suite du combat, images d'intention (#3935) : magie (surincantation, Incantation Critique, contre-sort, dissipation,
    Focalisation, Incantation Imparfaite, corruption) et réactions (maladresse, désengagement, fuite, Destin, Chance), chacune dans le bandeau du bas,
    avant le dé (`avantLeDe`, « Lancer le dé » d'un tirage de table) comme après.
-   Se charge après `../combat/combat.js`, dont il reprend les pièces et qui dessine le champ, l'ordre, le journal et le
-   bandeau d'un état de base (`data-etat="jet"`, `data-variante`) ; ce script y pose l'état `data-suite`. Maquette hors du jeu. */
+   Se charge après `../combat/combat.js`, dont il reprend les pièces et qui dessine sur la cour (`../combat/cour.js`)
+   l'ordre, le journal et le bandeau d'un état de base (`data-etat="jet"`, `data-variante`) ; ce script y pose l'état `data-suite`. Maquette hors du jeu. */
 {
 const SUITE = ECRAN.dataset.suite;
 const $ = (s) => document.querySelector(s);

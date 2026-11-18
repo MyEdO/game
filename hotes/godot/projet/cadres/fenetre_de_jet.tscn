@@ -27,6 +27,14 @@ theme_type_variation = &"PileSerree"
 [node name="Corps" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile"]
 theme = ExtResource("4_encre")
 
+[node name="Reserves" type="HBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile"]
+theme = ExtResource("4_encre")
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Reserves"]
+script = ExtResource("1_zone")
+source = "fenetre.reserves"
+repli = true
+
 [node name="Gestes" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile"]
 theme_type_variation = &"RangeeDeGestes"
 alignment = 1
