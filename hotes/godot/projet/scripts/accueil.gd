@@ -44,7 +44,7 @@ func _ready() -> void:
 	for zone in Zone.racines(_menu):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier)
-	var reponse := _pont.appeler("accueil")
+	var reponse := _pont.appeler(Noyau.Methode.ACCUEIL)
 	if reponse.get("ok") != true:
 		return
 	Zone.montrer_toutes(Zone.racines(_menu), reponse.zones)

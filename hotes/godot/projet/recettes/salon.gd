@@ -76,14 +76,14 @@ func _g2() -> Dictionary:
 	if not await _frais():
 		return {}
 	_rejoindre("ABCDEF")
-	var quitte: Dictionary = _pont.reponses.get("salon", {}).duplicate(true)
+	var quitte: Dictionary = _pont.reponses.get(Noyau.Methode.SALON, {}).duplicate(true)
 	_verifier(_textes("Etat").has("Connexion au salon…"), "G2 (b) : « Connexion au salon… » ne se lit pas : %s" % [_textes("Etat")])
 	_verifier(_releve(), "G2 (b) : la minuterie ne tourne pas pendant la jonction")
 	if not await _attendre(func() -> bool: return _bouton("bouton/quitter", "Quitter le salon") != null and _bouton("formulaire/rejoindre", "Rejoindre") == null and _bouton("bouton/fermer", "Fermer") == null, "« Quitter le salon » seul pendant la jonction"):
 		return {}
-	var releves := _pont.appels.count("nouvelles")
+	var releves := _pont.appels.count(Noyau.Methode.NOUVELLES)
 	await create_timer(1.0).timeout
-	releves = _pont.appels.count("nouvelles") - releves
+	releves = _pont.appels.count(Noyau.Methode.NOUVELLES) - releves
 	_verifier(releves >= 2, "G2 (b) : %d relève en une seconde de jonction" % releves)
 	_verifier(_textes("Etat").has("Connexion au salon…"), "G2 (b) : la jonction ne tient plus après une seconde : %s" % [_textes("Etat")])
 	print("[salon] G2 (b) : %s, « Quitter le salon » seul, %d relèves en une seconde" % [_textes("Etat"), releves])
@@ -133,15 +133,15 @@ func _g4(quitte: Dictionary) -> bool:
 	if not await _frais():
 		return false
 	var avant := current_scene.get_instance_id()
-	_pont.dictees.salon = func() -> Dictionary: return quitte.duplicate(true)
+	_pont.dictees[Noyau.Methode.SALON] = func() -> Dictionary: return quitte.duplicate(true)
 	if not await _presser_au_menu("salon"):
 		return false
 	_verifier(_releve(), "G4 : la minuterie ne tourne pas sur « Quitter le salon » dicté")
 	if not await _attendre(func() -> bool: return _bouton("bouton/quitter", "Quitter le salon") != null, "« Quitter le salon » publié"):
 		return false
 	var ligne := LIGNE.duplicate()
-	_pont.dictees.nouvelles = func() -> Dictionary:
-		_pont.appeler("quitter")
+	_pont.dictees[Noyau.Methode.NOUVELLES] = func() -> Dictionary:
+		_pont.appeler(Noyau.Methode.QUITTER)
 		return {ok = true, quittee = {lignes = [ligne]}}
 	if not await _attendre(func() -> bool: return _au_combat() and current_scene.get_instance_id() != avant and _panneau().racine().visible and _textes("Journal").has(LIGNE.texte) and _bouton("formulaire/rejoindre", "Rejoindre") != null, "le combat rechargé sur le panneau, la ligne dictée"):
 		return false
@@ -164,9 +164,9 @@ func _g4(quitte: Dictionary) -> bool:
 
 ## G5 : une partie locale laissée une seconde sans geste n'appelle pas `nouvelles` ; l'avis de panne reste vide.
 func _g5() -> bool:
-	var avant := _pont.appels.count("nouvelles")
+	var avant := _pont.appels.count(Noyau.Methode.NOUVELLES)
 	await create_timer(1.0).timeout
-	var releves := _pont.appels.count("nouvelles") - avant
+	var releves := _pont.appels.count(Noyau.Methode.NOUVELLES) - avant
 	_verifier(releves == 0, "G5 : %d `nouvelles` en une seconde hors salon" % releves)
 	var avis: String = current_scene.get_node("Ecran/Interface/Avis/Panne").text
 	_verifier(avis == "", "G5 : avis de panne du combat : %s" % avis.left(300))
@@ -178,13 +178,13 @@ func _g5() -> bool:
 func _g6(quitte: Dictionary) -> bool:
 	if not await _lancer_l_arene():
 		return false
-	_pont.dictees.salon = func() -> Dictionary: return quitte.duplicate(true)
+	_pont.dictees[Noyau.Methode.SALON] = func() -> Dictionary: return quitte.duplicate(true)
 	_regarder()
 	_verifier(_releve(), "G6 : la minuterie ne tourne pas après la `Suite` qui lit « Quitter le salon »")
 	_verifier(not _panneau().racine().visible, "G6 : le panneau s'est ouvert")
 	print("[salon] G6 : une `Suite` lit « Quitter le salon », minuterie %s" % ("en marche" if _releve() else "arrêtée"))
-	_pont.dictees.nouvelles = func() -> Dictionary: return {ok = true, rien = true}
-	if not await _attendre(func() -> bool: return not _pont.dictees.has("nouvelles"), "`{ rien }` dicté à la relève"):
+	_pont.dictees[Noyau.Methode.NOUVELLES] = func() -> Dictionary: return {ok = true, rien = true}
+	if not await _attendre(func() -> bool: return not _pont.dictees.has(Noyau.Methode.NOUVELLES), "`{ rien }` dicté à la relève"):
 		return false
 	_regarder()
 	_verifier(not _releve(), "G6 : la minuterie tourne après la `Suite` suivante, le salon vivant relu")
@@ -206,16 +206,16 @@ func _g7(quitte: Dictionary) -> void:
 		return
 	_cliquer(_bouton("bouton/fermer", "Fermer"))
 	var avant := current_scene.get_instance_id()
-	_pont.dictees.salon = func() -> Dictionary: return quitte.duplicate(true)
+	_pont.dictees[Noyau.Methode.SALON] = func() -> Dictionary: return quitte.duplicate(true)
 	_regarder()
 	_verifier(_releve(), "G7 : la minuterie ne tourne pas après la `Suite` qui lit « Quitter le salon »")
 	var ligne := LIGNE.duplicate()
-	_pont.dictees.salon = func() -> Dictionary:
-		_pont.appeler("quitter")
-		_pont.dictees.nouvelles = func() -> Dictionary: return {ok = true, quittee = {lignes = [ligne]}}
-		return _pont.appeler("salon")
+	_pont.dictees[Noyau.Methode.SALON] = func() -> Dictionary:
+		_pont.appeler(Noyau.Methode.QUITTER)
+		_pont.dictees[Noyau.Methode.NOUVELLES] = func() -> Dictionary: return {ok = true, quittee = {lignes = [ligne]}}
+		return _pont.appeler(Noyau.Methode.SALON)
 	_regarder()
-	if _pont.dictees.has("nouvelles"):
+	if _pont.dictees.has(Noyau.Methode.NOUVELLES):
 		_fautes.append("G7 : la `quittee` déposée pendant la lecture de `salon` n'est pas relevée, la minuterie arrêtée")
 		return
 	if not await _attendre(func() -> bool: return _au_combat() and current_scene.get_instance_id() != avant and _panneau().racine().visible and _textes("Journal").has(LIGNE.texte), "le combat rechargé sur le panneau, la ligne de la `quittee`"):

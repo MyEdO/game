@@ -86,9 +86,9 @@ class PontDuNavire extends PontEspion:
 	var scenario := ""
 	var morceaux: Array = []
 
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
+	func appeler(methode: Noyau.Methode, entree: Variant = null) -> Dictionary:
 		var reponse := super(methode, entree)
-		if methode == "morceaux":
+		if methode == Noyau.Methode.MORCEAUX:
 			morceaux.append_array(reponse.get("volume", []))
 		return reponse
 
@@ -165,8 +165,8 @@ func _demarrer(scenario: String) -> Node:
 	environnement.volumetric_fog_enabled = false
 	_vue = combat.get("_vue")
 	_id = plateau.navires()[0]
-	_servi = pont.reponses.vision
-	_hauteurs = pont.reponses.monde.monde.hauteurs
+	_servi = pont.reponses[Noyau.Methode.VISION]
+	_hauteurs = pont.reponses[Noyau.Methode.MONDE].monde.hauteurs
 	_couches = _monde.couches()
 	_ponts = {}
 	var couvertes := {}

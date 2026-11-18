@@ -150,7 +150,7 @@ static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
 static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
 	if listage.is_empty():
 		return {}
-	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
+	return pont.appeler(Noyau.Methode.MODELES, {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
 
 
 ## Le listage des modèles (`lister`) indexé par le pont que `hote` rejoint (`indexer`) et retenu (`retenir_les_modeles`) :

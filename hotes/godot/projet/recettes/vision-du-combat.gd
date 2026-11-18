@@ -72,7 +72,7 @@ func _siege() -> void:
 	for id: String in caches:
 		_verifier(not plateau.get("_modeles").has(id) and not plateau.get("_marques").has(id), "siège : %s hors de vue a un modèle ou une marque" % id)
 		_verifier(not _dessines(plateau).has(id), "siège : %s hors de vue dans l'arbre" % id)
-	_verifier(pont.appels.count("vision") == 1, "siège : `vision` appelée %d fois, attendu une" % pont.appels.count("vision"))
+	_verifier(pont.appels.count(Noyau.Methode.VISION) == 1, "siège : `vision` appelée %d fois, attendu une" % pont.appels.count(Noyau.Methode.VISION))
 	var volume: VolumeDeScene = (combat.get_node("Plateau/Monde") as Monde).volume
 	_verifier(_image_posee(volume) == _masque_servi(pont), "siège : l'image posée n'est pas le masque servi")
 	var heros: Dictionary = vue.projection.combat.voisins.liste.filter(func(c: Dictionary) -> bool: return c.id.ends_with("-de-test"))[0]
@@ -133,16 +133,16 @@ func _grimpant() -> void:
 	var marque: Node = plateau.get("_marques").get(ennemi)
 	var avant := pont.appels.size()
 	plateau.case_cliquee.emit(CASE_DU_PAS)
-	_verifier(not pont.appels.slice(avant).has("vision"), "grimpant : l'aperçu du pas rappelle `vision`, sa clé inchangée")
+	_verifier(not pont.appels.slice(avant).has(Noyau.Methode.VISION), "grimpant : l'aperçu du pas rappelle `vision`, sa clé inchangée")
 	avant = pont.appels.size()
 	var cle: String = combat.get("_vue").vision
 	plateau.case_cliquee.emit(CASE_DU_PAS)
 	var au_pas := pont.appels.slice(avant)
-	print("[vision-du-combat] grimpant, au pas : %s, clé %s puis %s" % [au_pas, cle, combat.get("_vue").vision])
+	print("[vision-du-combat] grimpant, au pas : %s, clé %s puis %s" % [Noyau.noms(au_pas), cle, combat.get("_vue").vision])
 	_verifier(combat.get("_vue").vision != cle, "grimpant : le pas vers %s ne change pas la clé de la vision" % CASE_DU_PAS)
-	_verifier(au_pas.count("vision") == 1, "grimpant : au pas, `vision` appelée %d fois, attendu une" % au_pas.count("vision"))
-	for methode in ["monde", "morceaux"]:
-		_verifier(not au_pas.has(methode), "grimpant : au pas, `%s` redemandé" % methode)
+	_verifier(au_pas.count(Noyau.Methode.VISION) == 1, "grimpant : au pas, `vision` appelée %d fois, attendu une" % au_pas.count(Noyau.Methode.VISION))
+	for methode in [Noyau.Methode.MONDE, Noyau.Methode.MORCEAUX]:
+		_verifier(not au_pas.has(methode), "grimpant : au pas, `%s` redemandé" % Noyau.METHODES[methode])
 	_verifier(_image_posee(volume) == _masque_servi(pont), "grimpant : au pas, l'image posée n'est pas le masque neuf")
 	_verifier(volume.part_du_fondu() == 0.0, "grimpant : au pas, le fondu part de %s, attendu 0" % volume.part_du_fondu())
 	_verifier(not plateau.get("_modeles").has(ennemi) and not plateau.get("_marques").has(ennemi), "grimpant : %s sorti de la vue garde son modèle ou sa marque" % ennemi)
@@ -234,14 +234,14 @@ func _arene() -> void:
 		return
 	_verifier(_noms(monde) == _noms_de_la_vue(combat.get("_vue")), "arène : les noms posés ne sont pas ceux des entités de la vue")
 	var avant := _masque_servi(pont)
-	var largeur := int(pont.reponses.vision.largeur)
+	var largeur := int(pont.reponses[Noyau.Methode.VISION].largeur)
 	var depuis := pont.appels.size()
 	plateau.case_cliquee.emit(CASE_DU_GROUPE)
 	var au_pas := pont.appels.slice(depuis)
-	print("[vision-du-combat] arène, au pas : %s" % [au_pas])
-	_verifier(au_pas.count("vision") == 1, "arène : au pas, `vision` appelée %d fois, attendu une" % au_pas.count("vision"))
-	for methode in ["monde", "morceaux"]:
-		_verifier(not au_pas.has(methode), "arène : au pas, `%s` redemandé" % methode)
+	print("[vision-du-combat] arène, au pas : %s" % [Noyau.noms(au_pas)])
+	_verifier(au_pas.count(Noyau.Methode.VISION) == 1, "arène : au pas, `vision` appelée %d fois, attendu une" % au_pas.count(Noyau.Methode.VISION))
+	for methode in [Noyau.Methode.MONDE, Noyau.Methode.MORCEAUX]:
+		_verifier(not au_pas.has(methode), "arène : au pas, `%s` redemandé" % Noyau.METHODES[methode])
 	var apres := _masque_servi(pont)
 	var quittee := -1
 	for i in apres.size():
@@ -253,7 +253,7 @@ func _arene() -> void:
 		_verifier(volume.etat_de_la_case(case, 0) == 128, "arène : la case quittée %s lit %d, attendu 128" % [case, volume.etat_de_la_case(case, 0)])
 	_verifier(_noms(monde) == _noms_de_la_vue(combat.get("_vue")), "arène : après le pas, les noms posés ne sont pas ceux des entités de la vue")
 	for regard: String in ["tactique", "plateau", "immersion"]:
-		combat.call("_suivre", pont.appeler("regarder", {regard = regard}))
+		combat.call("_suivre", pont.appeler(Noyau.Methode.REGARDER, {regard = regard}))
 		_verifier(monde.regard() == regard, "arène : regard %s, attendu %s" % [monde.regard(), regard])
 		var sans := _matieres_sans_la_vision(volume)
 		_verifier(sans.is_empty(), "arène : sous le regard %s, %d matières des morceaux sans la vision posée" % [regard, sans.size()])
@@ -338,7 +338,7 @@ func _image_posee(volume: VolumeDeScene) -> PackedByteArray:
 
 ## Les octets du dernier masque servi par la méthode `vision`.
 func _masque_servi(pont: PontEspion) -> PackedByteArray:
-	return Marshalls.base64_to_raw(pont.reponses.get("vision", {}).get("masque", ""))
+	return Marshalls.base64_to_raw(pont.reponses.get(Noyau.Methode.VISION, {}).get("masque", ""))
 
 
 ## L'octet de la vision posée à la case `pos` (`[x, y, z]`), sa couche par son rang au monde.

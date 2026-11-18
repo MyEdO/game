@@ -60,13 +60,14 @@ func _montrer(nom: String) -> void:
 
 
 ## La réponse de la planche à `methode`, à toute entrée ; `{}` et une panne si elle n'en enregistre pas.
-func appeler(methode: String, entree: Variant = null) -> Dictionary:
+func appeler(methode: Noyau.Methode, entree: Variant = null) -> Dictionary:
 	if _reponses.is_empty():
 		return super(methode, entree)
-	if not _reponses.has(methode):
-		_signaler("planche %s : la méthode %s n'y est pas servie" % [_nom, methode])
+	var nom := Noyau.METHODES[methode]
+	if not _reponses.has(nom):
+		_signaler("planche %s : la méthode %s n'y est pas servie" % [_nom, nom])
 		return {}
-	return _reponses[methode]
+	return _reponses[nom]
 
 
 ## Le paramètre `cle` de la partie de la planche (son `scenario`), sinon celui du lancement (`PontDuNoyau.parametre`).

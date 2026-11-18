@@ -134,7 +134,7 @@ func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
 ## Le volume de chaque bus d'`AudioServer` dont la préférence `volume-<nom du bus>` existe (méthode `preferences`), posé
 ## à sa valeur, et `Master` coupé à la valeur de la préférence `son-coupe` ; rien si l'appel ne rend pas `ok`.
 func regler_les_volumes() -> void:
-	var reponse := appeler("preferences")
+	var reponse := appeler(Noyau.Methode.PREFERENCES)
 	if reponse.get("ok") != true:
 		return
 	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), reponse.preferences["son-coupe"])
@@ -144,15 +144,17 @@ func regler_les_volumes() -> void:
 			AudioServer.set_bus_volume_linear(bus, reponse.preferences[cle])
 
 
-## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux, chaque tableau
-## passé en octets recollé (`_recoller`) ; `{}` en panne.
-func appeler(methode: String, entree: Variant = null) -> Dictionary:
-	var reponse := _decoder(methode, _transport.appeler(methode, null if entree == null else JSON.stringify(entree)))
+## La réponse de `methode` (son nom au transport, `Noyau.METHODES`) sur `entree` (un objet, ou `null` sans entrée) :
+## décodée, `ok` vrai ou faux, chaque tableau passé en octets recollé (`_recoller`) ; `{}` en panne.
+func appeler(methode: Noyau.Methode, entree: Variant = null) -> Dictionary:
+	var nom := Noyau.METHODES[methode]
+	var reponse := _decoder(nom, _transport.appeler(nom, null if entree == null else JSON.stringify(entree)))
 	if reponse.has("octets"):
 		_recoller(reponse, _transport.octets())
 	if reponse.get("ok") == false:
 		refus.emit(str(reponse.erreur.message))
-	var releve := _decoder("erreursGlobales", _transport.appeler("erreursGlobales", null))
+	var globales := Noyau.METHODES[Noyau.Methode.ERREURS_GLOBALES]
+	var releve := _decoder(globales, _transport.appeler(globales, null))
 	for e in releve.get("erreurs", []):
 		_signaler("%s (%s)" % [e.message, e.source])
 	return reponse

@@ -48,7 +48,7 @@ class PontDesSaisons extends PontEspion:
 	func _init() -> void:
 		en_recette = true
 
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
+	func appeler(methode: Noyau.Methode, entree: Variant = null) -> Dictionary:
 		entrees[methode] = entree
 		return super(methode, entree)
 
@@ -97,7 +97,7 @@ func _parcourir(atelier: Node, pont: PontDesSaisons) -> void:
 		return
 	_verifier("equipement" in pont.ecran.get("atelier", {}).get("onglets", []), "l'échantillon saisonnier n'offre pas l'onglet Équipement")
 	var servies: Array = [MontageDeComposition.VIDE]
-	servies.append_array(pont.reponses.echantillon.saisons.map(func(saison: Dictionary) -> String: return saison.id))
+	servies.append_array(pont.reponses[Noyau.Methode.ECHANTILLON].saisons.map(func(saison: Dictionary) -> String: return saison.id))
 	var liste := _liste(atelier, "saison")
 	_verifier(liste != null, "liste saison absente")
 	if liste != null:
@@ -113,14 +113,14 @@ func _parcourir(atelier: Node, pont: PontDesSaisons) -> void:
 		if choix != MontageDeComposition.VIDE:
 			entree.saison = choix
 		_choisir(atelier, "saison", choix)
-		_verifier(pont.entrees.get("echantillon") == entree, "%s : entrée %s, attendu %s" % [choix, pont.entrees.get("echantillon"), entree])
+		_verifier(pont.entrees.get(Noyau.Methode.ECHANTILLON) == entree, "%s : entrée %s, attendu %s" % [choix, pont.entrees.get(Noyau.Methode.ECHANTILLON), entree])
 		montage = await _pose(atelier, pont, choix)
 		if montage == null:
 			continue
 		if choix == MontageDeComposition.VIDE:
 			_verifier(montage.scene == precedente, "tel que bâti : le corps de l'été inchangé, le modèle s'est remonté")
 		precedente = montage.scene
-		var servi: Dictionary = pont.reponses.echantillon.decors[PROP]
+		var servi: Dictionary = pont.reponses[Noyau.Methode.ECHANTILLON].decors[PROP]
 		_verifier((FEUILLAGE in servi.caches) == (choix == "hiver"), "%s : nœuds cachés servis %s" % [choix, servi.caches])
 		_verifier(servi.palette.has("vegetal") == (choix in ["printemps", "automne"]), "%s : palette servie %s" % [choix, servi.palette])
 		await _lire(montage.scene, servi, choix)
@@ -133,7 +133,7 @@ func _parcourir(atelier: Node, pont: PontDesSaisons) -> void:
 ## faute de modèle posé.
 func _pose(atelier: Node, pont: PontDesSaisons, quoi: String) -> MontageDeVehicule:
 	var modeles: MontageDesModeles = atelier.get_node("Echantillon/Scene/Modeles")
-	var servi: Dictionary = pont.reponses.get("echantillon", {}).get("decors", {}).get(PROP, {})
+	var servi: Dictionary = pont.reponses.get(Noyau.Methode.ECHANTILLON, {}).get("decors", {}).get(PROP, {})
 	if not _verifier(not servi.is_empty(), "%s : l'échantillon ne sert pas le décor %s" % [quoi, PROP]):
 		return null
 	var hiver: bool = FEUILLAGE in servi.caches

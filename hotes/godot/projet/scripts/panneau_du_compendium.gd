@@ -70,7 +70,7 @@ func ouvrir(renvoi := {}) -> void:
 	_poste.manifeste(func(manifeste: String) -> void:
 		if manifeste != "":
 			entree.manifeste = manifeste
-		_suivre(_pont.appeler("compendium", entree)))
+		_suivre(_pont.appeler(Noyau.Methode.COMPENDIUM, entree)))
 
 
 ## La racine de ce que le panneau porte à l'écran (`PontDuNoyau.boutons_a_l_ecran`).
@@ -100,7 +100,7 @@ func _fermer() -> void:
 
 
 func _jouer(jeu: Dictionary) -> void:
-	_suivre(_pont.appeler("compendium", jeu))
+	_suivre(_pont.appeler(Noyau.Methode.COMPENDIUM, jeu))
 
 
 ## Une réponse de `compendium` : ses zones montrées, le chapitre attendu chargé, les données à écrire écrites au dépôt.

@@ -115,7 +115,7 @@ func _ready() -> void:
 			_poste.manifeste(func(manifeste: String) -> void:
 				if manifeste != "":
 					ouvrir.manifeste = manifeste
-				_suivre(_pont.appeler("editer", ouvrir))))
+				_suivre(_pont.appeler(Noyau.Methode.EDITER, ouvrir))))
 
 
 ## Le monde d'une réponse de `editer` (`reponse.monde`, le manifeste du volume) posé au monde (`Monde.poser`), sans
@@ -126,7 +126,7 @@ func _poser_le_monde(reponse: Dictionary) -> void:
 	var manquants := _monde.volume.manquants(monde)
 	var recus := {volume = [], toits = [], couronnes = []}
 	if not manquants.volume.is_empty():
-		recus = _pont.appeler("morceaux", manquants.merged({source = "edition"}))
+		recus = _pont.appeler(Noyau.Methode.MORCEAUX, manquants.merged({source = "edition"}))
 		if recus.get("ok") != true:
 			return
 	_monde.poser(monde, recus)
@@ -134,7 +134,7 @@ func _poser_le_monde(reponse: Dictionary) -> void:
 
 
 func _jouer(jeu: Dictionary) -> void:
-	_suivre(_pont.appeler("editer", jeu))
+	_suivre(_pont.appeler(Noyau.Methode.EDITER, jeu))
 
 
 ## Le geste du pointeur `geste` au point touché `touche` (`Monde.touche_sous`).

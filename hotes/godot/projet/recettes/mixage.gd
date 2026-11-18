@@ -135,7 +135,7 @@ func _les_volumes() -> void:
 	if not await pont.rejoindre(func(m: String) -> void: signales.append("refus : " + m), func(m: String) -> void: signales.append("panne : " + m)):
 		_fautes.append("le pont vivant ne s'ouvre pas : %s" % [signales])
 		return
-	var reponse := pont.appeler("preferences")
+	var reponse := pont.appeler(Noyau.Methode.PREFERENCES)
 	_verifier(reponse.get("ok") == true, "preferences du pont vivant : %s" % JSON.stringify(reponse).left(200))
 	var volumes: Array = reponse.get("preferences", {}).keys().filter(func(cle: String) -> bool: return cle.begins_with("volume-"))
 	print("[mixage] volumes du pont vivant : %s" % [volumes.map(func(cle: String) -> String: return "%s=%s" % [cle, reponse.preferences[cle]])])

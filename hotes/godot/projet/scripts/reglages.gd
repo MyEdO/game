@@ -38,7 +38,7 @@ func ouvrir() -> void:
 	if lueur.texture == null:
 		var famille := Dessin.famille_du_catalogue("paysage")
 		lueur.texture = Dessin.trace("paysage", [LUEUR], MiseEnPage.echelle_de_dessin(_cadre.size.x, _cadre.size.y, famille.largeur, famille.hauteur))
-	_montrer(_pont.appeler("reglages"))
+	_montrer(_pont.appeler(Noyau.Methode.REGLAGES))
 
 
 ## La racine de ce que le panneau porte à l'écran (`PontDuNoyau.boutons_a_l_ecran`).
@@ -53,9 +53,9 @@ func _jouer(jeu: Dictionary) -> void:
 		return
 	if jeu.has("suite"):
 		joue.emit(jeu)
-		_montrer(_pont.appeler("reglages"))
+		_montrer(_pont.appeler(Noyau.Methode.REGLAGES))
 		return
-	_montrer(_pont.appeler("reglages", jeu))
+	_montrer(_pont.appeler(Noyau.Methode.REGLAGES, jeu))
 	_pont.regler_les_volumes()
 
 

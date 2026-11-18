@@ -51,10 +51,10 @@ func _ouvrir_la_partie() -> bool:
 
 ## P5 : hors salon, la demande de fermeture de la fenêtre n'appelle pas `salon`.
 func _p5() -> bool:
-	var avant := _pont.appels.count("salon")
+	var avant := _pont.appels.count(Noyau.Methode.SALON)
 	root.propagate_notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)
-	_verifier(_pont.appels.count("salon") == avant, "P5 : la demande de fermeture hors salon appelle `salon`")
-	print("[coop-hote] P5 : hors salon, %d appel de `salon` à la demande de fermeture" % (_pont.appels.count("salon") - avant))
+	_verifier(_pont.appels.count(Noyau.Methode.SALON) == avant, "P5 : la demande de fermeture hors salon appelle `salon`")
+	print("[coop-hote] P5 : hors salon, %d appel de `salon` à la demande de fermeture" % (_pont.appels.count(Noyau.Methode.SALON) - avant))
 	return true
 
 
@@ -116,10 +116,10 @@ func _fermeture_de_l_invite() -> bool:
 
 ## P4 : la demande de fermeture de la fenêtre en session joue « Quitter le salon », une fois, accepté.
 func _quitter(etape: String) -> bool:
-	var avant := _pont.appels.count("salon")
+	var avant := _pont.appels.count(Noyau.Methode.SALON)
 	root.propagate_notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)
-	_verifier(_pont.appels.count("salon") > avant, "%s : la demande de fermeture en session n'appelle pas `salon`" % etape)
-	_verifier(_pont.reponses.salon.get("ok") == true and not _pont.reponses.salon.zones["salon.gestes"].any(func(g: Dictionary) -> bool: return g.get("jeu") == PanneauDuSalon.QUITTER), "%s : « Quitter le salon » sans effet : %s" % [etape, JSON.stringify(_pont.reponses.salon).left(200)])
+	_verifier(_pont.appels.count(Noyau.Methode.SALON) > avant, "%s : la demande de fermeture en session n'appelle pas `salon`" % etape)
+	_verifier(_pont.reponses[Noyau.Methode.SALON].get("ok") == true and not _pont.reponses[Noyau.Methode.SALON].zones["salon.gestes"].any(func(g: Dictionary) -> bool: return g.get("jeu") == PanneauDuSalon.QUITTER), "%s : « Quitter le salon » sans effet : %s" % [etape, JSON.stringify(_pont.reponses[Noyau.Methode.SALON]).left(200)])
 	if not _fautes.is_empty():
 		return false
 	print("[coop-hote] %s : « Quitter le salon » joué à la demande de fermeture" % etape)
@@ -152,7 +152,7 @@ func _heros_au_tour() -> String:
 
 ## Si la valeur du héros `heros` au siège `siege` se relit pressée dans les dernières zones de `salon`.
 func _presse(heros: String, siege: int) -> bool:
-	for rangee: Dictionary in _pont.reponses.salon.zones["salon.sieges"]:
+	for rangee: Dictionary in _pont.reponses[Noyau.Methode.SALON].zones["salon.sieges"]:
 		if rangee.id == heros:
 			return rangee.valeurs.any(func(v: Dictionary) -> bool: return v.id == "%s/%d" % [heros, siege] and v.presse)
 	return false

@@ -76,10 +76,10 @@ func _regler_a_l_accueil() -> bool:
 	if not await _saisir_la_musique(0.35) or not await _saisir_la_musique(1.0):
 		return false
 	_cliquer(_publie("bouton/preference/des-fixes/true"))
-	if not await _attendre(func() -> bool: return _pont.appeler("preferences").preferences["des-fixes"] == true, "les dés fixés réglés au panneau"):
+	if not await _attendre(func() -> bool: return _pont.appeler(Noyau.Methode.PREFERENCES).preferences["des-fixes"] == true, "les dés fixés réglés au panneau"):
 		return false
 	_cliquer(_publie("bouton/preference/des-fixes/false"))
-	if not await _attendre(func() -> bool: return _pont.appeler("preferences").preferences["des-fixes"] == false, "les dés fixés remis au panneau"):
+	if not await _attendre(func() -> bool: return _pont.appeler(Noyau.Methode.PREFERENCES).preferences["des-fixes"] == false, "les dés fixés remis au panneau"):
 		return false
 	_cliquer(_publie("bouton/fermer"))
 	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _au_menu(), "l'accueil après « Fermer »"):
@@ -90,7 +90,7 @@ func _regler_a_l_accueil() -> bool:
 
 ## Si le pont dit la préférence du volume de la musique à `volume`, et si le bus de la musique le prend.
 func _musique_a(volume: float) -> bool:
-	return is_equal_approx(_pont.appeler("preferences").preferences["volume-musique"], volume) and is_equal_approx(AudioServer.get_bus_volume_linear(AudioServer.get_bus_index("musique")), volume)
+	return is_equal_approx(_pont.appeler(Noyau.Methode.PREFERENCES).preferences["volume-musique"], volume) and is_equal_approx(AudioServer.get_bus_volume_linear(AudioServer.get_bus_index("musique")), volume)
 
 
 ## Le curseur publié du volume de la musique, `null` hors de l'écran.
@@ -124,7 +124,7 @@ func _glisser_la_musique(piste: Dictionary) -> bool:
 		await process_frame
 	var tenue := is_equal_approx(glissiere.value, 100.0) and _musique_a(0.5)
 	if not tenue:
-		_fautes.append("bouton tenu au bout droit de la piste : glissière à %s, préférence à %s ; attendu la glissière à 100 et la musique encore à 0.5" % [glissiere.value, _pont.appeler("preferences").preferences["volume-musique"]])
+		_fautes.append("bouton tenu au bout droit de la piste : glissière à %s, préférence à %s ; attendu la glissière à 100 et la musique encore à 0.5" % [glissiere.value, _pont.appeler(Noyau.Methode.PREFERENCES).preferences["volume-musique"]])
 	_bouton_au_point(bout, false)
 	return tenue and await _attendre(func() -> bool: return _musique_a(1.0), "la musique et son bus à 1 après le glissement relâché au bout droit de la piste")
 
@@ -176,7 +176,7 @@ func _jouer_une_campagne(nombre: int, campagne: String) -> bool:
 ## création jouée par ses boutons, ses tirages puis chaque choix ouvert tranché par sa première valeur libre. Son nom,
 ## vide s'il n'entre pas au groupe.
 func _creer_un_heros() -> String:
-	var zones: Dictionary = _pont.appeler("ouvrir", {graine = 7}).vue.zones
+	var zones: Dictionary = _pont.appeler(Noyau.Methode.OUVRIR, {graine = 7}).vue.zones
 	zones = _creation(zones, _element(zones["groupe.gestes"], "creation"))
 	for _page in 12:
 		if _element(zones["creation.gestes"], "suivante") == null:
@@ -204,7 +204,7 @@ func _creer_un_heros() -> String:
 	var nom: String = zones["creation.corps"][0].libelle
 	zones = _creation(zones, engager)
 	var groupe: Array = zones["groupe.heros"].map(func(e: Dictionary) -> String: return e.nom)
-	_pont.appeler("quitter")
+	_pont.appeler(Noyau.Methode.QUITTER)
 	if groupe != [nom]:
 		_fautes.append("%s engagé n'est pas au groupe : %s" % [nom, groupe])
 		return ""
@@ -214,7 +214,7 @@ func _creer_un_heros() -> String:
 
 ## Les zones de la vue après le geste de la création que porte le bouton `b` ; `zones` si le pont le refuse.
 func _creation(zones: Dictionary, b: Dictionary) -> Dictionary:
-	return _pont.appeler("creation", b.jeu).get("vue", {zones = zones}).zones
+	return _pont.appeler(Noyau.Methode.CREATION, b.jeu).get("vue", {zones = zones}).zones
 
 
 ## L'élément d'id `id` de `elements`, `null` s'il n'y est pas.

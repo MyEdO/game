@@ -28,12 +28,13 @@ func rejoindre(_au_refus: Callable, _a_la_panne: Callable) -> bool:
 	return true
 
 
-func appeler(methode: String, entree: Variant = null) -> Dictionary:
-	if methode in ["catalogues", "modeles", "vitrine"]:
-		return fige[methode]
+func appeler(methode: Noyau.Methode, entree: Variant = null) -> Dictionary:
+	var nom := Noyau.METHODES[methode]
+	if methode in [Noyau.Methode.CATALOGUES, Noyau.Methode.MODELES, Noyau.Methode.VITRINE]:
+		return fige[nom]
 	var cle := JSON.stringify(entree)
 	entrees.append(cle)
-	return fige.get(methode, {}).get(cle, {ok = false, erreur = {categorie = "validation", message = "entrée non figée de %s : %s" % [methode, cle]}})
+	return fige.get(nom, {}).get(cle, {ok = false, erreur = {categorie = "validation", message = "entrée non figée de %s : %s" % [nom, cle]}})
 
 
 func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "", _entetes := PackedStringArray()) -> PackedByteArray:

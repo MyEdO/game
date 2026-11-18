@@ -5,12 +5,12 @@ extends PontDuNoyau
 ## au noyau vivant, sauf la réponse dictée à sa méthode (`dictees`), rendue une fois ; il garde chaque méthode appelée,
 ## dans l'ordre, et la dernière réponse vivante de chacune.
 
-var appels: Array[String] = []
+var appels: Array[Noyau.Methode] = []
 var dictees := {}
 var reponses := {}
 
 
-func appeler(methode: String, entree: Variant = null) -> Dictionary:
+func appeler(methode: Noyau.Methode, entree: Variant = null) -> Dictionary:
 	appels.append(methode)
 	if dictees.has(methode):
 		var dictee: Callable = dictees[methode]

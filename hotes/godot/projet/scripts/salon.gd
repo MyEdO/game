@@ -52,12 +52,12 @@ func _ready() -> void:
 func ouvrir() -> void:
 	var lignes := _pont.fin_du_salon
 	_pont.fin_du_salon = []
-	_montrer(_pont.appeler("salon"), lignes)
+	_montrer(_pont.appeler(Noyau.Methode.SALON), lignes)
 
 
 ## Les zones de `salon` relues, la minuterie réglée sur elles, montrées si le panneau est à l'écran.
 func relire() -> void:
-	var reponse := _pont.appeler("salon")
+	var reponse := _pont.appeler(Noyau.Methode.SALON)
 	if _cadre.visible:
 		_montrer(reponse, [])
 	elif reponse.get("ok") == true:
@@ -68,7 +68,7 @@ func relire() -> void:
 ## rien ne se relève ni ne se montre, le jeu quitte.
 func _notification(quoi: int) -> void:
 	if quoi == NOTIFICATION_WM_CLOSE_REQUEST and not _minuterie.is_stopped():
-		_pont.appeler("salon", QUITTER)
+		_pont.appeler(Noyau.Methode.SALON, QUITTER)
 
 
 ## La racine de ce que le panneau porte à l'écran (`PontDuNoyau.boutons_a_l_ecran`).
@@ -82,14 +82,14 @@ func _jouer(jeu: Dictionary) -> void:
 		change.emit()
 		ferme.emit()
 		return
-	_montrer(_pont.appeler("salon", jeu), [])
+	_montrer(_pont.appeler(Noyau.Methode.SALON, jeu), [])
 	_relever()
 
 
 ## `nouvelles` relevé : une `Suite` au combat (`suite`) ; une session finie (`fini`), puis, le panneau encore dans
 ## l'arbre, `salon` relu et montré avec ses lignes.
 func _relever() -> void:
-	var reponse := _pont.appeler("nouvelles")
+	var reponse := _pont.appeler(Noyau.Methode.NOUVELLES)
 	if reponse.get("ok") != true:
 		return
 	if reponse.has("vue"):
@@ -97,7 +97,7 @@ func _relever() -> void:
 	elif reponse.has("quittee"):
 		fini.emit(reponse.quittee.lignes)
 		if is_inside_tree():
-			_montrer(_pont.appeler("salon"), reponse.quittee.lignes)
+			_montrer(_pont.appeler(Noyau.Methode.SALON), reponse.quittee.lignes)
 
 
 ## Les zones de `reponse` montrées, avec `lignes` sous `journal.lignes`, la minuterie réglée ; une réponse refusée

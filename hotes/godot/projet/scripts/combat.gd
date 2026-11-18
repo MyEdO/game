@@ -141,25 +141,25 @@ func _ready() -> void:
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
 	if _pont.a_charger != null:
-		var reponse := _pont.appeler("charger", entree.merged({charger = _pont.a_charger}))
+		var reponse := _pont.appeler(Noyau.Methode.CHARGER, entree.merged({charger = _pont.a_charger}))
 		_pont.a_charger = null
 		_suivre(reponse)
 		if reponse.get("ok") != true:
-			_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+			_montrer_les_sauvegardes(_pont.appeler(Noyau.Methode.SAUVEGARDES))
 		return
 	if _pont.entree == "reprendre":
-		_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+		_montrer_les_sauvegardes(_pont.appeler(Noyau.Methode.SAUVEGARDES))
 		return
 	if _pont.entree == "salon":
 		_salon.ouvrir()
 		return
 	if _pont.entree == "jouer":
-		_suivre(_pont.appeler("ouvrir", entree))
+		_suivre(_pont.appeler(Noyau.Methode.OUVRIR, entree))
 		return
 	var scenario := _pont.parametre("scenario")
 	if not _pont.essai and scenario == "":
 		scenario = await _choisir_un_scenario()
-	_suivre(_pont.appeler("demarrer", entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
+	_suivre(_pont.appeler(Noyau.Methode.DEMARRER, entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
 
 
 ## Sorti de l'arbre (l'accueil revenu, `PontDuNoyau.revenir_a_l_accueil`), il n'y revient pas (#4195) : ses attentes en vol sont
@@ -172,7 +172,7 @@ func _exit_tree() -> void:
 ## (`{ scenario }`), le panneau caché ensuite ; son défilement republie l'écran.
 func _choisir_un_scenario() -> String:
 	var zones := Zone.racines(_scenarios)
-	Zone.montrer_toutes(zones, _pont.appeler("scenarios").get("zones", {}))
+	Zone.montrer_toutes(zones, _pont.appeler(Noyau.Methode.SCENARIOS).get("zones", {}))
 	var barre := (_scenarios.get_node("Defilement") as ScrollContainer).get_v_scroll_bar()
 	barre.value_changed.connect(_republier)
 	_scenarios.visible = true
@@ -205,12 +205,12 @@ func _jouer(jeu: Dictionary) -> void:
 		return
 	if jeu.has("sauvegardes"):
 		if jeu.sauvegardes:
-			_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+			_montrer_les_sauvegardes(_pont.appeler(Noyau.Methode.SAUVEGARDES))
 		else:
 			_fermer_les_sauvegardes()
 		return
 	if jeu.has("sauvegarder"):
-		_montrer_les_sauvegardes(_pont.appeler("sauvegarder", jeu))
+		_montrer_les_sauvegardes(_pont.appeler(Noyau.Methode.SAUVEGARDER, jeu))
 		return
 	if jeu.has("reglages"):
 		_reglages.ouvrir()
@@ -227,14 +227,14 @@ func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("compendium"):
 		_compendium.ouvrir(jeu.compendium)
 		return
-	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
+	_suivre(_pont.appeler(Noyau.Methode.FICHE if jeu.has("fiche") else Noyau.Methode.CREATION if jeu.has("creation") else Noyau.Methode.LANCER if jeu.has("lancer") else Noyau.Methode.JOUER, jeu))
 
 
 ## Un geste sur le roster de l'hôte (`roster`), sa suite suivie : le fichier qu'elle porte (`fichier`) est remis au
 ## joueur ; le choix qu'elle demande (`choix`) est fait par le joueur, et le texte du fichier choisi revient au pont
 ## (`{ importe }`, `null` s'il renonce).
 func _jouer_le_roster(jeu: Dictionary) -> void:
-	var reponse := _pont.appeler("roster", jeu)
+	var reponse := _pont.appeler(Noyau.Methode.ROSTER, jeu)
 	_suivre(reponse)
 	if reponse.has("fichier"):
 		_pont.enregistrer_un_fichier(PontDuNoyau.HEROS, reponse.fichier.nom, reponse.fichier.texte)
@@ -244,12 +244,12 @@ func _jouer_le_roster(jeu: Dictionary) -> void:
 		var choisi := await _pont.choisir_un_fichier(PontDuNoyau.HEROS)
 		if not _en_vol.erase(jeton):
 			return
-		_suivre(_pont.appeler("roster", {roster = {importe = choisi.octets.get_string_from_utf8() if choisi.has("octets") else null}}))
+		_suivre(_pont.appeler(Noyau.Methode.ROSTER, {roster = {importe = choisi.octets.get_string_from_utf8() if choisi.has("octets") else null}}))
 
 
 ## La partie quittée (`quitter`) : l'accueil revient, d'où une autre s'ouvre ; un refus laisse l'écran tel quel.
 func _quitter() -> void:
-	if _pont.appeler("quitter").get("ok") != true:
+	if _pont.appeler(Noyau.Methode.QUITTER).get("ok") != true:
 		return
 	_pont.revenir_a_l_accueil()
 
@@ -276,7 +276,7 @@ func _fermer_les_sauvegardes() -> void:
 ## La sauvegarde de l'emplacement `emplacement` à charger : la partie ouverte quittée (`quitter`, son point de reprise
 ## gardé), le combat se recharge et l'ouvre (`PontDuNoyau.a_charger`), son monde reposé de zéro.
 func _charger(emplacement: Variant) -> void:
-	if not _vue.is_empty() and _pont.appeler("quitter").get("ok") != true:
+	if not _vue.is_empty() and _pont.appeler(Noyau.Methode.QUITTER).get("ok") != true:
 		return
 	_pont.a_charger = emplacement
 	_recharger_sur("")
@@ -307,7 +307,7 @@ func _recharger_sur(entree: String) -> void:
 
 
 func _reprendre(jeton: int) -> void:
-	_suivre(_pont.appeler("reprendre", {jeton = jeton}))
+	_suivre(_pont.appeler(Noyau.Methode.REPRENDRE, {jeton = jeton}))
 
 
 ## Une `Suite` du contrat : sa vue montrée, ses effets rendus, sa musique jouée, son journal écrit, ses jetons armés,
@@ -346,13 +346,13 @@ func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 	if cle == _cle_du_monde:
 		return
 	_cle_du_monde = cle
-	var monde := _pont.appeler("monde")
+	var monde := _pont.appeler(Noyau.Methode.MONDE)
 	if monde.get("ok") != true or monde.monde == null:
 		return
 	var manquants := _monde.volume.manquants(monde)
 	var recus := {volume = [], toits = [], couronnes = []}
 	if not manquants.values().all(func(cles: Array) -> bool: return cles.is_empty()):
-		recus = _pont.appeler("morceaux", manquants.merged({source = "partie"}))
+		recus = _pont.appeler(Noyau.Methode.MORCEAUX, manquants.merged({source = "partie"}))
 		if recus.get("ok") != true:
 			return
 	_plateau.poser_le_monde(monde, recus)
@@ -361,14 +361,14 @@ func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 ## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le
 ## masque de son empreinte (`plateau.cleDuRetrait`) n'y est pas déjà.
 func _poser_le_retrait_de(scene: Variant, plateau: Variant) -> void:
-	_cle_du_retrait = _reposer(_cle_du_retrait, scene, null if plateau == null else plateau.cleDuRetrait, "retrait", _monde.volume.retirer)
+	_cle_du_retrait = _reposer(_cle_du_retrait, scene, null if plateau == null else plateau.cleDuRetrait, Noyau.Methode.RETRAIT, _monde.volume.retirer)
 
 
 ## Ce que le groupe connaît de la scène `scene` (`vision`) voilé au volume (`VolumeDeScene.voir`), si la vision de sa clé
 ## (`vue.vision`) n'y est pas déjà ; la première d'une scène posée sans fondu, la vision de la scène d'avant levée.
 func _poser_la_vision_de(scene: Variant, vision: Variant) -> void:
 	var avant := _cle_de_la_vision
-	_cle_de_la_vision = _reposer(avant, scene, vision, "vision", func(reponse: Dictionary) -> void:
+	_cle_de_la_vision = _reposer(avant, scene, vision, Noyau.Methode.VISION, func(reponse: Dictionary) -> void:
 		if not avant.begins_with("%s|" % scene.id):
 			_monde.volume.voir(null)
 		_monde.volume.voir(reponse))
@@ -377,7 +377,7 @@ func _poser_la_vision_de(scene: Variant, vision: Variant) -> void:
 ## La réponse de la méthode `methode` du pont posée par `poser`, si l'empreinte `empreinte` de la scène `scene` n'est pas
 ## celle de la clé `cle` déjà posée : rend la clé `scène|empreinte` de ce qui est posé, `""` sans scène ni empreinte,
 ## sans rien demander.
-func _reposer(cle: String, scene: Variant, empreinte: Variant, methode: String, poser: Callable) -> String:
+func _reposer(cle: String, scene: Variant, empreinte: Variant, methode: Noyau.Methode, poser: Callable) -> String:
 	var neuve := "" if scene == null or empreinte == null else "%s|%s" % [scene.id, empreinte]
 	if neuve != cle and neuve != "":
 		var reponse := _pont.appeler(methode)
@@ -389,7 +389,7 @@ func _reposer(cle: String, scene: Variant, empreinte: Variant, methode: String, 
 ## Les arêtes de la scène `scene` (`aretes`) sur le volume du monde (`VolumeDeScene.poser_les_aretes`), si celles de
 ## leur empreinte (`plateau.cleDesAretes`) n'y sont pas déjà.
 func _poser_les_aretes_de(scene: Variant, plateau: Variant) -> void:
-	_cle_des_aretes = _reposer(_cle_des_aretes, scene, null if plateau == null else plateau.cleDesAretes, "aretes", func(reponse: Dictionary) -> void:
+	_cle_des_aretes = _reposer(_cle_des_aretes, scene, null if plateau == null else plateau.cleDesAretes, Noyau.Methode.ARETES, func(reponse: Dictionary) -> void:
 		_monde.volume.poser_les_aretes(reponse.aretes))
 
 
@@ -466,7 +466,7 @@ func _cadrer(entree: String, rendre: Callable) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("changer_de_regard") and _vue.get("plateau") != null:
 		get_viewport().set_input_as_handled()
-		_suivre(_pont.appeler("regarder", {regard = _vue.plateau.regardSuivant}))
+		_suivre(_pont.appeler(Noyau.Methode.REGARDER, {regard = _vue.plateau.regardSuivant}))
 
 
 ## Un clic sur `case` : le clic du champ sur la case, et sur son occupant s'il en a un.

@@ -110,7 +110,7 @@ func _demarrer(pont: PontDuDecor) -> bool:
 	var environnement := (_monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment
 	environnement.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	environnement.volumetric_fog_enabled = false
-	_servi = pont.reponses.vision
+	_servi = pont.reponses[Noyau.Methode.VISION]
 	print("[voile-du-decor] %s : %d poses de décor servies (%s), toutes posées" % [SCENARIO, _poses_servies(), ", ".join(PackedStringArray(_vue.corps.decors.keys()))])
 	return true
 

@@ -511,7 +511,7 @@ func _poser_sans_base(racine: Node3D) -> void:
 ## (`MontageDesModeles.poser`, `decors`), en mètres (`MiseEnPage.echelle_en_metres`), au sol et cadré à sa taille
 ## (`_poser_l_echantillon_au_sol`), et la section « Saison » posée sur ses `saisons` (`_poser_les_saisons`).
 func _poser_l_echantillon() -> void:
-	var reponse := _pont.appeler("echantillon", _echantillon_demande)
+	var reponse := _pont.appeler(Noyau.Methode.ECHANTILLON, _echantillon_demande)
 	if reponse.get("ok") != true:
 		return
 	var scene := _scene_de_l_echantillon
@@ -570,7 +570,7 @@ func _demander_le_vehicule() -> void:
 	var embleme := _embleme_de_l_emplacement(PAVILLON)
 	if embleme != VIDE:
 		entree.embleme = {id = embleme}
-	var reponse := _pont.appeler("vehicule", entree)
+	var reponse := _pont.appeler(Noyau.Methode.VEHICULE, entree)
 	if reponse.get("ok") != true:
 		return
 	_offre_du_vehicule = reponse
@@ -1235,7 +1235,7 @@ func _palette_posee() -> Dictionary:
 ## (#3825), par zone qui dure, qui la pose autour de la cible, par État, qui pose sa marque sur la cible (#3834), et par
 ## météo, qui la pose sur la bande de l'auteur à la cible (#4081).
 func _poser_la_vitrine() -> void:
-	var reponse := _pont.appeler("vitrine")
+	var reponse := _pont.appeler(Noyau.Methode.VITRINE)
 	if reponse.get("ok") != true:
 		return
 	_vitrine = reponse
@@ -1466,7 +1466,7 @@ func _debrancher() -> void:
 ## Les familles d'échantillons de `echantillons` (#3802), dont chaque liste de tête se pose avec les modèles
 ## (`_poser_les_listes_des_modeles`).
 func _lire_les_echantillons() -> void:
-	var reponse := _pont.appeler("echantillons")
+	var reponse := _pont.appeler(Noyau.Methode.ECHANTILLONS)
 	if reponse.get("ok") == true:
 		_familles_d_echantillons = reponse.familles
 
@@ -1476,7 +1476,7 @@ func _lire_les_echantillons() -> void:
 ## pour un axe `ref` ou `valeur` ; pour un axe `plage`, une glissière bornée par `min` et `max` au pas `PAS_DE_PLAGE`,
 ## puis « neutre ».
 func _poser_les_catalogues() -> void:
-	var reponse := _pont.appeler("catalogues")
+	var reponse := _pont.appeler(Noyau.Methode.CATALOGUES)
 	if reponse.get("ok") != true:
 		return
 	_catalogues = reponse
@@ -1608,7 +1608,7 @@ func _composer_la_courante() -> void:
 		if _definition_du_vehicule != null:
 			_demander_le_vehicule()
 		return
-	var reponse := _pont.appeler("composer", {base = _montage.base.id, composition = _composition, emblemes = _surcharges_des_emblemes})
+	var reponse := _pont.appeler(Noyau.Methode.COMPOSER, {base = _montage.base.id, composition = _composition, emblemes = _surcharges_des_emblemes})
 	if reponse.get("ok") == true:
 		_montage.composee = reponse
 	elif reponse.get("ok") == false:
@@ -1698,7 +1698,7 @@ func _copier_la_courante() -> void:
 	var entree := {composition = _composition}
 	if _preset != null:
 		entree.preset = _preset
-	var reponse := _pont.appeler("presetDeComposition", entree)
+	var reponse := _pont.appeler(Noyau.Methode.PRESET_DE_COMPOSITION, entree)
 	if reponse.get("ok") == false:
 		%Verdict.text = _texte_du_refus(reponse)
 		%Entree.text = ""

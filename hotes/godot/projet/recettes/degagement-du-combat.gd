@@ -24,14 +24,14 @@ var _fautes: Array[String] = []
 ## Le pont figé du dégagement : il garde chaque méthode appelée, dans l'ordre, et chaque réponse refusée, et n'expose
 ## rien à une page qu'il n'a pas.
 class PontDuDegagement extends PontFige:
-	var appels: Array[String] = []
+	var appels: Array[Noyau.Methode] = []
 	var refusees: Array[String] = []
 
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
+	func appeler(methode: Noyau.Methode, entree: Variant = null) -> Dictionary:
 		appels.append(methode)
 		var reponse := super(methode, entree)
 		if reponse.get("ok") == false:
-			refusees.append("%s : %s" % [methode, reponse.erreur.message])
+			refusees.append("%s : %s" % [Noyau.METHODES[methode], reponse.erreur.message])
 		return reponse
 
 	func exposer(_nom: String, _rappel: Callable) -> void:
@@ -55,7 +55,7 @@ func _recetter() -> void:
 	root.add_child(combat)
 	await _derouler(lu, pont, combat)
 	_verifier(pont.refusees.is_empty(), "réponses refusées : %s" % [pont.refusees])
-	print("[degagement-du-combat] appels : %s" % [pont.appels])
+	print("[degagement-du-combat] appels : %s" % [Noyau.noms(pont.appels)])
 	combat.queue_free()
 	await create_timer(Foyer.SON_LIBERE_S).timeout
 	for faute in _fautes:
@@ -76,8 +76,8 @@ func _derouler(lu: Dictionary, pont: PontDuDegagement, combat: Node) -> void:
 		if focus.is_empty() or not _presser(combat, focus[0].id):
 			return
 	_verifier(combat.get("_vue").projection.get("fenetre") == null, "fenêtres encore ouvertes après %d" % FENETRES_AU_PLUS)
-	for methode in ["monde", "morceaux", "retrait"]:
-		_verifier(pont.appels.count(methode) == 1, "avant le clic, `%s` appelé %d fois, attendu une" % [methode, pont.appels.count(methode)])
+	for methode in [Noyau.Methode.MONDE, Noyau.Methode.MORCEAUX, Noyau.Methode.RETRAIT]:
+		_verifier(pont.appels.count(methode) == 1, "avant le clic, `%s` appelé %d fois, attendu une" % [Noyau.METHODES[methode], pont.appels.count(methode)])
 	var volume: VolumeDeScene = (combat.get_node("Plateau/Monde") as Monde).volume
 	var poses := _morceaux_de(volume)
 	_verifier(poses.size() == lu.monde["null"].monde.morceaux.size(), "%d morceaux posés, le manifeste en nomme %d" % [poses.size(), lu.monde["null"].monde.morceaux.size()])
@@ -91,11 +91,11 @@ func _derouler(lu: Dictionary, pont: PontDuDegagement, combat: Node) -> void:
 	var depuis := pont.appels.size()
 	(combat.get_node("Plateau") as Plateau).case_cliquee.emit(Vector3i(int(lu.case.x), int(lu.case.y), 0))
 	var au_clic := pont.appels.slice(depuis)
-	print("[degagement-du-combat] au clic : %s" % [au_clic])
-	_verifier(au_clic.count("jouer") == 1, "au clic, `jouer` appelé %d fois, attendu une" % au_clic.count("jouer"))
-	_verifier(au_clic.count("retrait") == 1, "au clic, `retrait` appelé %d fois, attendu une" % au_clic.count("retrait"))
-	for methode in ["monde", "morceaux"]:
-		_verifier(not au_clic.has(methode), "au clic, `%s` redemandé" % methode)
+	print("[degagement-du-combat] au clic : %s" % [Noyau.noms(au_clic)])
+	_verifier(au_clic.count(Noyau.Methode.JOUER) == 1, "au clic, `jouer` appelé %d fois, attendu une" % au_clic.count(Noyau.Methode.JOUER))
+	_verifier(au_clic.count(Noyau.Methode.RETRAIT) == 1, "au clic, `retrait` appelé %d fois, attendu une" % au_clic.count(Noyau.Methode.RETRAIT))
+	for methode in [Noyau.Methode.MONDE, Noyau.Methode.MORCEAUX]:
+		_verifier(not au_clic.has(methode), "au clic, `%s` redemandé" % Noyau.METHODES[methode])
 	var reposes := _morceaux_de(volume)
 	_verifier(reposes == poses, "au clic, les nœuds ou les maillages des morceaux changent : %s puis %s" % [poses, reposes])
 	_verifier(_retiree(volume, retiree), "après le clic, la case %s pas retirée" % [retiree])

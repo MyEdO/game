@@ -53,7 +53,7 @@ func _recetter() -> void:
 		print("[partie-vivante] première vue : scène %s" % premiere.projection.scene.id)
 		var piles := []
 		pont.resoudre_la_pile(JSON.stringify(PILE), func(reponse: Dictionary) -> void: piles.append(reponse))
-		var vue := pont.appeler("vue")
+		var vue := pont.appeler(Noyau.Methode.VUE)
 		if vue.get("ok") != true or vue.has("bilan"):
 			_fautes.append("l'appel écrit pendant la pile reçoit %s" % JSON.stringify(vue).left(200))
 		if await _attendre(func() -> bool: return not piles.is_empty(), "la pile des couches"):
@@ -99,14 +99,14 @@ func _verifier_le_stockage() -> void:
 ## `morceaux` de toutes les clés du manifeste, reçu en octets aux tailles que disent ses surfaces, puis un `monde` qui
 ## reçoit le manifeste de nouveau.
 func _verifier_les_morceaux(pont: PontDuNoyau) -> void:
-	var monde := pont.appeler("monde")
+	var monde := pont.appeler(Noyau.Methode.MONDE)
 	if monde.get("ok") != true or monde.monde == null:
 		_fautes.append("monde rend %s" % JSON.stringify(monde).left(200))
 		return
 	var demande := {source = "partie"}
 	for famille: String in FAMILLES:
 		demande[famille] = _au_manifeste(monde, famille).keys()
-	var recus := pont.appeler("morceaux", demande)
+	var recus := pont.appeler(Noyau.Methode.MORCEAUX, demande)
 	if recus.get("ok") != true or not recus.has("octets"):
 		_fautes.append("morceaux rend %s" % JSON.stringify(recus).left(200))
 		return
@@ -122,7 +122,7 @@ func _verifier_les_morceaux(pont: PontDuNoyau) -> void:
 	print("[partie-vivante] morceaux : %d géométries, %d octets" % [geometries, int(recus.octets)])
 	if recus.volume.is_empty():
 		_fautes.append("morceaux : aucun morceau du volume reçu")
-	var encore := pont.appeler("monde")
+	var encore := pont.appeler(Noyau.Methode.MONDE)
 	if encore.get("ok") != true or encore.has("octets") or encore.monde != monde.monde:
 		_fautes.append("le monde demandé après morceaux reçoit %s" % JSON.stringify(encore).left(200))
 

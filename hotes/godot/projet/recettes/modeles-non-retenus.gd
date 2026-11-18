@@ -20,9 +20,9 @@ var _fautes: Array[String] = []
 ## Le pont figé du combat : un listage lisible, un index refusé, la partie de l'adresse figée ; il garde chaque méthode
 ## appelée et n'expose rien à une page qu'il n'a pas.
 class PontDeLIndexRefuse extends PontFige:
-	var appels: Array[String] = []
+	var appels: Array[Noyau.Methode] = []
 
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
+	func appeler(methode: Noyau.Methode, entree: Variant = null) -> Dictionary:
 		appels.append(methode)
 		return super(methode, entree)
 
@@ -47,12 +47,12 @@ func _recetter() -> void:
 	root.add_child(combat)
 	for image in IMAGES_D_ATTENTE:
 		await process_frame
-	_verifier(pont.appels.count("modeles") == 1, "`modeles` appelé %d fois, attendu une : %s" % [pont.appels.count("modeles"), pont.appels])
-	_verifier(not pont.appels.has("demarrer"), "le combat entre en partie sans modèles retenus : %s" % [pont.appels])
+	_verifier(pont.appels.count(Noyau.Methode.MODELES) == 1, "`modeles` appelé %d fois, attendu une : %s" % [pont.appels.count(Noyau.Methode.MODELES), Noyau.noms(pont.appels)])
+	_verifier(not pont.appels.has(Noyau.Methode.DEMARRER), "le combat entre en partie sans modèles retenus : %s" % [Noyau.noms(pont.appels)])
 	_verifier(MontageDeComposition.modeles == RETENUS and MontageDeComposition.forme == FORME, "l'index refusé a été retenu : %s, forme %s" % [MontageDeComposition.modeles, MontageDeComposition.forme])
 	_verifier((combat.get("_panne") as Label).text == REFUS, "l'avis de panne dit « %s », attendu « %s »" % [(combat.get("_panne") as Label).text, REFUS])
 	_verifier(MontageDeComposition.indexer(pont, {}).is_empty(), "un listage vide est indexé")
-	_verifier(pont.appels.count("modeles") == 1, "un listage vide fait appeler `modeles` au pont : %s" % [pont.appels])
+	_verifier(pont.appels.count(Noyau.Methode.MODELES) == 1, "un listage vide fait appeler `modeles` au pont : %s" % [Noyau.noms(pont.appels)])
 	combat.queue_free()
 	await process_frame
 	for faute in _fautes:

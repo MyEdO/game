@@ -99,9 +99,9 @@ func _actif() -> String:
 
 ## La fenêtre fermée en session : « Quitter le salon » joué, le panneau sans partie rend les formulaires.
 func _fermer() -> bool:
-	var avant := _pont.appels.count("salon")
+	var avant := _pont.appels.count(Noyau.Methode.SALON)
 	root.propagate_notification(Node.NOTIFICATION_WM_CLOSE_REQUEST)
-	_verifier(_pont.appels.count("salon") > avant, "la demande de fermeture en session n'appelle pas `salon`")
+	_verifier(_pont.appels.count(Noyau.Methode.SALON) > avant, "la demande de fermeture en session n'appelle pas `salon`")
 	if not await _attendre(func() -> bool: return _au_combat() and current_scene.get("_vue").is_empty() and _bouton("formulaire/rejoindre", "Rejoindre") != null, "le panneau sans partie après la fermeture"):
 		return false
 	print("[coop-invite] fermeture : « Quitter le salon » joué, %s" % [_textes("Journal")])

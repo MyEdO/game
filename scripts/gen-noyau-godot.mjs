@@ -2,9 +2,10 @@
 // vérificateur de types : une cible de CODE de `GENERATORS` (scripts/docs/build-all.mjs),
 // `hotes/godot/projet/scripts/noyau.generated.gd`, jamais commitée. Sa `class_name Noyau` porte une classe interne par
 // famille de `FAMILLES`, une `const` String par valeur de l'union ; un script Godot y lit l'id en accès statique
-// (`Noyau.Effet.COUP`), et un id renommé côté TypeScript casse au parse du script qui le lit (`godot:sonde`). Elle porte
-// aussi les listes qu'une scène vérifie à son instanciation (`Zone`, `Liaison`, #3328) : `SOURCES`, `CHAMPS`, `TYPES`,
-// `TONS`, et `TypeDElement` pour les comparaisons de code.
+// (`Noyau.Effet.COUP`), et un id renommé côté TypeScript casse au parse du script qui le lit (`godot:sonde`). Son
+// `enum Methode` porte les méthodes du pont, que `PontDuNoyau.appeler` prend (leur nom à `METHODES`) : un nom écrit
+// en littéral y est refusé au parse. Elle porte aussi les listes qu'une scène vérifie à son instanciation (`Zone`,
+// `Liaison`, #3328) : `SOURCES`, `CHAMPS`, `TYPES`, `TONS`, et `TypeDElement` pour les comparaisons de code.
 //
 //   node scripts/gen-noyau-godot.mjs            écrit la cible
 //   node scripts/gen-noyau-godot.mjs --check    compare sans écrire
@@ -56,13 +57,19 @@ function valeursDe({ checker, program }, racine, f) {
   return trie(f.champ ? membres(t).flatMap((m) => chaines(checker.getTypeOfSymbol(checker.getPropertyOfType(m, f.champ)))) : chaines(t))
 }
 
-/** Les clés de zone de la vue : celles de chaque membre `zones` objet, à toute profondeur, des retours des méthodes du
- *  pont (l'initialiseur de `methodes`, `PONT`). */
-function sourcesDe({ checker, program }, racine) {
+/** Les méthodes du pont : les propriétés du type de l'initialiseur de `methodes` (`PONT`), sa variable étant typée
+ *  `Record<string, …>`. */
+function methodesDe({ checker, program }, racine) {
   let methodes = null
   const chercher = (n) => { if (ts.isVariableDeclaration(n) && n.name.text === 'methodes') methodes = n.initializer; else if (!methodes) n.forEachChild(chercher) }
   chercher(fichier({ program }, racine, PONT))
   if (!methodes) throw new Error(`gen-noyau-godot : \`methodes\` introuvable dans ${PONT}`)
+  return checker.getPropertiesOfType(checker.getTypeAtLocation(methodes))
+}
+
+/** Les clés de zone de la vue : celles de chaque membre `zones` objet, à toute profondeur, des retours des méthodes du
+ *  pont (`methodesDe`). */
+function sourcesDe({ checker }, methodes) {
   const cles = []
   const vus = new Set()
   const marcher = (t) => {
@@ -76,7 +83,7 @@ function sourcesDe({ checker, program }, racine) {
       marcher(pt)
     }
   }
-  for (const m of checker.getPropertiesOfType(checker.getTypeAtLocation(methodes))) {
+  for (const m of methodes) {
     for (const sig of checker.getSignaturesOfType(checker.getTypeOfSymbol(m), SignatureKind.Call)) marcher(checker.getReturnTypeOfSignature(sig))
   }
   return trie(cles)
@@ -106,13 +113,15 @@ export function noyauLu(racine = RACINE_DU_DEPOT) {
   const session = repoProgram(racine, () => [...new Set([...FAMILLES.map((f) => f.module), PONT, ELEMENTS].map((m) => absolu(racine, m)))])
   try {
     const { types, champs } = dessinablesDe(session, racine)
+    const methodes = methodesDe(session, racine)
     return {
+      methodes: { dit: `Les méthodes du pont (l'initialiseur de \`methodes\`, \`${PONT}\`)`, valeurs: trie(methodes.map((m) => m.name)) },
       familles: [
         ...FAMILLES.map((f) => ({ classe: f.classe, dit: `\`${f.type}${f.champ ? `['${f.champ}']` : ''}\` (\`${f.module}\`)`, valeurs: valeursDe(session, racine, f) })),
         { classe: 'TypeDElement', dit: `Les types de ce qu'une zone dessine (\`${ELEMENTS}\`)`, valeurs: types },
       ],
       listes: [
-        { nom: 'SOURCES', dit: `Les clés de zone de la vue (\`zones\` des retours de \`methodes\`, \`${PONT}\`)`, valeurs: sourcesDe(session, racine) },
+        { nom: 'SOURCES', dit: `Les clés de zone de la vue (\`zones\` des retours de \`methodes\`, \`${PONT}\`)`, valeurs: sourcesDe(session, methodes) },
         { nom: 'CHAMPS', dit: `Les champs de ce qu'une zone dessine (\`${ELEMENTS}\`)`, valeurs: champs },
         { nom: 'TYPES', dit: `Les types de ce qu'une zone dessine (\`${ELEMENTS}\`)`, valeurs: types },
         { nom: 'TONS', dit: `\`Ton\` (\`${ELEMENTS}\`)`, valeurs: trie(chaines(session.checker.getTypeAtLocation(declaration(session, racine, ELEMENTS, 'Ton').name))) },
@@ -130,9 +139,12 @@ const nomDeConstante = (valeur) => valeur.replace(/(?<=.)(?=[A-Z])/g, '_').repla
 const classe = (nom, dit, valeurs) => `\n\n## ${dit}.\nclass ${nom}:\n` + valeurs.map((v) => `\tconst ${nomDeConstante(v)} := ${JSON.stringify(v)}\n`).join('')
 
 /** Le texte de la cible. */
-const texteDeSortie = ({ familles, listes }) =>
+const texteDeSortie = ({ methodes, familles, listes }) =>
   `## GÉNÉRÉ par scripts/gen-noyau-godot.mjs (#4056) — jamais édité, jamais commité.\n`
   + `class_name Noyau\n`
+  + `\n## ${methodes.dit}.\nenum Methode {\n${methodes.valeurs.map((v) => `\t${nomDeConstante(v)},\n`).join('')}}\n`
+  + `\n## Le nom envoyé au pont de chaque membre de \`Methode\`, à son rang.\nconst METHODES: PackedStringArray = [\n${methodes.valeurs.map((v) => `\t${JSON.stringify(v)},\n`).join('')}]\n`
+  + `\n## Le nom de chaque méthode de \`methodes\`, dans l'ordre.\nstatic func noms(methodes: Array) -> Array:\n\treturn methodes.map(func(m: Methode) -> String: return METHODES[m])\n`
   + listes.map((l) => `\n## ${l.dit}.\nconst ${l.nom}: PackedStringArray = [\n${l.valeurs.map((v) => `\t${JSON.stringify(v)},\n`).join('')}]\n`).join('')
   + familles.map((f) => classe(f.classe, f.dit, f.valeurs)).join('')
 
@@ -143,7 +155,7 @@ export function rendre() {
 
 if (import.meta.main) {
   const noyau = noyauLu()
-  console.log(`gen-noyau-godot — ${noyau.familles.length} familles, ${noyau.listes.map((l) => `${l.nom} ${l.valeurs.length}`).join(', ')}`)
+  console.log(`gen-noyau-godot — ${noyau.methodes.valeurs.length} méthodes, ${noyau.familles.length} familles, ${noyau.listes.map((l) => `${l.nom} ${l.valeurs.length}`).join(', ')}`)
   ecrireOuVerifier({
     out: texteDeSortie(noyau),
     path: SORTIE,
