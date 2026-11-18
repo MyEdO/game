@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MSRC 7 */
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
-import { difficultySchema, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { difficultySchema, maisonSchema, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 
 export const file = 'river-navigation.json';
 export const famille = 'config';
@@ -58,11 +58,13 @@ const champs = {
     enduranceDifficulty: difficultySchema,
     failDamage: tirageSchema,
     source: sourceRefSchema,
+    maison: maisonSchema,
   }), {
     woundsPerRepair: { label: 'Blessures par réparation' },
     enduranceDifficulty: { label: 'Difficulté du Test d’Endurance' },
     failDamage: { label: 'Dégâts à l’échec' },
     source: { label: 'Source' },
+    maison: { label: 'Arbitrage maison' },
   }),
 };
 

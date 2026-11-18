@@ -11,19 +11,12 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (AXES, COTES, CYLINDRE, FRONT, HAUT, X, Y, apotheme, bosselee, bouts, cap, coque, courbee,
+from geometrie import (AXES, COTES, CYLINDRE, FRONT, HAUT, X, Y, apotheme, bosselee, bouts, cadre, cap, coque, courbee,
                        decoupee, froncee, lisse, pave, profile, rampant, rond, tourne, tournee)
 from gabarit import boite
 from maille import lineaire, tore, tour, tube
 
 DECORS = ("statue", "gargouille", "idole-chaos", "urne", "oeuf-dragon", "crane-monstre", "trophee-cranes", "ossements")
-
-
-def cadre(primitive, cote):
-    """La fonction qui rend le point de position `(x, y, z)` dans la boîte de `primitive`, comptée en demi-côtés depuis
-    son centre : `x` du côté `cote` (-1 ou 1), `y` vers le front, `z` vers le haut."""
-    c, (lx, ly, lz) = pave(primitive)
-    return lambda p: c + X * (cote * p[0] * lx / 2) + FRONT * (p[1] * ly / 2) + HAUT * (p[2] * lz / 2)
 
 
 def pose(primitive, cote, stations):
@@ -73,9 +66,7 @@ def modelee(m, centre, demi, F, mat):
     def surface(azimut, hauteur, saillie=0.0):
         part = lineaire(F["profil"], hauteur)
         for milieu, h, large, haut, relief in F["reliefs"]:
-            ea, eh = (abs(azimut) - milieu) / large, (hauteur - h) / haut
-            if abs(ea) < 1 and abs(eh) < 1:
-                part *= 1 + relief * (math.cos(math.pi * ea / 2) * math.cos(math.pi * eh / 2)) ** 2
+            part *= geometrie.relief((abs(azimut) - milieu) / large, (hauteur - h) / haut, relief)
         t = math.radians(azimut)
         return (centre + FRONT * (math.cos(t) * (dy * part + saillie)) + travers * (math.sin(t) * (dx * part + saillie))
                 + HAUT * (dz * hauteur))

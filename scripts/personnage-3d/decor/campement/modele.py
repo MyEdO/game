@@ -11,8 +11,8 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, anneau, bordage, cap, cercle, cheville, coque,
-                       courbee, lisse, normales, onde, pave, planche, profilee, rampant, rond, sous_le_rampant,
+from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, anneau, autour, bordage, cap, cercle, cheville,
+                       coque, courbee, lisse, normales, onde, pave, planche, profilee, rampant, rond, sous_le_rampant,
                        tournee)
 from maille import lineaire, tore
 
@@ -36,7 +36,7 @@ def roue(m, primitive, dehors, large, R, manquants, moyeu):
         if k in manquants:
             continue
         tours = 2 * math.pi * (k + 1 / 2) / R["rais"]
-        d = u * math.cos(tours) + w * math.sin(tours)
+        d = autour(u, w, tours)
         tournee(m, centre + d * (rayon * R["pied"]), centre + d * (dedans * R["tete"]), essieu, essieu.cross(d),
                 large / 2 * R["rai"], R["fuseau"], R["pans"])
 
@@ -451,8 +451,7 @@ def tente(D, G, pieces, a):
         geometrie.tourne(bois, piquet, T["piquet"], Pe["cotes"], MAT)
         prise = cf + file * (math.copysign(lf / 2, (cq - cf).dot(file)) * Ha["prise"])
         encoche = pied + HAUT * (hq * Ha["encoche"])
-        tournee(corde, prise, encoche, *normales((encoche - prise).normalized()), rq * Ha["brin"], CYLINDRE,
-                Ha["cotes"], "corde")
+        geometrie.fil(corde, prise, encoche, rq * Ha["brin"], Ha["cotes"], "corde")
 
 
 def foin(D, G, pieces, a):
@@ -570,8 +569,7 @@ def hamac(D, G, pieces, a):
         tore(corde, "z", tuple(noeud), px / 2 - brin - D["RETRAIT"], brin, *A["segments"], "corde")
         for part in A["brins"]:
             prise = cb + portee * part
-            tournee(corde, noeud, prise, *normales((prise - noeud).normalized()), brin * A["fin"], CYLINDRE,
-                    H["cotes"], "corde")
+            geometrie.fil(corde, noeud, prise, brin * A["fin"], H["cotes"], "corde")
         barres.append(cb)
     gauche, droite = barres
     epais = tz * L["epais"]

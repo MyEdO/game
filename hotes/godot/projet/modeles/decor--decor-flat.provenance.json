@@ -1,0 +1,13 @@
+{
+  "model": "decor--decor-flat.glb",
+  "model_sha256": "38bf4cdcb4b0adf827eb62c043160573657c21de017bfe59c781195b63cd51a0",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

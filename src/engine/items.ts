@@ -46,6 +46,7 @@ import {
   type TrappingRef,
   type TrappingData,
   type ArmeDerivee,
+  type ItemCapabilities,
 } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
@@ -1185,6 +1186,30 @@ export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
   autoStowNewItem(clone, recu);
   recomputeLoadout(clone);
   return clone;
+}
+
+/** Enc des objets portant la capacité `cap` dans les inventaires de `porteurs`, à l'Enc du catalogue de chaque objet. */
+export function encDeLaCapacite(porteurs: readonly Pick<Combatant, 'items'>[], cap: keyof ItemCapabilities): number {
+  return porteurs.reduce((s, c) => s + (c.items ?? []).filter((i) => itemCapability(i, cap)).reduce((e, i) => e + i.enc, 0), 0);
+}
+
+/** Retire des inventaires de `porteurs`, dans leur ordre, des objets portant la capacité `cap` jusqu'à `enc` Enc au
+ *  moins, puis re-dérive l'équipement des porteurs touchés. Mute les porteurs. */
+export function consommerLaCapacite(porteurs: readonly Combatant[], cap: keyof ItemCapabilities, enc: number): void {
+  let reste = enc;
+  for (const c of porteurs) {
+    if (reste <= 0) return;
+    const pris = new Set<string>();
+    for (const i of c.items ?? []) {
+      if (reste <= 0) break;
+      if (!itemCapability(i, cap)) continue;
+      pris.add(i.uid);
+      reste -= i.enc;
+    }
+    if (!pris.size) continue;
+    c.items = (c.items ?? []).filter((i) => !pris.has(i.uid));
+    recomputeLoadout(c);
+  }
 }
 
 /** PA d'une pièce d'armure, nette des dégâts subis. LDB 63 l.19 */
