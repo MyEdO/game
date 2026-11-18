@@ -21,7 +21,7 @@ import { tickRound, type Duration } from './duration';
 import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills } from '../data';
 import { indexParId } from '../data/versionDataset';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import { acteDeDeverrouillageSchema } from '../data/schemas/grammaire/valeurs';
+import { acteDeDeverrouillageSchema, type GatingDeStatut } from '../data/schemas/grammaire/valeurs';
 import { t } from '../i18n';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
@@ -800,16 +800,16 @@ export function incomingMeleeAdvantage(target: Combatant): number {
 }
 
 /** Restrictions d'Action/Mouvement/défense imposées par les STATUTS portés (États ET Psychologie) —
- *  lues en DONNÉES (`StatusData.gating`, etats.json/psychology.json), JAMAIS par-nom : un nouvel État/
+ *  lues en DONNÉES (`gatingDeStatutSchema`, etats.json/psychology.json), JAMAIS par-nom : un nouvel État/
  *  trait psy déclare son blocage dans le JSON et le moteur l'applique. Agrégation : `action:'none'` et
  *  `cannotDefend` sont des OU (un seul statut bloquant suffit) ; le Mouvement prend le PIRE
  *  (`none` > `crawl` > `half` > normal). `crawl` (LDB 16 l.35) est une moitié de Mouvement (`effectiveMovement`)
- *  qui ferme en plus la Course (`refusDeCourse`). « Etat comme Psy » : `PsychologyData extends StatusData`. */
-export type MouvementDuStatut = 'normal' | 'half' | 'crawl' | 'none';
+ *  qui ferme en plus la Course (`refusDeCourse`). */
+export type MouvementDuStatut = 'normal' | NonNullable<GatingDeStatut['movement']>;
 const RANG_DU_MOUVEMENT: Record<MouvementDuStatut, number> = { normal: 0, half: 1, crawl: 2, none: 3 };
 export function conditionGating(c: Combatant): { noAction: boolean; cannotDefend: boolean; movement: MouvementDuStatut } {
   let noAction = false; let cannotDefend = false; let movement: MouvementDuStatut = 'normal';
-  const apply = (g?: { action?: 'none'; movement?: Exclude<MouvementDuStatut, 'normal'>; cannotDefend?: true }): void => {
+  const apply = (g?: GatingDeStatut): void => {
     if (!g) return;
     if (g.action === 'none') noAction = true;
     if (g.cannotDefend) cannotDefend = true;

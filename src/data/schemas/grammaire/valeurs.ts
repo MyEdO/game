@@ -8,7 +8,6 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { Formula, FormuleSansTirage } from '../../../engine/ops';
-import type { RegleOptionnelleId } from '../../../engine/policy';
 import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
 import { ECHELONS_DE_STATUT, libelleDEchelon, type Money, type Status } from '../../../engine/money';
@@ -187,6 +186,19 @@ export const symptomSeveritySchema = enumNomme({ moderee: 'Modérée', grave: 'G
  *  l.19), un individu (LDB 21 l.75 ; EDOC 11 l.648). Son libellé nomme la variante dans les refus. #3045 */
 export const varianteDeCibleSchema = enumNomme({ groupe: 'un Groupe', individu: 'une personne' });
 export type VarianteDeCible = z.infer<typeof varianteDeCibleSchema>;
+
+/** Restriction d'Action, de Mouvement et de défense qu'un Statut impose à son porteur (`gating` de `etats.json` et de
+ *  `psychology.json`), lue par `conditionGating` (`engine/conditions.ts`). LDB 16 ; LDB 21 */
+export const gatingDeStatutSchema = nommerChamps(z.strictObject({
+  action: z.literal('none').optional(),
+  movement: z.enum(['none', 'half', 'crawl']).optional(),
+  cannotDefend: z.literal(true).optional(),
+}), {
+  action: { label: 'Action' },
+  movement: { label: 'Déplacement' },
+  cannotDefend: { label: 'Défense impossible' },
+});
+export type GatingDeStatut = z.output<typeof gatingDeStatutSchema>;
 
 /**
  * FAMILLE d'attaque d'une manœuvre et d'une arme naturelle (`AttackKind`, `src/engine/creatureAttacks.ts`) — le libellé est
@@ -707,17 +719,6 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
     when: { label: 'condition' },
   } as MetaDesChamps<typeof final.shape>);
 }
-
-/** Vue TS COMMUNE d'une variante — le contrat de FORME (runtime) est celui de `variantOf` par dataset ;
- *  cette vue expose les champs partagés par tous les porteurs et laisse les autres en `unknown`. Portée
- *  par le champ `variants?: Variant[]` de toute entrée à variante réglée (`activeVariant`/`effectiveEntry`,
- *  `src/engine/variants.ts`). */
-export type Variant = {
-  when: { rule: RegleOptionnelleId; equals?: z.infer<typeof ruleValueSchema> };
-  desc?: string;
-  source?: SourceRef;
-  [field: string]: unknown;
-};
 
 /**
  * Recette de détail de surface (`DetailRecipe`, `src/data/materials.types.ts`) — portée par le champ

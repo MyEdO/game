@@ -51,9 +51,9 @@ describe('donnée — 18 Sorts révisés par VDM, gatés par la RÈGLE (jamais p
       'metal-changeant', 'mur-de-feu', 'sang-de-la-terre', 'serres-d-ambre',
     ]);
     for (const id of CARRIERS) {
-      const v = (findSpellById(id) as unknown as { variants: { when: { rule: string }; source: { book: string } }[] }).variants;
+      const v = findSpellById(id)!.variants!;
       expect(v.map((x) => x.when.rule), id).toEqual([RULE]);
-      expect(v[0].source.book, id).toBe('vents-de-la-magie');
+      expect(v[0].source?.book, id).toBe('vents-de-la-magie');
     }
   });
 
@@ -67,7 +67,7 @@ describe('donnée — 18 Sorts révisés par VDM, gatés par la RÈGLE (jamais p
 
   it('chaque variante ne déclare que des champs de la liste blanche', () => {
     for (const id of CARRIERS) {
-      const v = (findSpellById(id) as unknown as { variants: Record<string, unknown>[] }).variants[0];
+      const v = findSpellById(id)!.variants![0];
       const declared = Object.keys(v).filter((k) => k !== 'when');
       expect(declared.filter((k) => !(VARIANT_RESOLVED_FIELDS as readonly string[]).includes(k)), id).toEqual([]);
     }
