@@ -28,7 +28,7 @@ couvre de part et d'autre, en stations et en degrés ; la part du rayon qu'il aj
   plates bosselées, une rune en relief sur chacune ; un cercle tracé au sol qui passe sous les pierres.
 
 Matières : celles des recettes, sauf : le cadavre prend `cuir-tanne`, que sa recette toute de drap ne nomme pas, pour
-ses bottes et sa ceinture, qui sont de cuir, et `cheveux` pour sa calotte ; le cheval prend `corne` pour ses sabots et,
+ses bottes et sa ceinture, qui sont de cuir, et `chevelure` pour sa calotte ; le cheval prend `corne` pour ses sabots et,
 pour sa crinière, le `crin` que la recette donne à sa queue ; les pierres du cercle, que la recette fait de
 `rune-chaos`, sont de la `pierre-chaos` de sa dalle et gardent `rune-chaos` pour leur rune ; la butte du tas est de la
 `terre-battue` de sa recette. Le catalogue n'a ni sang frais ni sang séché (`sang-repandu`). Aucun emplacement de
@@ -40,7 +40,7 @@ PEAU = {"peau": ("corps", "peau-morte")}
 SANG = {"sang": ("accent", "sang-repandu")}
 MATERIAUX = {
     "cadavre": {**PEAU, **SANG, "drap": ("vet1", "drap-terne"), "cuir": ("cuir", "cuir-tanne"),
-                "cheveux": ("accent", "cheveux")},
+                "cheveux": ("accent", "chevelure")},
     "cheval-mort": {**PEAU, **SANG, "crin": ("accent", "crin"), "corne": ("accent", "corne")},
     "detritus": {"bois": ("bois", "bois-mort"), "terre": ("corps", "terre-battue"), "cruche": ("corps", "terre-cuite"),
                  "drap": ("vet1", "drap-terne"), "os": ("corps", "os")},

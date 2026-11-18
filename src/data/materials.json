@@ -378,9 +378,9 @@
     "metalness": 0
   },
   {
-    "id": "cheveux",
+    "id": "chevelure",
     "type": "materials",
-    "label": "Cheveux",
+    "label": "Chevelure",
     "domain": "prop",
     "color": "#3a2c20",
     "roughness": 0.8,
