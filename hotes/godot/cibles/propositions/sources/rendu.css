@@ -59,3 +59,21 @@
 .choix-h .plaque{flex:none}
 .choix-h .plaque>div{font-size:10px;letter-spacing:.2px;padding:0 4px}
 #coins{left:auto;top:auto;right:30px;bottom:23px}
+
+/* 5. Combat : la borne du round 22 / 16, l'ordre du tour au bord gauche dans la marge de 160 sous la borne, l'actif en
+   bas et le haut replié ; le journal 24 du bord droit, au-dessus de la fenêtre du bas ; la fin du tour 49 / 48 */
+#round{width:auto}
+#round .fond{padding:0 18px}
+#round .n{font-size:24px;line-height:normal}
+#ordre{top:96px;bottom:8px;width:134px;flex-direction:column;justify-content:flex-end;overflow:hidden}
+#ordre .rang{flex:none}
+#ordre .rang .nom{white-space:normal;line-height:normal}
+#ordre .rang .jauge,#ordre .rang.actif .jauge{width:54px}
+#ordre .rang.actif{flex-direction:column;align-items:flex-start;gap:4px}
+#ordre .rang.actif .nom{font-size:16px}
+#ordre .rang.actif .jauge{width:74px}
+#journal .lignes{max-height:190px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;mask-image:linear-gradient(transparent,#000 48px)}
+#fin{left:auto;top:auto;right:43px;bottom:22px}
+
+/* 7. Issue d'un combat : la toile centrée, l'action dessous */
+#issue{left:calc(50% - 280px);top:190px}

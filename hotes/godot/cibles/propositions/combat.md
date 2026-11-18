@@ -1,7 +1,9 @@
 # Propositions : combat (2026-11-16, #3935)
 
 Compte rendu des trente et un états dessinés (onze le 2026-11-16, vingt écrans neufs le 2026-11-17, #4411) depuis la cible écrite `../ecrites/combat.md`, le contrat `../combat.md` et les
-maquettes validées (`../maquettes/`). Sources au dépôt : `sources/combat/`.
+maquettes validées (`../maquettes/`). Sources au dépôt : `sources/combat/` ; `jet-avant-le-de`, `jet-de-defense`,
+`fin-defaite` et `combat-jet-d-attaque` sont des maquettes capturées, l'état du jeu que nomme
+`sources/maquettes/<page>.ts`, dessiné par `sources/rendu.html`.
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Localisation », « Au hasard », « Retenir ses coups »,

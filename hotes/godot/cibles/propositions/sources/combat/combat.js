@@ -27,17 +27,6 @@ const VARIANTE = () => {
   return [rapides(1), fiche('a-gauche', 'left:588px;top:334px;width:300px')];
 };
 
-/* la silhouette des localisations : six zones, trois états (libre, choisie, touchee) */
-const ZONES = {
-  tete: '<circle cx="30" cy="11" r="9"/>',
-  corps: '<path d="M19.500,23H40.500L39,56H21Z"/>',
-  brasD: '<path d="M17,23.500L9,28L5,56L11.500,57.500L15,37L18,31Z"/>',
-  brasG: '<path d="M43,23.500L51,28L55,56L48.500,57.500L45,37L42,31Z"/>',
-  jambeD: '<path d="M21,58.500H29.200L28,97H20.500Z"/>',
-  jambeG: '<path d="M39,58.500H30.800L32,97H39.500Z"/>',
-};
-const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}" height="${h}" viewBox="0 0 60 100">${Object.entries(ZONES).map(([z, d]) => `<g class="zone ${etats[z] ?? ''}">${d}</g>`).join('')}</svg>`;
-
 const jeu = ETAT === 'jet';
 const ui = [];
 const I = (c = '', pv = 17) => combattant('ilyanwe', 'heros', 'Ilyanwe la Voilée', pv, 17, c);

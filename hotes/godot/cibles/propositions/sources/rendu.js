@@ -12,6 +12,8 @@
   const ecran = document.getElementById('ecran');
   Object.assign(ecran.style, { width: `${innerWidth / echelle}px`, height: `${innerHeight / echelle}px`, transform: `scale(${echelle})`, transformOrigin: '0 0' });
   Object.assign(PICTOS, dessins.icone);
+  /* le buste qui dessine le combattant `id` (`Decor.bustes`), ou son id s'il est déjà celui d'un buste */
+  const buste = (id) => maquette.decor?.bustes[id] ?? id;
 
   /* ───────── les blocs ───────── */
   /* les éléments vus, puis ceux qu'un bloc prend, par chemin : une entité que deux blocs posent (le domaine et son
@@ -55,13 +57,32 @@
     const d = Number(e.resultat);
     const faces = e.resultat === null ? ['', ''] : [String(d % 100 - d % 10), String(d % 10)];
     const etat = e.resultat === null ? 'vide' : e.ton === 'reussite' ? 'reussite' : '';
-    return `<div class="camp ${miroir ? 'droite' : ''}">${e.combattant ? portrait(e.combattant, { camp: miroir ? 'ennemi' : 'heros', taille: 'grand' }) : ''}
+    return `<div class="camp ${miroir ? 'droite' : ''}">${e.combattant ? portrait(buste(e.combattant), { camp: miroir ? 'ennemi' : 'heros', taille: 'grand' }) : ''}
       <div><div class="n gothique" data-texte="${echapper(e.id)}">${echapper(e.qui)}${modificateurs}</div><div class="c rubrique">${echapper(e.libelle)}</div>
       <div class="des"><span class="seuil">${echapper(e.cible)}</span>${faces.map(d10).join('')}${sceau(echapper(e.resultat), 'grand', { etat })}${e.resultat === null ? ''
         : `<div class="issue ${etat}"><b>${echapper(e.verdict)}</b><span>${echapper(e.dr)}</span></div>`}</div></div></div>`;
   };
   const choixEnPlaques = (c) => (c.valeurs.length === 1 ? `<b>${echapper(c.valeurs[0].libelle)}</b>`
     : c.valeurs.map((v) => plaque(echapper(v.libelle), { armee: v.presse, fermee: !!v.refus, taille: 'petite' })).join(''));
+  /* la valeur `/true` ou `/false` d'un réglage qui s'allume ou s'éteint */
+  const allumable = (c) => c.valeurs.every((v) => /\/(true|false)$/.test(v.id));
+  const regleEnOptions = (c, valeurs) => `<div class="regle"><span class="l rubrique" data-texte="${echapper(c.id)}">${echapper(c.libelle)}</span>${options(valeurs.map((v) => [echapper(v.libelle), { armee: v.presse, fermee: !!v.refus }]))}</div>`;
+  /* la zone que la valeur pressée de la localisation nomme (`…/"tete"`), aucune au hasard (`…/null`) */
+  const zoneChoisie = (c) => {
+    const v = c.valeurs.find((x) => x.presse);
+    const zone = v && JSON.parse(v.id.slice(v.id.lastIndexOf('/') + 1));
+    return zone ? { [zone]: 'choisie' } : {};
+  };
+  /* un rang de l'ordre du tour : son portrait, son nom, sa jauge de Blessures ; un ennemi est au ton `echec` */
+  const rangDeLOrdre = (e, sous, { classe = '', taille = 'moyen', gothique = false, choisi = false, corps = true } = {}) => {
+    sous({ portrait: { source: 'elements', ids: ['portrait'], formes: ['portrait:surLeRang'] }, blessures: { source: 'elements', ids: ['blessures'], formes: ['jauge:surLeRang'] }, fiche: { source: 'elements', ids: ['fiche/'], formes: ['bouton:surLeRang'] } });
+    const p = e.elements.find((x) => x.type === 'portrait');
+    const j = e.elements.find((x) => x.type === 'jauge');
+    return rang(buste(p.combattant), {
+      camp: e.ton === 'echec' ? 'ennemi' : 'heros', nom: echapper(e.nom), classe, taille, gothique, choisi,
+      corps: corps && j ? `<div class="ligne">${vie(j.courant, j.max)}<span class="pv ombre">${echapper(j.texte)}</span></div>` : '',
+    });
+  };
   const reglage = (c, controle) => `<div class="pref"><div class="l"><b data-texte="${echapper(c.id)}">${echapper(c.libelle)}</b>${controle}</div></div>`;
   const regleDuCurseur = (c, largeur) => reglette((c.valeur - c.min) / (c.max - c.min), largeur);
   const FORMES = {
@@ -102,7 +123,26 @@
     reglageEnSegments: (c) => reglage(c, FORMES.segments(c)),
     reglageEnPourcent: (c) => reglage(c, `<span class="curseur">${regleDuCurseur(c, 104)}<span class="val gothique">${c.valeur} %</span></span>`),
     choixDuHeros: (c) => `<div class="choix-h"><span class="rubrique">${echapper(c.libelle)}</span>${choixEnPlaques(c)}</div>`,
-    portrait: (e) => portrait(e.combattant, { taille: 'grand' }),
+    portrait: (e) => portrait(buste(e.combattant), { taille: 'grand' }),
+    puceEnMention: (e) => `<span class="rubrique">${echapper(e.libelle)} ${echapper(e.valeur)}</span>`,
+    silhouette: (c) => silhouette(92, zoneChoisie(c)),
+    choixLu: (c) => regleEnOptions(c, c.valeurs.filter((v) => v.presse)),
+    choixEnLigne: (c) => (allumable(c) ? bascule(echapper(c.libelle), c.valeurs.some((v) => v.presse && v.id.endsWith('/true'))) : regleEnOptions(c, c.valeurs)),
+    borneDuRound: (e) => `<div class="n gothique" data-texte="${echapper(e.id)}">${echapper(e.texte)}</div>`,
+    rangPasse: (e, sous) => rangDeLOrdre(e, sous, { classe: 'fantome', taille: 'petit', corps: false }),
+    rang: (e, sous) => rangDeLOrdre(e, sous),
+    rangDeLActif: (e, sous) => rangDeLOrdre(e, sous, { classe: 'actif', taille: 'grand', gothique: true, choisi: true }),
+    borneDeLOrdre: (e) => `<div class="borne"><span class="rubrique ombre" data-texte="${echapper(e.id)}">${echapper(e.texte)}</span><i></i></div>`,
+    systeme: (e) => `<div id="systeme" data-piece="systeme">${rond(iconeDe(e))}</div>`,
+    teteDuJournal: (e) => `<div class="tete rubrique ombre">${echapper(e.nom)} ${rond(iconeDe(e), 'petit')}</div>`,
+    ligneDuJournal: (e) => `<p class="ombre ${e.ton}">${echapper(e.texte)}</p>`,
+    finDuTour: (c) => {
+      const [fin] = c.valeurs;
+      return `<div id="fin" class="${fin.refus ? 'ferme' : ''}" data-piece="fin">${rond(fin.icone, 'maitre', { ferme: !!fin.refus })}<span class="rubrique ombre">${echapper(fin.libelle)}</span></div>`;
+    },
+    /* un geste du menu de la partie, que le menu fermé ne montre pas */
+    dansLeMenu: () => '',
+    issueDuCombat: (e) => `<div class="toile-ombre"><div class="toile"><span class="gothique" data-texte="issue">${echapper(e.texte)}</span></div></div>`,
     jauge: (e) => jauge(e.courant / e.max),
     signet: (e, sous) => {
       const b = sous({ cire: { source: 'elements', ids: ['cire'], formes: ['icone:cire'] }, nombre: { source: 'elements', ids: ['nombre'], formes: ['ligne:chiffre'] } });
@@ -147,23 +187,70 @@
   const premier = (e) => (zones()['reglages.regles'] ?? []).find((x) => x.type === e.type) ?? e;
 
   /* ───────── les gabarits : leurs blocs, puis leur pose ───────── */
+  /* les gestes que la pastille du menu de la partie ouvre (`MenuDeLaPartie.tscn`), qu'aucune disposition ne pose */
+  const GESTES_DU_MENU = {
+    groupe: { source: 'groupe.gestes', formes: ['bouton:dansLeMenu'] },
+    partie: { source: 'partie.gestes', formes: ['bouton:dansLeMenu'] },
+  };
   const GABARITS = {
     'fenetre-du-bas': {
       feuilles: ['combat/jet.css'], scripts: ['combat/jet.js'],
       blocs: {
         titre: { source: 'fenetre.titre', formes: ['ligne:ruban'] },
-        camp: { source: 'fenetre.corps', ids: ['jet'], formes: ['jet:jetDuCamp'] },
+        etape: { source: 'fenetre.etape', formes: ['ligne:rubrique'] },
+        camp: { source: 'fenetre.corps', ids: ['jet', 'defense/jet', 'jets/0/1'], formes: ['jet:jetDuCamp'] },
         arme: { source: 'fenetre.corps', ids: ['arme'], formes: ['ligne:rubrique'] },
-        cible: { source: 'fenetre.corps', ids: ['cible'], formes: ['ligne:rubrique'] },
-        drNet: { source: 'fenetre.corps', ids: ['drNet'], formes: ['ligne:drNet'] },
+        cible: { source: 'fenetre.corps', ids: ['cible', 'sansEquipe'], formes: ['ligne:rubrique'] },
+        qui: { source: 'fenetre.corps', ids: ['defense/qui'], formes: ['ligne:rubrique'] },
+        degats: { source: 'fenetre.corps', ids: ['degats', 'tirDansLeTas', 'tirImmobile'], formes: ['puce:puceEnMention'] },
+        drNet: { source: 'fenetre.corps', ids: ['drNet', 'jets/0/drNet'], formes: ['ligne:drNet'] },
         issue: { source: 'fenetre.corps', formes: ['ligne:issue'] },
-        miroir: { source: 'fenetre.corps', ids: ['defense'], formes: ['jet:jetDuCampEnMiroir'] },
+        miroir: { source: 'fenetre.corps', ids: ['defense', 'jets/0/0'], formes: ['jet:jetDuCampEnMiroir'] },
+        localisation: { source: 'fenetre.reglages', ids: ['jetRegler@attaque#localisation'], formes: ['choix:silhouette'] },
+        localisationLue: { source: 'fenetre.reglages', ids: ['jetRegler@attaque#localisation'], formes: ['choix:choixLu'] },
+        reglages: { source: 'fenetre.reglages', formes: ['choix:choixEnLigne'] },
         reserves: { source: 'fenetre.reserves', formes: ['puce:disque'] },
         gestes: { source: 'fenetre.gestes', formes: ['bouton:plaque'] },
       },
-      poser: (b) => [cadre('jet', null, null, null, null, 'parchemin', `${b.camp}
-        <div id="verdict"><div class="sous">${[b.arme, b.cible].filter(Boolean).join('<i class="point"></i>')}</div>${b.drNet}${b.issue}</div>${b.miroir}
-        <div id="suites">${b.reserves ? `<div class="en-reserve">${b.reserves}</div>` : ''}${b.gestes}</div>`, { tete: b.titre + clouer() })],
+      poser: (b) => {
+        const regle = b.localisation || b.localisationLue || b.reglages;
+        return [cadre('jet', null, null, null, null, 'parchemin', `${b.camp}
+        <div id="verdict" class="${regle ? 'reglages' : ''}"><div class="sous">${[b.etape, b.arme, b.cible, b.qui, b.degats].filter(Boolean).join('<i class="point"></i>')}</div>${b.drNet}${b.issue}${regle
+          ? `<div class="rangee">${b.localisation}<div class="choix">${b.localisationLue}${b.reglages}</div></div>` : ''}</div>${b.miroir}
+        <div id="suites">${b.reserves ? `<div class="en-reserve">${b.reserves}</div>` : ''}${b.gestes}</div>`, { tete: b.titre + clouer() })];
+      },
+    },
+    /* 5. Combat, sans la barre de l'actif : la borne du round, l'ordre du tour (`Ecran.tscn` : `suite/`, `round`,
+       `ordre/`), le journal, le système et la fin du tour */
+    combat: {
+      feuilles: ['combat/combat.css'], scripts: ['combat/jet.js', 'combat/socle.js'],
+      blocs: {
+        tour: { source: 'combat.tour', formes: ['ligne:borneDuRound'] },
+        suite: { source: 'combat.ordre', ids: ['suite/'], formes: ['entite:rangPasse'] },
+        round: { source: 'combat.ordre', ids: ['round'], formes: ['ligne:borneDeLOrdre'] },
+        restants: { source: 'combat.ordre', ids: ['ordre/'], formes: ['entite:rang', 'entite.alerte:rangDeLActif'] },
+        menu: { source: 'partie.menu', formes: ['entite:systeme'] },
+        journal: { source: 'journal.titre', formes: ['entite:teteDuJournal'] },
+        lignes: { source: 'journal.lignes', formes: ['ligne:ligneDuJournal'] },
+        fin: { source: 'combat.offres', ids: ['economie/aucun'], formes: ['choix:finDuTour'] },
+        ...GESTES_DU_MENU,
+      },
+      poser: (b) => [b.menu,
+        cadre('round', null, null, null, null, 'bois', b.tour),
+        `<div id="ordre" data-piece="ordre">${b.suite}${b.round}${b.restants}</div>`,
+        `<div id="journal" data-piece="journal">${b.journal}<div class="lignes">${b.lignes}</div></div>`,
+        b.fin],
+    },
+    /* 7. Issue d'un combat : le titre en toile, l'action unique dessous, le système */
+    recit: {
+      feuilles: ['combat/combat.css'], scripts: [],
+      blocs: {
+        titre: { source: 'fenetre.titre', formes: ['ligne:issueDuCombat'] },
+        gestes: { source: 'fenetre.gestes', formes: ['bouton:plaqueAppel'] },
+        menu: { source: 'partie.menu', formes: ['entite:systeme'] },
+        ...GESTES_DU_MENU,
+      },
+      poser: (b) => [b.menu, `<div id="issue" data-piece="issue">${b.titre}${b.gestes}</div>`],
     },
     gestion: {
       feuilles: ['lieux-et-nuit/commun.css', 'accueil-et-systeme/systeme.css', 'accueil-et-systeme/options.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'accueil-et-systeme/systeme.js'],

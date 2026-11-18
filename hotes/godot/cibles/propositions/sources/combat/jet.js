@@ -41,5 +41,16 @@ const apresLeDe = ({ heros, echec = false, relance = false, valider = 'Appliquer
   geste('Relancer', !echec || relance ? (relance ? 'dejaRelance' : 'jetReussi') : heros.chance > 0 ? null : 'sansChance', survol === 'relancer')}${
   geste('Chance : +1 DR', heros.chance > 0 ? null : 'sansChance', survol === 'chance', 'large')}${plaque('Pacte')}${
   geste('Résilience', !echec ? 'jetReussi' : heros.resilience > 0 ? null : 'sansResilience', survol === 'resilience')}`;
+/* la silhouette des localisations : six zones, trois états (libre, choisie, touchee) */
+const ZONES = {
+  tete: '<circle cx="30" cy="11" r="9"/>',
+  corps: '<path d="M19.500,23H40.500L39,56H21Z"/>',
+  brasD: '<path d="M17,23.500L9,28L5,56L11.500,57.500L15,37L18,31Z"/>',
+  brasG: '<path d="M43,23.500L51,28L55,56L48.500,57.500L45,37L42,31Z"/>',
+  jambeD: '<path d="M21,58.500H29.200L28,97H20.500Z"/>',
+  jambeG: '<path d="M39,58.500H30.800L32,97H39.500Z"/>',
+};
+const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}" height="${h}" viewBox="0 0 60 100">${Object.entries(ZONES).map(([z, d]) => `<g class="zone ${etats[z] ?? ''}">${d}</g>`).join('')}</svg>`;
+
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { d10, camp, verdict, bandeauDuJet, testeurs, reglages, options, bascule, reserves, avantLeDe, apresLeDe });
+Object.assign(globalThis, { d10, camp, verdict, bandeauDuJet, testeurs, reglages, options, bascule, reserves, avantLeDe, apresLeDe, silhouette });

@@ -3,9 +3,11 @@
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1707 × 780, à l'échelle (2 par défaut)
 //   node rendre.mjs <maquette> <sortie.png> --format <format>    une maquette de `maquettes/<maquette>.ts`, dessinée par
 //     `rendu.html` dans le format physique `<format>` (`FORMATS`), avec les éléments qu'aucun bloc de ses gabarits ne
-//     dessine. La maquette, les dessins de ses registres (`figerLesDessins`) et les couleurs du thème de Godot dont ses
-//     paysages se tracent (`projet/art/theme.tres`, comme `Dessin.tracer`, `projet/scripts/dessin.gd`) sont posés sur
-//     `globalThis.MAQUETTE` avant la page.
+//     dessine. Une maquette capturée (`MaquetteCapturee`) prend les réponses de la planche qu'elle nomme, figée par le
+//     jeu (`figerLesPlanches`) au rendu, sans modèle : les corps ne servent pas, les bustes sont du décor. La maquette,
+//     les dessins de ses registres (`figerLesDessins`) et les couleurs du thème de Godot dont ses paysages se tracent
+//     (`projet/art/theme.tres`, comme `Dessin.tracer`, `projet/scripts/dessin.gd`) sont posés sur `globalThis.MAQUETTE`
+//     avant la page.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
@@ -28,10 +30,20 @@ function couleursDuTheme() {
   return Object.fromEntries([...theme.matchAll(/^Dessin\/colors\/(\w+) = Color\(([^,]+), ([^,]+), ([^,]+), [^)]+\)$/gm)].map(([, nom, r, v, b]) => [nom.replaceAll('_', '-'), `#${hex(r)}${hex(v)}${hex(b)}`]))
 }
 
+/** La maquette `nom`, celle qu'elle capture rendue sur sa planche : son nom, le titre et les réponses de la planche. */
+function resoudre(nom, maquette, figerLesPlanches) {
+  if (typeof maquette.planche !== 'string') return maquette
+  const planches = figerLesPlanches({ manifestes: {}, osDesRigides: {} })
+  const planche = planches.find((p) => p.nom === maquette.planche)
+  if (!planche) throw new Error(`${nom} : aucune planche ${maquette.planche} parmi ${planches.map((p) => p.nom).join(', ')}`)
+  return { nom, titre: planche.titre, reponses: planche.reponses, gabarits: maquette.gabarits, decor: maquette.decor }
+}
+
 /** La maquette `nom` et ce que sa page lit : les icônes du registre, chaque paysage tracé aux couleurs du thème. */
 async function chargerLaMaquette(nom) {
   const module = await chargerAssets([
     "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
+    "export { figerLesPlanches } from '/hotes/godot/recettes/ecran.ts';",
     `export { default as maquette } from '/hotes/godot/cibles/propositions/sources/maquettes/${nom}.ts';`,
   ])
   const { icone, paysage } = module.figerLesDessins()
@@ -41,7 +53,7 @@ async function chargerLaMaquette(nom) {
     return couleurs[jeton]
   })
   return {
-    maquette: module.maquette,
+    maquette: resoudre(nom, module.maquette, module.figerLesPlanches),
     dessins: {
       icone: icone.dessins,
       cadreDesPaysages: { largeur: paysage.largeur, hauteur: paysage.hauteur },
