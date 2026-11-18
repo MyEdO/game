@@ -225,6 +225,7 @@ export {
 } from './sceneEditLecture';
 export { PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
 export {
+  ariteDuNoeud,
   bornesAuPoint,
   champDeLElement,
   champsDeclares,
@@ -235,7 +236,9 @@ export {
   designeDesEntrees,
   elementDuNoeud,
   formeAuPoint,
+  identiteFigee,
   identiteTenue,
+  recordDuNoeud,
   unionDuNoeud,
   varianteCourante,
   type FieldDesc,

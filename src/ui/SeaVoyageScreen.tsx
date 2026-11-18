@@ -6,7 +6,7 @@ import { RecapLineList } from './RecapLine';
 import { ParchmentCard } from './ParchmentCard';
 import { Icon } from './Icon';
 import type { Dir8 } from '../geometry/dir8';
-import { type SeaWindForceId, windAspect } from '../engine/seaWeather';
+import { windAspect } from '../engine/seaWeather';
 import { deDesEvenementsDeBord } from '../engine/seaVoyage';
 import { formatDice } from '../engine/dice';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -39,7 +39,7 @@ export function SeaVoyageBody({ day }: { day: TravelRecapDay }) {
   return (
     <div className="sea-voyage">
       <div className="sea-voyage-head">
-        <WindRose dir={HEADING_TO_DIR8[chrome.windFrom] ?? 'N'} force={chrome.windForce as SeaWindForceId} heading={HEADING_TO_DIR8[chrome.heading] ?? 'N'} size="md" />
+        <WindRose dir={HEADING_TO_DIR8[chrome.windFrom] ?? 'N'} force={chrome.windForce} heading={HEADING_TO_DIR8[chrome.heading] ?? 'N'} size="md" />
         <div className="sea-voyage-gauges">
           {hullGauge && (
             <NotchGauge label={t('sv.coque')} icon={<Icon id="scenario/port" size="sm" />} value={hullGauge.current} max={hullGauge.max}

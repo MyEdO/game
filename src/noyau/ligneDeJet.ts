@@ -9,7 +9,7 @@ import type { PairedSense } from '../engine/ops';
 import type { ModLine } from '../engine/combat';
 import { combatBaseValue, combatValueModParts, conditionModLines, combatCharKey, combineMods, composeDifficulty } from '../engine/combat';
 import { volatileCharLines } from '../engine/characteristics';
-import { precipitationTestMods, type SeaPrecipitationId } from '../engine/seaWeather';
+import { precipitationTestMods } from '../engine/seaWeather';
 import { testValue, testValueSplit, testValueParts, skillBaseValue, supportSplit, type SupportDetail } from '../engine/skills';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { PlayerText } from '../i18n/playerText';
@@ -38,7 +38,7 @@ interface RollLineBase {
   /** Le Test est celui d'un Personnage SUR LE PONT d'un navire, sous ces Précipitations (MDG 13 l.185) :
    *  le monteur en tire la ligne « Météo : … », keyée par la Compétence du Test (`test.skill`/`test.spec`),
    *  SEUL lecteur des Précipitations hors du moteur de combat. Absent ou `undefined` : rien sur le pont. */
-  pont?: SeaPrecipitationId;
+  pont?: string;
   /** LIGNE NON TENTABLE (`peutTenter` faux, LDB 09 l.30 ; #2588 Q1) : le refus NOMMÉ du porteur. Le
    *  monteur (`rollStep`) rend alors la ligne RÉSOLUE — `ECHEC_SANS_JET`, aucun dé — avec ce refus. */
   refus?: PlayerText;

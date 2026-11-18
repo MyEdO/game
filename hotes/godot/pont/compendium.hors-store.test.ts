@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
 import type { Bouton, Choix, Entite, Formulaire } from '../../../src/hote/elements';
 import type { ZonesDuCompendium } from '../../../src/hote/compendium';
-import { datasetArray, resetData } from '../../../src/data/overrides';
+import { datasetArray, datasetObject, resetData } from '../../../src/data/overrides';
 import { hash32 } from '../../../src/lib/hash';
 import { categoryByKey } from '../../../src/noyau/index';
 
@@ -64,6 +64,14 @@ describe('compendium', () => {
     expect(erreurDe(appel('compendium', { compendium: { geste: 'enregistrement', reussi: true } })).message).toBe('compendium : aucun enregistrement ni suppression en cours');
   });
 
+  it('un nombre que le schéma veut entier se saisit au pas de 1 : la page d’une source', () => {
+    const { appel } = table();
+    const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'talents', id: TALENT }));
+    const atelier = zonesDe(appel('compendium', boutonDe(ouvert, 'modifier').jeu));
+    const page = atelier['compendium.atelier'].find((e): e is Formulaire => e.type === 'formulaire' && e.id === 'valeur/source/page')!;
+    expect(page.champs.find((c) => c.type === 'saisieNombre')).toMatchObject({ pas: 1 });
+  });
+
   it('une écriture au dépôt refusée remet la donnée en mémoire telle qu’avant, et l’atelier reste ouvert', () => {
     const { appel } = table();
     const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'talents', id: TALENT }));
@@ -77,6 +85,24 @@ describe('compendium', () => {
     expect([datasetArray('talents').find((t) => t.id === TALENT)!.label, refusee['compendium.etat'][0].texte]).toEqual([avant, 'disque changé']);
     const encore = appel('compendium', { compendium: { geste: 'enregistrer' } }) as unknown as { donnees: { avant: number } };
     expect(encore.donnees.avant).toBe(hash32(readFileSync('src/data/talents.json', 'utf8')));
+  });
+
+  it('l’identifiant d’un élément de liste à clé se change à son formulaire, son chemin fixé ; une clé que le moteur fige n’en a pas', () => {
+    const { appel } = table();
+    appel('compendium', { ouvrir: true });
+    for (const g of [{ geste: 'famille', famille: categoryByKey('seaPerils')!.group }, { geste: 'categorie', categorie: 'seaPerils' }]) appel('compendium', { compendium: g });
+    const atelier = zonesDe(appel('compendium', { compendium: { geste: 'modifier' } }))['compendium.atelier'];
+    const rang = datasetObject('seaPerils').tourbillons.findIndex((t) => t.id === 'maelstrom-primordial');
+    const formulaire = atelier.find((e): e is Formulaire => e.type === 'formulaire' && e.id === `identifier/tourbillons/${rang}`)!;
+    expect(formulaire.champs.map((c) => [c.type, c.type === 'fixe' ? c.valeur : null])).toEqual([['fixe', ['tourbillons', rang]], ['saisieTexte', null]]);
+    const renomme = zonesDe(appel('compendium', { type: 'identifier', args: [['tourbillons', rang], 'maelstrom-ultime'] }))['compendium.atelier'];
+    expect(renomme.find((e): e is Formulaire => e.type === 'formulaire' && e.id === `identifier/tourbillons/${rang}`)!.champs[1]).toMatchObject({ valeur: 'maelstrom-ultime' });
+    expect(erreurDe(appel('compendium', { type: 'identifier', args: [['tourbillons', 99], 'x'] })).categorie, 'un chemin qu’aucun formulaire ne fixe').toBe('validation');
+    appel('compendium', { compendium: { geste: 'abandonner' } });
+    for (const g of [{ geste: 'famille', famille: categoryByKey('riverNavigation')!.group }, { geste: 'categorie', categorie: 'riverNavigation' }]) appel('compendium', { compendium: g });
+    const fleuve = zonesDe(appel('compendium', { compendium: { geste: 'modifier' } }))['compendium.atelier'];
+    expect(fleuve.some((e) => e.id.startsWith('identifier/windForces/')), 'une force de vent se renomme (#1692)').toBe(true);
+    expect(fleuve.some((e) => e.id.startsWith('identifier/windDirections/')), 'une direction est fixée par le schéma').toBe(false);
   });
 
   it('le dé de la table s’écrit par deux saisies de nombre entier de 1, enregistré avec l’entrée ; zéro dé refusé (#4056)', () => {
@@ -115,5 +141,21 @@ describe('compendium', () => {
     const enveloppe = Math.max(...jeux.map((j) => taille(j) - taille(valeurDe(j))));
     expect(Math.max(...elements), 'l’entrée porte des listes').toBeGreaterThan(0);
     expect(Math.max(...jeux.map(taille))).toBeLessThanOrEqual(Math.max(...elements) + enveloppe);
+  });
+
+  it('un record à clé ouverte s’édite par gestes : une clé ajoutée par son formulaire, sa valeur écrite, une clé retirée au-delà du minimum', () => {
+    const { appel } = table();
+    const atelier = zonesDe(appel('compendium', boutonDe(zonesDe(appel('compendium', { ouvrir: true, categorie: 'terrains', id: 'bois' })), 'modifier').jeu));
+    const formulaire = (zones: ZonesDuCompendium, id: string) => zones['compendium.atelier'].find((e): e is Formulaire => e.type === 'formulaire' && e.id === id);
+    const fixes = (f: Formulaire | undefined) => f!.champs.flatMap((c) => (c.type === 'fixe' ? [c.valeur] : []));
+    const retirer = (zones: ZonesDuCompendium) => zones['compendium.atelier'].filter((e) => /^valeur\/stops\/[^/]+\/retirer$/.test(e.id)).length;
+    expect(retirer(atelier), 'deux arrêts : aucun ne se retire').toBe(0);
+    const ajoutee = zonesDe(appel('compendium', { type: 'valeur', args: [...fixes(formulaire(atelier, 'valeur/stops/ajouter')), '50%'] }));
+    const ecrite = zonesDe(appel('compendium', { type: 'valeur', args: [...fixes(formulaire(ajoutee, 'valeur/stops/50%')), '#808080'] }));
+    expect(retirer(ecrite), 'trois arrêts : chacun se retire').toBe(3);
+    expect(erreurDe(appel('compendium', { type: 'valeur', args: [...fixes(formulaire(ecrite, 'valeur/stops/ajouter')), 'milieu'] })).categorie, 'une clé que le record n’admet pas').toBe('regle');
+    const retiree = zonesDe(appel('compendium', boutonDe(ecrite, 'valeur/stops/100%/retirer').jeu));
+    const r = appel('compendium', boutonDe(retiree, 'enregistrer').jeu) as unknown as { donnees: { texte: string } };
+    expect((JSON.parse(r.donnees.texte) as { id: string; stops: Record<string, string> }[]).find((t) => t.id === 'bois')!.stops).toEqual({ '0%': '#4d7a38', '50%': '#808080' });
   });
 });

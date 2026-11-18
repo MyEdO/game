@@ -21,9 +21,16 @@ import type { Pt } from './path';
  */
 export const PARTY_MAX = 4;
 
-/** Acteur d'une action joueur résolu dans le bon ensemble : file de combat si en combat, sinon le groupe. */
+/** Acteur d'une action joueur résolu dans le bon ensemble : file de combat si en combat, sinon le groupe et les
+ *  combattants de la série d'attaques subies (`combattantsDeLaSerie`). */
 export function actorIn(state: Jeu, id: string): Combatant | undefined {
-  return (state.battle?.combatants ?? state.party).find((c) => c.id === id);
+  return (state.battle?.combatants ?? [...state.party, ...combattantsDeLaSerie(state)]).find((c) => c.id === id);
+}
+
+/** Les combattants qu'HÉBERGE la série d'attaques subies (`serieSubie`), hors du groupe : seul univers lu par
+ *  `actorIn`, `porteurParId` et `sansCorps`. MDG 15 l.163-164 */
+export function combattantsDeLaSerie(s: Partial<Pick<Jeu, 'serieSubie'>>): Combatant[] {
+  return s.serieSubie ? [s.serieSubie.assaillant, ...(s.serieSubie.membre ? [s.serieSubie.membre.combattant] : [])] : [];
 }
 
 /**
@@ -62,8 +69,9 @@ export function inBattleId(battle: Jeu['battle'], id: string | undefined): Comba
 }
 
 /**
- * Le porteur d'un dé, résolu par ID dans TOUT l'univers de jeu : la file de combat ET le groupe.
- * DISTINCT d'`actorIn`, qui choisit l'un OU l'autre (`battle?.combatants ?? party`) : un héros du
+ * Le porteur d'un dé, résolu par ID dans TOUT l'univers de jeu : la file de combat, les combattants de la série
+ * d'attaques subies (`combattantsDeLaSerie`) ET le groupe. DISTINCT d'`actorIn`, qui choisit la file de combat OU
+ * le reste : un héros du
  * groupe resté HORS de la file d'un combat ouvert (allié en réserve, héros non engagé) y est
  * introuvable, et un porteur introuvable ne se surface pas — son dé se résoudrait d'office alors
  * qu'un siège le tient. La possession, elle, ne connaît pas cette frontière : `net.ownership` est
@@ -74,18 +82,12 @@ export function inBattleId(battle: Jeu['battle'], id: string | undefined): Comba
  * et valeur d'un dé ne peuvent pas répondre depuis deux univers différents.
  */
 export function porteurParId(s: Jeu, id: string): Combatant | undefined {
-  return inBattleId(s.battle, id) ?? assaillantDeLaSerie(s, id) ?? s.party.find((c) => c.id === id);
+  return inBattleId(s.battle, id) ?? combattantsDeLaSerie(s).find((c) => c.id === id) ?? s.party.find((c) => c.id === id);
 }
 
 /** Une rencontre est-elle engagée : une bataille, ou une série d'attaques subies (`serieSubie`, #3892) ? */
 export function rencontreEngagee(s: Pick<Jeu, 'battle' | 'serieSubie'>): boolean {
   return !!(s.battle || s.serieSubie);
-}
-
-/** L'assaillant de la série d'attaques subies (`serieSubie`) s'il porte l'id `id`. */
-function assaillantDeLaSerie(s: Pick<Jeu, 'serieSubie'>, id: string): Combatant | undefined {
-  const a = s.serieSubie?.assaillant;
-  return a?.id === id ? a : undefined;
 }
 
 /** `a` et `b` sont-ils l'assaillant et la cible de la série d'attaques subies, que la série déclare au contact ?

@@ -1,4 +1,4 @@
-import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+import { nommerChamps, nommerNoeud, metaDesChamps } from '../grammaire/meta';
 /** NADJ 16 l.11 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -52,7 +52,7 @@ const doc = document(
     roundOps: nommerChamps(z.strictObject({
       winner: executeesDe().optional(),
       attrition: executeesDe().optional(),
-      attritionEvery: z.union([z.number(), nommerChamps(z.strictObject({ charBonus: charKeySchema }), { charBonus: { label: 'Bonus de Caractéristique' } })]).optional(),
+      attritionEvery: z.union([nommerNoeud(z.number(), { label: 'nombre' }), nommerChamps(z.strictObject({ charBonus: charKeySchema }), { charBonus: { label: 'Bonus de Caractéristique' } })]).optional(),
     }), {
       winner: { label: 'Vainqueur' },
       attrition: { label: 'Attrition' },

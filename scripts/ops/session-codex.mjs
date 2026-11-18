@@ -10,7 +10,7 @@ import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { refusSession, rejouer, BORNES_DE_REJEU } from './session-rejeu.mjs'
 import { lireTransitions, transitionDe } from './session-transitions.mjs'
-import { estObjet } from '../../src/lib/objet.mjs'
+import { auChemin, estObjet } from '../../src/lib/objet.mjs'
 
 export const MAX_MESSAGE_CODEX = 64 * 1024
 export const ANNEXES_CODEX = Object.freeze({ journalCodex: 'codex.jsonl', stderrCodex: 'codex.stderr.log', socketCodex: 'codex.sock' })
@@ -23,7 +23,7 @@ const NOTIFICATIONS_LUES = new Set(['turn/started', 'turn/completed', 'item/star
 const FORMES_LUES = Object.freeze({ chaine: (v) => typeof v === 'string', booleen: (v) => typeof v === 'boolean', entier: Number.isInteger, tableau: Array.isArray, objet: estObjet })
 const nature = (v) => v === undefined ? 'absent' : v === null ? 'null' : Array.isArray(v) ? 'tableau' : typeof v
 function lu(methode, racine, chemin, forme, { nul = false } = {}) {
-  const valeur = chemin.split('.').reduce((o, k) => (o !== null && typeof o === 'object' ? o[k] : undefined), racine)
+  const valeur = auChemin(racine, chemin.split('.'))
   if (nul && (valeur === undefined || valeur === null)) return null
   if (!FORMES_LUES[forme](valeur)) throw refus('panne', `Protocole Codex incompatible : ${methode} ${chemin} attendu ${forme}${nul ? ' ou null' : ''}, reçu ${nature(valeur)}`)
   return valeur

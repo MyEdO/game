@@ -8,6 +8,8 @@ import { hasTalent } from '../../engine/magic';
 import type { SkillInstance } from '../../engine/types';
 import { scenario } from '../../scenes/test-scenarios/18-effets-scriptes';
 import { draineCascade } from '../../noyau/cascade.testkit';
+import { PSY } from '../../engine/psychology';
+import { ciblePsy } from '../../engine/psych/ciblage';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -50,14 +52,15 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
     expect(banc.getState().journal.join('\n')).toMatch(/entend/);
   });
 
-  it('ambitionLost : le dialogue du messager anéantit une Ambition → Trauma (Calme Accessible échoué)', () => {
+  it('ambitionLost : le dialogue du messager anéantit une Ambition → Trauma choisi (Calme Accessible échoué)', () => {
     const hero = banc.getState().party[0];
     hero.characteristics = { ...hero.characteristics, 'force-mentale': 10 }; // Calme Accessible (+20) → cible basse, échec garanti à la graine 1
     banc.setState({ party: [...banc.getState().party] });
     seedBattleRng(1);
     const choice = scene.dialogues.find((d) => d.id === 'dlg-messager')!.nodes[0].choices[0];
     runFlow(banc.getState, banc.setState, choice.flow!);
-    expect(banc.getState().party[0].psychTraits).toEqual([{ type: 'trauma' }]);
+    draineCascade(banc.getState, 10, undefined, (e) => (e.kind === 'traitDeTraumatisme' ? PSY.animosite : e.kind === 'cibleAcquise' ? ciblePsy.groupe('elfe') : undefined));
+    expect(banc.getState().party[0].psychTraits).toEqual([{ type: PSY.animosite, cible: ciblePsy.groupe('elfe') }]);
   });
 
   it('fall + inflictTrauma : la trappe vermoulue chute (dégâts/m réduits par le BE), blesse, et repositionne le groupe', () => {

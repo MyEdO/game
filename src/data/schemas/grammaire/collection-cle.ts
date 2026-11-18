@@ -26,7 +26,7 @@
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
-import { estObjet } from '../../../lib/objet.mjs';
+import { auChemin, estObjet } from '../../../lib/objet.mjs';
 import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
 import {
   baseDe,
@@ -297,15 +297,12 @@ export function sitesDeLaPortee(
     'portee' in j && j.portee === portee && j.refus === undefined ? [{ chemin: j.chemin, id: j.id, parCle: j.parCle }] : []);
 }
 
-/** La valeur au chemin `chemin` de `valeur`, `undefined` dès qu'un segment n'est le champ d'aucun objet. */
-const valeurAuChemin = (valeur: unknown, chemin: readonly string[]): unknown => chemin.reduce<unknown>((v, cle) => (estObjet(v) ? v[cle] : undefined), valeur);
-
 /** Les entrées de la collection de la portée `portee`, de marque `marque`, par id, dans la valeur `valeur` de l'objet qui
  *  l'ouvre : celles que chacun de ses filtres retient (`retenuParFiltre`) ; aucune pour une portée déclarée vide. La
  *  collection se lit au chemin pointé `portee.collection` de `valeur` (`narratif.objets`). */
 function entreesSousLaMarque(marque: MarqueDeCollection | 'vide' | undefined, valeur: unknown, portee: PorteeLocale): ReadonlyMap<string, unknown> | undefined {
   if (marque === 'vide') return new Map();
-  const collection = valeurAuChemin(valeur, portee.collection.split('.'));
+  const collection = auChemin(valeur, portee.collection.split('.'));
   if (!marque || !Array.isArray(collection)) return undefined;
   const retenues = collection.filter((e) => (portee.retient ?? []).every((f) => estObjet(e) && retenuParFiltre(f, e)));
   return new Map(retenues.flatMap((e) => {
@@ -433,7 +430,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
       portees.flatMap((portee) => {
         const chemin = portee.collection.split('.');
         const rang = path[chemin.length];
-        const collection = chemin.every((cle, i) => path[i] === cle) ? valeurAuChemin(valeur, chemin) : undefined;
+        const collection = chemin.every((cle, i) => path[i] === cle) ? auChemin(valeur, chemin) : undefined;
         return Array.isArray(collection) && typeof rang === 'number' ? [collection[rang]] : [];
       })));
     for (const j of juger(valeur, (e) => (refusees.has(e) ? undefined : e)))

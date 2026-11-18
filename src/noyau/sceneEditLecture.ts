@@ -79,13 +79,13 @@ import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/
 import { declarationDeFeuilleDId, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
 import { entree as trappingEntree } from '../data/schemas/defs/trappings';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
-import { champsDeclares, choixDuNoeud, formeAuPoint, type ChoixDuContexte, type FieldDesc } from './codex/editFields';
+import { champsDeclares, choixDuNoeud, formeAuPoint, recordDuNoeud, type ChoixDuContexte, type FieldDesc } from './codex/editFields';
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
 import { chargeLArme, gabaritDObjet } from '../engine/items';
 import { travelModeLabels, travelVehicles, vehicleTravel } from '../engine/travel';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
-import { estObjet } from '../lib/objet.mjs';
+import { auChemin, estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
@@ -710,7 +710,7 @@ const APPARENCES_D_OBJETS = ['appearance', 'apparencesObjets'] as const;
  *  elle au chemin `reste` : ses clés, chaque objet de ces armes dont l'apparence se choisit (`objetsAApparenceChoisie`) ;
  *  d'un objet, chacune de ses apparences choisissables (`apparencesChoisissablesDObjet`), posée entière ou par son
  *  identifiant. #2948 */
-function choixDesApparencesDObjets(armes: () => ReturnType<typeof armesDEntite>, objet: ReturnType<typeof objetDuNarratif>, reste: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+export function choixDesApparencesDObjets(armes: () => ReturnType<typeof armesDEntite>, objet: ReturnType<typeof objetDuNarratif>, reste: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const [trappingId, cle, ...plus] = reste;
   if (trappingId === undefined) return objetsAApparenceChoisie(armes(), objet).map((id) => ({ valeur: id, libelle: objet(id)?.label ?? id, refus: null }));
   if (typeof trappingId !== 'string' || plus.length || (cle !== undefined && cle !== 'id')) return undefined;
@@ -1256,7 +1256,7 @@ const SOUS_ENTREES_DESIGNEES: { readonly [R in RegistreDeSousReference]: (narrat
  *  `undefined` sans elle, où la clé n'est pas une sous-référence. */
 function choixDeLaSousReference(donnee: unknown, chemin: readonly Segment[], cle: CleDeSousReference, narratif: NarratifBlock): readonly ChoixDuContexte[] | undefined {
   const parente = SOUS_REFERENCES[cle];
-  const porteur = chemin.slice(0, -1).reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
+  const porteur = auChemin(donnee, chemin.slice(0, -1));
   const id = estObjet(porteur) ? porteur[parente] : undefined;
   return typeof id === 'string' ? SOUS_ENTREES_DESIGNEES[REFERENCES_NARRATIVES[parente]](narratif, id).map((e) => ({ valeur: e.id, libelle: e.label, refus: null })) : undefined;
 }
@@ -1285,11 +1285,13 @@ const choixDuCatalogueOuvert = (noeuds: readonly unknown[]): ChoixDuContexte[] =
 
 /** Les choix d'une référence LOCALE aux nœuds `noeuds`, parmi les portées des `ouvreurs`, chacun sous le libellé de son
  *  entrée (`entreesDeLaFeuilleLocale`) : d'une feuille locale, chaque id que sa portée admet, après ceux de son catalogue
- *  si elle est ouverte (`choixDuCatalogueOuvert`) ; d'une référence `{ id }` dont l'identifiant en est une, chacun posé
- *  entier ; `undefined` sinon. */
+ *  si elle est ouverte (`choixDuCatalogueOuvert`), un record y contribuant le nœud de sa clé (`recordDuNoeud`), dont
+ *  les choix sont les clés qu'il offre (`FieldDesc.contexte`) ; d'une référence `{ id }` dont l'identifiant en est une,
+ *  chacun posé entier ; `undefined` sinon. */
 export function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
-  const entrees = entreesDeLaFeuilleLocale(noeuds, ouvreurs);
-  if (entrees) return [...choixDuCatalogueOuvert(noeuds), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
+  const feuilles = noeuds.map((n) => recordDuNoeud(n)?.cle ?? n);
+  const entrees = entreesDeLaFeuilleLocale(feuilles, ouvreurs);
+  if (entrees) return [...choixDuCatalogueOuvert(feuilles), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
   const emboites = entreesDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);
   return emboites?.map(({ id, libelle }) => ({ valeur: { id }, libelle, refus: null }));
 }

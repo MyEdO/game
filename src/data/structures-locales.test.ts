@@ -134,11 +134,11 @@ describe('clé d’un site', () => {
     const cles = noeudsDeStructure([{ file: 'x.json', root: 'src/data', famille: 'config', schema: z.strictObject({ type: z.literal('x'), v: sansDiscriminant }) }]).map((n) => n.ref);
     expect(cles).toEqual(['.v|<lazy>|{sum}', '.v|{sum}']);
     const sites = noeudsDeStructure().filter((n) => n.fichier === 'src/data#miscast');
-    const somme = sites.find((n) => n.noeud === options(formulaSinSchema)[2])?.ref ?? '';
+    const somme = sites.find((n) => n.noeud === options(formulaSinSchema)[0])?.ref ?? '';
     expect(somme, 'la somme de `formulaSinSchema` a sa clé `|{sum}` dans miscast.json').toMatch(/[^>]\|\{sum\}$/);
     const generale = sites.find((n) => n.ref === somme.replace(/\|\{sum\}$/, '|<lazy>|{sum}'));
     expect(generale, 'la somme de `formulaSchema` a sa clé propre, sous `|<lazy>`').toBeDefined();
-    expect(generale?.noeud).not.toBe(options(formulaSinSchema)[2]);
+    expect(generale?.noeud).not.toBe(options(formulaSinSchema)[0]);
   });
 
   it('nom de branche : discriminant, clés déclarées et valeurs littérales, type', () => {

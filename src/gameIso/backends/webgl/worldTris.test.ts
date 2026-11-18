@@ -758,8 +758,8 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
    *  fichier du scénario, la vitrine est une spec de rendu — aucune main d'auteur ne peut déplacer
    *  leurs chiffres. */
   const MESURES: [string, () => Scene, { trisAvant: number; trisApres: number; paires: number }][] = [
-    ['siege-enceinte', siege, { trisAvant: 7216, trisApres: 7708, paires: 1238 }],
-    ['vitrine-batiments', vitrine, { trisAvant: 9666, trisApres: 11146, paires: 5279 }],
+    ['siege-enceinte', siege, { trisAvant: 6912, trisApres: 7404, paires: 1238 }],
+    ['vitrine-batiments', vitrine, { trisAvant: 9450, trisApres: 10930, paires: 5279 }],
   ];
 
   /** SANS ÉPINGLE CHIFFRÉE — scènes dont la carte appartient à un AUTEUR (ou à son générateur) : une

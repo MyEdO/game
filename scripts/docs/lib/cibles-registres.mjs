@@ -153,3 +153,6 @@ export const SORTIE_NOMS_DE_PARAMETRE = 'src/i18n/nomsDeParametre.generated.ts'
 
 /** La cible de `scripts/gen-combattants-de-l-etat.mjs` : les chemins des combattants de l'état, que `transitionDuJeu` lit. */
 export const SORTIE_COMBATTANTS_DE_L_ETAT = 'src/noyau/combattantsDeLEtat.generated.ts'
+
+/** La cible de `scripts/gen-noyau-godot.mjs` : les ids que le noyau émet vers Godot, que ses scripts lisent (`Noyau`). */
+export const SORTIE_NOYAU_GODOT = 'hotes/godot/projet/scripts/noyau.generated.gd'

@@ -22,7 +22,7 @@ import type { OupsResolved } from '../engine/oups';
 import type { StakeRef, SpellData } from '../data';
 import type { CastResult, CritChoice, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode, TestDeSoin } from '../engine/healing';
-import type { PsychType, TypeAcquis } from '../engine/psychology';
+import type { TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
@@ -36,6 +36,7 @@ import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
+import type { RegistreDuBord } from './etat';
 import type { IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
@@ -1728,6 +1729,9 @@ export interface CascadeStepMeta {
   /** L'op `attaquesSubies` dont l'étape `nombreDAttaquesSubies` tire le dé `nombre` (`combatFlow.ouvrirLeNombreDAttaquesSubies`),
    *  relue par son applier pour ouvrir la série. */
   attaquesSubies?: [Extract<GameOp, { op: 'attaquesSubies' }>];
+  /** Le poste du membre de l'équipage que vise l'étape (`shipCrew.metaDuPoste`, `shipCrew.posteDeLEtape`). */
+  roleDuMembre?: string;
+  registreDuMembre?: RegistreDuBord;
   /** SUITE confiée à cette étape (#2689, `combatEffects.confierLaSuite`), rejouée APRÈS sa conséquence
    *  à la DERNIÈRE étape de la grappe : si un maillon rouvre un dé, les maillons restants repartent avec
    *  lui. */
@@ -2220,7 +2224,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
    *  les RANGÉES (`participants`, `aggregate:'none'`). L'applier 'psychologieDeRencontre' pose le `psychState`
    *  RANGÉE PAR RANGÉE ; Détermination (LDB 17 l.59) jouée par rangée (`BatchParticipant.immune`). */
-  psychologieDeRencontre?: { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy };
+  psychologieDeRencontre?: { kind: string; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy };
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
    *  (`participants`, `aggregate:'none'`), et le Round que sa passe concerne (`round`, repère de
@@ -2228,7 +2232,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`psychologieDeRencontre` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
-  psychologieDeCombat?: { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy; round: number };
+  psychologieDeCombat?: { kind: string; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy; round: number };
   /** Étape « choix » : options présentées au joueur (l'option retenue pilote la conséquence). Leur
    *  `label` est du TEXTE JOUEUR marqué (#1318 V8a₁), comme celui de l'étape qui les porte. `refus` =
    *  la CAUSE d'indisponibilité de CETTE option (coût d'Avantage hors de portée…), rendue au survol/

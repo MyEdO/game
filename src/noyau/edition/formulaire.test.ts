@@ -17,7 +17,15 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeurDuPorteur } from '../sceneEdit';
-import { avecLaValeur, ecritureOfferte, monteeAuFormulaire, type Segment } from './formulaire';
+import {
+  avecLaValeur,
+  champsDuFormulaire,
+  ecritureAuFormulaire,
+  ecritureOfferte,
+  monteeAuFormulaire,
+  type FormeDuFormulaire,
+  type Segment,
+} from './formulaire';
 import {
   choixDuChamp,
   formulaireDe,
@@ -51,6 +59,7 @@ import {
   identiteTenue,
   inferFields,
   kindDuNoeud,
+  recordDuNoeud,
   unionDuNoeud,
   varianteCourante,
   type FieldDesc,
@@ -59,15 +68,24 @@ import { ouverts } from '../../data/schemas/grammaire/descente';
 import { listeCle } from '../../data/schemas/grammaire/collection-cle';
 import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
-import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
-import { idDe, idsDe, idsDeLaSousListe, refOuSpec, TYPES, type TypeEntite } from '../../data/schemas/grammaire/ref';
+import {
+  conditionSchema,
+  flowTestSchema,
+  menaceSchema,
+  OP_DEFS,
+  OP_LABEL,
+  OPS_NON_TYPEES,
+  porteurDeTestFixe,
+  testFixeSchema,
+} from '../../data/schemas/grammaire/mecanique';
+import { entreeOuverte, idDe, idsDe, idsDeLaSousListe, refOuSpec, specDe, TYPES, type TypeEntite } from '../../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
 import { VOCABULAIRES } from '../../data/schemas/grammaire/vocabulaires';
 import { CONDITION_TOUJOURS, recast, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import type { Condition } from '../../engine/flowCore';
 import type { GameOp } from '../../engine/ops';
-import { choixDeLaFeuilleDId, creatureSemee, findCreatureById, seaPerils } from '../../data';
+import { choixDeLaSpec, choixDeLaFeuilleDId, creatureSemee, findCreatureById, seaPerils } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 import { trappingRefSchema } from '../../data/schemas/grammaire/reference';
@@ -146,7 +164,15 @@ describe('la description du formulaire d’une zone d’effet', () => {
     const schema = z.strictObject({ groupe: idDe('groupe', CIBLE_D_APPARTENANCE) });
     const hors = [...idsDe('groupe')].find((id) => !idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE).includes(id))!;
     expect(valeurNeuveDe(schema)).toEqual({ groupe: idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE)[0] });
-    expect(avecLaValeur(schema, { groupe: 'x' }, ['groupe'], hors), 'hors de la sous-liste').toEqual({ ok: false, refus: 'horsSorte' });
+    expect(avecLaValeur(schema, { groupe: 'x' }, ['groupe'], hors), 'hors de la sous-liste, refusée par le message de sa feuille').toEqual({ ok: false, refus: { regle: schema.shape.groupe.safeParse(hors).error?.issues[0].message } });
+  });
+
+  it('une spécialisation nue d’une entrée fermée se choisit au catalogue de son entrée, celle d’une entrée ouverte se saisit (LDB 10 l.1014-1020)', () => {
+    const choix = (type: TypeEntite, id: string) => choixDeLaSpec({ type, id }).map((e) => ({ valeur: e.id, libelle: e.label }));
+    expect(choix('talent', 'resistance').length, 'la Menace a un catalogue').toBeGreaterThan(0);
+    expect(choixDuNoeud(menaceSchema.optional()), 'la Menace, `specFermeeDe`').toEqual(choix('talent', 'resistance'));
+    expect(choixDuNoeud(specDe('skill', 'voile')), 'la Spécialisation de Voile, `specDe`').toEqual(choix('skill', 'voile'));
+    expect([entreeOuverte('skill', 'metier'), choixDuNoeud(specDe('skill', 'metier'))], 'Métier, entrée ouverte').toEqual([true, undefined]);
   });
 
   it('une op se choisit parmi toutes, chacune nommée, neuve par `newOp` ; typée, elle se décrit champ par champ, son `op` tenu par le choix', () => {
@@ -280,7 +306,7 @@ describe('l’écriture bornée par le formulaire', () => {
     for (const rang of [0, 2, '1']) expect(monteeAuFormulaire(forme, { l }, ['l', rang], () => undefined, SANS_SOURCE), `le rang ${String(rang)} ne monte pas`).toEqual({ ok: false, refus: 'nonOffert' });
     expect(monteeAuFormulaire({ ...forme, champs: [['l', 0, 'n']] }, { l }, ['l', 1], () => undefined, SANS_SOURCE), 'une liste que le formulaire n’écrit pas entière').toEqual({ ok: false, refus: 'nonOffert' });
     expect(avecLaValeur(liste, { l }, ['l'], [{ n: 2 }, { n: 1 }])).toEqual({ ok: true, valeur: { l: [{ n: 2 }, { n: 1 }] } });
-    expect(avecLaValeur(liste, { l }, ['l'], [{ n: 1 }, { n: 'deux' }])).toEqual({ ok: false, refus: 'horsSorte' });
+    expect(avecLaValeur(liste, { l }, ['l'], [{ n: 1 }, { n: 'deux' }]), 'refusée par le message de son parse').toEqual({ ok: false, refus: { regle: 'Entrée invalide : nombre attendu, chaîne de caractères reçu' } });
     expect(avecLaValeur(liste, { l: [{ n: 1 }] }, ['l'], []), 'vidée, la liste dont l’absence est admise part').toEqual({ ok: true, valeur: {} });
     expect(avecLaValeur(z.strictObject({ l: z.array(z.number()) }), { l: [1] }, ['l'], []), 'requise, elle reste vide').toEqual({ ok: true, valeur: { l: [] } });
   });
@@ -378,21 +404,22 @@ describe('le geste `valeur` de la session', () => {
     expect('when' in sceneEditee(retiree).triggers.find((t) => t.id === trig)!, 'sans clé laissée à `undefined`').toBe(false);
   });
 
-  it('refuse une valeur hors de la sorte de son champ, un champ que le formulaire n’offre pas, un porteur absent, et dit pourquoi', () => {
+  it('refuse une valeur hors de la sorte de son champ, par le message de son parse, un champ que le formulaire n’offre pas, un porteur absent, et dit pourquoi', () => {
     const ajoute = jouer(depart, ['crossTest'], {});
+    const opInconnue = { regle: "GameOp « pas-une-op » : op inconnue de OP_DEFS et de OPS_NON_TYPEES (src/data/schemas/grammaire/mecanique.ts) — la typer, ou l'inscrire à la liste avec sa raison mesurée." };
     for (const [chemin, valeur, refus] of [
-      [['crossTest', 'characteristic'], 'vigueur', 'horsSorte'],
-      [['crossTest', 'requireSL'], 'deux', 'horsSorte'],
-      [['crossTest', 'requireSL'], Number.POSITIVE_INFINITY, 'horsSorte'],
-      [['crossTest', 'label'], 3, 'horsSorte'],
+      [['crossTest', 'characteristic'], 'vigueur', { regle: 'Option invalide : une valeur parmi "capacite-de-combat"|"capacite-de-tir"|"force"|"endurance"|"initiative"|"agilite"|"dexterite"|"intelligence"|"force-mentale"|"sociabilite" attendue' }],
+      [['crossTest', 'requireSL'], 'deux', { regle: 'Entrée invalide : nombre attendu, chaîne de caractères reçu' }],
+      [['crossTest', 'requireSL'], Number.POSITIVE_INFINITY, { regle: 'Entrée invalide : nombre attendu, nombre reçu' }],
+      [['crossTest', 'label'], 3, { regle: 'Entrée invalide : chaîne de caractères attendu, nombre reçu' }],
       [['crossTest', 'easierIf'], { steps: 1 }, 'horsSorte'],
       [['crossTest', 'skill', 'id'], 'athletisme', 'nonOffert'],
-      [['perRound'], [{ op: 'pas-une-op' }], 'horsSorte'],
+      [['perRound'], [{ op: 'pas-une-op' }], opInconnue],
       [['label'], 'Autre', 'nonOffert'],
       [['id'], 'autre', 'nonOffert'],
-    ] as [Segment[], unknown, string][]) {
+    ] as [Segment[], unknown, unknown][]) {
       expect(jouer(ajoute, chemin, valeur), `${chemin.join('/')} ← ${String(valeur)}`).toBe(ajoute);
-      expect(refusDeLaValeur(ajoute, geste(porteur, chemin, [valeur])), chemin.join('/')).toBe(refus);
+      expect(refusDeLaValeur(ajoute, geste(porteur, chemin, [valeur])), chemin.join('/')).toEqual(refus);
     }
     expect(refusDeLaValeur(ajoute, geste({ sorte: 'zone', id: 'nulle-part' }, ['crossTest', 'characteristic'], ['force']))).toBe('nonOffert');
     expect(laZone(jouer(jouer(ajoute, ['crossTest', 'skill'], valeurNeuveDe(refOuSpec('skill'))), ['crossTest', 'skill', 'id'], 'athletisme')).crossTest, 'la référence de Compétence se choisit').toEqual({ skill: { id: 'athletisme' } });
@@ -400,7 +427,7 @@ describe('le geste `valeur` de la session', () => {
     const avecOps = jouer(depart, ['onCross'], [{ op: 'statusMod', amount: 1 }]);
     expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'statusMod', amount: 2 })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'statusMod', amount: 2 }]);
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [null])), 'un JSON illisible').toBe('illisible');
-    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [{ op: 'pas-une-op' }]))).toBe('horsSorte');
+    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [{ op: 'pas-une-op' }]))).toEqual(opInconnue);
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'amount'], [3])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
     const avecHas = surDeclencheur(depart, ['when'], recast(CONDITION_TOUJOURS, 'has'));
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'what'], ['trait'])), 'un discriminant se change par le choix de la variante').toBe('nonOffert');
@@ -1045,5 +1072,69 @@ describe('une sous-référence se choisit parmi les sous-entrées de l’entrée
   it('le stade d’un indice révélé : ses stades, libellés de leur rang ; un état sans valeurs déclarées n’en offre aucune', () => {
     expect(choixDuChamp('declencheur', avecEffet({ type: 'revealClue', indiceId: 'piste' }), ['flow', 'effet', 'stade'], CADRE)).toEqual([{ valeur: 'vu', libelle: 'stade 1', refus: null }, { valeur: 'compris', libelle: 'stade 2', refus: null }]);
     expect(choixDuChamp('declencheur', declencheur({ kind: 'etat', etat: 'meneur' } as Condition), ['when', 'value'], CADRE)).toEqual([]);
+  });
+});
+
+describe('le Test qu’un porteur fixe (`porteurDeTestFixe`)', () => {
+  /** Un porteur d'un Test, et sa donnée : une compétence, une caractéristique et une difficulté posées. */
+  const porteur = z.strictObject({ test: testFixeSchema, fallM: z.number() });
+  const donnee = { r: { test: { skill: { id: 'chevaucher' }, characteristic: 'agilite', difficulty: 'complexe' }, fallM: 2 } };
+  /** Le formulaire d'un champ facultatif `r` de nœud `noeud`. */
+  const forme = (noeud: z.ZodType): FormeDuFormulaire => ({ noeud: z.strictObject({ r: noeud.optional() }), champs: [['r']], retraits: [] });
+  /** Le champ `cle` du Test au formulaire `f` : exigé par son porteur, que le contexte du formulaire n'offre pas au
+   *  retrait (`ContexteDuChamp.exige`), et l'issue de son retrait. */
+  const retrait = (f: FormeDuFormulaire, cle: string) => {
+    const chemin = ['r', 'test', cle];
+    const ecrite = ecritureAuFormulaire(f, donnee, chemin, undefined, () => undefined, SANS_SOURCE);
+    const [r] = champsDuFormulaire(f, donnee, () => undefined, SANS_SOURCE);
+    return [cle, r.contexte!.exige(chemin) ? 'exigé' : 'libre', ecrite.ok ? 'retiré' : ecrite.refus];
+  };
+
+  it('n’offre pas le retrait de la compétence ni de la difficulté qu’il exige, et le refuse requis ; un porteur nu les retire', () => {
+    const fixe = forme(porteurDeTestFixe(porteur, 'skill', 'difficulty'));
+    expect(['skill', 'difficulty', 'characteristic'].map((cle) => retrait(fixe, cle))).toEqual([['skill', 'exigé', 'requis'], ['difficulty', 'exigé', 'requis'], ['characteristic', 'libre', 'retiré']]);
+    expect(['skill', 'difficulty'].map((cle) => retrait(forme(porteur), cle)), 'porteur nu').toEqual([['skill', 'libre', 'retiré'], ['difficulty', 'libre', 'retiré']]);
+  });
+});
+
+describe('le retrait d’un champ nullable requis', () => {
+  /** Un objet nullable requis `r`, un nombre requis `n` et sa donnée. */
+  const forme: FormeDuFormulaire = { noeud: z.strictObject({ r: z.strictObject({ a: z.number() }).nullable(), n: z.number() }), champs: [['r'], ['n']], retraits: [] };
+  const donnee = { r: { a: 1 }, n: 2 };
+  const retire = (chemin: Segment[]) => {
+    const ecrite = ecritureAuFormulaire(forme, donnee, chemin, undefined, () => undefined, SANS_SOURCE);
+    return ecrite.ok ? ecrite.valeur : ecrite.refus;
+  };
+
+  it('écrit le vide de son nœud, `null`, lui ou le champ requis qu’il porte retiré ; un champ requis sans vide reste refusé', () => {
+    expect(retire(['r']), 'le champ même').toEqual({ r: null, n: 2 });
+    expect(retire(['r', 'a']), 'son seul champ requis, qui le vide').toEqual({ r: null, n: 2 });
+    expect(retire(['n']), 'un nombre requis').toBe('requis');
+  });
+});
+
+describe('un record à clé ouverte', () => {
+  /** Une rampe : un offset en pourcentage vers une couleur, deux arrêts au moins. */
+  const rampe = z.record(z.string().regex(/^\d+%$/), z.string().regex(/^#[0-9a-f]{6}$/)).refine((r) => Object.keys(r).length >= 2, { message: 'deux arrêts au moins' });
+  const forme: FormeDuFormulaire = { noeud: z.strictObject({ r: rampe }), champs: [['r']], retraits: [] };
+  const deux = { r: { '0%': '#000000', '100%': '#ffffff' } };
+  const ecrire = (donnee: typeof deux, chemin: Segment[], valeur?: unknown) => {
+    const ecrite = ecritureAuFormulaire(forme, donnee, chemin, valeur, () => undefined, SANS_SOURCE);
+    return ecrite.ok ? ecrite.valeur : ecrite.refus;
+  };
+  const exige = (donnee: typeof deux, cle: string) => champsDuFormulaire(forme, donnee, () => undefined, SANS_SOURCE)[0].contexte!.exige(['r', cle]);
+
+  it('ajoute une clé que son nœud de clé admet, à la valeur neuve de son nœud de valeur, puis l’écrit ; refuse une clé hors de son nœud', () => {
+    const ajoutee = ecrire(deux, ['r', '50%'], valeurNeuveDe(recordDuNoeud(rampe)!.valeur)) as typeof deux;
+    expect(ajoutee.r).toEqual({ '0%': '#000000', '100%': '#ffffff', '50%': '' });
+    expect(ecrire(ajoutee, ['r', '50%'], '#808080'), 'sa valeur').toEqual({ r: { '0%': '#000000', '100%': '#ffffff', '50%': '#808080' } });
+    expect(ecrire(deux, ['r', 'milieu'], ''), 'une clé hors de son nœud').toBe('nonOffert');
+  });
+
+  it('exige la clé dont le retrait enfreint le record, et refuse ce retrait ; au-delà du minimum, la retire', () => {
+    const trois = { r: { ...deux.r, '50%': '#808080' } };
+    expect([exige(deux, '0%'), exige(trois, '0%')]).toEqual([true, false]);
+    expect(ecrire(deux, ['r', '0%']), 'deux arrêts').toEqual({ regle: 'deux arrêts au moins' });
+    expect(ecrire(trois, ['r', '0%']), 'trois arrêts').toEqual({ r: { '100%': '#ffffff', '50%': '#808080' } });
   });
 });

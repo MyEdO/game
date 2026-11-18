@@ -241,7 +241,7 @@ export interface NappeDuMonde extends GeometrieDuMonde {
 }
 
 /** Le nom d'une matière dans le volume : son domaine et son id. */
-const nomDeMatiere = ({ domain, id }: MaterialRef): string => `${domain}--${id}`;
+export const nomDeMatiere = ({ domain, id }: MaterialRef): string => `${domain}--${id}`;
 
 /** Les noms des matières de décor du monde (domaine `prop` de `materials.json`), dont un modèle 3D habille ses surfaces. */
 export const matieresDeDecor = (): string[] => matieresDe('prop').map(({ id }) => nomDeMatiere({ domain: 'prop', id }));

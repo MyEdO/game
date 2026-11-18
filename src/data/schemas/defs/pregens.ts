@@ -13,7 +13,7 @@ const entier = (min: number) => z.number().int().min(min);
 const augmentations = nommerNoeud(entier(0), { nom: 'augmentations' });
 
 /** Augmentations par Compétence : un nombre, ou un nombre par spécialisation. */
-const augmentationsDesCompetences = recordDIds('skill', z.union([augmentations, z.record(z.string().min(1), augmentations)])).superRefine((v, ctx) => {
+const augmentationsDesCompetences = recordDIds('skill', z.union([nommerNoeud(z.lazy(() => augmentations), { label: 'augmentations' }), nommerNoeud(z.record(z.string().min(1), augmentations), { label: 'augmentations par spécialisation' })])).superRefine((v, ctx) => {
   for (const [id, a] of Object.entries(v)) {
     if (typeof a === 'number') continue;
     for (const spec of Object.keys(a)) {

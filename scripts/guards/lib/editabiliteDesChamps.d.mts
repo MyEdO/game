@@ -47,6 +47,8 @@ export function perimetreDeLaRacine(program: SessionProgramme, root: string, rac
 /** Une écriture que l'aller-retour de l'éditeur joue : le document avant et après, le chemin écrit depuis la racine du
  *  document, la valeur jouée, la saisie qui l'a portée et, issue du choix d'une variante, la clé de son discriminant. */
 export interface EcritureJouee { avant: unknown; apres: unknown; chemin: (string | number)[]; valeur: unknown; saisie: string; variante?: string }
+/** Les chemins que créditent des écritures jouées, chacun avec le document d'après où il se lit, sur tout porteur. */
+export function cheminsCreditesJoues(ecrituresJouees: readonly EcritureJouee[]): { apres: unknown; chemin: (string | number)[] }[];
 /** La marque d'un crédit par aller-retour dans la colonne `authors`. */
 export const ALLER_RETOUR: string;
 /** `program` absent : bâti pour CET appel (~8 s). `ecrituresJouees` : créditées par aller-retour (`ALLER_RETOUR`). */

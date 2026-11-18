@@ -18,7 +18,7 @@ import { estAdresseDeProse } from '../../data/schemas/grammaire/valeurs';
 import { coDescendre, estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
-import { estObjet } from '../../lib/objet.mjs';
+import { auChemin, estObjet } from '../../lib/objet.mjs';
 import type { ChoixDuContexte } from '../codex/editFields';
 import type { Segment } from './formulaire';
 import { t } from '../../i18n';
@@ -126,10 +126,6 @@ export function adressesDe(schema: unknown, donnee: unknown): AdresseAuChemin[] 
   });
   return adresses;
 }
-
-/** La valeur de `o` au chemin `chemin`, `undefined` hors de lui. */
-export const auChemin = (o: unknown, chemin: readonly Segment[]): unknown =>
-  chemin.reduce<unknown>((v, pas) => (estObjet(v) || Array.isArray(v) ? (v as Record<Segment, unknown>)[pas] : undefined), o);
 
 /** `o` où la valeur au chemin `[cle, ...reste]` vaut `v`. */
 function pose(o: unknown, [cle, ...reste]: readonly Segment[], v: unknown): unknown {

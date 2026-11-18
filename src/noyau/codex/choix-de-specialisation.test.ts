@@ -1,7 +1,7 @@
 /**
  * La spécialisation d'une entrée FERMÉE se choisit dans son catalogue (#4056, #841) : la feuille `specFermeeDe` de la
  * menace d'un Test, et le `spec` d'une référence à spécialisation au point de son `id` (`noeudDuChampAuPoint`), offrent
- * `catalogueSpecs` en choix (`choixDuNoeud`) et refusent un texte hors de lui ; une entrée OUVERTE reste un texte.
+ * `catalogueSpecs` en choix (`choixDuNoeud`) et refusent un texte hors de lui, la règle de la feuille dite ; une entrée OUVERTE reste un texte.
  * Le Statut d'interlocuteur (`vsStatus`, `statutSchema`) se décompose de même : un choix d'Échelon et une saisie
  * de Standing entier de 0, écrits en ids. LDB 08 l.9, l.101
  */
@@ -18,7 +18,7 @@ describe('choix des spécialisations fermées', () => {
     const choix = choixDuNoeud(menaceSchema)!.map((o) => o.valeur);
     expect(choix).toEqual(catalogueSpecs('talent', 'resistance'));
     for (const v of choix) expect(avecLaValeur(testDeSceneSchema, donnee, ['menace'], v)).toMatchObject({ ok: true });
-    expect(avecLaValeur(testDeSceneSchema, donnee, ['menace'], 'texte joué')).toEqual({ ok: false, refus: 'horsSorte' });
+    expect(avecLaValeur(testDeSceneSchema, donnee, ['menace'], 'texte joué')).toEqual({ ok: false, refus: { regle: expect.stringMatching(/absente des spécialisations de « resistance »/) } });
   });
 
   it('le spec d’une compétence fermée (art) offre son catalogue, au point de son id', () => {
@@ -28,7 +28,7 @@ describe('choix des spécialisations fermées', () => {
     expect(choixDuNoeud(spec.noeud)!.map((o) => o.valeur)).toEqual(catalogueSpecs('skill', 'art'));
     const premiere = catalogueSpecs('skill', 'art')[0];
     expect(avecLaValeur(testDeSceneSchema, donnee, ['skill', 'spec'], premiere)).toMatchObject({ ok: true });
-    expect(avecLaValeur(testDeSceneSchema, donnee, ['skill', 'spec'], 'texte joué')).toEqual({ ok: false, refus: 'horsSorte' });
+    expect(avecLaValeur(testDeSceneSchema, donnee, ['skill', 'spec'], 'texte joué')).toEqual({ ok: false, refus: { regle: expect.stringMatching(/absente des spécialisations de « art »/) } });
     const specialisee = { ...donnee, skill: { id: 'art', spec: premiere } };
     expect(avecLaValeur(testDeSceneSchema, specialisee, ['skill', 'spec'], undefined)).toEqual({ ok: true, valeur: donnee });
   });

@@ -82,7 +82,7 @@ const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord 
 const ECART_DE_BULLE := 12.0
 ## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
 const ECART_DU_MEUBLE := 8.0
-## La largeur la plus grande d'un bandeau de jet, en unités de la vue de 1280 × 720.
+## La largeur la plus grande d'un bandeau de jet, en pixels.
 const LARGEUR_DU_BANDEAU := 1091.0
 ## La largeur la plus étroite de la chronique posée sur la scène en combat, sa pastille comprise, en pixels.
 const LARGEUR_DE_LA_CHRONIQUE := 310.0
@@ -104,6 +104,10 @@ const ECART_DES_MARQUES := 0.3
 const HAUTEUR_DU_VISUEL_DE_MARQUE := 0.9
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
+## La marge (cases) dont le sol du hors-carte déborde le plateau de chaque côté, au-delà de toute brume.
+const MARGE_DU_HORS_CARTE := 400.0
+## La profondeur (unités de plateau) du sol du hors-carte sous le zéro de la scène, que le sol d'une case recouvre.
+const ENFOUISSEMENT_DU_HORS_CARTE := 0.02
 ## Les pixels de la texture d'un dessin par pixel d'écran : l'écran étire l'interface (`window/stretch`).
 const FINESSE_DE_DESSIN := 2.0
 ## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
@@ -389,6 +393,12 @@ static func centre_de_case(case: Vector2i, sol: float) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, sol, case.y + DEMI_CASE)
 
 
+## Le point du sol d'une case que l'écran publie, de son centre `centre` : poussé à l'est assez pour quitter l'arête
+## des deux triangles du sol, trop peu pour changer ce que le point désigne (`Monde.points`).
+static func point_publie(centre: Vector3) -> Vector3:
+	return centre + Vector3(DEMI_CASE / 32.0, 0.0, 0.0)
+
+
 ## Le point du plateau au-dessus du point (`x`, `y`) de la carte, en cases continues (une case centrée sur l'entier), à
 ## `hauteur`.
 static func point_de_la_carte(x: float, y: float, hauteur: float) -> Vector3:
@@ -413,6 +423,18 @@ static func energie_vacillante(energie: float, amplitude: float, hz: float, seco
 ## Le centre du sol d'un plateau de `taille` cases.
 static func centre_du_plateau(taille: Vector2i) -> Vector3:
 	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
+
+
+## Le centre du sol du hors-carte (`Lumiere`) d'un plateau de `taille` cases : sous le centre du plateau, enfoui de
+## `ENFOUISSEMENT_DU_HORS_CARTE`.
+static func centre_du_hors_carte(taille: Vector2i) -> Vector3:
+	return centre_du_plateau(taille) + Vector3.DOWN * ENFOUISSEMENT_DU_HORS_CARTE
+
+
+## L'étirement du plan d'une unité de côté du sol du hors-carte d'un plateau de `taille` cases, qui le déborde de
+## `MARGE_DU_HORS_CARTE` cases de chaque côté.
+static func etendue_du_hors_carte(taille: Vector2i) -> Vector3:
+	return Vector3(taille.x + 2.0 * MARGE_DU_HORS_CARTE, 1.0, taille.y + 2.0 * MARGE_DU_HORS_CARTE)
 
 
 ## Le point de la carte, en cases continues (une case centrée sur l'entier), sous le lieu `lieu` du plateau : celui que

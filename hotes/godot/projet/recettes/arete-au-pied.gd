@@ -26,7 +26,7 @@ func _recetter() -> void:
 	var volume: VolumeDeScene = (load("res://scenes/VolumeDeScene.tscn") as PackedScene).instantiate()
 	root.add_child(volume)
 	volume.metres_par_case = METRES_PAR_CASE
-	var arete := {milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = PIED_M, hauteurM = HAUTEUR_M, piece = "mur", bloc = "0/0/0"}
+	var arete := {milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = PIED_M, hauteurM = HAUTEUR_M, piece = Noyau.Piece.MUR, bloc = "0/0/0"}
 	var du_kit := arete.merged({cle = "kit", famille = "colombage"})
 	var boite := arete.merged({cle = "boite", famille = null})
 	var voisine := arete.merged({cle = "voisine", famille = null, milieu = {x = 1.0, y = -0.5}}, true)
@@ -48,7 +48,7 @@ func _recetter() -> void:
 			_fautes.append("les deux boîtes du groupe ne sont pas à une case l'une de l'autre")
 	if volume.ce_qui_est_pose().aretes != 4:
 		_fautes.append("posées, %d arêtes comptées, attendu 4" % volume.ce_qui_est_pose().aretes)
-	volume.poser_les_aretes([du_kit.duplicate(true), boite.duplicate(true), voisine.merged({piece = "porte-ouverte"}, true)])
+	volume.poser_les_aretes([du_kit.duplicate(true), boite.duplicate(true), voisine.merged({piece = Noyau.Piece.PORTE_OUVERTE}, true)])
 	var reposes := _groupes(aretes)
 	if reposes.keys() != [["kit"], ["boite"], ["voisine"]]:
 		_fautes.append("posées à nouveau, les groupes sont %s, attendu le kit, la boîte, le seuil" % [reposes.keys()])

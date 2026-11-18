@@ -1427,7 +1427,9 @@
                   }
                 },
                 "meteo": {
-                  "vent": "calme-plat"
+                  "vent": {
+                    "id": "calme-plat"
+                  }
                 }
               }
             ]
@@ -1697,8 +1699,12 @@
                   }
                 },
                 "meteo": {
-                  "visibilite": "brume",
-                  "precipitations": "legeres"
+                  "visibilite": {
+                    "id": "brume"
+                  },
+                  "precipitations": {
+                    "id": "legeres"
+                  }
                 }
               }
             ]
@@ -2044,7 +2050,9 @@
                   }
                 },
                 "meteo": {
-                  "temperature": "mediane"
+                  "temperature": {
+                    "id": "mediane"
+                  }
                 }
               }
             ]
@@ -2215,8 +2223,12 @@
                   }
                 },
                 "meteo": {
-                  "visibilite": "degage",
-                  "precipitations": "aucune"
+                  "visibilite": {
+                    "id": "degage"
+                  },
+                  "precipitations": {
+                    "id": "aucune"
+                  }
                 }
               }
             ]
@@ -3140,9 +3152,15 @@
                   }
                 },
                 "meteo": {
-                  "visibilite": "brouillard",
-                  "precipitations": "abondantes",
-                  "vent": "vent-violent"
+                  "visibilite": {
+                    "id": "brouillard"
+                  },
+                  "precipitations": {
+                    "id": "abondantes"
+                  },
+                  "vent": {
+                    "id": "vent-violent"
+                  }
                 },
                 "aggravation": {
                   "de": {
@@ -3153,7 +3171,9 @@
                   },
                   "seuil": 8,
                   "meteo": {
-                    "vent": "violente-tempete"
+                    "vent": {
+                      "id": "violente-tempete"
+                    }
                   }
                 }
               }
@@ -3385,10 +3405,18 @@
                   }
                 },
                 "meteo": {
-                  "visibilite": "degage",
-                  "precipitations": "aucune",
-                  "temperature": "mediane",
-                  "vent": "brise-fraiche"
+                  "visibilite": {
+                    "id": "degage"
+                  },
+                  "precipitations": {
+                    "id": "aucune"
+                  },
+                  "temperature": {
+                    "id": "mediane"
+                  },
+                  "vent": {
+                    "id": "brise-fraiche"
+                  }
                 }
               }
             ]

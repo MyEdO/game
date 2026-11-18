@@ -55,8 +55,8 @@ import {
 import { statusCharmMod, statusCharmLabel, actorStatus, tirerLeCapricieux, tirerLaReactionAuStatut } from '../engine/social';
 import { restoreFortune } from '../engine/fortune';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { traumaOnImpossibleAmbition } from '../engine/psychology';
-import { grantPsychTrait } from '../engine/grantedTraits';
+import { calmeDAcquisition } from '../engine/psychology';
+import { ouvrirLeTrauma } from './cibleAcquise';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
 import type { IdDeLigneDeButin } from './designations';
@@ -76,7 +76,18 @@ import {
   testSkillLabel,
 } from '../data';
 import { moraleBase } from '../engine/crewMorale';
-import { clampSaboteurDR, contracterABord, porteursABord, semaineDuJour, shipboardSouls, type PorteurABord } from './shipCrew';
+import {
+  clampSaboteurDR,
+  contracterABord,
+  perdreUnMembreDuBord,
+  porteursABord,
+  posteDuMembre,
+  postesDuTirage,
+  semaineDuJour,
+  shipboardSouls,
+  type PorteurABord,
+  type PosteDuBord,
+} from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, contractDiseaseOnce, exposerALaMaladie, applyContraction, diseaseDefs } from '../engine/disease';
@@ -132,7 +143,7 @@ import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, o
 import { type BuiltCascadeStep } from './stepBrand';
 import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
-import { loseWounds, hasCondition } from '../engine/conditions';
+import { loseWounds, hasCondition, inDeathCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
 import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, rencontreEngagee } from './monde/combatants';
 import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
@@ -907,20 +918,26 @@ function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, suje
   return { ...reste, untilTime: env.get().gameTime + jours * MINUTES_PER_DAY, ...(label ? { label } : {}) };
 }
 
-/** Un membre du bord tiré au hasard, au prorata des âmes à bord (`shipboardSouls`) : un héros vivant, ou un marin
- *  de l'effectif PNJ, que porte l'équipage collectif (`porteursABord`) ; `null` sans âme à bord. MDG 15 l.161, l.176 */
-function membreDuBordAuHasard(get: Get, set: SetFn, rng: RNG): { heros: Combatant } | { equipage: PorteurABord } | null {
+/** Un membre du bord tiré au hasard, au prorata des âmes à bord (`shipboardSouls`) : un héros vivant, ou un membre de
+ *  l'effectif PNJ à son poste (`posteDuMembre`), que porte l'équipage collectif (`porteursABord`) ; `null` sans âme à
+ *  bord. Un seul tirage sur les âmes fois les `postesDuTirage` : chaque héros en tient autant que de postes, chaque
+ *  poste autant que l'effectif présent. MDG 15 l.161, l.176 ; MDG 14 l.15 */
+function membreDuBordAuHasard(get: Get, set: SetFn, rng: RNG): { heros: Combatant } | { equipage: PorteurABord; poste: PosteDuBord } | null {
   const heros = effectTargets(get, 'groupe');
-  const ames = heros.length + shipboardSouls(get()).crew;
-  if (!ames) return null;
-  const i = rng.int(0, ames - 1);
-  if (i < heros.length) return { heros: heros[i] };
-  return { equipage: garanti(porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER), WORLD_STEP_OWNER, 'équipage collectif à bord') };
+  const presents = shipboardSouls(get()).crew;
+  if (!heros.length && !presents) return null;
+  const postes = postesDuTirage(get());
+  const i = rng.int(0, (heros.length + presents) * postes - 1);
+  if (i < heros.length * postes) return { heros: heros[Math.floor(i / postes)] };
+  return { equipage: equipageABord(get, set), poste: posteDuMembre(get(), Math.floor((i - heros.length * postes) / presents)) };
 }
 
+/** L'équipage collectif à bord (`porteursABord`). */
+const equipageABord = (get: Get, set: SetFn): PorteurABord =>
+  garanti(porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER), WORLD_STEP_OWNER, 'équipage collectif à bord');
+
 /** La feuille `e` tirée sur l'équipage collectif `equipage` : ses ops de maladie, tables développées (`tirerLaTable`) ;
- *  toute autre op est écartée et dite. Hors combat seulement : ses expositions ouvrent chacune la bande de Contraction
- *  de l'équipage. MDG 15 l.161, l.176 ; LDB 20 l.25/51 */
+ *  toute autre op est écartée et dite. Hors combat seulement. MDG 15 l.161, l.176 ; LDB 20 l.25/51 */
 function appliquerALEquipage(env: EffectEnv, equipage: PorteurABord, e: EffectOp, ctx: { rng: RNG; sl?: number }): void {
   const file = [...e.ops];
   let expositions: DiseaseExposure[] = [];
@@ -935,8 +952,13 @@ function appliquerALEquipage(env: EffectEnv, equipage: PorteurABord, e: EffectOp
     equipage.ecrire();
   }
   if (ecartees) env.log(t('eff.membreAuHasardMarin'));
+  exposerLEquipage(env.get, env.set, equipage, expositions);
+}
+
+/** Les `expositions` de l'équipage collectif `equipage` ouvrent chacune sa bande de Contraction. LDB 20 l.25/51 ; MDG 15 l.161 */
+function exposerLEquipage(get: Get, set: SetFn, equipage: PorteurABord, expositions: readonly DiseaseExposure[]): void {
   for (const d of contagionsDues(equipage.porteur, expositions)) {
-    openBand(env.get, env.set, {
+    openBand(get, set, {
       id: `${MALADIE_DE_L_EQUIPAGE}-${d.disease}`, kind: MALADIE_DE_L_EQUIPAGE, icon: 'medical/infection',
       label: d.label, menace: 'maladie', meta: { disease: d.disease, ...(d.instant ? { instant: true } : {}) },
       stake: combatStakeRef('combat-fin-maladie', { entryId: d.disease }),
@@ -945,6 +967,19 @@ function appliquerALEquipage(env: EffectEnv, equipage: PorteurABord, e: EffectOp
       title: d.label, purpose: 'test',
     });
   }
+}
+
+/** Le `membre` de l'équipage à son `poste` sort de la série d'attaques subies : mort (`inDeathCondition`), il quitte
+ *  l'effectif et son registre (`perdreUnMembreDuBord`) ; sinon il revient à l'équipage, qui reçoit ses expositions.
+ *  Ses Blessures, Critiques et États ne persistent pas. LDB 18 l.34 ; LDB 20 l.25/51 ; MDG 15 l.161-164 */
+export function rendreALEquipage(get: Get, set: SetFn, membre: Combatant, poste: PosteDuBord): void {
+  const role = refLabel('crewRoles', { id: poste.roleId });
+  if (membre.dead || inDeathCondition(membre)) {
+    [t('eff.membreDuBordMort', { role }), ...perdreUnMembreDuBord(get, set, poste)].forEach((l) => get().ecrireAuJournal(l));
+    return;
+  }
+  get().ecrireAuJournal(t('eff.membreDuBordRevient', { role }));
+  exposerLEquipage(get, set, equipageABord(get, set), membre.diseaseExposure ?? []);
 }
 
 /** Le genre de la bande de Contraction de l'équipage collectif (`appliquerALEquipage`). */
@@ -1797,7 +1832,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (on === 'membreAuHasard') {
         const tire = membreDuBordAuHasard(env.get, env.set, base.rng);
         if (!tire) return;
-        if ('equipage' in tire) { appliquerALEquipage(env, tire.equipage, e, base); return; }
+        if ('equipage' in tire) {
+          const serie = e.ops.find(estOpDAttaquesSubies);
+          if (serie) ouvrirLeNombreDAttaquesSubies(env.set, serie, { poste: tire.poste });
+          else appliquerALEquipage(env, tire.equipage, e, base);
+          return;
+        }
         targets = [tire.heros];
       } else targets = typeof on === 'object' ? marinsDuRole(env.targets('groupe'), on.role.id) : env.targets(on, e.heroId);
       if (!targets.length) {
@@ -1818,7 +1858,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       lines.forEach((l) => env.log(l));
       if (!env.get().battle) ouvrirLesContagions(env.get, env.set, targets.map((c) => c.id));
       const serie = feuille.ops.find(estOpDAttaquesSubies);
-      if (serie) ouvrirLeNombreDAttaquesSubies(env.set, targets[0], serie);
+      if (serie) ouvrirLeNombreDAttaquesSubies(env.set, serie, { heros: targets[0] });
     },
     // Un contenu de scène fautif se refuse dans l'ÉDITEUR (`validateScene`), avec le MÊME message
     // que la levée du marcheur.
@@ -2044,15 +2084,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // ADE II 09 l.21
       const cible = env.hero(e.heroId);
       if (!cible) return;
-      const res = traumaOnImpossibleAmbition(cible, battleRng());
-      if (!res) return;
-      const trait = res.trait;
-      const acquired = !!trait;
-      const who = trait ? env.mutateHero(cible.id, (h) => { const pose = { ...h }; grantPsychTrait(pose, trait.type); return pose; }) : cible;
-      if (!who) return;
-      const line = t(acquired ? 'eff.ambitionTraumatisme' : 'eff.ambitionEncaissee', { name: who.label, roll: res.test.roll, target: res.test.target });
+      const calme = calmeDAcquisition(cible, 'accessible', battleRng());
+      if (!calme) return;
+      const line = t(calme.success ? 'eff.ambitionEncaissee' : 'eff.ambitionTraumatisme', { name: cible.label, roll: calme.roll, target: calme.target });
       env.log(line);
-      if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.titreDAmbition'), lines: [line], subjectId: who.id });
+      if (calme.success) return;
+      env.pushReveal({ kind: 'effet', title: t('eff.titreDAmbition'), lines: [line], subjectId: cible.id });
+      ouvrirLeTrauma(env.set, cible);
     },
   },
   inflictPsychology: {

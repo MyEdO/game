@@ -659,13 +659,16 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     expect(ligneDe(pd.atkCompo!.difficultyParts, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
   });
 
-  it('un marin tiré au sort sous l’attaque des rats : l’attaque n’est pas jouée (#4458), le journal le dit une fois (MDG 15 l.161)', () => {
-    const avant = get().journal.length;
+  it('un membre de l’équipage tiré au sort sous l’attaque des rats : le dé `nombre` est porté par le monde, la série vise un Mousse (MDG 15 l.161 ; MDG 14 l.15)', () => {
     const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible + 10, 13);
     expect(s.pendingRest).toBeTruthy();
-    expect(etapesDAttaques(s)).toEqual([]);
-    expect(s.serieSubie).toBeNull();
-    expect(s.journal.slice(avant).filter((l) => l === t('eff.membreAuHasardMarin'))).toHaveLength(1);
+    const [etape, ...autres] = etapesDAttaques(s);
+    expect(autres).toEqual([]);
+    expect(etape).toMatchObject({ worldOwner: true, meta: { roleDuMembre: 'mousse' } });
+    expect(etape.actorId).toBeUndefined();
+    expect(draineCascade(get, 40, (e) => (e.kind === 'nombreDAttaquesSubies' ? 1 : undefined))).toContain('nombreDAttaquesSubies');
+    expect(get().journal.join('\n')).toContain(t('eff.membreDuBordAttaque', { assaillant: 'Rats géants', role: 'Mousse' }));
+    expect(get().journal.join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
   });
 
   it('le marqueur `assaillie` et `surDRNegatif` traversent une sauvegarde puis un chargement (MDG 15 l.161, l.176)', () => {

@@ -23,7 +23,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { d10, rollDice, tirerSigne, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
-import type { SeaWeather } from './seaWeather';
+import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import type { AggravationMeteo } from './ops';
 import type { Season } from './travelStages';
 import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
@@ -40,9 +40,6 @@ export { type CargoDef, type CargoLot, isEchangeable, cargoTotalEnc, removeCargo
 
 /** Un facteur d'Humeur de Manann (MDG 15 l.83-129). */
 export type ManannFactor = SeaEventsData['manann']['factors'][number];
-
-/** Climat imposé par un événement : les seuls axes qu'il fixe. MDG 15 l.189, l.199, l.219, l.226, l.248, l.257 */
-type MeteoImposee = Partial<SeaWeather>;
 
 /** Modificateur du navire posé par l'op `navireMod` : levé au carénage (`carenage`), au prochain événement de
  *  bord (`evenementDeBord`) ou à son échéance d'horloge (minute `gameTime`). `evite` : les périls que le navire

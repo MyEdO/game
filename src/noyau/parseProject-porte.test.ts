@@ -13,6 +13,7 @@ import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { parseProject, ProjetRefuse } from './worldMap';
 import { emptyScene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
+import { auChemin } from '../lib/objet.mjs';
 
 const SCENES_DIR = join(__dirname, '../scenes');
 const PAQUETS = listerProjetsLivres().map((rel) => join(SCENES_DIR, rel));
@@ -154,7 +155,7 @@ function chercher(v: unknown, pred: (o: Noeud) => boolean, chemin: Chemin = []):
   }
   return null;
 }
-const noeudA = (racine: unknown, chemin: Chemin): Noeud => chemin.reduce<Noeud>((o, k) => o[k] as Noeud, racine as Noeud);
+const noeudA = (racine: unknown, chemin: Chemin): Noeud => auChemin(racine, chemin) as Noeud;
 
 /** Une mutation « ancien format » d'un projet LIVRÉ, rendant le chemin muté ; `null` = aucun site. */
 type Mutation = (doc: Noeud) => Chemin | null;

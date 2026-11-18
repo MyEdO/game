@@ -102,14 +102,14 @@ func _poses_d_avant(scene: Node3D) -> void:
 func _aretes() -> Array:
 	var aretes := []
 	for k in 3:
-		aretes.append(_arete("m%d" % (k + 1), "0/0/0", "colombage", "mur", Vector2(1, 0), 4.0, 0.0, Vector2(k, -0.5)))
+		aretes.append(_arete("m%d" % (k + 1), "0/0/0", "colombage", Noyau.Piece.MUR, Vector2(1, 0), 4.0, 0.0, Vector2(k, -0.5)))
 	for k in 2:
-		aretes.append(_arete("n%d" % (k + 1), "0/0/0", "colombage", "mur", Vector2(0, 1), 1.25, 2.0, Vector2(-0.5, k)))
+		aretes.append(_arete("n%d" % (k + 1), "0/0/0", "colombage", Noyau.Piece.MUR, Vector2(0, 1), 1.25, 2.0, Vector2(-0.5, k)))
 	for k in 2:
-		aretes.append(_arete("o%d" % (k + 1), "0/1/0", "pierre", "porte-ouverte", Vector2(1, 0), 4.0, 4.0, Vector2(8 + 2 * k, 1.5)))
+		aretes.append(_arete("o%d" % (k + 1), "0/1/0", "pierre", Noyau.Piece.PORTE_OUVERTE, Vector2(1, 0), 4.0, 4.0, Vector2(8 + 2 * k, 1.5)))
 	for k in 3:
-		aretes.append(_arete("b%d" % (k + 1), "0/1/0", null, "mur", Vector2(0, 1), 4.0, 2.0, Vector2(11.5, 2 + k)))
-	aretes.append(_arete("s1", "1/1/0", null, "porte-ouverte", Vector2(1, 0), 4.0, 0.0, Vector2(9, 3.5)))
+		aretes.append(_arete("b%d" % (k + 1), "0/1/0", null, Noyau.Piece.MUR, Vector2(0, 1), 4.0, 2.0, Vector2(11.5, 2 + k)))
+	aretes.append(_arete("s1", "1/1/0", null, Noyau.Piece.PORTE_OUVERTE, Vector2(1, 0), 4.0, 0.0, Vector2(9, 3.5)))
 	for colonne in aretes.size():
 		aretes[colonne].cases = [{x = colonne, y = 0, z = 0}]
 	aretes[0].cases.append({x = COLONNES - 1, y = 0, z = 0})
@@ -180,7 +180,7 @@ func _piece_d_avant(temoin: Node3D, kit: Node3D, volume: VolumeDeScene, a: Dicti
 		var boite := MeshInstance3D.new()
 		boite.name = "Boite"
 		temoin.add_child(boite)
-		volume.poser_sur_l_arete(boite, {"mur": volume.mesh_mur, "porte-ouverte": volume.mesh_seuil}[a.piece], a)
+		volume.poser_sur_l_arete(boite, {Noyau.Piece.MUR: volume.mesh_mur, Noyau.Piece.PORTE_OUVERTE: volume.mesh_seuil}[a.piece], a)
 		return boite
 	var sens := Vector2(a.sens.x, a.sens.y)
 	var piece := Node3D.new()
@@ -244,7 +244,7 @@ func _foyers(scene: Node3D, camera: Camera3D) -> void:
 	for essai: Array in [["un bloc par mur", true], ["un seul bloc", false]]:
 		var murs := []
 		for rang in MURS:
-			murs.append(_arete("mur%d" % rang, "0/%d/0" % rang if essai[1] else "0/0/0", "colombage", "mur", Vector2(1, 0), 4.0, 0.0, Vector2(rang * ECART_DES_MURS, -0.5)))
+			murs.append(_arete("mur%d" % rang, "0/%d/0" % rang if essai[1] else "0/0/0", "colombage", Noyau.Piece.MUR, Vector2(1, 0), 4.0, 0.0, Vector2(rang * ECART_DES_MURS, -0.5)))
 		var volume: VolumeDeScene = (load("res://scenes/VolumeDeScene.tscn") as PackedScene).instantiate()
 		scene.add_child(volume)
 		volume.metres_par_case = 1.0

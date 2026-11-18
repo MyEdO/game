@@ -115,7 +115,7 @@ import { currentSeason } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, directionOpposee, VENT_DOMINANT, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
-  type SeaWeather, type WindDirection, type WindAspect, type SeaPrecipitationId,
+  axesImposes, type SeaWeather, type WindDirection, type WindAspect,
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
@@ -345,7 +345,7 @@ const SEA_WEEK_DAYS = 8;
 /** Précipitations du jour de mer ACTIF (MDG 13 l.185) — la déclaration `pont` d'une ligne de jet
  *  (`ligneDeJet.rollLine`) hors combat, et la source de `Combatant.envPrecipitation` à l'ouverture d'un combat. `undefined` hors
  *  voyage maritime. */
-export function activeSeaPrecipitation(get: Get): SeaPrecipitationId | undefined {
+export function activeSeaPrecipitation(get: Get): string | undefined {
   return get().travelPlan?.sea?.weather.precipitations;
 }
 
@@ -1219,8 +1219,8 @@ function meteoDuJour(get: Get, coque: Combatant, ventDeLaVeille: SeaWeather['ven
   if (ventDeLaVeille) weather = { ...weather, vent: tickWindForceDay(ventDeLaVeille, rng) };
   const windFrom = rollWindDirection(rng, verrous.some((v) => v.ventInverse) ? directionOpposee(VENT_DOMINANT) : VENT_DOMINANT);
   for (const v of verrous) {
-    if (v.meteo) weather = { ...weather, ...v.meteo };
-    if (v.aggravation && resolveFormula(v.aggravation.de, coque, rng) >= v.aggravation.seuil) weather = { ...weather, ...v.aggravation.meteo };
+    if (v.meteo) weather = { ...weather, ...axesImposes(v.meteo) };
+    if (v.aggravation && resolveFormula(v.aggravation.de, coque, rng) >= v.aggravation.seuil) weather = { ...weather, ...axesImposes(v.aggravation.meteo) };
   }
   return { weather, windFrom };
 }

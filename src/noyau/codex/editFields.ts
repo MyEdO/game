@@ -23,7 +23,7 @@ import {
   type TypeEntite,
 } from '../../data/schemas/grammaire/ref';
 import { declarationProseNommee } from '../../data/schemas/grammaire/prose';
-import { OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
+import { declarationDeTestFixe, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { choixDeLaFeuilleDId, choixDeLaSpec } from '../../data';
 import type { GameOp } from '../../engine/ops';
 import { libelleDuLitteral } from '../libelles';
@@ -67,6 +67,9 @@ export interface ChoixDuContexte { valeur: unknown; libelle: string; refus: stri
 export interface ContexteDuChamp {
   offert: (chemin: readonly (string | number)[]) => boolean;
   ecrivable: (chemin: readonly (string | number)[], actuelle: unknown) => boolean;
+  /** Le champ au chemin est-il exigé par un porteur qu'il traverse (`exigeParSonPorteur`), ou, clé d'un record, par
+   *  ce record ? */
+  exige: (chemin: readonly (string | number)[]) => boolean;
   choix: (chemin: readonly (string | number)[]) => readonly ChoixDuContexte[] | undefined;
   /** Le `Source/` que désignent les adresses de prose du porteur. */
   source: SourceDeLEdition;
@@ -191,22 +194,23 @@ export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] |
 
 /** Les valeurs d'un champ À CHOIX, chacune nommée, lues sur la fermeture de son nœud : la réunion, sans doublon, des
  *  entrées de chacune de ses références `idDe` fermées, sa sous-liste comprise
- *  (`choixDeLaFeuilleDId`), et des valeurs de ses énumérations et littéraux membres ; d'une feuille `specDe` dont
- *  l'entrée est FERMÉE (`entreeOuverte`), son catalogue (`choixDeLaSpec`), une entrée ouverte restant un texte ; sinon, de sa seule forme,
+ *  (`choixDeLaFeuilleDId`), des spécialisations de chacune de ses feuilles `specDe` dont l'entrée est FERMÉE
+ *  (`choixDeLaSpec`, `entreeOuverte`), une entrée ouverte restant un texte, et des valeurs de ses énumérations et
+ *  littéraux membres ; sinon, de sa seule forme,
  *  les valeurs d'une énumération (`libelleDeValeur`), d'un littéral (`libelleDuLitteral`), faux et vrai d'un
  *  booléen ; de plusieurs formes qui sont chacune un choix (une union de littéraux), la réunion, sans doublon, de leurs
  *  valeurs ; `undefined` pour tout autre nœud. */
 export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
   const formes = ouverts([noeud]);
   const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.portee);
-  if (feuilles.length) {
+  const specs = formes.map(declarationDeFeuilleDeSpec).filter((d) => d !== undefined && !entreeOuverte(d.type, d.id));
+  if (feuilles.length || specs.length) {
     const vus = new Set<unknown>();
     const membres = formes.filter((n) => !estTransparent(n) && ['enum', 'literal'].includes(defDe(n)?.type ?? '')).flatMap((n) => choixDuNoeud(n) ?? []);
-    return [...feuilles.flatMap((f) => choixDeLaFeuilleDId(f!).map((e): ValeurDuChoix => ({ valeur: e.id, libelle: e.label }))), ...membres]
+    const entrees = [...feuilles.flatMap((f) => choixDeLaFeuilleDId(f!)), ...specs.flatMap((f) => choixDeLaSpec(f!))];
+    return [...entrees.map((e): ValeurDuChoix => ({ valeur: e.id, libelle: e.label })), ...membres]
       .filter((o) => !vus.has(o.valeur) && !!vus.add(o.valeur));
   }
-  const spec = formes.map(declarationDeFeuilleDeSpec).find((d) => d !== undefined);
-  if (spec && !entreeOuverte(spec.type, spec.id)) return choixDeLaSpec(spec).map((e) => ({ valeur: e.id, libelle: e.label }));
   const n = seuleForme(noeud);
   if (n === undefined) {
     const branches = formes.filter((f) => !estTransparent(f)).map(choixDuNoeud);
@@ -228,16 +232,26 @@ export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
   }
 }
 
-/** Le nœud ÉLÉMENT du nœud quand sa seule forme est une liste ; `undefined` sinon. */
-export function elementDuNoeud(noeud: unknown): unknown {
+/** Le nœud ÉLÉMENT de rang `rang` du nœud quand sa seule forme est une liste (`[]`, le même à tout rang) ou un tuple
+ *  (`[rang]`, `undefined` au-delà de son arité, `ariteDuNoeud`) ; `undefined` sinon. */
+export function elementDuNoeud(noeud: unknown, rang = 0): unknown {
   const n = seuleForme(noeud);
-  return defDe(n)?.type === 'array' ? enfantsDe(n).find((e) => e.segment === '[]')?.noeud : undefined;
+  const type = defDe(n)?.type;
+  const segment = type === 'array' ? '[]' : type === 'tuple' ? `[${rang}]` : undefined;
+  return segment === undefined ? undefined : enfantsDe(n).find((e) => e.segment === segment)?.noeud;
+}
+
+/** L'arité du nœud quand sa seule forme est un tuple, le nombre de ses éléments positionnés (`[N]`) : une liste de
+ *  longueur fixe ; `undefined` sinon. */
+export function ariteDuNoeud(noeud: unknown): number | undefined {
+  const n = seuleForme(noeud);
+  return defDe(n)?.type === 'tuple' ? enfantsDe(n).filter((e) => /^\[\d+\]$/.test(e.segment)).length : undefined;
 }
 
 /** Le champ de l'élément de rang `rang` de la liste du champ `liste` (`elementDuNoeud`) : nommé par la liste et son
- *  rang, jamais vidable, puisqu'il se retire de sa liste, au contexte de la liste. */
+ *  rang, jamais vidable, puisqu'il se retire de sa liste, ou tient sa position dans un tuple, au contexte de la liste. */
 export function champDeLElement(liste: FieldDesc, rang: number): FieldDesc {
-  const noeud = elementDuNoeud(liste.noeud);
+  const noeud = elementDuNoeud(liste.noeud, rang);
   const kind = kindDuNoeud('', noeud);
   const bornes = kind === 'number' ? bornesDuNoeud(noeud) : undefined;
   return { key: String(rang), label: `${liste.label} ${rang + 1}`, kind, nullable: false, noeud, ...(bornes ? { bornes } : {}), ...(liste.contexte ? { contexte: liste.contexte } : {}) };
@@ -254,14 +268,14 @@ export function recordDuNoeud(noeud: unknown): { cle: unknown; valeur: unknown }
 /** Les champs du record du champ `record` (`recordDuNoeud`), de donnée `donnee`, au chemin `ici` : une entrée par clé
  *  admise que son contexte y pose (`FieldDesc.contexte`), sinon par valeur de sa clé (`choixDuNoeud`), puis par clé que
  *  la donnée porte hors d'elles ; chacune nommée par le libellé de sa clé, vidable, puisqu'elle se retire de son record,
- *  au contexte du record. */
+ *  sauf là où son contexte l'exige (`ContexteDuChamp.exige`), au contexte du record. */
 export function champsDuRecord(record: FieldDesc, donnee: Record<string, unknown>, ici: readonly (string | number)[]): FieldDesc[] {
   const { cle, valeur } = recordDuNoeud(record.noeud)!;
   const offertes = record.contexte?.choix(ici)?.filter((c) => c.refus === null) ?? choixDuNoeud(cle) ?? [];
   const cles = [...offertes.map((o) => ({ cle: String(o.valeur), libelle: o.libelle })), ...Object.keys(donnee).filter((k) => !offertes.some((o) => o.valeur === k)).map((k) => ({ cle: k, libelle: k }))];
   const kind = kindDuNoeud('', valeur);
   const bornes = kind === 'number' ? bornesDuNoeud(valeur) : undefined;
-  return cles.map((c) => ({ key: c.cle, label: c.libelle, kind, nullable: true, noeud: valeur, ...(bornes ? { bornes } : {}), ...(record.contexte ? { contexte: record.contexte } : {}) }));
+  return cles.map((c) => ({ key: c.cle, label: c.libelle, kind, nullable: !record.contexte?.exige([...ici, c.cle]), noeud: valeur, ...(bornes ? { bornes } : {}), ...(record.contexte ? { contexte: record.contexte } : {}) }));
 }
 
 /** Le champ `f` est-il un record (`recordDuNoeud`) dont les clés sont posées au chemin `ici` : par son contexte
@@ -406,9 +420,23 @@ export const designeDesEntrees = (noeud: unknown): boolean =>
 /** L'identité que tient, à son élément `element`, la liste de nœud `liste` (`listeCle`, `collectionDe`) : sa clé, qui se
  *  change par son geste dédié, qui la propage, sauf une référence (`designeDesEntrees`) ; aucune d'une liste sans clé. */
 export function identiteTenue(liste: unknown, element: unknown): string[] {
+  const cle = cleTenue(liste, element);
+  return cle ? [cle[0]] : [];
+}
+
+/** La clé d'identité que tient la liste `liste` à son élément `element` (`identiteTenue`), et son nœud. */
+function cleTenue(liste: unknown, element: unknown): readonly [string, unknown] | undefined {
   const marque = ouverts([liste]).map((n) => collectionDe(n)).find((m) => m?.forme === 'liste');
   const cle = marque && ouverts([elementDuNoeud(liste)], element).flatMap((n) => champsDeclares(n) ?? []).find(([c]) => c === marque.nom);
-  return cle && !designeDesEntrees(cle[1]) ? [marque.nom] : [];
+  return cle && !designeDesEntrees(cle[1]) ? cle : undefined;
+}
+
+/** La clé d'identité que tient la liste `liste` à son élément `element` (`identiteTenue`) est-elle figée par le code :
+ *  ses valeurs sont un choix fermé de son nœud (`choixDuNoeud`), un littéral ou un enum que le moteur déclare, jamais
+ *  une donnée d'auteur ? */
+export function identiteFigee(liste: unknown, element?: unknown): boolean {
+  const cle = cleTenue(liste, element);
+  return cle !== undefined && choixDuNoeud(cle[1]) !== undefined;
 }
 
 /** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
@@ -449,6 +477,19 @@ export function videDuNoeud(noeud: unknown): null | undefined {
 export function admetLAbsence(noeud: unknown): boolean | undefined {
   const absence = absenceDuNoeud(noeud);
   return absence === undefined ? undefined : absence !== false;
+}
+
+/** Le champ au bout du chemin de longueur `longueur`, dont `noeudsDuPrefixe(j)` sont les nœuds du préfixe de longueur
+ *  `j` (`longueur` : ceux du champ), est-il EXIGÉ par le porteur de son Test : le grand-parent déclare un Test fixe
+ *  (`declarationDeTestFixe`), le parent ouvre ce Test, et le champ est l'un de ceux qu'il exige, chacun lu à son nœud
+ *  (`ouverts`) ? Son absence n'est alors pas admise, quoi qu'en dise son nœud (`admetLAbsence`). */
+export function exigeParSonPorteur(noeudsDuPrefixe: (j: number) => readonly unknown[], longueur: number): boolean {
+  if (longueur < 2) return false;
+  const [porteurs, tests, champs] = [longueur - 2, longueur - 1, longueur].map((j) => ouverts(noeudsDuPrefixe(j)));
+  return porteurs.some((n) => {
+    const fixe = declarationDeTestFixe(n);
+    return fixe !== undefined && tests.includes(fixe.test) && ouverts(fixe.exiges).some((e) => champs.includes(e));
+  });
 }
 
 /** Le nœud admet-il une LISTE ? `undefined` sans nœud. */
