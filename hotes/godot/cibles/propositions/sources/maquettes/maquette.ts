@@ -11,7 +11,7 @@ export interface Ecran {
   etats: [Etat, ...Etat[]];
 }
 
-export type Etat = EtatDeCombat | IssueDuCombat | Options | Bivouac;
+export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Bivouac | Poursuite | BatailleDeMasse | Interlude;
 
 /* ───────── le combat ───────── */
 
@@ -84,12 +84,22 @@ export interface Testeur {
 }
 
 /** Le héros d'une fenêtre sans dé : ce qui le met en jeu (une réserve, sa compétence et son seuil, le Critique qu'il
- *  porte), ce que son choix coûte. */
+ *  porte, l'arme qu'il tient, son engagement : son Avantage contre celui de l'adversaire, ce qui le menace, ses Points de
+ *  Corruption sur son seuil, le rôle qu'il tient pour le groupe), ce que son choix coûte, la marque de son mode. */
 export interface HerosSansDe {
   role: 'heros';
   qui: string;
-  mise: { reserve: string; valeur: number } | { test: string; seuil: number } | { critiqueSur: string };
+  mise:
+    | { reserve: string; valeur: number }
+    | { test: string; seuil: number }
+    | { critiqueSur: string }
+    | { arme: string }
+    | { engagement: { avantage: number; contre: string; adverse: number } }
+    | { menace: string }
+    | { corruption: { points: number; seuil: number } }
+    | { decidePour: string };
   cout?: string;
+  marque?: string;
 }
 
 /** Celui qui subit la table qu'un jet impose : ce qui l'y mène (une table, un double), les dés et le d100 de la table
@@ -134,7 +144,7 @@ export interface Touche {
 export type LigneDeCarte = string | { test: string; seuil: number; contre?: number } | { ni: number } | { aCumuler: number } | { qui: string; distance: number; portee: number };
 
 /** Une carte de choix : son nom, ou le combattant qu'elle nomme ; son détail ligne à ligne et sa marque ; choisie ou
- *  non, sa raison de refus ; `funeste`, celle qui condamne. */
+ *  non, sa raison de refus, lue au survol ; `funeste`, celle qui condamne. */
 export interface Carte {
   nom?: string;
   qui?: string;
@@ -143,6 +153,7 @@ export interface Carte {
   choisie?: true;
   refus?: string;
   funeste?: true;
+  survol?: true;
 }
 
 /** Un groupe de cartes, sous son libellé quand le choix en a plusieurs. */
@@ -213,7 +224,27 @@ export type Centre =
   | { role: 'nature'; libelle: string; cartes: Carte[]; enjeu: Enjeu }
   /** Le Test de Corruption tombé : l'Influence, les Points de Corruption, les Points gagnés, la phrase, ce que le Test
    *  décide. */
-  | { role: 'corruption'; influence: string; corruption: { points: number; seuil: number }; gain: number; issue: string; enjeu: Enjeu };
+  | { role: 'corruption'; influence: string; corruption: { points: number; seuil: number }; gain: number; issue: string; enjeu: Enjeu }
+  /** Ce qu'un coup inflige au lieu d'un DR : l'arme, le coup, les États qu'il pose, la phrase d'issue. */
+  | { role: 'consequence'; arme: string; coup: string; etats: { nombre: number; etat: string }; issue: string }
+  /** Les Tests de plusieurs testeurs, ligne à ligne : leur nom, leur Test commun, chaque ligne, la règle qui les départage ;
+   *  `somme`, le cumul de leurs DR. */
+  | { role: 'tests'; nom: string; test: string; lignes: LigneDeTest[]; regle?: { texte: string; effet: string }; somme?: true };
+
+/** Une ligne d'un Test à plusieurs : le testeur, son poste, son Test et son seuil ; tombé, son dé et son DR ; sinon ce
+ *  qu'il attend ; `double`, un DR qui compte double ; le bonus qu'un Mouvement lui donne ; `courant`, celui qui lance. */
+export interface LigneDeTest {
+  qui: string;
+  poste?: string;
+  test: string;
+  seuil: number;
+  de?: number;
+  dr?: number;
+  attente?: string;
+  double?: true;
+  bonus?: { mouvement: number; dr: number };
+  courant?: true;
+}
 
 /** Un geste de la fenêtre : son libellé ; `principal`, celui qui la fait avancer ; sa raison de refus, lue au survol. */
 export interface Geste {
@@ -252,7 +283,115 @@ export interface EtatDeCombat {
   fenetre: Fenetre;
 }
 
-/** L'issue d'un combat : son titre, sa suite, l'action unique, sur la cour. */
+/** Une action de la barre : son id (`src/data/actions.json` quand le jeu la nomme), son libellé ; armée, sa liste
+ *  ouverte ; fermée, sa raison de refus, lue au survol. */
+export interface ActionDuTour {
+  id: string;
+  libelle: string;
+  armee?: true;
+  ouverte?: true;
+  fermee?: true;
+  refus?: string;
+  survol?: true;
+}
+
+/** Une famille d'actions de la barre, un onglet : ce qui coûte l'Action, ce que la situation ouvre, les gestes qui
+ *  ouvrent un choix ; ou les emplacements rapides, un Sort ou libre chacun, celui qui est armé. */
+export type FamilleDActions =
+  | { id: 'action' | 'situation' | 'gestes'; nom: string; actions: ActionDuTour[] }
+  | { id: 'rapides'; nom: string; sorts: (string | null)[]; arme: number | null };
+
+/** La barre de l'actif : le combattant et son arme ; `adverse`, l'adversaire qui joue (rien ne se presse) ; ses pas
+ *  restants sur ses pas, son Action, son Avantage, sa Détermination ; ses familles d'actions, celle qui est ouverte ; les
+ *  outils du tour. */
+export interface BarreDeLActif {
+  qui: string;
+  arme: string;
+  adverse?: true;
+  mouvement?: { reste: number; sur: number };
+  action?: boolean;
+  avantage?: number;
+  determination?: number;
+  familles: FamilleDActions[];
+  ouverte: FamilleDActions['id'];
+  outils: ActionDuTour[];
+}
+
+/** Un Sort tel que son aperçu le dit : son nom, son Niveau d'incantation, sa portée, ses cibles, sa durée, ce qu'il
+ *  coûte, ce que le clic fait. */
+export interface FicheDeSort {
+  nom: string;
+  ni: number;
+  portee: string;
+  cibles: number;
+  duree: string;
+  cout: string;
+  note: string;
+}
+
+/** Une arme de la fiche : son id (son dessin), son nom, son Test, ses Dégâts (le bonus au Bonus de Force et leur
+ *  total), son allonge, ses atouts. */
+export interface ArmeDeLaFiche {
+  id: string;
+  nom: string;
+  test: number;
+  degats: { bonus: number; total: number };
+  allonge: string;
+  atouts: string[];
+}
+
+/** La fiche d'un combattant lue au clic de son portrait : qui, son peuple, sa carrière, ses réserves, ses
+ *  Caractéristiques, ses sections et celle qui est ouverte, ses armes. */
+export interface FicheDeCombattant {
+  qui: string;
+  peuple: string;
+  carriere: string;
+  reserves: Reserve[];
+  caracteristiques: { nom: string; valeur: number }[];
+  sections: string[];
+  ouverte: string;
+  armes: ArmeDeLaFiche[];
+}
+
+/** Ce qui se pose sur le tour : l'aperçu du Sort survolé (depuis son emplacement rapide ou la liste ouverte), l'aperçu
+ *  de la cible survolée (l'attaque qu'on y porterait), le journal entier par round, la fiche d'un combattant. */
+export type PoseSurLeTour =
+  | { role: 'sort'; sort: FicheDeSort; depuis: 'rapide' | 'liste' }
+  | { role: 'cible'; qui: string; arme: string; test: string; seuil: number; avantage: number; degats: number; oppose: string; note: string }
+  | { role: 'journal'; rounds: { round: number; lignes: string[] }[] }
+  | { role: 'fiche'; fiche: FicheDeCombattant };
+
+/** Une offre que porte une entité du champ : son id (`src/data/actions.json`), son libellé, l'entité. */
+export interface OffreDuChamp {
+  id: string;
+  libelle: string;
+  sur: 'monture' | 'piece';
+}
+
+/** Le tour d'un combattant : la cour, le combat, la barre de l'actif, la liste qu'une action ouvre (son titre, ses
+ *  lignes, la choisie), ce qui se pose par-dessus, les offres du champ. */
+export interface TourDeCombat {
+  nom: string;
+  gabarit: 'combat';
+  cour: Cour;
+  combattants: Record<string, Combattant>;
+  combat: Combat;
+  barre: BarreDeLActif;
+  liste?: { titre: string; lignes: string[]; choisie: number };
+  pose?: PoseSurLeTour;
+  offres?: OffreDuChamp[];
+}
+
+/** Ce que rend une victoire : l'Expérience, l'argent, les vaincus (leur nombre ; `depecer`, ceux qu'on peut dépecer),
+ *  le butin, chaque objet avec les héros qui peuvent le prendre. */
+export interface Butin {
+  experience: number;
+  argent: { shillings: number; pence: number };
+  vaincus: { nom: string; nombre: number; depecer?: true }[];
+  objets: { nom: string; pour: string[] }[];
+}
+
+/** L'issue d'un combat : son titre, sa suite, l'action unique, sur la cour ; le butin d'une victoire. */
 export interface IssueDuCombat {
   nom: string;
   gabarit: 'recit';
@@ -260,6 +399,188 @@ export interface IssueDuCombat {
   titre: string;
   suite: string | null;
   action: string;
+  butin?: Butin;
+}
+
+/* ───────── les lieux et la route ───────── */
+
+/** Ce que dit un héros du bandeau : le poste ou l'activité qu'il tient (son id), la phrase ; `mal`, une blessure ;
+ *  ou ce qui l'attend (une marque à poser), `sombre` quand rien ne le presse. */
+export type Dit = { id?: string; texte: string; mal?: true } | { attend: string; sombre?: true };
+
+/** Un héros du bandeau : son id (son buste), son nom, sa carrière, ses Blessures, ce qu'il dit ; `choisi`. */
+export interface HerosDuGroupe {
+  id: string;
+  nom: string;
+  carriere: string;
+  blessures: number;
+  max: number;
+  dit?: Dit;
+  choisi?: true;
+}
+
+/** Une journée en voyage : son nom, sa date, le jour en mer, le temps ; `ciel`, la teinte de l'arche. */
+export interface Journee {
+  jour: string;
+  date: { jour: number; mois: string };
+  enMer: number;
+  meteo: string;
+  ciel: 'jour';
+}
+
+/** Une issue de la Distance : la Distance qui la déclenche, l'issue, la condition qui la pose. */
+export interface IssueDeDistance {
+  distance: number;
+  issue: string;
+  condition?: string;
+}
+
+/** Le panneau d'une poursuite : le poursuivant, la Distance sur ce qui sème, ce que la manche joue (un DR, un Test), les
+ *  issues ; l'abandon qu'il offre. */
+export interface PanneauDePoursuite {
+  role: 'poursuite';
+  poursuivant: string;
+  distance: number;
+  sur: number;
+  manche: { libelle: string; dr: number } | { libelle: string; test: string };
+  issues: IssueDeDistance[];
+  abandon?: string;
+}
+
+/** La sommation d'un navire hostile : le navire, ses forbans, la cargaison en cale (`null`, pillée), la part pillée si
+ *  l'on se soumet, valeur maison. */
+export interface Sommation {
+  role: 'sommation';
+  navire: string;
+  forbans: number;
+  cargaison: number | null;
+  pillage: number;
+}
+
+/** La poursuite, en mer ou à terre : le décor, le titre (une journée en mer, ou son nom et sa manche), le récit, le
+ *  trajet, le panneau, la frise de Distance (la Distance sur ce qui sème, le départ, l'écart que la manche creuse),
+ *  l'aperçu du Test d'équipage de la manche (chaque poste, son DR), les postes de bord à ouvrir, les combattants que la
+ *  fenêtre nomme ; le groupe, ou la fenêtre qui prend sa place. */
+export interface Poursuite {
+  nom: string;
+  gabarit: 'lieu-et-voyage';
+  decor: 'mer' | 'foret';
+  titre: Journee | { nom: string; sous: string };
+  recit: { rubrique: string; texte: string };
+  trajet?: { titre: string; de: string; vers: string; part: number };
+  panneau: PanneauDePoursuite | Sommation;
+  frise?: { distance: number; sur: number; depart: number; ecart?: number };
+  apercu?: { nom: string; test: string; lignes: { qui: string; poste: string; dr: number; double?: true }[] };
+  postes?: string;
+  combattants: Record<string, Combattant>;
+  groupe?: HerosDuGroupe[];
+  fenetre?: Fenetre;
+}
+
+/** Une Scène de bataille : son id (son pictogramme), son nom, son effet, son point de rupture ; les héros postés ; son
+ *  geste ; `visee`, celle que le joueur regarde ; `place`, elle offre une place au héros choisi. */
+export interface SceneDeBataille {
+  id: string;
+  nom: string;
+  effet: string;
+  rupture?: { points: number; sur: number };
+  postes: string[];
+  geste: string;
+  visee?: true;
+  place?: true;
+}
+
+/** Ce que le Round de bataille jouera, ou a joué, sur une Scène : la Scène (son id), son nom ; qui la joue (tout le
+ *  groupe, ou ses postés) ; joué, la Puissance qu'elle ôte à la horde et le point de rupture qu'elle atteint, ou son
+ *  échec. */
+export interface JeuDuRound {
+  scene: string;
+  nom: string;
+  qui: 'groupe' | string[];
+  ote?: number;
+  rupture?: { points: number; sur: number };
+  echec?: true;
+}
+
+/** Une armée : son nom, sa Puissance au départ et maintenant. */
+export interface Armee {
+  nom: string;
+  depart: number;
+  puissance: number;
+}
+
+/** Une armée au Test spectaculaire de Puissance : son seuil, son dé, son DR, ce qu'elle ôte à l'autre ; à l'issue, ce
+ *  qu'elle devient, `gagne`. */
+export type Ost = { seuil: number; jet: number; dr: number; ote: number } | { issue: string; gagne?: true };
+
+/** Le carton de la bataille : son titre, les deux armées, la phrase de l'issue, ses gestes. */
+export interface CartonDeBataille {
+  titre: string;
+  allies: Ost;
+  ennemis: Ost;
+  phrase?: string;
+  gestes: Geste[];
+}
+
+/** La bataille de masse : le round (son rang sur ses rounds, ou `null`, terminée), le terrain, les deux armées, le
+ *  bonus du round aux Tests de Puissance ; ce que le round jouera ou a joué, ou les rounds joués ; les
+ *  Scènes, l'aperçu de la Scène visée, le carton, les gestes du panneau, les combattants que la fenêtre nomme, le groupe,
+ *  la fenêtre. */
+export interface BatailleDeMasse {
+  nom: string;
+  gabarit: 'lieu-et-voyage';
+  decor: 'champ';
+  round: { rang: number; sur: number } | null;
+  terrain?: string;
+  armees: { allies: Armee; ennemis: Armee };
+  bonus?: number;
+  jeu?: { joue: boolean; scenes: JeuDuRound[] };
+  rounds?: { allies: number; ennemis: number }[];
+  scenes?: SceneDeBataille[];
+  apercu?: { scene: string; lignes: { qui: string; comment: string }[]; regles: { libelle: string; texte: string }[] };
+  carton?: CartonDeBataille;
+  gestes?: Geste[];
+  combattants: Record<string, Combattant>;
+  groupe?: HerosDuGroupe[];
+  fenetre?: Fenetre;
+}
+
+/** Un lieu de la ville : son id (son emplacement sur la carte), son nom, ce qu'on y fait, le héros qui s'y tient ;
+ *  `choisi`, `fantome` (le héros choisi, s'il y va). */
+export interface LieuDeLaVille {
+  id: string;
+  nom: string;
+  quoi: string;
+  heros?: string;
+  choisi?: true;
+  fantome?: string;
+}
+
+/** Une Activité offerte : son id (son pictogramme), son nom, son Test, ce que sa réussite vaut ; fermée, sa raison, lue
+ *  au survol. */
+export interface ActiviteOfferte {
+  id: string;
+  nom: string;
+  test?: string;
+  enjeu?: string;
+  refus?: string;
+  survol?: true;
+}
+
+/** L'interlude en ville : la ville et ce qu'on y vit, les Activités restantes de chaque héros (son Événement, ses
+ *  Activités sur trois), l'avis, les lieux de la carte, le lieu choisi (son quartier, son nom, les forces en présence, ses Activités,
+ *  l'envoi), le retour, le groupe. */
+export interface Interlude {
+  nom: string;
+  gabarit: 'lieu-et-voyage';
+  decor: 'ville';
+  ville: { nom: string; sous: string };
+  restantes: { qui: string; evenement: string; activites: number }[];
+  avis: string;
+  lieux: LieuDeLaVille[];
+  lieu: { quartier: string; nom: string; forces?: { allies: number; ennemis: number }; activites: ActiviteOfferte[]; envoi: string };
+  retour: string;
+  groupe: HerosDuGroupe[];
 }
 
 /* ───────── les options ───────── */
@@ -313,6 +634,7 @@ export interface HerosDuBivouac {
 export interface Bivouac {
   nom: string;
   gabarit: 'lieu-et-voyage';
+  decor: 'bivouac';
   titre: string;
   date: { jour: number; mois: string };
   moment: string;

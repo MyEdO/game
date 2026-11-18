@@ -1,7 +1,7 @@
 /* La cour du combat, images d'intention (#3935) : le champ de bataille, une cour de ruine en isométrie, et ses pions,
-   à l'état que l'écran nomme (`#ecran` : `data-etat`, sinon `data-variante`). L'écran de combat (`combat.js`) y pose son
-   interface, la page de rendu des maquettes (`../rendu.js`) son décor `cour`. Se charge après `../gestes.js`, `jet.js` et
-   `socle.js`. Maquette hors du jeu : le champ de bataille est dessiné, il ne prétend pas être le rendu du moteur. */
+   à l'état que l'écran nomme (`#ecran[data-etat]`), décor `cour` de la page de rendu des maquettes (`../rendu.js`). Se
+   charge après `../gestes.js`, `jet.js` et `socle.js`. Maquette hors du jeu : le champ de bataille est dessiné, il ne
+   prétend pas être le rendu du moteur. */
 const ECRAN = document.getElementById('ecran');
 /* la case d'une cible désignée, partagée par la Suite du combat */
 const caseDeCible = (i, j) => { const [x, y] = P(i, j); return { class: 'case-cible', d: losange(x, y, A - 3, B - 1.5), fill: '#9c2a1a', 'fill-opacity': .34, stroke: '#d2553a', 'stroke-width': 2.4 }; };
@@ -18,8 +18,10 @@ const NEUFS = {
   'seconde-frappe': ['jet', 'seconde'], 'frappe-mortelle': ['jet', 'mortelle'], 'debut-du-round-tir-rapide': ['jet', 'tirRapide'],
   'defense-sociale': ['jet', 'sociale'], 'jet-avant-le-de-harpon': ['jet', 'harpon'], 'localisation-du-critique': ['jet', 'localiser'],
   'cible-montee': ['jet', 'montee'], 'visee-de-siege': ['jet', 'siege'],
+  'combat-rapides': ['tour', 'rapides'], 'combat-liste': ['tour', 'liste'],
+  desengagement: ['jet', ''], fuite: ['jet', ''], 'sauvetage-par-le-destin': ['jet', 'defense'], 'corruption-mutation': ['jet', 'round'],
 };
-const [ETAT, VAR] = NEUFS[ECRAN.dataset.etat] ?? [ECRAN.dataset.etat, ECRAN.dataset.variante || ''];
+const [ETAT, VAR] = NEUFS[ECRAN.dataset.etat] ?? [ECRAN.dataset.etat, ''];
 ECRAN.dataset.socle = ETAT;
 const est = (...v) => v.includes(VAR);
 const FIN = est('victoire', 'defaite', 'repli', 'aneantissement');

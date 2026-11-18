@@ -63,11 +63,11 @@ export const avantLeDe = (r: Reserves, { annuler = false } = {}): Geste[] => [
   ...(annuler ? [{ libelle: 'Annuler' }] : []),
 ];
 
-/** Les gestes d'un jet après le dé : « Appliquer », « Relancer », « Chance : +1 DR », « Pacte », « Résilience »,
- *  fermés sur une réussite, un Test déjà relancé ou une réserve vide (LDB 17 l.23-24, l.68) ; `survol`, le geste fermé
- *  dont la raison se lit. */
-export const apresLeDe = (r: Reserves, { echec = false, relance = false, survol = null as 'relancer' | null } = {}): Geste[] => [
-  { libelle: 'Appliquer', principal: true },
+/** Les gestes d'un jet après le dé : « Appliquer » (ou `valider`), « Relancer », « Chance : +1 DR », « Pacte »,
+ *  « Résilience », fermés sur une réussite, un Test déjà relancé ou une réserve vide (LDB 17 l.23-24, l.68) ; `survol`, le
+ *  geste fermé dont la raison se lit. */
+export const apresLeDe = (r: Reserves, { echec = false, relance = false, survol = null as 'relancer' | null, valider = 'Appliquer' } = {}): Geste[] => [
+  { libelle: valider, principal: true },
   ferme('Relancer', relance ? FERME.dejaRelance : !echec ? FERME.jetReussi : r.chance > 0 ? null : FERME.sansChance, survol === 'relancer'),
   ferme('Chance : +1 DR', r.chance > 0 ? null : FERME.sansChance, false),
   { libelle: 'Pacte' },

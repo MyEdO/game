@@ -36,13 +36,14 @@ const releve = ([largeur, hauteur]) => {
     const a = pieces[i].r, c = pieces[j].r
     if (a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom) croise.push(pieces[i].n + ' x ' + pieces[j].n)
   }
-  /* ce que le fond d'un cadre porte hors de son cadre, sauf sous un ancêtre qui le rogne ou le fait défiler */
+  /* ce que le fond d'un cadre porte hors de son cadre, sauf sous un ancêtre qui le rogne ou le fait défiler, et sauf la
+     bulle de refus, qui se pose au-dessus de l'élément refusé (`../dispositions.md`) */
   const rogne = (d, piece) => { for (let a = d.parentElement; a && a !== piece; a = a.parentElement) if (getComputedStyle(a).overflow !== 'visible') return true; return false }
   const deborde = [...document.querySelectorAll('[data-piece]')].flatMap((e) => {
     const fond = e.querySelector(':scope > .fond')
     if (!fond) return []
     const r = e.getBoundingClientRect()
-    return [...fond.querySelectorAll('*')].some((d) => { const q = d.getBoundingClientRect(); return q.width && !rogne(d, e) && (q.left < r.left - 1 || q.right > r.right + 1 || q.top < r.top - 1 || q.bottom > r.bottom + 1) }) ? [e.dataset.piece] : []
+    return [...fond.querySelectorAll('*')].some((d) => { const q = d.getBoundingClientRect(); return q.width && !rogne(d, e) && !d.closest('.bulle-refus') && (q.left < r.left - 1 || q.right > r.right + 1 || q.top < r.top - 1 || q.bottom > r.bottom + 1) }) ? [e.dataset.piece] : []
   })
   const coupe = [...document.querySelectorAll('[data-texte]')].filter((e) => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map((e) => e.dataset.texte)
   /* un texte qu'un autre élément recouvre : le milieu de sa dernière ligne, hors de ce qu'un ancêtre rogne ou fait

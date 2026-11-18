@@ -12,6 +12,7 @@ export default {
   etats: [{
     nom: 'bivouac',
     gabarit: 'lieu-et-voyage',
+    decor: 'bivouac',
     titre: 'La halte du soir',
     date: { jour: 14, mois: 'Pflugzeit' },
     moment: 'troisième nuit',

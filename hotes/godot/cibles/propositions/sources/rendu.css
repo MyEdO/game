@@ -81,6 +81,81 @@
 .choix-h .plaque{flex:none}
 .choix-h .plaque>div{font-size:10px;letter-spacing:.2px;padding:0 4px}
 
+/* 4. Lieu, la route : la carte du trajet au coin haut-droit, le panneau dessous ; la frise de la Distance au-dessus du
+   bandeau, l'aperçu du Test au-dessus du navire ; la fenêtre du bas prend la place du bandeau */
+#trajet{left:auto;right:24px;top:20px;width:300px;height:180px}
+#panneau{left:auto;right:24px;top:20px;width:300px}
+#ui:has(>#trajet) #panneau{top:220px}
+#panneau .fond{padding:20px 14px 10px}
+#panneau .jauge{margin:1px 0 7px}
+#panneau .plaque{margin-top:2px}
+#frise{left:calc(50% - 460px);top:auto;bottom:176px;width:920px}
+#apercu-test .apercu{left:640px;top:300px;--pointe:60px}
+.apercu td:first-child{white-space:nowrap;padding-right:10px}
+.apercu table{border-collapse:collapse;width:100%}
+.apercu tr.somme td{border-top:1px solid rgba(60,40,20,.4);font-weight:600}
+.apercu td:last-child,#verdict.tests td:last-child{text-align:right;white-space:nowrap}
+#verdict.tests{text-align:left;padding:0 6px}
+#verdict.tests .tete{display:flex;align-items:baseline;gap:12px}
+#verdict.tests .tete .dr{font-size:24px;line-height:normal}
+#verdict.tests table{border-collapse:collapse;width:100%;margin-top:4px;font-size:12.5px;line-height:16px;color:#2a1d12}
+#verdict.tests td{padding:1px 0;border-top:1px solid rgba(60,40,20,.28)}
+#verdict.tests td:last-child{padding-left:10px;font-family:"Fell SC"}
+#verdict.tests tr.courant td{color:#7c1f14;font-weight:600}
+#verdict.tests tr.somme td{font-weight:600}
+#jet .fond.tests{grid-template-columns:auto minmax(0,1fr)}
+#jet:has(.fond.tests){height:266px}
+
+/* 4. Lieu, la bataille : le panneau de la Puissance au coin haut-droit, les Scènes sur leurs emplacements du champ, le
+   carton du Test de Puissance ou de l'issue au-dessus du bandeau (gabarit 7) */
+#panneau.armees .ligne b{font-family:"Grenze Gotisch";font-weight:600;font-size:17px;letter-spacing:.3px;color:#f4e8ca}
+#panneau.armees .plaque{margin-top:8px}
+#panneau .t{margin:2px 0 6px;font-size:12px;color:var(--creme-2)}
+.jouera.joue span{color:#eadfc4}
+.poste.scene{width:230px}
+.scene .postes-de-scene{display:flex;align-items:center;gap:6px;z-index:1}
+.scene .et{width:100%;padding:8px 12px 9px}
+.scene .et span.position{color:var(--or)}
+.scene .et .plaque{margin-top:7px}
+.scene .et .plaque>div{font-size:12.5px}
+#epreuve{left:calc(50% - 480px);top:auto;bottom:168px;width:960px;height:196px}
+#epreuve .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
+#epreuve.issue .fond{grid-template-columns:1fr 360px 1fr}
+.ost{display:flex;align-items:center;gap:14px;height:108px}
+.ost.droite{flex-direction:row-reverse;text-align:right}
+.ost .n{font-family:"Grenze Gotisch";font-weight:600;font-size:21px;line-height:24px;color:#3a1a10;white-space:nowrap}
+.ost .c{font-size:12px;color:var(--encre-2);white-space:nowrap}
+.ost .issue{margin-top:5px;font-size:13px;color:#7c1f14;white-space:nowrap}
+.ost .issue.reussite{color:#2f5a26}
+.ost .issue b{font-family:"Fell SC";font-weight:400;letter-spacing:1px}
+#epreuve .milieu{text-align:center;padding:0 14px;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:108px}
+#epreuve .milieu .sous{font-size:12px;color:var(--encre-2)}
+#epreuve .milieu .dr{font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:32px;color:#3a1a10;white-space:nowrap}
+#epreuve .milieu p{margin:3px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:#2a1d12}
+#epreuve .gestes{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:9px}
+#epreuve .gestes .plaque{flex:none;width:190px}
+#epreuve .gestes .plaque.large{width:230px}
+
+/* 4. Lieu, l'interlude : les Activités restantes sous le cartouche, la carte de la ville au milieu, le lieu choisi au
+   coin haut-droit ; ses Activités fermées en fer, deux par rang, leur raison au survol */
+#interlude{left:24px;top:136px;width:300px}
+#carte{left:340px;top:20px;width:560px;height:524px}
+.lieu.gauche{transform:translate(-26px,-100%)}
+.lieu.gauche::after{left:26px}
+.lieu.droite{transform:translate(calc(-100% + 26px),-100%)}
+.lieu.droite::after{left:auto;right:21px}
+#lieu{left:auto;right:24px;top:20px;width:340px}
+#lieu .fond{padding:20px 14px 12px}
+#lieu h3{font-size:23px;line-height:32px}
+#lieu .forces{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+#lieu .activite{position:relative;gap:9px;margin-top:6px;padding:5px 10px}
+#lieu .activite b{font-size:16.5px;line-height:21px}
+#lieu .activite .c{font-size:10.5px;line-height:13px}
+#lieu .activite i{font-size:11.5px;line-height:15px}
+#lieu .fermees{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#lieu .activite.fermee b{color:#8d8474}
+#lieu .plaque.envoyer{margin-top:8px}
+
 /* 5. Combat : la borne du round 22 / 16, l'ordre du tour au bord gauche dans la marge de 160 sous la borne, l'actif en
    bas et le haut replié ; la fin du tour 49 / 48 */
 #ordre{top:96px;bottom:8px;width:134px;flex-direction:column;justify-content:flex-end;overflow:hidden}
@@ -94,3 +169,49 @@
 #journal .lignes{max-height:190px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;mask-image:linear-gradient(transparent,#000 48px)}
 #fin{left:auto;top:auto;right:43px;bottom:22px}
 
+
+/* 5. Combat, le tour : la barre de l'actif 960 × 138, centrée, à 8 du bas ; les valeurs à gauche, le portrait au
+   centre, les actions à droite, une famille par onglet au-dessus de sa rangée ; les outils du tour à cheval sur le bord
+   haut, au-dessus du Mouvement qu'ils annulent */
+#barre{left:calc(50% - 480px);top:auto;bottom:8px;width:960px;height:138px}
+#barre>.onglets{left:479px}
+#barre>#tour-outils{left:22px;top:-17px;flex-direction:row;gap:9px}
+#ecran #barre #etat{left:13px;top:10px;width:282px;grid-template-columns:150px 114px;column-gap:18px;row-gap:5px}
+#etat .mesure .jauge{margin-top:4px}
+#etat .pas{gap:5px}
+#etat .jeton{margin-top:0}
+#etat .jeton .v{font-size:13px;white-space:nowrap}
+#etat .tiers{grid-column:1 / 3;display:flex;align-items:center;gap:16px;height:34px}
+#etat .portes{gap:7px;height:auto}
+#ecran #barre #gestes{left:470px;top:24px;width:450px}
+#gestes .plaques{gap:9px}
+#gestes .plaques .plaque{flex:1}
+#ecran #barre .plaques.situation{flex-wrap:wrap;gap:6px;margin:0}
+#ecran #barre .plaques.situation .plaque{flex:1 1 auto}
+#ecran #barre .pastilles{margin-top:0;padding:0;justify-content:space-between;gap:0}
+#ecran #barre .outil{width:88px;flex-direction:column;gap:3px}
+#ecran #barre .outil .bouton-rond{width:34px;height:34px}
+#ecran #barre .outil span{font-size:11.5px;letter-spacing:.7px}
+#gestes .rapides{display:flex;justify-content:space-between}
+#actif-portrait{left:calc(50% - 480px + 343px);top:auto;bottom:82px}
+#actif-nom{left:calc(50% - 480px + 311px);top:auto;bottom:34px;width:160px}
+#liste{left:calc(50% - 480px + 460px);bottom:160px;width:262px}
+#apercu-sort.rapide .apercu{left:calc(50% - 480px + 460px);bottom:166px;--pointe:41px}
+#apercu-sort.liste .apercu{left:calc(50% - 480px + 148px);bottom:212px;--pointe:150px}
+#apercu-cible .apercu{left:62.5%;top:190px;--pointe:136px}
+#journal-entier{right:24px;top:70px;width:400px}
+#journal-entier .fond{position:relative;padding:28px 20px 12px}
+/* la fiche d'un combattant : réduite et décalée, entre la borne du round et la croix, au-dessus du journal */
+#f-identite{left:246px;top:16px;width:230px;height:420px}
+#f-identite .fond{padding:16px 15px 0}
+#f-identite .mesure{margin-top:14px}
+#f-identite .filet{margin:14px 8px}
+#f-identite .reserves{gap:6px}
+#f-profil{left:486px;top:16px;width:714px;height:80px}
+#f-profil .fond{padding-top:20px}
+#f-figure{left:486px;top:106px;width:200px;height:330px}
+#f-figure .niche svg{width:150px;height:212px}
+#f-sections{left:696px;top:106px;width:504px;height:330px}
+#f-sections .fond{padding:30px 16px 0}
+#f-sections .vignette{width:90px;height:90px}
+#f-sections .arme .n{font-size:23px;line-height:26px}

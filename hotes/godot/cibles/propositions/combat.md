@@ -4,8 +4,13 @@ Compte rendu des trente et un états dessinés (onze le 2026-11-16, vingt écran
 maquettes validées (`../maquettes/`). Sources au dépôt : un écran par fichier de `sources/maquettes/`, la liste de ses
 états, chacun une donnée écrite au format de `sources/maquettes/maquette.ts`, dessinée par
 `sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png> --format 16:9 [--etat <état>]`) : `jet-avant-le-de`,
-`defense`, `jet-d-attaque`, `coup-critique`, `debut-du-round`, `determination`, `fin-du-combat`. Le tour de l'actif,
-`fin-victoire`, `cible-montee` et `visee-de-siege` restent des pages de `sources/combat/`.
+`defense`, `jet-d-attaque`, `coup-critique`, `debut-du-round`, `determination`, `fin-du-combat` (dont `fin-victoire`,
+la bannière d'issue et la fenêtre du butin) et `tour-de-combat`, premières maquettes du tour de l'actif : la barre de
+l'actif (960 × 138, centrée, à 8 du bas : Blessures, Mouvement, Action, Avantage, Détermination, États ; le portrait
+au centre ; les actions rangées par familles en onglets, « Action », « Situation », « Gestes », « Rapides ») et ses
+états `combat-rapides`, `combat-liste`, `cible-survolee`, `tour-adverse`, `journal-ouvert`, `fiche-au-clic`,
+`meuble-engage-a-terre`, `meuble-tireur`, `meuble-chef-de-piece`, `cible-montee`, `visee-de-siege`.
+`sources/combat/` garde les socles de la cour (`cour.js`, `socle.js`, `jet.js` et leurs feuilles).
 Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Localisation », « Au hasard », « Retenir ses coups »,

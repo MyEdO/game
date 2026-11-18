@@ -76,13 +76,10 @@
 #ui:has(>#jet .cartes.liste) #journal{bottom:294px}
 
 /* variantes : la liste ouverte d'une pastille, les emplacements rapides */
-#liste{left:939px;top:406px;width:262px;height:218px}
 #liste .fond{background:none;box-shadow:none;padding:6px 8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px}
 #liste .t{font-size:13px;color:var(--creme-2);letter-spacing:1px;padding:0 2px 1px}
 #liste .plaque.ligne-l{flex:none}
 #liste .plaque.ligne-l>div{justify-content:flex-start;padding:0 12px;font-size:15px}
-#rapides{left:939px;top:540px;width:404px;height:82px}
-#rapides .fond{background:none;box-shadow:none;display:flex;justify-content:space-between;align-items:flex-start;padding:5px 10px 0;box-sizing:border-box}
 .case-r{width:60px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .case-r .plaque{flex:none;width:44px}
 .case-r .numero{position:absolute;left:-7px;top:-7px}
@@ -137,9 +134,6 @@
 #jet .fond.debut #suites .plaque.large{flex-basis:232px}
 
 /* le journal entier */
-#ecran[data-etat=journal-ouvert] #journal{padding-bottom:72px}
-#journal-entier{left:1283px;top:118px;width:400px;height:372px}
-#journal-entier .fond{padding:28px 20px 0}
 #journal-entier h4{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-weight:400;font-size:13px;color:#5a2a12}
 #journal-entier h4::after{content:"";flex:1;height:1px;background:rgba(60,40,20,.45)}
 #journal-entier p+h4{margin-top:13px}
