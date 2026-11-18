@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estUnDeDeTirage } from './lib/deDeTirage.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIER = 'criticals.json';
@@ -51,7 +52,7 @@ else {
   for (const [i, d] of docs.entries()) {
     const ou = `${FICHIER} [${i}] ${d.id}`;
     if (!Array.isArray(d.entries)) arrets.push(`${ou} : aucune rangée sous \`entries\``);
-    if (typeof d.die !== 'string') arrets.push(`${ou} : aucun dé de tirage \`die\``);
+    if (!estUnDeDeTirage(d.die)) arrets.push(`${ou} : aucun dé de tirage \`die\``);
   }
 }
 

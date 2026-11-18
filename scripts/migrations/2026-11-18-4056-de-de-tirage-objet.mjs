@@ -15,10 +15,10 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { deLu } from './lib/deDeTirage.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA = join(ROOT, 'src/data');
-const DE_LU = /^(\d*)d(\d+)$/i;
 
 const arrets = [];
 const gestes = new Map();
@@ -31,11 +31,9 @@ function reserialise(doc, texte) {
 
 /** Le `DiceSpec` NdM de l'expression `texte`, ou `null` (arrêt noté) si elle est illisible. */
 function deDe(texte, chemin) {
-  const m = DE_LU.exec(texte.trim());
-  const n = m ? (m[1] ? Number(m[1]) : 1) : 0;
-  const sides = m ? Number(m[2]) : 0;
-  if (n < 1 || sides < 1) { arrets.push(`${chemin} : « ${texte} » illisible`); return null; }
-  return { n, sides };
+  const de = deLu(texte);
+  if (!de) arrets.push(`${chemin} : « ${texte} » illisible`);
+  return de;
 }
 
 /** Migre, dans `noeud`, chaque `die` en expression. */
