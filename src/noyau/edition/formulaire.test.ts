@@ -670,7 +670,7 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
       ['allEnemiesDead', 'Tous les ennemis hors d’action', { type: 'allEnemiesDead' }],
       ['destroyStructure', 'Détruire une structure', { type: 'destroyStructure', edge: { x: 0, y: 0, side: 'N' } }],
       ['surviveRounds', 'Survivre N Rounds', { type: 'surviveRounds', rounds: 0 }],
-      ['reachZone', 'Atteindre une zone', { type: 'reachZone', rect: { x: 0, y: 0, w: 0, h: 0 } }],
+      ['reachZone', 'Atteindre une zone', { type: 'reachZone', rect: { x: 0, y: 0, w: 1, h: 1 } }],
       ['woundsThreshold', 'Sortie à seuil de dommage', { type: 'woundsThreshold', atOrBelowPercent: 0 }],
       ['firstBlood', 'Duel judiciaire — premier sang', { type: 'firstBlood' }],
     ]);

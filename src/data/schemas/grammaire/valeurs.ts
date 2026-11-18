@@ -1084,7 +1084,7 @@ export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(),
 
 /** Rectangle de CASES entières de la grille, coin `x,y` et taille `w × h` : la zone jouable d'une scène
  *  (`Scene.zoneJouable`, #4392). */
-export const rectDeCasesSchema = nommerChamps(z.strictObject({ x: z.number().int().nonnegative(), y: z.number().int().nonnegative(), w: z.number().int().positive(), h: z.number().int().positive() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } });
+export const rectDeCasesSchema = nommerChamps(z.strictObject({ x: z.number().int().nonnegative(), y: z.number().int().nonnegative(), w: z.number().int().min(1), h: z.number().int().min(1) }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } });
 export type RectDeCases = z.infer<typeof rectDeCasesSchema>;
 
 /** `{x,y}` CONTINU du plan, point et non case, dans l'unité que nomme le champ qui le compose : pour cent d'un canevas
