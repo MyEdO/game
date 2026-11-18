@@ -202,6 +202,8 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le disque numéroté : `taille` grand, moyen, petit ; `vide` : la réserve est épuisée */
   const disque = (n, { taille = 'moyen', vide = false } = {}) => `<div class="disque fer ${taille}${vide ? ' vide' : ''}"><div>${n}</div></div>`;
   const compteur = (n, libelle) => `<div class="compteur">${disque(n, { taille: 'grand' })}<span class="rubrique">${libelle}</span></div>`;
+  /* le d10 du d100, vu de face : la silhouette et la face du dé de `navigation/des` (src/data/icons/defs/navigation.ts:11-13), à 36×40 */
+  const d10 = (texte) => `<svg width="36" height="40" viewBox="0.5 -0.5 23 25"><path d="M12 1L21.5 9.9V14.1L12 23L2.5 14.1V9.9Z" fill="#b8a67e"/><path d="M12 23V18.4L4.8 13.6L2.5 14.1ZM12 23V18.4L19.2 13.6L21.5 14.1Z" fill="#2a1d12" fill-opacity=".16"/><path d="M12 1L19.2 13.6L12 18.4L4.8 13.6Z" fill="#f1e6cc"/><path d="M12 1L19.2 13.6L12 18.4L4.8 13.6ZM4.8 13.6L2.5 14.1M19.2 13.6L21.5 14.1M12 18.4V23" fill="none" stroke="#2a1d12" stroke-width=".55" stroke-linejoin="round"/><path d="M12 1L21.5 9.9V14.1L12 23L2.5 14.1V9.9Z" fill="none" stroke="#2a1d12" stroke-width=".8" stroke-linejoin="round"/><text x="12" y="${texte.length > 1 ? 14.2 : 14.8}" text-anchor="middle" font-family="Grenze Gotisch" font-weight="600" font-size="${texte.length > 1 ? 6.6 : 8.4}" fill="#2a1d12">${texte}</text></svg>`;
   /* le sceau de cire : `contenu` = nom de pictogramme ou chiffre ; `taille` menu, petit, moyen, grand, maitre ; `etat` reussite ou vide ;
      `de` : le dé dont le chiffre est le jet, écrit dessous */
   const SCEAU = { menu: 12, petit: 15, moyen: 20, grand: 26, maitre: 32 };
@@ -268,7 +270,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
 
   Object.assign(globalThis, {
     W, H, alea, melange,
-    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, ruban, cadre, clouer, cartouche, rang, onglets, titre,
+    PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, onglets, titre,
     filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ,
   });
 }

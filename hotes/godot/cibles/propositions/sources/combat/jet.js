@@ -3,7 +3,6 @@
    dépensent. Se pose sur le combat (`socle.js`) comme sur un `commun.js`, sur les pièces de `../gestes.js` ; le portrait
    d'un camp arrive déjà dessiné. Se charge après `../gestes.js`.
    Maquette hors du jeu. */
-const d10 = (texte) => `<svg width="36" height="40" viewBox="-19 -21 38 42"><path d="M0,-19L17,-5L10,17L-10,17L-17,-5Z" fill="#b8a67e" stroke="#2a1d12" stroke-width="1.300" stroke-linejoin="round"/><path d="M0,-19L10,4L0,13L-10,4Z" fill="#f1e6cc" stroke="#2a1d12" stroke-width="1" stroke-linejoin="round"/><path d="M-17,-5L-10,4M17,-5L10,4M0,13L-10,17M0,13L10,17" stroke="#2a1d12" stroke-width="1" fill="none"/><text x="0" y="3.500" text-anchor="middle" font-family="Grenze Gotisch" font-weight="600" font-size="${texte.length > 1 ? 12.5 : 15}" fill="#2a1d12">${texte}</text></svg>`;
 const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, modif = null, reussite = false, verdict = reussite ? 'réussite' : 'échec', sous = '' }) => `
   <div class="camp ${cote}">${portrait}
     <div><div class="n gothique">${nom}${modif ? ` <span class="modif rubrique" style="vertical-align:3px;margin-left:6px">${modif}</span>` : ''}</div><div class="c rubrique">${carac}</div>
@@ -53,4 +52,4 @@ const ZONES = {
 const silhouette = (h, etats = {}) => `<svg class="silhouette" width="${h * .6}" height="${h}" viewBox="0 0 60 100">${Object.entries(ZONES).map(([z, d]) => `<g class="zone ${etats[z] ?? ''}">${d}</g>`).join('')}</svg>`;
 
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { d10, camp, verdict, bandeauDuJet, testeurs, reglages, options, bascule, reserves, avantLeDe, apresLeDe, silhouette });
+Object.assign(globalThis, { camp, verdict, bandeauDuJet, testeurs, reglages, options, bascule, reserves, avantLeDe, apresLeDe, silhouette });

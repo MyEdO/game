@@ -11,11 +11,13 @@ metadata:
 
 **Verbatim (2026-11-18)** : « Tu peux tout à fait générer la trame Godot et opposer la trame cible pour aider à la migration si on valide les écrans, mais pas de brancher directement au noyau ».
 
+**Verbatim (2026-11-18)** : « En tout cas si la maquette ne permet pas d exprimer des informations importantes, c est un manque de la maquette ».
+
 **Why :** les maquettes ont révélé ce que le contrat et l'hôte ne portent pas.
 **How to apply :**
 - D'abord les maquettes : noyau, contrat et Godot ne changent qu'après validation des écrans ([[user-doctrine-le-jeu-envoie-des-donnees-pas-leur-affichage]]).
 - Une maquette est autonome : aucun import du jeu, même de type, aucune capture de ses planches.
 - Son JSON porte les données (valeurs, ids, états, mots), jamais la disposition, qui vit au rendu.
 - Après validation, la trame que le jeu produit s'oppose à la trame cible pour guider la migration.
-- Elle montre la cible des livres, même non jouée par le moteur.
+- Elle montre la cible des livres, même non jouée par le moteur ; une information importante que le jeu montre et qu'elle ne sait pas exprimer est un manque de la maquette.
 Voir [[user-doctrine-maquettes-en-16-9]].
