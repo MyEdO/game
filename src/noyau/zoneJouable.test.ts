@@ -109,7 +109,7 @@ describe('zone jouable — navires et formation', () => {
 
 describe('zone jouable — pose de l’auteur et validation', () => {
   const decor: SceneEntity = { id: 'arbre', kind: 'prop', pos: { x: 3, y: 3 }, decor: { id: 'arbre' } } as SceneEntity;
-  const bavard: SceneEntity = { id: 'pnj', kind: 'personnage', pos: { x: 3, y: 3 }, dialogueId: { id: 'd' } } as SceneEntity;
+  const bavard: SceneEntity = { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 3, y: 3 }, dialogueId: { id: 'd' } } as SceneEntity;
 
   it('le rôle d’une entité se lit à ses champs : dialogue, marchand, usage, rencontre, départ du groupe', () => {
     const s = dehors();
