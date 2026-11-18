@@ -22,14 +22,15 @@ import type {
   Suite,
   RevealEntry,
 } from './pendings';
+import { WORLD_STEP_OWNER } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
-import { Combatant, type ModLine } from '../engine/types';
+import { Combatant, type DiseaseExposure, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource,
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource, tirerLaTable,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
@@ -75,14 +76,14 @@ import {
   testSkillLabel,
 } from '../data';
 import { moraleBase } from '../engine/crewMorale';
-import { clampSaboteurDR, semaineDuJour, shipboardSouls } from './shipCrew';
+import { clampSaboteurDR, contracterABord, porteursABord, semaineDuJour, shipboardSouls, type PorteurABord } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
 import { applySummon } from './summonFlow';
-import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
+import { contractDisease, contractDiseaseOnce, exposerALaMaladie, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
-import { crochetDeZone, ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
+import { contagionsDues, crochetDeZone, ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
 import { placeById, quaiDuGroupe } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -127,7 +128,7 @@ import { bus, EVT } from './bus';
 import { distanceDeContact } from './monde/footprint';
 import { type CascadeApplier, pushStep, startCascade, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
 import { exposureWaveBand } from './nightBands';
-import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
+import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openBand, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
@@ -907,14 +908,47 @@ function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, suje
 }
 
 /** Un membre du bord tiré au hasard, au prorata des âmes à bord (`shipboardSouls`) : un héros vivant, ou un marin
- *  de l'effectif PNJ, sans fiche, qui ne rend aucune cible. MDG 15 l.161, l.176 */
-function membreDuBordAuHasard(get: Get, rng: RNG): Combatant[] {
+ *  de l'effectif PNJ, que porte l'équipage collectif (`porteursABord`) ; `null` sans âme à bord. MDG 15 l.161, l.176 */
+function membreDuBordAuHasard(get: Get, set: SetFn, rng: RNG): { heros: Combatant } | { equipage: PorteurABord } | null {
   const heros = effectTargets(get, 'groupe');
   const ames = heros.length + shipboardSouls(get()).crew;
-  if (!ames) return [];
+  if (!ames) return null;
   const i = rng.int(0, ames - 1);
-  return i < heros.length ? [heros[i]] : [];
+  if (i < heros.length) return { heros: heros[i] };
+  return { equipage: garanti(porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER), WORLD_STEP_OWNER, 'équipage collectif à bord') };
 }
+
+/** La feuille `e` tirée sur l'équipage collectif `equipage` : ses ops de maladie, tables développées (`tirerLaTable`) ;
+ *  toute autre op est écartée et dite. Hors combat seulement : ses expositions ouvrent chacune la bande de Contraction
+ *  de l'équipage. MDG 15 l.161, l.176 ; LDB 20 l.25/51 */
+function appliquerALEquipage(env: EffectEnv, equipage: PorteurABord, e: EffectOp, ctx: { rng: RNG; sl?: number }): void {
+  const file = [...e.ops];
+  let expositions: DiseaseExposure[] = [];
+  let ecartees = 0;
+  while (file.length) {
+    const o = file.shift()!;
+    if (o.op === 'rollTable') { file.unshift(...[...tirerLaTable(o, ctx, ctx.rng)].flatMap((r) => r.ops)); continue; }
+    if (o.op !== 'exposeDisease' && o.op !== 'contractDisease') { ecartees++; continue; }
+    if (env.get().battle) throw new Error(t('eff.maladieDeLEquipageEnCombat'));
+    if (o.op === 'exposeDisease') { expositions = exposerALaMaladie(expositions, o); continue; }
+    contractDiseaseOnce(equipage.porteur, o.disease, ctx.rng).forEach((l) => env.log(l));
+    equipage.ecrire();
+  }
+  if (ecartees) env.log(t('eff.membreAuHasardMarin'));
+  for (const d of contagionsDues(equipage.porteur, expositions)) {
+    openBand(env.get, env.set, {
+      id: `${MALADIE_DE_L_EQUIPAGE}-${d.disease}`, kind: MALADIE_DE_L_EQUIPAGE, icon: 'medical/infection',
+      label: d.label, menace: 'maladie', meta: { disease: d.disease, ...(d.instant ? { instant: true } : {}) },
+      stake: combatStakeRef('combat-fin-maladie', { entryId: d.disease }),
+      difficulty: d.difficulty,
+      porteurs: [equipage.contraction(d.disease)],
+      title: d.label, purpose: 'test',
+    });
+  }
+}
+
+/** Le genre de la bande de Contraction de l'équipage collectif (`appliquerALEquipage`). */
+const MALADIE_DE_L_EQUIPAGE = 'maladieDeLEquipage';
 
 /** Le refus, dit UNE fois — même phrase à la validation d'une scène et à la levée du marcheur. */
 export function messageCibleHorsScene(e: { label?: string; on?: EffectOp['on'] }, on: string): string {
@@ -1759,11 +1793,15 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!e) return;
       if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { idNeuf: env.get().forgerUnId, ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
       if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
-      const targets = on === 'membreAuHasard' ? membreDuBordAuHasard(env.get, base.rng)
-        : typeof on === 'object' ? marinsDuRole(env.targets('groupe'), on.role.id) : env.targets(on, e.heroId);
+      let targets: Combatant[];
+      if (on === 'membreAuHasard') {
+        const tire = membreDuBordAuHasard(env.get, env.set, base.rng);
+        if (!tire) return;
+        if ('equipage' in tire) { appliquerALEquipage(env, tire.equipage, e, base); return; }
+        targets = [tire.heros];
+      } else targets = typeof on === 'object' ? marinsDuRole(env.targets('groupe'), on.role.id) : env.targets(on, e.heroId);
       if (!targets.length) {
         if (typeof on === 'object') env.log(t('eff.roleSansTitulaire', { role: refLabel('crewRoles', on.role) }));
-        if (on === 'membreAuHasard') env.log(t('eff.membreAuHasardMarin'));
         return;
       }
       // Durée TIRÉE une fois pour la feuille (MDG 15 l.212 « Pendant les 1d10 prochains jours ») puis
@@ -2476,7 +2514,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: '
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'operationsDe', 'chuteDe', 'choixDeFlux', 'volontaireDeFlux'] as const;
+export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'operationsDe', 'chuteDe', 'choixDeFlux', 'volontaireDeFlux', MALADIE_DE_L_EQUIPAGE] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
 export const GENRES_HOTES = ['jetDeTestDeScene'] as const;
@@ -2539,6 +2577,11 @@ export const TABLES = {
       jouerFlowEntier(runFlow(get, set, { kind: 'sequence', etapes: [...feuilles, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
     },
+    /** Contraction de l'équipage collectif (`appliquerALEquipage`) : le verdict de sa rangée. LDB 20 l.25 ; MDG 15 l.161 */
+    [MALADIE_DE_L_EQUIPAGE]: (get, set, step) => ({
+      consequences: freeCons((step.participants ?? []).flatMap((row) =>
+        contracterABord(get, set, row, String(step.meta?.disease ?? ''), battleRng(), { instant: !!step.meta?.instant })?.lignes ?? [])),
+    }),
     chuteDe: (get, set, step, hero) => {
       const metres = step.meta?.chuteMetres;
       // Le dé n'a pas encore de résultat : l'étape est ouverte, rien à appliquer — le goulot repassera.

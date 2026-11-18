@@ -539,7 +539,7 @@ export function exposerALaMaladie(expositions: readonly DiseaseExposure[] | unde
  *  - `contraction` : `false` n'ouvre QUE la ré-exposition (l'appelant sait que la condition de
  *    contraction neuve n'est pas réunie — saison de l'Exposition de voyage). */
 export function contractDiseaseOnce(
-  c: Combatant,
+  c: PorteurDeMaladies,
   name: string,
   rng: RNG,
   opts?: { incubation?: 'instantanee' | 'raw'; message?: MsgKey; contraction?: boolean },
@@ -572,7 +572,7 @@ export function declareDisease(c: PorteurDeMaladies, dz: Disease, rng: RNG): str
 /** Prolonge la DURÉE d'une maladie EN COURS de `days` jours. La durée active porte l'allonge ; si la
  *  maladie est encore en incubation, seul le capital de durée grossit (le décompte d'incubation, lui,
  *  reste celui qui a été tiré). Renvoie `false` si la maladie n'est pas portée. */
-export function prolongDisease(c: Combatant, name: string, days: number): boolean {
+export function prolongDisease(c: PorteurDeMaladies, name: string, days: number): boolean {
   const dz = (c.diseases ?? []).find((d) => d.id === name);
   if (!dz || days <= 0) return false;
   const extra = days * MINUTES_PER_DAY;

@@ -7310,7 +7310,7 @@ function decideCombatEndHeroTests(
 /** Les Tests de Contraction que doivent les `expositions` du `porteur` (op `exposeDisease`) : la
  *  difficulté de la maladie (`def.contractDifficulty`), décalée des crans de l'exposition. PUR. LDB 20 l.25/51 ;
  *  EDO App.2 l.228-230 */
-function contagionsDues(porteur: PorteurDeMaladies, expositions: readonly DiseaseExposure[]): CombatEndDiseaseTest[] {
+export function contagionsDues(porteur: PorteurDeMaladies, expositions: readonly DiseaseExposure[]): CombatEndDiseaseTest[] {
   if (rule('maladie-mode') === 'off') return [];
   return expositions.flatMap((exp) => {
     const def = diseaseDefs()[exp.disease];
