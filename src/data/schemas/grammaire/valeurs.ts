@@ -943,13 +943,14 @@ export type NatureDeMention = z.infer<typeof natureDeMentionSchema>;
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */
 export const moneyPartialSchema = nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
 
-/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `CountSpec.roll`, `Formula.dice` et `details`. */
+/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `Formula.dice` et `details`. */
 export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), fois: z.number().positive().optional(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, fois: { label: "multiplicateur" }, plus: { label: "ajout" } });
 
-/** Dé de TIRAGE d'une table à fourchettes (`die`) : le `DiceSpec` restreint à NdM, N et M entiers de 1. UNE
- *  déclaration pour la fabrique (`options.deDeTirage`, `grammaire/document.ts`), les tables de
- *  `arcane-phenomena.json`, les porteurs de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`,
- *  `defs/tavernGames.ts`) et l'op `rollTable` (`grammaire/mecanique.ts`). #1669 #4056 */
+/** Dé de TIRAGE d'une table à fourchettes (`die`) ou d'une quantité (`CountSpec.roll`) : le `DiceSpec` restreint
+ *  à NdM, N et M entiers de 1. UNE déclaration pour la fabrique (`options.deDeTirage`, `grammaire/document.ts`),
+ *  les tables de `arcane-phenomena.json`, les porteurs de N tables (`defs/rencontres-edoc.ts`,
+ *  `defs/ship-criticals.ts`, `defs/tavernGames.ts`), l'op `rollTable` (`grammaire/mecanique.ts`) et
+ *  `countSpecSchema`. #1669 #4056 */
 const metaDuDe = metaDesChamps(diceSpecSchema, { exigees: true });
 export const deDeTirageSchema = nommerChamps(
   z.strictObject({ n: diceSpecSchema.shape.n.int().min(1), sides: diceSpecSchema.shape.sides.int().min(1) }),
@@ -982,12 +983,11 @@ export type ProfilDeVoile = z.output<typeof profilDeVoileSchema>;
 
 /** Axes de la MÉTÉO MARINE (`SeaWeather`, `engine/seaWeather.ts`) : une rangée de sa table, ou le climat
  *  qu'un événement impose. MDG 13 l.170 */
-export const ventMarinSchema = z.enum(['calme-plat', 'legere-brise', 'brise-fraiche', 'vent-modere', 'vent-violent', 'violente-tempete']);
 const AXES_DE_LA_METEO_MARINE = {
-  precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
-  temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
-  visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
-  vent: ventMarinSchema,
+  precipitations: ref('seaPrecipitation'),
+  temperature: ref('seaTemperature'),
+  visibilite: ref('seaVisibility'),
+  vent: ref('seaWind'),
 };
 const META_DE_LA_METEO_MARINE = {
   precipitations: { label: 'Précipitations' },
@@ -996,13 +996,14 @@ const META_DE_LA_METEO_MARINE = {
   vent: { label: 'Vent' },
 };
 export const meteoMarineSchema = nommerChamps(z.strictObject(AXES_DE_LA_METEO_MARINE), META_DE_LA_METEO_MARINE);
-/** Climat IMPOSÉ : les seuls axes qu'il fixe (`Partial<SeaWeather>`), un au moins. MDG 15 l.189, l.199, l.248 */
+/** Climat IMPOSÉ : les seuls axes qu'il fixe, un au moins. MDG 15 l.189, l.199, l.248 */
 export const meteoImposeeSchema = nommerChamps(z.strictObject({
   precipitations: AXES_DE_LA_METEO_MARINE.precipitations.optional(),
   temperature: AXES_DE_LA_METEO_MARINE.temperature.optional(),
   visibilite: AXES_DE_LA_METEO_MARINE.visibilite.optional(),
   vent: AXES_DE_LA_METEO_MARINE.vent.optional(),
 }).refine((m) => Object.keys(m).length > 0, { message: 'météo imposée VIDE : nommer au moins un axe (précipitations, température, visibilité, vent).' }), META_DE_LA_METEO_MARINE);
+export type MeteoImposee = z.output<typeof meteoImposeeSchema>;
 
 /** `ShipLocation` (`src/engine/combat.ts`) — les Localisations de coque des DEUX jeux de Critiques
  *  (MDG naval : cargaison/gréement/coque/avirons/équipements ; MSRC fluvial : gouvernail/superstructure). */
@@ -1140,10 +1141,10 @@ export const castingNumberModSchema = nommerChamps(z
     message: 'castingNumberMod : un modificateur sans `multiply`/`divide`/`delta` ne modifie rien',
   }), { multiply: { label: "multiplier" }, divide: { label: "diviser" }, round: { label: "arrondi" }, delta: { label: "variation" }, min: { label: "minimum" }, scope: { label: "portée" }, maison: { label: "arbitrage maison" }, source: { label: "source" }, desc: { label: "texte" } });
 
-/** Quantité fixe ou tirage de dés (`CountSpec`). */
+/** Quantité fixe ou tirage de dés (`CountSpec`) : un entier de 1, ou un dé de tirage NdM. LDB 08 l.238, l.965, l.1667 #4056 */
 export const countSpecSchema = z.union([
-  nommerChamps(z.strictObject({ fixed: z.number() }), { fixed: { label: "fixé" } }),
-  nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
+  nommerChamps(z.strictObject({ fixed: z.number().int().min(1) }), { fixed: { label: "fixé" } }),
+  nommerChamps(z.strictObject({ roll: deDeTirageSchema }), { roll: { label: "jet" } }),
 ]);
 /** Quantité d'une dotation : nombre fixe ou jet de dés. */
 export type CountSpec = z.infer<typeof countSpecSchema>;
@@ -1366,8 +1367,8 @@ export const formuleSansTirageSchema: z.ZodType<FormuleSansTirage> = z.lazy(() =
   { error: (iss) => messageDeTermeDeJet(iss.input) },
 )) as z.ZodType<FormuleSansTirage>;
 
-/** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
- *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à
+/** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Lié à
+ *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::lierLesOps`), jamais à
  *  l'application de l'op : le Péché est expié AVANT `applyOps` (`noyau/combatFlow.ts`). */
 export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.literal(true) }), { sinPoints: { label: "Points de Péché" } });
 
@@ -1378,6 +1379,7 @@ export const formulaSinSchema = z.union([
   sinPointsSchema,
   nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
+export type FormuleAuPeche = z.output<typeof formulaSinSchema>;
 
 /** Le nœud est-il, sous ses seules enveloppes (`optional`, `lazy`…), la grammaire SANS TIRAGE
  *  (`formuleSansTirageSchema`) ? C'est le DIALECTE d'un champ de `Formula` lu sur son schéma, comme

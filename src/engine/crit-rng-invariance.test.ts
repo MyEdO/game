@@ -44,7 +44,7 @@ const cible = (): Combatant =>
     wounds: blessuresDeBase(10), conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
   })) as unknown as Combatant;
 
-const REFERENCE = reference as unknown as Record<string, unknown>;
+const REFERENCE: Record<string, unknown> = reference;
 const DEPASSEMENT: Record<JeuDeCritique, number> = { ldb: 2, aa: 8 };
 const JEUX: readonly JeuDeCritique[] = ['ldb', 'aa'];
 const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;

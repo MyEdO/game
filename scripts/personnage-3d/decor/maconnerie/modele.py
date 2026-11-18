@@ -271,7 +271,7 @@ def autel(D, G, pieces, a):
     for rang in A["cierges"]:
         p, r, h = rond(G.primitives[rang])
         pied, garde = p - HAUT * (h / 2), h * a.uniform(*Ci["hauteur"])
-        tournee(marbre, pied, pied + HAUT * garde, X, Y, r, Ci["profil"], Ci["cotes"], "marbre")
+        tournee(pieces["cire"], pied, pied + HAUT * garde, X, Y, r, Ci["profil"], Ci["cotes"], "cire")
         tournee(pieces["meche"], pied + HAUT * (garde * bas), pied + HAUT * (garde * haut_m), X, Y, r * part,
                 CYLINDRE, Ci["cotes"], "meche")
 

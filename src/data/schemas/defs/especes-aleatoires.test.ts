@@ -20,9 +20,8 @@ describe('especes-aleatoires.json — couverture du dé', () => {
   });
 });
 
-type Document = { id: string; entries: { id: string; min: number; max: number }[] };
-const clone = () => structuredClone(especesAleatoiresJson) as unknown as Document[];
-const nomme = (docs: Document[], id: string) => {
+const clone = () => structuredClone(especesAleatoiresJson);
+const nomme = (docs: ReturnType<typeof clone>, id: string) => {
   const d = docs.find((x) => x.id === id);
   expect(d, `le document « ${id} » est dans especes-aleatoires.json`).toBeDefined();
   return structuredClone(d!);

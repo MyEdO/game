@@ -4,14 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import seaNavigationJson from '../../sea-navigation.json';
 
-type Bande = { min: number | null; max: number | null };
-type Doc = {
-  vitesseMax: { table: Bande[] };
-  orientation: { reperes: Bande[]; changementDeCap: { die: { n: number; sides: number }; entries: Bande[] } };
-  poursuite: { drDeltas: Bande[] };
-  phares: { voirLaLumiere: Bande[] };
-};
-const clone = () => structuredClone(seaNavigationJson) as unknown as Doc;
+const clone = () => structuredClone(seaNavigationJson);
+type Doc = ReturnType<typeof clone>;
 
 describe('sea-navigation.json — chaque table couvre son domaine d’un seul tenant', () => {
   it('le schéma accepte le document RÉEL', () => {

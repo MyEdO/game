@@ -1955,8 +1955,9 @@ export const FLOWS = paresseux({
       // la bande — comme sur l'étape mono) ouvre le verbe ; `resolve` reçoit alors `{ sl: BE }`.
       resister: true,
     },
-    resolve: (s, r, actor, _get, forced) => {
-      if (!actor) return null; // rangée sans acteur résoluble (parité historique) — pas de jet
+    // Le jet se lit sur la RANGÉE (cible bakée) : une rangée de monde (`WORLD_STEP_OWNER`, sans fiche) se lance
+    // comme les autres, et `actor` absent ferme seul les influences (`fermetures`). #4243
+    resolve: (s, r, _actor, _get, forced) => {
       if (refusSansJet(r) != null) return null; // ligne non tentable : ni jet, ni Résilience, ni Résistance (LDB 09 l.30 ; #2588 Q1)
       // Résistance (Menace), LDB 10 l.1016-1020 : auto-succès de CETTE rangée à DR IMPOSÉ (aucun dé,
       // aucune ré-opposition — calque de l'étape MONO) ; les autres rangées de la bande sont intactes.

@@ -104,7 +104,7 @@
     "type": "raw.manifest",
     "label": "Humeur de Manann et événements en mer (MDG)",
     "ticket": "#1652",
-    "bloque": "L'équipage, un effectif, n'a pas d'état de maladie : il ne contracte pas le scorbut, la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), et « La maladie fait rage au sein de l'équipage » (MDG 14 l.172) ne lit que les maladies contagieuses des Personnages (MDG 14 l.208), #4243."
+    "bloque": "Infestation : quand l'étape d'Extermination à DR négatif tire un marin PNJ comme membre d'équipage attaqué par les rats, l'attaque n'est pas jouée, l'effectif n'ayant pas de fiche de combat (MDG 15 l.162-164, l.177-178), #4458."
   },
   {
     "id": "4e/maladies#maladie-type",

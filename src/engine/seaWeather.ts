@@ -27,7 +27,10 @@
  *    + eau à boire), Visibilité (l.227-243 : −DR aux Tests de Projectiles/Orientation/Perception
  *    basés sur la vue au-delà d'une distance).
  */
+import type { z } from 'zod';
 import { seaWeather, type SeaWeatherData } from '../data';
+import type { directionDeLaRoseSchema, windAspectSchema } from '../data/schemas/defs/sea-weather';
+import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import { deDeLaTableTiree, findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
@@ -40,20 +43,17 @@ import { RULE_REF } from './ruleRefs';
 import type { ModLine } from './combat';
 import { t } from '../i18n';
 
-export type SeaPrecipitationId = 'aucune' | 'legeres' | 'abondantes' | 'tres-abondantes';
-export type SeaTemperatureId = 'caniculaire' | 'chaude' | 'mediane' | 'froide' | 'glaciale';
-export type SeaVisibilityId = 'degage' | 'brume' | 'brouillard' | 'puree-de-pois';
-export type SeaWindForceId = 'calme-plat' | 'legere-brise' | 'brise-fraiche' | 'vent-modere' | 'vent-violent' | 'violente-tempete';
 /** Direction du vent (rose des vents, l.250) — `dominant` = vents d'ouest sur la Mer des Griffes (l.253). */
-export type WindDirection = 'nord' | 'sud' | 'est' | 'ouest';
+export type WindDirection = Exclude<z.output<typeof directionDeLaRoseSchema>, 'dominant'>;
 /** Vent relatif au cap (l.262-270). */
-export type WindAspect = 'arriere' | 'lateral' | 'face';
+export type WindAspect = z.output<typeof windAspectSchema>;
 
+/** La météo d'un jour : l'id de l'entrée de chaque axe (`precipitations`, `temperatures`, `visibilites`, `vents`). */
 export interface SeaWeather {
-  precipitations: SeaPrecipitationId;
-  temperature: SeaTemperatureId;
-  visibilite: SeaVisibilityId;
-  vent: SeaWindForceId;
+  precipitations: string;
+  temperature: string;
+  visibilite: string;
+  vent: string;
 }
 
 type WeatherRow = SeaWeatherData['table']['entries'][number];
@@ -61,12 +61,12 @@ type PrecipitationDef = SeaWeatherData['precipitations'][number];
 type TemperatureDef = SeaWeatherData['temperatures'][number];
 type VisibilityDef = SeaWeatherData['visibilites'][number];
 /** Cellule du tableau EFFET DU VENT : % voiles / % autres, ou Encalminé / Affaler / Virement de bord. */
-export type WindEffectCell = SeaWeatherData['effetDuVent'][SeaWindForceId][WindAspect];
+export type WindEffectCell = SeaWeatherData['vents'][number]['effet'][WindAspect];
 
 const DATA: SeaWeatherData = seaWeather;
 
 /** Ordre croissant des forces de vent (pour le cran ±1 de la mise à jour, l.272). */
-export const windForces = memoParVersion('seaWeather', (): SeaWindForceId[] => DATA.vents.map((v) => v.id as SeaWindForceId));
+export const windForces = memoParVersion('seaWeather', (): string[] => DATA.vents.map((v) => v.id));
 
 /** Lookup STRICT d'une fiche de `sea-weather.json` — FAIL-FAST NOMINATIF (patron
  *  `data/rangees.ts::rangeesDe`, frère terrestre `travelStages.ts::weatherCondition`) : un `!`
@@ -77,11 +77,21 @@ function ficheMer<T extends { id: string }>(volet: string, liste: readonly T[], 
   return trouve;
 }
 
-export const precipitationDef = (id: SeaPrecipitationId): PrecipitationDef => ficheMer('precipitations', DATA.precipitations, id);
-export const temperatureDef = (id: SeaTemperatureId): TemperatureDef => ficheMer('temperatures', DATA.temperatures, id);
-export const visibilityDef = (id: SeaVisibilityId): VisibilityDef => ficheMer('visibilites', DATA.visibilites, id);
-export const windForceLabel = (id: SeaWindForceId): string => ficheMer('vents', DATA.vents, id).label;
+export const precipitationDef = (id: string): PrecipitationDef => ficheMer('precipitations', DATA.precipitations, id);
+export const temperatureDef = (id: string): TemperatureDef => ficheMer('temperatures', DATA.temperatures, id);
+export const visibilityDef = (id: string): VisibilityDef => ficheMer('visibilites', DATA.visibilites, id);
+export const windForceLabel = (id: string): string => ficheMer('vents', DATA.vents, id).label;
 export const AFFALER_RULES = DATA.affaler;
+
+/** Les axes qu'une météo imposée fixe, en ids (`SeaWeather`). PUR. */
+export function axesImposes(m: MeteoImposee): Partial<SeaWeather> {
+  return {
+    ...(m.precipitations && { precipitations: m.precipitations.id }),
+    ...(m.temperature && { temperature: m.temperature.id }),
+    ...(m.visibilite && { visibilite: m.visibilite.id }),
+    ...(m.vent && { vent: m.vent.id }),
+  };
+}
 
 /** Libellé compact d'une météo (journal / recap), ou des seuls axes qu'une météo imposée fixe. */
 export function seaWeatherLabel(w: Partial<SeaWeather>): string {
@@ -103,10 +113,10 @@ export function rollSeaWeather(season: Season, rng: RNG, warmSea = false): SeaWe
     return findTableEntry(DATA.table.entries, r);
   };
   return {
-    precipitations: aspect(false).precipitations as SeaPrecipitationId,
-    temperature: aspect(warmSea).temperature as SeaTemperatureId,
-    visibilite: aspect(warmSea).visibilite as SeaVisibilityId,
-    vent: aspect(false).vent as SeaWindForceId,
+    precipitations: aspect(false).precipitations.id,
+    temperature: aspect(warmSea).temperature.id,
+    visibilite: aspect(warmSea).visibilite.id,
+    vent: aspect(false).vent.id,
   };
 }
 
@@ -120,7 +130,7 @@ export const directionOpposee = (dir: WindDirection): WindDirection => OPPOSEE[d
 
 export function rollWindDirection(rng: RNG, dominantDirection: WindDirection = VENT_DOMINANT): WindDirection {
   const dir = findTableEntry(DATA.roseDesVents.entries, rollDice(deDeLaTableTiree(DATA.roseDesVents), rng)).direction;
-  return dir === 'dominant' ? dominantDirection : (dir as WindDirection);
+  return dir === 'dominant' ? dominantDirection : dir;
 }
 
 /** Vent relatif pour un navire faisant route vers `heading` (l.262-270) : un vent du nord souffle
@@ -131,12 +141,12 @@ export function windAspect(heading: WindDirection, windFrom: WindDirection): Win
 }
 
 /** UNE mise à jour de la force du vent (l.272). PUR. */
-export function tickWindForce(current: SeaWindForceId, rng: RNG): SeaWindForceId {
+export function tickWindForce(current: string, rng: RNG): string {
   return basculesDeForce(windForces(), current, DATA.windTickThreshold, 1, () => d10(rng));
 }
 
 /** Force du vent au terme d'une journée : `windTicksPerDay` mises à jour (l.272). PUR. */
-export function tickWindForceDay(current: SeaWindForceId, rng: RNG): SeaWindForceId {
+export function tickWindForceDay(current: string, rng: RNG): string {
   return basculesDeForce(windForces(), current, DATA.windTickThreshold, DATA.windTicksPerDay, () => d10(rng));
 }
 
@@ -148,14 +158,15 @@ export type SailRigging = 'none' | 'clinfoc' | 'greement';
  *  l'Amélioration Clinfoc (MDG 12 l.256-264 — voiles seulement) ; `greement` → Gréement de course
  *  (MSRC 12 l.137), qui ajoute un DELTA de % voiles au tableau standard (+10 % vent arrière ou de côté ;
  *  vent contraire : malus réduit de 5 %) — sans effet quand les voiles ne portent pas (Encalminé/Affaler). PUR. */
-export function windEffect(force: SeaWindForceId, aspect: WindAspect, rigging: SailRigging = 'none'): WindEffectCell {
-  const std = DATA.effetDuVent[force][aspect];
+export function windEffect(force: string, aspect: WindAspect, rigging: SailRigging = 'none'): WindEffectCell {
+  const vent = ficheMer('vents', DATA.vents, force);
+  const std = vent.effet[aspect];
   if (rigging === 'greement') {
     if (std.encalmine || std.affaler || std.pctSail == null) return std; // voiles affalées → le gréement n'aide pas
     return { ...std, pctSail: std.pctSail + DATA.effetDuVentGreementDelta[aspect] };
   }
   if (rigging !== 'clinfoc') return std;
-  const c = DATA.effetDuVentClinfoc[force][aspect];
+  const c = vent.effetClinfoc[aspect];
   // Le tableau Clinfoc ne donne que la colonne voiles — le % « autres propulsions » reste celui du standard.
   return { ...c, ...(c.pctOther == null && std.pctOther != null && !c.affaler && !c.encalmine ? { pctOther: std.pctOther } : {}) };
 }
@@ -172,13 +183,13 @@ export function windAdjustedM(baseM: number, cell: WindEffectCell, sailPowered: 
 
 /** Malus PLAT d'une Visibilité réduite sur un Test basé sur la vue (Projectiles / Orientation /
  *  Perception, l.231-243), la cible étant à `distanceM` mètres : −1/−2/−3 DR au-delà de 20/10/5 m. PUR. */
-export function visibilityDRPenalty(vis: SeaVisibilityId, distanceM: number): number {
+export function visibilityDRPenalty(vis: string, distanceM: number): number {
   const def = visibilityDef(vis);
   return def.drPenalty != null && def.beyondM != null && distanceM > def.beyondM ? def.drPenalty : 0;
 }
 
 /** MDG 13 l.187-200. `skill` absente = Test de Caractéristique. PUR. */
-function precipitationMod(precip: SeaPrecipitationId, skill: RefDesignee | undefined): number {
+function precipitationMod(precip: string, skill: RefDesignee | undefined): number {
   const def = precipitationDef(precip);
   return def.skillMods?.find((m) => m.skills.some((r) => refCouvre(r, skill ?? {})))?.mod ?? def.otherMod ?? 0;
 }
@@ -187,7 +198,7 @@ function precipitationMod(precip: SeaPrecipitationId, skill: RefDesignee | undef
  *  « Météo : … » d'un Test de Compétence `skill` (Spécialisation comprise) ou de Caractéristique
  *  (`skill` absente), sous la Précipitation `precip` — vide hors mer ou sans malus. Même forme que
  *  `weatherTestMods` (`weatherTestMod.ts`). PUR. */
-export function precipitationTestMods(precip: SeaPrecipitationId | undefined, skill?: RefDesignee): ModLine[] {
+export function precipitationTestMods(precip: string | undefined, skill?: RefDesignee): ModLine[] {
   if (!precip) return [];
   const value = precipitationMod(precip, skill);
   return value
@@ -198,7 +209,7 @@ export function precipitationTestMods(precip: SeaPrecipitationId | undefined, sk
 /** Litres d'eau à boire PAR JOUR et par membre d'équipage : la bande de Température (Caniculaire 4 L,
  *  Chaude 3 L — l.209/213), sinon le régime de bord « 2 à 3 litres d'eau par jour » (MDG 14 l.242 —
  *  fourchette, valeur maison, règle `mer-eau-litres-mediane`). PUR. */
-export function dailyWaterLitres(temp: SeaTemperatureId): number {
+export function dailyWaterLitres(temp: string): number {
   return temperatureDef(temp).litresParJour ?? Number(rule('mer-eau-litres-mediane'));
 }
 
@@ -207,7 +218,7 @@ export function dailyWaterLitres(temp: SeaTemperatureId): number {
  *  par heure : la période EXPOSÉE sur le pont = UNE Période de travail à la voile (8 h, l.107) →
  *  8 ÷ cadence Tests par jour (bandes 4 h → 2 Tests ; bandes 2 h → 4 — mêmes comptes que la nuit
  *  dehors d'`exposureNight` : difficile 2 / extrême 4). Médiane → 0 (« tolérable », l.217). PUR. */
-export function seaExposureTestsPerDay(temp: SeaTemperatureId): number {
+export function seaExposureTestsPerDay(temp: string): number {
   const def = temperatureDef(temp);
   if (!def.exposure || !def.testEveryHours) return 0;
   return Math.max(1, Math.round(WORK_PERIOD_HOURS.voile / def.testEveryHours));

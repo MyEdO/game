@@ -38,10 +38,9 @@ lustre remplace les traverses droites par des bras cintrés et le cadre carré p
 rangée ajoute une joue et une manchette à chaque fauteuil. Le portant ajoute une entretoise basse. Le châssis ajoute
 ses traverses du dedans et ses écharpes, et fait de l'étai plein de la recette une équerre de trois pièces.
 
-Matières : celles des recettes, sauf le costume que la recette fait de `bois-chene`, un plancher, qui prend
-`cuir-tanne`. Le catalogue n'a ni velours, ni cire, ni flamme, ni cristal : étoffes en `toile-rouge`, bougies en
-`albatre`, que la recette leur donne, flammes en `braises`, aucune pendeloque. Il n'a pas de toile peinte : celle du
-châssis garde l'`albatre` de sa recette, son décor peint le `laiton-dore`."""
+Matières : celles des recettes. Le catalogue n'a ni velours ni flamme : étoffes en `toile-rouge`, flammes en `braises`.
+Le lustre n'a pas de pendeloque : sa recette n'en porte pas. Le décor peint sur la toile du châssis garde le
+`laiton-dore` de sa recette."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}
@@ -49,16 +48,16 @@ FER = {"fer": ("metal", "fer-noirci")}
 LAITON = {"laiton": ("metal2", "laiton-dore")}
 TOILE = {"toile": ("vet1", "toile-rouge")}
 MATERIAUX = {
-    "pupitre-chef": {**BOIS, **FER, "papier": ("corps", "albatre")},
+    "pupitre-chef": {**BOIS, **FER, "papier": ("corps", "papier")},
     "tribune": {**BOIS, **TOILE},
     "balustrade-loge": {**BOIS, **LAITON, **TOILE},
     "rangee-sieges": {**BOIS, **TOILE, **LAITON},
     "rideau-scene": {**FER, **TOILE, **LAITON},
     "escalier-loge": {**BOIS, **LAITON},
-    "lustre-opera": {**LAITON, **FER, "cire": ("corps", "albatre"), "flamme": ("accent", "braises")},
-    "portant-costumes": {**FER, "rouge": ("vet1", "toile-rouge"), "ardoise": ("vet2", "prop-ardoise"),
-                         "blanc": ("corps", "albatre"), "brun": ("cuir", "cuir-tanne")},
-    "decor-flat": {**BOIS, **LAITON, "peinte": ("corps", "albatre")},
+    "lustre-opera": {**LAITON, **FER, "cire": ("corps", "cire"), "flamme": ("accent", "braises")},
+    "portant-costumes": {**FER, "rouge": ("vet1", "toile-rouge"), "ardoise": ("vet2", "drap-terne"),
+                         "blanc": ("corps", "toile-ecrue"), "brun": ("cuir", "cuir-tanne")},
+    "decor-flat": {**BOIS, **LAITON, "peinte": ("corps", "toile-peinte")},
 }
 
 BUDGET_TRIANGLES = {"pupitre-chef": 1500, "tribune": 4500, "balustrade-loge": 3200, "rangee-sieges": 4500,

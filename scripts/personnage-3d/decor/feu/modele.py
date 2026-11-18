@@ -302,7 +302,7 @@ def chandelier(D, G, P, a):
     chemin, fer, pas = C["bras"]
     portee = max(abs(c.x) for _, (c, _) in boites)
     consoles(P["bras"], C["azimuts"], chemin, portee, pied, longueur, fer * rayon, pas, "laiton")
-    for centre, (cote, _, haut) in (b for p, b in boites if p["material"] == "albatre"):
+    for centre, (cote, _, haut) in (b for p, b in boites if p["material"] == "cire"):
         bougie(P["bras"], P["bougies"], P[NOEUD_EMISSIF], Vector((centre.x, centre.y, bas_de_traverse)), cote / 2,
                haut_de_traverse, centre.z - haut / 2 + C["cires"][0 if centre.x else 1] * haut, B)
 

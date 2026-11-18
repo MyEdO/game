@@ -18,7 +18,7 @@ import { aggregateCapabilities, chaosDomainOf } from './combatFeatures/dispatch'
 import { aPassifVisible } from './trauma';
 import { groupesDe } from './groups';
 import { immunityTypes } from './traits/dispatch';
-import { sousPeur } from './psychology';
+import { PSY, sousPeur } from './psychology';
 import type { ActorView, ConditionCtx } from './flowCore';
 import { effectiveTalents } from './talentEffects';
 import { estNavire } from './coque';
@@ -35,7 +35,7 @@ export function buildActorView(c: Combatant | undefined): ActorView | undefined 
     conditions: Object.fromEntries((c.conditions ?? []).map((x) => [x.id, x.value ?? 1])), capabilities: aggregateCapabilities(c),
     ...(chaosDomainOf(c) ? { chaosDomain: chaosDomainOf(c) } : {}),
     // États psy ACTIFS : ni un trait ciblé RÉSISTÉ (`active:false`), ni une Peur surmontée. LDB 21 l.25
-    psych: (c.psychState ?? []).filter((p) => (p.type === 'peur' ? sousPeur(p) : p.active !== false)).map((p) => p.type),
+    psych: (c.psychState ?? []).filter((p) => (p.type === PSY.peur ? sousPeur(p) : p.active !== false)).map((p) => p.type),
     chars: tableTotale(CHAR_KEYS, (k) => effectiveChar(c, k)),
     navire: estNavire(c),
   };

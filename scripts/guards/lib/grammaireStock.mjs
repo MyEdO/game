@@ -42,10 +42,6 @@ const e = (raison, lot) => ({ raison, lot, date: DATE });
 
 export const GRAMMAIRE_STOCK = {
   // ── Graphies historiques de COMPÉTENCE (`skill`, `skillId`) ──────────────────────────────────
-  // #1467 L1b V-FLIP-ENTITE-b : la ligne REVIT sous le binding `doc` — l'adoption de `document()`
-  // l'avait fait sortir du scan (l'argument `champs` n'était pas visité), pas de la déclaration.
-  // Le champ `skill` est toujours là, la donnée n'a pas bougé.
-  'src/data/schemas/defs/miscast.ts:jsonOpSchema|alias|skill': e('Op de maléfice portant un test par `skill` (non migré).', L2),
   // AUCUNE entrée pour les graphies portées par `src/data/schemas/grammaire/` : ce module n'est scanné
   // que pour `.extend` (`PERIMETRE_FABRIQUES`, `sansRedeclaration`), ses littéraux ÉTANT le canon. La
   // liste nominative de ces graphies et son cardinal sont tenus par le test « les graphies de la

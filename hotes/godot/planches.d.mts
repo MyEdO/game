@@ -8,6 +8,8 @@ export function refusDuNavigateur(navigateur: string, machine: { plateforme: str
 
 export function etalonsSansPlanche(fichiers: string[], noms: string[]): string[];
 
+export const VUE_DE_BASE: Readonly<{ largeur: number; hauteur: number }>;
+
 export const MAQUETTES: string;
 
 export function encoderPng(image: { w: number; h: number; data: Buffer }): Buffer;

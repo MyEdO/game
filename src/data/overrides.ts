@@ -86,10 +86,8 @@ import { windsOfMagicTable } from '../engine/windsOfMagic';
 import { NAVAL_PROGRESSION } from '../engine/shipNavigation';
 import { estObjet } from '../lib/objet.mjs';
 
-/** Entrée d'une table de miscast (`entries` d'un document de `miscast.json`) — DIALECTE compilé (PAS
- *  des `GameOp` standard, cf. `engine/miscast.ts::JsonRow`) : `ops`/`test` restent au format JSON brut
- *  du dialecte (sin-paramétrage), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`,
- *  qui suppose de vrais `GameOp`). */
+/** Entrée d'une table de miscast (`entries` d'un document de `miscast.json`) : ses `ops` portent le terme de
+ *  Péché non lié (`opsAuPecheSchema`), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`). */
 export type MiscastRowEntry = RangeeDe<typeof imparfaites>;
 
 /** Entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET AA « approche

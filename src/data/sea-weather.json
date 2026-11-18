@@ -11,10 +11,18 @@
       {
         "min": 1,
         "max": 1,
-        "precipitations": "aucune",
-        "temperature": "caniculaire",
-        "visibilite": "degage",
-        "vent": "calme-plat",
+        "precipitations": {
+          "id": "aucune"
+        },
+        "temperature": {
+          "id": "caniculaire"
+        },
+        "visibilite": {
+          "id": "degage"
+        },
+        "vent": {
+          "id": "calme-plat"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -24,10 +32,18 @@
       {
         "min": 2,
         "max": 2,
-        "precipitations": "aucune",
-        "temperature": "chaude",
-        "visibilite": "degage",
-        "vent": "legere-brise",
+        "precipitations": {
+          "id": "aucune"
+        },
+        "temperature": {
+          "id": "chaude"
+        },
+        "visibilite": {
+          "id": "degage"
+        },
+        "vent": {
+          "id": "legere-brise"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -37,10 +53,18 @@
       {
         "min": 3,
         "max": 4,
-        "precipitations": "aucune",
-        "temperature": "mediane",
-        "visibilite": "degage",
-        "vent": "brise-fraiche",
+        "precipitations": {
+          "id": "aucune"
+        },
+        "temperature": {
+          "id": "mediane"
+        },
+        "visibilite": {
+          "id": "degage"
+        },
+        "vent": {
+          "id": "brise-fraiche"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -50,10 +74,18 @@
       {
         "min": 5,
         "max": 6,
-        "precipitations": "aucune",
-        "temperature": "mediane",
-        "visibilite": "brume",
-        "vent": "vent-modere",
+        "precipitations": {
+          "id": "aucune"
+        },
+        "temperature": {
+          "id": "mediane"
+        },
+        "visibilite": {
+          "id": "brume"
+        },
+        "vent": {
+          "id": "vent-modere"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -63,10 +95,18 @@
       {
         "min": 7,
         "max": 8,
-        "precipitations": "legeres",
-        "temperature": "mediane",
-        "visibilite": "brume",
-        "vent": "vent-violent",
+        "precipitations": {
+          "id": "legeres"
+        },
+        "temperature": {
+          "id": "mediane"
+        },
+        "visibilite": {
+          "id": "brume"
+        },
+        "vent": {
+          "id": "vent-violent"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -76,10 +116,18 @@
       {
         "min": 9,
         "max": 9,
-        "precipitations": "legeres",
-        "temperature": "froide",
-        "visibilite": "brouillard",
-        "vent": "violente-tempete",
+        "precipitations": {
+          "id": "legeres"
+        },
+        "temperature": {
+          "id": "froide"
+        },
+        "visibilite": {
+          "id": "brouillard"
+        },
+        "vent": {
+          "id": "violente-tempete"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -89,10 +137,18 @@
       {
         "min": 10,
         "max": 10,
-        "precipitations": "abondantes",
-        "temperature": "froide",
-        "visibilite": "puree-de-pois",
-        "vent": "vent-modere",
+        "precipitations": {
+          "id": "abondantes"
+        },
+        "temperature": {
+          "id": "froide"
+        },
+        "visibilite": {
+          "id": "puree-de-pois"
+        },
+        "vent": {
+          "id": "vent-modere"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -102,10 +158,18 @@
       {
         "min": 11,
         "max": 12,
-        "precipitations": "tres-abondantes",
-        "temperature": "froide",
-        "visibilite": "brume",
-        "vent": "brise-fraiche",
+        "precipitations": {
+          "id": "tres-abondantes"
+        },
+        "temperature": {
+          "id": "froide"
+        },
+        "visibilite": {
+          "id": "brume"
+        },
+        "vent": {
+          "id": "brise-fraiche"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -115,10 +179,18 @@
       {
         "min": 13,
         "max": 13,
-        "precipitations": "abondantes",
-        "temperature": "glaciale",
-        "visibilite": "brume",
-        "vent": "legere-brise",
+        "precipitations": {
+          "id": "abondantes"
+        },
+        "temperature": {
+          "id": "glaciale"
+        },
+        "visibilite": {
+          "id": "brume"
+        },
+        "vent": {
+          "id": "legere-brise"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -128,10 +200,18 @@
       {
         "min": 14,
         "max": 14,
-        "precipitations": "aucune",
-        "temperature": "glaciale",
-        "visibilite": "degage",
-        "vent": "calme-plat",
+        "precipitations": {
+          "id": "aucune"
+        },
+        "temperature": {
+          "id": "glaciale"
+        },
+        "visibilite": {
+          "id": "degage"
+        },
+        "vent": {
+          "id": "calme-plat"
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 106,
@@ -396,55 +476,203 @@
     {
       "id": "calme-plat",
       "label": "Calme plat",
+      "effet": {
+        "arriere": {
+          "encalmine": true
+        },
+        "lateral": {
+          "encalmine": true
+        },
+        "face": {
+          "encalmine": true
+        }
+      },
+      "effetClinfoc": {
+        "arriere": {
+          "encalmine": true
+        },
+        "lateral": {
+          "encalmine": true
+        },
+        "face": {
+          "encalmine": true
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 107,
-        "note": "ch.13 « Navigation maritime » — Vents (l.246-248)."
+        "note": "ch.13 « Navigation maritime » — Vents (l.246-248), EFFET DU VENT (l.276-286) ; ch.12 « Navires et construction navale » — EFFET DU VENT (CLINFOC) (l.256-264)."
       }
     },
     {
       "id": "legere-brise",
       "label": "Légère brise",
+      "effet": {
+        "arriere": {
+          "pctSail": 0,
+          "pctOther": 0
+        },
+        "lateral": {
+          "pctSail": 0,
+          "pctOther": 0
+        },
+        "face": {
+          "pctSail": -10,
+          "pctOther": 0
+        }
+      },
+      "effetClinfoc": {
+        "arriere": {
+          "pctSail": 10
+        },
+        "lateral": {
+          "pctSail": 0
+        },
+        "face": {
+          "pctSail": -10
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 107,
-        "note": "ch.13 « Navigation maritime » — Vents (l.246-248)."
+        "note": "ch.13 « Navigation maritime » — Vents (l.246-248), EFFET DU VENT (l.276-286) ; ch.12 « Navires et construction navale » — EFFET DU VENT (CLINFOC) (l.256-264)."
       }
     },
     {
       "id": "brise-fraiche",
       "label": "Brise fraîche",
+      "effet": {
+        "arriere": {
+          "pctSail": 10,
+          "pctOther": 0
+        },
+        "lateral": {
+          "virement": true,
+          "pctSail": 10,
+          "pctOther": 0
+        },
+        "face": {
+          "pctSail": -25,
+          "pctOther": 0
+        }
+      },
+      "effetClinfoc": {
+        "arriere": {
+          "pctSail": 25
+        },
+        "lateral": {
+          "virement": true,
+          "pctSail": 25
+        },
+        "face": {
+          "pctSail": -25
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 107,
-        "note": "ch.13 « Navigation maritime » — Vents (l.246-248)."
+        "note": "ch.13 « Navigation maritime » — Vents (l.246-248), EFFET DU VENT (l.276-286) ; ch.12 « Navires et construction navale » — EFFET DU VENT (CLINFOC) (l.256-264)."
       }
     },
     {
       "id": "vent-modere",
       "label": "Vent modéré",
+      "effet": {
+        "arriere": {
+          "pctSail": 25,
+          "pctOther": 0
+        },
+        "lateral": {
+          "virement": true,
+          "pctSail": 25,
+          "pctOther": 0
+        },
+        "face": {
+          "pctSail": -50,
+          "pctOther": -10
+        }
+      },
+      "effetClinfoc": {
+        "arriere": {
+          "pctSail": 25
+        },
+        "lateral": {
+          "virement": true,
+          "pctSail": 25
+        },
+        "face": {
+          "pctSail": -50
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 107,
-        "note": "ch.13 « Navigation maritime » — Vents (l.246-248)."
+        "note": "ch.13 « Navigation maritime » — Vents (l.246-248), EFFET DU VENT (l.276-286) ; ch.12 « Navires et construction navale » — EFFET DU VENT (CLINFOC) (l.256-264)."
       }
     },
     {
       "id": "vent-violent",
       "label": "Vent violent",
+      "effet": {
+        "arriere": {
+          "pctSail": 25,
+          "pctOther": 10
+        },
+        "lateral": {
+          "affaler": true,
+          "pctOther": -5
+        },
+        "face": {
+          "affaler": true,
+          "pctOther": -25
+        }
+      },
+      "effetClinfoc": {
+        "arriere": {
+          "pctSail": 50
+        },
+        "lateral": {
+          "affaler": true
+        },
+        "face": {
+          "affaler": true
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 107,
-        "note": "ch.13 « Navigation maritime » — Vents (l.246-248)."
+        "note": "ch.13 « Navigation maritime » — Vents (l.246-248), EFFET DU VENT (l.276-286) ; ch.12 « Navires et construction navale » — EFFET DU VENT (CLINFOC) (l.256-264)."
       }
     },
     {
       "id": "violente-tempete",
       "label": "Violente tempête",
+      "effet": {
+        "arriere": {
+          "affaler": true
+        },
+        "lateral": {
+          "affaler": true
+        },
+        "face": {
+          "affaler": true
+        }
+      },
+      "effetClinfoc": {
+        "arriere": {
+          "affaler": true
+        },
+        "lateral": {
+          "affaler": true
+        },
+        "face": {
+          "affaler": true
+        }
+      },
       "source": {
         "book": "mer-des-griffes",
         "page": 107,
-        "note": "ch.13 « Navigation maritime » — Vents (l.246-248)."
+        "note": "ch.13 « Navigation maritime » — Vents (l.246-248), EFFET DU VENT (l.276-286) ; ch.12 « Navires et construction navale » — EFFET DU VENT (CLINFOC) (l.256-264)."
       }
     }
   ],
@@ -507,158 +735,6 @@
         }
       }
     ]
-  },
-  "effetDuVent": {
-    "calme-plat": {
-      "arriere": {
-        "encalmine": true
-      },
-      "lateral": {
-        "encalmine": true
-      },
-      "face": {
-        "encalmine": true
-      }
-    },
-    "legere-brise": {
-      "arriere": {
-        "pctSail": 0,
-        "pctOther": 0
-      },
-      "lateral": {
-        "pctSail": 0,
-        "pctOther": 0
-      },
-      "face": {
-        "pctSail": -10,
-        "pctOther": 0
-      }
-    },
-    "brise-fraiche": {
-      "arriere": {
-        "pctSail": 10,
-        "pctOther": 0
-      },
-      "lateral": {
-        "virement": true,
-        "pctSail": 10,
-        "pctOther": 0
-      },
-      "face": {
-        "pctSail": -25,
-        "pctOther": 0
-      }
-    },
-    "vent-modere": {
-      "arriere": {
-        "pctSail": 25,
-        "pctOther": 0
-      },
-      "lateral": {
-        "virement": true,
-        "pctSail": 25,
-        "pctOther": 0
-      },
-      "face": {
-        "pctSail": -50,
-        "pctOther": -10
-      }
-    },
-    "vent-violent": {
-      "arriere": {
-        "pctSail": 25,
-        "pctOther": 10
-      },
-      "lateral": {
-        "affaler": true,
-        "pctOther": -5
-      },
-      "face": {
-        "affaler": true,
-        "pctOther": -25
-      }
-    },
-    "violente-tempete": {
-      "arriere": {
-        "affaler": true
-      },
-      "lateral": {
-        "affaler": true
-      },
-      "face": {
-        "affaler": true
-      }
-    }
-  },
-  "effetDuVentClinfoc": {
-    "calme-plat": {
-      "arriere": {
-        "encalmine": true
-      },
-      "lateral": {
-        "encalmine": true
-      },
-      "face": {
-        "encalmine": true
-      }
-    },
-    "legere-brise": {
-      "arriere": {
-        "pctSail": 10
-      },
-      "lateral": {
-        "pctSail": 0
-      },
-      "face": {
-        "pctSail": -10
-      }
-    },
-    "brise-fraiche": {
-      "arriere": {
-        "pctSail": 25
-      },
-      "lateral": {
-        "virement": true,
-        "pctSail": 25
-      },
-      "face": {
-        "pctSail": -25
-      }
-    },
-    "vent-modere": {
-      "arriere": {
-        "pctSail": 25
-      },
-      "lateral": {
-        "virement": true,
-        "pctSail": 25
-      },
-      "face": {
-        "pctSail": -50
-      }
-    },
-    "vent-violent": {
-      "arriere": {
-        "pctSail": 50
-      },
-      "lateral": {
-        "affaler": true
-      },
-      "face": {
-        "affaler": true
-      }
-    },
-    "violente-tempete": {
-      "arriere": {
-        "affaler": true
-      },
-      "lateral": {
-        "affaler": true
-      },
-      "face": {
-        "affaler": true
-      }
-    }
   },
   "effetDuVentGreementDelta": {
     "arriere": 10,

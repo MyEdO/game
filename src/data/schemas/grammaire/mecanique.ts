@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { estObjet } from '../../../lib/objet.mjs';
 import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
-import { declarerEnfants } from './descente';
+import { declarerEnfants, defDe } from './descente';
 import { marquerProduit } from './interne/produits';
 import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
@@ -41,6 +41,7 @@ import {
   shipLocationSchema,
   exposureLevelSchema,
   formulaSchema,
+  formulaSinSchema,
   formuleSansTirageSchema,
   genreDArmeSchema,
   hitLocationSchema,
@@ -55,6 +56,7 @@ import {
   sizeCategorySchema,
   symptomSeveritySchema,
   tirageSchema,
+  type FormuleAuPeche,
 } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import {
@@ -168,10 +170,10 @@ function refusDeLaPoseDEtat(v: Readonly<Record<string, unknown>> & { id: { id: s
 export const loseTurnWhatSchema = enumNomme({ action: 'son Action', movement: 'son Mouvement' });
 
 /** Compétences du dieu que frappe l'op `deitySkillMod`. LDB 40 l.61, l.70 */
-export const deitySkillPickSchema = enumNomme({ all: 'toutes', random: 'une au hasard' });
+const deitySkillPickSchema = enumNomme({ all: 'toutes', random: 'une au hasard' });
 
 /** Refus d'une op `deitySkillMod` sans durée, ou à deux durées. */
-export const MESSAGE_DUREE_DE_DIVINITE = 'durée EXCLUSIVE : « durationHours » (heures) OU « durationDays » (jours) — exactement une des deux.';
+const MESSAGE_DUREE_DE_DIVINITE = 'durée EXCLUSIVE : « durationHours » (heures) OU « durationDays » (jours) — exactement une des deux.';
 
 /** Forme d'une `zone`. */
 export const zoneShapeSchema = enumNomme({ disc: 'disque', wall: 'mur' });
@@ -947,9 +949,13 @@ type ConditionReservee = (typeof CONDITIONS_RESERVEES)[number];
 /** Régime d'une Condition réservée. */
 export type RegimeDeCondition = `condition.${ConditionReservee}`;
 
+/** Régime des feuilles de `Formula` de premier niveau des payloads : `peche` les ouvre au dialecte de la Colère
+ *  des dieux (`formulaSinSchema`). LDB 40 l.46 */
+type RegimeDeFormule = { formule: 'peche' };
+
 /** Régime de chaque champ d'un porteur : un champ à choix absent est `specSeule`, un champ réservé ou une
- *  Condition réservée absents sont REFUSÉS. */
-export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Record<ChampReserve | RegimeDeCondition, 'admis'>>>;
+ *  Condition réservée absents sont REFUSÉS, une formule absente est générale. */
+export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Record<ChampReserve | RegimeDeCondition, 'admis'> & RegimeDeFormule>>;
 
 /**
  * Ops du moteur DONT LE PAYLOAD RESTE À DÉCRIRE — liste NOMINATIVE datée (2026-08-24),
@@ -1075,31 +1081,30 @@ const compareValueSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
 ]);
 
-/** Condition `skill` : sa Compétence et sa spécialisation résolvent au catalogue (`refOuSpec`). Le nœud de la
- *  fabrique est un objet discriminable par `kind`, ce que sa signature générique ne porte pas. */
+/** Condition `skill` : sa Compétence et sa spécialisation résolvent au catalogue (`refOuSpec`). */
 const conditionDeCompetenceSchema = refOuSpec('skill', {
   kind: nommerNoeud(z.literal('skill'), { nom: 'type' }),
   advances: nommerNoeud(z.number().optional(), { nom: 'augmentations' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'skill' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** `{ kind: 'talent' }` — un héros du groupe porte le Talent (Béni (Manann) : MDG 15 l.197-198). */
 const conditionDeTalentSchema = refOuSpec('talent', {
   kind: nommerNoeud(z.literal('talent'), { nom: 'type' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** `{ kind: 'career' }` — un héros du groupe exerce la Carrière (`flowCore.ts`, `evalCondition`). */
 const conditionDeCarriereSchema = ref('career', {
   kind: nommerNoeud(z.literal('career'), { nom: 'type' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'career' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** `{ kind: 'species' }` — un héros du groupe est de l'Espèce (`flowCore.ts`, `evalCondition`). */
 const conditionDEspeceSchema = ref('species', {
   kind: nommerNoeud(z.literal('species'), { nom: 'type' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'species' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
@@ -1746,24 +1751,48 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   marcheDuPort: 'Marché d’un port',
 };
 
+/** La feuille `noeud` d'un payload au dialecte du Péché : `formulaSchema` (facultative ou non) devient `formulaSinSchema`. */
+const feuilleAuPeche = (noeud: z.ZodType): z.ZodType =>
+  noeud === formulaSchema ? formulaSinSchema
+    : noeud instanceof z.ZodOptional && noeud.unwrap() === formulaSchema ? formulaSinSchema.optional()
+      : noeud;
+
+/** Le payload construit `noeud` de l'op `op` au dialecte du Péché : un CLONE (méta, contrôles et message d'union hérités)
+ *  dont les feuilles de formule de premier niveau passent par `feuilleAuPeche`. Sans feuille de formule, il ressort identique. */
+function payloadAuPeche(noeud: z.ZodType, op: string): z.ZodType {
+  if (noeud instanceof z.ZodObject) {
+    const shape: z.ZodRawShape = Object.fromEntries(Object.entries(noeud.shape).map(([champ, v]) => [champ, feuilleAuPeche(v)]));
+    if (Object.entries(shape).every(([champ, v]) => v === noeud.shape[champ])) return noeud;
+    return marquerProduit(noeud.clone(z.util.mergeDefs({ ...defDe(noeud) }, { shape }), { parent: true }), 'payloadsDe', op);
+  }
+  if (noeud instanceof z.ZodUnion) {
+    const options = noeud.options.map((o) => (o instanceof z.ZodType ? payloadAuPeche(o, op) : o));
+    if (options.every((o, i) => o === noeud.options[i])) return noeud;
+    return marquerProduit(noeud.clone(z.util.mergeDefs({ ...defDe(noeud) }, { options }), { parent: true }), 'payloadsDe', op);
+  }
+  return noeud;
+}
+
 /** Payloads d'une famille, chacun nommé par le libellé de son op (`OP_LABEL`) : une FORME se ferme en `z.strictObject`,
- *  ses champs à choix au régime demandé. */
+ *  ses champs à choix au régime demandé, ses feuilles de formule au régime `formule`. */
 function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown>>> {
+  const auPeche = regimes.formule === 'peche';
+  const feuille = (noeud: z.ZodType): z.ZodType => (auPeche ? feuilleAuPeche(noeud) : noeud);
   return Object.fromEntries(
     Object.entries(DECLARATIONS_D_OPS).map(([op, d]) => {
       const nomme = <N extends z.ZodType>(noeud: N): N => nommerNoeud(noeud, { label: OP_LABEL[op as GameOp['op']] });
-      if (estNoeudZod(d)) return [op, nomme(d)];
+      if (estNoeudZod(d)) return [op, nomme(auPeche ? payloadAuPeche(d, op) : d)];
       const admis = (champ: string, v: unknown): v is ChampReserveDeclare =>
         v instanceof ChampReserveDeclare && regimes[`${op}.${champ}` as ChampReserve] === 'admis';
       const entrees = Object.entries((d as PayloadDeclare).champs);
       const champs = entrees.flatMap(([champ, v]) =>
         v instanceof ChampAChoixDeclare ? [[champ, refOuSpec(v.cible, v.extra, regimes[`${op}.${champ}` as ChampAChoix] ?? 'specSeule')]]
-          : v instanceof ChampReserveDeclare ? (admis(champ, v) ? [[champ, v.noeud]] : [])
-            : [[champ, v]],
+          : v instanceof ChampReserveDeclare ? (admis(champ, v) ? [[champ, feuille(v.noeud)]] : [])
+            : [[champ, feuille(v)]],
       );
       const meta = Object.fromEntries(champs.map(([champ]) => [champ, (d as PayloadDeclare).meta[champ as string]]));
       // Les clés RÉSERVÉES admises sont le choix de la famille appelante (ses régimes).
-      const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, v.noeud]] : [])));
+      const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, feuille(v.noeud)]] : [])));
       const affinage = (d as PayloadDeclare).affinage;
       return [op, nomme(marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)).check(...(affinage ? [z.superRefine(affinage)] : [])), meta), 'payloadsDe', op, reservesAdmises))];
     }),
@@ -2005,10 +2034,10 @@ export function mecaniqueDe(regimes: Regimes): FamilleMecanique {
   const entrees = (Object.entries(regimes) as [string, RegimeDePorteur | 'admis' | undefined][])
     .filter(([, r]) => r !== undefined && r !== 'specSeule')
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  const declares: readonly string[] = [...CHAMPS_A_CHOIX, ...CHAMPS_RESERVES, ...CONDITIONS_RESERVEES.map((k) => `condition.${k}`)];
+  const declares: readonly string[] = [...CHAMPS_A_CHOIX, ...CHAMPS_RESERVES, ...CONDITIONS_RESERVEES.map((k) => `condition.${k}`), 'formule'];
   for (const [champ] of entrees) {
     if (!declares.includes(champ)) {
-      throw new Error(`mecaniqueDe : « ${champ} » n'est aucun champ à choix ni réservé déclaré (${declares.join(', ')}).`);
+      throw new Error(`mecaniqueDe : « ${champ} » n'est aucun régime déclaré (${declares.join(', ')}).`);
     }
   }
   const cle = JSON.stringify(entrees);
@@ -2065,6 +2094,19 @@ export function executeesDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodArray<z.
   REGIMES_DES_LISTES.set(liste, 'executee');
   return liste;
 }
+
+/** Un champ `T` de payload au régime `formule: 'peche'` : une `Formula` (facultative ou non) admet `FormuleAuPeche`, comme
+ *  `feuilleAuPeche` la substitue au schéma. */
+type FeuilleAuPeche<T> = [Exclude<T, undefined>] extends [Formula]
+  ? [Formula] extends [Exclude<T, undefined>] ? FormuleAuPeche | Extract<T, undefined> : T
+  : T;
+
+/** Une op `O` au régime `formule: 'peche'` : chacun de ses champs de premier niveau passe par `FeuilleAuPeche`. */
+type AuPeche<O> = O extends unknown ? { [K in keyof O]: FeuilleAuPeche<O[K]> } : never;
+
+/** Liste d'ops EXÉCUTÉE au dialecte du Péché (régime `formule: 'peche'`), portée par une rangée de `miscast.json` : le
+ *  moteur la lit par `gameOpSchema` après avoir lié le Péché (`engine/miscast.ts`). LDB 40 l.46 */
+export const opsAuPecheSchema: z.ZodType<AuPeche<GameOp>[]> = executeesDe(mecaniqueDe({ formule: 'peche' }).gameOp);
 export const effectOpSchema = FERMEE.effectOp;
 export const flowSchema: z.ZodType<Flow<EffectOp>> = FERMEE.flow;
 export const triggeredEffectSchema: ReturnType<typeof effetDeclencheSur> = FERMEE.triggeredEffect;

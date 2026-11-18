@@ -1,28 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { schema } from './schemas/defs/actions';
-import actionsJson from './actions.json';
+import { ACTIONS } from './index';
 
 /**
- * Contrat de l'arbitrage de COÛT d'`actions.json` (#1467 L1b V-P3) — le TYPE remplace un refine.
- *
- * Le def portait le couple `maison: boolean` + `costNote: string` liés par un `superRefine`
- * bidirectionnel. La migration `2026-08-27-l1b-4b-actions-maison-raison.mjs` a fondu les deux dans le
- * champ d'enveloppe `maison` (`maisonSchema`) : le texte de la note EST la raison. Le refine est
- * mort — ce que le TYPE garde désormais se mesure ici, sur la donnée réelle mutée, sans quoi la mort
- * du refine ne serait couverte par rien.
+ * Contrat de COÛT d'`actions.json` (#1467 L1b V-P3) : une action maison porte sa raison dans le champ d'enveloppe
+ * `maison` (`maisonSchema`). Le TYPE le garde, mesuré ici sur la donnée réelle mutée.
  */
 
 type Action = Record<string, unknown>;
-const REELLES = actionsJson as unknown as Action[];
 /** Copie profonde de la donnée réelle — chaque mutation part de l'état committé, jamais d'une fixture. */
-const copie = (): Action[] => JSON.parse(JSON.stringify(REELLES));
+const copie = (): Action[] => JSON.parse(JSON.stringify(ACTIONS));
 /** Index de la première entrée portant un arbitrage de coût (la cible des mutations). */
-const CIBLE = REELLES.findIndex((a) => typeof a.maison === 'string');
+const CIBLE = ACTIONS.findIndex((a) => typeof a.maison === 'string');
 
 describe('actions.json — l’arbitrage de coût est une RAISON, portée par le type seul (#1467 L1b)', () => {
   it('la donnée RÉELLE valide son schéma, et la cible des mutations existe', () => {
     expect(CIBLE).toBeGreaterThanOrEqual(0);
-    expect(schema.safeParse(REELLES).success).toBe(true);
+    expect(schema.safeParse(ACTIONS).success).toBe(true);
   });
 
   it('`maison: true` (l’ancien drapeau) est REFUSÉ — un booléen ne dit aucune raison', () => {

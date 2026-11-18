@@ -15,7 +15,9 @@ import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecaniq
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { CibleEtendue, NatureDeMention } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
+import type { RegimeDeBord } from './disease';
 import type { ActionId, NightStakeId } from '../data/index';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
 /**
@@ -55,19 +57,7 @@ export type ReachValue = (typeof REACH_LABELS)[ReachId] | typeof REACH_VARIABLE;
  *  l'exception qui invitait l'imitation) : l'affichage (abréviation/libellé) vient de
  *  `characteristics.json`/`CHAR_LABELS`, jamais du littéral de la clé — une clé ne se rend JAMAIS
  *  telle quelle à l'écran. */
-export type CharKey =
-  | 'capacite-de-combat'
-  | 'capacite-de-tir'
-  | 'force'
-  | 'endurance'
-  | 'initiative'
-  | 'agilite'
-  | 'dexterite'
-  | 'intelligence'
-  | 'force-mentale'
-  | 'sociabilite';
-
-export const CHAR_KEYS: CharKey[] = [
+export const CHAR_KEYS = [
   'capacite-de-combat',
   'capacite-de-tir',
   'force',
@@ -78,7 +68,10 @@ export const CHAR_KEYS: CharKey[] = [
   'intelligence',
   'force-mentale',
   'sociabilite',
-];
+] as const satisfies readonly IdsParEspace['characteristics.json'][];
+export type CharKey = (typeof CHAR_KEYS)[number];
+/** `k` est-il l'une des 10 Caractéristiques (`CHAR_KEYS`) ? */
+export const estCharKey = (k: string): k is CharKey => (CHAR_KEYS as readonly string[]).includes(k);
 
 // Libellés FR dérivés du catalogue i18n (source unique des textes — plan évacué → #320).
 export const CHAR_LABELS: Record<CharKey, string> = {
@@ -1599,6 +1592,8 @@ export interface Combatant {
   /** Maladies et infections en cours (LDB 20) — incubation/durée décomptées au repos ; symptômes =
    *  donnée (`symptoms.json`) lus par `diseasePassiveOps` (fièvre…) / `rest.ts` (Malaise→Exténué, Blessé). */
   diseases?: import('./disease').Disease[];
+  /** Régime de bord : vivres frais et soupe de chou mangés. MDG 14 l.230-232 */
+  regimeDeBord?: RegimeDeBord;
   /** Faim (LDB 18 l.337-343) : jours sans manger, Tests tentés (−10 cumulatif), échecs (malus de
    *  caracs lus par `hungerCharPenalties`). Absent = nourri. Entretien quotidien : `dailyFoodUpkeep`. */
   hunger?: import('./provisions').HungerState;
@@ -1734,7 +1729,7 @@ export interface Combatant {
   /** Précipitations du jour de mer sous lesquelles ce combattant agit (MDG 13 l.185, #1936) : posées à
    *  l'ouverture d'un combat survenant pendant un voyage maritime. SEULE source du canal
    *  `precipitationTestMods` en combat. Transitoire (non persistée hors combat). */
-  envPrecipitation?: import('./seaWeather').SeaPrecipitationId;
+  envPrecipitation?: string;
   /** Adversaires avec qui ce combattant est Engagé en mêlée (LDB 13 l.169-171).
    *  Relationnel et symétrique ; purgé par paire en fin de Round si aucune attaque échangée. */
   engagedWith?: string[];

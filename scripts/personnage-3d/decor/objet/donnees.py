@@ -22,11 +22,10 @@ dans la recette, des primitives qu'elle lit.
 - `tas-or` : un tas bosselé semé de pièces, des piles à son pied, un calice creux garni de pièces, un coffret de
   planches sous un couvercle de fer, à pentures cloutées et serrure de laiton.
 
-Matières : celles des recettes, sauf celles-ci. Le catalogue `prop` n'a ni verre, ni papier, ni cire, ni terre cuite
-(#4423) : la glace du miroir garde `albatre`, la lettre `toile-ecrue` et son sceau `toile-rouge`, le pot `bois-chene`,
-que nomment les recettes. Le sac du mannequin, que sa recette ne porte pas, prend `toile-ecrue`, sa botte `paille` et
-ses liens `corde` ; la terre de la plante, que sa recette ne porte pas, prend `terre-battue`. Le coffret du trésor,
-dont la recette est de `bois-chene` et de `fer-noirci`, prend pour sa serrure le `laiton-dore` du tas.
+Matières : celles des recettes, sauf celles-ci. Le sac du mannequin, que sa recette ne porte pas, prend `toile-ecrue`,
+sa botte `paille` et ses liens `corde` ; la terre de la plante, que sa recette ne porte pas, prend `terre-battue`. Le
+coffret du trésor, dont la recette est de `bois-chene` et de `fer-noirci`, prend pour sa serrure le `laiton-dore` du
+tas. Le catalogue n'a pas d'or : les pièces, le tas et le calice du trésor sont du `laiton-dore` de leur recette.
 
 Écarts aux recettes : le cadre du miroir tient entre ses montants, plus étroit que la boîte de la recette, qui les
 traverse ; le feuillet de la lettre s'arrête sous le bord de la lettre, que sa boîte traverse ; le panneton de la clé
@@ -38,13 +37,14 @@ FER = {"fer": ("metal", "fer-noirci")}
 LAITON = {"laiton": ("metal2", "laiton-dore")}
 CORDE = {"corde": ("accent", "corde")}
 MATERIAUX = {
-    "miroir": {**BOIS, "glace": ("corps", "albatre")},
+    "miroir": {**BOIS, "glace": ("corps", "verre")},
     "mannequin": {**BOIS, "toile": ("vet1", "toile-ecrue"), "paille": ("vegetal", "paille"), **CORDE, **LAITON, **FER},
     "mannequin-couturier": {**BOIS, "toile": ("vet1", "toile-rouge"), **LAITON},
-    "plante-pot": {**BOIS, "terre": ("corps", "terre-battue"), "feuillage": ("vegetal", "feuillage")},
+    "plante-pot": {**BOIS, "pot": ("corps", "terre-cuite"), "terre": ("corps", "terre-battue"),
+                   "feuillage": ("vegetal", "feuillage")},
     "bourse": {"cuir": ("cuir", "cuir-tanne"), **CORDE, **LAITON},
     "cle": FER,
-    "lettre": {"papier": ("corps", "toile-ecrue"), "cire": ("accent", "toile-rouge")},
+    "lettre": {"papier": ("corps", "papier"), "cire": ("accent", "cire-a-cacheter")},
     "tas-or": {**LAITON, **BOIS, **FER},
 }
 
@@ -52,7 +52,7 @@ BUDGET_TRIANGLES = {"miroir": 1700, "mannequin": 2300, "mannequin-couturier": 17
                     "bourse": 1400, "cle": 600, "lettre": 600, "tas-or": 6200}
 
 ANGLE_LISSE = {"bois": 40, "fer": 40, "laiton": 40, "glace": 30, "toile": 60, "paille": 30, "corde": 40, "terre": 40,
-               "feuillage": 30, "cuir": 60, "papier": 30, "cire": 40}
+               "feuillage": 30, "cuir": 60, "papier": 30, "cire": 40, "pot": 40}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : un chanfrein, un brin de
 paille et le limbe d'une feuille gardent leurs arêtes, une pièce tournée et une étoffe sont rondes."""
 

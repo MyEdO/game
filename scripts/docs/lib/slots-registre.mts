@@ -131,49 +131,6 @@ export function champsDOpASlot(opDefs: Readonly<Record<string, unknown>> = OP_DE
   return new Set([...out].sort(parUnitesDeCode));
 }
 
-/** Un nœud d'op du corpus, tel que le rend `scanGameOpRefs` (`scripts/guards/lib/gameOpRefFk.mjs › noeudsDOp`). */
-export type NoeudDOp = { readonly file: string; readonly path: string; readonly op: string; readonly noeud: object };
-
-/** Une chaîne d'un champ d'op à slot qu'AUCUN parse ne juge. */
-export type ValeurNonJugee = { dataset: string; path: string; op: string; champ: string; valeur: string };
-
-/**
- * Les chaînes des CHAMPS D'OP À SLOT (`champsASlot`) portées par les nœuds d'op HORS du parse de
- * mesure (absents de `atteintes`, `opsDuParse`), qui ne sont pas une CASE `(porteur, clé)` des slots
- * de leur document (`slotsDuParse`). Le scan des refs d'op saute ces champs parce que le parse les
- * juge : un nœud non atteint n'a pas de parse d'op, sa seule preuve est le parse de SON document.
- */
-export function slotsDOpNonJuges(
-  noeuds: readonly NoeudDOp[],
-  atteintes: ReadonlySet<object>,
-  slots: readonly Slot[],
-  champsASlot: ReadonlySet<string>,
-): ValeurNonJugee[] {
-  const cases = new Map<object, Set<string | number>>();
-  for (const s of slots) {
-    if (s.parCle) continue;
-    if (!cases.has(s.porteur)) cases.set(s.porteur, new Set());
-    cases.get(s.porteur)!.add(s.cle);
-  }
-  const out: ValeurNonJugee[] = [];
-  for (const n of noeuds) {
-    if (atteintes.has(n.noeud)) continue;
-    for (const [champ, valeur] of Object.entries(n.noeud)) {
-      if (!champsASlot.has(`${n.op}.${champ}`)) continue;
-      const visiter = (porteur: object, cle: string | number, v: unknown, path: string) => {
-        if (typeof v === 'string') {
-          if (!cases.get(porteur)?.has(cle)) out.push({ dataset: n.file, path, op: n.op, champ, valeur: v });
-          return;
-        }
-        if (Array.isArray(v)) { v.forEach((x, i) => visiter(v, i, x, `${path}[${i}]`)); return; }
-        if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) visiter(v, k, x, `${path}.${k}`);
-      };
-      visiter(n.noeud, champ, valeur, `${n.path}.${champ}`);
-    }
-  }
-  return out;
-}
-
 const cleDeCouple = (c: { dataset: string; champ: string }) => `${c.dataset} | ${c.champ}`;
 
 /** Les CASES `(porteur, clé)` inscrites par le scan qui sont des slots. */

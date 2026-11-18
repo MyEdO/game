@@ -19,6 +19,11 @@
       "matiere": "prop--os"
     },
     {
+      "nom": "corne",
+      "palette": "accent",
+      "matiere": "prop--corne"
+    },
+    {
       "nom": "chaos",
       "palette": "corps",
       "matiere": "prop--pierre-chaos"
@@ -30,7 +35,7 @@
     }
   ],
   "glb": {
-    "sha256": "3bcd475cd67261a5bd65f7b5c8a959eaab3c240e0f9927ced6724e7621a5ae27",
-    "octets": 103192
+    "sha256": "387035ad50ca7d9551c1f35c5e0f1d72b13a8be2ed7038a614458de09233fc23",
+    "octets": 104032
   }
 }

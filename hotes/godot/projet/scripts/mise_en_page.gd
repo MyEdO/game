@@ -82,7 +82,7 @@ const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord 
 const ECART_DE_BULLE := 12.0
 ## L'écart d'une fenêtre posée en bas de la scène au bas de la scène et au meuble de l'actif, en pixels.
 const ECART_DU_MEUBLE := 8.0
-## La largeur la plus grande d'un bandeau de jet, en unités de la vue de 1280 × 720.
+## La largeur la plus grande d'un bandeau de jet, en pixels.
 const LARGEUR_DU_BANDEAU := 1091.0
 ## La largeur la plus étroite de la chronique posée sur la scène en combat, sa pastille comprise, en pixels.
 const LARGEUR_DE_LA_CHRONIQUE := 310.0
@@ -387,6 +387,12 @@ static func hauteur_au_gabarit(hauteur: float, sommet: float, sommet_neutre: flo
 ## Le centre de la case `case` sur son sol, à `sol` au-dessus du plan du plateau.
 static func centre_de_case(case: Vector2i, sol: float) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, sol, case.y + DEMI_CASE)
+
+
+## Le point du sol d'une case que l'écran publie, de son centre `centre` : poussé à l'est assez pour quitter l'arête
+## des deux triangles du sol, trop peu pour changer ce que le point désigne (`Monde.points`).
+static func point_publie(centre: Vector3) -> Vector3:
+	return centre + Vector3(DEMI_CASE / 32.0, 0.0, 0.0)
 
 
 ## Le point du plateau au-dessus du point (`x`, `y`) de la carte, en cases continues (une case centrée sur l'entier), à

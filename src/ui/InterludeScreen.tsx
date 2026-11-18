@@ -30,7 +30,7 @@ import { findTalentById, skillInstanceLabel, findTrappingById, refLabel, activit
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
 import { trappingCategorieSchema } from '../data/schemas/defs/trappings';
-import type { Combatant, ConditionId } from '../engine/types';
+import type { Combatant } from '../engine/types';
 import { rule } from '../engine/policy';
 import { effectiveEntry } from '../engine/variants';
 import { ownsLocalNet } from './ownership';
@@ -1294,7 +1294,7 @@ function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => v
         {devis.lots.flatMap(({ heroId, lots }) => lots.map((lot, i) => {
           // Les ÉTATS de clôture passent par la primitive partagée (chips + popover Codex), le Standing par sa
           // ligne, nommée par la source du lot.
-          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
+          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id.id, value: typeof o.value === 'number' ? o.value : 1 }));
           const standing = lot.ops.reduce((n, o) => n + (o.op === 'statusMod' && typeof o.amount === 'number' ? o.amount : 0), 0);
           return (
             <Fragment key={`close-${heroId}-${i}`}>

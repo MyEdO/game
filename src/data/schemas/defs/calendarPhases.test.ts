@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import calendarPhasesJson from '../../calendarPhases.json';
 
-type Phase = { id: string; seuil: number; [k: string]: unknown };
-const reel = (): Phase[] => structuredClone(calendarPhasesJson) as unknown as Phase[];
+const reel = () => structuredClone(calendarPhasesJson);
 
 describe('calendarPhases — seuils distincts', () => {
   it('la donnée réelle passe', () => {
@@ -19,7 +18,7 @@ describe('calendarPhases — seuils distincts', () => {
 });
 
 describe('calendarPhases — un seuil est une minute du jour', () => {
-  const nuitA = (seuil: number): Phase[] => {
+  const nuitA = (seuil: number) => {
     const doc = reel();
     const nuit = doc.find((p) => p.id === 'nuit');
     expect(nuit, 'la phase « nuit » manque à calendarPhases.json').toBeDefined();

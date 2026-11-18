@@ -26,12 +26,11 @@ haut) ; un azimut est un angle en degrés dans le plan du sol, de +x vers +y.
 - `colonne-brisee` : un socle carré, une base à deux tores et une scotie, un fût cannelé de trois tambours inégaux
   qui défile, sa cassure en éclat du côté haut du prisme de la recette ; un tambour tombé, sa cassure ; un éclat.
 
-Matières : celles des recettes. Le puits prend `fer-noirci`, que sa recette ne nomme pas, pour sa manivelle, les
-cercles et l'anse de son seau ; l'autel prend `ombre` pour la mèche de ses cierges. Le catalogue n'a ni eau vive ni
-eau claire (`eau-dormante` pour les deux bassins et l'auge), ni mortier ou chaux pour les joints (le blocage est de
-`pierre-atre`), ni mousse ou lichen, ni cire (`albatre`, que la recette donne aux cierges). Aucun emplacement de
-palette ne nomme la pierre, l'ardoise ni la terre : elles prennent `corps` ; l'eau, le sang, l'ombre et la corde,
-`accent`."""
+Matières : celles des recettes. Le puits prend `fer-noirci`, que sa recette ne nomme pas, pour sa manivelle, les cercles
+et l'anse de son seau ; l'autel prend `ombre` pour la mèche de ses cierges. Le catalogue n'a ni eau vive ni eau claire
+(`eau-dormante` pour les deux bassins et l'auge), ni mortier ou chaux pour les joints (le blocage est de `pierre-atre`),
+ni mousse ou lichen. Aucun emplacement de palette ne nomme la pierre, l'ardoise, la cire ni la terre : elles prennent
+`corps` ; l'eau, le sang, l'ombre et la corde, `accent`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 PIERRE = {"pierre": ("corps", "pierre-atre")}
@@ -43,7 +42,8 @@ MATERIAUX = {
               "corde": ("accent", "corde"), "ombre": ("accent", "ombre")},
     "fontaine": {**PIERRE, **EAU},
     "abreuvoir": {**BOIS, **EAU},
-    "autel": {**PIERRE, **MARBRE, "sang": ("accent", "sang-repandu"), "meche": ("accent", "ombre")},
+    "autel": {**PIERRE, **MARBRE, "cire": ("corps", "cire"), "sang": ("accent", "sang-repandu"),
+              "meche": ("accent", "ombre")},
     "sarcophage": {**PIERRE, **MARBRE},
     "tombe": {**PIERRE, "terre": ("corps", "terre-battue")},
     "colonne-brisee": {**PIERRE, **MARBRE},
@@ -53,7 +53,7 @@ BUDGET_TRIANGLES = {"puits": 5200, "fontaine": 3600, "abreuvoir": 1500, "autel":
                     "colonne-brisee": 2200}
 
 ANGLE_LISSE = {"pierre": 30, "marbre": 35, "bois": 40, "ardoise": 30, "fer": 40, "corde": 50, "ombre": 30, "eau": 30,
-               "sang": 40, "meche": 40, "terre": 60}
+               "sang": 40, "cire": 35, "meche": 40, "terre": 60}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : une pierre taillée garde ses
 arêtes, une pièce tournée et un tertre sont ronds."""
 

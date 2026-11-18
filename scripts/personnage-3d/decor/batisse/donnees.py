@@ -54,7 +54,7 @@ MATERIAUX = {
     "escalier-bois": {**BOIS},
     "stalle-ecurie": {**BOIS, "paille": ("vegetal", "paille")},
     "grille": {**FER, "ombre": ("accent", "ombre")},
-    "paravent": {**BOIS, "toile": ("vet1", "albatre")},
+    "paravent": {**BOIS, "toile": ("vet1", "toile-ecrue")},
 }
 
 BUDGET_TRIANGLES = {"cheminee": 2600, "cheminee-interieure": 5200, "clocheton": 5500, "arche-ruine": 3200,

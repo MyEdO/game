@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import tablesJson from '../../tables.json';
 
-type Table = { id: string; die: { n: number; sides: number }; entries: { min: number | null; max: number | null }[] };
-const clone = () => structuredClone(tablesJson) as unknown as Table[];
+const clone = () => structuredClone(tablesJson);
 
 describe('tables.json — chaque table couvre son dé depuis 1', () => {
   it('le schéma accepte le document RÉEL', () => {

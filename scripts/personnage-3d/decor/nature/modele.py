@@ -121,7 +121,7 @@ def toile(D, G, pieces, a):
     recette, spirale fléchie entre les rayons, du carré du dedans à celui du dehors par celui du milieu, son écart au
     moyeu sur chaque rayon pris entre leurs croisements (`maille.lineaire`), araignée tête en bas, le bout de ses huit
     pattes coudées sur un nœud de la spirale."""
-    T, soie, ombre = D["TOILE"], pieces["soie"], pieces["ombre"]
+    T, soie, chitine = D["TOILE"], pieces["soie"], pieces["chitine"]
     cm, cotes_du_montant = pave(G.primitives[T["montant"]])
     ct, _ = pave(G.primitives[T["traverse"]])
     travers = HAUT.cross(FRONT)
@@ -155,8 +155,8 @@ def toile(D, G, pieces, a):
                 (r_soie, r_soie), T["soie_cotes"], "soie")
 
     cs, (lx, ly, lz) = pave(G.primitives[T["araignee"]])
-    tour(ombre, [(lz / 2 * z, lx / 2 * large, ly / 2 * profond) for z, large, profond in T["corps"]], "z", cs,
-         T["corps_cotes"], "ombre")
+    tour(chitine, [(lz / 2 * z, lx / 2 * large, ly / 2 * profond) for z, large, profond in T["corps"]], "z", cs,
+         T["corps_cotes"], "chitine")
     hanche = cs + HAUT * (lz / 2 * T["hanche"])
     libres = list(points)
     for cote in COTES:
@@ -166,8 +166,8 @@ def toile(D, G, pieces, a):
             libres.remove(noeud)
             bout = noeud + FRONT * r_soie
             genou = hanche.lerp(bout, 1 / 2) + FRONT * (ly / 2 * T["genou"])
-            courbee(ombre, lisse([hanche, genou, bout], T["patte_pas"]), (bout - hanche).cross(FRONT).normalized(),
-                    tuple(lx / 2 * part for part in T["patte"]), T["soie_cotes"], "ombre")
+            courbee(chitine, lisse([hanche, genou, bout], T["patte_pas"]), (bout - hanche).cross(FRONT).normalized(),
+                    tuple(lx / 2 * part for part in T["patte"]), T["soie_cotes"], "chitine")
 
 
 def champignon(D, G, pieces, a):

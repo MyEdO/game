@@ -29,6 +29,7 @@ import { riverNavigation, type RiverNavigationData } from '../data';
 import riverPerilsJson from '../data/river-perils.json';
 import { datasetDe } from '../data/datasets';
 import type * as riverPerilsDef from '../data/schemas/defs/river-perils';
+import type { RiverWindDirId } from '../data/schemas/defs/river-navigation';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { deDeLaTableTiree, findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
@@ -42,18 +43,14 @@ import { t } from '../i18n';
 
 // ── Types de la table des vents (l.21-41) ────────────────────────────────────────────────────────
 
-export type RiverWindForceId = 'calme' | 'leger' | 'modere' | 'fort' | 'tres-fort';
-/** Direction du vent RELATIVE au bateau (MSRC 7 l.25-33) — pas une direction cardinale (≠ mer). */
-export type RiverWindDirId = 'arriere' | 'cote' | 'contraire';
-
 /** Cellule d'EFFET DU VENT (l.29-33). */
-export type RiverWindEffect = RiverNavigationData['windEffect'][string][RiverWindDirId];
+export type RiverWindEffect = RiverNavigationData['windForces']['entries'][number]['effet'][RiverWindDirId];
 
 interface CritDef { driftUntilRepair?: boolean; hole?: boolean }
 
 const DATA: RiverNavigationData = riverNavigation;
 
-export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceId[] => DATA.windForces.entries.map((f) => f.id as RiverWindForceId));
+export const riverForces = memoParVersion('riverNavigation', (): string[] => DATA.windForces.entries.map((f) => f.id));
 export const navBaseDifficulty = (): Difficulty => DATA.navBaseDifficulty;
 export const tackDifficulty = (): Difficulty => DATA.tackDifficulty;
 export const CAPSIZE = DATA.capsize;
@@ -62,33 +59,35 @@ export const TEMPORARY_REPAIR = DATA.temporaryRepair;
 export const driftPctOfSpeed = (): number => DATA.driftPctOfSpeed;
 export const driftNavPenalty = (): number => DATA.driftNavPenalty;
 
-export const riverForceLabel = (id: RiverWindForceId): string => DATA.windForces.entries.find((f) => f.id === id)?.label ?? id;
+export const riverForceLabel = (id: string): string => DATA.windForces.entries.find((f) => f.id === id)?.label ?? id;
 export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections.entries.find((d) => d.id === id)?.label ?? id;
 
 // ── Vent (l.21-41) ───────────────────────────────────────────────────────────────────────────────
 
 /** Tire la force et la direction du vent en début de voyage (l.21), chacune au dé de sa table (l.25, l.27). PUR. */
-export function rollRiverWind(rng: RNG): { force: RiverWindForceId; dir: RiverWindDirId } {
+export function rollRiverWind(rng: RNG): { force: string; dir: RiverWindDirId } {
   const { windForces, windDirections } = DATA;
   return {
-    force: findTableEntry(windForces.entries, rollDice(deDeLaTableTiree(windForces), rng)).id as RiverWindForceId,
-    dir: findTableEntry(windDirections.entries, rollDice(deDeLaTableTiree(windDirections), rng)).id as RiverWindDirId,
+    force: findTableEntry(windForces.entries, rollDice(deDeLaTableTiree(windForces), rng)).id,
+    dir: findTableEntry(windDirections.entries, rollDice(deDeLaTableTiree(windDirections), rng)).id,
   };
 }
 
 /** UNE mise à jour de la force du vent (l.21). PUR. */
-export function tickRiverWind(current: RiverWindForceId, rng: RNG): RiverWindForceId {
+export function tickRiverWind(current: string, rng: RNG): string {
   return basculesDeForce(riverForces(), current, DATA.windTickThreshold, 1, () => d10(rng));
 }
 
 /** Nombre de crans de force appliqués sur une JOURNÉE (4 tirages, l.21). PUR. */
-export function tickRiverWindDay(current: RiverWindForceId, rng: RNG): RiverWindForceId {
+export function tickRiverWindDay(current: string, rng: RNG): string {
   return basculesDeForce(riverForces(), current, DATA.windTickThreshold, DATA.windTicksPerDay, () => d10(rng));
 }
 
 /** Effet du vent pour une force × direction relative (Tableau des vents, l.29-33). PUR. */
-export function riverWindEffect(force: RiverWindForceId, dir: RiverWindDirId): RiverWindEffect {
-  return DATA.windEffect[force]?.[dir] ?? {};
+export function riverWindEffect(force: string, dir: RiverWindDirId): RiverWindEffect {
+  const rangee = DATA.windForces.entries.find((f) => f.id === force);
+  if (!rangee) throw new Error(`river-navigation.json : force de vent « ${force} » absente de windForces (ids : ${riverForces().join(', ')}).`);
+  return rangee.effet[dir];
 }
 
 // ── Navigation (l.11-17) ─────────────────────────────────────────────────────────────────────────

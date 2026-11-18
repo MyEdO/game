@@ -89,8 +89,7 @@ import { props } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
-import areneProjet from '../../scenes/arene/arene-projet.json';
+import { allBuiltinCampaigns, areneCampaign, paquetDuJeu } from '../../scenes/campaign';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
@@ -594,12 +593,13 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
   });
 
   it('la référence locale d’un effet se choisit parmi exactement sa portée : les scènes du projet, les personnages de la scène, ses marchands (#3606 M2d)', () => {
-    const hub = areneProjet.scenes.find((sc) => sc.id === 'arene-hub')! as unknown as Scene;
+    const projetArene = paquetDuJeu(areneCampaign);
+    const hub = projetArene.scenes.find((sc) => sc.id === 'arene-hub')!;
     const offerts = (effect: Effect, champ: string) => {
       const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence' as const, etapes: [{ kind: 'effet' as const, effet: effect }] } };
-      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: hub, projet: { scenes: areneProjet.scenes as unknown as Scene[], narratif: NARRATIF_VIDE }, source: SANS_SOURCE })!.map((c) => c.valeur);
+      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: hub, projet: { scenes: projetArene.scenes, narratif: NARRATIF_VIDE }, source: SANS_SOURCE })!.map((c) => c.valeur);
     };
-    expect(offerts({ type: 'transition', scene: { id: 'arene-hub' } }, 'scene')).toEqual(areneProjet.scenes.map((sc) => sc.id));
+    expect(offerts({ type: 'transition', scene: { id: 'arene-hub' } }, 'scene')).toEqual(projetArene.scenes.map((sc) => sc.id));
     const personnages = hub.entities.filter((e) => e.kind === 'personnage');
     expect(offerts({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'medecin' } }, 'entityId')).toEqual(personnages.map((e) => e.id));
     expect(offerts({ type: 'openMerchant', entityId: { id: 'medecin' } }, 'entityId')).toEqual(personnages.filter((e) => e.merchant).map((e) => e.id));

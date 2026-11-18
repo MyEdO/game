@@ -33,13 +33,13 @@ import {
 } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY } from './clock';
-import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
+import { contractDiseaseOnce, exposerALaMaladie, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
 import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
-import type { SeaWeather } from './seaWeather';
+import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import type { CustomStatblock } from './statblock';
 import { ALL_MAGIC, type CastPenalty, type Difficulty, type Main } from './types';
 import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
@@ -100,7 +100,7 @@ import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { retraitsDits } from './weaponDamage';
-import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
+import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
@@ -699,7 +699,7 @@ export type GameOp =
    *  instance, pas une par jour). */
   | { op: 'removeTrait'; trait: { id: string } }
   /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
-   *  `c.psychTraits` à l'attache. `psychType.id` = `PsychType` (frenesie, peur…). Champs réservés aux sorts
+   *  `c.psychTraits` à l'attache. `psychType.id` = un id de `psychology.json` (frenesie, peur…). Champs réservés aux sorts
    *  (`grammaire/mecanique.ts`) : `envers` vise une personne que le DÉCIDEUR choisit (VDM 10 l.327), résolue
    *  par le noyau en `cible` d'individu AVANT `applyOps` (`noyau/personneChoisie.ts`) ; `resistanceSiAmis`, le
    *  Test qui permet à la cible de résister quand elle et la personne sont amies (VDM 10 l.327) ;
@@ -1308,7 +1308,7 @@ export type GameOp =
    *  souffle à l'opposé des dominants (`ventInverse`), et chaque matin `aggravation.de` ≥ `seuil` impose en
    *  plus `aggravation.meteo`. Posée sur le navire, elle vaut au départ d'un port. Op de NAVIRE.
    *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
-  | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo }
+  | { op: 'meteoImposee'; jours: Formula; meteo?: MeteoImposee; ventInverse?: true; aggravation?: AggravationMeteo }
   /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
    *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port ; OU
    *  `perduePct` % de l'Enc de la cale perdus ; OU `perdueEnc` Enc de la cale perdus. Op de NAVIRE.
@@ -1372,7 +1372,7 @@ export type GameOp =
   | { op: 'marcheDuPort'; demande: number; jours: Formula; colonnes?: never; offre?: never };
 
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
-export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
+export interface AggravationMeteo { de: Formula; seuil: number; meteo: MeteoImposee }
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
@@ -2057,6 +2057,32 @@ export function reussiteSansObjet(c: Combatant, ops: readonly GameOp[], ctx: Con
   return raisons.every((r) => r != null) ? raisons[0] : null;
 }
 
+type OpTable = Extract<GameOp, { op: 'rollTable' }>;
+
+/** Les rangées d'une op `rollTable` : en ligne (`entries`) ou référencées (`tableId` → tables.json, fail-fast). */
+function rangeesDeLaTable(o: OpTable): { min: number; max: number; ops: GameOp[] }[] {
+  return 'tableId' in o ? findEffectTableById(o.tableId).entries : o.entries;
+}
+
+/** Une rangée tirée d'une `rollTable` : ses ops et le dé tiré (`rolled` des ops de la rangée). */
+interface RangeeTiree { ops: GameOp[]; rolled: number }
+
+/** Développe une op `rollTable` en rangées tirées, sans rien appliquer : un jet par rangée rendue, tiré à la
+ *  demande (l'appelant qui applique une rangée avant la suivante garde l'ordre des tirages de `rng`).
+ *  VDM 03 l.698 ; MSRC 16 l.90 ; EDOC 13 l.276 */
+export function* tirerLaTable(o: OpTable, ctx: Pick<OpsCtx, 'sl' | 'overcastDurationSteps' | 'chosenTableRolls'>, rng: RNG): Generator<RangeeTiree> {
+  const rows = rangeesDeLaTable(o);
+  const de = 'tableId' in o ? effectTableDie(o.tableId) : deDeTirageDe(o);
+  const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);
+  const allocatedSteps = Math.max(0, ctx.overcastDurationSteps ?? 0);
+  const chosenSteps = Math.min(ctx.chosenTableRolls ?? allocatedSteps, allocatedSteps);
+  const times = 1 + (o.extraRollsPerStep ? chosenSteps * o.extraRollsPerStep : 0);
+  for (let i = 0; i < times; i++) {
+    const rolled = rollDice(de, rng);
+    yield { ops: findTableEntry(rows, rolled + modifier).ops, rolled };
+  }
+}
+
 /**
  * Exécute une liste d'ops sur `target`. Les `charMod` consécutifs d'une même
  * source sont appliqués individuellement mais journalisés en UNE ligne (format
@@ -2292,7 +2318,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // UPSERT par identité pour un Trait CIBLÉ, par (`type` + `sourceId`) sinon : un re-Test contre la
         // MÊME source met à jour SON entrée au lieu d'en empiler une seconde.
         const list = [...(target.psychState ?? [])];
-        const type = o.type.id as PsychType;
+        const type = o.type.id;
         const cible = o.cible === undefined ? undefined : cibleDeRef(o.cible);
         const identite = identiteDeCiblage(type, cible);
         const at = list.findIndex((p) => (cible !== undefined ? identiteDeCiblage(p.type, p.cible) === identite : p.type === type && p.sourceId === o.sourceId));
@@ -2596,17 +2622,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'exposeDisease': {
-        // SILENCIEUX (comme l'ancien flag) : l'exposition ne s'exprime qu'au bilan de fin de combat.
-        // Double exposition à la MÊME maladie → fusion en gardant la PIRE (shift le plus dur, instant si l'une l'impose).
-        const entry = { disease: o.disease, ...(o.difficultyShift ? { difficultyShift: o.difficultyShift } : {}), ...(o.incubation === 'instant' ? { instant: true } : {}) };
-        const prev = (target.diseaseExposure ?? []).find((e) => e.disease === o.disease);
-        target.diseaseExposure = prev
-          ? (target.diseaseExposure ?? []).map((e) => e !== prev ? e : {
-              disease: e.disease,
-              ...(Math.min(e.difficultyShift ?? 0, entry.difficultyShift ?? 0) !== 0 ? { difficultyShift: Math.min(e.difficultyShift ?? 0, entry.difficultyShift ?? 0) } : {}),
-              ...(e.instant || entry.instant ? { instant: true } : {}),
-            })
-          : [...(target.diseaseExposure ?? []), entry];
+        // SILENCIEUX : l'exposition se résout au bilan de fin de combat, ou hors combat par `ouvrirLesContagions`.
+        target.diseaseExposure = exposerALaMaladie(target.diseaseExposure, o);
         break;
       }
       case 'contractDisease': {
@@ -2938,24 +2955,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'rollTable': {
-        // Table INLINE (`entries`) ou RÉFÉRENCÉE (`tableId` → tables.json, fail-fast) — jamais les deux.
-        const table = 'tableId' in o ? findEffectTableById(o.tableId) : o;
-        const rows: { min: number; max: number; ops: GameOp[] }[] = table.entries;
-        const de = 'tableId' in o ? effectTableDie(o.tableId) : deDeTirageDe(o);
-        // Modificateur CONSTANT (Haute Alchimie « 1d10 + 3 », VDM 03 l.698) + |DR négatif| (Vers de carie,
-        // MSRC 16 l.90) → lookup `[min,max]` (source unique) → ops de la rangée.
-        const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);
-        // Multiplicité : 1 jet + `extraRollsPerStep` par PAS de Surincantation CHOISI (EDOC 13 l.276 :
-        // « vous pouvez » — déclinable, jamais forcé) ; borné aux pas réellement alloués à la Durée
-        // (la durée, elle, se prolonge intégralement sur TOUS les pas alloués — couplage asymétrique).
-        const allocatedSteps = Math.max(0, ctx.overcastDurationSteps ?? 0);
-        const chosenSteps = Math.min(ctx.chosenTableRolls ?? allocatedSteps, allocatedSteps);
-        const times = 1 + (o.extraRollsPerStep ? chosenSteps * o.extraRollsPerStep : 0);
-        for (let i = 0; i < times; i++) {
-          const die = rollDice(de, rng);
-          const entry = findTableEntry(rows, die + modifier);
-          lines.push(...applyOps(target, entry.ops, imbrique({ rolled: die })));
-        }
+        for (const r of tirerLaTable(o, ctx, rng)) lines.push(...applyOps(target, r.ops, imbrique({ rolled: r.rolled })));
         break;
       }
       case 'rollMutation': {

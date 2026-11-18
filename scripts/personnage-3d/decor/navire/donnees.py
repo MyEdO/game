@@ -33,13 +33,11 @@ degrés dans le plan du sol, de +x vers +y.
   sole et une entretoise entre elles ; un coussin et un coin de mire sous le premier renfort ; deux essieux
   équarris, quatre roues pleines à moyeu, chevillées, aux pans de la recette ; un anneau de brague à chaque flasque.
 
-Matières : celles des recettes, sauf : l'ancre, dont la recette est toute de `fer-noirci`, prend `bois-chene` pour son
-jas, de bois comme sur une ancre à jas, et pour la sole qui la présente posée ; le cabestan et l'écoutille prennent
-pour leurs frettes et leurs pitons le `fer-noirci` de leur chapeau et de leurs anneaux ; le mât prend `fer-noirci`, que
-sa recette ne nomme pas, pour ses frettes ; la passerelle prend `corde` pour sa filière. Le cœur de la glène est
-d'`ombre`, que la recette donne à son œil. Le catalogue n'a ni goudron ni chanvre goudronné (`corde` pour tout
-cordage), ni fer rouillé (`fer-noirci`). Aucun emplacement de palette ne nomme la corde ni l'ombre : elles prennent
-`accent` ; la toile, `vet1`."""
+Matières : celles des recettes, sauf : le cabestan et l'écoutille prennent pour leurs frettes et leurs pitons le
+`fer-noirci` de leur chapeau et de leurs anneaux ; le mât prend `fer-noirci`, que sa recette ne nomme pas, pour ses
+frettes ; la passerelle prend `corde` pour sa filière. Le cœur de la glène est d'`ombre`, que la recette donne à son
+œil. Le catalogue n'a ni goudron ni chanvre goudronné (`corde` pour tout cordage), ni fer rouillé (`fer-noirci`). Aucun
+emplacement de palette ne nomme la corde ni l'ombre : elles prennent `accent` ; la toile, `vet1`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}

@@ -32,10 +32,11 @@ import { marchandisesDe, findCargoById, rollSeasonalCargo, type CargoDef } from 
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
-  tickRiverWind, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods,
-  capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
+  tickRiverWind, riverWindEffect, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods,
+  capsizeRightDifficulty, capsizeRightCumulative,
 } from '../engine/riverNavigation';
-import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
+import { tickWindForce, tickWindForceDay, windEffect } from '../engine/seaWeather';
+import { schema as seaWeatherSchema } from '../data/schemas/defs/sea-weather';
 import { overloadMaxEnc, offerPricePct } from '../engine/seaVoyage';
 import { minCargoEnc, partialSurchargePct, rollMerchantSkill } from '../engine/landCargo';
 import { rollAvailability, barterRatio, colonneDeLaTaille } from '../engine/disponibilite';
@@ -271,17 +272,18 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(shipSizeOfLength(11)).toBe('minuscule');
   });
 
-  it('la fiche de Navigation fluviale ÉDITÉE : forces de vent et scalaires servis NEUFS', () => {
+  it('la fiche de Navigation fluviale ÉDITÉE : forces de vent, leurs effets et scalaires servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('riverNavigation'));
     const [calme, second] = fiche.windForces.entries;
-    expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe(second.id);
+    expect(tickRiverWind(calme.id, deFixe(1))).toBe(second.id);
     setObjectDataset('riverNavigation', {
       ...fiche,
       windForces: { ...fiche.windForces, entries: fiche.windForces.entries.map((f, i) => (i === 1 ? { ...f, id: 'brise-qc' } : f)) },
       navBaseDifficulty: 'difficile', tackDifficulty: 'difficile', driftPctOfSpeed: 40, driftNavPenalty: -30,
       capsize: { ...fiche.capsize, rightDifficulty: 'difficile', rightCumulativePenalty: -15 },
     });
-    expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe('brise-qc');
+    expect(tickRiverWind(calme.id, deFixe(1))).toBe('brise-qc');
+    expect(riverWindEffect('brise-qc', 'arriere')).toEqual(second.effet.arriere);
     expect(navBaseDifficulty()).toBe('difficile');
     expect(tackDifficulty()).toBe('difficile');
     expect(driftPctOfSpeed()).toBe(40);
@@ -290,20 +292,35 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(capsizeRightCumulative()).toBe(-15);
   });
 
-  it('les vents de mer ÉDITÉS : `tickWindForce` passe au cran NEUF', () => {
+  it('les vents de mer ÉDITÉS : `tickWindForce` passe au cran NEUF, `windEffect` lit sa rangée', () => {
     const fiche = structuredClone(datasetObject('seaWeather'));
     const [calme, second] = fiche.vents;
-    expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe(second.id);
+    expect(tickWindForce(calme.id, deFixe(1))).toBe(second.id);
     setObjectDataset('seaWeather', { ...fiche, vents: fiche.vents.map((v, i) => (i === 1 ? { ...v, id: 'brise-mer-qc' } : v)) });
-    expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe('brise-mer-qc');
+    expect(tickWindForce(calme.id, deFixe(1))).toBe('brise-mer-qc');
+    expect(windEffect('brise-mer-qc', 'arriere')).toEqual(second.effet.arriere);
+    expect(windEffect('brise-mer-qc', 'arriere', 'clinfoc').pctSail).toBe(second.effetClinfoc.arriere.pctSail);
+  });
+
+  it('une force de vent de mer NEUVE : refusée sans toutes ses cellules, servie avec', () => {
+    const fiche = structuredClone(datasetObject('seaWeather'));
+    const [calme, second] = fiche.vents;
+    const neuve = { ...second, id: 'risee-qc', label: 'Risée' };
+    const { face: _face, ...sansFace } = neuve.effet;
+    expect(seaWeatherSchema.safeParse({ ...fiche, vents: [calme, { ...neuve, effet: sansFace }, ...fiche.vents.slice(1)] }).success).toBe(false);
+    const vents = [calme, neuve, ...fiche.vents.slice(1)];
+    expect(seaWeatherSchema.safeParse({ ...fiche, vents }).success).toBe(true);
+    setObjectDataset('seaWeather', { ...fiche, vents });
+    expect(tickWindForce(calme.id, deFixe(1))).toBe('risee-qc');
+    expect(windEffect('risee-qc', 'face')).toEqual(second.effet.face);
   });
 
   it('la mise à jour du vent de mer ÉDITÉE : `tickWindForceDay` lit le seuil et le nombre de tirages NEUFS', () => {
     const fiche = structuredClone(datasetObject('seaWeather'));
     const [calme, second] = fiche.vents;
-    expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(calme.id);
+    expect(tickWindForceDay(calme.id, deFixe(2))).toBe(calme.id);
     setObjectDataset('seaWeather', { ...fiche, windTickThreshold: 2, windTicksPerDay: 1 });
-    expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(second.id);
+    expect(tickWindForceDay(calme.id, deFixe(2))).toBe(second.id);
   });
 
   it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability`, `barterRatio` et `colonneDeLaTaille` la lisent', () => {
