@@ -26,6 +26,7 @@ import { inBattleId } from './monde/combatants';
 import { combatantAtTile } from './monde/combatGeometry';
 import { pointDeCase, type Pt } from './monde/path';
 import { champAttendSaFenetre } from './targetingHolder';
+import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
  *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et la série d'attaques subies,
@@ -38,7 +39,7 @@ export function touchActors(state: Jeu): PatchDeFlux {
 /**
  * Contexte « Magie des mers » (MDG 02 l.178-186, `DomainData.seaModifier`) pour `resolveFocus`/
  * `resolveCasting` : en mer = en VOYAGE maritime (`travelPlan.mode === 'mer'`) OU en COMBAT
- * d'abordage sur le NAVIRE DE CAMPAGNE (sa coque, `vessel.vehicleId`, est un combattant du combat
+ * d'abordage sur le NAVIRE DE CAMPAGNE (sa coque est un combattant du combat
  * en cours — même détection que la persistance de coque en fin de combat, `combatFlow.ts`
  * `finishBattle`). `wind` = la météo du jour du voyage maritime (`travelPlan.sea.weather.vent`,
  * seule source de vent connue de l'état) ; `undefined` hors voyage maritime actif (silence RAW —
@@ -46,7 +47,7 @@ export function touchActors(state: Jeu): PatchDeFlux {
  */
 export function seaMagicContext(state: Jeu): { atSea: boolean; wind: string | undefined } {
   const vessel = state.vessel;
-  const boarding = !!vessel && !!state.battle?.combatants.some((c) => c.creatureId === vessel.vehicleId);
+  const boarding = !!state.battle?.combatants.some((c) => estLeNavireDeCampagne(c, vessel));
   const atSea = state.travelPlan?.mode === 'mer' || boarding;
   return { atSea, wind: atSea ? state.travelPlan?.sea?.weather.vent : undefined };
 }

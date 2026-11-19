@@ -15,6 +15,7 @@ import type { z } from 'zod';
 import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
+import { exigeProvenanceExclusive, type Provenance } from './grammaire/document';
 import { defDe, descendre, enfantsDe, estConteneur, ouverts, pasDeDonnee } from './grammaire/descente';
 import { atteindre, champDeCharge, collectionDe, noeudsDeLElement, type EspaceDeNoms } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
@@ -108,6 +109,19 @@ export function rapportDeFautes(sujet: string, fautes: readonly Faute[]): string
  *  ou undefined s'il n'est pas registré. */
 export function schemaForFile(file: string): z.ZodType | undefined {
   return DEFS_DE_DOCUMENT.find((d) => d.file === file)?.schema;
+}
+
+/** Le champ de provenance absent qui serait refusé s’il était ajouté à ce brouillon. */
+export function champDeProvenanceEcarte(file: string, { source, maison }: Provenance): 'source' | 'maison' | undefined {
+  if (!exigeProvenanceExclusive(schemaForFile(file))) return undefined;
+  if (source === undefined && maison !== undefined) return 'source';
+  if (source !== undefined && maison === undefined) return 'maison';
+  return undefined;
+}
+
+/** Le texte vidé d’une raison maison retire cette provenance dans le brouillon exclusif. */
+export function valeurDeProvenanceAuBrouillon(file: string, champ: string, valeur: unknown): unknown {
+  return champ === 'maison' && valeur === '' && exigeProvenanceExclusive(schemaForFile(file)) ? undefined : valeur;
 }
 
 /** Méta d'ÉDITION d'un document par nom de fichier — le canal registre est le SEUL chemin

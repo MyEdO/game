@@ -48,6 +48,7 @@ import {
   rectJouable,
 } from './monde/scene';
 import { aretesA } from './monde/wallIndex';
+import { estUneCoqueNavale } from './monde/coqueDeCampagne';
 import { translaterLaScene } from './translationDeLaScene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
@@ -955,7 +956,7 @@ export function dupliquerLEntite(scene: Scene, ent: SceneEntity): { scene: Scene
  *  (`premiereCaseEnAnneaux`), sur sa couche, où toute son empreinte (`entiteFootTiles`) tient debout (`tientDebout`,
  *  joignable à pied depuis `ent`) hors des cases d'une autre entité de la couche ou d'une copie déjà posée. Chaque copie
  *  tire ses Caractéristiques au hasard (LDB 77 l.108) et entre dans chaque rencontre de `ent` au même titre, sans la
- *  monture qu'il chevauche. Moins de `n` copies quand la couche manque de cases. */
+ *  monture qu'il chevauche ni la désignation du navire de campagne. Moins de `n` copies quand la couche manque de cases. */
 export function poserUneTroupe(scene: Scene, ent: SceneEntity, n: number): { scene: Scene; ids: string[] } {
   const z = ent.z ?? 0;
   const mpt = sceneMetresPerTile(scene);
@@ -976,7 +977,9 @@ export function poserUneTroupe(scene: Scene, ent: SceneEntity, n: number): { sce
   }
   const encounters = posee.encounters.map((enc) => {
     const m = enc.members?.find((mm) => mm.entityId === ent.id);
-    return m ? { ...enc, members: [...enc.members!, ...ids.map((entityId) => ({ ...m, entityId, ridesEntityId: undefined }))] } : enc;
+    return m ? { ...enc, members: [...enc.members!, ...ids.map((entityId) => champs(m, {
+      entityId, ridesEntityId: undefined, navireDeCampagne: undefined,
+    }))] } : enc;
   });
   return { scene: { ...posee, encounters }, ids };
 }
@@ -1104,9 +1107,29 @@ export function addEncounter(scene: Scene): { scene: Scene; id: string } {
   return { scene: { ...scene, encounters: [...scene.encounters, { id, members: [] }] }, id };
 }
 
-/** Patche la rencontre `id`. */
+/** #4227 */
+function sansDesignationDuNavire(rencontre: EncounterDef, entityId?: string): EncounterDef {
+  const membres = rencontre.members;
+  const aRetirer = (m: EncounterMember) => m.navireDeCampagne !== undefined && (entityId === undefined || m.entityId === entityId);
+  return membres?.some(aRetirer)
+    ? { ...rencontre, members: membres.map((m) => aRetirer(m) ? champ(m, 'navireDeCampagne', undefined) : m) }
+    : rencontre;
+}
+
+/** Patche la rencontre `id`. Une nouvelle désignation valide remplace celle d'avant. #4227 */
 export function patchEncounter(scene: Scene, id: string, patch: Partial<EncounterDef>): Scene {
-  return { ...scene, encounters: scene.encounters.map((e) => (e.id === id ? { ...e, ...patch } : e)) };
+  return { ...scene, encounters: scene.encounters.map((avant) => {
+    if (avant.id !== id) return avant;
+    const apres = champs(avant, patch);
+    if (avant.members === apres.members || !apres.members?.some((m) => m.navireDeCampagne !== undefined)) return apres;
+    const eligible = (m: EncounterMember) => m.side === 'allie' && estUneCoqueNavale(scene.entities.find((e) => e.id === m.entityId));
+    const dejaDesignes = new Set(avant.members?.filter((m) => m.navireDeCampagne && eligible(m)).map((m) => m.entityId));
+    const designe = apres.members.find((m) => m.navireDeCampagne && !dejaDesignes.has(m.entityId) && eligible(m));
+    const members = apres.members.map((m) => m.navireDeCampagne === undefined
+      || (m.navireDeCampagne && eligible(m) && (!designe || m.entityId === designe.entityId))
+      ? m : champ(m, 'navireDeCampagne', undefined));
+    return { ...apres, members };
+  }) };
 }
 
 /** Retire la rencontre `id`. */
@@ -1531,11 +1554,11 @@ const ECRITURE_DE_L_ECART: EcritureDuPorteur<DonneeDuPorteur['ecart']> = {
 const ecrituresDesRegistres = tableTotale(Object.keys(CORPS_NEUFS) as RegistreCreable[], (registre) => ecritureDuRegistre(registre)) as { readonly [R in RegistreCreable]: EcritureDuPorteur<DonneeDuPorteur[R]> };
 
 /** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur, d'un dialogue,
- *  d'une rencontre ou de la scène, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
+ *  ou de la scène, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
  *  renommage d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son
  *  retrait (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
  *  (`removeDialogue`), le renommage d'un de ses nœuds ou de la réponse d'un nœud (`elementDuDialogueRenomme`) et son refus
- *  dit (`refusDIdentifierDansLeDialogue`) ; d'une rencontre, sa création
+ *  dit (`refusDIdentifierDansLeDialogue`) ; d'une rencontre, son écriture (`patchEncounter`), sa création
  *  (`addEncounter`), son renommage propagé aux embuscades de route (`rencontreRenommee`), son retrait
  *  (`removeEncounter`), refusé tant qu'une embuscade de route la lance (`embuscadesDeLaRencontre`) ; d'un lieu, son
  *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`), et celui d'un de
@@ -1552,8 +1575,11 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
   entite: deLaScene({ ecrire: sceneAvecLEntite, renommerElement: actionRenommee }),
   dialogue: { ...deLaScene({ creer: addDialogue, renommer: renameDialogue, retirer: removeDialogue, renommerElement: elementDuDialogueRenomme, refusDeRenommer: refusDIdentifierDansLeDialogue }), ecrire: remplace('dialogue') },
   rencontre: {
-    ...deLaScene({ creer: addEncounter, retirer: removeEncounter }),
-    ecrire: remplace('rencontre'),
+    ...deLaScene({
+      ecrire: (scene: Scene, avant: EncounterDef, apres: EncounterDef) => ({ ok: true, valeur: patchEncounter(scene, avant.id, patchEntre(avant, apres)) }),
+      creer: addEncounter,
+      retirer: removeEncounter,
+    }),
     renommer: rencontreRenommee,
     refusDeRetirer: embuscadesDeLaRencontre,
   },
@@ -1747,14 +1773,10 @@ export function removeMember(scene: Scene, encId: string, entityId: string): Sce
 
 /** Patche le contexte de rencontre d'un membre (camp/monture/chevauche). */
 export function patchMember(scene: Scene, encId: string, entityId: string, patch: Partial<EncounterMember>): Scene {
-  return {
-    ...scene,
-    encounters: scene.encounters.map((e) =>
-      e.id === encId
-        ? { ...e, members: (e.members ?? []).map((m) => (m.entityId === entityId ? { ...m, ...patch } : m)) }
-        : e,
-    ),
-  };
+  const rencontre = scene.encounters.find((e) => e.id === encId);
+  if (!rencontre) return scene;
+  const members = (rencontre.members ?? []).map((m) => m.entityId === entityId ? { ...m, ...patch } : m);
+  return patchEncounter(scene, encId, { members });
 }
 
 /** Outil « combat » : POSE une entité-personnage de combat (cachée par défaut) à p bornée à la zone jouable
@@ -2037,7 +2059,10 @@ export function editEntity(scene: Scene, id: string, patch: Partial<SceneEntity>
   const apres = patchee.entities.find((e) => e.id === id);
   const absence = avant && apres && !typeNonNomme(avant) ? typeNonNomme(apres) : undefined;
   if (absence) throw new TypeNonNomme(absence);
-  return normaliserLaPose(patchee);
+  const perdSaCoqueNavale = estUneCoqueNavale(avant) && !estUneCoqueNavale(apres);
+  return normaliserLaPose(perdSaCoqueNavale
+    ? { ...patchee, encounters: patchee.encounters.map((r) => sansDesignationDuNavire(r, id)) }
+    : patchee);
 }
 
 /** Idem pour le sous-objet `combat` (fusion non écrasante) — même porte, même seam. */
@@ -2754,7 +2779,8 @@ export function addProjectScene(p: ProjectScenes, id: string): ProjectScenes {
 /** Copie la scène éditée sous l'id `id`, en fin de projet, et édite la copie. */
 export function duplicateProjectScene(p: ProjectScenes, id: string): ProjectScenes {
   const copie = JSON.parse(JSON.stringify(p.scene)) as Scene;
-  return versLaFin(p, { ...copie, id, label: `${p.scene.label || p.scene.id} (copie)` });
+  const encounters = copie.encounters.map((r) => sansDesignationDuNavire(r));
+  return versLaFin(p, { ...copie, id, label: `${p.scene.label || p.scene.id} (copie)`, encounters });
 }
 
 /** Retire la scène éditée et édite sa suivante, sinon sa précédente. null pour la seule scène du projet. */

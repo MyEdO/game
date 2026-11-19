@@ -687,6 +687,8 @@ export const encounterMemberSchema = nommerChamps(z.strictObject({
   entityId: z.string(),
   /** Camp au spawn : 'allie' pose un combattant du côté des héros (ex. monture prêtée). Défaut 'ennemi'. */
   side: equipeSchema.optional(),
+  /** Coque qui représente le navire de campagne dans cette rencontre. */
+  navireDeCampagne: z.boolean().optional(),
   /** PNJ allié piloté par l'IA (`Combatant.aiControlled`) : un allié qui AGIT SEUL (défenseur de siège,
    *  équipage d'une pièce…) au lieu d'être contrôlé par le joueur. Sans effet sur un membre 'enemy'. */
   ai: z.boolean().optional(),
@@ -694,7 +696,7 @@ export const encounterMemberSchema = nommerChamps(z.strictObject({
   mount: z.boolean().optional(),
   /** La monture chevauchée au spawn (pré-monté), parmi les montures de la rencontre. */
   ridesEntityId: ref(MONTURES_DE_LA_RENCONTRE).optional(),
-}), { entityId: { label: "entité" , texte: { regime: "technique"} }, side: { label: "côté"  }, ai: { label: "intelligence artificielle" }, mount: { label: "monture" }, ridesEntityId: { label: "monture" , texte: { regime: "technique"} } });
+}), { entityId: { label: "entité" , texte: { regime: "technique"} }, side: { label: "côté"  }, navireDeCampagne: { label: "navire de campagne" }, ai: { label: "intelligence artificielle" }, mount: { label: "monture" }, ridesEntityId: { label: "monture" , texte: { regime: "technique"} } });
 
 /** `EncounterDef` — les circonstances d'Avantage initial (`AA 11 l.53-65`) et la fin de combat. */
 export const encounterDefSchema = nommerChamps(ouvrirPortees(z.strictObject({

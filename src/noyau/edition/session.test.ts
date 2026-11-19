@@ -1094,6 +1094,58 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     expect(refusDeLaValeur(s, valeur(['members', 0, 'entityId'], 'badaud'))).toBe('nonOffert');
   });
 
+  describe('#4227 — désignation du navire de campagne', () => {
+    const scene: Scene = {
+      ...emptyScene('quai', 18, 18),
+      entities: [
+        { id: 'coque-a', kind: 'personnage', vehicule: { id: 'barque-fluviale' }, pos: { x: 5, y: 5 } },
+        { id: 'coque-b', kind: 'personnage', vehicule: { id: 'barque-fluviale' }, pos: { x: 12, y: 12 } },
+      ],
+      encounters: [{ id: 'enc-quai', members: [
+        { entityId: 'coque-a', side: 'allie', navireDeCampagne: true },
+        { entityId: 'coque-b', side: 'allie' },
+      ] }],
+    };
+    const designes = (s: SessionDEdition) => sceneEditee(s).encounters[0].members!.filter((m) => m.navireDeCampagne).map((m) => m.entityId);
+    const coqueChoisie = () => jouer(ouverteSur(scene), { geste: 'selectionner', porteur: { sorte: 'entite', id: 'coque-a' } });
+
+    it('désigner une autre coque transfère la désignation sur un seul cran', () => {
+      const avant = jouer(ouverteSur(scene), { geste: 'selectionner', porteur: { sorte: 'rencontre', id: 'enc-quai' } });
+      const apres = jouer(avant, {
+        geste: 'valeur', porteur: { sorte: 'rencontre', id: 'enc-quai' }, chemin: ['members', 1, 'navireDeCampagne'], valeur: true,
+      });
+      expect(designes(apres)).toEqual(['coque-b']);
+      expect(apres.historique.passe).toHaveLength(avant.historique.passe.length + 1);
+      expect(designes(jouer(apres, { geste: 'annuler' }))).toEqual(['coque-a']);
+    });
+
+    it('le duplicata, les membres de la troupe et la scène dupliquée ne reprennent pas la désignation', () => {
+      const avant = coqueChoisie();
+      const copie = jouer(avant, { geste: 'dupliquer' });
+      expect(sceneEditee(copie).entities).toHaveLength(3);
+      expect(designes(copie)).toEqual(['coque-a']);
+      const troupe = jouer(avant, { geste: 'troupe', nombre: 2 });
+      expect(sceneEditee(troupe).encounters[0].members).toHaveLength(4);
+      expect(designes(troupe)).toEqual(['coque-a']);
+      const sceneDupliquee = jouer(avant, { geste: 'scenes', quoi: 'dupliquer' });
+      expect(sceneEditee(sceneDupliquee).id).not.toBe(scene.id);
+      expect(designes(sceneDupliquee)).toEqual([]);
+    });
+
+    it('un changement de camp ou de véhicule qui disqualifie la coque libère la désignation', () => {
+      const avant = coqueChoisie();
+      const hostile = jouer(avant, { geste: 'membre', patch: { rencontre: 'enc-quai', camp: 'ennemi' } });
+      expect(sceneEditee(hostile).encounters[0].members![0]).toEqual({ entityId: 'coque-a' });
+      const remplacerLaCoque = {
+        geste: 'valeur', porteur: { sorte: 'entite', id: 'coque-a' }, chemin: ['vehicule', 'id'], valeur: 'charrette',
+      } satisfies GesteDEdition;
+      expect(refusDeLaValeur(avant, remplacerLaCoque)).toBeNull();
+      const route = jouer(avant, remplacerLaCoque);
+      expect(sceneEditee(route).entities[0].vehicule?.id).toBe('charrette');
+      expect(designes(route)).toEqual([]);
+    });
+  });
+
   it('un avertissement d’une rencontre sélectionne cette rencontre', () => {
     const casse = { ...CLAIRIERE, encounters: [...CLAIRIERE.encounters, { id: 'enc-casse', members: [{ entityId: 'fantome' }] }] };
     const s = ouverteSur(casse);

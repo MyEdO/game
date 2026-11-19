@@ -138,7 +138,7 @@ static func monde_du_bati(racine: Node) -> Monde:
 		{volume = [sol], toits = toits, couronnes = couronnes})
 	monde.volume.poser_les_aretes([MUR, BOITE].map(func(a: Dictionary) -> Dictionary:
 		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, palette = {}, piece = Noyau.Piece.MUR,
-			bloc = "0/0/0"})))
+			position = Noyau.Position.SEULE, bloc = "0/0/0"})))
 	return monde
 
 

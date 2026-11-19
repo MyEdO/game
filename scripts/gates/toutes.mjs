@@ -247,7 +247,10 @@ export const ECRIT_LU = {
   'test:corpus': {
     ecrit: [],
     lit: LIT_DES_AUDITS,
-    raison: 'Les audits et rendus du dépôt réel lisent leurs corpus ; les copies, mutations et rapports des bancs restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; les rendus sont lus sans publication dans l’arbre.',
+    raison: 'Les audits et rendus du dépôt réel lisent leurs corpus. `scripts/corpus/docs/manual-docs-ratchet.test.mjs` ' +
+      'lit la table de routage d’AGENTS.md pour vérifier que les docs à plat sont atteignables. Les copies, mutations et rapports des bancs ' +
+      'restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; ' +
+      'les rendus sont lus sans publication dans l’arbre.',
   },
   'test:corpus-isole': {
     ecrit: [],
@@ -367,7 +370,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       'docs/', ...DOSSIERS_DES_ZONES, '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
-      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md', 'AGENTS.md',
+      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
       'scripts/etape-profilee.mjs',
       'scripts/git-hooks/', 'scripts/hooks/',
       'scripts/test/verrou.mjs', 'scripts/test/memoire.mjs', 'scripts/test/mesures.mjs', 'scripts/test/memoire-precharge.cjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
@@ -393,15 +396,13 @@ export const ECRIT_LU = {
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
-      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ : ' +
-      '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
-      'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
-      'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
-      'LIT AGENTS.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
-      'd’AGENTS.md (`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
-      'scripts/gen-registry.mjs et Source/ (#2203) : `manual-docs-ratchet.test.mjs` rend chaque cible ' +
-      '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
-      'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
+      'ramène (sonde 2026-09-08, 50 lectures) ; LIT les fiches de docs/dossiers/ et les projets livrés sous src/scenes/ ' +
+      'quand `scripts/docs/build-dossiers-de-chapitre.test.mjs` rend leur état des lieux. ' +
+      '`scripts/docs/lib/enregistreur-lectures.test.mjs` charge `src/lib/coupeAuMot.mjs` depuis une fixture ' +
+      'pour vérifier la mesure d’un module préchauffé ; ' +
+      'LIT scripts/raw/ et scripts/gen-registry.mjs : `scripts/docs/generateurs-contrat.test.mjs` charge les modules ' +
+      'des générateurs de `GENERATORS`. LIT Source/ : `scripts/docs/rendre-cible.test.mjs` vérifie le rendu des ' +
+      'catalogues de l’Atlas par `build-catalogs.mjs`, qui lit les chapitres. LIT les sources, configurations et inventaires du runbook ' +
       'par `build-reprise.test.mjs` et `rendre` (sonde du 2026-10-07, #2499 : zéro écriture mesurée). ' +
       '`scripts/gates/toutes.mjs` atteint `purgerPerimes`, mais `principal` reste derrière `import.meta.main` ; ' +
       'ni ses mkdir/writeFile ni sa purge ne sont appelés. `scripts/ops/reprendre-file.mjs` garde sa CLI ' +

@@ -104,12 +104,13 @@ describe('buildRiverPlan — la descente exige un batelier et une embarcation', 
   // MSRC 07 l.74, l.90
   it('coque à 0 Blessure + batelier → descente jouée ; sans batelier → repli', () => {
     const r = get().worldMap!.routes[0];
-    set({ vessel: { vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 0, max: 60 } } });
+    set({ vessel: { uid: 'navire-1', vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 0, max: 60 } } });
     try {
       expect(descenteJouee(get, r, 'barge')).toBe(true);
       const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', r);
       expect(plan).not.toBeNull();
       expect(plan!.vehicle!.wounds.current).toBe(0);
+      expect(plan!.vehicle!.navireDeCampagneUid).toBe('navire-1');
       set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((s) => s.id !== 'ramer' && s.id !== 'voile') })) });
       expect(descenteJouee(get, r, 'barge')).toBe(false);
       expect(buildRiverPlan(get, 'r-reik', 'A', 'B', r)).toBeNull();

@@ -199,7 +199,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
     expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{
       cle: '1,1,N,0', cases: [{ x: 1, y: 1, z: 0 }, { x: 1, y: 0, z: 0 }], milieu: { x: 1, y: 0.5 },
-      sens: { x: -1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage',
+      sens: { x: -1, y: 0 }, pied: 0, piece: 'porte-ouverte', position: 'seule', famille: 'colombage',
       palette: expect.any(Object), hauteurM: 4, bloc: '0/0/0',
     }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });

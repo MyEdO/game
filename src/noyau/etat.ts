@@ -130,7 +130,7 @@ export interface MembreDuBord { combattant: Combatant; poste: PosteDuBord }
 export interface CritiqueSuspendu { etapeId: string; porteurId: string; avantLeCoup: Combatant }
 
 export interface BattleState {
-  combatants: Combatant[];
+  combatants: import('./monde/coqueDeCampagne').CombattantDeRencontreOuTrajet[];
   order: string[];
   /** Ordre d'initiative CANONIQUE (immuable) ; `order` en est dérivé chaque Round (Maladresse
    *  « agir en dernier » / pré-emption Chance = effets d'UN Round, non permanents). */
@@ -286,13 +286,12 @@ export const REGISTRES_DU_BORD = ['crew', 'recueillisSansSolde'] as const satisf
 export type RegistreDuBord = (typeof REGISTRES_DU_BORD)[number];
 
 /** Navire que le groupe possède/commande en campagne — survit aux jours et aux combats (≠ la coque
- *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). Ses champs
- *  d'état sont OPTIONNELS : une save antérieure charge tel quel, chaque point de lecture porte son
- *  défaut (coque intacte, humeur neutre, cale vide) — migration par défauts, jamais de corruption. */
+ *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). */
 export interface CampaignVessel {
+  /** Identité de l'instance, distincte de la fiche de véhicule. */
+  uid?: string;
   vehicleId: string;
-  /** #230 — Nom d'INSTANCE authoré (« Le Cormoran »…). Affichage pur (jamais une clé de logique/rendu) ;
-   *  absent = le label du TYPE (`findVehicleById(vehicleId).label`). Migration par défaut. */
+  /** #230 — Nom d'instance authoré. Sans nom, l'affichage reprend le libellé du type. */
   label?: string;
   morale: ShipMoraleState;
   /** #30 — Blessures de COQUE persistantes (absent = coque intacte). Synchronisées par le voyage

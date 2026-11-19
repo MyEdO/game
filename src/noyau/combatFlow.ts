@@ -59,6 +59,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
+import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 import {
   resolveMelee,
   resolveRanged,
@@ -106,7 +107,6 @@ import {
   DEFENSE_LABEL,
   type DefenseMode,
   attackHandGate,
-  conditionModLines,
   canFireWhileEngaged,
   ligneDuCoup,
   freeAttackWeapon,
@@ -689,6 +689,7 @@ import {
   type TableSpec,
 } from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
+import { ligneDeContraction } from './contraction';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel, psychologyLabel, structureCriticalsLabel } from '../data';
@@ -6742,28 +6743,22 @@ export function applyCast(
   /** DR du Sort tel que le subit `t` — SITE UNIQUE lu par les Flows, les zones, l'invocation, le NI. */
   const slFor = (t: Combatant): number => spellSLFor(res.sl, t, zoneMod(t));
 
-  // Incantation CRITIQUE (LDB 46 l.26-32) — SORTS seulement (Test de Langue (Magick)) :
-  // les Vents octroient une puissance supplémentaire (choix du lanceur), mais cela a un
-  // prix — Imparfaite Mineure, sauf Talent Diction instinctive.
   const isSort = !castInfoIsPrayer(spell);
   const sourceSpell = sourceDissipableDe(spell, caster);
-  // Un Sort DISSIPÉ (Contre-sort gagnant, LDB 46 l.156) n'est pas lancé : pas d'effet Critique
-  // — « Puissance totale » (l.57) repêche un DR insuffisant, pas une Dissipation.
-  const crit = !!res.isCritical && isSort && !res.dispelled;
+  // LDB 46 l.28-32, l.156 ; VDM 02 l.52-56
+  const incantationCritique = isSort && res.isCritical === true;
+  const effetCritique = incantationCritique && !res.dispelled ? critChoice : undefined;
   // Axe Dégâts de la Surincantation (`VDM 02 l.198`) : le résultat FIGÉ au jet (`pc.result`) ignorait
   // l'allocation (encore à venir) — on la reverse ici, avant tout autre recalcul de Projectile.
   if (missile && res.cast && overcastDamageSteps > 0 && ancre) {
     res = evaluateMissile(caster, ancre, spell, res, undefined, overcastDamageSteps);
   }
-  const choice = critChoice;
-  if (crit) {
-    if (choice === 'puissance') {
-      const full = applyFullPower(res);
-      if (full !== res) {
-        res = missile && ancre
-          ? evaluateMissile(caster, ancre, spell, full, undefined, overcastDamageSteps)
-          : { ...full, log: `${caster.label} lance ${spell.label} (Puissance totale — Critique).` };
-      }
+  if (effetCritique === 'puissance') {
+    const full = applyFullPower(res);
+    if (full !== res) {
+      res = missile && ancre
+        ? evaluateMissile(caster, ancre, spell, full, undefined, overcastDamageSteps)
+        : { ...full, log: `${caster.label} lance ${spell.label} (Puissance totale — Critique).` };
     }
   }
   const logLines: string[] = res.touche ? [] : [res.log];
@@ -6788,7 +6783,9 @@ export function applyCast(
   const sorcery = isSort && rule('magie-sorcellerie') === true && isSorceryDomain(spell);
   // Sévérité DÉCIDÉE UNE fois (source unique du delta) : quand elle tombe, l'Imparfaite Mineure du
   // fumble est SUBSUMÉE (`malevolentHandled`), sinon on l'appliquerait en double.
-  const malevolent = malevolentInfluenceSeverity(res.roll, evaluateTest(res.roll, res.target).success, nearCorruption, res.isFumble);
+  const jetReussi = evaluateTest(res.roll, res.target).success;
+  const echecApresFocalisation = focusedNI0 && !jetReussi; // LDB 46 l.132
+  const malevolent = malevolentInfluenceSeverity(res.roll, jetReussi, nearCorruption, res.isFumble);
   const malevolentHandled = malevolent !== null;
   /** Contrecoup de CE lancement : les cibles de l'incantation reçoivent les `targetOps` de la ligne
    *  tirée (« vos cibles », LDB 40 l.64). */
@@ -6801,8 +6798,8 @@ export function applyCast(
     if (malevolent) logLines.push(...contrecoup(malevolent, optsDuSort));
     else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...contrecoup('mineure', { sorceryCorruption: true, domainId: spell.domainId?.id }));
   };
-  if (crit) {
-    if (choice) logLines.push(tr(choice === 'critique' ? 'cf.incantationCritique' : choice === 'puissance' ? 'cf.surincantationPleinePuissance' : 'cf.surincantationIrresistible'));
+  if (effetCritique) logLines.push(tr(effetCritique === 'critique' ? 'cf.incantationCritique' : effetCritique === 'puissance' ? 'cf.surincantationPleinePuissance' : 'cf.surincantationIrresistible'));
+  if (incantationCritique) {
     if (!hasInstinctiveDiction(caster)) logLines.push(...contrecoup('mineure', optsDuSort));
     else logLines.push(tr('cf.dictionInstinctive'));
   }
@@ -6826,8 +6823,7 @@ export function applyCast(
      *  supplémentaire de Surincantation, maillon de rebond), jamais recomposée à la reprise. */
     const toucheDe = (t: Combatant, mres: CastResult & Partial<MissileResult>, rebond?: RebondDeChaine): ToucheDeProjectile => ({
       casterId: caster.id, de: caster.id, targetId: t.id, spell: structuredClone(spell), mres, zoneTalentMod: zoneMod(t), // #2097
-      // `crit` = double d'Incantation, `choice` = Incantation Critique (LDB 46 l.30).
-      critWound: !!(crit && choice === 'critique'),
+      critWound: effetCritique === 'critique', // LDB 46 l.30
       overcastDamageSteps, overcastDurationSteps,
       ...(chosenTableRolls != null ? { chosenTableRolls } : {}),
       ...(extras?.conjureForm ? { conjureForm: extras.conjureForm } : {}),
@@ -6873,7 +6869,7 @@ export function applyCast(
     if (res.cast && ancre) placeSpellZone(get, caster, ancre, spell, missileSpec, slFor(ancre), durationMult, durationBonusRounds, logLines);
     // LDB 46 l.85 ; LDB 46 l.132
     if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
-    else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
+    else if (echecApresFocalisation && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
   } else {
     if (res.cast) {
@@ -6905,7 +6901,7 @@ export function applyCast(
             continue;
           }
         }
-        const avantLeCoup = crit && choice === 'critique' ? instantaneAvantLeCoup(t) : null; // LDB 17 l.32 — avant les Dégâts du Sort
+        const avantLeCoup = effetCritique === 'critique' ? instantaneAvantLeCoup(t) : null; // LDB 17 l.32
         logLines.push(
           // Tout sort passe par le système Flow/EffectOp : `spell.effects` (Flow éditable, feuilles
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
@@ -6985,8 +6981,7 @@ export function applyCast(
       // Prière → Colère des dieux ; Sort → Incantation Imparfaite Mineure (subsumée par la Règle du 8 sur « 88 »).
       if (castInfoIsPrayer(spell)) logLines.push(...contrecoup('colere', { componentDowngrade: componentUsed }));
       else if (!malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
-    } else if (focusedNI0 && !malevolentHandled) {
-      // Sort focalisé dont l'incantation échoue (sans Maladresse) → Imparfaite Mineure.
+    } else if (echecApresFocalisation && !malevolentHandled) {
       logLines.push(...contrecoup('mineure', optsDuSort));
     }
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
@@ -7276,17 +7271,8 @@ export function castContextMods(
  */
 export type ContractionEntry = 'infection' | 'contagion' | 'chirurgie';
 
-/** Un Test de Contraction de fin de combat DÛ pour un héros (LDB 18/20) : l'entrée de règle qui
- *  l'appelle, la maladie, sa difficulté de Résistance (les crans de l'exposition — Contagieux : 2 plus
- *  difficile — DÉJÀ appliqués) et le libellé d'exposition. `instant` (Contagieux, EDO App.2 l.230) :
- *  contractée → incubation « Instantanée ». Le `resistVal` (Résistance effective) est figé à la décision. */
+/** LDB 18 l.298 ; LDB 20 l.25, l.51, l.90 ; EDO App.2 l.228-230 */
 interface CombatEndDiseaseTest { entry: ContractionEntry; disease: string; difficulty: Difficulty; label: PlayerText; instant?: boolean }
-
-/** Valeur de Résistance d'un héros pour les Tests de Contraction (E + avances de Résistance) — figée à la
- *  décision pour rester stable entre la pose de l'étape et sa résolution. */
-function combatEndResistVal(c: Combatant): number {
-  return effectiveChar(c, 'endurance') + (c.skills?.find((s) => s.id === 'resistance')?.advances ?? 0);
-}
 
 /**
  * DÉCIDE et CONSOMME les Tests de fin de combat DUS pour le PERSONNAGE `c` (héros, ou combattant flagué
@@ -7442,15 +7428,14 @@ function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Comb
   for (const c of combattants) {
     if (!followsCharacterRules(c) || c.dead) continue; // #143 : RAW « Personnage » (LDB 18 l.5, LDB 20 l.14/206) — les créatures génériques et les défaits n'ont pas de jet de maladie/Corruption de fin de combat
     const decided = decideCombatEndHeroTests(c, corr?.level ?? null);
-    const resVal = combatEndResistVal(c);
     for (const d of decided.diseases) {
       // L'id porte l'ENTRÉE DE RÈGLE en plus de la maladie : l'Infection post-critique et la Contagion
       // peuvent viser la MÊME maladie chez le MÊME personnage (LDB 20 l.90 vs l.25/l.51) — deux étapes de
       // même id étaient injoignables (la surface de rangée keye par id nu).
       const step = monoStep({
         id: `maladieDeFinDeCombat-${c.id}-${d.entry}-${d.disease}`, kind: 'maladieDeFinDeCombat', actor: c, icon: 'medical/infection',
-        rollLabel: 'Résistance', difficulty: d.difficulty,
-        ligne: { valeur: resVal, surLaCible: conditionModLines(c, { skill: 'resistance', disease: d.disease }) },
+        difficulty: d.difficulty,
+        ligne: { ...ligneDeContraction(c, d.disease), combat: { kind: 'test' } },
         label: d.label, meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
         stake: combatStakeRef('combat-fin-maladie', { entryId: d.disease }),
         menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
@@ -7528,11 +7513,7 @@ function bandeDeFinDeCombat(
   };
 }
 
-/** Ouvre une cascade INFLUENÇABLE à UNE bande de Contraction de maladie pour `patient` (Test de
- *  Résistance `difficulty` → `applyContraction` à la validation, via l'applier `maladieDeFinDeCombat`) —
- *  HORS combat. Réutilisé par la Chirurgie (infection post-opératoire, LDB 10 l.184) : Chance/Résilience
- *  + auto-succès Résistance (Menace : Maladie) offerts, jamais un jet silencieux. `combatEndResistVal`
- *  fige la Résistance. Une bande d'UN porteur — la forme est celle de l'applier, pas celle du nombre. */
+/** Ouvre le Test de Contraction du patient après une Chirurgie. LDB 10 l.184 */
 export function openContractionCascade(get: Get, set: SetFn, patient: Combatant, disease: string, difficulty: Difficulty, title: string): void {
   ouvrirLaBandeDeContraction(get, set, [patient], { entry: 'chirurgie', disease, difficulty }, title);
 }
@@ -7547,7 +7528,7 @@ function ouvrirLaBandeDeContraction(
     label: dataLabel(title), menace: 'maladie', meta: { entry, disease, ...(instant ? { instant: true } : {}) },
     stake: combatStakeRef('combat-fin-maladie', { entryId: disease }),
     difficulty,
-    porteurs: porteurs.map((p) => ({ actor: p, ligne: { valeur: combatEndResistVal(p), surLaCible: conditionModLines(p, { skill: 'resistance', disease }) }, label: 'Résistance', menace: 'maladie' as const })),
+    porteurs: porteurs.map((p) => ({ actor: p, ligne: ligneDeContraction(p, disease), menace: 'maladie' })),
     title, purpose: 'test',
   });
 }
@@ -7630,11 +7611,11 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   set({ party: newParty });
   if (endLines.length) get().ecrireAuJournal(endLines);
   // #30/#296 — Blessures de COQUE persistantes : si une coque du combat EST le navire de campagne
-  // (creatureId = vehicleId), son état de fin de combat est écrit sur `CampaignVessel.wounds` (SOURCE
+  // son état de fin de combat est écrit sur `CampaignVessel.wounds` (SOURCE
   // UNIQUE) — le voyage maritime/fluvial en repart, et `reprendreLeVoyage` recharge la copie de travail
   // (`travelPlan.vehicle`) restée en mémoire depuis AVANT ce combat.
   const vessel = get().vessel;
-  const hull = vessel ? battle.combatants.find((c) => c.creatureId === vessel.vehicleId) : undefined;
+  const hull = battle.combatants.find((c) => estLeNavireDeCampagne(c, vessel));
   if (vessel && hull) setVesselHull(get, set, hull.wounds.current, hull.wounds.max);
   // Réconciliation de la scène : tout combattant ISSU d'une entité de scène (identité unifiée,
   // Combatant.id === SceneEntity.id) et hors d'action quitte la scène. Victoire → les ennemis sont tous
@@ -7782,7 +7763,7 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
   // n'est ni victoire ni défaite mais une SÉQUENCE de survie (Natation → échouage, `beginShipwreck`),
   // quelle que soit la situation côté ennemis (on peut couler ET avoir coulé l'adversaire).
   const vessel = get().vessel;
-  const campaignHull = vessel ? battle.combatants.find((c) => c.creatureId === vessel.vehicleId && estNavire(c)) : undefined;
+  const campaignHull = battle.combatants.find((c) => estLeNavireDeCampagne(c, vessel));
   if (campaignHull && isOutOfAction(campaignHull)) {
     const aboardIds = (campaignHull.crewIds ?? [])
       .map((id) => inBattleId(battle, id))
@@ -9583,7 +9564,7 @@ export const TABLES = {
       // L'étape de révélation porte déjà ces lignes quand elle est poussée : pas de doublon de rangée.
       return fin.affichee ? undefined : { consequences: freeCons(fin.lines) };
     },
-    /** Conséquence d'une RANGÉE de bande `maladieDeFinDeCombat` (LDB 18/20) : Test de Résistance RÉSOLU →
+    /** Conséquence d'une RANGÉE de bande `maladieDeFinDeCombat` (LDB 18/20) : Test de Contraction RÉSOLU →
      *  échec = contracte la maladie (`applyContraction`). La maladie et l'incubation « Instantanée »
      *  (Contagieux) sont lues dans la charge de rangée, la bande portant l'entrée de règle commune. */
     maladieDeFinDeCombat: bandeDeFinDeCombat((_get, _set, _band, row, hero, meta) => {

@@ -28,7 +28,7 @@ describe('#296 — state.vessel SOURCE UNIQUE de la coque de trajet (non-diverge
     set({
       party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), scene: emptyScene('port-a', 2, 2), battle: null, worldMap: seaMap, lieu: 'A',
       travelPlan: null, pendingRest: null, pendingCascade: null, gameTime: 8 * 60,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
   });
 

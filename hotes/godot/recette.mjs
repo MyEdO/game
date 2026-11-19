@@ -49,9 +49,11 @@
 // - `cadrages` (`--vues <fichier>`, #3686) : la page rechargée à deviceScaleFactor 2 ; l'entrée de la scène poursuivie à
 //   l'Entrée, le monde posé (`attendreLeMonde`) ; puis chaque vue nommée du fichier, un tableau de
 //   `{ nom, regard, case: { x, y }, etage?, lacet, tangage }` en immersion ou `{ nom, regard, case, etage?, lacet, zoom }`
-//   en tactique et au plateau : son regard pris à la touche V, la caméra posée par `wfrpCadrer` (`pont/CONTRAT.md`,
-//   section « Écran publié ») regarde depuis la case et la couche demandées, à l'azimut demandé, le plan de sa couche
-//   (`plan` du pont, l'œil marqué) s'écrit au journal, et la vue se capture sous son nom.
+//   en tactique et au plateau (`Plateau.cadrer` : lacet et tangage en degrés, lacet 90 à l'est, tangage dans
+//   ±`MiseEnPage.TANGAGE_DE_L_OEIL` radians ; zoom en mètres, de `Monde.DISTANCE_MIN` à `DISTANCE_MAX`) : son regard
+//   pris à la touche V, la caméra posée par `wfrpCadrer` (`pont/CONTRAT.md`, section « Écran publié ») regarde depuis
+//   la case et la couche demandées, à l'azimut demandé, le plan de sa couche (`plan` du pont, l'œil marqué) s'écrit au
+//   journal, et la vue se capture sous son nom.
 // - `bord` (`--scenario a-bord-de-la-caraque --route <route.json>`) : les fenêtres closes, le monde posé, le regard
 //   `plateau` pris à la touche V, chaque case de la route atteinte au clic (`cliquerCase`) et chaque échelle franchie
 //   par son geste (« Escalader », « Descendre en escalade »), une capture par couche atteinte ; un clic raté écrit au
@@ -248,6 +250,8 @@
 //   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours cadrages --scenario a-bord-de-la-caraque --vues hotes/godot/cadrages/a-bord-de-la-caraque.json
 //     --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --natif --rendu gl_compatibility --parcours cadrages --scenario <id> --vues <fichier>
+//     --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>

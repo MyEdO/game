@@ -47,13 +47,14 @@ import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
 import { rollLine } from './ligneDeJet';
+import { markFixedDie } from './fixedDieMark';
 import { t } from '../i18n';
 import { checkBattleOver } from './combatFlow';
 import { BOARD_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
 import type { RecapEvent } from './recapLine';
 import { findSeaHazard } from '../engine/seaPerils';
 import { overspeedRow, foulingEffects } from '../engine/seaNavigation';
-import { setRule, resetRule } from '../engine/policy';
+import { rule, setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
 import { WORLD_STEP_OWNER } from './pendings';
 import { poserLeSiegeMJ, seatOwns } from './sieges';
@@ -113,7 +114,7 @@ function freshState() {
     suspendedCascades: [],
     gameTime: 8 * 60, // 08:00 jour 0
     lastUpkeepDay: 0,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     journal: [],
   } as never);
 }
@@ -575,6 +576,24 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     return get();
   }
 
+  it('à l’arrivée, les 1d10 heures d’Extermination sont comprises dans la journée de mer', () => {
+    const ev = seaBoardEventById('infestation-de-rats')!;
+    jouerFlowEntier(runFlow(get, set, ev.consequence!, ev.label));
+    set({ worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: 1 }] } });
+    const depart = get().gameTime;
+
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    const etapes = draineCascade(get, 30, (etape, rangee) =>
+      etape.kind === 'equipage-extermination' && rangee ? Math.min(10, rangee.target!) : undefined);
+
+    expect(etapes).toContain('equipage-extermination');
+    expect(get().travelPlan).toBeNull();
+    expect(get().journal).toContain(t('sv.arrive', { to: seaMap.places[1].label }));
+    expect(get().gameTime - depart).toBe(MINUTES_PER_DAY);
+    const duree = markFixedDie(t('sv.dureeHeures', { n: 5 }));
+    expect(get().journal.filter((ligne) => ligne === duree)).toHaveLength(1);
+  });
+
   /** Les étapes de dé `nombre` d'attaques subies, en avant-plan comme derrière (`suspendedCascades`). */
   const etapesDAttaques = (s: ReturnType<typeof get>) => [s.pendingCascade, ...s.suspendedCascades]
     .flatMap((c) => c?.participants ?? []).filter((x) => x.kind === 'nombreDAttaquesSubies');
@@ -713,7 +732,7 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
       suspendedCascades: [],
       gameTime: 8 * 60,
       lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
       journal: [],
     } as never);
   }
@@ -1032,10 +1051,10 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     set({
       party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
       pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
     get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap, projet: null });
-    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); // lancerLaScene remet le vessel de campagne — repose-le
+    set({ vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); // lancerLaScene remet le vessel de campagne — repose-le
   }
 
   it('franchissement de l’ancrage (kmDone ≥ at × km) → Test de Perception PUIS abordage, une seule fois — la cascade-jour SURVIT au combat (#284/#275)', () => {
@@ -1202,7 +1221,7 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
       routes: [{ ...seaMap.routes[0], perils: [{ label: 'Îlot en vue', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'ilot' } }] }] }],
     };
     get().chargerLeProjet({ scenes: [port, ilot], entryId: 'port-a', worldMap: perilDeTransition, projet: null });
-    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [] } as never); // lancerLaScene remet le vessel de campagne — repose-le
+    set({ vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [] } as never); // lancerLaScene remet le vessel de campagne — repose-le
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', perilDeTransition.routes[0])!;
     set({ travelPlan: plan } as never);
     runSeaDay(get, set);
@@ -1416,10 +1435,10 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     set({
       party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
       pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
     get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap: abordageMap, projet: null });
-    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never);
+    set({ vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never);
   });
 
   it('l’abordage ancré INTERROMPT le voyage rapide (cascade `purpose:test` suspendue) ; après le combat, la traversée se finit en rapide', () => {
@@ -2116,7 +2135,19 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   });
 
   it('1er jour de traversée (`daysAtSea === 0`) → UNE bande `mer-mal-de-mer`, une RANGÉE par PJ non-elfe', () => {
-    set({ net: mjAuSiege1(get().net) });
+    const [heros, ...autres] = get().party;
+    set({
+      net: mjAuSiege1(get().net),
+      party: [{
+        ...heros,
+        characteristics: { ...heros.characteristics, endurance: 40 },
+        skills: [{ id: 'resistance', advances: 8, characteristic: 'endurance' }],
+        activeEffects: [{
+          label: 'Effet contre le mal de mer', bonus: 0, duration: { scale: 'permanent' },
+          diseaseTestMod: { diseases: ['mal-de-mer'], amount: 7 },
+        }],
+      }, ...autres],
+    });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 0, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
     continueSeaDayAfterCascade(get, set);
@@ -2127,6 +2158,10 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     const bandes = get().pendingCascade!.participants.filter((s) => s.kind === 'mer-mal-de-mer');
     expect(bandes).toHaveLength(1);
     expect(bandes[0].participants!.map((r) => r.id)).toEqual(get().party.map((h) => h.id));
+    expect(bandes[0].participants![0]).toMatchObject({
+      base: 48, target: 45, difficulty: 'complexe', menace: 'maladie',
+      mods: expect.arrayContaining([expect.objectContaining({ label: 'Effet contre le mal de mer', value: 7 })]),
+    });
   });
 
   it('mauvais temps (Vent violent ou plus, l.218) → une bande `mer-mal-de-mer`, même hors 1er jour', () => {
@@ -2135,8 +2170,9 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'vent-violent' } } } });
     continueSeaDayAfterCascade(get, set);
     expect(get().pendingCascade).toBeTruthy();
-    const kinds = get().pendingCascade!.participants.map((s) => s.kind);
-    expect(kinds).toContain('mer-mal-de-mer');
+    const bande = get().pendingCascade!.participants.find((s) => s.kind === 'mer-mal-de-mer');
+    expect(bande?.participants).toHaveLength(get().party.length);
+    expect(bande?.participants?.map((r) => r.difficulty)).toEqual(get().party.map(() => 'intermediaire'));
   });
 
   it('ni 1er jour ni mauvais temps → aucune étape `mer-mal-de-mer` (jour de routine)', () => {
@@ -2251,10 +2287,24 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
     expect(get().pendingRest).toBeTruthy();
   });
 
-  it('tonneau DÉJÀ contaminé la veille → UNE bande d’exposition : chaque PJ ET l’équipage collectif qui boivent (#4243)', () => {
-    journeeAuTonneau({ diseaseId: 'courante-galopante' });
+  it.each(['courante-galopante', 'flux-sanglant'])('tonneau contaminé par %s : Endurance Facile des PJ et seuil de l’équipage (MDG 14 l.209 ; LDB 20 l.41, l.64)', (diseaseId) => {
+    const [heros, ...autres] = get().party;
+    set({ party: [{
+      ...heros,
+      characteristics: { ...heros.characteristics, endurance: 40 },
+      skills: [{ id: 'resistance', characteristic: 'endurance', advances: 17 }],
+      activeEffects: [{ label: 'Effet contre la maladie', bonus: 0, duration: { scale: 'permanent' }, diseaseTestMod: { diseases: [diseaseId], amount: 3 } }],
+    }, ...autres] });
+    journeeAuTonneau({ diseaseId });
     const bande = bandeDuTonneau('mer-tonneau-expose');
     expect(bande.participants!.map((r) => r.id)).toEqual([...get().party.map((h) => h.id), WORLD_STEP_OWNER]);
+    const [premier] = bande.participants!;
+    expect(premier).toMatchObject({
+      label: 'Endurance', base: 40, target: 83, menace: 'maladie',
+      mods: expect.arrayContaining([expect.objectContaining({ label: 'Effet contre la maladie', value: 3 })]),
+    });
+    const equipage = bande.participants!.find((r) => r.id === WORLD_STEP_OWNER)!;
+    expect(equipage).toMatchObject({ base: rule('mer-resistance-de-l-equipage'), menace: 'maladie' });
   });
 
   it('exposition : l’équipage collectif qui échoue porte la maladie du tonneau (`porteurDeLEquipage`)', () => {

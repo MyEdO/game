@@ -1760,7 +1760,8 @@
      "members": [
       {
        "entityId": "grimm",
-       "side": "allie"
+       "side": "allie",
+       "navireDeCampagne": true
       },
       {
        "entityId": "aldo-crew",
@@ -3069,7 +3070,8 @@
      "members": [
       {
        "entityId": "grimm2",
-       "side": "allie"
+       "side": "allie",
+       "navireDeCampagne": true
       },
       {
        "entityId": "aldo-crew-2",

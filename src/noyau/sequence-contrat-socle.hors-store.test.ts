@@ -739,6 +739,42 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
     expect(banc.getState().pendingCascade!.cursor).toBe(2);
     expect(etapes()).toEqual(['incantation[C]', 'tableDIncantationImparfaite[C][R]', 'deviation']);
   });
+
+  it.each([
+    { spellId: 'flechette', zone: false, focalise: false, diction: false },
+    { spellId: 'explosion', zone: true, focalise: false, diction: false },
+    { spellId: 'explosion', zone: true, focalise: true, diction: false },
+    { spellId: 'flechette', zone: false, focalise: true, diction: true },
+  ])('#4431 — $spellId critique dissipé (focalisé : $focalise, Diction : $diction)', ({ spellId, zone, focalise, diction }) => {
+    const { lanceur, cible } = duel(false, spellId);
+    if (diction) lanceur.talents.push({ talentId: 'diction-instinctive', times: 1 });
+    const blessures = cible.wounds.current;
+    banc.setState({
+      pendingCast: {
+        casterId: lanceur.id, targetId: zone ? lanceur.id : cible.id, spellId, missile: true, focused: focalise,
+        counterspellRouted: true, critChoice: 'puissance',
+        result: { cast: true, roll: 22, target: 60, sl: 4, isCritical: true, isFumble: false, log: 'critique' },
+        ...(zone ? { zone: { center: null, radius: 1, r0m: 2 } } : {}),
+      },
+      pendingCounterspell: { participants: [{
+        id: cible.id, interactive: true, declared: 'solo',
+        result: { dispelled: true, counter: { roll: 5, target: 60, sl: 6, success: true, isDouble: false }, casterNetSL: -2, log: 'Dissipé' },
+      }] },
+    });
+    openCastCascade(banc.getState, banc.setState, lanceur);
+    banc.getState().jetValider('contreSort');
+    expect(banc.getState().pendingCast?.result).toMatchObject({ dispelled: true, cast: false, isCritical: true });
+    banc.getState().jetValider('incantation');
+
+    expect(banc.getState().pendingCast).toBeNull();
+    expect(banc.getState().battle!.combatants.find((c) => c.id === cible.id)?.wounds.current).toBe(blessures);
+    expect(journal().join('\n')).not.toMatch(/Puissance totale/);
+    const cascade = banc.getState().pendingCascade;
+    const jets = cascade?.participants.filter((p) => p.kind === 'tableDIncantationImparfaite') ?? [];
+    expect(jets).toEqual(diction ? [] : [expect.objectContaining({
+      incantationImparfaite: expect.objectContaining({ severity: 'mineure' }),
+    })]);
+  });
 });
 
 describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas la suite de sa séquence', () => {
