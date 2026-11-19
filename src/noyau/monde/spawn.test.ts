@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
 import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
-import { recomputeLoadout } from '../../engine/items';
-import { blessingsOf, careerLabelFor, findCareerById, findCreatureById, findSpellById, miraclesOf, names, talentConcrete } from '../../data';
+import { laisserTomber, recomputeLoadout, weaponFromItem } from '../../engine/items';
+import { harnacher } from '../mount';
+import { blessingsOf, careerLabelFor, findCareerById, findCreatureById, findSpellById, miraclesOf, names, talentConcrete, type CreatureData } from '../../data';
 import { porteeDuCombattant } from '../apparence/combattant';
 import { pettySpellQuotaFor } from '../../engine/creation';
 import { CHAR_KEYS } from '../../engine/types';
@@ -127,6 +128,94 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
   it('un caparaçon porté s’ajoute au Trait Armure du blaireau, sur la tête et le torse (ADE I 07 l.66 ; #4135)', () => {
     const c = spawnEnemy({ ref: 'blaireau' }, 'bl-caparacon', { x: 0, y: 0 }, { inventaire: { 'caparacon-pour-blaireau': true } });
     expect(c.armour).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 3, jambeG: 1, jambeD: 1 });
+  });
+});
+
+describe('possessions de fiche à l’apparition (#4348)', () => {
+  it('Middenheim 02 l.1326-1328 : Marta porte sa massue et sa veste sans cumuler le Trait Armure', () => {
+    const c = spawnEnemy({ ref: 'marta-gerbenshreiber' }, 'marta', undefined);
+    const veste = c.items?.find((it) => it.trappingId === 'veste-de-cuir');
+    const massue = c.items?.find((it) => it.trappingId === 'massue');
+    expect(c.items).toHaveLength(2);
+    expect(veste?.equipped).toBe(true);
+    expect(c.armour).toEqual({ tete: 0, brasG: 1, brasD: 1, corps: 1, jambeG: 0, jambeD: 0 });
+    const armes = c.weapons.filter((w) => w.trappingId === 'massue');
+    expect(armes).toHaveLength(1);
+    expect(armes[0]).toMatchObject({ uid: massue?.uid, damage: { flat: 7 } });
+    expect(c.mentions).toEqual([{ label: 'Grandes ambitions', nature: 'intangible', nombre: 1 }]);
+  });
+
+  it.each([false, true])('Middenheim 02 l.85-89 : Wolfgard conserve 2 PA à la tête et au torse (heaume d’auteur %s)', (heaume) => {
+    const opts = heaume ? { inventaire: { heaume: true } } : undefined;
+    const c = spawnEnemy({ ref: 'wolfgard-hohmann' }, 'wolfgard', undefined, opts);
+    expect(c.items?.filter((it) => it.equipped).map((it) => it.trappingId)).toEqual(
+      heaume ? expect.arrayContaining(['plastron', 'heaume']) : expect.arrayContaining(['plastron']),
+    );
+    expect(c.armour).toEqual({ tete: 2, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 });
+  });
+
+  it('MDG 16 l.405-407 : le pistolet de Long Drong est chargé dans son set et son crochet n’arme qu’une fois', () => {
+    const c = spawnEnemy({ ref: 'long-drong-silver' }, 'drong', undefined);
+    const pistolet = c.items?.find((it) => it.trappingId === 'pistolet');
+    const munitions = c.items?.find((it) => it.trappingId === 'balle-et-poudre');
+    expect(pistolet).toMatchObject({ loaded: true, loadedAmmoUid: munitions?.uid });
+    expect(c.weapons.filter((w) => w.label === 'Crochet')).toEqual([
+      expect.objectContaining({ damage: expect.objectContaining({ flat: 8 }), derivedFromItem: expect.any(String) }),
+    ]);
+  });
+
+  it('MDG 16 l.305-307,325 : le Triton a +16 avec son trident, le trident lâché garde la valeur catalogue', () => {
+    const c = spawnEnemy({ ref: 'triton' }, 'triton', undefined);
+    const trident = c.weapons.find((w) => w.trappingId === 'trident-de-triton')!;
+    expect(trident.damage).toMatchObject({ plusBF: false, flat: 16 });
+    const armeLachee = laisserTomber(c, trident, () => 'aucun-nouvel-objet')!;
+    expect(armeLachee.uid).toBe(trident.uid);
+    expect(weaponFromItem(armeLachee).damage).toMatchObject({ plusBF: true, flat: 6 });
+    expect(c.weapons.some((w) => w.trappingId === 'trident-de-triton')).toBe(false);
+    expect(c.traits?.some((t) => t.arg === 'trident-de-triton')).toBe(false);
+  });
+
+  it('Middenheim 02 l.2568 : une béquille d’auteur remplace une occurrence sans effacer la seconde', () => {
+    const c = spawnEnemy({ ref: 'kanker-flett' }, 'kanker', undefined, { inventaire: { bequille: false, 'arme-simple': true } });
+    expect(c.items?.filter((it) => it.trappingId === 'bequille')).toHaveLength(2);
+    expect(c.items?.filter((it) => it.trappingId === 'arme-simple')).toHaveLength(1);
+    expect(c.weapons).toEqual([expect.objectContaining({ uid: 'kanker-objet-arme-simple', damage: expect.objectContaining({ flat: 7 }) })]);
+  });
+
+  it('la veste que l’auteur place au sac ne laisse pas de PA de Trait', () => {
+    const c = spawnEnemy({ ref: 'marta-gerbenshreiber' }, 'marta', undefined, { inventaire: { 'veste-de-cuir': false } });
+    expect(c.items?.filter((it) => it.trappingId === 'veste-de-cuir')).toEqual([
+      expect.objectContaining({ uid: 'marta-objet-veste-de-cuir', equipped: false }),
+    ]);
+    expect(c.armour.corps).toBe(0);
+  });
+
+  it('seules les possessions de catalogue d’une fiche préréglée deviennent des objets', () => {
+    const base = findCreatureById('kanker-flett')!;
+    const presetCreature: CreatureData = { ...base, trappings: [
+      { id: 'bequille' },
+      { text: 'Une poignée de souvenirs' },
+      { monnaie: 'gold', count: { fixed: 1 } },
+      { id: 'cheval-de-monte', type: 'creature' },
+      { id: 'diligence', type: 'vehicle' },
+    ] };
+    const c = spawnEnemy({ presetCreature, presetId: 'alter-ego' }, 'alter-ego', undefined);
+    expect(c.items?.map((it) => it.trappingId)).toEqual(['bequille']);
+    expect(bourseOf(c).gold).toBe(0);
+    expect(presetCreature.trappings[1]).toEqual({ text: 'Une poignée de souvenirs' });
+  });
+
+  it('AA 09 l.184-188 : le demigriffon porte sa barde, même si le cavalier en apporte une autre', () => {
+    const c = spawnEnemy({ ref: 'demigriffon-adulte' }, 'monture', undefined);
+    const rider = spawnEnemy({ ref: 'humain' }, 'cavalier', undefined, { inventaire: { barde: false } });
+    expect(c.items).toEqual([expect.objectContaining({ trappingId: 'barde', equipped: true })]);
+    harnacher(rider, c);
+    expect(c.items?.filter((i) => i.trappingId === 'barde').map((i) => i.equipped)).toEqual([true, false]);
+    expect(c.armour).toEqual({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 });
+
+    const avecHeaume = spawnEnemy({ ref: 'demigriffon-adulte' }, 'monture', undefined, { inventaire: { heaume: true } });
+    expect(avecHeaume.items?.find((i) => i.trappingId === 'barde')?.equipped).toBe(false);
+    expect(avecHeaume.armour).toEqual({ tete: 3, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 });
   });
 });
 
