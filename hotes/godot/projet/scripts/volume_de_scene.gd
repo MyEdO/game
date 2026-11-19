@@ -12,7 +12,7 @@
 ## (`_batir_les_sols`) ; les nappes de toit et les couronnes crénelées des
 ## murs, de même forme qu'un morceau, voilées comme lui mais jamais masquées, réconciliées de même par clé et
 ## empreinte ; les arêtes de la scène, en unités de plateau, chacune la pièce que l'arête nomme du modèle d'arête servi
-## de sa famille (`modele_d_arete`, #4471), sinon du kit des arêtes (`KIT`), sinon sa boîte, en groupes d'instances
+## de sa famille (`modele_d_arete`, #4471), sinon sa boîte, en groupes d'instances
 ## (`poser_les_aretes`), chaque instance vue teinte par l'état de la meilleure des cases qu'elle sépare ; et ce que qui
 ## l'instancie en cache à la caméra (`cacher`) ou en retire
 ## (`retirer_les_couronnes`).
@@ -36,8 +36,6 @@ const COUCHE_DES_LUMINAIRES := 2
 const COUCHE_DU_MONDE := 1
 ## Netteté de la projection d'une texture de matière sur les trois axes (`texturer`, `_matiere`).
 const NETTETE_DU_MOTIF := 4.0
-## Le kit des arêtes (`CONTRAT.md`, méthode `aretes`) : une pièce par nœud racine, `<famille>--<pièce>`.
-const KIT := "res://kit/kit.glb"
 ## La durée, en secondes, du fondu d'une vision posée à la suivante (`voir`).
 const DUREE_DU_FONDU_S := 0.3
 ## Le voile de la vision sur un navire (`voile`), et le sol, dans sa texture (`_batir_les_sols`), d'une couche d'une
@@ -45,8 +43,8 @@ const DUREE_DU_FONDU_S := 0.3
 const VOILE := preload("res://art/voile.gdshader")
 const SANS_CASE := INF
 
-## Ce qui se pose sur une arête dont le kit n'a pas la pièce, ou sans kit au projet : un mur, une porte fermée, le seuil
-## d'une porte ouverte ou d'une brèche.
+## Ce qui se pose sur une arête sans modèle d'arête lu qui ait sa pièce : un mur, une porte fermée, le seuil d'une
+## porte ouverte ou d'une brèche.
 @export var mesh_mur: BoxMesh
 @export var mesh_porte: BoxMesh
 @export var mesh_seuil: BoxMesh
@@ -106,8 +104,6 @@ var _liees: Array[ShaderMaterial] = []
 ## (`_change_d_etat`), tous quand la vision se pose sans fondu (`_mesurer_le_fondu`).
 var _a_teindre := {}
 var _du_fondu := {}
-## Le kit des arêtes, hors de l'arbre, `null` sans kit au projet.
-var _kit: Node3D
 ## Le chargeur des modèles servis, celui des décors (`MontageDesModeles`) : d'où se lit le modèle d'arête de chaque
 ## famille servie (`modele_d_arete`, `MontageDeComposition.scene_du_modele`).
 var chargeur: MontageDeComposition
@@ -126,7 +122,7 @@ var _pieces_peintes := {}
 var _cachees := {aretes = {}, toits = [], couronnes = []}
 ## Les clés des couronnes retirées (`retirer_les_couronnes`).
 var _retirees: Array = []
-## Par maillage d'une pièce du kit, d'un modèle d'arête ou d'une boîte, sa copie que voient les instances vues de ses
+## Par maillage d'une pièce d'un modèle d'arête ou d'une boîte, sa copie que voient les instances vues de ses
 ## arêtes, et par matière, sa copie qui prend pour albédo la couleur de l'instance (`_maillage_teint`) ; oubliés avec
 ## les modèles d'arête (`_oublier_les_modeles_d_arete`).
 var _maillages_teints := {}
@@ -134,8 +130,6 @@ var _matieres_teintes := {}
 
 
 func _ready() -> void:
-	if ResourceLoader.exists(KIT):
-		_kit = (load(KIT) as PackedScene).instantiate()
 	RenderingServer.frame_pre_draw.connect(_teindre_le_pose)
 
 
@@ -160,8 +154,6 @@ func _exit_tree() -> void:
 func _notification(quoi: int) -> void:
 	if quoi != NOTIFICATION_PREDELETE:
 		return
-	if _kit != null:
-		_kit.free()
 	_oublier_les_modeles_d_arete()
 
 
@@ -591,16 +583,15 @@ func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 ## reste, un groupe changé (une porte ouverte quitte un groupe et en rejoint un autre) est refait, un groupe parti
 ## quitte l'arbre. Une arête dont la famille a un modèle servi (`modele_d_arete`) ne se pose qu'une fois ce modèle lu :
 ## il se lit une fois les autres posées (`_lire_le_modele_d_arete`), et les arêtes reçues se reposent à sa lecture ;
-## celle d'un modèle illisible ne se pose pas.
+## celle d'un modèle illisible se pose en boîte, sans relire le modèle.
 func poser_les_aretes(aretes: Array) -> void:
 	_aretes_recues = aretes
 	var groupes := {}
 	var a_lire := {}
 	for a: Dictionary in aretes:
 		var modele := modele_d_arete(a.famille)
-		if not modele.is_empty() and not _modeles_d_arete.has(modele):
-			if not _illisibles.has(modele):
-				a_lire[modele] = true
+		if not modele.is_empty() and not _modeles_d_arete.has(modele) and not _illisibles.has(modele):
+			a_lire[modele] = true
 			continue
 		var cle := "%s|%s|%s|%s|%s|%s|%s|%s" % [a.bloc, a.famille, a.piece, a.position, a.sens.x, a.sens.y, a.hauteurM,
 			a.palette]
@@ -619,9 +610,9 @@ static func modele_d_arete(famille: Variant) -> String:
 
 ## Le modèle d'arête `modele` lu une fois par le chargeur (`MontageDeComposition.scene_du_modele`) sous un jeton, ses
 ## erreurs dites à la console ; repris au jeton périmé (le volume sorti de l'arbre, #4195), la scène reçue est libérée
-## et rien d'autre ne bouge ; lu, il est retenu avec sa taille (`_taille_du_modele`) et les arêtes reçues se reposent
-## (`poser_les_aretes`), le retrait et la teinte courants repris (`_montrer_le_pose`) ; illisible, il est retenu
-## illisible ; `_lectures_closes` puis `aretes_posees` sont émis quand plus aucun modèle n'est en lecture.
+## et rien d'autre ne bouge ; lu, il est retenu avec sa taille (`_taille_du_modele`), illisible, il est retenu
+## illisible, et les arêtes reçues se reposent (`poser_les_aretes`), le retrait et la teinte courants repris
+## (`_montrer_le_pose`) ; `_lectures_closes` puis `aretes_posees` sont émis quand plus aucun modèle n'est en lecture.
 func _lire_le_modele_d_arete(modele: String) -> void:
 	if _en_lecture.has(modele):
 		return
@@ -640,7 +631,7 @@ func _lire_le_modele_d_arete(modele: String) -> void:
 		_illisibles[modele] = true
 	else:
 		_modeles_d_arete[modele] = {scene = scene, taille = _taille_du_modele(scene)}
-		poser_les_aretes(_aretes_recues)
+	poser_les_aretes(_aretes_recues)
 	if _en_lecture.is_empty():
 		_lectures_closes.emit()
 		aretes_posees.emit()
@@ -875,8 +866,7 @@ static func texturer(materiau: Material, nom: String, albedo: String, projetee: 
 ## modèle d'arête lu de leur famille (`modele_d_arete`) à leur position, s'il l'a (`noeud_de_la_piece`), peinte de leur
 ## palette (`piece_peinte`), le +Z de son repère vers le dehors
 ## de l'arête, étirée sur leur longueur et mise à la hauteur de leur mur (`MiseEnPage.echelle_d_arete_servie`) ;
-## sinon celle du kit, `<famille>--<pièce>`, mise à la hauteur de leur mur (`MiseEnPage.echelle_de_piece`) ; sinon
-## leur boîte (`_boite`). Chaque maillage devient deux instances groupées de même place (`_instances`), une par
+## sinon leur boîte (`_boite`). Chaque maillage devient deux instances groupées de même place (`_instances`), une par
 ## arête : `Vu_<maillage>`, que la caméra voit sans qu'il porte d'ombre, de son maillage teint (`_maillage_teint`), et
 ## `Ombre_<maillage>`, en ombre seule (`SHADOWS_ONLY`, #3758), de son maillage. Les arêtes vont en méta (`aretes`), et
 ## la couleur de chaque instance vue, aucune encore (`couleurs`) ; les instances s'écrivent une fois le groupe dans
@@ -884,20 +874,16 @@ static func texturer(materiau: Material, nom: String, albedo: String, projetee: 
 func _groupe(aretes: Array) -> Node3D:
 	var a: Dictionary = aretes[0]
 	var sens := Vector2(a.sens.x, a.sens.y)
-	var nom := "%s--%s" % [a.famille, a.piece]
 	var groupe := Node3D.new()
 	_etirer_sur(groupe, sens)
 	var socle := 0.0
 	var modele := modele_d_arete(a.famille)
-	var noeud := "" if modele.is_empty() else noeud_de_la_piece(_modeles_d_arete[modele].scene, a.piece, a.position)
+	var noeud := "" if not _modeles_d_arete.has(modele) else noeud_de_la_piece(_modeles_d_arete[modele].scene, a.piece, a.position)
 	if not noeud.is_empty():
 		var taille: Vector3 = _modeles_d_arete[modele].taille
 		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, metres_par_case)
 		groupe.scale = etirement
 		groupe.add_child(piece_peinte(modele, noeud, a.palette, etirement).duplicate())
-	elif _kit != null and a.famille != null and _kit.has_node(nom):
-		groupe.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, metres_par_case)
-		groupe.add_child(_kit.get_node(nom).duplicate())
 	else:
 		var boite := MeshInstance3D.new()
 		boite.name = "Boite"

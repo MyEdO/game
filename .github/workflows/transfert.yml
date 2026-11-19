@@ -1,7 +1,7 @@
 name: Transfert
 
 # LE VERSEMENT À LA RELEASE DES MODÈLES (#2987) : une branche `transfert/<x>` porte, en plus de ce qu'elle reprend de
-# `main`, des fichiers épinglés que la Release ne porte pas encore (textures et kit sous leur dossier épinglé, GLB sous
+# `main`, des fichiers épinglés que la Release ne porte pas encore (textures et sons sous leur dossier épinglé, GLB sous
 # `hotes/godot/projet/modeles/`), ajoutés de force, et la provenance qui les épingle. Au push, `hotes/godot/epingles.mjs`
 # verse chaque fichier épinglé absent de la Release sous le nom de son empreinte, après l'avoir vérifiée, sans rien
 # écraser (`publierAssets`), puis la branche est supprimée : elle n'est qu'un véhicule, la provenance se fusionne par PR.

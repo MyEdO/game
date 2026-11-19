@@ -29,10 +29,10 @@
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie jetable du projet sous le dossier temporaire, tirée de sa copie importée gardée hors de
 // l'arbre (`surUneCopie`, #3935) : l'arbre n'en reçoit rien, ni les modèles d'export du profil Godot
-// (`export_templates`). Chaque étape du démarrage écrit sa durée au journal (`[démarrage]`, `chronometrer`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--coop`, `--export` et `--bureau` déposent les GLB, les textures et le
-// kit des arêtes du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
+// (`export_templates`). Chaque étape du démarrage écrit sa durée au journal (`[démarrage]`, `chronometrer`). Avant d'ouvrir Godot, `--sonde`, `--rendus`, `--coop`, `--export` et `--bureau` déposent les GLB, les textures et les
+// sons du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
 // (`recupererModeles`, #2948 ; `recupererEpingles`, #3476), et la copie reçoit le catalogue des dessins
-// (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, le kit et le catalogue des dessins, ce
+// (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, les sons et le catalogue des dessins, ce
 // dernier dans le projet en place, puis ouvre l'éditeur épinglé sur ce projet (#3945) : F5 y joue sur le noyau vivant
 // (`vivant.mjs`), qui partage `empaqueter` en développement. `--bureau --sortie <dossier>` y écrit l'exécutable de bureau de cette
 // plateforme (#3951, `BUREAU`) : sous `noyau/`, le bundle, le point d'entrée embarqué empaqueté en un fichier
@@ -351,7 +351,7 @@ const PRESETS = 'export_presets.cfg'
 
 /** Les dossiers du projet que l'export Web sert hors de `index.pck`, chacun en paquet `<dossier>.pck` à côté de la page
  *  (#4402), nommés dans `PAQUETS`, que la scène de démarrage de la page lit (`projet/scripts/demarrage.gd`). */
-const PAQUETS_DU_WEB = ['textures', 'kit']
+const PAQUETS_DU_WEB = ['textures']
 /** La liste des paquets écrite à côté de la page. */
 const PAQUETS = 'paquets.json'
 /** Le préréglage qui exporte chaque paquet (`export_presets.cfg`), son `include_filter` réécrit par paquet. */
@@ -927,11 +927,11 @@ function verdict(erreurs) {
   return 1
 }
 
-/** Les GLB, les textures et le kit du projet déposés (`recupererModeles`, `recupererEpingles`) avant d'ouvrir Godot : rend les assets. */
+/** Les GLB, les textures et les sons du projet déposés (`recupererModeles`, `recupererEpingles`) avant d'ouvrir Godot : rend les assets. */
 async function deposerLesAssets() {
   const a = await chronometrer('assets chargés (Vite)', assetsDeLHote)
   await chronometrer('modèles vérifiés', () => a.recupererModeles({ dossier: a.DOSSIER_DES_MODELES }))
-  await chronometrer('textures, kit et sons vérifiés', () => a.recupererEpingles({}))
+  await chronometrer('textures et sons vérifiés', () => a.recupererEpingles({}))
   return a
 }
 

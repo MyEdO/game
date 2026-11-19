@@ -1,7 +1,7 @@
 /**
  * LES FAÇADES AUTHORÉES : le catalogue des apparences de façade (`defs/`), l'index des arêtes qu'une section de façade
  * de la scène porte (`facadeEdges`), et l'apparence de structure (`structureAppearance.json`) de chaque arête de mur
- * qui s'en déduit (`apparenceDArete`), que lisent le rendu web et le kit des arêtes de l'hôte Godot.
+ * qui s'en déduit (`apparenceDArete`), que lisent le rendu web et les arêtes de l'hôte Godot.
  */
 import type { FacadeFeature, Scene, WallSeg } from '../scene';
 import { memoByRef } from '../sceneMemo';

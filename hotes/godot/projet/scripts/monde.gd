@@ -572,10 +572,10 @@ func _zoomer(sens: float) -> void:
 
 ## @contrat Vue
 ## Le volume de la scène (`VolumeDeScene.poser_les_aretes`) dessine les arêtes du plateau (méthode `aretes`), chacune
-## debout à son pied : la pièce
-## `<famille>--<piece>` du kit des arêtes (`projet/kit/kit.glb`, assemblé par `hotes/godot/kit.mjs` depuis un pack
-## modulaire CC0, `asset/kit.ts`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans kit au projet ou
-## sans cette pièce au kit, une boîte : un mur, une porte fermée, le seuil d'une porte ouverte ou d'une brèche. Les
+## debout à son pied : la pièce que l'arête nomme du modèle `arete--<kit>` servi pour sa famille
+## (`VolumeDeScene.modele_d_arete`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans modèle servi, d'un
+## modèle illisible ou sans cette pièce au modèle, une boîte : un mur, une porte fermée, le seuil d'une porte ouverte ou
+## d'une brèche. Les
 ## arêtes de même bloc (`bloc`), même pièce, même sens et même hauteur sont dessinées en un groupe d'instances.
 
 ## @contrat Vue
@@ -625,8 +625,7 @@ func _zoomer(sens: float) -> void:
 ## Le shader de monde rend chaque surface vue d'un morceau et d'une nappe de sa texture, `projet/textures/<matiere>.jpg`,
 ## et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une
 ## matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
-## `projet/textures/provenance.json` ; celles du kit des arêtes, dans `projet/kit/provenance.json` (dossiers épinglés,
-## `asset/epingles.ts`).
+## `projet/textures/provenance.json` (dossier épinglé, `asset/epingles.ts`).
 ##
 ## Le monde pose chaque nappe de toit et chaque couronne crénelée sous le volume comme un morceau : une instance vue
 ## dans le shader de monde, que la vision voile (chaque sommet porte en `UV2` le texel de sa case au plan `sol` de sa

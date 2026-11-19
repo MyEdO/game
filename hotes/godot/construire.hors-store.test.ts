@@ -155,7 +155,7 @@ describe('la garde de l’export Web : aucun fichier au-delà de ce que GitHub t
   it('nomme, à toute profondeur, chaque fichier de plus de 104 857 600 octets, et lui seul', () => {
     const d = join(dossier, `export-${Math.random().toString(36).slice(2)}`);
     mkdirSync(join(d, 'modeles'), { recursive: true });
-    for (const [rel, taille] of [['index.pck', 104_857_601], ['kit.pck', 104_857_600], [join('modeles', 'lourd.scn'), 200_000_000]] as const) {
+    for (const [rel, taille] of [['index.pck', 104_857_601], ['textures.pck', 104_857_600], [join('modeles', 'lourd.scn'), 200_000_000]] as const) {
       writeFileSync(join(d, rel), '');
       truncateSync(join(d, rel), taille);
     }

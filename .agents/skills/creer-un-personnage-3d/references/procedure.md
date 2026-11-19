@@ -792,8 +792,9 @@ mur (`corps`, `bois`) de son mur porteur, celui du bout -X sinon du bout +X, et 
 
 **Famille neuve.** Ajouter d'abord la famille au `kitSchema` (`src/data/schemas/defs/structureAppearance.ts`), puis
 une apparence de `structureAppearance.json` qui la porte (le jeu de données s'édite au fichier). L'hôte pose une
-arête par le modèle `arete--<kit>` s'il est servi, sinon par le pack `projet/kit/kit.glb` (familles `pierre` et
-`cloture`, `hotes/godot/asset/kit.ts`), sinon par une boîte.
+arête par le modèle `arete--<kit>` s'il est servi, sinon par une boîte, comme une arête dont le modèle est
+illisible ou n'a pas la pièce (`VolumeDeScene._groupe`). Un kit bâtit donc les six pièces de `PieceDArete`
+(`src/noyau/monde/aretes.ts`), hors la structure qui s'abat sans s'ouvrir ci-dessus.
 
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
