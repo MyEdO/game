@@ -2,9 +2,13 @@
 
 Compte rendu des dix états dessinés pour la halle, le Marchandage et le port, des écrans sans image d'intention.
 Contenu lu au code (`src/hote/`, `src/noyau/`, `src/i18n/messages/fr.ts`), jamais le design d'un écran existant.
-Sources au dépôt : `sources/commerce/` ; elles lient le socle commun de `sources/lieux-et-nuit/` et, pour le
-Marchandage, le jet opposé de `sources/combat/` (`jet.css`, `jet.js`).
-Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
+Sources au dépôt : trois écrans de `sources/maquettes/`, chacun la liste de ses états au format de
+`sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png>
+--format 16:9 [--etat <état>]`) : `halle` (`halle-achat`, `halle-vente`), `marchandage` (`marchandage-avant-le-de`,
+`marchandage`) et `port` (`port`, `port-negoce`, `port-achat`, `port-chantier`, `port-recrutement`,
+`port-avitaillement`). Les décors de la halle et du quai et la carte du port vivent dans `sources/commerce/commerce.js` ;
+le Marchandage prend le jet opposé de `sources/combat/` (`jet.css`, `jet.js`).
+Premières maquettes : chaque « choix à valider » attend l'utilisateur.
 
 Cible écrite suivie : `../ecrites/lieu.md` (halle : ligne par denrée, chargement, lots, billet de rumeur ; port : un
 lieu ; Marchandage : le bandeau de jet du combat à sa place). Règles du 2026-11-16 appliquées par-dessus : un choix
@@ -20,14 +24,14 @@ dés tirés, cale 240 / 300 Enc et coque 52 / 60 de la cogue, durées de mer (3 
 (31 CO, 30 CO 9/–, 32 CO 6/–, 31 CO 3/– : un groupe qui vient de vendre ses céréales), l'équipage à bord et les
 quantités réglées.
 
-Pièces neuves : cartouche d'offre pointé sur son PNJ ; jauge de porteur ; réglette de quantité ; voies d'un lot. Le
+Pièces : les hôtes de la scène (offres, porteurs, navire, services, constructeur) en colonne entre le rail et la
+page, en deux colonnes devant la carte du port ; jauge de porteur ; réglette de quantité ; voies d'un lot. Le
 bandeau de jet opposé est celui du combat.
 
 ## halle-achat
 - Page des services de Kemperbad ouverte sur « Marché » (rail : Auberge, Marché, Forgeron, Temple, Port, de
-  `src/data/lieux-services.json`). Les offres sont les négociants de la halle : un cartouche par denrée, pointé sur
-  son PNJ (Laine 350 Enc à 2/– / Enc ; Vin 280 Enc à 6/– / Enc, « Évaluer le vin »).
-- Les porteurs du groupe au premier plan (charrette 25 Enc, `src/data/vehicles.json` ; mule 14 Enc).
+  `src/data/lieux-services.json`). Les offres sont les négociants de la halle : un cartouche par denrée (Laine 350 Enc à 2/– / Enc ; Vin 280 Enc à 6/– / Enc, « Évaluer le vin »).
+- Les porteurs du groupe (charrette 25 Enc, `src/data/vehicles.json` ; mule 14 Enc).
 - Page « Le chargement » : porteur et sa jauge, Enc à acheter (de 10 à 25), prix de base, lot partagé +10 %,
   estimation, « Bourses du groupe » par `bourse(…)` (entreprise commune, #3004 : la part de chaque héros réglable et
   le total), « Conclure l'achat » (`src/noyau/marcheEnVue.ts:50-88`, `src/hote/ecran.ts:837-871`).
@@ -75,12 +79,12 @@ bandeau de jet opposé est celui du combat.
 
 ## port
 - Le port est un lieu (Salzenmund, `src/data/naval-ports.json`) : récit, quai, navire du groupe à l'amarre. Les
-  services sont des cartouches sur leurs PNJ et bâtiments : Chantier naval, L'entrepôt (déplié, réplique d'accueil,
-  « Entrer »), Taverne des marins, L'avitailleur ; « Votre cogue » porte coque et cale.
+  services sont des cartouches, en deux colonnes devant la carte : L'entrepôt (déplié, réplique d'accueil,
+  « Entrer »), Votre cogue (coque et cale), Chantier naval, La taverne, L'avitailleur.
 - Fragment de carte, « Ouvrir la carte », départs « Prendre la mer » (Norden, Hargendorf) ; sortie « Explorer ».
 - Code : `src/noyau/portFlow.ts:1-25` (recruter l.521, avitailler l.588), `src/noyau/seaVoyageFlow.ts:2345-2403`
   (devis de chantier, réparation, carénage).
-- À valider : le port dessiné comme un lieu, ses services sur le quai plutôt qu'en liste ; l'état du navire lu sur le
+- À valider : le port dessiné comme un lieu, ses services en cartouches plutôt qu'en liste ; l'état du navire lu sur le
   navire ; les départs en mer sur la carte du lieu ; un seul cartouche déplié à la fois.
 
 ## port-negoce

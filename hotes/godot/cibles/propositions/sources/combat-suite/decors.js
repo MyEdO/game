@@ -1,17 +1,18 @@
 /* Les décors de la suite du combat (`../rendu.js`, gabarit `lieu-et-voyage`) : la mer sous la chasse d'une cogue
    pirate ; la route en forêt, où les poursuivants gagnent sur le groupe à mesure que la Distance fond ; le champ de la
-   bataille de masse devant les remparts. Peints à l'échelle des décors de `../voyage/voyage.js`, rognés à la vue. */
+   bataille de masse devant les remparts. Peints à l'échelle des décors de `../voyage/voyage.js`, dans la `toile()` qui les
+   rogne à la vue (`../lieux-et-nuit/commun.js`). */
 {
   const { etat } = globalThis.MAQUETTE;
-  const vue = (svg) => poser(`<svg width="${W}" height="${H}" viewBox="0 0 1707 780" preserveAspectRatio="xMidYMid slice">${svg}</svg>`);
+  const vue = (svg) => { toile().innerHTML = svg; };
   const DECORS = {
     foret: () => {
       /* les poursuivants se tiennent d'autant plus près du groupe que la Distance est courte */
       const { distance, sur } = etat.panneau;
       const coureurs = (x0, n, pas, lance) => Array.from({ length: n }, (_, k) => D.marcheur(x0 + k * pas, 566 + (k % 2) * 8, 1.05, lance)).join('');
-      vue(`${interieur(D.route({ lanterne: false }).replace(D.cavalier(610, 656, 0.9), '').replace(D.diligence(860, 648, 1, false), ''))}${coureurs(760 - 850 * distance / sur, 3, 46, true)}${coureurs(900, 4, 52, false)}`);
+      vue(`${D.route({ lanterne: false }).replace(D.cavalier(610, 656, 0.9), '').replace(D.diligence(860, 648, 1, false), '')}${coureurs(760 - 850 * distance / sur, 3, 46, true)}${coureurs(900, 4, 52, false)}`);
     },
-    mer: () => vue(`${interieur(D.mer({ teinte: 'jour', navire: false }))}${D.cogue(300, 508, .4, { coque: '#0b0a0e', voile: '#17151b', pavillon: '#0b0a0e' })}<path d="M180 518q120 12 250 0" stroke="#e6ecea" stroke-width="1.500" fill="none" opacity=".5"/>
+    mer: () => vue(`${D.mer({ teinte: 'jour', navire: false })}${D.cogue(300, 508, .4, { coque: '#0b0a0e', voile: '#17151b', pavillon: '#0b0a0e' })}<path d="M180 518q120 12 250 0" stroke="#e6ecea" stroke-width="1.500" fill="none" opacity=".5"/>
       ${D.cogue(850, 540, .86, {})}<path d="M592 559q258 26 550 0" stroke="#e6ecea" stroke-width="2.500" fill="none" opacity=".6"/>
       <path d="M0 780V690q200 -40 420 0t440 0 420 0 427 0V780z" fill="#07111a"/>`),
     champ: () => {

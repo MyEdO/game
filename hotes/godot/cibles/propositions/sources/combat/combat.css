@@ -73,7 +73,7 @@
 /* le fil sur la ligne basse : 164 du bas sous la barre, 20 au-dessus d'une fenêtre du bas (`../../dispositions.md`) */
 #ui:has(>#jet) #journal{bottom:240px}
 #ui:has(>#jet .fond.consigne) #journal{bottom:198px}
-#ui:has(>#jet .cartes.liste) #journal{bottom:294px}
+#ui:has(>#jet .cartes.liste) #journal,#ui:has(>#jet .chansons) #journal,#ui:has(>#jet .testeurs) #journal{bottom:294px}
 
 /* variantes : la liste ouverte d'une pastille, les emplacements rapides */
 #liste .fond{background:none;box-shadow:none;padding:6px 8px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px}

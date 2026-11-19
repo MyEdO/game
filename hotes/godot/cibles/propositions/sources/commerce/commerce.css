@@ -62,16 +62,17 @@
 .service .gestes{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
 .service .gestes .plaque{flex:1 1 auto}
 .service .gestes .plaque>div{font-size:13px;gap:6px;padding:0 9px;letter-spacing:.8px}
-#carte{left:1322px;top:20px;width:361px;height:238px}
-#carte svg{display:block;width:100%;height:100%}
-#partir{left:1322px;top:320px;width:361px}
+#carte-du-lieu svg{display:block;width:100%;height:100%}
 #partir .fond{padding:17px 14px 9px}
 .depart{display:flex;align-items:center;gap:10px;padding:6px 2px}
 .depart+.depart{border-top:1px solid rgba(226,192,106,.2)}
 .depart .ou{flex:1;min-width:0}
 .depart .ou b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:20px;line-height:23px;color:#f4e8ca;letter-spacing:.3px;white-space:nowrap}
 .depart .ou span{display:block;font-size:11.5px;color:var(--creme-2);white-space:nowrap}
-.depart .moyen{display:flex;align-items:center;gap:6px;font-size:12px;color:#f0e2c2;white-space:nowrap}
+.depart .moyens{display:flex;gap:7px}
+.depart .plaque{flex:none}
+.depart .plaque>div{font-family:"Chiffres";font-size:12.5px;font-weight:600;letter-spacing:.2px;gap:6px;padding:0 9px}
+.depart p{margin:4px 0 0;font-style:italic;font-size:12.5px;line-height:16px;color:var(--creme-2)}
 
 /* le Marchandage : le bandeau de jet du combat (`../combat/jet.css`, lié avant cette feuille), à sa place ; ce que la
    famille y change : un centre plus large pour les prix, des libellés sur une ligne */

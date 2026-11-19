@@ -71,7 +71,6 @@
    centré à 8 du bas */
 .paysage{width:100%;height:100%}
 #recit{width:340px}
-#camp{left:auto;right:24px}
 #bandeau{left:calc(50% - 480px);top:auto;bottom:8px;width:960px}
 #bandeau .heros{gap:9px;padding:11px 10px 0}
 #bandeau .heros .nom{font-size:17.5px}
@@ -81,8 +80,31 @@
 .choix-h .plaque{flex:none}
 .choix-h .plaque>div{font-size:10px;letter-spacing:.2px;padding:0 4px}
 
-/* 4. Lieu, la route : la carte du trajet au coin haut-droit, le panneau dessous ; la frise de la Distance au-dessus du
-   bandeau, l'aperçu du Test au-dessus du navire ; la fenêtre du bas prend la place du bandeau */
+/* 4. Lieu, la nuit : l'offre de l'hôte à gauche sous le cartouche, qui dort où en colonne de 360 au coin haut-droit, la
+   partie d'un jeu en grande page de 480 */
+#hote-du-lieu{left:24px;top:136px;width:360px}
+#dortoir{left:auto;right:24px;top:20px;width:360px}
+#partie{left:auto;right:24px;top:20px;width:480px}
+
+/* 4. Lieu, les soins : la page des soins en grande page de 480 au coin haut-droit */
+#soins{left:auto;right:24px;top:20px;width:480px}
+
+/* 4. Lieu, le commerce : le rail sous le cartouche, le billet de rumeur dessous ; les hôtes de la scène en colonne entre
+   le cartouche et la page ; la page du service en grande page de 480 au
+   coin haut-droit, jusqu'à la ligne basse puis elle défile ; la carte du port et ses départs en colonne de 360 */
+#rumeur{top:452px}
+#scene-du-commerce{position:absolute;left:412px;top:20px;width:348px;height:530px;display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+#scene-du-commerce.en-deux{width:468px;flex-wrap:wrap;align-content:flex-start;column-gap:16px}
+#scene-du-commerce .hote{position:relative;left:auto !important;top:auto !important}
+#page{left:auto;right:24px;top:20px;width:480px}
+#page>.fond{max-height:518px;overflow-y:auto;scrollbar-width:none}
+#ui:has(>#jet) #page>.fond{max-height:442px}
+#carte-du-lieu{left:auto;right:24px;top:20px;width:360px;height:238px}
+#partir{left:auto;right:24px;top:330px;width:360px}
+
+/* 4. Lieu, la route : la carte du trajet au coin haut-droit, le panneau ou le navire dessous ; la frise au-dessus du
+   bandeau, l'aperçu du Test au-dessus du navire ; la fenêtre du bas prend la place du bandeau ; le carton d'un arrêt
+   centré, 960 de large, son bas à 170 du bas (à 20 au-dessus de la fenêtre du bas) */
 #trajet{left:auto;right:24px;top:20px;width:300px;height:180px}
 #panneau{left:auto;right:24px;top:20px;width:300px}
 #ui:has(>#trajet) #panneau{top:220px}
@@ -90,7 +112,13 @@
 #panneau .jauge{margin:1px 0 7px}
 #panneau .plaque{margin-top:2px}
 #frise{left:calc(50% - 460px);top:auto;bottom:176px;width:920px}
-#apercu-test .apercu{left:640px;top:300px;--pointe:60px}
+#navire{left:auto;right:24px;top:220px;width:300px}
+#evenement{left:calc(50% - 480px);top:auto;bottom:170px;width:960px;height:328px}
+#evenement.court{bottom:240px;height:258px}
+#ui:has(.testeurs) #evenement.court{bottom:294px;height:204px}
+#evenement .fond{padding:22px 24px 0 20px}
+#evenement .vignette{width:226px;height:226px}
+#apercu-test .apercu{left:640px;top:270px;--pointe:60px}
 .apercu td:first-child{white-space:nowrap;padding-right:10px}
 .apercu table{border-collapse:collapse;width:100%}
 .apercu tr.somme td{border-top:1px solid rgba(60,40,20,.4);font-weight:600}
@@ -104,7 +132,7 @@
 #verdict.tests tr.courant td{color:#7c1f14;font-weight:600}
 #verdict.tests tr.somme td{font-weight:600}
 #jet .fond.tests{grid-template-columns:auto minmax(0,1fr)}
-#jet:has(.fond.tests){height:266px}
+#jet:has(.fond.tests),#jet:has(.testeurs),#jet:has(.chansons){height:266px}
 
 /* 4. Lieu, la bataille : le panneau de la Puissance au coin haut-droit, les Scènes sur leurs emplacements du champ, le
    carton du Test de Puissance ou de l'issue au-dessus du bandeau (gabarit 7) */
@@ -196,22 +224,45 @@
 #actif-portrait{left:calc(50% - 480px + 343px);top:auto;bottom:82px}
 #actif-nom{left:calc(50% - 480px + 311px);top:auto;bottom:34px;width:160px}
 #liste{left:calc(50% - 480px + 460px);bottom:160px;width:262px}
+#liste:has(.prix){width:300px}
 #apercu-sort.rapide .apercu{left:calc(50% - 480px + 460px);bottom:166px;--pointe:41px}
 #apercu-sort.liste .apercu{left:calc(50% - 480px + 148px);bottom:212px;--pointe:150px}
 #apercu-cible .apercu{left:62.5%;top:190px;--pointe:136px}
 #journal-entier{right:24px;top:70px;width:400px}
 #journal-entier .fond{position:relative;padding:28px 20px 12px}
 /* la fiche d'un combattant : réduite et décalée, entre la borne du round et la croix, au-dessus du journal */
-#f-identite{left:246px;top:16px;width:230px;height:420px}
-#f-identite .fond{padding:16px 15px 0}
-#f-identite .mesure{margin-top:14px}
-#f-identite .filet{margin:14px 8px}
-#f-identite .reserves{gap:6px}
-#f-profil{left:486px;top:16px;width:714px;height:80px}
-#f-profil .fond{padding-top:20px}
-#f-figure{left:486px;top:106px;width:200px;height:330px}
-#f-figure .niche svg{width:150px;height:212px}
-#f-sections{left:696px;top:106px;width:504px;height:330px}
-#f-sections .fond{padding:30px 16px 0}
-#f-sections .vignette{width:90px;height:90px}
-#f-sections .arme .n{font-size:23px;line-height:26px}
+#ui:has(>#systeme) #f-identite{left:246px;top:16px;width:230px;height:420px}
+#ui:has(>#systeme) #f-identite .fond{padding:16px 15px 0}
+#ui:has(>#systeme) #f-identite .mesure{margin-top:14px}
+#ui:has(>#systeme) #f-identite .filet{margin:14px 8px}
+#ui:has(>#systeme) #f-identite .reserves{gap:6px}
+#ui:has(>#systeme) #f-profil{left:486px;top:16px;width:714px;height:80px}
+#ui:has(>#systeme) #f-profil .fond{padding-top:20px}
+#ui:has(>#systeme) #f-figure{left:486px;top:106px;width:200px;height:330px}
+#ui:has(>#systeme) #f-figure .niche svg{width:150px;height:212px}
+#ui:has(>#systeme) #f-sections{left:696px;top:106px;width:504px;height:330px}
+#ui:has(>#systeme) #f-sections .fond{padding:30px 16px 0}
+#ui:has(>#systeme) #f-sections .vignette{width:90px;height:90px}
+#ui:has(>#systeme) #f-sections .arme .n{font-size:23px;line-height:26px}
+
+/* 4. Lieu, le bord : les postes autour du mât, l'état du bord ou la semaine en colonne de 360 au coin haut-droit, la
+   pastille du dossier dessous, puis la station du héros choisi */
+#bord{left:auto;right:24px;top:20px;width:360px}
+#station{left:auto;right:24px;top:412px;width:360px}
+
+/* 4. Lieu, l'arrivée : le service entre le cartouche et la carte du trajet, en colonne de 360 au coin haut-droit avec
+   les départs dessous */
+#scene-du-commerce.relais{left:500px}
+#ui:has(>#partir) #trajet{width:360px}
+#ui:has(>#trajet) #partir{top:280px}
+
+/* 3. Fiche, le dossier d'une possession : l'identité 26 / 20, 340 de large jusqu'à 24 du bas ; le profil tendu jusqu'à
+   la croix ; la silhouette et les sections dessous, jusqu'à 24 du bas et au-dessus du journal et du système */
+#f-identite.dossier{left:26px;top:20px;width:340px;height:auto;bottom:24px}
+#f-profil.dossier{left:384px;top:20px;right:96px;width:auto;height:96px}
+#f-figure.dossier{left:384px;top:136px;width:240px;height:auto;bottom:24px}
+#f-figure.dossier .niche svg{width:100%;height:100%}
+#f-sections.dossier{left:642px;top:136px;right:96px;width:auto;height:auto;bottom:24px}
+#f-sections.dossier .vignette{width:84px;height:84px}
+#f-sections.dossier .arme .n{font-size:23px;line-height:26px}
+#f-sections.dossier .ou .l{margin-bottom:12px}
