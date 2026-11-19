@@ -1185,6 +1185,7 @@ export const fr = {
   'ecran.echoppe.ligne': '{nom} ×{qty}',
   'ecran.echoppe.payer': 'Payer {total}',
   'ecran.echoppe.vendre': 'Vendre le lot · {total}',
+  'ecran.incantation.ni': 'Sort · Niveau d’incantation {ni}',
   'ecran.incantation.sort': '{sort} sur {cible}',
   'ecran.incantation.surSoi': 'soi-même',
   'ecran.incantation.zone': 'Zone',

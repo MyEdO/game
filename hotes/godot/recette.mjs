@@ -68,7 +68,8 @@
 //   conversation à la liasse.
 // - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche, la liste des sorts de la Haute
 //   Sorcière : le sort de l'emplacement rapide du rang 0, lu dans `combat.rapides`, armé à la touche 1 puis désarmé par elle ;
-//   la liste des sorts ouverte par sa pastille, Fléchette amenée à la molette puis cliquée, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
+//   la liste des sorts ouverte par sa pastille, Sang de la Terre sur soi-même : son NI et sa Zone d'Effet, puis l'annulation ;
+//   Fléchette amenée à la molette puis cliquée, sa cible cliquée : la fenêtre dit son NI avant et après le jet à l'Entrée ;
 //   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
 // - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche à l'écran, les tours passent jusqu'au Tueur, son offre
 //   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
@@ -1592,25 +1593,49 @@ async function parcoursIncantation() {
   await realKey(session, DIGIT1)
   await attendreLaVue("v.zones['combat.rapides'][0]?.presse === false")
   noter(`touche 1 de nouveau : ${premiere.libelle} désarmé`)
-  const flechette = sorts.valeurs.find((b) => b.libelle === 'Fléchette')
-  assert.ok(flechette, `Fléchette est offerte : ${sorts.valeurs.map((b) => b.libelle).join(', ')}`)
   const valeurs = new Set(sorts.valeurs.map((b) => bouton(b).element))
-  await ouvrirLaPastilleDe(sorts, bouton(flechette))
+  const amenerLeSort = async (nom) => {
+    const sort = sorts.valeurs.find((b) => b.libelle === nom)
+    assert.ok(sort, `${nom} est offert : ${sorts.valeurs.map((b) => b.libelle).join(', ')}`)
+    const geste = bouton(sort)
+    await ouvrirLaPastilleDe(sorts, geste)
+    await amenerDansLaListe(geste, (b) => valeurs.has(b.element), 'la liste des sorts')
+    return geste
+  }
+  const corpsDeLIncantation = (v, id) => element(v, 'fenetre.corps', id)
+  await cliquerBouton(await amenerLeSort('Sang de la Terre'))
+  await attendreLaVue('!!v.projection.fenetre')
+  v = await vue()
+  assert.equal(corpsDeLIncantation(v, 'sort')?.texte, 'Sang de la Terre sur soi-même')
+  const zoneDEffet = corpsDeLIncantation(v, 'zone')
+  assert.equal(zoneDEffet?.libelle, 'Zone')
+  assert.equal(zoneDEffet?.valeur, '3 × 3 cases')
+  assert.equal(corpsDeLIncantation(v, 'ni')?.texte, 'Sort · Niveau d’incantation 6')
+  noter(`${corps(v)} · ${zoneDEffet.libelle} ${zoneDEffet.valeur}`)
+  await capturer('4519-sang-de-la-terre')
+  const annuler = zone(v, 'fenetre.gestes').find((b) => b.type === 'bouton' && b.libelle === 'Annuler')
+  assert.ok(annuler, 'Sang de la Terre peut être annulé avant le jet')
+  await cliquerBouton(bouton(annuler))
+  await attendreLaVue('!v.projection.fenetre')
+
+  const flechette = await amenerLeSort('Fléchette')
   await capturer('3328-j1-2-liste-ouverte')
-  await amenerDansLaListe(bouton(flechette), (b) => valeurs.has(b.element), 'la liste des sorts')
-  await cliquerBouton(bouton(flechette))
+  await cliquerBouton(flechette)
   v = await vue()
   noter(`Fléchette choisie : ${v.projection.combat.cibles.liste.length} cibles`)
   const [cible] = v.projection.combat.cibles.liste
   await cliquerCase(caseDeLaCible(v, cible))
   await attendreLaVue('!!v.projection.fenetre')
   v = await vue()
-  noter(`clic sur la case de ${cible} : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte} »`)
+  assert.equal(corpsDeLIncantation(v, 'sort')?.texte, 'Fléchette sur Loup')
+  assert.equal(corpsDeLIncantation(v, 'ni')?.texte, 'Sort · Niveau d’incantation 0')
+  noter(`clic sur la case de ${cible} : ${corps(v)}`)
   await capturer('3328-j1-3-incantation')
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
   v = await vue()
+  assert.equal(corpsDeLIncantation(v, 'ni')?.texte, 'Sort · Niveau d’incantation 0')
   const portee = zone(v, 'fenetre.reglages').find((c) => c.libelle === 'Surincantation : Portée')
   assert.ok(portee, `le jet tombé ouvre la Surincantation : ${corps(v)} ; réglages ${zone(v, 'fenetre.reglages').map((c) => c.libelle).join(' | ')}`)
   noter(`jet à l'Entrée : ${corps(v)}`)
