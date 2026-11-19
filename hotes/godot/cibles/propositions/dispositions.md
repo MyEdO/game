@@ -3,7 +3,7 @@
 Arbitrage du 18/11/2026 des 25 incohérences du relevé `kit-commun/dispositions.md` (162 pages dessinées sur la toile
 du dessin d'origine), porté le même jour à la vue du jeu, puis refait le 19/11/2026 en cadres fixes : « Rien de pire
 que des boites qui bougent d un écran à l autre, ce n est pas acceptable » (fiche
-`user-doctrine-boites-fixes-d-un-ecran-a-l-autre`, grille de Fable `docs/plans/2026-11-19-cadres-fixes-maquettes.md`).
+`user-doctrine-boites-fixes-d-un-ecran-a-l-autre`).
 Les pièces (tailles, teintes) sont celles de `kit.md`, en pixels logiques, sans facteur, et ne sont pas rediscutées ici.
 
 ## Vue de référence et ancrages
