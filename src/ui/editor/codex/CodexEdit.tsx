@@ -14,6 +14,8 @@ import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import {
   metaPourFichier,
   chargeDiscriminee,
+  champDeProvenanceEcarte,
+  valeurDeProvenanceAuBrouillon,
   brouillonNeuf,
   noeudDuChamp,
   noeudObjet,
@@ -535,14 +537,20 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const typeFige = !!metaPourFichier(src.file);
   const fields = useMemo(() => {
     const handled = dedicatedFieldKeys(categoryKey);
+    const provenanceEcartee = champDeProvenanceEcarte(src.file, entry);
     return allFields
       // Un champ DÉRIVÉ de l'entrée ÉDITÉE ne s'offre pas à la saisie (`estDerive`, `editFields.ts`) :
       // le filtre est sur `entry`, pas sur l'échantillon du dataset — une entrée à la prose ADRESSÉE
       // n'expose pas son `desc` matérialisé, sa voisine à prose inline garde le sien.
-      .filter((f) => !handled.has(f.key) && !estDerive(entry, f.key) && (!charge || f.key === charge.champ || charge.duCas.includes(f.key) || !charge.toutes.includes(f.key)))
+      .filter((f) => f.key !== provenanceEcartee && !handled.has(f.key) && !estDerive(entry, f.key))
+      .filter((f) => !charge || f.key === charge.champ || charge.duCas.includes(f.key) || !charge.toutes.includes(f.key))
       .map((f) => (typeFige && f.key === 'type' ? { ...f, fige: true } : f));
-  }, [allFields, categoryKey, charge, entry, typeFige]);
-  const edit = (key: string, v: unknown) => { setEntry((e) => ({ ...e, [key]: v })); setDirty(true); setSchemaError(null); };
+  }, [allFields, categoryKey, charge, entry, src.file, typeFige]);
+  const edit = (key: string, v: unknown) => {
+    setEntry((e) => ({ ...e, [key]: valeurDeProvenanceAuBrouillon(src.file, key, v) }));
+    setDirty(true);
+    setSchemaError(null);
+  };
   // Erreurs BLOQUANTES avant persist (identité + refs résolvables) — pas de validation des
   // datasets-objet (`details`, fiches de règle : pas d'identité par entrée).
   const errors = useMemo(() => (obj ? [] : validateEntry(categoryKey, entry, src.entries, src.index)), [obj, categoryKey, entry, src]);

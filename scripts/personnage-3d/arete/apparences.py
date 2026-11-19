@@ -28,3 +28,13 @@ def assises(lue):
     champs = (("assise", "hM"), ("joint", "jointW"), ("bloc", "blockWM"), ("decalage", "stagger"),
               ("ondulation", "edgeWobble"))
     return {cote: lue["detail"]["courses"][champ] for cote, champ in champs}
+
+
+MOELLONS_MACONNES = {
+    "inegalite": 0.22, "lit": 0.022, "boutisse": 0.2, "cale": (0.15, (0.3, 0.42)),
+    "moellon": {"relief": (0.0, 0.022), "chanfrein": (0.014, 0.032), "retrait": (0.025, 0.06)},
+    "taille": {"relief": (0.0, 0.0), "chanfrein": (0.01, 0.01), "retrait": (0.015, 0.015)},
+    "creux": 0.06, "harpe": (0.32, 0.18), "couronnement": None,
+}
+"""La façon des moellons maçonnés à chaînes de pierres de taille (`maconnerie`), commune aux kits qui en sont bâtis :
+cotes d'adaptation."""

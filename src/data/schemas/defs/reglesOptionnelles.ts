@@ -125,6 +125,7 @@ const doc = document(
     edit: { dataset: 'reglesOptionnelles' },
   },
   {
+    provenanceExclusive: true,
     // Charge par `kind` (`espace.chargeParDiscriminant`) : `libelles` n'appartient qu'au `mode`, `modificateur` et
     // `step` qu'au `param`.
     espace: {

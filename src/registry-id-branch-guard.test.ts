@@ -104,7 +104,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/monde/aiSpellValue.ts': 2,
   'src/noyau/colonnesDuMarchand.ts': 1,
   'src/noyau/combatEffects.ts': 3,
-  'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
+  'src/noyau/combatFlow.ts': 2, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
   'src/noyau/combatManeuvers.ts': 1,
   'src/noyau/combatSlice.ts': 1,

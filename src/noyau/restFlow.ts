@@ -34,6 +34,7 @@ import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, type RestRoll } from '../engine/rest';
 import {
   rollContraction,
+  sujetDeContraction,
   diseaseDefs,
   contagiousDiseases,
   contractionDue,
@@ -282,7 +283,7 @@ function runContagion(get: Get, set: Set, n: number, rng: RNG): { actorId: strin
     const other = party.find((h) => h.id === c.porteurId);
     if (!other) continue;
     for (let d = 0; d < n; d++) {
-      const log = rollContraction(other, c.diseaseName, testValue(other, { skill: { id: 'resistance' } }), c.difficulty, rng);
+      const log = rollContraction(other, c.diseaseName, testValue(other, sujetDeContraction(c.diseaseName)), c.difficulty, rng);
       if (log.length) out.push({ actorId: other.id, dz: c.diseaseName, log });
     }
   }

@@ -60,7 +60,8 @@ import { spawnEnemy } from './monde/spawn';
 import { posteDeLaBataille } from './monde/shipPostes';
 import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
-import { applyContraction, diseaseTestModLines, type PorteurDeMaladies } from '../engine/disease';
+import { applyContraction, type PorteurDeMaladies } from '../engine/disease';
+import { ligneDeContraction } from './contraction';
 import { rule } from '../engine/policy';
 import { WORLD_STEP_OWNER, type BatchParticipant, type CascadeStepMeta } from './pendings';
 import type { BandPorteur } from './rollSeam';
@@ -251,7 +252,7 @@ export function porteursABord(get: Get, set: SetFn): PorteurABord[] {
     id: h.id,
     porteur: h,
     rangee: { actor: h, ligne: { test: RESISTANCE } },
-    contraction: (diseaseId) => enContraction({ actor: h, ligne: { test: RESISTANCE, surLaCible: diseaseTestModLines(h, diseaseId) } }),
+    contraction: (diseaseId) => enContraction({ actor: h, ligne: ligneDeContraction(h, diseaseId) }),
     ecrire: ecrire(),
   }));
   if (!s.vessel || !shipboardSouls(s).crew) return pjs;

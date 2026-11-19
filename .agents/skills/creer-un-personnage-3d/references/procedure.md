@@ -777,15 +777,34 @@ longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son �
 L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du
 plateau (`MiseEnPage.echelle_d_arete_servie`).
 
+**Ouverture de plusieurs arêtes.** Une suite d'arêtes adjacentes et alignées de même couche, de même nature (porte,
+porte de ville) et de même apparence est une seule ouverture (`ouverturesDeLaScene`, `src/noyau/monde/aretes.ts`). Chaque arête y reçoit le nœud `<pièce>--<position>`, de position `gauche`, `milieu` ou
+`droite` ; l'hôte se replie sur `<pièce>`, qui est aussi le nœud d'une ouverture d'une seule arête. `gauche` est
+l'arête au bout -X de l'ouverture dans le repère de la pièce (X le long du sens de l'arête, +Z vers le dehors),
+`droite` celle du bout +X. Un vantail se gonde au bout extérieur de l'ouverture : côté -X pour `gauche`, côté +X pour
+`droite` ; celui de `milieu`, brisé sur son voisin de gauche, clôt sa baie fermé et la laisse libre ouvert. L'état
+d'un vantail reste celui de son arête. Un kit ne bâtit que les positions qu'une scène
+pose (`geometrie.noeud`) : le budget d'un nœud est celui de sa pièce, et `arete/revue.py` montre chaque ouverture
+d'un seul tenant, ses nœuds bout à bout. Un kit dont toutes les arêtes sont une Structure qui s'abat sans s'ouvrir
+(`porterie`) ne bâtit que `mur` et `breche`. Une porte posée dans un mur prend le kit, la hauteur et les teintes de
+mur (`corps`, `bois`) de son mur porteur, celui du bout -X sinon du bout +X, et garde les teintes de menuiserie
+(`accent`, `vet1`, `metal`) de sa propre apparence (`paletteDeLApparence`) : chaque kit bâtit donc ses portes.
+
+**Famille neuve.** Ajouter d'abord la famille au `kitSchema` (`src/data/schemas/defs/structureAppearance.ts`), puis
+une apparence de `structureAppearance.json` qui la porte (le jeu de données s'édite au fichier). L'hôte pose une
+arête par le modèle `arete--<kit>` s'il est servi, sinon par le pack `projet/kit/kit.glb` (familles `pierre` et
+`cloture`, `hotes/godot/asset/kit.ts`), sinon par une boîte.
+
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
 la couleur de l'apparence posée. Une baie est percée de part en part.
 
 **Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
 `menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
-des kits de pierre (assises, chaînes, couronnement, brèche). Un kit les pose, il ne les recopie pas. La forme
-d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit reçoivent
-cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour (`test_arete.py`).
+des kits de pierre (assises, chaînes, couronnement, porche voûté, brèche). Un kit les pose, il ne les recopie pas.
+La forme d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit
+reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
+(`test_arete.py`).
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
@@ -803,7 +822,11 @@ de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personna
 chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
 reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque
 `arete--*` publié.
-Publier comme un véhicule (chapitre 9, « Publier »).
+Regarder le kit dans Godot comme tout modèle sans base (chapitre 7) : l'atelier en montre chaque pièce par
+l'échantillon « Mur et ouverture », et la capture `cadrages` le montre posé dans une scène, au regard d'un joueur.
+Une illustration de façade se compare à cette capture, jamais à une pièce seule. Recettes Godot des arêtes
+(`godot:sonde`) : `arete-au-pied.gd` (pied, échelle, nœuds par position), `aretes-en-instances.gd`,
+`atelier-du-decor.gd`. Publier comme un véhicule (chapitre 9, « Publier »).
 
 ## Disponibilité à sonder avant chaque production
 

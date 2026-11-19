@@ -1,6 +1,6 @@
 """La maçonnerie commune aux kits de pierre (#4471) : l'appareil d'une arête (`Appareil`), ses assises de moellons
-bruts posées sur une âme en retrait, ses chaînes de pierres de taille, son couronnement et sa brèche. Un kit qui le
-bâtit déclare les matériaux `PIERRE` et `AME`, et l'appareil `D["APPAREIL"]` :
+bruts posées sur une âme en retrait, ses chaînes de pierres de taille, son couronnement, son porche voûté et sa
+brèche. Un kit qui le bâtit déclare les matériaux `PIERRE` et `AME`, et l'appareil `D["APPAREIL"]` :
 
 - `assise` : la hauteur moyenne (m) d'une assise, joint compris ; `inegalite` : ce dont celle de chacune s'en écarte
   (fraction, tirée jusqu'à cette borne) ; `joint` : sa largeur (m) ; `bloc` : la longueur (m) d'un moellon, la plus
@@ -19,6 +19,7 @@ bâtit déclare les matériaux `PIERRE` et `AME`, et l'appareil `D["APPAREIL"]` 
 
 Une façon : le `relief` dont le parement recule sous le nu du mur, le `chanfrein` dont sa rive recule encore, et le
 `retrait` de cette rive au bord de la pierre (m, chacun tiré entre ses bornes)."""
+import math
 import random
 
 from geometrie import DEHORS, X, Repere, biais
@@ -47,10 +48,10 @@ class Appareil:
         parts = [1 + du_kit.uniform(-e, e) for _ in range(max(1, round(self.corps / self.A["assise"])))]
         self.lits = [self.corps * sum(parts[:k]) / sum(parts) for k in range(len(parts))] + [self.corps]
 
-    def pierre(self, a, h, facon, ondulation=0.0, lit=0.0):
+    def pierre(self, a, h, facon, ondulation=0.0, lit=0.0, recul=0.0):
         """Une pierre entre les abscisses `a` et les hauteurs `h`, ses joints déduits, d'un parement à l'autre du
         mur : une coque close, ses lits écartés de `lit`, ses coins écartés dans `ondulation`, chaque parement bombé
-        d'après `facon`. Un côté au bout, au pied ou à la tête de l'arête y reste."""
+        d'après `facon`, à `recul` (m) sous le nu du mur. Un côté au bout, au pied ou à la tête de l'arête y reste."""
         j, o, tire = self.A["joint"] / 2, ondulation / 2, self.alea.uniform
         bornes = ((-self.demi, self.demi), (0.0, self.haut))
 
@@ -62,7 +63,7 @@ class Appareil:
         cotes = ((cote(0, 0, 0.0), cote(0, 1, 0.0)), (cote(1, 0, tire(-lit, lit)), cote(1, 1, tire(-lit, lit))))
         rive = [tuple(place if tenu else min(max(place + tire(-o, o), bornes[axe][0]), bornes[axe][1])
                       for axe, (place, tenu) in enumerate((cotes[0][coin[0]], cotes[1][coin[1]]))) for coin in COINS]
-        fond = self.nu - tire(*facon["relief"])
+        fond = self.nu - recul - tire(*facon["relief"])
         bord = fond - tire(*facon["chanfrein"])
         sommets, faces = [], []
         for cote in (-1, 1):
@@ -117,10 +118,10 @@ class Appareil:
         self.R.boite(self.m, (gauche, droite), (h[0], min(h[1], self.haut - JEU_DE_L_AME)),
                      (self.A["creux"] - self.nu, self.nu - self.A["creux"]), AME)
 
-    def pan(self, a, h, chaines=(False, False), garde=None):
+    def pan(self, a, h, chaines=(False, False), garde=None, recul=0.0):
         """Les assises du mur entre les abscisses `a` et les hauteurs `h`, sur leur âme, une cale sous ou sur certains
         moellons ; `garde(gauche, droite, pied, tête)` dit quelles pierres restent, toutes sans elle, et l'âme est
-        alors laissée à qui les garde."""
+        alors laissée à qui les garde ; `recul` : celui de chaque pierre (`pierre`)."""
         if not garde:
             self.ame(a, h)
         part, hauteur = self.A["cale"]
@@ -133,10 +134,10 @@ class Appareil:
                 for pied, tete in zip(lits, lits[1:]):
                     if not garde or garde(gauche, droite, pied, tete):
                         if taille:
-                            self.pierre((gauche, droite), (pied, tete), self.A["taille"])
+                            self.pierre((gauche, droite), (pied, tete), self.A["taille"], recul=recul)
                         else:
                             self.pierre((gauche, droite), (pied, tete), self.A["moellon"], self.A["ondulation"],
-                                        self.A["lit"])
+                                        self.A["lit"], recul)
 
     def couronnement(self, a, garde=None):
         """Les pierres de chant du couronnement entre les abscisses `a`, la première à la hauteur et au nu du mur."""
@@ -163,6 +164,53 @@ class Appareil:
         self.pan(a, (h[0], min(h[1], self.corps)), chaines)
         if h[1] > self.corps:
             self.couronnement(a)
+
+    def porche(self, axe, cotes, V):
+        """Le porche voûté d'axe `axe` (abscisse de sa clef) sur toute la hauteur du mur, d'après `V` : de chaque
+        côté de `cotes` (-1 vers -X, 1 vers +X), un piédroit du bout de l'arête à la `portee` (m), les claveaux
+        (`claveaux`, leur `queue`, m) d'un arc de `fleche` (m) né à la hauteur `naissance` (m), la moitié de sa clef
+        (plus haute de `clef`, m) à l'axe, sa joue sous le bout de l'arête quand l'axe y est, et le mur qui les
+        charge, en retrait de leur `saillie` (m) : ses moellons portent sur leur dos, recoupés tant que leur lit s'en
+        écarte. L'âme monte dans leurs joints. Rend la hauteur de l'intrados à une abscisse."""
+        portee, naissance, queue, nombre = V["portee"], V["naissance"], V["queue"], V["claveaux"]
+        rayon = (portee ** 2 + V["fleche"] ** 2) / (2 * V["fleche"])
+        centre, ouverture = naissance + V["fleche"] - rayon, math.asin(portee / rayon)
+        jeu, creux = self.A["joint"] / 2 / rayon, (self.A["creux"] - self.nu, self.nu - self.A["creux"])
+        tete, bout = self.haut - JEU_DE_L_AME, self.demi - JEU_DE_L_AME
+        joue = JEU_DE_L_AME / rayon if abs(axe) > bout else 0.0
+
+        def cercle(x, r):
+            return centre + math.sqrt(max(r ** 2 - (x - axe) ** 2, 0.0))
+
+        def charger(g, d, bas, haut):
+            pres, loin = sorted((g, d), key=lambda x: abs(x - axe))
+            pied = max(bas, cercle(pres, rayon + queue / 2))
+            if min(pied, haut) - max(bas, cercle(loin, rayon + queue)) > self.A["joint"] and d - g > self.A["bloc"][0]:
+                charger(g, (g + d) / 2, bas, haut)
+                charger((g + d) / 2, d, bas, haut)
+            elif haut - pied >= MINCE:
+                self.pierre((g, d), (pied, haut), self.A["moellon"], self.A["ondulation"], self.A["lit"], V["saillie"])
+        for cote in cotes:
+            pile = tuple(sorted((cote * self.demi, axe + cote * portee)))
+            self.mur(pile, (0.0, naissance), (True, True))
+            self.pan(pile, (naissance, self.corps), (cote < 0, cote > 0), recul=V["saillie"])
+            pas = sorted(min(max(axe + cote * rayon * math.sin(ouverture * k / nombre), -bout), bout)
+                         for k in range(nombre + 1))
+            for g, d in zip(pas, pas[1:]):
+                biais(self.m, (g, d), (cercle(g, rayon), tete), (cercle(d, rayon), tete), creux, AME)
+            for k, bas, haut in self.assises((naissance, self.corps)):
+                for g, d, _ in self.rang(tuple(sorted((axe + cote * portee, axe))), k, (False, False)):
+                    charger(g, d, bas, haut)
+            for k in range(nombre):
+                angles = (ouverture * k / nombre + (jeu if k else joue), ouverture * (k + 1) / nombre - jeu)
+                rayons = (rayon, rayon + queue + (0.0 if k else V["clef"]))
+                contour = [(axe + cote * r * math.sin(a), centre + r * math.cos(a))
+                           for r, a in ((rayons[0], angles[0]), (rayons[0], angles[1]), (rayons[1], angles[1]),
+                                        (rayons[1], angles[0]))]
+                sommets = [(x, c, h) for c in (-self.nu, self.nu) for x, h in contour]
+                faces = [[0, 1, 2, 3], [7, 6, 5, 4], *([i, (i + 1) % 4, 4 + (i + 1) % 4, 4 + i] for i in range(4))]
+                self.m.ajouter(sommets, faces, PIERRE)
+        return lambda x: cercle(x, rayon)
 
     def breche(self, contour, plancher):
         """Le mur éventré jusqu'à sa tête : `contour`, à chaque abscisse (fraction de la demi-longueur, d'un bout à
