@@ -20,7 +20,7 @@ import { moveEnv } from './monde/combatGeometry';
 import { rule } from '../engine/policy';
 import { reachable, tileKey, tileFromKey } from './monde/path';
 import { isWalkable, type Scene } from './monde/scene';
-import { posteDeLaBataille } from './monde/shipPostes';
+import { planifierTranslationFormation, posteDeLaBataille } from './monde/shipPostes';
 
 /** L'arme dérivée d'un poste est-elle un engin de siège MOBILE (ADE II 8) : Groupe d'engins de siège
  *  (`groupeDeSiege`) portant la Qualité `equipe` (l.233 — l'Équipe requise, réutilisée comme seuil de
@@ -56,9 +56,7 @@ export function meleeWarMachineHullOf(actor: Combatant, combatants: Combatant[])
   return posteDeLaBataille(poste.item.uid, combatants)?.porteur;
 }
 
-/** `active` est-il le CHEF d'un poste d'engin MOBILE (rôle/équipement — ne juge PAS l'effectif, cf.
- *  `pushCrewOk`) ? Symétrique de la gate 'poste' d'attaque (`availableAttacks`, combatManeuvers.ts l.263) :
- *  l'appelant vérifie séparément l'Action disponible (`canTakeAction`/`battle.acted`). PUR. */
+/** ADE II 08 l.233, l.258. */
 export function pushEligible(active: Combatant): boolean {
   const poste = active.mannedPoste;
   if (!poste || poste.crewIds?.[0] !== active.id) return false;
@@ -66,12 +64,7 @@ export function pushEligible(active: Combatant): boolean {
   return !!w && isPushableEngine(w);
 }
 
-/** Effectif de poussée SUFFISANT : ≥ la moitié de l'Équipe requise (ADE II 8 l.233 — « [les armes de
- *  siège] ne peuvent être utilisées avec moins de la moitié de l'Équipe nécessaire » ; ici étendu à l'EFFORT
- *  de déplacement, pas seulement le tir, MÊME seuil que `firedAttackBlock`, combatFlow.ts:299-313). Effectif
- *  BRUT (`exposedCrew` : vivant + conscient) — le RAW ADE II ne pose ICI aucune exigence de Compétence
- *  (≠ `servingCrewPresent`, qui filtre par Projectiles pour la courbe AA/MDG — hors sujet ADE II, cf.
- *  `warMachineCrew.ts` en-tête). PUR. */
+/** ADE II 08 l.233. */
 export function pushCrewOk(poste: ShipPoste, weapon: Weapon, combatants: Combatant[]): boolean {
   const required = warMachineCrewRequired(weapon);
   if (required <= 0) return true;
@@ -110,15 +103,16 @@ function hullFootFits(scene: Scene, x: number, y: number, n: number, blocked: Se
 /**
  * Cases de POUSSÉE atteignables (#210 : formation à empreinte RÉELLE, ≥1 sur le bélier ADE II) — le CHEF se
  * déplace en 1×1 (lui-même), mais une destination n'est retenue que si l'EMPREINTE DE L'ENGIN
- * (`footprintN(hull)`) tiendrait à sa position RÉSULTANTE (le delta chef→engin est RIGIDE, `pushCommitTile`
- * l'applique tel quel) — contre TOUS les obstacles (`moveEnv`) SAUF l'engin et SA PROPRE Équipe (`crewIds`),
+ * (`footprintN(hull)`) tiendrait à sa position RÉSULTANTE et la formation pourrait translater — contre TOUS les obstacles (`moveEnv`) SAUF l'engin et SA PROPRE Équipe (`crewIds`),
  * qui translatent AVEC la poussée et ne sont donc jamais des obstacles à eux-mêmes. Sans ce retrait, l'engin
  * bloquerait sa PROPRE case de départ (`occupied` ne connaît que le CHEF, jamais l'engin qu'il pousse) et
  * aucune poussée ne serait jamais possible dès que `footprintN(hull) > 1`. PUR (lit `battle`, ne mute rien).
  */
 export function pushReachable(battle: BattleState, scene: Scene, active: Combatant, hull: Combatant): Map<string, number> {
   if (!active.pos || !hull.pos) return new Map();
+  const origin = active.pos;
   const crewIds = new Set(active.mannedPoste?.crewIds ?? []);
+  const planifier = planifierTranslationFormation(battle.combatants, scene, hull, crewIds);
   const blocked = new Set(moveEnv(battle, active).blocked);
   for (const c of battle.combatants) {
     if ((c.id !== hull.id && !crewIds.has(c.id)) || !c.pos) continue;
@@ -130,7 +124,8 @@ export function pushReachable(battle: BattleState, scene: Scene, active: Combata
   const out = new Map<string, number>();
   for (const [k, d] of raw) {
     const { x, y } = tileFromKey(k);
-    if (hullFootFits(scene, x + delta.x, y + delta.y, n, blocked)) out.set(k, d);
+    if (d > 0 && hullFootFits(scene, x + delta.x, y + delta.y, n, blocked)
+      && planifier({ x: x - origin.x, y: y - origin.y })) out.set(k, d);
   }
   return out;
 }
