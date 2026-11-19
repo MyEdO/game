@@ -540,6 +540,28 @@ l'atelier (`node hotes/godot/recette.mjs --parcours preset --preset <id> --web <
 trois-quarts, dos), montrées à côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
 composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
 
+Un modèle sans base (véhicule, décor, arête) se regarde dans Godot par les mêmes outils, une fois importé au dossier
+des modèles du projet (`--sans-publier`). L'atelier le montre tel que le jeu le sert : un véhicule à sa liste de tête,
+un décor et un mur dans la scène d'échantillon de leur famille (`src/noyau/monde/echantillons.ts`), le mur d'une
+apparence en un enclos qui porte chacune de ses pièces ; la recette `atelier-du-decor.gd` (`npm run godot:sonde`)
+pose un mur de chaque famille dont le modèle d'arête est servi. Posé dans une scène, il se capture au regard d'un
+joueur, sans export, par le parcours des cadrages d'un scénario de test qui le pose :
+
+```sh
+node hotes/godot/recette.mjs --natif --rendu gl_compatibility --parcours cadrages --scenario <id> \
+  --vues /atelier/vues.json --captures /atelier/cadrages
+```
+
+`vues.json` est un tableau de vues nommées, `{ "nom", "regard": "immersion", "case": { "x", "y" }, "etage"?, "lacet",
+"tangage" }` (l'œil sur la case, en exploration, tangage dans ±80°) ou `{ "nom", "regard": "tactique" | "plateau",
+"case", "etage"?, "lacet", "zoom" }` (la caméra regarde la case depuis `zoom` mètres, de 6 à 40) ; le lacet est un
+azimut en degrés, 90 vers l'est ; le plateau regarde à la verticale, l'immersion et la tactique montrent la face d'un
+mur. Chaque vue se capture en `<nom>.png`, et le journal imprime le plan de sa couche, l'œil marqué : il donne les
+cases. Exemple : `hotes/godot/cadrages/a-bord-de-la-caraque.json`. Les arêtes d'un scénario se comptent par famille
+de kit par `aretesDeLaScene` (`src/noyau/monde/aretes.ts`) sur sa scène (`construire` de
+`src/scenes/test-scenarios/`) ; une famille qu'aucun scénario ne pose se regarde à l'atelier, ou dans un scénario
+qu'on lui écrit (skill `creer-un-scenario-de-test`).
+
 ## 8. Livrer et définir le fini
 
 Livrer, dans le même commit, le dossier `element/<base>/<id>/` (données et modèle), les manifeste, provenance et
@@ -824,7 +846,9 @@ Importer la base avant ses éléments, dans la même destination : publier un é
 
 Un lot se construit, s'importe et entre au cache des modèles en une commande, chaque élément après ceux du lot qu'il
 contourne ; `--transfert <nom>` fabrique le commit de transfert, GLB, manifestes et provenances importés du lot, et
-imprime le `git push` à lancer :
+imprime le `git push` à lancer. Chaque élément se nomme `<base>/<dossier>`, `<base>` l'une de `CONSTRUCTEURS`
+(`scripts/personnage-3d/integrer.mjs`) : `humanoide`, ou `vehicule`, `decor` et `arete` pour un modèle sans base
+(`arete/moellons`) :
 
 ```sh
 npm run personnage-3d:integrer -- humanoide/armure--plastron humanoide/accessoire--baudrier-sur-armure [--transfert soldat]
