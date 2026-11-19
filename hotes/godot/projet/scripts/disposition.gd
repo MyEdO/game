@@ -60,9 +60,10 @@ extends Node
 ## une silhouette (`silhouette`, chaque zone le bouton de sa valeur, par l'id de la valeur, `art/silhouette.tres`) ; l'écran de Défense
 ## (`projet/ecrans/cascade/defense.tscn`),
 ## sa réaction à gauche, son score à atteindre avant le dé, face au jet de l'attaquant, révélé une fois le dé tombé.
-## Le bandeau d'incantation (`projet/ecrans/cascade/incantation.tscn`) n'a qu'un camp, le lanceur (son NI au
-## libellé) ; au centre le sort et sa cible, la zone et le budget de Surincantation en pastilles, l'issue, puis
-## chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec sa raison. L'écran du
+## Le bandeau d'incantation (`projet/ecrans/cascade/incantation.tscn`) n'a qu'un camp, le lanceur avec sa Compétence.
+## Au centre, le NI effectif en rubrique au-dessus du sort et de sa cible, la zone et le budget de Surincantation en
+## pastilles, l'issue, puis chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec
+## sa raison. L'écran du
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
 ## du cadre `projet/cadres/monde.tscn`, posé au-dessus du `Hud` et sous le dialogue comme toute disposition, le titre en grand
 ## et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y ajoute que son

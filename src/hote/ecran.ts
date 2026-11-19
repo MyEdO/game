@@ -53,6 +53,7 @@ import {
   jetsEnVue,
   porteurParId,
   recitEnVue,
+  refLabel,
   reposEnVue,
   toneOf,
   nomEnVue,
@@ -377,19 +378,24 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
   return elements.filter((e): e is Element => e !== null);
 }
 
-/** Le corps de la fenêtre d'incantation (`fenetreDIncantation`) : le Sort et sa cible, son NI et sa Zone d'Effet, la
- *  ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles supplémentaires à désigner
- *  sur la carte, l'issue. */
+/** Le corps de la fenêtre d'incantation (`fenetreDIncantation`) : le NI effectif au-dessus du Sort et de sa cible, la
+ *  Zone d'Effet, la ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles
+ *  supplémentaires à désigner sur la carte, l'issue. */
 function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
   const lanceur = jeteur(etat, f.lanceurId);
   const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(nomEnVue(etat, f.cibleId), f.cibleId, 'cible de l’incantation');
   const l = f.ligne;
   const s = f.surincantation;
   const elements: (Element | null)[] = [
+    f.ni === null ? null : ligne('ni', t('ecran.incantation.ni', { ni: f.ni })),
     ligne('sort', t('ecran.incantation.sort', { sort: f.sort, cible })),
     f.zone ? puce('zone', t('ecran.incantation.zone'), t('ecran.incantation.cote', { cote: f.zone.cote }), null, f.zone.aPoser ? 'alerte' : 'neutre') : null,
     jet('jet', {
-      ...lanceur, qui: garanti(lanceur.qui, f.lanceurId, 'lanceur de l’incantation'), libelle: l.label, cible: t('ecran.jet.cible', { cible: l.jet?.target ?? l.target }), modificateurs: puces('jet', l.mods),
+      ...lanceur,
+      qui: garanti(lanceur.qui, f.lanceurId, 'lanceur de l’incantation'),
+      libelle: f.priere ? l.label : refLabel('skills', { id: 'langue', spec: 'magick' }),
+      cible: t('ecran.jet.cible', { cible: l.jet?.target ?? l.target }),
+      modificateurs: puces('jet', l.mods),
       ...(l.jet ? { resultat: String(l.jet.roll), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.sl) }), ...verdictDuTest(l.jet.success) } : {}),
     }),
     s ? puce('surincantation', t('ecran.incantation.surincantation'), t('ecran.incantation.pas', { restant: s.restant, budget: s.budget })) : null,
