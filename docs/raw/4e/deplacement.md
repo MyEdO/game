@@ -1157,6 +1157,8 @@ Un Personnage tenant un rôle lance pour tous ceux du même rôle ; si les PJ ti
 
 **Types** (rôle essentiel *en italique*) : Progression (*Capitaine*) ; Progression en Poursuite (*Mousse*) ; Manœuvres (*Timonier*) ; Perception (*Vigie*) ; Orientation (*Navigateur*) ; Affaler les voiles (*Mousse*) ; Extermination des nuisibles (*Mousse* ; test étendu, nid de rats = Intermédiaire (+0)/10 DR ; Ratier en rôle essentiel via Projectiles (Fronde), chat/chien +1 DR) ; **Rude épreuve** (*Cuisinier* ; DR négatifs → réduit le Moral d'autant) ; **Entretien** (*Mousse* ; **–2 DR** s'il remplace Métier (Charpentier/Tailleur)) ; Tir de batterie (*Artilleur*). `MDG 14 l.61-130`
 
+**Durée de l'Extermination des nuisibles** : chaque Test prend **1d10 heures**. `MDG 14 l.100` **Règle maison** : la durée tirée est comprise dans la journée de voyage, y compris le jour d'arrivée.
+
 **Voir aussi :** [Moral de l'équipage (MDG)](#moral-de-léquipage-mdg), [Réparer un navire (MDG)](#réparer-un-navire-mdg), [Course-poursuite navale (MDG)](#course-poursuite-navale-mdg).
 
 **Implémente :** [État calculé](../implemente.generated.md#4edeplacementtests-d-equipage-mdg)

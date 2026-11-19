@@ -575,6 +575,24 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     return get();
   }
 
+  it('à l’arrivée, les 1d10 heures d’Extermination sont comprises dans la journée de mer', () => {
+    const ev = seaBoardEventById('infestation-de-rats')!;
+    jouerFlowEntier(runFlow(get, set, ev.consequence!, ev.label));
+    set({ worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: 1 }] } });
+    const depart = get().gameTime;
+
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    const etapes = draineCascade(get, 30, (etape, rangee) =>
+      etape.kind === 'equipage-extermination' && rangee ? Math.min(10, rangee.target!) : undefined);
+
+    expect(etapes).toContain('equipage-extermination');
+    expect(get().travelPlan).toBeNull();
+    expect(get().vessel?.lastVoyageMilles).toBe(1);
+    expect(get().gameTime - depart).toBe(MINUTES_PER_DAY);
+    const durees = Array.from({ length: 10 }, (_, i) => t('sv.dureeHeures', { n: i + 1 }));
+    expect(get().journal.filter((ligne) => durees.some((duree) => duree === ligne))).toHaveLength(1);
+  });
+
   /** Les étapes de dé `nombre` d'attaques subies, en avant-plan comme derrière (`suspendedCascades`). */
   const etapesDAttaques = (s: ReturnType<typeof get>) => [s.pendingCascade, ...s.suspendedCascades]
     .flatMap((c) => c?.participants ?? []).filter((x) => x.kind === 'nombreDAttaquesSubies');
