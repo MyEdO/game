@@ -38,6 +38,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   infligeUsure: z.literal(true).optional(),
   taillePortMax: z.number().int().min(1).optional(),
   consequence: flowSchema.optional(),
+  liaisonEquipage: z.string().min(1).optional(),
   maison: maisonSchema.optional(),
   source: sourceRefSchema,
 }), {
@@ -49,6 +50,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   infligeUsure: { label: 'Blessures dues à l’Usure' },
   taillePortMax: { label: 'Taille de port maximale' },
   consequence: { label: 'Conséquence' },
+  liaisonEquipage: { label: 'Liaison du retour', texte: { regime: 'technique' } },
   maison: { label: 'Arbitrage maison' },
   source: { label: 'Source' },
 });
@@ -125,8 +127,15 @@ const doc = document(
           boardEvents?: Table<Evenement>; fastVoyage?: Table; portEvents?: Table<Evenement>;
           manann?: { portEventMod?: number };
         };
-        // MDG 15 l.200
-        (d.boardEvents?.entries ?? []).forEach((evenement, i) => {
+        const bord = d.boardEvents?.entries ?? [];
+        // MDG 15 l.200, l.245
+        bord.forEach((evenement, i) => {
+          if (evenement.liaisonEquipage !== undefined) {
+            ctx.addIssue({
+              code: 'custom', path: ['boardEvents', 'entries', i, 'liaisonEquipage'],
+              message: 'La liaison de retour de l’équipage s’emploie dans un événement de port.',
+            });
+          }
           if (!evenement.infligeUsure) return;
           const effet = evenement.consequence?.kind === 'effet' ? evenement.consequence.effet : undefined;
           if (effet?.type !== 'ops' || effet.on !== 'navire' || !effet.ops.length || effet.ops.some((op) => op.op !== 'wounds')) {
@@ -149,7 +158,7 @@ const doc = document(
         const modDePort = d.manann?.portEventMod ?? 0;
         const deDePort = d.portEvents ? deDuParse(d.portEvents) : null;
         const tables: [(string | number)[], string, Bande[], number | 'ouverte', number | 'ouverte'][] = [
-          [['boardEvents', 'entries'], "le jet d'Événement de bord", d.boardEvents?.entries ?? [], 'ouverte', 'ouverte'],
+          [['boardEvents', 'entries'], "le jet d'Événement de bord", bord, 'ouverte', 'ouverte'],
           [['fastVoyage', 'entries'], `le ${d.fastVoyage ? formatDice(d.fastVoyage.die) : ''} du Voyage rapide`, d.fastVoyage?.entries ?? [], 'ouverte', 'ouverte'],
           ...(deDePort ? [[['portEvents', 'entries'], `le ${formatDice(deDePort)} de l'escale, Humeur de Manann comprise`, d.portEvents!.entries, totalDuDe(deDePort, deDePort.n) - modDePort, facesDuDe(deDePort) + modDePort] as [(string | number)[], string, Bande[], number, number]] : []),
         ];

@@ -170,7 +170,14 @@ import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engin
 import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
-import { drainPendingLog, jouerFlowEntier, nePeutPasDifferer, revealPurpose, runFlow } from './combatEffects';
+import {
+  drainPendingLog,
+  jouerFlowEntier,
+  nePeutPasDifferer,
+  revealPurpose,
+  runFlow,
+  indiceDeMembreDuBord,
+} from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { applyContraction, contractionDue, diseaseDefs, maladieDeclaree, type Disease } from '../engine/disease';
@@ -222,7 +229,7 @@ import { stepPrecision, idDansLaSequence, dieStep } from './rollSeam';
 import { actorIn, coqueParId, equipageApte, inBattleId } from './monde/combatants';
 import { touchActors } from './combatOrParty';
 import { garanti } from '../lib/garanti';
-import { referentDuNavire } from './navireOps';
+import { lierLeRetourDesMarins, referentDuNavire } from './navireOps';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
@@ -2662,7 +2669,9 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   if (event.relache && !shoreLeave) { log(get, set, [t('sv.relacheRefusee', { label: event.label })]); return; }
   // MDG 15 l.249
   if (event.taillePortMax !== undefined && (port?.taille ?? Infinity) > event.taillePortMax) { log(get, set, [t('sv.portTropGrand', { label: event.label, taille: event.taillePortMax })]); return; }
-  if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
+  const liaison = event.liaisonEquipage;
+  const suite = liaison ? lierLeRetourDesMarins(get, set, event.consequence ?? EMPTY_FLOW, liaison, battleRng()) : event.consequence;
+  if (suite) jouerFlowEntier(runFlow(get, set, suite, event.label));
 }
 
 /** Résout le choix « Relâche à terre » (MDG 15 l.245) posé à l'accostage, AVANT le tirage de
@@ -3187,7 +3196,7 @@ export const TABLES = {
         j.push(t('sv.tributeRefused'));
         startChaseBoarding(get, set);
       } else {
-        for (const l of applyVesselCrewLoss(get, set, 1)) j.push(l);
+        j.push(...applyVesselCrewLoss(get, set, 1, (postes) => indiceDeMembreDuBord(battleRng(), postes)).lignes);
         j.push(t('sv.sailorGiven'));
         const ship = get().travelPlan?.vehicle;
         if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(l); // déplaisir de Manann (MDG 14)
