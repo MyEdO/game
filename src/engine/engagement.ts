@@ -125,18 +125,25 @@ export function clearContact(a: Combatant, b: Combatant): void {
   if (b.contactWith) b.contactWith = b.contactWith.filter((id) => id !== a.id);
 }
 
+/** LDB 13 l.171 */
+export function resteEngageAuRoundSuivant(a: Combatant, b: Combatant): boolean {
+  return b.wounds.current > 0 && (!!a.meleeThisRound?.includes(b.id) || !!b.meleeThisRound?.includes(a.id));
+}
+
 /** Fin de Round : lève l'Engagement d'une paire si AUCUNE mêlée n'a été échangée ce Round
  *  (LDB 13 l.171), puis vide meleeThisRound. Engagé étant symétrique, un coup dans
- *  UN sens rafraîchit la paire dans les DEUX. Lit un instantané AVANT de muter (sinon la
- *  mutation de A→B casserait la lecture B→A). Purge aussi tout lien vers un combattant
+ *  UN sens rafraîchit la paire dans les DEUX. Efface les traces une fois toutes les paires lues.
+ *  Purge aussi tout lien vers un combattant
  *  hors d'action (Blessures ≤ 0), et la trace d'attaque du Round (`attackedThisRound`, MÊME
  *  cadence : elle ne porte que « ce Round »). */
 export function decayEngagement(all: Combatant[]): void {
-  const fresh = new Map<string, Set<string>>(all.map((c) => [c.id, new Set(c.meleeThisRound ?? [])]));
-  const alive = new Set(all.filter((c) => c.wounds.current > 0).map((c) => c.id));
+  const parId = new Map(all.map((c) => [c.id, c]));
   for (const c of all) {
     if (c.engagedWith?.length) {
-      c.engagedWith = c.engagedWith.filter((id) => alive.has(id) && (fresh.get(c.id)?.has(id) || fresh.get(id)?.has(c.id)));
+      c.engagedWith = c.engagedWith.filter((id) => {
+        const autre = parId.get(id);
+        return autre !== undefined && resteEngageAuRoundSuivant(c, autre);
+      });
     }
     // « Au contact » (LDB 62 l.176) est un SOUS-ENSEMBLE de l'Engagement : un lien dont l'Engagement
     // vient de tomber tombe aussi. On le restreint aux ids encore Engagés.
@@ -144,6 +151,8 @@ export function decayEngagement(all: Combatant[]): void {
       const eng = new Set(c.engagedWith ?? []);
       c.contactWith = c.contactWith.filter((id) => eng.has(id));
     }
+  }
+  for (const c of all) {
     c.meleeThisRound = [];
     c.attackedThisRound = [];
   }

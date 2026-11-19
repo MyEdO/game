@@ -493,12 +493,14 @@ function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehic
 /** LDB 77 l.7 ; #3684 ; #4348. */
 function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur, trappings: CreatureData['trappings'] = []): void {
   const contexte = contexteDeNaissanceDObjet(c);
-  const refs = trappings.filter((r) => estDotationDObjet(r) || estMention(r));
+  const armureDecriteParLeTrait = new Set<string>(trappings.flatMap((r) => 'decritLeTraitArmure' in r ? [r.id] : []));
+  const refs = trappings.filter((r) => (estDotationDObjet(r) && !('decritLeTraitArmure' in r)) || estMention(r));
   let n = 0;
   const fiche = doterLePorteur(refs, makeRNG(hashSeed(`dotations-de-fiche:${c.id}`)), () => `${c.id}-fiche-${n++}`, contexte);
   if (fiche.mentions) c.mentions = [...c.mentions ?? [], ...fiche.mentions];
   const carriere = c.items ?? [];
-  const auteur = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), findTrappingById, contexte);
+  const auteur = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), findTrappingById, contexte)
+    .filter((o) => !armureDecriteParLeTrait.has(o.trappingId ?? ''));
   if (!carriere.length && !fiche.items.length && !auteur.length) return;
 
   for (const o of fiche.items) {
@@ -522,7 +524,7 @@ function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur, trapp
     if (o.equipped) for (const x of equipConflicts({ items: dotations }, o)) x.equipped = false;
   }
   c.items = [...dotations, ...auteurSeul];
-  ajusterTraitsDuProfil(c, fiche.items, [...carriere, ...auteurSeul]);
+  ajusterTraitsDuProfil(c, fiche.items, [...carriere, ...auteurSeul], { armureDecriteParLeTrait: armureDecriteParLeTrait.size > 0 });
   const armeDEquipe = fiche.items.find((o) => o.bouclierDEquipe && objetDeSlot(c, o.uid));
   if (armeDEquipe) {
     ensureDefaultLoadout(c);

@@ -153,7 +153,12 @@ export function traitsDevantLEquipement(traits: readonly TraitInstance[], objets
 }
 
 /** Le Trait imprimé passe sur l'objet désigné lorsqu'il nomme le même matériel. LDB 85 l.31-39 ; #773. */
-export function ajusterTraitsDuProfil(c: Combatant, profil: readonly ItemInstance[], autres: readonly ItemInstance[]): void {
+export function ajusterTraitsDuProfil(
+  c: Combatant,
+  profil: readonly ItemInstance[],
+  autres: readonly ItemInstance[],
+  { armureDecriteParLeTrait }: { armureDecriteParLeTrait: boolean },
+): void {
   const traits = c.traits ?? [];
   const restent = new Set(autres.length ? traitsDevantLEquipement(traits, autres) : traits);
   const couvertes = new Set(profil.flatMap(localisationsDeLArmure));
@@ -166,7 +171,7 @@ export function ajusterTraitsDuProfil(c: Combatant, profil: readonly ItemInstanc
     const lie = !t.src && !c.liveTraits?.includes(t) ? lierArmeDuProfil(t, profil, armes) : undefined;
     let reste = lie ?? (restent.has(t) ? t : undefined);
     if (armureDuTrait([t])) {
-      if (t.matiere === 'peau') reste = t;
+      if (t.matiere === 'peau' || armureDecriteParLeTrait) reste = t;
       else if (couvertes.size) reste = armureRestante(t, couvertes);
     }
     if (reste) retenus.set(t, reste);
