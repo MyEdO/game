@@ -48,6 +48,8 @@ CATALOGUE = DEPOT / 'hotes' / 'godot' / 'projet' / 'textures'
 """Le catalogue des textures de matière du jeu."""
 METRES_PAR_MOTIF = 2.0
 """`MiseEnPage.METRES_PAR_MOTIF` du monde Godot."""
+NETTETE_DU_MOTIF = 4.0
+"""`VolumeDeScene.NETTETE_DU_MOTIF` du monde Godot."""
 ETENDUE_DU_STUDIO = 1.82
 """L'étendue, en mètres, pour laquelle les puissances des lumières du studio sont réglées : la hauteur du corps de la
 base humanoïde. Les lumières se placent à des distances proportionnelles à l'étendue du modèle ; leur puissance suit son
@@ -261,13 +263,80 @@ def colorer(objets, surfaces, palette):
                 principled.inputs['Base Color'].default_value = (*couleur, 1)
 
 
+def noeud(nt, type_, entrees=(), **reglages):
+    """La première sortie active d'un nœud `type_` neuf de l'arbre `nt`, réglé de `reglages`, ses entrées actives
+    liées dans l'ordre aux sorties `entrees`, ou posées à leur valeur."""
+    n = nt.nodes.new(type_)
+    for nom, valeur in reglages.items():
+        setattr(n, nom, valeur)
+    for prise, entree in zip([p for p in n.inputs if p.enabled], entrees):
+        if isinstance(entree, (float, tuple)):
+            prise.default_value = entree
+        else:
+            nt.links.new(entree, prise)
+    return next(p for p in n.outputs if p.enabled)
+
+
+def vecteur(nt, operation, *entrees):
+    """La sortie d'un nœud Vector Math `operation` sur `entrees` (`noeud`)."""
+    return noeud(nt, "ShaderNodeVectorMath", entrees, operation=operation)
+
+
+def calcul(nt, operation, *entrees):
+    """La sortie d'un nœud Math `operation` sur `entrees` (`noeud`)."""
+    return noeud(nt, "ShaderNodeMath", entrees, operation=operation)
+
+
+def composantes(nt, v):
+    """Les sorties X, Y, Z de `v`."""
+    return noeud(nt, "ShaderNodeSeparateXYZ", (v,)).node.outputs
+
+
+def poids_triplanaires(nt, normale):
+    """Le poids de chaque axe du repère de l'objet sous la `normale` de surface de ce repère, comme le jeu le donne
+    (`uv1_power_normal`, `art/monde.gdshader`), à la netteté `NETTETE_DU_MOTIF`."""
+    puissance = vecteur(nt, "POWER", vecteur(nt, "ABSOLUTE", normale), (NETTETE_DU_MOTIF,) * 3)
+    return vecteur(nt, "SCALE", puissance, calcul(nt, "DIVIDE", 1.0, vecteur(nt, "DOT_PRODUCT", puissance, (1.0,) * 3)))
+
+
+def lire_en_triplanaire(nt, motif, poids, image):
+    """L'`image` lue au `motif` (le repère de l'objet à l'échelle du motif) sur le plan de chaque axe, mélangée de
+    `poids` (`poids_triplanaires`), comme le jeu la lit (`triplanar_texture`, `art/monde.gdshader`), ses plans ramenés
+    du repère glTF de Godot, Y haut, V vers le bas, à celui de Blender, Z haut, V vers le haut : X lu en (y, z), Y en
+    (x, z), Z en (x, y)."""
+    x, y, z = composantes(nt, motif)
+    lu = None
+    for (u, v), part in zip(((y, z), (x, z), (x, y)), composantes(nt, poids)):
+        texel = noeud(nt, "ShaderNodeTexImage", (noeud(nt, "ShaderNodeCombineXYZ", (u, v)),), image=image)
+        part = vecteur(nt, "SCALE", texel, part)
+        lu = part if lu is None else vecteur(nt, "ADD", lu, part)
+    return lu
+
+
+def relief_triplanaire(nt, lu, normale):
+    """La normale du monde que donne le relief `lu` (`lire_en_triplanaire`) à la `normale` de surface du repère de
+    l'objet, dans la base que le jeu lie aux axes de ce repère (`vertex()`, `art/monde.gdshader`), ramenée au repère de
+    Blender : tangente Y sous X, X sous Y et Z ; bitangente Z sous X et Y, Y sous Z ; la composante normale du relief
+    reconstruite de ses deux autres, comme Godot le fait de `NORMAL_MAP`."""
+    rx, ry, _ = composantes(nt, vecteur(nt, "MULTIPLY_ADD", lu, (2.0,) * 3, (-1.0,) * 3))
+    plan = noeud(nt, "ShaderNodeCombineXYZ", (rx, ry))
+    rz = calcul(nt, "SQRT", calcul(nt, "MAXIMUM", calcul(nt, "SUBTRACT", 1.0, vecteur(nt, "DOT_PRODUCT", plan, plan)), 0.0))
+    ax, ay, az = composantes(nt, vecteur(nt, "ABSOLUTE", normale))
+    tangente = vecteur(nt, "NORMALIZE", noeud(nt, "ShaderNodeCombineXYZ", (calcul(nt, "ADD", ay, az), ax)))
+    bitangente = vecteur(nt, "NORMALIZE", noeud(nt, "ShaderNodeCombineXYZ", (0.0, az, calcul(nt, "ADD", ax, ay))))
+    somme = vecteur(nt, "ADD", vecteur(nt, "SCALE", tangente, rx), vecteur(nt, "SCALE", bitangente, ry))
+    somme = vecteur(nt, "NORMALIZE", vecteur(nt, "ADD", somme, vecteur(nt, "SCALE", normale, rz)))
+    return noeud(nt, "ShaderNodeVectorTransform", (somme,), vector_type="NORMAL", convert_from="OBJECT", convert_to="WORLD")
+
+
 def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
     """La surface du manifeste comme le jeu l'habille (`MontageDeComposition.peindre`) : la texture de sa `matiere` du
     catalogue si le catalogue la porte, sa texture neutre (`<matiere>.neutre.jpg`) si `couleur` est donnée et que le
     catalogue la porte, teinte de `couleur` (linéaire), et son relief (`<matiere>.normale.jpg`) s'il y est
-    (`VolumeDeScene.texturer`) ; lus aux UV `couche` si `par_uv` et que la surface n'est pas `blason`, projetés sinon
-    dans le repère de l'objet (Box, fondu 0.2) ; un motif tous les `METRES_PAR_MOTIF` ; sans texture, la couleur de son
-    matériau ; l'emblème `emblem` en couche de détail (UV `couche`) si `blason` et qu'il est donné."""
+    (`VolumeDeScene.texturer`) ; lus aux UV `couche` si `par_uv` et que la surface n'est pas `blason`, sinon en
+    triplanaire dans le repère de l'objet, relief compris (`lire_en_triplanaire`, `relief_triplanaire`) ; un motif tous
+    les `METRES_PAR_MOTIF` ; sans texture, la couleur de son matériau ; l'emblème `emblem` en couche de détail (UV
+    `couche`) si `blason` et qu'il est donné."""
     nt = mat.node_tree
     bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
     base = bsdf.inputs["Base Color"]
@@ -279,33 +348,35 @@ def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
                 nt.links.remove(lien)
         echelle = nt.nodes.new("ShaderNodeMapping")
         echelle.inputs["Scale"].default_value = (1 / METRES_PAR_MOTIF,) * 3
-        tex = nt.nodes.new("ShaderNodeTexImage")
+        neutre = CATALOGUE / f"{matiere}.neutre.jpg"
+        image = neutre if couleur is not None and neutre.exists() else CATALOGUE / f"{matiere}.jpg"
+        image = bpy.data.images.load(str(image.resolve(strict=True)), check_existing=True)
+        relief = CATALOGUE / f"{matiere}.normale.jpg"
+        if relief.exists():
+            relief = bpy.data.images.load(str(relief.resolve(strict=True)), check_existing=True)
+            relief.colorspace_settings.name = "Non-Color"
+        else:
+            relief = None
         if par_uv and not surface.get("blason"):
             coord = nt.nodes.new("ShaderNodeUVMap")
             coord.uv_map = couche
             nt.links.new(coord.outputs["UV"], echelle.inputs["Vector"])
+            sortie = noeud(nt, "ShaderNodeTexImage", (echelle.outputs["Vector"],), image=image)
+            if relief is not None:
+                carte = noeud(nt, "ShaderNodeTexImage", (echelle.outputs["Vector"],), image=relief)
+                normale = noeud(nt, "ShaderNodeNormalMap", (1.0, carte), uv_map=couche)
         else:
             coord = nt.nodes.new("ShaderNodeTexCoord")
             nt.links.new(coord.outputs["Object"], echelle.inputs["Vector"])
-            tex.projection, tex.projection_blend = "BOX", 0.2
-        neutre = CATALOGUE / f"{matiere}.neutre.jpg"
-        image = neutre if couleur is not None and neutre.exists() else CATALOGUE / f"{matiere}.jpg"
-        tex.image = bpy.data.images.load(str(image.resolve(strict=True)), check_existing=True)
-        nt.links.new(echelle.outputs["Vector"], tex.inputs["Vector"])
-        sortie = tex.outputs["Color"]
-        relief = CATALOGUE / f"{matiere}.normale.jpg"
-        if relief.exists():
-            carte = nt.nodes.new("ShaderNodeTexImage")
-            carte.projection, carte.projection_blend = tex.projection, tex.projection_blend
-            carte.image = bpy.data.images.load(str(relief.resolve(strict=True)), check_existing=True)
-            carte.image.colorspace_settings.name = "Non-Color"
-            nt.links.new(echelle.outputs["Vector"], carte.inputs["Vector"])
-            normale = nt.nodes.new("ShaderNodeNormalMap")
-            normale.uv_map = couche
-            nt.links.new(carte.outputs["Color"], normale.inputs["Color"])
+            poids = poids_triplanaires(nt, coord.outputs["Normal"])
+            sortie = lire_en_triplanaire(nt, echelle.outputs["Vector"], poids, image)
+            if relief is not None:
+                lu = lire_en_triplanaire(nt, echelle.outputs["Vector"], poids, relief)
+                normale = relief_triplanaire(nt, lu, coord.outputs["Normal"])
+        if relief is not None:
             for lien in list(bsdf.inputs["Normal"].links):
                 nt.links.remove(lien)
-            nt.links.new(normale.outputs["Normal"], bsdf.inputs["Normal"])
+            nt.links.new(normale, bsdf.inputs["Normal"])
         if couleur is not None:
             teinte = nt.nodes.new("ShaderNodeMix")
             teinte.data_type, teinte.blend_type = "RGBA", "MULTIPLY"
