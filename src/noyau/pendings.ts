@@ -2349,8 +2349,6 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  MDG 13 l.109-111) — une rangée par héros appelé, surfacée dès qu'un siège humain tient l'un d'eux
    *  (`rollSeam.surfaceDesEtapes`, #1479) ; à la clôture, le store enchaîne la phase suivante de la
    *  journée (`continueSeaDayAfterScorbut`/`continueSeaDayAfterExhaustion`) ;
-   *  'seaHealth' : Contraction avant le pas d'horloge en mer, puis entretien avant le pas rapide suivant
-   *  (`continuerLeTempsEnMer`) ;
    *  'seaActivities' (#273 Étape 2 : Activités en mer hebdomadaires, MDG 15 l.266-306)
    *  — à la clôture, le store enchaîne `continueSeaActivitiesAfterCascade` (Commerce d'opportunité
    *  séquencé puis halte de nuit, `seaActivities.ts`) ; 'riverExposure' (MSRC 16 : Exposition hydrique de
@@ -2364,7 +2362,9 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  suite propre, le dénouement vit dans l'applier de sa dernière étape). 'affichage' (#942 L8 :
    *  séquence d'AFFICHAGE PUR — étapes sans jet ni choix, poussées hors combat par `pushReveal` quand
    *  aucune séquence n'est en vol ; clôture sans AUCUNE suite propre, `dispatchCascadeDone` n'a qu'à
-   *  reprendre une éventuelle séquence parquée). */
+   *  reprendre une éventuelle séquence parquée) ;
+   *  'seaHealth' : Contraction avant le pas d'horloge en mer, puis entretien avant le pas rapide suivant
+   *  (`continuerLeTempsEnMer`). */
   purpose: 'night' | 'travel' | 'travelDay' | 'test' | 'combat' | 'sequence' | 'seaScorbut' | 'seaExposure' | 'seaExhaustion' | 'seaHealth' | 'seaActivities' | 'riverExposure' | 'upkeep' | 'interlude' | 'affichage';
   /** HALTE de voyage : la finalisation REPREND la route (continueTravelAfterNight). */
   travelHalt?: boolean;
