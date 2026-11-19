@@ -40,28 +40,29 @@ import { VehicleData } from './types';
 import { traceLineOf } from './traceLine';
 import { memoParVersion } from '../data/versionDataset';
 import { findVehicleById, refLabel, vehicles } from '../data';
+import { MODES_DE_VOYAGE_RESERVES, type travelModeSchema } from '../data/schemas/grammaire/route';
+import type { z } from 'zod';
 import { t } from '../i18n';
 
 /** Transports payants RAW (LDB 51 l.180-189) = véhicules dotés d'une facette `travel` (passage payant). */
 export const travelVehicles = memoParVersion('vehicles', (): VehicleData[] => vehicles.filter((v) => v.travel));
 
-/** Mode de voyage : `'pied'` (Mouvement du groupe), `'monture'` (bêtes possédées, EDOC 7 — règle
- *  optionnelle `voyage-allures`) OU l'`id` d'un véhicule à passage payant (`vehicles.json`). */
-export type TravelMode = 'pied' | 'monture' | string;
+/** Mode d'une route (`travelModeSchema`). */
+export type TravelMode = z.output<typeof travelModeSchema>;
 
 /** Facette `travel` (passage payant) d'un mode ≠ `'pied'` — source UNIQUE des classes/Déplacement.
  *  Renvoie `undefined` si le mode n'est pas un véhicule à passage payant. */
-export function vehicleTravel(mode: TravelMode): NonNullable<VehicleData['travel']> | undefined {
+export function vehicleTravel(mode: string): NonNullable<VehicleData['travel']> | undefined {
   return mode === 'pied' ? undefined : findVehicleById(mode)?.travel;
 }
 
-/** Libellé d'affichage par mode de voyage — les modes FIXES, plus un libellé par véhicule payant
+/** Libellé d'affichage par mode de voyage — les modes réservés et les véhicules
  *  (éditable au Codex : la table se refait à la première lecture qui suit une édition). */
 export const travelModeLabels = memoParVersion('vehicles', (): Record<string, string> => ({
-  pied: 'À pied',
-  monture: 'En selle',
-  mer: 'En mer', // traversée sur le navire de campagne (route `sea`, MDG 13-15)
-  ...Object.fromEntries(travelVehicles().map((v) => [v.id, v.label])),
+  ...MODES_DE_VOYAGE_RESERVES,
+  ...Object.fromEntries(vehicles
+    .filter(({ id }) => !Object.prototype.hasOwnProperty.call(MODES_DE_VOYAGE_RESERVES, id))
+    .map(({ id, label }) => [id, label])),
 }));
 
 /** Unité affichée pour une distance de route : une route `sea` (mode `'mer'`) porte ses

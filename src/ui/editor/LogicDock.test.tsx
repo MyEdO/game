@@ -108,6 +108,47 @@ describe('LogicDock — sortie à seuil de dommage (#215 ; MDG 15 l.143, l.166-1
   });
 });
 
+describe('LogicDock — saisie des objectifs de victoire', () => {
+  afterEach(demonterRacines);
+
+  it.each([
+    { nom: 'Rounds à tenir', initial: { type: 'surviveRounds', rounds: 3 }, fraction: '1.5', entree: '2', attendu: { type: 'surviveRounds', rounds: 2 } },
+    { nom: 'Seuil de premier sang', initial: { type: 'firstBlood' }, fraction: '0.5', entree: '0', attendu: { type: 'firstBlood', threshold: 0 } },
+  ] as const)('refuse une fraction et valide un entier pour « $nom »', async ({ nom, initial, fraction, entree, attendu }) => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const scene = emptyScene('scene-test', 10, 10);
+    scene.encounters = [{ id: 'e1', members: [], victoryCondition: initial }];
+    const setScene = vi.fn<(s: Scene) => void>();
+    const montage = monterRacine(null);
+    await act(() => montage.rendre(dock({ scene, tab: 'encounters', encSel: 'e1', setScene })));
+    const champ = montage.container.querySelector<HTMLInputElement>(`input[aria-label="${nom}"]`)!;
+
+    await saisirDansLeDock(champ, fraction);
+    await act(() => { champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    expect(setScene).not.toHaveBeenCalled();
+    expect(champ.getAttribute('aria-invalid')).toBe('true');
+    expect(champ.value).toBe('3');
+
+    await saisirDansLeDock(champ, entree);
+    expect(setScene).not.toHaveBeenCalled();
+    await act(() => { champ.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    expect(setScene.mock.calls[0]?.[0].encounters[0].victoryCondition).toEqual(attendu);
+  });
+
+  it('écrit un pourcentage décimal à la frappe', async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const scene = emptyScene('scene-test', 10, 10);
+    scene.encounters = [{ id: 'e1', members: [], victoryCondition: { type: 'woundsThreshold', atOrBelowPercent: 50 } }];
+    const setScene = vi.fn<(s: Scene) => void>();
+    const montage = monterRacine(null);
+    await act(() => montage.rendre(dock({ scene, tab: 'encounters', encSel: 'e1', setScene })));
+    const champ = montage.container.querySelector<HTMLInputElement>('input[aria-label="Seuil de Blessures (%)"]')!;
+
+    await saisirDansLeDock(champ, '50.5');
+    expect(setScene.mock.calls[0]?.[0].encounters[0].victoryCondition).toEqual({ type: 'woundsThreshold', atOrBelowPercent: 50.5 });
+  });
+});
+
 describe('LogicDock — onglet Triggers (master-détail, édition LIVE)', () => {
   it('liste les triggers et édite le sélectionné (rect + condition + effets)', () => {
     const scene = emptyScene('scene-test', 10, 10);
@@ -138,11 +179,15 @@ describe('LogicDock — « + Nouveau trigger » est le créateur du noyau', () =
 /** Saisit `value` dans le champ `caption` puis le quitte : un champ live la pose à la frappe, un brouillon au blur. */
 async function renommerDansLeDock(racine: HTMLElement, caption: string, value: string) {
   const champ = [...racine.querySelectorAll('label')].find((l) => l.textContent?.trim().startsWith(caption))!.querySelector('input')!;
-  await act(async () => {
+  await saisirDansLeDock(champ, value);
+  await act(async () => { champ.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+}
+
+function saisirDansLeDock(champ: HTMLInputElement, value: string) {
+  return act(() => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, value);
     champ.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  await act(async () => { champ.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
 }
 
 describe('LogicDock — un id de trigger ou de rencontre est unique à la scène (comme `renameEntry`)', () => {

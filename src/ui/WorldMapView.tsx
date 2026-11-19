@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../noyau/carriers';
+import { modesDuTrajet } from '../noyau/carteEnVue';
 import { shipboardSouls } from '../noyau/shipCrew';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet, type VoyageCadence } from '../noyau/voyageCadence';
@@ -206,9 +207,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   const alluresOn = !!rule('voyage-allures');
   const mounted = alluresOn && partyFullyMounted(party, possessions);
   const allures = mounted ? availableAllures(partyMounts(party, possessions)) : [];
-  const modeChoices: TravelMode[] = selRoute
-    ? [...selRoute.modes, ...(mounted && selRoute.modes.includes('pied') ? ['monture'] : [])]
-    : [];
+  const modeChoices = selRoute ? modesDuTrajet(selRoute.modes, mounted) : [];
 
   // Traversée MARITIME (routes `sea`, MDG 13/15) : sur le navire de campagne — estimation en milles/jour.
   const vesselLabel = vessel ? nomDuNavire(vessel) : '';

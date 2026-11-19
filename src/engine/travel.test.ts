@@ -4,8 +4,11 @@ import { makeRNG } from './dice';
 import { stacks } from './conditions';
 import {
   partyWalkSpeed, travelSpeed, travelPlanCalc, transportCost, billetImplicite, classeLaMoinsChere, prixParPassager, forcedMarchTest, applyTravelFatigue,
-  vehicleTravel, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
+  vehicleTravel, travelModeLabels, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
 } from './travel';
+import { findVehicleById, vehicles } from '../data';
+import { setDataset } from '../data/overrides';
+import { MODES_DE_VOYAGE_RESERVES } from '../data/schemas/grammaire/route';
 import { toBrass } from './money';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
@@ -24,6 +27,23 @@ function hero(opts: { id?: string; movement?: number; enc?: number; endurance?: 
     items, skills: [], talents: [], movement: opts.movement ?? 4, dead: opts.dead,
   });
 }
+
+describe('libellés des modes de voyage', () => {
+  it('place les modes réservés en tête et lit les libellés du catalogue vivant', () => {
+    const catalogue = [...vehicles];
+    const modele = findVehicleById('barque-fluviale')!;
+    const barque = { ...modele, id: '__proto__', label: 'Barque de passage' };
+    const collision = { ...modele, id: 'pied', label: 'Autre libellé' };
+    setDataset('vehicles', [...catalogue, barque, collision]);
+    try {
+      const entrees = Object.entries(travelModeLabels());
+      expect(entrees.slice(0, 3)).toEqual(Object.entries(MODES_DE_VOYAGE_RESERVES));
+      expect(entrees).toContainEqual([barque.id, barque.label]);
+    } finally {
+      setDataset('vehicles', catalogue);
+    }
+  });
+});
 
 describe('vitesse de voyage (LDB 51 l.193 : Déplacement = km/h, le plus lent du groupe)', () => {
   it('à pied : Mouvement effectif le plus lent du groupe', () => {

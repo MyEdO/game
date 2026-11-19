@@ -22,10 +22,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { choixDeLaFeuilleDId, fabricationAtouts, findCreatureById, traits } from '../../../src/data';
+import { choixDeLaFeuilleDId, fabricationAtouts, findCreatureById, traits, vehicles } from '../../../src/data';
 import { dotationsDuPnj, emplacementsDeDotation } from '../../../src/engine/trappingChoices';
 import { adresseDeCreation } from '../../../src/engine/adresseDeCreation';
-import { travelVehicles } from '../../../src/engine/travel';
 import { statblockDeLaCreature } from '../../../src/data/valeursNeuves';
 import { emptyScene } from '../../../src/noyau/monde/scene';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
@@ -695,7 +694,9 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     const diligence = (x: Edition) => presser(valeursDeLInspecteur(x, 'valeur/modes/ajouter').find((b) => b.libelle === 'Diligence')!);
     const route = presser(boutonDe(carte, 'logique/route/route-futaie'));
     expect(ids(route).filter((id) => id.startsWith('valeur/billets')), 'à pied seulement, aucun billet ne s’offre').toEqual([]);
-    expect(valeursDeLInspecteur(route, 'valeur/modes/ajouter').map((b) => b.libelle), 'les modes s’ajoutent parmi ceux qu’elle n’offre pas').toEqual(travelVehicles().map((v) => v.label));
+    const modes = [{ id: 'monture', label: 'En selle' }, { id: 'mer', label: 'En mer' }, ...vehicles];
+    expect(valeursDeLInspecteur(route, 'valeur/modes/ajouter').map((b) => [b.id, b.libelle]), 'les modes s’ajoutent parmi ceux qu’elle n’offre pas')
+      .toEqual(modes.map(({ id, label }) => [`valeur/modes/ajouter/${JSON.stringify(id)}`, label]));
     const deuxModes = diligence(route);
     const billets = presser(boutonDe(deuxModes, 'valeur/billets/ajouter'));
     expect(ids(billets).filter((id) => /^valeur\/billets\/[^/]+\/ajouter$/.test(id)), 'seul le mode payant s’offre').toEqual(['valeur/billets/diligence/ajouter']);

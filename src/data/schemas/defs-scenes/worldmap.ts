@@ -15,7 +15,7 @@ import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
 import { enumNomme, idDIconeSchema, pointDuPlanSchema, qualiteDeReposSchema } from '../grammaire/valeurs';
 import { offresDAubergeSchema } from '../grammaire/hebergement';
-import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
+import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema, travelModeSchema } from '../grammaire/route';
 import { idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
@@ -23,8 +23,6 @@ import { couvreSchema, PORTEES_DE_LA_SCENE, SCENES_DU_PROJET } from './communs';
 import { findVehicleById } from '../../index';
 import { signalDuPortSchema } from '../defs/naval-ports';
 
-/** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
-export const travelModeSchema = z.string();
 /** `WindDirection` (`engine/seaWeather.ts`) — cap dominant d'une route maritime (`MDG 13 l.262-270`). */
 export const windDirectionSchema = enumNomme({ nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest' });
 
@@ -125,7 +123,7 @@ export const placePoiSchema = nommerChamps(z
         message: 'cible EXCLUSIVE — « sceneId » (transition) OU « service » (service résolu du lieu), jamais les deux ni aucun.',
       });
     }
-    if (poi.sceneId !== undefined && !('label' in poi)) {
+    if (poi.sceneId !== undefined && poi.label === undefined) {
       ctx.addIssue({ code: 'custom', path: ['label'], message: 'un point d’intérêt qui mène à une scène porte son « label ».' });
     }
     if (poi.service !== undefined && 'label' in poi) {
@@ -204,9 +202,9 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   km: z.number(),
   modes: z.array(travelModeSchema),
   /** Billet d'auteur par véhicule (`EDO 01 l.142`), posé sur la première route du trajet couvert. */
-  billets: marquerCollection(z.record(z.string(), routeBilletSchema), marqueDeRecord()).optional(),
+  billets: marquerCollection(recordDIds('vehicle', routeBilletSchema), marqueDeRecord()).optional(),
   /** Déplacement d'auteur par mode (`LDB 51 l.178`). À pied : force la vitesse. */
-  speed: z.record(z.string(), z.number()).optional(),
+  speed: z.partialRecord(travelModeSchema, z.number(), { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message }).optional(),
   /** Seuil du d10 quotidien de péripétie (`LDB 51 l.208`) ; 0 = désactivé. */
   perilDie: z.number().optional(),
   perils: z.array(routePerilSchema).optional(),
@@ -237,7 +235,7 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   provenances: provenancesDeRouteSchema.optional(),
 })
   .superRefine((route, ctx) => {
-    const posees = { perilDie: route.perilDie !== undefined, speed: Object.values(route.speed ?? {}).some((v) => v !== undefined) };
+    const posees = { perilDie: route.perilDie !== undefined, speed: Object.keys(route.speed ?? {}).length > 0 };
     for (const cle of Object.keys(PROVENANCE_EXIGEE) as (keyof typeof PROVENANCE_EXIGEE)[]) {
       if (posees[cle] && !route.provenances?.[cle]) {
         ctx.addIssue({ code: 'custom', path: ['provenances', cle], message: `provenance manquante : cite le livre et la page, ou dis la raison maison ${PROVENANCE_EXIGEE[cle]}.` });

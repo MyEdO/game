@@ -19,6 +19,7 @@ import type { Combatant } from '../engine/types';
 import { addCondition } from '../engine/conditions';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { pratiquer } from './interlude.testkit';
+import { buildScene } from './mapSpec';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -467,6 +468,34 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
     expect(after.resolvedScenes).toContain('duel');
     expect(banc.getState().screen).toBe('massBattle');
     expect(banc.getState().party.every((h) => !h.dead)).toBe(true);
+  });
+});
+
+describe('combat tactique d’une bataille de masse (#4235)', () => {
+  it.each([
+    { cas: 'lance la rencontre explicitement désignée', sceneEncounters: { duel: { id: 'enc-champion' } }, ennemis: ['troll'] },
+    { cas: 'laisse la bataille de masse ouverte sans rencontre désignée', sceneEncounters: undefined, ennemis: undefined },
+  ])('$cas', ({ sceneEncounters, ennemis }) => {
+    const party = groupeDeScenario(idsDeTest, 'soldat', 'chasseur');
+    banc.getState().fixerLeGroupe(party);
+    banc.getState().lancerLaScene(buildScene({
+      id: 'champ-de-bataille',
+      label: 'Champ de bataille',
+      size: [12, 8],
+      heroStart: [1, 2],
+      encounters: [
+        { id: 'enc-duel', enemies: [{ creature: { id: 'mutant' }, pos: { x: 7, y: 2 } }] },
+        { id: 'enc-champion', enemies: [{ creature: { id: 'troll' }, pos: { x: 8, y: 4 } }] },
+      ],
+    }));
+    start({ situations: [['duel']], sceneEncounters }, party);
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'duel');
+
+    const { battle, massBattle, screen } = banc.getState();
+    expect(battle?.combatants.filter((c) => c.kind === 'ennemi').map((c) => c.creatureId)).toEqual(ennemis);
+    expect(massBattle?.combatScene?.sceneId).toBe(ennemis ? 'duel' : undefined);
+    expect(screen).toBe(ennemis ? 'campaign' : 'massBattle');
   });
 });
 
