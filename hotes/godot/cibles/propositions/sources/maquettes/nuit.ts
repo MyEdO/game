@@ -29,11 +29,11 @@ export default {
         { id: 'repas', nom: 'Repas', parTete: true, prix: 12, prise: true }],
     },
     postes: [
-      { id: 'boire', nom: 'Boire', sous: 'Bière, la pinte', prix: 3, tenant: 'bjorn' },
-      { id: 'rumeurs', nom: 'Écouter les rumeurs', sous: 'Ragot', tenant: 'mira' },
+      { id: 'boire', nom: 'Boire', sous: 'Bière, la pinte', prix: 3, tenants: ['bjorn'] },
+      { id: 'rumeurs', nom: 'Écouter les rumeurs', sous: 'Ragot', tenants: ['mira'] },
       { id: 'jouer', nom: 'Jouer', sous: 'Pari · une mise' },
-      { id: 'soigner', nom: 'Se faire soigner', sous: 'Guérison · la visite', prix: 60, tenant: 'greta' },
-      { id: 'dormir', nom: 'Dormir', sous: 'Une bonne nuit', tenant: 'aldric' }],
+      { id: 'soigner', nom: 'Se faire soigner', sous: 'Guérison · la visite', prix: 60, tenants: ['greta'] },
+      { id: 'dormir', nom: 'Dormir', sous: 'Une bonne nuit', tenants: ['aldric'] }],
     dortoir: {
       abri: { id: 'chambre', nom: 'Grande chambre', places: 4 }, dedans: ['bjorn', 'mira', 'aldric', 'greta'], dehors: [],
       parts: (['bjorn', 'mira', 'aldric', 'greta'] as const).map((heros) => ({ heros, part: 72, avoir: BOURSES[heros] })),
@@ -48,9 +48,9 @@ export default {
     titre: AUBERGE,
     rail: services('jeux'),
     postes: [
-      { id: 'brasseur', nom: 'Le brasseur', sous: 'Tient les dés', tenant: 'brasseur' },
-      { id: 'batelier', nom: 'Un batelier du Reik', sous: 'A misé', tenant: 'batelier' },
-      { id: 'cocher', nom: 'Un cocher', sous: 'A misé', tenant: 'cocher' },
+      { id: 'brasseur', nom: 'Le brasseur', sous: 'Tient les dés', tenants: ['brasseur'] },
+      { id: 'batelier', nom: 'Un batelier du Reik', sous: 'A misé', tenants: ['batelier'] },
+      { id: 'cocher', nom: 'Un cocher', sous: 'A misé', tenants: ['cocher'] },
       { id: 'flechettes', nom: 'Les fléchettes', sous: 'Projectiles (Lancer)' },
       { id: 'bras-de-fer', nom: 'Le bras de fer', sous: 'Force' },
       { id: 'al-zahr', nom: 'L’Al-zahr', sous: 'La place de Bjorn', vise: true }],

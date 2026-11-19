@@ -1,5 +1,5 @@
 /* La compagnie du voyage, images d'intention (#3935) : la feuille de chaque héros (`HEROS`) ; leurs bustes sont ceux de
-   `../gestes.js`. Ne dépend d'aucun socle : `commun.js` le charge avant lui, le combat naval aussi (`../voyage/navale.js`). */
+   `../gestes.js`. Ne dépend d'aucun socle ; se charge avant `commun.js`. */
 const HEROS = [
   { id: 'bjorn', nom: 'Bjorn', car: 'Chasseur', pv: 16, max: 16, bourse: '14/–', chance: 3, resilience: 1, determination: 1 },
   { id: 'mira', nom: 'Mira', car: 'Éclaireuse', pv: 11, max: 11, bourse: '9/– 4 sc', chance: 2, resilience: 2, determination: 2 },

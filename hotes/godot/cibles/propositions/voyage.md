@@ -2,18 +2,26 @@
 
 Compte rendu des vingt et un états dessinés (neuf d'origine, douze ajoutés par l'audit des verbes, #4411) depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
 l'arrivée), la doctrine `user-doctrine-la-cible-prime-sur-l-ancien-ecran` et les propositions déjà au dépôt
-(`exploration-et-recit/carte-du-monde.jpg`, `combat/`). Sources au dépôt : `sources/voyage/`.
-Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
+(`exploration-et-recit/carte-du-monde.jpg`, `combat/`). Sources au dépôt : sept écrans de `sources/maquettes/`,
+chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html`
+(`node sources/rendre.mjs <écran> <sortie.png> --format 16:9 [--etat <état>]`) : `evenement-de-route`
+(`evenement-de-route`, `evenement-de-route-issue`, `evenement-de-route-echec`), `voyage-fluvial`
+(`voyage-fluvial`, `voyage-fluvial-peril`), `voyage-en-mer` (`voyage-en-mer`, `mer-relache`,
+`mer-conseil-de-bord`, `mer-fuite-de-vapeur`), `le-bord` (`postes-de-bord`, `postes-de-bord-station`,
+`activites-en-mer`), `combat-naval` (`combat-naval`, `combat-naval-bordee`, `combat-naval-chanson`,
+`meuble-piece-de-bord`), `dossier` (`dossier-du-navire`, `dossier-du-navire-cargaison`, `dossier-de-la-bete`,
+`dossier-du-vehicule`) et `arrivee` (`arrivee`). La compagnie est celle de `sources/maquettes/compagnie.ts`.
+Premières maquettes : chaque « choix à valider » attend l'utilisateur.
 
 La carte du monde n'est pas redessinée : elle existe (`exploration-et-recit/carte-du-monde.jpg`) et sert de modèle ;
 les états d'ici gardent ses lieux et ses distances (La Diligence, 75 km, Sept Rayons, 115 km, Altdorf).
 
-Pièces reprises, liées par chemin relatif : `commun.css`, `commun.js` et `bustes.js` de `sources/lieux-et-nuit/`
-(cadres, plaques, bandeau, postes, pastilles, compagnie) pour les sept états de voyage ; `combat.css`, `jet.js` et
-`socle.js` de `sources/combat/` (outils de dessin, grille, ordre, journal, meuble de l'actif), avec `bustes.js`, pour
-le combat naval et le dossier du navire. La famille a donc deux socles, comme les écrans qu'elle prolonge.
-`voyage.css`, `voyage.js`, `navale.css` et `navale.js` portent ce que la famille ajoute (décors, objet du temps,
-carte du trajet, frise, contenant d'événement, navires sur la grille).
+Pièces : le voyage, le bord et l'arrivée sont des lieux (`sources/lieux-et-nuit/` : cadres, plaques, bandeau, postes,
+pastilles, compagnie, `toile()`) ; le combat naval et les dossiers prennent le socle du combat (`sources/combat/` :
+grille, ordre, journal, meuble de l'actif, bandeau du jet). `sources/voyage/voyage.js` porte les décors de la famille
+(route, relais, fleuve, mer, peints en 1707 × 780 et rognés par `toile()`), l'objet du temps, la carte du trajet, les
+vignettes des arrêts et les silhouettes des possessions ; `sources/voyage/navale.js` la mer du combat et les voiles.
+La frise, le billet du jet, le contenant d'événement et les blocs du dossier sont posés par `sources/rendu.js`.
 
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (« Arrivée à {lieu} », « Voyage de {duree}. »
 l.3151-3167 ; « Journée de descente », « Navigation », « Vent de côté capté » l.3223-3281 ; « Journée en mer »,
@@ -30,7 +38,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   de gauche du bandeau (charte « Désigner le testeur d'un jet »), les quatre héros y sont offerts, Bjorn porté ;
   seuil 61 d'exemple, « Accessible (+20) » en étiquette ; l'issue de l'échec écrite au centre, verbatim ; les
   réserves de Bjorn, « Lancer », « Résilience ». Aucun choix : « Rebrousser chemin » et « Attendre » sont retirés,
-  le livre n'en pose pas ; aucune pastille « Faire halte » (aucun verbe, LDB 51 l.195).
+  le livre n'en pose pas ; aucune pastille « Faire halte » : le noyau n'a aucun verbe de halte en route.
 - Règle montrée : Test de Survie en extérieur Accessible (+20), sinon un jour plus tard avec un État Exténué
   (LDB 51 l.215 ; `src/noyau/travelFlow.ts:1418`, `:1293`).
 - À valider : le jeu désigne aujourd'hui d'office le meilleur héros (`travelFlow.ts:1418`) : la désignation au
@@ -47,10 +55,10 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   par une demi-phrase par héros sans pastille ; « 52 km avant Altdorf » d'exemple ; la relance d'un jet de routine
   échoué : `evenement-de-route-echec`, plus bas.
 - Changement voulu (#4411) : l'objet du temps porte la « Cadence du voyage », « Jour par jour » armée
-  (`fixerLaCadence(cadence)`, `temps({ cadence })` de `voyage.js`), comme sur `voyage-en-mer`.
+  (`fixerLaCadence(cadence)`, `titre.cadence` de l'état), comme sur `voyage-en-mer`.
 
 ## evenement-de-route-echec
-- État de `evenement-de-route` (`evenement.js`) : le Test de Bjorn a échoué (78 sous 61, DR −1). Le bandeau du jet,
+- Même écran que `evenement-de-route` : le Test de Bjorn a échoué (78 sous 61, DR −1). Le bandeau du jet,
   après le dé : le verdict et l'issue du livre au centre, les réserves de Bjorn, « Appliquer », « Relancer » ouverte,
   « Chance : +1 DR », « Pacte », « Résilience ».
 - Verbes : `jetRelancer('cascade')`, `jetValider('cascade')`, `jetPactiser('cascade')`,
@@ -137,7 +145,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   posé sur le navire (nid-de-pie, gréement, pont, cale), la compétence en clair sous le nom, spécialisation comprise
   (« Projectiles (Poudre noire) », « Divertissement (Chant) »). Le héros se presse au bandeau puis son poste
   (charte « Désigner le héros exécutant ») : `affecterAuRoleABord(crewId, roleId | null)`.
-- Plusieurs titulaires : la Vigie, tenue par Bjorn, offre une place de plus (« + », `poste({ heros, plus })`) ; Vigies, Mousses et Artilleurs
+- Plusieurs titulaires : la Vigie, tenue par Bjorn, offre une place de plus (« + ») ; Vigies, Mousses et Artilleurs
   se tiennent à plusieurs (MDG 14 l.37). Poste « Repos » : aucun rôle (`shipRole: 'repos'`, `shipCrew.ts:71` ;
   Mousse facultatif, MDG 14 l.15). L'Artilleur est ouvert : le verbe ne refuse rien (`shipCrew.ts:668`).
 - Panneau « Le bord » : Moral, Coque, Eau douce, Vivres, puis « Ce que la journée jouera » : Progression (Capitaine),
@@ -152,7 +160,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   portrait ; le billet du rôle visé ; le rôle de chaque héros rappelé sur sa carte.
 
 ## postes-de-bord-station
-- État de `postes-de-bord` (`bord.js`). Bjorn est au poste « Repos » (aucun rôle, `affecterAuRoleABord(crewId, null)`),
+- Même écran que `postes-de-bord`. Bjorn est au poste « Repos » (aucun rôle, `affecterAuRoleABord(crewId, null)`),
   la Vigie est vide. Greta, choisie au bandeau, ouvre le panneau « Station de Greta » : une plaque par station que
   le navire offre, « Pont » armée, la phrase du livre de la station tenue dessous.
 - Verbe : `affecterALaStation(crewId, station | null)` (`src/noyau/actionsDuNoyau.ts:314`, `src/noyau/shipCrew.ts:669`).
@@ -163,7 +171,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   l'ancienne prose « Vigie, au nid-de-pie » nomme un lieu que la Cogue n'offre pas comme station.
 
 ## activites-en-mer
-- État de `postes-de-bord` (`bord.js`) : même navire, les postes sont les Activités de la semaine ; chaque héros se
+- Même écran que `postes-de-bord` : même navire, les postes sont les Activités de la semaine ; chaque héros se
   presse au bandeau puis son Activité. « Aucune Activité » tient Bjorn et Greta, Mira est au « Commerce
   d'opportunité », Aldric à la « Cartographie ». « Entraînement d'équipage » est fermé, sa raison au survol
   (`sact.crewIsPlayers`, verbatim).
@@ -194,7 +202,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   « Salissures » et « Avaries » écrits « aucune » quand rien n'est à dire.
 
 ## dossier-du-navire-cargaison
-- État de `dossier-du-navire` (`dossier-du-navire.js`), onglet « Cargaison » : la cale (130 / 300), ses lots
+- Même écran que `dossier-du-navire`, onglet « Cargaison » : la cale (130 / 300), ses lots
   (Laine 60, Sel 40, Métaux 30), puis « Déplacer le sel vers » : une carte par autre porteur du groupe
   (« Charrette 0 / 25 »), la quantité réglée par − et + (25 Enc), la plaque « Déplacer ». Dessous, « À bord » :
   la mule Marguerite (15 Enc) et son « Débarquer ».
@@ -205,7 +213,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   Lots, Enc et noms sont des exemples.
 
 ## dossier-de-la-bete
-- Même dossier (`dossier({ genre })`), pour une bête : « Marguerite », mule ; le nom est en saisie
+- Même dossier, pour une bête : « Marguerite », mule ; le nom est en saisie
   (`renommerLaPossession(possessionUid, label)`, `:319`) ; profil et traits de la mule, phrase de chaque trait
   verbatim.
 - Gestes : « Laisser ici » (`remiserLaPossession`, `:321`), « Embarquer » armée, « Abandonner »
@@ -246,7 +254,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   (MDG 13 l.354-403) se joue pendant la traversée, son écran est `combat-suite/course-poursuite-en-mer.jpg`.
 
 ## combat-naval-bordee
-- État de `combat-naval` (`combat-naval.js`) : « Bordée » ouvre le bandeau « Tir de batterie », avant le dé. À
+- Même écran que `combat-naval` : « Bordée » ouvre le bandeau « Tir de batterie », avant le dé. À
   gauche l'Artilleur, Bjorn, rôle essentiel compté double ; au centre la munition des pièces qui portent, en deux
   options (« Boulet et poudre » armée, « Mitraille et poudre »), et deux étiquettes (« 2 pièces à bâbord », « Un DR
   pour toutes ») ; à droite les rangées des autres rôles du Test. « Lancer », « Résilience ».
@@ -258,7 +266,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   `jetRegler('tirDeBatterie', 'munition', ammoUid)`, qui approvisionne chaque pièce qui porte.
 
 ## combat-naval-chanson
-- État de `combat-naval` : « Chanson de marin » ouvre son bandeau, avant le dé. À gauche le Chansonnier, Aldric ; au
+- Même écran que `combat-naval` : « Chanson de marin » ouvre son bandeau, avant le dé. À gauche le Chansonnier, Aldric ; au
   centre le Test et la durée de l'effet ; à droite les chansons du jeu en cartes, la première armée.
 - Verbe `chanterLaChanson(shipId)` (`:112`), réglage `jR('chansonDeMarin', 'chanson', id)`
   (`src/noyau/combatSlice.ts:1186`, `src/noyau/shipCrew.ts:245`, `:609`).
@@ -267,9 +275,9 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   sous-titre.
 
 ## meuble-piece-de-bord
-- État de `combat-naval` : le tour de Bjorn, qui sert le « Canon (petit) de bâbord ». Le meuble de l'actif
-  (`combat/meuble-chef-de-piece`) : Blessures, « Chargé 1 / 1 », Action, Avantage et médaillon de Détermination (`jetons(determination)` de
-  `sources/combat/socle.js`, `depenserLaDetermination`), « Quitter la pièce » ; plaques
+- Même écran que `combat-naval` : le tour de Bjorn, qui sert le « Canon (petit) de bâbord ». Le meuble de l'actif
+  (`combat/meuble-chef-de-piece`) : Blessures, « Chargé 1 / 1 », Action, Avantage et médaillon de Détermination
+  (`depenserLaDetermination`), « Quitter la pièce » ; plaques
   « Manœuvrer », « Bordée », « Attaque » ; conditionnelles « Recharger » (fermée, la pièce est chargée), « Diriger
   l'équipe », « Chanson de marin » ; la pastille « Munition » ouverte sur « Approvisionner la pièce », deux cartes
   et leur stock en soute.
@@ -281,7 +289,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   du bord sur le tour de tout héros à un poste.
 
 ## mer-relache
-- État de `voyage-en-mer` (`mer.js`), à l'accostage : le contenant d'événement « Relâche à terre », la phrase du
+- Même écran que `voyage-en-mer`, à l'accostage : le contenant d'événement « Relâche à terre », la phrase du
   livre, deux cartes (« Accorder la relâche », armée ; « Refuser la relâche ») et la plaque qui commet, libellée de
   la carte choisie.
 - Fenêtre : `fC('relacheATerre', 'accorder', bool)` (`src/noyau/seaVoyageFlow.ts:2469`).
@@ -290,7 +298,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - À valider : carte puis plaque pour un choix que le noyau clôt à la pose (l'hôte tient la sélection).
 
 ## mer-conseil-de-bord
-- État de `voyage-en-mer` : « Conseil de bord », la paie de la semaine. Quatre cartes, leur effet sur le Moral et
+- Même écran que `voyage-en-mer` : « Conseil de bord », la paie de la semaine. Quatre cartes, leur effet sur le Moral et
   leur coût : régulière (armée), généreuse (fermée, « Bourse insuffisante. » au survol), chiche, pas de paie ; la
   plaque « Payer ». À droite « Bourses du groupe » : la part de chaque héros, réglable (#3004,
   `bourse({ parts, total })`).
@@ -302,14 +310,14 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   `payWithAllocation` (`src/noyau/bourseFlow.ts`).
 
 ## mer-fuite-de-vapeur
-- État de `voyage-en-mer` : la panne en contenant d'événement, le dé de la table en sceau, l'entrée du livre
+- Même écran que `voyage-en-mer` : la panne en contenant d'événement, le dé de la table en sceau, l'entrée du livre
   entière ; dessous, le bandeau du jet avant le dé : Aldric, au moteur, Test d'Initiative, l'enjeu au centre,
   « Lancer » et ses réserves.
 - Flux `fuiteDeVapeur` (`src/noyau/seaVoyageFlow.ts:1982-1997`).
 - Règle montrée : Fuite de vapeur, 1d10–5 Dégâts (1 minimum) qui ignorent l'Armure (MDG 12 l.322-328). Seuil et dé
   d'exemple.
 - Le décor porte la cogue à vapeur, au large à droite du contenant : cheminée, fumée et jet de vapeur
-  (`D.cogue({ vapeur })`, `D.mer({ cogue })` de `voyage.js`) ; la Propulsion à vapeur est une Amélioration posée sur
+  (`vapeur` de l'état) ; la Propulsion à vapeur est une Amélioration posée sur
   un bateau (MDG 12 l.305-311).
 - À valider : la panne dans le contenant d'événement de la route ; le navire petit et hors du contenant, qui tient
   le centre.

@@ -29,7 +29,7 @@ const equipage = (bjorn: Partial<LigneDeTest>, aldric: Partial<LigneDeTest>, mir
  *  postes. */
 const enChasse = (nom: string, distance: number, manche: Poursuite['panneau'], recit: string, fenetre?: Fenetre, dits: Partial<typeof POSTES> = POSTES): Poursuite => ({
   nom, gabarit: 'lieu-et-voyage', decor: 'mer',
-  titre: { jour: 'Wellentag', date: { jour: 21, mois: 'Sigmarzeit' }, enMer: 3, meteo: 'Temps dégagé, bon vent', ciel: 'jour' },
+  titre: { jour: 'Wellentag', date: { jour: 21, mois: 'Sigmarzeit' }, jourDeVoyage: 3, meteo: { temps: 'beau', ciel: 'Temps dégagé, bon vent' }, lumiere: 'jour' },
   recit: { rubrique: manche.role === 'sommation' ? 'En mer · Cogue pirate' : 'En mer · Course-poursuite', texte: recit },
   trajet: { titre: 'La mer des Griffes', de: 'Salzenmund', vers: 'Erengrad', part: 0.3 },
   panneau: manche,

@@ -55,8 +55,8 @@ const fermer = () => { // le fond se ferme : coins, bas sous l'interface
 const bandeau = (dits = {}, { groupe = HEROS, bourses = false, ruban: titre = '' } = {}) => cadre('bandeau', null, null, null, null, 'bois', groupe.map((h) => { const d = dits[h.id ?? 'libre'] ?? {}; return `
   <div class="heros ${d.choisi ? 'choisi' : ''}">${portrait(h.id, { taille: 'grand', choisi: d.choisi })}
     <div class="qui"><div class="nom gothique" data-texte="héros ${h.nom}">${h.nom}</div>
-      <div class="l2"><span class="car rubrique">${h.car}${bourses ? ` <span class="bourse chiffres">· ${h.bourse}</span>` : ''}</span>${h.max ? `<span class="pv chiffres">${h.pv} / ${h.max}</span>` : ''}</div>
-      ${h.max ? vie(h.pv, h.max) : ''}
+      <div class="l2"><span class="car rubrique">${h.car}</span>${h.max ? `<span class="pv chiffres">${h.pv} / ${h.max}</span>` : ''}</div>
+      ${h.max ? vie(h.pv, h.max) : ''}${bourses ? `<div class="bourse"><span class="rubrique">Bourse</span><b class="chiffres">${h.bourse}</b></div>` : ''}
       ${d.texte ? `<div class="dit">${d.mal ? sceau(d.icone) : d.icone ? rond(d.icone, 'menu', { arme: true }) : ''}<p>${d.texte}</p></div>` : ''}
       ${d.html ?? ''}
     </div>

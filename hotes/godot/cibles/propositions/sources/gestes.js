@@ -180,6 +180,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     cocher: BASE + '<path d="M17 27h44v4H17zM27 27V13h24v14z" class="s"/>',
     drapier: BASE + '<path d="M22 31c0-13 8-20 17-20s17 7 17 20c-5-5-11-7-17-7s-12 2-17 7z" class="s"/><path d="M22 30h34v4H22z" class="s"/>',
     astrid: BASE + '<path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" class="s"/><path d="M23 34c-1 8 0 16 2 22l5-3c-2-7-2-13 0-19zM55 34c1 8 0 16-2 22l-5-3c2-7 2-13 0-19z" class="s"/>',
+    /* les possessions : le navire, la bête, le véhicule */
+    navire: '<path d="M6 66h66l-9 17H16z"/><path d="M37 12h4v54h-4z"/><path d="M13 23c17 5 35 5 52 0 3 12 3 25-1 35-17 5-33 5-50 0-4-10-4-23-1-35z"/><path d="M41 12l14 4-14 4z"/>',
+    mule: '<path d="M18 90c0-20 5-33 13-41-6-8-8-17-6-27l-7-18 11 13c3-2 6-3 10-3s7 1 10 3l10-13-6 18c2 10 0 19-6 27 8 8 14 21 14 41z"/><path d="M33 22c2 8 2 16 0 24M45 22c-2 8-2 16 0 24" stroke="#1c1410" stroke-width="2" fill="none"/>',
+    charrette: '<path d="M8 30h54l6 8v20H8z"/><path d="M62 44h14v4H62z"/><circle cx="26" cy="66" r="15" fill="none" stroke="#2a1f17" stroke-width="5"/><path d="M26 51v30M11 66h30M15.500 55.500l21 21M36.500 55.500l-21 21" stroke="#2a1f17" stroke-width="2.500"/>',
     /* le héros qui se dessine : au trait de sanguine, avec ses repères */
     esquisse: '<path d="M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28"/><path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" class="s"/><path d="M39 2v88M10 42h58" class="repere"/>',
   };

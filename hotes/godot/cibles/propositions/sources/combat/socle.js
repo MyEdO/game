@@ -1,6 +1,6 @@
 /* Socle du combat, images d'intention (#3935) : grille isométrique et gabarits de l'écran de combat (ordre, meuble,
    jetons) montés sur les pièces de `../gestes.js`, sans décor. La page de rendu des maquettes (`../rendu.js`) y pose la
-   cour, `../voyage/` la mer du combat naval. Se charge après `../gestes.js` et `jet.js`. Maquette hors du jeu. */
+   cour, `../voyage/navale.js` la mer du combat naval. Se charge après `../gestes.js` et `jet.js`. Maquette hors du jeu. */
 grad('gauche', [[0, '#000', .62], [1, '#000', 0]], { x1: 0, y1: 0, x2: 1, y2: 0 });
 /* la grille isométrique */
 const A = 46, B = 23, OX = 394, OY = -114;

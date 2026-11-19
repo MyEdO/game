@@ -17,7 +17,9 @@
 .heros .dit{display:flex;gap:8px;align-items:flex-start;margin-top:9px}
 .heros .dit p{margin:0;font-style:italic;font-size:13px;line-height:16.5px;color:#e6dabd}
 .heros .dit .bouton-rond,.heros .dit .sceau{margin-top:2px}
-.heros .bourse{font-size:11px;color:var(--or);white-space:nowrap}
+.heros .bourse{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;font-size:11px;line-height:13px;color:var(--creme-2);white-space:nowrap}
+.heros .bourse b{font-weight:400;color:var(--or)}
+.heros .bourse+.dit{margin-top:4px}
 .heros.choisi{background:radial-gradient(120% 100% at 30% 40%,rgba(255,214,140,.16),rgba(255,214,140,0) 70%)}
 
 
