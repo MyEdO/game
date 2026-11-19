@@ -45,6 +45,13 @@ describe('lumiereDeLaScene', () => {
     expect([dehors.brume.courbe, dedans.brume.courbe]).toEqual([ambiance.pov.depth.outdoor.fogGamma, ambiance.pov.depth.indoor.fogGamma]);
   });
 
+  it('dehors, l’ambiante est la moyenne du ciel, de son zénith à son horizon', () => {
+    const { ambiante, ciel } = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion');
+    const canaux = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const [z, h] = [canaux(ciel!.zenith), canaux(ciel!.horizon)];
+    canaux(ambiante.couleur).forEach((c, i) => expect(Math.abs(c - (z[i] + h[i]) / 2)).toBeLessThanOrEqual(1));
+  });
+
   it('la pluie voile le soleil et teinte le ciel', () => {
     const clair = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion');
     const pluie = lumiereDeLaScene(etat({ ...emptyScene('scene-test', 4, 4), weather: 'pluie' }, MIDI), 'immersion');
