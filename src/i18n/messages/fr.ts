@@ -4001,8 +4001,6 @@ export const fr = {
   'sact.crewIsPlayers': 'L’équipage du navire de campagne est tenu par les PJ — aucun équipage PNJ à entraîner.',
   'sact.noFreeEnc': 'Aucun point d’Encombrement disponible sur le navire — rien à investir.',
   'sact.weekTitle': 'Activités de la semaine',
-  'sact.entretienEnMer': 'Travail en mer',
-  'sact.entretienChantier': 'Grand chantier naval',
   'sact.entretienSansPort': 'Le groupe ne se trouve pas dans un port.',
   'sact.entretienSansNavire': 'Aucun navire à entretenir.',
   'sact.entretienIndisponible': 'L’entretien du navire n’est plus ouvert.',

@@ -147,8 +147,6 @@ const doc = document(
     }), { id: { label: "identifiant" }, label: { label: "nom" }, cible: { label: "cible" }, ops: { label: "opérations" }, unless: { label: "sauf si" } })).optional(),
     weatherMod: z.partialRecord(weatherIdSchema, z.number()).optional(),
     resolver: activityResolverSchema.optional(),
-    modEntretienEnMer: z.number().int().optional(),
-    modEntretienChantierSpecialise: z.number().int().optional(),
     onSuccess: executeesDe().optional(),
     outcomes: z.array(outcomeBandSchema).optional(),
     where: z.array(z.string()).optional(),
@@ -215,8 +213,6 @@ const doc = document(
     failExtenue: { label: 'Échec inflige Exténué' },
     weatherMod: { label: 'Modificateur météo', hint: 'Modificateur au Test, par météo' },
     resolver: { label: 'Résolveur dédié', hint: 'Logique de résolution dédiée, réutilisée plutôt que dupliquée' },
-    modEntretienEnMer: { label: 'Modificateur d’Entretien en mer' },
-    modEntretienChantierSpecialise: { label: 'Modificateur d’Entretien au chantier spécialisé' },
     onSuccess: { label: 'Effets de réussite' },
     outcomes: {
       label: 'Table d’issues',
@@ -289,20 +285,13 @@ const doc = document(
     exiges: ['source', 'icon'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const a = v as { id: string; resolver?: string; contexts: string[]; tests?: { skill?: unknown; characteristic?: unknown }[]; difficulty?: string; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string; modEntretienEnMer?: number; modEntretienChantierSpecialise?: number };
+        const a = v as { id: string; resolver?: string; contexts: string[]; tests?: { skill?: unknown; characteristic?: unknown }[]; difficulty?: string; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string };
         if (a.resolver === 'shipMaintenance') {
           if (!a.tests?.length) ctx.addIssue({ code: 'custom', path: ['tests'], message: `${a.id} : l’Entretien du navire exige un Test` });
           if (a.contexts.length !== 1 || !a.contexts.includes('mer')) {
             ctx.addIssue({ code: 'custom', path: ['contexts'], message: `${a.id} : l’Entretien du navire relève du contexte mer` });
           }
           if (!a.stake) ctx.addIssue({ code: 'custom', path: ['stake'], message: `${a.id} : l’Entretien du navire exige un enjeu de Test` });
-        }
-        for (const champ of ['modEntretienEnMer', 'modEntretienChantierSpecialise'] as const) {
-          if (a.resolver === 'shipMaintenance' && a[champ] === undefined) {
-            ctx.addIssue({ code: 'custom', path: [champ], message: `${a.id} : l’Entretien du navire exige ce modificateur de lieu` });
-          } else if (a.resolver !== 'shipMaintenance' && a[champ] !== undefined) {
-            ctx.addIssue({ code: 'custom', path: [champ], message: `${a.id} : ce modificateur est réservé à l’Entretien du navire` });
-          }
         }
         if (a.tests && a.difficulty) {
           ctx.addIssue({ code: 'custom', path: ['difficulty'], message: `${a.id} : la Difficulté d’un Test au choix vit dans chacun de ses Tests (\`tests[].difficulty\`), pas à l’Activité` });

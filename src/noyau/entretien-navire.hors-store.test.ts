@@ -1,5 +1,5 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
-import { ACTIVITIES, navalPorts, vehicles } from '../data';
+import { ACTIVITIES, navalPorts, regles, vehicles, type RegleData } from '../data';
 import { datasetObject, setDataset, setObjectDataset } from '../data/overrides';
 import { schema as schemaActivites } from '../data/schemas/defs/activities';
 import type { ActivityDef } from '../engine/activities';
@@ -17,6 +17,7 @@ import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { resolvePortRef, type WorldMap } from './worldMap';
 
 const ACTIVITE = 'entretien-de-test';
+const REGLE_DU_LIEU = 'lieu-de-l-entretien-du-navire';
 const NAVIRE = 'navire-entretien-de-test';
 const PORT = 'port-entretien-de-test';
 const PIECES = 'pieces-detachees-de-test';
@@ -29,12 +30,20 @@ const ACTIVITE_D_ESSAI: ActivityDef = {
   id: ACTIVITE, type: 'activities', label: 'Entretien de test',
   source: SOURCE_D_ESSAI, icon: 'voyage/reparer',
   resolver: 'shipMaintenance', contexts: ['mer'],
-  modEntretienEnMer: -10, modEntretienChantierSpecialise: 30,
   tests: [
     { skill: { id: 'metier', spec: CHARPENTIER }, difficulty: 'intermediaire' },
     { skill: { id: 'metier', spec: CONSTRUCTEUR }, difficulty: 'intermediaire' },
   ],
   stake: 'Enjeu du Test.', stakeForm: 'descripteur',
+};
+
+const REGLE_D_ESSAI: RegleData = {
+  id: REGLE_DU_LIEU, type: 'regles', label: 'Lieu du Test d’Entretien',
+  source: SOURCE_D_ESSAI, desc: 'Modificateurs de lieu injectés pour le test.',
+  rangees: [
+    { id: 'en-mer', label: 'En mer', famille: 'circonstance', valeur: -10 },
+    { id: 'chantier-specialise', label: 'Au chantier', famille: 'circonstance', valeur: 30 },
+  ],
 };
 
 function lot(cargoId: string, enc: number): CargoLot {
@@ -57,12 +66,14 @@ type Lieu = 'mer' | 'port' | 'chantier';
 
 function fixture(lieu: Lieu, navire: Partial<CampaignVessel> = {}, party = [heros(0, CHARPENTIER)]) {
   const activitesAvant = [...ACTIVITIES];
+  const reglesAvant = [...regles];
   const naviresAvant = [...vehicles];
   const portsAvant = [...navalPorts];
   const cargaisonsAvant = [...CARGO_ENTRIES];
   const navigationAvant = structuredClone(datasetObject('seaNavigation'));
   onTestFinished(() => {
     setDataset('activities', activitesAvant);
+    setDataset('regles', reglesAvant);
     setDataset('vehicles', naviresAvant);
     setDataset('navalPorts', portsAvant);
     setDataset('cargoes', cargaisonsAvant);
@@ -77,6 +88,7 @@ function fixture(lieu: Lieu, navire: Partial<CampaignVessel> = {}, party = [hero
     voie: 'mer', shipParts: true, price: { printemps: 1, ete: 1, automne: 1, hiver: 1 },
   }]);
   setDataset('activities', [...activitesAvant.filter((a) => a.resolver !== 'shipMaintenance'), ACTIVITE_D_ESSAI]);
+  setDataset('regles', [...reglesAvant.filter((r) => r.id !== REGLE_DU_LIEU), REGLE_D_ESSAI]);
   setDataset('vehicles', [...naviresAvant, {
     id: NAVIRE, type: 'vehicles', label: 'Navire d’essai', source: SOURCE_D_ESSAI,
     hull: { char: { endurance: 40, B: 50 }, bodyShape: 'vehicule', propulsion: 'maritime' },
@@ -162,13 +174,6 @@ const stock = (get: Banc['getState'], id: string) =>
   (get().vessel!.cargo ?? []).filter((l) => l.cargoId === id).reduce((enc, l) => enc + l.enc, 0);
 
 describe('Entretien du navire (MDG 15 l.302-306)', () => {
-  it('le catalogue du livre donne −20 en mer et +20 au chantier spécialisé', () => {
-    expect(ACTIVITIES.find((a) => a.resolver === 'shipMaintenance')).toMatchObject({
-      id: 'entretien-du-navire',
-      modEntretienEnMer: -20, modEntretienChantierSpecialise: 20,
-    });
-  });
-
   it.each([
     ['mer', CHARPENTIER, -10], ['port', CONSTRUCTEUR, 0], ['chantier', CHARPENTIER, 30],
   ] as const)('applique le modificateur de lieu en %s au Test d’Usure et au Test Critique', (lieu, metier, mod) => {
@@ -181,8 +186,8 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
     expect(usure.difficulty).toBe('intermediaire');
     expect(usure.target! - usure.base!).toBe(mod);
     expect(inexplique(usure)).toBe(0);
-    expect(usure.mods?.find((m) => m.ref?.category === 'activities')?.ref)
-      .toEqual(mod === 0 ? undefined : { category: 'activities', id: ACTIVITE });
+    expect(usure.mods?.find((m) => m.ref?.id === REGLE_DU_LIEU)?.ref)
+      .toEqual(mod === 0 ? undefined : { category: 'regles', id: REGLE_DU_LIEU });
     tester(get, 98);
     expect(stock(get, PIECES)).toBe(35);
     expect(get().vessel!.usure).toBe(4);
@@ -194,8 +199,8 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
     expect(critique.difficulty).toBe('difficile');
     expect(critique.target! - critique.base!).toBe(mod - 20);
     expect(inexplique(critique)).toBe(0);
-    expect(critique.mods?.find((m) => m.ref?.category === 'activities')?.ref)
-      .toEqual(mod === 0 ? undefined : { category: 'activities', id: ACTIVITE });
+    expect(critique.mods?.find((m) => m.ref?.id === REGLE_DU_LIEU)?.ref)
+      .toEqual(mod === 0 ? undefined : { category: 'regles', id: REGLE_DU_LIEU });
     tester(get, 98);
     expect(stock(get, PIECES)).toBe(35);
     expect(stock(get, BOIS)).toBe(30);
@@ -317,8 +322,6 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
 
   it.each([
     ['tests', { tests: undefined }],
-    ['modEntretienEnMer', { modEntretienEnMer: undefined }],
-    ['modEntretienChantierSpecialise', { modEntretienChantierSpecialise: undefined }],
     ['contexts', { contexts: ['voyage'] }],
     ['stake', { stake: undefined, stakeForm: undefined }],
   ] as const)('le catalogue d’Entretien exige %s', (champ, remplacement) => {
