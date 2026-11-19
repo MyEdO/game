@@ -161,8 +161,8 @@ describe('l’éditeur de carte par le pont', () => {
     expect(erreurDe(appel('editer', { edition: { geste: 'pinceau', taille: 3 } })).categorie, 'pas de pinceau en sélection').toBe('validation');
     expect(erreurDe(appel('editer', { edition: { geste: 'appui', point: { case: { x: 1.5, y: 1 }, f: { x: 1.5, y: 1 } } } })).categorie).toBe('validation');
     expect(erreurDe(appel('editer', { edition: { geste: 'couche', z: 4 } })).categorie, 'une couche absente').toBe('validation');
-    expect(erreurDe(appel('editer', { edition: { geste: 'annuler' } }))).toEqual({ categorie: 'regle', message: 'editer : Rien à annuler' });
-    expect(erreurDe(appel('editer', { edition: { geste: 'retirerCouche' } }))).toEqual({ categorie: 'regle', message: 'editer : Le rez ne se retire pas' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'annuler' } }))).toEqual({ categorie: 'regle', message: 'Rien à annuler' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'retirerCouche' } }))).toEqual({ categorie: 'regle', message: 'Le rez ne se retire pas' });
   });
 
   it('les couches : en ajouter une l’édite, en changer rend le monde de la couche éditée, retirer l’éditée rend le rez', () => {
@@ -461,7 +461,7 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
     expect(inspecte(pleines, 'identifier/choix/n2/choix-0')).toMatchObject({ type: 'formulaire', libelle: 'Identifier la réponse « choix-0 »' });
     const renommee = editionDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-0', 'accepter'] }));
     expect(['identifier/choix/n1/accepter', 'identifier/choix/n1/choix-1', 'identifier/choix/n2/choix-0'].map((id) => inspecte(renommee, id)?.type)).toEqual(['formulaire', 'formulaire', 'formulaire']);
-    expect(erreurDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-1', 'accepter'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « accepter » déjà porté par la réponse 1' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['n1', 'choix-1', 'accepter'] }))).toMatchObject({ categorie: 'regle', message: 'Identifiant « accepter » déjà porté par la réponse 1' });
     expect(erreurDe(appel('editer', { type: 'identifier', args: ['n2', 'choix-1', 'x'] })).categorie, 'la réponse d’un autre nœud ne s’adresse pas par celui-ci').toBe('validation');
     const ailleurs = editionDe(appel('editer', { type: 'identifier', args: ['n2', 'choix-0', 'accepter'] }));
     expect(inspecte(ailleurs, 'identifier/choix/n2/accepter')?.type).toBe('formulaire');
@@ -479,7 +479,7 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
     const dialogue = presser(boutonDe(designe, `logique/dialogue/${id}`));
     const refus = boutonDe(dialogue, 'dialogue/supprimer').refus;
     expect(refus, 'la raison du retrait refusé').toMatch(/\S/);
-    expect(erreurDe(appel('editer', boutonDe(dialogue, 'dialogue/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    expect(erreurDe(appel('editer', boutonDe(dialogue, 'dialogue/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: refus });
     const libre = presser(boutonDe(dialogue, 'annuler'));
     const retenu = presser(boutonDe(libre, `logique/dialogue/${id}`));
     expect(boutonDe(retenu, 'dialogue/supprimer').refus, 'plus désigné, il se retire').toBeNull();
@@ -539,7 +539,7 @@ describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
     expect(boutonDe(renommee, 'logique/rencontre/enc-bois').presse).toBe(true);
     const supprimer = boutonDe(renommee, 'rencontre/supprimer');
     expect([supprimer.refus?.includes('« enc-bois »'), supprimer.refus?.includes('« route-futaie »')]).toEqual([true, true]);
-    expect(erreurDe(appel('editer', supprimer.jeu))).toEqual(expect.objectContaining({ categorie: 'regle', message: `editer : ${supprimer.refus}` }));
+    expect(erreurDe(appel('editer', supprimer.jeu))).toEqual(expect.objectContaining({ categorie: 'regle', message: supprimer.refus }));
   });
 
   it('la cible d’un objectif « seuil de dommage » se choisit parmi les membres ; la monture chevauchée, parmi les seules montures', () => {
@@ -1364,7 +1364,7 @@ describe('l’éditeur de carte par le pont, la volée', () => {
     const poser = boutonDe(tracee, 'volee/poser');
     expect(poser.refus).toBeTruthy();
     expect(ligneDes('plan'), 'la raison du plan, en clair').toMatchObject({ texte: poser.refus });
-    expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: `editer : ${poser.refus}` });
+    expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: poser.refus });
     expect(presser(boutonDe(tracee, 'volee/effacer')).surcouche.cases).toEqual([]);
   });
 });
@@ -2074,12 +2074,12 @@ describe('le retrait d’un champ que son objet exige, par le pont (#3606)', () 
     presser('logique/dialogue/dlg-flux');
     const expr = 'valeur/nodes/0/choices/0/flow/condition/expr';
     expect(formulaire(expr).champs[2], 'le drapeau, requis, ne se laisse pas vide').toMatchObject({ type: 'saisieTexte', optionnel: false });
-    expect(erreurDe(vider(expr))).toEqual({ categorie: 'regle', message: 'editer : le champ « nodes/0/choices/0/flow/condition/expr » est requis' });
+    expect(erreurDe(vider(expr))).toEqual({ categorie: 'regle', message: 'le champ « nodes/0/choices/0/flow/condition/expr » est requis' });
 
     cliquer(1, 1);
     const nom = 'valeur/statblock/label';
     expect(formulaire(nom).champs[2], 'le nom du profil, requis, ne se laisse pas vide').toMatchObject({ type: 'saisieTexte', optionnel: false });
-    expect(erreurDe(vider(nom))).toEqual({ categorie: 'regle', message: 'editer : le champ « statblock/label » est requis' });
+    expect(erreurDe(vider(nom))).toEqual({ categorie: 'regle', message: 'le champ « statblock/label » est requis' });
 
     cliquer(3, 1);
     const porte = 'valeur/crossTest/gate/expr';
@@ -2154,10 +2154,10 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
   it('un indice que désigne une scène se renomme, la scène suit, une annulation défait les deux ; un identifiant pris se refuse, dit ; le supprimer se refuse, dit', () => {
     const { appel, presser, narratif } = surLeNarratif();
     const indice = presser(boutonDe(narratif, 'logique/indices/ind-pont'));
-    expect(erreurDe(appel('editer', { type: 'nommer', args: ['aff-pont'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « aff-pont » déjà porté par l\'affaire « L’affaire du pont »' });
+    expect(erreurDe(appel('editer', { type: 'nommer', args: ['aff-pont'] }))).toMatchObject({ categorie: 'regle', message: 'Identifiant « aff-pont » déjà porté par l\'affaire « L’affaire du pont »' });
     const refus = boutonDe(indice, 'indices/supprimer').refus;
     expect(refus).toMatch(/^Encore désigné par : scène/);
-    expect(erreurDe(appel('editer', boutonDe(indice, 'indices/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    expect(erreurDe(appel('editer', boutonDe(indice, 'indices/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: refus });
     const renomme = editionDe(appel('editer', { type: 'nommer', args: ['ind-missive'] }));
     expect([boutonDe(renomme, 'logique/indices/ind-missive').presse, revele(presser, renomme)]).toEqual([true, { type: 'revealClue', indiceId: 'ind-missive', stade: 'lu' }]);
     editionDe(appel('editer', { edition: { geste: 'enregistrement', reussi: false } }));
@@ -2171,7 +2171,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const ajoute = presser(boutonDe(indice, 'valeur/stades/ajouter'));
     expect(inspecte(ajoute, 'identifier/stade/stade-3')).toMatchObject({ type: 'formulaire' });
     const renomme = editionDe(appel('editer', { type: 'identifier', args: ['stade-3', 'releve'] }));
-    expect(erreurDe(appel('editer', { type: 'identifier', args: ['releve', 'vu'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « vu » déjà porté par le stade 2' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['releve', 'vu'] }))).toMatchObject({ categorie: 'regle', message: 'Identifiant « vu » déjà porté par le stade 2' });
     expect(boutonDe(renomme, 'stade/lu/supprimer').refus).toMatch(/^Encore désigné par : scène/);
     const retire = presser(boutonDe(renomme, 'stade/releve/supprimer'));
     expect(retire.vue.zones['editeur.inspecteur'].some((el) => el.id === 'identifier/stade/releve')).toBe(false);
@@ -2221,7 +2221,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const identite = presser(ajout.valeurs[0]);
     const refus = boutonDe(identite, 'etat/forme/enum').refus;
     expect(refus).toBe('Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.');
-    expect(erreurDe(appel('editer', boutonDe(identite, 'etat/forme/enum').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    expect(erreurDe(appel('editer', boutonDe(identite, 'etat/forme/enum').jeu))).toMatchObject({ categorie: 'regle', message: refus });
   });
 
   it('l’identité d’un état héros : ses repères s’ajoutent, s’identifient et se retirent par leurs gestes, le dernier refusé, dit', () => {
@@ -2232,7 +2232,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const ajoute = presser(boutonDe(identite, 'valeur/forme/identite/reperes/ajouter'));
     expect(inspecte(ajoute, 'identifier/repere/repere-2')).toMatchObject({ type: 'formulaire' });
     const renomme = editionDe(appel('editer', { type: 'identifier', args: ['repere-2', 'titre'] }));
-    expect(erreurDe(appel('editer', { type: 'identifier', args: ['titre', 'repere-1'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « repere-1 » déjà porté par le repère 1' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['titre', 'repere-1'] }))).toMatchObject({ categorie: 'regle', message: 'Identifiant « repere-1 » déjà porté par le repère 1' });
     const retire = presser(boutonDe(renomme, 'repere/titre/supprimer'));
     expect([inspecte(renomme, 'identifier/repere/titre')?.type, inspecte(retire, 'identifier/repere/titre')]).toEqual(['formulaire', undefined]);
   });
@@ -2284,7 +2284,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     e = nommer('falot');
     const refus = boutonDe(e, 'objets/supprimer').refus;
     expect(refus).toContain(`scène « ${(presser(boutonDe(e, 'document/scene')).vue.zones['editeur.titre'][0]).texte} »`);
-    expect(erreurDe(appel('editer', boutonDe(presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot')), 'objets/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    expect(erreurDe(appel('editer', boutonDe(presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot')), 'objets/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: refus });
     e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
     expect(choisi(e), 'le don suit le renommage').toEqual(['Lanterne', 'falot']);
     e = choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'sequence');

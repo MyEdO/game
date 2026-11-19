@@ -275,10 +275,13 @@ export interface CrewHire {
 }
 
 /** `n` de plus au rôle `roleId` d'un roster. PUR. */
-export const ajouterAuRoster = (roster: readonly CrewHire[] | undefined, roleId: string, n: number): CrewHire[] =>
-  (roster ?? []).some((h) => h.roleId === roleId)
-    ? (roster ?? []).map((h) => (h.roleId === roleId ? { ...h, count: h.count + n } : h))
-    : [...(roster ?? []), { roleId, count: n }];
+export function ajouterAuRoster(roster: readonly CrewHire[] | undefined, roleId: string, n: number): CrewHire[] {
+  const lignes = roster ?? [];
+  const premiere = lignes.findIndex((h) => h.roleId === roleId);
+  if (premiere < 0) return [...lignes, { roleId, count: n }];
+  const count = lignes.reduce((total, h) => total + (h.roleId === roleId ? h.count : 0), n);
+  return lignes.flatMap((h, i) => i === premiere ? [{ ...h, count }] : h.roleId === roleId ? [] : [h]);
+}
 
 /** Barème d'embauche du rôle : celui de son profil du bestiaire (`embauche`). MDG 14 l.293-302 #216 */
 export function soldeDuRole(role: CrewRoleData): CreatureData['embauche'] {

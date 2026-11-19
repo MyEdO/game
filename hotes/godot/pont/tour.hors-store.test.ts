@@ -7,7 +7,7 @@
  * calcule rien.
  */
 import { describe, it, expect } from 'vitest';
-import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
+import { corpsDe, drainer, erreurDe, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
 import { clicDuCombattant, type Suite } from './pont';
 import { ACTIONS, CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix, Entite, Jet, Ligne, Puce } from '../../../src/hote/elements';
@@ -101,6 +101,9 @@ describe('un tour complet par le pont', () => {
     expect(heros.camp).toBe('heros');
     expect(suite.vue.projection.combat!.barre).toEqual({ forme: 'ouverte', raison: null });
     expect(suite.vue.champ, 'la barre ouverte, le champ se clique en combat').toBe(CLIC_DU_CHAMP);
+    expect(erreurDe(appel('jouer', { type: suite.vue.champ, args: [{ x: 18, y: 8 }] }))).toEqual({
+      categorie: 'regle', message: 'Case hors d’atteinte pour ce Tour.',
+    });
     const economie = (id: string) => suite.vue.zones['combat.offres'].find((o): o is Choix => o.type === 'choix' && o.valeurs.some((v) => v.id === id));
     expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
     expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');

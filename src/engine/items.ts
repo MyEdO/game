@@ -49,7 +49,13 @@ import {
   type ItemCapabilities,
 } from '../data';
 import { t } from '../i18n';
-import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
+import {
+  candidatsDApparenceDObjet,
+  apparencesAdmissiblesDObjet,
+  messageDApparenceDObjet,
+  referenceDApparenceDObjet,
+  munitionsReservees,
+} from '../data/apparencesObjets';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
  *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`objetDuNarratif`,
@@ -73,7 +79,7 @@ import { loadRegister, objetSourceDeLArme, aRecharger, chambrePleine, type Weapo
 import { nextEntityId } from '../lib/entityId';
 import type { FabriqueDId } from './fabriqueDId';
 import type { TraitInstance } from './statEntry';
-import { armesDuProfil, armourFromTraits } from './creatureEquip';
+import { armesDuProfil, armourFromTraits, uidDeLArmeDuTrait, weaponFromTrait } from './creatureEquip';
 import type { InventaireDAuteur } from '../data/schemas/defs-scenes/scene';
 
 /** Contexte explicite de la naissance d’un objet (#2948). */
@@ -915,6 +921,8 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
   return groupeDeSiege(it.subType) || hasQuality(it, 'equipe');
 }
 
+type ProfilDArmePorte = Pick<Weapon, 'damage' | 'range' | 'traitsConferes'>;
+
 /**
  * PROJECTION UNIQUE `ItemInstance` → `Weapon` : la SEULE dérivation d'une arme jouable depuis une
  * Possession, quel qu'en soit le canal — loadout de héros (`recomputeLoadout`), poste d'artillerie servi
@@ -926,18 +934,21 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
  * Les VETOS de port restent chez l'appelant : arme détruite et machine à Équipe (`objetDeSlot`),
  * amputation (`recomputeLoadout`, `mannedPosteWeapon`).
  */
-export function weaponFromItem(it: ItemInstance, hand?: Main, ctx?: ContexteDeManiement): Weapon {
-  return applyEnchants(buildWeapon({
+export function weaponFromItem(it: ItemInstance, hand?: Main, ctx?: ContexteDeManiement, profil?: ProfilDArmePorte): Weapon {
+  const arme = buildWeapon({
     ...copierIntrinseques(it, true),
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'distance',
     // Possession de catalogue SANS profil de Dégâts (munitions de trait) : Dégâts « – ».
     // Convention UNIQUE du profil d'arme — elle vit ICI, plus aucun appelant ne la redéclare.
-    damage: it.damage ?? { aucun: true },
+    damage: profil?.damage ?? it.damage ?? { aucun: true },
+    ...(profil?.range != null ? { range: profil.range } : {}),
     qualities: it.qualities, subType: it.subType, weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo,
     reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
     ...(it.teinte ? { teinte: it.teinte } : {}), apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it),
-  }), it.enchants ?? []);
+  });
+  if (profil?.traitsConferes) arme.traitsConferes = profil.traitsConferes;
+  return applyEnchants(arme, it.enchants ?? []);
 }
 
 /** Objet qu'un slot `main`/`secondaire` d'un set désigne par `uid`, s'il peut y être : présent dans l'inventaire,
@@ -958,6 +969,23 @@ export const peutEtreTenu = (i: GabaritDObjet): boolean =>
  *  l'armure des Traits du porteur s'y ajoutent (`armesDuProfil`, `armourFromTraits`). #3684 */
 export function recomputeLoadout(c: Combatant): void {
   const items = c.items ?? [];
+  const armesDeFiche = new Map<string, TraitInstance>();
+  if (c.traits) {
+    const portees = new Set(items.map((i) => i.uid));
+    c.traits = c.traits.filter((t) => {
+      const uid = uidDeLArmeDuTrait(t);
+      if (!uid) return true;
+      if (!portees.has(uid)) return false;
+      armesDeFiche.set(uid, t);
+      return true;
+    });
+  }
+  const profilDe = (it: ItemInstance): ProfilDArmePorte | undefined => {
+    const t = armesDeFiche.get(it.uid);
+    if (!t) return undefined;
+    const w = weaponFromTrait(t);
+    return w ? { damage: w.damage, ...(t.range != null ? { range: t.range } : {}), traitsConferes: w.traitsConferes } : undefined;
+  };
   // Auto-prune : un slot dont l'objet ne peut plus y être (`objetDeSlot`) est vidé, sur TOUS les loadouts.
   const slotDead = (uid?: string) => uid != null && !objetDeSlot(c, uid);
   for (const lo of c.loadouts ?? []) {
@@ -968,7 +996,7 @@ export function recomputeLoadout(c: Combatant): void {
   const toWeapon = (it: ItemInstance, hand: Main, uneSeuleMain = false): Weapon | null => {
     const ctx = contexteDuPorteur(c, it, uneSeuleMain || cannotWieldTwoHanded(c));
     if (weaponHands(it, ctx) === 2 && cannotWieldTwoHanded(c)) return null; // LDB 18 l.263
-    return weaponFromItem(it, hand, ctx);
+    return weaponFromItem(it, hand, ctx, profilDe(it));
   };
 
   // UN SEUL modèle : tout combattant porteur d'armes passe par un loadout (auto-généré si absent).
@@ -1000,7 +1028,14 @@ export function recomputeLoadout(c: Combatant): void {
   // Dague » en mêlée) — DÉCLARATIF sur le trapping (`derivedWeapon`).
   for (const i of items) {
     const dw = i.equipped && !i.destroyed ? i.derivedWeapon : undefined;
-    if (dw) weapons.push({ hand: 'main', ...dw, uid: uidDArme(`${i.uid}-arme`, weapons), derivedFromItem: i.uid, ...(i.trappingId ? { source: { kind: 'objet' as const, id: i.trappingId } } : {}) }); // #2907
+    if (dw) weapons.push({
+      hand: 'main',
+      ...dw,
+      ...profilDe(i),
+      uid: uidDArme(`${i.uid}-arme`, weapons), // #2907
+      derivedFromItem: i.uid,
+      ...(i.trappingId ? { source: { kind: 'objet' as const, id: i.trappingId } } : {}),
+    });
   }
   // Armes des Traits du porteur (`weaponFromTrait`), hors de ceux qui la portent en `grantNaturalWeapon` (ci-dessous).
   // Une arme sans objet garde son état (charge, usure) sur son instance (`loadRegister`) : l'instance déjà
@@ -1446,12 +1481,10 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
   return items;
 }
 
-/** Famille de munitions canonique. Les Groupes À POUDRE (`groupeAPoudre`) partagent les mêmes munitions
- *  (LDB 62 l.99 ; LDB 62 l.129-131). Une arme lancée (`groupeLance`) est son propre projectile : aucune
- *  famille (LDB 14 l.142 ; #4330). Les autres familles (Arc/Arbalète/Fronde) correspondent à l'identique. */
+/** Famille générique de munitions. LDB 14 l.142 ; LDB 62 l.74-76, l.99, l.101, l.106-131. */
 export function ammoFamily(subType?: string): string {
   const s = subType ?? ''; // `subType` = id de Groupe
-  if (groupeLance(s)) return '';
+  if (groupeLance(s) || s === 'entraves') return '';
   if (groupeAPoudre(s)) return 'poudre-ingenierie';
   // Artillerie (AA/MDG) : les armes de siège (canon/baliste/mortier/pierrier) tirent les munitions de
   // siège (boulets, carreaux, bombes, mitraille). Sans cette normalisation, une arme de siège
@@ -1480,15 +1513,27 @@ export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string 
   }
 }
 
-/** La munition `munition` charge-t-elle l'arme `arme` ? Une arme de siège, les seules munitions que sa fiche nomme
- *  (`munitions`) ; toute autre arme, celles de sa famille (`ammoFamily`). AA 10 l.150 ; MDG 12 l.410-424 */
-export function chargeLArme(munition: { trappingId?: string; subType?: string }, arme: { trappingId?: string; subType?: string }): boolean {
-  if (groupeDeSiege(arme.subType)) {
-    const munitions = arme.trappingId ? findTrappingById(arme.trappingId)?.munitions : undefined;
-    return munition.trappingId !== undefined && (munitions ?? []).includes(munition.trappingId);
-  }
-  const famille = ammoFamily(arme.subType);
-  return famille !== '' && ammoFamily(munition.subType) === famille;
+type ArmePourMunitions = Pick<Weapon, 'trappingId' | 'subType' | 'defaultAmmo'>;
+
+function munitionsDeLArme(arme: ArmePourMunitions): readonly string[] | string {
+  const liste = arme.trappingId ? findTrappingById(arme.trappingId)?.munitions : undefined;
+  return liste ?? ammoFamily(arme.subType);
+}
+
+/** Libellé du projectile requis au tir, ou `undefined` pour une arme qui s'utilise seule. */
+export function libelleMunitionRequise(arme: ArmePourMunitions): string | undefined {
+  const munitions = munitionsDeLArme(arme);
+  if (!munitions.length) return undefined;
+  return ammoFamilyLabel(arme.subType, typeof munitions === 'string' ? arme.defaultAmmo : munitions[0]);
+}
+
+/** La munition `munition` charge-t-elle l'arme `arme` ? Une arme qui nomme ses munitions (`munitions`), celles-là
+ *  seules ; toute autre arme, celles de sa famille (`ammoFamily`) qu'aucune arme ne nomme (`munitionsReservees`).
+ *  LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; AA 10 l.150 ; MDG 12 l.410-424 ; ADE II 02 l.639-640, l.665, l.673 ; #4360 */
+export function chargeLArme(munition: { trappingId?: string; subType?: string }, arme: ArmePourMunitions): boolean {
+  const munitions = munitionsDeLArme(arme);
+  if (typeof munitions !== 'string') return munition.trappingId !== undefined && munitions.includes(munition.trappingId);
+  return munitions !== '' && ammoFamily(munition.subType) === munitions && !munitionsReservees().has(munition.trappingId ?? '');
 }
 
 /** Munitions compatibles avec une arme à distance (`chargeLArme`, qty>0) : l'inventaire du
@@ -1624,7 +1669,7 @@ export function consumeAmmo(c: Combatant, used: ItemInstance): void {
  *  l'utilise ; arme à Dégâts « – » : ceux de la munition, AA 10 l.192) et Atouts fusionnés (ex. Empaleuse
  *  de la Flèche). Qualité de la munition : majorée, l'Indice de l'arme + `majoration` (`majoration` si l'arme ne
  *  l'a pas) ; à Indice, il remplace celui de l'arme ; sans Indice, ajoutée si l'arme ne l'a pas. #4346 ; #4361 ;
- *  LDB 62 l.123 ; AA 08 l.496-497 */
+ *  `reload` se redérive de la Recharge fusionnée. LDB 62 l.123, l.335 ; AA 08 l.496-497 */
 export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const w = weapon.damage;
   const a = ammo.damage;
@@ -1641,5 +1686,6 @@ export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const damage: WeaponDamageSpec = 'flat' in w
     ? { plusBF: w.plusBF || (a != null && 'plusBF' in a && a.plusBF), flat: w.flat + (a != null && 'flat' in a ? a.flat : 0) }
     : 'aucun' in w ? (a ?? w) : w; // arme « Spécial » (literal) → inchangée
-  return { ...weapon, damage, qualities };
+  const fusionnee: Weapon = { ...weapon, damage, qualities };
+  return { ...fusionnee, reload: qualityIndice(fusionnee, 'recharge') ?? 0 };
 }

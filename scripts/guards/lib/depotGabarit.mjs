@@ -1,6 +1,6 @@
 // Fixture de dépôt git jetable, source UNIQUE du geste : un GABARIT est construit une fois par
-// contenu (init + config + fichiers + commit = cinq processus git), puis chaque test en prend une
-// INSTANCE par copie de fichiers. Le `.git` d'un `git init` est un dossier autonome : sa copie est
+// contenu, puis chaque test en prend une INSTANCE par copie de fichiers.
+// Le `.git` d'un `git init` est un dossier autonome : sa copie est
 // un dépôt complet et indépendant, que l'appelant peut committer, salir et jeter.
 //
 // Mesure du 2026-09-07 (#1709, machine peu chargée) : 226 ms la fabrication, 26 ms la copie,
@@ -159,7 +159,13 @@ export function forgerDepot(racine, { branche = 'main' } = {}) {
   exiger(initialiserDepot(depot, { branche }), `git init -b ${branche}`, racine)
   // RELATIF : git résout `core.hooksPath` contre le dépôt qui l'exécute, donc dans l'INSTANCE.
   // Un chemin absolu y ferait pointer chaque instance vers le gabarit — effacé à la sortie.
-  const reglages = { 'user.email': 'mesure@example.invalid', 'user.name': 'mesure', 'commit.gpgsign': 'false', 'core.hooksPath': 'hooks-absents' }
+  const reglages = {
+    'user.email': 'mesure@example.invalid',
+    'user.name': 'mesure',
+    'commit.gpgsign': 'false',
+    'core.hooksPath': 'hooks-absents',
+    'maintenance.auto': 'false', // #4162
+  }
   for (const [cle, valeur] of Object.entries(reglages)) exiger(reglerDepot(depot, cle, valeur), `git config ${cle}`, racine)
   return depot
 }

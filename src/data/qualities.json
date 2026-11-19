@@ -1291,6 +1291,52 @@
     ]
   },
   {
+    "id": "armure-de-malepierre",
+    "type": "qualities",
+    "label": "Armure de malepierre",
+    "polarite": "atout",
+    "subType": "armure",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "16",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "archiseigneur-des-mers-vrisk-gratte-le-fer",
+          "secOcc": 1,
+          "b0": 13,
+          "b1": 13,
+          "sum": "48addae128bc05c4"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 157,
+      "note": "MDG 16 l.506 ; #4372"
+    },
+    "effects": [
+      {
+        "trigger": "onRoundStart",
+        "on": "engages",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "corruptionExposure",
+                "level": "mineure",
+                "nature": "physique"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
     "id": "zap",
     "type": "qualities",
     "label": "ZAP !",

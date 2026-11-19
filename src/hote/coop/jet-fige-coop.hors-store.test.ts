@@ -22,6 +22,8 @@ import { etatInitialDuJeu, type BattleState, type Jeu, type NetState } from '../
 import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+import { buildSeaPlan } from '../../noyau/seaVoyageFlow';
+import { MINUTES_PER_DAY } from '../../engine/clock';
 
 const NET = (mode: 'hote' | 'invite', mySeat: number, invite: string): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
@@ -72,31 +74,51 @@ function incantationVue(s: Jeu): { revele: boolean; jet: unknown } {
 const ligneEnVue = (s: Jeu, flux: FlowKey, qui: string) => jetsEnVue(s).find((v) => v.flux === flux)?.lignes.find((l) => l.qui === qui);
 
 describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa réponse, la même ligne ensuite', () => {
-  it('Défense du héros de l’invité contre l’ennemi que l’hôte jette au siège MJ', () => {
+  it.each(['mêlée', 'tir en mer'] as const)('Défense du héros de l’invité contre l’ennemi que l’hôte jette au siège MJ (%s)', (attaque) => {
     const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0, 'h') } });
     seedBattleRng(7);
-    const combatants = [mk('e', 'ennemi', { x: 1, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })];
+    const enMer = attaque === 'tir en mer';
+    const arc: Weapon = { label: 'Arc', uid: 'arc', type: 'distance', damage: { plusBF: false, flat: 3 }, range: 150, qualities: [] };
+    const arme = enMer ? arc : rapiere;
+    const ennemi = mk('e', 'ennemi', { x: enMer ? 6 : 1, y: 0 });
+    ennemi.weapons = [arme];
+    const combatants = [ennemi, mk('h', 'heros', { x: 0, y: 0 })];
     const order = combatants.map((c) => c.id);
     banc.setState({
       battle: { combatants, order, baseOrder: order, turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
         movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState,
-      mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'),
+      mode: 'battle', scene: { ...testScene(), metresPerTile: 2 }, party: combatants.filter((c) => c.kind === 'heros'),
     });
+    if (enMer) {
+      banc.setState({ gameTime: 8 * 60, vessel: {
+        vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] },
+        meteosImposees: [{ label: 'Brouillard', jusqua: MINUTES_PER_DAY, meteo: { visibilite: { id: 'brouillard' } } }],
+      } });
+      const plan = buildSeaPlan(banc.getState, 'route', 'a', 'b', { km: 100, seaHeading: 'est' })!;
+      banc.setState({ travelPlan: { ...plan, interrupted: true } });
+    }
     const { guest, chezLInvite } = table(banc, 'h');
-    openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attaquer');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: arme.uid }, 'Attaque', 'action/attaquer');
     banc.getState().jetLancer('attaque');
+    const attaqueJouee = banc.getState().pendingAttack!.result!.attackerDetail!;
     banc.getState().jetValider('attaque');
-    expect(banc.getState().pendingDefense?.result, 'chemin : la Défense du héros de l’invité s’ouvre, sans réponse').toBeNull();
+    const pd = banc.getState().pendingDefense;
+    expect(pd?.result, 'chemin : la Défense du héros de l’invité s’ouvre, sans réponse').toBeNull();
+    const modsDR = enMer ? [expect.objectContaining({ label: 'Brouillard', value: -2 })] : undefined;
+    expect(attaqueJouee.modsDR).toEqual(modsDR);
     expect(attaqueVue(banc.getState()).revele, 'l’hôte a jeté l’attaque : il la voit').toBe(true);
     expect(attaqueVue(chezLInvite()).revele, 'l’invité n’a pas répondu : l’attaque lui est masquée').toBe(false);
-    expect(ligneEnVue(banc.getState(), 'defense', 'e')?.jet, 'jets en vue de l’hôte : l’attaque tombée').toMatchObject({ d100: expect.any(Number) });
+    const jetDeLAttaque = { d100: attaqueJouee.roll, dr: attaqueJouee.sl, reussi: attaqueJouee.success };
+    expect(ligneEnVue(banc.getState(), 'defense', 'e'), 'jets en vue de l’hôte : l’attaque tombée')
+      .toMatchObject({ jet: jetDeLAttaque, ...(modsDR ? { modsDR } : {}) });
     expect(ligneEnVue(chezLInvite(), 'defense', 'e'), 'jets en vue de l’invité : l’attaque à lancer, sans d100 ni DR ni verdict')
       .toEqual({ genre: 'test', qui: 'e', test: 'Attaque', cible: null, jet: null });
     expect(jetsEnVue(chezLInvite()).find((v) => v.flux === 'defense')?.oppose, 'aucune gagnante ni DR net chez l’invité').toBeNull();
     guest.sendIntent('jetLancer', ['defense']);
     expect(banc.getState().pendingDefense?.result, 'la réponse de l’invité est posée chez l’hôte').toBeTruthy();
     expect(attaqueVue(chezLInvite())).toEqual({ ...attaqueVue(banc.getState()), revele: true });
-    expect(ligneEnVue(chezLInvite(), 'defense', 'e')?.jet, 'après la réponse : l’attaque tombée chez l’invité').toMatchObject({ d100: expect.any(Number) });
+    expect(ligneEnVue(chezLInvite(), 'defense', 'e'), 'après la réponse : l’attaque tombée chez l’invité')
+      .toMatchObject({ jet: jetDeLAttaque, ...(modsDR ? { modsDR } : {}) });
     expect(jetsEnVue(chezLInvite()), 'après la réponse : les mêmes jets en vue des deux côtés').toEqual(jetsEnVue(banc.getState()));
   });
 

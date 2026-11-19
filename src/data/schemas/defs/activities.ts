@@ -86,7 +86,7 @@ const activityResolverSchema = z.enum([
   'punchausen', 'knowledgeResearch', 'reputation', 'wrathOfTheGods', 'dissensionScout',
   'dissensionEmeute', 'contremaitre',
   // Voyage (EDOC 8) · Mer (MDG)
-  'forage', 'seaChart', 'opportunityTrade', 'crewTraining',
+  'forage', 'seaChart', 'opportunityTrade', 'crewTraining', 'shipMaintenance',
 ]);
 
 /** Nature d'une Scène de Round de Bataille de masse (ADE II 8). */
@@ -285,7 +285,14 @@ const doc = document(
     exiges: ['source', 'icon'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const a = v as { id: string; contexts: string[]; tests?: { skill?: unknown; characteristic?: unknown }[]; difficulty?: string; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string };
+        const a = v as { id: string; resolver?: string; contexts: string[]; tests?: { skill?: unknown; characteristic?: unknown }[]; difficulty?: string; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string };
+        if (a.resolver === 'shipMaintenance') {
+          if (!a.tests?.length) ctx.addIssue({ code: 'custom', path: ['tests'], message: `${a.id} : l’Entretien du navire exige un Test` });
+          if (a.contexts.length !== 1 || !a.contexts.includes('mer')) {
+            ctx.addIssue({ code: 'custom', path: ['contexts'], message: `${a.id} : l’Entretien du navire relève du contexte mer` });
+          }
+          if (!a.stake) ctx.addIssue({ code: 'custom', path: ['stake'], message: `${a.id} : l’Entretien du navire exige un enjeu de Test` });
+        }
         if (a.tests && a.difficulty) {
           ctx.addIssue({ code: 'custom', path: ['difficulty'], message: `${a.id} : la Difficulté d’un Test au choix vit dans chacun de ses Tests (\`tests[].difficulty\`), pas à l’Activité` });
         }

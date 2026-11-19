@@ -137,7 +137,15 @@ import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
 import { distanceDeContact } from './monde/footprint';
-import { type CascadeApplier, pushStep, startCascade, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
+import {
+  type CascadeApplier,
+  pushStep,
+  sequenceDuPiloteAContexteHorsCombat,
+  startCascade,
+  idDeLaDernierePoussee,
+  etapesDeLaFenetre,
+  annoterEtapeDeLaFenetre,
+} from './cascade';
 import { exposureWaveBand } from './nightBands';
 import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openBand, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
@@ -185,6 +193,8 @@ import { emporterLesObjets, normaliserLesAppuis } from './monde/poseDuDecor';
  *    ne doit pas la faire parquer une seconde fois par sa propre révélation ;
  *  - slot libre EN COMBAT : `'combat'`, la séquence de l'arène (inchangé) ;
  *  - sinon : le `site` déclaré par l'appelant (l'entretien quotidien a le sien), à défaut `'affichage'`.
+ * Lu tel quel par les lecteurs dont l'étape doit être JOUÉE par la séquence en vol. `pushReveal`, lui, ouvre
+ * le `site` sous la séquence d'un pilote à contexte hors combat tenue au slot (`sequenceDuPiloteAContexteHorsCombat`).
  */
 export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => (s: Jeu): PendingCascade['purpose'] =>
   own ? site : (s.pendingCascade?.purpose ?? (s.battle ? 'combat' : site));
@@ -192,13 +202,18 @@ export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => 
 /** Empile une révélation en étape d'AFFICHAGE de cascade (`pushStep` : append à la séquence d'accueil,
  *  sinon elle l'ouvre). `purpose` = la séquence du SITE d'émission quand il en a une naturelle ;
  *  `own` = la révélation ne rejoint AUCUNE séquence en vol, elle ouvre la sienne (celle en vol est
- *  parquée puis reprise). ÉMETTEUR UNIQUE de toute révélation. */
+ *  parquée puis reprise). Sous la séquence d'un pilote à contexte hors combat tenue au slot
+ *  (`sequenceDuPiloteAContexteHorsCombat`, #4075), la révélation ouvre aussi la sienne : le pilote repris
+ *  franchirait l'affichage sans fenêtre, alors qu'il la montre quand il joue l'étape lui-même (slot libre).
+ *  ÉMETTEUR UNIQUE de toute révélation. */
 export function pushReveal(
   set: SetFn,
   entry: RevealEntry,
   opts?: { table?: CascadeTableDone; purpose?: PendingCascade['purpose']; own?: boolean },
 ): void {
-  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table }), revealPurpose(opts?.purpose ?? 'affichage', !!opts?.own));
+  const site = opts?.purpose ?? 'affichage';
+  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table }),
+    (s) => (sequenceDuPiloteAContexteHorsCombat(s) ? site : revealPurpose(site, !!opts?.own)(s)));
 }
 
 /** Vide la file de lignes de journal différées (`pendingLogQueue`) → événements de combat. SOURCE
@@ -918,6 +933,9 @@ function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, suje
   return { ...reste, untilTime: env.get().gameTime + jours * MINUTES_PER_DAY, ...(label ? { label } : {}) };
 }
 
+/** MDG 15 l.161, l.176 ; MDG 14 l.15 */
+export const indiceDeMembreDuBord = (rng: RNG, postes: number): number => rng.int(0, postes - 1);
+
 /** Un membre du bord tiré au hasard, au prorata des âmes à bord (`shipboardSouls`) : un héros vivant, ou un membre de
  *  l'effectif PNJ à son poste (`posteDuMembre`), que porte l'équipage collectif (`porteursABord`) ; `null` sans âme à
  *  bord. Un seul tirage sur les âmes fois les `postesDuTirage` : chaque héros en tient autant que de postes, chaque
@@ -927,7 +945,7 @@ function membreDuBordAuHasard(get: Get, set: SetFn, rng: RNG): { heros: Combatan
   const presents = shipboardSouls(get()).crew;
   if (!heros.length && !presents) return null;
   const postes = postesDuTirage(get());
-  const i = rng.int(0, (heros.length + presents) * postes - 1);
+  const i = indiceDeMembreDuBord(rng, (heros.length + presents) * postes);
   if (i < heros.length * postes) return { heros: heros[Math.floor(i / postes)] };
   return { equipage: equipageABord(get, set), poste: posteDuMembre(get(), Math.floor((i - heros.length * postes) / presents)) };
 }
@@ -1187,7 +1205,10 @@ export function openSkillTest(
   // ENJEU (#1117) : `FlowTest.stake` DESCEND sur l'étape qui lance — c'est elle que `CascadeModal` lit.
   // Second transporteur du champ, à parité avec les deux fabriques de `combat/triggeredTest.ts` : sans
   // lui, tout Flow joué par `runFlow` (Escalade, Saut, Récolte…) porterait un enjeu que rien n'affiche.
-  const jet = hostStep(get, { id: idDansLaSequence(get, 'test-jet', 'test'), kind: 'jetDeTestDeScene', jet: 'test', actorId: def.id, ...(spec.stake ? { stake: spec.stake } : {}) });
+  const jet = hostStep(get, {
+    id: idDansLaSequence(get, 'test-jet', 'test'), kind: 'jetDeTestDeScene', jet: 'test', actorId: def.id,
+    meta: { differeLaSuite: true }, ...(spec.stake ? { stake: spec.stake } : {}),
+  });
   if (!jet) return false; // le mint ne refuse QUE si `pendingTest` manque — rien à défaire, il vient d'être posé
   openSequence(get, set, { title: label, icon: 'navigation/des', purpose: 'test', steps: [jet] });
   return true;

@@ -1,6 +1,6 @@
 import apparencesJson from './apparences.json';
 import trappingsJson from './trappings.json';
-import { indexParId } from './versionDataset';
+import { indexParId, memoParVersion } from './versionDataset';
 import type { TrappingData } from './index';
 import { datasetDe, type EntreeDe } from './datasets';
 import type * as apparencesDef from './schemas/defs/apparences';
@@ -13,6 +13,8 @@ export const trappings: TrappingData[] = datasetDe<typeof trappingsDef>(trapping
 export type ApparenceData = EntreeDe<typeof apparencesDef>;
 export const apparences = datasetDe<typeof apparencesDef>(apparencesJson);
 export const findTrappingById = indexParId('trappings', trappings);
+/** Munitions qu’une arme nomme (`munitions`) : réservées aux armes qui les nomment (`chargeLArme`). #4360 */
+export const munitionsReservees = memoParVersion('trappings', () => new Set(trappings.flatMap((t) => t.munitions ?? [])));
 export const findApparenceById = indexParId('apparences', apparences);
 
 /** Candidats de l’objet résolu, hors silhouette imposée et attaque naturelle. */

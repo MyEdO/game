@@ -39,7 +39,9 @@ import { interludeCatalog } from './interludeFlow';
 import {
   brouillonDe, ciblesDActivite, refusDeLaComposition, refusDeLaValeur, type CompositionDActivite,
 } from './verdictsDInterlude';
-import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus } from './seaActivities';
+import {
+  activitesDuNavireEnResolution, plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus,
+} from './seaActivities';
 import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
 import type { IdDeHeros, IdDeRangee } from './designations';
@@ -101,7 +103,8 @@ const ouiNon = (ouvert: (s: Jeu, pid: IdDeHeros | undefined) => boolean, refus: 
   (ouvert(s, pid) ? [true, false].map((v) => ouverte(v, garanti(libelleDuLitteral(v), String(v), 'libellé du booléen'), refus(s, v))) : []);
 
 /** Le héros `pid` de la semaine en mer : un héros du groupe qui tient encore une Activité (MDG 15 l.268). */
-const herosDeLaSemaine = (s: Jeu, pid: IdDeHeros) => (s.pendingSeaActivities ? s.party.find((h) => h.id === pid && !h.dead && !h.outOfRencontre) : undefined);
+const herosDeLaSemaine = (s: Jeu, pid: IdDeHeros) => (s.pendingSeaActivities && !activitesDuNavireEnResolution(s.pendingSeaActivities)
+  ? s.party.find((h) => h.id === pid && !h.dead && !h.outOfRencontre) : undefined);
 /** Le choix du héros `pid` pour la semaine en mer, et l'Activité qu'il a choisie. */
 const choixDuHeros = (s: Jeu, pid: IdDeHeros | undefined) => (pid === undefined ? undefined : s.pendingSeaActivities?.picks[pid] ?? undefined);
 const activiteChoisie = (s: Jeu, pid: IdDeHeros) => {
@@ -274,8 +277,8 @@ export const OUVERTS_DU_CHOIX = {
   activitesEnMer: {
     activite: reglage('activitesEnMer', 'activite', (s, pid) => {
       const hero = pid === undefined ? undefined : herosDeLaSemaine(s, pid);
-      if (!s.pendingSeaActivities || (pid !== undefined && !hero)) return [];
-      return [ouverte(null, t('valeur.activite.repos')), ...seaActivitiesCatalog().map((def) => ouverte(def.id, def.label, seaActivityBlocked(s, def) ?? (hero && seaActivityRefus(hero, def)) ?? null))];
+      if (!s.pendingSeaActivities || activitesDuNavireEnResolution(s.pendingSeaActivities) || (pid !== undefined && !hero)) return [];
+      return [ouverte(null, t('valeur.activite.repos')), ...seaActivitiesCatalog(s.pendingSeaActivities.escale).map((def) => ouverte(def.id, def.label, seaActivityBlocked(s, def) ?? (hero && seaActivityRefus(hero, def)) ?? null))];
     }, (s, pid) => choixDuHeros(s, pid)?.activityId ?? null),
     investir: quantite('activitesEnMer', 'investir', (s, pid) => (herosDeLaSemaine(s, pid) && activiteChoisie(s, pid)?.resolver === 'opportunityTrade' ? plafondDeMiseDOpportunite(s, pid) : null), (s, pid) => choixDuHeros(s, pid)?.investGold ?? 0),
     cacher: quantite('activitesEnMer', 'cacher', (s, pid) => {

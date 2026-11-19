@@ -3,7 +3,11 @@ import { ouvrirLeBanc, surUnBancHorsTest, type Banc } from './banc.testkit';
 import type { BattleState, NetState } from './etat';
 import { type PendingAttack } from './pendings';
 import { avanceEtapeCascade } from './cascade.testkit';
-import { maybeOpenDefense, firedWeapon, resolveAttack, openAttackCascade, defenderFumbled } from './combatFlow';
+import {
+  maybeOpenDefense, firedWeapon, resolveAttack, openAttackCascade, defenderFumbled, doAttack, previewAttack,
+} from './combatFlow';
+import { distanceDeCombat } from './monde/footprint';
+import { mountUp } from './mount';
 import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocal } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import { willAutoResolve } from './combatAuto';
@@ -16,6 +20,7 @@ import { setCadence } from '../engine/cadence';
 import type { AttackResult } from '../engine/combat';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import type { TravelPlan } from './travelFlow';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
@@ -66,6 +71,69 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
     const { enemy, hero } = setup({ x: 1, y: 0 }, [bow], { gmSeat: 0 });
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero, enemy.weapons[0])).toBe(true);
     expect(banc.getState().pendingDefense!.modes).toContain('esquive');
+  });
+
+  it.each(['réactif', 'piloté'] as const)('Tir %s à 12 m : la défense reprend le jet figé et applique une seule fois −2 DR', (mode) => {
+    const arme = { ...bow, range: 150 };
+    const { enemy, hero } = setup({ x: 6, y: 0 }, [arme], mode === 'piloté' ? { gmSeat: 0 } : undefined);
+    const g = banc.getState;
+    const scene = g().scene!;
+    banc.setState({
+      scene: { ...scene, metresPerTile: 2, layers: [{ z: 0, tiles: new Array(scene.dimensions.w * scene.dimensions.h).fill('herbe') }] },
+      travelPlan: { sea: { weather: { precipitations: 'aucune', visibilite: 'brouillard' } } } as TravelPlan,
+    });
+    let affiche: number | undefined;
+    if (mode === 'piloté') {
+      openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: arme.uid }, 'Attaque', 'action/attaquer');
+      g().jetLancer('attaque');
+      affiche = g().pendingAttack?.result?.attackerDetail?.sl;
+      expect(affiche).toBeDefined();
+      g().jetValider('attaque');
+    } else {
+      doAttack(g, banc.setState, enemy, hero, undefined, arme.uid);
+    }
+    const p = g().pendingDefense!;
+    expect(p?.modes).toContain('esquive');
+    expect(p.atkCompo?.modsDR).toEqual([expect.objectContaining({ label: 'Brouillard', value: -2 })]);
+    expect(p.atk.sl).toBe(evaluateTest(p.atk.roll, p.atk.target).sl);
+    g().jetLancer('defense');
+    const d = g().pendingDefense!.result!.attackerDetail!;
+    expect(d).toMatchObject({ roll: p.atk.roll, sl: p.atk.sl - 2, modsDR: p.atkCompo?.modsDR });
+    if (mode === 'piloté') expect(d.sl).toBe(affiche);
+  });
+
+  it.each(['tireur', 'cible'] as const)('Tir réactif sur monture du côté %s : l’empreinte ramène le tir à 10 m', (role) => {
+    const arme = { ...bow, range: 150 };
+    const { enemy, hero } = setup({ x: 6, y: 0 }, [arme]);
+    const g = banc.getState;
+    const scene = g().scene!;
+    const cavalier = role === 'tireur' ? enemy : hero;
+    if (role === 'tireur') [enemy.pos, hero.pos] = [hero.pos, enemy.pos];
+    const monture = mk('cheval', role === 'tireur' ? 'ennemi' : 'heros', cavalier.pos!, []);
+    monture.footprint = 2;
+    mountUp(cavalier, monture);
+    banc.setState({
+      battle: { ...g().battle!, combatants: [...g().battle!.combatants, monture] },
+      scene: { ...scene, metresPerTile: 2, layers: [{ z: 0, tiles: new Array(scene.dimensions.w * scene.dimensions.h).fill('herbe') }] },
+      travelPlan: { sea: { weather: { precipitations: 'aucune', visibilite: 'brouillard' } } } as TravelPlan,
+    });
+    expect(distanceDeCombat(g().scene, enemy, hero)).toBe(6);
+    const [origine, cible] = role === 'tireur' ? [monture, hero] : [enemy, monture];
+    expect(distanceDeCombat(g().scene, origine, cible)).toBe(5);
+    const apercu = previewAttack(g, enemy, hero, undefined, { weapon: arme });
+    expect(apercu).toMatchObject({ blocked: false, inRange: true });
+    expect(apercu.modsDR).toBeUndefined();
+
+    doAttack(g, banc.setState, enemy, hero, undefined, arme.uid);
+    const p = g().pendingDefense!;
+    expect(p?.modes).toContain('esquive');
+    expect(p.distanceTiles).toBe(5);
+    expect(p.atk.target).toBe(apercu.target);
+    expect(p.atkCompo?.modsDR).toBeUndefined();
+    g().jetLancer('defense');
+    const d = g().pendingDefense!.result!.attackerDetail!;
+    expect(d.sl).toBe(p.atk.sl);
+    expect(d.modsDR).toBeUndefined();
   });
 
   it('B bis — tir hors Bout Portant sur un héros nu : AUCUNE fenêtre (le RAW ne donne aucun mode, LDB 13 l.125)', () => {

@@ -53,6 +53,7 @@ import {
   jetsEnVue,
   porteurParId,
   recitEnVue,
+  refLabel,
   reposEnVue,
   toneOf,
   nomEnVue,
@@ -289,9 +290,11 @@ type Combat = NonNullable<Projection['combat']>;
 
 const puce = (id: string, libelle: string, valeur: string | null, detail: string | null = null, ton: Ton = 'neutre'): Puce => ({ type: 'puce', id, ton, libelle, valeur, detail, jeu: null });
 
-/** Les modificateurs `mods` d'un jet, chacun une puce. */
-const puces = (id: string, mods: readonly ModLine[] | undefined): Puce[] =>
-  (mods ?? []).map((m, i) => puce(`${id}/m${i}`, m.label, avecSigne(m.value)));
+/** Les modificateurs de la cible et de DR, chacun une puce. */
+const puces = (id: string, mods: readonly ModLine[] | undefined, modsDR?: readonly ModLine[]): Puce[] => [
+  ...(mods ?? []).map((m, i) => puce(`${id}/m${i}`, m.label, avecSigne(m.value))),
+  ...(modsDR ?? []).map((m, i) => puce(`${id}/mDR${i}`, m.label, `${avecSigne(m.value)} DR`)),
+];
 
 /** Ce dont une cible est faite, une ligne par part : sa base, sa Difficulté et les paliers qui la composent
  *  (LDB 14 l.91-96), puis son écrêtage MESURÉ (`clamped`, `engine/tests.ts` : négatif au plafond, positif au plancher). */
@@ -332,7 +335,7 @@ function jetTombe(id: string, d: RollBreakdown, qui: Pick<Jet, 'qui' | 'combatta
     ...qui, libelle: d.label, resultat: String(d.roll), ...verdict,
     cible: cache ? null : t('ecran.jet.cible', { cible: d.target }),
     dr: cache || d.seuil ? null : t('ecran.jet.dr', { dr: avecSigne(d.sl) }),
-    modificateurs: cache ? [] : puces(id, d.mods),
+    modificateurs: cache ? [] : puces(id, d.mods, d.modsDR),
     detail: cache ? null : detailDuJet({
       base: d.base, difficulte: d.difficulty ? difficultyText(d.difficulty, d.difficultyCombined) : null, paliers: d.difficultyParts, target: d.target, clamped: d.clamped,
     }, enPlus),
@@ -364,7 +367,7 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
     a.jet === null ? null : 'd' in a.jet
       ? jetTombe('jet', a.jet.d, attaquant, inversion ? [t('ecran.attaque.inversion', { d100: inversion.roll, dr: avecSigne(inversion.sl), verdict: verdictDuTest(inversion.success).verdict })] : [])
       : jet('jet', {
-          ...attaquant, libelle: a.jet.pending.label, cible: t('ecran.jet.cible', { cible: a.jet.pending.target }), modificateurs: puces('jet', a.jet.pending.mods),
+          ...attaquant, libelle: a.jet.pending.label, cible: t('ecran.jet.cible', { cible: a.jet.pending.target }), modificateurs: puces('jet', a.jet.pending.mods, a.jet.pending.modsDR),
           detail: detailDuJet({ ...a.jet.pending, paliers: a.jet.pending.difficultyParts }),
         }),
     a.defense === null ? null : 'd' in a.defense
@@ -377,19 +380,24 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
   return elements.filter((e): e is Element => e !== null);
 }
 
-/** Le corps de la fenêtre d'incantation (`fenetreDIncantation`) : le Sort et sa cible, son NI et sa Zone d'Effet, la
- *  ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles supplémentaires à désigner
- *  sur la carte, l'issue. */
+/** Le corps de la fenêtre d'incantation (`fenetreDIncantation`) : le NI effectif au-dessus du Sort et de sa cible, la
+ *  Zone d'Effet, la ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles
+ *  supplémentaires à désigner sur la carte, l'issue. */
 function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
   const lanceur = jeteur(etat, f.lanceurId);
   const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(nomEnVue(etat, f.cibleId), f.cibleId, 'cible de l’incantation');
   const l = f.ligne;
   const s = f.surincantation;
   const elements: (Element | null)[] = [
+    f.ni === null ? null : ligne('ni', t('ecran.incantation.ni', { ni: f.ni })),
     ligne('sort', t('ecran.incantation.sort', { sort: f.sort, cible })),
     f.zone ? puce('zone', t('ecran.incantation.zone'), t('ecran.incantation.cote', { cote: f.zone.cote }), null, f.zone.aPoser ? 'alerte' : 'neutre') : null,
     jet('jet', {
-      ...lanceur, qui: garanti(lanceur.qui, f.lanceurId, 'lanceur de l’incantation'), libelle: l.label, cible: t('ecran.jet.cible', { cible: l.jet?.target ?? l.target }), modificateurs: puces('jet', l.mods),
+      ...lanceur,
+      qui: garanti(lanceur.qui, f.lanceurId, 'lanceur de l’incantation'),
+      libelle: f.priere ? l.label : refLabel('skills', { id: 'langue', spec: 'magick' }),
+      cible: t('ecran.jet.cible', { cible: l.jet?.target ?? l.target }),
+      modificateurs: puces('jet', l.mods),
       ...(l.jet ? { resultat: String(l.jet.roll), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.sl) }), ...verdictDuTest(l.jet.success) } : {}),
     }),
     s ? puce('surincantation', t('ecran.incantation.surincantation'), t('ecran.incantation.pas', { restant: s.restant, budget: s.budget })) : null,
@@ -405,7 +413,7 @@ function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
   const qui = jeteur(etat, l.qui);
   switch (l.genre) {
     case 'test': return jet(id, {
-      ...qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }),
+      ...qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }), modificateurs: puces(id, undefined, l.modsDR),
       ...(l.jet ? { resultat: String(l.jet.d100), dr: t('ecran.jet.dr', { dr: avecSigne(l.jet.dr) }), ...verdictDuTest(l.jet.reussi) } : {}),
     });
     case 'table': return jet(id, { ...qui, libelle: l.table, ...(l.jet ? { resultat: String(l.jet.effectif), verdict: l.jet.ligne } : {}) });
@@ -414,6 +422,7 @@ function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
 }
 
 const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
+  ...puces(`jets/${i}`, undefined, j.modsDR),
   ...j.lignes.map((l, k) => jetDeLaLigne(etat, `jets/${i}/${k}`, l)),
   ...(j.oppose ? [drNet(`jets/${i}/drNet`, j.oppose.drNet)] : []),
 ];

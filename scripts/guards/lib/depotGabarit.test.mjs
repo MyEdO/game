@@ -96,6 +96,15 @@ test('`core.hooksPath` pointe hors de tout hook, DANS l’instance : aucun hook 
   }
 })
 
+test('la maintenance automatique est désactivée dans le dépôt copié (#4162)', () => {
+  const { racine } = instanceDeDepot(PARAMS)
+  try {
+    assert.equal(git(racine)(['config', '--local', '--bool', '--get', 'maintenance.auto']), 'false')
+  } finally {
+    jeter(racine)
+  }
+})
+
 test('`commit: false` : un dépôt initialisé, fichiers sur le disque, HORS index et sans HEAD', () => {
   const { racine, sha } = instanceDeDepot({ ...PARAMS, refs: {}, commit: false })
   try {

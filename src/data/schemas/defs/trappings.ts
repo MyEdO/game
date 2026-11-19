@@ -63,10 +63,9 @@ const doc = document(
   {
     hands: z.union([z.literal(1), z.literal(2)]).optional(),
     packSize: z.number().optional(),
-    /** CATÉGORIE de catalogue — vocabulaire FERMÉ, mesuré sur 440/440 : melee 65, ranged 79,
-     *  ammunition 22, armor 17, trapping 257. ≠ `Weapon.type` du moteur (`src/engine/types.ts`,
-     *  `'melee' | 'distance'`, persisté) et ≠ `ItemInstance.kind` : le pont est `kindOf()`
-     *  (`src/engine/items.ts`), une TRADUCTION. `vehicle` n'a aucun porteur et n'est plus admis. */
+    /** CATÉGORIE de catalogue — vocabulaire FERMÉ de `trappingCategorieSchema`, obligatoire sur toute
+     *  entrée. ≠ `Weapon.type` du moteur (`src/engine/types.ts`, `'melee' | 'distance'`, persisté) et
+     *  ≠ `ItemInstance.kind` : le pont est `kindOf()` (`src/engine/items.ts`), une TRADUCTION. */
     categorie: trappingCategorieSchema,
     subType: ref('weaponGroup').nullable(),
     weaponGroup: ref('weaponGroup').optional(),
@@ -95,8 +94,8 @@ const doc = document(
     /** ADE II 8 l.251/253 */
     minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
     siegeFootprint: z.number().optional(),
-    /** Les munitions d'une arme de siège, la représentative en tête (`chargeLArme`). AA 10 l.150 ; MDG 12 l.410-424 ;
-     *  AA 10 l.198-221 */
+    /** Les seules munitions que l'arme charge, la représentative en tête (`chargeLArme`). LDB 62 l.131 ; AA 08 l.482 ;
+     *  AA 08 l.517 ; AA 10 l.150 ; AA 10 l.198-221 ; MDG 12 l.410-424 ; ADE II 02 l.665 */
     munitions: refs('trapping', { sousListe: 'ammunition' }).optional(),
     ...apparenceDObjetSchema.shape,
     /** #3086 D6(c), #3116 */
@@ -191,7 +190,7 @@ const doc = document(
     },
     munitions: {
       label: 'Munitions',
-      hint: 'Munitions que tire cette arme de siège, la représentative en tête (indication au joueur)',
+      hint: 'Seules munitions que charge cette arme, la représentative en tête ; vide : celles de sa famille qu’aucune arme ne nomme',
     },
     ...metaDesChamps(apparenceDObjetSchema, { exigees: true }),
     requiresMastery: {

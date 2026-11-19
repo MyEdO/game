@@ -2,6 +2,7 @@ import { useGame } from '../state/store';
 import { useOwns } from './ownership';
 import { maneuverCrewTotal } from '../noyau/shipManeuver';
 import { RollShell, type RollAction } from './RollShell';
+import { ModChips } from './RollLine';
 import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
 import { Icon } from './Icon';
@@ -57,9 +58,12 @@ export function ShipBatteryModal() {
       title={<><Icon id="action/viser" size="sm" /> Tir de batterie — Test d’équipage</>}
       subtitle={<><strong>{ship.label}</strong> — bordée {p.side} sur <strong>{target.label}</strong> ({postes.length} pièce{plural(postes.length)})</>}
       extra={
-        <div className="rm-note" data-ton="menace">
-          <Icon id="action/viser" size="sm" /> {target.label} — Coque {target.wounds.current}/{target.wounds.max}. {postes.length} pièce{plural(postes.length)} : {postes.map((pp) => pp.item.label).join(' · ')}.
-        </div>
+        <>
+          <div className="rm-note" data-ton="menace">
+            <Icon id="action/viser" size="sm" /> {target.label} — Coque {target.wounds.current}/{target.wounds.max}. {postes.length} pièce{plural(postes.length)} : {postes.map((pp) => pp.item.label).join(' · ')}.
+          </div>
+          {p.modsDR?.length ? <ModChips modsDR={p.modsDR} /> : null}
+        </>
       }
       rows={rows}
       rolled={allRolled}

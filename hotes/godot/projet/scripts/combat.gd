@@ -17,9 +17,9 @@
 ## reçoit donc toutes) ; le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son
 ## échéance. Chaque geste du joueur part en intention : celle de l'élément pressé (`Zone.geste` ; la fiche d'un
 ## combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode `creation`), un clic du
-## champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ; `null`, le champ ne se clique
-## pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant d'une case lu dans
-## `vue.occupants`. Une recette pose la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran reste tel quel,
+## champ (`vue.champ` : le verbe du clic, sur la case et, en combat, son occupant ; `null`, le champ ne se clique
+## pas), ou un clic droit, qui montre la fiche de l'occupant de la case, lu dans `vue.occupants`. Une recette pose
+## la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran reste tel quel,
 ## saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.indexer_les_modeles`), que chaque corps du plateau monte ; un échec se dit dans l'avis de
 ## panne (un listage illisible aussi à la console), et la partie ne s'ouvre pas : aucun corps ne se monte sans eux.
@@ -474,19 +474,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_suivre(_pont.appeler("regarder", {regard = _vue.plateau.regardSuivant}))
 
 
-## Un clic sur `case` : le clic du champ sur la case, et sur son occupant s'il en a un.
+## Un clic sur `case` : le clic du champ sur la case et, en combat, son occupant s'il en a un.
 func _cliquer(case: Vector3i) -> void:
 	var champ: Variant = _vue.get("champ")
 	if champ == null:
 		return
 	var args: Array = [{x = case.x, y = case.y} if case.z == 0 else {x = case.x, y = case.y, z = case.z}]
 	var occupant: Variant = _vue.occupants.get("%d,%d,%d" % [case.x, case.y, case.z])
-	if occupant != null:
+	if _vue.projection.combat != null and occupant != null:
 		args.append(occupant)
 	_jouer({type = champ, args = args})
 
 
-## Un clic droit sur `case` : la fiche du combattant qui s'y tient, s'il y en a un.
+## Un clic droit sur `case` : la fiche de l'occupant qui s'y tient, s'il y en a un.
 func _inspecter(case: Vector3i) -> void:
 	var occupant: Variant = _vue.occupants.get("%d,%d,%d" % [case.x, case.y, case.z])
 	if occupant != null:

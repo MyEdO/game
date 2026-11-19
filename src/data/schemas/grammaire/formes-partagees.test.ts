@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { nommerChamps, metaDesChamps } from './meta';
-import { trappingRefSchema } from './reference';
+import { possessionDeCreatureSchema, trappingRefSchema } from './reference';
 import { flowTestSchema, gameOpSchema } from './mecanique';
 import { NATURES_D_INFLUENCE, bornesSchema, ecartDeCoPresenceDesBornes, ecartsDeCouverture, plageOuverteSchema, plageSchema } from './valeurs';
 import { schemaForFile, validateDataset, validateDocument } from '../validate';
@@ -56,6 +56,14 @@ const pathsRefuses = (fichier: string, valeur: unknown): string[] =>
   (validateDocument(schemaForFile(fichier)!, valeur) ?? []).map((f) => f.chemin.join('.'));
 
 describe('trappingRefSchema — branches de TrappingRef', () => {
+  it('une pièce décrite par le Trait Armure est une possession directe de créature', () => {
+    const piece = { id: 'plastron', spec: 'du Chaos', decritLeTraitArmure: true };
+    expect(possessionDeCreatureSchema.safeParse(piece).success).toBe(true);
+    expect(possessionDeCreatureSchema.safeParse({ ...piece, id: 'dague' }).success).toBe(false);
+    expect(possessionDeCreatureSchema.safeParse({ pick: 1, of: [piece, { id: 'dague' }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse(piece).success).toBe(false);
+  });
+
   it('accepte {id} de catalogue (+ count optionnel)', () => {
     expect(trappingRefSchema.safeParse({ id: 'epee-de-cour' }).success).toBe(true);
     expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', count: { fixed: 2 } }).success).toBe(true);

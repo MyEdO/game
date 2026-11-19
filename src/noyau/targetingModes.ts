@@ -43,7 +43,8 @@ import { sceneMetresPerTile } from './monde/scene';
 import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { targetArc } from './monde/fireArc';
 import { bearingPostes } from './monde/shipBattery';
-import { serveTargetPoste, isPosteManned, translaterFormation, posteDeLaBataille } from './monde/shipPostes';
+import { serveTargetPoste, isPosteManned } from './monde/shipPostes';
+import { executerPoussee } from './pousseeDeCombat';
 import { spellOps } from '../engine/flowCore';
 import { mountOf, mountMovement, attackGeomOf, combatGeomOf, pickAttackWeapon } from './mount';
 import { pilotedByHuman } from './netOwnership';
@@ -57,7 +58,6 @@ import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
-import { chebyshev } from '../engine/grid';
 import {
   attackPlan, previewAttack, previewCast, firedAttackBlock, outOfSightTargetIds, castOutOfSightTargetIds, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
 } from './combatFlow';
@@ -270,7 +270,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   // Portée puis Ligne de Vue : la MÊME mesure que le clic et que `castSpell` (`castTargetBlock`) — une
   // 2ᵉ écriture ferait diverger ce que le survol montre de ce que le geste fait.
   const horsAtteinte = castTargetBlock(get, active, spell, target);
-  if (horsAtteinte) return { kind: 'invalid', reason: horsAtteinte.reason };
+  if (horsAtteinte) return horsAtteinte.reason === 'cible-invalide' ? { kind: 'none' } : { kind: 'invalid', reason: horsAtteinte.reason };
   const pv = previewCast(active, spell, {
     missile,
     focused: focalisationAboutie(active, spell),
@@ -722,44 +722,9 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   bus.emit(EVT.SCENE_DIRTY);
 }
 
-/** POUSSÉE d'un engin de siège CREWÉ (ADE II 8 l.258, Lot 2 #156) : le CHEF choisit sa case
- *  d'arrivée parmi les cases en surbrillance (`battle.reachable`, posé par `pousserLEngin` — plafonné
- *  à `rule('engin-de-siege-vitesse-de-poussee')`) — mouvement SIMPLE, aucun jet. Le delta (case cliquée − position
- *  du chef) est appliqué à l'ENGIN et à TOUS les servants du poste (`ShipPoste.crewIds`, chef inclus) :
- *  formation RIGIDE (`translaterFormation`). Consomme l'Action du chef (comme `servirLePoste`) ; l'engin reste SANS tour (`inert`,
- *  jamais ajouté à `battle.order`) — seul le rendu de la pièce suit (`posteAnchor` lit `hull.pos`).
- *  La case du CHEF passe `battle.reachable` ; la formation entière se refuse (`refuserGeste`) quand
- *  `translaterFormation` juge une case d'arrivée invalide. */
 function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
-  const battle = get().battle;
-  const scene = get().scene;
-  if (!battle || !scene || !active.pos) return;
-  const k = tileKey(pt.x, pt.y, pt.z);
-  if (!battle.reachable.has(k)) return;
-  const poste = active.mannedPoste;
-  const hull = poste && posteDeLaBataille(poste.item.uid, battle.combatants)?.porteur;
-  if (!poste || !hull?.pos) return;
-  // Annulation (#199) : au PREMIER segment du Tour (`movementUsed === 0`), capture l'état AVANT de
-  // pousser — MÊME snapshot que cliquerLaCaseDuCombat/moveAttack (positions + facing + movedPreAction +
-  // loseNextMovement des servants), pour que `annulerLeDeplacement` défasse aussi une poussée.
-  const snapshot = (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
-  const delta = { x: pt.x - active.pos.x, y: pt.y - active.pos.y };
-  const deplaces = translaterFormation(battle.combatants, scene, hull, poste.crewIds ?? [], delta);
-  if (!deplaces) { refuserGeste(get, set, t('cs.refusFormationBloquee')); return; }
-  for (const { mobile, depart } of deplaces) bus.emit(EVT.ANIM_MOVE, { id: mobile.id, path: [depart, { ...mobile.pos! }] });
-  const dist = chebyshev(delta, { x: 0, y: 0 });
-  // Pousser = le MOUVEMENT de TOUT l'équipage (LDB 13 l.106 : locomotion, aucun Test → le Mouvement, pas
-  // l'Action). Le chef dépense son Mouvement MAINTENANT ; chaque autre servant dépensera le sien à son tour
-  // (`loseNextMovement`) — tous poussent, tous en paient le Mouvement. L'Action du chef reste libre (il peut
-  // assener la porte le même Round une fois au contact).
-  for (const id of poste.crewIds ?? []) {
-    if (id === active.id) continue;
-    const c = inBattleId(battle, id);
-    if (c) c.loseNextMovement = true;
-  }
-  const log = [...battle.log, ev('deplacement', t('cs.pushEngine', { name: active.label, weapon: hull.label, n: dist, s: dist > 1 ? 's' : '' }), active.id)];
-  set({ battle: { ...get().battle!, moveSnapshot: snapshot, movementUsed: mountMovement(get().battle!, active), action: null, reachable: new Map(), preview: null, log } });
-  bus.emit(EVT.SCENE_DIRTY);
+  if (!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z))) return;
+  if (!executerPoussee(get, set, active, pt)) refuserGeste(get, set, t('cs.refusFormationBloquee'));
 }
 
 /** Sort de ZONE sélectionné : le clic-case OUVRE la modale — le centre se choisit APRÈS le jet.

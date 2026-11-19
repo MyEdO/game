@@ -10,11 +10,10 @@ import type { Jeu } from './etat';
 import { FLOWS, refusDAnnulerLAttaque } from './rollFlowSpecs';
 import { composeRollLabel, type RollLabelRef } from './rollSeam';
 import { oppositionDuCoup, type OppositionEnVue } from './jetsEnVue';
-import { distanceDeCombat } from './monde/footprint';
 import { sceneMetresPerTile } from './monde/scene';
 import { inBattleId } from './monde/combatants';
 import {
-  attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense,
+  attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense, distanceDeLAttaque,
   surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock, tireSansEquipe,
 } from './combatFlow';
 import { defenseDodgeMods } from './mount';
@@ -64,6 +63,7 @@ interface AttaqueAJeter {
   base: number;
   target: number;
   mods: ModLine[];
+  modsDR?: ModLine[];
   difficulty: Difficulty;
   difficulte: string;
   difficultyCombined?: number;
@@ -184,9 +184,9 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const retenir = !res && heros && peutRetenirSesCoups(arme);
   // LDB 14 l.159
   const empoigne = !res && arme.type === 'melee' && isUnarmed(arme) && heros && peutEtreEmpoigne(cible);
-  const apercu = !res ? previewAttack(get, attaquant, cible, pa.location ?? undefined, { dansLeTas: pa.dansLeTas, tirImmobile: pa.tirImmobile, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon: arme }) : null;
+  const apercu = !res ? previewAttack(get, attaquant, cible, pa.location ?? undefined, { dansLeTas: pa.dansLeTas, tirImmobile: pa.tirImmobile, weaponUid: pa.weaponUid, harpoonRopeCut: pa.harpoonRopeCut, weapon: arme, tirIndirect: pa.siege }) : null;
   // LDB 13 l.135
-  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeCombat(s.scene, attaquant, cible), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, cible)) : undefined;
+  const defenseAuTir = !res && tir ? bestRangedDefense(attaquant, cible, arme, distanceDeLAttaque(s, attaquant, cible, arme), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, cible)) : undefined;
   const esquive = defenseDodgeMods(s, cible);
   const annonce = res
     ? undefined
@@ -263,6 +263,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
               base: apercu.base,
               target: Math.max(0, Math.min(100, apercu.target)),
               mods: apercu.mods,
+              ...(apercu.modsDR ? { modsDR: apercu.modsDR } : {}),
               difficulty: apercu.difficulty, // LDB 13 l.118 ; palier composé LDB 14 l.91-96
               difficulte: difficultyText(apercu.difficulty, apercu.difficultyCombined ?? undefined),
               ...(apercu.difficultyCombined != null ? { difficultyCombined: apercu.difficultyCombined } : {}),

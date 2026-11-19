@@ -47,6 +47,20 @@ describe('RollLine — détail d’un jet pour la modale', () => {
     expect(html).toContain('+20');
   });
 
+  it('un malus de DR se lit avant et après le jet et reste hors du calcul de la cible', () => {
+    const modsDR = [{ label: 'Brouillard', value: -2, famille: 'circonstance' as const }];
+    const jet = { label: 'Projectiles', base: 55, modsDR };
+    const avant = renderToStaticMarkup(<PendingRollLine p={jet} />);
+    const apres = renderToStaticMarkup(<RollLine d={{ ...jet, modifier: 0, target: 55, roll: 33, success: true, sl: 0 }} />);
+    for (const html of [avant, apres]) {
+      expect(html).toContain('Brouillard −2 DR');
+      expect(html).toContain('<b>55</b>');
+      expect(html).not.toContain('autres');
+    }
+    const masque = renderToStaticMarkup(<RollLine d={{ ...jet, modifier: 0, target: 55, roll: 33, success: true, sl: 0, mask: 'roll' }} />);
+    expect(masque).not.toContain('Brouillard');
+  });
+
   it('#1072 — la Difficulté se lit SUR LA LIGNE (texte + valeur), JAMAIS en chip', () => {
     const html = renderToStaticMarkup(
       <RollLine

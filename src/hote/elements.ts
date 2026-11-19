@@ -61,7 +61,7 @@ export interface Jet {
   dr: string | null;
   /** la réussite ou l'échec, ou ce que la table ou le dé lit. */
   verdict: string | null;
-  /** ce qui compose la cible, une puce par part. */
+  /** les modificateurs de la cible ou des DR, une puce par part. */
   modificateurs: Puce[];
   /** la composition de la cible (base, Difficulté et ses paliers, écrêtage) et ce que le dé deviendrait, une ligne par part. */
   detail: string | null;

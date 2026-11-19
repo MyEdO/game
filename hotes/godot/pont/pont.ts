@@ -539,9 +539,9 @@ export interface VueDuPont {
    */
   champ: typeof CLIC_DU_CHAMP | null;
   /**
-   * donne, par case et couche `"x,y,z"`, l'id du combattant qui s'y tient, hors de combat exclus : le clic sur une case
-   * occupée désigne son occupant.
-   * Il tient chaque combattant posé, hors de vue compris : son id et sa case, rien d'autre.
+   * donne, par case et couche `"x,y,z"`, l'id de l'occupant. En combat, le clic du champ désigne tout combattant
+   * posé, hors de combat exclus, hors de vue compris. En exploration, la case porte le PNJ connu qui a une fiche :
+   * le clic droit ouvre son statbloc, le clic du champ désigne la case.
    */
   occupants: Record<string, string>;
   /**
@@ -704,11 +704,12 @@ export function casesDesCiblesDe(etat: Jeu, combat: Projection['combat']): VueDu
   return Object.fromEntries((etat.battle?.combatants ?? []).flatMap((c) => (c.pos && vises.has(c.id) ? [[c.id, [c.pos.x, c.pos.y, c.pos.z ?? 0]]] : [])));
 }
 
-/** Le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`, la case où
- *  `occupants` le tient, puis l'id ; `null` quand le champ ne se clique pas ou que le combattant n'a pas de case. */
+/** En combat, le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`,
+ *  la case où `occupants` le tient, puis l'id ; `null` hors combat, sans champ cliquable ou sans case du combattant. */
 export function clicDuCombattant(vue: VueDuPont, id: string): { type: typeof CLIC_DU_CHAMP; args: [{ x: number; y: number; z?: number }, string] } | null {
+  if (!vue.projection.combat || !vue.champ) return null;
   const cle = Object.keys(vue.occupants).find((k) => vue.occupants[k] === id);
-  if (!vue.champ || !cle) return null;
+  if (!cle) return null;
   const [x, y, z] = cle.split(',').map(Number);
   return { type: vue.champ, args: [z ? { x, y, z } : { x, y }, id] };
 }
@@ -974,7 +975,11 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       zonesQuiDurent: zonesQuiDurentEnVue(etat),
       marques: Object.fromEntries((combat?.voisins.liste ?? projection.exploration?.heros ?? []).map((c) => [c.id, marquesDesEtats(c.etats)])),
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
-      occupants: Object.fromEntries((etat.battle?.combatants ?? []).flatMap((c) => (c.pos && !horsCombat(c) ? [[`${c.pos.x},${c.pos.y},${c.pos.z ?? 0}`, c.id]] : []))),
+      occupants: Object.fromEntries(etat.battle
+        ? etat.battle.combatants.flatMap((c) => (c.pos && !horsCombat(c) ? [[`${c.pos.x},${c.pos.y},${c.pos.z ?? 0}`, c.id]] : []))
+        : (projection.exploration?.entites.liste ?? [])
+          .filter((e) => e.genre === 'personnage' && enTeteDuPorteur(etat, e.id))
+          .map((e) => [e.pos.join(','), e.id])),
       casesDesCibles: casesDesCiblesDe(etat, combat),
       vision: etat.scene ? cleDeLaVision({ ...etat, scene: etat.scene }) : null,
     };
@@ -986,9 +991,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   /**
    * @contrat Méthodes
    * La fiche est un état du pont, jamais de la partie : aucun verbe ne l'ouvre ni ne la ferme. Elle reste ouverte, à sa
-   * possession choisie, tant qu'aucun `fiche` ne la change, la partie avançant ; sans son combattant, ses zones sont
-   * vides ; une possession choisie qui quitte la fiche (donnée, consommée) n'est plus dite. Les gestes d'une
-   * possession, eux, sont des verbes de la partie, joués par `jouer`.
+   * possession choisie, tant qu'aucun `fiche` ne la change, la partie avançant. Sans son porteur ou si celui-ci
+   * est hors de vue, ses zones sont vides. Les gestes d'une possession sont des verbes de la partie, joués par
+   * `jouer` ; une possession donnée ou consommée quitte la fiche.
    */
   /** Le panneau `cle` fermé : sans panneau s'il est celui ouvert, l'autre panneau laissé ouvert sinon. */
   const fermerLePanneau = (o: Tenue, cle: 'fiche' | 'creation'): void => {
@@ -1080,7 +1085,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     const refusAvant = etat.refus;
     envoyerLIntention(o.partie, intention);
     const refus = o.partie.etat().refus;
-    if (refus && refus !== refusAvant) throw new ErreurDeGeste('regle', `${intention.type} : ${refus.texte}`);
+    if (refus && refus !== refusAvant) throw new ErreurDeGeste('regle', refus.texte);
     o.pas++;
   };
 
@@ -1179,7 +1184,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const etat = o.partie.etat();
       valider(!partieEnCours(etat), 'lancer : la partie est déjà en cours ; quitter, puis ouvrir, pour en lancer une autre');
       const refus = refusDeLancer(etat);
-      if (refus) throw new ErreurDeGeste('regle', `lancer : ${refus}`);
+      if (refus) throw new ErreurDeGeste('regle', refus);
       o.partie.lancer(lancementDeLaCampagne(campagneDuJeu(campagne!), etat.party));
       o.pas++;
       return suite(o);
@@ -1234,8 +1239,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       valider(SAVE_SLOTS.includes(e.sauvegarder as SaveSlot), `sauvegarder : sauvegarder, un emplacement manuel (${SAVE_SLOTS.join(', ')})`);
       const etat = o.partie.etat();
       const refus = refusDeSauvegarde(etat, etat.net.mySeat);
-      if (refus) throw new ErreurDeGeste('regle', `sauvegarder : ${t(MESSAGE_DU_REFUS[refus])}`);
-      if (!sauver(o, e.sauvegarder as SaveSlot)) throw new ErreurDeGeste('regle', `sauvegarder : ${t('store.saveKo')}`);
+      if (refus) throw new ErreurDeGeste('regle', t(MESSAGE_DU_REFUS[refus]));
+      if (!sauver(o, e.sauvegarder as SaveSlot)) throw new ErreurDeGeste('regle', t('store.saveKo'));
       return { zones: zonesDesSauvegardes(stockage, etat) };
     },
     /**
@@ -1444,10 +1449,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return suite(o);
     },
     /**
-     * `{ fiche }` : la fiche que l'écran montre, `{ porteur, objet? }` (l'id d'un combattant qui en a une,
-     * `ficheDuPorteur`, surface du noyau : un héros du groupe, ou tout combattant de la bataille hors coque et engin,
-     * et la possession choisie, l'`uid` qui la désigne), ou `null` pour la fermer ; refusé sur un combattant hors de
-     * la vue du groupe (`porteurEnVue`)
+     * `{ fiche }` : la fiche que l'écran montre, `{ porteur, objet? }` (l'id d'un héros du groupe, d'un combattant
+     * de la bataille en vue ou d'un PNJ connu de la scène en exploration, hors coques et engins, et l'`uid` de la
+     * possession choisie), ou `null` pour la fermer. Le noyau donne le même statbloc (`ficheDuPorteur`).
      *
      * @returns une `Suite` : la vue, la fiche posée ; la partie n'est pas touchée
      */
@@ -1456,7 +1460,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const e = entreeDe('fiche', json, ['fiche']);
       const f = e.fiche as Record<string, unknown> | null | undefined;
       const etat = o.partie.etat();
-      const aFiche = [...new Set([...(etat.battle?.combatants ?? []), ...etat.party].map((c) => c.id))].filter((id) => enTeteDuPorteur(etat, id));
+      const personnages = etat.battle ? [] : (etat.scene?.entities ?? []).filter((e) => e.kind === 'personnage');
+      const ids = [...(etat.battle?.combatants ?? []), ...etat.party, ...personnages].map((c) => c.id);
+      const aFiche = [...new Set(ids)].filter((id) => enTeteDuPorteur(etat, id));
       const porteurs = aFiche.filter((id) => porteurEnVue(etat, id));
       valider(!estObjet(f) || !aFiche.includes(f.porteur as string) || porteurs.includes(f.porteur as string), `fiche : porteur, ${t('vision.ficheHorsDeVue')}`);
       valider(f === null || (estObjet(f) && Object.keys(f).every((k) => k === 'porteur' || k === 'objet') && porteurs.includes(f.porteur as string)),
@@ -1481,13 +1487,13 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const e = entreeDe('creation', json, ['creation']);
       const b = boutonDeLaCreation(vueDe(o).zones, e.creation);
       valider(b, 'creation : creation, un geste de la création que l’écran offre (`{ creation }` d’un bouton des zones groupe.gestes et creation.*)');
-      if (b!.refus) throw new ErreurDeGeste('regle', `creation : ${b!.refus}`);
+      if (b!.refus) throw new ErreurDeGeste('regle', b!.refus);
       const g = e.creation as GesteDeLaCreation | null;
       if (g === null) fermerLePanneau(o, 'creation');
       else if (g.geste === 'ouvrir') ouvrirLaCreation(o);
       else if (g.geste === 'engager') {
         const engage = engagerLeHeros(stockage, o.partie.etat(), creationOuverte(o)!.brouillon, idDEntropie);
-        if ('refus' in engage) throw new ErreurDeGeste('regle', `creation : ${engage.refus}`);
+        if ('refus' in engage) throw new ErreurDeGeste('regle', engage.refus);
         envoyerLIntention(o.partie, engage.intention);
         fermerLePanneau(o, 'creation');
         o.pas++;
@@ -1523,7 +1529,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       }
       const b = boutonDuRoster(zones, g);
       valider(b, 'roster : roster, un geste du roster que l’écran offre (`{ roster }` d’un bouton des zones groupe.roster et groupe.import)');
-      if (b!.refus) throw new ErreurDeGeste('regle', `roster : ${b!.refus}`);
+      if (b!.refus) throw new ErreurDeGeste('regle', b!.refus);
       if ('importer' in g) return { ...suite(o), choix: true };
       if ('exporter' in g) {
         const fichier = garanti(fichierDuHeros(stockage, g.exporter), g.exporter, 'héros du roster');
@@ -1876,7 +1882,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         if ('type' in e) {
           valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
           const refuse = refusDuFormulaire(zonesDeLEditeur(s), e.type);
-          if (refuse) throw new ErreurDeGeste('regle', `editer : ${refuse}`);
+          if (refuse) throw new ErreurDeGeste('regle', refuse);
         }
         else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
@@ -1887,19 +1893,19 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         else if (!estUnGesteDuPointeur(e.edition)) {
           const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
           valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }), celle d’un chargement de planche ({ geste: chargement, image: { largeur, hauteur } | null }), celle du chapitre attendu ({ geste: chapitre, book, ch, texte: texte | null }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
-          if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
+          if (b!.refus) throw new ErreurDeGeste('regle', b!.refus);
         }
         const geste = nomme ?? (e.edition as GesteDEdition);
         const refusDeValeur = geste.geste === 'valeur' ? refusDeLaValeurDit(s, geste) : geste.geste === 'nommer' || geste.geste === 'identifier' ? refusDuRenommage(s, geste) : null;
-        if (refusDeValeur) throw new ErreurDeGeste('regle', `editer : ${refusDeValeur}`);
+        if (refusDeValeur) throw new ErreurDeGeste('regle', refusDeValeur);
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);
-          if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);
+          if (!passe.ok) throw new ErreurDeGeste('regle', passe.refus);
           depot = { id: projetEdite(s).id, texte: passe.valeur };
         }
         if (geste.geste === 'tester') {
           const lance = essaiDeLaScene(s);
-          if (!lance.ok) throw new ErreurDeGeste('regle', `editer : ${lance.refus}`);
+          if (!lance.ok) throw new ErreurDeGeste('regle', lance.refus);
           essai = lance.valeur;
         }
         session = editer(s, geste);
@@ -1971,11 +1977,11 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         } else {
           const b = boutonDuCompendium(z, e.compendium);
           valider(b, 'compendium : le geste `{ compendium }` d’un bouton des zones compendium.*, l’issue d’une écriture ({ geste: enregistrement, reussi, refus? }) ou celle du chapitre attendu ({ geste: chapitre, book, ch, texte: texte | null })');
-          if (b!.refus) throw new ErreurDeGeste('regle', `compendium : ${b!.refus}`);
+          if (b!.refus) throw new ErreurDeGeste('regle', b!.refus);
           geste = e.compendium as Parameters<typeof compendium>[1];
         }
         let suite = compendium(s, geste!);
-        if (suite.refus !== null && geste!.geste !== 'enregistrement') throw new ErreurDeGeste('regle', `compendium : ${refusDuCompendiumDit(suite.refus)}`);
+        if (suite.refus !== null && geste!.geste !== 'enregistrement') throw new ErreurDeGeste('regle', refusDuCompendiumDit(suite.refus));
         const transaction = transactionDemandee(suite);
         if (transaction && !transactionDemandee(s)) {
           const issue = transaction.sorte === 'enregistrer'
@@ -1984,7 +1990,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
           if (!issue.ok) {
             suite = compendium(suite, { geste: 'enregistrement', reussi: false, refus: issue.erreurs.join(' ; ') });
             codex = suite;
-            throw new ErreurDeGeste('regle', `compendium : ${refusDuCompendiumDit(suite.refus!)}`);
+            throw new ErreurDeGeste('regle', refusDuCompendiumDit(suite.refus!));
           }
           donnees = { fichier: issue.fichier, texte: issue.texte, avant: hash32(issue.avant) };
           reprise = issue.reprendre;
@@ -2042,9 +2048,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   /**
    * @contrat Erreurs
    * - `validation` : méthode inconnue (le message nomme les méthodes) ; fiche qui n'est ni `null` ni
-   *   `{ porteur, objet? }` d'un combattant à fiche, héros du groupe ou combattant de la bataille (le message les
-   *   nomme), ou dont l'`objet` n'est pas l'`uid` d'une possession de la fiche (le message les nomme) ; geste de la
-   *   création qu'aucun bouton de l'écran n'offre ; entrée illisible, qui n'est pas un objet, ou avec une clé hors
+   *   `{ porteur, objet? }` d'un héros, d'un combattant en vue ou d'un PNJ connu de la scène en exploration (le
+   *   message nomme les porteurs admis), ou dont l'`objet` n'est pas l'`uid` d'une possession de la fiche (le message
+   *   les nomme) ; geste de la création qu'aucun bouton de l'écran n'offre ; entrée illisible, qui n'est pas un objet, ou avec une clé hors
    *   contrat ; aucune partie avant `demarrer` ou `ouvrir`, ou après la fin d'une session d'invité (`nouvelles` en
    *   donne la raison, `quittee`) ; `demarrer`, `ouvrir` ou `charger` sur une partie ouverte ou pendant une jonction ; `lancer`
    *   d'une campagne qui n'est pas du jeu (le message nomme les ids), ou sur une partie déjà en cours ; scénario

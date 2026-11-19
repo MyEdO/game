@@ -46,6 +46,7 @@ import {
   resolveGrappleWin,
   applyAttackResult,
   jouerLesTirsDeBordee,
+  modificateursDeVisibiliteDuTir,
   openSurfacedDefense,
   castSpell,
   applyCast,
@@ -79,6 +80,7 @@ import {
   spellSightOf,
   castZoneSpell,
   castCommitZone,
+  ancreDeLaZdE,
   resoudreLeSortDeZone,
   zoneRadiusTilesAt,
   routeCounterspell,
@@ -158,7 +160,7 @@ import {
 import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
-import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
+import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique, sommeDesModificateursDR } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, setEngaged, clearContact, meleeReachRank } from '../engine/engagement';
 import { clearGrapple, setGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -184,7 +186,7 @@ import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { spendResolveForPsychImmunity, calmeDAcquisition, ciblesDAnimositeAcquise, PSY } from '../engine/psychology';
-import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
+import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback } from '../engine/qualities/dispatch';
 import { talentFearIndice, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
@@ -243,9 +245,8 @@ import {
   leaveChef,
   isPosteManned,
   rechargeDuTour,
-  posteDeLaBataille,
 } from './monde/shipPostes';
-import { pushEligible, pushCrewOk, pushReachable } from './siegePush';
+import { preparerPoussee } from './pousseeDeCombat';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
 import {
   crewTestContributors,
@@ -269,7 +270,7 @@ import {
   continueSeaDayAfterScorbut,
   continueSeaDayAfterExposure,
   continueSeaDayAfterExhaustion,
-  runSeaDay,
+  continuerLeTempsEnMer,
   finalizePortArrival,
   syncHullWoundsFromVessel,
 } from './seaVoyageFlow';
@@ -434,6 +435,11 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
     undercrew: shipUndercrew(get, ship, battle.combatants),
     ...(extraDR ? { extraDR } : {}),
   };
+}
+
+function visibiliteDeLaBordee(get: Get, ship: Combatant, target: Combatant) {
+  const { scene } = get();
+  return modificateursDeVisibiliteDuTir(get, distanceDeCombat(scene, ship, target) * sceneMetresPerTile(scene));
 }
 
 /** Ligne de journal des SERVANTS d'une bordée (MDG 14 l.39 — l'équipage s'exprime, jamais un poste muet) : un PJ
@@ -686,14 +692,8 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   else if (done?.purpose === 'seaScorbut') { continueSeaDayAfterScorbut(get, set, done.participants); handled = true; }
   else if (done?.purpose === 'seaExposure') { continueSeaDayAfterExposure(get, set, done.participants); handled = true; }
   else if (done?.purpose === 'seaExhaustion') { continueSeaDayAfterExhaustion(get, set, done.participants); handled = true; }
+  else if (done?.purpose === 'seaHealth') { continuerLeTempsEnMer(get, set, done.participants); handled = true; }
   else if (done?.purpose === 'seaActivities') { continueSeaActivitiesAfterCascade(get, set); handled = true; } // Activités en mer (#273 Étape 2) → Commerce d'opportunité séquencé puis halte
-  // Mini-cascade AUTONOME d'un événement de bord maritime (`purpose:'test'` : Cogue pirate, Ouragan,
-  // Prière d'un Présage — `resolveSeaDayEvent` a mis le jour EN ATTENTE) : sa clôture REPREND la conduite
-  // du jour. Couture GÉNÉRIQUE (toute la classe, pas seulement « fuir ») : ici `pendingCascade` est DÉJÀ
-  // null (post-`advanceCascade`), sans garde de synchronisation. Gaté sur `travelPlan.sea` : à
-  // l'accostage `travelPlan` est nul (la désertion `purpose:'test'`
-  // a sa propre reprise `resolvePortArrival`) ; `runSeaDay` garde de son côté combat/steamSave.
-  else if (done?.purpose === 'test' && get().travelPlan?.sea) { runSeaDay(get, set); handled = true; }
   // ── Étage 2 : BORNES portées par la séquence — plus une chaîne EXCLUSIVE (#942 L1) ──
   // Accostage à FINALISER à la clôture (désertion à la relâche surfacée, #387) : `travelPlan` est déjà nul
   // ici (l'arrivée l'a annulé) — la séquence porte sa continuation dans `portArrival`. Couture GÉNÉRALE
@@ -1144,8 +1144,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos, target.pos); // bord qui porte (auto-dérivé de la cible)
       const opened = openCrewTestPending(get, ship, 'batterie'); // Artilleurs (UN jet/poste)
       if (!opened) return; // aucun Artilleur apte → pas de bordée
+      const modsDR = visibiliteDeLaBordee(get, ship, target);
+      const extraDR = (opened.extraDR ?? 0) + sommeDesModificateursDR(modsDR);
       set({
-        pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened },
+        pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened, ...(modsDR.length ? { modsDR, extraDR } : {}) },
         battle: { ...battle, action: null, preview: null },
       });
       for (const part of opened.participants) if (!part.interactive) get().jetLancer('tirDeBatterie', part.id); // témoins (marins PNJ) auto-roulés
@@ -1167,7 +1169,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const assignments = shipCrewAssignments(ship, battle.combatants, 'batterie', navigation); // équipage abstrait → rôles tenus (Artilleur ★)
       const undercrew = shipUndercrew(get, ship, battle.combatants);
       const traits = hullNavalTraits(ship);
-      const extraDR = shipSaboteurDR(ship) + navalTestTypeDR(traits, 'batterie');
+      const visibilityDR = sommeDesModificateursDR(visibiliteDeLaBordee(get, ship, target));
+      const extraDR = shipSaboteurDR(ship) + navalTestTypeDR(traits, 'batterie') + visibilityDR;
       // DR partagé calé sur le chemin JOUEUR (`maneuverCrewTotal`) : Σ contributions (essentiel ×2) + Moral +
       // Manque de bras (−2/tranche) + sabotage/traits ; plafonné à un Succès Minime dès qu'une tranche manque (l.55).
       const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', shipMoraleScore(get, ship), navigation, battleRng(), { extraDR: undercrew.dr + extraDR });
@@ -1252,33 +1255,15 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t('cs.leavePoste', { name: active.label, weapon }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    // « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, Lot 2 #156) : ouvre le mode de
-    // ciblage-CASE 'poussee' — le clic-sol suivant (PUSH_MODE.commitTile, targetingModes.ts) commet la
-    // translation de la formation. Gate : chef d'un poste MOBILE (`pushEligible`), Action dispo, Équipe ≥
-    // moitié requise (`pushCrewOk`, sinon no-op — comme un tir sous-effectif refusé, `firedAttackBlock`).
-    // Ne consomme RIEN ici (la dépense de l'Action a lieu au COMMIT, comme `cliquerLaCaseDuCombat`/`servirLePoste`).
+    // ADE II 08 l.233, l.258 ; LDB 13 l.79, l.106.
     pousserLEngin: () => {
-      const battle = get().battle;
-      const scene = get().scene;
+      const { battle, scene } = get();
       if (!battle || battle.over || !scene) return;
-      // Toggle (parité cast/heal) : re-cliquer « Pousser » alors qu'on est déjà en mode 'poussee' ferme le mode sans consommer
-      // l'Action, comme le re-clic de sa case (`desarmerLeMode`).
       if (battle.action === 'poussee') return void get().desarmerLeMode();
       const active = activeCombatant(battle);
-      // Pousser = le MOUVEMENT (pas l'Action) : bloqué si le Mouvement du chef est déjà dépensé, PAS si l'Action
-      // a été prise (on peut pousser puis assener, ou l'inverse — ordre libre, LDB 13 l.79). Et pas davantage
-      // si l'Action lui est INTERDITE : un chef Sonné garde son Mouvement (LDB 16 l.125 — « incapable
-      // d'effectuer votre Action […] vous ne pouvez vous déplacer que de la moitié de votre Mouvement »),
-      // il pousse donc, à demi-budget. Ce que l'engin exige, c'est du MOUVEMENT — et le budget d'un
-      // porteur cloué (Inconscient/Surpris, `gating.movement:'none'`) vaut déjà 0, ce que la ligne suivante
-      // refuse. Exiger `canTakeAction` ici faisait mentir le coût déclaré au registre.
-      if (!active || !pushEligible(active) || (battle.movementUsed ?? 0) >= mountMovement(battle, active)) return;
-      const poste = active.mannedPoste!;
-      const hull = posteDeLaBataille(poste.item.uid, battle.combatants)?.porteur;
-      const w = mannedPosteWeapon(active, poste);
-      if (!hull || !hull.pos || !active.pos || !w || !pushCrewOk(poste, w, battle.combatants)) return;
-      const reach = pushReachable(battle, scene, active, hull);
-      set({ battle: { ...battle, action: 'poussee', reachable: reach, preview: null } });
+      const poussee = active && preparerPoussee(battle, scene, active);
+      if (!poussee) return;
+      set({ battle: { ...battle, action: 'poussee', reachable: poussee.reachable, preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
     },
     // « Diriger l'équipe » (Commandant d'équipe, AA 13 l.29-35) : le Personnage doté du Talent aide une équipe
@@ -3270,26 +3255,23 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // « clic » de pose change de SOURCE (souris du héros / décision de l'IA), comme l'auto-combat fournit
       // déjà ses jets.
       if (pc.zone && !pc.zone.center) {
+        const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
+        const spell = garanti(effectiveSpellOf(pc), pc.spellId, 'sort');
         const castable = castAfterCrit(lance, pc.critChoice);
         // Sort qui n'aboutit PAS (raté / DISSIPÉ par Contre-sort, LDB 46 l.156) : aucune zone à poser, aucune
         // cible (LDB 47 l.28) — la tentative se résout sans cible, puis l'IA reprend.
         if (!castable) {
-          const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
-          resoudreLeSortDeZone(get, set, pc, caster, garanti(effectiveSpellOf(pc), pc.spellId, 'sort'), lance, []);
+          resoudreLeSortDeZone(get, set, pc, caster, spell, lance, []);
           if (aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
           return;
         }
-        // Lançable → la confirmation EST le passage en pose (la vraie application se fait à la pose,
-        // castCommitZone).
-        get().jetRegler('incantation', 'carte', 'zone');
-        // IA = HÉROS (même flux) : le héros manuel attend le clic réel sur la carte (return ci-dessous) ;
-        // un lanceur aiDriven FOURNIT son clic — le centre décidé par l'IA pure (`pc.zone.autoCenter`,
-        // équivalent du curseur souris). On pose ici via le MÊME `castCommitZone`, puis on reprend le tour
-        // de l'IA UNE seule fois.
-        const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
-        if (aiDriven(get(), caster) && pc.zone.autoCenter && get().battle) {
-          castCommitZone(get, set, pc.zone.autoCenter);
-          if (get().battle) resumeEnemyTurn(get, set);
+        const automatique = aiDriven(get(), caster);
+        const centre = ancreDeLaZdE(spell) === 'caster' ? caster.pos : automatique ? pc.zone.autoCenter : undefined;
+        if (centre && get().battle) {
+          castCommitZone(get, set, centre);
+          if (automatique && get().battle) resumeEnemyTurn(get, set);
+        } else {
+          get().jetRegler('incantation', 'carte', 'zone');
         }
         return;
       }
@@ -3318,6 +3300,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         durationBonusRounds: ocDur.bonusRounds,
         overcastDurationSteps: pc.overcast?.duration ?? 0,
         overcastDamageSteps: pc.overcast?.damage ?? 0,
+        overcastZoneSteps: pc.overcast?.zone ?? 0,
         chosenTableRolls: pc.chosenTableRolls,
         conjureForm: pc.conjureForm,
         opposedOutcome: pc.opposedOutcome,

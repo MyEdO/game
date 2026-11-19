@@ -336,7 +336,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *   __wfrp.advanceRiverDay() → symétrique FLUVIAL d'`advanceSeaDay` : pilote la journée de descente EN
  *                           COURS (cascade du jour, Exposition hydrique, halte de nuit) jusqu'au jour
  *                           SUIVANT, l'arrivée ou un combat — MÊME machinerie que le voyage maritime
- *   __wfrp.forceEncounter(id) → force un événement de bord maritime NOMMÉ (`sea-events.json`, id ou kind
+ *   __wfrp.forceEncounter(id) → force un événement de bord maritime NOMMÉ (`sea-events.json`, par id,
  *                           ex. 'cogue-pirate') au prochain jour — à dérouler avec `advanceSeaDay()`
  *   __wfrp.dealShipDamage(n) → inflige n Dégâts de coque HORS COMBAT (VRAI pipeline `damageCampaignVessel`
  *                           — SOURCE UNIQUE `state.vessel.wounds`, cf. `docs/recette-
@@ -432,8 +432,8 @@ function riverDayCascade(): string {
  *  le joueur (cascade du jour `pendingCascade` `purpose:'travelDay'`, halte de nuit `pendingRest`,
  *  Activités hebdo `pendingSeaActivities`, tout autre `pending<Flux>` par convention) — jamais un
  *  raccourci du flux testé, juste sans les clics. `real(tick,0)` (jamais un `setTimeout` patché) :
- *  certains appliers du jour (Rythme forcé/Prière) reprennent `runSeaDay` eux-mêmes via un VRAI
- *  `setTimeout(0)` différé (`seaVoyageFlow.ts`) — une boucle purement synchrone les manquerait.
+ *  les appels différés du noyau (`programmer`, `src/noyau/plateforme.ts` : `chainStep`, tick d'auto-cadence)
+ *  sont de VRAIS `setTimeout` en web (`scheduleCombatTimer`) — une boucle purement synchrone les manquerait.
  *  `stopAtNextDay` (`advanceSeaDay`) : UNE journée = EXACTEMENT une cascade `purpose:'travelDay'`
  *  (`buildSeaDayCascade`/`runSeaDay` — jamais scindée) ; on la résout PUIS on laisse la halte de nuit
  *  se dérouler (défauts de logement/tambouille pré-remplis, `fenetreValider('repos')`) jusqu'à ce qu'une SECONDE
@@ -511,7 +511,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
           real(tick, 0); return;
         }
         if (s.pendingSeaActivities) {
-          const evts = s.pendingSeaActivities.day.events ?? [];
+          const evts = s.pendingSeaActivities.day?.events ?? [];
           if (stopOnEvent && evts.length) {
             resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible (Activités hebdo ouvertes) ; fenetreValider('activitesEnMer') ou advanceSeaDay() reprend`);
             return;
@@ -522,8 +522,8 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
         const open = Object.keys(sr).filter((k) => /^pending/.test(k) && (Array.isArray(sr[k]) ? (sr[k] as unknown[]).length > 0 : sr[k] != null));
         if (open.length) { devDriveModal('Roll'); devDriveModal('Confirm'); real(tick, 0); return; }
         if (plan.interrupted) { s.reprendreLeVoyage(); real(tick, 0); return; }
-        // Rien à piloter LÀ (reprise différée d'un applier en vol, `setTimeout(0)` déjà posé côté
-        // seaVoyageFlow) : re-scrute au tick suivant sans action, laisse la chaîne réelle rattraper.
+        // Rien à piloter LÀ : un appel différé du noyau (`programmer` : `chainStep`, tick d'auto-cadence) est en
+        // vol ; re-scrute au tick suivant sans action, laisse la chaîne réelle rattraper.
         real(tick, 4);
       } catch (e) {
         reject(e);
@@ -2378,8 +2378,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE #332 : force un ÉVÉNEMENT DE BORD maritime NOMMÉ (`sea-events.json`) au PROCHAIN jour de
-     *  traversée — court-circuite le timer 1d10 + le tirage d100/Manann de `resolveSeaDayEvent` (le
-     *  garde `sea.forcedEventId`). `id` = id d'événement (`cogue-pirate`). À combiner avec `advanceSeaDay()`/`skipToArrival()` pour LE dérouler sans espérer
+     *  traversée (`sea.forcedEventId`) — l'étape d'événement de bord de ce jour le joue sans tirage d100/Manann,
+     *  quel que soit le compteur 1d10 (`buildSeaBoardEventStep`). `id` = id d'événement (`cogue-pirate`). À combiner avec `advanceSeaDay()`/`skipToArrival()` pour LE dérouler sans espérer
      *  la bande d'Humeur. Rend la désertion/l'abordage observable sans dérouler des semaines de tirages. */
     forceEncounter: (id = 'cogue-pirate') => {
       const plan = g().travelPlan;

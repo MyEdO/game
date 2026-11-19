@@ -47,6 +47,13 @@ describe('relations — graphe inverse id-based', () => {
     expect(groupHas(groups, 'trappings', t.label)).toBe(true);
   });
 
+  it('munition → armes qui la tirent (inversion de trapping.munitions) #4360', () => {
+    const groups = reverseGroups('trappings', 'grappin-munition');
+    const armes = groups.find((g) => g.category === 'trappings');
+    expect(armes?.title).toBe('Armes qui la tirent');
+    expect(armes?.referrers.map((r) => r.id)).toEqual(['mortier-a-main']);
+  });
+
   it('caractéristique → compétences liées (inversion de skill.characteristic)', () => {
     const s = skills[0];
     const groups = reverseGroups('characteristics', s.characteristic);
