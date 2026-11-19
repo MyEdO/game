@@ -33,7 +33,7 @@ const reliefParPartie = nommerChamps(z.strictObject(
  *  pièces `<famille>--<pièce>` du kit des arêtes (`hotes/godot/asset/kit.ts`). */
 export const kitSchema = enumNomme({
   colombage: 'Pan de bois', pierre: 'Pierre', moellons: 'Moellons', 'pierres-seches': 'Pierres sèches',
-  cloture: 'Clôture',
+  porterie: 'Porterie', cloture: 'Clôture',
 });
 
 const doc = document(

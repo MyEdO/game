@@ -755,15 +755,27 @@ longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son �
 L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du
 plateau (`MiseEnPage.echelle_d_arete_servie`).
 
+**Ouverture de plusieurs arêtes.** Une suite d'arêtes adjacentes et alignées de même nature (porte, porte de ville)
+est une seule ouverture. Chaque arête y reçoit le nœud `<pièce>--<position>`, de position `gauche`, `milieu` ou
+`droite` ; l'hôte se replie sur `<pièce>`, qui est aussi le nœud d'une ouverture d'une seule arête. `gauche` est
+l'arête au bout -X de l'ouverture dans le repère de la pièce (X le long du sens de l'arête, +Z vers le dehors),
+`droite` celle du bout +X. Un vantail se gonde au bout extérieur de l'ouverture : côté -X pour `gauche`, côté +X pour
+`droite` ; celui de `milieu`, brisé sur son voisin de gauche, clôt sa baie fermé et la laisse libre ouvert. L'état
+d'un vantail reste celui de son arête. Un kit ne bâtit que les positions qu'une scène
+pose (`geometrie.noeud`) : le budget d'un nœud est celui de sa pièce, et `arete/revue.py` montre chaque ouverture
+d'un seul tenant, ses nœuds bout à bout. Un kit dont toutes les arêtes sont une Structure qui s'abat sans s'ouvrir
+(`porterie`) ne bâtit que `mur` et `breche`.
+
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
 la couleur de l'apparence posée. Une baie est percée de part en part.
 
 **Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
 `menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
-des kits de pierre (assises, chaînes, couronnement, brèche). Un kit les pose, il ne les recopie pas. La forme
-d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit reçoivent
-cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour (`test_arete.py`).
+des kits de pierre (assises, chaînes, couronnement, porche voûté, brèche). Un kit les pose, il ne les recopie pas.
+La forme d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit
+reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
+(`test_arete.py`).
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
