@@ -3,7 +3,7 @@ import { describe, it, beforeEach, expect } from 'vitest';
 import { applyShipPostes } from './monde/shipPostes';
 import { availableAttacks } from './combatManeuvers';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
-import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
+import { hydratePoste, mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
 import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
@@ -51,7 +51,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 0, y: 0 }): Combatant =>
     wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
+  hydratePoste({ trappingId: engineId, crewIds }, idsDeTest('it'));
 
 /** Scène terrestre minimale (40×40 d'herbe, 2 m/case). */
 const groundScene = (): Scene =>
@@ -60,7 +60,7 @@ const groundScene = (): Scene =>
 
 /** Mortier + bombe Explosion 5 (Dégâts 12) = arme EFFECTIVE (qualité a-explosion fusionnée). */
 function mortarWithBomb(chef: Combatant): Weapon {
-  const mortier = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] })!;
+  const mortier = mannedPosteWeapon(chef, hydratePoste({ trappingId: 'mortier', crewIds: ['chef'] }, idsDeTest('it')))!;
   const bomb = itemFromTrappingById('bombe-de-mortier', idsDeTest)!;
   return weaponWithAmmo(mortier, bomb);
 }

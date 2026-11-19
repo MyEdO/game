@@ -20,7 +20,7 @@
  * et d'INDEX, pas une seconde copie des refs avant.
  */
 import {
-  species, careers, careerLevels, skills, talents, trappings, creatures, traits, mutations,
+  species, careers, careerLevels, skills, talents, trappings, siegeEngines, libelleDAuteur, creatures, traits, mutations,
   spells, gods, domains, classes, maneuvers, qualities, characteristics, etats, maladies,
   locations, stars, mutationTables, advancementBaseId, careersForSpecies, findCareerById, estDotationDObjet,
 } from '../../data';
@@ -154,12 +154,14 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const tp of c.trappings) if (estDotationDObjet(tp)) addReverse('trappings', tp.id, by, 'Créatures la possédant');
   }
 
-  // 7) Possessions → qualités + groupe d'objet + munitions de l'arme.
-  for (const t of trappings) {
-    const by: Referrer = { category: 'trappings', id: t.id, label: t.label };
-    for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType?.id })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
-    addReverse('weaponGroups', t.subType?.id, by, 'Objets du groupe');
-    for (const m of t.munitions ?? []) addReverse('trappings', m, by, 'Armes qui la tirent');
+  // 7) Équipements → qualités + groupe + munitions de l'arme.
+  for (const [category, objets] of Object.entries({ trappings, siegeEngines: siegeEngines() })) {
+    for (const t of objets) {
+      const by: Referrer = { category, id: t.id, label: category === 'siegeEngines' ? libelleDAuteur(t) : t.label };
+      for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType?.id })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
+      addReverse('weaponGroups', t.subType?.id, by, 'Objets du groupe');
+      for (const m of t.munitions ?? []) addReverse('trappings', m, by, 'Armes qui la tirent');
+    }
   }
 
   // 8) Classes → possessions de départ.
@@ -210,7 +212,7 @@ const graph = versionCached<ReverseGraph>(() => {
 //    de titre (« Races », « Créatures »…). Les titres SPÉCIFIQUES vivent au site de chaque relation.
 const GENERIC_PLURAL: Record<string, string> = {
   races: 'Races', careers: 'Carrières', classes: 'Classes', skills: 'Compétences', talents: 'Talents',
-  trappings: 'Équipements', qualities: 'Qualités', creatures: 'Créatures', traits: 'Traits',
+  trappings: 'Équipements', siegeEngines: 'Engins de siège', qualities: 'Qualités', creatures: 'Créatures', traits: 'Traits',
   mutations: 'Mutations', spells: 'Sorts', domains: 'Domaines', gods: 'Cultes', maneuvers: 'Manœuvres',
   weaponGroups: 'Groupes d’objet', characteristics: 'Caractéristiques', etats: 'États',
 };
@@ -219,7 +221,7 @@ const reverseTitle = (targetCat: string, refCat: string): string =>
 
 /** Ordre stable des catégories (référants d'une fiche ET contenu d'un livre) — les plus parlantes
  *  d'abord ; une catégorie hors liste est repoussée en fin (via `orderOf`). */
-const REF_CAT_ORDER = ['races', 'classes', 'careers', 'characteristics', 'skills', 'talents', 'creatures', 'mutations', 'mutationTables', 'trappings', 'qualities', 'weaponGroups', 'spells', 'domains', 'gods', 'traits', 'maneuvers', 'etats', 'maladies', 'stars', 'locations'];
+const REF_CAT_ORDER = ['races', 'classes', 'careers', 'characteristics', 'skills', 'talents', 'creatures', 'mutations', 'mutationTables', 'trappings', 'siegeEngines', 'qualities', 'weaponGroups', 'spells', 'domains', 'gods', 'traits', 'maneuvers', 'etats', 'maladies', 'stars', 'locations'];
 const orderOf = (cat: string): number => (REF_CAT_ORDER.indexOf(cat) + 1) || 99;
 
 /**
@@ -265,6 +267,7 @@ const catalog = versionCached<CatalogEntry[]>(() => {
   pushCatalog('skills', skills);
   pushCatalog('talents', talents);
   pushCatalog('trappings', trappings);
+  pushCatalog('siegeEngines', siegeEngines());
   pushCatalog('qualities', qualities as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('etats', etats);
   pushCatalog('maneuvers', maneuvers);

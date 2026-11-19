@@ -151,20 +151,13 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     }
   });
 
-  it('machine de guerre ADE II (Canon à flammes nain) : `onHitEffects`, `minRangeBand`, Groupe de Projectiles et Recharge portés par le trait ET par le poste servi', () => {
-    const canaux = [
-      mannedPosteWeapon(chef, hydratePoste({ trappingId: 'canon-a-flammes-nain-ade2', side: 'tribord' }, 'poste-de-test'))!,
-      weaponFromTrait(t({ id: 'a-distance', arg: 'canon-a-flammes-nain-ade2', value: 12 }))!,
-    ];
-    for (const w of canaux) {
-      expect(w.onHitEffects).toHaveLength(1);
-      expect(w.minRangeBand).toBe('courte'); // ADE II 8 l.253
-      expect(w.weaponGroup).toBe('machine-de-guerre');
-      expect(w.reload).toBe(3); // LDB 62 l.333
-    }
-    // Divergence LÉGITIME entre canaux, ≠ trou de projection : une machine à Équipe (ADE II 8 l.233) ne se
-    // manie jamais en loadout solo — le canal « possession de héros » la REFUSE, elle doit être servie.
-    expect(parPossession('canon-a-flammes-nain-ade2')).toBeUndefined();
+  it('la fiche du Canon à flammes nain fournit le profil du poste servi (ADE II 08 l.233-253, l.270)', () => {
+    const trappingId = 'canon-a-flammes-nain-ade2';
+    const arme = mannedPosteWeapon(chef, hydratePoste({ trappingId, side: 'tribord' }, 'poste-de-test'));
+    expect(arme).toMatchObject({ trappingId, minRangeBand: 'courte', weaponGroup: 'machine-de-guerre', reload: 3 });
+    expect(arme?.onHitEffects).toHaveLength(1);
+    expect(weaponFromTrait(t({ id: 'a-distance', arg: trappingId, value: 12 }))?.trappingId).toBeUndefined();
+    expect(parPossession(trappingId)).toBeUndefined();
   });
 
   it('arme de JET (`range: {bf}`, LDB 62) : la SPEC traverse le constructeur d’arme, sans être reposée après coup', () => {

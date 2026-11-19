@@ -5533,7 +5533,7 @@ Ces 9 Miracles forment trois familles : **buffs de groupe** (Dévotion de la Vie
 
 Sous-système **facultatif** d'*Archives de l'Empire : volume 2* (chapitre « Le théâtre de la guerre ») pour mener des batailles à grande échelle tout en gardant les Personnages au centre de l'action. C'est le système RAW vers lequel *Aux Armes* (AA) renvoie explicitement pour les affrontements de grande ampleur. Ces règles ne simulent pas l'intégralité d'une bataille (« si c'est ce que vous cherchez, essayez le *Warhammer Fantasy Battle, le jeu de figurines* ») : elles offrent des **scènes de jeu de rôle** dont l'issue modifie le score abstrait de **Puissance** de chaque camp [ADE II 08 l.13-15].
 
-> ⚠️ Les valeurs des machines de guerre ci-dessous sont celles d'**ADE II** (système de combat de masse, abstrait), distinctes des armes de siège **maniables** d'*Aux Armes* (`trappings.json`, source AA 10 p.122 — ex. Baliste **+12** Recharge 3 en AA contre Baliste **+14** Recharge 2 ici). Ne pas confondre les deux jeux de stats.
+Les profils du tableau d'**ADE II** et ceux d'**AA** (AA 10 p.122) ont chacun leur fiche dans `siege-engines.json`. La bataille de masse référence les profils d'ADE II. La baliste `baliste-ade2` inflige **+14** et porte Recharge 2. La baliste d'AA `baliste` inflige **+12** et porte Recharge 3.
 
 ### Puissance — le score d'armée
 

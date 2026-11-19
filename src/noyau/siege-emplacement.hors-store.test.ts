@@ -4,7 +4,7 @@ import { applyShipPostes, serveAtPoste } from './monde/shipPostes';
 import { firedWeapon, firedAttackBlock, resolveAttack } from './combatFlow';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
-import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
+import { hydratePoste, mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
 import { spawnEnemy } from './monde/spawn';
 import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -54,7 +54,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.175-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds, ...(side ? { side } : {}) });
+  hydratePoste({ trappingId: engineId, crewIds, side }, idsDeTest('it'));
 
 /** Scène terrestre minimale (40×40 d'herbe, 2 m/case) — PAS de merScale/metresPerTile « Mer ». */
 const groundScene = (): Scene =>
@@ -93,22 +93,44 @@ describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est
 // (B) TIR — le chef tire la baliste sur la cible via le chemin `firedWeapon` → `resolveAttack` ; une touche se
 //     résout (Blessures appliquées), seed fixe.
 describe('(B) Tir — le chef sert la pièce et touche la cible (resolveAttack, seed fixe)', () => {
-  it('une touche se résout via la pièce servie → Blessures infligées', () => {
+  it.each([
+    { id: 'baliste', spec: 'arbalete', equipe: 'arme-d-equipe', effectif: 2, degats: 12, recharge: 3 },
+    { id: 'baliste-ade2', spec: 'machine-de-guerre', equipe: 'equipe', effectif: 4, degats: 14, recharge: 2 },
+  ])('$id : le chef tire avec le profil et les munitions de son poste (AA 10 l.179 ; ADE II 08 l.238)', ({ id, spec, equipe, effectif, degats, recharge }) => {
     seedBattleRng(1);
-    const poste = mkPoste('baliste', ['gunner', 's1']);
-    const gunner = mkGunner('gunner', 'heros', { x: 5, y: 5 }, 80);
-    gunner.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 0 }] as never;
-    const s1 = mkCrewman('s1');
-    s1.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 0 }] as never; // équipe COMPLÈTE et qualifiée (2/2)
-    const cible = mkEnemy('cible', 8, 5, 30, 60);
-    const all = [mkEmplacement(poste), gunner, s1, cible];
+    const artilleurs = Array.from({ length: effectif }, (_, i) => {
+      const c = mkGunner(`servant-${i}`, i === 0 ? 'heros' : 'pnj', { x: 5 + i, y: 5 }, 80);
+      c.skills = [{ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances: 0 }];
+      return c;
+    });
+    const [chef] = artilleurs;
+    const affut = spawnEnemy({ engin: id }, 'emplacement', { x: 5, y: 5 }, { postes: [{
+      trappingId: id,
+      crewIds: artilleurs.map((c) => c.id),
+      ammo: { 'carreau-de-baliste': 2 },
+      selectedAmmo: { id: 'carreau-de-baliste' },
+    }] });
+    const poste = affut.postes![0];
+    expect(poste.item.trappingId).toBe(id);
+    const cible = mkEnemy('cible', 20, 5, 30, 60);
+    const all = [affut, ...artilleurs, cible];
+    const scene = groundScene();
+    const get = mkGet(scene, all);
     applyShipPostes(all);
-    const get = mkGet(groundScene(), all, { gunner: 'N' });
-    const r = resolveAttack(get, gunner, cible, firedWeapon(banc.getState().scene, gunner, cible, poste.item.uid, all), undefined, false, false, false);
-    expect(r).not.toBeNull();
-    expect(r!.weapon.uid).toBe(poste.item.uid); // c'est bien la baliste du poste qui a tiré
-    expect(r!.res.hit).toBe(true);
-    expect(r!.res.woundsLost ?? 0).toBeGreaterThan(0);
+
+    expect(chef.mannedPoste).toBe(poste);
+    expect(chef.items?.some((it) => it.trappingId === id)).toBeFalsy();
+    expect(chef.weapons).toContainEqual(expect.objectContaining({
+      trappingId: id, weaponGroup: spec, qualities: expect.arrayContaining([{ id: equipe, value: effectif }]),
+    }));
+    expect(poste.loadedAmmoUid).toBe('emplacement-poste-0-carreau-de-baliste');
+    expect(firedAttackBlock(get, chef, cible, poste.item.uid)).toBeNull();
+
+    const tiree = firedWeapon(scene, chef, cible, poste.item.uid, all);
+    expect(tiree).toMatchObject({ uid: poste.item.uid, trappingId: id, damage: { plusBF: false, flat: degats }, reload: recharge });
+    const r = resolveAttack(get, chef, cible, tiree, undefined, false, false, false);
+    expect(r?.res.hit).toBe(true);
+    expect(r?.res.woundsLost ?? 0).toBeGreaterThan(0);
   });
 });
 
@@ -146,7 +168,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     // crewedFireWeapon est la SOURCE UNIQUE de la dégradation (réutilisée par firedWeapon) — éprouvée sur
     // l'arme dérivée du poste (le mortier n'a PAS le Défaut Imprécise de base → la pénalité l'AJOUTE).
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
-    const w0 = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] } as ShipPoste)!;
+    const w0 = mannedPosteWeapon(chef, hydratePoste({ trappingId: 'mortier', crewIds: ['chef'] }, idsDeTest('it')))!;
     const w = crewedFireWeapon(w0, 1); // présent 1, Indice 3 → déficit 2
     expect(w.reload).toBe(8); // Recharge 4 ×2
     expect(w.qualities.some((q) => q.id === 'imprecise')).toBe(true); // Défaut AJOUTÉ par le sous-effectif
@@ -157,8 +179,8 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
 //     LDB 13 l.106, arbitrage #3595 du 2026-11-07), soutenu par un servant adjacent (MDG 12 l.462).
 describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au sol (rechargerLArme/jetValider@rechargement)', () => {
   const setup = (order = ['chef', 'emplacement', 's1']) => {
-    const item = itemFromTrappingById('baliste', idsDeTest)!; // Recharge 3, Indice 2
-    const poste: ShipPoste = { item, crewIds: [], loaded: false, reloadProgress: 2 };
+    const poste = hydratePoste({ trappingId: 'baliste', crewIds: [], loaded: false, reloadProgress: 2 }, idsDeTest('it'));
+    const { item } = poste;
     const chef = mkGunner('chef', 'heros', { x: 5, y: 6 }, 80);
     chef.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 20 }] as never;
     const s1 = mkGunner('s1', 'pnj', { x: 6, y: 6 }, 40);
@@ -208,7 +230,7 @@ describe('(E) AoE — mortier + bombe explosion frappe un groupe au sol (branche
   it('toutes les cibles dans le rayon Indice subissent DR+Dégâts ; hors rayon = épargné', () => {
     seedBattleRng(7);
     const chef = mkGunner('chef', 'heros', { x: 0, y: 0 });
-    const mortier = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] })!;
+    const mortier = mannedPosteWeapon(chef, hydratePoste({ trappingId: 'mortier', crewIds: ['chef'] }, idsDeTest('it')))!;
     const bomb = itemFromTrappingById('bombe-de-mortier', idsDeTest)!; // Explosion Indice 5, Dégâts 12
     const w: Weapon = weaponWithAmmo(mortier, bomb); // arme effective : la qualité a-explosion est fusionnée
     expect(w.qualities.some((q) => q.id === 'a-explosion')).toBe(true);

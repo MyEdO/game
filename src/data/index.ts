@@ -44,7 +44,7 @@ import {
   type DatasetDeCategorie,
 } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
-import { ENGINS_DE_SIEGE, INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
+import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualiteDObjetRef, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import {
@@ -177,8 +177,8 @@ import type * as tableauDeLaNatureDeMutation from './schemas/defs/mutation-natur
 import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
-import { trappings, findTrappingById } from './apparencesObjets';
-export { trappings, apparences, findTrappingById, findApparenceById } from './apparencesObjets';
+import { catalogueDesEngins, trappings, findTrappingById, findSiegeEngineById } from './apparencesObjets';
+export { catalogueDesEngins, trappings, apparences, findTrappingById, findSiegeEngineById, findApparenceById, type SiegeEngineData } from './apparencesObjets';
 import vehiclesJson from './vehicles.json';
 import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
@@ -910,12 +910,6 @@ export interface TrappingData {
   /** Les munitions (`categorie:'ammunition'`) de l'arme, la représentative en tête : les seules qu'elle charge
    *  (`chargeLArme`). LDB 62 l.131 ; AA 08 l.517 ; AA 10 l.150 ; MDG 12 l.410-424 */
   munitions?: string[];
-  /** EMPREINTE de grille (côté N×N) de l'affût POSÉ en combat — recopiée sur `Combatant.footprint`
-   *  (`footprintN`), MÊME champ que `VehicleData.ship.footprint`. ADE II 8 l.239/258 (profil + description
-   *  physique du tronc suspendu sur portique à roues) ne chiffre aucune Taille en cases : la valeur posée
-   *  en donnée (2, belier-ade2, #210) reste éditable au Compendium plutôt que codée en dur ailleurs. Absent
-   *  = empreinte 1 (affûts compacts type baliste/canon). */
-  siegeFootprint?: number;
   /** #2967 */
   shape?: { id: string };
   /** LDB 62 l.28 */
@@ -1250,12 +1244,8 @@ export function mutationLabel(id: string | null | undefined): PlayerText {
 const marqueDeSiege = porteLeMarqueur('weaponGroup', 'siege');
 /** Groupe d'engins de siège : marqueur `siege` de `weaponGroups.json`. AA 10 l.136 */
 export const groupeDeSiege = (id: string | null | undefined): boolean => !!id && marqueDeSiege(id);
-/** Engins de siège posables : la sous-liste `ENGINS_DE_SIEGE` des trappings, dans l'ordre de la donnée.
- *  Foyer du filtre partagé par les emplacements, les références d'entité et la catégorie du Codex. */
-export const siegeEngines = memoParVersion('trappings', () => {
-  const ids = new Set(idsDeLaSousListe('trapping', ENGINS_DE_SIEGE));
-  return trappings.filter((t) => ids.has(t.id));
-});
+/** AA 10 l.175-193 ; ADE II 08 l.235-247. */
+export const siegeEngines = () => catalogueDesEngins;
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
@@ -1288,13 +1278,7 @@ export type StructureAppearanceDef = EntreeDe<typeof structureAppearanceDef>;
 /** Les familles de pièces du kit 3D des arêtes (`hotes/godot/asset/kit.ts`). */
 export type FamilleDuKit = StructureAppearanceDef['kit'];
 
-/** Combat de masse / Puissance de Bataille (ADE II 8, l.13-321) — 5 tables verbatim NICHÉES dans
- *  UN seul fichier (`mass-battle.json`, pas un tableau plat par table) : exposées ICI (facade) pour que
- *  le Codex/l'éditeur DEV les édite comme n'importe quel autre dataset (seam `overrides.ts`) ; le moteur
- *  pur (`engine/massBattle.ts`) les relit d'ICI (types définis là-bas, réimportés en `import type` —
- *  même patron que `maladies`/`DiseaseDef`). Noms préfixés `massBattle*` : `structures` est déjà pris par
- *  le catalogue de structures de siège JOUABLES ci-dessus (schéma différent : BE/B structuré + traits
- *  `{id}[]`, quand mass-battle.json reste `be`/`wounds`/`traits` en chaîne verbatim imprimée). */
+/** ADE II 08 l.13-321. */
 const massBattle = datasetDe<typeof massBattleDef>(massBattleJson);
 export const massBattlePowerEstimate = massBattle.powerEstimate;
 export const massBattleMightModifiers = massBattle.mightModifiers;
@@ -1869,11 +1853,11 @@ export function profilsStandard(): string[] {
  *  offre pas (`capsOfferts`). */
 export const estUnNavireAPonts = (id: string | undefined): boolean => id !== undefined && findVehicleById(id)?.ponts !== undefined;
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
- *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
+ *  catalogue des engins de siège (AA 10, ADE II 08), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */
 export function findFicheDeVehicule(id: string): { readonly label: string; readonly source: { readonly book: string } | undefined } | undefined {
   const coque = findVehicleById(id);
-  const fiche = (coque?.hull ? coque : undefined) ?? siegeEngines().find((t) => t.id === id);
+  const fiche = (coque?.hull ? coque : undefined) ?? findSiegeEngineById(id);
   return fiche && { label: fiche.label, source: fiche.source };
 }
 /**
@@ -2178,15 +2162,13 @@ export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, Tra
 export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | null }): G | undefined {
   return arme.weaponGroup ?? arme.subType ?? undefined;
 }
-/** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156). */
-const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege']);
 /** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` hors « Mains nues »
- *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
- *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
+ *  (`TrappingData.unarmed`) et hors des armes magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3),
+ *  triée au libellé. `id` = `trappingId`
  *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue ; `reserveeA`, le seul Groupe
  *  de peuple à qui elle s'offre. */
 export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
-  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed)
   .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
   .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor, reserveeA: t.reserveeA?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
@@ -2375,7 +2357,9 @@ function entreesDuType(type: TypeEntite): readonly { id: string; label: string }
 /** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées de l'espace de son type
  *  (`entreesDuType`) qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de leur source. */
 export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
-  const entrees = entreesDuType(type);
+  const entrees = type === 'engin'
+    ? siegeEngines().map((engin) => ({ id: engin.id, label: libelleDAuteur(engin) }))
+    : entreesDuType(type);
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
   return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
@@ -2575,7 +2559,7 @@ function libelleDeLaPossession(ref: DotationDePossession): PlayerText {
     case 'creature':
       return dataLabel(findCreatureById(ref.id)?.label, ref.id);
     case 'engin':
-      return refLabel('trappings', ref);
+      return refLabel('siegeEngines', ref);
   }
 }
 export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {

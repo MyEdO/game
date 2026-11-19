@@ -108,7 +108,7 @@ describe('refTypee — `extra` compose les champs du porteur dans chaque branche
     expect(dotationDePossessionSchema.safeParse({ creatureId: 'mule' }).success).toBe(false);
   });
 
-  it('un engin résout dans la sous-liste des engins de siège : ni un objet de sac, ni un véhicule (#4143)', () => {
+  it('un engin résout dans le catalogue des engins de siège : ni un objet de sac, ni un véhicule (#4143)', () => {
     expect(dotationDePossessionSchema.safeParse({ id: 'canon-petit', type: 'engin' }).success).toBe(true);
     expect(dotationDePossessionSchema.safeParse({ id: 'cape', type: 'engin' }).success).toBe(false);
     expect(dotationDePossessionSchema.safeParse({ id: 'chariot-leger', type: 'engin' }).success).toBe(false);

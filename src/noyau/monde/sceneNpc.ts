@@ -15,7 +15,7 @@ import type { NomDIndividu } from '../../engine/psych/ciblage';
 import type { Jeu } from '../etat';
 import { inBattleId } from './combatants';
 import { typeNonNomme } from '../../data/schemas/defs-scenes/scene';
-import { findCreatureById, findFicheDeVehicule, findSpeciesById, isNamed, profilsStandard, sexeDuPorteur } from '../../data';
+import { findCreatureById, findFicheDeVehicule, findSiegeEngineById, findSpeciesById, isNamed, profilsStandard, sexeDuPorteur } from '../../data';
 import { raceKeySchema, type RaceKey, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { generateName } from '../../engine/names';
 import { tirerLesDetails } from '../../engine/creation';
@@ -33,7 +33,7 @@ function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteu
   if (ent.statblock) return { porteur: { statblock: ent.statblock }, appearance: ent.appearance };
   if (ent.creature) return findCreatureById(ent.creature.id) ? { porteur: { ref: ent.creature.id, parcours: parcoursDe(ent) }, appearance: ent.appearance } : undefined;
   if (ent.vehicule) return findFicheDeVehicule(ent.vehicule.id) ? { porteur: { vehicule: ent.vehicule.id }, appearance: ent.appearance } : undefined;
-  if (ent.engin) return findFicheDeVehicule(ent.engin.id) ? { porteur: { engin: ent.engin.id }, appearance: ent.appearance } : undefined;
+  if (ent.engin) return findSiegeEngineById(ent.engin.id) ? { porteur: { engin: ent.engin.id }, appearance: ent.appearance } : undefined;
   return undefined;
 }
 

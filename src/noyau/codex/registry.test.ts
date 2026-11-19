@@ -14,7 +14,7 @@ import {
 import { woundsForSize } from '../../engine/size';
 import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from '../../data/atelierDuCodex';
-import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
+import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE, massBattleWarMachines } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { datasetObject, setDataset } from '../../data/overrides';
 import { sousLeDe } from '../../data/deDeLaTable.testkit';
@@ -163,15 +163,10 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
 });
 
 describe('Codex registry — dégâts CONDITIONNELS d’une arme à capacité de qualité (#135)', () => {
-  it('une pièce à Atout Siège (RÉELLE, ex. Catapulte) affiche le fait « Dégâts » + la note ×2 structure — pas juste le total imprimé', () => {
-    // Requête sur la DONNÉE (zéro id en dur) : toute Possession du catalogue portant la qualité `siege`
-    // fait foi — dégâts effectifs contre une structure = double du total imprimé (ADE II 8 l.292),
-    // le Codex ne doit plus l'occulter.
-    const siegeTrapping = trappings.find((t) => t.qualities.some((q) => q.id === 'siege'))!;
-    expect(siegeTrapping, 'aucune pièce à Atout Siège dans le catalogue').toBeTruthy();
-    const item = categoryByKey('trappings')!.items.find((i) => i.id === siegeTrapping.id)!;
+  it('le Canon à Atout Siège affiche le fait « Dégâts » + la note ×2 structure — pas juste le total imprimé', () => {
+    const item = codexLookupById('siegeEngines', 'canon-ade2')!;
     const damageFact = item.meta?.find((f) => f.label === 'Dégâts');
-    expect(damageFact, `${siegeTrapping.label} : fait Dégâts`).toBeTruthy();
+    expect(damageFact).toBeTruthy();
     expect(damageFact!.value).toContain('×2 contre une structure');
   });
 
@@ -213,8 +208,8 @@ describe('Codex registry — statbloc bestiaire compact', () => {
 });
 
 describe('Codex registry — Bataille de masse (ADE II 8, #148)', () => {
-  it('les 5 sections de mass-battle.json sont exposées, peuplées et ÉDITABLES au Codex', () => {
-    const keys = ['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleWarMachines', 'massBattleStructures', 'massBattleHazards'];
+  it('les quatre tables de bataille et les fiches d’engin sont éditables au Codex', () => {
+    const keys = ['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleStructures', 'massBattleHazards', 'siegeEngines'];
     for (const key of keys) {
       const cat = categoryByKey(key);
       expect(cat, key).toBeTruthy();
@@ -223,12 +218,37 @@ describe('Codex registry — Bataille de masse (ADE II 8, #148)', () => {
     }
   });
 
-  it('les machines de guerre (dont le Bélier, déjà présent en donnée — pas dupliqué) apparaissent au catalogue', () => {
-    const items = categoryByKey('massBattleWarMachines')!.items;
-    expect(items.map((i) => i.id)).toContain('belier');
-    const belier = items.find((i) => i.id === 'belier')!;
-    expect(belier.meta?.find((f) => f.label === 'Équipe')?.value).toBe('6');
-    expect(belier.meta?.find((f) => f.label === 'Atouts')?.value).toBe('Siège');
+  it('la bataille de masse ouvre les fiches ADE II dans l’ordre du tableau', () => {
+    expect(isEditableCategory('massBattleWarMachines')).toBe(false);
+    const [vue] = categoryByKey('massBattleWarMachines')!.items;
+    const refs = vue.sections!.flatMap((s) => s.rows).filter((r) => r.t === 'ref');
+    expect(refs.map((r) => r.id)).toEqual(massBattleWarMachines);
+    expect(refs).toHaveLength(10);
+    expect(refs[0]).toMatchObject({ category: 'siegeEngines', id: 'baliste-ade2' });
+    expect(refs[1]).toMatchObject({ category: 'siegeEngines', id: 'belier-ade2' });
+    for (const ref of refs) expect(codexLookupById(ref.category, ref.id)?.source?.book).toBe('ADE II');
+
+    const belier = codexLookupById('siegeEngines', 'belier-ade2')!;
+    expect(belier.meta).toContainEqual({ label: 'Allonge', value: 'Moyenne' });
+    expect(belier.sections?.flatMap((s) => s.rows)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ t: 'ref', category: 'qualities', id: 'equipe', show: 'Équipe 6' }),
+      expect.objectContaining({ t: 'ref', category: 'qualities', id: 'siege' }),
+    ]));
+  });
+
+  it('les deux balistes ouvrent les profils distincts de leurs livres', () => {
+    const aa = codexLookupById('siegeEngines', 'baliste')!;
+    const ade = codexLookupById('siegeEngines', 'baliste-ade2')!;
+    expect(aa).toMatchObject({ label: 'Baliste (AA)', source: { book: 'AA', page: 122 } });
+    expect(ade).toMatchObject({ label: 'Baliste (ADE II)', source: { book: 'ADE II', page: 88 } });
+    expect(aa.meta).toEqual(expect.arrayContaining([
+      { label: 'Prix', value: '30 CO' }, { label: 'Dégâts', value: '+12' },
+    ]));
+    expect(ade.meta).toEqual(expect.arrayContaining([
+      { label: 'Prix', value: '75 CO' }, { label: 'Dégâts', value: '+14' },
+    ]));
+    expect(codexLookupById('trappings', 'baliste')).toBeUndefined();
+    expect(codexLookupById('trappings', 'baliste-ade2')).toBeUndefined();
   });
 
   it('les structures (cibles de siège) et les aléas de bataille sont peuplés avec leurs faits', () => {
