@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "arete",
+  "cle": {
+    "kit": "pierres-seches"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "moellons",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "ame",
+      "palette": "bois",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "menuiserie",
+      "palette": "accent",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ferrure",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "c3a06666715a5124f74129c1ae7eb000d53384623d1b7d8c427d0ef86bf5aaab",
+    "octets": 295776
+  }
+}

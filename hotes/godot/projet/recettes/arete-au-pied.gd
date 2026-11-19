@@ -11,11 +11,12 @@ extends SceneTree
 ## Une arête dont la famille a un modèle d'arête servi (#4471, `aretes` de la réponse de `modeles`, figée par la sonde
 ## avec les échantillons de l'atelier, `hotes/godot/recettes/decor.ts`, servie par un `PontFige`, lue par le chargeur
 ## des décors, `MontageDesModeles`) se pose une fois son modèle lu (`VolumeDeScene.attendre_les_aretes` ; rien avant,
-## recette `sortie-de-l-arbre.gd`) : le nœud de sa pièce va de son pied à son pied plus sa hauteur, centré sur le côté
-## de sa case, couvrant l'arête de bout en bout quelle que soit sa hauteur, diagonale comprise, sur un plateau de 2 m
-## comme de 3 m par case, à l'échelle métrique en épaisseur, son +Z vers son dehors (`(-sens.y, sens.x)`) ; chaque
-## surface de chacun de ses maillages, vue et en ombre, dans une matière de la couleur de la palette de l'arête à
-## l'emplacement de cette surface, la croisée d'une fenêtre comprise. Posée, lue puis vidée tour à tour
+## recette `sortie-de-l-arbre.gd`) : pour chaque famille servie, le nœud de chacune de ses pièces (mur, portes,
+## fenêtres, brèche) va de son pied à son pied plus sa hauteur, centré sur le côté de sa case, le mur couvrant l'arête
+## de bout en bout quelle que soit sa hauteur, muret d'un mètre et diagonale compris, sur un plateau de 2 m comme de 3 m
+## par case, à l'échelle métrique en épaisseur, son +Z vers son dehors (`(-sens.y, sens.x)`) ; chaque surface de chacun
+## de ses maillages, vue et en ombre, dans une matière de la couleur de la palette de l'arête à l'emplacement de cette
+## surface, la croisée d'une fenêtre comprise. Posée, lue puis vidée tour à tour
 ## (`VolumeDeScene.vider`), elle ne fait pas croître les maillages et les matières teints du volume.
 
 const RECETTE_AUTONOME := true
@@ -31,6 +32,8 @@ const FAMILLE_DU_KIT := "pierre"
 const PALETTE := {corps = "#cdbb9a", bois = "#43301c", accent = "#5a4632", vet1 = "#3b2e1f", metal = "#b9902f"}
 ## L'autre plateau où les arêtes servies se recettent bout à bout (`_bout_a_bout`), l'échelle de l'éditeur réglable.
 const AUTRES_METRES_PAR_CASE := 3.0
+## La hauteur, en mètres, d'un muret (`wallHeightM` de `mur-en-pierres-seches`, `structureAppearance.json`).
+const MURET_M := 1.0
 ## Les tours de pose, de lecture et de vidage du volume (`_caches_bornes`).
 const TOURS_DE_VIDAGE := 4
 var _fautes: Array[String] = []
@@ -46,11 +49,14 @@ func _recetter() -> void:
 	if decor.is_empty():
 		return
 	_du_kit_et_des_boites(_volume_neuf(METRES_PAR_CASE))
-	var famille: String = decor.modeles.aretes.keys()[0]
-	var modele: String = decor.modeles.aretes[famille]
-	await _du_modele_servi(_volume_neuf(METRES_PAR_CASE), famille, decor.modeles.surfaces[modele])
-	await _bout_a_bout(_volume_neuf(AUTRES_METRES_PAR_CASE), famille)
-	await _caches_bornes(_volume_neuf(METRES_PAR_CASE), famille)
+	for famille: String in decor.modeles.aretes:
+		var avant := _fautes.size()
+		var modele: String = decor.modeles.aretes[famille]
+		await _du_modele_servi(_volume_neuf(METRES_PAR_CASE), famille, decor.modeles.surfaces[modele])
+		await _bout_a_bout(_volume_neuf(AUTRES_METRES_PAR_CASE), famille)
+		await _caches_bornes(_volume_neuf(METRES_PAR_CASE), famille)
+		for rang in range(avant, _fautes.size()):
+			_fautes[rang] = "%s, %s" % [famille, _fautes[rang]]
 	for faute in _fautes:
 		push_error("[arete-au-pied] " + faute)
 	print("[arete-au-pied] erreurs=", _fautes.size())
@@ -142,28 +148,34 @@ func _du_kit_et_des_boites(volume: VolumeDeScene) -> void:
 		_fautes.append("posées à nouveau, %d arêtes comptées, attendu 3" % volume.ce_qui_est_pose().aretes)
 
 
-## Les pièces du modèle d'arête servi de `famille`, de surfaces `surfaces`, son modèle lu : chacune à son
-## pied, à sa hauteur, couvrant son arête de bout en bout (`_couverture`) quelle que soit sa hauteur, en diagonale
-## aussi, tournée vers son dehors et peinte dans la matière, la croisée de sa fenêtre comprise ; posées à nouveau,
-## leurs groupes gardés.
+## Chaque pièce du modèle d'arête servi de `famille`, de surfaces `surfaces`, son modèle lu : à son pied, à sa
+## hauteur, tournée vers son dehors et peinte dans la matière, la croisée de sa fenêtre comprise si le modèle en a une ;
+## le mur couvrant son arête de bout en bout (`_couverture`) quelle que soit sa hauteur, muret et diagonale compris ;
+## posées à nouveau, leurs groupes gardés.
 func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -> void:
 	var servie := {famille = famille, palette = PALETTE, piece = Noyau.Piece.MUR, bloc = "0/0/0", pied = PIED_M,
 		hauteurM = HAUTEUR_M, sens = {x = 1.0, y = 0.0}}
+	var croisee := surfaces.any(func(s: Dictionary) -> bool: return s.palette == "vet1")
 	var aretes := [
 		servie.merged({cle = "est", milieu = {x = 0.0, y = -0.5}}, true),
 		servie.merged({cle = "ouest", milieu = {x = 2.0, y = -0.5}, sens = {x = -1.0, y = 0.0}}, true),
 		servie.merged({cle = "sud", milieu = {x = 3.5, y = 1.0}, sens = {x = 0.0, y = 1.0}, pied = 0.0}, true),
 		servie.merged({cle = "basse", milieu = {x = 5.0, y = -0.5}, hauteurM = 3.0}, true),
 		servie.merged({cle = "haute", milieu = {x = 7.0, y = -0.5}, hauteurM = 5.0}, true),
+		servie.merged({cle = "muret", milieu = {x = 17.0, y = -0.5}, hauteurM = MURET_M}, true),
 		servie.merged({cle = "diagonale", milieu = {x = 13.0, y = 0.0}, sens = {x = 1.0, y = 1.0}}, true),
 		servie.merged({cle = "porte", milieu = {x = 9.0, y = -0.5}, piece = Noyau.Piece.PORTE_FERMEE}, true),
+		servie.merged({cle = "ouverte", milieu = {x = 19.0, y = -0.5}, piece = Noyau.Piece.PORTE_OUVERTE}, true),
 		servie.merged({cle = "fenetre", milieu = {x = 15.0, y = -0.5}, piece = Noyau.Piece.FENETRE}, true),
+		servie.merged({cle = "close", milieu = {x = 21.0, y = -0.5}, piece = Noyau.Piece.FENETRE_CLOSE}, true),
+		servie.merged({cle = "breche", milieu = {x = 23.0, y = -0.5}, piece = Noyau.Piece.BRECHE}, true),
 		servie.merged({cle = "boite", famille = null, palette = {}, milieu = {x = 11.0, y = -0.5}}, true),
 	]
 	volume.poser_les_aretes(aretes)
 	await volume.attendre_les_aretes()
 	var groupes := _groupes(volume.get_node("Aretes"))
-	var attendus := [["boite"], ["est"], ["ouest"], ["sud"], ["basse"], ["haute"], ["diagonale"], ["porte"], ["fenetre"]]
+	var attendus := [["boite"]] + aretes.filter(func(a: Dictionary) -> bool: return a.famille != null).map(
+		func(a: Dictionary) -> Array: return [a.cle])
 	if groupes.keys() != attendus:
 		_fautes.append("modèle lu, les groupes sont %s, attendu la boîte, puis un par arête servie" % [groupes.keys()])
 		return
@@ -176,7 +188,7 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 		_centree(a.cle, piece, a, EPSILON if a.piece == Noyau.Piece.MUR else 0.5)
 		_pose_de_l_instance(volume, groupe, a)
 		var peints := _peinte(groupe, a.cle, surfaces)
-		if a.piece == Noyau.Piece.FENETRE and not peints.has("vet1"):
+		if a.piece == Noyau.Piece.FENETRE and croisee and not peints.has("vet1"):
 			_fautes.append("fenetre : aucune surface de la croisée (vet1) peinte, peintes %s" % [peints])
 	volume.poser_les_aretes(aretes.map(func(a: Dictionary) -> Dictionary: return a.duplicate(true)))
 	var reposes := _groupes(volume.get_node("Aretes"))
@@ -184,14 +196,15 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 		_fautes.append("modèle lu, posées à nouveau, les groupes ne sont pas gardés")
 
 
-## Sur le volume `volume` d'un autre plateau, les murs servis de `famille`, droits, bas et diagonaux, couvrent chacun
-## leur arête de bout en bout (`_couverture`).
+## Sur le volume `volume` d'un autre plateau, les murs servis de `famille`, droits, bas, murets et diagonaux, couvrent
+## chacun leur arête de bout en bout (`_couverture`).
 func _bout_a_bout(volume: VolumeDeScene, famille: String) -> void:
 	var servie := {famille = famille, palette = PALETTE, piece = Noyau.Piece.MUR, bloc = "0/0/0", pied = 0.0,
 		hauteurM = HAUTEUR_M, sens = {x = 1.0, y = 0.0}}
 	var aretes := [
 		servie.merged({cle = "droite", milieu = {x = 0.0, y = -0.5}}, true),
 		servie.merged({cle = "basse", milieu = {x = 2.0, y = -0.5}, hauteurM = 3.0}, true),
+		servie.merged({cle = "muret", milieu = {x = 6.0, y = -0.5}, hauteurM = MURET_M}, true),
 		servie.merged({cle = "diagonale", milieu = {x = 4.0, y = 0.0}, sens = {x = 1.0, y = 1.0}}, true),
 	]
 	volume.poser_les_aretes(aretes)

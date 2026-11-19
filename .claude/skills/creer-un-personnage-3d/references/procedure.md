@@ -750,13 +750,19 @@ apparence de `src/data/structureAppearance.json`) se construisent depuis le dép
 
 **Repère et taille.** Chaque pièce est à l'origine de l'arête, à sa taille réelle : X le long d'elle, centrée, sur la
 longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son épaisseur, centrée, le dehors vers +Z
-(`arete/geometrie.py`). Un demi-poteau à chaque bout se complète de celui de la pièce voisine. L'hôte porte la boîte
-du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du plateau
-(`MiseEnPage.echelle_d_arete_servie`).
+(`arete/geometrie.py`). Un demi-poteau ou une chaîne de pierres à chaque bout se complète de celui de la pièce voisine.
+L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du
+plateau (`MiseEnPage.echelle_d_arete_servie`).
 
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
 la couleur de l'apparence posée. Une baie est percée de part en part.
+
+**Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
+`menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
+des kits de pierre (assises, chaînes, couronnement, brèche). Un kit les pose, il ne les recopie pas. La forme
+d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit reçoivent
+cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour (`test_arete.py`).
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
@@ -771,8 +777,9 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 
 `arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
-chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes), reconstruit chaque
-kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque `arete--*` publié.
+chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
+reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque
+`arete--*` publié.
 Publier comme un véhicule (chapitre 9, « Publier »).
 
 ## Disponibilité à sonder avant chaque production

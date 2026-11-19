@@ -4,21 +4,18 @@ extends SceneTree
 ## pont figé (`PontFige`, `pont_fige.gd`, sur les échantillons figés par la sonde, `hotes/godot/recettes/decor.ts`,
 ## `figerLeDecor`). Chaque famille servie a sa liste de tête, de clé `modele/<famille>`, qui offre chacune de ses entrées
 ## dans l'ordre servi. Un décor sans modèle, un décor servi par son modèle, la mer, une matière de relief, une matière de
-## toit, un mur crénelé et un mur de la famille d'un modèle d'arête servi (`colombage`, choisi l'atelier au repos,
-## #4471) choisis tour à tour : à chaque geste, l'atelier envoie l'entrée attendue, et sa scène
-## (`VolumeDeScene`) pose autant de triangles que le volume servi hors des surfaces des décors servis (`decors`, la crête
-## du mur crénelé comprise), et le modèle de chaque pose de chaque décor servi (`MontageDesModeles.poses`), chaque
-## arête et chaque nappe de toit servies, et chaque couronne sauf celles que sa brèche abat ;
-## seuls les onglets Effets et Outils sont offerts, et aucune erreur ne se signale. « Recharger » garde l'échantillon
-## posé.
+## toit, un mur crénelé et un mur de chaque famille d'un modèle d'arête servi (#4471), chacun de ceux-là choisi
+## l'atelier au repos (`_choisir_au_repos`), choisis tour à tour : à chaque geste, l'atelier envoie l'entrée attendue,
+## et sa scène (`VolumeDeScene`) pose autant de triangles que le volume servi hors des surfaces des décors servis
+## (`decors`, la crête du mur crénelé comprise), et le modèle de chaque pose de chaque décor servi
+## (`MontageDesModeles.poses`), chaque arête et chaque nappe de toit servies, et chaque couronne sauf celles que sa
+## brèche abat ; seuls les onglets Effets et Outils sont offerts, et aucune erreur ne se signale. « Recharger » garde
+## l'échantillon posé.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/decor.json"
 ## Les images au plus qu'attend la base posée à l'ouverture, et chaque modèle d'un échantillon.
 const IMAGES_DE_L_OUVERTURE := 600
-## L'échantillon d'un mur dont le modèle d'arête est servi (`colombage`, #4471), choisi l'atelier au repos
-## (`_choisir_au_repos`).
-const AU_REPOS := "mur-a-ossature-en-bois"
 var _fautes: Array[String] = []
 
 
@@ -48,7 +45,7 @@ func _recetter() -> void:
 	var derniere := ""
 	for cle: String in decor.echantillon:
 		var entree: Dictionary = JSON.parse_string(cle)
-		if entree.id == AU_REPOS:
+		if _d_un_modele_servi(decor.echantillon[cle], decor.modeles.aretes):
 			await _choisir_au_repos(atelier, pont, entree)
 		else:
 			_choisir(atelier, "modele/%s" % entree.famille, entree.id)
@@ -93,6 +90,11 @@ func _choisir_au_repos(atelier: Node, pont: PontFige, entree: Dictionary) -> voi
 		% [entree.id, _au_repos(atelier), pont.retenues] + " au repos et la lecture du modèle d'arête retenue")
 	pont.retient = false
 	pont.relache.emit()
+
+
+## Si une arête de l'échantillon `reponse` a pour famille une de celles dont le modèle d'arête est servi (`aretes`).
+static func _d_un_modele_servi(reponse: Dictionary, aretes: Dictionary) -> bool:
+	return reponse.aretes.any(func(a: Dictionary) -> bool: return aretes.has(a.famille))
 
 
 ## Si l'atelier `atelier` est au repos : ses peaux mesurées et aucun clip lu, son écran ne se republiant qu'à un geste

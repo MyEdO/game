@@ -21,35 +21,22 @@ Matières : le bois d'ossature et de menuiserie prend `bois-chene`, les ferrures
 `terre-battue`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
-import json
-from pathlib import Path
+from apparences import apparence, hauteur
 
-from script_node import lancer
-
-APPARENCES = Path(__file__).resolve().parents[4] / "src" / "data" / "structureAppearance.json"
 KIT = "colombage"
 MUR, PORTE = "mur-a-ossature-en-bois", "solide-porte-en-bois"
 """Les apparences dont le modèle lit la forme : celle de ses pans de bois et celle de sa baie de porte."""
 
-
-def apparence(id_):
-    """L'apparence `id_` de `APPARENCES`, du kit `KIT`."""
-    lue = next(a for a in json.loads(APPARENCES.read_text(encoding="utf-8")) if a["id"] == id_)
-    if lue["kit"] != KIT:
-        raise ValueError(f"{id_} : kit {lue['kit']}, {KIT} attendu")
-    return lue
-
-
 # Les pans de bois : le plus grand écart (m) entre deux poteaux ; la largeur (m) d'une écharpe, mesure des sections de
 # `SECTIONS` ; la forme des écharpes d'un panneau (`ECHARPES`), `None` sans écharpe.
-ENTRAXE, BOIS, CROIX = (apparence(MUR)["detail"]["timber"].get(champ) for champ in ("postEveryM", "wM", "braces"))
-BAIE_DE_PORTE = apparence(PORTE)["door"]["openingFrac"]
+ENTRAXE, BOIS, CROIX = (apparence(KIT, MUR)["detail"]["timber"].get(champ) for champ in ("postEveryM", "wM", "braces"))
+BAIE_DE_PORTE = apparence(KIT, PORTE)["door"]["openingFrac"]
 """La largeur de la baie de la porte, en fraction de la longueur de l'arête."""
 
 LONGUEUR = 2.0
 """`sceneMetresPerTile`, LDB 15 l.12."""
-HAUTEUR = apparence(MUR).get("wallHeightM") or json.loads(lancer(Path(__file__).parents[1] / "niveau.mjs", [], ""))
-"""La hauteur (m) des arêtes du mur, `METRES_PER_LEVEL` sans `wallHeightM` (`src/noyau/monde/aretes.ts`)."""
+HAUTEUR = hauteur(apparence(KIT, MUR))
+"""La hauteur (m) des arêtes du mur."""
 EPAISSEUR = 0.24
 """L'épaisseur (m) du bois de l'ossature."""
 
@@ -86,40 +73,12 @@ hauteur)."""
 CROIX_AUX_RANGS = (0,)
 """Les registres du pan, du pied à la tête, dont les panneaux portent des écharpes."""
 
-# Vantail de planches (`modele.vantail`), d'une porte ou d'un volet : `planches` jointives, épaisses de `epaisseur`
-# (m), une sur deux en retrait de `relief` (m) au parement ; `barres` : hauteur de l'axe de chaque barre au dos
-# (fractions de la hauteur du vantail), leur `section` (hauteur, épaisseur, m), leur `marge` aux rives (m) ;
-# `echarpe` : une écharpe au dos, d'une barre à l'autre ; `pentures` : sur chaque barre, au parement, leur longueur
-# (fraction de la largeur du vantail), leur hauteur et leur épaisseur (m), ce dont elles dépassent du côté du gond (m) ;
-# `poignee` : sa platine (largeur, hauteur, épaisseur, m), sa distance à la rive battante (m), sa hauteur (fraction de
-# celle du vantail) et la saillie de sa prise (m), `None` sans poignée.
-PORTE_DE_PLANCHES = {
-    "planches": 5, "epaisseur": 0.045, "relief": 0.006,
-    "barres": (0.16, 0.84), "section": (0.14, 0.025), "marge": 0.11, "echarpe": True,
-    "pentures": (0.62, 0.05, 0.008, 0.03),
-    "poignee": {"platine": (0.06, 0.14, 0.008), "rive": 0.09, "hauteur": 0.5, "saillie": 0.03},
-}
-VOLET = {
-    "planches": 3, "epaisseur": 0.03, "relief": 0.004,
-    "barres": (0.18, 0.82), "section": (0.07, 0.018), "marge": 0.03, "echarpe": False,
-    "pentures": (0.7, 0.035, 0.006, 0.02),
-    "poignee": None,
-}
-
 # Porte : `hauteur` de la baie (m) ; `seuil` : sa hauteur (m) ; `jeu` du vantail à l'huisserie (m).
 PORTE_DE_PAN = {"hauteur": 2.1, "seuil": 0.04, "jeu": 0.008}
 
-# Fenêtre : `largeur` de la baie (fraction de la longueur de l'arête) ; `dormant` : sa section vue (m) et ses bornes
-# dans l'épaisseur (m, depuis l'axe du mur vers le dehors) ; `meneau` : la section vue du meneau et du croisillon (m) ;
-# `croisillon` : sa hauteur (fraction de celle de la baie) ; `petits_bois` : leur section (m), le nombre de leurs
-# traverses sous le croisillon puis au-dessus, un montant au milieu de chaque vantail ; `recouvrement` : ce dont un
-# volet déborde la baie en hauteur (m) ; `jeu` entre les deux volets clos (m).
-FENETRE = {
-    "largeur": 0.45,
-    "dormant": (0.05, (0.0, 0.075)), "meneau": 0.045, "croisillon": 0.64,
-    "petits_bois": {"section": 0.016, "traverses": (2, 1)},
-    "recouvrement": 0.03, "jeu": 0.008,
-}
+# Fenêtre : `largeur` de la baie (fraction de la longueur de l'arête) ; `recouvrement` : ce dont un volet déborde la
+# baie en hauteur (m).
+FENETRE = {"largeur": 0.45, "recouvrement": 0.03}
 
 # Brèche, en fractions de la demi-longueur de l'arête (abscisses) et de `HAUTEUR` (hauteurs).
 # `contour` : à chaque abscisse, la hauteur où le torchis du pied s'arrête et celle où celui de la tête reprend ;
