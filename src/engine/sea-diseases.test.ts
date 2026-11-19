@@ -2,7 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { Combatant } from './types';
 import { RNG, makeRNG } from './dice';
 import { MINUTES_PER_DAY } from './clock';
-import { avancerLesMaladies, applyContraction, contagiousDiseases, contractDisease, contractionDue, tickDisease, type PorteurDeMaladies } from './disease';
+import {
+  avancerLesMaladies,
+  applyContraction,
+  contagiousDiseases,
+  contractDisease,
+  contractionDue,
+  prolongDisease,
+  tickDisease,
+  type PorteurDeMaladies,
+} from './disease';
 import { mangerLaCale, noterLeRepas, type LotDeVivres } from './provisions';
 import type { Id } from '../data/schemas/grammaire/ref';
 import { porteEntretien, applique } from './upkeepPorte.testkit';
@@ -88,7 +97,31 @@ describe('Porteur sans fiche (`PorteurDeMaladies`) — même cycle qu’un PJ', 
     const cure = avancerLesMaladies(equipage, dz.minutesLeft, makeRNG(1));
     expect(equipage.diseases).toEqual([]);
     expect(cure).toHaveLength(1);
-    expect(equipage.diseaseImmunities).toBeUndefined();
+    expect(equipage.diseaseImmunities).toEqual(['verole-urticante']);
+    expect(contractionDue(equipage, 'verole-urticante')).toBe(false);
+  });
+
+  it('le Rhume commun mue en Pneumonie au même jour en pas d’une journée ou d’une heure (EDOC 08 l.122)', () => {
+    const apres = (pas: number) => {
+      const equipage: PorteurDeMaladies = {
+        label: 'L’équipage',
+        diseases: [contractDisease('rhume-commun', seq([]), { incubation: 0, duration: 10 })!],
+      };
+      prolongDisease(equipage, 'rhume-commun', 10);
+      for (let minute = 0; minute < 14 * MINUTES_PER_DAY; minute += pas) {
+        avancerLesMaladies(equipage, pas, seq([]));
+      }
+      expect(equipage.diseases).toMatchObject([{ id: 'rhume-commun', activeDaysElapsed: 14 }]);
+      const rng = seq([1, 1, 1]);
+      for (let minute = 0; minute < MINUTES_PER_DAY; minute += pas) {
+        avancerLesMaladies(equipage, pas, rng);
+      }
+      return equipage.diseases;
+    };
+
+    const enJours = apres(MINUTES_PER_DAY);
+    expect(enJours).toMatchObject([{ id: 'pneumonie', phase: 'active' }]);
+    expect(apres(60)).toEqual(enJours);
   });
 
   it('scorbut du porteur sans fiche : ne décroît qu’aux jours de vivres frais', () => {

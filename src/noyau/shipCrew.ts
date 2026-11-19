@@ -233,8 +233,17 @@ const enContraction = (r: BandPorteur): BandPorteur => ({ ...r, menace: 'maladie
 function avecLEquipage(vessel: CampaignVessel, equipage: CampaignVessel['porteurDeLEquipage']): CampaignVessel {
   const { porteurDeLEquipage: _ancien, ...reste } = vessel;
   const diseases = equipage?.diseases?.length ? equipage.diseases : undefined;
+  const diseaseImmunities = equipage?.diseaseImmunities?.length ? equipage.diseaseImmunities : undefined;
   const regimeDeBord = equipage?.regimeDeBord;
-  return diseases || regimeDeBord ? { ...reste, porteurDeLEquipage: { ...(diseases ? { diseases } : {}), ...(regimeDeBord ? { regimeDeBord } : {}) } } : reste;
+  if (!diseases && !diseaseImmunities && !regimeDeBord) return reste;
+  return {
+    ...reste,
+    porteurDeLEquipage: {
+      ...(diseases ? { diseases } : {}),
+      ...(diseaseImmunities ? { diseaseImmunities } : {}),
+      ...(regimeDeBord ? { regimeDeBord } : {}),
+    },
+  };
 }
 
 /**

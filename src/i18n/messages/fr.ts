@@ -3460,7 +3460,6 @@ export const fr = {
   // procès-verbal affichait son id (« Contagion (peste-noire) »). ──
   'rf.nightmaresLabel': 'Cauchemars',
   'rf.nuit': 'Nuit',
-  'rf.contagionLabel': 'Contagion ({disease})',
   'rf.titleDays': '— Le groupe se repose {n} jours —',
   'rf.titleNight': '— Le groupe dort jusqu’à l’aube —',
   'rf.recovered': '{name} récupère {n} PB.',

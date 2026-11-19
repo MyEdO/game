@@ -24,12 +24,15 @@
 import type { IconId } from '../data/icons';
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
-import { minutesUntilNext, duskMinute } from '../engine/clock';
+import { minutesUntilNext, duskMinute, MINUTES_PER_DAY } from '../engine/clock';
 import { effectTargets, openWaterExposure } from './combatEffects';
 import { ouvrirLeRepos, placesOfKind, routeLieu } from './restFlow';
 import { placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { arriverAuLieu } from './lieuFlow';
-import { lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
+import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
+import { bandesDeContagion } from './contagion';
+import { calculerLesTestsDExposition } from './expositionAMaladie';
+import { porteursABord } from './shipCrew';
 import {
   damageVesselHull,
   healVesselHull,
@@ -89,7 +92,7 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { actorIn, equipageApte } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
-import type { CascadeStep, CascadeStepMeta } from './pendings';
+import { WORLD_STEP_OWNER, type CascadeStep, type CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
@@ -145,10 +148,8 @@ export interface RiverVoyageState {
   /** Facteur de progression du jour EN COURS (déblaiement d'un barrage, MSRC 7 l.128), posé par l'applier
    *  `fleuveChoixDObstacle`, lu à la clôture pour les km — transitoire comme `day`. Défaut 1. */
   dayAgilityFactor?: number;
-  /** Progression du jour FIGÉE pendant que la cascade d'Exposition hydrique (purpose `riverExposure`) est
-   *  ouverte : la halte de nuit / l'arrivée sont DIFFÉRÉES à sa clôture (`continueRiverDayAfterExposure`,
-   *  #344). Transitoire — jamais persisté au-delà d'une journée. */
-  pendingFinish?: { kmDay: number; dayLines: string[] };
+  /** Progression figée pendant le Test hydrique, puis récapitulatif de la journée pendant les Tests de Contraction. */
+  pendingFinish?: { kmDay: number; dayLines: string[] } | { recap: TravelRecapDay; journalMark: number };
 }
 
 /** Entrées de VITESSE d'une journée fluviale, figées au build de la cascade du jour (vent) et
@@ -521,19 +522,28 @@ function marqueExpositionDuJour(get: Get, set: Set): boolean {
   return true;
 }
 
-/** Reprise de la FIN du jour fluvial après la cascade d'Exposition hydrique (purpose `riverExposure`,
- *  posée par `continueRiverDayAfterCascade`) : la halte de nuit / l'arrivée, DIFFÉRÉES le temps du Test de
- *  Résistance. Rejoue `finishRiverDay` avec la progression du jour FIGÉE (`river.pendingFinish`). */
+/** Reprise après l'Exposition hydrique, puis après les Tests de Contraction si la journée en comporte. */
 export function continueRiverDayAfterExposure(get: Get, set: Set): void {
   const plan = get().travelPlan;
-  if (!plan?.river) return;
-  const fin = plan.river.pendingFinish;
+  const river = plan?.river;
+  const fin = river?.pendingFinish;
+  if (!plan || !river || !fin) return;
   const worldMap = get().worldMap as WorldMap;
   const route = worldMap?.routes.find((r) => r.id === plan.routeId);
   const to = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
-  set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, pendingFinish: undefined } } });
   if (!route || !to) { set({ travelPlan: null }); return; }
-  finishRiverDay(get, set, to, fin?.kmDay ?? 0, fin?.dayLines ?? []);
+  if ('kmDay' in fin) {
+    finishRiverDay(get, set, fin.kmDay, fin.dayLines);
+    return;
+  }
+
+  set({ travelPlan: { ...plan, river: { ...river, pendingFinish: undefined } } });
+  if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to); return; }
+
+  fin.recap.lines.push(...toRecapLines(get().journal.slice(fin.journalMark)));
+  // MDG 03 l.71
+  const places = { ...placesOfKind(route.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
+  ouvrirLeRepos(get, set, { places, lieu: routeLieu(worldMap, plan), travelHalt: true, travelDay: fin.recap });
 }
 
 /**
@@ -822,16 +832,14 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   return st ? [st] : [];
 }
 
-/** Fin de journée : horloge avancée (arrivée = +24 h ; halte = jusqu'au crépuscule), puis arrivée ou
- *  halte de nuit (la coque est déjà PERSISTÉE au coup par coup, `damageVesselHull`/`healVesselHull`,
- *  #296). L'entretien du jour se résout dans la cascade de nuit. */
-function finishRiverDay(get: Get, set: Set, to: MapPlace, kmDay: number, dayLines: string[]): void {
+/** LDB 20 l.206 ; MDG 14 l.208 */
+function finishRiverDay(get: Get, set: Set, kmDay: number, dayLines: string[]): void {
   const plan = get().travelPlan!;
   const river = plan.river!;
 
   // Naufrage : voyage perdu.
   if (river.sunk) {
-    get().avancerLHorloge(24 * 60);
+    get().avancerLHorloge(MINUTES_PER_DAY);
     set({ travelPlan: null });
     log(get, set, [t('fleuve.naufrage')]);
     return;
@@ -848,22 +856,28 @@ function finishRiverDay(get: Get, set: Set, to: MapPlace, kmDay: number, dayLine
   // UN SEUL franchissement de jour par cycle jour+nuit (comme le voyage terrestre).
   // L'ENTRETIEN n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans la
   // cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
-  get().avancerLHorloge(arrived ? 24 * 60 : minutesUntilNext(get().gameTime, duskMinute()));
+  const minutes = arrived ? MINUTES_PER_DAY : minutesUntilNext(get().gameTime, duskMinute());
+  const navireDeCampagne = estLeNavireDeCampagne(plan.vehicle, get().vessel);
+  const voyageurs = porteursABord(get, set).filter(({ id }) => navireDeCampagne || id !== WORLD_STEP_OWNER);
+  const dus = calculerLesTestsDExposition(get, set, minutes, [voyageurs]);
+  get().avancerLHorloge(minutes);
+  const recap: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(dayLines) };
   set({
     travelPlan: {
       ...get().travelPlan!, kmDone,
-      river: { ...river, windForce: nextForce, daysAfloat: river.daysAfloat + 1 },
+      river: {
+        ...river, windForce: nextForce, daysAfloat: river.daysAfloat + 1,
+        pendingFinish: { recap, journalMark: get().journal.length },
+      },
     },
   });
 
-  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(dayLines) };
-
-  if (arrived) { arriveRiver(get, set, to); return; }
-  const route = (get().worldMap as WorldMap)?.routes.find((r) => r.id === plan.routeId);
-  // Sur la rivière on peut mouiller le long de la berge : coucher À BORD (hamacs, MDG 03 l.71) offert
-  // en plus du campement/de l'auberge de la halte — la belle étoile sur la berge reste possible.
-  const places = { ...placesOfKind(route?.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
-  ouvrirLeRepos(get, set, { places, lieu: routeLieu(get().worldMap!, plan), travelHalt: true, travelDay: recapDay });
+  const steps = bandesDeContagion(get, set, dus);
+  if (steps.length) {
+    jouerLaJournee(get, set, steps, { title: t('fleuve.titreDeLaJournee'), purpose: 'riverExposure' }, traverseeCommandee(get()));
+  } else {
+    continueRiverDayAfterExposure(get, set);
+  }
 }
 
 /** `reparationTemporaireFluviale` du bateau de la route, tant qu'il flotte. MSRC 7 l.117 */

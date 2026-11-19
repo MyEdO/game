@@ -1,5 +1,5 @@
 /** Tests de scène hors combat : Test simple, Test étendu (LDB 12), enfoncer une porte (EDO Appendice 2). */
-import { reprendreLaSuite, runFlow, cloturer } from './combatEffects';
+import { reprendreLaSuite, runFlow, cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { battleRng } from './battleRng';
 import { touchActors } from './combatOrParty';
@@ -214,6 +214,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
         // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
         const branch = effSuccess ? pt.onSuccess : pt.onFailure;
+        const avant = comptePasDifferes(get());
         const issue = pt.subi
           ? reprendreTestSubi(get, set, pt, effSuccess)
           : runFlow(get, set, { kind: 'sequence', etapes: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
@@ -227,7 +228,9 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         const clotures: Cloture[] = [];
         if (!effSuccess && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
         if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
-        cloturer(get, set, issue, clotures);
+        const suiteDeLHote = fermee?.participants[fermee.cursor]?.meta?.apresSuite ?? [];
+        clotures.push(...suiteDeLHote);
+        cloturer(get, set, comptePasDifferes(get()) > avant ? OPS_DIFFEREES : issue, clotures);
         // Le Test d'un événement d'escale se clôt par la sortie d'hôte, sans `dispatchCascadeDone` : l'accostage que portait la
         // séquence qu'elle a fermée suit la branche, avant la reprise de la pile. Une séquence qui continue l'accoste à son dénouement.
         if (fermee?.portArrival) poursuivreLAccostage(get, set, fermee.portArrival);

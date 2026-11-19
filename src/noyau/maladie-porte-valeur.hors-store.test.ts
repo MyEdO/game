@@ -145,8 +145,8 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
   });
 
   it('sommeil MULTI-JOURS : chaque Test résolu d’office LAISSE SA LIGNE — dé, cible et issue', () => {
-    // Un second héros valide : la Fièvre peut mettre Hilda à terre, le groupe reste viable (`checkPartyWiped`).
-    banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
+    // Hans reste valide si la Fièvre met Hilda à terre (`checkPartyWiped`).
+    banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans', diseaseImmunities: ['pneumonie'] })] }));
     rendMalade('h1', 'pneumonie', 0);
     const journal: string[] = [];
     const vraiLog = banc.getState().ecrireAuJournal;
