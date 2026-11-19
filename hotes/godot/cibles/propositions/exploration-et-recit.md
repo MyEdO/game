@@ -24,7 +24,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - À valider : verbes du survol dans l'infobulle ; chef du groupe seul déplacé ; aucune barre d'actions hors combat.
 
 ## dialogue
-- La fenêtre du bas de 266 : à gauche le héros qui « portera le Test », au centre ses réponses numérotées, un Test
+- La fenêtre du bas : à gauche le héros qui « portera le Test », au centre ses réponses numérotées, un Test
   de Charme en étiquette sur la réponse qui le demande, un prix sur celle qui coûte ; à droite le PNJ, son titre et
   sa réplique. Le testeur se change au bandeau du jet (`jetRegler('test','testeur', id)`).
 - À valider : le coût d'une réponse (« 4 sc ») dit sans payeur, le noyau le prend au total des bourses

@@ -1,10 +1,12 @@
 /* La carte de Bögenhafen, à l'encre sur le parchemin, et ses lieux : l'emplacement de chacun sur la carte (844 × 572),
    son pictogramme. `dessinerLaVille(svg, epingles)` la trace dans `svg` et y plante une épingle par lieu, rouge pour le
    lieu choisi. Posé par `../rendu.js` (écran `interlude`). */
+// un lieu par rang de 65 unités de haut (45 px dans le cadre), son étiquette ouverte vers l'intérieur, à gauche et à
+// droite en alternance : deux étiquettes voisines ne se touchent pas, et les noms de la carte tiennent dans l'autre moitié
 const LIEUX_DE_LA_VILLE = {
-  taverne: { x: 214, y: 298, icone: 'chope' }, temple: { x: 432, y: 206, icone: 'livre' }, forge: { x: 650, y: 122, icone: 'enclume' },
-  caserne: { x: 700, y: 330, icone: 'bouclier' }, comptoir: { x: 548, y: 462, icone: 'pieces' }, quais: { x: 356, y: 398, icone: 'ancre' },
-  armes: { x: 268, y: 524, icone: 'epee' }, camp: { x: 60, y: 120, icone: 'epee' },
+  camp: { x: 57, y: 80, icone: 'epee' }, forge: { x: 673, y: 145, icone: 'enclume' }, temple: { x: 171, y: 210, icone: 'livre' },
+  caserne: { x: 673, y: 275, icone: 'bouclier' }, taverne: { x: 171, y: 340, icone: 'chope' }, comptoir: { x: 673, y: 405, icone: 'pieces' },
+  quais: { x: 171, y: 470, icone: 'ancre' }, armes: { x: 673, y: 535, icone: 'epee' },
 };
 const dessinerLaVille = (M, epingles) => {
   const encre = '#3a2a18';
@@ -32,12 +34,12 @@ const dessinerLaVille = (M, epingles) => {
   for (const [x, y] of [[148, 300], [802, 300], [500, 74], [420, 542]]) el(M, 'path', { d: `M${x - 8},${y + 7}v-12h4v-4h8v4h4v12z`, fill: encre });
   el(M, 'path', { d: `M452,${riv(452) - 24}L470,${riv(470) + 24}`, stroke: '#e6d5ad', 'stroke-width': 11 });
   el(M, 'path', { d: `M452,${riv(452) - 24}L470,${riv(470) + 24}M441,${riv(452) - 20}L459,${riv(470) + 28}M463,${riv(452) - 28}L481,${riv(470) + 20}`, stroke: encre, 'stroke-width': 1.6 });
-  // les noms
   const nom = (x, y, t, o = {}) => el(M, 'text', { x, y, 'text-anchor': 'middle', 'font-family': 'Fell', 'font-style': 'italic', 'font-size': 15, fill: encre, opacity: .85, ...o }, t);
-  nom(400, 138, 'la Fosse'); nom(610, 214, 'Quartier des artisans'); nom(206, 358, 'Altstadt'); nom(548, 268, 'Göttenplatz'); nom(676, 404, 'Teuerberg'); nom(600, 512, 'Dreieckeplatz'); nom(420, 500, 'Adel Ring');
-  nom(744, 250, 'la Bögen', { 'font-size': 12, fill: '#3f5a60', transform: 'rotate(-22 744 250)' });
+  // les noms, dans la moitié de chaque rang que l'étiquette du lieu laisse libre (`LIEUX_DE_LA_VILLE`)
+  nom(148, 105, 'la Fosse'); nom(694, 171, 'Quartier des artisans'); nom(148, 236, 'Altstadt'); nom(640, 301, 'Göttenplatz'); nom(200, 366, 'Teuerberg'); nom(148, 496, 'Dreieckeplatz'); nom(650, 431, 'Adel Ring');
+  nom(790, 431, 'la Bögen', { 'font-size': 12, fill: '#3f5a60', transform: 'rotate(-22 790 431)' });
   const petit = (x, y, t) => el(M, 'text', { x, y, 'text-anchor': 'middle', 'font-family': 'Fell SC', 'font-size': 10.5, 'letter-spacing': 1, fill: encre, opacity: .8 }, t);
-  petit(86, 290, 'Porte Ouest'); petit(560, 60, 'Porte de l’Eau'); petit(806, 284, 'Porte Est'); petit(478, 564, 'La Poterne');
+  petit(55, 366, 'Porte Ouest'); petit(694, 40, 'Porte de l’Eau'); petit(790, 301, 'Porte Est'); petit(422, 556, 'La Poterne');
   // la rose des vents
   const c = el(M, 'g', { transform: 'translate(70,500)', stroke: encre, fill: 'none', 'stroke-width': 1, opacity: .7 });
   el(c, 'circle', { r: 16 }); el(c, 'path', { d: 'M0,-26L5,0L0,26L-5,0ZM-26,0L0,-5L26,0L0,5Z' });

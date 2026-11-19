@@ -24,7 +24,7 @@ import { byId, maladies, species, symptoms } from '../data';
 import { setDataset, resetData } from '../data/overrides';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 import type { Combatant } from '../engine/types';
-import { buildEncounter } from './monde/encounterAuthoring';
+import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { emptyScene, type Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { formatDice, type RNG } from '../engine/dice';
@@ -41,10 +41,10 @@ import { applierDe, runCascadeImmediate, startCascade, stepInteraction, tableSpe
 import { feedFromMeal, noterLeRepas } from '../engine/provisions';
 import { duskMinute, minutesUntilNext, MINUTES_PER_DAY } from '../engine/clock';
 import type { Id } from '../data/schemas/grammaire/ref';
+import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, draineEtapes, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { savoirOceansBonus } from '../engine/seaNavigation';
-import { visibilityDef } from '../engine/seaWeather';
 import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { STAKES, findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
@@ -880,12 +880,71 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     expect(Number(jour.phare!.meta?.aggregateFlatDR ?? 0)).toBe(Number(jour.progression!.meta?.aggregateFlatDR ?? 0));
   });
 
+  const visibilites = [
+    ['brume', 'Brume', -1],
+    ['brouillard', 'Brouillard', -2],
+    ['puree-de-pois', 'Purée de pois', -3],
+  ] as const;
+
   // MDG 13 l.234-243, l.337, l.351
-  it.each(['phare', 'clocher'] as const)('Brouillard : le Test de repérage du %s porte la pénalité de Visibilité s’il se fait à la vue', (signal) => {
-    const drPlat = (visibilite: string) => Number(premierJourDeMer(1, signal, visibilite).phare!.meta?.aggregateFlatDR ?? 0);
-    const penalite = visibilityDef('brouillard').drPenalty!;
-    expect(penalite).toBeLessThan(0);
-    expect(drPlat('brouillard') - drPlat('degage')).toBe(signal === 'phare' ? penalite : 0);
+  it.each(visibilites)('%s : DR du repérage du phare, du clocher et cible du d100', (visibilite, label, value) => {
+    function reperer(signal: SignalDuPort, meteo: string) {
+      const { phare, progression } = premierJourDeMer(1, signal, meteo);
+      expect(phare?.kind).toBe('equipage-phare');
+      expect(progression?.kind).toBe('equipage-progression');
+      expect(progression!.meta?.aggregateDRMods ?? []).toEqual([]);
+      avanceEtapeCascade(get, () => 29);
+      const joue = get().pendingCascade?.participants.find((st) => st.id === phare!.id);
+      return { mods: phare!.meta?.aggregateDRMods ?? [], result: joue!.result!, rangs: joue!.participants!.map((part) => part.result) };
+    }
+    const phareDegage = reperer('phare', 'degage');
+    const phareMasque = reperer('phare', visibilite);
+    const clocherDegage = reperer('clocher', 'degage');
+    const clocherMasque = reperer('clocher', visibilite);
+    expect(phareDegage.mods).toEqual([]);
+    expect(phareMasque.rangs).toEqual(phareDegage.rangs);
+    expect(phareMasque.result.sl).toBe(phareDegage.result.sl + value);
+    expect(phareMasque.mods).toEqual([{ label, value, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]);
+    expect(clocherDegage.mods).toEqual([]);
+    expect(clocherMasque).toEqual(clocherDegage);
+  });
+
+  // MDG 13 l.309-311 ; MDG 14 l.13-19
+  it.each(visibilites)('%s : la Vigie et le Navigateur prennent un seul malus au total de l’Orientation', (visibilite, label, value) => {
+    function orienter(meteo: string) {
+      freshLighthouseState(1000, 'phare', meteo);
+      const [vigie, navigateur] = get().party;
+      set({ party: [
+        { ...vigie, shipRole: 'vigie' },
+        { ...navigateur, shipRole: 'navigateur', skills: [...navigateur.skills, { id: 'orientation', characteristic: 'intelligence', advances: 20 }] },
+      ] });
+      get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+      for (let i = 0; i < 30; i++) {
+        const p = get().pendingCascade;
+        const step = p?.participants[p.cursor];
+        if (!step || step.kind === 'equipage-orientation') break;
+        if (step.kind === 'equipage-progression') expect(step.meta?.aggregateDRMods ?? []).toEqual([]);
+        avanceEtapeCascade(get, () => 29);
+      }
+      const p = get().pendingCascade!;
+      const orientation = p.participants[p.cursor];
+      expect(orientation.kind).toBe('equipage-orientation');
+      expect(orientation.participants!.map((part) => [part.roleId, part.essential])).toEqual([['vigie', false], ['navigateur', true]]);
+      avanceEtapeCascade(get, () => 29);
+      const compteRendu = get().journal.find((l) => l.startsWith('Orientation (DR '));
+      expect(compteRendu).toBeDefined();
+      return {
+        mods: orientation.meta?.aggregateDRMods ?? [],
+        dr: Number(compteRendu!.match(/DR ([+-]\d+)/)?.[1]),
+        cibles: orientation.participants!.map((part) => part.target),
+      };
+    }
+    const degage = orienter('degage');
+    const masque = orienter(visibilite);
+    expect(degage.mods).toEqual([]);
+    expect(masque.cibles).toEqual(degage.cibles);
+    expect(masque.dr).toBe(degage.dr + value);
+    expect(masque.mods).toEqual([{ label, value, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]);
   });
 
   it('clocher : le Test de Perception est AUDITIF — la Vigie SOURDE y est pénalisée (MDG 13 l.351)', () => {
@@ -1180,16 +1239,88 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     s.entities.push(...enc.entities); s.encounters = [enc.encounter];
     return s;
   }
-  function freshAmbush(worldMap: WorldMap = abordageMap) {
+  function freshAmbush(worldMap: WorldMap = abordageMap, scene = abordageScene()) {
     seedBattleRng(1); // RNG semé : le jour joué directement à l'étape 'equipage-embuscade' ne tire AUCUN événement de bord
     set({
       party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
       pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
-    get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap, projet: null });
+    get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), scene], entryId: 'port-a', worldMap, projet: null });
     set({ vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); // lancerLaScene remet le vessel de campagne — repose-le
   }
+
+  function abordageAvecCoques(ecartEnCases: number, metresPerTile = 1, alliees: AuthoredEnemy[] = [
+    { vehicule: { id: 'cogue' }, side: 'allie', navireDeCampagne: true, pos: { x: 1, y: 5 } },
+  ]) {
+    const scene = emptyScene('ls-abordage', ecartEnCases + 10, 10);
+    scene.metresPerTile = metresPerTile;
+    const enc = buildEncounter({
+      id: 'enc-abordage',
+      enemies: [...alliees, { vehicule: { id: 'cogue' }, pos: { x: 1 + ecartEnCases, y: 5 } }],
+    });
+    scene.entities = enc.entities;
+    scene.encounters = [enc.encounter];
+    return scene;
+  }
+
+  function jourDAbordageAvecVisibilite(visibilite: NonNullable<MeteoImposee['visibilite']>['id'], scene = abordageScene()) {
+    freshAmbush(abordageMap, scene);
+    set({ vessel: {
+      ...get().vessel!,
+      meteosImposees: [{ label: 'Visibilité du banc', jusqua: get().gameTime + MINUTES_PER_DAY, meteo: { visibilite: { id: visibilite } } }],
+    } });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', abordageMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, kmDone: 280 } });
+    runSeaDay(get, set);
+    for (let i = 0; i < 30; i++) {
+      const p = get().pendingCascade;
+      const step = p?.participants[p.cursor];
+      if (!step || step.kind === 'equipage-embuscade') break;
+      avanceEtapeCascade(get, () => 29);
+    }
+    const p = get().pendingCascade!;
+    const step = p.participants[p.cursor];
+    expect(step.kind).toBe('equipage-embuscade');
+    avanceEtapeCascade(get, () => 29);
+    const joue = get().suspendedCascades.flatMap((suite) => suite.participants).find((st) => st.id === step.id);
+    expect(get().battle).toBeTruthy();
+    return { mods: step.meta?.aggregateDRMods ?? [], dr: joue!.result!.sl, rangs: joue!.participants!.map((part) => part.result) };
+  }
+
+  // MDG 13 l.234-243 ; MDG 14 l.80-85
+  it.each([
+    ['brume', 20, 'Brume', -1],
+    ['brouillard', 10, 'Brouillard', -2],
+    ['puree-de-pois', 5, 'Purée de pois', -3],
+  ] as const)('%s : la Vigie teste à %s m et un mètre plus loin, à l’ouverture préparée', (visibilite, seuil, label, value) => {
+    const auSeuil = jourDAbordageAvecVisibilite(visibilite, abordageAvecCoques(seuil));
+    const auDela = jourDAbordageAvecVisibilite(visibilite, abordageAvecCoques(seuil + 1));
+    const degage = jourDAbordageAvecVisibilite('degage', abordageAvecCoques(seuil + 1));
+    expect(auSeuil).toEqual(degage);
+    expect(auDela.rangs).toEqual(degage.rangs);
+    expect(auDela.dr).toBe(degage.dr + value);
+    expect(auDela.mods).toEqual([{ label, value, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]);
+  });
+
+  it('Brouillard à 20 m de la coque d’embarquement malgré une autre coque déclarée à 10 m', () => {
+    const rencontre = () => abordageAvecCoques(4, 5, [
+      { label: 'Coque de la Vigie', vehicule: { id: 'cogue' }, side: 'allie', pos: { x: 1, y: 5 } },
+      { label: 'Autre coque', vehicule: { id: 'langskip' }, side: 'allie', navireDeCampagne: true, pos: { x: 3, y: 5 } },
+    ]);
+    const degage = jourDAbordageAvecVisibilite('degage', rencontre());
+    const brouillard = jourDAbordageAvecVisibilite('brouillard', rencontre());
+    const coque = get().battle!.combatants.find((c) => c.label === 'Coque de la Vigie');
+    expect(coque?.crewIds).toEqual(expect.arrayContaining(get().party.map((h) => h.id)));
+    expect(brouillard.dr).toBe(degage.dr - 2);
+    expect(brouillard.mods).toEqual([{ label: 'Brouillard', value: -2, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]);
+  });
+
+  it('sans coque hostile authorée, l’ancrage de route ne devient pas une distance de repérage', () => {
+    const degage = jourDAbordageAvecVisibilite('degage');
+    expect(jourDAbordageAvecVisibilite('brouillard')).toEqual(degage);
+    expect(degage.mods).toEqual([]);
+  });
 
   it('franchissement de l’ancrage (kmDone ≥ at × km) → Test de Perception PUIS abordage, une seule fois — la cascade-jour SURVIT au combat (#284/#275)', () => {
     freshAmbush();

@@ -46,6 +46,7 @@ import {
   resolveGrappleWin,
   applyAttackResult,
   jouerLesTirsDeBordee,
+  modificateursDeVisibiliteDuTir,
   openSurfacedDefense,
   castSpell,
   applyCast,
@@ -159,7 +160,7 @@ import {
 import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
-import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
+import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique, sommeDesModificateursDR } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, setEngaged, clearContact, meleeReachRank } from '../engine/engagement';
 import { clearGrapple, setGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -434,6 +435,11 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
     undercrew: shipUndercrew(get, ship, battle.combatants),
     ...(extraDR ? { extraDR } : {}),
   };
+}
+
+function visibiliteDeLaBordee(get: Get, ship: Combatant, target: Combatant) {
+  const { scene } = get();
+  return modificateursDeVisibiliteDuTir(get, distanceDeCombat(scene, ship, target) * sceneMetresPerTile(scene));
 }
 
 /** Ligne de journal des SERVANTS d'une bordée (MDG 14 l.39 — l'équipage s'exprime, jamais un poste muet) : un PJ
@@ -1138,8 +1144,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos, target.pos); // bord qui porte (auto-dérivé de la cible)
       const opened = openCrewTestPending(get, ship, 'batterie'); // Artilleurs (UN jet/poste)
       if (!opened) return; // aucun Artilleur apte → pas de bordée
+      const modsDR = visibiliteDeLaBordee(get, ship, target);
+      const extraDR = (opened.extraDR ?? 0) + sommeDesModificateursDR(modsDR);
       set({
-        pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened },
+        pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened, ...(modsDR.length ? { modsDR, extraDR } : {}) },
         battle: { ...battle, action: null, preview: null },
       });
       for (const part of opened.participants) if (!part.interactive) get().jetLancer('tirDeBatterie', part.id); // témoins (marins PNJ) auto-roulés
@@ -1161,7 +1169,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const assignments = shipCrewAssignments(ship, battle.combatants, 'batterie', navigation); // équipage abstrait → rôles tenus (Artilleur ★)
       const undercrew = shipUndercrew(get, ship, battle.combatants);
       const traits = hullNavalTraits(ship);
-      const extraDR = shipSaboteurDR(ship) + navalTestTypeDR(traits, 'batterie');
+      const visibilityDR = sommeDesModificateursDR(visibiliteDeLaBordee(get, ship, target));
+      const extraDR = shipSaboteurDR(ship) + navalTestTypeDR(traits, 'batterie') + visibilityDR;
       // DR partagé calé sur le chemin JOUEUR (`maneuverCrewTotal`) : Σ contributions (essentiel ×2) + Moral +
       // Manque de bras (−2/tranche) + sabotage/traits ; plafonné à un Succès Minime dès qu'une tranche manque (l.55).
       const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', shipMoraleScore(get, ship), navigation, battleRng(), { extraDR: undercrew.dr + extraDR });

@@ -801,6 +801,7 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     // #1684 — les deux catalogues de cargaisons fusionnent en `cargoes` : chaque entrée cite sa table
     // (MDG 15, MSRC 13).
     'cargoes.json · source',
+    'siege-engines.json · source',
   ];
 
   it('la 1ʳᵉ entrée réelle de chaque def adopté est ACCEPTÉE — témoin positif de chaque paire', () => {

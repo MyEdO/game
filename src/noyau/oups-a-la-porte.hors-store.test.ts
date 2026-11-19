@@ -41,7 +41,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 import { markFixedDie } from './fixedDieMark';
 import { battleRng, seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
-import { armeDeTest } from '../engine/objetsDeTest.testkit';
+import { armeDePosteDeTest } from '../engine/objetsDeTest.testkit';
 import { oupsMisfire } from '../data/oups';
 import { t } from '../i18n';
 
@@ -155,7 +155,7 @@ describe('Incident de tir : le jet de la Maladresse décide, sans Tableau des Ou
   });
 
   it('un canon de siège (Groupe poudre-noire, AA 10 l.150) : jet pair → raté', () => {
-    const canon = { ...armeDeTest('canon-petit'), uid: 'canon' };
+    const canon = { ...armeDePosteDeTest('canon-petit'), uid: 'canon' };
     tirRateSur(66, canon);
     expect(etapesDeMaladresse()).toEqual([]);
     expect(lignesLues(), lignesLues().join(' | ')).toContain(t('cf.oups', { name: 'bretteur', effet: oupsMisfire().label }));

@@ -59,6 +59,7 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
+import { visibilityTestDRMods } from '../engine/seaWeather';
 import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 import {
   resolveMelee,
@@ -101,6 +102,7 @@ import {
   defenseTargetMods,
   composeAttack,
   frozenDifficulty,
+  hydrateAttackTR,
   type DifficultyShown,
   defenseValue,
   defenseValueModParts,
@@ -853,7 +855,6 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   const w = b
     ? pickAttackWeaponList(get().scene, b.combatants, active, target, weaponUid)
     : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(get().scene, active, target) <= meleeReachTiles(active.weapons, sceneMetresPerTile(get().scene)));
-  const distanceTiles = b ? distanceDeCombat(get().scene, attackGeomOf(b, active, w), combatGeomOf(b, target)) : distanceDeCombat(get().scene, active, target);
   if (!effectifDeLArmeSuffisant(active, w, b?.combatants ?? []))
     return { reason: 'sous-effectif', detail: `${active.label} : Équipe trop réduite pour servir ${w.label}.` };
   if (w.type !== 'distance') return null;
@@ -873,6 +874,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // plus PROCHE que la bande minimale de l'arme — machines à distance : pas de Bout Portant (l.253) ;
   // trébuchet/mortier : rien sous la Portée Courte (l.251). DONNÉE générique `w.minRangeBand` (pas un flag par-machine).
   if (w.minRangeBand) {
+    const distanceTiles = distanceDeLAttaque(get(), active, target, w);
     const rangeM = porteeDeTir(active, w);
     if (rangeM != null && belowMinRangeBand(distanceTiles, rangeM, w.minRangeBand, sceneMetresPerTile(get().scene)))
       return { reason: 'portee-min', detail: `${w.label} ne peut pas tirer d'aussi près (${rangeBandName(distanceTiles, rangeM, sceneMetresPerTile(get().scene)) ?? 'trop proche'}).` };
@@ -1105,6 +1107,16 @@ export function withAttackerAt(battle: BattleState, attacker: Combatant): Battle
   return { ...battle, combatants };
 }
 
+export function modificateursDeVisibiliteDuTir(get: Get<Jeu>, distanceM: number): ModLine[] {
+  return visibilityTestDRMods(get().travelPlan?.sea?.weather.visibilite, distanceM);
+}
+
+function visibiliteDeLAttaque(get: Get<Jeu>, weapon: Weapon, distanceM: number, tirIndirect = false): ModLine[] {
+  return weapon.type === 'distance' && !weapon.resolveChar && !tirIndirect
+    ? modificateursDeVisibiliteDuTir(get, distanceM)
+    : [];
+}
+
 /** Environnement d'attaque (LdV/couvert/météo/mouvement/tir-mêlée/surnombre/monture) — SOURCE UNIQUE
  *  des modificateurs positionnels/scéniques, partagée par la RÉSOLUTION (`resolveAttack`) ET l'APERÇU
  *  (`previewAttack`), pour que l'aperçu affiche EXACTEMENT ce que le jet appliquera (R4). Pur (lit l'état).
@@ -1220,6 +1232,17 @@ export function attackEnv(
   return { env, blocked: false, inMelee: false, crowd: [], cm: null, sc, flankRear };
 }
 
+/** Distance en cases entre les corps qui portent l'attaque et sa cible (LDB 14 l.175-187). */
+export function distanceDeLAttaque(
+  { scene, battle }: Pick<Jeu, 'scene' | 'battle'>,
+  attacker: Combatant, target: Combatant, weapon: Weapon,
+): number {
+  const mesurer = weapon.type === 'distance' ? distanceDeCombat : distanceDeContact;
+  return battle
+    ? mesurer(scene, attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target))
+    : mesurer(scene, attacker, target);
+}
+
 export function resolveAttack(
   get: Get,
   attacker: Combatant,
@@ -1230,35 +1253,31 @@ export function resolveAttack(
   dansLeTas?: boolean,
   tirImmobile?: boolean,
   withhold?: boolean, // LDB 18 l.30 ; AA 07 l.59
+  tirIndirect?: boolean,
 ): { res: AttackResult; weapon: Weapon; victim?: Combatant } | null {
   // Hors bataille (série d'attaques subies, `serieSubie`), aucune file de combat.
-  const battle = get().battle;
-  const mpt = sceneMetresPerTile(get().scene);
+  const s = get();
+  const { battle } = s;
+  const mpt = sceneMetresPerTile(s.scene);
   // Restriction d'armes à distance de la rencontre (#471, `EncounterDef.banRanged`, NADJ 06 l.181) —
   // convergence UNIQUE joueur ET IA (tout tir passe par `resolveAttack`) : refus AVANT le jet, même
   // chemin de refus silencieux que la LdV bloquée ci-dessous (`blocked`). Défaut effectif : `banRangedActive`.
   if (banRangedActive(battle) && weapon.type === 'distance') return null;
-  // Distance de COMBAT PAR L'ARME EFFECTIVEMENT tirée (#BUG-A, suite LDB 14) : géométrie de la MONTURE
-  // (cavalier/cible monté — sinon une attaque de charge qui rapproche la MONTURE au contact serait jugée
-  // hors d'allonge sur le cavalier 1×1 → `null`, cascade d'attaque ORPHELINE) OU de la COQUE SEULEMENT si
-  // `weapon` est la pièce de mêlée servie — jamais pour une arme personnelle (`attackGeomOf`).
-  const distanceSur = (grille: BattleState) => {
-    const a = attackGeomOf(grille, attacker, weapon), t = combatGeomOf(grille, target);
-    return weapon.type === 'melee' ? distanceDeContact(get().scene, a, t) : distanceDeCombat(get().scene, a, t);
-  };
-  // La série d'attaques subies déclare le contact de mêlée, sans case (MDG 15 l.163-164) ; hors d'elle, la grille de
-  // la bataille le mesure (Allonge incluse, RAW-3).
-  if (weapon.type === 'melee' && !auContactDeLaSerie(get(), attacker, target)
-    && distanceSur(garanti(battle, attacker.id, 'combat de la mêlée')) > reachTiles(weapon, mpt)) return null;
+  // La série d'attaques subies déclare le contact de mêlée, sans case (MDG 15 l.163-164).
+  if (weapon.type === 'melee' && !auContactDeLaSerie(s, attacker, target)) {
+    const grille = garanti(battle, attacker.id, 'combat de la mêlée');
+    if (distanceDeLAttaque({ scene: s.scene, battle: grille }, attacker, target, weapon) > reachTiles(weapon, mpt)) return null;
+  }
   // (Sonné → +1 Avantage à l'attaquant en mêlée, LDB 16 l.125 : DÉJÀ géré par le flux d'attaque existant.)
   const { env, blocked, inMelee, crowd, cm, flankRear } = attackEnv(get, attacker, target, weapon, { dansLeTas, tirImmobile });
   if (blocked) return null; // pas de Ligne de Vue (mur/décor/fumée) → pas de tir (LDB 13 l.114)
   if (weapon.type === 'distance') {
     const grille = garanti(battle, attacker.id, 'combat du tir');
-    const dist = distanceSur(grille);
+    const dist = distanceDeLAttaque(s, attacker, target, weapon);
+    const modsDR = visibiliteDeLAttaque(get, weapon, dist * mpt, tirIndirect);
     // « Tirer dans le tas » (LDB 14 l.106) : un ennemi AU HASARD est touché ; succès dû au seul bonus = 0 DR.
     if (dansLeTas) {
-      const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt, withhold);
+      const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt, withhold, modsDR);
       if (res.hit && crowd.length) {
         const victim = crowd[battleRng().int(0, crowd.length - 1)]; // « appliqué au hasard parmi les cibles éligibles »
         const ad = res.attackerDetail!;
@@ -1282,7 +1301,7 @@ export function resolveAttack(
         const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
         return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
-    const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold);
+    const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt, withhold, modsDR);
     // Tir dans la mêlée (LDB 14 l.116) : si sa pénalité a transformé une réussite en échec, le tir dévie
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
@@ -1367,6 +1386,7 @@ export function ciblesDeLaDoubleFrappe(s: Jeu): Combatant[] {
  *  `inRange` = cible atteignable (mêlée : Allonge ; tir : dans une bande de portée) ; `blocked` = tir sans LdV. */
 export interface AttackPreview {
   weapon: Weapon; kind: 'melee' | 'distance'; inRange: boolean; blocked: boolean; target: number; mods: ModLine[];
+  modsDR?: ModLine[];
   /** Difficulté du jet d'attaque, POSÉE À LA SOURCE — LDB 13 l.118 : « Lors d'un Combat, les Difficultés
    *  sont supposées être au niveau Intermédiaire (+0). » L'affichage la rend, il ne la devine pas.
    *  Quand des circonstances en composent un autre palier (`LDB 14 l.91-96`), c'est le monteur —
@@ -1394,21 +1414,15 @@ export function previewAttack(
   attacker: Combatant,
   target: Combatant,
   location?: HitLocation,
-  opts?: { dansLeTas?: boolean; tirImmobile?: boolean; weaponUid?: string; harpoonRopeCut?: boolean; weapon?: Weapon },
+  opts?: { dansLeTas?: boolean; tirImmobile?: boolean; weaponUid?: string; harpoonRopeCut?: boolean; weapon?: Weapon; tirIndirect?: boolean },
 ): AttackPreview {
-  const battle = get().battle;
-  const mpt = sceneMetresPerTile(get().scene);
+  const s = get();
+  const { battle } = s;
+  const mpt = sceneMetresPerTile(s.scene);
   // `weapon` : l'arme que le JET lira (`attackWeaponOf`, `armeDeLaGratuite`) ; absente = arme tirée.
   const weapon = opts?.weapon ?? firedWeapon(get().scene, attacker, target, opts?.weaponUid, battle?.combatants, opts?.harpoonRopeCut);
   const kind: 'melee' | 'distance' = weapon.type === 'distance' ? 'distance' : 'melee';
-  // Distance de COMBAT PAR L'ARME EFFECTIVEMENT visée (#BUG-A) : géométrie de la MONTURE pour un
-  // cavalier/cible monté (LDB 14 — le reach/la bande de portée se mesurent du couple, pas du cavalier 1×1),
-  // ou de la COQUE SEULEMENT si `weapon` est la pièce de mêlée servie (`attackGeomOf`) — jamais pour une
-  // arme personnelle. L'aperçu DOIT rejouer EXACTEMENT la même géométrie que `attackPlan`/la résolution.
-  const mesure = (a: Combatant, b: Combatant): number => (kind === 'melee' ? distanceDeContact(get().scene, a, b) : distanceDeCombat(get().scene, a, b));
-  const dist = battle
-    ? mesure(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target))
-    : mesure(attacker, target);
+  const dist = distanceDeLAttaque(s, attacker, target, weapon);
   // Estimation de dégâts (R4) : dégâts d'arme (Force incluse).
   const dmg = effectiveWeaponDamage(weapon, forceDuPorteur(attacker));
   const base = combatValue(attacker, kind, weapon);
@@ -1427,9 +1441,11 @@ export function previewAttack(
     actor: attacker, difficulty: 'intermediaire', combat: { kind, weapon },
     surLaCible: mods, plafond: 'difficultes',
   });
+  const modsDR = visibiliteDeLAttaque(get, weapon, dist * mpt, opts?.tirIndirect);
   return {
     weapon, kind, inRange, blocked: false,
     target: line.target, base: line.base, mods: line.mods,
+    ...(modsDR.length ? { modsDR } : {}),
     ...(line.clamped ? { clamped: line.clamped } : {}),
     dmg, difficulty: line.difficulty,
     ...(line.difficultyCombined != null ? { difficultyCombined: line.difficultyCombined } : {}),
@@ -3977,13 +3993,14 @@ type RefusDeDefenseReactive = 'defense-en-cours' | 'non-surfacee' | 'tir-non-opp
 /** Le verdict de la fenêtre de Défense réactive : son refus, ou son ouverture avec, contre un tir, les modes
  *  de défense que la fenêtre offrira. */
 function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant, weapon: Weapon | undefined):
-  { refus: RefusDeDefenseReactive } | { refus: null; modesDeTir?: ReturnType<typeof rangedDefenseModes> } {
+  { refus: RefusDeDefenseReactive } | { refus: null; tir?: { distanceTiles: number; modes: ReturnType<typeof rangedDefenseModes> } } {
   if (defenseEnCours(s)) return { refus: 'defense-en-cours' };
   if (!defenseSurfaced(s, target)) return { refus: 'non-surfacee' };
   // TIR : LDB 62 l.296 ; LDB 14 l.40 ; LDB 14 l.44. LoS acquise : l'IA ne tire que si elle voit (doAttack).
   if (weapon?.type === 'distance') {
-    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target));
-    return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
+    const distanceTiles = distanceDeLAttaque(s, attacker, target, weapon);
+    const modes = rangedDefenseModes(attacker, target, weapon, distanceTiles, true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target));
+    return modes.length ? { refus: null, tir: { distanceTiles, modes } } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
   if (!auContactDeLaSerie(s, attacker, target) && distanceDeContact(s.scene, attacker, target) > reachTiles(weapon, sceneMetresPerTile(s.scene))) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
@@ -4014,15 +4031,15 @@ export function maybeOpenDefense(
   const verdict = verdictDeDefenseReactive(get(), attacker, target, weapon);
   if (verdict.refus === 'defense-en-cours') return refuserLaDefense(attacker, target);
   if (verdict.refus) return false;
-  if (verdict.modesDeTir) {
-    const modes = verdict.modesDeTir;
+  if (verdict.tir) {
+    const { modes, distanceTiles: dist } = verdict.tir;
     const mpt = sceneMetresPerTile(get().scene);
-    const dist = distanceDeCombat(get().scene, attacker, target);
     const { env } = attackEnv(get, attacker, target, weapon);
     const atk = rollRangedAttacker(attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
     const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, bouclierDuBinomeEnJeu(get(), target));
     // Composée HORS du littéral : la Difficulté du tir figé, avec les mêmes options que `rollRangedAttacker`.
-    const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'distance', distanceTiles: dist, env, metresPerTile: mpt }));
+    const modsDR = visibiliteDeLAttaque(get, weapon, dist * mpt);
+    const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'distance', distanceTiles: dist, env, metresPerTile: mpt }), modsDR);
     set({
       pendingDefense: {
         attackerId: attacker.id, defenderId: target.id, weapon, location: null, atk, env, atkCompo,
@@ -4087,7 +4104,10 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
   if (pa.siege) return false;
   if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
-  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(s.scene, attacker, target), true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target)).length > 0;
+  if (weapon.type === 'distance') {
+    const dist = pa.distanceTiles ?? distanceDeLAttaque(s, attacker, target, weapon);
+    return rangedDefenseModes(attacker, target, weapon, dist, true, sceneMetresPerTile(s.scene), bouclierDuBinomeEnJeu(s, target)).length > 0;
+  }
   return weapon.type === 'melee' && distanceDeContact(s.scene, attacker, target) <= reachTiles(weapon, sceneMetresPerTile(s.scene));
 }
 
@@ -4100,9 +4120,7 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
  */
 export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, target: Combatant, weapon: Weapon, pa: PendingAttack): boolean {
   if (!surfacedDefensePending(get(), attacker, target, weapon, pa)) return false;
-  const atk = hydrateTR(pa.result!.attackerDetail!);
-  const mpt = sceneMetresPerTile(get().scene);
-  const dist = distanceDeCombat(get().scene, attacker, target);
+  const atk = hydrateAttackTR(pa.result!.attackerDetail!);
   // Contexte d'OPPOSITION transporté À L'IDENTIQUE de l'appel inline (`resolveAttack`) : `env` (breakdown
   // d'attaque), « Retenir ses coups » (AA 07 l.59-61) et le proxy de Charge montée (LDB 14 l.183) — sans
   // eux, la même attaque donnerait des Dégâts différents selon qu'elle traverse ou non la fenêtre.
@@ -4116,7 +4134,10 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
     suite: { mode: 'pilotee' as const, pa: { ...pa, defended: true } },
   };
   if (weapon.type === 'distance') {
-    const binome = bouclierDuBinomeEnJeu(get(), target);
+    const s = get();
+    const mpt = sceneMetresPerTile(s.scene);
+    const dist = pa.distanceTiles ?? distanceDeLAttaque(s, attacker, target, weapon);
+    const binome = bouclierDuBinomeEnJeu(s, target);
     const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt, binome);
     const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt, binome);
     set({ pendingDefense: { ...base, mode: best?.mode ?? modes[0], parryWeaponUid: best?.parryWeapon?.uid, modes, distanceTiles: dist } });
@@ -5439,7 +5460,7 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   // d'une gratuite de créature comprise.
   const weapon = attackWeaponOf(get().scene, battle, attacker, target, pa);
   applyIncomingMeleeAdvantage(get, attacker, target, weapon); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
-  const r = resolveAttack(get, attacker, target, weapon, pa.location ?? undefined, pa.fromCharge, pa.dansLeTas, pa.tirImmobile, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
+  const r = resolveAttack(get, attacker, target, weapon, pa.location ?? undefined, pa.fromCharge, pa.dansLeTas, pa.tirImmobile, pa.withhold, pa.siege); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
   if (!r) {
     get().ecrireAuJournal(weapon.type === 'distance' ? tr('cf.ligneDeVueMasquee') : tr('cs.meleeOutOfRange'));
     set({ pendingAttack: null });
@@ -5451,8 +5472,8 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   // Résilience) re-dérivent AVEC eux, sans repasser par le choix d'arme (`pickAttackWeaponList`),
   // qui reprend la mêlée dès qu'elle est à portée. `weaponUid` n'est JAMAIS réécrit : il porte le
   // choix du JOUEUR, et son absence discrimine l'attaque naturelle (`attackWeaponOf`, #1026).
-  set({ pendingAttack: { ...pa, result: r.res, victimId: r.victim?.id, weapon: r.weapon,
-    distanceTiles: distanceDeCombat(get().scene, attacker, target), dodgeMods: defenseDodgeMods(get(), target) } });
+  const distanceTiles = weapon.type === 'distance' ? distanceDeLAttaque(get(), attacker, target, weapon) : distanceDeCombat(get().scene, attacker, target);
+  set({ pendingAttack: { ...pa, result: r.res, victimId: r.victim?.id, weapon: r.weapon, distanceTiles, dodgeMods: defenseDodgeMods(get(), target) } });
 }
 
 /** Test d'Incantation (verbe `lancer` du flux `incantation`, `FLOWS.incantation.onRoll`). */

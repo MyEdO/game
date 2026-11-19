@@ -98,7 +98,9 @@ import {
   navalPorts,
   findCreatureById,
   choixDeLaFeuilleDId,
+  findSiegeEngineById,
   findTrappingById,
+  libelleDAuteur,
   profilsStandard,
   refEstVolumique,
   siegeEngines,
@@ -166,7 +168,7 @@ export type Tool =
   // pose AUCUN décor : une volée est du relief, la traversée s'en dérive comme pour toute surface.
   | { mode: 'escalier'; toZ: number }
   // Emplacement de siège : pose une SceneEntity portant un poste d'artillerie (`trappingId` = engin du
-  // catalogue `armes-de-siege`). Le créneau (arc) et l'équipage s'éditent ensuite dans l'inspecteur.
+  // catalogue `siege-engines.json`). Le créneau (arc) et l'équipage s'éditent ensuite dans l'inspecteur.
   | { mode: 'emplacement'; trappingId: string }
   // Crénelage (#841 FU-H) : marque le pourtour peint comme portant un PARAPET crénelé (décoration de
   // rendu — `paintCrenellated`, orthogonal à `height`). `structure` = id de `structures.json` (le rendu en
@@ -723,7 +725,7 @@ export function choixDesApparencesDObjets(armes: () => ReturnType<typeof armesDE
 /** Les munitions du coffre d'une pièce `trappingId` : chaque munition du catalogue qu'elle charge (`chargeLArme`).
  *  MDG 12 l.410-424 */
 function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
-  const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
+  const piece = { trappingId, subType: findSiegeEngineById(trappingId)?.subType?.id };
   return trappingsInstanciables()
     .filter((m) => chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece) && gabaritDObjet(m.id)?.kind === 'ammo')
     .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
@@ -738,7 +740,7 @@ function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, pr
   const postes = ent.postes ?? [];
   const [rang, cle, element, ...plus] = reste;
   if (typeof rang !== 'number' || plus.length) return undefined;
-  const engins = (valeur: (id: string) => unknown) => siegeEngines().map((e) => ({ valeur: valeur(e.id), libelle: e.label, refus: null }));
+  const engins = (valeur: (id: string) => unknown) => siegeEngines().map((e) => ({ valeur: valeur(e.id), libelle: libelleDAuteur(e), refus: null }));
   if (cle === undefined) return rang === postes.length ? engins((trappingId) => ({ trappingId })) : undefined;
   const poste = postes[rang];
   if (!poste) return undefined;

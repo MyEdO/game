@@ -1198,7 +1198,7 @@ export type DeckCoverClass = 'imparfaite' | 'moyenne' | 'totale';
 export type CoverClass = 'none' | DeckCoverClass;
 
 /** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222) : l'entrée de son schéma
- *  (`authoredShipPosteSchema`), telle qu'un auteur l'écrit. La pièce et son coffre désignent le catalogue ;
+ *  (`authoredShipPosteSchema`). La pièce et le coffre désignent les catalogues des engins et des munitions ;
  *  `hydratePoste` les matérialise au spawn, chaque uid d'instance dérivé de la place (#2907). */
 export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/schemas/defs-scenes/scene').authoredShipPosteSchema>;
 
@@ -1207,7 +1207,7 @@ export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/sch
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `noyau/monde/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
 export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId' | 'ammo' | 'selectedAmmo'> {
-  /** L'arme HYDRATÉE (instance complète, base via `trappingId`). Jamais persistée : re-résolue à chaque spawn
+  /** L'arme HYDRATÉE (instance complète, profil d’engin via `trappingId`). Re-résolue à chaque spawn
    *  depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
   /** Le coffre MATÉRIALISÉ de la pièce : des `ItemInstance` `kind:'ammo'` avec leur `qty`, fondues au pool du chef

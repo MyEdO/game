@@ -303,7 +303,7 @@ describe('validerElement : un décor, un véhicule ou une arête n’a pas de ba
   });
   it.each(['carrosse', 'cheval-de-monte'])('la `definition` %s, qui n’est ni coque ni engin de siège, est refusée', (definition) => {
     expect(verdict(manifeste('vehicule', { cle: { definition } }))).toEqual({
-      ok: false, ecarts: [{ code: 'cle-inconnue', ou: 'cle.definition', detail: `${definition} n’est aucune coque de \`vehicles.json\` ni engin \`armes-de-siege\` de \`trappings.json\`` }],
+      ok: false, ecarts: [{ code: 'cle-inconnue', ou: 'cle.definition', detail: `${definition} n’est aucune coque de \`vehicles.json\` ni engin de \`siege-engines.json\`` }],
     });
   });
 });

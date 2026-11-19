@@ -28,6 +28,7 @@ export {
   findCareerById,
   findSpellById,
   levelsForCareer,
+  libelleDAuteur,
   lightLevels,
   lightTones,
   matieresCouvrantes,

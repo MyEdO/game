@@ -14,7 +14,7 @@ import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET, type CleCodex } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
-  qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
+  qualities, trappings, siegeEngines, groupeDeSiege, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
@@ -23,7 +23,7 @@ import {
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
-  charAbr, navalPorts, shipConstruction, effectTables, disponibilite, massBattleHazardsDie,
+  charAbr, navalPorts, shipConstruction, effectTables, disponibilite, massBattleHazardsDie, massBattleWarMachines,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel, TAVERN_GAMES,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
@@ -102,7 +102,7 @@ import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../../
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { talentMaxLabel } from '../../engine/careerSlots';
 import { STEAM_BREAKDOWNS, steamBreakdownDie, type AdvancementRef, type TrappingRef, type WaterExposureModifier, type SpellData } from '../../data';
-import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
+import { POWER_ESTIMATE, MIGHT_MODIFIERS, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
 import { AVAILABILITIES } from '../../engine/types';
 import { testsDeLActivite } from '../../engine/activities';
 import { ACTIVITIES } from '../../data';
@@ -133,7 +133,7 @@ import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } fr
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
-import { reverseGroups, bookContents } from './relations';
+import { libelleDUnEnginAuCodex, reverseGroups, bookContents } from './relations';
 import { formatManeuverMeasure } from './maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
 import { libelleDuChamp } from './editFields';
@@ -369,7 +369,7 @@ const charRefRows = (keys: readonly CharKey[]): CodexRow[] =>
 /** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé : `label` =
  *  libellé concret (`refLabel`, spécialisation comprise), `show` = texte affiché (valeur, Indice…). */
 const idRefRow = (category: string, id: string, spec?: string, show?: string): CodexRow => {
-  const label = refLabel(category, { id, spec });
+  const label = category === 'siegeEngines' ? libelleDUnEnginAuCodex(id) : refLabel(category, { id, spec });
   return { t: 'ref', category, id, label, show: show ?? label };
 };
 /** Rangée du FOYER d'une règle (`{ id, type }`) : sa fiche Codex (`cibleCodex`). */
@@ -409,7 +409,7 @@ const trappingRefRow = (ref: TrappingRef): CodexRow => {
       case 'vehicle':
         return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
       case 'engin':
-        return { t: 'ref', category: 'siegeEngines', id: ref.id, label: refLabel('trappings', ref), show };
+        return idRefRow('siegeEngines', ref.id, undefined, show);
     }
   if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
   // PASTILLE NUE, jamais de la prose : une somme, une mention ou un `{text}` est un NOM (« Grand hôtel particulier avec
@@ -1569,17 +1569,19 @@ const CODEX_SPECS = {
   },
   siegeEngines: {
     label: 'codex.fiche.enginsDeSiege', group: 'equipement',
-    // Trappings d'un Groupe d'engins de siège, sélectionnés par `siegeEngines` comme dans la palette.
     build: () => siegeEngines().map((t) => depuisEnveloppe(t, {
-      sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
+      label: libelleDUnEnginAuCodex(t.id),
+      sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.weaponGroup?.id) || undefined),
       meta: facts(
         fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)),
-        fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa),
-        fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod)),
+        fact(tr('codex.fiche.degats'), damageFact(t)),
+        t.categorie === 'melee'
+          ? fact(tr('codex.fiche.allonge'), t.reach)
+          : fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range)),
       ),
       sections: sections(
         chips(tr('codex.fiche.qualites'), t.qualities.map((q) => idRefRow('qualities', q.id, undefined, qualityRefLabel(q)))),
-        ...reverseSections('trappings', t.id),
+        ...reverseSections('siegeEngines', t.id),
       ),
     })),
   },
@@ -1945,13 +1947,7 @@ const CODEX_SPECS = {
       ),
     })),
   },
-  // ── Combat de masse / Puissance de Bataille (ADE II 8, #148) — 5 tables verbatim NICHÉES dans
-  // UN seul fichier (`mass-battle.json`, moteur `engine/massBattle.ts`). Champs déjà imprimés en
-  // STRINGS par la source (prix/portée/dégâts/atouts) → faits bruts (`fact`), pas de cross-réf chips :
-  // les libellés d'Atouts imprimés ici (« Explosion 15 », « Impénétrable »…) ne correspondent PAS
-  // toujours tels quels aux libellés canoniques de `qualities`/`traits` (ex. qualité « À Explosion » vs
-  // « Explosion » ici, trait « Impénétrable (structure) » vs « Impénétrable » ici) — une décomposition
-  // par id resterait à faire côté donnée (hors périmètre #148, ne pas inventer un rapprochement flou). ──
+  // ADE II 08
   massBattlePowerEstimate: {
     label: 'codex.fiche.batailleDeMasseEstimationDePuissance', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => POWER_ESTIMATE.map((p) => depuisEnveloppe(p, {
@@ -1967,13 +1963,12 @@ const CODEX_SPECS = {
     })),
   },
   massBattleWarMachines: {
-    label: 'codex.fiche.batailleDeMasseMachinesDeGuerre', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
-    build: () => WAR_MACHINES.map((w) => depuisEnveloppe(w, {
-      meta: facts(
-        fact(tr('codex.fiche.prix'), formatMoney(w.price)), fact(tr('codex.fiche.equipe'), w.crew), fact(tr('codex.fiche.disponibilite'), libelleDeValeur(availabilitySchema, w.availability)),
-        fact(tr('codex.fiche.portee'), w.range), fact(tr('codex.fiche.degats'), w.damage), fact(tr('codex.fiche.atouts'), w.traits),
-      ),
-    })),
+    label: 'codex.fiche.batailleDeMasseMachinesDeGuerre', group: 'tables', cluster: 'codex.fiche.batailleDeMasse', sourceRef: 'ADE II 08',
+    build: () => [{
+      id: 'mass-battle',
+      label: tr('codex.fiche.batailleDeMasseMachinesDeGuerre'),
+      sections: sections(chips(tr('codex.fiche.enginsDeSiege'), massBattleWarMachines.map((id) => idRefRow('siegeEngines', id)))),
+    }],
   },
   massBattleStructures: {
     label: 'codex.fiche.batailleDeMasseStructures', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
@@ -2950,7 +2945,8 @@ export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): Co
   const weaponRows: CodexRow[] = (c.weapons ?? []).map((w) => {
     const badge = damageString(w.damage);
     const id = w.trappingId ?? w.builtinId;
-    return id ? { ...idRefRow('trappings', id, undefined, w.label), badge } : { t: 'chip', label: w.label, badge };
+    const category = groupeDeSiege(w.subType) ? 'siegeEngines' : 'trappings';
+    return id ? { ...idRefRow(category, id, undefined, w.label), badge } : { t: 'chip', label: w.label, badge };
   });
   const worn = ARMOUR_LOCS.filter((l) => (c.armour?.[l] ?? 0) > 0);
   return sections(

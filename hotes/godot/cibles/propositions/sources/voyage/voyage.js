@@ -150,12 +150,10 @@ D.mer = ({ teinte = 'gris', s = 0.86, x = 800, navire = true, cogue = {} } = {})
 
 /* ───────── l'interface du voyage ───────── */
 const ARCHES = { soir: ['#232a5c', '#e79a5c', '#f6d27a'], jour: ['#6f98c4', '#e9dfc0', '#fff2b8'], aube: ['#3a3f6e', '#f0b48a', '#ffe0a0'], nuit: ['#070a1c', '#2c3261', '#e8ecff'], gris: ['#39424e', '#9aa39f', '#d8d8cc'] };
-/* l'objet du temps, à la place du cartouche du lieu : l'arche du ciel, le jour, la date et le jour de route, la météo ;
-   `cadence` : la cadence du voyage tenue, là où elle a un effet (`src/noyau/voyageCadence.ts:78`), une plaque par cadence */
-const CADENCES = [['jourParJour', 'Jour par jour'], ['commande', 'Sous vos ordres']];
-const temps = ({ teinte = 'soir', jour, date, meteo, icone = 'soleil', cadence = null, largeur = cadence ? 632 : 452 }) => { const [c1, c2, astre] = ARCHES[teinte]; return `<div id="titre" class="cadre bois temps" data-piece="temps" style="width:${largeur}px"><div class="fond bois">
+/* l'objet du temps, à la place du cartouche du lieu : l'arche du ciel, le jour, la date et le jour de route, la météo */
+const temps = ({ teinte = 'soir', jour, date, meteo, icone = 'soleil' }) => { const [c1, c2, astre] = ARCHES[teinte]; return `<div id="titre" class="cadre bois temps" data-piece="cartouche"><div class="fond bois">
   <svg width="112" height="58" viewBox="0 0 112 58" style="flex:none"><defs><linearGradient id="arche" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient><clipPath id="arche-c"><path d="M4 54a52 52 0 0 1 104 0z"/></clipPath></defs><g clip-path="url(#arche-c)"><rect width="112" height="58" fill="url(#arche)"/>${teinte === 'nuit' || teinte === 'soir' ? '<g fill="#fff"><circle cx="30" cy="22" r=".8"/><circle cx="48" cy="12" r=".8"/><circle cx="70" cy="18" r=".8"/><circle cx="40" cy="34" r=".7"/></g>' : ''}<circle cx="84" cy="${teinte === 'jour' ? 22 : 44}" r="6" fill="${astre}"/><path d="M0 54l14-7 10 3 12-6 14 5 16-4 14 6 16-5 16 8H0z" fill="#150d0a"/></g><path d="M4 54a52 52 0 0 1 104 0M1 55h110" fill="none" stroke="#c9a24a" stroke-width="2.5"/></svg>
-  <div><div class="n gothique" data-texte="jour">${jour}</div><div class="s rubrique">${date}</div><div class="m">${picto(icone, 14, '#c9b995')}<i>${meteo}</i></div></div>${cadence ? `<div class="cadence"><span class="rubrique">Cadence du voyage</span>${CADENCES.map(([id, l]) => plaque(l, { armee: id === cadence, taille: 'petite' })).join('')}</div>` : ''}</div>${ferrures}</div>`; };
+  <div><div class="n gothique" data-texte="jour">${jour}</div><div class="s rubrique">${date}</div><div class="m">${picto(icone, 14, '#c9b995')}<i>${meteo}</i></div></div></div>${ferrures}</div>`; };
 /* la carte du trajet : fragment de parchemin encadré ; `part` : la part faite ; `eau` : le fleuve qui la traverse, celui
    qu'on descend, ou la mer */
 const carteDuTrajet = ({ titre: t, de, vers, part = .5, eau = 'fleuve' }) => {
@@ -165,7 +163,7 @@ const carteDuTrajet = ({ titre: t, de, vers, part = .5, eau = 'fleuve' }) => {
     ? `<path d="M0 0H130C150 40 120 70 90 90S40 150 0 160z" fill="rgba(90,60,30,.16)" stroke="#3a2a18" stroke-width="1.2"/><path d="M342 0H250C240 30 262 44 280 70S310 110 342 120z" fill="rgba(90,60,30,.16)" stroke="#3a2a18" stroke-width="1.2"/>${V.vagues(20, 200, '#5f7a80', 26, 6).replace(/M(\d+\.?\d*) /g, (m, x) => 'M' + (x / 5) + ' ')}`
     : `${V.encreArbres([[10, 16, 190, 100, 20], [190, 130, 330, 205, 16], [10, 186, 110, 210, 4]], 4)}${V.encreMonts([[36, 56], [66, 44, 30]])}`;
   const voie = eau === 'fleuve-voie' ? `<path d="M${fait}" fill="none" stroke="#5f7a80" stroke-width="11" opacity=".9"/><path d="M${reste}" fill="none" stroke="#5f7a80" stroke-width="11" opacity=".9"/><path d="M${fait}L${reste}" fill="none" stroke="#a9bdbd" stroke-width="8"/>` : eau === 'fleuve' ? '<path d="M0 92C80 76 190 106 250 82S320 46 342 26" fill="none" stroke="#5f7a80" stroke-width="10" opacity=".9"/><path d="M0 92C80 76 190 106 250 82S320 46 342 26" fill="none" stroke="#a9bdbd" stroke-width="7"/>' : '';
-  return `<div id="trajet" class="cadre bois" data-piece="carte du trajet"><div class="fond parchemin"><svg viewBox="0 0 342 214" preserveAspectRatio="none">${terre}${voie}
+  return `<div id="trajet" class="cadre bois" data-piece="vignette"><div class="fond parchemin"><svg viewBox="0 0 342 214" preserveAspectRatio="none">${terre}${voie}
     <path d="M${reste}" fill="none" stroke="#3a2a18" stroke-width="1.6" stroke-dasharray="6 4" opacity=".8"/><path d="M${fait}" fill="none" stroke="#8a2416" stroke-width="3" stroke-linecap="round"/>
     <circle cx="${a[0]}" cy="${a[1]}" r="4.500" fill="#e6d5ad" stroke="#3a2a18" stroke-width="1.6"/><g transform="translate(${b[0]} ${b[1]})" fill="#3a2a18"><path d="M-11 4v-8h4v-4h3v4h3v-8h5v8h3v-4h4v12z"/></g>
     <circle cx="${ix}" cy="${iy}" r="7" fill="#9c2a1a" stroke="#5a130b" stroke-width="2"/>

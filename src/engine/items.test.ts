@@ -1,4 +1,5 @@
 import { idsDeTest } from './idsDeTest.testkit';
+import { armeDePosteDeTest } from './objetsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
   apparencesCandidates,
@@ -56,7 +57,7 @@ import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
 import { rangeBandName } from './combat';
-import { trappings } from '../data';
+import { findSiegeEngineById, trappings } from '../data';
 import { makeRNG } from './dice';
 import { Combatant, ItemInstance, Weapon } from './types';
 import type { Mutation } from './corruption';
@@ -320,17 +321,13 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
     (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'heros', characteristics: { force: 30, endurance: 30 } as any, items,
        talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, ...lo }) as unknown as Combatant);
 
-  it('belier-ade2 (subType armes-de-siege) en `items` équipé : PAS d’arme dérivée — Mains nues seulement', () => {
-    const belier = itemFromTrappingById('belier-ade2', idsDeTest)!;
-    belier.equipped = true;
-    const c = heroWith([belier]);
-    recomputeLoadout(c);
-    expect(c.weapons.map((w) => w.label)).not.toContain('Bélier');
-    expect(c.weapons.map((w) => w.label)).toEqual(['Mains nues']); // repli seul, aucune arme de siège tenue
+  it('un engin ne s’instancie pas comme objet de sac', () => {
+    expect(itemFromTrappingById('belier-ade2', idsDeTest)).toBeNull();
+    expect(itemFromTrappingById('baliste', idsDeTest)).toBeNull();
   });
 
   it('belier-ade2 : sous-type armes-de-siege et empreinte 2 (#210, ADE II 8 l.239/258)', () => {
-    const t = trappings.find((x) => x.id === 'belier-ade2')!;
+    const t = findSiegeEngineById('belier-ade2')!;
     expect(t.subType?.id).toBe('armes-de-siege');
     expect(t.siegeFootprint).toBe(2);
   });
@@ -344,14 +341,14 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
 
   it('set par défaut : une baliste équipée n’amorce aucun set, l’arme ordinaire seule y entre', () => {
     const epee = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'e', equipped: true };
-    const baliste = { ...itemFromTrappingById('baliste', idsDeTest)!, uid: 'b', equipped: true };
+    const baliste = { ...hydratePoste({ trappingId: 'baliste' }, 'b').item, equipped: true };
     const c = heroWith([epee, baliste]);
     recomputeLoadout(c);
     expect(c.loadouts!.map((lo) => [lo.main, lo.secondaire])).toEqual([['e', undefined], [undefined, undefined]]);
   });
 
   it('élagage : un set qui désigne une baliste (sauvegarde existante) se vide au premier recalcul', () => {
-    const baliste = { ...itemFromTrappingById('baliste', idsDeTest)!, uid: 'b', equipped: true };
+    const baliste = { ...hydratePoste({ trappingId: 'baliste' }, 'b').item, equipped: true };
     const c = heroWith([baliste], { loadouts: [{ id: 'l', main: 'b', secondaire: 'b' }], activeLoadoutId: 'l' });
     recomputeLoadout(c);
     expect(c.loadouts).toEqual([{ id: 'l' }]);
@@ -953,7 +950,10 @@ describe('Munitions & rechargement', () => {
   });
   describe('weaponWithAmmo : qualité de la munition majorée (+N) ou à Indice (#4346, #4361)', () => {
     const arme = (id: string) => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
-    const tir = (armeId: string, munitionId: string) => weaponWithAmmo(arme(armeId), itemFromTrappingById(munitionId, idsDeTest)!);
+    const tir = (armeId: string, munitionId: string) => weaponWithAmmo(
+      findSiegeEngineById(armeId) ? armeDePosteDeTest(armeId) : arme(armeId),
+      itemFromTrappingById(munitionId, idsDeTest)!,
+    );
     const indice = (w: Weapon, id: string) => w.qualities.find((q) => q.id === id)?.value;
     it.each([
       ['tromblon', 'petites-munitions-et-poudre', 'a-explosion', 4], // Explosion 3 + 1 : LDB 62 l.123, arbitrage #4346 « +1 (Recommandé) »
@@ -991,7 +991,7 @@ describe('Munitions & rechargement', () => {
   });
   it('compatibleAmmo : une arme de siège ne charge que les munitions de sa fiche (AA 10 l.150 ; MDG 12 l.410-424)', () => {
     const c = { items: ['carreau-de-baliste', 'mitraille-et-poudre', 'bombe-de-mortier'].map((id) => itemFromTrappingById(id, idsDeTest)) } as unknown as Combatant;
-    const canon = weaponFromItem(itemFromTrappingById('canon-moyen', idsDeTest)!);
+    const canon = armeDePosteDeTest('canon-moyen');
     expect(compatibleAmmo(c, canon).map((a) => a.trappingId)).toEqual(['mitraille-et-poudre']);
   });
   describe('munitions d’Aux Armes : chacune se charge dans sa famille d’arme (AA 08 l.366-381, l.486-500 ; #4356)', () => {
@@ -1117,7 +1117,7 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
   it('forme NEUVE : `{ trappingId }` → item complet du catalogue, arme dérivée FONCTIONNELLE', () => {
     const p = hydratePoste({ trappingId: 'canon-moyen', side: 'tribord', crewIds: ['g1'] }, 'poste-de-test');
     expect(p.item.trappingId).toBe('canon-moyen');
-    const cat = itemFromTrappingById('canon-moyen', idsDeTest)!;
+    const cat = findSiegeEngineById('canon-moyen')!;
     expect(p.item.damage).toEqual(cat.damage); // base RÉSOLUE (jamais copiée en donnée)
     expect(p.item.qualities.map((q) => q.id)).toEqual(cat.qualities.map((q) => q.id));
     expect(p.side).toBe('tribord');
@@ -1132,8 +1132,8 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
     expect(hydratePoste({ trappingId: 'pierrier' }, 'poste-de-test').item.uid).toBe('poste-de-test');
   });
 
-  it('fail-fast : `trappingId` inconnu → throw explicite', () => {
-    expect(() => hydratePoste({ trappingId: 'engin-inexistant-222' }, 'poste-de-test')).toThrow(/trappingId inconnu/);
+  it.each(['engin-inexistant-222', 'dague'])('un poste refuse une référence hors catalogue des engins : %s', (trappingId) => {
+    expect(() => hydratePoste({ trappingId }, 'poste-de-test')).toThrow(/Engin de siège inconnu/);
   });
 
   it('coffre : chaque munition est le gabarit du catalogue à sa quantité, sous l’uid de sa place ; la choisie la désigne (MDG 12 l.410-424)', () => {

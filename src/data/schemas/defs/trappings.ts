@@ -1,4 +1,5 @@
-import { metaDesChamps, nommerChamps, nommerNoeud } from '../grammaire/meta';
+import { libelleDeValeur, metaDesChamps, nommerChamps, nommerNoeud } from '../grammaire/meta';
+import { tableTotale } from '../../../lib/tableTotale';
 /**
  * Schéma de `trappings.json` — vocabulaire UNIFIÉ des objets (armes/armures/munitions/possessions/
  * consommables/véhicules-marqueur). Dérivé de l'interface `TrappingData` EXISTANTE
@@ -22,10 +23,10 @@ import {
   weaponDamageSpecSchema,
   weaponRangeSpecSchema,
 } from '../grammaire/valeurs';
+import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, perteSansEquipeSchema, qualiteDObjetRefSchema, weaponSchema, type QualiteDObjetRef } from '../grammaire/reference';
-import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
-import { ref, refs, refusDeLEntree } from '../grammaire/ref';
+import { porteLeMarqueur, ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR, RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
@@ -48,30 +49,73 @@ export const apparenceDObjetSchema = nommerChamps(z.looseObject({
 const refusDuTypeDArmure = (subType: { id: string } | null): string | null =>
   subType === null ? 'aucun type d’armure' : refusDeLEntree('weaponGroup', 'armour', subType);
 
-/** CATÉGORIE de catalogue d'une possession — id de logique qui ne s'affiche jamais nu. */
-export const trappingCategorieSchema = enumNomme({
+export const categorieDArmeSchema = enumNomme({
   melee: 'Armes de mêlée',
   distance: 'Armes à distance',
+});
+
+/** CATÉGORIE de catalogue d'une possession — id de logique qui ne s'affiche jamais nu. */
+export const trappingCategorieSchema = enumNomme({
+  ...tableTotale(categorieDArmeSchema.options, (id) => libelleDeValeur(categorieDArmeSchema, id)),
   ammunition: 'Munitions',
   armor: 'Armures',
   trapping: 'Équipement',
+});
+
+export const estGroupeDeSiege = porteLeMarqueur('weaponGroup', 'siege');
+
+export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
+  hands: z.union([z.literal(1), z.literal(2)]).optional(),
+  weaponGroup: ref('weaponGroup').optional(),
+  /** #3771 */
+  rendu: ref('rendu').optional(),
+  /** AA 10 l.169-171. */
+  indirect: z.boolean().optional(),
+  /** ADE II 08 l.251-253. */
+  minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
+  perteSansEquipe: perteSansEquipeSchema.optional(),
+  onHitEffects: z.array(triggeredEffectSchema).optional(),
+  /** AA 08 l.482, l.517 ; AA 10 l.150, l.198-221 ; MDG 12 l.410-424 ; ADE II 02 l.665 */
+  munitions: refs('trapping', { sousListe: 'ammunition' }).optional(),
+  reach: reachSchema.nullable().optional(),
+  range: weaponRangeSpecSchema.nullable().optional(),
+  damage: weaponDamageSpecSchema.nullable().optional(),
+  qualities: z.array(qualiteDObjetRefSchema),
+}), {
+  hands: { label: 'Mains requises', hint: '1 ou 2 mains pour manier l’objet' },
+  weaponGroup: {
+    label: 'Groupe d’armes',
+    hint: 'Groupe d’armes régissant cette arme (Qualités communes, Spécialisation de Groupe)',
+  },
+  rendu: { label: 'Rendu du coup', hint: 'Rendu visuel et sonore de l’arme à la place de celui de son Groupe' },
+  indirect: { label: 'Tir indirect', hint: 'Tir en arc qui vise une case' },
+  minRangeBand: { label: 'Portée minimale de tir', hint: 'Bande sous laquelle l’arme ne peut pas tirer' },
+  perteSansEquipe: {
+    label: 'Perte sans équipe',
+    hint: 'Qualités que l’arme perd quand son tireur n’a ni servant ni allié adjacent',
+  },
+  onHitEffects: { label: 'Effets à la touche', hint: 'Effets déclenchés au moment où l’arme touche sa cible' },
+  munitions: {
+    label: 'Munitions',
+    hint: 'Seules munitions que charge cette arme, la représentative en tête ; vide : celles de sa famille qu’aucune arme ne nomme',
+  },
+  reach: { label: 'Allonge', hint: 'Porté par les armes de mêlée ; absent des objets sans profil d’arme' },
+  range: { label: 'Portée', hint: 'Mètres fixes, ou Bonus de Force × multiplicateur (armes de jet)' },
+  damage: { label: 'Dégâts' },
+  qualities: { label: 'Qualités' },
 });
 
 const doc = document(
   'trappings',
   famille,
   {
-    hands: z.union([z.literal(1), z.literal(2)]).optional(),
+    ...profilDArmeDeCatalogueSchema.shape,
     packSize: z.number().optional(),
     /** CATÉGORIE de catalogue — vocabulaire FERMÉ de `trappingCategorieSchema`, obligatoire sur toute
      *  entrée. ≠ `Weapon.type` du moteur (`src/engine/types.ts`, `'melee' | 'distance'`, persisté) et
      *  ≠ `ItemInstance.kind` : le pont est `kindOf()` (`src/engine/items.ts`), une TRADUCTION. */
     categorie: trappingCategorieSchema,
     subType: ref('weaponGroup').nullable(),
-    weaponGroup: ref('weaponGroup').optional(),
-    /** #3771 */
-    rendu: ref('rendu').optional(),
-    perteSansEquipe: perteSansEquipeSchema.optional(),
     /** ZI 13 l.193 */
     bouclierDEquipe: ref('trapping').optional(),
     /** LDB 62 l.28 */
@@ -80,23 +124,14 @@ const doc = document(
     improvised: z.literal(true).optional(),
     /** LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911 ; AA 08 l.290 ; ADE II 02 l.613 */
     shield: z.literal(true).optional(),
-    indirect: z.boolean().optional(),
     /** LDB 62 l.278 */
     bladed: z.boolean().optional(),
     /** LDB 47 */
     organicProjectile: z.boolean().optional(),
-    /** ADE II 8 l.243 */
-    onHitEffects: z.array(triggeredEffectSchema).optional(),
     /** The Horned Rat Companion 03 l.23-31 ; #4202 */
     effects: z.array(triggeredEffectSchema).optional(),
     /** ZI 13 l.199 */
     passifDArme: passifsDe().optional(),
-    /** ADE II 8 l.251/253 */
-    minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
-    siegeFootprint: z.number().optional(),
-    /** Les seules munitions que l'arme charge, la représentative en tête (`chargeLArme`). LDB 62 l.131 ; AA 08 l.482 ;
-     *  AA 08 l.517 ; AA 10 l.150 ; AA 10 l.198-221 ; MDG 12 l.410-424 ; ADE II 02 l.665 */
-    munitions: refs('trapping', { sousListe: 'ammunition' }).optional(),
     ...apparenceDObjetSchema.shape,
     /** #3086 D6(c), #3116 */
     rangement: ref('gardeRobe', undefined, 'emplacement').optional(),
@@ -113,15 +148,9 @@ const doc = document(
     reserveeA: ref('groupe', undefined, DECLARABLE_PAR_UN_PORTEUR).optional(),
     /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 69 l.9 ; LDB 59 l.15 ; LDB 62 l.31 ; LDB 44 l.113-119 ; MDG 10 l.112 */
     availability: z.union([availabilitySchema, z.literal('ND')]).nullable(),
-    /** `reach`/`loc`/`pa`/`damage` : portés par les armes/armures — ABSENTS (pas seulement `null`) sur
-     *  les consommables/potions sans profil d'arme (`optional()` en plus de `null`, contenu réel). */
-    reach: reachSchema.nullable().optional(),
-    range: weaponRangeSpecSchema.nullable().optional(),
     ammoRangeMod: ammoRangeModSchema.nullable().optional(),
     loc: z.string().nullable().optional(),
     pa: z.number().nullable().optional(),
-    damage: weaponDamageSpecSchema.nullable().optional(),
-    qualities: z.array(qualiteDObjetRefSchema),
     consumable: flowSchema.optional(),
     consumableDuration: consumableDurationSchema.optional(),
     container: contenantSchema.optional(),
@@ -138,7 +167,7 @@ const doc = document(
     service: z.boolean().optional(),
   },
   {
-    hands: { label: 'Mains requises', hint: '1 ou 2 mains pour manier l’objet' },
+    ...metaDesChamps(profilDArmeDeCatalogueSchema, { exigees: true }),
     rangement: { label: 'Rangement', hint: 'Emplacement du corps où l’objet porté se range hors des mains' },
     packSize: { label: 'Taille du lot', hint: 'Nombre d’unités vendues ensemble (munitions groupées)' },
     categorie: {
@@ -146,18 +175,6 @@ const doc = document(
       hint: 'Catégorie de catalogue : arme de mêlée, arme à distance, munition, armure ou possession',
     },
     subType: { label: 'Sous-type', hint: 'Sous-catégorie au sein de la catégorie' },
-    weaponGroup: {
-      label: 'Groupe d’armes',
-      hint: 'Groupe d’armes régissant cette arme (Qualités communes, Spécialisation de Groupe)',
-    },
-    rendu: {
-      label: 'Rendu du coup',
-      hint: 'Rendu visuel et sonore de l’arme (`rendus.json`), à la place de celui de son Groupe : un engin de siège, dont le Groupe dit qui le sert, pas ce qu’il tire',
-    },
-    perteSansEquipe: {
-      label: 'Perte sans équipe',
-      hint: 'Qualités que l’arme perd quand son tireur n’a ni servant ni allié adjacent',
-    },
     bouclierDEquipe: {
       label: 'Bouclier d’équipe',
       hint: 'Bouclier que tient l’allié au contact du tireur : Protectrice de ce bouclier aux deux, ni Course ni Fuite',
@@ -168,7 +185,6 @@ const doc = document(
     },
     improvised: { label: 'Est l’arme improvisée', hint: 'Marque l’entrée « Arme improvisée » du catalogue' },
     shield: { label: 'Est un bouclier', hint: 'Marque une entrée de bouclier du catalogue — seule lue pour reconnaître un bouclier' },
-    indirect: { label: 'Tir indirect', hint: 'Tir en arc (mortier/catapulte) : vise une case, jamais une cible directe' },
     bladed: {
       label: 'Porte une lame (maison)',
       hint: 'Approximation maison : l’arme a une lame (condition de la Qualité Piège-lame)',
@@ -177,21 +193,8 @@ const doc = document(
       label: 'Projectile organique (maison)',
       hint: 'Approximation maison : le projectile est organique (arrêté par le Bouclier anti-flèches)',
     },
-    onHitEffects: { label: 'Effets à la touche', hint: 'Effets déclenchés au moment où l’arme touche sa cible' },
     effects: { label: 'Effets déclenchés', hint: 'Effets déclenchés tant que l’objet est porté ou tenu' },
     passifDArme: { label: 'Effets passifs de l’arme', hint: 'Effets continus de l’arme elle-même lors de ses attaques, distincts de ceux du porteur' },
-    minRangeBand: {
-      label: 'Portée minimale de tir',
-      hint: 'Bande sous laquelle l’arme de siège ne peut pas tirer (pas de Bout portant)',
-    },
-    siegeFootprint: {
-      label: 'Empreinte au sol',
-      hint: 'Taille occupée sur la grille par l’engin de siège une fois posé en combat',
-    },
-    munitions: {
-      label: 'Munitions',
-      hint: 'Seules munitions que charge cette arme, la représentative en tête ; vide : celles de sa famille qu’aucune arme ne nomme',
-    },
     ...metaDesChamps(apparenceDObjetSchema, { exigees: true }),
     requiresMastery: {
       label: 'Maîtrise requise',
@@ -212,16 +215,12 @@ const doc = document(
     },
     reserveeA: { label: 'Réservée à', hint: 'Groupe seul à qui une arme au choix de carrière l’offre' },
     availability: { label: 'Disponibilité' },
-    reach: { label: 'Allonge', hint: 'Porté par les armes de mêlée ; absent des objets sans profil d’arme' },
-    range: { label: 'Portée', hint: 'Mètres fixes, ou Bonus de Force × multiplicateur (armes de jet)' },
     ammoRangeMod: {
       label: 'Modificateur de portée (munition)',
       hint: 'Fraction, ou mètres ajoutés ou retranchés à la Portée de l’arme',
     },
     loc: { label: 'Localisation protégée', hint: 'Zone du corps couverte par l’armure' },
     pa: { label: 'Points d’armure' },
-    damage: { label: 'Dégâts' },
-    qualities: { label: 'Qualités' },
     consumable: { label: 'Effets à la consommation', hint: 'Effets déclenchés à l’usage de l’objet (potion, remède…)' },
     consumableDuration: {
       label: 'Durée de l’effet consommé',
@@ -249,11 +248,10 @@ const doc = document(
     },
   },
   {
-    codex: { keys: ['trappings', 'siegeEngines'] },
+    codex: { keys: ['trappings'] },
     edit: { dataset: 'trappings' },
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
-  // `subType` : discriminant de la sous-liste `ENGINS_DE_SIEGE` (`grammaire/sousListes.ts`).
   // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
   {
     exiges: ['source'],
@@ -261,6 +259,9 @@ const doc = document(
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as { id: string; categorie: string; subType: { id: string } | null; shape?: { id: string }; qualities: QualiteDObjetRef[] };
+        if (e.subType && estGroupeDeSiege(e.subType.id)) {
+          ctx.addIssue({ code: 'custom', path: ['subType', 'id'], message: `${e.id} : un engin de siège a son propre catalogue` });
+        }
         if (e.categorie !== 'ammunition')
           e.qualities.forEach((q, i) => {
             if ('majoration' in q) ctx.addIssue({ code: 'custom', path: ['qualities', i, 'majoration'], message: `${e.id} : seule une munition majore une qualité de l'arme (« +${q.majoration} »)` });

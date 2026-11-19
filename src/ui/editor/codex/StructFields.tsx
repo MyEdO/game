@@ -53,7 +53,7 @@ import {
   specEntryLabel,
   charAbr,
   findCreatureById,
-  findTrappingById,
+  findSiegeEngineById,
   findVehicleById,
   idDObjet,
   trappingsInstanciables,
@@ -531,7 +531,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
   const refCfg = { ds: 'trappings' as const, single: true as const };
   const vehicleCfg = { ds: 'vehicles' as const, single: true as const };
   const creatureCfg = { ds: 'creatures' as const, single: true as const };
-  // L'engin : la feuille de sa branche (`dotationDePossessionSchema`) restreint le sélecteur à la sous-liste des engins de siège.
+  // La branche engin de `dotationDePossessionSchema` fournit la grammaire du sélecteur.
   const engin = cfgDuNoeudType(dotationDePossessionSchema)?.polymorphe.find((b) => b.type === 'engin');
   // Quantité (`countSpecSchema`) : aucune, ou l'une de ses variantes (`variantesAChoisir`), puis ses nombres.
   const champDeQuantite = (i: number, t: TrappingRef): ReactElement => {
@@ -567,7 +567,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
       case 'creature':
         return <><RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={choisir} />{nom(findCreatureById(t.id)?.label)}</>;
       case 'engin':
-        return <>{engin && <RefField cfg={engin.cfg} noeud={engin.feuille} fieldKey="engin" value={t.id} onChange={choisir} />}{nom(findTrappingById(t.id)?.label)}</>;
+        return <>{engin && <RefField cfg={engin.cfg} noeud={engin.feuille} fieldKey="engin" value={t.id} onChange={choisir} />}{nom(findSiegeEngineById(t.id)?.label)}</>;
     }
   };
   return (
@@ -589,7 +589,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
               <option value="ref">Réf. (catalogue)</option>
               <option value="vehicle">Véhicule (vehicles.json)</option>
               <option value="creature">Bête (creatures.json)</option>
-              <option value="engin">Engin de siège (trappings.json)</option>
+              <option value="engin">Engin de siège (siege-engines.json)</option>
               <option value="text">Texte (narratif)</option>
             </select>
             {champDeQuantite(i, t)}

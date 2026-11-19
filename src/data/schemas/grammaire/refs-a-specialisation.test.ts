@@ -2,8 +2,7 @@
  * #3045 — une Spécialisation se désigne par la fabrique qui la valide : tout objet `{ id, spec }` du registre
  * est une référence à spécialisation (`refOuSpec`, `specRef`), lue par `declarationDeRefASpecialisation`,
  * que l'atelier rend en `RefField` (`spec`) ; jamais un objet écrit au site dont l'`id` et la `spec`
- * passeraient en chaînes libres. Seul l'objet de catalogue d'une dotation (`objetDeCatalogueSchema`,
- * `dotationDeCatalogueSchema`, reconnus par identité de nœud) porte une `spec` qui n'est pas une Spécialisation.
+ * passeraient en chaînes libres. Les références d'objet de catalogue portent une `spec` de précision.
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
@@ -12,9 +11,9 @@ import { OP_DEFS, conditionSchema, facilitationSchema, flowTestSchema } from './
 import { descendre, enfantsDe } from './descente';
 import { declarationDeRefASpecialisation, refOuSpec } from './ref';
 import { nommerChamps } from './meta';
-import { dotationDeCatalogueSchema, objetDeCatalogueSchema } from './reference';
+import { armureDecriteParLeTraitSchema, dotationDeCatalogueSchema, objetDeCatalogueSchema } from './reference';
 
-const OBJETS_DE_CATALOGUE: ReadonlySet<unknown> = new Set([objetDeCatalogueSchema, dotationDeCatalogueSchema]);
+const OBJETS_DE_CATALOGUE: ReadonlySet<unknown> = new Set([objetDeCatalogueSchema, dotationDeCatalogueSchema, armureDecriteParLeTraitSchema]);
 
 /** Toute `spec` désigne une Spécialisation, sauf celle de l'objet de catalogue d'une dotation. */
 const specDesigneUneSpecialisation = (noeud: unknown): boolean => !OBJETS_DE_CATALOGUE.has(noeud);

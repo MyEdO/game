@@ -226,9 +226,10 @@ l'écriture d'un \`${DATA}/*.json\`, sous-agents compris.
 
 ## 2. Choisir le fichier — et sa FAMILLE
 
-Via la carte \`docs/donnees.md\`. **Règle d'or** : une « machine de guerre / véhicule / navire » n'est
-PAS un \`trappings\`. En cas d'ambiguïté, lire 2-3 entrées voisines des fichiers candidats — leur forme
-fait foi, et elle est déclarée : chaque document appartient à l'une des ${FAMILLES.length} familles de
+Via la carte \`docs/donnees.md\`. **Règle d'or** : les engins ont leur fiche dans \`siege-engines.json\`.
+La bataille de masse, les postes servis et les dotations y renvoient par id. Les véhicules et
+coques vivent dans \`vehicles.json\`. En cas d'ambiguïté, lire 2-3 entrées voisines des fichiers
+candidats. Chaque document appartient à l'une des ${FAMILLES.length} familles de
 \`${DOC}\` (${FAMILLES.map((f) => `\`${f}\``).join(' · ')}), qui décide de l'emballage du
 FICHIER (liste d'entrées, entrée seule, ou enveloppe + \`entries\`).
 

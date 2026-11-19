@@ -11,6 +11,7 @@ import { bus, EVT, type ChargeDeZone } from './bus';
 import { resolveRanged, type AttackResult } from '../engine/combat';
 import { itemFromTrappingById, weaponFromItem, weaponWithAmmo, damageString } from '../engine/items';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { armeDePosteDeTest } from '../engine/objetsDeTest.testkit';
 import { deMin } from '../engine/dice.testkit';
 import type { Combatant, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -133,7 +134,7 @@ describe('Dégâts « – » (LDB 62 l.76 ; AA 10 l.192) et Boulet (ZI 02 l.171)
   });
 
   it('Mortier + bombe de mortier : la munition seule, +12', () => {
-    const tir = weaponWithAmmo(arme('mortier'), itemFromTrappingById('bombe-de-mortier', idsDeTest)!);
+    const tir = weaponWithAmmo(armeDePosteDeTest('mortier'), itemFromTrappingById('bombe-de-mortier', idsDeTest)!);
     expect(tir.damage).toEqual({ plusBF: false, flat: 12 });
   });
 

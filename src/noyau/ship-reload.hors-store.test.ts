@@ -2,6 +2,8 @@ import { describe, it, beforeEach, expect } from 'vitest';
 import type { Combatant, ShipPoste } from '../engine/types';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
+import type { TravelPlan } from './travelFlow';
+import { evaluateTest } from '../engine/tests';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { applyShipPostes } from './monde/shipPostes';
 import { addCondition } from '../engine/conditions';
@@ -62,6 +64,20 @@ describe('rechargerLArme sur la pièce d’un navire — Test étendu du chef (L
     expect(pieceDe().reloadProgress).toBe(0);
     expect(st.battle!.crewActed?.['ship']).toContain('gunner'); // le chef a pris son Action du Round
     expect(st.battle!.acted).toBe(false); // le navire garde la sienne (MDG 14 l.37)
+  });
+
+  it('le brouillard sur le pont est sans effet au rechargement de la pièce', () => {
+    setup();
+    banc.setState({ travelPlan: { sea: { weather: { precipitations: 'aucune', visibilite: 'brouillard' } } } as TravelPlan });
+    seedBattleRng(1);
+    banc.getState().rechargerLArme('canon');
+    banc.getState().jetLancer('rechargement');
+    const p = banc.getState().pendingReload!;
+    expect(p.roll).toEqual(expect.any(Number));
+    expect(p.ligne.mods.some((m) => m.label === 'Brouillard')).toBe(false);
+    expect(p.sl).toBe(evaluateTest(p.roll!, p.target).sl);
+    banc.getState().jetValider('rechargement');
+    expect(pieceDe().loaded).toBe(true);
   });
 
   it('une pièce DÉJÀ chargée → rien à recharger', () => {

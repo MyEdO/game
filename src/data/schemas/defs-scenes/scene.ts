@@ -55,7 +55,7 @@ import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../e
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { estUnNavireAPonts, findCreatureById, findTrappingById, siegeEngines } from '../../index';
+import { estUnNavireAPonts, findCreatureById, findSiegeEngineById, findTrappingById } from '../../index';
 import { porteurDuProfil } from '../../../engine/trappingChoices';
 import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
@@ -84,7 +84,7 @@ export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean
 
 /** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn (`hydratePoste`, #222). MDG 12-13 */
 export const authoredShipPosteSchema = nommerChamps(z.strictObject({
-  trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { nue: true }),
+  trappingId: idDe('engin', undefined, { nue: true }),
   /** Absent : pivot libre (`inFireArc`). */
   side: posteSideSchema.optional(),
   cover: deckCoverSchema.optional(),
@@ -298,7 +298,7 @@ export interface FauteDEntite { chemin: readonly (string | number)[]; message: s
 
 /** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
  *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
- *  un corps au plus, un engin qui en est un (`siegeEngines`), le parcours de carrière (`refusDuPnjDeCarriere`) et le cap
+ *  un corps au plus, le parcours de carrière (`refusDuPnjDeCarriere`) et le cap
  *  cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
@@ -308,14 +308,12 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
   if (ent.kind === 'personnage') {
     const corps = CLES_DU_CORPS.filter((k) => ent[k] !== undefined);
     if (corps.length > 1) fautes.push({ chemin: [corps[1]], message: `corps EXCLUSIFS — ${corps.map((k) => `« ${k} »`).join(', ')} : un personnage en porte un au plus` });
-    const engin = ent.engin?.id;
-    if (engin !== undefined && !siegeEngines().some((t) => t.id === engin)) fautes.push({ chemin: ['engin', 'id'], message: `« ${engin} » n'est pas un engin de siège` });
     const carriere = refusDuPnjDeCarriere(ent);
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
     if (estUnNavireAPonts(ent.vehicule?.id) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
     ent.postes?.forEach((p, rang) => {
-      const piece = { trappingId: p.trappingId, subType: findTrappingById(p.trappingId)?.subType?.id };
+      const piece = { trappingId: p.trappingId, subType: findSiegeEngineById(p.trappingId)?.subType?.id };
       for (const id of Object.keys(p.ammo ?? {})) {
         if (!chargeLArme({ trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.trappingId} » ne charge pas` });
       }
@@ -342,7 +340,7 @@ const fautesDeLaBranche = (ent: Parameters<typeof refusDeLEntite>[0], ctx: z.Ref
  *  (`CLES_DU_CORPS`, #1882, #2968). Le `superRefine` d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', {}, {}),
-  brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('trapping').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } }).superRefine(fautesDeLaBranche),
+  brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } }).superRefine(fautesDeLaBranche),
   brancheDuDecor.superRefine(fautesDeLaBranche),
 ]);
 
