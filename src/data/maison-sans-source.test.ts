@@ -6,6 +6,8 @@ import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
 import { MAISON_SANS_SOURCE, MAISON_MASQUEES } from '../../scripts/guards/lib/integriteStock.mjs';
 import { SANS_LIVRE_DEFINITIF, SANS_PROVENANCE_EXIGEE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
+import { exigeProvenanceExclusive } from './schemas/grammaire/document';
+import { schemaForFile } from './schemas/validate';
 
 const DATA_DIR = __dirname;
 const SCENES_DIR = fileURLToPath(new URL('../scenes', import.meta.url));
@@ -28,6 +30,7 @@ function mesure(masquee: boolean) {
   const sites = [];
   for (const f of jsons(DATA_DIR)) {
     if (Boolean(SANS_PROVENANCE_EXIGEE[f.replace(/\.json$/, '')]) !== masquee) continue;
+    if (!masquee && exigeProvenanceExclusive(schemaForFile(f))) continue;
     const data = lire(DATA_DIR, f);
     sites.push(...sitesMaison(f, data, masquee));
   }
@@ -44,7 +47,7 @@ describe('maison sans source — collections nominatives', () => {
   for (const masquee of [false, true]) {
     it(masquee ? 'les exemptions ne masquent que les identités déclarées' : 'les entrées maison sans source sont déclarées et soldées', () => {
       const ecart = ecartMaison(mesure(masquee), masquee ? MAISON_MASQUEES : MAISON_SANS_SOURCE);
-      expect(ecart.neuves, 'Entrées neuves : une entrée `maison` porte aussi sa `source` (#1463) — scripts/guards/lib/integriteStock.mjs ne fait que décroître :\n' + ecart.neuves.join('\n')).toEqual([]);
+      expect(ecart.neuves, 'Nouvelles entrées au cliquet — scripts/guards/lib/integriteStock.mjs ne fait que décroître :\n' + ecart.neuves.join('\n')).toEqual([]);
       expect(ecart.perimees, 'Entrées soldées : retirer de scripts/guards/lib/integriteStock.mjs :\n' + ecart.perimees.join('\n')).toEqual([]);
     });
   }

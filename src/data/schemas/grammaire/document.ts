@@ -369,6 +369,8 @@ export interface OptionsDocument {
    * a donc pas de second chemin à éteindre, c'est une conséquence de la forme, pas un branchement.
    */
   readonly exiges?: readonly CleExigible[];
+  /** Exige exactement une provenance parmi `source` et `maison`. */
+  readonly provenanceExclusive?: true;
   /**
    * Genres de fragment qu'une `descRef` de CE document admet (`descRefSchemaDe`, `grammaire/valeurs.ts`) — défaut :
    * tous. Un genre absent est refusé au parse, à l'adresse de l'entrée.
@@ -543,6 +545,12 @@ const DOCUMENT_DE_L_ENTREE_PARTIELLE = new WeakMap<object, z.ZodType<unknown>>()
 export const documentDeLEntreePartielle = (noeud: unknown): z.ZodType<unknown> | undefined =>
   noeud !== null && typeof noeud === 'object' ? DOCUMENT_DE_L_ENTREE_PARTIELLE.get(noeud) : undefined;
 
+const SCHEMAS_A_PROVENANCE_EXCLUSIVE = new WeakSet<z.ZodType>();
+
+/** Le schéma final exige-t-il une provenance exclusive à la racine de ses entrées ? */
+export const exigeProvenanceExclusive = (schema: z.ZodType | undefined): boolean =>
+  schema !== undefined && SCHEMAS_A_PROVENANCE_EXCLUSIVE.has(schema);
+
 /** Le nœud porte-t-il, à travers ses enveloppes transparentes (`ouverts`), une entrée partielle marquée ? */
 const porteUneEntreePartielle = (noeud: unknown): boolean => ouverts([noeud]).some((n) => documentDeLEntreePartielle(n) !== undefined);
 
@@ -610,7 +618,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   options?: OptionsDocument & O,
 ): DocumentHandle<T, DatasetDuDocument<T, F, C, O>, EntreeDuDocument<T, F, C, O>> {
   const opts: OptionsDocument = options ?? {};
-  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = opts;
+  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], provenanceExclusive, fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = opts;
   if (idDocument && idDocument.safeParse('').success) {
     throw new Error(
       `document('${type}') : \`idDocument\` admet la CHAÎNE VIDE — l'enveloppe ferme l'id à \`.min(1)\`, un schéma d'id ne le ré-ouvre pas.`,
@@ -735,18 +743,16 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   for (const marqueur of espaceDuDocument.marqueurs ?? [])
     if (!clesEntree.includes(marqueur))
       throw new Error(`document('${type}') : le marqueur d’espace « ${marqueur} » n’est aucun champ de l’entrée.`);
-  // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
-  // interdite — elle doit DIRE pourquoi. `exigeSource` consulte l'UNION `SANS_PROVENANCE_EXIGEE`
-  // (`SANS_LIVRE_DEFINITIF` ∪ `SOURCE_EN_PROFONDEUR`) : sont hors régime les documents SANS aucun livre comme
-  // ceux dont le livre est cité par SOUS-ENTRÉE — dans les deux cas rien n'est exigible à l'entrée de
-  // racine. Refine PRÉ-sceau : `superRefine` rend un `ZodObject` encore extensible (mesuré zod
-  // 4.4.3), donc `affinerEntree` reçoit bien un objet.
-  // `exiges: ['source']` rend `source` structurellement requise : le refine ci-dessous ne s'exécute
-  // alors que sur un objet dont `source` est déjà validée et ne peut JAMAIS lever — inatteignable par
-  // construction, donc rien à éteindre ici (mesuré : un branchement qui l'éteindrait est inobservable).
-  const avecProvenance = !exigeSource(type)
-    ? corps
-    : (corps.superRefine((v, ctx) => refuserSansProvenance(v as Provenance, ctx, 'de l’entrée')) as z.ZodObject<z.ZodRawShape>);
+  // Les documents qui exigent une provenance admettent `source` et `maison` ensemble par défaut.
+  // Un document à provenance exclusive en exige exactement une, à la même porte pré-sceau.
+  const avecProvenance = (provenanceExclusive || exigeSource(type))
+    ? corps.superRefine((v, ctx) => {
+      refuserSansProvenance(v, ctx, 'de l’entrée');
+      if (provenanceExclusive && v.source !== undefined && v.maison !== undefined) {
+        ctx.addIssue({ code: 'custom', path: ['maison'], message: 'provenance double : choisis la référence au livre ou la raison maison.' });
+      }
+    })
+    : corps;
   // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
   const avecProse = avecProvenance.superRefine(
@@ -779,6 +785,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
         : affineDataset;
   const metaPubliee = { ...(meta as Record<string, MetaChamp>), ...tableTotale(clesPosees, (k) => META_CHARGE[k]) };
   DOCUMENT_DE_L_ENTREE_PARTIELLE.set(entreePartielle, schema);
+  if (provenanceExclusive) SCHEMAS_A_PROVENANCE_EXCLUSIVE.add(schema);
   return {
     // Le nœud SCELLÉ (`.pipe(z.transform)`) sort `unknown` : sa sortie au type se déclare ici, depuis
     // les mêmes `champs` et `options` qui l'ont composé.
