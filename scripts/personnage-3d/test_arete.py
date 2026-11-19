@@ -7,6 +7,7 @@ aux faces vers le dehors (`glb.coques_en_defaut`). Les données d'un modèle ne 
 import json
 import re
 import runpy
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,6 +21,7 @@ from reconstruction import construire_le_modele
 
 ICI = Path(__file__).resolve().parent
 FAMILLE = 'arete'
+sys.path.insert(0, str(ICI / FAMILLE))
 PIECES = {'mur', 'porte-fermee', 'porte-ouverte', 'fenetre', 'fenetre-close', 'breche'}
 TOLERANCE = 0.001   # m
 COULEUR = re.compile(r'#[0-9a-fA-F]{6}')
@@ -66,7 +68,7 @@ class Construction(unittest.TestCase):
         return sortie
 
     def test_un_modele_existe(self):
-        self.assertIn('colombage', self.bati)
+        self.assertLessEqual({'colombage', 'pierre', 'pierres-seches'}, set(self.bati))
 
     def test_deux_constructions_rendent_les_memes_octets(self):
         for _, bati, _ in self.chaque():

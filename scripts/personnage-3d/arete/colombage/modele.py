@@ -1,15 +1,16 @@
 """Le colombage (#4471) : le GLB `arete--colombage`, un nœud par pièce de `BATIR`, bâti d'après `donnees.py` dans le
 repère d'une arête (`geometrie.py`). Chaque bois est une boîte close (`Repere.boite`) ou une pièce de biais
 (`Repere.poutre`) ; le torchis, en retrait, s'arrête dans le bois qui l'encadre. Un vantail, de porte ou de volet, se
-bâtit dans le repère de son gond (`vantail`) : fermé, ouvert d'un quart de tour ou rabattu à plat, il ne change que de
-repère. L'aléa de la brèche est semé du nom de la pièce : deux constructions rendent les mêmes octets."""
+bâtit dans le repère de son gond (`menuiserie.vantail`) : fermé, ouvert d'un quart de tour ou rabattu à plat, il ne
+change que de repère. L'aléa de la brèche est semé du nom de la pièce : deux constructions rendent les mêmes octets."""
 import math
 
 import geometrie
 from geometrie import DEHORS, X, Repere
-from maille import boite, lineaire
+from maille import lineaire
+from menuiserie import PORTE_DE_PLANCHES, croisee, vantail, volets
 
-BOIS, TORCHIS, MENUISERIE, CROISEE, FER = "ossature", "torchis", "menuiserie", "croisee", "ferrure"
+BOIS, TORCHIS = "ossature", "torchis"
 
 
 class Pan:
@@ -83,37 +84,7 @@ class Pan:
         self.demi_poteaux()
 
     def biais(self, a, h_gauche, h_droite, retrait, mat):
-        """Une pièce des abscisses `a`, dont le dessous et le dessus sont aux hauteurs `h_gauche` à son bout gauche et
-        `h_droite` à son bout droit."""
-        c = self.epais(retrait)
-        boite(self.m, (a[0], c[0], 0.0), (a[1], c[1], 1.0), mat)
-        hauteurs = (h_gauche, h_droite)
-        self.m.v[-8:] = [(x, y, hauteurs[k // 4][k % 2]) for k, (x, y, _) in enumerate(self.m.v[-8:])]
-
-
-def vantail(m, R, largeur, h, V):
-    """Un vantail de planches d'après `V` (`PORTE_DE_PLANCHES`, `VOLET`) dans le repère `R` de son gond : large de
-    `largeur` depuis lui, entre les hauteurs `h`, son parement vers la normale du repère, ses barres au dos."""
-    epais, pas = V["epaisseur"], largeur / V["planches"]
-    for k in range(V["planches"]):
-        R.boite(m, (k * pas, (k + 1) * pas), h, (0, epais - (k % 2) * V["relief"]), MENUISERIE)
-    haut_b, epais_b = V["section"]
-    axes = [h[0] + (h[1] - h[0]) * part for part in V["barres"]]
-    for axe in axes:
-        R.boite(m, (V["marge"], largeur - V["marge"]), (axe - haut_b / 2, axe + haut_b / 2), (-epais_b, 0), MENUISERIE)
-        long, haut_p, epais_p, depasse = V["pentures"]
-        R.boite(m, (-depasse, largeur * long), (axe - haut_p / 2, axe + haut_p / 2), (epais, epais + epais_p), FER)
-    if V["echarpe"]:
-        rive = V["marge"] + haut_b / 2
-        R.poutre(m, (rive, axes[0] + haut_b / 2), (largeur - rive, axes[1] - haut_b / 2), haut_b, (-epais_b * 0.9, 0),
-                 MENUISERIE)
-    if V["poignee"]:
-        G = V["poignee"]
-        large, haut_g, epais_g = G["platine"]
-        a, z = largeur - G["rive"], h[0] + (h[1] - h[0]) * G["hauteur"]
-        R.boite(m, (a - large / 2, a + large / 2), (z - haut_g / 2, z + haut_g / 2), (epais, epais + epais_g), FER)
-        R.boite(m, (a - large / 6, a + large / 6), (z - haut_g / 3, z + haut_g / 3),
-                (epais + epais_g, epais + epais_g + G["saillie"]), FER)
+        geometrie.biais(self.m, a, h_gauche, h_droite, self.epais(retrait), mat)
 
 
 def mur(D, m, _):
@@ -153,8 +124,7 @@ def porte(ouverte):
             if abs(a) < baie:
                 P.montant(a, (tete, P.tete))
         P.torchis((-huisserie, huisserie), (B["hauteur"] + P.linteau / 2, (P.tete + P.haut) / 2))
-        V = D["PORTE_DE_PLANCHES"]
-        jeu = B["jeu"]
+        V, jeu = PORTE_DE_PLANCHES, B["jeu"]
         gond = P.R.point(-baie + jeu, 0, -V["epaisseur"] / 2)
         vantail(m, Repere(gond, -DEHORS, X) if ouverte else Repere(gond, X, DEHORS), 2 * (baie - jeu),
                 (B["seuil"] + jeu, B["hauteur"] - jeu), V)
@@ -186,39 +156,8 @@ def fenetre(close):
         P.torchis((-P.bout, P.bout), (P.axes[1], (P.tete + P.haut) / 2))
         P.croix_des_registres(sauf=(1,))
 
-        dormant, c = F["dormant"]
-        meneau = F["meneau"]
-        dedans = (appui + dormant, linteau - dormant)
-        for a in ((-baie, -baie + dormant), (baie - dormant, baie)):
-            P.R.boite(m, a, (appui, linteau), c, CROISEE)
-        large = (-baie + dormant, baie - dormant)
-        for h in ((appui, appui + dormant), (linteau - dormant, linteau)):
-            P.R.boite(m, large, h, c, CROISEE)
-        P.R.boite(m, (-meneau / 2, meneau / 2), dedans, c, CROISEE)
-        croisillon = appui + (linteau - appui) * F["croisillon"]
-        fin = (c[0] + 0.004, c[1] - 0.004)
-        P.R.boite(m, large, (croisillon - meneau / 2, croisillon + meneau / 2), fin, CROISEE)
-        B = F["petits_bois"]
-        section, milieu = B["section"], (c[0] + c[1]) / 2
-        for s in (-1, 1):
-            a = s * (meneau / 2 + baie - dormant) / 2
-            P.R.boite(m, (a - section / 2, a + section / 2), dedans, (milieu - section / 2, milieu + section / 2),
-                      CROISEE)
-        compartiments = ((dedans[0], croisillon - meneau / 2), (croisillon + meneau / 2, dedans[1]))
-        for (bas, haut), nombre in zip(compartiments, B["traverses"]):
-            for k in range(1, nombre + 1):
-                h = bas + (haut - bas) * k / (nombre + 1)
-                P.R.boite(m, large, (h - section / 2, h + section / 2),
-                          (milieu - section * 0.4, milieu + section * 0.4), CROISEE)
-
-        V = D["VOLET"]
-        h = (appui - F["recouvrement"], linteau + F["recouvrement"])
-        for s in (-1, 1):
-            if close:
-                gond = Repere(P.R.point(s * baie, 0, P.nu), -s * X, DEHORS)
-            else:
-                gond = Repere(P.R.point(s * baie, 0, P.nu + V["epaisseur"]), s * X, -DEHORS)
-            vantail(m, gond, baie - F["jeu"] / 2, h, V)
+        croisee(m, P.R, baie, appui, linteau)
+        volets(m, P.R, baie, (appui - F["recouvrement"], linteau + F["recouvrement"]), P.nu, close)
     return batir
 
 
@@ -266,14 +205,7 @@ def breche(D, m, a):
                   (c - E["section"] / 2, c + E["section"] / 2), BOIS)
 
     G = B["gravats"]
-    for _ in range(G["nombre"]):
-        cote = a.uniform(*G["cote"])
-        ca, cc = x(a.uniform(-G["etendue"][0], G["etendue"][0])), a.uniform(-G["etendue"][1], G["etendue"][1])
-        mat = BOIS if a.random() < G["bois"] else TORCHIS
-        P.R.boite(m, (ca - cote / 2, ca + cote / 2), (0.0, cote * 0.6), (cc - cote / 2, cc + cote / 2), mat)
-        ecart = cote * G["ecart"]
-        m.v[-8:] = [(px + a.uniform(-ecart, ecart), py + a.uniform(-ecart, ecart),
-                     pz + (k % 2) * a.uniform(-ecart, ecart)) for k, (px, py, pz) in enumerate(m.v[-8:])]
+    geometrie.eboulis(m, P.R, a, G, P.demi, lambda alea: BOIS if alea.random() < G["bois"] else TORCHIS)
     for depart, arrivee in B["debris"]:
         P.R.poutre(m, (x(depart[0]), P.echarpe / 2), (x(arrivee[0]), P.echarpe / 2), P.echarpe,
                    (-P.echarpe / 2, P.echarpe / 2), BOIS)

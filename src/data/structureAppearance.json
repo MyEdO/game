@@ -530,7 +530,7 @@
     "id": "mur-en-pierres-seches",
     "type": "structureAppearance",
     "label": "Mur en pierres sèches",
-    "kit": "pierre",
+    "kit": "pierres-seches",
     "wallHeightM": 1,
     "detail": {
       "seedScope": "edge",

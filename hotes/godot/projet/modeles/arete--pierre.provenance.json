@@ -1,0 +1,13 @@
+{
+  "model": "arete--pierre.glb",
+  "model_sha256": "28f3ba533fa99a678b5017f0f084371fb4bf649800693441736b69946bc77707",
+  "importe_le": "2026-11-19",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

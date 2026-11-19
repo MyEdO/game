@@ -751,13 +751,19 @@ apparence de `src/data/structureAppearance.json`) se construisent depuis le dép
 
 **Repère et taille.** Chaque pièce est à l'origine de l'arête, à sa taille réelle : X le long d'elle, centrée, sur la
 longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son épaisseur, centrée, le dehors vers +Z
-(`arete/geometrie.py`). Un demi-poteau à chaque bout se complète de celui de la pièce voisine. L'hôte porte la boîte
-du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du plateau
+(`arete/geometrie.py`). Un demi-poteau ou une chaîne de pierres à chaque bout se complète de celui de la pièce voisine.
+L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du plateau
 (`MiseEnPage.echelle_d_arete_servie`).
 
 **Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
 nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
 la couleur de l'apparence posée. Une baie est percée de part en part.
+
+**Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
+`menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
+des kits de pierre (assises, chaînes, couronnement, brèche). Un kit les pose, il ne les recopie pas. Une apparence
+dont la hauteur ou l'allure change la forme prend son kit (`pierre`, `pierres-seches`) : l'hôte étire un kit à la
+hauteur du mur, il ne le rebâtit pas.
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 

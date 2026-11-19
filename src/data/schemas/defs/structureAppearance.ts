@@ -30,7 +30,7 @@ const reliefParPartie = nommerChamps(z.strictObject(
 });
 
 /** La famille du kit 3D d'une apparence : le modèle `arete--<famille>` dont l'hôte pose les pièces (#4471). */
-export const kitSchema = enumNomme({ colombage: 'Pan de bois', pierre: 'Pierre', cloture: 'Clôture' });
+export const kitSchema = enumNomme({ colombage: 'Pan de bois', pierre: 'Pierre', 'pierres-seches': 'Pierres sèches', cloture: 'Clôture' });
 
 const doc = document(
   'structureAppearance',
