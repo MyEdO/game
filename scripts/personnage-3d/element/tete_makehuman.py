@@ -14,7 +14,11 @@ faces. Son bord bas se coud à la couture (`tete.coudre`), aux poids, aux clés 
 comme une tête de `tete.py` ; tout autre bord (la bouche) se ferme d'un éventail enfoncé de `ENFONCEMENT_M`. Yeux : les
 groupes `helper-l-eye` et `helper-r-eye`.
 
-Clés : chaque trait de `TRAITS`, partagé par toutes ces têtes, ses cibles lues sommet à sommet ; `visage_inverse`
+Clés : les silhouettes et les clés `gabarit_*` de la base, transférées du corps (`tete.cles_du_corps`) ; `feminin` y
+ajoute l'écart, sommet à sommet, de la même forme à l'état macro `ETAT_FEMININ`, recalée et calée comme elle : le calage
+annule l'écart de taille de MakeHuman entre les deux états, qui est celui de la stature, que la base ne change pas, et
+les pièces de tête restent bâties à cette taille ; à la couture, la clé du cou seule (`feminin`). Chaque trait de
+`TRAITS`, partagé par toutes ces têtes, ses cibles lues sommet à sommet ; `visage_inverse`
 (mutation « Visage inversé », `mutations.json`), le visage retourné tête en bas : de `AXE` (sur l'axe avant-arrière à la
 hauteur `AXE_DU_VISAGE`), chaque sommet du visage prend le rayon de la peau dans la direction reflétée par le plan
 horizontal de cet axe, entier devant, nul hors de `OUVERTURE_DU_VISAGE_DEG` ; ce rayon est la médiane de ceux du sommet
@@ -30,12 +34,16 @@ import numpy as np
 from corpulence import RACES, forme_macro, lire_cible, lire_obj, os_des_faces, recalage, tetes, vers_blender
 from formes import poser_la_cle
 from noms_formes_de_tete import ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAGE_INVERSE, VISAGE_LONG
+from noms_silhouettes import FEMININ
 from production import pack_source
 from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere, elevation,
                   elevation_de_la_couture, normales_de_sommet, poser_les_normales_de_la_couture)
 from tissu import Maillage, emprunter, fondu, maillage_skinne, poids_normalises, porteur_de
 
 ETAT = 'male-young-averagemuscle-averageweight'
+ETAT_FEMININ = 'female-young-averagemuscle-averageweight'
+FONDU_DE_LA_COUTURE_M = 0.025
+"""HYPOTHÈSE : distance à la couture du cou sur laquelle la clé `feminin` passe de celle du corps à celle de MakeHuman."""
 OS_DE_LA_TETE = ('Head', 'neck_01')
 YEUX = ('helper-l-eye', 'helper-r-eye')
 BOUCHE_FERMEE = (('mouth/mouth-upperlip-height-incr', 1.0),
@@ -208,6 +216,16 @@ def visage_inverse(P, peau, yeux, triangles, H):
     return cle
 
 
+def feminin(X, S, du_corps, de_makehuman):
+    """La clé `feminin` des sommets `X` : `du_corps`, la clé transférée du corps de la base, plus `de_makehuman`, l'écart
+    de la forme féminine de MakeHuman à la forme masculine, nul à la couture `S` et entier à `FONDU_DE_LA_COUTURE_M`
+    d'elle."""
+    part = np.array([fondu(np.linalg.norm(S - x, axis=1).min() / FONDU_DE_LA_COUTURE_M) for x in X])[:, None]
+    print('TETE_MH feminin : clé du corps, au plus', round(float(np.linalg.norm(du_corps, axis=1).max()), 4),
+          'm ; écart de MakeHuman, au plus', round(float(np.linalg.norm(de_makehuman, axis=1).max()), 4), flush=True)
+    return du_corps + part * de_makehuman
+
+
 def construire(D, materiaux, b):
     mpfb = pack_source('mpfb')
     b.exiger(ZONES_DES_CLES + ['cou'])
@@ -221,16 +239,25 @@ def construire(D, materiaux, b):
     def cible(liste):
         return sum(p * lire_cible(mpfb / 'targets' / f'{nom}.target.gz', len(sommets)) for nom, p in liste)
 
-    neutre = forme_macro(mpfb, sommets, ETAT) + cible(BOUCHE_FERMEE)
-    echelle, translation = recalage({nom: vers_blender(neutre[i]).mean(axis=0) for nom, i in groupes.items()}, tetes(b.rig))
     triangles = triangles_de(faces)
     noms = [o.name for o in b.rig.data.bones]
     triangles = triangles[np.isin(os_des_faces(mpfb, noms, triangles), [noms.index(n) for n in OS_DE_LA_TETE])]
-    sur_le_tronc = vers_blender(neutre) * echelle + translation
-    e, t = calage(sur_le_tronc[np.unique(triangles)], sur_le_tronc[des_yeux], H)
-    echelle, translation = echelle * e, translation * e + t
-    cale = vers_blender(neutre) * echelle + translation
-    X = vers_blender(neutre + cible(D.get('CUITES', ()))) * echelle + translation
+    de_la_tete = np.unique(triangles)
+
+    def calee(etat):
+        """`(forme sans cibles cuites, forme de la race, échelle)` à l'état macro `etat`, recalées sur le tronc puis
+        calées à la taille publiée."""
+        neutre = forme_macro(mpfb, sommets, etat) + cible(BOUCHE_FERMEE)
+        echelle, translation = recalage({nom: vers_blender(neutre[i]).mean(axis=0) for nom, i in groupes.items()},
+                                        tetes(b.rig))
+        sur_le_tronc = vers_blender(neutre) * echelle + translation
+        e, t = calage(sur_le_tronc[de_la_tete], sur_le_tronc[des_yeux], H)
+        echelle, translation = echelle * e, translation * e + t
+        return (vers_blender(neutre) * echelle + translation,
+                vers_blender(neutre + cible(D.get('CUITES', ()))) * echelle + translation, echelle)
+
+    cale, X, echelle = calee(ETAT)
+    feminine = calee(ETAT_FEMININ)[1] - X
 
     indices_du_cou, S = couture(b, ZONES_DES_CLES, C)
     utiles = np.unique(triangles)
@@ -287,6 +314,8 @@ def construire(D, materiaux, b):
         poly.use_smooth = True
     poser_les_normales_de_la_couture(piece, len(bord), normales_de_sommet(b.zones['cou'])[indices_du_cou])
     for nom, champ in cles_du_corps(b, ZONES_DES_CLES, P[len(bord):]).items():
+        if nom == FEMININ:
+            champ = feminin(P[len(bord):], S, champ, np.concatenate([lu(feminine) for lu in lus]))
         poser_la_cle(piece, nom, np.concatenate([decalages_monde(b.zones['cou'], nom)[indices_du_cou], champ]))
     for nom, liste in TRAITS.items():
         delta = vers_blender(cible(liste)) * echelle

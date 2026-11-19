@@ -126,11 +126,12 @@ def delta_du_donneur(mpfb, taille):
 
 
 def forme_macro(mpfb, sommets, etat):
-    """`sommets` de `base.obj` (repère MakeHuman) chargés des cibles `macrodetails` d'un homme jeune : les races de
-    `RACES` à parts égales, puis l'état `etat` (muscle et poids)."""
+    """`sommets` de `base.obj` (repère MakeHuman) chargés des cibles `macrodetails` de l'état `etat`
+    (`<genre>-<âge>-<muscle>-<poids>`) : les races de `RACES` à parts égales à son genre et à son âge, puis l'état."""
     macro = Path(mpfb) / 'targets' / 'macrodetails'
     taille = len(sommets)
-    forme = sommets + sum(lire_cible(macro / f'{r}-male-young.target.gz', taille) for r in RACES) / len(RACES)
+    genre_et_age = '-'.join(etat.split('-')[:2])
+    forme = sommets + sum(lire_cible(macro / f'{r}-{genre_et_age}.target.gz', taille) for r in RACES) / len(RACES)
     return forme + lire_cible(macro / f'universal-{etat}.target.gz', taille)
 
 
