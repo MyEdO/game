@@ -1624,7 +1624,7 @@ export function consumeAmmo(c: Combatant, used: ItemInstance): void {
  *  l'utilise ; arme à Dégâts « – » : ceux de la munition, AA 10 l.192) et Atouts fusionnés (ex. Empaleuse
  *  de la Flèche). Qualité de la munition : majorée, l'Indice de l'arme + `majoration` (`majoration` si l'arme ne
  *  l'a pas) ; à Indice, il remplace celui de l'arme ; sans Indice, ajoutée si l'arme ne l'a pas. #4346 ; #4361 ;
- *  LDB 62 l.123 ; AA 08 l.496-497 */
+ *  `reload` se redérive de la Recharge fusionnée. LDB 62 l.123, l.335 ; AA 08 l.496-497 */
 export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const w = weapon.damage;
   const a = ammo.damage;
@@ -1641,5 +1641,6 @@ export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const damage: WeaponDamageSpec = 'flat' in w
     ? { plusBF: w.plusBF || (a != null && 'plusBF' in a && a.plusBF), flat: w.flat + (a != null && 'flat' in a ? a.flat : 0) }
     : 'aucun' in w ? (a ?? w) : w; // arme « Spécial » (literal) → inchangée
-  return { ...weapon, damage, qualities };
+  const fusionnee: Weapon = { ...weapon, damage, qualities };
+  return { ...fusionnee, reload: qualityIndice(fusionnee, 'recharge') ?? 0 };
 }

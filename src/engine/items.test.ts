@@ -965,6 +965,9 @@ describe('Munitions & rechargement', () => {
       expect(indice(w, qualite)).toBe(attendu);
       expect(w.qualities.filter((q) => q.majoration != null)).toEqual([]);
     });
+    it('`reload` de l’arme tirée suit la Recharge fusionnée : mortier à main + grappin → 4 (AA 08 l.497 ; #4417)', () => {
+      expect(tir('mortier-a-main', 'grappin-munition').reload).toBe(4);
+    });
     it('une qualité de munition sans Indice laisse celle de l’arme inchangée (Empaleuse de la Flèche)', () => {
       const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'empaleuse' }], subType: 'arc', reload: 0 };
       expect(weaponWithAmmo(arc, itemFromTrappingById('fleche', idsDeTest)!).qualities).toEqual([{ id: 'empaleuse' }]);
