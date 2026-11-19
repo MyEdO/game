@@ -42,7 +42,8 @@ BUDGET_TRIANGLES = {"mur": 2100, "porte-fermee": 2100, "porte-ouverte": 2100,
                     "fenetre": 2600, "fenetre-close": 2600, "breche": 2100}
 
 ANGLE_LISSE = 30
-"""Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le chanfrein d'une pierre s'y fond, ses joues gardent leurs arêtes."""
+"""Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le chanfrein d'une pierre s'y fond,
+ses joues gardent leurs arêtes."""
 
 APPAREIL = {
     **assises(apparence(KIT, MUR)),

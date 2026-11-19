@@ -778,8 +778,9 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 
 `arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
-chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour), reconstruit chaque
-kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque `arete--*` publié.
+chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
+reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque
+`arete--*` publié.
 Publier comme un véhicule (chapitre 9, « Publier »).
 
 ## Disponibilité à sonder avant chaque production
