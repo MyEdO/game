@@ -50,15 +50,6 @@
 .enjeu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
 .enjeu tr.tombee td{color:#7c1f14;font-weight:600}
 
-/* le désengagement et le Destin : trois cartes, la raison d'un refus au survol */
-#jet .fond.destin{gap:12px}
-
 /* la relance : le premier jet reste lisible */
 .relance{color:#5a2a12;white-space:nowrap}
 .relance s{text-decoration-thickness:1.5px}
-
-/* l'entrée de la Dissipation : les Sorts du porteur, le porteur */
-#jet .fond.destin .camp.visee{height:92px;padding-left:14px;border-left:1px solid rgba(60,40,20,.4)}
-
-/* l'Incantation Critique : le jet du lanceur, puis l'effet à choisir */
-#jet .fond.effet-critique{gap:12px}

@@ -1,12 +1,9 @@
 /* Le socle du jet (#3935) : le bandeau du bas et les pièces de `jet.js`. `combat.css` l'importe ; un écran bâti sur
    `../lieux-et-nuit/commun.css` le lie après sa feuille commune. */
-#jet .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
-/* un choix à la place du jet : ses cartes en rang, centrées ; le héros qui choisit à gauche, puis le filet, ses cartes
-   centrées dans la place restante */
-#jet .fond.debut{display:flex;justify-content:center;align-items:flex-start;gap:14px}
-#jet .fond.debut>.camp:first-child{flex:none;height:92px;padding-right:14px;border-right:1px solid rgba(60,40,20,.4)}
-#jet .fond.debut>.camp:first-child+*{margin-left:auto}
-#jet .fond.debut>:nth-last-child(2){margin-right:auto}
+/* le fond ne range rien : chaque place y a son rect (`PLACES`, `../rendu.js`), le contenu s'y adapte */
+#jet .place{min-width:0}
+#jet .place>.carte{width:100%;height:100%}
+#jet .place>.t{font-size:12.5px;line-height:16px;color:#4a3420;white-space:nowrap}
 .camp{display:flex;gap:14px;align-items:flex-start}
 .camp.droite{flex-direction:row-reverse;text-align:right}
 .camp .n{font-size:21px;line-height:22px;color:#3a1a10;white-space:nowrap}
@@ -22,14 +19,12 @@
 #verdict .sous{font-size:12.5px;color:#4a3420}
 #verdict .dr{font-size:30px;line-height:36px;color:#3a1a10;margin-top:2px}
 #verdict p{margin:2px 0 0;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
-#suites{position:absolute;left:20px;right:20px;bottom:13px;display:flex;justify-content:center;gap:9px}
-#suites .plaque{flex:0 1 150px}
-#suites .plaque.large{flex-basis:176px}
+#suites .place>.plaque{width:100%}
+#suites .place>.plaque>div{padding:0 6px;white-space:normal;text-align:center;font-size:13px;line-height:14px;letter-spacing:.5px}
 .camp .issue.reussite b{color:#3d5a26}
 
 /* les réserves du héros : un disque par réserve, son nom dessous ; à gauche des gestes dans les suites */
 .en-reserve{display:flex;gap:12px;align-items:flex-start}
-#suites .en-reserve{flex:none;margin:-1px 9px -1px 0}
 .en-reserve .res{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;letter-spacing:.7px;line-height:13px;color:#2a1d12;white-space:nowrap}
 .en-reserve .res.vide{color:#6a5a40}
 

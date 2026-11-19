@@ -1,7 +1,10 @@
 // LE RENDU DES MAQUETTES (#3935, #4411), sous Playwright, avec le relevé des pièces d'interface hors de la vue, croisées,
 // débordées par ce qu'elles portent (`deborde` : hors du fond de leur cadre, sur son bois ou au-delà), au texte coupé,
 // hors du rect de leur rôle (`bouge` : la table rôle → rect de `rendu.js`, la même pour tous les états et tous les
-// écrans ; ce qui porte `data-mobile` suit ce qu'il désigne), des feuilles (texte, contrôle) recouvertes, rognées par un
+// écrans ; ce qui porte `data-mobile` suit ce qu'il désigne), des places à l'intérieur d'un cadre hors du rect de leur
+// ligne (`place` : la table place → rect de `rendu.js`, depuis le fond que la ligne du cadre donne), des cadres dont
+// l'habillage change (`habille` : le fond hors de la boîte intérieure, ou des clous, ferrures et ruban autres qu'au
+// premier état du même rôle de la même passe), des feuilles (texte, contrôle) recouvertes, rognées par un
 // ancêtre (`overflow`, ellipse) ou qui se chevauchent, des actions principales (plaque armée, étape en cours) cachées
 // sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
 // (`retrecit`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
@@ -154,6 +157,20 @@ const releve = ([largeur, hauteur]) => {
     if (!t) return [`${e.dataset.piece} : hors table`]
     return Object.keys(t).some((k) => Math.abs(r[k] - t[k]) > 1) ? [`${e.dataset.piece} : ${n(r)} au lieu de ${n(t)}`] : []
   }) : []
+  /* une place hors du rect de sa ligne de la table des places (`PLACE_ATTENDUE`, `rendu.js`), ou sans ligne */
+  const places = globalThis.PLACE_ATTENDUE ? [...document.querySelectorAll('[data-place]')].filter((e) => !e.closest('[data-mobile]')).flatMap((e) => {
+    const t = globalThis.PLACE_ATTENDUE(e), r = e.getBoundingClientRect(), n = (q) => ['x', 'y', 'width', 'height'].map((k) => Math.round(q[k])).join(',')
+    if (!t) return [`${e.dataset.place} : hors table`]
+    return Object.keys(t).some((k) => Math.abs(r[k] - t[k]) > 1) ? [`${e.dataset.place} : ${n(r)} au lieu de ${n(t)}`] : []
+  }) : []
+  /* l'habillage d'un cadre : son fond, qui remplit sa boîte intérieure, et la place de ses clous, ferrures et ruban,
+     depuis son coin ; `habille` (plus bas) compare la signature d'un rôle d'un état à l'autre */
+  const habillage = Object.fromEntries([...document.querySelectorAll('.cadre[data-piece]')].filter((e) => !e.closest('[data-mobile]')).map((e) => {
+    const r = e.getBoundingClientRect(), s = getComputedStyle(e), f = e.querySelector(':scope > .fond')?.getBoundingClientRect()
+    const de = (q) => [q.left - r.left, q.top - r.top, q.width, q.height].map((v) => Math.round(v * 2) / 2).join(',')
+    const decale = f && [f.left - r.left - parseFloat(s.paddingLeft), f.top - r.top - parseFloat(s.paddingTop), r.right - f.right - parseFloat(s.paddingRight), r.bottom - f.bottom - parseFloat(s.paddingBottom)].some((v) => Math.abs(v) > .5)
+    return [e.dataset.piece, { decale, signature: [f ? de(f) : '-', ...[...e.querySelectorAll(':scope > .clou, :scope > .ferrure')].map((c) => de(c.getBoundingClientRect())), ...[...e.querySelectorAll(':scope > .ruban')].map((c) => de(c.getBoundingClientRect()).split(',')[1])].join(' ') }]
+  }))
   /* une pièce du kit qui rétrécit (`../kit.md`, « Une pièce du kit ne rétrécit jamais ») : un élément dont la règle de
      feuille qui l'emporte (ou son style en ligne) fixe la largeur ou la hauteur en pixels, rendu plus petit (sous un
      `flex` qui l'écrase) ; `bouge` ne mesure que la boîte de la pièce, pas ce qu'elle porte */
@@ -187,7 +204,7 @@ const releve = ([largeur, hauteur]) => {
     const fondu = parseFloat(getComputedStyle(d).getPropertyValue('--fondu')) || 0
     return q.top < r.top + (d.classList.contains('avant') ? fondu : 0) - 1 || q.bottom > r.bottom - (d.classList.contains('suite') ? fondu : 0) + 1
   }).map(nomme)
-  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, place: places, habillage, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv
@@ -198,6 +215,8 @@ if (!format) throw new Error(`rendre.mjs <écran> <sortie.png> --format ${Object
 const etat = option('--etat')
 const etats = page ? null : await chargerLEcran(cible, etat)
 const b = await chromium.launch({ args: ['--allow-file-access-from-files'] })
+/** La signature d'habillage de chaque rôle, au premier état rendu qui le porte, que `habille` compare aux suivants. */
+const HABILLAGES = new Map()
 /** La page `cible`, ou l'état `maquette` de l'écran, capturée en `sortie` avec son relevé. */
 async function capturer(maquette, sortie) {
   const p = await b.newPage({ viewport: { width: format.largeur, height: format.hauteur }, deviceScaleFactor: format.facteur })
@@ -210,7 +229,12 @@ async function capturer(maquette, sortie) {
   const rendu = page ? null : await p.waitForFunction(() => globalThis.RAPPORT_DU_RENDU, null, { timeout: 30000 }).then((h) => h.jsonValue())
   await p.evaluate(() => document.fonts.ready)
   await p.waitForTimeout(400)
-  const rapport = await p.evaluate(releve, [format.largeur, format.hauteur])
+  const { habillage, ...rapport } = await p.evaluate(releve, [format.largeur, format.hauteur])
+  rapport.habille = Object.entries(habillage).flatMap(([piece, { decale, signature }]) => {
+    if (!HABILLAGES.has(piece)) HABILLAGES.set(piece, { signature, etat: maquette?.nom ?? cible })
+    const ref = HABILLAGES.get(piece)
+    return [...(decale ? [`${piece} : fond hors de sa boîte`] : []), ...(ref.signature === signature ? [] : [`${piece} : habillage autre qu'à ${ref.etat}`])]
+  })
   await p.screenshot({ path: sortie, clip: { x: 0, y: 0, width: format.largeur, height: format.hauteur } })
   console.log(`${maquette?.nom ?? cible} erreurs`, erreurs.length, erreurs.slice(0, 5).join(' | '))
   console.log(JSON.stringify(rendu ? { ...rapport, ...rendu } : rapport))

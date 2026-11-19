@@ -19,6 +19,14 @@ rectangle (x, y, largeur, hauteur), le même dans tous les états et sur tous le
 Ce qui n'y figure pas suit ce qu'il désigne et porte `data-mobile` (« Mobiles » plus bas). Le relevé `bouge` de
 `sources/rendre.mjs` compare chaque pièce fixe à sa ligne et signale toute pièce sans ligne.
 
+**La grille intérieure.** L'intérieur d'un cadre récurrent a ses places, chacune (`data-place="<rôle>/<place>"`) à
+UN rectangle dans le fond du cadre, le même dans tous les états et sur tous les écrans : la table `PLACES` de
+`sources/rendu.js`, sœur de `CADRES`, seule copie des nombres. Ce qui manque à un état laisse sa place vide, rien ne
+glisse ; le fond ne range rien d'autre, aucune règle de feuille propre à un état n'y redéfinit colonnes, marges ou
+écarts. Le relevé `place` compare chaque place à sa ligne (depuis le fond que la ligne du cadre donne) ; le relevé
+`habille` signale un fond qui sort de la boîte intérieure de son cadre, ou des clous, ferrures et ruban autres qu'au
+premier état du même rôle.
+
 **Le contenu s'adapte au cadre, jamais l'inverse.** Aucun panneau ne prend la hauteur de son contenu, aucune fenêtre
 ne change de hauteur selon ce qu'elle porte : ce qui ne tient pas défile, se pagine ou passe en onglets
 (« Débordement »). L'action principale se pose au pied fixe de son cadre, le contenu part du haut.
@@ -30,7 +38,7 @@ gagnée. La vue ne descend jamais sous 1280 × 720 logiques ; un écran plus pet
 
 **Quand la largeur manque**, dans cet ordre : une colonne de trop devient un onglet de sa voisine ; puis le détail
 d'une ligne se pose par-dessus (aperçu, écran posé) au lieu d'occuper une colonne. Une pièce du kit ne rétrécit jamais
-(seule la carte de choix s'étire, de 200 à 262 de large) et rien ne défile de côté.
+et rien ne défile de côté ; la carte de choix prend la largeur de son emplacement (`PLACES`).
 
 ## Les cadres, par rôle
 
@@ -130,11 +138,14 @@ et le journal ne se montrent pas ensemble là où ils partagent la colonne de dr
 l'actif au `socle` (valeurs à gauche, portrait au centre, actions à droite, une famille par onglet), `fin-du-tour`.
 Le journal passe par-dessus le champ, sans fond plein.
 
-**6. Fenêtre du bas** (jets et choix) : rôle `fenetre`, une seule hauteur ; ruban gothique centré ; le héros concerné
-toujours à gauche (portrait `grand`, nom à sa droite), l'adversaire ou l'interlocuteur à droite en miroir ; la rangée
-d'actions centrée au pied, la principale en premier, la réserve dépensée à sa gauche. La fenêtre remplace le socle.
-Les deux camps gardent leur place, le centre rétrécit ; ce qui ne tient pas suit « Débordement » (liste paginée par
-trois, défilement).
+**6. Fenêtre du bas** (jets et choix) : rôle `fenetre`, une seule hauteur ; ruban gothique centré ; ses places
+(`PLACES`) : `gauche` le héros concerné (portrait `grand`, nom à sa droite) ou le titre d'un choix, `centre`, `droite`
+l'adversaire ou l'interlocuteur en miroir, ou ce que le centre décide quand il n'y en a pas ; trois emplacements de
+carte de même largeur (`carte-1` à `carte-3`), chacun sous sa ligne de rubrique (`rubrique-1` à `rubrique-3`), une
+carte seule dans le premier, ce que le choix vise dans l'emplacement qui suit ses cartes ; `large`, la liste paginée
+par trois ou le partage d'une fouille, à la place des emplacements ; au pied, `gestes`, la rangée, avec `reserve` à
+gauche (la réserve dépensée, le testeur à désigner) et `plaques`, la principale en premier. La fenêtre remplace le
+socle. Ce qui ne tient pas suit « Débordement » (liste paginée par trois, défilement).
 
 **7. Récit, document et issue** : `carton` (son action centrée au pied, la prose d'un document paginée) ; `issue` pour
 la bannière d'un combat, action unique dessous, sans socle ; ce que l'issue rend se lit ensuite dans la fenêtre du bas.

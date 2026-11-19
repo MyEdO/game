@@ -82,7 +82,6 @@
 #verdict .prix{display:flex;justify-content:center;align-items:baseline;gap:10px;margin-top:3px;font-size:14px;color:#2a1d12;white-space:nowrap}
 #verdict .prix s{color:#6a5236}
 #verdict .prix b{font-weight:600}
-#suites .plaque.large{flex-basis:190px}
 
 /* la halle vue d'un siège invité */
 #main .fond{display:flex;align-items:center;gap:12px;padding:8px 14px}

@@ -892,13 +892,14 @@ export interface Voie {
 
 /* ───────── la nuit ───────── */
 
-/** Une offre de l'hôte d'une auberge : son id (son pictogramme), son nom, ses lits ou son prix par tête, son prix ;
- *  `prise`. */
+/** Une offre de l'hôte d'une auberge : son id (son pictogramme), son nom, ses lits, son prix par tête ou par bête, son
+ *  prix ; `prise`. */
 export interface OffreDeLAuberge {
-  id: 'commune' | 'privee' | 'grande' | 'repas';
+  id: 'commune' | 'privee' | 'grande' | 'repas' | 'ecurie';
   nom: string;
   lits?: number;
   parTete?: true;
+  parBete?: true;
   prix: Sous;
   prise?: true;
 }
@@ -956,16 +957,17 @@ export interface HerosDeLaNuit extends HerosDuGroupe {
   nourriture?: { valeurs: string[]; tenue: number };
 }
 
-/** La nuit, écran unique de l'auberge et de la halte : le décor, le titre, le récit de la halte ; à gauche l'hôte et ses
- *  offres, ou le rail des services de la maison ; les postes de la scène ; à droite qui dort où, ou la partie d'un jeu ;
- *  le retour, le groupe. */
+/** La nuit, écran unique de l'auberge et de la halte : le décor et la qualité de l'établissement (sa salle), le titre, le
+ *  récit de la halte ; à gauche l'hôte, ses offres et ses avis, ou le rail des services de la maison ; les postes de la
+ *  scène ; à droite qui dort où, ou la partie d'un jeu ; le retour, le groupe. */
 export interface Nuit {
   nom: string;
   gabarit: 'lieu-et-voyage';
   decor: 'auberge' | 'taverne' | 'bivouac';
+  qualite?: 'pietre' | 'normale' | 'grande';
   titre: TitreDuLieu;
   recit?: { lieu: string; texte: string };
-  hote?: HoteDuLieu & { offres: OffreDeLAuberge[] };
+  hote?: HoteDuLieu & { offres: OffreDeLAuberge[]; avis?: string[] };
   rail?: Rail;
   postes?: PosteDuLieu[];
   dortoir?: Dortoir;
@@ -1114,7 +1116,7 @@ export interface Depart {
   place?: { prix: Sous; classe: string };
 }
 
-/** Un lieu à services, la halle, le port ou le relais où l'on arrive : le décor, le titre, l'arrivée (le lieu, les heures
+/** Un lieu à services, la halle, le port ou le relais où l'on arrive : le décor et l'enceinte du relais, le titre, l'arrivée (le lieu, les heures
  *  de route), le récit ; le rail des services ; la rumeur du marché ; ce qui se pose dans la scène ; la page du service
  *  ouvert ; la carte (celle du port, ou le trajet qui part d'ici) et ses départs ; le retour ; le groupe, ou la fenêtre du
  *  Marchandage qui prend sa place, et les combattants qu'elle nomme. */
@@ -1122,6 +1124,7 @@ export interface Commerce {
   nom: string;
   gabarit: 'lieu-et-voyage';
   decor: 'halle' | 'quai' | 'relais';
+  enceinte?: 'aucune' | 'palissade' | 'rempart';
   titre: TitreDuLieu;
   arrivee?: { lieu: string; heures: number };
   recit?: string;

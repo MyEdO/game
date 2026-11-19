@@ -1,6 +1,6 @@
 # Propositions : voyage (2026-11-17, #3935)
 
-Compte rendu des vingt et un états dessinés (neuf d'origine, douze ajoutés par l'audit des verbes, #4411) depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
+Compte rendu des vingt-trois états dessinés (neuf d'origine, douze ajoutés par l'audit des verbes, deux par les enceintes, #4411) depuis la cible écrite `../ecrites/voyage.md` (et `../ecrites/lieu.md` pour
 l'arrivée), la doctrine `user-doctrine-la-cible-prime-sur-l-ancien-ecran` et les propositions déjà au dépôt
 (`exploration-et-recit/carte-du-monde.jpg`, `combat/`). Sources au dépôt : sept écrans de `sources/maquettes/`,
 chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html`
@@ -10,7 +10,7 @@ chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dess
 `mer-conseil-de-bord`, `mer-fuite-de-vapeur`), `le-bord` (`postes-de-bord`, `postes-de-bord-station`,
 `activites-en-mer`), `combat-naval` (`combat-naval`, `combat-naval-bordee`, `combat-naval-chanson`,
 `meuble-piece-de-bord`), `dossier` (`dossier-du-navire`, `dossier-du-navire-cargaison`, `dossier-de-la-bete`,
-`dossier-du-vehicule`) et `arrivee` (`arrivee`). La compagnie est celle de `sources/maquettes/compagnie.ts`.
+`dossier-du-vehicule`) et `arrivee` (`arrivee-aucune`, `arrivee-palissade`, `arrivee-rempart`). La compagnie est celle de `sources/maquettes/compagnie.ts`.
 Premières maquettes : chaque « choix à valider » attend l'utilisateur.
 
 La carte du monde n'est pas redessinée : elle existe (`exploration-et-recit/carte-du-monde.jpg`) et sert de modèle ;
@@ -68,7 +68,7 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   fait pas : jour par jour il s'arrête avant le dé, sous ordres jamais (`attendUnVraiChoix`, à retoucher, verbes
   inchangés) ; « Appliquer » (charte) pour laisser l'échec ; dé d'exemple.
 
-## arrivee
+## arrivee-aucune, arrivee-palissade, arrivee-rempart
 - Cible écrite `lieu.md` : l'arrivée est l'écran du lieu, sa première ligne est le récit du trajet (« Arrivée à
   Auberge des Sept Rayons · Voyage de 5 h. », `src/noyau/recitEnVue.ts`, `trm.titreArrivee`, `trm.dureeVoyage`) ;
   services mis en scène sur leurs bâtiments, pas de liste ; départs à droite sous la carte, un moyen par plaque.
@@ -86,10 +86,21 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
   `fV('depart')`, ou « Rester », `fF('depart')`, `src/noyau/modalArbiter.ts:362`, valeur maison
   `voyage-heure-de-depart`) ; « Marchander » le billet (flux `marchandage`, `commerce/marchandage.jpg`). Classe de
   passage, heures par jour, allure et cadence ne se règlent que sur la carte (« Ouvrir la carte »).
+- Un état par enceinte du lieu (inspiration, non validée : image `lieu-enceintes` de `../maquettes/`) : l'enceinte est une donnée du lieu (`enceinte` de l'état), le
+  reste de l'écran ne change pas ; le cartouche la nomme (« sans enceinte », « palissade de bois », « rempart de
+  pierre ») et le décor de la cour la peint (`D.relais`, `sources/voyage/voyage.js`) : la route ouverte sur les
+  champs, la palissade de pieux sous sa tour de guet dans la forêt, le rempart crénelé et son portail.
+- Règle : « La majorité des auberges situées en dehors des grandes villes sont entourées d'un mur d'un type ou d'un
+  autre. Il est fait de bois ou de pierre selon les régions, et mesure en général 2 à 4 mètres de haut » (EDO 01
+  l.27).
 - À valider : Sept Rayons n'a aucun `services` en donnée : le cartouche « Auberge » (Entrer, Dormir, Recueillir des
   informations) et son boniment sont à écrire ; le texte de présentation du lieu est un exemple ; « billet en main »
   vers Altdorf est un exemple ; durées des départs (« 5 j », « 2 j ») en plaques ; « Ouvrir la carte » en pastille
-  sous la carte du trajet ; bourses affichées sur les cartes des héros ; sortie « Explorer ».
+  sous la carte du trajet ; bourses affichées sur les cartes des héros ; sortie « Explorer » ; le livre ne dit pas
+  l'enceinte des Sept Rayons (« La disposition de l'Auberge des Sept Rayons ressemble beaucoup à celle de l'auberge de
+  La Diligence », EDO 02 l.184), c'est une valeur d'adaptation ; aucun champ d'enceinte au schéma du lieu
+  (`src/noyau/monde/scene.ts`) ; services et départs identiques d'un état à l'autre, quand l'image varie aussi ceux
+  du lieu (hameau à pied, bourg et son forgeron).
 
 ## voyage-fluvial
 - Cible écrite, « Ce que le joueur voit pendant le trajet » : décor en plans (ciel, lointain, berge, fleuve et

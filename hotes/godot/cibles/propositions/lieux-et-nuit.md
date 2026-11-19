@@ -1,10 +1,10 @@
 # Propositions : lieux et nuit (2026-11-16, #3935)
 
-Compte rendu des écrans dessinés depuis les maquettes validées de lieu et de voyage, la cible écrite
+Compte rendu des écrans dessinés depuis les images de lieu et de voyage (inspiration, non validées), la cible écrite
 `../ecrites/lieu.md` et le relevé de ce qui se joue la nuit (ci-dessous). Sources au dépôt : trois écrans de
 `sources/maquettes/`, chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dessinés par
 `sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png> --format 16:9 [--etat <état>]`) : `nuit`
-(`nuit-a-l-auberge`, `jeux-de-taverne`, `bivouac`), `soins` (`services-du-lieu-medecin` ; `soins-entre-heros`, compte rendu dans `exploration-et-recit.md`) et `interlude`
+(`nuit-a-l-auberge-pietre`, `nuit-a-l-auberge-normale`, `nuit-a-l-auberge-grande`, `jeux-de-taverne`, `bivouac`), `soins` (`services-du-lieu-medecin` ; `soins-entre-heros`, compte rendu dans `exploration-et-recit.md`) et `interlude`
 (`interlude-en-ville`). Les décors peints vivent dans `sources/lieux-et-nuit/` (`auberge.js`, `taverne.js`,
 `bivouac.js`, `cabinet.js`, `carte-de-la-ville.js`). Premières maquettes : rien n'est validé.
 
@@ -38,16 +38,36 @@ rail de services à gauche et panneau de parchemin à droite forment le gabarit 
 Un seul écran pour la nuit, à l'auberge comme à la halte : un seul panneau « Qui dort où », à droite, range les héros
 dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent dehors.
 
-### nuit-a-l-auberge
-- La salle de La Fin du Voyage ; l'aubergiste et ses offres au prix de la maison, sans choix de qualité (la qualité
-  est une donnée de l'établissement, `src/noyau/restFlow.ts`, `p.quality`) : chambre commune 10 sc par tête, chambre
-  privée 10/– (2 lits), grande chambre 20/– (4 lits, LDB 66 l.28), repas 1/– par tête (LDB 66 l.12-16).
-- Qui dort où : les quatre portraits posés dans la grande chambre, « 4 sur 4 ». Tarif par personne (#3004) :
-  « Bourses du groupe », la part de chacun (6/–) sous son nom, réglable, et le total ; « Passer la nuit ». Postes de
-  soirée : boire (bière, la pinte 3 sc, LDB 66), écouter les rumeurs, jouer, se faire soigner, dormir.
+### nuit-a-l-auberge-pietre, nuit-a-l-auberge-normale, nuit-a-l-auberge-grande
+- Un état par qualité de l'établissement (inspiration, non validée : images `logis-qualites`, `auberge-fin-du-voyage`,
+  `auberge-bouge-altstadt` de `../maquettes/`) : la qualité est une donnée de l'établissement (`src/noyau/restFlow.ts`, `p.quality`, `QUALITE_DU_REPOS`), jamais un
+  choix ; l'échelle est celle du livre, piètre, normale, grande : « Les chambres et les repas de piètre qualité coûtent
+  la moitié des prix listés, et ceux de grande qualité coûtent le double des prix listés » (LDB 66 l.5). Le même écran,
+  sa salle suit la qualité (`qualite` de l'état, `sources/lieux-et-nuit/auberge.js`) : enfumée et ses paillasses au mur,
+  la salle de la Fin du Voyage, tapis et lustre.
+- Prix du livre (LDB 66 l.12-16) : chambre commune 10 sc, chambre privée 10/–, écurie 10 sc, repas 1/–, bière la pinte
+  3 sc, vin la bouteille 10 sc ; la grande chambre « coûte le double du prix et convient à 4 invités » (LDB 66 l.28).
+- Piètre, une taverne d'Altstadt (« Les tavernes bon marché et répugnantes, offrent des atmosphères enfumées sous des
+  plafonds bas », EDO 10 l.179) : chambre commune 5 sc, repas 6 sc, bière 3 sc ; avis « méfiez-vous des voleurs »
+  (« les invités qui dorment dans des chambres communes doivent se méfier des voleurs », LDB 66 l.26) et 10 % de
+  Courante galopante (« Consommer des aliments et des boissons de piètre qualité comporte un risque de 10 %
+  d'exposition à la *Courante galopante* », LDB 66 l.5) ; les quatre en chambre commune, 11 sc chacun.
+- Normale, La Fin du Voyage (« une vaste auberge respectable », EDO 10 l.517) : chambre commune 10 sc, chambre privée
+  10/– (2 lits), grande chambre 20/– (4 lits), repas 1/–, écurie 10 sc par cheval ; avis des voleurs. Qui dort où : les
+  quatre portraits dans la grande chambre, « 4 sur 4 » ; tarif par personne (#3004), la part de chacun (6/–) sous son
+  nom, réglable, et le total ; « Passer la nuit ». Postes de soirée : boire (bière, la pinte 3 sc), écouter les
+  rumeurs, jouer, se faire soigner (le barbier de la maison), dormir.
+- Grande, une auberge de la Dreieckeplatz (« plusieurs auberges et tavernes haut de gamme […] Les prix sont élevés en
+  conséquence (le double de ceux indiqués […] page 302) », EDO 10 l.293) : chambre privée 1 CO, grande chambre 2 CO,
+  repas 2/– ; boire le vin, 10 sc la bouteille ; les quatre en grande chambre, 12/– chacun.
 - À valider : une seule activité de soirée par héros (transposition de l'Étape, aucun RAW) ; « Boire » demande une
-  offre au noyau (M12 de l'audit ; la règle d'ivresse existe, LDB 09 l.475) ; écurie à la nuit (LDB 66 l.14) non
-  offerte ; l'offre de l'hôte à gauche, alors que les jeux montrent le rail des services de la maison.
+  offre au noyau (M12 de l'audit ; la règle d'ivresse existe, LDB 09 l.475) ; l'écurie n'est pas une offre du noyau
+  (`PRIX_DU_LIVRE` ne la connaît pas) ; l'offre de l'hôte à gauche, alors que les jeux montrent le rail des services de
+  la maison ; les offres de chaque maison sont une donnée d'adaptation (la piètre sans chambre ni écurie, sur le modèle
+  de l'asile de nuit d'ACE 02 l.99, qui ne vend que la chambre commune et le repas ; la grande sans chambre commune) ;
+  à la Dreieckeplatz, EDO 10 l.293 double tous les prix, LDB 66 l.5 les seules chambres et repas : le vin reste au prix
+  du livre ; le barbier n'est qu'à la Fin du Voyage ; tenancier et maître d'hôtel anonymes, leurs répliques sont des
+  exemples ; un avis par risque, sans pictogramme propre.
 
 ### jeux-de-taverne
 - La même maison, service « Les jeux » : la table sous sa lanterne, trois joueurs PNJ, la place libre ; l'Al-zahr,
