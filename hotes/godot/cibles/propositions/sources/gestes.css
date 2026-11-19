@@ -268,11 +268,12 @@ html,body{margin:0;background:var(--noir)}
 .fond.bois .reglette::before{background:var(--lit);box-shadow:0 0 0 1px var(--filet-or)}
 .fond.bois .reglette u{background:linear-gradient(180deg,var(--cire-clair),var(--sang))}
 
-/* ce qui défile dans son cadre : sans barre ; la suite cachée s'annonce par un fondu au pied */
-.defile{min-height:0;overflow-y:auto;scrollbar-width:none}
-.defile.suite{mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
-.defile.avant{mask-image:linear-gradient(transparent,#000 34px)}
-.defile.avant.suite{mask-image:linear-gradient(transparent,#000 34px,#000 calc(100% - 34px),transparent)}
+/* ce qui défile dans son cadre : sans barre ; la suite cachée s'annonce par un fondu au pied, ce qui a défilé par un
+   fondu en tête, de `--fondu` de haut (lu par `suites`, `gestes.js`, et le relevé `cache` de `rendre.mjs`) */
+.defile{--fondu:34px;min-height:0;overflow-y:auto;scrollbar-width:none}
+.defile.suite{mask-image:linear-gradient(#000 calc(100% - var(--fondu)),transparent)}
+.defile.avant{mask-image:linear-gradient(transparent,#000 var(--fondu))}
+.defile.avant.suite{mask-image:linear-gradient(transparent,#000 var(--fondu),#000 calc(100% - var(--fondu)),transparent)}
 /* fermer un panneau : la croix, en haut à droite */
 .croix{position:absolute;right:22px;top:18px}
 /* quitter un lieu : la pastille de retour, 30 / 34 du coin bas-gauche, son libellé au-dessus d'elle */

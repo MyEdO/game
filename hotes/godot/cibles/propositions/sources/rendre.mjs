@@ -1,11 +1,13 @@
 // LE RENDU DES MAQUETTES (#3935, #4411), sous Playwright, avec le relevé des pièces d'interface hors de la vue, croisées,
-// débordées par ce qu'elles portent, au texte coupé, hors du rect de leur rôle (`bouge` : la table rôle → rect de
-// `rendu.js`, la même pour tous les états et tous les écrans ; ce qui porte `data-mobile` suit ce qu'il désigne), des
-// feuilles (texte, contrôle) recouvertes, rognées par un ancêtre (`overflow`, ellipse) ou qui se chevauchent, et du
-// défilement de la page. Ce qui se pose exprès au-dessus d'une autre
-// feuille (bulle de refus, badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle, jamais un
-// texte, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ; ce dont le
-// contenu défile par dessin (la valeur d'un champ long) porte `data-defile` :
+// débordées par ce qu'elles portent (`deborde` : hors du fond de leur cadre, sur son bois ou au-delà), au texte coupé,
+// hors du rect de leur rôle (`bouge` : la table rôle → rect de `rendu.js`, la même pour tous les états et tous les
+// écrans ; ce qui porte `data-mobile` suit ce qu'il désigne), des feuilles (texte, contrôle) recouvertes, rognées par un
+// ancêtre (`overflow`, ellipse) ou qui se chevauchent, des actions principales (plaque armée, étape en cours) cachées
+// sous le bord ou le fondu de ce qui défile (`cache`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une
+// autre feuille (bulle de refus, badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle,
+// jamais un texte, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ; ce
+// dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
+// `rogne` que le haut et le bas :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
@@ -50,15 +52,24 @@ const releve = ([largeur, hauteur]) => {
     const a = pieces[i].r, c = pieces[j].r
     if (a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom) croise.push(pieces[i].n + ' x ' + pieces[j].n)
   }
-  /* ce que le fond d'un cadre porte hors de son cadre, sauf sous un ancêtre qui le rogne ou le fait défiler, une pièce
+  /* le cœur d'une ligne de texte : la moitié du milieu de sa boîte de police, que les lignes voisines ne touchent pas */
+  const coeur = (q) => new DOMRect(q.left, q.top + q.height / 4, q.width, q.height / 2)
+  /* ce que le fond d'un cadre porte hors de ce fond (sur le bois du cadre ou au-delà : un texte, le cœur de chacune
+     de ses lignes ; un autre élément, sa boîte), sauf sous un ancêtre qui le rogne ou le fait défiler, une pièce
      sans boîte qui porte des éléments visibles, et ce qui se pose au-dessus (`data-dessus`) hors de son cadre, ou de la
      vue quand il n'est dans aucun cadre */
   const rogne = (d, piece) => { for (let a = d.parentElement; a && a !== piece; a = a.parentElement) if (getComputedStyle(a).overflow !== 'visible') return true; return false }
   const deborde = [...document.querySelectorAll('[data-piece]')].flatMap((e) => {
     const fond = e.querySelector(':scope > .fond')
-    const r = e.getBoundingClientRect()
-    const hors = (q) => q.left < r.left - 1 || q.right > r.right + 1 || q.top < r.top - 1 || q.bottom > r.bottom + 1
-    return (fond && [...fond.querySelectorAll('*')].some((d) => { const q = d.getBoundingClientRect(); return q.width && !rogne(d, e) && hors(q) }))
+    const r = e.getBoundingClientRect(), f = fond?.getBoundingClientRect()
+    const hors = (q) => q.left < f.left - 1 || q.right > f.right + 1 || q.top < f.top - 1 || q.bottom > f.bottom + 1
+    const boites = (d) => {
+      const textes = [...d.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim())
+      if (!textes.length) return [d.getBoundingClientRect()]
+      const plage = document.createRange()
+      return textes.flatMap((n) => { plage.selectNodeContents(n); return [...plage.getClientRects()] }).map(coeur)
+    }
+    return (fond && [...fond.querySelectorAll('*')].some((d) => boites(d).some((q) => q.width && !rogne(d, e) && hors(q))))
       || ((r.width < 1 || r.height < 1) && [...e.querySelectorAll('*')].some((d) => d.getBoundingClientRect().width > 0)) ? [e.dataset.piece] : []
   }).concat([...document.querySelectorAll('[data-dessus]')].filter((d) => {
     const c = d.closest('.cadre')?.getBoundingClientRect() ?? new DOMRect(0, 0, largeur, hauteur), q = d.getBoundingClientRect()
@@ -80,8 +91,6 @@ const releve = ([largeur, hauteur]) => {
       : (plage.selectNodeContents(e), [...plage.getClientRects()])
     return rects.filter((q) => q.width > .5 && q.height > .5).map((q) => (ligne < q.height ? new DOMRect(q.left, q.top + (q.height - ligne) / 2, q.width, ligne) : q))
   }
-  /* le cœur d'une ligne de texte : la moitié du milieu de sa boîte de police, que les lignes voisines ne touchent pas */
-  const coeur = (q) => new DOMRect(q.left, q.top + q.height / 4, q.width, q.height / 2)
   const feuilles = [...document.querySelectorAll('#ui *')].filter((e) => e.checkVisibility({ opacityProperty: true, visibilityProperty: true })).flatMap((e) => {
     if (e.matches(CONTROLE)) { const q = e.getBoundingClientRect(); return q.width && q.height ? [{ e, texte: false, rects: [q], coeurs: [q] }] : [] }
     if (![...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) return []
@@ -101,14 +110,14 @@ const releve = ([largeur, hauteur]) => {
     return v && (!e.contains(v) || (m && !e.closest('[data-dessus]'))) && cache(v, e) && !(m && !texte)
   }))).map((f) => nomme(f.e)))]
   /* une feuille qui sort d'un ancêtre qui la rogne ou la fait défiler (`overflow` non visible ; un texte : lui-même
-     compris), sauf celui qui porte `data-defile`, dont le contenu défile par dessin, ou dont la ligne finit par une
-     ellipse */
+     compris), sauf par le haut ou le bas de celui qui porte `data-defile`, dont le contenu défile en hauteur, ou dont la
+     ligne finit par une ellipse */
   const rogneLa = ({ e, texte, rects }) => {
     if (getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth + 1) return 'ellipse'
     for (let a = texte ? e : e.parentElement; a && a !== document.body; a = a.parentElement) {
       const s = getComputedStyle(a), r = a.getBoundingClientRect()
-      const x = s.overflowX !== 'visible', y = s.overflowY !== 'visible'
-      if ((x || y) && !a.hasAttribute('data-defile') && rects.some((q) => (x && (q.left < r.left - 1 || q.right > r.right + 1)) || (y && (q.top < r.top - 1 || q.bottom > r.bottom + 1)))) return a.id || a.classList[0]
+      const x = s.overflowX !== 'visible', y = s.overflowY !== 'visible' && !a.hasAttribute('data-defile')
+      if ((x || y) && rects.some((q) => (x && (q.left < r.left - 1 || q.right > r.right + 1)) || (y && (q.top < r.top - 1 || q.bottom > r.bottom + 1)))) return a.id || a.classList[0]
     }
     return ''
   }
@@ -144,7 +153,15 @@ const releve = ([largeur, hauteur]) => {
     if (!t) return [`${e.dataset.piece} : hors table`]
     return Object.keys(t).some((k) => Math.abs(r[k] - t[k]) > 1) ? [`${e.dataset.piece} : ${n(r)} au lieu de ${n(t)}`] : []
   }) : []
-  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, recouvert, rogne: rognes, chevauche: [...chevauche], defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  /* une action principale (plaque armée) ou l'étape en cours (`.en-cours`) hors de ce que montre le `data-defile` qui la
+     porte : sous son bord, ou sous le fondu (`--fondu`, `gestes.css`) qui annonce une suite (`.suite`) ou ce qui a défilé
+     (`.avant`) */
+  const caches = [...document.querySelectorAll('#ui [data-defile] :is(.plaque.armee, .en-cours)')].filter((e) => {
+    const d = e.closest('[data-defile]'), r = d.getBoundingClientRect(), q = e.getBoundingClientRect()
+    const fondu = parseFloat(getComputedStyle(d).getPropertyValue('--fondu')) || 0
+    return q.top < r.top + (d.classList.contains('avant') ? fondu : 0) - 1 || q.bottom > r.bottom - (d.classList.contains('suite') ? fondu : 0) + 1
+  }).map(nomme)
+  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv

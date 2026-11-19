@@ -326,10 +326,12 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const rangDePas = (pleins, total, classe = '') => `<div class="pas ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
   /* ce qui défile dans son cadre, qui garde sa taille : `data-defile` au relevé du rendu ; la suite cachée s'annonce
      par un fondu au pied, ce qui a défilé par un fondu en tête (`suites`), hors ce qui se pagine ; `au-pied` : il montre
-     sa fin */
+     sa fin ; sinon, sa dernière action principale (plaque armée, étape en cours) vient au-dessus du fondu du pied */
   const defile = (contenu, classe = '') => `<div class="defile ${classe}" data-defile>${contenu}</div>`;
   const suites = () => document.querySelectorAll('.defile:not(.pages)').forEach((d) => {
+    const action = [...d.querySelectorAll('.plaque.armee, .en-cours')].at(-1);
     if (d.classList.contains('au-pied')) d.scrollTop = d.scrollHeight;
+    else if (action) d.scrollTop += Math.max(0, action.getBoundingClientRect().bottom - d.getBoundingClientRect().bottom + parseFloat(getComputedStyle(d).getPropertyValue('--fondu')));
     d.classList.toggle('suite', d.scrollTop + d.clientHeight < d.scrollHeight - 1);
     d.classList.toggle('avant', d.scrollTop > 1);
   });

@@ -130,7 +130,7 @@
 
 /* 4. Lieu, la route : la carte du trajet au coin haut-droit, le panneau ou le navire dessous ; la frise au-dessus du
    bandeau, l'aperçu du Test au-dessus du navire ; la fenêtre du bas prend la place du bandeau ; le carton d'un arrêt
-   centré, 960 de large, son bas à 170 du bas (à 20 au-dessus de la fenêtre du bas) */
+   au rect `carton` (`rendu.js`) */
 #panneau .fond{padding:20px 14px 10px}
 #panneau .jauge{margin:1px 0 7px}
 #panneau .plaque{margin-top:2px}
@@ -214,7 +214,7 @@
 #journal .lignes{max-height:190px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;mask-image:linear-gradient(transparent,#000 48px)}
 
 
-/* 5. Combat, le tour : la barre de l'actif 960 × 138, centrée, à 8 du bas ; les valeurs à gauche, le portrait au
+/* 5. Combat, le tour : la barre de l'actif au rect `socle` ; les valeurs à gauche, le portrait au
    centre, les actions à droite, une famille par onglet au-dessus de sa rangée ; les outils du tour à cheval sur le bord
    haut, au-dessus du Mouvement qu'ils annulent */
 #barre>.onglets{left:479px}
@@ -282,12 +282,9 @@
    ou les deux panneaux de la progression, tendus jusqu'au bord droit */
 
 /* 4. Lieu, l'exploration : le regard au coin haut-droit, les écrans à ouvrir dessous ; les gestes du groupe au bord
-   gauche et le journal au bord droit, leur bas à la ligne basse (164 du bas au-dessus du bandeau, 20 au-dessus d'une
-   fenêtre du bas) ; le dialogue et la fouille dans une fenêtre du bas de 266 */
+   gauche et le journal au bord droit ; le dialogue et la fouille dans la fenêtre du bas */
 #jet .fond.dialogue>.camp:first-child>div{max-width:120px}
 #jet .fond.dialogue>.camp.parle>div:not(.portrait){width:200px}
-/* 7. Le document remis : un carton centré de 960, son bas à 170 du bas, au plus 530 de haut */
-#document>.fond{position:relative;max-height:530px}
 
 /* 4. Lieu, la carte du monde : la destination en colonne de 360 au coin haut-droit, la carte tendue de la marge au
    panneau sous le cartouche, jusqu'à la ligne basse */

@@ -1,5 +1,5 @@
 /* Voyage (#3935, #4411) : les pièces de la famille au-dessus de la feuille commune ; leur place vit dans `../rendu.css`. */
-#titre.temps .fond{gap:16px;padding:0 20px 0 16px}
+#titre.temps .fond{gap:12px;padding:0 12px}
 #titre.temps .n{font-size:29px;line-height:42px;margin:-9px 0 -9px}
 #titre.temps .m{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13.5px;color:#e6dabd}
 #trajet .fond{overflow:hidden}

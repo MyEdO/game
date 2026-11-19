@@ -187,7 +187,7 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
   `fenetreFermer('frappeMortelle')`.
 - Réfs : LDB 10 l.767-773 ; LDB 14 l.5-9 (option Frappe mortelle) ; `fenetre.secondeFrappe`, `fenetre.frappeMortelle`,
   `consigne.deuxArmes`, `consigne.frappeMortelle` (`src/i18n/messages/fr.ts:489-490`, `fr.ts:4451-4452`).
-- À valider : bandeau de 170 px au lieu de 212 ; aucune plaque de laiton plein (le clic du champ commet) ; les dés
+- À valider : aucune plaque de laiton plein (le clic du champ commet) ; les dés
   vides de l'enchaînement annoncent le jet à venir ; la cible montée et la visée de siège : `cible-montee` et
   `visee-de-siege`, plus bas.
 
