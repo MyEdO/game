@@ -75,6 +75,9 @@
    du bas puis il défile ; le registre tendu jusqu'aux signets, au bord droit, et à 24 du bas (80 sous une action de
    coin), ses lignes défilent */
 #preferences .fond{overflow-y:auto;scrollbar-width:none}
+/* une préférence dont la valeur ne tient pas à côté de son nom passe dessous */
+.pref .l{flex-wrap:wrap;row-gap:6px}
+.pref .l>:last-child{margin-left:auto}
 #registre .feuille{min-width:0;overflow-y:auto;scrollbar-width:none}
 #registre .regle{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;min-height:0;padding-top:6px;padding-bottom:6px}
 #registre .regle .t{flex:1 1 190px;min-width:0}
@@ -193,7 +196,10 @@
 #lieu .activite i{font-size:11.5px;line-height:15px}
 #lieu .fermees{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 #lieu .activite.fermee b{color:#8d8474}
-#lieu .plaque.envoyer{margin-top:8px}
+/* les activités défilent entre la tête du lieu et l'envoi, au pied */
+#lieu .fond{display:flex;flex-direction:column}
+#lieu .plaque.envoyer{flex:none;margin-top:auto}
+#lieu .defile{margin-bottom:8px}
 
 /* 5. Combat : la borne du round 22 / 16, l'ordre du tour au bord gauche dans la marge de 160 sous la borne, l'actif en
    bas et le haut replié ; la fin du tour 49 / 48 */
@@ -237,7 +243,8 @@
 #apercu-sort.rapide .apercu{left:calc(50% - 480px + 460px);bottom:166px;--pointe:41px}
 #apercu-sort.liste .apercu{left:calc(50% - 480px + 148px);bottom:212px;--pointe:150px}
 #apercu-cible .apercu{left:62.5%;top:190px;--pointe:136px}
-#journal-entier .fond{position:relative;padding:28px 20px 12px}
+#journal-entier .fond{position:relative;display:flex;flex-direction:column;padding:28px 20px 12px}
+#journal-entier p{white-space:normal}
 /* la fiche d'un combattant : réduite et décalée, entre la borne du round et la croix, au-dessus du journal */
 #fiche-lue #f-identite{left:246px;top:16px;width:230px;height:420px}
 #fiche-lue #f-identite .fond{padding:16px 15px 0}
@@ -262,7 +269,9 @@
 /* 3. Fiche, le dossier d'une possession : l'identité 26 / 20, 340 de large jusqu'à 24 du bas ; le profil tendu jusqu'à
    la croix ; la silhouette et les sections dessous, jusqu'à 24 du bas et au-dessus du journal et du système */
 #f-figure.dossier .niche svg{width:100%;height:100%}
-#f-sections.dossier .vignette{width:84px;height:84px}
+#f-sections.dossier .fond{display:flex;flex-direction:column}
+#f-sections.dossier .arme{padding:8px;margin-bottom:8px}
+#f-sections.dossier .vignette{width:64px;height:64px}
 #f-sections.dossier .arme .n{font-size:23px;line-height:26px}
 #f-sections.dossier .ou .l{margin-bottom:12px}
 

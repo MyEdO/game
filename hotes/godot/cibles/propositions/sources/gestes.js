@@ -208,7 +208,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* la plaque : `taille` appel, moyenne ou petite ; `numero` : sa touche, en tête ; `prix` à droite */
   const plaque = (libelle, { armee = false, fermee = false, survol = false, icone = null, numero = null, prix = null, taille = 'moyenne', classe = '', style = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} ${taille}${armee ? ' armee' : ''}${survol ? ' survol' : ''} ${classe}" style="${style}"><div>${numero == null ? '' : `<b class="numero">${numero}</b>`}${icone ? picto(icone, 19, undefined, 1.7) : ''}${libelle}${prix ? `<span class="prix chiffres">${prix}</span>` : ''}</div></div>`;
   /* choisir par carte : la plaque haute, un portrait et deux lignes ; `refus` : la bulle de la carte fermée survolée */
-  const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '', refus = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c">${sous}</div></div></div>${refus ? raison(refus) : ''}</div>`;
+  const carte = (nom, sous, { armee = false, fermee = false, portrait: buste = '', classe = '', refus = '' } = {}) => `<div class="plaque ${fermee ? 'fer fermee' : 'laiton'} carte${armee ? ' armee' : ''} ${classe}"><div>${buste}<div class="qui"><div class="n gothique">${nom}</div><div class="c" data-secondaire>${sous}</div></div></div>${refus ? raison(refus) : ''}</div>`;
   /* l'outil : un rond et son libellé ; `ouvert` : son écran est posé ; `taille` du rond, `grand` hors du jeu */
   const outil = (nom, libelle, { ouvert = false, ferme = false, taille = 'petit' } = {}) => `<div class="outil${ouvert ? ' ouvert' : ''}">${rond(nom, taille, { ferme, arme: ouvert })}<span class="rubrique">${libelle}</span></div>`;
   /* le médaillon à pictogramme : `taille` grand, moyen, petit ; `inerte` : il ne se presse pas */
@@ -243,30 +243,45 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     const q = r.getBoundingClientRect();
     r.parentElement.querySelectorAll(':scope>.clou[style*="top"]').forEach((c) => { const k = c.getBoundingClientRect(); if (k.right > q.left - 12 && k.left < q.right + 12) c.remove(); });
   });
-  /* la bulle de refus reste dans son cadre (dans la vue hors cadre) et ne couvre aucun texte hors de l'élément refusé :
-     au-dessus de lui, décalée de côté pour rester dans le cadre ; sinon dessous ; sinon posée sur lui, au bout de sa
-     ligne, puis à sa largeur */
+  /* la bulle de refus reste dans son cadre (dans la vue hors cadre, sous ce qui la rogne) et ne couvre aucun texte, pas
+     même le libellé de l'élément refusé, ni d'abord un autre contrôle : au-dessus de lui, centrée, puis alignée sur son
+     bord droit ou gauche, décalée pour rester dans le cadre ; sinon dessous ; sinon la raison prend la place de la ligne
+     secondaire de l'élément refusé (`data-secondaire`) ; sans elle, la bulle peut couvrir un contrôle */
   const poserLesBulles = () => {
-    const textes = [...document.querySelectorAll('#ui *')].filter((e) => !e.closest('.bulle-refus') && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && e.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
+    const lignesDe = (e) => [...e.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).flatMap((n) => { const g = document.createRange(); g.selectNodeContents(n); return [...g.getClientRects()].filter((l) => l.width && l.height); });
+    const textes = [...document.querySelectorAll('#ui *')].filter((e) => !e.closest('.bulle-refus') && e.checkVisibility({ opacityProperty: true, visibilityProperty: true })).flatMap(lignesDe);
+    const controles = [...document.querySelectorAll('#ui :is(.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill)')];
     document.querySelectorAll('.bulle-refus').forEach((b) => {
-      const refuse = b.parentElement, bord = (b.closest('.cadre') ?? document.getElementById('ui')).getBoundingClientRect(), r = refuse.getBoundingClientRect();
-      const lignes = textes.filter((e) => !refuse.contains(e)).flatMap((e) => { const g = document.createRange(); g.selectNodeContents(e); return [...g.getClientRects()].filter((l) => l.width && l.height); });
-      const libre = (q, [x, y]) => q.left + x >= bord.left && q.right + x <= bord.right && q.top + y >= bord.top && q.bottom + y <= bord.bottom
-        && !lignes.some((l) => Math.min(l.right, q.right + x) - Math.max(l.left, q.left + x) > 1 && Math.min(l.bottom - l.height / 4, q.bottom + y) - Math.max(l.top + l.height / 4, q.top + y) > 1);
+      const refuse = b.parentElement;
+      /* l'élément survolé est en vue : ce qui le fait défiler l'y amène */
+      refuse.scrollIntoView({ block: 'nearest' });
+      const r = refuse.getBoundingClientRect();
+      const bord = [...(function* ancetres(a) { for (; a && a.id !== 'ui'; a = a.parentElement) yield a; })(refuse)].filter((a) => a.matches('.cadre') || getComputedStyle(a).overflow !== 'visible')
+        .reduce((c, a) => { const q = a.getBoundingClientRect(); return new DOMRect(Math.max(c.left, q.left), Math.max(c.top, q.top), Math.min(c.right, q.right) - Math.max(c.left, q.left), Math.min(c.bottom, q.bottom) - Math.max(c.top, q.top)); }, document.getElementById('ui').getBoundingClientRect());
+      const autres = controles.filter((c) => !c.contains(b)).map((c) => c.getBoundingClientRect());
+      const libre = (obstacles) => (q, [x, y]) => q.left + x >= bord.left && q.right + x <= bord.right && q.top + y >= bord.top && q.bottom + y <= bord.bottom
+        && !obstacles.some((l) => Math.min(l.right, q.right + x) - Math.max(l.left, q.left + x) > 1 && Math.min(l.bottom, q.bottom + y) - Math.max(l.top, q.top + y) > 1);
       /* le décalage de côté qui garde la bulle `q`, déplacée de `x`, dans le cadre */
       const dans = (q, x = 0) => x + Math.max(bord.left + 6 - q.left - x, Math.min(0, bord.right - 6 - q.right - x));
-      const milieu = (q) => (r.top + r.bottom) / 2 - (q.top + q.bottom) / 2;
+      const cotes = [() => 0, (q) => r.right - q.right, (q) => r.left - q.left];
       const places = [
-        ['dessus', (q) => [dans(q), 0]],
-        ['dessous', (q) => [dans(q), r.bottom + 11 - q.top]],
-        ['dedans', (q) => [r.right - 10 - q.right, milieu(q)]],
-        ['dedans', (q) => [dans(q, (r.left + r.right) / 2 - (q.left + q.right) / 2), milieu(q)], () => Object.assign(b.style, { whiteSpace: 'normal', width: `${Math.max(r.width - 12, 140)}px`, textAlign: 'center' })],
+        ...cotes.map((cote) => ['dessus', (q) => [dans(q, cote(q)), 0]]),
+        ...cotes.map((cote) => ['dessous', (q) => [dans(q, cote(q)), r.bottom + 11 - q.top]]),
       ];
-      const pose = places.find(([, ou, regler]) => { regler?.(); const q = b.getBoundingClientRect(); if (libre(q, ou(q))) return true; b.style.removeProperty('white-space'); b.style.removeProperty('width'); b.style.removeProperty('text-align'); return false; }) ?? places[0];
-      const [x, y] = pose[1](b.getBoundingClientRect());
+      const poser = (obstacles) => places.find(([, ou]) => { const q = b.getBoundingClientRect(); return libre(obstacles)(q, ou(q)); });
+      const secondaire = refuse.querySelector('[data-secondaire]');
+      const pose = poser([...textes, ...autres]) ?? (secondaire ? null : poser(textes));
+      if (!pose && secondaire) {
+        secondaire.textContent = b.textContent;
+        secondaire.classList.add('raison-de-refus');
+        b.remove();
+        refuse.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      const [x, y] = (pose ?? places[0])[1](b.getBoundingClientRect());
       b.style.translate = `${x}px ${y}px`;
       b.style.setProperty('--pointe', `${-x}px`);
-      b.classList.add(pose[0]);
+      b.classList.add((pose ?? places[0])[0]);
     });
   };
   /* les clous d'un meuble (barre, jet, arrêt), ou d'un bandeau de `cases` héros : aux bords et entre deux cases */
@@ -310,14 +325,29 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* un rang de pas en losanges : `pleins` sur `total` */
   const rangDePas = (pleins, total, classe = '') => `<div class="pas ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
   /* ce qui défile dans son cadre, qui garde sa taille : `data-defile` au relevé du rendu ; la suite cachée s'annonce
-     par un fondu au pied (`suites`) */
+     par un fondu au pied, ce qui a défilé par un fondu en tête (`suites`), hors ce qui se pagine ; `au-pied` : il montre
+     sa fin */
   const defile = (contenu, classe = '') => `<div class="defile ${classe}" data-defile>${contenu}</div>`;
-  const suites = () => document.querySelectorAll('.defile').forEach((d) => d.classList.toggle('suite', d.scrollHeight > d.clientHeight + 1));
-  /* pose les pièces ; une fois les polices chargées, range les cartes, dégage les rubans de leurs clous, annonce les
-     suites ; passe le grain */
+  const suites = () => document.querySelectorAll('.defile:not(.pages)').forEach((d) => {
+    if (d.classList.contains('au-pied')) d.scrollTop = d.scrollHeight;
+    d.classList.toggle('suite', d.scrollTop + d.clientHeight < d.scrollHeight - 1);
+    d.classList.toggle('avant', d.scrollTop > 1);
+  });
+  /* ce qui se pagine (`defile(contenu, 'pages')`) : sa page tient un nombre entier de ses lignes, la suite est aux pages
+     suivantes ; le folio de son cadre dit la page lue et leur nombre, à partir de deux */
+  const paginer = () => document.querySelectorAll('.defile.pages').forEach((d) => {
+    const ligne = parseFloat(getComputedStyle(d).lineHeight), hauteur = Math.floor(d.clientHeight / ligne) * ligne;
+    Object.assign(d.style, { flex: 'none', height: `${hauteur}px` });
+    const n = Math.ceil(d.scrollHeight / d.clientHeight);
+    const folio = d.closest('.cadre').querySelector('.folio');
+    folio.querySelector('b').textContent = `Page 1 sur ${n}`;
+    folio.hidden = n < 2;
+  });
+  /* pose les pièces ; une fois les polices chargées, range les cartes, dégage les rubans de leurs clous, pose les bulles,
+     annonce les suites et les pages ; passe le grain */
   const monter = (pieces) => {
     document.getElementById('ui').innerHTML = pieces.join('');
-    document.fonts.ready.then(() => { ranger(); degager(); suites(); poserLesBulles(); });
+    document.fonts.ready.then(() => { ranger(); degager(); poserLesBulles(); suites(); paginer(); });
     document.getElementById('grain').style.backgroundImage = svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`);
   };
 

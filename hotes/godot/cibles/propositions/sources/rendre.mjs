@@ -3,9 +3,9 @@
 // `rendu.js`, la même pour tous les états et tous les écrans ; ce qui porte `data-mobile` suit ce qu'il désigne), des
 // feuilles (texte, contrôle) recouvertes, rognées par un ancêtre (`overflow`, ellipse) ou qui se chevauchent, et du
 // défilement de la page. Ce qui se pose exprès au-dessus d'une autre
-// feuille (bulle de refus, badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle ou
-// l'élément qu'il qualifie, son parent, jamais un autre texte, et reste dans son cadre (dans la vue hors cadre) ; ce dont le contenu défile par
-// dessin (la valeur d'un champ long) porte `data-defile` :
+// feuille (bulle de refus, badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle, jamais un
+// texte, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ; ce dont le
+// contenu défile par dessin (la valeur d'un champ long) porte `data-defile` :
 //   node rendre.mjs <page.html> <sortie.png> [échelle]          une page dessinée, en 1280 × 720, à l'échelle (1,5 par défaut)
 //   node rendre.mjs <écran> <sortie.png> --format <format> [--etat <état>]    l'état `<état>` de l'écran
 //     `maquettes/<écran>.ts` en `<sortie.png>`, sans `--etat` chacun de ses états en `<sortie>-<état>.png`, dessiné par
@@ -68,12 +68,17 @@ const releve = ([largeur, hauteur]) => {
   /* les feuilles visibles : un texte (le rectangle de chacune de ses lignes) ou un contrôle (sa boîte) */
   const nomme = (e) => `${e.closest('[data-piece]')?.dataset.piece ?? '-'} : ${(e.textContent.trim().replace(/\s+/g, ' ') || e.className.baseVal || e.className).slice(0, 40)}`
   const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill'
-  /* les lignes d'un texte : la boîte de police de chacune, ramenée à la hauteur de ligne qui lui est allouée */
+  /* les lignes d'un texte : la boîte de police de chacune, ramenée à la hauteur de ligne qui lui est allouée ; ce qu'il
+     porte au-dessus de lui (`data-dessus`) n'en est pas */
   const lignes = (e) => {
     const plage = document.createRange()
-    plage.selectNodeContents(e)
     const ligne = parseFloat(getComputedStyle(e).lineHeight)
-    return [...plage.getClientRects()].filter((q) => q.width > .5 && q.height > .5).map((q) => (ligne < q.height ? new DOMRect(q.left, q.top + (q.height - ligne) / 2, q.width, ligne) : q))
+    const dessus = e.closest('[data-dessus]')
+    const rects = [...e.querySelectorAll('[data-dessus]')].some((d) => d.closest('[data-dessus]') !== dessus)
+      ? [...e.childNodes].flatMap(function textes(n) { return n.nodeType === 3 ? [n] : n.nodeType === 1 && !(n.matches('[data-dessus]') && n !== dessus) ? [...n.childNodes].flatMap(textes) : [] })
+        .flatMap((n) => { plage.selectNodeContents(n); return [...plage.getClientRects()] })
+      : (plage.selectNodeContents(e), [...plage.getClientRects()])
+    return rects.filter((q) => q.width > .5 && q.height > .5).map((q) => (ligne < q.height ? new DOMRect(q.left, q.top + (q.height - ligne) / 2, q.width, ligne) : q))
   }
   /* le cœur d'une ligne de texte : la moitié du milieu de sa boîte de police, que les lignes voisines ne touchent pas */
   const coeur = (q) => new DOMRect(q.left, q.top + q.height / 4, q.width, q.height / 2)
@@ -85,7 +90,7 @@ const releve = ([largeur, hauteur]) => {
   })
   /* une feuille qu'un autre élément recouvre : le début, le milieu ou la fin d'une de ses lignes ou de sa boîte, hors de
      ce qu'un ancêtre rogne ou fait défiler, tombe sur ce qui la cache, un contrôle ou un fond peint, hors d'elle et de ses
-     ancêtres ; ce qui porte `data-dessus` peut couvrir un contrôle, ou l'élément qu'il qualifie (son parent) */
+     ancêtres, ou ce qu'elle porte au-dessus d'elle ; ce qui porte `data-dessus` peut couvrir un contrôle, jamais un texte */
   const peint = (a) => { const s = getComputedStyle(a); return a.matches(CONTROLE) || (s.backgroundClip !== 'text' && (s.backgroundImage !== 'none' || !/^rgba\(.*, 0\)$|^transparent$/.test(s.backgroundColor))) }
   const cache = (v, e) => { for (let a = v; a && !a.contains(e); a = a.parentElement) if (peint(a)) return a; return null }
   const rognePoint = (e, x, y) => { for (let a = e; a; a = a.parentElement) if (getComputedStyle(a).overflow !== 'visible') { const r = a.getBoundingClientRect(); if (x < r.left || x > r.right || y < r.top || y > r.bottom) return true } return false }
@@ -93,7 +98,7 @@ const releve = ([largeur, hauteur]) => {
     const y = (q.top + q.bottom) / 2
     if (y < 0 || y > hauteur || x < 0 || x > largeur || rognePoint(e, x, y)) return false
     const v = document.elementFromPoint(x, y), m = v?.closest('[data-dessus]')
-    return v && !e.contains(v) && cache(v, e) && !(m && (!texte || m.parentElement.contains(e)))
+    return v && (!e.contains(v) || (m && !e.closest('[data-dessus]'))) && cache(v, e) && !(m && !texte)
   }))).map((f) => nomme(f.e)))]
   /* une feuille qui sort d'un ancêtre qui la rogne ou la fait défiler (`overflow` non visible ; un texte : lui-même
      compris), sauf celui qui porte `data-defile`, dont le contenu défile par dessin, ou dont la ligne finit par une
@@ -108,9 +113,9 @@ const releve = ([largeur, hauteur]) => {
     return ''
   }
   const rognes = [...new Set(feuilles.flatMap((f) => { const par = rogneLa(f); return par ? [`${nomme(f.e)} (${par})`] : [] }))]
-  /* deux feuilles, aucune ancêtre de l'autre, qui se recouvrent, dans une pièce ou d'une pièce à l'autre (une pièce
-     dont la boîte ne contient pas ses feuilles échappe à `croise`) ; ce qui porte `data-dessus` peut couvrir un
-     contrôle, ou l'élément qu'il qualifie (son parent), jamais un autre texte */
+  /* deux feuilles, aucune ancêtre de l'autre (hors ce qu'elle porte au-dessus d'elle), qui se recouvrent, dans une pièce
+     ou d'une pièce à l'autre (une pièce dont la boîte ne contient pas ses feuilles échappe à `croise`) ; ce qui porte
+     `data-dessus` peut couvrir un contrôle, jamais un texte, pas même le libellé de l'élément qu'il qualifie */
   const chevauche = new Set()
   /* ce qui se voit d'une feuille : ses rectangles coupés par les ancêtres qui la rognent (un texte : lui-même compris) */
   const visibles = ({ e, texte, coeurs }) => {
@@ -127,8 +132,9 @@ const releve = ([largeur, hauteur]) => {
   const croisent = (p, q) => p.coeurs.some((a) => q.coeurs.some((c) => Math.min(a.right, c.right) - Math.max(a.left, c.left) > .5 && Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top) > .5))
   for (let i = 0; i < feuilles.length; i++) for (let j = i + 1; j < feuilles.length; j++) {
     const p = feuilles[i], q = feuilles[j]
-    if (p.e.contains(q.e) || q.e.contains(p.e) || !croisent(p, q)) continue
-    const dessus = (f, g) => { const m = f.e.closest('[data-dessus]'); return m && !g.e.closest('[data-dessus]') && (!g.texte || m.parentElement.contains(g.e)) }
+    const porte = (f, g) => f.e.contains(g.e) && g.e.closest('[data-dessus]') === f.e.closest('[data-dessus]')
+    if (porte(p, q) || porte(q, p) || !croisent(p, q)) continue
+    const dessus = (f, g) => f.e.closest('[data-dessus]') && !g.e.closest('[data-dessus]') && !g.texte
     if (!dessus(p, q) && !dessus(q, p)) chevauche.add(nomme(p.e) + ' x ' + nomme(q.e).replace(/^[^:]*: /, ''))
   }
   /* une pièce fixe hors du rect de sa ligne de la table (`CADRE_ATTENDU`, `rendu.js`), ou sans ligne ; une ligne de deux

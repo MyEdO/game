@@ -30,6 +30,11 @@
 /* le lieu d'arrivée : le récit du trajet */
 #recit.lieu p{font-size:16px;line-height:23px}
 #navire .jauge,#bord .jauge{margin:1px 0 7px}
+#navire>.fond{display:flex;flex-direction:column}
+/* la cadence au pied du panneau : ses plaques côte à côte */
+.cadence{flex:none;margin-top:4px}
+.cadence>div{display:flex;gap:8px;margin-top:3px}
+.cadence .plaque{flex:1}
 /* l'arrêt dont le Test s'ouvre au bandeau du jet : le carton se resserre */
 #evenement.court .vignette{width:196px;height:196px}
 #ui:has(.testeurs) #evenement.court .vignette{width:160px;height:160px}
@@ -40,18 +45,19 @@
 /* la Chance au pied d'un billet de jet */
 .apercu .chance{display:flex;align-items:center;gap:14px;font-style:normal}
 /* les arrêts de la mer : les paies du conseil et leur règlement */
-#evenement .choix.paies .plaque.carte{width:auto;min-width:0;height:54px}
+#evenement .choix.paies .plaque.carte{width:auto;min-width:0;height:46px}
 #evenement .choix.paies .plaque.carte>div{padding:0 10px}
 #evenement .choix.paies .plaque.carte .n{font-size:14.5px;line-height:20px;white-space:nowrap}
 #evenement .choix.paies .plaque.carte .c{font-size:11.5px;white-space:nowrap}
 #evenement .choix.paies .carte .c br{display:none}
 #evenement .choix.paies .carte .c .sep{display:inline}
 #evenement:has(.reglement) .vignette{width:140px;height:140px}
-.reglement{display:flex;align-items:flex-start;gap:14px;margin-top:22px}
-#evenement .reglement .choix.paies{flex:none;display:grid;grid-template-columns:172px 172px;gap:10px;margin:0}
+.reglement{display:flex;align-items:flex-start;gap:14px;margin-top:4px}
+#evenement .reglement .choix.paies{flex:none;display:grid;grid-template-columns:172px 172px;gap:6px 10px;margin:0}
 .reglement .qui{flex:1;min-width:0}
-.reglement .cadre{position:relative}
-.reglement .cadre .fond{position:static;padding:7px 12px 6px;color:#eadfc4}
+.reglement .cadre{position:relative;padding:5px}
+.reglement .qui-paie .total{margin-top:2px;padding-top:2px}
+#evenement .reglement .cadre .fond{position:static;padding:7px 12px 6px;color:#eadfc4}
 #evenement .reglement .plaque.commet{grid-column:1 / 3;justify-self:center;margin:0}
 /* la station à bord du héros choisi, sous le dossier du navire */
 #station .fond{padding:22px 14px 10px}

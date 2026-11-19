@@ -271,6 +271,8 @@ html,body{margin:0;background:var(--noir)}
 /* ce qui défile dans son cadre : sans barre ; la suite cachée s'annonce par un fondu au pied */
 .defile{min-height:0;overflow-y:auto;scrollbar-width:none}
 .defile.suite{mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
+.defile.avant{mask-image:linear-gradient(transparent,#000 34px)}
+.defile.avant.suite{mask-image:linear-gradient(transparent,#000 34px,#000 calc(100% - 34px),transparent)}
 /* fermer un panneau : la croix, en haut à droite */
 .croix{position:absolute;right:22px;top:18px}
 /* quitter un lieu : la pastille de retour, 30 / 34 du coin bas-gauche, son libellé au-dessus d'elle */
@@ -296,7 +298,8 @@ html,body{margin:0;background:var(--noir)}
 .bulle-refus{position:absolute;left:50%;bottom:calc(100% + 11px);transform:translateX(-50%);padding:4px 11px 5px;font-family:"Spectral";font-style:italic;font-size:13px;line-height:17px;letter-spacing:0;white-space:nowrap;color:var(--encre);box-shadow:0 6px 14px var(--ombre),0 0 0 1px var(--contour),inset 0 0 14px var(--brou);border-radius:2px;z-index:4}
 .bulle-refus::before{content:"";position:absolute;left:calc(50% - 5px);bottom:-5px;width:9px;height:9px;background:var(--parchemin);transform:rotate(45deg);translate:var(--pointe,0) 0;box-shadow:2px 2px 0 var(--contour)}
 .bulle-refus.dessous::before{top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
-.bulle-refus.dedans::before{display:none}
+/* la raison qui prend la place de la ligne secondaire de l'élément refusé, faute de place pour la bulle */
+.raison-de-refus{font-family:"Spectral";font-style:italic;font-variant:normal;letter-spacing:0;text-transform:none}
 /* qui paie */
 .qui-paie{display:flex;align-items:center;gap:11px}
 .qui-paie.parts{align-items:flex-start}

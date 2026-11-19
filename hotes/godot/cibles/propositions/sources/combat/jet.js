@@ -3,10 +3,10 @@
    dépensent. Se pose sur le combat (`socle.js`) comme sur un `commun.js`, sur les pièces de `../gestes.js` ; le portrait
    d'un camp arrive déjà dessiné. Se charge après `../gestes.js`.
    Maquette hors du jeu. */
-const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, modif = null, reussite = false, verdict = reussite ? 'réussite' : 'échec', sous = '' }) => `
+const camp = ({ cote = '', portrait, nom, carac, seuil, des = ['', ''], regles = false, total = null, dr = null, modif = null, reussite = false, verdict = reussite ? 'réussite' : 'échec' }) => `
   <div class="camp ${cote}">${portrait}
     <div><div class="n gothique">${nom}${modif ? ` <span class="modif rubrique" style="vertical-align:3px;margin-left:6px">${modif}</span>` : ''}</div><div class="c rubrique">${carac}</div>
-    <div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}</span>${des.map((d) => (regles ? moinsPlus({ entre: d10(d) }) : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : reussite ? 'reussite' : '' })}${total == null ? '' : `<div class="issue${reussite ? ' reussite' : ''}"><b>${verdict}</b><span>DR ${dr}</span></div>`}</div>${sous}</div>
+    <div class="des${regles ? ' regles' : ''}"><span class="seuil">≤ ${seuil}</span>${des.map((d) => (regles ? moinsPlus({ entre: d10(d) }) : d10(d))).join('')}${sceau(total ?? '', 'grand', { etat: total == null ? 'vide' : reussite ? 'reussite' : '' })}${total == null ? '' : `<div class="issue${reussite ? ' reussite' : ''}"><b>${verdict}</b><span>DR ${dr}</span></div>`}</div></div>
   </div>`;
 const verdict = (sous, dr, phrase, classe = '') => `<div id="verdict" class="${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div><div class="dr gothique">${dr}</div><p data-texte="phrase d'issue">${phrase}</p></div>`;
 /* le bandeau, à la place de la barre de l'actif ou du bandeau des héros */
@@ -16,7 +16,7 @@ const bandeauDuJet = (titre, classe, contenu, suites) => cadre('jet', null, null
 `, { ruban: titre, tete: clouer(), piece: 'fenetre' });
 
 /* ───────── avant le dé : qui teste, ce qui se règle ───────── */
-/* sous le camp du testeur (`camp({ sous })`) : les héros qui peuvent porter le Test, celui qui le porte choisi */
+/* aux suites, devant les réserves : les héros qui peuvent porter le Test, celui qui le porte choisi */
 const testeurs = (genres, choisi = 0) => `<div class="testeurs"><span class="rubrique">Testeur</span>${genres.map((g, k) => `<div class="t${k === choisi ? ' choisi' : ''}">${portrait(g, { taille: 'menu', choisi: k === choisi })}</div>`).join('')}</div>`;
 /* la colonne du centre : ce sur quoi porte le jet, puis ses réglages */
 const reglages = (sous, corps, classe = '') => `<div id="verdict" class="reglages ${classe}"><div class="sous rubrique" data-texte="sous-titre">${sous}</div>${corps}</div>`;
