@@ -21,13 +21,14 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
+import { estUnDeDeTirage } from './lib/deDeTirage.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIER = 'sea-events.json';
 
 const clesExactes = (v, cles) => estObjet(v) && JSON.stringify(Object.keys(v)) === JSON.stringify(cles);
-const estEscale = (v) => clesExactes(v, ['die', 'entries']) && typeof v.die === 'string' && Array.isArray(v.entries);
-const estVoyageRapide = (v) => clesExactes(v, ['die', 'entries', 'source']) && typeof v.die === 'string' && Array.isArray(v.entries);
+const estEscale = (v) => clesExactes(v, ['die', 'entries']) && estUnDeDeTirage(v.die) && Array.isArray(v.entries);
+const estVoyageRapide = (v) => clesExactes(v, ['die', 'entries', 'source']) && estUnDeDeTirage(v.die) && Array.isArray(v.entries);
 
 const chemin = join(ROOT, 'src/data', FICHIER);
 const brut = readFileSync(chemin, 'utf8');

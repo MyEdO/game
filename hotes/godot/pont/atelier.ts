@@ -72,8 +72,8 @@ export interface ModelesDeLAtelier {
    *  au sol en m/s de son clip du rôle `marche` (`appuis.vitesseAuSol`). */
   bases: BaseDeLAtelier[];
   /** les fichiers, sous `modeles/`, de chaque base et de chaque élément servi, à un point, à une ligne, en véhicule,
-   *  en Amélioration ou en décor (`fichiersDuModele`) : son GLB et la scène que l'export en fabrique. Godot demande celui que nomme la `forme` du
-   *  listage. */
+   *  en Amélioration, en décor ou en arête (`fichiersDuModele`) : son GLB et la scène que l'export en fabrique.
+   *  Godot demande celui que nomme la `forme` du listage. */
   fichiers: Record<string, { glb: string; scene: string }>;
   /** ceux de l'index (`[base-absente]`, `[cle-en-doublon]`, `[base-en-doublon]`, `[forme]`). Un manifeste qui n'est
    *  ni une base (il porte `os`, schéma `VERSION_DU_SCHEMA_DE_BASE`, `asset/manifesteDeBase.ts`) ni un élément qui
@@ -86,7 +86,8 @@ export interface ModelesDeLAtelier {
    *  même base (`emplacementsNonOfferts`, `asset/element.ts`). Cet élément n'est servi ni à un point ni à une ligne.
    *  L'import (`hotes/godot/importer.mjs`) imprime le même rapport, sans bloquer. */
   rapport: string[];
-  /** pour chaque base servie, et pour chaque élément servi, à un point, à une ligne, en véhicule, en Amélioration ou en décor, quelle que soit
+  /** pour chaque base servie, et pour chaque élément servi, à un point, à une ligne, en véhicule, en Amélioration, en
+   *  décor ou en arête, quelle que soit
    *  sa liaison, et pour eux seuls, ses `surfaces` (`asset/surfaces.ts`), dans l'ordre du manifeste ; une base sans
    *  `surfaces` (champ optionnel de son manifeste, déclaré par son corps,
    *  `scripts/personnage-3d/base/humanoide.json`) n'en a aucune, seul un élément admet `blason` et `matiere`, et
@@ -150,6 +151,10 @@ export interface ModelesDeLAtelier {
   /** par type de décor (`props.json`), l'id de l'élément `decor` servi dont la `cle.prop` le nomme (#4335), que lit
    *  `decors` de la vue (section « Corps d'un combattant »). Un élément `decor` n'a pas de base. */
   decors: Record<string, string>;
+  /** par famille de kit (`kit` de `structureAppearance.json`), l'id de l'élément `arete` servi dont la `cle.kit` la
+   *  nomme (#4471) : un nœud racine par pièce (`Noyau.Piece`), d'où le volume pose les arêtes de cette famille
+   *  (méthode `aretes`). Un élément `arete` n'a pas de base. */
+  aretes: Record<string, string>;
 }
 
 /**
@@ -361,12 +366,18 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   const couches = Object.fromEntries(Object.entries(rangs).map(([id, couche]): [string, CoucheDeLAtelier] =>
     [id, { ...couche, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < couche.rang) }]));
-  const parCle = (categorie: 'vehicule' | 'amelioration' | 'decor', champ: 'definition' | 'amelioration' | 'prop') => Object.fromEntries(elements.flatMap((e) => {
-    const m = e.brut as ManifesteDElement;
-    return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
-  }));
+  type Categorie = 'vehicule' | 'amelioration' | 'decor' | 'arete';
+  const parCle = (categorie: Categorie, champ: 'definition' | 'amelioration' | 'prop' | 'kit') =>
+    Object.fromEntries(elements.flatMap((e) => {
+      const m = e.brut as ManifesteDElement;
+      return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
+    }));
   const vehicules = Object.fromEntries(Object.entries(parCle('vehicule', 'definition')).sort(([, a], [, b]) => libelles[a].localeCompare(libelles[b], 'fr')));
-  return { bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules, ameliorations: parCle('amelioration', 'amelioration'), decors: parCle('decor', 'prop') };
+  return {
+    bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes,
+    vehicules, ameliorations: parCle('amelioration', 'amelioration'), decors: parCle('decor', 'prop'),
+    aretes: parCle('arete', 'kit'),
+  };
 }
 
 /** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la

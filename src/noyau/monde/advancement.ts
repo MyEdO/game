@@ -8,6 +8,7 @@
  * courant (l.43/76), Talents du niveau courant uniquement (l.103). Les emplacements
  * « (Au choix) » suivent le modèle de désignation de careerSlots (identité (id, spec)).
  */
+import { libelleDuStatut } from '../../engine/money';
 import { Combatant, CharKey, CHAR_KEYS, CHAR_LABELS } from '../../engine/types';
 import {
   advanceCost,
@@ -291,7 +292,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     career,
     careerLevel,
     levelLabel: cur ? displayLabelForSex(hero.appearance?.sex, cur.label, cur.labelF) : career,
-    status: cur?.status ?? '',
+    status: cur ? libelleDuStatut(cur.status) : '',
     completed,
     changeCost,
     chars,

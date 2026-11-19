@@ -3,12 +3,12 @@
  * écran 'dataEditor'). Les *.json de ce dossier sont la SOURCE CANONIQUE app-owned, curée à la main :
  * aucune migration ne les régénère.
  */
-import type { IconId } from './icons/types';
 import type { EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { listeEt, t, type MsgKey } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
+  catalogueSpecs,
   dansLaSousListe,
   espaceDe,
   idDe,
@@ -16,6 +16,7 @@ import {
   idsDeLaSousListe,
   lireLEspace,
   porteLeMarqueur,
+  type FeuilleDeSpec,
   type FeuilleDId,
   type Id,
   type RefASpecialisation,
@@ -44,9 +45,10 @@ import {
 } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { ENGINS_DE_SIEGE, INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
-import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
+import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualiteDObjetRef, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import {
+  charKeySchema,
   natureDeMentionSchema,
   symptomSeveritySchema,
   type NatureDeMention,
@@ -61,6 +63,7 @@ import { libelleDeValeur } from './schemas/grammaire/meta';
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { z } from 'zod';
 import type { traitCapabilitiesSchema } from './schemas/defs/traits';
+import type { authoredStakeSchema } from './schemas/grammaire/mecanique';
 import type { TriggeredEffect } from '../engine/flowCore';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
@@ -276,7 +279,7 @@ import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
-import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type StakeForm, type PerteSansEquipe } from '../engine/types';
+import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type PerteSansEquipe } from '../engine/types';
 import { formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
 // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
@@ -284,7 +287,6 @@ import {
   sizeFromProfile,
   sizeFromTalents,
 } from '../engine/size';
-import type { VarianteDeCible } from './schemas/grammaire/valeurs';
 import type * as seaNavigationDef from './schemas/defs/sea-navigation';
 import type * as seaCargoDef from './schemas/defs/sea-cargo';
 import type * as propsDef from './schemas/defs/props';
@@ -363,55 +365,36 @@ export interface StakeKey {
   entryCategory?: string;
 }
 
-/** RÉFÉRENCE d'enjeu vers un DATASET : la clé de la donnée + les valeurs CALCULÉES par le flux pour
- *  ses trous. Seule forme ouverte au MOTEUR — un littéral de texte au call-site n'y compile pas
- *  (arbitrage Z5 appliqué à la zone d'enjeu), les producteurs passent par la porte fail-closed
- *  `stakeRef`, sous ses signatures typées par famille (`combatStakeRef`, `flowStakeRef`, `nightStakeRef`,
- *  `voyageStakeRef`, `activityStakeRef`, `weatherStakeRef`, `stateRecoveryStakeRef`). */
+/** RÉFÉRENCE d'enjeu vers un DATASET, forme du MOTEUR : la clé de la donnée + les valeurs CALCULÉES par le flux
+ *  pour ses trous. Un document n'en écrit que la clé (`catalogStakeSchema`, `grammaire/mecanique.ts`). Seule
+ *  forme ouverte au MOTEUR — un littéral de texte au call-site n'y compile pas (arbitrage Z5 appliqué à la zone
+ *  d'enjeu), les producteurs passent par la porte fail-closed `stakeRef`, sous ses signatures typées par famille
+ *  (`combatStakeRef`, `flowStakeRef`, `nightStakeRef`, `voyageStakeRef`, `activityStakeRef`, `weatherStakeRef`,
+ *  `stateRecoveryStakeRef`). */
 export interface CatalogStake {
   key: StakeKey;
   values?: Record<string, string | number>;
-  authored?: never;
-  from?: never;
 }
 
-/** ENJEU AUTHORÉ par un DOCUMENT DE CONTENU (Flow d'une scène/campagne) — arbitrage user 2026-08-12
- *  (#1262) : « l'enjeu d'un Flow authoré s'AUTHORE DANS LA SCÈNE — champ stake dans l'éditeur de Flow,
- *  comme le reste du contenu de campagne ». Un jet de scène met en jeu SA situation, pas une règle du
- *  moteur : son enjeu voyage avec le document (JSON portable), il ne pointe aucun dataset app-owned —
- *  une réf de catalogue y serait pendante à la première campagne tierce.
+/** ENJEU AUTHORÉ par un DOCUMENT DE CONTENU (Flow d'une scène/campagne), la sortie d'`authoredStakeSchema` —
+ *  arbitrage user 2026-08-12 (#1262) : « l'enjeu d'un Flow authoré s'AUTHORE DANS LA SCÈNE — champ stake dans
+ *  l'éditeur de Flow, comme le reste du contenu de campagne ». Son enjeu voyage avec le document (JSON
+ *  portable), il ne pointe aucun dataset app-owned.
  *
  *  RÉSERVÉ au contenu : `src/noyau`/`src/engine` n'en écrivent aucun (garde
- *  `cascade-step-stake-guard.test.ts`, volet « l'enjeu AUTHORÉ reste au contenu ») — c'est la porte
- *  ouverte par l'arbitrage, pas une amnistie du texte au call-site. Aucun foyer de règle : le
+ *  `cascade-step-stake-guard.test.ts`, volet « l'enjeu AUTHORÉ reste au contenu »). Aucun foyer de règle : le
  *  document ne renvoie à aucune fiche Codex. */
-export interface AuthoredStake {
-  authored: string;
-  source?: SourceRef;
-  adapteDe?: SourceRef;
-  key?: never;
-  values?: never;
-  from?: never;
-}
+export type AuthoredStake = z.output<typeof authoredStakeSchema>;
 
-/** ENJEU DÉRIVÉ DU PORTEUR — arbitrage user 2026-08-12 (#1262), verbatim au ticket : « Le socle dérive
- *  l'enjeu de l'entité porteuse ("ce qui se joue : [sort/objet X]" + renvoi Codex — même motif que
- *  l'arbitrage Activités de mer : l'enjeu EST l'entité choisie). Zéro saisie […]. Un auteur PEUT
- *  toujours surcharger par un texte authoré. »
+/** ENJEU DÉRIVÉ DU PORTEUR, forme du MOTEUR — arbitrage user 2026-08-12 (#1262), verbatim au ticket : « Le socle
+ *  dérive l'enjeu de l'entité porteuse ("ce qui se joue : [sort/objet X]" + renvoi Codex — même motif que
+ *  l'arbitrage Activités de mer : l'enjeu EST l'entité choisie). Zéro saisie […]. Un auteur PEUT toujours
+ *  surcharger par un texte authoré. »
  *
- *  C'est la forme des jets exigés par une ENTITÉ (un `FlowTest` authoré en donnée app-owned : sort,
- *  consommable, Trait, Talent, Atout, État, symptôme, manœuvre) — l'entité qui exige le jet EST ce qui
- *  se joue, et elle porte déjà sa règle en `desc` verbatim dans sa fiche Codex.
- *
- *  IDS SEULEMENT (`EffectSource` = `{kind, id}`) : le libellé est résolu À L'AFFICHAGE par
- *  `resolveStake`. La forme est CALCULÉE au montage de l'étape par le socle (`derivedStake`), jamais
- *  authorée en JSON — aucune migration de sauvegarde : une étape déjà persistée garde la forme sous
- *  laquelle elle a été mintée. */
+ *  IDS SEULEMENT (`EffectSource` = `{kind, id}`) : le libellé est résolu À L'AFFICHAGE par `resolveStake`. La
+ *  forme est CALCULÉE au montage de l'étape par le socle (`derivedStake`), jamais authorée en JSON. */
 export interface DerivedStake {
   from: EffectSource;
-  key?: never;
-  values?: never;
-  authored?: never;
 }
 
 /** ENJEU d'une entrée de jet (étape de cascade, pending, `FlowTest`) : réf de dataset, texte authoré
@@ -650,7 +633,7 @@ function stakeRef<D extends StakeDataset>(
 }
 
 /** Enjeu d'une étape de cascade de VOYAGE (`stakeRef`) : les valeurs remplissent les trous du gabarit. */
-export function voyageStakeRef(id: VoyageStakeId, values?: Record<string, string | number>): StakeRef {
+export function voyageStakeRef(id: VoyageStakeId, values?: Record<string, string | number>): CatalogStake {
   return stakeRef('voyage', id, { values });
 }
 
@@ -659,13 +642,13 @@ export function voyageStakeRef(id: VoyageStakeId, values?: Record<string, string
 export function combatStakeRef(
   id: CombatStakeId,
   opts?: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> },
-): StakeRef {
+): CatalogStake {
   return stakeRef('combat', id, opts);
 }
 
 /** Enjeu d'une étape de NUIT (`stakeRef`) : le TYPE ferme l'id (`NightStakeId`, généré) en PREMIER
  *  rideau, le throw est le second. `entryId` = le symptôme joué par une étape de maladie. */
-export function nightStakeRef(id: NightStakeId, entryId?: string): StakeRef {
+export function nightStakeRef(id: NightStakeId, entryId?: string): CatalogStake {
   return stakeRef('nuit', id, { entryId });
 }
 
@@ -678,19 +661,19 @@ export function hasActivityStake(activityId: string): boolean {
 
 /** Enjeu d'une ACTIVITÉ (#1117 L3, `stakeRef`) : le renvoi vise le foyer déclaré, à défaut la fiche
  *  Codex de l'Activité elle-même. */
-export function activityStakeRef(activityId: string): StakeRef {
+export function activityStakeRef(activityId: string): CatalogStake {
   return stakeRef('activite', activityId);
 }
 
 /** Enjeu de MÉTÉO (Test de Résistance de traversée, `stakeRef`) : l'appelant n'appelle QUE si la
  *  condition déclare un Test (`weatherResistanceTest`). */
-export function weatherStakeRef(weatherId: string): StakeRef {
+export function weatherStakeRef(weatherId: string): CatalogStake {
   return stakeRef('meteo', weatherId);
 }
 
 /** Enjeu de RÉCUPÉRATION d'un État (`stakeRef`) : l'appelant n'appelle QUE pour un État qui déclare
  *  `recover` (`etats.json`), dont `enjeu` est exigé au schéma. */
-export function stateRecoveryStakeRef(etatId: string): StakeRef {
+export function stateRecoveryStakeRef(etatId: string): CatalogStake {
   return stakeRef('etat', etatId);
 }
 
@@ -703,7 +686,7 @@ export function flowStakeRef(id: FlowStakeId, opts: { entryId?: string; values: 
 export function flowStakeRef(
   id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
-): CatalogStake {
+): CatalogStake & { key: { dataset: 'flux' } } {
   return stakeRef('flux', id, opts);
 }
 
@@ -721,7 +704,7 @@ function derivedEntry(from: EffectSource): { category: string; entry: { label: s
  *  (`combatStakeRef`…) et du document (`AuthoredStake`). Rend `undefined` quand la source manque ou
  *  ne nomme aucune fiche : le producteur n'a alors rien à dire, et il vaut mieux se taire qu'inventer.
  *  PURE : aucun texte ici — seuls les IDS entrent dans la référence. */
-export function derivedStake(from: EffectSource | undefined): StakeRef | undefined {
+export function derivedStake(from: EffectSource | undefined): DerivedStake | undefined {
   return from && derivedEntry(from) ? { from: { kind: from.kind, id: from.id } } : undefined;
 }
 
@@ -733,8 +716,8 @@ export function derivedStake(from: EffectSource | undefined): StakeRef | undefin
  *  enjeu DÉRIVÉ parle si son entité porteuse a toujours sa fiche. PUR. */
 export function stakeSpeaks(stake: StakeRef | undefined): boolean {
   if (!stake) return false;
-  if (stake.from != null) return !!derivedEntry(stake.from);
-  return stake.authored != null ? !!stake.authored.trim() : true;
+  if ('from' in stake) return !!derivedEntry(stake.from);
+  return 'authored' in stake ? !!stake.authored.trim() : true;
 }
 
 /** RÉSOLVEUR UNIQUE d'enjeu (#1117) — la seule porte qui transforme une `StakeRef` en texte affichable.
@@ -749,12 +732,12 @@ export function stakeSpeaks(stake: StakeRef | undefined): boolean {
  *  (l'étape ne porte que des ids) et sa fiche est le foyer de règle. La porte reste UNIQUE : la
  *  surface ne connaît toujours que `resolveStake`. */
 export function resolveStake(ref: StakeRef): ResolvedStake {
-  if (ref.from != null) {
+  if ('from' in ref) {
     const found = derivedEntry(ref.from);
     if (!found) throw new Error(`resolveStake(dérivé '${ref.from.kind}/${ref.from.id}') : entité porteuse introuvable — une surface qui LANCE dit ce qu'elle met en jeu`);
     return { text: `Ce qui se joue : ${found.entry.label}.`, rule: { category: found.category, id: ref.from.id } };
   }
-  if (ref.authored != null) {
+  if ('authored' in ref) {
     if (!stakeSpeaks(ref)) throw new Error('resolveStake(authoré) : enjeu vide — un Flow qui LANCE dit ce qu\'il met en jeu');
     return { text: ref.authored };
   }
@@ -995,8 +978,8 @@ export interface TrappingData {
   pa?: number | null;
   /** Dégâts d'arme STRUCTURÉS (cf. `WeaponDamageSpec`) — remplace la chaîne « +BF+4 » re-parsée au runtime. */
   damage?: import('../engine/types').WeaponDamageSpec | null;
-  /** Qualités d'arme/armure (`QualityRef` : id + Indice éventuel « Solide 3 » → value, spec = arg éventuel). */
-  qualities: QualityRef[];
+  /** Qualités d'arme/armure (`QualityRef` : id + Indice éventuel « Solide 3 » → value), ou majorée d'une munition. */
+  qualities: QualiteDObjetRef[];
   desc?: string;
   /** Effet d'un CONSOMMABLE (potion/drogue/bandage — LDB 71/72/67) en **Flow** (noyau `engine/flowCore`) :
    *  feuilles `do` d'ops (MÊME vocabulaire que sorts/passifs), branches `if` (Fleur de lune par race),
@@ -1019,7 +1002,7 @@ export interface TrappingData {
    *  jamais une constante de code. Absent = 1 (défaut). */
   niConsumedPerDR?: number;
   /** Arbitrage NON-verbatim documentant un ou plusieurs champs (ex. `niConsumedPerDR`) — même patron
-   *  que `CreatureData.maison`/`NavalTraitData.maison`/`CrewRoleData.wage.maison`. */
+   *  que `CreatureData.maison`/`NavalTraitData.maison`. */
   maison?: string;
   /** Colonne « Prix »/« Coût ». Honnête, comme `enc` : un montant chiffré, la MARQUE `'ND'` que le
    *  livre imprime (LDB 62 l.28 Mains nues, l.31 Arme improvisée, LDB 68 l.11 Licence de Guilde), ou
@@ -1088,111 +1071,11 @@ export type HarvestDanger = z.infer<typeof harvestDangerSchema>;
 
 /** Créature du bestiaire (LDB 76), son id fermé sur l'union générée (`Id<'creature'>`). */
 export type CreatureData = EntreeDe<typeof creaturesDef>;
-/** Base d'un état psychologique porté (LDB 21, `PsychologyData`), de même vocabulaire que l'État (LDB 16,
- *  `EtatData`, dérivé de `schemas/defs/etats.ts`). Porte le vocabulaire commun : modificateurs PASSIFS
- *  (`passive: OpPassive[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
- *  (`effects: TriggeredEffect[]`). Folding UNIQUE : `passiveMods` (passifs) + `fireStatusEffects` (déclenchés)
- *  itèrent indifféremment États et états psy → zéro duplication de schéma ni de collecteur. */
-export interface StatusData {
-  /** id STABLE (slug du libellé) — cible des instances (`ConditionInstance.name` / `PsychAffliction.type`). */
-  id: string;
-  type: 'psychology';
-  label: string;
-  /** Prose : `desc` inline ou son adresse `descRef` (#1389), que le plugin `wfrp:prose-source` matérialise en `desc`
-   *  au chargement (V1 du refine `grammaire/prose.ts`). */
-  desc?: string;
-  descRef?: DescRef;
-  source: SourceRef;
-  /** Modificateurs PASSIFS continus (pénalité de Test, `incomingAttackMod`, `sbBonus`…) en `OpPassive[]`, lus
-   *  par `passiveMods` (kind `etat` : pool non-cumul, le pire seul, LDB 16 l.13). MÊME éditeur GameOpEditor. */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Effets DÉCLENCHÉS (dégâts par round → `onRoundEnd` ; sortie de Frénésie → `onTurnStart`…) en
-   *  `TriggeredEffect[]`, diffusés par `fireStatusEffects` — le même cœur `applyTriggeredEffects`. */
-  effects?: TriggeredEffect[];
-  /** Restriction d'Action / de Mouvement / de défense imposée par le STATUT (États : À Terre/Sonné/
-   *  Inconscient/Surpris/Empêtré ; et Psychologie — « Etat comme Psy »), lue en DONNÉES par les prédicats
-   *  moteur `canTakeAction`/`effectiveMovement`/`cannotDefend` via le collecteur `conditionGating` (jamais
-   *  une branche par-nom). Même forme que le `gating` de l'État (`schemas/defs/etats.ts`). */
-  gating?: { action?: 'none'; movement?: 'none' | 'half' | 'crawl'; cannotDefend?: true };
-}
-
 /** État (LDB 16), son id fermé sur l'union générée (`Id<'etat'>`). */
 export type EtatData = EntreeDe<typeof etatsDef>;
 
-/** État PSYCHOLOGIQUE en DONNÉES (LDB 21) — `id` = `PsychType` (`frenesie`, à terme `peur`/`terreur`/…).
- *  Étend `StatusData` (passive/effects mutualisés) ; n'ajoute que la capacité propre à la psychologie. */
-export interface PsychologyData extends StatusData {
-  /** ENJEU du Test de cette affliction (#1117 L2) — porté par l'ENTRÉE (patron `ActivityDef.stake`) :
-   *  ses conséquences lui sont propres (`resolution`/`failCondition`/`failAmount`/`becomes`), un texte
-   *  au `kind` serait tautologique. Résolu par `resolveStake` via l'`entryId` de l'étape. */
-  stake?: string;
-  stakeForm?: StakeForm;
-  /** AFFICHAGE (couche UI, hors RAW LDB 21) : icône du registre `<Icon>` (id `famille/nom`), à l'égal
-   *  d'`EtatData.icon`. Lu par `cibleLabel` (engine/psychology.ts). */
-  icon?: IconId;
-  /** Porter cet état psy IMMUNISE à la Psychologie (Frénésie, LDB 21 l.33) — lu GÉNÉRIQUEMENT par
-   *  `isPsychImmune` (jamais codé par-nom), à l'égal du drapeau de trait « Immunité (Psychologie) ». */
-  psychImmune?: boolean;
-  /** Variantes de Cible admises (Groupe, individu) d'un Trait psychologique CIBLÉ (LDB 21) ; leur présence
-   *  fait le type ciblé (`estCibleType`), lues par `varianteAdmise` (`engine/psych/ciblage.ts`). #3045 */
-  cibles?: VarianteDeCible[];
-  /** RAW LDB 21 : cette affliction CIBLÉE cesse dès que son porteur tombe sous un AUTRE effet psychologique
-   *  « dominant » (Peur/Terreur/Haine…) — « Animosité est annulé par Peur et Terreur » ; Préjugé idem. */
-  endedByOtherPsych?: boolean;
-  /** RAW LDB 21 l.41 : tant que cette affliction CIBLÉE est active, son porteur est IMMUNISÉ aux CANAUX
-   *  listés causés par un membre de sa Cible (Haine → `['peur']` ; l'Intimidation du RAW attend sa mécanique, #1234).
-   *  Lu par `psychImmuneToFrom` (siège unique : `fearSourceFor` + `psychDRAdjust`). */
-  immuneToFromTarget?: string[];
-  /** Contribution de cet état psy au DEGRÉ DE RÉUSSITE de l'ATTAQUE de son porteur (LDB 21, ±1 DR) — lu
-   *  par `psychDRAdjust` (plus de ±1 codé par-nom). `vs:'source'` = Peur vs sa source (`sousPeur`,
-   *  l.29) ; `vs:'group'` = Haine/Animosité vs le groupe ciblé actif (l.22/41), qui oriente aussi le
-   *  vivier de l'IA (`noyau/monde/ai.ts`) ; `vs:'any'` = Amour/
-   *  Camaraderie en défense, dès lors qu'actif (l.77/82). */
-  attackDR?: { amount: number; vs: 'source' | 'group' | 'any' };
-  /** RAW LDB 21 l.75 : tant que cette affliction est active, son porteur est IMMUNISÉ aux CANAUX listés,
-   *  mais SEULEMENT tant que l'affliction est ACTIVE, ce que `refreshDefendedPsych` conditionne à la présence
-   *  d'un membre de sa Cible en état d'être défendu (Amour → `['peur']`). Même siège `psychImmuneToFrom`. */
-  immuneWhileActive?: string[];
-  /** RAW LDB 21 l.19/l.48 : modificateur aux Tests de Sociabilité envers la Cible que subit le porteur du
-   *  Trait tant qu'il n'est PAS en affliction active (issue du Test de Psychologie RÉUSSI — Animosité −20,
-   *  Préjugé −10). Lu par `socialPsychMod`/`socialPsychLabel` (plus de −20/−10 ni de type codé par-nom). */
-  containedSocialMod?: number;
-  /** RAW LDB 21 l.87 : l'OBJET de ce Trait CIBLÉ est traité comme CAUSANT l'état psy `kind` d'Indice
-   *  `indice` (Phobie → Peur 1) — l'entrée n'a donc pas de Test propre : tout le régime de `kind` s'applique.
-   *  `indice` est le DÉFAUT, surchargé par l'Indice de l'instance possédée (« Vous pouvez vouloir augmenter
-   *  l'Indice de Peur si la Phobie est particulièrement forte » — éditable au Codex). Lu par `fearSourceFor`. */
-  targetCauses?: { kind: string; indice: number };
-  /** SITUATION qui EXPOSE au Trait CIBLÉ (LDB 21 l.9), lue par `targetedTrigger` — jamais un camp.
-   *  `'encounter'` (défaut) : « chaque fois que vous rencontrez l'un de ces groupes » (Animosité l.19,
-   *  Préjugé l.45 ; Haine l.39 « Lorsque vous rencontrez ceux qui vous provoquent la Haine »).
-   *  `'threatened'` : « Vous devez venir en aide à quelqu'un que vous aimez s'il se retrouve menacé »
-   *  (Amour l.75 ; Camaraderie l.81 « si ce groupe est menacé ») — un tiers doit être agressif envers
-   *  le membre de la Cible (`agressifEnvers`). */
-  triggerOn?: 'encounter' | 'threatened';
-  /** Moment du re-test d'une affliction ciblée active ; absent = début du Round. LDB 21 l.9, l.19, l.39, l.48 */
-  retestAt?: 'roundStart' | 'roundEnd';
-  /** Mode de RÉSOLUTION du Test de Psychologie (LDB 21), lu par l'applier GÉNÉRIQUE `psychologieDeCombat` (jamais
-   *  un dispatch `kind === 'terreur'` codé) : `'etendu'` = Test ÉTENDU de Calme cumulant le DR vers l'Indice
-   *  (Peur, l.27) ; `'terreur'` = Test SIMPLE dont l'échec inflige `failCondition` (Indice + |DR négatifs|)
-   *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'simple'` = Test SIMPLE (LDB 12 l.3-7) activant l'affliction
-   *  CIBLÉE (traits ciblés). Absent (Frénésie/trauma) = pas de Test de résolution surmontable. */
-  resolution?: 'etendu' | 'terreur' | 'simple';
-  /** (résolution `'terreur'`) État infligé à l'ÉCHEC (`EtatData.id`) ; la QUANTITÉ est déclarée par
-   *  `failAmount` (défaut = Indice + |DR négatifs|, LDB 21 l.54). */
-  failCondition?: { id: string };
-  /** (résolution `'terreur'`) QUANTITÉ d'état infligée à l'échec, EN DONNÉES (`failConditionAmount`) :
-   *  `base` (l'Indice de l'affliction via `'indice'`, ou un nombre FIXE) + `perDegreeOfFailure` par DR
-   *  négatif. Défauts `{ base:'indice', perDegreeOfFailure:1 }` = la règle Brisé Terreur — plus de calcul
-   *  codé : un nouvel État/Psy déclare ICI sa quantité (fixe, ou par degrés seuls). */
-  failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number };
-  /** (résolution `'terreur'`) État psychologique SUBSÉQUENT au Test (la Terreur devient une Peur, l.55). */
-  becomes?: { id: string };
-  /** Paramètres du Test de Psychologie (LDB 21) : `skill` (compétence stable, défaut `calme` — la valeur
-   *  NUE est lue par `skillBaseValue`) + `difficulty` (défaut Intermédiaire +0). Lu par `psychStepFor`/
-   *  l'encounter, plus de Calme/Intermédiaire codé : un nouvel État/Psy déclare ICI son Test (ex. testé en
-   *  Résistance, ou à une difficulté propre). « Sans Peur (Ennemi) » force Accessible à part (par-combattant). */
-  test?: { skill?: RefDesignee; difficulty?: import('../engine/types').Difficulty };
-}
+/** État psychologique (LDB 21), son id fermé sur l'union générée (`Id<'psychology'>`). */
+export type PsychologyData = EntreeDe<typeof psychologyDef>;
 /** Rangée des Tableaux de couleur des yeux / des cheveux (LDB 05 l.742-768), par colonne `RaceKey` (#313). */
 export type DetailColorData = RangeeDe<typeof couleurDesYeux>;
 /** Manœuvre au catalogue (LDB 85), son id fermé sur l'union générée (`Id<'maneuver'>`) ; la joue `resolveManeuver` (`noyau/combatManeuvers`). */
@@ -1252,7 +1135,7 @@ export const charAbr = (k: CharKey): PlayerText => dataLabel(charARoulerParId(k)
 /** La caractéristique à jet qu'abrège un sigle imprimé (« F », « FM »), casse ignorée — inverse de
  *  `charAbr`, lu par la saisie d'un Indice relatif (`lireIndiceRelatif`). */
 export const caracDuSigle = (sigle: string): CharKey | undefined =>
-  characteristics.find((c) => c.nature === 'roll' && c.abr != null && norm(c.abr) === norm(sigle))?.id as CharKey | undefined;
+  charKeySchema.safeParse(characteristics.find((c) => c.nature === 'roll' && c.abr != null && norm(c.abr) === norm(sigle))?.id).data;
 export const species = datasetDe<typeof speciesDef>(speciesJson);
 export const classes = datasetDe<typeof classesDef>(classesJson);
 export const careers = datasetDe<typeof careersDef>(careersJson);
@@ -1949,9 +1832,9 @@ export function findConditionById(id: string): EtatData | undefined {
 
 /** États PSYCHOLOGIQUES (LDB 21) — base app-owned éditable au Codex, prose ADRESSÉE au `Source/`
  *  (`descRef`, #1389 : première famille migrée). */
-export const psychologies: PsychologyData[] = datasetDe<typeof psychologyDef>(psychologyJson);
+export const psychologies = datasetDe<typeof psychologyDef>(psychologyJson);
 const psychologieParId = indexParId('psychologies', psychologies);
-/** Résout un état psychologique par son `id` STABLE (`PsychType`). Absent → undefined (folding inerte). */
+/** Résout un état psychologique par son `id` STABLE. Absent → undefined (folding inerte). */
 export function findPsychologyById(id: string): PsychologyData | undefined {
   return psychologieParId(id);
 }
@@ -1961,7 +1844,7 @@ export function conditionLabel(id: string): PlayerText {
 }
 /** Libellé d'affichage de la table des Critiques de Structure (rangée de tirage `TableRollLine`), lu VIVANT à l'appel. */
 export const structureCriticalsLabel = (): PlayerText => dataLabel(structureCriticalsJson.label);
-/** Libellé d'affichage d'un état psychologique par son `id` (`PsychType`), repli sur l'id — délègue au
+/** Libellé d'affichage d'un état psychologique par son `id`, repli sur l'id — délègue au
  *  résolveur de libellé GÉNÉRIQUE (`refLabel`), jamais une copie locale du motif `MAP.get(id)?.label ?? id`. */
 export function psychologyLabel(id: string): PlayerText {
   return refLabel('psychologies', { id });
@@ -2295,8 +2178,8 @@ export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, Tra
 export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | null }): G | undefined {
   return arme.weaponGroup ?? arme.subType ?? undefined;
 }
-/** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
-const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
+/** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156). */
+const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege']);
 /** ARMES choisissables `{ id, label, groupe, sizeFor, reserveeA }` : toute Possession `melee`/`distance` hors « Mains nues »
  *  (`TrappingData.unarmed`), hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`) et hors des armes
  *  magiques (une qualité `estQualiteMagique` ; ZI 13 l.862, VDM 12 l.3), triée au libellé. `id` = `trappingId`
@@ -2496,6 +2379,12 @@ export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type'
   const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
   return entrees.filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
+/** Les choix `{ id, label }` d'une feuille `specDe(type, id)` : le catalogue de spécialisations de l'entrée
+ *  (`catalogueSpecs`), chacune à son libellé (`specLabel`). */
+export function choixDeLaSpec({ type, id }: FeuilleDeSpec): { id: string; label: string }[] {
+  const categorie = datasetDeLEspaceDuType(type) ?? '';
+  return catalogueSpecs(type, id).map((s) => ({ id: s, label: specLabel(categorie, id, s) }));
+}
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers (`entree`) ; sinon l'id. */
 function libelleDeSource(decl: SourceDeSpecs, entree: (id: string) => Readonly<Record<string, unknown>> | undefined): (id: string) => string {
@@ -2588,9 +2477,10 @@ export function refLabel(category: string, ref: RefASpecialisation): PlayerText 
   const base = dataLabel(findById(category, ref.id)?.label, ref.id);
   return ref.spec ? dataLabel(`${base} (${specLabel(category, ref.id, ref.spec)})`) : base;
 }
-/** Copie une `QualityRef` de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}`) — objet neuf
- *  (le runtime mute `qualities` : enchantements, munitions). Plus d'aplatissement en chaîne « id value ». */
-export function qualityInstance(q: QualityRef): import('../engine/types').QualityInstance {
+/** Copie une qualité de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}` ou `{id, majoration}`) — objet
+ *  neuf (le runtime mute `qualities` : enchantements, munitions). */
+export function qualityInstance(q: QualiteDObjetRef): import('../engine/types').QualityInstance {
+  if ('majoration' in q) return { id: q.id, majoration: q.majoration };
   return {
     id: q.id,
     ...(q.value != null ? { value: q.value } : {}),
@@ -2609,6 +2499,7 @@ export function idDObjet(v: string | undefined): Id<'trapping'> | undefined {
  *  il la parenthèse (`AA 08 l.136` « Taillade (1A) », l.304 « Taillade (2A) »). Zéro branche par id. */
 export function qualityRefLabel(q: import('../engine/types').QualityInstance): PlayerText {
   const base = refLabel('qualities', q);
+  if (q.majoration != null) return dataLabel(`${base} +${q.majoration}`);
   if (q.value == null) return base;
   const unite = qualiteParId(q.id)?.indice?.unite;
   return dataLabel(unite ? `${base} (${q.value}${unite})` : `${base} ${q.value}`);

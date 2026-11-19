@@ -12,7 +12,7 @@
  * aucun dé jeté. L'arbitrage veut l'enjeu ANNONCÉ AVANT de lancer ; une phrase qui n'apparaîtrait
  * qu'après le jet arriverait après la décision, donc trop tard.
  *
- * Montage RÉEL, du store à l'écran : `runFlow(testFlow(…))` → `openSkillTest` → étape hôte →
+ * Montage RÉEL, du store à l'écran : `runFlow(testFlow<Effect>(…))` → `openSkillTest` → étape hôte →
  * `CascadeBody`. Aucun composant simulé.
  */
 import { act } from 'react';
@@ -21,8 +21,8 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Combatant } from '../engine/types';
 import { useGame } from '../state/store';
 import { runFlow } from '../noyau/combatEffects';
-import { testFlow } from '../noyau/monde/flow';
-import { EMPTY_FLOW } from '../engine/flowCore';
+import { EMPTY_FLOW, testFlow } from '../engine/flowCore';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { combatStakeRef } from '../data';
 import type { StakeRef } from '../data';
 import { CascadeBody } from './CascadeModal';
@@ -68,7 +68,7 @@ function ouvrir(stake?: StakeRef): HTMLDivElement {
   });
   runFlow(
     useGame.getState, useGame.setState,
-    testFlow({ skill: { id: 'athletisme' }, difficulty: 'intermediaire', requireSL: 0, label: 'Esquiver les piques de la dalle', ...(stake ? { stake } : {}) }, EMPTY_FLOW, EMPTY_FLOW),
+    testFlow<Effect>({ skill: { id: 'athletisme' }, difficulty: 'intermediaire', requireSL: 0, label: 'Esquiver les piques de la dalle', ...(stake ? { stake } : {}) }, EMPTY_FLOW, EMPTY_FLOW),
   );
   host = document.createElement('div');
   document.body.appendChild(host);

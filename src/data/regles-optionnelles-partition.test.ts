@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import reglesOptionnelles from './reglesOptionnelles.json';
+import { OPTIONAL_RULES } from '../engine/policy';
 
 /**
  * Garde-fou « une règle optionnelle est SOURCÉE ou MAISON, jamais les deux, jamais aucune »
@@ -20,9 +20,7 @@ import reglesOptionnelles from './reglesOptionnelles.json';
  * fabrique les casserait ; la fabrique est tenue par `grammaire/grammaire.test.ts` (« exige une PROVENANCE »).
  */
 
-type Regle = { id: string; ref?: string; source?: { book: string; page: number }; maison?: string };
-
-const REGLES = reglesOptionnelles as Regle[];
+const REGLES = OPTIONAL_RULES;
 
 describe('reglesOptionnelles.json — partition source ⊕ maison (#1467 L1b)', () => {
   it('chaque entrée porte `source` XOR `maison` — jamais les deux, jamais aucune', () => {

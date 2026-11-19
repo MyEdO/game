@@ -1,0 +1,13 @@
+{
+  "model": "arete--colombage.glb",
+  "model_sha256": "d6d6b0e12b2e739013e6500cfc0cc1055f978e0eeaa64f767a715e04f29fd21e",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

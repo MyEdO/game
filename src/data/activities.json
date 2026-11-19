@@ -2679,7 +2679,10 @@
           "kind": "not",
           "of": {
             "kind": "status",
-            "atLeast": "Bronze 1",
+            "atLeast": {
+              "tier": "bronze",
+              "standing": 1
+            },
             "who": "any"
           }
         }

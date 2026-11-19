@@ -678,7 +678,7 @@ accordés à la presse à Altdorf (lesquels dépendent purement de la volonté d
 
 0 Bien que le Spieler prenne soin de respecter les droits
 
-Ludovic Paulet - ludovicmad@wanadoo.fr
+
 
 
 <span id="page-179-0" data-folio="177"></span>

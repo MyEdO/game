@@ -32,8 +32,7 @@ import {
   metierOf,
   orderCatalog,
 } from '../engine/activities';
-import careers from '../data/careers.json';
-import { ACTIVITIES, findTrappingById } from '../data';
+import { ACTIVITIES, careers, findTrappingById } from '../data';
 import type { Combatant } from '../engine/types';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { testValue } from '../engine/skills';
@@ -102,7 +101,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
 
   it('le sceau de la chronique dit le dé de la table des Événements', () => {
     const seam = buildSeam();
-    sousLeDe('interludeEvents', 'd10', () => {
+    sousLeDe('interludeEvents', { n: 1, sides: 10 }, () => {
       const html = renderToStaticMarkup(<InterludeScreen seam={seam} />);
       expect(html).toContain('<span class="parchment-seal-label">1d10</span>');
     });
@@ -847,7 +846,7 @@ describe('InterludeScreen — la porte de chaque volet dédié est celle du gest
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  const CARRIERES = (careers as { id: string }[]).map((c) => c.id);
+  const CARRIERES = careers.map((c) => c.id);
   /** Variantes : 0 valide, 1 Inconscient (LDB 16 l.113 : il ne peut tenter aucun Test). */
   it.each(CARRIERES.flatMap((c) => [0, 1].map((n) => [c, n] as const)))('%s, variante %s : Revenus, ouvrage en cours, Apprentissage', (careerId, n) => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId, label: careerId, seed: 3000 + CARRIERES.indexOf(careerId) });

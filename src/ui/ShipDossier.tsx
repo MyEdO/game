@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
-import { findVehicleById, refLabel } from '../data';
+import { diseaseLabel, findVehicleById, refLabel } from '../data';
 import { VIVRES_DE_CALE } from '../engine/seaNavigation';
 import { rationsDeCale, rationsDuVivre } from '../engine/provisions';
 import { findManannFactor } from '../engine/seaVoyage';
@@ -23,6 +23,8 @@ import { ScreenShell } from './ScreenShell';
 import { Tabs } from './composites/Tabs';
 import { CargoTransferPanel } from './CargoTransferPanel';
 import { Split } from './Layout';
+import { CodexRef } from './compendium/CodexRef';
+import { t } from '../i18n';
 
 /**
  * DOSSIER DE NAVIRE persistant (#227, attendu C.1) — écran plein-champ du `CampaignVessel` (l'INSTANCE
@@ -265,6 +267,19 @@ export function ShipDossierView({ vessel, party, now, onClose, initialTab = 'ape
                 </ul>
               ) : (
                 <p className="port-hint">Aucun facteur actif — seule la paie hebdomadaire pèsera au conseil.</p>
+              )}
+              {vue.maladiesDeLEquipage.length > 0 && (
+                <div>
+                  <p className="port-hint">{t('crew.santeDeLEquipage')} :</p>
+                  <ul className="ship-dossier-list" aria-label={t('crew.santeDeLEquipage')}>
+                    {vue.maladiesDeLEquipage.map((d) => (
+                      <li key={d.id}>
+                        <CodexRef category="maladies" id={d.id} label={diseaseLabel(d.id)}>{diseaseLabel(d.id)}</CodexRef>
+                        {' — '}{t(d.phase === 'incubation' ? 'crew.maladieEnIncubation' : 'crew.maladieDeclaree')}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </section>
           </Split>

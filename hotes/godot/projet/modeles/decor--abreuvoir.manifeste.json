@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "abreuvoir"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "eau",
+      "palette": "accent",
+      "matiere": "prop--eau-dormante"
+    }
+  ],
+  "glb": {
+    "sha256": "8a5979814109fcefc450c8330a8f949c036ed669d2ec783a4db7034127884872",
+    "octets": 48972
+  }
+}

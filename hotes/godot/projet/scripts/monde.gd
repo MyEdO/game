@@ -95,22 +95,23 @@ var cadre := Rect2():
 
 func _ready() -> void:
 	_lacet = _pivot.rotation.y
-	var brume := ($Lumiere as Lumiere).brume
-	if brume != null:
-		volume.brumer(brume)
+	var lumiere := $Lumiere as Lumiere
+	if lumiere.brume != null:
+		volume.lier_a_la_vision(lumiere.brume)
+	volume.lier_a_la_vision(lumiere.sol_hors_carte)
 
 
 ## Le monde du manifeste `monde` (`{ monde, toits, couronnes }`, méthode `monde`) posé par le volume
 ## (`VolumeDeScene.poser`, les géométries reçues `recus`, réponse de `morceaux`), chaque morceau en forme sous le corps
 ## du monde, réconciliée comme lui (`VolumeDeScene.reconcilier`, `_forme_de`), le sol de chaque case de chaque couche, et
-## la caméra centrée sur lui.
-func poser(monde: Dictionary, recus: Dictionary) -> void:
+## la caméra centrée sur le rectangle de cases `zone` (la zone jouable), sur toute la carte sans lui.
+func poser(monde: Dictionary, recus: Dictionary, zone := Rect2i()) -> void:
 	volume.poser(monde, recus)
 	VolumeDeScene.reconcilier(_corps, monde.monde.morceaux, VolumeDeScene.par_cle(recus.volume), _forme_de)
 	_sols.clear()
 	for couche in monde.monde.hauteurs:
 		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.monde.metresParCase)))
-	_pivot.position = MiseEnPage.centre_du_plateau(taille())
+	_pivot.position = MiseEnPage.centre_de_la_zone(zone.position.x, zone.position.y, zone.size.x, zone.size.y) if zone.has_area() else MiseEnPage.centre_du_plateau(taille())
 
 
 ## La forme du morceau `morceau` (`MorceauDuMonde`) que le rayon du pointeur touche des deux côtés, hors des mers des
@@ -213,13 +214,15 @@ func poser_les_cases_jouables(cases: Array[Vector3i]) -> void:
 		_cases_jouables[case] = true
 
 
-## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.
+## Le point de l'écran du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y` : son centre, poussé
+## hors des diagonales de la case (`MiseEnPage.point_publie`), dont l'une est l'arête de ses deux triangles, qu'un
+## rayon tombé dessus peut traverser sans toucher ni l'un ni l'autre (`touche_sous`).
 func points(z := 0) -> Dictionary:
 	var points := {}
 	var t := taille()
 	for y in t.y:
 		for x in t.x:
-			var point: Variant = a_l_ecran(lieu(Vector2i(x, y), z))
+			var point: Variant = a_l_ecran(MiseEnPage.point_publie(lieu(Vector2i(x, y), z)))
 			if point != null:
 				points["%d,%d" % [x, y]] = [point.x, point.y]
 	return points
@@ -642,7 +645,7 @@ func _zoomer(sens: float) -> void:
 ## passes déjà encodées en sRGB, et la part rendue s'abaisse avec la luminance du pixel, mesurée jusqu'à 0,10 sous la
 ## teinte (#3950, `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs`). Sous Forward+, le brouillard volumétrique
 ## (`scenes/Lumiere.tscn`) diffuse dans l'air de chaque case la part de lumière de son état, celle de la case du bord
-## hors de la carte (`Lumiere.brume`, `VolumeDeScene.brumer`, `art/brume-de-la-vision.gdshader`, #4066).
+## hors de la carte (`Lumiere.brume`, `VolumeDeScene.lier_a_la_vision`, `art/brume-de-la-vision.gdshader`, #4066).
 ##
 ## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume par son nœud `Meteo` (`projet/scripts/meteo.gd`,
 ## #4081) : une averse par boîte, instance de `projet/effets/meteo/averse.tscn`, étirée dans le sens de sa chute, et

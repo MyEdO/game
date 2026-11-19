@@ -76,12 +76,12 @@ static func cle_de_case(case: Dictionary) -> String:
 ## case d'un flottant, chaque case d'un déplacement.
 static func cases_de(effet: Dictionary) -> Array:
 	var cases: Array = []
-	if effet.quoi == "zone":
+	if effet.quoi == Noyau.Effet.ZONE:
 		cases = effet.cases.duplicate()
 		cases.append(effet.centre)
-	elif effet.quoi == "flottant" and effet.case != null:
+	elif effet.quoi == Noyau.Effet.FLOTTANT and effet.case != null:
 		cases = [effet.case]
-	elif effet.quoi == "deplacement":
+	elif effet.quoi == Noyau.Effet.DEPLACEMENT:
 		cases = effet.cases
 	return cases
 
@@ -91,23 +91,23 @@ static func cases_de(effet: Dictionary) -> Array:
 func jouer(effets: Array, lieux: Dictionary, metres_par_case: float) -> void:
 	_metres_par_case = metres_par_case
 	for effet: Dictionary in effets:
-		if effet.quoi == "deplacement":
+		if effet.quoi == Noyau.Effet.DEPLACEMENT:
 			deplacement.emit(effet.qui, effet.cases.map(func(case: Dictionary) -> Vector3: return lieux[cle_de_case(case)]), effet.cases.map(func(case: Dictionary) -> float: return case.metres))
 	var premier := true
-	for effet: Dictionary in effets.filter(func(e: Dictionary) -> bool: return e.quoi != "deplacement"):
+	for effet: Dictionary in effets.filter(func(e: Dictionary) -> bool: return e.quoi != Noyau.Effet.DEPLACEMENT):
 		if not premier:
 			await get_tree().create_timer(ECART_S).timeout
 		premier = false
 		match effet.quoi:
-			"coup":
+			Noyau.Effet.COUP:
 				_coup(effet, lieux)
-			"incantation":
+			Noyau.Effet.INCANTATION:
 				_incantation(effet, lieux)
-			"zone":
+			Noyau.Effet.ZONE:
 				_zone(effet, lieux)
-			"flottant":
+			Noyau.Effet.FLOTTANT:
 				_flottant(effet, lieux)
-			"son":
+			Noyau.Effet.SON:
 				_repeter_le_son(effet.son, effet.fois, effet.ecartS)
 
 
@@ -124,7 +124,7 @@ func _coup(effet: Dictionary, lieux: Dictionary) -> void:
 	if effet.arrivee != null and effet.arrivee.son != null:
 		Musique.attenuer(get_tree())
 	_flotter(effet.flottants, sol)
-	arrivee.emit(effet.vers, effet.issue == "touche" or effet.issue == "critique")
+	arrivee.emit(effet.vers, effet.issue == Noyau.IssueDuCoup.TOUCHE or effet.issue == Noyau.IssueDuCoup.CRITIQUE)
 
 
 ## L'incantation `effet` : son départ au lanceur (`_partir`), puis son arrivée et ses flottants sur sa cible.

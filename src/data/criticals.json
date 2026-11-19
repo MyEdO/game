@@ -10,7 +10,10 @@
     },
     "jeu": "ldb",
     "localisation": "tete",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "id": "blessure-spectaculaire",
@@ -857,7 +860,10 @@
     },
     "jeu": "ldb",
     "localisation": "bras",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "id": "choc-au-bras",
@@ -1687,7 +1693,10 @@
     },
     "jeu": "ldb",
     "localisation": "corps",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "id": "rien-qu-une-egratignure",
@@ -2432,7 +2441,10 @@
     },
     "jeu": "ldb",
     "localisation": "jambe",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "id": "orteil-contusionne",
@@ -3336,7 +3348,10 @@
     },
     "jeu": "aa",
     "localisation": "tete",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "id": "aa-tete-01",
@@ -4074,7 +4089,10 @@
     },
     "jeu": "aa",
     "localisation": "bras",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "id": "aa-bras-01",
@@ -4840,7 +4858,10 @@
     },
     "jeu": "aa",
     "localisation": "corps",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "id": "aa-corps-01",
@@ -5560,7 +5581,10 @@
     },
     "jeu": "aa",
     "localisation": "jambe",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "id": "aa-jambe-01",

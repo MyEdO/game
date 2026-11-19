@@ -79,11 +79,8 @@ describe('tableOuverte — la borne que le livre n’écrit pas s’ouvre à l�
 
 describe('deDeLaTableTiree — le dé se lit sur le nœud de sa table (#1667)', () => {
   it('lit le `die` de son nœud, table ou sous-tirage', () => {
-    expect(deDeLaTableTiree({ die: '2d10' })).toEqual({ n: 2, sides: 10 });
-    expect(deDeLaTableTiree({ die: 'd10' })).toEqual({ n: 1, sides: 10 });
-  });
-  it('refuse un dé illisible en nommant la table', () => {
-    expect(() => deDeLaTableTiree({ id: 'fixture', die: 'deux dés' })).toThrow('fixture.die invalide');
+    expect(deDeLaTableTiree({ die: { n: 2, sides: 10 } })).toEqual({ n: 2, sides: 10 });
+    expect(deDeLaTableTiree({ die: { n: 1, sides: 10 } })).toEqual({ n: 1, sides: 10 });
   });
   it('un dé nu ne compile pas, ni chaîne ni `DiceSpec` littéral : `tsc` rougit (TS2578) si une directive cesse de servir', () => {
     const refuses = [
@@ -98,17 +95,17 @@ describe('deDeLaTableTiree — le dé se lit sur le nœud de sa table (#1667)', 
 
 describe('facesDuDe — faces d’un dé de table (source unique)', () => {
   it('d10 → 10, d100 → 100, 2d10 → 20', () => {
-    expect(facesDuDe(deDeLaTableTiree({ die: 'd10' }))).toBe(10);
-    expect(facesDuDe(deDeLaTableTiree({ die: 'd100' }))).toBe(100);
-    expect(facesDuDe(deDeLaTableTiree({ die: '2d10' }))).toBe(20);
+    expect(facesDuDe(deDeLaTableTiree({ die: { n: 1, sides: 10 } }))).toBe(10);
+    expect(facesDuDe(deDeLaTableTiree({ die: { n: 1, sides: 100 } }))).toBe(100);
+    expect(facesDuDe(deDeLaTableTiree({ die: { n: 2, sides: 10 } }))).toBe(20);
   });
 });
 
 describe('bandeAuDe — bande précédée du libellé de son dé (docs/charte-ui.md, « Bande de table »)', () => {
   it('libellé du schéma et faces du dé : « 1d100 01–35 », « 1d10 9–10 », bande ouverte « 1d100 96+ »', () => {
-    const d100 = deDeLaTableTiree({ die: 'd100' });
+    const d100 = deDeLaTableTiree({ die: { n: 1, sides: 100 } });
     expect(bandeAuDe(d100, 1, 35)).toBe('1d100 01–35');
-    expect(bandeAuDe(deDeLaTableTiree({ die: 'd10' }), 9, 10)).toBe('1d10 9–10');
+    expect(bandeAuDe(deDeLaTableTiree({ die: { n: 1, sides: 10 } }), 9, 10)).toBe('1d10 9–10');
     expect(bandeAuDe(d100, 96, null)).toBe('1d100 96+');
   });
 });

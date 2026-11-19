@@ -1,17 +1,31 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Theme" path="res://art/plaque.tres" id="t_plaque"]
 
-[node name="Plaques" type="HBoxContainer"]
-theme_type_variation = &"RangeeSerree"
+[node name="Plaques" type="VBoxContainer"]
+size_flags_horizontal = 3
+theme = ExtResource("t_plaque")
+theme_type_variation = &"PileTassee"
 
-[node name="libelle" type="Node" parent="."]
+[node name="Tete" type="CenterContainer" parent="."]
+mouse_filter = 2
+
+[node name="Ruban" type="PanelContainer" parent="Tete"]
+theme_type_variation = &"Ruban"
+
+[node name="Titre" type="Label" parent="Tete/Ruban"]
+theme_type_variation = &"TitreDuRuban"
+
+[node name="libelle" type="Node" parent="Tete/Ruban/Titre"]
 script = ExtResource("1_liaison")
 champ = "libelle"
-propriete = &"tooltip_text"
 
-[node name="Zone" type="Node" parent="."]
+[node name="Rangee" type="HBoxContainer" parent="."]
+theme_type_variation = &"RangeeDePlaques"
+
+[node name="Zone" type="Node" parent="Rangee"]
 script = ExtResource("2_zone")
 source = "valeurs"
 formes = PackedStringArray("bouton:plaque")

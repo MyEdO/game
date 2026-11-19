@@ -5,7 +5,10 @@
     "label": "L'Al-zahr",
     "roundShape": "pot",
     "pot": {
-      "die": "2d10",
+      "die": {
+        "n": 2,
+        "sides": 10
+      },
       "targetRange": {
         "min": 7,
         "max": 15

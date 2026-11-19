@@ -18,10 +18,12 @@ import {
 } from './session';
 import { CODEX_GROUPS, categoryByKey } from './registry';
 import { reverseGroups } from './relations';
-import { datasetArray, entreesDuDataset, deDeLaTable } from '../../data/overrides';
+import { datasetArray, datasetObject, entreesDuDataset, deDeLaTable } from '../../data/overrides';
 import { noeudDeLEntree, noeudsDesEntrees } from '../../data/schemas/validate';
 import { champsDeclares, choixDuNoeud } from './editFields';
 import { cleDuChapitre } from '../edition/adresseDeProse';
+import { apparencesChoisissablesDObjet, findTrappingById, objetsAApparenceChoisie } from '../../data/apparencesObjets';
+import { armesDEntite } from '../equipementDessine';
 
 /** La session `s` après chacun des gestes `gestes`, dans l'ordre. */
 const jouer = (s: SessionDuCompendium, ...gestes: GesteDuCompendium[]): SessionDuCompendium => gestes.reduce(compendium, s);
@@ -131,12 +133,28 @@ describe('atelier', () => {
     expect([neuf.refus, neuf.atelier!.entree.id]).toEqual([null, 'talent-neuf']);
   });
 
+  it('identifier un élément de liste à clé : refusé vide, pris par un autre élément, désigné hors de lui, figé par le code ; accepté sinon, au seul brouillon', () => {
+    const perils = jouer(ouvert(), { geste: 'categorie', categorie: 'seaPerils' }, { geste: 'modifier' });
+    const { hazards, tourbillons } = datasetObject('seaPerils');
+    const designe = hazards.findIndex((h) => h.id === 'debris-marins');
+    expect(compendium(perils, { geste: 'identifier', chemin: ['hazards', 0], id: '  ' }).refus).toBe('L’identifiant ne peut pas être vide.');
+    expect(compendium(perils, { geste: 'identifier', chemin: ['hazards', 0], id: hazards[1].id }).refus).toBe(`L’identifiant « ${hazards[1].id} » est déjà pris par un autre élément de la liste.`);
+    expect(compendium(perils, { geste: 'identifier', chemin: ['hazards', designe], id: 'debris-renommes' }).refus).toMatch(/^D’autres données désignent « debris-marins », son identifiant ne change pas : .*sea-events\.json › /);
+    expect(compendium(perils, { geste: 'identifier', chemin: ['hazards'], id: 'x' }).refus).toBe('Cet élément de liste ne porte pas d’identifiant.');
+    const libre = tourbillons.findIndex((t) => t.id === 'maelstrom-primordial');
+    const renomme = compendium(perils, { geste: 'identifier', chemin: ['tourbillons', libre], id: ' maelstrom-ultime ' });
+    expect([renomme.refus, (renomme.atelier!.entree.tourbillons as { id: string }[])[libre].id]).toEqual([null, 'maelstrom-ultime']);
+    expect(datasetObject('seaPerils').tourbillons[libre].id).toBe('maelstrom-primordial');
+    const fleuve = jouer(ouvert(), { geste: 'categorie', categorie: 'riverNavigation' }, { geste: 'modifier' });
+    expect(compendium(fleuve, { geste: 'identifier', chemin: ['windDirections', 'entries', 0], id: 'travers' }).refus).toBe('L’identifiant « arriere » est déclaré par le moteur : il ne change pas.');
+  });
+
   it('le dé d’en-tête s’écrit sur une table qui en porte un, vide s’il est le dé imprimé ; refusé ailleurs', () => {
     const rangee = categoryByKey('drunkenness')!.items[0].id;
     const s = jouer(ouvert('drunkenness', rangee), { geste: 'modifier' });
-    expect(compendium(s, { geste: 'enTete', valeur: '2d10' }).atelier!.enTete).toEqual([{ ancetre: '', champ: 'die', valeur: '2d10' }]);
-    expect(compendium(compendium(s, { geste: 'enTete', valeur: '2d10' }), { geste: 'enTete', valeur: deDeLaTable('drunkenness')! }).atelier!.enTete).toEqual([]);
-    expect(jouer(ouvert('talents', TALENT_CITE), { geste: 'modifier' }, { geste: 'enTete', valeur: 'd10' }).refus).toBe('Cette table ne porte pas de dé d’en-tête.');
+    expect(compendium(s, { geste: 'enTete', valeur: { n: 2, sides: 10 } }).atelier!.enTete).toEqual([{ ancetre: '', champ: 'die', valeur: { n: 2, sides: 10 } }]);
+    expect(compendium(compendium(s, { geste: 'enTete', valeur: { n: 2, sides: 10 } }), { geste: 'enTete', valeur: deDeLaTable('drunkenness')! }).atelier!.enTete).toEqual([]);
+    expect(jouer(ouvert('talents', TALENT_CITE), { geste: 'modifier' }, { geste: 'enTete', valeur: { n: 1, sides: 10 } }).refus).toBe('Cette table ne porte pas de dé d’en-tête.');
   });
 
   it('enregistrer décrit la transaction, refusée tant que l’entrée est invalide ; son issue ferme l’atelier sur l’entrée', () => {
@@ -160,6 +178,19 @@ describe('atelier', () => {
     const rangee = jouer(ouvert('drunkenness', categoryByKey('drunkenness')!.items[0].id), { geste: 'modifier' }, { geste: 'supprimer' });
     expect(transactionDemandee(rangee)).toEqual({ sorte: 'supprimer', categorie: 'drunkenness', index: 0 });
     expect(compendium(rangee, { geste: 'enregistrement', reussi: true }).montree).toBeNull();
+  });
+
+  it('l’apparence des objets d’une créature offre, comme à la scène, les seuls objets de ses armes, et de chacun ses apparences', () => {
+    const creatures = datasetArray('creatures');
+    const objetsDe = ({ traits, char }: (typeof creatures)[number]) => objetsAApparenceChoisie(armesDEntite(findTrappingById, undefined, { traits, char }));
+    const armee = creatures.find((c) => objetsDe(c).length > 0)!;
+    const desarmee = creatures.find((c) => objetsDe(c).length === 0)!;
+    const choix = (id: string, chemin: readonly (string | number)[]) =>
+      formulaireDeLAtelier(jouer(ouvert('creatures', id), { geste: 'modifier' }))!.champs.find((f) => f.key === 'appearance')!.contexte!.choix(['appearance', 'apparencesObjets', ...chemin]);
+    const [objet] = objetsDe(armee);
+    expect(choix(armee.id, [])?.map((c) => c.valeur)).toEqual(objetsDe(armee));
+    expect(choix(armee.id, [objet, 'id'])?.map((c) => c.valeur)).toEqual(apparencesChoisissablesDObjet(objet).map((a) => a.id));
+    expect(choix(desarmee.id, [])).toEqual([]);
   });
 });
 

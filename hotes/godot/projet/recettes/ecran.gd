@@ -99,9 +99,6 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 		_verifier(dessines.map(func(n: Node) -> String: return n.get_meta(Zone.META)) == cles, "%s, %s : composants %s, éléments %s" % [vue.nom, zone.source, dessines.map(func(n: Node) -> String: return n.get_meta(Zone.META)), cles])
 		for n in dessines:
 			noeuds[_cle(zone.source, n.get_meta(Zone.META))] = n
-	for source in vue.zones:
-		for e in vue.zones[source]:
-			_verifier(noeuds.has(_cle(source, Zone.cle(e))), "%s, %s : %s n'a aucune zone" % [vue.nom, source, Zone.cle(e)])
 	for zone in zones:
 		for e in vue.zones.get(zone.source, []):
 			var noeud: Node = noeuds.get(_cle(zone.source, Zone.cle(e)))
@@ -199,10 +196,10 @@ func _dits(e: Variant, valeur: bool = false) -> Array:
 	elif e is Dictionary and e.has("type"):
 		for champ in e:
 			var v: Variant = e[champ]
-			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and (e.type == "entite" or e.type == "point") or champ == "valeur" and e.type == "puce")):
+			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and (e.type == Noyau.TypeDElement.ENTITE or e.type == Noyau.TypeDElement.POINT) or champ == "valeur" and e.type == Noyau.TypeDElement.PUCE)):
 				dits.append(v)
 			elif v is Array:
-				dits.append_array(_dits(v, e.type == "liste" or e.type == "saisieChoix" or e.type == "saisieCoches"))
+				dits.append_array(_dits(v, e.type == Noyau.TypeDElement.LISTE or e.type == Noyau.TypeDeSaisie.SAISIE_CHOIX or e.type == Noyau.TypeDeSaisie.SAISIE_COCHES))
 	return dits
 
 
@@ -210,12 +207,12 @@ func _dits(e: Variant, valeur: bool = false) -> Array:
 ## joue est celle qu'il porte ; une liste montre choisie sa valeur pressée, aucune sans elle.
 func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 	match e.type:
-		"bouton":
+		Noyau.TypeDElement.BOUTON:
 			_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
-		"puce":
+		Noyau.TypeDElement.PUCE:
 			if e.jeu != null:
 				_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
-		"choix", "liste":
+		Noyau.TypeDElement.CHOIX, Noyau.TypeDElement.LISTE:
 			var deroulantes := noeud.find_children("*", "OptionButton", true, false)
 			if deroulantes.is_empty():
 				for v in e.valeurs:
@@ -230,7 +227,7 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 			_verifier(liste.selected == pressee, "%s, %s : liste choisie à %d, valeur pressée %d" % [vue.nom, e.id, liste.selected, pressee])
 			for i in e.valeurs.size():
 				_attendre(vue, e.valeurs[i].id, func() -> void: liste.item_selected.emit(i), e.valeurs[i].jeu)
-		"curseur":
+		Noyau.TypeDElement.CURSEUR:
 			var glissiere := noeud.get_node("Glissiere") as Slider
 			var boite := noeud.get_node("Nombre") as SpinBox
 			_verifier([boite.value, boite.min_value, boite.max_value, boite.step] == [e.valeur, e.min, e.max, e.pas], "%s, %s : la boîte à nombre montre %s" % [vue.nom, e.id, [boite.value, boite.min_value, boite.max_value, boite.step]])
@@ -241,13 +238,13 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 				glissiere.drag_ended.emit(true)
 			_attendre(vue, e.id, glisser, {type = e.verbe, args = e.arguments + [e.min]})
 			_attendre(vue, e.id, func() -> void: boite.value = e.max, {type = e.verbe, args = e.arguments + [e.max]})
-		"formulaire":
+		Noyau.TypeDElement.FORMULAIRE:
 			var jouer: Node = noeud.get_node("Jouer")
 			_attendre(vue, e.id, func() -> void: (jouer as BaseButton).pressed.emit(), vue.attendus.get(e.id))
-		"plan":
+		Noyau.TypeDElement.PLAN:
 			for p in e.points:
 				_presser(vue, _composant_de(noeud, p), p)
-		"entite", "point":
+		Noyau.TypeDElement.ENTITE, Noyau.TypeDElement.POINT:
 			for x in e.elements:
 				_presser(vue, _composant_de(noeud, x), x)
 

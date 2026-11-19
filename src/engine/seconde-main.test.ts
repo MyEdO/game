@@ -68,7 +68,7 @@ describe('lancerDeLaSecondeMain : le dé du tableau des Critiques de la Localisa
 
   // LDB 10 l.773 ; LDB 18 l.53.
   it('sous un dé d10 posé sur le tableau du Corps, le Critique au Corps tire 1..10', () => {
-    sousLeDe('criticalsCorps', 'd10', () => {
+    sousLeDe('criticalsCorps', { n: 1, sides: 10 }, () => {
       const jets = tirages({ critical: true, critLocation: 'corps' });
       expect(jets.every((v) => v >= 1 && v <= 10)).toBe(true);
       expect(new Set(jets).size).toBe(10);
@@ -77,7 +77,7 @@ describe('lancerDeLaSecondeMain : le dé du tableau des Critiques de la Localisa
 
   // LDB 41 l.170.
   it('twice : le meilleur de deux dés de la table, dans les deux ordres', () => {
-    sousLeDe('criticalsCorps', 'd10', () => {
+    sousLeDe('criticalsCorps', { n: 1, sides: 10 }, () => {
       for (const ordre of [[3, 8], [8, 3]]) {
         const rng = rngImpose(ordre, 10);
         expect(lancerDeLaSecondeMain({ critical: true, critLocation: 'corps' }, 34, rng, true)).toBe(8);
@@ -88,7 +88,7 @@ describe('lancerDeLaSecondeMain : le dé du tableau des Critiques de la Localisa
 
   // LDB 18 l.53 : la Localisation relancée, pas celle de touche.
   it('la Localisation relancée porte la table : `critLocation` l’emporte sur `location`', () => {
-    sousLeDe('criticalsTete', 'd10', () => {
+    sousLeDe('criticalsTete', { n: 1, sides: 10 }, () => {
       const jets = tirages({ critical: true, location: 'brasD', critLocation: 'tete' });
       expect(jets.every((v) => v >= 1 && v <= 10)).toBe(true);
     });
@@ -97,7 +97,7 @@ describe('lancerDeLaSecondeMain : le dé du tableau des Critiques de la Localisa
   // AA 07 l.32.
   it('sous `combat-aa-blessures` = aa, le tableau AA de la Localisation', () => {
     setRule('combat-aa-blessures', 'aa');
-    sousLeDe('aaCriticalsCorps', 'd10', () => {
+    sousLeDe('aaCriticalsCorps', { n: 1, sides: 10 }, () => {
       const jets = tirages({ critical: true, location: 'corps' });
       expect(jets.every((v) => v >= 1 && v <= 10)).toBe(true);
     });

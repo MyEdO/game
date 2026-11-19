@@ -60,6 +60,7 @@ export function anchorsAt(lines) {
  * l'extraction ne permet PAS de trancher. C'est la couverture du détecteur qui est rendue ici :
  * elle se lit, se compte et se verrouille (`src/data/folio-line-align.test.ts`).
  *
+ * Une ligne qui porte une ancre UNIQUE est mesurée par elle, quel que soit le span qu'elle ouvre.
  * Trois refus, tous MESURÉS sur le dépôt :
  * - `span-a-trou` — la ligne tombe entre deux ancres qui ne se SUIVENT pas (ancre 150 puis 153 :
  *   les folios 151 et 152 n'ont pas d'ancre). Le span porte plusieurs folios imprimés et rien ne
@@ -85,6 +86,8 @@ export function folioGoverningWhy(chapterLines, chapter, line) {
   for (let i = 0; i < anchors.length && anchors[i].line <= line; i++) k = i
   if (k >= 0) {
     const folio = anchors[k].folio
+    // La ligne qui PORTE son unique ancre s'ouvre sur ce folio : aucun trou à sa droite ne la touche.
+    if (anchors[k].line === line && [...own[line - 1].matchAll(FOLIO_ATTR)].length === 1) return { folio, reason: 'ok' }
     if (k + 1 < anchors.length) {
       // Borné à DROITE : le span n'est jugeable que si l'ancre suivante enchaîne (+1).
       return anchors[k + 1].folio === folio + 1 ? { folio, reason: 'ok' } : { folio: null, reason: 'span-a-trou' }

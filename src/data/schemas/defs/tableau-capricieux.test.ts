@@ -12,6 +12,6 @@ describe('tableau-capricieux.json — rangées', () => {
 
   it('REFUSE, en le nommant, un trou dans le d10', () => {
     const entries = capricieuxJson.entries.filter((r) => r.min !== 4);
-    expect(validateDataset(FICHIER, { ...structuredClone(capricieuxJson), entries })).toMatch(/tableau-capricieux\.json › tableau-capricieux : les rangées ne couvrent pas le d10 d'un seul tenant/);
+    expect(validateDataset(FICHIER, { ...structuredClone(capricieuxJson), entries })).toMatch(/tableau-capricieux\.json › tableau-capricieux : les rangées ne couvrent pas le 1d10 d'un seul tenant/);
   });
 });

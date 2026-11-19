@@ -228,7 +228,7 @@ Les tiroirs du bureau peuvent être ouverts avec un Test de **Crochetage accessi
 
 L'armoire à tiroirs contient plusieurs cartes anciennes qui représentent différentes régions de l'Empire, notamment le Reikland et la zone ouest du Talabecland. Donnez aux joueurs le *Document 5* (plus bas). Sur toutes les cartes, on peut voir un réseau de lignes minutieusement tracées. Aux Collines Stériles, les lignes forment un triangle dont l'extrémité sud a été entourée plusieurs fois. Les aventuriers qui ont lu et compris les calculs du carnet peuvent faire un Test d'**Intelligence Complexe (-10)** : ceux qui réussissent se rendent compte que les lignes du triangle retracent l'orbite erratique de Morrslieb. Vous pouvez leur accorder un bonus de +10 si un des aventuriers a la Compétence Orientation, ou s'ils sont plus d'un à avoir la Compétence Savoir (Magie). Par contre, ils ne seront pas plus avancés sur la signification du cercle.
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 <span id="page-31-0" data-folio="32"></span>
 Il n'y a rien sur la table à dessin elle-même. Les portraits représentent divers membres de la famille Wittgenstein, mais leur nom n'est pas indiqué. Les aventuriers ne les reconnaîtront pas avant d'être allés au château Wittgenstein. La ressemblance entre tous les sujets est pourtant évidente : ils ont le nez aquilin, le front haut, et les sourcils épais et broussailleux.

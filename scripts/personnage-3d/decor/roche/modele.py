@@ -7,6 +7,7 @@ sa pente. Le calcul est en flottants de Python, sans `mathutils` ; l'aléa est s
 décor : deux constructions rendent les mêmes octets."""
 import math
 
+import geometrie
 import habillage
 from geometrie import coque
 from gabarit import Gabarit, boite
@@ -265,6 +266,4 @@ def construire(D, id_):
 
 
 def elements(D):
-    for id_ in DECORS:
-        yield {"glb": id_, "cles": [("decor", {"prop": id_})], "materiaux": D["MATERIAUX"][id_], "blasons": (),
-               "construire": lambda id_=id_: construire(D, id_)}
+    return geometrie.elements(D, DECORS, construire)

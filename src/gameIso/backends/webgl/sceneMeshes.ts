@@ -907,9 +907,9 @@ export function weatherTinted(base: THREE.Color, meteo: WeatherLight = METEO_SAN
 }
 
 /** FOND du canevas volumique — ce que la caméra voit LÀ OÙ IL N'Y A PAS DE CARTE (#1176). Il est en
- *  DONNÉE (`ambiance.json`, `iso.stageBg`) comme le ciel du POV : le hors-carte doit se lire comme un
- *  fond sourd, jamais comme un trou noir enclavé entre deux corps de bâtiment. SOURCE UNIQUE : l'écran
- *  de jeu et les planches QC le lisent ici. La météo le teinte (`stageClearColor`). */
+ *  DONNÉE (`ambiance.json`, `iso.stageBg`) comme le ciel du POV : la pénombre où se perd le hors-carte,
+ *  la même que sert le noyau à l'hôte Godot (`lumiereDeLaScene`, #4392). L'écran de jeu et les planches
+ *  QC la lisent ici. La météo la teinte (`stageClearColor`). */
 export function stageBg(): number {
   return new THREE.Color(AMBIANCE.iso.stageBg).getHex();
 }

@@ -142,7 +142,7 @@ Rallane Lafarel, Gotthard Wallenstein
 Josef Sparsam, Rallane Lafarel (20h – 22h), Siegfried Prunkvoll, Luigi Pavarotti
 
 
-| JOUR 5 | : BEZAHLTAG |
+<span id="page-155-0" data-folio="153"></span>| JOUR 5 | : BEZAHLTAG |
 |--------|-------------|
 |        |             |
 
@@ -251,7 +251,7 @@ Josef Sparsam, Katarina Todbringer, Hildegarde Zimperlich, Siegfried Prunkvoll, 
 Dieter Schmiedehammer, Rallane Lafarel, Johann Schwermutt, Maximillian von Genscher, Albrecht Helseher, Janna Eberhauer, Kirsten Jung, Petra Liebkosen, Natasha Sinnlich, Siegfried Prunkvoll, Gotthard Wallenstein, Luigi Pavarotti
 
 
-### INFLUENCER LE GRAF
+### <span id="page-157-0" data-folio="155"></span>INFLUENCER LE GRAF
 
 Le Graf de Middenheim est le seul à pouvoir édicter des lois : les Seigneurs des Lois le conseillent, mais sans son accord, une loi ne peut être instaurée. 11 personnes ou groupes de personnes peuvent influencer le Graf à des degrés variés. Ces groupes et le poids de leur influence, exprimée sous forme de 17 « votes d'influence », sont les suivants :
 
@@ -313,7 +313,7 @@ Wasmeier contrôle 9 des 17 votes, ce qui lui assure la victoire, même si les a
 
 
 
-# **LE COLLÈGE ROYAL DE MUSIQUE**
+# <span id="page-158-0" data-folio="156"></span><span id="page-159-0" data-folio="157"></span>**LE COLLÈGE ROYAL DE MUSIQUE**
 
 | Jour      | Heure        | Spectacle                                                         |
 |-----------|--------------|-------------------------------------------------------------------|
@@ -385,4 +385,4 @@ POUR KARL
 
 *Tous mes vœux de santé et de bonheur,*
 
- *MM*
+ *MM*<span id="page-161-0" data-folio="159"></span><span id="page-162-0" data-folio="160"></span><span id="page-163-0" data-folio="161"></span><span id="page-166-0" data-folio="164"></span>

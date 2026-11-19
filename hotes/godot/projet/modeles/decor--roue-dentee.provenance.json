@@ -1,0 +1,13 @@
+{
+  "model": "decor--roue-dentee.glb",
+  "model_sha256": "dc8cc8a5bc83acb60c1012f00ea6254facad0701ab794b5342cf2a5fb3d5aa6e",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

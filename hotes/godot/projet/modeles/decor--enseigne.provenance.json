@@ -1,0 +1,13 @@
+{
+  "model": "decor--enseigne.glb",
+  "model_sha256": "b791c26506f6e2c4c641bb0f867bbac854fd2ff7a7f2b6cb810b3156db9975e4",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

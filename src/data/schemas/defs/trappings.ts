@@ -23,7 +23,7 @@ import {
   weaponRangeSpecSchema,
 } from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
-import { manieAussiSchema, perteSansEquipeSchema, qualityRefSchema, weaponSchema } from '../grammaire/reference';
+import { manieAussiSchema, perteSansEquipeSchema, qualiteDObjetRefSchema, weaponSchema, type QualiteDObjetRef } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 import { ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR, RACINE_D_APPARENCE } from '../grammaire/sousListes';
@@ -122,7 +122,7 @@ const doc = document(
     loc: z.string().nullable().optional(),
     pa: z.number().nullable().optional(),
     damage: weaponDamageSpecSchema.nullable().optional(),
-    qualities: z.array(qualityRefSchema),
+    qualities: z.array(qualiteDObjetRefSchema),
     consumable: flowSchema.optional(),
     consumableDuration: consumableDurationSchema.optional(),
     container: contenantSchema.optional(),
@@ -261,7 +261,11 @@ const doc = document(
     espace: { discriminant: ['categorie', 'subType'], marqueurs: ['service'] },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; categorie: string; subType: { id: string } | null; shape?: { id: string } };
+        const e = v as { id: string; categorie: string; subType: { id: string } | null; shape?: { id: string }; qualities: QualiteDObjetRef[] };
+        if (e.categorie !== 'ammunition')
+          e.qualities.forEach((q, i) => {
+            if ('majoration' in q) ctx.addIssue({ code: 'custom', path: ['qualities', i, 'majoration'], message: `${e.id} : seule une munition majore une qualité de l'arme (« +${q.majoration} »)` });
+          });
         if (e.categorie !== 'armor') return;
         const refus = refusDuTypeDArmure(e.subType);
         if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });

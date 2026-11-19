@@ -49,9 +49,16 @@ import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
-import { chaosAlignSchema, NATURES_D_INFLUENCE, qualiteDeReposSchema, type NatureDInfluence, type QualiteDeRepos } from '../../data/schemas/grammaire/valeurs';
+import {
+  charKeySchema,
+  chaosAlignSchema,
+  NATURES_D_INFLUENCE,
+  qualiteDeReposSchema,
+  type NatureDInfluence,
+  type QualiteDeRepos,
+} from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { POWER_ESTIMATE, clampMight, type MassBattleSpec } from '../../engine/massBattle';
@@ -1051,7 +1058,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             <div className="tf-row">
               <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="Compétence" value={e.skill} onChange={(v) => upd({ skill: (v as { id: string; spec?: string } | null) ?? undefined })} nullable />
               <label className="dr">Carac.
-                <select value={e.characteristic ?? ''} onChange={(ev) => upd({ characteristic: (ev.target.value || undefined) as CharKey | undefined })}>
+                <select value={e.characteristic ?? ''} onChange={(ev) => upd({ characteristic: charKeySchema.safeParse(ev.target.value).data })}>
                   <option value="">— (de la compétence) —</option>
                   {CHAR_KEYS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
                 </select>

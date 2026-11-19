@@ -20,7 +20,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { ouReserve, qualiteDeReposSchema, roleAmbiantSchema } from '../grammaire/valeurs';
+import { ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
 import {
   amateurSchema,
   cell2Schema,
@@ -36,7 +36,7 @@ import {
   settlementSchema,
 } from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
-import { conditionSchema, executeesDe, flowTestSchema, variante } from '../grammaire/mecanique';
+import { conditionSchema, executeesDe, testDeSceneSchema, variante } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
 import {
   competenceChiffreeSchema,
@@ -348,12 +348,10 @@ export const sceneEntitySchema = z.discriminatedUnion('kind', [
 
 // ── Architecture ────────────────────────────────────────────────────────────────────────────────
 
-/** `ArchitectureRect` — emprise rectangulaire d'une part/masse. */
-export const architectureRectSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } });
 /** `ArchitectureEdgeRef` — arête porteuse d'une façade/d'un ornement. */
 export const architectureEdgeRefSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), side: wallSideSchema, z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, side: { label: "côté"  }, z: { label: "étage" } });
 /** `ArchitecturePart` — empreinte nommée d'un étage. */
-export const architecturePartSchema = nommerChamps(z.strictObject({ id: z.string(), foot: architectureRectSchema }), { id: { label: "identifiant" , texte: { regime: "technique"} }, foot: { label: "emprise" } });
+export const architecturePartSchema = nommerChamps(z.strictObject({ id: z.string(), foot: rectDeCasesSchema }), { id: { label: "identifiant" , texte: { regime: "technique"} }, foot: { label: "emprise" } });
 /** `ArchitectureStorey` — un étage : ses parts et les zones-pièces qu'il couvre. */
 export const architectureStoreySchema = nommerChamps(z.strictObject({
   id: z.string(),
@@ -506,7 +504,7 @@ export type SceneRoofDefaults = z.infer<typeof sceneRoofDefaultsSchema>;
 export const buildingMassSchema = nommerChamps(z.strictObject({
   id: z.string(),
   z: z.number(),
-  footprint: z.array(architectureRectSchema),
+  footprint: z.array(rectDeCasesSchema),
   levels: z.number(),
   profile: roofProfileSchema,
   /** Pente en DEGRÉS (jamais des mètres par case — c'est cette unité qui a écrasé les toits d'un
@@ -577,7 +575,7 @@ export const architectureBodySchema = nommerChamps(z.strictObject({
   roofDefaults: roofDefaultsSchema.optional(),
   /** Cases à NE JAMAIS couvrir par la dérivation par défaut (cour intérieure à ciel ouvert…), par
    *  étage — surcharge NÉGATIVE (#829), symétrique des `masses` (surcharge positive). */
-  roofExclusions: z.array(nommerChamps(z.strictObject({ z: z.number(), rect: architectureRectSchema }), { z: { label: "étage" }, rect: { label: "rectangle" } })).optional(),
+  roofExclusions: z.array(nommerChamps(z.strictObject({ z: z.number(), rect: rectDeCasesSchema }), { z: { label: "étage" }, rect: { label: "rectangle" } })).optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, style: { label: "style" , texte: { regime: "technique"} }, storeys: { label: "étages" }, facades: { label: "façades" }, masses: { label: "toitures" }, roofDefaults: { label: "toit par défaut" }, roofExclusions: { label: "exclusions de toit" } });
 
 // ── Dialogue ────────────────────────────────────────────────────────────────────────────────────
@@ -672,7 +670,7 @@ export const victoryConditionSchema = z.discriminatedUnion('type', [
   variante('Survivre N Rounds', nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number() }), { type: { label: "type"  }, rounds: { label: "Rounds" } })),
   variante('Atteindre une zone', nommerChamps(z.strictObject({
     type: z.literal('reachZone'),
-    rect: architectureRectSchema,
+    rect: rectDeCasesSchema,
     camp: campSchema.optional(),
   }), { type: { label: "type"  }, rect: { label: "rectangle" }, camp: { label: "camp"  } })),
   /** Sortie à seuil de dommage partiel (#215) — `targetId` parmi les membres de la rencontre, absent = chaque adversaire. */
@@ -785,7 +783,7 @@ export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   /** Payload `GameOp[]` — vocabulaire UNIQUE partagé avec les zones de Sort (`applyOps`). */
   onCross: executeesDe().optional(),
   perRound: executeesDe().optional(),
-  crossTest: flowTestSchema.optional(),
+  crossTest: testDeSceneSchema.optional(),
   /** BARRIÈRE : `blockGroups` vide/absent = bloque tout le monde ; sinon ids de Groupes. */
   barrier: nommerChamps(z.strictObject({ blockGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional() }), { blockGroups: { label: "groupes bloqués" , texte: { regime: "technique"} } }).optional(),
   z: z.number().optional(),
@@ -936,6 +934,8 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
   /** Échelle métrique d'une CASE (m/case) — défaut 2 ; ≥ 4 = Scène MER (`isMerScene`). */
   metresPerTile: z.number().optional(),
   ambiance: ambianceSchema.optional(),
+  /** Rectangle de cases où se joue la scène, contenu dans `dimensions` ; absent = toute la grille (#4392). */
+  zoneJouable: rectDeCasesSchema.optional(),
   /** Classification écologique lue par les attributs de Domaine (`LDB 48 l.690`). */
   environment: z.enum(['rural', 'urbain', 'sauvage']).optional(),
   /** Météo (`LDB 14 l.68-82`) — l'ABSENCE est une VALEUR : temps non spécifié, aucun modificateur de
@@ -1007,7 +1007,15 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
       });
     }
   });
-}), PORTEES_DE_LA_SCENE), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
+  const zone = scene.zoneJouable;
+  if (zone && (zone.x + zone.w > scene.dimensions.w || zone.y + zone.h > scene.dimensions.h)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['zoneJouable'],
+      message: `la zone jouable (${zone.x},${zone.y}) ${zone.w}×${zone.h} sort de la grille ${scene.dimensions.w}×${scene.dimensions.h}`,
+    });
+  }
+}), PORTEES_DE_LA_SCENE), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, zoneJouable: { label: "zone jouable" }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
 
 nommerNoeud(sceneSchema, { element: 'scène' });
 nommerNoeud(triggerSchema, { element: 'déclencheur' });

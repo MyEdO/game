@@ -5,7 +5,10 @@
     "label": "Tableau des cargaisons maritimes — Printemps",
     "voie": "mer",
     "saison": "printemps",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 137,
@@ -75,7 +78,10 @@
     "label": "Tableau des cargaisons maritimes — Été",
     "voie": "mer",
     "saison": "ete",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 137,
@@ -145,7 +151,10 @@
     "label": "Tableau des cargaisons maritimes — Automne",
     "voie": "mer",
     "saison": "automne",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 137,
@@ -215,7 +224,10 @@
     "label": "Tableau des cargaisons maritimes — Hiver",
     "voie": "mer",
     "saison": "hiver",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 137,
@@ -285,7 +297,10 @@
     "label": "Tableau des cargaisons aléatoires terrestres — Printemps",
     "voie": "terre",
     "saison": "printemps",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 72,
@@ -335,7 +350,10 @@
     "label": "Tableau des cargaisons aléatoires terrestres — Été",
     "voie": "terre",
     "saison": "ete",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 72,
@@ -385,7 +403,10 @@
     "label": "Tableau des cargaisons aléatoires terrestres — Automne",
     "voie": "terre",
     "saison": "automne",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 72,
@@ -435,7 +456,10 @@
     "label": "Tableau des cargaisons aléatoires terrestres — Hiver",
     "voie": "terre",
     "saison": "hiver",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 72,

@@ -31,7 +31,7 @@ const copie = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
 describe('les refus de schéma parlent français (#1588)', () => {
   it('porte par FICHIER — une OPTION hors énumération : refus français, au chemin, options conservées', () => {
-    const doc = copie(weatherJson) as { conditions: { id: string }[] };
+    const doc = copie(weatherJson);
     doc.conditions[2].id = 'crachin';
 
     const dit = validateDataset('weather.json', doc);

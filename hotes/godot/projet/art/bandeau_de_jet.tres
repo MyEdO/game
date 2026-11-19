@@ -1,0 +1,92 @@
+[gd_resource type="Theme" load_steps=10 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="2_rubriques"]
+[ext_resource type="StyleBox" path="res://art/bouton_arme.tres" id="3_arme"]
+[ext_resource type="FontVariation" path="res://art/police_a_empattements.tres" id="6_empattements"]
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="4_cadre"]
+[ext_resource type="StyleBox" path="res://art/ombre_de_panneau.tres" id="5_ombre"]
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Cartouche"]
+content_margin_left = 9.0
+content_margin_top = 9.0
+content_margin_right = 9.0
+content_margin_bottom = 9.0
+script = ExtResource("4_cadre")
+cadre = "chene-ferre"
+matiere = "prop--bois-chene"
+teinte = Color(0.62, 0.55, 0.48, 1)
+ombre = ExtResource("5_ombre")
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Ruban"]
+content_margin_left = 29.0
+content_margin_top = 0.0
+content_margin_right = 29.0
+content_margin_bottom = 1.0
+script = ExtResource("4_cadre")
+cadre = "ruban"
+
+[resource]
+Button/colors/font_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/font_hover_color = Color(0.85, 0.7, 0.38, 1)
+Button/colors/font_focus_color = Color(0.133, 0.102, 0.067, 1)
+Button/font_sizes/font_size = 14
+Button/fonts/font = ExtResource("2_rubriques")
+Cartouche/styles/panel = SubResource("Cartouche")
+MargeDuParchemin/base_type = &"MarginContainer"
+MargeDuParchemin/constants/margin_left = 8
+MargeDuParchemin/constants/margin_top = 10
+MargeDuParchemin/constants/margin_right = 8
+MargeDuParchemin/constants/margin_bottom = 0
+Duel/base_type = &"HBoxContainer"
+Duel/constants/separation = 8
+Button/styles/focus = ExtResource("3_arme")
+SaillieDuRuban/base_type = &"MarginContainer"
+SaillieDuRuban/constants/margin_top = 3
+Ruban/base_type = &"PanelContainer"
+Ruban/styles/panel = SubResource("Ruban")
+NomDuCamp/base_type = &"Label"
+NomDuCamp/colors/font_color = Color(0.18, 0.114, 0.071, 1)
+NomDuCamp/font_sizes/font_size = 20
+NomDuCamp/fonts/font = ExtResource("1_titres")
+Competence/base_type = &"Label"
+Competence/colors/font_color = Color(0.267, 0.212, 0.149, 1)
+Competence/font_sizes/font_size = 11
+Competence/fonts/font = ExtResource("2_rubriques")
+Rubrique/colors/font_color = Color(0.267, 0.212, 0.149, 1)
+Rubrique/font_sizes/font_size = 13
+neutre/base_type = &"Label"
+neutre/colors/font_color = Color(0.267, 0.212, 0.149, 1)
+neutre/font_sizes/font_size = 13
+neutre/fonts/font = ExtResource("2_rubriques")
+alerte/base_type = &"Label"
+alerte/colors/font_color = Color(0.561, 0.145, 0.09, 1)
+alerte/font_sizes/font_size = 13
+alerte/fonts/font = ExtResource("2_rubriques")
+RangeeDeGestes/base_type = &"HFlowContainer"
+RangeeDeGestes/constants/h_separation = 6
+Chiffre/base_type = &"Label"
+Chiffre/colors/font_color = Color(0.133, 0.102, 0.067, 1)
+Chiffre/font_sizes/font_size = 27
+Chiffre/fonts/font = ExtResource("1_titres")
+echec/colors/font_color = Color(0.561, 0.145, 0.09, 1)
+echec/font_sizes/font_size = 13
+echec/fonts/font = ExtResource("2_rubriques")
+reussite/font_sizes/font_size = 13
+reussite/fonts/font = ExtResource("2_rubriques")
+DrDuCamp/base_type = &"Label"
+DrDuCamp/colors/font_color = Color(0.133, 0.102, 0.067, 1)
+DrDuCamp/font_sizes/font_size = 15
+DrDuCamp/fonts/font = ExtResource("6_empattements")
+FaceDuDe/base_type = &"Label"
+FaceDuDe/colors/font_color = Color(0.133, 0.102, 0.067, 1)
+FaceDuDe/colors/font_outline_color = Color(0.133, 0.102, 0.067, 1)
+FaceDuDe/constants/outline_size = 1
+FaceDuDe/font_sizes/font_size = 14
+FaceDuDe/fonts/font = ExtResource("1_titres")
+PileDuCamp/base_type = &"VBoxContainer"
+PileDuCamp/constants/separation = 0
+PileDeLIssue/base_type = &"VBoxContainer"
+PileDeLIssue/constants/separation = -4
+LigneDuJet/base_type = &"HBoxContainer"
+LigneDuJet/constants/separation = 5

@@ -81,7 +81,7 @@ describe('op rollTable — variante tableId (tables.json)', () => {
 
   it('la forme inline `entries` tire sur ses rangées', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 10, ops: [{ op: 'wounds', amount: 4 }] }] }], { idNeuf: idsDeTest, rng: fixed(3) });
+    applyOps(c, [{ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 10, ops: [{ op: 'wounds', amount: 4 }] }] }], { idNeuf: idsDeTest, rng: fixed(3) });
     expect(c.wounds.current).toBe(16);
   });
 });

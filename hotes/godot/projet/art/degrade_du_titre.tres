@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://art/degrade_du_texte.gdshader" id="1_degrade"]
+
+[resource]
+shader = ExtResource("1_degrade")
+shader_parameter/hauteurs = Vector3(13, 68.6, 124.2)

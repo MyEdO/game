@@ -7,7 +7,7 @@ import carrieresAleatoiresJson from '../../carrieres-aleatoires.json';
 import speciesJson from '../../species.json';
 
 type Rangee = { id: string; min: number; max: number };
-type Colonne = { id: string; die?: string; kind: string; colonne?: string; carriere?: string; tableauDuLdb?: boolean; entries: Rangee[] };
+type Colonne = { id: string; die?: { n: number; sides: number }; kind: string; colonne?: string; carriere?: string; tableauDuLdb?: boolean; entries: Rangee[] };
 const clone = () => structuredClone(carrieresAleatoiresJson) as unknown as Colonne[];
 const doc = (docs: Colonne[], id: string) => docs.find((d) => d.id === id)!;
 const FICHIER = 'carrieres-aleatoires.json';
@@ -45,7 +45,7 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
     const docs = clone();
     const base = doc(docs, 'ogre');
     base.entries.splice(3, 1);
-    expect(validateDataset(FICHIER, docs)).toMatch(/ogre : les rangées ne couvrent pas le d100 d'un seul tenant/);
+    expect(validateDataset(FICHIER, docs)).toMatch(/ogre : les rangées ne couvrent pas le 1d100 d'un seul tenant/);
   });
 
   it('REFUSE une portion dont `colonne` désigne une autre portion', () => {
@@ -55,13 +55,13 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
   });
 
   it('REFUSE une espèce dont `refCareer` désigne une portion', () => {
-    const especes = structuredClone(speciesJson) as { refCareer: string }[];
+    const especes = structuredClone(speciesJson);
     especes[0].refCareer = 'cotiers-humain';
     expect(validateDataset('species.json', especes)).toMatch(/« cotiers-humain » est hors de la sous-liste « colonne »/);
   });
 
   it('REFUSE une espèce dont `refCareer` désigne une variante', () => {
-    const especes = structuredClone(speciesJson) as { refCareer: string }[];
+    const especes = structuredClone(speciesJson);
     especes[0].refCareer = 'variantes-soldat';
     expect(validateDataset('species.json', especes)).toMatch(/« variantes-soldat » est hors de la sous-liste « colonne »/);
   });
@@ -69,7 +69,7 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
   it('REFUSE, en nommant le trou, une variante qui ne couvre pas le d100', () => {
     const docs = clone();
     doc(docs, 'variantes-soldat').entries.splice(2, 1);
-    expect(validateDataset(FICHIER, docs)).toMatch(/variantes-soldat : les rangées ne couvrent pas le d100 d'un seul tenant/);
+    expect(validateDataset(FICHIER, docs)).toMatch(/variantes-soldat : les rangées ne couvrent pas le 1d100 d'un seul tenant/);
   });
 
   it('REFUSE, en la nommant, une variante dont aucune rangée ne désigne sa carrière détaillée', () => {
@@ -86,7 +86,7 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
 
   it('REFUSE, en la nommant, une portion qui porte un dé : elle se tire au dé de sa colonne (MDG 09 l.9)', () => {
     const docs = clone();
-    doc(docs, 'cotiers-humain').die = 'd100';
+    doc(docs, 'cotiers-humain').die = { n: 1, sides: 100 };
     expect(validateDataset(FICHIER, docs)).toMatch(/« die » n’appartient qu’au\(x\) cas kind « colonne, variante » — refusée sur « cotiers-humain » \(kind « portion »\)/);
   });
 

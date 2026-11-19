@@ -67,6 +67,7 @@ const MUTATIONS: Record<Exclude<keyof Scene, 'type'>, (s: Scene) => Scene> = {
   dimensions: (s) => ({ ...s, dimensions: { ...s.dimensions } }),
   metresPerTile: (s) => ({ ...s, metresPerTile: sceneMetresPerTile(s) + 1 }),
   ambiance: (s) => ({ ...s, ambiance: s.ambiance === 'interieur' ? 'exterieur' : 'interieur' }),
+  zoneJouable: (s) => ({ ...s, zoneJouable: { x: 1, y: 1, w: 3, h: 3 } }),
   environment: (s) => ({ ...s, environment: 'urbain' }),
   weather: (s) => ({ ...s, weather: 'tempete' }),
   ambientLight: (s) => ({ ...s, ambientLight: 'nuit' }),

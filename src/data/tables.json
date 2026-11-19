@@ -9,7 +9,10 @@
       "page": 119,
       "note": "LDB 09 l.97"
     },
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,
@@ -67,7 +70,10 @@
     "id": "allure-demoniaque-nurgle",
     "type": "tables",
     "label": "Allure démoniaque — Nurgle (EDOC)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,
@@ -214,7 +220,10 @@
     "id": "allure-demoniaque-slaanesh",
     "type": "tables",
     "label": "Allure démoniaque — Slaanesh (EDOC)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,
@@ -361,7 +370,10 @@
     "id": "allure-demoniaque-tzeentch",
     "type": "tables",
     "label": "Allure démoniaque — Tzeentch (EDOC)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,
@@ -510,7 +522,10 @@
     "id": "allure-demoniaque-indivisible",
     "type": "tables",
     "label": "Allure démoniaque — Indivisible (EDOC)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,
@@ -658,7 +673,10 @@
     "id": "contremaitre-lieu",
     "type": "tables",
     "label": "Remaniement du contremaître — Lieu (AA Annexe II)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -790,7 +808,10 @@
     "id": "contremaitre-objectif",
     "type": "tables",
     "label": "Remaniement du contremaître — Objectif (AA Annexe II)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -922,7 +943,10 @@
     "id": "contremaitre-personnalite",
     "type": "tables",
     "label": "Remaniement du contremaître — Personnalité (AA Annexe II)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": 1,
@@ -1054,7 +1078,10 @@
     "id": "vdm-incantateur-hasardeux-domaine",
     "type": "tables",
     "label": "Domaine — Incantateur hasardeux (VDM)",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 214
@@ -1253,7 +1280,10 @@
     "id": "vdm-siphonnage-de-sort",
     "type": "tables",
     "label": "Siphonnage de sort (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 214
@@ -1315,7 +1345,10 @@
     "id": "vdm-marques-arcaniques-lumiere",
     "type": "tables",
     "label": "Marques Arcaniques de Hysh (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 58
@@ -1474,7 +1507,10 @@
     "id": "vdm-marques-arcaniques-metal",
     "type": "tables",
     "label": "Marques Arcaniques de Chamon (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 70
@@ -1666,7 +1702,10 @@
     "id": "vdm-marques-arcaniques-vie",
     "type": "tables",
     "label": "Marques Arcaniques de Ghyran (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 82
@@ -1812,7 +1851,10 @@
     "id": "vdm-marques-arcaniques-cieux",
     "type": "tables",
     "label": "Marques Arcaniques d'Azyr (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 94
@@ -1965,7 +2007,10 @@
     "id": "vdm-marques-arcaniques-ombres",
     "type": "tables",
     "label": "Marques Arcaniques d'Ulgu (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 106
@@ -2163,7 +2208,10 @@
     "id": "vdm-marques-arcaniques-mort",
     "type": "tables",
     "label": "Marques Arcaniques de Shyish (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 118
@@ -2309,7 +2357,10 @@
     "id": "vdm-marques-arcaniques-feu",
     "type": "tables",
     "label": "Marques Arcaniques d'Aqshy (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 130
@@ -2444,7 +2495,10 @@
     "id": "vdm-marques-arcaniques-bete",
     "type": "tables",
     "label": "Marques Arcaniques de Ghur (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 142
@@ -2584,7 +2638,10 @@
     "id": "vdm-maladie-coups-de-poing-maudits",
     "type": "tables",
     "label": "Maladie des coups-de-poing maudits (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 172
@@ -2651,7 +2708,10 @@
     "id": "vdm-catastrophes-de-brassage",
     "type": "tables",
     "label": "Catastrophes de brassage (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 161
@@ -2809,7 +2869,10 @@
     "id": "vdm-symboles-augure",
     "type": "tables",
     "label": "Tableau des Symboles — Augure (VDM)",
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 45,

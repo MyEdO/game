@@ -17,10 +17,9 @@ import { activitiesFor, activityById, craftCatalog, craftSpecOf, craftTarget, le
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { learnableSpells } from '../engine/grimoire';
 import { soutienMod, testValue } from '../engine/skills';
-import { findTrappingById, spells, testSkillLabel } from '../data';
+import { careers, findTrappingById, spells, testSkillLabel } from '../data';
 import { ciblesDActivite, preJetDActivite, refusDeLaComposition, refusDeRetrait, type CiblesChoisies } from './verdictsDInterlude';
 import { battleActivityById, battlePrepEntries, preJetDePreparation, refusDePrepaDeBataille } from './massBattleFlow';
-import careers from '../data/careers.json';
 import type { Combatant, Difficulty, ItemInstance } from '../engine/types';
 import type { ActivityDef } from '../engine/activities';
 import { pratiquer } from './interlude.testkit';
@@ -115,7 +114,7 @@ const REFUS: Record<string, string> = {
 };
 
 /** Toutes les carrières de la donnée. */
-const CARRIERES = (careers as { id: string }[]).map((c) => c.id);
+const CARRIERES = careers.map((c) => c.id);
 
 /** Les Activités d'interlude jouables, et ce que la boucle des carrières a confronté. */
 const OUVRABLES = activitiesFor('interlude');

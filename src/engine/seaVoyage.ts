@@ -23,9 +23,10 @@ import { memoParVersion } from '../data/versionDataset';
 import { d10, rollDice, tirerSigne, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
-import type { SeaWeather } from './seaWeather';
+import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import type { AggravationMeteo } from './ops';
 import type { Season } from './travelStages';
+import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
 import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, rollSeasonalCargo } from './cargo';
@@ -39,9 +40,6 @@ export { type CargoDef, type CargoLot, isEchangeable, cargoTotalEnc, removeCargo
 
 /** Un facteur d'Humeur de Manann (MDG 15 l.83-129). */
 export type ManannFactor = SeaEventsData['manann']['factors'][number];
-
-/** Climat imposé par un événement : les seuls axes qu'il fixe. MDG 15 l.189, l.199, l.219, l.226, l.248, l.257 */
-type MeteoImposee = Partial<SeaWeather>;
 
 /** Modificateur du navire posé par l'op `navireMod` : levé au carénage (`carenage`), au prochain événement de
  *  bord (`evenementDeBord`) ou à son échéance d'horloge (minute `gameTime`). `evite` : les périls que le navire
@@ -228,6 +226,8 @@ export interface PortProfile {
   demande?: Record<string, number>;
   /** Grand port cosmopolite (Marienburg/Lothern, l.343-349) : 3 cargaisons « commerce », marchands à 3d10+55. */
   cosmopolite?: boolean;
+  /** Signal qui guide les navires vers le port (phare ou clocher) ; absent, aucun. MDG 13 l.333-351 */
+  signal?: SignalDuPort;
 }
 
 /** ALTÉRATION du marché du port `placeId` posée par l'op `marcheDuPort`, jusqu'au départ du navire (`escale`)

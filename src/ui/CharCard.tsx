@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { Combatant } from '../engine/types';
-import { libelleDEchelon } from '../engine/money';
 import { actorStatus } from '../engine/social';
 import { OrnateFrame } from './Ornaments';
 import { Icon } from './Icon';
@@ -36,12 +35,6 @@ export function heroRoles(hero: Combatant, max = 3): string[] {
 /** ACCROCHE narrative — l'ambition à court terme (évocatrice) ou, à défaut, la motivation. */
 export function heroHook(hero: Combatant): string | undefined {
   return hero.details?.ambitionShort || hero.motivation || undefined;
-}
-
-/** Statut « Échelon Standing » AFFICHÉ (« Bronze 2 ») du héros, lu sur `actorStatus`, pour `MetalStatus` (#417). */
-export function heroStatusLabel(hero: Combatant): string {
-  const { tier, standing } = actorStatus(hero);
-  return `${libelleDEchelon(tier)} ${standing}`;
 }
 
 /** Résout des ids d'axes en `AxisData[]`, dans l'ORDRE fourni (ids inconnus écartés). */
@@ -85,7 +78,7 @@ function CardIdentity({ hero }: { hero: Combatant }) {
     <div className="candidate-id">
       <strong className="candidate-name">{hero.label}</strong>
       <span className="candidate-sub">
-        {heroSubtitle(hero)} · <MetalStatus status={heroStatusLabel(hero)} size="chip" />
+        {heroSubtitle(hero)} · <MetalStatus status={actorStatus(hero)} size="chip" />
       </span>
     </div>
   );

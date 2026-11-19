@@ -26,7 +26,7 @@
  * Costaud (Encombrement) est déjà appliqué par items.maxEncumbrance ; Petit/Massif (Taille)
  * par l'espèce. Les autres talents (combat, social…) sont hors périmètre.
  */
-import { Combatant, CHAR_KEYS, CharKey, TalentInstance, type ActiveEffect } from './types';
+import { Combatant, CharKey, TalentInstance, type ActiveEffect } from './types';
 import { findTalentById, findTraitById, blessingsOf } from '../data';
 import { wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
@@ -60,7 +60,7 @@ export function baseWithTalents(c: Pick<Combatant, 'characteristics'> & Partial<
  */
 export function talentCharBonusById(talentId: string): CharKey | null {
   for (const op of findTalentById(talentId)?.passive ?? []) {
-    if (op.op === 'charMod' && (CHAR_KEYS as readonly string[]).includes(op.characteristic)) return op.characteristic as CharKey;
+    if (op.op === 'charMod') return op.characteristic;
   }
   return null;
 }

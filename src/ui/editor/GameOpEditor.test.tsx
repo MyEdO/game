@@ -113,7 +113,7 @@ describe('GameOpEditor — aucune graine de réf semée par newOp', () => {
   });
 
   it('opsMissingRefs descend dans les ops IMBRIQUÉES (rangée de table, différé)', () => {
-    const nested: GameOp = { op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 5, ops: [newOp('summon')] }] };
+    const nested: GameOp = { op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 5, ops: [newOp('summon')] }] };
     expect(opsMissingRefs(nested)).toEqual(['Invoquer une créature : Créature à choisir']);
     expect(opsMissingRefs({ passive: [newOp('skillMod')] })).toHaveLength(1);
   });
@@ -152,12 +152,13 @@ describe('GameOpEditor — éditeur pour TOUTE op (dédié ou repli JSON)', () =
 
   it('rollTable a un éditeur STRUCTURÉ (dé + rangées récursives), jamais de repli JSON (#514)', () => {
     const ops: GameOp[] = [{
-      op: 'rollTable', die: 'd10', addNegativeSL: true,
+      op: 'rollTable', die: { n: 1, sides: 10 }, addNegativeSL: true,
       entries: [{ min: 1, max: 2, ops: [{ op: 'wounds', amount: 3 }] }],
     }];
     const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
     expect(html).not.toContain('(JSON)'); // aucun repli JSON pour cette op
-    expect(html).toContain('value="d10"'); // sélecteur de dé
+    expect(html).toMatch(/aria-label="Dé de tirage — nombre de dés"[^>]*value="1"/); // dé : nombre de dés
+    expect(html).toMatch(/aria-label="Dé de tirage — faces"[^>]*value="10"/); // dé : faces
     expect(html).toContain('value="1"'); // min de la rangée
     expect(html).toContain('value="2"'); // max de la rangée
     expect(html).toContain('3 Blessure'); // ops de la rangée rendus par le MÊME GameOpEditor (récursif)

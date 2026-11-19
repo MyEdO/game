@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "tribune"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "toile",
+      "palette": "vet1",
+      "matiere": "prop--toile-rouge"
+    }
+  ],
+  "glb": {
+    "sha256": "2c5cf3f5e90880c1be60b4a906507018b852c9cd3ce03c58e958db86d48833a5",
+    "octets": 145512
+  }
+}

@@ -37,7 +37,17 @@ import type {
 } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
-import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type CoverClass, type EffectSource, type Main } from '../engine/types';
+import {
+  Combatant,
+  HitLocation,
+  Weapon,
+  Difficulty,
+  type ShipPoste,
+  type CoverClass,
+  type EffectSource,
+  type Main,
+  type DiseaseExposure,
+} from '../engine/types';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evDEtat, evLines, journaliser, type CombatEvent, type CombatEventKind } from './combatLog';
@@ -130,7 +140,7 @@ import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, re
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { bouclierDuBinomeEnJeu, effectifAuContact, effectifAuContactParmi } from './combat/surnombre';
 import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
-import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
+import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
   applyTriggeredEffects,
   maneuverEffectsOf,
@@ -236,6 +246,7 @@ import {
   flattenFlow,
   reecrireLesOps,
   EMPTY_FLOW,
+  testFlow,
   type FlowTest,
   type EffectTrigger,
 } from '../engine/flowCore';
@@ -287,7 +298,7 @@ import {
   SPEC_SOURCES,
 } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
-import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
+import { endShanty, membreDuBord, metaDuPoste, monterLesVagues, posteDeLEtape, resolveShipUnits, withCrewActed, type PosteDuBord } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
@@ -369,7 +380,7 @@ function critRollTwiceFor(c: Combatant | undefined | null): boolean {
 import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironmentBonus } from '../engine/domainAttributes';
 import { decayZones, discTiles, wallTiles, clampZoneTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
-import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
+import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs, type PorteurDeMaladies } from '../engine/disease';
 import {
   resolveCritique,
   jeuDeCritique,
@@ -395,6 +406,7 @@ import {
 import { findTableEntry } from '../engine/tables';
 import {
   isFumble,
+  incidentDeTir,
   rollOups,
   desDOups,
   desDeBrisDeLame,
@@ -402,6 +414,7 @@ import {
   CLE_SOLIDE,
   ligneDeSolide,
   SOURCE_SOLIDE,
+  armeAPoudre,
   type OupsResolved,
   type DemandeDeCasse,
 } from '../engine/oups';
@@ -501,7 +514,7 @@ import {
   psychBranchOps,
   psychBranchFlow,
   cibleLabel,
-  PsychType,
+  PSY,
   type PsychAffliction,
   psychTest,
   sousPeur,
@@ -568,6 +581,7 @@ import {
   nePeutPasDifferer,
   jouerFlowEntier,
   jouerLesClotures,
+  rendreALEquipage,
   OPS_DIFFEREES,
   type Applique,
 } from './combatEffects';
@@ -613,8 +627,7 @@ import {
   distraireAttackBase,
   distraireDefenseBase,
 } from './combatManeuvers';
-import { testFlow } from './monde/flow';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import {
   runCascadeImmediate,
   rollTableStep,
@@ -805,7 +818,7 @@ export function banRangedActive(battle: BattleState | null | undefined): boolean
   return battle?.banRanged ?? (battle?.victoryCondition?.type === 'firstBlood');
 }
 
-/** Rencontre de SIÈGE effective (`EncounterDef.siege` — arbitrage utilisateur du 2026-09-04, verbatims
+/** Rencontre de SIÈGE effective (`EncounterDef.siege` — #1680, commentaire 5546039260 du 2026-09-04, verbatims
  *  au foyer unique : JSDoc de `siege`, `data/schemas/defs-scenes/scene.ts`) — SEUL point
  *  de résolution, consommé par `buildAiInput` pour offrir (ou non) les structures destructibles au
  *  choix de cible de l'IA. Défaut LITTÉRAL `false` : contrairement à `banRangedActive`, rien n'est
@@ -946,7 +959,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'groupe' | 'e
   const surprise: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: COND.surpris }, value: 1 }] } };
   const onLose: Flow = {
     kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
-    alors: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
+    alors: testFlow<Effect>({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
     sinon: surprise,
   };
   // Embusqueur (Discrétion, FIGÉE comme attaquant opposé) vs guetteurs (Perception, les défenseurs qui jettent).
@@ -966,7 +979,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'groupe' | 'e
   if (step) pushCombatStep(set, step);
   for (const c of surprised) {
     if (surfaceOf(get, c.id)) continue; // sa rangée est dans la bande
-    runCombatFlow({ get, set, target: c, caster: sneak, label: 'Surprise', opposedFreeze: aT }, testFlow(test, branches.onSuccess, branches.onFail));
+    runCombatFlow({ get, set, target: c, caster: sneak, label: 'Surprise', opposedFreeze: aT }, testFlow<Effect>(test, branches.onSuccess, branches.onFail));
   }
   // Inline (embusqué ennemi / héros auto) : les lignes partent dans la file différée → on les folde dans le
   // journal de combat. Le héros manuel suspend (cascade) et n'en pousse aucune.
@@ -1372,10 +1385,8 @@ export interface AttackPreview {
   /** ÉCRÊTAGE réellement subi par la cible (`TestResult.clamped`) : la seule donnée qui autorise la
    *  chip « plafond 99 » sur le pré-jet (`PendingRoll.clamped`). Absent = aucun bornage. */
   clamped?: number;
-  /** Dégâts d'arme (Force incluse) AVANT le DR du jet. La Blessure réelle = `dmg` + DR − `soak` (plancher 1). */
+  /** Dégâts d'arme (Force incluse) AVANT le DR du jet. */
   dmg: number;
-  /** Encaissé par la cible à la localisation visée (Bonus d'Endurance + PA, réduction d'armure des Atouts déduite). */
-  soak: number;
 }
 export function previewAttack(
   get: Get<Jeu>,
@@ -1397,15 +1408,12 @@ export function previewAttack(
   const dist = battle
     ? mesure(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target))
     : mesure(attacker, target);
-  // Estimation de dégâts (R4) : dégâts d'arme (Force incluse) et encaissé de la cible. Le `soak` est dérivé
-  // de `woundsFromHit` (oracle) avec un dégât large → capture exactement PA + réduction d'armure (Perforante…).
+  // Estimation de dégâts (R4) : dégâts d'arme (Force incluse).
   const dmg = effectiveWeaponDamage(weapon, forceDuPorteur(attacker));
   const base = combatValue(attacker, kind, weapon);
-  const loc = location ?? 'corps';
-  const soak = (dmg + 20) - woundsFromHit(weapon, target, loc, dmg + 20, 0, 1, attacker.size);
-  if (kind === 'melee' && dist > reachTiles(weapon, mpt)) return { weapon, kind, inRange: false, blocked: false, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
+  if (kind === 'melee' && dist > reachTiles(weapon, mpt)) return { weapon, kind, inRange: false, blocked: false, target: 0, base, mods: [], dmg, difficulty: 'intermediaire' };
   const { env, blocked } = attackEnv(get, attacker, target, weapon, opts);
-  if (blocked) return { weapon, kind, inRange: true, blocked: true, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
+  if (blocked) return { weapon, kind, inRange: true, blocked: true, target: 0, base, mods: [], dmg, difficulty: 'intermediaire' };
   const distanceTiles = kind === 'distance' ? dist : undefined;
   const mods = attackModifiers(attacker, target, weapon, { kind, location, distanceTiles, env, metresPerTile: mpt });
   const rangeM = porteeDeTir(attacker, weapon); // Portée résolue (jet `{bf}` → BF×N) + modificateur de la munition sélectionnée ; null = hors bande
@@ -1422,7 +1430,7 @@ export function previewAttack(
     weapon, kind, inRange, blocked: false,
     target: line.target, base: line.base, mods: line.mods,
     ...(line.clamped ? { clamped: line.clamped } : {}),
-    dmg, soak, difficulty: line.difficulty,
+    dmg, difficulty: line.difficulty,
     ...(line.difficultyCombined != null ? { difficultyCombined: line.difficultyCombined } : {}),
     ...(line.difficultyParts ? { difficultyParts: line.difficultyParts } : {}),
   };
@@ -3316,9 +3324,8 @@ function appliquerLaTouche(
     if (lancee && !itemCapability(lancee, 'detruitAuLancer')) lacherAuSol(get, set, lancee, land);
   }
   log.push(...evLines(critLog, 'critique', attacker.id, target.id));
-  // Nerveux (LDB 85 l.249) : « facilement effrayée par […] les bruits forts » — un coup d'arme à
-  // feu (Poudre noire/Explosion) terrifie les créatures Nerveuses présentes : +3 État Brisé.
-  if (battle && weapon.type === 'distance' && isFirearmQuality(weapon)) {
+  // Nerveux, bruits forts : LDB 85 l.249 ; #4345
+  if (battle && weapon.type === 'distance' && armeAPoudre(weapon)) {
     for (const c of battle.combatants) {
       // Nerveux (effet déclenché onStartled : +3 Brisé) — fired par le dispatcher générique (no-op si absent).
       // Cause 'noise' (bruits forts) → exemption Dressé (Guerre) lue par la Condition Flow `startleCause`.
@@ -3447,21 +3454,25 @@ function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defense
 }
 
 /** ÉCRIT la Maladresse de `porteur` sur `arme` (LDB 14 l.19) — ÉCRITURE UNIQUE des deux temps de
- *  Maladresse d'un coup, partagée par la SURFACE du porteur (`jetSurfaced` — qui tient le jet joue son
- *  Oups !) : surfacé, une étape de Maladresse portant la queue ; sinon, la Maladresse appliquée sur
- *  place. Rend `true` quand une fenêtre tient la main (l'étape, ou le dé de casse de l'arme). */
-function ecrireLaMaladresse(get: Get, set: SetFn, porteur: Combatant, arme: Weapon, suivant: QueueDuCoup): boolean {
+ *  Maladresse d'un coup. `jetDeMaladresse` = le jet du Test de combat qui l'a produite : son Incident de
+ *  Tir (`incidentDeTir`, LDB 14 l.34) s'applique sur place, aucun dé à ouvrir ; sinon, partagée par la
+ *  SURFACE du porteur (`jetSurfaced` — qui tient le jet joue son Oups !) : surfacé, une étape de
+ *  Maladresse portant la queue ; sinon, la Maladresse appliquée sur place. Rend `true` quand une fenêtre
+ *  tient la main (l'étape, ou le dé de casse de l'arme). */
+function ecrireLaMaladresse(get: Get, set: SetFn, porteur: Combatant, arme: Weapon, jetDeMaladresse: number, suivant: QueueDuCoup): boolean {
+  const incident = incidentDeTir(arme, jetDeMaladresse);
+  if (incident) return applyOups(get, set, porteur, arme, incident, new Map(), suivant) === OPS_DIFFEREES;
   if (jetSurfaced(get(), porteur)) {
     pushHost(get, set, (index) => ({ id: `cons-maladresse-${porteur.id}-${index}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: porteur.id, maladresse: { weapon: arme, result: null, coup: suivant } }));
     return true;
   }
-  return applyOups(get, set, porteur, arme, rollOups(arme, battleRng()), new Map(), suivant) === OPS_DIFFEREES;
+  return applyOups(get, set, porteur, arme, rollOups(battleRng()), new Map(), suivant) === OPS_DIFFEREES;
 }
 
 /** Maladresse de l'ATTAQUANT : son Test d'attaque raté sur un double (LDB 14 l.19), sur l'arme du coup. */
 function maladresseDeLAttaquant(get: Get, set: SetFn, attacker: Combatant, weapon: Weapon, res: AttackResult, suivant: QueueDuCoup): boolean {
   if (!attackerFumbled(res, weapon, attacker)) return false;
-  return ecrireLaMaladresse(get, set, attacker, weapon, suivant);
+  return ecrireLaMaladresse(get, set, attacker, weapon, res.attackerDetail!.roll, suivant);
 }
 
 /** Maladresse du DÉFENSEUR (Test opposé, LDB 14 l.13) : sa Parade/Esquive ratée sur un double, sur
@@ -3470,7 +3481,7 @@ function maladresseDuDefenseur(get: Get, set: SetFn, target: Combatant, res: Att
   const arme = res.parryWeapon ?? defaultParryWeapon(target);
   if (!arme || !res.defenderDetail || res.defenderDetail.mode === 'social' || isOutOfAction(target)) return false;
   if (!defenderFumbled(res, arme, target)) return false;
-  return ecrireLaMaladresse(get, set, target, arme, suivant);
+  return ecrireLaMaladresse(get, set, target, arme, res.defenderDetail.roll, suivant);
 }
 
 /**
@@ -3489,7 +3500,7 @@ export function checkFocusInterruption(get: Get, set: SetFn, target: Combatant):
   // Branche d'échec : marqueur `interruptFocus` sur la cible (le focaliseur) → hook injecté. Succès = rien
   // (concentration maintenue, DR conservés). Le nœud `test` est résolu cadence-aware par `runCombatFlow`.
   const test = testDeRegle('interruption-de-focalisation', 'maintenir');
-  const flow = testFlow(
+  const flow = testFlow<Effect>(
     { ...test, stake: combatStakeRef('focalisation-interrompue') },
     EMPTY_FLOW,
     { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
@@ -4276,32 +4287,41 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   return applyAttackResult(get, set, attacker, r.victim ?? target, r.weapon, r.res, { suite });
 }
 
-/** OUVRE à la porte le dé `nombre` de l'op `attaquesSubies` sur le héros `cible` (patron `ouvrirChute`) : l'op voyage
- *  dans le `meta` de l'étape, la cible est son `actorId` ; l'applier `nombreDAttaquesSubies` ouvre la série au dé tombé.
+/** La cible de la série d'attaques subies : un héros du groupe, ou le membre de l'équipage tiré à son `poste`. */
+export type CibleDeLaSerie = { heros: Combatant } | { poste: PosteDuBord };
+
+/** OUVRE à la porte le dé `nombre` de l'op `attaquesSubies` sur la `cible` (patron `ouvrirChute`) : l'op voyage dans le
+ *  `meta` de l'étape ; le héros est son `actorId`, le poste du membre de l'équipage est porté par le monde
+ *  (`worldOwner`) et voyage dans le `meta`. L'applier `nombreDAttaquesSubies` ouvre la série au dé tombé.
  *  MDG 15 l.163-164, l.177-178 */
-export function ouvrirLeNombreDAttaquesSubies(set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>): void {
+export function ouvrirLeNombreDAttaquesSubies(set: SetFn, op: Extract<GameOp, { op: 'attaquesSubies' }>, cible: CibleDeLaSerie): void {
   pushDie(set, {
-    id: `nombreDAttaquesSubies-${cible.id}`,
+    id: `nombreDAttaquesSubies-${'heros' in cible ? cible.heros.id : 'equipage'}`,
     kind: 'nombreDAttaquesSubies',
     label: tr('step.nombreDAttaquesSubies'),
     icon: 'action/attaquer',
     spec: op.nombre.dice,
-    actorId: cible.id,
-    meta: { differeLaSuite: true, attaquesSubies: [op] },
+    ...('heros' in cible ? { actorId: cible.heros.id } : { worldOwner: true }),
+    meta: { differeLaSuite: true, attaquesSubies: [op], ...('poste' in cible ? metaDuPoste(cible.poste) : {}) },
   }, revealPurpose('sequence', false));
 }
 
-/** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur le héros `cible`, hors bataille : l'assaillant naît de son statbloc
- *  (`spawnEnemy`, sans case), le héros entre dans la rencontre (`entreeEnRencontre`), `restantes` est le dé tombé
+/** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur la `cible`, hors bataille : l'assaillant naît de son statbloc
+ *  (`spawnEnemy`, sans case) ; un héros entre dans la rencontre (`entreeEnRencontre`) et le groupe l'héberge, un membre
+ *  de l'équipage naît au profil de son rôle (`membreDuBord`) et la série l'héberge. `restantes` est le dé tombé
  *  à la porte, `apresSuite` la suite que ce dé faisait attendre (#1508), gardée par la série jusqu'à sa fermeture ;
  *  puis la première attaque part par `doAttack`, sa suite déclarée `subie` (`poursuivreLaSerie`).
- *  MDG 15 l.163-164, l.177-178 */
-export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
+ *  MDG 15 l.161-164, l.176-178 */
+export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: CibleDeLaSerie, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
   const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
-  const heros = entreeEnRencontre(cible);
-  const serieSubie = { assaillant, cibleId: cible.id, avant: cible, restantes, ...(apresSuite ? { apresSuite } : {}) };
-  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === cible.id ? heros : h)), serieSubie }));
-  return doAttack(get, set, assaillant, heros, { mode: 'subie' });
+  const enJeu = 'poste' in cible ? membreDuBord(cible.poste, get().forgerUnId('membre-du-bord')) : entreeEnRencontre(cible.heros);
+  const hote = 'poste' in cible ? { membre: { combattant: enJeu, poste: cible.poste } } : { avant: cible.heros };
+  set((s: Jeu) => ({
+    ...('avant' in hote ? { party: s.party.map((h) => (h.id === enJeu.id ? enJeu : h)) } : {}),
+    serieSubie: { assaillant, cibleId: enJeu.id, restantes, ...(apresSuite ? { apresSuite } : {}), ...hote },
+  }));
+  if ('membre' in hote) get().ecrireAuJournal(tr('eff.membreDuBordAttaque', { assaillant: assaillant.label, role: enJeu.label }));
+  return doAttack(get, set, assaillant, enJeu, { mode: 'subie' });
 }
 
 /** Le temps `suite` d'un coup de la série d'attaques subies (`enchainement: 'subie'`). `restantes` compte les attaques
@@ -4316,7 +4336,7 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
   if (get().pendingFateSave) return OPS_DIFFEREES;
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   const restantes = serie.restantes - 1;
-  const cible = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
   if (restantes <= 0 || isOutOfAction(cible)) {
     fermerLaSerieSubie(get, set);
     return undefined;
@@ -4332,21 +4352,24 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
   return get().serieSubie ? poursuivreLaSerie(get, set) : undefined;
 }
 
-/** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants, le héros et
- *  l'assaillant (`ouvrirLaFinDeRencontre`) — ses Tests, amputation différée comprise, en étapes de la séquence, que le
- *  héros jette relu par son id —, puis le héros rendu au groupe par la couture de retour
- *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite et les
- *  Tests ouverts), PUIS sa suite jouée (`jouerLesClotures`), qui n'attend pas les Tests de fin de rencontre. Un Test ou
- *  un choix poussé par le dernier coup est déjà résolu : il portait l'après-coup qui ferme la série
- *  (`applyAttackResult`, #4011). Dans cet ordre : la décision
- *  lit les marqueurs de rencontre que la sortie efface, la suite s'applique au héros rendu, que la sortie n'écrase
- *  plus, et hors de toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 */
+/** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants
+ *  (`ouvrirLaFinDeRencontre`) — ses Tests, amputation différée comprise, en étapes de la séquence, que le héros jette
+ *  relu par son id —, puis la cible rendue à son hôte et la série vidée, PUIS sa suite jouée (`jouerLesClotures`), qui
+ *  n'attend pas les Tests de fin de rencontre. Hôte groupe : la décision porte sur le héros et l'assaillant, le héros
+ *  revient au groupe par la couture de retour (`sortieDeRencontre`), la défaite du groupe constatée
+ *  (`checkPartyWiped`, qui purge la suite et les Tests ouverts). Hôte série : la décision porte sur l'assaillant seul, le
+ *  membre revient à l'équipage (`rendreALEquipage`). Un Test ou un choix poussé par le dernier coup est déjà résolu : il
+ *  portait l'après-coup qui ferme la série (`applyAttackResult`, #4011). Dans cet ordre : la décision lit les marqueurs
+ *  de rencontre que la sortie efface, la suite s'applique à la cible rendue, que la sortie n'écrase plus, et hors de
+ *  toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 ; MDG 15 l.161-164 */
 export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
-  const heros = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
-  ouvrirLaFinDeRencontre(get, set, [heros, serie.assaillant], {});
-  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
-  if (checkPartyWiped(get, set)) return;
+  const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  const { avant, membre } = serie;
+  ouvrirLaFinDeRencontre(get, set, avant ? [cible, serie.assaillant] : [serie.assaillant], {});
+  set((s: Jeu) => ({ ...(avant ? { party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(avant, h) : h)) } : {}), serieSubie: null }));
+  if (membre) rendreALEquipage(get, set, cible, membre.poste);
+  else if (checkPartyWiped(get, set)) return;
   jouerLesClotures(get, set, serie.apresSuite ?? []);
 }
 
@@ -5991,8 +6014,7 @@ export function commitPlacedZone(get: Get, set: SetFn, pt: Pt): void {
 
 /** POSE de la zone d'un SORT (après le jet et la Surincantation) : gates portée (LDB 47) + Ligne
  *  de Vue vers le point (LDB 46 l.121), puis applique le MÊME jet à tous les combattants du
- *  rayon FINAL — parité avec l'ancien flux (premier = target, reste = extraTargets,
- *  evaluateMissile par cible). Zone posée dans le vide : Sort lancé, Action consommée. */
+ *  rayon FINAL (`resoudreLeSortDeZone`), zone vide comprise. */
 export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const pc = get().pendingCast;
   const battle = get().battle;
@@ -6025,14 +6047,18 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const inZone = battle.combatants.filter((c) => !isOutOfAction(c) && c.pos && (c.pos.z ?? 0) === (pt.z ?? 0) && chebyshev(c.pos, pt) <= radius && (!excludesCaster || c.id !== caster.id) && affected(c));
   set({ pendingCast: { ...pc, zone: { ...pc.zone, center: { ...pt }, placing: false } } });
   bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...pt }, tiles: clampZoneTiles(discTiles(pt, radius, pt.z), get().scene?.dimensions), sort: spell.id });
-  if (!inZone.length) {
-    set({ pendingCast: null, pendingCascade: null }); // TERMINAL : ferme data + cascade-hôte (zone à vide)
-    if (pc.focused) caster.focus = undefined; // le sort focalisé est consommé même à vide
-    finishPlayerAction(get, set, [`${spell.label} : la zone ne touche personne.`], 'sort');
-    return;
-  }
-  const first = inZone[0];
-  const r1 = pc.missile && res.cast ? evaluateMissile(caster, first, spell, res) : res;
+  resoudreLeSortDeZone(get, set, pc, caster, spell, res, inZone);
+}
+
+/** Résout la tentative d'un Sort de ZONE sur `targets`, vides pour une zone jamais posée ou posée dans le
+ *  vide (LDB 47 l.28) : ferme le jet, `applyCast`, PUIS clôt par la sortie d'hôte l'étape d'incantation
+ *  restée au curseur (#4248). La reprise de l'IA revient à l'appelant. */
+export function resoudreLeSortDeZone(
+  get: Get, set: SetFn, pc: PendingCast, caster: Combatant, spell: NonNullable<ReturnType<typeof effectiveSpellOf>>,
+  res: CastResult & Partial<MissileResult>, targets: readonly Combatant[],
+): void {
+  const [ancre] = targets;
+  const r1 = pc.missile && res.cast && ancre ? evaluateMissile(caster, ancre, spell, res) : res;
   // FOLD (parité jetValider('incantation')) : ne ferme QUE le jet ; la cascade d'incantation reste active pour
   // qu'un Critique de Sort / Imparfaite s'y appendent. Repère l'étape `jet:'incantation'` AVANT applyCast.
   const cascBefore = get().pendingCascade;
@@ -6040,15 +6066,13 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
     ? cascBefore.cursor : -1;
   set({ pendingCast: null }); // ferme le jet ; cascade d'incantation conservée
   const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
-  applyCast(get, set, caster, first, spell, r1, pc.missile, pc.focused, pc.critChoice, {
+  applyCast(get, set, caster, targets, spell, r1, pc.missile, pc.focused, pc.critChoice, {
     durationMult: ocDur.mult,
     durationBonusRounds: ocDur.bonusRounds,
     overcastDurationSteps: pc.overcast?.duration ?? 0,
     overcastDamageSteps: pc.overcast?.damage ?? 0,
     chosenTableRolls: pc.chosenTableRolls,
-    extraTargets: inZone.slice(1),
   });
-  // L'hôte d'incantation se clôt par la sortie d'hôte (#4248) ; la reprise de l'IA revient à l'appelant.
   const casc = get().pendingCascade;
   if (castStepIdx >= 0 && casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) sortirDeLHote(get, set, { pendingCast: null }, () => {});
 }
@@ -6672,18 +6696,19 @@ function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string
   return lignes;
 }
 
-/** Applique un résultat d'incantation DÉJÀ obtenu (mute caster/cible, consomme l'Action). */
+/** Applique un résultat d'incantation DÉJÀ obtenu (mute caster/cibles, consomme l'Action). `targets` : les
+ *  cibles dans l'ordre de la zone, la première est l'ancre ; vide pour une tentative sans cible (LDB 47 l.28). */
 export function applyCast(
   get: Get,
   set: SetFn,
   caster: Combatant,
-  target: Combatant,
+  targets: readonly Combatant[],
   spell: NonNullable<ReturnType<typeof findSpell>>,
   res: CastResult & Partial<MissileResult>,
   missile: boolean,
   focusedNI0: boolean,
   critChoice?: CritChoice,
-  extras?: { durationMult?: number; durationBonusRounds?: number; overcastDurationSteps?: number; overcastDamageSteps?: number; chosenTableRolls?: number; extraTargets?: Combatant[]; conjureForm?: ConjureForm; opposedOutcome?: Record<string, { resisted: boolean; margin: number }> },
+  extras?: { durationMult?: number; durationBonusRounds?: number; overcastDurationSteps?: number; overcastDamageSteps?: number; chosenTableRolls?: number; conjureForm?: ConjureForm; opposedOutcome?: Record<string, { resisted: boolean; margin: number }> },
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
   // Durée surincantée DÉCOMPOSÉE (engine/overcast) : `rounds = base × mult + bonus`. Arcane/Miracle :
@@ -6701,20 +6726,19 @@ export function applyCast(
   const overcastDamageSteps = Math.max(0, extras?.overcastDamageSteps ?? 0);
   const chosenTableRolls = extras?.chosenTableRolls;
   let teleportReach: Map<string, number> | null = null; // Téléportation (Jalon 2.6) : posé APRÈS finishPlayerAction
-  const extraTargets = extras?.extraTargets ?? [];
+  const [ancre, ...autres] = targets;
   // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le modificateur du TALENT est celui de la
   // ZONE des cibles de ce lancement (un seul pour tout le Sort) ; celui du TRAIT reste per-cible. Une
   // cible touchée HORS de cette zone (rebond d'une attaque en chaîne) est sa propre zone.
   // « la zone de sa cible » (LDB 10 l.1026) est LUE comme les CIBLES du lancement, jamais l'aire
   // géométrique : un porteur du Talent présent sur le terrain mais NON ciblé ne confère rien
   // (rétrécissement assumé — lecture retenue, réf #1007).
-  const zoneTargets = [target, ...extraTargets];
   // Projectile magique (LDB 46) : c'est une ATTAQUE (jet du lanceur opposé à la défense de la cible) —
   // trace orientée du Round posée par le MÊME helper que les armes (`markAttacked`, LDB 85 l.383). Les
   // autres Sorts passent ici aussi bien pour soigner que pour nuire : rien ne s'y marque.
-  if (missile) for (const t of zoneTargets) markAttacked(caster, t);
-  const zoneTalentMod = zoneTalentSpellDRMod(zoneTargets);
-  const zoneMod = (t: Combatant): number => (zoneTargets.includes(t) ? zoneTalentMod : talentSpellDRMod(t));
+  if (missile) for (const t of targets) markAttacked(caster, t);
+  const zoneTalentMod = zoneTalentSpellDRMod(targets);
+  const zoneMod = (t: Combatant): number => (targets.includes(t) ? zoneTalentMod : talentSpellDRMod(t));
   /** DR du Sort tel que le subit `t` — SITE UNIQUE lu par les Flows, les zones, l'invocation, le NI. */
   const slFor = (t: Combatant): number => spellSLFor(res.sl, t, zoneMod(t));
 
@@ -6728,21 +6752,22 @@ export function applyCast(
   const crit = !!res.isCritical && isSort && !res.dispelled;
   // Axe Dégâts de la Surincantation (`VDM 02 l.198`) : le résultat FIGÉ au jet (`pc.result`) ignorait
   // l'allocation (encore à venir) — on la reverse ici, avant tout autre recalcul de Projectile.
-  if (missile && res.cast && overcastDamageSteps > 0) {
-    res = evaluateMissile(caster, target, spell, res, undefined, overcastDamageSteps);
+  if (missile && res.cast && overcastDamageSteps > 0 && ancre) {
+    res = evaluateMissile(caster, ancre, spell, res, undefined, overcastDamageSteps);
   }
   const choice = critChoice;
   if (crit) {
     if (choice === 'puissance') {
       const full = applyFullPower(res);
       if (full !== res) {
-        res = missile
-          ? evaluateMissile(caster, target, spell, full, undefined, overcastDamageSteps)
+        res = missile && ancre
+          ? evaluateMissile(caster, ancre, spell, full, undefined, overcastDamageSteps)
           : { ...full, log: `${caster.label} lance ${spell.label} (Puissance totale — Critique).` };
       }
     }
   }
   const logLines: string[] = res.touche ? [] : [res.log];
+  if (res.cast && !ancre) logLines.push(tr('cf.zoneSansCible', { spell: spell.label })); // LDB 47 l.28
   // LDB 46 l.111 ; LDB 46 l.113
   const componentUsed = isSort && useSpellComponent(caster, spell.id, logLines);
   if (isSort) faimALIncantation(get, caster, spell, componentUsed, logLines);
@@ -6768,7 +6793,7 @@ export function applyCast(
   /** Contrecoup de CE lancement : les cibles de l'incantation reçoivent les `targetOps` de la ligne
    *  tirée (« vos cibles », LDB 40 l.64). */
   const contrecoup = (severity: MiscastSeverity, opts: Parameters<typeof applyMiscast>[4] = {}): string[] =>
-    applyMiscast(get, set, caster, severity, { ...opts, targetIds: zoneTargets.map((t) => t.id) });
+    applyMiscast(get, set, caster, severity, { ...opts, targetIds: targets.map((t) => t.id) });
   /** Options du contrecoup d'un SORT (composant, Sorcellerie, Domaine). */
   const optsDuSort = { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId?.id };
   /** Imparfaite ADDITIONNELLE due aux Influences malfaisantes / à la Sorcellerie, appliquée UNE fois après le Sort. */
@@ -6786,12 +6811,12 @@ export function applyCast(
   const domaine = spell.domainId?.id;
   if (battle && isSort && domaine && res.cast) {
     const marks = battle.domainCasts ?? [];
-    if (marks.some((m) => m.targetId === target.id && m.domain === domaine)) {
+    if (ancre && marks.some((m) => m.targetId === ancre.id && m.domain === domaine)) {
       campGain(get, caster);
       caster.gainedAdvThisRound = true;
-      logLines.push(tr('cf.ventsConvergent', { name: caster.label, wind: spell.subType ?? domaine, target: target.label }));
+      logLines.push(tr('cf.ventsConvergent', { name: caster.label, wind: spell.subType ?? domaine, target: ancre.label }));
     }
-    battle.domainCasts = [...marks, ...[target, ...extraTargets].map((t) => ({ targetId: t.id, domain: domaine }))];
+    battle.domainCasts = [...marks, ...targets.map((t) => ({ targetId: t.id, domain: domaine }))];
   }
 
   if (missile) {
@@ -6813,28 +6838,28 @@ export function applyCast(
     // rebondit sur une autre cible » — DÉCLARÉ ici sur la touche initiale (max BFM rebonds, saut de
     // BFM m, portée INITIALE du sort), JOUÉ par `jouerLeRebond` une fois la touche close.
     const chainOp = spellOps(spell.effects, 'caster').find((o): o is Extract<GameOp, { op: 'chain' }> => o.op === 'chain');
-    const rebond: RebondDeChaine | undefined = chainOp && res.cast && battle && caster.pos
+    const rebond: RebondDeChaine | undefined = chainOp && res.cast && battle && caster.pos && ancre
       ? {
-        hitIds: [target.id, ...extraTargets.map((t) => t.id)], bounce: 0,
+        hitIds: targets.map((t) => t.id), bounce: 0,
         maxBounces: Math.max(0, resolveFormula(chainOp.maxBounces, caster, battleRng())),
         hopTiles: porteeEnCases(Math.max(0, resolveFormula(chainOp.hopMeters, caster, battleRng())), sceneMetresPerTile(get().scene)),
         initialRange: spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene)), res,
       }
       : undefined;
     // Sort offensif : lanceur vers la cible, cible vers le lanceur.
-    if (caster.pos && target.pos && caster.id !== target.id) {
-      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!), [target.id]: facingToward(target.pos!, caster.pos!) } }));
+    if (ancre && caster.pos && ancre.pos && caster.id !== ancre.id) {
+      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, ancre.pos!), [ancre.id]: facingToward(ancre.pos!, caster.pos!) } }));
     }
-    const toucheInitiale = toucheDe(target, res, rebond);
-    const initiale = appliquerTouchePourCible(get, set, target, toucheInitiale);
-    logLines.push(...initiale.lignes);
+    const toucheInitiale = ancre ? toucheDe(ancre, res, rebond) : undefined;
+    const initiale = ancre && toucheInitiale ? appliquerTouchePourCible(get, set, ancre, toucheInitiale) : undefined;
+    if (initiale) logLines.push(...initiale.lignes);
     // Nerveux (effet déclenché onStartled : magie → +3 Brisé) — dispatcher générique (noyau/triggeredEffects).
     // Cause 'magic' (présence de magie) → exemption Dressé (Magie) lue par la Condition Flow `startleCause`.
-    for (const t of [target, ...extraTargets]) {
+    for (const t of targets) {
       if (res.cast && !isOutOfAction(t)) emitCombatEvent('onStartled', { get, set, battle: get().battle!, self: t, sink: (line) => logLines.push(line), triggerCtx: { rng: battleRng(), startleCause: 'magic' } });
     }
     // Surincantation « Cible » (LDB 47 l.28-31) : le MÊME jet frappe les cibles supplémentaires.
-    for (const t2 of extraTargets) {
+    for (const t2 of autres) {
       if (!res.cast) break;
       const r2 = evaluateMissile(caster, t2, spell, res, undefined, overcastDamageSteps);
       const touche2 = appliquerTouchePourCible(get, set, t2, toucheDe(t2, r2));
@@ -6842,12 +6867,11 @@ export function applyCast(
     }
     // Le rebond DÉCLARÉ plus haut ne se joue ICI que si la touche initiale est CLOSE : suspendue
     // (sauvegarde, Déviation Critique), c'est SA reprise qui le jouera, sur des PB frais.
-    if (rebond && initiale.issue === 'appliquee') logLines.push(...jouerLeRebond(get, set, toucheInitiale));
+    if (rebond && toucheInitiale && initiale?.issue === 'appliquee') logLines.push(...jouerLeRebond(get, set, toucheInitiale));
     // Zone persistante d'un Projectile (Grands feux d'U'Zhul : « le feu continue de brûler
     // dans la Zone d'Effet pour la durée du Sort ») — posée autour de la cible touchée.
-    if (res.cast) placeSpellZone(get, caster, target, spell, missileSpec, slFor(target), durationMult, durationBonusRounds, logLines);
-    // Maladresse d'un Sort → Incantation Imparfaite Mineure ; sort focalisé dont
-    // l'incantation échoue → Imparfaite Mineure également (Livre de base l.183).
+    if (res.cast && ancre) placeSpellZone(get, caster, ancre, spell, missileSpec, slFor(ancre), durationMult, durationBonusRounds, logLines);
+    // LDB 46 l.85 ; LDB 46 l.132
     if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
@@ -6861,8 +6885,8 @@ export function applyCast(
       const duree = dureeDuLancer(get, caster, spell, durationMult, durationBonusRounds);
       if ((durationMult > 1 || durationBonusRounds > 0) && duree.defaultDurationRounds != null) logLines.push(tr('cf.surincantationDuree', { rounds: String(duree.defaultDurationRounds) }));
       if (durationMult > 1 && duree.defaultUntilTime != null) logLines.push(tr('cf.surincantationDureeMin', { mult: durationMult }));
-      for (const t of [target, ...extraTargets]) {
-        if (t !== target) logLines.push(tr('cf.sortProlonge', { spell: spell.label, name: t.label }));
+      for (const t of targets) {
+        if (t !== ancre) logLines.push(tr('cf.sortProlonge', { spell: spell.label, name: t.label }));
         // OPPOSITION (spec.opposed) résolue dans la modale : une cible qui l'a emporté RÉSISTE (aucune
         // op) ; sinon les ops portent sur la MARGE de DR (l'écart de l'opposition → échelles `perSL`).
         const opp = extras?.opposedOutcome?.[t.id];
@@ -6904,7 +6928,7 @@ export function applyCast(
       for (const op of spellOps(spell.effects, 'caster')) {
         if (op.op !== 'push' || !battle || !caster.pos) continue;
         const pushTiles = casesDansLaPortee(resolveFormula(op.meters, caster, battleRng()), sceneMetresPerTile(get().scene));
-        for (const t of [target, ...extraTargets]) {
+        for (const t of targets) {
           if (t.id === caster.id || !t.pos || isOutOfAction(t)) continue;
           const r = pushAway(get().scene!, caster.pos, t.pos, pushTiles, { blocked: occupied(battle, t) });
           if (r.pushed > 0) {
@@ -6921,7 +6945,7 @@ export function applyCast(
       // le Trait Souffle » — délégué à l'attaque de ZONE du Trait, centrée sur la CIBLE du sort,
       // Dégâts = Bonus d'Endurance du lanceur, Type mappé du Domaine. Sans coût d'Avantage (le
       // sort EST l'activation). Hors combat : pas de grille → journalisé.
-      if (spec.breathAttack) {
+      if (spec.breathAttack && ancre) {
         if (battle && caster.pos) {
           const type = domainBreathType(caster);
           // Indice = Bonus d'Endurance du lanceur (RAW : « Dégâts = Bonus d'Endurance »). Coût d'Avantage 0
@@ -6931,14 +6955,14 @@ export function applyCast(
           applyAreaAttack(get, set, caster, {
             cle: sDef.id, kind: 'souffle', label: sDef.label, bonus: indice, indice, def: sDef,
             trigger: 'free', avantage: 0, aoe: true, magic: true, ...(type ? { type } : {}),
-          }, target);
+          }, ancre);
           if (!type) logLines.push(tr('cf.souffleSansGenre'));
         } else {
           logLines.push(tr('cf.souffleRecit', { name: caster.label }));
         }
       }
       // Zone persistante d'un sort de soutien/zone (Mur de feu : « Quiconque traverse… »).
-      if (res.cast) placeSpellZone(get, caster, target, spell, spec, slFor(target), durationMult, durationBonusRounds, logLines);
+      if (res.cast && ancre) placeSpellZone(get, caster, ancre, spell, spec, slFor(ancre), durationMult, durationBonusRounds, logLines);
       // TÉLÉPORTATION (Jalon 2.6 — « vous vous téléportez de BFM mètres (+BFM par +2 DR) »,
       // LDB 47 l.517-519) : le choix de la case d'arrivée suit l'Appliquer (mode 'teleportation',
       // cases = survol des obstacles, atterrissage libre — cliquerLaCaseDuCombat).
@@ -6970,15 +6994,15 @@ export function applyCast(
     // d'incantation → halo/aura tinté à l'école.
     // Soutien : le lanceur se tourne vers la cible ; pas de réaction de la cible (ce n'est pas une frappe).
     // Hors combat (pas de file/token tactique), on n'anime pas le geste iso.
-    if (battle && caster.pos && target.pos && caster.id !== target.id) {
-      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!) } }));
+    if (battle && ancre && caster.pos && ancre.pos && caster.id !== ancre.id) {
+      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, ancre.pos!) } }));
     }
-    if (battle) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: target.id, result: res, kind: 'spell', projectile: false, spell: spell.id, defense: 'aucune' });
+    if (battle && ancre) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: ancre.id, result: res, kind: 'spell', projectile: false, spell: spell.id, defense: 'aucune' });
   }
 
   // Attributs de Domaine (LDB 48 — L14) : riders post-lancement d'un Sort « issu du Domaine ».
   if (res.cast) {
-    for (const t of [target, ...extraTargets]) {
+    for (const t of targets) {
       // Une cible qui a EMPORTÉ l'opposition (spec.opposed) résiste au Sort entier : pas de rider de Domaine.
       if (extras?.opposedOutcome?.[t.id]?.resisted) continue;
       // Immunité de Domaine (`domainesImmunises`) : le rider est un effet du Sort. VDM 13 l.24, l.61 ; ZI 08 l.28
@@ -7026,7 +7050,7 @@ export function applyCast(
   // Effet déclenché « après incantation résolue » (réussie ou non) — dispatcher générique via le bus.
   // Point d'émission = incantation résolue (LDB 46, post-runCastFlow). Inerte sans donnée. Hors combat :
   // battle absent, runCombatHooks('onCastResolved') est un no-op (aucune machinerie abonnée).
-  emitCombatEvent('onCastResolved', { get, set, battle: battle!, self: caster, sink: (line) => logLines.push(line), triggerCtx: { victim: target, rng: battleRng() } });
+  emitCombatEvent('onCastResolved', { get, set, battle: battle!, self: caster, sink: (line) => logLines.push(line), triggerCtx: { ...(ancre ? { victim: ancre } : {}), rng: battleRng() } });
   finishPlayerAction(get, set, logLines, 'sort'); // sortie commune combat (log+conso Action) / hors combat (journal)
   // Téléportation (Jalon 2.6) : le choix de case suit la clôture du cast (qui remet action: null).
   if (teleportReach && get().battle) {
@@ -7291,19 +7315,19 @@ function decideCombatEndHeroTests(
   // maladie (`def.contractDifficulty`), décalée des crans de l'exposition (Contagieux, EDO App.2
   // l.228-230 : « 2 niveaux plus difficile » → shift −2 ; « incubation “Instantanée” » → `instant`).
   // 'off' : aucune contraction.
-  diseases.push(...contagionsDues(c));
+  if (!c.dead) diseases.push(...contagionsDues(c, c.diseaseExposure ?? []));
   c.diseaseExposure = undefined;
   return { diseases, corruption: c.dead ? null : worstCorruption };
 }
 
-/** Les Tests de Contraction que doivent les EXPOSITIONS de `c` (`diseaseExposure`, op `exposeDisease`) : la
+/** Les Tests de Contraction que doivent les `expositions` du `porteur` (op `exposeDisease`) : la
  *  difficulté de la maladie (`def.contractDifficulty`), décalée des crans de l'exposition. PUR. LDB 20 l.25/51 ;
  *  EDO App.2 l.228-230 */
-function contagionsDues(c: Combatant): CombatEndDiseaseTest[] {
-  if (rule('maladie-mode') === 'off' || c.dead) return [];
-  return (c.diseaseExposure ?? []).flatMap((exp) => {
+export function contagionsDues(porteur: PorteurDeMaladies, expositions: readonly DiseaseExposure[]): CombatEndDiseaseTest[] {
+  if (rule('maladie-mode') === 'off') return [];
+  return expositions.flatMap((exp) => {
     const def = diseaseDefs()[exp.disease];
-    return def && contractionDue(c, def.id) ? [{
+    return def && contractionDue(porteur, def.id) ? [{
       entry: 'contagion' as const,
       disease: def.id,
       difficulty: easeDifficulty(def.contractDifficulty, exp.difficultyShift ?? 0),
@@ -7321,7 +7345,7 @@ export function ouvrirLesContagions(get: Get, set: SetFn, ids: readonly string[]
   if (!exposes.length) return;
   const bandes = new Map<string, { test: CombatEndDiseaseTest; porteurs: Combatant[] }>();
   for (const h of exposes) {
-    for (const d of contagionsDues(h)) {
+    for (const d of h.dead ? [] : contagionsDues(h, h.diseaseExposure ?? [])) {
       const cle = `${d.disease}|${d.difficulty}|${d.instant ? 'instant' : ''}`;
       const bande = bandes.get(cle) ?? { test: d, porteurs: [] };
       bande.porteurs.push(h);
@@ -8021,6 +8045,20 @@ export function etatDeTourNeuf(): Pick<BattleState, 'action' | 'selectedAttack' 
   };
 }
 
+/** L'ordre d'un Round tiré de l'ordre `base` : qui agit en dernier (Maladresse Oups! 21-40, arme Lente) rejeté en fin.
+ *  LDB 62 l.331. */
+function ordreDuRound(base: string[], combatants: Combatant[]): string[] {
+  const lastIds = combatants.filter((c) => c.actLastNextRound || strikesLast(c.weapons)).map((c) => c.id);
+  return [...base.filter((id) => !lastIds.includes(id)), ...base.filter((id) => lastIds.includes(id))];
+}
+
+/** L'ordre que le Round suivant jouera, tiré de l'ordre canonique (`baseOrder`) : un réordonnancement du Round courant
+ *  (pré-emption, Maladresse) n'y survit pas (LDB 17 l.22-25). `null` sous la règle optionnelle
+ *  `combat-relancer-initiative` (LDB 13 l.43) : il n'est pas encore tiré. */
+export function ordreDuRoundSuivant(battle: Pick<BattleState, 'baseOrder' | 'order' | 'combatants'>): string[] | null {
+  return rule('combat-relancer-initiative') ? null : ordreDuRound(battle.baseOrder ?? battle.order, battle.combatants);
+}
+
 export function advanceTurn(get: Get, set: SetFn) {
   // Pause de début de Round (PERSONNE n'est actif, turn -1) : un advanceTurn retardataire (timer
   // d'IA en vol) ne doit pas ré-incrémenter le tour SOUS la pause — `lancerLeRound` le posera.
@@ -8051,21 +8089,16 @@ export function advanceTurn(get: Get, set: SetFn) {
       const round = battle.round + 1;
       get().avancerLeTemps(TIME_COST.combatRound); // « tout est horodaté » : 1 Round franchi = +combatRound min
       battle.log.push(ev('round', tr('cf.enTeteDuRound', { round })));
-      // Ordre du Round : on REPART de l'ordre canonique (baseOrder) — donc tout réordonnancement
-      // (Maladresse « agir en dernier » Oups! 21-40, pré-emption Chance) ne dure qu'UN Round (l.22-25).
-      // Règle optionnelle « Relancer l'Initiative chaque Round » (LDB 13 l.43, « effectuer un lancer pour
-      // chaque Round ») : on re-tire la VALEUR d'Initiative de chaque combattant via `rollInitiative` (même
-      // méthode `combat-methode-initiative` qu'à l'ouverture) puis on recalcule l'ordre — ce nouvel ordre devient
-      // la base canonique de CE Round. OFF (défaut) : `baseOrder` est conservé (comportement inchangé).
-      let base = battle.baseOrder ?? battle.order;
-      if (rule('combat-relancer-initiative')) {
+      // Ordre du Round (`ordreDuRoundSuivant`) ; sous `combat-relancer-initiative` (LDB 13 l.43), chaque Initiative se
+      // re-tire par `rollInitiative` (même méthode `combat-methode-initiative` qu'à l'ouverture) et l'ordre recalculé
+      // devient la base canonique de CE Round.
+      const suite = ordreDuRoundSuivant(battle);
+      if (suite) battle.order = suite;
+      else {
         for (const c of battle.combatants) c.initiative = rollInitiative(c, battleRng());
-        base = combatOrder(battle.combatants, isMerScene(get().scene), battleRng());
-        battle.baseOrder = base;
+        battle.baseOrder = combatOrder(battle.combatants, isMerScene(get().scene), battleRng());
+        battle.order = ordreDuRound(battle.baseOrder, battle.combatants);
       }
-      // Agir en dernier : Maladresse (Oups! 21-40, 1 Round) OU arme Lente active (LDB 62 l.331, permanent).
-      const lastIds = battle.combatants.filter((c) => c.actLastNextRound || strikesLast(c.weapons)).map((c) => c.id);
-      battle.order = [...base.filter((id) => !lastIds.includes(id)), ...base.filter((id) => lastIds.includes(id))];
       for (const c of battle.combatants) if (c.actLastNextRound) { c.actLastNextRound = false; battle.log.push(ev('detail', tr('cf.agitEnDernier', { name: c.label }), c.id)); }
       // Entretien de Round PARTITIONNÉ (spec coop §4bis) : TOUT va au journal de combat (bandeau) ;
       // seules les lignes CONCERNANT UN HÉROS alimentent la révélation (les ennemis : journal seul).
@@ -8535,7 +8568,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   // de la CLÉ de bande (deux Indices = deux règles en jeu, donc deux fenêtres).
   const testFor = (indice: number): FlowTest & { difficulty: Difficulty; label: string } => ({
     ...testDeRegle('calme-d-approche', 'source-se-rapproche'),
-    stake: combatStakeRef('combat-psychologie', { entryId: 'peur', values: { indice } }),
+    stake: combatStakeRef('combat-psychologie', { entryId: PSY.peur, values: { indice } }),
   });
   const branches = {
     onSuccess: EMPTY_FLOW, // réussite : garde son sang-froid, rien à faire
@@ -8560,7 +8593,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   for (const d of dues) {
     if (surfaceOf(get, d.c.id)) continue; // sa rangée est dans la bande
     const ft = testFor(d.indice);
-    runCombatFlow({ get, set, target: d.c, caster: d.c, label: ft.label }, testFlow(ft, branches.onSuccess, branches.onFail));
+    runCombatFlow({ get, set, target: d.c, caster: d.c, label: ft.label }, testFlow<Effect>(ft, branches.onSuccess, branches.onFail));
   }
   // Inline (mover ennemi → héros auto/ennemi craintif) : les lignes partent dans la file différée. Le héros
   // manuel suspend (cascade) et n'en pousse aucune. On les folde dans le `battle.log` que le `move` réécrit.
@@ -8648,10 +8681,10 @@ export function appliquerLaRecharge(get: Get, set: SetFn, pr: PendingReload, arm
 
 /** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue), allégé par Sans Peur
  *  (`sansPeurFace`) face à une source neuve. */
-type PsychDue = { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
+type PsychDue = { kind: string; sourceId: string; sourceName: PlayerText; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
 
 /** Une source de Peur ou de Terreur en vue, neuve pour le porteur (`sourceDejaAffrontee` faux). */
-type SourceNeuve = { source: SourceEnVue; id: string; label: PlayerText; kind: 'peur' | 'terreur'; indice: number };
+type SourceNeuve = { source: SourceEnVue; id: string; label: PlayerText; kind: string; indice: number };
 
 /** Plus grand Avantage des Engagés de `c`, que lit Belliqueux. LDB 85 l.51 ; LDB 13 l.169-171 */
 function avantageDesEngages(battle: BattleState, c: Combatant): number | undefined {
@@ -8710,7 +8743,7 @@ export function collectRoundStartPsych(get: Get, c: Combatant, round: number): P
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
+    ...l.neuves.filter((n) => n.kind === PSY.terreur || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
     ...retestsCibles(c, l.sources, round, 'roundStart'),
     ...targetedTriggers(c, l.sources).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: nomDeLaSource(l, tt.sourceId), indice: 0, prevDR: 0, cible: tt.cible, sansPeur: false })),
   ];
@@ -8723,9 +8756,9 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
   const l = lecturePsy(get, c);
   if (!l) return [];
   return [
-    ...l.neuves.filter((n) => n.kind === 'peur').map((n) => dueDeSource(c, n)),
+    ...l.neuves.filter((n) => n.kind === PSY.peur).map((n) => dueDeSource(c, n)),
     ...(c.psychState ?? []).filter((p) => sousPeur(p) && p.lastTestRound !== round).map((p): PsychDue => ({
-      kind: 'peur', sourceId: p.sourceId!, sourceName: nomDeLaSource(l, p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
+      kind: PSY.peur, sourceId: p.sourceId!, sourceName: nomDeLaSource(l, p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
     })),
     ...retestsCibles(c, l.sources, round, 'roundEnd'),
   ];
@@ -8734,9 +8767,9 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
 /** Pose sans Test les Peurs neuves de `c` (Sans Peur excepté, testé par `collectRoundStartPsych`) et rend
  *  les lignes de journal. LDB 21 l.25 ; #3045 */
 function enregistrerLesPeursNeuves(get: Get, c: Combatant): string[] {
-  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === 'peur' && !sansPeurVs(c, n.source));
+  const neuves = (lecturePsy(get, c)?.neuves ?? []).filter((n) => n.kind === PSY.peur && !sansPeurVs(c, n.source));
   if (!neuves.length) return [];
-  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: 'peur', sourceId: n.id, indice: n.indice, calmeDR: 0 }))];
+  c.psychState = [...(c.psychState ?? []), ...neuves.map((n): PsychAffliction => ({ type: PSY.peur, sourceId: n.id, indice: n.indice, calmeDR: 0 }))];
   return [...neuves.map((n) => tr('turn.fear', { name: c.label, foe: n.label })), ...supersededLines(c, c.label)];
 }
 
@@ -8791,7 +8824,7 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
       ...(extended ? { extendedDrTarget: t.indice, extendedDrDone: t.prevDR } : {}),
       ...(sansPeur ? { meta: { sansPeur: true } } : {}),
     },
-    icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur'),
+    icon: cl?.icon ?? (t.kind === PSY.terreur ? 'creature/hurlement' : 'drapeau/peur'),
     label: cl ? libelleDePsy(t.kind, t.cible, nomDIndividu(get())) : stepPsych(t.kind, t.indice),
   };
 }
@@ -9490,14 +9523,16 @@ export const TABLES = {
      *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`jetValider('cascade')`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
-    /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape
-     *  (`ouvrirLaSerieSubie`) et garde la suite de l'étape (`suiteGardee`). Héros introuvable = conséquence PERDUE :
-     *  elle se DIT (patron `chuteDe`). */
+    /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape ou
+     *  le membre de l'équipage de son `meta` (`ouvrirLaSerieSubie`) et garde la suite de l'étape (`suiteGardee`). Héros
+     *  introuvable = conséquence PERDUE : elle se DIT (patron `chuteDe`). */
     nombreDAttaquesSubies: (get, set, step, heros) => {
       const op = step.meta?.attaquesSubies?.[0];
       if (!op || !step.de?.result) return;
-      if (!heros) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      jouerFlowEntier(ouvrirLaSerieSubie(get, set, heros, op, step.de.result.total, step.meta?.apresSuite));
+      const poste = posteDeLEtape(step.meta);
+      const cible: CibleDeLaSerie | undefined = poste ? { poste } : heros && { heros };
+      if (!cible) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      jouerFlowEntier(ouvrirLaSerieSubie(get, set, cible, op, step.de.result.total, step.meta?.apresSuite));
       return { consequences: freeCons([]), suiteGardee: true };
     },
     deviation: (get, set, step) => {
@@ -9607,7 +9642,7 @@ export const TABLES = {
       // avec le DR de l'attaquant qu'IL jette (`attackerSL`) → la conséquence recompose la marge nette, sans
       // double-jet. `runCombatFlow` route le Test (héros manuel → cascade influençable ; ennemi/auto → inline).
       const bt: BladeTrapFreeze = { attackerId: attacker.id, weaponUid: pbt.weapon.uid!, defSL: pbt.defSL, attackerSL: 0 };
-      const flow = testFlow(
+      const flow = testFlow<Effect>(
         // `defenderMustWin` : ici « vous » (LDB 62 l.280 « Si vous l'emportez ») est le PIÉGEUR, qui est le
         // jeteur de ce Test — la lame ne s'arrache qu'à SA victoire, jamais sur une égalité.
         { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('piege-lame-force'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },

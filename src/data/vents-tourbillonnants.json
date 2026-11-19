@@ -2,7 +2,10 @@
   "id": "force-des-vents",
   "type": "vents-tourbillonnants",
   "label": "Vents Tourbillonnants",
-  "die": "d10",
+  "die": {
+    "n": 1,
+    "sides": 10
+  },
   "entries": [
     {
       "id": "vents-tres-faibles",

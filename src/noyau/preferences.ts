@@ -26,6 +26,8 @@ type FormeDePreference = FormeDeControle & {
   label: string;
   /** Aide courte (infobulle). */
   hint?: string;
+  /** Le libellé affiché de chaque choix d'un `mode`, par sa valeur (l'id stable). */
+  libelles?: Readonly<Record<string, string>>;
   default: PrefValue;
   /** Lecture de la valeur effective, dans son module feuille. */
   get(): PrefValue;
@@ -68,6 +70,7 @@ const TABLE = [
     label: 'Cadence de combat',
     kind: 'mode',
     options: CADENCE_MODES,
+    libelles: { manuel: 'Manuel', rapide: 'Rapide', auto: 'Auto' } satisfies Record<Cadence, string>,
     default: CADENCE_DEFAULT,
     hint: 'manuel = chaque jet d’un héros passe par sa modale (défaut) ; rapide = les jets se lancent et s’appliquent seuls, sans dépenser Chance/Résilience/Sombre Pacte (le Sauvetage par Destin reste une modale) ; auto = l’IA joue aussi les héros (cible, action, surincantation, défense) et dépense le Destin pour éviter la mort.',
     get: cadence,

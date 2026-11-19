@@ -3,6 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couvertureDuDeDuDocument, enumNomme, plageSchema } from '../grammaire/valeurs';
+import type { DiceSpec } from '../../../engine/dice';
 
 export const file = 'dispersion.json';
 export const famille = 'config';
@@ -40,7 +41,7 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    affinerDataset: couvertureDuDeDuDocument<{ id: string; die: string; entries: z.output<typeof rangee>[] }>(file, (r) => `la rangée « ${r.id} » (${r.min}-${r.max})`),
+    affinerDataset: couvertureDuDeDuDocument<{ id: string; die: DiceSpec; entries: z.output<typeof rangee>[] }>(file, (r) => `la rangée « ${r.id} » (${r.min}-${r.max})`),
   },
 );
 

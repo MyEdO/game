@@ -101,7 +101,7 @@ describe('rollCareer — documents du Tableau des Classes et Carrières aléatoi
 
   it('le second lancer suit le `die` de sa variante, jamais celui de la colonne (AA 02 l.109)', () => {
     const imprimes = [...carrieresAleatoires];
-    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === 'variantes-soldat' ? { ...d, die: 'd10' } : d)));
+    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === 'variantes-soldat' ? { ...d, die: { n: 1, sides: 10 } } : d)));
     try {
       const variante = varianteDe('soldat', findSpeciesById('humains-reiklander')!)!;
       expect(rollVariante(variante, deMax)).toEqual({ roll: 10, id: 'soldat' });
@@ -130,7 +130,7 @@ describe('rollCareer — documents du Tableau des Classes et Carrières aléatoi
   it('le tirage suit le `die` de la colonne, jamais un d100 recopié (LDB 05 l.214 ; #3578)', () => {
     const imprimes = [...carrieresAleatoires];
     const humain = findSpeciesById('humains-reiklander')!;
-    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === humain.refCareer && d.kind === 'colonne' ? { ...d, die: 'd10' } : d)));
+    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === humain.refCareer && d.kind === 'colonne' ? { ...d, die: { n: 1, sides: 10 } } : d)));
     try {
       const base = imprimes.find((d) => d.id === humain.refCareer)!.entries;
       const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(base, i + 1).id));
@@ -144,7 +144,7 @@ describe('rollCareer — documents du Tableau des Classes et Carrières aléatoi
 
   it('avec la portion, la table se tire au dé de sa colonne, et suit sa surcharge (MDG 09 l.9)', () => {
     const imprimes = [...carrieresAleatoires];
-    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === 'humain' && d.kind === 'colonne' ? { ...d, die: '2d50' } : d)));
+    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === 'humain' && d.kind === 'colonne' ? { ...d, die: { n: 2, sides: 50 } } : d)));
     try {
       expect(tableDeCarrieres('humain', true).die).toMatchObject({ n: 2, sides: 50 });
     } finally {

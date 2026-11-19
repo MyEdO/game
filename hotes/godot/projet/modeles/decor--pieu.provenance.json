@@ -1,0 +1,13 @@
+{
+  "model": "decor--pieu.glb",
+  "model_sha256": "de38c7786f2e22a09fb04d1fd7468c793c6b3be4793ac7f03163a3e05f398eea",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

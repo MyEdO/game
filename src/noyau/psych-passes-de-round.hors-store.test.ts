@@ -6,7 +6,7 @@ import { openRoundStartPsych, openRoundEndCascade } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { psychDRAdjust } from '../engine/combat';
-import { cibleEnVue, psychBranchOps, sousPeur, type PsychType } from '../engine/psychology';
+import { cibleEnVue, psychBranchOps, sousPeur } from '../engine/psychology';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { parsePsychTraits } from '../engine/psych/registry';
 import { applyOps } from '../engine/ops';
@@ -29,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const g = () => banc.getState();
 const lu = (id: string) => actorIn(g(), id)!;
-const psy = (id: string, type: PsychType) => (lu(id).psychState ?? []).filter((p) => p.type === type);
+const psy = (id: string, type: string) => (lu(id).psychState ?? []).filter((p) => p.type === type);
 const bandes = (): CascadeStep[] => (g().pendingCascade?.participants ?? []).filter((s) => s.kind === 'psychologieDeCombat');
 const debut = (n: number) => { banc.setState({ battle: { ...g().battle!, round: n }, pendingCascade: null }); openRoundStartPsych(g, banc.setState); };
 const fin = (n: number) => { banc.setState({ battle: { ...g().battle!, round: n + 1 }, pendingCascade: null }); openRoundEndCascade(g, banc.setState); };
@@ -109,7 +109,7 @@ describe('Peur : pèse dès le début du Round de rencontre, Test étendu en fin
 
 describe('Traits ciblés : premier Test au début, re-test selon l’entrée (LDB 21 l.9, l.19, l.39, l.48)', () => {
   /** Le héros et l'IA portent `type` envers le Groupe de l'autre, et ratent leur Calme. */
-  const cibles = (type: PsychType) => {
+  const cibles = (type: string) => {
     const { H: [h], E: [e] } = setup();
     lu(e).groups = ['mort-vivant'];
     lu(h).groups = ['humain'];

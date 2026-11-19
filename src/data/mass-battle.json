@@ -430,7 +430,10 @@
     }
   ],
   "hazards": {
-    "die": "1d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "id": "tempete",

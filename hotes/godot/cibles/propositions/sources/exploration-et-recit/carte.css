@@ -1,0 +1,35 @@
+/* La carte du monde (#3935, #4411) : les lieux connus sur la carte, la destination, ses étapes et ses moyens
+   (`../rendu.js`) ; leur place est dans `../rendu.css`. */
+#ecran{background:#140c07}
+#reikland .fond{overflow:hidden}
+#reikland .fond>svg{position:absolute;inset:0;width:100%;height:100%}
+#reikland .lieu{position:absolute;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 5px;border-radius:3px;transform:translate(-50%,-100%);margin-top:-14px;box-shadow:0 4px 9px var(--ombre),0 0 0 1px var(--contour),inset 0 0 0 1px var(--filet-or);white-space:nowrap}
+#reikland .lieu::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:var(--bois);box-shadow:1px 1px 0 var(--contour)}
+#reikland .lieu b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:18px;letter-spacing:.3px;color:var(--ivoire)}
+#reikland .lieu span{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
+#reikland .lieu.choisi{box-shadow:0 4px 9px var(--ombre),0 0 0 1px var(--contour),inset 0 0 0 1px var(--filet-or-vif),0 0 18px var(--halo-vif)}
+#reikland .lieu .ici{display:flex;gap:3px;margin-left:4px}
+#reikland .lieu.sous{transform:translate(-50%,0);margin-top:14px}
+#reikland .lieu.sous::after{bottom:auto;top:-6px;box-shadow:-1px -1px 0 var(--contour)}
+
+/* la destination : son nom, sa voie, ses étapes et leurs distances, ses moyens et ce qu'ils coûtent */
+#destination .fond{padding:22px 16px}
+#destination h3{margin:-6px 0 -5px;font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:42px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
+#destination .s{font-size:12px;color:var(--or)}
+#destination>.fond>p{margin:6px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:var(--creme)}
+.etapes{display:flex;align-items:flex-start;margin:13px 2px 0}
+.etapes .e{flex:none;width:74px;text-align:center}
+.etapes .e i{display:block;width:11px;height:11px;margin:0 auto 5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 0 0 1px var(--contour),0 1px 2px var(--noir)}
+.etapes .e.ici i{background:radial-gradient(circle at 38% 30%,var(--cire-clair),var(--cire) 60%)}
+.etapes .e span{display:block;font-size:10.5px;line-height:12.5px;color:var(--creme)}
+.etapes .t{flex:1;text-align:center;margin-top:-7px}
+.etapes .t u{display:block;height:2px;margin:11px -30px 0;background:linear-gradient(180deg,var(--cire-clair),var(--sang));box-shadow:0 0 0 1px var(--ombre)}
+.etapes .t span{display:block;font-size:10.5px;color:var(--creme-2);margin-top:-17px;white-space:nowrap}
+.moyen{display:flex;gap:11px;align-items:center;margin-top:9px;padding:8px 11px;border-radius:3px;background:var(--lit);box-shadow:inset 0 0 0 1px var(--filet-creme)}
+.moyen.pris{box-shadow:inset 0 0 0 1px var(--filet-or-vif),0 0 12px var(--halo)}
+.moyen .q{flex:1;min-width:0}
+.moyen b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18.5px;line-height:24px;margin:-3px 0 -2px;color:var(--ivoire);letter-spacing:.3px}
+.moyen .c{font-size:11.5px;color:var(--or);white-space:nowrap}
+.moyen .px{flex:none;text-align:right;font-size:12.5px;line-height:17px;color:var(--ivoire);white-space:nowrap}
+.moyen .px small{display:block;font-family:"Fell SC";font-size:10.5px;letter-spacing:.8px;color:var(--creme-2)}
+#destination .plaque.partir{margin-top:16px}

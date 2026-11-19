@@ -108,14 +108,7 @@ function rendu(entree) {
 
   const ICONS_TEST = lire('src/data/icons/icons.test.ts')
   const KEBAB = capture(ICONS_TEST, /const kebab = (\/[^\n]+\/);/, 'la regex de nommage `kebab`', 'src/data/icons/icons.test.ts')
-  const COULEURS_OK = capture(
-    ICONS_TEST,
-    /expect\(\[([^\]]+)\],\s*`\$\{d\.id\}/,
-    'la liste des valeurs de couleur admises',
-    'src/data/icons/icons.test.ts',
-  )
-    .split(',')
-    .map((s) => s.trim().replace(/^'|'$/g, ''))
+  const COULEUR = capture(ICONS_TEST, /const couleur = (\/[^\n]+\/);/, 'la regex des couleurs admises `couleur`', 'src/data/icons/icons.test.ts')
 
   const TITRES_ICONS_TEST = [...ICONS_TEST.matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
   const TITRES_RENDU_TEST = [...lire('src/ui/Icon.test.ts').matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
@@ -318,8 +311,8 @@ familles, cité ici tel quel :
 
 > ${CHARTE.split('\n').join('\n> ')}
 
-Couleur : la garde n'accepte que ${COULEURS_OK.map((c) => `\`${c}\``).join(', ')} pour tout
-\`fill\`/\`stroke\` — **jamais de hex**.
+Couleur : la garde n'accepte pour tout \`fill\`, \`stroke\` et \`stop-color\` que les valeurs qui répondent à
+\`${COULEUR}\` — **jamais de hex**.
 
 ## 3. Régénérer le registre
 

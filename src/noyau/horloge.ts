@@ -22,7 +22,7 @@ export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees)
     avancerLHorloge: (minutes) => {
       set({ gameTime: get().gameTime + minutes });
       fireScheduledEffects(get, set);
-      purgeSurAvanceDHorloge(get, set);
+      purgeSurAvanceDHorloge(get, set, minutes);
     },
   } satisfies FabriqueDuNoyau;
 }

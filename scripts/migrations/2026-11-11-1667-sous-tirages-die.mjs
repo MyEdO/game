@@ -10,7 +10,7 @@
  * Entrées : src/data/stars.json, src/data/peripeties.json.
  *
  * `AVANT` est la constante que posent `2026-11-06-1667-tableaux-racines-mono-tables.mjs` et
- * `2026-11-06-1667-tirage-du-seuil-des-peripeties.mjs`. Un nœud égal à `APRES` : no-op. Toute autre forme,
+ * `2026-11-06-1667-tirage-du-seuil-des-peripeties.mjs`. Un nœud au dé de `APRES`, sous l'une de ses formes (`lib/deDeTirage.mjs`) : no-op. Toute autre forme,
  * un fichier non canonique ou une racine qui n'est pas le document attendu est un ARRÊT nominatif (exit 1),
  * AUCUNE écriture. Rejouée sur l'arbre migré : no-op byte-identique.
  */
@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
+import { vautLeDe } from './lib/deDeTirage.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const AVANT = { dice: { n: 1, sides: 10 } };
@@ -38,7 +39,7 @@ for (const { fichier, type, cle } of CIBLES) {
   const doc = JSON.parse(brut);
   if (brut !== serializeDataset(doc)) { arrets.push(`${fichier} : forme non canonique`); continue; }
   if (!estObjet(doc) || doc.type !== type) { arrets.push(`${fichier} : racine qui n'est pas le document \`${type}\``); continue; }
-  if (isDeepStrictEqual(doc[cle], APRES)) continue;
+  if (estObjet(doc[cle]) && Object.keys(doc[cle]).length === 1 && vautLeDe(doc[cle].die, APRES.die)) continue;
   if (!isDeepStrictEqual(doc[cle], AVANT)) { arrets.push(`${fichier} › ${cle} : forme inattendue ${JSON.stringify(doc[cle])}`); continue; }
   doc[cle] = { ...APRES };
   ecritures.push([chemin, serializeDataset(doc), fichier]);

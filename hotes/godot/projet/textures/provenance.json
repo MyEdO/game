@@ -454,5 +454,59 @@
     "source": "https://ambientcg.com/view?id=Moss002 (Moss002_1K-JPG.zip : Moss002_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--ecorce-hetre.jpg": {
+    "sha256": "e4ba82e6733400c362383795596beae85ef54cd4bc3c732f95e2267259100f21",
+    "source": "https://ambientcg.com/view?id=Bark010 (Bark010_1K-JPG.zip : Bark010_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#8a8272 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ecorce-hetre.neutre.jpg": {
+    "sha256": "ed13e14587b8606493b11c3e4a6735b481e4e367b4a61b4e4e37a819f32edc2c",
+    "source": "https://ambientcg.com/view?id=Bark010 (Bark010_1K-JPG.zip : Bark010_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 55%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ecorce-hetre.normale.jpg": {
+    "sha256": "86dd36b465fef0308f8ba35a73d2b5192e12b67559d4d5e126bd3b1877a07803",
+    "source": "https://ambientcg.com/view?id=Bark010 (Bark010_1K-JPG.zip : Bark010_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--ecorce-pin.jpg": {
+    "sha256": "ea434c7da7a2f92fccbfdcf9125771ea0e2ab85a6e4290d9c6012096e2d95ab8",
+    "source": "https://ambientcg.com/view?id=Bark004 (Bark004_1K-JPG.zip : Bark004_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#7a4a30 ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ecorce-pin.neutre.jpg": {
+    "sha256": "561bfdc84325e24c43183a904e97c4c3c53eabad5b5ff2620d8852a4d3769552",
+    "source": "https://ambientcg.com/view?id=Bark004 (Bark004_1K-JPG.zip : Bark004_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 55%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ecorce-pin.normale.jpg": {
+    "sha256": "25cf797ae735e03191305ff57d5fa666f6ab589b4bff791ddce7479694aa207b",
+    "source": "https://ambientcg.com/view?id=Bark004 (Bark004_1K-JPG.zip : Bark004_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--ecorce.jpg": {
+    "sha256": "961c2c9f37df6c20c666b05240653927aeafaa742bf6af543f88ae2c3e51ba79",
+    "source": "https://ambientcg.com/view?id=Bark012 (Bark012_1K-JPG.zip : Bark012_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : <neutre> -colorspace sRGB -type TrueColor ( -size 1024x1024 xc:#6b5d4c ) -compose Multiply -composite, -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ecorce.neutre.jpg": {
+    "sha256": "fc8be8958d22217e37f34325b5d2decc67724f74133d68cea7a37e8fb68b1737",
+    "source": "https://ambientcg.com/view?id=Bark012 (Bark012_1K-JPG.zip : Bark012_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -colorspace Gray -auto-level +level 55%,100% -colorspace sRGB -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--ecorce.normale.jpg": {
+    "sha256": "43be4b0c87d3fcf6cec23ece130076ad0ae7ab00bf146a76c7c058ba13b5c9de",
+    "source": "https://ambientcg.com/view?id=Bark012 (Bark012_1K-JPG.zip : Bark012_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   }
 }

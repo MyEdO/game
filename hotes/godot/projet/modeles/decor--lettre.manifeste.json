@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "lettre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "papier",
+      "palette": "corps",
+      "matiere": "prop--papier"
+    },
+    {
+      "nom": "cire",
+      "palette": "accent",
+      "matiere": "prop--cire-a-cacheter"
+    }
+  ],
+  "glb": {
+    "sha256": "dadf1883391aa15eb5d2fe213d12e0c8aedfbac56a1023ed01216435aa3fe92e",
+    "octets": 17576
+  }
+}

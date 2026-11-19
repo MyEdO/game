@@ -1,0 +1,13 @@
+{
+  "model": "decor--roseaux.glb",
+  "model_sha256": "ccddb943e5cb4836c4c39f89c027d9269b18322a0b28ea6f59cdfcd15ba1064c",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

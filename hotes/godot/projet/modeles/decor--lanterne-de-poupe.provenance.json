@@ -1,0 +1,13 @@
+{
+  "model": "decor--lanterne-de-poupe.glb",
+  "model_sha256": "a79cc3743619acf1770e0f59b77439b6f87919076cf7523a31a1d0dd9c034a2d",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -7,6 +7,12 @@ import type { IconFamily } from '../types';
 const K = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
 const KF = 'fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"';
 const F = 'fill="currentColor" stroke="none"';
+/** La silhouette du dé à dix faces vu de trois quarts : les deux pointes et la ceinture en zigzag aux flancs. */
+const DE_SILHOUETTE = 'M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z';
+/** La face de devant, en cerf-volant : sa pointe au sommet, ses arêtes courtes jointes au bas de la ceinture. */
+const DE_FACE = 'M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z';
+/** Le trait du dé, à l'encre. */
+const DE_TRAIT = 'fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round"';
 
 export const icons: IconFamily = [
   {
@@ -42,6 +48,14 @@ export const icons: IconFamily = [
       `<path ${F} d="M16.3 20.4 V7.6 H17.6 V9.1 H18.9 V7.6 H20.2 V20.4 Z"/>` +
       `<path ${K} d="M8 11 C9.9 8.3 14.1 8.3 16 11"/>` +
       `<path ${KF} d="M10.5 5.8 C11.1 5.2 11.6 5.2 11.9 5.7 M11.9 5.7 C12.2 5.2 12.7 5.2 13.3 5.8"/>`,
+  },
+  {
+    id: 'navigation/atelier',
+    label: 'Atelier',
+    // Enclume du forgeron sur son billot.
+    svg:
+      `<path ${K} d="M4 8 H17 C17 10 15.5 11.5 13 11.5 V15 H16 V19 H7 V15 H10 V11.5 C7 11.5 4 10.5 4 8 Z"/>` +
+      `<path ${K} d="M17 8 H20.5"/>`,
   },
   {
     id: 'navigation/regles-maison',
@@ -171,11 +185,17 @@ export const icons: IconFamily = [
   {
     id: 'navigation/des',
     label: 'Tirage',
-    // Dé à dix faces (d100 du jeu) : face en cerf-volant et arêtes rayonnantes.
+    // Dé à dix faces (d100 du jeu), trapézoèdre pentagonal posé, pièce pleine à ses matières : face de devant claire et
+    // large, faces en fuite et faces du bas à peine ombrées (jour en haut à gauche), arêtes fines à l'encre. Le chiffre
+    // posé par le jeu va au centre de la face (12, 12.2).
     svg:
-      `<path ${K} d="M12.1 3.1 L18.9 8.5 L17.1 16.7 L12 20.9 L6.9 16.7 L5.1 8.5 Z"/>` +
-      `<path ${KF} d="M12.1 3.1 L8.3 10.6 L12 14.5 L15.9 10.6 Z"/>` +
-      `<path ${KF} d="M12 14.5 V20.9 M8.3 10.6 L5.1 8.5 M8.3 10.6 L6.9 16.7 M15.9 10.6 L18.9 8.5 M15.9 10.6 L17.1 16.7"/>`,
+      `<path d="${DE_SILHOUETTE}" fill="var(--parchment)"/>` +
+      `<path d="M12 1 L21.5 9.9 V14.1 L19.2 13.6 Z" fill="var(--ink)" opacity="0.08"/>` +
+      `<path d="M12 23 V18.4 L4.8 13.6 L2.5 14.1 Z" fill="var(--ink)" opacity="0.1"/>` +
+      `<path d="M12 23 V18.4 L19.2 13.6 L21.5 14.1 Z" fill="var(--ink)" opacity="0.18"/>` +
+      `<path d="${DE_FACE}" fill="var(--ivoire)"/>` +
+      `<path ${DE_TRAIT} stroke-width="0.5" d="${DE_FACE} M4.8 13.6 L2.5 14.1 M19.2 13.6 L21.5 14.1 M12 18.4 V23"/>` +
+      `<path ${DE_TRAIT} stroke-width="0.8" d="${DE_SILHOUETTE}"/>`,
   },
   {
     id: 'navigation/mutation',

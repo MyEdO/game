@@ -4,13 +4,17 @@
 ## une liste déroulante, le `jeu` de la valeur choisie ; le bouton d'un formulaire, son verbe et les arguments saisis
 ## sous le composant (`Saisie.arguments`) ; la glissière d'un curseur, son verbe, ses arguments et la valeur que le
 ## joueur lui donne, un glissement fini (#4081) ou tout autre changement hors glissement (sa boîte à nombre, les
-## flèches) ; la molette ne la règle pas, elle défile la liste qui la porte ; refusé, le curseur ne se règle pas. Le geste en `focus` le prend : l'Entrée le joue. La
+## flèches) ; la molette ne la règle pas, elle défile la liste qui la porte ; refusé, le curseur ne se règle pas et se
+## trace fermé (`FERME`). Le geste en `focus` le prend : l'Entrée le joue. La
 ## touche d'un bouton (`touche`, une action de l'`InputMap`) le joue comme son clic, son contrôle montré, quand aucun
 ## contrôle ne l'a prise avant lui (`_unhandled_input`) ; un bouton refusé la joue aussi, et le noyau dit son refus. Un
 ## bouton à bascule garde l'état que la vue lui donne (`presse`) : seule une vue suivante le change, jamais le clic ni
 ## son refus.
 class_name Geste
 extends Node
+
+## Ce que trace un curseur refusé : gris et estompé (`art/ferme.gdshader`).
+const FERME := preload("res://art/ferme.tres")
 
 ## La boîte à nombre d'un curseur, reliée à sa glissière (`Range.share`).
 @export var boite: SpinBox
@@ -37,8 +41,11 @@ func poser(element: Dictionary, zone: Zone) -> void:
 	_element = element
 	_zone = zone
 	if get_parent() is Slider:
-		(get_parent() as Slider).editable = element.refus == null
-		boite.editable = element.refus == null
+		var ouvert: bool = element.refus == null
+		(get_parent() as Slider).editable = ouvert
+		boite.editable = ouvert
+		for trace: CanvasItem in [get_parent(), boite, boite.get_line_edit()]:
+			trace.material = null if ouvert else FERME
 		return
 	if element.get("focus") == true:
 		_prendre_le_focus.call_deferred()
@@ -54,7 +61,7 @@ func _presser() -> void:
 	var cible := get_parent() as BaseButton
 	if cible.toggle_mode:
 		cible.set_pressed_no_signal(_element.presse)
-	if _element.type == "formulaire":
+	if _element.type == Noyau.TypeDElement.FORMULAIRE:
 		_jouer({type = _element.verbe, args = Saisie.arguments(owner, _element.champs)})
 	else:
 		_jouer(_element.jeu)

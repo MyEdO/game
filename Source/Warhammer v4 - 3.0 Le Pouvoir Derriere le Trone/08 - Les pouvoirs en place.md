@@ -283,7 +283,7 @@ Si les Personnages ont déjà fait leur connaissance, cette option sera la moins
 La Guilde des Médecins de Middenheim est plutôt pointilleuse sur les personnes qu'elle accepte. Aux yeux du Conseil de la Guilde des Médecins, l'hypnotisme relève de la charlatanerie. Toutefois, si les Personnages ne trouvent pas d'hypnotiseur ailleurs, et s'ils font attention à la façon dont ils approchent la Guilde, ils peuvent y trouver leur bonheur. Le prix initial proposé sera de 3 CO et doublera dès que le médecin connaîtra l'identité du patient.
 
 
-#### **Le Temple de Shallya**
+#### <span id="page-90-0" data-folio="88"></span>**Le Temple de Shallya**
 
 Si l'on s'y prend correctement (en racontant, par exemple, l'histoire d'un ami souffrant d'une maladie mentale qui semble avoir été provoquée par l'hypnose), on peut bénéficier des services de Maria Ferberg, qui, bien qu'encore novice, possède des pouvoirs d'hypnose décents (Hypnotisme 55). Elle propose ses services gratuitement, mais faire un don au temple serait la moindre des choses.
 

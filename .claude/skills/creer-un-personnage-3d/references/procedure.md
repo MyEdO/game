@@ -715,7 +715,7 @@ passe par aucune rotation de `mathutils` (`rotation_difference`, `Quaternion`, `
 trigonométrie en simple précision change d'une libm à l'autre et déplace les sommets : un repère se transporte par
 produits vectoriels (`transporter` de `decor/arbre/modele.py`). `test_decor.py` refuse un sommet du GLB publié (lu dans le cache
 des modèles à l'empreinte de son manifeste) hors de cette enveloppe, sol compris, à 1 mm près. Une enveloppe qui empêche un modèle correct se rapporte, avec la cote qui gêne ; le modèle ne
-change pas la recette.
+change pas la recette. Chaque pièce est une coque close aux faces vers le dehors : `test_decor.py` refuse un nœud du GLB publié qui a une arête non appariée ou une coque soudée de volume négatif ou nul (`glb.coques_en_defaut`).
 
 **Repère et cap.** La recette est en mètres, origine à l'ancre, `xM` à l'est, `yM` vers son front au cap d'identité
 (`CAP_IDENTITE_PROP`, `src/data/props.types.ts`), `hM` vers le haut. En Blender, (x, y, z) = (xM, -yM, hM) : le front vers
@@ -747,6 +747,50 @@ bâti. Un décor saisonnier se regarde en chacune de ses saisons. La recette ren
 `hotes/godot/projet/recettes/saisons-du-decor.gd` (`npm run godot:rendus`) lit aux pixels le chêne en chaque saison.
 
 Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner.
+
+## 11. Arête
+
+Les pièces qu'un hôte pose sur les arêtes d'une scène (catégorie `arete`, clé `{ "kit": <famille> }`, le `kit` d'une
+apparence de `src/data/structureAppearance.json`) se construisent depuis le dépôt, sans base, par le constructeur commun
+`scripts/personnage-3d/construire.py`, un dossier par kit, `scripts/personnage-3d/arete/<kit>/` : `donnees.py`
+(`MATERIAUX`, `BUDGET_TRIANGLES` par pièce, chaque cote nommée, les illustrations directrices) et `modele.py`
+(`elements(D)`, par `arete/geometrie.py`). Un kit est un GLB, `arete--<kit>`, un nœud racine à mesh par pièce
+(`PieceDArete`, `src/noyau/monde/aretes.ts`) : `mur`, `porte-fermee`, `porte-ouverte`, `fenetre`, `fenetre-close`,
+`breche`.
+
+**Repère et taille.** Chaque pièce est à l'origine de l'arête, à sa taille réelle : X le long d'elle, centrée, sur la
+longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son épaisseur, centrée, le dehors vers +Z
+(`arete/geometrie.py`). Un demi-poteau ou une chaîne de pierres à chaque bout se complète de celui de la pièce voisine.
+L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du
+plateau (`MiseEnPage.echelle_d_arete_servie`).
+
+**Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
+nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
+la couleur de l'apparence posée. Une baie est percée de part en part.
+
+**Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
+`menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
+des kits de pierre (assises, chaînes, couronnement, brèche). Un kit les pose, il ne les recopie pas. La forme
+d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit reçoivent
+cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour (`test_arete.py`).
+
+**Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py arete/<kit> --sortie /atelier/<kit>
+npm run godot:valider -- /atelier/<kit>/arete--<kit>/arete--<kit>.element.json \
+  /atelier/<kit>/arete--<kit>/arete--<kit>.glb
+node hotes/godot/importer.mjs /atelier/<kit>/arete--<kit> arete--<kit> --sans-publier
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.py <kit> --apparence <id> \
+  --modeles /atelier/<kit> --sortie /atelier/revue-<kit>
+```
+
+`arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
+de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
+chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
+reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque
+`arete--*` publié.
+Publier comme un véhicule (chapitre 9, « Publier »).
 
 ## Disponibilité à sonder avant chaque production
 

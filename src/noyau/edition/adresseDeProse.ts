@@ -18,9 +18,8 @@ import { estAdresseDeProse } from '../../data/schemas/grammaire/valeurs';
 import { coDescendre, estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
-import { estObjet } from '../../lib/objet.mjs';
+import { auChemin, estObjet } from '../../lib/objet.mjs';
 import type { ChoixDuContexte } from '../codex/editFields';
-import { gestesDeLaListe } from '../valeursNeuves';
 import type { Segment } from './formulaire';
 import { t } from '../../i18n';
 
@@ -127,10 +126,6 @@ export function adressesDe(schema: unknown, donnee: unknown): AdresseAuChemin[] 
   });
   return adresses;
 }
-
-/** La valeur de `o` au chemin `chemin`, `undefined` hors de lui. */
-const auChemin = (o: unknown, chemin: readonly Segment[]): unknown =>
-  chemin.reduce<unknown>((v, pas) => (estObjet(v) || Array.isArray(v) ? (v as Record<Segment, unknown>)[pas] : undefined), o);
 
 /** `o` où la valeur au chemin `[cle, ...reste]` vaut `v`. */
 function pose(o: unknown, [cle, ...reste]: readonly Segment[], v: unknown): unknown {
@@ -297,14 +292,6 @@ function choixDuFragment(chapitre: ChapitreParse, f: Fragment | undefined): Choi
   ];
 }
 
-/** Les fragments `parts` d'une adresse après chacun de leurs gestes (`gestesDeLaListe`) : retiré, monté, et, sur le
- *  chapitre chargé `chapitre`, chaque fragment neuf ajouté (`choixDuFragment`). */
-function choixDesFragments(chapitre: ChapitreParse | null | undefined, parts: readonly Fragment[]): ChoixDuContexte[] {
-  const { elements } = gestesDeLaListe(parts, undefined);
-  const ajouts = chapitre ? choixDuFragment(chapitre, undefined).map((c) => choix([...parts, c.valeur], c.libelle)) : [];
-  return [...ajouts, ...elements.flatMap(({ retirer, monter }) => [retirer, ...(monter ? [monter] : [])]).map((l) => choix(l, ''))];
-}
-
 /** Les slugs des sections adressables, chacun une fois, sous le libellé de sa première occurrence. */
 const choixDesSections = (chapitre: ChapitreParse): ChoixDuContexte[] =>
   sectionsAdressables(chapitre).filter((s, i, l) => l.findIndex((u) => u.slug === s.slug) === i).map((s) => choix(s.slug, libelleSection(s)));
@@ -335,7 +322,8 @@ function choixDeLaCellule(section: Section, f: Extract<Fragment, { kind: 'cellul
 /**
  * Les choix que l'adresse de prose `adresse` (`undefined` : absente) pose au chemin `reste` sous elle, sur la source
  * `source` ; `undefined` : ceux de son nœud. Absente, chaque livre servi, à composer ; son livre, chaque livre servi ;
- * son chapitre, chaque chapitre du livre ; sous ses fragments, rien sans chapitre chargé, sinon le fragment au rang
+ * son chapitre, chaque chapitre du livre ; ses fragments entiers, aucun (chacun s'écrit à son rang) ; sous ses
+ * fragments, rien sans chapitre chargé, sinon le fragment au rang
  * (`choixDuFragment`), sa section, son occurrence, ses bornes de blocs, et la ligne, la colonne et la table d'une
  * cellule (`choixDeLaCellule`). Un fragment choisi est bâti scellé (`fragmentBlocs`, `fragmentCellule`), l'écriture
  * le rescelle s'il change (`adressesScellees`).
@@ -347,9 +335,9 @@ export function choixDeLAdresse(source: SourceDeLEdition, adresse: DescRef | und
   if (cle === 'book' && rang === undefined) return livres().map(({ book, abbr }) => choix(book, abbr));
   if (cle === 'ch' && rang === undefined) return (source.manifeste?.[adresse.book]?.chapitres ?? []).map((c) => choix(c.ch, libelleChapitre(c)));
   if (cle !== 'parts' || plus.length) return undefined;
-  const chapitre = chapitreDeLAdresse(source, adresse);
-  if (rang === undefined) return choixDesFragments(chapitre, adresse.parts);
+  if (rang === undefined) return [];
   if (typeof rang !== 'number') return undefined;
+  const chapitre = chapitreDeLAdresse(source, adresse);
   if (!chapitre) return [];
   const f = adresse.parts[rang];
   if (champ === undefined) return choixDuFragment(chapitre, f);

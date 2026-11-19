@@ -192,7 +192,7 @@ export function landDumpingPct(place: LandMarketProfile): number | null {
   return hasCommerce(place) ? LAND.vente.pctDeBradage : null;
 }
 
-/** Difficulté du Test de Ragot pour dénicher une rumeur commerciale (l.180) : Ragot Complexe (−10). */
+/** Difficulté du Test de Ragot pour dénicher une rumeur commerciale. MSRC 13 l.180 */
 export const gossipRule = LAND.ragot;
 
 /** Tire une RUMEUR commerciale (Tableau des rumeurs, l.281-303) : le dé de la table (l.283) → une rumeur

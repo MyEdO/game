@@ -1,6 +1,6 @@
 *Pages PDF 20-32*
 
-## OR
+## <span id="page-19-0" data-folio="17"></span>OR
 
 À Altdorf, les Personnages de l'Échelon Or ont tendance à avoir plus de temps libre que les autres. Ils préfèrent le consacrer à des activités qui sont trop onéreuses ou trop sélectives pour les classes inférieures.
 

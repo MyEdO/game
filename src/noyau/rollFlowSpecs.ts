@@ -955,7 +955,7 @@ export const FLOWS = paresseux({
     refusDAnnuler: (_s, pa) => refusDAnnulerLAttaque(pa),
     // « Annuler » : défaire la charge misclic AVANT le jet
     // (positions/orientation/Mouvement/Avantage +1 rendu/chargedThisTurn), no-op sur une 2ᵉ frappe
-    // imposée, fin de balayage pour un cleave, sinon fermeture (+ cascade combat étape 0).
+    // imposée, fin de balayage pour un cleave, sinon fermeture (+ sortie de l'hôte `attaque`).
     onCancel: (get, set) => {
       const pa = get().pendingAttack;
       // Prix de la déclaration payé et non joué (`coutPaye`) : rendu AVANT tout jet, quel que soit le geste.
@@ -965,9 +965,10 @@ export const FLOWS = paresseux({
         const b = get().battle;
         if (b) set({ battle: { ...b, movementUsed: Math.max(0, (b.movementUsed ?? 0) - pa.coutPaye.movement) } });
       }
-      // Annuler ferme aussi la séquence-jet de combat (étape 0 non encore validée).
+      // L'hôte `attaque` au curseur se clôt par la sortie d'hôte (#4255) ; sans lui, seul le pending se ferme.
       const seq = get().pendingCascade;
-      const closeSeq = seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attaque';
+      const hote = seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attaque';
+      const fermer = (): void => { if (hote) sortirDeLHote(get, set, { pendingAttack: null }, () => {}); else set({ pendingAttack: null }); };
       // Charge : Annuler AVANT tout jet (`result===null`) DÉFAIT le misclic tant que la cible n'a pas répondu
       // (`chargeUndo`, posé par le geste) — comme annuler un déplacement, mais pour la manœuvre combinée
       // « déplacement + attaque ». On restaure positions, orientation, Mouvement, Avantage (+1 de charge rendu) et
@@ -980,12 +981,13 @@ export const FLOWS = paresseux({
         const attacker = inBattleId(battle, pa.attackerId);
         if (attacker) { attacker.gainedAdvThisRound = u.gainedAdvBefore; attacker.chargedThisTurn = u.chargedBefore; attacker.chargeAvecAvantage = u.avecAvantageBefore; if (u.advGained) campSpend(get, attacker, u.advGained); } // rend le +1 Avantage de la charge
         clearApproachMoves(attacker); // la charge est DÉFAITE (position d'avant restaurée) : aucune approche due (LDB 21 l.27)
-        set({ facing: { ...u.facing }, battle: { ...battle, movementUsed: u.movementUsed, movedPreAction: u.movedPreAction, action: null, reachable: new Map(), preview: null }, pendingAttack: null, ...(closeSeq ? { pendingCascade: null } : {}) });
+        set({ facing: { ...u.facing }, battle: { ...battle, movementUsed: u.movementUsed, movedPreAction: u.movedPreAction, action: null, reachable: new Map(), preview: null } });
+        fermer();
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
       if (pa?.cleave) { set({ pendingAttack: null }); return get().fenetreFermer('frappeMortelle'); } // annuler = terminer le balayage (sa sortie clôt la cascade)
-      set({ pendingAttack: null, ...(closeSeq ? { pendingCascade: null } : {}) });
+      fermer();
     },
   }),
 
@@ -1551,7 +1553,7 @@ export const FLOWS = paresseux({
     cloture: (p) => (maladresseCourante(p) ? null : 'sansJet'),
     rolled: (st) => !!st.maladresse?.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
-    resolve: (_s, st) => (st.maladresse ? { maladresse: { ...st.maladresse, result: rollOups(st.maladresse.weapon, battleRng()) } } : null),
+    resolve: (_s, st) => (st.maladresse ? { maladresse: { ...st.maladresse, result: rollOups(battleRng()) } } : null),
     outcome: (st) => sealOutcome(true, 0, st.maladresse?.result?.roll ?? 0, 100),
   }),
 
@@ -1953,8 +1955,9 @@ export const FLOWS = paresseux({
       // la bande — comme sur l'étape mono) ouvre le verbe ; `resolve` reçoit alors `{ sl: BE }`.
       resister: true,
     },
-    resolve: (s, r, actor, _get, forced) => {
-      if (!actor) return null; // rangée sans acteur résoluble (parité historique) — pas de jet
+    // Le jet se lit sur la RANGÉE (cible bakée) : une rangée de monde (`WORLD_STEP_OWNER`, sans fiche) se lance
+    // comme les autres, et `actor` absent ferme seul les influences (`fermetures`). #4243
+    resolve: (s, r, _actor, _get, forced) => {
       if (refusSansJet(r) != null) return null; // ligne non tentable : ni jet, ni Résilience, ni Résistance (LDB 09 l.30 ; #2588 Q1)
       // Résistance (Menace), LDB 10 l.1016-1020 : auto-succès de CETTE rangée à DR IMPOSÉ (aucun dé,
       // aucune ré-opposition — calque de l'étape MONO) ; les autres rangées de la bande sont intactes.

@@ -1,0 +1,13 @@
+{
+  "model": "decor--cocon.glb",
+  "model_sha256": "f07eb9ec971cdda94abcae0b2c819bf2c4a00c23c94cac3dcaa52a4ccd67d212",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

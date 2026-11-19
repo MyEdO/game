@@ -18,7 +18,7 @@ import { traumaById, dechirureFractureFicheId, avecSequelles } from '../engine/t
 import { d10 } from '../engine/dice';
 import { effectiveChar } from '../engine/characteristics';
 import { applyExposureFailure } from '../engine/exposure';
-import { traumaOnImpossibleAmbition } from '../engine/psychology';
+import { calmeDAcquisition } from '../engine/psychology';
 import { entreeEnRencontre, carryOverState, isPersistentCondition, REPORT_DE_COMBATTANT } from '../engine/persistence';
 import { bourseInstanceOf, bourseOf } from '../engine/bourse';
 import { t } from '../i18n';
@@ -111,9 +111,9 @@ describe('coutures du héros en combat (#2312)', () => {
 
       for (const graine of [1, 2, 3, 5, 8]) {
         id = combat(); seedBattleRng(graine); jouer({ type: 'ambitionLost', heroId: id });
-        const nouvA = [cbt(id).psychTraits ?? [], tirages()];
-        id = combat(); seedBattleRng(graine); const res = traumaOnImpossibleAmbition(grp(id), battleRng());
-        expect(nouvA).toEqual([res?.trait ? [res.trait] : [], tirages()]);
+        const nouvA = tirages();
+        id = combat(); seedBattleRng(graine); calmeDAcquisition(grp(id), 'accessible', battleRng());
+        expect(nouvA).toEqual(tirages());
       }
     } finally { resetRule('psycho-acquisition-optionnelle'); }
   });

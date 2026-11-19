@@ -14,7 +14,7 @@ import type { Layers } from './sceneEditLecture';
 import { setEdgeWall } from './sceneEdit';
 import type { CellSide } from './monde/scene';
 
-/** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `ArchitectureRect`). */
+/** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `RectDeCases`). */
 export interface PlanRect { x: number; y: number; w: number; h: number }
 
 /** Arêtes BRUTES (côté N/E/S/O vu de la case) du POURTOUR de l'union de `rects` — jamais une arête

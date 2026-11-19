@@ -18,22 +18,22 @@ func poser(element: Dictionary, _zone: Zone) -> void:
 func lire() -> Array:
 	var cible := get_parent()
 	match _element.type:
-		"fixe":
+		Noyau.TypeDeSaisie.FIXE:
 			return [_element.valeur]
-		"saisieObjet":
+		Noyau.TypeDeSaisie.SAISIE_OBJET:
 			return [Saisie.objet(cible, _element.champs)]
-		"saisieChoix":
+		Noyau.TypeDeSaisie.SAISIE_CHOIX:
 			var liste := cible as OptionButton
 			return [] if liste.selected == -1 else [_element.valeurs[liste.selected].valeur]
-		"saisieCoches":
+		Noyau.TypeDeSaisie.SAISIE_COCHES:
 			var cases := cible.get_children().filter(func(n: Node) -> bool: return n is CheckBox)
 			return [range(cases.size()).filter(func(i: int) -> bool: return (cases[i] as CheckBox).button_pressed).map(func(i: int) -> Variant: return _element.valeurs[i].valeur)]
-		"saisieNombre":
+		Noyau.TypeDeSaisie.SAISIE_NOMBRE:
 			return [(cible as SpinBox).value]
-	var texte: String = (cible as TextEdit).text if _element.type == "saisieMultiligne" else (cible as LineEdit).text
+	var texte: String = (cible as TextEdit).text if _element.type == Noyau.TypeDeSaisie.SAISIE_MULTILIGNE else (cible as LineEdit).text
 	if texte.is_empty():
 		return []
-	return [JSON.parse_string(texte)] if _element.type == "saisieJson" else [texte]
+	return [JSON.parse_string(texte)] if _element.type == Noyau.TypeDeSaisie.SAISIE_JSON else [texte]
 
 
 ## Les saisies sous `racine`, par l'id de leur élément.

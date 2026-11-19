@@ -1,0 +1,8 @@
+[gd_resource type="Theme" load_steps=2 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+
+[resource]
+Rubrique/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+Rubrique/font_sizes/font_size = 20
+Rubrique/fonts/font = ExtResource("1_titres")

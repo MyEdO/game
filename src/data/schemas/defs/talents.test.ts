@@ -8,9 +8,9 @@
 import { describe, expect, it } from 'vitest';
 import { schema } from './talents';
 import talentsJson from '../../talents.json';
+import { talents } from '../../index';
 
-type Talent = { id: string; test?: unknown };
-const TALENTS = talentsJson as unknown as Talent[];
+const TALENTS = talents;
 
 /** Le document réel, avec le `test` d'UN talent porteur de spec fixe remplacé. */
 const avec = (test: unknown) => TALENTS.map((t) => (t.id === 'combat-deloyal' ? { ...t, test } : t));

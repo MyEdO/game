@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { enfantsDe } from './schemas/grammaire/descente';
 import { document } from './schemas/grammaire/document';
-import { executeesDe } from './schemas/grammaire/mecanique';
+import { executeesDe, refDEtatSchema } from './schemas/grammaire/mecanique';
 import { nommerChamps, nommerNoeud } from './schemas/grammaire/meta';
 import { idDe, ref } from './schemas/grammaire/ref';
 import { formulaSinSchema } from './schemas/grammaire/valeurs';
@@ -133,10 +133,12 @@ describe('clé d’un site', () => {
     const sansDiscriminant = z.union([z.lazy(() => z.union([z.strictObject({ sum: z.number() }), z.number()])), z.strictObject({ sum: z.string() })]);
     const cles = noeudsDeStructure([{ file: 'x.json', root: 'src/data', famille: 'config', schema: z.strictObject({ type: z.literal('x'), v: sansDiscriminant }) }]).map((n) => n.ref);
     expect(cles).toEqual(['.v|<lazy>|{sum}', '.v|{sum}']);
-    const somme = noeudsDeStructure().find((n) => n.fichier === 'src/data#miscast' && n.ref === '[].entries[].ops[].amount|{sum}');
-    expect(somme?.noeud, 'la clé `amount|{sum}` de miscast.json nomme la somme de `formulaSinSchema`, pas celle de `formulaSchema`.').toBe(
-      options(formulaSinSchema)[2],
-    );
+    const sites = noeudsDeStructure().filter((n) => n.fichier === 'src/data#miscast');
+    const somme = sites.find((n) => n.noeud === options(formulaSinSchema)[0])?.ref ?? '';
+    expect(somme, 'la somme de `formulaSinSchema` a sa clé `|{sum}` dans miscast.json').toMatch(/[^>]\|\{sum\}$/);
+    const generale = sites.find((n) => n.ref === somme.replace(/\|\{sum\}$/, '|<lazy>|{sum}'));
+    expect(generale, 'la somme de `formulaSchema` a sa clé propre, sous `|<lazy>`').toBeDefined();
+    expect(generale?.noeud).not.toBe(options(formulaSinSchema)[0]);
   });
 
   it('nom de branche : discriminant, clés déclarées et valeurs littérales, type', () => {
@@ -191,5 +193,21 @@ describe('clé d’un site', () => {
       expect(noeudsDeStructure(defs).map((n) => `${n.ref} ${n.empreinte}`)).toEqual(['.v *:intersection,b:number,id:intersection']);
       expect(cheminsDeDocument(defs).find((c) => c.ref === '.v.id')?.etat, 'une référence conjointe à une chaîne reste une référence').toBe('idDe');
     });
+  });
+});
+
+describe('état d’un chemin de document', () => {
+  it('un objet dont l’`id` est une référence emboîtée la PORTE, il n’en est pas une', () => {
+    const porteurs = z.strictObject({
+      type: z.literal('x'),
+      refs: z.array(ref('talent')),
+      rangees: z.array(z.strictObject({ id: ref('talent').shape.id, count: z.number() })),
+      miroir: z.array(z.strictObject({ op: z.string(), id: refDEtatSchema.optional() })),
+      porteur: z.array(z.strictObject({ op: z.literal('condition'), id: refDEtatSchema })),
+      nues: z.array(z.string()),
+    });
+    const defs: SchemaDef[] = [{ file: 'x.json', root: 'src/data', famille: 'config', schema: porteurs }];
+    const etats = Object.fromEntries(cheminsDeDocument(defs).filter((c) => /^\.[a-z]+\[\]$/.test(c.ref)).map((c) => [c.ref, c.etat]));
+    expect(etats).toEqual({ '.refs[]': 'idDe', '.rangees[]': 'idDe', '.miroir[]': 'libre', '.porteur[]': 'libre', '.nues[]': 'libre' });
   });
 });

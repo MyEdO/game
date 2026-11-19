@@ -25,6 +25,7 @@ const PIXELS := preload("res://recettes/lecture_des_pixels.gd")
 const LARGEUR := 8
 const HAUTEUR := 6
 const METRES_PAR_CASE := 2.0
+const PLATEAU := {w = LARGEUR, h = HAUTEUR, metresParCase = METRES_PAR_CASE}
 ## Les teintes de `src/data/ambiance.json` (`fogTint`).
 const TEINTES := {visible = 1.0, explored = 0.42, unknown = 0.15}
 const VUE := 255
@@ -35,7 +36,8 @@ const TOLERANCE := 0.04
 ## `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs` ; `projet/scripts/monde.gd`, `@contrat Monde`.
 const CREUX_DU_PILOTE := 0.1
 ## Le mur du kit sépare la case (2, 4), la sienne, de sa voisine (2, 3) ; la boîte, (5, 4) de (5, 3).
-const MUR := {cle = "kit", famille = "colombage", milieu = {x = 2.0, y = 3.5}, cases = [{x = 2, y = 4, z = 0}, {x = 2, y = 3, z = 0}]}
+const MUR := {cle = "kit", famille = "pierre", milieu = {x = 2.0, y = 3.5},
+	cases = [{x = 2, y = 4, z = 0}, {x = 2, y = 3, z = 0}]}
 const BOITE := {cle = "boite", famille = null, milieu = {x = 5.0, y = 3.5}, cases = [{x = 5, y = 4, z = 0}, {x = 5, y = 3, z = 0}]}
 ## Le moins de pixels (un sur deux de chaque sens) loin du bord d'un mur cadré de près, et la part d'entre eux que le
 ## rendu peut mêler au sol vu à travers la pièce du kit (un pixel sur 15 500 en tactique).
@@ -135,7 +137,8 @@ static func monde_du_bati(racine: Node) -> Monde:
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [sol]}, toits = toits, couronnes = couronnes},
 		{volume = [sol], toits = toits, couronnes = couronnes})
 	monde.volume.poser_les_aretes([MUR, BOITE].map(func(a: Dictionary) -> Dictionary:
-		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, piece = "mur", bloc = "0/0/0"})))
+		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, palette = {}, piece = Noyau.Piece.MUR,
+			bloc = "0/0/0"})))
 	return monde
 
 
@@ -143,7 +146,7 @@ static func monde_du_bati(racine: Node) -> Monde:
 static func regarder(monde: Monde, regard: String) -> void:
 	monde.regarder(regard)
 	if regard == "immersion":
-		monde.poser_l_oeil(Vector3(LARGEUR / 2.0, 7.0, HAUTEUR + 4.0), 0.0, -1.0)
+		monde.poser_l_oeil(Vector3(LARGEUR / 2.0, 8.0, HAUTEUR + 4.0), 0.0, -0.8)
 	else:
 		monde.cadrer(Vector3(LARGEUR / 2.0, 0.0, HAUTEUR / 2.0), 0.0, 14.0)
 
@@ -176,22 +179,22 @@ func _entre(monde: Monde, regard: String, objets: Dictionary) -> void:
 	volume.voir(null)
 
 
-## Sous l'éclairage d'un extérieur du jeu (`PIXELS.LUMIERE_DU_JEU`), sous deux caméras : la tactique d'un demi-tour (azimut
-## 180), en plongée vers la face du mur du kit et de la boîte que son soleil laisse à l'ombre, et l'œil de l'immersion
-## au ras du sol, qui le voit en rasant : toute explorée, toute inconnue, chacun, le sol compris, à la part de lumière
-## de son état, contre le témoin sans vision, à `TOLERANCE` près sous Forward+, brouillard volumétrique allumé, et sous
-## le rendu de compatibilité au plus `TOLERANCE` au-dessus et `CREUX_DU_PILOTE` de plus au-dessous.
+## Sous l'éclairage d'un extérieur du jeu de chaque regard (`PIXELS.LUMIERE_DU_JEU`), sous deux caméras : la tactique d'un
+## demi-tour (azimut 180), en plongée vers la face du mur du kit et de la boîte que son soleil laisse à l'ombre, et l'œil
+## de l'immersion au ras du sol, qui le voit en rasant : toute explorée, toute inconnue, chacun, le sol compris, à la
+## part de lumière de son état, contre le témoin sans vision, à `TOLERANCE` près sous Forward+, brouillard volumétrique
+## allumé, et sous le rendu de compatibilité au plus `TOLERANCE` au-dessus et `CREUX_DU_PILOTE` de plus au-dessous.
 func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 	var volume := monde.volume
-	(monde.get_node("Lumiere") as Lumiere).eclairer(PIXELS.LUMIERE_DU_JEU, METRES_PAR_CASE)
 	var lus := objets.merged({sol = [monde.get_node("VolumeDeScene/Volume/Morceaux").get_child(0).get_node("Vu")]})
 	var creux := 0.0 if Lumiere.rendu_complet() else CREUX_DU_PILOTE
 	for camera in ["en plongée", "au ras du sol"]:
+		var regard := "tactique" if camera == "en plongée" else "immersion"
+		(monde.get_node("Lumiere") as Lumiere).eclairer(PIXELS.LUMIERE_DU_JEU[regard], PLATEAU)
+		monde.regarder(regard)
 		if camera == "en plongée":
-			monde.regarder("tactique")
 			monde.cadrer(Vector3(3.5, 0.0, 3.5), MiseEnPage.lacet_de_l_azimut(180.0), 10.0)
 		else:
-			monde.regarder("immersion")
 			monde.poser_l_oeil(Vector3(LARGEUR / 2.0, 3.5, HAUTEUR + 4.0), 0.0, -0.25)
 		volume.voir(null)
 		var temoin := await PIXELS.image(self)
@@ -211,9 +214,9 @@ func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 				if masques[nom].is_empty():
 					continue
 				var part := PIXELS.part(temoin, voilee, masques[nom])
-				print("[voile-du-bati] sous le ciel du jeu, %s, %s : %s %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
+				print("[voile-du-bati] sous la lumière du jeu, %s, %s : %s %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
 				if part - etat[1] > TOLERANCE or part - etat[1] < -(TOLERANCE + creux):
-					_fautes.append("sous le ciel du jeu, %s, %s : %s à la part %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
+					_fautes.append("sous la lumière du jeu, %s, %s : %s à la part %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
 		volume.voir(null)
 
 

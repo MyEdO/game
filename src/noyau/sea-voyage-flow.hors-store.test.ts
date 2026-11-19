@@ -6,7 +6,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import {
   buildSeaPlan, portRepairVessel, installerLAmelioration, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
-  buildOverspeedSteps, engineerOf, etapeDEquipage, type SeaVoyageState,
+  buildOverspeedSteps, engineerOf, etapeDEquipage, entrerDansLeTourbillon, type SeaVoyageState,
 } from './seaVoyageFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -37,8 +37,13 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate, tableSpec } from './cascade';
-import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
+import { feedFromMeal, noterLeRepas } from '../engine/provisions';
+import { MINUTES_PER_DAY } from '../engine/clock';
+import type { Id } from '../data/schemas/grammaire/ref';
+import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
+import { savoirOceansBonus } from '../engine/seaNavigation';
+import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
 import { rollLine } from './ligneDeJet';
@@ -419,16 +424,87 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
   });
 });
 
-describe('Infestation de rats géants — Extermination des nuisibles Complexe (MDG 15 l.159-164)', () => {
+/** Groupe de prétirés, poste ÉPINGLÉ par index (`shipRole`, le geste du roster) ; Voile aux index
+ *  `voile`, aucun autre porteur de Voile ni de Ramer. */
+function equipage(postes: (string | undefined)[], voile: number[]): Combatant[] {
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, postes.length).map((h, i) => ({
+    ...h,
+    ...(postes[i] ? { shipRole: postes[i] } : {}),
+    skills: [...h.skills.filter((sk) => sk.id !== 'voile' && sk.id !== 'ramer'), ...(voile.includes(i) ? [{ id: 'voile', spec: 'cogue', characteristic: 'agilite' as const, advances: 10 }] : [])],
+  }));
+  set({ party } as never);
+  return party;
+}
+
+describe('Tourbillon — l’Évasion se joue à la Difficulté du gabarit (MDG 13 l.531-535)', () => {
   beforeEach(freshState);
 
-  function driveDayCaptureExtermination(): number | undefined {
-    let extra: number | undefined;
+  function evasion(whirlpoolId: string): CascadeStep {
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    entrerDansLeTourbillon(get, set, whirlpoolId, whirlpoolId);
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
-      if (cur?.kind === 'equipage-extermination') extra = Number(cur.meta?.aggregateFlatDR ?? 0) || undefined;
+      if (cur?.kind === 'equipage-tourbillon') return cur;
+      stepCascade();
+    }
+    throw new Error(`aucune étape d’Évasion jouée pour ${whirlpoolId}`);
+  }
+
+  it.each([
+    ['tourbillon', 'intermediaire'],
+    ['maelstrom', 'difficile'],
+    ['rotation-lente', 'accessible'],
+  ] as const)('%s : chaque membre jette l’Évasion %s, aucun DR plat sur le total (MDG 14 l.13)', (whirlpoolId, difficulte) => {
+    const reference = Number(evasion('tourbillon').meta?.aggregateFlatDR ?? 0);
+    freshState();
+    const st = evasion(whirlpoolId);
+    expect(membresHorsDifficulte(st, difficulte)).toEqual([]);
+    expect(Number(st.meta?.aggregateFlatDR ?? 0)).toBe(reference);
+  });
+
+  // MSRC 12 l.66/140 ; Test de Navigation = Compétence de propulsion (MDG 13 l.17-19), Manœuvre comprise (l.119).
+  it.each([
+    ['bouteur', 'Bouteur', 20],
+    ['greement-de-course', 'Gréement de course', -10],
+  ] as const)('%s : ligne nommée %s sur la cible des seules rangées qui jettent la Compétence de propulsion, aucun DR plat', (traitId, label, value) => {
+    const postes = ['capitaine', 'timonier', 'mousse', 'navigateur'];
+    equipage(postes, [1, 2]);
+    const sans = evasion('tourbillon');
+    freshState();
+    equipage(postes, [1, 2]);
+    set({ vessel: { ...get().vessel!, upgrades: [{ id: traitId }] } });
+    const avec = evasion('tourbillon');
+    const navigation = navigationDuNavire(get, get().travelPlan!.vehicle!);
+    const rangees = avec.participants!;
+    const propulsion = rangees.filter((r) => r.skill?.id === navigation.id);
+    const autres = rangees.filter((r) => r.skill?.id !== navigation.id);
+    expect(propulsion.map((r) => r.roleId).sort()).toEqual(['mousse', 'timonier']);
+    expect(autres.length).toBeGreaterThan(0);
+    for (const r of propulsion) {
+      expect(r.mods).toContainEqual({ label, value, famille: 'circonstance', ref: { category: 'navalTraits', id: traitId } });
+      expect(r.target).toBe(sans.participants!.find((s) => s.id === r.id)!.target! + value);
+    }
+    for (const r of autres) {
+      expect(r.mods?.some((m) => m.label === label)).toBeFalsy();
+      expect(r.target).toBe(sans.participants!.find((s) => s.id === r.id)!.target);
+    }
+    expect(membresHorsDifficulte(avec, 'intermediaire')).toEqual([]);
+    expect(Number(avec.meta?.aggregateFlatDR ?? 0)).toBe(Number(sans.meta?.aggregateFlatDR ?? 0));
+  });
+});
+
+describe('Infestation de rats géants — Extermination des nuisibles Complexe (MDG 15 l.159-164)', () => {
+  beforeEach(freshState);
+
+  function driveDayCaptureExtermination(): CascadeStep | undefined {
+    let extra: CascadeStep | undefined;
+    for (let i = 0; i < 30 && !get().pendingRest; i++) {
+      const p = get().pendingCascade;
+      if (!p) break;
+      const cur = p.participants[p.cursor];
+      if (cur?.kind === 'equipage-extermination') extra ??= cur;
       stepCascade();
     }
     return extra;
@@ -442,10 +518,12 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
     return get().vessel!.infestation!;
   }
 
-  it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
+  it('Complexe (–10) : chaque membre jette l’Extermination Complexe, aucun DR plat sur le total (MDG 14 l.13)', () => {
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     set({ vessel: { ...get().vessel!, infestation: { label: 'Infestation de rats géants', crewTestType: 'extermination-nuisibles', difficulty: 'complexe', drCible: 25, progres: 0, chaqueNuit: EMPTY_FLOW } } });
-    expect(driveDayCaptureExtermination()).toBe(-1);
+    const st = driveDayCaptureExtermination()!;
+    expect(membresHorsDifficulte(st, 'complexe')).toEqual([]);
+    expect(st.meta?.aggregateFlatDR).toBeUndefined(); // Moral 75, sans saboteur ni trait
   });
 
   it('l’événement de bord FORCÉ pose l’infestation de la donnée sur le navire : Complexe, 25 DR', () => {
@@ -514,12 +592,11 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     return coup;
   }
 
-  it('Extermination à DR −1 : au soir, le dé `nombre` sur le héros tiré, la journée close, `chaqueNuit` jouée ; puis la série', () => {
-    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible, 1);
+  it('Extermination à DR négatif : au soir, le dé `nombre` sur le héros tiré, la journée close, `chaqueNuit` jouée ; puis la série', () => {
+    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible + 10, 1);
     expect(s.travelPlan!.kmDone).toBeGreaterThan(0);
     expect(s.pendingRest).toBeTruthy();
     expect(s.vessel!.infestation!.assaillie).toBeUndefined();
-    expect(s.journal).toContain(t('eff.membreAuHasardMarin'));
     expect(s.journal).toContain(t('eff.cargaisonPerdueEnc', { enc: 0 }));
     expect(s.pendingCascade).toMatchObject({ purpose: 'sequence' });
     const [etape, ...autres] = etapesDAttaques(s);
@@ -554,7 +631,7 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
   });
 
   it('rats géants : une touche qui blesse expose à la fièvre du rongeur (MDG 15 l.164)', () => {
-    journeeInfestee('infestation-de-rats-geants', (cible) => cible, 1);
+    journeeInfestee('infestation-de-rats-geants', (cible) => cible + 10, 1);
     const coup = uneAttaquePerdue([20, 23]);
     expect(coup.hit && (coup.woundsLost ?? 0) > 0).toBe(true);
     const s = get();
@@ -582,13 +659,16 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     expect(ligneDe(pd.atkCompo!.difficultyParts, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
   });
 
-  it('un marin tiré au sort : aucune série, une ligne au journal (MDG 15 l.161)', () => {
-    const avant = get().journal.length;
-    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible, 13);
+  it('un membre de l’équipage tiré au sort sous l’attaque des rats : le dé `nombre` est porté par le monde, la série vise un Mousse (MDG 15 l.161 ; MDG 14 l.15)', () => {
+    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible + 10, 13);
     expect(s.pendingRest).toBeTruthy();
-    expect(etapesDAttaques(s)).toEqual([]);
-    expect(s.serieSubie).toBeNull();
-    expect(s.journal.slice(avant).filter((l) => l === t('eff.membreAuHasardMarin'))).toHaveLength(1);
+    const [etape, ...autres] = etapesDAttaques(s);
+    expect(autres).toEqual([]);
+    expect(etape).toMatchObject({ worldOwner: true, meta: { roleDuMembre: 'mousse' } });
+    expect(etape.actorId).toBeUndefined();
+    expect(draineCascade(get, 40, (e) => (e.kind === 'nombreDAttaquesSubies' ? 1 : undefined))).toContain('nombreDAttaquesSubies');
+    expect(get().journal.join('\n')).toContain(t('eff.membreDuBordAttaque', { assaillant: 'Rats géants', role: 'Mousse' }));
+    expect(get().journal.join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
   });
 
   it('le marqueur `assaillie` et `surDRNegatif` traversent une sauvegarde puis un chargement (MDG 15 l.161, l.176)', () => {
@@ -605,17 +685,17 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
   });
 });
 
-describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337) : la Surdité ne pénalise pas', () => {
-  const lighthouseMap: WorldMap = {
+describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 13 l.351)', () => {
+  const carteASignal = (signal: SignalDuPort, km: number): WorldMap => ({
     id: 'm2', label: 'Mer des Griffes',
     places: [
       { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' } },
-      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 3, richesse: 3, production: [], lighthouse: true } as never },
+      { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 3, richesse: 3, production: [], signal } },
     ],
-    routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 1, modes: ['mer'], sea: true, seaHeading: 'est' }],
-  };
+    routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['mer'], sea: true, seaHeading: 'est' }],
+  });
 
-  function freshLighthouseState() {
+  function freshLighthouseState(km = 1, signal: SignalDuPort = 'phare') {
     seedBattleRng(1);
     const [a, b] = tousLesHerosDeScenario(idsDeTest);
     const vigie = { ...a, skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], traumas: [traumaById('surdite', undefined, 'tete')] };
@@ -624,7 +704,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       party: [vigie, timonier],
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
-      worldMap: lighthouseMap,
+      worldMap: carteASignal(signal, km),
       lieu: 'A',
       travelPlan: null,
       travelRecap: null,
@@ -638,23 +718,30 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     } as never);
   }
 
-  it('la Vigie SOURDE n’est PAS pénalisée au Test de Perception du phare (sense "vue" posé par kind "equipage-phare")', () => {
-    freshLighthouseState();
+  /** Joue le PREMIER jour de mer jusqu'à l'étape du phare, ou jusqu'à l'Orientation (bâtie après lui) s'il n'y en a pas. */
+  function premierJourDeMer(km: number, signal: SignalDuPort = 'phare') {
+    freshLighthouseState(km, signal);
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     let phare: CascadeStep | undefined;
     let progression: CascadeStep | undefined;
-    for (let i = 0; i < 30 && !phare; i++) {
+    let milesToday = 0;
+    let orientation = false;
+    for (let i = 0; i < 30; i++) {
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
       if (cur?.kind === 'equipage-phare') { phare = cur; break; }
+      if (cur?.kind === 'equipage-orientation') { orientation = true; break; }
       if (cur?.kind === 'equipage-progression') progression = cur;
       // Le choix de Progression (MDG 14 l.63) se répond par défaut — voie d'équipage.
-      if (cur?.options && !cur.chosen) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
-      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetLancer('cascadeEnBande', part.id); }
-      else if (cur && !cur.result) get().jetLancer('cascade', cur.id);
-      get().jetValider('cascade');
+      avanceEtapeCascade(get);
+      if (cur?.kind === 'equipage-progression') milesToday = get().travelPlan?.sea?.milesToday ?? 0;
     }
+    return { phare, progression, milesToday, orientation };
+  }
+
+  it('la Vigie SOURDE n’est PAS pénalisée au Test de Perception du phare (sense "vue" posé par kind "equipage-phare")', () => {
+    const { phare, progression } = premierJourDeMer(1);
     expect(phare).toBeTruthy(); // l'étape du phare a bien été atteinte (port à phare, km 1 → dans la portée dès le jour 1)
     // Dé-navalisation (#328) : `sense`/`roleId` ne sont plus des champs du participant GÉNÉRIQUE —
     // l'effet du sens « vue » est BAKÉ dans la présentation `base` À LA CONSTRUCTION (`crewRoleValue`,
@@ -668,6 +755,74 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     // Autre étape (Progression, sans sens narratif dédié) : base résolue SANS sens — comportement historique.
     expect(progression).toBeTruthy();
     for (const part of progression!.participants!) expect(typeof part.base).toBe('number');
+  });
+
+  // MDG 13 l.339-346
+  it.each([
+    [5, 'facile'],
+    [5.2, 'intermediaire'],
+    [10.2, 'difficile'],
+    [15.2, null],
+  ] as const)('à %s milles restants, le Test de phare est %s', (milesRestants, difficulte) => {
+    const { milesToday } = premierJourDeMer(1000);
+    expect(milesToday).toBeGreaterThan(0);
+    const jour = premierJourDeMer(milesToday + milesRestants);
+    expect(jour.milesToday).toBe(milesToday);
+    if (difficulte === null) { expect(jour.orientation).toBe(true); expect(jour.phare).toBeUndefined(); return; }
+    expect(membresHorsDifficulte(jour.phare!, difficulte)).toEqual([]); // MDG 14 l.13
+    expect(Number(jour.phare!.meta?.aggregateFlatDR ?? 0)).toBe(Number(jour.progression!.meta?.aggregateFlatDR ?? 0));
+  });
+
+  it('clocher : le Test de Perception est AUDITIF — la Vigie SOURDE y est pénalisée (MDG 13 l.351)', () => {
+    const { phare } = premierJourDeMer(1, 'clocher');
+    expect(phare).toBeTruthy();
+    const vigie = get().party.find((h) => h.traumas?.some((t) => t.traumaId === 'surdite'))!;
+    const vigiePart = phare!.participants!.find((x) => x.id === vigie.id)!;
+    // La base est nue, la Surdité sort en composante nommée : la cible porte la valeur AUDITIVE.
+    const ouie = crewRoleValue(vigie, findCrewRoleById('vigie')!, navigationDuNavire(get, get().travelPlan!.vehicle!), 'ouie').value!;
+    expect(vigiePart.target).toBe(ouie + DIFFICULTY_MODIFIERS[vigiePart.difficulty!]);
+  });
+
+  // MDG 13 l.339-346, l.351
+  it.each([
+    [2.5, 'facile'],
+    [2.6, 'intermediaire'],
+    [7.2, 'difficile'],
+    [7.6, null],
+  ] as const)('clocher à %s milles restants : distances du tableau divisées par 2, Test %s', (milesRestants, difficulte) => {
+    const { milesToday } = premierJourDeMer(1000, 'clocher');
+    expect(milesToday).toBeGreaterThan(0);
+    const jour = premierJourDeMer(milesToday + milesRestants, 'clocher');
+    expect(jour.milesToday).toBe(milesToday);
+    if (difficulte === null) { expect(jour.orientation).toBe(true); expect(jour.phare).toBeUndefined(); return; }
+    expect(membresHorsDifficulte(jour.phare!, difficulte)).toEqual([]); // MDG 14 l.13
+  });
+
+  /** Signal repéré (applier de l'étape) puis Orientation du jour, sur le voyage en cours vers le port B. */
+  function signalRepereEtOrientation(signal: SignalDuPort) {
+    premierJourDeMer(1, signal);
+    const [vigie, timonier] = get().party;
+    const navigateur = { ...vigie, skills: [{ id: 'orientation', characteristic: 'intelligence', advances: 20 }, { id: 'savoir', spec: 'oceans', characteristic: 'intelligence', advances: 40 }] } as Combatant;
+    set({ party: [navigateur, timonier] });
+    const etape = (kind: GenreDeCascade, sl: number): CascadeStep => ({ id: kind, kind, label: fixtureText(kind), result: { roll: 0, target: 0, sl, success: sl >= 1 } });
+    applierDe('equipage-phare')!(get, set, etape('equipage-phare', 1), undefined, { steps: [], index: 0 });
+    const lighthouseDR = get().travelPlan!.sea!.lighthouseDR;
+    const sortie = applierDe('equipage-orientation')!(get, set, etape('equipage-orientation', 0), undefined, { steps: [], index: 0 });
+    return { lighthouseDR, savoir: savoirOceansBonus(navigateur), orientation: resultLine(sortie?.consequences ?? []) };
+  }
+
+  it('clocher repéré : Orientation à +2 DR forfaitaires, quel que soit Savoir (Océans) (MDG 13 l.351)', () => {
+    const { lighthouseDR, savoir, orientation } = signalRepereEtOrientation('clocher');
+    expect(savoir).toBeGreaterThan(2);
+    expect(lighthouseDR).toBe(2);
+    expect(orientation).toContain('Orientation (DR +2, Clocher +2)');
+  });
+
+  it('phare repéré : Orientation au premier chiffre de Savoir (Océans) (MDG 13 l.335)', () => {
+    const { lighthouseDR, savoir, orientation } = signalRepereEtOrientation('phare');
+    expect(savoir).toBeGreaterThan(2);
+    expect(lighthouseDR).toBe(savoir);
+    expect(orientation).toContain(`Phare +${savoir}`);
   });
 });
 
@@ -1425,7 +1580,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
 
   it('l’étape d’événement de bord tire au `die` de la table en donnée, jamais à un dé recopié (MDG 15 l.134 ; #1667)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
-    sousLeDe('seaBoardEvents', 'd10', () => {
+    sousLeDe('seaBoardEvents', { n: 1, sides: 10 }, () => {
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
       runSeaDay(get, set);
       const etape = get().pendingCascade!.participants.find((s) => s.kind === 'mer-evenement-de-bord')!;
@@ -1660,6 +1815,115 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
 describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la surface se DÉRIVE des porteurs, #1479)', () => {
   beforeEach(freshState);
 
+  const BISCUITS = 'ration-biscuits-de-mer' as Id<'trapping'>, SOUPE = 'ration-soupe-chou-fermente' as Id<'trapping'>;
+  const FRAIS = 'nourriture-courses-journee' as Id<'trapping'>;
+
+  /** Pose `jours` repas par le geste du jeu (`noterLeRepas`) : `soupe` jours de soupe, le reste en biscuits. */
+  function repasSansFrais(porteur: Pick<Combatant, 'regimeDeBord'>, jours: number, soupe = 0): void {
+    for (let k = 0; k < jours; k++) noterLeRepas(porteur, k < soupe ? SOUPE : BISCUITS);
+  }
+
+  /** Chaque Personnage a passé 30 jours sans vivre frais. MDG 14 l.230 */
+  function moisSansFraisDuGroupe(): void {
+    for (const h of get().party) repasSansFrais(h, 30);
+  }
+
+  /** Une journée de mer sous ordres commandés (bande jouée d'office) : l'équipage mange `cale` et a déjà passé `jours`
+   *  jours sans frais, dont `soupe` de soupe ; le d100 de sa rangée vaut `de`. */
+  function journeeDeLEquipage(jours: number, cale: Record<string, number>, de: number, soupe = 0): void {
+    const equipage: Pick<Combatant, 'regimeDeBord'> = {};
+    repasSansFrais(equipage, jours, soupe);
+    set({ vessel: { ...get().vessel!, provisions: lotsDeCale(cale, get().gameTime), porteurDeLEquipage: { regimeDeBord: equipage.regimeDeBord } } });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    set({ travelPlan: { ...plan, orders: { cadence: 'commande' }, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 50, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
+    imposerLesD100(de);
+    continueSeaDayAfterCascade(get, set);
+  }
+  const scorbutDeLEquipage = () => (get().vessel!.porteurDeLEquipage?.diseases ?? []).map((d) => d.id);
+  const ligneDeLEquipage = () => get().journal.some((l) => l === t('sv.scurvyGot', { name: t('crew.lEquipage'), soup: '' }));
+
+  it('Scorbut : au 30e jour de biscuits, l’équipage collectif teste à 40 ; l’échec lui donne le scorbut (MDG 14 l.230 ; #4243)', () => {
+    journeeDeLEquipage(29, { [BISCUITS]: 500 }, 41);
+    expect(scorbutDeLEquipage(), 'd100 41 contre 40 : échec').toEqual(['scorbut']);
+    expect(ligneDeLEquipage(), 'la ligne du journal nomme l’équipage').toBe(true);
+    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord).toEqual({ joursSansVivreFrais: 30, joursDeSoupe: 0 });
+  });
+
+  it('Scorbut : la rangée collective réussit à 40 (MDG 14 l.230)', () => {
+    journeeDeLEquipage(29, { [BISCUITS]: 500 }, 40);
+    expect(scorbutDeLEquipage()).toEqual([]);
+  });
+
+  it('Scorbut de l’équipage en jour par jour, solo : sa rangée de monde se lance au verbe, la bande se valide et la journée avance (#4243)', () => {
+    const equipage: Pick<Combatant, 'regimeDeBord'> = {};
+    repasSansFrais(equipage, 29);
+    set({ vessel: { ...get().vessel!, provisions: lotsDeCale({ [BISCUITS]: 500 }, get().gameTime), porteurDeLEquipage: { regimeDeBord: equipage.regimeDeBord } } });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 50, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
+    continueSeaDayAfterCascade(get, set);
+    const bande = get().pendingCascade!.participants.find((st) => st.kind === 'mer-scorbut')!;
+    expect(bande.participants!.map((r) => [r.id, r.interactive])).toEqual([[WORLD_STEP_OWNER, true]]);
+    imposerLesD100(41);
+    get().jetLancer('cascadeEnBande', WORLD_STEP_OWNER);
+    get().jetValider('cascade');
+    expect(scorbutDeLEquipage(), 'd100 41 contre 40 : échec').toEqual(['scorbut']);
+    expect(get().pendingCascade, 'la bande validée, la séquence des maladies se clôt').toBeNull();
+    expect(get().pendingRest, 'la journée avance jusqu’à la halte').toBeTruthy();
+  });
+
+  it('Scorbut : un jour de vivre frais remet le mois à zéro, aucun Test au 30e jour (MDG 14 l.230-232)', () => {
+    journeeDeLEquipage(29, { [FRAIS]: 500 }, 99);
+    expect(scorbutDeLEquipage()).toEqual([]);
+    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord).toEqual({ joursSansVivreFrais: 0, joursDeSoupe: 0 });
+  });
+
+  it('Scorbut : 15 jours de soupe mangée par l’équipage font son Test Facile, 80 (MDG 14 l.230)', () => {
+    journeeDeLEquipage(29, { [SOUPE]: 500 }, 80, 14);
+    expect(scorbutDeLEquipage(), 'le 15e jour de soupe est celui de la journée').toEqual([]);
+    expect(get().vessel!.porteurDeLEquipage!.regimeDeBord!.joursDeSoupe, 'le mois de soupe repart à zéro après le Test').toBe(0);
+  });
+
+  it('Scorbut d’un Personnage : sa Durée ne décompte qu’au jour où il mange du frais, le repas écrit avant le pas de maladie (MDG 14 l.232)', () => {
+    const [aLAuberge, enMer] = get().party;
+    for (const h of [aLAuberge, enMer]) h.diseases = [contractDisease('scorbut', makeRNG(2))!];
+    const avant = aLAuberge.diseases![0].minutesLeft;
+    feedFromMeal(aLAuberge);
+    enMer.items = [...(enMer.items ?? []), itemFromTrappingById(BISCUITS, idsDeTest)!];
+    get().avancerLeTemps(MINUTES_PER_DAY);
+    expect(aLAuberge.diseases![0].minutesLeft).toBe(avant - MINUTES_PER_DAY);
+    expect(enMer.diseases![0].minutesLeft).toBe(avant);
+  });
+
+  it('Résistance (Maladie) : chaque rangée de Test de contraction, PJ et équipage, porte la menace maladie — scorbut et tonneau exposé (LDB 10 l.1016-1020 ; MDG 14 l.209, l.230)', () => {
+    moisSansFraisDuGroupe();
+    const equipage: Pick<Combatant, 'regimeDeBord'> = {};
+    repasSansFrais(equipage, 29);
+    set({ vessel: { ...get().vessel!, waterLitres: 1000, provisions: lotsDeCale({ [BISCUITS]: 500 }, get().gameTime), porteurDeLEquipage: { regimeDeBord: equipage.regimeDeBord } } });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50, weather: { ...plan.sea!.weather, vent: 'calme-plat' }, waterContaminated: { diseaseId: 'courante-galopante' } } } });
+    continueSeaDayAfterCascade(get, set);
+    const rangees = (kind: string) => get().pendingCascade!.participants.find((st) => st.kind === kind)!.participants!.map((r) => [r.id, r.menace]);
+    const attendu = [...get().party.filter((h) => !h.dead).map((h) => [h.id, 'maladie']), [WORLD_STEP_OWNER, 'maladie']];
+    expect(rangees('mer-tonneau-expose')).toEqual(attendu);
+    expect(rangees('mer-scorbut')).toEqual(attendu);
+  });
+
+  it('Scorbut : 15 jours de soupe MANGÉE font le Test Facile du Personnage, la soupe portée sans être mangée non (MDG 14 l.230)', () => {
+    const [mangeur, porteur] = get().party;
+    repasSansFrais(mangeur, 30, 15);
+    repasSansFrais(porteur, 30, 14);
+    porteur.items = [...(porteur.items ?? []), itemFromTrappingById(SOUPE, idsDeTest)!];
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 50, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
+    continueSeaDayAfterCascade(get, set);
+    const bande = get().pendingCascade!.participants.find((st) => st.kind === 'mer-scorbut')!;
+    const resistance = (h: Combatant) => testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' });
+    const cible = (h: Combatant) => bande.participants!.find((r) => r.id === h.id)!.target;
+    expect(cible(mangeur)).toBe(resistance(mangeur) + DIFFICULTY_MODIFIERS.facile);
+    expect(cible(porteur)).toBe(resistance(porteur) + DIFFICULTY_MODIFIERS.intermediaire);
+    expect(bande.participants!.map((r) => r.id)).toEqual([mangeur.id, porteur.id]);
+  });
+
   /**
    * #1479 — « À partir du moment où je dois faire un jet, il doit apparaitre. Y'a pas de "classe
    * spéciale" […] face a ... une maladie » (utilisateur, 2026-08-24). Le Scorbut est un Test de
@@ -1667,6 +1931,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
    */
   it('Scorbut : en solo jour-par-jour, la BANDE s’ouvre (M) — un jet subi n’est plus silencieux', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    moisSansFraisDuGroupe();
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50 } } });
     continueSeaDayAfterCascade(get, set);
     const casc = get().pendingCascade!;
@@ -1682,6 +1947,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
 
   it('Scorbut : sous ORDRES COMMANDÉS, aucune fenêtre — la journée va d’un trait jusqu’à la halte', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    moisSansFraisDuGroupe();
     set({ travelPlan: { ...plan, orders: { cadence: 'commande' }, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50 } } });
     continueSeaDayAfterCascade(get, set);
     expect(get().pendingCascade, 'traversée commandée = sans fenêtre (attendu validé en recette #1426)').toBeNull();
@@ -1692,6 +1958,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
   it('Scorbut : AVEC siège MJ, l’étape SURFACE (V) — plus d’auto-résolution silencieuse ; la journée reprend après résolution', () => {
     set({ net: mjAuSiege1(get().net) });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    moisSansFraisDuGroupe();
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 29, milesToday: 50 } } });
     continueSeaDayAfterCascade(get, set);
     expect(get().pendingCascade).toBeTruthy();
@@ -1707,18 +1974,6 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
 /** ÉPUISEMENT : MDG 13 l.62, l.111 ; MDG 14 l.24-32, l.69 ; #1595 (issuecomment-6153321990). */
 describe('Épuisement — les impliqués testent à la fin de la Période de travail (MDG 13 l.111, #1595)', () => {
   beforeEach(freshState);
-
-  /** Groupe de prétirés, poste ÉPINGLÉ par index (`shipRole`, le geste du roster) ; Voile aux index
-   *  `voile`, aucun autre porteur de Voile ni de Ramer. */
-  function equipage(postes: (string | undefined)[], voile: number[]): Combatant[] {
-    const party = tousLesHerosDeScenario(idsDeTest).slice(0, postes.length).map((h, i) => ({
-      ...h,
-      ...(postes[i] ? { shipRole: postes[i] } : {}),
-      skills: [...h.skills.filter((sk) => sk.id !== 'voile' && sk.id !== 'ramer'), ...(voile.includes(i) ? [{ id: 'voile', spec: 'cogue', characteristic: 'agilite' as const, advances: 10 }] : [])],
-    }));
-    set({ party } as never);
-    return party;
-  }
 
   /** Joue les étapes, comme un joueur, jusqu'à la bande d'Épuisement ; `voie` tranche le choix de
    *  Progression (MDG 14 l.63), sinon son défaut. `undefined` si la journée se clôt sans la bande. */
@@ -1932,53 +2187,54 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
 describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres` seul — la petite bière y échappe)', () => {
   beforeEach(freshState);
 
-  it('applier `mer-tonneau-contamine` : échec → `sea.waterContaminated` posé (visible dès demain)', () => {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-    set({ travelPlan: plan });
-    const hero = get().party[0];
-    applierDe('mer-tonneau-contamine')!(get, set, { id: 'x', kind: 'mer-tonneau-contamine', label: fixtureText('x'), result: { roll: 99, target: 40, sl: -6, success: false }, meta: { diseaseId: 'flux-sanglant' } }, hero, { steps: [], index: 0 });
-    expect(get().travelPlan!.sea!.waterContaminated).toEqual({ diseaseId: 'flux-sanglant' });
+  /** Une journée de mer jour par jour, solo, mer calme : seul le tonneau (et ce que le test pose) met un Test en jeu. */
+  function journeeAuTonneau(waterContaminated?: { diseaseId: string }): void {
+    set({ vessel: { ...get().vessel!, waterLitres: 1000 } });
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' }, ...(waterContaminated ? { waterContaminated } : {}) } } });
+    continueSeaDayAfterCascade(get, set);
+  }
+  const bandeDuTonneau = (kind: GenreDeCascade) => get().pendingCascade!.participants.find((s) => s.kind === kind)!;
+  const actif = (id: string) => contractDisease(id, makeRNG(1), { incubation: 0 })!;
+
+  /** Joue la rangée `pid` au verbe, d100 imposé, puis valide la bande. */
+  function jouerLaRangee(pid: string, de: number): void {
+    imposerLesD100(de);
+    get().jetLancer('cascadeEnBande', pid);
+    get().jetValider('cascade');
+  }
+
+  it('PJ porteur ACTIF de peste noire : SA rangée de contamination, son échec contamine le tonneau dès demain', () => {
+    const party = [...get().party];
+    party[0] = { ...party[0], diseases: [actif('peste-noire')] };
+    set({ party });
+    journeeAuTonneau();
+    const bande = bandeDuTonneau('mer-tonneau-contamine');
+    expect(bande.participants!.map((r) => r.id)).toEqual([party[0].id]);
+    expect(bande.actorId).toBe(party[0].id);
+    jouerLaRangee(party[0].id, 99);
+    expect(get().travelPlan!.sea!.waterContaminated).toEqual({ diseaseId: 'peste-noire' });
   });
 
-  it('applier `mer-tonneau-contamine` : réussite → rien', () => {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-    set({ travelPlan: plan });
-    const hero = get().party[0];
-    applierDe('mer-tonneau-contamine')!(get, set, { id: 'x', kind: 'mer-tonneau-contamine', label: fixtureText('x'), result: { roll: 1, target: 40, sl: 6, success: true }, meta: { diseaseId: 'flux-sanglant' } }, hero, { steps: [], index: 0 });
+  it('l’équipage collectif porteur ACTIF de vérole urticante fait le Test à 40 ; l’échec contamine le tonneau (MDG 14 l.209 ; #4243)', () => {
+    set({ vessel: { ...get().vessel!, porteurDeLEquipage: { diseases: [actif('verole-urticante')] } } });
+    journeeAuTonneau();
+    const [rangee] = bandeDuTonneau('mer-tonneau-contamine').participants!;
+    expect(rangee.id).toBe(WORLD_STEP_OWNER);
+    expect(rangee.target, 'valeur maison 40, Intermédiaire (+0)').toBe(40);
+    expect(rangee.interactive, 'jour par jour : le siège qui tient le monde la joue').toBe(true);
+    jouerLaRangee(WORLD_STEP_OWNER, 41);
+    expect(get().travelPlan!.sea!.waterContaminated).toEqual({ diseaseId: 'verole-urticante' });
+  });
+
+  it('rangée de contamination réussie → le tonneau reste sain', () => {
+    set({ vessel: { ...get().vessel!, porteurDeLEquipage: { diseases: [actif('verole-urticante')] } } });
+    journeeAuTonneau();
+    jouerLaRangee(WORLD_STEP_OWNER, 40);
     expect(get().travelPlan!.sea!.waterContaminated).toBeUndefined();
   });
 
-  it('applier `mer-tonneau-expose` : boire au tonneau contaminé, échec → contracté', () => {
-    const hero = get().party[0];
-    hero.diseases = [];
-    applierDe('mer-tonneau-expose')!(get, set, { id: 'x', kind: 'mer-tonneau-expose', label: fixtureText('x'), result: { roll: 99, target: 20, sl: -8, success: false }, meta: { diseaseId: 'peste-noire' } }, hero, { steps: [], index: 0 });
-    expect(get().party.find((h) => h.id === hero.id)!.diseases?.some((d) => d.id === 'peste-noire')).toBe(true);
-  });
-
-  it('applier `mer-tonneau-expose` : réussite → rien', () => {
-    const hero = get().party[0];
-    hero.diseases = [];
-    applierDe('mer-tonneau-expose')!(get, set, { id: 'x', kind: 'mer-tonneau-expose', label: fixtureText('x'), result: { roll: 1, target: 20, sl: 8, success: true }, meta: { diseaseId: 'peste-noire' } }, hero, { steps: [], index: 0 });
-    expect(get().party.find((h) => h.id === hero.id)!.diseases ?? []).toHaveLength(0);
-  });
-
-  it('porteur ACTIF de peste noire buvant à `vessel.waterLitres` → une étape `mer-tonneau-contamine`', () => {
-    set({ net: mjAuSiege1(get().net) });
-    const party = [...get().party];
-    party[0] = { ...party[0], diseases: [contractDisease('peste-noire', makeRNG(1), { incubation: 0 })!] };
-    set({ party, vessel: { ...get().vessel!, waterLitres: 1000 } });
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
-    continueSeaDayAfterCascade(get, set);
-    expect(get().pendingCascade).toBeTruthy();
-    const step = get().pendingCascade!.participants.find((s) => s.kind === 'mer-tonneau-contamine');
-    expect(step).toBeTruthy();
-    expect(step!.actorId).toBe(party[0].id);
-  });
-
   it('PARITÉ : les 4 maladies contaminant le tonneau le DÉCLARENT en donnée, et elles seules (MDG 14 l.209)', () => {
-    // « Si un membre d'équipage souffrant de la peste noire, du flux sanglant, de la courante galopante
-    // ou de la vérole urticante boit dans un tonneau d'eau… » — le flux ne nomme plus aucun id.
     const declares = maladies.filter((m) => m.contaminatesWaterBarrel).map((m) => m.id).sort();
     expect(declares).toEqual(['courante-galopante', 'flux-sanglant', 'peste-noire', 'verole-urticante']);
   });
@@ -1986,7 +2242,7 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
   it('SANS tonneau d\'eau suivi (`vessel.waterLitres` absent) → aucune étape de tonneau, même avec un porteur actif', () => {
     set({ net: mjAuSiege1(get().net) });
     const party = [...get().party];
-    party[0] = { ...party[0], diseases: [contractDisease('peste-noire', makeRNG(1), { incubation: 0 })!] };
+    party[0] = { ...party[0], diseases: [actif('peste-noire')] };
     set({ party }); // vessel.waterLitres reste undefined (freshState)
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
@@ -1995,28 +2251,39 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
     expect(get().pendingRest).toBeTruthy();
   });
 
-  it('tonneau DÉJÀ contaminé la veille → chaque PJ qui boit AUJOURD\'HUI est EXPOSÉ (`mer-tonneau-expose`)', () => {
-    set({ net: mjAuSiege1(get().net) });
-    set({ vessel: { ...get().vessel!, waterLitres: 1000 } });
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' }, waterContaminated: { diseaseId: 'courante-galopante' } } } });
-    continueSeaDayAfterCascade(get, set);
-    expect(get().pendingCascade).toBeTruthy();
-    const kinds = get().pendingCascade!.participants.map((s) => s.kind);
-    expect(kinds.filter((k) => k === 'mer-tonneau-expose')).toHaveLength(get().party.length);
+  it('tonneau DÉJÀ contaminé la veille → UNE bande d’exposition : chaque PJ ET l’équipage collectif qui boivent (#4243)', () => {
+    journeeAuTonneau({ diseaseId: 'courante-galopante' });
+    const bande = bandeDuTonneau('mer-tonneau-expose');
+    expect(bande.participants!.map((r) => r.id)).toEqual([...get().party.map((h) => h.id), WORLD_STEP_OWNER]);
   });
 
-  it('un PJ DÉJÀ porteur de la maladie du tonneau n\'est PAS re-testé (`contractionDue`)', () => {
-    set({ net: mjAuSiege1(get().net) });
+  it('exposition : l’équipage collectif qui échoue porte la maladie du tonneau (`porteurDeLEquipage`)', () => {
+    journeeAuTonneau({ diseaseId: 'courante-galopante' });
+    for (const h of get().party) get().jetLancer('cascadeEnBande', h.id);
+    jouerLaRangee(WORLD_STEP_OWNER, 99);
+    expect((get().vessel!.porteurDeLEquipage?.diseases ?? []).map((d) => d.id)).toEqual(['courante-galopante']);
+  });
+
+  it('exposition : un PJ qui échoue contracte la maladie, un PJ qui réussit non', () => {
+    const [perdant, gagnant] = get().party;
+    journeeAuTonneau({ diseaseId: 'courante-galopante' });
+    imposerLesD100(99, 1);
+    get().jetLancer('cascadeEnBande', perdant.id);
+    get().jetLancer('cascadeEnBande', gagnant.id);
+    for (const h of get().party.slice(2)) get().jetLancer('cascadeEnBande', h.id);
+    get().jetLancer('cascadeEnBande', WORLD_STEP_OWNER);
+    get().jetValider('cascade');
+    const maladiesDe = (id: string) => (get().party.find((h) => h.id === id)!.diseases ?? []).map((d) => d.id);
+    expect(maladiesDe(perdant.id)).toEqual(['courante-galopante']);
+    expect(maladiesDe(gagnant.id)).toEqual([]);
+  });
+
+  it('un porteur DÉJÀ atteint de la maladie du tonneau n\'est PAS re-testé (`contractionDue`)', () => {
     const party = [...get().party];
-    party[0] = { ...party[0], diseases: [contractDisease('courante-galopante', makeRNG(1), { incubation: 0 })!] };
-    set({ party, vessel: { ...get().vessel!, waterLitres: 1000 } });
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' }, waterContaminated: { diseaseId: 'courante-galopante' } } } });
-    continueSeaDayAfterCascade(get, set);
-    expect(get().pendingCascade).toBeTruthy();
-    const kinds = get().pendingCascade!.participants.map((s) => s.kind);
-    expect(kinds.filter((k) => k === 'mer-tonneau-expose')).toHaveLength(get().party.length - 1); // le porteur déjà malade est écarté
+    party[0] = { ...party[0], diseases: [actif('courante-galopante')] };
+    set({ party });
+    journeeAuTonneau({ diseaseId: 'courante-galopante' });
+    expect(bandeDuTonneau('mer-tonneau-expose').participants!.map((r) => r.id)).toEqual([...party.slice(1).map((h) => h.id), WORLD_STEP_OWNER]);
   });
 });
 
@@ -2159,7 +2426,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
     const st = apply('equipage-progression', 2, true)?.insert?.find((s) => s.kind === 'mer-degagement-debris');
     expect(st).toBeTruthy();
-    expect(st?.stake?.key?.kind).toBe('mer-degagement-debris');
+    expect(st?.stake).toHaveProperty('key.kind', 'mer-degagement-debris');
     expect(resolveStake(st!.stake!).text).toContain(`total de ${need} DR`); // MDG 13 l.491
   });
 

@@ -16,7 +16,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { fieldBlockMask } from './build-implemente.mjs'
-import { allAbbrAlternation, bookOf, chapterBoundaryRiskFor, folioRange, pagesDeLAtlas, readText, refFolioRe } from './_lib.mjs'
+import { REGISTRE_LIVRES, allAbbrAlternation, bookOf, chapterBoundaryRiskFor, folioRange, pagesDeLAtlas, readText, refFolioRe } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { EXTS_CITANTES, RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
@@ -92,12 +92,13 @@ export const MULTI_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) (\\
 
 // (i) Folio SIMPLE `<ABRÉV> N p.X` d'une fiche cité au DERNIER folio du chapitre N alors que le
 // chapitre N+1 s'ouvre sur X ou X+1 (#454 juge adversarial, cas prouvé `LDB 48 p.255` — voir
-// `chapterBoundaryRisk`, _lib.mjs). Négation `(?![/,-]\d)` : un folio suivi d'un autre (`p.X/Y`,
-// `p.X-Y`, `p.X,Y`) n'est pas un folio simple : la classe (h) le juge. AVERTISSEMENT cliqueté (jamais bloquant à l'aveugle) :
+// `chapterBoundaryRisk`, _lib.mjs). Négation `(?!\d|[/,-]\d)` : un folio suivi d'un autre (`p.X/Y`,
+// `p.X-Y`, `p.X,Y`) n'est pas un folio simple : la classe (h) le juge ; le `\d` interdit au retour
+// arrière de relire un multi-folio en folio simple TRONQUÉ (`p.2550/2551` lu `p.255`). AVERTISSEMENT cliqueté (jamais bloquant à l'aveugle) :
 // la position structurelle rend le débordement PLAUSIBLE, mais seule une relecture verbatim tranche
 // si le sujet cité vit réellement en N ou en N+1 — non automatisable ici. Chez les citants, la classe (j)
 // voit toute réf au folio, en fin de chapitre ou non.
-export const CHAPTER_BOUNDARY_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) (\\d+) p\\.(\\d+)(?![/,-]\\d)`, 'g')
+export const CHAPTER_BOUNDARY_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) (\\d+) p\\.(\\d+)(?!\\d|[/,-]\\d)`, 'g')
 
 // --- PASSE UNIQUE : un corpus lu une fois, une itération par (fichier, ligne), tous les détecteurs
 // nourris au passage. Chaque CLASSE est une fonction PURE d'une LIGNE vers ses occurrences
@@ -166,8 +167,8 @@ export function detecteUnknownAbbr(ln) {
  *  Un folio NON RÉSOLVABLE (`folioRange` → `null`/`'ambiguous'`, ancre absente — résidus #522) est
  *  INDÉTERMINÉ, jamais une violation (silence, pas de faux positif sur les trous de la ré-extraction
  *  Marker). Retourne `{ folios }[]` — une entrée par multi-folio fautif, `folios` = les folios
- *  fautifs avec leur chapitre résolu. Pur. */
-export function detecteMultiFolioSplit(ln) {
+ *  fautifs avec leur chapitre résolu. `registre` (fixture) dit où lire les folios. Pur. */
+export function detecteMultiFolioSplit(ln, registre = REGISTRE_LIVRES) {
   const hits = []
   const re = MULTI_FOLIO_RE()
   let m
@@ -177,7 +178,7 @@ export function detecteMultiFolioSplit(ln) {
     const extraFolios = (suffix.match(/\d+/g) || []).map(Number)
     const folios = []
     for (const folio of [Number(folioStr), ...extraFolios]) {
-      const res = folioRange(abbr, folio, ch)
+      const res = folioRange(abbr, folio, ch, registre)
       if (!res || res === 'ambiguous') continue // indéterminé, jamais une violation
       if (res.ch !== ch) folios.push({ folio, ch: res.ch })
     }
@@ -188,8 +189,8 @@ export function detecteMultiFolioSplit(ln) {
 
 /** (i) Folios SIMPLES de la ligne cités au DERNIER folio de leur chapitre alors que le chapitre
  *  suivant s'ouvre sur X ou X+1 (`chapterBoundaryRiskFor`, _lib.mjs). Retourne
- *  `{ abbr, ch, folio }[]`. Pur. */
-export function detecteChapterBoundary(ln) {
+ *  `{ abbr, ch, folio }[]`. `registre` (fixture) dit où lire les folios. Pur. */
+export function detecteChapterBoundary(ln, registre = REGISTRE_LIVRES) {
   const hits = []
   const re = CHAPTER_BOUNDARY_FOLIO_RE()
   let m
@@ -197,7 +198,7 @@ export function detecteChapterBoundary(ln) {
     const [, abbr, chStr, folioStr] = m
     const ch = Number(chStr)
     const folio = Number(folioStr)
-    if (chapterBoundaryRiskFor(abbr, ch, folio)) hits.push({ abbr, ch, folio })
+    if (chapterBoundaryRiskFor(abbr, ch, folio, registre)) hits.push({ abbr, ch, folio })
   }
   return hits
 }
@@ -251,8 +252,8 @@ function passeSrc(racines, exts) {
 
 /** Passe unique sur les fiches `docs/raw/*.md` : TOUTE ligne est en scope (prose de citation, pas
  *  de notion de « commentaire ») ; seul le scan (d) masque le bloc de champ généré. Pur. */
-function passeFiches(rawDir) {
-  return memoise(JSON.stringify(['fiches', resolve(rawDir)]), () => {
+function passeFiches(rawDir, registre = REGISTRE_LIVRES) {
+  return memoise(JSON.stringify(['fiches', resolve(rawDir), registre.map((b) => [b.abbr, b.dir])]), () => {
     const out = vide()
     for (const { file, prose, lignes } of fichesScannees(rawDir)) {
       const inFieldBlock = prose ? fieldBlockMask(lignes).inFieldBlock : null
@@ -265,8 +266,8 @@ function passeFiches(rawDir) {
         for (let n = detecteBareFolio(ln); n > 0; n--) out.bareFolio.push({ file, row, text })
         for (let n = detecteBookNoChapter(ln); n > 0; n--) out.bookNoChapterSrc.push({ file, row, text })
         for (const abbr of detecteUnknownAbbr(ln)) out.unknownAbbr.push({ file, row, abbr, text })
-        for (const { folios } of detecteMultiFolioSplit(ln)) out.multiFolioSplit.push({ file, row, folios, text })
-        for (const { abbr, ch, folio } of detecteChapterBoundary(ln)) out.chapterBoundaryFolio.push({ file, row, abbr, ch, folio, text })
+        for (const { folios } of detecteMultiFolioSplit(ln, registre)) out.multiFolioSplit.push({ file, row, folios, text })
+        for (const { abbr, ch, folio } of detecteChapterBoundary(ln, registre)) out.chapterBoundaryFolio.push({ file, row, abbr, ch, folio, text })
       })
     }
     return geler(out)
@@ -275,24 +276,24 @@ function passeFiches(rawDir) {
 
 /** Les dix familles du garde, citants (`RACINES_CITANTES`) PUIS fiches `docs/raw/*.md` (l'ordre des deux passes
  *  décide de l'ordre du rapport). Pur (aucune écriture). */
-export function scanTout(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR) {
+export function scanTout(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR, registre = REGISTRE_LIVRES) {
   const src = passeSrc(racines, exts)
-  const fiches = passeFiches(rawDir)
+  const fiches = passeFiches(rawDir, registre)
   return geler(tableTotale(FAMILLES, (f) => [...src[f], ...fiches[f]]))
 }
 
 /** Scan (h) : multi-folios d'une fiche à cheval sur des chapitres différents (#522 juge
  *  adversarial), zéro tolérance. Retourne `{ file, row, folios, text }[]`. */
-export function scanMultiFolioSplitViolations(rawDir = RAWDIR) {
-  return passeFiches(rawDir).multiFolioSplit
+export function scanMultiFolioSplitViolations(rawDir = RAWDIR, registre = REGISTRE_LIVRES) {
+  return passeFiches(rawDir, registre).multiFolioSplit
 }
 
 /** Scan (i) : folio simple `<ABRÉV> N p.X` d'une fiche au DERNIER folio du chapitre N, chapitre
  *  N+1 s'ouvrant sur X/X+1 (#454 juge adversarial). AVERTISSEMENT cliqueté (non bloquant sur le stock
  *  EXISTANT, cf. `main()`) — un candidat structurel n'est PAS une preuve verbatim.
  *  Retourne `{ file, row, abbr, ch, folio, text }[]`. */
-export function scanChapterBoundaryFolioViolations(rawDir = RAWDIR) {
-  return passeFiches(rawDir).chapterBoundaryFolio
+export function scanChapterBoundaryFolioViolations(rawDir = RAWDIR, registre = REGISTRE_LIVRES) {
+  return passeFiches(rawDir, registre).chapterBoundaryFolio
 }
 
 /** Scan (j) : réfs au FOLIO de `racines` (défaut `RACINES_CITANTES`), toute ligne. Retourne

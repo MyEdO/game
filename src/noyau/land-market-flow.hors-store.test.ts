@@ -157,6 +157,18 @@ describe('#99 — génération au marché : la rumeur vise un AUTRE Lieu de la c
   });
 });
 
+describe('#3387 — la rumeur commerciale se joue en Ragot Complexe (MSRC 13 l.180, LDB 12 l.149)', () => {
+  it('le Test de Ragot ouvert au marché porte la Difficulté complexe (−10), cible = Ragot − 10', () => {
+    launchAtA();
+    seedBattleRng(7);
+    ouvrirLeMarche(get, set);
+    get().jetValider('etalLot');
+    const st = get().pendingCascade!.participants[0];
+    expect(st.difficulty).toBe('complexe');
+    expect(st.target).toBe(st.base! - 10);
+  });
+});
+
 describe('#99 — persistance : le board survit à un round-trip de sauvegarde', () => {
   it('snapshotSave embarque tradeRumours (champ de l\'état initial)', () => {
     launchAtA();

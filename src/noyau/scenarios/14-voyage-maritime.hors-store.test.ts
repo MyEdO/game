@@ -65,7 +65,7 @@ describe('Scénario Voyage maritime — enregistrement & carte', () => {
     expect(route.modes).toContain('mer');
     const marienburg = scenConstruit.worldMap!.places.find((p) => p.id === 'p-marienburg')!;
     expect(marienburg.port).toBeTruthy();
-    expect(marienburg.port!.lighthouse).toBe(true);
+    expect(marienburg.port!.signal).toBe('phare');
     expect(scenConstruit.extraScenes?.some((s) => s.id === 'test-mer-arrivee')).toBe(true);
   });
 

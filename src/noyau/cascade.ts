@@ -48,7 +48,7 @@ import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
-import { canFixDie, influencesLocally } from './netOwnership';
+import { canFixDie, decidingSeat, influencesLocally } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
 import { toRecapLines, type RecapLine } from './recapLine';
@@ -71,7 +71,7 @@ import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
-import { tenuParUnHumain } from './sieges';
+import { seatOwns, tenuParUnHumain } from './sieges';
 import { jouerLaPaireDuJet } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 import { noterAuProcesVerbal } from './voyageCadence';
@@ -424,7 +424,7 @@ export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: 
  */
 export function stakeAtTableRow(stake: StakeRef | undefined, decl: CascadeTableDecl, result: CascadeTableResult): StakeRef | undefined {
   const category = tableStepDef(decl.tableId)?.entryCategory;
-  if (!stake || !category || stake.key == null) return stake;
+  if (!stake || !category || !('key' in stake)) return stake;
   return { ...stake, key: { ...stake.key, entryId: result.id, entryCategory: category } };
 }
 
@@ -699,12 +699,14 @@ export function stepOpposedFreeze(step: CascadeStep | undefined): OpposedRowFree
  * fin de combat, cadence auto) : elle porte l'étampe `meta.autoResolved`, que `commitStep` lit pour
  * émettre SA ligne de trace (#1281). « Tout lancer » (`resolveRemainingCascade`) ne la pose PAS : sa
  * modale reste ouverte sur le BILAN, où chaque rangée montre son dé.
+ *
+ * `resout` — les rangées que le pilote roule (« Tout résoudre » : `resoutLaRangeeIci`) ; les autres gardent leur attente.
  */
-function rollBatchParticipants(step: CascadeStep, autoResolved = false) {
+function rollBatchParticipants(step: CascadeStep, autoResolved = false, resout: (id: string) => boolean = () => true) {
   const opp = stepOpposedFreeze(step);
   // Une rangée née sans jet (ligne non tentable) n'a aucun dé à tirer, mais son refus a le journal pour
   // SEULE surface quand aucune fenêtre ne s'ouvre : elle reçoit la même étampe de trace.
-  return step.participants!.map((p) => (p.result ? (autoResolved && refusSansJet(p) != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
+  return step.participants!.map((p) => (p.result || !resout(p.id) ? (autoResolved && refusSansJet(p) != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
     ...p,
     ...(autoResolved ? { meta: { ...p.meta, autoResolved: true } } : {}),
     result: rollBatchParticipant(p, battleRng(), opp, step.evaluation),
@@ -1822,7 +1824,14 @@ function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: 
   return { ...p, ...fusionnerLesBornes(p, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length };
 }
 
-/** « Tout lancer » : RÉSOUT d'office les étapes restantes (RNG, sans influence) — on ne peut pas
+/** « Tout résoudre » roule-t-il cette rangée de bande au siège qui décide (`decidingSeat`) ? L'hôte, toutes ; un autre
+ *  siège, celles qu'il influence (`influencesLocally`). #1273 */
+export function resoutLaRangeeIci(s: Jeu, id: string): boolean {
+  return seatOwns(s, decidingSeat(s), undefined) || influencesLocally(s, id);
+}
+
+/** « Tout lancer » : RÉSOUT d'office les étapes restantes (RNG, sans influence ; d'une bande, les rangées du siège qui
+ *  décide, `resoutLaRangeeIci`, la bande dont une rangée attend arrêtant la résolution) — on ne peut pas
  *  « dé-dormir », les conséquences subies s'appliquent quand même — puis place le curseur EN FIN
  *  (`cursor === participants.length`) = état BILAN. La modale RESTE ouverte pour montrer TOUTES les
  *  conséquences ; c'est `finalizeCascade` (« Terminer ») qui ferme et enchaîne la suite — on rend alors
@@ -1860,7 +1869,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
       steps = steps.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, de.spec, battleRng())) : x));
     }
     if (stepInteraction(steps[i]) === 'batch') {
-      steps = steps.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(steps[i]) } : x));
+      steps = steps.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(steps[i], false, (id) => resoutLaRangeeIci(get(), id)) } : x));
     }
     if (!stepReady(steps[i], get())) {
       // « Tout résoudre » ne TRANCHE pas un CHOIX du joueur (dévier/subir, piéger…) et ne joue pas une

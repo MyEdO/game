@@ -5,7 +5,8 @@ extends SceneTree
 ## sur son pont espion (`PontDuDecor`) et son combat (`scenes/Combat.tscn`), une fois chaque pose de ses décors servis
 ## posée (`MontageDesModeles.poses`) et sa vision posée. Calques de l'écran et combattants cachés, tonemap linéaire (la
 ## part se lit en lumière linéaire), brouillard volumétrique coupé, MSAA coupé, le fondu avancé par la recette seule, sous
-## la caméra tactique centrée sur le décor servi le plus proche du centre de la carte (le visé), dans une fenêtre de
+## la caméra tactique centrée sur le décor servi le plus proche du centre de la carte dont le modèle montre
+## `INTERIEUR_LISIBLE` pixels intérieurs (le visé), dans une fenêtre de
 ## `FENETRE`. Les décors servis puis non servis (`MontageDesModeles.poser` sans `decors`, leurs primitives repeintes par
 ## le volume), sous la vision servie : l'image d'après, celle d'avant, écrites sous `--sortie=<dossier>` s'il est donné.
 ## La part d'un pixel est sa luminance voilée sur celle de la même image sans vision, lue aux pixels intérieurs des
@@ -124,11 +125,19 @@ func _poses() -> Dictionary:
 	return poses
 
 
-## La clé de la pose la plus proche du centre de la carte, que la caméra vise.
+## La clé de la pose la plus proche du centre de la carte dont le modèle, sous la caméra cadrée sur elle, montre
+## `INTERIEUR_LISIBLE` pixels intérieurs, la caméra laissée sur elle ; la plus proche si aucune ne les montre.
 func _visee() -> String:
 	var centre := Vector2(_monde.taille()) / 2.0
-	var cles := _poses().keys()
-	cles.sort_custom(func(a: String, b: String) -> bool: return Vector2(_poses()[a].x, _poses()[a].y).distance_to(centre) < Vector2(_poses()[b].x, _poses()[b].y).distance_to(centre))
+	var poses := _poses()
+	var cles := poses.keys()
+	cles.sort_custom(func(a: String, b: String) -> bool: return Vector2(poses[a].x, poses[a].y).distance_to(centre) < Vector2(poses[b].x, poses[b].y).distance_to(centre))
+	_monde.regarder("tactique")
+	for cle: String in cles + [cles[0]]:
+		var pose: Dictionary = poses[cle]
+		_monde.cadrer(MiseEnPage.point_de_la_carte(pose.x, pose.y, MiseEnPage.hauteur_au_plateau(pose.piedM, _vue.plateau.metresParCase)), MiseEnPage.lacet_de_l_azimut(30.0), DISTANCE)
+		if (await _pixels_des([cle], await _voir(null))).size() >= INTERIEUR_LISIBLE:
+			return cle
 	return cles[0]
 
 
@@ -165,10 +174,8 @@ func _pixels_des(cles: Array, temoin: Image) -> Array[Vector2i]:
 ## Les images d'après et d'avant, les décors servis puis non servis, sous la vision servie, puis le voile des modèles
 ## sous les visions uniformes et sous le masque des cases.
 func _voiler() -> void:
-	var visee := _visee()
+	var visee: String = await _visee()
 	var pose: Dictionary = _poses()[visee]
-	_monde.regarder("tactique")
-	_monde.cadrer(MiseEnPage.point_de_la_carte(pose.x, pose.y, MiseEnPage.hauteur_au_plateau(pose.piedM, _vue.plateau.metresParCase)), MiseEnPage.lacet_de_l_azimut(30.0), DISTANCE)
 	await _avant_apres()
 	var temoin := await _voir(null)
 	var tous := await _pixels_des(_poses().keys(), temoin)

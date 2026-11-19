@@ -16,10 +16,10 @@
  *    modificateurs à ceux qui sont de Standing différent au sein d'un même Échelon ») : ±10 entre
  *    deux personnes du MÊME Échelon selon leur Standing.
  *
- * Module FEUILLE pur : réutilise `Status`/`statutDeDonnee` de `money.ts` (PAS de re-parsing) et
+ * Module FEUILLE pur : réutilise `Status`/`ECHELONS_DE_STATUT` de `money.ts` et
  * `rule` de `policy.ts` ; les tables tirées le sont au RNG INJECTÉ.
  */
-import { libelleDEchelon, statutDeDonnee, type Status } from './money';
+import { ECHELONS_DE_STATUT, libelleDEchelon, libelleDuStatut, type Status } from './money';
 import { rule } from './policy';
 import { rollDice, type RNG } from './dice';
 import { findTableEntry } from './tables';
@@ -30,9 +30,6 @@ import type * as capricieux from '../data/schemas/defs/tableau-capricieux';
 import type * as reactionAuStatut from '../data/schemas/defs/reaction-au-statut';
 import { findCareerById, levelsForCareer } from '../data';
 import { t } from '../i18n';
-
-/** Rang numérique d'un Échelon (Bronze < Argent < Or) pour la comparaison RAW. */
-const TIER_RANK: Record<Status['tier'], number> = { bronze: 0, argent: 1, or: 2 };
 
 /** Ce que lisent les Statuts d'un personnage : carrière, niveau, effets actifs (forme structurelle, que la
  *  Condition PARTY-level `status` de `flowCore.ts` partage avec `Combatant`). */
@@ -49,11 +46,8 @@ const STATUT_SANS_CARRIERE: Status = { tier: 'bronze', standing: 1 };
 export function statutDeCarriere(c: PorteurDeStatut): Status {
   const levels = levelsForCareer(c.career ?? '');
   const lvl = findCareerById(c.career ?? '') ? levels[Math.max(0, (c.careerLevel ?? 1) - 1)] : undefined;
-  return lvl ? statutDeDonnee(lvl.status) : STATUT_SANS_CARRIERE;
+  return lvl ? lvl.status : STATUT_SANS_CARRIERE;
 }
-
-/** Échelons du plus bas au plus haut. LDB 08 l.9 */
-const ECHELONS: readonly Status['tier'][] = ['bronze', 'argent', 'or'];
 
 /** Le Statut `statut` décalé de `delta` Points de Standing ; vers le haut, sans changement d'Échelon.
  *  LDB 08 l.9, l.101 */
@@ -62,9 +56,9 @@ export function decalerLeStatut(statut: Status, delta: number): Status {
   let { tier, standing } = statut;
   for (let i = 0; i > delta && standing > 0; i--) {
     standing -= 1;
-    const rang = ECHELONS.indexOf(tier);
+    const rang = ECHELONS_DE_STATUT.indexOf(tier);
     if (standing === 0 && rang > 0) {
-      tier = ECHELONS[rang - 1];
+      tier = ECHELONS_DE_STATUT[rang - 1];
       standing = 5;
     }
   }
@@ -77,12 +71,11 @@ export function actorStatus(c: PorteurDeStatut): Status {
   return decalerLeStatut(statutDeCarriere(c), (c.activeEffects ?? []).reduce((s, e) => s + (e.statusMod ?? 0), 0));
 }
 
-/** Le Statut `actual` atteint-il AU MOINS `atLeast` (« Argent 2 », `parseStatus`) ? Compare l'Échelon
- *  via `TIER_RANK` puis, à Échelon égal, le Standing — utilisé par la Condition PARTY-level `status`
+/** Le Statut `actual` atteint-il AU MOINS `atLeast` ? Compare l'Échelon
+ *  par son rang dans `ECHELONS_DE_STATUT` puis, à Échelon égal, le Standing — utilisé par la Condition PARTY-level `status`
  *  (#711, `flowCore.ts`), SOURCE UNIQUE de comparaison de palier (partagée avec `statusCharmMod`). */
-export function statusMeets(actual: Status, atLeast: string): boolean {
-  const need = statutDeDonnee(atLeast);
-  const da = TIER_RANK[actual.tier], dn = TIER_RANK[need.tier];
+export function statusMeets(actual: Status, need: Status): boolean {
+  const da = ECHELONS_DE_STATUT.indexOf(actual.tier), dn = ECHELONS_DE_STATUT.indexOf(need.tier);
   if (da !== dn) return da > dn;
   return actual.standing >= need.standing;
 }
@@ -130,7 +123,7 @@ export function statusCharmMod(
   opts?: { begging?: boolean; reaction?: IssueDeReaction },
 ): number {
   let mod: number;
-  const da = TIER_RANK[actor.tier], dt = TIER_RANK[target.tier];
+  const da = ECHELONS_DE_STATUT.indexOf(actor.tier), dt = ECHELONS_DE_STATUT.indexOf(target.tier);
   if (da !== dt) {
     // (a) Inter-Échelon : ±10 selon le sens (RAW de base, LDB 08 l.57).
     mod = da > dt ? 10 : -10;
@@ -166,7 +159,7 @@ export function statusCharmLabel(
   const cmp = mod > 0 ? '>' : '<'; // le comparateur SUIT le sens du mod (cohérent même en mendicité)
   const beg = rule('social-mendicite-statut') && opts?.begging && actor.tier === 'bronze' && target.tier === 'argent';
   const side = actor.tier === target.tier && !beg
-    ? `${libelleDEchelon(actor.tier)} ${actor.standing}${cmp}${target.standing}` // intra-Échelon : compare le Standing
+    ? `${libelleDuStatut(actor)}${cmp}${target.standing}` // intra-Échelon : compare le Standing
     : `${libelleDEchelon(actor.tier)}${cmp}${libelleDEchelon(target.tier)}`;
   return t('social.statusMod', { beg: beg ? t('social.fragBegging') : '', side, sign, mod: Math.abs(mod) });
 }

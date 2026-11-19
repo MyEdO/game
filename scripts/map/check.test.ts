@@ -120,10 +120,10 @@ describe('auditFacade — critère GÉOMÉTRIQUE (#823 défauts 1+2)', () => {
     expect(auditFacade(scene, 1, 0, false)).toEqual([]);
   });
 
-  it('CONTRE-PREUVE sur La Diligence (scène réelle) : retirer le mur z1 en (18,6)N fait apparaître EXACTEMENT un défaut de plus — le silence structurel du défaut 2 est corrigé', () => {
+  it('CONTRE-PREUVE sur La Diligence (scène réelle) : retirer le mur z1 en (26,12)N fait apparaître EXACTEMENT un défaut de plus — le silence structurel du défaut 2 est corrigé', () => {
     const scene = diligenceScene();
     const [[aboveZ, belowZ]] = floorPairs(scene);
-    const targetWall = (w: WallSeg) => (w.z ?? 0) === aboveZ && w.side === 'N' && w.x === 18 && w.y === 6;
+    const targetWall = (w: WallSeg) => (w.z ?? 0) === aboveZ && w.side === 'N' && w.x === 26 && w.y === 12;
     expect((scene.walls ?? []).some(targetWall)).toBe(true); // le mur existe bien sur le plan actuel
 
     const before = auditFacade(scene, aboveZ, belowZ);

@@ -10,11 +10,11 @@ import { describe, expect, it } from 'vitest';
 import { cleDHabille, schema, type HabilleDEnsemble } from './garde-robe';
 import gardeRobeJson from '../../garde-robe.json';
 import speciesJson from '../../species.json';
-import { findCoiffureById, findEnsembleParHabille, findPieceById, findTeteById } from '../../index';
+import { findCoiffureById, findEnsembleParHabille, findPieceById, findTeteById, gardeRobe } from '../../index';
 
 type Entree = { id: string; [k: string]: unknown };
 const avec = (id: string, champs: Record<string, unknown>): Entree[] => {
-  const doc = structuredClone(gardeRobeJson) as Entree[];
+  const doc: Entree[] = structuredClone(gardeRobeJson);
   Object.assign(doc.find((e) => e.id === id)!, champs);
   return doc;
 };
@@ -86,8 +86,8 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
   });
 
   it('`findEnsembleParHabille` résout tout ensemble par son `habille`, et rien d’un autre type au même id', () => {
-    for (const e of gardeRobeJson as Entree[]) {
-      if (e.kind === 'ensemble') expect(findEnsembleParHabille(e.habille as HabilleDEnsemble), e.id).toBe(e);
+    for (const e of gardeRobe) {
+      if (e.kind === 'ensemble') expect(findEnsembleParHabille(e.habille), e.id).toBe(e);
     }
     expect(findEnsembleParHabille({ id: 'uniforme-de-soldat', type: 'trapping' })).toBeUndefined();
   });
@@ -135,7 +135,7 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
   });
 
   it('chaque espèce jouable a sa tête, une par colonne d’apparence (`species.json › refChar`)', () => {
-    const tetes = new Set((gardeRobeJson as Entree[]).filter((e) => e.kind === 'tete').map((e) => e.id));
+    const tetes = new Set<string>(gardeRobe.filter((e) => e.kind === 'tete').map((e) => e.id));
     expect([...new Set(speciesJson.map((s) => s.refChar))].filter((race) => !tetes.has(race))).toEqual([]);
   });
 
@@ -148,7 +148,7 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
     ['tete', findTeteById],
     ['coiffure', findCoiffureById],
   ] as const)('`find` de la nature « %s » résout toute ligne de sa nature sur elle-même et aucune autre ligne', (kind, find) => {
-    for (const e of gardeRobeJson as Entree[]) {
+    for (const e of gardeRobe) {
       if (e.kind === kind) expect(find(e.id), e.id).toBe(e);
       else expect(find(e.id), e.id).toBeUndefined();
     }
@@ -208,7 +208,7 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
   });
 
   it('`findPieceById` résout toute pièce sur elle-même et aucune autre ligne', () => {
-    for (const e of gardeRobeJson as Entree[]) {
+    for (const e of gardeRobe) {
       if (e.kind === 'piece') expect(findPieceById(e.id), e.id).toBe(e);
       else expect(findPieceById(e.id), e.id).toBeUndefined();
     }

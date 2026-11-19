@@ -8,9 +8,14 @@ import type { CreatorDraft, GesteDEdition, GesteDuCompendium, GesteDuBrouillon, 
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import type { AnySlot, SaveSlot } from './sauvegardes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 
-/** Le ton d'un élément : le nom d'une variation du thème de l'hôte. */
-export type Ton = 'neutre' | 'reussite' | 'echec' | 'alerte';
+/** Les tons qu'une variation du thème de l'hôte dessine, chacun à son nom. */
+export const TONS_DU_THEME = ['reussite', 'echec', 'alerte'] as const;
+
+/** Le ton d'un élément : `neutre`, le style propre du contrôle ; une variation du thème (`TONS_DU_THEME`) ; `ferme`, la
+ *  valeur lue d'un contrôle refusé, qui se montre fermée avec lui. */
+export type Ton = 'neutre' | (typeof TONS_DU_THEME)[number] | 'ferme';
 
 /** Une ligne de texte. `detail` : ce qu'elle tait, montré à la demande ; `touche` : la touche qu'elle imprime sans la
  *  jouer (la case libre d'un emplacement rapide). */
@@ -30,21 +35,35 @@ export interface Puce { type: 'puce'; id: string; ton: Ton; libelle: string; val
 /** Une jauge : sa valeur courante sur son maximum, et ce qu'elle dit. */
 export interface Jauge { type: 'jauge'; id: string; ton: Ton; libelle: string; courant: number; max: number; texte: string }
 
-/** Un jet : un Test, un tirage sur table ou un dé nu. Chaque partie est déjà dite (`null` : sans objet, `resultat`
- *  avant le dé) ; le ton dit le verdict. À l'écran, le nombre à atteindre, le dé et ses modificateurs ; `detail` : la
- *  composition de la cible (base, Difficulté et ses paliers, écrêtage) et ce que le dé deviendrait, montrés à la
- *  demande, une ligne par part. */
+/**
+ * @contrat Vue
+ * Un jet : un Test, un tirage sur table ou un dé nu. Chaque partie est déjà dite (`null` : sans objet, `resultat` avant le
+ * dé). À l'écran, le nombre à atteindre, le dé et ses modificateurs.
+ */
 export interface Jet {
+  /** `jet`. */
   type: 'jet';
+  /** stable dans sa zone. */
   id: string;
+  /** le verdict. */
   ton: Ton;
+  /** le nom de qui jette ; `null` quand ce qui le montre le dit déjà. */
   qui: string | null;
+  /** l'id de qui jette, dont l'hôte montre le portrait (`Portrait`) ; `null` : nul ne jette, ou il est hors de vue. */
+  combattant: string | null;
+  /** le Test, la table ou le dé. */
   libelle: string;
+  /** le nombre à atteindre. */
   cible: string | null;
+  /** le dé tombé. */
   resultat: string | null;
+  /** les Degrés de Réussite. */
   dr: string | null;
+  /** la réussite ou l'échec, ou ce que la table ou le dé lit. */
   verdict: string | null;
+  /** ce qui compose la cible, une puce par part. */
   modificateurs: Puce[];
+  /** la composition de la cible (base, Difficulté et ses paliers, écrêtage) et ce que le dé deviendrait, une ligne par part. */
   detail: string | null;
 }
 
@@ -253,10 +272,10 @@ function argumentsAvec(g: GesteDeLaFenetre, nom: string, valeur: unknown): unkno
 }
 
 /** Les valeurs de l'argument à choisir `a` du geste `g`, chacune un bouton qui joue le geste avec elle, refusée avec
- *  le geste. */
+ *  le geste ; son id, la clé du geste et la valeur sérialisée, ne dépend pas de son rang ni de son libellé. */
 const valeursDuChoix = (g: GesteDeLaFenetre, a: ArgumentDuGeste): Bouton[] =>
-  (a.valeurs ?? []).map((v, i): Bouton => ({
-    type: 'bouton', id: `${g.cle}/${i}`, libelle: v.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, a.nom, v.valeur) },
+  (a.valeurs ?? []).map((v): Bouton => ({
+    type: 'bouton', id: `${g.cle}/${jsonCanonique(v.valeur)}`, libelle: v.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, a.nom, v.valeur) },
     presse: v.valeur === a.valeur, focus: false, detail: null, touche: null, refus: v.refus ?? g.raison,
   }));
 

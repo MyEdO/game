@@ -6,7 +6,10 @@
     {
       "id": "printemps",
       "label": "Printemps",
-      "die": "d100",
+      "die": {
+        "n": 1,
+        "sides": 100
+      },
       "entries": [
         {
           "min": 1,
@@ -43,7 +46,10 @@
     {
       "id": "ete",
       "label": "Été",
-      "die": "d100",
+      "die": {
+        "n": 1,
+        "sides": 100
+      },
       "entries": [
         {
           "min": 1,
@@ -75,7 +81,10 @@
     {
       "id": "automne",
       "label": "Automne",
-      "die": "d100",
+      "die": {
+        "n": 1,
+        "sides": 100
+      },
       "entries": [
         {
           "min": 1,
@@ -112,7 +121,10 @@
     {
       "id": "hiver",
       "label": "Hiver",
-      "die": "d100",
+      "die": {
+        "n": 1,
+        "sides": 100
+      },
       "entries": [
         {
           "min": 1,

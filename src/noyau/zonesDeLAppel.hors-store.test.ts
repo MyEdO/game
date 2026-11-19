@@ -108,7 +108,7 @@ describe('les zones d’effet de l’appel (#3783)', () => {
     const T = b.combatants.filter((c) => c.kind === 'ennemi')[0];
     T.pos = { x: 10, y: 10 };
     zones = [];
-    applyCast(banc.getState, banc.setState, lanceur, T, findSpellById('mur-de-feu')!, { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'ok' }, false, false);
+    applyCast(banc.getState, banc.setState, lanceur, [T], findSpellById('mur-de-feu')!, { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'ok' }, false, false);
     expect(zones[0]).toMatchObject({ de: lanceur.id, centre: { x: 10, y: 10 }, sort: 'mur-de-feu' });
     expect(laZone()).toMatchObject({ couleur: '#ff5a2a', nappe: { visuel: 'nappe-de-flammes', son: { id: 'sort-feu' } } });
   });

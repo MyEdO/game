@@ -15,6 +15,7 @@ import { setRule, resetRule } from '../policy';
 import { effectiveEntry } from '../variants';
 import { findTalentById, talents } from '../../data';
 import { slugId } from '../../data/slug';
+import type { Id } from '../../data/schemas/grammaire/ref';
 import { ALL_VARIANT_CARRIERS, ruleOf } from './variantesDeTalent.testkit';
 import {
   hasStealAdvantage, stealsOneAdvantage, shieldReactionCost, shieldAdvantageLevel,
@@ -115,7 +116,7 @@ describe('provenance 1 — capacité MÉCANIQUE (dispatch.featuresOf, via effect
   });
 });
 
-const VARIANT_TALENTS = ['artilleur', 'battement', 'cavalier-emerite', 'coude-a-coude', 'distraire', 'frappe-blessante', 'fuite', 'impitoyable', 'porte-bouclier', 'rechargement-rapide', 'renversement'];
+const VARIANT_TALENTS: Id<'talent'>[] = ['artilleur', 'battement', 'cavalier-emerite', 'coude-a-coude', 'distraire', 'frappe-blessante', 'fuite', 'impitoyable', 'porte-bouclier', 'rechargement-rapide', 'renversement'];
 
 describe('Fuite ! — l’entrée EFFECTIVE porte le `test` de la variante (#564, AA 13 l.64-68)', () => {
   const eff = () => effectiveEntry(findTalentById('fuite')!);
@@ -186,7 +187,7 @@ describe('provenance 4 — CombatFeature effective sous REPLACE, identique à la
 /** Porteurs DÉRIVÉS du catalogue : les talents dont une variante réglée republie le champ `field`.
  *  Aucune liste d'ids en dur — un porteur ajouté en donnée entre automatiquement dans les preuves. */
 function carriersDeclaring(field: 'max' | 'test') {
-  return (talents as unknown as { id: string; variants?: Record<string, unknown>[] }[])
+  return talents
     .filter((t) => t.variants?.some((v) => field in v))
     .map((t) => t.id);
 }
@@ -207,18 +208,17 @@ describe('provenance 5 — le Maxi EFFECTIF suit la variante (talentMaxById, AA 
   for (const id of carriers) {
     it(`${id} — talentMaxById bascule avec la règle (base ≠ variante)`, () => {
       const c = mkById(id);
-      const base = findTalentById(id)! as unknown as { max?: unknown; variants: { max?: unknown }[] };
+      const base = findTalentById(id)!;
       expect(talentMaxById(c, id)).toBe(expectedMax(c, base.max));
       setRule(ruleOf(id), true);
-      const vMax = base.variants.find((v) => 'max' in v)!.max;
+      const vMax = base.variants!.find((v) => 'max' in v)!.max;
       expect(talentMaxById(c, id)).toBe(expectedMax(c, vMax));
       expect(talentMaxById(c, id)).not.toBe(expectedMax(c, base.max)); // morsure : le Maxi CHANGE réellement
     });
 
     it(`${id} — talentMaxReached (le consommateur d'achat) applique le Maxi de la variante`, () => {
       const c = mkById(id);
-      const vMax = findTalentById(id)! as unknown as { variants: { max?: unknown }[] };
-      const n = expectedMax(c, vMax.variants.find((v) => 'max' in v)!.max)!;
+      const n = expectedMax(c, findTalentById(id)!.variants!.find((v) => 'max' in v)!.max)!;
       c.talents = [{ talentId: id, times: n }];
       expect(talentMaxReached(c, id)).toBe(false); // sous la base, le Maxi (Bonus de carac) est plus haut
       setRule(ruleOf(id), true);
@@ -239,12 +239,12 @@ describe('provenance 6 — la ligne « Tests » republiée est CONSOMMÉE par le
   });
 
   for (const id of carriers) {
-    const base = findTalentById(id)! as unknown as { test?: { matches?: [] }; variants: { test?: { matches?: [] } }[] };
-    const vTest = base.variants.find((v) => 'test' in v)!.test;
+    const base = findTalentById(id)!;
+    const vTest = base.variants!.find((v) => 'test' in v)!.test;
     const structurallyDifferent = JSON.stringify(vTest?.matches) !== JSON.stringify(base.test?.matches);
 
     it(`${id} — l'entrée effective porte les \`matches\` de la variante sous la règle`, () => {
-      const eff = () => (effectiveEntry(findTalentById(id)!) as unknown as { test?: { matches?: [] } }).test;
+      const eff = () => effectiveEntry(findTalentById(id)!).test;
       expect(eff()?.matches).toEqual(base.test?.matches);
       setRule(ruleOf(id), true);
       expect(eff()?.matches).toEqual(vTest?.matches);
@@ -253,7 +253,7 @@ describe('provenance 6 — la ligne « Tests » republiée est CONSOMMÉE par le
     // Morsure PORTÉE PAR TOUS : la ligne « Tests » imprimée est un CONTENU consommé (fiche Codex,
     // `fact('Test', e.test?.raw)`) — elle doit réellement changer d'un mode à l'autre.
     it(`${id} — MORSURE : la ligne « Tests » EFFECTIVE change avec la règle`, () => {
-      const raw = () => (effectiveEntry(findTalentById(id)!) as unknown as { test?: { raw?: string } }).test?.raw;
+      const raw = () => effectiveEntry(findTalentById(id)!).test?.raw;
       const off = raw();
       setRule(ruleOf(id), true);
       expect(raw()).not.toBe(off);

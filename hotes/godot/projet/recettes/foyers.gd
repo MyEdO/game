@@ -9,11 +9,13 @@ extends SceneTree
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
+const PLATEAU := {w = 1, h = 1, metresParCase = METRES_PAR_CASE}
 const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6, canal = "ambiance"}
 const FLAMME := {cle = "posee/brasero", x = 2, y = 3, z = 0, hM = 0.6, rayonCases = 5, couleur = "#ff8c3a", energie = 2.5, scintillement = {amplitude = 0.35, hz = 2.4}, visuel = "feu", son = CREPITEMENT}
 const LUEUR := {cle = "portee/mage", x = 6, y = 3, z = 0, hM = 1.0, rayonCases = 4, couleur = "#8fc8ff", energie = 2.1, scintillement = null, visuel = "lueur", son = null}
-const LUMIERE := {soleil = null, ambiante = {couleur = "#203040", energie = 0.2}, ciel = null,
-	brume = {couleur = "#101820", debutCases = 10.0, finCases = 40.0, depuisLOeil = true}, sources = [FLAMME, LUEUR]}
+const LUMIERE := {soleil = null, ambiante = {couleur = "#203040", energie = 0.2}, blanc = 1.0, ciel = null,
+	brume = {couleur = "#101820", debutCases = 10.0, finCases = 40.0, courbe = 1.0, depuisLOeil = true},
+	horsCarte = {sol = null, fonduCases = null}, sources = [FLAMME, LUEUR]}
 var _fautes: Array[String] = []
 
 
@@ -25,7 +27,7 @@ func _recetter() -> void:
 	print("[foyers] version=", Engine.get_version_info().string)
 	var lumiere: Lumiere = load("res://scenes/Lumiere.tscn").instantiate()
 	root.add_child(lumiere)
-	lumiere.eclairer(LUMIERE, METRES_PAR_CASE)
+	lumiere.eclairer(LUMIERE, PLATEAU)
 	var foyers := lumiere.get_node("Sources").get_children()
 	if foyers.size() != 2:
 		_fautes.append("%d foyers posés, attendu 2" % foyers.size())
@@ -39,7 +41,7 @@ func _recetter() -> void:
 		if is_equal_approx(energies[0], energies[1]):
 			_fautes.append("la lampe du feu ne vacille pas : %s" % [energies])
 	var avant := _noeuds(lumiere)
-	lumiere.eclairer(LUMIERE.merged({sources = [FLAMME, LUEUR.merged({x = 7}, true)]}, true), METRES_PAR_CASE)
+	lumiere.eclairer(LUMIERE.merged({sources = [FLAMME, LUEUR.merged({x = 7}, true)]}, true), PLATEAU)
 	await process_frame
 	var apres := _noeuds(lumiere)
 	if apres != avant:
@@ -47,7 +49,7 @@ func _recetter() -> void:
 	var lueur: Foyer = lumiere.get_node("Sources").get_child(1)
 	if not lueur.position.is_equal_approx(MiseEnPage.point_de_la_carte(7, LUEUR.y, MiseEnPage.hauteur_au_plateau(LUEUR.hM, METRES_PAR_CASE))):
 		_fautes.append("la lueur déplacée reste à %s" % lueur.position)
-	lumiere.eclairer(LUMIERE.merged({sources = [FLAMME.merged({visuel = "flammeche", son = null}, true)]}, true), METRES_PAR_CASE)
+	lumiere.eclairer(LUMIERE.merged({sources = [FLAMME.merged({visuel = "flammeche", son = null}, true)]}, true), PLATEAU)
 	await process_frame
 	var restes := lumiere.get_node("Sources").get_children()
 	if restes.size() != 1 or restes[0].get_instance_id() != avant[0]:

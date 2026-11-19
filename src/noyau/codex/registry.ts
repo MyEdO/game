@@ -76,7 +76,7 @@ import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
 import { deDesEvenementsDeBord, deDuVoyageRapide } from '../../engine/seaVoyage';
 import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
-import { RIVER_PERILS } from '../../engine/riverNavigation';
+import { RIVER_PERILS, type RiverWindEffect } from '../../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../../engine/crewMorale';
 import { oupsDie } from '../../data/oups';
 import { interludeEventDie } from '../../data/interludeEvents';
@@ -129,7 +129,7 @@ import { skillBaseValue } from '../../engine/skills';
 import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
-import { formatMoney, priceToMoney, type Money } from '../../engine/money';
+import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
@@ -478,7 +478,7 @@ const careerStatusRange = (levels: import('../../data').CareerLevelData[]): stri
   if (!levels.length) return null;
   const first = levels[0].status;
   const last = levels[levels.length - 1].status;
-  return first === last ? first : `${first} → ${last}`;
+  return memeStatut(first, last) ? libelleDuStatut(first) : `${libelleDuStatut(first)} → ${libelleDuStatut(last)}`;
 };
 
 /**
@@ -960,12 +960,11 @@ function barterRatiosSection(rows: (typeof disponibilite)['barterRatios']): Code
 }
 
 // ── LOT 3 #422 (FINAL) : exemptions AUDIT — Empoignade (LDB 14, fiche de règle
-//    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, DIALECTE compilé — PAS de vrais
-//    `GameOp`, cf. `MiscastRowEntry`/`engine/miscast.ts::JsonRow` — renderer DÉDIÉ ci-dessous, jamais
-//    `passiveSection`). ──
+//    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, ops au terme de Péché non lié,
+//    cf. `MiscastRowEntry` — renderer DÉDIÉ ci-dessous, jamais `passiveSection`). ──
 
-/** Libellé lisible d'un montant du DIALECTE miscast (nombre / dé / terme de Péché / somme —
- *  `JsonFormula`, `engine/miscast.ts`). Le terme de Péché n'est résolu qu'à l'exécution (Points de
+/** Libellé lisible d'un montant au dialecte du Péché (nombre / dé / terme de Péché / somme —
+ *  `FormuleAuPeche`, `grammaire/valeurs.ts`). Le terme de Péché n'est résolu qu'à l'exécution (Points de
  *  Péché du lanceur) : ici, affichage d'AUTEUR (« 1d10 + Points de Péché »), jamais une valeur bakée. */
 function miscastAmountLabel(a: unknown): string {
   if (typeof a === 'number') return String(a);
@@ -977,9 +976,9 @@ function miscastAmountLabel(a: unknown): string {
   return String(a);
 }
 
-/** Une op du DIALECTE miscast (`JsonOp`) → sa ligne Codex — sous-ensemble des `op` réellement présents
- *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`, cf.
- *  `engine/miscast.ts::expandOp`). Chip cross-réf pour l'État ; texte structuré pour le reste. */
+/** Une op de rangée de miscast (`opsAuPecheSchema`) → sa ligne Codex — sous-ensemble des `op` réellement présents
+ *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`).
+ *  Chip cross-réf pour l'État ; texte structuré pour le reste. */
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
     case 'condition': {
@@ -1142,7 +1141,7 @@ export function optionBody(o: { label: string; desc: string }): string {
 /** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette, au dé que porte `porteurDuDe`. */
 function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires | typeof mutationNature)[number], porteurDuDe: PorteurDeDe, category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
-    sub: tr('codex.fiche.plages', { length: t.entries.length, die: porteurDuDe.die }),
+    sub: tr('codex.fiche.plages', { length: t.entries.length, die: formatDice(porteurDuDe.die) }),
     sections: sections({
       title: tr('codex.fiche.tirages'), layout: 'list',
       rows: t.entries.map((r) => {
@@ -1205,8 +1204,8 @@ const CODEX_SPECS = {
           ),
         })),
         ...d.tables.map((t) => depuisEnveloppe(t, {
-          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
-          sections: sections({ title: tr('codex.fiche.tirage', { die: t.die }), layout: 'list', rows: arcaneTableRows(t) }),
+          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: formatDice(t.die) }),
+          sections: sections({ title: tr('codex.fiche.tirage', { die: formatDice(t.die) }), layout: 'list', rows: arcaneTableRows(t) }),
         })),
       ];
     },
@@ -1310,10 +1309,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.navigationFluvialeVentChavirageEchouage', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 7',
     build: () => {
       const n = datasetObject('riverNavigation');
-      const forceLabel = new Map(n.windForces.entries.map((f) => [f.id, f.label]));
-      const dirLabel = new Map(n.windDirections.entries.map((d) => [d.id, d.label]));
-      const effectText = (e: { pourcentage?: number; derive?: boolean; louvoyage?: boolean; risqueDeChavirage?: boolean; risqueDeGreement?: boolean } | undefined): string => {
-        if (!e) return '—';
+      const effectText = (e: RiverWindEffect): string => {
         const parts: string[] = [];
         if (e.pourcentage != null) parts.push(tr('codex.riviere.vitesse', { pct: `${e.pourcentage > 0 ? '+' : ''}${e.pourcentage}` }));
         if (e.derive) parts.push(tr('codex.riviere.derive'));
@@ -1341,7 +1337,7 @@ const CODEX_SPECS = {
           {
             title: tr('codex.fiche.effetDuVentForceDirection'), layout: 'list',
             rows: n.windForces.entries.flatMap((f) => n.windDirections.entries.map((d) => ({
-              t: 'kv', k: `${forceLabel.get(f.id)} · ${dirLabel.get(d.id)}`, v: effectText(n.windEffect[f.id]?.[d.id as 'arriere' | 'cote' | 'contraire']),
+              t: 'kv', k: `${f.label} · ${d.label}`, v: effectText(f.effet[d.id]),
             } as CodexRow))),
           },
           {
@@ -1432,7 +1428,7 @@ const CODEX_SPECS = {
       // Les 4 échelons réunis en UN onglet « Progression » (au lieu d'un onglet par niveau) → la
       // montée en Carrière se lit d'un trait ; la description flavor gagne en proéminence relative.
       const levelSections: CodexSection[] = levels.map((lv) => ({
-        title: tr('codex.fiche.niveau', { level: lv.level, label: lv.label, status: lv.status }),
+        title: tr('codex.fiche.niveau', { level: lv.level, label: lv.label, status: libelleDuStatut(lv.status) }),
         layout: 'chips' as const,
         rows: [
           // Les Caractéristiques avancées sont des IDS (`CharKey` = id de `characteristics.json`) :
@@ -1548,7 +1544,7 @@ const CODEX_SPECS = {
         sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
         meta: facts(fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)), fact(tr('codex.fiche.emplacement'), t.loc), fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa), reachFact),
         sections: sections(
-          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
+          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel(r.instance)))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
           passiveSection(t.passifDArme),
           effectsSection(t.effects, ETATS_DU_CODEX, tr('codex.fiche.effetsDeclenches')),
@@ -1646,7 +1642,7 @@ const CODEX_SPECS = {
   mutationTables: {
     label: 'codex.fiche.tablesDeCorruption', group: 'effets',
     build: () => mutationTables.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+      sub: tr('codex.fiche.plages', { length: t.entries.length, die: formatDice(t.die) }),
       // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
       sections: sections({
         title: tr('codex.fiche.tirageMutation', { die: formatDice(deDeLaTableTiree(t)) }), layout: 'list',
@@ -1662,8 +1658,8 @@ const CODEX_SPECS = {
     // Tables `[min,max] → GameOp[]` référencées par l'op `rollTable` (Allure démoniaque : Tableau des
     // aspects démoniaques par Domaine du Chaos). Chaque rangée = fourchette + ops (chips codex-liées).
     build: () => effectTables.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
-      sections: sections({ title: tr('codex.fiche.tirageEffet', { die: t.die }), layout: 'list', rows: tableRows(t) }),
+      sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: formatDice(t.die) }),
+      sections: sections({ title: tr('codex.fiche.tirageEffet', { die: formatDice(t.die) }), layout: 'list', rows: tableRows(t) }),
     })),
   },
   maneuvers: {
@@ -1818,7 +1814,7 @@ const CODEX_SPECS = {
     // celui de la DONNÉE (#1467 L1b V-P1) — le registre ne recompose plus d'identité.
     build: () => careerLevels.map((lv) => depuisEnveloppe(lv, {
       label: entryKey(lv as unknown as Record<string, unknown>),
-      sub: lv.status, group: findCareerById(lv.career.id)?.label ?? lv.career.id,
+      sub: libelleDuStatut(lv.status), group: findCareerById(lv.career.id)?.label ?? lv.career.id,
       sections: sections(
         lv.characteristics.length ? { title: tr('codex.fiche.caracteristiquesAvancees'), layout: 'chips', rows: charRefRows(lv.characteristics) } : null,
         chips(tr('codex.fiche.competences'), lv.skills.map((a) => advancementRow('skills', a))),
@@ -1859,7 +1855,7 @@ const CODEX_SPECS = {
   },
   weather: {
     label: 'codex.fiche.meteoDeVoyage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: s.die }) })),
+    build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: formatDice(s.die) }) })),
   },
   weatherConditions: {
     label: 'codex.fiche.conditionsMeteo', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
@@ -2493,7 +2489,7 @@ const CODEX_SPECS = {
     build: () => {
       const w = datasetObject('seaWeather');
       // Les 4 aspects du tirage (`table[].precipitations`/`.temperature`/`.visibilite`/`.vent`) sont des
-      // ids de catalogue (`w.precipitations`/`.temperatures`/`.visibilites`/`.vents`, CHACUN déjà porteur
+      // références de catalogue (`w.precipitations`/`.temperatures`/`.visibilites`/`.vents`, CHACUN déjà porteur
       // de son `label` FR verbatim MDG) — la fiche résout id→label PAR LOOKUP (jamais l'id affiché ;
       // aucune duplication de `label` sur `table.entries[]`, la SOURCE UNIQUE du libellé reste le catalogue).
       const precipLabel = new Map(w.precipitations.map((p) => [p.id, p.label]));
@@ -2508,7 +2504,7 @@ const CODEX_SPECS = {
             title: tr('codex.fiche.tirageQuotidienSaisonParAspect', { die: formatDice(deDeLaTableTiree(w.table)) }), layout: 'list',
             rows: w.table.entries.map((row) => ({
               t: 'kv', k: fourchette(row.min, row.max),
-              v: [precipLabel.get(row.precipitations), tempLabel.get(row.temperature), visLabel.get(row.visibilite), windLabel.get(row.vent)].join(' · '),
+              v: [precipLabel.get(row.precipitations.id), tempLabel.get(row.temperature.id), visLabel.get(row.visibilite.id), windLabel.get(row.vent.id)].join(' · '),
             } as CodexRow)),
           },
           {
@@ -2609,7 +2605,7 @@ const CODEX_SPECS = {
       const { achat, vente, ragot } = c;
       return [{
         id: 'landCargo', label: c.label, source: src(achat.source),
-        meta: facts(fact(tr('codex.fiche.ragot'), tr('codex.fiche.difficulteEtModificateur', { v: DIFFICULTY_LABELS[ragot.difficulty], mod: signe(ragot.mod) }))),
+        meta: facts(fact(tr('codex.fiche.ragot'), DIFFICULTY_LABELS[ragot.difficulty])),
         sections: sections(
           {
             title: tr('codex.fiche.qualiteDuVin', { die: formatDice(deDeLaTableTiree(c.qualiteDuVin)) }), layout: 'list',

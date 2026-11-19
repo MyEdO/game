@@ -29,13 +29,15 @@ import {
   effectSchema, sceneFlowSchema, setFlagSchema, setObjectiveSchema, delayedEffectSchema,
   petitePriereSchema, setTimeSchema, startPursuitSchema, livingRefSchema, massBattleSpecSchema, favorLevelSchema,
   crewHireSchema,
-  type Effect, type DelayedEffect, type PetitePriere,
+  type Effect, type DelayedEffect, type PetitePriere, type FlowDeScene, type TestDeScene,
 } from './effets';
+import type { testDeSceneSchema } from '../grammaire/mecanique';
 import type { Flow } from '../../../engine/flowCore';
 import type { PursuitSpec } from '../../../noyau/pursuitFlow';
 import type { MassBattleSpec } from '../../../engine/massBattle';
 import type { FavorLevel } from '../../../engine/favor';
 import type { CrewHire } from '../../../engine/crewMorale';
+import { auChemin } from '../../../lib/objet.mjs';
 
 const ROOT = join(__dirname, '../../../..');
 
@@ -104,7 +106,7 @@ const effetsDuDataset = (chemin: string): { noeud: z.ZodType; valeur: unknown } 
   const noeud = m ? (noeudDuChamp(m[1], 'effects') as z.ZodType | undefined) : undefined;
   if (!m || !noeud) return undefined;
   const cles = [...m[2].matchAll(/\[(\d+)\]|\.([^.[]+)/g)].map((c) => c[1] ?? c[2]);
-  const valeur = cles.reduce<unknown>((n, k) => (n as Record<string, unknown>)[k], JSON.parse(readFileSync(join(ROOT, 'src/data', m[1]), 'utf8')));
+  const valeur = auChemin(JSON.parse(readFileSync(join(ROOT, 'src/data', m[1]), 'utf8')), cles);
   return { noeud, valeur };
 };
 
@@ -233,10 +235,20 @@ describe('`Effect` EST composé des infers (aucun n’est retombé à `any`)', (
     expectTypeOf<DelayedEffect>().toExtend<z.infer<typeof delayedEffectSchema>>();
   });
 
-  it('variante à FLOW : le `reward` d’une Petite Prière EST un `Flow<Effect>`, pas un `Flow<EffectOp>`', () => {
-    expectTypeOf<z.infer<typeof petitePriereSchema>['reward']>().toExtend<Flow<Effect>>();
-    expectTypeOf<PetitePriere['reward']>().toExtend<Flow<Effect>>();
-    expectTypeOf<z.infer<typeof sceneFlowSchema>>().toEqualTypeOf<Flow<Effect>>();
+  it('variante à FLOW : le `reward` d’une Petite Prière EST le Flow de scène, sortie de `sceneFlowSchema`', () => {
+    expectTypeOf<z.infer<typeof petitePriereSchema>['reward']>().toEqualTypeOf<FlowDeScene>();
+    expectTypeOf<PetitePriere['reward']>().toEqualTypeOf<FlowDeScene>();
+  });
+
+  it('le Flow de scène DÉRIVE de son schéma : son Test est la sortie de `testDeSceneSchema`, son coût un nombre (#841, #4056)', () => {
+    expectTypeOf<Extract<FlowDeScene, { kind: 'test' }>['test']>().toEqualTypeOf<z.output<typeof testDeSceneSchema>>();
+    expectTypeOf<TestDeScene>().toEqualTypeOf<z.output<typeof testDeSceneSchema>>();
+    expectTypeOf<Extract<FlowDeScene, { kind: 'choix' }>['coutEnAvantage']>().toEqualTypeOf<number | undefined>();
+  });
+
+  it('un Flow de scène est un `Flow<Effect>` jouable ; un `Flow<Effect>` (enjeu de catalogue, `$indice`) n’est pas un Flow de scène', () => {
+    expectTypeOf<FlowDeScene>().toExtend<Flow<Effect>>();
+    expectTypeOf<Flow<Effect>>().not.toExtend<FlowDeScene>();
   });
 });
 

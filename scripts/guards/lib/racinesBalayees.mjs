@@ -1770,9 +1770,9 @@ export function valeursDAcquisition(rel, arbre, argument, { arbreDe, cible }) {
     return a ? { rel: r, arbre: a, parents: parentsDe(a) } : null
   }
 
-  /** Les identifiants liés par un nom de déclaration (identifiant ou motif). */
+  /** Les identifiants liés par un nom de déclaration (identifiant ou motif, trous compris). */
   const nomsLies = (nom) => ts.isIdentifier(nom) ? [nom]
-    : ts.isObjectBindingPattern(nom) || ts.isArrayBindingPattern(nom) ? nom.elements.flatMap((e) => ts.isBindingElement(e) ? nomsLies(e.name) : []) : []
+    : ts.isObjectBindingPattern(nom) || ts.isArrayBindingPattern(nom) ? nom.elements.flatMap((e) => ts.isBindingElement(e) && e.name ? nomsLies(e.name) : []) : []
   /** Les `var` d'une portée de fonction, hors fonctions imbriquées. */
   const varsDe = (n, nom) => {
     const vus = []

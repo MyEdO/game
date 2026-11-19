@@ -61,7 +61,7 @@ func _le_plateau(lu: Dictionary) -> void:
 	var meneur: Combattant = plateau.get("_modeles")[heros.id]
 	var montage: MontageDeComposition = meneur.get_node("Modele")
 	await _attendre(func() -> bool: return montage.modele != null, "la base du meneur posée")
-	var deplacement: Dictionary = lu.apres.effets.filter(func(e: Dictionary) -> bool: return e.quoi == "deplacement")[0]
+	var deplacement: Dictionary = lu.apres.effets.filter(func(e: Dictionary) -> bool: return e.quoi == Noyau.Effet.DEPLACEMENT)[0]
 	plateau.montrer(lu.apres.vue)
 	plateau.jouer_les_effets(lu.apres.effets)
 	var releve := _relever(meneur.get("_deplacement"), meneur, montage)
@@ -121,18 +121,18 @@ func _l_atelier() -> void:
 	bouton.pressed.emit()
 	var parcours: Tween = atelier.get("_parcours")
 	parcours.pause()
-	var vers_la_marche := await FonduDeLArbre.fondre(self, etats, "marche")
-	_verifier(FonduDeLArbre.tenu(vers_la_marche, "repos"), "l'atelier vers la marche : états quittés %s, attendu repos puis rien" % [vers_la_marche])
-	_verifier(etats.active and not montage.lecteur.is_playing() and montage.lecteur.assigned_animation == montage.clip("marche"), "au milieu du parcours de l'atelier : arbre actif %s, lecteur brut en lecture %s, clip marqué %s" % [etats.active, montage.lecteur.is_playing(), montage.lecteur.assigned_animation])
+	var vers_la_marche := await FonduDeLArbre.fondre(self, etats, Noyau.Role.MARCHE)
+	_verifier(FonduDeLArbre.tenu(vers_la_marche, Noyau.Role.REPOS), "l'atelier vers la marche : états quittés %s, attendu repos puis rien" % [vers_la_marche])
+	_verifier(etats.active and not montage.lecteur.is_playing() and montage.lecteur.assigned_animation == montage.clip(Noyau.Role.MARCHE), "au milieu du parcours de l'atelier : arbre actif %s, lecteur brut en lecture %s, clip marqué %s" % [etats.active, montage.lecteur.is_playing(), montage.lecteur.assigned_animation])
 	var releve := _relever(parcours, montage.modele, montage.modele)
 	var vitrine: Dictionary = atelier.get("_vitrine")
 	var lieux: Array = vitrine.deplacement.cases.map(func(c: Dictionary) -> Vector3: return MiseEnPage.lieu_de_la_case_de_vitrine(c.x, c.y, vitrine.metresParCase))
 	_passer_par(releve.points, lieux, "l'atelier")
-	var vers_le_repos := await FonduDeLArbre.fondre(self, etats, "repos")
-	_verifier(FonduDeLArbre.tenu(vers_le_repos, "marche"), "l'atelier vers le repos : états quittés %s, attendu marche puis rien" % [vers_le_repos])
+	var vers_le_repos := await FonduDeLArbre.fondre(self, etats, Noyau.Role.REPOS)
+	_verifier(FonduDeLArbre.tenu(vers_le_repos, Noyau.Role.MARCHE), "l'atelier vers le repos : états quittés %s, attendu marche puis rien" % [vers_le_repos])
 	await FonduDeLArbre.rendre(self, etats)
-	_verifier(not etats.active and etats.anim_player.is_empty() and montage.lecteur.is_playing() and montage.lecteur.current_animation == montage.clip("repos"),
-			"au repos retrouvé : arbre actif %s, lecteur brut en lecture %s sur %s, attendu l'arbre débranché et le repos %s" % [etats.active, montage.lecteur.is_playing(), montage.lecteur.current_animation, montage.clip("repos")])
+	_verifier(not etats.active and etats.anim_player.is_empty() and montage.lecteur.is_playing() and montage.lecteur.current_animation == montage.clip(Noyau.Role.REPOS),
+			"au repos retrouvé : arbre actif %s, lecteur brut en lecture %s sur %s, attendu l'arbre débranché et le repos %s" % [etats.active, montage.lecteur.is_playing(), montage.lecteur.current_animation, montage.clip(Noyau.Role.REPOS)])
 	print("[chemin-du-groupe] atelier : %d cases en %.2f s, fondu repos → marche %s, marche → repos %s" % [lieux.size(), releve.duree, vers_la_marche, vers_le_repos])
 	atelier.queue_free()
 

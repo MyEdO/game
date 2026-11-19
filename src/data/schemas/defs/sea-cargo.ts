@@ -11,7 +11,7 @@ import {
   prixDuLivreSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
-import { flowTestSchema, porteurDeTestFixe } from '../grammaire/mecanique';
+import { testFixeSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 
 export const file = 'sea-cargo.json';
 export const famille = 'config';
@@ -105,7 +105,7 @@ const champs = {
   }),
   opportunite: nommerChamps(porteurDeTestFixe(z.strictObject({
     encInvestiMax: z.boolean(),
-    test: flowTestSchema,
+    test: testFixeSchema,
     ...cibleEtendueSchema.shape,
     tentativesMax: z.number(),
     outcomes: z.array(

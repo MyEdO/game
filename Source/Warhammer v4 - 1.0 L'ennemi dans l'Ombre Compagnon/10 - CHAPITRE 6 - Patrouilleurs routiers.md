@@ -1,6 +1,6 @@
 *Pages PDF 40-43*
 
-# PATROUILLEURS ROUTIERS
+# <span id="page-39-0" data-folio="39"></span>PATROUILLEURS ROUTIERS
 
 Lorsque le commerce a commencé à prospérer dans l'Empire naissant, il y a plus de 2000 ans, le banditisme a suivi de près. Depuis, des forces dédiées à la protection des voyageurs, ou plutôt du commerce, ont été déployées sur les routes. Financées par les seigneurs ou les communautés locales, elles n'étaient guère égales en termes de formation, d'équipement ou d'intégrité. Celles qui patrouillaient initialement sur les routes n'étaient en grande partie rien de plus que des armées privées au service de barons du crime, qui s'attaquaient à tous ceux qui passaient, ne valant guère mieux que les bandits qu'elles étaient censées combattre. D'autres étaient des groupes de paysans non entraînés et inefficaces, armés principalement d'outils agricoles.
 
