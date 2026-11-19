@@ -270,7 +270,6 @@ import {
   continueSeaDayAfterExposure,
   continueSeaDayAfterExhaustion,
   continuerLeTempsEnMer,
-  runSeaDay,
   finalizePortArrival,
   syncHullWoundsFromVessel,
 } from './seaVoyageFlow';
@@ -689,15 +688,6 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   else if (done?.purpose === 'seaExhaustion') { continueSeaDayAfterExhaustion(get, set, done.participants); handled = true; }
   else if (done?.purpose === 'seaHealth') { continuerLeTempsEnMer(get, set, done.participants); handled = true; }
   else if (done?.purpose === 'seaActivities') { continueSeaActivitiesAfterCascade(get, set); handled = true; } // Activités en mer (#273 Étape 2) → Commerce d'opportunité séquencé puis halte
-  // Mini-cascade AUTONOME d'un événement de bord maritime (`purpose:'test'` : Cogue pirate, Ouragan,
-  // Prière d'un Présage — `resolveSeaDayEvent` a mis le jour EN ATTENTE) : sa clôture REPREND la conduite
-  // du jour. Couture GÉNÉRIQUE (toute la classe, pas seulement « fuir ») : ici `pendingCascade` est DÉJÀ
-  // null (post-`advanceCascade`). La clôture d'un Effet d'horloge a pu dénouer le jour jusqu'à
-  // la halte ou à l'activité hebdomadaire. À l'accostage, `travelPlan` est déjà nul.
-  else if (done?.purpose === 'test' && get().travelPlan?.sea && !get().pendingRest && !get().pendingSeaActivities) {
-    runSeaDay(get, set);
-    handled = true;
-  }
   // ── Étage 2 : BORNES portées par la séquence — plus une chaîne EXCLUSIVE (#942 L1) ──
   // Accostage à FINALISER à la clôture (désertion à la relâche surfacée, #387) : `travelPlan` est déjà nul
   // ici (l'arrivée l'a annulé) — la séquence porte sa continuation dans `portArrival`. Couture GÉNÉRALE

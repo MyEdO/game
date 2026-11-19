@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applierDe } from './cascade';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { seedBattleRng } from './battleRng';
 import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
 import { applyCriticalToTarget } from './combatFlow';
@@ -188,7 +189,7 @@ describe('#1657 B3-2 — voyage MARITIME : le coup à l’équipage s’applique
   function mer(party: Combatant[]): void {
     baseState(party);
     set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never);
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
     // Un navire ARMÉ : `vehicleCombatant` ne pose aucun poste (les postes viennent de la scène de
     // combat, `combatSlice.ts`) — sans poste, « Canon détaché » ne désigne personne (dit au rendu).
     (plan.vehicle as unknown as { postes: unknown[] }).postes = [{ item: { uid: 'p1', name: 'Canon' }, side: 'tribord', crewIds: [party[0].id] }];
@@ -206,8 +207,14 @@ describe('#1657 B3-2 — voyage MARITIME : le coup à l’équipage s’applique
       const party = equipage();
       mer(party);
       runSeaDay(get, set);
-      const trouvee = get().pendingCascade?.participants.find((s) => s.kind === 'testDeclencheEnBande');
-      if (trouvee && resolveStake(trouvee.stake!).rule?.id === 'canon-detache') bande = trouvee;
+      // L'événement est une étape du jour : sa bande rejoint la journée en vol, qu'on parcourt jusqu'à elle.
+      for (let i = 0; i < 12 && get().pendingCascade && !bande; i++) {
+        const trouvee = get().pendingCascade!.participants.find((s) => s.kind === 'testDeclencheEnBande');
+        if (trouvee && resolveStake(trouvee.stake!).rule?.id === 'canon-detache') {
+          bande = trouvee;
+          expect(get().pendingCascade!.purpose, 'la bande rejoint la journée en vol').toBe('travelDay');
+        } else avanceEtapeCascade(get);
+      }
     }
     expect(bande, 'aucune fenêtre en 80 seeds : le coup à l’équipage reste perdu en mer').toBeTruthy();
     expect(bande!.participants!.map((p) => p.id)).toEqual([get().party[0].id]);

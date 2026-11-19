@@ -1663,6 +1663,9 @@ export function hostStep(get: Get, spec: HostSpec): BuiltCascadeStep | undefined
  * INTERROMPUE (combat ouvert en vol, choix sans défaut, groupe anéanti — contrat de
  * `runCascadeImmediate`) : un préfixe n'est pas une séquence résolue.
  *
+ * Une borne de fin de Round ou de combat exige un slot pour son dénouement. Seule une séquence
+ * sans borne peut se résoudre sur place. Les bornes de repos passent par `openRestNight` → `startCascade`.
+ *
  * La cadence DÉFÉRÉE (`cadenceAuto`) n'entre PAS ici : elle est portée par le pilote d'auto-cadence
  * (`combatAuto`, qui déroule la fenêtre et en MONTRE le bilan pour les séquences de nuit/voyage) —
  * c'est la divergence 2 assumée de la famille de bandes ci-dessus, pas un oubli.
@@ -1673,17 +1676,19 @@ export function openSequence(get: Get, set: Set, opts: {
   purpose: PendingCascade['purpose'];
   steps: readonly BuiltCascadeStep[];
   log?: string[];
-  travelHalt?: boolean;
-  roundBoundary?: boolean;
-  combatEndBoundary?: boolean;
-  restNights?: PendingCascade['restNights'];
+  borne?: 'roundBoundary' | 'combatEndBoundary';
+  travelHalt?: never;
+  restNights?: never;
+  roundBoundary?: never;
+  combatEndBoundary?: never;
 }): CascadeStep[] | undefined {
-  const steps = [...opts.steps];
+  const { borne, ...sequence } = opts;
+  const steps = [...sequence.steps];
   if (!steps.length) return undefined;
-  if (surfaceDesEtapes(get, steps) === 'I') {
-    return runCascadeImmediate(get, set, steps, { title: opts.title, purpose: opts.purpose, ...(opts.log ? { log: opts.log } : {}) });
+  if (borne === undefined && surfaceDesEtapes(get, steps) === 'I') {
+    return runCascadeImmediate(get, set, steps, { title: sequence.title, purpose: sequence.purpose, ...(sequence.log ? { log: sequence.log } : {}) });
   }
-  startCascade(get, set, { ...opts, steps });
+  startCascade(get, set, { ...sequence, steps, ...(borne === undefined ? {} : { [borne]: true }) });
   return undefined;
 }
 

@@ -4371,7 +4371,7 @@ export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
   const { avant, membre } = serie;
-  ouvrirLaFinDeRencontre(get, set, avant ? [cible, serie.assaillant] : [serie.assaillant], {});
+  ouvrirLaFinDeRencontre(get, set, avant ? [cible, serie.assaillant] : [serie.assaillant]);
   set((s: Jeu) => ({ ...(avant ? { party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(avant, h) : h)) } : {}), serieSubie: null }));
   if (membre) rendreALEquipage(get, set, cible, membre.poste);
   else if (checkPartyWiped(get, set)) return;
@@ -7435,7 +7435,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
   if (!battle) return;
   // La fin du combat est conclue : un geste différé encore en attente ne partira plus, ses télégraphes s'effacent (#3058).
   for (const c of battle.combatants) effacerLesTelegraphes(get, set, c.id);
-  ouvrirLaFinDeRencontre(get, set, battle.combatants, { combatEndBoundary: true });
+  ouvrirLaFinDeRencontre(get, set, battle.combatants, 'combatEndBoundary');
   // Un Test d'amputation surfacé peut l'avoir ouverte à lui seul (`startCascade` renonce sur `steps` vide).
   // Sans la borne, sa fermeture rappellerait `openCombatEndCascade` et rejouerait l'Exposition à la
   // Corruption, dont le Degré n'est pas un marqueur.
@@ -7454,9 +7454,9 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
  * pilotées à la main dans la cascade influençable (Chance/Résilience offertes, conséquence à la
  * validation), les autres résolues d'office.
  *
- * Les marqueurs sont CONSOMMÉS ici (source unique). `bornes` : celles que la séquence ouverte porte.
+ * Les marqueurs sont consommés ici. La bataille donne sa borne de dénouement à la séquence ouverte.
  */
-function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Combatant[], bornes: { combatEndBoundary?: boolean }): void {
+function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Combatant[], borne?: 'combatEndBoundary'): void {
   const corr = worstCorruptionExposure(combattants);
   const steps: BuiltCascadeStep[] = [];
   const monos: BuiltCascadeStep[] = [];
@@ -7523,7 +7523,7 @@ function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Comb
   // TOUTE la séquence est MINTÉE : les jets bâtis ici (`monoStep`, `combatEndBands`/`splitBandRows` →
   // `bandStep`) comme ceux venus de la file, qui est elle-même typée à la marque (#1262 V2) — la dernière
   // ouverture de combat par littéral passe donc par la porte.
-  if (steps.length) openSequence(get, set, { title: tr('step.consequencesDuCombat'), icon: 'etat/hemorragique', purpose: 'combat', steps, ...bornes });
+  if (steps.length) openSequence(get, set, { title: tr('step.consequencesDuCombat'), icon: 'etat/hemorragique', purpose: 'combat', steps, borne });
 }
 
 /** La BORNE de dénouement porte sur la séquence RÉELLEMENT ouverte, quels que soient son `purpose` et le site
@@ -8968,7 +8968,7 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
   // Psychologie du Round qui se CLÔT (le franchissement a déjà incrémenté `round`). LDB 21 l.19, l.25, l.39
   steps.push(...combatPsychBands(passeDePsy(get, set, collectRoundEndPsych, battle.round - 1)));
   // Séquence d'accueil : celle en vol, quel que soit son `purpose` (doctrine de `revealPurpose`), jamais parquée.
-  if (steps.length) openSequence(get, set, { title: tr('step.finDeRound'), icon: 'temps/heure', purpose: revealPurpose('combat', false)(get()), steps, roundBoundary: true });
+  if (steps.length) openSequence(get, set, { title: tr('step.finDeRound'), icon: 'temps/heure', purpose: revealPurpose('combat', false)(get()), steps, borne: 'roundBoundary' });
   // Une révélation d'entretien du franchissement a pu l'ouvrir seule : sa fermeture ouvre le Round (#2916).
   bornerLaSequenceOuverte(get, set, 'roundBoundary');
 }
