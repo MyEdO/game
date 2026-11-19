@@ -11,7 +11,7 @@ export interface Ecran {
   etats: [Etat, ...Etat[]];
 }
 
-export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Nuit | Poursuite | BatailleDeMasse | Interlude | Soins | Commerce | Voyage | Bord | Dossier;
+export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Nuit | Poursuite | BatailleDeMasse | Interlude | Soins | Commerce | Voyage | Bord | Dossier | Exploration | CarteDuMonde | Carnet;
 
 /* ───────── le combat ───────── */
 
@@ -100,7 +100,8 @@ export interface Testeur {
 
 /** Le héros d'une fenêtre sans dé : ce qui le met en jeu (une réserve, sa compétence et son seuil, le Critique qu'il
  *  porte, l'arme qu'il tient, son engagement : son Avantage contre celui de l'adversaire, ce qui le menace, ses Points de
- *  Corruption sur son seuil, le rôle qu'il tient pour le groupe), ce que son choix coûte, la marque de son mode. */
+ *  Corruption sur son seuil, le rôle qu'il tient pour le groupe, le Test que sa réponse portera), ce que son choix coûte,
+ *  la marque de son mode. */
 export interface HerosSansDe {
   role: 'heros';
   qui: string;
@@ -112,7 +113,8 @@ export interface HerosSansDe {
     | { engagement: { avantage: number; contre: string; adverse: number } }
     | { menace: string }
     | { corruption: { points: number; seuil: number } }
-    | { decidePour: string };
+    | { decidePour: string }
+    | { testeur: true };
   cout?: string;
   marque?: string;
 }
@@ -134,6 +136,23 @@ export interface Expose {
   qui: string;
   exposition: string;
   corruption: { points: number; seuil: number };
+}
+
+/** Celui à qui le héros parle : le combattant, ce qu'il est, ce qu'il dit. */
+export interface Interlocuteur {
+  role: 'interlocuteur';
+  qui: string;
+  comme: string;
+  dit: string;
+}
+
+/** Une réponse que le héros peut faire : ses mots, le Test qu'elle demande (la compétence, la difficulté), ce qu'elle
+ *  coûte ; `survol`, celle que le curseur survole. */
+export interface Reponse {
+  texte: string;
+  test?: { competence: string; difficulte: string };
+  prix?: Sous;
+  survol?: true;
 }
 
 /** Celui qu'un jet vise sans dé : le combattant, son rôle. */
@@ -252,8 +271,10 @@ export type Centre =
   /** Un Test d'équipage avant le dé : ce que le navire fait, sa cible, le réglage qui vaut pour tout le bord, ce qui le
    *  modifie. */
   | { role: 'equipage'; fait: string; cible?: string; reglage: Reglage; notes: NoteDEquipage[] }
-  /** Un Test simple : ce qui le pose ; tombé, son DR ; la phrase de ce qu'il décide. */
-  | { role: 'simple'; sur: string; dr?: number; phrase: string };
+  /** Un Test simple : ce qui le pose, sa difficulté ; tombé, son DR ; la phrase de ce qu'il décide. */
+  | { role: 'simple'; sur: string; difficulte?: { nom: string; valeur: number }; dr?: number; phrase: string }
+  /** Les réponses d'un dialogue, la première en tête. */
+  | { role: 'dialogue'; reponses: Reponse[] };
 
 /** Ce qui modifie un Test d'équipage : un DR qui s'ajoute, les pièces d'un bord qui tirent, une règle. */
 export type NoteDEquipage = { nom: string; dr: number } | { pieces: number; bord: string } | string;
@@ -322,7 +343,7 @@ export interface Reserve {
 export interface Fenetre {
   titre: string;
   heros?: Testeur | HerosSansDe | Subit | Expose;
-  autre?: Testeur | Vise | Touche | Rangees | ChoixADroite;
+  autre?: Testeur | Vise | Touche | Rangees | ChoixADroite | Interlocuteur;
   centre: Centre;
   gestes: Geste[];
   reserves: Reserve[];
@@ -802,11 +823,12 @@ export interface Domaine {
   modifiees: number;
 }
 
-/** Les options : le titre, les préférences (le son puis le jeu), les domaines, le domaine ouvert et son premier
+/** Les options, sur la table : le titre, les préférences (le son puis le jeu), les domaines, le domaine ouvert et son premier
  *  feuillet, à deux pages. */
 export interface Options {
   nom: string;
   gabarit: 'gestion';
+  decor: 'table';
   titre: { nom: string; sous: string };
   son: Preference[];
   jeu: Preference[];
@@ -855,15 +877,16 @@ export interface Part {
 }
 
 /** Une voie offerte sur une page de service (un soin, une vente, un travail) : son id (son pictogramme), son nom, son
- *  Test, ce qu'elle fait, son prix ; `maison`, un prix de valeur maison ; `prise`, la voie choisie. */
+ *  Test, ce qu'elle fait, son prix ; `maison`, un prix de valeur maison ; `prise`, la voie choisie ; fermée, sa raison. */
 export interface Voie {
   id: string;
   nom: string;
   test: string;
-  texte: string;
+  texte?: string;
   prix?: Sous;
   maison?: true;
   prise?: true;
+  refus?: string;
 }
 
 /* ───────── la nuit ───────── */
@@ -952,20 +975,20 @@ export interface Nuit {
 
 /* ───────── les soins ───────── */
 
-/** Les soins d'un lieu : le titre, le rail du quartier, le médecin, le patient et son mal, les actes, ce qu'il paie et
- *  sa bourse, l'action, le retour, le groupe. */
+/** Les soins, chez le médecin d'un lieu ou entre héros dans la salle : le titre, le rail du quartier, le médecin, le
+ *  patient et son mal, les actes, ce qu'il paie et sa bourse, l'action et sa note, le retour, le groupe. */
 export interface Soins {
   nom: string;
   gabarit: 'lieu-et-voyage';
-  decor: 'cabinet';
+  decor: 'cabinet' | 'salle';
   titre: TitreDuLieu;
-  rail: Rail;
-  hote: HoteDuLieu;
-  patient: { qui: string; mal: string };
+  rail?: Rail;
+  hote?: HoteDuLieu;
+  patient: { qui: string; mal?: string };
   actes: Voie[];
-  aPayer: Sous;
-  avoir: Sous;
+  paiement?: { aPayer: Sous; avoir: Sous };
   action: string;
+  note?: string;
   retour: string;
   groupe: HerosDuGroupe[];
 }
@@ -1153,4 +1176,134 @@ export interface Dossier {
   ouverte: string;
   blocs: BlocDuDossier[];
   combattants: Record<string, Combattant>;
+}
+
+/* ───────── l'exploration et le récit ───────── */
+
+/** Le regard tenu sur la scène (`REGARDS`, `src/noyau/monde/aretes.ts`) : isométrique, du dessus, par les yeux du meneur. */
+export type Regard = 'tactique' | 'plateau' | 'immersion';
+
+/** Une chose de la scène à portée du groupe : sa place dans le décor (son id), son nom, le geste qu'elle offre (son id, son
+ *  libellé) ; `survolee`, ce qu'on en sait, lu sous le curseur ou le point de mire ; `signalee`, son nom et son geste se
+ *  lisent sur la scène. */
+export interface ChoseDeLaScene {
+  id: string;
+  nom: string;
+  geste: { id: 'franchir' | 'parler' | 'fouiller' | 'ramasser' | 'lire' | 'enjamber'; libelle: string };
+  survolee?: string;
+  signalee?: true;
+}
+
+/** Une ligne du journal hors combat : une phrase, ou la borne d'un moment. */
+export type LigneDuJournal = string | { moment: string };
+
+/** Un document remis : d'où il vient, son titre et son sous-titre, son texte par paragraphes, sa signature, le sceau qui
+ *  le ferme, le héros qui le tient ; `relu`, rouvert depuis le carnet. */
+export interface DocumentRemis {
+  provenance: string;
+  titre: string;
+  sous?: string;
+  paragraphes: string[];
+  signature: string[];
+  sceau: string;
+  heros: string;
+  relu?: true;
+}
+
+/** Ce qu'une fouille trouve : sur qui, le héros qui fouille, ce qu'il voit, l'argent réparti entre les bourses, la charge
+ *  de chaque héros (son Encombrement porté sur ce qu'il peut porter), les objets (leur id, leur nom, leur Encombrement), le
+ *  héros qui prend ce qui reste, les gestes. */
+export interface Fouille {
+  sur: string;
+  par: string;
+  texte: string;
+  argent: Sous;
+  charges: { qui: string; enc: number; max: number }[];
+  objets: { id: string; nom: string; enc: number }[];
+  reste: string;
+  gestes: Geste[];
+}
+
+/** L'exploration d'un lieu, et ce qui s'y pose : le décor (la salle, la route), le titre, le regard tenu, où se tient le
+ *  groupe dans la salle et la chose vers laquelle le meneur marche, les choses à portée, l'invite posée sur une chose de la
+ *  scène, les gestes du groupe (leur id, leur libellé), les écrans à ouvrir, le journal (la ligne neuve en dernier), le
+ *  retour ; le document remis, la fouille ; les combattants que la fenêtre nomme ; le groupe, ou la fenêtre qui prend sa
+ *  place. */
+export interface Exploration {
+  nom: string;
+  gabarit: 'lieu-et-voyage';
+  decor: 'salle' | 'grand-route';
+  titre: TitreDuLieu;
+  regard?: Regard;
+  groupeEn?: 'entree' | 'comptoir' | 'avis';
+  marcheVers?: string;
+  choses?: ChoseDeLaScene[];
+  invite?: { sur: string; titre: string; texte: string };
+  gestes?: { id: 'soigner' | 'reposer' | 'fouiller'; libelle: string }[];
+  ouvrir?: { id: 'carte' | 'carnet'; libelle: string }[];
+  journal?: LigneDuJournal[];
+  retour?: string;
+  document?: DocumentRemis;
+  fouille?: Fouille;
+  combattants: Record<string, Combattant>;
+  groupe?: HerosDuGroupe[];
+  fenetre?: Fenetre;
+}
+
+/** Un lieu connu sur la carte du monde : son id (son emplacement), son nom, ce qu'il est, sa distance ; `ici`, le groupe
+ *  s'y tient ; `choisi`, la destination. */
+export interface LieuDuMonde {
+  id: string;
+  nom: string;
+  nature: string;
+  distance?: number;
+  ici?: true;
+  choisi?: true;
+}
+
+/** Un moyen d'aller à la destination : son id (son pictogramme), ses jours, ses nuits et où elles se passent, le prix d'une
+ *  place dehors et dedans, par tête ; `pris`. */
+export interface MoyenDeVoyage {
+  id: 'diligence' | 'pied';
+  jours: number;
+  nuits: { nombre: number; a: 'auberge' | 'route' };
+  place?: { dehors: Sous; dedans: Sous };
+  pris?: true;
+}
+
+/** La carte du monde : le titre, les lieux connus, la destination (son nom, sa voie, son texte, ses étapes et la distance
+ *  de chacune depuis la précédente, ses moyens, le geste qui part), le retour ; le groupe et ses bourses, ou la fenêtre qui
+ *  prend sa place. */
+export interface CarteDuMonde {
+  nom: string;
+  gabarit: 'lieu-et-voyage';
+  decor: 'reikland';
+  titre: TitreDuLieu;
+  lieux: LieuDuMonde[];
+  destination: { nom: string; par: string; texte: string; etapes: { nom: string; km?: number }[]; moyens: MoyenDeVoyage[]; geste: Geste };
+  retour: string;
+  groupe: HerosDuGroupe[];
+  fenetre?: Fenetre;
+}
+
+/** Une lecture d'un indice : le titre du document, ses lignes ; `manuscrite`, une lettre écrite à la main. */
+export interface Lecture {
+  titre: string;
+  lignes: string[];
+  manuscrite?: true;
+}
+
+/** Le carnet d'enquête, posé sur la salle : le titre, les indices épinglés, les affaires (leur id, leur nom, leurs indices
+ *  visibles), l'affaire ouverte, les documents remis, les indices de l'affaire ouverte (leur nom ; `nouveau`, `epingle` ;
+ *  leurs lectures, la dernière en tête). */
+export interface Carnet {
+  nom: string;
+  gabarit: 'gestion';
+  decor: 'salle';
+  titre: { nom: string; sous: string };
+  epingles: number;
+  affaires: { id: string; nom: string; indices: number }[];
+  ouverte: string;
+  documents: string[];
+  indices: { nom: string; nouveau?: true; epingle?: true; lectures: Lecture[] }[];
 }

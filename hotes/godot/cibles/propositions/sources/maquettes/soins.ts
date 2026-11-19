@@ -1,9 +1,11 @@
 /**
  * Les soins (#4411) : la page des services du quartier ouverte sur le médecin. Le docteur de la guilde dans son
  * cabinet, le patient choisi au bandeau, les actes et leur prix, la bourse du patient (LDB 09 l.256-269, LDB 75 l.19)
- * (`../../lieux-et-nuit.md`, section `soins`).
+ * (`../../lieux-et-nuit.md`, section `soins`) ; entre héros, la même page posée sur la salle de La Diligence, sans
+ * prix, le soigneur choisi au bandeau du jet (`../../exploration-et-recit.md`, section `soins-entre-heros`).
  */
 import { BOURSES, groupe } from './compagnie.ts';
+import { LA_DILIGENCE } from './exploration.ts';
 import type { Ecran } from './maquette.ts';
 
 export default {
@@ -19,9 +21,19 @@ export default {
     actes: [
       { id: 'soin', nom: 'Panser les Blessures', test: 'Guérison', texte: 'Lui rend le Bonus d’Intelligence du docteur, plus ses degrés de réussite.', prix: 60, prise: true },
       { id: 'scalpel', nom: 'Recoudre la cuisse lacérée', test: 'Chirurgie', texte: 'Longue opération : chaque passe lui coûte 1d10 Blessures et une Hémorragie.', prix: 180, maison: true }],
-    aPayer: 60, avoir: BOURSES.greta,
+    paiement: { aPayer: 60, avoir: BOURSES.greta },
     action: 'Payer et soigner',
     retour: 'Retour au quartier',
     groupe: groupe({ greta: { texte: 'Cuisse lacérée, à recoudre', mal: true } }, 'greta'),
+  }, {
+    nom: 'soins-entre-heros', gabarit: 'lieu-et-voyage', decor: 'salle', titre: LA_DILIGENCE,
+    patient: { qui: 'greta' },
+    actes: [
+      { id: 'soin', nom: 'Panser les Blessures', test: 'Guérison', texte: 'Lui rend le Bonus d’Intelligence du soigneur, plus ses degrés de réussite.', prise: true },
+      { id: 'goutte', nom: 'Arrêter l’Hémorragie', test: 'Guérison', refus: 'Greta ne saigne pas.' }],
+    action: 'Soigner',
+    note: 'Le soigneur se choisit dans le bandeau du jet, avant le dé.',
+    retour: 'Explorer',
+    groupe: groupe({ greta: { attend: 'Patiente' }, aldric: { id: 'soigner', texte: 'possède Guérison' } }, 'greta'),
   }],
 } satisfies Ecran;

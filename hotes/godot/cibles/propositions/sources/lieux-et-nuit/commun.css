@@ -36,7 +36,7 @@
 .poste.ferme .et b,.poste.ferme .et span{color:#8d8474}
 .poste.vise .medaillon{box-shadow:0 0 0 1px #150d04,0 0 18px rgba(255,214,140,.9)}
 .poste.vise .et{box-shadow:0 4px 9px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.8),0 0 16px rgba(255,214,140,.35)}
-.poste::after{content:"";width:10px;height:10px;margin-top:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
+.poste::after{content:"";position:relative;left:var(--pointe,0px);width:10px;height:10px;margin-top:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
 
 /* le corps de l'aperçu */
 .apercu table{border-collapse:collapse;width:100%;margin-top:5px}

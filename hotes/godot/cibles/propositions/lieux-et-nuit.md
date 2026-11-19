@@ -4,7 +4,7 @@ Compte rendu des écrans dessinés depuis les maquettes validées de lieu et de 
 `../ecrites/lieu.md` et le relevé de ce qui se joue la nuit (ci-dessous). Sources au dépôt : trois écrans de
 `sources/maquettes/`, chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dessinés par
 `sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png> --format 16:9 [--etat <état>]`) : `nuit`
-(`nuit-a-l-auberge`, `jeux-de-taverne`, `bivouac`), `soins` (`services-du-lieu-medecin`) et `interlude`
+(`nuit-a-l-auberge`, `jeux-de-taverne`, `bivouac`), `soins` (`services-du-lieu-medecin` ; `soins-entre-heros`, compte rendu dans `exploration-et-recit.md`) et `interlude`
 (`interlude-en-ville`). Les décors peints vivent dans `sources/lieux-et-nuit/` (`auberge.js`, `taverne.js`,
 `bivouac.js`, `cabinet.js`, `carte-de-la-ville.js`). Premières maquettes : rien n'est validé.
 
@@ -75,7 +75,7 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
   Panser (Guérison, LDB 09 l.260), Recoudre (Chirurgie, LDB 10 l.184, LDB 18 l.314).
 - Payer : chaque acte se paie au lancer du Test (`src/noyau/medicFlow.ts:182`), par le bénéficiaire (#3004) :
   « À payer », « Bourse de Greta », « Payer et soigner ». La page des soins est celle des soins entre héros
-  (`exploration-et-recit`, `sources/lieux-et-nuit/soins.js`, `soins.css`).
+  (état `soins-entre-heros`, `exploration-et-recit.md`), `sources/lieux-et-nuit/soins.js`, `soins.css`.
 - La Chirurgie à 15/– est dite « valeur maison » sur l'image : aucun prix aux livres (LDB 75 l.19 ne donne que la
   visite, « 4-6 pistoles »).
 - À valider : visite à 5/– dans la fourchette du livre, à tracer en valeur maison elle aussi ; le noyau débite le
