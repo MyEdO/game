@@ -25,6 +25,7 @@ FAMILLE = 'arete'
 sys.path.insert(0, str(ICI / FAMILLE))
 PIECES = {'mur', 'porte-fermee', 'porte-ouverte', 'fenetre', 'fenetre-close', 'breche'}
 TOLERANCE = 0.001   # m
+SEPARATEUR, POSITIONS = '--', ('gauche', 'milieu', 'droite')
 PLEINES = ('mur', 'fenetre-close')
 PAS_DU_JOUR = 0.005   # m
 COULEUR = re.compile(r'#[0-9a-fA-F]{6}')
@@ -92,7 +93,7 @@ class Construction(unittest.TestCase):
         return sortie
 
     def test_un_modele_existe(self):
-        self.assertLessEqual({'colombage', 'moellons', 'pierres-seches'}, set(self.bati))
+        self.assertLessEqual({'colombage', 'moellons', 'pierres-seches', 'porterie'}, set(self.bati))
 
     def test_deux_constructions_rendent_les_memes_octets(self):
         for _, bati, _ in self.chaque():
@@ -112,9 +113,15 @@ class Construction(unittest.TestCase):
             donnees = {nom: v for nom, v in bati['D'].items() if nom.isupper()}
             self.assertEqual([v for v in valeurs(donnees) if isinstance(v, str) and COULEUR.fullmatch(v)], [])
 
-    def test_un_noeud_racine_par_piece(self):
+    def test_chaque_noeud_racine_est_une_piece_ou_sa_position_dans_une_ouverture(self):
         for _, _, glb in self.chaque():
-            self.assertEqual(set(self.noeuds(glb)), PIECES)
+            noeuds = set(self.noeuds(glb))
+            self.assertLessEqual({'mur', 'breche'}, noeuds)
+            for nom in noeuds:
+                with self.subTest(noeud=nom):
+                    piece, _, position = nom.partition(SEPARATEUR)
+                    self.assertIn(piece, PIECES & noeuds)
+                    self.assertIn(position, ('', *POSITIONS))
 
     def test_chaque_piece_tient_dans_le_repere_de_l_arete(self):
         for _, bati, glb in self.chaque():
@@ -133,7 +140,7 @@ class Construction(unittest.TestCase):
         for _, bati, glb in self.chaque():
             for piece, (_, triangles) in self.noeuds(glb).items():
                 with self.subTest(piece=piece):
-                    self.assertLessEqual(triangles, bati['D']['BUDGET_TRIANGLES'][piece])
+                    self.assertLessEqual(triangles, bati['D']['BUDGET_TRIANGLES'][piece.partition(SEPARATEUR)[0]])
 
     def test_chaque_piece_est_faite_de_coques_closes_aux_faces_vers_le_dehors(self):
         for _, _, glb in self.chaque():
@@ -143,7 +150,7 @@ class Construction(unittest.TestCase):
         for _, bati, glb in self.chaque():
             couronnement = bati['D'].get('APPAREIL', {}).get('couronnement')
             haut = bati['D']['HAUTEUR'] - (couronnement['hauteur'] if couronnement else 0.0)
-            for piece in PLEINES:
+            for piece in (nom for nom in self.noeuds(glb) if nom.partition(SEPARATEUR)[0] in PLEINES):
                 with self.subTest(piece=piece):
                     a_jour = jours(glb, piece, bati['D']['LONGUEUR'] / 2, haut)
                     self.assertEqual(a_jour[:6], [], f'{len(a_jour)} points à jour')

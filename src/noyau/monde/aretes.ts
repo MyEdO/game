@@ -1,10 +1,12 @@
 /**
  * LES ARÊTES TELLES QU'UN HÔTE LES DESSINE (#3476, lot C) : pour chaque mur de la scène, où le poser (sa case, son
  * milieu et son sens, tourné vers son dehors, `outwardSide`), d'où elle se dresse (`piedDeLArete`), quelle pièce y va
- * (`PieceDArete`), de quelle famille (`StructureAppearanceDef.kit`, par l'apparence de l'arête, `apparenceDArete`),
- * de quelle palette (`paletteDeLApparence`, #4471), et à quelle hauteur.
+ * (`PieceDArete`), à quelle place de son ouverture (`PositionDansLOuverture`, #4471), de quelle famille
+ * (`StructureAppearanceDef.kit`, par l'apparence de l'arête, `apparenceDArete`, ou du mur qui porte sa porte), de
+ * quelle palette (`paletteDeLApparence`, #4471), et à quelle hauteur.
  */
-import { structureAppearances } from '../../data';
+import { findStructureById, structureAppearances } from '../../data';
+import { isDoorEdgeStructure } from '../../engine/structures';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data';
 import type { EntreeVivante } from '../../data/datasets';
 import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
@@ -18,6 +20,7 @@ import {
   heightAt,
   solPraticable,
   piedDeLArete,
+  porteAuteur,
   porteEnJeu,
   rectJouable,
   sceneMetresPerTile,
@@ -50,9 +53,14 @@ import type { WallPart } from '../../data/structureAppearance.types';
  *  la brèche d'une structure abattue. */
 export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' | 'fenetre-close' | 'breche';
 
+/** La place d'une arête dans son ouverture (`ouverturesDeLaScene`) : seule, ou à son bout -X (`gauche`), entre ses
+ *  deux bouts (`milieu`), à son bout +X (`droite`), X le long du `sens` de l'arête (#4471). */
+export type PositionDansLOuverture = 'seule' | 'gauche' | 'milieu' | 'droite';
+
 /** Une arête telle qu'un hôte la dessine : sa clé (`edgeKey`), les cases de la carte qu'elle sépare à sa couche
  *  (`casesDeFace`, `inMapBounds` : une ou deux), son milieu et son sens en coins de grille (`wallEnds`,
- *  `sensDeLArete`), la hauteur (m) d'où elle se dresse (`piedDeLArete`), sa pièce, la famille du kit de son apparence
+ *  `sensDeLArete`, celui de son ouverture), la hauteur (m) d'où elle se dresse (`piedDeLArete`), sa pièce, sa place
+ *  dans son ouverture, la famille du kit de son apparence, celle du mur qui porte son ouverture pour une porte
  *  (`null` pour une apparence hors du catalogue), sa palette (`paletteDeLApparence`), sa hauteur en mètres
  *  (`wallHeightM`, sinon un étage), et le bloc de la case du segment à sa couche (`blocDeLaCase`). */
 export interface AreteDessinee {
@@ -62,6 +70,7 @@ export interface AreteDessinee {
   sens: Pt;
   pied: number;
   piece: PieceDArete;
+  position: PositionDansLOuverture;
   famille: FamilleDuKit | null;
   palette: Record<string, string>;
   hauteurM: number;
@@ -98,25 +107,100 @@ function sensDeLArete(scene: Scene, seg: WallSeg): [Pt, Pt] {
   return gy * (b.x - a.x) - gx * (b.y - a.y) < 0 ? [b, a] : [a, b];
 }
 
-/** Par emplacement de palette (les `surfaces` d'un modèle d'arête), la partie de mur dont il prend la couleur. */
-const PARTIES = {
-  corps: 'face', bois: 'poteau', accent: 'vantail', vet1: 'meneau', metal: 'poignee',
-} as const satisfies Record<string, WallPart>;
+type Apparence = EntreeVivante<StructureAppearanceDef>;
 
-/** Par emplacement de palette, la couleur de sa partie de mur (`PARTIES`) dans l'apparence `apparence`
- *  (`wallPartColor`) ; aucune sans apparence. */
-export function paletteDeLApparence(
-  apparence: EntreeVivante<StructureAppearanceDef> | undefined,
-): Record<string, string> {
-  if (!apparence) return {};
-  return Object.fromEntries(Object.entries(PARTIES).map(([emplacement, partie]) => [
-    emplacement, wallPartColor(apparence, partie),
-  ]));
+/** La nature d'ouverture du segment `seg` de `scene` : une porte en jeu (`porteEnJeu`), une porte de ville (un segment
+ *  sans porte authorée dont la Structure se pose comme une fermeture, `isDoorEdgeStructure`), sinon aucune. */
+export function natureDOuverture(scene: Scene, seg: WallSeg): 'porte-en-jeu' | 'porte-de-ville' | null {
+  if (porteEnJeu(scene, seg)) return 'porte-en-jeu';
+  const structure = seg.structure ? findStructureById(seg.structure) : undefined;
+  return !porteAuteur(seg) && structure && isDoorEdgeStructure(structure) ? 'porte-de-ville' : null;
 }
 
-/** L'arête dessinée du segment `seg` de `scene`. */
+/** Une arête sur sa ligne : son segment, l'intervalle `[t0, t1]` qu'il couvre le long de la direction `d` de la ligne,
+ *  sa nature d'ouverture (`natureDOuverture`) et son apparence (`apparenceDArete`). */
+interface Posee { seg: WallSeg; t0: number; t1: number; nature: ReturnType<typeof natureDOuverture>; apparence: string }
+
+/** La ligne du segment `seg` : sa clé (couche, direction `d` de signe canonique, décalage) et la direction `d`. */
+function ligneDuSegment(seg: WallSeg): { ligne: string; d: Pt } {
+  const [a, b] = wallEnds(seg);
+  const d = b.x > a.x || (b.x === a.x && b.y > a.y) ? { x: b.x - a.x, y: b.y - a.y } : { x: a.x - b.x, y: a.y - b.y };
+  return { ligne: `${seg.z ?? 0}|${d.x},${d.y}|${d.x * a.y - d.y * a.x}`, d };
+}
+
+/** La place d'une arête dans son ouverture : sa position, ses deux bouts dans le sens commun à l'ouverture, et
+ *  l'apparence du mur qui porte l'ouverture, s'il en est un. */
+interface DansLOuverture { position: PositionDansLOuverture; bouts: [Pt, Pt]; porteur?: Apparence }
+
+/** Les ouvertures de `scene`, par la clé (`edgeKey`) de chacune de leurs arêtes : une ouverture est la suite maximale
+ *  d'arêtes hors des navires (`aretesHorsDesNavires`) alignées et bout à bout, de même couche, de même nature
+ *  d'ouverture (`natureDOuverture`) et de même apparence. Son sens est celui de sa première arête qui a un dehors
+ *  (`outwardSide`), sinon de sa première ; le mur qui porte une ouverture de portes est l'arête sans nature
+ *  d'ouverture qui la prolonge sur sa ligne, au bout -X, sinon au bout +X, d'une apparence du catalogue. Retenues par
+ *  scène et par la version des datasets (`memoByRef`). */
+const ouverturesDeLaScene = memoByRef((scene: Scene): ReadonlyMap<string, DansLOuverture> => {
+  const lignes = new Map<string, { d: Pt; poses: Posee[] }>();
+  for (const seg of aretesHorsDesNavires(scene)) {
+    const { ligne, d } = ligneDuSegment(seg);
+    const [t0, t1] = wallEnds(seg).map((p) => p.x * d.x + p.y * d.y).sort((u, v) => u - v);
+    const posee = { seg, t0, t1, nature: natureDOuverture(scene, seg), apparence: apparenceDArete(scene, seg) };
+    (lignes.get(ligne) ?? lignes.set(ligne, { d, poses: [] }).get(ligne)!).poses.push(posee);
+  }
+  const ouvertures = new Map<string, DansLOuverture>();
+  for (const { d, poses } of lignes.values()) {
+    poses.sort((u, v) => u.t0 - v.t0);
+    for (let i = 0, j = 1; i < poses.length; i = j, j = i + 1) {
+      const { nature, apparence } = poses[i];
+      if (!nature) continue;
+      const prolonge = (p: Posee | undefined, t: number) =>
+        p?.nature === nature && p.t0 === t && p.apparence === apparence;
+      while (prolonge(poses[j], poses[j - 1].t1)) j++;
+      const suite = poses.slice(i, j);
+      const [ra, rb] = sensDeLArete(scene, (suite.find((p) => outwardSide(scene, p.seg)) ?? suite[0]).seg);
+      const croissant = (rb.x - ra.x) * d.x + (rb.y - ra.y) * d.y > 0;
+      const bord = (p: Posee | undefined, t: number, bout: 't0' | 't1') =>
+        nature === 'porte-en-jeu' && p && !p.nature && p[bout] === t ? APPARENCES.get(p.apparence) : undefined;
+      const [avant, apres] = [bord(poses[i - 1], suite[0].t0, 't1'), bord(poses[j], suite[suite.length - 1].t1, 't0')];
+      const porteur = croissant ? avant ?? apres : apres ?? avant;
+      const rangees = croissant ? suite : [...suite].reverse();
+      rangees.forEach(({ seg }, rang) => {
+        const [a, b] = wallEnds(seg);
+        const dernier = rangees.length - 1;
+        const position = !dernier ? 'seule' : rang === 0 ? 'gauche' : rang === dernier ? 'droite' : 'milieu';
+        const bouts: [Pt, Pt] = ((b.x - a.x) * d.x + (b.y - a.y) * d.y > 0) === croissant ? [a, b] : [b, a];
+        ouvertures.set(edgeKey(seg), { position, bouts, ...(porteur ? { porteur } : {}) });
+      });
+    }
+  }
+  return ouvertures;
+});
+
+/** Par emplacement de palette (les `surfaces` d'un modèle d'arête), la partie de mur dont il prend la couleur : celles
+ *  du mur, puis celles de la menuiserie. */
+const PARTIES_DU_MUR = { corps: 'face', bois: 'poteau' } as const satisfies Record<string, WallPart>;
+const PARTIES_DE_LA_MENUISERIE = {
+  accent: 'vantail', vet1: 'meneau', metal: 'poignee',
+} as const satisfies Record<string, WallPart>;
+
+/** Par emplacement de `parties`, la couleur de sa partie de mur dans l'apparence `apparence` (`wallPartColor`). */
+const teintes = (apparence: Apparence, parties: Record<string, WallPart>): Record<string, string> =>
+  Object.fromEntries(Object.entries(parties).map(([emplacement, partie]) => [
+    emplacement, wallPartColor(apparence, partie),
+  ]));
+
+/** Par emplacement de palette, la couleur de sa partie de mur : celles du mur (`PARTIES_DU_MUR`) dans l'apparence du
+ *  mur `porteur`, celles de la menuiserie (`PARTIES_DE_LA_MENUISERIE`) dans l'apparence `apparence` (`wallPartColor`) ;
+ *  aucune sans apparence. */
+export function paletteDeLApparence(apparence: Apparence | undefined, porteur = apparence): Record<string, string> {
+  if (!apparence || !porteur) return {};
+  return { ...teintes(porteur, PARTIES_DU_MUR), ...teintes(apparence, PARTIES_DE_LA_MENUISERIE) };
+}
+
+/** L'arête dessinée du segment `seg` de `scene` : dans son ouverture (`ouverturesDeLaScene`), une porte prend la
+ *  famille et les teintes de mur du mur qui la porte. */
 export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
-  const [a, b] = sensDeLArete(scene, seg);
+  const ouverture = ouverturesDeLaScene(scene).get(edgeKey(seg));
+  const [a, b] = ouverture?.bouts ?? sensDeLArete(scene, seg);
   const apparence = APPARENCES.get(apparenceDArete(scene, seg));
   const z = seg.z ?? 0;
   return {
@@ -126,9 +210,10 @@ export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
     sens: { x: b.x - a.x, y: b.y - a.y },
     pied: piedDeLArete(scene, seg),
     piece: pieceDArete(scene, seg),
-    famille: apparence?.kit ?? null,
-    palette: paletteDeLApparence(apparence),
-    hauteurM: apparence?.wallHeightM ?? METRES_PER_LEVEL,
+    position: ouverture?.position ?? 'seule',
+    famille: (ouverture?.porteur ?? apparence)?.kit ?? null,
+    palette: paletteDeLApparence(apparence, ouverture?.porteur),
+    hauteurM: (ouverture?.porteur ?? apparence)?.wallHeightM ?? METRES_PER_LEVEL,
     bloc: blocDeLaCase({ x: seg.x, y: seg.y, z }),
   };
 }

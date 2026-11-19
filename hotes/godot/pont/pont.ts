@@ -1358,19 +1358,22 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * @returns `{ aretes }` : les arêtes de toutes les couches de la scène en cours hors des ponts de ses navires, que
      * la marche garde et que le modèle du navire montre (`aretesDeLaScene`, `src/noyau/monde/aretes.ts`), vides sans
      * scène ; à rappeler quand `plateau.cleDesAretes` change. Chacune (`areteDessinee`) : `{ cle, cases, milieu, sens,
-     * pied, piece, famille, palette, hauteurM, bloc }`, sa clé `edgeKey`, les cases `{ x, y, z }` qu'elle sépare, dans
-     * la carte, à sa couche (`casesDeFace`, une ou deux : celle dont elle borde un côté, puis sa voisine), son milieu
-     * et le sens où elle court, en coins de grille (`wallEnds`), son dehors (`outwardSide`,
-     * `src/noyau/monde/volume/ornements.ts`), s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en mètres d'où elle se
-     * dresse, celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa
-     * pièce : une porte en jeu fermée ou ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou
-     * clos, sinon un mur ; la famille du
-     * kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée
-     * qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null` pour une
-     * apparence hors du catalogue ; par emplacement de palette, la couleur `#rrggbb` de sa partie de mur dans cette
-     * apparence (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la hauteur de son mur en
-     * mètres, `wallHeightM` sinon un étage ; son bloc
-     * `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`, `src/noyau/monde/volume/volume.ts`)
+     * pied, piece, position, famille, palette, hauteurM, bloc }`, sa clé `edgeKey`, les cases `{ x, y, z }` qu'elle
+     * sépare, dans la carte, à sa couche (`casesDeFace`, une ou deux : celle dont elle borde un côté, puis sa voisine),
+     * son milieu et le sens où elle court, en coins de grille (`wallEnds`), celui de son ouverture, son dehors
+     * (`outwardSide`, `src/noyau/monde/volume/ornements.ts`), s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en
+     * mètres d'où elle se dresse, celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`,
+     * `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou ouverte, la brèche d'une structure abattue,
+     * une fenêtre aux volets ouverts ou clos, sinon un mur ; sa place dans son ouverture, la suite d'arêtes alignées
+     * bout à bout de même couche, même nature (porte en jeu, porte de ville) et même apparence : `seule`, ou à son bout
+     * -X (`gauche`), entre ses bouts (`milieu`), à son bout +X (`droite`), X le long de son sens ; la famille du kit de
+     * son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée qui
+     * régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), celle du mur qui prolonge
+     * son ouverture pour une porte en jeu, `null` pour une apparence hors du catalogue ; par emplacement de palette, la
+     * couleur `#rrggbb` de sa partie de mur dans cette apparence, celles du mur (`corps`, `bois`) dans celle du mur qui
+     * la porte (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la hauteur de son mur en
+     * mètres, `wallHeightM` sinon un étage ; son bloc `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`,
+     * `src/noyau/monde/volume/volume.ts`)
      */
     aretes(json): { aretes: AreteDessinee[] } {
       entreeDe('aretes', json, []);
