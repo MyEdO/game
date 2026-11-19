@@ -333,7 +333,9 @@ export function ecrituresJouees(): EcritureJouee[] {
   s = jouerLInspecteur(presser(s, `logique/rencontre/${rencontre}`), out);
   jouerLInspecteur(jouer(s, gesteDuChoix(s, MONTURE, (v) => v === true)), out, [CHEVAUCHEE]);
   jouerLesVariantes(s, VICTOIRE, out);
-  poserUnNavire(s, NAVIRE_NEUF.x, NAVIRE_NEUF.y, out);
+  const navire = poserUnNavire(s, NAVIRE_NEUF.x, NAVIRE_NEUF.y, out);
+  const coqueAlliee = presser(presser(navire, `rencontre/${rencontre}/enrole`), `rencontre/${rencontre}/allie`);
+  jouerLInspecteur(presser(coqueAlliee, `logique/rencontre/${rencontre}`), out, ['valeur/members/']);
   const pnj = jouerLInspecteur(poserPersonnage(sceneAPresets(), FICHES[0][0], 5, 5), out, BRANCHES_DU_PRESET);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const action = presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id);

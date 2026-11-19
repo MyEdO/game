@@ -26,6 +26,7 @@ import {
   canonEdge,
   porteAuteur,
 } from './monde/scene';
+import { estUneCoqueNavale } from './monde/coqueDeCampagne';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import {
   dialogueSchema,
@@ -812,11 +813,16 @@ function choixDuDialogue(dlg: Dialogue, chemin: readonly Segment[]): readonly Ch
 /** Les champs d'une rencontre que son formulaire offre entiers. */
 const CHAMPS_DE_LA_RENCONTRE: CheminsOfferts = [['victoryCondition'], ['onVictory'], ['surprise'], ['maneuverability'], ['threat'], ['terrain'], ['banRanged'], ['siege'], ['couvre']];
 
-/** Les champs que le formulaire de la rencontre `enc` offre : les siens (`CHAMPS_DE_LA_RENCONTRE`), et de chacun de ses
- *  membres, à son rang, sa monture et celle qu'il chevauche ; ses membres s'enrôlent et se retirent par leurs
- *  écrivains (`addMember`, `removeMember`). #3606 */
-const champsDeLaRencontre = (enc: EncounterDef): CheminsOfferts =>
-  [...CHAMPS_DE_LA_RENCONTRE, ...(enc.members ?? []).flatMap((_, i) => [['members', i, 'mount'], ['members', i, 'ridesEntityId']])];
+/** #3606, #4227 */
+function champsDeLaRencontre(enc: EncounterDef, { scene }: CadreDuPorteur): CheminsOfferts {
+  const entites = new Map(scene.entities.map((e) => [e.id, e]));
+  return [...CHAMPS_DE_LA_RENCONTRE, ...(enc.members ?? []).flatMap((m, i) => {
+    const champs: CheminsOfferts = [['members', i, 'mount'], ['members', i, 'ridesEntityId']];
+    return m.navireDeCampagne || (m.side === 'allie' && estUneCoqueNavale(entites.get(m.entityId)))
+      ? [...champs, ['members', i, 'navireDeCampagne']]
+      : champs;
+  })];
+}
 
 /** Les clés de premier niveau que déclare le schéma `schema`, hors des clés `exclues`, chacune en champ offert entier. */
 const champsSauf = (schema: unknown, exclues: readonly string[]): CheminsOfferts =>

@@ -32,6 +32,7 @@
 import type { IconId } from '../data/icons';
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
+import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { ouvrirLeRepos } from './restFlow';
 import { arriverAuLieu } from './lieuFlow';
 import { lieuDuGroupe, placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
@@ -444,8 +445,9 @@ export function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Comba
   if (!vessel) return null;
   const v = findVehicleById(vessel.vehicleId);
   if (!v?.ship) return null;
-  const hull = vehicleCombatant(v);
+  const hull = vehicleCombatant(v, vessel.uid);
   if (!hull) return null;
+  lierLaCoqueDeCampagne(hull, vessel);
   hull.label = nomDuNavire(vessel); // #230 — le rendu reste keyé par creatureId
   syncHullWoundsFromVessel(hull, vessel);
   hull.upgrades = vessel.upgrades ? [...vessel.upgrades] : undefined;
@@ -454,10 +456,10 @@ export function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Comba
   return { vessel, hull };
 }
 
-/** La coque de TRAJET quand le voyage porte le navire de campagne (`travelPlan.vehicle` de même véhicule que
- *  `vessel`) ; `undefined` sinon (bateau de route fluviale, aucun voyage). */
+/** La coque de trajet quand le voyage porte cette instance du navire de campagne. */
 export function coqueDuNavireDeCampagne(plan: TravelPlan | null | undefined, vessel: CampaignVessel | null | undefined): Combatant | undefined {
-  return plan?.vehicle && vessel && plan.vehicle.creatureId === vessel.vehicleId ? plan.vehicle : undefined;
+  const coque = plan?.vehicle;
+  return estLeNavireDeCampagne(coque, vessel) ? coque : undefined;
 }
 
 /** PERSISTE les Blessures de la coque de trajet sur le navire de campagne (#30) — l'UNIQUE écriture
@@ -957,7 +959,7 @@ function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
  *  de l'état fluvial du bateau de la route sinon. MDG 13 l.651 ; MSRC 7 l.117 */
 export function reparationTemporaireTient(get: Get, hull: Combatant): boolean {
   const vessel = get().vessel;
-  if (vessel && hull.creatureId === vessel.vehicleId) return !!vessel.reparationTemporaire;
+  if (vessel && estLeNavireDeCampagne(hull, vessel)) return !!vessel.reparationTemporaire;
   const plan = get().travelPlan;
   return plan?.vehicle?.id === hull.id && !!plan.river?.reparationTemporaire;
 }
@@ -2074,21 +2076,26 @@ function premiereVague(b: SeaBoarding): { marins: number; vague: number } {
  *  hostile, son équipage exposé suit. */
 const idDAbordage = (i: number): string => `enemy-enc-abordage-${i}`;
 
-/** La coque de campagne qui porte un combat sur le PONT : sa réf et son nom ; `null` hors de la mer ou sans
- *  coque de campagne connue (impossibilité réelle, non simulable). */
-function coqueDuPont(get: Get): { ref: string; nom: string } | null {
-  const plan = get().travelPlan;
+interface CoqueDuPont { ref: string; nom: string; navireDeCampagne: boolean }
+
+/** La coque du trajet qui porte un combat sur le pont. */
+function coqueDuPont(get: Get): CoqueDuPont | null {
+  const { travelPlan: plan, vessel } = get();
   if (!plan?.sea) return null;
-  const ref = get().vessel?.vehicleId ?? plan.vehicle?.creatureId;
-  if (!ref) return null;
-  const vessel = get().vessel;
-  return { ref, nom: vessel ? nomDuNavire(vessel) : garanti(plan.vehicle, plan.routeId, 'navire du voyage').label };
+  const coque = plan.vehicle;
+  if (!coque?.creatureId) return null;
+  const navireDeCampagne = estLeNavireDeCampagne(coque, vessel);
+  return {
+    ref: coque.creatureId,
+    nom: vessel && navireDeCampagne ? nomDuNavire(vessel) : coque.label,
+    navireDeCampagne,
+  };
 }
 
 /** La Scène GÉNÉRIQUE du PONT, construite à la volée : la coque de campagne au camp allié (le groupe y
  *  EMBARQUE au `lancerLeCombat`), `ennemis` en face — MÊME machinerie navale que les scènes authorées
  *  (`buildScene` + `enemies` terse, cf. `16-embuscade-fluviale`/`ls-abordage-cogue`). */
-function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: string, rencontre: { id: string; ennemis: AuthoredEnemy[]; victoryCondition?: VictoryCondition }): Scene {
+function sceneDuPont(coque: CoqueDuPont, label: string, debut: string, rencontre: { id: string; ennemis: AuthoredEnemy[]; victoryCondition?: VictoryCondition }): Scene {
   return buildScene({
     id: BOARDING_SCENE_ID,
     label,
@@ -2099,7 +2106,9 @@ function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: 
     startMessage: { texte: debut },
     encounters: [{
       id: rencontre.id,
-      enemies: [...rencontre.ennemis, { vehicule: { id: coque.ref }, pos: { x: 3, y: 6 }, side: 'allie' as const, label: coque.nom }],
+      enemies: [...rencontre.ennemis, {
+        vehicule: { id: coque.ref }, pos: { x: 3, y: 6 }, side: 'allie', label: coque.nom, navireDeCampagne: coque.navireDeCampagne,
+      }],
       ...(rencontre.victoryCondition ? { victoryCondition: rencontre.victoryCondition } : {}),
     }],
   });
@@ -2119,7 +2128,7 @@ function combattreSurLePont(get: Get, set: Set, scene: Scene, encounterId: strin
 
 /** L'abordage du navire hostile `b` sur le pont : sa coque porte sa première vague d'abordage
  *  (`premiereVague`, + `chefRef`) comme équipage exposé (MDG 14). */
-function buildBoardingScene(coque: { ref: string; nom: string }, b: SeaBoarding): Scene {
+function buildBoardingScene(coque: CoqueDuPont, b: SeaBoarding): Scene {
   const wave = premiereVague(b).vague;
   const chef = b.chefRef ? 1 : 0;
   // Équipage EXPOSÉ de la coque ennemie = la vague (crew + chef).

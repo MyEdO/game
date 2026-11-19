@@ -1,5 +1,6 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildSeaPlan, portRepairVessel } from './seaVoyageFlow';
@@ -76,7 +77,7 @@ describe('mer — réparation temporaire de l’Entretien du soir (MDG 13 l.651,
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingRest: null, pendingCascade: null,
       suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0, journal: [],
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 30, max: 50 } },
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 30, max: 50 } },
     } as never);
   });
   afterEach(() => { resetRule('mer-reparation-temporaire-difficulte'); resetRule('mer-reparation-temporaire-reparation-difficulte'); });
@@ -198,8 +199,9 @@ describe('combat naval — la Manœuvre du navire réparé est suivie du Test d�
     set({
       battle: { combatants: [ship(), helm()], order: ['helm'], turn: 0, acted: false } as never, party: [helm()], facing: { ship: 'N' },
       pendingShipManeuver: null, pendingCascade: null, suspendedCascades: [], scene: null as never, travelPlan: null, worldMap: carteDuReik,
-      vessel: { vehicleId: 'bateau-de-patrouille', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 30, max: 40 }, ...(reparationTemporaire ? { reparationTemporaire: true } : {}) },
+      vessel: { uid: 'navire-1', vehicleId: 'bateau-de-patrouille', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 30, max: 40 }, ...(reparationTemporaire ? { reparationTemporaire: true } : {}) },
     } as never);
+    lierLaCoqueDeCampagne(coqueDuCombat(), get().vessel!);
     if (fluvial) set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', routeDuReik)! });
   }
   /** La Manœuvre jouée par la modale du joueur. */
@@ -345,7 +347,7 @@ describe('fleuve — réparation temporaire d’une coque percée (MSRC 7 l.115-
   });
 
   it('sur le navire de campagne, le marqueur vit au navire : une nouvelle descente joue encore le Test', () => {
-    set({ vessel: { vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 10, max: 30 } } } as never);
+    set({ vessel: { uid: 'navire-1', vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 10, max: 30 } } } as never);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', route)!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, holed: true } } });
     colmater();

@@ -113,7 +113,7 @@ function freshState() {
     suspendedCascades: [],
     gameTime: 8 * 60, // 08:00 jour 0
     lastUpkeepDay: 0,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     journal: [],
   } as never);
 }
@@ -713,7 +713,7 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
       suspendedCascades: [],
       gameTime: 8 * 60,
       lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
       journal: [],
     } as never);
   }
@@ -1032,10 +1032,10 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     set({
       party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
       pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
     get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap, projet: null });
-    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); // lancerLaScene remet le vessel de campagne — repose-le
+    set({ vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); // lancerLaScene remet le vessel de campagne — repose-le
   }
 
   it('franchissement de l’ancrage (kmDone ≥ at × km) → Test de Perception PUIS abordage, une seule fois — la cascade-jour SURVIT au combat (#284/#275)', () => {
@@ -1202,7 +1202,7 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
       routes: [{ ...seaMap.routes[0], perils: [{ label: 'Îlot en vue', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'ilot' } }] }] }],
     };
     get().chargerLeProjet({ scenes: [port, ilot], entryId: 'port-a', worldMap: perilDeTransition, projet: null });
-    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [] } as never); // lancerLaScene remet le vessel de campagne — repose-le
+    set({ vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [] } as never); // lancerLaScene remet le vessel de campagne — repose-le
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', perilDeTransition.routes[0])!;
     set({ travelPlan: plan } as never);
     runSeaDay(get, set);
@@ -1416,10 +1416,10 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     set({
       party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
       pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
     get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap: abordageMap, projet: null });
-    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never);
+    set({ vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never);
   });
 
   it('l’abordage ancré INTERROMPT le voyage rapide (cascade `purpose:test` suspendue) ; après le combat, la traversée se finit en rapide', () => {

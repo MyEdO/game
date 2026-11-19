@@ -271,6 +271,7 @@ import {
   continueSeaDayAfterExhaustion,
   runSeaDay,
   finalizePortArrival,
+  syncHullWoundsFromVessel,
 } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
@@ -285,6 +286,7 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';
 import { estNavire } from '../engine/coque';
+import { estLeNavireDeCampagne, lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
 import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
@@ -1648,16 +1650,6 @@ export function createCombatSlice(get: Get, set: Set) {
         .map((m) => ({ m, ent: byEntity.get(m.entityId) }))
         .filter((r): r is { m: typeof r.m; ent: SceneEntity } => !!r.ent);
       const enemies = roster.map(({ ent }) => ficheDEntite(ent, presetDuNarratif(get().campaignNarratif)));
-      // #30 — Blessures de COQUE persistantes : une coque spawnée qui EST le navire de campagne
-      // (creatureId = vehicleId) repart de l'état persisté (writeback symétrique dans finalizeBattle).
-      const vessel0 = get().vessel;
-      if (vessel0) {
-        // `enemies` porte TOUTES les coques spawnées (allié comme ennemi ; `kind` est réassigné plus bas).
-        for (const c of enemies) if (c.creatureId === vessel0.vehicleId) {
-          if (vessel0.wounds) c.wounds.current = Math.min(vessel0.wounds.current, c.wounds.max);
-          if (vessel0.label) c.label = vessel0.label; // #230 — nom d'instance (affichage ; rendu keyé par creatureId)
-        }
-      }
       // Combat monté (LDB 14) : marquer les montures rideables, basculer les « alliés », puis appairer
       // les couples pré-montés (ridesEntityId → la monture). Le cavalier monte SUR sa monture.
       const idxByEntity = new Map(roster.map((r, i) => [r.ent.id, i]));
@@ -1666,6 +1658,16 @@ export function createCombatSlice(get: Get, set: Set) {
         if (m.ai) enemies[i].aiControlled = true; // PNJ allié IA (défenseur de siège) : agit seul (aiDriven)
         if (m.mount) enemies[i].mountable = true;
       });
+      // #30
+      const { vessel: vessel0, travelPlan } = get();
+      const surLeNavireDeCampagne = (!travelPlan?.sea && !travelPlan?.river) || estLeNavireDeCampagne(travelPlan.vehicle, vessel0);
+      const coquesDesignees = enemies.filter((_, i) => roster[i].m.navireDeCampagne);
+      const coqueDeCampagne = coquesDesignees.length === 1 ? coquesDesignees[0] : undefined;
+      if (surLeNavireDeCampagne && vessel0 && coqueDeCampagne?.kind === 'heros'
+        && estNavire(coqueDeCampagne) && lierLaCoqueDeCampagne(coqueDeCampagne, vessel0)) {
+        syncHullWoundsFromVessel(coqueDeCampagne, vessel0);
+        if (vessel0.label) coqueDeCampagne.label = vessel0.label;
+      }
       roster.forEach(({ m }, i) => {
         if (m.ridesEntityId == null) return;
         const mi = idxByEntity.get(m.ridesEntityId.id);
@@ -1716,7 +1718,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // ALLIÉE (celle de campagne si connue, sinon la 1re coque alliée) → PASSAGERS (hors ordre ET hors rendu),
       // qui s'expriment par les Tests d'équipage (manœuvre / bordée) et n'ont pas de tour individuel person-scale.
       if (isMerScene(scene)) {
-        const allyHull = all.find((c) => estNavire(c) && c.kind === 'heros' && (!vessel0 || c.creatureId === vessel0.vehicleId))
+        const allyHull = all.find((c) => estLeNavireDeCampagne(c, vessel0))
           ?? all.find((c) => estNavire(c) && c.kind === 'heros');
         if (allyHull) allyHull.crewIds = [...new Set([...(allyHull.crewIds ?? []), ...heroes.map((h) => h.id)])];
       }

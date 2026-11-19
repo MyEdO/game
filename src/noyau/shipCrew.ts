@@ -36,6 +36,7 @@ import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
 import { crewRoles, dataLabel, findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
 import { estNavire, profilNavalDe } from '../engine/coque';
+import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { partyBest, peutTenter, testValue } from '../engine/skills';
@@ -188,7 +189,7 @@ export function withCrewActed(crewActed: Record<string, string[]> | undefined, s
  */
 export function shipMoraleScore(get: Get, ship: Combatant): number {
   const vessel = get().vessel;
-  return vessel && ship.creatureId === vessel.vehicleId ? vessel.morale.score : moraleBase();
+  return vessel && estLeNavireDeCampagne(ship, vessel) ? vessel.morale.score : moraleBase();
 }
 
 /**
@@ -283,7 +284,7 @@ export function contracterABord(
  * du type (`vehicles.json` ship.crew) et le PRÉSENT = les `crewIds` encore EN ÉTAT (`exposedCrew`), MOINS les
  * marins déjà retirés de la campagne par Embrigadement (MDG 15 l.245, `CampaignVessel.crewLost`). Les
  * morts/inconscients de combat (Éclats, critiques « Équipage ») alimentent aussi le déficit. Lit l'état persistant
- * du vaisseau de campagne comme `shipMoraleScore` (keyé `creatureId === vehicleId`). */
+ * du vaisseau de campagne comme `shipMoraleScore`. */
 export function shipUndercrew(get: Get, ship: Combatant, combatants: Combatant[]): UndercrewPenalty {
   const nominal = profilNavalDe(ship)?.crew ?? 0;
   // Équipage ABSTRAIT (MDG 14 l.39 : « la performance des Personnages représente celle de tout l'équipage ») → le
@@ -294,7 +295,7 @@ export function shipUndercrew(get: Get, ship: Combatant, combatants: Combatant[]
   const named = (ship.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
   const deadNamed = named.length - exposedCrew(named).length;
   const vessel = get().vessel;
-  const lost = vessel && ship.creatureId === vessel.vehicleId ? (vessel.crewLost ?? 0) : 0;
+  const lost = vessel && estLeNavireDeCampagne(ship, vessel) ? (vessel.crewLost ?? 0) : 0;
   return undercrewPenalty(nominal, Math.max(0, nominal - lost - deadNamed));
 }
 
@@ -466,7 +467,7 @@ export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
  */
 export function applyShipMoraleDelta(get: Get, set: SetFn, ship: Combatant, delta: number): string[] {
   const vessel = get().vessel;
-  if (!delta || !vessel || ship.creatureId !== vessel.vehicleId) return [];
+  if (!delta || !vessel || !estLeNavireDeCampagne(ship, vessel)) return [];
   const before = vessel.morale.score;
   const after = before + delta;
   set({ vessel: { ...vessel, morale: { ...vessel.morale, score: after } } });

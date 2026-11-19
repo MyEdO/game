@@ -419,7 +419,7 @@ scenes.push(scene({
       // à 50 % de ses Blessures ou moins — la victoire se déclenche à la reddition, pas au naufrage.
       victoryCondition: { type: 'woundsThreshold', targetId: { id: 'cogue' }, atOrBelowPercent: 50 },
       members: [
-        { entityId: 'grimm', side: 'allie' },
+        { entityId: 'grimm', side: 'allie', navireDeCampagne: true },
         { entityId: 'aldo-crew', side: 'allie' },
         { entityId: 'griet-crew', side: 'allie' },
         { entityId: 'cogue', side: 'ennemi' },
@@ -597,7 +597,7 @@ scenes.push(scene({
       // pas le naufrage. `targetId` référence la coque ENNEMIE réelle enrôlée dans cette scène.
       victoryCondition: { type: 'woundsThreshold', targetId: { id: 'serpent-de-sel' }, atOrBelowPercent: 50 },
       members: [
-        { entityId: 'grimm2', side: 'allie' },
+        { entityId: 'grimm2', side: 'allie', navireDeCampagne: true },
         { entityId: 'aldo-crew-2', side: 'allie' },
         { entityId: 'griet-crew-2', side: 'allie' },
         { entityId: 'serpent-de-sel', side: 'ennemi' },
