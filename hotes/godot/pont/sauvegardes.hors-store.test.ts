@@ -92,7 +92,7 @@ describe('sauvegarder et reprendre par le pont', () => {
     drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
     const refus = t('store.saveInBattle');
     expect(boutons(emplacement(zones(appel), 1)).map((b) => b.refus)).toEqual([refus]);
-    expect(erreurDe(appel('sauvegarder', { sauvegarder: 1 }))).toEqual({ categorie: 'regle', message: `sauvegarder : ${refus}` });
+    expect(erreurDe(appel('sauvegarder', { sauvegarder: 1 }))).toEqual({ categorie: 'regle', message: refus });
     expect(stockage.getItem(cleDEmplacement(1))).toBeNull();
   });
 
@@ -100,7 +100,7 @@ describe('sauvegarder et reprendre par le pont', () => {
     const { pont, appel } = table({ getItem: () => null, setItem: () => { throw new Error('plein'); }, removeItem: () => {} });
     ouvert = pont;
     drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 }));
-    expect(erreurDe(appel('sauvegarder', { sauvegarder: 1 }))).toEqual({ categorie: 'regle', message: `sauvegarder : ${t('store.saveKo')}` });
+    expect(erreurDe(appel('sauvegarder', { sauvegarder: 1 }))).toEqual({ categorie: 'regle', message: t('store.saveKo') });
   });
 
   it('un héros du groupe qui porte un État que le jeu ne connaît plus : son retrait est dit au journal de la `Suite` de `charger`', () => {
