@@ -21,7 +21,8 @@ import { tableTotale } from '../../../src/lib/tableTotale';
 
 /** Les entrées de `echantillon` que l'atelier envoie, dans l'ordre des gestes de la recette : un décor, la mer, une
  *  matière de relief, une matière de toit, un mur crénelé, dont la brèche abat la couronne et dont la case crénelée
- *  porte la crête, puis un mur d'une famille dont le modèle d'arête est servi (`colombage`, #4471). */
+ *  porte la crête, de moellons, puis un mur de chaque autre famille dont le modèle d'arête est servi (`colombage`,
+ *  `pierres-seches`, #4471). */
 const ENTREES: readonly Record<string, unknown>[] = [
   { famille: 'decor', id: 'tonneau' },
   { famille: 'decor', id: 'arbre-mort' },
@@ -30,6 +31,7 @@ const ENTREES: readonly Record<string, unknown>[] = [
   { famille: 'toit', id: 'chaume' },
   { famille: 'mur', id: 'mur-en-pierre' },
   { famille: 'mur', id: 'mur-a-ossature-en-bois' },
+  { famille: 'mur', id: 'mur-en-pierres-seches' },
 ];
 
 /** Le décor asymétrique de la recette de la coïncidence, et les caps où elle le pose : celui de sa recette telle

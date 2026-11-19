@@ -68,7 +68,7 @@ class Construction(unittest.TestCase):
         return sortie
 
     def test_un_modele_existe(self):
-        self.assertLessEqual({'colombage', 'pierre', 'pierres-seches'}, set(self.bati))
+        self.assertLessEqual({'colombage', 'moellons', 'pierres-seches'}, set(self.bati))
 
     def test_deux_constructions_rendent_les_memes_octets(self):
         for _, bati, _ in self.chaque():

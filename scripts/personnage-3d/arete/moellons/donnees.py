@@ -1,5 +1,5 @@
-"""Données du mur de moellons maçonnés (#4471) : le GLB `arete--pierre`, les pièces que l'hôte pose sur les arêtes des
-apparences dont `kit` vaut `pierre` dans `src/data/structureAppearance.json`. Sa forme se lit dans ce fichier, aux
+"""Données du mur de moellons maçonnés (#4471) : le GLB `arete--moellons`, les pièces que l'hôte pose sur les arêtes
+des apparences dont `kit` vaut `moellons` dans `src/data/structureAppearance.json`. Sa forme se lit dans ce fichier, aux
 seuls champs de forme de `MUR` (`detail.courses` : `hM`, `jointW`, `stagger`, `blockWM`, `edgeWobble`). Aucune couleur
 ne s'y lit : chaque surface nomme l'emplacement de palette que l'hôte teint de la couleur de l'apparence posée.
 
@@ -17,7 +17,7 @@ Matières : la pierre prend `pierre-atre`, le mortier `terre-battue`, le bois `b
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
 from apparences import apparence, hauteur
 
-KIT = "pierre"
+KIT = "moellons"
 MUR = "mur-en-pierre"
 """L'apparence dont le modèle lit la forme de son appareil."""
 

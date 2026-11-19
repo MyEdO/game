@@ -220,7 +220,7 @@
     "id": "mur-en-pierre",
     "type": "structureAppearance",
     "label": "Mur en pierre",
-    "kit": "pierre",
+    "kit": "moellons",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -409,7 +409,7 @@
     "id": "mur-de-chateau",
     "type": "structureAppearance",
     "label": "Mur de château",
-    "kit": "pierre",
+    "kit": "moellons",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -462,7 +462,7 @@
     "id": "mur-de-forteresse-naine",
     "type": "structureAppearance",
     "label": "Mur de forteresse naine",
-    "kit": "pierre",
+    "kit": "moellons",
     "detail": {
       "seedScope": "edge",
       "courses": {
@@ -503,7 +503,7 @@
     "id": "mur-de-pierre-aa",
     "type": "structureAppearance",
     "label": "Mur de pierre (relais fortifié)",
-    "kit": "pierre",
+    "kit": "moellons",
     "detail": {
       "seedScope": "edge",
       "courses": {

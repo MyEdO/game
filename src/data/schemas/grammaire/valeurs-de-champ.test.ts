@@ -93,7 +93,7 @@ const NOMMES = [
   // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
-  'colombage|pierre|pierres-seches|cloture',
+  'colombage|pierre|moellons|pierres-seches|cloture',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
