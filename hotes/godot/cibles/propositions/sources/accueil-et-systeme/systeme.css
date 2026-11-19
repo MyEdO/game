@@ -1,5 +1,5 @@
-/* Accueil et système, images d'intention (#3935). Pièces ajoutées au kit commun (commun.css) :
-   la toile (reprise de la fin de combat), l'outil (pastille + libellé, repris du combat), l'affiche, la carte de sauvegarde, le registre. */
+/* Accueil et système, images d'intention (#3935, #4411) : le grain, la toile du chapitre, le titre du cartouche, la
+   table et le jeu assombri sous les écrans posés hors du jeu (`../rendu.js`). Maquette hors du jeu. */
 /* le grain de la toile, plus marqué que celui du jeu */
 #grain{opacity:.28}
 
@@ -9,8 +9,6 @@
 .toile::before{content:"";position:absolute;inset:9px 46px;border:1px solid rgba(226,192,106,.45)}
 .toile span{color:#f3e6c6;text-shadow:0 3px 4px rgba(0,0,0,.75);white-space:nowrap}
 
-
-/* filet à losange (repris de la création) */
 
 /* le cartouche de titre : la gothique respire (aucun jambage coupé) */
 #titre .n{line-height:50px;margin:-9px 0 -8px}

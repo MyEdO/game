@@ -1,15 +1,20 @@
 # Propositions : hors partie et outils (2026-11-17, #3935)
 
-Compte rendu des neuf états dessinés (six d'origine, trois ajoutés par l'audit des verbes, #4411) pour la coop, l'éditeur de campagne et le Compendium, des écrans sans image
-d'intention ni cible écrite. Contenu lu au code (`src/hote/`, `src/noyau/`, `server/`, `src/i18n/messages/fr.ts`),
-jamais le design d'un écran existant. Sources au dépôt : `sources/outils/` ; elles lient le socle commun de
-`sources/lieux-et-nuit/`, les pièces de `sources/accueil-et-systeme/systeme.js` et, pour `coop-la-main`, la halle de
-`sources/commerce/`.
-Rien n'est validé : chaque « choix à valider » attend l'utilisateur.
+Compte rendu des neuf états dessinés (six d'origine, trois ajoutés par l'audit des verbes, #4411) pour la coop, l'éditeur
+de campagne et le Compendium, des écrans sans image d'intention ni cible écrite. Contenu lu au code (`src/hote/`,
+`src/noyau/`, `server/`, `src/i18n/messages/fr.ts`), jamais le design d'un écran existant. Sources au dépôt : quatre
+écrans de `sources/maquettes/` et un état de la halle, chacun la liste de ses états au format de
+`sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png>
+--format 16:9 [--etat <état>]`) : `coop` (`ouvrir`, `salon`), `halle` (`la-main`), `editeur-de-scene` (`porte`,
+`outil-terrain`, `supprimer`), `editeur-carte-du-monde` et `compendium` (`consultation`, `atelier`) ;
+`maquettes/editeur.ts` porte le projet, les documents et la barre que les deux éditeurs partagent. Le plan de la scène,
+la carte de l'éditeur, la ligne de liste et la tablée vivent dans `sources/outils/` (`editeur.js`, `outils.js`,
+`outils.css`).
+Premières maquettes : chaque « choix à valider » attend l'utilisateur.
 
-Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (`coop.*` l.1408-1430, `ecran.salon.*` l.1466-1477,
-`party.slot.invite` l.1275, `groupe.hoteSeul` l.2580, `ecran.editeur.*`, `ecran.compendium.*` l.887-898) ; talent
-« Négociateur » verbatim de `src/data/talents.json:3309` ; scènes, lieux et routes de
+Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (`coop.*` l.1419-1441, `ecran.salon.*` l.1484-1495,
+`party.slot.invite` l.1286, `groupe.hoteSeul` l.2600, `ecran.editeur.*`, `ecran.compendium.*` l.892-932) ; talent
+« Négociateur » verbatim de `src/data/talents.json:3325` ; scènes, lieux et routes de
 `src/scenes/diligence/diligence-projet.json`.
 
 Exemples chiffrés, sans valeur de règle : code de partie « K7M2QX », noms des joueurs (Karl, Lena, Otto), bourses de
@@ -19,6 +24,7 @@ Pièces neuves : tablée et sièges ; champ de saisie ; cases de code ; barre, p
 inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 
 ## coop-ouvrir
+- État `ouvrir` de l'écran `coop`.
 - Depuis l'accueil, aucune partie ouverte (`src/hote/salon.ts:67-74`). Une tablée vide au centre, quatre sièges « Un
   siège à pourvoir », inertes, : l'hôte et jusqu'à trois invités (`server/src/roomLogic.ts:6`).
 - « Rejoindre une partie » : code en six cases (`src/hote/coop/salon.ts`), « Le code de room fait 6 caractères. »,
@@ -29,6 +35,7 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   saisi en six cases ; un geste refusé montré en fer avec sa raison plutôt que caché.
 
 ## coop-salon
+- État `salon` de l'écran `coop`.
 - L'hôte en session (`src/hote/salon.ts:24-36`). Volet « Inviter — partagez le code » : le code en grand, « Joueurs
   connectés » (« (vous) », « — reconnexion… »), « Quitter le salon ».
 - La tablée : un siège par joueur, les héros qu'il tient posés devant lui, le siège absent marqué de cire, un siège
@@ -41,22 +48,25 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   déroulante ; le rôle de Maître du Jeu sous les héros ; le joueur en reconnexion gardé à sa place, marqué de cire.
 
 ## coop-la-main
-- La halle vue du siège d'un invité. Cartouche « La main est à l'hôte » en haut ; les gestes sur la bourse et la cale
-  sont en fer, avec la raison du jeu : « L'hôte seul engage la bourse et la cale du groupe. »
+- État `la-main` de l'écran `halle` : la halle vue du siège d'un invité, la page de l'achat composée par l'hôte. « La main est à l'hôte » (qui la tient, ce qu'il fait, le code de la partie)
+  à la place de la rumeur ; les gestes sur la bourse et la cale sont en fer, avec la raison du jeu : « L'hôte seul engage la bourse et la cale du groupe. »
   (`src/noyau/intentionsDeSiege.ts:154-161`, `src/noyau/halle.hors-store.test.ts:130`).
 - « Bourses du groupe » montre la part de chacun sans − ni + (`bourse({ reglable: false })`) : l'invité ne règle rien.
-- Chaque héros du bandeau dit qui le joue : « Lena (vous) » en laiton, les autres en fer, « Otto — reconnexion… ».
+- Chaque héros du bandeau dit qui le joue : « Lena (vous) » en laiton, les autres en fer, « Otto » marqué du sceau du
+  réseau, en reconnexion.
 - Qui tient la main : `src/noyau/netOwnership.ts:713` (le concerné de la modale, sinon le combattant actif, sinon
   l'hôte).
-- À valider : un cartouche « la main » en haut de tout écran joué à plusieurs ; le nom du joueur sous chaque héros du
+- À valider : « la main » posée à la place de la rumeur, sur tout écran joué à plusieurs ; la page qui défile quand
+  elle est composée, sa raison au pied ; le nom du joueur sous chaque héros du
   bandeau ; les gestes de l'hôte montrés en fer à l'invité, avec leur raison ; l'invité voit la composition de l'hôte
   en direct.
 
 ## editeur-scene
+- État `porte` de l'écran `editeur-de-scene`.
 - Un plan de travail, pas un lieu. Barre : projet, documents « Scène », « Carte du monde », « Narratif », « Annuler »,
   « Rétablir », « Copier », « Coller », « Dupliquer », « Enregistrer », « Tester la scène »
 (`src/hote/editeur.ts:135-534`).
-- À gauche : « 4 scènes au projet » (les quatre du projet Diligence), « Nouvelle scène », « Dupliquer la scène »,
+- À gauche, un volet à onglets « Scènes » et « Outil » (« Lieux », « Routes », « Outil » sur la carte) : « 4 scènes au projet » (les quatre du projet Diligence), « Nouvelle scène », « Dupliquer la scène »,
   « Retirer la scène » ; palette des quinze outils du jeu, « Sélection » armé.
 - Au centre : la scène vue de dessus, quadrillée, couches (« Couche 0 », « Couche 1 », « Ajouter une couche »), Nord ;
   une porte choisie, surlignée. Le plan est une esquisse, pas le relevé de la scène.
@@ -64,7 +74,9 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   depuis, Matériau, Apparence ; « Déclencheurs (1) », « Dialogues (0) », « Rencontres (0) » ; la validation.
 - Pied : « Arête 14, 8 E · couche 0 · Porte · Mur à ossature en bois » (`src/hote/editeur.ts:674`).
 - À valider : l'éditeur dans les matières du jeu (bois, laiton, parchemin) plutôt qu'en outil neutre ; trois colonnes
-  fixes (scènes et outils, plan, inspecteur) ; les outils en palette d'icônes libellées ; les réglages d'une porte
+  fixes (volet à onglets, plan, inspecteur) ; dans la barre, seul « Tester la scène » garde son libellé, les autres gestes
+  leur pictogramme (« Coller » et « Dupliquer » neufs au kit) ; le Nord en bas à droite du plan ; les outils en palette
+  d'icônes libellées ; les réglages d'une porte
   secrète grisés tant qu'elle ne l'est pas ; la validation au pied de l'inspecteur ; la scène vue de dessus plutôt
   qu'en isométrie pour l'édition.
 
@@ -80,19 +92,21 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   une flèche sur son étiquette.
 
 ## compendium
+- État `consultation` de l'écran `compendium`.
 - Un registre relié, repris de celui des règles maison. Un signet par famille (les sept du jeu), « Compétences »
   ouverte ; volet « Catégories » : Compétences (48), Talents (187), Axes de forces (9), « Rechercher », filtre
   « Livre » et ses comptes, « Nouvelle entrée » (`src/hote/compendium.ts:43-68`).
 - Page de gauche : en tête la catégorie, sous-titrée de sa famille et de son compte (« Famille Compétences · 187
-  talents ») ; les entrées de la catégorie avec leur source, « Négociateur » pointé, feuillets.
-- Page de droite : la fiche (Max, Test, source, description verbatim, lien « Compétence Marchandage »), ses renvois
+  entrées ») ; les entrées de la catégorie avec leur source, « Négociateur » pointé, feuillets.
+- Posée sur le registre, sa croix propre (gabarit 2 à 1280 de `dispositions.md`) : la fiche (Max, Test, source, description verbatim, lien « Compétence Marchandage »), ses renvois
   (Races 2, Carrières (par rang) 24, Créatures 19), « Modifier ».
-- À valider : le Compendium en registre relié, familles en signets ; la liste paginée en feuillets plutôt qu'en longue
+- À valider : le Compendium en registre relié, familles en signets ; la fiche posée sur le registre plutôt qu'en page
+  de droite ; la description coupée à la hauteur de son champ dans l'atelier ; la liste paginée en feuillets plutôt qu'en longue
   liste défilante ; les renvois en liens soulignés, tronqués avec leur reste (« et 14 autres ») ; « Modifier » et «
   Nouvelle entrée » visibles à la consultation ; le filtre « Livre » en puces à comptes.
 
 ## compendium-atelier
-- État de `compendium` (`compendium.js`) : « Modifier » a ouvert l'atelier, la page de droite porte le formulaire de
+- État `atelier` de l'écran `compendium` : « Modifier » a ouvert l'atelier, la fiche posée porte le formulaire de
   l'entrée, sous-titrée « Atelier : Talents ». Champs tirés du schéma du Talent (`src/data/schemas/defs/talents.ts:89-90` :
   « Maximum » et son aide, « Test associé » et ses correspondances), « Nom », « Identifiant », « Description » (le
   Markdown de la donnée, verbatim), livre et page ; « Champs que l'entrée ne porte pas » : une puce « Ajouter :
@@ -100,15 +114,15 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - Gestes de l'atelier (`GesteDuCompendium`, `src/noyau/codex/session.ts:94-111` ; `atelierDe`,
   `src/hote/compendium.ts:162-181`) : `valeur { chemin, valeur }` par champ, `identifier { id }`, `enregistrer`
   (plaque pleine, à gauche), `abandonner`, `supprimer`. « Supprimer » est fermée, sa raison au survol
-  (`ecran.compendium.refus.designee`, `fr.ts:905` ; la liste des désignations est un exemple). « Nouvelle entrée »
+  (`ecran.compendium.refus.designee`, `fr.ts:912` ; la liste des désignations est un exemple). « Nouvelle entrée »
   est fermée tant que l'atelier est ouvert (`ecran.compendium.refus.atelierOuvert`).
-- À valider : l'atelier sur la page de droite du registre, la liste restant à gauche ; les champs absents en puces
+- À valider : l'atelier sur la fiche posée, la liste restant dessous ; les champs absents en puces
   « Ajouter » plutôt qu'en champs vides ; « Supprimer » ouvert se joue en deux pressions sur place (« Confirmer la
   suppression », « Annuler »), comme l'abandon d'une possession : le compendium n'a pas d'« Annuler » d'historique.
   Libellés « Nom », « Livre », « Page » : exemples, le schéma les fournit.
 
 ## editeur-outil-terrain
-- État de `editeur-scene` (`editeur.js`) : l'outil « Terrain » armé dans la palette, rien de choisi. L'inspecteur
+- État `outil-terrain` de l'écran `editeur-de-scene` : l'outil « Terrain » armé dans la palette, rien de choisi. L'inspecteur
   porte les options de l'outil : « Pinceau » (1×1, 3×3 armé, 5×5, « Rectangle ») et « Terrains », les vingt-cinq de
   `src/data/terrains.json`, « Pavés » armé. Sur le plan, le pinceau de 3×3 sous le pointeur et les cases déjà
   peintes ; au pied, « Case 10, 16 · couche 0 · Terre battue · 0 m » (`ecran.editeur.pointee`).
@@ -120,7 +134,7 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   de deux colonnes.
 
 ## editeur-supprimer
-- État de `editeur-scene` : un personnage choisi sur le plan (« Gustav », nom d'exemple). Inspecteur de l'entité
+- État `supprimer` de l'écran `editeur-de-scene` : un personnage choisi sur le plan (« Gustav », nom d'exemple). Inspecteur de l'entité
   (`inspecteurDEntite`, `src/hote/editeur.ts:807-828`) : « Nom », « Fiche », « Orientation », « Couche »,
   « Inventaire », « Poser une troupe » et ses « Copies » (`{ geste: 'troupe', nombre }`), puis « Supprimer » au
   pied (`{ geste: 'supprimer' }`, `src/noyau/edition/session.ts:598`, `:1327`).

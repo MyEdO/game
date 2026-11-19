@@ -1,7 +1,7 @@
 # Kit visuel unique des maquettes : arbitrages (#4411)
 
 Part de design seule : ce document tranche, il ne code rien. Il n'y a pas de troisième kit : la définition unique de
-chaque pièce commune va dans `sources/gestes.js` et `sources/gestes.css`, que les 162 pages chargent déjà. Après
+chaque pièce commune va dans `sources/gestes.js` et `sources/gestes.css`, que `sources/rendu.html` charge. Après
 migration, `combat/socle.js`, `combat/combat.css`, `lieux-et-nuit/commun.js` et `lieux-et-nuit/commun.css` ne gardent
 que ce qui est propre à leurs écrans (§ 5). Relevé de départ : `/mnt/project-files/kit-commun/inventaire.md`.
 
@@ -115,7 +115,7 @@ Police des chiffres : une seule classe `.chiffres` (`"Chiffres"` = Open Sans Sem
 | **Losange** | `.losange` : plein, **7 px**, teinte du filet | 8 px (`systeme.css:20`) ; 6 px évidé, bord 1.2 px (`heros.css:45`) | plein partout ailleurs ; l'évidé de 6 px ne se lit pas à l'échelle 1 |
 | **Segments** | `.segments` : Fell SC 13 px, interlettrage **.8**, marge `3px 11px 4px`, rayon 3, contour `--trait-encre`, repos `--voile` + `--encre-2`, tenu = `--or-eclat` / `--or-moyen` 60 % / `--laiton` + `--encre`, séparation `--filet-encre` ; sur bois : repos `--lit` + `#a8997a` → `--creme-2`, contour `--contour` + `--filet-or` (`commun.css:157-164`) | `#a8997a` (`commun.css:153,162`) | `--creme-2` existe et se lit mieux sur le lit sombre |
 | **Oui / Non** | `ouiNon(v)` = `segments(['Non', 'Oui'], …)` avec `.egaux` (cases de 46 px, marge horizontale 0) | règle `.oui-non` recopiée (`commun.css:144-149`), interlettrage 1 | même CSS, seule la largeur diffère (inventaire, doublon 5) |
-| **Curseur** | `.reglette` de `commun.css:150-156` : hauteur 18, piste 3 px, plein `--sang` (sur bois : `--cire-clair` → `--sang`), poignée losange 12 px `--or-eclat` → `--laiton` ; `reglette(part, largeur = 118)` | `curseur(v, min, max, texte, l)` (`options.js:7`) reste le gabarit d'options (réglette + valeur) et appelle `reglette` | une seule définition existait |
+| **Curseur** | `.reglette` de `commun.css:150-156` : hauteur 18, piste 3 px, plein `--sang` (sur bois : `--cire-clair` → `--sang`), poignée losange 12 px `--or-eclat` → `--laiton` ; `reglette(part, largeur = 118)` | `curseur(v, min, max, texte, l)` (`rendu.js:311`) reste le gabarit d'options (réglette + valeur) et appelle `reglette` | une seule définition existait |
 | **Moins / plus** | `moinsPlus` de `gestes.js:27-28` ; ronds `menu` 20 | 16 px (`jet.css:59`) ; fermé `#7d7668` | 16 px est sous la taille d'un clic ; la colonne des dés gagne 8 px de haut |
 | **Champ** | `gestes.css:70-78` tel quel, en jetons : libellé `--rouille`, valeur `--encre`, fond `--voile-fort` ; sur bois `--lit`, valeur `--ivoire`, vide `--eteint` | vide sur bois `#8d7f66` | une teinte d'éteint |
 | **Bulle de refus** | `gestes.css:59-60` tel quel ; pointe `--parchemin` | pointe `#cdb88a` | inchangée |
@@ -125,7 +125,7 @@ Police des chiffres : une seule classe `.chiffres` (`"Chiffres"` = Open Sans Sem
 | **Jauge : échelle** | `fine` **6** (défaut) · `forte` **8** | 5 (`combat.css:24`) → `fine` ; 7 (`combat.css:97`, `commerce.css:21`) → `forte` | deux épaisseurs : dans un rang, en tête d'une mesure |
 | **Pas en losanges** | `rangDePas(pleins, total, classe)` de `socle.js:71` ; losange 15 px, écart 7, plein `--ivoire` → `--creme-2`, vide `--lit` + `--filet-creme` (`combat.css:50-53`) | `#f0e4c6` → `#b9a57b` | une seule définition existait ; elle monte en jetons |
 | **`PICTOS`** | union des deux tables (63 noms) ; les quatre clés communes sont identiques. Doublons de tracé fondus : `course` = `botte` → **`botte`** ; `fin` (sablier à sable) et `sablier` gardés distincts ; `defensive` (bouclier écartelé) et `bouclier` gardés distincts ; `hemorragique` et `goutte` (tracés voisins) → **`goutte`** ; `quitter` et `sortie` → **`sortie`** | `course` (`socle.js:29`), `hemorragique` (`socle.js:50`), `quitter` (`socle.js:48`) | trois dessins en double sous deux noms |
-| **`BUSTES`** | union : `ilyanwe`, `berta`, `gobelin`, `orc`, `cheval` (`socle.js:19-25`), `bjorn`, `mira`, `aldric`, `greta` (`bustes.js:5-8`), `hote`, `docteur`, `brasseur`, `batelier`, `cocher` (`commun.js:60-64`) ; détails sombres en classe `.s` (`--chevelure`), clairs en `.c` (`--creme`) au lieu de `fill` en dur | `#15100c`, `#0c0605`, `#e6d6b0` | les clés sont disjointes ; `bustes.js` ne garde que `HEROS`. Second passage : `astrid` et `esquisse` y entrent ; les `ilyanwe` et `berta` redessinés de `heros.js` cèdent à ceux du kit. `drapier`, le négociant du Marchandage, et `gustav`, l'aubergiste de La Diligence, y entrent en PNJ (`CAMP`) |
+| **`BUSTES`** | union : `ilyanwe`, `berta`, `gobelin`, `orc`, `cheval` (`socle.js:19-25`), `bjorn`, `mira`, `aldric`, `greta` (`bustes.js:5-8`), `hote`, `docteur`, `brasseur`, `batelier`, `cocher` (`commun.js:60-64`) ; détails sombres en classe `.s` (`--chevelure`), clairs en `.c` (`--creme`) au lieu de `fill` en dur | `#15100c`, `#0c0605`, `#e6d6b0` | les clés sont disjointes ; `bustes.js` ne garde que `HEROS`. Second passage : `astrid` et `esquisse` y entrent ; les `ilyanwe` et `berta` redessinés de `heros.js` cèdent à ceux du kit. `drapier`, le négociant du Marchandage, et `gustav`, l'aubergiste de La Diligence, y entrent en PNJ (`CAMP`). Les voyageurs à recruter de la nouvelle partie y entrent : `kirsten`, `harbull`, `sigrid`, `malmir`, et `wanda`, qui porte le buste de `mira` |
 | **Rond chiffré** | `rond(contenu, taille)` : un nom de pictogramme, sinon le chiffre en Grenze 600 18 px `--ivoire` (la Détermination à presser, `petit` 34) | rond de 30 px monté à la main (`combat/socle.js:30`) | même pièce que tout rond, seul le contenu change |
 | **Sceau de dé** | `sceau(jet, taille, { de })` : le chiffre (Grenze 700 28/26) et, dessous, le dé en Fell SC 10 px | deux sceaux montés à la main (`evenement.js:22`, `mer.js:56`) | même sceau, le dé en plus |
 
@@ -190,7 +190,7 @@ libre : fer, fond sombre, pictogramme `plus` `--creme-2`.
 | `<div class="filet">` (bois, 4 feuilles) | `filet({ fondu: true })` |
 | `.page .filet` | `filet()` |
 | `.orne`, `#feuille .filet` (`i` + `b`) | `filet({ losange: true })` |
-| `.filet-l` (+ `i`) | `filet({ losange: true })`, `filet({ losange: true, or: true })` à l'accueil ; le `::before` court de `accueil.css:5` reste une règle de page |
+| `.filet-l` (+ `i`) | `filet({ losange: true })`, `filet({ losange: true, or: true })` à l'accueil ; le `::before` court de `accueil-et-systeme/ouverture.css:5` reste une règle de l'ouverture |
 | `.losange` (`heros.css:45`) | `<i class="losange">` du kit, marge de page gardée |
 | `class="lin"`, `class="lineale"` | `class="chiffres"` |
 | `clouer(b)` | `clouer()` ; bandeau des héros : `clouer(cases)` |

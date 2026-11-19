@@ -1,5 +1,6 @@
-/* Hors partie et outils, images d'intention (#3935). Pièces ajoutées au kit (commun.css, systeme.css) :
-   la ligne de liste, la tablée du salon, le plan de travail de l'éditeur, les feuillets du Compendium. */
+/* Hors partie et outils (#4411) : les pièces propres à la coop, à l'éditeur et au Compendium, posées par `rendu.js`
+   et placées par `rendu.css` (la ligne de liste, la tablée du salon, le volet à onglets, la barre, la palette,
+   l'inspecteur, l'atelier). */
 
 /* ligne de liste (sur bois) */
 .ligne{display:flex;align-items:center;gap:9px;height:32px;padding:0 10px;border-radius:2px;font-size:14.5px;color:#f0e2c2;white-space:nowrap}
@@ -12,7 +13,6 @@
 .parchemin .trait{background:rgba(60,40,20,.35)}
 
 /* ───────── la coop ───────── */
-.feuillet-coop{width:440px}
 .feuillet-coop .fond{padding:34px 24px 22px;display:flex;flex-direction:column;gap:16px}
 .feuillet-coop p{margin:0;font-size:14.5px;line-height:20px;color:#3a2a18}
 .feuillet-coop .indice{font-style:italic;font-size:13.5px;color:#4a3420;margin-top:-9px}
@@ -21,10 +21,10 @@
 .refus{display:flex;align-items:center;gap:9px;font-style:italic;font-size:14px;color:#6b1c10}
 .cases{display:flex;gap:7px}
 .cases b{flex:1;height:58px;display:grid;place-items:center;font-size:36px;line-height:58px;color:#3a1a10;background:rgba(255,248,222,.55);border-radius:2px;box-shadow:inset 0 1px 3px rgba(60,35,5,.55),0 0 0 1px rgba(60,40,20,.7)}
-#tablee{position:absolute;width:640px;height:520px}
-#tablee>svg{position:absolute;left:0;top:0;width:640px;height:520px}
-#tablee .legende{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:14px;color:var(--creme-2);white-space:nowrap}
-.siege{position:absolute;width:214px;padding:9px 11px 10px;border-radius:3px;box-shadow:0 6px 14px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
+#tablee{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto auto;column-gap:16px}
+#tablee>svg{position:absolute;left:0;top:0;width:100%;height:100%}
+#tablee .legende{grid-column:span 2;margin-top:10px;text-align:center;font-size:14px;color:var(--creme-2);white-space:nowrap}
+.siege{position:relative;width:200px;box-sizing:border-box;padding:9px 11px 10px;border-radius:3px;box-shadow:0 6px 14px rgba(0,0,0,.7),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3)}
 .siege .q{display:flex;align-items:center;gap:10px}
 .siege .q b{display:block;font-weight:600;font-size:22px;line-height:34px;margin:-7px 0 -6px;color:#f4e8ca;white-space:nowrap}
 .siege .q span{display:block;font-size:12px;color:var(--creme-2);white-space:nowrap}
@@ -37,7 +37,6 @@
 .siege.absent .tient .portrait{opacity:.55}
 .siege.vide{background:rgba(20,12,7,.7);box-shadow:0 0 0 1px rgba(226,192,106,.3);border:1px dashed rgba(226,192,106,.35)}
 .siege.vide .q b{font-weight:400;font-size:17px;color:var(--creme-2);font-family:"Fell";font-style:italic;letter-spacing:0}
-#invitation{left:24px;top:136px;width:400px}
 #invitation .fond{padding:30px 18px 18px;display:flex;flex-direction:column;gap:14px}
 #invitation .code{height:84px;display:grid;place-items:center;font-size:52px;line-height:84px;letter-spacing:7px;color:#3a1a10;border-radius:2px;box-shadow:0 0 0 1px #1a1005,0 0 0 3px #8a6a26,0 0 0 4px #1a1005,0 3px 8px rgba(0,0,0,.5)}
 #invitation .r{font-size:14px;color:var(--or);margin-top:4px}
@@ -45,39 +44,39 @@
 #invitation .joueur.absent{color:#f0c8b4;font-style:italic}
 #invitation .joueur .pt{width:8px;height:8px;margin:0 6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3dc93,#b8923a)}
 #invitation .plaque{flex:none}
-#attribution{left:1180px;top:88px;width:503px}
 #attribution .fond{padding:34px 20px 18px}
 #attribution .rang{display:grid;grid-template-columns:50px 1fr auto;align-items:center;column-gap:12px;padding:9px 0;border-bottom:1px solid rgba(60,40,20,.28)}
 #attribution .mj{padding:14px 0 4px}
 #attribution .mj .r{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 #attribution .mj b{font-size:22px;line-height:30px;margin:-5px 0;color:#3a1a10}
 #attribution .mj i{font-size:13px;color:#4a3420}
-#attribution .segments b{padding:4px 12px 5px;font-size:14px}
+#attribution .segments b{padding:4px 9px 5px;font-size:13px}
 
 /* ───────── l'éditeur ───────── */
-#barre{left:12px;top:10px;width:1683px;height:62px}
 #barre .fond{display:flex;align-items:center;gap:12px;padding:0 16px 0 12px}
 #barre .medaillon{flex:none}
-#barre .nom{font-size:24px;line-height:32px;margin:-5px 0 -5px;color:#f4e8ca;white-space:nowrap}
-#barre .s{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
+#barre .nom{font-size:22px;line-height:30px;margin:-5px 0 -4px;color:#f4e8ca;white-space:nowrap}
+#barre .s{font-size:10.5px;color:var(--creme-2);white-space:nowrap}
 #barre .espace{flex:1}
 #barre .plaque{flex:none}
 #barre .plaque>div{font-size:13px;padding:0 11px;gap:6px}
-#barre .segments b{padding:6px 14px 7px;font-size:14px}
+#barre .segments b{padding:6px 10px 7px;font-size:13px}
 #barre .croix{position:static}
+#barre .plaque.seule>div{padding:0 9px}
 #barre .sep{width:1px;height:30px;background:rgba(226,192,106,.28)}
-.volet{position:absolute}
-.volet .fond{padding:24px 10px 10px;display:flex;flex-direction:column}
-.volet .ruban{font-size:13px}
-.volet .plaque{flex:none}
-.volet .plaque>div{font-size:12px;padding:0 6px;letter-spacing:.6px}
-.volet .gestes{display:flex;gap:6px;margin-top:7px}
+#volets .fond{padding:34px 10px 10px;display:flex;flex-direction:column}
+#volets .onglets{position:absolute;left:10px;right:10px;top:-8px;display:flex;justify-content:center;gap:4px}
+#volets .onglets .plaque>div{font-size:12px;padding:0 8px}
+#volets .gestes{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+#volets .gestes .plaque{flex:none}
+#volets .gestes .plaque>div{font-size:12px;letter-spacing:.6px}
+#volets .ligne{height:auto;min-height:32px;padding:5px 10px;box-sizing:border-box;white-space:normal;line-height:18px;font-size:14px}
+.prop.sens{flex-direction:column;align-items:flex-start;padding:6px 0 8px;gap:5px}
 .outils{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .outils .o{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:54px;border-radius:2px;background:radial-gradient(120% 140% at 50% 0%,#3b2718,#1b100a 75%);box-shadow:0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.18)}
 .outils .o span{font-family:"Fell SC";font-size:10.5px;letter-spacing:.5px;color:#e6dabd;white-space:nowrap}
 .outils .o.la{background:linear-gradient(180deg,#f3dc93,#c39c44 55%,#8a6a26);box-shadow:0 0 0 1px #150d04,inset 0 0 0 1px rgba(60,40,10,.85),0 0 10px rgba(255,214,140,.4)}
 .outils .o.la span{color:#2a1a08}
-#plan{left:294px;top:84px;width:1071px;height:640px}
 #plan .fond{overflow:hidden}
 #plan .fond:not(.parchemin){background:#17120d}
 #plan .fond>svg{display:block;width:100%;height:100%}
@@ -85,10 +84,9 @@
 #couches .plaque{flex:none}
 #couches .plaque>div{font-size:12.500px;padding:0 10px;gap:6px}
 #nord{position:absolute;right:22px;top:18px;display:flex;align-items:center;gap:7px;font-size:12px;color:#f0e2c2;white-space:nowrap}
-#pied{position:absolute;left:294px;top:734px;width:1071px;height:36px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:3px;box-shadow:0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.25);font-size:13.5px;color:#f0e2c2;white-space:nowrap}
-#pied .v{margin-left:auto;display:flex;align-items:center;gap:7px;color:#cfe0b0;font-style:italic}
-#inspecteur{left:1377px;top:84px;width:318px;height:686px}
-#inspecteur .fond{padding:26px 14px 12px;display:flex;flex-direction:column}
+#pied{display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:3px;box-shadow:0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.25);font-size:13.5px;color:#f0e2c2;white-space:nowrap}
+#pied .v{margin-left:auto;color:var(--creme-2)}
+#inspecteur .fond{height:100%;box-sizing:border-box;padding:26px 14px 12px;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none}
 #inspecteur h3{margin:-8px 0 -8px;font-size:30px;line-height:44px;font-weight:600;color:#3a1a10;white-space:nowrap}
 #inspecteur .sous{font-size:12.5px;color:#5a2a12;white-space:nowrap}
 #inspecteur .trait{margin:9px 0 3px}
@@ -105,10 +103,8 @@
 #inspecteur .plaque{flex:none;margin-top:7px}
 #inspecteur .plaque>div{font-size:13px}
 #inspecteur .segments b{font-size:11.5px;padding:3px 7px 4px;letter-spacing:.3px}
-#inspecteur .prose{margin:6px 0 0;font-size:12.5px;line-height:16.5px;color:#3a2a18;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
 /* ───────── le Compendium ───────── */
-#categories{left:24px;top:136px;width:400px}
 #categories .fond{padding:30px 16px 16px;display:flex;flex-direction:column;gap:12px}
 #categories .ligne{height:38px;font-size:16px}
 #categories .r{font-size:13.5px;color:var(--or)}
@@ -145,23 +141,31 @@
 .atelier .fiche{gap:9px;padding-top:6px}
 .atelier .deux{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .atelier .champ>b{height:34px;font-size:15.5px}
-.atelier .champ.long>b{height:auto;display:block;padding:8px 12px 9px;white-space:normal;font-size:14px;line-height:19px}
+.atelier .champ.long>b{height:113px;overflow:hidden;display:block;padding:8px 12px 9px;white-space:normal;font-size:14px;line-height:19px}
 .atelier .champ .curseur-texte{display:none}
-.atelier .deux:first-child .champ:first-child .curseur-texte{display:block}
-.atelier .aide{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:-5px;font-style:italic;font-size:12.5px;color:#4a3420}
+.atelier .champ.saisi .curseur-texte{display:block}
+.atelier .aide{margin-top:3px;font-style:italic;font-size:12.5px;line-height:16px;color:#4a3420}
 .atelier .aide .lien{padding:0 2px 1px;font-style:normal}
 .atelier .fiche .r{margin:4px 0 -3px}
 .atelier .facettes b{color:#3a2a18;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.55)}
 .atelier .pied{justify-content:flex-start;gap:10px}
 .atelier .pied .plaque{position:relative;z-index:2}
-.atelier .pied .bulle-refus{white-space:normal;width:330px;text-align:center}
+.atelier .pied .plaque{flex:1 1 0;width:auto;min-width:0}
+.atelier .pied .plaque>div{font-size:12.5px;letter-spacing:.4px;padding:0 6px;gap:7px}
+.atelier .pied .bulle-refus{white-space:normal;width:300px;text-align:center;left:auto;right:0;transform:none}
+.atelier .pied .bulle-refus::before{left:auto;right:56px}
 
 /* l'éditeur : les options d'un outil, la suppression de ce qui est choisi */
 #inspecteur .pinceau .segments{display:flex;margin-top:4px}
 #inspecteur .pinceau .segments b{flex:1;text-align:center;font-size:13px;padding:5px 0 6px}
 .terrains{display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;margin-top:5px}
-.terrains b{font-weight:400;font-size:13.5px;line-height:30px;height:30px;padding:0 9px;border-radius:2px;color:#2a1d12;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.5);white-space:nowrap}
+.terrains b{font-weight:400;font-size:13px;line-height:26px;height:26px;padding:0 9px;border-radius:2px;color:#2a1d12;background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.5);white-space:nowrap}
 .terrains b.la{font-weight:600;background:linear-gradient(180deg,#f3dc93,#c39c44 60%,#9a7830);box-shadow:0 0 0 1px rgba(60,40,10,.85)}
 #inspecteur .moins-plus .copies{min-width:26px;text-align:center;font-size:15px;color:#2a1d12}
 #inspecteur .au-pied{margin-top:auto}
 #couches .plaque{position:relative}
+/* les sièges de la tablée : deux en tête, deux au pied, ceux de droite contre le bord droit */
+#tablee .siege{align-self:start}
+#tablee .siege:nth-of-type(n+3){grid-row:3;align-self:end}
+#tablee .legende{grid-row:4}
+#tablee .siege:nth-of-type(even){justify-self:end}

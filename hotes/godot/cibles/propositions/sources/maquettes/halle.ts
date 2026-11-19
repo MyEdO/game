@@ -1,10 +1,12 @@
 /**
  * La halle (#4411) : la page des services de Kemperbad ouverte sur son marché de cargaison. Les offres sont les
  * négociants de la halle, les porteurs du groupe attendent au premier plan ; la page de droite compose l'achat ou
- * traite le lot choisi (MSRC 13 l.26-180) (`../../commerce.md`, sections `halle-achat`, `halle-vente`).
+ * traite le lot choisi (MSRC 13 l.26-180) (`../../commerce.md`, sections `halle-achat`, `halle-vente`). État
+ * `la-main` : la halle vue du siège d'un invité, l'achat composé par l'hôte, ses gestes fermés ; chaque héros dit qui le
+ * joue (`../../outils.md`, section `coop-la-main`).
  */
 import { BOURSES, groupe } from './compagnie.ts';
-import type { Ecran, LigneDeCompte, OffreDeNegoce, PageDeService, Part, Rail, Sous, TitreDuLieu } from './maquette.ts';
+import type { Ecran, Joueur, LigneDeCompte, OffreDeNegoce, PageDeService, Part, Rail, Sous, TitreDuLieu } from './maquette.ts';
 
 export const TITRE: TitreDuLieu = { nom: 'La halle', sous: 'Marché de Kemperbad · printemps' };
 export const RAIL: Rail = {
@@ -36,8 +38,11 @@ export const chargement = ({ marchande, conclure = true }: { marchande?: LigneDe
   gestes: conclure ? [{ libelle: 'Conclure l’achat', principal: true }] : [],
   ...(conclure ? { note: 'Le Marchandage se joue à la conclusion, contre le négociant.' } : {}),
 });
-const HALLE = { gabarit: 'lieu-et-voyage', decor: 'halle', titre: TITRE, rail: RAIL, rumeur: RUMEUR, retour: 'Quitter la halle' } as const;
+/** La halle, sans sa rumeur : en coop, qui tient la main en prend la place. */
+const SANS_RUMEUR = { gabarit: 'lieu-et-voyage', decor: 'halle', titre: TITRE, rail: RAIL, retour: 'Quitter la halle' } as const;
+const HALLE = { ...SANS_RUMEUR, rumeur: RUMEUR };
 const MARCHANDE = groupe({ aldric: { id: 'marchandage', texte: 'mènera le Marchandage' } });
+const KARL: Joueur = { nom: 'Karl', hote: true }, LENA: Joueur = { nom: 'Lena', vous: true }, OTTO: Joueur = { nom: 'Otto', absent: true };
 
 export default {
   etats: [{
@@ -67,5 +72,16 @@ export default {
       note: 'Refuser la mise à prix garde le lot sur la charrette.',
     },
     groupe: MARCHANDE,
+  }, {
+    ...SANS_RUMEUR, nom: 'la-main',
+    scene: [
+      laine({ estimation: 660, gestes: [{ libelle: 'Acheter', principal: true }], depliee: true, choisie: true }),
+      { ...VIN, estimation: 1980, gestes: [{ libelle: 'Évaluer le vin' }, { libelle: 'Acheter' }], depliee: true }],
+    page: { ...chargement(), sous: 'Composé par l’hôte' },
+    groupe: groupe({}, 'aldric').map((h) => ({ ...h, bourse: BOURSES[h.id as keyof typeof BOURSES] })),
+    main: {
+      tient: KARL, fait: 'compose l’achat', partie: 'K7M2QX', refus: 'L’hôte seul engage la bourse et la cale du groupe.',
+      joueurs: { bjorn: KARL, mira: LENA, aldric: KARL, greta: OTTO },
+    },
   }],
 } satisfies Ecran;

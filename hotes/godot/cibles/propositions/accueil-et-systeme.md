@@ -1,8 +1,13 @@
 # Propositions : accueil et système (2026-11-16, #3935)
 
-Compte rendu des huit écrans, sans cible écrite, dessinés dans le style des maquettes validées. Contenu lu au code, pas
-le design. Sources au dépôt : `sources/accueil-et-systeme/`. Rien n'est
-validé.
+Compte rendu des huit écrans, sans cible écrite. Contenu lu au code, pas le design. Sources au dépôt : huit écrans de
+`sources/maquettes/`, chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dessinés par
+`sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png> --format 16:9 [--etat <état>]`) : `accueil`,
+`nouvelle-partie` (`pretires`, `roster`, `coop`), `sauvegardes` (`sauvegardes`, `combat`), `menu-de-la-partie`,
+`options` (`options`, `chance`, `verrou`), `chapitre` (`ouverture`, `fin`) et `fin-de-seance` ; `maquettes/systeme.ts`
+porte l'instant et la séance qu'ils partagent. Les décors (la crête au couchant, la salle commune, l'auberge-relais,
+Altdorf au matin, le jeu assombri) et les feuilles de la famille vivent dans `sources/accueil-et-systeme/`.
+Premières maquettes : chaque « À valider » attend l'utilisateur.
 
 Pièces neuves : registre relié et ses signets ; contrôles de réglage (oui/non, réglette, segments, pas-à-pas) ;
 affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé laiton ; case à cocher et son octroi
@@ -12,7 +17,7 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
 - La compagnie de dos sur une crête, Altdorf au couchant, la comète à deux queues ; titre gothique doré ; trois
   entrées de jeu en plaques ; les outils en pastilles libellées en bas à droite.
 - Entrées : Continuer (l'entrée `reprendre`), Jouer, Jouer en ligne, Combat, Atelier, Éditeur, Compendium (`src/hote/accueil.ts:22-30`),
-  Options (`:39`) ; titre `fr.ts:1223`.
+  Options (`:39`) ; titre `fr.ts:1234`.
 - « Continuer » charge la dernière sauvegarde, dite sous la plaque ; « Reprendre » reste la fin d'un arrêt de jeu.
 - À valider : sur-titre et sous-titre ajoutés ; « Continuer » en premier et armé (le code liste « Jouer » d'abord) ;
   l'entrée `reprendre` ouvre aujourd'hui le panneau des sauvegardes (`src/hote/elements.ts:93-95`) : l'hôte doit
@@ -26,9 +31,9 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
 - Entrées : pré-tirés (`src/hote/groupe.ts:83`, `src/data/pregens.json`), onglets Pré-tirés et Mes personnages,
   « Créer un personnage », « Importer un personnage… » (`groupe.ts:89`), « Recruter », « Renvoyer », « Lancer » ;
   campagnes (`groupe.ts:91-93`, `src/scenes/campaign.ts:171-182`) et campagne publiée (`src/hote/bibliotheque.ts`).
-- État `roster` (`nouvelle-partie-roster`) : onglet « Mes personnages » ; sous « Recruter » du personnage pointé, deux
+- État `roster` : onglet « Mes personnages » ; sous « Recruter » du personnage pointé, deux
   pastilles « Exporter » et « Supprimer » (`{roster:{exporter}}`, `{roster:{retirer}}`, `src/hote/groupe.ts:86-90`).
-- État `coop` (`nouvelle-partie-coop`) : la « Place libre » porte le choix de son siège
+- État `coop` : la « Place libre » porte le choix de son siège
   (`affecterLEmplacementAuSiege(emplacement, siege)`, `src/noyau/sieges.ts:143` ; refus « Cet emplacement est déjà
   occupé. », « Ce siège n’est pas à la table. »), décidé par l'hôte seul.
 - Dans ces deux états, « Modifier » à côté de « Renvoyer » ouvre la création sur le héros. Verbe à modifier :
@@ -43,7 +48,7 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   gothique, date impériale, heure réelle : `src/noyau/persistance/save.ts:26-34`) ; avis de retrait scellé.
 - Entrées : emplacements (`src/hote/sauvegardes.ts:32-34`, `:139`), Charger si plein (`:146`), Sauvegarder sur les
   manuels (`:147`), avis de retrait (`:153`).
-- État `combat` (`sauvegardes-combat`) : chaque « Sauvegarder » fermé, « Impossible de sauvegarder en plein combat. »
+- État `combat` : chaque « Sauvegarder » fermé, « Impossible de sauvegarder en plein combat. »
   au survol (`MESSAGE_DU_REFUS`, `src/hote/sauvegardes.ts`) ; chez l'invité, « Seul l’hôte de la partie sauvegarde. ».
 - À valider : état sans partie non dessiné.
 
@@ -61,19 +66,20 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   avec « Défaut » (`src/hote/reglages.ts:59-92`, `docs/regles-optionnelles.md`).
 - À valider : un signet par domaine ; douze règles par feuillet ; libellés lisibles des options de liste (le jeu
   montre les ids) ; volumes en pourcentage.
-- État `verrou` (`options-verrou`) : en combat, chaque contrôle de règle est fermé ; la raison du noyau au survol
+- État `verrou` : en combat, chaque contrôle de règle est fermé ; la raison du noyau au survol
   (`houseRules.lockedInBattle`, `src/hote/reglages.ts:81-82`) ; chez l'invité, « L’hôte règle les règles maison. ».
   Les préférences restent ouvertes.
-- État `chance` (`options-chance`) : signet « Destin & Résistance », règle `chance-en-cours-de-session` sur `manual`
+- État `chance` : signet « Destin & Résistance », règle `chance-en-cours-de-session` sur `manual`
   (`src/data/reglesOptionnelles.json:128-147` ; LDB 17 l.47) et sa plaque « Regagner la Chance maintenant »
   (`restaurerLaFortune()`). Besoin : `zonesDesReglages` sert `OptionalRule.action` en bouton quand la règle vaut
   `action.when`. Les valeurs `off | manual | auto` sont celles que le noyau sert en libellé (`reglages.ts:62`).
 
 ## ouverture-de-chapitre
+- État `ouverture` de l'écran `chapitre`.
 - Carton plein écran : l'auberge-relais, les deux lunes, la diligence ; sur-titre, titre, tome, chapitre sur toile
   rouge, texte du chapitre (`src/scenes/diligence/diligence-projet.json:3755-3775`) ; la compagnie au bandeau ;
   « Commencer ».
-- À valider : la compagnie affichée (le bloc d'ouverture ne la porte pas) ; mention de la page source ; texte posé
+- À valider : la compagnie affichée (le bloc d'ouverture ne la porte pas) ; la page source non mentionnée ; texte posé
   sur l'image plutôt que sur parchemin.
 
 ## fin-de-seance
@@ -97,7 +103,7 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   ses cases ; l'écrire et la réécrire demande un verbe neuf.
 
 ## fin-de-chapitre
-- Pendant de `ouverture-de-chapitre` : Altdorf au petit matin, le titre de clôture sur toile rouge et son sous-titre
+- État `fin` de l'écran `chapitre`, pendant de l'ouverture : Altdorf au petit matin, le titre de clôture sur toile rouge et son sous-titre
   (`src/scenes/diligence/diligence-projet.json:3775-3789`), « Ce que la route retiendra » (les objectifs soldés et les
   PX du chapitre), « Lieux révélés », « Tombés en chemin » (`src/noyau/chapitreRecap.ts:34-68`, `chap.*`) ; dessous, la
   fin de séance que le récap ouvre : une colonne par héros et celle du groupe, les mêmes cases que `fin-de-seance` ;

@@ -55,7 +55,8 @@ const releve = ([largeur, hauteur]) => {
   })
   const coupe = [...document.querySelectorAll('[data-texte]')].filter((e) => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map((e) => e.dataset.texte)
   /* un texte qu'un autre élément recouvre : le milieu de sa dernière ligne, hors de ce qu'un ancêtre rogne ou fait
-     défiler, tombe hors de lui et de ses ancêtres */
+     défiler, tombe hors de lui et de ses ancêtres ; la bulle de refus, posée au-dessus de l'élément refusé, recouvre ce
+     qui est au-dessus de lui (`../dispositions.md`) */
   const rognePoint = (e, x, y) => { for (let a = e.parentElement; a; a = a.parentElement) if (getComputedStyle(a).overflow !== 'visible') { const r = a.getBoundingClientRect(); if (x < r.left || x > r.right || y < r.top || y > r.bottom) return true } return false }
   const recouvert = [...document.querySelectorAll('[data-texte]')].filter((e) => {
     const plage = document.createRange()
@@ -65,7 +66,7 @@ const releve = ([largeur, hauteur]) => {
     const x = q.left + q.width / 2, y = (q.top + q.bottom) / 2
     if (y < 0 || y > hauteur || rognePoint(e, x, y)) return false
     const v = document.elementFromPoint(x, y)
-    return v && !e.contains(v) && !v.contains(e)
+    return v && !e.contains(v) && !v.contains(e) && !v.closest('.bulle-refus')
   }).map((e) => e.dataset.texte)
   return { pieces: pieces.length, hors, croise, deborde, coupe, recouvert, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
