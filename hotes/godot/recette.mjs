@@ -1326,13 +1326,15 @@ async function parcoursVehicule() {
   }
 }
 
-/** Le monde posé : le modèle de chaque navire de la vue (`wfrpEcran.navires`) et la base de chaque corps dessiné
- *  (`wfrpEcran.corps`), que Godot tire en GLB, chacun lu d'un bloc sur le fil de la page. */
+/** Le monde posé : le modèle de chaque navire de la vue (`wfrpEcran.navires`), la base de chaque corps dessiné
+ *  (`wfrpEcran.corps`) et les modèles des arêtes (`wfrpEcran.aretes_lues`), que Godot tire en GLB, chacun lu d'un bloc
+ *  sur le fil de la page. */
 async function attendreLeMonde() {
   const v = await vue()
   const navires = Object.keys(v.corps.navires)
   const bases = Object.fromEntries(Object.entries(v.corps.combattants).map(([id, c]) => [id, c?.base ?? null]))
-  await waitFor(session, `(() => { const e = globalThis.wfrpEcran; return !!e?.navires && ${JSON.stringify(navires)}.every((id) => e.navires.includes(id))
+  await waitFor(session, `(() => { const e = globalThis.wfrpEcran; return !!e?.navires && e.aretes_lues
+    && ${JSON.stringify(navires)}.every((id) => e.navires.includes(id))
     && Object.entries(e.corps).every(([id, c]) => c.base === (${JSON.stringify(bases)}[id] ?? null)) })()`, { timeoutMs: 300000, evaluerMs: FIL_DE_LA_PAGE_MS })
   noter(`monde posé : navires ${navires.join(', ') || 'aucun'}, corps ${Object.keys((await ecran()).corps).join(', ') || 'aucun'}`)
 }

@@ -1,7 +1,8 @@
 /**
  * LES ARÊTES TELLES QU'UN HÔTE LES DESSINE (#3476, lot C) : pour chaque mur de la scène, où le poser (sa case, son
- * milieu et son sens), d'où elle se dresse (`piedDeLArete`), quelle pièce du kit 3D y va (`PieceDArete`), de quelle
- * famille (`StructureAppearanceDef.kit`, par l'apparence de l'arête, `apparenceDArete`), et à quelle hauteur.
+ * milieu et son sens, tourné vers son dehors, `outwardSide`), d'où elle se dresse (`piedDeLArete`), quelle pièce y va
+ * (`PieceDArete`), de quelle famille (`StructureAppearanceDef.kit`, par l'apparence de l'arête, `apparenceDArete`),
+ * de quelle palette (`paletteDeLApparence`, #4471), et à quelle hauteur.
  */
 import { structureAppearances } from '../../data';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data';
@@ -40,17 +41,32 @@ import { clearedSpace } from './volume/toits';
 import { blocDeLaCase, empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
 import { meteoDuRegard } from './meteo';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
+import { outwardSide } from './volume/ornements';
+import { DIR8_DELTA } from '../../geometry/dir8';
+import { wallPartColor } from './volume/structures';
+import type { WallPart } from '../../data/structureAppearance.types';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
  *  la brèche d'une structure abattue. */
 export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' | 'fenetre-close' | 'breche';
 
 /** Une arête telle qu'un hôte la dessine : sa clé (`edgeKey`), les cases de la carte qu'elle sépare à sa couche
- *  (`casesDeFace`, `inMapBounds` : une ou deux), son milieu et son sens en coins de grille (`wallEnds`), la hauteur
- *  (m) d'où elle se dresse (`piedDeLArete`), sa pièce, la famille du kit de son apparence (`null` pour une apparence
- *  hors du catalogue), sa hauteur en mètres (`wallHeightM`, sinon un étage), et le bloc de la case du segment à sa
- *  couche (`blocDeLaCase`). */
-export interface AreteDessinee { cle: string; cases: Required<Pt>[]; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number; bloc: string }
+ *  (`casesDeFace`, `inMapBounds` : une ou deux), son milieu et son sens en coins de grille (`wallEnds`,
+ *  `sensDeLArete`), la hauteur (m) d'où elle se dresse (`piedDeLArete`), sa pièce, la famille du kit de son apparence
+ *  (`null` pour une apparence hors du catalogue), sa palette (`paletteDeLApparence`), sa hauteur en mètres
+ *  (`wallHeightM`, sinon un étage), et le bloc de la case du segment à sa couche (`blocDeLaCase`). */
+export interface AreteDessinee {
+  cle: string;
+  cases: Required<Pt>[];
+  milieu: Pt;
+  sens: Pt;
+  pied: number;
+  piece: PieceDArete;
+  famille: FamilleDuKit | null;
+  palette: Record<string, string>;
+  hauteurM: number;
+  bloc: string;
+}
 
 /** Une arête que le groupe dégage : sa clé (`edgeKey`) et les crans de caméra (`Rot`, `Dims.rot`) sous lesquels elle
  *  tombe : tous si l'une des cases qu'elle sépare est au-dessus de la tête d'un allié (`cutawayOverhead`), sinon ceux
@@ -72,9 +88,35 @@ function pieceDArete(scene: Scene, seg: WallSeg): PieceDArete {
   return 'mur';
 }
 
+/** Les deux bouts du segment `seg` de `scene` (`wallEnds`), dans l'ordre où son dehors (`outwardSide`) est à
+ *  `(-sens.y, sens.x)` du sens qui va du premier au second ; dans l'ordre de `wallEnds` sans dehors. */
+function sensDeLArete(scene: Scene, seg: WallSeg): [Pt, Pt] {
+  const [a, b] = wallEnds(seg);
+  const dehors = outwardSide(scene, seg);
+  if (!dehors) return [a, b];
+  const { gx, gy } = DIR8_DELTA[dehors];
+  return gy * (b.x - a.x) - gx * (b.y - a.y) < 0 ? [b, a] : [a, b];
+}
+
+/** Par emplacement de palette (les `surfaces` d'un modèle d'arête), la partie de mur dont il prend la couleur. */
+const PARTIES = {
+  corps: 'face', bois: 'poteau', accent: 'vantail', vet1: 'meneau', metal: 'poignee',
+} as const satisfies Record<string, WallPart>;
+
+/** Par emplacement de palette, la couleur de sa partie de mur (`PARTIES`) dans l'apparence `apparence`
+ *  (`wallPartColor`) ; aucune sans apparence. */
+export function paletteDeLApparence(
+  apparence: EntreeVivante<StructureAppearanceDef> | undefined,
+): Record<string, string> {
+  if (!apparence) return {};
+  return Object.fromEntries(Object.entries(PARTIES).map(([emplacement, partie]) => [
+    emplacement, wallPartColor(apparence, partie),
+  ]));
+}
+
 /** L'arête dessinée du segment `seg` de `scene`. */
 export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
-  const [a, b] = wallEnds(seg);
+  const [a, b] = sensDeLArete(scene, seg);
   const apparence = APPARENCES.get(apparenceDArete(scene, seg));
   const z = seg.z ?? 0;
   return {
@@ -85,6 +127,7 @@ export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
     pied: piedDeLArete(scene, seg),
     piece: pieceDArete(scene, seg),
     famille: apparence?.kit ?? null,
+    palette: paletteDeLApparence(apparence),
     hauteurM: apparence?.wallHeightM ?? METRES_PER_LEVEL,
     bloc: blocDeLaCase({ x: seg.x, y: seg.y, z }),
   };

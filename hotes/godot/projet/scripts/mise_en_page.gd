@@ -183,6 +183,14 @@ static func echelle_de_piece(sens: Vector2, hauteur: float, metres_par_case: flo
 	return Vector3(longueur_d_arete(sens), hauteur_au_plateau(hauteur, metres_par_case), echelle_metrique(metres_par_case))
 
 
+## L'échelle d'une pièce d'un modèle d'arête long de `long` mètres et haut de `haut` mètres posée sur une arête qui
+## court selon `sens`, haute de `hauteur` mètres, sur un plateau de `par_case` mètres par case (#4471) : en longueur
+## celle qui le porte à la longueur de l'arête (`longueur_d_arete`), en hauteur celle qui porte son sommet à celle de
+## l'arête, et métrique en épaisseur.
+static func echelle_d_arete_servie(sens: Vector2, hauteur: float, long: float, haut: float, par_case: float) -> Vector3:
+	return Vector3(longueur_d_arete(sens) / long, hauteur_au_plateau(hauteur, par_case) / haut, echelle_metrique(par_case))
+
+
 ## L'échelle qui porte un modèle mesuré en mètres sur un plateau de `metres_par_case` mètres par case.
 static func echelle_metrique(metres_par_case: float) -> float:
 	return 1.0 / metres_par_case

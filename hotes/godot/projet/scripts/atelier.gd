@@ -179,6 +179,7 @@ func _ready() -> void:
 	_montage.erreurs = _erreurs
 	_montage.empilee.connect(_publier)
 	_modeles_de_l_echantillon.pose.connect(_poser_l_echantillon_au_sol)
+	_scene_de_l_echantillon.aretes_posees.connect(_publier)
 	_pont.suivre_les_listes(_interface, _publier_l_ecran)
 	%Recharger.pressed.connect(_recharger)
 	%Lecture.pressed.connect(_lire)

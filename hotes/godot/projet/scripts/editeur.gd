@@ -96,6 +96,7 @@ func _ready() -> void:
 	_publication = PublicationDeLEcran.new(_pont, self, _interface, _ecran_publie)
 	_poste = PosteDEdition.new(_pont)
 	_pont.suivre_les_saisies(_interface, _publier_l_ecran)
+	_monde.volume.aretes_posees.connect(_publier_l_ecran)
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	var recueil: Array[String] = []

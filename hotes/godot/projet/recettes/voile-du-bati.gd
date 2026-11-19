@@ -36,7 +36,8 @@ const TOLERANCE := 0.04
 ## `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs` ; `projet/scripts/monde.gd`, `@contrat Monde`.
 const CREUX_DU_PILOTE := 0.1
 ## Le mur du kit sépare la case (2, 4), la sienne, de sa voisine (2, 3) ; la boîte, (5, 4) de (5, 3).
-const MUR := {cle = "kit", famille = "colombage", milieu = {x = 2.0, y = 3.5}, cases = [{x = 2, y = 4, z = 0}, {x = 2, y = 3, z = 0}]}
+const MUR := {cle = "kit", famille = "pierre", milieu = {x = 2.0, y = 3.5},
+	cases = [{x = 2, y = 4, z = 0}, {x = 2, y = 3, z = 0}]}
 const BOITE := {cle = "boite", famille = null, milieu = {x = 5.0, y = 3.5}, cases = [{x = 5, y = 4, z = 0}, {x = 5, y = 3, z = 0}]}
 ## Le moins de pixels (un sur deux de chaque sens) loin du bord d'un mur cadré de près, et la part d'entre eux que le
 ## rendu peut mêler au sol vu à travers la pièce du kit (un pixel sur 15 500 en tactique).
@@ -136,7 +137,8 @@ static func monde_du_bati(racine: Node) -> Monde:
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = plat}, {z = 1, rangees = plat}], morceaux = [sol]}, toits = toits, couronnes = couronnes},
 		{volume = [sol], toits = toits, couronnes = couronnes})
 	monde.volume.poser_les_aretes([MUR, BOITE].map(func(a: Dictionary) -> Dictionary:
-		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, piece = Noyau.Piece.MUR, bloc = "0/0/0"})))
+		return a.merged({sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 4.0, palette = {}, piece = Noyau.Piece.MUR,
+			bloc = "0/0/0"})))
 	return monde
 
 

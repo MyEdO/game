@@ -4,7 +4,8 @@ extends SceneTree
 ## pont figé (`PontFige`, `pont_fige.gd`, sur les échantillons figés par la sonde, `hotes/godot/recettes/decor.ts`,
 ## `figerLeDecor`). Chaque famille servie a sa liste de tête, de clé `modele/<famille>`, qui offre chacune de ses entrées
 ## dans l'ordre servi. Un décor sans modèle, un décor servi par son modèle, la mer, une matière de relief, une matière de
-## toit et un mur crénelé choisis tour à tour : à chaque geste, l'atelier envoie l'entrée attendue, et sa scène
+## toit, un mur crénelé et un mur de la famille d'un modèle d'arête servi (`colombage`, choisi l'atelier au repos,
+## #4471) choisis tour à tour : à chaque geste, l'atelier envoie l'entrée attendue, et sa scène
 ## (`VolumeDeScene`) pose autant de triangles que le volume servi hors des surfaces des décors servis (`decors`, la crête
 ## du mur crénelé comprise), et le modèle de chaque pose de chaque décor servi (`MontageDesModeles.poses`), chaque
 ## arête et chaque nappe de toit servies, et chaque couronne sauf celles que sa brèche abat ;
@@ -15,6 +16,9 @@ const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/decor.json"
 ## Les images au plus qu'attend la base posée à l'ouverture, et chaque modèle d'un échantillon.
 const IMAGES_DE_L_OUVERTURE := 600
+## L'échantillon d'un mur dont le modèle d'arête est servi (`colombage`, #4471), choisi l'atelier au repos
+## (`_choisir_au_repos`).
+const AU_REPOS := "mur-a-ossature-en-bois"
 var _fautes: Array[String] = []
 
 
@@ -44,7 +48,10 @@ func _recetter() -> void:
 	var derniere := ""
 	for cle: String in decor.echantillon:
 		var entree: Dictionary = JSON.parse_string(cle)
-		_choisir(atelier, "modele/%s" % entree.famille, entree.id)
+		if entree.id == AU_REPOS:
+			await _choisir_au_repos(atelier, pont, entree)
+		else:
+			_choisir(atelier, "modele/%s" % entree.famille, entree.id)
 		await _images(2)
 		await _modeles_poses(atelier, decor.echantillon[cle])
 		_conforme(atelier, pont, cle, decor.echantillon[cle], "%s %s" % [entree.famille, entree.id])
@@ -58,14 +65,40 @@ func _recetter() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## Les poses de chaque décor servi par `reponse` (`decors`), dont l'atelier attend les modèles (`IMAGES_DE_L_OUVERTURE`
-## images au plus).
+## Les arêtes de l'échantillon posées, leurs modèles lus (`VolumeDeScene.attendre_les_aretes`) et l'écran republié
+## (publication différée d'une image), et les poses de chaque décor servi par `reponse` (`decors`), dont l'atelier
+## attend les modèles (`IMAGES_DE_L_OUVERTURE` images au plus).
 func _modeles_poses(atelier: Node, reponse: Dictionary) -> void:
+	await (atelier.get_node("Echantillon/Scene") as VolumeDeScene).attendre_les_aretes()
+	await _images(2)
 	var modeles: MontageDesModeles = atelier.get_node("Echantillon/Scene/Modeles")
 	for image in IMAGES_DE_L_OUVERTURE:
 		if modeles.poses().size() == _poses_servies(reponse):
 			return
 		await process_frame
+
+
+## L'échantillon `entree` choisi l'atelier au repos (`_au_repos` : son clip en pause, ses peaux mesurées, l'écran
+## qui ne se republie plus à chaque image), la lecture de son modèle d'arête retenue au pont (`PontFige.retient`)
+## jusqu'au repos, puis relâchée : seul ce que le modèle lu signale (`VolumeDeScene.aretes_posees`) en republie l'écran.
+func _choisir_au_repos(atelier: Node, pont: PontFige, entree: Dictionary) -> void:
+	atelier._mettre_en_pause()
+	pont.retient = true
+	_choisir(atelier, "modele/%s" % entree.famille, entree.id)
+	for image in IMAGES_DE_L_OUVERTURE:
+		if _au_repos(atelier) and pont.retenues > 0:
+			break
+		await process_frame
+	_verifier(_au_repos(atelier) and pont.retenues > 0, "%s : atelier au repos %s, %d lecture(s) retenue(s), attendu"
+		% [entree.id, _au_repos(atelier), pont.retenues] + " au repos et la lecture du modèle d'arête retenue")
+	pont.retient = false
+	pont.relache.emit()
+
+
+## Si l'atelier `atelier` est au repos : ses peaux mesurées et aucun clip lu, son écran ne se republiant qu'à un geste
+## ou à un changement d'état (`atelier.gd`, `_process`).
+static func _au_repos(atelier: Node) -> bool:
+	return not atelier._peaux_a_mesurer and not (atelier._a_un_clip() and atelier._lecteur().is_playing())
 
 
 ## Le nombre de poses des décors que `reponse` sert (`decors`).
