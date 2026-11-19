@@ -24,7 +24,7 @@
 
 
 /* le poste : où l'on pose un héros dans la scène */
-.poste{position:absolute;width:160px;display:flex;flex-direction:column;align-items:center}
+.poste{position:absolute;width:max-content;translate:-50% 0;display:flex;flex-direction:column;align-items:center}
 .poste .portrait{z-index:1}
 .poste .medaillon{z-index:1}
 .poste .tenants{display:flex;align-items:center;gap:6px;z-index:1}

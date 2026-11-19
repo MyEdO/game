@@ -21,7 +21,7 @@
 .affiche .ch{font-size:12.5px;color:#3a2a18;white-space:nowrap}
 .affiche .filet{margin:7px 30px 6px}
 .affiche p{margin:0 0 10px;font-style:italic;font-size:13px;line-height:17px;color:#2a1d12;text-align:left}
-.affiche .plaque{width:170px;margin:0 auto}
+.affiche .plaque{width:150px;margin:0 auto}
 .affiche .plaque>div{font-size:15.5px}
 .affiche .cachet{position:absolute;right:10px;bottom:8px}
 .avis-cloues{display:flex;flex-direction:column;gap:6px;margin-top:14px}

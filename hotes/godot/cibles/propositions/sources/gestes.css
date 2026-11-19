@@ -177,12 +177,15 @@ html,body{margin:0;background:var(--noir)}
 .plaque.fermee>div{background:radial-gradient(120% 140% at 50% 0%,var(--fer-mat),var(--fer-sombre) 75%);color:var(--eteint);box-shadow:inset 0 0 0 1px var(--ombre-forte)}
 .plaque .prix{margin-left:auto;font-size:12.5px}
 .plaque.gauche>div{justify-content:flex-start}
-/* la carte : une plaque haute, un portrait et deux lignes ; la seule pièce qui s'étire, de 200 à 262, les cartes d'une
-   rangée à parts égales ; sous 200 de large, ou à partir de quatre, la rangée se lit en liste (`ranger`) */
+/* la carte : une plaque haute, un portrait et deux lignes, dont la plus longue passe à la ligne quand la carte est
+   étroite ; la seule pièce qui s'étire, de 200 à 262, les cartes d'une rangée à parts égales ; sous 200 de large, ou à
+   partir de quatre, la rangée se lit en liste (`ranger`), une ligne par carte, ou ses deux lignes quand elles n'y tiennent
+   pas en une */
 .plaque.carte{flex:1 1 0;min-width:200px;max-width:262px;height:92px}
 .plaque.carte>div{justify-content:flex-start;gap:13px;padding:0 13px;text-align:left}
 .plaque.carte .qui{min-width:0}
 .plaque.carte :is(.n,.c){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal}
+.plaque.carte .c{-webkit-line-clamp:3}
 .plaque.carte .n{font-size:16px;line-height:19px;letter-spacing:.3px;color:var(--ivoire)}
 .plaque.carte .c{font-family:"Spectral";font-size:13px;letter-spacing:0;line-height:16px;color:var(--creme-2)}
 .cartes{flex:1 1 0;display:flex;justify-content:center;gap:9px;min-width:0}
@@ -191,9 +194,11 @@ html,body{margin:0;background:var(--noir)}
 .cartes.liste>.carte .portrait{display:none}
 .cartes.liste>.carte .qui{flex:1;display:flex;align-items:baseline;gap:12px}
 .cartes.liste>.carte .c{flex:1;min-width:0}
-.plaque.carte .c .sep,.cartes.liste>.carte .c br{display:none}
-.cartes.liste>.carte .c .sep{display:inline}
+.plaque.carte .c .sep,.cartes.liste>.carte:not(.deux-lignes) .c br{display:none}
+.cartes.liste>.carte:not(.deux-lignes) .c .sep{display:inline}
 .cartes.liste>.carte :is(.n,.c){-webkit-line-clamp:1}
+.cartes.liste>.carte.deux-lignes{height:44px}
+.cartes.liste>.carte.deux-lignes .c{-webkit-line-clamp:2}
 .plaque.carte.armee .n{color:var(--encre)}
 .plaque.carte.armee .c{color:var(--encre-2)}
 .plaque.carte.fermee :is(.n,.c){color:var(--eteint)}
@@ -282,7 +287,9 @@ html,body{margin:0;background:var(--noir)}
 .moins-plus .bouton-rond{box-shadow:0 1px 3px var(--ombre),0 0 0 1px var(--contour)}
 /* la raison d'un refus, au survol du geste fermé */
 .bulle-refus{position:absolute;left:50%;bottom:calc(100% + 11px);transform:translateX(-50%);padding:4px 11px 5px;font-family:"Spectral";font-style:italic;font-size:13px;line-height:17px;letter-spacing:0;white-space:nowrap;color:var(--encre);box-shadow:0 6px 14px var(--ombre),0 0 0 1px var(--contour),inset 0 0 14px var(--brou);border-radius:2px;z-index:4}
-.bulle-refus::before{content:"";position:absolute;left:calc(50% - 5px);bottom:-5px;width:9px;height:9px;background:var(--parchemin);transform:rotate(45deg);box-shadow:2px 2px 0 var(--contour)}
+.bulle-refus::before{content:"";position:absolute;left:calc(50% - 5px);bottom:-5px;width:9px;height:9px;background:var(--parchemin);transform:rotate(45deg);translate:var(--pointe,0) 0;box-shadow:2px 2px 0 var(--contour)}
+.bulle-refus.dessous::before{top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
+.bulle-refus.dedans::before{display:none}
 /* qui paie */
 .qui-paie{display:flex;align-items:center;gap:11px}
 .qui-paie.parts{align-items:flex-start}
