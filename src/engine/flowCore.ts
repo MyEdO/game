@@ -644,23 +644,30 @@ export function certainFlowOps<E = EffectOp>(
   evalCond?: (cond: Condition) => boolean | undefined,
 ): GameOp[] | undefined {
   if (!flow) return undefined;
-  if (flow.kind === 'sequence') {
-    const out: GameOp[] = [];
-    for (const s of flow.etapes) {
-      const ops = certainFlowOps(s, evalCond);
-      if (!ops) return undefined;
-      out.push(...ops);
+  switch (flow.kind) {
+    case 'sequence': {
+      const out: GameOp[] = [];
+      for (const s of flow.etapes) {
+        const ops = certainFlowOps(s, evalCond);
+        if (!ops) return undefined;
+        out.push(...ops);
+      }
+      return out;
     }
-    return out;
+    case 'effet': return isEffectOp(flow.effet) ? [...flow.effet.ops] : undefined;
+    case 'si': {
+      const verdict = evalCond?.(flow.condition);
+      if (verdict === undefined) return undefined; // l'oracle ne sait pas : on se tait, on ne suppose pas
+      const branch = verdict ? flow.alors : flow.sinon;
+      return branch ? certainFlowOps(branch, evalCond) : [];
+    }
+    case 'test':
+    case 'choix':
+      return undefined;
+    default:
+      flow satisfies never;
+      return undefined;
   }
-  if (flow.kind === 'effet') return isEffectOp(flow.effet) ? [...flow.effet.ops] : undefined;
-  if (flow.kind === 'si' && evalCond) {
-    const verdict = evalCond(flow.condition);
-    if (verdict === undefined) return undefined; // l'oracle ne sait pas : on se tait, on ne suppose pas
-    const branch = verdict ? flow.alors : flow.sinon;
-    return branch ? certainFlowOps(branch, evalCond) : [];
-  }
-  return undefined;
 }
 
 /** Sous-Flow d'un Flow de sort ne gardant que les nœuds adressant `on` (target/caster) — pour appliquer

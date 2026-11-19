@@ -735,10 +735,17 @@ function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
  */
 function opsHorsJet(f: Flow | undefined): GameOp[] {
   if (!f) return [];
-  if (f.kind === 'sequence') return f.etapes.flatMap(opsHorsJet);
-  if (f.kind === 'si') return [...opsHorsJet(f.alors), ...opsHorsJet(f.sinon)];
-  if (f.kind === 'effet' && f.effet.type === 'ops') return f.effet.ops;
-  return [];
+  switch (f.kind) {
+    case 'sequence': return f.etapes.flatMap(opsHorsJet);
+    case 'si': return [...opsHorsJet(f.alors), ...opsHorsJet(f.sinon)];
+    case 'effet': return f.effet.type === 'ops' ? f.effet.ops : [];
+    case 'test':
+    case 'choix':
+      return [];
+    default:
+      f satisfies never;
+      return [];
+  }
 }
 
 /** Libellé d'un nœud `test` : « Compétence Difficulté », la Compétence résolue PAR ID. */
