@@ -40,7 +40,8 @@ import { VehicleData } from './types';
 import { traceLineOf } from './traceLine';
 import { memoParVersion } from '../data/versionDataset';
 import { findVehicleById, refLabel, vehicles } from '../data';
-import { MODES_DE_VOYAGE_RESERVES, type travelModeSchema } from '../data/schemas/grammaire/route';
+import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
+import { modesDeVoyageReservesSchema, type travelModeSchema } from '../data/schemas/grammaire/route';
 import type { z } from 'zod';
 import { t } from '../i18n';
 
@@ -58,12 +59,12 @@ export function vehicleTravel(mode: string): NonNullable<VehicleData['travel']> 
 
 /** Libellé d'affichage par mode de voyage — les modes réservés et les véhicules
  *  (éditable au Codex : la table se refait à la première lecture qui suit une édition). */
-export const travelModeLabels = memoParVersion('vehicles', (): Record<string, string> => ({
-  ...MODES_DE_VOYAGE_RESERVES,
-  ...Object.fromEntries(vehicles
-    .filter(({ id }) => !Object.prototype.hasOwnProperty.call(MODES_DE_VOYAGE_RESERVES, id))
-    .map(({ id, label }) => [id, label])),
-}));
+export const travelModeLabels = memoParVersion('vehicles', (): Record<string, string> => {
+  const reserves = optionsDuNoeud(modesDeVoyageReservesSchema);
+  const idsReserves = new Set(reserves.map(([id]) => id));
+  const catalogue = vehicles.filter(({ id }) => !idsReserves.has(id));
+  return Object.fromEntries([...reserves, ...catalogue.map(({ id, label }) => [id, label])]);
+});
 
 /** Unité affichée pour une distance de route : une route `sea` (mode `'mer'`) porte ses
  *  MILLES dans le même champ `km` — les tables RAW de traversée sont en milles (MDG 13/15

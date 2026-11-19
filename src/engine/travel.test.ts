@@ -8,7 +8,8 @@ import {
 } from './travel';
 import { findVehicleById, vehicles } from '../data';
 import { setDataset } from '../data/overrides';
-import { MODES_DE_VOYAGE_RESERVES } from '../data/schemas/grammaire/route';
+import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
+import { modesDeVoyageReservesSchema } from '../data/schemas/grammaire/route';
 import { toBrass } from './money';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
@@ -37,7 +38,7 @@ describe('libellés des modes de voyage', () => {
     setDataset('vehicles', [...catalogue, barque, collision]);
     try {
       const entrees = Object.entries(travelModeLabels());
-      expect(entrees.slice(0, 3)).toEqual(Object.entries(MODES_DE_VOYAGE_RESERVES));
+      expect(entrees.slice(0, 3)).toEqual(optionsDuNoeud(modesDeVoyageReservesSchema));
       expect(entrees).toContainEqual([barque.id, barque.label]);
     } finally {
       setDataset('vehicles', catalogue);

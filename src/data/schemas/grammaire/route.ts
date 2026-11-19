@@ -14,10 +14,10 @@ export const LIEUX_DE_LA_CARTE = { collection: 'places', catalogue: 'lieux de la
 /** Les routes de la carte, que désigne la suite d'un billet. */
 export const ROUTES_DE_LA_CARTE = { collection: 'routes', catalogue: 'routes de la carte' } as const satisfies PorteeLocale;
 
-export const MODES_DE_VOYAGE_RESERVES = { pied: 'À pied', monture: 'En selle', mer: 'En mer' } as const;
+export const modesDeVoyageReservesSchema = enumNomme({ pied: 'À pied', monture: 'En selle', mer: 'En mer' });
 
 /** Le catalogue vivant peut recevoir de nouveaux véhicules en cours de session. */
-export const travelModeSchema = ouReserve(idDe('vehicle', undefined, { nue: true }), enumNomme(MODES_DE_VOYAGE_RESERVES));
+export const travelModeSchema = ouReserve(idDe('vehicle', undefined, { nue: true }), modesDeVoyageReservesSchema);
 
 /** Prix d'un passage par classe du véhicule (`vehicles.json` `travel.classes[].id`), en sous par passager. */
 const prixParClasseSchema = marquerCollection(z.partialRecord(z.string(), z.number().int().min(0)), marqueDeRecord());

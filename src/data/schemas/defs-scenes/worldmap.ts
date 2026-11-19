@@ -104,12 +104,14 @@ export const placeServiceSchema = nommerChamps(z.strictObject({
   ...champsDAcces,
 }).superRefine((service, ctx) => refuserLAccesMuet(service, ctx, 'un établissement')), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" }, ...META_DE_L_ACCES });
 
+const libelleDuPoiSchema = z.string();
+
 /** `PlacePoi` (#345) — marqueur de PLAN, cible EXCLUSIVE `sceneId`, nommée par son `label`, OU `service` (un service
  *  RÉSOLU du lieu : établissement déclaré, ou port/marché automatique du catalogue), nommé par ce service. #4277 */
 export const placePoiSchema = nommerChamps(z
   .strictObject({
     id: z.string(),
-    label: z.string().optional(),
+    label: libelleDuPoiSchema.optional(),
     /** Coordonnées PLAN-LOCALES, indépendantes de `MapPlace.pos`. */
     pos: pointDuPlanSchema,
     icon: idDIconeSchema.optional(),
@@ -123,7 +125,7 @@ export const placePoiSchema = nommerChamps(z
         message: 'cible EXCLUSIVE — « sceneId » (transition) OU « service » (service résolu du lieu), jamais les deux ni aucun.',
       });
     }
-    if (poi.sceneId !== undefined && poi.label === undefined) {
+    if (poi.sceneId !== undefined && !libelleDuPoiSchema.safeParse(poi.label).success) {
       ctx.addIssue({ code: 'custom', path: ['label'], message: 'un point d’intérêt qui mène à une scène porte son « label ».' });
     }
     if (poi.service !== undefined && 'label' in poi) {
