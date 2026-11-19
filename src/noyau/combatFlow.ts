@@ -325,8 +325,7 @@ import {
   setReloadProgress,
   spendChamberedRound,
   consumeAmmo,
-  ammoFamily,
-  ammoFamilyLabel,
+  libelleMunitionRequise,
   damageArmour,
   deviatableArmourAt,
   casserLaPieceBaclee,
@@ -866,10 +865,8 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // gate de ressource (Recharge/munition), pour ne pas dire « recharger » à une arme de toute façon bannie.
   if (banRangedActive(b)) return { reason: 'armeBannie', detail: `${w.label} : les armes à distance sont interdites (duel judiciaire).` };
   if (!weaponLoaded(active, w)) return { reason: 'unloaded', detail: `${active.label} doit recharger ${w.label}.` };
-  // Munition requise UNIQUEMENT si l'arme en consomme (famille de munition) ; un tir sans munition suivie
-  // (ex. arme sans Groupe) reste possible. `ammoFamily` falsy ⇒ pas de suivi de munition (cf. compatibleAmmo).
-  if (ammoFamily(w.subType) && !loadedAmmo(active, w)) {
-    const need = ammoFamilyLabel(w.subType, w.defaultAmmo);
+  const need = libelleMunitionRequise(w);
+  if (need !== undefined && !loadedAmmo(active, w)) {
     return { reason: 'noammo', detail: `Pas de munitions (${need}) pour ${w.label}.`, need };
   }
   // PORTÉE MINIMALE d'une machine de siège (ADE II 8 l.251/253) : REFUS (pas un malus) si la cible est
