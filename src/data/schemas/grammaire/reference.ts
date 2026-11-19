@@ -29,6 +29,7 @@ import {
   weaponRangeSpecSchema,
 } from './valeurs';
 import { marquerProduit } from './interne/produits';
+import { estObjet } from '../../../lib/objet.mjs';
 import {
   idDe,
   marqueurDeLaForme,
@@ -448,9 +449,18 @@ export const trappingRefSchema: z.ZodType<TrappingRef> = formesDeDotation<FormeD
   formesDesPossessions, [lotDeDotationSchema],
 );
 
+const dotationDirecteDeCreature = dotationDObjet(idDe('trapping', undefined, { portee: OBJETS_DU_PROJET }));
+
 /** HCVM p.265 ; LDB 84 l.7 ; #4210. */
 export const possessionDeCreatureSchema = formesDeDotation<FormeDeDotation, LotDeDotation, z.infer<typeof armureDecriteParLeTraitSchema>>(
-  [dotationDObjet(idDe('trapping', undefined, { portee: OBJETS_DU_PROJET })), ...autresFormesDesPossessions],
+  [dotationDirecteDeCreature, ...autresFormesDesPossessions],
   [lotDeDotationSchema], [armureDecriteParLeTraitSchema], formesDesPossessions,
-);
+).meta({
+  retientBrancheDeLUnion: (branche: unknown, valeur: unknown) => {
+    if (!estObjet(valeur)) return true;
+    if ('type' in valeur) return branche === dotationDePossessionSchema;
+    if ('decritLeTraitArmure' in valeur) return branche === armureDecriteParLeTraitSchema;
+    return branche !== dotationDePossessionSchema && branche !== armureDecriteParLeTraitSchema;
+  },
+});
 

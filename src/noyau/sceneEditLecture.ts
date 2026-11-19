@@ -78,7 +78,7 @@ import { collectionDe, entreesDeLaPortee, porteesOuvertes } from '../data/schema
 import { libelleDeLElement } from '../data/schemas/grammaire/cle-d-espace';
 import { LIBELLE_AU_LABEL } from '../data/schemas/grammaire/sourcesDeSpecs';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
-import { declarationDeFeuilleDId, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
+import { declarationDeFeuilleDId, estRefEmboitee, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
 import { entreeEmbarquee as trappingEntree } from '../data/schemas/defs/trappings';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
 import { champsDeclares, choixDuNoeud, formeAuPoint, recordDuNoeud, type ChoixDuContexte, type FieldDesc } from './codex/editFields';
@@ -1300,7 +1300,7 @@ export function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: r
   const feuilles = noeuds.map((n) => recordDuNoeud(n)?.cle ?? n);
   const entrees = entreesDeLaFeuilleLocale(feuilles, ouvreurs);
   if (entrees) return [...choixDuCatalogueOuvert(feuilles), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
-  const ids = ouverts(pasDeDonnee(noeuds, 'id'));
+  const ids = ouverts(pasDeDonnee(noeuds.filter(estRefEmboitee), 'id'));
   const emboites = entreesDeLaFeuilleLocale(ids, ouvreurs);
   return emboites && [
     ...choixDuCatalogueOuvert(ids).map((c) => ({ ...c, valeur: { id: c.valeur } })),

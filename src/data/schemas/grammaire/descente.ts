@@ -33,7 +33,11 @@ export type DefZod = {
   discriminator?: string;
 };
 
-type Noeud = { _zod?: { def?: DefZod; innerType?: unknown }; def?: DefZod };
+type Noeud = {
+  _zod?: { def?: DefZod; innerType?: unknown };
+  def?: DefZod;
+  meta?: () => { readonly retientBrancheDeLUnion?: (branche: unknown, valeur: unknown) => boolean } | undefined;
+};
 
 /** Définition zod d'un nœud, ou `undefined` si ce n'en est pas un. */
 export const defDe = (s: unknown): DefZod | undefined => (s as Noeud | null)?._zod?.def ?? (s as Noeud | null)?.def;
@@ -178,7 +182,8 @@ function brancheAdmet(option: unknown, discriminant: string, v: unknown): boolea
  * union DISCRIMINÉE ne garde que les branches dont le discriminant admet celui de `valeur` — un
  * discriminant ABSENT d'un objet y vaut `undefined` quand une branche l'admet (`schemas.js:1171`) —,
  * TOUTES sans valeur lisible : la co-descente ne valide pas (`schemas.js:1171-1187`, zod ne se replie
- * pas). Une union simple garde toutes ses branches. Sans `valeur`, la fermeture est celle du schéma seul.
+ * pas). Une union simple garde toutes ses branches, sauf celles que sa métadonnée `retientBrancheDeLUnion` écarte.
+ * Sans `valeur`, la fermeture est celle du schéma seul.
  */
 export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[] {
   const vus = new Set<unknown>();
@@ -187,8 +192,10 @@ export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[]
     const n = file[i];
     if (!estConteneur(n) || vus.has(n)) continue;
     vus.add(n);
-    const discriminant = defDe(n)?.discriminator;
+    const def = defDe(n);
+    const discriminant = def?.discriminator;
     const enfants = enfantsDe(n);
+    const retient = def?.type === 'union' && valeur !== undefined ? (n as Noeud).meta?.()?.retientBrancheDeLUnion : undefined;
     const declares = ENFANTS_DECLARES.get(n);
     if (declares) file.push(...(valeur === undefined ? declares.enfants.map(e => e.noeud) : declares.choisir(valeur)));
     const lu = discriminant !== undefined && estConteneur(valeur) ? valeur[discriminant] : undefined;
@@ -197,7 +204,10 @@ export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[]
     const connu = discriminant !== undefined && enfants.some(e => e.segment.startsWith('|') && brancheAdmet(e.noeud, discriminant, lu));
     for (const e of enfants) {
       if (e.segment === '' || e.segment.startsWith('&')) file.push(e.noeud);
-      else if (e.segment.startsWith('|') && ((!connu && !absentAdmis) || brancheAdmet(e.noeud, discriminant!, lu))) file.push(e.noeud);
+      else if (
+        e.segment.startsWith('|') && ((!connu && !absentAdmis) || brancheAdmet(e.noeud, discriminant!, lu))
+        && (valeur === undefined || retient?.(e.noeud, valeur) !== false)
+      ) file.push(e.noeud);
     }
   }
   return [...vus];

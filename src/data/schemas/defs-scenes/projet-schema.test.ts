@@ -15,14 +15,18 @@ import { projetSchema, projetDoc } from './projet';
 import { PENTE_TOIT_DEG } from './scene';
 import { narratifSchema } from './narratif';
 import { schema as catalogueDesObjets } from '../defs/trappings';
+import { schema as bestiaire } from '../defs/creatures';
+import { findCreatureById } from '../../index';
+import { noeudsAuChemin } from '../grammaire/descente';
 import { parseProject } from '../../../noyau/worldMap';
+import { choixDuNoeud } from '../../../noyau/codex/editFields';
 import { renommeAuProjet, retireDuProjet } from '../../../noyau/narratifEdit';
 import { cheminLisible, validateDocument } from '../validate';
 import { versDisque } from '../grammaire/prose';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 import { objetDeCampagne } from '../../../scenes/fixtures/objetDeCampagne.testkit';
-import { mesureDuParse } from '../grammaire/ref';
+import { declarationDeFeuilleDId, mesureDuParse } from '../grammaire/ref';
 import { sitesDeLaPortee } from '../grammaire/collection-cle';
 import { OBJETS_DU_PROJET } from '../grammaire/valeurs';
 import { SCENES_DU_PROJET } from './communs';
@@ -327,6 +331,31 @@ describe('références de campagne dans la scène, les dotations et les objets e
       expect(r.success).toBe(false);
       expect(r.success ? [] : r.error.issues.map((i) => i.path.join('.')).sort()).toEqual(sites(id).map((s) => s.chemin.join('.')));
     }
+  });
+
+  it('le Bestiaire et le preset mesurent la possession typée et la dotation directe dans leurs portées propres', () => {
+    const monture = { type: 'creature', id: 'cheval-de-guerre-leger' };
+    const fiche = { ...findCreatureById('humain')!, trappings: [monture, { id: 'arme-simple' }] };
+    const reperes = mesureDuParse(bestiaire, [fiche]).reperes.filter((r) => r.path.includes('trappings'));
+    expect(reperes.map((r) => r.type)).toEqual(['creature', 'trapping']);
+
+    const prefixe = ['narratif', 'presetsPnj', 0, 'profil', 'trappings'] as const;
+    const paquet = (dotation: Jouet) => projet({
+      narratif: { ...emptyNarratif(), objets: [objet], presetsPnj: [{ id: 'preset', base: { id: 'humain' }, profil: { trappings: [monture, dotation] } }] },
+    });
+    const doc = paquet({ id: objet.id });
+    expect(mesureDuParse(projetSchema, doc).reperes.filter((r) => r.path.includes('trappings')).map((r) => r.type))
+      .toEqual(['creature', 'local:narratif.objets']);
+    const noeudsDeMonture = noeudsAuChemin(projetSchema, doc, [...prefixe, 0, 'id']);
+    expect(noeudsDeMonture.map(declarationDeFeuilleDId).filter((d) => d !== undefined)).toEqual([{ type: 'creature' }]);
+    const choixDeMonture = noeudsDeMonture.flatMap((n) => (choixDuNoeud(n) ?? []).map((c) => c.valeur));
+    expect(choixDeMonture).toContain(monture.id);
+    expect(choixDeMonture).not.toContain('arme-simple');
+    const r = projetSchema.safeParse(paquet({ id: 'possession-pendante' }));
+    expect(r.success ? [] : r.error.issues.map((i) => i.path)).toEqual([[...prefixe, 1, 'id']]);
+    const armure = paquet({ id: objet.id, decritLeTraitArmure: true });
+    expect(projetSchema.safeParse(armure).success).toBe(false);
+    expect(sitesDeLaPortee(projetSchema, armure, OBJETS_DU_PROJET)).toEqual([]);
   });
 
   it('la même entrée dans le catalogue autonome refuse un don local dans son effet à la touche', () => {
