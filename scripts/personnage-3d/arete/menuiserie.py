@@ -2,6 +2,8 @@
 croisée d'une fenêtre (`croisee`) et ses deux volets (`volets`), bâtis dans le repère que le kit leur donne
 (`geometrie.Repere`), et leurs cotes d'adaptation, en mètres ou en fractions nommées. Un kit qui les pose déclare
 les matériaux `MENUISERIE`, `CROISEE` et `FER`."""
+from mathutils import Vector
+
 from geometrie import DEHORS, X, Repere
 
 MENUISERIE, CROISEE, FER = "menuiserie", "croisee", "ferrure"
@@ -38,12 +40,16 @@ CROISEE_A_PETITS_BOIS = {
 }
 
 
-def vantail(m, R, largeur, h, V):
+def vantail(m, R, largeur, h, V, cintre=None):
     """Un vantail de planches d'après `V` (`PORTE_DE_PLANCHES`, `VOLET`) dans le repère `R` de son gond : large de
-    `largeur` depuis lui, entre les hauteurs `h`, son parement vers la normale du repère, ses barres au dos."""
+    `largeur` depuis lui, entre les hauteurs `h`, son parement vers la normale du repère, ses barres au dos. La tête
+    de ses planches monte à la hauteur `cintre(a)` de chaque abscisse `a`, à `h[1]` sans lui."""
     epais, pas = V["epaisseur"], largeur / V["planches"]
     for k in range(V["planches"]):
         R.boite(m, (k * pas, (k + 1) * pas), h, (0, epais - (k % 2) * V["relief"]), MENUISERIE)
+        if cintre:
+            m.v[-8:] = [(x, y, cintre((Vector((x, y, z)) - R.o).dot(R.u)) if z > sum(h) / 2 else z)
+                        for x, y, z in m.v[-8:]]
     haut_b, epais_b = V["section"]
     axes = [h[0] + (h[1] - h[0]) * part for part in V["barres"]]
     for axe in axes:

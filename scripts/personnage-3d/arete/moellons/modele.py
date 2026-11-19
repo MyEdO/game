@@ -44,15 +44,17 @@ def porte(ouverte):
 
 def portail(ouverte, cote):
     """L'arête de bout d'un portail de deux arêtes, celle de gauche (`cote` -1) ou de droite (1) : son piédroit, sa
-    moitié du porche, et son vantail gondé au piédroit, fermé ou `ouverte` d'un quart de tour vers le dedans."""
+    moitié du porche, et son vantail gondé au piédroit, sa tête cintrée sous l'arc, fermé ou `ouverte` d'un quart de
+    tour vers le dedans."""
     def batir(D, m, alea):
         A, P = Appareil(D, m, alea), D["PORTAIL"]
         V, jeu, axe, portee = P["vantail"], P["jeu"], -cote * A.demi, P["porche"]["portee"]
-        A.porche(axe, (cote,), P["porche"])
+        intrados = A.porche(axe, (cote,), P["porche"])
         A.R.boite(m, tuple(sorted((axe, axe + cote * portee))), (0.0, P["seuil"]), (-A.nu, A.nu), PIERRE)
         gond = A.R.point(axe + cote * (portee - jeu), 0, -V["epaisseur"] / 2)
         repere = Repere(gond, -DEHORS, -cote * X) if ouverte else Repere(gond, -cote * X, DEHORS)
-        vantail(m, repere, portee - 1.5 * jeu, (P["seuil"] + jeu, P["porche"]["naissance"] - jeu), V)
+        vantail(m, repere, portee - 1.5 * jeu, (P["seuil"] + jeu, P["porche"]["naissance"] - jeu), V,
+                lambda a: intrados(axe + cote * (portee - jeu - a)) - jeu)
     return batir
 
 

@@ -169,14 +169,15 @@ class Appareil:
         """Le porche voûté d'axe `axe` (abscisse de sa clef) sur toute la hauteur du mur, d'après `V` : de chaque
         côté de `cotes` (-1 vers -X, 1 vers +X), un piédroit du bout de l'arête à la `portee` (m), les claveaux
         (`claveaux`, leur `queue`, m) d'un arc de `fleche` (m) né à la hauteur `naissance` (m), la moitié de sa clef
-        (plus haute de `clef`, m) à l'axe, et le mur qui les charge, en retrait de leur `saillie` (m) : ses moellons
-        portent sur leur dos, recoupés tant que leur lit s'en écarte. L'âme monte dans leurs joints. Rend la hauteur
-        de l'intrados à une abscisse."""
+        (plus haute de `clef`, m) à l'axe, sa joue sous le bout de l'arête quand l'axe y est, et le mur qui les
+        charge, en retrait de leur `saillie` (m) : ses moellons portent sur leur dos, recoupés tant que leur lit s'en
+        écarte. L'âme monte dans leurs joints. Rend la hauteur de l'intrados à une abscisse."""
         portee, naissance, queue, nombre = V["portee"], V["naissance"], V["queue"], V["claveaux"]
         rayon = (portee ** 2 + V["fleche"] ** 2) / (2 * V["fleche"])
         centre, ouverture = naissance + V["fleche"] - rayon, math.asin(portee / rayon)
         jeu, creux = self.A["joint"] / 2 / rayon, (self.A["creux"] - self.nu, self.nu - self.A["creux"])
         tete, bout = self.haut - JEU_DE_L_AME, self.demi - JEU_DE_L_AME
+        joue = JEU_DE_L_AME / rayon if abs(axe) > bout else 0.0
 
         def cercle(x, r):
             return centre + math.sqrt(max(r ** 2 - (x - axe) ** 2, 0.0))
@@ -201,7 +202,7 @@ class Appareil:
                 for g, d, _ in self.rang(tuple(sorted((axe + cote * portee, axe))), k, (False, False)):
                     charger(g, d, bas, haut)
             for k in range(nombre):
-                angles = (ouverture * k / nombre + (jeu if k else 0.0), ouverture * (k + 1) / nombre - jeu)
+                angles = (ouverture * k / nombre + (jeu if k else joue), ouverture * (k + 1) / nombre - jeu)
                 rayons = (rayon, rayon + queue + (0.0 if k else V["clef"]))
                 contour = [(axe + cote * r * math.sin(a), centre + r * math.cos(a))
                            for r, a in ((rayons[0], angles[0]), (rayons[0], angles[1]), (rayons[1], angles[1]),
