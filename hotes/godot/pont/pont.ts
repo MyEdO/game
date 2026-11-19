@@ -539,9 +539,9 @@ export interface VueDuPont {
    */
   champ: typeof CLIC_DU_CHAMP | null;
   /**
-   * donne, par case et couche `"x,y,z"`, l'id du combattant qui s'y tient, hors de combat exclus : le clic sur une case
-   * occupée désigne son occupant.
-   * Il tient chaque combattant posé, hors de vue compris : son id et sa case, rien d'autre.
+   * donne, par case et couche `"x,y,z"`, l'id de l'occupant. En combat, le clic du champ désigne tout combattant
+   * posé, hors de combat exclus, hors de vue compris. En exploration, la case porte le PNJ connu qui a une fiche :
+   * le clic droit ouvre son statbloc, le clic du champ désigne la case.
    */
   occupants: Record<string, string>;
   /**
@@ -704,11 +704,12 @@ export function casesDesCiblesDe(etat: Jeu, combat: Projection['combat']): VueDu
   return Object.fromEntries((etat.battle?.combatants ?? []).flatMap((c) => (c.pos && vises.has(c.id) ? [[c.id, [c.pos.x, c.pos.y, c.pos.z ?? 0]]] : [])));
 }
 
-/** Le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`, la case où
- *  `occupants` le tient, puis l'id ; `null` quand le champ ne se clique pas ou que le combattant n'a pas de case. */
+/** En combat, le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`,
+ *  la case où `occupants` le tient, puis l'id ; `null` hors combat, sans champ cliquable ou sans case du combattant. */
 export function clicDuCombattant(vue: VueDuPont, id: string): { type: typeof CLIC_DU_CHAMP; args: [{ x: number; y: number; z?: number }, string] } | null {
+  if (!vue.projection.combat || !vue.champ) return null;
   const cle = Object.keys(vue.occupants).find((k) => vue.occupants[k] === id);
-  if (!vue.champ || !cle) return null;
+  if (!cle) return null;
   const [x, y, z] = cle.split(',').map(Number);
   return { type: vue.champ, args: [z ? { x, y, z } : { x, y }, id] };
 }
@@ -974,7 +975,11 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       zonesQuiDurent: zonesQuiDurentEnVue(etat),
       marques: Object.fromEntries((combat?.voisins.liste ?? projection.exploration?.heros ?? []).map((c) => [c.id, marquesDesEtats(c.etats)])),
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
-      occupants: Object.fromEntries((etat.battle?.combatants ?? []).flatMap((c) => (c.pos && !horsCombat(c) ? [[`${c.pos.x},${c.pos.y},${c.pos.z ?? 0}`, c.id]] : []))),
+      occupants: Object.fromEntries(etat.battle
+        ? etat.battle.combatants.flatMap((c) => (c.pos && !horsCombat(c) ? [[`${c.pos.x},${c.pos.y},${c.pos.z ?? 0}`, c.id]] : []))
+        : (projection.exploration?.entites.liste ?? [])
+          .filter((e) => e.genre === 'personnage' && enTeteDuPorteur(etat, e.id))
+          .map((e) => [e.pos.join(','), e.id])),
       casesDesCibles: casesDesCiblesDe(etat, combat),
       vision: etat.scene ? cleDeLaVision({ ...etat, scene: etat.scene }) : null,
     };
@@ -986,9 +991,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   /**
    * @contrat Méthodes
    * La fiche est un état du pont, jamais de la partie : aucun verbe ne l'ouvre ni ne la ferme. Elle reste ouverte, à sa
-   * possession choisie, tant qu'aucun `fiche` ne la change, la partie avançant ; sans son combattant, ses zones sont
-   * vides ; une possession choisie qui quitte la fiche (donnée, consommée) n'est plus dite. Les gestes d'une
-   * possession, eux, sont des verbes de la partie, joués par `jouer`.
+   * possession choisie, tant qu'aucun `fiche` ne la change, la partie avançant. Sans son porteur ou si celui-ci
+   * est hors de vue, ses zones sont vides. Les gestes d'une possession sont des verbes de la partie, joués par
+   * `jouer` ; une possession donnée ou consommée quitte la fiche.
    */
   /** Le panneau `cle` fermé : sans panneau s'il est celui ouvert, l'autre panneau laissé ouvert sinon. */
   const fermerLePanneau = (o: Tenue, cle: 'fiche' | 'creation'): void => {
@@ -1444,10 +1449,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return suite(o);
     },
     /**
-     * `{ fiche }` : la fiche que l'écran montre, `{ porteur, objet? }` (l'id d'un combattant qui en a une,
-     * `ficheDuPorteur`, surface du noyau : un héros du groupe, ou tout combattant de la bataille hors coque et engin,
-     * et la possession choisie, l'`uid` qui la désigne), ou `null` pour la fermer ; refusé sur un combattant hors de
-     * la vue du groupe (`porteurEnVue`)
+     * `{ fiche }` : la fiche que l'écran montre, `{ porteur, objet? }` (l'id d'un héros du groupe, d'un combattant
+     * de la bataille en vue ou d'un PNJ connu de la scène en exploration, hors coques et engins, et l'`uid` de la
+     * possession choisie), ou `null` pour la fermer. Le noyau donne le même statbloc (`ficheDuPorteur`).
      *
      * @returns une `Suite` : la vue, la fiche posée ; la partie n'est pas touchée
      */
@@ -1456,7 +1460,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       const e = entreeDe('fiche', json, ['fiche']);
       const f = e.fiche as Record<string, unknown> | null | undefined;
       const etat = o.partie.etat();
-      const aFiche = [...new Set([...(etat.battle?.combatants ?? []), ...etat.party].map((c) => c.id))].filter((id) => enTeteDuPorteur(etat, id));
+      const personnages = etat.battle ? [] : (etat.scene?.entities ?? []).filter((e) => e.kind === 'personnage');
+      const ids = [...(etat.battle?.combatants ?? []), ...etat.party, ...personnages].map((c) => c.id);
+      const aFiche = [...new Set(ids)].filter((id) => enTeteDuPorteur(etat, id));
       const porteurs = aFiche.filter((id) => porteurEnVue(etat, id));
       valider(!estObjet(f) || !aFiche.includes(f.porteur as string) || porteurs.includes(f.porteur as string), `fiche : porteur, ${t('vision.ficheHorsDeVue')}`);
       valider(f === null || (estObjet(f) && Object.keys(f).every((k) => k === 'porteur' || k === 'objet') && porteurs.includes(f.porteur as string)),
@@ -2042,9 +2048,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   /**
    * @contrat Erreurs
    * - `validation` : méthode inconnue (le message nomme les méthodes) ; fiche qui n'est ni `null` ni
-   *   `{ porteur, objet? }` d'un combattant à fiche, héros du groupe ou combattant de la bataille (le message les
-   *   nomme), ou dont l'`objet` n'est pas l'`uid` d'une possession de la fiche (le message les nomme) ; geste de la
-   *   création qu'aucun bouton de l'écran n'offre ; entrée illisible, qui n'est pas un objet, ou avec une clé hors
+   *   `{ porteur, objet? }` d'un héros, d'un combattant en vue ou d'un PNJ connu de la scène en exploration (le
+   *   message nomme les porteurs admis), ou dont l'`objet` n'est pas l'`uid` d'une possession de la fiche (le message
+   *   les nomme) ; geste de la création qu'aucun bouton de l'écran n'offre ; entrée illisible, qui n'est pas un objet, ou avec une clé hors
    *   contrat ; aucune partie avant `demarrer` ou `ouvrir`, ou après la fin d'une session d'invité (`nouvelles` en
    *   donne la raison, `quittee`) ; `demarrer`, `ouvrir` ou `charger` sur une partie ouverte ou pendant une jonction ; `lancer`
    *   d'une campagne qui n'est pas du jeu (le message nomme les ids), ou sur une partie déjà en cours ; scénario
