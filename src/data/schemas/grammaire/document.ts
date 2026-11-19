@@ -744,14 +744,8 @@ export function document<T extends string, F extends FamilleDocument, C extends 
     if (!clesEntree.includes(marqueur))
       throw new Error(`document('${type}') : le marqueur d’espace « ${marqueur} » n’est aucun champ de l’entrée.`);
   // Les documents qui exigent une provenance admettent `source` et `maison` ensemble par défaut.
-  // Un document à provenance exclusive en exige exactement une, à la même porte pré-sceau.
-  const avecProvenance = (provenanceExclusive || exigeSource(type))
-    ? corps.superRefine((v, ctx) => {
-      refuserSansProvenance(v, ctx, 'de l’entrée');
-      if (provenanceExclusive && v.source !== undefined && v.maison !== undefined) {
-        ctx.addIssue({ code: 'custom', path: ['maison'], message: 'provenance double : choisis la référence au livre ou la raison maison.' });
-      }
-    })
+  const avecProvenance = !provenanceExclusive && exigeSource(type)
+    ? corps.superRefine((v, ctx) => refuserSansProvenance(v, ctx, 'de l’entrée'))
     : corps;
   // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
@@ -759,7 +753,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
     refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   // CHARGE par discriminant (`espace.chargeParDiscriminant`) : bornée au parse de l'entrée d'une liste,
-  // au même stade que la provenance et la prose. Un record porte sa charge par CLÉ, jamais par cas.
+  // au même stade que la prose. Un record porte sa charge par CLÉ, jamais par cas.
   if (famille === 'record' && espace.chargeParDiscriminant)
     throw new Error(`document('${type}') : \`chargeParDiscriminant\` partitionne les ENTRÉES d’une liste — un record porte sa charge par clé.`);
   const refusCharge = refusDeCharge(type, espaceDuDocument, clesEntree);
@@ -769,7 +763,17 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   // PORTÉES LOCALES sans collection : une feuille `idDe(…, { portee })` du document y vaut son catalogue seul.
   const affine = ouvrirLesPorteesSansCollection(affinerEntree ? affinerEntree(avecCharge) : avecCharge, `document('${type}')`);
   nommerChamps(affine as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affine) });
-  const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
+  const sceau = z.transform((v) => v);
+  // La provenance exclusive se juge à la validation du document. Le nœud objet du brouillon permet de
+  // retirer la provenance courante avant d’en choisir une autre.
+  const sceauAvecProvenance = provenanceExclusive ? sceau.superRefine((v, ctx) => {
+    const provenance = v as Provenance;
+    refuserSansProvenance(provenance, ctx, 'de l’entrée');
+    if (provenance.source !== undefined && provenance.maison !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['maison'], message: 'provenance double : choisis la référence au livre ou la raison maison.' });
+    }
+  }) : sceau;
+  const entreeScellee: z.ZodType<unknown> = affine.pipe(sceauAvecProvenance);
 
   // EMBALLAGE par FAMILLE (#1467) : le dataset est ce que le FICHIER porte — une LISTE d'entrées
   // (`entite`), ou l'entrée elle-même (`config`, `record`).

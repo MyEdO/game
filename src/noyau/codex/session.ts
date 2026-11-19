@@ -19,7 +19,7 @@ import { ancetreDuDe, champDEnTete, datasetObject, entreesDuDataset, type Ecritu
 import type { DiceSpec } from '../../engine/dice';
 import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
 import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
-import { noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
+import { champDeProvenanceEcarte, noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
 import { estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { apparencesDObjetsSchema, deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
 import { findTrappingById } from '../../data/apparencesObjets';
@@ -145,8 +145,12 @@ export const CLE_D_IDENTITE = 'id';
  *  champs offerts (`champsOfferts`) hors de son identité, que change `identifier`, et de ce qu'une adresse de prose
  *  dérive (`estCheminDerive`), aucun retrait déclaré. */
 function formeDeLAtelier(a: AtelierDuCompendium): FormeDuFormulaire {
-  const noeud = noeudDeLEntree(datasetDe(a.categorie), a.entree);
-  const champs = champsOfferts(noeud, a.entree, [CLE_D_IDENTITE]).filter((f) => !estCheminDerive(noeud, a.entree, [f.key])).map((f) => [f.key]);
+  const dataset = datasetDe(a.categorie);
+  const noeud = noeudDeLEntree(dataset, a.entree);
+  const provenanceEcartee = champDeProvenanceEcarte(DATASET_FICHIER_DERIVE[dataset], a.entree);
+  const champs = champsOfferts(noeud, a.entree, [CLE_D_IDENTITE])
+    .filter((f) => f.key !== provenanceEcartee && !estCheminDerive(noeud, a.entree, [f.key]))
+    .map((f) => [f.key]);
   return { noeud, champs, retraits: [] };
 }
 
