@@ -125,7 +125,7 @@ Police des chiffres : une seule classe `.chiffres` (`"Chiffres"` = Open Sans Sem
 | **Jauge : échelle** | `fine` **6** (défaut) · `forte` **8** | 5 (`combat.css:24`) → `fine` ; 7 (`combat.css:97`, `commerce.css:21`) → `forte` | deux épaisseurs : dans un rang, en tête d'une mesure |
 | **Pas en losanges** | `rangDePas(pleins, total, classe)` de `socle.js:71` ; losange 15 px, écart 7, plein `--ivoire` → `--creme-2`, vide `--lit` + `--filet-creme` (`combat.css:50-53`) | `#f0e4c6` → `#b9a57b` | une seule définition existait ; elle monte en jetons |
 | **`PICTOS`** | union des deux tables (63 noms) ; les quatre clés communes sont identiques. Doublons de tracé fondus : `course` = `botte` → **`botte`** ; `fin` (sablier à sable) et `sablier` gardés distincts ; `defensive` (bouclier écartelé) et `bouclier` gardés distincts ; `hemorragique` et `goutte` (tracés voisins) → **`goutte`** ; `quitter` et `sortie` → **`sortie`** | `course` (`socle.js:29`), `hemorragique` (`socle.js:50`), `quitter` (`socle.js:48`) | trois dessins en double sous deux noms |
-| **`BUSTES`** | union : `ilyanwe`, `berta`, `gobelin`, `orc`, `cheval` (`socle.js:19-25`), `bjorn`, `mira`, `aldric`, `greta` (`bustes.js:5-8`), `hote`, `docteur`, `brasseur`, `batelier`, `cocher` (`commun.js:60-64`) ; détails sombres en classe `.s` (`--chevelure`), clairs en `.c` (`--creme`) au lieu de `fill` en dur | `#15100c`, `#0c0605`, `#e6d6b0` | les clés sont disjointes ; `bustes.js` ne garde que `HEROS`. Second passage : `astrid` et `esquisse` y entrent ; les `ilyanwe` et `berta` redessinés de `heros.js` cèdent à ceux du kit |
+| **`BUSTES`** | union : `ilyanwe`, `berta`, `gobelin`, `orc`, `cheval` (`socle.js:19-25`), `bjorn`, `mira`, `aldric`, `greta` (`bustes.js:5-8`), `hote`, `docteur`, `brasseur`, `batelier`, `cocher` (`commun.js:60-64`) ; détails sombres en classe `.s` (`--chevelure`), clairs en `.c` (`--creme`) au lieu de `fill` en dur | `#15100c`, `#0c0605`, `#e6d6b0` | les clés sont disjointes ; `bustes.js` ne garde que `HEROS`. Second passage : `astrid` et `esquisse` y entrent ; les `ilyanwe` et `berta` redessinés de `heros.js` cèdent à ceux du kit. `drapier`, le négociant du Marchandage, y entre en PNJ (`CAMP`) |
 | **Rond chiffré** | `rond(contenu, taille)` : un nom de pictogramme, sinon le chiffre en Grenze 600 18 px `--ivoire` (la Détermination à presser, `petit` 34) | rond de 30 px monté à la main (`combat/socle.js:30`) | même pièce que tout rond, seul le contenu change |
 | **Sceau de dé** | `sceau(jet, taille, { de })` : le chiffre (Grenze 700 28/26) et, dessous, le dé en Fell SC 10 px | deux sceaux montés à la main (`evenement.js:22`, `mer.js:56`) | même sceau, le dé en plus |
 
@@ -253,8 +253,7 @@ pictogramme tant que la classe n'est pas renommée `.compteur`.
   `#coins`, `.poste`, `.onglet`, `.jouera .pst`), `.page .filet` (l.111), `.jauge` (l.139-141), `.oui-non`,
   `.reglette`, `.segments` (l.144-164). Restent `#recit`, `#bandeau`, `.heros`, `#coins` (placement), `.poste`,
   `.apercu`, `.hote`, `.pointe`, `#rail`, `.page`, `.onglets`, `.soin`, `.compte`, `.jouera`.
-- **Feuilles et scripts de page** : les trois `.filet` en dégradé (`voyage.css:21-22`, `interlude-en-ville.css:40`,
-  `nuit-a-l-auberge.css:18`), `#feuille .filet` (`recit.css:103-105`), `.filet-l`
+- **Feuilles et scripts de page** : le `.filet` en dégradé de `voyage.css:21-22`, `#feuille .filet` (`recit.css:103-105`), `.filet-l`
   (`systeme.css:18-20`), `.losange` (`heros.css:45`), `.jauge` de `commerce.css:21-23` et `voyage.css:18-20`, `jauge()`
   de `commerce.js:32` et `voyage.js:211`, `cadre()` de `heros.js:46`, toutes les tailles locales de `.sceau`,
   `.portrait`, `.medaillon`, `.bouton-rond`, `.pst`.

@@ -63,7 +63,7 @@ EDOC 08 l.131-180, LDB 09 l.554, LDB 18 l.296, LDB 66 l.5-28, LDB 23, NADJ 16.
 
 | État | Intention | Choix à valider |
 |---|---|---|
-| `bivouac` | la halte de nuit en scène, couchage et nourriture réglés par héros au bandeau, l'abri lu | effet de la tente ; sac de couchage non montré |
+| `bivouac` | la halte de nuit en scène, nourriture réglée par héros au bandeau, abri choisi (tente, belle étoile, abri de fortune), « Qui dort où » et sac de couchage | places de la tente (nombre non chiffré) |
 | `nuit-a-l-auberge` | la salle de l'auberge, les offres au prix de la maison dont la grande chambre, la part de chaque héros, un poste de soirée par héros | une activité de soirée par héros ; boire une pinte ; écurie |
 | `services-du-lieu-medecin` | la page des services d'un lieu ouverte sur le médecin, soins du patient choisi au bandeau, payés par acte | prix de la visite (LDB 75 l.19 donne une fourchette) ; Chirurgie en valeur maison ; rail du quartier ou du bâtiment |
 | `jeux-de-taverne` | le service des jeux de l'auberge, la table et ses joueurs | jeux proposés par maison ; mise libre |

@@ -11,7 +11,7 @@ export interface Ecran {
   etats: [Etat, ...Etat[]];
 }
 
-export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Bivouac | Poursuite | BatailleDeMasse | Interlude;
+export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Nuit | Poursuite | BatailleDeMasse | Interlude | Soins | Commerce;
 
 /* ───────── le combat ───────── */
 
@@ -71,13 +71,13 @@ export interface JetTombe {
   reglable?: true;
 }
 
-/** Celui qui teste : le combattant, son Test et son seuil, ses modificateurs ; tombé, son jet ; les dés déjà posés d'un
- *  jet que l'on reprend. */
+/** Celui qui teste : le combattant, son Test et son seuil (`null`, masqué au joueur), ses modificateurs ; tombé, son jet ;
+ *  les dés déjà posés d'un jet que l'on reprend. */
 export interface Testeur {
   role: 'testeur';
   qui: string;
   test: string;
-  seuil: number;
+  seuil: number | null;
   modificateurs?: Modificateur[];
   jet?: JetTombe;
   des?: Des;
@@ -229,7 +229,26 @@ export type Centre =
   | { role: 'consequence'; arme: string; coup: string; etats: { nombre: number; etat: string }; issue: string }
   /** Les Tests de plusieurs testeurs, ligne à ligne : leur nom, leur Test commun, chaque ligne, la règle qui les départage ;
    *  `somme`, le cumul de leurs DR. */
-  | { role: 'tests'; nom: string; test: string; lignes: LigneDeTest[]; regle?: { texte: string; effet: string }; somme?: true };
+  | { role: 'tests'; nom: string; test: string; lignes: LigneDeTest[]; regle?: { texte: string; effet: string }; somme?: true }
+  /** Le Marchandage avant le dé : le lot, son estimation, ce que chaque issue du Test opposé fait au prix. */
+  | { role: 'marchandage'; lot: LotMarchande; estimation: Sous; enjeux: EnjeuDuMarchandage[] }
+  /** Le Marchandage tombé : le lot, le DR net, l'issue et ce qu'elle fait au prix, le prix avant et après. */
+  | { role: 'marche'; lot: LotMarchande; drNet: number; issue: EnjeuDuMarchandage; avant: Sous; apres: Sous };
+
+/** Le lot marchandé : sa denrée, son Encombrement, le sens du marché. */
+export interface LotMarchande {
+  nom: string;
+  enc: number;
+  sens: 'achat' | 'vente';
+}
+
+/** Une issue du Marchandage : son nom, le pourcentage qu'elle fait au prix ; `enPlus`, un pourcentage qui s'ajoute aux
+ *  autres. */
+export interface EnjeuDuMarchandage {
+  issue: string;
+  pourcent: number;
+  enPlus?: true;
+}
 
 /** Une ligne d'un Test à plusieurs : le testeur, son poste, son Test et son seuil ; tombé, son dé et son DR ; sinon ce
  *  qu'il attend ; `double`, un DR qui compte double ; le bonus qu'un Mouvement lui donne ; `courant`, celui qui lance. */
@@ -556,20 +575,21 @@ export interface LieuDeLaVille {
   fantome?: string;
 }
 
-/** Une Activité offerte : son id (son pictogramme), son nom, son Test, ce que sa réussite vaut ; fermée, sa raison, lue
- *  au survol. */
+/** Une Activité offerte : son id (son pictogramme), son nom, son Test, ce qu'elle vaut ; `prise`, celle que le héros
+ *  choisi prend ; fermée, sa raison, lue au survol. */
 export interface ActiviteOfferte {
   id: string;
   nom: string;
   test?: string;
   enjeu?: string;
+  prise?: true;
   refus?: string;
   survol?: true;
 }
 
 /** L'interlude en ville : la ville et ce qu'on y vit, les Activités restantes de chaque héros (son Événement, ses
- *  Activités sur trois), l'avis, les lieux de la carte, le lieu choisi (son quartier, son nom, les forces en présence, ses Activités,
- *  l'envoi), le retour, le groupe. */
+ *  Activités sur trois), l'avis, les lieux de la carte, le lieu choisi (son quartier, son nom, son hôte, les forces en
+ *  présence, ses Activités, l'envoi), le retour, le groupe. */
 export interface Interlude {
   nom: string;
   gabarit: 'lieu-et-voyage';
@@ -578,7 +598,7 @@ export interface Interlude {
   restantes: { qui: string; evenement: string; activites: number }[];
   avis: string;
   lieux: LieuDeLaVille[];
-  lieu: { quartier: string; nom: string; forces?: { allies: number; ennemis: number }; activites: ActiviteOfferte[]; envoi: string };
+  lieu: { quartier: string; nom: string; hote?: HoteDuLieu; forces?: { allies: number; ennemis: number }; activites: ActiviteOfferte[]; envoi: string };
   retour: string;
   groupe: HerosDuGroupe[];
 }
@@ -616,35 +636,291 @@ export interface Options {
   ouvert: { domaine: string; feuillet: number; feuillets: number; gauche: RegleMaison[]; droite: RegleMaison[] };
 }
 
-/* ───────── le bivouac ───────── */
+/* ───────── les lieux : leur hôte, leurs services, leur argent ───────── */
 
-/** Un héros du bivouac : son id (son buste), son nom, sa carrière, ses Blessures, son couchage, sa nourriture. */
-export interface HerosDuBivouac {
-  id: string;
+/** Une somme, en sous de cuivre (une couronne d'or vaut vingt pistoles, une pistole douze sous). */
+export type Sous = number;
+
+/** Le titre d'un lieu : son nom, ce qu'on y vit ; la date et le temps d'une halte. */
+export interface TitreDuLieu {
   nom: string;
-  carriere: string;
-  blessures: number;
-  max: number;
-  couchage: string;
-  nourriture: { valeurs: string[]; tenue: number };
+  sous: string;
+  date?: { jour: number; mois: string };
+  meteo?: { temps: 'gel' | 'beau'; ciel: string };
 }
 
-/** La halte du soir : le titre, la date, le moment et le temps, le lieu et son récit, le campement, ce que la nuit
- *  jouera, l'action, le retour, le groupe. */
-export interface Bivouac {
+/** L'hôte d'un lieu : son buste (`BUSTES`, `../gestes.js`) ou le pictogramme de son métier, son nom, sa qualité, sa
+ *  compétence et son seuil, ce qu'il dit. */
+export interface HoteDuLieu {
+  buste?: string;
+  icone?: string;
+  nom: string;
+  qualite?: string;
+  competence?: { nom: string; seuil: number };
+  dit: string;
+}
+
+/** Le rail des services d'un lieu : son titre, chaque service (son id, son nom), celui qui est ouvert, ce qu'il dit au
+ *  pied. */
+export interface Rail {
+  titre: string;
+  services: { id: string; nom: string }[];
+  ouvert: string;
+  pied: string;
+}
+
+/** Ce qu'un héros règle sur la part commune : le héros, sa part, ce que sa bourse contient. */
+export interface Part {
+  heros: string;
+  part: Sous;
+  avoir: Sous;
+}
+
+/** Une voie offerte sur une page de service (un soin, une vente, un travail) : son id (son pictogramme), son nom, son
+ *  Test, ce qu'elle fait, son prix ; `maison`, un prix de valeur maison ; `prise`, la voie choisie. */
+export interface Voie {
+  id: string;
+  nom: string;
+  test: string;
+  texte: string;
+  prix?: Sous;
+  maison?: true;
+  prise?: true;
+}
+
+/* ───────── la nuit ───────── */
+
+/** Une offre de l'hôte d'une auberge : son id (son pictogramme), son nom, ses lits ou son prix par tête, son prix ;
+ *  `prise`. */
+export interface OffreDeLAuberge {
+  id: 'commune' | 'privee' | 'grande' | 'repas';
+  nom: string;
+  lits?: number;
+  parTete?: true;
+  prix: Sous;
+  prise?: true;
+}
+
+/** Un poste de la scène où l'on pose un héros : son id (sa place sur le décor), son nom, ce qu'on y fait et son prix,
+ *  son titulaire (un héros ou un PNJ) ; `vise`, la place que le héros choisi prendra. */
+export interface PosteDuLieu {
+  id: string;
+  nom: string;
+  sous: string;
+  prix?: Sous;
+  tenant?: string;
+  vise?: true;
+}
+
+/** Un abri pour la nuit : son id, son nom, ses places ; le Test qui le dresse. */
+export interface Abri {
+  id: 'chambre' | 'tente' | 'belle-etoile' | 'fortune';
+  nom: string;
+  places?: number;
+  test?: string;
+}
+
+/** Qui dort où : l'abri tenu et ceux qu'on peut choisir à sa place, les héros dedans et ceux qui restent dehors, le sac
+ *  de couchage (son bonus au froid, ceux qui en ont un), le temps, ce que la nuit jouera, les parts de la note,
+ *  l'action. */
+export interface Dortoir {
+  abri: Abri;
+  abris?: Abri[];
+  dedans: string[];
+  dehors: string[];
+  sac?: { bonus: number; porteurs: string[] };
+  temps?: string;
+  jouera?: { id: 'froid' | 'repos'; nom: string; jet: string }[];
+  parts?: Part[];
+  action: string;
+}
+
+/** La partie d'un jeu de taverne : le jeu et sa règle, les jeux de la maison (leur id, leur nom), ceux qui sont à la
+ *  table (leur id, ce qu'ils y sont), la mise du héros choisi, le pot, sa bourse, l'action. */
+export interface PartieDeTaverne {
+  jeu: { id: string; nom: string; sous: string; regle: string };
+  jeux: { id: string; nom: string }[];
+  table: { qui: string; nom: string; role: string }[];
+  mise: { heros: string; mise: Sous; pot: Sous; joueurs: number; avoir: Sous };
+  action: string;
+}
+
+/** Un héros de la nuit : celui du bandeau, et ce qu'il mangera à la halte. */
+export interface HerosDeLaNuit extends HerosDuGroupe {
+  nourriture?: { valeurs: string[]; tenue: number };
+}
+
+/** La nuit, écran unique de l'auberge et de la halte : le décor, le titre, le récit de la halte ; à gauche l'hôte et ses
+ *  offres, ou le rail des services de la maison ; les postes de la scène ; à droite qui dort où, ou la partie d'un jeu ;
+ *  le retour, le groupe. */
+export interface Nuit {
   nom: string;
   gabarit: 'lieu-et-voyage';
-  decor: 'bivouac';
-  titre: string;
-  date: { jour: number; mois: string };
-  moment: string;
-  meteo: { temps: 'gel'; ciel: string };
-  lieu: string;
-  recit: string;
-  abri: { nom: string; detail: string };
-  temps: string;
-  nuit: { id: 'froid' | 'repos'; nom: string; jet: string }[];
+  decor: 'auberge' | 'taverne' | 'bivouac';
+  titre: TitreDuLieu;
+  recit?: { lieu: string; texte: string };
+  hote?: HoteDuLieu & { offres: OffreDeLAuberge[] };
+  rail?: Rail;
+  postes?: PosteDuLieu[];
+  dortoir?: Dortoir;
+  partie?: PartieDeTaverne;
+  retour: string;
+  groupe: HerosDeLaNuit[];
+}
+
+/* ───────── les soins ───────── */
+
+/** Les soins d'un lieu : le titre, le rail du quartier, le médecin, le patient et son mal, les actes, ce qu'il paie et
+ *  sa bourse, l'action, le retour, le groupe. */
+export interface Soins {
+  nom: string;
+  gabarit: 'lieu-et-voyage';
+  decor: 'cabinet';
+  titre: TitreDuLieu;
+  rail: Rail;
+  hote: HoteDuLieu;
+  patient: { qui: string; mal: string };
+  actes: Voie[];
+  aPayer: Sous;
+  avoir: Sous;
   action: string;
   retour: string;
-  groupe: HerosDuBivouac[];
+  groupe: HerosDuGroupe[];
+}
+
+/* ───────── le commerce ───────── */
+
+/** Une offre d'un négociant : sa denrée (son pictogramme), son nom, son négociant, ce qu'il en a, son prix de base à
+ *  l'Encombrement, l'estimation avant Marchandage, `surplus` ; `depliee`, ses mesures et ses gestes se lisent ; `choisie`. */
+export interface OffreDeNegoce {
+  role: 'offre';
+  denree: string;
+  nom: string;
+  negociant: string;
+  disponible: number;
+  prixDeBase: Sous;
+  estimation?: Sous;
+  surplus?: true;
+  gestes?: Geste[];
+  depliee?: true;
+  choisie?: true;
+}
+
+/** Un porteur du groupe : son id (son pictogramme), son nom, ce qu'il est, son Encombrement porté sur sa charge, la part
+ *  prévue, le lot qu'il porte (`pris`, celui que l'on traite), les vivres et l'eau d'une cale ; `choisi`. */
+export interface Porteur {
+  role: 'porteur';
+  id: 'mule' | 'charrette' | 'cale';
+  nom: string;
+  sous: string;
+  porte: number;
+  charge: number;
+  ajout?: number;
+  lot?: { denree: string; nom: string; enc: number; pris?: true };
+  vivres?: { rations: number; eau: number };
+  choisi?: true;
+}
+
+/** Le navire du groupe : son nom, ce qu'il est, sa coque, ses Salissures, sa cale, son équipage et l'embauche prévue. */
+export interface NavireAQuai {
+  role: 'navire';
+  nom: string;
+  sous: string;
+  coque?: { blessures: number; max: number };
+  salissures?: number;
+  cale?: { porte: number; charge: number };
+  equipage?: { abord: number; sur: number; ajout: number };
+}
+
+/** Un service sur son bâtiment : son id (son pictogramme et sa place), son nom, ce qu'on y fait ; déplié, ce que dit
+ *  son hôte et le geste qui y entre. */
+export interface ServiceDuQuai {
+  role: 'service';
+  id: string;
+  nom: string;
+  sous: string;
+  accueil?: { dit: string; geste: string };
+}
+
+/** Le constructeur naval : son nom, ce qu'il offre, ses Améliorations (leur nom, leur Encombrement, leur prix ; `prise`,
+ *  `fermee`). */
+export interface Constructeur {
+  role: 'constructeur';
+  nom: string;
+  sous: string;
+  ameliorations: { nom: string; enc: number; prix: Sous; prise?: true; fermee?: true }[];
+}
+
+/** Ce qui se pose dans la scène d'un commerce. */
+export type HoteDuCommerce = OffreDeNegoce | Porteur | NavireAQuai | ServiceDuQuai | Constructeur;
+
+/** Le détail d'une ligne de compte : un Encombrement ou un nombre et leur prix à l'unité, un pourcentage. */
+export type DetailDeCompte = { enc: number; a: Sous } | { nombre: number; a: Sous } | { pourcent: number };
+
+/** Une ligne de compte : son libellé, son détail, sa valeur (un prix, des DR et qui les prend, des mots et leur bonus). */
+export interface LigneDeCompte {
+  libelle: string;
+  detail?: DetailDeCompte;
+  valeur: { prix: Sous } | { dr: number; qui?: string } | { texte: string; plus?: number };
+}
+
+/** Un bloc d'une page de service. */
+export type BlocDePage =
+  /** Une phrase de la page. */
+  | { bloc: 'texte'; texte: string }
+  /** Les porteurs à choisir : leur id, leur nom, leur Encombrement porté sur leur charge, la part prévue ; `pris`. */
+  | { bloc: 'porteurs'; porteurs: { id: Porteur['id']; nom: string; porte: number; charge: number; ajout?: number; pris?: true }[] }
+  /** Une quantité réglée entre ses bornes. */
+  | { bloc: 'quantite'; libelle: string; valeur: number; min: number; max: number }
+  /** Des lignes de faits. */
+  | { bloc: 'faits'; lignes: LigneDeCompte[] }
+  /** Un compte et son total. */
+  | { bloc: 'compte'; lignes: LigneDeCompte[]; total: { libelle: string; prix: Sous } }
+  /** Les voies offertes. */
+  | { bloc: 'voies'; voies: Voie[] }
+  /** Les parts des bourses du groupe. */
+  | { bloc: 'parts'; parts: Part[] }
+  /** Des lignes à choisir ou à régler : leur nom, ce qu'elles sont, leur prix, ce qu'on en a ou en veut ; `reglable`, le
+   *  nombre se règle ; `prise`. */
+  | { bloc: 'lignes'; lignes: { nom: string; sous?: string; prix: Sous; nombre: number; prise?: true }[]; reglable?: true }
+  /** Un nombre à régler. */
+  | { bloc: 'nombre'; libelle: string; valeur: number };
+
+/** La page d'un service, sur parchemin à droite : son titre, son nom et ce qu'elle traite, ses blocs, ses gestes, sa
+ *  note. */
+export interface PageDeService {
+  titre: string;
+  nom: string;
+  sous: string;
+  blocs: BlocDePage[];
+  gestes: Geste[];
+  note?: string;
+}
+
+/** Un départ en mer : la destination, la mer, la distance en milles, les jours. */
+export interface Depart {
+  vers: string;
+  par: string;
+  milles: number;
+  jours: number;
+}
+
+/** Un commerce, la halle ou le port : le décor, le titre, le récit du port ; le rail des services ; la rumeur du marché ;
+ *  ce qui se pose dans la scène ; la page du service ouvert ; la carte du port et ses départs ; le retour ; le groupe, ou
+ *  la fenêtre du Marchandage qui prend sa place, et les combattants qu'elle nomme. */
+export interface Commerce {
+  nom: string;
+  gabarit: 'lieu-et-voyage';
+  decor: 'halle' | 'quai';
+  titre: TitreDuLieu;
+  recit?: string;
+  rail?: Rail;
+  rumeur?: { titre: string; texte: string };
+  scene: HoteDuCommerce[];
+  page?: PageDeService;
+  carte?: { departs: Depart[]; ouvrir: string };
+  retour: string;
+  groupe?: HerosDuGroupe[];
+  fenetre?: Fenetre;
+  combattants?: Record<string, Combattant>;
 }

@@ -1,6 +1,6 @@
 /* La carte de Bögenhafen, à l'encre sur le parchemin, et ses lieux : l'emplacement de chacun sur la carte (844 × 572),
    son pictogramme. `dessinerLaVille(svg, epingles)` la trace dans `svg` et y plante une épingle par lieu, rouge pour le
-   lieu choisi. Partagé par `interlude-en-ville.js` et `../rendu.js`. */
+   lieu choisi. Posé par `../rendu.js` (écran `interlude`). */
 const LIEUX_DE_LA_VILLE = {
   taverne: { x: 214, y: 298, icone: 'chope' }, temple: { x: 432, y: 206, icone: 'livre' }, forge: { x: 650, y: 122, icone: 'enclume' },
   caserne: { x: 700, y: 330, icone: 'bouclier' }, comptoir: { x: 548, y: 462, icone: 'pieces' }, quais: { x: 356, y: 398, icone: 'ancre' },

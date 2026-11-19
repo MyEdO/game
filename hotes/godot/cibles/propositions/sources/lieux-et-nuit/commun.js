@@ -43,6 +43,8 @@ function flammes(g, x, y, s = 1) {
   el(f, 'path', { d: 'M-5,0C-8,-8 -2,-14 -1,-22C5,-14 8,-8 5,0Z', fill: '#fff3c8' });
   return f;
 }
+/* la toile d'un décor peint à 1707 × 780 : un calque de la scène qui la rogne à la vue, centrée */
+const toile = () => el(S, 'svg', { width: W, height: H, viewBox: '0 0 1707 780', preserveAspectRatio: 'xMidYMid slice' });
 const fermer = () => { // le fond se ferme : coins, bas sous l'interface
   el(S, 'rect', { width: W, height: H, fill: 'url(#vignette)' });
   el(S, 'rect', { x: 0, y: H - 260, width: W, height: 260, fill: 'url(#bas)' });
@@ -72,4 +74,4 @@ const poste = (cx, y, { nom, sous, icone, heros = [], ferme = false, vise = fals
   ${tenants.length ? `<div class="tenants">${tenants.map((h) => portrait(h, { choisi: vise })).join('')}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>` : medaillon(icone, { taille: 'moyen', ferme })}
   <div class="et bois"><b>${nom}</b>${sous ? `<span class="rubrique">${sous}</span>` : ''}</div></div>`; };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { radial, rims, sapin, perso, flammes, fermer, bandeau, hote, rail, poste });
+Object.assign(globalThis, { radial, rims, sapin, perso, flammes, toile, fermer, bandeau, hote, rail, poste });

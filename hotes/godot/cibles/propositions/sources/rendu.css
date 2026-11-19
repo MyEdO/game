@@ -71,7 +71,6 @@
    centré à 8 du bas */
 .paysage{width:100%;height:100%}
 #recit{width:340px}
-#camp{left:auto;right:24px}
 #bandeau{left:calc(50% - 480px);top:auto;bottom:8px;width:960px}
 #bandeau .heros{gap:9px;padding:11px 10px 0}
 #bandeau .heros .nom{font-size:17.5px}
@@ -80,6 +79,28 @@
 .choix-h b{font-weight:400}
 .choix-h .plaque{flex:none}
 .choix-h .plaque>div{font-size:10px;letter-spacing:.2px;padding:0 4px}
+
+/* 4. Lieu, la nuit : l'offre de l'hôte à gauche sous le cartouche, qui dort où en colonne de 360 au coin haut-droit, la
+   partie d'un jeu en grande page de 480 */
+#hote-du-lieu{left:24px;top:136px;width:360px}
+#dortoir{left:auto;right:24px;top:20px;width:360px}
+#partie{left:auto;right:24px;top:20px;width:480px}
+
+/* 4. Lieu, les soins : la page des soins en grande page de 480 au coin haut-droit */
+#soins{left:auto;right:24px;top:20px;width:480px}
+
+/* 4. Lieu, le commerce : le rail sous le cartouche, le billet de rumeur dessous ; les hôtes de la scène en colonne entre
+   le cartouche et la page ; la page du service en grande page de 480 au
+   coin haut-droit, jusqu'à la ligne basse puis elle défile ; la carte du port et ses départs en colonne de 360 */
+#rumeur{top:452px}
+#scene-du-commerce{position:absolute;left:412px;top:20px;width:348px;height:530px;display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+#scene-du-commerce.en-deux{width:468px;flex-wrap:wrap;align-content:flex-start;column-gap:16px}
+#scene-du-commerce .hote{position:relative;left:auto !important;top:auto !important}
+#page{left:auto;right:24px;top:20px;width:480px}
+#page>.fond{max-height:518px;overflow-y:auto;scrollbar-width:none}
+#ui:has(>#jet) #page>.fond{max-height:442px}
+#carte-du-lieu{left:auto;right:24px;top:20px;width:360px;height:238px}
+#partir{left:auto;right:24px;top:330px;width:360px}
 
 /* 4. Lieu, la route : la carte du trajet au coin haut-droit, le panneau dessous ; la frise de la Distance au-dessus du
    bandeau, l'aperçu du Test au-dessus du navire ; la fenêtre du bas prend la place du bandeau */

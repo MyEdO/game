@@ -178,11 +178,12 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     brasseur: '<path d="M8 90c0-20 10-27 24-29l-1-7c-7-5-9-17-5-25 4-8 22-8 26 0 4 8 2 20-5 25l-1 7c14 2 24 9 24 29z"/><path d="M25 30c0-10 6-16 14-16s14 6 14 16c-9-3-19-3-28 0z" class="s"/>',
     batelier: BASE + '<path d="M18 30h42l-2 5H20zM25 30c1-12 6-18 14-18s13 6 14 18z" class="s"/>',
     cocher: BASE + '<path d="M17 27h44v4H17zM27 27V13h24v14z" class="s"/>',
+    drapier: BASE + '<path d="M22 31c0-13 8-20 17-20s17 7 17 20c-5-5-11-7-17-7s-12 2-17 7z" class="s"/><path d="M22 30h34v4H22z" class="s"/>',
     astrid: BASE + '<path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" class="s"/><path d="M23 34c-1 8 0 16 2 22l5-3c-2-7-2-13 0-19zM55 34c1 8 0 16-2 22l-5-3c2-7 2-13 0-19z" class="s"/>',
     /* le héros qui se dessine : au trait de sanguine, avec ses repères */
     esquisse: '<path d="M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28"/><path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" class="s"/><path d="M39 2v88M10 42h58" class="repere"/>',
   };
-  const CAMP = { hote: 'pnj', docteur: 'pnj', brasseur: 'pnj', batelier: 'pnj', cocher: 'pnj', esquisse: 'esquisse' };
+  const CAMP = { hote: 'pnj', docteur: 'pnj', brasseur: 'pnj', batelier: 'pnj', cocher: 'pnj', drapier: 'pnj', esquisse: 'esquisse' };
   const MATIERE = { heros: 'laiton', esquisse: 'laiton', ennemi: 'fer', pnj: 'fer' };
   /* `taille` : menu, petit, moyen, grand, maitre, affiche ; sans `genre`, la place est libre */
   const portrait = (genre, { camp = CAMP[genre] ?? 'heros', taille = 'moyen', choisi = false, classe = '', style = '' } = {}) => `<div class="portrait ${genre ? `${MATIERE[camp]} ${camp}` : 'fer vide'} ${taille}${choisi ? ' choisi' : ''} ${classe}" style="${style}"><div>${genre ? `<svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice">${BUSTES[genre]}</svg>` : picto('plus', 26, undefined, 1.4)}</div></div>`;
