@@ -80,8 +80,8 @@ export type Mutation = EntreeVivante<MutationData> & EtatDeMutation;
 /** LDB 19 l.29 et l.70 ; arbitrage #4096 du 2026-11-19. */
 export function recoitLaCorruption(c: Combatant): boolean {
   if (!followsCharacterRules(c)) return false;
-  const exclus = findRegleById('corrompu')?.exclusDeCorruption;
-  return !exclus?.some((id) => id === c.creatureId);
+  const regle = findRegleById('corrompu');
+  return !(regle?.motifExclusionDeCorruption && regle.exclusDeCorruption?.some((id) => id === c.creatureId));
 }
 
 /** Points de Corruption gagnés à l'issue d'un Test d'Exposition. LDB 19 l.35 ; LDB 19 l.48 ; LDB 19 l.58 */
