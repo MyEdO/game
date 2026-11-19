@@ -34,6 +34,7 @@ shader = ExtResource("3_hors_carte")
 
 [node name="Lumiere" type="Node3D"]
 script = ExtResource("1_lumiere")
+part_du_soleil_en_compatibilite = 0.25
 
 [node name="Environnement" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_lumiere")

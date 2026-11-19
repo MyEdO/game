@@ -30,6 +30,11 @@ extends Node3D
 ## La matière du sol du hors-carte, que la vision voile (`VolumeDeScene.lier_a_la_vision`).
 @onready var sol_hors_carte: ShaderMaterial = _hors_carte.get_surface_override_material(0)
 
+## La part de son énergie que garde le soleil sous le rendu de compatibilité : sa lumière, ombrée, s'y dessine en
+## passe à part, ajoutée à la passe de base en sRGB et non en lumière linéaire (« 3D lights and shadows », Godot 4.7,
+## Compatibility) ; à pleine énergie, un albédo clair au soleil s'y écrête en blanc pur.
+@export var part_du_soleil_en_compatibilite := 1.0
+
 var _brume: Dictionary = {}
 ## Sous Forward+ seul (`rendu_complet`), la matière du volume de brouillard de toute la scène, qui porte la densité du
 ## brouillard volumétrique de l'environnement (`_porter_la_brume`), et que la vision voile (`VolumeDeScene.lier_a_la_vision`) ;
@@ -68,7 +73,7 @@ func eclairer(lumiere: Dictionary, plateau: Dictionary) -> void:
 	if soleil != null:
 		_soleil.basis = Basis.looking_at(MiseEnPage.sens_d_eclairage(Vector3(soleil.vers.x, soleil.vers.y, soleil.vers.z)))
 		_soleil.light_color = Color(soleil.couleur)
-		_soleil.light_energy = soleil.energie
+		_soleil.light_energy = soleil.energie * (1.0 if rendu_complet() else part_du_soleil_en_compatibilite)
 	_environnement.ambient_light_color = Color(lumiere.ambiante.couleur)
 	_environnement.ambient_light_energy = lumiere.ambiante.energie
 	_environnement.tonemap_white = lumiere.blanc
