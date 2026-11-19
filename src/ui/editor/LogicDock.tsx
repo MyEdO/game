@@ -548,7 +548,7 @@ function EncountersTab({
             const vc = enc.victoryCondition!;
             return (
               <div className="enemy-mount">
-                <label>Rounds à tenir <NumberField variant="nu" label="Rounds à tenir" min={1} value={vc.rounds} onChange={(rounds) => upd({ victoryCondition: { type: 'surviveRounds', rounds } })} /></label>
+                <label>Rounds à tenir <NumberField variant="nu" label="Rounds à tenir" commit="geste" min={1} value={vc.rounds} onChange={(rounds) => upd({ victoryCondition: { type: 'surviveRounds', rounds } })} /></label>
               </div>
             );
           })()}
@@ -592,7 +592,7 @@ function EncountersTab({
                 <label>
                   À{' '}
                   <NumberField
-                    variant="nu" label="Seuil de Blessures (%)" min={1} max={99} value={vc.atOrBelowPercent}
+                    variant="nu" label="Seuil de Blessures (%)" min={0} max={100} value={vc.atOrBelowPercent}
                     onChange={(atOrBelowPercent) => seuil(vc.targetId?.id, atOrBelowPercent)}
                   />
                   % de ses Blessures ou moins
@@ -607,7 +607,7 @@ function EncountersTab({
                 <label title="Le premier coup qui cause une perte de plus de ce nombre de Blessures met fin au duel (NADJ 06 l.175-177). Défaut 3 Blessures (seule valeur chiffrée par le RAW).">
                   Seuil{' '}
                   <NumberField
-                    variant="nu" label="Seuil de premier sang" min={1} value={vc.threshold ?? 3}
+                    variant="nu" label="Seuil de premier sang" commit="geste" min={0} value={vc.threshold ?? 3}
                     onChange={(threshold) => upd({ victoryCondition: { type: 'firstBlood', threshold } })}
                   />
                   {' '}Blessures en un coup

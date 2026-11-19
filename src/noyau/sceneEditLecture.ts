@@ -85,7 +85,7 @@ import { champsDeclares, choixDuNoeud, formeAuPoint, recordDuNoeud, type ChoixDu
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
 import { chargeLArme, gabaritDObjet } from '../engine/items';
-import { travelModeLabels, travelVehicles, vehicleTravel } from '../engine/travel';
+import { travelModeLabels, vehicleTravel } from '../engine/travel';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { auChemin, estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
@@ -891,13 +891,11 @@ const departsDuBillet = (route: MapRoute, cle: Segment | undefined, { projet }: 
 const modesDeLaRoute = (route: MapRoute, retenu: (mode: string) => boolean = () => true): ChoixDuContexte[] =>
   route.modes.filter(retenu).map((mode) => ({ valeur: mode, libelle: travelModeLabels()[mode] ?? mode, refus: null }));
 
-/** Les modes de voyage que la route `route` offre au rang `rang` de ses modes : à pied et chaque véhicule à passage
- *  payant (`travelVehicles`), hors de ceux qu'elle offre déjà, le courant restant offert, chacun à son libellé. LDB 51
- *  l.178-189 */
+/** Les modes de voyage catalogués ou réservés, hors des doublons de la route. */
 const modesDeVoyage = (route: MapRoute, rang: number): ChoixDuContexte[] =>
-  ['pied', ...travelVehicles().map((v) => v.id)]
-    .filter((mode) => mode === route.modes[rang] || !route.modes.includes(mode))
-    .map((mode) => ({ valeur: mode, libelle: travelModeLabels()[mode] ?? mode, refus: null }));
+  Object.entries(travelModeLabels())
+    .filter(([mode]) => mode === route.modes[rang] || !route.modes.some((m) => m === mode))
+    .map(([valeur, libelle]) => ({ valeur, libelle, refus: null }));
 
 /** Les clés des prix d'un billet en `mode` (`prixParClasseSchema`) : chaque classe de passage de son véhicule. */
 const classesDuBillet = (mode: Segment): ChoixDuContexte[] =>
@@ -911,7 +909,7 @@ function suitesDuBillet(route: MapRoute, mode: Segment, rang: number, { projet }
   const suite = route.billets?.[mode as keyof NonNullable<MapRoute['billets']>]?.suite ?? [];
   const nom = (ref: { id: string }) => carte?.places.find((p) => p.id === ref.id)?.label ?? ref.id;
   return (carte?.routes ?? [])
-    .filter((r) => r.id !== route.id && r.modes.includes(mode as string) && (r.id === suite[rang] || !suite.includes(r.id)))
+    .filter((r) => r.id !== route.id && r.modes.some((m) => m === mode) && (r.id === suite[rang] || !suite.includes(r.id)))
     .map((r) => ({ valeur: r.id, libelle: `${nom(r.a)} → ${nom(r.b)}`, refus: null }));
 }
 

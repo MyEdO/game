@@ -20,7 +20,7 @@ import { ACTIVITIES } from '../data';
 import { cleDEntrainement, entrainementOptions, libelleDEntrainement, qualitesDArtisanat } from '../engine/activities';
 import { parseRefKey } from '../engine/careerSlots';
 import { libelleDePsy } from '../engine/psych/ciblage';
-import { travelVehicles, vehicleTravel } from '../engine/travel';
+import { travelModeLabels, travelVehicles, vehicleTravel } from '../engine/travel';
 import { actionsDe } from './monde/usable';
 import { creneauxDuHeros } from './partyFlow';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
@@ -158,7 +158,7 @@ export type IdDeJeuDeTaverne = string;
 export type IdDeProfilStandard = string;
 /** Une route de la carte du monde (`MapRoute.id`). */
 export type IdDeRoute = string;
-/** Un mode de voyage (`TravelMode`) : à pied, à monture, ou un véhicule à passage payant (`travelVehicles`). */
+/** Un mode de voyage du catalogue ou réservé (`travelModeSchema`). */
 export type IdDeModeDeVoyage = string;
 /** Un rôle d'équipage naval (`crew-roles.json`), ou le Repos (`BENCHED`). */
 export type IdDeRoleABord = string;
@@ -231,7 +231,7 @@ const lesPostes = (s: Jeu) => lesCombattants(s).flatMap((c) => c.postes ?? []);
 const lesPanoplies = (s: Jeu) => lesCombattants(s).flatMap((c) => c.loadouts ?? []);
 const lesEntites = (s: Jeu) => s.scene?.entities ?? [];
 const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s)) : []);
-const lesModesDeVoyage = (): { id: string; label?: string }[] => [{ id: 'pied' }, { id: 'monture' }, ...travelVehicles()];
+const lesModesDeVoyage = () => Object.entries(travelModeLabels()).map(([id, label]) => ({ id, label }));
 const lesEntrainements = (s: Jeu) => s.party.flatMap(entrainementOptions);
 /** Les armes dont le lanceur du Sort en attente peut donner la forme (`conjureFormOptions`), LDB 47. */
 const formesConjurables = (s: Jeu): string[] => {

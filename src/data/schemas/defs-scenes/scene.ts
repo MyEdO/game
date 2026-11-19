@@ -665,16 +665,16 @@ export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme
 export const victoryConditionSchema = z.discriminatedUnion('type', [
   variante('Tous les ennemis hors d’action', nommerChamps(z.strictObject({ type: z.literal('allEnemiesDead') }), { type: { label: "type"  } })),
   variante('Détruire une structure', nommerChamps(z.strictObject({ type: z.literal('destroyStructure'), edge: architectureEdgeRefSchema }), { type: { label: "type"  }, edge: { label: "arête" } })),
-  variante('Survivre N Rounds', nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number() }), { type: { label: "type"  }, rounds: { label: "Rounds" } })),
+  variante('Survivre N Rounds', nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number().int().min(1) }), { type: { label: "type"  }, rounds: { label: "Rounds" } })),
   variante('Atteindre une zone', nommerChamps(z.strictObject({
     type: z.literal('reachZone'),
     rect: rectDeCasesSchema,
     camp: campSchema.optional(),
   }), { type: { label: "type"  }, rect: { label: "rectangle" }, camp: { label: "camp"  } })),
   /** Sortie à seuil de dommage partiel (#215) — `targetId` parmi les membres de la rencontre, absent = chaque adversaire. */
-  variante('Sortie à seuil de dommage', nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: ref(MEMBRES_DE_LA_RENCONTRE).optional(), atOrBelowPercent: z.number() }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, atOrBelowPercent: { label: "seuil en pourcentage" } })),
+  variante('Sortie à seuil de dommage', nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: ref(MEMBRES_DE_LA_RENCONTRE).optional(), atOrBelowPercent: z.number().min(0).max(100) }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, atOrBelowPercent: { label: "seuil en pourcentage" } })),
   /** Duel judiciaire (`NADJ 06 l.175-177`) — `threshold` ÉDITABLE, défaut 3. */
-  variante('Duel judiciaire — premier sang', nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().optional() }), { type: { label: "type"  }, threshold: { label: "seuil" } })),
+  variante('Duel judiciaire — premier sang', nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().int().nonnegative().optional() }), { type: { label: "type"  }, threshold: { label: "seuil" } })),
 ]);
 
 /** Membre d'une rencontre : RÉFÉRENCE une `SceneEntity` (kind 'personnage') de la scène — c'est

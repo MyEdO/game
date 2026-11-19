@@ -66,6 +66,7 @@ export function mergeCreatureProfile(base: CreatureData, profil?: ProfilDePreset
   return {
     ...base,
     ...rest, // surcharge au niveau champ (tableaux remplacés en bloc si présents)
+    id: base.id,
     char: char ? { ...base.char, ...char } : base.char, // char fusionné par caractéristique
   };
 }

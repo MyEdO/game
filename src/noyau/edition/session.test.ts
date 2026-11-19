@@ -17,7 +17,7 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { emptyWorldMap, placeServices, resolvePortRef, type WorldMap } from '../worldMap';
+import { emptyWorldMap, parseSceneDeProjet, placeServices, resolvePortRef, type WorldMap } from '../worldMap';
 import {
   avertissementsDeLaSession,
   cadreDeLaSession,
@@ -1053,6 +1053,29 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     expect(validateScene([sceneEditee(pont)]).filter((w) => w.level === 'error' && w.message.includes('catalogue des rencontres'))).toEqual([]);
     const pris = choisie('enc-pont');
     expect(jouer(pris, { geste: 'nommer', nom: 'enc-libre' })).toBe(pris);
+  });
+
+  it('renomme la rencontre désignée par une bataille de masse et refuse de la retirer tant qu’elle reste désignée', () => {
+    const bataille = (id: string) => flowFromEffects([{
+      type: 'startMassBattle',
+      battle: {
+        puissanceAlliee: 50,
+        puissanceEnnemie: 50,
+        plannedRounds: 1,
+        sceneEncounters: { duel: { id }, percee: { id: 'enc-pont' } },
+      },
+    }]);
+    const scene = parseSceneDeProjet({
+      ...CLAIRIERE,
+      triggers: [...CLAIRIERE.triggers, { id: 'bataille', rect: { x: 2, y: 0, w: 1, h: 1 }, flow: bataille('enc-libre') }],
+    });
+    const s = jouer(ouverteSur(scene), { geste: 'selectionner', porteur: { sorte: 'rencontre', id: 'enc-libre' } });
+    const renommee = jouer(s, { geste: 'nommer', nom: 'enc-duel-sur-le-pont' });
+    expect(parseSceneDeProjet(sceneEditee(renommee)).triggers[2].flow).toEqual(bataille('enc-duel-sur-le-pont'));
+    expect(refusDeRetrait(renommee)).toContain('« enc-duel-sur-le-pont » est absent du catalogue des rencontres');
+    expect(jouer(renommee, { geste: 'supprimer' })).toBe(renommee);
+    const annulee = jouer(renommee, { geste: 'annuler' });
+    expect(parseSceneDeProjet(sceneEditee(annulee)).triggers[2].flow).toEqual(bataille('enc-libre'));
   });
 
   it('nommer une rencontre qu’une embuscade de route du projet lance la renomme à l’embuscade de chaque route qui vise sa scène, sur un cran ; son retrait reste refusé, la route dite (#3606)', () => {
