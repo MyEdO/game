@@ -15,7 +15,8 @@
 ## par case.
 ## Un décor que la saison change (`palette`, `caches`) se remonte quand son corps change, ceux qu'elle ne change pas
 ## restent montés (`MontageDeVehicule.monter`).
-## Le volume ne peint pas les surfaces des décors servis (`VolumeDeScene.peindre_sans`), que leurs modèles montrent.
+## Le volume ne peint pas les surfaces des décors servis (`VolumeDeScene.peindre_sans`), que leurs modèles montrent, et
+## lit les modèles de ses arêtes par le chargeur des décors (`VolumeDeScene.chargeur`).
 class_name MontageDesModeles
 extends Node3D
 
@@ -46,6 +47,7 @@ var _metres_par_case := 1.0
 
 func _ready() -> void:
 	volume.retire.connect(_retirer_les_poses)
+	volume.chargeur = chargeur
 
 
 ## Chaque pose de `navires` et de `decors` (`_poses_servies`) montée (`_monter`), coupée à la hauteur de coupe du plus

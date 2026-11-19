@@ -576,11 +576,13 @@ export const ECRIT_LU = {
       'scripts/personnage-3d/__pycache__/':
         'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
         'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé » ; ' +
-        'les constructions que `test_vehicule.py`, `test_decor.py` et `test_element.py` lancent en sous-processus n’en écrivent pas ' +
+        'les constructions que `test_vehicule.py`, `test_decor.py`, `test_arete.py` et `test_element.py` lancent ' +
+        'en sous-processus n’en écrivent pas ' +
         '(`PYTHONDONTWRITEBYTECODE`)',
     },
     lit: ['scripts/personnage-3d/', 'hotes/godot/asset/charger.mjs', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
-      'src/data/materials.json', 'src/data/props.json', 'src/data/props.types.ts', 'src/data/vehicles.json', 'src/geometry/dir8.ts'],
+      'src/data/materials.json', 'src/data/props.json', 'src/data/props.types.ts', 'src/data/structureAppearance.json',
+      'src/data/vehicles.json', 'src/geometry/dir8.ts', 'src/noyau/monde/relief.ts'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
@@ -592,8 +594,12 @@ export const ECRIT_LU = {
       'ponts, `test_decor.py` les décors de `decor/` et mesure chaque GLB publié d’un décor, lu dans le cache ci-dessous, dans ' +
       'le gabarit de sa recette (`volume.primitives` de sa fiche dans `src/data/props.json`, ses polygones par ' +
       '`polygonesDePrimitive` de `src/data/props.types.ts`, qui importe `src/geometry/dir8.ts`, que lance ' +
-      '`decor/polygones.mjs`), et `test_element.py` les éléments sur base d’`element/`, sur les GLB épinglés lus dans le cache ' +
-      '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle dans la lane) ; les trois comparent ' +
+      '`decor/polygones.mjs`), `test_arete.py` les arêtes d’`arete/`, d’après la forme des apparences de ' +
+      '`src/data/structureAppearance.json` et la hauteur d’un niveau (`METRES_PER_LEVEL` de ' +
+      '`src/noyau/monde/relief.ts`, que lance `arete/niveau.mjs`), et `test_element.py` les éléments ' +
+      'sur base d’`element/`, sur les GLB ' +
+      'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
+      'dans la lane) ; tous comparent ' +
       'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/',
     delegueeAuPerimetre:
       'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +

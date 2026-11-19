@@ -37,7 +37,8 @@ const POSE_DE_L_ETAGE_AU_MASQUE := 9
 const PORTEE := {case = {x = 0, y = 0, z = 1}, nappe = "maison"}
 const SOUS_LE_MASQUE := {case = {x = 0, y = 0, z = 1}}
 const AU_SOL := {case = {x = 0, y = 0, z = 0}}
-const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, piece = Noyau.Piece.MUR, bloc = "0/0/0"}
+const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, palette = {},
+	piece = Noyau.Piece.MUR, bloc = "0/0/0"}
 var _fautes: Array[String] = []
 
 
@@ -61,7 +62,8 @@ func _recetter() -> void:
 	masque[ETAGE_AU_MASQUE * LARGEUR] = 255
 	masque[POSE_DE_L_ETAGE_AU_MASQUE * LARGEUR] = 255
 	monde.volume.retirer({masque = Marshalls.raw_to_base64(masque), largeur = LARGEUR, rangees = RANGEES})
-	monde.volume.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}), ARETE.merged({cle = "kit", famille = "colombage"})])
+	monde.volume.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}),
+		ARETE.merged({cle = "kit", famille = "pierre"})])
 	var degagees: Array = JSON.parse_string(JSON.stringify(["boite", "kit"].map(func(cle: String) -> Dictionary: return {cle = cle, abattueSous = [0, 1, 2, 3]})))
 	var retraits := [0]
 	monde.volume.retire.connect(func() -> void: retraits[0] += 1)
