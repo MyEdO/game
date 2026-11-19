@@ -2,7 +2,7 @@
    le groupe attablé devant une chaise libre, les voyageurs à recruter debout dans la salle. Peint à 1707 × 780, rogné à
    la vue (`toile`, `../lieux-et-nuit/commun.js`). */
 {
-  const N = '#0d0806', P = '#1c110a';
+  const N = '#0d0806';
   /* la silhouette de chaque voyageur, par son id : sa hauteur, sa coiffe, ce qu'il porte */
   const SILHOUETTES = {
     wanda: { h: 168, coiffe: 'capuche', extra: `<path d="M19,-66L23,-128" stroke="${N}" stroke-width="3.200" fill="none"/><path d="M23,-128l-5,-8l5,-6l5,6z"/>` },
@@ -15,7 +15,7 @@
   const ECHELLE = Math.max(W / 1707, H / 780), DECALAGE = (W - 1707 * ECHELLE) / 2;
   /* `debout` : les voyageurs, chacun [abscisse dans la vue, id, visé] */
   const peindreLaSalleCommune = (debout) => {
-    const S = toile(), W = 1707, H = 780;
+    const S = toile(), W = 1707;
     radial('mur', [[0, '#c98a4a'], [.3, '#8f5a2e'], [.65, '#4f301a'], [1, '#22140b']], { cx: .5, cy: .52, r: .62 });
     grad('sol', [[0, '#3a2414'], [1, '#0e0805']]);
     grad('nuit-f', [[0, '#141a3a'], [1, '#33305c']]);
