@@ -71,7 +71,7 @@ const rail = (titre, services, pied) => cadre('rail', null, null, null, null, 'b
 `, { tete: ruban(titre) });
 /* un poste dans la scène : cx = centre, y = haut ; `heros` : son titulaire, ou ses titulaires ; `plus` : il offre une place de plus ;
    `piece` : son nom au relevé du rendu ; `pointe` : le décalage de sa pointe depuis le centre */
-const poste = (cx, y, { nom, sous, icone, heros = [], ferme = false, vise = false, plus = false, piece = '', pointe = 0 }) => { const tenants = [heros].flat(); return `<div class="poste ${tenants.length ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}"${piece ? ` data-piece="${piece}"` : ''} style="left:${cx - 80}px;top:${y}px${pointe ? `;--pointe:${pointe}px` : ''}">
+const poste = (cx, y, { nom, sous, icone, heros = [], ferme = false, vise = false, plus = false, piece = '', pointe = 0 }) => { const tenants = [heros].flat(); return `<div class="poste ${tenants.length ? 'occupe' : 'vide'} ${ferme ? 'ferme' : ''} ${vise ? 'vise' : ''}"${piece ? ` data-piece="${piece}"` : ''} style="left:${cx}px;top:${y}px${pointe ? `;--pointe:${pointe}px` : ''}">
   ${tenants.length ? `<div class="tenants">${tenants.map((h) => portrait(h, { choisi: vise })).join('')}${plus ? medaillon('plus', { taille: 'petit' }) : ''}</div>` : medaillon(icone, { taille: 'moyen', ferme })}
   <div class="et bois"><b>${nom}</b>${sous ? `<span class="rubrique">${sous}</span>` : ''}</div></div>`; };
 // Partagé avec les scripts de page chargés après celui-ci.

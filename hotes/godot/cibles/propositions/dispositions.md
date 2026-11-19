@@ -46,7 +46,7 @@ Une pièce du kit ne rétrécit jamais (seule la carte de choix s'étire, de 200
 | **Panneaux latéraux** | largeur fixe, ancrés à leur bord (24 px) et au haut (20 px) ; leur hauteur suit leur contenu et s'arrête au plus tard à la ligne basse, puis défile |
 | **Ligne basse** (limite du bas des panneaux latéraux et du fil) | elle dépend du cadre du bas : **164 px du bas** sous un bandeau ou une barre ; **20 px au-dessus d'une fenêtre du bas** (198, 240 ou 294 px du bas pour 170, 212, 266) ; **24 px du bas** quand l'écran n'a aucun cadre du bas (écran de gestion) |
 | **Registre** | tendu : du panneau de gauche (ou de la marge gauche) à 24 px du bord droit (186 px s'il porte des signets : 160 de signet, 2 d'écart), de **60 px du haut** jusqu'à 24 px du bas (80 px si l'écran a une action de coin : elle passe dessous) |
-| **Bulle de refus** | au-dessus de l'élément refusé, centrée sur lui, 11 px ; décalée seulement pour rester dans l'écran |
+| **Bulle de refus** | au-dessus de l'élément refusé, centrée sur lui, 11 px, décalée de côté pour rester dans son cadre (dans l'écran hors cadre) ; sinon dessous ; sinon posée sur l'élément refusé, au bout de sa ligne, puis à sa largeur. Elle ne couvre jamais un autre texte (`poserLesBulles`) |
 | **Aperçu au survol** | une seule largeur : 300 px ; à côté de l'élément survolé, sa pointe vers lui, à 12 px ; décalé seulement pour rester dans l'écran |
 | **Signets** | colonne au bord droit du registre, 24 px du bord droit de l'écran, premier signet à 66 px du haut (sous la croix) |
 | **Action de coin** (elle concerne tout l'écran) | pile de plaques `moyenne` larges de 136, coin bas-droit, 24 / 28, écart 9 ; la principale au-dessus, la secondaire dessous. 136 parce que c'est ce qui reste à droite d'un cadre de 960 |

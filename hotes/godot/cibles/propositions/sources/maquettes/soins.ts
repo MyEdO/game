@@ -20,7 +20,7 @@ export default {
     patient: { qui: 'greta', mal: 'Cuisse lacérée, jambe gauche : la plaie attend d’être recousue.' },
     actes: [
       { id: 'soin', nom: 'Panser les Blessures', test: 'Guérison', texte: 'Lui rend le Bonus d’Intelligence du docteur, plus ses degrés de réussite.', prix: 60, prise: true },
-      { id: 'scalpel', nom: 'Recoudre la cuisse lacérée', test: 'Chirurgie', texte: 'Longue opération : chaque passe lui coûte 1d10 Blessures et une Hémorragie.', prix: 180, maison: true }],
+      { id: 'scalpel', nom: 'Recoudre la cuisse lacérée', test: 'Chirurgie', texte: 'Longue opération : chaque passe lui coûte 1d10 Blessures et une Hémorragie.', prix: 180 }],
     paiement: { aPayer: 60, avoir: BOURSES.greta },
     action: 'Payer et soigner',
     retour: 'Retour au quartier',
