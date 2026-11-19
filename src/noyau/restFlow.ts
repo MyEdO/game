@@ -237,7 +237,7 @@ export function sleepParty(
       for (const row of step.participants ?? []) {
         if (!row.outcome?.length) continue;
         entries.push({
-          actorId: row.id, icon: 'medical/infection', label: step.label ?? t('step.contagion'),
+          actorId: row.id, icon: 'medical/infection', label: garanti(step.label, step.id, 'bande de Contraction'),
           text: row.outcome.map((l) => l.text).join(' '), tone: 'echec',
         });
       }
