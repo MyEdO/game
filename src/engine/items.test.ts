@@ -1007,7 +1007,7 @@ describe('Munitions & rechargement', () => {
     });
     it.each([
       ['tromblon', ['ferraille-et-poudre']], // AA 08 l.482
-      ['arquebuse', ['cartouche-en-papier', 'cartouche-et-poudre-de-precision', 'poudre-impregnee-d-aqshy']], // AA 08 l.528-530, l.544
+      ['arquebuse', ['cartouche-en-papier', 'cartouche-et-poudre-de-precision', 'poudre-impregnee-d-aqshy']], // AA 08 l.528-530, l.542
       ['haquebute', ['balle-de-gros-calibre-et-poudre']], // AA 08 l.517
       ['mortier-a-main', ['balle-de-gros-calibre-et-poudre', 'bombe-explosive', 'grappin-munition']], // AA 08 l.517, l.521, l.534
     ])('%s charge %j (AA 08 l.487)', (id, attendues) => {

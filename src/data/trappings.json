@@ -2448,7 +2448,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 296
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 98,
+        "quote": "Carreau (12)"
+      }
+    ]
   },
   {
     "id": "fleche",
@@ -2478,7 +2485,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 296
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 98,
+        "quote": "Flèche (12)"
+      }
+    ]
   },
   {
     "id": "fleche-elfique",
@@ -2519,7 +2533,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 296
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 98,
+        "quote": "Flèche elfique"
+      }
+    ]
   },
   {
     "id": "projectile-de-pierre",
@@ -2549,7 +2570,14 @@
     "source": {
       "book": "livre-de-base",
       "page": 296
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 98,
+        "quote": "Projectile de pierre (12)"
+      }
+    ]
   },
   {
     "id": "balle-et-poudre",
@@ -2583,9 +2611,35 @@
       "brass": 3
     },
     "source": {
-      "book": "livre-de-base",
-      "page": 296
-    }
+      "book": "aux-armes",
+      "page": 103
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "928a192956f9acd6"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 296,
+        "quote": "Balle et Poudre (12)"
+      },
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Balle et poudre (12)"
+      }
+    ]
   },
   {
     "id": "munitions-improvisees-et-poudre",
@@ -2611,9 +2665,35 @@
       "brass": 3
     },
     "source": {
-      "book": "livre-de-base",
-      "page": 296
-    }
+      "book": "aux-armes",
+      "page": 104
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 10,
+          "b1": 10,
+          "sum": "b15ce063fbf67bd2"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 296,
+        "quote": "Munitions improvisées et Poudre"
+      },
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Munitions improvisées et poudre"
+      }
+    ]
   },
   {
     "id": "petites-munitions-et-poudre",
@@ -2642,10 +2722,38 @@
       "brass": 3
     },
     "source": {
-      "book": "livre-de-base",
-      "page": 296,
-      "note": "LDB 62 l.123 ; Lot : AA 08 l.499 (12)."
-    }
+      "book": "aux-armes",
+      "page": 104,
+      "note": "AA 08 l.540"
+    },
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 11,
+          "b1": 11,
+          "sum": "449a4cff72dfcd38"
+        }
+      ]
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 296,
+        "note": "LDB 62 l.123",
+        "quote": "Petites munitions et Poudre"
+      },
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "note": "AA 08 l.499 (lot de 12).",
+        "quote": "Petites munitions et poudre (12)"
+      }
+    ]
   },
   {
     "id": "calotte-de-cuir",
@@ -12064,7 +12172,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 101
     },
     "shape": {
       "id": "arquebuse_double"
@@ -12109,7 +12217,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 101
     },
     "shape": {
       "id": "arquebuse_meche"
@@ -12157,7 +12265,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 101
     },
     "shape": {
       "id": "hache_arquebuse"
@@ -12205,14 +12313,21 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 102
     },
     "shape": {
       "id": "hallebarde_arquebuse"
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Hallebarde-arquebuse"
+      }
+    ]
   },
   {
     "id": "haquebute",
@@ -12253,7 +12368,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 102
     },
     "shape": {
       "id": "haquebute"
@@ -12263,6 +12378,13 @@
     },
     "munitions": [
       "balle-de-gros-calibre-et-poudre"
+    ],
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Haquebute"
+      }
     ]
   },
   {
@@ -12304,14 +12426,21 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 102
     },
     "shape": {
       "id": "pistolet_griffon"
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Pistolet patte de griffon"
+      }
+    ]
   },
   {
     "id": "tromblon-a-meche",
@@ -12345,7 +12474,7 @@
         "value": 3
       }
     ],
-    "desc": "L'un des premiers modèles de tromblon. Cette arme comporte les mêmes inconvénients que l'arquebuse à mèche.",
+    "desc": "L'un des premiers modèles de tromblon. Cette arme comporte les mêmes inconvénients que l'arquebuse à mèche ci-dessus.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -12353,7 +12482,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 102
     },
     "shape": {
       "id": "tromblon_meche"
@@ -12365,6 +12494,13 @@
       "petites-munitions-et-poudre",
       "ferraille-et-poudre",
       "munitions-improvisees-et-poudre"
+    ],
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Tromblon à mèche"
+      }
     ]
   },
   {
@@ -12397,7 +12533,7 @@
         "value": 6
       }
     ],
-    "desc": "Un pistolet à canon court dissimulé dans un bâton de marche ou dans une canne. Cette arme n'est pas des plus pratiques, mais est très difficile à repérer. Ceux qui cherchent des armes dissimulées doivent réussir un Test de Perception Difficile (–20) pour identifier la canne ou le bâton comme une arme, ou un Test de Perception Très Difficile (–30) s'ils connaissent mal les armes à poudre noire.",
+    "desc": "Un pistolet à canon court dissimulé dans un bâton de marche ou dans une canne. Cette arme n'est pas des plus pratiques, mais est très difficile à repérer. Ceux qui cherchent des armes dissimulées doivent réussir un Test de **Perception Difficile (–20)** pour identifier la canne ou le bâton comme une arme, ou un Test de **Perception Très Difficile (–30)** s'ils connaissent mal les armes à poudre noire.",
     "price": {
       "gold": 15,
       "silver": 0,
@@ -12405,14 +12541,21 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 103
     },
     "shape": {
       "id": "canne_pistolet"
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Canne-pistolet"
+      }
+    ]
   },
   {
     "id": "mortier-a-main",
@@ -12453,7 +12596,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 103
     },
     "shape": {
       "id": "mortier_main"
@@ -12466,6 +12609,13 @@
       "bombe-incendiaire-munition",
       "grappin-munition",
       "balle-de-gros-calibre-et-poudre"
+    ],
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Mortier à main"
+      }
     ]
   },
   {
@@ -12502,7 +12652,7 @@
         "value": 4
       }
     ],
-    "desc": "Cette arme est une forme plus simple du pistolet à répétition, une série de quatre canons préchargés placés devant un unique mécanisme de tir. Chaque fois que l'arme est déchargée, elle doit être tournée, réamorcée à la manivelle ou préparée manuellement d'une autre façon pour tirer de nouveau. Cela prend très peu de temps par rapport au fait de recharger une arme, mais l'utilisateur doit avoir sa deuxième main libre pour manier la poivrière sinon elle perd l'Atout À répétition.",
+    "desc": "Cette arme est une forme plus simple du pistolet à répétition, une série de quatre canons préchargés placés devant un unique mécanisme de tir. Chaque fois que l'arme est déchargée, elle doit être tournée, réamorcée à la manivelle ou préparée manuellement d'une autre façon pour tirer de nouveau. Cela prend très peu de temps par rapport au fait de recharger une arme, mais l'utilisateur doit avoir sa deuxième main libre pour manier la poivrière sinon elle perd l'Atout *À répétition*.",
     "price": {
       "gold": 12,
       "silver": 0,
@@ -12510,14 +12660,21 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 100
+      "page": 103
     },
     "shape": {
       "id": "poivriere"
     },
     "rangement": {
       "id": "ceinture_d"
-    }
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 101,
+        "quote": "Poivrière"
+      }
+    ]
   },
   {
     "id": "balle-de-gros-calibre-et-poudre",

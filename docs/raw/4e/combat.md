@@ -2133,7 +2133,9 @@ Colonnes : **Arme · Prix · Enc · Disponibilité · Allonge/Portée · Dégât
 
 ### Munitions traditionnelles (AA — variantes complémentaires)
 
-Aux Armes (*Up in Arms*) étend la liste de munitions Arc/Arbalète/Fronde avec des variantes spécialisées (têtes de flèche, projectiles de fronde, munitions improvisées). Même schéma de colonnes ; consolidées ici car elles complètent strictement la table du LDB sans la contredire.
+Le tableau d'*Aux Armes* reprend les munitions d'arc, d'arbalète et de fronde sous les mêmes colonnes que le LDB et ajoute des variantes spécialisées.
+La Flèche elfique porte « Empaleuse, Perforante, Pointue » (`AA 08 l.377`).
+La Flèche elfe porte « Précise, Empaleuse, Perforante » (`LDB 62 l.116`).
 
 | Munition | Prix | Enc | Disponibilité | Portée | Dégâts | Atouts et Défauts |
 |---|---|---|---|---|---|---|
@@ -4395,7 +4397,7 @@ Dans l'Empire, toutes les armes à poudre noire se chargent **par le canon** : o
 
 Des **matériaux de bourre** (coton, feutre, papier) garantissent que les gaz propulsent la balle avec un maximum de force. La bourre est généralement ajoutée **avant et après la balle** pour la précision ; certains vétérans portent un emporte-pièce à bourre pour tailler des tampons toujours identiques (meilleure précision). — `AA 08 l.431`
 
-Mécaniquement, le rechargement complet d'une de ces armes est régi par son Défaut **Recharge** (Indice = nombre de Tests/Actions requis ; sans Indice = 1). Les **mèches** (arquebuse à mèche, tromblon à mèche) doivent en outre être **allumées** : avant d'utiliser une arquebuse à mèche, le tireur dépense une Action pour allumer la mèche, qui brûle ensuite très longtemps sauf si elle est éteinte par la pluie ou le vent. — `AA 08 l.440`, `l.3195`
+Mécaniquement, le rechargement complet d'une de ces armes est régi par son Défaut **Recharge** (Indice = nombre de Tests/Actions requis ; sans Indice = 1). Les **mèches** (arquebuse à mèche, tromblon à mèche) doivent en outre être **allumées** : avant d'utiliser une arquebuse à mèche, le tireur dépense une Action pour allumer la mèche, qui brûle ensuite très longtemps sauf si elle est éteinte par la pluie ou le vent. — `AA 08 l.440`, `l.484`
 
 ### Tableau des Armes à Poudre à Canon — Ingénierie (table)
 
@@ -4407,7 +4409,7 @@ Mécaniquement, le rechargement complet d'une de ces armes est régi par son Dé
 | Pistolet à répétition | 15 CO | 1 | Rare | 10 | +8 | À répétition 4, Dangereuse, Pistolet, Recharge 4 |
 | Poivrière | 12 CO | 1 | Rare | 10 | +8 | À répétition 4\*, Dangereuse, Pistolet, Recharge 4 |
 
-\* Uniquement si l'arme est maniée à deux mains. — `AA 08 l.446-454`, `l.3179`
+\* Uniquement si l'arme est maniée à deux mains. — `AA 08 l.448-455`, `l.469`
 
 ### Tableau des Armes à Poudre à Canon — Poudre Noire (table)
 
@@ -4425,23 +4427,23 @@ Mécaniquement, le rechargement complet d'une de ces armes est régi par son Dé
 | Tromblon *(2M)* | 2 CO | 1 | Limitée | 20 | +8 | Dangereuse, Recharge 2, Tir de zone 3 |
 | Tromblon à mèche *(2M)* | 1 CO | 1 | Rare | 20 | +7 | Dangereuse, Recharge 3, Tir de zone 3 |
 
-— `AA 08 l.456-466`
+— `AA 08 l.456-467`
 
 **Cas particuliers d'armes (texte) :**
-- **Arquebuse à mèche / Tromblon à mèche** : avant usage, dépenser une Action pour **allumer la mèche** (brûle longtemps sauf pluie/vent) ; le tromblon à mèche partage les mêmes inconvénients que l'arquebuse à mèche. — `AA 08 l.440`, `l.3195`
+- **Arquebuse à mèche / Tromblon à mèche** : avant usage, dépenser une Action pour **allumer la mèche** (brûle longtemps sauf pluie/vent) ; le tromblon à mèche partage les mêmes inconvénients que l'arquebuse à mèche. — `AA 08 l.440`, `l.484`
 - **Hache-arquebuse** : utilisable en arquebuse ou en hache ; si maniée **comme hache alors qu'elle est chargée**, une Maladresse décharge l'arme **dans le corps de l'utilisateur**. — `AA 08 l.442`
 - **Hallebarde-arquebuse** : si maniée **comme hallebarde alors qu'elle est chargée**, une Maladresse décharge l'arme **sur quiconque se tient juste derrière l'utilisateur**. — `AA 08 l.472`
 - **Pistolet patte de griffon** : une seule gâchette décharge **les six canons** ; recharger exige **six munitions et autant de poudre** (d'où Recharge 6). — `AA 08 l.480`
 - **Mortier à main** : ressemble à un tromblon court et trapu, conçu pour lancer bombes et gros objets ; une **Maladresse en rechargeant** fait **exploser** l'arme. — `AA 08 l.509`
-- **Poivrière** : quatre canons préchargés ; doit être tournée/réamorcée entre les tirs (très rapide vs un rechargement complet), mais **perd l'Atout *À répétition* si la deuxième main n'est pas libre**. — `AA 08 l.506`
-- **Pistolet à répétition / Arquebuse à répétition** : mécanismes d'horlogerie / chambres rotatives plaçant une nouvelle munition après chaque tir ; entre des mains non entraînées, le pistolet à répétition « a tendance à exploser ». — `AA 08 l.505`, `l.3230`
+- **Poivrière** : quatre canons préchargés ; doit être tournée/réamorcée entre les tirs (très rapide vs un rechargement complet), mais **perd l'Atout *À répétition* si la deuxième main n'est pas libre**. — `AA 08 l.513`
+- **Pistolet à répétition / Arquebuse à répétition** : mécanismes d'horlogerie / chambres rotatives plaçant une nouvelle munition après chaque tir ; entre des mains non entraînées, le pistolet à répétition « a tendance à exploser ». — `AA 08 l.505`, `l.511`
 - **Canne-pistolet** : pistolet à canon court dissimulé dans une canne ; la repérer comme arme exige un Test de **Perception Difficile (–20)**, ou **Très Difficile (–30)** si l'on connaît mal les armes à poudre noire. — `AA 08 l.507`
 
 ### Munitions improvisées non-poudre (arcs / frondes)
 
 Le chapitre VIII traite aussi des munitions improvisées non-poudre : on peut se procurer un **caillou** pour fronde par un Test étendu de **Survie en extérieur Facile (+40)** ou de **Perception Intermédiaire (+0)** totalisant **5 DR** ; un **bâton pointu droit** (flèche improvisée) en lieu boisé par un Test étendu de **Survie en extérieur Intermédiaire (+0)** totalisant **10 DR**. Les flèches improvisées, non taillées par un professionnel, **ont tendance à provoquer des Maladresses**. — `AA 08 l.386-389`
 
-*(Le supplément ne présente pas de tableau chiffré distinct de « munitions traditionnelles » : seules ces deux entrées de fabrication improvisée figurent. Le seul tableau chiffré de munitions est celui des munitions à poudre noire ci-dessous.)*
+Le tableau des munitions traditionnelles (`AA 08 l.366-381`) est repris dans la section « Munitions traditionnelles (AA — variantes complémentaires) ».
 
 ### Tableau des Munitions à Poudre Noire (table)
 
@@ -4459,44 +4461,44 @@ Le chapitre VIII traite aussi des munitions improvisées non-poudre : on peut se
 | Petites munitions et poudre (12) | 3/3 | 0 | Commune | Comme l'arme | – | Tir de zone +3 |
 | Poudre imprégnée d'*Aqshy* (12) | 1 CO | 0 | Exotique | +10 | +2 | Empaleuse, Perforante |
 
-— `AA 08 l.485-500` (Prix « 3/3 » = 3 sous d'argent / 3 sous d'argent par lot selon variante ; « 5/– », « 3/– », « 2/– » suivent la même notation sous d'argent de la source. La munition à poudre noire/ingénierie ajoute son propre Indice à la qualité indiquée, p. ex. « Tir de zone **+3** » = +3 à l'Indice de Tir de zone, « Recharge **+2** » = +2 à l'Indice de Recharge de l'arme.)*
+— `AA 08 l.486-500`. La table indique des majorations de qualité pour la Ferraille (« Tir de zone +3 ») et le Grappin (« Recharge +2 »).
 
 **Règles de munitions (texte) :**
-- **Balle de gros calibre** (petits boulets de canon pour armes à grand canon, haquebute/mortier) : le tireur **et** quiconque se tient à **2 mètres ou moins** doit réussir un **Test de Résistance Intermédiaire (+0)** sous peine de subir l'État **Assourdi**. — `AA 08 l.488-488`, `l.3233`
-- **Cartouche en papier** (paquet pré-rempli de munition + poudre + bourre) : les **Tests de rechargement** d'une arme appropriée bénéficient d'un **bonus de +10**. — `AA 08 l.492`, `l.3245`
-- **Bombe explosive / incendiaire** : souvent lancées à la main, ou chargées dans un mortier à main ; mèche allumée avant chargement ; au chargement, on **fixe la durée de mèche** (1 Round → explose à la fin du Round actuel ; 2 Rounds → à la fin du Round suivant). La munition **explose à l'instant déterminé**, qu'on ait tiré ou non, et **le MJ n'est pas tenu de prévenir**. — `AA 08 l.490-491`, `l.3237-3243`
-- **Cartouche et poudre de précision** : poudre experte + balles polies arrondies → tirs plus fiables et précis (Atout Précise). — `AA 08 l.493-494`, `l.3247`
-- **Ferraille et poudre** : attaques avec le **Trait de créature Infecté** (réf. WFJDR p.340). — `AA 08 l.495`, `l.3249`
-- **Grappin** (tiré par mortier à main uniquement, ~20 m de corde) : peut fixer une corde, ou **piéger un ennemi en fuite** (inflige l'État **Empêtré** si le coup touche) ; tir très bruyant. — `AA 08 l.496`, `l.3251-3255`
-- **Munitions improvisées et poudre** : le coût ne fournit que la poudre ; le tireur doit **trouver son propre caillou**. — `AA 08 l.496`, `l.3257`
-- **Petites munitions et poudre** : utilisées pour chasser oiseaux/petites créatures rapides ; il en faut ~une douzaine par tir. — `AA 08 l.498`, `l.3259`
+- **Balle de gros calibre** (petits boulets de canon pour armes à grand canon, haquebute/mortier) : le tireur **et** quiconque se tient à **2 mètres ou moins** doit réussir un **Test de Résistance Intermédiaire (+0)** sous peine de subir l'État **Assourdi**. — `AA 08 l.490`, `l.517`
+- **Cartouche en papier** (paquet pré-rempli de munition + poudre + bourre) : les **Tests de rechargement** d'une arme appropriée bénéficient d'un **bonus de +10**. — `AA 08 l.494`, `l.528`
+- **Bombe explosive / incendiaire** : souvent lancées à la main, ou chargées dans un mortier à main ; mèche allumée avant chargement ; au chargement, on **fixe la durée de mèche** (1 Round → explose à la fin du Round actuel ; 2 Rounds → à la fin du Round suivant). La munition **explose à l'instant déterminé**, qu'on ait tiré ou non, et **le MJ n'est pas tenu de prévenir**. — `AA 08 l.492-493`, `l.521-526`
+- **Cartouche et poudre de précision** : poudre experte + balles polies arrondies → tirs plus fiables et précis (Atout Précise). — `AA 08 l.495`, `l.530`
+- **Ferraille et poudre** : attaques avec le **Trait de créature Infecté** (réf. WFJDR p.340). — `AA 08 l.496`, `l.532`
+- **Grappin** (tiré par mortier à main uniquement, ~20 m de corde) : peut fixer une corde, ou **piéger un ennemi en fuite** (inflige l'État **Empêtré** si le coup touche) ; tir très bruyant. — `AA 08 l.497`, `l.534-536`
+- **Munitions improvisées et poudre** : le coût ne fournit que la poudre ; le tireur doit **trouver son propre caillou**. — `AA 08 l.498`, `l.538`
+- **Petites munitions et poudre** : utilisées pour chasser oiseaux/petites créatures rapides ; il en faut ~une douzaine par tir. — `AA 08 l.499`, `l.540`
 
 ### Poudre imprégnée d'*Aqshy* — règle de maladresse étendue (règle)
 
 Cette poudre, fabriquée à partir de sable du désert de Néhékhara imprégné d'*Aqshy* par le Collège Flamboyant d'Altdorf, a **davantage de puissance explosive** que la poudre normale (Dégâts **+2**, Portée **+10**) mais **use les canons bien plus vite**. Sa contrepartie mécanique :
 
-> « Tout Test raté incluant un 8 ou un 9 sur le dé des dizaines ou celui des unités est considéré comme une Maladresse quand vous utilisez cette poudre. » — `AA 08 l.544`
+> « Tout Test raté incluant un 8 ou un 9 sur le dé des dizaines ou celui des unités est considéré comme une Maladresse quand vous utilisez cette poudre. » — `AA 08 l.542`
 
-C'est une **extension de la règle de Maladresse** : la Maladresse standard d'une arme **Dangereuse** ne survient que sur un jet raté incluant un **9** (dizaines ou unités) ; avec la poudre d'*Aqshy*, le seuil s'élargit à **8 OU 9** (dizaines ou unités) sur **tout** Test raté de tir avec l'arme ainsi chargée. — `AA 08 l.499-500`, `l.3261`
+C'est une **extension de la règle de Maladresse** : la Maladresse standard d'une arme **Dangereuse** ne survient que sur un jet raté incluant un **9** (dizaines ou unités) ; avec la poudre d'*Aqshy*, le seuil s'élargit à **8 OU 9** (dizaines ou unités) sur **tout** Test raté de tir avec l'arme ainsi chargée. — `AA 08 l.500`, `l.542`
 
 **Sources RAW** :
 - `AA 08 l.421-425` — Généralités : poudre versée par le canon (corne/récipient de dosage), balles de plomb en sac huilé, canon étroit (précision, ex. long fusil du Hochland) vs canon large (recharge/tir rapides) ; fusils de chasse à la guerre.
 - `AA 08 l.428-431` — Procédure de chargement par le canon (poudre → balle → bourre → baguette ; poudre d'amorçage ; bourre avant/après pour la précision ; emporte-pièce à bourre).
-- `AA 08 l.440`, `l.3195` — Mèche : Action pour l'allumer avant usage ; éteinte par pluie/vent ; le tromblon à mèche partage les inconvénients de l'arquebuse à mèche.
-- `AA 08 l.442`, `l.3183`, `l.3189`, `l.3222`, `l.3224`, `l.3226`, `l.3228`, `l.3230` — Cas particuliers d'armes : hache-/hallebarde-arquebuse (Maladresse décharge dans/derrière), patte de griffon (6 canons), arquebuse/pistolet à répétition, poivrière (4 canons, perd À répétition si 2e main occupée), canne-pistolet (Perception −20/−30 pour la repérer), mortier à main (Maladresse au rechargement = explosion).
-- `AA 08 l.445-468` — Tableaux des Armes à Poudre à Canon : section Ingénierie (l.3156-3164) + section Poudre Noire (l.3166-3177) + note « \* à deux mains » (l.3179) ; stats verbatim (Prix/Enc/Disponibilité/Portée/Dégâts/Atouts et Défauts). **Le format `Qualité — p. N` encode l'Indice N de la qualité (pas une page)** : Recharge — p. N = Recharge N ; Tir de zone — p. N = Tir de zone N.
-- `AA 08 l.485-500` — Tableau des Munitions à Poudre Noire : 11 munitions, stats verbatim (gros calibre, balle, bombes, cartouches, ferraille, grappin, improvisées, petites, *Aqshy*).
-- `AA 08 l.516`, `l.3245`, `l.3237-3243`, `l.3247`, `l.3249`, `l.3251-3255`, `l.3257`, `l.3259` — Règles de munitions : gros calibre → Assourdi (Résistance Intermédiaire, 2 m) ; cartouche en papier → +10 rechargement ; bombes (durée de mèche) ; précision → Précise ; ferraille → Infecté ; grappin → Empêtré ; improvisées → caillou à trouver ; petites → ~12 par tir.
-- `AA 08 l.545` — Poudre d'*Aqshy* : tout Test raté incluant un 8 ou 9 (dizaines/unités) = Maladresse (extension du seuil Dangereuse de 9 à 8/9).
+- `AA 08 l.440`, `l.484` — Mèche : Action pour l'allumer avant usage ; éteinte par pluie/vent ; le tromblon à mèche partage les inconvénients de l'arquebuse à mèche.
+- `AA 08 l.442`, `l.472`, `l.480`, `l.505`, `l.507`, `l.509`, `l.511`, `l.513` — Cas particuliers d'armes : hache-/hallebarde-arquebuse (Maladresse décharge dans/derrière), patte de griffon (6 canons), arquebuse/pistolet à répétition, poivrière (4 canons, perd À répétition si 2e main occupée), canne-pistolet (Perception −20/−30 pour la repérer), mortier à main (Maladresse au rechargement = explosion).
+- `AA 08 l.444-469` — Tableaux des Armes à Poudre à Canon, avec les sections Ingénierie (l.450-455) et Poudre Noire (l.456-467) et la note sur le maniement à deux mains (l.469).
+- `AA 08 l.486-500` — Tableau des Munitions à Poudre Noire : 11 munitions, stats verbatim (gros calibre, balle, bombes, cartouches, ferraille, grappin, improvisées, petites, *Aqshy*).
+- `AA 08 l.517`, `l.528`, `l.521-526`, `l.530`, `l.532`, `l.534-536`, `l.538`, `l.540` — Règles de munitions : gros calibre → Assourdi (Résistance Intermédiaire, 2 m) ; cartouche en papier → +10 rechargement ; bombes (durée de mèche) ; précision → Précise ; ferraille → Infecté ; grappin → Empêtré ; improvisées → caillou à trouver ; petites → ~12 par tir.
+- `AA 08 l.542` — Poudre d'*Aqshy* : tout Test raté incluant un 8 ou 9 (dizaines/unités) = Maladresse (extension du seuil Dangereuse de 9 à 8/9).
 - `AA 08 l.386-389` — Munitions improvisées non-poudre (caillou de fronde 5 DR ; bâton pointu 10 DR ; flèches improvisées → Maladresses).
 
 > « Une seule gâchette décharge les six canons et pour recharger, il faut six munitions et la même quantité de poudre. » — `AA 08 l.480` (Pistolet patte de griffon)
 
 > « Les Tests effectués pour recharger une arme du type approprié avec ces munitions bénéficient d'un bonus de +10. » — `AA 08 l.528` (Cartouche en papier)
 
-> « Dangereuse, Recharge 2, Tir de zone — p. 3 » — `AA 08 l.466` (Tromblon : preuve interne que « — p. N » est l'Indice de la qualité précédente, pas une page — la Recharge 2 y est déjà explicite.)
+> « Dangereuse, Recharge 2, Tir de zone 3 » — `AA 08 l.466` (Tromblon)
 
-**Voir aussi** : Armes à distance et munitions (table LDB) — *armes-distance-munitions-tables* (résolution identique du `— p. N` = Indice) ; Qualités/Défauts d'armes (Recharge, Dangereuse, À répétition/Salve, Tir de zone, Empaleuse, Percutante, Perforante, Imprécise, Précise, Pointue, Explosion) ; États Assourdi / Empêtré / Enflammé ; bandes de portée (LDB 62) ; Maladresse au combat (LDB 13/14) ; Trait Infecté (LDB 85) ; Armes d'équipe maniées en sous-effectif (AA 10 p.125).
+**Voir aussi** : Armes à distance et munitions (table LDB) — *armes-distance-munitions-tables* ; Qualités/Défauts d'armes (Recharge, Dangereuse, À répétition/Salve, Tir de zone, Empaleuse, Percutante, Perforante, Imprécise, Précise, Pointue, Explosion) ; États Assourdi / Empêtré / Enflammé ; bandes de portée (LDB 62) ; Maladresse au combat (LDB 13/14) ; Trait Infecté (LDB 85) ; Armes d'équipe maniées en sous-effectif (AA 10 p.125).
 
 **Implémente :** [État calculé](../implemente.generated.md#4ecombatpoudre-impregnee-d-aqshy-regle-de-maladresse-etendue-regle)
 
@@ -6315,8 +6317,8 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 - La ref l.2902 pour les armes de cavalerie pointe sur le titre de section ("## Les Armes de Cavalerie") ; le texte commence à l.2903. Décalage mineur identique.
 
 ### AA : armes à poudre à canon et munitions — tables ⚠
-- MINEUR — Balle de gros calibre / règle Assourdi : le topic écrit « le tireur **et** quiconque se tient à 2 mètres ou moins » mais la source (l.3233) dit « Ceux qui tirent avec ces munitions **ou** se tiennent à 2 mètres ou moins de l'utilisateur » — la conjonction est OU (deux groupes distincts), pas ET. Effet pratique similaire, mais la formulation est inexacte.
-- MINEUR — Description de la poudre imprégnée d'Aqshy (section règle, pas la citation verbatim) : le topic simplifie « par des moyens connus uniquement du Collège Flamboyant » en « par le Collège Flamboyant » et omet « quantité supplémentaire » (source AA 8 l.544 : « imprégné d'une quantité supplémentaire d'Aqshy par des moyens connus uniquement du Collège Flamboyant d'Altdorf »). La citation verbatim en bas de la section est exacte. Acceptable comme paraphrase mais l'imprecision mérite d'être signalée.
+- MINEUR — Balle de gros calibre / règle Assourdi : le topic écrit « le tireur **et** quiconque se tient à 2 mètres ou moins » mais la source (AA 08 l.517) dit « Ceux qui tirent avec ces munitions **ou** se tiennent à 2 mètres ou moins de l'utilisateur » — la conjonction est OU (deux groupes distincts), pas ET. Effet pratique similaire, mais la formulation est inexacte.
+- MINEUR — Description de la poudre imprégnée d'Aqshy (section règle, pas la citation verbatim) : le topic simplifie « par des moyens connus uniquement du Collège Flamboyant » en « par le Collège Flamboyant » et omet « quantité supplémentaire » (source AA 8 l.542 : « imprégné d'une quantité supplémentaire d'Aqshy par des moyens connus uniquement du Collège Flamboyant d'Altdorf »). La citation verbatim en bas de la section est exacte. Acceptable comme paraphrase mais l'imprecision mérite d'être signalée.
 
 ### AA : Combat Monté étendu et dressage ⚠
 - [STRUCTURAL] La règle 'passer outre' (Charge traversante, l.3347-3349) apparaît dans la source sous le titre 'Les Attaques Contre les Quadrupèdes' (l.3334), séparée du trait 'Dressé (Cavalerie de Choc)' par la table de localisation. Le markdown la déplace à l'intérieur de la section Cavalerie de Choc. L'attribution est correcte (l.3347 dit bien 'ce Trait'), mais la structure éditoriale est réorganisée par rapport à la source.
