@@ -218,9 +218,10 @@ func _piece_d_avant(temoin: Node3D, kit: Node3D, volume: VolumeDeScene, a: Dicti
 	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, volume.metres_par_case, 0.0)
 	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
 	if a.famille == _servie:
-		piece.scale = MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, LONGUEUR_DU_MODELE_M, HAUTEUR_DU_MODELE_M,
+		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, LONGUEUR_DU_MODELE_M, HAUTEUR_DU_MODELE_M,
 			volume.metres_par_case)
-		piece.add_child(volume.piece_peinte(_modele, a.piece, a.palette).duplicate())
+		piece.scale = etirement
+		piece.add_child(volume.piece_peinte(_modele, a.piece, a.palette, etirement).duplicate())
 	else:
 		piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, volume.metres_par_case)
 		piece.add_child(kit.get_node("%s--%s" % [a.famille, a.piece]).duplicate())

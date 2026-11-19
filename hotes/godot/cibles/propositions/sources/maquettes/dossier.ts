@@ -33,7 +33,7 @@ export default {
       { bloc: 'aBord', porte: 15, capacite: 300, possessions: [{ genre: 'mule', nom: 'Marguerite', modele: 'Mule', de: 'bjorn', enc: 15 }] }]),
     {
       nom: 'dossier-de-la-bete', gabarit: 'fiche',
-      possession: { genre: 'mule', nom: 'Marguerit', saisie: true, modele: 'Mule', nature: 'Bête', de: 'bjorn', prix: 1200 },
+      possession: { genre: 'mule', nom: 'Marguerite', saisie: true, modele: 'Mule', nature: 'Bête', de: 'bjorn', prix: 1200 },
       mesures: [{ nom: 'Blessures', valeur: 12, sur: 12, teinte: 'cire' }, { nom: 'Charge', valeur: 9, sur: 14, teinte: 'or' }],
       compteurs: [{ nom: 'Enc de charge', valeur: 14 }, { nom: 'Enc de place à bord', valeur: 6 }, { nom: 'Mouvement', valeur: 4 }],
       profil: { titre: 'Profil de la bête', caracs: [

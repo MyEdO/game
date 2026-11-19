@@ -31,8 +31,8 @@ export default {
         puces: [{ rubrique: 'Max', valeur: 'Bonus de Sociabilité' }, { rubrique: 'Test', valeur: 'Marchandage' }], description: DESCRIPTION, liens: ['Compétence Marchandage'],
         renvois: [
           { rubrique: 'Races', compte: 2, noms: ['Halflings (Piedfoin)', 'Halflings (Rumster)'] },
-          { rubrique: 'Carrières (par rang)', compte: 24, noms: ['Apothicaire (N2)', 'Artisan (N2)', 'Artiste (N3)', 'Batelier (N3)', 'Bourgeois (N2)', 'Cartographe (N4)', 'Cavalier Léger (N4)', 'Charlatan (N3)', 'Cocher (N3)', 'Colporteur (N2)'] },
-          { rubrique: 'Créatures', compte: 19, noms: ['Alfric « Demi-nez » Brisenclume', 'Andrea Bruhn', 'Bourgmestre', 'Chef Contrebandier', 'Citadin', 'Fourgue'] },
+          { rubrique: 'Carrières (par rang)', compte: 24, noms: ['Apothicaire (N2)', 'Artisan (N2)', 'Artiste (N3)'] },
+          { rubrique: 'Créatures', compte: 19, noms: ['Alfric « Demi-nez » Brisenclume', 'Andrea Bruhn'] },
         ],
       },
     },

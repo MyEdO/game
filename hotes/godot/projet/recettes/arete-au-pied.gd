@@ -16,7 +16,10 @@ extends SceneTree
 ## de bout en bout quelle que soit sa hauteur, muret d'un mètre et diagonale compris, sur un plateau de 2 m comme de 3 m
 ## par case, à l'échelle métrique en épaisseur, son +Z vers son dehors (`(-sens.y, sens.x)`) ; chaque surface de chacun
 ## de ses maillages, vue et en ombre, dans une matière de la couleur de la palette de l'arête à l'emplacement de cette
-## surface, la croisée d'une fenêtre comprise. Posée, lue puis vidée tour à tour
+## surface, la croisée d'une fenêtre comprise ; chaque surface d'une matière texturée au projet porte sa texture neutre,
+## teinte de la palette, son relief, projetée sur les trois axes de la pièce, un motif tous les
+## `MiseEnPage.METRES_PAR_MOTIF` de la pièce posée sur chaque axe quel que soit son étirement (#4471), et la surface
+## `corps` (la pierre, le torchis) est de celles-là. Posée, lue puis vidée tour à tour
 ## (`VolumeDeScene.vider`), elle ne fait pas croître les maillages et les matières teints du volume. Les deux portes
 ## d'une ouverture de deux arêtes ont chacune leur groupe, et pour pièce le nœud `<pièce>--<position>` du modèle quand
 ## il l'a, sinon `<pièce>` (`VolumeDeScene.noeud_de_la_piece`) ; une pièce que le modèle n'a pas se pose hors de lui.
@@ -194,6 +197,7 @@ func _du_modele_servi(volume: VolumeDeScene, famille: String, surfaces: Array) -
 		_centree(a.cle, piece, a, EPSILON if a.piece == Noyau.Piece.MUR else 0.5)
 		_pose_de_l_instance(volume, groupe, a)
 		var peints := _peinte(groupe, a.cle, surfaces)
+		_texturee(groupe, a, surfaces)
 		if a.piece == Noyau.Piece.FENETRE and croisee and not peints.has("vet1"):
 			_fautes.append("fenetre : aucune surface de la croisée (vet1) peinte, peintes %s" % [peints])
 	volume.poser_les_aretes(aretes.map(func(a: Dictionary) -> Dictionary: return a.duplicate(true)))
@@ -351,6 +355,40 @@ func _peinte(groupe: Node3D, cle: String, surfaces: Array) -> Dictionary:
 	if peints.is_empty():
 		_fautes.append("%s : aucune surface peinte de la palette" % cle)
 	return peints
+
+
+## Chaque surface de chaque maillage vu du groupe `groupe` de l'arête `a` dont la matière (`surfaces`, par le nom du
+## matériau) a sa texture au projet : texture neutre et relief de sa matière, projetés sur les trois axes, un motif tous
+## les `MiseEnPage.METRES_PAR_MOTIF` de la pièce posée sur chaque axe, lu à l'échelle de son instance ; et l'emplacement
+## `corps` en est.
+func _texturee(groupe: Node3D, a: Dictionary, surfaces: Array) -> void:
+	var matieres := {}
+	for surface: Dictionary in surfaces:
+		matieres[surface.nom] = surface
+	var corps := false
+	for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
+		var echelles := vu.global_transform.basis.get_scale()
+		var mesh := vu.multimesh.mesh
+		for rang in mesh.get_surface_count():
+			var matiere: BaseMaterial3D = mesh.surface_get_material(rang)
+			var surface: Dictionary = matieres.get(matiere.resource_name, {})
+			if surface.is_empty() or not ResourceLoader.exists(VolumeDeScene.texture_de(surface.matiere)):
+				continue
+			corps = corps or surface.palette == "corps"
+			var lieu := "%s, %s, surface %s" % [a.cle, vu.name, surface.nom]
+			if matiere.albedo_texture != load(VolumeDeScene.texture_neutre_de(surface.matiere)):
+				_fautes.append("%s : albédo %s, attendu la texture neutre de %s" % [lieu, matiere.albedo_texture,
+					surface.matiere])
+			if not matiere.uv1_triplanar or matiere.uv1_world_triplanar:
+				_fautes.append("%s : texture non projetée sur les trois axes de la pièce" % lieu)
+			if not matiere.normal_enabled or matiere.normal_texture != load(VolumeDeScene.relief_de(surface.matiere)):
+				_fautes.append("%s : sans le relief de %s" % [lieu, surface.matiere])
+			var motif := echelles * METRES_PAR_CASE / matiere.uv1_scale
+			if not motif.is_equal_approx(Vector3.ONE * MiseEnPage.METRES_PAR_MOTIF):
+				_fautes.append("%s : un motif tous les %s m de la pièce posée, attendu %s m" % [lieu, motif,
+					MiseEnPage.METRES_PAR_MOTIF])
+	if not corps:
+		_fautes.append("%s : la surface du corps n'a pas la texture de sa matière" % a.cle)
 
 
 ## Chaque groupe posé sous `aretes`, par les clés de ses arêtes, et le nombre de ses instances au nombre de ses arêtes.

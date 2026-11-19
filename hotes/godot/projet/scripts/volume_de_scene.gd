@@ -118,8 +118,8 @@ var _modeles_d_arete := {}
 var _en_lecture := {}
 var _illisibles := {}
 var _aretes_recues: Array = []
-## Par pièce d'un modèle d'arête et palette, `<id>|<pièce>|<palette>`, la pièce peinte hors de l'arbre
-## (`piece_peinte`).
+## Par pièce d'un modèle d'arête, palette et étirement, `<id>|<pièce>|<palette>|<étirement>`, la pièce peinte hors
+## de l'arbre (`piece_peinte`).
 var _pieces_peintes := {}
 ## Les clés des arêtes cachées à la caméra (`cacher`), indexées (`aretes`, chaque clé à `true`), et celles des nappes
 ## de toit et des couronnes cachées, en tableaux (`toits`, `couronnes`).
@@ -854,15 +854,17 @@ static func texture_neutre_de(nom: String) -> String:
 ## `materiau`, une matière standard ou du shader de monde (qui nomme ses paramètres comme les propriétés de la matière
 ## standard), habillé de la texture `albedo` si elle est au projet, `texture_de(nom)` ou `texture_neutre_de(nom)`, et
 ## du relief de la matière `nom` s'il y est : projetés sur les trois axes du repère du mesh si `projetee`, lus aux UV
-## du mesh, en mètres, sinon (#4313) ; un motif tous les `MiseEnPage.METRES_PAR_MOTIF`.
-static func texturer(materiau: Material, nom: String, albedo: String, projetee: bool) -> void:
+## du mesh, en mètres, sinon (#4313) ; un motif tous les `MiseEnPage.METRES_PAR_MOTIF` du repère, ou à l'échelle
+## `motif`.
+static func texturer(materiau: Material, nom: String, albedo: String, projetee: bool,
+		motif := MiseEnPage.echelle_de_motif()) -> void:
 	if not ResourceLoader.exists(albedo):
 		return
 	var propriete := "shader_parameter/" if materiau is ShaderMaterial else ""
 	materiau.set(propriete + "albedo_texture", load(albedo))
 	materiau.set(propriete + "uv1_triplanar", projetee)
 	materiau.set(propriete + "uv1_triplanar_sharpness", NETTETE_DU_MOTIF)
-	materiau.set(propriete + "uv1_scale", MiseEnPage.echelle_de_motif())
+	materiau.set(propriete + "uv1_scale", motif)
 	if ResourceLoader.exists(relief_de(nom)):
 		materiau.set(propriete + "normal_enabled", true)
 		materiau.set(propriete + "normal_texture", load(relief_de(nom)))
@@ -890,8 +892,9 @@ func _groupe(aretes: Array) -> Node3D:
 	var noeud := "" if modele.is_empty() else noeud_de_la_piece(_modeles_d_arete[modele].scene, a.piece, a.position)
 	if not noeud.is_empty():
 		var taille: Vector3 = _modeles_d_arete[modele].taille
-		groupe.scale = MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, metres_par_case)
-		groupe.add_child(piece_peinte(modele, noeud, a.palette).duplicate())
+		var etirement := MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, taille.x, taille.y, metres_par_case)
+		groupe.scale = etirement
+		groupe.add_child(piece_peinte(modele, noeud, a.palette, etirement).duplicate())
 	elif _kit != null and a.famille != null and _kit.has_node(nom):
 		groupe.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, metres_par_case)
 		groupe.add_child(_kit.get_node(nom).duplicate())
@@ -926,17 +929,20 @@ static func noeud_de_la_piece(scene: Node, piece: String, position: String) -> S
 	return piece if scene.has_node(piece) else ""
 
 
-## Le nœud `piece` (`noeud_de_la_piece`, un nœud racine) du modèle d'arête lu `modele`, hors de l'arbre, une par
-## palette : ses surfaces peintes de `palette` (`MontageDeComposition.peindre`, les `surfaces` du modèle servi) dans la
-## matière de chaque maillage, jamais aux sommets ni en matière propre au nœud, que les instances groupées perdraient.
-func piece_peinte(modele: String, piece: String, palette: Dictionary) -> Node3D:
-	var cle := "%s|%s|%s" % [modele, piece, palette]
+## Le nœud `piece` (`noeud_de_la_piece`, un nœud racine) du modèle d'arête lu `modele`, hors de l'arbre, une par palette et
+## par étirement : ses surfaces peintes de `palette` (`MontageDeComposition.peindre`, les `surfaces` du modèle servi)
+## dans la matière de chaque maillage, jamais aux sommets ni en matière propre au nœud, que les instances groupées
+## perdraient ; la texture d'une matière projetée sur les trois axes de la pièce, à l'échelle qui garde son motif
+## métrique sur la pièce étirée de `etirement` (`MiseEnPage.echelle_de_motif_etire`).
+func piece_peinte(modele: String, piece: String, palette: Dictionary, etirement: Vector3) -> Node3D:
+	var cle := "%s|%s|%s|%s" % [modele, piece, palette, etirement]
 	if not _pieces_peintes.has(cle):
 		var peinte: Node3D = _modeles_d_arete[modele].scene.get_node(piece).duplicate()
 		var maillages := peinte.find_children("*", "MeshInstance3D", true, false)
 		if peinte is MeshInstance3D:
 			maillages.append(peinte)
-		MontageDeComposition.peindre(maillages, MontageDeComposition.modeles.surfaces[modele], null, palette, {}, false)
+		MontageDeComposition.peindre(maillages, MontageDeComposition.modeles.surfaces[modele], null, palette, {}, false,
+			{}, {}, MiseEnPage.echelle_de_motif_etire(etirement, metres_par_case))
 		for maillage: MeshInstance3D in maillages:
 			var mesh: Mesh = maillage.mesh.duplicate()
 			for rang in mesh.get_surface_count():

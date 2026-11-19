@@ -11,7 +11,7 @@ Annexe du skill `orchestrer-des-agents` (`.claude/skills/orchestrer-des-agents/S
 | Rédaction fidèle au Source (fiches, synthèses de règles) | `redacteur` | opus | medium |
 | Question de règle de jeu, avant l'utilisateur | `arbitre-raw` | opus | medium |
 | Élément 3D (GLB et manifeste schéma 3) | `modeleur` | fable | medium |
-| Maquette ou pièce visuelle à dessiner (fiche `user-doctrine-fable-reserve-au-design`) | `general-purpose` | fable | medium |
+| Conception de maquette d'interface (fiche `user-doctrine-fable-reserve-au-design`) | `general-purpose` | fable | medium |
 | Écran de l'hôte Godot depuis sa maquette | `ecraniste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
 | Joueur cloisonné de table simulée | `joueur` | sonnet | low |

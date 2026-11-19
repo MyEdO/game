@@ -93,7 +93,7 @@
 .chip{padding:0 9px 1px;font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--encre);border:1px solid var(--trait-encre);border-radius:2px;background:var(--voile)}
 .chip.neuf{color:var(--ivoire);border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire),var(--sang))}
 #affaire .plaque.epingle{flex:none;width:136px;margin-left:auto}
-#affaire .lectures{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);column-gap:26px;margin-top:14px;padding-bottom:18px;overflow-y:auto;scrollbar-width:none;mask-image:linear-gradient(to bottom,#000 calc(100% - 36px),transparent)}
+#affaire .lectures{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);column-gap:26px;margin-top:14px;padding-bottom:12px;overflow-y:auto;scrollbar-width:none}
 #affaire .r{font-size:12.5px;color:var(--rouille);margin-bottom:7px}
 .lu{padding:14px 20px 12px;border-radius:2px;background:var(--voile);box-shadow:0 0 0 1px var(--filet-encre),0 3px 8px var(--brou)}
 .lu+.lu{margin-top:12px}
@@ -102,4 +102,4 @@
 .lu p{margin:0 0 6px;font-family:"Fell";font-size:15px;line-height:20.5px;color:var(--encre)}
 .lu.manuscrite p{font-style:italic}
 .lu.attenue{opacity:.82}
-.lu.attenue p{font-size:13.5px;line-height:18.5px}
+.lu.attenue p{margin-bottom:3px;font-size:13.5px;line-height:18.5px}
