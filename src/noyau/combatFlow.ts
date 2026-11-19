@@ -6742,28 +6742,22 @@ export function applyCast(
   /** DR du Sort tel que le subit `t` — SITE UNIQUE lu par les Flows, les zones, l'invocation, le NI. */
   const slFor = (t: Combatant): number => spellSLFor(res.sl, t, zoneMod(t));
 
-  // Incantation CRITIQUE (LDB 46 l.26-32) — SORTS seulement (Test de Langue (Magick)) :
-  // les Vents octroient une puissance supplémentaire (choix du lanceur), mais cela a un
-  // prix — Imparfaite Mineure, sauf Talent Diction instinctive.
   const isSort = !castInfoIsPrayer(spell);
   const sourceSpell = sourceDissipableDe(spell, caster);
-  // Un Sort DISSIPÉ (Contre-sort gagnant, LDB 46 l.156) n'est pas lancé : pas d'effet Critique
-  // — « Puissance totale » (l.57) repêche un DR insuffisant, pas une Dissipation.
-  const crit = !!res.isCritical && isSort && !res.dispelled;
+  // LDB 46 l.28-32, l.156 ; VDM 02 l.52-56
+  const incantationCritique = isSort && res.isCritical === true;
+  const effetCritique = incantationCritique && !res.dispelled ? critChoice : undefined;
   // Axe Dégâts de la Surincantation (`VDM 02 l.198`) : le résultat FIGÉ au jet (`pc.result`) ignorait
   // l'allocation (encore à venir) — on la reverse ici, avant tout autre recalcul de Projectile.
   if (missile && res.cast && overcastDamageSteps > 0 && ancre) {
     res = evaluateMissile(caster, ancre, spell, res, undefined, overcastDamageSteps);
   }
-  const choice = critChoice;
-  if (crit) {
-    if (choice === 'puissance') {
-      const full = applyFullPower(res);
-      if (full !== res) {
-        res = missile && ancre
-          ? evaluateMissile(caster, ancre, spell, full, undefined, overcastDamageSteps)
-          : { ...full, log: `${caster.label} lance ${spell.label} (Puissance totale — Critique).` };
-      }
+  if (effetCritique === 'puissance') {
+    const full = applyFullPower(res);
+    if (full !== res) {
+      res = missile && ancre
+        ? evaluateMissile(caster, ancre, spell, full, undefined, overcastDamageSteps)
+        : { ...full, log: `${caster.label} lance ${spell.label} (Puissance totale — Critique).` };
     }
   }
   const logLines: string[] = res.touche ? [] : [res.log];
@@ -6788,7 +6782,9 @@ export function applyCast(
   const sorcery = isSort && rule('magie-sorcellerie') === true && isSorceryDomain(spell);
   // Sévérité DÉCIDÉE UNE fois (source unique du delta) : quand elle tombe, l'Imparfaite Mineure du
   // fumble est SUBSUMÉE (`malevolentHandled`), sinon on l'appliquerait en double.
-  const malevolent = malevolentInfluenceSeverity(res.roll, evaluateTest(res.roll, res.target).success, nearCorruption, res.isFumble);
+  const jetReussi = evaluateTest(res.roll, res.target).success;
+  const echecApresFocalisation = focusedNI0 && !jetReussi; // LDB 46 l.132
+  const malevolent = malevolentInfluenceSeverity(res.roll, jetReussi, nearCorruption, res.isFumble);
   const malevolentHandled = malevolent !== null;
   /** Contrecoup de CE lancement : les cibles de l'incantation reçoivent les `targetOps` de la ligne
    *  tirée (« vos cibles », LDB 40 l.64). */
@@ -6801,8 +6797,8 @@ export function applyCast(
     if (malevolent) logLines.push(...contrecoup(malevolent, optsDuSort));
     else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...contrecoup('mineure', { sorceryCorruption: true, domainId: spell.domainId?.id }));
   };
-  if (crit) {
-    if (choice) logLines.push(tr(choice === 'critique' ? 'cf.incantationCritique' : choice === 'puissance' ? 'cf.surincantationPleinePuissance' : 'cf.surincantationIrresistible'));
+  if (effetCritique) logLines.push(tr(effetCritique === 'critique' ? 'cf.incantationCritique' : effetCritique === 'puissance' ? 'cf.surincantationPleinePuissance' : 'cf.surincantationIrresistible'));
+  if (incantationCritique) {
     if (!hasInstinctiveDiction(caster)) logLines.push(...contrecoup('mineure', optsDuSort));
     else logLines.push(tr('cf.dictionInstinctive'));
   }
@@ -6826,8 +6822,7 @@ export function applyCast(
      *  supplémentaire de Surincantation, maillon de rebond), jamais recomposée à la reprise. */
     const toucheDe = (t: Combatant, mres: CastResult & Partial<MissileResult>, rebond?: RebondDeChaine): ToucheDeProjectile => ({
       casterId: caster.id, de: caster.id, targetId: t.id, spell: structuredClone(spell), mres, zoneTalentMod: zoneMod(t), // #2097
-      // `crit` = double d'Incantation, `choice` = Incantation Critique (LDB 46 l.30).
-      critWound: !!(crit && choice === 'critique'),
+      critWound: effetCritique === 'critique', // LDB 46 l.30
       overcastDamageSteps, overcastDurationSteps,
       ...(chosenTableRolls != null ? { chosenTableRolls } : {}),
       ...(extras?.conjureForm ? { conjureForm: extras.conjureForm } : {}),
@@ -6873,7 +6868,7 @@ export function applyCast(
     if (res.cast && ancre) placeSpellZone(get, caster, ancre, spell, missileSpec, slFor(ancre), durationMult, durationBonusRounds, logLines);
     // LDB 46 l.85 ; LDB 46 l.132
     if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
-    else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
+    else if (echecApresFocalisation && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
   } else {
     if (res.cast) {
@@ -6905,7 +6900,7 @@ export function applyCast(
             continue;
           }
         }
-        const avantLeCoup = crit && choice === 'critique' ? instantaneAvantLeCoup(t) : null; // LDB 17 l.32 — avant les Dégâts du Sort
+        const avantLeCoup = effetCritique === 'critique' ? instantaneAvantLeCoup(t) : null; // LDB 17 l.32
         logLines.push(
           // Tout sort passe par le système Flow/EffectOp : `spell.effects` (Flow éditable, feuilles
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
@@ -6985,8 +6980,7 @@ export function applyCast(
       // Prière → Colère des dieux ; Sort → Incantation Imparfaite Mineure (subsumée par la Règle du 8 sur « 88 »).
       if (castInfoIsPrayer(spell)) logLines.push(...contrecoup('colere', { componentDowngrade: componentUsed }));
       else if (!malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
-    } else if (focusedNI0 && !malevolentHandled) {
-      // Sort focalisé dont l'incantation échoue (sans Maladresse) → Imparfaite Mineure.
+    } else if (echecApresFocalisation && !malevolentHandled) {
       logLines.push(...contrecoup('mineure', optsDuSort));
     }
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)

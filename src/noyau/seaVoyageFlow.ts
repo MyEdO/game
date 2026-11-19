@@ -3041,10 +3041,13 @@ export const TABLES = {
       if (!vessel || !inf) return;
       const rng = battleRng();
       const { total: progres, done, sl } = extendedTestStep(inf.progres, step.result, inf.drCible);
-      get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
+      const heures = rollDice(1, 10, rng);
       const { infestation: _exterminee, ...sansInfestation } = vessel;
       set({ vessel: done ? sansInfestation : { ...vessel, infestation: { ...inf, progres, ...(sl < 0 ? { assaillie: true as const } : {}) } } });
-      const j = [t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.drCible })];
+      const j = [
+        t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.drCible }),
+        t('sv.dureeHeures', { n: heures }),
+      ];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
