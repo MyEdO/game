@@ -4,6 +4,7 @@ import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { setRule, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../battleRng';
 import { hasCondition, COND, pendingPlusExtensions } from '../../engine/conditions';
+import { engage } from '../../engine/engagement';
 import type { ActiveEffect, Combatant } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
@@ -83,5 +84,19 @@ describe('roundHooks — Durée « + » PNJ (LDB 47 l.311, #543) : arbitrage —
     const c = combatant({ activeEffects: [plusEffect()], characteristics: { endurance: 1, 'force-mentale': 5 } as never });
     runCombatHooks('onRoundEnd', ctx([c]));
     expect(c.activeEffects ?? []).toHaveLength(0);
+  });
+});
+
+describe('roundHooks — Surnombre (LDB 14 l.110, LDB 10 l.765)', () => {
+  it('quatre adversaires Engagés font perdre un Avantage au défenseur qui compte pour deux', () => {
+    const cible = combatant({ id: 'c', kind: 'heros', advantage: 2, talents: [{ talentId: 'maitrise-du-combat', times: 1 }] });
+    const adversaires = ['e1', 'e2', 'e3', 'e4'].map((id) => combatant({ id }));
+    for (const e of adversaires.slice(0, 3)) engage(cible, e);
+    const bataille = ctx([cible, ...adversaires]);
+    runCombatHooks('onRoundEnd', bataille);
+    expect(cible.advantage).toBe(2);
+    engage(cible, adversaires[3]);
+    runCombatHooks('onRoundEnd', bataille);
+    expect(cible.advantage).toBe(1);
   });
 });

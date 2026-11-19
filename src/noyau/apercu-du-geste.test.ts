@@ -18,6 +18,7 @@ import { initialNet } from './etat';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
+import { engage } from '../engine/engagement';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Ce que l'affichage dira de cette Difficulté (`noyau/difficultyText`, celle de la modale). */
@@ -55,14 +56,13 @@ function scene(w = 8, h = 8): Scene {
 const mkGet = (combatants: Combatant[]): (() => JeuDuNoyau) =>
   (() => ({ scene: scene(), battle: { combatants, movementUsed: 0, order: ['A'], turn: 0, log: [] }, facing: {}, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
 
-describe('G1 — la Difficulté aperçue d’un geste COMBINÉ compte l’attaquant à sa case d’ARRIVÉE', () => {
-  //  allié en (5,0) et cible en (6,0) : l'attaquant qui arrive en (7,0) est le 2ᵉ au contact
-  //  → Surnombre 2 c.1 = +20 (`LDB 14 l.110`), donc « Accessible (+20) ».
+describe('G1 — le geste COMBINÉ compte l’Engagement de l’attaque préparée (LDB 14 l.110)', () => {
   const dest = { x: 7, y: 0 };
   const setup = () => {
     const a = guerrier({ id: 'A', pos: { x: 0, y: 0 } });
     const allie = guerrier({ id: 'ALLIE', label: 'Allié', pos: { x: 5, y: 0 } });
     const cible = guerrier({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 6, y: 0 } });
+    engage(allie, cible);
     return { a, allie, cible };
   };
 
