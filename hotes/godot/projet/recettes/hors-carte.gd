@@ -27,7 +27,7 @@ const LUMIERE := {
 	soleil = {vers = {x = 0.0, y = 1.0, z = 0.0}, couleur = "#ffffff", energie = 1.0},
 	ambiante = {couleur = "#ffffff", energie = 0.5},
 	ciel = null,
-	brume = {couleur = PENOMBRE, debutCases = 1000.0, finCases = 2000.0, depuisLOeil = false},
+	brume = {couleur = PENOMBRE, debutCases = 1000.0, finCases = 2000.0, courbe = 1.0, depuisLOeil = false},
 	horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#3d6630"}, fonduCases = FONDU_CASES},
 	sources = [],
 }
