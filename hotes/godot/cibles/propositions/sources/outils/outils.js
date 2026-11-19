@@ -1,31 +1,24 @@
-/* Hors partie et outils, images d'intention (#3935). Ajouts au kit (commun.js, systeme.js) : pictogrammes des outils,
-   champ de saisie, ligne à compte. Maquette hors du jeu. */
-Object.assign(PICTOS, {
-  loupe: '<circle cx="10.500" cy="10.500" r="6"/><path d="M15 15l5.500 5.500"/>',
-  selection: '<path d="M6 3.500l12 9-5.500 1 3 6-2.500 1.200-3-6L6 18.500z"/>',
-  terrain: '<path d="M12 4l9 5-9 5-9-5zM3 14l9 5 9-5"/>',
-  hauteur: '<path d="M4 20h16M7 20V10M7 10l-3 3M7 10l3 3M15 20V5M15 5l-3 3M15 5l3 3"/>',
-  murs: '<path d="M3 6h18v12H3zM3 10h18M3 14h18M9 6v4M15 10v4M9 14v4M15 6v0"/>',
-  volee: '<path d="M3 20h5v-4h5v-4h5V8h3"/>',
-  crenelage: '<path d="M3 20V8h4v4h3V8h4v4h3V8h4v12z"/>',
-  decor: '<path d="M7 4h10c2 5 2 11 0 16H7C5 15 5 9 7 4zM5.800 9h12.400M5.800 15h12.400"/>',
-  personnage: '<circle cx="12" cy="7.500" r="3.500"/><path d="M5 20c0-4.500 3-7 7-7s7 2.500 7 7"/>',
-  navire: '<path d="M3 15h18l-2.500 5h-13zM12 15V3M12 4c4 1 6 4 6 8h-6M12 6c-3 1-4.500 3-5 6h5"/>',
-  baliste: '<path d="M4 18l14-9M6 8c5 0 9 4 9 9M4 18l1-4M4 18l4 .5M18 9l2-3"/>',
-  depart: '<path d="M6 21V4M6 4h11l-3 4 3 4H6"/>',
-  zone: '<path d="M4 4h4M11 4h3M17 4h3v3M20 10v4M20 17v3h-3M14 20h-3M8 20H4v-3M4 14v-4M4 7V4"/>',
-  gomme: '<path d="M4 16l9-10 7 6-7 8H8zM9.500 10.500l6.500 6M12 20h8"/>',
-  epingle: '<path d="M12 21c-4-5-6-8-6-11a6 6 0 0 1 12 0c0 3-2 6-6 11z"/><circle cx="12" cy="10" r="2.200"/>',
-  chemin: '<circle cx="5.500" cy="18" r="2"/><circle cx="18.500" cy="6" r="2"/><path d="M7.500 18h6a3 3 0 0 0 0-6h-3a3 3 0 0 1 0-6h6"/>',
-  etoile: '<path d="M12 3.500l2.600 5.400 5.900.8-4.300 4.100 1 5.800-5.200-2.800-5.200 2.800 1-5.800-4.300-4.100 5.900-.8z"/>',
-  copier: '<rect x="8" y="8" width="12" height="12" rx="1.500"/><path d="M16 8V4H4v12h4"/>',
-  refaire: '<path d="M15 6.500L19.500 11 15 15.500M19.500 11H10a4.500 4.500 0 0 0 0 9h4"/>',
-  couches: '<path d="M12 4l9 4.500-9 4.500-9-4.500zM3 12.500l9 4.500 9-4.500M3 16.500l9 4.500 9-4.500"/>',
-});
-/* un champ de saisie : libellé de rubrique, valeur ou attente */
-const champ = (libelle, valeur, { attente = '', classe = '' } = {}) => `<label class="champ ${classe}"><span class="rubrique">${libelle}</span><b class="${valeur ? '' : 'vide'}">${valeur || attente}${valeur ? '<i class="curseur-texte"></i>' : ''}</b></label>`;
+/* Les outils (#3935, #4411) : la ligne de liste à compte (Compendium, éditeur), la table ronde du salon en ligne et ses
+   tabourets (`../rendu.js`, écrans `compendium`, `coop`, `editeur-de-scene`, `editeur-carte-du-monde`). Maquette hors du
+   jeu. */
 /* une ligne de liste : nom, compte à droite */
-const ligneDeListe = (nom, compte = '', { la = false, icone = null } = {}) => `<div class="ligne ${la ? 'la' : ''}">${icone ? picto(icone, 16, la ? '#2a1a08' : '#e2c06a') : ''}<span>${nom}</span>${compte !== '' ? `<em class="lin">${compte}</em>` : ''}</div>`;
-const fondDeTable = () => { el(S, 'rect', { width: W, height: H, fill: '#150c07' }); return `<div class="calque bois" id="table"></div><div class="calque" id="lueur-table"></div>`; };
+const ligneDeListe = (nom, compte = '', { la = false, icone = null } = {}) => `<div class="ligne ${la ? 'la' : ''}">${icone ? picto(icone, 16, la ? '#2a1a08' : '#e2c06a') : ''}<span>${nom}</span>${compte !== '' ? `<em class="chiffres">${compte}</em>` : ''}</div>`;
+/* la table ronde du salon, vue de dessus : ses quatre tabourets, la carte, la chandelle, les dés */
+const TABOURETS = [[178, 112], [462, 112], [178, 358], [462, 358]];
+const tableDuSalon = () => `<svg viewBox="0 0 640 520"><defs>
+    <radialGradient id="t-bois" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#7a5230"/><stop offset=".6" stop-color="#553519"/><stop offset="1" stop-color="#2e1b0c"/></radialGradient>
+    <radialGradient id="t-lueur"><stop offset="0" stop-color="#ffd98a" stop-opacity=".75"/><stop offset=".35" stop-color="#ffb45a" stop-opacity=".28"/><stop offset="1" stop-color="#ffb45a" stop-opacity="0"/></radialGradient>
+    <clipPath id="t-rond"><circle cx="320" cy="235" r="132"/></clipPath></defs>
+  <ellipse cx="326" cy="252" rx="170" ry="160" fill="#000" opacity=".5"/>
+  ${TABOURETS.map(([x, y]) => `<circle cx="${x + 4}" cy="${y + 6}" r="35" fill="#000" opacity=".5"/><circle cx="${x}" cy="${y}" r="33" fill="#3a2414" stroke="#150c07" stroke-width="2"/><circle cx="${x}" cy="${y}" r="24" fill="none" stroke="#5d3d22" stroke-width="1.500"/>`).join('')}
+  <circle cx="320" cy="235" r="136" fill="#1c1008"/><circle cx="320" cy="235" r="132" fill="url(#t-bois)"/>
+  <g clip-path="url(#t-rond)" stroke="#2a180b" stroke-width="1.500" opacity=".8">${[-88, -44, 0, 44, 88].map((d) => `<path d="M${320 + d},90V380"/>`).join('')}</g>
+  <circle cx="320" cy="235" r="132" fill="none" stroke="#8a6a26" stroke-width="2" opacity=".55"/>
+  <path d="M250,190l92,-26l30,84l-96,30z" fill="#d8c49a" stroke="#6d5a3c"/><path d="M268,200c20,10 40,-12 62,-4M276,226c22,-8 38,10 70,2M290,252c16,-4 30,4 50,-2" fill="none" stroke="#7c5a34" stroke-width="1.500"/>
+  <circle cx="316" cy="222" r="4" fill="#9c2a1a"/>
+  <circle cx="392" cy="292" r="74" fill="url(#t-lueur)"/><circle cx="392" cy="292" r="11" fill="#e9dcc0" stroke="#6d5a3c"/><circle cx="392" cy="292" r="4" fill="#fff3c8"/>
+  <g fill="#e9dcc0" stroke="#3a2a18"><rect x="232" y="286" width="17" height="17" rx="3" transform="rotate(-14 240 294)"/><rect x="258" y="300" width="17" height="17" rx="3" transform="rotate(22 266 308)"/></g>
+  <g fill="#3a2414" stroke="#150c07" stroke-width="1.500"><circle cx="246" cy="160" r="13"/><circle cx="404" cy="176" r="13"/></g><g fill="#7a4a1c"><circle cx="246" cy="160" r="8"/><circle cx="404" cy="176" r="8"/></g>
+</svg>`;
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { champ, ligneDeListe, fondDeTable });
+Object.assign(globalThis, { ligneDeListe, tableDuSalon });

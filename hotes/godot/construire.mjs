@@ -49,7 +49,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:net'
 import { createHash } from 'node:crypto'
-import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
@@ -58,16 +58,16 @@ import { gzipSync, inflateRawSync } from 'node:zlib'
 import { Linter } from 'eslint'
 import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
+import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { estGroupeVivant } from '../../scripts/guards/lib/pid.mjs'
-import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { prendreVerrouAsync } from '../../scripts/test/verrou.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { assetsDeLHote } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
-import { deposerLesPlanches } from './planches.mjs'
+import { deposerLesPlanches, VUE_DE_BASE } from './planches.mjs'
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs'
 import { stockageDuProcessus } from './stockage.mjs'
 
@@ -339,12 +339,9 @@ async function editeur() {
   if (!reponse.ok) throw new Error(`${url} : HTTP ${reponse.status}`)
   const zip = Buffer.from(await reponse.arrayBuffer())
   verifierSomme(plateforme.archive, zip, plateforme.sha256)
-  mkdirSync(CACHE, { recursive: true })
+  // #4199 : `extraire` rend les entrées dans l'ordre de `entrees`, le lanceur (testé par `existsSync`) se renomme en dernier.
   for (const { nom, octets } of await extraire(enMemoire(zip), plateforme.entrees)) {
-    const pose = join(CACHE, `${nom}.${process.pid}.pose`)
-    writeFileSync(pose, octets)
-    chmodSync(pose, 0o755)
-    renameSync(pose, join(CACHE, nom))
+    ecrireTexteAtomique(join(CACHE, nom), octets, { mode: 0o755 })
   }
   return lanceur
 }
@@ -726,6 +723,12 @@ async function surUneCopie(binaire, figerLesDessins, faire) {
   }
 }
 
+/** La vue figée `vue` écrite sous `recettes/vues/<nom>.json` de la copie `copie`, que lit sa recette. */
+function deposerLaVue(copie, nom, vue) {
+  mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
+  writeFileSync(join(copie, 'recettes', 'vues', `${nom}.json`), JSON.stringify(vue))
+}
+
 /** La sonde : chaque script contrôlé et chaque recette déclarée autonome exécutée dans le projet importé, les vues de
  *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, et le véhicule de l'atelier
  *  figé sur le listage des modèles du projet (`figerLeVehicule`) sous `recettes/vues/vehicule.json`, l'atelier du
@@ -735,15 +738,14 @@ async function surUneCopie(binaire, figerLesDessins, faire) {
  *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes (`jouerLesRecettes`). */
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
-    mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
-    writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
+    deposerLaVue(copie, 'ecran', figerVuesDeLEcran())
     const modeles = listage(DOSSIER_DES_MODELES)
-    writeFileSync(join(copie, 'recettes', 'vues', 'vehicule.json'), JSON.stringify(figerLeVehicule(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'repos.json'), JSON.stringify(figerLeRepos(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'decor.json'), JSON.stringify(figerLeDecor(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'chemin.json'), JSON.stringify(figerLeChemin(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'editeur-navire.json'), JSON.stringify(figerLEditeurDuNavire(modeles)))
-    writeFileSync(join(copie, 'recettes', 'vues', 'degagement.json'), JSON.stringify(figerLeDegagement(modeles)))
+    deposerLaVue(copie, 'vehicule', figerLeVehicule(modeles))
+    deposerLaVue(copie, 'repos', figerLeRepos(modeles))
+    deposerLaVue(copie, 'decor', figerLeDecor(modeles))
+    deposerLaVue(copie, 'chemin', figerLeChemin(modeles))
+    deposerLaVue(copie, 'editeur-navire', figerLEditeurDuNavire(modeles))
+    deposerLaVue(copie, 'degagement', figerLeDegagement(modeles))
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
     const erreurs = await menerDeFront(copie, scripts.map((script) => ({
@@ -768,8 +770,8 @@ const RENDUS = ['forward_plus', 'gl_compatibility']
 /** L'écran virtuel de `largeur` × `hauteur` qui porte un rendu réel là où aucun écran n'est ouvert (la CI, un
  *  conteneur). */
 const ecranVirtuel = ({ largeur, hauteur }) => process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', `-screen 0 ${largeur}x${hauteur}x24`] : []
-/** L'écran virtuel des recettes rendues (`rendre`). */
-const ECRAN_VIRTUEL = ecranVirtuel({ largeur: 1280, hauteur: 720 })
+/** L'écran virtuel des recettes rendues (`rendre`), à la vue de base du projet. */
+const ECRAN_VIRTUEL = ecranVirtuel(VUE_DE_BASE)
 
 /** Les cœurs que tient une recette rendue : son moteur en rendu réel et son pont (#3950). */
 const COEURS_D_UNE_RECETTE_RENDUE = 2
@@ -778,13 +780,16 @@ const COEURS_D_UNE_RECETTE_RENDUE = 2
  *  moteur et le processus de son parcours, qui sert son pont (#3412). */
 export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_RENDUE)
 
-/** Le projet importé par l'éditeur `binaire`, puis chaque recette déclarant `const RECETTE_RENDUE := true` jouée en
+/** Le projet importé par l'éditeur `binaire`, les échantillons de l'atelier figés (`figerLeDecor`) sous
+ *  `recettes/vues/decor.json` de la copie, que lit `aretes-en-instances.gd`, puis chaque recette déclarant
+ *  `const RECETTE_RENDUE := true` jouée en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
  *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
  *  pas, et que Godot remplace, est une erreur. Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne
  *  de clôture (`erreurs=<n>`) ; ce que le moteur écrit ensuite en se fermant n'en est pas. */
-function rendre(binaire, { figerLesDessins }) {
+function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
+    deposerLaVue(copie, 'decor', figerLeDecor(listage(DOSSIER_DES_MODELES)))
     const recettes = scriptsDe(copie).filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_RENDUE := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
     if (!recettes.length) return [`aucune recette rendue sous ${PROJET}`]

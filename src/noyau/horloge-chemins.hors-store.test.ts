@@ -17,7 +17,13 @@ import { createHero, skillCharacteristicById } from '../engine/character';
 import { creditBourse } from './bourseFlow';
 import { buildScene } from './mapSpec';
 import { fixtureText } from '../i18n/fixtureText';
-import { campaignStart } from '../engine/clock';
+import { campaignStart, MINUTES_PER_DAY } from '../engine/clock';
+import { contractDisease } from '../engine/disease';
+import { makeRNG } from '../engine/dice';
+import { deFixe } from '../engine/dice.testkit';
+import { t } from '../i18n';
+import { diseaseLabel } from '../data';
+import type { CampaignVessel } from './etat';
 import { draineCascade } from './cascade.testkit';
 
 let banc: Banc;
@@ -116,5 +122,36 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);
+  });
+});
+
+/** L'équipage collectif (`CampaignVessel.porteurDeLEquipage`) avance avec l'horloge, sans cycle de fiche, au port comme
+ *  en mer ; à quai, chaque journée franchie compte un repas frais. MDG 14 l.39, l.232 ; #4243 */
+describe('l’équipage collectif avance avec l’horloge (#4243)', () => {
+  /** La cogue de campagne, à quai à `escale` ou en mer, dont l'équipage porte `equipage`. */
+  function navire(equipage: CampaignVessel['porteurDeLEquipage'], escale?: string): void {
+    set({
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart(),
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, porteurDeLEquipage: equipage, ...(escale ? { escale } : {}) },
+    });
+  }
+
+  it.each([['à quai', 'port'], ['en mer', undefined]] as const)('%s, sa maladie guérit au bout de sa Durée', (_lieu, escale) => {
+    navire({ diseases: [contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 2 })!] }, escale);
+    get().avancerLeTemps(3 * MINUTES_PER_DAY);
+    expect(get().vessel!.porteurDeLEquipage?.diseases ?? []).toEqual([]);
+    expect(get().journal).toContain(t('dz.cured', { name: t('crew.lEquipage'), disease: diseaseLabel('verole-urticante') }));
+  });
+
+  it('à quai, son scorbut décompte sa Durée ; en mer aux biscuits, non (MDG 14 l.232)', () => {
+    const scorbut = () => contractDisease('scorbut', makeRNG(2))!;
+    const aux = { joursSansVivreFrais: 30, joursDeSoupe: 0 };
+    navire({ diseases: [scorbut()], regimeDeBord: aux }, 'port');
+    const avant = get().vessel!.porteurDeLEquipage!.diseases![0].minutesLeft;
+    get().avancerLeTemps(MINUTES_PER_DAY);
+    expect(get().vessel!.porteurDeLEquipage!.diseases![0].minutesLeft).toBe(avant - MINUTES_PER_DAY);
+    navire({ diseases: [scorbut()], regimeDeBord: aux });
+    get().avancerLeTemps(MINUTES_PER_DAY);
+    expect(get().vessel!.porteurDeLEquipage!.diseases![0].minutesLeft).toBe(avant);
   });
 });

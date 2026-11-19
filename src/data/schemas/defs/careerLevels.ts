@@ -23,7 +23,7 @@ const doc = document(
     talents: z.array(avancement('talent')),
     trappings: z.array(trappingRefSchema),
     characteristics: z.array(charKeySchema),
-    /** Statut du Niveau (« Argent 2 ») — VERBATIM du livre. */
+    /** Statut du Niveau. LDB 08 l.26 */
     status: statutSchema,
   },
   {

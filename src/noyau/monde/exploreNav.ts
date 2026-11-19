@@ -11,6 +11,7 @@ import { chebyshev } from '../../engine/grid';
 import { maxJumpTiles, slowestMovement } from '../../engine/movement';
 import { niMortNiATerre } from './combatants';
 import type { Combatant } from '../../engine/types';
+import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
 
 /** Case adjacente (8-voisins) libre et ATTEIGNABLE la plus proche d'une cible, pour le move-to-interact
  *  (P5). À l'ÉTAGE de la cible (un PNJ de loge s'aborde depuis une case voisine, même z). */
@@ -218,14 +219,14 @@ export function povStepDest(scene: Scene, from: Pt, worldDir: Dir8): Pt | null {
 }
 
 /** Orientation du MENEUR à l'ENTRÉE d'une scène (spawn / transition) : regarde vers le CONTENU —
- *  le centroïde de la carte ((w−1)/2, (h−1)/2) quantifié en Dir8 par SECTEURS de 45° (atan2, PAS le
+ *  le centroïde du rectangle jouable `zone` (`rectJouable`, (x+(w−1)/2, y+(h−1)/2)) quantifié en Dir8 par SECTEURS de 45° (atan2, PAS le
  *  signe du delta : depuis le bord sud d'une carte large on regarde N, pas NE/NO au moindre décalage).
  *  Sans cela, le défaut 'S' fait contempler le VIDE hors-carte en vue subjective (POV) au bord sud.
  *  Entrée déjà au centre → 'S' (aucune direction « vers le contenu » ne domine). PUR.
  *  Une orientation AUTHORÉE (`facing` du heroStart) prime sur ce calcul — arbitré au seam (store). */
-export function spawnFacing(pos: { x: number; y: number }, dims: { w: number; h: number }): Dir8 {
-  const dx = (dims.w - 1) / 2 - pos.x;
-  const dy = (dims.h - 1) / 2 - pos.y;
+export function spawnFacing(pos: { x: number; y: number }, zone: RectDeCases): Dir8 {
+  const dx = zone.x + (zone.w - 1) / 2 - pos.x;
+  const dy = zone.y + (zone.h - 1) / 2 - pos.y;
   if (dx === 0 && dy === 0) return 'S';
   // Cap horaire depuis le nord (grille : N = −y) : 0 = N, π/2 = E, ±π = S, −π/2 = O → cran de 45°
   // le plus proche (l'ex-aequo de frontière de secteur arrondit au cran horaire suivant).

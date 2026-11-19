@@ -43,7 +43,7 @@ const CHAR_ACCESS_EXEMPT: { file: string; match: string; count: number; reason: 
   },
   {
     file: 'src/ui/editor/codex/CodexEdit.tsx',
-    match: 'entry.characteristics as CharKey[]',
+    match: 'safeParse(entry.characteristics)',
     count: 1,
     reason: "éditeur Codex GÉNÉRIQUE de champ `characteristics: CharKey[]` (CareerLevel/DomainData) — édite une LISTE d'ids CharKey, pas une valeur de Combatant.",
   },

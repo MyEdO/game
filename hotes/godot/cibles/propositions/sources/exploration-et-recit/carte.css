@@ -1,38 +1,35 @@
-/* La carte du monde (#3935) : la disposition de l'interlude en ville, la carte au lieu de la ville. */
+/* La carte du monde (#3935, #4411) : les lieux connus sur la carte, la destination, ses étapes et ses moyens
+   (`../rendu.js`) ; leur place est dans `../rendu.css`. */
 #ecran{background:#140c07}
-#carte{left:440px;top:20px;width:1243px;height:590px}
-#carte .fond{overflow:hidden}
-#carte .fond>svg{position:absolute;inset:0;width:100%;height:100%}
-.lieu{position:absolute;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 5px;border-radius:3px;transform:translate(-50%,-100%);margin-top:-14px;box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.3);white-space:nowrap}
-.lieu::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:#1f130b;box-shadow:1px 1px 0 #0c0705}
-.lieu .medaillon{width:32px;height:32px;padding:2px}
-.lieu b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:18px;letter-spacing:.3px;color:#f4e8ca}
-.lieu span{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
-.lieu.choisi{box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 0 1px #0c0705,inset 0 0 0 1px rgba(226,192,106,.9),0 0 18px rgba(255,214,140,.75)}
-.lieu .ici{display:flex;margin:-9px -5px -9px 4px}
-.lieu .ici .portrait{width:26px;height:32px;padding:2px;margin-left:-7px}
-.lieu.sous{transform:translate(-50%,0);margin-top:14px}
-.lieu.sous::after{bottom:auto;top:-6px;box-shadow:-1px -1px 0 #0c0705}
-#trajet{left:24px;top:136px;width:400px;height:474px}
-#trajet .fond{padding:22px 16px 0}
-#trajet h3{margin:-4px 0 -3px;font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:38px;color:#f4e8ca;text-shadow:0 1px 2px #000;white-space:nowrap}
-#trajet .s{font-size:12px;color:var(--or)}
-#trajet>.fond>p{margin:6px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:#e6dabd}
+#reikland .fond{overflow:hidden}
+#reikland .fond>svg{position:absolute;inset:0;width:100%;height:100%}
+#reikland .lieu{position:absolute;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 5px;border-radius:3px;transform:translate(-50%,-100%);margin-top:-14px;box-shadow:0 4px 9px var(--ombre),0 0 0 1px var(--contour),inset 0 0 0 1px var(--filet-or);white-space:nowrap}
+#reikland .lieu::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:var(--bois);box-shadow:1px 1px 0 var(--contour)}
+#reikland .lieu b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:18px;letter-spacing:.3px;color:var(--ivoire)}
+#reikland .lieu span{display:block;font-size:10.5px;line-height:12px;color:var(--creme-2)}
+#reikland .lieu.choisi{box-shadow:0 4px 9px var(--ombre),0 0 0 1px var(--contour),inset 0 0 0 1px var(--filet-or-vif),0 0 18px var(--halo-vif)}
+#reikland .lieu .ici{display:flex;gap:3px;margin-left:4px}
+#reikland .lieu.sous{transform:translate(-50%,0);margin-top:14px}
+#reikland .lieu.sous::after{bottom:auto;top:-6px;box-shadow:-1px -1px 0 var(--contour)}
+
+/* la destination : son nom, sa voie, ses étapes et leurs distances, ses moyens et ce qu'ils coûtent */
+#destination .fond{padding:22px 16px}
+#destination h3{margin:-6px 0 -5px;font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:42px;color:var(--ivoire);text-shadow:0 1px 2px var(--noir);white-space:nowrap}
+#destination .s{font-size:12px;color:var(--or)}
+#destination>.fond>p{margin:6px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:var(--creme)}
 .etapes{display:flex;align-items:flex-start;margin:13px 2px 0}
 .etapes .e{flex:none;width:74px;text-align:center}
-.etapes .e i{display:block;width:11px;height:11px;margin:0 auto 5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3dc93,#b8923a 70%);box-shadow:0 0 0 1px #150d04,0 1px 2px #000}
-.etapes .e.ici i{background:radial-gradient(circle at 38% 30%,#d2553a,#9c2a1a 60%)}
-.etapes .e span{display:block;font-size:10.5px;line-height:12.5px;color:#e2d5b6}
+.etapes .e i{display:block;width:11px;height:11px;margin:0 auto 5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 0 0 1px var(--contour),0 1px 2px var(--noir)}
+.etapes .e.ici i{background:radial-gradient(circle at 38% 30%,var(--cire-clair),var(--cire) 60%)}
+.etapes .e span{display:block;font-size:10.5px;line-height:12.5px;color:var(--creme)}
 .etapes .t{flex:1;text-align:center;margin-top:-7px}
-.etapes .t u{display:block;height:2px;margin:11px -30px 0;background:linear-gradient(180deg,#b9412c,#7c1f14);box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+.etapes .t u{display:block;height:2px;margin:11px -30px 0;background:linear-gradient(180deg,var(--cire-clair),var(--sang));box-shadow:0 0 0 1px var(--ombre)}
 .etapes .t span{display:block;font-size:10.5px;color:var(--creme-2);margin-top:-17px;white-space:nowrap}
-.moyen{display:flex;gap:11px;align-items:center;margin-top:9px;padding:8px 11px;border-radius:3px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(201,185,149,.22)}
-.moyen.pris{background:rgba(226,192,106,.1);box-shadow:inset 0 0 0 1px rgba(226,192,106,.85),0 0 12px rgba(255,214,140,.2)}
+.moyen{display:flex;gap:11px;align-items:center;margin-top:9px;padding:8px 11px;border-radius:3px;background:var(--lit);box-shadow:inset 0 0 0 1px var(--filet-creme)}
+.moyen.pris{box-shadow:inset 0 0 0 1px var(--filet-or-vif),0 0 12px var(--halo)}
 .moyen .q{flex:1;min-width:0}
-.moyen b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18.5px;line-height:24px;margin:-3px 0 -2px;color:#f4e8ca;letter-spacing:.3px}
+.moyen b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:18.5px;line-height:24px;margin:-3px 0 -2px;color:var(--ivoire);letter-spacing:.3px}
 .moyen .c{font-size:11.5px;color:var(--or);white-space:nowrap}
-.moyen i{display:block;font-size:12.5px;line-height:16px;color:#d9ccac;margin-top:1px}
-.moyen .px{flex:none;text-align:right;font-size:12.5px;line-height:17px;color:#f0e2c2;white-space:nowrap}
+.moyen .px{flex:none;text-align:right;font-size:12.5px;line-height:17px;color:var(--ivoire);white-space:nowrap}
 .moyen .px small{display:block;font-family:"Fell SC";font-size:10.5px;letter-spacing:.8px;color:var(--creme-2)}
-#trajet .plaque.partir{height:42px;margin-top:11px}
-#trajet .plaque.partir>div{font-size:16px}
+#destination .plaque.partir{margin-top:16px}

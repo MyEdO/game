@@ -27,13 +27,13 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { talentTestSLBonus } from './magic';
 import { skillDRBonus } from './ops';
 import { rule } from './policy';
-import { findCrewRoleById, findCrewTestTypeById, type CrewRoleData } from '../data';
+import { findCreatureById, findCrewRoleById, findCrewTestTypeById, type CreatureData, type CrewRoleData } from '../data';
 import { priceToMoney, toBrass } from './money';
 import { effectRef, type Combatant, type Difficulty } from './types';
 import type { ModLine } from './combat';
 import type { PairedSense } from './ops';
 import { precipitationTestMods } from './seaWeather';
-import { contagiousDiseases } from './disease';
+import { contagiousDiseases, maladieDeclaree, type PorteurDeMaladies } from './disease';
 
 const MORAL = datasetDe<typeof crewMoraleDef>(crewMoraleJson);
 /** Facteur de Moral (MODIFICATEURS DE MORAL, MDG 14). */
@@ -101,15 +101,21 @@ export function facteursDeVivreSeul(): string[] {
   return MORALE_FACTORS.filter((f) => f.vivreSeul).map((f) => f.id);
 }
 
-/** Les ids des facteurs de Moral que pose une maladie contagieuse à bord (`contagionABord`). MDG 14 l.172, l.208 */
-export function facteursDeContagionABord(): string[] {
-  return MORALE_FACTORS.filter((f) => f.contagionABord).map((f) => f.id);
+/** Les ids des facteurs de Moral que pose une maladie qui fait rage à bord (`maladieFaitRage`). MDG 14 l.172 */
+export function facteursDeMaladieFaitRage(): string[] {
+  return MORALE_FACTORS.filter((f) => f.maladieFaitRage).map((f) => f.id);
 }
 
 /** Un Personnage vivant de `personnages` porte-t-il une maladie contagieuse déclarée (`contagiousDiseases`), sous la règle
  *  maison `mer-moral-maladie-contagieuse-a-bord` ? MDG 14 l.143, l.172, l.208 */
-export function contagionABord(personnages: readonly Combatant[]): boolean {
+function contagionABord(personnages: readonly Combatant[]): boolean {
   return rule('mer-moral-maladie-contagieuse-a-bord') && personnages.some((p) => !p.dead && contagiousDiseases(p).length > 0);
+}
+
+/** Les facteurs `maladieFaitRage` comptent-ils cette semaine : une maladie déclarée du porteur collectif de l'équipage
+ *  (`porteursABord`), ou la contagion d'un Personnage (`contagionABord`). MDG 14 l.172 */
+export function maladieFaitRage(personnages: readonly Combatant[], equipage: PorteurDeMaladies | undefined): boolean {
+  return (equipage?.diseases ?? []).some(maladieDeclaree) || contagionABord(personnages);
 }
 
 /** Un CHOIX de paie du Conseil de bord : le facteur de Moral + son multiplicateur de solde. */
@@ -274,11 +280,17 @@ export const ajouterAuRoster = (roster: readonly CrewHire[] | undefined, roleId:
     ? (roster ?? []).map((h) => (h.roleId === roleId ? { ...h, count: h.count + n } : h))
     : [...(roster ?? []), { roleId, count: n }];
 
+/** Barème d'embauche du rôle : celui de son profil du bestiaire (`embauche`). MDG 14 l.293-302 #216 */
+export function soldeDuRole(role: CrewRoleData): CreatureData['embauche'] {
+  return findCreatureById(role.profil.id)?.embauche;
+}
+
 /** Solde HEBDOMADAIRE due par un roster salarié (Σ count × coût hebdomadaire du rôle), en sous de
- *  cuivre (MDG 14 l.293-302). Un rôle sans barème (`wage` absent) ne coûte rien. PUR. #216 */
+ *  cuivre (MDG 14 l.293-302). Un rôle sans barème ne coûte rien. PUR. #216 */
 export function weeklyCrewWageBrass(crew: CrewHire[] | undefined): number {
   return (crew ?? []).reduce((s, h) => {
-    const w = findCrewRoleById(h.roleId)?.wage?.weekly;
+    const role = findCrewRoleById(h.roleId);
+    const w = role && soldeDuRole(role)?.weekly;
     return s + (w ? toBrass(priceToMoney(w)) * Math.max(0, h.count) : 0);
   }, 0);
 }

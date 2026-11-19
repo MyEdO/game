@@ -13,7 +13,7 @@ import math
 from mathutils import Vector
 
 import geometrie
-from geometrie import ANGLES, COTES, HAUT, X, Y, anneau, bougie, cap, cercle, coque, lisse, normales, pave, rond
+from geometrie import ANGLES, COTES, HAUT, X, Y, anneau, autour, bougie, cap, cercle, coque, lisse, normales, pave, rond
 from gabarit import NOEUD_EMISSIF
 from maille import cylindre, lineaire, poutre, tour
 
@@ -40,7 +40,7 @@ def caillou(m, pied, demi_axes, hauteur, azimut, C, mat, a):
     e1, e2 = cap(azimut) * demi_axes[0], cap(azimut + 90) * demi_axes[1]
     k, g = C["cotes"], C["grain"]
     phase = a.uniform(0, 2 * math.pi / k)
-    anneaux = [[pied + (e1 * math.cos(phase + 2 * math.pi * j / k) + e2 * math.sin(phase + 2 * math.pi * j / k)) * part * (1 + a.uniform(-g, g))
+    anneaux = [[pied + autour(e1, e2, phase + 2 * math.pi * j / k) * part * (1 + a.uniform(-g, g))
                 + HAUT * hauteur * z for j in range(k)] for z, part in C["profil"]]
     coque(m, anneaux, mat, pied + e1 * a.uniform(-C["pointe"], C["pointe"]) + e2 * a.uniform(-C["pointe"], C["pointe"]) + HAUT * hauteur)
 
@@ -73,7 +73,7 @@ def buche(m, p0, p1, rayon, B, cotes, a):
         c = p0.lerp(p1, i / B["troncons"])
         if 0 < i < B["troncons"]:
             c = c + (n * a.uniform(-B["fleche"], B["fleche"]) + b * a.uniform(-B["fleche"], B["fleche"])) * rayon
-        anneaux.append([c + (n * math.cos(2 * math.pi * j / cotes) + b * math.sin(2 * math.pi * j / cotes)) * rayon
+        anneaux.append([c + autour(n, b, 2 * math.pi * j / cotes) * rayon
                         * (1 + stries[j] + a.uniform(-B["grain"], B["grain"])) for j in range(cotes)])
     coque(m, anneaux, "ecorce")
     for centre, bout, dehors in ((p0, anneaux[0], -t), (p1, anneaux[-1], t)):
@@ -302,7 +302,7 @@ def chandelier(D, G, P, a):
     chemin, fer, pas = C["bras"]
     portee = max(abs(c.x) for _, (c, _) in boites)
     consoles(P["bras"], C["azimuts"], chemin, portee, pied, longueur, fer * rayon, pas, "laiton")
-    for centre, (cote, _, haut) in (b for p, b in boites if p["material"] == "albatre"):
+    for centre, (cote, _, haut) in (b for p, b in boites if p["material"] == "cire"):
         bougie(P["bras"], P["bougies"], P[NOEUD_EMISSIF], Vector((centre.x, centre.y, bas_de_traverse)), cote / 2,
                haut_de_traverse, centre.z - haut / 2 + C["cires"][0 if centre.x else 1] * haut, B)
 

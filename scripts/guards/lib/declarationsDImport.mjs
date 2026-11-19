@@ -38,9 +38,9 @@ function imprimer({ genre, type, tete, queue, indentation }, liaisons) {
   return unNomParLigne({ tete: ouvre, noms, queue: `}${queue}`, indentation })
 }
 
-/** Les noms que lie `instruction`, de premier niveau, hors déclaration d'import ou d'export. */
+/** Les noms que lie `instruction`, de premier niveau (motifs à trous compris), hors déclaration d'import ou d'export. */
 function nomsLies(ts, instruction) {
-  const de = (nom) => (ts.isIdentifier(nom) ? [nom.text] : (nom.elements ?? []).flatMap((e) => (ts.isBindingElement(e) ? de(e.name) : [])))
+  const de = (nom) => (ts.isIdentifier(nom) ? [nom.text] : (nom.elements ?? []).flatMap((e) => (ts.isBindingElement(e) && e.name ? de(e.name) : [])))
   if (ts.isVariableStatement(instruction)) return instruction.declarationList.declarations.flatMap((d) => de(d.name))
   return instruction.name ? de(instruction.name) : []
 }

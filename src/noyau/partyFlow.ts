@@ -717,7 +717,7 @@ export function terminerLaSeance(get: Get, set: Set): void {
 
 /** Rachat PX d'une prothèse (LDB 73) : les PALIERS sont DÉCLARÉS sur l'entrée de catalogue
  *  (`TrappingData.prosthesisTraining`) et joués dans l'ordre par `nextProsthesisTier` — ce flux ne nomme
- *  aucune prothèse. Fausse jambe : 100 PX (Mouvement) puis 200 PX (Esquive) ; Crochet : 400 PX (l.23). */
+ *  aucune prothèse (LDB 73 l.19, l.23). */
 export function entrainerLaProthese(get: Get, set: Set, uid: string): void {
   const heroId = herosPorteur(get, set, uid);
   if (!heroId) return;

@@ -105,7 +105,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
   it('le dé de l’étape de nature est celui du document de la race : surchargé à d10, le naturel reste ≤ 10 (#1667)', () => {
     const hero = heroSolo('nains');
     const doc = natureDeMutationDe(hero.species);
-    setDataset('mutationNature', mutationNature.map((d) => (d.id === doc.id ? { ...d, die: 'd10' } : d)));
+    setDataset('mutationNature', mutationNature.map((d) => (d.id === doc.id ? { ...d, die: { n: 1, sides: 10 } } : d)));
     try {
       applyMutation(banc.getState, banc.setState, hero);
       const nature = banc.getState().pendingCascade!.participants[0];
@@ -121,7 +121,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
   it('registre : surchargé à d10, `TableStepDef.die` = 1d10 ; un id renommé est tirable sous son id neuf (#1667)', () => {
     const doc = natureDeMutationDe('nains');
     const avant = tableStepDef(doc.id)!.die;
-    setDataset('mutationNature', mutationNature.map((d) => (d.id === doc.id ? { ...d, id: 'nature-neuve', die: 'd10' } : d)));
+    setDataset('mutationNature', mutationNature.map((d) => (d.id === doc.id ? { ...d, id: 'nature-neuve', die: { n: 1, sides: 10 } } : d)));
     try {
       expect([avant, tableStepDef('nature-neuve')?.die]).toEqual([{ n: 1, sides: 100 }, { n: 1, sides: 10 }]);
     } finally {

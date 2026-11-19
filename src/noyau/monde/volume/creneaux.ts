@@ -9,7 +9,7 @@ import type { EntreeVivante } from '../../../data/datasets';
 import { DIR4_ORDER, DIR8_DELTA } from '../../../geometry/dir8';
 import { isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../relief';
-import { crenellatedAt, edgeOf, heightAt, isCrenellated, isWalkable, structureAt, tileAt, wallEnds, type SceneDuVolume, type WallSide } from '../scene';
+import { crenellatedAt, edgeOf, heightAt, isCrenellated, solPraticable, structureAt, tileAt, wallEnds, type SceneDuVolume, type WallSide } from '../scene';
 import { estAbsent } from '../terrain';
 import { structureAppearance } from './structures';
 import type { Face, GP } from './types';
@@ -74,7 +74,7 @@ export function cretesDePerimetre(scene: SceneDuVolume): CreteDePerimetre[] {
           const nx = x + DIR8_DELTA[cap].gx, ny = y + DIR8_DELTA[cap].gy;
           if (isCrenellated(scene, nx, ny, z)) continue;
           // ACCÈS : une rampe ou un escalier qui atteint le chemin de ronde laisse l'entrée OUVERTE.
-          if (scene.layers.some((l) => isWalkable(scene, nx, ny, l.z) && gradeBetween(surfaceH, heightAt(scene, nx, ny, l.z)) !== 'cliff')) continue;
+          if (scene.layers.some((l) => solPraticable(scene, nx, ny, l.z) && gradeBetween(surfaceH, heightAt(scene, nx, ny, l.z)) !== 'cliff')) continue;
           const e = edgeOf(x, y, nx, ny);
           if (!e) continue;
           // Une STRUCTURE (porte, herse) sous l'arête porte déjà sa couronne (corps de garde).

@@ -1,0 +1,13 @@
+{
+  "model": "decor--mare-sang.glb",
+  "model_sha256": "8feb423dee1ea092f3782d4f1d04f3c3bd67a7a82643fa4f4a3074a0417fd137",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

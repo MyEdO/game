@@ -107,14 +107,14 @@ function salleMeublee(): Scene {
 }
 
 /**
- * TABLE DATÉE — mesurée le 2026-09-08 sur les scènes construites ci-dessus, `fixture-corps-a-etage` le
- * 2026-11-09 (#3732). `spans` = une face du pivot ; `triangles` = ce que le GPU dessine ; `sommets` =
+ * TABLE DATÉE — mesurée le 2026-11-18 sur les scènes construites ci-dessus, sans raccord de terrain vers le dehors de
+ * la grille (#4392). `spans` = une face du pivot ; `triangles` = ce que le GPU dessine ; `sommets` =
  * l'index IDENTITÉ (aucun sommet partagé, donc exactement 3 par triangle). Aucune de ces scènes ne pose
  * d'entité : leur compte ne dépend que des BUILDERS.
  */
 const ETALONS: [string, () => Scene, { sommets: number; triangles: number; spans: number }][] = [
-  ['fixture-salle-nue', salleNue, { sommets: 6282, triangles: 2094, spans: 528 }],
-  ['fixture-corps-a-etage', corpsAEtage, { sommets: 6738, triangles: 2246, spans: 604 }],
+  ['fixture-salle-nue', salleNue, { sommets: 5898, triangles: 1966, spans: 464 }],
+  ['fixture-corps-a-etage', corpsAEtage, { sommets: 6354, triangles: 2118, spans: 540 }],
 ];
 
 /** SCÈNES COUVERTES SANS CHIFFRE — leur masse dépend d'une donnée VIVANTE : la carte d'un auteur (ou
@@ -134,7 +134,7 @@ const SCENES: [string, () => Scene][] = [
 ];
 
 const GUIDE =
-  'compteurs de bake mesurés 2026-09-08 sur des scènes CONSTRUITES et SANS ENTITÉ — seules les faces des '
+  'compteurs de bake mesurés 2026-11-18 sur des scènes CONSTRUITES et SANS ENTITÉ — seules les faces des '
   + 'BUILDERS y entrent (ni carte d’auteur, ni catalogue `props.json`). Si la géométrie a changé '
   + 'VOLONTAIREMENT, recopie la valeur REÇUE ci-dessus dans `ETALONS` ET dis dans le commit CE QUI l’a '
   + 'déplacée (épaisseur authorée, face neuve d’un builder). Sinon, c’est une dérive de géométrie non '

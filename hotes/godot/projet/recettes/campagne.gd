@@ -110,7 +110,7 @@ func _composant_de_la_musique() -> Node:
 ## tenu : tant qu'il l'est, la glissière suit jusqu'au maximum et la musique reste à mi-volume ; relâché, si le pont dit
 ## la préférence au plein volume et si le bus de la musique le prend.
 func _glisser_la_musique(piste: Dictionary) -> bool:
-	var glissiere := _composant_de_la_musique().get_node("Glissiere") as HSlider
+	var glissiere := _composant_de_la_musique().get_node("Reglette/Glissiere") as HSlider
 	var centre := Vector2((piste.gauche + piste.droite) / 2.0, piste.y)
 	var bout := Vector2(piste.droite - 1.0, piste.y)
 	_bouton_au_point(centre, true)
@@ -122,18 +122,18 @@ func _glisser_la_musique(piste: Dictionary) -> bool:
 		mouvement.relative = (bout - centre) / PAS_DU_GLISSEMENT
 		root.push_input(mouvement, true)
 		await process_frame
-	var tenue := is_equal_approx(glissiere.value, 1.0) and _musique_a(0.5)
+	var tenue := is_equal_approx(glissiere.value, 100.0) and _musique_a(0.5)
 	if not tenue:
-		_fautes.append("bouton tenu au bout droit de la piste : glissière à %s, préférence à %s ; attendu la glissière à 1 et la musique encore à 0.5" % [glissiere.value, _pont.appeler("preferences").preferences["volume-musique"]])
+		_fautes.append("bouton tenu au bout droit de la piste : glissière à %s, préférence à %s ; attendu la glissière à 100 et la musique encore à 0.5" % [glissiere.value, _pont.appeler("preferences").preferences["volume-musique"]])
 	_bouton_au_point(bout, false)
 	return tenue and await _attendre(func() -> bool: return _musique_a(1.0), "la musique et son bus à 1 après le glissement relâché au bout droit de la piste")
 
 
-## `volume` écrit dans la boîte à nombre du curseur du volume de la musique et validé, comme l'Entrée le valide : si
-## le pont dit la préférence à `volume` et si le bus de la musique le prend.
+## `volume` écrit en pour cent dans la boîte à nombre du curseur du volume de la musique et validé, comme l'Entrée le
+## valide : si le pont dit la préférence à `volume` et si le bus de la musique le prend.
 func _saisir_la_musique(volume: float) -> bool:
-	var boite := _composant_de_la_musique().get_node("Nombre") as SpinBox
-	boite.get_line_edit().text = str(volume)
+	var boite := _composant_de_la_musique().get_node("Reglette/Nombre") as SpinBox
+	boite.get_line_edit().text = str(roundi(volume * 100))
 	boite.apply()
 	return await _attendre(func() -> bool: return _musique_a(volume), "la musique et son bus à %s saisis à la boîte à nombre" % volume)
 
@@ -183,7 +183,7 @@ func _creer_un_heros() -> String:
 			break
 		for id: String in ["tirage", "defaut", "bourse", "nom", "physique"]:
 			var tirage: Variant = _element(zones["creation.corps"], id)
-			if tirage != null and tirage.type == "bouton" and tirage.refus == null:
+			if tirage != null and tirage.type == Noyau.TypeDElement.BOUTON and tirage.refus == null:
 				zones = _creation(zones, tirage)
 		for e: Dictionary in zones["creation.corps"]:
 			if str(e.id).begins_with("augmentation/"):
@@ -231,7 +231,7 @@ func _a_trancher(corps: Array) -> Dictionary:
 	for e: Dictionary in corps:
 		if e.type in ["choix", "liste"] and not e.valeurs.any(func(b: Dictionary) -> bool: return b.presse):
 			return e.valeurs.filter(func(b: Dictionary) -> bool: return b.refus == null)[0]
-	return corps.filter(func(e: Dictionary) -> bool: return e.type == "bouton" and not e.presse and e.refus == null)[0]
+	return corps.filter(func(e: Dictionary) -> bool: return e.type == Noyau.TypeDElement.BOUTON and not e.presse and e.refus == null)[0]
 
 
 ## « Jouer » pressé à l'accueil, la carte du héros `nom` au roster : « Recruter » de sa carte le fait entrer au groupe,

@@ -9,6 +9,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { buildRiverPlan, buildRiverDayCascade } from './riverVoyageFlow';
 import { applierDe, poserLeDeDEtape } from './cascade';
+import { membresHorsDifficulte } from './cascade.testkit';
 import { seedBattleRng } from './battleRng';
 import { creditBourse } from './bourseFlow';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -104,13 +105,16 @@ describe('mer — réparation temporaire de l’Entretien du soir (MDG 13 l.651,
     expect(testsDeReparation(journee())[0].difficulty).toBe('difficile');
   });
 
-  it('l’Entretien du soir, qui remplace le Test de réparation temporaire, se joue à sa Difficulté (MDG 13 l.649, MDG 14 l.120)', () => {
+  it('l’Entretien du soir, qui remplace le Test de réparation temporaire, se joue à sa Difficulté au jet de chaque membre (MDG 13 l.649, MDG 14 l.120 ; MDG 14 l.13)', () => {
     prendreLaMer();
-    const drDeLEntretien = () => Number(journee().find((s) => s.kind === 'equipage-entretien')!.meta?.aggregateFlatDR ?? 0);
-    const parDefaut = drDeLEntretien();
+    const entretien = () => journee().find((s) => s.kind === 'equipage-entretien')!;
+    const parDefaut = entretien();
     const defaut = rule('mer-reparation-temporaire-reparation-difficulte') as Difficulty;
+    expect(membresHorsDifficulte(parDefaut, defaut)).toEqual([]);
     setRule('mer-reparation-temporaire-reparation-difficulte', 'tresDifficile');
-    expect(drDeLEntretien() - parDefaut).toBe((DIFFICULTY_MODIFIERS.tresDifficile - DIFFICULTY_MODIFIERS[defaut]) / 10);
+    const tresDifficile = entretien();
+    expect(membresHorsDifficulte(tresDifficile, 'tresDifficile')).toEqual([]);
+    expect(tresDifficile.meta?.aggregateFlatDR).toBe(parDefaut.meta?.aggregateFlatDR);
     expect(DIFFICULTY_MODIFIERS[defaut], 'le défaut est dans la fourchette Complexe à Très Difficile').toBeLessThanOrEqual(DIFFICULTY_MODIFIERS.complexe);
   });
 

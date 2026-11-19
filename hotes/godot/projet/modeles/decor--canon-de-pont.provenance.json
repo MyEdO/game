@@ -1,0 +1,13 @@
+{
+  "model": "decor--canon-de-pont.glb",
+  "model_sha256": "a21cef17e745c83c151311927f1f831ef1f9d14b1afc5deca929d2a86fa24775",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

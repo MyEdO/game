@@ -23,7 +23,8 @@ DECORS = ("table", "table-2x1", "chaise", "banc", "tabouret", "armoire", "bureau
 NOEUDS = {"armoire": {MAT: (MAT,), "ferrures": ("fer",)}, "etagere": {MAT: (MAT,), "objets": ("cuir",)},
           "lit": {MAT: (MAT,), "literie": ("ecru", "rouge")},
           **{id_: {MAT: (MAT,), "fers": ("fer",)}
-             for id_ in ("comptoir-droit", "comptoir-angle", "etabli", "etabli-2x1", "table-ronde-4-tabourets")},
+             for id_ in ("comptoir-droit", "comptoir-angle", "etabli", "table-ronde-4-tabourets")},
+          "etabli-2x1": {MAT: (MAT,), "fers": ("fer",), "lame": ("acier",)},
           **{id_: {MAT: (MAT,), "garniture": ("rouge",), "dorures": ("laiton",)}
              for id_ in ("siege", "fauteuil-loge", "canape")},
           "coiffeuse": {MAT: (MAT,), "glace": ("glace",)}}
@@ -769,15 +770,15 @@ def etabli(D, G, pieces, a):
             haute * 2 * arete)
     rayon = pz_ * Q["manche"]["rayon"]
     bout = Vector((tete.x, tete.y, dessus + rayon)) + manche * (pz_ * Q["manche"]["longueur"])
-    tournee(m, tete, bout, *normales((bout - tete).normalized()), rayon, CYLINDRE, Q["manche"]["cotes"])
+    geometrie.fil(m, tete, bout, rayon, Q["manche"]["cotes"])
 
     if G.id in E["scie"]:
         (lame, (bx, by, bz)), (poignee, (hx, hy, hz)) = (pave(G.primitives[rang]) for rang in E["scie"][G.id])
         sens = Vector((lame.x - poignee.x, 0, 0)).normalized()
         fine, talon, pointe = bz * E["lame"][0], by / 2 * E["lame"][1], by / 2 * E["lame"][2]
         pose = Vector((lame.x, lame.y, dessus + fine))
-        barre(fers, [(pose - sens * (bx / 2), talon, fine, fine * arete),
-                     (pose + sens * (bx / 2), pointe, fine, fine * arete)], Y, HAUT, "fer")
+        barre(pieces["lame"], [(pose - sens * (bx / 2), talon, fine, fine * arete),
+                             (pose + sens * (bx / 2), pointe, fine, fine * arete)], Y, HAUT, "acier")
         demi_large, demi_haut = hy / 2 * E["poignee"][0], hz * E["poignee"][1]
         chanfrein = demi_haut * E["poignee"][2]
         pose = Vector((poignee.x, poignee.y, dessus + demi_haut))

@@ -10,11 +10,12 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openBand, openChoice, choiceStep, bandStep, type BandOpenSpec, type BandPorteur } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { modalOwnerOf } from './modalArbiter';
+import { FLOWS } from './rollFlowSpecs';
 import { startCascade } from './cascade';
 import { ownsLocal } from './netOwnership';
 import { seatOwns } from './sieges';
 import { setCadence } from '../engine/cadence';
-import type { CascadeStep } from './pendings';
+import { WORLD_STEP_OWNER, type CascadeStep } from './pendings';
 import type { Combatant } from '../engine/types';
 import { cleDeFixture } from './noyau.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
@@ -150,6 +151,41 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
+  it('#4243 — porteur MONDE (sans fiche) : la rangée se monte à sa valeur posée, sans `test`, et le siège qui tient le monde la joue', () => {
+    const h1 = hero('H1');
+    deuxSieges([h1]);
+    setCadence('manuel');
+    openBand(banc.getState, banc.setState, {
+      id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
+      difficulty: 'intermediaire',
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'endurance' } } }, { monde: true, ligne: { valeur: 40 } }],
+    });
+    const step = etapeCourante();
+    expect(step.groupOwner, 'un héros et le monde : deux porteurs, bande de GROUPE').toBe(true);
+    const monde = step.participants!.find((p) => p.id === WORLD_STEP_OWNER)!;
+    expect(monde.target, 'valeur posée 40, Difficulté intermédiaire +0').toBe(40);
+    expect(monde.interactive, 'l’hôte tient le monde sans siège MJ : la rangée est à jouer').toBe(true);
+    expect(monde.result).toBeNull();
+    expect(seatOwns(banc.getState(), 0, WORLD_STEP_OWNER)).toBe(true);
+  });
+
+  it('#4243 — porteur MONDE seul, cadence AUTO : l’étape appartient au monde et sa rangée naît roulée à 40', () => {
+    deuxSieges([hero('H1')]);
+    setCadence('rapide');
+    openBand(banc.getState, banc.setState, {
+      id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
+      difficulty: 'intermediaire',
+      porteurs: [{ monde: true, ligne: { valeur: 40 } }],
+    });
+    const step = etapeCourante();
+    expect(step.actorId).toBe(WORLD_STEP_OWNER);
+    expect(modalOwnerOf(banc.getState())).toBe(WORLD_STEP_OWNER);
+    const [monde] = step.participants!;
+    expect(monde.interactive).toBe(false);
+    expect(monde.result!.target).toBe(40);
+    expect(typeof monde.result!.roll).toBe('number');
+  });
+
   it('les DEUX entrées s’excluent au TYPE (porteurs XOR rangées montées)', () => {
     const commun = { id: 'x', kind: 'k', label: 'L', title: 'T', purpose: 'test' } as const;
     const rows = [{ id: 'H1', base: 30, target: 30, result: null }];
@@ -230,6 +266,31 @@ describe('#1262 — « `result` ⇒ close » ne vaut QU’À L’OUVERTURE', () 
     const jouee = etapeCourante().participants!.find((p) => p.id === 'H1')!;
     expect(jouee.result, 'le dé est tombé').toBeTruthy();
     expect(jouee.interactive, 'la rangée reste influençable — c’est pourquoi la règle de la porte ne vaut qu’au montage').toBe(true);
+  });
+});
+
+describe('#4243 — la rangée de MONDE se JOUE comme toute rangée', () => {
+  it('cadence jour par jour, solo : le verbe générique la lance à sa valeur, aucune influence ne s’offre, la cascade avance', () => {
+    banc.setState({ party: [hero('H1')] } as never);
+    setCadence('manuel');
+    openBand(banc.getState, banc.setState, {
+      id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
+      difficulty: 'intermediaire',
+      porteurs: [{ monde: true, ligne: { valeur: 40 } }],
+    });
+    expect(etapeCourante().participants![0].interactive, 'jour par jour : la rangée est à jouer').toBe(true);
+    banc.getState().jetLancer('cascadeEnBande', WORLD_STEP_OWNER);
+    const jouee = etapeCourante().participants![0];
+    expect(jouee.result?.target, 'le dé tombe contre la valeur posée').toBe(40);
+    expect(typeof jouee.result?.roll).toBe('number');
+    const f = FLOWS.cascadeEnBande.fermetures(banc.getState, WORLD_STEP_OWNER);
+    const influences = { relancer: f.relancer, ajouterUnDR: f.ajouterUnDR, pactiser: f.pactiser, forcerLaReussite: f.forcerLaReussite, resister: f.resister, inverser: f.inverser };
+    const fermee = expect.any(String);
+    expect(influences, 'sans fiche, aucune influence de personnage : chacune est fermée').toEqual({
+      relancer: fermee, ajouterUnDR: fermee, pactiser: fermee, forcerLaReussite: fermee, resister: fermee, inverser: fermee,
+    });
+    banc.getState().jetValider('cascade');
+    expect(banc.getState().pendingCascade, 'la bande validée, la cascade avance').toBeNull();
   });
 });
 

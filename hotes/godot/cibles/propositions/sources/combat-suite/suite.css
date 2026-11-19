@@ -1,19 +1,7 @@
 /* Suite du combat (#3935) : ce que les états de magie et de réaction ajoutent à `../combat/combat.css`. */
 
-/* une carte de choix sans portrait, la fermée, la funeste */
-.plaque.carte.choix .qui{min-width:0}
-.plaque.carte.choix .c{font-family:"Spectral";font-size:13px;letter-spacing:0;line-height:17px;white-space:nowrap;color:var(--creme-2)}
-.plaque.carte.choix.armee .c{color:#3a2a12}
-.plaque.carte.fermee .n{color:#8d8474}
-.plaque.carte.fermee .c{color:#6f685c}
+/* la carte funeste */
 .plaque.carte.funeste .n{color:#f0a48e}
-/* les réserves du héros, au bord gauche des gestes */
-.reserve{display:flex;gap:16px;align-items:center}
-#suites .reserve{position:absolute;left:0;top:2px}
-.res{display:flex;align-items:center;gap:8px;font-size:13px;color:#2a1d12}
-.res .disque{flex:none;width:36px;height:36px;border-radius:50%;padding:3px;box-shadow:0 2px 5px rgba(0,0,0,.6)}
-.res .disque>div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3b2718,#1b100a 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.8);font-family:"Grenze Gotisch";font-weight:600;font-size:19px;color:#f3e6c6}
-.consigne{align-self:center;font-style:italic;font-size:14px;line-height:40px;color:#4a3420}
 .parchemin .pas i{background:linear-gradient(135deg,#6a3d1c,#2a160a);box-shadow:0 0 0 1px #1a1005,0 1px 2px rgba(0,0,0,.5)}
 .parchemin .pas i.vide{background:rgba(255,245,215,.3);box-shadow:0 0 0 1px rgba(60,40,20,.6)}
 .pas.cire i:not(.vide){background:linear-gradient(135deg,#d2553a,#7c1f14)}
@@ -21,7 +9,6 @@
 .pas.petit{gap:8px;margin:0}
 
 /* la surincantation : le sort, les pas à répartir par axe, les cibles désignées */
-#jet .fond.sur{grid-template-columns:372px 1fr 222px}
 #verdict.surinc{display:grid;grid-template-columns:1fr 236px;column-gap:16px;height:116px;padding:0 14px 0 16px;text-align:left}
 .surinc .sort .dr{font-size:32px}
 .surinc .sort p{margin-top:4px}
@@ -31,22 +18,12 @@
 .axe em{grid-column:2/5;font-size:12.5px;color:#8a7a5c}
 .axe b{font-family:"Fell SC";font-weight:400;font-size:14px;text-align:right;padding-right:10px}
 .axe.ferme{color:#8a7a5c}
-.pm{display:flex;gap:6px}
-.pm .bouton-rond{width:20px;height:20px;padding:2px;box-shadow:0 1px 3px rgba(0,0,0,.6),0 0 0 1px #150d04}
 .cibles-du-sort{display:flex;flex-direction:column;gap:9px;padding-left:16px}
 .c-s{display:flex;flex-direction:row-reverse;align-items:center;gap:11px;text-align:right}
-.c-s .portrait{width:42px;height:50px;padding:3px}
 .c-s .n{font-size:18px;line-height:20px;color:#3a1a10;white-space:nowrap}
 .c-s .c{font-size:11.5px;color:#4a3420;white-space:nowrap}
 
-/* le contre-sort : la déclaration avant les dés */
-.declaration .l{font-size:13px;color:#2a1d12;margin-top:5px}
-.trois{display:flex;justify-content:center;gap:8px;margin:8px 0 7px}
-.trois .plaque{flex:none;width:112px;height:30px}
-.trois .plaque>div{font-size:13.5px}
-.declaration .modif{margin-top:0}
-
-/* la dissipation d'un sort durable : le cumul du Test étendu */
+/* le cumul d'un Test étendu */
 .cumul{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:5px}
 .cumul b{font-weight:400;font-size:13px;color:#2a1d12}
 #verdict.etendu p{margin-top:5px}
@@ -55,35 +32,33 @@
 .camp.lanceur .c{color:#7c1f14}
 .tete-c{display:flex;align-items:center;gap:22px}
 .tirage{display:flex;align-items:center;gap:10px;font-size:12px;line-height:15px;color:#5a2a12}
-.tirage .resultat{width:42px;height:42px;font-size:22px}
 #critique p.note{font-style:italic;font-size:14px;line-height:19px;color:#4a3420;margin-top:3px}
 
 /* l'exposition à la Corruption : qui, quelle nature, ce que le Test décide */
-#jet .fond.corruption{grid-template-columns:300px 1fr 290px}
 .expose .points{margin-top:14px;width:196px}
 .points .l,.nature>.l,.enjeu>.l{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:#4a3420}
 .points .l b{font-weight:400;font-size:14px;color:#2a1d12}
 .points .pas{margin-top:9px;margin-left:5px;gap:13px}
 .nature{padding:0 22px;border-left:1px solid rgba(60,40,20,.4);border-right:1px solid rgba(60,40,20,.4);height:108px}
 .deux{display:flex;gap:12px;margin-top:8px}
-.deux .plaque.carte{width:auto;flex:1;height:76px}
-.deux .plaque.carte>div{padding:0 16px}
+
+/* ce qu'un Test décide, la ligne que le dé désigne */
 .enjeu{padding-left:22px}
 .enjeu table{border-collapse:collapse;width:100%;margin-top:6px;font-size:14px;line-height:21px;color:#2a1d12}
 .enjeu td{padding:1px 0;border-top:1px solid rgba(60,40,20,.28)}
 .enjeu tr:first-child td{border-top:0}
 .enjeu td:last-child{text-align:right;font-family:"Fell SC";font-size:14px;white-space:nowrap}
+.enjeu tr.tombee td{color:#7c1f14;font-weight:600}
 
 /* le désengagement et le Destin : trois cartes, la raison d'un refus au survol */
-#jet .fond.debut .plaque.carte.choix{width:258px}
-#raison{position:absolute;left:478px;top:516px;width:286px;padding:8px 13px 9px;font-size:13.5px;line-height:18px;font-style:italic;color:#2a1d12;box-shadow:0 8px 18px rgba(0,0,0,.6),0 0 0 1px rgba(40,25,10,.9),inset 0 0 14px rgba(90,60,20,.4);border-radius:2px;z-index:4}
-#raison::before{content:"";position:absolute;left:150px;bottom:-7px;width:13px;height:13px;background:#cdb88a;transform:rotate(45deg);box-shadow:2px 2px 0 rgba(40,25,10,.9)}
 #jet .fond.destin{gap:12px}
-#jet .fond.destin .camp{width:282px;margin-right:6px;padding-right:14px;height:92px;border-right:1px solid rgba(60,40,20,.4)}
-#jet .fond.destin .camp .portrait{width:74px;height:90px}
-#jet .fond.destin .reserve{margin-top:8px}
-#jet .fond.destin .plaque.carte.choix{width:250px}
 
 /* la relance : le premier jet reste lisible */
-.relance{font-style:normal;font-size:12px;color:#5a2a12;white-space:nowrap}
-.relance s{text-decoration-thickness:1.5px;font-size:16px}
+.relance{color:#5a2a12;white-space:nowrap}
+.relance s{text-decoration-thickness:1.5px}
+
+/* l'entrée de la Dissipation : les Sorts du porteur, le porteur */
+#jet .fond.destin .camp.visee{height:92px;padding-left:14px;border-left:1px solid rgba(60,40,20,.4)}
+
+/* l'Incantation Critique : le jet du lanceur, puis l'effet à choisir */
+#jet .fond.effet-critique{gap:12px}

@@ -1,0 +1,13 @@
+{
+  "model": "decor--terrier.glb",
+  "model_sha256": "9666f1d00037a237681fd2618912f1b4e3fa4f71a70418e1c07b22faf24bd09b",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

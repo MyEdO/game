@@ -1,38 +1,136 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/accueil.gd" id="1_accueil"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 [ext_resource type="PackedScene" path="res://scenes/Reglages.tscn" id="3_reglages"]
+[ext_resource type="Theme" path="res://art/accueil.tres" id="4_accueil"]
+[ext_resource type="PackedScene" path="res://composants/filet.tscn" id="5_filet"]
+[ext_resource type="PackedScene" path="res://composants/grain.tscn" id="6_grain"]
+[ext_resource type="Material" path="res://art/degrade_du_titre.tres" id="7_degrade"]
+[ext_resource type="Script" path="res://scripts/teinte_du_theme.gd" id="8_teintes"]
 
-[node name="Accueil" type="CenterContainer"]
+[node name="Accueil" type="Control"]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("4_accueil")
 script = ExtResource("1_accueil")
 
-[node name="Menu" type="VBoxContainer" parent="."]
-layout_mode = 2
+[node name="Fond" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Menu" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SurTitre" type="Label" parent="Menu"]
+layout_mode = 0
+offset_left = 81.0
+offset_top = 62.0
+theme_type_variation = &"SurTitre"
+text = "Jeu de rôle dans le Vieux Monde"
 
 [node name="Titre" type="Label" parent="Menu"]
-layout_mode = 2
-text = "WFRP"
-horizontal_alignment = 1
+layout_mode = 0
+offset_left = 78.0
+offset_top = 62.0
+material = ExtResource("7_degrade")
+theme_type_variation = &"TitreDuJeu"
+text = "Warhammer Fantasy"
 
-[node name="Gestes" type="VBoxContainer" parent="Menu"]
+[node name="Teintes" type="Node" parent="Menu/Titre"]
+script = ExtResource("8_teintes")
+teintes = {
+"bas": "titre_bas",
+"haut": "titre_haut",
+"milieu": "titre_milieu"
+}
+
+[node name="Filet" parent="Menu" instance=ExtResource("5_filet")]
+layout_mode = 0
+offset_left = 81.0
+offset_top = 181.0
+offset_right = 598.0
+offset_bottom = 188.0
+
+[node name="Avant" parent="Menu/Filet" index="0"]
+custom_minimum_size = Vector2(138, 0)
+size_flags_horizontal = 1
+
+[node name="SousTitre" type="Label" parent="Menu"]
+layout_mode = 0
+offset_left = 81.0
+offset_top = 186.0
+theme_type_variation = &"SousTitre"
+text = "L’Ennemi Intérieur"
+
+[node name="Entrees" type="VBoxContainer" parent="Menu"]
+layout_mode = 0
+offset_left = 81.0
+offset_top = 329.0
+offset_right = 386.0
+theme_type_variation = &"EntreesDeLAccueil"
+
+[node name="Continuer" type="VBoxContainer" parent="Menu/Entrees"]
 layout_mode = 2
 
-[node name="Zone" type="Node" parent="Menu/Gestes"]
+[node name="Zone" type="Node" parent="Menu/Entrees/Continuer"]
 script = ExtResource("2_zone")
 source = "accueil.gestes"
+ids = PackedStringArray("reprendre")
+formes = PackedStringArray("bouton:plaqueArmeeAGauche")
 
-[node name="Refus" type="Label" parent="Menu"]
+[node name="Jeux" type="VBoxContainer" parent="Menu/Entrees"]
 layout_mode = 2
-horizontal_alignment = 1
+theme_type_variation = &"EntreesDeLAccueil"
 
-[node name="Panne" type="Label" parent="Menu"]
+[node name="Zone" type="Node" parent="Menu/Entrees/Jeux"]
+script = ExtResource("2_zone")
+source = "accueil.gestes"
+ids = PackedStringArray("jouer", "salon")
+formes = PackedStringArray("bouton:plaqueAGauche")
+
+[node name="Refus" type="Label" parent="Menu/Entrees"]
 layout_mode = 2
-horizontal_alignment = 1
+
+[node name="Panne" type="Label" parent="Menu/Entrees"]
+layout_mode = 2
+
+[node name="Outils" type="HBoxContainer" parent="Menu"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -28.0
+offset_bottom = -21.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"OutilsDeLAccueil"
+
+[node name="Zone" type="Node" parent="Menu/Outils"]
+script = ExtResource("2_zone")
+source = "accueil.gestes"
+formes = PackedStringArray("bouton:outil")
 
 [node name="Reglages" parent="." instance=ExtResource("3_reglages")]
+
+[node name="Grain" parent="." instance=ExtResource("6_grain")]
+
+[editable path="Menu/Filet"]

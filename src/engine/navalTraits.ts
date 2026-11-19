@@ -20,7 +20,7 @@
  */
 import { findNavalTrait, findVehicleById } from '../data';
 import type { GameOp } from './ops';
-import type { Combatant, CoverClass, DeckCoverClass, NavalTraitRef } from './types';
+import type { Combatant, CoverClass, DeckCoverClass, ModLine, NavalTraitRef } from './types';
 import { couvertLePlusProtecteur } from './cover';
 
 /** Indice (niveau) du Trait naval `id` dans une liste de réfs : `value` de la réf (défaut 1 si présent sans
@@ -132,16 +132,25 @@ export function belierRam(traits: NavalTraitRef[] | undefined): { ic: number; ap
   return { ic: 0, ap: 0 };
 }
 
-/** Modificateur BRUT (points de %) au Test de Navigation POUR DIRIGER le bateau, sommé sur les Traits +
- *  Améliorations (MSRC 12 l.66 : Bouteur +20 ; l.140 : Gréement de course −10). Champ de DOMAINE `navTestMod`
- *  (le +20/−10 vise le Test lui-même, hors vocabulaire combattant `skillDRBonus`). PUR. */
+/** Modificateurs NOMMÉS (points de %) sur la cible du Test de Navigation POUR DIRIGER le bateau, une ligne
+ *  par Trait/Amélioration porteur (MSRC 12 l.66 : Bouteur +20 ; l.140 : Gréement de course −10), libellée par
+ *  le trait. Champ de DOMAINE `navTestMod` (le +20/−10 vise le Test lui-même, hors vocabulaire combattant
+ *  `skillDRBonus`). PUR. */
+export function navalNavTestModLines(traits: NavalTraitRef[] | undefined): ModLine[] {
+  return (traits ?? []).flatMap((ref) => {
+    const trait = findNavalTrait(ref.id);
+    return trait?.navTestMod ? [{ label: trait.label, value: trait.navTestMod, famille: 'circonstance' as const, ref: { category: 'navalTraits', id: ref.id } }] : [];
+  });
+}
+
+/** Somme des `navalNavTestModLines`. PUR. */
 export function navalNavTestMod(traits: NavalTraitRef[] | undefined): number {
-  return (traits ?? []).reduce((n, ref) => n + (findNavalTrait(ref.id)?.navTestMod ?? 0), 0);
+  return navalNavTestModLines(traits).reduce((n, m) => n + m.value, 0);
 }
 
 /** Le même modificateur CONVERTI en DR de Test d'équipage de manœuvre (MDG 14) : le Test de Navigation pour
  *  diriger est remplacé par le Test d'équipage dont le total est en DR ; LDB (jets) 10 points = 1 DR → ÷10.
- *  Consommé UNE FOIS par `shipManeuverParams` (manœuvre tactique) et le Test d'équipage de manœuvre de voyage. PUR. */
+ *  Consommé UNE FOIS par `shipManeuverParams` (manœuvre tactique). PUR. */
 export function navalNavTestDR(traits: NavalTraitRef[] | undefined): number {
   return Math.trunc(navalNavTestMod(traits) / 10);
 }

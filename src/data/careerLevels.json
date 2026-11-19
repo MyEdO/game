@@ -70,7 +70,10 @@
       "intelligence",
       "sociabilite"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 53
@@ -128,7 +131,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 53
@@ -184,7 +190,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 53
@@ -246,7 +255,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 53
@@ -327,7 +339,10 @@
       "endurance",
       "dexterite"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 54
@@ -390,7 +405,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 54
@@ -451,7 +469,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 54
@@ -501,7 +522,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 54
@@ -572,7 +596,10 @@
       "intelligence",
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 55
@@ -644,7 +671,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 55
@@ -705,7 +735,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 55
@@ -771,7 +804,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 55
@@ -848,7 +884,10 @@
       "agilite",
       "intelligence"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 56
@@ -917,7 +956,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 56
@@ -974,7 +1016,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 56
@@ -1025,7 +1070,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 56
@@ -1110,7 +1158,10 @@
       "agilite",
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 57
@@ -1194,7 +1245,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 57
@@ -1263,7 +1317,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 57
@@ -1347,7 +1404,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 57
@@ -1418,7 +1478,10 @@
       "agilite",
       "sociabilite"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "livre-de-base",
       "page": 58
@@ -1481,7 +1544,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 58
@@ -1542,7 +1608,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 58
@@ -1593,7 +1662,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 58
@@ -1664,7 +1736,10 @@
       "force",
       "sociabilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 59
@@ -1732,7 +1807,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 59
@@ -1793,7 +1871,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 59
@@ -1855,7 +1936,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 59
@@ -1942,7 +2026,10 @@
       "capacite-de-tir",
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 60
@@ -2006,7 +2093,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 60
@@ -2064,7 +2154,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 60
@@ -2126,7 +2219,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 60
@@ -2206,7 +2302,10 @@
       "initiative",
       "dexterite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 61
@@ -2267,7 +2366,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 61
@@ -2329,7 +2431,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 61
@@ -2386,7 +2491,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 61
@@ -2454,7 +2562,10 @@
       "initiative",
       "agilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 62
@@ -2512,7 +2623,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 62
@@ -2571,7 +2685,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 62
@@ -2631,7 +2748,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 62
@@ -2721,7 +2841,10 @@
       "initiative",
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 63
@@ -2798,7 +2921,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 63
@@ -2865,7 +2991,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 63
@@ -2917,7 +3046,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 63
@@ -2989,7 +3121,10 @@
       "agilite",
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 64
@@ -3057,7 +3192,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 64
@@ -3116,7 +3254,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 64
@@ -3177,7 +3318,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 5",
+    "status": {
+      "tier": "or",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 64
@@ -3257,7 +3401,10 @@
       "force-mentale",
       "sociabilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 65
@@ -3332,7 +3479,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 65
@@ -3399,7 +3549,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 65
@@ -3454,7 +3607,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 4",
+    "status": {
+      "tier": "or",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 65
@@ -3532,7 +3688,10 @@
       "endurance",
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 66
@@ -3622,7 +3781,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 66
@@ -3681,7 +3843,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 66
@@ -3738,7 +3903,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 66
@@ -3834,7 +4002,10 @@
       "initiative",
       "dexterite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 67
@@ -3946,7 +4117,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 67
@@ -4025,7 +4199,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 5",
+    "status": {
+      "tier": "or",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 67
@@ -4106,7 +4283,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 7",
+    "status": {
+      "tier": "or",
+      "standing": 7
+    },
     "source": {
       "book": "livre-de-base",
       "page": 67
@@ -4171,7 +4351,10 @@
       "endurance",
       "agilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 68
@@ -4229,7 +4412,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 68
@@ -4291,7 +4477,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 68
@@ -4351,7 +4540,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 68
@@ -4426,7 +4618,10 @@
       "force",
       "agilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 69
@@ -4508,7 +4703,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 69
@@ -4562,7 +4760,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 69
@@ -4612,7 +4813,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 69
@@ -4699,7 +4903,10 @@
       "initiative",
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 70
@@ -4780,7 +4987,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 70
@@ -4837,7 +5047,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 70
@@ -4893,7 +5106,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 4",
+    "status": {
+      "tier": "or",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 70
@@ -4969,7 +5185,10 @@
       "endurance",
       "agilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 71
@@ -5042,7 +5261,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 71
@@ -5113,7 +5335,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 71
@@ -5159,7 +5384,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 71
@@ -5231,7 +5459,10 @@
       "force",
       "endurance"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 72
@@ -5330,7 +5561,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 72
@@ -5386,7 +5620,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 72
@@ -5432,7 +5669,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 72
@@ -5511,7 +5751,10 @@
       "force",
       "endurance"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 35
@@ -5592,7 +5835,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 35
@@ -5650,7 +5896,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 35
@@ -5701,7 +5950,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 35
@@ -5782,7 +6034,10 @@
       "endurance",
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 73
@@ -5847,7 +6102,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 73
@@ -5903,7 +6161,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 73
@@ -5951,7 +6212,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 73
@@ -6027,7 +6291,10 @@
       "endurance",
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 74
@@ -6093,7 +6360,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 74
@@ -6148,7 +6418,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 74
@@ -6218,7 +6491,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 74
@@ -6301,7 +6577,10 @@
       "agilite",
       "intelligence"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 88
@@ -6380,7 +6659,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 88
@@ -6449,7 +6731,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 88
@@ -6513,7 +6798,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 88
@@ -6593,7 +6881,10 @@
       "endurance",
       "agilite"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 75
@@ -6665,7 +6956,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 75
@@ -6749,7 +7043,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 75
@@ -6805,7 +7102,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 75
@@ -6888,7 +7188,10 @@
       "force",
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 76
@@ -6954,7 +7257,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 76
@@ -7014,7 +7320,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 76
@@ -7060,7 +7369,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 76
@@ -7132,7 +7444,10 @@
       "capacite-de-combat",
       "endurance"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 77
@@ -7209,7 +7524,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 77
@@ -7269,7 +7587,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 77
@@ -7330,7 +7651,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 77
@@ -7417,7 +7741,10 @@
       "agilite",
       "intelligence"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 91
@@ -7490,7 +7817,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 91
@@ -7559,7 +7889,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 91
@@ -7614,7 +7947,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 91
@@ -7688,7 +8024,10 @@
       "endurance",
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 78
@@ -7763,7 +8102,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 78
@@ -7825,7 +8167,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 78
@@ -7878,7 +8223,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 78
@@ -7967,7 +8315,10 @@
       "dexterite",
       "force-mentale"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 79
@@ -8053,7 +8404,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 79
@@ -8119,7 +8473,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 79
@@ -8190,7 +8547,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 79
@@ -8260,7 +8620,10 @@
       "force",
       "endurance"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "livre-de-base",
       "page": 80
@@ -8329,7 +8692,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "livre-de-base",
       "page": 80
@@ -8382,7 +8748,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "livre-de-base",
       "page": 80
@@ -8433,7 +8802,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "livre-de-base",
       "page": 80
@@ -8511,7 +8883,10 @@
       "force",
       "endurance"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "middenheim",
       "page": 154
@@ -8574,7 +8949,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "middenheim",
       "page": 154
@@ -8626,7 +9004,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "middenheim",
       "page": 154
@@ -8680,7 +9061,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Bronze 0",
+    "status": {
+      "tier": "bronze",
+      "standing": 0
+    },
     "source": {
       "book": "middenheim",
       "page": 154
@@ -8746,7 +9130,10 @@
       "initiative",
       "agilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 81
@@ -8816,7 +9203,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 81
@@ -8872,7 +9262,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 81
@@ -8925,7 +9318,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 81
@@ -9003,7 +9399,10 @@
       "force",
       "endurance"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 90
@@ -9089,7 +9488,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 90
@@ -9151,7 +9553,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 90
@@ -9212,7 +9617,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 90
@@ -9288,7 +9696,10 @@
       "endurance",
       "initiative"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 82
@@ -9359,7 +9770,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 82
@@ -9430,7 +9844,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 82
@@ -9498,7 +9915,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 82
@@ -9586,7 +10006,10 @@
       "agilite",
       "force-mentale"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 89
@@ -9653,7 +10076,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 89
@@ -9710,7 +10136,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 89
@@ -9762,7 +10191,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "archives-de-l-empire-1",
       "page": 89
@@ -9832,7 +10264,10 @@
       "endurance",
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 83
@@ -9922,7 +10357,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 83
@@ -9981,7 +10419,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 83
@@ -10034,7 +10475,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 83
@@ -10105,7 +10549,10 @@
       "dexterite",
       "sociabilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 84
@@ -10186,7 +10633,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 84
@@ -10243,7 +10693,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 84
@@ -10303,7 +10756,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 84
@@ -10386,7 +10842,10 @@
       "dexterite",
       "intelligence"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 85
@@ -10448,7 +10907,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 85
@@ -10509,7 +10971,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 85
@@ -10561,7 +11026,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 85
@@ -10649,7 +11117,10 @@
       "endurance",
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 37
@@ -10723,7 +11194,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 37
@@ -10789,7 +11263,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 37
@@ -10845,7 +11322,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 37
@@ -10922,7 +11402,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 86
@@ -10988,7 +11471,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 86
@@ -11046,7 +11532,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 86
@@ -11095,7 +11584,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 86
@@ -11171,7 +11663,10 @@
       "dexterite",
       "intelligence"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 87
@@ -11235,7 +11730,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 87
@@ -11291,7 +11789,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 87
@@ -11351,7 +11852,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 87
@@ -11423,7 +11927,10 @@
       "dexterite",
       "intelligence"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 88
@@ -11489,7 +11996,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 88
@@ -11548,7 +12058,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 88
@@ -11598,7 +12111,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 88
@@ -11666,7 +12182,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 89
@@ -11733,7 +12252,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 89
@@ -11791,7 +12313,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 89
@@ -11843,7 +12368,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 89
@@ -11914,7 +12442,10 @@
       "intelligence",
       "sociabilite"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 90
@@ -11983,7 +12514,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 90
@@ -12042,7 +12576,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 90
@@ -12089,7 +12626,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 90
@@ -12159,7 +12699,10 @@
       "agilite",
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 91
@@ -12224,7 +12767,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 91
@@ -12293,7 +12839,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 91
@@ -12347,7 +12896,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 91
@@ -12420,7 +12972,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 92
@@ -12480,7 +13035,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 92
@@ -12541,7 +13099,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 92
@@ -12597,7 +13158,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 92
@@ -12671,7 +13235,10 @@
       "endurance",
       "agilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 93
@@ -12735,7 +13302,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 93
@@ -12791,7 +13361,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 93
@@ -12844,7 +13417,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 93
@@ -12935,7 +13511,10 @@
       "dexterite",
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 94
@@ -13009,7 +13588,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 94
@@ -13068,7 +13650,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 94
@@ -13119,7 +13704,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 94
@@ -13189,7 +13777,10 @@
       "endurance",
       "initiative"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 95
@@ -13259,7 +13850,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 95
@@ -13315,7 +13909,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 95
@@ -13369,7 +13966,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 95
@@ -13443,7 +14043,10 @@
       "agilite",
       "dexterite"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 96
@@ -13514,7 +14117,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 96
@@ -13573,7 +14179,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 96
@@ -13631,7 +14240,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 96
@@ -13704,7 +14316,10 @@
       "dexterite",
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 97
@@ -13767,7 +14382,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 97
@@ -13819,7 +14437,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 97
@@ -13882,7 +14503,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 97
@@ -13954,7 +14578,10 @@
       "force",
       "initiative"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 98
@@ -14021,7 +14648,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 98
@@ -14091,7 +14721,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 98
@@ -14148,7 +14781,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 98
@@ -14222,7 +14858,10 @@
       "endurance",
       "initiative"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 99
@@ -14290,7 +14929,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 99
@@ -14349,7 +14991,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 99
@@ -14401,7 +15046,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 99
@@ -14474,7 +15122,10 @@
       "force",
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 100
@@ -14548,7 +15199,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 100
@@ -14607,7 +15261,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 100
@@ -14668,7 +15325,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 100
@@ -14746,7 +15406,10 @@
       "dexterite",
       "sociabilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 101
@@ -14827,7 +15490,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 101
@@ -14888,7 +15554,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 101
@@ -14937,7 +15606,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 101
@@ -15004,7 +15676,10 @@
       "dexterite",
       "sociabilite"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 102
@@ -15068,7 +15743,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 102
@@ -15123,7 +15801,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 102
@@ -15174,7 +15855,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 102
@@ -15248,7 +15932,10 @@
       "force",
       "endurance"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 103
@@ -15319,7 +16006,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 103
@@ -15385,7 +16075,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 103
@@ -15437,7 +16130,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 103
@@ -15514,7 +16210,10 @@
       "initiative",
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 104
@@ -15586,7 +16285,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 104
@@ -15657,7 +16359,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 104
@@ -15719,7 +16424,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 104
@@ -15790,7 +16498,10 @@
       "force",
       "endurance"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 105
@@ -15858,7 +16569,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 105
@@ -15926,7 +16640,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 105
@@ -15986,7 +16703,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 105
@@ -16065,7 +16785,10 @@
       "agilite",
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 106
@@ -16131,7 +16854,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 106
@@ -16186,7 +16912,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 106
@@ -16241,7 +16970,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 106
@@ -16323,7 +17055,10 @@
       "endurance",
       "force-mentale"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 107
@@ -16392,7 +17127,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 107
@@ -16451,7 +17189,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 107
@@ -16500,7 +17241,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 107
@@ -16572,7 +17316,10 @@
       "agilite",
       "force-mentale"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 108
@@ -16636,7 +17383,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 108
@@ -16694,7 +17444,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 108
@@ -16757,7 +17510,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 108
@@ -16826,7 +17582,10 @@
       "initiative",
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 109
@@ -16890,7 +17649,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 109
@@ -16954,7 +17716,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 109
@@ -17010,7 +17775,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 109
@@ -17098,7 +17866,10 @@
       "endurance",
       "dexterite"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 110
@@ -17165,7 +17936,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 110
@@ -17225,7 +17999,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 110
@@ -17280,7 +18057,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 110
@@ -17361,7 +18141,10 @@
       "initiative",
       "agilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 111
@@ -17430,7 +18213,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 111
@@ -17501,7 +18287,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 111
@@ -17554,7 +18343,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 111
@@ -17638,7 +18430,10 @@
       "force",
       "endurance"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 36
@@ -17710,7 +18505,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 36
@@ -17770,7 +18568,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 36
@@ -17829,7 +18630,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 36
@@ -17907,7 +18711,10 @@
       "initiative",
       "agilite"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 112
@@ -17971,7 +18778,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 112
@@ -18038,7 +18848,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 112
@@ -18090,7 +18903,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 112
@@ -18169,7 +18985,10 @@
       "endurance",
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 113
@@ -18239,7 +19058,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 113
@@ -18300,7 +19122,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 113
@@ -18349,7 +19174,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 113
@@ -18427,7 +19255,10 @@
       "dexterite",
       "sociabilite"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 114
@@ -18486,7 +19317,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 114
@@ -18540,7 +19374,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 114
@@ -18589,7 +19426,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 114
@@ -18670,7 +19510,10 @@
       "initiative",
       "dexterite"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "livre-de-base",
       "page": 115
@@ -18737,7 +19580,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 115
@@ -18798,7 +19644,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 115
@@ -18852,7 +19701,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "livre-de-base",
       "page": 115
@@ -18915,7 +19767,10 @@
       "endurance",
       "agilite"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 116
@@ -18983,7 +19838,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "livre-de-base",
       "page": 116
@@ -19047,7 +19905,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "livre-de-base",
       "page": 116
@@ -19096,7 +19957,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "livre-de-base",
       "page": 116
@@ -19193,7 +20057,10 @@
       "capacite-de-combat",
       "endurance"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 44
@@ -19259,7 +20126,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "aux-armes",
       "page": 44
@@ -19322,7 +20192,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 44
@@ -19415,7 +20288,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 44
@@ -19506,7 +20382,10 @@
       "force",
       "initiative"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 31
@@ -19589,7 +20468,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "aux-armes",
       "page": 31
@@ -19645,7 +20527,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 31
@@ -19697,7 +20582,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 31
@@ -19794,7 +20682,10 @@
       "force",
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 34
@@ -19877,7 +20768,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 34
@@ -19933,7 +20827,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "aux-armes",
       "page": 34
@@ -19989,7 +20886,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 4",
+    "status": {
+      "tier": "or",
+      "standing": 4
+    },
     "source": {
       "book": "aux-armes",
       "page": 34
@@ -20085,7 +20985,10 @@
       "force",
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 32
@@ -20161,7 +21064,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 32
@@ -20218,7 +21124,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "aux-armes",
       "page": 32
@@ -20270,7 +21179,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 32
@@ -20365,7 +21277,10 @@
       "force",
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 36
@@ -20463,7 +21378,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 36
@@ -20521,7 +21439,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "aux-armes",
       "page": 36
@@ -20573,7 +21494,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 4",
+    "status": {
+      "tier": "or",
+      "standing": 4
+    },
     "source": {
       "book": "aux-armes",
       "page": 36
@@ -20666,7 +21590,10 @@
       "intelligence",
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "aux-armes",
       "page": 78
@@ -20733,7 +21660,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 78
@@ -20796,7 +21726,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "aux-armes",
       "page": 78
@@ -20844,7 +21777,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 78
@@ -20934,7 +21870,10 @@
       "capacite-de-tir",
       "initiative"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 10
@@ -21024,7 +21963,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 10
@@ -21081,7 +22023,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 10
@@ -21143,7 +22088,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 10
@@ -21225,7 +22173,10 @@
       "capacite-de-combat",
       "endurance"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 18
@@ -21291,7 +22242,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 18
@@ -21348,7 +22302,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 18
@@ -21406,7 +22363,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 18
@@ -21484,7 +22444,10 @@
       "capacite-de-tir",
       "dexterite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 12
@@ -21548,7 +22511,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 12
@@ -21606,7 +22572,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 12
@@ -21664,7 +22633,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 12
@@ -21745,7 +22717,10 @@
       "force",
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 20
@@ -21819,7 +22794,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "aux-armes",
       "page": 20
@@ -21880,7 +22858,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 20
@@ -21942,7 +22923,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "aux-armes",
       "page": 20
@@ -22026,7 +23010,10 @@
       "endurance",
       "force"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 46
@@ -22092,7 +23079,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 46
@@ -22147,7 +23137,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "aux-armes",
       "page": 46
@@ -22216,7 +23209,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 46
@@ -22310,7 +23306,10 @@
       "capacite-de-tir",
       "force"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 48
@@ -22372,7 +23371,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 48
@@ -22450,7 +23452,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 48
@@ -22511,7 +23516,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 48
@@ -22588,7 +23596,10 @@
       "capacite-de-combat",
       "sociabilite"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 22
@@ -22652,7 +23663,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "aux-armes",
       "page": 22
@@ -22705,7 +23719,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 22
@@ -22758,7 +23775,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "aux-armes",
       "page": 22
@@ -22838,7 +23858,10 @@
       "initiative",
       "intelligence"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 16
@@ -22904,7 +23927,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 16
@@ -22964,7 +23990,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 16
@@ -23017,7 +24046,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 16
@@ -23097,7 +24129,10 @@
       "initiative",
       "intelligence"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 14
@@ -23174,7 +24209,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "aux-armes",
       "page": 14
@@ -23232,7 +24270,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "aux-armes",
       "page": 14
@@ -23350,7 +24391,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "aux-armes",
       "page": 14
@@ -23427,7 +24471,10 @@
       "agilite",
       "intelligence"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 64
@@ -23494,7 +24541,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 64
@@ -23551,7 +24601,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 64
@@ -23602,7 +24655,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 64
@@ -23687,7 +24743,10 @@
       "intelligence",
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 66
@@ -23746,7 +24805,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 66
@@ -23799,7 +24861,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 66
@@ -23846,7 +24911,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 66
@@ -23928,7 +24996,10 @@
       "dexterite",
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 68
@@ -23990,7 +25061,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 68
@@ -24041,7 +25115,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 68
@@ -24095,7 +25172,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 68
@@ -24175,7 +25255,10 @@
       "force",
       "initiative"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 70
@@ -24241,7 +25324,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 70
@@ -24311,7 +25397,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 70
@@ -24367,7 +25456,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 70
@@ -24446,7 +25538,10 @@
       "endurance",
       "initiative"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 72
@@ -24513,7 +25608,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 72
@@ -24566,7 +25664,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 72
@@ -24618,7 +25719,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 72
@@ -24694,7 +25798,10 @@
       "intelligence",
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 74
@@ -24758,7 +25865,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 74
@@ -24819,7 +25929,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 74
@@ -24867,7 +25980,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Or 5",
+    "status": {
+      "tier": "or",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 74
@@ -24951,7 +26067,10 @@
       "agilite",
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 76
@@ -25016,7 +26135,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 76
@@ -25084,7 +26206,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 76
@@ -25140,7 +26265,10 @@
     "characteristics": [
       "intelligence"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 76
@@ -25218,7 +26346,10 @@
       "initiative",
       "intelligence"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 78
@@ -25285,7 +26416,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 78
@@ -25350,7 +26484,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Bronze 5",
+    "status": {
+      "tier": "bronze",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 78
@@ -25397,7 +26534,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 78
@@ -25483,7 +26623,10 @@
       "force",
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 90
@@ -25550,7 +26693,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 90
@@ -25624,7 +26770,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 90
@@ -25681,7 +26830,10 @@
     "characteristics": [
       "capacite-de-tir"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 90
@@ -25777,7 +26929,10 @@
       "dexterite",
       "intelligence"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 36
@@ -25840,7 +26995,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 36
@@ -25901,7 +27059,10 @@
     "characteristics": [
       "force-mentale"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 36
@@ -25955,7 +27116,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 36
@@ -26029,7 +27193,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Argent 1",
+    "status": {
+      "tier": "argent",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 38
@@ -26120,7 +27287,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 38
@@ -26178,7 +27348,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 38
@@ -26227,7 +27400,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Argent 5",
+    "status": {
+      "tier": "argent",
+      "standing": 5
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 38
@@ -26310,7 +27486,10 @@
       "force-mentale",
       "sociabilite"
     ],
-    "status": "Bronze 1",
+    "status": {
+      "tier": "bronze",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 40
@@ -26368,7 +27547,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 40
@@ -26422,7 +27604,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 2",
+    "status": {
+      "tier": "argent",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 40
@@ -26477,7 +27662,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 40
@@ -26564,7 +27752,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 56
@@ -26626,7 +27817,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 56
@@ -26689,7 +27883,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 56
@@ -26744,7 +27941,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 56
@@ -26823,7 +28023,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 68
@@ -26897,7 +28100,10 @@
     "characteristics": [
       "dexterite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 68
@@ -26976,7 +28182,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 3",
+    "status": {
+      "tier": "or",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 68
@@ -27039,7 +28248,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 4",
+    "status": {
+      "tier": "or",
+      "standing": 4
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 68
@@ -27121,7 +28333,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 80
@@ -27188,7 +28403,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 80
@@ -27251,7 +28469,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 80
@@ -27305,7 +28526,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 80
@@ -27387,7 +28611,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 92
@@ -27456,7 +28683,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 92
@@ -27532,7 +28762,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 92
@@ -27586,7 +28819,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 92
@@ -27665,7 +28901,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 2",
+    "status": {
+      "tier": "bronze",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 116
@@ -27732,7 +28971,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 116
@@ -27805,7 +29047,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 116
@@ -27859,7 +29104,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 116
@@ -27942,7 +29190,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 128
@@ -28015,7 +29266,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 128
@@ -28085,7 +29339,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 128
@@ -28147,7 +29404,10 @@
     "characteristics": [
       "sociabilite"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 128
@@ -28225,7 +29485,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 140
@@ -28289,7 +29552,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 140
@@ -28348,7 +29614,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 140
@@ -28401,7 +29670,10 @@
     "characteristics": [
       "endurance"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 140
@@ -28479,7 +29751,10 @@
       "intelligence",
       "force-mentale"
     ],
-    "status": "Bronze 4",
+    "status": {
+      "tier": "bronze",
+      "standing": 4
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 42
@@ -28537,7 +29812,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Argent 4",
+    "status": {
+      "tier": "argent",
+      "standing": 4
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 42
@@ -28589,7 +29867,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 42
@@ -28634,7 +29915,10 @@
     "characteristics": [
       "force"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 42
@@ -28720,7 +30004,10 @@
       "force-mentale",
       "sociabilite"
     ],
-    "status": "Bronze 3",
+    "status": {
+      "tier": "bronze",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 104
@@ -28782,7 +30069,10 @@
     "characteristics": [
       "initiative"
     ],
-    "status": "Argent 3",
+    "status": {
+      "tier": "argent",
+      "standing": 3
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 104
@@ -28845,7 +30135,10 @@
     "characteristics": [
       "capacite-de-combat"
     ],
-    "status": "Or 1",
+    "status": {
+      "tier": "or",
+      "standing": 1
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 104
@@ -28903,7 +30196,10 @@
     "characteristics": [
       "agilite"
     ],
-    "status": "Or 2",
+    "status": {
+      "tier": "or",
+      "standing": 2
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 104

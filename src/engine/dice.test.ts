@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDice, hashSeed, makeRNG, parseDice, rollDice, totalDuDe, type DiceSpec } from './dice';
+import { formatDice, hashSeed, makeRNG, rollDice, totalDuDe, type DiceSpec } from './dice';
 
 describe('hashSeed', () => {
   it('est déterministe pour une même chaîne', () => {
@@ -22,12 +22,11 @@ describe('DiceSpec — multiplicateur `fois` (NADJ 15 l.112)', () => {
     expect(totalDuDe(taille, 10)).toBe(125);
     expect(totalDuDe({ n: 3, sides: 10, plus: 130 }, 3)).toBe(133);
   });
-  it('`formatDice` et `parseDice` sont inverses, `fois` compris', () => {
+  it('`formatDice` écrit NdM(×F)(+P), `fois` compris', () => {
     expect(formatDice(taille)).toBe('1d10×2,5+100');
-    expect(parseDice('1d10×2,5+100')).toEqual(taille);
-    expect(parseDice('1d10 × 2.5 + 100')).toEqual(taille);
     expect(formatDice({ n: 3, sides: 10, plus: 5 })).toBe('3d10+5');
-    expect(parseDice('3d10+5')).toEqual({ n: 3, sides: 10, plus: 5 });
+    expect(formatDice({ n: 2, sides: 6, plus: -1 })).toBe('2d6-1');
+    expect(formatDice({ n: 1, sides: 10 })).toBe('1d10');
   });
   it('`rollDice` reste dans les bornes du dé multiplié', () => {
     for (let seed = 1; seed <= 50; seed++) {

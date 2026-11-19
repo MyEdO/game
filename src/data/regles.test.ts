@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { regles } from './index';
 import { schema } from './schemas/defs/regles';
 import { readFileSync } from 'node:fs';
-import livres from './books.json';
+import { books } from './livres';
 
 /** Le fichier tel que sur le disque : l'import JSON le rend matérialisé (`desc` résolue). */
 const DISQUE: unknown = JSON.parse(readFileSync(new URL('./regles.json', import.meta.url), 'utf8'));
@@ -40,7 +40,7 @@ describe('regles.json — adresses à fragments `blocs` seuls', () => {
   });
 
   it('une `desc` inline est REFUSÉE au parse même quand le livre cité n’a pas d’extraction (`porteursDeProse`)', () => {
-    const sansExtraction = (livres as { id: string; dir?: string }[]).find((l) => !l.dir)!;
+    const sansExtraction = books.find((l) => !l.dir)!;
     const sansAdresse: { descRef?: unknown; source?: object } = { ...adressee };
     delete sansAdresse.descRef;
     const r = schema.safeParse([{ ...sansAdresse, desc: 'Une prose recopiée.', source: { ...sansAdresse.source, book: sansExtraction.id } }]);

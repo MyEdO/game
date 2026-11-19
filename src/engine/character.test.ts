@@ -86,7 +86,7 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
 
   it('le tirage suit le `die` du document `talents-aleatoires`, jamais un d100 recopié (LDB 05 l.514 ; #3578)', () => {
     const imprimes = [...talentsAleatoires];
-    setDataset('talentsAleatoires', imprimes.map((d) => ({ ...d, die: 'd10' })));
+    setDataset('talentsAleatoires', imprimes.map((d) => ({ ...d, die: { n: 1, sides: 10 } })));
     try {
       const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(rangeesDesTalentsAleatoires(), i + 1).id));
       const tires = new Set(Array.from({ length: 200 }, (_, i) => tirage(i + 1).ref.id));

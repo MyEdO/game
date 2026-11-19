@@ -242,7 +242,7 @@ describe('Réputation — le Standing se pose à la clôture, pour l’aventure 
     banc.actions.fenetreValider('interlude');
     const h = banc.getState().party[0];
     expect(actorStatus(h)).toEqual({ tier: 'argent', standing: 2 });
-    expect(evalCondition({ kind: 'status', atLeast: 'Argent 2' }, conditionCtx({ flags: {}, gameTime: 0, party: [h] }))).toBe(true);
+    expect(evalCondition({ kind: 'status', atLeast: { tier: 'argent', standing: 2 } }, conditionCtx({ flags: {}, gameTime: 0, party: [h] }))).toBe(true);
   });
 
   it('l’effet posé à la clôture porte le libellé de l’Activité, et se dissipe sous ce libellé à l’interlude suivant', () => {

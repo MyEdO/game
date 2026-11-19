@@ -3,6 +3,7 @@ import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, mutationKindSchema, plageSchema, raceKeySchema } from '../grammaire/valeurs';
+import type { DiceSpec } from '../../../engine/dice';
 import { ref } from '../grammaire/ref';
 
 export const file = 'mutation-nature.json';
@@ -17,7 +18,7 @@ export const rangee = ref('mutationTable', {
   max: nommerNoeud(z.number(), { nom: plage.max.label }),
 });
 
-type Document = { id: string; race: string; die: string; entries: z.output<typeof rangee>[] };
+type Document = { id: string; race: string; die: DiceSpec; entries: z.output<typeof rangee>[] };
 
 const doc = document(
   'mutation-nature',

@@ -46,6 +46,7 @@ import {
   type TrappingRef,
   type TrappingData,
   type ArmeDerivee,
+  type ItemCapabilities,
 } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
@@ -535,7 +536,7 @@ export function withGiveQualities(base: QualityInstance[], give: { qualities?: s
  *  magiques ajoutées. Même liste que l'objet effectivement reçu (apply) → sert l'AFFICHAGE des chips de
  *  butin, qu'elles vivent dans la def (objet catalogué) ou sur l'Effet (magique). */
 export function giveTrappingQualities(give: { trappingId?: string; custom?: string; qualities?: string[] }, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
-  return resolveQualities(gabaritDuDon(give, undefined, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
+  return resolveQualities(gabaritDuDon(give, undefined, resolveTrapping)).map((r) => r.instance);
 }
 
 /** Libellé d'affichage d'un Effet `giveTrapping` (catalogue → label, sinon nom custom). */
@@ -1187,6 +1188,30 @@ export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
   return clone;
 }
 
+/** Enc des objets portant la capacité `cap` dans les inventaires de `porteurs`, à l'Enc du catalogue de chaque objet. */
+export function encDeLaCapacite(porteurs: readonly Pick<Combatant, 'items'>[], cap: keyof ItemCapabilities): number {
+  return porteurs.reduce((s, c) => s + (c.items ?? []).filter((i) => itemCapability(i, cap)).reduce((e, i) => e + i.enc, 0), 0);
+}
+
+/** Retire des inventaires de `porteurs`, dans leur ordre, des objets portant la capacité `cap` jusqu'à `enc` Enc au
+ *  moins, puis re-dérive l'équipement des porteurs touchés. Mute les porteurs. */
+export function consommerLaCapacite(porteurs: readonly Combatant[], cap: keyof ItemCapabilities, enc: number): void {
+  let reste = enc;
+  for (const c of porteurs) {
+    if (reste <= 0) return;
+    const pris = new Set<string>();
+    for (const i of c.items ?? []) {
+      if (reste <= 0) break;
+      if (!itemCapability(i, cap)) continue;
+      pris.add(i.uid);
+      reste -= i.enc;
+    }
+    if (!pris.size) continue;
+    c.items = (c.items ?? []).filter((i) => !pris.has(i.uid));
+    recomputeLoadout(c);
+  }
+}
+
 /** PA d'une pièce d'armure, nette des dégâts subis. LDB 63 l.19 */
 export function paNette(it: ItemInstance): number {
   return Math.max(0, (it.pa ?? 0) - (it.damageTaken ?? 0));
@@ -1597,12 +1622,22 @@ export function consumeAmmo(c: Combatant, used: ItemInstance): void {
 
 /** Arme à distance « augmentée » par la munition tirée : Dégâts combinés (flats additionnés, BF si l'un
  *  l'utilise ; arme à Dégâts « – » : ceux de la munition, AA 10 l.192) et Atouts fusionnés (ex. Empaleuse
- *  de la Flèche). */
+ *  de la Flèche). Qualité de la munition : majorée, l'Indice de l'arme + `majoration` (`majoration` si l'arme ne
+ *  l'a pas) ; à Indice, il remplace celui de l'arme ; sans Indice, ajoutée si l'arme ne l'a pas. #4346 ; #4361 ;
+ *  LDB 62 l.123 ; AA 08 l.496-497 */
 export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const w = weapon.damage;
   const a = ammo.damage;
-  const qualities = [...weapon.qualities];
-  for (const q of ammo.qualities) if (!qualities.some((x) => x.id === q.id)) qualities.push(q);
+  const qualities: QualityInstance[] = weapon.qualities.map((q) => ({ ...q }));
+  for (const q of ammo.qualities) {
+    const i = qualities.findIndex((x) => x.id === q.id);
+    const deLArme = i < 0 ? undefined : qualities[i];
+    const fusionnee: QualityInstance = q.majoration != null ? { id: q.id, value: (deLArme?.value ?? 0) + q.majoration }
+      : q.value != null ? { id: q.id, value: q.value }
+        : deLArme ?? { id: q.id };
+    if (i < 0) qualities.push(fusionnee);
+    else qualities[i] = fusionnee;
+  }
   const damage: WeaponDamageSpec = 'flat' in w
     ? { plusBF: w.plusBF || (a != null && 'plusBF' in a && a.plusBF), flat: w.flat + (a != null && 'flat' in a ? a.flat : 0) }
     : 'aucun' in w ? (a ?? w) : w; // arme « Spécial » (literal) → inchangée

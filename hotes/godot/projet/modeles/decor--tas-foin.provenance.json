@@ -1,0 +1,13 @@
+{
+  "model": "decor--tas-foin.glb",
+  "model_sha256": "e8d0e195630ffb8015930538db289653f34c179f51fa3009426150baeed24e2c",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

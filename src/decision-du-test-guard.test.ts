@@ -9,25 +9,27 @@ import { detenteur } from './lib/detenteur.testkit';
 
 /**
  * LA DÉCISION D'UN TEST A UNE SOURCE (#1874) — `resoudreFlowTest` (`src/engine/decisionDuTest.ts`) est le
- * seul lecteur de `difficulty`, `gate`, `difficultyBy` et `easierIf` d'un `FlowTest` qui PEUT porter une
- * décision, Test étendu compris (`TestEtendu`, `defs-scenes/effets.ts`, qui les tient de `FlowTest`). Le champ
- * se lit au VÉRIFICATEUR DE TYPES (`scanFieldReads`) : identité par symbole de la propriété, porteur typé au
- * site (`champsDuPorteur`).
+ * seul lecteur de `difficulty`, `gate`, `onlyGroups`, `exceptGroups`, `difficultyBy` et `easierIf` d'un Test qui
+ * PEUT porter une décision.
+ * La cible est le DÉCLARANT de ces champs, `JetDecidable` (`jetSchema` et `decisionDuTestSchema`,
+ * `grammaire/mecanique.ts`) : tout Test qui en dérive les porte sous les mêmes déclarations de propriété
+ * (`FlowTest`, `TestEtendu`, un Test de rangée de document). Le champ se lit au VÉRIFICATEUR DE TYPES
+ * (`scanFieldReads`) : identité par symbole de la propriété, porteur typé au site (`champsDuPorteur`).
  */
 const GARDE = {
   question:
-    'Quel site de `src/` lit la Difficulté, le `gate`, les `difficultyBy` ou l’`easierIf` d’un `FlowTest` qui peut '
-    + 'porter une décision, hors de `resoudreFlowTest` ? Une lecture à cru ignore la décision que la donnée déclare.',
+    'Quel site de `src/` lit la Difficulté, le `gate`, les `onlyGroups`/`exceptGroups`, les `difficultyBy` ou '
+    + 'l’`easierIf` d’un Test qui peut porter une décision, hors de `resoudreFlowTest` ? Une lecture à cru ignore la décision que la donnée déclare.',
   primitive: '`scanFieldReads` (`scripts/guards/lib/fieldConsumers.mjs`), Program du dépôt tenu par `detenteur`.',
   perimetre: '`src/` de production (`listProdFiles`, tests exclus)',
   exemption:
     'Au SITE : la ligne de la lecture, ou celle qui la précède, porte `// lecture déclarée : <raison>` (l’éditeur, '
     + 'la fiche Codex et le défaut d’argument lisent la valeur AUTHORÉE). Chaque marqueur doit couvrir une lecture.',
   horsChamp:
-    'Un porteur qui ne porte AUCUN champ de décision (`JetFixe`, `NoeudDecideAuPorteur`, `Pick<FlowTest, …>`) : '
-    + 'sa Difficulté est celle qu’il déclare.',
+    'Un Test FIXE (`testFixeSchema`, sous `porteurDeTestFixe` ou `noeudTestFixe`, `grammaire/mecanique.ts`) : il ne '
+    + 'porte aucun champ de décision, sa Difficulté est celle qu’il déclare.',
   angleMort: [
-    'Condition (1) de `fieldConsumers.mjs` : un paramètre annoté d’un littéral de même forme que `FlowTest` ne crédite rien.',
+    'Condition (1) de `fieldConsumers.mjs` : un paramètre annoté d’un littéral de même forme que `JetDecidable` ne crédite rien.',
     'Une clé calculée (`ft[k]`) et un spread (`{ ...ft }`) ne lisent aucun champ nommé.',
   ],
   ticket: '#1874',
@@ -35,8 +37,8 @@ const GARDE = {
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const RESOLUTION = 'src/engine/decisionDuTest.ts';
-const FLOW_CORE = 'src/engine/flowCore.ts';
-const CIBLE = { type: 'FlowTest', home: FLOW_CORE };
+const MECANIQUE = 'src/data/schemas/grammaire/mecanique.ts';
+const CIBLE = { type: 'JetDecidable', home: MECANIQUE };
 const CHAMPS = ['difficulty', ...CHAMPS_DE_DECISION];
 const DECISION = new Set<string>(CHAMPS_DE_DECISION);
 const MARQUEUR = /\/\/ lecture déclarée : \S.{10,}/;
@@ -56,7 +58,7 @@ function juger(hits: readonly FieldReadHit[], textes: ReadonlyMap<string, string
     if (h.file === resolution || h.auDeclarant) continue;
     const m = (marques.get(h.file) ?? []).find((n) => n === h.line || n === h.line - 1);
     if (m) { couverts.add(`${h.file}:${m}`); continue; }
-    fautes.push(`${h.file}:${h.line} (${h.symbole}) lit \`FlowTest.${h.field}\` — passe par \`resoudreFlowTest\` (${resolution})`);
+    fautes.push(`${h.file}:${h.line} (${h.symbole}) lit \`${h.field}\` d’un Test décidable — passe par \`resoudreFlowTest\` (${resolution})`);
   }
   const orphelins = [...marques].flatMap(([rel, lignes]) => lignes.filter((n) => !couverts.has(`${rel}:${n}`)).map((n) => `${rel}:${n}`));
   return { fautes, orphelins };
@@ -69,36 +71,37 @@ const TEXTES = new Map(FICHIERS.map((abs) => [relative(ROOT, abs).split(sep).joi
 const lectures = detenteur(() => scanFieldReads(CIBLE, CHAMPS, FICHIERS, ROOT));
 
 describe('decision-du-test-guard', () => {
-  it(`${GARDE.perimetre} — aucune lecture de décision d’un \`FlowTest\` hors de \`${RESOLUTION}\``, () => {
+  it(`${GARDE.perimetre} — aucune lecture de décision d’un Test hors de \`${RESOLUTION}\``, () => {
     const { fautes, orphelins } = juger(lectures(), TEXTES, RESOLUTION);
     expect(fautes).toEqual([]);
     expect(orphelins, 'marqueur qui ne couvre aucune lecture').toEqual([]);
   }, 150_000);
 
-  it('contrat positif : la résolution lit les quatre champs', () => {
+  it('contrat positif : la résolution lit la Difficulté et chaque champ de décision', () => {
     const lus = new Set(lectures().filter((h) => h.file === RESOLUTION).map((h) => h.field));
     expect([...lus].sort()).toEqual([...CHAMPS].sort());
   }, 150_000);
 
-  /** Contre-épreuve sur fixture : la garde MORD une lecture à cru, celle d'un porteur qui tient sa décision de
-   *  `FlowTest` (Test étendu), laisse passer un porteur sans décision, honore un marqueur et refuse un marqueur
+  /** Contre-épreuve sur fixture : la garde MORD une lecture à cru, celle d'un porteur qui tient sa décision du
+   *  déclarant (Test étendu), laisse passer un porteur sans décision, honore un marqueur et refuse un marqueur
    *  orphelin. */
   it('contre-épreuve : morsure, Test étendu, porteur sans décision, marqueur, marqueur orphelin', () => {
     const fixtures: Record<string, string> = {
-      'src/engine/flowCore.ts': `export interface FlowTest { difficulty?: string; gate?: boolean; difficultyBy?: string[]; easierIf?: { steps?: number } }
+      'src/data/schemas/grammaire/mecanique.ts': `export type JetDecidable = { difficulty?: string } & { gate?: boolean; difficultyBy?: string[]; easierIf?: { steps?: number } };
+export type FlowTest = JetDecidable & { label?: string };
 export type JetFixe = Omit<FlowTest, 'gate' | 'difficultyBy' | 'easierIf'>;
 `,
-      'src/engine/decisionDuTest.ts': `import type { FlowTest } from './flowCore';
+      'src/engine/decisionDuTest.ts': `import type { FlowTest } from '../data/schemas/grammaire/mecanique';
 export const resoudre = (ft: FlowTest) => ft.gate !== false && ft.difficulty;
 `,
-      'src/ouvreur.ts': `import type { FlowTest, JetFixe } from './engine/flowCore';
+      'src/ouvreur.ts': `import type { FlowTest, JetFixe } from './data/schemas/grammaire/mecanique';
 export const aCru = (ft: FlowTest) => ft.difficulty;
 export const fixe = (j: JetFixe) => j.difficulty;
 // lecture déclarée : l’éditeur montre la valeur authorée
 export const editeur = (ft: FlowTest) => ft.easierIf;
 // lecture déclarée : marqueur qui ne couvre aucune lecture
 export const rien = 1;
-type Etendu = { type: 'extendedTest'; drCible: number } & Pick<FlowTest, 'difficulty' | 'gate' | 'difficultyBy' | 'easierIf'>;
+type Etendu = { type: 'extendedTest'; drCible: number } & FlowTest;
 export const etendu = (e: Etendu) => e.difficulty;
 `,
     };

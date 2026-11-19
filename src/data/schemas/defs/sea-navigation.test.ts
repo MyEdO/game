@@ -4,14 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import seaNavigationJson from '../../sea-navigation.json';
 
-type Bande = { min: number | null; max: number | null };
-type Doc = {
-  vitesseMax: { table: Bande[] };
-  orientation: { reperes: Bande[]; changementDeCap: { die: string; entries: Bande[] } };
-  poursuite: { drDeltas: Bande[] };
-  phares: { voirLaLumiere: Bande[] };
-};
-const clone = () => structuredClone(seaNavigationJson) as unknown as Doc;
+const clone = () => structuredClone(seaNavigationJson);
+type Doc = ReturnType<typeof clone>;
 
 describe('sea-navigation.json — chaque table couvre son domaine d’un seul tenant', () => {
   it('le schéma accepte le document RÉEL', () => {
@@ -60,7 +54,7 @@ describe('sea-navigation.json — chaque table couvre son domaine d’un seul te
 
   it('la couverture du Changement de cap suit le dé de sa table (MDG 13 l.326)', () => {
     const autre = clone();
-    autre.orientation.changementDeCap.die = 'd8';
+    autre.orientation.changementDeCap.die = { n: 1, sides: 8 };
     expect(validateDataset('sea-navigation.json', autre)).toMatch(/orientation\.changementDeCap\.entries : .*au lieu de 10/);
   });
 });

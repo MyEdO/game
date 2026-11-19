@@ -1,6 +1,6 @@
 // ÉCRITURE ATOMIQUE : un texte (ou une valeur JSON) écrit dans un temporaire unique exclusif, puis renommé sur sa
 // cible. Un lecteur concurrent lit l'ancien texte ou le nouveau, jamais un fichier à moitié écrit.
-import { mkdirSync, writeFileSync, readFileSync, rmSync, openSync, closeSync, linkSync } from 'node:fs'
+import { mkdirSync, writeFileSync, readFileSync, rmSync, openSync, closeSync, linkSync, fchmodSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { dirname } from 'node:path'
 import { renommerResilient } from './renommageResilient.mjs'
@@ -22,16 +22,20 @@ export function lireTextePublie(chemin) {
   }
 }
 
-/** Écrit `texte` sous `chemin`, dossier créé, temporaire unique exclusif puis renommage (`renommerResilient`). */
+/** Écrit `texte` (chaîne ou octets) sous `chemin`, dossier créé, temporaire unique exclusif, `mode` posé s'il est
+ *  donné, puis renommage (`renommerResilient`). */
 export function ecrireTexteAtomique(chemin, texte, options = {}) {
+  const { mode, ...renommage } = options
   mkdirSync(dirname(chemin), { recursive: true })
   const tmp = `${chemin}.${randomUUID()}.tmp`
   let fd
   try {
     fd = openSync(tmp, 'wx')
-    try { writeFileSync(fd, texte) }
-    finally { closeSync(fd) }
-    renommerResilient(tmp, chemin, options)
+    try {
+      writeFileSync(fd, texte)
+      if (mode !== undefined) fchmodSync(fd, mode)
+    } finally { closeSync(fd) }
+    renommerResilient(tmp, chemin, renommage)
   } finally { if (fd !== undefined) rmSync(tmp, { force: true }) }
 }
 

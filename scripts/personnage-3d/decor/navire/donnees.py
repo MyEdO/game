@@ -1,9 +1,9 @@
 """Données de l'accastillage (#4335) : un GLB par décor `ancre-de-navire`, `barre-de-navire`, `cabestan`,
-`mat-de-navire`, `rouleau-de-cordage`, `ecoutille` et `passerelle-d-embarquement` de `src/data/props.json`, bâti dans
-l'enveloppe convexe des primitives de sa recette (`gabarit.py`). Aucune illustration au corpus : proportions
-d'adaptation, chacune en fraction de la primitive qui la porte (son rang dans la recette), dans le repère de
-`gabarit.py` (x à l'est, le front de la recette vers -y, z vers le haut) ; un azimut est un angle en degrés dans le
-plan du sol, de +x vers +y.
+`mat-de-navire`, `rouleau-de-cordage`, `ecoutille`, `passerelle-d-embarquement` et `canon-de-pont` de
+`src/data/props.json`, bâti dans l'enveloppe convexe des primitives de sa recette (`gabarit.py`). Aucune illustration
+au corpus : proportions d'adaptation, chacune en fraction de la primitive qui la porte (son rang dans la recette),
+dans le repère de `gabarit.py` (x à l'est, le front de la recette vers -y, z vers le haut) ; un azimut est un angle en
+degrés dans le plan du sol, de +x vers +y.
 
 - `ancre-de-navire` : une ancre à jas dressée sur une sole de bois : les deux bras cintrés du diamant aux becs, qui
   s'amincissent ; une patte en écusson sur chaque bras, large au milieu, pointue au bec ; la verge ronde, renflée au
@@ -28,14 +28,16 @@ plan du sol, de +x vers +y.
   longerons dessous ; les quatre tasseaux de la recette et un entre deux voisins, chevillés ; en tête, un chevalet à la
   place de l'appui de la recette, deux pieds, un chapeau sous les planches et une entretoise ; les deux poteaux
   tournés de la recette et un chandelier entre eux, une filière de corde qui pend de l'un à l'autre.
+- `canon-de-pont` : un canon de fer sur un affût marin : la culasse à bouton et plate-bande, le fût à deux renforts
+  et astragale, le bourrelet de la bouche à l'âme creuse, deux tourillons sous l'axe ; deux flasques à redans, une
+  sole et une entretoise entre elles ; un coussin et un coin de mire sous le premier renfort ; deux essieux
+  équarris, quatre roues pleines à moyeu, chevillées, aux pans de la recette ; un anneau de brague à chaque flasque.
 
-Matières : celles des recettes, sauf : l'ancre, dont la recette est toute de `fer-noirci`, prend `bois-chene` pour son
-jas, de bois comme sur une ancre à jas, et pour la sole qui la présente posée ; le cabestan et l'écoutille prennent
-pour leurs frettes et leurs pitons le `fer-noirci` de leur chapeau et de leurs anneaux ; le mât prend `fer-noirci`, que
-sa recette ne nomme pas, pour ses frettes ; la passerelle prend `corde` pour sa filière. Le cœur de la glène est
-d'`ombre`, que la recette donne à son œil. Le catalogue n'a ni goudron ni chanvre goudronné (`corde` pour tout
-cordage), ni fer rouillé (`fer-noirci`). Aucun emplacement de palette ne nomme la corde ni l'ombre : elles prennent
-`accent` ; la toile, `vet1`."""
+Matières : celles des recettes, sauf : le cabestan et l'écoutille prennent pour leurs frettes et leurs pitons le
+`fer-noirci` de leur chapeau et de leurs anneaux ; le mât prend `fer-noirci`, que sa recette ne nomme pas, pour ses
+frettes ; la passerelle prend `corde` pour sa filière. Le cœur de la glène est d'`ombre`, que la recette donne à son
+œil. Le catalogue n'a ni goudron ni chanvre goudronné (`corde` pour tout cordage), ni fer rouillé (`fer-noirci`). Aucun
+emplacement de palette ne nomme la corde ni l'ombre : elles prennent `accent` ; la toile, `vet1`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}
@@ -50,10 +52,12 @@ MATERIAUX = {
     "rouleau-de-cordage": {**CORDE, "ombre": ("accent", "ombre")},
     "ecoutille": {**BOIS, **VIEUX, **FER},
     "passerelle-d-embarquement": {**BOIS, **VIEUX, **CORDE},
+    "canon-de-pont": {**BOIS, **FER},
 }
 
 BUDGET_TRIANGLES = {"ancre-de-navire": 1500, "barre-de-navire": 2000, "cabestan": 1500, "mat-de-navire": 4000,
-                    "rouleau-de-cordage": 3600, "ecoutille": 1500, "passerelle-d-embarquement": 1800}
+                    "rouleau-de-cordage": 3600, "ecoutille": 1500, "passerelle-d-embarquement": 1800,
+                    "canon-de-pont": 2800}
 
 ANGLE_LISSE = {"bois": 40, "vieux": 40, "fer": 40, "laiton": 40, "corde": 50, "toile": 60, "ombre": 30}
 """Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`), par nœud : un chanfrein garde ses
@@ -273,3 +277,47 @@ PASSERELLE = {
 
 PIED_DE_CHEVALET = ((0.0, 1.0, 1.0, 0.08), (0.9, 1.0, 1.0, 0.08), (1.0, 0.85, 0.85, 0.08))
 """Profil d'un pied du chevalet de la passerelle (`geometrie.profilee`)."""
+
+# Canon de pont : rang de l'affût, des roues (par essieu), du fût, de la culasse et de la bouche dans la recette.
+# `tournes` : les pièces du tube, chacune tournée dans son cylindre, de la culasse vers la bouche : son profil (part
+# de sa longueur, part de son apothème) ; celui de la bouche revient au fond de l'âme ; `cotes`.
+# `tourillon` : `place` (part de la longueur du fût depuis la culasse) ; `bas` : ce dont son axe est sous celui du
+# fût, et `rayon` (parts de l'apothème du fût) ; `cotes` ; il file de chaque côté jusqu'à sa portée sous l'enveloppe.
+# `flasque` : `place` de son milieu (part de la demi-largeur de l'affût) ; `epais` (part de cette largeur) ;
+# `contour` : (part de la longueur de l'affût depuis l'arrière, hauteur en part de celle de l'axe des tourillons
+# sur le dessous de l'affût).
+# `sole` : son épaisseur (part de la hauteur de l'affût), ses bouts (parts de sa longueur depuis l'arrière).
+# `entretoise` : sa place (part de la longueur de l'affût), sa demi-épaisseur (fraction de cette longueur), sa
+# tête (part de la hauteur des flasques) ; `ancrage` : ce dont l'entretoise, le coussin et le coin entrent dans ce
+# qui les porte (part de l'épaisseur de la sole).
+# `coin` : ses bouts, le gros puis le mince (parts de la longueur de l'affût depuis l'arrière) ; leur épaisseur
+# (parts de la hauteur entre la sole et le dessous du fût) ; sa demi-largeur (part de celle d'une flasque à
+# l'autre) ; `coussin` : sa demi-épaisseur (fraction de la longueur de l'affût).
+# `essieu` : son demi-côté (part du rayon d'une roue).
+# `roue` : son profil du dedans au dehors (part de son épaisseur, part de son rayon) ; `chevilles` : leur nombre,
+# la place de leur face (part de l'épaisseur de la roue), leur distance à l'axe et leur rayon (parts du rayon).
+# `anneau` (`modele.anneau_de_fer`) : `place` (part de la longueur de l'affût, part de la hauteur des flasques) ;
+# `grand` : rayon de son dehors, `petit` : rayon de son fer (parts du rayon d'une roue) ; `pose` : ce dont il
+# s'enfonce dans la flasque (part de `petit`) ; segments du tour et de la section.
+CANON = {
+    "affut": 0, "roues": ((1, 2), (3, 4)), "fut": 5, "culasse": 6, "bouche": 7,
+    "tournes": (("culasse", ((0.0, 0.16), (0.08, 0.27), (0.2, 0.27), (0.3, 0.15), (0.38, 0.15), (0.42, 0.55),
+                             (0.5, 0.92), (0.62, 1.0), (0.78, 1.0), (0.84, 0.86), (1.0, 0.86))),
+                ("fut", ((0.0, 0.98), (0.29, 0.94), (0.3, 1.0), (0.33, 1.0), (0.34, 0.88), (0.54, 0.84), (0.55, 0.92),
+                         (0.575, 0.92), (0.585, 0.78), (0.93, 0.66), (0.94, 0.74), (0.96, 0.74), (0.97, 0.66),
+                         (1.0, 0.66))),
+                ("bouche", ((0.0, 0.6), (0.25, 0.86), (0.55, 1.0), (0.8, 1.0), (1.0, 0.82), (1.0, 0.42),
+                            (0.4, 0.42)))),
+    "cotes": 16,
+    "tourillon": {"place": 0.42, "bas": 0.6, "rayon": 0.24, "cotes": 8},
+    "flasque": {"place": 0.59, "epais": 0.125,
+                "contour": ((0.0, 0.0), (0.0, 0.3), (0.12, 0.3), (0.12, 0.52), (0.26, 0.52), (0.26, 0.76),
+                            (0.42, 0.76), (0.42, 1.0), (0.88, 1.0), (0.97, 0.7), (0.97, 0.0))},
+    "sole": (0.25, (0.03, 0.95)),
+    "entretoise": (0.9, 0.03, 0.8), "ancrage": 0.3,
+    "coin": {"bouts": (0.14, 0.44), "epais": (0.42, 0.14), "largeur": 0.5}, "coussin": 0.045,
+    "essieu": 0.28,
+    "roue": {"profil": ((0.0, 0.9), (0.06, 1.0), (0.62, 1.0), (0.68, 0.92), (0.68, 0.36), (0.92, 0.3), (1.0, 0.22)),
+             "chevilles": (4, 0.68, 0.66, 0.07)},
+    "anneau": {"place": (0.34, 0.45), "grand": 0.24, "petit": 0.035, "pose": 0.5, "segments": (12, 5)},
+}

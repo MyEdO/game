@@ -291,7 +291,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { FIL_DE_LA_PAGE_MS } from './servir.mjs'
-import { encoderPng } from './planches.mjs'
+import { VUE_DE_BASE, encoderPng } from './planches.mjs'
 import { LISTAGE } from './listage.mjs'
 import { JEUX_DU_PARCOURS } from './lot-de-recettes.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -338,8 +338,9 @@ const DOSSIER_SERVI = o.modeles ?? fileURLToPath(new URL('./projet/modeles', imp
  *  (`--natif`). Les deux portent les mêmes noms. */
 const lieu = o.natif ? await import('./pilotage/natif.mjs') : await import('./pilotage/page.mjs')
 /** La fenêtre du jeu d'un parcours joué, `[x, y, largeur, hauteur]`, sous les deux lieux : celle que le lanceur passe au
- *  pilote natif (`ouvrir` de `pilotage/natif.mjs`), la page de `pilotage/page.mjs`. */
-const FENETRE = [0, 0, 1280, 720]
+ *  pilote natif (`ouvrir` de `pilotage/natif.mjs`), la page de `pilotage/page.mjs`. C'est la vue de base du projet
+ *  (`VUE_DE_BASE`) : l'interface y est à l'échelle 1, et les points que l'écran publie sont ceux où le parcours clique. */
+const FENETRE = [0, 0, VUE_DE_BASE.largeur, VUE_DE_BASE.hauteur]
 const { ATTENTE_ECHUE, clic, evaluate, geste, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } = lieu
 const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu, planche: o.planche, fenetre: { largeur: FENETRE[2], hauteur: FENETRE[3] } })
 const noter = (t) => console.log('·', t)
@@ -1325,13 +1326,15 @@ async function parcoursVehicule() {
   }
 }
 
-/** Le monde posé : le modèle de chaque navire de la vue (`wfrpEcran.navires`) et la base de chaque corps dessiné
- *  (`wfrpEcran.corps`), que Godot tire en GLB, chacun lu d'un bloc sur le fil de la page. */
+/** Le monde posé : le modèle de chaque navire de la vue (`wfrpEcran.navires`), la base de chaque corps dessiné
+ *  (`wfrpEcran.corps`) et les modèles des arêtes (`wfrpEcran.aretes_lues`), que Godot tire en GLB, chacun lu d'un bloc
+ *  sur le fil de la page. */
 async function attendreLeMonde() {
   const v = await vue()
   const navires = Object.keys(v.corps.navires)
   const bases = Object.fromEntries(Object.entries(v.corps.combattants).map(([id, c]) => [id, c?.base ?? null]))
-  await waitFor(session, `(() => { const e = globalThis.wfrpEcran; return !!e?.navires && ${JSON.stringify(navires)}.every((id) => e.navires.includes(id))
+  await waitFor(session, `(() => { const e = globalThis.wfrpEcran; return !!e?.navires && e.aretes_lues
+    && ${JSON.stringify(navires)}.every((id) => e.navires.includes(id))
     && Object.entries(e.corps).every(([id, c]) => c.base === (${JSON.stringify(bases)}[id] ?? null)) })()`, { timeoutMs: 300000, evaluerMs: FIL_DE_LA_PAGE_MS })
   noter(`monde posé : navires ${navires.join(', ') || 'aucun'}, corps ${Object.keys((await ecran()).corps).join(', ') || 'aucun'}`)
 }

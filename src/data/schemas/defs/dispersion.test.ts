@@ -14,7 +14,7 @@ describe('dispersion.json — rangées et décalages', () => {
 
   it('REFUSE, en le nommant, un trou dans le d10', () => {
     const sansCinq = dispersionJson.entries.filter((r) => r.min !== 5);
-    expect(validateDataset(FICHIER, avecRangees(sansCinq))).toMatch(/dispersion\.json › dispersion : les rangées ne couvrent pas le d10 d'un seul tenant/);
+    expect(validateDataset(FICHIER, avecRangees(sansCinq))).toMatch(/dispersion\.json › dispersion : les rangées ne couvrent pas le 1d10 d'un seul tenant/);
   });
 
   it('REFUSE un décalage hors des cases voisines', () => {

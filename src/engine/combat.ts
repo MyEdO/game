@@ -57,7 +57,7 @@ import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, possessionASaTaille, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
-import { isPsychImmune, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
+import { isPsychImmune, PSY, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
 import {
   qualitySum,
   attackModQualityIds,
@@ -810,7 +810,7 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
   // Peur ANNULÉE si une affliction active immunise l'attaquant à ce CANAL (Haine vs son groupe l.41,
   // Amour l.75 dont l’`active` porte déjà « tant que vous défendez ») — siège UNIQUE `psychImmuneToFrom`,
   // partagé avec `fearSourceFor` et la porte hors combat : un seul verdict, aucun roster requis ici.
-  const fearCancelled = psychImmuneToFrom(attacker, sourceCombattant(target), 'peur');
+  const fearCancelled = psychImmuneToFrom(attacker, sourceCombattant(target), PSY.peur);
   // Chaque état psy porte sa contribution `attackDR` (±1) + son ciblage `vs` en DONNÉES — plus de ±1 ni de
   // type (`peur`/`haine`/…) codé par-nom : un nouvel état psy (Phobie…) déclare son DR dans le JSON.
   let dr = 0;
@@ -1514,7 +1514,7 @@ export function resolveRanged(
   let atk: TestResult = { ...rollTest(atkVal, 'intermediaire', rng, combineMods(mods)), base: combatBaseValue(attacker, 'distance', weapon) }; // LDB 12 l.160
   if (isHelplessTarget(defender)) atk = helplessTest(atk, 'distance'); // auto-succès, Dégâts à bout portant (LDB 16 l.113)
   const atkBd = bd(attackTestLabel(attacker, weapon, 'distance'), atkVal, atk, composeAttack(mods));
-  // Tir DÉFENDU (RAW : Protectrice 2+ LDB 62 l.296 / Bout Portant 14 l.62 / tireur Engagé 14 l.70) →
+  // Tir DÉFENDU (RAW : Protectrice 2+ LDB 62 l.296 / Bout Portant 14 l.40 / tireur Engagé 14 l.41) →
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
   if (defense && !isHelplessTarget(defender)) {
     const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defaultParryWeapon(defender), weapon);
@@ -1726,7 +1726,7 @@ export function profilDuCoup(weapon: Weapon, retenu: boolean): Weapon {
   // change pas la compétence maniée).
   const kept = resolveQualities(w)
     .filter((r) => !r.caps?.withheldOnRestraint)
-    .map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
+    .map((r) => r.instance);
   return { ...w, qualities: kept, noFamilyQualities: true };
 }
 

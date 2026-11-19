@@ -24,6 +24,7 @@ import { exposedCrew } from '../engine/shipCritical';
 import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesMinime, crewTestSuccess } from '../engine/crewMorale';
 import { placementPenalty, translaterFormation } from './monde/shipPostes';
 import { inBattleId } from './monde/combatants';
+import { dansLaZoneJouable } from './monde/scene';
 import { garanti } from '../lib/garanti';
 import { reparationTemporaireApresLaManoeuvre } from './seaVoyageFlow';
 import { t } from '../i18n';
@@ -287,17 +288,16 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       const hull = inBattleId(battle, shipId);
       if (!battle || !hull?.pos || !dir) return 0;
       const d = DIR8_DELTA[dir];
-      const w = scene?.dimensions.w ?? Infinity, h = scene?.dimensions.h ?? Infinity;
       // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
       // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).
       const otherHulls = battle.combatants.filter((c) => c.id !== shipId && estNavire(c) && c.pos);
       const hullAt = (x: number, y: number) => otherHulls.find((c) => footprintTiles(c.pos!, footprintN(c)).some((t) => t.x === x && t.y === y));
-      // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de scène OU coque devant.
+      // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de la zone jouable OU coque devant.
       let moved = 0;
       let victim: Combatant | undefined;
       for (let step = 1; step <= Math.max(0, cases); step++) {
         const nx = hull.pos.x + d.gx * step, ny = hull.pos.y + d.gy * step;
-        if (nx < 0 || ny < 0 || nx >= w || ny >= h) break; // hors bornes de scène
+        if (scene && !dansLaZoneJouable(scene, nx, ny)) break;
         const hit = hullAt(nx, ny);
         if (hit) { victim = hit; break; } // coque devant → stop adjacent (moved = step − 1)
         moved = step;

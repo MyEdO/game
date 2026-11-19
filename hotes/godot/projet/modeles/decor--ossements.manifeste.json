@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "ossements"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "os",
+      "palette": "corps",
+      "matiere": "prop--os"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    }
+  ],
+  "glb": {
+    "sha256": "77174dba2c011bf20fa84a2eeb376cd8aafce51f515cbf1acbafab579f22201f",
+    "octets": 90420
+  }
+}

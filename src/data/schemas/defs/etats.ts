@@ -6,27 +6,15 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
  * `icon` et `maison` sont des clés d'ENVELOPPE, posées par la fabrique.
  */
 import { z } from 'zod';
-import { difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
+import { couleurHexSchema, difficultySchema, gatingDeStatutSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { conditionSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 import { ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
-import { couleurHexSchema } from '../grammaire/valeurs';
 import { visuelDeLumiereSchema } from './lightTones';
 
 export const file = 'etats.json';
 export const famille = 'entite';
-
-/** Restriction Action/Mouvement/défense, de même forme que `StatusData.gating` (`src/data/index.ts`). */
-const gatingSchema = nommerChamps(z.strictObject({
-  action: z.literal('none').optional(),
-  movement: z.enum(['none', 'half', 'crawl']).optional(),
-  cannotDefend: z.literal(true).optional(),
-}), {
-  action: { label: 'action' },
-  movement: { label: 'mouvement' },
-  cannotDefend: { label: 'défense impossible' },
-});
 
 const recoverSchema = nommerChamps(z.strictObject({
   ...jetSchema.shape,
@@ -62,7 +50,7 @@ const doc = document(
   {
     passive: passifsDe().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
-    gating: gatingSchema.optional(),
+    gating: gatingDeStatutSchema.optional(),
     severity: z.number().optional(),
     aiThreat: z.number().optional(),
     perStack: z.boolean().optional(),

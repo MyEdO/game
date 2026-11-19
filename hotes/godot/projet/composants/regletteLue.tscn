@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://composants/reglette.tscn" id="1_reglette"]
+
+[node name="Reglette" instance=ExtResource("1_reglette")]
+
+[node name="Glissiere" parent="." index="0"]
+a_droite = true
+
+[node name="Nombre" parent="." index="1"]
+visible = false

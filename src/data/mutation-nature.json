@@ -4,7 +4,10 @@
     "type": "mutation-nature",
     "label": "Corps ou esprit — Humain",
     "race": "humain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 183,
@@ -28,7 +31,10 @@
     "type": "mutation-nature",
     "label": "Corps ou esprit — Halfling",
     "race": "halfling",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 183,
@@ -52,7 +58,10 @@
     "type": "mutation-nature",
     "label": "Corps ou esprit — Nain",
     "race": "nain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 183,
@@ -76,7 +85,10 @@
     "type": "mutation-nature",
     "label": "Corps ou esprit — Haut-elfe",
     "race": "haut-elfe",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 183,
@@ -95,7 +107,10 @@
     "type": "mutation-nature",
     "label": "Corps ou esprit — Elfe sylvain",
     "race": "elfe-sylvain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 183,
@@ -114,7 +129,10 @@
     "type": "mutation-nature",
     "label": "Corps ou esprit — Ogre",
     "race": "ogre",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 18,
@@ -138,7 +156,10 @@
     "type": "mutation-nature",
     "label": "Corps ou esprit — Gnome",
     "race": "gnome",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 90,

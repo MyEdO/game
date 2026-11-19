@@ -1,13 +1,14 @@
 /**
  * L'ENTRÉE DU BUNDLE DU PONT (#2928, `CONTRAT.md`) : la page expose le pont à Godot en `globalThis.wfrpPont`, sur son
  * stockage (`localStorage`, où vivent les sauvegardes) et sur le réseau de la page (`portsDeLaPage`, sa minuterie
- * écrite ici), avec le choix d'un fichier sur le disque du joueur (`choisirUnFichier`) et la pile des couches d'une tenue
- * (`resoudreLaPile`). Le bundle se bâtit par `hotes/godot/construire.mjs`, qui charge le gel du catalogue avant elle
+ * écrite ici), avec le choix d'un fichier sur le disque du joueur (`choisirUnFichier`), la pile des couches d'une tenue
+ * (`resoudreLaPile`) et le téléchargement d'un fichier du serveur du jeu (`telecharger`). Le bundle se bâtit par `hotes/godot/construire.mjs`, qui charge le gel du catalogue avant elle
  * (`scripts/entree-d-hote.mjs`).
  */
 import { creerPont, type Pont } from './pont';
 import { choisirUnFichier } from './fichier';
 import { resoudreLaPile } from './pileEnFond';
+import { telecharger } from './telechargement';
 import { stockageWeb } from '../../../src/hote/stockageWeb';
 import { portsDeLaPage } from '../../../src/hote/coop/page';
 
@@ -20,7 +21,7 @@ import { portsDeLaPage } from '../../../src/hote/coop/page';
  *   déclaré ni compté à son nombre de lectures dans `HORS_DU_PROCESSUS` ; elle l'exécute dans un contexte qui ne porte
  *   que les API déclarées, et rougit sur tout écart aux appels qu'y joue `executer` (`construire.mjs`).
  */
-(globalThis as typeof globalThis & { wfrpPont: Pont & { choisirUnFichier: typeof choisirUnFichier; resoudreLaPile: typeof resoudreLaPile } }).wfrpPont = { ...creerPont(stockageWeb('localStorage'), {
+(globalThis as typeof globalThis & { wfrpPont: Pont & { choisirUnFichier: typeof choisirUnFichier; resoudreLaPile: typeof resoudreLaPile; telecharger: typeof telecharger } }).wfrpPont = { ...creerPont(stockageWeb('localStorage'), {
   ...portsDeLaPage(),
   minuterie: { programmer: (suite, delai) => { const id = setTimeout(suite, delai); return () => clearTimeout(id); } },
-}), choisirUnFichier, resoudreLaPile };
+}), choisirUnFichier, resoudreLaPile, telecharger };

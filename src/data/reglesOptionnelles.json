@@ -16,6 +16,11 @@
       "inverted",
       "off"
     ],
+    "libelles": {
+      "normal": "Normales",
+      "inverted": "Inversées",
+      "off": "Aucune"
+    },
     "hint": "normal = 01-05 réussite auto / 96-00 échec auto (RAW) ; inverted = l’inverse ; off = aucune bande."
   },
   {
@@ -118,6 +123,12 @@
       "FM",
       "Int"
     ],
+    "libelles": {
+      "F": "Force",
+      "max": "La meilleure",
+      "FM": "Force Mentale",
+      "Int": "Intelligence"
+    },
     "hint": "Caractéristique de base d’Intimidation. F = Force (RAW) ; max = la meilleure de F/FM/Int ; FM = Force Mentale ; Int = Intelligence.",
     "maison": "LDB 09 l.294 nomme la Force Mentale et l’Intelligence comme Caractéristiques alternatives laissées au jugement du MJ (« le MJ peut juger que certaines situations vous permettent d’utiliser une Caractéristique différente »), sans jamais décrire de sélection automatique : l’option « max » (la meilleure de F/FM/Int) est une option MAISON — le RAW ne la chiffre ni ne l’évoque."
   },
@@ -138,6 +149,11 @@
       "manual",
       "auto"
     ],
+    "libelles": {
+      "off": "Non",
+      "manual": "Manuelle",
+      "auto": "Auto"
+    },
     "hint": "Longues Séances de Jeu : regagner des Points de Chance en cours de session (≈ 1×/h). off = seulement en début de session (RAW, via l’Effet de scène) ; manual = un bouton « Regagner la Chance maintenant » ici, à la demande ; auto = informationnel (le temps réel n’est pas traçable par le moteur — déclenchez-le à la main).",
     "action": {
       "when": "manual",
@@ -190,6 +206,7 @@
     "default": 60,
     "min": 0,
     "max": 100,
+    "modificateur": "bonus",
     "step": 10,
     "hint": "Plafond de la SOMME des bonus de CIRCONSTANCE d’un Test de combat (RAW +60 = Très Facile). Les modificateurs du jeteur (Avantage, Soutien, États) restent hors plafond."
   },
@@ -207,6 +224,7 @@
     "default": 30,
     "min": 0,
     "max": 100,
+    "modificateur": "malus",
     "step": 10,
     "hint": "Plafond de la SOMME des malus de CIRCONSTANCE d’un Test de combat (RAW −30 = Très Difficile), exprimé en valeur positive ; les modificateurs du jeteur (États, Maladresse…) n’y entrent pas. Règle optionnelle EDO (Difficultés extrêmes, réf EDO App.2) : porter ce plafond à 50."
   },
@@ -268,6 +286,10 @@
       "ldb",
       "aa"
     ],
+    "libelles": {
+      "ldb": "Livre de base",
+      "aa": "Aux Armes"
+    },
     "hint": "Système ALTERNATIF de Blessures/Blessures Critiques/mort d’Aux Armes (remplace WFJDR p.172-178). ldb = Livre de base (RAW, défaut). aa = tables de Critiques PAR LOCALISATION d’Aux Armes + Critique sur un double (même s’il reste des Blessures) + décalage +10/Blessure au-delà de 0 + mort si (Inconscient & 0 PB & Blessures critiques > Bonus d’Endurance). Le corps mécanique (Blessures + États immédiats + Mort) est appliqué ; les sous-effets récurrents à durée Rounds (membre inutilisable, pénalité de Test) le sont AUSSI (#125, `engine/critical.ts`) — restent en texte : durées en jours (ctx sans horloge au site de résolution) et amputations permanentes non converties en séquelles."
   },
   {
@@ -331,6 +353,10 @@
       "critique",
       "mort-auto"
     ],
+    "libelles": {
+      "critique": "Critique",
+      "mort-auto": "Mort automatique"
+    },
     "hint": "critique = l’attaque réussit en Coup Critique (RAW, défaut). mort-auto = en CORPS À CORPS la cible est tuée automatiquement ; le tir reste un succès à bout portant (critique)."
   },
   {
@@ -350,6 +376,11 @@
       "tous",
       "off"
     ],
+    "libelles": {
+      "figurants": "Figurants",
+      "tous": "Tous",
+      "off": "Personne"
+    },
     "hint": "La cible sort du combat sans passer par les Blessures critiques. Déclencheur selon « Blessures & Critiques » : Livre de base, « Lorsque votre cible subit plus de Dégâts qu'elle ne possède de Points de Blessure » (LDB 18 l.46) ; Aux Armes, « quand une cible atteint 0 Blessure » (AA 07 l.65). figurants = hors PNJ importants (Livre de base) ou hors PNJ possédant le Talent Chanceux (Aux Armes, l.67) — défaut ; tous = tout PNJ ; off = personne (tout passe par les critiques). Jamais les PJ, ni une Structure ou une coque."
   },
   {
@@ -394,6 +425,11 @@
       "roll-i",
       "roll-bi"
     ],
+    "libelles": {
+      "fixed-i": "Initiative",
+      "roll-i": "1d10 + I",
+      "roll-bi": "1d10 + BI + BAg"
+    },
     "hint": "fixed-i = tri par Initiative, sans dé (défaut RAW, ordre stable d’un Round à l’autre) ; roll-i = 1d10 + Initiative ; roll-bi = 1d10 + Bonus d’Initiative + Bonus d’Agilité."
   },
   {
@@ -546,6 +582,7 @@
     "default": 0,
     "min": -30,
     "max": 30,
+    "modificateur": "bonus",
     "step": 10,
     "hint": "Modificateur appliqué au Test de Charme selon le discours tenu pour mendier."
   },
@@ -560,6 +597,7 @@
     "default": 10,
     "min": -30,
     "max": 30,
+    "modificateur": "bonus",
     "step": 10,
     "hint": "Modificateur accordé au Test quand le mendiant porte une atteinte visible (lésion apparente d’une maladie active)."
   },
@@ -665,6 +703,12 @@
       "sans-marchandage",
       "simplifie"
     ],
+    "libelles": {
+      "complet": "Complet",
+      "sans-disponibilite": "Sans Disponibilité",
+      "sans-marchandage": "Sans Marchandage",
+      "simplifie": "Simplifié"
+    },
     "hint": "complet = Disponibilité + Marchandage (RAW) ; sans-disponibilite = tout en stock (pas de Test) ; sans-marchandage = prix fixes (pas de jet opposé) ; simplifie = les deux désactivés."
   },
   {
@@ -859,6 +903,11 @@
       "scene",
       "round"
     ],
+    "libelles": {
+      "off": "Désactivés",
+      "scene": "À chaque scène",
+      "round": "À chaque Round"
+    },
     "hint": "Avant chaque scène — ou à chaque Round dans une zone de turbulences — tirage 1d10 de la force des Vents (−30 à +30), appliqué aux Tests d'Incantation ET de Focalisation. Un porteur du Talent Seconde vue peut le repérer (Test de Perception Facile +40). off = désactivé (défaut) ; scene = tirage à l'ouverture du combat ; round = re-tirage à chaque Round (« zones de turbulences magiques »)."
   },
   {
@@ -900,6 +949,7 @@
     "default": 1,
     "min": 0,
     "max": 10,
+    "modificateur": "bonus",
     "hint": "« Si vous avez la Compétence Prière, le MJ peut augmenter ce pourcentage » (l.24) — sans barème chiffré. Valeur maison : +N % de seuil d’exaucement par avance de Prière."
   },
   {
@@ -964,6 +1014,14 @@
       "slaanesh",
       "tzeentch"
     ],
+    "libelles": {
+      "ldb": "Livre de base",
+      "toute": "Toute Puissance",
+      "khorne": "Khorne",
+      "nurgle": "Nurgle",
+      "slaanesh": "Slaanesh",
+      "tzeentch": "Tzeentch"
+    },
     "hint": "Tables de mutations du Compagnon T1 (physiques + mentales), alignées par Puissance du Chaos. ldb = Tableaux du Livre de base (RAW, défaut). toute = tables EDOC « Toute Puissance » (élargies). khorne/nurgle/slaanesh/tzeentch = tables alignées sur un dieu (pour une campagne dédiée). Une mutation peut différer du Livre de base (ex. Écailles épineuses)."
   },
   {
@@ -997,6 +1055,11 @@
       "situational",
       "off"
     ],
+    "libelles": {
+      "full": "Toutes",
+      "situational": "Situationnelles",
+      "off": "Aucune"
+    },
     "hint": "full = toutes les expositions (RAW) ; situational = pas d’Infection Mineure post-critique, mais Infecté/Maladie conservés (Skavens/Nurgle) ; off = aucune maladie (ni contraction, ni progression, ni contagion)."
   },
   {
@@ -1173,6 +1236,19 @@
     "hint": "« se contenter d'acheter n'importe quelle nourriture disponible sur le marché revient à risquer un désastre lors d'une longue expédition, car elle va vite pourrir » : le canon ne chiffre pas la durée. Défaut : 7 jours après l'embarquement, le lot de vivres frais est jeté ; les biscuits de mer et la nourriture préservée ne périment pas."
   },
   {
+    "id": "mer-resistance-de-l-equipage",
+    "type": "reglesOptionnelles",
+    "label": "Résistance de l'équipage aux maladies",
+    "ref": "MDG 14 l.230",
+    "maison": "MDG 14 l.230 fait tester la Résistance « le Personnage » et ne chiffre pas l'équipage, dont MDG 14 l.297-302 ne donne que des soldes ; l'équipage PNJ teste en un seul porteur collectif. Valeur dérivée des voisins : Endurance humaine moyenne (LDB 05 l.358, 2d10+20, soit 31) plus la Compétence Résistance de la carrière Marin niveau 2 (LDB 08 l.2747-2751), arrondie à 10 avances : 40.",
+    "group": "Voyage",
+    "kind": "param",
+    "default": 40,
+    "min": 1,
+    "max": 100,
+    "hint": "La valeur du Test de Résistance de l'équipage PNJ, porteur collectif de ses maladies (scorbut, tonneau, contagion à bord). Défaut : 40."
+  },
+  {
     "id": "mer-moral-maladie-contagieuse-a-bord",
     "type": "reglesOptionnelles",
     "label": "La maladie contagieuse d’un Personnage fait rage au sein de l’équipage",
@@ -1245,6 +1321,7 @@
     "default": 10,
     "min": 0,
     "max": 30,
+    "modificateur": "malus",
     "step": 5,
     "hint": "LDB 65 l.44 dit seulement « des pénalités » sans les chiffrer : valeur maison retirée au Test de Résistance contre le froid sans Manteau/Cape porté(e)."
   },
@@ -1274,6 +1351,10 @@
       "descente-facile",
       "libre"
     ],
+    "libelles": {
+      "descente-facile": "Descente facile",
+      "libre": "Libre"
+    },
     "hint": "« à moins qu’il ne souhaite se suspendre d’abord, ce qui réduira la hauteur de chute à 2 mètres » (EDO 01 l.231). Valeur MAISON, en combat : descente-facile = la hauteur épargnée se paie en Mouvement à demi-vitesse (LDB 15 l.55, LDB 15 l.57) ; libre = la suspension ne coûte rien de plus que le pas."
   },
   {
@@ -1289,6 +1370,10 @@
       "refus",
       "chute-pleine"
     ],
+    "libelles": {
+      "refus": "Refus",
+      "chute-pleine": "Chute pleine"
+    },
     "hint": "Hors combat, le groupe entier suit la chute volontaire (EDO 01 l.231) et chacun choisit de tenter ou non son Test d’Athlétisme (LDB 15 l.82). Valeur MAISON pour un membre vivant qui n’est pas debout : refus = le geste est refusé tant qu’il y en a un ; chute-pleine = il tombe avec le groupe, de toute la hauteur, sans Test."
   },
   {
@@ -1507,6 +1592,7 @@
     "default": 2,
     "min": 0,
     "max": 5,
+    "modificateur": "bonus",
     "step": 1,
     "hint": "Une Carte marine donne +2 DR au Test d’Orientation quotidien (MDG 15 l.290), en principe UNIQUEMENT entre les deux ports désignés à sa création. Faute d’un graphe de ports navigables (chantier de la carte du monde), la carte aide ici sur TOUTE route maritime — simplification maison, éditable (0 = la carte n’aide plus)."
   }

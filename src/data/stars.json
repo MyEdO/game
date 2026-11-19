@@ -2,9 +2,15 @@
   "id": "signes-astrologiques",
   "type": "stars",
   "label": "Tableau des Signes astrologiques",
-  "die": "d100",
+  "die": {
+    "n": 1,
+    "sides": 100
+  },
   "sub": {
-    "die": "d10"
+    "die": {
+      "n": 1,
+      "sides": 10
+    }
   },
   "source": {
     "book": "archives-de-l-empire-2",
@@ -640,7 +646,7 @@
       "signe": "Signe de la Magie",
       "classique": "Solkios",
       "ascendant": "hiver",
-      "dates": "33 ulriczeit - 11 vorhexen",
+      "dates": "32 ulriczeit - 11 vorhexen",
       "dieux": "Soll",
       "apparence": "une étoile très lumineuse",
       "ops": [
@@ -673,7 +679,7 @@
       "signe": "Signe de la Magie",
       "classique": "Solkios",
       "ascendant": "hiver",
-      "dates": "34 ulriczeit - 11 vorhexen",
+      "dates": "32 ulriczeit - 11 vorhexen",
       "dieux": "Soll",
       "apparence": "une étoile très lumineuse",
       "ops": [
@@ -706,7 +712,7 @@
       "signe": "Signe de la Magie",
       "classique": "Solkios",
       "ascendant": "hiver",
-      "dates": "35 ulriczeit - 11 vorhexen",
+      "dates": "32 ulriczeit - 11 vorhexen",
       "dieux": "Soll",
       "apparence": "une étoile très lumineuse",
       "ops": [

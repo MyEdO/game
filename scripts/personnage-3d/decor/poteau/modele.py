@@ -8,12 +8,11 @@ et une étoffe, la coque de leurs sections. Chaque matériau du décor est un n�
 de caractères de l'id du décor : deux constructions rendent les mêmes octets."""
 import math
 
-import numpy as np
 from mathutils import Vector
 
 import geometrie
-from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, X, Y, barre, bosselee, cap, cercle, chaine, cheville, clou,
-                       coque, courbee, lisse, normales, partage, pave, planche, profilee, rampant, rampante, rond,
+from geometrie import (AXES, COTES, CYLINDRE, HAUT, MAT, X, Y, autour, barre, bosselee, cap, cercle, chaine, cheville,
+                       clou, coque, courbee, lisse, normales, partage, pave, planche, profilee, rampant, rampante, rond,
                        tournee)
 from gabarit import VERSANTS
 from maille import lineaire, tore
@@ -270,8 +269,7 @@ def enseigne(D, G, pieces, a):
     profilee(fer, mur, mur + avant * by, (bx / 2, bz / 2), E["potence"], "fer", u=X, v=HAUT)
     T = E["tirant"]
     scelle, prise = dos + HAUT * (pz * T["pied"]), mur + avant * (by * T["portee"])
-    tournee(fer, scelle, prise, *normales((prise - scelle).normalized()), bx / 2 * T["rayon"], CYLINDRE, T["cotes"],
-            "fer")
+    geometrie.fil(fer, scelle, prise, bx / 2 * T["rayon"], T["cotes"], "fer")
 
     M = E["chaine"]
     petit = bx / 2 * M["petit"]
@@ -408,7 +406,7 @@ def banniere(D, G, pieces, a):
     barre(ferrure, [(sur_la_tete(part), r_f * du, r_f * dv, r_f * min(du, dv) * F["chanfrein"])
                     for part, du, dv in F["fer"]], long, monte.cross(long), "ferrure")
     for azimut in K["azimuts"]:
-        d = u * math.cos(math.radians(azimut)) + v * math.sin(math.radians(azimut))
+        d = autour(u, v, math.radians(azimut))
         bout = sur_la_tete(K["pied"] + K["montee"]) + d * (r_f * K["portee"])
         tournee(ferrure, sur_la_tete(K["pied"]), bout, *normales((bout - sur_la_tete(K["pied"])).normalized()),
                 r_f * K["rayon"], K["profil"], K["cotes"], "ferrure")
@@ -423,8 +421,6 @@ def banniere(D, G, pieces, a):
     tetiere = (ct - guindant).dot(monte)
     e = epais / 2 * E["epaisseur"]
     phase = a.uniform(0, 2 * math.pi)
-    pentes = G.normales @ np.array(travers)
-    bornees = pentes != 0
     rangs = []
     for i in range(E["rangs"] + 1):
         t = i / E["rangs"]
@@ -433,7 +429,7 @@ def banniere(D, G, pieces, a):
             s = j / E["colonnes"]
             chute = haut_e / 2 + haut_p * lineaire(V["bord"], s)
             p = guindant + long * (large * s) + monte * (tetiere - (tetiere + chute) * t)
-            jeu = ((G.bornes - D["RETRAIT"] - G.normales @ np.array(p))[bornees] / np.abs(pentes[bornees])).min()
+            jeu = min(G.portee(p, sens, D["RETRAIT"]) for sens in (travers, -travers))
             creux = max(0.0, min(jeu * Pl["part"] - e, large * Pl["creux"]))
             creux *= E["tetiere"] + (1 - E["tetiere"]) * t
             p += travers * (creux * math.sin(2 * math.pi * (Pl["ondes"] * s + Pl["derive"] * t) + phase))
@@ -452,7 +448,7 @@ BATIR = {"gibet": gibet, "pilori": pilori, "cage": cage, "enseigne": enseigne, "
 
 
 def construire(D, id_):
-    return geometrie.par_noeuds(D, id_, {nom: (nom,) for nom in D["MATERIAUX"][id_]}, BATIR[id_])
+    return geometrie.par_noeuds(D, id_, geometrie.par_materiau(D["MATERIAUX"][id_]), BATIR[id_])
 
 
 def elements(D):

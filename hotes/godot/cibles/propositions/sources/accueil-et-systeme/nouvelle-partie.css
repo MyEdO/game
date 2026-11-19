@@ -1,40 +1,41 @@
-#rail{top:132px;width:300px}
+/* La nouvelle partie (#3935, #4411) : recruter (les onglets, le compte, créer, importer) ; « Recruter » au pied du
+   voyageur visé ; l'affiche de la campagne choisie et les avis cloués des autres ; au bandeau, renvoyer, modifier, le
+   siège de la place libre. */
 #rail .fond{padding:22px 12px 12px;gap:8px}
 #rail .deux{display:flex;gap:7px}
 #rail .deux .plaque{flex:1}
 #rail .deux .plaque>div{justify-content:center;padding:0 4px;font-size:14px}
 #rail .pied{margin-top:2px;font-size:12px}
 #rail .tourne{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
-#rail .tourne .bouton-rond{width:32px;height:32px}
 #rail .tourne span{font-size:13.5px;color:#f0e2c2}
 #rail .trait{height:1px;background:rgba(226,192,106,.28);margin:4px 2px}
-
-#salle{position:absolute;left:0;top:0}
 #recruter{position:absolute;width:150px}
-#recruter .plaque{height:34px}
 #recruter .plaque>div{font-size:14.5px}
+#recruter .du-roster{display:flex;justify-content:center;margin-top:9px}
+#recruter .du-roster .outil{width:75px}
 
-#panneau{left:1322px;top:20px;width:362px;height:566px}
-#panneau .fond{padding:26px 14px 0}
-.affiche{position:relative;padding:22px 18px 16px;text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.6),0 0 0 1px rgba(40,25,10,.9),inset 0 0 22px rgba(90,60,20,.45);border-radius:1px;transform:rotate(.5deg)}
+.affiche{position:relative;padding:18px 16px 14px;text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.6),0 0 0 1px rgba(40,25,10,.9),inset 0 0 22px rgba(90,60,20,.45);border-radius:1px;transform:rotate(.5deg)}
 .affiche .clou{top:8px}
-.affiche .sur{font-size:11.5px;letter-spacing:1.2px;color:#6b1c10;white-space:nowrap}
-.affiche .n{font-size:33px;line-height:52px;margin:-7px 0 -10px;color:#3a1a10;white-space:nowrap}
-.affiche .ch{font-size:13.5px;color:#3a2a18;white-space:nowrap}
-.affiche .filet-l{color:#5a4530;margin:9px 30px 8px}
-.affiche p{margin:0 0 13px;font-style:italic;font-size:14px;line-height:19px;color:#2a1d12;text-align:left}
-.affiche .plaque{height:42px;width:200px;margin:0 auto}
-.affiche .plaque>div{font-size:16.5px}
-.affiche .cachet{position:absolute;right:14px;bottom:14px}
-.affiche .cachet .sceau{width:38px;height:38px}
-.avis{position:absolute;display:flex;align-items:center;gap:10px;width:284px;height:48px;padding:0 16px 0 28px;box-shadow:0 4px 9px rgba(0,0,0,.55),0 0 0 1px rgba(40,25,10,.9),inset 0 0 14px rgba(90,60,20,.4)}
-.avis .clou{left:10px;top:21px}
-.avis b{font-size:20px;line-height:24px;color:#3a1a10;white-space:nowrap}
+.affiche .sur{font-size:11px;letter-spacing:1px;color:#6b1c10;white-space:nowrap}
+.affiche .n{font-size:28px;line-height:44px;margin:-6px 0 -8px;color:#3a1a10;white-space:nowrap}
+.affiche .ch{font-size:12.5px;color:#3a2a18;white-space:nowrap}
+.affiche .filet{margin:7px 30px 6px}
+.affiche p{margin:0 0 10px;font-style:italic;font-size:13px;line-height:17px;color:#2a1d12;text-align:left}
+.affiche .plaque{width:170px;margin:0 auto}
+.affiche .plaque>div{font-size:15.5px}
+.affiche .cachet{position:absolute;right:10px;bottom:8px}
+.avis-cloues{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.avis{position:relative;display:flex;align-items:center;gap:10px;height:40px;padding:0 14px 0 28px;box-shadow:0 4px 9px rgba(0,0,0,.55),0 0 0 1px rgba(40,25,10,.9),inset 0 0 14px rgba(90,60,20,.4)}
+.avis:nth-child(odd){transform:rotate(-1deg);margin-right:14px}
+.avis:nth-child(even){transform:rotate(1deg);margin-left:14px}
+.avis .clou{left:10px;top:17px}
+.avis b{font-size:18px;line-height:30px;margin:-4px 0;color:#3a1a10;white-space:nowrap}
 
-.heros .renvoi{display:flex;align-items:center;gap:6px;margin-top:11px}
-.heros .renvoi span{font-size:12px;color:var(--creme-2)}
-.heros.libre .portrait.vide{width:74px;height:94px}
-.heros.libre .portrait.vide>div{display:grid;place-items:center;background:radial-gradient(90% 80% at 50% 28%,#2a2420,#14110e 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.7)}
-.heros.libre .portrait.vide svg{width:26px;height:26px}
-.heros.libre .nom{color:#c9b995}
-#coins{top:706px}
+.heros .renvoi{display:flex;flex-direction:column;gap:6px;margin-top:11px;color:var(--creme-2)}
+.heros .renvoi>span{display:flex;align-items:center;gap:6px}
+.heros .renvoi svg{flex:none}
+.heros .renvoi .rubrique{font-size:12px;color:var(--creme-2)}
+.heros:has(>.portrait.vide) .nom{color:var(--creme-2)}
+.heros .siege{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:6px;font-size:12px;color:var(--creme-2)}
+.heros .siege .segments b{padding:2px 7px 3px;font-size:12px}
+.heros:has(>.portrait.vide) .car{white-space:normal;line-height:15px}

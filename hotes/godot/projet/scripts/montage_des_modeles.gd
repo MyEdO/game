@@ -9,12 +9,14 @@
 ## sa flottaison bordée par ce que son modèle plonge sous la hauteur 0 (`flottaison`, `MontageDeVehicule.contour_sous`,
 ## `VolumeDeScene.border_la_mer`) ; rangée sur la couche des luminaires si elle éclaire (`luminaire`,
 ## `VolumeDeScene.COUCHE_DES_LUMINAIRES`), ce que son modèle porte sous `NOEUD_EMISSIF` luisant alors (`_allumer`) ;
-## retirée avec sa case quand le regard la retire (`case`, `_retirer`). Une pose dont seul le lieu change se repose sans
-## se recharger ; celles qui ne sont plus servies se retirent. Chacune se voile par la vision du groupe que le volume
-## tient (`VolumeDeScene.voile`, `MontageDeVehicule.voiler`), case par case.
+## retirée quand le regard retire sa case ou lève la nappe de toit qui la porte (`case`, `nappe`, `_retirer`). Une
+## pose dont seul le lieu change se repose sans se recharger ; celles qui ne sont plus servies se retirent. Chacune
+## se voile par la vision du groupe que le volume tient (`VolumeDeScene.voile`, `MontageDeVehicule.voiler`), case
+## par case.
 ## Un décor que la saison change (`palette`, `caches`) se remonte quand son corps change, ceux qu'elle ne change pas
 ## restent montés (`MontageDeVehicule.monter`).
-## Le volume ne peint pas les surfaces des décors servis (`VolumeDeScene.peindre_sans`), que leurs modèles montrent.
+## Le volume ne peint pas les surfaces des décors servis (`VolumeDeScene.peindre_sans`), que leurs modèles montrent, et
+## lit les modèles de ses arêtes par le chargeur des décors (`VolumeDeScene.chargeur`).
 class_name MontageDesModeles
 extends Node3D
 
@@ -44,7 +46,8 @@ var _metres_par_case := 1.0
 
 
 func _ready() -> void:
-	volume.retire.connect(_retirer_les_cases)
+	volume.retire.connect(_retirer_les_poses)
+	volume.chargeur = chargeur
 
 
 ## Chaque pose de `navires` et de `decors` (`_poses_servies`) montée (`_monter`), coupée à la hauteur de coupe du plus
@@ -80,7 +83,8 @@ func vider() -> void:
 ## Les poses de `navires` (`vue.corps.navires`) et de `decors` (`vue.corps.decors`), par clé : chaque navire sous l'id de
 ## son entité, son corps, son `centre` à la hauteur 0, au `cap` de son corps, sa `flottaison` ; chaque pose d'un décor
 ## sous sa `cle` (`PoseDeDecor.cle`), son élément monté nu (`DECOR_NU`), peint de sa `palette` et ses `caches` cachés
-## (`MontageDeVehicule.monter`), son `ancre` à son `piedM`, à son `cap`, sa `case`, et `luminaire` s'il éclaire.
+## (`MontageDeVehicule.monter`), son `ancre` à son `piedM`, à son `cap`, sa `case`, `luminaire` s'il éclaire, et la
+## `nappe` qui la porte.
 static func _poses_servies(navires: Dictionary, decors: Dictionary) -> Dictionary:
 	var poses := {}
 	for id: String in navires:
@@ -92,6 +96,8 @@ static func _poses_servies(navires: Dictionary, decors: Dictionary) -> Dictionar
 			var servie := {corps = corps, x = p.ancre.x, y = p.ancre.y, piedM = p.piedM, cap = p.cap, case = p.case}
 			if p.has("luminaire"):
 				servie.luminaire = true
+			if p.has("nappe"):
+				servie.nappe = p.nappe
 			poses[p.cle] = servie
 	return poses
 
@@ -184,19 +190,20 @@ static func emissives(scene: Node3D) -> Array:
 	return pieces
 
 
-## Le modèle de chaque pose posée retiré ou montré selon le retrait posé au volume (`_retirer`).
-func _retirer_les_cases() -> void:
+## Le modèle de chaque pose posée retiré ou montré selon ce que le volume retire (`_retirer`).
+func _retirer_les_poses() -> void:
 	for cle: String in poses():
 		_retirer(cle)
 
 
-## Le modèle de la pose `cle`, si elle porte une `case` : quand le regard retire cette case (`VolumeDeScene.posee_retiree`),
-## aucun de ses meshes ne se voit, chacun portant son ombre (`SHADOWS_ONLY`), comme ce que le masque retire du volume ;
-## montré sinon.
+## Le modèle de la pose `cle`, si elle porte une `case` : quand le regard la retire (sa case ou sa nappe,
+## `VolumeDeScene.pose_retiree`), aucun de ses meshes ne se voit, chacun portant son ombre (`SHADOWS_ONLY`), comme
+## ce que le volume retire ; montré sinon.
 func _retirer(cle: String) -> void:
 	if not _servis[cle].has("case"):
 		return
-	var c: Dictionary = _servis[cle].case
-	var ombre := GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if volume.posee_retiree(Vector3i(int(c.x), int(c.y), int(c.z))) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var ombre := GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	if volume.pose_retiree(_servis[cle]):
+		ombre = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	for piece: MeshInstance3D in _montes[cle].scene.find_children("*", "MeshInstance3D", true, false):
 		piece.cast_shadow = ombre

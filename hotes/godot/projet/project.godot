@@ -16,7 +16,7 @@ Police="*res://scripts/police.gd"
 
 [display]
 
-window/size/viewport_width=1280
+window/size/viewport_width=1575
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
@@ -33,6 +33,10 @@ theme/custom="res://art/theme.tres"
 
 scene={
 "meshes/ensure_tangents": false
+}
+texture={
+"compress/mode": 1,
+"detect_3d/compress_to": 0
 }
 
 [input]

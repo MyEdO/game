@@ -1209,7 +1209,7 @@ Lorsque les aventuriers entrent dans cette pièce, l'orage (voir *Passer à l'ac
 
 Les aventuriers absorbent toutes ces informations d'un coup à leur arrivée. Avant qu'ils ne puissent agir, un éclair aveuglant et assourdissant frappe le cerf-volant.
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 Les colonnes de métal tremblent sous l'impulsion électrique et une horrible odeur de chair brûlée emplit l'air alors que dame Margritte fait petit à petit redescendre la table. La table tremble et chancelle, et un gémissement transperce le vacarme de l'orage.
 

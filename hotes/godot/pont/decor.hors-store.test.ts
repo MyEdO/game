@@ -22,7 +22,10 @@ import {
 import { currentSeason, posesDesDecors, sceneDEchantillon } from '../../../src/noyau/index';
 import { SAISONS, type Saison } from '../asset/element';
 import { cleDEmplacement } from '../../../src/hote/sauvegardes';
-import type { DecorServi, SaisonOfferte } from './pont';
+import type { DecorServi, MorceauxDuPont, SaisonOfferte } from './pont';
+import { facadeFeatureViz } from '../../../src/noyau/monde/facades';
+import { scenario as scenarioDiligence } from '../../../src/scenes/test-scenarios/diligence';
+import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 
 const COMMITES = await modelesCommites();
 const { appel } = table();
@@ -53,6 +56,39 @@ describe('les décors de la scène en cours', () => {
     expect(decors[prop].element).toBe(`decor--${prop}`);
     expect(new Set(decors[prop].poses.map((p) => p.prop))).toEqual(new Set([prop]));
     expect(new Set(decors[prop].poses.map(({ case: c }) => `${c.x},${c.y},${c.z}`))).toEqual(casesParDecor.get(prop));
+  });
+});
+
+describe('les ornements du bâti de la scène en cours (#4471)', () => {
+  it('sert chaque cheminée et chaque enseigne des façades de la Diligence, l’une portée avec sa nappe', () => {
+    const { appel: jeu } = table();
+    suiteDe(jeu('demarrer', { scenario: 'diligence', graine: 7 }));
+    try {
+      const { architecture } = scenarioDiligence.construire(idsDeTest).scene;
+      const deLaDonnee = (prop: string) => (architecture ?? []).flatMap((corps) => corps.facades.flatMap((section) =>
+        (section.features ?? [])
+          .filter((f) => {
+            const viz = facadeFeatureViz(section.appearance, f.kind);
+            return viz !== undefined && (f.appearance ?? viz.prop) === prop;
+          })
+          .map((f) => `architecture/${corps.id}:${section.id}:${f.id}`))).sort();
+      servirLesModeles(jeu, COMMITES, avecLesSeulsDecors(COMMITES, 'cheminee', 'enseigne'));
+      const { decors } = vueDe(jeu('vue')).corps;
+      const servies = (prop: string) => (decors[prop]?.poses ?? []).filter((p) => p.cle.startsWith('architecture/'));
+      for (const prop of ['cheminee', 'enseigne']) {
+        expect(deLaDonnee(prop).length, `${prop} : la donnée de la Diligence en porte`).toBeGreaterThan(0);
+        expect(servies(prop).map((p) => p.cle).sort(), prop).toEqual(deLaDonnee(prop));
+      }
+      const portees = [...servies('cheminee'), ...servies('enseigne')].filter((p) => p.nappe);
+      expect(portees.length, 'une cheminée assise sur un toit').toBeGreaterThan(0);
+      const r = jeu('morceaux', { source: 'partie', volume: [], toits: portees.map((p) => p.nappe), couronnes: [] });
+      expect(r.ok, JSON.stringify(r)).toBe(true);
+      const { toits } = r as unknown as MorceauxDuPont;
+      const nappes = new Map(toits.map((n) => [n.cle, n.surfaces.map((s) => s.decor)]));
+      for (const p of portees) expect(nappes.get(p.nappe!), p.cle).toContain(p.prop);
+    } finally {
+      jeu('quitter');
+    }
   });
 });
 

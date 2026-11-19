@@ -1668,7 +1668,7 @@ pas commencé avec son
 
 « *Trompez tous les sorciers de la ville, mais vous ne pourrez jamais tromper un couvreur* », a proclamé Herr Brudenheimer. Les événements semblent certainement confirmer cette opinion. Brudenheimer poursuit en exp
 
-<span id="page-126-0" data-folio="124"></span>112 les hommes-rats ? C'est des pigeons dont nous devons nous méfier. Ils nichent dans toutes les corniches, dès que vous levez la tête, et ne me lancez pas sur leurs excréments. Ils sont aussi gros que des maisons, ces satanés pigeons, et c'est Ludovic Paulet - ludovicmad@wanadoo.fr nous arrive parfois de faire des erreurs
+<span id="page-126-0" data-folio="124"></span>112 les hommes-rats ? C'est des pigeons dont nous devons nous méfier. Ils nichent dans toutes les corniches, dès que vous levez la tête, et ne me lancez pas sur leurs excréments. Ils sont aussi gros que des maisons, ces satanés pigeons, et c' nous arrive parfois de faire des erreurs
 
 # **OUPS!**
 

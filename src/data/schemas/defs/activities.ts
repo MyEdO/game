@@ -19,16 +19,17 @@ import {
   moneyPartialSchema,
   stakeFormSchema,
 } from '../grammaire/valeurs';
-import { conditionSchema, executeesDe, flowTestSchema, stageOutcomeSchema } from '../grammaire/mecanique';
+import { conditionSchema, executeesDe, stageOutcomeSchema, testFixeSchema } from '../grammaire/mecanique';
+import { weatherIdSchema } from './weather';
 import { refOuSpec, refs } from '../grammaire/ref';
 
-type TestDeFlux = z.output<typeof flowTestSchema>;
-/** Un Test au choix d'une Activité : sa Compétence OU sa Caractéristique (#1657 B3-3). */
-export type TestDOption = TestDeFlux & (
-  | { skill: NonNullable<TestDeFlux['skill']>; characteristic?: undefined }
-  | { skill?: undefined; characteristic: NonNullable<TestDeFlux['characteristic']> }
+type TestFixe = z.output<typeof testFixeSchema>;
+/** Un Test au choix d'une Activité, FIXE : sa Compétence OU sa Caractéristique (#1657 B3-3). */
+export type TestDOption = TestFixe & (
+  | { skill: NonNullable<TestFixe['skill']>; characteristic?: undefined }
+  | { skill?: undefined; characteristic: NonNullable<TestFixe['characteristic']> }
 );
-const designeSaVoie = (t: TestDeFlux): t is TestDOption => (t.skill === undefined) !== (t.characteristic === undefined);
+const designeSaVoie = (t: TestFixe): t is TestDOption => (t.skill === undefined) !== (t.characteristic === undefined);
 
 export const file = 'activities.json';
 export const famille = 'entite';
@@ -119,7 +120,7 @@ const doc = document(
   {
     contexts: z.array(activityContextSchema),
     /** Tests AU CHOIX (LDB 23 l.209 ; AA 12 l.49), chacun avec sa Difficulté. */
-    tests: z.array(flowTestSchema).min(1).optional(),
+    tests: z.array(testFixeSchema).min(1).optional(),
     /** Difficulté du Test dont la donnée ne nomme pas le sujet (`freeSkill`, résolveur qui le dérive
      *  du héros) ; une option porte la sienne dans son `test`. */
     difficulty: difficultySchema.optional(),
@@ -129,8 +130,8 @@ const doc = document(
     extended: nommerChamps(z.strictObject({ drPerStage: z.number() }), { drPerStage: { label: "DR par étape" } }).optional(),
     failExtenue: z.boolean().optional(),
     /** Modificateurs de SITUATION du Test (miroir de `ActivityDef.testMods`) : quantité AFFICHÉE avant
-     *  l'engagement, donc sans terme de jet (`formuleSansTirageSchema`) — un `{rule}` éditable pour ce
-     *  que le livre ne chiffre pas —, éventuellement gatée par une `Condition` sur l'acteur. */
+     *  l'engagement, donc sans terme de jet (`formuleSansTirageSchema`, `{rule}` éditable compris),
+     *  éventuellement gatée par une `Condition` sur l'acteur. */
     testMods: z.array(nommerChamps(z.strictObject({
       when: conditionSchema.optional(),
       mod: formuleSansTirageSchema,
@@ -144,7 +145,7 @@ const doc = document(
       ops: executeesDe(),
       unless: conditionSchema.optional(),
     }), { id: { label: "identifiant" }, label: { label: "nom" }, cible: { label: "cible" }, ops: { label: "opérations" }, unless: { label: "sauf si" } })).optional(),
-    weatherMod: z.record(z.string(), z.number()).optional(),
+    weatherMod: z.partialRecord(weatherIdSchema, z.number()).optional(),
     resolver: activityResolverSchema.optional(),
     onSuccess: executeesDe().optional(),
     outcomes: z.array(outcomeBandSchema).optional(),

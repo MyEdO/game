@@ -9,7 +9,7 @@
  * (les créatures d'aventure ne sont PAS dans le bestiaire générique → custom).
  */
 import { CustomStatblock } from '../../engine/statblock';
-import { CHAR_KEYS, CHAR_LABELS, CharKey } from '../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS } from '../../engine/types';
 import { charAbr, creatures, findCreatureById, skillRefLabel, tailleDuProfil, talentRefLabel } from '../../data';
 import { woundsForSize, resizeBySteps, stepSize, SIZE_LABEL, SIZE_ORDER } from '../../engine/size';
 import { bonus } from '../../engine/characteristics';
@@ -68,7 +68,7 @@ export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; st
         <input value={stat.label} onChange={(e) => onChange({ ...stat, label: e.target.value })} />
       </label>
       <div className="statblock-grid">
-        {(CHAR_KEYS as CharKey[]).map((k) => (
+        {CHAR_KEYS.map((k) => (
           <label key={k} className="ed-subfield" title={CHAR_LABELS[k]}>
             {charAbr(k)}
             <NumberField variant="nu" label={CHAR_LABELS[k]} value={stat.char[k] ?? 30} onChange={(v) => setChar(k, v)} />

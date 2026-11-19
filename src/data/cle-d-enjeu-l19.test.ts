@@ -9,6 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { STAKES, combatStakeRef, flowStakeRef, nightStakeRef, resolveStake, voyageStakeRef } from './index';
 import type { z } from 'zod';
 import { catalogStakeSchema, flowTestSchema, stakeRefSchema } from './schemas/grammaire/mecanique';
+import { sceneFlowSchema } from './schemas/defs-scenes/effets';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import seaEvents from './sea-events.json';
 
 /** Les clés de CHAQUE membre d'une union. */
@@ -89,5 +91,12 @@ describe('L19 — un enjeu, une identité : son id', () => {
     visiter(seaEvents);
     expect(cles.length, 'le document authore des enjeux au catalogue').toBeGreaterThan(0);
     expect(cles.filter((c) => !catalogStakeSchema.safeParse(c).success)).toEqual([]);
+  });
+
+  it('le Test d’un nœud de SCÈNE n’authore que la phrase de son enjeu : une clé du catalogue y est refusée au parse (#4056 E7)', () => {
+    const noeud = (stake: unknown) => ({ kind: 'test', test: { skill: { id: 'athletisme' }, difficulty: 'intermediaire', stake }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
+    const r = sceneFlowSchema.safeParse(noeud({ key: voyageStakeRef('equipage-affaler').key }));
+    expect(r.success ? [] : r.error.issues.map((i) => [i.code, i.path.join('/')])).toEqual([['invalid_type', 'test/stake/authored'], ['unrecognized_keys', 'test/stake']]);
+    expect(sceneFlowSchema.safeParse(noeud({ authored: 'La corde tient-elle ?' })).success).toBe(true);
   });
 });

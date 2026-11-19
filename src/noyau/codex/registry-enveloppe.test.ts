@@ -129,7 +129,7 @@ const CLES: Record<string, string> = {
   "groups": '95aff48bfd7137c0',
   "psychologies": '379df048977ddf91',
   "seaShanties": '787b0cd98af7f936',
-  "crewRoles": 'b5e5a374b03e8f25',
+  "crewRoles": 'e189a3ac04a6c862',
   "crewTestTypes": 'c36032d40e3c6576',
   "navalTraits": 'c95dd6aa4d6baad5',
   "shipStations": '632aa0a2a519310f',

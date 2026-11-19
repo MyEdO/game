@@ -20,10 +20,9 @@ z vers le haut, origine à l'ancre) ; un azimut est un angle en degrés dans le 
   entaille d'abattage d'un côté et charnière d'éclats arrachés à sa lèvre, racines qui plongent.
 - `buisson` : une touffe de masses de feuillage inégales portées par des tiges qui se voient à la base.
 
-Matières : l'écorce d'un arbre vivant et la coupe de la souche prennent `bois-mort`, dont la texture est une écorce ;
-`bois-chene`, que leur recette nomme, est un plancher, qui se lirait en planches sur un tronc ou une coupe. Le catalogue
-n'a ni écorce grise lisse, ni écorce rousse, ni aiguilles : le fût du hêtre prend `laine`, un gris-beige uni et mat, celui
-du pin `cuir-tanne`, un brun roux, et ses aiguilles `feuillage`, la seule matière végétale.
+Matières : celles des recettes : `ecorce` pour le chêne et l'orme, `ecorce-hetre`, grise et lisse, `ecorce-pin`, rousse,
+en plaques, `bois-mort` pour l'arbre mort et la souche. Le buisson prend `ecorce`, que sa recette ne nomme pas, pour
+ses tiges. Le catalogue n'a pas d'aiguilles : celles du pin prennent `feuillage`, la seule matière végétale.
 
 Saisons (`SELON`, par décor et par saison de `src/data/weather.json`) : la couleur que prend l'emplacement `vegetal`,
 qui teint la texture neutre du feuillage ; l'été, sans entrée, est le feuillage tel que bâti ; l'hiver, sans palette,
@@ -31,13 +30,13 @@ cache le feuillage des `CADUCS` et montre leur ramure nue (`modele.py`)."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 MATERIAUX = {
-    "arbre": {"ecorce": ("bois", "bois-mort"), "feuillage": ("vegetal", "feuillage")},
-    "hetre": {"ecorce": ("bois", "laine"), "feuillage": ("vegetal", "feuillage")},
-    "orme": {"ecorce": ("bois", "bois-mort"), "feuillage": ("vegetal", "feuillage")},
-    "pin": {"ecorce": ("bois", "cuir-tanne"), "feuillage": ("vegetal", "feuillage")},
+    "arbre": {"ecorce": ("bois", "ecorce"), "feuillage": ("vegetal", "feuillage")},
+    "hetre": {"ecorce": ("bois", "ecorce-hetre"), "feuillage": ("vegetal", "feuillage")},
+    "orme": {"ecorce": ("bois", "ecorce"), "feuillage": ("vegetal", "feuillage")},
+    "pin": {"ecorce": ("bois", "ecorce-pin"), "feuillage": ("vegetal", "feuillage")},
     "arbre-mort": {"bois-mort": ("bois", "bois-mort")},
     "souche": {"bois-mort": ("bois", "bois-mort")},
-    "buisson": {"tiges": ("bois", "bois-mort"), "feuillage": ("vegetal", "feuillage")},
+    "buisson": {"tiges": ("bois", "ecorce"), "feuillage": ("vegetal", "feuillage")},
 }
 
 CADUCS = ("arbre", "hetre", "orme", "buisson")

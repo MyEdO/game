@@ -13,6 +13,7 @@
 import {
   Combatant,
   CharKey,
+  CHAR_KEYS,
   CHAR_LABELS,
   HitLocation,
   ItemInstance,
@@ -950,15 +951,15 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   }
   const faim = { kind: 'faim' as const, src: RULE_REF['faim-et-soif'] };
   if (c.hunger && modSurvives(c, 'faim')) {
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of hungerCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
+    for (const key of CHAR_KEYS) for (const mod of hungerCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
   }
   if (c.thirst && modSurvives(c, 'faim')) { // Soif (LDB 18 l.340) : même privation (kind `faim` — « Plus besoin de manger/boire »)
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
+    for (const key of CHAR_KEYS) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
   }
   // Ivresse (LDB 09 l.475) : kind `ivresse`. Gaté à la
   // SOURCE par la Détermination : « ignorer les modificateurs négatifs de l'ivresse » (flag `drunkIgnore`).
   if (c.drunk && !hasActiveFlag(c, 'drunkIgnore')) {
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, kind: 'ivresse', label: tr('tra.kindIvresse'), src: { category: 'skills', id: 'resistance-a-l-alcool' } });
+    for (const key of CHAR_KEYS) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, kind: 'ivresse', label: tr('tra.kindIvresse'), src: { category: 'skills', id: 'resistance-a-l-alcool' } });
   }
   // États (LDB 16) : leur `passive: OpPassive[]` (pénalité de Test → `testMod`, bonus à l'attaquant →
   // `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, LDB 16 l.13).

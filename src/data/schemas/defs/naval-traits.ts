@@ -1,4 +1,4 @@
-import { nommerChamps } from '../grammaire/meta';
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /** MDG 12 ; MSRC 12 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -19,8 +19,8 @@ const installBandSchema = nommerChamps(z.strictObject({
 });
 
 const installBaremeSchema = z.union([
-  nommerChamps(z.strictObject({ bands: z.array(installBandSchema), per: z.enum(['5m', '10m', 'unite']).optional() }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' } }),
-  z.literal('modele'),
+  nommerChamps(z.strictObject({ bands: z.array(installBandSchema), per: z.enum(['5m', '10m', 'unite']).optional() }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' } }, { label: 'barème' }),
+  nommerNoeud(z.literal('modele'), { label: 'ceux du modèle embarqué' }),
 ]);
 
 const navalInstallSchema = nommerChamps(z.strictObject({

@@ -2,17 +2,17 @@
 (`gabarit.py`), dont il lit les cotes (`geometrie.pave` et `geometrie.rond`) et où `Gabarit.rentrer` ramène le sommet
 qui en sortirait. Chaque pièce est une coque close : une pierre taillée d'un mur rond, ses sections en onglet le long du
 polygone de la recette (`claveau`), devant un blocage plein (`geometrie.cercle`) ; un bloc mouluré, ses sections
-horizontales empilées (`dalle`) ; une dalle dressée, son contour d'une face à l'autre (`stele`) ; un tambour cannelé et
-sa cassure ; une pièce tournée, une planche, un poteau et une cheville, ceux de `geometrie`. Chaque matériau du décor
-est un nœud à son nom. L'aléa est semé des codes de caractères de l'id du décor : deux constructions rendent les mêmes
-octets."""
+horizontales empilées (`dalle`) ; un tambour cannelé et sa cassure ; une dalle dressée, son contour d'une face à
+l'autre, des ardoises en rangs, une pièce tournée, une planche, un poteau et une cheville, ceux de `geometrie`. Chaque
+matériau du décor est un nœud à son nom. L'aléa est semé des codes de caractères de l'id du décor : deux constructions
+rendent les mêmes octets."""
 import math
 
 from mathutils import Vector
 
 import geometrie
-from geometrie import (COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, barre, cap, cercle, cheville, coque, lisse, octogone,
-                       partage, pave, planche, profilee, rampant, rond, tournee)
+from geometrie import (COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, barre, cap, cercle, cheville, coque, decoupee, lisse,
+                       octogone, partage, pave, planche, profilee, rampant, rond, tournee)
 from gabarit import VERSANTS
 from maille import poutre, tube
 
@@ -111,14 +111,7 @@ def puits(D, G, pieces, a):
         lit = n * (haut * prof)
         planche(bois, faite - lit + d * (pente * bout), egout - lit - d * (pente * bout), X, n, large / 2 * dl,
                 haut * de, haut * de * D["MINCE"])
-        e, jeu = haut * A["epaisseur"], haut * A["jeu"]
-        for rang in range(A["rangs"]):
-            t0, t1 = max(rang - A["recouvrement"], 0) / A["rangs"], (rang + 1) / A["rangs"]
-            bornes = partage(a, A["nombre"], A["ecart"])
-            for x0, x1 in zip(bornes, bornes[1:]):
-                axe = faite + X * (large * ((x0 + x1) / 2 - 1 / 2))
-                poutre(pieces["ardoise"], axe + d * (pente * t0) - n * (jeu + e / 2 + e * A["bascule"]),
-                       axe + d * (pente * t1) - n * (jeu + e / 2), large * (x1 - x0 - A["jour"]), e, n, "ardoise")
+        geometrie.ardoises(pieces["ardoise"], faite, d, X, n, pente, large, haut, A, a)
 
     (cv, (_, long, haut_v)), _ = versants[0]
     portee, dh, de = P["entrait"]
@@ -278,7 +271,7 @@ def autel(D, G, pieces, a):
     for rang in A["cierges"]:
         p, r, h = rond(G.primitives[rang])
         pied, garde = p - HAUT * (h / 2), h * a.uniform(*Ci["hauteur"])
-        tournee(marbre, pied, pied + HAUT * garde, X, Y, r, Ci["profil"], Ci["cotes"], "marbre")
+        tournee(pieces["cire"], pied, pied + HAUT * garde, X, Y, r, Ci["profil"], Ci["cotes"], "cire")
         tournee(pieces["meche"], pied + HAUT * (garde * bas), pied + HAUT * (garde * haut_m), X, Y, r * part,
                 CYLINDRE, Ci["cotes"], "meche")
 
@@ -351,15 +344,6 @@ def sarcophage(D, G, pieces, a):
     coque(marbre, anneaux, "marbre")
 
 
-def stele(m, contour, y0, y1, arete, mat):
-    """Une dalle dressée de `contour` (points du plan y = 0), de `y0` à `y1`, ses arêtes abattues d'`arete`."""
-    centre = sum(contour, Vector()) / len(contour)
-    petit = [centre.lerp(p, 1 - arete / (p - centre).length) for p in contour]
-    sens = math.copysign(arete, y1 - y0)
-    tranches = ((petit, y0), (contour, y0 + sens), (contour, y1 - sens), (petit, y1))
-    coque(m, [[p + Y * y for p in tranche] for tranche, y in tranches], mat)
-
-
 def tombe(D, G, pieces, a):
     """Une tombe d'après `TOMBE` : socle, stèle épaulée à tête cintrée et son cartouche, tertre."""
     T, m = D["TOMBE"], pieces["pierre"]
@@ -374,11 +358,11 @@ def tombe(D, G, pieces, a):
     t, (tx, ty, tz) = pave(G.primitives[T["tertre"]])
     devant = math.copysign(1, t.y - c.y)
     dos, arete = c.y - devant * ly / 2, ly * T["arete"]
-    stele(m, contour, dos, dos + devant * ly * T["corps"], arete, "pierre")
+    decoupee(m, contour, Y, (dos, dos + devant * ly * T["corps"]), arete, "pierre")
     part, fond, saillie = T["cartouche"]
     milieu = sum(contour, Vector()) / len(contour)
-    stele(m, [milieu.lerp(p, part) for p in contour], dos + devant * ly * fond, dos + devant * ly * saillie, arete,
-          "pierre")
+    decoupee(m, [milieu.lerp(p, part) for p in contour], Y, (dos + devant * ly * fond, dos + devant * ly * saillie),
+             arete, "pierre")
 
     Te = T["tertre_forme"]
     base = t - HAUT * (tz / 2)
@@ -457,7 +441,7 @@ BATIR = {"puits": puits, "fontaine": fontaine, "abreuvoir": abreuvoir, "autel": 
 
 
 def construire(D, id_):
-    return geometrie.par_noeuds(D, id_, {nom: (nom,) for nom in D["MATERIAUX"][id_]}, BATIR[id_])
+    return geometrie.par_noeuds(D, id_, geometrie.par_materiau(D["MATERIAUX"][id_]), BATIR[id_])
 
 
 def elements(D):

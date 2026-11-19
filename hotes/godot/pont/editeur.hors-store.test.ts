@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { avecLeSaisonnier, avecLesSeulsDecors, enSaison, erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
 import type { DecorServi, MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
 import { UNITES_DU_PLAN_DE_CARTE, type AreteDessinee, type RetraitDuMonde, type Scene } from '../../../src/noyau/index';
-import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -197,7 +197,11 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', cases: [{ x: 1, y: 1, z: 0 }, { x: 1, y: 0, z: 0 }], milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4, bloc: '0/0/0' }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{
+      cle: '1,1,N,0', cases: [{ x: 1, y: 1, z: 0 }, { x: 1, y: 0, z: 0 }], milieu: { x: 1, y: 0.5 },
+      sens: { x: -1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage',
+      palette: expect.any(Object), hauteurM: 4, bloc: '0/0/0',
+    }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -265,7 +269,7 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const outil = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/zone'));
-    expect(valeursDe(outil, 'zones').map((b) => b.id)).toEqual(['zone/room', 'zone/trigger', 'zone/rest', 'zone/effect']);
+    expect(valeursDe(outil, 'zones').map((b) => b.id)).toEqual(['zone/room', 'zone/trigger', 'zone/rest', 'zone/effect', 'zone/jouable']);
     presser(boutonDe(outil, `zone/${sorte}`));
     jouer({ geste: 'appui', point: point(2, 2) });
     expect(jouer({ geste: 'glisse', point: point(3, 3) }).surcouche.cases, 'le rectangle tiré, en surcouche').toHaveLength(4);
@@ -311,6 +315,22 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     const supprimee = presser(boutonDe(disque, 'zone/supprimer'));
     expect(supprimee.surcouche.zones.some((z) => z.choisi)).toBe(false);
     expect(supprimee.surcouche.poignee).toBeNull();
+  });
+
+  it('la zone jouable tracée au rectangle borde la carte en surcouche ; « Toute la carte » ou un tracé de toute la grille l’efface (#4392)', () => {
+    const { jouer, presser, posee } = tracee('jouable');
+    expect(boutonDe(posee, 'zone/jouable/toute').presse, 'la zone posée : toute la carte ne se joue plus').toBe(false);
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const posee3 = jouer({ geste: 'relache', point: point(3, 3) });
+    expect(posee3.surcouche.zoneJouable, 'le bord du rectangle, sans la case du milieu').toEqual(
+      [[1, 1], [2, 1], [3, 1], [1, 2], [3, 2], [1, 3], [2, 3], [3, 3]].map(([x, y]) => ({ x, y, z: 0 })));
+    expect(posee3.vue.zones['editeur.options'].map((el) => el.id)).toContain('zone/jouable');
+    const toute = presser(boutonDe(posee3, 'zone/jouable/toute'));
+    expect([toute.surcouche.zoneJouable, boutonDe(toute, 'zone/jouable/toute').presse]).toEqual([[], true]);
+    expect(presser(boutonDe(toute, 'annuler')).surcouche.zoneJouable, 'annuler la rend').toHaveLength(8);
+    const { w, h } = paquetDuJeu(allBuiltinCampaigns[0]).scenes[0].dimensions;
+    jouer({ geste: 'appui', point: point(0, 0) });
+    expect(jouer({ geste: 'relache', point: point(w - 1, h - 1) }).surcouche.zoneJouable, 'toute la grille tracée : la zone s’efface').toEqual([]);
   });
 
   it('un déclencheur joue une fois, ou à chaque entrée ; une zone de repos offre ses lieux et sa qualité ; chacune change de couche', () => {
@@ -853,8 +873,9 @@ describe('l’éditeur de carte par le pont, la scène', () => {
     expect(champ(editionDe(appel('editer', { type: 'decrire', args: ['Une note'] })), 'decrire')).toMatchObject({ valeur: 'Une note' });
     expect(champ(editionDe(appel('editer', { type: 'decrire', args: [] })), 'decrire')).toMatchObject({ valeur: '' });
 
-    const large = presser(boutonDe(ouverte, 'scene/largeur/plus'));
-    expect(nombre(large, 'scene/largeur')).toBe(nombre(ouverte, 'scene/largeur') + 1);
+    const large = presser(boutonDe(ouverte, 'scene/bord/ouest/plus'));
+    expect(nombre(large, 'scene/bord/est')).toBe(nombre(ouverte, 'scene/bord/est') + 1);
+    expect(nombre(presser(boutonDe(large, 'scene/bord/nord/moins')), 'scene/bord/sud')).toBe(nombre(large, 'scene/bord/sud') - 1);
     expect(texte(large, 'scene/nord'), 'aucune scène livrée ne déclare son nord').toBe('Nord : vers le haut du plan');
     const tourne = presser(boutonDe(large, 'scene/nord/plus'));
     expect(texte(tourne, 'scene/nord')).toBe('Nord : 15° dans le sens horaire');
@@ -1790,9 +1811,9 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(inspecteur().some((el) => el.id === 'valeur/onCross'), 'vidée, la liste quitte la zone').toBe(false);
     presser('valeur/crossTest/ajouter');
     choisir('valeur/crossTest/characteristic', 'Force');
-    choisir('valeur/crossTest/stake/forme', 'clé');
-    expect(inspecteur().filter((el) => el.id.startsWith('valeur/crossTest/stake/key/')).map((el) => [el.id.slice('valeur/crossTest/stake/key/'.length), el.type]), 'la forme authorée d’un enjeu au catalogue est sa clé seule, chaque champ à son contrôle (#3606 M2e3)').toEqual([['dataset', 'choix'], ['kind', 'formulaire'], ['entryId', 'formulaire'], ['entryCategory', 'formulaire']]);
-    presser('valeur/crossTest/stake/forme/aucune');
+    presser('valeur/crossTest/stake/ajouter');
+    expect(inspecteur().filter((el) => el.id.startsWith('valeur/crossTest/stake')).map((el) => [el.id.slice('valeur/crossTest/stake'.length), el.type]), 'l’enjeu du Test de traversée est la phrase que le document écrit, sans clé de catalogue à choisir (#4056 E7)').toEqual([['', 'ligne'], ['/source/ajouter', 'bouton'], ['/authored', 'formulaire'], ['/adapteDe/ajouter', 'bouton'], ['/retirer', 'bouton']]);
+    presser('valeur/crossTest/stake/retirer');
     presser('valeur/onCross/ajouter');
     choisir('valeur/onCross/0/op', 'Points de Corruption');
     saisir('valeur/onCross/0/amount', 2);

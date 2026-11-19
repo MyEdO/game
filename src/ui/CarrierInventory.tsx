@@ -85,7 +85,7 @@ export function CarrierInventory({
   const itemStats = (it: ItemInstance): ReactNode => {
     // Objet non identifié : ses qualités sont MASQUÉES à l'affichage (elles restent actives au combat) ;
     // une identification RATÉE de beaucoup (ADE II) peut y ancrer de FAUSSES certitudes, affichées telles.
-    const resolvedQuals = resolveQualities(it).map((r) => ({ id: r.id, value: r.indice }));
+    const resolvedQuals = resolveQualities(it).map((r) => r.instance);
     const quals: ReactNode = it.identified === false
       ? (it.suspectedQualities?.length ? `soupçonné : ${it.suspectedQualities.join(', ')}` : null)
       : (resolvedQuals.length ? <QualityChips qualities={resolvedQuals} /> : null);

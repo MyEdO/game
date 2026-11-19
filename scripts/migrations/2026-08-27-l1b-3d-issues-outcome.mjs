@@ -25,6 +25,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { auChemin } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -55,7 +56,7 @@ for (const { rel, chemins } of CIBLES) {
     continue;
   }
 
-  const resoudre = (c) => c.reduce((n, k) => n?.[k], doc);
+  const resoudre = (c) => auChemin(doc, c);
   const chemin = chemins.find((c) => Array.isArray(resoudre(c)));
   if (!chemin) {
     echecs.push(`${rel} : aucun des chemins ${chemins.map((c) => `\`${c.join('.')}\``).join(' / ')} n'est un tableau`);

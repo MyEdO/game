@@ -208,7 +208,7 @@ import {
   xpTotal,
 } from '../../noyau/creation/brouillon';
 import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_CHARS_KEPT, XP_CHARS_REASSIGNED, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } from '../../engine/creation';
-import { formuleDeRevenus } from '../../engine/money';
+import { formuleDeRevenus, libelleDuStatut, memeStatut } from '../../engine/money';
 import { t as msg } from '../../i18n'; // `msg` : alias local — `t` nomme aussi un trapping ou une minuterie dans ce module
 import { PARTY_MAX } from '../../noyau/monde/combatants';
 import { GatedAction, raisonSi } from '../GatedAction';
@@ -338,7 +338,7 @@ export function CharacterCreator() {
     const c = findCareerById(d.careerId);
     if (!c) return null;
     const lvl1 = levelsForCareer(d.careerId).find((l) => l.level === 1);
-    return msg('createur.resumeDeCarriere', { classe: libelleDeClasse(c.class.id), carriere: c.label, niveau: lvl1?.label ?? '—', statut: lvl1?.status ?? '' });
+    return msg('createur.resumeDeCarriere', { classe: libelleDeClasse(c.class.id), carriere: c.label, niveau: lvl1?.label ?? '—', statut: lvl1 ? libelleDuStatut(lvl1.status) : '' });
   };
 
   // Une réf Codex cliquée ouvre la fiche en MODALE par-dessus l'assistant (cf. CodexOverlay) : le
@@ -802,9 +802,9 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
           )}
           <span className="chip">Départ <b>{lvl1.label}</b></span>
           <MetalStatus status={lvl1.status} size="chip" />
-          {lvlMax && lvlMax.status !== lvl1.status && (
+          {lvlMax && !memeStatut(lvlMax.status, lvl1.status) && (
             <span className="chip">
-              {lvl1.status} → {lvlMax.status}
+              {libelleDuStatut(lvl1.status)} → {libelleDuStatut(lvlMax.status)}
             </span>
           )}
         </>
@@ -1967,7 +1967,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
           le cas Bronze 1 (2 dés) quand le RAW en pose jusqu'à 2×Standing (10 pour Bronze 5), qu'un
           plateau ancré à droite (`white-space: nowrap`) ferait déborder. */}
       <Band
-        title={<>La bourse<small>statut {level.status} — {purseFormula}</small></>}
+        title={<>La bourse<small>statut {libelleDuStatut(level.status)} — {purseFormula}</small></>}
         right={d.wealthRoll && !rolling && !landed ? <b><Coins money={wealth} /></b> : null}
       >
         {rolling || landed ? (
@@ -2009,7 +2009,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
       <p className="hint" style={{ marginTop: 0 }}>
         {/* Carrière/niveau entre parenthèses, jamais « du {label} » : le libellé est une DONNÉE (« du
             Agitateur », et toute carrière à initiale vocalique casserait l'élision). */}
-        Le statut <b>{level.status}</b> ({career.label} — {level.label}) fixe la bourse de départ ({purseFormula} × Standing) et le
+        Le statut <b>{libelleDuStatut(level.status)}</b> ({career.label} — {level.label}) fixe la bourse de départ ({purseFormula} × Standing) et le
         train de vie entre les aventures. Chaque objet reçu s'ouvre sur sa fiche du Codex — encombrement et qualités comprises.
       </p>
 

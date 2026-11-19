@@ -3,10 +3,7 @@
  * hors des champs laissés à la saisie de l'auteur (sentinelle vide `''` ou champ absent).
  */
 import type { z } from 'zod';
-
-/** Valeur au chemin d'un refus de zod. */
-const auChemin = (v: unknown, chemin: readonly PropertyKey[]): unknown =>
-  chemin.reduce<unknown>((n, k) => (n && typeof n === 'object' ? (n as Record<PropertyKey, unknown>)[k] : undefined), v);
+import { auChemin } from '../lib/objet.mjs';
 
 /** Champ laissé à la saisie de l'auteur : sentinelle vide ou absent. */
 const aSaisir = (v: unknown): boolean => v === '' || v === undefined;

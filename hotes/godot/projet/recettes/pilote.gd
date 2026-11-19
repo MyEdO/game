@@ -190,7 +190,7 @@ func _code(nom: String) -> Key:
 
 
 ## L'image de la fenêtre, une fois chaque portrait demandé photographié (`StudioDePortraits.au_repos`) puis l'image
-## dessinée, écrite en PNG à `chemin` : `true` ; `false` sans rendu ; `{ erreur }` si le studio n'a pas fini sa file
+## dessinée, même sur un écran qui n'a pas changé (`OS.low_processor_usage_mode` levé le temps d'une image), écrite en PNG à `chemin` : `true` ; `false` sans rendu ; `{ erreur }` si le studio n'a pas fini sa file
 ## `PORTRAITS_S` après la demande.
 func _capturer(id: Variant, chemin: String) -> void:
 	if DisplayServer.get_name() == "headless":
@@ -204,7 +204,10 @@ func _capturer(id: Variant, chemin: String) -> void:
 			_rendus.append([id, {erreur = erreur}])
 			return
 		await process_frame
+	var econome := OS.low_processor_usage_mode
+	OS.low_processor_usage_mode = false
 	await RenderingServer.frame_post_draw
+	OS.low_processor_usage_mode = econome
 	var ecrit := root.get_texture().get_image().save_png(chemin)
 	_rendus.append([id, true if ecrit == OK else {erreur = "capture %s : %s" % [chemin, error_string(ecrit)]}])
 

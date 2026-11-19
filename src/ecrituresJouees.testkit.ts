@@ -20,12 +20,12 @@ import {
   type Segment,
   type SessionDEdition,
 } from './noyau/index';
-import { accesDe, DOCUMENTS, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type SorteDePorteur } from './noyau/sceneEditLecture';
+import { accesDe, DOCUMENTS, FORMULAIRES, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type SorteDePorteur } from './noyau/sceneEditLecture';
 import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
-import type { Bouton, Choix, Formulaire, Ligne } from './hote/elements';
+import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { jeuDuFormulaire, type BancDuFormulaire } from './formulaireJoue.testkit';
 import { ENTREES_DE_DOSSIER } from './data/dossiers';
-import { estObjet } from './lib/objet.mjs';
+import { auChemin, estObjet } from './lib/objet.mjs';
 import { auditerLEditabilite, orphanFields, programmeDuPerimetre, RACINES, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 import { detenteur } from './lib/detenteur.testkit';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
@@ -73,9 +73,17 @@ const porteurDu = (s: SessionDEdition, porteur: { sorte: SorteDePorteur; id: str
 /** Les porteurs de sorte `sorte` de la session `s` (`porteursDuProjet`). */
 const porteursDe = (s: SessionDEdition, sorte: SorteDePorteur): readonly unknown[] => porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s));
 
+/** Le porteur qu'écrit le jeu `jeu` d'un formulaire tiré du schéma : celui de son geste d'édition, ou le premier
+ *  argument de son verbe `valeur` ; `undefined` d'un autre jeu. */
+const porteurDuJeu = (jeu: Jeu): { sorte: SorteDePorteur; id: string } | undefined => {
+  const porteur = 'edition' in jeu && 'porteur' in jeu.edition ? jeu.edition.porteur : 'args' in jeu && jeu.type === 'valeur' ? jeu.args[0] : undefined;
+  return estObjet(porteur) && typeof porteur.sorte === 'string' && porteur.sorte in FORMULAIRES && typeof porteur.id === 'string' ? (porteur as { sorte: SorteDePorteur; id: string }) : undefined;
+};
+
 /** Le BANC de l'éditeur de scène (`BancDuFormulaire`) : l'inspecteur de la session (`inspecteur`), un jeu reçu en JSON
  *  validé par `boutonDeLEdition` ou `gesteDuFormulaire`, joué par `editer` (`jouer`) ; le porteur d'un geste `valeur`
- *  nommé par sa sorte, lu dans son document (`porteurDu`, `documentDu`). */
+ *  nommé par sa sorte, lu dans son document (`porteurDu`, `documentDu`) ; le schéma du porteur du jeu d'une offre
+ *  (`porteurDuJeu`), celui de son formulaire (`FORMULAIRES`), et sa donnée. */
 const BANC: BancDuFormulaire<SessionDEdition, Inspecteur & Partial<ZonesDeLEditeur>, GesteDEdition> = {
   zones: inspecteur,
   elements: (z) => z['editeur.inspecteur'],
@@ -87,6 +95,11 @@ const BANC: BancDuFormulaire<SessionDEdition, Inspecteur & Partial<ZonesDeLEdite
     return p && { cle: g.porteur.sorte, ...p };
   },
   document: (s, g) => documentDu(s, g.porteur.sorte),
+  schema: (s, jeu) => {
+    const porteur = porteurDuJeu(jeu);
+    const p = porteur && porteurDu(s, porteur);
+    return p && { noeud: FORMULAIRES[porteur.sorte].schema, donnee: p.donnee };
+  },
 };
 const { jouerLInspecteur, ecrire, jouerLesVariantes, choix: choixDeLInspecteur, gesteDuJeu, gesteDuChoix, composerLAdresse } = jeuDuFormulaire(BANC);
 
@@ -133,7 +146,7 @@ function identifier(s: SessionDEdition, id: string, vers: string, out: EcritureJ
   const { donnee, chemin } = porteurDu(s, porteur)!;
   const element = fixes.reduce<{ donnee: unknown; chemin: Segment[] }>((acc, fixe) => {
     const sous = cheminDeLElement(acc.donnee, fixe)!;
-    return { donnee: sous.reduce<unknown>((o, pas) => (o as Record<Segment, unknown>)[pas], acc.donnee), chemin: [...acc.chemin, ...sous] };
+    return { donnee: auChemin(acc.donnee, sous), chemin: [...acc.chemin, ...sous] };
   }, { donnee, chemin: [] }).chemin;
   out.push({ avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...chemin, ...element, 'id'], valeur: vers, saisie: 'saisieTexte' });
   return suite;
@@ -277,7 +290,15 @@ function poserUnNavire(s: SessionDEdition, x: number, y: number, out: EcritureJo
   return suite;
 }
 
-/** Les écritures jouées sur l'inspecteur d'une scène neuve de la première campagne du jeu sans sélection, puis sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`) et un personnage de chacune des `FICHES` d'une
+/** La zone jouable que l'outil Zone trace dans la scène de la session `s`, de la case `(1, 1)` à la case `(2, 2)` ; son
+ *  écriture, au chemin `zoneJouable` de la scène, s'ajoute à `out` (#4392). */
+function tracerLaZoneJouable(s: SessionDEdition, out: EcritureJouee[]): void {
+  const outil = presser(presser(s, 'outil/zone'), 'zone/jouable');
+  const tracee = jouer(jouer(outil, { geste: 'appui', point: point(1, 1) }), { geste: 'relache', point: point(2, 2) });
+  out.push({ avant: documentDu(s, 'scene'), apres: documentDu(tracee, 'scene'), chemin: ['zoneJouable'], valeur: sceneEditee(tracee).zoneJouable, saisie: 'bouton' });
+}
+
+/** Les écritures jouées sur l'inspecteur d'une scène neuve de la première campagne du jeu sans sélection, puis sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`), la zone jouable tracée (`tracerLaZoneJouable`) et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, le manifeste du `Source/` servi, chacun posé à son outil (Zone,
  *  Personnage), un dialogue que la zone Logique y ajoute, dont l'adresse de prose d'un nœud se compose, une réponse ajoutée à chaque nœud (`REPONSE_AJOUTEE`), puis chacun de ses nœuds et de leurs réponses renommé (`identifierChaque`), une rencontre que la zone Logique y ajoute, où un
  *  personnage d'`ENROLE` et un de la première des `FICHES` s'enrôlent (`enroler`), le second fait monture et chevauché
@@ -300,6 +321,7 @@ export function ecrituresJouees(): EcritureJouee[] {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     s = jouerLInspecteur(boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) })), out);
   }
+  tracerLaZoneJouable(s, out);
   FICHES.forEach(([fiche, branches], rang) => { s = jouerLInspecteur(poserPersonnage(s, fiche, 5 + rang, 5), out, branches); });
   const dialogue = jouerLInspecteur(ajouter(s, 'dialogue', out), out);
   const repondu = choixDe(dialogue, REPONSE_AJOUTEE).reduce((x, id) => presser(x, choixDeLInspecteur(x, id).valeurs[0].id), dialogue);
@@ -352,7 +374,7 @@ function consigner(s: SessionDEdition, id: string, champ: Segment[], out: Ecritu
   const porteur = porteurChoisi(s)!;
   const suite = presser(s, id);
   const apres = porteurDu(suite, porteur)!;
-  const valeur = champ.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), apres.donnee);
+  const valeur = auChemin(apres.donnee, champ);
   out.push({ avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...apres.chemin, ...champ], valeur, saisie: 'bouton' });
   return suite;
 }

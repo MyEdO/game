@@ -26,7 +26,7 @@ import { campaignStart } from '../engine/clock';
 import { setRule } from '../engine/policy';
 import { setCadence } from '../engine/cadence';
 import { t } from '../i18n';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
 import { buildWeatherResistanceSteps, buildStageSteps } from './travelPostes';
 import { currentSeason, weatherFromRoll, type Season } from '../engine/travelStages';
 import { creditBourse } from './bourseFlow';
@@ -733,14 +733,14 @@ describe('péril d’auteur dont l’effet ouvre un nœud de scène sous la jour
   /** Cadence déférée : aucun siège ne tient les dés du jour, le pilote joue l'applier du péril lui-même. */
   beforeEach(() => { setCadence('rapide'); setRule('priere-petites', true); });
   afterEach(() => setCadence('manuel'));
-  const drapeau = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
-  const NOEUDS: { noeud: string; etape: string; reward: Flow }[] = [
+  const drapeau = (flag: string): FlowDeScene => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+  const NOEUDS: { noeud: string; etape: string; reward: FlowDeScene }[] = [
     { noeud: 'test', etape: 'jetDeTestDeScene', reward: { kind: 'test', test: { characteristic: 'force' }, reussite: drapeau('branche'), echec: drapeau('branche') } },
     { noeud: 'choix', etape: 'choixDeFlux', reward: { kind: 'choix', invite: 'Prier encore', oui: drapeau('branche'), non: drapeau('branche') } },
   ];
   /** Le jour : le péril « Sanctuaire » (sa Petite Prière exaucée d'office, Prière à 200 avances, joue le nœud),
    *  puis le péril « Rien », qui ne survient jamais. 30 km : la journée finit sur la halte de nuit. */
-  const partir = (reward: Flow) => {
+  const partir = (reward: FlowDeScene) => {
     seedBattleRng(1);
     const h = hero({ items: [ration('r1')], skills: [{ id: 'priere', characteristic: 'sociabilite', advances: 200 } as any] });
     setup(map({ km: 30, perils: [

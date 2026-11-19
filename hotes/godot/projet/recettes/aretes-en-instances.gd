@@ -1,35 +1,47 @@
 extends SceneTree
 
 ## Les arêtes en instances groupées (#3948) rendues comme à `851700b3a` : chaque maillage de chaque pièce, mur et porte
-## ouverte du kit, boîte sans pièce au kit, dans les deux sens, à un pied et à une hauteur de mur quelconques, sur un
-## volume déplacé et un plateau de 2 m par case, a, à l'instance de son arête dans `Vu_<maillage>` et dans
+## ouverte du kit, mur et porte fermée du modèle d'arête servi d'une famille (#4471, `aretes` de la réponse de
+## `modeles`, figée avec les échantillons de l'atelier, `hotes/godot/recettes/decor.ts`, lue par le chargeur des
+## décors une fois `VolumeDeScene.attendre_les_aretes` rendu), boîte sans pièce au kit, dans les deux sens, à un pied
+## et à une hauteur de mur quelconques, sur un volume déplacé et un plateau de 2 m par case, a, à l'instance de son
+## arête dans `Vu_<maillage>` et dans
 ## `Ombre_<maillage>`, la transformation dans le monde, le maillage et les matières qu'il avait sous la pièce d'avant,
-## rebâtie ici en témoin hors du volume (une pièce par arête, `_piece_d_avant`), `Vu` dans la copie de chacune qui prend
-## pour albédo la couleur de l'instance. Le rang d'une arête est celui de `VolumeDeScene.cacher` : les montrées puis les
-## cachées, dans l'ordre reçu ; cachées, `Vu` ne montre que les premières, `Ombre` les garde toutes. Sous une vision
-## (`VolumeDeScene.voir`), l'instance vue de chaque arête a, à son rang, la teinte sRGB de la part de lumière de la
-## meilleure des cases qu'elle sépare, encore après chaque `cacher`. Plus de huit foyers : onze murs, un par bloc, chacun sous sa lampe, sont tous
-## éclairés, lus aux pixels de l'image rendue ; témoin : les mêmes murs dans un seul bloc, un seul groupe, n'en ont que
-## huit sous le rendu de compatibilité, sa borne (`rendering/limits/opengl/max_lights_per_object`), et tous sous
-## Forward+, qui n'en a pas.
+## rebâtie ici en témoin hors du volume (une pièce par arête, `_piece_d_avant` ; celle d'un modèle servi, sa pièce
+## peinte de la palette de l'arête, `VolumeDeScene.piece_peinte`, au centre de l'arête, son +Z vers son dehors, à
+## l'échelle qui la porte à sa longueur et à sa hauteur, `MiseEnPage.echelle_d_arete_servie`), `Vu` dans la copie
+## de chacune qui prend pour albédo la couleur de l'instance. Le rang d'une arête est celui de `VolumeDeScene.cacher` :
+## les montrées puis les cachées, dans l'ordre reçu ; cachées, `Vu` ne montre que les premières, `Ombre` les garde
+## toutes. Sous une vision (`VolumeDeScene.voir`), l'instance vue de chaque arête a, à son rang, la teinte sRGB de la
+## part de lumière de la meilleure des cases qu'elle sépare, encore après chaque `cacher`. Plus de huit foyers : onze
+## murs, un par bloc, chacun sous sa lampe, sont tous éclairés, lus aux pixels de l'image rendue (murs du modèle
+## servi) ; témoin : les mêmes murs dans un seul bloc, un seul groupe, n'en ont que huit sous le rendu de
+## compatibilité, sa borne (`rendering/limits/opengl/max_lights_per_object`), et tous sous Forward+, qui n'en a pas.
 ##
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`. En `--headless`,
 ## `MultiMesh.get_instance_transform` rend l'identité et le rendu ne peint aucune image : la sonde n'en contrôle que
 ## l'analyse.
 
 const RECETTE_RENDUE := true
+## La recette des arêtes au pied : son figé servi (`servir_le_fige`), ses volumes (`volume_neuf`) et sa palette.
+const ARETE := preload("res://recettes/arete-au-pied.gd")
+## La famille du kit des arêtes sans modèle servi, et la longueur et la hauteur, en mètres, du modèle d'arête servi
+## (`scripts/personnage-3d/arete/`, #4471).
+const FAMILLE_DU_KIT := "pierre"
+const LONGUEUR_DU_MODELE_M := 2.0
+const HAUTEUR_DU_MODELE_M := 4.0
 const EPSILON := 1e-4
 const METRES_PAR_CASE := 2.0
 const DECALAGE := Vector3(2.5, 0.0, -1.5)
-## Les groupes attendus des arêtes de `_aretes`, par leurs clés, et les arêtes cachées : tout un groupe, une partie de
-## deux autres.
-const GROUPES := [["m1", "m2", "m3"], ["n1", "n2"], ["o1", "o2"], ["b1", "b2", "b3"], ["s1"]]
-const CACHEES := ["m2", "n1", "n2", "o1", "b3"]
+## Les groupes attendus des arêtes de `_aretes`, par leurs clés, ceux du modèle servi derniers, posés à sa lecture, et
+## les arêtes cachées : tout un groupe, une partie de quatre autres.
+const GROUPES := [["m1", "m2", "m3"], ["n1", "n2"], ["o1", "o2"], ["b1", "b2", "b3"], ["s1"], ["c1", "c2"], ["d1"]]
+const CACHEES := ["m2", "n1", "n2", "o1", "c2", "b3"]
 ## La vision : une rangée d'une couche, la case de chaque arête à sa colonne (son rang dans `_aretes`), son état pris
 ## à son tour dans `ETATS` ; `m1` sépare la sienne, inconnue, de la dernière, vue.
 const TEINTES := {visible = 1.0, explored = 0.42, unknown = 0.15}
 const ETATS := [0, 128, 255]
-const COLONNES := 12
+const COLONNES := 15
 ## L'écart d'une couleur d'instance relue à l'écrite : le rendu de compatibilité la range en demi-flottants.
 const DEMI_FLOTTANT := 1e-3
 ## Les murs sous les lampes : un toutes les quatre cases, une lampe à une unité du sol, en avant de chaque mur, de portée
@@ -43,6 +55,9 @@ const HAUT_DU_MUR := 3.5
 ## L'écart de luminance (sur 255) au-delà duquel un mur est éclairé par sa lampe, contre son haut.
 const ECLAIRE := 20
 var _fautes: Array[String] = []
+## La famille dont le modèle d'arête est servi, et ce modèle.
+var _servie := ""
+var _modele := ""
 var _comparaisons := 0
 var _ecart_origine := 0.0
 var _ecart_base := 0.0
@@ -59,6 +74,11 @@ func _recetter() -> void:
 	var camera := Camera3D.new()
 	scene.add_child(camera)
 	camera.current = true
+	var decor := ARETE.servir_le_fige(self, "aretes-en-instances")
+	if decor.is_empty():
+		return
+	_servie = decor.modeles.aretes.keys()[0]
+	_modele = decor.modeles.aretes[_servie]
 	await _poses_d_avant(scene)
 	await _foyers(scene, camera)
 	for faute in _fautes:
@@ -69,10 +89,8 @@ func _recetter() -> void:
 
 ## Point 1 et 2 : les instances contre la pose d'avant, posées, puis après `cacher`, puis toutes rendues.
 func _poses_d_avant(scene: Node3D) -> void:
-	var volume: VolumeDeScene = (load("res://scenes/VolumeDeScene.tscn") as PackedScene).instantiate()
-	scene.add_child(volume)
+	var volume := ARETE.volume_neuf(scene, METRES_PAR_CASE)
 	volume.position = DECALAGE
-	volume.metres_par_case = METRES_PAR_CASE
 	var kit: Node3D = (load(VolumeDeScene.KIT) as PackedScene).instantiate()
 	var aretes := _aretes()
 	var rangee := []
@@ -80,6 +98,7 @@ func _poses_d_avant(scene: Node3D) -> void:
 	rangee.fill(0.0)
 	volume.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = [rangee]}], morceaux = []}, toits = [], couronnes = []}, {volume = [], toits = [], couronnes = []})
 	volume.poser_les_aretes(aretes)
+	await volume.attendre_les_aretes()
 	var octets := PackedByteArray()
 	for colonne in COLONNES:
 		octets.append(ETATS[colonne % ETATS.size()] if colonne < COLONNES - 1 else 255)
@@ -98,18 +117,26 @@ func _poses_d_avant(scene: Node3D) -> void:
 
 
 ## Les arêtes de la recette : deux blocs (et une couche), le mur du kit dans les deux sens, à 4 m et à 1,25 m de haut,
-## la porte ouverte du kit à un pied de 4 m, la boîte d'un mur et le seuil d'une porte ouverte sans famille.
+## la porte ouverte du kit à un pied de 4 m, le mur du modèle servi vers l'ouest, sa porte fermée à 2 m de haut, la
+## boîte d'un mur et le seuil d'une porte ouverte sans famille.
 func _aretes() -> Array:
 	var aretes := []
 	for k in 3:
-		aretes.append(_arete("m%d" % (k + 1), "0/0/0", "colombage", "mur", Vector2(1, 0), 4.0, 0.0, Vector2(k, -0.5)))
+		aretes.append(_arete("m%d" % (k + 1), "0/0/0", FAMILLE_DU_KIT, Noyau.Piece.MUR, Vector2(1, 0), 4.0, 0.0,
+			Vector2(k, -0.5)))
 	for k in 2:
-		aretes.append(_arete("n%d" % (k + 1), "0/0/0", "colombage", "mur", Vector2(0, 1), 1.25, 2.0, Vector2(-0.5, k)))
+		aretes.append(_arete("n%d" % (k + 1), "0/0/0", FAMILLE_DU_KIT, Noyau.Piece.MUR, Vector2(0, 1), 1.25, 2.0,
+			Vector2(-0.5, k)))
 	for k in 2:
-		aretes.append(_arete("o%d" % (k + 1), "0/1/0", "pierre", "porte-ouverte", Vector2(1, 0), 4.0, 4.0, Vector2(8 + 2 * k, 1.5)))
+		aretes.append(_arete("o%d" % (k + 1), "0/1/0", FAMILLE_DU_KIT, Noyau.Piece.PORTE_OUVERTE, Vector2(1, 0), 4.0, 4.0,
+			Vector2(8 + 2 * k, 1.5)))
+	for k in 2:
+		aretes.append(_arete("c%d" % (k + 1), "0/0/0", _servie, Noyau.Piece.MUR, Vector2(0, -1), 4.0, 0.0,
+			Vector2(4.5, 1 + k)))
+	aretes.append(_arete("d1", "0/0/0", _servie, Noyau.Piece.PORTE_FERMEE, Vector2(1, 0), 2.0, 0.0, Vector2(6, -0.5)))
 	for k in 3:
-		aretes.append(_arete("b%d" % (k + 1), "0/1/0", null, "mur", Vector2(0, 1), 4.0, 2.0, Vector2(11.5, 2 + k)))
-	aretes.append(_arete("s1", "1/1/0", null, "porte-ouverte", Vector2(1, 0), 4.0, 0.0, Vector2(9, 3.5)))
+		aretes.append(_arete("b%d" % (k + 1), "0/1/0", null, Noyau.Piece.MUR, Vector2(0, 1), 4.0, 2.0, Vector2(11.5, 2 + k)))
+	aretes.append(_arete("s1", "1/1/0", null, Noyau.Piece.PORTE_OUVERTE, Vector2(1, 0), 4.0, 0.0, Vector2(9, 3.5)))
 	for colonne in aretes.size():
 		aretes[colonne].cases = [{x = colonne, y = 0, z = 0}]
 	aretes[0].cases.append({x = COLONNES - 1, y = 0, z = 0})
@@ -127,7 +154,8 @@ func _teinte_attendue(a: Dictionary) -> Color:
 
 
 func _arete(cle: String, bloc: String, famille: Variant, piece: String, sens: Vector2, hauteur: float, pied: float, milieu: Vector2) -> Dictionary:
-	return {cle = cle, bloc = bloc, famille = famille, piece = piece, sens = {x = sens.x, y = sens.y}, hauteurM = hauteur, pied = pied, milieu = {x = milieu.x, y = milieu.y}}
+	return {cle = cle, bloc = bloc, famille = famille, piece = piece, sens = {x = sens.x, y = sens.y}, hauteurM = hauteur,
+		pied = pied, milieu = {x = milieu.x, y = milieu.y}, palette = ARETE.PALETTE if famille == _servie else {}}
 
 
 ## Chaque groupe posé, ses comptes d'instances, et chacune de ses instances à son rang (les montrées puis les cachées
@@ -173,21 +201,28 @@ func _controler(etape: String, volume: VolumeDeScene, temoin: Node3D, kit: Node3
 			piece.free()
 
 
-## La pièce de l'arête `a` posée comme à `851700b3a` (`_piece`) sous `temoin` : celle du kit, au centre de l'arête,
-## orientée et mise à l'échelle sur son nœud ; sinon sa boîte, par `VolumeDeScene.poser_sur_l_arete`.
+## La pièce de l'arête `a` posée comme à `851700b3a` (`_piece`) sous `temoin` : celle du modèle servi de sa famille,
+## peinte de sa palette, au centre de l'arête, orientée sur son sens, à l'échelle métrique mise à sa hauteur ; celle du
+## kit, au centre de l'arête, orientée et mise à l'échelle sur son nœud ; sinon sa boîte, par
+## `VolumeDeScene.poser_sur_l_arete`.
 func _piece_d_avant(temoin: Node3D, kit: Node3D, volume: VolumeDeScene, a: Dictionary) -> Node3D:
 	if a.famille == null:
 		var boite := MeshInstance3D.new()
 		boite.name = "Boite"
 		temoin.add_child(boite)
-		volume.poser_sur_l_arete(boite, {"mur": volume.mesh_mur, "porte-ouverte": volume.mesh_seuil}[a.piece], a)
+		volume.poser_sur_l_arete(boite, {Noyau.Piece.MUR: volume.mesh_mur, Noyau.Piece.PORTE_OUVERTE: volume.mesh_seuil}[a.piece], a)
 		return boite
 	var sens := Vector2(a.sens.x, a.sens.y)
 	var piece := Node3D.new()
 	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, volume.metres_par_case, 0.0)
 	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
-	piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, volume.metres_par_case)
-	piece.add_child(kit.get_node("%s--%s" % [a.famille, a.piece]).duplicate())
+	if a.famille == _servie:
+		piece.scale = MiseEnPage.echelle_d_arete_servie(sens, a.hauteurM, LONGUEUR_DU_MODELE_M, HAUTEUR_DU_MODELE_M,
+			volume.metres_par_case)
+		piece.add_child(volume.piece_peinte(_modele, a.piece, a.palette).duplicate())
+	else:
+		piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, volume.metres_par_case)
+		piece.add_child(kit.get_node("%s--%s" % [a.famille, a.piece]).duplicate())
 	temoin.add_child(piece)
 	return piece
 
@@ -218,7 +253,8 @@ func _comparer(lieu: String, maillage: MeshInstance3D, instances: MultiMeshInsta
 			_fautes.append("%s : surface %d dans une autre matière que sous la pièce d'avant" % [lieu, surface])
 
 
-## Point 3 : onze murs du kit sous onze lampes, un bloc par mur, puis le témoin, les mêmes murs dans un seul bloc.
+## Point 3 : onze murs du modèle servi sous onze lampes, un bloc par mur, puis le témoin, les mêmes murs dans un seul
+## bloc.
 func _foyers(scene: Node3D, camera: Camera3D) -> void:
 	var milieu := (MURS - 1) * ECART_DES_MURS / 2.0 + MiseEnPage.DEMI_CASE
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -244,11 +280,11 @@ func _foyers(scene: Node3D, camera: Camera3D) -> void:
 	for essai: Array in [["un bloc par mur", true], ["un seul bloc", false]]:
 		var murs := []
 		for rang in MURS:
-			murs.append(_arete("mur%d" % rang, "0/%d/0" % rang if essai[1] else "0/0/0", "colombage", "mur", Vector2(1, 0), 4.0, 0.0, Vector2(rang * ECART_DES_MURS, -0.5)))
-		var volume: VolumeDeScene = (load("res://scenes/VolumeDeScene.tscn") as PackedScene).instantiate()
-		scene.add_child(volume)
-		volume.metres_par_case = 1.0
+			murs.append(_arete("mur%d" % rang, "0/%d/0" % rang if essai[1] else "0/0/0", _servie, Noyau.Piece.MUR,
+				Vector2(1, 0), 4.0, 0.0, Vector2(rang * ECART_DES_MURS, -0.5)))
+		var volume := ARETE.volume_neuf(scene, 1.0)
 		volume.poser_les_aretes(murs)
+		await volume.attendre_les_aretes()
 		var image := await _image()
 		var lus := []
 		var fonds := []

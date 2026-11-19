@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   vise, sousPeur, indiceDePeur, isAfflictionActive, targetedTrigger, targetCausedSourcesFor, psychImmuneToFrom,
-  refreshDefendedPsych, sansPeurVs, sourceCombattant, type PsychAffliction, type PsychType,
+  refreshDefendedPsych, sansPeurVs, sourceCombattant, type PsychAffliction,
 } from './psychology';
 import { psychDRAdjust } from './combat';
 import { ciblePsy } from './psych/ciblage';
@@ -92,7 +92,7 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
   it('déclenchement d’un Trait ciblé (LDB 21 l.9) : un membre caché ne déclenche pas', () => {
     const d = entree((p) => !!p.cibles && !p.targetCauses && p.triggerOn !== 'threatened');
     expect(d).toBeDefined();
-    const obs = mk('o', { psychTraits: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait) }] });
+    const obs = mk('o', { psychTraits: [{ type: d!.id, cible: ciblePsy.groupe(groupeDuTrait) }] });
     expect(targetedTrigger(obs, [sourceCombattant(porteur('p', true))])).toBeNull();
     expect(targetedTrigger(obs, [sourceCombattant(porteur('p', false))])?.sourceId).toBe('p');
   });
@@ -100,7 +100,7 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
   it('objet d’une Phobie en combat (LDB 21 l.87) : seul ce que l’on voit est une source de Peur', () => {
     const d = entree((p) => !!p.targetCauses);
     expect(d).toBeDefined();
-    const obs = mk('o', { psychTraits: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait), indice: 1 }] });
+    const obs = mk('o', { psychTraits: [{ type: d!.id, cible: ciblePsy.groupe(groupeDuTrait), indice: 1 }] });
     expect(targetCausedSourcesFor(obs, sourceCombattant(porteur('p', true)))).toEqual([]);
     expect(targetCausedSourcesFor(obs, sourceCombattant(porteur('p', false)))).not.toEqual([]);
   });
@@ -108,7 +108,7 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
   it('+DR contre le groupe (LDB 21 l.41) : par appartenance, même caché', () => {
     const d = entree((p) => p.attackDR?.vs === 'group');
     expect(d).toBeDefined();
-    const att = mk('a', { psychState: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait), active: true }] });
+    const att = mk('a', { psychState: [{ type: d!.id, cible: ciblePsy.groupe(groupeDuTrait), active: true }] });
     expect(psychDRAdjust(att, porteur('p', true))).toBe(d!.attackDR!.amount);
     expect(psychDRAdjust(att, mk('q'))).toBe(0);
   });
@@ -117,7 +117,7 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
     const d = entree((p) => !!p.immuneToFromTarget?.length);
     expect(d).toBeDefined();
     const canal = d!.immuneToFromTarget![0];
-    const self = mk('s', { psychState: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait), active: true }] });
+    const self = mk('s', { psychState: [{ type: d!.id, cible: ciblePsy.groupe(groupeDuTrait), active: true }] });
     expect(psychImmuneToFrom(self, sourceCombattant(porteur('p', true)), canal)).toBe(true);
     expect(psychImmuneToFrom(self, sourceCombattant(mk('q')), canal)).toBe(false);
   });
@@ -125,7 +125,7 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
   it('défendre les êtres aimés (LDB 21 l.75) : un aimé caché reste à défendre', () => {
     const d = entree((p) => !!p.immuneWhileActive?.length);
     expect(d).toBeDefined();
-    const self = mk('s', { psychState: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait), active: true }] });
+    const self = mk('s', { psychState: [{ type: d!.id, cible: ciblePsy.groupe(groupeDuTrait), active: true }] });
     expect(refreshDefendedPsych(self, [self, porteur('p', true)])).toBe(false);
     expect(self.psychState![0].active).toBe(true);
     expect(refreshDefendedPsych(self, [self])).toBe(true);
@@ -143,7 +143,7 @@ describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appart
   it('malus social « contenu » (LDB 21 l.19, l.48) : contre les Groupes que le Test décrit', () => {
     const d = entree((p) => p.containedSocialMod != null);
     expect(d).toBeDefined();
-    const tester = mk('t', { psychTraits: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait) }] });
+    const tester = mk('t', { psychTraits: [{ type: d!.id, cible: ciblePsy.groupe(groupeDuTrait) }] });
     expect(socialPsychMod(tester, [groupeDuTrait])).toBe(d!.containedSocialMod);
     expect(socialPsychMod(tester, [])).toBe(0);
   });

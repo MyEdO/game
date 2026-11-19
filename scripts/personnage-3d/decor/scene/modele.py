@@ -1,34 +1,25 @@
 """La scène (#4335) : un GLB par décor de `DECORS`, bâti dans l'enveloppe convexe des primitives de sa recette
 (`gabarit.py`), dont il lit les cotes (`geometrie.pave` et `geometrie.rond`) et où `Gabarit.rentrer` ramène le sommet
 qui en sortirait. Chaque pièce est une coque close : une étoffe plissée, la coque de ses contours d'un rang à l'autre
-(`onde`) ; des degrés de planches sur leurs joues (`gradins`) ; une pièce tournée, une planche, une pièce équarrie, une
-pièce profilée, une pièce ronde courbée et un cercle, ceux de `geometrie` ; un tore de `maille`. Chaque matériau du
-décor est un nœud à son nom, les flammes celui qui luit (`gabarit.NOEUD_EMISSIF`). L'aléa est semé des codes de
-caractères de l'id du décor : deux constructions rendent les mêmes octets."""
+(`geometrie.onde`) ; des degrés de planches sur leurs joues (`gradins`) ; une pièce tournée, une planche, une planche
+rampante, une pièce équarrie, une pièce profilée, une pièce ronde courbée, un cercle, le dais d'une tribune et une rampe
+d'escalier, ceux de `geometrie` ; un tore de `maille`. Chaque matériau du décor est un nœud à son nom, les flammes celui
+qui luit (`gabarit.NOEUD_EMISSIF`). L'aléa est semé des codes de caractères de l'id du décor : deux constructions
+rendent les mêmes octets."""
 import math
 
 from mathutils import Vector
 
 import geometrie
-from geometrie import (COTES, CYLINDRE, HAUT, MAT, POTEAU, X, Y, barre, bougie, cercle, chaine, coque, courbee,
-                       lisse, normales, partage, pave, planche, profilee, rampant, rampante, rond, tournee)
+from geometrie import (COTES, CYLINDRE, FRONT, HAUT, MAT, POTEAU, X, Y, barre, bougie, cercle, chaine, coque, courbee,
+                       lisse, onde, partage, pave, planche, profilee, rampant, rond, tournee)
 from gabarit import NOEUD_EMISSIF
 from maille import lineaire, tore
 
 DECORS = ("pupitre-chef", "tribune", "balustrade-loge", "rangee-sieges", "rideau-scene", "escalier-loge",
-          "lustre-opera", "portant-costumes")
+          "lustre-opera", "portant-costumes", "decor-flat")
 FLAMME = "flamme"
 """Le matériau de ce qui luit, que porte le nœud `gabarit.NOEUD_EMISSIF`."""
-
-
-def onde(c, u, n, demi, epais, creux, plis, phase, pas, festons, chute):
-    """Le contour clos d'une étoffe d'épaisseur `epais`, de demi-largeur `demi` le long de `u` autour de `c`, qui
-    ondule de `creux` le long de `n` en `plis` plis de `pas` points, le premier à `phase`, et tombe de `chute` au
-    milieu de chacun de ses `festons` : sa face du côté de `n`, puis l'autre au retour."""
-    points = plis * pas
-    fil = [c + u * (demi * (2 * j / points - 1)) + n * (creux * math.cos(2 * math.pi * j / pas + phase))
-           + chute * abs(math.sin(math.pi * festons * j / points)) for j in range(points + 1)]
-    return [p + n * (epais / 2) for p in fil] + [p - n * (epais / 2) for p in reversed(fil)]
 
 
 def gradins(m, degres, S, D, a):
@@ -123,29 +114,16 @@ def tribune(D, G, pieces, a):
     V, C = T["dais"], T["charpente"]
     cretes = []
     for rang, poteaux in T["versants"]:
-        descend, crete, egout, long, large = rampant(G.primitives[rang])
+        pente = rampant(G.primitives[rang])
+        descend, crete, _, _, large = pente
         travers = descend.cross(HAUT)
-        d = (egout - crete).normalized()
-        n = travers.cross(d)
-        epais, creux, pli = (large * V[nom] for nom in ("epais", "creux", "pli"))
-        rangs = [(crete.lerp(egout, t) - n * (creux + epais / 2), n, creux, 0) for t in V["pente"]]
-        rangs += [(egout - descend * (pli + epais / 2) - HAUT * (large * V["tombee"] * t), descend, pli, feston)
-                  for t, feston in V["lambrequin"]]
-        phase = a.uniform(0, 2 * math.pi)
-        coque(pieces["toile"], [onde(p, travers, vers, large / 2 * V["largeur"], epais, ampleur, V["plis"], phase,
-                                     V["pas"], V["festons"], -HAUT * (large * V["feston"] * feston))
-                                for p, vers, ampleur, feston in rangs], "toile")
-
         demi_c, haut_c = (large * part for part in C["chevron"])
-        sous = (creux + epais + haut_c / 2) / n.z
+        n, chevron, sur_sabliere = geometrie.dais(pieces["toile"], pente, V, large * V["tombee"],
+                                                  -HAUT * (large * V["feston"]), (haut_c, C["entaille"]), a)
         (p0, r, _), (p1, _, _) = axes = [rond(G.primitives[poteau]) for poteau in poteaux]
         recul = -descend * (r * C["deport"])
         demi_s, haut_s = (r * part for part in C["sabliere"])
-
-        def chevron(p):
-            """Le point de l'axe d'un chevron à l'aplomb de `p`."""
-            return Vector((p.x, p.y, crete.z + (p - crete).dot(descend) * (egout.z - crete.z) / long - sous))
-        appui = chevron(p0 + recul).z - haut_c / 2 / n.z * (1 - C["entaille"])
+        appui = sur_sabliere(p0 + recul)
         s0, s1 = (Vector((p.x, p.y, appui - haut_s / 2)) + recul for p in (p0, p1))
         debord = (s1 - s0).normalized() * (r * C["debord"])
         planche(bois, s0 - debord, s1 + debord, descend, HAUT, demi_s, haut_s / 2, haut_s * D["ARETE"])
@@ -291,39 +269,11 @@ def rideau(D, G, pieces, a):
 
 
 def escalier(D, G, pieces, a):
-    """Un escalier d'après `ESCALIER` : quatre marches, lisse basse, deux pilastres à boule, limon et main courante
-    rampants, balustres tournés."""
+    """Un escalier d'après `ESCALIER` : quatre marches, et sa rampe (`geometrie.rampe`) : lisse basse, deux pilastres
+    à boule de laiton, lisse et main courante rampantes, balustres tournés."""
     E, bois = D["ESCALIER"], pieces[MAT]
     gradins(bois, [pave(G.primitives[rang]) for rang in E["marches"]], D["DEGRE_D_ESCALIER"], D, a)
-    cl, (lx, ly, lz) = pave(G.primitives[E["lisse"]])
-    long = Y if ly > lx else X
-    planche(bois, cl - long * (max(lx, ly) / 2), cl + long * (max(lx, ly) / 2), long.cross(HAUT), HAUT,
-            min(lx, ly) / 2, lz / 2, lz * D["ARETE"])
-
-    Pi, Bo, R = E["pilastre"], E["boule"], E["rampe"]
-    pied_z = cl.z + lz / 2 - lz * Pi["ancrage"]
-    pilastres = []
-    for poteau, boule in E["pilastres"]:
-        cp, r, h = rond(G.primitives[poteau])
-        tete = cp + HAUT * (h / 2)
-        profilee(bois, Vector((cp.x, cp.y, pied_z)), tete, (r * Pi["cote"],) * 2, POTEAU)
-        cb, rb, hb = rond(G.primitives[boule])
-        tournee(pieces["laiton"], cb - HAUT * (hb / 2 + hb * Bo["ancrage"]), cb + HAUT * (hb / 2), X, Y, rb,
-                Bo["profil"], Bo["cotes"], "laiton")
-        pilastres.append((tete, r, h))
-
-    (t0, r, h), (t1, _, _) = pilastres
-    main = [tete - HAUT * (h * R["main"]) for tete in (t0, t1)]
-    depart = Vector((t0.x, t0.y, pied_z + h * R["limon"]))
-    limon = (depart, depart + main[1] - main[0])
-    demi_l, demi_h = (r * part for part in R["section"])
-    for bas, haut in (main, limon):
-        rampante(bois, bas, haut, demi_l, demi_h, demi_h * 2 * D["ARETE"])
-    Ba = E["balustres"]
-    for k in range(1, Ba["nombre"] + 1):
-        t = k / (Ba["nombre"] + 1)
-        tournee(bois, limon[0].lerp(limon[1], t), main[0].lerp(main[1], t), X, Y, r * Ba["rayon"], D["BALUSTRE"],
-                Ba["cotes"])
+    geometrie.rampe(bois, G, E["rampe"], D["ARETE"], (pieces["laiton"], "laiton"))
 
 
 def lustre(D, G, pieces, a):
@@ -331,10 +281,7 @@ def lustre(D, G, pieces, a):
     liés entre voisins, bobèches, bougies et flammes."""
     L, laiton = D["LUSTRE"], pieces["laiton"]
     for rang in ("culot", "corbeille", "tige"):
-        primitive = G.primitives[L[rang]]
-        c, r, h = rond(primitive)
-        tournee(laiton, c - HAUT * (h / 2), c + HAUT * (h / 2), X, Y, r * math.cos(math.pi / primitive["sides"]),
-                L["tournes"][rang], L["cotes"], "laiton")
+        geometrie.tourne(laiton, G.primitives[L[rang]], L["tournes"][rang], L["cotes"], "laiton")
     axe, r_tige, _ = rond(G.primitives[L["tige"]])
 
     Br = L["bras"]
@@ -358,8 +305,7 @@ def lustre(D, G, pieces, a):
                    L["bougie"])
         for g, d in zip(chemins, chemins[1:] + chemins[:1]):
             p, q = g[Br["lien"] * Br["pas"]], d[Br["lien"] * Br["pas"]]
-            tournee(laiton, p, q, *normales((q - p).normalized()), r_tige * Br["tringle"], CYLINDRE, Br["cotes"],
-                    "laiton")
+            geometrie.fil(laiton, p, q, r_tige * Br["tringle"], Br["cotes"], "laiton")
 
     M = L["maillons"]
     cc, (cote, _, haut) = pave(G.primitives[L["chaine"]])
@@ -375,8 +321,7 @@ def portant(D, G, pieces, a):
     P, fer = D["PORTANT"], pieces["fer"]
     futs = []
     for patin, montant in zip(P["pieds"], P["montants"]):
-        c, (lx, ly, lz) = pave(G.primitives[patin])
-        profilee(fer, c - Y * (ly / 2), c + Y * (ly / 2), (lx / 2, lz / 2), P["patin"], "fer", X, HAUT)
+        geometrie.profile(fer, G.primitives[patin], "y", P["patin"], "fer")
         cm, r, h = rond(G.primitives[montant])
         tournee(fer, cm - HAUT * (h / 2), cm + HAUT * (h / 2), X, Y, r, P["fut"]["profil"], P["fut"]["cotes"], "fer")
         futs.append((cm, r, h))
@@ -405,13 +350,71 @@ def portant(D, G, pieces, a):
                 CYLINDRE, K["segments"][1], "fer")
 
 
+def chassis(D, G, pieces, a):
+    """Un châssis de décor d'après `CHASSIS` : montants, traverses haute et basse, traverses du dedans et écharpes
+    derrière la toile peinte, pilastre doré devant elle, équerre de trois pièces derrière le châssis."""
+    C, bois = D["CHASSIS"], pieces[MAT]
+    axes = []
+    for rang in C["montants"]:
+        pied, _ = geometrie.profile(bois, G.primitives[rang], "h", POTEAU, MAT)
+        axes.append(pied)
+    cm, (mx, my, _) = pave(G.primitives[C["montants"][0]])
+    ct, (tx, ty, tz) = pave(G.primitives[C["toile"]])
+    lisses = []
+    for nom in ("haute", "basse"):
+        c, (_, ly, lz) = pave(G.primitives[C[nom]])
+        g, d = (Vector((p.x, c.y, c.z)) for p in axes)
+        planche(bois, g, d, Y, HAUT, ly / 2 * C["traverse"], lz / 2, lz * D["ARETE"])
+        lisses.append((g, d))
+
+    etoffe = ty * C["etoffe"]
+    fil = ct + FRONT * (ty / 2 - etoffe / 2)
+    planche(pieces["peinte"], fil - HAUT * (tz / 2), fil + HAUT * (tz / 2), X, Y, tx / 2 + mx * C["feuillure"],
+            etoffe / 2, etoffe * D["ARETE"], "peinte")
+    cp, (px, py, pz) = pave(G.primitives[C["motif"]])
+    devant = (cp - fil).dot(FRONT) + py / 2
+    milieu = cp + FRONT * (py / 2 - devant / 2)
+    profilee(pieces["laiton"], milieu - HAUT * (pz / 2), milieu + HAUT * (pz / 2), (px / 2, devant / 2),
+             C["pilastre"], "laiton")
+
+    pente = rampant(G.primitives[C["etai"]])
+    descend, crete, egout, long, large = pente
+    I, E = C["dedans"], C["equerre"]
+    dos = (cm - fil).dot(FRONT) - my / 2 * C["traverse"]
+    recul = FRONT * ((fil - cm).dot(FRONT) + dos / 2)
+    demi_h = mx * I["section"]
+    (g, d), _ = lisses
+    for z in (crete.z, crete.z + (g.z - crete.z) * I["mediane"]):
+        planche(bois, Vector((g.x, g.y, z)) + recul, Vector((d.x, d.y, z)) + recul, Y, HAUT, -dos / 2, demi_h,
+                demi_h * D["ARETE"])
+    for g, d in lisses:
+        for coin, autre in ((g, d), (d, g)):
+            vers = (autre - coin).normalized() * (tx * I["echarpe"])
+            sur_montant = coin + recul + HAUT * math.copysign(vers.length, ct.z - coin.z)
+            biais = (coin + recul + vers - sur_montant).normalized()
+            planche(bois, sur_montant, coin + recul + vers, Y.cross(biais), Y, demi_h, -dos / 2, demi_h * D["ARETE"])
+
+    travers = descend.cross(HAUT)
+    demi_l, demi_e = large / 2 * E["largeur"], large / 2 * E["epaisseur"]
+    pied = Vector((crete.x, crete.y, egout.z))
+    planche(bois, pied, crete, travers, HAUT.cross(travers), demi_l, demi_e, demi_e * D["ARETE"])
+    haut = crete.z - egout.z
+    planche(bois, pied + HAUT * demi_e, egout - descend * (2 * demi_e * long / haut) + HAUT * demi_e, travers, HAUT,
+            demi_l, demi_e, demi_e * D["ARETE"])
+    n_z = long / (crete - egout).length
+    sous = demi_e / n_z
+    geometrie.rampante(bois, geometrie.sous_le_rampant(pente, crete, sous),
+                       geometrie.sous_le_rampant(pente, egout.lerp(crete, (sous + demi_e * n_z) / haut), sous),
+                       large / 2 * E["etai"], demi_e, demi_e * D["ARETE"])
+
+
 BATIR = {"pupitre-chef": pupitre, "tribune": tribune, "balustrade-loge": balustrade, "rangee-sieges": rangee,
-         "rideau-scene": rideau, "escalier-loge": escalier, "lustre-opera": lustre, "portant-costumes": portant}
+         "rideau-scene": rideau, "escalier-loge": escalier, "lustre-opera": lustre, "portant-costumes": portant,
+         "decor-flat": chassis}
 
 
 def construire(D, id_):
-    noeuds = {NOEUD_EMISSIF if nom == FLAMME else nom: (nom,) for nom in D["MATERIAUX"][id_]}
-    return geometrie.par_noeuds(D, id_, noeuds, BATIR[id_])
+    return geometrie.par_noeuds(D, id_, geometrie.par_materiau(D["MATERIAUX"][id_], FLAMME), BATIR[id_])
 
 
 def elements(D):

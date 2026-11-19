@@ -42,12 +42,10 @@ bord. `rack-lances` : les lances penchent, chaque pointe sous le rampant du pris
 
 Matières : celles des recettes, sauf l'écorce des rondins (`bois-mort`, dont la texture est une écorce), le cuir du
 soufflet (`cuir-tanne`), la corde des ligatures (`corde`), les os du ragoût (`os`), la bordure du foyer de la marmite
-(`pierre-atre`), le bois du soufflet et le fer de sa buse (`bois-chene`, `fer-noirci`) et l'acier des lames
-(`acier-battu`, plus clair que le `fer-noirci` que la recette leur donne, pour qu'un fer se lise sur sa hampe). Le
-catalogue n'a ni charbon ni cendre (les charbons sont de `braises`), ni bière ni bouillon (`eau-dormante` pour le
-moût et le ragoût).
-Aucun emplacement de palette ne nomme la pierre ni l'os : ils prennent `corps` ; le cuir, la corde, l'eau et les
-braises, `accent`."""
+(`pierre-atre`), le bois du soufflet et le fer de sa buse (`bois-chene`, `fer-noirci`) et le fer des douilles des
+râteliers (`fer-noirci`). Le catalogue n'a ni charbon ni cendre (les charbons sont de `braises`), ni bière ni bouillon
+(`eau-dormante` pour le moût et le ragoût). Aucun emplacement de palette ne nomme la pierre ni l'os : ils prennent
+`corps` ; le cuir, la corde, l'eau et les braises, `accent`."""
 
 # Emplacement de palette et matière (domaine `prop` de `src/data/materials.json`) de chaque matériau (`habillage.py`).
 BOIS = {"bois": ("bois", "bois-chene")}
@@ -90,12 +88,12 @@ CLOU = (0.09, 0.06)
 """Tête de clou en pointe de diamant (`geometrie.clou`) : demi-côté et hauteur, en fractions d'un demi-côté, celui du
 pied de l'enclume pour ses crampons, celui du socle, le long de l'essieu, pour les rivets des longerons de la roue."""
 
-# Pierre taillée (`modele.moellon`), en fractions de sa demi-hauteur : `joint`, demi-joint laissé sur son pourtour ;
+# Pierre taillée (`geometrie.moellon`), en fractions de sa demi-hauteur : `joint`, demi-joint laissé sur son pourtour ;
 # `arete`, chanfrein de ses arêtes ; `parement`, recul de sa face (tiré entre ces bornes).
 TAILLE = {"joint": 0.04, "arete": 0.08, "parement": (0.0, 0.05)}
 
-# Charbon d'un lit de braises (`modele.charbons`) : `enfonce`, part de son demi-côté sous le lit ; `charbon`, demi-côté
-# et hauteur (`geometrie.clou`, fractions de ce demi-côté).
+# Charbon d'un lit de braises (`geometrie.charbons`) : `enfonce`, part de son demi-côté sous le lit ; `charbon`,
+# demi-côté et hauteur (`geometrie.clou`, fractions de ce demi-côté).
 CHARBON = {"enfonce": 0.3, "charbon": (1.0, 0.8)}
 
 SEMELLE = 0.2
@@ -158,7 +156,7 @@ FOYER = {
     "pilier": ((0.0, 1.0, 1.0, 0.1), (0.07, 1.0, 1.0, 0.1), (0.1, 0.8, 0.8, 0.25), (0.9, 0.8, 0.8, 0.25),
                (0.93, 1.0, 1.0, 0.1), (1.0, 1.0, 1.0, 0.1)),
     # Lit de braises, en fractions de sa boîte : `ancrage` et `hauteur` (parts de sa hauteur), son profil
-    # (`geometrie.profilee`) ; charbons (`modele.charbons`) : `semis`, part des demi-côtés où ils tombent ; leur
+    # (`geometrie.profilee`) ; charbons (`geometrie.charbons`) : `semis`, part des demi-côtés où ils tombent ; leur
     # nombre ; `grosseur`, demi-côté (fractions du demi-côté x du semis, tiré) ; `CHARBON`.
     "lit": {"ancrage": 0.5, "hauteur": 0.6, "profil": ((0.0, 0.97, 0.97, 0.05), (0.6, 0.97, 0.97, 0.08),
                                                      (1.0, 0.86, 0.84, 0.08)),
@@ -229,13 +227,13 @@ MARMITE = {
     # `fer`, épaisseur de son fer (fraction de ce rayon) ; côtés.
     "chaine": {"maillons": 4, "recouvre": 1.3, "fer": 0.28, "cotes": 8},
     # Lit de braises, en fractions du foyer de la recette : `hauteur` (part de la sienne), profil
-    # (`geometrie.tournee`) ; charbons (`modele.charbons`) : `semis` (fraction de son rayon), nombre, `grosseur`
+    # (`geometrie.tournee`) ; charbons (`geometrie.charbons`) : `semis` (fraction de son rayon), nombre, `grosseur`
     # (fractions du semis), `CHARBON`.
     "lit": {"hauteur": 0.6, "profil": ((0.0, 0.88), (0.6, 0.82), (1.0, 0.6)), "semis": 0.36, "charbons": 16,
             "grosseur": (0.14, 0.3), **CHARBON},
     # Bordure, une pierre par côté du foyer : `parement` (fraction de son apothème), `hauteur` (part de la sienne),
     # `largeur` (part du côté), `queue` (fraction de son rayon) ; `taille`, celle d'une pierre à peine dégrossie
-    # (`modele.moellon`, comme `TAILLE`).
+    # (`geometrie.moellon`, comme `TAILLE`).
     "bordure": {"parement": 0.97, "hauteur": 0.5, "largeur": 0.9, "queue": 0.28,
                 "taille": {"joint": 0.06, "arete": 0.2, "parement": (0.0, 0.25)}},
     # Bûches, sur le lit : azimuts ; `portee`, leurs deux bouts depuis l'axe (fractions du rayon du foyer) ; `rayon`

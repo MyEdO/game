@@ -2,7 +2,10 @@
   "id": "problemes-vehicule",
   "type": "problemes-vehicule",
   "label": "Problèmes de véhicule",
-  "die": "d100",
+  "die": {
+    "n": 1,
+    "sides": 100
+  },
   "source": {
     "book": "ennemi-dans-l-ombre-compagnon",
     "page": 28

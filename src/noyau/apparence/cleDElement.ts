@@ -4,6 +4,8 @@
  * jamais par catégorie.
  */
 import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findPropById, findTeteById, libelleDAuteur } from '../../data';
+import { kitSchema } from '../../data/schemas/defs/structureAppearance';
+import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { pieceOuVariante } from './gardeRobe';
 
 export type CodeDEcartDeCle = 'cle-inconnue' | 'piece-hors-categorie';
@@ -30,6 +32,13 @@ const CHAMPS = {
   definition: { find: (id: string) => { const fiche = findFicheDeVehicule(id); return fiche && { label: libelleDAuteur(fiche) }; }, quoi: 'coque de `vehicles.json` ni engin `armes-de-siege` de `trappings.json`' },
   amelioration: { find: (id: string) => { const t = findNavalTrait(id); return t?.kind === 'amelioration' ? t : undefined; }, quoi: 'Amélioration de `naval-traits.json`' },
   prop: { find: findPropById, quoi: 'décor de `props.json`' },
+  kit: {
+    find: (id: string) => {
+      const label = valeursDe(kitSchema)?.[id];
+      return label === undefined ? undefined : { label };
+    },
+    quoi: 'famille de kit de `structureAppearance.json`',
+  },
 } as const satisfies Readonly<Record<string, ChampDeCle>>;
 
 /** Un champ de clé résolu (`CHAMPS`). */

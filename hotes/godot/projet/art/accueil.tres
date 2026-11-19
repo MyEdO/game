@@ -1,0 +1,158 @@
+[gd_resource type="Theme" load_steps=16 format=3]
+
+[ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+[ext_resource type="FontFile" path="res://polices/RubriquesVieuxMonde-Regular.ttf" id="2_rubriques"]
+[ext_resource type="FontFile" path="res://polices/GrenzeGotisch-wght.ttf" id="3_gothique"]
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="4_cadre"]
+
+[sub_resource type="FontVariation" id="Rubriques_espacees"]
+base_font = ExtResource("2_rubriques")
+spacing_glyph = 2
+
+[sub_resource type="FontVariation" id="Rubriques_des_plaques"]
+base_font = ExtResource("2_rubriques")
+spacing_glyph = 1
+
+[sub_resource type="FontVariation" id="Gothique_moyenne"]
+base_font = ExtResource("3_gothique")
+variation_opentype = {2003265652: 500}
+
+[sub_resource type="StyleBoxLine" id="Filet_d_or"]
+color = Color(0.886, 0.753, 0.416, 0.55)
+thickness = 1
+
+[sub_resource type="StyleBoxFlat" id="Losange"]
+bg_color = Color(0.886, 0.753, 0.416, 1)
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_repos"]
+content_margin_left = 18.0
+content_margin_top = 11.0
+content_margin_right = 18.0
+content_margin_bottom = 11.0
+script = ExtResource("4_cadre")
+cadre = "bouton"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_survol"]
+content_margin_left = 18.0
+content_margin_top = 11.0
+content_margin_right = 18.0
+content_margin_bottom = 11.0
+script = ExtResource("4_cadre")
+cadre = "bouton-survol"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_armee"]
+content_margin_left = 18.0
+content_margin_top = 11.0
+content_margin_right = 18.0
+content_margin_bottom = 11.0
+script = ExtResource("4_cadre")
+cadre = "bouton-arme"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Plaque_fermee"]
+content_margin_left = 18.0
+content_margin_top = 11.0
+content_margin_right = 18.0
+content_margin_bottom = 11.0
+script = ExtResource("4_cadre")
+cadre = "bouton-ferme"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Disque_d_outil"]
+script = ExtResource("4_cadre")
+cadre = "outil"
+
+[sub_resource type="StyleBoxEmpty" id="Outil"]
+content_margin_top = 12.0
+
+[resource]
+SurTitre/base_type = &"Label"
+SurTitre/colors/font_color = Color(0.886, 0.753, 0.416, 1)
+SurTitre/colors/font_shadow_color = Color(0, 0, 0, 0.9)
+SurTitre/constants/shadow_offset_x = 0
+SurTitre/constants/shadow_offset_y = 1
+SurTitre/constants/shadow_outline_size = 6
+SurTitre/font_sizes/font_size = 15
+SurTitre/fonts/font = SubResource("Rubriques_espacees")
+TitreDuJeu/base_type = &"Label"
+TitreDuJeu/colors/font_color = Color(1, 1, 1, 1)
+TitreDuJeu/colors/font_shadow_color = Color(0, 0, 0, 0.85)
+TitreDuJeu/constants/shadow_offset_x = 0
+TitreDuJeu/constants/shadow_offset_y = 3
+TitreDuJeu/constants/shadow_outline_size = 3
+TitreDuJeu/font_sizes/font_size = 89
+TitreDuJeu/fonts/font = ExtResource("1_titres")
+SousTitre/base_type = &"Label"
+SousTitre/colors/font_color = Color(0.937, 0.886, 0.753, 1)
+SousTitre/colors/font_shadow_color = Color(0, 0, 0, 0.9)
+SousTitre/constants/shadow_offset_x = 0
+SousTitre/constants/shadow_offset_y = 1
+SousTitre/constants/shadow_outline_size = 6
+SousTitre/font_sizes/font_size = 33
+SousTitre/fonts/font = SubResource("Gothique_moyenne")
+FiletDOr/base_type = &"HSeparator"
+FiletDOr/constants/separation = 1
+FiletDOr/styles/separator = SubResource("Filet_d_or")
+FiletALosange/base_type = &"HBoxContainer"
+FiletALosange/constants/separation = 9
+Losange/base_type = &"Panel"
+Losange/styles/panel = SubResource("Losange")
+EntreesDeLAccueil/base_type = &"VBoxContainer"
+EntreesDeLAccueil/constants/separation = 11
+OutilsDeLAccueil/base_type = &"HBoxContainer"
+OutilsDeLAccueil/constants/separation = 6
+Plaque/base_type = &"Button"
+Plaque/colors/font_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/font_hover_color = Color(0.937, 0.847, 0.569, 1)
+Plaque/colors/font_focus_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/font_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/font_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/font_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Plaque/colors/icon_normal_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/icon_hover_color = Color(0.937, 0.847, 0.569, 1)
+Plaque/colors/icon_focus_color = Color(0.886, 0.753, 0.416, 1)
+Plaque/colors/icon_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/icon_hover_pressed_color = Color(0.165, 0.102, 0.031, 1)
+Plaque/colors/icon_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Plaque/constants/h_separation = 13
+Plaque/constants/icon_max_width = 18
+Plaque/font_sizes/font_size = 17
+Plaque/fonts/font = SubResource("Rubriques_des_plaques")
+Plaque/styles/normal = SubResource("Plaque_repos")
+Plaque/styles/hover = SubResource("Plaque_survol")
+Plaque/styles/pressed = SubResource("Plaque_armee")
+Plaque/styles/hover_pressed = SubResource("Plaque_armee")
+Plaque/styles/disabled = SubResource("Plaque_fermee")
+PlaqueArmee/base_type = &"Plaque"
+PlaqueArmee/colors/font_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/font_hover_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/font_focus_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/icon_normal_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/icon_hover_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/colors/icon_focus_color = Color(0.165, 0.102, 0.031, 1)
+PlaqueArmee/styles/normal = SubResource("Plaque_armee")
+PlaqueArmee/styles/hover = SubResource("Plaque_armee")
+Outil/base_type = &"Button"
+Outil/colors/font_color = Color(0.941, 0.886, 0.761, 1)
+Outil/colors/font_hover_color = Color(0.937, 0.847, 0.569, 1)
+Outil/colors/font_focus_color = Color(0.941, 0.886, 0.761, 1)
+Outil/colors/font_pressed_color = Color(0.941, 0.886, 0.761, 1)
+Outil/colors/font_hover_pressed_color = Color(0.941, 0.886, 0.761, 1)
+Outil/colors/font_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Outil/colors/font_outline_color = Color(0, 0, 0, 0.6)
+Outil/colors/icon_normal_color = Color(0.886, 0.753, 0.416, 1)
+Outil/colors/icon_focus_color = Color(0.886, 0.753, 0.416, 1)
+Outil/colors/icon_hover_color = Color(0.937, 0.847, 0.569, 1)
+Outil/colors/icon_pressed_color = Color(0.886, 0.753, 0.416, 1)
+Outil/colors/icon_hover_pressed_color = Color(0.886, 0.753, 0.416, 1)
+Outil/colors/icon_disabled_color = Color(0.553, 0.518, 0.455, 1)
+Outil/constants/icon_max_width = 21
+Outil/constants/outline_size = 4
+Outil/font_sizes/font_size = 12
+Outil/fonts/font = SubResource("Rubriques_des_plaques")
+Outil/styles/normal = SubResource("Outil")
+Outil/styles/hover = SubResource("Outil")
+Outil/styles/pressed = SubResource("Outil")
+Outil/styles/hover_pressed = SubResource("Outil")
+Outil/styles/disabled = SubResource("Outil")
+Outil/styles/focus = SubResource("Outil")
+DisqueDOutil/base_type = &"Panel"
+DisqueDOutil/styles/panel = SubResource("Disque_d_outil")

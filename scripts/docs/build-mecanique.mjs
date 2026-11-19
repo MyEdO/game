@@ -104,8 +104,16 @@ function rendu() {
   const INDICE_TYPE = declaration('src/engine/types.ts', 'QualityInstance')
   if (!INDICE_RUNTIME.noeud.body?.getText(INDICE_RUNTIME.sf).includes('indice: q.value'))
     abandon(`\`${INDICE_RUNTIME.nom}\` ne dérive plus l'Indice de \`QualityInstance.value\` (${INDICE_RUNTIME.fichier})`)
-  if (!INDICE_TYPE.noeud.members?.some((m) => m.name?.getText(INDICE_TYPE.sf) === 'value'))
-    abandon(`\`QualityInstance\` n'a plus de champ \`value\` (${INDICE_TYPE.fichier})`)
+  /** Les variantes littérales de `QualityInstance` (union exclusive Indice | majoration), le membre `nom` typé autrement que `never`. */
+  const variantes = (ts.isUnionTypeNode(INDICE_TYPE.noeud.type) ? INDICE_TYPE.noeud.type.types : [INDICE_TYPE.noeud.type]).filter(ts.isTypeLiteralNode)
+  const champ = (nom) => variantes.flatMap((v) => v.members).find((m) => m.name?.getText(INDICE_TYPE.sf) === nom && m.type?.kind !== ts.SyntaxKind.NeverKeyword)
+  if (!champ('value')) abandon(`\`QualityInstance\` n'a plus de champ \`value\` (${INDICE_TYPE.fichier})`)
+  const MAJORATION = champ('majoration')
+  if (!MAJORATION) abandon(`\`QualityInstance\` n'a plus de variante \`majoration\` (${INDICE_TYPE.fichier})`)
+  const MAJORATION_SITE = `${INDICE_TYPE.fichier}:${ligne(INDICE_TYPE.sf, MAJORATION.name.getStart(INDICE_TYPE.sf))}`
+  const FUSION_MUNITION = declaration('src/engine/items.ts', 'weaponWithAmmo')
+  if (!FUSION_MUNITION.noeud.body?.getText(FUSION_MUNITION.sf).includes('q.majoration'))
+    abandon(`\`${FUSION_MUNITION.nom}\` ne lit plus \`majoration\` (${FUSION_MUNITION.fichier})`)
 
   // ── `EffectTrigger` / `EffectTargeting` / `TriggeredEffect` ──────────────────────────────────────
 
@@ -145,7 +153,7 @@ function rendu() {
     cherche(fabrique.noeud)
     if (!objet) abandon(`\`effetDeclencheSur\` ne déclare plus son \`z.strictObject\` dans ${MECANIQUE}`)
     lire(objet.properties, fabrique.sf, fabrique.text,
-      (m) => (ts.isPropertyAssignment(m) || ts.isShorthandPropertyAssignment(m)) && m.name ? m.name.getText(fabrique.sf) + (/\.optional\(\)$/.test(m.getText(fabrique.sf)) ? '?' : '') : null,
+      (m) => (ts.isPropertyAssignment(m) || ts.isShorthandPropertyAssignment(m)) && m.name ? m.name.getText(fabrique.sf) + (m.getText(fabrique.sf).endsWith('.optional()') ? '?' : '') : null,
       (m) => plat(ts.isPropertyAssignment(m) ? m.initializer.getText(fabrique.sf) : m.name.getText(fabrique.sf)))
     const ajoutes = ts.isIntersectionTypeNode(d.noeud.type) ? d.noeud.type.types.filter(ts.isTypeLiteralNode) : []
     for (const t of ajoutes) {
@@ -394,6 +402,10 @@ ${SUPPRESSION.n} entrée(s) de \`${SUPPRESSION.json}\` l'exercent, dont \`${SUPP
 Le drapeau dit qu'une mécanique s'applique ; sa VALEUR (Salve N, Protectrice N, Solide N…) vit sur
 l'INSTANCE portée par l'objet — \`${INDICE_TYPE.nom}.value\` (\`${INDICE_TYPE.site}\`), que le
 dispatcher runtime expose sous \`indice\` (\`${INDICE_RUNTIME.nom}\`, \`${INDICE_RUNTIME.site}\`).
+Une qualité de munition peut porter, au lieu d'un Indice, une \`majoration\` (« +N »,
+\`${MAJORATION_SITE}\`) : la fusion \`${FUSION_MUNITION.nom}\` (\`${FUSION_MUNITION.site}\`) rend
+alors à l'arme tirée une instance dont la \`value\` vaut l'Indice de la même qualité de l'arme + N
+(N si l'arme ne la porte pas).
 La saisie en prose (« Solide 3 ») n'est convertie en instance qu'à l'AUTHORING, par
 \`${INDICE_AUTHORING.nom}\` (\`${INDICE_AUTHORING.site}\`) — le runtime ne re-parse jamais un libellé
 (convention \`indice:{label}\` côté champ d'édition). N'ajoute donc **jamais** un drapeau numéroté

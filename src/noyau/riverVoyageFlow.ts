@@ -66,8 +66,8 @@ import {
   riverControlKept, capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes, riverCritical, findRiverPeril,
   resolveRiverImpact, rollBarrage, rollBarrageClearing, echouageDamage, navBaseDifficulty, tackDifficulty,
   CAPSIZE, TEMPORARY_REPAIR, riverForceLabel,
-  type RiverWindForceId, type RiverWindDirId,
 } from '../engine/riverNavigation';
+import type { RiverWindDirId } from '../data/schemas/defs/river-navigation';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { jouerLaJournee, type CascadeApplier } from './cascade';
 import { checkPartyWiped } from './partyWipe';
@@ -121,7 +121,7 @@ export const riverLocLabel = (loc: RiverCritLocation): PlayerText =>
 /** État FLUVIAL d'un TravelPlan (route `river`) — persiste avec le plan. */
 export interface RiverVoyageState {
   /** Force du vent (ticke 4×/jour, l.21). */
-  windForce: RiverWindForceId;
+  windForce: string;
   /** Direction RELATIVE (fixée en début de voyage, l.21). */
   windDir: RiverWindDirId;
   daysAfloat: number;

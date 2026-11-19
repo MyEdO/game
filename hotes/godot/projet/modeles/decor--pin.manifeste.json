@@ -11,7 +11,7 @@
     {
       "nom": "ecorce",
       "palette": "bois",
-      "matiere": "prop--cuir-tanne"
+      "matiere": "prop--ecorce-pin"
     },
     {
       "nom": "feuillage",
@@ -20,7 +20,7 @@
     }
   ],
   "glb": {
-    "sha256": "a12a980d2342b221cade5addd355ac384a8b1d30f64a83f008e56c114846423b",
-    "octets": 189648
+    "sha256": "fc67aa5cb14215c8f01fe6ed0909f3df58480bfbab35849f1c64832704b5eb32",
+    "octets": 189660
   }
 }
