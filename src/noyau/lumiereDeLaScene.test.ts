@@ -39,6 +39,12 @@ describe('lumiereDeLaScene', () => {
     expect(l.brume.finCases).toBeLessThan(lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion').brume.finCases);
   });
 
+  it('la brume s’épaissit à la courbe de la profondeur du lieu, dehors comme dedans', () => {
+    const dehors = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion');
+    const dedans = lumiereDeLaScene(etat({ ...emptyScene('scene-test', 4, 4), ambiance: 'interieur' }, MIDI), 'immersion');
+    expect([dehors.brume.courbe, dedans.brume.courbe]).toEqual([ambiance.pov.depth.outdoor.fogGamma, ambiance.pov.depth.indoor.fogGamma]);
+  });
+
   it('la pluie voile le soleil et teinte le ciel', () => {
     const clair = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion');
     const pluie = lumiereDeLaScene(etat({ ...emptyScene('scene-test', 4, 4), weather: 'pluie' }, MIDI), 'immersion');

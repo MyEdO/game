@@ -96,8 +96,9 @@ export interface LumiereDeLaScene {
   horsCarte: { sol: SolDuHorsCarte | null; fonduCases: number | null };
   /** Brume de profondeur : sa teinte, la pénombre du hors-carte hors de l'immersion (`ambiance.json › iso.stageBg`),
    *  puis où elle commence et où elle couvre tout, en cases au-delà du point visé, ou depuis l'œil (`depuisLOeil`) en
-   *  immersion : celle d'un intérieur quand le groupe est sous un toit (`shelterField`), sinon resserrée par la brume de la météo (`povTightenK`). */
-  brume: { couleur: string; debutCases: number; finCases: number; depuisLOeil: boolean };
+   *  immersion : celle d'un intérieur quand le groupe est sous un toit (`shelterField`), sinon resserrée par la brume de la météo (`povTightenK`) ;
+   *  entre les deux, elle s'épaissit à la puissance `courbe` de la part du chemin parcouru (`fogGamma`). */
+  brume: { couleur: string; debutCases: number; finCases: number; courbe: number; depuisLOeil: boolean };
   sources: SourceDeLumiere[];
 }
 
@@ -117,6 +118,7 @@ function melange(a: string, b: string, t: number): string {
  * (`ambientScalar`) ; le ciel (`ciel` : zénith et horizon, `null` en intérieur et hors de l'immersion, dont le fond est
  * la brume) et la brume de profondeur (`brume` : sa couleur, la pénombre du hors-carte hors de l'immersion, puis où
  * elle commence et où elle couvre tout, en cases au-delà du point que la caméra vise, ou depuis l'œil en immersion,
+ * et la puissance `courbe` à laquelle elle s'épaissit entre les deux,
  * `depuisLOeil` : celle d'un intérieur quand le groupe est sous un toit, sinon resserrée par la brume de la météo,
  * `povTightenK`) viennent de l'ambiance du lieu, la nuit et la météo les teintent ; chaque source ponctuelle (`sources`
  * : sa clé, la même d'une vue à l'autre, son foyer en cases, sa couche, sa hauteur en mètres, son rayon en cases, sa
@@ -180,6 +182,7 @@ export function lumiereDeLaScene(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaiss
       couleur: !depuisLOeil ? ambiance.iso.stageBg : dedans ? pov.fogIndoor : deNuit(pov.fogOutdoor),
       debutCases: profondeur.fogStartT * resserrement,
       finCases: profondeur.farTiles * resserrement,
+      courbe: profondeur.fogGamma,
       depuisLOeil,
     },
     sources: sceneLightSources(etat).flatMap((s): SourceDeLumiere[] => {
