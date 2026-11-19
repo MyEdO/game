@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
-import type { Suite } from './pont';
+import { clicDuCombattant, type Suite } from './pont';
 import type { Bouton, Choix, Entite, Jeu, Puce } from '../../../src/hote/elements';
 import type { ZonesDuCompendium } from '../../../src/hote/compendium';
 import { cleDEmplacement } from '../../../src/hote/sauvegardes';
@@ -45,7 +45,7 @@ const zonesDeLaFiche = (s: Suite) => (['fiche.porteur', 'fiche.gestes', 'fiche.p
 /** Les héros du groupe du dôme. */
 const HEROS = ['Ilyanwe la Voilée', 'Berta'];
 
-describe('la fiche d’un combattant par le pont', () => {
+describe('la fiche d’un porteur par le pont', () => {
   it('ouverte par le bouton d’un héros : sa tête, son profil, ses sections, une possession choisie, puis fermée', () => {
     const { suite: debut } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
     expect(debut.vue.zones['groupe.heros'], 'en combat, aucune carte de héros : l’ordre du tour les porte').toEqual([]);
@@ -175,6 +175,47 @@ describe('la fiche d’un combattant par le pont', () => {
     const objet = (sectionDeLaFiche(s.vue, 'possessions') as Bouton[])[0];
     expect(erreurDe(appel('fiche', { fiche: { porteur: 'sorciere', objet: 'personne' } })), 'le refus nomme les possessions de la fiche')
       .toMatchObject({ categorie: 'validation', message: expect.stringContaining((objet.jeu as { fiche: { objet: string } }).fiche.objet) });
+  });
+
+  it('hors combat, la case d’un PNJ en vue ouvre son statbloc sans jouer de geste', () => {
+    appel('quitter');
+    const { appel: explorer } = table();
+    let { suite: debut } = drainer(explorer, explorer('demarrer', { scenario: 'dialogue-multi', graine: 7 }));
+    while (debut.vue.projection.fenetre) {
+      ({ suite: debut } = drainer(explorer, explorer('jouer', enFocus(debut.vue)!.jeu)));
+    }
+    expect(debut.vue.projection.combat).toBeNull();
+    const porteur = debut.vue.occupants['5,3,0'];
+    expect(porteur).toBe('gustav');
+    expect(debut.vue.champ, 'le clic du champ est disponible en exploration').not.toBeNull();
+    expect(clicDuCombattant(debut.vue, porteur), 'le clic de combat ne se joue pas en exploration').toBeNull();
+    const ouverte = suiteDe(explorer('fiche', { fiche: { porteur } }));
+    expect(ouverte.vue.projection.pas).toBe(debut.vue.projection.pas);
+    expect(ouverte.vue.zones['fiche.porteur'].map((p) => p.nom)).toEqual(['Gustav']);
+    expect(ouverte.vue.zones['fiche.profil'].map((p) => p.id)).toEqual(expect.arrayContaining(['profil/m', 'profil/b']));
+    expect(ouverte.vue.zones['fiche.source'].map((p) => p.libelle)).toEqual([
+      `Profil : ${sourceRefLabel(findCreatureById('humain')!.source)}`,
+    ]);
+    const fermee = suiteDe(explorer('fiche', ouverte.vue.zones['fiche.gestes'][0].jeu));
+    expect(zonesDeLaFiche(fermee)).toEqual([[], [], [], [], [], []]);
+    explorer('quitter');
+    drainer(explorer, explorer('demarrer', { scenario: 'porte-close', graine: 7 }));
+    expect(erreurDe(explorer('fiche', { fiche: { porteur } })).categorie).toBe('validation');
+    explorer('quitter');
+  });
+
+  it('hors combat, un brigand embusqué reste absent des occupants et sa fiche est refusée', () => {
+    const { appel: explorer } = table();
+    try {
+      const { suite } = drainer(explorer, explorer('demarrer', { scenario: 'poursuite-terrestre', graine: 1 }));
+      const brigand = 'enemy-enc-rattrapage-0';
+      expect(suite.vue.projection.combat).toBeNull();
+      expect(Object.values(suite.vue.occupants)).not.toContain(brigand);
+      const inconnu = erreurDe(explorer('fiche', { fiche: { porteur: 'personne' } }));
+      expect(erreurDe(explorer('fiche', { fiche: { porteur: brigand } }))).toEqual(inconnu);
+    } finally {
+      explorer('quitter');
+    }
   });
 
   it('chaque État du porteur, en puce, ouvre le Compendium sur lui', () => {
