@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { vehicles } from './index';
+import { findVehicleById, vehicles } from './index';
 import { vehicleCombatant } from '../engine/vehicle';
 import { shipHitLocation } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
@@ -25,6 +25,14 @@ describe('Navires MDG (ch.12) — profils en donnée', () => {
       expect(s.ship!.crew).toBeGreaterThan(0);
       expect(s.ship!.sail || s.ship!.oars).toBeTruthy(); // au moins un mode de propulsion
     }
+  });
+
+  // MDG 12 l.87, l.89
+  it.each([
+    ['barque-fluviale', { crew: 2, manoeuvre: 2 }],
+    ['barge', { crew: 4, manoeuvre: 0 }],
+  ] as const)('profil naval de %s', (id, profil) => {
+    expect(findVehicleById(id)?.ship).toMatchObject(profil);
   });
 
   it('gréement dérivé de la propulsion (avirons/voile/mixte)', () => {
