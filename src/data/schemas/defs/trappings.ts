@@ -63,10 +63,9 @@ const doc = document(
   {
     hands: z.union([z.literal(1), z.literal(2)]).optional(),
     packSize: z.number().optional(),
-    /** CATÉGORIE de catalogue — vocabulaire FERMÉ, mesuré sur 440/440 : melee 65, ranged 79,
-     *  ammunition 22, armor 17, trapping 257. ≠ `Weapon.type` du moteur (`src/engine/types.ts`,
-     *  `'melee' | 'distance'`, persisté) et ≠ `ItemInstance.kind` : le pont est `kindOf()`
-     *  (`src/engine/items.ts`), une TRADUCTION. `vehicle` n'a aucun porteur et n'est plus admis. */
+    /** CATÉGORIE de catalogue — vocabulaire FERMÉ de `trappingCategorieSchema`, obligatoire sur toute
+     *  entrée. ≠ `Weapon.type` du moteur (`src/engine/types.ts`, `'melee' | 'distance'`, persisté) et
+     *  ≠ `ItemInstance.kind` : le pont est `kindOf()` (`src/engine/items.ts`), une TRADUCTION. */
     categorie: trappingCategorieSchema,
     subType: ref('weaponGroup').nullable(),
     weaponGroup: ref('weaponGroup').optional(),

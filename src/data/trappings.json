@@ -2517,42 +2517,6 @@
     }
   },
   {
-    "id": "balle-de-plomb",
-    "type": "trappings",
-    "label": "Balle de plomb",
-    "packSize": 12,
-    "categorie": "ammunition",
-    "subType": {
-      "id": "fronde"
-    },
-    "enc": 0,
-    "availability": "commune",
-    "reach": null,
-    "ammoRangeMod": {
-      "add": -10
-    },
-    "loc": null,
-    "pa": null,
-    "damage": {
-      "plusBF": false,
-      "flat": 1
-    },
-    "qualities": [
-      {
-        "id": "assommante"
-      }
-    ],
-    "price": {
-      "gold": 0,
-      "silver": 0,
-      "brass": 4
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 296
-    }
-  },
-  {
     "id": "projectile-de-pierre",
     "type": "trappings",
     "label": "Projectile de pierre",
@@ -12544,7 +12508,7 @@
         "id": "inoffensive"
       }
     ],
-    "desc": "Les bâtons pointus peuvent être utilisés comme munitions par un archer à court de munitions spéciales. Un Personnage qui se trouve dans un lieu boisé peut se procurer un bâton pointu droit en réussissant un Test étendu de Survie en extérieur Intermédiaire (+0) qui nécessite un total de 10 DR. Cependant, méfiance, car comme elles n'ont pas été taillées par un fabricant de flèches professionnel, les flèches improvisées ont tendance à provoquer des Maladresses.",
+    "desc": "Les bâtons pointus et les cailloux peuvent être utilisés comme munitions par un archer ou un tireur à la fronde à court de munitions spéciales. Un Personnage qui se trouve dans un lieu approprié peut se procurer un caillou adapté à une fronde en réussissant un Test étendu de **Survie en extérieur Facile (+40)** ou un Test étendu de **Perception Intermédiaire (+0)** qui nécessite un total de 5 DR.\n\nUn Personnage qui se trouve dans un lieu boisé peut se procurer un bâton pointu droit en réussissant un Test étendu de **Survie en extérieur Intermédiaire (+0)** qui nécessite un total de 10 DR. Cependant, méfiance, car comme elles n'ont pas été taillées par un fabricant de flèches professionnel, les flèches improvisées ont tendance à provoquer des Maladresses.",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12552,7 +12516,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
+      "page": 98
     },
     "organicProjectile": true
   },
@@ -12580,7 +12544,7 @@
         "value": 1
       }
     ],
-    "desc": "La flèche barbelée inflige de vilaines blessures par entaille et cause des dommages supplémentaires si elle n'est pas retirée très précautionneusement.",
+    "desc": "Au fil des années, beaucoup de modèles de tête de flèche différents ont été conçus, mais les variantes les plus répandues sont la flèche barbelée, qui inflige de vilaines blessures par entaille et cause des dommages supplémentaires si elle n'est pas retirée très précautionneusement, et la flèche bodkin, qui est dotée d'une robuste pointe en pic pour perforer les armures.",
     "price": {
       "gold": 0,
       "silver": 8,
@@ -12588,7 +12552,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
+      "page": 98
     },
     "organicProjectile": true
   },
@@ -12615,7 +12579,7 @@
         "id": "perforante"
       }
     ],
-    "desc": "La flèche bodkin est dotée d'une robuste pointe en pic pour perforer les armures.",
+    "desc": "Au fil des années, beaucoup de modèles de tête de flèche différents ont été conçus, mais les variantes les plus répandues sont la flèche barbelée, qui inflige de vilaines blessures par entaille et cause des dommages supplémentaires si elle n'est pas retirée très précautionneusement, et la flèche bodkin, qui est dotée d'une robuste pointe en pic pour perforer les armures.",
     "price": {
       "gold": 0,
       "silver": 8,
@@ -12623,7 +12587,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
+      "page": 98
     },
     "organicProjectile": true
   },
@@ -12660,8 +12624,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
-    }
+      "page": 98
+    },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 296,
+        "quote": "Balle de plomb (12)"
+      }
+    ]
   },
   {
     "id": "caillou",
@@ -12691,7 +12662,7 @@
         "id": "inoffensive"
       }
     ],
-    "desc": "Les cailloux peuvent être utilisés comme munitions par un tireur à la fronde à court de munitions spéciales. Un Personnage qui se trouve dans un lieu approprié peut se procurer un caillou adapté à une fronde en réussissant un Test étendu de Survie en extérieur Facile (+40) ou un Test étendu de Perception Intermédiaire (+0) qui nécessite un total de 5 DR.",
+    "desc": "Les bâtons pointus et les cailloux peuvent être utilisés comme munitions par un archer ou un tireur à la fronde à court de munitions spéciales. Un Personnage qui se trouve dans un lieu approprié peut se procurer un caillou adapté à une fronde en réussissant un Test étendu de **Survie en extérieur Facile (+40)** ou un Test étendu de **Perception Intermédiaire (+0)** qui nécessite un total de 5 DR.",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12699,7 +12670,7 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 97
+      "page": 98
     }
   },
   {
@@ -13212,7 +13183,7 @@
         "id": "perforante"
       }
     ],
-    "desc": "Ces munitions sont techniquement de petits boulets de canon et sont chargées dans les armes à grand canon comme l'haquebute ou le mortier à main. Ceux qui tirent avec ces munitions ou se tiennent à 2 mètres ou moins de l'utilisateur doivent réussir un Test de Résistance Intermédiaire (+0) sous peine de recevoir un État Assourdi.",
+    "desc": "Ces munitions sont techniquement de petits boulets de canon et sont chargées dans les armes à grand canon comme l'haquebute ou le mortier à main. Ceux qui tirent avec ces munitions ou se tiennent à 2 mètres ou moins de l'utilisateur doivent réussir un Test de **Résistance Intermédiaire (+0)** sous peine de recevoir un État *Assourdi*.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -13220,8 +13191,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 103
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Balle de gros calibre et poudre (12)"
+      }
+    ]
   },
   {
     "id": "bombe-explosive",
@@ -13252,7 +13230,20 @@
         "id": "percutante"
       }
     ],
-    "desc": "Ces munitions sont souvent lancées à la main. Beaucoup de gens ont tenté de projeter des engins explosifs remplis de poudre noire, de poix ou de goudron plus loin que la distance atteignable simplement à la main. Ces engins peuvent être chargés dans un mortier à main et ainsi lancés très loin.\n\nMais ces munitions ne peuvent pas être chargées très à l'avance car leur mèche doit être allumée avant de les introduire dans le mortier à main. Quand vous chargez la bombe explosive ou la bombe incendiaire, vous devez décider combien de Rounds dure la mèche que vous avez utilisée pour la munition.\n\nAvec une mèche de la durée d'un Round, elle explose à la fin du Round actuel, avec une mèche de la durée de deux Rounds, elle explose à la fin du Round suivant. La munition explose au moment déterminé que vous ayez ou non tiré avec l'arme. Vous devez le garder en tête car le MJ n'est pas obligé de vous le rappeler avant que l'instant fatidique n'arrive.",
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 4,
+          "sum": "c53d8dd5f5adcb70"
+        }
+      ]
+    },
     "price": {
       "gold": 3,
       "silver": 0,
@@ -13260,8 +13251,69 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 103
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Bombe explosive"
+      }
+    ]
+  },
+  {
+    "id": "bombe-incendiaire-munition",
+    "type": "trappings",
+    "label": "Bombe incendiaire (munition)",
+    "categorie": "ammunition",
+    "subType": {
+      "id": "poudre-noire-et-ingenierie"
+    },
+    "enc": 0,
+    "availability": "limitee",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [
+      {
+        "id": "dangereuse"
+      },
+      {
+        "id": "a-explosion",
+        "value": 4
+      }
+    ],
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-munitions-a-poudre-noire",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 4,
+          "sum": "c53d8dd5f5adcb70"
+        }
+      ]
+    },
+    "price": {
+      "gold": 1,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 103
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Bombe incendiaire"
+      }
+    ]
   },
   {
     "id": "cartouche-en-papier",
@@ -13297,8 +13349,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Cartouche en papier (12)"
+      }
+    ]
   },
   {
     "id": "cartouche-et-poudre-de-precision",
@@ -13336,8 +13395,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Cartouche et poudre de précision"
+      }
+    ]
   },
   {
     "id": "ferraille-et-poudre",
@@ -13368,7 +13434,7 @@
         "majoration": 3
       }
     ],
-    "desc": "« Ferraille » est un terme général pour désigner les vieux clous de toiture, les morceaux de fer à cheval rouillés, les têtes de flèche et les autres bouts de matériau tranchants et pointus récupérés dans les tas de rouille ou de rebuts accessibles. Les attaques portées en utilisant ces munitions bénéficient du Trait de créature Infecté.",
+    "desc": "« Ferraille » est un terme général pour désigner les vieux clous de toiture, les morceaux de fer à cheval rouillés, les têtes de flèche et les autres bouts de matériau tranchants et pointus récupérés dans les tas de rouille ou de rebuts accessibles. Les attaques portées en utilisant ces munitions bénéficient du Trait de créature Infecté (voir page 340 de **WFJDR**).",
     "price": {
       "gold": 0,
       "silver": 2,
@@ -13376,8 +13442,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Ferraille et poudre"
+      }
+    ]
   },
   {
     "id": "grappin-munition",
@@ -13408,7 +13481,7 @@
         "majoration": 2
       }
     ],
-    "desc": "Recommandé à la Marine impériale pour son utilisation lors des actions d'abordage ou pour déchirer le gréement de l'ennemi, un grappin est composé d'un crochet entouré de beaucoup de rembourrage conçu pour être tiré par un mortier à main uniquement, avec environ 20 mètres de corde. Il peut être employé pour fixer une corde à un point éloigné ou pour piéger un ennemi en train de s'échapper, auquel cas il inflige un État Empêtré si le coup touche.\n\nSi vous envisagez d'avoir recours à un grappin pour vous faufiler discrètement quelque part, n'oubliez pas que le tir fait énormément de bruit.",
+    "desc": "Recommandé à la Marine impériale pour son utilisation lors des actions d'abordage ou pour déchirer le gréement de l'ennemi, un grappin est composé d'un crochet entouré de beaucoup de rembourrage conçu pour être tiré par un mortier à main uniquement, avec environ 20 mètres de corde. Il peut être employé pour fixer une corde à un point éloigné ou pour piéger un ennemi en train de s'échapper, auquel cas il inflige un État *Empêtré* si le coup touche.\n\nSi vous envisagez d'avoir recours à un grappin pour vous faufiler discrètement quelque part, n'oubliez pas que le tir fait énormément de bruit.",
     "price": {
       "gold": 2,
       "silver": 0,
@@ -13416,8 +13489,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Grappin"
+      }
+    ]
   },
   {
     "id": "poudre-impregnee-d-aqshy",
@@ -13451,7 +13531,7 @@
         "id": "poudre-impregnee-d-aqshy"
       }
     ],
-    "desc": "Destinée aux aventuriers très braves ou très stupides, cette poudre est fabriquée à partir de sable du désert de Néhékhara, imprégné d'une quantité supplémentaire d'Aqshy par des moyens connus uniquement du Collège Flamboyant d'Altdorf. Elle a davantage de puissance explosive que la poudre normale, mais use les canons bien plus rapidement que la poudre ordinaire. Tout Test raté incluant un 8 ou un 9 sur le dé des dizaines ou celui des unités est considéré comme une Maladresse quand vous utilisez cette poudre.",
+    "desc": "Destinée aux aventuriers très braves ou très stupides, cette poudre est fabriquée à partir de sable du désert de Néhékhara, imprégné d'une quantité supplémentaire d'*Aqshy* par des moyens connus uniquement du Collège Flamboyant d'Altdorf. Elle a davantage de puissance explosive que la poudre normale, mais use les canons bien plus rapidement que la poudre ordinaire. Tout Test raté incluant un 8 ou un 9 sur le dé des dizaines ou celui des unités est considéré comme une Maladresse quand vous utilisez cette poudre.",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -13459,8 +13539,15 @@
     },
     "source": {
       "book": "aux-armes",
-      "page": 102
-    }
+      "page": 104
+    },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 102,
+        "quote": "Poudre imprégnée d'Aqshy (12)"
+      }
+    ]
   },
   {
     "id": "jezail-a-malepierre",
