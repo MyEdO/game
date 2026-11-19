@@ -17,7 +17,7 @@ son armature. `--preset` colore chaque surface à l'emplacement de palette que l
 la race du preset de personnage (`src/data/raceAppearance.json`) puis le preset (`src/data/presets-de-personnage.json`)
 y posent au nuancier (`src/data/materials.json`) ; chaque surface d'un élément qui déclare une `matiere` s'habille comme
 le jeu l'habille, de sa texture du catalogue `CATALOGUE` (`habiller_le_modele`, aux UV du mesh, #4313), teinte de cette
-couleur ; `--clip`
+couleur, et du relief de sa matière (#4527) ; `--clip`
 pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
 directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
 `--cadre x,y,z,étendue` (mètres, repère de `bounds` du rapport, Z haut) vise ce centre et cadre cette étendue dans les vues
@@ -264,10 +264,10 @@ def colorer(objets, surfaces, palette):
 def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
     """La surface du manifeste comme le jeu l'habille (`MontageDeComposition.peindre`) : la texture de sa `matiere` du
     catalogue si le catalogue la porte, sa texture neutre (`<matiere>.neutre.jpg`) si `couleur` est donnée et que le
-    catalogue la porte, teinte de `couleur` (linéaire) ; lue aux UV `couche` si `par_uv` et que la surface n'est pas
-    `blason`, projetée sinon dans le repère de l'objet (Box, fondu 0.2) ; un motif tous les `METRES_PAR_MOTIF` ; sans
-    texture, la couleur de son matériau ; l'emblème `emblem` en couche de détail (UV `couche`) si `blason` et qu'il est
-    donné."""
+    catalogue la porte, teinte de `couleur` (linéaire), et son relief (`<matiere>.normale.jpg`) s'il y est
+    (`VolumeDeScene.texturer`) ; lus aux UV `couche` si `par_uv` et que la surface n'est pas `blason`, projetés sinon
+    dans le repère de l'objet (Box, fondu 0.2) ; un motif tous les `METRES_PAR_MOTIF` ; sans texture, la couleur de son
+    matériau ; l'emblème `emblem` en couche de détail (UV `couche`) si `blason` et qu'il est donné."""
     nt = mat.node_tree
     bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
     base = bsdf.inputs["Base Color"]
@@ -293,6 +293,19 @@ def habiller(bpy, mat, surface, couche, emblem, par_uv, couleur):
         tex.image = bpy.data.images.load(str(image.resolve(strict=True)), check_existing=True)
         nt.links.new(echelle.outputs["Vector"], tex.inputs["Vector"])
         sortie = tex.outputs["Color"]
+        relief = CATALOGUE / f"{matiere}.normale.jpg"
+        if relief.exists():
+            carte = nt.nodes.new("ShaderNodeTexImage")
+            carte.projection, carte.projection_blend = tex.projection, tex.projection_blend
+            carte.image = bpy.data.images.load(str(relief.resolve(strict=True)), check_existing=True)
+            carte.image.colorspace_settings.name = "Non-Color"
+            nt.links.new(echelle.outputs["Vector"], carte.inputs["Vector"])
+            normale = nt.nodes.new("ShaderNodeNormalMap")
+            normale.uv_map = couche
+            nt.links.new(carte.outputs["Color"], normale.inputs["Color"])
+            for lien in list(bsdf.inputs["Normal"].links):
+                nt.links.remove(lien)
+            nt.links.new(normale.outputs["Normal"], bsdf.inputs["Normal"])
         if couleur is not None:
             teinte = nt.nodes.new("ShaderNodeMix")
             teinte.data_type, teinte.blend_type = "RGBA", "MULTIPLY"
