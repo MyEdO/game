@@ -10,7 +10,14 @@
  */
 import type { FabriqueDId } from './fabriqueDId';
 import type { Combatant, ItemInstance, MentionDuPorteur } from './types';
-import { buildInventory, contexteDeNaissanceDObjet, itemFromTrappingById, objetDuTrapping, type ContexteDeNaissanceDObjet, type TrappingResolver } from './items';
+import {
+  buildInventory,
+  contexteDeNaissanceDObjet,
+  itemFromTrappingById,
+  objetDuTrapping,
+  type ContexteDeNaissanceDObjet,
+  type TrappingResolver,
+} from './items';
 import { add, fromBrass, toBrass, type Money } from './money';
 import { compteDeLaDotation, sommeTiree } from './possessionGrants';
 import { rollDice, type RNG } from './dice';
