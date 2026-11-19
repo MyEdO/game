@@ -159,17 +159,34 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     const patient = hero({
       id: 'pa', label: 'Patient', conditions: [{ id: 'hemorragique', value: 1 }] as never,
       skills: [{ id: 'resistance', advances: 10, characteristic: 'endurance' }] as never,
+      activeEffects: [
+        { label: 'Effet d’Endurance', bonus: 0, duration: { scale: 'permanent' }, testModChar: 'endurance', testMod: 3 },
+        { label: 'Effet contre l’infection', bonus: 0, duration: { scale: 'permanent' }, diseaseTestMod: { diseases: ['infection-mineure'], amount: 7 } },
+      ],
     });
     banc.setState({ party: [patient], battle: null, pendingCascade: null } as never);
-    const resVal = effectiveChar(patient, 'endurance') + 10; // `combatEndResistVal` : E effective + avances
+    const resVal = effectiveChar(patient, 'endurance') + 10;
     const diff: Difficulty = 'difficile';
 
     openContractionCascade(get, set, patient, 'infection-mineure', diff, 'Infection');
     // #1117 L4 : bande d'UN porteur — l'arithmétique du jet vit sur la RANGÉE.
     const row = get().pendingCascade!.participants[0].participants![0];
     expect(row.base).toBe(resVal);
-    expect(row.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[diff] - 10).target);
+    expect(row.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[diff] - 10 + 3 + 7).target);
+    expect(row.mods?.map(({ label, value }) => [label, value])).toEqual([
+      ['Hémorragique', -10], ['Effet d’Endurance', 3], ['Effet contre l’infection', 7],
+    ]);
     expect(inexplique(row), 'aucune chip « autres »').toBe(0);
+  });
+
+  it.each(['courante-galopante', 'flux-sanglant'])('Contraction de %s : Endurance Facile (LDB 20 l.41, l.64)', (disease) => {
+    const patient = hero({ skills: [{ id: 'resistance', advances: 17, characteristic: 'endurance' }] as never });
+    banc.setState({ party: [patient], battle: null, pendingCascade: null });
+
+    openContractionCascade(get, set, patient, disease, 'facile', 'Contraction');
+
+    const [row] = get().pendingCascade!.participants[0].participants!;
+    expect(row).toMatchObject({ base: 40, target: 80, label: 'Endurance', menace: 'maladie' });
   });
 
   it('Cascade de fin de combat : Contraction ET Corruption portent la pénalité de COMBAT en chips NOMMÉES', () => {
@@ -186,11 +203,13 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     const penalite = combatTestPenalty(survivant);
     expect(penalite, 'l’État doit peser sur les Tests de COMBAT — sinon la fixture ne prouve rien').toBeLessThan(0);
 
-    const maladie = steps.find((s) => s.kind === 'maladieDeFinDeCombat')?.participants?.find((r) => r.id === 'sv');
-    if (maladie) {
-      const resVal = effectiveChar(survivant, 'endurance') + 10;
-      expect(maladie.base).toBe(resVal);
-      expect(maladie.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[maladie.difficulty!] + penalite).target);
+    const maladies = steps.filter((s) => s.kind === 'maladieDeFinDeCombat').map((s) => s.participants![0]);
+    expect(maladies).toMatchObject([
+      { id: 'sv', base: 50, label: 'Résistance', menace: 'maladie' },
+      { id: 'sv', base: 40, label: 'Endurance', menace: 'maladie' },
+    ]);
+    for (const maladie of maladies) {
+      expect(maladie.target).toBe(clampTarget(maladie.base! + DIFFICULTY_MODIFIERS[maladie.difficulty!] + penalite).target);
       expect(inexplique(maladie), 'la pénalité de combat est NOMMÉE, pas « autres »').toBe(0);
     }
     const corruption = steps.find((s) => s.kind === 'corruptionDeFinDeCombat')?.participants?.find((r) => r.id === 'sv');
@@ -203,7 +222,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     // La fixture porte les DEUX entrées de Contraction (Blessure critique + exposition) : deux bandes.
     expect(steps.map((s) => s.kind), 'les DEUX familles de bande doivent être produites')
       .toEqual(['maladieDeFinDeCombat', 'maladieDeFinDeCombat', 'corruptionDeFinDeCombat']);
-    expect([maladie, corruption].map((r) => r?.id)).toEqual(['sv', 'sv']);
+    expect(corruption?.id).toBe('sv');
   });
 });
 

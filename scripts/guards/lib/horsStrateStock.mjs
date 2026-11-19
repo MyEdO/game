@@ -279,7 +279,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#talents', ref: '[].test', occurrence: 1 },
   { fichier: 'src/data#talents', ref: '[].test.matches[]', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].combined', occurrence: 1 },
-  { fichier: 'src/data#tavernGames', ref: '[].combined.second', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].fastSkill', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].options[]', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].phases', occurrence: 1 },

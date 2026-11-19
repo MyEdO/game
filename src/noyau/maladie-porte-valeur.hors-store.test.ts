@@ -20,7 +20,7 @@
  * composantes NOMMÉES, États compris (`LDB 16 l.125` : « une pénalité de -10 à tous les Tests »). Les
  * écarts que les tests ci-dessous mesurent sont donc mesurés, jamais recopiés (#1685).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene } from './monde/scene';
 import { battleRng } from './battleRng';
@@ -31,6 +31,7 @@ import { addCondition, stacks, syncDerivedConditions } from '../engine/condition
 import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant } from '../engine/types';
 import { creditBourse } from './bourseFlow';
+import { sleepParty } from './restFlow';
 import type { CascadeRoll, CascadeStep } from './pendings';
 import { fixtureText } from '../i18n/fixtureText';
 import { desDuTest } from '../engine/dice.testkit';
@@ -171,6 +172,34 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     const h = banc.getState().party[0];
     expect(target, 'la cible rendue est celle que la porte a montée')
       .toBe(clampTarget(testValue(h, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire).target);
+  });
+
+  it.each([
+    { jet: 85, contamination: false },
+    { jet: 90, contamination: true },
+  ])('contagion de la nuit d’office : dé $jet contre Endurance 40 + Difficulté 40 + effet 7', ({ jet, contamination }) => {
+    const rng = battleRng();
+    const courante = contractDisease('courante-galopante', rng, { incubation: 0, duration: 3 })!;
+    courante.symptoms.push({ symptomId: 'touxEternuements' });
+    const malade = hero({ id: 'h2', label: 'Hans', diseases: [courante] });
+    const expose = hero({
+      activeEffects: [{
+        label: 'Effet contre la maladie', bonus: 0, duration: { scale: 'permanent' },
+        diseaseTestMod: { diseases: [courante.id], amount: 7 },
+      }],
+    });
+    banc.setState({ party: [expose, malade] });
+    const int = rng.int.bind(rng);
+    const de = vi.spyOn(rng, 'int').mockImplementation((min, max) => min === 1 && max === 100 ? jet : int(min, max));
+
+    try {
+      sleepParty(banc.getState, banc.setState, 1, { fedDaily: true });
+    } finally {
+      de.mockRestore();
+    }
+
+    const apres = banc.getState().party.find((h) => h.id === expose.id)!;
+    expect(apres.diseases?.map((d) => d.id) ?? []).toEqual(contamination ? [courante.id] : []);
   });
 
   it('sommeil MULTI-JOURS sous un slot DÉJÀ vivant : chaque nuit se déroule — le pilote n’est interrompu que par un slot qu’IL a écrit', () => {
