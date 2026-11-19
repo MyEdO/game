@@ -7,11 +7,8 @@
  * consommateur ne rebâtit de cases pour répondre à cette question, et un décor de plus d'une case
  * répond donc sur TOUTES les siennes, pas seulement sur celle de son ancre.
  *
- * DEUX VUES, UNE construction. La Ligne de Vue interroge SANS étage — `tileBlocksSight(scene, x, y)`
- * n'en reçoit pas : elle lit la case, pas la couche (ÉCART CONNU, #1513). Le PICKING (jeu comme
- * éditeur) interroge À l'étage affiché, celui sur lequel l'écran résout. Un second index bâti à côté
- * re-balaierait les mêmes empreintes ; la seconde vue est donc un second `Map` rempli dans la MÊME
- * passe.
+ * DEUX VUES, UNE construction. Le couvert de tir lit les décors de la colonne ; le picking
+ * interroge à l'étage affiché. Les deux index sont remplis dans la même passe d'empreintes.
  *
  * PLUSIEURS DÉCORS sur une même case (un coffre calé contre le mur et un tonneau dans le coin, une lettre sur la table) :
  * chaque vue les rend TOUS, dans l'ordre du document ; c'est au lecteur de dire lequel compte (l'opacité de l'un
