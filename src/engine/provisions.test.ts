@@ -16,7 +16,10 @@ import {
   isDeprived,
   thirstCharPenalties,
   provisioningManifest,
+  feedFromMeal,
+  mangerLaCale,
 } from './provisions';
+import type { Id } from '../data/schemas/grammaire/ref';
 import { lotsDeCale } from './caleDeTest.testkit';
 import { rule } from './policy';
 import { effectiveChar } from './characteristics';
@@ -360,5 +363,56 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
     expect(isThirsty(c)).toBe(true);
     expect(isDeprived(c)).toBe(true);
     expect(needsRecoveryRoll(blessuresSurLeProfil({ ...c, wounds: blessuresDeBase(12, 5) }) as typeof c)).toBe(false);
+  });
+});
+
+/** Régime de bord : manger l'écrit, pour le PJ (`dailyFoodUpkeep`) comme pour l'équipage (`mangerLaCale`). MDG 14 l.230-232 ; #4243 */
+describe('régime de bord — écrit en mangeant (MDG 14 l.230-232)', () => {
+  const SOUPE = 'ration-soupe-chou-fermente' as Id<'trapping'>, FRAIS = 'nourriture-courses-journee' as Id<'trapping'>;
+  const BISCUITS = 'ration-biscuits-de-mer' as Id<'trapping'>;
+  const soupe = (uid: string): ItemInstance => ({ ...itemFromTrappingById(SOUPE, idsDeTest)!, uid });
+
+  it('une ration ordinaire : un jour de plus sans frais ; une ration de soupe : et un jour de soupe', () => {
+    const c = hero({ rations: 1 });
+    c.items = [...c.items!, soupe('s1')];
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 1, joursDeSoupe: 0 });
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 2, joursDeSoupe: 1 });
+  });
+
+  it('porter de la soupe sans la manger ne compte pas : seul le vivre mangé fait le jour', () => {
+    const c = hero({ rations: 1 });
+    c.items = [...c.items!, soupe('s1')];
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    expect(c.items!.map((it) => it.trappingId)).toEqual([SOUPE]);
+    expect(c.regimeDeBord!.joursDeSoupe).toBe(0);
+  });
+
+  it('un repas pris (auberge) est un vivre frais : le mois repart à zéro, soupe comprise', () => {
+    const c = hero({ rations: 0 });
+    c.regimeDeBord = { joursSansVivreFrais: 12, joursDeSoupe: 7 };
+    feedFromMeal(c);
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 0, joursDeSoupe: 0 });
+  });
+
+  it('Brouet (LDB 10 l.139) : le jour couvert par la demi-ration est fait du même vivre, jamais du frais', () => {
+    const c = hero({ rations: 0, brouet: true });
+    c.items = [soupe('s1')];
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    dailyFoodUpkeep(c, 30, 3, makeRNG(1));
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 2, joursDeSoupe: 2 });
+  });
+
+  it('un jour sans manger : un jour de plus sans frais', () => {
+    const c = hero({ rations: 0 });
+    dailyFoodUpkeep(c, 30, 3, fixed(1));
+    expect(c.regimeDeBord).toEqual({ joursSansVivreFrais: 1, joursDeSoupe: 0 });
+  });
+
+  it('mangerLaCale rend le repas de chaque jour : le vivre qui a nourri seul toutes les bouches, absent si mêlé ou à court', () => {
+    const cale = lotsDeCale({ [FRAIS]: 4, [SOUPE]: 5, [BISCUITS]: 2 }, 0);
+    expect(mangerLaCale(cale, 3, 4, 0).repas).toEqual([FRAIS, undefined, SOUPE, undefined]);
   });
 });

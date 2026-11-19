@@ -11,7 +11,7 @@ const badges = (id: string) => (fiche(id).sections ?? []).flatMap((s) => s.rows 
 describe('Codex — une portion se lit au dé de sa colonne (MDG 09 l.9)', () => {
   it('les bandes de « cotiers-humain » portent le dé de la colonne « humain », surcharge comprise', () => {
     const imprimes = [...carrieresAleatoires];
-    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === 'humain' && d.kind === 'colonne' ? { ...d, die: '2d50' } : d)));
+    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === 'humain' && d.kind === 'colonne' ? { ...d, die: { n: 2, sides: 50 } } : d)));
     try {
       const vues = badges('cotiers-humain');
       expect(vues.length, 'la portion a des rangées').toBeGreaterThan(0);

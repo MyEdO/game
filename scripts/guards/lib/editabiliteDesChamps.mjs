@@ -100,6 +100,7 @@ import * as ts from 'typescript/unstable/ast';
 import { repoProgram, libererSessions } from './tsProgram.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { dossierDe, porteeDeGarde } from './couches.mjs';
+import { auChemin } from '../../../src/lib/objet.mjs';
 
 /** `rel` (relatif à la racine, séparateurs quelconques) est-il sous le dossier `dossier` ? */
 const sous = (dossier) => (rel) => norm(rel).startsWith(`${dossier}/`);
@@ -498,9 +499,6 @@ function idsDuChemin(checker, cles, typeRacine, doc, chemin) {
 /** La marque d'un crédit par aller-retour dans la colonne `authors`. */
 export const ALLER_RETOUR = 'editer (aller-retour)';
 
-/** La valeur du document `doc` au chemin `chemin`. */
-const lireAuChemin = (doc, chemin) => chemin.reduce((v, pas) => (v === null || v === undefined ? undefined : v[pas]), doc);
-
 /** Les chemins qu'écrit la valeur `valeur` posée au chemin `chemin`, chacun avec sa valeur : le sien, et, d'un objet ou
  *  d'une liste, celui de chaque clé ou rang qu'elle porte, de proche en proche. */
 const cheminsPoses = (chemin, valeur) =>
@@ -517,7 +515,7 @@ const cheminsEcrits = ({ avant, apres, chemin, valeur, variante }) =>
   cheminsPoses(chemin, valeur)
     .filter(([c, v]) =>
       v !== null && typeof v === 'object'
-        ? !isDeepStrictEqual(lireAuChemin(avant, c), lireAuChemin(apres, c))
+        ? !isDeepStrictEqual(auChemin(avant, c), auChemin(apres, c))
         : variante === undefined ? c.length === chemin.length : c.length - chemin.length <= 1 && c[c.length - 1] === variante)
     .map(([c]) => c);
 
@@ -543,7 +541,15 @@ const cheminsCredites = (e) => [...cheminsEcrits(e), ...(e.variante === undefine
 /** Une écriture jouée crédite-t-elle son dernier pas ? Le document a changé à son chemin, la valeur relue est la valeur
  *  jouée, et la saisie n'est pas du JSON (`saisieJson`). */
 const ecritureCreditee = ({ avant, apres, chemin, valeur, saisie }) =>
-  saisie !== 'saisieJson' && valeur !== undefined && isDeepStrictEqual(lireAuChemin(apres, chemin), valeur) && !isDeepStrictEqual(lireAuChemin(avant, chemin), lireAuChemin(apres, chemin));
+  saisie !== 'saisieJson' && valeur !== undefined && isDeepStrictEqual(auChemin(apres, chemin), valeur) && !isDeepStrictEqual(auChemin(avant, chemin), auChemin(apres, chemin));
+
+/** Les chemins que créditent les écritures jouées `ecrituresJouees`, chacun avec le document d'après où il se lit :
+ *  ceux de chaque écriture créditée (`ecritureCreditee`, `cheminsCredites`), sur le document de tout porteur.
+ * @param {{ avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string, variante?: string }[]} ecrituresJouees
+ * @returns {{ apres: unknown, chemin: (string | number)[] }[]}
+ */
+export const cheminsCreditesJoues = (ecrituresJouees) =>
+  ecrituresJouees.filter(ecritureCreditee).flatMap((e) => cheminsCredites(e).map((chemin) => ({ apres: e.apres, chemin })));
 
 /** Noms écrits par une propriété de littéral d'objet. Une clé CALCULÉE (`{ [k]: v }` piloté par un
  *  tuple `as const` — l'idiome des rangées de cases à cocher de l'inspecteur) rend les littéraux de
@@ -879,7 +885,7 @@ function auteurReachableScopes(checker, program, root) {
  * Audite le dépôt : pour chaque champ du document de la `racine` (`RACINES`), qui l'écrit et par quel chemin. Une écriture jouée par
  * l'éditeur (`ecrituresJouees`, un aller-retour qui joue `editer` : le document avant et après, le chemin écrit depuis
  * la racine du document, la valeur jouée et sa saisie) crédite, quand `ecritureCreditee`, le dernier pas de chacun des chemins qu'elle
- * crédite (`cheminsCredites`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
+ * crédite (`cheminsCreditesJoues`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
  * @param {string} root racine du dépôt
  * @param {import('./tsProgram.mjs').SessionProgramme} [program] programme déjà construit — absent, bâti pour CET appel
  * @param {{ racine: { fichierSchema: string, schema: string, fichierType: string, type: string }, ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string, variante?: string }[] }} options
@@ -935,8 +941,8 @@ export function auditerLEditabilite(root, program, { racine, ecrituresJouees = [
     }
   }
   const typeRacine = typeDeRacine(program, root, racine);
-  for (const e of ecrituresJouees.filter(ecritureCreditee))
-    for (const id of cheminsCredites(e).flatMap((chemin) => [...idsDuChemin(checker, cles, typeRacine, e.apres, chemin)])) {
+  for (const { apres, chemin } of cheminsCreditesJoues(ecrituresJouees))
+    for (const id of idsDuChemin(checker, cles, typeRacine, apres, chemin)) {
       const row = rows.get(id);
       if (row && !row.authors.includes(ALLER_RETOUR)) row.authors.push(ALLER_RETOUR);
     }

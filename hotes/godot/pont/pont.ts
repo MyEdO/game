@@ -1358,14 +1358,18 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * @returns `{ aretes }` : les arêtes de toutes les couches de la scène en cours hors des ponts de ses navires, que
      * la marche garde et que le modèle du navire montre (`aretesDeLaScene`, `src/noyau/monde/aretes.ts`), vides sans
      * scène ; à rappeler quand `plateau.cleDesAretes` change. Chacune (`areteDessinee`) : `{ cle, cases, milieu, sens,
-     * pied, piece, famille, hauteurM, bloc }`, sa clé `edgeKey`, les cases `{ x, y, z }` qu'elle sépare, dans la carte, à
-     * sa couche (`casesDeFace`, une ou deux : celle dont elle borde un côté, puis sa voisine), son milieu et le sens où
-     * elle court, en coins de grille (`wallEnds`) ; la hauteur en mètres d'où elle se dresse, celle de la plus basse des
-     * deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou
-     * ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou clos, sinon un mur ; la famille du
+     * pied, piece, famille, palette, hauteurM, bloc }`, sa clé `edgeKey`, les cases `{ x, y, z }` qu'elle sépare, dans
+     * la carte, à sa couche (`casesDeFace`, une ou deux : celle dont elle borde un côté, puis sa voisine), son milieu
+     * et le sens où elle court, en coins de grille (`wallEnds`), son dehors (`outwardSide`,
+     * `src/noyau/monde/volume/ornements.ts`), s'il en a un, à `(-sens.y, sens.x)` ; la hauteur en mètres d'où elle se
+     * dresse, celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa
+     * pièce : une porte en jeu fermée ou ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou
+     * clos, sinon un mur ; la famille du
      * kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée
      * qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null` pour une
-     * apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage ; son bloc
+     * apparence hors du catalogue ; par emplacement de palette, la couleur `#rrggbb` de sa partie de mur dans cette
+     * apparence (`paletteDeLApparence`, `src/noyau/monde/aretes.ts`), `{}` hors du catalogue ; la hauteur de son mur en
+     * mètres, `wallHeightM` sinon un étage ; son bloc
      * `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`, `src/noyau/monde/volume/volume.ts`)
      */
     aretes(json): { aretes: AreteDessinee[] } {
@@ -1548,7 +1552,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * listage (`GET modeles/listage.json`, section « Atelier 3D »)
      *
      * @returns `{ bases, fichiers, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
-     * ameliorations }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme état du pont, que
+     * ameliorations, decors, aretes }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme
+     * état du pont, que
      * lisent `composer` et le corps de chaque combattant de la vue (section « Corps d'un combattant ») ; avant ou après
      * `demarrer`
      */
@@ -1950,7 +1955,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         let geste;
         if ('type' in e) {
           geste = gesteDuCompendium(z, s, e);
-          valider(geste, 'compendium : un formulaire des zones compendium.*, { type: recherche | identifier | enTete, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
+          valider(geste, 'compendium : un formulaire des zones compendium.*, { type: recherche | identifier, args: [texte] }, { type: identifier, args: [chemin, texte] }, { type: enTete, args: [nombre, faces] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
         } else if (estLIssueDUneTransaction(e.compendium)) {
           valider(transactionDemandee(s), 'compendium : aucun enregistrement ni suppression en cours');
           if (!e.compendium.reussi) reprise?.();

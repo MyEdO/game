@@ -32,7 +32,7 @@ import type { NarratifBlock } from './narratif';
 import type { sitesDeLaPortee } from '../grammaire/collection-cle';
 import { noeudsDeCondition, sitesDeLaCarte, sitesDeLaScene, sitesDuNarratifDuPaquet, type SitesDuPaquet } from './sites-de-paquet';
 import { FORMES_D_ETAT, LIBELLE_D_USAGE, type FormeDEtatKind, type UsageDEtat } from './formes-d-etat';
-import { estObjet } from '../../../lib/objet.mjs';
+import { auChemin, estObjet } from '../../../lib/objet.mjs';
 
 type Chemin = readonly (string | number)[];
 
@@ -258,7 +258,7 @@ export function referencesA(projet: ProjetAReferences, cible: CibleNarrative, lo
 /** Écrit `nouveau` au site local de chemin `chemin` (relatif à `racine`) : remplace la valeur, ou renomme la clé de record
  *  (`parCle`) en gardant sa valeur et l'ordre des clés. */
 function ecritAuChemin(racine: unknown, chemin: Chemin, parCle: boolean, nouveau: string): void {
-  const porteur = chemin.slice(0, -1).reduce<unknown>((o, pas) => (o as Record<string | number, unknown>)[pas], racine) as Record<string | number, unknown>;
+  const porteur = auChemin(racine, chemin.slice(0, -1)) as Record<string | number, unknown>;
   const cle = chemin[chemin.length - 1];
   if (!parCle) {
     porteur[cle] = nouveau;

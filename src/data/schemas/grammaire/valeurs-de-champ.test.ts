@@ -93,7 +93,7 @@ const NOMMES = [
   // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
   'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
-  'colombage|pierre|cloture',
+  'colombage|pierre|moellons|pierres-seches|cloture',
   'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
@@ -122,6 +122,8 @@ const NOMMES = [
   'vue|ouie',
   'action|free|charge',
   'base|avancee',
+  // `modificateur` (`reglesOptionnelles.ts`) : la lecture signée d'une règle chiffrée, bonus tel quel, malus en négatif.
+  'bonus|malus',
   'capacite-de-combat|capacite-de-tir',
   // `charKeySchema` (#3606) : les 10 Caractéristiques, nommées par `CHAR_LABELS`.
   'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
@@ -174,6 +176,8 @@ const NOMMES = [
   'lame1m|escrime|lourde2m|hampe|lance_cav|fleau|parade|poings|arc|arbalete|arme_feu|fronde|jet|entraves|explosif|cornes',
   // `depuisSchema` (`dispersion.ts`) : l'origine du décalage d'une rangée de Dispersion, LDB 14 l.142-151.
   'lanceur|cible',
+  // `statutSchema.tier` (#4056) : l'Échelon d'un Statut (`ECHELONS_DE_STATUT`), LDB 08 l.9.
+  'bronze|argent|or',
   // `issueDeReactionSchema` (`reaction-au-statut.ts`) : l'issue d'une rangée de Réaction au Statut, LDB 08 l.43-45.
   'braver-le-statut|reactions-classiques|opinions-extremes',
   // `teneurSchema` (#1825 lot E) : ce que contiennent les chapitres d'un livre non couverts par une
@@ -250,6 +254,8 @@ const NOMMES = [
   'medicalAid|surgery|magic',
   // `refDEtatSchema` (`grammaire/mecanique.ts`, #3606 M2a2) : les marqueurs narratifs, réserve de la référence d'État.
   'petrifie',
+  // `signalDuPortSchema` (#4357) : le signal d'un port, phare ou clocher (MDG 13 l.333-351).
+  'phare|clocher',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
   // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.
@@ -264,6 +270,12 @@ const NOMMES = [
   Object.keys(itemCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
   'personne|bete|vehicule|immeuble|titre|intangible',
+  // `topUpAdvantage.amount` (`grammaire/mecanique.ts`, `ouReserve`) : le gabarit d'instance `INDICE_TEMPLATE`
+  // (`engine/flowCore`), réservé à côté de la formule et nommé « valeur de l'indice ».
+  '$indice',
+  // `cleDeTableDuDomaineSchema` (`defs/domains.ts`) : la clé de rôle d'une table d'un Domaine (`tables`), visée par
+  // `domainTable` d'une rangée de miscast, VDM 02 l.238.
+  'arcaneMark',
 ].sort();
 
 /**
@@ -287,15 +299,12 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'armyMight',
   'arriere|cote|contraire',
   'auberge|maison|camp',
-  'aucune|legeres|abondantes|tres-abondantes',
   'aucun|retard|quart-de-tour|demi-tour',
   'bete|serviteur|vehicule',
   'bete|vehicule-terrestre',
   'blessures|hemorragie|traumatisme|chirurgie',
   'bout-portant|courte|moyenne|longue|extreme',
   'brasPrincipal|random',
-  'calme-plat|legere-brise|brise-fraiche|vent-modere|vent-violent|violente-tempete',
-  'caniculaire|chaude|mediane|froide|glaciale',
   'cargaison|greement|coque|avirons|equipements|gouvernail|superstructure',
   'chaleur|froid',
   'classe|relais|compagnie|peage|patrouille',
@@ -308,7 +317,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'declare|tirage',
   'deduite-du-set|geste-d-etat|grille|gouttiere-arche|selecteur-de-sets|coin-de-tour|bandeau-de-phase|interlude|pastille-etat|pastille-entite|frise|geste-secondaire',
   'defense|attaque|lesDeux',
-  'degage|brume|brouillard|puree-de-pois',
   'dominant|nord|sud|ouest|est',
   'douleur|mobilite|structurel|sensoriel|maladie|faim|magique|etat|ivresse|intrinseque',
   'dr|dr-ecrete|toute-la-reserve|points-de-la-ligne|points-de-la-ligne-suivante|chiffres-du-de|gain-au-choix|aucun-gain|termine-le-passage',

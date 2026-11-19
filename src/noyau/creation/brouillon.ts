@@ -22,7 +22,7 @@ import { fabriqueLocale, type FabriqueDId } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
-import { statutDeDonnee, type Status } from '../../engine/money';
+import type { Status } from '../../engine/money';
 import {
   rollSpecies,
   rollCareer,
@@ -265,10 +265,10 @@ export const draftLevel = (d: CreatorDraft): CareerLevelData | undefined =>
 export const hasSpecies = (d: CreatorDraft): boolean => !!d.speciesId && !!draftSpecies(d);
 /** Caractéristiques de carrière du Niveau 1 (clés `CharKey` stables) sur lesquelles se répartissent
  *  les 5 Augmentations gratuites de création (LDB 05 l.459). La donnée EST déjà en `CharKey`
- *  (« CT », « F »… ; cf. le champ characteristics de CareerLevelData) ; on filtre par sûreté. SOURCE UNIQUE
+ *  (« CT », « F »… ; cf. le champ characteristics de CareerLevelData). SOURCE UNIQUE
  *  partagée par la grille d'allocation et `validateStep` (plus de re-dérivation divergente). */
 export const careerCharKeys = (d: CreatorDraft): CharKey[] =>
-  (draftLevel(d)?.characteristics ?? []).filter((k): k is CharKey => CHAR_KEYS.includes(k as CharKey));
+  draftLevel(d)?.characteristics ?? [];
 
 // ── 1) Espèce ──
 export function rollDraftSpecies(d: CreatorDraft): CreatorDraft {
@@ -775,7 +775,7 @@ const STATUT_SANS_NIVEAU: Status = { tier: 'bronze', standing: 0 };
 /** Le Statut du Niveau choisi, ou `STATUT_SANS_NIVEAU`. */
 export function draftStatus(d: CreatorDraft): Status {
   const lvl = draftLevel(d);
-  return lvl ? statutDeDonnee(lvl.status) : STATUT_SANS_NIVEAU;
+  return lvl ? lvl.status : STATUT_SANS_NIVEAU;
 }
 /** La bourse — faces et montant d'UN tirage, PUR/déterministe (`d.seed`), jamais une relance (LDB 05 :
  *  un seul jet). La ceinture d'agentivité (`wealthRoll`, geste requis avant affichage) vit dans l'UI. */

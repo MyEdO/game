@@ -29,7 +29,7 @@ function ouvrirLeTest(spec: Parameters<typeof testFlow>[0], regle?: 'social-reac
 
 describe('Tables sociales — tirées au dé de leur table', () => {
   it('Capricieux : un seul tirage, au d4 posé sur la table, et la rangée de sa face', () => {
-    sousLeDe('tableauCapricieux', 'd4', () => {
+    sousLeDe('tableauCapricieux', { n: 1, sides: 4 }, () => {
       const { pt, int } = ouvrirLeTest({ skill: { id: 'charme' }, difficulty: 'intermediaire', vsCapricieux: true });
       expect(int.mock.calls).toEqual([[1, 4]]);
       expect(pt.capriciousRoll).toBe(4);
@@ -38,8 +38,8 @@ describe('Tables sociales — tirées au dé de leur table', () => {
   });
 
   it('Réaction au Statut : un seul tirage, au d2 posé sur la table, « Braver le Statut » annule le mod', () => {
-    sousLeDe('reactionAuStatut', 'd2', () => {
-      const { pt, int } = ouvrirLeTest({ skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: 'Or 1' }, 'social-reaction-au-statut');
+    sousLeDe('reactionAuStatut', { n: 1, sides: 2 }, () => {
+      const { pt, int } = ouvrirLeTest({ skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: { tier: 'or', standing: 1 } }, 'social-reaction-au-statut');
       expect(int.mock.calls).toEqual([[1, 2]]);
       expect(pt.psychMod ?? 0).toBe(0);
     });

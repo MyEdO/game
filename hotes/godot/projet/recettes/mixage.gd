@@ -22,12 +22,12 @@ const EXPLOSION := {id = "explosion", fichiers = ["explosion-1.ogg", "explosion-
 const INCANTATION := {id = "chant-d-incantation", fichiers = ["incantation-1.ogg", "incantation-2.ogg"], volume = 0.8, canal = "effets"}
 const PAS := {id = "pas", fichiers = ["pas-1.ogg", "pas-2.ogg", "pas-3.ogg"], volume = 0.4, canal = "effets"}
 const FLAMMES := {id = "sort-feu", fichiers = ["sort-feu-1.ogg", "sort-feu-2.ogg", "sort-feu-3.ogg"], volume = 0.85, canal = "effets"}
-const COUP := {quoi = "coup", de = "a", vers = "b", issue = "touche", couleur = "#ffa040", depart = null, trajet = null,
+const COUP := {quoi = Noyau.Effet.COUP, de = "a", vers = "b", issue = Noyau.IssueDuCoup.TOUCHE, couleur = "#ffa040", depart = null, trajet = null,
 	arrivee = {visuel = null, son = EXPLOSION}, flottants = []}
-const ZONE := {quoi = "zone", de = "a", centre = {x = 1, y = 0}, cases = [{x = 1, y = 0}], couleur = "#ff6a20", depart = null,
+const ZONE := {quoi = Noyau.Effet.ZONE, de = "a", centre = {x = 1, y = 0}, cases = [{x = 1, y = 0}], couleur = "#ff6a20", depart = null,
 	trajet = null, nappe = {visuel = null, son = FLAMMES}}
-const PAS_DU_DEPLACEMENT := {quoi = "son", son = PAS, fois = 1, ecartS = 0.0}
-const INCANTATION_REUSSIE := {quoi = "incantation", de = "a", vers = "b", reussie = true, couleur = "#9b7bff",
+const PAS_DU_DEPLACEMENT := {quoi = Noyau.Effet.SON, son = PAS, fois = 1, ecartS = 0.0}
+const INCANTATION_REUSSIE := {quoi = Noyau.Effet.INCANTATION, de = "a", vers = "b", reussie = true, couleur = "#9b7bff",
 	depart = {visuel = null, son = INCANTATION}, arrivee = {visuel = null, son = INCANTATION}, flottants = []}
 const LIEUX := {"a": Vector3(0.0, 0.0, 0.0), "b": Vector3(2.0, 0.0, 0.0), "1,0,0": Vector3(1.0, 0.0, 0.0)}
 ## Les préférences connues que sert le pont figé : un volume par canal, le son coupé, et une préférence qui n'est pas un

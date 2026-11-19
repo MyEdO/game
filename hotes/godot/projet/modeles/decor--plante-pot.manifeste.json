@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "plante-pot"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "pot",
+      "palette": "corps",
+      "matiere": "prop--terre-cuite"
+    },
+    {
+      "nom": "terre",
+      "palette": "corps",
+      "matiere": "prop--terre-battue"
+    },
+    {
+      "nom": "feuillage",
+      "palette": "vegetal",
+      "matiere": "prop--feuillage"
+    }
+  ],
+  "glb": {
+    "sha256": "d88a0770418022f3937ee0c64eeb99677a4bd4fc1efb74da948d15f61c57a89c",
+    "octets": 94916
+  }
+}

@@ -7,7 +7,7 @@
  */
 import type { Formula, GameOp } from '../engine/ops';
 import { VIVRES_DE_CALE } from '../engine/seaNavigation';
-import type { JsonFormula } from '../engine/miscast';
+import type { FormuleAuPeche } from '../data/schemas/grammaire/valeurs';
 import { opPsy } from '../engine/psych/opsPsy';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { memoParVersion } from '../data';
@@ -19,12 +19,15 @@ import { declarationDeFeuilleDId } from '../data/schemas/grammaire/ref';
 import { CONDITION_TOUJOURS, recast } from '../data/valeursNeuves';
 import type { Condition } from '../engine/flowCore';
 import { terrainsElectifs } from './monde/terrain';
+import { memoByRef } from './monde/sceneMemo';
 import { EFFECT_HANDLERS } from './combatEffects';
 import {
   admetUneListe,
+  ariteDuNoeud,
   bornesDuNoeud,
   champsDeclares,
   choixDuNoeud,
+  elementDuNoeud,
   kindDuNoeud,
   recordDuNoeud,
   unionDuNoeud,
@@ -55,25 +58,25 @@ export const FORME_DE_CLE: Readonly<Record<string, FormulaShape>> = {
 };
 
 /** Termes CONSTANTS : leur forme est leur valeur, sans champ à saisir. */
-const TERME_CONSTANT: Partial<Record<FormulaShape, JsonFormula>> = {
+const TERME_CONSTANT: Partial<Record<FormulaShape, FormuleAuPeche>> = {
   rolled: { rolled: true }, indice: { indiceOf: true }, pions: { stacks: 'self' }, ecartAvantage: { engagedAdvantageGap: true },
   blessuresInfligees: { woundsDealt: true }, blessuresMax: { blessuresMax: true }, tailleDuNavire: { tailleDuNavire: true },
   valeurCargaison: { valeurCargaison: true }, dr: { sl: true }, peche: { sinPoints: true },
 };
 
-export const shapeOf = (f: JsonFormula | undefined): FormulaShape => {
+export const shapeOf = (f: FormuleAuPeche | undefined): FormulaShape => {
   if (typeof f === 'number' || f == null) return 'lit';
   const forme = Object.keys(f).map((k) => FORME_DE_CLE[k]).find((s) => s !== undefined);
   if (forme === undefined) throw new Error(`shapeOf : terme de Formula hors grammaire (${JSON.stringify(f)})`);
   return forme;
 };
 
-export const contientLePeche = (f: JsonFormula): boolean =>
+export const contientLePeche = (f: FormuleAuPeche): boolean =>
   typeof f === 'object' && ('sinPoints' in f || ('sum' in f && f.sum.some(contientLePeche)));
 
 /** Formule par défaut d'une forme — utilisée au CHANGEMENT de forme. Préserve le littéral courant
  *  quand on bascule vers « Nombre » ; ne touche JAMAIS une formule dont la forme est déjà la bonne. */
-export function formulaForShape(s: FormulaShape, current: JsonFormula | undefined): JsonFormula {
+export function formulaForShape(s: FormulaShape, current: FormuleAuPeche | undefined): FormuleAuPeche {
   if (current != null && s === shapeOf(current)) return current; // déjà la bonne forme → inchangée (pas de clobber)
   // QUITTER la borne basse rend la formule qu'elle enveloppait — symétrique de l'enveloppement
   // ci-dessous : l'aller-retour Minimum → autre forme ne jette pas la quantité éditée.
@@ -237,14 +240,14 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'critOnRoll': return { op: 'critOnRoll', mod: 10, equals: 0 };
     case 'spendAdvantage': return { op: 'spendAdvantage', amount: 1 };
     case 'rollThreshold': return { op: 'rollThreshold', sides: 10, thresholds: [] };
-    case 'rollTable': return { op: 'rollTable', die: 'd10', entries: [] };
+    case 'rollTable': return { op: 'rollTable', die: { n: 1, sides: 10 }, entries: [] };
     case 'rollMutation': return { op: 'rollMutation', table: { id: '' } };
     case 'narrative': return { op: 'narrative', text: '' };
     case 'shipMorale': return { op: 'shipMorale', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
     case 'manann': return { op: 'manann', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
     case 'shipCritical': return { op: 'shipCritical', location: 'aleatoire', count: 1 };
     case 'navireMod': return { op: 'navireMod', m: -1, jusqua: 'carenage' };
-    case 'meteoImposee': return { op: 'meteoImposee', jours: { dice: { n: 1, sides: 10 } }, meteo: { vent: 'calme-plat' } };
+    case 'meteoImposee': return { op: 'meteoImposee', jours: { dice: { n: 1, sides: 10 } }, meteo: { vent: { id: 'calme-plat' } } };
     case 'cargaison': return { op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } };
     case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } }, vivre: { id: VIVRES_DE_CALE.vivres[0] } };
     case 'equipage': return { op: 'equipage', delta: 1 };
@@ -270,8 +273,8 @@ export function newEffect(type: Effect['type']): Effect {
 
 /** La valeur NEUVE du nœud de schéma `noeud` : d'un champ à choix, sa première valeur (`choixDuNoeud`) ; d'un objet,
  *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'une union, celle
- *  de sa première variante (`neuveDeLaVariante`) ; d'un record, {} ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
- *  texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un objet neuf ne porte pas. */
+ *  de sa première variante (`neuveDeLaVariante`) ; d'un record, {} ; d'un tuple, la valeur neuve de chacune de ses positions
+ *  (`ariteDuNoeud`) ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un objet neuf ne porte pas. */
 export function valeurNeuveDe(noeud: unknown): unknown {
   const choix = choixDuNoeud(noeud);
   if (choix) return choix[0]?.valeur;
@@ -283,6 +286,8 @@ export function valeurNeuveDe(noeud: unknown): unknown {
   const u = unionDuNoeud(noeud);
   if (u) return u.variantes.length ? neuveDeLaVariante(u, u.variantes[0], undefined) : undefined;
   if (recordDuNoeud(noeud)) return {};
+  const arite = ariteDuNoeud(noeud);
+  if (arite !== undefined) return Array.from({ length: arite }, (_, rang) => valeurNeuveDe(elementDuNoeud(noeud, rang)));
   const bornes = bornesDuNoeud(noeud);
   if (bornes) return bornes.min !== null && bornes.min > 0 ? bornes.min : 0;
   const kind = kindDuNoeud('', noeud);
@@ -292,13 +297,28 @@ export function valeurNeuveDe(noeud: unknown): unknown {
 
 /** La valeur NEUVE de la variante `v` de l'union `u`, depuis la valeur `actuelle` : d'une op, celle de sa fabrique
  *  (`newOp`) ; d'une Condition, union dont une variante est le produit de la Condition de sa clé, celle de `recast`,
- *  qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche, sa valeur neuve, son discriminant posé, sauf pour
- *  la variante qui ne le porte pas (clé vide) et pour une union sans discriminant. */
+ *  qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche, sa valeur neuve, ce qui désigne sa variante
+ *  posé : son discriminant, sauf pour la variante qui ne le porte pas (clé vide), et, d'une union sans discriminant,
+ *  le premier de ses champs déclarés qui la fait lire comme elle (`distinguee`). */
 function neuveDeLaVariante(u: UnionDuNoeud, v: VarianteDuNoeud, actuelle: unknown): unknown {
   if (declarationDEnfants(u.noeud)) return newOp(v.cle);
-  if (u.variantes.some((w) => classeDeProduit(w.noeud)?.role === `condition.${w.cle}`)) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
+  if (recastee(u)) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
   const neuve = valeurNeuveDe(v.noeud);
-  return v.cle === '' || u.discriminant === '' ? neuve : { ...(neuve as object), [u.discriminant]: v.cle };
+  if (u.discriminant === '') return distinguee(u, v, neuve);
+  return v.cle === '' ? neuve : { ...(neuve as object), [u.discriminant]: v.cle };
+}
+
+/** La valeur `neuve` de la variante `v` de l'union sans discriminant `u`, telle que `varianteCourante` la lise comme
+ *  `v` : elle-même si c'est déjà le cas ; sinon, d'un objet, complétée du premier champ déclaré de `v` qu'elle ne porte
+ *  pas, à sa valeur neuve, qui la fait lire comme `v` ; elle-même sans un tel champ. */
+function distinguee(u: UnionDuNoeud, v: VarianteDuNoeud, neuve: unknown): unknown {
+  if (varianteCourante(u, neuve) === v || typeof neuve !== 'object' || neuve === null) return neuve;
+  for (const [cle, n] of champsDeclares(v.noeud) ?? []) {
+    const champ = cle in neuve ? undefined : valeurNeuveDe(n);
+    const complete = champ === undefined ? undefined : { ...neuve, [cle]: champ };
+    if (complete && varianteCourante(u, complete) === v) return complete;
+  }
+  return neuve;
 }
 
 /** Une valeur du choix de la variante d'une union : la clé et le libellé de la variante, la valeur qu'elle pose, et si
@@ -312,18 +332,16 @@ export function variantesAChoisir(noeud: unknown, actuelle: unknown): ValeurDeVa
   const u = unionDuNoeud(noeud);
   if (!u) return undefined;
   const courante = varianteCourante(u, actuelle);
-  return u.variantes.map((v) => ({ cle: v.cle, libelle: v.libelle, valeur: v === courante ? actuelle : neuveDeLaVariante(u, v, actuelle), courante: v === courante }));
+  const neuves = recastee(u) ? undefined : neuvesDeLUnion(u.noeud as object);
+  return u.variantes.map((v, rang) => ({ cle: v.cle, libelle: v.libelle, valeur: v === courante ? actuelle : neuves ? neuves[rang] : neuveDeLaVariante(u, v, actuelle), courante: v === courante }));
 }
 
-/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin
- *  (`null` sans élément neuf, `valeurNeuveDe` n'en bâtissant aucun) ; pour chaque élément, « Retirer », la liste sans
- *  lui, et « Monter », celle où il passe avant le précédent (`null` pour le premier). */
-export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[] | null; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
-  return {
-    ajouter: neuve === undefined ? null : [...liste, neuve],
-    elements: liste.map((e, rang) => ({
-      retirer: liste.filter((_, i) => i !== rang),
-      monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
-    })),
-  };
-}
+/** L'union `u` est-elle celle d'une Condition, dont la valeur neuve de chaque variante enveloppe l'actuelle (`recast`) ? */
+const recastee = (u: UnionDuNoeud): boolean => u.variantes.some((w) => classeDeProduit(w.noeud)?.role === `condition.${w.cle}`);
+
+/** La valeur neuve de chaque variante, par rang, de l'union de nœud `noeud` hors d'une Condition (`recastee`), qui ne
+ *  dépend pas de l'actuelle (`neuveDeLaVariante`), retenue par nœud (`memoByRef`) : aucun consommateur ne la mute. */
+const neuvesDeLUnion = memoByRef((noeud: object): unknown[] => {
+  const u = unionDuNoeud(noeud)!;
+  return u.variantes.map((v) => neuveDeLaVariante(u, v, undefined));
+});

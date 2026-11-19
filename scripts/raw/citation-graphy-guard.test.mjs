@@ -16,13 +16,19 @@ import {
 import { CHAMPS_DE_CLE, CHAMPS_D_ECHEANCE } from '../guards/lib/stock.mjs'
 import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace, texteRegenere } from '../guards/lib/stockDeSites.mjs'
 import { allAbbrAlternation, chapterBoundaryRisk, siglesDeCoeur } from './_lib.mjs'
-import { avecAtlasFixture } from './atlasFixture.mjs'
+import { avecAtlasFixture, avecLivreFixture } from './atlasFixture.mjs'
 
 // Des sigles RÉELS, pris au registre par leur RÉGIME (livre de cœur) — jamais recopiés : la classe se
 // juge sur ce que la graphie VOIT, pas sur l'identité d'un livre. Résolveur PARTAGÉ avec les autres
 // bancs (`siglesDeCoeur`, _lib.mjs) : il nomme sa cause quand le registre ne porte aucun cœur, et il
 // les rend TOUS — juger le seul premier laisserait le cœur N+1 hors de la couverture du banc.
 const SIGLES_COEUR = siglesDeCoeur()
+
+// Géométrie de folios de BANC (`avecLivreFixture`), jamais celle du `Source/` du jour : 255 clôt le
+// ch.48 et le ch.49 s'ouvre sur 256 (folio en fin de chapitre, classe i) ; 301 et 303 vivent au ch.65,
+// le ch.64 ne porte que 300 (multi-folio à cheval, classe h) ; 338 et 343 vivent au même ch.85.
+const FOLIOS_DE_BANC = { 48: [254, 255], 49: [256, 257], 64: [300], 65: [301, 303], 85: [338, 343] }
+const avecFolios = (fn) => avecLivreFixture('LDB', FOLIOS_DE_BANC, fn)
 
 function withTempSrcDir(content, fn) {
   const dir = mkdtempSync(join(tmpdir(), 'graphy-guard-'))
@@ -343,13 +349,13 @@ test('(f)/(h)/(i) : un arbre src/ portant un folio nu, un multi-folio et un foli
   withTempSrcAndRawDir(
     { 'x.ts': '// Amphibie (LDB p.338) : folio nu\n// Mauvais œil (LDB 48 p.255) : folio en fin de chapitre\n// Outre à eau (LDB 64 p.301/303) : multi-folio à cheval\n' },
     {},
-    (srcDir, rawDir) => {
-      const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir)
+    (srcDir, rawDir) => avecFolios((registre) => {
+      const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir, registre)
       assert.deepEqual(passe.bareFolio, [])
       assert.deepEqual(passe.chapterBoundaryFolio, [])
       assert.deepEqual(passe.multiFolioSplit, [])
       assert.deepEqual(passe.folioSrc.map((v) => v.ref), ['LDB p.338', 'LDB 48 p.255', 'LDB 64 p.301'])
-    },
+    }),
   )
 })
 
@@ -424,27 +430,26 @@ test('(g) abréviation inconnue : ancienne graphie ADEII (tout capitales) EST d�
 
 // --- (#522 juge adversarial) scan (h) : multi-folios d'une fiche à cheval sur un AUTRE chapitre ---
 test('(h) multi-folio en fiche : LDB 64 p.301/303 (folios hors du chapitre 64) → détecté', () => {
-  withTempSrcAndRawDir({}, { 'combat.md': "**Source :** Contenant d'eau (Outre à eau/Seau, LDB 64 p.301/303)\n" }, (srcDir, rawDir) => {
-    const v = scanMultiFolioSplitViolations(rawDir)
+  withTempSrcAndRawDir({}, { 'combat.md': "**Source :** Contenant d'eau (Outre à eau/Seau, LDB 64 p.301/303)\n" }, (srcDir, rawDir) => avecFolios((registre) => {
+    const v = scanMultiFolioSplitViolations(rawDir, registre)
     assert.equal(v.length, 1)
     assert.equal(v[0].row, 1)
     assert.equal(v[0].file.endsWith('combat.md'), true)
-    // 301 résout ch63 (l'ancre de folio vit dans le chapitre PRÉCÉDENT, ch64 n'a pas d'ancre propre)
-    // et 303 résout ch66 — les deux diffèrent du chapitre ÉCRIT (64), donc tous deux fautifs.
-    assert.deepEqual(v[0].folios.map((f) => f.folio), [301, 303])
-  })
+    // 301 et 303 résolvent au ch.65 du banc, pas au chapitre ÉCRIT (64) : tous deux fautifs.
+    assert.deepEqual(v[0].folios, [{ folio: 301, ch: 65 }, { folio: 303, ch: 65 }])
+  }))
 })
 
 test('(h) multi-folio en fiche : LDB 85 p.338-343 (même chapitre 85) → silence', () => {
-  withTempSrcAndRawDir({}, { 'combat.md': '**Source :** Registre des Traits de créature (LDB 85 p.338-343)\n' }, (srcDir, rawDir) => {
-    assert.deepEqual(scanMultiFolioSplitViolations(rawDir), [])
-  })
+  withTempSrcAndRawDir({}, { 'combat.md': '**Source :** Registre des Traits de créature (LDB 85 p.338-343)\n' }, (srcDir, rawDir) => avecFolios((registre) => {
+    assert.deepEqual(scanMultiFolioSplitViolations(rawDir, registre), [])
+  }))
 })
 
 test('(h) multi-folio : rapports générés (coverage/reconciliation/reanchor) et épreuves exclus des fiches', () => {
-  withTempSrcAndRawDir({}, { 'coverage.md': 'LDB 64 p.301/303\n', 'epreuve-x.md': 'LDB 64 p.301/303\n' }, (srcDir, rawDir) => {
-    assert.deepEqual(scanMultiFolioSplitViolations(rawDir), [])
-  })
+  withTempSrcAndRawDir({}, { 'coverage.md': 'LDB 64 p.301/303\n', 'epreuve-x.md': 'LDB 64 p.301/303\n' }, (srcDir, rawDir) => avecFolios((registre) => {
+    assert.deepEqual(scanMultiFolioSplitViolations(rawDir, registre), [])
+  }))
 })
 
 test('non-régression : le VRAI docs/raw/ du repo est à ZÉRO multi-folio à cheval sur un autre chapitre (#522)', () => {
@@ -492,30 +497,30 @@ test('(i) chapterBoundaryRisk (pur) : dernier folio de N mais N+1 s\'ouvre loin 
   assert.equal(chapterBoundaryRisk(map, 1, 11), false)
 })
 
-test('(i) scan : LDB 48 p.255 (cas PROUVÉ — Mauvais œil réellement en 49) → détecté ; LDB 49 p.255 (forme corrigée) → silence', () => {
+test('(i) scan : LDB 48 p.255 (dernier folio du ch.48, le ch.49 s\'ouvre sur 256) → détecté ; LDB 49 p.256 (premier folio du ch.49) → silence', () => {
   withTempSrcAndRawDir(
     {},
-    { 'combat.md': 'Mauvais œil (LDB 48 p.255) forme fautive\nMauvais œil (LDB 49 p.255) forme corrigée\n' },
-    (srcDir, rawDir) => {
-      const v = scanChapterBoundaryFolioViolations(rawDir)
+    { 'combat.md': 'Mauvais œil (LDB 48 p.255) forme fautive\nMauvais œil (LDB 49 p.256) forme corrigée\n' },
+    (srcDir, rawDir) => avecFolios((registre) => {
+      const v = scanChapterBoundaryFolioViolations(rawDir, registre)
       assert.equal(v.length, 1)
       assert.equal(v[0].row, 1)
       assert.equal(v[0].abbr, 'LDB')
       assert.equal(v[0].ch, 48)
       assert.equal(v[0].folio, 255)
-    },
+    }),
   )
 })
 
 test('(i) scan : chaque fiche scannée est jugée à part (fautive détectée, corrigée silencieuse)', () => {
   withTempSrcAndRawDir(
     {},
-    { 'combat.md': 'Mauvais œil (LDB 48 p.255) forme fautive\n', 'ok.md': 'Mauvais œil (LDB 49 p.255) forme corrigée\n' },
-    (srcDir, rawDir) => {
-      const v = scanChapterBoundaryFolioViolations(rawDir)
+    { 'combat.md': 'Mauvais œil (LDB 48 p.255) forme fautive\n', 'ok.md': 'Mauvais œil (LDB 49 p.256) forme corrigée\n' },
+    (srcDir, rawDir) => avecFolios((registre) => {
+      const v = scanChapterBoundaryFolioViolations(rawDir, registre)
       assert.equal(v.length, 1)
       assert.equal(v[0].file.endsWith('combat.md'), true)
-    },
+    }),
   )
 })
 
@@ -523,9 +528,19 @@ test('(i) scan : un folio suivi d\'un autre (LDB 48 p.255/256) n\'est pas un fol
   withTempSrcAndRawDir(
     {},
     { 'combat.md': 'LDB 48 p.255/256 : suffixe multi-folio, jamais compté ici\n' },
-    (srcDir, rawDir) => {
-      assert.equal(scanChapterBoundaryFolioViolations(rawDir).length, 0)
-    },
+    (srcDir, rawDir) => avecFolios((registre) => {
+      assert.equal(scanChapterBoundaryFolioViolations(rawDir, registre).length, 0)
+    }),
+  )
+})
+
+test('(i) scan : un multi-folio (LDB 48 p.2550/2551) ne se relit pas tronqué en folio simple p.255 → silence', () => {
+  withTempSrcAndRawDir(
+    {},
+    { 'combat.md': 'LDB 48 p.2550/2551 : le retour arrière lirait p.255\n' },
+    (srcDir, rawDir) => avecFolios((registre) => {
+      assert.deepEqual(scanChapterBoundaryFolioViolations(rawDir, registre), [])
+    }),
   )
 })
 
@@ -639,8 +654,8 @@ const jouetFiche = (sigle) => [
 
 test('(#925) passe UNIQUE : une ligne fautive par classe, un seul scanTout, chaque classe est nourrie', () => {
   for (const sigle of SIGLES_COEUR) {
-    withTempSrcAndRawDir({ 'x.ts': JOUET_SRC }, { 'combat.md': jouetFiche(sigle) }, (srcDir, rawDir) => {
-    const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir)
+    withTempSrcAndRawDir({ 'x.ts': JOUET_SRC }, { 'combat.md': jouetFiche(sigle) }, (srcDir, rawDir) => avecFolios((registre) => {
+    const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir, registre)
     const sites = (famille) => passe[famille].map((v) => `${v.file.split('/').pop()}:${v.row}`)
     const attendu = {
       graphy: ['x.ts:1'],
@@ -665,7 +680,7 @@ test('(#925) passe UNIQUE : une ligne fautive par classe, un seul scanTout, chaq
       [passe.chapterBoundaryFolio[0].abbr, passe.chapterBoundaryFolio[0].ch, passe.chapterBoundaryFolio[0].folio],
       ['LDB', 48, 255],
     )
-    })
+    }))
   }
 })
 

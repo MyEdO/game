@@ -4,7 +4,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Humain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
@@ -334,7 +337,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Halfling",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
@@ -589,7 +595,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Nain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
@@ -839,7 +848,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Gnome",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 87,
@@ -1069,7 +1081,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Ogre",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 18,
@@ -1198,7 +1213,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Haut elfe",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
@@ -1388,7 +1406,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Elfe sylvain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
@@ -1513,7 +1534,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Middenheimer",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "middenheim",
       "page": 148,
@@ -1814,7 +1838,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Middenlander",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "middenheim",
       "page": 148,
@@ -2145,7 +2172,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Nordlander",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "middenheim",
       "page": 148,
@@ -2476,7 +2506,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Norse",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 57,
@@ -2830,7 +2863,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Cavalier",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "cavalier",
     "source": {
       "book": "aux-armes",
@@ -2855,7 +2891,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Chevalier",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "chevalier",
     "source": {
       "book": "aux-armes",
@@ -2895,7 +2934,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Prêtre guerrier",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "pretre-guerrier",
     "source": {
       "book": "aux-armes",
@@ -2920,7 +2962,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Soldat",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "soldat",
     "source": {
       "book": "aux-armes",
@@ -2970,7 +3015,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Colporteur",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "colporteur",
     "source": {
       "book": "aux-armes",
@@ -2995,7 +3043,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Érudit",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "erudit",
     "source": {
       "book": "aux-armes",
@@ -3020,7 +3071,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Ingénieur",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "ingenieur",
     "source": {
       "book": "aux-armes",
@@ -3045,7 +3099,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Second lancer — Apothicaire",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "apothicaire",
     "source": {
       "book": "vents-de-la-magie",
@@ -3070,7 +3127,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Second lancer — Sorcier",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "sorcier",
     "source": {
       "book": "vents-de-la-magie",
@@ -3095,7 +3155,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Second lancer — Garde",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "garde",
     "source": {
       "book": "vents-de-la-magie",
@@ -3120,7 +3183,10 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Second lancer — Mystique",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "mystique",
     "source": {
       "book": "vents-de-la-magie",

@@ -266,6 +266,17 @@ export const navalTraitRefSchema = refIndicee('navalTrait');
 export const qualityRefSchema = refIndicee('quality');
 export type QualityRef = z.infer<typeof qualityRefSchema>;
 
+/** Qualité MAJORÉE d'une munition (« Explosion +1 », « Tir de zone +3 ») : `majoration` s'ajoute à l'Indice de la même
+ *  qualité de l'arme, exclusive de `value`. Résolue par `weaponWithAmmo` (`engine/items.ts`). LDB 62 l.123 ; AA 08 l.496-497 ;
+ *  #4346 */
+const qualiteMajoreeRefSchema = ref('quality', { majoration: nommerNoeud(z.number().int().positive(), { nom: 'majoration' }) });
+
+/** Qualité d'un objet du CATALOGUE (`TrappingData.qualities`) : la référence indicée, ou la qualité majorée d'une
+ *  munition (admise sur la seule catégorie `ammunition`, `defs/trappings.ts`). */
+export const qualiteDObjetRefSchema = nommerNoeud(z.union([qualityRefSchema, qualiteMajoreeRefSchema]), { label: 'qualité' });
+/** Les deux branches se lisent sans garde de clé (`q.value`, `q.majoration`) : chacune déclare l'autre clé absente. */
+export type QualiteDObjetRef = (QualityRef & { majoration?: never }) | (z.infer<typeof qualiteMajoreeRefSchema> & { value?: never });
+
 /** `ManiementAlternatif` (`src/data/index.ts`), keyé par les Groupes de Corps à corps qui manient aussi
  *  l'arme : `TrappingData.manieAussi`, `GroupeDArme.manieAussi`. AA 08 l.188 ; AA 08 l.194 ; AA 08 l.343 */
 export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictObject({

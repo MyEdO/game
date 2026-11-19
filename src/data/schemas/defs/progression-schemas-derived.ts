@@ -50,7 +50,7 @@ const doc = document(
       /** VDM */
       career: z.string().nullable(),
       titresPage: z.array(z.string()),
-      pdfpage: z.number(),
+      pdfpage: z.number().int(),
       y: z.number(),
       lv: nommerChamps(z.strictObject({
         '1': z.array(markSchema),

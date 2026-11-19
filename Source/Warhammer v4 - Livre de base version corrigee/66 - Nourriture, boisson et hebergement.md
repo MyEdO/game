@@ -1,6 +1,6 @@
 *Pages PDF 304*
 
-# **NOURRITURE, BOISSON ET HÉBERGEMENT**
+# <span id="page-303-0" data-folio="302"></span>**NOURRITURE, BOISSON ET HÉBERGEMENT**
 
 Les chambres et les repas de piètre qualité coûtent la moitié des prix listés, et ceux de grande qualité coûtent le double des prix listés. Consommer des aliments et des boissons de piètre qualité comporte un risque de 10 % d'exposition à la *Courante galopante* (voir page 186).
 

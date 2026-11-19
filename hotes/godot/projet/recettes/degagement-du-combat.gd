@@ -72,7 +72,7 @@ func _derouler(lu: Dictionary, pont: PontDuDegagement, combat: Node) -> void:
 		var vue: Dictionary = combat.get("_vue")
 		if vue.projection.get("fenetre") == null:
 			break
-		var focus: Array = vue.zones["fenetre.gestes"].filter(func(g: Dictionary) -> bool: return g.type == "bouton" and g.focus)
+		var focus: Array = vue.zones["fenetre.gestes"].filter(func(g: Dictionary) -> bool: return g.type == Noyau.TypeDElement.BOUTON and g.focus)
 		if focus.is_empty() or not _presser(combat, focus[0].id):
 			return
 	_verifier(combat.get("_vue").projection.get("fenetre") == null, "fenêtres encore ouvertes après %d" % FENETRES_AU_PLUS)

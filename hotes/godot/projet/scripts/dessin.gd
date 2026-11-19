@@ -1,5 +1,6 @@
 ## Le dessin d'un élément (#3935, `Icone`, `Fond` et `Paysage` de `src/hote/elements.ts`) : celui que l'élément nomme par
-## son id, ou ceux qu'il nomme en liste, tracés l'un sur l'autre dans l'ordre (les couches d'un paysage),
+## son id, ou ceux qu'il nomme en liste, ou celui
+## que la scène nomme elle-même (`nomme`, le dé d'un jet), tracés l'un sur l'autre dans l'ordre (les couches d'un paysage),
 ## lu au catalogue des dessins (`CATALOGUE`, déposé à la construction, `hotes/godot/asset/dessins.ts`), tracé aux
 ## couleurs du thème (`Dessin` : `encre` pour `currentColor`, puis la couleur du nom de chaque jeton `var(--<jeton>)`,
 ## ses tirets en soulignés) et posé en texture sur l'image qui le porte, son parent, à la finesse de sa taille
@@ -18,16 +19,18 @@ static var _traces := {}
 ## Le champ de l'élément qui nomme son dessin, et la famille du catalogue qui le tient : celui du nom de son type, ou
 ## `icone` pour un bouton ou un choix, dont l'icône est facultative (absente : sans dessin).
 @export var champ := ""
+## Le dessin de cette famille que la scène nomme, quel que soit l'élément ; vide : celui que l'élément nomme.
+@export var nomme := ""
 
 
 func poser(element: Dictionary) -> void:
 	var cible := get_parent() as Control
 	var type: String = champ if champ != "" else element.type
-	var nommes: Variant = element.get(type)
+	var nommes: Variant = nomme if nomme != "" else element.get(type)
 	var texture: ImageTexture = null
 	if nommes != null:
 		var famille := famille_du_catalogue(type)
-		var cote := float(cible.get_theme_constant(&"icon_max_width", &"Button"))
+		var cote := float(cible.get_theme_constant(&"icon_max_width"))
 		var taille := cible.custom_minimum_size if cible is TextureRect else Vector2(cote, cote)
 		var couches: Array = nommes if nommes is Array else [nommes]
 		texture = trace(type, couches, MiseEnPage.echelle_de_dessin(taille.x, taille.y, famille.largeur, famille.hauteur))

@@ -129,6 +129,7 @@ __pycache__/
 /docs/usages-jets.md
 /docs/vocabulaire-mecanique.md
 /docs/raw/**/catalogue-*.md
+/hotes/godot/projet/scripts/noyau.generated.gd
 /hotes/godot/pont/CONTRAT.md
 /src/**/*.generated.ts
 /src/data/schemas/_fichiers-de-l-atelier.generated.json

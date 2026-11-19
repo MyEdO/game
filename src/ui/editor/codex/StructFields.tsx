@@ -24,7 +24,6 @@ import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, type Difficulty, type CharKey } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
-import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
 import type {
   AdvancementRef,
@@ -38,7 +37,14 @@ import type {
   TestMatch,
   SpecEntry,
 } from '../../../data';
-import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
+import {
+  charKeySchema,
+  countSpecSchema,
+  harvestDangerSchema,
+  harvestRaritySchema,
+  matiereDArmureSchema,
+  type MatiereDArmure,
+} from '../../../data/schemas/grammaire/valeurs';
 import type { Id, RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
@@ -65,8 +71,8 @@ import { relireTrait } from '../../../data/refFormatLivre';
 import { ProvenanceDeValeur } from '../ProvenanceDeValeur';
 import { AlsoInField } from '../../AlsoInField';
 import { useClesDeRangees } from '../../useClesDeRangees';
-import { GameOpEditor } from '../GameOpEditor';
-import { newOp } from '../../../noyau/valeursNeuves';
+import { DeDeTirageField, GameOpEditor } from '../GameOpEditor';
+import { newOp, variantesAChoisir } from '../../../noyau/valeursNeuves';
 import { noeudTestNeuf } from '../../../data/valeursNeuves';
 import { NoeudTestField, type NoeudTest } from '../FlowEditor';
 import type { GameOp } from '../../../engine/ops';
@@ -294,7 +300,7 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
               <option value="@char">▸ Caractéristique…</option>
             </select>
             {m.characteristic != null && (
-              <select value={m.characteristic} onChange={(e) => setM(i, { characteristic: e.target.value as CharKey })}>
+              <select value={m.characteristic} onChange={(e) => setM(i, { characteristic: charKeySchema.parse(e.target.value) })}>
                 {CHAR_KEYS.map((ck) => <option key={ck} value={ck}>{CHAR_LABELS[ck]}</option>)}
               </select>
             )}
@@ -527,13 +533,27 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
   const creatureCfg = { ds: 'creatures' as const, single: true as const };
   // L'engin : la feuille de sa branche (`dotationDePossessionSchema`) restreint le sélecteur à la sous-liste des engins de siège.
   const engin = cfgDuNoeudType(dotationDePossessionSchema)?.polymorphe.find((b) => b.type === 'engin');
-  // Quantité : nombre fixe « (3) » OU jet « (1d10) » — une seule entrée texte, jet si elle contient un d.
-  const countOf = (t: TrappingRef): string => ('count' in t && t.count ? ('fixed' in t.count ? String(t.count.fixed) : formatDice(t.count.roll)) : '');
-  const parseCount = (s: string): CountSpec | undefined => {
-    const v = s.trim();
-    if (!v) return undefined;
-    const dc = parseDice(v);
-    return dc ? { roll: dc } : { fixed: Number(v) || 1 };
+  // Quantité (`countSpecSchema`) : aucune, ou l'une de ses variantes (`variantesAChoisir`), puis ses nombres.
+  const champDeQuantite = (i: number, t: TrappingRef): ReactElement => {
+    const count = 'count' in t ? t.count : undefined;
+    const variantes = variantesAChoisir(countSpecSchema, count)!;
+    const poser = (v: unknown) => {
+      const lu = countSpecSchema.safeParse(v);
+      set(i, { ...t, count: lu.success ? lu.data : undefined } as TrappingRef);
+    };
+    return (
+      <>
+        <label className="dr">quantité
+          <select aria-label="Quantité" value={count ? variantes.findIndex((v) => v.courante) : ''} onChange={(e) => poser(e.target.value === '' ? undefined : variantes[Number(e.target.value)]?.valeur)}>
+            <option value="">aucune</option>
+            {variantes.map((v, rang) => <option key={v.libelle} value={rang}>{v.libelle}</option>)}
+          </select>
+        </label>
+        {count && ('fixed' in count
+          ? <NumberField variant="nu" label="Quantité fixée" min={1} width={64} value={count.fixed} onChange={(fixed) => poser({ fixed })} />
+          : <DeDeTirageField value={count.roll} onChange={(roll) => poser({ roll })} />)}
+      </>
+    );
   };
   const kindOf = (t: TrappingRef): 'text' | DotationDePossession['type'] | 'ref' => (isText(t) ? 'text' : isPossession(t) ? t.type : 'ref');
   const champDePossession = (i: number, t: DotationDePossession): ReactElement => {
@@ -572,7 +592,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
               <option value="engin">Engin de siège (trappings.json)</option>
               <option value="text">Texte (narratif)</option>
             </select>
-            <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) } as TrappingRef)} /></label>
+            {champDeQuantite(i, t)}
             <button className="btn small danger" title="Retirer la possession" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
           {isText(t)
@@ -687,7 +707,7 @@ export function DomainEffectsField(
               </select>
             </label>
             <label className="dr">rayon B-carac.
-              <select value={castBonus.radiusStat} onChange={(e) => onCastBonus({ ...castBonus, radiusStat: e.target.value as CharKey })}>
+              <select value={castBonus.radiusStat} onChange={(e) => onCastBonus({ ...castBonus, radiusStat: charKeySchema.parse(e.target.value) })}>
                 {CHAR_KEYS.map((k) => <option key={k} value={k}>{CHAR_LABELS[k]}</option>)}
               </select>
             </label>

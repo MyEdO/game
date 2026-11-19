@@ -1,19 +1,24 @@
 extends SceneTree
 
 ## Le regard ne change que ce que voit la caméra, jamais l'éclairage (#3758, #3948, `hotes/godot/pont/CONTRAT.md`,
-## sections « Vue », `plateau`, et « Monde », `RetraitDuMonde`) : sur un plateau de 2 m par case, un morceau du sol au
-## rez, un morceau d'étage à 3 m que le masque du regard retire (`VolumeDeScene.retirer`), une nappe de toit à 5 m, deux
-## arêtes, une boîte et une pièce du kit, chacune sous sa couronne, et la couronne d'un mur abattu. Le toit levé, les
-## arêtes dégagées sous tout cran : la caméra ne voit ni le toit, ni les arêtes, ni leurs couronnes, qui projettent
-## toutes leur ombre ; chaque sommet vu de l'étage tombe sur une case que le masque lié à sa matière retire, ceux du rez
-## sur une case qu'il garde, chaque sommet du rez, dont les deux triangles sont sur deux cases, porte en `UV2` le texel
-## au masque de la case de son triangle (`MiseEnPage.texel_du_masque`), et l'instance en ombre seule de l'étage, entière
-## et jamais masquée, projette ; tout ce qui projette (l'ombre de l'étage, l'instance en ombre seule du toit et de chaque
-## couronne, les arêtes) est dans une matière standard, dont Godot dessine l'ombre comme pour toute matière qui ne
-## déplace pas ses sommets, et l'instance vue d'une nappe retirée est cachée ; une arête cachée sort du compte visible
-## des instances vues de son groupe, ses instances en ombre seule entières ; de chaque case du sol, le rayon vers le
-## soleil touche le toit et l'étage ; la couronne du mur abattu ne projette rien. Le toit et les arêtes rendus, chacun
-## se montre et projette.
+## sections « Vue », `plateau`, et « Monde », `RetraitDuMonde`) : sur un plateau de 2 m par case, un morceau du sol
+## au rez, un morceau d'étage à 3 m que le masque du regard retire (`VolumeDeScene.retirer`), une nappe de toit à
+## 5 m, deux arêtes, une boîte et une pièce du kit, chacune sous sa couronne, et la couronne d'un mur abattu. Le toit
+## levé, les arêtes dégagées sous tout cran : la caméra ne voit ni le toit, ni les arêtes, ni leurs couronnes, qui
+## projettent toutes leur ombre ; la pose d'un décor que le toit porte (`PoseDeDecor.nappe`), sur une case de
+## l'étage que le masque retire, est retirée avec le toit levé et montrée avec le toit rendu, seule la nappe en
+## décide (`VolumeDeScene.pose_retiree`, signal `retire`, émis une fois par changement des nappes cachées) ; celle
+## d'un décor au sol de cette case est retirée, celle d'un décor au sol du rez non ; chaque sommet vu de l'étage
+## tombe sur une case que le masque lié à sa matière retire, ceux du rez sur une case qu'il garde, chaque sommet du
+## rez, dont les deux triangles sont sur deux cases, porte en `UV2` le texel au masque de la case de son triangle
+## (`MiseEnPage.texel_du_masque`), et l'instance en ombre seule de l'étage, entière et jamais masquée, projette ;
+## tout ce qui projette (l'ombre de l'étage, l'instance en ombre seule du toit et de chaque couronne, les arêtes)
+## est dans une matière standard, dont Godot dessine l'ombre comme pour toute matière qui ne déplace pas ses
+## sommets, et l'instance vue d'une nappe retirée est cachée ; une arête cachée sort du compte visible des instances
+## vues de son groupe, ses instances en ombre seule entières ; de chaque case du sol, le rayon vers le soleil touche
+## le toit et l'étage ; la couronne du mur abattu ne projette rien. Le toit et les arêtes rendus, chacun se montre
+## et projette, la pose du décor qu'il porte aussi. Le modèle du décor que le toit porte servi
+## (`VolumeDeScene.peindre_sans`), la nappe ne peint plus ses surfaces ; plus servi, elle les repeint.
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
@@ -25,7 +30,15 @@ const SOLS := [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
 const LARGEUR := 3
 const RANGEES := 12
 const ETAGE_AU_MASQUE := 6
-const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, piece = "mur", bloc = "0/0/0"}
+## La rangée du masque du plan `pose` de l'étage, où le masque retire la case (0, 0).
+const POSE_DE_L_ETAGE_AU_MASQUE := 9
+## La pose d'un décor que la nappe du toit porte, sur la case (0, 0) de l'étage ; celle d'un décor au sol de cette
+## case, et celle d'un décor au sol de la case (0, 0) du rez.
+const PORTEE := {case = {x = 0, y = 0, z = 1}, nappe = "maison"}
+const SOUS_LE_MASQUE := {case = {x = 0, y = 0, z = 1}}
+const AU_SOL := {case = {x = 0, y = 0, z = 0}}
+const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, palette = {},
+	piece = Noyau.Piece.MUR, bloc = "0/0/0"}
 var _fautes: Array[String] = []
 
 
@@ -40,16 +53,27 @@ func _recetter() -> void:
 	var rez := _nappe("sol/0/0/0", 0.0).merged({rangee = 0, cases = [0, 0, 0, 1, 0, 0]}, true)
 	var etage := _nappe("sol/1/0/0", 3.0).merged({rangee = ETAGE_AU_MASQUE, cases = [0, 0, 1, 0, 0, 1]}, true)
 	var toits := [_nappe("maison", 5.0)]
+	toits[0].surfaces[0].decor = "cheminee"
 	var nappes_des_murs := [_nappe("boite", 3.0), _nappe("kit", 3.0), _nappe("abattue", 3.0)]
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = SOLS}, {z = 1, rangees = SOLS}], morceaux = [rez, etage]},
 		toits = toits, couronnes = nappes_des_murs}, {volume = [rez, etage], toits = toits, couronnes = nappes_des_murs})
 	var masque := PackedByteArray()
 	masque.resize(LARGEUR * RANGEES)
 	masque[ETAGE_AU_MASQUE * LARGEUR] = 255
+	masque[POSE_DE_L_ETAGE_AU_MASQUE * LARGEUR] = 255
 	monde.volume.retirer({masque = Marshalls.raw_to_base64(masque), largeur = LARGEUR, rangees = RANGEES})
-	monde.volume.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}), ARETE.merged({cle = "kit", famille = "colombage"})])
+	monde.volume.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}),
+		ARETE.merged({cle = "kit", famille = "pierre"})])
 	var degagees: Array = JSON.parse_string(JSON.stringify(["boite", "kit"].map(func(cle: String) -> Dictionary: return {cle = cle, abattueSous = [0, 1, 2, 3]})))
+	var retraits := [0]
+	monde.volume.retire.connect(func() -> void: retraits[0] += 1)
 	monde.cacher_le_bati(["maison"], ["abattue"], degagees)
+	_poses_retirees(monde.volume, true, retraits[0], "le toit levé")
+	var signales_au_toit_leve: int = retraits[0]
+	monde.cacher_le_bati(["maison"], ["abattue"], degagees)
+	if retraits[0] != signales_au_toit_leve:
+		var signales: int = retraits[0] - signales_au_toit_leve
+		_fautes.append("le même toit levé à nouveau : le volume signale %d retraits" % signales)
 	var toit: Node3D = monde.get_node("VolumeDeScene/Volume/Toits").get_child(0)
 	var morceaux := monde.get_node("VolumeDeScene/Volume/Morceaux")
 	_masque(morceaux.get_node("sol_1_0_0"), true, "l'étage retiré")
@@ -90,14 +114,40 @@ func _recetter() -> void:
 	print("[ombres-du-regard] %d rayons sur 18 du sol vers le soleil arrêtés par le toit et l'étage retirés" % sous_le_toit)
 	retires.erase("ombre de l'étage")
 	monde.cacher_le_bati([], ["abattue"], [])
+	_poses_retirees(monde.volume, false, retraits[0] - signales_au_toit_leve, "le toit rendu")
 	_aretes_montrees(groupes, 1, "rendues")
 	for nom: String in retires:
 		if _vus(retires[nom]).is_empty() or _projetants(retires[nom]).is_empty():
 			_fautes.append("rendu : %s ne se montre pas ou ne projette pas (vus %s, projetants %s)" % [nom, _vus(retires[nom]), _projetants(retires[nom])])
+	_peint_sans_le_decor(monde.volume, toit)
 	for faute in _fautes:
 		push_error("[ombres-du-regard] " + faute)
 	print("[ombres-du-regard] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## Après un `retire` du volume (`signalee`, exactement un), la pose `PORTEE` retirée si `levee`, montrée sinon, la
+## pose `SOUS_LE_MASQUE` retirée et la pose `AU_SOL` montrée.
+func _poses_retirees(volume: VolumeDeScene, levee: bool, signalee: int, moment: String) -> void:
+	if signalee != 1:
+		_fautes.append("%s : le volume signale %d retraits, attendu un" % [moment, signalee])
+	if volume.pose_retiree(PORTEE) != levee:
+		_fautes.append("%s : la pose du décor que le toit porte est %s" % [moment, "montrée" if levee else "retirée"])
+	if not volume.pose_retiree(SOUS_LE_MASQUE):
+		_fautes.append("%s : la pose du décor au sol de la case que le masque retire est montrée" % moment)
+	if volume.pose_retiree(AU_SOL):
+		_fautes.append("%s : la pose du décor au sol du rez est retirée" % moment)
+
+
+## La nappe `toit`, qui porte les surfaces du décor `cheminee`, n'en peint aucune quand son modèle est servi
+## (`VolumeDeScene.peindre_sans`), et les repeint quand il ne l'est plus.
+func _peint_sans_le_decor(volume: VolumeDeScene, toit: Node3D) -> void:
+	for servis: Array in [["cheminee"], []]:
+		volume.peindre_sans(servis)
+		var surfaces := (toit.get_node("Vu") as MeshInstance3D).mesh.get_surface_count()
+		if surfaces != (0 if servis.size() else 1):
+			var etat := "servi" if servis.size() else "plus servi"
+			_fautes.append("le modèle du décor %s : la nappe qui le porte peint %d surfaces" % [etat, surfaces])
 
 
 ## Dans chaque groupe d'arêtes de `groupes`, `montrees` instances vues au compte visible de chaque maillage vu, sans

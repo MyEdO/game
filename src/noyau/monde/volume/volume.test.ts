@@ -478,31 +478,48 @@ describe('la tuile effondrée, absente du volume (#4044)', () => {
   });
 });
 
-describe('toits et couronnes retenus sur ce qu’ils lisent (#4044)', () => {
-  const diligence = poserLesNavires(scenarioDiligence.construire(idsDeTest).scene);
-  const porte = diligence.walls!.find((w) => w.door)!;
+type Arete = { x: number; y: number; side: 'N' | 'E'; z: number };
+/** `scene`, le mur de l'arête `a` abattu et sa passerelle effondrée (`parapetTilesAbove`). */
+const murAbattu = (scene: Scene, a: Arete): Scene =>
+  parapetTilesAbove(scene, a)
+    .reduce((s, c) => setTileCollapsed(s, c.x, c.y, c.z), setStructureDown(scene, a.x, a.y, a.side, 0, true));
+/** `scene`, sa première porte ouverte. */
+const porteOuverte = (scene: Scene): Scene => {
+  const porte = scene.walls!.find((w) => w.door)!;
+  return setDoorOpen(scene, porte.x, porte.y, porte.side, porte.z ?? 0, true);
+};
+
+/** Les scènes du #4044, chacune avec la famille qu'elle porte (0 : nappes, 1 : couronnes) et ses écritures de
+ *  drapeaux : la diligence porte des nappes et des portes, siege-enceinte des couronnes et sa herse. */
+const SCENES_RETENUES = [
+  ['diligence', scenarioDiligence, 0, (s: Scene) => [murAbattu(s, { x: 22, y: 12, side: 'E', z: 0 }), porteOuverte(s)]],
+  ['siege-enceinte', siegeEnceinte, 1, (s: Scene) => [murAbattu(s, { x: 14, y: 37, side: 'N', z: 0 })]],
+] as const;
+
+describe.each(SCENES_RETENUES)('toits et couronnes retenus sur ce qu’ils lisent (#4044) — %s', (
+  _, sc, fam, ecrit,
+) => {
+  const scene = poserLesNavires(sc.construire(idsDeTest).scene);
   const retenus = (s: Scene) => [toitsDuMonde(s), couronnesDuMonde(s)];
 
-  it('la diligence a des nappes et des couronnes', () => {
-    const [toits, couronnes] = retenus(diligence);
-    expect(toits.length).toBeGreaterThan(0);
-    expect(couronnes.length).toBeGreaterThan(0);
+  it('la scène porte sa famille', () => {
+    expect(retenus(scene)[fam].length).toBeGreaterThan(0);
   });
 
   it('un mur abattu, sa passerelle effondrée, une porte ouverte : les mêmes tableaux', () => {
-    const avant = retenus(diligence);
-    const mur = parapetTilesAbove(diligence, { x: 14, y: 6, side: 'E', z: 0 }).reduce((s, c) => setTileCollapsed(s, c.x, c.y, c.z), setStructureDown(diligence, 14, 6, 'E', 0, true));
-    expect(mur.flags).not.toBe(diligence.flags);
-    retenus(mur).forEach((t, i) => expect(t).toBe(avant[i]));
-    retenus(setDoorOpen(diligence, porte.x, porte.y, porte.side, porte.z ?? 0, true)).forEach((t, i) => expect(t).toBe(avant[i]));
+    const avant = retenus(scene);
+    for (const ecrite of ecrit(scene)) {
+      expect(ecrite.flags).not.toBe(scene.flags);
+      retenus(ecrite).forEach((t, i) => expect(t).toBe(avant[i]));
+    }
   });
 
   it('une tuile peinte, un mur posé : des tableaux neufs, ceux de la scène clonée', () => {
     for (const [quoi, retouche] of [
-      ['tuile', paintTiles(diligence, { x: 3, y: 3 }, 'dalle', 1, 0)],
-      ['mur', setEdgeWall(diligence, 2, 2, 'N', 0, 'wall')],
+      ['tuile', paintTiles(scene, { x: 3, y: 3 }, 'dalle', 1, 0)],
+      ['mur', setEdgeWall(scene, 2, 2, 'N', 0, 'wall')],
     ] as const) {
-      const avant = retenus(diligence);
+      const avant = retenus(scene);
       const apres = retenus(retouche);
       apres.forEach((t, i) => expect(t, quoi).not.toBe(avant[i]));
       expect(apres, quoi).toEqual(retenus(structuredClone(retouche)));
@@ -510,9 +527,9 @@ describe('toits et couronnes retenus sur ce qu’ils lisent (#4044)', () => {
   });
 
   it('une écriture d’un catalogue lu : des tableaux neufs, au même contenu', () => {
-    const avant = retenus(diligence);
+    const avant = retenus(scene);
     bumperDataset('materials');
-    const apres = retenus({ ...diligence });
+    const apres = retenus({ ...scene });
     apres.forEach((t, i) => expect(t).not.toBe(avant[i]));
     expect(apres).toEqual(avant);
   });

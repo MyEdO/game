@@ -252,6 +252,33 @@
     "verrou": "table-lookup-guard.test.ts"
   },
   {
+    "id": "tirerLaTable",
+    "type": "primitives.manifest",
+    "label": "tirerLaTable",
+    "fichier": "src/engine/ops.ts",
+    "concept": "développement d'une op `rollTable` en rangées tirées (ops + dé `rolled`), sans rien appliquer : table en ligne ou `tableId`, `mod`, `addNegativeSL` sur le `sl` du contexte, `extraRollsPerStep` borné aux pas de Surincantation ; un jet par rangée rendue, à la demande",
+    "perimetre": "`applyOps` (rangée appliquée à la cible), `appliquerAuNavire` (rangées remises en file du navire), tout appelant sans fiche qui tire une table d'ops",
+    "verrou": "src/engine/tirer-la-table.test.ts"
+  },
+  {
+    "id": "exposerALaMaladie",
+    "type": "primitives.manifest",
+    "label": "exposerALaMaladie",
+    "fichier": "src/engine/disease.ts",
+    "concept": "fusion d'une op `exposeDisease` dans une liste d'expositions : entrée neuve, ou celle de la même maladie gardée la plus dure (cran le plus bas, `instant` si l'une l'impose)",
+    "perimetre": "`applyOps` (`diseaseExposure` d'un Combatant), toute liste d'expositions d'un porteur sans fiche",
+    "verrou": "src/engine/tirer-la-table.test.ts"
+  },
+  {
+    "id": "contracterABord",
+    "type": "primitives.manifest",
+    "label": "contracterABord",
+    "fichier": "src/noyau/shipCrew.ts",
+    "concept": "verdict d'une rangée de bande de Contraction : son porteur à bord (`porteursABord`, héros ou équipage collectif) contracte la maladie sur échec (`applyContraction`), puis son état s'écrit",
+    "perimetre": "appliers `contagion` (nuit), `mer-tonneau-expose` (tonneau d'eau) et `maladieDeLEquipage` (maladie tirée sur un marin), toute bande de Contraction dont une rangée peut être l'équipage collectif",
+    "verrou": "src/noyau/navire-flow.hors-store.test.ts"
+  },
+  {
     "id": "findTierEntry",
     "type": "primitives.manifest",
     "label": "findTierEntry",
@@ -265,7 +292,7 @@
     "type": "primitives.manifest",
     "label": "DeDeTable/deDeLaTableTiree/deDeTirageDe/facesDuDe/bandeAuDe",
     "fichier": "src/engine/tables.ts",
-    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le `die` du nœud qui le porte (la table, ou le sous-tirage qui départage ses rangées) ; `deDeTirageDe` (`src/data/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas ; une étape de cascade à table le lit sur `TableStepDef.die` (`src/noyau/cascade.ts`, `tableSpec`), son seul porteur : une `CascadeTableDecl` n'en porte aucun",
+    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le `die` du nœud qui le porte (la table, ou le sous-tirage qui départage ses rangées), un `DiceSpec` NdM (`deDeTirageSchema`, `src/data/schemas/grammaire/valeurs.ts`) et jamais une expression ; `deDeTirageDe` (`src/data/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas ; une étape de cascade à table le lit sur `TableStepDef.die` (`src/noyau/cascade.ts`, `tableSpec`), son seul porteur : une `CascadeTableDecl` n'en porte aucun",
     "perimetre": "tout tirage, toute faces et toute bande d'une table qui porte son dé en donnée (moteur, flux, Codex, atelier)",
     "verrou": "tsc (src/engine/tables.test.ts, `@ts-expect-error`) ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
@@ -317,9 +344,9 @@
   {
     "id": "actorIn",
     "type": "primitives.manifest",
-    "label": "actorIn/inBattleId/ecrireActeur",
+    "label": "actorIn/inBattleId/ecrireActeur/combattantsDeLaSerie",
     "fichier": "src/noyau/monde/combatants.ts",
-    "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
+    "concept": "combattant par id — combat, ou groupe et combattants de la série d'attaques subies, vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
     "perimetre": "toute résolution d'acteur ; toute écriture d'un héros ou d'un combattant par id (#2312)",
     "verrou": "in-battle-find-guard.test.ts"
   },
@@ -328,7 +355,7 @@
     "type": "primitives.manifest",
     "label": "touchActors",
     "fichier": "src/noyau/combatOrParty.ts",
-    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
+    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe et la série d'attaques subies",
     "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
     "verrou": "couture-de-retour.hors-store.test.ts"
   },
@@ -600,7 +627,7 @@
     "type": "primitives.manifest",
     "label": "inferFields/FieldDesc/choixDuNoeud/champsDeclares/bornesDuNoeud/unionDuNoeud/elementDuNoeud",
     "fichier": "src/noyau/codex/editFields.ts",
-    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste (`elementDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `ecritureAuFormulaire`, `src/noyau/edition/formulaire.ts` ; `gestesDeLaListe`, `src/noyau/valeursNeuves.ts`)",
+    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`, figée si le code la déclare, `identiteFigee`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste, spécialisation d'une entrée fermée à son catalogue, `choixDeLaSpec`, le `spec` d'une référence à spécialisation lu au point de son `id`, `noeudDuChampAuPoint`), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste, et celui de chaque position d'un tuple, liste de longueur fixe (`elementDuNoeud`, `ariteDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui ajoute, retire ou monte un élément de liste à son rang, retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `ecritureAuFormulaire`, `monteeAuFormulaire`, `src/noyau/edition/formulaire.ts`)",
     "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en éléments par `src/hote/formulaire.ts` (`elementsDuFormulaireTire`, `valeurDuFormulaire`) et joué par le geste `valeur` de la session d'édition",
     "verrou": "src/noyau/edition/formulaire.test.ts"
   },
@@ -1066,7 +1093,16 @@
     "fichier": "src/ui/MetalStatus.tsx",
     "concept": "chip de statut métallisé Bronze/Argent/Or avec son échelon",
     "perimetre": "tout affichage de statut social",
-    "verrou": "—"
+    "verrou": "libellé par libelleDuStatut (src/engine/money.ts)"
+  },
+  {
+    "id": "champDeStatut",
+    "type": "primitives.manifest",
+    "label": "ChampDeStatut",
+    "fichier": "src/ui/editor/ChampDeStatut.tsx",
+    "concept": "saisie d’un Statut en ids : choix d’Échelon puis Standing",
+    "perimetre": "tout champ `statutSchema` d’un éditeur web",
+    "verrou": "options lues sur le nœud `statutSchema.shape.tier` (optionsDuNoeud)"
   },
   {
     "id": "waxSeal",
@@ -1965,7 +2001,7 @@
     "type": "primitives.manifest",
     "label": "capaciteDuLanceur",
     "fichier": "scripts/test/partition.mjs",
-    "concept": "capacité servie par le lanceur de tests sous un environnement et un régime de lancement (`lot` / `suite`, `EMPREINTES_WORKER_MO`) : cœurs, mémoire disponible, empreinte d’un worker",
+    "concept": "capacité servie par le lanceur de tests sous un environnement, un régime de lancement (`lot` / `suite`, `EMPREINTES_WORKER_MO`) et les fichiers lancés (`fichiersNommes`) : cœurs, mémoire disponible, empreinte d’un worker",
     "perimetre": "workers de `run.mjs` et mur estimé de `perimetre.mjs`",
     "verrou": "—"
   },
@@ -2046,9 +2082,9 @@
     "type": "primitives.manifest",
     "label": "estObjet",
     "fichier": "src/lib/objet.mjs",
-    "concept": "prédicat d'OBJET : une valeur objet, ni null ni tableau — la forme d'un objet JSON lu (#3117) ; module pur en .mjs, composable par src/, les scripts, les gardes et les migrations ; une valeur objet OU tableau (qui a des enfants) est estConteneur (src/data/schemas/grammaire/descente.ts)",
+    "concept": "prédicat d'OBJET : une valeur objet, ni null ni tableau — la forme d'un objet JSON lu (#3117) ; module pur en .mjs, composable par src/, les scripts, les gardes et les migrations ; une valeur objet OU tableau (qui a des enfants) est estConteneur (src/data/schemas/grammaire/descente.ts) ; et auChemin, la valeur d'une donnée à un chemin, undefined hors de lui",
     "perimetre": "tout test qu'une valeur lue (JSON, stockage, message réseau, argument de geste, nœud de donnée) est un objet avant d'en lire les clés",
-    "verrou": "construction PREDICAT_D_OBJET (scripts/guards/lib/canonUnique.mjs), src/objet-recopie-guard.test.ts : aucune recopie du prédicat, en ligne ou renommée, hors de src/lib/objet.mjs"
+    "verrou": "constructions PREDICAT_D_OBJET et LECTURE_AU_CHEMIN (scripts/guards/lib/canonUnique.mjs), src/objet-recopie-guard.test.ts : aucune recopie du prédicat ni de la lecture au chemin, en ligne ou renommée, hors de src/lib/objet.mjs"
   },
   {
     "id": "jsonCanonique",
@@ -2314,19 +2350,19 @@
   {
     "id": "ciblesAcquises",
     "type": "primitives.manifest",
-    "label": "CiblesAcquises/ciblesDAnimositeAcquise/ciblesDePhobieDuNoir/traitAcquis/traitsPsyPossedes/TypeAcquis",
+    "label": "CiblesAcquises/ciblesDAnimositeAcquise/ciblesDePhobieDuNoir/ciblesDeTrauma/TRAITS_DE_TRAUMA/calmeDAcquisition/traitAcquis/traitsPsyPossedes/TypeAcquis",
     "fichier": "src/engine/psychology.ts",
-    "concept": "les Cibles d’un Trait psy acquis en cours de partie (ADE II 09 l.9, l.15, règle `psycho-acquisition-optionnelle`) : les candidats et la Cible par défaut (`CiblesAcquises`) de l’Animosité qu’offre le tueur (`ciblesDAnimositeAcquise`, Races de l’appartenance du porteur et vue perçue du tueur) et de la Phobie du noir qu’offrent les Terreurs subies (`ciblesDePhobieDuNoir`, `Combatant.terreursSubies`), et le Trait acquis envers la Cible retenue avec les Traits possédés qu’il remplace (`traitAcquis`, `traitsPsyPossedes` : fiche et suspensions d’un effet) — lectures révisables #3045",
-    "perimetre": "Animosité sur un Destin dépensé, Phobie du noir sur une Terreur ratée",
-    "verrou": "src/engine/animosite-acquise.test.ts, src/engine/phobie-du-noir.test.ts"
+    "concept": "les Cibles d’un Trait psy acquis en cours de partie (ADE II 09 l.9, l.15, règle `psycho-acquisition-optionnelle`) : les candidats et la Cible par défaut (`CiblesAcquises`) de l’Animosité qu’offre le tueur (`ciblesDAnimositeAcquise`, Races de l’appartenance du porteur et vue perçue du tueur) de la Phobie du noir qu’offrent les Terreurs subies (`ciblesDePhobieDuNoir`, `Combatant.terreursSubies`) et du Trait d’un Trauma (`ciblesDeTrauma`, les Groupes d’appartenance, sans défaut ; `TRAITS_DE_TRAUMA`, ADE II 09 l.21, LDB 21 l.93), le Test de Calme d’acquisition à sa difficulté (`calmeDAcquisition`), et le Trait acquis envers la Cible retenue avec les Traits possédés qu’il remplace (`traitAcquis`, `traitsPsyPossedes` : fiche et suspensions d’un effet) — lectures révisables #3045",
+    "perimetre": "Animosité sur un Destin dépensé, Phobie du noir sur une Terreur ratée, Trauma sur une Ambition anéantie",
+    "verrou": "src/engine/animosite-acquise.test.ts, src/engine/phobie-du-noir.test.ts, src/engine/psychology.test.ts"
   },
   {
     "id": "cibleAcquise",
     "type": "primitives.manifest",
-    "label": "acquerirLeTrait/poserLeTraitAcquis/subirLaTerreur",
+    "label": "acquerirLeTrait/ouvrirLeTrauma/poserLeTraitAcquis/subirLaTerreur",
     "fichier": "src/noyau/cibleAcquise.ts",
-    "concept": "la Cible d’un Trait psy acquis envers une Cible, retenue par le porteur surfacé à l’étape `cibleAcquise` (`combat/triggeredTest.ts`) quand plusieurs s’offrent, sinon la Cible par défaut posée d’office (`acquerirLeTrait`) ; seul poseur d’un Trait acquis envers une Cible et de sa ligne de journal (`poserLeTraitAcquis`, par `grantPsychTrait`) ; seul point d’écriture d’une Terreur subie, par un combattant qui suit les règles de Personnage (`subirLaTerreur`, `followsCharacterRules`)",
-    "perimetre": "Animosité sur un Destin dépensé (`combatSlice.ts`), Phobie du noir sur une Terreur ratée (`combatFlow.ts`, `combat/turnHooks.ts`, `encounterPsychFlow.ts`, sa cause parmi les sources de la scène)",
+    "concept": "la Cible d’un Trait psy acquis envers une Cible, retenue par le porteur surfacé à l’étape `cibleAcquise` (`combat/triggeredTest.ts`) quand plusieurs s’offrent ou sans Cible par défaut, sinon la Cible par défaut posée d’office (`acquerirLeTrait`) ; le Trait d’un Trauma choisi à l’étape `traitDeTraumatisme`, sans défaut, avant sa Cible (`ouvrirLeTrauma`) ; seul poseur d’un Trait acquis envers une Cible et de sa ligne de journal (`poserLeTraitAcquis`, par `grantPsychTrait`) ; seul point d’écriture d’une Terreur subie, par un combattant qui suit les règles de Personnage (`subirLaTerreur`, `followsCharacterRules`)",
+    "perimetre": "Animosité sur un Destin dépensé (`combatSlice.ts`), Trauma sur une Ambition anéantie (Effet `ambitionLost`, `combatEffects.ts`), Phobie du noir sur une Terreur ratée (`combatFlow.ts`, `combat/turnHooks.ts`, `encounterPsychFlow.ts`, sa cause parmi les sources de la scène)",
     "verrou": "src/noyau/psych-acquisition.hors-store.test.ts"
   },
   {

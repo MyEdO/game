@@ -12,13 +12,9 @@ extends Node
 signal refus(message: String)
 signal panne(message: String)
 
-## Le plus long silence du réseau qu'un téléchargement tolère, compté par un `Timer` en temps de l'arbre : le délai
-## repart à chaque bloc reçu, car la durée d'un téléchargement suit la fréquence d'image (#3470).
+## Le plus long silence du réseau qu'un téléchargement tolère (`requeter`) : le délai repart à chaque bloc reçu, jamais
+## une borne de sa durée totale (#3470).
 const SILENCE_S := 10.0
-## Le plus grand bloc que HTTPRequest lit par image. Sur le Web, une image lit au plus un bloc du flux de la page
-## (`platform/web/js/libs/library_godot_fetch.js`, `godot_js_fetch_read_chunk`, Godot 4.7-stable), jusqu'à 2 Mio
-## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
-const BLOC_DE_TELECHARGEMENT := 16777216
 
 ## Un genre de fichier que le joueur choisit ou enregistre : `accepte`, ce que le champ de fichier de la page admet ;
 ## `filtre`, celui du dialogue du système ; `type`, le type MIME du fichier remis par la page.
@@ -80,6 +76,9 @@ var _transport: Transport
 	@abstract func exposer(nom: String, rappel: Callable) -> void
 
 	@abstract func adresse(relative: String) -> String
+
+	## Le corps de la réponse à `methode` sur `relative` (`PontDuNoyau.requeter`), attendu sans tenir l'image.
+	@abstract func requeter(relative: String, recueil: Array[String], methode: HTTPClient.Method, corps: String, entetes: PackedStringArray) -> PackedByteArray
 
 	@abstract func choisir_un_fichier(genre: Dictionary) -> Dictionary
 
@@ -173,14 +172,17 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## - Au combat : `{ boutons: { texte, x, y, element?, cle?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z",
 ##   [x, y]>, glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], panneaux: [x, y, largeur, hauteur][],
 ##   corps: Record<string, { base: string, elements: string[], emblemes: Record<string, string>,
-##   couleurs: Record<string, Record<string, string>> }>, navires: string[], compendium: { zones } }`,
+##   couleurs: Record<string, Record<string, string>> }>, navires: string[], aretes_lues: boolean, compendium: { zones }
+##   }`,
 ##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
 ##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
 ##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
 ##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de la fenêtre
 ##   que l'ossature de l'interface laisse à la scène (`Monde.cadre`, vide avant la première mise en page), sur laquelle
 ##   des panneaux se posent, l'emprise de chaque panneau (`PontDuNoyau.panneaux_a_l_ecran`), les ids des
-##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, et, par id de
+##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, si aucun modèle
+##   d'arête n'est en lecture (`VolumeDeScene.aretes_en_lecture` : ses arêtes ne sont pas posées), republié à chaque
+##   modèle d'arête lu, et, par id de
 ##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
 ##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre,
 ##   la couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB
@@ -396,8 +398,8 @@ static func boutons_a_l_ecran(racines: Array, defiles := false) -> Array:
 				var publie := {texte = bouton.text, x = centre.x, y = centre.y}
 				if bouton.has_meta("cle"):
 					publie.cle = bouton.get_meta("cle")
-				if bouton.owner != null and bouton.owner.has_meta(Zone.META):
-					publie.element = bouton.owner.get_meta(Zone.META)
+				if element_de(bouton) != null:
+					publie.element = element_de(bouton)
 				if bouton is OptionButton:
 					var liste := bouton as OptionButton
 					publie.choix = range(liste.item_count).map(func(rang: int) -> String: return liste.get_item_text(rang))
@@ -419,10 +421,20 @@ static func saisies_a_l_ecran(racines: Array, defiles := false) -> Array:
 			var centre: Vector2 = champ.get_global_rect().get_center()
 			if champ.is_visible_in_tree() and champ.editable and (defiles or a_l_ecran(champ, centre)):
 				var publie := {texte = champ.text, x = centre.x, y = centre.y}
-				if champ.owner != null and champ.owner.has_meta(Zone.META):
-					publie.element = champ.owner.get_meta(Zone.META)
+				if element_de(champ) != null:
+					publie.element = element_de(champ)
 				saisies.append(publie)
 	return saisies
+
+
+## L'élément que dessine le composant de `noeud` (`Zone.META`), lu sur le premier de ses propriétaires qui le porte : un
+## composant qui en instancie un autre (`reglageEnPourcent.tscn` et sa réglette) le porte à sa racine ; `null` hors
+## d'un composant.
+static func element_de(noeud: Node) -> Variant:
+	var porteur := noeud.owner
+	while porteur != null and not porteur.has_meta(Zone.META):
+		porteur = porteur.owner
+	return null if porteur == null else porteur.get_meta(Zone.META)
 
 
 ## Les curseurs à l'écran sous `racines` : la glissière (`Slider`) réglable et visible de chaque composant qui dessine
@@ -432,9 +444,9 @@ static func curseurs_a_l_ecran(racines: Array, defiles := false) -> Array:
 	var curseurs := []
 	for racine in racines:
 		for glissiere: Slider in racine.find_children("*", "Slider", true, false):
-			if glissiere.is_visible_in_tree() and glissiere.editable and glissiere.owner != null and glissiere.owner.has_meta(Zone.META) and (defiles or a_l_ecran(glissiere, glissiere.get_global_rect().get_center())):
+			if glissiere.is_visible_in_tree() and glissiere.editable and element_de(glissiere) != null and (defiles or a_l_ecran(glissiere, glissiere.get_global_rect().get_center())):
 				var publie := glissiere_publiee(glissiere)
-				publie.element = glissiere.owner.get_meta(Zone.META)
+				publie.element = element_de(glissiere)
 				curseurs.append(publie)
 	return curseurs
 
@@ -489,46 +501,11 @@ func adresse(relative: String) -> String:
 
 
 ## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` et les
-## en-têtes `entetes` envoyés ;
+## en-têtes `entetes` envoyés, par le transport (`Transport.requeter`) ;
 ## vide, et une erreur à `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi),
-## ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un
-## bloc.
+## ou si `SILENCE_S` passe sans qu'un octet arrive.
 func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "", entetes := PackedStringArray()) -> PackedByteArray:
-	var requete := HTTPRequest.new()
-	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
-	# Sur le Web, le navigateur a déjà décompressé un corps `Content-Encoding: gzip` (GitHub Pages, #3778) : HTTPRequest
-	# ne le décompresse pas une seconde fois (`RESULT_BODY_DECOMPRESS_FAILED`).
-	requete.accept_gzip = false
-	add_child(requete)
-	var code := requete.request(adresse(relative), entetes, methode, corps)
-	if code != OK:
-		requete.queue_free()
-		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
-		return PackedByteArray()
-	var resultat := []
-	requete.request_completed.connect(func(issue: int, statut: int, en_tete: PackedStringArray, recu: PackedByteArray) -> void:
-		resultat.append_array([issue, statut, en_tete, recu]), CONNECT_ONE_SHOT)
-	var silence := Timer.new()
-	silence.one_shot = true
-	requete.add_child(silence)
-	silence.start(SILENCE_S)
-	var recus := 0
-	while resultat.is_empty() and not silence.is_stopped():
-		await get_tree().process_frame
-		if requete.get_downloaded_bytes() != recus:
-			recus = requete.get_downloaded_bytes()
-			silence.start(SILENCE_S)
-	if resultat.is_empty():
-		requete.cancel_request()
-		requete.queue_free()
-		recueil.append("requete-silencieuse : %s (aucun octet en %s s, %s reçus)" % [relative, SILENCE_S, recus])
-		return PackedByteArray()
-	requete.queue_free()
-	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
-		var raison: String = resultat[3].get_string_from_utf8()
-		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)%s" % [relative, resultat[0], resultat[1], " : " + raison if raison != "" else ""])
-		return PackedByteArray()
-	return resultat[3]
+	return await _transport.requeter(relative, recueil, methode, corps, entetes)
 
 
 ## Le fichier du genre `genre` (`IMAGES`, `HEROS`) que le joueur choisit sur son disque : `{ octets, type }`, son contenu

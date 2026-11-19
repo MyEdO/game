@@ -1,7 +1,8 @@
 """Revue d'un décor (#4335) : AVANT, les primitives de sa recette (`Gabarit.polygones`), APRÈS, son GLB, chacun habillé
 comme le jeu l'habille (`rendu.habiller_le_modele`, projeté : la texture de chaque `matiere` que porte le catalogue
 `rendu.CATALOGUE`, la couleur de son matériau sinon), rendus dans le même studio (`rendu.studio`) au même cadrage, celui
-du gabarit : de face, de trois-quarts et de dessus. `planche.png` les range en deux lignes, AVANT au-dessus d'APRÈS.
+du gabarit, élargi à la vue qui le déborde (`rendu.vues_de_revue`) : de face, de trois-quarts et de dessus.
+`planche.png` les range en deux lignes, AVANT au-dessus d'APRÈS.
 Un GLB et son manifeste se cherchent par id dans chaque dossier de `--modeles` (`rendu.trouver`). `--saison` (une saison de
 `src/data/weather.json`) montre APRÈS comme le jeu en cette saison : ses nœuds `sans-<saison>` cachés, ses nœuds `avec-<autre saison>` aussi, teint de
 la palette que son `selon` donne à la saison ; sans elle, le décor tel que bâti, tout nœud `avec-<saison>` caché.
@@ -21,9 +22,6 @@ import habillage  # noqa: E402
 import rendu  # noqa: E402
 from gabarit import Gabarit, vers_blender  # noqa: E402
 
-VUES = (("face", (0, -1, 0.05)), ("trois-quarts", (0.65, -1, 0.45)), ("dessus", (0, -0.001, 1)))
-LARGEUR, HAUTEUR = 640, 640
-
 
 def primitives(bpy, G):
     """Les primitives du gabarit `G`, un objet par primitive, chacun du matériau de sa matière ; et leur manifeste."""
@@ -42,27 +40,6 @@ def primitives(bpy, G):
         bpy.context.scene.collection.objects.link(obj)
         objets.append(obj)
     return objets, {"surfaces": [{"nom": m, "palette": None, "matiere": f"prop--{m}"} for m in sorted({p["material"] for p in G.primitives})]}
-
-
-def textures_au_catalogue(manifeste):
-    """Le manifeste réduit aux surfaces dont la matière a sa texture au catalogue, les autres gardant leur couleur."""
-    return {**manifeste, "surfaces": [s for s in manifeste.get("surfaces", [])
-                                      if "matiere" not in s or (rendu.CATALOGUE / f"{s['matiere']}.jpg").exists()]}
-
-
-def grille(bpy, lignes, sortie):
-    """Les images `lignes` (listes de chemins de même taille) en grille, la première ligne en haut, dans `sortie`."""
-    import numpy as np
-    rangees = []
-    for chemins in lignes:
-        images = [bpy.data.images.load(str(c)) for c in chemins]
-        rangees.append(np.concatenate([np.array(im.pixels[:], dtype=np.float32).reshape(im.size[1], im.size[0], 4) for im in images], axis=1))
-    tout = np.concatenate(rangees[::-1], axis=0)
-    resultat = bpy.data.images.new("planche", tout.shape[1], tout.shape[0])
-    resultat.pixels.foreach_set(tout.ravel())
-    resultat.filepath_raw = str(sortie)
-    resultat.file_format = "PNG"
-    resultat.save()
 
 
 def main():
@@ -92,8 +69,8 @@ def main():
     for o in importes:
         o.hide_render = True
     palette = {e: habillage.couleur_lineaire(c) for e, c in selon.get(args.saison, {}).get("palette", {}).items()}
-    rendu.habiller_le_modele(bpy, avant, textures_au_catalogue(manifeste_avant), None, False, {})
-    rendu.habiller_le_modele(bpy, apres, textures_au_catalogue(manifeste), None, False, palette)
+    rendu.habiller_le_modele(bpy, avant, manifeste_avant, None, False, {})
+    rendu.habiller_le_modele(bpy, apres, manifeste, None, False, palette)
     bas, hautes = rendu.bornes(bpy, avant)
     etendue = max(hautes.x - bas.x, hautes.y - bas.y, hautes.z - bas.z)
     rendre = rendu.studio(bpy, bas, (bas + hautes) / 2, etendue, sortie, debut)
@@ -103,10 +80,8 @@ def main():
             o.hide_render = False
         for o in caches:
             o.hide_render = True
-        for vue, direction in VUES:
-            rendre(f"{nom}-{vue}.png", direction, (bas + hautes) / 2, etendue * 1.12, LARGEUR, HAUTEUR)
-        lignes.append([sortie / f"{nom}-{vue}.png" for vue, _ in VUES])
-    grille(bpy, lignes, sortie / "planche.png")
+        lignes.append(rendu.vues_de_revue(rendre, sortie, nom, (bas + hautes) / 2, hautes - bas, etendue))
+    rendu.grille(bpy, lignes, sortie / "planche.png")
     print("PLANCHE", sortie / "planche.png", flush=True)
 
 

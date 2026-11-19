@@ -829,7 +829,7 @@ beforeEach(() => {
   avecLesTables({
     tablesTirables: { ...tablesDuJeu().tablesTirables, [TABLE_SONDE]: {
       label: fixtureText('Table de sonde'),
-      die: deDeLaTableTiree({ die: 'd100' }),
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
       lines: () => ['ligne de sonde'],
     } },

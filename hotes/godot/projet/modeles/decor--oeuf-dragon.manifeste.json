@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "oeuf-dragon"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "paille",
+      "palette": "corps",
+      "matiere": "prop--paille"
+    },
+    {
+      "nom": "ecaille",
+      "palette": "corps",
+      "matiere": "prop--ecaille"
+    }
+  ],
+  "glb": {
+    "sha256": "2d3c39c018e3565d419b22981ae8d4095b06a77112df0009febfdb393fbbc47f",
+    "octets": 149188
+  }
+}

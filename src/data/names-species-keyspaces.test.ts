@@ -6,14 +6,13 @@
  *    les 7 races jouables y ont pour slug exactement leur `RaceKey`.
  */
 import { describe, it, expect } from 'vitest';
-import namesJson from './names.json';
-import raceAppearanceJson from './raceAppearance.json';
+import { names, raceAppearance } from './index';
 import { slugId } from './slug';
 import { raceKeySchema } from './schemas/grammaire/valeurs';
 
 /** Ids des 7 DOCUMENTS de banque (#1467 L1b V-FLIP-RECORD : `names.json` est une LISTE). */
-const NAMES_KEYS = (namesJson as { id: string }[]).map((n) => n.id);
-const RACES = raceAppearanceJson as { id: string; label: string }[];
+const NAMES_KEYS = names.map((n) => n.id);
+const RACES = raceAppearance;
 const RACE_IDS = RACES.map((r) => r.id);
 const RACE_KEYS = raceKeySchema.options;
 

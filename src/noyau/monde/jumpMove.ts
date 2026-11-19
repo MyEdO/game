@@ -1,7 +1,7 @@
 import { Scene, heightAt, surfaceDAtterrissage } from './scene';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
-import { flowFromEffects, testFlow } from './flow';
-import { EMPTY_FLOW } from '../../engine/flowCore';
+import { flowFromEffects } from './flow';
+import { EMPTY_FLOW, testFlow } from '../../engine/flowCore';
 import type { Pt } from './path';
 import { jumpNeedsTest } from '../../engine/movement';
 import { combatStakeRef } from '../../data';
@@ -35,5 +35,5 @@ export function planJump(scene: Scene, takeoff: Pt, landing: Pt, movement: numbe
   const fall: Effect = { type: 'fall', target: 'groupe', metres, to: sol.to };
   // La réussite ne fait rien (on a déjà franchi, optimiste) ; l'échec déclenche `fall` dans le gouffre.
   const stake = combatStakeRef('saut-test', { values: { metres } });
-  return { kind: 'test', flow: testFlow({ ...test, stake }, EMPTY_FLOW, flowFromEffects([fall])) };
+  return { kind: 'test', flow: testFlow<Effect>({ ...test, stake }, EMPTY_FLOW, flowFromEffects([fall])) };
 }

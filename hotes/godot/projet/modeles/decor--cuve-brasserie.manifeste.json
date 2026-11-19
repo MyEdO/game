@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "cuve-brasserie"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "eau",
+      "palette": "accent",
+      "matiere": "prop--eau-dormante"
+    }
+  ],
+  "glb": {
+    "sha256": "088c821cd5d1393a2ca9349c549d0ae3ee91a0378f82be33147d505b63a73d33",
+    "octets": 80352
+  }
+}

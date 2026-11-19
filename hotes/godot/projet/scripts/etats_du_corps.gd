@@ -9,13 +9,13 @@ extends AnimationTree
 ## La pose a suivi l'état joué (`suivre`) : état neuf ou tenue neuve.
 signal suivi
 
-## Les rôles d'animation (`ROLES_D_ANIMATION`, `src/noyau/animation.ts`) que ses états jouent.
-const REPOS := "repos"
-const MARCHE := "marche"
-const ATTAQUE := "melee"
-const TIR := "tir"
-const COUP := "coup"
-const MORT := "mort"
+## Les rôles d'animation (`Noyau.Role`) que ses états jouent.
+const REPOS := Noyau.Role.REPOS
+const MARCHE := Noyau.Role.MARCHE
+const ATTAQUE := Noyau.Role.MELEE
+const TIR := Noyau.Role.TIR
+const COUP := Noyau.Role.COUP
+const MORT := Noyau.Role.MORT
 const ROLES := [REPOS, MARCHE, ATTAQUE, TIR, COUP, MORT]
 ## La bibliothèque du lecteur branché qui porte, sous le nom de chaque rôle, le clip que l'état de ce rôle joue.
 const BIBLIOTHEQUE := "role"

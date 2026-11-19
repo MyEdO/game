@@ -5,11 +5,19 @@ extends PontDuNoyau
 ## rendent leur réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée
 ## (`JSON.stringify`), `modeles/listage.json` le listage figé, et
 ## tout autre chemin le fichier du projet, rien s'il est absent (le dépôt de l'éditeur), chaque paramètre celui de `fige.parametres` ; il garde les entrées reçues hors de ces
-## trois et les chemins requêtés. Il est en recette (`en_recette`) : chaque écran publié est retenu dans `ecran`.
+## trois et les chemins requêtés. Il est en recette (`en_recette`) : chaque écran publié est retenu dans `ecran`. Tant
+## qu'il les retient (`retient`), chaque chemin requêté attend `relache` pour se rendre, comme celui qu'un pont lit au
+## réseau : `retenues` compte ceux qui attendent, `demandes` les garde.
+
+## Les chemins retenus se rendent.
+signal relache
 
 var fige: Dictionary
 var entrees: Array[String] = []
 var requetes: Array[String] = []
+var retient := false
+var retenues := 0
+var demandes: Array[String] = []
 
 
 func _init(lu: Dictionary) -> void:
@@ -38,6 +46,11 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 
 func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "", _entetes := PackedStringArray()) -> PackedByteArray:
 	requetes.append(relative)
+	if retient:
+		demandes.append(relative)
+		retenues += 1
+		await relache
+		retenues -= 1
 	if relative == "modeles/listage.json":
 		return JSON.stringify(fige.listage).to_utf8_buffer()
 	var chemin := "res://%s" % relative

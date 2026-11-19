@@ -56,8 +56,8 @@ extends Node
 ## la carrière, les Blessures en trait, puis une ligne de ce que la carte porte d'autre), « Quitter la partie » et «
 ## Nouveau héros » au pied du journal ; avant le lancement, les pré-tirés à recruter et les campagnes à lancer se
 ## rangent en deux colonnes sur la scène ; la barre du combat (`combat.offres`) tient le meuble de l'actif, à droite de
-## son portrait : l'Action (`economie/action`) en plaques (`plaque`), sous elles chaque autre choix en pastille
-## (`pastilleDeChoix`), en colonnes égales, la rangée débordant sous le portrait, son libellé sous elle, qui ouvre
+## son portrait : l'Action (`economie/action`) en plaques larges sous son ruban (`plaques`), sous elles chaque autre
+## choix en pastille (`pastilleDeChoix`), en colonnes, son libellé entier sous elle, qui ouvre
 ## au-dessus du meuble sa liste, son libellé en titre et ses
 ## valeurs en plaques en colonne, une seule liste ouverte dans l'écran, menu de la partie compris (`Ouvrante`), sauf la
 ## part du tour (`economie/aucun`), en bas à droite
@@ -121,6 +121,7 @@ func _ready() -> void:
 	_pont.suivre_les_listes(_ecran, _publier_l_ecran)
 	_monde.cadrage_change.connect(_recadrer)
 	_monde.volume.fondu_fini.connect(_publier_l_ecran)
+	_monde.volume.aretes_posees.connect(_publier_l_ecran)
 	_scene.resized.connect(func() -> void: _monde.cadre = _scene.get_global_rect())
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
@@ -130,6 +131,7 @@ func _ready() -> void:
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
+	_reglages.joue.connect(_jouer)
 	_salon.change.connect(_publier_l_ecran)
 	_salon.ferme.connect(_fermer_le_salon)
 	_salon.suite.connect(_suivre)
@@ -323,7 +325,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
-		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
+		_lumiere.eclairer(_vue.lumiere, _vue.plateau)
 	_musique.jouer(_vue.musique)
 	if _disposition.disposer(_vue.disposition, _vue.projection.combat != null):
 		_relier()
@@ -338,8 +340,9 @@ func _suivre(reponse: Dictionary) -> void:
 
 
 ## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
-## (`Plateau.poser_le_monde`), s'il n'y est pas déjà : son manifeste (`monde`), et la géométrie des seules clés dont
-## l'empreinte posée diffère (`VolumeDeScene.manquants`, `morceaux` de la partie), demandée s'il en manque.
+## (`Plateau.poser_le_monde`), s'il n'y est pas déjà : son manifeste (`monde`), la géométrie des seules clés dont
+## l'empreinte posée diffère (`VolumeDeScene.manquants`, `morceaux` de la partie), demandée s'il en manque, et la zone
+## jouable du plateau (`plateau.zoneJouable`), que vise le cadrage.
 func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuMonde]
 	if cle == _cle_du_monde:
@@ -354,7 +357,8 @@ func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 		recus = _pont.appeler("morceaux", manquants.merged({source = "partie"}))
 		if recus.get("ok") != true:
 			return
-	_plateau.poser_le_monde(monde, recus)
+	var zone: Dictionary = plateau.zoneJouable
+	_plateau.poser_le_monde(monde, recus, Rect2i(int(zone.x), int(zone.y), int(zone.w), int(zone.h)))
 
 
 ## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le
@@ -431,7 +435,8 @@ func _publier_l_ecran() -> void:
 ## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
 ## vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de la fenêtre que l'ossature laisse à la scène
 ## (`Monde.cadre`), l'emprise de ses panneaux (`PontDuNoyau.panneaux_a_l_ecran`), ce que porte le corps de chaque
-## combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
+## combattant dessiné (`Plateau.corps`), les navires posés (`Plateau.navires`) et si les arêtes sont toutes posées
+## (`VolumeDeScene.aretes_en_lecture`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	var racines := [_ecran, _scenarios, _sauvegardes, _reglages.racine(), _salon.racine(), _compendium.racine()]
@@ -440,6 +445,7 @@ func _ecran_publie() -> Dictionary:
 		panneaux = PontDuNoyau.panneaux_a_l_ecran(racines), cases = _plateau.points(), glisse = _monde.glisse(),
 		fondu = _monde.volume.part_du_fondu() != 1.0,
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
+		aretes_lues = not _monde.volume.aretes_en_lecture(),
 		compendium = {zones = _compendium.vues()},
 	}
 

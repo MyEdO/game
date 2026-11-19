@@ -1,0 +1,13 @@
+{
+  "model": "decor--chandelier.glb",
+  "model_sha256": "046cf324276e46c57cd15f5bf6857a85f28c59ef465e7ecf845b7d66c60a24ab",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -31,7 +31,7 @@ function monter(categoryKey: string, id: string) {
   act(() => { root.render(<CodexEdit categoryKey={categoryKey} id={id} onClose={() => {}} />); });
 }
 
-const champDuDe = () => container.querySelector<HTMLInputElement>('input[aria-label="Dé de tirage"]');
+const champDuDe = (part: 'nombre de dés' | 'faces') => container.querySelector<HTMLInputElement>(`input[aria-label="Dé de tirage — ${part}"]`);
 
 function saisir(champ: HTMLInputElement, valeur: string) {
   act(() => {
@@ -46,24 +46,25 @@ describe('atelier du Codex — dé de tirage de la table', () => {
   it('le dé du document de Critiques s’édite avec une rangée et s’enregistre par le seam', async () => {
     const rangee = (datasetArray('criticalsCorps') as { id: string }[])[0];
     monter('criticalsCorps', rangee.id);
-    expect(champDuDe()!.value).toBe('d100');
-    saisir(champDuDe()!, '2d10');
+    expect([champDuDe('nombre de dés')!.value, champDuDe('faces')!.value]).toEqual(['1', '100']);
+    saisir(champDuDe('nombre de dés')!, '2');
+    saisir(champDuDe('faces')!, '10');
     const enregistrer = container.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!;
     expect(enregistrer.disabled, 'le dé saisi n’a rien rendu modifié').toBe(false);
     await act(async () => { enregistrer.click(); });
-    expect(deDeLaTable('criticalsCorps')).toBe('2d10');
+    expect(deDeLaTable('criticalsCorps')).toEqual({ n: 2, sides: 10 });
   });
 
-  it('une expression illisible n’est pas retenue', () => {
+  it('zéro dé n’est pas retenu', () => {
     const rangee = (datasetArray('criticalsCorps') as { id: string }[])[0];
     monter('criticalsCorps', rangee.id);
-    saisir(champDuDe()!, 'beaucoup');
-    expect(champDuDe()!.value).toBe('d100');
+    saisir(champDuDe('nombre de dés')!, '0');
+    expect(champDuDe('nombre de dés')!.value).toBe('1');
   });
 
   it('une Table de Corruption, dont le dé est un champ de l’entrée, n’offre pas le dé de la table', () => {
     const table = (datasetArray('mutationTables') as { id: string }[])[0];
     monter('mutationTables', table.id);
-    expect(champDuDe()).toBeNull();
+    expect(champDuDe('nombre de dés')).toBeNull();
   });
 });

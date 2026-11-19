@@ -6,7 +6,7 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
-  psychBranchOps, sousPeur, isAfflictionActive, endEncounterPsych, type PsychAffliction, type PsychType,
+  psychBranchOps, sousPeur, isAfflictionActive, endEncounterPsych, type PsychAffliction,
 } from './psychology';
 import { applyOps } from './ops';
 import { opPsy } from './psych/opsPsy';
@@ -81,7 +81,7 @@ describe('schéma de la pose d’auteur (LDB 21 l.56, l.17-19)', () => {
 });
 
 describe('upsert de la pose (LDB 21 l.9, l.25, l.54-56)', () => {
-  const type = () => etendue!.id as PsychType;
+  const type = () => etendue!.id;
 
   it('une pose d’auteur remet sous la Peur une Peur surmontée, et son Test étendu repart de zéro', () => {
     const c = porteur([{ type: type(), indice: 2, calmeDR: 2, surmontee: true }]);
@@ -99,8 +99,8 @@ describe('upsert de la pose (LDB 21 l.9, l.25, l.54-56)', () => {
   });
 
   it('la Peur héritée, fusionnée sur une entrée née d’un Test de même source, garde la mémoire « déjà affrontée »', () => {
-    const c = porteur([{ type: devenue!.id as PsychType, sourceId: 'src', indice: 1, calmeDR: 0, surmontee: false, fromTest: true }]);
-    applyOps(c, psychBranchOps({ kind: devenant!.id as PsychType, sourceId: 'src', indice: 3 }, { success: true }), { idNeuf: idsDeTest, rng: desDuTest, sl: 1 });
+    const c = porteur([{ type: devenue!.id, sourceId: 'src', indice: 1, calmeDR: 0, surmontee: false, fromTest: true }]);
+    applyOps(c, psychBranchOps({ kind: devenant!.id, sourceId: 'src', indice: 3 }, { success: true }), { idNeuf: idsDeTest, rng: desDuTest, sl: 1 });
     expect(c.psychState).toHaveLength(1);
     expect(c.psychState![0].fromTest).toBeUndefined();
     endEncounterPsych(c);

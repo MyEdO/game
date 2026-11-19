@@ -11,7 +11,7 @@ import gabaritsJson from '../../gabarits.json';
 import raceAppearanceJson from '../../raceAppearance.json';
 
 type Entree = { id: string; [k: string]: unknown };
-const races = (): Entree[] => structuredClone(raceAppearanceJson) as Entree[];
+const races = (): Entree[] => structuredClone(raceAppearanceJson);
 const avecRace = (champs: Record<string, unknown>): Entree[] => {
   const doc = races();
   const humain = doc.find((r) => r.id === 'humain')!;
@@ -31,7 +31,7 @@ describe('gabarits.json — facteurs de carrure (#2972)', () => {
   });
 
   it('un facteur requis absent ou non positif est refusé', () => {
-    const [premier, ...reste] = structuredClone(gabaritsJson) as Entree[];
+    const [premier, ...reste] = structuredClone(gabaritsJson);
     const { legs: _legs, ...sansJambes } = premier;
     refus(schema, [sansJambes, ...reste]);
     refus(schema, [{ ...premier, st: 0 }, ...reste]);

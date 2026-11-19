@@ -17,9 +17,7 @@ import { TypeFlags } from 'typescript/unstable/sync';
 // injecté ici par le consommateur TS. Il sort du périmètre dérivé, et une entrée de la table sur lui
 // sort en `stale` — une cible ne se déclare qu'une fois. Que le parse juge CHAQUE occurrence est
 // prouvé par le consommateur : tout nœud `GameOp` que ce scan visite (`noeudsDOp`) est un nœud d'op
-// ATTEINT par le parse de mesure (`opsDuParse`, `scripts/docs/lib/slots-registre.mts`), hors d'un
-// stock nominatif dont chaque chaîne de champ à slot est une case validée par `idDe` au parse de son
-// document (`slotsDOpNonJuges`, même fichier).
+// ATTEINT par le parse de mesure (`opsDuParse`, `scripts/docs/lib/slots-registre.mts`).
 // Cette table garde le RESTE, et chaque reste a son lot de mort :
 //   - `registry` : un champ d'op que le parse ne juge pas — op de `OPS_NON_TYPEES`
 //     (`src/data/schemas/grammaire/mecanique.ts`) ou champ à plat d'une op typée ; il meurt au typage de
@@ -41,7 +39,7 @@ import { TypeFlags } from 'typescript/unstable/sync';
 //     `idDe`), la Condition `skill` aussi (`refOuSpec`) ; `TriggeredEffect.trigger` est une énumération
 //     fermée du schéma ; l'`id` des Conditions `career`, `species` et `capability` n'est résolu par aucune
 //     garde de donnée (#3067) ;
-//   - les ops construites au RUNTIME (`engine/miscast.ts::expandOp`, `polymorphOps`) : le scan ne lit
+//   - les ops construites au RUNTIME (`engine/miscast.ts::lierLesOps`, `polymorphOps`) : le scan ne lit
 //     que des fichiers `.json` commités ;
 //   - les valeurs non-`string` (une ref posée en nombre ou en objet ne serait pas comparée).
 //
@@ -75,7 +73,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'grantFreeAttack.label': { nonRef: 'libellé de l\'option d\'attaque surfacée au Tour' },
   'giveTrapping.custom': { nonRef: 'objet CUSTOM (misc), défini par ce nom faute d\'entrée de catalogue (src/engine/items.ts › itemFromGive)' },
   'grantNaturalWeapon.attackKind': { nonRef: 'kind d\'attaque naturelle, lu par le maniement (src/noyau/animation.ts) — espace de noms du geste, pas un registre de données' },
-  'rollTable.die': { nonRef: 'expression de dé (« d10 », « 2d10 »), validée au parse par `deDeTirageSchema` (src/data/schemas/grammaire/valeurs.ts) et lue en `DeDeTable` par `deDeTirageDe` (src/engine/ops.ts › applyOps, `case \'rollTable\'`)' },
   'transform.tag': { nonRef: 'étiquette de GROUPEMENT des effets posés, relue par `endTransform` (retrait atomique)' },
   'endTransform.tag': { nonRef: 'étiquette de groupement posée par `transform`' },
   'scheduleRespawn.cancelFlag': { nonRef: 'nom de drapeau de SCÈNE posé par un Effet, espace de noms de l\'auteur de scène' },

@@ -71,7 +71,7 @@ import type {
 } from './pendings';
 import type { MedicState } from './acteDeSoin';
 import type { PendingRest } from './restFlow';
-import type { PendingCouncil } from './shipCrew';
+import type { PendingCouncil, PosteDuBord } from './shipCrew';
 import type { Scene, VictoryCondition } from './monde/scene';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { Pt } from './monde/path';
@@ -116,8 +116,14 @@ export interface TourEnCours {
 }
 
 /** La série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`). `apresSuite` : la suite que le dé `nombre` faisait
- *  attendre (#1508), remise par son applier et jouée à la sortie unique de la série (`fermerLaSerieSubie`). */
-export interface SerieSubie { assaillant: Combatant; cibleId: string; avant: Combatant; restantes: number; apresSuite?: Suite }
+ *  attendre (#1508), remise par son applier et jouée à la sortie unique de la série (`fermerLaSerieSubie`). L'hôte de
+ *  la cible : le groupe, qui la rend telle qu'`avant` la rencontre (`sortieDeRencontre`), ou la série, qui héberge le
+ *  `membre` de l'équipage tiré à son `poste` (`MembreDuBord`). MDG 15 l.161-164, l.176-178 */
+export type SerieSubie = { assaillant: Combatant; cibleId: string; restantes: number; apresSuite?: Suite }
+  & ({ avant: Combatant; membre?: never } | { membre: MembreDuBord; avant?: never });
+
+/** Un membre de l'équipage que la série d'attaques subies héberge : son combattant, au profil de son rôle, et son poste. */
+export interface MembreDuBord { combattant: Combatant; poste: PosteDuBord }
 
 /** Une Blessure critique suspendue à son étape (`etapeId`, Déviation `self` ou Piège-à-lame) : `avantLeCoup`, le porteur
  *  tel qu'avant le coup (`instantaneAvantLeCoup`), lu et retiré par l'applier de l'étape. LDB 17 l.32 */
@@ -275,6 +281,10 @@ export interface PaquetALancer {
  *  UN type, lu par l'état comme par son poseur : les deux ne peuvent plus diverger. */
 export type PendingInteract = { id: string; actionId?: string; at: Pt };
 
+/** Les registres de l'équipage par rôle : les salariés (`crew`), puis les recueillis sans solde. MDG 14 l.293-302 ; MDG 15 l.258 */
+export const REGISTRES_DU_BORD = ['crew', 'recueillisSansSolde'] as const satisfies readonly (keyof CampaignVessel)[];
+export type RegistreDuBord = (typeof REGISTRES_DU_BORD)[number];
+
 /** Navire que le groupe possède/commande en campagne — survit aux jours et aux combats (≠ la coque
  *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). Ses champs
  *  d'état sont OPTIONNELS : une save antérieure charge tel quel, chaque point de lecture porte son
@@ -322,6 +332,9 @@ export interface CampaignVessel {
    *  plafonné au complément nominal du type (`vehicles.json` ship.crew — `applyVesselCrewLoss`). Absent
    *  = aucune perte. #150. */
   crewLost?: number;
+  /** L'équipage PNJ, UN porteur de maladies collectif sans fiche ; lu et écrit par `porteursABord` (`shipCrew.ts`), vidé
+   *  quand l'effectif PNJ tombe à 0 (`applyVesselCrewLoss`). MDG 14 l.172, l.208-209, l.230-232. Absent = équipage sain. #4243 */
+  porteurDeLEquipage?: Pick<import('../engine/disease').PorteurDeMaladies, 'diseases' | 'regimeDeBord'>;
   /** #216 — Équipage SALARIÉ embauché (barème `crew-roles.json`). Absent/vide = aucun équipage salarié
    *  = aucune paie prélevée à l'entretien hebdomadaire. */
   crew?: import('../engine/crewMorale').CrewHire[];

@@ -6,7 +6,9 @@ extends SceneTree
 ## de pile du corps et de la manche qui le couvre. La réponse reçue pour cette demande (`recevoir_la_pile`) se fond :
 ## le triangle masqué du corps ne se dessine plus, son triangle gardé est à ses sommets reculés, pour un quart sur son
 ## os et trois quarts sur celui qu'il gagne, lié au repère que la manche lui donne ; les pièces gardent leurs meshes. La réponse d'une autre demande est
-## oubliée. La manche cachée, la tenue est d'une seule pièce : la fusion se refait sans pile.
+## oubliée. La manche cachée, la tenue est d'une seule pièce : la fusion se refait sans pile. La manche remontrée et sa
+## demande en vol (`_pile_demandee`, que pose `_empiler` sous un pont prêt), aucune fusion ; une réponse en échec pour
+## cette demande se fond sans pile, sans bilan ni demande en vol.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
@@ -93,6 +95,20 @@ func _recetter() -> void:
 	montage.refondre()
 	if _triangles(montage.fusion) != 2 or not montage.pile_posee().is_empty():
 		_fautes.append("la manche cachée, %d triangles fondus et la pile %s, attendu 2 sans pile" % [_triangles(montage.fusion), montage.pile_posee()])
+
+	manche.visible = true
+	montage.pile = {}
+	montage.refondre()
+	signature = montage.get("_pile_fondue")
+	montage.set("_pile_demandee", signature)
+	montage.refondre()
+	if montage.fusion != null:
+		_fautes.append("une fusion alors que la pile de ce qui est fondu est attendue")
+	montage.recevoir_la_pile({ok = false}, signature)
+	if montage.fusion == null:
+		return _finir("en échec, aucune fusion")
+	if _triangles(montage.fusion) != 4 or not montage.pile_posee().is_empty() or montage.get("_pile_demandee") != "":
+		_fautes.append("en échec, %d triangles fondus, la pile %s et la demande « %s », attendu 4 sans pile ni demande" % [_triangles(montage.fusion), montage.pile_posee(), montage.get("_pile_demandee")])
 	_finir()
 
 

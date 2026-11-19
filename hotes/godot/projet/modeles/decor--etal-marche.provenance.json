@@ -1,0 +1,13 @@
+{
+  "model": "decor--etal-marche.glb",
+  "model_sha256": "aae87d1054e88cbb4e965a84a9d0c42864f5bb7c3da9a1342c441f05cf9ecfde",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -212,7 +212,7 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
     const h = noble('h1');
     banc.setState({ party: [h] });
     runFlow(banc.getState, banc.setState, testFlow(
-      { skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: 'Bronze 1', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW,
+      { skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: { tier: 'bronze', standing: 1 }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW,
     ));
     const pt = banc.getState().pendingTest!;
     const statut = ligneDe(pt.mods, RULE_REF.statut)!;
@@ -232,7 +232,7 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
         seedBattleRng(seed);
         banc.setState({ pendingTest: null, pendingCascade: null });
         runFlow(banc.getState, banc.setState, testFlow(
-          { skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: 'Bronze 1', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW,
+          { skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: { tier: 'bronze', standing: 1 }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW,
         ));
         const cur = banc.getState().pendingTest!;
         if ((cur.psychMod ?? 0) < 0) pt = cur; // inversion tirée (le mod d'un Or vers un Bronze est +10)

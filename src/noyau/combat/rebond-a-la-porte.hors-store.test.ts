@@ -54,7 +54,7 @@ const cr = (sl: number): CastResult =>
 function lancerLaChaine(caster: Combatant, cible: Combatant, sl = 4): void {
   const spell = findSpellById('attaques-en-chaine')!;
   const res = evaluateMissile(caster, cible, spell, cr(sl));
-  applyCast(banc.getState, banc.setState, caster, cible, spell, res, true, false);
+  applyCast(banc.getState, banc.setState, caster, [cible], spell, res, true, false);
 }
 
 /** Cible mourante à 1 PB : toute touche la « réduit à 0 Blessure ». */

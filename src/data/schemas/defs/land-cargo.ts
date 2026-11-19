@@ -76,9 +76,8 @@ const champs = {
     offreParRichesse: { label: 'Mise à prix selon la Richesse' },
     source: { label: 'Source' },
   }),
-  ragot: nommerChamps(z.strictObject({ difficulty: difficultySchema, mod: z.number(), source: sourceRefSchema }), {
+  ragot: nommerChamps(z.strictObject({ difficulty: difficultySchema, source: sourceRefSchema }), {
     difficulty: { label: 'Difficulté' },
-    mod: { label: 'Modificateur' },
     source: { label: 'Source' },
   }),
   /** MSRC 13 l.283 */
@@ -113,7 +112,7 @@ const doc = document(
     },
     achat: { label: "Règles d'achat", hint: 'Barème de Marchandage, disponibilité, seuils de dégustation du vin' },
     vente: { label: 'Règles de vente', hint: 'Cible de production, bonus de Commerce, bradage, offre par richesse du lieu' },
-    ragot: { label: 'Ragot', hint: 'Difficulté et modificateur du Test de Ragot préalable à la vente' },
+    ragot: { label: 'Ragot', hint: 'Difficulté du Test de Ragot préalable à la vente' },
     rumeurs: { label: 'Rumeurs', hint: 'Table de tirage de rumeurs commerciales' },
   },
   { codex: { keys: ['landCargo'] }, edit: { object: 'unique' } },

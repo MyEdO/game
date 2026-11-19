@@ -54,7 +54,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
     });
     try {
       // `etat` est un `Get` : un lecteur de la surface s'y branche sans cast.
-      expect(previewAttack(partie.etat, combattant(partie, H.id), combattant(partie, E.id)).soak, 'l’aperçu ne lit pas la cible').toBeGreaterThan(0);
+      expect(previewAttack(partie.etat, combattant(partie, H.id), combattant(partie, E.id)).inRange, 'l’aperçu ne mesure pas la cible').toBe(true);
       partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
       expect(partie.etat().pendingAttack, 'la déclaration n’a pas ouvert la fenêtre d’attaque').toMatchObject({ targetId: E.id, result: null });
       partie.envoyer({ type: 'jetLancer', args: ['attaque'] });

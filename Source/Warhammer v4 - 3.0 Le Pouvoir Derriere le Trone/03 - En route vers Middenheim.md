@@ -1,11 +1,11 @@
 *Pages PDF 9-31*
 
-#### **Middenheim**
+#### <span id="page-8-0" data-folio="6"></span>**Middenheim**
 
 La dernière étape du voyage est la plus courte en distance, mais peut souvent prendre autant de temps que les autres. Tous les arrivants doivent se soumettre à certaines formalités, essentiellement liées aux nouvelles lois fiscales de la ville, et attendre leur tour pour emprunter l'une des chaussées ou l'un des télésièges qui relient le pied de l'Ulricsberg, ou Fauschlag, à la ville.
 
 
-### NOUVELLES ET RUMEURS
+### <span id="page-16-0" data-folio="14"></span>NOUVELLES ET RUMEURS
 
 Ces rumeurs peuvent être entendues en chemin, à l'un des différents arrêts en cours de route ou par le biais de compagnons de voyage. Lancez un d10 pour choisir au hasard ou sélectionnez une rumeur appropriée au PNJ en question. Si les rumeurs liées aux conflits et aux taxes à Middenheim servent à créer l'ambiance générale pour le reste de l'aventure, n'oubliez pas de mentionner également l'agitation du peuple de l'Empire. Cette anticipation vous sera utile si vous poursuivez avec *Le Rat Cornu* et *L'Empire en Ruines,* qui sont les deux derniers chapitres de **L'Ennemi Intérieur**.
 
@@ -309,7 +309,7 @@ Kurt est, lui aussi, une personne affable qui se prend pour un conteur amusant e
 **Possessions :** justaucorps de cuir, 2 dagues, bourse contenant 1 CO et 10/-
 
 
-### **Konrad Alpiger**
+### <span id="page-26-0" data-folio="24"></span>**Konrad Alpiger**
 
 I
 
@@ -363,7 +363,7 @@ En années humaines, Tiasmara semble avoir la trentaine, mais elle a en réalit�
 
 ### LA MAIN POURPRE : RÉSUMÉ
 
-<span id="page-28-0" data-folio="26"></span>I
+<span id="page-27-0" data-folio="25"></span><span id="page-28-0" data-folio="26"></span>I
 
 Depuis leur arrivée à Altdorf dans *L'Ennemi dans l'Ombre*, les Personnages sont surveillés par des agents de la Main Pourpre. Les dirigeants de cette secte sont convaincus que l'un des Personnages est un membre de la Main Pourpre de haut rang, Kastor Lieberung, qui a récemment reçu un héritage conséquent. Malgré plusieurs tentatives de contact, « Lieberung » ne s'est pas montré enclin à remettre sa fortune aux dirigeants du culte, comme cela lui a été ordonné. En réalité, il n'y a aucun héritage, il s'agissait d'un mensonge raconté par un chasseur de primes pour tendre un piège aux cultistes, mais les dirigeants de la Main Pourpre ne le savent pas. Les Personnages eux-mêmes l'ont appris à leurs dépens lors de leur visite à Bögenhafen.
 

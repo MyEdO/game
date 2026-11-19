@@ -47,6 +47,8 @@ import {
   lacherLArme,
   tientUneArme,
   porteeDeTir,
+  loadWeapon,
+  loadedAmmo,
 } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
@@ -947,6 +949,27 @@ describe('Munitions & rechargement', () => {
     // La Flèche n'a pas de modificateur de Dégâts → reste +9.
     expect(damageString(w.damage)).toBe('+9');
   });
+  describe('weaponWithAmmo : qualité de la munition majorée (+N) ou à Indice (#4346, #4361)', () => {
+    const arme = (id: string) => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
+    const tir = (armeId: string, munitionId: string) => weaponWithAmmo(arme(armeId), itemFromTrappingById(munitionId, idsDeTest)!);
+    const indice = (w: Weapon, id: string) => w.qualities.find((q) => q.id === id)?.value;
+    it.each([
+      ['tromblon', 'petites-munitions-et-poudre', 'a-explosion', 4], // Explosion 3 + 1 : LDB 62 l.123, arbitrage #4346 « +1 (Recommandé) »
+      ['tromblon-a-meche', 'petites-munitions-et-poudre', 'a-explosion', 1], // arme sans Explosion : arbitrage #4346 « La qualité à N (Recommandé) »
+      ['tromblon-a-meche', 'ferraille-et-poudre', 'tir-de-zone', 6], // Tir de zone 3 + 3 : AA 08 l.496
+      ['mortier-a-main', 'grappin-munition', 'recharge', 4], // Recharge 2 + 2 : AA 08 l.497
+      ['mortier-ade2', 'bombe-incendiaire-mortier', 'a-explosion', 4], // la munition remplace : arbitrage #4361 « Celle de la munition (Recommandé) »
+      ['canon-ade2', 'boulet-et-poudre', 'a-explosion', 2],
+    ])('%s + %s : %s %d, et l’arme tirée ne porte aucune majoration', (armeId, munitionId, qualite, attendu) => {
+      const w = tir(armeId, munitionId);
+      expect(indice(w, qualite)).toBe(attendu);
+      expect(w.qualities.filter((q) => q.majoration != null)).toEqual([]);
+    });
+    it('une qualité de munition sans Indice laisse celle de l’arme inchangée (Empaleuse de la Flèche)', () => {
+      const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'empaleuse' }], subType: 'arc', reload: 0 };
+      expect(weaponWithAmmo(arc, itemFromTrappingById('fleche', idsDeTest)!).qualities).toEqual([{ id: 'empaleuse' }]);
+    });
+  });
   it('compatibleAmmo filtre par subType et qty>0', () => {
     const c = { items: [itemFromTrappingById('fleche', idsDeTest), itemFromTrappingById('carreau', idsDeTest)] } as unknown as Combatant;
     const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [], subType: 'arc', reload: 0 };
@@ -965,6 +988,37 @@ describe('Munitions & rechargement', () => {
     const c = { items: ['carreau-de-baliste', 'mitraille-et-poudre', 'bombe-de-mortier'].map((id) => itemFromTrappingById(id, idsDeTest)) } as unknown as Combatant;
     const canon = weaponFromItem(itemFromTrappingById('canon-moyen', idsDeTest)!);
     expect(compatibleAmmo(c, canon).map((a) => a.trappingId)).toEqual(['mitraille-et-poudre']);
+  });
+  describe('munitions d’Aux Armes : chacune se charge dans sa famille d’arme (AA 08 l.366-381, l.486-500 ; #4356)', () => {
+    const MUNITIONS_AA = ['baton-pointu', 'fleche-barbelee', 'fleche-bodkin', 'bille-de-plomb', 'caillou', 'balle-de-gros-calibre-et-poudre', 'bombe-explosive', 'cartouche-en-papier', 'cartouche-et-poudre-de-precision', 'ferraille-et-poudre', 'grappin-munition', 'poudre-impregnee-d-aqshy'];
+    const porteur = () => ({ items: MUNITIONS_AA.map((id) => itemFromTrappingById(id, idsDeTest)!) }) as unknown as Combatant;
+    const arme = (id: string) => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
+    const chargees = (id: string) => compatibleAmmo(porteur(), arme(id)).map((a) => a.trappingId);
+    it('Arc : bâton pointu, flèches barbelée et bodkin, rien d’autre (AA 08 l.372-376)', () => {
+      expect(chargees('arc').sort()).toEqual(['baton-pointu', 'fleche-barbelee', 'fleche-bodkin']);
+    });
+    it('Fronde : bille de plomb et caillou, rien d’autre (AA 08 l.378-380)', () => {
+      expect(chargees('fronde').sort()).toEqual(['bille-de-plomb', 'caillou']);
+    });
+    it.each([
+      ['tromblon', ['ferraille-et-poudre']], // AA 08 l.482
+      ['arquebuse', ['cartouche-en-papier', 'cartouche-et-poudre-de-precision', 'poudre-impregnee-d-aqshy']], // AA 08 l.528-530, l.544
+      ['haquebute', ['balle-de-gros-calibre-et-poudre']], // AA 08 l.517
+      ['mortier-a-main', ['balle-de-gros-calibre-et-poudre', 'bombe-explosive', 'grappin-munition']], // AA 08 l.517, l.521, l.534
+    ])('%s charge %j (AA 08 l.487)', (id, attendues) => {
+      expect(chargees(id)).toEqual(expect.arrayContaining(attendues));
+    });
+    it('Porte : la Ferraille chargée dans un tromblon part au tir avec ses Dégâts, Infecté et sa Portée moitié (AA 08 l.495, l.532)', () => {
+      const c = porteur();
+      const tromblon = { ...arme('tromblon'), ammoUid: c.items!.find((a) => a.trappingId === 'ferraille-et-poudre')!.uid };
+      loadWeapon(c, tromblon);
+      const munition = loadedAmmo(c, tromblon)!;
+      expect(munition.trappingId).toBe('ferraille-et-poudre');
+      const tir = weaponWithAmmo(tromblon, munition);
+      expect(damageString(tir.damage)).toBe('+7');
+      expect(tir.qualities.some((q) => q.id === 'infecte')).toBe(true);
+      expect(porteeDeTir(c, tromblon)).toBe(10);
+    });
   });
   it('recomputeLoadout dérive reload depuis « Recharge N » + subType', () => {
     const c = {

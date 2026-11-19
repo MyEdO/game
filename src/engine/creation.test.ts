@@ -294,7 +294,7 @@ describe('Couleur des yeux / des cheveux — le tirage suit le dé de sa table (
   const humain = findSpeciesById('humains-reiklander')!;
   const tirages = (tirer: typeof rollEyes) => new Set(Array.from({ length: 300 }, (_, seed) => tirer(humain.refChar, makeRNG(seed))));
   it('à 1d10 posé par le seam, aucune couleur au-delà du seuil 10 (LDB 05 l.745-749, l.759-763)', () => {
-    sousLeDe('eyes', '1d10', () => sousLeDe('hairs', '1d10', () => {
+    sousLeDe('eyes', { n: 1, sides: 10 }, () => sousLeDe('hairs', { n: 1, sides: 10 }, () => {
       expect(tirages(rollEyes)).toEqual(new Set(['Au choix', 'Vert', 'Bleu pâle', 'Bleu', 'Gris pâle']));
       expect(tirages(rollHair)).toEqual(new Set(['Blond blanc', 'Blond doré', 'Blond roux', 'Brun doré', 'Brun clair']));
     }));

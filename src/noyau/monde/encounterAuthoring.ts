@@ -11,7 +11,7 @@
  */
 import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import type { FlowDeScene } from '../../data/schemas/defs-scenes/effets';
 import type { OptionalDeScene } from '../../data/schemas/defs-scenes/scene';
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
 import type { SkillRefDesignee } from '../../data';
@@ -59,7 +59,7 @@ export interface AuthoredEncounter {
   enemies: AuthoredEnemy[];
   /** Camp pris en embuscade (Test de Surprise opposé, LDB 13). */
   surprise?: 'groupe' | 'ennemis';
-  onVictory?: Flow;
+  onVictory?: FlowDeScene;
   /** Invisibles en exploration jusqu'au combat (embuscade visuelle). Défaut : false (visibles). */
   hidden?: boolean;
   /** Avantage initial — Manœuvrabilité (AA 11 l.53-65), cf. `EncounterDef.maneuverability`. */

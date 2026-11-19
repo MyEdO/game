@@ -3,7 +3,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { cibleEtendueSchema, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { flowTestSchema, porteurDeTestFixe } from '../grammaire/mecanique';
+import { testFixeSchema, porteurDeTestFixe } from '../grammaire/mecanique';
 
 export const file = 'steam-breakdown.json';
 export const famille = 'config';
@@ -25,7 +25,7 @@ export const rangee = nommerChamps(z.strictObject({
   restart: z
     .array(
       nommerChamps(porteurDeTestFixe(z.strictObject({
-        test: flowTestSchema,
+        test: testFixeSchema,
         ...cibleEtendueSchema.partial().shape,
       }), 'difficulty'), {
         test: { label: 'Test' },

@@ -1,8 +1,9 @@
 /**
  * SLOTS DE JET — le slot `pending*` qui porte la donnée de chaque jet qu'une étape de cascade hôte,
- * et les prédicats purs qui en lisent l'état (orphelin, sans corps, en attente). Types seuls importés.
+ * et les prédicats purs qui en lisent l'état (orphelin, sans corps, en attente).
  */
 import type { Jeu } from './etat';
+import { combattantsDeLaSerie } from './monde/combatants';
 import type { CascadeStep } from './pendings';
 import type { PendingKey } from './stateFields';
 
@@ -62,8 +63,8 @@ export function sansCorps(s: Partial<Jeu>, step: CascadeStep | undefined): boole
   if (!step?.jet) return false;
   const slot = PENDING_BY_JET[step.jet];
   if (slot && s[slot] == null) return true;
-  // Les acteurs : la file de combat, hors combat le groupe et l'assaillant de la série d'attaques subies (`serieSubie`).
-  const pool = s.battle?.combatants ?? [...(s.party ?? []), ...(s.serieSubie ? [s.serieSubie.assaillant] : [])];
+  // Les acteurs : la file de combat, hors combat le groupe et les combattants de la série d'attaques subies.
+  const pool = s.battle?.combatants ?? [...(s.party ?? []), ...combattantsDeLaSerie(s)];
   const present = (id: string | undefined): boolean => !!id && pool.some((c) => c.id === id);
   switch (step.jet) {
     case 'attaque': return !present(s.pendingAttack?.attackerId) || !present(s.pendingAttack?.targetId);

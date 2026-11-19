@@ -56,7 +56,7 @@ beforeEach(() => {
   banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, ownership: {} } } as never);
   avecLesTables({ plis: { ...tablesDuJeu().plis, [KIND_A_PLI]: (step) => step }, tablesTirables: { ...tablesDuJeu().tablesTirables, [TABLE]: {
     label: 'Table des mints',
-    die: deDeLaTableTiree({ die: 'd100' }),
+    die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
     rows: [{ min: 1, max: 50, id: 'basse' }, { min: 51, max: 100, id: 'haute' }],
     lines: (die) => [`ligne ${die}`],
     entryCategory: 'mutations',
@@ -150,8 +150,8 @@ describe('#1262 — tableStep / tableStepDone : DEUX entrées, jamais un drapeau
     })!;
     expect(step.table!.result!.id).toBe('haute');
     expect(stepInteraction(step), 'une table résolue s’affiche, elle ne se retire pas').toBe('affichage');
-    expect(step.stake!.key!.entryId, 'la ligne jouée, pas le kind').toBe('haute');
-    expect(step.stake!.key!.entryCategory, 'catégorie DÉCLARÉE PAR LA TABLE').toBe('mutations');
+    expect(step.stake, 'la ligne jouée, pas le kind').toHaveProperty('key.entryId', 'haute');
+    expect(step.stake, 'catégorie DÉCLARÉE PAR LA TABLE').toHaveProperty('key.entryCategory', 'mutations');
   });
 
   /**
@@ -346,7 +346,7 @@ describe('#1262 — les portes d’APPEND', () => {
     });
     const [st] = etapes();
     expect(st.table!.result!.id).toBe('haute');
-    expect(st.stake!.key!.entryId, 'un append ne court-circuite pas la re-pose post-tirage').toBe('haute');
+    expect(st.stake, 'un append ne court-circuite pas la re-pose post-tirage').toHaveProperty('key.entryId', 'haute');
     expect(st.outcome).toHaveLength(1);
   });
 });

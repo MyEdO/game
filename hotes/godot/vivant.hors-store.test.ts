@@ -47,8 +47,8 @@ describe('vivant', () => {
     expect((await fetch(`${url}modeles/${LISTAGE}`)).status).toBe(200);
   });
 
-  it('demarrer dome rend ok: true avec sa vue', async () => {
-    const r = await tuyau.appel('demarrer', { scenario: 'dome' });
+  it('demarrer fenetre-ecuries rend ok: true avec sa vue', async () => {
+    const r = await tuyau.appel('demarrer', { scenario: 'fenetre-ecuries' });
     expect([r.ok, r.vue != null]).toEqual([true, true]);
   });
 

@@ -29,6 +29,7 @@ import {
   capaciteDuLanceur,
   codeAgrege,
   compterSentinelles,
+  fichiersNommes,
   enteteCapture,
   envEnfant,
   partieDe,
@@ -124,7 +125,7 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
   const ENV = envEnfant({ ...env, ...verrou.env })
   // Mémoire DISPONIBLE, pas totale : ce que ce processus peut encore obtenir au lancement, limite de
   // cgroup et autres processus déjà servis — c'est elle que les workers se partagent (#1801).
-  const CAPACITE = capaciteDuLanceur(env, REGIME.regime)
+  const CAPACITE = capaciteDuLanceur(env, REGIME.regime, fichiersNommes(filtres, (f) => fs.statSync(path.resolve(RACINE, f)).isFile()))
   if (CAPACITE.refus) {
     console.error('[memoire] ' + CAPACITE.refus + ' : minimum ' + CAPACITE.minimumMo + ' Mo, disponible ' + CAPACITE.memoireMo + ' Mo')
     verrou.liberer()

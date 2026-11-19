@@ -495,7 +495,7 @@ Toutes les Armures et les Armes portées par les cibles affectées subissent 1 D
 |             |              |        |             |           |                  |                        |  |                      |                      |  |
 
 
-| A                                      | Armes 293                              | Bastions et forteresses 283        | Brouet 133                            |
+<span id="page-347-0" data-folio="346"></span>| A                                      | Armes 293                              | Bastions et forteresses 283        | Brouet 133                            |
 |----------------------------------------|----------------------------------------|------------------------------------|---------------------------------------|
 | À Distance 338                         | Armes aethyriques 242                  | Batelier 93                        | Bruits 240                            |
 | À Enroulement 297                      | Armes, Allonge 297                     | Battement 133                      | Brutal 338                            |
@@ -558,7 +558,7 @@ Toutes les Armures et les Armes portées par les cibles affectées subissent 1 D
 
 
 
-| J                                   | M                                      | Mendier 119                       | N                                 |  |
+<span id="page-350-0" data-folio="349"></span>| J                                   | M                                      | Mendier 119                       | N                                 |  |
 |-------------------------------------|----------------------------------------|-----------------------------------|-----------------------------------|--|
 | J'ai vu le signe 130                | Mâchoires d'acier 140                  | Meneur 340                        | N'écoutez point la sorcière 226   |  |
 | Jabberslythe 322                    | Mage de guerre 140                     | Meneur de jeu 258                 | Nageur endurant 142               |  |
@@ -621,7 +621,7 @@ Toutes les Armures et les Armes portées par les cibles affectées subissent 1 D
 |                                     |                                        |                                   |                                   |  |
 
 
-| Oreille absolue 143                   | Pilote 144                          | Q                                     | Richesse initiale 37                     |
+<span id="page-351-0" data-folio="350"></span>| Oreille absolue 143                   | Pilote 144                          | Q                                     | Richesse initiale 37                     |
 |---------------------------------------|-------------------------------------|---------------------------------------|------------------------------------------|
 | Orientation 127                       | Pistage 127                         | Que la chance persiste 224            | Riposte 144                              |
 | Orteils 180                           | Pisteur 341                         |                                       | Rites funéraires 223                     |
@@ -684,7 +684,7 @@ Toutes les Armures et les Armes portées par les cibles affectées subissent 1 D
 | Pilleur de tombes 104                 |                                     | Riche, pauvre, mendiant, voleur 224   | Sociabilité (Soc) 34                     |
 
 
-| Sociable 146                                                              | Tableau de Couleur des cheveux 40    | Tirer dans le tas 162               | Villages, Hameaux et sites sacrés285     |
+<span id="page-352-0" data-folio="351"></span>| Sociable 146                                                              | Tableau de Couleur des cheveux 40    | Tirer dans le tas 162               | Villages, Hameaux et sites sacrés285     |
 |---------------------------------------------------------------------------|--------------------------------------|-------------------------------------|------------------------------------------|
 | Soins aux animaux 130                                                     | Tableau de Couleur des yeux 40       | Tirer dans un combat                | Visage de l'homme noyé 223               |
 | Soldat 75                                                                 | Tableau de Localisation 159          | au Corps à corps (Options) 162      | Vision dans l'obscurité 244              |
@@ -748,7 +748,7 @@ Toutes les Armures et les Armes portées par les cibles affectées subissent 1 D
 
 
 
-<span id="page-354-0" data-folio="353"></span># Des aventures sombres et périlleuses dans le Vieux Monde !
+<span id="page-353-0" data-folio="352"></span><span id="page-354-0" data-folio="353"></span># Des aventures sombres et périlleuses dans le Vieux Monde !
 
 *Vous ne pouvez pas lâcher l'affaire, hein ? Vous savez pourtant ce que vous allez découvrir. Vous les avez vus, les impitoyables, les arrogants, les damnés. Vous voudriez bien tourner les talons. La vie serait alors si belle. Vous êtes conscient que, tout en essayant de vous convaincre que vous ne convoitez que le butin, ou que vous ne savez pas résister à un bon combat, vous foncez. Personne n'est dupe. Alors préparez votre épée, nettoyez votre pistolet et prenez garde à ce chien, bien trop féroce pour sa petite taille.* 
 

@@ -168,9 +168,10 @@ export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
 
 /** Difficulté du Test de PERCEPTION pour voir la lumière d'un phare à `milles` (tableau VOIR LA
  *  LUMIÈRE, MDG 13 l.339-346) — `null` au-delà de 15 milles (hors tableau : invisible). `clocher` → toutes
- *  les distances divisées par 2 (MDG 13 l.351). PUR. */
-export function lighthouseSpotDifficulty(milles: number, clocher = false): Difficulty | null {
-  const d = clocher ? milles * seaNavigation.phares.clocher.distanceDiviseur : milles;
+ *  les distances divisées par 2 (MDG 13 l.351), arrondi APRÈS la division : une distance fractionnaire
+ *  au-delà d'une borne tombe dans la bande suivante. PUR. */
+export function lighthouseSpotDifficulty(milles: number, clocher: boolean): Difficulty | null {
+  const d = Math.ceil(clocher ? milles * seaNavigation.phares.clocher.distanceDiviseur : milles);
   const row = findTableEntry(tables().voirLaLumiere, d);
   return d > row.max ? null : row.difficulty;
 }

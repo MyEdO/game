@@ -3,7 +3,10 @@
     "id": "miscast-mineure",
     "type": "miscast",
     "label": "Incantations Imparfaites Mineures",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 234,
@@ -384,7 +387,10 @@
     "id": "miscast-majeure",
     "type": "miscast",
     "label": "Incantations Imparfaites Majeures",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 234,
@@ -787,7 +793,10 @@
     "id": "miscast-mineure-vdm",
     "type": "miscast",
     "label": "Incantations Imparfaites Mineures",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 24,
@@ -1164,7 +1173,10 @@
     "id": "miscast-majeure-vdm",
     "type": "miscast",
     "label": "Incantations Imparfaites Majeures",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 25,
@@ -1549,7 +1561,10 @@
     "id": "miscast-colere",
     "type": "miscast",
     "label": "Colère des dieux",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 218,

@@ -1,0 +1,13 @@
+{
+  "model": "decor--trophee-cranes.glb",
+  "model_sha256": "070312419d739e5e00f1ad579aeeeb828777a3f7384a9f1b2426a90f9c4dab20",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

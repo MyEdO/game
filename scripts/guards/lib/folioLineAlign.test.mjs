@@ -79,6 +79,29 @@ test('folioGoverning tranche un span borné des deux côtés par des ancres CONT
   assert.deepEqual(folioGoverningWhy(sain, 1, 4), { folio: 151, reason: 'ok' })
 })
 
+test('folioGoverning MESURE la ligne qui porte son ancre unique, même quand le span qu\'elle ouvre est troué', () => {
+  // Forme de `ADE II 09` : l.3 porte l'ancre 92, la suivante vaut 95 (93 et 94 sans ancre).
+  const ouvreUnTrou = (n) =>
+    ({
+      1: [
+        'préambule',
+        '',
+        '## <span data-folio="92"></span>ANNEXE', // l.3
+        'corps — sur 92, 93 ou 94 ? indécidable', // l.4
+        '<span data-folio="95"></span>| table', // l.5
+      ],
+      2: ['<span data-folio="200"></span>'],
+    })[n] ?? null
+  assert.deepEqual(folioGoverningWhy(ouvreUnTrou, 1, 3), { folio: 92, reason: 'ok' })
+  assert.deepEqual(folioGoverningWhy(ouvreUnTrou, 1, 4), { folio: null, reason: 'span-a-trou' })
+  // En queue trouée aussi : la ligne de la dernière ancre est mesurée, la suite ne l'est pas.
+  assert.deepEqual(folioGoverningWhy(ouvreUnTrou, 1, 5), { folio: 95, reason: 'ok' })
+  // Deux ancres sur la même ligne : laquelle ouvre son texte ? indécidable, la ligne reste refusée.
+  const doubleAncre = (n) =>
+    ({ 1: ['<span data-folio="126"></span><span data-folio="127"></span>texte', 'suite', '<span data-folio="130"></span>'] })[n] ?? null
+  assert.deepEqual(folioGoverningWhy(doubleAncre, 1, 1), { folio: null, reason: 'span-a-trou' })
+})
+
 test('citedEntries ne retient que les entrées portant À LA FOIS `source` et une citation', () => {
   const data = [
     { id: 'avec-note', source: { book: 'livre-de-base', page: 1, note: 'LDB 12 l.28' } },

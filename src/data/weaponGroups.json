@@ -507,18 +507,6 @@
     }
   },
   {
-    "id": "munitions",
-    "type": "weaponGroups",
-    "label": "Munitions",
-    "kind": "weapon",
-    "maniement": "poings",
-    "source": {
-      "book": "livre-de-base",
-      "page": 296,
-      "note": "LDB 62 l.106, section « Munitions »."
-    }
-  },
-  {
     "id": "munition-de-siege",
     "type": "weaponGroups",
     "label": "Munitions de siège",

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { groupesDe, groupesPercus, groupsFor, groupMatch, hiddenGroupsOf, racesDe, selonLOrdreDesGroupes } from './groups';
-import { targetedTrigger, targetCausedSourcesFor, targetCausedTrigger, sourceCombattant, idDeSource, type PsychType } from './psychology';
+import { targetedTrigger, targetCausedSourcesFor, targetCausedTrigger, sourceCombattant, idDeSource } from './psychology';
 import type { Combatant } from './types';
 import { addCondition, removeCondition } from './conditions';
 import { combattantDeTest } from './combattantDeTest.testkit';
@@ -347,8 +347,8 @@ describe('Groupes d’un fait de fiche, lus par `groupesDe` (EDOC 12 l.170-197 ;
     const cible = psychologies.find((p) => !!p.cibles && !p.targetCauses && p.triggerOn !== 'threatened');
     expect(phobie && cible).toBeTruthy();
     const groupe = etat!.grantGroups![0];
-    const effraye = combattantDeTest({ id: 'effraye', psychTraits: [{ type: phobie!.id as PsychType, cible: ciblePsy.groupe(groupe), indice: 0 }] });
-    const vise = combattantDeTest({ id: 'vise', psychTraits: [{ type: cible!.id as PsychType, cible: ciblePsy.groupe(groupe) }] });
+    const effraye = combattantDeTest({ id: 'effraye', psychTraits: [{ type: phobie!.id, cible: ciblePsy.groupe(groupe), indice: 0 }] });
+    const vise = combattantDeTest({ id: 'vise', psychTraits: [{ type: cible!.id, cible: ciblePsy.groupe(groupe) }] });
     const source = combattantDeTest({ id: 'source' });
     expect(targetCausedSourcesFor(effraye, sourceCombattant(source))).toEqual([]);
     expect(targetedTrigger(vise, [sourceCombattant(source)])).toBeNull();

@@ -61,7 +61,7 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
   });
 
   it('le CLI de garde SORT en 1 et NOMME le désaccord (chemin d’échec, pas seulement le vert)', () => {
-    const mute = JSON.parse(JSON.stringify(careerLevels)) as typeof careerLevels;
+    const mute = structuredClone(careerLevels);
     const lv2 = mute.find((l) => l.career.id === 'tueur' && l.level === 2)!;
     lv2.characteristics = ['sociabilite'];
     const tmp = join(tmpdir(), `careerLevels-905-${process.pid}.json`);
@@ -97,7 +97,7 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
   });
 
   it('le CLI SORT en 1 et NOMME la Carrière dont le folio déclaré ment (#1640)', () => {
-    const mute = JSON.parse(JSON.stringify(careers)) as typeof careers;
+    const mute = structuredClone(careers);
     const medecin = mute.find((c) => c.id === 'medecin')!;
     medecin.source.page = 88; // le folio de l'extraction fausse — le PDF imprime 89
     const tmp = join(tmpdir(), `careers-1640-${process.pid}.json`);
@@ -156,7 +156,7 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
   it('la garde REFUSE une permutation entre deux niveaux (ce que la cardinalité laissait passer)', () => {
     // Réfutation par construction sur `tueur` (LDB folio 76) : le défaut fondateur de #905, rejoué sur
     // une COPIE de la donnée — les niveaux 3 et 4 échangés, tout le reste intact.
-    const mute = JSON.parse(JSON.stringify(careerLevels)) as typeof careerLevels;
+    const mute = structuredClone(careerLevels);
     const lv3 = mute.find((l) => l.career.id === 'tueur' && l.level === 3)!;
     const lv4 = mute.find((l) => l.career.id === 'tueur' && l.level === 4)!;
     [lv3.characteristics, lv4.characteristics] = [lv4.characteristics, lv3.characteristics];

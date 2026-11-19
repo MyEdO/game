@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "portant-costumes"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "rouge",
+      "palette": "vet1",
+      "matiere": "prop--toile-rouge"
+    },
+    {
+      "nom": "ardoise",
+      "palette": "vet2",
+      "matiere": "prop--drap-terne"
+    },
+    {
+      "nom": "blanc",
+      "palette": "corps",
+      "matiere": "prop--toile-ecrue"
+    },
+    {
+      "nom": "brun",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    }
+  ],
+  "glb": {
+    "sha256": "da56a0ee3e63682d5a3e45745ac462b9ff9f1508f1767a8fbf9584ce82e902fd",
+    "octets": 63732
+  }
+}

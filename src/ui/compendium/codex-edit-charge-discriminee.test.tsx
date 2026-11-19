@@ -213,7 +213,9 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
     // Chacun partitionne ses entrées par REFINE sans DÉCLARER sa charge par cas — les clés fautives sont
     // MESURÉES par la sonde ci-dessous, elles sont ici pour se lire :
     activities: ['stake', 'stakeForm'], // `recuperer` : enjeu d'un autre cas d'activité
-    reglesOptionnelles: ['min', 'max'], // règle à BANDES : d'une autre forme de valeur par défaut
+    // Les clés des `libelles` d'un `mode` sont les `options` de SA règle (`ecartsDeLaRegle`) : la valeur d'un donneur est
+    // refusée par construction, même famille que `weaponGroups:seuil`.
+    reglesOptionnelles: ['libelles'],
     // ENTRÉE #1691 : `terrains` rejoint la même famille — le bloc plein et la matière de ses flancs
     // vont par PAIRE (`solidHeightM` ⟺ `matiere`, `defs/terrains.ts`), si bien qu'un sol nu à qui
     // l'atelier offre l'un des deux se verrait refuser au save. La partition est portée par la

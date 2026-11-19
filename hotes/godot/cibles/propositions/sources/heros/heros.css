@@ -1,0 +1,364 @@
+/* Héros : création, fiche et progression, images d'intention (#3935, #4411). Les pièces de la famille, posées sur
+   `../lieux-et-nuit/commun.css` (bandeau) et le kit ; leur place est dans `../rendu.css`. Maquette hors du jeu. */
+#mur{position:absolute;inset:0;filter:brightness(.5) saturate(.9)}
+#mur::after{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 128px,rgba(0,0,0,.55) 128px 130px),
+  radial-gradient(120% 90% at 50% 38%,rgba(0,0,0,0) 40%,rgba(0,0,0,.72) 100%),
+  linear-gradient(180deg,rgba(0,0,0,0) 72%,rgba(0,0,0,.8) 100%)}
+.cadre>.ruban{z-index:2}
+
+/* ───────── la frise des étapes : cochées, le ruban de celle qui s'ouvre, les clous à venir ───────── */
+#etapes .suite{position:absolute;left:24px;right:70px;top:0;bottom:0;display:flex;justify-content:space-between}
+#etapes .rail{position:absolute;top:27px;height:2px;background:rgba(0,0,0,.6);box-shadow:0 1px 0 var(--reflet)}
+#etapes .rail.fait{background:linear-gradient(180deg,var(--or-eclat),var(--laiton));box-shadow:0 1px 2px var(--ombre-forte)}
+.etape{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:18px}
+.etape>.clou{position:static;width:9px;height:9px;margin-top:5px}
+.etape>span{margin-top:4px;font-size:10.5px;line-height:13px;color:var(--creme-2);white-space:nowrap}
+.etape.a-venir>span{margin-top:8px;color:var(--eteint)}
+.etape.en-cours{padding-top:12px}
+.etape.en-cours>.ruban{position:static;transform:none;display:flex;align-items:baseline;gap:9px}
+.etape.en-cours>.ruban small{font-size:11.5px;color:var(--or-eclat)}
+#etapes .croix{right:13px;top:6px}
+
+/* ───────── les panneaux ───────── */
+.pan>.fond{padding:15px 19px 14px}
+.pan>.fond.bois{padding:14px 16px}
+.pan:has(>.onglets)>.fond{padding-top:26px}
+.rub{font-family:"Fell SC",serif;font-size:13px;line-height:16px;letter-spacing:1.1px;color:var(--rouille);white-space:nowrap}
+.fond.bois .rub{color:var(--creme-2)}
+.rub .note{font-family:"Spectral";font-style:italic;font-size:12.5px;letter-spacing:0;color:var(--encre-2)}
+.pan .filet{margin:9px 26px}
+.tete-l{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 5px}
+.tete-l>.plaque{flex:none}
+.tete-l>.plaque>div{font-size:12.5px;padding:0 12px}
+.lignes{display:flex;flex-direction:column}
+.deux{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
+.trois{display:grid;grid-template-columns:repeat(3,1fr);column-gap:12px}
+.pan .rub+.lignes,.pan .rub+.deux,.pan .rub+.trois{margin-top:3px}
+.pan .lignes+.rub,.pan .deux+.rub,.pan .trois+.rub,.pan .tire+.rub{margin-top:10px}
+.ligne{position:relative;display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:2px solid transparent;border-bottom:1px solid var(--filet-encre);font-family:"Fell",serif;font-size:15px;color:var(--encre);white-space:nowrap;min-width:0}
+.ligne>.n{flex:1;min-width:0;overflow:hidden}
+.ligne>.n small{font-size:13px;color:var(--encre-2)}
+.ligne.choisie{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
+.ligne.refusee{color:rgba(42,29,18,.42)}
+.ligne.refusee .tag{opacity:.45}
+.ligne .bulle-refus{left:auto;right:6px;top:calc(100% + 11px);bottom:auto;transform:none}
+.ligne .bulle-refus::before{left:auto;right:24px;top:-5px;bottom:auto;box-shadow:-2px -2px 0 var(--contour)}
+.ligne .raison{font-family:"Fell SC";font-size:10.5px;letter-spacing:.9px;color:var(--rouille)}
+.ligne>.losange{margin:0 4px;color:var(--encre-2)}
+.tag{display:inline-block;flex:none;width:32px;text-align:center;font-family:"Fell SC";font-size:11px;line-height:16px;letter-spacing:.6px;color:var(--rouille);border:1px solid var(--filet-encre);border-radius:2px;background:var(--voile)}
+.val{flex:none;font-family:"Chiffres";font-size:14px;font-weight:600;color:var(--encre);min-width:24px;text-align:right}
+.jeton{flex:none;display:inline-flex;align-items:center;height:21px;padding:0 9px;border-radius:11px;border:1px solid var(--trait-encre);font-family:"Chiffres";font-size:11.5px;font-weight:600;letter-spacing:.2px;color:var(--encre);background:var(--voile);white-space:nowrap}
+.fond.bois .jeton{border-color:var(--filet-or-vif);color:var(--ivoire);background:var(--ombre)}
+.jeton.or{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));color:var(--encre)}
+.jeton.cire{border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire-clair),var(--sang));color:var(--ivoire)}
+.jeton.fer{border-color:var(--noir);background:linear-gradient(180deg,var(--fer-clair),var(--fer-sombre));color:var(--eteint)}
+.comptes{display:flex;align-items:center;gap:9px;margin-top:9px}
+.trou{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--trait-encre);background:rgba(60,40,20,.08)}
+.tirage{display:flex;gap:18px;align-items:center}
+.tirage .col{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+
+/* paliers, clous d'Augmentation */
+.paliers{flex:none;display:flex;gap:5px}
+.palier{flex:none;width:32px;height:20px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--trait-encre);font-family:"Chiffres";font-size:11px;font-weight:600;color:var(--encre-2);background:var(--voile)}
+.palier.pris{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));color:var(--encre);box-shadow:0 1px 3px var(--brou)}
+.palier.zero{border-color:var(--encre);color:var(--encre);background:var(--voile-fort)}
+.palier.ferme{border-color:var(--filet-encre);color:rgba(42,29,18,.32);background:none}
+/* l'Augmentation de race, rappelée sur la page de la carrière : hors des dix clous (LDB 05 l.535) */
+.palier.race{border-color:var(--cire-sombre);background:linear-gradient(180deg,var(--cire-clair),var(--sang));color:var(--ivoire)}
+.palier.race.sans{visibility:hidden}
+.clous{flex:none;display:flex;gap:3px}
+.clous>i{width:9px;height:9px;border-radius:50%;border:1px solid var(--trait-encre);background:rgba(60,40,20,.08)}
+.clous>i.p{border-color:var(--laiton-ombre);background:radial-gradient(circle at 36% 30%,var(--or-eclat),var(--or-moyen) 70%);box-shadow:0 1px 2px var(--brou)}
+.clous>i:nth-child(5){margin-right:4px}
+.ligne .moins-plus{flex:none}
+
+/* le détail du milieu */
+.page-c{display:flex;flex-direction:column;align-items:center;height:100%}
+.page-c>*{flex:none}
+.page-c>.nom{font-family:"Grenze Gotisch";font-weight:600;font-size:28px;line-height:40px;color:var(--sepia);letter-spacing:.3px;white-space:nowrap;text-align:center;max-width:100%;overflow:hidden}
+.page-c>.sous{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
+.page-c>.filet{align-self:stretch;margin:7px 40px}
+.page-c>.rub{align-self:stretch;margin:10px 0 5px}
+.page-c>.pills,.page-c>.tete-l{align-self:stretch}
+.prose{margin:6px 0 0;font-family:"Spectral";font-size:13px;line-height:18px;color:var(--encre);text-align:left;align-self:stretch}
+.prose.pied{margin-top:auto}
+.vignette{align-self:stretch;flex:none;height:96px;padding:3px;border-radius:2px;box-shadow:0 3px 8px var(--brou),0 0 0 1px var(--contour)}
+.vignette>svg{display:block;width:100%;height:100%;box-shadow:inset 0 0 0 1px var(--noir)}
+.faits{align-self:stretch;display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+.faits.trois{grid-template-columns:repeat(3,auto);justify-content:space-between}
+.faits.quatre{grid-template-columns:repeat(4,auto);justify-content:space-between}
+.faits.pied{margin-top:auto}
+.fait{min-width:0}
+.fait .rub{display:block}
+.fait b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--encre)}
+.attributs{display:flex;gap:5px;margin-top:2px}
+.pills{display:flex;flex-wrap:wrap;gap:5px}
+.pill{position:relative;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 10px;border-radius:11px;border:1px solid var(--trait-encre);font-family:"Fell SC";font-size:11px;letter-spacing:.8px;color:var(--encre);background:var(--voile);white-space:nowrap}
+.pill.prise{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:0 1px 3px var(--brou)}
+.pill.fermee{color:rgba(42,29,18,.45);border-color:var(--filet-encre);background:none}
+.pill b{font-size:10.5px}
+.filigrane{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);opacity:.5}
+
+/* ───────── création : les Caractéristiques ───────── */
+.methodes .jeton{margin-left:auto}
+.tirage-c{display:flex;align-items:center;gap:10px;height:44px;margin-top:4px}
+.tirage-c>.l{flex:1}
+.tirage-c .plaque{flex:none;width:250px}
+.tirage-c .plaque>div{font-size:12.5px}
+.tirage-c .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;letter-spacing:0;color:var(--creme-2)}
+.ligne.repartie{height:30px}
+.profil-c{align-self:stretch;flex:none;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.25)}
+.profil-c>.fond{display:grid;grid-template-columns:repeat(6,1fr)}
+.profil-c .c{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 0}
+.profil-c .c+.c{border-left:1px solid var(--filet-encre)}
+.profil-c .c:nth-child(n+7){border-top:1px solid var(--filet-encre)}
+.profil-c .c:nth-child(7){border-left:0}
+.profil-c .c.carr::before{content:"";position:absolute;inset:2px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
+.profil-c .c>*{position:relative}
+.profil-c .ab{font-family:"Fell SC";font-size:12px;line-height:14px;letter-spacing:1px;color:var(--rouille)}
+.profil-c .v{font-family:"Chiffres";font-size:19px;line-height:23px;color:var(--encre)}
+.profil-c .pts{height:22px;display:grid;place-items:center;font-family:"Fell SC";font-size:10px;letter-spacing:.6px;color:var(--rouille)}
+.profil-c .pts.nb{font-family:"Chiffres";font-size:13.5px;font-weight:600;letter-spacing:0;color:var(--encre-2)}
+.caracteristiques .page-c>.nom{margin-top:4px}
+.jets{align-self:stretch;display:grid;grid-template-columns:repeat(5,1fr);justify-items:center;gap:2px 0}
+.jet{display:flex;align-items:center;gap:5px;padding:2px 6px 2px 2px;border:2px solid transparent;border-radius:3px}
+.jet i{font-family:"Fell SC";font-style:normal;font-size:11px;letter-spacing:.8px;color:var(--rouille)}
+.jet.pris{border-color:var(--laiton);background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour)}
+
+/* ───────── création : le signe astral ───────── */
+.signe .tirage{margin-bottom:-2px}
+.signe .tirage .ligne{height:30px}
+.signe .tirage .jeton{margin-left:auto}
+.signe .filet{margin:6px 26px}
+.signes .ligne{height:22px;font-size:14px}
+.variante{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 8px;margin-top:6px}
+.variante .pills{grid-column:1 / -1;gap:4px}
+.variante .pill{padding:0 7px;font-size:10.5px}
+.signe .page-c>.vignette{margin-top:2px}
+.signe .page-c>.nom{margin-top:4px}
+
+/* ───────── création : les Compétences ───────── */
+.competencesDeRace .ligne{height:28px}
+.rangee{align-self:stretch;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.competence{position:relative;min-height:74px;padding:6px 8px 7px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.3);box-shadow:0 2px 5px var(--brou)}
+.competence .disque{position:absolute;right:6px;top:6px}
+.competence .n{margin-top:5px;font-family:"Fell";font-size:14.5px;line-height:17px;color:var(--encre);white-space:nowrap;overflow:hidden}
+.competence .calc{font-size:11px;color:var(--encre-2)}
+.competence.vide{border:1.5px dashed var(--trait-encre);background:none;box-shadow:none;display:grid;place-items:center}
+.competence.vide span{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--rouille)}
+.ligne.carriere{height:36px;gap:7px;font-size:14px;padding:0 6px}
+.test{align-self:stretch;display:flex;align-items:center;gap:12px;margin-top:2px}
+.test b{font-family:"Fell";font-weight:400;font-size:15px;color:var(--encre)}
+.competencesDeCarriere .page-c>.pills .pill{height:21px;padding:0 8px;font-size:10.5px}
+
+/* ───────── création : les Talents ───────── */
+.talents .ligne .raison{margin-left:auto}
+.tire{display:flex;align-items:center;gap:10px;height:38px}
+.tire>.ligne{flex:1}
+.tire .n{display:flex;flex-direction:column;justify-content:center;line-height:16px}
+.tire .n>span{overflow:hidden}
+.tire .n .raison{font-size:10px}
+.tire .pill{height:20px}
+.tire .plaque{flex:none}
+.tire .plaque>div{font-size:12px;padding:0 10px}
+.talents .page-c>.medaillon{margin-top:6px}
+.mineurs{gap:4px}
+.mineurs .pill{height:21px;padding:0 8px;font-size:10.5px}
+.mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%);font-family:"Spectral";letter-spacing:0}
+.mineurs .bulle-refus::before{left:-5px;bottom:auto;top:calc(50% - 5px);box-shadow:-2px 2px 0 var(--contour)}
+
+/* ───────── création : les possessions ───────── */
+.possessions .tirage .col .somme{font-size:23px;line-height:26px;color:var(--encre)}
+.objets{align-self:stretch;display:grid;grid-template-columns:repeat(4,1fr);gap:8px 10px}
+.objet{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.objet .img{width:68px;height:68px;padding:3px;border-radius:2px;box-shadow:0 3px 6px var(--brou),0 0 0 1px var(--contour)}
+.objet .img>div{width:100%;height:100%;display:grid;place-items:center;background:radial-gradient(90% 90% at 40% 30%,#4a3020,var(--chene-nuit) 78%);box-shadow:inset 0 0 0 1px var(--noir),inset 0 0 14px var(--ombre)}
+.objet .img svg{width:52px;height:52px}
+.objet.choisi .img{box-shadow:0 3px 6px var(--brou),0 0 0 1px var(--contour),0 0 14px var(--halo-vif)}
+.objet b{font-family:"Fell";font-weight:400;font-size:13px;line-height:15px;color:var(--encre);text-align:center}
+.objet i{font-family:"Fell SC";font-style:normal;font-size:11px;letter-spacing:.8px;line-height:13px;color:var(--rouille);white-space:nowrap}
+.dots{row-gap:0}
+.dot{display:flex;align-items:baseline;gap:8px;height:28px;padding-top:5px;font-family:"Fell";font-size:15px;color:var(--encre);border-bottom:1px solid var(--filet-encre);white-space:nowrap;min-width:0}
+.dot>span{min-width:0;overflow:hidden}
+.dot small{font-family:"Fell SC";font-size:11px;letter-spacing:.8px;color:var(--rouille)}
+.dot>span small{font-family:"Fell";font-size:13px;letter-spacing:0;color:var(--encre-2)}
+.objet-pris{align-self:stretch;display:flex;align-items:center;gap:12px;margin-top:auto;padding:8px 12px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.3)}
+.objet-pris .chiffres{margin-left:auto;font-size:15px;color:var(--encre)}
+
+/* ───────── création : l'identité ───────── */
+.plaques{display:flex;gap:8px;margin-top:5px}
+.plaques .plaque{flex:1}
+.physique{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-top:6px}
+.mesure{display:flex;align-items:center;gap:11px}
+.mesure b{display:block;font-family:"Fell";font-weight:400;font-size:17px;line-height:21px;color:var(--encre);white-space:nowrap}
+.mesure .rub .note{font-size:11.5px}
+.ligne-ecrite{align-self:stretch;margin-top:9px}
+.ligne-ecrite .ecrit{margin-top:2px;height:30px;display:flex;align-items:flex-end;padding:0 4px 3px;border-bottom:1px solid var(--trait-encre);font-family:"Fell";font-style:italic;font-size:17px;line-height:23px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
+.ligne-ecrite.saisi .ecrit{border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.7);box-shadow:0 0 0 1px var(--contour);padding:0 8px 2px}
+.ligne-ecrite .ecrit svg{flex:none;margin:0 0 3px auto;color:var(--encre-2)}
+.ligne-ecrite .ecrit u{display:inline-block;width:1.5px;height:20px;background:#2b1a3a;margin-left:2px;text-decoration:none}
+.signature{align-self:stretch;display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:auto}
+
+/* ───────── l'identité : création achevée, fiche, progression ───────── */
+.ident .tete{display:flex;gap:14px}
+.ident .tete>.q{flex:1;min-width:0}
+.ident .nom{font-family:"Grenze Gotisch";font-weight:600;font-size:26px;line-height:36px;color:var(--sepia);letter-spacing:.3px;margin:-3px 0 1px}
+.ident .l{font-family:"Fell SC";font-size:12.5px;line-height:19px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
+.ident .tete .faits{margin-top:10px}
+.ident .bl{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 5px}
+.ident .bl .chiffres{font-size:14px;color:var(--encre)}
+.reserves{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}
+.reserve{display:flex;align-items:center;gap:9px}
+.motivation{margin-top:2px;font-family:"Fell";font-style:italic;font-size:16px;line-height:21px;color:#2b1a3a;white-space:nowrap;overflow:hidden}
+.ident .faits.trois{margin-bottom:8px}
+.presentation .competences{align-self:stretch;row-gap:0;column-gap:12px}
+.presentation .competences .ligne{height:24px;padding:0 2px;font-size:13.5px}
+.presentation .competences .ligne small{font-size:12px}
+.presentation .page-c>.rub{margin:8px 0 3px}
+.presentation .reserves{row-gap:6px}
+.presentation .filet{margin:6px 26px}
+.bourse-px{display:flex;align-items:center;gap:13px;margin-top:12px}
+.bourse-px .px{flex:none;min-width:84px;height:48px;padding:3px;border-radius:26px;box-shadow:0 3px 7px var(--brou),0 0 0 1px var(--contour)}
+.bourse-px .px>div{height:100%;border-radius:24px;display:grid;place-items:center;padding:0 14px;background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen) 55%,var(--laiton));box-shadow:inset 0 0 0 1px var(--laiton-ombre),inset 0 1px 0 var(--reflet-vif);font-family:"Chiffres";font-size:22px;font-weight:600;color:var(--encre)}
+.bourse-px b{display:block;font-family:"Fell SC";font-weight:400;font-size:15px;line-height:20px;letter-spacing:1.1px;color:var(--sepia);white-space:nowrap}
+.exigences{margin-top:3px}
+.exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"Fell";font-size:14px;line-height:17px;color:var(--encre)}
+.exige>span:not(.cpt){flex:1;min-width:0}
+.exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
+.ident .pied{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.ident .pied .rub{white-space:normal}
+.acheve{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+
+/* ───────── la fiche : le profil, la figure, les sections ───────── */
+.bande>.fond{display:grid;grid-template-columns:repeat(12,1fr);padding:0 6px}
+.bande .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:14px}
+.bande .c+.c{border-left:1px solid var(--filet-encre)}
+.bande .c .ab{font-family:"Fell SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
+.bande .c .v{font-family:"Chiffres";font-size:23px;line-height:29px;color:var(--encre)}
+.bande .c .aug{font-family:"Chiffres";font-size:10.5px;line-height:13px;color:var(--encre-2);height:13px}
+.bande .c .jeton{margin-top:3px;height:19px;font-size:10.5px;padding:0 6px}
+.bande .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
+.bande .c>*{position:relative}
+.niche{flex:none;width:100%;height:100%;padding:4px;border-radius:2px;box-shadow:0 4px 10px var(--ombre),0 0 0 1px var(--contour)}
+.niche>div{width:100%;height:100%;background:radial-gradient(90% 70% at 50% 34%,#eadbb4,#d3bf90 60%,#b9a070);box-shadow:inset 0 0 0 1px var(--ombre),inset 0 0 22px var(--brou)}
+.niche svg{display:block;width:100%;height:100%}
+
+/* le héros en création : sa figure et ce qu'il a retenu */
+#heros-neuf>.fond{display:flex;gap:12px}
+#heros-neuf .niche{width:104px}
+.acquis{flex:1;min-width:0;display:flex;flex-direction:column}
+.acquis .qui{font-family:"Grenze Gotisch";font-weight:600;font-size:24px;line-height:32px;color:var(--ivoire);text-shadow:0 2px 3px var(--noir);white-space:nowrap;overflow:hidden;margin:-4px 0 4px}
+.acquis .a{margin-bottom:7px;min-width:0}
+.acquis .a i{display:flex;align-items:center;gap:6px;font-family:"Fell SC";font-style:normal;font-size:11px;line-height:15px;letter-spacing:1px;color:var(--creme-2);white-space:nowrap}
+.acquis .a i .jeton{height:16px;font-size:10px;padding:0 6px}
+.acquis .a b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--creme);white-space:nowrap;overflow:hidden}
+.acquis .a.total b .chiffres{font-size:19px;color:var(--or-eclat)}
+.acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.acquis .gestes .bulle-refus{left:auto;right:0;transform:none}
+.acquis .gestes .bulle-refus::before{left:auto;right:60px}
+
+/* ───────── la fiche : les possessions ───────── */
+.sections>.fond{display:flex;flex-direction:column}
+.sections .rub+.sets{margin-top:10px}
+.sets{display:flex;gap:10px}
+.set{position:relative;flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;height:46px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.3);box-shadow:0 2px 5px var(--brou)}
+.set.en-main{border:2px solid var(--laiton);background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
+.set.neuf{flex:none;width:46px;display:grid;grid-template-columns:none;place-items:center;border:1.5px dashed var(--trait-encre);background:none;box-shadow:none;color:var(--encre-2)}
+.main{display:grid;grid-template-columns:auto minmax(0,1fr);align-content:center;column-gap:6px;padding:0 9px;min-width:0;color:var(--encre)}
+.main+.main{border-left:1px solid var(--filet-encre)}
+.main i{grid-column:1 / -1;font-family:"Fell SC";font-style:normal;font-size:10px;line-height:13px;letter-spacing:.9px;color:var(--rouille);white-space:nowrap}
+.main b{font-family:"Fell";font-weight:400;font-size:14px;line-height:18px;white-space:nowrap;overflow:hidden}
+.main.vide b{grid-column:1 / -1;font-style:italic;color:rgba(42,29,18,.5)}
+.main.refusee i{color:rgba(90,58,28,.55)}
+.set .oter{position:absolute;right:-8px;top:-9px}
+.set .oter .bulle-refus{left:auto;right:-50px;bottom:calc(100% + 5px);transform:none}
+.set .oter .bulle-refus::before{left:auto;right:55px}
+.inventaire{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:16px;margin-top:8px}
+.inventaire .liste>.rub{margin-top:6px}
+.inventaire .liste>.rub:first-child{margin-top:0}
+.inventaire .ligne{height:26px;font-size:14px;padding:0 6px}
+.inventaire .ligne svg{flex:none}
+.ouvert{display:flex;flex-direction:column;gap:5px;padding:9px 12px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.34);box-shadow:0 2px 6px var(--brou);min-width:0}
+.ouvert .cartouche .n{font-size:20px}
+.ouvert .ligne{height:26px;font-size:14px;padding:0 5px;gap:6px}
+.ouvert .deux{column-gap:8px}
+.ouvert .achat{height:auto;min-height:34px;gap:8px;padding:1px 2px}
+.ouvert .achat .n{font-size:13.5px;line-height:15px;white-space:normal}
+.ouvert .achat .plaque{flex:none;width:76px}
+.ouvert .nature{font-style:italic;margin:0}
+.consequence{color:var(--sang)}
+.gestes-o{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.gestes-o .plaque.large,.gestes-o .plaque:is(:first-child,.large+*):is(:last-child,:has(+.large)){grid-column:1 / -1}
+.gestes-o .plaque>div{font-size:12.5px;padding:0 10px}
+.gestes-o .plaque .prix{font-family:"Fell";font-weight:400;letter-spacing:0;color:var(--creme)}
+.gestes-o .bulle-refus{left:auto;right:0;transform:none}
+.gestes-o .bulle-refus::before{left:auto;right:60px}
+.cout{margin-left:auto;font-family:"Chiffres";font-size:11.5px;font-weight:600;color:var(--encre-2)}
+.ligne.choisie .cout{color:var(--encre)}
+
+/* ───────── progression : la dépense d'expérience ───────── */
+.colonnes{display:flex;gap:36px;padding-right:24px}
+.achat{position:relative;display:flex;align-items:center;gap:8px;height:34px;padding:0 2px;border-bottom:1px solid var(--filet-encre);min-width:0}
+.achat>.n{flex:1;min-width:0;overflow:hidden;font-family:"Fell";font-size:14.5px;color:var(--encre);white-space:nowrap}
+.achat>.n small{font-size:12.5px;color:var(--encre-2)}
+.achat .aug{flex:none;width:26px;text-align:right;font-size:12px;color:var(--encre-2)}
+.achat>.fait{flex:none;width:16px;display:grid;place-items:center;color:var(--encre-2)}
+.achat .plaque{flex:none;width:64px}
+.achat .plaque>div{font-family:"Chiffres";font-size:12px;font-weight:600;letter-spacing:.2px;padding:0 4px}
+.achat .val span{font-weight:400}
+.achat.vise{border:2px solid var(--laiton);border-radius:3px;background:linear-gradient(180deg,rgba(255,246,208,.9),rgba(228,203,134,.8));box-shadow:0 0 0 1px var(--contour),0 2px 5px var(--brou)}
+.achat .designer{margin-left:auto;color:var(--sang)}
+.achat.hors{border-bottom:0;color:var(--encre-2)}
+.achat.hors>.n{color:var(--encre-2)}
+.achat svg{flex:none}
+.depli{display:flex;align-items:flex-end;gap:10px;padding:6px 4px 7px 26px;border-bottom:1px solid var(--filet-encre);background:rgba(255,246,208,.35)}
+.depli .pills{flex:1;gap:4px}
+.depli .pill{height:19px;padding:0 7px;font-size:10px}
+.depli .plaque{flex:none;width:150px}
+.depli .plaque>div{font-size:12px;padding:0 9px}
+.depli .plaque .prix{font-family:"Fell";font-style:italic;font-weight:400;letter-spacing:0;color:var(--creme-2)}
+.talent{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--filet-encre);border-radius:3px;background:rgba(255,246,218,.28);margin-top:7px}
+.talent .t{flex:1;min-width:0}
+.talent .t b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:17px;line-height:22px;letter-spacing:.3px;color:var(--encre)}
+.talent .t i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:14px;letter-spacing:.8px;color:var(--rouille)}
+.talent .plaque{flex:none;width:94px}
+.talent .plaque>div{font-family:"Chiffres";font-size:12px;font-weight:600;letter-spacing:.2px;padding:0 6px}
+.talent .plaque.fermee>div{font-family:"Fell SC";font-weight:400;font-size:11px;letter-spacing:.8px}
+.talent.clos b{color:rgba(42,29,18,.6)}
+.achat.sort{height:31px;gap:10px;padding:0 4px}
+.achat.sort .cout{margin-left:0;width:38px}
+.achat.sort .plaque.composant{width:146px}
+.achat.sort .plaque.composant>div{font-family:"Fell SC";font-weight:400;letter-spacing:.6px}
+.achat.sort .plaque .prix{font-family:"Chiffres";font-size:11.5px}
+#talents .rub{margin-top:8px;white-space:normal}
+#talents .rub:first-child{margin-top:0}
+.pied-de-bourse{margin-top:8px;padding:0 4px;color:var(--encre)}
+.pied-de-bourse .rubrique{color:var(--rouille)}
+
+/* ───────── progression : le changement de carrière ───────── */
+.chemin>.fond{padding:0 30px}
+.chemin .suite{position:relative;height:100%;display:flex;justify-content:space-between}
+.chemin .rail{position:absolute;top:29px;height:2px;background:var(--filet-encre)}
+.chemin .rail.fait{height:3px;top:28px;background:linear-gradient(180deg,var(--or-moyen),var(--laiton-ombre))}
+.station{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:12px}
+.station .pt{position:relative;width:34px;height:34px;display:grid;place-items:center}
+.station .pt>.jeton{position:absolute;left:40px;top:7px;height:19px;font-size:10.5px;padding:0 7px}
+.station .clou-fer{position:relative;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8f8a7d,var(--fer-clair) 60%,var(--noir));box-shadow:0 1px 2px var(--ombre)}
+.station.ouverte .clou-fer{background:radial-gradient(circle at 35% 30%,var(--or-eclat),var(--or-moyen) 60%,var(--laiton-ombre));box-shadow:0 1px 2px var(--ombre),0 0 0 3px rgba(168,132,47,.35)}
+.station.visee .medaillon{box-shadow:0 0 0 1px var(--contour),0 0 16px var(--halo-vif)}
+.station .et{margin-top:6px;text-align:center;white-space:nowrap}
+.station .et b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:17px;line-height:22px;letter-spacing:.3px;color:var(--encre)}
+.station .et i{display:block;font-family:"Fell SC";font-style:normal;font-size:10.5px;line-height:13px;letter-spacing:.8px;color:var(--rouille)}
+.station.loin .et b{color:rgba(42,29,18,.5)}
+.station.loin .et i{color:rgba(90,58,28,.6)}
+.ouvre{align-self:stretch;display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px 10px;align-items:start}
+.ouvre .rub{padding-top:3px}
+.ouvre .pill{height:21px;padding:0 8px;font-size:10.5px}
+.prose.note{font-style:italic;text-align:center}
+.plaque.devenir{flex:none;align-self:stretch;margin-top:auto}
+#autre .lignes .ligne{height:30px;font-size:14px}
+#autre .deux{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}
+#autre .plaques{margin:0 0 8px}
+#autre .plaques .plaque>div{font-size:12px;padding:0 6px}
+#autre>.fond>.rub{margin-top:9px;white-space:normal}

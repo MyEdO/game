@@ -1,0 +1,13 @@
+{
+  "model": "decor--gargouille.glb",
+  "model_sha256": "9c27cdac292612b3ccea278d4217d6ca2f82b782e15375fa9459820975054897",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

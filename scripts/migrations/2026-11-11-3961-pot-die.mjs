@@ -8,7 +8,7 @@
  *
  * Entrée : src/data/tavernGames.json.
  *
- * `die` prend la place de `dice` dans le nœud `pot`. Un `pot` sans `dice` et à `die` égal à `APRES` : no-op.
+ * `die` prend la place de `dice` dans le nœud `pot`. Un `pot` sans `dice` et au `die` de `APRES`, sous l'une de ses formes (`lib/deDeTirage.mjs`) : no-op.
  * Toute autre forme, un fichier non canonique ou une racine qui n'est pas une liste de `tavernGames` est un
  * ARRÊT nominatif (exit 1), AUCUNE écriture. Rejouée sur l'arbre migré : no-op byte-identique.
  */
@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
+import { vautLeDe } from './lib/deDeTirage.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIER = 'tavernGames.json';
@@ -37,7 +38,7 @@ else {
     const { pot } = jeu;
     if (pot === undefined) continue;
     if (!estObjet(pot)) { arrets.push(`${FICHIER} › ${jeu.id}.pot : forme inattendue ${JSON.stringify(pot)}`); continue; }
-    if (!('dice' in pot) && pot.die === APRES) continue;
+    if (!('dice' in pot) && vautLeDe(pot.die, APRES)) continue;
     if ('die' in pot || !isDeepStrictEqual(pot.dice, AVANT)) { arrets.push(`${FICHIER} › ${jeu.id}.pot : forme inattendue ${JSON.stringify({ dice: pot.dice, die: pot.die })}`); continue; }
     jeu.pot = Object.fromEntries(Object.entries(pot).map(([k, v]) => (k === 'dice' ? ['die', APRES] : [k, v])));
     gestes.push(jeu.id);

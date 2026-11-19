@@ -1,0 +1,13 @@
+{
+  "model": "decor--banniere-chaos.glb",
+  "model_sha256": "b3af4741711ac5b13af3e073b95571f388e9f98737744594ffa6381eb6c21413",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

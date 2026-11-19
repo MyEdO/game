@@ -717,7 +717,7 @@ describe("op:'corruption' amount négatif — Absolution (LDB 19 l.167-182, #97 
 describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, source unique)", () => {
   // Table jouet : d10 → ops de la rangée touchée (min/max), avec ops IMBRIQUÉES appliquées au même ctx.
   const table = (extra: Partial<Extract<import('./ops').GameOp, { op: 'rollTable' }>> = {}) => ({
-    op: 'rollTable' as const, die: 'd10' as const,
+    op: 'rollTable' as const, die: { n: 1, sides: 10 },
     entries: [
       { min: 1, max: 2, ops: [{ op: 'charDamage' as const, characteristic: 'initiative' as const, amount: { dice: { n: 1, sides: 10 } } }] },
       { min: 3, max: 8, ops: [{ op: 'condition' as const, id: { id: 'sonne' } }] },

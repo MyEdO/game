@@ -15,11 +15,11 @@
  * (Psychologie) et Frénésie court-circuitent. Le branchement (entrée de scène / dialogue → modale) vit dans la couche state.
  */
 import { Combatant } from './types';
-import { targetedTrigger, targetCausedTrigger, isPsychImmune, PsychType, type SourceEnVue } from './psychology';
+import { targetedTrigger, targetCausedTrigger, isPsychImmune, type SourceEnVue } from './psychology';
 import type { CiblePsy } from './psych/ciblage';
 
 export interface EncounterPsychTrigger {
-  kind: PsychType;
+  kind: string;
   sourceId: string;
   indice: number;
   cible?: CiblePsy;

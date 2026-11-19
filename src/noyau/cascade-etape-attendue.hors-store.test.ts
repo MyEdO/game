@@ -39,7 +39,7 @@ describe('un verbe de cascade joué hors de son étape est refusé en nommant l�
   beforeEach(() => {
     set({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({
-      tablesTirables: { [TABLE]: { label: fixtureText('Sévérité'), die: deDeLaTableTiree({ die: 'd100' }), rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }], lines: () => ['sévérité tirée'] } },
+      tablesTirables: { [TABLE]: { label: fixtureText('Sévérité'), die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }), rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }], lines: () => ['sévérité tirée'] } },
       appliers: { 'etape-attendue': () => undefined },
     });
     startCascade(get, set, { title: 'Critique', purpose: 'test', steps: [etapeDeviation(), displayStep({ id: 'suite', kind: cleDeFixture('etape-attendue'), worldOwner: true, label: fixtureText('Suite') })] });

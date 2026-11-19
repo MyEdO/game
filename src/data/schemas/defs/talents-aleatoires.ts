@@ -3,6 +3,7 @@ import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, plageSchema } from '../grammaire/valeurs';
+import type { DiceSpec } from '../../../engine/dice';
 import { ref } from '../grammaire/ref';
 
 export const file = 'talents-aleatoires.json';
@@ -28,7 +29,7 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    affinerDataset: couvertureDuDeParDocument<{ id: string; die: string; entries: z.output<typeof rangee>[] }>(file, (r) => `la rangée « ${r.id} »`),
+    affinerDataset: couvertureDuDeParDocument<{ id: string; die: DiceSpec; entries: z.output<typeof rangee>[] }>(file, (r) => `la rangée « ${r.id} »`),
   },
 );
 

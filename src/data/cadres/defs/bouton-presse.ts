@@ -1,4 +1,4 @@
 import { plaque } from '../biseau';
 
-/** Bouton pressé : la plaque s'enfonce, son filet à biseau inversé, l'ombre tombe sur son haut. */
-export const cadre = plaque('bouton-presse', 'Bouton pressé', '--chene-sombre', '--laiton-sombre', '--laiton', true);
+/** Bouton pressé : le champ s'assombrit et s'enfonce, l'ombre du filet tombe sur son haut. */
+export const cadre = plaque('bouton-presse', 'Bouton pressé', ['--chene', '--chene-sombre'], '--shadow-ink', undefined, true);

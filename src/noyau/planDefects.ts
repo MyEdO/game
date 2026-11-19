@@ -4,7 +4,7 @@
  * ET par `validateScene` (donc par l'éditeur de scène) — une seule implémentation, un seul verdict,
  * un seul texte de message.
  */
-import { canonEdge, champsDuPlan, heightAt, isDescriptiveZone, isWalkable, porteAuteur, type Scene, type SceneEffectZone } from './monde/scene';
+import { canonEdge, champsDuPlan, heightAt, isDescriptiveZone, porteAuteur, solPraticable, type Scene, type SceneEffectZone } from './monde/scene';
 import { aretesA } from './monde/wallIndex';
 import { defautDeSuspension, type DefautDeSuspension } from './fallMove';
 import { sceneZoneTiles } from './monde/zones';
@@ -764,7 +764,7 @@ export function auditSuspensions(scene: Scene, z: number): PlanDefect[] {
     const ici = { x: wall.x, y: wall.y, z };
     const la = wall.side === 'N' ? { x: wall.x, y: wall.y - 1, z } : { x: wall.x + 1, y: wall.y, z };
     const defauts = [[ici, la], [la, ici]]
-      .filter(([from]) => isWalkable(scene, from.x, from.y, z))
+      .filter(([from]) => solPraticable(scene, from.x, from.y, z))
       .flatMap(([from, to]) => defautDeSuspension(scene, from, to) ?? []);
     for (const d of new Set(defauts)) {
       out.push({

@@ -14,15 +14,17 @@ import { Stack } from '../Layout';
  * (algèbre flag/horaire/ET/OU/NON, partagé avec le `when` des triggers/dialogues).
  */
 import { FlowTest, EMPTY_FLOW } from '../../engine/flowCore';
-import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
-import type { FlowTestNode } from '../../engine/flowCore';
+import type { Effect, TestDeScene } from '../../data/schemas/defs-scenes/effets';
+import type { Flow as CoreFlow, FlowTestNode } from '../../engine/flowCore';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { Icon } from '../Icon';
-import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
+import { ChampDeStatut } from './ChampDeStatut';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
-import { flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
+import { facilitationSchema, flowTestSchema, menaceSchema } from '../../data/schemas/grammaire/mecanique';
+import { charKeySchema } from '../../data/schemas/grammaire/valeurs';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';
@@ -41,14 +43,19 @@ import { blocNeuf, noeudTestNeuf } from '../../data/valeursNeuves';
 import { ConditionEditor } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';
 
+/** Le Flow qu'édite l'éditeur : feuille `Effect`, Test `T` et coût `C` du PORTEUR, élargis de ce que
+ *  l'éditeur écrit (un Test de scène neuf, un coût littéral) — un Flow de document de scène (`T`, `C` à
+ *  `never`) en ressort tel, un Flow de catalogue garde son Test et son coût. */
+export type FlowEdite<T extends FlowTest = never, C = never> = CoreFlow<Effect, T | TestDeScene, C | number>;
+
 /** Normalise un Flow en liste de blocs éditables (un `sequence` expose ses étapes ; sinon bloc unique). */
-function asSteps(flow: Flow): Flow[] {
+function asSteps<T extends FlowTest, C>(flow: FlowEdite<T, C>): FlowEdite<T, C>[] {
   return flow.kind === 'sequence' ? flow.etapes : [flow];
 }
-const seqOf = (steps: Flow[]): Flow => ({ kind: 'sequence', etapes: steps });
+const seqOf = <T extends FlowTest, C>(steps: FlowEdite<T, C>[]): FlowEdite<T, C> => ({ kind: 'sequence', etapes: steps });
 
 /** Résumé HUMAIN d'un nœud Flow (rangée repliée). */
-function nodeSummary(node: Flow, ctx: Ctx): string | JSX.Element {
+function nodeSummary<T extends FlowTest, C>(node: FlowEdite<T, C>, ctx: Ctx): string | JSX.Element {
   switch (node.kind) {
     case 'effet': return <><Icon id={EFFECT_ICON[node.effet.type]} size="sm" /> {effectSummary(node.effet, ctx)}</>;
     case 'si': return <><Icon id="interface/branchement" size="sm" /> Si {condSummary(node.condition, ctx.narratif)}{node.sinon != null ? ' · sinon…' : ''}</>;
@@ -121,12 +128,14 @@ export function NoeudTestField({ value, onChange, desc, racine, retirable = true
  * optionnels sans refinement, et `testValue` (`engine/skills.ts`) lit `characteristic` comme la carac
  * EXPLICITE contre laquelle le jet roule, celle de la Compétence n'étant que le défaut.
  */
-export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: FlowTest) => void }) {
+export function TestFields<T extends FlowTest = never>({ test, onChange }: { test: T | TestDeScene; onChange: (t: T | TestDeScene) => void }) {
   const identite = useId();
   // lecture déclarée : l'éditeur montre et réécrit les valeurs authorées
   const { difficulty, easierIf, gate } = test;
-  const upd = (patch: Partial<FlowTest>) => onChange({ ...test, ...patch });
-  const setEase = (patch: Partial<NonNullable<FlowTest['easierIf']>>) => {
+  const upd = (patch: Partial<TestDeScene>) => onChange({ ...test, ...patch });
+  const enjeu = test.stake;
+  const authore = enjeu && 'authored' in enjeu ? enjeu : undefined;
+  const setEase = (patch: Partial<NonNullable<TestDeScene['easierIf']>>) => {
     const m = { ...(easierIf ?? {}), ...patch };
     upd({ easierIf: m.hasSkill || m.hasTalent ? m : undefined });
   };
@@ -142,7 +151,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
           aria-label="Caractéristique testée"
           title={test.skill ? 'Caractéristique testée à la place de celle de la Compétence (ses avances comptent toujours)' : 'Caractéristique testée — sans Compétence, le jet roule dessus seule'}
           value={test.characteristic ?? ''}
-          onChange={(e) => upd({ characteristic: (e.target.value || undefined) as CharKey | undefined })}
+          onChange={(e) => upd({ characteristic: charKeySchema.safeParse(e.target.value).data })}
         >
           <option value="">{test.skill ? '— Caractéristique de la Compétence —' : '— aucune Caractéristique —'}</option>
           {CHAR_KEYS.map((k) => (
@@ -162,14 +171,14 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
           la scène — `validateScene` refuse un jet muet. Un enjeu de CATALOGUE (Flow produit par le
           moteur, jamais par cet éditeur) reste en lecture seule : sa phrase vit dans la donnée. */}
       <div className="tf-row">
-        {test.stake?.key ? (
+        {enjeu && 'key' in enjeu ? (
           <span className="dr" title="Enjeu servi par un dataset du moteur — il s’édite dans sa donnée, pas dans la scène.">
-            Enjeu : {test.stake.key.dataset}/{test.stake.key.kind} (catalogue)
+            Enjeu : {enjeu.key.dataset}/{enjeu.key.kind} (catalogue)
           </span>
         ) : (
           <Stack>
-            <ProseField label="Enjeu du jet" value={test.stake?.authored ?? ''} onChange={(authored) => upd({ stake: authored.trim() ? { authored, ...(test.stake?.authored !== undefined ? { source: test.stake.source, adapteDe: test.stake.adapteDe } : {}) } : undefined })} />
-            {test.stake?.authored !== undefined && <ProvenanceDuTexte copie identite={`${identite}/enjeu`} sujet="de l'enjeu" value={test.stake} onChange={(patch) => upd({ stake: { authored: test.stake!.authored!, ...patch } })} />}
+            <ProseField label="Enjeu du jet" value={authore?.authored ?? ''} onChange={(authored) => upd({ stake: authored.trim() ? { authored, ...(authore ? { source: authore.source, adapteDe: authore.adapteDe } : {}) } : undefined })} />
+            {authore && <ProvenanceDuTexte copie identite={`${identite}/enjeu`} sujet="de l'enjeu" value={authore} onChange={(patch) => upd({ stake: { authored: authore.authored, ...patch } })} />}
           </Stack>
         )}
       </div>
@@ -187,14 +196,18 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
             label="Groupes de l’interlocuteur"
             title="Animosité et Préjugé du jeteur envers ces Groupes modifient le Test de Sociabilité"
             value={test.vsGroups}
-            onChange={(vsGroups) => upd({ vsGroups })}
+            onChange={(ids) => { const lus = flowTestSchema.shape.vsGroups.safeParse(ids); upd({ vsGroups: lus.success ? lus.data : undefined }); }}
           />
+          <label className="dr" title="Le Statut de l’interlocuteur module le Test de Sociabilité selon celui du jeteur">
+            Statut de l’interlocuteur
+            <ChampDeStatut value={test.vsStatus} onChange={(vsStatus) => upd({ vsStatus })} echelon="Échelon de l’interlocuteur" standing="Standing de l’interlocuteur" facultatif />
+          </label>
         </div>
       )}
       <div className="tf-row">
         <span className="dr">Plus facile si</span>
         <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="compétence" value={easierIf?.hasSkill} onChange={(v) => setEase({ hasSkill: (v as { id: string; spec?: string } | null) ?? undefined })} nullable />
-        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={easierIf?.hasTalent} onChange={(v) => setEase({ hasTalent: (v as string | null) || undefined })} nullable />
+        <RefField cfg={{ ds: 'talents', single: true }} fieldKey="ou talent" value={easierIf?.hasTalent} onChange={(v) => { const lu = facilitationSchema.shape.hasTalent.safeParse(v || undefined); setEase({ hasTalent: lu.success ? lu.data : undefined }); }} nullable />
         <label className="dr">−<NumberField variant="nu" label="Crans de facilité" min={1} value={easierIf?.steps ?? 1} onChange={(steps) => setEase({ steps })} /> cran(s)</label>
         {/* Menace du talent « Résistance (Menace) » (LDB 10) : tag qui offre son auto-succès sur CE Test.
             Les options sont les SPECS AUTHORÉES du talent (`menaceIds`, lues au catalogue) — l'auteur
@@ -230,7 +243,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
 }
 
 /** Menu « + Bloc » : un nœud logique (si/test) ou une feuille d'effet (do, par catégorie). */
-function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) {
+function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: FlowEdite) => void; ctx: Ctx }) {
   return (
     <AddMenu
       label="+ Bloc"
@@ -261,10 +274,10 @@ function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) 
   );
 }
 
-export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: Flow) => void; ctx: Ctx }) {
+export function FlowEditor<T extends FlowTest = never, C = never>({ flow, onChange, ctx }: { flow: FlowEdite<T, C>; onChange: (f: FlowEdite<T, C>) => void; ctx: Ctx }) {
   const steps = asSteps(flow);
-  const set = (next: Flow[]) => onChange(seqOf(next));
-  const updAt = (i: number, node: Flow) => set(steps.map((s, j) => (j === i ? node : s)));
+  const set = (next: FlowEdite<T, C>[]) => onChange(seqOf(next));
+  const updAt = (i: number, node: FlowEdite<T, C>) => set(steps.map((s, j) => (j === i ? node : s)));
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= steps.length) return;
     const next = [...steps];

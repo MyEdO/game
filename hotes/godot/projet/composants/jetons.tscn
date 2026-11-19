@@ -3,33 +3,33 @@
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 
-[node name="Jetons" type="HBoxContainer"]
+[node name="Jetons" type="VBoxContainer"]
 size_flags_horizontal = 3
-theme_type_variation = &"RangeeSerree"
+theme_type_variation = &"PileDeMesure"
 
-[node name="Libelle" type="Label" parent="."]
-custom_minimum_size = Vector2(92, 0)
-theme_type_variation = &"Discret"
+[node name="Tete" type="HBoxContainer" parent="."]
 
-[node name="nom" type="Node" parent="Libelle"]
+[node name="Libelle" type="Label" parent="Tete"]
+size_flags_horizontal = 3
+theme_type_variation = &"TitreDeMesure"
+
+[node name="nom" type="Node" parent="Tete/Libelle"]
 script = ExtResource("1_liaison")
 champ = "nom"
 
+[node name="Reste" type="HBoxContainer" parent="Tete"]
+
+[node name="Zone" type="Node" parent="Tete/Reste"]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("reste")
+formes = PackedStringArray("ligne:chiffre")
+
 [node name="Cases" type="HBoxContainer" parent="."]
-size_flags_vertical = 4
+theme_type_variation = &"RangeeDeCases"
 
 [node name="Zone" type="Node" parent="Cases"]
 script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("jeton/")
 formes = PackedStringArray("puce:jeton")
-
-[node name="Reste" type="HBoxContainer" parent="."]
-size_flags_horizontal = 3
-size_flags_vertical = 4
-
-[node name="Zone" type="Node" parent="Reste"]
-script = ExtResource("2_zone")
-source = "elements"
-ids = PackedStringArray("reste")
-formes = PackedStringArray("ligne:carriere")

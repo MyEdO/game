@@ -5,6 +5,7 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont dans `AUTHOR_PATH`, de
  * `scripts/guards/lib/editabiliteDesChamps.mjs`.
  */
+import type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 import {
   dialoguesDeLaScene,
   sceneMetresPerTile,
@@ -79,13 +80,13 @@ import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/
 import { declarationDeFeuilleDId, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
 import { entree as trappingEntree } from '../data/schemas/defs/trappings';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
-import { champsDeclares, choixDuNoeud, formeAuPoint, type ChoixDuContexte, type FieldDesc } from './codex/editFields';
+import { champsDeclares, choixDuNoeud, formeAuPoint, recordDuNoeud, type ChoixDuContexte, type FieldDesc } from './codex/editFields';
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
 import { chargeLArme, gabaritDObjet } from '../engine/items';
 import { travelModeLabels, travelVehicles, vehicleTravel } from '../engine/travel';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
-import { estObjet } from '../lib/objet.mjs';
+import { auChemin, estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
@@ -132,7 +133,7 @@ import { choixSousUneAdresse, type SourceDeLEdition } from './edition/adresseDeP
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
-import type { Rect, Pt, EffectZoneSeed } from './sceneEdit';
+import type { Pt, EffectZoneSeed } from './sceneEdit';
 import { champsDuFormulaire, type CheminsOfferts, type FormeDuFormulaire, type Segment } from './edition/formulaire';
 import { tableTotale } from '../lib/tableTotale';
 
@@ -173,8 +174,9 @@ export type Tool =
   | { mode: 'gomme' };
 
 /** Variantes de l'outil ZONE (rail « zone » de la Palette), la pièce d'abord. `room` et `effect` produisent toutes
- *  deux une `SceneEffectZone` ; ce qui les distingue est leur GRAINE ci-dessous, pas le créateur. */
-export const ZONE_VARIANTS = ['room', 'trigger', 'rest', 'effect'] as const;
+ *  deux une `SceneEffectZone` ; ce qui les distingue est leur GRAINE ci-dessous, pas le créateur. `jouable` pose le
+ *  rectangle où se joue la scène (`Scene.zoneJouable`, `setZoneJouable`). */
+export const ZONE_VARIANTS = ['room', 'trigger', 'rest', 'effect', 'jouable'] as const;
 export type ZoneVariant = (typeof ZONE_VARIANTS)[number];
 
 /** Ce que chaque variante de zone d'effet DONNE à la zone qu'elle dessine — déclaré ICI, à côté du
@@ -241,8 +243,8 @@ export function flowEffectCount(flow: Flow): number {
   return n;
 }
 
-/** Rect englobant l'aire d'une zone d'effet (disque → sa boîte). */
-export function effectZoneRect(area: ZoneArea): Rect {
+/** Rectangle englobant l'aire d'une zone d'effet (disque → sa boîte). */
+export function effectZoneRect(area: ZoneArea): RectDeCases {
   if (area.kind === 'disc') return { x: area.cx - area.radius, y: area.cy - area.radius, w: area.radius * 2 + 1, h: area.radius * 2 + 1 };
   return { x: area.x, y: area.y, w: area.w, h: area.h };
 }
@@ -250,7 +252,7 @@ export function effectZoneRect(area: ZoneArea): Rect {
 /** Aire de forme `kind` occupant la boîte `r` : un disque prend le centre de la boîte et le rayon qui
  *  y tient (côté impair → boîte exacte). Conversion RÉVERSIBLE d'un aller-retour rect→disc→rect sur
  *  une boîte carrée impaire ; l'auteur reste maître du rayon exact par le champ dédié. */
-export function effectZoneArea(kind: ZoneArea['kind'], r: Rect): ZoneArea {
+export function effectZoneArea(kind: ZoneArea['kind'], r: RectDeCases): ZoneArea {
   if (kind === 'rect') return { kind: 'rect', ...r };
   const radius = Math.max(0, Math.floor((Math.max(r.w, r.h) - 1) / 2));
   return { kind: 'disc', cx: r.x + Math.floor(r.w / 2), cy: r.y + Math.floor(r.h / 2), radius };
@@ -311,7 +313,7 @@ export function empriseDuPinceau(dimensions: { w: number; h: number }, p: Pt, ta
   return cases;
 }
 
-const inRect = (p: Pt, r: Rect) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
+const inRect = (p: Pt, r: RectDeCases) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
 
 /** Deux sélections désignent-elles le même élément ? */
 export function sameSel(a: Sel, b: Sel): boolean {
@@ -375,8 +377,8 @@ export function hitAt(scene: Scene, p: Pt, layers: Layers, currentLayer = 0, act
   return null;
 }
 
-/** Rect occupé par la sélection (poignée de resize, surlignage) — null si la sélection est ponctuelle. */
-export function selRect(scene: Scene, sel: Sel): Rect | null {
+/** Rectangle occupé par la sélection (poignée de resize, surlignage) — null si la sélection est ponctuelle. */
+export function selRect(scene: Scene, sel: Sel): RectDeCases | null {
   if (sel?.type === 'trigger') return scene.triggers.find((t) => t.id === sel.id)?.rect ?? null;
   if (sel?.type === 'restZone') return scene.restZones?.[sel.idx]?.rect ?? null;
   if (sel?.type === 'effectZone') { const z = scene.effectZones?.find((ez) => ez.id === sel.id); return z ? effectZoneRect(z.area) : null; }
@@ -710,7 +712,7 @@ const APPARENCES_D_OBJETS = ['appearance', 'apparencesObjets'] as const;
  *  elle au chemin `reste` : ses clés, chaque objet de ces armes dont l'apparence se choisit (`objetsAApparenceChoisie`) ;
  *  d'un objet, chacune de ses apparences choisissables (`apparencesChoisissablesDObjet`), posée entière ou par son
  *  identifiant. #2948 */
-function choixDesApparencesDObjets(armes: () => ReturnType<typeof armesDEntite>, objet: ReturnType<typeof objetDuNarratif>, reste: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+export function choixDesApparencesDObjets(armes: () => ReturnType<typeof armesDEntite>, objet: ReturnType<typeof objetDuNarratif>, reste: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const [trappingId, cle, ...plus] = reste;
   if (trappingId === undefined) return objetsAApparenceChoisie(armes(), objet).map((id) => ({ valeur: id, libelle: objet(id)?.label ?? id, refus: null }));
   if (typeof trappingId !== 'string' || plus.length || (cle !== undefined && cle !== 'id')) return undefined;
@@ -1256,7 +1258,7 @@ const SOUS_ENTREES_DESIGNEES: { readonly [R in RegistreDeSousReference]: (narrat
  *  `undefined` sans elle, où la clé n'est pas une sous-référence. */
 function choixDeLaSousReference(donnee: unknown, chemin: readonly Segment[], cle: CleDeSousReference, narratif: NarratifBlock): readonly ChoixDuContexte[] | undefined {
   const parente = SOUS_REFERENCES[cle];
-  const porteur = chemin.slice(0, -1).reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
+  const porteur = auChemin(donnee, chemin.slice(0, -1));
   const id = estObjet(porteur) ? porteur[parente] : undefined;
   return typeof id === 'string' ? SOUS_ENTREES_DESIGNEES[REFERENCES_NARRATIVES[parente]](narratif, id).map((e) => ({ valeur: e.id, libelle: e.label, refus: null })) : undefined;
 }
@@ -1285,11 +1287,13 @@ const choixDuCatalogueOuvert = (noeuds: readonly unknown[]): ChoixDuContexte[] =
 
 /** Les choix d'une référence LOCALE aux nœuds `noeuds`, parmi les portées des `ouvreurs`, chacun sous le libellé de son
  *  entrée (`entreesDeLaFeuilleLocale`) : d'une feuille locale, chaque id que sa portée admet, après ceux de son catalogue
- *  si elle est ouverte (`choixDuCatalogueOuvert`) ; d'une référence `{ id }` dont l'identifiant en est une, chacun posé
- *  entier ; `undefined` sinon. */
+ *  si elle est ouverte (`choixDuCatalogueOuvert`), un record y contribuant le nœud de sa clé (`recordDuNoeud`), dont
+ *  les choix sont les clés qu'il offre (`FieldDesc.contexte`) ; d'une référence `{ id }` dont l'identifiant en est une,
+ *  chacun posé entier ; `undefined` sinon. */
 export function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
-  const entrees = entreesDeLaFeuilleLocale(noeuds, ouvreurs);
-  if (entrees) return [...choixDuCatalogueOuvert(noeuds), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
+  const feuilles = noeuds.map((n) => recordDuNoeud(n)?.cle ?? n);
+  const entrees = entreesDeLaFeuilleLocale(feuilles, ouvreurs);
+  if (entrees) return [...choixDuCatalogueOuvert(feuilles), ...entrees.map(({ id, libelle }) => ({ valeur: id, libelle, refus: null }))];
   const emboites = entreesDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);
   return emboites?.map(({ id, libelle }) => ({ valeur: { id }, libelle, refus: null }));
 }

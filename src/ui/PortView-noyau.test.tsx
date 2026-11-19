@@ -17,7 +17,8 @@ import { emptyScene } from '../noyau/monde/scene';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findNavalTrait, findVehicleById, NAVAL_TRAITS } from '../data';
 import { PORT_A_CHANTIER, PORT_SANS_CHANTIER } from '../data/navalPorts.testkit';
-import { installCost } from '../engine/shipBuild';
+import { installCost, piecesDeLaReparation } from '../engine/shipBuild';
+import { itemFromTrappingById } from '../engine/items';
 import { overloadMaxEnc } from '../engine/seaVoyage';
 import { t } from '../i18n';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
@@ -153,8 +154,9 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
     return noms;
   };
 
-  it('un champ par vivre achetable : biscuits et préservée, jamais le frais hors Bonne pêche, puis les tonneaux', () => {
+  it('un champ par vivre achetable : soupe de chou fermenté, préservée et biscuits, jamais le frais hors Bonne pêche, puis les tonneaux', () => {
     expect(champsDEscale({ escale: 'A' })).toEqual([
+      'Ration de soupe de chou fermenté pour un jour à embarquer',
       'Ration de nourriture préservée pour un jour à embarquer',
       'Ration de biscuits de mer pour un jour à embarquer',
       'Tonneaux d’eau douce à embarquer',
@@ -164,6 +166,7 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
   it('Bonne pêche à l’escale : le frais s’ajoute aux vivres achetables, à 3 sc la ration-jour', () => {
     expect(champsDEscale({ escale: 'A', rationsDEscale: 3 })).toEqual([
       'Nourriture, courses/journée à embarquer',
+      'Ration de soupe de chou fermenté pour un jour à embarquer',
       'Ration de nourriture préservée pour un jour à embarquer',
       'Ration de biscuits de mer pour un jour à embarquer',
       'Tonneaux d’eau douce à embarquer',
@@ -195,5 +198,41 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
   it('hors quai : l’avitaillement est fermé, raison = le refus du noyau', () => {
     ouvrir(navire({ escale: 'B' }));
     expect(geste('escale', 'port-avitailler')).toEqual({ ferme: 'true', raison: t('port.pasAQuai') });
+  });
+});
+
+describe('#4239 — l’onglet Chantier offre « Réparer nous-mêmes », au refus du devis du noyau (MDG 13 l.641-643 ; MDG 15 l.306)', () => {
+  const B = COGUE.hull!.char.B;
+  let n = 0;
+  /** Le héros du port, Métier (Constructeur de navires) à `metier` avances (0 : aucun réparateur), porteur de `pieces`
+   *  pièces détachées de navire ; la coque manque 8 Blessures. */
+  function chantier(metier: number, pieces: number): void {
+    ouvrir({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: B - 8, max: B } } as CampaignVessel);
+    const h = structuredClone(get().party[0]);
+    h.skills = [...h.skills.filter((s) => s.id !== 'metier'), ...(metier ? [{ id: 'metier', spec: 'constructeur-de-navires', characteristic: 'dexterite' as const, advances: metier }] : [])];
+    h.items = [...(h.items ?? []), ...Array.from({ length: pieces }, () => itemFromTrappingById('pieces-detachees-de-navire', () => `p4239-ui-${n++}`)!)];
+    useGame.setState({ party: [h] });
+  }
+
+  it('aucun réparateur : fermé, raison = le refus du noyau', () => {
+    chantier(0, 10);
+    expect(geste('coque', 'port-repair-groupe')).toEqual({ ferme: 'true', raison: t('sv.sansReparateur') });
+  });
+
+  it('pas de pièces détachées : fermé, raison = le refus du noyau', () => {
+    chantier(10, 0);
+    expect(geste('coque', 'port-repair-groupe')).toEqual({ ferme: 'true', raison: t('sv.sansPiecesDetachees', { enc: piecesDeLaReparation(1, false) }) });
+  });
+
+  it('réparateur et pièces : ouvert, le clic ouvre le Test de Métier du verbe `reparerParLeGroupe`', () => {
+    chantier(10, 10);
+    expect(geste('coque', 'port-repair-groupe')).toEqual({ ferme: null, raison: null });
+    const hote = document.createElement('div');
+    const root = createRoot(hote);
+    act(() => root.render(<PortView initialTab="coque" />));
+    const bouton = [...hote.querySelectorAll('button')].find((b) => b.textContent?.includes(t('port.reparerParLeGroupe')))!;
+    act(() => bouton.click());
+    act(() => root.unmount());
+    expect(get().pendingCascade?.participants[0]?.skill?.spec).toBe('constructeur-de-navires');
   });
 });

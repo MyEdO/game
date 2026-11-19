@@ -8,12 +8,11 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { Formula, FormuleSansTirage } from '../../../engine/ops';
-import type { RegleOptionnelleId } from '../../../engine/policy';
 import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
-import { parseStatus, type Money } from '../../../engine/money';
-import { parseDice, totalDuDe } from '../../../engine/dice';
-import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
+import { ECHELONS_DE_STATUT, libelleDEchelon, type Money, type Status } from '../../../engine/money';
+import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe, type DeDeTable, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
 import { estObjet } from '../../../lib/objet.mjs';
 import type { TrappingData } from '../../index';
@@ -134,13 +133,6 @@ export type QualiteDeRepos = z.output<typeof qualiteDeReposSchema>;
 export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
 
-/** Dé de TIRAGE d'une table à fourchettes (`die`) : une expression de dé (« d10 », « 2d10 ») que
- *  `parseDice` (`src/engine/dice.ts`) lit en `DiceSpec`. UNE déclaration pour la fabrique
- *  (`options.deDeTirage`, `grammaire/document.ts`), les tables de `arcane-phenomena.json`, les porteurs
- *  de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`) et l'op `rollTable`
- *  (`grammaire/mecanique.ts`). #1669 */
-export const deDeTirageSchema = z.string().refine((s) => parseDice(s) !== null, { message: 'dé de tirage illisible : une expression « NdM » (ex. « d10 », « 2d10 »)' });
-
 /** Maniement d'une arme : l'axe d'ANIMATION (prise physique), distinct du Groupe de règles — UNE déclaration
  *  pour les racines de `apparences.json` (`defs/apparences.ts`) et les Groupes d'arme de `weaponGroups.json`
  *  (`defs/weaponGroups.ts`), lus par `maniementDe` (`src/noyau/animation.ts`). #3076 */
@@ -194,6 +186,19 @@ export const symptomSeveritySchema = enumNomme({ moderee: 'Modérée', grave: 'G
  *  l.19), un individu (LDB 21 l.75 ; EDOC 11 l.648). Son libellé nomme la variante dans les refus. #3045 */
 export const varianteDeCibleSchema = enumNomme({ groupe: 'un Groupe', individu: 'une personne' });
 export type VarianteDeCible = z.infer<typeof varianteDeCibleSchema>;
+
+/** Restriction d'Action, de Mouvement et de défense qu'un Statut impose à son porteur (`gating` de `etats.json` et de
+ *  `psychology.json`), lue par `conditionGating` (`engine/conditions.ts`). LDB 16 ; LDB 21 */
+export const gatingDeStatutSchema = nommerChamps(z.strictObject({
+  action: z.literal('none').optional(),
+  movement: z.enum(['none', 'half', 'crawl']).optional(),
+  cannotDefend: z.literal(true).optional(),
+}), {
+  action: { label: 'Action' },
+  movement: { label: 'Déplacement' },
+  cannotDefend: { label: 'Défense impossible' },
+});
+export type GatingDeStatut = z.output<typeof gatingDeStatutSchema>;
 
 /**
  * FAMILLE d'attaque d'une manœuvre et d'une arme naturelle (`AttackKind`, `src/engine/creatureAttacks.ts`) — le libellé est
@@ -261,8 +266,11 @@ export const LIBELLES_DE_DISPONIBILITE = { commune: 'Commune', limitee: 'Limité
 export const availabilitySchema = enumNomme(LIBELLES_DE_DISPONIBILITE);
 /** Les Disponibilités qui se testent au d100 (`TestedAvailability`). LDB 59 l.25-30 */
 export const dispoPctAvailabilitySchema = enumNomme({ limitee: LIBELLES_DE_DISPONIBILITE.limitee, rare: LIBELLES_DE_DISPONIBILITE.rare } satisfies Record<TestedAvailability, string>);
-/** Libellé de Statut (« Argent 2 ») : lisible par `parseStatus`, que `statutDeDonnee` garantit ensuite. LDB 08 l.9 */
-export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'Statut illisible : « Bronze N », « Argent N » ou « Or N » attendu.');
+/** Statut (`Status`, `src/engine/money.ts`) : un Échelon et un Standing entier, de 0 sans borne haute. LDB 08 l.9, l.101 */
+export const statutSchema = nommerChamps(
+  z.strictObject({ tier: enumNomme(tableTotale(ECHELONS_DE_STATUT, libelleDEchelon)), standing: z.number().int().min(0) }),
+  { tier: { label: 'échelon' }, standing: { label: 'standing' } },
+) satisfies z.ZodType<Status>;
 
 /**
  * Rareté d'une pièce de créature récoltée (`HarvestRarity`, `src/data/index.ts`) = les paliers de
@@ -314,7 +322,7 @@ export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
  */
 export const sourceRefSchema = nommerChamps(z.strictObject({
   book: idDe('book', undefined, { nue: true }),
-  page: z.number(),
+  page: z.number().int(),
   /** Précision optionnelle (ch./l. du passage, portée VERBATIM…). Aucune LOGIQUE DE JEU ne la lit ;
    *  une GARDE la lit : quand elle est de la forme `<ABRÉV> <ch> l.<ligne>`,
    *  `scripts/guards/lib/folioLineAlign.mjs` la confronte au marqueur `data-folio` qui gouverne cette
@@ -712,17 +720,6 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
   } as MetaDesChamps<typeof final.shape>);
 }
 
-/** Vue TS COMMUNE d'une variante — le contrat de FORME (runtime) est celui de `variantOf` par dataset ;
- *  cette vue expose les champs partagés par tous les porteurs et laisse les autres en `unknown`. Portée
- *  par le champ `variants?: Variant[]` de toute entrée à variante réglée (`activeVariant`/`effectiveEntry`,
- *  `src/engine/variants.ts`). */
-export type Variant = {
-  when: { rule: RegleOptionnelleId; equals?: z.infer<typeof ruleValueSchema> };
-  desc?: string;
-  source?: SourceRef;
-  [field: string]: unknown;
-};
-
 /**
  * Recette de détail de surface (`DetailRecipe`, `src/data/materials.types.ts`) — portée par le champ
  * optionnel `detail` de 2 datasets d'apparence (`materials.json` — domaines `roof` et `relief` — et
@@ -738,7 +735,7 @@ export const detailRecipeSchema = nommerChamps(z.strictObject({
       blockWM: z.tuple([z.number(), z.number()]).optional(),
       edgeWobble: z.number().optional(),
       paletteVar: z.number().optional(),
-    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "bloquer la carte du monde" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
+    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "largeur de bloc en mètres" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
     .optional(),
   bands: z.array(nommerChamps(z.strictObject({ atV: z.number(), hM: z.number(), color: z.string() }), { atV: { label: "position verticale" }, hM: { label: "hauteur en mètres" }, color: { label: "couleur" } })).optional(),
   timber: nommerChamps(z
@@ -932,8 +929,15 @@ export const entrainementDeProtheseSchema = nommerChamps(z.strictObject({ px: z.
 export const contenantSchema = nommerChamps(z.strictObject({ capacity: z.number() }), { capacity: { label: 'Capacité' } });
 
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
- *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
+ *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } }, { label: 'montant' });
+
+/** Barème d'embauche d'un mercenaire, coût quotidien et hebdomadaire. MDG 14 l.293-302 */
+export const baremeDEmbaucheSchema = nommerChamps(z.strictObject({ daily: moneySchema, weekly: moneySchema, source: sourceRefSchema }), {
+  daily: { label: 'paie quotidienne' },
+  weekly: { label: 'paie hebdomadaire' },
+  source: { label: 'source' },
+});
 
 /** La pièce d'une somme (`keyof Money`), ses libellés au pluriel. LDB 57 */
 export const monnaieSchema = enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' } satisfies Record<keyof Money, string>);
@@ -946,8 +950,19 @@ export type NatureDeMention = z.infer<typeof natureDeMentionSchema>;
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */
 export const moneyPartialSchema = nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
 
-/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `CountSpec.roll`, `Formula.dice` et `details`. */
+/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `Formula.dice` et `details`. */
 export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), fois: z.number().positive().optional(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, fois: { label: "multiplicateur" }, plus: { label: "ajout" } });
+
+/** Dé de TIRAGE d'une table à fourchettes (`die`) ou d'une quantité (`CountSpec.roll`) : le `DiceSpec` restreint
+ *  à NdM, N et M entiers de 1. UNE déclaration pour la fabrique (`options.deDeTirage`, `grammaire/document.ts`),
+ *  les tables de `arcane-phenomena.json`, les porteurs de N tables (`defs/rencontres-edoc.ts`,
+ *  `defs/ship-criticals.ts`, `defs/tavernGames.ts`), l'op `rollTable` (`grammaire/mecanique.ts`) et
+ *  `countSpecSchema`. #1669 #4056 */
+const metaDuDe = metaDesChamps(diceSpecSchema, { exigees: true });
+export const deDeTirageSchema = nommerChamps(
+  z.strictObject({ n: diceSpecSchema.shape.n.int().min(1), sides: diceSpecSchema.shape.sides.int().min(1) }),
+  { n: metaDuDe.n, sides: metaDuDe.sides },
+) satisfies z.ZodType<DiceSpec>;
 
 /** `ShipSize` (`src/data/index.ts`) — les sept Tailles de bateau du tableau standard (`MDG 12 l.122-129`),
  *  dérivées de la LONGUEUR par `shipSizeOfLength` (`src/engine/shipBuild.ts`). Déclarées ICI une fois :
@@ -975,12 +990,11 @@ export type ProfilDeVoile = z.output<typeof profilDeVoileSchema>;
 
 /** Axes de la MÉTÉO MARINE (`SeaWeather`, `engine/seaWeather.ts`) : une rangée de sa table, ou le climat
  *  qu'un événement impose. MDG 13 l.170 */
-export const ventMarinSchema = z.enum(['calme-plat', 'legere-brise', 'brise-fraiche', 'vent-modere', 'vent-violent', 'violente-tempete']);
 const AXES_DE_LA_METEO_MARINE = {
-  precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
-  temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
-  visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
-  vent: ventMarinSchema,
+  precipitations: ref('seaPrecipitation'),
+  temperature: ref('seaTemperature'),
+  visibilite: ref('seaVisibility'),
+  vent: ref('seaWind'),
 };
 const META_DE_LA_METEO_MARINE = {
   precipitations: { label: 'Précipitations' },
@@ -989,13 +1003,14 @@ const META_DE_LA_METEO_MARINE = {
   vent: { label: 'Vent' },
 };
 export const meteoMarineSchema = nommerChamps(z.strictObject(AXES_DE_LA_METEO_MARINE), META_DE_LA_METEO_MARINE);
-/** Climat IMPOSÉ : les seuls axes qu'il fixe (`Partial<SeaWeather>`), un au moins. MDG 15 l.189, l.199, l.248 */
+/** Climat IMPOSÉ : les seuls axes qu'il fixe, un au moins. MDG 15 l.189, l.199, l.248 */
 export const meteoImposeeSchema = nommerChamps(z.strictObject({
   precipitations: AXES_DE_LA_METEO_MARINE.precipitations.optional(),
   temperature: AXES_DE_LA_METEO_MARINE.temperature.optional(),
   visibilite: AXES_DE_LA_METEO_MARINE.visibilite.optional(),
   vent: AXES_DE_LA_METEO_MARINE.vent.optional(),
 }).refine((m) => Object.keys(m).length > 0, { message: 'météo imposée VIDE : nommer au moins un axe (précipitations, température, visibilité, vent).' }), META_DE_LA_METEO_MARINE);
+export type MeteoImposee = z.output<typeof meteoImposeeSchema>;
 
 /** `ShipLocation` (`src/engine/combat.ts`) — les Localisations de coque des DEUX jeux de Critiques
  *  (MDG naval : cargaison/gréement/coque/avirons/équipements ; MSRC fluvial : gouvernail/superstructure). */
@@ -1067,6 +1082,11 @@ export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]
  *  d'une place assise (`props.json`). */
 export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(), y: z.number().finite() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
+/** Rectangle de CASES entières de la grille, coin `x,y` et taille `w × h` : la zone jouable d'une scène
+ *  (`Scene.zoneJouable`, #4392). */
+export const rectDeCasesSchema = nommerChamps(z.strictObject({ x: z.number().int().nonnegative(), y: z.number().int().nonnegative(), w: z.number().int().min(1), h: z.number().int().min(1) }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } });
+export type RectDeCases = z.infer<typeof rectDeCasesSchema>;
+
 /** `{x,y}` CONTINU du plan, point et non case, dans l'unité que nomme le champ qui le compose : pour cent d'un canevas
  *  (0-100) pour un lieu sur la carte du monde ou un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`),
  *  part du jeu libre d'un décor dans son empreinte (-1 à +1) pour son calage (`SceneEntity.calage`, `defs-scenes/scene.ts`). */
@@ -1133,10 +1153,10 @@ export const castingNumberModSchema = nommerChamps(z
     message: 'castingNumberMod : un modificateur sans `multiply`/`divide`/`delta` ne modifie rien',
   }), { multiply: { label: "multiplier" }, divide: { label: "diviser" }, round: { label: "arrondi" }, delta: { label: "variation" }, min: { label: "minimum" }, scope: { label: "portée" }, maison: { label: "arbitrage maison" }, source: { label: "source" }, desc: { label: "texte" } });
 
-/** Quantité fixe ou tirage de dés (`CountSpec`). */
+/** Quantité fixe ou tirage de dés (`CountSpec`) : un entier de 1, ou un dé de tirage NdM. LDB 08 l.238, l.965, l.1667 #4056 */
 export const countSpecSchema = z.union([
-  nommerChamps(z.strictObject({ fixed: z.number() }), { fixed: { label: "fixé" } }),
-  nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
+  nommerChamps(z.strictObject({ fixed: z.number().int().min(1) }), { fixed: { label: "fixé" } }),
+  nommerChamps(z.strictObject({ roll: deDeTirageSchema }), { roll: { label: "jet" } }),
 ]);
 /** Quantité d'une dotation : nombre fixe ou jet de dés. */
 export type CountSpec = z.infer<typeof countSpecSchema>;
@@ -1302,7 +1322,7 @@ export const messageDeTermeDeJet = (f: unknown): string | undefined => {
  *  qui n'admettent que lui (`max` d'un Talent). */
 export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } });
 /** Le Maxi d'un Talent « Nombre de Sorts disponibles dans le Domaine de Magie du Chaos choisi » (`LDB 10 l.704`). */
-export const maxiSortsDuDomaine = z.literal('sortsDuDomaine');
+export const maxiSortsDuDomaine = nommerNoeud(z.literal('sortsDuDomaine'), { label: 'Sorts du Domaine' });
 
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */
@@ -1359,18 +1379,24 @@ export const formuleSansTirageSchema: z.ZodType<FormuleSansTirage> = z.lazy(() =
   { error: (iss) => messageDeTermeDeJet(iss.input) },
 )) as z.ZodType<FormuleSansTirage>;
 
-/** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
- *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à
+/** La grammaire d'une quantité (`formulaSchema`), nommée « formule » en variante d'une union qui l'admet à côté
+ *  d'autres formes ; `formulaSchema` garde son nom. */
+export const formuleNommee = nommerNoeud(z.lazy(() => formulaSchema), { label: 'formule' });
+
+/** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Lié à
+ *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::lierLesOps`), jamais à
  *  l'application de l'op : le Péché est expié AVANT `applyOps` (`noyau/combatFlow.ts`). */
 export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.literal(true) }), { sinPoints: { label: "Points de Péché" } });
 
-/** `Formula` du dialecte de la Colère des dieux : une formule GÉNÉRALE, le terme de Péché, ou leur
- *  SOMME — la seule composition que le livre imprime (« 1d10 + (Points de Péché) »). */
+/** `Formula` du dialecte de la Colère des dieux : leur SOMME — la seule composition que le livre imprime
+ *  (« 1d10 + (Points de Péché) ») —, une formule GÉNÉRALE, ou le terme de Péché. La somme d'abord : une somme se lit
+ *  à la variante qui admet le terme de Péché (`varianteCourante`), jamais à la somme de la formule générale. */
 export const formulaSinSchema = z.union([
-  formulaSchema,
+  nommerChamps(z.strictObject({ sum: z.array(z.union([formuleNommee, sinPointsSchema])) }), { sum: { label: "somme" } }),
+  formuleNommee,
   sinPointsSchema,
-  nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
+export type FormuleAuPeche = z.output<typeof formulaSinSchema>;
 
 /** Le nœud est-il, sous ses seules enveloppes (`optional`, `lazy`…), la grammaire SANS TIRAGE
  *  (`formuleSansTirageSchema`) ? C'est le DIALECTE d'un champ de `Formula` lu sur son schéma, comme
@@ -1558,24 +1584,27 @@ export function ecartsDeCouverture<F extends { min?: number | null; max?: number
   return ecarts;
 }
 
+/** Le dé de `table` (`deDeLaTableTiree`) pour un raffinement de dataset, `null` hors NdM : un raffinement court sur un
+ *  dé que son champ (`deDeTirageSchema`) refuse déjà, nominativement. */
+export const deDuParse = (table: PorteurDeDe): DeDeTable | null => (deDeTirageSchema.safeParse(table.die).success ? deDeLaTableTiree(table) : null);
+
 /**
  * COUVERTURE DU DÉ d'une table tirée : ses fourchettes couvrent le dé que porte la table
  * (`deDeLaTableTiree`, `src/engine/tables.ts`) d'un seul tenant, de son plus petit total à son plus
- * grand (`facesDuDe`), ouverte en haut quand une fourchette l'est (`max: null`). Un dé illisible rend
- * `[]` : son champ (`deDeTirageSchema`) le refuse déjà, nominativement.
+ * grand (`facesDuDe`), ouverte en haut quand une fourchette l'est (`max: null`) ; aucun écart hors NdM (`deDuParse`).
  */
 export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: number | null }>(
   table: PorteurDeDe,
   fourchettes: readonly F[],
   nom: (f: F) => string,
 ): string[] {
-  if (parseDice(table.die) === null) return [];
-  const de = deDeLaTableTiree(table);
+  const de = deDuParse(table);
+  if (!de) return [];
   return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
 
 /** Un document d'un fichier de tables tirées : son dé et ses rangées. */
-type TableTiree = { readonly id: string; readonly die: string; readonly entries: readonly { min?: number | null; max?: number | null }[] };
+type TableTiree = { readonly id: string; readonly die: DiceSpec; readonly entries: readonly { min?: number | null; max?: number | null }[] };
 
 /** Le refus nominatif d'un document `t` dont les rangées ne couvrent pas le dé, posé sur `chemin`. */
 function refuserLaCouverture<T extends TableTiree>(
@@ -1583,7 +1612,7 @@ function refuserLaCouverture<T extends TableTiree>(
 ): void {
   const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
   if (ecarts.length) {
-    ctx.addIssue({ code: 'custom', path: chemin, message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
+    ctx.addIssue({ code: 'custom', path: chemin, message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${formatDice(t.die)} d'un seul tenant — ${ecarts.join(' ; ')}.` });
   }
 }
 

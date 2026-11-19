@@ -130,7 +130,11 @@ qui le rend inutile.
 - **Gel structurel de `ui` et `gameIso`** : ces deux zones seront remplacées. On n'y investit aucune
   restructuration, et les gardes de #2724 dont tout le périmètre y est restent en l'état jusqu'à la
   bascule, où elles partent avec leur code. Le gel porte sur la structure, pas sur le jeu.
-- **Les outils d'auteur passent en Godot.** Le Compendium, l'atelier de cartes et les galeries de
+- **Les données s'éditent au Compendium Godot** (#4020) : sa session vit au noyau
+  (`src/noyau/codex/session.ts`), son formulaire se tire du schéma de chaque catégorie
+  (`src/hote/compendium.ts`), et `src/compendium-field-editability-guard-*.test.ts` exige que chaque
+  chemin du schéma s'écrive par un geste joué, jamais par une saisie JSON.
+- **Les outils d'auteur passent en Godot.** L'atelier de cartes et les galeries de
   contrôle suivent l'écran de jeu dans la bascule : laurent, 2026-11-06, « Tout passe en Godot. »
   Leur version web entre dans le gel de `ui` : on n'y corrige rien de structurel, et ses défauts
   s'inventorient au sujet global #3006 pour être soldés dans la version Godot. Le calage du calque,
@@ -215,7 +219,7 @@ cette mesure.
 
 ```
 Source/                     Livres en .md (vérité citable : FR + Core Rulebook 5e, AGENTS.md § Sources VF)
-src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans le Compendium) + index.ts (accès typé), pregens.ts
+src/data/                   NOTRE base APP-OWNED (JSON commité, éditable au Compendium Godot) + index.ts (accès typé), pregens.ts
                             EXCEPTIONS manuscrites (tables verbatim sourcées) : criticals.ts, oups.ts,
                             mutations.ts (Tableaux de Corruption LDB 19). Les métadonnées de résolution
                             des sorts vivent dans SpellData (spells.json) — l'ancien registre spellspecs/
@@ -540,8 +544,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
-  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 37 types exportés,
-                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 13
+  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 36 types exportés,
+                            dont 23 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 13
                             MANUSCRITS : `Scene`, `SceneEntity`, `SceneDuVolume` (la scène vue par son
                             volume, tirée de `CHAMPS_DU_VOLUME`), `SceneDesToits` et `SceneDesCouronnes`
                             (la scène vue par ses nappes de toit et ses couronnes, tirées de
@@ -818,7 +822,9 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
                             dynamicMarks/interactHalos/tokenChrome. Un builder n'importe NI caméra NI
                             Dims — sa sortie survit à toute rotation et sert les deux vues.
                             Chaque site de `buildProps` (entité, feature de façade, ornement de
-                            bâtiment) DÉCLARE son ancrage et un émetteur unique tranche par
+                            bâtiment) DÉCLARE son ancrage — celui des features et ornements du bâti
+                            lu sur `ornementsDuBati` (`src/noyau/monde/volume/ornements.ts`), qui les
+                            pose aussi dans le volume du monde des hôtes — et un émetteur unique tranche par
                             `facesDuDecor` (`src/noyau/monde/volume/propVolumes.ts`, compilation PURE
                             de la recette volumique d'un décor, que le volume du monde des hôtes lit
                             aussi) : recette → volume, sinon billboard

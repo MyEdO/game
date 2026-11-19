@@ -2,7 +2,10 @@
   "id": "couleur-des-yeux",
   "type": "eyes",
   "label": "Tableau de couleur des yeux",
-  "die": "2d10",
+  "die": {
+    "n": 2,
+    "sides": 10
+  },
   "source": {
     "book": "livre-de-base",
     "page": 40,

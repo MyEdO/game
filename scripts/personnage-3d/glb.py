@@ -152,6 +152,46 @@ def lire_accesseur(document, binary, index):
     return values
 
 
+def coques_en_defaut(path):
+    """Les nœuds du GLB `path` dont le mesh n'est pas une réunion de coques closes aux faces vers le dehors :
+    [(nom, arêtes non appariées, coques de volume négatif ou nul)], les sommets de même position soudés.
+    Une arête est appariée quand autant de triangles la parcourent dans un sens que dans l'autre ; une coque est une
+    composante connexe des triangles soudés, son volume signé celui de ses faces."""
+    import numpy as np
+    document, binary = lire_glb(path)
+    defauts = []
+    for noeud in document['nodes']:
+        if 'mesh' not in noeud:
+            continue
+        positions, triangles, base = [], [], 0
+        for p in document['meshes'][noeud['mesh']]['primitives']:
+            positions.append(lire_accesseur(document, binary, p['attributes']['POSITION']))
+            triangles.append(lire_accesseur(document, binary, p['indices']).astype(np.int64).reshape(-1, 3) + base)
+            base += len(positions[-1])
+        soudes, sommet = np.unique(np.concatenate(positions), axis=0, return_inverse=True)
+        t = sommet.ravel()[np.concatenate(triangles)]
+        t = t[(t[:, 0] != t[:, 1]) & (t[:, 1] != t[:, 2]) & (t[:, 2] != t[:, 0])]
+        n = len(soudes)
+        aretes, passages = np.unique((t * n + t[:, [1, 2, 0]]).ravel(), return_counts=True)
+        inverses = aretes % n * n + aretes // n
+        rang = np.minimum(np.searchsorted(aretes, inverses), len(aretes) - 1)
+        ouvertes = int((np.where(aretes[rang] == inverses, passages[rang], 0) != passages).sum())
+        coque = np.arange(n)
+        while True:
+            suivante = coque.copy()
+            np.minimum.at(suivante, t, suivante[t].min(axis=1, keepdims=True))
+            suivante = suivante[suivante]
+            if (suivante == coque).all():
+                break
+            coque = suivante
+        a, b, c = (soudes[t[:, k]].astype(np.float64) for k in range(3))
+        volumes = np.bincount(coque[t[:, 0]], weights=(a * np.cross(b, c)).sum(axis=1) / 6, minlength=n)
+        retournees = int((volumes[np.unique(coque[t[:, 0]])] <= 0).sum())
+        if ouvertes or retournees:
+            defauts.append((noeud.get('name'), ouvertes, retournees))
+    return defauts
+
+
 def resume_glb(path):
     """Ce qu'un GLB déclare : taille, peaux, animations, images."""
     document, _ = lire_glb(path)

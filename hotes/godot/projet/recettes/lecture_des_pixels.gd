@@ -9,13 +9,25 @@ const LUMINANCE_LISIBLE := 0.02
 ## L'écart de canal au-delà duquel un pixel est d'un objet : ce que l'objet change à ses pixels, au-dessus de ce que son
 ## absence change au brouillard et aux ombres autour.
 const ECART_DE_L_OBJET := 0.03
-## L'éclairage d'un extérieur du jeu (`vue.lumiere` de `zones-pieces`) : un ciel, que les faces reflètent.
+## L'éclairage d'un extérieur du jeu sous chaque regard (`vue.lumiere` de `zones-pieces`) : le sol du pourtour perdu
+## dans la pénombre en tactique, un ciel que les faces reflètent en immersion.
 const LUMIERE_DU_JEU := {
-	soleil = {vers = {x = 0.652, y = 0.552, z = 0.520}, couleur = "#fff3df", energie = 1.3},
-	ambiante = {couleur = "#5b83ac", energie = 0.75},
-	ciel = {zenith = "#5b83ac", horizon = "#9fb2c6"},
-	brume = {couleur = "#9fb2c6", debutCases = 8, finCases = 32, depuisLOeil = false},
-	sources = [],
+	tactique = {
+		soleil = {vers = {x = 0.652, y = 0.552, z = 0.520}, couleur = "#fff3df", energie = 1.3},
+		ambiante = {couleur = "#5b83ac", energie = 0.75}, blanc = 1.0,
+		ciel = null,
+		brume = {couleur = "#0f1013", debutCases = 8, finCases = 32, courbe = 2.0, depuisLOeil = false},
+		horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#3d6630"}, fonduCases = 6},
+		sources = [],
+	},
+	immersion = {
+		soleil = {vers = {x = 0.652, y = 0.552, z = 0.520}, couleur = "#fff3df", energie = 1.3},
+		ambiante = {couleur = "#5b83ac", energie = 0.75}, blanc = 1.0,
+		ciel = {zenith = "#5b83ac", horizon = "#9fb2c6"},
+		brume = {couleur = "#9fb2c6", debutCases = 8, finCases = 32, courbe = 2.0, depuisLOeil = true},
+		horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#3d6630"}, fonduCases = null},
+		sources = [],
+	},
 }
 
 

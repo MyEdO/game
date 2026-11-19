@@ -83,3 +83,19 @@ describe('trappings.json — un maniement alternatif tient l’arme à une main,
     refus(doc);
   });
 });
+
+describe('trappings.json — seule une munition majore une qualité de l’arme (#4346)', () => {
+  it('une majoration hors munition est refusée, nommément', () => {
+    const doc = clone();
+    const tromblon = doc.find((t) => t.id === 'tromblon')!;
+    tromblon.qualities = [...tromblon.qualities, { id: 'tir-de-zone', majoration: 1 }];
+    expect(refus(doc)).toContain('tromblon : seule une munition majore une qualité de l\'arme (« +1 »)');
+  });
+
+  it('une qualité ne porte jamais à la fois un Indice et une majoration', () => {
+    const doc = clone();
+    const petites = doc.find((t) => t.id === 'petites-munitions-et-poudre')!;
+    petites.qualities = [{ id: 'a-explosion', value: 1, majoration: 1 } as never];
+    refus(doc);
+  });
+});

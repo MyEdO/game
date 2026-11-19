@@ -62,7 +62,7 @@ import { rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
 import { groundTerrains } from './planDefects';
 import { estAbsent, terrainAbsent } from './monde/terrain';
 import { planStairFlight, applyStairFlight } from './stairFlight';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
 import type { FireArc } from '../engine/types';
 import type { ThreatTier } from '../engine/advantagePool';
 import type { Dir8 } from '../geometry/dir8';
@@ -166,7 +166,7 @@ export interface EncounterSpec {
   enemies?: AuthoredEnemy[];
   members?: EncounterMember[];
   surprise?: 'groupe' | 'ennemis';
-  onVictory?: Flow;
+  onVictory?: FlowDeScene;
   /** Rencontre invisible en exploration jusqu'au combat (embuscade visuelle) — pose `combat.hiddenUntilCombat`
    *  sur les entités enrôlées via `enemies`. Défaut false (visibles, RAW). */
   hidden?: boolean;

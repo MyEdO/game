@@ -4,7 +4,7 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { executeesDe, flowSchema, noeudTest, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { executeesDe, flowSchema, noeudTestFixe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { difficultySchema, hitLocationSchema } from '../grammaire/valeurs';
 
 export const file = 'symptoms.json';
@@ -28,7 +28,7 @@ export const symptomCapabilitiesSchema = nommerChamps(z.strictObject({
 });
 
 /** LDB 20 l.212 */
-const noeudDuCycle = noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true, decisionAuPorteur: true });
+const noeudDuCycle = noeudTestFixe(flowSchema, { echecSeulServi: true });
 
 /** MSRC 16 l.142 */
 const onTickSchema = nommerChamps(z

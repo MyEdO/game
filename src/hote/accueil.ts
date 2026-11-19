@@ -2,6 +2,7 @@
  * L'ACCUEIL d'un hôte (#3009) : ses entrées en zone, avant toute partie.
  */
 import { t, type MsgKey } from '../i18n';
+import type { IconId } from '../noyau/index';
 import type { Stockage } from '../lib/stockage';
 import type { Bouton, EntreeDeLAccueil } from './elements';
 import { AUTO_SLOT, SAVE_SLOTS, lireLaSauvegarde } from './sauvegardes';
@@ -14,7 +15,7 @@ export interface ZonesDeLAccueil {
   /**
    * « Jouer », « Reprendre », « Jouer en ligne », « Combat », « Atelier », « Éditeur » et « Compendium », dont le `jeu` `{ accueil }`
    * nomme l'entrée que l'hôte suit (`EntreeDeLAccueil`), puis « Options », dont le `jeu` `{ reglages: true }` ouvre le
-   * panneau des réglages. « Reprendre » est refusé quand aucun emplacement du stockage ne porte de sauvegarde.
+   * panneau des réglages, chacun avec son dessin (`icone`). « Reprendre » est refusé quand aucun emplacement du stockage ne porte de sauvegarde.
    */
   'accueil.gestes': Bouton[];
 }
@@ -29,14 +30,26 @@ const LIBELLES = {
   compendium: 'ecran.accueil.compendium',
 } as const satisfies Record<EntreeDeLAccueil, MsgKey>;
 
+/** Le dessin de chaque entrée, et celui d'« Options » (`src/data/icons`). */
+const ICONES = {
+  jouer: 'navigation/nouvelle-partie',
+  reprendre: 'navigation/charger',
+  salon: 'navigation/en-ligne',
+  combat: 'navigation/scenarios-de-test',
+  atelier: 'navigation/atelier',
+  editeur: 'navigation/editeur',
+  compendium: 'navigation/compendium',
+  reglages: 'interface/reglages',
+} as const satisfies Record<EntreeDeLAccueil | 'reglages', IconId>;
+
 /** La zone de l'accueil sur `stockage`. */
 export function zonesDeLAccueil(stockage: Stockage | null): ZonesDeLAccueil {
   const aReprendre = [AUTO_SLOT, ...SAVE_SLOTS].some((slot) => lireLaSauvegarde(stockage, slot) !== null);
   const refus: Partial<Record<EntreeDeLAccueil, string>> = aReprendre ? {} : { reprendre: t('ecran.accueil.reprendre.aucune') };
   return {
     'accueil.gestes': [
-      ...(Object.keys(LIBELLES) as EntreeDeLAccueil[]).map((entree): Bouton => ({ type: 'bouton', id: entree, libelle: t(LIBELLES[entree]), jeu: { accueil: entree }, presse: false, focus: false, detail: null, touche: null, refus: refus[entree] ?? null })),
-      { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
+      ...(Object.keys(LIBELLES) as EntreeDeLAccueil[]).map((entree): Bouton => ({ type: 'bouton', id: entree, libelle: t(LIBELLES[entree]), jeu: { accueil: entree }, presse: false, focus: false, detail: null, touche: null, refus: refus[entree] ?? null, icone: ICONES[entree] })),
+      { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, detail: null, touche: null, refus: null, icone: ICONES.reglages },
     ],
   };
 }

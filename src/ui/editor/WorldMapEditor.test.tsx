@@ -182,7 +182,7 @@ describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
     expect(lastMap!.places[0].market!.produits).toContain('commerce-terre');
   });
 
-  it('active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare', () => {
+  it('active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/signal', () => {
     mount();
     selectPlace('p1');
     setValue(input('Taille de la communauté'), '3');
@@ -201,8 +201,10 @@ describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
     click(checkbox('Grand port cosmopolite'));
     expect(lastMap!.places[0].port!.cosmopolite).toBe(true);
 
-    click(checkbox('Phare à'));
-    expect(lastMap!.places[0].port!.lighthouse).toBe(true);
+    setValue(input('Signal du port'), 'clocher');
+    expect(lastMap!.places[0].port!.signal).toBe('clocher');
+    setValue(input('Signal du port'), '');
+    expect(lastMap!.places[0].port!.signal).toBeUndefined();
   });
 });
 

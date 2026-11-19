@@ -42,7 +42,7 @@
       "saturate": 0.72,
       "slope": 0.84
     },
-    "stageBg": "#2c333d",
+    "stageBg": "#0f1013",
     "nightVeil": "#05040a",
     "nightVeilMax": 0.82,
     "dayVignetteFloor": 0.3,
@@ -173,8 +173,8 @@
     "floorOcclusion": 0.16,
     "depth": {
       "outdoor": {
-        "farTiles": 32,
-        "fogStartT": 8,
+        "farTiles": 64,
+        "fogStartT": 16,
         "fogGamma": 2
       },
       "indoor": {

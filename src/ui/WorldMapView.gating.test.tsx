@@ -301,7 +301,7 @@ describe('RÉVÉLATION en cours de partie — la vue se re-cadre pour que le lie
 
 describe('non-régression — un paquet RÉEL sans `when` rend à l’identique avec et sans gating', () => {
   it('loup-et-saumure : le rendu est le même que le flag narratif soit posé ou non', async () => {
-    const map = parseProject(loupEtSaumureProjet as unknown).worldMap!;
+    const map = parseProject(loupEtSaumureProjet).worldMap!;
     const premier = map.places[0];
 
     useGame.setState({ worldMap: map, flags: {} });

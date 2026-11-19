@@ -16,12 +16,26 @@ import { emptyScene } from './monde/scene';
 import { toBrass, toMoney, add as moneyAdd, fromBrass, type Money } from '../engine/money';
 import { bourseOf, withBourseMoney } from '../engine/bourse';
 import type { CampaignVessel } from './etat';
-import { ameliorationsAuChantier, devisDeChantier, devisDAmelioration, dossierDuNavire, raisonDuRefusDAppareiller, refusDAppareiller } from './seaVoyageFlow';
+import {
+  ameliorationsAuChantier,
+  devisDeChantier,
+  reparateurDuGroupe,
+  devisDAmelioration,
+  dossierDuNavire,
+  raisonDuRefusDAppareiller,
+  refusDAppareiller,
+} from './seaVoyageFlow';
 import { resolvePortRef } from './worldMap';
 import { PORT_A_CHANTIER, PORT_SANS_CHANTIER } from '../data/navalPorts.testkit';
 import { refusAQuai, rolesRecrutables } from './portFlow';
 import { plafondDePlanque } from './seaActivities';
-import { installCost } from '../engine/shipBuild';
+import { installCost, piecesDeLaReparation } from '../engine/shipBuild';
+import { encDeLaCapacite, itemFromTrappingById } from '../engine/items';
+import type { CargoLot } from '../engine/cargo';
+import { resolveStake, voyageStakeRef } from '../data';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { avanceEtapeCascade, draineCascade, inexplique, soutienDe } from './cascade.testkit';
+import type { Combatant } from '../engine/types';
 import { shipboardSouls } from './shipCrew';
 import { refusDeGesteSurLeGroupe } from './bourseFlow';
 import { t } from '../i18n';
@@ -35,7 +49,12 @@ const navire = (patch: Partial<CampaignVessel> = {}): CampaignVessel =>
 /** Partie à quai : un héros à la bourse `bourse` au lieu `A`, le navire `vessel` à quai à ce lieu (`escale`). */
 function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'invite' = 'local', etat: Partial<EtatDeJeu> = {}): Partie {
   const entrees: EntreesDeLaPartie = { graine: 2, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
-  return creerPartie({
+  return creerPartie(etatAQuai(vessel, bourse, mode, etat), entrees);
+}
+
+/** L'état d'une partie à quai (`aQuai`). */
+function etatAQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'invite', etat: Partial<EtatDeJeu>): EtatDeJeu {
+  return {
     ...etatInitialDuJeu(),
     party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => withBourseMoney(h, bourse, idsDeTest)),
     scene: { ...emptyScene('port', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
@@ -45,7 +64,7 @@ function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'invite' =
     vessel: { escale: 'A', ...vessel },
     net: { ...etatInitialDuJeu().net, mode },
     ...etat,
-  }, entrees);
+  };
 }
 
 /** Le groupe au lieu-port `A` (scène `port`) du catalogue `ref` (`MapPlace.port.ref`). */
@@ -61,7 +80,7 @@ describe('#3059 — chantier naval : un seul devis pour l’écran et le geste',
   it('réparation : le débit est le devis, la coque est restaurée', () => {
     const partie = aQuai(navire({ wounds: { current: B - 4, max: B } }), { gold: 100, silver: 0, brass: 0 });
     try {
-      const devis = devisDeChantier(partie.etat().vessel!, { gold: 100, silver: 0, brass: 0 }, null);
+      const devis = devisDeChantier(partie.etat().vessel!, { gold: 100, silver: 0, brass: 0 }, null, partie.etat().party);
       expect(devis.refusReparation).toBeNull();
       expect(devis.missing).toBe(4);
       expect(devis.reparationGold, '1 CO par Blessure restaurée, coque non lissée (MDG 13 l.643)').toBe(4);
@@ -78,7 +97,7 @@ describe('#3059 — chantier naval : un seul devis pour l’écran et le geste',
     const vide = { gold: 0, silver: 0, brass: 0 };
     const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 } }), vide);
     try {
-      const devis = devisDeChantier(partie.etat().vessel!, vide, null);
+      const devis = devisDeChantier(partie.etat().vessel!, vide, null, partie.etat().party);
       // MDG 13 l.643 : 1 CO par Blessure → 4 CO. MDG 13 l.152-159 : Salissures niveau 2 → 10 % du coût de base
       // de la cogue (300 CO) → 30 CO.
       expect(devis.refusReparation).toBe(t('sv.yardTooExpensive', { cost: 4 }));
@@ -408,5 +427,217 @@ describe('#4214 — un geste à quai porte sur le navire à quai au lieu du grou
     } finally {
       partie.fermer();
     }
+  });
+});
+
+describe('#4239 — le groupe répare lui-même la coque au chantier (MDG 13 l.641-643 ; MDG 15 l.306, l.418 ; MDG 12 l.295)', () => {
+  const bourse = { gold: 0, silver: 0, brass: 0 };
+  const CONSTRUCTEUR = 'constructeur-de-navires';
+  const CHARPENTIER = 'charpentier';
+  const PIECES = 'pieces-detachees-de-navire';
+  let n = 0;
+  const idNeuf = () => `p4239-${n++}`;
+
+  /** Le héros de scénario `i`, ses seuls Métiers de réparation `metiers` (spec → avances), portant `pieces` Enc de pièces détachées. */
+  function reparateur(metiers: Record<string, number>, pieces: number, i = 0): Combatant {
+    const h = structuredClone(tousLesHerosDeScenario(idsDeTest)[i]);
+    h.skills = [
+      ...h.skills.filter((s) => s.id !== 'metier'),
+      ...Object.entries(metiers).map(([spec, advances]) => ({ id: 'metier', spec, characteristic: 'dexterite' as const, advances })),
+    ];
+    h.items = [...(h.items ?? []), ...Array.from({ length: pieces }, () => itemFromTrappingById(PIECES, idNeuf)!)];
+    return h;
+  }
+  /** Un lot de cale de `enc` Enc de la marchandise `cargoId`. */
+  const lot = (cargoId: string, enc: number): CargoLot => ({ uid: idNeuf(), cargoId, enc, basePriceGold: 7 });
+  const ENDOMMAGE = navire({ wounds: { current: B - 8, max: B }, criticals: [{ id: 'c1' } as never], reparationTemporaire: true });
+  /** Banc du noyau à quai : le groupe `party`, le navire `vessel` à quai au lieu `A`. */
+  const bancDe = (party: Combatant[], vessel: CampaignVessel = ENDOMMAGE, etat: Partial<EtatDeJeu> = {}) =>
+    ouvrirLeBanc({ graine: 2, cadence: 'manuel', etat: etatAQuai(vessel, bourse, 'local', { party, ...etat }) });
+  type Get = Banc['getState'];
+  const piecesDe = (get: Get) => encDeLaCapacite(get().party, 'shipParts');
+  const enCale = (get: Get) => (get().vessel!.cargo ?? []).filter((l) => l.cargoId === PIECES).reduce((s, l) => s + l.enc, 0);
+  const etape = (get: Get) => get().pendingCascade!.participants[0];
+  const puces = (get: Get) => (etape(get).mods ?? []).filter((m) => m.ref && 'id' in m.ref && m.ref.id === 'reparer-les-navires');
+  const refus = (get: Get) => devisDeChantier(get().vessel!, bourse, null, get().party).refusReparationParLeGroupe;
+  /** Ouvre le geste et joue le Test au d100 `d100`, puis ses dés d'issue `d10` (×10 pour `imposerLesD100`), jusqu'à la
+   *  clôture de la séquence ; rend les `kind` joués. */
+  function jouer(get: Get, d100: number, ...d10: number[]): string[] {
+    get().reparerParLeGroupe();
+    imposerLesD100(d100, ...d10.map((d) => d * 10));
+    return draineCascade(get, 10);
+  }
+
+  it.each([
+    ['Constructeur seul', { [CONSTRUCTEUR]: 10 }, CONSTRUCTEUR],
+    ['Charpentier seul', { [CHARPENTIER]: 10 }, CHARPENTIER],
+    ['Charpentier 5 au-dessus du Constructeur : le Constructeur, sans malus, a la meilleure cible', { [CONSTRUCTEUR]: 10, [CHARPENTIER]: 15 }, CONSTRUCTEUR],
+    ['Charpentier 15 au-dessus du Constructeur : le Charpentier, malus compris', { [CONSTRUCTEUR]: 10, [CHARPENTIER]: 25 }, CHARPENTIER],
+  ])('réparateur — %s', (_cas, metiers, spec) => {
+    const { getState: get } = bancDe([reparateur(metiers, 10)]);
+    expect(refus(get)).toBeNull();
+    get().reparerParLeGroupe();
+    expect(etape(get).skill?.spec).toBe(spec);
+    expect(puces(get).map((m) => m.value), 'MDG 13 l.641 : –10 sur tous les jets').toEqual(spec === CHARPENTIER ? [REPARATION.charpentierMalus] : []);
+  });
+
+  it('le malus du Charpentier entre UNE fois dans la cible, et l’étape l’explique', () => {
+    const party = [reparateur({ [CHARPENTIER]: 15 }, 10)];
+    const { getState: get } = bancDe(party);
+    const valeur = reparateurDuGroupe(party)!.ligne.valeur!;
+    get().reparerParLeGroupe();
+    expect(etape(get).target, 'MDG 13 l.641').toBe(valeur + REPARATION.charpentierMalus);
+    expect(inexplique(etape(get))).toBe(0);
+  });
+
+  it('un second héros au même Métier soutient le réparateur (LDB 12)', () => {
+    const party = [reparateur({ [CONSTRUCTEUR]: 10 }, 10, 0), reparateur({ [CONSTRUCTEUR]: 5 }, 0, 1)];
+    const { getState: get } = bancDe(party);
+    const r = reparateurDuGroupe(party)!;
+    expect(r.ligne.soutien?.count).toBe(1);
+    get().reparerParLeGroupe();
+    expect(soutienDe(etape(get))).toBe(r.ligne.soutien!.bonus);
+    expect(soutienDe(etape(get))).toBeGreaterThan(0);
+  });
+
+  it('personne ne sait réparer : refus nommé, aucun jet', () => {
+    const { getState: get } = bancDe([reparateur({}, 10)]);
+    expect(refus(get)).toBe(t('sv.sansReparateur'));
+    get().reparerParLeGroupe();
+    expect(get().pendingCascade).toBeNull();
+    expect(get().journal.some((l) => l.includes(t('sv.sansReparateur')))).toBe(true);
+  });
+
+  it('hors quai : refus du quai', () => {
+    const h = reparateur({ [CONSTRUCTEUR]: 10 }, 10);
+    const { getState: get } = bancDe([h], navire({ escale: 'B', wounds: { current: B - 8, max: B } }));
+    expect(devisDeChantier(get().vessel!, bourse, refusAQuai(get()), get().party).refusReparationParLeGroupe).toBe(t('port.pasAQuai'));
+    get().reparerParLeGroupe();
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('coque pleine portant un Critique : le constructeur passe, le refus du groupe ne dit pas la coque intacte', () => {
+    const d = devisDeChantier(navire({ wounds: { current: B, max: B }, criticals: [{ id: 'c1' } as never] }), bourse, null, [reparateur({ [CONSTRUCTEUR]: 10 }, 10)]);
+    expect(d.refusReparation).toBeNull();
+    expect(d.refusReparationParLeGroupe).toBe(t('sv.aucuneBlessureARestaurer'));
+  });
+
+  it('sans pièces détachées, ni en cale ni sur les héros : refus nommé, aucun jet', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 0)], { ...ENDOMMAGE, cargo: [lot(PIECES, 1)] });
+    expect(refus(get)).toBe(t('sv.sansPiecesDetachees', { enc: piecesDeLaReparation(1, false) }));
+    get().reparerParLeGroupe();
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('deux envois avant résolution : deux Tests à des ids distincts, joués l’un après l’autre', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 10)], navire({ wounds: { current: B - 20, max: B } }));
+    get().reparerParLeGroupe();
+    get().reparerParLeGroupe();
+    const ids = get().pendingCascade!.participants.map((s) => s.id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+    imposerLesD100(1, 60, 30, 1, 40, 20);
+    const issue = ['mer-reparation-du-groupe', 'mer-reparation-du-groupe-blessures', 'mer-reparation-du-groupe-duree'];
+    expect(draineCascade(get, 10)).toEqual([...issue, ...issue]);
+    expect(get().vessel!.wounds!.current).toBe(B - 20 + 6 + 4);
+  });
+
+  it('réussite : +1d10 Blessures persistées, Critiques intacts, marqueur levé, 1d10 h, 2 Enc par tranche de 5', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 10)]);
+    const avant = get().gameTime;
+    jouer(get, 1, 6, 3);
+    expect(get().vessel!.wounds).toEqual({ current: B - 2, max: B });
+    expect(get().vessel!.criticals).toEqual([{ id: 'c1' }]);
+    expect(get().vessel!.reparationTemporaire).toBeUndefined();
+    expect(get().gameTime - avant).toBe(3 * 60);
+    expect(piecesDe(get), '6 Blessures = 2 tranches = 4 Enc').toBe(10 - 4);
+  });
+
+  it('coque pleine sous le seul marqueur temporaire : la réussite le lève, sans dé de Blessures ni pièce dépensée', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 0)], navire({ wounds: { current: B, max: B }, reparationTemporaire: true }));
+    expect(refus(get)).toBeNull();
+    get().reparerParLeGroupe();
+    expect(resolveStake(etape(get).stake!).text).toBe(resolveStake(voyageStakeRef('mer-reparation-du-groupe-permanente')).text);
+    imposerLesD100(1, 30);
+    expect(draineCascade(get, 10)).toEqual(['mer-reparation-du-groupe', 'mer-reparation-du-groupe-duree']);
+    expect(get().vessel!.reparationTemporaire).toBeUndefined();
+    expect(get().vessel!.wounds).toEqual({ current: B, max: B });
+  });
+
+  it('réussite plafonnée par les Blessures manquantes', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 10)], navire({ wounds: { current: B - 3, max: B } }));
+    jouer(get, 1, 9, 1);
+    expect(get().vessel!.wounds).toEqual({ current: B, max: B });
+    expect(piecesDe(get)).toBe(10 - 2);
+  });
+
+  it('coque lissée : +50 % de pièces (MDG 12 l.295), Lissage conservé', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 10)], navire({ wounds: { current: B - 8, max: B }, upgrades: [{ id: 'lissage' } as never] }));
+    expect(devisDeChantier(get().vessel!, bourse, null, get().party).lissage).toBe(true);
+    jouer(get, 1, 6, 3);
+    expect(get().vessel!.wounds!.current).toBe(B - 2);
+    expect(piecesDe(get), '2 tranches × 2 Enc × 1,5 = 6 Enc').toBe(10 - 6);
+    expect(get().vessel!.upgrades?.map((u) => u.id)).toEqual(['lissage']);
+  });
+
+  it('plafond du stock : 2 Enc ne paient qu’une tranche de 5 Blessures', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 2)]);
+    jouer(get, 1, 8, 2);
+    expect(get().vessel!.wounds!.current).toBe(B - 8 + 5);
+    expect(piecesDe(get)).toBe(0);
+  });
+
+  it('pièces en cale seule (MDG 15 l.418) : le geste passe et la cale paie', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 0)], { ...ENDOMMAGE, cargo: [lot(PIECES, 20)] });
+    expect(refus(get)).toBeNull();
+    jouer(get, 1, 6, 3);
+    expect(get().vessel!.wounds!.current).toBe(B - 2);
+    expect(enCale(get), '6 Blessures = 4 Enc').toBe(20 - 4);
+  });
+
+  it('pièces en cale et sur les héros : la cale d’abord, puis les héros', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 10)], { ...ENDOMMAGE, cargo: [lot(PIECES, 2), lot('bois-mer', 5)] });
+    jouer(get, 1, 6, 3);
+    expect(get().vessel!.wounds!.current).toBe(B - 2);
+    expect(enCale(get)).toBe(0);
+    expect(get().vessel!.cargo!.map((l) => l.cargoId), 'les autres marchandises restent').toEqual(['bois-mer']);
+    expect(piecesDe(get)).toBe(10 - 2);
+  });
+
+  it('pièces portées par un autre héros que le réparateur : elles paient, prises sur lui', () => {
+    const party = [reparateur({ [CONSTRUCTEUR]: 5 }, 0, 0), reparateur({ [CHARPENTIER]: 15 }, 3, 1)];
+    const { getState: get } = bancDe(party);
+    expect(refus(get)).toBeNull();
+    jouer(get, 1, 6, 2);
+    expect(get().vessel!.wounds!.current, '3 Enc paient une tranche de 5').toBe(B - 8 + 5);
+    expect(get().party.map((h) => encDeLaCapacite([h], 'shipParts'))).toEqual([0, 1]);
+  });
+
+  it('le navire appareille pendant la cascade : l’issue n’écrit rien hors quai', () => {
+    const mer = {
+      id: 'm', label: 'Mer',
+      places: [{ id: 'A', label: 'Port', pos: { x: 0, y: 0 }, scene: { id: 'port' } }, { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' } }],
+      routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+    } as EtatDeJeu['worldMap'];
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 10)], ENDOMMAGE, { worldMap: mer });
+    get().reparerParLeGroupe();
+    get().partirEnVoyage('r1', 'mer');
+    expect(get().vessel!.escale).toBeUndefined();
+    imposerLesD100(1, 60, 30);
+    expect(avanceEtapeCascade(get)).toBe('mer-reparation-du-groupe');
+    expect(get().pendingCascade?.participants.filter((s) => s.kind.startsWith('mer-reparation-du-groupe-')) ?? [], 'aucun dé d’issue hors quai').toEqual([]);
+    expect(get().vessel!.wounds).toEqual({ current: B - 8, max: B });
+    expect(get().vessel!.reparationTemporaire).toBe(true);
+    expect(piecesDe(get)).toBe(10);
+  });
+
+  it('échec : 1d10 heures (maison), coque, marqueur et pièces intacts', () => {
+    const { getState: get } = bancDe([reparateur({ [CONSTRUCTEUR]: 10 }, 10)]);
+    const avant = get().gameTime;
+    jouer(get, 100, 4);
+    expect(get().vessel!.wounds).toEqual({ current: B - 8, max: B });
+    expect(get().vessel!.reparationTemporaire).toBe(true);
+    expect(get().gameTime - avant).toBe(4 * 60);
+    expect(piecesDe(get)).toBe(10);
   });
 });

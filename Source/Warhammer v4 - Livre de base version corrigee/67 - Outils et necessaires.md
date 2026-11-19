@@ -1,6 +1,6 @@
 *Pages PDF 305*
 
-# **OUTILS ET NÉCESSAIRES**
+# <span id="page-304-0" data-folio="303"></span>**OUTILS ET NÉCESSAIRES**
 
 La majorité des outils sont considérés comme des armes Improvisées quand ils sont utilisés durant un combat. Cependant les MJ peuvent décider que des outils lourds ou tranchants (par exemple les pieds-de-biche et les faucilles) comptent comme des Armes de poing. Beaucoup d'outils individuels listés ici sont inclus dans les ensembles d'Outils de profession et les Ateliers, et ne nécessitent pas un achat séparé.
 

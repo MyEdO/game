@@ -1,4 +1,4 @@
 import { plaque } from '../biseau';
 
-/** Bouton au repos : une plaque de chêne sombre, son filet de laiton patiné. */
-export const cadre = plaque('bouton', 'Bouton', '--chene', '--laiton', '--laiton-sombre');
+/** Bouton au repos : un champ de chêne qui s'assombrit vers le bas, cerné d'encre dans son filet de laiton. */
+export const cadre = plaque('bouton', 'Bouton', ['--chene-clair', '--chene'], '--shadow-ink');

@@ -4,14 +4,20 @@
  * `<sortie>/planches/communes/`, celles d'un dépôt précédent retirées ; deux jeux de réponses communes pour un scénario
  * sont refusés. `refusDuNavigateur` ne laisse passer que
  * le `Chrome/<version>` d'`EPINGLE` sous Linux x86-64, et nomme sinon ce qu'il a lu, ce qu'il attend et la commande
- * d'installation. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte.
+ * d'installation. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte. `coteACote` pose la maquette
+ * déclarée, ramenée à la taille de la capture, au-dessus de la capture et de leur fondu, ou dit pourquoi il ne le peut.
+ * La vue de base du projet est la vue de référence ramenée à 720 de haut : l'interface s'y dessine comme sur sa maquette
+ * à toute fenêtre, plus large en ratio que la maquette ou non.
  */
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { deposerLesPlanches, EPINGLE, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs';
+import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs';
+import VUES_RECETTE from '../../scripts/recette/vues-recette.json';
+import { coteACote, deposerLesPlanches, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur, VUE_DE_BASE } from './planches.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
 afterAll(() => rmSync(racine, { recursive: true, force: true }));
@@ -66,3 +72,48 @@ describe('etalonsSansPlanche', () => {
   });
 });
 
+
+describe('coteACote', () => {
+  const uni = (w: number, h: number, [r, v, b]: number[]) => encoderPng({ w, h, data: Buffer.from(Array.from({ length: w * h }, () => [r, v, b, 255]).flat()) });
+  const capture = uni(3, 2, [0, 100, 200]);
+  const maquette = uni(6, 4, [200, 100, 0]);
+  const chemin = join(racine, 'maquette.png');
+  writeFileSync(chemin, maquette);
+  const declaree = (autre: Partial<{ chemin: string; sha256: string; facteur: number }> = {}) => ({
+    p: { chemin, sha256: createHash('sha256').update(maquette).digest('hex'), facteur: 2, date: '2026-11-13', ...autre },
+  });
+
+  it('rend la maquette ramenée à la capture, la capture, puis leur fondu, de la largeur de la capture et trois fois sa hauteur', () => {
+    const cote = coteACote('p', capture, declaree());
+    if (!cote || !('image' in cote)) throw new Error(`image attendue : ${JSON.stringify(cote)}`);
+    const { w, h, data } = decodePng(cote.image);
+    expect([w, h]).toEqual([3, 6]);
+    const pixel = (y: number) => [...data.subarray(y * w * 4, y * w * 4 + 3)];
+    expect([pixel(0), pixel(2), pixel(4)]).toEqual([[200, 100, 0], [0, 100, 200], [100, 100, 100]]);
+  });
+
+  it('rend un avis, pas une image, pour une maquette absente, d’une autre empreinte, d’un autre format ou d’une autre taille', () => {
+    expect(coteACote('p', capture, declaree({ chemin: join(racine, 'absente.png') }))).toEqual({ avis: expect.stringContaining('absente de ce poste') });
+    expect(coteACote('p', capture, declaree({ sha256: '0'.repeat(64) }))).toEqual({ avis: expect.stringContaining(`${'0'.repeat(64)} validée`) });
+    expect(coteACote('p', capture, declaree({ chemin: join(racine, 'maquette.jpg') }))).toEqual({ avis: expect.stringContaining('format non lu') });
+    expect(coteACote('p', capture, declaree({ facteur: 1.5 }))).toEqual({ avis: expect.stringContaining('fois 1.5 attendue') });
+  });
+
+  it('ne rend rien pour une planche sans maquette', () => {
+    expect(coteACote('autre', capture, declaree())).toBeNull();
+  });
+
+  it('chaque maquette déclarée est au dépôt, à l’empreinte validée', () => {
+    const declarees: Record<string, { chemin: string; sha256: string }> = JSON.parse(readFileSync(MAQUETTES, 'utf8'));
+    const lues = Object.fromEntries(Object.entries(declarees).map(([nom, { chemin }]) => [nom, createHash('sha256').update(readFileSync(resolve(dirname(MAQUETTES), chemin))).digest('hex')]));
+    expect(lues).toEqual(Object.fromEntries(Object.entries(declarees).map(([nom, { sha256 }]) => [nom, sha256])));
+  });
+});
+
+describe('la vue de base du projet', () => {
+  it('est la vue de référence ramenée à 720 de haut, sa hauteur bornant encore l’échelle à la vue de référence', () => {
+    const hauteur = 720;
+    const reference = VUES_RECETTE.find((v) => v.nom === 'bureau')!;
+    expect(VUE_DE_BASE).toEqual({ largeur: Math.floor((reference.largeur * hauteur) / reference.hauteur), hauteur });
+  });
+});

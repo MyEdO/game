@@ -34,6 +34,7 @@ import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
 import { marquerProduit, produitDe } from './interne/produits';
 import { declarationDeFeuilleDId as declarationLue, declarerFeuilleDId, estFeuilleDId as feuilleLue, typeDeFeuilleDId as typeLu } from './interne/feuilles';
+import { declarationDeFeuilleDeSpec as declarationDeSpecLue, declarerFeuilleDeSpec } from './interne/feuillesDeSpec';
 import { enfantsDe } from './descente';
 
 /** Clé générée (`IdsParEspace`) de la sous-liste DISCRIMINÉE `S` de l'espace de `T` (`<espace>?<champ>=<S>`), `never` pour
@@ -106,6 +107,11 @@ export const TYPES = {
   // MDG 13 l.475-499, l.514-537 : le péril d'une op `perilDeMer` et l'évitement d'une op `navireMod` résolvent AU PARSE.
   seaHazard: { espace: 'sea-perils.json#hazards', catalogue: 'périls en mer' },
   tourbillon: { espace: 'sea-perils.json#tourbillons', catalogue: 'tourbillons' },
+  // MDG 13 l.170 : les axes d'une rangée de la météo marine et d'une op `meteoImposee` résolvent AU PARSE.
+  seaPrecipitation: { espace: 'sea-weather.json#precipitations', catalogue: 'précipitations en mer' },
+  seaTemperature: { espace: 'sea-weather.json#temperatures', catalogue: 'températures en mer' },
+  seaVisibility: { espace: 'sea-weather.json#visibilites', catalogue: 'visibilités en mer' },
+  seaWind: { espace: 'sea-weather.json#vents', catalogue: 'forces de vent en mer' },
   // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },
@@ -341,10 +347,11 @@ export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string
   return (id) => idsDesignes(cle, site).has(id);
 }
 
-/** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune) : l'espace de ses
- *  `specs` (`<espace>#[<id>].specs`), l'univers de sa `specsSource` compris (`lectureDeLEspace`). */
+/** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune, ou `id` n'est aucune entrée de
+ *  `type`, `idsDe`) : l'espace de ses `specs` (`<espace>#[<id>].specs`), l'univers de sa `specsSource` compris
+ *  (`lectureDeLEspace`). */
 export function catalogueSpecs(type: TypeEntite, id: string): readonly string[] {
-  return [...(lireLEspace(cleDesSpecs(espaceDe(type), id)) ?? [])];
+  return idsDe(type).has(id) ? [...(lireLEspace(cleDesSpecs(espaceDe(type), id)) ?? [])] : [];
 }
 
 /** La spécialisation `spec` DÉSIGNE-t-elle une entrée du catalogue de l'entrée `id` de `type`
@@ -428,6 +435,16 @@ export interface FeuilleDId {
   readonly portee?: PorteeLocale;
   readonly repereDuPorteur?: true;
 }
+
+/** Ce qu'une feuille `specDe` déclare : l'entrée (`type`, `id`) dont elle porte la spécialisation. */
+export interface FeuilleDeSpec {
+  readonly type: TypeEntite;
+  readonly id: string;
+}
+
+/** La déclaration (`FeuilleDeSpec`) d'une feuille construite par `specDe` ou `specFermeeDe`, `undefined` si le nœud
+ *  n'en est pas une : la porte du registre des feuilles de spécialisation (`interne/feuillesDeSpec.ts`). */
+export const declarationDeFeuilleDeSpec = (noeud: unknown): FeuilleDeSpec | undefined => declarationDeSpecLue(noeud);
 
 /** La déclaration (`FeuilleDId`) d'une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une :
  *  la porte du registre des feuilles (`interne/feuilles.ts`), que lit la garde du masquage (`parse-de-mesure.test.ts`). */
@@ -905,10 +922,18 @@ export function messageDeRefusDeSpec(type: TypeEntite, id: string, spec: string,
  * la donnée ne porte que la Spécialisation) : validée par `refusDeSpec`, ses trois refus nommés.
  */
 export function specDe(type: TypeEntite, id: string): z.ZodType<string> {
-  return z.string().min(1).superRefine((spec, ctx) => {
+  return feuilleDeSpec(type, id, false);
+}
+
+/** La feuille de spécialisation de l'entrée `id` de `type`, déclarée (`declarerFeuilleDeSpec`) : `refusDeSpec`, plus,
+ *  `fermee`, le refus d'une entrée OUVERTE. Une seule feuille porte les deux raffinements, puisque `.superRefine` clone
+ *  le nœud que le registre déclare. */
+function feuilleDeSpec(type: TypeEntite, id: string, fermee: boolean): z.ZodType<string> {
+  return declarerFeuilleDeSpec(z.string().min(1).superRefine((spec, ctx) => {
     const refus = refusDeSpec(type, id, spec);
     if (refus) ctx.addIssue({ code: 'custom', message: messageDeRefusDeSpec(type, id, spec, refus, false) });
-  });
+    if (fermee && entreeOuverte(type, id)) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
+  }), { type, id });
 }
 
 /** Union GÉNÉRÉE des spécialisations de l'entrée `I` de `T` : l'espace `<espace>#[<id>].specs`
@@ -932,9 +957,7 @@ export type RenvoiCodexSansEspace = { readonly category: Exclude<CategorieCodexD
  */
 export function specFermeeDe<T extends TypeEntite, const I extends string>(type: T, id: I): z.ZodType<SpecId<T, I>>;
 export function specFermeeDe(type: TypeEntite, id: string): z.ZodType<string> {
-  return specDe(type, id).superRefine((_spec, ctx) => {
-    if (entreeOuverte(type, id)) ctx.addIssue({ code: 'custom', message: `« ${id} » est une entrée OUVERTE du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}) : sa spécialisation n'est pas une union close.` });
-  });
+  return feuilleDeSpec(type, id, true);
 }
 
 /**
@@ -964,7 +987,7 @@ function noeudASpecialisation<T extends TypeEntite>(
   type: T,
   extra: Record<string, z.ZodType> | undefined,
   regime: RegimeDeSpec,
-): z.ZodType<RefASpecialisation> {
+): z.ZodType<RefASpecialisation> & z.core.$ZodTypeDiscriminable {
   const espace = espaceDe(type);
   const catalogue = TYPES[type].catalogue;
   const unRegime = (id: unknown): string =>
@@ -1042,22 +1065,22 @@ type ExtraDe<E extends Record<string, z.ZodType>> = [keyof E] extends [never] ? 
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
-): z.ZodType<RefDesignee & ExtraDe<E>>;
+): z.ZodType<RefDesignee & ExtraDe<E>> & z.core.$ZodTypeDiscriminable;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: 'specOuChoixFacultatifs',
-): z.ZodType<RefASpecialisation & ExtraDe<E>>;
+): z.ZodType<RefASpecialisation & ExtraDe<E>> & z.core.$ZodTypeDiscriminable;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: RegimeDePorteur,
-): z.ZodType<RefASpecialisation & ExtraDe<E>>;
+): z.ZodType<RefASpecialisation & ExtraDe<E>> & z.core.$ZodTypeDiscriminable;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
   regime: RegimeDePorteur = 'specSeule',
-): z.ZodType<RefASpecialisation> {
+): z.ZodType<RefASpecialisation> & z.core.$ZodTypeDiscriminable {
   return noeudASpecialisation(type, extra, regime);
 }
 
@@ -1103,7 +1126,7 @@ export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
 export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur: readonly z.ZodType<O>[] = []): z.ZodType<Parmi<number, O | RefASpecialisation>> {
-  return parmi<O | RefASpecialisation, number>([ref(type), specRef(type), ...optionsDuPorteur], nombreDeTirages());
+  return parmi<O | RefASpecialisation, number>([nommerNoeud(ref(type), { label: 'référence' }), specRef(type), ...optionsDuPorteur], nombreDeTirages());
 }
 
 /**
