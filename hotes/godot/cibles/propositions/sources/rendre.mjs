@@ -6,7 +6,9 @@
 //     `rendu.html` dans le format physique `<format>` (`FORMATS`). L'état, une donnée écrite (`maquettes/maquette.ts`),
 //     est posé sur `globalThis.MAQUETTE` avant la page.
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { listerEntrees } from '../../../../../scripts/guards/lib/lister.mjs'
 import { chromium } from 'playwright'
 
 /** La vue `bureau` des vues de la recette, la vue de référence de la recette et des étalons. */
@@ -19,9 +21,15 @@ const FORMATS = {
   bureau: { largeur: BUREAU.largeur, hauteur: BUREAU.hauteur, facteur: 1 },
 }
 
+/** Le dossier des écrans, `maquettes/<écran>.ts`. */
+const MAQUETTES = fileURLToPath(new URL('./maquettes/', import.meta.url))
+
 /** Les états de l'écran `nom`, ou son seul état `etat`. */
 async function chargerLEcran(nom, etat) {
-  const { default: ecran } = await import(`./maquettes/${nom}.ts`)
+  const [module] = await Promise.all(listerEntrees(MAQUETTES).entrees.filter((f) => f.nom === `${nom}.ts`)
+    .map((f) => import(pathToFileURL(join(MAQUETTES, f.nom)).href)))
+  if (!module) throw new Error(`${nom} : aucun écran maquettes/${nom}.ts`)
+  const ecran = module.default
   const etats = ecran.etats.filter((m) => etat === undefined || m.nom === etat)
   if (!etats.length) throw new Error(`${nom} : aucun état ${etat} parmi ${ecran.etats.map((m) => m.nom).join(', ')}`)
   return etats

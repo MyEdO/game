@@ -44,10 +44,10 @@ describe('path — le franchissement d’une arête est SYMÉTRIQUE', () => {
 
   it('les sommets des deux escaliers se montent ET se redescendent', () => {
     const sommets: [Pt, Pt][] = [
-      [{ x: 19, y: 22, z: 0 }, { x: 20, y: 21, z: 1 }], // volée est : dernière marche (3 m) → plancher (4 m)
-      [{ x: 14, y: 25, z: 0 }, { x: 13, y: 24, z: 1 }], // volée ouest
-      [{ x: 20, y: 22, z: 0 }, { x: 21, y: 21, z: 1 }], // paliers voisins de ces mêmes sommets
-      [{ x: 13, y: 25, z: 0 }, { x: 12, y: 24, z: 1 }],
+      [{ x: 27, y: 28, z: 0 }, { x: 28, y: 27, z: 1 }], // volée est : dernière marche (3 m) → plancher (4 m)
+      [{ x: 22, y: 31, z: 0 }, { x: 21, y: 30, z: 1 }], // volée ouest
+      [{ x: 28, y: 28, z: 0 }, { x: 29, y: 27, z: 1 }], // paliers voisins de ces mêmes sommets
+      [{ x: 21, y: 31, z: 0 }, { x: 20, y: 30, z: 1 }],
     ];
     for (const [bas, haut] of sommets) {
       expect([key(bas), key(haut), links(diligence, bas, haut)]).toEqual([key(bas), key(haut), true]);

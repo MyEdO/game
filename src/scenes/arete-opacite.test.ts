@@ -123,8 +123,8 @@ describe('PARITÉ des deux lecteurs — combat et vision ne divergent jamais sur
  */
 describe('La Diligence — les six box migrées prennent le profil AA du clayonnage EN ENTIER', () => {
   const BOX = [
-    { x: 19, y: 31 }, { x: 19, y: 32 }, { x: 21, y: 29 },
-    { x: 21, y: 30 }, { x: 23, y: 29 }, { x: 23, y: 30 },
+    { x: 27, y: 37 }, { x: 27, y: 38 }, { x: 29, y: 35 },
+    { x: 29, y: 36 }, { x: 31, y: 35 }, { x: 31, y: 36 },
   ];
   const scene = paquetDuJeu(diligenceCampaign).scenes[0];
   const segDe = ({ x, y }: { x: number; y: number }) =>
@@ -138,9 +138,9 @@ describe('La Diligence — les six box migrées prennent le profil AA du clayonn
   });
 
   it('le couvert se PERD : la cible derrière une de ces arêtes n’est plus abritée, et la vue passe', () => {
-    // Tireur et cible de part et d'autre de l'arête (21,29,E) — le couple exact que l'arête sépare.
-    const from = { x: 21, y: 29 };
-    const to = { x: 22, y: 29 };
+    // Tireur et cible de part et d'autre de l'arête (29,35,E) — le couple exact que l'arête sépare.
+    const from = { x: 29, y: 35 };
+    const to = { x: 30, y: 35 };
     expect(couvertDArete(scene, { pos: from }, { pos: to }, cranDeCouvertEnMoins)).toBe('none');
     expect(wallOnSight(scene, from, to, 0)).toBe(false);
   });
@@ -153,8 +153,8 @@ describe('La Diligence — les six box migrées prennent le profil AA du clayonn
           ? { ...w, structure: 'mur-a-ossature-en-bois' }
           : w),
     };
-    const from = { x: 21, y: 29 };
-    const to = { x: 22, y: 29 };
+    const from = { x: 29, y: 35 };
+    const to = { x: 30, y: 35 };
     expect(couvertDArete(avant, { pos: from }, { pos: to }, cranDeCouvertEnMoins)).toBe('imparfaite');
     expect(wallOnSight(avant, from, to, 0)).toBe(true);
     // Et la Structure d'avant était deux fois plus solide, avec une Limite d'Encombrement.
@@ -163,7 +163,7 @@ describe('La Diligence — les six box migrées prennent le profil AA du clayonn
   });
 
   it('le PASSAGE, lui, est le même des deux côtés de la migration', () => {
-    expect(wallBetween(scene, 21, 29, 22, 29, 0)).toBe(true);
+    expect(wallBetween(scene, 29, 35, 30, 35, 0)).toBe(true);
   });
 });
 

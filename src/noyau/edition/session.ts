@@ -363,6 +363,7 @@ function sceneRenommee(s: SessionDEdition, scene: Scene, id: string): SessionDEd
   const renommee = renameScene(scene, racinesDeLHistorique(s.historique).filter((r) => r.id !== ancien), id);
   if (renommee === scene) return s;
   const renommer = (c: CranDEdition): CranDEdition => ({
+    ...(c.decalage ? { decalage: { ...c.decalage, sceneId: c.decalage.sceneId === ancien ? renommee.id : c.decalage.sceneId } } : {}),
     projet: { ...c.projet, scenes: c.projet.scenes.map((sc) => (sc.id === ancien ? { ...sc, id: renommee.id } : sc)) },
     sceneId: c.sceneId === ancien ? renommee.id : c.sceneId,
   });
@@ -487,6 +488,9 @@ export interface BrouillonDArete {
 export interface CranDEdition {
   projet: ProjetDEdition;
   sceneId: string;
+  /** Le décalage que ce cran a donné aux calques de la scène `sceneId` en l'agrandissant par l'ouest ou le nord :
+   *  l'annuler le leur retire, le rétablir le leur rend. */
+  decalage?: { sceneId: string; x: number; y: number };
 }
 
 export interface SessionDEdition {
@@ -1064,12 +1068,14 @@ function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdit
   const vise = crans[crans.length - 1] as CranDEdition | undefined;
   const { projet, sceneId } = h.present;
   const navigue = vise !== undefined && vise.sceneId !== sceneId && projet.scenes.some((sc) => sc.id === vise.sceneId) && vise.projet.scenes.some((sc) => sc.id === sceneId);
-  const historique = (sens === 'annuler' ? annuler : retablir)(navigue ? poser(h, { projet, sceneId: vise.sceneId }, false) : h);
+  const historique = (sens === 'annuler' ? annuler : retablir)(navigue ? poser(h, { ...h.present, sceneId: vise.sceneId }, false) : h);
+  const d = vise && (sens === 'annuler' ? h.present : vise).decalage;
+  const calques = d ? calquesDecales(s, d.sceneId, sens === 'annuler' ? { x: -d.x, y: -d.y } : d) : s.calques;
   const revenue = avecSonDocument({ ...s, historique });
-  if (revenue.document !== s.document || historique.present.sceneId !== sceneId) return { ...remiseAZero(s), historique, document: revenue.document };
+  if (revenue.document !== s.document || historique.present.sceneId !== sceneId) return { ...remiseAZero(s), historique, calques, document: revenue.document };
   const z = coucheVue(sceneDuCran(historique.present), s.z) ? s.z : 0;
   const plan = planDuLieuOuvert(s) && planDuLieuOuvert({ ...s, historique });
-  return { ...s, historique, z, sel: plan ? s.sel : null, geste: null, brouillon: null };
+  return { ...s, historique, calques, z, sel: plan ? s.sel : null, geste: null, brouillon: null };
 }
 
 /** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet et le `Source/` que l'hôte
@@ -1308,7 +1314,10 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       if (patchee === scene) return s;
       const ecrite = ecrire(s, patchee, s.sel);
       const decalage = g.patch.dimensions?.decalage;
-      return decalage ? { ...ecrite, calques: calquesDecales(ecrite, idDeLaSceneEditee(ecrite), decalage) } : ecrite;
+      if (!decalage) return ecrite;
+      const sceneId = idDeLaSceneEditee(ecrite);
+      const h = ecrite.historique;
+      return { ...ecrite, historique: { ...h, present: { ...h.present, decalage: { sceneId, ...decalage } } }, calques: calquesDecales(ecrite, sceneId, decalage) };
     }
     case 'identifier': {
       if (g.element !== undefined) {
