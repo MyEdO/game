@@ -531,9 +531,7 @@ Avec une mèche de la durée d'un Round, elle explose à la fin du Round actuel,
 
 **Ferraille et poudre :** « ferraille » est un terme général pour désigner les vieux clous de toiture, les morceaux de fer à cheval rouillés, les têtes de flèche et les autres bouts de matériau tranchants et pointus récupérés dans les tas de rouille ou de rebuts accessibles. Les attaques portées en utilisant ces munitions bénéficient du Trait de créature Infecté (voir page 340 de **WFJDR**).
 
-**Grappin :** recommandé à la Marine impériale pour son utilisation lors des actions d'abordage ou pour déchirer le gréement de l'ennemi, un grappin est composé d'un crochet entouré de beaucoup de rembourrage conçu pour être tiré par un mortier à main uniquement, avec environ
-
-20 mètres de corde. Il peut être employé pour fixer une corde à un point éloigné ou pour piéger un ennemi en train de s'échapper, auquel cas il inflige un État *Empêtré* si le coup touche.
+**Grappin :** recommandé à la Marine impériale pour son utilisation lors des actions d'abordage ou pour déchirer le gréement de l'ennemi, un grappin est composé d'un crochet entouré de beaucoup de rembourrage conçu pour être tiré par un mortier à main uniquement, avec environ 20 mètres de corde. Il peut être employé pour fixer une corde à un point éloigné ou pour piéger un ennemi en train de s'échapper, auquel cas il inflige un État *Empêtré* si le coup touche.
 
 Si vous envisagez d'avoir recours à un grappin pour vous faufiler discrètement quelque part, n'oubliez pas que le tir fait énormément de bruit.
 

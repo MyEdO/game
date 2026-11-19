@@ -19,7 +19,7 @@ export const qualityCapabilitiesSchema = nommerChamps(z.strictObject({
   slowStrike: z.boolean().optional(),
   /** Dangereuse : Maladresse sur tout Test raté incluant un 9. */
   fumbleOn9: z.boolean().optional(),
-  /** Chiffres de Maladresse (dizaines OU unités). AA 08 l.544 */
+  /** Chiffres de Maladresse (dizaines OU unités). AA 08 l.542 */
   fumbleDigits: z.array(z.number()).optional(),
   /** Perturbante : repousse au lieu de blesser. */
   pushback: z.boolean().optional(),
