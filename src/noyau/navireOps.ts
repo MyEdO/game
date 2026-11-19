@@ -6,10 +6,10 @@
  */
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import { tirerSigne } from '../engine/dice';
+import { tirerSigne, type RNG, type Tirage } from '../engine/dice';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { estOpDuNavire, nomDeSource, resolveFormula, tirerLaTable, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
-import type { EffectOp } from '../engine/flowCore';
+import { reecrireLesOps, tiragesDuFlow, type EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 import { caracDuCombattant, type Referent } from '../engine/formule';
 import { profilNavalDe } from '../engine/coque';
@@ -25,16 +25,16 @@ import {
   spoilCargoByPct,
   type ModificateurDuNavire,
 } from '../engine/seaVoyage';
-import { ajouterAuRoster } from '../engine/crewMorale';
 import { currentSeason } from '../engine/travelStages';
 import { embarquerDesVivres, isRation, LITRES_PAR_TONNEAU, rationsDeCale, rationsDuVivre, retirerDuVivre } from '../engine/provisions';
-import type { Id } from '../data/schemas/grammaire/ref';
+import { idDe, type Id } from '../data/schemas/grammaire/ref';
 
 import { rollShipCritical } from '../engine/shipCritical';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { dataLabel, findCrewRoleById, findCrewTestTypeById, refLabel } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
+import { REGISTRES_DU_BORD, type CampaignVessel } from './etat';
 import {
   applyVesselCritical,
   combattreEnMer,
@@ -52,7 +52,7 @@ import {
   voyageShip,
 } from './seaVoyageFlow';
 import { findSeaHazard } from '../engine/seaPerils';
-import { applyLeafOps, OPS_DIFFEREES, scheduleDelayedOps } from './combatEffects';
+import { applyLeafOps, indiceDeMembreDuBord, OPS_DIFFEREES, scheduleDelayedOps } from './combatEffects';
 import { startCascade } from './cascade';
 import { condCtx } from './bourseFlow';
 import { autrePortAuHasard } from './portFlow';
@@ -175,8 +175,8 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       return ajouterDesVivres(get, set, joursTires(o.jours, ref, ctx), o.vivre.id);
     case 'equipage':
       return o.perdusPct !== undefined
-        ? changerLEquipage(get, set, -Math.round(shipboardSouls(get()).crew * o.perdusPct / 100), undefined, undefined)
-        : changerLEquipage(get, set, Math.round(resolveFormula(o.delta, ref, ctx.rng)), o.role?.id, o.sansSolde);
+        ? changerLEquipage(get, set, -Math.round(shipboardSouls(get()).crew * o.perdusPct / 100), undefined, undefined, ctx.rng)
+        : changerLEquipage(get, set, Math.round(resolveFormula(o.delta, ref, ctx.rng)), o.role?.id, o.sansSolde, ctx.rng);
     case 'perilDeMer':
       return o.collision !== undefined ? heurterLePeril(get, set, coque, o.collision.id, ctx.rng) : entrerDansLeTourbillon(get, set, o.tourbillon.id, nomDeSource(ctx));
     case 'navireHostile':
@@ -218,14 +218,67 @@ const libelleDuPeril = (id: string): string => garanti(findSeaHazard(id), id, 'p
 /** Change l'effectif de `delta` marins (`applyVesselCrewLoss`, borné à l'effectif nominal) ; un recueilli au
  *  rôle `roleId` entre au roster `crew`, ou à `recueillisSansSolde` jusqu'au prochain port. MDG 15 l.202-204,
  *  l.213-218, l.258 ; MDG 14 l.293-302 */
-function changerLEquipage(get: Get, set: Set, delta: number, roleId: string | undefined, sansSolde: 'jusquAuPort' | undefined): string[] {
-  const lignes = applyVesselCrewLoss(get, set, -delta);
-  if (delta > 0 && !lignes.length) lignes.push(t('eff.equipageComplet'));
-  if (delta <= 0 || roleId === undefined) return lignes;
-  const vessel = garanti(get().vessel, 'equipage', 'navire de campagne de la coque visée');
-  const champ = sansSolde ? 'recueillisSansSolde' : 'crew';
-  set({ vessel: { ...vessel, [champ]: ajouterAuRoster(vessel[champ], roleId, delta) } });
-  return [...lignes, t('eff.equipageRole', { n: delta, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' })];
+function changerLEquipage(get: Get, set: Set, delta: number, roleId: string | undefined, sansSolde: 'jusquAuPort' | undefined, rng: RNG): string[] {
+  const { lignes, variation } = applyVesselCrewLoss(get, set, -delta, delta <= 0 || roleId === undefined ? (postes) => indiceDeMembreDuBord(rng, postes) : {
+    roleId, registre: sansSolde ? 'recueillisSansSolde' : 'crew',
+  });
+  if (delta > 0 && variation === 0) return [t('eff.equipageComplet')];
+  if (variation >= 0 || roleId === undefined) return lignes;
+  return [...lignes, t('eff.equipageRole', { n: -variation, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' })];
+}
+
+const idDeRoleABord = idDe('crewRole');
+const estRetourLie = (o: GameOp, cle: string): boolean =>
+  o.op === 'equipage' && typeof o.delta === 'object' && 'tire' in o.delta && o.delta.tire === cle && o.delta.de === undefined;
+
+export function verifierLeRetourDesMarins(suite: Flow, cle: string): void {
+  let retour = false;
+  const apres = reecrireLesOps(suite, (o) => {
+    if (!estRetourLie(o, cle)) return o;
+    retour = true;
+    return null;
+  });
+  if (!retour) throw new Error(`Liaison d’équipage « ${cle} » : aucun retour dans cet événement.`);
+  const { nonLies } = tiragesDuFlow(apres);
+  if (nonLies.length) throw new Error(`Liaison d’équipage « ${cle} » : valeurs sans définition (${nonLies.join(', ')}).`);
+}
+
+/** Lie les retours aux postes effectivement perdus, dans la suite sérialisable du flux. MDG 15 l.245 */
+export function lierLeRetourDesMarins(get: Get, set: Set, nombre: Tirage, cle: string, suite: Flow, rng: RNG): Flow {
+  const avant = get().vessel;
+  const lignes = appliquerAuNavire(get, set, {
+    type: 'ops', on: 'navire', ops: [{ op: 'equipage', delta: { times: { of: nombre, factor: -1 } } }],
+  }, { idNeuf: get().forgerUnId, rng });
+  if (lignes.length) get().ecrireAuJournal(lignes);
+  const apres = get().vessel;
+  const pertes = Math.max(0, (apres?.crewLost ?? 0) - (avant?.crewLost ?? 0));
+  const retours = opsDeRetourDEquipage(avant, apres, pertes);
+  return reecrireLesOps(suite, (o) => estRetourLie(o, cle) ? retours : o);
+}
+
+/** Les rôles débités entre les deux registres, puis les marins génériques, à hauteur du retour. MDG 15 l.245 */
+export function opsDeRetourDEquipage(avant: CampaignVessel | null, apres: CampaignVessel | null, nombre: number): GameOp[] {
+  const retours: GameOp[] = [];
+  let restants = nombre;
+  for (const registre of REGISTRES_DU_BORD) {
+    const pertes = new Map<string, number>();
+    for (const { roleId, count } of avant?.[registre] ?? []) {
+      pertes.set(roleId, (pertes.get(roleId) ?? 0) + count);
+    }
+    for (const { roleId, count } of apres?.[registre] ?? []) {
+      pertes.set(roleId, (pertes.get(roleId) ?? 0) - count);
+    }
+    for (const [roleId, perdus] of pertes) {
+      const id = idDeRoleABord.safeParse(roleId);
+      if (!id.success) continue;
+      const delta = Math.min(restants, perdus);
+      if (delta <= 0) continue;
+      retours.push({ op: 'equipage', delta, role: { id: id.data }, ...(registre === 'recueillisSansSolde' ? { sansSolde: 'jusquAuPort' } : {}) });
+      restants -= delta;
+    }
+  }
+  if (restants > 0) retours.push({ op: 'equipage', delta: restants });
+  return retours;
 }
 
 /** Gâte `pct` % des provisions à bord : chaque vivre de la cale (`vessel.provisions`, du lot le plus vieux au plus
