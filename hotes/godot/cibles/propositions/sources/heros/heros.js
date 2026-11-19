@@ -1,5 +1,6 @@
-/* Héros : création et progression, images d'intention (#3935). Pièces de la famille : frise des étapes, panneaux,
-   héros qui se dessine, bande de profil. Posé sur commun.js, dont il prend le bandeau. Maquette hors du jeu. */
+/* Héros : création, fiche et progression, images d'intention (#3935, #4411). Les dessins de la famille, que
+   `../rendu.js` pose : la figure du héros qui se dessine, le ciel du signe astral, les objets du bagage, le filigrane
+   et la signature d'une page. Maquette hors du jeu. */
 const SANG = '#8f2a1a';
 
 /* la figure du héros neuf : `pose` dit jusqu'où la sanguine est posée (0 = tout au trait, 1 = achevée) */
@@ -21,66 +22,38 @@ const figure = (pose, { palette = false } = {}) => {
 </svg>`;
 };
 
-/* une Compétence et sa spécialité */
-const nomDe = (n, spec) => `${n}${spec ? ` <small>(${spec})</small>` : ''}`;
-const rub = (t, note = '') => `<div class="rub">${t}${note ? ` <span class="note">${note}</span>` : ''}</div>`;
-const car = (ab) => `<span class="tag">${ab}</span>`;
-const coche = (taille = 'menu') => rond('coche', taille, { arme: true });
-
-/* ───────── la frise des étapes : pastille cochée, ruban de l'étape en cours, clou ───────── */
-const PAGES = ['Race', 'Carrière', 'Caractéristiques', 'Signe astral', 'Compétences de race', 'Compétences de carrière', 'Talents', 'Possessions', 'Identité', 'Présentation'];
-const frise = (rang) => {
-  const x = (i) => 88 + i * 152;
-  const etapes = PAGES.map((p, i) => {
-    if (i < rang - 1) return `<div class="etape faite" style="left:${x(i)}px">${rond('coche', 'menu')}<span class="rubrique">${p}</span></div>`;
-    if (i === rang - 1) return `<div class="etape" style="left:${x(i)}px">${ruban(`${p}<small class="chiffres">${rang}/${PAGES.length}</small>`, { gothique: true })}</div>`;
-    return `<div class="etape a-venir" style="left:${x(i)}px"><i class="clou"></i>${i === rang ? `<span class="rubrique">${p}</span>` : ''}</div>`;
-  }).join('');
-  return cadre('frise', 26, 12, 1655, 74, 'bois', `<i class="rail fait" style="left:${x(0)}px;width:${x(rang - 1) - x(0)}px"></i><i class="rail" style="left:${x(rang - 1)}px;width:${x(9) - x(rang - 1)}px"></i>${etapes}${croix({ dansLePanneau: true })}`);
+/* le ciel du signe astral : l'archer bandant son arc, au-dessus des toits */
+const ciel = () => {
+  const r = alea(41);
+  const etoiles = Array.from({ length: 90 }, () => `<circle cx="${(r() * 430).toFixed(1)}" cy="${(r() * 118).toFixed(1)}" r="${(.3 + r() * .9).toFixed(2)}" fill="#e9dcc0" opacity="${(.25 + r() * .6).toFixed(2)}"/>`).join('');
+  const P = { tete: [196, 34], epaule: [200, 52], hanche: [206, 82], pied1: [192, 108], pied2: [222, 106], main: [236, 50], arcH: [246, 26], arcM: [254, 50], arcB: [246, 76], coude: [178, 48], pointe: [286, 51] };
+  const trait = (a, b) => `<path d="M${P[a]}L${P[b]}"/>`;
+  const liens = [['tete', 'epaule'], ['epaule', 'hanche'], ['hanche', 'pied1'], ['hanche', 'pied2'], ['epaule', 'main'], ['epaule', 'coude'], ['coude', 'arcH'], ['coude', 'arcB'], ['arcH', 'arcM'], ['arcM', 'arcB'], ['coude', 'pointe']];
+  return `<svg viewBox="0 0 430 134" preserveAspectRatio="xMidYMid slice">
+  <defs><linearGradient id="nuit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0f1a"/><stop offset=".7" stop-color="#1c1a2a"/><stop offset="1" stop-color="#3a2a2a"/></linearGradient>
+  <radialGradient id="halo"><stop offset="0" stop-color="#ffe9b0" stop-opacity=".95"/><stop offset=".35" stop-color="#f3c86a" stop-opacity=".4"/><stop offset="1" stop-color="#f3c86a" stop-opacity="0"/></radialGradient></defs>
+  <rect width="430" height="134" fill="url(#nuit)"/>${etoiles}
+  <g transform="translate(-72 -22) scale(1.28)"><g stroke="#e2c06a" stroke-width=".7" opacity=".8" fill="none" stroke-dasharray="1 2.500">${liens.map(([a, b]) => trait(a, b)).join('')}</g>
+  ${Object.values(P).map(([x, y]) => `<circle cx="${x}" cy="${y}" r="6" fill="url(#halo)"/><circle cx="${x}" cy="${y}" r="1.500" fill="#fff6d8"/>`).join('')}</g>
+  <path d="M0 134V116l18-9 16 9v-12l22-13 22 13v9l14-7 14 7v-16l8-22 8 22v16l26 3 10-10 16 10v-8l30-14 30 14v10l22-12 22 12v-18l6-18 6 18v14l28-8 26 12v-10l24-10 24 10V134z" fill="#07060a"/>
+  <g fill="#f3c86a" opacity=".8"><rect x="60" y="112" width="3" height="4"/><rect x="214" y="118" width="3" height="4"/><rect x="330" y="110" width="3" height="4"/></g>
+</svg>`;
 };
 
-/* ───────── les trois panneaux ───────── */
-const gauche = (contenu) => cadre('choix', 26, 96, 610, 512, 'parchemin', contenu, { classe: 'pan' });
-const centre = (ruban, contenu) => cadre('page', 653, 96, 482, 512, 'parchemin', `<div class="page-c">${contenu}</div>`, { ruban, classe: 'pan' });
-/* acquis : [rubrique, valeur, jeton] ; gestes : { suivant, refus } ; `refus` ferme « Suivant » et se dit au survol */
-const herosNeuf = ({ nom = 'Nouveau héros', acquis, pose, suivant = 'Suivant', refus = null, palette = false }) => cadre('heros-neuf', 1152, 96, 529, 512, 'bois', `
-  <div class="niche laiton"><div>${figure(pose, { palette })}</div></div>
-  <div class="acquis">
-    <div class="qui" data-texte="nom du héros">${nom}</div>
-    ${acquis.map(([r, v, j]) => `<div class="a"><i>${r}</i><b>${v}${j ? `<span class="jeton">${j}</span>` : ''}</b></div>`).join('')}
-    <div class="gestes">
-      ${refus ? plaque(`${suivant} ${picto('chevron_d', 16, undefined, 2)}${raison(refus)}`, { fermee: true, taille: 'petite' }) : plaque(`${suivant} ${picto('chevron_d', 16, undefined, 2)}`, { armee: true })}
-      ${plaque(`${picto('chevron_g', 15, undefined, 2)} Précédent`, { taille: 'petite' })}
-    </div>
-  </div>`, { classe: 'pan' });
-
-/* ───────── le bandeau : le groupe, le héros lu ou à venir éclairé ───────── */
-/* le groupe en création : le héros neuf se dessine tant qu'il n'a pas de portrait (`neuf.id`) */
-const groupeEnCreation = (neuf = {}) => { const h = { id: 'esquisse', nom: 'Nouveau héros', car: 'Artiste', ...neuf };
-  return bandeau({ [h.id]: { choisi: true } }, { groupe: [...HEROS.slice(0, 2), h] }); };
-const groupeDIlyanwe = (lu = 'ilyanwe') => bandeau({ [lu]: { choisi: true } }, { groupe: [
-  { id: 'ilyanwe', nom: 'Ilyanwe la Voilée', car: 'Sorcière', pv: 17, max: 17 },
-  { id: 'berta', nom: 'Berta', car: 'Soldate', pv: 12, max: 12 },
-] });
-
-/* ───────── la bande de profil, les réserves ───────── */
-const ABR = ['M', 'CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc', 'B'];
-/* une case de la bande : [valeur, Augmentations, prix de la suivante, de la carrière] */
-const caseDeCarac = ([v, aug, cout, carriere], i) => `<div class="c ${carriere ? 'carr' : ''}"><span class="ab">${ABR[i]}</span><span class="v">${v}</span><span class="aug">${aug ? `+${aug}` : ''}</span>${cout ? `<span class="jeton ${carriere ? 'or' : 'fer'}">${cout} PX</span>` : ''}</div>`;
-/* régler une répartition : − et +, le + fermé quand elle est pleine */
-const pm = (plein) => `<div class="pm">${rond('moins', 'menu', { arme: true })}${rond('plus', 'menu', plein ? { ferme: true } : { arme: true })}</div>`;
-const reserve = (n, nom) => `<div class="reserve">${disque(n, { taille: 'grand' })}<span class="rub">${nom}</span></div>`;
-
-const poser = (pieces) => {
-  document.getElementById('ui').innerHTML = '<div id="mur" class="bois"></div>' + pieces.join('');
-  document.getElementById('grain').style.cssText = 'background-image:' + svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`) + ';mix-blend-mode:overlay;opacity:.2';
+/* les objets du bagage, dessinés à la plume d'or sur leur vignette */
+const O = '#e9d7a4';
+const DESSINS = {
+  costume: `<path d="M22 10l10 6 10-6 12 8-5 12-5-3v27H20V27l-5 3-5-12z"/><path d="M32 16v38M26 24h0M38 24h0M22 10c3 5 17 5 20 0"/>`,
+  dague: `<path d="M46 10L22 40l-3 7 7-3 24-30zM18 36l10 10M14 50l6-6"/>`,
+  bourse: `<path d="M25 18h14l-3-7h-8zM25 18c-8 6-12 14-12 22 0 8 8 12 19 12s19-4 19-12c0-8-4-16-12-22M25 18c4 3 10 3 14 0"/>`,
+  pinceau: `<path d="M12 52l22-22M34 30l6 6M34 30l4-4 6 6-4 4M42 24c4-8 10-12 14-12-1 5-4 11-12 14"/>`,
+  pince: `<path d="M14 50L44 14c4-3 8 1 5 5L14 50zM14 50l22-34"/>`,
+  cure: `<path d="M14 50l32-32M46 18c2-5 8-5 8 0s-5 6-8 4"/><path d="M22 54l30-30" opacity=".55"/>`,
+  peigne: `<path d="M10 20h44v10H10zM14 30v20M20 30v20M26 30v20M32 30v20M38 30v20M44 30v20M50 30v20"/>`,
 };
-/* le héros d'exemple de la création, étape par étape */
-const ACQUIS = [
-  ['Race', 'Humains (Reiklander)', '+20 PX'],
-  ['Carrière · Courtisans', 'Artiste', '+50 PX'],
-  ['Caractéristiques', 'Jets gardés', '+50 PX'],
-  ['Signe astral', 'Le Trait du Peintre', '+25 PX'],
-];
-// Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { nomDe, rub, car, coche, frise, gauche, centre, herosNeuf, groupeEnCreation, groupeDIlyanwe, ABR, caseDeCarac, pm, reserve, poser, ACQUIS });
+const dessinDObjet = (id) => `<svg width="62" height="62" viewBox="0 0 64 64" fill="none" stroke="${O}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${DESSINS[id]}</svg>`;
+/* le filigrane au pied d'une page, la signature d'un feuillet */
+const FILIGRANE = '<svg class="filigrane" width="92" height="92" viewBox="0 0 100 100" fill="none" stroke="rgba(90,58,28,.45)" stroke-width="1"><circle cx="50" cy="30" r="22"/><circle cx="50" cy="70" r="22"/><circle cx="30" cy="50" r="22"/><circle cx="70" cy="50" r="22"/><path d="M50 38l12 12-12 12-12-12z"/></svg>';
+const SIGNATURE = '<svg width="120" height="34" viewBox="0 0 120 34" fill="none" stroke="#2b1a3a" stroke-width="1.300" stroke-linecap="round"><path d="M4 24c8-14 14-18 16-10 2 8-6 14-8 6-1-8 14-14 20-6 4 6 8 8 12 0 3-6 8-6 10 0 2 6 6 6 10-2 3-6 8-8 12-2 3 5 10 6 28-6M10 30c30-4 60-4 96-6"/></svg>';
+// Partagé avec `../rendu.js`, chargé avant ce script.
+Object.assign(globalThis, { figure, ciel, dessinDObjet, FILIGRANE, SIGNATURE });

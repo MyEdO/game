@@ -11,7 +11,7 @@ export interface Ecran {
   etats: [Etat, ...Etat[]];
 }
 
-export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Nuit | Poursuite | BatailleDeMasse | Interlude | Soins | Commerce | Voyage | Bord | Dossier | Exploration | CarteDuMonde | Carnet;
+export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Nuit | Poursuite | BatailleDeMasse | Interlude | Soins | Commerce | Voyage | Bord | Dossier | Exploration | CarteDuMonde | Carnet | Creation | FicheDuHeros | DepenseDExperience | ChangementDeCarriere;
 
 /* ───────── le combat ───────── */
 
@@ -485,14 +485,14 @@ export interface IssueDuCombat {
  *  ou ce qui l'attend (une marque à poser), `sombre` quand rien ne le presse. */
 export type Dit = { id?: string; texte: string; mal?: true } | { attend: string; sombre?: true };
 
-/** Un héros du bandeau : son id (son buste), son nom, sa carrière, ses Blessures, sa bourse quand le lieu la montre, ce
- *  qu'il dit ; `choisi`. */
+/** Un héros du bandeau : son id (son buste), son nom, sa carrière, ses Blessures (sans elles, il se crée encore), sa
+ *  bourse quand le lieu la montre, ce qu'il dit ; `choisi`. */
 export interface HerosDuGroupe {
   id: string;
   nom: string;
   carriere: string;
-  blessures: number;
-  max: number;
+  blessures?: number;
+  max?: number;
   bourse?: Sous;
   dit?: Dit;
   choisi?: true;
@@ -1306,4 +1306,400 @@ export interface Carnet {
   ouverte: string;
   documents: string[];
   indices: { nom: string; nouveau?: true; epingle?: true; lectures: Lecture[] }[];
+}
+
+/* ───────── le héros : sa création, sa fiche, sa progression ───────── */
+
+/** Une Caractéristique du profil, par son abréviation. */
+export type Carac = 'M' | 'CC' | 'CT' | 'F' | 'E' | 'I' | 'Ag' | 'Dex' | 'Int' | 'FM' | 'Soc' | 'B';
+
+/** Un compte sur un total. */
+export interface Compte {
+  n: number;
+  sur: number;
+}
+
+/** Une ligne d'une liste à choisir : son nom, sa précision ; `choisie` ; fermée, sa raison, lue au survol. */
+export interface Option {
+  nom: string;
+  precision?: string;
+  choisie?: true;
+  refus?: string;
+  survol?: true;
+}
+
+/** Un fait lu sur une page : sa rubrique, sa valeur. */
+export interface Fait {
+  rubrique: string;
+  valeur: string;
+}
+
+/** Ce que le héros en création a retenu à une étape : sa rubrique, ce qui est retenu (un mot, ou un compte sur un total),
+ *  sa bourse, les PX qu'il vaut ; sans rien de retenu, le total des PX. */
+export interface Acquis {
+  rubrique: string;
+  valeur?: string | Compte;
+  bourse?: Sous;
+  px?: number;
+}
+
+/** Le héros en création, à droite : son nom (sans nom, il n'en a pas encore), ses acquis, jusqu'où la sanguine est posée
+ *  (de 0, au trait, à 1, achevé) ; `palette`, il tient la palette ; le geste qui avance. */
+export interface HerosEnCreation {
+  nom?: string;
+  acquis: Acquis[];
+  pose: number;
+  palette?: true;
+  geste: Geste;
+}
+
+/** Une case du profil en création : la Caractéristique, son nom, sa valeur ; ce qu'elle porte (le 2d10 tiré, ou les
+ *  points répartis), ou d'où elle vient ; ses Augmentations de carrière. */
+export interface CaseEnCreation {
+  carac: Carac;
+  nom: string;
+  valeur: number;
+  de?: number;
+  points?: number;
+  origine?: string;
+  augmentations?: number;
+}
+
+/** Une répartition d'Augmentations : sa rubrique et sa note, ce qui reste sur le total ; ses lignes (la Caractéristique,
+ *  le nom, les Augmentations sur leur maximum, la valeur qui en sort). */
+export interface Repartition {
+  rubrique: string;
+  note: string;
+  reste: Compte;
+  lignes: { carac?: Carac; nom: string; augmentations: Compte; valeur: number }[];
+}
+
+/** Les Caractéristiques : la méthode tenue parmi les trois et ce qu'elle rapporte, les points à répartir et leurs bornes ;
+ *  l'espèce et ce qu'elle ajoute, le profil, la Caractéristique pressée, sa page, ce que les dés portent quand on les
+ *  réassigne ; les répartitions de carrière, de Destin et de Résilience. */
+export interface PageDesCaracteristiques {
+  etape: 'caracteristiques';
+  methodes: { id: 'garder' | 'reassigner' | 'points'; nom: string; px?: number }[];
+  methode: 'garder' | 'reassigner' | 'points';
+  points?: { reste: Compte; min: number; max: number };
+  espece: { nom: string; valeur: number };
+  profil: CaseEnCreation[];
+  pressee: Carac;
+  texte?: string;
+  faits: Fait[];
+  jets?: { de: number; carac: Carac }[];
+  repartitions: Repartition[];
+}
+
+/** Le signe astral : le d100 et le signe qu'il tire, ses PX ; les vingt signes, le signe tenu ; les variantes que le d10
+ *  départage ; la page du signe (son nom de constellation, son nom classique, ses dates, ce qu'on voit au ciel, ses
+ *  attributs de départ, son texte). */
+export interface PageDuSigne {
+  etape: 'signe';
+  tirage: { de: number; px: number };
+  signes: string[];
+  tenu: string;
+  variantes: { d10: string; nom: string }[];
+  page: { constellation: string; classique: string; dates: string; ciel: string; attributs: { carac: Carac; valeur: number }[]; texte: string };
+}
+
+/** Une Compétence de race : sa Caractéristique et sa valeur, son nom, sa précision, le palier pris. */
+export interface CompetenceDeRace {
+  carac: Carac;
+  base: number;
+  nom: string;
+  precision?: string;
+  palier: 0 | 3 | 5;
+}
+
+/** Les Compétences de race : l'espèce, les Compétences, chaque palier et ce qui en est pris. */
+export interface PageDesCompetencesDeRace {
+  etape: 'competencesDeRace';
+  espece: string;
+  competences: CompetenceDeRace[];
+  paliers: { palier: 3 | 5; pris: Compte }[];
+}
+
+/** Une Compétence de carrière : sa Caractéristique, son nom, sa précision, ses Augmentations de carrière sur leur
+ *  maximum, celles de race, son Test ; `pressee`. */
+export interface CompetenceDeCarriere {
+  carac: Carac;
+  nom: string;
+  precision?: string;
+  augmentations: Compte;
+  race: number;
+  test: number;
+  pressee?: true;
+}
+
+/** Les Compétences de carrière : le niveau, les Compétences, ce qui reste à répartir ; la page de la Compétence pressée
+ *  (sa Caractéristique et sa valeur, ses spécialisations, son texte). */
+export interface PageDesCompetencesDeCarriere {
+  etape: 'competencesDeCarriere';
+  niveau: string;
+  competences: CompetenceDeCarriere[];
+  reste: Compte;
+  page: { carac: { nom: string; valeur: number }; specialisations: string[]; texte: string[] };
+}
+
+/** Un Talent tiré au d100 : le dé, le Talent ; `utilisation`, il se précise ; déjà retenu, ce qu'il en reste et le geste
+ *  qui le relance. */
+export interface TalentTire {
+  de: number;
+  nom: string;
+  precision?: string;
+  utilisation?: true;
+  doublon?: { raison: string; relance: string };
+}
+
+/** Les Talents : ceux de la race, acquis et au choix ; les trois tirages ; le Talent de carrière ; la page du Talent de
+ *  carrière retenu (son pictogramme, son niveau, son Maxi, ses Tests, son texte), ou celle des Sorts qu'il inclut
+ *  (combien, lesquels sont retenus, la raison de ceux qu'on ne peut plus prendre, son texte). */
+export interface PageDesTalents {
+  etape: 'talents';
+  race: { acquis: string[]; auChoix: Option[] };
+  tirages: TalentTire[];
+  carriere: Option[];
+  page:
+    | { talent: string; icone: string; niveau: string; maxi: string; tests: string; texte: string }
+    | { talent: string; niveau: string; reste: Compte; sorts: { nom: string; retenu?: true; survol?: true }[]; refus: string; texte: string };
+}
+
+/** Un objet du bagage : son dessin, son nom, sa note, son nombre, la somme qu'il contient ; `choisi`. */
+export interface ObjetDuBagage {
+  id: 'costume' | 'dague' | 'bourse' | 'pinceau' | 'pince' | 'cure' | 'peigne';
+  nom: string;
+  note?: string;
+  nombre?: number;
+  somme?: Sous;
+  choisi?: true;
+}
+
+/** Les possessions : la bourse au dé (le jet, la somme, le Statut, la formule), le choix du niveau, les dotations ; le
+ *  bagage, l'objet pris (son pictogramme, son nom, ce qu'il est, son prix). */
+export interface PageDesPossessions {
+  etape: 'possessions';
+  bourse: { de: number; somme: Sous; statut: string; formule: string };
+  auChoix: { niveau: string; options: Option[] };
+  dotations: { rubrique: string; objets: { nom: string; precision?: string; note?: string; nombre?: number }[] }[];
+  bagage: ObjetDuBagage[];
+  pris: { icone: string; nom: string; sous: string; prix: Sous };
+}
+
+/** Un trait du physique tiré aux dés : le jet, son nom, sa formule, ce qu'il donne. */
+export interface Physique {
+  de: number;
+  nom: string;
+  formule: string;
+  valeur: string;
+}
+
+/** L'identité : le sexe tenu, le nom, le physique ; la Motivation et les Ambitions, celle qu'on écrit ; l'espèce, la
+ *  carrière, la marque de la signature. */
+export interface PageDeLIdentite {
+  etape: 'identite';
+  sexe: { valeurs: string[]; tenue: number };
+  nom: string;
+  physique: Physique[];
+  ecrits: { nom: string; texte: string; saisi?: true }[];
+  espece: string;
+  carriere: string;
+  marque: string;
+}
+
+/** La présentation, le héros achevé : son buste, son nom, son espèce, sa carrière et sa Classe, son physique, ses
+ *  Blessures, ses réserves, son signe, son Statut, sa bourse, sa Motivation ; son profil, ses Compétences, ses Talents. */
+export interface PageDeLaPresentation {
+  etape: 'presentation';
+  buste: string;
+  nom: string;
+  espece: string;
+  carriere: string;
+  classe: string;
+  physique: Fait[];
+  blessures: Compte;
+  reserves: { nom: string; valeur: number }[];
+  signe: string;
+  statut: string;
+  bourse: Sous;
+  motivation: string;
+  profil: { carac: Carac; valeur: number }[];
+  competences: { carac: Carac; nom: string; precision?: string; valeur: number }[];
+  talents: string[];
+}
+
+/** La création d'un héros, écran à étapes posé sur le mur : les étapes et celle qui s'ouvre (son rang, de 1), sa page, le
+ *  héros en création, le groupe. */
+export interface Creation {
+  nom: string;
+  gabarit: 'fiche';
+  etapes: string[];
+  rang: number;
+  page: PageDesCaracteristiques | PageDuSigne | PageDesCompetencesDeRace | PageDesCompetencesDeCarriere | PageDesTalents | PageDesPossessions | PageDeLIdentite | PageDeLaPresentation;
+  heros: HerosEnCreation;
+  groupe: HerosDuGroupe[];
+}
+
+/** Une main d'un set d'armes : l'arme (son pictogramme, son nom), ou vide. */
+export type Main = { id: string; nom: string } | null;
+
+/** Un set d'armes : ses deux mains ; `enMain`, celui que le héros tient ; `deuxMains`, l'arme prend la seconde main ;
+ *  le refus de le supprimer, lu au survol. */
+export interface SetDArmes {
+  principale: Main;
+  secondaire: Main;
+  enMain?: true;
+  deuxMains?: true;
+  refus?: string;
+  survol?: true;
+}
+
+/** Un objet du héros : son pictogramme, son nom, sa précision, où il est, ou combien il en a ; `pressee`. */
+export interface ObjetDuHeros {
+  id: string;
+  nom: string;
+  precision?: string;
+  ou?: string;
+  nombre?: number;
+  pressee?: true;
+}
+
+/** Un geste sur l'objet ouvert : son libellé, ce vers quoi il va ; `principal` ; fermé, sa raison, lue au survol. */
+export interface GesteDObjet extends Geste {
+  vers?: string;
+}
+
+/** La ligne pressée, ouverte : son pictogramme, son nom, ce qu'il est ; ses faits, les Sorts auxquels le lier, les paliers
+ *  d'un entraînement et les PX à dépenser, la Faveur (sa nature, son solde, ce que coûte la rompre) ; ses gestes. */
+export interface ObjetOuvert {
+  icone: string;
+  nom: string;
+  sous: string;
+  faits?: Fait[];
+  lier?: { nom: string; ni: number; choisi?: true }[];
+  entrainement?: { px: number; paliers: { texte: string; px: number; acquis?: true }[] };
+  faveur?: { nature: string; solde: Compte; rompre: string };
+  gestes: GesteDObjet[];
+}
+
+/** L'identité du héros sur sa fiche : son buste, son nom, son espèce, sa carrière, ses Blessures, ses réserves. */
+export interface IdentiteDuHeros {
+  id: string;
+  nom: string;
+  espece: string;
+  carriere: string;
+  blessures: Compte;
+  reserves: { nom: string; valeur: number }[];
+}
+
+/** La fiche du héros, ouverte sur ses possessions : l'identité, le profil, les sections ; les sets d'armes, ce qu'il porte,
+ *  ce qui est en vrac ou rangé, les Faveurs dues (le créancier, le niveau, le solde), la ligne ouverte ; le groupe. */
+export interface FicheDuHeros {
+  nom: string;
+  gabarit: 'fiche';
+  identite: IdentiteDuHeros;
+  profil: { carac: Carac; valeur: number }[];
+  sections: string[];
+  ouverte: string;
+  sets: SetDArmes[];
+  porte: ObjetDuHeros[];
+  vrac: ObjetDuHeros[];
+  faveurs?: { creancier: string; niveau: string; solde: Compte; pressee?: true }[];
+  ouvert: ObjetOuvert;
+  groupe: HerosDuGroupe[];
+}
+
+/** L'identité du héros qui progresse : son buste, son nom, son espèce, son niveau, sa Classe et son rang ; ses PX et ce
+ *  qu'il en restera après l'achat pressé ; ce que le niveau exige pour s'achever ; ses gestes, ou le niveau achevé, et la
+ *  note qui les suit. */
+export interface IdentiteQuiProgresse {
+  id: string;
+  nom: string;
+  espece: string;
+  niveau: string;
+  classe: string;
+  rang: number;
+  px: number;
+  apres?: number;
+  exigences: { texte: string; fait?: true; compte?: Compte }[];
+  gestes?: (Geste & { px?: number })[];
+  acheve?: true;
+  note: string;
+}
+
+/** Une Compétence à augmenter : sa Caractéristique, son nom, sa précision, ses Augmentations, son Test, son prix ;
+ *  `exigee`, elle compte déjà pour le niveau ; `pressee`. Un emplacement « (Au choix) » : `aDesigner` ; ouvert, ses
+ *  spécialisations et celle retenue. */
+export interface CompetenceAAugmenter {
+  carac: Carac;
+  nom: string;
+  precision?: string;
+  augmentations: number;
+  test: number;
+  px: number;
+  exigee?: true;
+  pressee?: true;
+  aDesigner?: true;
+  specialisations?: { noms: string[]; retenue: string };
+}
+
+/** Un Talent à prendre : son pictogramme, son nom, ce qu'il est ; son prix, ou la raison qui le ferme. */
+export interface TalentAPrendre {
+  icone: string;
+  nom: string;
+  sous: string;
+  px?: number;
+  refus?: string;
+}
+
+/** Un Sort à apprendre : son nom, son NI, son prix ; connu, le prix de son composant. */
+export interface SortAApprendre {
+  nom: string;
+  ni: number;
+  px?: number;
+  composant?: Sous;
+}
+
+/** La dépense d'expérience, au gabarit de la fiche : l'identité, le profil (la valeur, les Augmentations, le prix de la
+ *  suivante, `carriere`), les Compétences de la carrière et celles hors carrière ; l'onglet ouvert, ses Talents ou ses
+ *  Sorts par liste (la rubrique, sa note) et la bourse qui paie les composants ; le groupe. */
+export interface DepenseDExperience {
+  nom: string;
+  gabarit: 'fiche';
+  identite: IdentiteQuiProgresse;
+  profil: { carac: Carac; valeur: number; augmentations?: number; px?: number; carriere?: true }[];
+  competences: CompetenceAAugmenter[];
+  horsCarriere: number;
+  ouvert: 'Talents' | 'Sorts';
+  talents?: { rubrique: string; note: string; talents: TalentAPrendre[] };
+  sorts?: { listes: { rubrique: string; note: string; sorts: SortAApprendre[] }[]; bourse: { heros: string; avoir: Sous } };
+  groupe: HerosDuGroupe[];
+}
+
+/** Une station du chemin de carrière : son nom, son niveau, son Statut ; `tenu`, `acheve` ; son état (passée ou tenue,
+ *  visée, ouverte par la règle des sauts, hors d'atteinte) ; ses PX ; la raison qui la ferme, lue au survol. */
+export interface Station {
+  nom: string;
+  niveau: number;
+  statut: string;
+  tenu?: true;
+  acheve?: true;
+  etat: 'faite' | 'visee' | 'ouverte' | 'loin';
+  px?: number;
+  refus?: string;
+  survol?: true;
+}
+
+/** Le changement de carrière, au gabarit de la fiche : l'identité, le chemin de la carrière (son nom, sa Classe, ses
+ *  stations) ; la page du niveau visé (son ruban, son nom, sa carrière, son niveau et son Statut, ce qu'il ouvre, sa note,
+ *  le geste et son prix) ; une autre carrière (les Classes et leur prix, les carrières, le niveau d'arrivée, la note) ; le
+ *  groupe. */
+export interface ChangementDeCarriere {
+  nom: string;
+  gabarit: 'fiche';
+  identite: IdentiteQuiProgresse;
+  chemin: { carriere: string; classe: string; stations: Station[] };
+  vise: { ruban: string; nom: string; carriere: string; niveau: number; statut: string; ouvre: { rubrique: string; noms: string[] }[]; note: string; geste: string; px: number };
+  autre: { classes: { id: string; nom: string; px: number; choisie?: true; fermee?: true }[]; carrieres: Option[]; arrivee?: { valeurs: string[]; tenue: number }; note: string };
+  groupe: HerosDuGroupe[];
 }

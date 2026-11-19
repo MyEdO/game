@@ -1,8 +1,23 @@
-# Propositions : création et progression (2026-11-16, #3935)
+# Propositions : création et progression (2026-11-16, #3935 ; maquettes JSON #4411)
 
-Compte rendu des neuf écrans dessinés à la suite des maquettes validées `creation-carriere` et `fiche-du-heros`
-(`../maquettes/`), depuis la cible écrite `../ecrites/heros.md`. Sources au dépôt : `sources/heros/`, sur le socle commun de
-`sources/lieux-et-nuit/`. Rien n'est validé.
+Compte rendu des écrans dessinés à la suite des maquettes jugées `creation-carriere` et `fiche-du-heros`
+(`../maquettes/`), depuis la cible écrite `../ecrites/heros.md`. Sources au dépôt : quatre écrans de
+`sources/maquettes/`, chacun la liste de ses états au format de `sources/maquettes/maquette.ts`, dessinés par
+`sources/rendu.html` au gabarit 3 « Fiche » de `dispositions.md` (`node sources/rendre.mjs <écran> <sortie.png>
+--format 16:9 [--etat <état>]`) :
+- `creation` : un écran à étapes, un état par étape et par variante (`creation-caracteristiques`,
+  `creation-caracteristiques-reassigner`, `creation-caracteristiques-points`, `creation-signe-astral`,
+  `creation-competences-de-race`, `creation-competences-de-carriere`, `creation-talents`, `creation-talents-doublon`,
+  `creation-talents-sorts-mineurs`, `creation-possessions`, `creation-identite`, `creation-presentation`) ;
+- `fiche-du-heros` : `fiche-possessions`, `fiche-possessions-composant`, `fiche-possessions-prothese`,
+  `fiche-possessions-faveur` ;
+- `depense-d-experience` : `progression-depense-d-experience`, `progression-depense-d-experience-creneaux`,
+  `progression-depense-d-experience-sorts` ;
+- `changement-de-carriere` : `progression-changement-de-carriere`, `progression-changement-de-carriere-saut`.
+
+Les dessins de la famille (figure du héros, ciel du signe, objets du bagage, filigrane, signature) vivent dans
+`sources/heros/heros.js`, ses pièces dans `sources/heros/heros.css`, sur le bandeau de `sources/lieux-et-nuit/`.
+Premières maquettes : chaque « À valider » attend l'utilisateur.
 
 La création suit le découpage du code (`src/noyau/creation/vueDeLaCreation.ts:402-413`) : dix étapes, dont « Signe
 astral » seulement si la règle `creation-signes-astraux` est active (`src/noyau/creation/brouillon.ts:845-848`).
@@ -20,7 +35,7 @@ prix en fer, figure dont la sanguine descend d'étape en étape.
   prendre un autre échange les deux (`geste('assigner', k, i)`, `vueDeLaCreation.ts:228`).
 - État `points` : chaque case porte ses points et son − / + ; « À répartir · 4 / 100 » ; « Suivant » fermé, la
   raison du noyau au survol. De 4 à 18 points par Caractéristique (LDB 05 l.341).
-- À valider : la page n'avait pas de maquette (les étapes 1 et 2 sont validées, la 3 manquait) ; la prose de la
+- À valider : la page n'avait pas de maquette (les étapes 1 et 2 sont jugées, la 3 manquait) ; la prose de la
   Caractéristique (verbatim LDB) n'est pas servie par la vue ; valeurs d'exemple (jets, Humains 2d10+20, Destin 2,
   Résilience 1, trois points à répartir). Le refus de « Suivant » est le texte du noyau (`crea.repartitionDesPoints`,
   `src/noyau/creation/brouillon.ts:881` ; `validatePointBuy`, `src/engine/creation.ts:108-116`).
@@ -109,8 +124,8 @@ prix en fer, figure dont la sanguine descend d'étape en étape.
   vérifiée par le noyau, donc pas dessinée ; plaque de confirmation de la colonne Carrière non dessinée.
 
 ## fiche-possessions
-Section « Possessions » de la fiche validée (`../maquettes/fiche-du-heros`), gabarit repris dans `sources/heros/fiche.js` ;
-une page, quatre états du cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObjet.ts`
+Section « Possessions » de la fiche jugée (`../maquettes/fiche-du-heros.jpg`), écran `fiche-du-heros` ; quatre états du
+cartouche de la ligne pressée. Les gestes sont ceux de `src/noyau/gestesDeLObjet.ts`
 (« Porter », « Main principale », « Main secondaire », « Ranger dans », « Donner à », « Poser au sol »).
 - `fiche-possessions` (état `arme`) : la rangée des sets d'armes, celui en main cerné ; « + » crée un set
   (`creerLaPanoplie(heroId)`), une main pressée se garnit (`garnirLaPanoplie(heroId, loadoutId, slot, uid)`), la croix
@@ -128,3 +143,17 @@ une page, quatre états du cartouche de la ligne pressée. Les gestes sont ceux 
   l'interlude (`solderLaFaveur`, `src/noyau/interludeEnVue.ts:92`), pas sur la fiche.
 - À valider : « Sets d'armes » à l'écran, « panoplies » au code ; figure générique pour les deux héros ; noms,
   objets et prix d'exemple ; l'échoppe (troc, réparation) revient à la famille `commerce`.
+
+## Choix de la migration en maquettes JSON (#4411), à valider
+- Largeurs : `dispositions.md` garde au choix et au héros leur largeur, ce que 1280 ne tient pas ; le choix prend 484,
+  le héros 340, le détail se tend entre eux.
+- Méthodes des Caractéristiques en lignes cochées avec leur gain, plus en plaques ; le dé de la création est le sceau du
+  kit ; la variante du signe passe sous la liste des signes, ses pastilles en une rangée.
+- Fiche : la figure prend 180 de large ; le bandeau du groupe est posé comme le veut le gabarit 3, là où le dossier
+  d'une possession n'en a pas.
+- Pièces gardées dans `sources/heros/heros.css` plutôt qu'au kit : jeton, pastille de palier, clous d'Augmentation,
+  station du chemin ; elles n'ont pas encore de seconde famille.
+- Libellés chiffrés (« 3 Talents au d100 », « Augmentations à +5 ») plutôt qu'en toutes lettres ; la bourse de création
+  dit « 7/- », sans « sept pistoles d'argent ».
+- Bulles de refus : sous la ligne refusée dans une liste, à droite de la pastille dans les Sorts de Magie mineure, au-dessus
+  partout ailleurs ; l'état `creation-talents-sorts-mineurs` montre le refus sur « Tendre l'oreille ».

@@ -267,6 +267,25 @@
 #f-sections.dossier .arme .n{font-size:23px;line-height:26px}
 #f-sections.dossier .ou .l{margin-bottom:12px}
 
+/* 3. Fiche, le héros sur le mur : tout s'arrête à la ligne basse, 164 du bas, au-dessus du bandeau réduit, centré à 8
+   du bas, une case de 240 par héros. La création : la frise en haut, la croix dedans ; le choix à gauche, le héros en
+   création à droite, large de 340 comme l'identité ; le détail tendu entre eux. La fiche et la progression :
+   l'identité 26 / 20, 340 de large ; le profil ou le chemin tendu jusqu'à la croix ; dessous, la figure et les sections,
+   ou les deux panneaux de la progression, tendus jusqu'au bord droit */
+#ui:has(>#mur) #bandeau.b2{left:calc(50% - 240px);width:480px}
+#ui:has(>#mur) #bandeau.b3{left:calc(50% - 360px);width:720px}
+#etapes{left:26px;right:26px;top:12px;height:74px}
+#choix{left:26px;top:96px;width:484px;bottom:164px}
+#detail{left:527px;right:383px;top:96px;bottom:164px}
+#heros-neuf{right:26px;top:96px;width:340px;bottom:164px}
+#identite{left:26px;top:20px;width:340px;bottom:164px}
+#bande,#chemin{left:384px;right:96px;top:20px;height:96px}
+#ui:has(>#competences) #bande,#chemin{height:112px}
+#figure{left:384px;top:136px;width:180px;bottom:164px}
+#sections{left:582px;right:24px;top:136px;bottom:164px}
+#competences,#vise{left:384px;width:470px;top:152px;bottom:164px}
+#talents,#autre{left:872px;right:24px;top:152px;bottom:164px}
+
 /* 4. Lieu, l'exploration : le regard au coin haut-droit, les écrans à ouvrir dessous ; les gestes du groupe au bord
    gauche et le journal au bord droit, leur bas à la ligne basse (164 du bas au-dessus du bandeau, 20 au-dessus d'une
    fenêtre du bas) ; le dialogue et la fouille dans une fenêtre du bas de 266 */
