@@ -7,7 +7,7 @@
  * second jet ou d'un choix ne se résume PAS — l'encadré se tait plutôt que de promettre.
  */
 import { describe, it, expect } from 'vitest';
-import { certainFlowOps, EMPTY_FLOW, testFlow, type Flow } from './flowCore';
+import { certainFlowOps, EMPTY_FLOW, testFlow, type Condition, type Flow } from './flowCore';
 import type { GameOp } from './ops';
 
 const OPS: GameOp[] = [{ op: 'condition', id: { id: 'sonne' }, value: 1 }];
@@ -33,6 +33,25 @@ describe('certainFlowOps — l’encadré Réussite/Échec se CALCULE des ops (#
     expect(certainFlowOps(f)).toBeUndefined();
     // …et il CONTAMINE la séquence qui le porte : un « Réussite : Sonné » suivi d'un peut-être mentirait.
     expect(certainFlowOps({ kind: 'sequence', etapes: [doOps(OPS), f] })).toBeUndefined();
+  });
+
+  it('l’oracle visite le si retenu une fois et s’arrête au premier Test ambigu', () => {
+    const retenue: Condition = { kind: 'flag', expr: 'retenue' };
+    const ecartee: Flow = { kind: 'si', condition: { kind: 'flag', expr: 'écartée' }, alors: doOps(AUTRES) };
+    const apres: Flow = { kind: 'si', condition: { kind: 'flag', expr: 'après' }, alors: doOps(AUTRES) };
+    const etapes: Flow[] = [
+      { kind: 'si', condition: retenue, alors: ecartee, sinon: doOps(OPS) },
+      testFlow({ characteristic: 'force', difficulty: 'intermediaire' }, EMPTY_FLOW, doOps(AUTRES)),
+      apres,
+    ];
+    const consultations: Condition[] = [];
+    const oracle = (condition: Condition) => {
+      consultations.push(condition);
+      return false;
+    };
+
+    expect(certainFlowOps({ kind: 'sequence', etapes }, oracle)).toBeUndefined();
+    expect(consultations).toEqual([retenue]);
   });
 
   it('FAIL-CLOSED : un `test` imbriqué (second jet) et un `choice` ne se résument pas non plus', () => {

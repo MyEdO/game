@@ -644,23 +644,28 @@ export function certainFlowOps<E = EffectOp>(
   evalCond?: (cond: Condition) => boolean | undefined,
 ): GameOp[] | undefined {
   if (!flow) return undefined;
-  if (flow.kind === 'sequence') {
-    const out: GameOp[] = [];
-    for (const s of flow.etapes) {
-      const ops = certainFlowOps(s, evalCond);
-      if (!ops) return undefined;
-      out.push(...ops);
+  const out: GameOp[] = [];
+  const complet = walkFlow(flow, (noeud) => {
+    switch (noeud.kind) {
+      case 'sequence': return;
+      case 'effet':
+        if (!isEffectOp(noeud.effet)) return 'stop';
+        out.push(...noeud.effet.ops);
+        return;
+      case 'si': {
+        const verdict = evalCond?.(noeud.condition);
+        if (verdict === undefined) return 'stop';
+        return verdict ? 'alors' : 'sinon';
+      }
+      case 'test':
+      case 'choix':
+        return 'stop';
+      default:
+        noeud satisfies never;
+        return 'stop';
     }
-    return out;
-  }
-  if (flow.kind === 'effet') return isEffectOp(flow.effet) ? [...flow.effet.ops] : undefined;
-  if (flow.kind === 'si' && evalCond) {
-    const verdict = evalCond(flow.condition);
-    if (verdict === undefined) return undefined; // l'oracle ne sait pas : on se tait, on ne suppose pas
-    const branch = verdict ? flow.alors : flow.sinon;
-    return branch ? certainFlowOps(branch, evalCond) : [];
-  }
-  return undefined;
+  });
+  return complet ? out : undefined;
 }
 
 /** Sous-Flow d'un Flow de sort ne gardant que les nœuds adressant `on` (target/caster) — pour appliquer
@@ -968,15 +973,34 @@ export function lierLesTirages<E>(flow: Flow<E>, valeurDe: (de: Formula) => numb
 
 /** Visite RÉCURSIVE de tous les nœuds d'un Flow (branches `si`/`test` comprises) — pour la validation
  *  (effets référencés, bornes des conditions horaires) sur l'arbre ENTIER, pas seulement le 1er niveau.
- *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif. */
-export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, chemin: CheminDeFlow) => void, chemin: CheminDeFlow = []): void {
-  visit(flow, chemin);
+ *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif.
+ *  Le visiteur peut ignorer les enfants, arrêter tout le parcours, ou retenir une branche d'un `si`.
+ *  Le résultat dit si le parcours est allé au bout. */
+export function walkFlow<E = EffectOp>(
+  flow: Flow<E>,
+  visit: (node: Flow<E>, chemin: CheminDeFlow) => void | 'ignorer' | 'stop' | 'alors' | 'sinon',
+  chemin: CheminDeFlow = [],
+): boolean {
+  const suite = visit(flow, chemin);
+  if (suite === 'stop') return false;
+  if (suite === 'ignorer') return true;
   switch (flow.kind) {
-    case 'sequence': flow.etapes.forEach((s, i) => walkFlow(s, visit, [...chemin, 'etapes', i])); break;
-    case 'si': walkFlow(flow.alors, visit, [...chemin, 'alors']); if (flow.sinon) walkFlow(flow.sinon, visit, [...chemin, 'sinon']); break;
-    case 'test': walkFlow(flow.reussite, visit, [...chemin, 'reussite']); walkFlow(flow.echec, visit, [...chemin, 'echec']); break;
-    case 'choix': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
-    case 'effet': break;
+    case 'sequence':
+      for (const [i, etape] of flow.etapes.entries()) {
+        if (!walkFlow(etape, visit, [...chemin, 'etapes', i])) return false;
+      }
+      return true;
+    case 'si':
+      if (suite !== 'sinon' && !walkFlow(flow.alors, visit, [...chemin, 'alors'])) return false;
+      return suite === 'alors' || !flow.sinon || walkFlow(flow.sinon, visit, [...chemin, 'sinon']);
+    case 'test':
+      return walkFlow(flow.reussite, visit, [...chemin, 'reussite']) && walkFlow(flow.echec, visit, [...chemin, 'echec']);
+    case 'choix':
+      return walkFlow(flow.oui, visit, [...chemin, 'oui']) && (!flow.non || walkFlow(flow.non, visit, [...chemin, 'non']));
+    case 'effet': return true;
+    default:
+      flow satisfies never;
+      return true;
   }
 }
 
@@ -1022,6 +1046,7 @@ export function executerFlow<E, R>(flow: Flow<E>, hote: HoteDeFlow<E, R>): R {
       case 'si': pas = hote.avantDecision?.(noeud, reste) ?? (evalCondition(noeud.condition, hote.conditions()) ? noeud.alors : noeud.sinon); break;
       case 'test': pas = hote.avantDecision?.(noeud, reste) ?? hote.test(noeud, reste); break;
       case 'choix': pas = hote.avantDecision?.(noeud, reste) ?? hote.choix(noeud, reste); break;
+      default: return noeud satisfies never;
     }
     if (pas && 'arret' in pas) return pas.arret;
     if (pas) pile.unshift(pas);
