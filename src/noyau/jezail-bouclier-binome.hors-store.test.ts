@@ -15,6 +15,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { findCreatureById, findTrappingById } from '../data';
 import { t } from '../i18n';
 import { spawnEnemy } from './monde/spawn';
+import { applyShipPostes } from './monde/shipPostes';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
 import { aiApproachPlan, refusDeDefenseReactive, runEnemyAI, tireSansEquipe } from './combatFlow';
 import { auContactParmi, bouclierDuBinome, effectifAuContactParmi } from './combat/surnombre';
@@ -112,9 +113,15 @@ describe.each([
   });
 
   it('le servant d’une baliste avec ce bouclier n’est pas en binôme', () => {
-    const servant = porteur('servant', kind, { x: 5, y: 5 }, ['baliste']);
+    const servant = combattantDeTest({ id: 'servant', kind, pos: { x: 5, y: 5 } });
     const P = porteur('partenaire', kind, { x: 6, y: 5 }, [BOUCLIER]);
-    expect([bouclierDuBinome(null, [servant, P], servant), bouclierDuBinome(null, [servant, P], P)]).toEqual([undefined, undefined]);
+    const affut = spawnEnemy({ engin: 'baliste' }, 'affut', { x: 5, y: 4 }, {
+      postes: [{ trappingId: 'baliste', crewIds: [servant.id] }],
+    });
+    const tous = [affut, servant, P];
+    applyShipPostes(tous);
+    expect(tenu(servant, 'baliste')).toBeDefined();
+    expect([bouclierDuBinome(null, tous, servant), bouclierDuBinome(null, tous, P)]).toEqual([undefined, undefined]);
   });
 
   it('en binôme et Engagés : la Fuite fermée, le Désengagement par l’Esquive offert ; Brisé, la fuite forcée l’ouvre', () => {

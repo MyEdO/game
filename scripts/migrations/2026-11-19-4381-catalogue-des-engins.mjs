@@ -6,6 +6,7 @@
 import { deepStrictEqual, ok } from 'node:assert/strict';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { norm } from '../../src/lib/normalize.ts';
+import { tableTotale } from '../../src/lib/tableTotale.ts';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { estDeContenu, estErreur, fragmentBlocs, resoudreAdresse, unitesDuTexte } from '../../src/data/source/decoupe.ts';
 import { lireChapitre } from '../source/lecteur-fs.mjs';
@@ -114,7 +115,7 @@ if (!aDeplacer.length && bataille.warMachines.every((r) => typeof r === 'string'
       crew: equipe?.value,
       siege: profil.qualities.some(({ id }) => id === 'siege'),
     };
-    deepStrictEqual(valeurs, Object.fromEntries(Object.keys(valeurs).map((cle) => [cle, ligne[cle]])), profil.id);
+    deepStrictEqual(valeurs, tableTotale(Object.keys(valeurs), (cle) => ligne[cle]), profil.id);
     const traits = libelles(profil);
     for (const trait of ligne.traits.split(', ')) ok(traits.has(norm(trait)), `${profil.id} : qualité « ${trait} » introuvable`);
     return profil.id;

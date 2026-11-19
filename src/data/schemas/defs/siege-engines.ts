@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { metaDesChamps } from '../grammaire/meta';
 import { ref } from '../grammaire/ref';
-import { availabilitySchema, enumNomme, moneySchema } from '../grammaire/valeurs';
-import { CATEGORIES_D_ARME, estGroupeDeSiege, profilDArmeDeCatalogueSchema } from './trappings';
+import { availabilitySchema, moneySchema } from '../grammaire/valeurs';
+import { categorieDArmeSchema, estGroupeDeSiege, profilDArmeDeCatalogueSchema } from './trappings';
 
 export const file = 'siege-engines.json';
 export const famille = 'entite';
@@ -13,7 +13,7 @@ const doc = document(
   famille,
   {
     ...profilDArmeDeCatalogueSchema.shape,
-    categorie: enumNomme(CATEGORIES_D_ARME),
+    categorie: categorieDArmeSchema,
     subType: ref('weaponGroup'),
     siegeFootprint: z.number().optional(),
     enc: z.number().optional(),

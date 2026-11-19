@@ -1,4 +1,5 @@
-import { metaDesChamps, nommerChamps, nommerNoeud } from '../grammaire/meta';
+import { libelleDeValeur, metaDesChamps, nommerChamps, nommerNoeud } from '../grammaire/meta';
+import { tableTotale } from '../../../lib/tableTotale';
 /**
  * Schéma de `trappings.json` — vocabulaire UNIFIÉ des objets (armes/armures/munitions/possessions/
  * consommables/véhicules-marqueur). Dérivé de l'interface `TrappingData` EXISTANTE
@@ -48,14 +49,14 @@ export const apparenceDObjetSchema = nommerChamps(z.looseObject({
 const refusDuTypeDArmure = (subType: { id: string } | null): string | null =>
   subType === null ? 'aucun type d’armure' : refusDeLEntree('weaponGroup', 'armour', subType);
 
-export const CATEGORIES_D_ARME = {
+export const categorieDArmeSchema = enumNomme({
   melee: 'Armes de mêlée',
   distance: 'Armes à distance',
-} as const;
+});
 
 /** CATÉGORIE de catalogue d'une possession — id de logique qui ne s'affiche jamais nu. */
 export const trappingCategorieSchema = enumNomme({
-  ...CATEGORIES_D_ARME,
+  ...tableTotale(categorieDArmeSchema.options, (id) => libelleDeValeur(categorieDArmeSchema, id)),
   ammunition: 'Munitions',
   armor: 'Armures',
   trapping: 'Équipement',
