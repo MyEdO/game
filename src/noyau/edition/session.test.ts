@@ -686,11 +686,10 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     expect(entiteDeLaSelection(sceneEditee(editee), editee.sel)?.combat?.optionals?.[0], 'posée, la note s’édite').toEqual({ ...note, wounds: 30 });
   });
 
-  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, deux corps, l’engin qui n’est pas de siège, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
+  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, deux corps, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
     const fixtures = {
     sansPorteur: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } },
     deuxCorps: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, vehicule: { id: 'cogue' } },
-    enginHorsSiege: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, engin: { id: 'baton-de-combat' } },
     carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
     volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, facing: 'NE' },
     decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, calage: { x: 2, y: 0 } },
@@ -699,7 +698,6 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0]);
     expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['creature']]);
     expect(fautes(fixtures.deuxCorps).map((f) => f.chemin)).toEqual([['vehicule']]);
-    expect(fautes(fixtures.enginHorsSiege)).toEqual([{ chemin: ['engin', 'id'], message: '« baton-de-combat » n\'est pas un engin de siège' }]);
     expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
     expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.chemin)).toEqual([['facing']]);
     expect(fautes(fixtures.decorHorsDeSaCase).map((f) => f.chemin), 'le calage d’un décor dans sa case (#3731)').toEqual([['calage', 'x']]);
@@ -883,7 +881,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     const ajoute = jouer(cogue, valeur(['postes'], [...postes, { trappingId: engins[0] }]), valeur(['postes', postes.length, 'trappingId'], engins[1]));
     expect(coque(ajoute).postes?.[postes.length]).toEqual({ trappingId: engins[1] });
     expect(choix(ajoute, ['postes', postes.length, 'trappingId'])).toEqual(engins);
-    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'pas-une-piece')), 'une pièce hors catalogue').toEqual({ regle: '« pas-une-piece » est absent du catalogue des objets (trappings.json).' });
+    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'dague')), 'un objet existant hors catalogue des engins').toEqual({ regle: '« dague » est absent du catalogue des engins de siège (siege-engines.json).' });
     const entites = sceneEditee(cogue).entities;
     expect(entites.some((e) => e.vehicule && e.id !== coque(cogue).id), 'la scène pose une autre coque').toBe(true);
     const equipage = entites.filter((e) => e.kind === 'personnage' && !e.vehicule).map((e) => e.id);

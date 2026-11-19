@@ -15,7 +15,7 @@ import { mountIncidentEffects } from './travelTables';
 import type { CrewHire, ShipMoraleState } from './crewMorale';
 import type { LotDeVivres } from './provisions';
 import type { ManannMood, MeteoImposeeDuNavire, ModificateurDuNavire } from './seaVoyage';
-import { findVehicleById, findCreatureById, findTrappingById, tailleDuProfil } from '../data';
+import { findVehicleById, findCreatureById, findSiegeEngineById, tailleDuProfil } from '../data';
 import { SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
 
 export type PossessionLocation =
@@ -100,7 +100,7 @@ export type Possession = PossessionCommon &
     | {
         // Engin de siège possédé, servi en poste, jamais un objet de sac (#4143). AA 02 l.335-339
         nature: 'engin';
-        trappingId: string; // trappings.json, sous-liste ENGINS_DE_SIEGE
+        trappingId: string; // siege-engines.json
       }
   );
 
@@ -172,7 +172,7 @@ export function possessionLabel(p: Possession): string {
     case 'immeuble':
       return p.buildingId; // catalogue immeuble = T4 (#356), pas encore de label
     case 'engin':
-      return findTrappingById(p.trappingId)?.label ?? p.trappingId;
+      return findSiegeEngineById(p.trappingId)?.label ?? p.trappingId;
   }
 }
 
@@ -184,7 +184,7 @@ function livingSize(ref: LivingRef): SizeCategory {
 
 /** Poids PROPRE d'une possession (hors items/cargo/embarquées) — véhicule/navire : `enc` du catalogue
  *  (`vehicles.json`, LDB 70/MDG 12) ; bête/serviteur : Enc qu'occupe un ÊTRE selon sa Taille à bord
- *  (`SIZE_SHIPBOARD_ENC`, MDG 12 l.25-33) ; engin : `enc` numérique de `trappings.json` (AA 10 l.175-193),
+ *  (`SIZE_SHIPBOARD_ENC`, MDG 12 l.25-33) ; engin : `enc` numérique de `siege-engines.json` (AA 10 l.175-193),
  *  0 sans lui ; immeuble : 0 (jamais transporté comme fret). */
 function ownEnc(p: Possession): number {
   switch (p.nature) {
@@ -197,7 +197,7 @@ function ownEnc(p: Possession): number {
     case 'immeuble':
       return 0;
     case 'engin': {
-      const enc = findTrappingById(p.trappingId)?.enc;
+      const enc = findSiegeEngineById(p.trappingId)?.enc;
       return typeof enc === 'number' ? enc : 0;
     }
   }

@@ -36,6 +36,7 @@ import {
   findApparenceById,
   findCareerById,
   findCreatureById,
+  findSiegeEngineById,
   findTrappingById,
   findTraitById,
   matiereDuGroupe,
@@ -415,10 +416,15 @@ export function gabaritDObjet(id: string, resolveTrapping: TrappingResolver = fi
   if (!resolu) return null;
   if (!dansLaSousListe(INSTANCIABLE_PAR_ID, resolu))
     throw new Error(`gabaritDObjet: "${resolu.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
-  const t = structuredClone(resolu); // #2097
+  return deciderApparenceALaNaissance(gabaritDuCatalogue(resolu), contexte, resolveTrapping);
+}
+
+/** Projection commune d’une fiche d’objet ou d’engin vers le gabarit du moteur. */
+function gabaritDuCatalogue(fiche: TrappingData): GabaritDObjet {
+  const t = structuredClone(fiche); // #2097
   const kind = kindOf(t.categorie);
   const locs = t.loc != null ? localisationsDeLoc(t.loc) : undefined;
-  const objet: GabaritDObjet = {
+  return {
     ...copierIntrinseques({ ...t, range: t.range ?? null }),
     trappingId: t.id,
     label: t.label,
@@ -437,7 +443,6 @@ export function gabaritDObjet(id: string, resolveTrapping: TrappingResolver = fi
     hands: kind === 'melee' || kind === 'distance' ? (t.hands === 2 ? 2 : 1) : undefined, // champ typé (LDB 62)
     qty: kind === 'ammo' ? (t.packSize ?? 1) : undefined, // taille de paquet typée
   };
-  return deciderApparenceALaNaissance(objet, contexte, resolveTrapping);
 }
 
 /** L'objet du gabarit `g` qui ENTRE dans l'état, sous l'uid `uid`. */
@@ -555,8 +560,10 @@ export function giveTrappingLabel(give: { trappingId?: string; custom?: string }
  *  hors-base (nom libre — trinket/quête/pièces de monstre, sans `trappingId`). SOURCE UNIQUE de l'affichage
  *  du nom d'un objet catalogué (fiche/sac/pickers) : un objet CATALOGUÉ ne rend jamais son id brut, même si
  *  son champ `label` a dérivé (save ancienne, donnée fautive). */
-export function itemLabel(it: Pick<ItemInstance, 'trappingId' | 'label' | 'spec'>): string {
-  return it.trappingId ? refLabel('trappings', { id: it.trappingId, spec: it.spec }) : it.label;
+export function itemLabel(it: Pick<ItemInstance, 'trappingId' | 'label' | 'spec' | 'subType'>): string {
+  if (!it.trappingId) return it.label;
+  const categorie = groupeDeSiege(it.subType) ? 'siegeEngines' : 'trappings';
+  return refLabel(categorie, { id: it.trappingId, spec: it.spec });
 }
 
 /** Limite d'Encombrement = (Bonus de Force + Bonus d'Endurance) × facteur (ogre ADE II 2 l.708 :
@@ -1109,17 +1116,14 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
 }
 
 /**
- * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la pièce et chaque
- * munition de son coffre depuis le catalogue (`gabaritDObjet`, `itemFromTrappingById` — JAMAIS une base copiée), puis
- * re-pose l'état propre au poste. La pièce prend `uidDeLaPlace`, que l'appelant dérive de sa place sur la coque, et
- * chaque munition `<uidDeLaPlace>-<id>` (#2907). Une pièce ou une munition inconnue → throw explicite (fail-fast —
- * un défaut d'authoring, pas un silence).
+ * Hydrate un poste de scène au spawn (#222) : profil du catalogue des engins et munitions du catalogue des objets.
+ * La pièce reçoit `uidDeLaPlace` et chaque munition `<uidDeLaPlace>-<id>` (#2907).
  */
 export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPoste {
   const { trappingId, ammo, selectedAmmo, ...etat } = a;
-  const base = gabaritDObjet(trappingId);
-  if (!base) throw new Error(`[poste] trappingId inconnu « ${trappingId} » — pièce non hydratable (#222)`);
-  const poste: ShipPoste = { ...etat, item: { ...base, uid: uidDeLaPlace } };
+  const fiche = findSiegeEngineById(trappingId);
+  if (!fiche) throw new Error(`[poste] Engin de siège inconnu « ${trappingId} » (#222)`);
+  const poste: ShipPoste = { ...etat, item: instanceDuGabarit(gabaritDuCatalogue(fiche), uidDeLaPlace) };
   const uidDeLaMunition = (id: string) => `${uidDeLaPlace}-${id}`;
   if (ammo) {
     poste.ammo = Object.entries(ammo).map(([id, qty]) => {
@@ -1486,10 +1490,8 @@ export function ammoFamily(subType?: string): string {
   const s = subType ?? ''; // `subType` = id de Groupe
   if (groupeLance(s) || s === 'entraves') return '';
   if (groupeAPoudre(s)) return 'poudre-ingenierie';
-  // Artillerie (AA/MDG) : les armes de siège (canon/baliste/mortier/pierrier) tirent les munitions de
-  // siège (boulets, carreaux, bombes, mitraille). Sans cette normalisation, une arme de siège
-  // (`armes-de-siege`) ne trouverait jamais sa munition (`munition-de-siege`).
-  if (s === 'armes-de-siege' || s === 'munition-de-siege') return 'artillerie';
+  // AA 10 l.150 ; MDG 12 l.410-424
+  if (groupeDeSiege(s) || s === 'munition-de-siege') return 'artillerie';
   return s;
 }
 
@@ -1516,8 +1518,8 @@ export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string 
 type ArmePourMunitions = Pick<Weapon, 'trappingId' | 'subType' | 'defaultAmmo'>;
 
 function munitionsDeLArme(arme: ArmePourMunitions): readonly string[] | string {
-  const liste = arme.trappingId ? findTrappingById(arme.trappingId)?.munitions : undefined;
-  return liste ?? ammoFamily(arme.subType);
+  const fiche = groupeDeSiege(arme.subType) ? findSiegeEngineById(arme.trappingId) : findTrappingById(arme.trappingId);
+  return fiche?.munitions ?? ammoFamily(arme.subType);
 }
 
 /** Libellé du projectile requis au tir, ou `undefined` pour une arme qui s'utilise seule. */

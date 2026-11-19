@@ -399,7 +399,7 @@ export interface CorpsDuVehicule {
  * @contrat Corps d'un combattant
  * Chaque combattant (`combat.actif`, `combat.voisins.liste` et `exploration.heros`) porte `vehicule`
  * (`vehiculeDuCombattant`, `src/noyau/apparence/combattant.ts`) : `null`, sauf pour une coque de `vehicles.json` ou un
- * engin `armes-de-siege` de `trappings.json` (`findFicheDeVehicule`), qui y porte `definition`, l'id de sa fiche,
+ * engin de `siege-engines.json` (`findFicheDeVehicule`), qui y porte `definition`, l'id de sa fiche,
  * `empreinte`, le côté de son empreinte (`footprintN`), `taille`, `reelle` pour un engin, `empreinte` pour une coque,
  * dont la taille réelle à terre est le plateau de son pont (arbitrage du 2026-11-08, #2987), `cap`, son cap (`facing`
  * de l'état, `N` sans cap, comme au combat), `couleurs`, celles de son apparence (ci-dessous), `postes`, la pièce de
@@ -1594,7 +1594,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     /**
      * `{ definition, postes?, ameliorations?, couleurs?, embleme? }` : la fiche d'un véhicule ou d'un engin dont le
      * dernier `modeles` sert un élément `vehicule` (une clé de `vehicules` de sa réponse), les pièces de ses postes
-     * (`{ definition, bord }`, chacune une fiche servie qui est un engin `armes-de-siege` de `trappings.json`, à un
+     * (`{ definition, bord }`, chacune une fiche d’engin de `siege-engines.json`, à un
      * bord de `FIRE_ARCS`, dans l'ordre de leurs places), ses Améliorations installées (des clés de `ameliorations` de
      * la réponse de `modeles`) et son apparence (`couleurs` et `embleme`, lues par `lireApparenceDAuteur`, surface du
      * noyau : le schéma de l'apparence d'auteur)

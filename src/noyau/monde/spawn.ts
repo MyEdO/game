@@ -34,6 +34,7 @@ import {
   findTalentById,
   tailleDuProfil,
   findVehicleById,
+  findSiegeEngineById,
   findTrappingById,
   specPoolOf,
   CreatureData,
@@ -479,7 +480,7 @@ function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehic
   }
   if (porteur.engin !== undefined) {
     // AA 10 l.175-193
-    const t = findTrappingById(porteur.engin);
+    const t = findSiegeEngineById(porteur.engin);
     if (!t) throw new RefIrresoluble(porteur.engin, id);
     return { ...inanimateCombatant({ id, label: t.label, refId: porteur.engin, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint }), kind: 'ennemi', ...(pos ? { pos: { ...pos } } : {}) };
   }

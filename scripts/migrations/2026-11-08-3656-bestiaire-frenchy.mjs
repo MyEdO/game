@@ -459,10 +459,14 @@ for (const [atelier, { retirer = [], ajouter = [] }] of Object.entries(SORTS_REL
   p.sp = [...p.sp.filter((s) => !retirer.includes(s)), ...ajouter];
 }
 const DE_SIEGE = 'armes-de-siege';
-const enginsDeSiege = new Set([...trappings.values()].filter((t) => t.subType === DE_SIEGE).map((t) => norm(t.label.replace(/\s*\(.*\)$/, ''))));
+const catalogueDeSiege = fs.existsSync(DATA('siege-engines.json'))
+  ? lire('siege-engines.json')
+  : [...trappings.values()].filter((t) => (t.subType?.id ?? t.subType) === DE_SIEGE);
+const idsDeSiege = new Set(catalogueDeSiege.map((t) => t.id));
+const libellesDeSiege = new Set(catalogueDeSiege.map((t) => norm(t.label.replace(/\s*\(.*\)$/, ''))));
 const substitutions = new Set();
 for (const p of profils) {
-  p.it = p.it.filter((it) => (it.i ? trappings.get(it.i)?.subType !== DE_SIEGE : !enginsDeSiege.has(norm(it.t))));
+  p.it = p.it.filter((it) => (it.i ? !idsDeSiege.has(it.i) : !libellesDeSiege.has(norm(it.t))));
   p.it = p.it.map((it) => {
     const cle = it.i && [`${p.id}:${it.i}`, it.i].find((k) => k in ARME_IMPRIMEE);
     if (!cle) return it;

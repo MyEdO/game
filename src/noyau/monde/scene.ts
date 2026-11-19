@@ -88,7 +88,7 @@ export interface SceneEntity {
   /** DÉCOR : son type au catalogue des décors (`props.json`). */
   decor?: { id: string };
   /** PERSONNAGE : son corps, un au plus — sa créature du bestiaire, sa coque (`vehicles.json`) ou son engin de siège
-   *  (`trappings.json`, `siegeEngines`). */
+   *  (`siege-engines.json`). */
   creature?: { id: string };
   vehicule?: { id: string };
   engin?: { id: string };

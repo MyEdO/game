@@ -74,7 +74,7 @@ import {
 } from './worldMapEdit';
 import { t as tr, type MsgKey } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
-import { creatures, findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
+import { creatures, findCreatureById, findPropById, findSiegeEngineById, refEstVolumique, semencesDeScene } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
 import { estAbsent, terrainAbsent } from './monde/terrain';
@@ -593,8 +593,8 @@ export function paintCrenellated(scene: Scene, p: Pt, structure: string | null, 
   return { ...scene, layers: scene.layers.map((l) => (l.z === layer.z ? { ...l, crenellated } : l)) };
 }
 
-/** Pose à p un emplacement via `siegeEmplacementEntity` : sa référence et son poste désignent un
- *  trapping du sous-type `armes-de-siege`. Les autres trappings et les ids inconnus rendent `null`. */
+/** Pose à p un emplacement via `siegeEmplacementEntity` : sa référence et son poste désignent le
+ *  catalogue des engins de siège. */
 export function placeEmplacement(scene: Scene, trappingId: string, p: Pt, z = 0, facing?: Dir8): { scene: Scene; id: string } | null {
   const id = nextEntityId('personnage', scene.entities.map((e) => e.id));
   const ent = siegeEmplacementEntity(id, trappingId, p, facing ? { facing } : {});
@@ -620,9 +620,9 @@ export function setPosteSide(scene: Scene, entityId: string, side: FireArc | und
 }
 
 /** Change l'engin du poste : référence catalogue, libellé et `engin` de l'entité, équipage conservé.
- *  Seul un trapping du sous-type `armes-de-siege`, sélectionné par `siegeEngines`, est accepté. */
+ *  L’engin est résolu dans son catalogue. */
 export function setPosteEngine(scene: Scene, entityId: string, trappingId: string): Scene {
-  const t = siegeEngines().find((engin) => engin.id === trappingId);
+  const t = findSiegeEngineById(trappingId);
   if (!t) return scene;
   const ent = scene.entities.find((e) => e.id === entityId && e.postes?.length);
   if (!ent) return scene;

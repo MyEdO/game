@@ -27,6 +27,7 @@ import {
   assoirALaPlace,
   idDuCorps,
   labelEmplacement,
+  libelleDAuteur,
   lightTones,
   lumiereAllumee,
   PARTY_MAX,
@@ -788,7 +789,7 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (outil.mode === 'casesDeZone') return [...emprise(outil.zoneId, outil), boutonDEdition('emprise/finir', t('ecran.editeur.zone.emprise.finir'), { geste: 'outil', outil: { mode: 'selection' } })];
   if (outil.mode === 'emplacement') {
     return [choix('engins', t('ecran.editeur.engins'),
-      siegeEngines().map((e) => boutonDEdition(`engin/${e.id}`, e.label, { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
+      siegeEngines().map((e) => boutonDEdition(`engin/${e.id}`, libelleDAuteur(e), { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
   }
   if (outil.mode === 'navire') {
     const scene = sceneEditee(s);
@@ -1073,7 +1074,7 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
   const parId = new Map(sceneEditee(s).entities.map((e) => [e.id, e]));
   const nom = (id: string) => { const e = parId.get(id); return e ? nomALEcran(s, e) : id; };
   return [
-    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => boutonDEdition(`poste/engin/${e.id}`, e.label, { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
+    choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => boutonDEdition(`poste/engin/${e.id}`, libelleDAuteur(e), { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
     choix('poste/arc', t('ecran.editeur.poste.arc'), [
       boutonDEdition('poste/arc/omni', t('ecran.editeur.poste.arc.omni'), { geste: 'poste', patch: { arc: null } }, !p.side),
       ...FIRE_ARCS.map((a) => boutonDEdition(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),

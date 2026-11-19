@@ -497,10 +497,11 @@ describe('édition de scène — pose', () => {
 });
 
 describe('édition de scène — emplacement de siège (postes authorés à l’éditeur)', () => {
-  it('siegeEngines() sélectionne les engins posables du Groupe armes-de-siege (baliste présente)', () => {
+  it('siegeEngines() expose les deux balistes du catalogue des engins de siège', () => {
     expect(siegeEngines().length).toBeGreaterThan(0);
     expect(siegeEngines().every((t) => t.subType?.id === 'armes-de-siege')).toBe(true);
-    expect(siegeEngines().some((t) => t.id === 'baliste')).toBe(true);
+    expect(siegeEngines().filter((t) => t.id === 'baliste' || t.id === 'baliste-ade2').map((t) => [t.id, t.source.book]))
+      .toEqual([['baliste', 'aux-armes'], ['baliste-ade2', 'archives-de-l-empire-2']]);
   });
 
   it('placeEmplacement : pose un personnage avec référence et poste à équipage vide', () => {

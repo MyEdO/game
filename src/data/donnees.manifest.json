@@ -2,7 +2,7 @@
   "id": "donnees-manifest",
   "type": "donnees.manifest",
   "label": "Manifeste éditorial de l'atlas des données",
-  "reglesOr": "Une table que le livre range sous « **Machines de guerre / véhicules / navires** » n'est JAMAIS un *trapping* (équipement porté). Elle va dans le fichier de son sous-système (`mass-battle.json`, `vehicles.json`, `naval-traits.json`…). Corollaire : un même nom peut désigner plusieurs concepts distincts dans plusieurs fichiers — voir §D (pièges d'homonymes).",
+  "reglesOr": "`siege-engines.json` porte une fiche par engin de siège, avec son id stable et sa source. La bataille de masse, les postes servis et les dotations désignent ces fiches par id. Les coques et véhicules vivent dans `vehicles.json`, et les équipements d'inventaire dans `trappings.json`. Un même nom peut désigner plusieurs profils distincts, y compris dans un catalogue (§D).",
   "rubriques": [
     {
       "label": "Personnage — fiche & progression",
@@ -297,9 +297,15 @@
         },
         {
           "files": [
+            "siege-engines.json"
+          ],
+          "desc": "Engins de siège et machines de guerre (AA et ADE II). Fiches partagées par les postes servis et les dotations. Le Compendium édite les profils dans les Engins de siège et les ouvre depuis la liste de bataille de masse"
+        },
+        {
+          "files": [
             "mass-battle.json"
           ],
-          "desc": "**ATTENTION — Objet à sous-catalogues** (`powerEstimate`, `mightModifiers`, **`warMachines`** ← le Bélier de siège ICI, `structures`, `hazards`) : bataille de masse"
+          "desc": "Bataille de masse : estimations et modificateurs de Puissance, structures et aléas. `warMachines` donne les ids des engins concernés dans l'ordre d'ADE II"
         }
       ]
     },
@@ -712,7 +718,7 @@
     }
   ],
   "homonymes": {
-    "intro": "Les lookups sont **scopés par catalogue** (`findQualityById`/`findSpellById`/…), donc des homonymes coexistent LÉGITIMEMENT. `src/data/id-collisions.test.ts` verrouille l'ensemble connu (`KNOWN_CROSS`). Cas travaillé — **« Bélier »** = 6 concepts DISTINCTS :",
+    "intro": "Les lookups sont **scopés par catalogue** (`findQualityById`/`findSpellById`/…), donc des homonymes coexistent LÉGITIMEMENT. `src/data/id-collisions.test.ts` verrouille l'ensemble connu (`KNOWN_CROSS`). Cas travaillé — **« Bélier »** :",
     "cas": [
       {
         "mot": "Bélier",
@@ -722,8 +728,8 @@
             "desc": "Qualité d'arme brise-porte (ADE II) — lue par `capabilities.ram` (dégâts aux portes)"
           },
           {
-            "file": "mass-battle.json",
-            "desc": "Machine de guerre de siège (crew 6, Siège)"
+            "file": "siege-engines.json",
+            "desc": "Bélier de siège d'ADE II (`belier-ade2`, Équipe 6, Siège). La bataille de masse cite cet id"
           },
           {
             "file": "naval-traits.json",
@@ -742,7 +748,21 @@
             "desc": "Réfs de qualité/manœuvre sur des créatures"
           }
         ],
-        "lecon": "Deux mécaniques « ram » homonymes (brise-porte ADE II ↔ collision MDG) sont du **code séparé, sourcé, testé** — pas un doublon. Un nom partagé n'autorise JAMAIS à fusionner ni à dupliquer : vérifier le CONCEPT (§C), pas le mot."
+        "lecon": "Le brise-porte d'ADE II et la collision de MDG suivent les mécaniques de leurs livres respectifs. Vérifier le concept et sa source (§C)."
+      },
+      {
+        "mot": "Baliste",
+        "entrees": [
+          {
+            "file": "siege-engines.json",
+            "desc": "Aux Armes (`baliste`, 30 CO, +12, Arme d’équipe 2)"
+          },
+          {
+            "file": "siege-engines.json",
+            "desc": "Archives de l’Empire II (`baliste-ade2`, 75 CO, +14, Équipe 4)"
+          }
+        ],
+        "lecon": "Le choix du Maître artilleur vise les douze pièces d'Aux Armes (#4143). La liste de bataille de masse cite la baliste d'ADE II."
       }
     ]
   }

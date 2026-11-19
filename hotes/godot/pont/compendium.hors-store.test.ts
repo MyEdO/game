@@ -48,6 +48,27 @@ describe('compendium', () => {
     expect(erreurDe(appel('compendium', { compendium: { geste: 'montrer', id: 'nulle-part' } })).categorie).toBe('validation');
   });
 
+  it('la liste de bataille de masse ouvre la baliste ADE II dans l’atelier du catalogue d’engins', () => {
+    const { appel } = table();
+    const bataille = zonesDe(appel('compendium', { ouvrir: true, categorie: 'massBattleWarMachines', id: 'mass-battle' }));
+    expect(bataille['compendium.atelier']).toEqual([]);
+    const baliste = boutonDe(bataille, '0/0/0');
+    expect(baliste.jeu).toEqual({ compendium: { geste: 'suivre', categorie: 'siegeEngines', id: 'baliste-ade2' } });
+    const ade = zonesDe(appel('compendium', baliste.jeu));
+    expect(ade['compendium.fiche'][0].nom).toBe('Baliste (ADE II)');
+    expect(ade['compendium.fiche'].find((e) => e.id === 'prose')?.elements).toContainEqual(
+      expect.objectContaining({ id: 'texte', texte: expect.stringContaining('similaire à une arbalète') }),
+    );
+
+    const aa = zonesDe(appel('compendium', { ouvrir: true, categorie: 'siegeEngines', id: 'baliste' }));
+    expect(aa['compendium.fiche'][0].nom).toBe('Baliste (AA)');
+    expect(aa['compendium.fiche'].find((e) => e.id === 'prose')?.elements).toContainEqual(
+      expect.objectContaining({ id: 'texte', texte: expect.stringContaining('arbalètes géantes') }),
+    );
+    const atelier = zonesDe(appel('compendium', boutonDe(aa, 'modifier').jeu));
+    expect(atelier['compendium.atelier'].map((e) => e.id)).toContain('valeur/label');
+  });
+
   it('modifier, écrire une valeur, enregistrer : le texte à écrire et l’empreinte d’avant ; l’issue réussie ferme l’atelier', () => {
     const { appel } = table();
     const ouvert = zonesDe(appel('compendium', { ouvrir: true, categorie: 'talents', id: TALENT }));
