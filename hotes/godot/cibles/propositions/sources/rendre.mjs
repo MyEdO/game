@@ -1,6 +1,8 @@
 // LE RENDU DES MAQUETTES (#3935, #4411), sous Playwright, avec le relevé des pièces d'interface hors de la vue, croisées,
-// débordées par ce qu'elles portent, au texte coupé, des feuilles (texte, contrôle) recouvertes, rognées par un ancêtre
-// (`overflow`, ellipse) ou qui se chevauchent, et du défilement de la page. Ce qui se pose exprès au-dessus d'une autre
+// débordées par ce qu'elles portent, au texte coupé, hors du rect de leur rôle (`bouge` : la table rôle → rect de
+// `rendu.js`, la même pour tous les états et tous les écrans ; ce qui porte `data-mobile` suit ce qu'il désigne), des
+// feuilles (texte, contrôle) recouvertes, rognées par un ancêtre (`overflow`, ellipse) ou qui se chevauchent, et du
+// défilement de la page. Ce qui se pose exprès au-dessus d'une autre
 // feuille (bulle de refus, badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle ou
 // l'élément qu'il qualifie, son parent, jamais un autre texte, et reste dans son cadre (dans la vue hors cadre) ; ce dont le contenu défile par
 // dessin (la valeur d'un champ long) porte `data-defile` :
@@ -129,7 +131,14 @@ const releve = ([largeur, hauteur]) => {
     const dessus = (f, g) => { const m = f.e.closest('[data-dessus]'); return m && !g.e.closest('[data-dessus]') && (!g.texte || m.parentElement.contains(g.e)) }
     if (!dessus(p, q) && !dessus(q, p)) chevauche.add(nomme(p.e) + ' x ' + nomme(q.e).replace(/^[^:]*: /, ''))
   }
-  return { pieces: pieces.length, hors, croise, deborde, coupe, recouvert, rogne: rognes, chevauche: [...chevauche], defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  /* une pièce fixe hors du rect de sa ligne de la table (`CADRE_ATTENDU`, `rendu.js`), ou sans ligne ; une ligne de deux
+     cotes ne fixe que la place */
+  const bouge = globalThis.CADRE_ATTENDU ? [...document.querySelectorAll('[data-piece]')].filter((e) => !e.closest('[data-mobile]')).flatMap((e) => {
+    const t = globalThis.CADRE_ATTENDU(e.dataset.piece), r = e.getBoundingClientRect(), n = (q) => ['x', 'y', 'width', 'height'].filter((k) => q[k] !== undefined).map((k) => Math.round(q[k])).join(',')
+    if (!t) return [`${e.dataset.piece} : hors table`]
+    return Object.keys(t).some((k) => Math.abs(r[k] - t[k]) > 1) ? [`${e.dataset.piece} : ${n(r)} au lieu de ${n(t)}`] : []
+  }) : []
+  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, recouvert, rogne: rognes, chevauche: [...chevauche], defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv

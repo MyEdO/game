@@ -13,7 +13,7 @@ const verdict = (sous, dr, phrase, classe = '') => `<div id="verdict" class="${c
 const bandeauDuJet = (titre, classe, contenu, suites) => cadre('jet', null, null, null, null, `parchemin ${classe}`, `
   ${contenu}
   <div id="suites">${suites}</div>
-`, { ruban: titre, tete: clouer() });
+`, { ruban: titre, tete: clouer(), piece: 'fenetre' });
 
 /* ───────── avant le dé : qui teste, ce qui se règle ───────── */
 /* sous le camp du testeur (`camp({ sous })`) : les héros qui peuvent porter le Test, celui qui le porte choisi */

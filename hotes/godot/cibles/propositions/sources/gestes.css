@@ -264,13 +264,16 @@ html,body{margin:0;background:var(--noir)}
 .fond.bois .reglette::before{background:var(--lit);box-shadow:0 0 0 1px var(--filet-or)}
 .fond.bois .reglette u{background:linear-gradient(180deg,var(--cire-clair),var(--sang))}
 
+/* ce qui défile dans son cadre : sans barre ; la suite cachée s'annonce par un fondu au pied */
+.defile{min-height:0;overflow-y:auto;scrollbar-width:none}
+.defile.suite{mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
 /* fermer un panneau : la croix, en haut à droite */
 .croix{position:absolute;right:22px;top:18px}
 /* quitter un lieu : la pastille de retour, 30 / 34 du coin bas-gauche, son libellé au-dessus d'elle */
 .retour{position:absolute;left:30px;bottom:34px;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:6px}
 .retour span{max-width:124px;font-size:14.5px;line-height:18px;color:var(--ivoire)}
 /* hors combat : le journal et le système, 30 / 23 du coin bas-droit */
-#coins{position:absolute;right:30px;bottom:23px;display:flex;flex-direction:column;gap:14px}
+#coins{position:absolute;right:30px;bottom:23px;display:flex;flex-direction:column;justify-content:flex-end;gap:14px}
 /* ouvrir un écran posé sur celui-ci : la pastille du bord droit, à 24 */
 .ouvrir{position:absolute;right:24px;display:flex;align-items:center;justify-content:flex-end;gap:11px}
 .ouvrir span{font-size:13.5px;color:var(--ivoire);white-space:nowrap}

@@ -226,8 +226,8 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le ruban : centré sur son `left` ; `gothique` : le titre d'un panneau */
   const ruban = (texte, { gothique = false, style = '' } = {}) => `<div class="ruban ${gothique ? 'gothique' : 'rubrique'}" style="${style}">${texte}</div>`;
   /* le cadre de chêne ferré : géométrie en px (une cote `null` reste à la feuille), `matiere` du fond, `ruban` gothique,
-     `tete` : ce qui se pose sur le bord haut */
-  const cadre = (id, x, y, w, h, matiere, contenu, { ruban: titre = null, classe = '', tete = '' } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-piece="${id}" style="${[['left', x], ['top', y], ['width', w], ['height', h]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${v}px`).join(';')}"><div class="fond ${matiere}">${contenu}</div>${tete}${ferrures}${titre ? ruban(titre, { gothique: true }) : ''}</div>`;
+     `tete` : ce qui se pose sur le bord haut ; `piece` : son rôle au relevé du rendu, son `id` sans autre rôle */
+  const cadre = (id, x, y, w, h, matiere, contenu, { ruban: titre = null, classe = '', tete = '', piece = id } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-piece="${piece}" style="${[['left', x], ['top', y], ['width', w], ['height', h]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${v}px`).join(';')}"><div class="fond ${matiere}">${contenu}</div>${tete}${ferrures}${titre ? ruban(titre, { gothique: true }) : ''}</div>`;
   /* une rangée de cartes se lit en liste à partir de quatre, ou quand ses cartes n'y tiennent pas à 200 de large */
   const ranger = () => document.querySelectorAll('.cartes').forEach((r) => {
     const n = r.querySelectorAll(':scope>.carte').length;
@@ -274,11 +274,11 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const clouer = (cases = null) => (cases ? [0, 1].map(() => [.05, ...Array.from({ length: cases - 1 }, (_, k) => (k + 1) / cases), .945]) : MEUBLE)
     .map((ligne, k) => ligne.map((t) => `<i class="clou" style="left:${(100 * t).toFixed(2)}%;${k ? 'bottom' : 'top'}:3px"></i>`).join('')).join('');
   /* le cartouche : le médaillon de ce dont on parle, son nom et ce qu'il est ; `taille` ligne, ou titre : celui de
-     l'écran, dans son cadre au coin haut-gauche, large de `largeur` */
-  const cartouche = ({ icone, nom, sous = '', marque = '', texte = nom, taille = 'ligne', largeur = null }) => {
+     l'écran, dans son cadre au coin haut-gauche */
+  const cartouche = ({ icone, nom, sous = '', marque = '', texte = nom, taille = 'ligne' }) => {
     const titre = taille === 'titre';
     const corps = `${medaillon(icone, titre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${sous ? `<div class="s rubrique">${sous}</div>` : ''}</div>`;
-    return titre ? cadre('titre', null, null, largeur, null, 'bois cartouche', corps) : `<div class="cartouche">${corps}</div>`;
+    return titre ? cadre('titre', null, null, null, null, 'bois cartouche', corps, { piece: 'cartouche' }) : `<div class="cartouche">${corps}</div>`;
   };
   /* le rang d'un personnage : son portrait, son nom (`gothique` : celui qui agit), `sous` ce qu'il est, `corps` sous son nom,
      `fin` au bout du rang */
@@ -289,9 +289,12 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* les sections d'un panneau en signets, au bord droit de son registre : `sections` = [{ nom, compte, marque }], le
      signet `ouverte` est de laiton ; `marque` : une règle de la section est modifiée */
   const signets = (sections, ouverte) => `<div class="signets" data-piece="signets">${sections.map(({ nom, compte = null, marque = false }) => `<div class="signet${nom === ouverte ? ` ouvert${nom.length > 12 ? ' serre' : ''}` : ''}"><span class="rubrique">${nom}</span>${marque ? '<i class="cire"></i>' : ''}${compte == null ? '' : `<em class="chiffres">${compte}</em>`}</div>`).join('')}</div>`;
+  /* ce qui suit ce qu'il désigne, hors de la table des cadres (`../rendu.js`) : `ancre` survol (aperçu, bulle de refus),
+     scene (marque, pastille, poste) ou ancre (liste déroulée, fiche d'un combattant) */
+  const mobile = (ancre) => ` data-mobile data-ancre="${ancre}"`;
   /* l'aperçu au survol : son nom, à droite ce qu'il est, son corps ; `vers` : le bord dont la pointe montre l'élément
      survolé (gauche, droite, haut, bas) ; `style` le place */
-  const apercu = ({ nom, sous = '', corps = '', vers = 'gauche', style = '' }) => `<div class="apercu parchemin vers-${vers}" data-piece="apercu" style="${style}"><div class="tete"><span class="n gothique">${nom}</span>${sous ? `<span class="c rubrique">${sous}</span>` : ''}</div>${corps}</div>`;
+  const apercu = ({ nom, sous = '', corps = '', vers = 'gauche', style = '' }) => `<div class="apercu parchemin vers-${vers}" data-piece="apercu"${mobile('survol')} style="${style}"><div class="tete"><span class="n gothique">${nom}</span>${sous ? `<span class="c rubrique">${sous}</span>` : ''}</div>${corps}</div>`;
   /* la bannière d'issue d'un combat, et sous elle sa sortie, une plaque d'appel ; `suite` : ce que l'issue laisse */
   const issue = (texte, { action = '', suite = '' } = {}) => `<div class="issue-du-combat" data-piece="issue"><div class="banniere"><span class="gothique" data-texte="issue">${texte}</span></div>${suite ? `<p class="ombre" data-texte="suite de l'issue">${suite}</p>` : ''}${action ? plaque(action, { armee: true, taille: 'appel' }) : ''}</div>`;
   /* le filet : `fondu` s'éteint vers les bords, `losange` au milieu, `or` sur un fond sombre */
@@ -306,10 +309,15 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const vie = (pv, max) => jauge(pv / max);
   /* un rang de pas en losanges : `pleins` sur `total` */
   const rangDePas = (pleins, total, classe = '') => `<div class="pas ${classe}">${Array.from({ length: total }, (_, k) => `<i class="${k < pleins ? '' : 'vide'}"></i>`).join('')}</div>`;
-  /* pose les pièces ; une fois les polices chargées, range les cartes et dégage les rubans de leurs clous ; passe le grain */
+  /* ce qui défile dans son cadre, qui garde sa taille : `data-defile` au relevé du rendu ; la suite cachée s'annonce
+     par un fondu au pied (`suites`) */
+  const defile = (contenu, classe = '') => `<div class="defile ${classe}" data-defile>${contenu}</div>`;
+  const suites = () => document.querySelectorAll('.defile').forEach((d) => d.classList.toggle('suite', d.scrollHeight > d.clientHeight + 1));
+  /* pose les pièces ; une fois les polices chargées, range les cartes, dégage les rubans de leurs clous, annonce les
+     suites ; passe le grain */
   const monter = (pieces) => {
     document.getElementById('ui').innerHTML = pieces.join('');
-    document.fonts.ready.then(() => { ranger(); degager(); poserLesBulles(); });
+    document.fonts.ready.then(() => { ranger(); degager(); suites(); poserLesBulles(); });
     document.getElementById('grain').style.backgroundImage = svgUrl(`<svg xmlns='${NS}' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>`);
   };
 
@@ -321,12 +329,12 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* hors combat : le journal, et le système sous lui, au coin bas droit (`../dispositions.md`) */
   const coins = () => `<div id="coins" data-piece="coins">${rond('journal', 'grand')}${rond('systeme', 'grand')}</div>`;
   const retour = (libelle, icone = 'sortie') => `<div class="retour" data-piece="retour">${rond(icone, 'grand')}<span class="rubrique ombre">${libelle}</span></div>`;
-  /* ouvrir un écran posé sur celui-ci (carte, dossier du navire, postes de bord) : la pastille du bord droit, à la hauteur `haut` */
-  const ouvrir = (libelle, icone, haut) => `<div class="ouvrir" data-piece="ouvrir ${libelle}" style="top:${haut}px"><span class="rubrique ombre">${libelle}</span>${rond(icone)}</div>`;
+  /* ouvrir un écran posé sur celui-ci (carte, dossier du navire, postes de bord) : la pastille du bord droit, la `rang`-ième */
+  const ouvrir = (libelle, icone, rang) => `<div class="ouvrir" data-piece="ouvrir-${rang}"><span class="rubrique ombre">${libelle}</span>${rond(icone)}</div>`;
   /* régler une quantité : − et +, la valeur réglée entre les deux ; un bord atteint se ferme */
   const moinsPlus = ({ moins = true, plus = true, entre = '' } = {}) => `<div class="moins-plus">${rond('moins', 'menu', { ferme: !moins })}${entre}${rond('plus', 'menu', { ferme: !plus })}</div>`;
   /* fiche `user-arbitrage-raison-de-refus-au-survol-jamais-inline` : la bulle du geste fermé que le curseur survole */
-  const raison = (texte) => `<span class="bulle-refus parchemin" data-dessus>${texte}</span>`;
+  const raison = (texte) => `<span class="bulle-refus parchemin" data-dessus${mobile('survol')}>${texte}</span>`;
   /* #3004. Acte individuel : `bourse({ heros, avoir })`, la bourse de celui qui agit. Entreprise commune ou tarif par
      personne : `bourse({ parts: [[nom, part, avoir]], total })`, la part de chacun réglable avant validation ;
      `reglable: false` pour qui regarde sans régler (l'invité d'une partie à plusieurs). */
@@ -340,6 +348,6 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   Object.assign(globalThis, {
     W, H, alea, melange,
     PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, onglets, signets, apercu, issue,
-    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ,
+    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ, mobile, defile,
   });
 }

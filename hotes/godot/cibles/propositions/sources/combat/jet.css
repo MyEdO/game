@@ -1,6 +1,5 @@
 /* Le socle du jet (#3935) : le bandeau du bas et les pièces de `jet.js`. `combat.css` l'importe ; un écran bâti sur
    `../lieux-et-nuit/commun.css` le lie après sa feuille commune. */
-#jet{left:260px;top:560px;width:1186px;height:212px}
 #jet .fond{display:grid;grid-template-columns:1fr 300px 1fr;padding:22px 20px 0}
 /* un choix à la place du jet : ses cartes en rang, centrées ; le héros qui choisit à gauche, puis le filet, ses cartes
    centrées dans la place restante */

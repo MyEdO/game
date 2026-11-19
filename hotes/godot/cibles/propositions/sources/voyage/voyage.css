@@ -1,11 +1,10 @@
 /* Voyage (#3935, #4411) : les pièces de la famille au-dessus de la feuille commune ; leur place vit dans `../rendu.css`. */
-#titre.temps{height:104px}
 #titre.temps .fond{gap:16px;padding:0 20px 0 16px}
 #titre.temps .n{font-size:29px;line-height:42px;margin:-9px 0 -9px}
 #titre.temps .m{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:13.5px;color:#e6dabd}
 #trajet .fond{overflow:hidden}
 #trajet .fond>svg{position:absolute;inset:0;width:100%;height:100%}
-#frise{position:absolute;height:44px}
+#frise{position:absolute}
 #frise .reste{position:absolute;right:10px;top:-14px;font-size:14px;color:#f0e2c2;white-space:nowrap}
 #frise .reste b{font-size:22px}
 #titre.temps~#recit{top:144px}
@@ -40,11 +39,6 @@
 #evenement .plaque.commet{flex:none;align-self:center;width:300px;margin-top:auto}
 /* la Chance au pied d'un billet de jet */
 .apercu .chance{display:flex;align-items:center;gap:14px;font-style:normal}
-/* la cadence du voyage, dans l'objet du temps */
-#titre.temps .cadence{margin-left:auto;display:flex;flex-direction:column;gap:5px;padding-left:16px;border-left:1px solid rgba(201,185,149,.22)}
-#titre.temps .cadence span{font-size:11.5px;color:var(--creme-2);white-space:nowrap}
-#titre.temps .cadence .plaque{flex:none;width:148px}
-#titre.temps .cadence .plaque>div{font-size:12.5px;padding:0 8px}
 /* les arrêts de la mer : les paies du conseil et leur règlement */
 #evenement .choix.paies .plaque.carte{width:auto;min-width:0;height:54px}
 #evenement .choix.paies .plaque.carte>div{padding:0 10px}

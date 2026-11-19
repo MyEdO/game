@@ -1,6 +1,5 @@
 
 /* le volet des préférences */
-#preferences{left:24px;top:136px;width:400px}
 #preferences .fond{padding:30px 18px 20px;display:flex;flex-direction:column;gap:22px}
 .pref .l{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .pref b{font-weight:400;font-size:15.5px;color:#f0e2c2;white-space:nowrap}
