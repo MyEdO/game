@@ -47,6 +47,7 @@ import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
 import { rollLine } from './ligneDeJet';
+import { markFixedDie } from './fixedDieMark';
 import { t } from '../i18n';
 import { checkBattleOver } from './combatFlow';
 import { BOARD_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
@@ -574,6 +575,24 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     }
     return get();
   }
+
+  it('à l’arrivée, les 1d10 heures d’Extermination sont comprises dans la journée de mer', () => {
+    const ev = seaBoardEventById('infestation-de-rats')!;
+    jouerFlowEntier(runFlow(get, set, ev.consequence!, ev.label));
+    set({ worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: 1 }] } });
+    const depart = get().gameTime;
+
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    const etapes = draineCascade(get, 30, (etape, rangee) =>
+      etape.kind === 'equipage-extermination' && rangee ? Math.min(10, rangee.target!) : undefined);
+
+    expect(etapes).toContain('equipage-extermination');
+    expect(get().travelPlan).toBeNull();
+    expect(get().journal).toContain(t('sv.arrive', { to: seaMap.places[1].label }));
+    expect(get().gameTime - depart).toBe(MINUTES_PER_DAY);
+    const duree = markFixedDie(t('sv.dureeHeures', { n: 5 }));
+    expect(get().journal.filter((ligne) => ligne === duree)).toHaveLength(1);
+  });
 
   /** Les étapes de dé `nombre` d'attaques subies, en avant-plan comme derrière (`suspendedCascades`). */
   const etapesDAttaques = (s: ReturnType<typeof get>) => [s.pendingCascade, ...s.suspendedCascades]
