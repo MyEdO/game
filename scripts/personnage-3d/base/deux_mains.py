@@ -114,7 +114,7 @@ tendent pas l'arme vers le ciel (#3806)."""
 REPOS_DU_RECUL = ((-0.02, -0.28, 1.2925), (0.85, 0.0, -0.53))
 """Le repos, les mains 3 cm plus loin de la poitrine : à la fin du recul, les mains au repos entrent de 3,4 cm dans le
 ventre corpulent féminin, et l'avancée qui les en sort, raccordée sur `ecart.RACCORD`, mène l'avant-bras droit dans le flanc
-sous la carrure large au milieu du recul ; 3 cm plus loin, l'avancée reste sous 2,7 cm et la peau à 5 mm du flanc
+sous la carrure large au milieu du recul ; 3 cm plus loin, l'avancée est moindre et la peau reste hors du flanc
 (#3810)."""
 GARDE = ((-0.08, -0.38, 1.18), (0.40, 0.10, -0.91))
 """Les mains devant le flanc droit, à hauteur du nombril, assez loin du ventre pour le ventre corpulent, la hache

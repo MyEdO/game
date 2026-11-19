@@ -1,5 +1,5 @@
 // La garde des membres dans le tronc (#3806, #3810) : en clip, un avant-bras ou une main n'entre pas dans le tronc,
-// les demi-droites menées vers l'avant et l'arrière du tronc, quelle que soit sa posture.
+// les demi-droites menées vers l'avant et l'arrière du tronc, quelle que soit sa posture, pondérée sur ses sommets distincts.
 import { describe, expect, it } from 'vitest';
 import { Bone, BoxGeometry, BufferAttribute, BufferGeometry, CylinderGeometry, Mesh, Object3D, Quaternion, Skeleton, SkinnedMesh, Vector3 } from 'three';
 import { poseDeRepos, type Echantillon } from '../echantillonnage.ts';
@@ -110,5 +110,56 @@ describe('membres', () => {
       return mesurerMembres([main], tronc, echantillon(surLAxe(0.11, 12))).length;
     };
     expect([verdict([0, 1, 2]), verdict([2, 1, 0])]).toEqual([1, 1]);
+  });
+
+  it('le tronc en deux meshes dédoublés à leur couture a les poids et la posture du même tronc en un seul mesh', () => {
+    // Un tube de 6 étages sur les os `bas` et `haut`, le poids de `haut` croissant avec la hauteur, `haut` plié de 60° :
+    // en un mesh, chaque sommet une fois ; en deux, l'anneau du 2e étage dans chacun et la colonne d'angle nul
+    // dédoublée, comme une couture d'UV.
+    const ETAGES = 6, COTES = 12;
+    const anneaux = (debut: number, fin: number, couture: boolean): BufferGeometry => {
+      const colonnes = couture ? COTES + 1 : COTES;
+      const positions: number[] = [], indices: number[] = [], poids: number[] = [], faces: number[] = [];
+      for (let k = debut; k <= fin; k++) for (let i = 0; i < colonnes; i++) {
+        const a = (2 * Math.PI * (i % COTES)) / COTES;
+        positions.push(0.1 * Math.cos(a), -0.2 + (0.4 * k) / ETAGES, 0.1 * Math.sin(a));
+        indices.push(0, 1, 0, 0);
+        poids.push(1 - k / ETAGES, k / ETAGES, 0, 0);
+      }
+      for (let k = 0; k < fin - debut; k++) for (let i = 0; i < COTES; i++) {
+        const [a, b] = [k * colonnes + i, k * colonnes + ((i + 1) % colonnes)];
+        faces.push(a, b, b + colonnes, a, b + colonnes, a + colonnes);
+      }
+      return new BufferGeometry().setAttribute('position', new BufferAttribute(Float32Array.from(positions), 3))
+        .setAttribute('skinIndex', new BufferAttribute(Uint16Array.from(indices), 4))
+        .setAttribute('skinWeight', new BufferAttribute(Float32Array.from(poids), 4)).setIndex(faces);
+    };
+    const mesurer = (geometries: readonly BufferGeometry[]) => {
+      const racine = new Object3D();
+      const os = ['bas', 'haut'].map((nom) => Object.assign(new Bone(), { name: nom }));
+      for (const b of os) racine.add(b);
+      const troncs = geometries.map((g) => new SkinnedMesh(g));
+      for (const t of troncs) {
+        racine.add(t);
+        t.bind(new Skeleton(os));
+      }
+      const main = new Mesh(new BufferGeometry().setAttribute('position', new BufferAttribute(new Float32Array(3), 3)));
+      racine.add(main);
+      const meshes = [...troncs, main];
+      const tronc = troncDe(troncs, poseDeRepos(racine, meshes));
+      os[1].quaternion.setFromAxisAngle(axe, Math.PI / 3);
+      const verdicts = [0.05, 0.11, 0.16, 0.19].map((y) => {
+        main.position.fromArray(surLAxe(y, 20));
+        return mesurerMembres([main], tronc, { clip: 'Lourde_Repos_Loop', t: 0, ...poseDeRepos(racine, meshes) }).map((m) => m.pire);
+      });
+      return { os: tronc?.os.map(({ nom, poids }) => [nom, poids]), verdicts };
+    };
+    const entier = mesurer([anneaux(0, ETAGES, false)]), scinde = mesurer([anneaux(0, 2, true), anneaux(2, ETAGES, true)]);
+    expect(scinde.os).toHaveLength(2);
+    scinde.os?.forEach(([nom, poids], k) => {
+      expect(nom).toBe(entier.os?.[k][0]);
+      expect(poids).toBeCloseTo(entier.os?.[k][1] as number, 6);
+    });
+    expect(scinde.verdicts).toEqual(entier.verdicts);
   });
 });

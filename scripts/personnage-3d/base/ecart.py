@@ -20,7 +20,7 @@ prix d'une pose de bras (`deux_mains.bras`), une peau au contact du tronc paie 2
 large de `deux_mains.TOURS` : l'IK ne retient pas un tour qui laisse la peau dedans pour un tour plus court. Mesuré sur
 `Hampe_Attaque` (#3810) : à une `echelle` de 0,01, l'IK y retient un tour qui laisse l'avant-bras gauche 5,5 mm dans le
 tronc sous `carrure_plus` (prix 1,1) ; à 0,003, la peau reste dehors sous les cinq jeux à toutes les images. La marge
-vise : lue sur le champ, qui s'écarte de l'enfoncement exact de 6,5 mm au plus (`tronc.CHAMP`), elle ne décide pas ; la
+vise : lue sur le champ, qui s'interpole et s'écarte de l'enfoncement exact (`tronc.CHAMP`), elle ne décide pas ; la
 profondeur exacte décide (`enfoncement`)."""
 POUSSEE = {'pas': 0.01, 'borne': 0.15, 'tolerance': 1e-4}
 """La poussée hors du tronc (`poussee_requise`), en mètres le long de l'avant du tronc posé : la plus petite avancée qui

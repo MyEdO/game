@@ -1,4 +1,5 @@
-"""tronc (#3810) : la posture du tronc est la moyenne pondérée des rotations de ses os ; le champ d'une boîte fermée porte
+"""tronc (#3810) : la posture du tronc est la moyenne des rotations de ses os, pondérée par leurs poids sur ses
+sommets distincts, scindé et dédoublé aux coutures comme entier ; un point dont une seule demi-droite coupe la surface est dehors ; le champ d'une boîte fermée porte
 son enfoncement, tournée ou non, signé et à 2 mm près, profond compris ; un tube ouvert en haut et en bas contient son axe et
 non le dessus de son ouverture, couché par ses os comme debout, et son avant suit sa posture ; un point loin du tronc est
 dehors ; la profondeur exacte d'un point dans une boîte ou un tube ouvert est sa distance au plus proche triangle, un
@@ -20,7 +21,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from sol import tetes_deplacees  # noqa: E402
 from test_sol import DECALAGE, DEPLACEMENTS, PARENT, POIDS, PROPRE, SOMMET, autour_de_l_avant, peaux  # noqa: E402
 from tronc import (CHAMP, MembrePose, PeauDuMembre, PeauDuTronc, atteints, avant, champ, coude,  # noqa: E402
-                   lire_le_champ, membre_pose, posture_du_tronc, poser_le_membre, profondeurs, profondeurs_exactes, tronc_pose)
+                   lire_le_champ, membre_pose, poids_des_os, posture_du_tronc, poser_le_membre, profondeurs,
+                   profondeurs_exactes, tronc_pose)
 
 BAS, HAUT = numpy.array([-0.2, -0.15, 0.8]), numpy.array([0.2, 0.15, 1.4])
 
@@ -83,10 +85,77 @@ def tube(rayon=0.12, bas=0.8, haut=1.4, cotes=32, etages=12):
     return sommets, numpy.array(faces)
 
 
+def tube_pese(debut, fin, couture, etages=6, cotes=12):
+    """Les étages `debut` à `fin` d'un tube d'axe Z de `etages` étages, sur deux os : par sommet, sa position homogène,
+    ses poids, le second croissant avec la hauteur, et ses triangles ; `couture` : la colonne d'angle nul dédoublée,
+    comme une couture d'UV."""
+    colonnes = cotes + 1 if couture else cotes
+    x, w, faces = [], [], []
+    for k in range(debut, fin + 1):
+        for i in range(colonnes):
+            a = 2 * math.pi * (i % cotes) / cotes
+            x.append((0.1 * math.cos(a), 0.1 * math.sin(a), 0.8 + 0.6 * k / etages, 1.0))
+            w.append((1 - k / etages, k / etages))
+    for k in range(fin - debut):
+        for i in range(cotes):
+            a, b = k * colonnes + i, k * colonnes + (i + 1) % colonnes
+            faces += [[a, b, b + colonnes], [a, b + colonnes, a + colonnes]]
+    return numpy.array(x), numpy.array(w), numpy.array(faces)
+
+
+def peau_de_tube(*morceaux):
+    """La `PeauDuTronc` des `morceaux` de tube (`tube_pese`) mis bout à bout, un seul jeu."""
+    x, w, faces, compte = [], [], [], 0
+    for x_, w_, f in morceaux:
+        x.append(x_), w.append(w_), faces.append(f + compte)
+        compte += len(x_)
+    return PeauDuTronc(numpy.concatenate(x)[None], numpy.concatenate(w), numpy.concatenate(faces), numpy.array([-1, -1]),
+                       numpy.zeros((1, 2, 3)))
+
+
 class Posture(unittest.TestCase):
     def test_deux_os_de_poids_egaux_a_0_et_60_degres_donnent_30_degres(self):
         rotation = posture_du_tronc(numpy.array([1.0, 1.0]), numpy.array([numpy.eye(4), autour_de_z(math.radians(60))]))
         numpy.testing.assert_allclose(rotation, autour_de_z(math.radians(30))[:3, :3], atol=1e-12)
+
+    def test_le_tronc_scinde_et_dedouble_aux_coutures_a_les_poids_et_la_posture_du_tronc_entier(self):
+        entier = peau_de_tube(tube_pese(0, 6, False))
+        scinde = peau_de_tube(tube_pese(0, 2, True), tube_pese(2, 6, True))
+        self.assertGreater(len(scinde.w), len(entier.w))
+        numpy.testing.assert_allclose(poids_des_os(scinde), poids_des_os(entier), atol=1e-12)
+        matrices = numpy.array([numpy.eye(4), autour_de_z(math.radians(60))])
+        numpy.testing.assert_allclose(tronc_pose(scinde, matrices, champs=False).retour,
+                                      tronc_pose(entier, matrices, champs=False).retour, atol=1e-12)
+
+
+def godet(y):
+    """La `PeauDuTronc` d'un godet sur un seul os, un seul jeu : un fond carré perpendiculaire à l'avant-arrière, à `y`,
+    et deux flancs qui s'en écartent à x = ±0,1 jusqu'à −2,5 `y`, ouvert du côté opposé au fond."""
+    loin = -2.5 * y
+    x = numpy.array([(-0.1, y, 0.9, 1.0), (0.1, y, 0.9, 1.0), (0.1, y, 1.1, 1.0), (-0.1, y, 1.1, 1.0),
+                     (-0.1, loin, 0.9, 1.0), (-0.1, loin, 1.1, 1.0), (0.1, loin, 0.9, 1.0), (0.1, loin, 1.1, 1.0)])
+    faces = numpy.array([[0, 1, 2], [0, 2, 3], [0, 4, 5], [0, 5, 3], [1, 6, 7], [1, 7, 2]])
+    return PeauDuTronc(x[None], numpy.ones((8, 1)), faces, numpy.array([-1]), numpy.zeros((1, 1, 3)))
+
+
+class UneSeuleDemiDroiteCoupe(unittest.TestCase):
+    """Un point dans un godet, dont seule la demi-droite vers son fond coupe la surface, une fois, est dehors, exact
+    comme lu."""
+
+    def verdicts(self, y):
+        point = numpy.array([[[0.01, 0.0, 1.0]]])
+        pose = tronc_pose(godet(y), numpy.eye(4)[None])
+        return profondeurs_exactes(pose, point)[0, 0], profondeurs(pose, point)[0, 0]
+
+    def test_coupee_seulement_vers_l_avant(self):
+        exacte, lue = self.verdicts(-0.012)
+        self.assertEqual(exacte, -math.inf)
+        self.assertLess(lue, 0)
+
+    def test_coupee_seulement_vers_l_arriere(self):
+        exacte, lue = self.verdicts(0.012)
+        self.assertEqual(exacte, -math.inf)
+        self.assertLess(lue, 0)
 
 
 class ChampDUneBoite(unittest.TestCase):

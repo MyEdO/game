@@ -10,7 +10,7 @@ jeu de silhouettes, leurs sommets prennent les clés de forme du jeu à 1 et, so
 plus de w · e, e_b = ΔJ_b − R_b D_b (docstring de `sol`).
 
 La posture du tronc est la rotation moyenne de ses os depuis leur repos, pondérée par le poids de peau total de chacun
-sur les sommets du tronc, alignée en signe sur l'os le plus lourd (`posture_du_tronc`). Le champ du tronc posé
+sur les sommets distincts du tronc (`poids_des_os`), alignée en signe sur l'os le plus lourd (`posture_du_tronc`). Le champ du tronc posé
 (`champ`) est, dans le repère du tronc au repos, une grille régulière de pas `CHAMP['pas']` sur la boîte du tronc élargie
 de `CHAMP['portee']`, qui porte en chaque nœud son enfoncement, positif dedans. Un nœud est dedans si ses deux
 demi-droites vers l'avant et l'arrière du tronc (±Y du rig) coupent chacune la surface un nombre impair de fois. Sa
@@ -42,10 +42,8 @@ CHAMP = {'pas': 0.015, 'portee': 0.02, 'echantillon': 0.015, 'grossier': 0.04}
 """En mètres : le pas de la grille du champ du tronc posé ; la portée de sa distance exacte aux triangles, qui élargit
 sa boîte et borne son enfoncement dehors ;
 le côté des cellules où la peau d'un membre se sous-échantillonne, un sommet par cellule, et celui de son échantillon
-grossier (`peau_du_membre`). Sur les sommets de la peau des avant-bras et des mains qu'il lit à moins de 1 cm de la
-surface, à chaque image des clips dérivés à deux mains, sous chaque jeu, l'enfoncement lu s'écarte de l'enfoncement
-exact (parité et distance à tous les triangles) de 0,4 mm en moyenne, de moins de 1,8 mm à 99 %, de 6,5 mm au plus
-(`Hampe_Attaque` sous la carrure large : lu à 7,0 mm dehors pour 0,6 mm) ; au repos, un sommet de l'avant-bras et de
+grossier (`peau_du_membre`). L'enfoncement lu s'interpole entre les nœuds et s'écarte de l'enfoncement exact (parité
+et distance à tous les triangles, `profondeurs_exactes`) : il vise, la profondeur exacte décide ; au repos, un sommet de l'avant-bras et de
 la main est à moins de 15,1 mm (4,1 mm en moyenne) d'un sommet du sous-échantillon, qui en retient 449 sur 1314 par
 côté (#3810)."""
 AXE = 1
@@ -139,6 +137,14 @@ def poser_sous_les_jeux(w, x, matrices, tetes, deplacements):
     """Par jeu, les sommets (`w`, `x` au repos du jeu, homogènes, (jeux, sommets, 4)) sous les matrices de peau `matrices`
     (os, 4, 4), aux ΔJ `tetes` et aux déplacements D `deplacements` du jeu (jeux, os, 3) (`poser`) : (jeux, sommets, 3)."""
     return numpy.stack([poser(w, x_, matrices, t, d) for x_, t, d in zip(x, tetes, deplacements)])
+
+
+def poids_des_os(peau):
+    """Le poids de peau total de chaque os (os,) sur les sommets distincts de la `Peau` `peau` : deux sommets de même
+    position au repos du corps neutre et de mêmes poids sont un seul sommet, que le mesh soit entier ou scindé par zone
+    et dédoublé aux coutures, comme dans la garde `membres` (`troncDe`)."""
+    _, distincts = numpy.unique(numpy.c_[peau.x[0, :, :3], peau.w], axis=0, return_index=True)
+    return peau.w[distincts].sum(axis=0)
 
 
 def posture_du_tronc(poids, matrices):
@@ -300,7 +306,7 @@ def tronc_pose(tronc, matrices, champs=True):
     sans ses champs si `champs` est faux (`champs_du_tronc`), ses sommets lus par `pres_du_tronc`."""
     tetes = numpy.stack([tetes_deplacees(matrices[None], tronc.parent, d)[0] for d in tronc.deplacements])
     pose = TroncPose(poser_sous_les_jeux(tronc.w, tronc.x, matrices, tetes, tronc.deplacements), tetes, [],
-                     posture_du_tronc(tronc.w.sum(axis=0), matrices).T, tronc.triangles)
+                     posture_du_tronc(poids_des_os(tronc), matrices).T, tronc.triangles)
     return champs_du_tronc(tronc, pose) if champs else pose
 
 

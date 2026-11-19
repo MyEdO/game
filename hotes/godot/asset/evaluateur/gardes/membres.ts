@@ -4,7 +4,8 @@
  * de `ZONES_DU_TRONC` la surface du tronc, ouverte au cou, aux épaules et aux cuisses.
  *
  * La posture du tronc est la rotation moyenne de ses os depuis leur repos, pondérée par le poids de peau de chacun sur
- * ses sommets (`troncDe`). À chaque échantillon, tronc et sujets sont ramenés dans le repère du tronc au repos par
+ * ses sommets distincts, alignée en signe sur l'os le plus lourd (`troncDe`), comme dans la construction
+ * (`posture_du_tronc`, `scripts/personnage-3d/base/tronc.py`). À chaque échantillon, tronc et sujets sont ramenés dans le repère du tronc au repos par
  * l'inverse de cette posture ; l'avant du tronc y est l'avant du corps au repos. Un sommet v d'un sujet est dans le
  * tronc si les deux demi-droites qui en partent vers l'avant et vers l'arrière du tronc coupent chacune sa surface un
  * nombre impair de fois : les ouvertures
@@ -54,19 +55,27 @@ export interface Tronc {
 }
 
 /** Le tronc des `meshes` sur la pose de repos `repos`, `null` sans mesh : chaque os qui pèse sur leurs sommets, et son
- *  poids de peau total, du plus lourd au plus léger. */
+ *  poids de peau total sur leurs sommets distincts, du plus lourd au plus léger. Deux sommets de même position de repos
+ *  et de mêmes poids de peau sont un seul sommet : les doublons de couture entre meshes, d'UV ou de normale dans un mesh
+ *  ne pèsent qu'une fois, comme dans la construction (`poids_des_os`, `scripts/personnage-3d/base/tronc.py`). */
 export function troncDe(meshes: readonly Mesh[], repos: Pose): Tronc | null {
   if (!meshes.length) return null;
-  const poidsParOs = new Map<string, number>();
+  const poidsParOs = new Map<string, number>(), vus = new Set<string>();
   for (const m of meshes) {
     const { skeleton, geometry } = m as SkinnedMesh;
-    const indices = geometry.attributes.skinIndex, poids = geometry.attributes.skinWeight;
+    const positions = geometry.attributes.position, indices = geometry.attributes.skinIndex, poids = geometry.attributes.skinWeight;
     if (!skeleton || !indices || !poids) continue;
-    for (let s = 0; s < indices.count; s++) for (let k = 0; k < indices.itemSize; k++) {
-      const w = poids.getComponent(s, k);
-      if (w <= 0) continue;
-      const nom = skeleton.bones[indices.getComponent(s, k)].name;
-      poidsParOs.set(nom, (poidsParOs.get(nom) ?? 0) + w);
+    for (let s = 0; s < indices.count; s++) {
+      const peau: [string, number][] = [];
+      for (let k = 0; k < indices.itemSize; k++) {
+        const w = poids.getComponent(s, k);
+        if (w > 0) peau.push([skeleton.bones[indices.getComponent(s, k)].name, w]);
+      }
+      peau.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+      const cle = `${positions.getX(s)},${positions.getY(s)},${positions.getZ(s)}|${peau.join(';')}`;
+      if (vus.has(cle)) continue;
+      vus.add(cle);
+      for (const [nom, w] of peau) poidsParOs.set(nom, (poidsParOs.get(nom) ?? 0) + w);
     }
   }
   if (!poidsParOs.size) throw new Error(`${GARDE} : aucun os ne pèse sur le tronc ${meshes.map((m) => m.name).join(', ')}`);
