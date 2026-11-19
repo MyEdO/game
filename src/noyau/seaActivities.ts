@@ -10,7 +10,7 @@ import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { currentPort, encLibreNominale, refusAQuai } from './portFlow';
 import { refuserGeste } from './refusVisible';
-import { removeCargo } from '../engine/cargo';
+import { cargoTotalEnc, removeCargo } from '../engine/cargo';
 import { blessuresPayeesParLesPieces, piecesDeLaReparation } from '../engine/shipBuild';
 import { REPARATION } from '../engine/seaNavigation';
 import { shipHasNavalTrait, vesselNavalTraits } from '../engine/navalTraits';
@@ -319,7 +319,7 @@ function etatDEntretien(get: Get): EtatDEntretien | PlayerText {
     usure: Math.min(manquantes, vessel.usure ?? 0),
     lissage: shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage'),
     pieces: encDePiecesDetachees(vessel, s.party),
-    bois: (vessel.cargo ?? []).reduce((enc, lot) => enc + (lot.cargoId === BOIS_DE_REPARATION ? lot.enc : 0), 0),
+    bois: cargoTotalEnc(vessel.cargo ?? [], BOIS_DE_REPARATION),
   };
 }
 
