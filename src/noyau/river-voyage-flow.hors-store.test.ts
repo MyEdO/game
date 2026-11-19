@@ -2,12 +2,13 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { shipboardSouls } from './shipCrew';
 import { buildRiverPlan, descenteJouee, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from './riverVoyageFlow';
 import { applierDe } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascade.testkit';
 import { composeRollLabel } from './rollSeam';
 import { t } from '../i18n';
-import { byId, refLabel, resolveStake, voyageStakeRef, STAKES, regles } from '../data';
+import { byId, findVehicleById, refLabel, resolveStake, voyageStakeRef, STAKES, regles } from '../data';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -135,6 +136,30 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
     const cur = pc!.participants[pc!.cursor];
     expect(cur.target).not.toBeNull();
     expect(cur.result ?? null).toBeNull();
+  });
+
+  // MSRC 07 l.11-17 ; MDG 12 l.87, l.89
+  it.each([
+    ['barge', { id: 'voile', spec: 'chaland' }],
+    ['barque-fluviale', { id: 'ramer' }],
+  ] as const)('le navire de campagne %s ouvre le Test de Navigation avec un seul pilote', (vehicleId, competence) => {
+    const pilote = get().party[0];
+    const effectifNominal = findVehicleById(vehicleId)!.ship!.crew;
+    set({
+      party: [pilote],
+      vessel: { uid: 'navire-1', vehicleId, crewLost: effectifNominal, morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    });
+    expect(shipboardSouls(get())).toEqual({ heroes: 1, crew: 0, total: 1 });
+    expect(effectifNominal).toBeGreaterThan(1);
+
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
+
+    expect(get().travelPlan?.vehicle).toMatchObject({ creatureId: vehicleId, navireDeCampagneUid: 'navire-1' });
+    expect(get().pendingCascade?.purpose).toBe('travelDay');
+    expect(get().pendingCascade?.participants.find((s) => s.kind === 'fleuveNavigation')).toMatchObject({
+      actorId: pilote.id,
+      label: composeRollLabel(undefined, t('step.navigation'), { skill: competence }),
+    });
   });
 
   it('tant que la journée est ouverte, `runRiverDays` n’en ouvre pas une seconde (aucune étape doublée)', () => {

@@ -149,6 +149,18 @@
       "book": "mer-des-griffes",
       "page": 93
     },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 306,
+        "quote": "Chaland"
+      },
+      {
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33,
+        "quote": "Barge Moyenne"
+      }
+    ],
     "travel": {
       "movement": 8,
       "medium": "fluvial",
@@ -195,7 +207,8 @@
         "gold": 225,
         "silver": 0,
         "brass": 0
-      }
+      },
+      "availability": "rare"
     }
   },
   {
@@ -304,7 +317,13 @@
     "alsoIn": [
       {
         "book": "mort-sur-le-reik-compagnon",
-        "page": 33
+        "page": 33,
+        "quote": "Barque"
+      },
+      {
+        "book": "mer-des-griffes",
+        "page": 93,
+        "quote": "Chaloupe"
       }
     ],
     "hull": {
@@ -318,8 +337,8 @@
       "criticalTable": "river-criticals"
     },
     "ship": {
-      "crew": 1,
-      "manoeuvre": 0,
+      "crew": 2,
+      "manoeuvre": 2,
       "lengthM": 5,
       "footprint": 1,
       "capacity": 60,
@@ -583,12 +602,20 @@
       "book": "mer-des-griffes",
       "page": 93
     },
+    "alsoIn": [
+      {
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33,
+        "quote": "Esquif de pêche"
+      }
+    ],
     "purchase": {
       "price": {
         "gold": 45,
         "silver": 0,
         "brass": 0
-      }
+      },
+      "availability": "limitee"
     },
     "hull": {
       "char": {
@@ -625,12 +652,20 @@
       "book": "mer-des-griffes",
       "page": 93
     },
+    "alsoIn": [
+      {
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33,
+        "quote": "Grande Barge"
+      }
+    ],
     "purchase": {
       "price": {
         "gold": 445,
         "silver": 0,
         "brass": 0
-      }
+      },
+      "availability": "rare"
     },
     "hull": {
       "char": {
@@ -667,12 +702,20 @@
       "book": "mer-des-griffes",
       "page": 93
     },
+    "alsoIn": [
+      {
+        "book": "mort-sur-le-reik-compagnon",
+        "page": 33,
+        "quote": "Bateau de Patrouille"
+      }
+    ],
     "purchase": {
       "price": {
         "gold": 655,
         "silver": 0,
         "brass": 0
-      }
+      },
+      "availability": "exotique"
     },
     "hull": {
       "char": {
