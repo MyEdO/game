@@ -9,6 +9,8 @@ metadata:
 
 **Verbatim (2026-11-19)** : « Codex et claude peuvent traiter des tickets de bout en bout maintenant et suivent le même workflow »
 
+**Verbatim (2026-11-19)**, sur le niveau de réflexion par défaut des sessions Codex Cloud : « pardon, high suffira finalement »
+
 **Verbatim (2026-10-31)** : « ne garde jamais une session, il va faire un cache miss »
 
 **Verbatim (2026-11-02)** : « Mais je ne comprends pas, tu utilise comment tes sessions ? Normalement on leur donne un ticket/un lot et il va de bout en bout. »
