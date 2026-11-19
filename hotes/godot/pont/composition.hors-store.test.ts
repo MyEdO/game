@@ -106,6 +106,17 @@ describe('composerSurLaBase', () => {
     expect(composer({ humanoide: { ...humanoide, surfaces } }, { ...soldat, build: 1 }).reliefs).toEqual({});
   });
 
+  it('les formes de la tête se fusionnent aux silhouettes dans `morphes`, sans toucher le gabarit ni le relief (#4413)', () => {
+    const surfaces = [{ nom: 'Peau', palette: 'peau' }];
+    const charnue = { ...humanoide, silhouettes: ['corpulence'], reliefDeCorpulence: 0.2, surfaces };
+    const corps = { ...soldat, build: 0.75, gabarit: { id: 'brute' } };
+    const sans = composer({ humanoide: charnue }, corps);
+    const avec = composer({ humanoide: charnue }, { ...corps, formesDeTete: { visage_inverse: 1, nez_fort: 0.5 } });
+    expect(avec.morphes).toEqual({ ...sans.morphes, visage_inverse: 1, nez_fort: 0.5 });
+    expect(avec.gabarit).toEqual(sans.gabarit);
+    expect(avec.reliefs).toEqual(sans.reliefs);
+  });
+
   it('une apparence variante monte l’élément qui la désigne, à défaut celui de sa racine ; sans l’un ni l’autre, le manquant garde son id', () => {
     const epee = { ...elementSchema3('humanoide'), cle: { apparence: 'epee' } };
     const epeeDeSoldat = { ...elementSchema3('humanoide'), cle: { apparence: 'epee_soldat' } };

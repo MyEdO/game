@@ -166,9 +166,13 @@ propre n'a pas ce champ. Chaque tête porte `visage_inverse` (`faceFlip`, mutati
 de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
 la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
 traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `visage_long` (`TRAITS`, des
-cibles de MakeHuman lues sommet à sommet). La liste fermée des noms admis, le refus à l'import d'une tête sans
-`visage_inverse` et la pose des clés par l'hôte relèvent du validateur (`hotes/godot/asset/element.ts`) et de
-l'hôte : les garder NON VÉRIFIÉS tant qu'ils ne sont pas livrés.
+cibles de MakeHuman lues sommet à sommet). Les noms admis sont la liste fermée
+`NOMS_DES_FORMES_DE_TETE` (`src/lib/formesDeTete.ts`) : un autre nom est refusé (`forme-de-tete-inconnue`). Le
+validateur (`hotes/godot/asset/element.ts`, `godot:valider` et l'import) exige que les shape keys du GLB soient
+exactement les silhouettes et les `formes` déclarées, plus, hors liaison `rigide`, les clés `gabarit_*` du GLB de
+la base (`forme-du-glb-non-declaree`, `forme-du-glb-absente`). L'hôte pose leurs poids : le preset
+(`formesDeTete`) ou les Mutations du combattant (`formesDeTete` de `mutations.json`) les donnent, le pont les
+verse dans `morphes` (`hotes/godot/pont/composition.ts`).
 
 Une **zone** est une région du corps ; un **emplacement**, un point d'accroche ; une
 **localisation**, une localisation de règle d'armure ; une **prise**, main ou secondaire.

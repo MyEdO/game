@@ -29,8 +29,9 @@ import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './a
  * `coiffure?`, `tenue?`, `pieces?`, `objets?`, `rangementsObjets?`, `variantesPieces?`, `prises?`,
  * `apparencesObjets?`, `embleme?`, `couleurs?`, `formesDeTete?` (`compositionSchema`,
  * `schemas/defs/presets-de-personnage.ts`). Une seule fonction du noyau la valide, `lireComposition`
- * (`src/noyau/apparence/composition.ts`), au schéma du preset et à ses règles, dont « rien n'est porté deux fois » : `composer` et `presetDeComposition` la lisent ; une composition refusée, ou
- * absente, est une erreur `validation` qui nomme le chemin de chaque faute. Ce qu'elle porte vient du noyau
+ * (`src/noyau/apparence/composition.ts`), au schéma du preset et à ses règles, dont « rien n'est porté deux fois » :
+ * `composer` et `presetDeComposition` la lisent ; une composition refusée, ou absente, est une erreur `validation` qui
+ * nomme le chemin de chaque faute. Ce qu'elle porte vient du noyau
  * (`porteeDeComposition`, `src/noyau/apparence/composition.ts`), dans cet ordre : la tête, la coiffure, les pièces de
  * l'ensemble de la tenue, les `pieces`, chaque pièce sous sa variante (`variantesPieces`, une clé par pièce portée,
  * la valeur une variante de cette pièce, #3446), puis chaque objet, tenu (`prises`) puis porté (`objets`). Un objet

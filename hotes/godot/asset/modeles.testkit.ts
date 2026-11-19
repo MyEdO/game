@@ -11,10 +11,11 @@ interface PrimitiveDeTest { readonly materiau: string; readonly uv: boolean }
 /** Le GLB d'un élément rigide : le mesh `lame` pend à l'articulation `os` d'un skin, ou reste à la racine (`null`) ; une
  *  primitive par matériau de `materiaux`, chacune dépliée en `TEXCOORD_0` sauf celles des matériaux de `sansUv`, plus une
  *  primitive sans `TEXCOORD_0` par matériau de `mixtes` ; les primitives de `garde` forment un second mesh, sous le nœud
- *  `garde` à la racine, skinné par le skin de `os` si `skinne`. */
+ *  `garde` à la racine, skinné par le skin de `os` si `skinne` ; le premier mesh porte les shape keys `formes`
+ *  (`extras.targetNames`). */
 export const glbDElement = (
   os: string | null, materiaux: readonly string[] = ['metal'], sansUv: readonly string[] = [],
-  { mixtes = [], garde = [], skinne = false }: { readonly mixtes?: readonly string[]; readonly garde?: readonly PrimitiveDeTest[]; readonly skinne?: boolean } = {},
+  { mixtes = [], garde = [], skinne = false, formes = [] }: { readonly mixtes?: readonly string[]; readonly garde?: readonly PrimitiveDeTest[]; readonly skinne?: boolean; readonly formes?: readonly string[] } = {},
 ) => {
   const noms = [...new Set([...materiaux, ...garde.map(p => p.materiau)])];
   const primitive = ({ materiau, uv }: PrimitiveDeTest) => ({ material: noms.indexOf(materiau), ...(uv ? { attributes: { TEXCOORD_0: 0 } } : {}) });
@@ -23,7 +24,7 @@ export const glbDElement = (
   return ecrireGlb({
     asset: { version: '2.0' }, nodes: garde.length ? [...noeuds, { name: 'garde', mesh: 1, ...(skinne ? { skin: 0 } : {}) }] : noeuds,
     ...(os === null ? {} : { skins: [{ joints: [0] }] }),
-    meshes: [{ primitives: lame.map(primitive) }, ...(garde.length ? [{ primitives: garde.map(primitive) }] : [])],
+    meshes: [{ primitives: lame.map(primitive), ...(formes.length ? { extras: { targetNames: formes } } : {}) }, ...(garde.length ? [{ primitives: garde.map(primitive) }] : [])],
     materials: noms.map(name => ({ name })),
   }, null);
 };

@@ -31,6 +31,9 @@
     "carrure_moins",
     "carrure_plus"
   ],
+  "formes": [
+    "visage_inverse"
+  ],
   "surfaces": [
     {
       "nom": "metal",

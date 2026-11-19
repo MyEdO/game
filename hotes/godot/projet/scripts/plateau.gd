@@ -369,7 +369,7 @@ func _survoler(case: Variant) -> void:
 ## Le combat de Godot tire `GET modeles/listage.json` (section « Atelier 3D ») et appelle `modeles` avec ses
 ## `manifestes` et ses `osDesRigides` avant `demarrer`. Pour chaque corps de la vue, Godot charge la base sous
 ## `modeles/` (`fichiers` de la réponse de `modeles`, sous la `forme` du listage), la pose à l'échelle du plateau (un mètre du modèle vaut
-## `1 / plateau.metresParCase` case) et lui pose son `gabarit`, ses silhouettes (`morphes`), ses `materiaux` et sa
+## `1 / plateau.metresParCase` case) et lui pose son `gabarit`, ses silhouettes et les formes de sa tête (`morphes`), ses `materiaux` et sa
 ## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
 ## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`
 ## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps est animé par un arbre d'états
