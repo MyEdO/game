@@ -2413,7 +2413,12 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "petites-munitions-et-poudre",
+      "ferraille-et-poudre",
+      "munitions-improvisees-et-poudre"
+    ]
   },
   {
     "id": "carreau",
@@ -12909,7 +12914,10 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "balle-de-gros-calibre-et-poudre"
+    ]
   },
   {
     "id": "pistolet-patte-de-griffon",
@@ -13006,7 +13014,12 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "petites-munitions-et-poudre",
+      "ferraille-et-poudre",
+      "munitions-improvisees-et-poudre"
+    ]
   },
   {
     "id": "canne-pistolet",
@@ -13101,7 +13114,13 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "bombe-explosive",
+      "bombe-incendiaire-munition",
+      "grappin-munition",
+      "balle-de-gros-calibre-et-poudre"
+    ]
   },
   {
     "id": "poivriere",
@@ -16321,7 +16340,11 @@
     },
     "rangement": {
       "id": "dos"
-    }
+    },
+    "munitions": [
+      "balle-crache-plomb",
+      "boulet-crache-plomb"
+    ]
   },
   {
     "id": "pistolet-ogre",

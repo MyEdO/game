@@ -907,8 +907,8 @@ export interface TrappingData {
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
    *  lu par `firedAttackBlock` (`belowMinRangeBand`). Absent = pas de minimale. */
   minRangeBand?: import('../engine/types').RangeBandId;
-  /** Les munitions (`categorie:'ammunition'`) d'une arme de siège, la représentative en tête : les seules qu'elle
-   *  charge (`chargeLArme`). AA 10 l.150 ; MDG 12 l.410-424 */
+  /** Les munitions (`categorie:'ammunition'`) de l'arme, la représentative en tête : les seules qu'elle charge
+   *  (`chargeLArme`). LDB 62 l.131 ; AA 08 l.517 ; AA 10 l.150 ; MDG 12 l.410-424 */
   munitions?: string[];
   /** EMPREINTE de grille (côté N×N) de l'affût POSÉ en combat — recopiée sur `Combatant.footprint`
    *  (`footprintN`), MÊME champ que `VehicleData.ship.footprint`. ADE II 8 l.239/258 (profil + description

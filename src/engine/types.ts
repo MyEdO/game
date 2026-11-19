@@ -325,9 +325,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  liste d'ids en dur. VDM 05 *Défaut* : « Tous les Atouts de l'arme disparaissent ». Le nom du champ
    *  d'op reste `removeType` : il est PERSISTÉ en donnée, son rename appartient à #1468 (L1c). */
   removedTypes?: ('atout' | 'defaut')[];
-  /** `id` de munition REPRÉSENTATIVE d'une arme de siège (la première de `TrappingData.munitions`) — discrimine la
-   *  bonne famille de munition (pierrier/canon/baliste/mortier) là où `subType` seul ne le fait pas. Lu par
-   *  `ammoFamilyLabel` pour le hint joueur. */
+  /** `id` de munition REPRÉSENTATIVE de l'arme (la première de `TrappingData.munitions`), là où `subType` seul ne
+   *  la nomme pas. Lu par `ammoFamilyLabel` pour le hint joueur. */
   defaultAmmo?: string;
   /** Qualités que l'arme perd tirée sans équipe (`armeSansEquipe`, `WeaponContext.sansEquipe`). AA 10 l.148 ;
    *  ZI 13 l.193 */
@@ -1093,7 +1092,7 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   subType?: string;
   /** Groupe de Projectiles d'une arme de siège (cf. `Weapon.weaponGroup`) — propagé à l'arme dérivée. */
   weaponGroup?: string;
-  /** Munition REPRÉSENTATIVE d'une arme de siège (cf. `Weapon.defaultAmmo`) — propagé à l'arme dérivée. */
+  /** Munition REPRÉSENTATIVE de l'arme (cf. `Weapon.defaultAmmo`) — propagé à l'arme dérivée. */
   defaultAmmo?: string;
   /** Arme DÉRIVÉE conférée tant que l'objet est équipé (`TrappingData.derivedWeapon`, armée à la naissance
    *  par `armeDeLaDonnee`). */

@@ -49,6 +49,8 @@ import {
   porteeDeTir,
   loadWeapon,
   loadedAmmo,
+  chargeLArme,
+  ammoFamily,
 } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
@@ -1021,6 +1023,49 @@ describe('Munitions & rechargement', () => {
       expect(damageString(tir.damage)).toBe('+7');
       expect(tir.qualities.some((q) => q.id === 'infecte')).toBe(true);
       expect(porteeDeTir(c, tromblon)).toBe(10);
+    });
+  });
+  describe('chargeLArme : une arme qui nomme ses munitions ne charge qu’elles ; les autres, leur famille moins les munitions nommées (#4360)', () => {
+    const objet = (id: string) => itemFromTrappingById(id, idsDeTest)!;
+    const distances = trappings.filter((t) => t.categorie === 'distance');
+    const munitions = trappings.filter((t) => t.categorie === 'ammunition');
+    const charge = (armeId: string, munitionId: string) => chargeLArme(objet(munitionId), objet(armeId));
+    const armesQuiChargent = (munitionId: string) => distances.filter((a) => charge(a.id, munitionId)).map((a) => a.id).sort();
+    it('Pistolet : balle et poudre seule parmi les munitions à poudre que le livre réserve (LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; ADE II 02 l.665)', () => {
+      expect(charge('pistolet', 'balle-et-poudre')).toBe(true);
+      for (const m of ['petites-munitions-et-poudre', 'munitions-improvisees-et-poudre', 'ferraille-et-poudre', 'balle-crache-plomb', 'boulet-crache-plomb', 'grappin-munition', 'bombe-explosive'])
+        expect(charge('pistolet', m), m).toBe(false);
+    });
+    it.each(['tromblon', 'tromblon-a-meche'])('%s : petites munitions, ferraille, munitions improvisées (LDB 62 l.131 ; AA 08 l.482)', (id) => {
+      for (const m of ['petites-munitions-et-poudre', 'ferraille-et-poudre', 'munitions-improvisees-et-poudre']) expect(charge(id, m), m).toBe(true);
+    });
+    it.each([
+      ['grappin-munition', ['mortier-a-main']], // AA 08 l.534
+      ['bombe-explosive', ['mortier-a-main']], // AA 08 l.521-523
+      ['balle-de-gros-calibre-et-poudre', ['haquebute', 'mortier-a-main']], // AA 08 l.517
+      ['balle-crache-plomb', ['canon-crache-plomb']], // ADE II 02 l.665
+      ['boulet-crache-plomb', ['canon-crache-plomb']], // ADE II 02 l.665
+    ])('les armes à distance qui chargent %s : exactement %j', (munitionId, attendues) => {
+      expect(armesQuiChargent(munitionId)).toEqual(attendues);
+    });
+    it.each([
+      ['tromblon', 'petites-munitions-et-poudre'], // AA 08 l.482
+      ['mortier-a-main', 'bombe-explosive'], // AA 08 l.509
+      ['canon-crache-plomb', 'balle-crache-plomb'], // ADE II 02 l.665
+    ])('%s : sa munition représentative est %s', (armeId, munitionId) => {
+      expect(objet(armeId).defaultAmmo).toBe(munitionId);
+    });
+    it('une arme qui nomme ses munitions charge exactement sa liste, siège compris (AA 10 l.150 ; MDG 12 l.410-424)', () => {
+      for (const a of distances.filter((t) => t.munitions))
+        expect(munitions.filter((m) => charge(a.id, m.id)).map((m) => m.id).sort(), a.id).toEqual([...a.munitions!].sort());
+    });
+    it('une arme sans liste charge sa famille moins les munitions qu’une arme nomme', () => {
+      const nommees = new Set(trappings.flatMap((t) => t.munitions ?? []));
+      for (const a of distances.filter((t) => !t.munitions)) {
+        const famille = ammoFamily(a.subType?.id);
+        const attendues = munitions.filter((m) => famille !== '' && ammoFamily(m.subType?.id) === famille && !nommees.has(m.id)).map((m) => m.id);
+        expect(munitions.filter((m) => charge(a.id, m.id)).map((m) => m.id), a.id).toEqual(attendues);
+      }
     });
   });
   it('recomputeLoadout dérive reload depuis « Recharge N » + subType', () => {

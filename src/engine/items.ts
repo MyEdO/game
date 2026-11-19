@@ -49,7 +49,13 @@ import {
   type ItemCapabilities,
 } from '../data';
 import { t } from '../i18n';
-import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
+import {
+  candidatsDApparenceDObjet,
+  apparencesAdmissiblesDObjet,
+  messageDApparenceDObjet,
+  referenceDApparenceDObjet,
+  munitionsReservees,
+} from '../data/apparencesObjets';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
  *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`objetDuNarratif`,
@@ -1480,15 +1486,14 @@ export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string 
   }
 }
 
-/** La munition `munition` charge-t-elle l'arme `arme` ? Une arme de siège, les seules munitions que sa fiche nomme
- *  (`munitions`) ; toute autre arme, celles de sa famille (`ammoFamily`). AA 10 l.150 ; MDG 12 l.410-424 */
+/** La munition `munition` charge-t-elle l'arme `arme` ? Une arme qui nomme ses munitions (`munitions`), celles-là
+ *  seules ; toute autre arme, celles de sa famille (`ammoFamily`) qu'aucune arme ne nomme (`munitionsReservees`).
+ *  LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; AA 10 l.150 ; MDG 12 l.410-424 ; ADE II 02 l.665 ; #4360 */
 export function chargeLArme(munition: { trappingId?: string; subType?: string }, arme: { trappingId?: string; subType?: string }): boolean {
-  if (groupeDeSiege(arme.subType)) {
-    const munitions = arme.trappingId ? findTrappingById(arme.trappingId)?.munitions : undefined;
-    return munition.trappingId !== undefined && (munitions ?? []).includes(munition.trappingId);
-  }
+  const liste = arme.trappingId ? findTrappingById(arme.trappingId)?.munitions : undefined;
+  if (liste) return munition.trappingId !== undefined && liste.includes(munition.trappingId);
   const famille = ammoFamily(arme.subType);
-  return famille !== '' && ammoFamily(munition.subType) === famille;
+  return famille !== '' && ammoFamily(munition.subType) === famille && !munitionsReservees().has(munition.trappingId ?? '');
 }
 
 /** Munitions compatibles avec une arme à distance (`chargeLArme`, qty>0) : l'inventaire du

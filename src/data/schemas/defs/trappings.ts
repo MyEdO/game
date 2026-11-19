@@ -94,8 +94,8 @@ const doc = document(
     /** ADE II 8 l.251/253 */
     minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
     siegeFootprint: z.number().optional(),
-    /** Les munitions d'une arme de siège, la représentative en tête (`chargeLArme`). AA 10 l.150 ; MDG 12 l.410-424 ;
-     *  AA 10 l.198-221 */
+    /** Les seules munitions que l'arme charge, la représentative en tête (`chargeLArme`). LDB 62 l.131 ; AA 08 l.482 ;
+     *  AA 08 l.517 ; AA 10 l.150 ; AA 10 l.198-221 ; MDG 12 l.410-424 ; ADE II 02 l.665 */
     munitions: refs('trapping', { sousListe: 'ammunition' }).optional(),
     ...apparenceDObjetSchema.shape,
     /** #3086 D6(c), #3116 */
@@ -190,7 +190,7 @@ const doc = document(
     },
     munitions: {
       label: 'Munitions',
-      hint: 'Munitions que tire cette arme de siège, la représentative en tête (indication au joueur)',
+      hint: 'Seules munitions que charge cette arme, la représentative en tête ; vide : celles de sa famille qu’aucune arme ne nomme',
     },
     ...metaDesChamps(apparenceDObjetSchema, { exigees: true }),
     requiresMastery: {
