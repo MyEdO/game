@@ -261,7 +261,11 @@ un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
 sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
 dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
 robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
-qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
+qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `element/tete.py` pour une tête de race bâtie de
+volumes sur la couture du cou (orc, gobelin), `element/tete_makehuman.py` pour une tête humanoïde tirée de la tête de
+MakeHuman, cousue au cou par `element/tete.py` (humain, nain, haut-elfe, halfling : le dossier ne porte que son
+`donnees.py`, dont `CUITES` nomme les cibles qui font la race, et `from tete_makehuman import construire` ; le pack
+`mpfb` de la base se tire seul, `production.pack_source`), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
 élément skinné reçoit les silhouettes déclarées ET toutes les clés `gabarit_*` de la base, celles-ci non déclarées au
@@ -515,6 +519,7 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 |---|---|---|
 | base humanoïde | 14 500 | 1024² |
 | tête | 2 500 | 512² |
+| tête humanoïde MakeHuman (`element/tete_makehuman.py`) | 8 200 | 512² |
 | pilosité | 1 500 | 256² |
 | vêtement par pièce | 2 500 | 512² |
 | armure par pièce | 2 000 | 512² |
@@ -524,6 +529,10 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 | personnage assemblé, base visible comprise | 16 000 | — |
 
 Base à 14 500 : décision utilisateur du 2026-11-13 (#3287), la base mesurée à 14 318 triangles.
+
+La tête humanoïde MakeHuman garde le maillage `body` de MakeHuman (#4413) : ses cibles fines (joues, oreilles, bouche)
+ne s'expriment que sur lui, Godot en tire les niveaux de détail à l'import (`meshes/generate_lods`), et sa pleine
+définition sert aux portraits ; ce n'est pas une décimation ni une retopologie à la construction.
 
 Ne pas créer de plafond véhicule absent du contrat. Le budget assemblé de l'évaluateur ne compte pas
 les meshes que la pile des couches masque (`hotes/godot/asset/evaluateur/evaluer.ts`, `masques`).
