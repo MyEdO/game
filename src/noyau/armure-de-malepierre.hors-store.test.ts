@@ -3,6 +3,7 @@ import { engage, isEngagedWith, setEngaged } from '../engine/engagement';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { armureUtilisable, endommagerLEquipementPorte } from '../engine/items';
 import type { Combatant } from '../engine/types';
+import { tableTotale } from '../lib/tableTotale';
 import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { testScene } from '../scenes/test-fixture';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -116,7 +117,7 @@ describe('Armure de malepierre — MDG 16 l.506, arbitrage du 2026-11-16 (#4372)
   });
 
   it.each(PIECES)('la pièce %s portée seule suffit', (seulePortee) => {
-    const inventaire = Object.fromEntries(PIECES.filter((id) => id !== seulePortee).map((id) => [id, false]));
+    const inventaire = tableTotale(PIECES.filter((id) => id !== seulePortee), () => false);
     const { banc, porteur, heros } = installerLeCombat('vrisk-gratte-le-fer', inventaire);
     expect(piecesDeMalepierre(porteur()).map((i) => [i.trappingId, i.equipped])).toEqual(
       PIECES.map((id) => [id, id === seulePortee]),
@@ -129,7 +130,7 @@ describe('Armure de malepierre — MDG 16 l.506, arbitrage du 2026-11-16 (#4372)
   });
 
   it.each([
-    { ref: 'vrisk-gratte-le-fer', inventaire: Object.fromEntries(PIECES.map((id) => [id, false])) },
+    { ref: 'vrisk-gratte-le-fer', inventaire: tableTotale(PIECES, () => false) },
     { ref: 'wulfrik', inventaire: undefined },
   ])('$ref n’expose personne sans pièce porteuse équipée', ({ ref, inventaire }) => {
     const { banc, porteur, heros } = installerLeCombat(ref, inventaire);

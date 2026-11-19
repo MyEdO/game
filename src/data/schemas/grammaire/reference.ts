@@ -418,18 +418,31 @@ const lotDeDotationSchema = nommerNoeud(nommerChamps(z.strictObject({
   lot: z.array(z.union([objetDeCatalogueSchema, dotationDePossessionSchema], { error: messageDeFormes })).min(2),
 }), { lot: { label: 'lot' } }), { label: 'lot' });
 
-/** Les `formes` d'une dotation, et le « 1 parmi » de ces formes et des options `enPlusDansOf` (`parmi`). */
-function formesDeDotation<F, O = never>(formes: readonly z.ZodType<F>[], enPlusDansOf: readonly z.ZodType<O>[] = []): z.ZodType<F | Parmi<1, F | O>> {
-  return z.union([nommerNoeud(parmi<F | O, 1>([...formes, ...enPlusDansOf], z.literal(1)), { label: 'une parmi' }), ...formes], { error: messageDeFormes });
+/** Les formes d'une dotation et son « 1 parmi ». HCVM p.265 ; #4210. */
+function formesDeDotation<F, O = never, D = never>(
+  formes: readonly z.ZodType<F>[],
+  enPlusDansOf: readonly z.ZodType<O>[] = [],
+  formesDirectes: readonly z.ZodType<D>[] = [],
+): z.ZodType<F | D | Parmi<1, F | O>> {
+  const auChoix = nommerNoeud(parmi<F | O, 1>([...formes, ...enPlusDansOf], z.literal(1)), { label: 'une parmi' });
+  return z.union([auChoix, ...formes, ...formesDirectes], { error: messageDeFormes });
 }
 
 /** Dotation sans texte, mention, joker ni lot : `classes.json`. LDB 05 l.552 ; #4053 */
 export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation<FormeSansTexte>([dotationDeCatalogueSchema, dotationDePossessionSchema, sommeSchema]);
-/** Dotation de `careerLevels.json` et `creatures.json` (`trappingRefSchema`) : l'annotation de ce schéma récursif. */
+/** Dotation de `careerLevels.json` (`trappingRefSchema`) : l'annotation de ce schéma récursif. */
 export type TrappingRef = FormeDeDotation | Parmi<1, FormeDeDotation | LotDeDotation>;
-/** Dotation de `careerLevels.json` et `creatures.json`. */
+const formesDesPossessions: readonly z.ZodType<FormeDeDotation>[] = [
+  dotationDeCatalogueSchema, dotationDeTexteSchema, dotationDeMentionSchema, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema,
+];
+
+/** Dotation de `careerLevels.json`. */
 export const trappingRefSchema: z.ZodType<TrappingRef> = formesDeDotation<FormeDeDotation, LotDeDotation>(
-  [dotationDeCatalogueSchema, dotationDeTexteSchema, dotationDeMentionSchema, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema],
-  [lotDeDotationSchema],
+  formesDesPossessions, [lotDeDotationSchema],
+);
+
+/** HCVM p.265 ; LDB 84 l.7 ; #4210. */
+export const possessionDeCreatureSchema = formesDeDotation(
+  formesDesPossessions, [lotDeDotationSchema], [armureDecriteParLeTraitSchema],
 );
 
