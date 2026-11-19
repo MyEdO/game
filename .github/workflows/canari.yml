@@ -138,8 +138,8 @@ jobs:
         if: ${{ !cancelled() && steps.server-install.outcome == 'success' }}
         run: npm run server:typecheck
       # L'export Web de l'hôte Godot et le lot de ses recettes dans la page (#4007), puis le même lot en natif (#3945),
-      # dont les jeux rendus sur un écran virtuel et les rechargements : `ci.yml` n'en joue que `combat` et `editeur` en
-      # natif (`godot:recette`), jamais l'export. Chrome est celui du runner.
+      # dont les jeux rendus sur un écran virtuel et les rechargements. `ci.yml` joue `combat`, `editeur` et `compendium`
+      # en natif (`godot:recette`). Chrome est celui du runner.
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
       - id: godot-export
