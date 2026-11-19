@@ -186,8 +186,8 @@ html,body{margin:0;background:var(--noir)}
 .plaque.carte .n{font-size:16px;line-height:19px;letter-spacing:.3px;color:var(--ivoire)}
 .plaque.carte .c{font-family:"Spectral";font-size:13px;letter-spacing:0;line-height:16px;color:var(--creme-2)}
 .cartes{flex:1 1 0;display:flex;justify-content:center;gap:9px;min-width:0}
-.cartes.liste{flex-direction:column}
-.cartes.liste>.carte{flex:none;max-width:none;height:40px}
+.cartes.liste{flex-direction:column;gap:5px}
+.cartes.liste>.carte{flex:none;max-width:none;height:36px}
 .cartes.liste>.carte .portrait{display:none}
 .cartes.liste>.carte .qui{flex:1;display:flex;align-items:baseline;gap:12px}
 .cartes.liste>.carte .c{flex:1;min-width:0}

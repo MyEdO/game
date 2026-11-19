@@ -8,6 +8,7 @@ export default {
   etats: [{
     nom: 'options',
     gabarit: 'gestion',
+    decor: 'table',
     titre: { nom: 'Options', sous: 'Préférences et règles maison' },
     son: [
       { nom: 'Couper le son', oui: false },
