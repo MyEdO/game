@@ -418,6 +418,12 @@ static func sens_d_eclairage(direction: Vector3) -> Vector3:
 	return -direction
 
 
+## L'énergie posée sur le soleil d'énergie `energie` dont le rendu en cours garde la part `part`
+## (`Lumiere.part_du_soleil`).
+static func energie_du_soleil(energie: float, part: float) -> float:
+	return energie * part
+
+
 ## La profondeur, depuis la caméra, de ce qui est à `cases` au-delà du point qu'elle vise à `distance`.
 static func profondeur_de_brume(distance: float, cases: float) -> float:
 	return distance + cases

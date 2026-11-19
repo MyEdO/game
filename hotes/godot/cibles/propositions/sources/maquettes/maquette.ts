@@ -11,7 +11,8 @@ export interface Ecran {
   etats: [Etat, ...Etat[]];
 }
 
-export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Nuit | Poursuite | BatailleDeMasse | Interlude | Soins | Commerce | Voyage | Bord | Dossier | Exploration | CarteDuMonde | Carnet | Creation | FicheDuHeros | DepenseDExperience | ChangementDeCarriere;
+export type Etat = EtatDeCombat | TourDeCombat | IssueDuCombat | Options | Nuit | Poursuite | BatailleDeMasse | Interlude | Soins | Commerce | Voyage | Bord | Dossier | Exploration | CarteDuMonde | Carnet | Creation | FicheDuHeros | DepenseDExperience | ChangementDeCarriere
+  | Accueil | MenuDeLaPartie | Chapitre | FinDeSeance | Sauvegardes | NouvellePartie | Compendium | Coop | EditeurDeScene | EditeurDeLaCarte;
 
 /* ───────── le combat ───────── */
 
@@ -824,7 +825,7 @@ export interface Domaine {
 }
 
 /** Les options, sur la table : le titre, les préférences (le son puis le jeu), les domaines, le domaine ouvert et son premier
- *  feuillet, à deux pages. */
+ *  feuillet, à deux pages ; `verrou`, la raison qui ferme les règles maison, lue au survol de la règle pointée. */
 export interface Options {
   nom: string;
   gabarit: 'gestion';
@@ -834,6 +835,7 @@ export interface Options {
   jeu: Preference[];
   domaines: Domaine[];
   ouvert: { domaine: string; feuillet: number; feuillets: number; gauche: RegleMaison[]; droite: RegleMaison[] };
+  verrou?: string;
 }
 
 /* ───────── les lieux : leur hôte, leurs services, leur argent ───────── */
@@ -1133,6 +1135,25 @@ export interface Commerce {
   groupe?: HerosDuGroupe[];
   fenetre?: Fenetre;
   combattants?: Record<string, Combattant>;
+  main?: MainAilleurs;
+}
+
+/** Le siège d'une partie à plusieurs : le nom de son joueur ; `hote`, `vous`, `absent` (il se reconnecte). */
+export interface Joueur {
+  nom: string;
+  hote?: true;
+  vous?: true;
+  absent?: true;
+}
+
+/** La main tenue par un autre siège, vue d'un invité : le joueur qui la tient, ce qu'il fait, le code de la partie, la
+ *  raison qui ferme les gestes de la page ; ce que chaque héros du groupe dit de son joueur. */
+export interface MainAilleurs {
+  tient: Joueur;
+  fait: string;
+  partie: string;
+  refus: string;
+  joueurs: Record<string, Joueur>;
 }
 
 /* ───────── les dossiers ───────── */
@@ -1702,4 +1723,285 @@ export interface ChangementDeCarriere {
   vise: { ruban: string; nom: string; carriere: string; niveau: number; statut: string; ouvre: { rubrique: string; noms: string[] }[]; note: string; geste: string; px: number };
   autre: { classes: { id: string; nom: string; px: number; choisie?: true; fermee?: true }[]; carrieres: Option[]; arrivee?: { valeurs: string[]; tenue: number }; note: string };
   groupe: HerosDuGroupe[];
+}
+
+/* ───────── l'accueil et le système ───────── */
+
+/** Un instant de la partie : le lieu, le jour, le mois et l'année impériale, l'heure. */
+export interface Instant {
+  lieu: string;
+  jour: number;
+  mois: string;
+  annee: number;
+  heure: string;
+}
+
+/** Une entrée d'un écran d'ouverture, ou un outil : son id (son pictogramme), son libellé ; `principale`. */
+export interface Entree {
+  id: string;
+  libelle: string;
+  principale?: true;
+}
+
+/** L'écran titre, sur le couchant : le sur-titre, le titre, la campagne ; les entrées de jeu, la dernière sauvegarde que
+ *  « Continuer » charge ; les outils. */
+export interface Accueil {
+  nom: string;
+  gabarit: 'ouverture';
+  decor: 'couchant';
+  titre: { sur: string; nom: string; campagne: string };
+  entrees: Entree[];
+  derniere: Instant;
+  outils: Entree[];
+}
+
+/** Le menu de la partie, sur le jeu assombri : le sur-titre, le titre, l'instant ; les entrées, puis la sortie ; l'heure de
+ *  la dernière sauvegarde automatique. */
+export interface MenuDeLaPartie {
+  nom: string;
+  gabarit: 'ouverture';
+  decor: 'jeu';
+  titre: { sur: string; nom: string };
+  instant: Instant;
+  entrees: Entree[];
+  quitter: Entree;
+  derniereAuto: string;
+}
+
+/** Ce qu'une séance vaut à un héros : son id (son buste), son nom, sa carrière ; sa Motivation, ses Ambitions écrites
+ *  (absentes, il n'en a pas noté), sa Détermination ; les cases cochées ; `nouvelle`, le champ de l'Ambition suivante
+ *  ouvert. */
+export interface HerosDeLaSeance {
+  id: string;
+  nom: string;
+  carriere: string;
+  motivation: string;
+  courte?: string;
+  longue?: string;
+  determination: Compte;
+  coches: { motivation?: true; courte?: true; longue?: true };
+  nouvelle?: 'courte' | 'longue';
+}
+
+/** La fin de séance : les héros, les cases du groupe, ce qu'octroie une Ambition accomplie, la phrase de la Chance. */
+export interface Seance {
+  heros: HerosDeLaSeance[];
+  groupe: { courte?: true; longue?: true };
+  px: { courte: number; longue: number };
+  chance: string;
+}
+
+/** Le chapitre, qui s'ouvre ou se clôt sur son carton : le décor, le sur-titre, la campagne et le tome, le chapitre ;
+ *  l'ouverture (le texte du chapitre, la compagnie au bandeau) ou la clôture (le sous-titre, ce que la route retiendra,
+ *  les lieux révélés, les héros tombés, la fin de séance qu'elle ouvre) ; les gestes. */
+export interface Chapitre {
+  nom: string;
+  gabarit: 'ouverture';
+  decor: 'relais' | 'altdorf';
+  sur: string;
+  campagne?: { nom: string; tome: string };
+  chapitre: string;
+  texte?: string[];
+  groupe?: HerosDuGroupe[];
+  cloture?: { sous: string; objectifs: string[]; px: number; lieux: string[]; tombes: string[]; seance: Seance };
+  gestes: Geste[];
+}
+
+/** La fin de séance, sur le jeu assombri : le titre et l'instant, la séance, le geste qui la termine. */
+export interface FinDeSeance {
+  nom: string;
+  gabarit: 'gestion';
+  decor: 'jeu';
+  titre: { nom: string; instant: Instant };
+  seance: Seance;
+  action: string;
+}
+
+/** Un emplacement de sauvegarde : son nom ; ce qu'il porte (l'instant de la partie, le jour et l'heure réels) ; `auto`, il
+ *  ne se réécrit pas ; `vise`, celui que l'on charge ; `survol`, le curseur sur son « Sauvegarder ». */
+export interface Emplacement {
+  nom: string;
+  partie?: { instant: Instant; le: { date: string; heure: string } };
+  auto?: true;
+  vise?: true;
+  survol?: true;
+}
+
+/** Les sauvegardes, sur la table : le titre et l'instant, les emplacements, l'avis d'un emplacement retiré ; la raison qui
+ *  ferme « Sauvegarder ». */
+export interface Sauvegardes {
+  nom: string;
+  gabarit: 'gestion';
+  decor: 'table';
+  titre: { nom: string; instant: Instant };
+  emplacements: Emplacement[];
+  avis?: string;
+  refus?: string;
+}
+
+/** Un voyageur à recruter, debout dans la salle : son id (son buste et sa silhouette), son nom, sa carrière ; `vise`. */
+export interface Voyageur {
+  id: string;
+  nom: string;
+  carriere: string;
+  vise?: true;
+}
+
+/** Le genre d'une campagne, que son pictogramme dit : la route, le fleuve, l'arène, l'enquête. */
+export type GenreDeCampagne = 'route' | 'fleuve' | 'arene' | 'enquete';
+
+/** La nouvelle partie, dans la salle de l'auberge-relais : le titre et les places du groupe ; l'onglet ouvert (les
+ *  pré-tirés ou mes personnages), les voyageurs dans la salle sur leur total ; la campagne choisie et les autres ; le
+ *  groupe et la place libre (ce qu'elle dit, ou le siège qui la tiendra) ; `modifier`, la création se rouvre sur un héros. */
+export interface NouvellePartie {
+  nom: string;
+  gabarit: 'gestion';
+  decor: 'compagnie';
+  titre: { nom: string; sous: string; places: Compte };
+  onglet: 'pretires' | 'roster';
+  salle: { voyageurs: Voyageur[]; total: number };
+  campagne: { sur: string; nom: string; chapitre: string; texte: string; genre: GenreDeCampagne };
+  campagnes: { id: string; nom: string; genre: GenreDeCampagne }[];
+  groupe: HerosDuGroupe[];
+  libre: { nom: string; sous: string; dit?: string; siege?: { valeurs: string[]; tenue: number } };
+  modifier?: true;
+}
+
+/** Une entrée du Compendium : son nom, sa source (le sigle du livre, la page) ; `pointee`. */
+export interface EntreeDuCompendium {
+  nom: string;
+  source: { livre: string; page: number };
+  pointee?: true;
+}
+
+/** Un renvoi de la fiche : sa rubrique, son compte, les entrées nommées (le reste se compte). */
+export interface Renvoi {
+  rubrique: string;
+  compte: number;
+  noms: string[];
+}
+
+/** Un champ du formulaire de l'atelier : son libellé, sa valeur ; `long`, sur plusieurs lignes ; `saisi`, le curseur y
+ *  est ; son aide, et ce à quoi elle renvoie. */
+export interface ChampDeFormulaire {
+  libelle: string;
+  valeur: string;
+  long?: true;
+  saisi?: true;
+  aide?: { texte: string; lien?: string };
+}
+
+/** Le Compendium, sur la table : le titre, les familles et l'ouverte, ses catégories (leur compte) et l'ouverte, la
+ *  recherche, les livres (leur compte) ; la catégorie au feuillet ouvert ; l'entrée pointée, en fiche (ses puces, sa
+ *  description, ses liens, ses renvois) ou à l'atelier (ses champs par paires, les champs qu'elle ne porte pas, la
+ *  raison qui ferme « Supprimer ») ; « Nouvelle entrée » fermée tant que l'atelier est ouvert. */
+export interface Compendium {
+  nom: string;
+  gabarit: 'gestion';
+  decor: 'table';
+  titre: { nom: string; sous: string };
+  familles: string[];
+  famille: string;
+  categories: { nom: string; entrees: number }[];
+  categorie: string;
+  recherche: string;
+  livres: { sigle: string; entrees: number }[];
+  feuillet: { n: number; sur: number; entrees: EntreeDuCompendium[] };
+  genre: string;
+  fiche?: { puces: { rubrique: string; valeur: string }[]; description: string[]; liens: string[]; renvois: Renvoi[] };
+  atelier?: { paires: ChampDeFormulaire[][]; absents: string[]; refus: string };
+}
+
+/** La coop, sur la table : le titre, les quatre sièges de la tablée (leur joueur et les héros qu'il tient, ou à
+ *  pourvoir), sa légende ; sans partie, rejoindre par le code et héberger ; en salon, l'invitation (le code, les joueurs
+ *  connectés) et l'attribution des héros aux joueurs et du rôle de Maître du Jeu (à un joueur, ou `sans`). */
+export interface Coop {
+  nom: string;
+  gabarit: 'gestion';
+  decor: 'table';
+  titre: { nom: string; sous: string };
+  sieges: { joueur?: Joueur & { qualite: string }; heros: string[] }[];
+  legende: string;
+  rejoindre?: { code: string; indice: string; nom: string; geste: string };
+  heberger?: { aide: string; attente: string; geste: string; refus: string };
+  invitation?: { code: string; joueurs: Joueur[]; quitter: string };
+  attribution?: { joueurs: string[]; heros: { id: string; nom: string; carriere: string; joueur: string }[]; maitre: { sans: string; joueur?: string; note: string } };
+}
+
+/** Un geste de la barre de l'éditeur : son id (son pictogramme), son libellé ; `principal` ; `ferme`. */
+export interface GesteDeLEditeur {
+  id: string;
+  libelle: string;
+  principal?: true;
+  ferme?: true;
+}
+
+/** L'éditeur, son cadre commun : le projet, les documents et l'ouvert, les gestes de la barre par groupe ; les volets de
+ *  gauche (leur titre) et l'ouvert ; les outils (leur id, leur nom) et l'armé ; la validation de l'inspecteur. */
+export interface Editeur {
+  projet: { nom: string; sous: string };
+  documents: string[];
+  document: string;
+  gestes: GesteDeLEditeur[][];
+  volets: string[];
+  volet: string;
+  outils: Entree[];
+  outil: string;
+  validation?: string;
+}
+
+/** Une ligne de l'inspecteur : son libellé ; sa valeur (des mots, un choix parmi des valeurs, oui ou non, une valeur à
+ *  faire défiler, un nombre à régler), grisée quand elle est sans objet. */
+export type Propriete = { libelle: string; grise?: true } & (
+  | { texte: string }
+  | { valeurs: string[]; tenue: number }
+  | { oui: boolean }
+  | { defile: string }
+  | { nombre: number }
+);
+
+/** Ce que l'inspecteur montre : ce qui est choisi (son genre, où il est, son nom saisi, ses propriétés, son inventaire,
+ *  la troupe à poser, les renvois de la logique, « Supprimer »), ou les options de l'outil armé (ses pinceaux, ses
+ *  terrains). */
+export type Inspecteur =
+  | {
+    genre: string; ou: string; nom?: string; proprietes: Propriete[]; inventaire?: { vide: string; ajouter: string };
+    troupe?: Propriete[]; renvois: { rubrique?: string; noms: string[] }; supprimer?: string;
+  }
+  | { genre: string; options: string; pinceaux: { valeurs: string[]; tenue: number }; terrains: string[]; terrain: string };
+
+/** L'éditeur de scène : le cadre commun, les scènes du projet et l'ouverte, les gestes du volet des scènes ; les couches
+ *  et la tenue (le retrait refusé du rez, lu au survol), le nord en degrés ; sur le plan, la porte ou le personnage
+ *  choisi, le pinceau sous le pointeur ; l'inspecteur ; au pied, ce que pointe le curseur et la taille de la scène. */
+export interface EditeurDeScene extends Editeur {
+  nom: string;
+  gabarit: 'edition';
+  scenes: { noms: string[]; ouverte: string; gestes: string[] };
+  couches: { noms: string[]; tenue: number; ajouter: string; retirer?: { libelle: string; refus: string } };
+  nord: number;
+  plan: { porte?: true; personnage?: string; pinceau?: number };
+  inspecteur: Inspecteur;
+  pointe: string[];
+  taille: { cases: [number, number]; entites: number };
+}
+
+/** Un lieu de la carte du monde : son id, son nom, son genre (son pictogramme), sa place sur la carte. */
+export interface LieuDeLaCarte {
+  id: string;
+  nom: string;
+  genre: 'hameau' | 'voyage' | 'village';
+  place: [number, number];
+}
+
+/** L'éditeur de la carte du monde : le cadre commun, le titre de la carte, les lieux et le choisi, les routes (d'où, vers
+ *  où, leur longueur, leurs modes, à double sens) ; l'inspecteur du lieu choisi (ses coordonnées, sa scène, son plan,
+ *  ses établissements ; ses routes). */
+export interface EditeurDeLaCarte extends Editeur {
+  nom: string;
+  gabarit: 'edition';
+  carte: string;
+  lieux: LieuDeLaCarte[];
+  choisi: string;
+  routes: { de: string; vers: string; km: number; modes: string[]; deuxSens?: true }[];
+  lieu: { coordonnees: [number, number]; scene: string; plan: string; etablissements: number };
 }

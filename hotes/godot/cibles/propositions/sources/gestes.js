@@ -155,6 +155,8 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     epingle: '<path d="M12 21c-4-5-6-8-6-11a6 6 0 0 1 12 0c0 3-2 6-6 11z"/><circle cx="12" cy="10" r="2.200"/>',
     chemin: '<circle cx="5.500" cy="18" r="2"/><circle cx="18.500" cy="6" r="2"/><path d="M7.500 18h6a3 3 0 0 0 0-6h-3a3 3 0 0 1 0-6h6"/>',
     copier: '<rect x="8" y="8" width="12" height="12" rx="1.500"/><path d="M16 8V4H4v12h4"/>',
+    coller: '<rect x="5" y="5" width="14" height="16" rx="1.500"/><path d="M9 5V3h6v2M8.500 11h7M8.500 15h5"/>',
+    dupliquer: '<rect x="4" y="4" width="12" height="12" rx="1.500"/><path d="M20 8v12H8M10 7v6M7 10h6"/>',
     refaire: '<path d="M15 6.500L19.500 11 15 15.500M19.500 11H10a4.500 4.500 0 0 0 0 9h4"/>',
     couches: '<path d="M12 4l9 4.500-9 4.500-9-4.500zM3 12.500l9 4.500 9-4.500M3 16.500l9 4.500 9-4.500"/>',
   };
@@ -181,6 +183,11 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     drapier: BASE + '<path d="M22 31c0-13 8-20 17-20s17 7 17 20c-5-5-11-7-17-7s-12 2-17 7z" class="s"/><path d="M22 30h34v4H22z" class="s"/>',
     gustav: '<path d="M6 90c0-21 11-28 25-30l-1-6c-8-5-10-18-6-27 4-9 26-9 30 0 4 9 2 22-6 27l-1 6c14 2 25 9 25 30z"/><path d="M24 30c1-4 3-7 6-9-3 4-4 7-4 11zM54 30c-1-4-3-7-6-9 3 4 4 7 4 11z" class="s"/><path d="M30 48c6 4 12 4 18 0-2 6-16 6-18 0z" class="s"/>',
     astrid: BASE + '<path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" class="s"/><path d="M23 34c-1 8 0 16 2 22l5-3c-2-7-2-13 0-19zM55 34c1 8 0 16-2 22l-5-3c2-7 2-13 0-19z" class="s"/>',
+    /* les voyageurs à recruter de la nouvelle partie */
+    kirsten: BASE + '<path d="M23 36c-3-15 5-25 16-25s19 10 16 25l-3 8c1-9-1-17-4-20-5-4-13-4-18 0-3 3-5 11-4 20z" class="s"/>',
+    harbull: '<path d="M16 90c0-15 8-21 19-23l-1-6c-8-4-11-14-7-22 4-8 20-8 24 0 4 8 1 18-7 22l-1 6c11 2 19 8 19 23z"/><path d="M24 40c-3-13 4-22 15-22s18 9 15 22c-2-7-8-10-15-10s-13 3-15 10z" class="s"/>',
+    sigrid: BASE + '<path d="M22 34c-2-14 6-23 17-23s19 9 17 23c-3-8-9-12-17-12s-14 4-17 12z" class="s"/><path d="M36 13h6v12h-6zM31 17h16v4H31z" class="c"/>',
+    malmir: '<path d="M16 90c0-17 7-25 19-27l-2-8c-6-5-8-15-5-23 3-8 19-8 22 0 3 8 1 18-5 23l-2 8c12 2 19 10 19 27z"/><path d="M25 37l-10-10 10 3zM53 37l10-10-10 3z"/><path d="M24 30c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" class="s"/>',
     /* les possessions : le navire, la bête, le véhicule */
     navire: '<path d="M6 66h66l-9 17H16z"/><path d="M37 12h4v54h-4z"/><path d="M13 23c17 5 35 5 52 0 3 12 3 25-1 35-17 5-33 5-50 0-4-10-4-23-1-35z"/><path d="M41 12l14 4-14 4z"/>',
     mule: '<path d="M18 90c0-20 5-33 13-41-6-8-8-17-6-27l-7-18 11 13c3-2 6-3 10-3s7 1 10 3l10-13-6 18c2 10 0 19-6 27 8 8 14 21 14 41z"/><path d="M33 22c2 8 2 16 0 24M45 22c-2 8-2 16 0 24" stroke="#1c1410" stroke-width="2" fill="none"/>',
@@ -188,6 +195,8 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
     /* le héros qui se dessine : au trait de sanguine, avec ses repères */
     esquisse: '<path d="M14 90c0-18 8-26 20-28l-2-8c-6-5-8-16-4-24 4-7 18-7 22 0 4 8 2 19-4 24l-2 8c12 2 20 10 20 28"/><path d="M21 26c1-9 9-15 20-14 9 1 15 6 14 13-11-3-23-3-34 1z" class="s"/><path d="M39 2v88M10 42h58" class="repere"/>',
   };
+  /* Wanda, voyageuse à recruter, porte le buste de Mira */
+  BUSTES.wanda = BUSTES.mira;
   const CAMP = { hote: 'pnj', docteur: 'pnj', brasseur: 'pnj', batelier: 'pnj', cocher: 'pnj', drapier: 'pnj', gustav: 'pnj', esquisse: 'esquisse' };
   const MATIERE = { heros: 'laiton', esquisse: 'laiton', ennemi: 'fer', pnj: 'fer' };
   /* `taille` : menu, petit, moyen, grand, maitre, affiche ; sans `genre`, la place est libre */

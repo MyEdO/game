@@ -4,7 +4,7 @@ Compte rendu des dix états dessinés pour la halle, le Marchandage et le port, 
 Contenu lu au code (`src/hote/`, `src/noyau/`, `src/i18n/messages/fr.ts`), jamais le design d'un écran existant.
 Sources au dépôt : trois écrans de `sources/maquettes/`, chacun la liste de ses états au format de
 `sources/maquettes/maquette.ts`, dessinés par `sources/rendu.html` (`node sources/rendre.mjs <écran> <sortie.png>
---format 16:9 [--etat <état>]`) : `halle` (`halle-achat`, `halle-vente`), `marchandage` (`marchandage-avant-le-de`,
+--format 16:9 [--etat <état>]`) : `halle` (`halle-achat`, `halle-vente`, et `la-main`, la halle vue d'un invité, au compte rendu de `outils.md`), `marchandage` (`marchandage-avant-le-de`,
 `marchandage`) et `port` (`port`, `port-negoce`, `port-achat`, `port-chantier`, `port-recrutement`,
 `port-avitaillement`). Les décors de la halle et du quai et la carte du port vivent dans `sources/commerce/commerce.js` ;
 le Marchandage prend le jet opposé de `sources/combat/` (`jet.css`, `jet.js`).

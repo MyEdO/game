@@ -1,6 +1,6 @@
 /* Commerce, images d'intention (#3935, #4411). Ajouts au socle de « lieux et nuit » (../lieux-et-nuit/commun.js) : les
    mesures d'une offre, la page de droite, la quantité, les deux décors (la halle, le quai) et la carte du port. Posés
-   par `../rendu.js` (écrans `halle`, `marchandage`, `port`) et la halle de l'invité (`halle.js`). Maquette hors du jeu. */
+   par `../rendu.js` (écrans `halle`, `marchandage`, `port`). Maquette hors du jeu. */
 /* ───────── les pièces ───────── */
 const mesures = (lignes) => `<table>${lignes.map(([k, v, c]) => `<tr><td>${k}</td><td class="${c ?? ''}">${v}</td></tr>`).join('')}</table>`;
 /* la page de droite, sur parchemin : ce que l'on compose ou traite ; `piece` la nomme au rapport de rendu */

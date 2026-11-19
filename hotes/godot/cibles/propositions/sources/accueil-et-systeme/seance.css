@@ -1,4 +1,5 @@
-/* La fin de séance (#3935) : les pièces de `seance.js`. */
+/* La fin de séance (#3935, #4411), seule ou à la clôture d'un chapitre : la case à cocher de `seance.js` et ce qu'elle
+   octroie, le feuillet d'un héros, les cases du groupe. */
 .cochable{display:flex;align-items:center;gap:9px;height:24px;font-size:13.5px;color:#2a1d12;white-space:nowrap}
 .cochable .case{flex:none;width:17px;height:17px;border-radius:2px;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.6),0 0 0 1px #150d04}
 .cochable .case.fer{background:rgba(255,245,215,.35);box-shadow:inset 0 1px 3px rgba(40,25,5,.6),0 0 0 1px rgba(60,40,20,.75)}
@@ -12,3 +13,47 @@
 .gain{text-align:right;white-space:nowrap}
 .gain b{display:block;font-weight:600;font-size:18px;line-height:24px}
 .gain span{font-size:12px}
+
+/* le feuillet d'un héros : ce qu'il a écrit, ses trois cases, ce que la séance lui vaut */
+#feuillets{display:flex;gap:14px}
+.seance-heros{position:relative;flex:1 1 0;min-width:0}
+.seance-heros .fond{height:100%;box-sizing:border-box;padding:12px 12px 4px}
+.seance-heros .tete{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid rgba(60,40,20,.45)}
+.seance-heros .tete .qui{flex:1;min-width:0}
+.seance-heros .tete .n{font-size:21px;line-height:32px;margin:-5px 0 -4px;color:#3a1a10;white-space:nowrap}
+.seance-heros .tete .c{font-size:12px;color:#4a3420}
+.seance-heros .gain b{color:#7c1f14;font-size:17px}
+.seance-heros .gain span{color:#4a3420;font-size:11px}
+.seance-heros .cochable{font-size:12px;gap:6px}
+.seance-heros .cochable b{font-size:11px;padding-left:4px}
+.bloc{padding:7px 0 5px;border-bottom:1px solid rgba(60,40,20,.28)}
+.bloc:last-child{border-bottom:0}
+.bloc .l{display:flex;justify-content:space-between;font-size:11.5px;color:#5a4530}
+.bloc .ecrit{margin:1px 0 3px;font-style:italic;font-size:14px;line-height:18px;color:#2a1d12}
+.bloc .ecrit.absent{font-size:13px;color:#6f6048}
+.nouvelle-ambition{display:flex;align-items:center;gap:8px;height:25px;margin-top:4px;padding:0 9px;border-radius:2px;background:rgba(255,248,225,.5);box-shadow:inset 0 1px 3px rgba(40,25,5,.5),0 0 0 1px #7c1f14;font-size:12.5px;color:#8a7a5c;white-space:nowrap}
+.nouvelle-ambition i{width:1px;height:16px;background:#2a1d12;margin-left:-4px}
+
+/* les cases du groupe, la phrase de la Chance */
+#groupe .fond{display:flex;align-items:center;gap:30px;padding:8px 22px 0}
+#groupe .cases{flex:none;width:500px}
+#groupe .cochable{height:27px;font-size:14px}
+#groupe p{flex:1;margin:0;text-align:right;font-style:italic;font-size:14px;line-height:19px;color:#cfc2a4}
+
+/* la fin de séance que clôt un chapitre : une colonne par héros, celle du groupe */
+#seance .fond{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:14px 4px 0}
+#seance .col{padding:0 9px;border-left:1px solid rgba(226,192,106,.18)}
+#seance .col:first-of-type{border-left:0}
+#seance .tete{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px;align-items:center;margin-bottom:6px}
+#seance .tete .portrait{grid-row:span 2}
+#seance .tete .n{font-size:17px;line-height:26px;margin:-4px 0 -4px;color:#f4e8ca;white-space:nowrap}
+#seance .tete .c{font-size:10.5px;color:var(--creme-2);white-space:nowrap}
+#seance .gain{display:flex;align-items:baseline;gap:8px;text-align:left}
+#seance .gain b{color:var(--or);font-size:15px;line-height:20px}
+#seance .gain span{color:var(--creme-2);font-size:10px}
+#seance .cochable{height:auto;flex-wrap:wrap;align-items:flex-start;gap:0 6px;margin-bottom:4px;font-size:11.5px;line-height:14px;white-space:normal}
+#seance .cochable .case{width:14px;height:14px}
+#seance .cochable span{flex:1 1 0}
+#seance .cochable b{flex:0 0 100%;text-align:right;font-size:10.5px;line-height:13px}
+#seance .groupe .tete{display:block}
+#seance .groupe .tete .c{white-space:normal}
