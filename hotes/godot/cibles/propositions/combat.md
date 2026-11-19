@@ -88,8 +88,9 @@ localisations) ; critique « Coup percutant » verbatim de `src/data/criticals.j
 - Verbes : `fenetreFermer('defaite')`, `fenetreFermer('repli')`, `fenetreFermer('aneantissement')`.
 - Réfs : le repli est la défaite d'une Scène de combat de bataille de masse, la bataille continue (ADE II 08 l.175,
   l.223 ; `src/noyau/issueDeCombat.ts:71-84`) ; l'anéantissement ramène au menu (`issueDeCombat.ts:67`).
-- À valider : la ligne de conséquence sous le cartouche (« Les héros sont soignés, la bataille continue. », « Aucun
-  héros ne tient debout. ») est une phrase d'exemple, absente du jeu ; cartouche centré, comme `fin-defaite`.
+- À valider : la ligne de conséquence sous le cartouche (« Le combat est perdu, la compagnie reprend pied sur les
+  lieux. », « Les héros sont soignés, la bataille continue. », « Aucun héros ne tient debout. ») est une phrase
+  d'exemple, absente du jeu ; cartouche centré, comme `fin-defaite`.
 
 ## journal-ouvert (T19)
 - Panneau de parchemin ouvert au-dessus de sa pastille, qui passe en laiton plein ; rangé par round, ruban

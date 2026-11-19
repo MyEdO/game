@@ -96,7 +96,7 @@
 .pills{display:flex;flex-wrap:wrap;gap:5px}
 .pill{position:relative;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 10px;border-radius:11px;border:1px solid var(--trait-encre);font-family:"Fell SC";font-size:11px;letter-spacing:.8px;color:var(--encre);background:var(--voile);white-space:nowrap}
 .pill.prise{border-color:var(--laiton-ombre);background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen));box-shadow:0 1px 3px var(--brou)}
-.pill.fermee{color:rgba(42,29,18,.45);border-color:var(--filet-encre);background:none}
+.pill.fermee{color:rgba(42,29,18,.68);border-color:var(--filet-encre);background:none}
 .pill b{font-size:10.5px}
 .filigrane{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);opacity:.5}
 
@@ -164,7 +164,7 @@
 .tire .plaque>div{font-size:12px;padding:0 10px}
 .talents .page-c>.medaillon{margin-top:6px}
 .mineurs{gap:4px}
-.mineurs .pill{height:21px;padding:0 8px;font-size:10.5px}
+.mineurs .pill{height:23px;padding:0 8px;font-size:12px}
 .mineurs .bulle-refus{left:calc(100% + 11px);bottom:auto;top:50%;transform:translateY(-50%);font-family:"Spectral";letter-spacing:0}
 .mineurs .bulle-refus::before{left:-5px;bottom:auto;top:calc(50% - 5px);box-shadow:-2px 2px 0 var(--contour)}
 
@@ -257,7 +257,8 @@
 .acquis .a b{display:block;font-family:"Fell";font-weight:400;font-size:15px;line-height:19px;color:var(--creme);white-space:nowrap;overflow:hidden}
 .acquis .a.total b .chiffres{font-size:19px;color:var(--or-eclat)}
 .acquis .gestes{margin-top:auto;display:flex;flex-direction:column;gap:8px}
-.acquis .gestes .bulle-refus{left:auto;right:0;transform:none}
+.acquis .gestes .plaque{flex:none}
+.acquis .gestes .bulle-refus{left:auto;right:0;transform:none;box-sizing:border-box;width:100%;white-space:normal;text-align:center}
 .acquis .gestes .bulle-refus::before{left:auto;right:60px}
 
 /* ───────── la fiche : les possessions ───────── */

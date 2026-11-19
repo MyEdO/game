@@ -206,7 +206,7 @@
 #ordre{flex-direction:column;justify-content:flex-end;overflow:hidden}
 #ordre .rang{flex:none}
 #ordre .rang .nom{white-space:normal;line-height:normal}
-#ordre .rang .jauge,#ordre .rang.actif .jauge{width:54px}
+#ordre .rang .jauge,#ordre .rang.actif .jauge{flex:none;width:38px}
 #ordre .rang.actif{flex-direction:column;align-items:flex-start;gap:4px}
 #ordre .rang.actif .nom{font-size:16px}
 #ordre .rang.actif .jauge{width:74px}
@@ -242,6 +242,7 @@
 #liste.a-prix{width:300px}
 #apercu-sort.rapide .apercu{left:calc(50% - 480px + 460px);bottom:166px;--pointe:41px}
 #apercu-sort.liste .apercu{left:calc(50% - 480px + 148px);bottom:212px;--pointe:150px}
+#apercu-sort td:first-child,#apercu-sort td:last-child{white-space:normal}
 #apercu-cible .apercu{left:62.5%;top:190px;--pointe:136px}
 #journal-entier .fond{position:relative;display:flex;flex-direction:column;padding:28px 20px 12px}
 #journal-entier p{white-space:normal}

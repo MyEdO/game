@@ -3,8 +3,9 @@
 // hors du rect de leur rôle (`bouge` : la table rôle → rect de `rendu.js`, la même pour tous les états et tous les
 // écrans ; ce qui porte `data-mobile` suit ce qu'il désigne), des feuilles (texte, contrôle) recouvertes, rognées par un
 // ancêtre (`overflow`, ellipse) ou qui se chevauchent, des actions principales (plaque armée, étape en cours) cachées
-// sous le bord ou le fondu de ce qui défile (`cache`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une
-// autre feuille (bulle de refus, badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle,
+// sous le bord ou le fondu de ce qui défile (`cache`), des pièces du kit plus petites que leur taille fixée
+// (`retrecit`), et du défilement de la page. Ce qui se pose exprès au-dessus d'une autre feuille (bulle de refus,
+// badge sur un portrait) porte la marque `data-dessus` : il peut couvrir un contrôle,
 // jamais un texte, pas même le libellé de l'élément qu'il qualifie, et reste dans son cadre (dans la vue hors cadre) ; ce
 // dont le contenu défile en hauteur (une colonne, la valeur d'un champ long) porte `data-defile`, qui n'exempte de
 // `rogne` que le haut et le bas :
@@ -78,7 +79,7 @@ const releve = ([largeur, hauteur]) => {
   const coupe = [...document.querySelectorAll('[data-texte]')].filter((e) => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map((e) => e.dataset.texte)
   /* les feuilles visibles : un texte (le rectangle de chacune de ses lignes) ou un contrôle (sa boîte) */
   const nomme = (e) => `${e.closest('[data-piece]')?.dataset.piece ?? '-'} : ${(e.textContent.trim().replace(/\s+/g, ' ') || e.className.baseVal || e.className).slice(0, 40)}`
-  const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill'
+  const CONTROLE = '.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill, .facettes b'
   /* les lignes d'un texte : la boîte de police de chacune, ramenée à la hauteur de ligne qui lui est allouée ; ce qu'il
      porte au-dessus de lui (`data-dessus`) n'en est pas */
   const lignes = (e) => {
@@ -153,6 +154,31 @@ const releve = ([largeur, hauteur]) => {
     if (!t) return [`${e.dataset.piece} : hors table`]
     return Object.keys(t).some((k) => Math.abs(r[k] - t[k]) > 1) ? [`${e.dataset.piece} : ${n(r)} au lieu de ${n(t)}`] : []
   }) : []
+  /* une pièce du kit qui rétrécit (`../kit.md`, « Une pièce du kit ne rétrécit jamais ») : un élément dont la règle de
+     feuille qui l'emporte (ou son style en ligne) fixe la largeur ou la hauteur en pixels, rendu plus petit (sous un
+     `flex` qui l'écrase) ; `bouge` ne mesure que la boîte de la pièce, pas ce qu'elle porte */
+  const specificite = (sel) => [(sel.match(/#[\w-]+/g) ?? []).length, (sel.match(/\.[\w-]+|\[[^\]]+\]|:(?!:)[\w-]+/g) ?? []).length, (sel.replace(/:[\w-]+(\([^)]*\))?|\[[^\]]+\]|[#.][\w-]+/g, ' ').match(/(^|[\s>+~])[a-z][\w-]*/gi) ?? []).length]
+  const plusFort = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]
+  const regles = [...document.styleSheets].flatMap((f) => { try { return [...f.cssRules] } catch { return [] } })
+    .filter((r) => r.style && (r.style.width || r.style.height))
+  const retrecit = [...document.querySelectorAll('#ui *')].filter((e) => e instanceof HTMLElement && e.checkVisibility()).flatMap((e) => {
+    const fixe = {}
+    for (const dim of ['width', 'height']) {
+      let tenue = null
+      regles.forEach((r, k) => {
+        if (!r.style[dim]) return
+        const sel = r.selectorText.split(',').map((x) => x.trim()).filter((x) => { try { return e.matches(x) } catch { return false } })
+        if (!sel.length) return
+        const p = [...sel.map(specificite).sort((a, b) => plusFort(b, a))[0], k]
+        if (!tenue || plusFort(p, tenue.p) > 0 || (plusFort(p, tenue.p) === 0 && k > tenue.p[3])) tenue = { p, v: r.style[dim] }
+      })
+      const v = e.style[dim] || tenue?.v
+      if (v && /^[\d.]+px$/.test(v)) fixe[dim] = parseFloat(v)
+    }
+    const s = getComputedStyle(e)
+    const ecrase = Object.entries(fixe).filter(([dim, v]) => parseFloat(s[dim]) < v - 1)
+    return ecrase.length ? [`${nomme(e)} : ${ecrase.map(([dim, v]) => `${dim} ${Math.round(parseFloat(s[dim]))} au lieu de ${v}`).join(', ')}`] : []
+  })
   /* une action principale (plaque armée) ou l'étape en cours (`.en-cours`) hors de ce que montre le `data-defile` qui la
      porte : sous son bord, ou sous le fondu (`--fondu`, `gestes.css`) qui annonce une suite (`.suite`) ou ce qui a défilé
      (`.avant`) */
@@ -161,7 +187,7 @@ const releve = ([largeur, hauteur]) => {
     const fondu = parseFloat(getComputedStyle(d).getPropertyValue('--fondu')) || 0
     return q.top < r.top + (d.classList.contains('avant') ? fondu : 0) - 1 || q.bottom > r.bottom - (d.classList.contains('suite') ? fondu : 0) + 1
   }).map(nomme)
-  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
+  return { pieces: pieces.length, hors, croise, deborde, coupe, bouge, recouvert, rogne: rognes, chevauche: [...chevauche], cache: caches, retrecit, defile: document.documentElement.scrollWidth > largeur || document.documentElement.scrollHeight > hauteur }
 }
 
 const [, , cible, png, ...reste] = process.argv
@@ -171,7 +197,7 @@ const format = page ? { ...FORMATS['16:9'], facteur: Number(reste[0] ?? FORMATS[
 if (!format) throw new Error(`rendre.mjs <écran> <sortie.png> --format ${Object.keys(FORMATS).join('|')} [--etat <état>]`)
 const etat = option('--etat')
 const etats = page ? null : await chargerLEcran(cible, etat)
-const b = await chromium.launch()
+const b = await chromium.launch({ args: ['--allow-file-access-from-files'] })
 /** La page `cible`, ou l'état `maquette` de l'écran, capturée en `sortie` avec son relevé. */
 async function capturer(maquette, sortie) {
   const p = await b.newPage({ viewport: { width: format.largeur, height: format.hauteur }, deviceScaleFactor: format.facteur })

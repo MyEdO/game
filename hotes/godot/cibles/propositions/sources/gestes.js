@@ -250,7 +250,7 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const poserLesBulles = () => {
     const lignesDe = (e) => [...e.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).flatMap((n) => { const g = document.createRange(); g.selectNodeContents(n); return [...g.getClientRects()].filter((l) => l.width && l.height); });
     const textes = [...document.querySelectorAll('#ui *')].filter((e) => !e.closest('.bulle-refus') && e.checkVisibility({ opacityProperty: true, visibilityProperty: true })).flatMap(lignesDe);
-    const controles = [...document.querySelectorAll('#ui :is(.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill)')];
+    const controles = [...document.querySelectorAll('#ui :is(.plaque, .bouton-rond, .champ, .portrait, .jauge, .sceau, .disque, .medaillon, .pill, .facettes b, .niche)')];
     document.querySelectorAll('.bulle-refus').forEach((b) => {
       const refuse = b.parentElement;
       /* l'élément survolé est en vue : ce qui le fait défiler l'y amène */
@@ -372,7 +372,9 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
      `reglable: false` pour qui regarde sans régler (l'invité d'une partie à plusieurs). */
   const bourse = ({ heros, avoir, parts, total, reglable = true }) => `<div class="qui-paie${parts ? ' parts' : ''}">${medaillon('bourse', { taille: 'moyen' })}<div class="q">${parts
     ? `<span class="rubrique">Bourses du groupe</span>${parts.map(([nom, part, reste]) => `<div class="part"><span>${nom}</span>${reglable ? moinsPlus({ entre: `<b class="chiffres">${part}</b>` }) : `<b class="chiffres">${part}</b>`}<i>sur ${reste}</i></div>`).join('')}<div class="total"><span class="rubrique">Total</span><b class="chiffres">${total}</b></div>`
-    : `<span class="rubrique">Bourse de ${heros}</span><b class="chiffres">${avoir}</b>`}</div></div>`;
+    : `<span class="rubrique">Bourse ${de(heros)}</span><b class="chiffres">${avoir}</b>`}</div></div>`;
+  /* « de » devant un nom, élidé devant une voyelle (« Bourse d’Ilyanwe », « Test d’Intuition ») */
+  const de = (nom) => (/^[aeiouàâäéèêëîïôöùûüœæ]/i.test(String(nom)) ? `d’${nom}` : `de ${nom}`);
   /* saisir un texte : le libellé de rubrique s'il y en a un, la valeur et son curseur, ou l'attente d'un champ vide ;
      `defile` : la valeur, plus haute que le champ, y défile */
   const champ = (libelle, valeur, { attente = '', classe = '', defile = false } = {}) => `<label class="champ ${classe}">${libelle ? `<span class="rubrique">${libelle}</span>` : ''}<b class="${valeur ? '' : 'vide'}"${defile ? ' data-defile' : ''}>${valeur || attente}${valeur ? '<i class="curseur-texte"></i>' : ''}</b></label>`;
@@ -380,6 +382,6 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   Object.assign(globalThis, {
     W, H, alea, melange,
     PICTOS, picto, BASE, BUSTES, portrait, rond, plaque, carte, outil, medaillon, disque, compteur, sceau, d10, ruban, cadre, clouer, cartouche, rang, onglets, signets, apercu, issue,
-    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ, mobile, defile,
+    filet, segments, ouiNon, reglette, jauge, vie, rangDePas, monter, croix, coins, retour, ouvrir, moinsPlus, raison, bourse, champ, mobile, defile, de,
   });
 }

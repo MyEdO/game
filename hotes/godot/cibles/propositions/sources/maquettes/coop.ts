@@ -13,7 +13,7 @@ export default {
     {
       ...COOP, nom: 'ouvrir', titre: { nom: 'Jouer en ligne', sous: 'Aucune partie ouverte' },
       sieges: [A_POURVOIR, A_POURVOIR, A_POURVOIR, A_POURVOIR], legende: 'Une tablée : l’hôte et jusqu’à trois invités',
-      rejoindre: { code: 'K7M2QX', indice: 'Le code de room fait 6 caractères.', nom: 'Lena', geste: 'Rejoindre' },
+      rejoindre: { code: 'K7M2QX', indice: 'Le code de la partie fait 6 caractères.', nom: 'Lena', geste: 'Rejoindre' },
       heberger: { aide: 'Le groupe se compose ensemble : vous attribuerez les emplacements aux joueurs connectés.', attente: 'Nom de joueur', geste: 'Héberger', refus: 'Ouvrez une partie pour l’héberger.' },
     },
     {
