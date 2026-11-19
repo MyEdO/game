@@ -19,12 +19,13 @@ afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 /** Une partie du scénario `voyage` partie de Weiler vers Steinbruck : la première vue de la route, et les lignes que le
  *  journal a écrites depuis le départ. */
-function enRoute() {
+function enRoute(avecContagion = false) {
   const { pont, appel, stockage } = table();
   ouvert = pont;
   const lignes: Ligne[] = [];
   const jouer = (jeu: Bouton['jeu']): Suite => { const d = drainer(appel, appel('jouer', jeu)); lignes.push(...d.lignes); return d.suite; };
   let s = drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite;
+  if (!avecContagion) expect(appel('reglages', { type: 'regle', args: ['maladie-mode', 'off'] }).ok).toBe(true);
   for (let pas = 0; s.vue.projection.fenetre; pas++) {
     expect(pas, 'l’arrivée se vide').toBeLessThan(10);
     s = jouer(gestesDessines(s.vue).find((x): x is Bouton => x.type === 'bouton' && !x.refus)!.jeu);
@@ -88,6 +89,17 @@ describe('la journée de route par le pont', () => {
     }
     expect(Object.values(c).some((e) => e.type === 'jet'), 'aucun jet de héros dans le corps de la fenêtre').toBe(false);
     expect(lignes.map((l) => l.texte), 'la météo du jour, tirée sans arrêt').toContain('Météo : Temps sec.');
+  });
+
+  it('la météo d’Étape est déjà tirée quand vient le premier Test de Contagion en marche', () => {
+    const r = enRoute(true);
+    expect(corps(r.suite)['scene/meteo']).toMatchObject({ type: 'icone', icone: 'meteo/sec' });
+    let s = r.suite;
+    for (let pas = 0; !s.vue.zones['fenetre.etape'].some((l) => l.texte === 'Contagion (Vérole Urticante)'); pas++) {
+      expect(pas, 'Greta expose les autres marcheurs').toBeLessThan(6);
+      s = r.jouer((geste(s, 'Lancer') ?? geste(s, 'Continuer'))!.jeu);
+    }
+    expect(corps(s)['scene/meteo']).toMatchObject({ type: 'icone', icone: 'meteo/sec' });
   });
 
   it('les jets lancés et validés, le bilan de l’Étape puis la Rencontre qu’il fait tirer (son nom et son texte verbatim) vont au journal, et la nuit s’ouvre (EDOC 8 l.161, l.182-233)', () => {

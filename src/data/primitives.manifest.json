@@ -275,7 +275,7 @@
     "label": "contracterABord",
     "fichier": "src/noyau/shipCrew.ts",
     "concept": "verdict d'une rangée de bande de Contraction : son porteur à bord (`porteursABord`, héros ou équipage collectif) contracte la maladie sur échec (`applyContraction`), puis son état s'écrit",
-    "perimetre": "appliers `contagion` (nuit), `mer-tonneau-expose` (tonneau d'eau) et `maladieDeLEquipage` (maladie tirée sur un marin), toute bande de Contraction dont une rangée peut être l'équipage collectif",
+    "perimetre": "appliers `contagion` (repos et voyage), `mer-tonneau-expose` (tonneau d'eau) et `maladieDeLEquipage` (maladie tirée sur un marin), toute bande de Contraction dont une rangée peut être l'équipage collectif",
     "verrou": "src/noyau/navire-flow.hors-store.test.ts"
   },
   {

@@ -40,6 +40,7 @@ import type { NightStakeId } from '../data/index';
 import { rollStep } from './rollSeam';
 import type { ModLine } from '../engine/combat';
 import { dailyDiseaseUpkeep } from '../engine/rest';
+import { incubationPendantLeVoyage } from './expositionAMaladie';
 import { conditionLabel, refLabel } from '../data';
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
@@ -193,6 +194,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
   // tonneaux du navire (`vessel.waterLitres`) — stable sur l'entretien, calculé une fois.
   const waterLitres = get().vessel?.waterLitres;
   const hasWater = waterLitres != null ? waterLitres > 0 : rule('penurie-d-eau') !== true;
+  const incubation = incubationPendantLeVoyage(get);
   for (let d = last + 1; d <= today; d++) {
     for (const h of party) {
       if (h.dead) continue;
@@ -241,7 +243,10 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
         defer({ kind: 'dessoulage', label: t('upkeep.sobering'), base: alc, test: alcool, difficulty: 'intermediaire' });
       }
       // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (maladie-mode off).
-      if (rule('maladie-mode') !== 'off') lines.push(...dailyDiseaseUpkeep(h, battleRng(), defer, opts.caredFor));
+      if (rule('maladie-mode') !== 'off') {
+        const peutDeclarer = incubation && ((maladieId: string) => incubation(h.id, maladieId));
+        lines.push(...dailyDiseaseUpkeep(h, battleRng(), defer, opts.caredFor, peutDeclarer));
+      }
       // 3. Convalescence des Blessures critiques (LDB 18 — jours calendaires, #T3).
       lines.push(...tickTraumaRecovery(h, 1, defer));
     }

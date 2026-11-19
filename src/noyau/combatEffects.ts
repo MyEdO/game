@@ -1190,7 +1190,10 @@ export function openSkillTest(
   // ENJEU (#1117) : `FlowTest.stake` DESCEND sur l'étape qui lance — c'est elle que `CascadeModal` lit.
   // Second transporteur du champ, à parité avec les deux fabriques de `combat/triggeredTest.ts` : sans
   // lui, tout Flow joué par `runFlow` (Escalade, Saut, Récolte…) porterait un enjeu que rien n'affiche.
-  const jet = hostStep(get, { id: idDansLaSequence(get, 'test-jet', 'test'), kind: 'jetDeTestDeScene', jet: 'test', actorId: def.id, ...(spec.stake ? { stake: spec.stake } : {}) });
+  const jet = hostStep(get, {
+    id: idDansLaSequence(get, 'test-jet', 'test'), kind: 'jetDeTestDeScene', jet: 'test', actorId: def.id,
+    meta: { differeLaSuite: true }, ...(spec.stake ? { stake: spec.stake } : {}),
+  });
   if (!jet) return false; // le mint ne refuse QUE si `pendingTest` manque — rien à défaire, il vient d'être posé
   openSequence(get, set, { title: label, icon: 'navigation/des', purpose: 'test', steps: [jet] });
   return true;
