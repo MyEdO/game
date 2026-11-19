@@ -9,6 +9,7 @@
  */
 import { Skeleton, type Bone, type Mesh, type Object3D, type SkinnedMesh } from 'three';
 import { tableTotale } from '../../../../src/lib/tableTotale.ts';
+import { estFormeDeTete } from '../../../../src/lib/formesDeTete.ts';
 import { lireGlb } from '../glb.ts';
 import { chargerScene, type SceneChargee } from './chargement.ts';
 import { libellesDesMeshes, type Ecart } from './ecart.ts';
@@ -85,7 +86,10 @@ export interface EntreeDEvaluation {
   readonly manifeste?: unknown;
   /** Les facteurs de gabarit donnés, les autres aux `FACTEURS_NEUTRES`. */
   readonly facteurs?: Partial<GabaritResolu>;
-  /** Les poids explicites des silhouettes déclarées au manifeste valide, sinon des formes du GLB de base hors clés `gabarit_*` ; ils priment sur la carrure calculée et un nom hors de cette liste est refusé par `silhouette-absente`. */
+  /** Les poids explicites des silhouettes déclarées au manifeste valide, sinon des formes du GLB de base hors clés
+   *  `gabarit_*` ; ils priment sur la carrure calculée. Une forme de la tête (`estFormeDeTete`, #4413) se pose par son
+   *  nom, comme l'hôte la cuit, sans régler le gabarit ; tout autre nom est refusé par `silhouette-absente`. Les
+   *  `morphes` d'une composition (`CompositionSurLaBase`) s'y passent tels quels. */
   readonly silhouettes?: Readonly<Record<string, number>>;
   /** Les clips échantillonnés, par nom ; tous sans liste. */
   readonly clips?: readonly string[];
@@ -178,7 +182,10 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const formes = contenus[0].formes;
   const formesDeSilhouette = [...formes].filter((nom) => !nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT));
   const nomsDesSilhouettes = manifeste?.silhouettes ?? formesDeSilhouette;
-  const absentes = Object.keys(entree.silhouettes ?? {}).filter((nom) => !nomsDesSilhouettes.includes(nom));
+  const explicites = Object.entries(entree.silhouettes ?? {});
+  const formesDeTete = Object.fromEntries(explicites.filter(([nom]) => estFormeDeTete(nom)));
+  const silhouettesExplicites = Object.fromEntries(explicites.filter(([nom]) => !estFormeDeTete(nom)));
+  const absentes = Object.keys(silhouettesExplicites).filter((nom) => !nomsDesSilhouettes.includes(nom));
   if (absentes.length) throw new Error(`évaluation : [silhouette-absente] ${absentes.join(', ')} : nom(s) absent(s) des silhouettes déclarées ; silhouettes : ${nomsDesSilhouettes.join(', ') || 'aucune'}`);
   const parCarrure: Readonly<Record<string, number>> = table ? poidsDeCarrure(facteurs.st, table.st) : {};
   const carrure = Object.entries(parCarrure).find(([, poids]) => poids > 0)?.[0];
@@ -186,8 +193,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const aZero = tableTotale(nomsDesSilhouettes, () => 0);
   const poidsDesFormes = poidsDesFormesDe(manifeste, facteurs);
   const carrures = Object.fromEntries(Object.entries(parCarrure).filter(([nom]) => nomsDesSilhouettes.includes(nom)));
-  const poidsDesSilhouettes = { ...aZero, ...carrures, ...entree.silhouettes };
-  const poids = poidsDesFormes(poidsDesSilhouettes);
+  const poidsDesSilhouettes = { ...aZero, ...carrures, ...silhouettesExplicites };
+  const poids = { ...poidsDesFormes(poidsDesSilhouettes), ...formesDeTete };
   if (manifeste && !sontNeutres(facteurs)) {
     const manquantes = Object.keys(poids).filter((nom) => nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT) && !formes.has(nom));
     if (manquantes.length) throw new Error(`évaluation : [gabarit-absent] shape key(s) absente(s) de la base : ${manquantes.join(', ')}`);

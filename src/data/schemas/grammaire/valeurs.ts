@@ -34,7 +34,7 @@ import {
 } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
-import type { FormeDeTete } from '../../../lib/formesDeTete';
+import { ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAGE_INVERSE, VISAGE_LONG, type FormeDeTete } from '../../../lib/formesDeTete';
 import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLocale, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
@@ -1263,11 +1263,11 @@ export type Couleurs = z.input<typeof couleursSchema>;
 
 /** Le libellé de chaque forme de la tête (`NOMS_DES_FORMES_DE_TETE`, `src/lib/formesDeTete.ts`). */
 const LIBELLES_DES_FORMES_DE_TETE = {
-  visage_inverse: 'Visage inversé',
-  nez_fort: 'Nez fort',
-  arcades_marquees: 'Arcades marquées',
-  joues_creuses: 'Joues creuses',
-  visage_long: 'Visage long',
+  [VISAGE_INVERSE]: 'Visage inversé',
+  [NEZ_FORT]: 'Nez fort',
+  [ARCADES_MARQUEES]: 'Arcades marquées',
+  [JOUES_CREUSES]: 'Joues creuses',
+  [VISAGE_LONG]: 'Visage long',
 } as const satisfies Readonly<Record<FormeDeTete, string>>;
 
 /** Une forme de la tête, shape key propre à un élément de tête (#4413). */

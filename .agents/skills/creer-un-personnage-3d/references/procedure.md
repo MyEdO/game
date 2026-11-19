@@ -158,19 +158,20 @@ offre des `postes` : par bord (`proue`, `tribord`, `poupe`, `babord`, `FIRE_ARCS
 mètres glTF, sa proue vers +Z et tribord vers -X, où se montent dans l'ordre les pièces des postes de ce bord, chacune
 tournée vers lui (`bord-inconnu` sinon). Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
-**Clés de forme propres (`formes`, #4413)** : une pièce skinnée peut porter des shape keys qui ne sont
+**Clés de forme propres (`formesDeTete`, #4413)** : une pièce skinnée peut porter des shape keys qui ne sont
 ni une silhouette de la base ni une clé `gabarit_*`. Ce sont les siennes, pas celles de la base : elles ne se
-déclarent pas parmi les silhouettes (`silhouette-absente`) mais dans le champ `formes` de son manifeste, que
+déclarent pas parmi les silhouettes (`silhouette-absente`) mais dans le champ `formesDeTete` de son manifeste, que
 `element/construire.py` écrit depuis les clés réellement posées sur la pièce exportée ; un élément sans clé
 propre n'a pas ce champ. Chaque tête porte `visage_inverse` (`faceFlip`, mutation « Visage inversé ») : une tête
 de `element/tete.py` par le retournement des volumes de son visage, une tête de `element/tete_makehuman.py` par
 la visée de sa peau dans la direction reflétée. Les têtes de `element/tete_makehuman.py` portent en plus les
 traits du visage partagés, `nez_fort`, `arcades_marquees`, `joues_creuses` et `visage_long` (`TRAITS`, des
 cibles de MakeHuman lues sommet à sommet). Les noms admis sont la liste fermée
-`NOMS_DES_FORMES_DE_TETE` (`src/lib/formesDeTete.ts`) : un autre nom est refusé (`forme-de-tete-inconnue`). Le
+`NOMS_DES_FORMES_DE_TETE` (`src/lib/formesDeTete.ts`), que la construction lit par `base/noms_formes_de_tete.py` :
+un autre nom est refusé (`forme-de-tete-inconnue`). L'évaluateur pose une forme de la tête par son nom. Le
 validateur (`hotes/godot/asset/element.ts`, `godot:valider` et l'import) exige que les shape keys du GLB soient
-exactement les silhouettes et les `formes` déclarées, plus, hors liaison `rigide`, les clés `gabarit_*` du GLB de
-la base (`forme-du-glb-non-declaree`, `forme-du-glb-absente`). L'hôte pose leurs poids : le preset
+exactement les silhouettes et les `formesDeTete` déclarées, plus, hors liaison `rigide`, les clés `gabarit_*` du GLB de
+la base (`shape-key-non-declaree`, `shape-key-absente`). L'hôte pose leurs poids : le preset
 (`formesDeTete`) ou les Mutations du combattant (`formesDeTete` de `mutations.json`) les donnent, le pont les
 verse dans `morphes` (`hotes/godot/pont/composition.ts`).
 

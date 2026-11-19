@@ -232,8 +232,8 @@ def construire_squelette(D, modele, manifeste_de_base, glb_de_base, publie, id_,
     de_la_base = set(manifeste_de_base["silhouettes"])
     siennes = list(dict.fromkeys(nom for objet in objets for nom in noms_des_cles(objet)
                                  if nom not in de_la_base and not nom.startswith("gabarit_")))
-    formes = {"formes": siennes} if siennes else {}
-    return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **formes, **offerts}, triangles
+    formes_de_tete = {"formesDeTete": siennes} if siennes else {}
+    return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **formes_de_tete, **offerts}, triangles
 
 
 def main():

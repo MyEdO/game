@@ -29,6 +29,7 @@ import numpy as np
 
 from corpulence import RACES, forme_macro, lire_cible, lire_obj, os_des_faces, recalage, tetes, vers_blender
 from formes import poser_la_cle
+from noms_formes_de_tete import ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAGE_INVERSE, VISAGE_LONG
 from production import pack_source
 from tete import (PORTEE_M, azimut, cles_du_corps, coudre, couture, decalages_monde, depuis_l_arriere, elevation,
                   elevation_de_la_couture, normales_de_sommet, poser_les_normales_de_la_couture)
@@ -66,14 +67,14 @@ celui où elle est nulle."""
 PART_DE_L_ORBITE = 0.8
 """HYPOTHÈSE : part du rayon d'un œil retourné sur laquelle la peau recule devant lui."""
 TRAITS = {
-    'nez_fort': (('nose/nose-scale-vert-incr', 1.0), ('nose/nose-scale-depth-incr', 0.8), ('nose/nose-volume-incr', 0.5),
-                 ('nose/nose-point-down', 0.5)),
-    'arcades_marquees': (('eyebrows/eyebrows-trans-forward', 1.0), ('eyebrows/eyebrows-trans-down', 0.7),
-                         ('eyebrows/eyebrows-angle-down', 0.5)),
-    'joues_creuses': (('cheek/l-cheek-bones-incr', 1.0), ('cheek/r-cheek-bones-incr', 1.0),
-                      ('cheek/l-cheek-volume-decr', 1.0), ('cheek/r-cheek-volume-decr', 1.0),
-                      ('cheek/l-cheek-inner-decr', 0.5), ('cheek/r-cheek-inner-decr', 0.5)),
-    'visage_long': (('chin/chin-height-incr', 1.0), ('chin/chin-jaw-drop-incr', 0.5)),
+    NEZ_FORT: (('nose/nose-scale-vert-incr', 1.0), ('nose/nose-scale-depth-incr', 0.8), ('nose/nose-volume-incr', 0.5),
+               ('nose/nose-point-down', 0.5)),
+    ARCADES_MARQUEES: (('eyebrows/eyebrows-trans-forward', 1.0), ('eyebrows/eyebrows-trans-down', 0.7),
+                       ('eyebrows/eyebrows-angle-down', 0.5)),
+    JOUES_CREUSES: (('cheek/l-cheek-bones-incr', 1.0), ('cheek/r-cheek-bones-incr', 1.0),
+                    ('cheek/l-cheek-volume-decr', 1.0), ('cheek/r-cheek-volume-decr', 1.0),
+                    ('cheek/l-cheek-inner-decr', 0.5), ('cheek/r-cheek-inner-decr', 0.5)),
+    VISAGE_LONG: (('chin/chin-height-incr', 1.0), ('chin/chin-jaw-drop-incr', 0.5)),
 }
 """Traits du visage, par clé de forme : les cibles de MakeHuman (`targets/` du pack) et leur poids. Illustration : le
 Sorcier (LDB folio 92, hors dépôt), nez long et fort, arcades basses et saillantes, pommette haute sur une joue creuse,
@@ -291,5 +292,5 @@ def construire(D, materiaux, b):
         delta = vers_blender(cible(liste)) * echelle
         poser_la_cle(piece, nom, np.concatenate([np.zeros((len(bord), 3))] + [lu(delta) for lu in lus]))
     de_peau = np.array([tri for tri in orientes if M.parties[tri[0]] == 'peau'])
-    poser_la_cle(piece, 'visage_inverse', visage_inverse(P, range(len(bord), peau), np.arange(peau, len(P)), de_peau, H))
+    poser_la_cle(piece, VISAGE_INVERSE, visage_inverse(P, range(len(bord), peau), np.arange(peau, len(P)), de_peau, H))
     return piece

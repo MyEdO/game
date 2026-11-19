@@ -42,7 +42,7 @@ const BASE: BaseDUnElement = {
 
 /** Les matériaux du GLB de test, un par surface que nomment les manifestes de ce fichier. */
 const MATERIAUX = ['tissu', 'cuir', 'plaque', 'poil', 'peau'];
-const glbAvec = (os: string | null, sansUv: readonly string[] = [], formes: readonly string[] = []) => glbDElement(os, MATERIAUX, sansUv, { formes });
+const glbAvec = (os: string | null, sansUv: readonly string[] = [], shapeKeys: readonly string[] = []) => glbDElement(os, MATERIAUX, sansUv, { shapeKeys });
 const OCTETS = glbAvec('hand_r');
 /** Le GLB dont le mesh reste à la racine de la scène, celui d'un élément sans base. */
 const A_LA_RACINE = glbAvec(null);
@@ -82,13 +82,13 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
 };
 
 const aUneBase = (categorie: CategorieDElement) => REGLES_DES_CATEGORIES[categorie].base;
-/** Les shape keys que déclare le manifeste `brut` (`silhouettes`, `formes`). */
-const declarees = (brut: unknown): string[] => (brut !== null && typeof brut === 'object' ? [...new Set(['silhouettes', 'formes'].flatMap((champ) => {
+/** Les shape keys que déclare le manifeste `brut` (`silhouettes`, `formesDeTete`). */
+const shapeKeysDeclarees = (brut: unknown): string[] => (brut !== null && typeof brut === 'object' ? [...new Set(['silhouettes', 'formesDeTete'].flatMap((champ) => {
   const v = (brut as Record<string, unknown>)[champ];
   return Array.isArray(v) ? v.filter((e): e is string => typeof e === 'string') : [];
 }))] : []);
 /** Le GLB de test de `brut` : à la racine sans base, sinon pendu à `hand_r` et portant les shape keys qu'il déclare. */
-const octetsDe = (brut: unknown) => (estSansBase(brut) ? A_LA_RACINE : glbAvec('hand_r', [], declarees(brut)));
+const octetsDe = (brut: unknown) => (estSansBase(brut) ? A_LA_RACINE : glbAvec('hand_r', [], shapeKeysDeclarees(brut)));
 const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unknown> = {}, octets = octetsDe({ categorie, ...VALIDES[categorie], ...surcharge })) =>
   ({ schema: 3, ...(aUneBase(categorie) ? { base: 'humanoide' } : {}), ...VALIDES[categorie], glb: empreinte(octets), ...surcharge });
 /** Le verdict de `brut` contre `BASE`, ou seul s'il est sans base, comme `validerModele`. */
@@ -129,13 +129,13 @@ describe('validerElement : un manifeste valide par catégorie', () => {
 });
 
 describe('validerElement : les surfaces se lisent sur tout nœud à mesh, pas seulement le mesh pendu', () => {
-  const plaque = glbDElement('hand_r', ['tissu'], [], { garde: [{ materiau: 'plaque', uv: true }], formes: ['feminin'] });
+  const plaque = glbDElement('hand_r', ['tissu'], [], { garde: [{ materiau: 'plaque', uv: true }], shapeKeys: ['feminin'] });
   it('un matériau porté par un second nœud à mesh est une surface du GLB', () => {
     const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, plaque);
     expect(verdict(blason, plaque)).toEqual({ ok: true, manifeste: blason });
   });
   it('une primitive sans `TEXCOORD_0` sous un second nœud à mesh refuse l’emblème', () => {
-    const octets = glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: false }], formes: ['feminin'] });
+    const octets = glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: false }], shapeKeys: ['feminin'] });
     expect(codes(...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, octets))).toEqual(['uv-absente']);
   });
 });
@@ -187,10 +187,10 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', 'poids sans l’os de l’emplacement', manifeste('accessoire', { emplacements: { dos: { os: 'spine_01', position: [0, 0, 0], rotation: [0, 0, 0], poids: { pelvis: 1 } } } })],
   ['forme', 'case de rang 1, que l’emplacement nomme seul', manifeste('accessoire', { emplacements: { 'dos#1': { os: 'spine_01', position: [0, 0, 0], rotation: [0, 0, 0] } } })],
   ['silhouette-absente', 'shape key que la base ne porte pas', manifeste('tete', { silhouettes: ['visage_inverse'] })],
-  ['forme-de-tete-inconnue', 'forme hors des formes de la tête', manifeste('tete', { formes: ['nez_crochu'] })],
-  ['champ-hors-categorie', '`formes` sur un rigide', ...surGlb('rigide', { formes: ['visage_inverse'] }, OCTETS)],
-  ['forme-du-glb-non-declaree', 'shape key du GLB que le manifeste ne déclare pas', ...surGlb('tete', {}, glbAvec('hand_r', [], ['feminin', 'visage_inverse']))],
-  ['forme-du-glb-absente', 'forme déclarée que le GLB ne porte pas', ...surGlb('tete', { formes: ['visage_inverse'] }, glbAvec('hand_r', [], ['feminin']))],
+  ['forme-de-tete-inconnue', 'forme hors des formes de la tête', manifeste('tete', { formesDeTete: ['nez_crochu'] })],
+  ['champ-hors-categorie', '`formesDeTete` sur un rigide', ...surGlb('rigide', { formesDeTete: ['visage_inverse'] }, OCTETS)],
+  ['shape-key-non-declaree', 'shape key du GLB que le manifeste ne déclare pas', ...surGlb('tete', {}, glbAvec('hand_r', [], ['feminin', 'visage_inverse']))],
+  ['shape-key-absente', 'forme déclarée que le GLB ne porte pas', ...surGlb('tete', { formesDeTete: ['visage_inverse'] }, glbAvec('hand_r', [], ['feminin']))],
   ['champ-hors-categorie', '`postes` sur un décor', manifeste('decor', { postes: {} })],
   ['forme', 'poste sans triplet', manifeste('vehicule', { postes: { babord: [[3, 1.95]] } })],
   ['bord-inconnu', 'poste à un bord qui n’en est pas un', manifeste('vehicule', { postes: { flanc: [[3, 1.95, 0]] } })],
@@ -228,7 +228,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', 'blason sans emplacement de palette', manifeste('armure', { surfaces: [{ nom: 'plaque', blason: true }] })],
   ['surface-absente', 'surface qu’aucun matériau du GLB ne nomme', manifeste('rigide', { surfaces: [{ nom: 'bois', palette: 'bois' }] })],
   ['uv-absente', 'blason sur une surface sans `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, glbAvec('hand_r', ['plaque'], ['feminin']))],
-  ['uv-absente', 'blason sur une surface dont une primitive sur deux a `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, glbDElement('hand_r', MATERIAUX, [], { mixtes: ['plaque'], formes: ['feminin'] }))],
+  ['uv-absente', 'blason sur une surface dont une primitive sur deux a `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, glbDElement('hand_r', MATERIAUX, [], { mixtes: ['plaque'], shapeKeys: ['feminin'] }))],
   ['uv-absente', 'matière hors blason sur une surface sans `TEXCOORD_0` d’un élément qui a une base (#4313)', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 'prop--fer-noirci' }] }, glbAvec('hand_r', ['plaque'], ['feminin']))],
   ['rigide-sans-mesh', 'rigide sans mesh', ...surGlb('rigide', { surfaces: [] }, GLB_DE_BASE)],
   ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbAvec('main_gauche'))],
@@ -244,7 +244,7 @@ describe('validerElement : chaque refus nommé', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true, 'emplacement-inconnu': true,
-      'silhouette-absente': true, 'forme-de-tete-inconnue': true, 'forme-du-glb-non-declaree': true, 'forme-du-glb-absente': true, 'bord-inconnu': true, 'etat-absent': true, 'selon-absent': true, 'matiere-inconnue': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
+      'silhouette-absente': true, 'forme-de-tete-inconnue': true, 'shape-key-non-declaree': true, 'shape-key-absente': true, 'bord-inconnu': true, 'etat-absent': true, 'selon-absent': true, 'matiere-inconnue': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
       'seconde-prise-sans-prise': true,
     };
@@ -256,24 +256,24 @@ describe('validerElement : chaque refus nommé', () => {
 describe('validerElement : les shape keys du GLB, ni plus ni moins que celles du manifeste et les clés de gabarit de la base (#4413)', () => {
   const CLE = 'gabarit_head_plus';
   const juge = (brut: unknown, octets: Uint8Array) => validerElement(brut, { ...BASE, clesDuGabarit: [CLE] }, octets, lireGlb(octets));
-  it('une tête déclare `visage_inverse` en `formes`, que son GLB porte avec ses silhouettes et la clé de gabarit de la base', () => {
-    const [tete, octets] = surGlb('tete', { formes: ['visage_inverse'] }, glbAvec('hand_r', [], ['feminin', 'visage_inverse', CLE]));
+  it('une tête déclare `visage_inverse` en `formesDeTete`, que son GLB porte avec ses silhouettes et la clé de gabarit de la base', () => {
+    const [tete, octets] = surGlb('tete', { formesDeTete: ['visage_inverse'] }, glbAvec('hand_r', [], ['feminin', 'visage_inverse', CLE]));
     expect(juge(tete, octets)).toEqual({ ok: true, manifeste: tete });
   });
   it.each(['pilosite', 'armure', 'vetement'] as const)('une pièce `%s` déclare les formes de la tête qu’elle suit', (categorie) => {
-    const formes = [...declarees(VALIDES[categorie]), 'visage_inverse', CLE];
-    const [piece, octets] = surGlb(categorie, { formes: ['visage_inverse'] }, glbAvec('hand_r', [], formes));
+    const shapeKeys = [...shapeKeysDeclarees(VALIDES[categorie]), 'visage_inverse', CLE];
+    const [piece, octets] = surGlb(categorie, { formesDeTete: ['visage_inverse'] }, glbAvec('hand_r', [], shapeKeys));
     expect(juge(piece, octets)).toEqual({ ok: true, manifeste: piece });
   });
   it('une pièce skinnée dont le GLB ne porte pas une clé de gabarit de la base est refusée, la clé nommée', () => {
     const [pilosite, octets] = surGlb('pilosite', {}, glbAvec('hand_r'));
-    expect(juge(pilosite, octets)).toEqual({ ok: false, ecarts: [{ code: 'forme-du-glb-absente', ou: 'glb', detail: `${CLE}, déclarée ou clé de gabarit de la base \`humanoide\`, n’est aucune shape key du GLB` }] });
+    expect(juge(pilosite, octets)).toEqual({ ok: false, ecarts: [{ code: 'shape-key-absente', ou: 'glb', detail: `${CLE}, déclarée ou clé de gabarit de la base \`humanoide\`, n’est aucune shape key du GLB` }] });
   });
   it('un élément en liaison `rigide` ne porte aucune clé de gabarit', () => {
     const [rigide, octets] = surGlb('rigide', {}, OCTETS);
     expect(juge(rigide, octets).ok).toBe(true);
     const [porteCle, avecCle] = surGlb('rigide', {}, glbAvec('hand_r', [], [CLE]));
-    expect(juge(porteCle, avecCle)).toEqual({ ok: false, ecarts: [{ code: 'forme-du-glb-non-declaree', ou: 'glb', detail: `la shape key ${CLE} du GLB n’est ni une silhouette ni une forme déclarée, ni une clé de gabarit de la base \`humanoide\` portée en liaison \`rigide\`` }] });
+    expect(juge(porteCle, avecCle)).toEqual({ ok: false, ecarts: [{ code: 'shape-key-non-declaree', ou: 'glb', detail: `la shape key ${CLE} du GLB n’est ni une silhouette ni une forme de la tête déclarée, ni une clé de gabarit de la base \`humanoide\` portée en liaison \`rigide\`` }] });
   });
 });
 

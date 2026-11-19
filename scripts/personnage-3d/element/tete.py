@@ -36,6 +36,7 @@ from mathutils.geometry import delaunay_2d_cdt
 from mathutils.kdtree import KDTree
 
 from formes import decalages, poser_la_cle
+from noms_formes_de_tete import VISAGE_INVERSE
 from tissu import Maillage, direction_spatiale, emprunter, fondu, maillage_skinne, poids_normalises, porteur_de, sur_le_porteur
 
 POLE = np.array([0.0, 0.0, 1.0])
@@ -549,5 +550,5 @@ def construire(D, materiaux, b):
         if tourne:
             p = X[sommets]
             retourne[sommets] = np.column_stack([-p[:, 0], p[:, 1], 2 * (H[2] + z_axe) - p[:, 2]]) - p
-    poser_la_cle(piece, 'visage_inverse', retourne)
+    poser_la_cle(piece, VISAGE_INVERSE, retourne)
     return piece
