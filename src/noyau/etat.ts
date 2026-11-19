@@ -79,6 +79,7 @@ import { initialFields } from './stateFields';
 import type { NarratifBlock, OuvertureBlock } from '../data/schemas/defs-scenes/narratif';
 import type { ChapitreDepuis, ChapterRecap } from './chapitreRecap';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { EtatDeContagion } from './expositionAMaladie';
 
 /** Source unique des écrans valides — `Ecran` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
@@ -742,7 +743,7 @@ export interface EtatDeJeu {
   /** Dernier jour (index d'horloge) traité par l'entretien quotidien (rations/faim) — anti-double-comptage. */
   lastUpkeepDay: number;
   /** Fenêtres ouvertes et repères de phase observés chez leurs sources. LDB 20 l.12-13, l.206 */
-  etatDeContagion: import('./expositionAMaladie').EtatDeContagion;
+  etatDeContagion: EtatDeContagion;
   /** Budget d'heures de voyage CONSOMMÉ le jour calendaire courant (#340) — SOURCE UNIQUE keyée sur
    *  `dayIndex(gameTime)`, remise à zéro au franchissement de jour. `foot`/`mount` = heures à pied / en
    *  selle déjà parcourues aujourd'hui (le budget RAW de 6 h se compte PAR JOUR, pas par trajet) ;
