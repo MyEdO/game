@@ -7,6 +7,7 @@
  * vit hors du store. Les lectures (outil, sélection, picking, emprise du pinceau) vivent dans
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
+import type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 import {
   ActionAuthoree,
   DEFAULT_TERRAIN,
@@ -39,14 +40,15 @@ import {
   ArchitecturePart,
   type ArchitectureStorey,
   type FacadeFeature,
-  ArchitectureRect,
   FacadeSection,
   BuildingMass,
   RoofDefaults,
   ZoneArea,
   type SceneDesToits,
+  rectJouable,
 } from './monde/scene';
 import { aretesA } from './monde/wallIndex';
+import { translaterLaScene } from './translationDeLaScene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
@@ -114,7 +116,7 @@ import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
 import { tileKey, type Pt as ScenePt } from './monde/path';
 import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
 import { entiteFootTiles } from './monde/spawn';
-import { actionNeuve } from './monde/usable';
+import { actionNeuve, aUnRoleEnJeu } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
 import { ancreDuDecor } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
@@ -151,10 +153,9 @@ import {
 } from './sceneEditLecture';
 import { tableTotale } from '../lib/tableTotale';
 
-export type Rect = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
 
-function boundedRect(scene: Scene, rect: Rect): Rect {
+function boundedRect(scene: Scene, rect: RectDeCases): RectDeCases {
   const w = Math.max(1, Math.min(rect.w, scene.dimensions.w));
   const h = Math.max(1, Math.min(rect.h, scene.dimensions.h));
   return {
@@ -163,6 +164,17 @@ function boundedRect(scene: Scene, rect: Rect): Rect {
     w,
     h,
   };
+}
+
+/** Pose la zone jouable de `scene` au rectangle `rect` plafonné à la grille (`boundedRect`) ; `null`, ou un rectangle qui
+ *  couvre toute la grille, la retire : toute la carte se joue (`rectJouable`). #4392 */
+export function setZoneJouable(scene: Scene, rect: RectDeCases | null): Scene {
+  const r = rect && boundedRect(scene, rect);
+  const { zoneJouable: _avant, ...toute } = scene;
+  if (!r || (r.w === scene.dimensions.w && r.h === scene.dimensions.h)) return _avant ? toute : scene;
+  const a = scene.zoneJouable;
+  if (a && a.x === r.x && a.y === r.y && a.w === r.w && a.h === r.h) return scene;
+  return { ...scene, zoneJouable: { x: r.x, y: r.y, w: r.w, h: r.h } };
 }
 
 /** Réécrit le corps `bodyId` par `update`. No-op si le corps est absent. */
@@ -187,7 +199,7 @@ export function poseToitureDuCorps(scene: Scene, bodyId: string, champ: keyof Ro
 type ExclusionDeToiture = NonNullable<ArchitectureBody['roofExclusions']>[number];
 
 /** Ajoute au corps une exclusion de toiture sur `rect` (plafonné à la carte), à l'étage `z`, et re-dérive ses masses. */
-export function addRoofExclusion(scene: Scene, bodyId: string, z: number, rect: Rect): Scene {
+export function addRoofExclusion(scene: Scene, bodyId: string, z: number, rect: RectDeCases): Scene {
   return rederiveRoofMasses(updateArchitectureBody(scene, bodyId, (body) => ({
     ...body,
     roofExclusions: [...(body.roofExclusions ?? []), { z, rect: boundedRect(scene, rect) }],
@@ -326,7 +338,7 @@ export function patchBuildingMass(scene: Scene, bodyId: string, massId: string, 
  *  volume (`resizeSel`) au lieu de partir d'un corps qui revendique toute la scène.
  *  `style` est le TYPE de bâtiment (`buildings.json`), OPTIONNEL au schéma : un corps qui n'en porte
  *  aucun est un bâti sans type (bourg, hameau, corps composite). */
-export function addArchitectureBody(scene: Scene, style: ArchitectureBody['style'], foot: Rect): { scene: Scene; id: string; storeyId: string } {
+export function addArchitectureBody(scene: Scene, style: ArchitectureBody['style'], foot: RectDeCases): { scene: Scene; id: string; storeyId: string } {
   const id = nextEntityId('architecture', (scene.architecture ?? []).map((body) => body.id));
   const part: ArchitecturePart = { id: nextEntityId('part', []), foot: boundedRect(scene, foot) };
   const body: ArchitectureBody = { id, ...(style === undefined ? {} : { style }), storeys: [{ id: 'z0', z: 0, parts: [part], roomZoneIds: [] }], facades: [], masses: [] };
@@ -354,7 +366,7 @@ export function addStoreyAbove(scene: Scene, bodyId: string): { scene: Scene; id
   return out && { scene: addLayer(out.scene, z), id: out.id, z };
 }
 
-export function addArchitecturePart(scene: Scene, bodyId: string, storeyId: string, foot: Rect): { scene: Scene; id: string } | null {
+export function addArchitecturePart(scene: Scene, bodyId: string, storeyId: string, foot: RectDeCases): { scene: Scene; id: string } | null {
   const body = scene.architecture?.find((candidate) => candidate.id === bodyId);
   const storey = body?.storeys.find((candidate) => candidate.id === storeyId);
   if (!body || !storey) return null;
@@ -378,7 +390,7 @@ export function addFacadeSection(scene: Scene, bodyId: string, edge: Architectur
   return { scene: updateArchitectureBody(scene, bodyId, (candidate) => ({ ...candidate, facades: [...candidate.facades, section] })), id };
 }
 
-export function addBuildingMass(scene: Scene, bodyId: string, foot: Rect, z: number): { scene: Scene; id: string } | null {
+export function addBuildingMass(scene: Scene, bodyId: string, foot: RectDeCases, z: number): { scene: Scene; id: string } | null {
   const body = scene.architecture?.find((candidate) => candidate.id === bodyId);
   if (!body) return null;
   const id = nextEntityId('masse', body.masses.map((mass) => mass.id));
@@ -398,7 +410,7 @@ export function addBuildingMass(scene: Scene, bodyId: string, foot: Rect, z: num
 }
 
 /** Rectangle inclusif englobant deux cases (drag de zone/bâtiment/remplissage). */
-export function rectFrom(a: Pt, b: Pt): Rect {
+export function rectFrom(a: Pt, b: Pt): RectDeCases {
   return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x) + 1, h: Math.abs(a.y - b.y) + 1 };
 }
 
@@ -418,7 +430,7 @@ export function paintTiles(scene: Scene, p: Pt, terrain: Terrain, brush: number,
 }
 
 /** Remplit un rectangle de terrain (sous-mode Rectangle), sur la couche `z` (défaut base). */
-export function fillTerrainRect(scene: Scene, rect: Rect, terrain: Terrain, z = 0): Scene {
+export function fillTerrainRect(scene: Scene, rect: RectDeCases, terrain: Terrain, z = 0): Scene {
   const { w, h } = scene.dimensions;
   const tiles = [...layerTiles(scene, z)];
   for (let y = rect.y; y < rect.y + rect.h; y++)
@@ -440,25 +452,38 @@ export function fillTerrainRect(scene: Scene, rect: Rect, terrain: Terrain, z = 
  * La pose passe par `putLayer`, jamais par une reconstruction directe de `layers` : le CARDINAL de la
  * grille (#1789) est gardé là et nulle part ailleurs. Les nouvelles dimensions sont posées D'ABORD,
  * c'est contre elles que le cardinal se mesure. PUR — l'éditeur n'en tient que l'appel.
+ *
+ * `decalage` place l'ancienne grille dans la nouvelle : la case (x,y) va en (x+dx, y+dy), et tout ce que la scène
+ * positionne la suit (`translaterLaScene`) ; la zone jouable est rognée à la nouvelle grille, retirée si rien n'en
+ * reste. #4392
  */
-export function resizeGrid(scene: Scene, w: number, h: number): Scene {
-  return scene.layers.reduce<Scene>((s, layer) => {
+export function resizeGrid(scene: Scene, w: number, h: number, decalage: { x: number; y: number } = { x: 0, y: 0 }): Scene {
+  const { x: dx, y: dy } = decalage;
+  const retissee = scene.layers.reduce<Scene>((s, layer) => {
     const semence: Terrain = layer.z === 0 ? DEFAULT_TERRAIN : terrainAbsent();
     const tiles = new Array(w * h).fill(semence) as Terrain[];
     const height = new Array(w * h).fill(0) as number[];
     const crenellated = new Array(w * h).fill(null) as (string | null)[];
     let hasHeight = false;
     let hasCrenellated = false;
-    for (let y = 0; y < Math.min(h, scene.dimensions.h); y++)
-      for (let x = 0; x < Math.min(w, scene.dimensions.w); x++) {
-        tiles[y * w + x] = tileAt(scene, x, y, layer.z);
+    for (let y = Math.max(0, -dy); y < Math.min(scene.dimensions.h, h - dy); y++)
+      for (let x = Math.max(0, -dx); x < Math.min(scene.dimensions.w, w - dx); x++) {
+        const i = (y + dy) * w + x + dx;
+        tiles[i] = tileAt(scene, x, y, layer.z);
         const hv = heightAt(scene, x, y, layer.z);
-        if (hv) { height[y * w + x] = hv; hasHeight = true; }
+        if (hv) { height[i] = hv; hasHeight = true; }
         const cv = crenellatedAt(scene, x, y, layer.z);
-        if (cv) { crenellated[y * w + x] = cv; hasCrenellated = true; }
+        if (cv) { crenellated[i] = cv; hasCrenellated = true; }
       }
     return putLayer(s, layer.z, tiles, hasHeight ? height : undefined, hasCrenellated ? crenellated : undefined);
   }, { ...scene, dimensions: { w, h }, layers: [] });
+  const translatee = translaterLaScene(retissee, dx, dy);
+  const zone = translatee.zoneJouable;
+  if (!zone) return translatee;
+  const x0 = Math.max(0, zone.x), y0 = Math.max(0, zone.y);
+  const x1 = Math.min(w, zone.x + zone.w), y1 = Math.min(h, zone.y + zone.h);
+  const { zoneJouable: _rognee, ...sansZone } = translatee;
+  return x1 <= x0 || y1 <= y0 ? sansZone : { ...translatee, zoneJouable: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } };
 }
 
 /** Ajoute une couche à la cote `z` (grille « vide » = transparente, à construire), triée par z. No-op si
@@ -671,21 +696,26 @@ export function setEffectZoneArea(zone: SceneEffectZone, area: ZoneArea): SceneE
 function clamp(v: number, max: number): number {
   return Math.max(0, Math.min(max - 1, v));
 }
-/** Case `p` plafonnée à la carte et ramenée à une case entière — la convention de pose du noyau : un geste
- *  hors carte se pose au bord. */
-export function borneALaCarte(scene: Scene, p: Pt): Pt {
-  return { x: clamp(Math.floor(p.x), scene.dimensions.w), y: clamp(Math.floor(p.y), scene.dimensions.h) };
+/** Case `p` plafonnée et ramenée à une case entière — la convention de pose du noyau : un geste hors borne se pose
+ *  au bord. La borne est la zone jouable (`rectJouable`) pour ce qui se joue (`jouable` : entité à rôle,
+ *  `aUnRoleEnJeu`, ou point d'entrée), la grille pour un pur décor. */
+export function borneALaCarte(scene: Scene, p: Pt, jouable: boolean): Pt {
+  const r = jouable ? rectJouable(scene) : { x: 0, y: 0, ...scene.dimensions };
+  return { x: r.x + clamp(Math.floor(p.x) - r.x, r.w), y: r.y + clamp(Math.floor(p.y) - r.y, r.h) };
 }
 
 
-/** Déplace la sélection vers `to` (clampée dans la carte). Scene inchangée si sélection invalide. */
+/** Déplace la sélection vers `to` (entité et point d'entrée bornés par `borneALaCarte`, le reste à la carte). Scene inchangée si sélection invalide. */
 export function moveSel(scene: Scene, sel: Sel, to: Pt): Scene {
   const { w, h } = scene.dimensions;
-  if (sel?.type === 'entity') return moveEntityTo(scene, sel.id, borneALaCarte(scene, to));
+  if (sel?.type === 'entity') {
+    const ent = scene.entities.find((e) => e.id === sel.id);
+    return ent ? moveEntityTo(scene, sel.id, borneALaCarte(scene, to, aUnRoleEnJeu(scene, ent))) : scene;
+  }
   if (sel?.type === 'entry') {
     const pos = scene.entryPoints?.[sel.id];
     if (!pos) return scene;
-    return { ...scene, entryPoints: { ...scene.entryPoints, [sel.id]: { ...pos, ...borneALaCarte(scene, to) } } };
+    return { ...scene, entryPoints: { ...scene.entryPoints, [sel.id]: { ...pos, ...borneALaCarte(scene, to, true) } } };
   }
   if (sel?.type === 'trigger')
     return {
@@ -841,13 +871,14 @@ export function changePropRef(scene: Scene, propId: string, ref: string): Scene 
 }
 
 /** Pose une entité à p (id frais) depuis l'OUTIL tel que la palette le porte — il tient déjà le décor
- *  ou la fiche élue : aucun cas muet ne subsiste ici. Les props appliquent leurs défauts de catalogue
+ *  ou la fiche élue : aucun cas muet ne subsiste ici. Le départ des héros, qui se joue, se borne à la zone jouable
+ *  (`borneALaCarte`). Les props appliquent leurs défauts de catalogue
  *  (empreinte, interactif si fouillable) et se posent au point visé `point` (`poseAuPoint` : case, calage, appui) ;
  *  un personnage porte sa fiche en `creature` et le libellé de la fiche, son apparence se dérive du record (#1882). Une
  *  fiche absente du bestiaire lève. */
 export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point: Pt = p): { scene: Scene; id: string } {
   const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
-  const base: SceneEntity = { id, kind: outil.kind, pos: { ...p } };
+  const base: SceneEntity = { id, kind: outil.kind, pos: borneALaCarte(scene, p, outil.kind === 'heroStart') };
   if (outil.kind === 'personnage' && !findCreatureById(outil.ref))
     throw new Error(`placeEntity : « ${outil.ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
   // #1463 S3 · #1882 : `nomDEntite`.
@@ -906,12 +937,12 @@ export function propRefPatch(ref: string, avant: Pick<SceneEntity, 'usable' | 'f
   return { decor: { id: ref }, ...cap };
 }
 
-/** Colle une copie de `data` (id frais) à la case p plafonnée à la carte (`borneALaCarte`, comme
+/** Colle une copie de `data` (id frais) à la case p plafonnée selon son rôle (`borneALaCarte`, comme
  *  `moveSel`), sur la couche `z` (défaut 0 — jamais le z SOURCE de l'entité copiée, cf. #835 FU-3 :
  *  coller reprend la couche ACTIVE de l'éditeur). */
 export function pasteEntity(scene: Scene, data: SceneEntity, p: Pt, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId(data.kind, scene.entities.map((e) => e.id));
-  const ent: SceneEntity = { ...(JSON.parse(JSON.stringify(data)) as SceneEntity), id, pos: borneALaCarte(scene, p) };
+  const ent: SceneEntity = { ...(JSON.parse(JSON.stringify(data)) as SceneEntity), id, pos: borneALaCarte(scene, p, aUnRoleEnJeu(scene, data)) };
   return { scene: addEntity(scene, ent, z), id };
 }
 
@@ -950,12 +981,12 @@ export function poserUneTroupe(scene: Scene, ent: SceneEntity, n: number): { sce
   return { scene: { ...posee, encounters }, ids };
 }
 
-/** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la carte comme
+/** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la zone jouable comme
  *  `editEntry` (`borneALaCarte`), sur l'étage `z` (défaut 0). Les transitions et la carte du monde le
  *  référencent par son id (#835 FU-5). */
 export function placeEntry(scene: Scene, p: Pt, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId('entree', Object.keys(scene.entryPoints ?? {}));
-  return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, p), ...(z ? { z } : {}) } } }, id };
+  return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, p, true), ...(z ? { z } : {}) } } }, id };
 }
 
 /** Renomme un point d'entrée (clé unique, non vide). Renvoie la scène inchangée si conflit. */
@@ -968,7 +999,7 @@ export function renameEntry(scene: Scene, from: string, to: string): Scene {
 }
 
 /** Crée un trigger sur `rect`, à l'étage `z` (id frais). */
-export function addTrigger(scene: Scene, rect: Rect, z = 0): { scene: Scene; id: string } {
+export function addTrigger(scene: Scene, rect: RectDeCases, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId('trig', scene.triggers.map((t) => t.id));
   return { scene: { ...scene, triggers: [...scene.triggers, { id, rect: { ...rect, ...(z ? { z } : {}) }, once: true, flow: EMPTY_FLOW }] }, id };
 }
@@ -1094,7 +1125,7 @@ export function poseBlocsAvances(scene: Scene, blocs: { dialogues?: Dialogue[]; 
 }
 
 /** Crée une zone de repos sur `rect`, à l'étage `z` (camp par défaut — lieux/qualité éditables dans l'inspecteur). */
-export function addRestZone(scene: Scene, rect: Rect, z = 0): { scene: Scene; idx: number } {
+export function addRestZone(scene: Scene, rect: RectDeCases, z = 0): { scene: Scene; idx: number } {
   const zones = [...(scene.restZones ?? []), { rect: { ...rect, ...(z ? { z } : {}) }, places: reposDeScene({}) }];
   return { scene: { ...scene, restZones: zones }, idx: zones.length - 1 };
 }
@@ -1583,7 +1614,7 @@ export const sansVide = <T extends object>(v: T | null): T | undefined => (v && 
 export const coucheEcrite = (z: number): number | undefined => z || undefined;
 
 /** Le rectangle `r` porté à la couche `z` (`z` omis au rez). */
-const rectALaCouche = (r: Rect, z: number) => ({ x: r.x, y: r.y, w: r.w, h: r.h, ...(z ? { z } : {}) });
+const rectALaCouche = (r: RectDeCases, z: number) => ({ x: r.x, y: r.y, w: r.w, h: r.h, ...(z ? { z } : {}) });
 
 /** La zone d'effet `zone` portée à la couche `z`, son emprise découpée avec elle. */
 function zoneDEffetALaCouche(zone: SceneEffectZone, z: number): SceneEffectZone {
@@ -1644,7 +1675,7 @@ export const replaceEffectZone = (scene: Scene, id: string, zone: SceneEffectZon
 /** Crée une ZONE D'EFFET sur `rect`, à l'étage `z` (id frais pour le rendu/sélection). Tout ce que la
  *  zone PORTE vient de `seed` : sans seed, elle naît DESCRIPTIVE (`isDescriptiveZone`) et libellée par
  *  son id, renommable dans l'inspecteur. */
-export function addEffectZone(scene: Scene, rect: Rect, z = 0, seed: EffectZoneSeed = {}): { scene: Scene; id: string } {
+export function addEffectZone(scene: Scene, rect: RectDeCases, z = 0, seed: EffectZoneSeed = {}): { scene: Scene; id: string } {
   const id = nextEntityId('zone', (scene.effectZones ?? []).map((ez) => ez.id));
   const zones = [
     ...(scene.effectZones ?? []),
@@ -1726,7 +1757,8 @@ export function patchMember(scene: Scene, encId: string, entityId: string, patch
   };
 }
 
-/** Outil « combat » : POSE une entité-personnage de combat (cachée par défaut) à p, sur la couche `z`,
+/** Outil « combat » : POSE une entité-personnage de combat (cachée par défaut) à p bornée à la zone jouable
+ *  (`borneALaCarte` : elle se joue), sur la couche `z`,
  *  ET l'enrôle dans la rencontre `encId` (créée si absente). `ref` = id STABLE d'une créature du
  *  bestiaire : la primitive VALIDE (fail-fast si l'id ne résout pas), elle ne normalise pas — un
  *  libellé passé à la place d'un id est une erreur d'appelant, jamais un cas à rattraper. Le nom
@@ -1745,7 +1777,7 @@ export function addEnemyMember(scene: Scene, encId: string, ref: string, p: Pt, 
   const ent: SceneEntity = {
     id,
     kind: 'personnage',
-    pos: { ...p },
+    pos: borneALaCarte(scene, p, true),
     combat: { hiddenUntilCombat: true },
     creature: { id: ref },
   };
@@ -1794,24 +1826,27 @@ export function renameScene<R extends Pick<Scene, 'id'>>(racine: R, autres: read
   return { ...racine, id: next };
 }
 
-/** Réécrit le point d'entrée `id` : sa case est plafonnée à la carte et ramenée à une case entière
+/** Réécrit le point d'entrée `id` : sa case est plafonnée à la zone jouable et ramenée à une case entière
  *  (`borneALaCarte`, comme `moveSel`) ; l'étage 0 est implicite. No-op si l'entrée est absente. */
 export function editEntry(scene: Scene, id: string, patch: { x?: number; y?: number; z?: number }): Scene {
   const pos = scene.entryPoints?.[id];
   if (!pos) return scene;
   const { z, ...case_ } = { ...pos, ...patch };
-  return { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, case_), ...(z ? { z } : {}) } } };
+  return { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, case_, true), ...(z ? { z } : {}) } } };
 }
 
-/** Ajoute une ancre de bataille vers la Scène de Round `sceneId`, à la case (0,0). */
+/** Ajoute une ancre de bataille vers la Scène de Round `sceneId`, à l'origine de la zone jouable (`rectJouable`). */
 export function addStation(scene: Scene, sceneId: string): Scene {
-  return { ...scene, stations: [...(scene.stations ?? []), { sceneId, pos: { x: 0, y: 0 } }] };
+  const { x, y } = rectJouable(scene);
+  return { ...scene, stations: [...(scene.stations ?? []), { sceneId, pos: { x, y } }] };
 }
 
-/** Patche l'ancre de bataille d'indice `i` ; la scène telle quelle sans elle. */
+/** Patche l'ancre de bataille d'indice `i`, sa case plafonnée à la zone jouable (`borneALaCarte`, comme `editEntry`) ; la
+ *  scène telle quelle sans elle. */
 export function patchStation(scene: Scene, i: number, patch: Partial<SceneStationAnchor>): Scene {
   const stations = scene.stations ?? [];
-  return i in stations ? { ...scene, stations: stations.map((st, j) => (j === i ? { ...st, ...patch } : st)) } : scene;
+  const borne = (st: SceneStationAnchor): SceneStationAnchor => (patch.pos ? { ...st, pos: borneALaCarte(scene, patch.pos, true) } : st);
+  return i in stations ? { ...scene, stations: stations.map((st, j) => (j === i ? borne({ ...st, ...patch }) : st)) } : scene;
 }
 
 /** Retire l'ancre de bataille d'indice `i` ; la dernière retirée, le champ quitte le document. La scène telle quelle
@@ -2191,7 +2226,7 @@ export const ROOF_GABLE_SPAN_MAX_M = 8;
 function vkey(x: number, y: number): string { return `${x},${y}`; }
 
 /** Cellules d'une emprise de masse. */
-function footprintCells(footprint: readonly ArchitectureRect[]): Set<string> {
+function footprintCells(footprint: readonly RectDeCases[]): Set<string> {
   const out = new Set<string>();
   for (const rect of footprint)
     for (let y = rect.y; y < rect.y + rect.h; y++)
@@ -2306,7 +2341,7 @@ export function adoptableOpeningsAt(scene: Scene, z: number): ReadonlySet<string
  *  basse. Départage entièrement DÉTERMINISTE, du plus significatif au moins : aire, puis grand côté
  *  (le faîtage le plus long l'emporte à aire égale), puis `y` le plus petit, puis `x` le plus petit —
  *  aucun aléa, la même emprise rend toujours le même rectangle. `null` si `cells` est vide. */
-function largestRectIn(cells: ReadonlySet<string>): ArchitectureRect | null {
+function largestRectIn(cells: ReadonlySet<string>): RectDeCases | null {
   if (!cells.size) return null;
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const key of cells) {
@@ -2317,8 +2352,8 @@ function largestRectIn(cells: ReadonlySet<string>): ArchitectureRect | null {
   const width = maxX - minX + 1;
   const heights = new Array<number>(width).fill(0);
   const stack: number[] = [];
-  let best: ArchitectureRect | null = null;
-  const beats = (a: ArchitectureRect, b: ArchitectureRect | null): boolean => {
+  let best: RectDeCases | null = null;
+  const beats = (a: RectDeCases, b: RectDeCases | null): boolean => {
     if (!b) return true;
     if (a.w * a.h !== b.w * b.h) return a.w * a.h > b.w * b.h;
     const longA = Math.max(a.w, a.h), longB = Math.max(b.w, b.h);
@@ -2392,9 +2427,9 @@ export function ridgeAxisOf(cells: ReadonlySet<string>): 'x' | 'y' {
  *  exactement (aucun recouvrement, aucune case perdue) : c'est la forme sous laquelle un `footprint`
  *  (liste de rectangles) décrit un corps en L, en U ou en anneau autour d'une cour. DÉTERMINISTE, et
  *  la récurrence termine toujours — une case isolée est encore un rectangle 1×1. */
-export function rectCoverOf(cells: ReadonlySet<string>): ArchitectureRect[] {
+export function rectCoverOf(cells: ReadonlySet<string>): RectDeCases[] {
   const remaining = new Set(cells);
-  const out: ArchitectureRect[] = [];
+  const out: RectDeCases[] = [];
   while (remaining.size) {
     const rect = largestRectIn(remaining)!;
     out.push(rect);
@@ -2685,9 +2720,13 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
 
 /** Valide le rectangle `rect` tracé à l'outil `tool` sur la couche `z` : une zone (déclencheur, repos,
  *  pièce, zone d'effet) qu'il désigne, ou le terrain qu'il remplit. null pour un outil sans rectangle. */
-export function validerRectangle(scene: Scene, tool: Tool, rect: Rect, z: number): EffetDOutil | null {
+export function validerRectangle(scene: Scene, tool: Tool, rect: RectDeCases, z: number): EffetDOutil | null {
   if (tool.mode === 'terrain') return { scene: fillTerrainRect(scene, rect, tool.terrain, z) };
   if (tool.mode !== 'zone') return null;
+  if (tool.zone === 'jouable') {
+    const posee = setZoneJouable(scene, rect);
+    return posee === scene ? null : { scene: posee };
+  }
   if (tool.zone === 'trigger') {
     const out = addTrigger(scene, rect, z);
     return { scene: out.scene, sel: { type: 'trigger', id: out.id } };

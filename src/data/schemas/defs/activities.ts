@@ -20,6 +20,7 @@ import {
   stakeFormSchema,
 } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, stageOutcomeSchema, testFixeSchema } from '../grammaire/mecanique';
+import { weatherIdSchema } from './weather';
 import { refOuSpec, refs } from '../grammaire/ref';
 
 type TestFixe = z.output<typeof testFixeSchema>;
@@ -144,7 +145,7 @@ const doc = document(
       ops: executeesDe(),
       unless: conditionSchema.optional(),
     }), { id: { label: "identifiant" }, label: { label: "nom" }, cible: { label: "cible" }, ops: { label: "opérations" }, unless: { label: "sauf si" } })).optional(),
-    weatherMod: z.record(z.string(), z.number()).optional(),
+    weatherMod: z.partialRecord(weatherIdSchema, z.number()).optional(),
     resolver: activityResolverSchema.optional(),
     onSuccess: executeesDe().optional(),
     outcomes: z.array(outcomeBandSchema).optional(),

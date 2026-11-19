@@ -20,7 +20,7 @@ extends Node3D
 
 ## Le fondu de la vision (`voir`) est parvenu à sa fin, aucune vision n'attendant plus (`part_du_fondu`).
 signal fondu_fini
-## Le masque du retrait a été posé (`retirer`).
+## Ce que le regard retire a changé : le masque du retrait (`retirer`) ou les nappes de toit cachées (`cacher`).
 signal retire
 
 ## La couche de rendu de l'ombre des luminaires (`_morceau`), la deuxième (`VisualInstance3D.layers`), que la lampe d'un
@@ -92,8 +92,9 @@ var _vision_en_attente: Variant = null
 ## liée à la vision comme les nappes.
 var _sols: ImageTexture = null
 var _voiles := {}
-## La matière de la brume de la vision (`brumer`), liée à la vision et aux sols comme un voile, `null` sans elle.
-var _brume: ShaderMaterial = null
+## Les matières de la lumière que la vision voile (`lier_a_la_vision` : la brume de la vision, le sol du hors-carte),
+## liées à la vision et aux sols comme un voile.
+var _liees: Array[ShaderMaterial] = []
 ## Les groupes d'arêtes à teindre à la prochaine image dessinée (`_teindre_le_pose`), chacun en clé, et ceux que chaque
 ## pas du fondu reteint (`avancer_le_fondu`) : ceux dont une case change d'état d'une vision à l'autre
 ## (`_change_d_etat`), tous quand la vision se pose sans fondu (`_mesurer_le_fondu`).
@@ -182,10 +183,15 @@ func retiree(case: Vector2i, rangee: int) -> bool:
 	return _masque != null and _masque.get_pixelv(MiseEnPage.texel_du_masque(case, rangee)).r8 != 0
 
 
-## Si le masque posé (`retirer`) retire la case `case` (sa couche en `z`) du plan `pose` de sa couche
-## (`MiseEnPage.rangee_de_pose`), celui où se rangent les faces d'un décor (`PoseDeDecor.case`). Une case hors du monde
-## posé (`poser`), celle d'une pose du monde précédent que `MontageDesModeles` tient jusqu'à son `poser`, ne l'est pas.
-func posee_retiree(case: Vector3i) -> bool:
+## Si le regard retire la pose d'un décor `pose` (`PoseDeDecor` : `case`, `nappe`) : portée par une nappe de toit,
+## quand elle est cachée (`cacher`), comme ses triangles, que le masque ne lie jamais ; sinon, quand le masque posé
+## (`retirer`) retire sa case (sa couche en `z`) du plan `pose` de sa couche (`MiseEnPage.rangee_de_pose`), celui où
+## se rangent les faces d'un décor. Une case hors du monde posé (`poser`), celle d'une pose du monde précédent que
+## `MontageDesModeles` tient jusqu'à son `poser`, ne l'est pas.
+func pose_retiree(pose: Dictionary) -> bool:
+	if pose.has("nappe"):
+		return _cachees.toits.has(pose.nappe)
+	var case := Vector3i(int(pose.case.x), int(pose.case.y), int(pose.case.z))
 	if _masque == null or not _couches.has(case.z):
 		return false
 	var texel := MiseEnPage.texel_du_masque(Vector2i(case.x, case.y), int(MiseEnPage.rangee_de_pose(_couches[case.z], _rangees_d_une_couche)))
@@ -274,13 +280,13 @@ func _lier_la_vision() -> void:
 		_lier_la_vision_a(matiere)
 
 
-## Les matières qui lisent la vision : celles des morceaux, des nappes, des voiles des navires et de la brume.
+## Les matières qui lisent la vision : celles des morceaux, des nappes, des voiles des navires et de la lumière
+## (`lier_a_la_vision`).
 func _matieres_de_la_vision() -> Array[ShaderMaterial]:
 	var matieres: Array[ShaderMaterial] = []
 	for parmi: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
 		matieres.append_array(parmi.values())
-	if _brume != null:
-		matieres.append(_brume)
+	matieres.append_array(_liees)
 	return matieres
 
 
@@ -330,12 +336,13 @@ func voile(cle: String) -> ShaderMaterial:
 	return _voiles[cle]
 
 
-## La matière `matiere` de la brume de la vision (`Lumiere.brume`, `art/brume-de-la-vision.gdshader`) liée, comme un
-## voile, à la vision posée (`voir`) et au sol de chaque case du volume posé (`_batir_les_sols`), son fondu compris.
-func brumer(matiere: ShaderMaterial) -> void:
-	_brume = matiere
-	_brume.set_shader_parameter("sols", _sols)
-	_lier_la_vision_a(_brume)
+## La matière `matiere` de la lumière (la brume de la vision, `Lumiere.brume`, `art/brume-de-la-vision.gdshader` ; le sol
+## du hors-carte, `Lumiere.sol_hors_carte`, `art/hors-carte.gdshader`) liée, comme un voile, à la vision posée (`voir`)
+## et au sol de chaque case du volume posé (`_batir_les_sols`), son fondu compris.
+func lier_a_la_vision(matiere: ShaderMaterial) -> void:
+	_liees.append(matiere)
+	matiere.set_shader_parameter("sols", _sols)
+	_lier_la_vision_a(matiere)
 
 
 ## Le voile du modèle posé sous la clé `cle` (`voile`) oublié.
@@ -357,8 +364,8 @@ func _batir_les_sols(hauteurs: Array) -> void:
 	_sols = ImageTexture.create_from_image(image)
 	for matiere: ShaderMaterial in _voiles.values():
 		matiere.set_shader_parameter("sols", _sols)
-	if _brume != null:
-		_brume.set_shader_parameter("sols", _sols)
+	for matiere in _liees:
+		matiere.set_shader_parameter("sols", _sols)
 
 
 ## Rien de posé : ni morceau, ni nappe, ni arête.
@@ -369,7 +376,8 @@ func vider() -> void:
 
 ## Les surfaces des décors `decors` (ids de `props.json`, `decor` d'une surface, `CONTRAT.md`, section « Monde ») ni
 ## vues ni en ombre, leur modèle les montrant (`decors` de la vue, `MontageDesModeles`), à la place de celles d'avant :
-## chaque morceau posé qui porte un décor entré ou sorti se remaille, et chaque morceau à poser les laisse.
+## chaque morceau et chaque nappe de toit posés qui portent un décor entré ou sorti se remaillent, et chacun à poser
+## les laisse.
 func peindre_sans(decors: Array) -> void:
 	var montres := {}
 	for decor: String in decors:
@@ -382,9 +390,10 @@ func peindre_sans(decors: Array) -> void:
 			if montres.has(decor) != _decors_montres.has(decor):
 				changes[decor] = true
 	_decors_montres = montres
-	for morceau: Node3D in _morceaux.get_children():
-		if morceau.get_meta("decors").any(func(decor: String) -> bool: return changes.has(decor)):
-			_mailler(morceau, morceau.get_meta("geometrie"))
+	for parent: Node3D in [_morceaux, _toits]:
+		for noeud: Node3D in parent.get_children():
+			if noeud.get_meta("decors").any(func(decor: String) -> bool: return changes.has(decor)):
+				(_mailler if parent == _morceaux else _mailler_la_nappe).call(noeud, noeud.get_meta("geometrie"))
 
 
 ## La mer du navire `navire` (les surfaces `flottaison` du volume, `CONTRAT.md`, section « Monde ») bordée par sa coque,
@@ -460,11 +469,8 @@ func _morceau(morceau: Dictionary) -> Node3D:
 		noeud.add_child(des_luminaires)
 	var flottaisons: Array = morceau.surfaces.filter(func(surface: Dictionary) -> bool: return surface.has("flottaison")).map(func(surface: Dictionary) -> String: return surface.flottaison)
 	noeud.set_meta("flottaisons", flottaisons)
-	var decors := {}
-	for surface: Dictionary in morceau.surfaces:
-		if surface.has("decor"):
-			decors[surface.decor] = true
-	noeud.set_meta("decors", decors.keys())
+	var decors := _decors_de(morceau)
+	noeud.set_meta("decors", decors)
 	var cases := {}
 	for c in PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array():
 		cases[Vector3i(c)] = true
@@ -473,6 +479,15 @@ func _morceau(morceau: Dictionary) -> Node3D:
 		noeud.set_meta("geometrie", morceau)
 	_mailler(noeud, morceau)
 	return noeud
+
+
+## Les ids des décors dont la géométrie `geometrie` porte des surfaces (`decor`).
+static func _decors_de(geometrie: Dictionary) -> Array:
+	var decors := {}
+	for surface: Dictionary in geometrie.surfaces:
+		if surface.has("decor"):
+			decors[surface.decor] = true
+	return decors.keys()
 
 
 ## Un nœud à deux instances d'un même maillage : `Vu`, que la caméra voit sans qu'il porte d'ombre, et `Ombre`, en ombre
@@ -516,15 +531,23 @@ func _mailler(noeud: Node3D, morceau: Dictionary) -> void:
 	des_luminaires.mesh = _maillage_de(morceau, texel_de, true, _est_d_un_luminaire)
 
 
-## Le nœud d'une nappe de toit ou d'une couronne (`NappeDuMonde`, `_vu_et_ombre`) : son maillage (`_maillage_de`, chaque
-## case au plan `sol` de sa couche, `MiseEnPage.texel_de_nappe`, dans des matières que le masque ne lie jamais), voilé
-## par la vision, vu tant que `cacher` ne la nomme pas, son ombre toujours portée.
+## Le nœud d'une nappe de toit ou d'une couronne (`NappeDuMonde`, `_vu_et_ombre`) maillé (`_mailler_la_nappe`), voilé
+## par la vision, vu tant que `cacher` ne la nomme pas, son ombre toujours portée ; les décors dont elle porte des
+## surfaces (`decor`, ornements du bâti qu'une nappe porte), et sa géométrie, que `peindre_sans` remaille.
 func _nappe(nappe: Dictionary) -> Node3D:
 	var noeud := _vu_et_ombre()
+	noeud.set_meta("decors", _decors_de(nappe))
+	noeud.set_meta("geometrie", nappe)
+	_mailler_la_nappe(noeud, nappe)
+	return noeud
+
+
+## Le maillage de la nappe `nappe` (`_maillage_de`, chaque case au plan `sol` de sa couche, `MiseEnPage.texel_de_nappe`,
+## dans des matières que le masque ne lie jamais) posé sur les deux instances du nœud `noeud`.
+func _mailler_la_nappe(noeud: Node3D, nappe: Dictionary) -> void:
 	var maillage := _maillage_de(nappe, func(c: Vector3) -> Vector2i: return MiseEnPage.texel_de_nappe(Vector2i(int(c.x), int(c.y)), _couches[int(c.z)], _rangees_d_une_couche), false)
 	(noeud.get_node("Vu") as MeshInstance3D).mesh = maillage
 	(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
-	return noeud
 
 
 ## Les arêtes `aretes` (`CONTRAT.md`, méthode `aretes`), chacune sur le côté de sa case, debout à son pied, en groupes
@@ -542,13 +565,18 @@ func poser_les_aretes(aretes: Array) -> void:
 
 ## Chaque arête cachée à la caméra si `aretes` la nomme, son ombre gardée (`_ecrire_les_instances`), chaque nappe de
 ## toit si `toits` la nomme, chaque couronne si `couronnes` la nomme (`_cacher_sous`), par leur clé ; montrées sinon, et
-## de même pour celles qui se poseront. Une clé qui ne nomme rien de posé ne cache rien.
+## de même pour celles qui se poseront. Une clé qui ne nomme rien de posé ne cache rien. Les poses de décor
+## que porte une nappe cachée sont retirées avec elle (`pose_retiree`) : `retire` est émis quand les nappes
+## cachées changent.
 func cacher(aretes: Array, toits: Array, couronnes: Array) -> void:
 	var index := {}
 	for cle in aretes:
 		index[cle] = true
+	var toits_changes: bool = toits != _cachees.toits
 	_cachees = {aretes = index, toits = toits, couronnes = couronnes}
 	_montrer_le_pose()
+	if toits_changes:
+		retire.emit()
 
 
 ## Chaque couronne que `cles` nomme retirée, ni vue ni ombre ; montrée sinon, et de même pour celles qui se poseront.
@@ -873,9 +901,9 @@ func translation_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Ve
 ## mur.
 func _boite(piece: String) -> BoxMesh:
 	match piece:
-		"porte-ouverte", "breche":
+		Noyau.Piece.PORTE_OUVERTE, Noyau.Piece.BRECHE:
 			return mesh_seuil
-		"porte-fermee":
+		Noyau.Piece.PORTE_FERMEE:
 			return mesh_porte
 	return mesh_mur
 

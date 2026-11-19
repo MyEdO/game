@@ -53,6 +53,11 @@ describe('edgeBlends (raccord d’arêtes de terrain)', () => {
     s.layers[0].tiles[1 * 3 + 1] = 'pave'; // centre = pavé (haute priorité)
     expect(edgeBlends(s, 1, 1)).toEqual([]); // voisins herbe (basse)
   });
+  it('au bord de la grille, seuls les voisins de la grille débordent (#4392)', () => {
+    const s = emptyScene('scene-test', 3, 3);
+    s.layers[0].tiles[0 * 3 + 1] = 'pave';
+    expect(edgeBlends(s, 0, 0)).toEqual([{ dir: 'E', terrain: 'pave' }]);
+  });
   it('opère sur le NIVEAU demandé (z) — chaque couche a ses propres raccords', () => {
     const s = emptyScene('scene-test', 3, 3);
     s.layers.push({ z: 1, tiles: new Array(9).fill('herbe') });

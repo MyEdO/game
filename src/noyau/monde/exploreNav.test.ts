@@ -289,27 +289,27 @@ describe('cheminsDuGroupe — le parcours du groupe, par scène et par case', ()
 
 describe('spawnFacing — orientation d’entrée vers le CONTENU de la carte', () => {
   it('bord sud → N (le défaut S regarderait le vide hors-carte en POV)', () => {
-    expect(spawnFacing({ x: 10, y: 19 }, { w: 21, h: 20 })).toBe('N');
+    expect(spawnFacing({ x: 10, y: 19 }, { x: 0, y: 0, w: 21, h: 20 })).toBe('N');
   });
 
   it('quantification par secteurs de 45° (atan2), PAS par signe : bord sud légèrement décalé → toujours N', () => {
     // dx=+2, dy=−9.5 : ~12° du plein nord → N (par signe, ce serait NE dès 1 case d'écart).
-    expect(spawnFacing({ x: 8, y: 19 }, { w: 21, h: 20 })).toBe('N');
+    expect(spawnFacing({ x: 8, y: 19 }, { x: 0, y: 0, w: 21, h: 20 })).toBe('N');
   });
 
   it('bord nord → S, bord ouest → E, bord est → O', () => {
-    expect(spawnFacing({ x: 10, y: 0 }, { w: 21, h: 20 })).toBe('S');
-    expect(spawnFacing({ x: 0, y: 5 }, { w: 11, h: 11 })).toBe('E');
-    expect(spawnFacing({ x: 10, y: 5 }, { w: 11, h: 11 })).toBe('O');
+    expect(spawnFacing({ x: 10, y: 0 }, { x: 0, y: 0, w: 21, h: 20 })).toBe('S');
+    expect(spawnFacing({ x: 0, y: 5 }, { x: 0, y: 0, w: 11, h: 11 })).toBe('E');
+    expect(spawnFacing({ x: 10, y: 5 }, { x: 0, y: 0, w: 11, h: 11 })).toBe('O');
   });
 
   it('coins → diagonale vers le centre (NO→SE, SE→NO)', () => {
-    expect(spawnFacing({ x: 0, y: 0 }, { w: 7, h: 7 })).toBe('SE');
-    expect(spawnFacing({ x: 6, y: 6 }, { w: 7, h: 7 })).toBe('NO');
+    expect(spawnFacing({ x: 0, y: 0 }, { x: 0, y: 0, w: 7, h: 7 })).toBe('SE');
+    expect(spawnFacing({ x: 6, y: 6 }, { x: 0, y: 0, w: 7, h: 7 })).toBe('NO');
   });
 
   it("entrée déjà au centre → 'S' (aucune direction vers le contenu ne domine)", () => {
-    expect(spawnFacing({ x: 3, y: 3 }, { w: 7, h: 7 })).toBe('S');
+    expect(spawnFacing({ x: 3, y: 3 }, { x: 0, y: 0, w: 7, h: 7 })).toBe('S');
   });
 });
 

@@ -147,6 +147,7 @@ export {
   type Regard,
 } from './monde/aretes';
 export type { Scene } from './monde/scene';
+export type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,
@@ -225,6 +226,7 @@ export {
 } from './sceneEditLecture';
 export { PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
 export {
+  ariteDuNoeud,
   bornesAuPoint,
   champDeLElement,
   champsDeclares,
@@ -235,7 +237,9 @@ export {
   designeDesEntrees,
   elementDuNoeud,
   formeAuPoint,
+  identiteFigee,
   identiteTenue,
+  recordDuNoeud,
   unionDuNoeud,
   varianteCourante,
   type FieldDesc,

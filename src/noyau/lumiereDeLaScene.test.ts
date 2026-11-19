@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { lumiereDeLaScene } from './lumiereDeLaScene';
+import { ambiance } from '../data';
 import { emptyScene, type Scene } from './monde/scene';
 import { MISSING_TONE } from './monde/volume/missing';
+import { couleurDeMatiere } from './monde/volume/matieres';
 import type { Combatant } from '../engine/types';
 
 const MIDI = 12 * 60;
@@ -12,9 +14,9 @@ function etat(scene: Scene, gameTime: number, lightLevel: number | null = null) 
 }
 
 describe('lumiereDeLaScene', () => {
-  it('un extérieur à midi : un soleil au-dessus de l’horizon, un ciel, une ambiante de jour', () => {
+  it('un extérieur à midi : un soleil au-dessus de l’horizon, un ciel en immersion, une ambiante de jour', () => {
     const s = emptyScene('scene-test', 4, 4);
-    const l = lumiereDeLaScene(etat(s, MIDI), 'tactique');
+    const l = lumiereDeLaScene(etat(s, MIDI), 'immersion');
     expect(l.soleil?.vers.y).toBeGreaterThan(0.5);
     expect(l.soleil!.energie).toBeGreaterThan(0);
     expect(l.ciel).not.toBeNull();
@@ -23,23 +25,23 @@ describe('lumiereDeLaScene', () => {
 
   it('un extérieur à minuit : aucun soleil, un ciel plus sombre qu’à midi', () => {
     const s = emptyScene('scene-test', 4, 4);
-    const nuit = lumiereDeLaScene(etat(s, MINUIT), 'tactique');
+    const nuit = lumiereDeLaScene(etat(s, MINUIT), 'immersion');
     expect(nuit.soleil).toBeNull();
     const clarte = (hex: string) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16) + parseInt(hex.slice(5, 7), 16);
-    expect(clarte(nuit.ciel!.zenith)).toBeLessThan(clarte(lumiereDeLaScene(etat(s, MIDI), 'tactique').ciel!.zenith));
+    expect(clarte(nuit.ciel!.zenith)).toBeLessThan(clarte(lumiereDeLaScene(etat(s, MIDI), 'immersion').ciel!.zenith));
   });
 
   it('un intérieur : ni soleil ni ciel, la brume d’intérieur', () => {
     const s: Scene = { ...emptyScene('scene-test', 4, 4), ambiance: 'interieur' };
-    const l = lumiereDeLaScene(etat(s, MIDI), 'tactique');
+    const l = lumiereDeLaScene(etat(s, MIDI), 'immersion');
     expect(l.soleil).toBeNull();
     expect(l.ciel).toBeNull();
-    expect(l.brume.finCases).toBeLessThan(lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'tactique').brume.finCases);
+    expect(l.brume.finCases).toBeLessThan(lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion').brume.finCases);
   });
 
   it('la pluie voile le soleil et teinte le ciel', () => {
-    const clair = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'tactique');
-    const pluie = lumiereDeLaScene(etat({ ...emptyScene('scene-test', 4, 4), weather: 'pluie' }, MIDI), 'tactique');
+    const clair = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion');
+    const pluie = lumiereDeLaScene(etat({ ...emptyScene('scene-test', 4, 4), weather: 'pluie' }, MIDI), 'immersion');
     expect(pluie.soleil!.energie).toBeLessThan(clair.soleil!.energie);
     expect(pluie.ciel!.zenith).not.toBe(clair.ciel!.zenith);
   });
@@ -96,5 +98,39 @@ describe('lumiereDeLaScene', () => {
     const porteur = { id: 'mage', kind: 'heros', pos: { x: 1, y: 1 }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [], activeEffects: [{ light: { radiusM: 6 } }] } as unknown as Combatant;
     const { sources } = lumiereDeLaScene({ ...etat(emptyScene('scene-test', 4, 4), MIDI), party: [porteur] }, 'tactique');
     expect(sources.map((source) => source.cle)).toEqual(['portee/mage']);
+  });
+
+  it('hors de l’immersion, ni ciel ni brume du lieu : le fond et la brume sont la pénombre du hors-carte (#4392)', () => {
+    const tactique = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'tactique');
+    expect(tactique.ciel).toBeNull();
+    expect(tactique.brume.couleur).toBe(ambiance.iso.stageBg);
+    expect(lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'plateau').brume.couleur).toBe(ambiance.iso.stageBg);
+  });
+
+  it('le hors-carte prolonge le terrain marchable le plus fréquent du bord, fondu hors de l’immersion seule (#4392)', () => {
+    const s = emptyScene('scene-test', 5, 4);
+    const pose = (x: number, y: number, terrain: string) => { s.layers[0].tiles[y * 5 + x] = terrain; };
+    for (let x = 0; x < 5; x++) pose(x, 0, 'route');
+    pose(0, 1, 'route');
+    for (let x = 1; x < 4; x++) pose(x, 3, 'eau');
+    for (let x = 1; x < 4; x++) for (let y = 1; y < 3; y++) pose(x, y, 'pave');
+    const tactique = lumiereDeLaScene(etat(s, MIDI), 'tactique');
+    expect(tactique.horsCarte.sol).toEqual({ matiere: 'terrain--route', couleur: couleurDeMatiere({ domain: 'terrain', id: 'route' }) });
+    expect(tactique.horsCarte.fonduCases).toBeGreaterThan(0);
+    expect(lumiereDeLaScene(etat(s, MIDI), 'immersion').horsCarte.fonduCases).toBeNull();
+  });
+
+  it('le vantail d’une porte au bord n’est pas le sol du hors-carte (#4392)', () => {
+    const enceinte = emptyScene('scene-test', 4, 4);
+    enceinte.layers[0].tiles = enceinte.layers[0].tiles.map((_, i) => (i === 4 ? 'porte' : i % 4 === 0 || i % 4 === 3 || i < 4 || i > 11 ? 'mur' : 'sable'));
+    expect(lumiereDeLaScene(etat(enceinte, MIDI), 'tactique').horsCarte.sol).toBeNull();
+  });
+
+  it('le hors-carte n’a pas de sol en intérieur, ni sans case marchable au bord (#4392)', () => {
+    const salle: Scene = { ...emptyScene('scene-test', 4, 4), ambiance: 'interieur' };
+    expect(lumiereDeLaScene(etat(salle, MIDI), 'tactique').horsCarte.sol).toBeNull();
+    const ile = emptyScene('scene-test', 3, 3);
+    ile.layers[0].tiles = ile.layers[0].tiles.map((_, i) => (i === 4 ? 'herbe' : 'eau'));
+    expect(lumiereDeLaScene(etat(ile, MIDI), 'tactique').horsCarte.sol).toBeNull();
   });
 });

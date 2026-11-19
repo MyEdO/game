@@ -1,4 +1,4 @@
-import { nommerChamps } from '../grammaire/meta';
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma de `skills.json` — dérivé de l'inventaire COMPLET des clés (script node, n=46/46), de
  * l'interface `SkillData` (`src/data/index.ts`) et de ses consommateurs (`ItemCapabilities`,
@@ -35,7 +35,7 @@ const doc = document(
     altChar: nommerChamps(z.strictObject({
       gatedByRule: ref('regleOptionnelle'),
       from: charKeySchema.optional(),
-      chars: z.record(z.string(), z.union([charKeySchema, z.array(charKeySchema)])),
+      chars: z.record(z.string(), z.union([nommerNoeud(z.lazy(() => charKeySchema), { label: 'caractéristique' }), nommerNoeud(z.array(charKeySchema), { label: 'caractéristiques au choix' })])),
     }), {
       gatedByRule: { label: 'Règle optionnelle requise' },
       from: { label: 'Caractéristique d’origine' },

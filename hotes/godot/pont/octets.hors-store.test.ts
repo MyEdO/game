@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { enOctets, type BornesEnOctets } from './octets';
-import { mondeDe, table } from './pont.testkit';
+import { drainer, mondeDe, table } from './pont.testkit';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import type { MorceauxDuPont, Pont } from './pont';
 
@@ -78,14 +78,27 @@ function recolle(pont: Pont, entree: string): Record<string, unknown> {
 
 describe('appelerEnOctets', () => {
   it('morceaux recollé à octets() est la réponse d’appeler au Math.fround près ; une autre méthode et un refus ne tiennent aucun octet', () => {
-    const { pont, appel } = table();
-    appel('demarrer', { scenario: 'diligence' });
-    const monde = mondeDe(appel);
     const cles = (liste: { cle: string }[]) => liste.map(({ cle }) => cle);
-    const entree = JSON.stringify({ source: 'partie', volume: cles(monde.monde!.morceaux), toits: cles(monde.toits), couronnes: cles(monde.couronnes) });
-    const json = JSON.parse(pont.appeler('morceaux', entree)) as MorceauxDuPont & { ok: true };
-    expect(FAMILLES.map((f) => json[f].length > 0), 'des géométries de chaque famille').toEqual([true, true, true]);
-    expect(recolle(pont, entree)).toEqual(parTableau(json, (t: number[]) => t.map(Math.fround)));
+    const { pont, appel } = table();
+    /** L'entrée de `morceaux` qui demande tout le monde d'une partie neuve de `scenario`, et sa réponse,
+     *  recollée. */
+    const partie = (scenario: string) => {
+      drainer(appel, appel('demarrer', { scenario, graine: 1 }));
+      const monde = mondeDe(appel);
+      const entree = JSON.stringify({
+        source: 'partie', volume: cles(monde.monde!.morceaux),
+        toits: cles(monde.toits), couronnes: cles(monde.couronnes),
+      });
+      const json = JSON.parse(pont.appeler('morceaux', entree)) as MorceauxDuPont & { ok: true };
+      expect(recolle(pont, entree), scenario).toEqual(parTableau(json, (t: number[]) => t.map(Math.fround)));
+      return { entree, json };
+    };
+    // siege-enceinte porte des couronnes, la diligence des nappes de toit : à elles deux, chaque famille.
+    const siege = partie('siege-enceinte');
+    pont.appeler('quitter');
+    const { entree, json } = partie('diligence');
+    expect(FAMILLES.map((f) => [siege.json, json].some((r) => r[f].length > 0)), 'des géométries de chaque famille')
+      .toEqual([true, true, true]);
 
     expect(pont.appelerEnOctets('vue')).toBe(pont.appeler('vue'));
     expect(pont.octets(), 'après vue').toBeNull();

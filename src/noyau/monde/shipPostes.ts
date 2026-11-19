@@ -13,9 +13,9 @@ import { canTakeAction, isOutOfAction } from '../../engine/conditions';
 import { aRecharger } from '../../engine/weaponLoad';
 import { distanceDeContact, footprintN, footprintTiles } from './footprint';
 import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from '../../geometry/dir8';
-import { isWalkable, tileAt, type Scene } from './scene';
+import { dansLaZoneJouable, isWalkable, tileAt, type Scene } from './scene';
 import { pointDeCase, tileKey } from './path';
-import { estAbsent, terrainHorsGrille } from './terrain';
+import { estAbsent } from './terrain';
 import { casesTenues, findFreeTile } from './combatGeometry';
 import { placeCombatant } from './spawn';
 import type { Combatant, ShipPoste, FireArc, Weapon } from '../../engine/types';
@@ -53,7 +53,7 @@ export function placementPenalty(mounts: MountWeight[], capacity: number): Place
 /** Translate une FORMATION RIGIDE du MÊME `delta` : la coque, puis chaque membre positionné de `crewIds` (ADE II 8
  *  l.258 ; MDG 13), posé par `placeCombatant` à son étage. Les postes, sans position, suivent la coque. La
  *  translation est ENTIÈRE ou refusée : `null`, sans rien déplacer, si l'empreinte d'arrivée d'un membre sort de
- *  la scène (`tileAt` hors grille ou absente) ou couvre une case tenue par un combattant hors formation
+ *  la zone jouable (`dansLaZoneJouable`) ou tombe sur une case absente ou couvre une case tenue par un combattant hors formation
  *  (`casesTenues`). La poussée d'un engin (`targetingModes`), l'avance d'un navire
  *  (`shipManeuver`) et l'outillage de recette l'appellent. Rend chaque déplacé avec sa case de départ. */
 export function translaterFormation(combatants: Combatant[], scene: Scene | null | undefined, coque: Combatant, crewIds: Iterable<string>, delta: Pt): { mobile: Combatant; depart: NonNullable<Combatant['pos']> }[] | null {
@@ -66,8 +66,7 @@ export function translaterFormation(combatants: Combatant[], scene: Scene | null
   const caseValide = (x: number, y: number, z: number) => {
     if (prises.has(tileKey(x, y, z))) return false;
     if (!scene) return true;
-    const terrain = tileAt(scene, x, y, z);
-    return terrain !== terrainHorsGrille() && !estAbsent(terrain);
+    return dansLaZoneJouable(scene, x, y) && !estAbsent(tileAt(scene, x, y, z));
   };
   if (!mobiles.every((m) => { const a = arrivee(m); return footprintTiles(a, footprintN(m)).every((t) => caseValide(t.x, t.y, a.z ?? 0)); })) return null;
   return mobiles.map((mobile) => {

@@ -12,7 +12,7 @@
  * silence, jamais une carte incohérente compilée.
  */
 import type { Scene } from './monde/scene';
-import { heightAt, tileAt, isWalkable } from './monde/scene';
+import { heightAt, tileAt, solPraticable } from './monde/scene';
 import { estAbsent } from './monde/terrain';
 import { paintHeight } from './sceneEdit';
 import { STEP_MAX_M } from './monde/relief';
@@ -104,11 +104,11 @@ export function planStairFlight(scene: Scene, cells: readonly StairCell[], z: nu
   // Extrémité HAUTE = celle qui affleure le plancher de `toZ` ; hauteurs MINIMALES des candidats
   // (déterministe quand plusieurs planchers de hauteurs différentes jouxtent la même extrémité).
   const toNeighbours = (p: StairCell) =>
-    chebyNeighbours(p.x, p.y).filter((n) => !estAbsent(tileAt(scene, n.x, n.y, toZ)) && isWalkable(scene, n.x, n.y, toZ));
+    chebyNeighbours(p.x, p.y).filter((n) => !estAbsent(tileAt(scene, n.x, n.y, toZ)) && solPraticable(scene, n.x, n.y, toZ));
   const touchesTo = (p: StairCell) => toNeighbours(p).length > 0;
   const minToNeighbourHeight = (p: StairCell) => Math.min(...toNeighbours(p).map((n) => heightAt(scene, n.x, n.y, toZ)));
   const minLowSupportHeight = (p: StairCell) => {
-    const cands = chebyNeighbours(p.x, p.y).filter((n) => !runSet.has(cellKey(n)) && isWalkable(scene, n.x, n.y, z));
+    const cands = chebyNeighbours(p.x, p.y).filter((n) => !runSet.has(cellKey(n)) && solPraticable(scene, n.x, n.y, z));
     return cands.length ? Math.min(...cands.map((n) => heightAt(scene, n.x, n.y, z))) : null;
   };
 

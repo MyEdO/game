@@ -104,6 +104,10 @@ const ECART_DES_MARQUES := 0.3
 const HAUTEUR_DU_VISUEL_DE_MARQUE := 0.9
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
+## La marge (cases) dont le sol du hors-carte déborde le plateau de chaque côté, au-delà de toute brume.
+const MARGE_DU_HORS_CARTE := 400.0
+## La profondeur (unités de plateau) du sol du hors-carte sous le zéro de la scène, que le sol d'une case recouvre.
+const ENFOUISSEMENT_DU_HORS_CARTE := 0.02
 ## Les pixels de la texture d'un dessin par pixel d'écran : l'écran étire l'interface (`window/stretch`).
 const FINESSE_DE_DESSIN := 2.0
 ## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
@@ -418,7 +422,24 @@ static func energie_vacillante(energie: float, amplitude: float, hz: float, seco
 
 ## Le centre du sol d'un plateau de `taille` cases.
 static func centre_du_plateau(taille: Vector2i) -> Vector3:
-	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
+	return centre_de_la_zone(0, 0, taille.x, taille.y)
+
+
+## Le centre du sol du rectangle de `w` × `h` cases depuis la case (`x`, `y`) (la zone jouable, `plateau.zoneJouable`).
+static func centre_de_la_zone(x: int, y: int, w: int, h: int) -> Vector3:
+	return Vector3(x + w / 2.0, 0.0, y + h / 2.0)
+
+
+## Le centre du sol du hors-carte (`Lumiere`) d'un plateau de `taille` cases : sous le centre du plateau, enfoui de
+## `ENFOUISSEMENT_DU_HORS_CARTE`.
+static func centre_du_hors_carte(taille: Vector2i) -> Vector3:
+	return centre_du_plateau(taille) + Vector3.DOWN * ENFOUISSEMENT_DU_HORS_CARTE
+
+
+## L'étirement du plan d'une unité de côté du sol du hors-carte d'un plateau de `taille` cases, qui le déborde de
+## `MARGE_DU_HORS_CARTE` cases de chaque côté.
+static func etendue_du_hors_carte(taille: Vector2i) -> Vector3:
+	return Vector3(taille.x + 2.0 * MARGE_DU_HORS_CARTE, 1.0, taille.y + 2.0 * MARGE_DU_HORS_CARTE)
 
 
 ## Le point de la carte, en cases continues (une case centrée sur l'entier), sous le lieu `lieu` du plateau : celui que

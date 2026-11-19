@@ -9,20 +9,10 @@
       }
     ],
     "desc": "Le Capitaine évalue la situation, obtient des informations auprès de certains membres de l'équipage, décide des actions à entreprendre et transmet ses ordres à l'équipage.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 15,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 5,
-        "silver": 0,
-        "brass": 0
-      },
-      "maison": "Correspondance maison → mercenaire « Officier » (MDG 14 l.300) : le capitaine tient un rôle d'officier (l.143 « peuvent être considérés comme des officiers »). #216"
+    "profil": {
+      "id": "officier-mer-des-griffes"
     },
-    "maison": "Correspondance maison → mercenaire « Officier » (MDG 14 l.300) : le capitaine tient un rôle d'officier (l.143 « peuvent être considérés comme des officiers »). #216"
+    "maison": "Correspondance maison : le Capitaine prend le profil « Officier » (MDG 14 l.342), charge de commandement du bord. #216"
   },
   {
     "id": "timonier",
@@ -34,20 +24,10 @@
       }
     ],
     "desc": "Le Timonier met à profit toute son expérience et sa connaissance des éléments pour piloter le navire.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 9,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 3,
-        "silver": 12,
-        "brass": 0
-      },
-      "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : le Timonier est un marin expérimenté à la barre. #216"
+    "profil": {
+      "id": "marin"
     },
-    "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : le Timonier est un marin expérimenté à la barre. #216"
+    "maison": "Correspondance maison → profil « Marin » (MDG 14 l.316) : le Timonier est un marin expérimenté à la barre. #216"
   },
   {
     "id": "vigie",
@@ -59,20 +39,10 @@
       }
     ],
     "desc": "Le rôle de la Vigie peut être crucial quand le danger est proche. Elle peut parcourir le pont ou rester à la proue, ou, sur les grands navires, grimper jusqu'à la position précaire du nid-de-pie.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 9,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 3,
-        "silver": 12,
-        "brass": 0
-      },
-      "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : la Vigie est un marin de quart posté en observation. #216"
+    "profil": {
+      "id": "marin"
     },
-    "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : la Vigie est un marin de quart posté en observation. #216"
+    "maison": "Correspondance maison → profil « Marin » (MDG 14 l.316) : la Vigie est un marin de quart posté en observation. #216"
   },
   {
     "id": "mousse",
@@ -87,21 +57,8 @@
       }
     ],
     "desc": "Les Mousses accomplissent tous les travaux manuels à bord. Malgré leur rang très bas dans la hiérarchie, leur travail demande beaucoup de compétences et est vital pour que le vaisseau soit bien géré.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 3,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 1,
-        "silver": 4,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126
-      }
+    "profil": {
+      "id": "mousse"
     },
     "parDefaut": true,
     "source": {
@@ -119,20 +76,10 @@
       }
     ],
     "desc": "Tous les Tests d'équipage impliquant de trouver un itinéraire nécessitent un Navigateur.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 15,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 5,
-        "silver": 0,
-        "brass": 0
-      },
-      "maison": "Correspondance maison → mercenaire « Officier » (MDG 14 l.300) : la navigation d'un grand vaisseau est une charge d'officier. #216"
+    "profil": {
+      "id": "officier-mer-des-griffes"
     },
-    "maison": "Correspondance maison → mercenaire « Officier » (MDG 14 l.300) : la navigation d'un grand vaisseau est une charge d'officier. #216"
+    "maison": "Correspondance maison → profil « Officier » (MDG 14 l.342) : la navigation d'un grand vaisseau est une charge d'officier. #216"
   },
   {
     "id": "artilleur",
@@ -145,20 +92,10 @@
       }
     ],
     "desc": "L'Artilleur supervise les armes du navire et intervient dans tous les Tests de combat.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 9,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 3,
-        "silver": 12,
-        "brass": 0
-      },
-      "maison": "Correspondance maison → mercenaire « Mercenaire expérimenté » (MDG 14 l.301) : l'Artilleur est un combattant spécialiste des pièces. #216"
+    "profil": {
+      "id": "mercenaire-experimente"
     },
-    "maison": "Correspondance maison → mercenaire « Mercenaire expérimenté » (MDG 14 l.301) : l'Artilleur est un combattant spécialiste des pièces. #216"
+    "maison": "Correspondance maison → profil « Mercenaire expérimenté » (MDG 14 l.329) : l'Artilleur est un combattant spécialiste des pièces. #216"
   },
   {
     "id": "cuisinier",
@@ -171,20 +108,10 @@
       }
     ],
     "desc": "Un rôle trop souvent sous-estimé, car rien ne sape le moral de l'équipage plus rapidement qu'une mauvaise nourriture.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 3,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 1,
-        "silver": 4,
-        "brass": 0
-      },
-      "maison": "Correspondance maison → mercenaire « Nautonier » (MDG 14 l.299) : non-combattant de bord sans part de prise. #216"
+    "profil": {
+      "id": "nautonier-mer-des-griffes"
     },
-    "maison": "Correspondance maison → mercenaire « Nautonier » (MDG 14 l.299) : non-combattant de bord sans part de prise. #216"
+    "maison": "Correspondance maison → profil « Nautonier » (MDG 14 l.355) : non-combattant de bord sans part de prise. #216"
   },
   {
     "id": "chirurgien",
@@ -196,26 +123,14 @@
       }
     ],
     "desc": "Le Chirurgien est essentiel pour la santé de l'équipage après les combats ou quand la maladie fait rage à bord.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 15,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 5,
-        "silver": 0,
-        "brass": 0
-      },
-      "source": {
-        "book": "mer-des-griffes",
-        "page": 126
-      }
+    "profil": {
+      "id": "medecin-de-bord"
     },
     "source": {
       "book": "mer-des-griffes",
       "page": 121
-    }
+    },
+    "maison": "Correspondance maison : le Chirurgien prend le profil « Médecin de bord » (MDG 14 l.368), seul soignant des mercenaires de bord. #216"
   },
   {
     "id": "chansonnier",
@@ -228,19 +143,9 @@
       }
     ],
     "desc": "En plus d'utiliser la Compétence Divertissement (Chant) pour contribuer à un Test d'équipage d'une manière similaire à celle du reste de l'équipage, le Chansonnier peut employer la chanson de marin « Naviguons tous ensemble, ho hisse, ho hisse… » pour donner des bonus aux Tests du reste de l'équipage.",
-    "wage": {
-      "daily": {
-        "gold": 0,
-        "silver": 9,
-        "brass": 0
-      },
-      "weekly": {
-        "gold": 3,
-        "silver": 12,
-        "brass": 0
-      },
-      "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : le Chansonnier est un marin qui mène le chant. #216"
+    "profil": {
+      "id": "marin"
     },
-    "maison": "Correspondance maison → mercenaire « Marin » (MDG 14 l.298) : le Chansonnier est un marin qui mène le chant. #216"
+    "maison": "Correspondance maison → profil « Marin » (MDG 14 l.316) : le Chansonnier est un marin qui mène le chant. #216"
   }
 ]

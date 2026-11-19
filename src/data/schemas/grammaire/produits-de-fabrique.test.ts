@@ -2,7 +2,7 @@
  * GARDE — tout nœud objet construit par une fonction de la grammaire est un PRODUIT DE FABRIQUE marqué
  * (#3012). Une CONSTRUCTION (`z.object|strictObject|looseObject`, ou dérivation `.extend`, `.partial`…)
  * écrite dans une fonction de `grammaire/` (hors corps d'un `z.lazy`, qui n'est pas une fabrique) est
- * le PREMIER argument d'un `marquerProduit`, à travers les décorateurs de `meta.ts` et les clones à
+ * le PREMIER argument d'un `marquerProduit`, à travers les décorateurs (`DECORATEURS`) et les clones à
  * enfants identiques ; ou bien une dérivation la consomme ; ou bien elle est l'argument d'une
  * fabrique DÉRIVANTE, qui marque ce qu'elle dérive de ce paramètre. Lecture : la porte `produits.ts`.
  */
@@ -25,7 +25,8 @@ const LITTERAUX_D_OBJET = new Set(['object', 'strictObject', 'looseObject']);
 const DERIVATIONS = new Set(['extend', 'safeExtend', 'partial', 'required', 'pick', 'omit', 'merge', 'catchall', 'strict', 'strip', 'loose', 'passthrough']);
 /** Méthodes qui rendent un clone aux MÊMES enfants (`produitDe` le reconnaît). */
 const CLONES = new Set(['superRefine', 'refine', 'check', 'meta', 'describe', 'brand']);
-const DECORATEURS = new Set(['nommerChamps', 'nommerNoeud']);
+/** Fonctions qui rendent leur premier argument décoré (`meta.ts`), ou son clone aux mêmes enfants déclaré (`porteurDeTestFixe`). */
+const DECORATEURS = new Set(['nommerChamps', 'nommerNoeud', 'porteurDeTestFixe']);
 
 const estFonction = (n: ts.Node): n is ts.FunctionLikeDeclaration =>
   ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isMethodDeclaration(n);

@@ -14,10 +14,13 @@
 ## est un onglet, titré de son nom (`nom`, sinon `libelle`), qui ne le redit pas (son `Nom` caché) ; une zone portée par
 ## une page d'un `TabContainer` en cache l'onglet quand elle n'a rien à montrer.
 ##
-## La source d'une zone de l'écran est une clé de `vue.zones` (`CONTRAT.md`). Une zone qui nomme des `ids` n'en montre
-## que les éléments de ces ids, dans l'ordre de la source, un id fini par `/` nommant chaque id qui commence par lui (une
-## famille aux ids tirés de la donnée) ; une zone sans `ids` montre ceux qu'aucune autre zone de sa source ne nomme
-## (`montrer_toutes`) : une disposition range les éléments d'une source sans en perdre aucun.
+## La source d'une zone de l'écran est une clé de `vue.zones` (`hotes/godot/pont/CONTRAT.md`). Une zone qui nomme des
+## `ids` n'en montre que les éléments de ces ids, dans l'ordre de la source, un id fini par `/` nommant chaque id qui
+## commence par lui (une famille aux ids tirés de la donnée) ; une zone sans `ids` montre ceux qu'aucune autre zone de sa
+## source ne nomme (`montrer_toutes`) : une disposition range les éléments d'une source sans en perdre aucun.
+## Une source, un type ou un ton de `formes` que le noyau ne sert pas (`Noyau`) est une faute de la scène, dite à
+## l'instanciation et dans le conteneur de la zone ; un élément qu'aucune zone de sa source ne montre, une faute dite
+## à sa pose (#3328).
 class_name Zone
 extends Node
 
@@ -44,6 +47,40 @@ signal geste(jeu: Dictionary)
 			_garder_les_derniers()
 
 const META := &"element"
+
+
+func _ready() -> void:
+	var fautes := PackedStringArray()
+	if not (Noyau.CHAMPS if _imbriquee() else Noyau.SOURCES).has(source):
+		fautes.append("source inconnue « %s »" % source)
+	for forme in formes:
+		var type_et_ton := forme.get_slice(":", 0)
+		if not Noyau.TYPES.has(type_et_ton.get_slice(".", 0)):
+			fautes.append("forme « %s » au type inconnu" % forme)
+		elif type_et_ton.contains(".") and not Noyau.TONS.has(type_et_ton.get_slice(".", 1)):
+			fautes.append("forme « %s » au ton inconnu" % forme)
+	for faute in fautes:
+		var dite := "%s : zone %s, %s" % [_scene(), owner.get_path_to(self) if owner != null else name, faute]
+		push_error(dite)
+		var etiquette := Label.new()
+		etiquette.text = dite
+		etiquette.theme_type_variation = &"echec"
+		get_parent().add_child.call_deferred(etiquette)
+
+
+## Si la zone est imbriquée : sous un composant dessiné, elle lit un champ de son élément.
+func _imbriquee() -> bool:
+	var parent := get_parent()
+	while parent != null:
+		if parent.has_meta(META):
+			return true
+		parent = parent.get_parent()
+	return false
+
+
+## La scène qui pose la zone.
+func _scene() -> String:
+	return owner.scene_file_path if owner != null else scene_file_path
 
 
 func montrer(elements: Array) -> void:
@@ -124,12 +161,21 @@ static func cle(e: Dictionary) -> String:
 ## Un `masque` se montre quand l'une des zones qui le nomment a quelque chose à montrer.
 static func montrer_toutes(zones: Array[Zone], sources: Dictionary) -> void:
 	var masques := {}
+	var montres := {}
 	for zone in zones:
-		zone.montrer(Zone.elements_de(zones, zone, sources))
+		var elements := Zone.elements_de(zones, zone, sources)
+		(montres.get_or_add(zone.source, []) as Array).append_array(elements.map(Zone.cle))
+		zone.montrer(elements)
 		if zone.masque != null:
 			masques[zone.masque] = masques.get(zone.masque, false) or zone.get_parent().get_children().any(func(n: Node) -> bool: return n.has_meta(META))
 	for masque in masques:
 		masque.visible = masques[masque]
+	for zone in zones:
+		if montres.has(zone.source):
+			for e in sources.get(zone.source, []):
+				if not montres[zone.source].has(Zone.cle(e)):
+					push_error("%s : %s n'a aucune zone de la source %s" % [zone._scene(), Zone.cle(e), zone.source])
+			montres.erase(zone.source)
 
 
 ## Les éléments de la source de `zone` dans `sources` qui lui reviennent parmi `zones` : ceux de ses `ids`, ou, sans

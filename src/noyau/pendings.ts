@@ -36,6 +36,7 @@ import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
+import type { RegistreDuBord } from './etat';
 import type { IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
@@ -1728,6 +1729,9 @@ export interface CascadeStepMeta {
   /** L'op `attaquesSubies` dont l'étape `nombreDAttaquesSubies` tire le dé `nombre` (`combatFlow.ouvrirLeNombreDAttaquesSubies`),
    *  relue par son applier pour ouvrir la série. */
   attaquesSubies?: [Extract<GameOp, { op: 'attaquesSubies' }>];
+  /** Le poste du membre de l'équipage que vise l'étape (`shipCrew.metaDuPoste`, `shipCrew.posteDeLEtape`). */
+  roleDuMembre?: string;
+  registreDuMembre?: RegistreDuBord;
   /** SUITE confiée à cette étape (#2689, `combatEffects.confierLaSuite`), rejouée APRÈS sa conséquence
    *  à la DERNIÈRE étape de la grappe : si un maillon rouvre un dé, les maillons restants repartent avec
    *  lui. */

@@ -6,6 +6,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { distanceDeContact } from '../monde/footprint';
 import { aretesA } from '../monde/wallIndex';
 import { edgeOf, wallBetween, type Scene } from '../monde/scene';
+import { setEdgeWall } from '../sceneEdit';
 import { lineOfSightCover } from '../monde/lineOfSight';
 import { attackEnv, doAttack, previewAttack, resolveAttack } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
@@ -19,7 +20,9 @@ import type { Combatant, ModLine, Weapon } from '../../engine/types';
 /**
  * #4105 lot 2 : le coup par-dessus un obstacle bas prend le couvert de l'arête qui abrite sa cible, celui du tir.
  * Décision du 2026-11-13 (#4105, commentaire 6849608906) ; AA 10 l.48 ; LDB 14 l.72 ; LDB 14 l.86.
- * Plan de `la-diligence`, chargé par le scénario `ecuries-clayonnage`, combattants posés par `placeCombatant`.
+ * Plan de `la-diligence`, chargé par le scénario `ecuries-clayonnage`, combattants posés par `placeCombatant`. Les
+ * murets sont ceux de la fixture : `avecLesMurets` pose `mur-en-pierres-seches` sur les arêtes de l'enceinte qu'elle
+ * nomme (`setEdgeWall`).
  */
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -29,7 +32,15 @@ const COUVERT = RULE_REF['cible-sous-couverture'];
 const ARC = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 48, reload: 0, qualities: [], uid: 'arc', loaded: true } as unknown as Weapon;
 const HALLEBARDE: Weapon = { ...MELEE, label: 'Hallebarde', reach: 'Très longue' } as Weapon;
 
-const duel = () => ouvrirLeDuel(banc, testScenarios.find((s) => s.id === 'ecuries-clayonnage')!.construire(idsDeTest), 'enc-clayonnage');
+/** Les arêtes d'enceinte que la fixture fait muret : DEDANS/DEHORS, le coin (0,6) et la ligne (30,21)–(30,22). */
+const ARETES_DE_MURET = [[0, 15, 'E'], [0, 6, 'E'], [1, 6, 'N'], [30, 21, 'E'], [30, 22, 'E']] as const;
+const avecLesMurets = (s: Scene): Scene =>
+  ARETES_DE_MURET.reduce((acc, [x, y, side]) => setEdgeWall(acc, x, y, side, 0, 'wall', MURET), s);
+
+const duel = () => {
+  const contenu = testScenarios.find((s) => s.id === 'ecuries-clayonnage')!.construire(idsDeTest);
+  return ouvrirLeDuel(banc, { ...contenu, scene: avecLesMurets(contenu.scene) }, 'enc-clayonnage');
+};
 const scene = (): Scene => banc.getState().scene!;
 const contact = (A: Combatant, B: Combatant) => distanceDeContact(scene(), A, B);
 /** Ce que la ligne du jet NOMME : ses modificateurs et la composition de sa Difficulté. */
@@ -41,14 +52,14 @@ const surLArete = (a: { x: number; y: number }, b: { x: number; y: number }) => 
   return aretesA(scene(), e.x, e.y, e.side, 0);
 };
 
-/** Le muret de l'enceinte : la case (1,15) du relais et la case (0,15) du dehors, de part et d'autre de son arête. */
+/** Le muret de la fixture : la case (1,15) du relais et la case (0,15) du dehors, de part et d'autre de son arête. */
 const DEDANS = { x: 1, y: 15, z: 0 };
 const DEHORS = { x: 0, y: 15, z: 0 };
 /** La croisée ouverte (4,9,E) d'un mur à ossature : (5,9) d'un côté, (4,9) de l'autre. */
 const SOUS_LA_CROISEE = { x: 5, y: 9, z: 0 };
 const DEVANT_LA_CROISEE = { x: 4, y: 9, z: 0 };
 
-describe('#4105 lot 2 — le muret de l’enceinte de la-diligence', () => {
+describe('#4105 lot 2 — un muret de l’enceinte de la-diligence', () => {
   it('contact 1 des deux côtés ; l’aperçu et la résolution portent le couvert à −10 ; la vue passe ; le pas reste refusé', () => {
     const { H, E, poser } = duel();
     poser(H, DEDANS);

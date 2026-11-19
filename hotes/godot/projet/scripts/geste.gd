@@ -61,7 +61,7 @@ func _presser() -> void:
 	var cible := get_parent() as BaseButton
 	if cible.toggle_mode:
 		cible.set_pressed_no_signal(_element.presse)
-	if _element.type == "formulaire":
+	if _element.type == Noyau.TypeDElement.FORMULAIRE:
 		_jouer({type = _element.verbe, args = Saisie.arguments(owner, _element.champs)})
 	else:
 		_jouer(_element.jeu)

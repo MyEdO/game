@@ -16,6 +16,7 @@ import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichier
 import { HOTES_DU_NOYAU, dossierDe } from '../../scripts/guards/lib/couches.mjs';
 import { calculsDeRegle, estMiseEnPage } from '../../scripts/guards/lib/gdscriptSansRegle.mjs';
 import { lexemesGdscript } from '../../scripts/guards/lib/gdscript.mjs';
+import { GENERATORS, estCiblePure } from '../../scripts/docs/build-all.mjs';
 import { VERBES } from './verbes.generated';
 import { CLES_DE_FENETRE } from '../noyau/index';
 
@@ -28,7 +29,7 @@ const DOSSIERS = HOTES_DU_NOYAU.map(dossierDe).filter((d) => existsSync(new URL(
  *  cible générée, ni cible de design (`hotes/godot/cibles/`, #4411 : des maquettes qui écrivent leurs gestes en donnée,
  *  pas du code d'hôte). */
 const fichiersDesHotes = (): string[] =>
-  DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.(ts|gd)$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && !/\.generated\.ts$/.test(f) }).map((f) => `${d}/${f}`))
+  DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.(ts|gd)$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) }).map((f) => `${d}/${f}`).filter((f) => !estCiblePure(f, GENERATORS)))
     .filter((f) => !f.startsWith('hotes/godot/cibles/'));
 const estGdscript = (f: string): boolean => f.endsWith('.gd');
 

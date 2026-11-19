@@ -324,7 +324,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
-		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
+		_lumiere.eclairer(_vue.lumiere, _vue.plateau)
 	_musique.jouer(_vue.musique)
 	if _disposition.disposer(_vue.disposition, _vue.projection.combat != null):
 		_relier()
@@ -339,8 +339,9 @@ func _suivre(reponse: Dictionary) -> void:
 
 
 ## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
-## (`Plateau.poser_le_monde`), s'il n'y est pas déjà : son manifeste (`monde`), et la géométrie des seules clés dont
-## l'empreinte posée diffère (`VolumeDeScene.manquants`, `morceaux` de la partie), demandée s'il en manque.
+## (`Plateau.poser_le_monde`), s'il n'y est pas déjà : son manifeste (`monde`), la géométrie des seules clés dont
+## l'empreinte posée diffère (`VolumeDeScene.manquants`, `morceaux` de la partie), demandée s'il en manque, et la zone
+## jouable du plateau (`plateau.zoneJouable`), que vise le cadrage.
 func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuMonde]
 	if cle == _cle_du_monde:
@@ -355,7 +356,8 @@ func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 		recus = _pont.appeler("morceaux", manquants.merged({source = "partie"}))
 		if recus.get("ok") != true:
 			return
-	_plateau.poser_le_monde(monde, recus)
+	var zone: Dictionary = plateau.zoneJouable
+	_plateau.poser_le_monde(monde, recus, Rect2i(int(zone.x), int(zone.y), int(zone.w), int(zone.h)))
 
 
 ## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le

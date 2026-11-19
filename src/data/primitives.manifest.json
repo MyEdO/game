@@ -344,9 +344,9 @@
   {
     "id": "actorIn",
     "type": "primitives.manifest",
-    "label": "actorIn/inBattleId/ecrireActeur",
+    "label": "actorIn/inBattleId/ecrireActeur/combattantsDeLaSerie",
     "fichier": "src/noyau/monde/combatants.ts",
-    "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
+    "concept": "combattant par id — combat, ou groupe et combattants de la série d'attaques subies, vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
     "perimetre": "toute résolution d'acteur ; toute écriture d'un héros ou d'un combattant par id (#2312)",
     "verrou": "in-battle-find-guard.test.ts"
   },
@@ -355,7 +355,7 @@
     "type": "primitives.manifest",
     "label": "touchActors",
     "fichier": "src/noyau/combatOrParty.ts",
-    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
+    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe et la série d'attaques subies",
     "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
     "verrou": "couture-de-retour.hors-store.test.ts"
   },
@@ -627,7 +627,7 @@
     "type": "primitives.manifest",
     "label": "inferFields/FieldDesc/choixDuNoeud/champsDeclares/bornesDuNoeud/unionDuNoeud/elementDuNoeud",
     "fichier": "src/noyau/codex/editFields.ts",
-    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste, spécialisation d'une entrée fermée à son catalogue, `choixDeLaSpec`, le `spec` d'une référence à spécialisation lu au point de son `id`, `noeudDuChampAuPoint`), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste (`elementDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui ajoute, retire ou monte un élément de liste à son rang, retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `ecritureAuFormulaire`, `monteeAuFormulaire`, `src/noyau/edition/formulaire.ts`)",
+    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`, sans l'identité que tient une liste-clé, `identiteTenue`, figée si le code la déclare, `identiteFigee`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, union de littéraux, référence de catalogue avec sa sous-liste, spécialisation d'une entrée fermée à son catalogue, `choixDeLaSpec`, le `spec` d'une référence à spécialisation lu au point de son `id`, `noeudDuChampAuPoint`), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste, et celui de chaque position d'un tuple, liste de longueur fixe (`elementDuNoeud`, `ariteDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui ajoute, retire ou monte un élément de liste à son rang, retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `ecritureAuFormulaire`, `monteeAuFormulaire`, `src/noyau/edition/formulaire.ts`)",
     "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en éléments par `src/hote/formulaire.ts` (`elementsDuFormulaireTire`, `valeurDuFormulaire`) et joué par le geste `valeur` de la session d'édition",
     "verrou": "src/noyau/edition/formulaire.test.ts"
   },
@@ -2082,9 +2082,9 @@
     "type": "primitives.manifest",
     "label": "estObjet",
     "fichier": "src/lib/objet.mjs",
-    "concept": "prédicat d'OBJET : une valeur objet, ni null ni tableau — la forme d'un objet JSON lu (#3117) ; module pur en .mjs, composable par src/, les scripts, les gardes et les migrations ; une valeur objet OU tableau (qui a des enfants) est estConteneur (src/data/schemas/grammaire/descente.ts)",
+    "concept": "prédicat d'OBJET : une valeur objet, ni null ni tableau — la forme d'un objet JSON lu (#3117) ; module pur en .mjs, composable par src/, les scripts, les gardes et les migrations ; une valeur objet OU tableau (qui a des enfants) est estConteneur (src/data/schemas/grammaire/descente.ts) ; et auChemin, la valeur d'une donnée à un chemin, undefined hors de lui",
     "perimetre": "tout test qu'une valeur lue (JSON, stockage, message réseau, argument de geste, nœud de donnée) est un objet avant d'en lire les clés",
-    "verrou": "construction PREDICAT_D_OBJET (scripts/guards/lib/canonUnique.mjs), src/objet-recopie-guard.test.ts : aucune recopie du prédicat, en ligne ou renommée, hors de src/lib/objet.mjs"
+    "verrou": "constructions PREDICAT_D_OBJET et LECTURE_AU_CHEMIN (scripts/guards/lib/canonUnique.mjs), src/objet-recopie-guard.test.ts : aucune recopie du prédicat ni de la lecture au chemin, en ligne ou renommée, hors de src/lib/objet.mjs"
   },
   {
     "id": "jsonCanonique",

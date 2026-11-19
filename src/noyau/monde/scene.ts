@@ -7,7 +7,7 @@
  * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
-import type { QualiteDeRepos, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
+import type { QualiteDeRepos, RectDeCases, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { FlowDeScene, TestDeScene } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
@@ -17,7 +17,7 @@ import type { z } from 'zod';
 import type { InventaireDAuteur, OptionalDeScene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type {
-  ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
+  ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
   facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
@@ -194,7 +194,6 @@ export type AuMoinsUnPorteurDeFiche = {
 export const idDuCorps = (ent: Pick<SceneEntity, 'decor' | 'creature' | 'vehicule' | 'engin'>): string | undefined =>
   (ent.decor ?? ent.creature ?? ent.vehicule ?? ent.engin)?.id;
 
-export type ArchitectureRect = z.infer<typeof architectureRectSchema>;
 export type ArchitectureEdgeRef = z.infer<typeof architectureEdgeRefSchema>;
 export type ArchitecturePart = z.infer<typeof architecturePartSchema>;
 export type ArchitectureStorey = z.infer<typeof architectureStoreySchema>;
@@ -310,6 +309,9 @@ export interface Scene {
   /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
    *  (jour/nuit = horloge). Absent = extérieur. */
   ambiance?: z.infer<typeof ambianceSchema>;
+  /** Rectangle de cases où se joue la scène, contenu dans `dimensions` ; absent = toute la grille. La grille reste le
+   *  monde bâti et rendu ; le jeu se borne à ce rectangle (`rectJouable`, `dansLaZoneJouable`). #4392 */
+  zoneJouable?: RectDeCases;
   /** Classification écologique de la Scène (éditable) — lue par les attributs de Domaine liés à
    *  l'environnement (LDB 48 l.690 : la Vie/Ghyran gagne +10 à Incanter/Focaliser en zone rurale ou
    *  sauvage). Absent = non spécifié (aucun bonus d'environnement). */
@@ -393,9 +395,17 @@ export interface Scene {
   groups?: string[];
 }
 
-/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : le type de sa vue
+/** Les champs de la scène que lisent ses audits d'auteur spatiaux — défauts de plan (`scenePlanDefects`) et pièces
+ *  inatteignables (`unreachableDescriptiveZones`) : marche, relief, murs, décors, drapeaux, zones d'effet et zone
+ *  jouable (la marche s'y borne, `isWalkable`). Les dépendances de leurs mémos en sont tirées (`champsDuPlan`). */
+export const CHAMPS_DU_PLAN = [
+  'dimensions', 'metresPerTile', 'reliefDefaults', 'layers', 'walls', 'entities', 'flags', 'effectZones', 'zoneJouable',
+] as const satisfies readonly (keyof Scene)[];
+
+/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : ceux du plan, et
+ *  l'architecture et la toiture d'où se posent les ornements du bâti (`ornementsDuBati`). Le type de sa vue
  *  (`SceneDuVolume`), sa projection et les dépendances de son mémo en sont tirés. */
-export const CHAMPS_DU_VOLUME = ['dimensions', 'metresPerTile', 'reliefDefaults', 'layers', 'walls', 'entities', 'flags'] as const;
+export const CHAMPS_DU_VOLUME = [...CHAMPS_DU_PLAN, 'architecture', 'roofDefaults'] as const;
 
 /** Les champs de la scène que lisent ses nappes de toit (`toitsDuMonde`) et ses couronnes (`couronnesDuMonde`,
  *  `src/noyau/monde/volume/volume.ts`) : le type de leur vue (`SceneDesToits`, `SceneDesCouronnes`) et les dépendances
@@ -411,11 +421,6 @@ export type SceneDesToits = Pick<Scene, (typeof CHAMPS_DES_TOITS)[number]>;
 
 /** La scène vue par ses couronnes (`CHAMPS_DES_COURONNES`). */
 export type SceneDesCouronnes = Pick<Scene, (typeof CHAMPS_DES_COURONNES)[number]>;
-
-/** Les champs de la scène que lisent ses audits d'auteur spatiaux — défauts de plan (`scenePlanDefects`) et pièces
- *  inatteignables (`unreachableDescriptiveZones`) : ceux du volume (marche, relief, murs, décors, drapeaux) et les zones
- *  d'effet. Les dépendances de leurs mémos en sont tirées (`champsDuPlan`). */
-export const CHAMPS_DU_PLAN = [...CHAMPS_DU_VOLUME, 'effectZones'] as const;
 
 /** Les valeurs des `CHAMPS_DU_PLAN` de `scene`, dans leur ordre : une écriture qui n'en touche aucun les rend identiques. */
 export const champsDuPlan = (scene: Scene): readonly unknown[] => CHAMPS_DU_PLAN.map((c) => scene[c]);
@@ -527,7 +532,27 @@ export function groupePosable(scene: Scene, pt: { x: number; y: number; z?: numb
   return isWalkable(scene, pt.x, pt.y, pt.z ?? 0);
 }
 
-export function isWalkable(scene: SceneDuVolume, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
+/** Le rectangle de cases où se joue la scène : sa `zoneJouable`, sinon toute la grille. Seule borne du monde jouable
+ *  pour une règle de jeu ; le rendu et l'auteur lisent la grille (`dimensions`). #4392 */
+export function rectJouable(scene: Pick<Scene, 'dimensions' | 'zoneJouable'>): RectDeCases {
+  return scene.zoneJouable ?? { x: 0, y: 0, w: scene.dimensions.w, h: scene.dimensions.h };
+}
+
+/** La case (x,y) est-elle dans le rectangle jouable de la scène (`rectJouable`) ? */
+export function dansLaZoneJouable(scene: Pick<Scene, 'dimensions' | 'zoneJouable'>, x: number, y: number): boolean {
+  const r = rectJouable(scene);
+  return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
+}
+
+/** Une créature peut-elle se tenir en (x,y,z) pour le JEU : sol praticable (`solPraticable`) dans la zone jouable
+ *  (`dansLaZoneJouable`). Le rendu et l'auteur, qui bâtissent aussi le dehors, lisent `solPraticable`. */
+export function isWalkable(scene: SceneDuVolume & Pick<Scene, 'zoneJouable'>, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
+  return solPraticable(scene, x, y, z, swim) && dansLaZoneJouable(scene, x, y);
+}
+
+/** Le sol de (x,y,z) porte-t-il une créature, physiquement, sur toute la grille (zone jouable ignorée) ? Lu par le
+ *  rendu et les outils d'auteur ; le jeu lit `isWalkable`. */
+export function solPraticable(scene: SceneDuVolume, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
   if (z > 0 && tileCollapsed(scene, x, y, z)) return false; // passerelle effondrée → plus marchable
   if (entityBlockedAt(scene, x, y, z)) return false; // empreinte multi-cases d'un décor (foot {w,h}), SA couche seulement
   // Impassabilité de la MASSE = le TERRAIN (bloc plein `mur` = walkable:false) ; le sol du TUNNEL (`pierre`)

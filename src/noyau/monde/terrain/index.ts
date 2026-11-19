@@ -107,7 +107,7 @@ export function estAbsent(id: string): boolean {
 }
 
 /** Le terrain que la grille rend AU-DELÀ de ses bornes (`tileAt` hors grille) — ses propriétés font
- *  la Ligne de Vue, le raccord d'arêtes et les piliers au bord du monde. */
+ *  la Ligne de Vue et les piliers au bord du monde ; aucun raccord d'arêtes n'y déborde (`edgeBlends`). */
 export function terrainHorsGrille(): Terrain {
   return horsGrilleVivant();
 }

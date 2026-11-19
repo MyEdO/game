@@ -28,7 +28,7 @@ import { itemLabel } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 import { placesJouables } from './seating';
 import { EMPTY_FLOW } from '../../engine/flowCore';
-import type { Scene, SceneEntity, ActionAuthoree } from './scene';
+import { enrolledEntityIds, type Scene, type SceneEntity, type ActionAuthoree } from './scene';
 
 /** Les drapeaux de jeu (`state.flags`). */
 export type Drapeaux = Readonly<Record<string, boolean | undefined>>;
@@ -144,3 +144,11 @@ export function actionsDe(scene: Scene, ent: SceneEntity, { flags = {}, objetsAu
  *  lectures qui mentiraient séparément. Un décor est utilisable parce qu'il OFFRE quelque chose. */
 export const estUtilisable = (scene: Scene, ent: SceneEntity, etat: EtatDesOffres = {}): boolean =>
   actionsDe(scene, ent, etat).length > 0;
+
+/** L'entité `ent` a-t-elle un rôle en JEU : départ du groupe, membre d'une rencontre (`enrolledEntityIds` : une monture
+ *  chevauchée en est membre, le spawn n'appaire que celles du roster), ou ce qu'elle offre à la scène neuve
+ *  (`estUtilisable` : dialogue, marchand, actions, assise). Une telle entité vit dans la zone jouable
+ *  (`dansLaZoneJouable`) ; un pur décor peut vivre dehors. Lu par la pose de l'éditeur (`borneALaCarte`) et par la
+ *  validation (`validateScene`). #4392 */
+export const aUnRoleEnJeu = (scene: Scene, ent: SceneEntity): boolean =>
+  ent.kind === 'heroStart' || enrolledEntityIds(scene).has(ent.id) || estUtilisable(scene, ent);

@@ -541,7 +541,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     expect(refusDeLaValeur(choisie, valeur(id, ['appearance', 'apparencesObjets', 'arme-simple'], { id: etrangere.id })), 'une apparence que l’objet n’admet pas').toBe('horsSorte');
     expect(refusDeLaValeur(choisie, valeur(id, ['appearance', 'apparencesObjets', 'arme-simple'], valeurNeuveDe(recordDuNoeud(apparencesDObjetsSchema)!.valeur))), 'la valeur neuve hors des choix').toBe('horsSorte');
     expect(refusDeLaValeur(enrole, valeur(id, ['appearance', 'apparencesObjets', 'dague'], { id: autres[0].id })), 'un objet hors de ses armes').toBe('nonOffert');
-    expect(refusDeLaValeur(enrole, valeur(id, ['appearance', 'apparencesObjets'], 'arme-simple')), 'une clé n’est pas sa valeur').toBe('horsSorte');
+    expect(refusDeLaValeur(enrole, valeur(id, ['appearance', 'apparencesObjets'], 'arme-simple')), 'une clé n’est pas sa valeur').toEqual({ regle: 'Entrée invalide : record attendu, chaîne de caractères reçu' });
   });
 
   it('le marchand s’écrit champ par champ, son archétype choisi au catalogue, sa majoration positive, son taux de rachat entre 0 et 1, ses jours de réassort entiers ; une valeur hors des choix ou des bornes est refusée (#3606 M1d)', () => {
@@ -563,7 +563,14 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
       refusDeLaValeur(ecrit, valeur(id, ['merchant', 'buyMarkup'], 0)),
       refusDeLaValeur(ecrit, valeur(id, ['merchant', 'restockDays'], -1)),
       refusDeLaValeur(ecrit, valeur(id, ['merchant', 'restockDays'], 1.5)),
-    ]).toEqual(['horsSorte', 'horsSorte', 'horsSorte', 'horsSorte', 'horsSorte', 'horsSorte']);
+    ]).toEqual([
+      { regle: '« inconnu » est absent du catalogue des archétypes de marchand (merchants.json).' },
+      { regle: 'Option invalide : une valeur parmi "village"|"ville"|"cite" attendue' },
+      { regle: 'Trop grand : nombre doit être <=1' },
+      { regle: 'Trop petit : nombre doit être >0' },
+      { regle: 'Trop petit : nombre doit être >=0' },
+      { regle: 'Entrée invalide : entier attendu, nombre reçu' },
+    ]);
     expect(marchand(jouer(ecrit, valeur(id, ['merchant'])))).toBeUndefined();
   });
 
@@ -573,7 +580,11 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const [premier, second] = TAVERN_GAMES;
     const ecrit = jouer(pose, valeur(id, ['tavernGame'], { id: premier.id }), valeur(id, ['tavernGame', 'id'], second.id), valeur(id, ['tavernGame', 'stakeBrass'], 20));
     expect(entiteDeLaSelection(sceneEditee(ecrit), ecrit.sel)?.tavernGame).toEqual({ id: second.id, stakeBrass: 20 });
-    expect([refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'id'], 'inconnu')), refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'stakeBrass'], -1)), refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'stakeBrass'], 0.5))]).toEqual(['horsSorte', 'horsSorte', 'horsSorte']);
+    expect([refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'id'], 'inconnu')), refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'stakeBrass'], -1)), refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'stakeBrass'], 0.5))]).toEqual([
+      { regle: '« inconnu » est absent du catalogue des jeux de taverne (tavernGames.json).' },
+      { regle: 'Trop petit : nombre doit être >=0' },
+      { regle: 'Entrée invalide : entier attendu, nombre reçu' },
+    ]);
   });
 
   it('le dialogue se choisit parmi exactement ceux que sa scène déclare, entier ou par son identifiant ; une scène sans dialogue ne l’offre pas (#3606 M1d)', () => {
@@ -824,7 +835,7 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
     const pas = flowFromEffects([{ type: 'endDialogue' }]);
     const enchainee = jouer(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow'], pas));
     expect(decor(enchainee).usable?.actions?.[1].flow, 'l’enchaînement s’écrit entier').toEqual(pas);
-    expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow', 'etapes'], [null])), 'un pas que son schéma ne bâtit pas').toBe('horsSorte');
+    expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow', 'etapes'], [null])), 'un pas que son schéma ne bâtit pas').toEqual({ regle: 'Entrée invalide : objet attendu, null reçu' });
     const renommee = jouer(ecrite, { geste: 'identifier', element: 'fouiller-2', id: ' coffre ' });
     expect(decor(renommee).usable?.actions?.map((a) => a.id)).toEqual(['fouiller', 'coffre']);
     expect(jouer(renommee, { geste: 'identifier', element: 'coffre', id: 'fouiller' }), 'un identifiant déjà porté : aucun cran').toBe(renommee);
@@ -872,7 +883,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     const ajoute = jouer(cogue, valeur(['postes'], [...postes, { trappingId: engins[0] }]), valeur(['postes', postes.length, 'trappingId'], engins[1]));
     expect(coque(ajoute).postes?.[postes.length]).toEqual({ trappingId: engins[1] });
     expect(choix(ajoute, ['postes', postes.length, 'trappingId'])).toEqual(engins);
-    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'pas-une-piece')), 'une pièce hors catalogue').toBe('horsSorte');
+    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'pas-une-piece')), 'une pièce hors catalogue').toEqual({ regle: '« pas-une-piece » est absent du catalogue des objets (trappings.json).' });
     const entites = sceneEditee(cogue).entities;
     expect(entites.some((e) => e.vehicule && e.id !== coque(cogue).id), 'la scène pose une autre coque').toBe(true);
     const equipage = entites.filter((e) => e.kind === 'personnage' && !e.vehicule).map((e) => e.id);
@@ -891,7 +902,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
       .toEqual([{ chemin: ['postes', 0, 'ammo', 'carreau-de-baliste'], message: expect.stringContaining('ne charge pas') }]);
     const dote = jouer(cogue, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 3));
     expect(coque(dote).postes![0].ammo).toMatchObject({ 'mitraille-et-poudre': 3 });
-    expect(refusDeLaValeur(dote, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 0)), 'une quantité nulle').toBe('horsSorte');
+    expect(refusDeLaValeur(dote, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 0)), 'une quantité nulle').toEqual({ regle: 'Trop petit : nombre doit être >=1' });
     expect(choix(dote, ['postes', 0, 'selectedAmmo', 'id'])).toEqual(Object.keys(coque(dote).postes![0].ammo!));
     const choisie = jouer(dote, valeur(['postes', 0, 'selectedAmmo', 'id'], 'mitraille-et-poudre'));
     expect(coque(choisie).postes![0].selectedAmmo).toEqual({ id: 'mitraille-et-poudre' });
@@ -1187,6 +1198,13 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
     expect([idDeLaSceneEditee(future), sceneEditee(future).id, couches(future, 'aa')], 'rétablir').toEqual(['aa', 'aa', [0, 1]]);
   });
 
+  it('agrandie par son bord ouest et nord, la scène pousse sa grille et ses calques d’autant (#4392)', () => {
+    const calee = jouer(ouvrirLEdition(projet, true), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
+    const agrandie = jouer(calee, { geste: 'scene', patch: { dimensions: { w: 6, h: 5, decalage: { x: 2, y: 1 } } } });
+    const avant = calqueDeLaCouche(calee)!.calage;
+    expect([sceneEditee(agrandie).dimensions, calqueDeLaCouche(agrandie)!.calage]).toEqual([{ w: 6, h: 5 }, { ...avant, tx: avant.tx + 2, ty: avant.ty + 1 }]);
+  });
+
   it('les calques d’une scène retirée ressuscitent avec elle ; l’enregistrement réussi les oublie', () => {
     const calee = jouer(ouvrirLEdition(projet, true), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
     expect(calqueDeLaCouche(calee)).toBeDefined();
@@ -1284,7 +1302,11 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
     const ecrit = jouer(s, valeur('lieu', 'x', ['taille'], 3));
     expect([carte(ecrit).places[0].taille, ecrit.historique.passe.length]).toEqual([3, s.historique.passe.length + 1]);
     expect(carte(jouer(ecrit, { geste: 'annuler' }))).toEqual(RELIEE);
-    expect([0, 5, 2.5].map((n) => refusDeLaValeur(s, valeur('lieu', 'x', ['taille'], n)))).toEqual(['horsSorte', 'horsSorte', 'horsSorte']);
+    expect([0, 5, 2.5].map((n) => refusDeLaValeur(s, valeur('lieu', 'x', ['taille'], n)))).toEqual([
+      { regle: 'Trop petit : nombre doit être >=1' },
+      { regle: 'Trop grand : nombre doit être <=4' },
+      { regle: 'Entrée invalide : entier attendu, nombre reçu' },
+    ]);
     expect(carte(jouer(ecrit, valeur('lieu', 'x', ['taille']))).places[0].taille, 'un lieu sans marché la retire').toBeUndefined();
     const marchand = { ...RELIEE, places: [{ ...RELIEE.places[0], taille: 3, market: { richesse: 3, produits: [] } }, RELIEE.places[1]] };
     const surMarche = jouer(ouvert(marchand), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
@@ -1570,7 +1592,7 @@ describe('les axes actifs du projet, réglés sur l’écran de la carte du mond
     const s = surLaCarte();
     const deux = jouer(s, axes(['melee']), axes(['melee', 'tir']));
     expect([projetEdite(deux).activeAxes, projetEdite(deux).worldMap, deux.historique.passe.length]).toEqual([['melee', 'tir'], projetEdite(s).worldMap, s.historique.passe.length + 2]);
-    expect(refusDeLaValeur(s, axes(['plongee-sous-marine']))).toBe('horsSorte');
+    expect(refusDeLaValeur(s, axes(['plongee-sous-marine']))).toEqual({ regle: '« plongee-sous-marine » est absent du catalogue des axes (axes.json).' });
     expect(jouer(deux, axes(['melee', 'tir'])), 'les mêmes axes : rien ne change').toBe(deux);
   });
 

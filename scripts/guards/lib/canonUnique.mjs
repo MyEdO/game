@@ -11,7 +11,8 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON`,
-//    `SONDE_D_EXISTENCE`, `PREDICAT_D_OBJET`, `VIE_SUR_PID_LU` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `SONDE_D_EXISTENCE`, `PREDICAT_D_OBJET`, `LECTURE_AU_CHEMIN`, `VIE_SUR_PID_LU` et
+//    `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
@@ -649,6 +650,34 @@ export const PREDICAT_D_OBJET = Object.freeze({
     const tests = sujets(nie ? testeLeVide : presenceDe);
     const sujet = [...types].find((x) => tableaux.has(x) && tests.has(x));
     return sujet ? `prédicat d’objet recopié sur \`${sujet}\` (\`estObjet\`, src/lib/objet.mjs)` : null;
+  },
+});
+
+/** La LECTURE AU CHEMIN recopiée, dont le canon est `auChemin` (`src/lib/objet.mjs`) : un appel `<chemin>.reduce(f, x)`
+ *  dont la fonction `f`, à deux paramètres nommés, l'accumulé `v` et le pas `p`, rend `v[p]` ou `v?.[p]`, sous une
+ *  conversion de type ou en une branche d'une conditionnelle (`rendusDe`). Le NOM n'entre pas dans la reconnaissance.
+ *  Angle mort : la descente en boucle (`for (const p of chemin) v = v[p]`). */
+export const LECTURE_AU_CHEMIN = Object.freeze({
+  nom: 'LECTURE_AU_CHEMIN',
+  indice: (texte) => texte.includes('reduce'),
+  /** @param {ts.Node} n @returns {string | null} */
+  reconnait: (n) => {
+    if (!ts.isCallExpression(n) || n.arguments.length !== 2) return null;
+    const appele = sansEnveloppe(n.expression);
+    if (!ts.isPropertyAccessExpression(appele) || appele.name.text !== 'reduce') return null;
+    const f = sansEnveloppe(n.arguments[0]);
+    if (!(ts.isArrowFunction(f) || ts.isFunctionExpression(f)) || f.parameters.length !== 2) return null;
+    const [v, p] = f.parameters.map((x) => (ts.isIdentifier(x.name) ? x.name.text : null));
+    if (v === null || p === null) return null;
+    /** @param {ts.Expression} e @returns {boolean} */
+    const lit = (e) => {
+      const x = sansEnveloppe(e);
+      if (ts.isConditionalExpression(x)) return lit(x.whenTrue) || lit(x.whenFalse);
+      if (!ts.isElementAccessExpression(x)) return false;
+      const [objet, pas] = [sansEnveloppe(x.expression), sansEnveloppe(x.argumentExpression)];
+      return ts.isIdentifier(objet) && objet.text === v && ts.isIdentifier(pas) && pas.text === p;
+    };
+    return rendusDe(f).some(lit) ? 'lecture au chemin recopiée (`auChemin`, src/lib/objet.mjs)' : null;
   },
 });
 
