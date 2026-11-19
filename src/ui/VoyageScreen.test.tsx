@@ -43,7 +43,7 @@ const landPlan = (): TravelPlan => ({ ...base(), mode: 'monture', allure: 'trot'
 // Transport PAYANT en barge (#333 correctif) : ni `.sea` ni `.river` (pas de descente JOUÉE, un
 // passeur) — le sous-mode se dérive de la donnée `vehicles.json` id `barge` (`travel.medium:'fluvial'`,
 // facette VOYAGE LDB 51 l.185-187 — INDÉPENDANTE de `hull.propulsion:'maritime'`, table navale MDG 12).
-const bargePassagePlan = (): TravelPlan => ({ ...base(), mode: 'barge' });
+const bargePassagePlan = (): TravelPlan => ({ ...base(), mode: 'barge-fluviale' });
 
 describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
   it('voyageMode : mer / fleuve / terre dérivés du plan', () => {
@@ -59,7 +59,7 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
   it('tuiles du transport payant en barge : NOMME le mode réel (jamais « À pied »), pas de tuile Bêtes sans monture', () => {
     const tiles = voyageTiles('fleuve', bargePassagePlan(), null, [hero('h1')], [], 0);
     const transport = tiles.find((t) => t.key === 'allure')!;
-    expect(transport.value).toBe('Barge');
+    expect(transport.value).toBe('Barge fluviale');
     expect(transport.value).not.toBe('À pied');
     expect(tiles.some((t) => t.key === 'betes')).toBe(false);
   });

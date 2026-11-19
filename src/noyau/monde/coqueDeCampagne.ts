@@ -1,9 +1,9 @@
-import type { Combatant } from '../../engine/types';
+import type { CombatantAvecMilieuNaval } from '../../engine/vehicle';
 import { findVehicleById } from '../../data';
 import type { CampaignVessel } from '../etat';
 import type { SceneEntity } from './scene';
 
-export type CombattantDeRencontreOuTrajet = Combatant & {
+export type CombattantDeRencontreOuTrajet = CombatantAvecMilieuNaval & {
   /** Identité du navire de campagne représenté par la coque. */
   navireDeCampagneUid?: string;
 };

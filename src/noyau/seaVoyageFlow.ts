@@ -463,7 +463,7 @@ export function voyageShip(get: Get<Jeu>): { vessel: CampaignVessel; hull: Comba
   if (!vessel) return null;
   const v = findVehicleById(vessel.vehicleId);
   if (!v?.ship) return null;
-  const hull = vehicleCombatant(v, vessel.uid);
+  const hull = vehicleCombatant(v, vessel.uid, 'maritime');
   if (!hull) return null;
   lierLaCoqueDeCampagne(hull, vessel);
   hull.label = nomDuNavire(vessel); // #230 — le rendu reste keyé par creatureId
@@ -2744,7 +2744,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
   return [t('sv.careened', { cost: cost ? t('sv.fragCareenCost', { cost, pct }) : '' })];
 }
 
-/** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364) : coût et poids par bande de Taille
+/** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364 ; MSRC 12 l.21-25, l.54-135) : coût et poids
  *  (`installCost`), durée en jours (`duree`, tirée à la pose), et refus (`null` : la pose passe) contre la bourse
  *  `bourse` du groupe et le port `portRef` (`MapPlace.port.ref`, `naval-ports.json`). SOURCE UNIQUE de
  *  `installerLAmelioration` et de l'écran du port. PUR. MDG 15 l.255 ; MDG 12 l.230 */
@@ -2757,8 +2757,9 @@ export function devisDAmelioration(vessel: CampaignVessel | null, traitId: strin
   if (!vessel || !v?.ship || !entry) return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeNotFound') };
   if (entry.kind !== 'amelioration') return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeIsTrait', { label }) };
   if (!entry.install) return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeNoPrice', { label }) };
-  const { gold, enc } = installCost(entry.install, v.ship.lengthM, units);
-  const duree: Formula = vessel.constructeurDEscale?.duree ?? (entry.install.jours && installAmount(entry.install.jours, v.ship.lengthM)) ?? REPARATION.joursDePose;
+  const coque = { id: v.id, ship: v.ship };
+  const { gold, enc } = installCost(entry.install, coque, units);
+  const duree: Formula = vessel.constructeurDEscale?.duree ?? (entry.install.jours && installAmount(entry.install.jours, coque)) ?? REPARATION.joursDePose;
   if (gold == null) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeEmbedded', { label }) };
   if (entry.install.chantierSpecialise && !(portRef && findNavalPortById(portRef)?.chantierNavalSpecialise)) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeNeedsShipyard', { label }) };
   if (refusDuQuai) return { traitId, label, gold, enc, duree, refus: refusDuQuai };

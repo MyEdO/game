@@ -46,10 +46,10 @@ describe('refusAQuai — le navire de campagne à quai au lieu du groupe (#4214)
     expect(refusAQuai({ vessel: null, lieu: 'D', worldMap: carte })).toBe(t('port.sansNavire'));
   });
   it('navire à quai au lieu du groupe : aucun refus', () => {
-    expect(refusAQuai({ vessel: { vehicleId: 'barge', escale: 'D' } as never, lieu: 'D', worldMap: carte })).toBeNull();
+    expect(refusAQuai({ vessel: { vehicleId: 'barge-fluviale', escale: 'D' } as never, lieu: 'D', worldMap: carte })).toBeNull();
   });
   it.each([['à quai ailleurs', 'S'], ['en mer', undefined]])('navire %s : refus nommé', (_cas, escale) => {
-    expect(refusAQuai({ vessel: { vehicleId: 'barge', escale } as never, lieu: 'D', worldMap: carte })).toBe(t('port.pasAQuai'));
+    expect(refusAQuai({ vessel: { vehicleId: 'barge-fluviale', escale } as never, lieu: 'D', worldMap: carte })).toBe(t('port.pasAQuai'));
   });
 });
 

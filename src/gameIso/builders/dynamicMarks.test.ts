@@ -183,7 +183,7 @@ function jeton(c: Combatant, heroIndex?: number): TokenEl {
 
 describe('identité du groupe', () => {
   it('un npc inanimé porte l’anneau hors groupe en trait plein, même fourni avec un rang', () => {
-    const navireDuGroupe = inanimateCombatant({ id: 'navire', label: 'Navire du groupe', refId: 'barge', bodyShape: 'vehicule' });
+    const navireDuGroupe = inanimateCombatant({ id: 'navire', label: 'Navire du groupe', refId: 'barge-fluviale', bodyShape: 'vehicule' });
     expect(teamRingDecor(navireDuGroupe, 0)).toEqual({ color: OUT_OF_PARTY_RING, dash: undefined });
     expect(combatantRingDecor(navireDuGroupe, [navireDuGroupe.id], [navireDuGroupe])).toEqual({ color: OUT_OF_PARTY_RING, dash: undefined });
   });

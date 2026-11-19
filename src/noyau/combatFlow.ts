@@ -291,7 +291,6 @@ import {
   findPsychologyById,
   diseaseLabel,
   refLabel,
-  findVehicleById,
   combatStakeRef,
   GRAPPLE,
   type SpellData,
@@ -299,7 +298,7 @@ import {
   libelleOuAbsence,
   SPEC_SOURCES,
 } from '../data';
-import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
+import { applyHullCritical, exposedCrew, optsDeCritiqueDeCoque } from '../engine/shipCritical';
 import { endShanty, membreDuBord, metaDuPoste, monterLesVagues, posteDeLEtape, resolveShipUnits, withCrewActed, type PosteDuBord } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
@@ -2338,16 +2337,12 @@ export function applyHullCriticalToTarget(
   opts: { ctx?: DeviationCtx; suppressReveal?: boolean; get: Get; forcedLocRoll?: number; forcedCritRoll?: number },
 ): IssueDuCritique {
   const { ctx, suppressReveal, get, forcedLocRoll, forcedCritRoll } = opts;
-  const hull = findVehicleById(target.creatureId ?? '')?.hull;
+  const etat = get();
   const crew = target.crewIds
-    ? (target.crewIds.map((id) => actorIn(get(), id)).filter(Boolean) as Combatant[])
+    ? (target.crewIds.map((id) => actorIn(etat, id)).filter(Boolean) as Combatant[])
     : [];
-  // Réfs data-driven : `navire`/`ship-criticals` (MDG, défaut) ou `navire-fluvial`/`river-criticals` (MSRC 7).
-  // Les dés IMPOSÉS sont ceux que le moteur accepte déjà (`applyHullCritical`) : la recette s'en sert
-  // pour atteindre une Localisation VOULUE sans chemin parallèle — le jeu applique le sien.
-  const outcome = applyHullCritical(target, crew, rig, battleRng(), get().forgerUnId, forcedLocRoll, forcedCritRoll, {
-    locationTable: hull?.locationTable, criticalTable: hull?.criticalTable,
-  });
+  const tables = optsDeCritiqueDeCoque(target, etat.travelPlan);
+  const outcome = applyHullCritical(target, crew, rig, battleRng(), etat.forgerUnId, forcedLocRoll, forcedCritRoll, tables);
   if (!outcome.marinId) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // MDG 13 l.584
   for (const l of outcome.lines) log.push(l);
   const heroConcerned = target.kind === 'heros' || ctx?.attackerKind === 'heros'

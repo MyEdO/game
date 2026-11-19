@@ -72,11 +72,11 @@ function journeeDeFleuve(cadence: VoyageCadence): void {
   get().chargerLeProjet({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
     id: 'm', label: 'Reik',
     places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } }, { id: 'B', label: 'B', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } }],
-    routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
+    routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge-fluviale', 'pied'], river: true, inns: true, perilDie: 0 }],
   } as never, projet: null });
   set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], partyWiped: false } as never);
   creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 });
-  const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], { cadence })!;
+  const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale', { cadence })!;
   set({ travelPlan: plan, party: aTerre(get().party) });
   runRiverDays(get, set);
   draineCascade(get, 80);

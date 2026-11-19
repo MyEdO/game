@@ -3,7 +3,8 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { passifsDe } from '../grammaire/mecanique';
-import { deckCoverSchema, maisonSchema } from '../grammaire/valeurs';
+import { refs } from '../grammaire/ref';
+import { deckCoverSchema, enumNomme, maisonSchema } from '../grammaire/valeurs';
 
 export const file = 'naval-traits.json';
 export const famille = 'entite';
@@ -11,15 +12,32 @@ export const famille = 'entite';
 const installBandSchema = nommerChamps(z.strictObject({
   maxLengthM: z.number().nullable(),
   value: z.number(),
+  /** MSRC 12 l.54-135. */
+  vehicules: refs('vehicle').optional(),
   maison: maisonSchema.optional(),
 }), {
   maxLengthM: { label: 'Longueur maximale (m)' },
   value: { label: 'Valeur' },
+  vehicules: { label: 'Types de bateau' },
   maison: { label: 'Arbitrage maison' },
 });
 
 const installBaremeSchema = z.union([
-  nommerChamps(z.strictObject({ bands: z.array(installBandSchema), per: z.enum(['5m', '10m', 'unite']).optional() }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' } }, { label: 'barème' }),
+  nommerChamps(z.strictObject({
+    bands: z.array(installBandSchema).superRefine((bandes, ctx) => {
+      const types = new Set<string>();
+      bandes.forEach((bande, i) => {
+        bande.vehicules?.forEach((id, j) => {
+          if (types.has(id)) {
+            ctx.addIssue({ code: 'custom', path: [i, 'vehicules', j], message: `Type de bateau « ${id} » répété dans ce barème` });
+          }
+          types.add(id);
+        });
+      });
+    }),
+    per: z.enum(['5m', '10m', 'unite']).optional(),
+    milieu: enumNomme({ maritime: 'Maritime', fluvial: 'Fluvial' }).optional(),
+  }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' }, milieu: { label: 'Gabarit de référence' } }, { label: 'barème' }),
   nommerNoeud(z.literal('modele'), { label: 'ceux du modèle embarqué' }),
 ]);
 
@@ -49,7 +67,7 @@ const doc = document(
   },
   {
     kind: { label: 'Nature', hint: 'Trait naval ou Amélioration installable' },
-    install: { label: 'Coût d’installation', hint: 'Coût (or), poids et durée de pose, par bande de longueur de coque ou au modèle' },
+    install: { label: 'Coût d’installation', hint: 'Coût (or), poids et durée de pose, par type de bateau, par longueur de coque ou au modèle' },
     ranked: { label: 'À paliers', hint: 'Amélioration cumulable par palier (plutôt qu’achat unique)' },
     passive: {
       label: 'Effets passifs',
