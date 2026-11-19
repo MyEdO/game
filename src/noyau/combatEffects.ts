@@ -574,7 +574,10 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
 export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): string[] | typeof OPS_DIFFEREES {
   const e = structuredClone(feuille); // #2097
   const now = base.now ?? get().gameTime;
-  const ctx = leafOpsCtx({ ...base, now, ...crochetsDeCorruption(get, set), ...crochetDeZone(get) }, e);
+  const ctx = leafOpsCtx({
+    ...base, now, resolveTrapping: objetDuNarratif(get().campaignNarratif),
+    ...crochetsDeCorruption(get, set), ...crochetDeZone(get),
+  }, e);
   for (const o of e.ops) if (o.op === 'delayed') scheduleDelayedOps(get, set, c, o, { now, untilTime: ctx.defaultUntilTime, label: ctx.label });
   const rest = e.ops.filter((o) => o.op !== 'delayed');
   if (!rest.length) return [];
@@ -684,6 +687,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte): OpsCtx | nu
     ...porte.gele,
     rng: battleRng(),
     idNeuf: get().forgerUnId,
+    resolveTrapping: objetDuNarratif(get().campaignNarratif),
     ...crochetsDeCorruption(get, set),
     ...campAdvantageHooks(get),
     ...crochetDuSol(get, set),
@@ -1911,10 +1915,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const center = inBattle ? e.center : { ...e.center, z: pp.z };
       const targets = combatantsWithinRadius(center, e.radius, pool, (c) => !c.dead);
       if (!targets.length) return;
+      const resolveTrapping = objetDuNarratif(env.get().campaignNarratif);
       // Hors combat, `applyOps` a muté les CLONES → on ré-applique aux héros réels par id.
       const lines = targets.flatMap((c) => {
         const real = inBattle ? c : env.get().party.find((h) => h.id === c.id) ?? c;
-        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng() });
+        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping });
       });
       env.set(touchActors(env.get()));
       env.log(t('eff.souffleDeZone', { lines: lines.join(' · ') }));
@@ -2371,8 +2376,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     // nommé ici — tout proposeur en hérite, et une ouverture hors dialogue reste générique.
     apply: (_e, env) => {
       if (refusDOuvrirLaTaverne(env.get())) return;
-      const parle = env.get().dialogue?.speakerId;
-      const propose = parle && tavernNpcOffers(env.get().scene, presetDuNarratif(env.get().campaignNarratif)).some((o) => o.id === parle);
+      const { dialogue, scene, campaignNarratif } = env.get();
+      const parle = dialogue?.speakerId;
+      const propose = parle && tavernNpcOffers(scene, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif)).some((o) => o.id === parle);
       env.get().ouvrirLesJeux(propose ? parle : undefined);
     },
   },
@@ -2561,7 +2567,8 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: '
   // LE soigneur est une entité de la scène, et sa FICHE est la source unique de ce qu'il vaut : sa
   // valeur de Guérison et son Bonus d'Intelligence s'y LISENT. Sans fiche, ou sans la Compétence
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
-  const npc = sceneNpc(get().scene, e.entityId.id, presetDuNarratif(get().campaignNarratif));
+  const { scene, campaignNarratif } = get();
+  const npc = sceneNpc(scene, e.entityId.id, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif));
   if (!npc) { get().ecrireAuJournal(t('eff.medecinSansPnj', { id: e.entityId.id || '(aucun)' })); return; }
   if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medecinSansCompetenceDeSoin', { name: npc.label })); return; }
   ouvrirLeMedecin(get, set, undefined, {

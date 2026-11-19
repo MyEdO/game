@@ -292,7 +292,8 @@ export interface NavireDeLaScene {
 /** Les navires de `scene` tels qu'un hôte les montre. PUR. */
 export function naviresDeLaScene(scene: Scene): NavireDeLaScene[] {
   return naviresPoses(scene).map(({ pose, navire }) => {
-    const fiche = ficheDEntite(garanti(scene.entities.find((e) => e.id === pose.id), pose.id, 'entité de navire'), () => undefined);
+    const coque = garanti(scene.entities.find((e) => e.id === pose.id), pose.id, 'entité de navire');
+    const fiche = ficheDEntite({ ...coque, inventaire: undefined }, () => undefined);
     return {
       id: pose.id,
       vehicule: { ...garanti(vehiculeDuCombattant(fiche, pose.cap), pose.id, 'fiche de véhicule'), taille: 'reelle' },

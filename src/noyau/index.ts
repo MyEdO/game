@@ -284,7 +284,7 @@ export { allMusicDefs } from '../data/sons/musique';
 export { BORNES_D_OUVERTURE, DEFAUTS_D_OUVERTURE, toitureEffective } from './sceneEdit';
 export { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 export { libelleDuBord } from './monde/fireArc';
-export { presetDuNarratif } from './monde/resolveursDuNarratif';
+export { objetDuNarratif, objetsInstanciablesDuProjet, presetDuNarratif } from './monde/resolveursDuNarratif';
 export { calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes } from './edition/calque';
 export { terrainIds, terrainLabel } from './monde/terrain';
 export { crenellatedAt, tileAt, heightAt, idDuCorps, porteAuteur, reposDeScene, sceneMetresPerTile, secretAuteur } from './monde/scene';

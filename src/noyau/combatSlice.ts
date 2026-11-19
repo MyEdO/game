@@ -1634,7 +1634,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const roster = (enc.members ?? [])
         .map((m) => ({ m, ent: byEntity.get(m.entityId) }))
         .filter((r): r is { m: typeof r.m; ent: SceneEntity } => !!r.ent);
-      const enemies = roster.map(({ ent }) => ficheDEntite(ent, presetDuNarratif(get().campaignNarratif)));
+      const { campaignNarratif } = get();
+      const presetDe = presetDuNarratif(campaignNarratif);
+      const resolveTrapping = objetDuNarratif(campaignNarratif);
+      const enemies = roster.map(({ ent }) => ficheDEntite(ent, presetDe, resolveTrapping));
       // Combat monté (LDB 14) : marquer les montures rideables, basculer les « alliés », puis appairer
       // les couples pré-montés (ridesEntityId → la monture). Le cavalier monte SUR sa monture.
       const idxByEntity = new Map(roster.map((r, i) => [r.ent.id, i]));

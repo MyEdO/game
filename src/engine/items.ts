@@ -455,8 +455,7 @@ export function itemFromTrappingById(id: string, idNeuf: FabriqueDId, resolveTra
   return g ? instanceDuGabarit(g, idNeuf('it')) : null;
 }
 
-/** Les objets de l'inventaire d'auteur `inventaire` d'un personnage de scène, chacun sous l'uid `uid(trappingId)`,
- *  porté selon l'inventaire, né à l'apparence que l'auteur choisit pour son trapping (`apparences`). #3684 */
+/** Projection des objets possédables de l'inventaire d'auteur, sous `uid(trappingId)`, port et apparence admissible. #3684 ; #4257 */
 export function objetsDeLInventaire(
   inventaire: InventaireDAuteur,
   uid: (trappingId: string) => string,
@@ -464,10 +463,14 @@ export function objetsDeLInventaire(
   resolveTrapping: TrappingResolver = findTrappingById,
   contexte?: ContexteDeNaissanceDObjet,
 ): ItemInstance[] {
-  return Object.entries(inventaire).map(([id, porte]) => ({
-    ...itemFromGive({ trappingId: id, apparence: apparences[id] }, () => uid(id), undefined, resolveTrapping, contexte),
-    equipped: porte === true,
-  }));
+  return Object.entries(inventaire).flatMap(([id, porte]) => {
+    const fiche = resolveTrapping(id);
+    if (!fiche || !dansLaSousListe(INSTANCIABLE_PAR_ID, fiche)) return [];
+    const choix = apparences[id];
+    const apparence = choix && !messageDApparenceDObjet(id, choix.id, resolveTrapping) ? choix : undefined;
+    const gabarit = deciderApparenceALaNaissance(gabaritDuCatalogue(fiche), contexte, resolveTrapping, apparence);
+    return [{ ...instanceDuGabarit(gabarit, uid(id)), equipped: porte === true }];
+  });
 }
 
 /**
@@ -716,10 +719,10 @@ export type IntentionDObjet = { porter: string } | { retirer: string } | { ajout
 
 /** L'inventaire d'auteur `inventaire` après l'intention `objet` : l'objet ajouté, non porté ; retiré ; ou porté s'il ne
  *  l'était pas, en ôtant ceux qui sont en conflit de port avec lui (`equipConflicts`), ôté sinon. #3684 */
-export function inventaireApres(inventaire: InventaireDAuteur, objet: IntentionDObjet): InventaireDAuteur {
+export function inventaireApres(inventaire: InventaireDAuteur, objet: IntentionDObjet, resolveTrapping: TrappingResolver = findTrappingById): InventaireDAuteur {
   if ('ajouter' in objet) return { ...inventaire, [objet.ajouter]: false };
   if ('retirer' in objet) return Object.fromEntries(Object.entries(inventaire).filter(([id]) => id !== objet.retirer));
-  const instances = objetsDeLInventaire(inventaire, String);
+  const instances = objetsDeLInventaire(inventaire, String, undefined, resolveTrapping);
   const porte = instances.find((o) => o.uid === objet.porter);
   if (!porte) return inventaire;
   const otes = new Set(porte.equipped ? [] : equipConflicts({ items: instances }, porte).map((o) => o.uid));
@@ -1437,9 +1440,9 @@ export function damageScore(d?: WeaponDamageSpec): number {
  *  (`compteDeLaDotation`, tiré sur `rng`) se résout ici, puis sa `valeur` (`sommeTiree`, tirée après tous les
  *  comptes), puis `inventaireDesDotations`. Une dotation de texte, de possession, d'argent, une mention ou un
  *  emplacement non tranché (`trappingChoices.ts`) ne donne aucun objet. */
-export function buildInventory(refs: TrappingRef[], rng: RNG, idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
+export function buildInventory(refs: TrappingRef[], rng: RNG, idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet, resolveTrapping?: TrappingResolver): ItemInstance[] {
   const comptes: DotationResolue[] = refs.filter(estDotationDObjet).map((ref) => ({ ref, ...(ref.count ? { n: compteDeLaDotation(ref, (de) => rollDice(de, rng)) } : {}) }));
-  return inventaireDesDotations(comptes.map((d) => (d.ref.valeur ? { ...d, valeur: sommeTiree(d.ref.valeur, rng) } : d)), idNeuf, contexte);
+  return inventaireDesDotations(comptes.map((d) => (d.ref.valeur ? { ...d, valeur: sommeTiree(d.ref.valeur, rng) } : d)), idNeuf, contexte, resolveTrapping);
 }
 
 /** Une dotation d'objet à compte RÉSOLU : `n` absent, un objet, la munition à la taille de son paquet ; `valeur`, la
@@ -1453,11 +1456,11 @@ export interface DotationResolue {
 /** L'inventaire de dotations à compte résolu, sans tirage : une ref `{id}` à stats devient un objet ; son `n`
  *  donne la quantité d'une munition, sinon autant d'objets, comme l'achat (`merchantFlow`). `idNeuf` forge
  *  l'uid de chaque objet (#2907). */
-export function inventaireDesDotations(dotations: readonly DotationResolue[], idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
+export function inventaireDesDotations(dotations: readonly DotationResolue[], idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance[] {
   const items: ItemInstance[] = [];
   for (const { ref, n, valeur } of dotations) {
     const objet = (): ItemInstance | null => {
-      const g = gabaritDeLaRef(ref, findTrappingById, contexte);
+      const g = gabaritDeLaRef(ref, resolveTrapping, contexte);
       return g ? { ...instanceDuGabarit(g, idNeuf('it')), ...(valeur ? { price: { ...valeur } } : {}) } : null;
     };
     const it = objet();

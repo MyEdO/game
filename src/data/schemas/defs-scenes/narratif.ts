@@ -18,7 +18,7 @@ import { listeCle } from '../grammaire/collection-cle';
 import { ref } from '../grammaire/ref';
 import { champAdapteDe, proseNommee, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
-import { entree as trappingEntree } from '../defs/trappings';
+import { entreeEmbarquee as trappingEntree } from '../defs/trappings';
 import { findCreatureById, findStructureById, findTrappingById, findVehicleById } from '../../index';
 import type { CreatureData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';

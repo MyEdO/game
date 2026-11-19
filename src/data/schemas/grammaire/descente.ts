@@ -222,10 +222,16 @@ export function pasDeDonnee(noeuds: readonly unknown[], cle: string | number): u
 
 /** Les nœuds de schéma au chemin de DONNÉE `chemin` de `donnee` sous `schema` : à chaque pas, ceux de son enfant
  *  (`pasDeDonnee`), `ouverts` par sa valeur, absente comprise. */
-export function noeudsAuChemin(schema: unknown, donnee: unknown, chemin: readonly (string | number)[]): unknown[] {
+export function noeudsAuChemin(
+  schema: unknown,
+  donnee: unknown,
+  chemin: readonly (string | number)[],
+  visiter?: (noeuds: readonly unknown[], valeur: unknown) => void,
+): unknown[] {
   let valeur = donnee;
   let noeuds = ouverts([schema], valeur);
   for (const pas of chemin) {
+    visiter?.(noeuds, valeur);
     valeur = estConteneur(valeur) ? valeur[pas] : undefined;
     noeuds = ouverts(pasDeDonnee(noeuds, pas), valeur);
   }

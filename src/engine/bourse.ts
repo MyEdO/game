@@ -10,7 +10,7 @@
  */
 import type { FabriqueDId } from './fabriqueDId';
 import type { Combatant, ItemInstance, MentionDuPorteur } from './types';
-import { buildInventory, contexteDeNaissanceDObjet, itemFromTrappingById, objetDuTrapping, type ContexteDeNaissanceDObjet } from './items';
+import { buildInventory, contexteDeNaissanceDObjet, itemFromTrappingById, objetDuTrapping, type ContexteDeNaissanceDObjet, type TrappingResolver } from './items';
 import { add, fromBrass, toBrass, type Money } from './money';
 import { compteDeLaDotation, sommeTiree } from './possessionGrants';
 import { rollDice, type RNG } from './dice';
@@ -52,8 +52,8 @@ function garantirLaBourse(porteur: Pick<Combatant, 'items'>, idNeuf: FabriqueDId
 /** Les possessions des dotations RÉSOLUES `refs` (`resolveTrappingChoices`), tirées sur `rng` dans cet ordre : les objets
  *  (`buildInventory`), la somme des dotations d'argent créditée à la Bourse, le nombre de chaque mention (`mentions`,
  *  absent si aucune). Le geste de `createHero` et de `porterAuParcours`. LDB 05 l.572 ; EDO 11 l.19 ; EDO 11 l.44 */
-export function doterLePorteur(refs: TrappingRef[], rng: RNG, idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): { items: ItemInstance[]; mentions?: MentionDuPorteur[] } {
-  const porteur = { items: buildInventory(refs, rng, idNeuf, contexte) };
+export function doterLePorteur(refs: TrappingRef[], rng: RNG, idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet, resolveTrapping?: TrappingResolver): { items: ItemInstance[]; mentions?: MentionDuPorteur[] } {
+  const porteur = { items: buildInventory(refs, rng, idNeuf, contexte, resolveTrapping) };
   const argent = refs.filter(estDotationDArgent).map((s) => sommeTiree(s, rng));
   const mentions: MentionDuPorteur[] = refs.filter(estMention).map((m) => ({ nature: m.nature, label: m.label, nombre: compteDeLaDotation(m, (de) => rollDice(de, rng)) }));
   if (argent.length) {

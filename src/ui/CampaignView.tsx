@@ -68,7 +68,7 @@ import { cliquerSurLeCombattant, jouerLeClicDuCombattant } from '../noyau/combat
 import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
 import { estNouveauPour } from '../noyau/monde/clues';
-import { presetPnjById } from '../state/campaignData';
+import { objetDuNarratif, presetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { RetraitsDeChargement } from './RetraitsDeChargement';
 
 /** Défaite : dans une bataille de masse, sa sortie (`fenetreFermer('repli')`), dans une scène la sienne
@@ -189,8 +189,8 @@ export function CampaignView() {
   // La fiche INSPECTÉE : le combattant en combat, hors combat le héros du groupe (`actorIn`) ou le PNJ de
   // scène (`sceneNpc`) — le geste secondaire d'un jeton hors combat n'est offert que là où elle se résout.
   const inspected = useMemo(
-    () => (inspectId ? actorIn(useGame.getState(), inspectId) ?? (battle ? undefined : sceneNpc(scene, inspectId, presetPnjById)) ?? null : null),
-    [inspectId, battle, party, scene],
+    () => (inspectId ? actorIn(useGame.getState(), inspectId) ?? (battle ? undefined : sceneNpc(scene, inspectId, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif))) ?? null : null),
+    [inspectId, battle, party, scene, campaignNarratif],
   );
   // Dock : version « vivante » des héros en combat (PB/effets à jour), sinon la party.
   // Le dock (portraits du haut) liste les héros PUIS les navires alliés (couche Mer) : cliquer un navire ouvre SA
