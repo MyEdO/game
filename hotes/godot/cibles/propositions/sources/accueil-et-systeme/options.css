@@ -1,6 +1,5 @@
 
 /* le volet des préférences */
-#preferences{left:24px;top:136px;width:400px}
 #preferences .fond{padding:30px 18px 20px;display:flex;flex-direction:column;gap:22px}
 .pref .l{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .pref b{font-weight:400;font-size:15.5px;color:#f0e2c2;white-space:nowrap}
@@ -23,6 +22,10 @@
 .feuille.d::after{left:0;background:linear-gradient(90deg,rgba(40,20,5,.55),rgba(60,35,10,0))}
 .feuille .tete{display:flex;justify-content:space-between;align-items:baseline;height:46px}
 .feuille .dom{font-size:38px;line-height:58px;margin:-8px 0 -4px;color:#3a1a10}
+/* le domaine des règles : son nom sur une ligne, à la même taille pour tous, le compte dessous */
+.reglages .feuille .dom{font-size:28px;line-height:32px;margin:0;white-space:nowrap}
+.reglages .feuille.g .tete{display:block}
+.reglages .feuille.g .tete .sous{display:block;line-height:14px}
 .feuille .sous{font-size:13px;color:#5a2a12;white-space:nowrap}
 .feuille.d .tete{align-items:flex-end;padding-bottom:6px}
 .feuille .filet{margin:4px 0 4px}

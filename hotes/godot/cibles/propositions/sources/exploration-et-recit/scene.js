@@ -128,7 +128,7 @@
   const seF = (j) => { const [cx, cy] = P(MI, j); return (u, v) => [cx + u * A, cy + B - u * B - v * HM]; };
   const soF = (i) => { const [cx, cy] = P(i, MJ); return (u, v) => [cx - A + u * A, cy + u * B - v * HM]; };
   /* la vue du dessus : une case est un carré de T, le mur de gauche passe en haut */
-  const T = 40, DX = 1300, DY = 40;
+  const T = 40, DX = 1160, DY = 40;
   const dx = (j) => DX - (j - MJ + .5) * T, dy = (i) => DY + (i - MI + .5) * T, lieuDessus = (i, j) => [dx(j), dy(i)];
   /* par les yeux du meneur, depuis sa case à l'entrée, tourné vers le mur de l'âtre : le point d'un point de la salle à la
      hauteur h (en cases) */

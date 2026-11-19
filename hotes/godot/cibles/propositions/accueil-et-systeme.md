@@ -65,7 +65,8 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   son compte), douze règles par feuillet ; l'aide se déplie sur la règle pointée ; une règle modifiée passe au rouge
   avec « Défaut » (`src/hote/reglages.ts:59-92`, `docs/regles-optionnelles.md`).
 - À valider : un signet par domaine ; douze règles par feuillet ; libellés lisibles des options de liste (le jeu
-  montre les ids) ; volumes en pourcentage.
+  montre les ids) ; volumes en pourcentage ; « hors du livre » marque une valeur que le livre laisse au MJ et que le jeu
+  fixe (le tag `maison` de la donnée).
 - État `verrou` : en combat, chaque contrôle de règle est fermé ; la raison du noyau au survol
   (`houseRules.lockedInBattle`, `src/hote/reglages.ts:81-82`) ; chez l'invité, « L’hôte règle les règles maison. ».
   Les préférences restent ouvertes.
