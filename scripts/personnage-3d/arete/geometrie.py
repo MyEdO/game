@@ -1,6 +1,6 @@
 """La géométrie commune aux modèles des arêtes (#4471) : le repère d'une arête, le repère d'une pièce posée sur elle
-(`Repere`), et la déclaration de l'élément d'un kit, un nœud racine par pièce (`PieceDArete`,
-`src/noyau/monde/aretes.ts`).
+(`Repere`), les pièces de biais et les gravats d'une brèche (`biais`, `eboulis`), et la déclaration de l'élément d'un
+kit, un nœud racine par pièce (`PieceDArete`, `src/noyau/monde/aretes.ts`).
 
 Repère. Dans Blender, x le long de l'arête, centrée ; z depuis le pied ; y l'épaisseur, centrée, la face du dehors vers
 -y (`DEHORS`), comme le front d'un décor (`maille.py`). L'export glTF le place en (X, Y, Z) = (x, z, -y) : X le long de
@@ -37,6 +37,28 @@ class Repere:
         """La pièce de `largeur` du point `depart` `(a, h)` au point `arrivee`, entre les bornes `c` de la normale."""
         milieu = (c[0] + c[1]) / 2
         poutre(m, self.point(*depart, milieu), self.point(*arrivee, milieu), largeur, abs(c[1] - c[0]), self.n, mat)
+
+
+def biais(m, a, h_gauche, h_droite, c, mat):
+    """Une pièce de l'arête entre les abscisses `a` et les bornes `c` de son épaisseur (vers le dehors), dont le
+    dessous et le dessus sont aux hauteurs `h_gauche` à son bout gauche et `h_droite` à son bout droit."""
+    boite(m, (a[0], -c[1], 0.0), (a[1], -c[0], 1.0), mat)
+    hauteurs = (h_gauche, h_droite)
+    m.v[-8:] = [(x, y, hauteurs[k // 4][k % 2]) for k, (x, y, _) in enumerate(m.v[-8:])]
+
+
+def eboulis(m, R, alea, G, demi, matiere):
+    """Les gravats au pied d'une brèche, d'après `G` : leur `nombre`, leur `etendue` (fraction de la demi-longueur
+    `demi`, puis mètres de part et d'autre du mur), leur `cote` (m, tiré), ce dont chaque coin s'écarte (`ecart`,
+    fraction du côté, tirée jusqu'à cette borne) ; `matiere(alea)` rend le matériau de chacun."""
+    for _ in range(G["nombre"]):
+        cote = alea.uniform(*G["cote"])
+        ca = demi * alea.uniform(-G["etendue"][0], G["etendue"][0])
+        cc = alea.uniform(-G["etendue"][1], G["etendue"][1])
+        R.boite(m, (ca - cote / 2, ca + cote / 2), (0.0, cote * 0.6), (cc - cote / 2, cc + cote / 2), matiere(alea))
+        ecart = cote * G["ecart"]
+        m.v[-8:] = [(px + alea.uniform(-ecart, ecart), py + alea.uniform(-ecart, ecart),
+                     pz + (k % 2) * alea.uniform(-ecart, ecart)) for k, (px, py, pz) in enumerate(m.v[-8:])]
 
 
 def elements(D, kit, batir):

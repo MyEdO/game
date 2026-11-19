@@ -29,8 +29,12 @@ const reliefParPartie = nommerChamps(z.strictObject(
   ...tableTotale(RELIEF_PART_KEYS, (partie) => ({ label: { panneau: 'Panneau', moulure: 'Moulure', plinthe: 'Plinthe', chambranle: 'Chambranle', vantail: 'Vantail', 'vantail-planche': 'Planche de vantail', poignee: 'Poignée', vitre: 'Vitre', meneau: 'Meneau', bande: 'Bande', linteau: 'Linteau', 'herse-barreau': 'Barreau de herse', 'herse-traverse': 'Traverse de herse', seuil: 'Seuil', gravats: 'Gravats', 'gravats-tas': 'Tas de gravats' }[partie] })),
 });
 
-/** La famille du kit 3D d'une apparence : le modèle `arete--<famille>` dont l'hôte pose les pièces (#4471). */
-export const kitSchema = enumNomme({ colombage: 'Pan de bois', pierre: 'Pierre', cloture: 'Clôture' });
+/** La famille du kit 3D d'une apparence : le modèle `arete--<famille>` dont l'hôte pose les pièces (#4471), sinon les
+ *  pièces `<famille>--<pièce>` du kit des arêtes (`hotes/godot/asset/kit.ts`). */
+export const kitSchema = enumNomme({
+  colombage: 'Pan de bois', pierre: 'Pierre', moellons: 'Moellons', 'pierres-seches': 'Pierres sèches',
+  cloture: 'Clôture',
+});
 
 const doc = document(
   'structureAppearance',
