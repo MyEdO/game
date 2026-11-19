@@ -1,24 +1,13 @@
 ---
 name: ajouter-un-flux-de-jet
-description: À utiliser quand on ajoute ou modifie un jet ou Test (attaque, sort, compétence, manœuvre, résistance) et sa modale — ou dès qu'on est tenté d'appeler rollTest inline sur le chemin joueur, d'ouvrir une deuxième fenêtre de conséquences, ou de recoder Chance/Pacte/Résilience.
+description: Ajouter ou modifier un Test, son jet différé, ses influences ou sa clôture dans le noyau et ses hôtes.
 ---
 
 # Ajouter un flux de jet
 
-Lire **`docs/ajouter-un-flux-de-jet.md`** — un nouveau jet = 1 spec (`src/noyau/rollFlowSpecs.ts`,
-verbes dans la table `FLOW_VERBS` de `src/noyau/flowVerbs.ts`) + 1 corps de clôture (`CloturesDuJet`, joué par
-`jetValider(flux)`) ; la modale = `RollShell`
-paramétrée (slots/jetProps, JAMAIS de mécanique générique recodée) ; le résolveur porte les trois cas
-de résolution forcée ; mono = multi N=1. Gardes réelles : `rollFlowWiring.test.ts` (câblage) et
-`maneuver-defense-cascade.hors-store.test.ts` (surfaçage contrôleur humain).
+Lis `docs/ajouter-un-flux-de-jet.md`. S'il manque, génère-le avec `npm run docs:flux-de-jet`.
 
-- Un Test que le RAW dit OPPOSÉ passe, sur le chemin joueur, par la machinerie d'opposition
-  (`opposedBinaryFlow` de `src/noyau/rollFlowSpecs.ts`, `openCastOpposition`,
-  `src/noyau/combat/triggeredTest.ts`, `VsHeader`) : les deux jets visibles, ré-opposés à chaque
-  influence (#579). Un test simple avec tirage adverse caché dans l'applier exige une justification
-  RAW citée.
-  La fidélité de RÉSOLUTION (opposé réel ou simple) se recense comme un axe à part : un registre ne
-  jure que les axes qu'il a mesurés.
-- Un acte de combat qui exige un Test consomme l'Action (`battle.acted`), mouvement difficile compris.
-  Ce critère ne renverse jamais une exception canon explicite (Piétinement gratuit, Viser = Action sans
-  jet). CRB 034 l.39, CRB 034 l.17
+- Réutilise le flux qui porte déjà la situation. Un Test ou une conséquence différée prend généralement une étape ou une rangée de la cascade. Déclare un flux dédié seulement si le jet a son propre état d'attente et son cycle de résolution. Sélectionne alors les verbes existants dans `FLOW_VERBS`.
+- Fais passer tout jet surfaçable par les verbes du noyau. `surfaceOf` décide selon la tenue du porteur et la cadence. Le jet, ses influences et sa conséquence immédiate appartiennent à la même situation.
+- Vérifie au `Source/` la résolution du Test et le coût en Action. Pour la 5e, le mouvement difficile qui exige un Test utilise l'Action, et un Test demandé par un acte de combat utilise généralement l'Action sous réserve d'une exception du livre. `CRB 034 l.17, l.39`
+- Pour Godot, vérifie la projection typée et les gestes du pont. Applique la doctrine de recette de la migration aux écrans.
