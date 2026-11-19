@@ -2351,7 +2351,14 @@
           "difficulty": "intermediaire"
         }
       }
-    ]
+    ],
+    "exclusDeCorruption": [
+      "guerrier-du-chaos",
+      "guerrier-du-chaos-hcvm",
+      "guerrier-du-chaos-chef-de-bande",
+      "guerrier-du-chaos-chef-de-guerre"
+    ],
+    "motifExclusionDeCorruption": "Arbitrage #4096 du 2026-11-19 : exclure ces quatre profils du gain de Corruption personnelle et du jet de seuil."
   },
   {
     "id": "dissipation",
