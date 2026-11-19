@@ -96,13 +96,12 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - Un registre relié, repris de celui des règles maison. Un signet par famille (les sept du jeu), « Compétences »
   ouverte ; volet « Catégories » : Compétences (48), Talents (187), Axes de forces (9), « Rechercher », filtre
   « Livre » et ses comptes, « Nouvelle entrée » (`src/hote/compendium.ts:43-68`).
-- Page de gauche : en tête la catégorie, sous-titrée de sa famille et de son compte (« Famille Compétences · 187
-  entrées ») ; les entrées de la catégorie avec leur source, « Négociateur » pointé, feuillets.
+- Page de gauche : en tête la catégorie, sous-titrée de son compte (« 187 entrées ») ; la famille est le signet ouvert ; les entrées de la catégorie avec leur source, « Négociateur » pointé, feuillets.
 - Posée sur le registre, sa croix propre (gabarit 2 à 1280 de `dispositions.md`) : la fiche (Max, Test, source, description verbatim, lien « Compétence Marchandage »), ses renvois
   (Races 2, Carrières (par rang) 24, Créatures 19), « Modifier ».
 - À valider : le Compendium en registre relié, familles en signets ; la fiche posée sur le registre plutôt qu'en page
   de droite ; la description coupée à la hauteur de son champ dans l'atelier ; la liste paginée en feuillets plutôt qu'en longue
-  liste défilante ; les renvois en liens soulignés, tronqués avec leur reste (« et 14 autres ») ; « Modifier » et «
+  liste défilante ; les renvois en liens soulignés, tronqués avec leur reste (« et 21 autres ») ; « Modifier » et «
   Nouvelle entrée » visibles à la consultation ; le filtre « Livre » en puces à comptes.
 
 ## compendium-atelier

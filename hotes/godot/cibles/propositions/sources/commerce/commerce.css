@@ -96,7 +96,6 @@
 /* les parts de l'achat, sous le compte */
 #page .qui-paie{margin-top:5px;padding-top:5px;border-top:1px solid rgba(60,40,20,.42);color:#2a1d12}
 #page .qui-paie .rubrique{font-size:12px;color:#6b1c10}
-#page[data-piece="chargement"] .filet{margin:8px 0}
 #page .qui-paie .part .moins-plus b{min-width:98px}
 
 /* les pages du port : lignes à choisir ou à régler, travaux du chantier */
@@ -117,4 +116,6 @@
 #page .deux{display:flex;gap:8px}
 #page .deux .plaque{flex:1}
 .lot.ferme{opacity:.5}
-#page[data-piece="chantier"] .voies .soin{padding-top:6px;padding-bottom:6px}
+#page .voies{gap:5px}
+#page .voies .soin{padding-top:4px;padding-bottom:4px}
+#page .voies .soin .t i{line-height:15px}
