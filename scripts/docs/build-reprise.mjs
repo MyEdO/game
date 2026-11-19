@@ -590,12 +590,13 @@ MESURÉ sur le YAML (garde \`scripts/gates/workflowsDuDepot.test.mjs\`) :
 ${lignesEtatsPorte}
 
 Vérifier qu'elles tournent : onglet Actions du dépôt, ou \`gh run list --workflow=canari.yml\`. LA
-PORTE est \`.github/workflows/ci.yml\` (« ${CI.nom} », ${CI.declencheurs.join(', ')}) : elle joue les
-gates sur CHAQUE branche \`chantier/**\` et sur chaque commit de la file de fusion, et c'est son verdict —
-jamais un artefact local — qui autorise une PR à entrer dans \`main\`. Elle CLASSE d'abord le push
-(\`scripts/gates/classerPush.mjs\`) : un push dont tous les fichiers changés tombent sous
-${listeCode(Object.keys(DOCUMENTAIRE))} ne joue que les ${NB_GATES_TOUJOURS} gates qui LISENT un de
-ces chemins (${listeCode(GATES_TOUJOURS)}) ; les ${NB_GATES_SAUTABLES} autres sont sautées.
+PORTE est \`.github/workflows/ci.yml\` (« ${CI.nom} », ${CI.declencheurs.join(', ')}). Elle exécute
+les courses de branche et de file décrites ci-dessous. Le verdict de la course de file autorise
+l'intégration dans \`main\`. Le prologue classe le push (\`scripts/gates/classerPush.mjs\`) : il est
+documentaire si le diff est non vide, si tous les chemins changés sont couverts par
+${listeCode(Object.keys(DOCUMENTAIRE))} et si aucun ne tombe sous une racine de mod.
+Dans la course de file, pour tout push documentaire, les ${NB_GATES_TOUJOURS} gates dont le \`lit\`
+chevauche ce périmètre jouent (${listeCode(GATES_TOUJOURS)}) et les ${NB_GATES_SAUTABLES} autres sont sautées.
 
 \`npm run ops:publier\` joue le train : push de la BRANCHE, PR armée, attente de la fusion
 par la file, pilotage. Il refuse à la première étape rouge en la nommant,
