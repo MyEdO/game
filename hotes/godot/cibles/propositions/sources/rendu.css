@@ -266,3 +266,30 @@
 #f-sections.dossier .vignette{width:84px;height:84px}
 #f-sections.dossier .arme .n{font-size:23px;line-height:26px}
 #f-sections.dossier .ou .l{margin-bottom:12px}
+
+/* 4. Lieu, l'exploration : le regard au coin haut-droit, les écrans à ouvrir dessous ; les gestes du groupe au bord
+   gauche et le journal au bord droit, leur bas à la ligne basse (164 du bas au-dessus du bandeau, 20 au-dessus d'une
+   fenêtre du bas) ; le dialogue et la fouille dans une fenêtre du bas de 266 */
+#regard{left:auto;right:24px;top:20px}
+#gestes-groupe{left:30px;bottom:164px}
+#fil{right:24px;bottom:164px;width:300px}
+#ui:has(>#jet) #fil{bottom:240px}
+#ui:has(>#jet .cartes.liste,>#jet .fond.dialogue,>#jet .fond.fouille) #fil{bottom:294px}
+#jet:has(>.fond.dialogue),#jet:has(>.fond.fouille){height:266px}
+#jet .fond.dialogue>.camp:first-child>div{max-width:120px}
+#jet .fond.dialogue>.camp.parle>div:not(.portrait){width:200px}
+/* 7. Le document remis : un carton centré de 960, son bas à 170 du bas, au plus 530 de haut */
+#document{left:calc(50% - 480px);top:auto;bottom:170px;width:960px;max-height:530px}
+#document>.fond{position:relative;max-height:530px}
+
+/* 4. Lieu, la carte du monde : la destination en colonne de 360 au coin haut-droit, la carte tendue de la marge au
+   panneau sous le cartouche, jusqu'à la ligne basse */
+#destination{left:auto;right:24px;top:20px;width:360px}
+#reikland{left:24px;top:136px;right:404px;bottom:164px;width:auto;height:auto}
+#ui:has(>#jet) #reikland{bottom:198px}
+
+/* 2. Gestion, le carnet : le panneau de commande sous le cartouche, l'affaire tendue jusqu'au bord droit et au bas,
+   sous la croix */
+#documents{left:24px;top:324px;width:300px}
+#affaire{left:344px;right:24px;top:76px;bottom:24px;width:auto;height:auto}
+#affaire>.fond{height:100%;box-sizing:border-box}

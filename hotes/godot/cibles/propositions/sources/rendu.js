@@ -21,7 +21,9 @@
 
   /* ───────── le combat ───────── */
   const qui = (id) => etat.combattants[id];
-  const portraitDe = (id, taille = 'grand') => portrait(qui(id).buste, { camp: qui(id).ennemi ? 'ennemi' : 'heros', taille });
+  /* le camp d'un combattant : l'ennemi se passe, le héros ou le PNJ suit son buste (`CAMP`, `gestes.js`) */
+  const campDe = (id) => (qui(id).ennemi ? 'ennemi' : undefined);
+  const portraitDe = (id, taille = 'grand') => portrait(qui(id).buste, { camp: campDe(id), taille });
   const libelleDuModificateur = (m) => ('de' in m ? `${m.nom} : ${m.de} → ${d100(m.vers)}` : 'rang' in m ? `${m.nom} ${m.rang} sur ${m.sur}` : 'facteur' in m ? `${m.nom} ×${m.facteur}` : m.valeur === undefined ? m.nom : `${m.nom} ${signe(m.valeur)}`);
   const porte = ({ arme, cible }) => `${echapper(arme)} · Cible : ${echapper(qui(cible).nom)}`;
   const regle = (libelle, corps) => `<div class="regle"><span class="l rubrique">${echapper(libelle)}</span>${corps}</div>`;
@@ -51,6 +53,7 @@
     menace: (m) => echapper(m.menace),
     corruption: ({ corruption: c }) => `Points de Corruption ${c.points} / ${c.seuil}`,
     decidePour: (m) => `décide pour ${echapper(m.decidePour)}`,
+    testeur: () => 'Portera le Test',
   };
   /* ce qui menace le héros se lit en rouge */
   const MENACES = ['menace', 'corruption'];
@@ -79,6 +82,7 @@
       <div class="des">${sceau(t.blessures, 'grand')}<div class="issue"><b>Blessures</b><b>perdues</b></div></div></div></div>`,
     rangees: (r) => `<div class="rangees"><div class="t rubrique">Chacun lance son jet, les DR s’additionnent</div>${r.rangees.map((x) => `<div class="rangee">${portrait(qui(x.qui).buste, { taille: 'menu' })}<div class="q" data-texte="rangée ${echapper(qui(x.qui).nom)}"><b class="gothique">${echapper(qui(x.qui).nom)}</b><span class="rubrique">${echapper(x.poste)} · ${echapper(x.competence)}</span></div><span class="seuil">≤ ${x.seuil}</span></div>`).join('')}</div>`,
     choix: (c) => `<div class="rangees chansons"><div class="t rubrique">${echapper(c.libelle)}</div>${c.cartes.map(carteDe).join('')}</div>`,
+    interlocuteur: (i) => `<div class="camp droite parle">${portraitDe(i.qui)}<div><div class="n gothique">${echapper(qui(i.qui).nom)}</div><div class="c rubrique">${echapper(i.comme)}</div><p data-texte="réplique">${echapper(i.dit)}</p></div></div>`,
   };
 
   /* une carte de choix : son nom ou le combattant qu'elle nomme, son détail ligne à ligne (une ligne en liste), sa marque */
@@ -96,7 +100,7 @@
     /* la marque suit la dernière ligne quand elle y tient, sinon passe dessous */
     const derniere = lignes.length ? lignes.pop() : '';
     const sous = [...lignes, marque ? (`${derniere}${c.marque.nom}`.length > 24 ? `${derniere} <br>${marque}` : `${derniere} ${marque}`) : derniere].join('<span class="sep"> · </span><br>');
-    return carte(echapper(c.nom ?? qui(c.qui).nom), `${sous}${c.refus && c.survol ? raison(echapper(c.refus)) : ''}`, { armee: !!c.choisie, fermee: !!c.refus, classe: c.funeste ? 'funeste' : '', portrait: c.qui ? portrait(qui(c.qui).buste, { camp: qui(c.qui).ennemi ? 'ennemi' : 'heros' }) : '' });
+    return carte(echapper(c.nom ?? qui(c.qui).nom), `${sous}${c.refus && c.survol ? raison(echapper(c.refus)) : ''}`, { armee: !!c.choisie, fermee: !!c.refus, classe: c.funeste ? 'funeste' : '', portrait: c.qui ? portrait(qui(c.qui).buste, { camp: campDe(c.qui) }) : '' });
   };
   const cartesDu = (g) => (g.cartes.length === 1 ? carteDe(g.cartes[0]) : `<div class="cartes">${g.cartes.map(carteDe).join('')}</div>`);
   const enjeuDu = (e) => `<div class="enjeu"><div class="l rubrique">${echapper(e.libelle)}</div><table>${e.issues.map((i, k) => `<tr${k === e.tombee ? ' class="tombee"' : ''}><td>${echapper(i.issue)}</td><td>${echapper(i.effet)}</td></tr>`).join('')}</table></div>`;
@@ -170,9 +174,12 @@
       <div class="enjeux">${c.notes.map((n) => modif(typeof n === 'string' ? echapper(n) : 'dr' in n ? `${echapper(n.nom)} ${signe(n.dr)} DR` : `${pluriel(n.pieces, 'pièce')} à ${echapper(n.bord)}`)).join('')}</div>`)],
     /* le Test simple : ce qui le pose, et le jour du voyage où il tombe */
     simple: (c) => {
-      const sur = `${echapper(c.sur)}${etat.titre?.jourDeVoyage ? ` · ${jourDe(etat.titre.jourDeVoyage, etat.decor)}` : ''}`;
+      const sur = `${echapper(c.sur)}${c.difficulte ? ` · ${echapper(c.difficulte.nom)} (${signe(c.difficulte.valeur)})` : ''}${etat.titre?.jourDeVoyage ? ` · ${jourDe(etat.titre.jourDeVoyage, etat.decor)}` : ''}`;
       return c.dr === undefined ? ['avant', reglages(sur, `<div class="dr gothique">Test simple</div><p data-texte="phrase">${echapper(c.phrase)}</p>`)] : ['', verdict(sur, `DR ${signe(c.dr)}`, echapper(c.phrase))];
     },
+    /* les réponses d'un dialogue, numérotées : le Test qu'une réponse demande en tête, ce qu'elle coûte au bout */
+    dialogue: (c) => ['dialogue', `<div class="reponses">${c.reponses.map((r, k) => plaque(`<span class="dit">${r.test ? `<span class="annonce">${picto('de', 14)}${echapper(r.test.competence)} · ${echapper(r.test.difficulte)}</span>` : ''}<span data-texte="réponse ${k + 1}">${echapper(r.texte)}</span></span>`,
+      { numero: k + 1, survol: !!r.survol, prix: r.prix === undefined ? null : prix(r.prix), taille: 'petite', classe: 'gauche' })).join('')}</div>`],
     corruption: (c) => ['corruption tombe', `${verdict(`${echapper(c.influence)} · Points de Corruption ${c.corruption.points} / ${c.corruption.seuil}`, c.gain ? `+${pluriel(c.gain, 'Point')}` : 'Aucun Point', echapper(c.issue))}${enjeuDu(c.enjeu)}`],
   };
   /* les gestes : la réserve dépensée à gauche, la plaque principale en premier, la raison d'un refus au survol */
@@ -574,8 +581,8 @@
   const railDu = (r) => rail(echapper(r.titre), r.services.map((s) => [PICTO_DU_SERVICE[s.id], echapper(s.nom), s.id === r.ouvert]), echapper(r.pied));
   /* les parts du groupe, réglables avant validation, et leur total */
   const partsDu = (parts) => bourse({ parts: parts.map((p) => [prenomDe(p.heros), prix(p.part), prix(p.avoir)]), total: prix(parts.reduce((t, p) => t + p.part, 0)) });
-  /* une voie de la page (`../lieux-et-nuit/soins.js`) : son Test, ce qu'elle fait, son prix */
-  const voieDu = (v) => acteDeSoin(v.id, echapper(v.nom), echapper(v.test), echapper(v.texte), { pris: !!v.prise, prix: v.prix === undefined ? '' : `${prix(v.prix)}${v.maison ? '<small>valeur maison</small>' : ''}` });
+  /* une voie de la page (`../lieux-et-nuit/soins.js`) : son Test, ce qu'elle fait ou la raison qui la ferme, son prix */
+  const voieDu = (v) => acteDeSoin(v.id, echapper(v.nom), echapper(v.test), echapper(v.refus ?? v.texte), { pris: !!v.prise, ferme: !!v.refus, prix: v.prix === undefined ? '' : `${prix(v.prix)}${v.maison ? '<small>valeur maison</small>' : ''}` });
 
   /* ───────── la nuit ───────── */
   /* l'aubergiste et ses offres, à gauche sous le cartouche */
@@ -637,15 +644,16 @@
   ];
 
   /* ───────── les soins ───────── */
-  /* le médecin dans son cabinet, pointé sur lui ; la page des soins (`../lieux-et-nuit/soins.js`) à droite */
+  /* le médecin dans son cabinet, pointé sur lui, ou les soins entre héros dans la salle ; la page des soins
+     (`../lieux-et-nuit/soins.js`) à droite, ce que le patient paie et sa bourse au pied quand il paie */
   const soins = (s) => {
     const patient = etat.groupe.find((h) => h.id === s.patient.qui);
     return [
-      titreDuLieu(s.titre, 'soin'), railDu(s.rail),
-      hote({ id: 'medecin', x: 400, y: 236, l: 340, icone: s.hote.icone, nom: echapper(s.hote.nom), sous: `${echapper(s.hote.qualite)} · ${echapper(s.hote.competence.nom)} ${s.hote.competence.seuil}`, pointe: 230, corps: `<p>${echapper(s.hote.dit)}</p>` }),
-      pageDesSoins({ ruban: 'Les soins du docteur', patient: echapper(patient.nom), blessures: patient.blessures, max: patient.max, mal: echapper(s.patient.mal), actes: s.actes.map(voieDu).join(''),
-        pied: `<table class="compte"><tr class="total"><td>À payer</td><td>${prix(s.aPayer)}</td></tr></table>${bourse({ heros: prenomDe(s.patient.qui), avoir: prix(s.avoir) })}${plaque(echapper(s.action), { armee: true, icone: 'bourse', classe: 'payer' })}` }),
-      bandeauDu(s.groupe), retour(echapper(s.retour)), coins(),
+      titreDuLieu(s.titre, s.hote ? 'soin' : 'lit'), ...(s.rail ? [railDu(s.rail)] : []),
+      ...(s.hote ? [hote({ id: 'medecin', x: 400, y: 236, l: 340, icone: s.hote.icone, nom: echapper(s.hote.nom), sous: `${echapper(s.hote.qualite)} · ${echapper(s.hote.competence.nom)} ${s.hote.competence.seuil}`, pointe: 230, corps: `<p>${echapper(s.hote.dit)}</p>` })] : []),
+      pageDesSoins({ ruban: s.hote ? 'Les soins du docteur' : 'Les soins', patient: echapper(patient.nom), blessures: patient.blessures, max: patient.max, mal: s.patient.mal ? echapper(s.patient.mal) : '', actes: s.actes.map(voieDu).join(''),
+        pied: `${s.paiement ? `<table class="compte"><tr class="total"><td>À payer</td><td>${prix(s.paiement.aPayer)}</td></tr></table>${bourse({ heros: prenomDe(s.patient.qui), avoir: prix(s.paiement.avoir) })}` : ''}${plaque(echapper(s.action), { armee: true, icone: s.paiement ? 'bourse' : 'soin', classe: 'payer' })}${s.note ? `<div class="note"><i>${echapper(s.note)}</i></div>` : ''}` }),
+      bandeauDu(s.groupe), retour(echapper(s.retour), s.hote ? 'sortie' : 'route'), coins(),
     ];
   };
 
@@ -772,6 +780,141 @@
   /* la mer sans navire sous le dossier, assombrie, voilée sur ses bords */
   const peindreLeDossier = () => { toile().innerHTML = D.mer({ navire: false }); el(S, 'rect', { width: W, height: H, fill: '#06040a', opacity: 0.5 }); voiles(); };
 
+  /* ───────── l'exploration et le récit ───────── */
+  /* le pictogramme du geste qu'offre une chose de la scène, d'un geste du groupe, d'un écran à ouvrir */
+  const PICTO_DU_GESTE_DE_SCENE = { franchir: 'porte', parler: 'bulle', fouiller: 'cle', ramasser: 'main', lire: 'livre', enjamber: 'porte' };
+  const PICTO_DU_GESTE_DU_GROUPE = { soigner: 'soin', reposer: 'sommeil', fouiller: 'oeil' };
+  const PICTO_DE_L_ECRAN = { carte: 'carte', carnet: 'livre' };
+  /* les trois regards, et la touche du regard suivant ; celle d'agir sur ce que vise le point de mire
+     (`changer_de_regard`, `agir`, `hotes/godot/projet/project.godot`) */
+  const REGARDS = { tactique: 'Isométrique', plateau: 'Dessus', immersion: 'Première personne' };
+  const TOUCHES = { regard: 'V', agir: 'E' };
+  const touche = (t) => `<kbd class="touche chiffres">${t}</kbd>`;
+  const regardDu = (r) => `<div id="regard" class="cadre bois" data-piece="regard"><div class="fond bois"><span class="rubrique">Regard</span>${segments(Object.values(REGARDS), REGARDS[r])}${touche(TOUCHES.regard)}</div></div>`;
+  /* le journal hors combat, au bord droit au-dessus du bandeau ou de la fenêtre du bas : la ligne neuve en dernier */
+  const journalDu = (lignes) => `<div id="fil" data-piece="journal"><div class="tete rubrique ombre">Journal</div>${lignes.map((l, k) => (typeof l === 'string'
+    ? `<p class="${k === lignes.length - 1 ? '' : 'vieux '}ombre">${echapper(l)}</p>` : `<p class="moment ombre">${echapper(l.moment)}</p>`)).join('')}</div>`;
+  /* ce qui est à portée sur la scène, à son point (`pointDe`, `exploration-et-recit/scene.js`) : sa marque ; survolée, ce
+     qu'on en sait et son geste, l'aperçu du côté où l'écran a la place ; signalée, son nom et son geste en poste */
+  const marqueDe = (c, [x, y]) => `<div class="marque" data-piece="marque ${echapper(c.nom)}" style="left:${x}px;top:${y}px">${medaillon(PICTO_DU_GESTE_DE_SCENE[c.geste.id], { taille: 'petit' })}</div>`;
+  const aCote = ([x, y], { nom, corps }) => {
+    const aDroite = x < VUE.largeur / 2;
+    return apercu({ nom, vers: aDroite ? 'gauche' : 'droite', style: `left:${aDroite ? x + 30 : x - 330}px;top:${y - 60}px;--pointe:52px`, corps });
+  };
+  const survolDe = (c, point, regard) => aCote(point, { nom: echapper(c.nom), corps: `<p>${echapper(c.survolee)}</p>
+    <div class="geste">${rond(PICTO_DU_GESTE_DE_SCENE[c.geste.id], 'menu', { arme: true })}${echapper(c.geste.libelle)}<em>${regard === 'immersion' ? `${touche(TOUCHES.agir)} ou clic` : 'clic'}</em></div>` });
+  /* le poste d'une chose signalée, gardé entre les marges, et à gauche de la colonne des écrans à ouvrir quand il monte
+     à sa hauteur (`basDesEcrans`) ; sa pointe, sous l'étiquette, reste sur la marque */
+  const LARGEUR_DU_POSTE = 160, HAUTEUR_DU_POSTE = 92, JEU_DE_LA_POINTE = LARGEUR_DU_POSTE / 2 - 8;
+  const signaleeDe = (c, [x, y], basDesEcrans) => {
+    const haut = y + 17 - HAUTEUR_DU_POSTE, bordDroit = VUE.largeur - (haut < basDesEcrans ? 250 : 24);
+    const cx = Math.max(24 + LARGEUR_DU_POSTE / 2, Math.min(x, bordDroit - LARGEUR_DU_POSTE / 2));
+    return poste(cx, haut, { nom: echapper(c.nom), sous: echapper(c.geste.libelle), icone: PICTO_DU_GESTE_DE_SCENE[c.geste.id], vise: true,
+      piece: `chose ${echapper(c.nom)}`, pointe: Math.max(-JEU_DE_LA_POINTE, Math.min(x - cx, JEU_DE_LA_POINTE)) });
+  };
+  const choseDe = (c, regard, basDesEcrans) => {
+    const point = pointDe(c.id, regard);
+    if (c.signalee) return [signaleeDe(c, point, basDesEcrans)];
+    return [...(regard === 'immersion' && c.survolee ? [] : [marqueDe(c, point)]), ...(c.survolee ? [survolDe(c, point, regard)] : [])];
+  };
+  /* les gestes du groupe que la situation ouvre, en colonne au bord gauche jusqu'à la ligne basse */
+  const gestesDuGroupe = (gestes) => `<div id="gestes-groupe" data-piece="gestes du groupe">${gestes.map((g) => `<div>${rond(PICTO_DU_GESTE_DU_GROUPE[g.id], 'grand')}<span class="rubrique ombre">${echapper(g.libelle)}</span></div>`).join('')}</div>`;
+  /* les écrans à ouvrir au bord droit, sous le regard */
+  const ECART_DES_ECRANS = 58;
+  const hautDesEcrans = (e) => (e.regard ? 82 : 20);
+  const ecransDu = (e) => (e.ouvrir ?? []).map((o, k) => ouvrir(echapper(o.libelle), PICTO_DE_L_ECRAN[o.id], hautDesEcrans(e) + ECART_DES_ECRANS * k));
+  /* le document remis, en carton au-dessus du bandeau : son titre, d'où il vient et qui le tient, son texte, son cachet ;
+     au pied, où il se relit et « Replier » */
+  const documentDu = (d) => cadre('document', null, null, null, null, 'parchemin', `
+    <div class="tete"><h2 data-texte="titre du document">${echapper(d.titre)}${d.sous ? ` <span>${echapper(d.sous)}</span>` : ''}</h2><span class="rubrique">${echapper(d.provenance)} · lu par ${prenomDe(d.heros)}</span></div>
+    ${filet({ losange: true })}
+    <div class="texte">${d.paragraphes.map((p, k) => `<p data-texte="document ${k + 1}">${echapper(p)}</p>`).join('')}<p class="signe">${d.signature.map(echapper).join('<br>')}</p></div>
+    <div class="pied"><div class="note">${rond(d.relu ? 'livre' : 'journal', 'menu', { arme: true })}<span>${d.relu ? 'Relu depuis le carnet : « Replier » y ramène.' : 'Consigné au carnet : il se relit quand on veut.'}</span></div>
+      ${plaque('Replier', { armee: true })}${sceau(d.sceau, 'maitre')}</div>`, { ruban: 'Document' });
+  /* la fouille, dans la fenêtre du bas : ce qu'on trouve et l'argent réparti ; une case par héros (sa charge, en rouge
+     quand elle est pleine) et « Laisser » pour chaque objet ; à qui va ce qui reste */
+  const chargeDu = (c) => { const plein = c.enc >= c.max;
+    return `<div class="col">${portrait(c.qui, { taille: 'petit' })}<div class="q"><b>${prenomDe(c.qui)}</b><span class="chiffres${plein ? ' plein' : ''}">Enc ${c.enc} / ${c.max}</span>${jauge(c.enc / c.max, { teinte: plein ? 'cire' : 'or' })}</div></div>`; };
+  const fouilleDu = (f) => bandeauDuJet('Butin', 'fouille', `
+    <div class="trouve"><div class="n gothique" data-texte="butin titre">${echapper(f.sur)}</div><div class="c rubrique">Fouillé par ${prenomDe(f.par)}</div>
+      <p data-texte="butin récit">${echapper(f.texte)}</p>
+      <div class="bourse">${sceau('pieces')}<span><b class="chiffres">${prix(f.argent)}</b> répartis entre les bourses</span></div></div>
+    <div class="partage" style="--heros:${f.charges.length}"><div class="tete-o rubrique">Une case donne l’objet à ce héros</div>${f.charges.map(chargeDu).join('')}<div class="col laisser">${picto('croix', 15)}<b>Laisser</b></div>
+      ${f.objets.map((o) => `<div class="objet"><div class="ic">${picto(o.id, 17)}</div><div class="t"><b data-texte="objet ${echapper(o.nom)}">${echapper(o.nom)}</b><span class="chiffres">Enc ${o.enc}</span></div></div>${'<i class="prise"></i>'.repeat(f.charges.length + 1)}`).join('')}
+      <div class="reste">Ce qui reste à la fermeture va à ${prenomDe(f.reste)}.</div></div>`,
+  f.gestes.map((g) => plaque(echapper(g.libelle), { armee: !!g.principal, classe: g.libelle.length > 12 ? 'large' : '' })).join(''));
+  /* l'exploration : le cartouche du lieu, le regard et les écrans à ouvrir au bord droit, ce qui est à portée sur la
+     scène, les gestes du groupe au bord gauche, le journal ; le document remis ; le groupe, ou la fenêtre qui prend sa
+     place ; le retour au lieu */
+  const ICONE_DU_LIEU = { salle: 'lit', 'grand-route': 'route' };
+  const exploration = (e) => {
+    const regard = e.regard ?? 'tactique', ecrans = ecransDu(e);
+    const basDesEcrans = ecrans.length ? hautDesEcrans(e) + ECART_DES_ECRANS * ecrans.length : 0;
+    return [
+      titreDuLieu(e.titre, ICONE_DU_LIEU[e.decor], 392),
+      ...(e.regard ? [regardDu(e.regard)] : []), ...ecrans,
+      ...(e.choses ?? []).flatMap((c) => choseDe(c, regard, basDesEcrans)),
+      ...(e.invite ? [aCote(pointDe(e.invite.sur, regard), { nom: echapper(e.invite.titre), corps: `<p data-texte="invite">${echapper(e.invite.texte)}</p>` })] : []),
+      ...(regard === 'immersion' ? ['<i id="mire"></i>'] : []),
+      ...(e.gestes?.length ? [gestesDuGroupe(e.gestes)] : []),
+      ...(e.journal ? [journalDu(e.journal)] : []),
+      ...(e.document ? [documentDu(e.document)] : []),
+      ...(e.fouille ? [fouilleDu(e.fouille)] : e.fenetre ? [fenetre(e.fenetre)] : [bandeauDu(e.groupe)]),
+      ...(e.retour ? [retour(echapper(e.retour), 'ville')] : []), coins(),
+    ];
+  };
+  /* la salle sous le regard tenu (`exploration-et-recit/scene.js`) : le groupe à sa place, la chose survolée ou celle à qui
+     l'on parle, la dague au sol, l'avis ou la croisée qui luisent ; elle recule derrière une page ; la route de nuit */
+  const RECULE = 0.3;
+  const peindreLExploration = (e) => {
+    if (e.decor === 'grand-route') return sceneRoute();
+    const choses = e.choses ?? [], est = (id) => choses.some((c) => c.id === id), signalee = (id) => choses.some((c) => c.id === id && c.signalee);
+    const survol = e.fenetre?.autre?.role === 'interlocuteur' ? e.fenetre.autre.qui : choses.find((c) => c.survolee)?.id ?? null;
+    if (e.regard === 'plateau') return sceneAubergeDessus({ dague: est('dague'), croisee: signalee('croisee') });
+    if (e.regard === 'immersion') return sceneAubergeAuxYeux({ dague: est('dague') });
+    return sceneAuberge({ groupe: e.groupeEn ?? 'entree', survol, trajet: !!e.marcheVers, avis: signalee('avis') || !!e.document, sombre: e.document || 'actes' in e ? RECULE : 0, colonne: !!e.gestes?.length, dague: est('dague'), croisee: signalee('croisee') });
+  };
+
+  /* la carte du monde : le Reikland à l'encre et les lieux connus (`exploration-et-recit/carte.js`), le groupe sur le
+     sien ; la destination au coin haut-droit, ses étapes, ses moyens et ce qu'ils coûtent, le geste qui part */
+  const PICTO_DU_MOYEN_DE_VOYAGE = { diligence: 'roue', pied: 'botte' };
+  const NOM_DU_MOYEN = { diligence: 'En diligence', pied: 'À pied' };
+  const NUITS = { auberge: 'à l’auberge', route: 'en route' };
+  const moyenDu = (m) => `<div class="moyen${m.pris ? ' pris' : ''}">${medaillon(PICTO_DU_MOYEN_DE_VOYAGE[m.id], { taille: 'moyen' })}<div class="q"><b>${NOM_DU_MOYEN[m.id]}</b><span class="c rubrique">${pluriel(m.jours, 'jour')} · ${pluriel(m.nuits.nombre, 'nuit')} ${NUITS[m.nuits.a]}</span></div>
+    <div class="px chiffres">${m.place ? `${prix(m.place.dehors)} dehors<br>${prix(m.place.dedans)} dedans<small>par tête</small>` : 'sans frais'}</div></div>`;
+  const destinationDu = (d) => cadre('destination', null, null, null, null, 'bois', `<h3 data-texte="destination">${echapper(d.nom)}</h3>
+    <div class="s rubrique">Par ${echapper(d.par)} · ${d.etapes.reduce((t, x) => t + (x.km ?? 0), 0)} km</div><p data-texte="prose du lieu">${echapper(d.texte)}</p>
+    <div class="etapes">${d.etapes.map((x, k) => `${x.km ? `<div class="t"><u></u><span class="chiffres">${x.km} km</span></div>` : ''}<div class="e${k ? '' : ' ici'}"><i></i><span class="rubrique">${echapper(x.nom)}</span></div>`).join('')}</div>
+    ${d.moyens.map(moyenDu).join('')}${plaque(echapper(d.geste.libelle), { armee: !!d.geste.principal, icone: 'route', classe: 'partir' })}`, { ruban: 'Destination' });
+  const lieuDuMonde = (l, groupe) => { const { x, y, icone } = LIEUX_DU_REIKLAND[l.id];
+    return `<div class="lieu bois${l.choisi ? ' choisi' : ''}${l.ici ? ' sous' : ''}" style="left:${(100 * x) / 1225}%;top:${(100 * y) / 572}%">${medaillon(icone, { taille: 'petit' })}<div><b>${echapper(l.nom)}</b><span class="rubrique">${[echapper(l.nature), l.distance && `${l.distance} km`, l.ici && 'le groupe est ici'].filter(Boolean).join(' · ')}</span></div>${l.ici ? `<div class="ici">${groupe.map((h) => portrait(h.id, { taille: 'menu' })).join('')}</div>` : ''}</div>`; };
+  const carteDuMonde = (c) => [
+    titreDuLieu(c.titre, 'carte', 400),
+    `<div id="reikland" class="cadre bois" data-piece="carte du monde"><div class="fond parchemin"><svg viewBox="0 0 1225 572" preserveAspectRatio="none"></svg>${c.lieux.map((l) => lieuDuMonde(l, c.groupe)).join('')}</div>${ferrures}</div>`,
+    destinationDu(c.destination),
+    ...(c.fenetre ? [fenetre(c.fenetre)] : [bandeauDu(c.groupe)]),
+    retour(echapper(c.retour), 'porte'), coins(),
+  ];
+  const tracerLeReikland = (c) => dessinerLeReikland(document.querySelector('#reikland svg'), c.lieux.find((l) => l.ici)?.id);
+
+  /* le carnet d'enquête, écran de gestion posé sur la salle : les affaires et les documents remis dans le panneau de
+     gauche, l'affaire ouverte tendue à droite, ses indices et leurs lectures, la dernière en tête */
+  const lectureDe = (l, classe = '') => `<div class="lu${l.manuscrite ? ' manuscrite' : ''} ${classe}"><div class="tete"><b class="gothique">${echapper(l.titre)}</b></div>${l.lignes.map((p) => `<p>${echapper(p)}</p>`).join('')}</div>`;
+  const indiceDu = (i) => `<div class="indice"><b class="gothique">${echapper(i.nom)}</b><span class="chip">Indice</span>${i.nouveau ? '<span class="chip neuf">Nouveau</span>' : ''}${plaque('Épingler', { icone: 'epingle', armee: !!i.epingle, taille: 'petite', classe: 'epingle' })}</div>
+    <div class="lectures"><div><div class="r rubrique">Dernière lecture</div>${lectureDe(i.lectures[0])}</div>${i.lectures.length > 1 ? `<div><div class="r rubrique">Lectures précédentes</div>${i.lectures.slice(1).map((l) => lectureDe(l, 'attenue')).join('')}</div>` : ''}</div>`;
+  const carnet = (c) => {
+    const affaire = c.affaires.find((a) => a.id === c.ouverte);
+    return [
+      cartouche({ icone: 'livre', nom: echapper(c.titre.nom), sous: echapper(c.titre.sous), taille: 'titre', largeur: 312 }),
+      rail('Affaires', [['epingle', 'Épinglés', false, c.epingles], ...c.affaires.map((a) => ['oeil', echapper(a.nom), a.id === c.ouverte, a.indices])], 'Un indice caché ne s’y lit pas'),
+      cadre('documents', null, null, null, null, 'bois', `${c.documents.map((d) => plaque(`<span>${echapper(d)}</span>`, { icone: 'lettre', classe: 'gauche' })).join('')}<div class="pied rubrique">Un document remis se relit ici</div>`, { ruban: 'Documents remis' }),
+      `<div id="affaire" class="page cadre bois" data-piece="affaire"><div class="fond parchemin">
+        <div class="tete"><h3 data-texte="affaire">${echapper(affaire.nom)}</h3><span class="sous rubrique">${pluriel(affaire.indices, 'indice')}</span></div>${filet()}
+        ${c.indices.map(indiceDu).join('')}</div>${ferrures}</div>`,
+      croix(),
+    ];
+  };
+
   /* ───────── les gabarits : leurs feuilles, leurs scripts, leur pose ───────── */
   /* la cour du combat, ou la mer du combat naval (`voyage/navale.js`) */
   const NAVALE = etat.cour && 'navires' in etat.cour;
@@ -785,8 +928,6 @@
     combat: { ...COUR, poser: tourDeCombat },
     /* 7. Issue d'un combat : la bannière, l'action unique dessous, le système */
     recit: { ...COUR, poser: (e) => [SYSTEME, issue(echapper(e.titre), { suite: e.suite ? echapper(e.suite) : '', action: e.butin ? '' : echapper(e.action) }), ...(e.butin ? [butin(e.butin, e.action)] : [])] },
-    /* 2. Gestion */
-    gestion: { feuilles: ['lieux-et-nuit/commun.css', 'accueil-et-systeme/systeme.css', 'accueil-et-systeme/options.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'accueil-et-systeme/systeme.js'], poser: ecranDesOptions },
     /* 3. Fiche : le dossier d'une possession */
     fiche: { feuilles: ['combat/combat.css', 'voyage/navale.css'], scripts: ['lieux-et-nuit/bustes.js', 'lieux-et-nuit/commun.js', 'combat/jet.js', 'combat/socle.js', 'voyage/voyage.js', 'voyage/navale.js'], poser: dossier, tracer: peindreLeDossier },
   };
@@ -795,6 +936,7 @@
   const ROUTE = { feuilles: [...LIEU.feuilles, 'voyage/voyage.css', 'combat/jet.css', 'combat-suite/suite.css'], scripts: [...LIEU.scripts, 'voyage/voyage.js', 'combat/jet.js', 'combat-suite/decors.js'] };
   const VOYAGE = { ...ROUTE, scripts: [...LIEU.scripts, 'voyage/voyage.js', 'combat/jet.js'], poser: voyage, tracer: peindreLeVoyage };
   const NUIT = { feuilles: [...LIEU.feuilles, 'lieux-et-nuit/nuit.css'], poser: nuit };
+  const EXPLORER = { feuilles: [...LIEU.feuilles, 'combat/jet.css', 'exploration-et-recit/recit.css'], scripts: [...LIEU.scripts, 'combat/jet.js', 'exploration-et-recit/scene.js'], poser: exploration, tracer: peindreLExploration };
   const COMMERCE = { feuilles: [...LIEU.feuilles, 'combat/jet.css', 'commerce/commerce.css'], scripts: [...LIEU.scripts, 'combat/jet.js', 'lieux-et-nuit/soins.js', 'commerce/commerce.js'], poser: commerce, tracer: peindreLeCommerce };
   const DECORS = {
     auberge: { ...NUIT, scripts: [...LIEU.scripts, 'lieux-et-nuit/auberge.js'] },
@@ -812,8 +954,18 @@
     foret: { ...ROUTE, poser: poursuite },
     champ: { ...ROUTE, poser: bataille },
     ville: { feuilles: [...LIEU.feuilles, 'lieux-et-nuit/interlude.css'], scripts: [...LIEU.scripts, 'lieux-et-nuit/carte-de-la-ville.js'], poser: interlude, tracer: tracerLaVille },
+    /* la salle porte l'exploration, ou les soins entre héros */
+    salle: { ...EXPLORER, feuilles: [...EXPLORER.feuilles, 'lieux-et-nuit/soins.css'], scripts: [...EXPLORER.scripts, 'lieux-et-nuit/soins.js'], poser: (e) => ('actes' in e ? soins : exploration)(e) },
+    'grand-route': EXPLORER,
+    reikland: { feuilles: [...LIEU.feuilles, 'combat/jet.css', 'exploration-et-recit/carte.css'], scripts: [...LIEU.scripts, 'combat/jet.js', 'exploration-et-recit/carte.js'], poser: carteDuMonde, tracer: tracerLeReikland },
   };
   GABARITS['lieu-et-voyage'] = DECORS[etat.decor];
+  /* 2. Gestion : les options sur la table, le carnet posé sur la salle */
+  const GESTIONS = {
+    table: { feuilles: [...LIEU.feuilles, 'accueil-et-systeme/systeme.css', 'accueil-et-systeme/options.css'], scripts: [...LIEU.scripts, 'accueil-et-systeme/systeme.js'], poser: ecranDesOptions },
+    salle: { feuilles: [...LIEU.feuilles, 'exploration-et-recit/recit.css'], scripts: [...LIEU.scripts, 'exploration-et-recit/scene.js'], poser: carnet, tracer: () => sceneAuberge({ sombre: 0.62 }) },
+  };
+  GABARITS.gestion = GESTIONS[etat.decor];
 
   const charger = (src) => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error(`script ${src}`)); document.body.append(s); });
   const lier = (href) => new Promise((ok, ko) => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.onload = ok; l.onerror = () => ko(new Error(`feuille ${href}`)); document.head.append(l); });
