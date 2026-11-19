@@ -173,8 +173,8 @@
     "floorOcclusion": 0.16,
     "depth": {
       "outdoor": {
-        "farTiles": 32,
-        "fogStartT": 8,
+        "farTiles": 64,
+        "fogStartT": 16,
         "fogGamma": 2
       },
       "indoor": {
