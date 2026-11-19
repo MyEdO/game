@@ -415,7 +415,8 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
   // EDOC 07 l.140
   if (mode === 'monture' && !rule('voyage-allures')) return t('tf.refusMode');
   if (mode === 'monture' && !partyFullyMounted(s.party, s.possessions)) return t('tf.refusMonture');
-  if (!route.modes.includes(mode === 'monture' ? 'pied' : mode) || (mode === 'mer') !== !!route.sea) return t('tf.refusMode');
+  const modeDesservi = route.modes.includes(mode) || (mode === 'monture' && route.modes.includes('pied'));
+  if (!modeDesservi || (mode === 'mer') !== !!route.sea) return t('tf.refusMode');
   if (mode === 'mer') return refusDuDepartEnMer(() => s);
   const devis = devisDeTrajet(s, route, from.id, mode, opts);
   if (!descenteJouee(() => s, route, mode) && devis.kmh <= 0) return t('wm.refusSurcharge'); // MSRC 7 : la descente jouée a sa propre allure

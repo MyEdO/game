@@ -15,7 +15,7 @@ import { VB_W, VB_H } from '../worldMapViewport';
 import { Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { type MapPlace, type MarcheDAuteur, type PlacePoi, resolvePortRef, placeServices, poiIcon, nomDuPoi } from '../../noyau/worldMap';
-import { LIBELLES_DE_TAILLE } from '../../data/schemas/defs-scenes/worldmap';
+import { landMarketProfileSchema, LIBELLES_DE_TAILLE, mapPlaceSchema } from '../../data/schemas/defs-scenes/worldmap';
 import { signalDuPortSchema, type SignalDuPort } from '../../data/schemas/defs/naval-ports';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import {
@@ -74,7 +74,10 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
             <input value={place.label} onChange={(e) => updPlace(place.id, { label: e.target.value })} />
           </label>
           <IconField label="Icône" value={place.icon} onChange={(icon) => updPlace(place.id, { icon })} />
-          <BackdropField label="Fond d'ambiance" value={place.backdrop?.id} onChange={(id) => updPlace(place.id, { backdrop: id === undefined ? undefined : { id } })} />
+          <BackdropField label="Fond d'ambiance" value={place.backdrop?.id} onChange={(id) => {
+            const fond = mapPlaceSchema.shape.backdrop.safeParse(id === undefined ? undefined : { id });
+            if (fond.success) updPlace(place.id, { backdrop: fond.data });
+          }} />
           <ProseField label="Description" value={place.prose ?? ''} onChange={(prose) => updPlace(place.id, prose.trim() ? { prose } : { prose: undefined, source: undefined, adapteDe: undefined })} />
           {place.prose && <ProvenanceDuTexte copie identite={`${place.id}/description`} sujet="de la description du lieu" value={place} onChange={(patch) => updPlace(place.id, patch)} />}
           <RefSelect
@@ -161,16 +164,18 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   </select>
                 </label>
                 <div className="mini-title">Produits (colonne Produits, l.24-28)</div>
-                {produitOptions(VOIE_TERRESTRE).map((p) => (
-                  <label key={p.id} className="ed-check">
-                    <input
-                      type="checkbox"
-                      checked={mk.produits.includes(p.id)}
-                      onChange={() => updMarket({ produits: mk.produits.includes(p.id) ? mk.produits.filter((x) => x !== p.id) : [...mk.produits, p.id] })}
-                    />
-                    {p.label}
-                  </label>
-                ))}
+                {produitOptions(VOIE_TERRESTRE).map((p) => {
+                  const id = landMarketProfileSchema.shape.produits.element.parse(p.id);
+                  const choisi = mk.produits.includes(id);
+                  return (
+                    <label key={id} className="ed-check">
+                      <input type="checkbox" checked={choisi} onChange={() => updMarket({
+                        produits: choisi ? mk.produits.filter((x) => x !== id) : [...mk.produits, id],
+                      })} />
+                      {p.label}
+                    </label>
+                  );
+                })}
                 <label className="ed-field">Vin supérieur : bonus de qualité (échelons, l.95 — Kemperbad : 2)
                   <NumberField
                     variant="nu" label="Vin supérieur : bonus de qualité (échelons)" min={0} max={5} placeholder="0"
@@ -194,7 +199,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
           </label>
           {place.port && (() => {
             const pt = place.port;
-            const updPort = (patch: Partial<PortProfile & { ref?: string }>) =>
+            const updPort = (patch: Partial<PortProfile>) =>
               updPlace(place.id, { port: { ...pt, ...patch } });
             // Bascule d'une clé d'un Record<id, indice> (Surplus/Demande) : cocher = indice 1, décocher = retirer la clé.
             const toggleTable = (key: 'surplus' | 'demande', id: string) => {
@@ -214,7 +219,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   value={pt.ref ?? ''}
                   nullableLabel="— aucun (port d'auteur) —"
                   onChange={(ref) => {
-                    if (!ref) { updPort({ ref: undefined }); return; }
+                    if (!ref) { updPlace(place.id, { port: { ...pt, ref: undefined } }); return; }
                     // Choisir une réf REMPLACE le profil par celui du catalogue — pas les défauts
                     // d'auteur pré-résolution (#217).
                     const resolved = resolvePortRef({ ref });

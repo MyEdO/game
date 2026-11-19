@@ -99,6 +99,18 @@ describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #67
     expect(e.label).toBe('Nommé Test');
   });
 
+  it('un profil de surcharge issu du bestiaire conserve l’identité de la créature de base au spawn', () => {
+    const profil = findCreatureById('mutant')!;
+    const narratif = {
+      ...emptyNarratif(),
+      presetsPnj: [{ id: 'pnj-test', base: { id: BASE_ID }, profil }],
+    };
+    banc.setState({ party: [hero()] });
+    banc.getState().chargerLeProjet({ scenes: [presetScene()], entryId: 'sc-preset', narratif, projet: null });
+
+    expect(spawnedEnemy()).toMatchObject({ label: profil.label, creatureId: BASE_ID });
+  });
+
   it('couche NON chargée : le presetId ne résout pas, et le PNJ sans autre porteur est un BOGUE nommé, jamais un PNJ générique (#1882)', () => {
     banc.setState({ party: [hero()], campaignNarratif: null });
     expect(() => banc.getState().lancerLaScene(presetScene('sc-nu'))).toThrow(FicheAbsente);

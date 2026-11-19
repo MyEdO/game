@@ -23,7 +23,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapEditor } from './WorldMapEditor';
 import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 import { EFFECT_LABEL } from './EffectList';
-import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../noyau/worldMap';
+import { emptyWorldMap, parseProject, type WorldMap, type MapPlace, type MapRoute } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
@@ -288,6 +288,17 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
 
     setValue(input('Diligence — Déplacement'), '9');
     expect(lastMap!.routes[0].speed?.diligence).toBe(9);
+
+    setValue(input('Diligence — Extérieur billet'), '');
+    expect(lastMap!.routes[0].billets?.diligence?.prix).toStrictEqual({ interieur: 96 });
+    setValue(input('Diligence — Déplacement'), '');
+    expect(lastMap!.routes[0].speed).toStrictEqual({});
+    click(checkbox('Diligence — billet d'));
+    expect(lastMap!.routes[0].billets).toStrictEqual({});
+    expect(parseProject({
+      id: 'fixture', label: 'Fixture', type: 'projet', versionContenu: 1, maison: 'Fixture de test',
+      scenes: scenes(), narratif: emptyNarratif(), worldMap: lastMap,
+    }).worldMap!.routes[0]).toMatchObject({ speed: {}, billets: {} });
 
     setValue(input('Péripétie : seuil du d10'), '5');
     expect(lastMap!.routes[0].perilDie).toBe(5);

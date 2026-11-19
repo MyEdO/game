@@ -669,12 +669,36 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
     expect(variantes.map((v) => [v.cle, v.libelle, v.valeur])).toEqual([
       ['allEnemiesDead', 'Tous les ennemis hors d’action', { type: 'allEnemiesDead' }],
       ['destroyStructure', 'Détruire une structure', { type: 'destroyStructure', edge: { x: 0, y: 0, side: 'N' } }],
-      ['surviveRounds', 'Survivre N Rounds', { type: 'surviveRounds', rounds: 0 }],
+      ['surviveRounds', 'Survivre N Rounds', { type: 'surviveRounds', rounds: 1 }],
       ['reachZone', 'Atteindre une zone', { type: 'reachZone', rect: { x: 0, y: 0, w: 1, h: 1 } }],
       ['woundsThreshold', 'Sortie à seuil de dommage', { type: 'woundsThreshold', atOrBelowPercent: 0 }],
       ['firstBlood', 'Duel judiciaire — premier sang', { type: 'firstBlood' }],
     ]);
     for (const v of variantes) expect(encounterDefSchema.safeParse({ ...RENCONTRE, victoryCondition: v.valeur }).success, v.cle).toBe(true);
+  });
+
+  it.each([
+    { type: 'surviveRounds', rounds: 1 },
+    { type: 'woundsThreshold', atOrBelowPercent: 0 },
+    { type: 'woundsThreshold', atOrBelowPercent: 50.5 },
+    { type: 'woundsThreshold', atOrBelowPercent: 100 },
+    { type: 'firstBlood' },
+    { type: 'firstBlood', threshold: 0 },
+    { type: 'firstBlood', threshold: 5 },
+  ] as const)('conserve l’objectif valide %j après le parse', (victoryCondition) => {
+    expect(encounterDefSchema.parse({ ...RENCONTRE, victoryCondition }).victoryCondition).toEqual(victoryCondition);
+  });
+
+  it.each([
+    [{ type: 'surviveRounds', rounds: 0 }, 'rounds'],
+    [{ type: 'surviveRounds', rounds: 0.01 }, 'rounds'],
+    [{ type: 'woundsThreshold', atOrBelowPercent: -0.01 }, 'atOrBelowPercent'],
+    [{ type: 'woundsThreshold', atOrBelowPercent: 100.01 }, 'atOrBelowPercent'],
+    [{ type: 'firstBlood', threshold: -1 }, 'threshold'],
+    [{ type: 'firstBlood', threshold: 0.01 }, 'threshold'],
+  ] as const)('refuse la valeur de l’objectif %j au champ %s', (victoryCondition, champ) => {
+    const resultat = encounterDefSchema.safeParse({ ...RENCONTRE, victoryCondition });
+    expect(resultat.error?.issues.map((i) => i.path)).toEqual([['victoryCondition', champ]]);
   });
 
   it('la sélection d’une rencontre désigne son porteur', () => {
