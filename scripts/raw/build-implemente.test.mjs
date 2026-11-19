@@ -159,8 +159,8 @@ test('parseFiche : réf portée par la LIGNE DE HEADING → rattachée au topic 
 })
 
 test('refsWithSpans : LDB + autre livre avec suffixe de plage déplié', () => {
-  assert.deepEqual(refsWithSpans('`LDB 13 l.21-38`'), [{ book: 'LDB', ch: 13, lo: 21, hi: 38 }])
-  assert.deepEqual(refsWithSpans('`MDG 13 l.68-75`'), [{ book: 'MDG', ch: 13, lo: 68, hi: 75 }])
+  assert.deepEqual(refsWithSpans('`LDB 13 l.21-38`'), [{ book: 'LDB', ch: 13, lo: 21, hi: 38, ponctuelle: false }])
+  assert.deepEqual(refsWithSpans('`MDG 13 l.68-75`'), [{ book: 'MDG', ch: 13, lo: 68, hi: 75, ponctuelle: false }])
   assert.deepEqual(refsWithSpans('`AA l.4395` sans chapitre'), []) // pas de chapitre → skip
 })
 
@@ -246,6 +246,58 @@ test('renderBlock : topic implémenté → puce par livre+chapitre, symboles ava
   // LDB 14 l.5 n'a aucun code → sans-code
   const sans = block.find((l) => l.startsWith('- sans code :'))
   assert.match(sans, /`LDB 14` \(l\.5\)/)
+})
+
+test('une preuve ponctuelle distingue la règle du folio, des plages et des citations voisines', () => {
+  const fiche = [
+    '## Entretien',
+    '**Source :** MDG 15 l.302-306',
+    '**Preuve d’implémentation :** MDG 15 l.304',
+    '**Implémente :** x',
+  ].join('\n')
+  const field = parseFiche('a.md', fiche).fields[0]
+  const index = makeIndex([
+    { rel: 'src/noyau/catalogue.ts', content: '// MDG 15 l.266-306' },
+    { rel: 'src/noyau/pointRepete.ts', content: '// MDG 15 l.304+304' },
+    { rel: 'src/noyau/crews.ts', content: '// MDG 15 l.296' },
+    { rel: 'src/noyau/reparation.ts', content: '// MDG 15 l.306' },
+    { rel: 'src/noyau/entretien.test.ts', content: '// MDG 15 l.304', isTest: true },
+  ])
+  for (const suffixe of ['–306', ' — 306', ' - 306', '- 306']) {
+    const plage = makeIndex([{ rel: 'src/noyau/plage.ts', content: '// MDG 15 l.304' + suffixe }])
+    assert.equal(etatDuTopic(field, ctxOf(plage)).implemente, false, suffixe)
+    assert.equal(refMatches(field.refs[0], plage.impl[0]), true, suffixe)
+  }
+  const folio = { book: 'MDG', ch: 15, lo: 265, hi: 308, file: 'src/data/port.json', row: 1, folio: true }
+  const ctx = ctxOf({ ...index, impl: [...index.impl, folio] })
+
+  const avant = etatDuTopic(field, ctx)
+  assert.equal(avant.implemente, false)
+  assert.deepEqual([...avant.testFiles], ['src/noyau/entretien.test.ts'])
+
+  const exact = makeIndex([{ rel: 'src/noyau/entretien.ts', content: '// MDG 15 l.304' }])
+  const apres = etatDuTopic(field, ctxOf({
+    ...ctx.index,
+    impl: [...ctx.index.impl, ...exact.impl],
+    fileLines: new Map([...ctx.index.fileLines, ...exact.fileLines]),
+  }))
+  assert.equal(apres.implemente, true)
+  assert.deepEqual([...apres.fichiers], ['src/noyau/entretien.ts'])
+  assert.match(apres.bullets[0].text, /l\.304/)
+  assert.deepEqual(field.refs, [{ book: 'MDG', ch: 15, lo: 302, hi: 306, ponctuelle: false }])
+})
+
+test('parseFiche refuse une preuve mal formée, dupliquée, hors source ou sans champ', () => {
+  const section = '## Entretien\n**Source :** MDG 15 l.302-306\n'
+  const champ = '**Implémente :** x\n'
+  const preuve = (ref) => '**Preuve d’implémentation :** ' + ref + '\n'
+  for (const ref of ['', 'MDG l.304', 'MDG 15 l.304 et ailleurs', 'MDG 15 l.304-306', 'MDG 15 l.304+304']) {
+    assert.throws(() => parseFiche('a.md', section + preuve(ref) + champ), /une référence ponctuelle/)
+  }
+  assert.throws(() => parseFiche('a.md', section + preuve('MDG 15 l.301') + champ), /hors des références/)
+  assert.throws(() => parseFiche('a.md', section + preuve('MDG 15 l.304').repeat(2) + champ), /plusieurs preuves/)
+  assert.throws(() => parseFiche('a.md', section + preuve('MDG 15 l.304') + '\n## Autre\n' + champ), /sans champ/)
+  assert.throws(() => parseFiche('a.md', section + preuve('MDG 15 l.304')), /sans champ/)
 })
 
 test('renderBlock : symbole sans appelant → ⚠sans-appelant ; fichier hors closure → ⚠hors-app', () => {

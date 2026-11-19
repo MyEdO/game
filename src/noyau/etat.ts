@@ -297,6 +297,8 @@ export interface CampaignVessel {
   /** #30 — Blessures de COQUE persistantes (absent = coque intacte). Synchronisées par le voyage
    *  maritime (`persistHullWounds`) et les réparations ; la coque de trajet en repart. */
   wounds?: { current: number; max: number };
+  /** MDG 15 l.200 */
+  usure?: number;
   /** Améliorations d'INSTANCE posées au chantier (MDG 12 — Clinfoc, Blindage, Ancre…), recopiées
    *  sur la coque au départ (`voyageShip`). */
   upgrades?: import('../engine/types').NavalTraitRef[];
@@ -777,7 +779,7 @@ export interface EtatDeJeu {
   /** Écran MARCHÉ TERRESTRE ouvert (commerce de cargaison à un Lieu `market` de la carte — MSRC 13 l.3) :
    *  offres d'achat générées à l'arrivée. `null` = fermé. */
   landMarket: import('./landMarketFlow').LandMarketState | null;
-  /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.266-306) — modale de choix par héros. */
+  /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.268) — modale de choix par héros. */
   pendingSeaActivities: import('./seaActivities').PendingSeaActivities | null;
   /** Permission de RELÂCHE À TERRE en attente de CHOIX, posée à l'accostage AVANT l'événement de
    *  port (MDG 15 l.245). */

@@ -170,7 +170,7 @@ import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engin
 import { partyMoneyTotal, payFromGroup, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
-import { drainPendingLog, jouerFlowEntier, revealPurpose, runFlow } from './combatEffects';
+import { drainPendingLog, jouerFlowEntier, nePeutPasDifferer, revealPurpose, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { applyContraction, contractionDue, diseaseDefs, maladieDeclaree, type Disease } from '../engine/disease';
@@ -462,6 +462,11 @@ export function coqueDuNavireDeCampagne(plan: TravelPlan | null | undefined, ves
   return estLeNavireDeCampagne(coque, vessel) ? coque : undefined;
 }
 
+function avecBlessuresDeCoque(vessel: CampaignVessel, current: number, max: number): CampaignVessel {
+  const usure = Math.min(vessel.usure ?? 0, Math.max(0, max - current));
+  return { ...vessel, wounds: { current, max }, ...(vessel.usure === undefined ? {} : { usure: usure || undefined }) };
+}
+
 /** PERSISTE les Blessures de la coque de trajet sur le navire de campagne (#30) — l'UNIQUE écriture
  *  `vessel.wounds` (#296). No-op si la coque de trajet n'est pas le navire de campagne (bateau de route
  *  fluviale sans navire de campagne). */
@@ -469,7 +474,7 @@ export function persistHullWounds(get: Get, set: Set): void {
   const vessel = get().vessel;
   const coque = coqueDuNavireDeCampagne(get().travelPlan, vessel);
   if (!vessel || !coque) return;
-  set({ vessel: { ...vessel, wounds: { current: coque.wounds.current, max: coque.wounds.max } } });
+  set({ vessel: avecBlessuresDeCoque(vessel, coque.wounds.current, coque.wounds.max) });
 }
 
 /** Fixe ABSOLUMENT les Blessures de coque du navire de campagne (effet d'auteur `adjustVessel`, #308) —
@@ -480,7 +485,7 @@ export function setVesselHull(get: Get, set: Set, current: number, max: number):
   const vessel = get().vessel;
   if (!vessel) return;
   const reste = Math.max(0, Math.min(current, max));
-  set({ vessel: { ...vessel, wounds: { current: reste, max } } });
+  set({ vessel: avecBlessuresDeCoque(vessel, reste, max) });
   const plan = get().travelPlan;
   const coque = coqueDuNavireDeCampagne(plan, vessel);
   if (plan && coque) set({ travelPlan: { ...plan, vehicle: { ...coque, wounds: blessuresPosees(coque, max, reste) } } });
@@ -2303,7 +2308,19 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, roll?: number
   const vessel = get().vessel;
   if (vessel?.modificateurs?.some((m) => m.jusqua === 'evenementDeBord')) set({ vessel: { ...vessel, modificateurs: modificateursApresUnEvenement(vessel.modificateurs) } });
   const ligne = noteEvent(get, set, { title: event.label, text: event.desc, roll });
-  if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
+  if (!event.consequence) return ligne;
+  if (!event.infligeUsure || !vessel) {
+    jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
+    return ligne;
+  }
+  // MDG 15 l.200
+  const courant = blessuresDeCoqueARestaurer(vessel).current;
+  nePeutPasDifferer(runFlow(get, set, event.consequence, event.label), event.label);
+  const apres = get().vessel;
+  if (apres) {
+    const perte = courant - blessuresDeCoqueARestaurer(apres).current;
+    if (perte > 0) set({ vessel: { ...apres, usure: (apres.usure ?? 0) + perte } });
+  }
   return ligne;
 }
 
@@ -2433,7 +2450,7 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   }
   const cost = Math.ceil(prix);
   payFromGroup(get, set, toMoney({ gold: cost }), { purpose: 'réparation navire' });
-  set({ vessel: { ...get().vessel!, wounds: { current: max, max }, criticals: [], reparationTemporaire: undefined } });
+  set({ vessel: { ...avecBlessuresDeCoque(get().vessel!, max, max), criticals: [], reparationTemporaire: undefined } });
   const jours = constructeur ? joursDuChantier(get, set, constructeur.duree, rng) : null;
   const duree = jours !== null ? t('sv.dureeJours', { n: jours }) : t('sv.dureeHeures', { n: Math.max(1, heures) });
   get().avancerLeTemps(jours !== null ? jours * MINUTES_PER_DAY : Math.max(1, heures) * 60);
@@ -2446,8 +2463,23 @@ const lotDePieces = (l: CargoLot): boolean => findCargoById(l.cargoId)?.shipPart
 
 /** Enc de pièces détachées de navire du groupe : en cale (`CargoLot.enc`) et sur les héros (`shipParts`).
  *  MDG 14 l.283 ; MDG 15 l.418, l.434 */
-function encDePiecesDetachees(vessel: Pick<CampaignVessel, 'cargo'>, party: readonly Combatant[]): number {
+export function encDePiecesDetachees(vessel: Pick<CampaignVessel, 'cargo'>, party: readonly Combatant[]): number {
   return (vessel.cargo ?? []).filter(lotDePieces).reduce((s, l) => s + l.enc, 0) + encDeLaCapacite(party, 'shipParts');
+}
+
+export function debiterPiecesDetachees(vessel: CampaignVessel, party: readonly Combatant[], enc: number): { vessel: CampaignVessel; party: Combatant[] } | null {
+  if (enc > encDePiecesDetachees(vessel, party)) return null;
+  let cargo = vessel.cargo ?? [];
+  let reste = enc;
+  for (const id of new Set(cargo.filter(lotDePieces).map((l) => l.cargoId))) {
+    if (reste <= 0) break;
+    const retrait = removeCargo(cargo, id, reste);
+    cargo = retrait.lots;
+    reste -= retrait.removed;
+  }
+  const porteurs = reste > 0 ? structuredClone([...party]) : [...party];
+  consommerLaCapacite(porteurs, 'shipParts', reste);
+  return { party: porteurs, vessel: reste < enc ? { ...vessel, cargo } : vessel };
 }
 
 /** Blessures que la réparation par le groupe peut restaurer à `vessel` : au plus les manquantes et ce que paient les
@@ -2517,16 +2549,11 @@ function reparerLaCoqueParLeGroupe(get: Get, set: Set, tirees: number): string {
   const vessel = garanti(get().vessel, 'navire', 'navire réparé au chantier');
   const { max, current } = blessuresDeCoqueARestaurer(vessel);
   const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
-  const party = structuredClone(get().party);
+  const party = get().party;
   const n = Math.min(tirees, plafondDeLaReparationDuGroupe(vessel, party));
   const enc = piecesDeLaReparation(n, lissage);
-  let cale = { lots: vessel.cargo ?? [], removed: 0 };
-  for (const id of new Set(cale.lots.filter(lotDePieces).map((l) => l.cargoId))) {
-    const r = removeCargo(cale.lots, id, enc - cale.removed);
-    cale = { lots: r.lots, removed: cale.removed + r.removed };
-  }
-  consommerLaCapacite(party, 'shipParts', enc - cale.removed);
-  set({ party, vessel: { ...vessel, ...(cale.removed > 0 ? { cargo: cale.lots } : {}), reparationTemporaire: undefined } });
+  const debit = garanti(debiterPiecesDetachees(vessel, party, enc), enc, 'pièces de la réparation plafonnée');
+  set({ party: debit.party, vessel: { ...debit.vessel, reparationTemporaire: undefined } });
   setVesselHull(get, set, current + n, max);
   return t('sv.reparationDuGroupeReussie', { n, enc });
 }

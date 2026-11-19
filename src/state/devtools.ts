@@ -511,7 +511,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
           real(tick, 0); return;
         }
         if (s.pendingSeaActivities) {
-          const evts = s.pendingSeaActivities.day.events ?? [];
+          const evts = s.pendingSeaActivities.day?.events ?? [];
           if (stopOnEvent && evts.length) {
             resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible (Activités hebdo ouvertes) ; fenetreValider('activitesEnMer') ou advanceSeaDay() reprend`);
             return;
