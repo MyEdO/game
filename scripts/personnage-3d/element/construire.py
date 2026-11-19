@@ -19,7 +19,7 @@ matériau s'exporte aux UV en mètres de `maille.poser_les_uv_en_metres`, #4313)
 - `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
   transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
   qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste, et ses clés de forme propres (ni silhouette de la
-  base ni `gabarit_*` : `visage_inverse` et les traits d'une tête), lues sur la pièce exportée, à `formes` (#4413) ;
+  base ni `gabarit_*` : `visage_inverse` et les traits d'une tête), lues sur la pièce exportée, à `formesDeTete` (#4413) ;
 - `squelette` ou `surface` repris du GLB publié (`element/publie.py`, #3761) : `modele.py` porte `reprendre(materiaux, base,
   glb)` au lieu de `construire` et reçoit le GLB épinglé de l'élément ; `donnees.py` ne porte que `MANIFESTE` (ses
   `emplacements` recopiés du manifeste publié), `MATERIAUX` (valeurs lues dans les matériaux du GLB publié) et

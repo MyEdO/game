@@ -12,8 +12,8 @@ if (entree.operation === 'silhouettes') {
   const { FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, NOMS_DES_SILHOUETTES } = await chargerEvaluateur('../silhouettes.ts')
   process.stdout.write(JSON.stringify({ FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, NOMS_DES_SILHOUETTES }))
 } else if (entree.operation === 'formesDeTete') {
-  const { VISAGE_INVERSE, NEZ_FORT, ARCADES_MARQUEES, JOUES_CREUSES, VISAGE_LONG, NOMS_DES_FORMES_DE_TETE } = await chargerEvaluateur('../../../../src/lib/formesDeTete.ts')
-  process.stdout.write(JSON.stringify({ VISAGE_INVERSE, NEZ_FORT, ARCADES_MARQUEES, JOUES_CREUSES, VISAGE_LONG, NOMS_DES_FORMES_DE_TETE }))
+  const { VISAGE_INVERSE, NEZ_FORT, ARCADES_MARQUEES, JOUES_CREUSES, VISAGE_LONG } = await chargerEvaluateur('../../../../src/lib/formesDeTete.ts')
+  process.stdout.write(JSON.stringify({ VISAGE_INVERSE, NEZ_FORT, ARCADES_MARQUEES, JOUES_CREUSES, VISAGE_LONG }))
 } else if (entree.operation === 'clipsPlantes') {
   const { clipsPlantes } = await chargerEvaluateur('../gabarit.ts')
   process.stdout.write(JSON.stringify(clipsPlantes(entree)))
