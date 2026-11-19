@@ -66,4 +66,19 @@ describe('Statut d’interlocuteur décomposé (`vsStatus`)', () => {
     expect(avecLaValeur(testDeSceneSchema, avecStatut, ['vsStatus', 'tier'], 'Or')).toMatchObject({ ok: false });
     expect(avecLaValeur(testDeSceneSchema, avecStatut, ['vsStatus', 'standing'], -1)).toMatchObject({ ok: false });
   });
+
+  it('offre les deux avis par id et accepte un Test de scène préexistant sans avis', () => {
+    const avis = champsOfferts(testDeSceneSchema, avecStatut).find((f) => f.key === 'avisSurLeStatut')!;
+    expect(choixDuNoeud(avis.noeud)).toEqual([
+      { valeur: 'favorable', libelle: 'Favorable' },
+      { valeur: 'hostile', libelle: 'Hostile' },
+    ]);
+    expect(testDeSceneSchema.parse(avecStatut)).toEqual(avecStatut);
+    expect(avecLaValeur(testDeSceneSchema, avecStatut, ['avisSurLeStatut'], 'hostile')).toEqual({
+      ok: true,
+      valeur: { ...avecStatut, avisSurLeStatut: 'hostile' },
+    });
+    expect(avecLaValeur(testDeSceneSchema, avecStatut, ['avisSurLeStatut'], 'Hostile')).toMatchObject({ ok: false });
+  });
+
 });

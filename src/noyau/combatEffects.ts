@@ -52,7 +52,7 @@ import {
   socialPsychLines,
   testValue,
 } from '../engine/skills';
-import { statusCharmMod, statusCharmLabel, actorStatus, tirerLeCapricieux, tirerLaReactionAuStatut } from '../engine/social';
+import { actorStatus, estUneCompetenceDeStatut, ligneDeStatut, tirerLeCapricieux, tirerLaReactionAuStatut } from '../engine/social';
 import { restoreFortune } from '../engine/fortune';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { calmeDAcquisition } from '../engine/psychology';
@@ -1056,52 +1056,28 @@ export function openSkillTest(
     parmi?: readonly string[];
   },
 ): boolean {
-  // Modulateurs sociaux PAR ACTEUR (un Test social vs un interlocuteur) : malus psy Animosité/Préjugé
-  // (LDB 21) + mod de Statut Échelon/Standing (LDB 08). Le Statut compare l'acteur à la cible `vsStatus`.
   const isSocial = isSocialTest(spec);
-  const tgtStatus = isSocial ? spec.vsStatus : undefined;
-  const psychMod = spec.vsGroups?.length && isSocial ? (c: Combatant) => socialPsychMod(c, spec.vsGroups!) : undefined;
-  // Réaction au Statut (option, LDB 08 l.38-46) tirée UNE fois par Test (RNG seedé) — appliquée à
-  // tous les candidats de façon cohérente (la réaction de l'interlocuteur ne dépend pas du héros choisi).
-  const reaction = tgtStatus && rule('social-reaction-au-statut') ? tirerLaReactionAuStatut(battleRng()) : undefined;
-  const statusMod = tgtStatus ? (c: Combatant) => statusCharmMod(actorStatus(c), tgtStatus, { begging: spec.begging, reaction }) : undefined;
-  // Capricieux (MSRC 15 l.149-159) : la créature-interlocuteur tire sur la table (UNE fois, seedé,
-  // INDÉPENDANT du héros choisi — c'est SA réaction) ; la table rend un delta de DR appliqué au Test
-  // RÉSOLU (`FLOWS.test.resolve`), donc hors de `skillValue`/`target`. Constant pour tous les candidats.
+  const groupes = isSocial && spec.vsGroups?.length ? spec.vsGroups : undefined;
+  const competence = spec.skill?.id;
+  const tgtStatus = spec.vsStatus;
+  // LDB 08 l.40-46.
+  const statut = tgtStatus && estUneCompetenceDeStatut(competence) ? {
+    competence,
+    target: tgtStatus,
+    reaction: rule('social-reaction-au-statut') ? tirerLaReactionAuStatut(battleRng()) : undefined,
+    begging: spec.begging,
+    avisSurLeStatut: spec.avisSurLeStatut,
+  } : undefined;
+  const ligneStatut = (acteur: Combatant) => statut
+    ? ligneDeStatut(statut.competence, actorStatus(acteur), statut.target, statut)
+    : undefined;
+  // MSRC 15 l.149-159.
   const capricieux = isSocial && spec.vsCapricieux ? tirerLeCapricieux(battleRng()) : undefined;
   const capriciousRoll = capricieux?.roll;
   const capDR = capricieux?.dr ?? 0;
-  const socialMod = psychMod || statusMod
-    ? (c: Combatant) => (psychMod ? psychMod(c) : 0) + (statusMod ? statusMod(c) : 0)
+  const socialMod = groupes || statut
+    ? (c: Combatant) => (groupes ? socialPsychMod(c, groupes) : 0) + (ligneStatut(c)?.value ?? 0)
     : undefined;
-  const socialDetail = (c: Combatant): string | undefined => {
-    const parts: string[] = [];
-    const pl = psychMod ? socialPsychLabel(c, spec.vsGroups!) : undefined;
-    if (pl) parts.push(t('eff.psychologieSocialeEnvers', { mods: pl, groupes: groupesLabel(spec.vsGroups!) }));
-    const sl = tgtStatus ? statusCharmLabel(actorStatus(c), tgtStatus, { begging: spec.begging }) : undefined;
-    if (sl) parts.push(sl);
-    return parts.length ? parts.join(' · ') : undefined;
-  };
-  // Le mod social FONDU dans la valeur, DÉPLIÉ par source pour le monteur (`dansLaValeur`) : une ligne
-  // par Trait psy « contenu » (LDB 21), chacune liée à SA fiche par le producteur (`socialPsychLines`),
-  // puis la ligne de Statut (LDB 08). Σ de ces lignes === `socialMod(c)` — la garde d'exactitude du
-  // monteur le vérifie à chaque passage.
-  // Sous la règle optionnelle `social-reaction-au-statut`, la VALEUR de la ligne de Statut porte la
-  // réaction tirée (`tirerLaReactionAuStatut`) alors que son LIBELLÉ décrit la base RAW : les deux
-  // divergent alors — le libellé est celui que la modale affiche déjà en sous-titre (`psychDetail`).
-  const socialLines = (c: Combatant): ModLine[] => {
-    const lines: ModLine[] = psychMod ? socialPsychLines(c, spec.vsGroups!) : [];
-    const st = statusMod ? statusMod(c) : 0;
-    if (st) {
-      lines.push({
-        label: statusCharmLabel(actorStatus(c), tgtStatus!, { begging: spec.begging }) ?? 'Statut',
-        value: st,
-        famille: 'jet',
-        ref: RULE_REF.statut,
-      });
-    }
-    return lines;
-  };
   // `opts.actorId` RESTREINT le Test à UN acteur précis (ex. le Personnage qui prend l'Action « Diriger
   //  l'équipe » — le porteur du Talent, pas le meilleur du groupe) ; sinon le meilleur PJ (partyBest).
   // L'acteur imposé est un COMBATTANT (`actorIn`) : en combat, un ennemi mené par le siège MJ en est un.
@@ -1142,8 +1118,12 @@ export function openSkillTest(
     const sout = soutD?.bonus ?? 0;
     // `spec.sense` (vue/ouïe, LDB 18) restreint le malus de Surdité au seul Test de Perception auditif — le
     // Soutien (`sout`, plafonné au Bonus de Carac du meneur) et le mod social ne dépendent pas du sens.
-    const social = socialMod ? socialMod(actor) : 0;
-    const value = testValue(actor, spec, spec.sense) + social + sout;
+    const lignesPsy = groupes ? socialPsychLines(actor, groupes) : [];
+    const psychMod = lignesPsy.reduce((total, ligne) => total + ligne.value, 0);
+    const ligneDeStatutDuTest = ligneStatut(actor);
+    const socialLines = ligneDeStatutDuTest ? [...lignesPsy, ligneDeStatutDuTest] : lignesPsy;
+    const value = testValue(actor, spec, spec.sense) + psychMod + (ligneDeStatutDuTest?.value ?? 0) + sout;
+    const psychLabel = groupes && socialPsychLabel(actor, groupes);
     // Objet catalogué → match par `trappingId` STABLE (id, jamais le libellé).
     const tool = spec.tool ? actor.items?.find((i) => i.trappingId === spec.tool && !i.destroyed) : undefined;
     // Ligne montée par le MONTEUR CANONIQUE (`rollSeam.rollStep`) : la valeur FONDUE se déclare avec ses
@@ -1156,7 +1136,7 @@ export function openSkillTest(
       difficulty,
       valeur: value,
       ...(soutD ? { soutien: soutD } : {}),
-      ...(social ? { dansLaValeur: socialLines(actor) } : {}),
+      ...(socialLines.length ? { dansLaValeur: socialLines } : {}),
       pont,
     });
     return {
@@ -1165,8 +1145,8 @@ export function openSkillTest(
       // a émises (famille et fiche comprises). L'affichage n'a plus rien à recomposer.
       base: line.base, ...(line.mods ? { mods: line.mods } : {}),
       target: line.target, ...(line.clamped != null ? { clamped: line.clamped } : {}),
-      psychMod: social || undefined,
-      psychDetail: socialDetail(actor),
+      psychMod: psychMod || undefined,
+      psychDetail: groupes && psychLabel ? t('eff.psychologieSocialeEnvers', { mods: psychLabel, groupes: groupesLabel(groupes) }) : undefined,
       itemUid: tool?.uid,
       // Détail du Soutien de CE candidat (il change avec le meneur : le plafond est celui de SA
       // Caractéristique) — porté pour l'affichage, la valeur reste soutenue.

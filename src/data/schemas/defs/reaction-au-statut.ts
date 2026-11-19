@@ -8,7 +8,7 @@ import type { DiceSpec } from '../../../engine/dice';
 export const file = 'reaction-au-statut.json';
 export const famille = 'config';
 
-/** L'issue d'une rangée, lue par `statusCharmMod`. */
+/** LDB 08 l.44-46. */
 export const issueDeReactionSchema = enumNomme({
   'braver-le-statut': 'Braver le Statut',
   'reactions-classiques': 'Réactions classiques',
