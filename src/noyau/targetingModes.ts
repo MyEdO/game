@@ -6,10 +6,7 @@
  * l'aiguilleur. Les facettes (réticule au survol / cibles Tab-curseur / commit) qui vivaient à
  * trois endroits (targeting.ts, combatSlice.ts, la surcouche de plateau) sont ICI, unifiées.
  *
- * CONTRAT D'AFFICHAGE (arbitrage utilisateur 2026-08-24, verbatim : « Dans RT, mettre sa souris sur un
- * ennemi ou une case hors porté ca n'affiche rien de particulier ») : LE SURVOL N'AFFICHE QUE LE
- * FAISABLE — une affordance `ok` porte le réticule et la carte de jet, une affordance `invalid` ne
- * rend RIEN. L'INFAISABLE SE DIT AU CLIC, par `refuserGeste` (`noyau/refusVisible`), au point du geste.
+ * `.claude/memory/user-arbitrage-survol-rt-strict-refus-au-clic.md`
  *
  * Importe combatFlow, qui l'atteint en retour par combatOrParty (`touchActors`…) : un cycle de modules
  * que seuls des appels de fonction traversent, jamais une valeur lue au chargement. Consommé par
