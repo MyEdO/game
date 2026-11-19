@@ -44,7 +44,7 @@ describe('la création d’un héros par le pont', () => {
     // Race : aucun résultat avant le geste du joueur.
     expect(s.vue.zones['creation.corps'].some((e) => e.type === 'jet'), 'avant le d100, aucun jet n’est dit').toBe(false);
     expect(boutonDe(s, 'creation.gestes', 'suivante').refus, 'la page ne se quitte pas sans race').toBe('Choisissez votre race.');
-    expect(erreurDe(appel('creation', boutonDe(s, 'creation.gestes', 'suivante').jeu)), 'la suivante refusée se refuse en règle').toEqual({ categorie: 'regle', message: 'creation : Choisissez votre race.' });
+    expect(erreurDe(appel('creation', boutonDe(s, 'creation.gestes', 'suivante').jeu)), 'la suivante refusée se refuse en règle').toEqual({ categorie: 'regle', message: 'Choisissez votre race.' });
     s = jouer(boutonDe(s, 'creation.corps', 'tirage'));
     const d100 = elementDe(s, 'tirage') as Jet;
     expect(d100.type === 'jet' && /^\d+$/.test(d100.resultat!), 'le d100 tombé se dit').toBe(true);

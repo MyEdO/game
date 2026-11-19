@@ -303,7 +303,9 @@ Après que votre maladie est arrivée à la fin de sa Durée, effectuez un **Tes
 
 ### Toux et Éternuements (`LDB 20 l.205-208`)
 
-Vous toussez et éternuez régulièrement, **propageant votre maladie**. Tout Personnage se trouvant dans votre environnement immédiat s'expose à la maladie et doit effectuer un **Test pour éviter la Contraction une fois par heure** d'exposition.
+Vous toussez et éternuez régulièrement, **propageant votre maladie**. Tout Personnage se trouvant dans votre environnement immédiat s'expose à la maladie et doit effectuer un **Test pour éviter la Contraction une fois par heure entamée** d'exposition.
+
+**Dans le jeu**, le temps passé ensemble en voyage et au repos alimente la même exposition tant que le contact continue. Les occupants de chambres séparées interrompent ce contact. Deux porteurs de la même maladie présents en même temps ouvrent un seul Test par heure entamée pour chaque Personnage exposé. Une séparation effective clôt l'exposition. La reprise du contact ouvre une nouvelle heure. [Arbitrage du 19 novembre 2026](https://github.com/MyEdO/game/issues/4445#issuecomment-7012090924)
 
 **Traitement :** **rien ne fonctionne**.
 
@@ -750,7 +752,9 @@ La promiscuité à bord et la mauvaise qualité de la nourriture et de la boisso
 
 > « Si un membre d'équipage souffrant de la *peste noire*, du *flux sanglant*, de la *courante galopante* ou de la vé*role urticante* boit dans un tonneau d'eau, il doit effectuer un Test de **Résistance Intermédiaire (+0)**. En cas d'échec, le tonneau devient une source de contagion pour quiconque boit dedans ensuite. La *petite bière* n'est pas soumise à cette règle. » — `MDG 14 l.209`
 
-**Dans le jeu** : les porteurs à bord sont les Personnages vivants et l'équipage PNJ, porteur de maladies collectif (`CampaignVessel.porteurDeLEquipage`) qui teste sa Résistance à la valeur maison `mer-resistance-de-l-equipage`, en un seul Test pour tout l'effectif. Chaque nuit à bord, la contagion joue dans les deux sens : l'équipage porteur d'une maladie contagieuse expose chaque Personnage, un Personnage contagieux expose l'équipage. `MDG 14 l.208` Le tonneau : chaque porteur d'une maladie déclarée qui contamine l'eau, l'équipage compris, fait le Test de Résistance Intermédiaire (+0) ; le lendemain d'un échec, tout porteur qui boit au tonneau est exposé. `MDG 14 l.209` La contagion se teste une fois par nuit, pas une fois par heure entamée (`LDB 20 l.206`, #4445).
+**Dans le jeu**, l'équipage PNJ constitue un porteur collectif de maladies (`CampaignVessel.porteurDeLEquipage`). Il utilise la Résistance maison `mer-resistance-de-l-equipage` et joue un Test par heure entamée pour tout l'effectif. Pendant la navigation et le repos à bord, un équipage contagieux expose chaque Personnage à bord, et un Personnage contagieux expose aussi l'équipage. `LDB 20 l.206` `MDG 14 l.208`
+
+Pour le tonneau, chaque porteur d'une maladie déclarée qui contamine l'eau, l'équipage compris, fait le Test de Résistance Intermédiaire (+0). Le lendemain d'un échec, tout porteur qui boit au tonneau est exposé. `MDG 14 l.209`
 
 **Voir aussi** : [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Toux et Éternuements) ; [Litanie de la Pestilence — 9 maladies LDB](#litanie-de-la-pestilence--9-maladies-ldb) (peste noire / flux sanglant / courante galopante / vérole urticante) ; [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (petite bière) ; `docs/raw/4e/etats.md`.
 

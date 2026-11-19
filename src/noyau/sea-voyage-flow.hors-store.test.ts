@@ -34,15 +34,16 @@ import { voyageEnVue } from './voyageEnVue';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
 import { imposerLesD100 } from './battleRng.testkit';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import { navigationDuNavire } from './shipCrew';
+import { applyVesselCrewLoss, navigationDuNavire, shipboardSouls } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate, tableSpec } from './cascade';
 import { feedFromMeal, noterLeRepas } from '../engine/provisions';
-import { MINUTES_PER_DAY } from '../engine/clock';
+import { duskMinute, minutesUntilNext, MINUTES_PER_DAY } from '../engine/clock';
 import type { Id } from '../data/schemas/grammaire/ref';
-import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
+import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, draineEtapes, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { savoirOceansBonus } from '../engine/seaNavigation';
+import { visibilityDef } from '../engine/seaWeather';
 import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
@@ -60,7 +61,7 @@ import { WORLD_STEP_OWNER } from './pendings';
 import { poserLeSiegeMJ, seatOwns } from './sieges';
 import type { NetState } from './etat';
 import { modalOwnerOf } from './modalArbiter';
-import { contractDisease } from '../engine/disease';
+import { avancerLesMaladies, contagiousDiseases, contractDisease } from '../engine/disease';
 import { makeRNG } from '../engine/dice';
 import { ECHEC_SANS_JET, estJete } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
@@ -123,6 +124,80 @@ function freshState() {
 function stepCascade(): void {
   avanceEtapeCascade(get);
 }
+
+describe('Contagion de proximité en mer (LDB 20 l.206 ; MDG 14 l.208)', () => {
+  beforeEach(freshState);
+
+  it('la journée détaillée expose les PJ à l’équipage jusqu’au crépuscule avant la halte', () => {
+    const debut = get().gameTime + 30;
+    const minutes = minutesUntilNext(debut, duskMinute());
+    const rng = makeRNG(3);
+    const verole = contractDisease('verole-urticante', rng, { incubation: 0, duration: 5 })!;
+    set({ gameTime: debut, vessel: { ...get().vessel!, porteurDeLEquipage: { diseases: [verole] } } });
+    const pjs = get().party.map((h) => h.id).sort();
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    const bandes = draineEtapes(get, 100, (etape) => (etape.kind === 'contagion' ? 1 : undefined))
+      .filter((etape) => etape.kind === 'contagion').map((etape) => etape.participants!.map((r) => r.id).sort());
+    expect(get().pendingRest?.places.bord).toBe(true);
+    expect(get().pendingCascade).toBeNull();
+    expect(get().gameTime - debut).toBe(minutes);
+    expect(bandes).toEqual(Array(Math.ceil(minutes / 60)).fill(pjs));
+    expect(get().party.flatMap((h) => (h.diseases ?? []).filter((d) => d.id === verole.id))).toEqual([]);
+  });
+
+  it('l’équipage contracte au début des 24 h du dernier jour détaillé et sort d’incubation à quai', () => {
+    const debut = get().gameTime;
+    const verole = contractDisease('verole-urticante', makeRNG(3), { incubation: 0, duration: 5 })!;
+    const [source, ...compagnons] = get().party;
+    const party = [{ ...source, diseases: [verole] }, ...compagnons.map((pj) => ({ ...pj, diseaseImmunities: [verole.id] }))];
+    set({ party, worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], km: 1 }] } });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    const heures: number[] = [];
+    draineEtapes(get, 100, (etape, rangee) => {
+      if (etape.kind === 'equipage-progression' || etape.kind === 'equipage-orientation') return 1;
+      if (etape.kind !== 'contagion' || rangee?.id !== WORLD_STEP_OWNER) return undefined;
+      heures.push(get().gameTime - debut);
+      seedBattleRng(7); // premier d10 : un jour d’incubation
+      return 100;
+    });
+    expect(heures).toEqual([0]);
+    expect(get().gameTime - debut).toBe(MINUTES_PER_DAY);
+    expect(get().pendingShoreLeave).toBeTruthy();
+    expect(get().vessel?.porteurDeLEquipage?.diseases).toMatchObject([{ id: verole.id, phase: 'active' }]);
+  });
+
+  it('l’échéance du rapide attend ses deux Tests de scène à la première heure, avant l’escale', () => {
+    const debut = get().gameTime;
+    const fin = { kind: 'effet', effet: { type: 'setFlag', flag: 'echeance-mer' } } as const;
+    const suite = { kind: 'test', test: { characteristic: 'endurance' }, reussite: fin, echec: fin } as const;
+    applyEffects(get, set, [{
+      type: 'delayedEffect', afterMinutes: 60,
+      flow: { kind: 'test', test: { characteristic: 'force' }, reussite: suite, echec: suite },
+    }]);
+    set({ vessel: { ...get().vessel!, manann: { score: 1000, applied: [] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true, cadence: 'jourParJour' });
+    const jours = get().travelPlan!.sea!.fast!.days;
+    stepCascade();
+    expect(get().gameTime - debut).toBe(60);
+    expect(get().pendingShoreLeave).toBeNull();
+    expect(get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind).toBe('jetDeTestDeScene');
+    expect(get().flags['echeance-mer']).toBeUndefined();
+    expect(get().scheduledEffects).toEqual([]);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().gameTime - debut).toBe(60);
+    expect(get().pendingShoreLeave).toBeNull();
+    expect(get().pendingTest?.sujet?.characteristic).toBe('endurance');
+    expect(get().flags['echeance-mer']).toBeUndefined();
+    get().jetLancer('test');
+    get().jetValider('test');
+    draineEtapes(get);
+    expect(get().flags['echeance-mer']).toBe(true);
+    expect(get().gameTime - debut).toBe(jours * MINUTES_PER_DAY);
+    expect(get().pendingShoreLeave).toBeTruthy();
+    expect(get().travelPlan).toBeNull();
+  });
+});
 
 describe('buildSeaPlan — appareillage sur le navire de campagne', () => {
   beforeEach(freshState);
@@ -714,7 +789,8 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['mer'], sea: true, seaHeading: 'est' }],
   });
 
-  function freshLighthouseState(km = 1, signal: SignalDuPort = 'phare') {
+  /** Visibilité du jour posée par la météo imposée du navire (MDG 15 l.189). */
+  function freshLighthouseState(km = 1, signal: SignalDuPort = 'phare', visibilite = 'degage') {
     seedBattleRng(1);
     const [a, b] = tousLesHerosDeScenario(idsDeTest);
     const vigie = { ...a, skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], traumas: [traumaById('surdite', undefined, 'tete')] };
@@ -732,14 +808,14 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
       suspendedCascades: [],
       gameTime: 8 * 60,
       lastUpkeepDay: 0,
-      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, meteosImposees: [{ label: 'Visibilité du banc', jusqua: 8 * 60 + 30 * MINUTES_PER_DAY, meteo: { visibilite: { id: visibilite } } }] },
       journal: [],
     } as never);
   }
 
   /** Joue le PREMIER jour de mer jusqu'à l'étape du phare, ou jusqu'à l'Orientation (bâtie après lui) s'il n'y en a pas. */
-  function premierJourDeMer(km: number, signal: SignalDuPort = 'phare') {
-    freshLighthouseState(km, signal);
+  function premierJourDeMer(km: number, signal: SignalDuPort = 'phare', visibilite = 'degage') {
+    freshLighthouseState(km, signal, visibilite);
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     let phare: CascadeStep | undefined;
     let progression: CascadeStep | undefined;
@@ -792,6 +868,14 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     expect(Number(jour.phare!.meta?.aggregateFlatDR ?? 0)).toBe(Number(jour.progression!.meta?.aggregateFlatDR ?? 0));
   });
 
+  // MDG 13 l.234-243, l.337, l.351
+  it.each(['phare', 'clocher'] as const)('Brouillard : le Test de repérage du %s porte la pénalité de Visibilité s’il se fait à la vue', (signal) => {
+    const drPlat = (visibilite: string) => Number(premierJourDeMer(1, signal, visibilite).phare!.meta?.aggregateFlatDR ?? 0);
+    const penalite = visibilityDef('brouillard').drPenalty!;
+    expect(penalite).toBeLessThan(0);
+    expect(drPlat('brouillard') - drPlat('degage')).toBe(signal === 'phare' ? penalite : 0);
+  });
+
   it('clocher : le Test de Perception est AUDITIF — la Vigie SOURDE y est pénalisée (MDG 13 l.351)', () => {
     const { phare } = premierJourDeMer(1, 'clocher');
     expect(phare).toBeTruthy();
@@ -817,11 +901,42 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     expect(membresHorsDifficulte(jour.phare!, difficulte)).toEqual([]); // MDG 14 l.13
   });
 
+  /** Progression du jour posée par son applier à `dr` DR sur une traversée de `km` milles, sous une Légère brise
+   *  imposée (M de la cogue intact, MDG 13 l.276-286), sans voguer de nuit (MDG 15 l.76) : milles du jour, M qui les a
+   *  donnés, étape du signal insérée. */
+  function progressionDuJour(km: number, signal: SignalDuPort, dr: number) {
+    freshLighthouseState(km, signal);
+    setRule('mer-voguer-de-nuit', false);
+    set({ vessel: { ...get().vessel!, meteosImposees: [{ label: 'Légère brise', jusqua: get().gameTime + 30 * MINUTES_PER_DAY, meteo: { visibilite: { id: 'degage' }, vent: { id: 'legere-brise' } } }] } });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    const etape: CascadeStep = { id: 'equipage-progression', kind: 'equipage-progression', label: fixtureText('equipage-progression'), result: { roll: 0, target: 0, sl: dr, success: dr >= 1 } };
+    const sortie = applierDe('equipage-progression')!(get, set, etape, undefined, { steps: [], index: 0 });
+    const sea = get().travelPlan!.sea!;
+    return { milesToday: sea.milesToday, effM: sea.effMToday, signal: sortie?.insert?.find((st) => st.kind === 'equipage-phare') };
+  }
+
+  afterEach(() => resetRule('mer-voguer-de-nuit'));
+
+  // MDG 15 l.57-78 ; MDG 13 l.339-346, l.351 — #4419 : M 5 sans voguer de nuit à −3 DR = 31,5 milles, arrondis à 32.
+  it.each([
+    ['phare', 5, 'facile'],
+    ['phare', 10, 'intermediaire'],
+    ['phare', 15, 'difficile'],
+    ['clocher', 2.5, 'facile'],
+    ['clocher', 7.5, 'difficile'],
+  ] as const)('%s à %s milles restants pile après une Progression à demi-mille : Test %s', (signal, milesRestants, difficulte) => {
+    const jour = progressionDuJour(32 + milesRestants, signal, -3);
+    expect(jour.effM).toBe(5);
+    expect(jour.milesToday).toBe(32);
+    expect(jour.signal).toBeTruthy();
+    expect(membresHorsDifficulte(jour.signal!, difficulte)).toEqual([]); // MDG 14 l.13
+  });
+
   /** Signal repéré (applier de l'étape) puis Orientation du jour, sur le voyage en cours vers le port B. */
-  function signalRepereEtOrientation(signal: SignalDuPort) {
+  function signalRepereEtOrientation(signal: SignalDuPort, savoirOceans = true) {
     premierJourDeMer(1, signal);
     const [vigie, timonier] = get().party;
-    const navigateur = { ...vigie, skills: [{ id: 'orientation', characteristic: 'intelligence', advances: 20 }, { id: 'savoir', spec: 'oceans', characteristic: 'intelligence', advances: 40 }] } as Combatant;
+    const navigateur = { ...vigie, skills: [{ id: 'orientation', characteristic: 'intelligence', advances: 20 }, ...(savoirOceans ? [{ id: 'savoir', spec: 'oceans', characteristic: 'intelligence', advances: 40 }] : [])] } as Combatant;
     set({ party: [navigateur, timonier] });
     const etape = (kind: GenreDeCascade, sl: number): CascadeStep => ({ id: kind, kind, label: fixtureText(kind), result: { roll: 0, target: 0, sl, success: sl >= 1 } });
     applierDe('equipage-phare')!(get, set, etape('equipage-phare', 1), undefined, { steps: [], index: 0 });
@@ -842,6 +957,13 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     expect(savoir).toBeGreaterThan(2);
     expect(lighthouseDR).toBe(savoir);
     expect(orientation).toContain(`Phare +${savoir}`);
+  });
+
+  it('phare repéré par un navigateur SANS Savoir (Océans) : aucun bonus d’Orientation (MDG 13 l.335)', () => {
+    const { lighthouseDR, savoir, orientation } = signalRepereEtOrientation('phare', false);
+    expect(savoir).toBe(0);
+    expect(lighthouseDR).toBe(0);
+    expect(orientation).toContain('Orientation (DR +0) :');
   });
 });
 
@@ -1462,6 +1584,66 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     expect(get().pendingShoreLeave).toBeTruthy();
     // Post-combat : la narration du palier part ENFIN, avec son application (même geste).
     expect(get().journal.some((l) => l.startsWith('Voyage rapide —'))).toBe(true);
+  });
+
+  it.each([0, 23])('rapide interrompu : les 121 min contagieuses commencent à H+%i, après l’abordage', (heuresAvantSymptomes) => {
+    const rng = makeRNG(3);
+    const verole = contractDisease('verole-urticante', rng, heuresAvantSymptomes === 0
+      ? { incubation: 0, duration: 1 }
+      : { incubation: 1, duration: 121 / MINUTES_PER_DAY })!;
+    const equipage = { label: t('crew.lEquipage'), diseases: [verole] };
+    avancerLesMaladies(equipage, MINUTES_PER_DAY - (heuresAvantSymptomes * 60 || 121), rng);
+    set({
+      vessel: { ...get().vessel!, manann: { score: 1000, applied: [] }, porteurDeLEquipage: { diseases: equipage.diseases } },
+    });
+    const avant = get().gameTime;
+    const contamines = () => get().party.filter((h) => h.diseases?.some((d) => d.id === verole.id)).map((h) => h.id).sort();
+    const pjs = get().party.map((h) => h.id).sort();
+    let auPort: string[] | undefined;
+    const fermer = banc.subscribe((etat) => {
+      if (etat.pendingShoreLeave && auPort === undefined) auPort = contamines();
+    });
+    try {
+      get().partirEnVoyage('r1', 'mer', { fast: true, cadence: 'jourParJour' });
+      const jours = get().travelPlan!.sea!.fast!.days;
+      stepCascade();
+      expect(get().battle).toBeTruthy();
+      expect(get().gameTime).toBe(avant);
+      expect(contamines()).toEqual([]);
+
+      set({ battle: null });
+      get().reprendreLeVoyage();
+      const parPorteur = new Map<string, number>();
+      const heuresDesBandes = new Map<string, number>();
+      const etapes = draineEtapes(get, 100, (etape, rangee) => {
+        if (etape.kind !== 'contagion' || !rangee) return undefined;
+        heuresDesBandes.set(etape.id, get().gameTime - avant);
+        const tentatives = (parPorteur.get(rangee.id) ?? 0) + 1;
+        parPorteur.set(rangee.id, tentatives);
+        return tentatives === 3 ? 100 : 1;
+      });
+      const bandes = etapes.filter((etape) => etape.kind === 'contagion');
+      expect(get().gameTime - avant).toBe(jours * MINUTES_PER_DAY);
+      expect(get().travelPlan).toBeNull();
+      expect(bandes).toHaveLength(3);
+      expect([...heuresDesBandes.values()]).toEqual([0, 60, 120].map((minute) => minute + heuresAvantSymptomes * 60));
+      expect([...parPorteur].sort()).toEqual(pjs.map((id) => [id, 3]));
+      expect(auPort).toEqual(pjs);
+      expect(get().party.some((pj) => contagiousDiseases(pj).some((maladie) => maladie.id === verole.id))).toBe(true);
+      expect(get().vessel!.porteurDeLEquipage?.diseases).toBeUndefined();
+      const sauve = lireSave(JSON.stringify(snapshotSave(get(), '2026-11-19T00:00:00Z')));
+      if (typeof sauve === 'string') throw new Error(sauve);
+      expect(chargerLaSave(sauve).etat.vessel?.porteurDeLEquipage?.diseaseImmunities).toEqual([verole.id]);
+      get().reprendreLeVoyage();
+      expect(get().gameTime - avant).toBe(jours * MINUTES_PER_DAY);
+      expect(contamines()).toEqual(pjs);
+      const effectif = shipboardSouls(get()).crew;
+      expect(effectif).toBeGreaterThan(0);
+      applyVesselCrewLoss(get, set, effectif, () => 1);
+      expect(get().vessel!.porteurDeLEquipage).toBeUndefined();
+    } finally {
+      fermer();
+    }
   });
 });
 

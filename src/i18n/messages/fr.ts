@@ -1186,6 +1186,7 @@ export const fr = {
   'ecran.echoppe.ligne': '{nom} ×{qty}',
   'ecran.echoppe.payer': 'Payer {total}',
   'ecran.echoppe.vendre': 'Vendre le lot · {total}',
+  'ecran.incantation.ni': 'Sort · Niveau d’incantation {ni}',
   'ecran.incantation.sort': '{sort} sur {cible}',
   'ecran.incantation.surSoi': 'soi-même',
   'ecran.incantation.zone': 'Zone',
@@ -3460,7 +3461,6 @@ export const fr = {
   // procès-verbal affichait son id (« Contagion (peste-noire) »). ──
   'rf.nightmaresLabel': 'Cauchemars',
   'rf.nuit': 'Nuit',
-  'rf.contagionLabel': 'Contagion ({disease})',
   'rf.titleDays': '— Le groupe se repose {n} jours —',
   'rf.titleNight': '— Le groupe dort jusqu’à l’aube —',
   'rf.recovered': '{name} récupère {n} PB.',

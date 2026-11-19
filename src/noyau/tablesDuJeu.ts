@@ -80,7 +80,7 @@ function assembler() {
     seaActivities.appliers, activityWorldRolls.appliers, interludeFlow.appliers, portFlow.appliers, landMarketFlow.appliers,
     innFlow.appliers);
   const clotures = disjointes('clotures', combatEffects.clotures, combatFlow.clotures, conversation.clotures, horloge.clotures,
-    interactionsDExploration.clotures, issueDeCombat.clotures, testsDeScene.clotures) satisfies { readonly [K in Cloture['verbe']]: ClotureApplier<K> };
+    interactionsDExploration.clotures, issueDeCombat.clotures, seaVoyageFlow.clotures, testsDeScene.clotures) satisfies { readonly [K in Cloture['verbe']]: ClotureApplier<K> };
   const generateursDEtal = disjointes('generateursDEtal', portFlow.generateursDEtal, landMarketFlow.generateursDEtal) satisfies TablesDuJeu['generateursDEtal'];
   return {
     appliers,

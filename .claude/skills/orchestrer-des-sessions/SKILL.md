@@ -36,7 +36,8 @@ Doctrine `.claude/memory/user-doctrine-orchestration-des-sessions.md`.
    - les preuves attendues et la forme du rendu, avec une ligne « Friction : quoi · coût · outil ».
 2. **Lancement.** Vérifie la tenue des tickets selon `se-coordonner-entre-comptes`. Démarre une
    session neuve dans l'environnement cloud du dépôt, ou dans son worktree créé par `ops:chantier`
-   sur le poste. Avec le lanceur du dépôt, utilise
+   sur le poste. Pour Codex Cloud, passe `thinking: "high"` par défaut à `create_thread`.
+   Avec le lanceur du dépôt, utilise
    `npm run ops:session -- lancer <consigne> --ticket <N> --agent <client> --worktree <chemin> --json`.
    Choisis un `--nom` unique si `s<N>` est pris. Conserve la sortie entière dans le scratchpad
    pour retrouver le jeton de fermeture. La session confirme sa prise sur le ticket avant de travailler.

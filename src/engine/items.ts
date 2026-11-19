@@ -49,7 +49,13 @@ import {
   type ItemCapabilities,
 } from '../data';
 import { t } from '../i18n';
-import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
+import {
+  candidatsDApparenceDObjet,
+  apparencesAdmissiblesDObjet,
+  messageDApparenceDObjet,
+  referenceDApparenceDObjet,
+  munitionsReservees,
+} from '../data/apparencesObjets';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
  *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`objetDuNarratif`,
@@ -1446,12 +1452,10 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
   return items;
 }
 
-/** Famille de munitions canonique. Les Groupes À POUDRE (`groupeAPoudre`) partagent les mêmes munitions
- *  (LDB 62 l.99 ; LDB 62 l.129-131). Une arme lancée (`groupeLance`) est son propre projectile : aucune
- *  famille (LDB 14 l.142 ; #4330). Les autres familles (Arc/Arbalète/Fronde) correspondent à l'identique. */
+/** Famille générique de munitions. LDB 14 l.142 ; LDB 62 l.74-76, l.99, l.101, l.106-131. */
 export function ammoFamily(subType?: string): string {
   const s = subType ?? ''; // `subType` = id de Groupe
-  if (groupeLance(s)) return '';
+  if (groupeLance(s) || s === 'entraves') return '';
   if (groupeAPoudre(s)) return 'poudre-ingenierie';
   // Artillerie (AA/MDG) : les armes de siège (canon/baliste/mortier/pierrier) tirent les munitions de
   // siège (boulets, carreaux, bombes, mitraille). Sans cette normalisation, une arme de siège
@@ -1480,15 +1484,27 @@ export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string 
   }
 }
 
-/** La munition `munition` charge-t-elle l'arme `arme` ? Une arme de siège, les seules munitions que sa fiche nomme
- *  (`munitions`) ; toute autre arme, celles de sa famille (`ammoFamily`). AA 10 l.150 ; MDG 12 l.410-424 */
-export function chargeLArme(munition: { trappingId?: string; subType?: string }, arme: { trappingId?: string; subType?: string }): boolean {
-  if (groupeDeSiege(arme.subType)) {
-    const munitions = arme.trappingId ? findTrappingById(arme.trappingId)?.munitions : undefined;
-    return munition.trappingId !== undefined && (munitions ?? []).includes(munition.trappingId);
-  }
-  const famille = ammoFamily(arme.subType);
-  return famille !== '' && ammoFamily(munition.subType) === famille;
+type ArmePourMunitions = Pick<Weapon, 'trappingId' | 'subType' | 'defaultAmmo'>;
+
+function munitionsDeLArme(arme: ArmePourMunitions): readonly string[] | string {
+  const liste = arme.trappingId ? findTrappingById(arme.trappingId)?.munitions : undefined;
+  return liste ?? ammoFamily(arme.subType);
+}
+
+/** Libellé du projectile requis au tir, ou `undefined` pour une arme qui s'utilise seule. */
+export function libelleMunitionRequise(arme: ArmePourMunitions): string | undefined {
+  const munitions = munitionsDeLArme(arme);
+  if (!munitions.length) return undefined;
+  return ammoFamilyLabel(arme.subType, typeof munitions === 'string' ? arme.defaultAmmo : munitions[0]);
+}
+
+/** La munition `munition` charge-t-elle l'arme `arme` ? Une arme qui nomme ses munitions (`munitions`), celles-là
+ *  seules ; toute autre arme, celles de sa famille (`ammoFamily`) qu'aucune arme ne nomme (`munitionsReservees`).
+ *  LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; AA 10 l.150 ; MDG 12 l.410-424 ; ADE II 02 l.639-640, l.665, l.673 ; #4360 */
+export function chargeLArme(munition: { trappingId?: string; subType?: string }, arme: ArmePourMunitions): boolean {
+  const munitions = munitionsDeLArme(arme);
+  if (typeof munitions !== 'string') return munition.trappingId !== undefined && munitions.includes(munition.trappingId);
+  return munitions !== '' && ammoFamily(munition.subType) === munitions && !munitionsReservees().has(munition.trappingId ?? '');
 }
 
 /** Munitions compatibles avec une arme à distance (`chargeLArme`, qty>0) : l'inventaire du
@@ -1624,7 +1640,7 @@ export function consumeAmmo(c: Combatant, used: ItemInstance): void {
  *  l'utilise ; arme à Dégâts « – » : ceux de la munition, AA 10 l.192) et Atouts fusionnés (ex. Empaleuse
  *  de la Flèche). Qualité de la munition : majorée, l'Indice de l'arme + `majoration` (`majoration` si l'arme ne
  *  l'a pas) ; à Indice, il remplace celui de l'arme ; sans Indice, ajoutée si l'arme ne l'a pas. #4346 ; #4361 ;
- *  LDB 62 l.123 ; AA 08 l.496-497 */
+ *  `reload` se redérive de la Recharge fusionnée. LDB 62 l.123, l.335 ; AA 08 l.496-497 */
 export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const w = weapon.damage;
   const a = ammo.damage;
@@ -1641,5 +1657,6 @@ export function weaponWithAmmo(weapon: Weapon, ammo: ItemInstance): Weapon {
   const damage: WeaponDamageSpec = 'flat' in w
     ? { plusBF: w.plusBF || (a != null && 'plusBF' in a && a.plusBF), flat: w.flat + (a != null && 'flat' in a ? a.flat : 0) }
     : 'aucun' in w ? (a ?? w) : w; // arme « Spécial » (literal) → inchangée
-  return { ...weapon, damage, qualities };
+  const fusionnee: Weapon = { ...weapon, damage, qualities };
+  return { ...fusionnee, reload: qualityIndice(fusionnee, 'recharge') ?? 0 };
 }

@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
+import { contractDisease } from '../engine/disease';
 import { findTableEntry } from '../engine/tables';
 import { stageWeatherRows } from './travelFlow';
 import { voyageEnVue } from './voyageEnVue';
@@ -380,6 +381,27 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
     runToEnd();
     expect(get().travelPlan).toBeNull();
     expect(get().lieu).toBe('pb');
+  });
+
+  it.each([true, false])('pendant la halte, l’incubation acquise en route attend l’arrivée seulement par Étapes (%s)', (etapes) => {
+    setRule('voyage-etapes', etapes);
+    seedBattleRng(1);
+    const rhume = () => contractDisease('rhume-commun', makeRNG(2), { incubation: 1, duration: 5 })!;
+    const auDepart = hero({ id: 'ancien', diseases: [rhume()], items: [ration('ancien')] });
+    const enRoute = hero({ id: 'nouveau', items: [ration('nouveau')] });
+    setup(map({ km: 30 }), [auDepart, enRoute]);
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
+    drainCascade();
+    expect(get().pendingRest).toBeTruthy();
+
+    set({ party: get().party.map((h) => h.id === enRoute.id ? { ...h, diseases: [rhume()] } : h) });
+    const phase = (id: string) => get().party.find((h) => h.id === id)?.diseases?.[0]?.phase;
+    get().fenetreValider('repos');
+    expect(phase(auDepart.id)).toBe('active');
+    expect(phase(enRoute.id)).toBe(etapes ? 'incubation' : 'active');
+    runToEnd();
+    expect(get().lieu).toBe('pb');
+    expect(phase(enRoute.id)).toBe('active');
   });
 
   it('péripétie de transition pendant le jour : le voyage est INTERROMPU (recap.then), pas de halte', () => {

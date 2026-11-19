@@ -97,7 +97,7 @@ export type GesteDuSalon = { sorte: 'heberger'; nom: string } | { sorte: 'rejoin
  *  du refus d'un formulaire offert. */
 export function lireUnGesteDuSalon(zones: ZonesDuSalon, entree: unknown): GesteDuSalon {
   const refuser = (categorie: 'validation' | 'regle', raison: string): never => {
-    throw new ErreurDeGeste(categorie, `salon : ${raison}`);
+    throw new ErreurDeGeste(categorie, categorie === 'validation' ? `salon : ${raison}` : raison);
   };
   if (!estObjet(entree)) return refuser('validation', 'un geste est un objet JSON');
   const formulaire = zones['salon.gestes'].find((g): g is Formulaire => g.type === 'formulaire' && g.verbe === entree.type);

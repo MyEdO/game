@@ -156,7 +156,10 @@ describe('les réglages par le pont', () => {
     expect(curseur(regle(zones(appel), PLAFOND.id)).refus).toBe(verrou);
     const malus = entiteDe(zones(appel), 'combat-plafond-malus-difficulte').elements.find((e) => e.id === 'valeur') as Ligne;
     expect(malus.ton, 'la valeur lue d’un contrôle refusé, fermée avec lui').toBe('ferme');
-    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] }))).toEqual({ categorie: 'regle', message: `reglages : ${verrou}` });
+    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] }))).toEqual({ categorie: 'regle', message: verrou });
+    expect(erreurDe(appel('reglages', { type: 'regle', args: [] }))).toEqual({
+      categorie: 'validation', message: 'reglages : args, l’id du réglage d’abord',
+    });
     expect(pressee(preference(zones(appel, { type: 'preference', args: ['des-fixes', true] }), 'des-fixes'))).toBe(true);
   });
 });

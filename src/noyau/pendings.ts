@@ -1677,6 +1677,8 @@ export type Cloture =
   | { verbe: 'testRateDeLActeur'; actorId: string; sl: number }
   /** Effets PROGRAMMÉS dus au même pas d'horloge et pas encore joués (`fireScheduledEffects`). */
   | { verbe: 'effetsProgrammes'; restants: ScheduledEffect[] }
+  /** Suite du pas maritime déjà écoulé avant un Effet programmé. */
+  | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number }
   /** Écran de victoire (`finalizeBattle`), POSÉ après le dé : il ne doit pas s'ouvrir devant lui, et
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }
@@ -2360,8 +2362,10 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  suite propre, le dénouement vit dans l'applier de sa dernière étape). 'affichage' (#942 L8 :
    *  séquence d'AFFICHAGE PUR — étapes sans jet ni choix, poussées hors combat par `pushReveal` quand
    *  aucune séquence n'est en vol ; clôture sans AUCUNE suite propre, `dispatchCascadeDone` n'a qu'à
-   *  reprendre une éventuelle séquence parquée). */
-  purpose: 'night' | 'travel' | 'travelDay' | 'test' | 'combat' | 'sequence' | 'seaScorbut' | 'seaExposure' | 'seaExhaustion' | 'seaActivities' | 'riverExposure' | 'upkeep' | 'interlude' | 'affichage';
+   *  reprendre une éventuelle séquence parquée) ;
+   *  'seaHealth' : Contraction avant le pas d'horloge en mer, puis entretien avant le pas rapide suivant
+   *  (`continuerLeTempsEnMer`). */
+  purpose: 'night' | 'travel' | 'travelDay' | 'test' | 'combat' | 'sequence' | 'seaScorbut' | 'seaExposure' | 'seaExhaustion' | 'seaHealth' | 'seaActivities' | 'riverExposure' | 'upkeep' | 'interlude' | 'affichage';
   /** HALTE de voyage : la finalisation REPREND la route (continueTravelAfterNight). */
   travelHalt?: boolean;
   /** Cascade de PEUR de FIN de Round (combat) : à sa fermeture, le store ré-appelle `resolveRoundBoundary`

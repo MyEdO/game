@@ -38,10 +38,19 @@ const spellRangeSchema = z.discriminatedUnion('kind', [
 const spellTargetSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }, { label: 'Vous' }),
   nommerChamps(z.strictObject({ kind: z.literal('count'), n: formuleSansTirageSchema }), { kind: { label: 'Type' }, n: { label: 'Nombre' } }, { label: 'Cibles' }),
-  nommerChamps(z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formuleSansTirageSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: maisonSchema.optional() }), {
+  nommerChamps(z.strictObject({
+    kind: z.literal('area'),
+    span: z.enum(['radius', 'diameter']),
+    meters: formuleSansTirageSchema,
+    anchor: z.literal('target').optional(),
+    excludesCaster: z.boolean().optional(),
+    affects: conditionSchema.optional(),
+    maison: maisonSchema.optional(),
+  }), {
     kind: { label: 'Type' },
     span: { label: 'Envergure' },
     meters: { label: 'Mètres' },
+    anchor: { label: 'Ancre sur la cible' },
     excludesCaster: { label: 'Lanceur exclu' },
     affects: { label: 'Cibles affectées' },
     maison: { label: 'Arbitrage maison' },
