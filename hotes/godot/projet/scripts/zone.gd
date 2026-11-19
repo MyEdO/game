@@ -48,6 +48,8 @@ signal geste(jeu: Dictionary)
 
 const META := &"element"
 
+var _pieds_attendus: Array[WeakRef] = []
+
 
 func _ready() -> void:
 	var fautes := PackedStringArray()
@@ -121,7 +123,7 @@ func montrer(elements: Array) -> void:
 				conteneur.remove_child(dessines[cle])
 				dessines[cle].queue_free()
 	if (ajout or pied) and dernier != null:
-		_montrer_le_pied(dernier)
+		_attendre_le_pied(dernier)
 	if derniers:
 		_garder_les_derniers()
 	if repli:
@@ -139,7 +141,7 @@ func _garder_les_derniers() -> void:
 	for n in poses:
 		(n as Control).visible = montres.has(n)
 	if not poses.is_empty():
-		_montrer_le_pied(poses[-1])
+		_attendre_le_pied(poses[-1])
 
 
 ## Le composant de l'élément `e` dans cette zone : celui de `formes` à son type et à son ton, sinon à son type, sinon
@@ -240,9 +242,28 @@ static func _dans_un_composant(noeud: Node, ecran: Node) -> bool:
 
 
 ## `noeud` montré par le défilement qui le contient, une image plus tard : le défilement a pris sa taille.
+func _attendre_le_pied(noeud: Control) -> void:
+	if _pieds_attendus.is_empty():
+		get_tree().process_frame.connect(_montrer_les_pieds_attendus, CONNECT_ONE_SHOT)
+	_pieds_attendus.append(weakref(noeud))
+
+
+func _exit_tree() -> void:
+	var image := get_tree().process_frame
+	if image.is_connected(_montrer_les_pieds_attendus):
+		image.disconnect(_montrer_les_pieds_attendus)
+	_pieds_attendus.clear()
+
+
+func _montrer_les_pieds_attendus() -> void:
+	var pieds := _pieds_attendus
+	_pieds_attendus = []
+	for pied_attendu in pieds:
+		_montrer_le_pied(pied_attendu.get_ref() as Control)
+
+
 func _montrer_le_pied(noeud: Control) -> void:
-	await get_tree().process_frame
-	if not is_instance_valid(noeud) or not noeud.is_inside_tree():
+	if noeud == null or not noeud.is_inside_tree():
 		return
 	var parent := noeud.get_parent()
 	while parent != null and not parent is ScrollContainer:
