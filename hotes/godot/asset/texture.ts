@@ -3,30 +3,19 @@
  * refabrique depuis sa source CC0 par le traitement que sa provenance consigne. La provenance est la seule recette :
  * `source` nomme la page, l'archive et le fichier pris, ou la texture du catalogue dont elle dérive (« ; dérivée de
  * <fichier> ») ; `traitement` porte les arguments d'ImageMagick, entre l'image lue et l'image écrite. Les octets
- * rendus dépendent de la version d'ImageMagick et de sa libjpeg, que `versionDImageMagick` dit à chaque rejeu : une
- * texture est reproduite quand ses pixels sont ceux de l'épinglée (`verdictDuRejeu`).
+ * rendus dépendent de la version d'ImageMagick et de sa libjpeg : une texture est reproduite quand ses pixels sont
+ * ceux de l'épinglée (`verdictDuRejeu`).
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { sha256 } from './empreinte.ts';
+import { DOSSIER_DES_TEXTURES, type ProvenanceFabriquee } from './epingles.ts';
 import type { Telecharger } from './release.ts';
-
-/** Le dossier épinglé des textures du projet Godot (`res://textures/`). */
-export const DOSSIER_DES_TEXTURES = fileURLToPath(new URL('../projet/textures', import.meta.url));
 
 /** Le cache des sources téléchargées, hors de l'arbre. */
 export const CACHE_DES_SOURCES = join(homedir(), '.cache', 'wfrp-sources-de-textures');
-
-/** L'entrée de provenance d'une texture épinglée. */
-export interface ProvenanceDeTexture {
-  readonly sha256: string;
-  readonly source: string;
-  readonly licence: string;
-  readonly traitement: string;
-}
 
 /** D'où vient l'image que le traitement lit : une texture du catalogue, ou un fichier téléchargé, seul ou pris dans
  *  une archive. */
@@ -65,9 +54,6 @@ function executer(commande: string, args: readonly string[]): string {
   return execution.stdout;
 }
 
-/** La version de l'ImageMagick du poste, première ligne de `convert -version`. */
-export const versionDImageMagick = (): string => executer('convert', ['-version']).split('\n')[0] as string;
-
 /** Vrai si les images `a` et `b` décodent aux mêmes pixels (`compare -metric AE` : 0 égales, 1 différentes). */
 export function memesPixels(a: string, b: string): boolean {
   const comparaison = spawnSync('compare', ['-metric', 'AE', a, b, 'null:'], { encoding: 'utf8' });
@@ -81,13 +67,9 @@ export function memesPixels(a: string, b: string): boolean {
 export type VerdictDuRejeu = 'octets' | 'pixels' | 'differente';
 
 /** Le verdict de la texture rejouée dans `rejouee`, de somme `somme`, contre l'épinglée de somme `epinglee` déposée
- *  dans `deposee` : sans les mêmes octets, ses pixels se comparent (`pixels`) à ceux du fichier déposé, s'il a la somme
- *  épinglée. */
-export function verdictDuRejeu(somme: string, epinglee: string, rejouee: string, deposee: string, pixels: (a: string, b: string) => boolean = memesPixels): VerdictDuRejeu {
-  if (somme === epinglee) return 'octets';
-  const depose = existsSync(deposee) && sha256(readFileSync(deposee)) === epinglee;
-  return depose && pixels(rejouee, deposee) ? 'pixels' : 'differente';
-}
+ *  dans `deposee` (`recupererEpingles`) : sans les mêmes octets, leurs pixels se comparent (`pixels`). */
+export const verdictDuRejeu = (somme: string, epinglee: string, rejouee: string, deposee: string, pixels: (a: string, b: string) => boolean = memesPixels): VerdictDuRejeu =>
+  somme === epinglee ? 'octets' : pixels(rejouee, deposee) ? 'pixels' : 'differente';
 
 /** Le chemin, dans le cache `cache`, du fichier source d'`origine` : téléchargé s'il y manque, sorti de son archive. */
 async function sourceEnCache(origine: Exclude<Origine, { deriveeDe: string }>, cache: string, telecharger: Telecharger): Promise<string> {
@@ -103,9 +85,12 @@ async function sourceEnCache(origine: Exclude<Origine, { deriveeDe: string }>, c
   return fichier;
 }
 
+/** Les textures de `provenance` rejouées dans un dossier : la somme SHA-256 de chaque fichier écrit. */
+type Rejouer = (noms: readonly string[], provenance: Readonly<Record<string, ProvenanceFabriquee>>, sortie: string) => Promise<ReadonlyMap<string, string>>;
+
 /** Refabrique dans `sortie` les textures `noms` de `provenance`, et celles dont elles dérivent, chacune après celle
  *  qu'elle lit ; rend la somme SHA-256 de chaque fichier écrit. Lève sur un nom que la provenance n'épingle pas. */
-export async function rejouerLesTextures(noms: readonly string[], provenance: Readonly<Record<string, ProvenanceDeTexture>>, sortie: string, { cache = CACHE_DES_SOURCES, telecharger = fetch }: { cache?: string; telecharger?: Telecharger } = {}): Promise<Map<string, string>> {
+export async function rejouerLesTextures(noms: readonly string[], provenance: Readonly<Record<string, ProvenanceFabriquee>>, sortie: string, { cache = CACHE_DES_SOURCES, telecharger = fetch }: { cache?: string; telecharger?: Telecharger } = {}): Promise<Map<string, string>> {
   const sommes = new Map<string, string>();
   const rejouer = async (nom: string): Promise<string> => {
     const ecrit = join(sortie, nom);
@@ -122,10 +107,23 @@ export async function rejouerLesTextures(noms: readonly string[], provenance: Re
   return sommes;
 }
 
-/** Inscrit à la provenance du dossier `dossier` la somme de chaque texture de `sommes`, l'ordre des entrées gardé. */
-export function epinglerLesSommes(sommes: ReadonlyMap<string, string>, dossier = DOSSIER_DES_TEXTURES): void {
+/** Épingle les textures `noms` du dossier `dossier` : toutes rejouées hors de lui (`rejouer`), puis elles seules
+ *  déposées et leurs sommes inscrites à sa provenance, l'ordre des entrées gardé ; une texture dont l'une dérive se
+ *  rejoue sans s'épingler. Rend la somme de chacune. Un rejeu qui lève n'écrit rien au dossier. */
+export async function epinglerLesTextures(noms: readonly string[], dossier = DOSSIER_DES_TEXTURES, rejouer: Rejouer = rejouerLesTextures): Promise<Map<string, string>> {
   const chemin = join(dossier, 'provenance.json');
-  const provenance = JSON.parse(readFileSync(chemin, 'utf8')) as Record<string, ProvenanceDeTexture>;
-  for (const [nom, somme] of sommes) provenance[nom] = { ...(provenance[nom] as ProvenanceDeTexture), sha256: somme };
-  writeFileSync(chemin, `${JSON.stringify(provenance, null, 2)}\n`);
+  const provenance = JSON.parse(readFileSync(chemin, 'utf8')) as Record<string, ProvenanceFabriquee>;
+  const temporaire = mkdtempSync(join(tmpdir(), 'wfrp-textures-'));
+  try {
+    const rejouees = await rejouer(noms, provenance, temporaire);
+    const sommes = new Map(noms.map((nom) => [nom, rejouees.get(nom) as string]));
+    for (const [nom, somme] of sommes) {
+      copyFileSync(join(temporaire, nom), join(dossier, nom));
+      provenance[nom] = { ...(provenance[nom] as ProvenanceFabriquee), sha256: somme };
+    }
+    writeFileSync(chemin, `${JSON.stringify(provenance, null, 2)}\n`);
+    return sommes;
+  } finally {
+    rmSync(temporaire, { recursive: true });
+  }
 }

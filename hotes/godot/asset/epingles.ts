@@ -26,9 +26,20 @@ import {
 /** Le dossier épinglé des sons du projet Godot (`res://sons/`). */
 export const DOSSIER_DES_SONS = fileURLToPath(new URL('../projet/sons', import.meta.url));
 
-/** Les dossiers épinglés du projet Godot : ses textures (`res://textures/`), son kit des arêtes (`res://kit/`) et ses
- *  sons. */
-const DOSSIERS_EPINGLES = [fileURLToPath(new URL('../projet/textures', import.meta.url)), DOSSIER_DU_KIT, DOSSIER_DES_SONS];
+/** Le dossier épinglé des textures du projet Godot (`res://textures/`). */
+export const DOSSIER_DES_TEXTURES = fileURLToPath(new URL('../projet/textures', import.meta.url));
+
+/** Les dossiers épinglés du projet Godot : ses textures, son kit des arêtes (`res://kit/`) et ses sons. */
+const DOSSIERS_EPINGLES = [DOSSIER_DES_TEXTURES, DOSSIER_DU_KIT, DOSSIER_DES_SONS];
+
+/** L'entrée de provenance d'un fichier épinglé que le dépôt fabrique d'une source CC0 : un son (`son.ts`), une texture
+ *  (`texture.ts`). */
+export interface ProvenanceFabriquee {
+  readonly sha256: string;
+  readonly source: string;
+  readonly licence: string;
+  readonly traitement: string;
+}
 
 /** Un fichier épinglé et l'extension de son asset dans la Release. */
 type Epingle = FichierEpingle & { readonly extension: (typeof EXTENSIONS_D_ASSET)[number] };

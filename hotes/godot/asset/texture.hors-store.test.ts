@@ -2,19 +2,17 @@
  * LE REJEU DES TEXTURES ÉPINGLÉES (#4527, `texture.ts`) : l'origine que nomme une source, les arguments que consigne un
  * traitement, l'ordre du rejeu, et la provenance commitée, que le rejeu lit tout entière.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { sha256 } from './empreinte';
+import { DOSSIER_DES_TEXTURES, type ProvenanceFabriquee } from './epingles';
 import {
-  DOSSIER_DES_TEXTURES,
   argumentsDeTraitement,
-  epinglerLesSommes,
+  epinglerLesTextures,
   origineDe,
   rejouerLesTextures,
   verdictDuRejeu,
-  type ProvenanceDeTexture,
 } from './texture';
 
 const LICENCE = 'CC0-1.0';
@@ -35,7 +33,7 @@ describe('rejouer une texture épinglée', () => {
   });
 
   it('chaque entrée de la provenance commitée nomme une origine et un traitement rejouables, et une dérivée, une texture épinglée', () => {
-    const provenance = JSON.parse(readFileSync(join(DOSSIER_DES_TEXTURES, 'provenance.json'), 'utf8')) as Record<string, ProvenanceDeTexture>;
+    const provenance = JSON.parse(readFileSync(join(DOSSIER_DES_TEXTURES, 'provenance.json'), 'utf8')) as Record<string, ProvenanceFabriquee>;
     for (const [nom, entree] of Object.entries(provenance)) {
       const origine = origineDe(entree.source);
       expect(argumentsDeTraitement(entree.traitement).length, nom).toBeGreaterThan(0);
@@ -48,23 +46,45 @@ describe('rejouer une texture épinglée', () => {
   });
 
   it('reproduit une texture aux mêmes octets, ou aux mêmes pixels que l’épinglée déposée ; sinon elle diffère', () => {
-    const dossier = mkdtempSync(join(tmpdir(), 'wfrp-texture-'));
-    const deposee = join(dossier, 'deposee.jpg');
-    writeFileSync(deposee, 'octets épinglés');
-    const epinglee = sha256(readFileSync(deposee));
     const jamais = (): boolean => { throw new Error('pixels comparés'); };
-    expect(verdictDuRejeu(epinglee, epinglee, 'rejouee.jpg', deposee, jamais)).toBe('octets');
-    expect(verdictDuRejeu('c'.repeat(64), epinglee, 'rejouee.jpg', deposee, (a, b) => a === 'rejouee.jpg' && b === deposee)).toBe('pixels');
-    expect(verdictDuRejeu('c'.repeat(64), epinglee, 'rejouee.jpg', deposee, () => false)).toBe('differente');
-    expect(verdictDuRejeu('c'.repeat(64), 'd'.repeat(64), 'rejouee.jpg', deposee, jamais)).toBe('differente');
-    expect(verdictDuRejeu('c'.repeat(64), epinglee, 'rejouee.jpg', join(dossier, 'absente.jpg'), jamais)).toBe('differente');
+    expect(verdictDuRejeu('a'.repeat(64), 'a'.repeat(64), 'rejouee.jpg', 'deposee.jpg', jamais)).toBe('octets');
+    expect(verdictDuRejeu('c'.repeat(64), 'a'.repeat(64), 'rejouee.jpg', 'deposee.jpg', (a, b) => a === 'rejouee.jpg' && b === 'deposee.jpg')).toBe('pixels');
+    expect(verdictDuRejeu('c'.repeat(64), 'a'.repeat(64), 'rejouee.jpg', 'deposee.jpg', () => false)).toBe('differente');
   });
 
-  it('inscrit les sommes rejouées, l’ordre et les autres champs gardés', () => {
-    const dossier = mkdtempSync(join(tmpdir(), 'wfrp-texture-'));
+  describe('épingler des textures', () => {
     const entree = { sha256: 'a'.repeat(64), source: AMBIENTCG, licence: LICENCE, traitement: 'ImageMagick : -strip' };
-    writeFileSync(join(dossier, 'provenance.json'), `${JSON.stringify({ 'z.jpg': entree, 'a.jpg': entree }, null, 2)}\n`);
-    epinglerLesSommes(new Map([['a.jpg', 'b'.repeat(64)]]), dossier);
-    expect(readFileSync(join(dossier, 'provenance.json'), 'utf8')).toBe(`${JSON.stringify({ 'z.jpg': entree, 'a.jpg': { ...entree, sha256: 'b'.repeat(64) } }, null, 2)}\n`);
+    const PROVENANCE = `${JSON.stringify({ 'z.jpg': entree, 'a.jpg': entree, 'a.neutre.jpg': entree }, null, 2)}\n`;
+    /** Un dossier épinglé qui ne porte que sa provenance. */
+    const dossierEpingle = (): string => {
+      const dossier = mkdtempSync(join(tmpdir(), 'wfrp-texture-'));
+      writeFileSync(join(dossier, 'provenance.json'), PROVENANCE);
+      return dossier;
+    };
+
+    it('dépose et épingle les seules textures nommées : celle dont elles dérivent se rejoue sans s’épingler', async () => {
+      const dossier = dossierEpingle();
+      const sommes = await epinglerLesTextures(['a.jpg'], dossier, (_noms, _provenance, sortie) => {
+        writeFileSync(join(sortie, 'a.neutre.jpg'), 'neutre rejouée');
+        writeFileSync(join(sortie, 'a.jpg'), 'couleur rejouée');
+        return Promise.resolve(new Map([['a.neutre.jpg', 'c'.repeat(64)], ['a.jpg', 'b'.repeat(64)]]));
+      });
+      expect([...sommes]).toEqual([['a.jpg', 'b'.repeat(64)]]);
+      expect(existsSync(join(dossier, 'a.neutre.jpg'))).toBe(false);
+      expect(readFileSync(join(dossier, 'a.jpg'), 'utf8')).toBe('couleur rejouée');
+      expect(readFileSync(join(dossier, 'provenance.json'), 'utf8'))
+        .toBe(`${JSON.stringify({ 'z.jpg': entree, 'a.jpg': { ...entree, sha256: 'b'.repeat(64) }, 'a.neutre.jpg': entree }, null, 2)}\n`);
+    });
+
+    it('n’écrit rien au dossier quand le rejeu d’un nom échoue', async () => {
+      const dossier = dossierEpingle();
+      const rejeu = epinglerLesTextures(['a.jpg', 'z.jpg'], dossier, (_noms, _provenance, sortie) => {
+        writeFileSync(join(sortie, 'a.jpg'), 'couleur rejouée');
+        return Promise.reject(new Error('z.jpg : convert en échec'));
+      });
+      await expect(rejeu).rejects.toThrow(/z\.jpg/);
+      expect(existsSync(join(dossier, 'a.jpg'))).toBe(false);
+      expect(readFileSync(join(dossier, 'provenance.json'), 'utf8')).toBe(PROVENANCE);
+    });
   });
 });
