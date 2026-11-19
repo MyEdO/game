@@ -66,6 +66,11 @@ func _porter_la_brume() -> void:
 	add_child(volume)
 
 
+## La part de son énergie que le soleil garde sous le rendu en cours : entière sous Forward+ (`rendu_complet`).
+func part_du_soleil() -> float:
+	return 1.0 if rendu_complet() else part_du_soleil_en_compatibilite
+
+
 ## Pose `lumiere` sur le plateau `plateau` (`vue.plateau` : `w` cases sur `h`, `metresParCase` mètres par case).
 func eclairer(lumiere: Dictionary, plateau: Dictionary) -> void:
 	var soleil: Variant = lumiere.soleil
@@ -73,7 +78,7 @@ func eclairer(lumiere: Dictionary, plateau: Dictionary) -> void:
 	if soleil != null:
 		_soleil.basis = Basis.looking_at(MiseEnPage.sens_d_eclairage(Vector3(soleil.vers.x, soleil.vers.y, soleil.vers.z)))
 		_soleil.light_color = Color(soleil.couleur)
-		_soleil.light_energy = soleil.energie * (1.0 if rendu_complet() else part_du_soleil_en_compatibilite)
+		_soleil.light_energy = MiseEnPage.energie_du_soleil(soleil.energie, part_du_soleil())
 	_environnement.ambient_light_color = Color(lumiere.ambiante.couleur)
 	_environnement.ambient_light_energy = lumiere.ambiante.energie
 	_environnement.tonemap_white = lumiere.blanc
