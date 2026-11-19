@@ -65,6 +65,8 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoid
 sans les modifier dans l'élément. Une coupure ne coûte qu'une passe : chaque passe du point fixe des poids écrit une
 reprise (`reprises.py`) dans `<git-common-dir>/reprises-3d/<empreinte>`, l'empreinte de la révision, de ses écarts
 suivis et des arguments ; relancer la même commande repart de la dernière, et `reprises-3d` s'efface une fois la sortie écrite.
+La passe des membres (`membres.py`) imprime une ligne `MEMBRES` par clip du pack et ne refuse jamais : lire ces lignes
+pour savoir quel clip est gardé ou rendu à sa source ; un clip dérivé (`deux_mains.py`) refusé arrête la construction.
 
 Une retouche de la pose des bras d'un clip (clés de geste de `deux_mains.py`, passe de `membres.py`) s'itère au banc
 avant de cuire la base. Le banc importe la base publiée, `~/.cache/wfrp-modeles-3d/<glb.sha256 du manifeste>.glb` que
@@ -78,8 +80,9 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/banc.py 
 ```
 
 Le banc prouve la garde Node sur la base publiée rechargée, clips rejoués. Il ne prouve pas la base cuite : la peau de
-la scène rechargée s'écarte de celle de la construction de 3 à 5 mm (#3810), et les chaînes des clips rejoués restent
-celles de la base publiée. Avant de publier, cuire la base et jouer `npm run godot:evaluer -- <base.glb> --manifeste
+la scène rechargée s'écarte de celle de la construction (#3810), et les chaînes des clips rejoués restent celles de la
+base publiée. Le banc ne réécrit que les clés existantes du GLB publié, quand la construction écrit ses clés aux instants
+du clip : lire la sortie du banc comme une interpolation, entre deux clés, de poses que la passe n'a pas mesurées. Avant de publier, cuire la base et jouer `npm run godot:evaluer -- <base.glb> --manifeste
 <manifeste> --etats-gabarit` sur sa sortie.
 
 La construction exige `node` dans le `PATH` : avant Blender,

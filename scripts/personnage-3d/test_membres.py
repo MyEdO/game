@@ -2,18 +2,23 @@
 le tronc, sous la tolérance de la garde mais à moins de la marge, ne se corrige pas ; une main dans le tronc en sort à
 la marge par l'avancée ; un avant-bras dans le tronc, main dehors, en sort par l'écart du coude, vers le dehors, la main
 en place et le bras sans torsion ajoutée ; l'enveloppe raccorde l'écart d'une image corrigée à ses voisines, à pas
-borné ; un bras que ni l'avancée ni le coude ne sortent ne requiert rien ; une avancée déjà essayée ne se repose pas ;
-une correction qui laisse la peau dans le tronc se refuse, une qui ferme sauf sous la carrure maximale se garde et le
-dit, sauf si elle y enfonce la peau plus qu'à la source ; l'étirement de la peau du bras se lit sous chaque jeu : sous un
-jeu dont la clé de forme double une arête, au double de celui du neutre, et sous un jeu à os, sur la peau du squelette
-déplacé explicite ; une correction qui étire hors de `ETIREMENT_EN_CLIP` une arête que la source y tenait se refuse, et
-la même se garde si la source dépassait déjà autant, non si elle l'aggrave au-delà de `ETIREMENT_AGGRAVE` ; les courbes d'un bras refusé reviennent à leur source au bit
-près ; sur un rig, un clip dont un bras ferme et l'autre manque un contrôle revient tout entier à sa source au bit
-près, un clip dont un bras n'a rien à corriger et l'autre ferme se garde, un clip dont la correction d'un bras enfonce
-dans le tronc l'autre bras, non corrigé, revient à sa source."""
+borné ; un bras que ni l'avancée ni le coude ne sortent ne requiert rien ; une correction qui laisse la peau dans le
+tronc se refuse, une qui ferme sauf sous la carrure maximale, où la peau reste aussi enfoncée qu'à la source, se garde et
+le dit, une qui l'y enfonce plus qu'à la source, même d'un dixième de millimètre, se refuse ; l'étirement de la peau du
+bras se lit sous chaque jeu : sous un jeu dont la clé de forme double une arête, au double de celui du neutre, et sous un
+jeu à os, sur la peau du squelette déplacé explicite ; une correction qui étire hors de `ETIREMENT_EN_CLIP` une arête que
+la source y tenait se refuse, et la même se garde si la source dépassait déjà autant, non si elle l'aggrave au-delà de
+`ETIREMENT_AGGRAVE` ; les courbes d'un bras refusé reviennent à leur source au bit près ; sur un rig, un clip dont un bras
+ferme et l'autre manque un contrôle revient tout entier à sa source au bit près, os de pose compris, un clip dont un bras
+n'a rien à corriger et l'autre ferme se garde, un clip dont la correction d'un bras enfonce dans le tronc l'autre bras,
+non corrigé, revient à sa source, un clip dont la correction étire une arête hors de `ETIREMENT_EN_CLIP` sous un seul jeu
+revient à sa source au bit près, un clip que rien ne sort sous la carrure maximale se garde sans elle, sauf si la
+correction l'y enfonce plus qu'à la source ; sur un clip long, l'image voisine non écrite d'une image corrigée se
+re-mesure, et chaque clé écrite garde l'hémisphère du quaternion source."""
 import contextlib
 import io
 import math
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -28,7 +33,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from animation import assign_action, meshes_for  # noqa: E402
 from deux_mains import PeauDuBras, peau_du_bras  # noqa: E402
 from ecart import ECART_DU_TRONC, RACCORD, poussee_requise  # noqa: E402
-from membres import (ETIREMENT_AGGRAVE, JEUX_REQUIS, PLUS_ENFONCEE, bras_de_l_image, corriger, courbes,  # noqa: E402
+from noms_silhouettes import CARRURE_PLUS  # noqa: E402
+from membres import (ETIREMENT_AGGRAVE, JEUX_REQUIS, bras_de_l_image, corriger, courbes,  # noqa: E402
                      ecarter_les_membres, etirement_neuf, etirements, exactes, peau_posee, poses_du_bras, requis, restaurer,
                      verdict)
 from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, SOL_TOLERANCE_M  # noqa: E402
@@ -119,7 +125,7 @@ def corriger_(images):
     """`corriger` sur les `images` (`TroncPose`, `Bras`), une par instant, sous le seul jeu du tronc en boîte."""
     poses, bras = [p for p, _ in images], [b for _, b in images]
     sources = numpy.array([exactes(TRONC, p, b) for p, b in images])
-    return corriger(TRONC, poses, bras, numpy.arange(float(len(images))), sources, SEUL, [{} for _ in images])
+    return corriger(TRONC, poses, bras, numpy.arange(float(len(images))), sources, SEUL)
 
 
 class HorsDuTronc(unittest.TestCase):
@@ -151,7 +157,7 @@ class MainDansLeTronc(unittest.TestCase):
         pose, bras = image(epaule, articulation, segment(articulation, (-0.5, 0.6, 0), 0.24))
         pose = avec_champs(pose)
         self.assertGreater(peau_posee(bras)[..., 1].max(), -0.15)
-        avancee, ecart = requis(pose, bras, SEUL, {})
+        avancee, ecart = requis(pose, bras, SEUL)
         self.assertGreater(avancee, 0.0)
         self.assertAlmostEqual(avancee, poussee_requise(pose, bras.main), places=12)
         self.assertEqual(ecart, 0.0)
@@ -164,7 +170,7 @@ class AvantBrasDansLeTronc(unittest.TestCase):
         pose, bras = coude_dedans()
         pose = avec_champs(pose)
         self.assertEqual(poussee_requise(pose, bras.main), 0.0)
-        avancee, ecart = requis(pose, bras, SEUL, {})
+        avancee, ecart = requis(pose, bras, SEUL)
         self.assertEqual(avancee, 0.0)
         self.assertGreater(ecart, 0.0)
         matrices, axes, ((humerus, _, articulation),) = poses_du_bras(bras, pose, avancee, [ecart])
@@ -179,7 +185,7 @@ class Enveloppe(unittest.TestCase):
     def test_l_ecart_d_une_image_corrigee_se_raccorde_a_ses_voisines_a_pas_borne(self):
         loin, contact, milieu = devant(), coude_dedans(), 15
         _, ecarts, _ = corriger_([contact if i == milieu else loin for i in range(31)])
-        requis_ = requis(avec_champs(contact[0]), contact[1], SEUL, {})[1]
+        requis_ = requis(avec_champs(contact[0]), contact[1], SEUL)[1]
         self.assertAlmostEqual(ecarts[milieu], requis_, places=9)
         en_images = RACCORD * IMAGES_PAR_SECONDE
         self.assertTrue((ecarts[[milieu - 1, milieu + 1]] > 0).all())
@@ -198,23 +204,10 @@ class RienNeSort(unittest.TestCase):
     def test_un_bras_que_ni_l_avancee_ni_le_coude_ne_sortent_ne_requiert_rien(self):
         pose, bras = rien_ne_sort()
         self.assertGreater(float(exactes(TRONC, pose, bras)[0]), SOL_TOLERANCE_M)
-        self.assertIsNone(requis(avec_champs(pose), bras, SEUL, {}))
+        self.assertIsNone(requis(avec_champs(pose), bras, SEUL))
         avancees, ecarts, rien = corriger_([(pose, bras)])
         self.assertEqual(float(numpy.abs(numpy.concatenate((avancees, ecarts))).max()), 0.0)
         self.assertEqual(rien, 1)
-
-
-class Essais(unittest.TestCase):
-    def test_une_avancee_deja_essayee_ne_se_repose_pas_et_rend_le_meme_requis(self):
-        pose, bras = coude_dedans()
-        pose = avec_champs(pose)
-        essais = {}
-        premier = requis(pose, bras, SEUL, essais)
-        self.assertEqual(list(essais), [0.0])
-        with mock.patch('membres.poses_du_bras', wraps=poses_du_bras) as compte:
-            self.assertEqual(requis(pose, bras, SEUL, essais), premier)
-        self.assertEqual(compte.call_count, 0)
-        self.assertEqual(requis(pose, bras, SEUL, {}), premier)
 
 
 class Verdict(unittest.TestCase):
@@ -232,16 +225,17 @@ class Verdict(unittest.TestCase):
         defaut, _ = verdict(sources, apres, JEUX_REQUIS[0], self.IMAGES)
         self.assertTrue(defaut.startswith('tronc image 0.00 carrure_plus 0.80 cm'))
 
-    def test_une_correction_qui_ferme_sauf_sous_la_carrure_maximale_se_garde_et_le_dit(self):
-        sources, apres = self.peaux(0.02, 0.02 + PLUS_ENFONCEE / 2)
+    def test_une_correction_qui_ferme_sauf_sous_la_carrure_maximale_aussi_enfoncee_qu_a_la_source_se_garde_et_le_dit(self):
+        sources, apres = self.peaux(0.02, 0.02)
         defaut, reste = verdict(sources, apres, JEUX_REQUIS[1], self.IMAGES)
         self.assertIsNone(defaut)
-        self.assertEqual(reste, ' sauf carrure_plus : reste 2.05 cm image 0.00')
+        self.assertEqual(reste, ' sauf carrure_plus : reste 2.00 cm image 0.00')
 
     def test_une_correction_qui_enfonce_la_peau_sous_la_carrure_maximale_plus_qu_a_la_source_se_refuse(self):
-        sources, apres = self.peaux(0.02, 0.02 + 2 * PLUS_ENFONCEE)
-        defaut, _ = verdict(sources, apres, JEUX_REQUIS[1], self.IMAGES)
-        self.assertTrue(defaut.startswith('carrure_plus plus enfoncée image 0.00'))
+        for source, apres_ in ((0.02, 0.0201), (0.0045, 0.0054), (-math.inf, 0.0001)):
+            sources, apres = self.peaux(source, apres_)
+            defaut, _ = verdict(sources, apres, JEUX_REQUIS[1], self.IMAGES)
+            self.assertEqual(defaut, f'carrure_plus plus enfoncée image 0.00 {apres_ * 100:.4f} cm pour {max(source, 0.0) * 100:.4f} cm')
 
 
 class EtirementNeuf(unittest.TestCase):
@@ -350,11 +344,11 @@ def tube(debut, fin, cote_, anneaux):
     return sommets, faces + [(3, 2, 1, 0), tuple(4 * (anneaux - 1) + i for i in range(4))]
 
 
-def maillage(rig, nom, sommets, faces, groupes):
+def maillage(rig, nom, sommets, faces, groupes, aretes=()):
     """Le maillage `nom` posé sur `rig`, chaque sommet tout entier sur l'os de `groupes`, avec une clé de forme neutre
-    par silhouette du tronc (`tronc.TRONC`)."""
+    par silhouette du tronc (`tronc.TRONC`) ; `aretes`, des arêtes sans face."""
     donnee = bpy.data.meshes.new(nom)
-    donnee.from_pydata(sommets, [], faces)
+    donnee.from_pydata(sommets, aretes, faces)
     objet = bpy.data.objects.new(nom, donnee)
     bpy.context.scene.collection.objects.link(objet)
     for i, os_ in enumerate(groupes):
@@ -423,18 +417,20 @@ def poser(rig, cote, articulation, poignet, torsion=0.0):
         bpy.context.view_layer.update()
 
 
-def clip(rig, nom, poses):
-    """Le clip `nom` de deux images, 0 et 1, chacune aux `poses` (par côté, les arguments de `poser`, ou le repos)."""
+def clip(rig, nom, poses, images=(0, 1), signe=1.0):
+    """Le clip `nom` aux `images`, chacune aux `poses` (par côté, les arguments de `poser`, ou le repos), les mêmes à
+    chaque image ou une par image (liste), les quaternions des clés multipliés par `signe`."""
     action = bpy.data.actions.new(nom)
     assign_action(rig, action)
-    for image in (0, 1):
+    for image, poses_ in zip(images, poses if isinstance(poses, list) else [poses] * len(images)):
         for cote in BRAS:
             for os_ in BRAS[cote]:
                 rig.pose.bones[os_].rotation_quaternion = (1.0, 0.0, 0.0, 0.0)
             bpy.context.view_layer.update()
-            if cote in poses:
-                poser(rig, cote, *poses[cote])
+            if cote in poses_:
+                poser(rig, cote, *poses_[cote])
             for os_ in BRAS[cote]:
+                rig.pose.bones[os_].rotation_quaternion = signe * rig.pose.bones[os_].rotation_quaternion
                 rig.pose.bones[os_].keyframe_insert('rotation_quaternion', frame=image)
     return action
 
@@ -459,11 +455,16 @@ class ClipEntier(unittest.TestCase):
 
     def test_un_clip_dont_un_bras_ferme_et_l_autre_manque_un_controle_revient_tout_entier_a_sa_source_au_bit_pres(self):
         action = clip(self.rig, 'Croise', {'r': flanc('r'), 'l': (*flanc('l'), 100.0)})
-        source = courbes(action, self.OS)
+        source, statiques = courbes(action, self.OS), self.statiques()
         ligne = self.passe(action)
         self.assertIn('rendu à la source', ligne)
         self.assertIn('l bornes de hand_l', ligne)
         self.assertEqual(courbes(action, self.OS), source)
+        self.assertEqual(self.statiques(), statiques)
+
+    def statiques(self):
+        """La position et l'échelle de pose de chaque os des bras."""
+        return {n: (tuple(self.rig.pose.bones[n].location), tuple(self.rig.pose.bones[n].scale)) for n in self.OS}
 
     def test_un_clip_dont_un_bras_n_a_rien_a_corriger_et_l_autre_ferme_se_garde(self):
         action = clip(self.rig, 'Flanc', {'l': flanc('l')})
@@ -483,6 +484,93 @@ class ClipEntier(unittest.TestCase):
         self.assertIn('rendu à la source', ligne)
         self.assertIn('tous les jeux : l tronc image', ligne)
         self.assertEqual(courbes(action, self.OS), source)
+
+    def peau_de(self, os_):
+        bpy.context.scene.frame_set(0)
+        return self.rig.pose.bones[os_].matrix @ self.rig.data.bones[os_].matrix_local.inverted()
+
+    def test_un_clip_dont_la_correction_etire_une_arete_hors_des_bornes_sous_un_seul_jeu_revient_a_sa_source_au_bit_pres(self):
+        action = clip(self.rig, 'Fil', {'l': flanc('l')})
+        jeu = next(j for j, s in enumerate(JEUX['silhouettes']) if len(s) == 1 and s != (CARRURE_PLUS,))
+        coude, main = miroir(EPAULE, 'l') + Vector((0, -0.27, 0)), miroir(EPAULE, 'l') + Vector((0, -0.52, 0))
+        maillage(self.rig, 'Rig-fil-l', [tuple(coude), tuple(main)], [], ['lowerarm_l', 'hand_l'], [(0, 1)])
+        tendue = self.peau_de('lowerarm_l') @ coude - Vector((1, 0, 0)) * (ETIREMENT_EN_CLIP[1] - 0.01) * (main - coude).length
+        bpy.data.objects['Rig-fil-l'].data.shape_keys.key_blocks[JEUX['silhouettes'][jeu][0]].data[1].co = \
+            self.peau_de('hand_l').inverted() @ tendue
+        source = courbes(action, self.OS)
+        ligne = self.passe(action)
+        self.assertIn('rendu à la source', ligne)
+        nom = JEUX['silhouettes'][jeu][0]
+        refus = re.search(f'refus : tous les jeux : l étirement sous {nom} image 0\\.00 (\\d\\.\\d{{5}}) ; '
+                          f'sans carrure_plus : l étirement sous {nom} image 0\\.00 (\\d\\.\\d{{5}}) \\|', ligne)
+        self.assertIsNotNone(refus, ligne)
+        self.assertGreater(min(float(v) for v in refus.groups()), ETIREMENT_EN_CLIP[1])
+        self.assertEqual(courbes(action, self.OS), source)
+
+    def carrure_plus(self, deplacement):
+        """La peau de l'avant-bras et de la main gauches déplacée sous la clé `carrure_plus` de `deplacement`, en mètres
+        dans le repère du rig à l'image 0 du clip courant."""
+        objet = bpy.data.objects['Rig-bras-l']
+        cle = objet.data.shape_keys.key_blocks[CARRURE_PLUS]
+        tour = self.peau_de('lowerarm_l').to_3x3().inverted()
+        for sommet in objet.data.vertices:
+            cle.data[sommet.index].co = sommet.co + tour @ Vector(deplacement)
+
+    def test_un_clip_que_rien_ne_sort_sous_la_carrure_maximale_se_garde_sans_elle(self):
+        action = clip(self.rig, 'Carrure', {'l': flanc('l')})
+        self.carrure_plus((-0.1, 0.1, 0.0))
+        source = courbes(action, self.OS)
+        ligne = self.passe(action)
+        self.assertRegex(ligne, r'gardé sans carrure_plus : l corrigées 2, .* sauf carrure_plus : reste \d+\.\d\d cm image 0\.00 '
+                                r'\| refus : tous les jeux : rien à écrire, l rien ne sort la peau à 2 images \|')
+        self.assertNotEqual(courbes(action, self.OS), source)
+
+    def test_sans_la_carrure_maximale_une_correction_qui_y_enfonce_la_peau_plus_qu_a_la_source_revient_a_sa_source(self):
+        action = clip(self.rig, 'Enfonce', {'l': flanc('l')})
+        self.carrure_plus((-0.1, 0.05, 0.0))
+        source = courbes(action, self.OS)
+        ligne = self.passe(action)
+        self.assertIn('rendu à la source', ligne)
+        self.assertRegex(ligne, r'sans carrure_plus : l carrure_plus plus enfoncée image 0\.00 \d+\.\d{4} cm pour \d+\.\d{4} cm')
+        self.assertEqual(courbes(action, self.OS), source)
+
+
+class ClipLong(unittest.TestCase):
+    """Le coude gauche dans le flanc à l'image 0, puis, des images 10 à 40, à 4 mm dans le tronc, sous la tolérance :
+    l'enveloppe s'arrête avant l'image 40, et l'image qui la suit, sans clé, n'est pas écrite. Les quaternions des clés
+    sources sont de l'hémisphère opposé à celui que Blender rend d'une matrice."""
+
+    def setUp(self):
+        self.rig = rig_minimal()
+        articulation = segment(miroir(EPAULE, 'l'), (-0.11 * 0.78, 0, -0.225), 0.25)
+        tolere = {'l': (articulation, segment(articulation, (0, -1, 0), 0.24))}
+        self.action = clip(self.rig, 'Long', [{'l': flanc('l')}, tolere, tolere], images=(0, 10, 40), signe=-1.0)
+
+    def passe(self):
+        with mock.patch('membres.verdict', wraps=verdict) as espion, contextlib.redirect_stdout(io.StringIO()) as sortie:
+            ecarter_les_membres(bpy, self.rig, [self.action])
+        return sortie.getvalue(), espion
+
+    def test_l_image_voisine_non_ecrite_d_une_image_corrigee_se_re_mesure(self):
+        ligne, espion = self.passe()
+        self.assertIn('gardé tous les jeux : l corrigées 20,', ligne)
+        sources, apres = espion.call_args_list[-1].args[:2]
+        self.assertGreater(sources[20].max(), 0.0)
+        self.assertNotEqual(apres[20].max(), sources[20].max())
+        self.assertEqual(apres[21].max(), sources[21].max())
+
+    def test_chaque_cle_ecrite_garde_l_hemisphere_du_quaternion_source(self):
+        scene, images = bpy.context.scene, range(41)
+        sources = []
+        for i in images:
+            scene.frame_set(i)
+            sources.append([self.rig.pose.bones[n].rotation_quaternion.copy() for n in BRAS['l']])
+        ligne, _ = self.passe()
+        self.assertIn('gardé tous les jeux : l corrigées 20,', ligne)
+        for i in images:
+            scene.frame_set(i)
+            for n, source in zip(BRAS['l'], sources[i]):
+                self.assertGreater(self.rig.pose.bones[n].rotation_quaternion.dot(source), 0.9, f'{n} image {i}')
 
 
 if __name__ == '__main__':
