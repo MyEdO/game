@@ -1300,6 +1300,10 @@ export interface TableSpec {
   meta?: CascadeStepMeta;
 }
 
+function possessionDeLEtapeATable({ actorId, worldOwner }: TableSpec): Pick<CascadeStep, 'actorId' | 'worldOwner'> {
+  return worldOwner ? { worldOwner: true } : { actorId };
+}
+
 /**
  * CONSTRUCTEUR d'étape à TABLE À POSER (#1262) — le dé n'est PAS tombé : l'étape est l'interaction
  * `'table'` (`stepInteraction`), et c'est la fenêtre qui le jette (ou le pose, option « Dés fixés »).
@@ -1328,7 +1332,7 @@ export function tableStep(spec: TableSpec): BuiltCascadeStep | undefined {
     kind: spec.kind,
     label: spec.label,
     ...(spec.icon ? { icon: spec.icon } : {}),
-    ...(spec.worldOwner ? { worldOwner: true } : { actorId: spec.actorId }),
+    ...possessionDeLEtapeATable(spec),
     table: spec.table,
     stake: spec.stake,
     ...(spec.options ? { options: spec.options.map((o) => ({ ...o })) } : {}),
@@ -1364,7 +1368,7 @@ export function tableStepDone(spec: TableDoneSpec): BuiltCascadeStep | undefined
     kind: spec.kind,
     label: spec.label,
     ...(spec.icon ? { icon: spec.icon } : {}),
-    actorId: spec.actorId,
+    ...possessionDeLEtapeATable(spec),
     stake: spec.stake,
     ...(spec.critSeverity ? { critSeverity: spec.critSeverity } : {}),
     ...(spec.incantationImparfaite ? { incantationImparfaite: spec.incantationImparfaite } : {}),
