@@ -34,7 +34,7 @@ export interface ContenuDeScenario {
    *  de la scène (les Scènes de combat démarrent les rencontres de cette scène). */
   massBattle?: MassBattleSpec;
   /** Navire de campagne (MDG 13-15) posé au lancement, APRÈS le reset de scène (comme la bourse) ; son quai suit le lieu du groupe (`quaiDuGroupe`). */
-  vessel?: Omit<CampaignVessel, 'escale'>;
+  vessel?: Omit<CampaignVessel, 'escale' | 'uid'>;
 }
 
 /** Le contenu construit, plus ce que le lancement règle : l'identité du document de projet lancé, les règles
@@ -79,7 +79,13 @@ export function demarrerLeLancement(get: Get, set: Set, l: LancementDeScenario):
   if (l.bourse && lead) creditBourse(get, set, lead.id, l.bourse);
   // Le Moral et les vivres de la cale partent du lancement. MDG 14 l.143, l.238
   const now = get().gameTime;
-  if (l.vessel) set({ vessel: { ...l.vessel, morale: { ...l.vessel.morale, lastMoraleWeek: semaineDuJour(dayIndex(now)) }, ...(l.vessel.provisions ? { provisions: l.vessel.provisions.map((lot) => ({ ...lot, entre: now })) } : {}), ...quaiDuGroupe(get()) } });
+  if (l.vessel) set({ vessel: {
+    ...l.vessel,
+    uid: get().forgerUnId('navire'),
+    morale: { ...l.vessel.morale, lastMoraleWeek: semaineDuJour(dayIndex(now)) },
+    ...(l.vessel.provisions ? { provisions: l.vessel.provisions.map((lot) => ({ ...lot, entre: now })) } : {}),
+    ...quaiDuGroupe(get()),
+  } });
   if (l.combatDirect) get().lancerLeCombat(l.combatDirect);
   if (l.semainesDInterlude) get().ouvrirLInterlude(l.semainesDInterlude);
   if (l.massBattle) get().amorcerLaBataille(l.massBattle);

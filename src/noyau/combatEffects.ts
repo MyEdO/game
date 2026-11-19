@@ -2242,6 +2242,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!v?.ship) return; // ref invalide (validée par `refs`) : no-op
       env.set({
         vessel: {
+          uid: env.get().forgerUnId('navire'),
           vehicleId: e.vehicleId,
           ...(e.label?.trim() ? { label: e.label.trim() } : {}), // #230 — nom d'instance (affichage)
           morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: semaineDuJour(dayIndex(env.get().gameTime)), factors: [] }, // MDG 14 l.143
