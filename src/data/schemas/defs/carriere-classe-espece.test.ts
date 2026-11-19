@@ -49,7 +49,7 @@ describe('#2968 L03 — Carrière, Classe et espèce désignées par `ref(type)`
   describe('activities.json › classGate.classes : liste de Classes (`refs`)', () => {
     const porteuse = activitiesJson.findIndex((a) => 'classGate' in a);
     const avecClasses = (classes: unknown): Entree[] => {
-      const copie: Entree[] = structuredClone(activitiesJson);
+      const copie: Entree[] = versDisque(activitiesJson);
       copie[porteuse] = { ...copie[porteuse], classGate: { classes, outsidePenalty: 1 } };
       return copie;
     };

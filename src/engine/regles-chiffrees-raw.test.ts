@@ -13,6 +13,10 @@ import { oupsTable } from '../data/oups';
 type Attendu = { mod: number; seuil?: number; plafond?: number; ref: string };
 
 const LIVRE: { [R in RegleChiffree]: Record<(typeof RANGEES_DE_REGLE)[R][number], Attendu> } = {
+  'lieu-de-l-entretien-du-navire': {
+    'en-mer': { mod: -20, ref: 'MDG 15 l.302-306' },
+    'chantier-specialise': { mod: 20, ref: 'MDG 15 l.302-306' },
+  },
   viser: { viser: { mod: 20, ref: 'LDB 14 l.52-86' } },
   'viser-une-localisation': { localisation: { mod: -20, ref: 'LDB 14 l.52-86' } },
   'superiorite-numerique': {

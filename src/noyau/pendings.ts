@@ -2349,9 +2349,9 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  MDG 13 l.109-111) — une rangée par héros appelé, surfacée dès qu'un siège humain tient l'un d'eux
    *  (`rollSeam.surfaceDesEtapes`, #1479) ; à la clôture, le store enchaîne la phase suivante de la
    *  journée (`continueSeaDayAfterScorbut`/`continueSeaDayAfterExhaustion`) ;
-   *  'seaActivities' (#273 Étape 2 : Activités en mer hebdomadaires, MDG 15 l.266-306)
-   *  — à la clôture, le store enchaîne `continueSeaActivitiesAfterCascade` (Commerce d'opportunité
-   *  séquencé puis halte de nuit, `seaActivities.ts`) ; 'riverExposure' (MSRC 16 : Exposition hydrique de
+   *  'seaActivities' (MDG 15 l.268) — `continueSeaActivitiesAfterCascade` enchaîne les Activités.
+   *  En mer, la halte de nuit reprend après la dernière. Au port, la fenêtre se ferme.
+   *  'riverExposure' (MSRC 16 : Exposition hydrique de
    *  la descente fluviale surfacée APRÈS le jour, avant la halte — la clôture enchaîne
    *  `continueRiverDayAfterExposure`, `riverVoyageFlow.ts`, pour DIFFÉRER la halte de nuit le temps du
    *  Test de Résistance, cf. #344). 'upkeep' (entretien quotidien d'une AVANCE D'HORLOGE hors repos/voyage

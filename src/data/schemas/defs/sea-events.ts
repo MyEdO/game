@@ -35,6 +35,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   label: z.string(),
   desc: z.string(),
   relache: z.literal(true).optional(),
+  infligeUsure: z.literal(true).optional(),
   taillePortMax: z.number().int().min(1).optional(),
   consequence: flowSchema.optional(),
   liaisonEquipage: z.string().min(1).optional(),
@@ -46,6 +47,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   label: { label: 'Libellé' },
   desc: { label: 'Description' },
   relache: { label: 'Relâche à terre requise' },
+  infligeUsure: { label: 'Blessures dues à l’Usure' },
   taillePortMax: { label: 'Taille de port maximale' },
   consequence: { label: 'Conséquence' },
   liaisonEquipage: { label: 'Liaison du retour', texte: { regime: 'technique' } },
@@ -118,17 +120,41 @@ const doc = document(
     // patron `structure-criticals.ts`.
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
-        type Bande = Partial<Pick<z.input<typeof seaEventDef>, 'id' | 'min' | 'max' | 'liaisonEquipage'>>;
-        type Table = { die: DiceSpec; entries: Bande[] };
-        const d = v as { boardEvents?: Table; fastVoyage?: Table; portEvents?: Table; manann?: { portEventMod?: number } };
+        type Bande = { id?: string; min?: number | null; max?: number | null };
+        type Table<T extends Bande = Bande> = { die: DiceSpec; entries: T[] };
+        type Evenement = z.infer<typeof seaEventDef>;
+        const d = v as {
+          boardEvents?: Table<Evenement>; fastVoyage?: Table; portEvents?: Table<Evenement>;
+          manann?: { portEventMod?: number };
+        };
         const bord = d.boardEvents?.entries ?? [];
-        for (const [i, evenement] of bord.entries()) {
-          if (evenement.liaisonEquipage === undefined) continue;
-          ctx.addIssue({
-            code: 'custom', path: ['boardEvents', 'entries', i, 'liaisonEquipage'],
-            message: 'La liaison de retour de l’équipage s’emploie dans un événement de port.',
-          });
-        }
+        // MDG 15 l.200, l.245
+        bord.forEach((evenement, i) => {
+          if (evenement.liaisonEquipage !== undefined) {
+            ctx.addIssue({
+              code: 'custom', path: ['boardEvents', 'entries', i, 'liaisonEquipage'],
+              message: 'La liaison de retour de l’équipage s’emploie dans un événement de port.',
+            });
+          }
+          if (!evenement.infligeUsure) return;
+          const effet = evenement.consequence?.kind === 'effet' ? evenement.consequence.effet : undefined;
+          if (effet?.type !== 'ops' || effet.on !== 'navire' || !effet.ops.length || effet.ops.some((op) => op.op !== 'wounds')) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['boardEvents', 'entries', i, 'consequence'],
+              message: 'L’Usure exige une conséquence qui inflige directement des Blessures au navire.',
+            });
+          }
+        });
+        (d.portEvents?.entries ?? []).forEach((evenement, i) => {
+          if (evenement.infligeUsure) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['portEvents', 'entries', i, 'infligeUsure'],
+              message: 'L’Usure est réservée aux événements de bord.',
+            });
+          }
+        });
         const modDePort = d.manann?.portEventMod ?? 0;
         const deDePort = d.portEvents ? deDuParse(d.portEvents) : null;
         const tables: [(string | number)[], string, Bande[], number | 'ouverte', number | 'ouverte'][] = [
