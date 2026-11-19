@@ -151,12 +151,12 @@ function provenanceLabel(p: ModProvenance, state: GameState): string {
  *  (« +10 Soutien »), ce que le Codex reprend à l'ouverture. Sans `ref`, la chip reste le span muet.
  *  `by` (provenance STRUCTURÉE : les soutiens) est NOMMÉE par `provenanceLabel` et se lit DANS le
  *  popover de la chip ; sans `ref` (pas de popover), elle passe par le `title` du span. */
-function ModChip({ m }: { m: ModLine }) {
+function ModChip({ m, enDR }: { m: ModLine; enDR?: boolean }) {
   // Lecture NON réactive : un nom de combattant ne bouge pas pendant qu'on lit son jet, et une
   // souscription par chip re-rendrait toute la grille de mods à chaque tick de combat.
   const state = useGame.getState();
   const tone = m.value >= 0 ? 'pos' : 'neg';
-  const text = texteDuMod(m);
+  const text = enDR ? `${m.label} ${avecSigne(m.value)} DR` : texteDuMod(m);
   // PROVENANCE (qui soutient, qui octroie) : elle vit DANS le popover de la chip — arbitrage user
   // 2026-08-05, verbatim « Normalement les informations de ce genre sont dans le hover codex non ? ».
   // Les noms flottant à côté de la chip (badges inline) ne se rattachaient visuellement à rien : le
@@ -172,10 +172,11 @@ function ModChip({ m }: { m: ModLine }) {
 }
 
 /** Chips des modificateurs étiquetés (« Courte portée +40 », « Sonné −10 »…). */
-export function ModChips({ mods }: { mods: ModLine[] }) {
+export function ModChips({ mods = [], modsDR = [] }: { mods?: readonly ModLine[]; modsDR?: readonly ModLine[] }) {
   return (
     <div className="rm-roll-mods">
       {mods.map((m, i) => <ModChip key={i} m={m} />)}
+      {modsDR.map((m, i) => <ModChip key={`dr-${i}`} m={m} enDR />)}
     </div>
   );
 }
@@ -262,6 +263,7 @@ function VerdictNote({ r }: { r: VerdictReason }) {
 export function RollLine({ d }: { d: RollBreakdown }) {
   const dv = difficultyValue(d.difficulty, d.difficultyCombined);
   const mods = reconciled(d.mods ?? [], d.modifier - dv, d.target, d.clamped, dv);
+  const modsDR = d.mask ? undefined : d.modsDR;
   const masked = d.mask === 'roll';
   return (
     <div className="rm-roll-block">
@@ -278,7 +280,7 @@ export function RollLine({ d }: { d: RollBreakdown }) {
         </span>
       </div>
       {!masked && d.second && <SecondReadRow s={d.second} />}
-      {mods.length > 0 && <ModChips mods={mods} />}
+      {(mods.length > 0 || !!modsDR?.length) && <ModChips mods={mods} modsDR={modsDR} />}
       {!d.mask && d.decided && <VerdictNote r={d.decided} />}
     </div>
   );
@@ -298,6 +300,7 @@ export interface PendingRoll {
   /** Cible effective (base + modificateurs COMBINÉS, plafonds inclus) ; défaut : base + Difficulté + somme des chips. */
   target?: number;
   mods?: ModLine[];
+  modsDR?: ModLine[];
   /** Difficulté du Test — rendue sur la LIGNE, jamais en chip (#1072) ; sa valeur reste
    *  comprise dans la cible (dérivée ici quand `target` est omise). */
   difficulty?: Difficulty;
@@ -334,6 +337,7 @@ export function PendingRollLine({ p }: { p: PendingRoll }) {
   // Pré-jet : MÊME réconciliation que la ligne résolue — une cible déjà plafonnée/portant un mod non
   // itemisé montre son écart nommé au lieu d'un total qui ne tombe pas juste.
   const mods = p.base != null ? reconciled(declared, diff - dv, target, p.clamped, dv) : declared;
+  const modsDR = p.mask ? undefined : p.modsDR;
   return (
     <div className="rm-roll-block">
       <div className="rm-roll pending">
@@ -349,7 +353,7 @@ export function PendingRollLine({ p }: { p: PendingRoll }) {
         <span className="rm-roll-sl rm-roll-sl-pending" aria-hidden="true">—</span>
       </div>
       {p.second && <SecondReadRow s={p.second} />}
-      {mods.length > 0 && <ModChips mods={mods} />}
+      {(mods.length > 0 || !!modsDR?.length) && <ModChips mods={mods} modsDR={modsDR} />}
     </div>
   );
 }

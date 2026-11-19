@@ -133,6 +133,8 @@ import {
   rollDisengageAttack,
   rollGrappleForce,
   frozenDifficulty,
+  hydrateAttackTR,
+  sommeDesModificateursDR,
   type AttackResult,
   type DefenseSub,
 } from '../engine/combat';
@@ -327,7 +329,8 @@ function bargainPlayerTR(p: PendingBargain, tr: TestResult): TestResult {
  *  défenseur + 1). Attaque non forcée, ou garanties annulées (#1000) → jet rendu TEL QUEL. */
 function forcedOpposedAtk(p: PendingDefense, def: TestResult): TestResult {
   if (!attaquantForce(p) || opposedForcingCancelled(p)) return p.atk;
-  return { ...p.atk, sl: Math.max(p.atk.sl, def.sl + 1, 1) };
+  const minimum = plancherOpposeForce(def.sl, false) - sommeDesModificateursDR(p.atkCompo?.modsDR);
+  return { ...p.atk, sl: Math.max(p.atk.sl, minimum) };
 }
 
 /** Descripteur de la défense par SUBSTITUTION sociale (Intimidation/Dressage, LDB 09 l.207/287), ou
@@ -888,7 +891,8 @@ export const FLOWS = paresseux({
         return actor && t ? { result: rederiveAttack(s.scene, actor, t, p, tr, s.battle?.combatants) } : null;
       },
       // Test opposé : « vous l'emportez avec au moins DR +1 » (LDB 17 l.68) — cf. INVARIANT de `resolve`.
-      floorSL: (p) => plancherOpposeForce(p.result?.defenderDetail?.sl ?? 0, false),
+      floorSL: (p) => plancherOpposeForce(p.result?.defenderDetail?.sl ?? 0, false)
+        - sommeDesModificateursDR(p.result?.attackerDetail?.modsDR),
     },
     resolve: (s, p, actor, get, forced) => {
       const target = actorIn(s, p.targetId);
@@ -904,12 +908,13 @@ export const FLOWS = paresseux({
         // Dé PAR DÉFAUT : « vous choisissez le résultat » (LDB 17 l.68) = LE MEILLEUR (`bestForcedRoll`,
         // policy-aware), jamais le dé raté courant. Test opposé : « vous l'emportez avec au moins DR +1 ».
         const aDie = bestForcedRoll(ad.target);
-        const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, plancherOpposeForce(defSL, false)), ad.base);
+        const minimum = plancherOpposeForce(defSL, false) - sommeDesModificateursDR(ad.modsDR);
+        const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, minimum), ad.base);
         return { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) };
       }
       const battle = s.battle;
       if (!battle) return null;
-      const r = resolveAttack(get, actor, target, attackWeaponOf(s.scene, battle, actor, target, p), p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, p.withhold);
+      const r = resolveAttack(get, actor, target, attackWeaponOf(s.scene, battle, actor, target, p), p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, p.withhold, p.siege);
       // MÊME gel que `jetLancer('attaque')` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
       // joueur et discrimine l'attaque naturelle) — sans lui, toute re-dérivation re-passe par
       // `pickAttackWeaponList`, qui reprend la MÊLÉE dès qu'elle est à portée (`mount.ts`).
@@ -927,7 +932,7 @@ export const FLOWS = paresseux({
         const target = actorIn(s, p.targetId);
         if (!target) return null;
         const ad = p.result!.attackerDetail!;
-        const atk2 = bumpSL(hydrateTR(ad));
+        const atk2 = bumpSL(hydrateAttackTR(ad));
         return { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) };
       },
     },
@@ -949,7 +954,8 @@ export const FLOWS = paresseux({
         // — ni forcer un succès, `forcedTR`) ; seule la voie Talent (gate stricte échec→succès dans
         // `applyReverse`) garantit `tr.success:true` par construction.
         const atk2 = hydrateTR({ roll: tr.roll, ...cibleMesuree(ad), base: ad.base, success: tr.success, sl: tr.sl });
-        return { patch: { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) }, issue: tr };
+        const result = rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants);
+        return { patch: { result }, issue: { ...tr, sl: result.attackerDetail?.sl ?? tr.sl } };
       },
     },
     refusDAnnuler: (_s, pa) => refusDAnnulerLAttaque(pa),
@@ -1013,7 +1019,7 @@ export const FLOWS = paresseux({
       },
       // Test opposé : le défenseur forcé l'emporte avec au moins DR +1 (LDB 17 l.68) — sauf annulation
       // mutuelle (#1000 : `opposedForcingCancelled`), le dé CHOISI restant posé.
-      floorSL: (p) => plancherOpposeForce(p.atk.sl, opposedForcingCancelled(p)),
+      floorSL: (p) => plancherOpposeForce(p.atk.sl + sommeDesModificateursDR(p.atkCompo?.modsDR), opposedForcingCancelled(p)),
     },
     resolve: (s, p, actor, _get, forced) => {
       const attacker = porteurParId(s, p.attackerId);
@@ -1030,7 +1036,8 @@ export const FLOWS = paresseux({
         // policy-aware), jamais le dé raté courant. Le plancher est celui de `opposedForcedFloor` : la
         // garantie (LDB 17 l.68) si elle vit encore, RIEN si elle est annulée (#1000).
         const dDie = bestForcedRoll(p.def.target);
-        const def2 = forcedTR(dDie, cibleBrute(p.def), Math.max(evaluateTest(dDie, cibleBrute(p.def)).sl, plancherOpposeForce(p.atk.sl, cancelled)), p.def.base);
+        const minimum = plancherOpposeForce(p.atk.sl + sommeDesModificateursDR(p.atkCompo?.modsDR), cancelled);
+        const def2 = forcedTR(dDie, cibleBrute(p.def), Math.max(evaluateTest(dDie, cibleBrute(p.def)).sl, minimum), p.def.base);
         return { def: def2, result: finishDefenseResult(s, attacker, actor, pForced, def2, defenseDodgeMods(s, actor)) };
       }
       // Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).

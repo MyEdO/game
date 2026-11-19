@@ -20,6 +20,7 @@ import type { IconId } from '../data/icons';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
+import { sommeDesModificateursDR } from '../engine/combat';
 import { roll, d100, totalDuDe, type RNG, type DiceSpec } from '../engine/dice';
 import { findTableEntry, type DeDeTable } from '../engine/tables';
 import type {
@@ -653,14 +654,14 @@ export function aggregateBatchRolls(
 /** Agrège une étape « batch » PRÊTE (`stepReady`) en un `CascadeRoll` scalaire — même vocabulaire
  *  `result` qu'une étape mono, pour que l'applier `applierDe(kind)` reste kind-agnostique du
  *  nombre de contributeurs (seam de jet #275 Décision 4 cran 1). Les paramètres de formule vivent en
- *  `meta` NEUTRE (`aggregateFlatDR`/`aggregateCapTo`/`aggregateOpposeSl`/`aggregateSuccessRule`), versés
+ *  `meta` NEUTRE (`aggregateFlatDR`/`aggregateDRMods`/`aggregateCapTo`/`aggregateOpposeSl`/`aggregateSuccessRule`), versés
  *  à la construction. L'étape porte l'ID du prédicat (`TablesDuJeu.reglesDeSucces`), jamais la
  *  fonction : un pending est snapshoté en JSON (sauvegarde, coop). Un id de règle de succès INCONNU
  *  jette (fail-closed) : retomber en silence sur le seuil générique appliquerait à un domaine un seuil
  *  qui n'est pas le sien. */
 function aggregateBatchStep(step: CascadeStep): CascadeRoll {
   const meta = step.meta;
-  const flatDR = typeof meta?.aggregateFlatDR === 'number' ? meta.aggregateFlatDR : 0;
+  const flatDR = (typeof meta?.aggregateFlatDR === 'number' ? meta.aggregateFlatDR : 0) + sommeDesModificateursDR(meta?.aggregateDRMods);
   const capTo = typeof meta?.aggregateCapTo === 'number' ? meta.aggregateCapTo : undefined;
   const opposeSl = typeof meta?.aggregateOpposeSl === 'number' ? meta.aggregateOpposeSl : 0;
   const ruleId = typeof meta?.aggregateSuccessRule === 'string' ? meta.aggregateSuccessRule : undefined;

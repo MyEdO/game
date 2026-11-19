@@ -188,6 +188,13 @@ export function visibilityDRPenalty(vis: string, distanceM: number): number {
   return def.drPenalty != null && def.beyondM != null && distanceM > def.beyondM ? def.drPenalty : 0;
 }
 
+/** MDG 13 l.234-243. */
+export function visibilityTestDRMods(visibility: string | undefined, distanceM: number): ModLine[] {
+  if (!visibility) return [];
+  const value = visibilityDRPenalty(visibility, distanceM);
+  return value ? [{ label: visibilityDef(visibility).label, value, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }] : [];
+}
+
 /** MDG 13 l.187-200. `skill` absente = Test de Caractéristique. PUR. */
 function precipitationMod(precip: string, skill: RefDesignee | undefined): number {
   const def = precipitationDef(precip);

@@ -1,14 +1,19 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { FLOWS } from './rollFlowSpecs';
 import { ARME_INTROUVABLE, defenseDodgeMods } from './mount';
-import { attackWeaponOf } from './combatFlow';
+import { attackWeaponOf, openAttackCascade } from './combatFlow';
+import { fenetreDAttaque } from './fenetreDAttaque';
+import type { TravelPlan } from './travelFlow';
+import { etatInitialDuJeu } from './etat';
 import type { PendingAttack } from './pendings';
 import type { RollBreakdown } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { previewAttack, previewDefense, firedWeapon, resolveAttack, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
 import { attackModifiers, bestRangedDefense, combatBaseValue, combatValue, combineMods, type ModLine } from '../engine/combat';
-import { clampTarget } from '../engine/tests';
+import { clampTarget, evaluateTest, reverseRoll } from '../engine/tests';
+import { applyOps } from '../engine/ops';
+import { desDuTest } from '../engine/dice.testkit';
 import { setRule } from '../engine/policy';
 import { volatileCharLines } from '../engine/characteristics';
 import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
@@ -712,5 +717,96 @@ describe('ATTAQUE NATURELLE : le gel du jet ne la transforme pas en arme tenue (
     // Et APRÈS le gel du jet (l'objet arme figé est l'arme TENUE) : la morsure prime toujours.
     const gele = { ...pa, weapon: flechettes } as unknown as PendingAttack;
     expect(attackWeaponOf(banc.getState().scene, battle, a, b, gele).type, 'le gel ne prime jamais sur l’attaque naturelle').toBe('melee');
+  });
+});
+
+
+describe('Visibilité maritime du tir joué (MDG 13 l.234-243)', () => {
+  const arc = { label: 'Arc', type: 'distance', subType: 'arc', damage: { plusBF: false, flat: 6 }, range: 20, qualities: [], uid: 'arc-mer' } as const;
+  const plan = (visibilite: string) => ({ sea: { weather: { precipitations: 'aucune', visibilite } } }) as TravelPlan;
+  const ouvrir = (distance: number, travelPlan: TravelPlan | null, geste: 'tir' | 'melee' | 'pilonnage' = 'tir', metresParCase = 1) => {
+    banc.abandonner();
+    const a = combatant({
+      id: 'A', fortune: 2, resilience: 1, pos: { x: 1, y: 1 },
+      ...(geste === 'melee' ? {} : { weapons: [{ ...arc, ...(geste === 'pilonnage' ? { indirect: true } : {}) }] }),
+    } as never);
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1 + distance, y: 1 }, weapons: [] });
+    const pont = { ...scene(), metresPerTile: metresParCase, dimensions: { w: 30, h: 8 }, layers: [{ z: 0, tiles: new Array(240).fill('herbe') }] };
+    banc.setState({
+      ...etatInitialDuJeu(), screen: 'campaign', mode: 'battle', scene: pont, party: [a], gameTime: 0, travelPlan,
+      battle: { combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn: 0, round: 1, movementUsed: 0, acted: false, log: [], over: null, action: null, selectedSpellId: null, reachable: new Map() },
+      net: NET_LOCAL,
+    } as never);
+    if (geste === 'pilonnage') {
+      banc.setState({ pendingSiegeAim: { gunnerId: a.id, weaponUid: arc.uid, radius: 2, rangeTiles: null } });
+      banc.getState().poserLePointDImpact(b.pos!);
+    } else {
+      const pending = {
+        attackerId: a.id, targetId: b.id, location: null, result: null,
+        ...(geste === 'melee' ? {} : { weaponUid: arc.uid }),
+      };
+      openAttackCascade(banc.getState, banc.setState, pending, 'Attaque', 'action/attaquer');
+    }
+    const vue = fenetreDAttaque(banc.getState())?.jet;
+    expect(vue && 'pending' in vue, 'la vraie fenêtre propose son jet').toBe(true);
+    seedBattleRng(3);
+    banc.getState().jetLancer('attaque');
+    const res = banc.getState().pendingAttack!.result!;
+    expect(res.attackerDetail, 'le vrai jet est tombé').toBeDefined();
+    return { attente: vue && 'pending' in vue ? vue.pending : null, tombe: res.attackerDetail!, net: res.netSL };
+  };
+
+  it.each([
+    ['brume', 'Brume', 20, -1],
+    ['brouillard', 'Brouillard', 10, -2],
+    ['puree-de-pois', 'Purée de pois', 5, -3],
+  ] as const)('%s (%s) : au seuil de %i m et un mètre au-delà', (id, libelle, seuil, malus) => {
+    const auSeuil = ouvrir(seuil, plan(id));
+    expect(auSeuil.attente?.modsDR).toBeUndefined();
+    expect(auSeuil.tombe.modsDR).toBeUndefined();
+
+    const degage = ouvrir(seuil + 1, plan('degage'));
+    expect(degage.tombe.modsDR).toBeUndefined();
+    const distant = ouvrir(seuil + 1, plan(id));
+    const ligne = [expect.objectContaining({ label: libelle, value: malus })];
+    expect(distant.attente?.modsDR).toEqual(ligne);
+    expect(distant.tombe.modsDR).toEqual(ligne);
+    expect(distant.attente?.target).toBe(degage.attente?.target);
+    expect(distant.tombe).toMatchObject({ roll: degage.tombe.roll, target: degage.tombe.target, success: degage.tombe.success, sl: degage.tombe.sl + malus });
+    expect(distant.net).toBe(degage.net + malus);
+  });
+
+  it('conserve une seule ligne pour Chance, dé choisi et Résilience', () => {
+    const { tombe } = ouvrir(11, plan('brouillard'));
+    const lire = () => banc.getState().pendingAttack!.result!.attackerDetail!;
+    banc.getState().jetAjouterUnDR('attaque');
+    expect(lire()).toMatchObject({ roll: tombe.roll, sl: tombe.sl + 1, modsDR: tombe.modsDR });
+    banc.getState().jetImposerLeResultat('attaque', 29);
+    expect(lire()).toMatchObject({ roll: 29, sl: evaluateTest(29, tombe.target).sl - 2, modsDR: tombe.modsDR });
+    banc.getState().jetForcerLaReussite('attaque');
+    expect(lire().success).toBe(true);
+    expect(lire().sl).toBeGreaterThanOrEqual(1);
+    expect(lire().modsDR).toEqual(tombe.modsDR);
+  });
+
+  it('le DR annoncé par l’inversion est celui du tir inversé sous le brouillard', () => {
+    ouvrir(11, plan('brouillard'));
+    const g = banc.getState;
+    const tireur = g().battle!.combatants.find((c) => c.id === 'A')!;
+    applyOps(tireur, [{ op: 'grantReverseToken', skill: { id: 'projectiles' } }], { idNeuf: g().forgerUnId, rng: desDuTest, label: 'Observer une cible' });
+    g().jetImposerLeResultat('attaque', 82);
+    const resultat = g().pendingAttack!.result!.attackerDetail!;
+    const inverse = reverseRoll(resultat.roll);
+    const dr = evaluateTest(inverse, resultat.target).sl - 2;
+    expect(FLOWS.attaque.reversePreview(g)).toMatchObject({ roll: inverse, sl: dr });
+    g().jetInverser('attaque');
+    expect(g().pendingAttack!.result!.attackerDetail).toMatchObject({ roll: inverse, sl: dr, modsDR: resultat.modsDR });
+  });
+
+  it('la mêlée, le pilonnage d’une case et le tir fluvial jouent sans ligne de visibilité', () => {
+    expect(ouvrir(1, plan('puree-de-pois'), 'melee', 10).tombe.modsDR).toBeUndefined();
+    expect(ouvrir(11, plan('brouillard'), 'pilonnage').tombe.modsDR).toBeUndefined();
+    expect(ouvrir(11, { river: {}, mode: 'fleuve' } as TravelPlan).tombe.modsDR).toBeUndefined();
+    expect(ouvrir(11, null).tombe.modsDR).toBeUndefined();
   });
 });

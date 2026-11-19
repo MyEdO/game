@@ -16,7 +16,7 @@ import type { AdvantagePools } from '../../engine/advantagePool';
 import { openAttackCascade, aiCreatureFreeAttacks } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
-import type { Combatant, Weapon } from '../../engine/types';
+import { avecSigne, type Combatant, type ModLine, type Weapon } from '../../engine/types';
 import { armeDeTest } from '../../engine/objetsDeTest.testkit';
 import { RollShell } from '../RollShell';
 import { useDefenseJetProps } from './useDefenseJetProps';
@@ -105,6 +105,23 @@ function openBiteDefense(): HTMLDivElement {
 const subtitle = () => host!.querySelector('.rm-subtitle')?.textContent;
 /** Libellé de la rangée TÉMOIN (l'attaque figée), rangée [0] du panneau. */
 const attackRowText = () => host!.querySelectorAll('.rr-row')[0]?.textContent ?? '';
+
+it('la Défense masque le modificateur de DR de l’attaque figée avec le jet', () => {
+  openDefense();
+  const { net, pendingDefense: pd } = useGame.getState();
+  const modsDR: ModLine[] = [{ label: 'Brouillard', value: -2, famille: 'circonstance' }];
+  const atkCompo = { ...pd!.atkCompo!, modsDR };
+  act(() => useGame.setState({ pendingDefense: { ...pd!, atkCompo } }));
+  expect(attackRowText()).toContain('Brouillard −2 DR');
+  expect(host!.querySelector('.rr-row .rm-roll-sl')?.textContent).toContain(`${avecSigne(pd!.atk.sl - 2)} DR`);
+  act(() => useGame.setState({
+    pendingDefense: { ...pd!, atkCompo },
+    net: { ...net, mode: 'invite', mySeat: 1, gmSeat: 0, ownership: { h: 1 } },
+  }));
+  expect(attackRowText()).not.toContain('Brouillard');
+  expect(attackRowText()).toContain('?');
+  act(() => useGame.setState({ net, pendingDefense: pd }));
+});
 
 describe('Défense — Z1 « Acteur — Action (Compétence) »', () => {
   it('Parade : le sous-titre nomme le DÉFENSEUR et sa Compétence de parade', () => {
