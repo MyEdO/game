@@ -5,7 +5,7 @@
 // du parcours le lisent comme dans la page (`wfrpEcran`, à côté de `wfrpPont`) ; chaque geste du parcours est une
 // commande que le pilote (`projet/recettes/pilote.gd`) relève à chaque pas de physique et joue. Mêmes noms que le lieu de la
 // page (`page.mjs`).
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { format } from 'node:util'
 import { runInThisContext } from 'node:vm'
 import { chronometrer, direLEtape, empaqueter, piloter } from '../construire.mjs'
-import { pontDuBundle, servirLeCanal } from '../processus.mjs'
+import { PONT, pontDuBundle, servirLeCanal } from '../processus.mjs'
 import { servir } from '../servir.mjs'
 import { stockageDuProcessus } from '../stockage.mjs'
 import { ATTENTE_ECHUE, VUE_REFERENCE, courseContreMontre, sleep } from '../../../scripts/recette/lib.mjs'
@@ -34,8 +34,9 @@ const [MOLETTE_HAUT, MOLETTE_BAS] = [4, 5]
  *  ceux que Godot écrit. `rendu` le joue en rendu réel sous cette méthode ; sans lui, sans écran. Le stockage du pont
  *  ne dure que ce processus. La fenêtre du jeu est `fenetre`, `{ largeur, hauteur }` (`piloter`), une planche à la vue de référence (`VUE_REFERENCE`), celle de son étalon. Avec `planche`, le jeu s'ouvre sur cette planche (`--planche=<nom>`,
  *  `projet/scripts/pont_de_planche.gd`), les planches figées sans export dans un dossier temporaire que le serveur sert
- *  (`piloter`), retiré à la sortie du processus. */
-export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu, planche, fenetre }) {
+ *  (`piloter`), retiré à la sortie du processus. La `preparation` du lot fournit les octets du pont et le projet
+ *  importé. */
+export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu, planche, fenetre, preparation }) {
   if (statique) throw new Error('--statique sert l’export tel que le site le publie : sans objet hors d’une page')
   const entries = []
   const garde = { entries, errors: () => entries.filter((e) => e.type === 'error'), warnings: () => entries.filter((e) => e.type === 'warning') }
@@ -44,7 +45,9 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     ecrire(...args)
   }
   direLEtape('modules de la recette chargés', performance.now())
-  const { code } = await chronometrer('bundle du pont', () => empaqueter(null, 'development'))
+  const code = preparation
+    ? await chronometrer('lecture du bundle du pont préparé', () => readFileSync(join(preparation, PONT), 'utf8'))
+    : (await chronometrer('bundle du pont', () => empaqueter(null, 'development'))).code
   const consoleRelevee = Object.assign(Object.create(console), { error: relever('error', console.error), warn: relever('warning', console.warn) })
   const stockage = stockageDuProcessus(null)
   /** Les noms que Godot a publiés en global depuis le dernier lancement. */
@@ -122,7 +125,7 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     auLancement()
   }
   const args = [`--pont=${RELAIS}`, '--recette=1', `--scenario=${scenario}`, `--graine=${graine}`, ...(planche ? [`--planche=${planche}`] : [])]
-  const joue = piloter({ args, env: { WFRP_RELAIS: String(ecoute.address().port) }, rendu, lance, encore: () => recharge, planches, fenetre: planche ? VUE_REFERENCE : fenetre })
+  const joue = piloter({ args, env: { WFRP_RELAIS: String(ecoute.address().port) }, rendu, lance, encore: () => recharge, planches, fenetre: planche ? VUE_REFERENCE : fenetre, preparation })
   joue.then(({ erreurs }) => mourir(`Godot a quitté${erreurs.length ? ` :\n${erreurs.join('\n')}` : ''}`))
   const lanceOuMort = (attendu) => Promise.race([attendu, joue.then(() => { throw new Error(mort) })])
   await lanceOuMort(premier)
