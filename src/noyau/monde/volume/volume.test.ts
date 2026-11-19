@@ -492,7 +492,7 @@ const porteOuverte = (scene: Scene): Scene => {
 /** Les scènes du #4044, chacune avec la famille qu'elle porte (0 : nappes, 1 : couronnes) et ses écritures de
  *  drapeaux : la diligence porte des nappes et des portes, siege-enceinte des couronnes et sa herse. */
 const SCENES_RETENUES = [
-  ['diligence', scenarioDiligence, 0, (s: Scene) => [murAbattu(s, { x: 14, y: 6, side: 'E', z: 0 }), porteOuverte(s)]],
+  ['diligence', scenarioDiligence, 0, (s: Scene) => [murAbattu(s, { x: 22, y: 12, side: 'E', z: 0 }), porteOuverte(s)]],
   ['siege-enceinte', siegeEnceinte, 1, (s: Scene) => [murAbattu(s, { x: 14, y: 37, side: 'N', z: 0 })]],
 ] as const;
 
