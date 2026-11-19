@@ -94,6 +94,7 @@ import {
   patchStation,
   removeStation,
   setSceneMusic,
+  setZoneJouable,
   type PatchDeZone,
   type Pt,
 } from '../sceneEdit';
@@ -215,10 +216,12 @@ export type Ouvrage = (typeof OUVRAGES)[number];
  *  son nord (`null` : vers le haut du plan), les matières de son relief, sa toiture par défaut, son repos sur place
  *  (lieux offerts, sa qualité (`QUALITES_DE_REPOS`)), ses drapeaux de départ (`null` retire le drapeau) ; une piste de sa musique
  *  (`setSceneMusic` : `id` absent, la piste du contexte ; `null`, le silence) ; ses ancres de bataille, une ajoutée vers la Scène de
- *  Round `ajouter`, celle de rang `rang` patchée, ou celle de rang `retirer` retirée. */
+ *  Round `ajouter`, celle de rang `rang` patchée, ou celle de rang `retirer` retirée ; sa zone jouable retirée (`null` : toute
+ *  la carte se joue, `setZoneJouable`). */
 export interface PatchDeScene {
   scalaires?: { [K in keyof ScalairesDeScene]?: ScalairesDeScene[K] | null };
-  dimensions?: { w: number; h: number };
+  /** `decalage` : où la case (0,0) de l'ancienne grille se pose dans la nouvelle, la scène et ses calques suivant (`resizeGrid`). */
+  dimensions?: { w: number; h: number; decalage?: { x: number; y: number } };
   nord?: number | null;
   relief?: Partial<ReliefDefaults>;
   toiture?: Partial<SceneRoofDefaults>;
@@ -226,6 +229,7 @@ export interface PatchDeScene {
   drapeaux?: Record<string, boolean | null>;
   musique?: { piste: keyof NonNullable<Scene['music']>; id?: string | null };
   stations?: { ajouter: string } | { rang: number; sceneId?: string; pos?: SceneStationAnchor['pos'] } | { retirer: number };
+  zoneJouable?: null;
 }
 
 /** Les groupes que le lieu déclare (`Scene.groups`), chacun sa valeur et son libellé (`choixDuNoeud`). */
@@ -250,10 +254,10 @@ export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
 const porteurDeLAvertissement = (s: SessionDEdition, w: Warning) => porteurDeLaPortee(w.scope, w.refId, projetEdite(s), idDeLaSceneEditee(s));
 
 /** L'avertissement `w` de la session `s` désigne-t-il un fautif que l'éditeur sélectionne : un défaut de plan, un ouvrage
- *  d'architecture, ou un porteur de formulaire de son projet (`porteurDeLAvertissement`) ? Les autres se corrigent
- *  ailleurs. */
+ *  d'architecture, un point d'entrée ou une ancre de bataille (`Warning.fautif`), ou un porteur de formulaire de son
+ *  projet (`porteurDeLAvertissement`) ? Les autres se corrigent ailleurs. */
 export const versLaFautive = (s: SessionDEdition, w: Warning): boolean =>
-  !!w.plan || !!architectureSelectionForWarning(w) || porteurDeLAvertissement(s, w) !== undefined;
+  !!w.plan || !!w.fautif || !!architectureSelectionForWarning(w) || porteurDeLAvertissement(s, w) !== undefined;
 
 /** Les cases du défaut de plan que suit la session `s`, tant que la validation le relève ; aucune sinon. */
 export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: number }[] {
@@ -262,7 +266,8 @@ export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: nu
 }
 
 /** La session `s` amenée au fautif de l'avertissement `w` de sa scène `scene`, à sa couche : un défaut de plan, suivi,
- *  à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une ; un ouvrage d'architecture sélectionné à
+ *  à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une ; un point d'entrée sélectionné, à sa couche ;
+ *  une ancre de bataille, sans sélection : l'inspecteur de la scène, qui la pose ; un ouvrage d'architecture sélectionné à
  *  l'outil d'architecture ; un porteur de formulaire (`porteurDeLAvertissement`), son document ouvert, sélectionné à
  *  l'outil de sélection (`selDuPorteur`), à sa couche s'il est posé sur le plan de la scène (`selPos`, `selZ`). */
 function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): SessionDEdition {
@@ -273,6 +278,11 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
     const at = w.plan.at;
     const zone = at.kind === 'zone' ? scene.effectZones?.find((z) => z.id === at.zoneId) : undefined;
     return vers(at.z, zone ? { type: 'effectZone', id: zone.id } : null, { mode: 'selection' }, planDefectKey(w.plan));
+  }
+  if (w.fautif) {
+    if ('station' in w.fautif) return { ...vers(0, null, { mode: 'selection' }), document: 'scene' };
+    const sel: Sel = { type: 'entry', id: w.fautif.entree };
+    return { ...vers(selZ(scene, sel), sel, { mode: 'selection' }), document: 'scene' };
   }
   const archi = architectureSelectionForWarning(w);
   if (archi) {
@@ -353,6 +363,7 @@ function sceneRenommee(s: SessionDEdition, scene: Scene, id: string): SessionDEd
   const renommee = renameScene(scene, racinesDeLHistorique(s.historique).filter((r) => r.id !== ancien), id);
   if (renommee === scene) return s;
   const renommer = (c: CranDEdition): CranDEdition => ({
+    ...(c.decalage ? { decalage: { ...c.decalage, sceneId: c.decalage.sceneId === ancien ? renommee.id : c.decalage.sceneId } } : {}),
     projet: { ...c.projet, scenes: c.projet.scenes.map((sc) => (sc.id === ancien ? { ...sc, id: renommee.id } : sc)) },
     sceneId: c.sceneId === ancien ? renommee.id : c.sceneId,
   });
@@ -368,7 +379,7 @@ function sceneRenommee(s: SessionDEdition, scene: Scene, id: string): SessionDEd
 function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
   let sc = scene;
   if (patch.scalaires) sc = setSceneScalaires(sc, Object.fromEntries(Object.entries(patch.scalaires).map(([k, v]) => [k, v ?? undefined])));
-  if (patch.dimensions) sc = resizeGrid(sc, patch.dimensions.w, patch.dimensions.h);
+  if (patch.dimensions) sc = resizeGrid(sc, patch.dimensions.w, patch.dimensions.h, patch.dimensions.decalage);
   if (patch.nord !== undefined) sc = setNorthDeg(sc, patch.nord ?? undefined);
   for (const part of PARTS_RELIEF) {
     const matiere = patch.relief?.[part];
@@ -379,6 +390,7 @@ function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
   for (const [cle, valeur] of Object.entries(patch.drapeaux ?? {})) sc = valeur === null ? removeSceneFlag(sc, cle) : setSceneFlags(sc, { [cle]: valeur });
   if (patch.musique) sc = setSceneMusic(sc, patch.musique.piste, patch.musique.id);
   if (patch.stations) sc = stationsPatchees(sc, patch.stations);
+  if (patch.zoneJouable === null) sc = setZoneJouable(sc, null);
   return sc;
 }
 
@@ -476,6 +488,9 @@ export interface BrouillonDArete {
 export interface CranDEdition {
   projet: ProjetDEdition;
   sceneId: string;
+  /** Le décalage que ce cran a donné aux calques de la scène `sceneId` en l'agrandissant par l'ouest ou le nord :
+   *  l'annuler le leur retire, le rétablir le leur rend. */
+  decalage?: { sceneId: string; x: number; y: number };
 }
 
 export interface SessionDEdition {
@@ -658,6 +673,14 @@ const HORS_DU_CALAGE: CalibProgress = { step: 'idle' };
 
 /** Le calque de la couche éditée de la session `s`, `undefined` sans lui. */
 export const calqueDeLaCouche = (s: SessionDEdition): CalqueDeCouche | undefined => s.calques[idDeLaSceneEditee(s)]?.[String(s.z)];
+
+/** Les calques de la session `s`, ceux de la scène `sceneId` décalés de `d` cases. */
+function calquesDecales(s: SessionDEdition, sceneId: string, d: { x: number; y: number }): CalquesDuProjet {
+  const siens = s.calques[sceneId];
+  if (!siens) return s.calques;
+  const decales = Object.fromEntries(Object.entries(siens).map(([z, c]) => [z, { ...c, calage: { ...c.calage, tx: c.calage.tx + d.x, ty: c.calage.ty + d.y } }]));
+  return { ...s.calques, [sceneId]: decales };
+}
 
 /** Les calques de la session `s`, celui de la couche `z` de la scène `sceneId` posé à `calque`, retiré s'il est `null`. */
 function avecLeCalque(s: SessionDEdition, sceneId: string, z: number, calque: CalqueDeCouche | null): CalquesDuProjet {
@@ -1045,12 +1068,14 @@ function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdit
   const vise = crans[crans.length - 1] as CranDEdition | undefined;
   const { projet, sceneId } = h.present;
   const navigue = vise !== undefined && vise.sceneId !== sceneId && projet.scenes.some((sc) => sc.id === vise.sceneId) && vise.projet.scenes.some((sc) => sc.id === sceneId);
-  const historique = (sens === 'annuler' ? annuler : retablir)(navigue ? poser(h, { projet, sceneId: vise.sceneId }, false) : h);
+  const historique = (sens === 'annuler' ? annuler : retablir)(navigue ? poser(h, { ...h.present, sceneId: vise.sceneId }, false) : h);
+  const d = vise && (sens === 'annuler' ? h.present : vise).decalage;
+  const calques = d ? calquesDecales(s, d.sceneId, sens === 'annuler' ? { x: -d.x, y: -d.y } : d) : s.calques;
   const revenue = avecSonDocument({ ...s, historique });
-  if (revenue.document !== s.document || historique.present.sceneId !== sceneId) return { ...remiseAZero(s), historique, document: revenue.document };
+  if (revenue.document !== s.document || historique.present.sceneId !== sceneId) return { ...remiseAZero(s), historique, calques, document: revenue.document };
   const z = coucheVue(sceneDuCran(historique.present), s.z) ? s.z : 0;
   const plan = planDuLieuOuvert(s) && planDuLieuOuvert({ ...s, historique });
-  return { ...s, historique, z, sel: plan ? s.sel : null, geste: null, brouillon: null };
+  return { ...s, historique, calques, z, sel: plan ? s.sel : null, geste: null, brouillon: null };
 }
 
 /** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet et le `Source/` que l'hôte
@@ -1286,7 +1311,13 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'scene': {
       const patchee = scenePatchee(scene, g.patch);
-      return patchee === scene ? s : ecrire(s, patchee, s.sel);
+      if (patchee === scene) return s;
+      const ecrite = ecrire(s, patchee, s.sel);
+      const decalage = g.patch.dimensions?.decalage;
+      if (!decalage) return ecrite;
+      const sceneId = idDeLaSceneEditee(ecrite);
+      const h = ecrite.historique;
+      return { ...ecrite, historique: { ...h, present: { ...h.present, decalage: { sceneId, ...decalage } } }, calques: calquesDecales(ecrite, sceneId, decalage) };
     }
     case 'identifier': {
       if (g.element !== undefined) {

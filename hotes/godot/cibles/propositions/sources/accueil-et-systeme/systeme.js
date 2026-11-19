@@ -1,16 +1,5 @@
 /* Accueil et système, images d'intention (#3935). Ajouts au kit commun (commun.js) : pictogrammes, bustes des
    pré-tirés, outils de paysage, Altdorf. Maquette hors du jeu. */
-Object.assign(PICTOS, {
-  gauche: '<path d="M14.500 5.500L8 12l6.500 6.500"/>',
-  droite: '<path d="M9.500 5.500L16 12l-6.500 6.500"/>',
-  plume: '<path d="M20 4c-7 0-12 4-13 11l-3 5M7 15c5 0 9-2 11-6M10.500 11.500l4 .5"/>',
-  disque: '<path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6"/>',
-  retour: '<path d="M9 6.500L4.500 11 9 15.500M4.500 11h9.500a4.500 4.500 0 0 1 0 9H10"/>',
-  jouer: '<path d="M8 5l11 7-11 7z"/>',
-  note: '<path d="M12 3v12.500M12 3l6 2v4l-6-2"/><ellipse cx="9" cy="16.500" rx="3.200" ry="2.500"/>',
-  coche: '<path d="M5 12.500l4.500 4.500L19 7.500"/>',
-  sceau: '<circle cx="12" cy="10" r="5.500"/><path d="M8.500 14.500L7 21l5-2.500L17 21l-1.500-6.500"/>',
-});
 Object.assign(BUSTES, {
   wanda: BUSTES.mira,
   johann: BASE + '<path d="M18 30h42l-2 5H20zM25 30c1-12 6-18 14-18s13 6 14 18z" fill="#1c1410"/>',
@@ -19,12 +8,10 @@ Object.assign(BUSTES, {
   sigrid: BASE + '<path d="M22 34c-2-14 6-23 17-23s19 9 17 23c-3-8-9-12-17-12s-14 4-17 12z" fill="#1c1410"/><path d="M36 13h6v12h-6zM31 17h16v4H31z" fill="#e9dcc0" opacity=".85"/>',
   malmir: '<path d="M16 90c0-17 7-25 19-27l-2-8c-6-5-8-15-5-23 3-8 19-8 22 0 3 8 1 18-5 23l-2 8c12 2 19 10 19 27z"/><path d="M25 37l-10-10 10 3zM53 37l10-10-10 3z"/><path d="M24 30c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" fill="#1c1410"/>',
 });
-const buste = (genre, style = '', classe = '') => `<div class="portrait laiton ${classe}" style="${style}"><div><svg viewBox="0 0 78 90" preserveAspectRatio="xMidYMax slice" fill="#2a1f17">${BUSTES[genre]}</svg></div></div>`;
 /* la table : le fond des écrans posés hors du jeu */
 const fondDeTable = () => { el(S, 'rect', { width: W, height: H, fill: '#150c07' }); return `<div class="calque bois" id="table"></div><div class="calque" id="lueur-table"></div>`; };
 /* les quatre clous d'un registre relié */
 const CLOUS = '<i class="clou" style="left:8px;top:8px"></i><i class="clou" style="right:8px;top:8px"></i><i class="clou" style="left:8px;bottom:8px"></i><i class="clou" style="right:8px;bottom:8px"></i>';
-const outil = (icone, libelle) => `<div class="outil">${rond(icone, 23)}<span class="rubrique ombre">${libelle}</span></div>`;
 
 /* ───────── paysage ───────── */
 const etoiles = (g, n, yMax, graine = 5) => { const r = alea(graine); for (let i = 0; i < n; i++) { const y = r() * yMax; el(g, 'circle', { cx: r() * W, cy: y, r: .5 + r() * 1.1, fill: '#fff', opacity: (.25 + r() * .6) * (1 - y / yMax * .8) }); } };
@@ -65,4 +52,4 @@ const altdorf = (hote) => {
   [[770, 6], [912, 8], [1050, 5], [1311, 7], [1480, 6]].forEach(([x, dy]) => el(fen, 'rect', { x, y: base - 16 - dy, width: 3, height: 5, opacity: .8 }));
 };
 // Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { buste, fondDeTable, CLOUS, outil, etoiles, crete, massif, nuages, lisiere, altdorf });
+Object.assign(globalThis, { fondDeTable, CLOUS, outil, etoiles, crete, massif, nuages, lisiere, altdorf });

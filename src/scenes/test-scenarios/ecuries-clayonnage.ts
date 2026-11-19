@@ -14,15 +14,15 @@ import type { TestScenario } from './_shared';
  *
  * Tout se joue dans les stalles du rez-de-chaussée (zone `zone-e-z0`, « Écuries & remise ») : les 6
  * séparations de box sont 6 des 25 arêtes de clayonnage AUTHORÉES de la scène (les 19 autres ferment les
- * enclos et le jardin) — (21,29)E, (21,30)E,
- * (23,29)E, (23,30)E, (19,31)E, (19,32)E — jamais des arêtes posées pour le test.
+ * enclos et le jardin) — (29,35)E, (29,36)E,
+ * (31,35)E, (31,36)E, (27,37)E, (27,38)E — jamais des arêtes posées pour le test.
  *
- * Le groupe arrive dans l'allée de la stalle EST : `lancerLeCombat` pose les héros en (24,31) et (24,32)
+ * Le groupe arrive dans l'allée de la stalle EST : `lancerLeCombat` pose les héros en (32,37) et (32,38)
  * (`partyPos.x - 1`, `partyPos.y + i`).
  */
 
-/** Départ du groupe : allée EST des écuries — cale les héros en (24,31)/(24,32) au démarrage du combat. */
-const DEPART = { x: 25, y: 31 };
+/** Départ du groupe : allée EST des écuries — cale les héros en (32,37)/(32,38) au démarrage du combat. */
+const DEPART = { x: 33, y: 37 };
 
 /** Le groupe entre dans les écuries, pas sur la route au nord de l'auberge. */
 function poserDepart(base: Scene): Scene {
@@ -54,15 +54,15 @@ function construireScene(): Scene {
       // temps de viser les trois adversaires.
       victoryCondition: { type: 'surviveRounds', rounds: 3 },
       enemies: [
-        // PREUVE (c) — tir PAR-DESSUS le clayonnage : posté contre l'arête (23,29)E, il est vu depuis
-        // (24,31)/(24,32) et le tir part (couvert d'arête « Intermédiaire », +0).
-        { creature: { id: 'gobelin' }, pos: { x: 23, y: 29 }, facing: 'E' },
-        // PREUVE (d) — le tireur ADVERSE voit et tire à travers SA cloison : posté contre (19,32)E,
+        // PREUVE (c) — tir PAR-DESSUS le clayonnage : posté contre l'arête (31,35)E, il est vu depuis
+        // (32,37)/(32,38) et le tir part (couvert d'arête « Intermédiaire », +0).
+        { creature: { id: 'gobelin' }, pos: { x: 31, y: 35 }, facing: 'E' },
+        // PREUVE (d) — le tireur ADVERSE voit et tire à travers SA cloison : posté contre (27,38)E,
         // dans la stalle du sud-ouest, l'arc à la main, à 5 cases du groupe.
-        { creature: { id: 'gobelin' }, pos: { x: 19, y: 32 }, facing: 'E', inventaire: { arc: false } },
-        // CONTRE-ÉPREUVE (c) — même distance, mur d'habitation PLEIN : derrière l'arête (25,31)E
+        { creature: { id: 'gobelin' }, pos: { x: 27, y: 38 }, facing: 'E', inventaire: { arc: false } },
+        // CONTRE-ÉPREUVE (c) — même distance, mur d'habitation PLEIN : derrière l'arête (33,37)E
         // (`mur-a-ossature-en-bois`, sans fenêtre), le tir est REFUSÉ faute de Ligne de Vue.
-        { creature: { id: 'gobelin' }, pos: { x: 26, y: 31 }, facing: 'O' },
+        { creature: { id: 'gobelin' }, pos: { x: 34, y: 37 }, facing: 'O' },
       ],
     },
   ]);

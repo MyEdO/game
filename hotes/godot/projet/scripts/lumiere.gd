@@ -134,10 +134,11 @@ func _poser_les_sources(sources: Array, metres_par_case: float) -> void:
 
 
 ## La brume suit la distance de la caméra au point qu'elle vise, que le zoom change, ou part de l'œil
-## (`brume.depuisLOeil`).
+## (`brume.depuisLOeil`), et s'épaissit à la puissance `brume.courbe`.
 func _process(_delta: float) -> void:
 	if _brume.is_empty():
 		return
 	var distance := 0.0 if _brume.depuisLOeil else get_viewport().get_camera_3d().position.z
 	_environnement.fog_depth_begin = MiseEnPage.profondeur_de_brume(distance, _brume.debutCases)
 	_environnement.fog_depth_end = MiseEnPage.profondeur_de_brume(distance, _brume.finCases)
+	_environnement.fog_depth_curve = _brume.courbe

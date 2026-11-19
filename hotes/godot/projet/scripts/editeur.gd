@@ -12,7 +12,8 @@
 ## (`MontageDesModeles`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
-## (`Monde.etiqueter`), puis le geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête
+## (`Monde.etiqueter`), puis le geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), sous eux le
+## contour de la zone jouable (`surcouche.zoneJouable`), et l'arête
 ## sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
 ## (`Monde.poser_le_calque`) ; chaque zone de l'écran (`Zone.racines`) reçoit les éléments de sa source (`vue.zones`). Les
 ## calques de la campagne se gardent dans `user://calques/<id>.json`, relus à l'ouverture et réécrits à chaque `memoire`,
@@ -33,7 +34,8 @@ extends Node
 ## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
 ## (`VolumeDeScene.poser_les_aretes`), ses navires, chacun sous le modèle de son corps, et ses décors servis (`decors`),
 ## chacun sous le modèle de son élément, comme au plateau (`MontageDesModeles`), la surcouche en plaques sur le sol de
-## ses cases (`Monde.peindre`) : chaque zone nommée au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
+## ses cases (`Monde.peindre`) : le contour de la zone jouable (`surcouche.zoneJouable`) sous tout le reste, chaque
+## zone nommée au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
 ## repère, celui de la sélection en survol, nommé au-dessus de sa case (`Monde.etiqueter`), puis le geste en cours,
 ## l'arête sélectionnée gainée (`Monde.choisir_l_arete`) et le calque de la couche sous sa planche
 ## (`Monde.poser_le_calque` : un quadrilatère sur ses quatre coins, juste au-dessus de son plan et sans test de
@@ -68,7 +70,7 @@ const CALQUES := "user://calques"
 var _zones: Array[Zone] = []
 ## La dernière réponse montrée : sa vue et sa surcouche.
 var _vue: Dictionary = {}
-var _surcouche: Dictionary = {cases = [], arete = null, reperes = [], zones = [], poignee = null}
+var _surcouche: Dictionary = {cases = [], arete = null, reperes = [], zones = [], poignee = null, zoneJouable = []}
 ## Le calque de la dernière réponse, `null` sans lui.
 var _calque: Variant = null
 ## Le dernier point de la carte que le pointeur tenu a touché, `null` bouton relâché.
@@ -159,6 +161,8 @@ func _suivre(reponse: Dictionary) -> void:
 	_monde.choisir_l_arete(_surcouche.arete)
 	var plaques := {}
 	var noms := {}
+	for c in _surcouche.zoneJouable:
+		plaques[Vector3i(int(c.x), int(c.y), int(c.z))] = Monde.ITEM_ATTEIGNABLE
 	for zone in _surcouche.zones:
 		if zone.choisi:
 			for c in zone.cases:

@@ -20,11 +20,11 @@ poser([
   frise(3),
   gauche(`
     ${rub('Méthode')}
-    <div class="onglets-m methodes" style="margin-top:4px">${METHODES.map(([m, px, e]) => plaque(m, { armee: e === ETAT, prix: px })).join('')}</div>
+    <div class="onglets-m methodes" style="margin-top:4px">${METHODES.map(([m, px, e]) => plaque(m, { armee: e === ETAT, prix: px, taille: 'petite' })).join('')}</div>
     <div class="tirage-c">${ETAT === 'points'
     ? `<span class="jeton ${reste ? 'cire' : 'or'}">À répartir &nbsp;·&nbsp; ${reste} / 100</span><span class="rub"><span class="note">De quatre à dix-huit points par Caractéristique.</span></span>`
-    : `<div class="de moyen">${picto('des', 20, '#2a0906', 1.6)}</div><div style="flex:1">${rub('Les dix 2d10', 'tirés')}</div>${plaque('Relancer les dix 2d10', { prix: 'sans PX', style: 'flex:none;width:262px;height:32px' })}`}</div>
-    ${sep()}
+    : `<div class="de moyen">${picto('des', 20, '#2a0906', 1.6)}</div><div style="flex:1">${rub('Les dix 2d10', 'tirés')}</div>${plaque('Relancer les dix 2d10', { prix: 'sans PX', style: 'flex:none;width:262px', taille: 'petite' })}`}</div>
+    ${filet({ fondu: true, losange: true })}
     <div style="display:flex;align-items:center;justify-content:space-between">${rub('Augmentations de carrière', 'Artiste Apprentie')}<span class="jeton or">À répartir &nbsp;·&nbsp; 0 / 5</span></div>
     <div class="lignes" style="margin-top:3px">${repartie('F', 'Force', 0, 5, valeur(2), true)}${repartie('I', 'Initiative', 2, 5, valeur(4), true)}${repartie('Dex', 'Dextérité', 3, 5, valeur(6), true)}</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:17px">${rub('Destin et Résilience', 'Humains : 2 et 1')}<span class="jeton or">À répartir &nbsp;·&nbsp; 0 / 3</span></div>
@@ -34,7 +34,7 @@ poser([
     <div class="nom" style="margin-top:13px" data-texte="titre de page">${NOMS[VISEE]}</div>
     <div class="sous">${ETAT === 'points' ? `${PORTE[VISEE]} points` : `${PORTE[VISEE]} aux dés`} + 20 des Humains + 3 Augmentations</div>
     ${ETAT === 'reassigner' ? `<div style="align-self:stretch;margin:11px 0 5px">${rub('Le jet de Dextérité', 'en prendre un autre échange les deux')}</div>
-      <div class="jets">${JETS.map((j) => `<div class="jet ${PORTE.indexOf(j) === VISEE ? 'pris' : ''}"><div class="de petit">${j}</div><i>${ABR[PORTE.indexOf(j) + 1]}</i></div>`).join('')}</div>` : ETAT === 'points' ? '<div style="height:8px"></div>' : sep()}
+      <div class="jets">${JETS.map((j) => `<div class="jet ${PORTE.indexOf(j) === VISEE ? 'pris' : ''}"><div class="de petit">${j}</div><i>${ABR[PORTE.indexOf(j) + 1]}</i></div>`).join('')}</div>` : ETAT === 'points' ? '<div style="height:8px"></div>' : filet({ fondu: true, losange: true })}
     ${ETAT === 'reassigner' ? '' : `<p class="prose" style="margin-top:2px" data-texte="texte de la caractéristique">Elle indique votre capacité à accomplir des tâches manuelles délicates telles que jouer d'un instrument de musique ou confectionner habilement des objets. Elle vous aide aussi pour les tours de passe-passe ou pour faire les poches.</p>`}
     <div class="faits" style="margin-top:auto"><div class="fait">${rub('Blessures')}<b>BF + (2 × BE) + BFM</b></div><div class="fait">${rub('Chance, Détermination')}<b>Destin, Résilience</b></div></div>`),
   herosNeuf({ acquis: [...ACQUIS.slice(0, 2), ['Caractéristiques', ...ACQUIS_ICI]], pose: .3, refus: reste && ETAT === 'points' ? `Répartition des 100 Points : total ${100 - reste}/100 Points.` : null }),

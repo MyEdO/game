@@ -2,7 +2,6 @@
    salle commune de l'auberge La Diligence sous ses trois vues (isométrique, du dessus, par les yeux du meneur) et la
    route d'Altdorf de nuit. Maquette hors du jeu : le décor est
    dessiné, il ne prétend pas être le rendu du moteur. */
-flou('f6', 6);
 grad('gauche', [[0, '#000', .62], [1, '#000', 0]], { x1: 0, y1: 0, x2: 1, y2: 0 });
 radial('droite', [[0, '#000', .7], [.55, '#000', .35], [1, '#000', 0]]);
 radial('froid', [[0, '#2a3a6a', 0], [1, '#2a3a6a', .55]]);

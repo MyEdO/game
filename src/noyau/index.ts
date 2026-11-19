@@ -147,6 +147,7 @@ export {
   type Regard,
 } from './monde/aretes';
 export type { Scene } from './monde/scene';
+export type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,

@@ -63,7 +63,7 @@ EDOC 08 l.131-180, LDB 09 l.554, LDB 18 l.296, LDB 66 l.5-28, LDB 23, NADJ 16.
 
 | État | Intention | Choix à valider |
 |---|---|---|
-| `bivouac` | la halte de nuit en scène, couchage et nourriture réglés par héros au bandeau, l'abri lu | effet de la tente ; sac de couchage non montré |
+| `bivouac` | la halte de nuit en scène, nourriture réglée par héros au bandeau, abri choisi (tente, belle étoile, abri de fortune), « Qui dort où » et sac de couchage | places de la tente (nombre non chiffré) |
 | `nuit-a-l-auberge` | la salle de l'auberge, les offres au prix de la maison dont la grande chambre, la part de chaque héros, un poste de soirée par héros | une activité de soirée par héros ; boire une pinte ; écurie |
 | `services-du-lieu-medecin` | la page des services d'un lieu ouverte sur le médecin, soins du patient choisi au bandeau, payés par acte | prix de la visite (LDB 75 l.19 donne une fourchette) ; Chirurgie en valeur maison ; rail du quartier ou du bâtiment |
 | `jeux-de-taverne` | le service des jeux de l'auberge, la table et ses joueurs | jeux proposés par maison ; mise libre |
@@ -255,9 +255,10 @@ qu'elle prolonge, et une pièce neuve s'ajoute à ce socle plutôt que dans une 
 (`lieux-et-nuit/commun.css`, `commun.js`, `bustes.js`), que lient `heros`, `exploration-et-recit`, `voyage`,
 `commerce` et les écrans hors champ de `combat-suite` ; celui du combat (`combat/combat.css`, `socle.js`), que lient
 `combat-suite` et le combat naval de `voyage`. `accueil-et-systeme`, que prolonge `outils`, garde sa propre feuille
-commune. Deux socles de gestes se posent sur les trois, et aucune famille n'en recopie une pièce. La charte
-(`gestes.css`, `gestes.js`, que toute page charge) : la croix qui ferme un panneau, la pastille de retour d'un lieu,
-le réglage − +, la bulle de la raison d'un refus au survol, le médaillon de bourse qui dit qui paie (#3004). Le jet
+commune. Deux socles de gestes se posent sur les trois, et aucune famille n'en recopie une pièce. Le kit
+(`gestes.css`, `gestes.js`, que toute page charge avant son socle) : la définition unique de chaque pièce d'interface,
+cotes et signatures dans `propositions/kit.md`, chacune posée à chaque taille et dans chaque état sur la planche
+(`sources/kit/planche-*.html`). Le jet
 (`combat/jet.css`, `jet.js`) : le bandeau du bas, ses camps et son verdict, le testeur et les réglages d'avant le dé,
 les réserves du héros, les gestes d'avant et d'après le dé ouverts ou fermés selon la règle (LDB 17 l.23-24, l.68),
 les dés réglables de la Résilience, le choix par carte.

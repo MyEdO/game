@@ -64,6 +64,7 @@ const ZONE_HINT: Record<ZoneVariant, string> = {
   trigger: 'Les effets s’éditent ensuite dans le panneau Logique.',
   rest: 'Lieux et qualité du repos s’éditent ensuite dans l’inspecteur.',
   effect: 'Effets et déclencheur s’éditent ensuite dans l’inspecteur.',
+  jouable: 'Le dehors de la zone se bâtit et se voit, mais ne se joue pas.',
 };
 
 /** Famille du rail correspondant à l'outil actif. */
@@ -498,6 +499,7 @@ export function Palette({
                 { key: 'trigger', label: <><Icon id="outil-de-carte/zone" size="sm" /> Trigger — déclenche des effets quand le groupe y entre</>, selected: tool.zone === 'trigger', onSelect: () => setTool({ mode: 'zone', zone: 'trigger' }) },
                 { key: 'rest', label: <><Icon id="repos/campement" size="sm" /> Zone de repos — offre de repos locale (auberge/maison/camp)</>, selected: tool.zone === 'rest', onSelect: () => setTool({ mode: 'zone', zone: 'rest' }) },
                 { key: 'effect', label: <><Icon id="interface/attention" size="sm" /> Piège / hasard — Dégâts ou États à la traversée / au stationnement</>, selected: tool.zone === 'effect', onSelect: () => setTool({ mode: 'zone', zone: 'effect' }) },
+                { key: 'jouable', label: <><Icon id="outil-de-carte/zone" size="sm" /> Zone jouable — le rectangle où se joue la scène</>, selected: tool.zone === 'jouable', onSelect: () => setTool({ mode: 'zone', zone: 'jouable' }) },
               ]}
             />
             <p className="hint">Glissez sur la carte pour dessiner le rectangle. {ZONE_HINT[tool.zone]}</p>

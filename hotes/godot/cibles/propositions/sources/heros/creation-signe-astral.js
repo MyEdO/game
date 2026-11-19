@@ -37,17 +37,17 @@ poser([
       </div>
       <div class="col">${rub('Variante au d10')}<div style="display:flex;align-items:center;gap:9px"><div class="de petit vide"></div><span class="rub" style="white-space:normal;width:92px"><span class="note">L'Étoile du Sorcier seule</span></span></div></div>
     </div>
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     ${rub('Signe astral')}
     <div class="deux" style="margin-top:4px">
       <div class="lignes">${SIGNES.slice(0, 10).map(ligneDeSigne).join('')}</div>
       <div class="lignes">${SIGNES.slice(10).map(ligneDeSigne).join('')}</div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:9px">${rub('Sa variante')}<div class="pills" style="flex-wrap:nowrap;gap:5px">${ETOILE_DU_SORCIER.map(([d, v]) => `<span class="pill" style="padding:0 8px"><b class="lin" style="font-size:10.5px;margin-right:5px">${d}</b>${v}</span>`).join('')}</div></div>`),
+    <div style="display:flex;align-items:center;gap:10px;margin-top:9px">${rub('Sa variante')}<div class="pills" style="flex-wrap:nowrap;gap:5px">${ETOILE_DU_SORCIER.map(([d, v]) => `<span class="pill" style="padding:0 8px"><b class="chiffres" style="font-size:10.5px;margin-right:5px">${d}</b>${v}</span>`).join('')}</div></div>`),
   centre('Signe de la Précision', `
     <div class="vignette laiton" style="height:140px;margin-top:10px">${ciel()}</div>
     <div class="nom" style="margin-top:9px" data-texte="nom du signe">Le Trait du Peintre</div>
-    ${sep()}
+    ${filet({ fondu: true, losange: true })}
     <div class="faits">
       <div class="fait">${rub('Nom classique')}<b>Verros</b></div>
       <div class="fait">${rub('Dates')}<b>9 nachhexen – 28 nachhexen</b></div>

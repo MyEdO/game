@@ -25,7 +25,8 @@
 import { buildings } from '../../data/index';
 import { memoParVersion } from '../../data/versionDataset';
 import type { BuildingDef, BuildingFeature } from '../../data/index';
-import type { ArchitectureRect } from './scene';
+import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
+import type { } from './scene';
 
 
 /** Ce qu'un porteur de type de bâtiment NOMME à l'écran : l'id qu'il référence et son libellé FR. */
@@ -64,7 +65,7 @@ export function buildingFeatures(style: { id: string } | undefined): BuildingFea
 
 /** Union des rectangles d'une emprise (`BuildingMass.footprint`, plusieurs rectangles) en un ensemble de
  *  cellules (clés « x,y »). */
-export function massFootprintCells(footprint: readonly ArchitectureRect[]): Set<string> {
+export function massFootprintCells(footprint: readonly RectDeCases[]): Set<string> {
   const out = new Set<string>();
   for (const rect of footprint)
     for (let y = rect.y; y < rect.y + rect.h; y++)
@@ -73,7 +74,7 @@ export function massFootprintCells(footprint: readonly ArchitectureRect[]): Set<
 }
 
 /** Boîte englobante d'une empreinte de masse (`BuildingMass.footprint`, plusieurs rectangles). */
-export function massFootBBox(footprint: readonly ArchitectureRect[]): ArchitectureRect {
+export function massFootBBox(footprint: readonly RectDeCases[]): RectDeCases {
   const x = Math.min(...footprint.map((r) => r.x));
   const y = Math.min(...footprint.map((r) => r.y));
   const x1 = Math.max(...footprint.map((r) => r.x + r.w));
@@ -83,6 +84,6 @@ export function massFootBBox(footprint: readonly ArchitectureRect[]): Architectu
 
 /** Le toit d'un bâtiment composé doit-il être masqué (cutaway) ? Vrai dès qu'un allié se tient dans
  *  l'empreinte du toit — l'intérieur est tout-en-scène, plus aucune scène-intérieur séparée. */
-export function roofHidden(foot: ArchitectureRect, allies: { x: number; y: number }[]): boolean {
+export function roofHidden(foot: RectDeCases, allies: { x: number; y: number }[]): boolean {
   return allies.some((a) => a.x >= foot.x && a.x < foot.x + foot.w && a.y >= foot.y && a.y < foot.y + foot.h);
 }

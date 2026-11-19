@@ -5,7 +5,7 @@
  * de terrain, et les VÉRITÉS DE SCÈNE (visible/surplomb/fantôme/surplomb plein). PUR et
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
-import { Scene, tileAt, isWalkable, sceneMetresPerTile, wallEnds, type CellSide, type SceneDuVolume } from '../scene';
+import { Scene, tileAt, solPraticable, sceneMetresPerTile, wallEnds, type CellSide, type SceneDuVolume } from '../scene';
 import { estAbsent, terrainBuilt, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
 import type { Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';
@@ -48,7 +48,7 @@ export function edgeBlends(scene: SceneDuVolume, x: number, y: number, z = 0): E
  *  ne descend PAS jusqu'au sol (dalle fine + piliers), la couche du dessous reste visible/passable. */
 export function isOverhang(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   if (z <= 0) return false;
-  for (let zz = z - 1; zz >= 0; zz--) if (isWalkable(scene, x, y, zz)) return true;
+  for (let zz = z - 1; zz >= 0; zz--) if (solPraticable(scene, x, y, zz)) return true;
   return false;
 }
 
@@ -97,7 +97,7 @@ function cappedAbove(scene: SceneDuVolume, x: number, y: number, z: number): boo
 
 /** Hauteur d'AFFICHAGE de la surface INFÉRIEURE sous un surplomb (1ʳᵉ couche marchable en dessous), ou null. */
 function overhangLowerHeight(scene: SceneDuVolume, x: number, y: number, z: number): number | null {
-  for (let zz = z - 1; zz >= 0; zz--) if (isWalkable(scene, x, y, zz)) return displayHeightAt(scene, x, y, zz);
+  for (let zz = z - 1; zz >= 0; zz--) if (solPraticable(scene, x, y, zz)) return displayHeightAt(scene, x, y, zz);
   return null;
 }
 

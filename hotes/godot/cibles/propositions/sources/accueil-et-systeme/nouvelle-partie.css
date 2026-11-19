@@ -1,17 +1,15 @@
-#rail{top:132px;width:300px}
+#rail{width:300px}
 #rail .fond{padding:22px 12px 12px;gap:8px}
 #rail .deux{display:flex;gap:7px}
 #rail .deux .plaque{flex:1}
 #rail .deux .plaque>div{justify-content:center;padding:0 4px;font-size:14px}
 #rail .pied{margin-top:2px;font-size:12px}
 #rail .tourne{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
-#rail .tourne .bouton-rond{width:32px;height:32px}
 #rail .tourne span{font-size:13.5px;color:#f0e2c2}
 #rail .trait{height:1px;background:rgba(226,192,106,.28);margin:4px 2px}
 
 #salle{position:absolute;left:0;top:0}
 #recruter{position:absolute;width:150px}
-#recruter .plaque{height:34px}
 #recruter .plaque>div{font-size:14.5px}
 
 #panneau{left:1322px;top:74px;width:362px;height:528px}
@@ -21,28 +19,22 @@
 .affiche .sur{font-size:11.5px;letter-spacing:1.2px;color:#6b1c10;white-space:nowrap}
 .affiche .n{font-size:33px;line-height:52px;margin:-7px 0 -10px;color:#3a1a10;white-space:nowrap}
 .affiche .ch{font-size:13.5px;color:#3a2a18;white-space:nowrap}
-.affiche .filet-l{color:#5a4530;margin:9px 30px 8px}
+.affiche .filet{margin:9px 30px 8px}
 .affiche p{margin:0 0 13px;font-style:italic;font-size:14px;line-height:19px;color:#2a1d12;text-align:left}
-.affiche .plaque{height:42px;width:200px;margin:0 auto}
+.affiche .plaque{width:200px;margin:0 auto}
 .affiche .plaque>div{font-size:16.5px}
 .affiche .cachet{position:absolute;right:14px;bottom:14px}
-.affiche .cachet .sceau{width:38px;height:38px}
 .avis{position:absolute;display:flex;align-items:center;gap:10px;width:284px;height:48px;padding:0 16px 0 28px;box-shadow:0 4px 9px rgba(0,0,0,.55),0 0 0 1px rgba(40,25,10,.9),inset 0 0 14px rgba(90,60,20,.4)}
 .avis .clou{left:10px;top:21px}
 .avis b{font-size:20px;line-height:24px;color:#3a1a10;white-space:nowrap}
 
-.heros .renvoi{display:flex;align-items:center;gap:6px;margin-top:11px}
+.heros .renvoi{display:flex;align-items:center;gap:6px;margin-top:11px;color:var(--creme-2)}
 .heros .renvoi span{font-size:12px;color:var(--creme-2)}
-.heros.libre .portrait.vide{width:74px;height:94px}
-.heros.libre .portrait.vide>div{display:grid;place-items:center;background:radial-gradient(90% 80% at 50% 28%,#2a2420,#14110e 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.7)}
-.heros.libre .portrait.vide svg{width:26px;height:26px}
-.heros.libre .nom{color:#c9b995}
-#coins{top:706px}
+.heros:has(>.portrait.vide) .nom{color:var(--creme-2)}
 
 /* les gestes du personnage pointé, le siège de la place libre */
 #recruter .du-roster{display:flex;justify-content:center;gap:0;margin-top:9px}
 #recruter .du-roster .outil{width:75px}
-#recruter .du-roster .outil .bouton-rond{width:38px;height:38px}
 .heros .renvoi i{width:1px;height:11px;margin:0 5px;background:rgba(226,192,106,.35)}
 .heros .siege{display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12px;color:var(--creme-2)}
 .heros .siege .segments b{padding:2px 8px 3px;font-size:12px}

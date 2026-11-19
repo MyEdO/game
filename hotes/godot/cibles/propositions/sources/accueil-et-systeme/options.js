@@ -4,12 +4,12 @@
    « Destin & Résistance » et l'action de sa règle (src/data/reglesOptionnelles.json:128-147). */
 const ETAT = document.getElementById('ecran').dataset.etat ?? '';
 const VERROU = 'Règles verrouillées : un combat est en cours. Le moteur les lit en direct — les changer maintenant réécrirait un combat déjà commencé (réserves d’Avantage, Initiative, Blessures). Terminez le combat pour les modifier.';
-const curseur = (v, min, max, texte = v, l = 118) => `<span class="curseur"><span class="reglette" style="width:${l}px"><u style="width:${100 * (v - min) / (max - min)}%"></u><i style="left:${100 * (v - min) / (max - min)}%"></i></span><span class="val gothique">${texte}</span></span>`;
+const curseur = (v, min, max, texte = v, l = 118) => `<span class="curseur">${reglette((v - min) / (max - min), l)}<span class="val gothique">${texte}</span></span>`;
 const liste = (v) => `<span class="pas-a-pas">${picto('gauche', 15, '#5a4530', 2)}<b class="rubrique">${v}</b>${picto('droite', 15, '#5a4530', 2)}</span>`;
 const regle = ({ nom, ref, c, maison = false, modifiee = false, aide = null, action = null }) => `
   <div class="regle ${aide ? 'pointee' : ''} ${modifiee ? 'modifiee' : ''}">
     <div class="t"><b data-texte="règle ${nom}">${nom}</b><span class="ref rubrique">${ref}${maison ? ' · valeur maison' : ''}</span></div>
-    <div class="c">${aide && ETAT === 'verrou' ? raison(VERROU) : ''}${modifiee ? `<span class="defaut rubrique">${picto('retour', 12, '#6b1c10', 2)}Défaut</span>` : ''}${c}</div>
+    <div class="c">${aide && ETAT === 'verrou' ? raison(VERROU) : ''}${modifiee ? `<span class="defaut rubrique">${picto('annuler', 12, '#6b1c10', 2)}Défaut</span>` : ''}${c}</div>
     ${aide ? `<p class="aide" data-texte="aide">${aide}</p>` : ''}
     ${action ? `<div class="action">${plaque(action, { armee: true, icone: 'etoile' })}</div>` : ''}
   </div>`;
@@ -39,8 +39,8 @@ const volume = (v) => curseur(v, 0, 100, v + ' %', 104);
 
 monter([
   fondDeTable(),
-  titre({ icone: 'systeme', nom: 'Options', sous: 'Préférences et règles maison', largeur: 392 }),
-  `<div id="preferences" class="cadre bois" data-piece="préférences"><div class="fond bois"><span class="ruban rubrique">Préférences</span>
+  cartouche({ icone: 'systeme', nom: 'Options', sous: 'Préférences et règles maison', taille: 'titre', largeur: 392 }),
+  `<div id="preferences" class="cadre bois" data-piece="préférences"><div class="fond bois">
      ${pref('Couper le son', ouiNon(false))}
      ${pref('Volume de la musique', volume(70))}
      ${pref('Volume des ambiances', volume(80))}
@@ -49,20 +49,20 @@ monter([
      <div class="trait"></div>
      ${pref('Cadence de combat', segments(['Manuel', 'Rapide', 'Auto'], 'Manuel'), 'Chaque jet d’un héros passe par sa modale.')}
      ${pref('Dés fixés', ouiNon(false), 'Un champ pour saisir vous-même la valeur du d100, sur les jets que vous contrôlez.')}
-   </div>${ferrures}</div>`,
-  `<div id="signets" data-piece="signets">${DOMAINES.map(([n, k]) => `<div class="signet ${n === OUVERT.nom ? `ouvert ${n.length > 12 ? 'serre' : ''}` : ''}"><span class="rubrique">${n}</span>${MODIFIES[n] ? '<i class="cire"></i>' : ''}<em class="lin">${k}</em></div>`).join('')}</div>`,
+   </div>${ruban('Préférences')}${ferrures}</div>`,
+  signets(DOMAINES.map(([nom, compte]) => ({ nom, compte, marque: !!MODIFIES[nom] })), OUVERT.nom),
   `<div id="registre" class="${ETAT === 'verrou' ? 'verrou' : ''}" data-piece="registre"><div class="tranche"></div>
      <div class="feuille g parchemin">
        <div class="tete"><span class="dom gothique" data-texte="domaine">${OUVERT.nom}</span><span class="sous rubrique">Règles maison · ${OUVERT.n} règle${OUVERT.n > 1 ? 's' : ''}</span></div>
-       <div class="filet-l"><i></i></div>
+       ${filet({ losange: true })}
        ${OUVERT.gauche.map(regle).join('')}
-       <div class="pied"><div class="bouton-rond fer ferme"><div>${picto('gauche', 16, '#7d7668', 1.8)}</div></div><span class="folio rubrique">Feuillet 1 sur ${OUVERT.droite.length ? 2 : 1}</span><span class="marque">${sceau('plume', 11)}<i>1 règle modifiée</i></span></div>
+       <div class="pied">${rond('gauche', 'petit', { ferme: true })}<span class="folio rubrique">Feuillet 1 sur ${OUVERT.droite.length ? 2 : 1}</span><span class="marque">${sceau('plume', 'menu')}<i>1 règle modifiée</i></span></div>
      </div>
      ${OUVERT.droite.length ? `<div class="feuille d parchemin">
        <div class="tete"><span class="sous rubrique">Combat, suite</span><span class="sous rubrique">Règles 7 à 12 sur 22</span></div>
-       <div class="filet-l"><i></i></div>
+       ${filet({ losange: true })}
        ${OUVERT.droite.map(regle).join('')}
-       <div class="pied"><span class="suite"><span class="rubrique">Feuillet suivant</span>${rond('droite', 16)}</span></div>
+       <div class="pied"><span class="suite"><span class="rubrique">Feuillet suivant</span>${rond('droite', 'petit')}</span></div>
      </div>` : '<div class="feuille d parchemin"></div>'}
      ${CLOUS}
    </div>`,

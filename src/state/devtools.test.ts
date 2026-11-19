@@ -1375,7 +1375,7 @@ describe('__wfrp.visibleCount / __wfrp.walls — sondes de brouillard et d’ar�
     expect(clayonnage.length).toBe(parStructure['cloture-en-clayonnage']);
     expect(clayonnage.every((w) => w.structure === 'cloture-en-clayonnage')).toBe(true);
     // La séparation de box des écuries que la recette vise (aucune fenêtre, aucune porte).
-    expect(clayonnage).toContainEqual(expect.objectContaining({ x: 23, y: 30, side: 'E', window: false, door: false }));
+    expect(clayonnage).toContainEqual(expect.objectContaining({ x: 31, y: 36, side: 'E', window: false, door: false }));
   });
 
   it('`closed` rend l’état VIVANT d’une porte (flags de scène), jamais son seul champ authoré', () => {

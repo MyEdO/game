@@ -430,7 +430,12 @@ static func energie_vacillante(energie: float, amplitude: float, hz: float, seco
 
 ## Le centre du sol d'un plateau de `taille` cases.
 static func centre_du_plateau(taille: Vector2i) -> Vector3:
-	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
+	return centre_de_la_zone(0, 0, taille.x, taille.y)
+
+
+## Le centre du sol du rectangle de `w` × `h` cases depuis la case (`x`, `y`) (la zone jouable, `plateau.zoneJouable`).
+static func centre_de_la_zone(x: int, y: int, w: int, h: int) -> Vector3:
+	return Vector3(x + w / 2.0, 0.0, y + h / 2.0)
 
 
 ## Le centre du sol du hors-carte (`Lumiere`) d'un plateau de `taille` cases : sous le centre du plateau, enfoui de

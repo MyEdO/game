@@ -4,8 +4,9 @@
  * cheminée sur la couverture et une enseigne au mur, et une taverne (cases x 8 à 10, y 1 à 3) à porte au sud, en
  * (9, 4).
  */
+import type { RectDeCases } from '../../../data/schemas/grammaire/valeurs';
 import {
-  emptyScene, type ArchitectureRect, type BuildingMass, type FacadeFeature, type Scene, type WallSeg,
+  emptyScene, type BuildingMass, type FacadeFeature, type Scene, type WallSeg,
 } from '../scene';
 import { nappeKey } from './toits';
 
@@ -20,7 +21,7 @@ export const FEATURES: FacadeFeature[] = [
   { id: 'enseigne', kind: 'sign', edge: { x: 3, y: 5, side: 'N' }, offset: 0.5 },
 ];
 
-const masse = (foot: ArchitectureRect): BuildingMass => ({
+const masse = (foot: RectDeCases): BuildingMass => ({
   id: 'corps', z: 0, footprint: [foot], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30,
   material: { id: 'tuile' },
 });

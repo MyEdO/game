@@ -1,8 +1,5 @@
-/* Pièces navales au-dessus du socle du combat (`../combat/socle.js`) : la compagnie du voyage (`../lieux-et-nuit/bustes.js`)
-   et le buste d'un navire dans l'ordre du tour, un navire sur la grille, la mer du combat. */
-Object.assign(BUSTES, COMPAGNIE, {
-  navire: '<path d="M6 66h66l-9 17H16z"/><path d="M37 12h4v54h-4z"/><path d="M13 23c17 5 35 5 52 0 3 12 3 25-1 35-17 5-33 5-50 0-4-10-4-23-1-35z"/><path d="M41 12l14 4-14 4z"/>',
-});
+/* Pièces navales au-dessus du socle du combat (`../combat/socle.js`) : un navire sur la grille, la mer du combat et ce
+   qu'elle porte (`MerDuCombat`, `../maquettes/maquette.ts`), les voiles du bord de l'écran. */
 /* un navire sur la grille : coque le long de l'axe i, proue vers +i (sens = 1) ou −i (sens = −1) */
 function navire(g, i, j, { sens = 1, coque = ['#7a5a3a', '#4a3320', '#2a1c12'], voile = '#7d2020' } = {}) {
   const q = (di, dj) => P(i + sens * di, j + sens * dj), pts = (l) => l.map(([a, b]) => q(a, b).join(',')).join(' ');
@@ -28,6 +25,16 @@ function merDeCombat() {
   const r = alea(5), v = el(S, 'g', { fill: 'none', stroke: '#e6efec', 'stroke-width': 1.3, opacity: .3 });
   for (let k = 0; k < 90; k++) { const x = r() * W, y = r() * H, w = 18 + r() * 30; el(v, 'path', { d: `M${x} ${y}q${w / 4} -${w / 8} ${w / 2} 0t${w / 2} 0` }); }
 }
+/* la mer du combat à l'état qu'elle dessine : les cases où l'actif peut porter son navire (la dernière, où il va), celles
+   où porte la batterie adverse, les navires à leur cap ; les voiles par-dessus */
+const AVANCE = (k, n) => (k === n - 1 ? .5 : .34);
+function merDuCombat({ navires, avance, batterie }) {
+  merDeCombat();
+  const a = el(S, 'g'); avance.forEach(([i, j], k) => { const [x, y] = P(i, j); el(a, 'path', { d: losange(x, y, A - 3, B - 1.5), fill: '#e2c06a', opacity: AVANCE(k, avance.length), stroke: '#f3dc93', 'stroke-width': 1.5 }); });
+  const b = el(S, 'g'); for (const [i, j] of batterie) { const [x, y] = P(i, j); el(b, 'path', { d: losange(x, y, A - 3, B - 1.5), fill: '#b9412c', opacity: .22, stroke: '#b9412c', 'stroke-width': 1 }); }
+  for (const n of navires) navire(el(S, 'g'), ...n.case, n.ennemi ? { sens: n.cap, coque: ['#4a4a52', '#2c2c34', '#18181e'], voile: '#16161c' } : { sens: n.cap });
+  voiles();
+}
 const voiles = () => { el(S, 'rect', { width: W, height: H, fill: 'url(#vignette)' }); el(S, 'rect', { x: 0, y: 0, width: 330, height: H, fill: 'url(#gauche)' }); el(S, 'rect', { x: 0, y: 500, width: W, height: 280, fill: 'url(#bas)' }); };
-// Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { navire, merDeCombat, voiles });
+// Partagé avec les scripts chargés après celui-ci.
+Object.assign(globalThis, { merDuCombat, voiles });

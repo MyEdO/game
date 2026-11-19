@@ -1198,6 +1198,16 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
     expect([idDeLaSceneEditee(future), sceneEditee(future).id, couches(future, 'aa')], 'rétablir').toEqual(['aa', 'aa', [0, 1]]);
   });
 
+  it('agrandie par son bord ouest et nord, la scène pousse sa grille et ses calques d’autant (#4392)', () => {
+    const calee = jouer(ouvrirLEdition(projet, true), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
+    const agrandie = jouer(calee, { geste: 'scene', patch: { dimensions: { w: 6, h: 5, decalage: { x: 2, y: 1 } } } });
+    const avant = calqueDeLaCouche(calee)!.calage;
+    expect([sceneEditee(agrandie).dimensions, calqueDeLaCouche(agrandie)!.calage]).toEqual([{ w: 6, h: 5 }, { ...avant, tx: avant.tx + 2, ty: avant.ty + 1 }]);    expect(calqueDeLaCouche(jouer(agrandie, ANNULER))!.calage, 'annuler l’agrandissement rend le calage').toEqual(avant);
+    expect(calqueDeLaCouche(jouer(agrandie, ANNULER, RETABLIR))!.calage, 'le rétablir le redécale').toEqual(calqueDeLaCouche(agrandie)!.calage);
+    const renommee = jouer(agrandie, { geste: 'identifier', id: 'zz' }, ANNULER);
+    expect(calqueDeLaCouche(renommee)!.calage, 'renommée, la scène garde le décalage à défaire').toEqual(avant);
+  });
+
   it('les calques d’une scène retirée ressuscitent avec elle ; l’enregistrement réussi les oublie', () => {
     const calee = jouer(ouvrirLEdition(projet, true), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
     expect(calqueDeLaCouche(calee)).toBeDefined();

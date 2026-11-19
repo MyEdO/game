@@ -10,7 +10,7 @@
  * tenu en double, et il divergeait par sa CAMÉRA — le geste inversait avec celle du rendu, la sonde
  * avec `store.camPan`, qui vaut (0,0) sur un écran centré sur le groupe.
  */
-import { isWalkable, liftDe, type Scene } from '../../noyau/monde/scene';
+import { liftDe, solPraticable, type Scene } from '../../noyau/monde/scene';
 import { metricToLift } from '../../noyau/monde/relief';
 import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { decorsEnCaseEtage } from '../../noyau/monde/decorIndex';
@@ -194,7 +194,7 @@ export function caseMarchable(scene: Scene, cadre: CadreDePick, g: PointStage, z
     const { x, y } = screenToTileAtLift(cadre.pose, g, lift);
     if (x < 0 || y < 0 || x >= cadre.dims.w || y >= cadre.dims.h) continue;
     if (liftDe(scene, { x, y, z }) !== lift) continue; // cette case n'est pas dessinée à ce lift
-    if (!isWalkable(scene, x, y, z)) continue;
+    if (!solPraticable(scene, x, y, z)) continue;
     return { x, y, z };
   }
   return null;

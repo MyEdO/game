@@ -33,7 +33,7 @@ const SOLEIL_HAUT = '#fff3df';
 const TEINTE_DE_JOUR_DEG = 30;
 /** Énergie de l'ambiante dans le noir complet et en plein jour. */
 const AMBIANTE_NOIRE = 0.08;
-const AMBIANTE_PLEINE = 0.75;
+const AMBIANTE_PLEINE = 1.0;
 /** Teintes de l'ambiante, du ciel et de la brume de nuit, vers lesquelles le palier de lumière les tire. */
 const NUIT = '#141c33';
 /** Teinte de l'ambiante d'un intérieur. */
@@ -96,8 +96,9 @@ export interface LumiereDeLaScene {
   horsCarte: { sol: SolDuHorsCarte | null; fonduCases: number | null };
   /** Brume de profondeur : sa teinte, la pénombre du hors-carte hors de l'immersion (`ambiance.json › iso.stageBg`),
    *  puis où elle commence et où elle couvre tout, en cases au-delà du point visé, ou depuis l'œil (`depuisLOeil`) en
-   *  immersion : celle d'un intérieur quand le groupe est sous un toit (`shelterField`), sinon resserrée par la brume de la météo (`povTightenK`). */
-  brume: { couleur: string; debutCases: number; finCases: number; depuisLOeil: boolean };
+   *  immersion : celle d'un intérieur quand le groupe est sous un toit (`shelterField`), sinon resserrée par la brume de la météo (`povTightenK`) ;
+   *  entre les deux, elle s'épaissit à la puissance `courbe` de la part du chemin parcouru (`fogGamma`). */
+  brume: { couleur: string; debutCases: number; finCases: number; courbe: number; depuisLOeil: boolean };
   sources: SourceDeLumiere[];
 }
 
@@ -113,10 +114,11 @@ function melange(a: string, b: string, t: number): string {
  * `vue.lumiere` (`LumiereDeLaScene`, `src/noyau/lumiereDeLaScene.ts`) est la lumière de la scène à l'heure de la
  * partie, que le noyau calcule entière : Godot n'en pose que les valeurs. Le soleil (`soleil` : la direction unitaire
  * vers lui dans le repère du monde, sa couleur `#rrggbb`, son énergie ; `null` en intérieur et la nuit) suit l'heure et
- * le nord de la scène (`src/noyau/monde/soleil.ts`) ; l'ambiante (`ambiante`) suit le palier de lumière
+ * le nord de la scène (`src/noyau/monde/soleil.ts`) ; l'ambiante (`ambiante`), dehors la moyenne du ciel, de son zénith à son horizon, suit le palier de lumière
  * (`ambientScalar`) ; le ciel (`ciel` : zénith et horizon, `null` en intérieur et hors de l'immersion, dont le fond est
  * la brume) et la brume de profondeur (`brume` : sa couleur, la pénombre du hors-carte hors de l'immersion, puis où
  * elle commence et où elle couvre tout, en cases au-delà du point que la caméra vise, ou depuis l'œil en immersion,
+ * et la puissance `courbe` à laquelle elle s'épaissit entre les deux,
  * `depuisLOeil` : celle d'un intérieur quand le groupe est sous un toit, sinon resserrée par la brume de la météo,
  * `povTightenK`) viennent de l'ambiance du lieu, la nuit et la météo les teintent ; chaque source ponctuelle (`sources`
  * : sa clé, la même d'une vue à l'autre, son foyer en cases, sa couche, sa hauteur en mètres, son rayon en cases, sa
@@ -168,18 +170,20 @@ export function lumiereDeLaScene(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaiss
   const dedans = interieur || (depuisLOeil && shelterSectionAt(shelterField(scene), etat.partyPos.x, etat.partyPos.y) !== null);
   const profondeur = dedans ? pov.depth.indoor : pov.depth.outdoor;
   const resserrement = depuisLOeil && !dedans ? sceneBrume(scene)?.povTightenK ?? 1 : 1;
+  const sol = solDuPourtour(scene);
   return {
     soleil,
     ambiante: {
-      couleur: interieur ? AMBIANTE_INTERIEURE : deNuit(pov.skyTop),
+      couleur: interieur ? AMBIANTE_INTERIEURE : deNuit(melange(pov.skyTop, pov.fogOutdoor, 0.5)),
       energie: AMBIANTE_NOIRE + (AMBIANTE_PLEINE - AMBIANTE_NOIRE) * palier,
     },
     ciel: interieur || !depuisLOeil ? null : { zenith: deNuit(pov.skyTop), horizon: deNuit(pov.fogOutdoor) },
-    horsCarte: { sol: solDuPourtour(scene), fonduCases: depuisLOeil ? null : FONDU_DU_HORS_CARTE_CASES },
+    horsCarte: { sol, fonduCases: depuisLOeil ? null : FONDU_DU_HORS_CARTE_CASES },
     brume: {
       couleur: !depuisLOeil ? ambiance.iso.stageBg : dedans ? pov.fogIndoor : deNuit(pov.fogOutdoor),
       debutCases: profondeur.fogStartT * resserrement,
       finCases: profondeur.farTiles * resserrement,
+      courbe: profondeur.fogGamma,
       depuisLOeil,
     },
     sources: sceneLightSources(etat).flatMap((s): SourceDeLumiere[] => {
