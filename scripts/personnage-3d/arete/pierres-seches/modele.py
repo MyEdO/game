@@ -1,5 +1,5 @@
 """Le mur de pierres sèches (#4471) : le GLB `arete--pierres-seches`, un nœud par pièce de `BATIR`, bâti d'après
-`donnees.py` dans le repère d'une arête (`geometrie.py`) par l'appareil de `maconnerie`. Chaque pierre est une boîte
+`donnees.py` dans le repère d'une arête (`geometrie.py`) par l'appareil de `maconnerie`. Chaque pierre est une coque
 close ; le portillon (`menuiserie.vantail`), fermé ou ouvert d'un quart de tour, ne change que de repère. L'aléa
 d'une pièce est semé de son nom : deux constructions rendent les mêmes octets."""
 import geometrie

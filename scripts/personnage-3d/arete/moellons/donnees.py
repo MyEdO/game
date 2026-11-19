@@ -6,7 +6,8 @@ ne s'y lit : chaque surface nomme l'emplacement de palette que l'hôte teint de 
 Illustration directrice (hors dépôt) : la façade de La Diligence (EDO p4, `diligence-plan-et-facade`), son mur
 d'enceinte de moellons assisés, les pierres de taille de son porche.
 
-L'appareil (`maconnerie.Appareil`) : des assises de moellons en léger relief sur une âme de mortier en retrait, une
+L'appareil (`maconnerie.Appareil`) : des assises inégales de moellons bruts, au parement bombé, de longueurs et de
+hauteurs variées, des boutisses et des cales parmi eux, sur une âme de mortier en retrait qui ferme le mur, une
 chaîne de pierres de taille en harpe à chaque bout de l'arête, que celle du mur voisin complète. La porte ouvre une
 baie entre deux piédroits harpés, sous un linteau monolithe et sur un seuil ; son vantail de planches barrées tourne
 sur son gond vers le dedans. La fenêtre s'ouvre de même entre un appui saillant et un linteau, sa croisée et ses volets
@@ -15,7 +16,7 @@ ceux de `menuiserie`. La brèche éventre le mur jusqu'à sa tête, son âme à 
 Matières : la pierre prend `pierre-atre`, le mortier `terre-battue`, le bois `bois-chene`, les ferrures `fer-noirci`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
-from apparences import apparence, hauteur
+from apparences import apparence, assises, hauteur
 
 KIT = "moellons"
 MUR = "mur-en-pierre"
@@ -37,17 +38,18 @@ MATERIAUX = {
     "ferrure": ("metal", "fer-noirci"),
 }
 
-BUDGET_TRIANGLES = {"mur": 700, "porte-fermee": 900, "porte-ouverte": 900, "fenetre": 1300, "fenetre-close": 1300,
-                    "breche": 900}
+BUDGET_TRIANGLES = {"mur": 2100, "porte-fermee": 2100, "porte-ouverte": 2100,
+                    "fenetre": 2600, "fenetre-close": 2600, "breche": 2100}
 
 ANGLE_LISSE = 30
-"""Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : une pierre garde ses arêtes."""
+"""Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le chanfrein d'une pierre s'y fond, ses joues gardent leurs arêtes."""
 
 APPAREIL = {
-    **{cote: apparence(KIT, MUR)["detail"]["courses"][champ] for cote, champ in (
-        ("assise", "hM"), ("joint", "jointW"), ("bloc", "blockWM"), ("decalage", "stagger"),
-        ("ondulation", "edgeWobble"))},
-    "relief": (0.006, 0.028), "creux": 0.04, "harpe": (0.32, 0.18), "couronnement": None,
+    **assises(apparence(KIT, MUR)),
+    "inegalite": 0.22, "lit": 0.022, "boutisse": 0.2, "cale": (0.15, (0.3, 0.42)),
+    "moellon": {"relief": (0.0, 0.022), "chanfrein": (0.014, 0.032), "retrait": (0.025, 0.06)},
+    "taille": {"relief": (0.0, 0.0), "chanfrein": (0.01, 0.01), "retrait": (0.015, 0.015)},
+    "creux": 0.06, "harpe": (0.32, 0.18), "couronnement": None,
 }
 """L'appareil du mur (`maconnerie`)."""
 

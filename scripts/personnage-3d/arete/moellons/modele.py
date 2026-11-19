@@ -1,5 +1,5 @@
-"""Le mur de moellons maçonnés (#4471) : le GLB `arete--pierre`, un nœud par pièce de `BATIR`, bâti d'après
-`donnees.py` dans le repère d'une arête (`geometrie.py`) par l'appareil de `maconnerie`. Chaque pierre est une boîte
+"""Le mur de moellons maçonnés (#4471) : le GLB `arete--moellons`, un nœud par pièce de `BATIR`, bâti d'après
+`donnees.py` dans le repère d'une arête (`geometrie.py`) par l'appareil de `maconnerie`. Chaque pierre est une coque
 close ; un vantail (`menuiserie.vantail`), fermé ou ouvert d'un quart de tour, ne change que de repère. L'aléa d'une
 pièce est semé de son nom : deux constructions rendent les mêmes octets."""
 import geometrie
@@ -24,7 +24,8 @@ def baie(A, demi_baie, pied, tete, linteau):
     A.mur((demi_baie, A.demi), (pied, tete), (True, True))
     A.mur((-A.demi, -demi_baie - portee), (tete, tete + haut_l), (True, False))
     A.mur((demi_baie + portee, A.demi), (tete, tete + haut_l), (False, True))
-    A.pierre((-demi_baie - portee, demi_baie + portee), (tete, tete + haut_l))
+    A.ame((-demi_baie - portee, demi_baie + portee), (tete, tete + haut_l))
+    A.pierre((-demi_baie - portee, demi_baie + portee), (tete, tete + haut_l), A.A["taille"])
     A.mur((-A.demi, A.demi), (tete + haut_l, A.haut), (True, True))
 
 

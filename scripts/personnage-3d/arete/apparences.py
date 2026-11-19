@@ -20,3 +20,11 @@ def hauteur(lue):
     """La hauteur (m) des arêtes de l'apparence `lue`, `METRES_PER_LEVEL` sans `wallHeightM`
     (`src/noyau/monde/aretes.ts`)."""
     return lue.get("wallHeightM") or json.loads(lancer(Path(__file__).parent / "niveau.mjs", [], ""))
+
+
+def assises(lue):
+    """Les cotes de forme des assises de l'apparence `lue` (`detail.courses`), nommées comme `maconnerie` les lit :
+    `assise`, `joint`, `bloc`, `decalage` et `ondulation`."""
+    champs = (("assise", "hM"), ("joint", "jointW"), ("bloc", "blockWM"), ("decalage", "stagger"),
+              ("ondulation", "edgeWobble"))
+    return {cote: lue["detail"]["courses"][champ] for cote, champ in champs}

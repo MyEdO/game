@@ -3,7 +3,8 @@ et reproduit ses éléments publiés sans lire hors de ses entrées (`reconstruc
 nœud racine à mesh par pièce (`PieceDArete`, `src/noyau/monde/aretes.ts`), à l'origine de l'arête, dans son repère
 (`arete/geometrie.py`) : X le long d'elle, centrée, d'un bout à l'autre de sa longueur ; Y de son pied à sa hauteur ;
 Z son épaisseur, centrée pour le mur. Chaque nœud tient dans son budget de triangles et n'est fait que de coques closes
-aux faces vers le dehors (`glb.coques_en_defaut`). Les données d'un modèle ne portent aucune couleur."""
+aux faces vers le dehors (`glb.coques_en_defaut`). Une pièce pleine (`PLEINES`) ne laisse passer aucun jour à
+travers son épaisseur, d'un bout à l'autre de l'arête. Les données d'un modèle ne portent aucune couleur."""
 import json
 import re
 import runpy
@@ -24,6 +25,8 @@ FAMILLE = 'arete'
 sys.path.insert(0, str(ICI / FAMILLE))
 PIECES = {'mur', 'porte-fermee', 'porte-ouverte', 'fenetre', 'fenetre-close', 'breche'}
 TOLERANCE = 0.001   # m
+PLEINES = ('mur', 'fenetre-close')
+PAS_DU_JOUR = 0.005   # m
 COULEUR = re.compile(r'#[0-9a-fA-F]{6}')
 
 
@@ -32,6 +35,27 @@ def valeurs(v):
     if isinstance(v, dict):
         return [f for e in v.values() for f in valeurs(e)]
     return [f for e in v for f in valeurs(e)] if isinstance(v, (list, tuple)) else [v]
+
+
+def jours(glb, piece, demi, haut):
+    """Les points (x, y) de la face du nœud `piece` de `glb`, pris tous les `PAS_DU_JOUR` entre ses deux bouts et
+    de son pied à `haut`, qu'aucun de ses triangles ne couvre vus le long de son épaisseur."""
+    document, binaire = lire_glb(glb)
+    noeud = next(n for n in document['nodes'] if n.get('name') == piece)
+    triangles = np.concatenate([
+        lire_accesseur(document, binaire, p['attributes']['POSITION'])[
+            lire_accesseur(document, binaire, p['indices']).astype(np.int64).reshape(-1, 3)]
+        for p in document['meshes'][noeud['mesh']]['primitives']])[:, :, :2]
+    xs = np.arange(-demi + PAS_DU_JOUR / 10, demi, PAS_DU_JOUR)
+    ys = np.arange(PAS_DU_JOUR / 2, haut, PAS_DU_JOUR)
+    couvert = np.zeros((len(ys), len(xs)), bool)
+    for a, b, c in triangles:
+        i0, i1 = np.searchsorted(xs, [min(a[0], b[0], c[0]), max(a[0], b[0], c[0])])
+        k0, k1 = np.searchsorted(ys, [min(a[1], b[1], c[1]), max(a[1], b[1], c[1])])
+        x, y = np.meshgrid(xs[i0:i1], ys[k0:k1])
+        s = [(v[0] - u[0]) * (y - u[1]) - (v[1] - u[1]) * (x - u[0]) for u, v in ((a, b), (b, c), (c, a))]
+        couvert[k0:k1, i0:i1] |= ~(((s[0] < 0) | (s[1] < 0) | (s[2] < 0)) & ((s[0] > 0) | (s[1] > 0) | (s[2] > 0)))
+    return [(round(float(xs[i]), 3), round(float(ys[k]), 3)) for k, i in zip(*np.nonzero(~couvert))]
 
 
 class Construction(unittest.TestCase):
@@ -114,6 +138,15 @@ class Construction(unittest.TestCase):
     def test_chaque_piece_est_faite_de_coques_closes_aux_faces_vers_le_dehors(self):
         for _, _, glb in self.chaque():
             self.assertEqual(coques_en_defaut(glb), [])
+
+    def test_une_piece_pleine_ne_laisse_passer_aucun_jour(self):
+        for _, bati, glb in self.chaque():
+            couronnement = bati['D'].get('APPAREIL', {}).get('couronnement')
+            haut = bati['D']['HAUTEUR'] - (couronnement['hauteur'] if couronnement else 0.0)
+            for piece in PLEINES:
+                with self.subTest(piece=piece):
+                    a_jour = jours(glb, piece, bati['D']['LONGUEUR'] / 2, haut)
+                    self.assertEqual(a_jour[:6], [], f'{len(a_jour)} points à jour')
 
 
 class Reconstruction(reconstruction.DUneFamille, unittest.TestCase):

@@ -761,9 +761,9 @@ la couleur de l'apparence posée. Une baie est percée de part en part.
 
 **Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
 `menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
-des kits de pierre (assises, chaînes, couronnement, brèche). Un kit les pose, il ne les recopie pas. Une apparence
-dont la hauteur ou l'allure change la forme prend son kit (`moellons`, `pierres-seches`) : l'hôte étire un kit à la
-hauteur du mur, il ne le rebâtit pas.
+des kits de pierre (assises, chaînes, couronnement, brèche). Un kit les pose, il ne les recopie pas. La forme
+d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit reçoivent
+cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour (`test_arete.py`).
 
 **Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
 
@@ -778,7 +778,7 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.p
 
 `arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
 de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
-chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes), reconstruit chaque
+chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour), reconstruit chaque
 kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque `arete--*` publié.
 Publier comme un véhicule (chapitre 9, « Publier »).
 

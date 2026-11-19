@@ -12,7 +12,7 @@ ne porte pas de fenêtre : ses deux pièces sont le mur plein. La brèche l'ébo
 Matières : la pierre prend `pierre-atre`, l'âme `terre-battue`, le bois `bois-chene`, les ferrures `fer-noirci`.
 
 Cotes d'adaptation, en mètres ou en fractions nommées : aucune ne vient d'une règle."""
-from apparences import apparence, hauteur
+from apparences import apparence, assises, hauteur
 
 KIT = "pierres-seches"
 MUR = "mur-en-pierres-seches"
@@ -33,19 +33,20 @@ MATERIAUX = {
     "ferrure": ("metal", "fer-noirci"),
 }
 
-BUDGET_TRIANGLES = {"mur": 520, "porte-fermee": 520, "porte-ouverte": 520, "fenetre": 520, "fenetre-close": 520,
-                    "breche": 620}
+BUDGET_TRIANGLES = {"mur": 1500, "porte-fermee": 1200, "porte-ouverte": 1200,
+                    "fenetre": 1500, "fenetre-close": 1500, "breche": 1200}
 
 ANGLE_LISSE = 30
-"""Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : une pierre garde ses arêtes."""
+"""Angle (degrés) sous lequel deux faces voisines se lissent (`maille.objet`) : le chanfrein d'une pierre s'y fond, ses joues gardent leurs arêtes."""
 
 APPAREIL = {
-    **{cote: apparence(KIT, MUR)["detail"]["courses"][champ] for cote, champ in (
-        ("assise", "hM"), ("joint", "jointW"), ("bloc", "blockWM"), ("decalage", "stagger"),
-        ("ondulation", "edgeWobble"))},
-    "relief": (0.0, 0.06), "creux": 0.09, "harpe": None,
-    "couronnement": {"hauteur": 0.22, "largeur": (0.09, 0.17), "chute": 0.07, "relief": (0.0, 0.05),
-                     "ondulation": 0.03},
+    **assises(apparence(KIT, MUR)),
+    "inegalite": 0.3, "lit": 0.03, "boutisse": 0.3, "cale": (0.3, (0.3, 0.45)),
+    "moellon": {"relief": (0.0, 0.05), "chanfrein": (0.015, 0.035), "retrait": (0.03, 0.08)},
+    "taille": None,
+    "creux": 0.1, "harpe": None,
+    "couronnement": {"hauteur": 0.22, "largeur": (0.09, 0.17), "chute": 0.07, "ondulation": 0.03,
+                     "pierre": {"relief": (0.0, 0.04), "chanfrein": (0.01, 0.02), "retrait": (0.015, 0.03)}},
 }
 """L'appareil du mur (`maconnerie`)."""
 
