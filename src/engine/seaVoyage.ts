@@ -187,7 +187,7 @@ export const seaBoardEventById = (id: string): SeaEventDef | undefined => BOARD_
 
 /** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) au dé de sa table, ±1 selon le signe de l'Humeur ;
  *  il « se produit dans les 2d10 heures après accostage ». PUR. */
-export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; hours: number; event: SeaEventsData['portEvents']['entries'][number] } {
+export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; hours: number; event: SeaEventDef } {
   const mod = manannScore < 0 ? -seaEvents.manann.portEventMod : manannScore > 0 ? seaEvents.manann.portEventMod : 0;
   const roll = rollDice(deDesEvenementsDePort(), rng) + mod;
   return { roll, hours: d10(rng) + d10(rng), event: findTableEntry(evenementsDePort(), roll) };

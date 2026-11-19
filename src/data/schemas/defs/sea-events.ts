@@ -37,6 +37,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   relache: z.literal(true).optional(),
   taillePortMax: z.number().int().min(1).optional(),
   consequence: flowSchema.optional(),
+  liaisonEquipage: z.string().min(1).optional(),
   maison: maisonSchema.optional(),
   source: sourceRefSchema,
 }), {
@@ -47,16 +48,9 @@ const seaEventDef = nommerChamps(z.strictObject({
   relache: { label: 'Relâche à terre requise' },
   taillePortMax: { label: 'Taille de port maximale' },
   consequence: { label: 'Conséquence' },
+  liaisonEquipage: { label: 'Liaison du retour', texte: { regime: 'technique' } },
   maison: { label: 'Arbitrage maison' },
   source: { label: 'Source' },
-});
-
-/** MDG 15 l.245 */
-const portEventDef = nommerChamps(seaEventDef.extend({
-  liaisonEquipage: z.string().min(1).optional(),
-}), {
-  ...metaDesChamps(seaEventDef, { exigees: true }),
-  liaisonEquipage: { label: 'Liaison du retour', texte: { regime: 'technique' } },
 });
 
 /** Palier du VOYAGE RAPIDE (`FastVoyagePalier`, `src/engine/seaVoyage.ts`) — cran du dé de sa table (l.33-37) :
@@ -96,7 +90,7 @@ const doc = document(
     /** MDG 15 l.134 */
     boardEvents: tableTiree(seaEventDef),
     /** MDG 15 l.243 */
-    portEvents: tableTiree(portEventDef),
+    portEvents: tableTiree(seaEventDef),
     /** MDG 15 l.32 */
     fastVoyage: tableTiree(fastVoyagePalier, { champs: { source: sourceRefSchema }, meta: { source: { label: 'Source' } } }),
   },
@@ -124,13 +118,21 @@ const doc = document(
     // patron `structure-criticals.ts`.
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
-        type Bande = { id?: string; min?: number | null; max?: number | null };
+        type Bande = Partial<Pick<z.input<typeof seaEventDef>, 'id' | 'min' | 'max' | 'liaisonEquipage'>>;
         type Table = { die: DiceSpec; entries: Bande[] };
         const d = v as { boardEvents?: Table; fastVoyage?: Table; portEvents?: Table; manann?: { portEventMod?: number } };
+        const bord = d.boardEvents?.entries ?? [];
+        for (const [i, evenement] of bord.entries()) {
+          if (evenement.liaisonEquipage === undefined) continue;
+          ctx.addIssue({
+            code: 'custom', path: ['boardEvents', 'entries', i, 'liaisonEquipage'],
+            message: 'La liaison de retour de l’équipage s’emploie dans un événement de port.',
+          });
+        }
         const modDePort = d.manann?.portEventMod ?? 0;
         const deDePort = d.portEvents ? deDuParse(d.portEvents) : null;
         const tables: [(string | number)[], string, Bande[], number | 'ouverte', number | 'ouverte'][] = [
-          [['boardEvents', 'entries'], "le jet d'Événement de bord", d.boardEvents?.entries ?? [], 'ouverte', 'ouverte'],
+          [['boardEvents', 'entries'], "le jet d'Événement de bord", bord, 'ouverte', 'ouverte'],
           [['fastVoyage', 'entries'], `le ${d.fastVoyage ? formatDice(d.fastVoyage.die) : ''} du Voyage rapide`, d.fastVoyage?.entries ?? [], 'ouverte', 'ouverte'],
           ...(deDePort ? [[['portEvents', 'entries'], `le ${formatDice(deDePort)} de l'escale, Humeur de Manann comprise`, d.portEvents!.entries, totalDuDe(deDePort, deDePort.n) - modDePort, facesDuDe(deDePort) + modDePort] as [(string | number)[], string, Bande[], number, number]] : []),
         ];
