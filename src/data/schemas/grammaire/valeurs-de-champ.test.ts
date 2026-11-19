@@ -14,11 +14,13 @@ import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { DEFS_DE_DOCUMENT } from '../validate';
 import { OP_DEFS } from './mecanique';
-import { descendre } from './descente';
+import { descendre, noeudsAuChemin } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
+import { schema as schemaActivites } from '../defs/activities';
+import { ACTIVITY_RESOLVERS } from '../../../engine/activities';
 import { itemCapabilitiesSchema } from './valeurs';
 import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
@@ -26,11 +28,14 @@ import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, S
  *  vocabulaire qu'il ÉNUMÈRE des entités plutôt qu'un univers de mots. */
 const IDS_CONNUS: ReadonlySet<string> = new Set(Object.values(IDS_PAR_ESPACE).flat());
 
-/** Les vocabulaires d'ids des REGISTRES DE CODE que `actions.json` nomme (`defs/actions.ts`, #4056), par leurs options :
- *  chaque id désigne l'entrée d'un registre du noyau, qui porte son sens. */
-const VOCABULAIRES_DE_REGISTRES: ReadonlySet<string> = new Set(
+/** Les IDs des registres d’actions (#4056) gardent l’ordre de leurs options dans le schéma. */
+const VOCABULAIRES_DES_REGISTRES_D_ACTIONS: ReadonlySet<string> = new Set(
   [GATES_D_ACTION, SELECTEURS_D_ACTION, RUNS_D_ACTION, PORTEES_D_INTENTION, MODES_DE_CIBLAGE].map((ids) => ids.join('|')),
 );
+
+/** Les résolveurs d’Activité sont des IDs de registre dont l’ordre diffère entre moteur et schéma. */
+const cleDesResolveurs = (ids: readonly string[]): string => ids.slice().sort().join('|');
+const REGISTRE_DES_RESOLVEURS = cleDesResolveurs(ACTIVITY_RESOLVERS);
 
 /**
  * Un vocabulaire d'IDS ne se nomme JAMAIS : ses options sont les ids d'un dataset, dont le nom FR est
@@ -331,7 +336,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'tirImmobile|dansLeTas',
   'heure|minute|round',
   'imparfaite|moyenne|totale',
-  'income|craftExtended|learnTalent|identify|entrainement|mecenat|ritualFocus|masterWeapon|identifyByResearch|memorizeDiscount|combatTraining|punchausen|knowledgeResearch|reputation|wrathOfTheGods|dissensionScout|dissensionEmeute|contremaitre|forage|seaChart|opportunityTrade|crewTraining',
   'indice|rumeur',
   'inferieur|superieur',
   'interieur|exterieur',
@@ -388,10 +392,23 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
 describe('libellés de VALEURS — stock nominatif décroissant des VOCABULAIRES', () => {
   it('le stock des vocabulaires SANS libellés est celui déclaré, et il DÉCROÎT', () => {
     const stock = [...vocabulairesDuRegistre()]
-      .filter(([cle, c]) => c.nommes === 0 && !estVocabulaireDIds(cle.split('|')) && !VOCABULAIRES_DE_REGISTRES.has(cle))
+      .filter(([cle, c]) => {
+        const options = cle.split('|');
+        return c.nommes === 0 && !estVocabulaireDIds(options)
+          && !VOCABULAIRES_DES_REGISTRES_D_ACTIONS.has(cle) && cleDesResolveurs(options) !== REGISTRE_DES_RESOLVEURS;
+      })
       .map(([cle]) => cle)
       .sort();
     expect(stock).toEqual(VOCABULAIRES_SANS_LIBELLES.slice().sort());
+  });
+
+  it('les champs resolver des Activités désignent exactement les entrées du registre des résolveurs', () => {
+    for (const chemin of [[0, 'resolver'], [0, 'outcomes', 0, 'resolver']]) {
+      const registres = noeudsAuChemin(schemaActivites, undefined, chemin)
+        .filter((noeud) => noeud instanceof z.ZodEnum)
+        .map((noeud) => noeud.options.slice().sort());
+      expect(registres, chemin.join('.')).toEqual([ACTIVITY_RESOLVERS.slice().sort()]);
+    }
   });
 
   it('les vocabulaires NOMMÉS sont ceux des defs migrés, tous atteints depuis le registre', () => {

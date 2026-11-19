@@ -17,7 +17,7 @@ import { shipHasNavalTrait, vesselNavalTraits } from '../engine/navalTraits';
 import type { ModLine } from '../engine/combat';
 import { bourseOf } from '../engine/bourse';
 import { OPPORTUNITE, opportunityTradePct } from '../engine/seaVoyage';
-import { activityStakeRef, refLabel, dataLabel, findNavalPortById, findVehicleById, hasActivityStake } from '../data';
+import { activityStakeRef, cibleCodex, refLabel, dataLabel, findNavalPortById, findVehicleById, hasActivityStake } from '../data';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { TravelRecapDay } from './travelFlow';
@@ -293,24 +293,26 @@ interface EtatDEntretien {
   bois: number;
 }
 
-function etatDEntretien(get: Get): EtatDEntretien | PlayerText {
+function etatDEntretien(get: Get, def: ActivityDef): EtatDEntretien | PlayerText {
   const s = get();
   const vessel = s.vessel;
   const profil = vessel && findVehicleById(vessel.vehicleId);
   if (!vessel || !profil?.ship || !profil.hull) return t('sact.entretienSansNavire');
   const pending = s.pendingSeaActivities;
-  if (!pending) return t('sact.entretienIndisponible');
+  if (!pending || !def.entretienNavire) return t('sact.entretienIndisponible');
 
+  const ref = cibleCodex({ type: 'activity', id: def.id });
+  const { modEnMer, modChantierSpecialise } = def.entretienNavire;
   let mod: ModLine[] = [];
   if (pending.escale !== undefined) {
     const port = currentPort(get);
     if (refusAQuai(s) || port?.placeId !== pending.escale) return t('port.pasAQuai');
     if (port.ref && findNavalPortById(port.ref)?.chantierNavalSpecialise) {
-      mod = [{ label: t('sact.entretienChantier'), famille: 'circonstance', value: 20 }];
+      mod = [{ label: t('sact.entretienChantier'), famille: 'circonstance', value: modChantierSpecialise, ref }];
     }
   } else {
     if (!s.travelPlan?.sea || !coqueDuNavireDeCampagne(s.travelPlan, vessel)) return t('sact.entretienSansNavire');
-    mod = [{ label: t('sact.entretienEnMer'), famille: 'circonstance', value: -20 }];
+    mod = [{ label: t('sact.entretienEnMer'), famille: 'circonstance', value: modEnMer, ref }];
   }
 
   const { current: courant, max: maximum, missing: manquantes } = blessuresDeCoqueARestaurer(vessel);
@@ -365,7 +367,7 @@ function refusDesTestsDEntretien(hero: Combatant, def: ActivityDef): PlayerText 
 }
 
 function choixDEntretien(get: Get, hero: Combatant, def: ActivityDef, suite: SuiteDEntretien): BuiltCascadeStep | PlayerText | undefined {
-  const etat = etatDEntretien(get);
+  const etat = etatDEntretien(get, def);
   if (typeof etat === 'string') return etat;
   const refusMetier = refusDesTestsDEntretien(hero, def);
   const refusDesBlessures = etat.manquantes <= 0 ? t('sv.aucuneBlessureARestaurer')
@@ -442,7 +444,7 @@ function critiqueVise(step: CascadeStep, etat: EtatDEntretien, index: number): s
 function preparerTravaux(get: Get, set: Set, step: CascadeStep, hero: Combatant, def: ActivityDef, suite: SuiteDEntretien) {
   const choix = step.chosen;
   if (!choix || choix === 'terminer') return;
-  const etat = etatDEntretien(get);
+  const etat = etatDEntretien(get, def);
   if (typeof etat === 'string') return { consequences: freeCons([etat]) };
   const refusMetier = refusDesTestsDEntretien(hero, def);
   let suivant: BuiltCascadeStep | undefined;
@@ -533,7 +535,7 @@ function appliquerEntretien(get: Get, set: Set, step: CascadeStep, hero: Combata
   if (!hero || hero.dead || hero.outOfRencontre || !suite) return;
   if (def?.resolver !== 'shipMaintenance') return { consequences: freeCons([t('sact.entretienIndisponible')]) };
   if (step.kind === 'merEntretienChoix') return preparerTravaux(get, set, step, hero, def, suite);
-  const etat = etatDEntretien(get);
+  const etat = etatDEntretien(get, def);
   if (typeof etat === 'string') return { consequences: freeCons([etat]) };
 
   if (step.kind === 'merEntretienBlessures') {

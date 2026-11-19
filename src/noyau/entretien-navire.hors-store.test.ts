@@ -29,6 +29,7 @@ const ACTIVITE_D_ESSAI: ActivityDef = {
   id: ACTIVITE, type: 'activities', label: 'Entretien de test',
   source: SOURCE_D_ESSAI, icon: 'voyage/reparer',
   resolver: 'shipMaintenance', contexts: ['mer'],
+  entretienNavire: { modEnMer: -10, modChantierSpecialise: 30 },
   tests: [
     { skill: { id: 'metier', spec: CHARPENTIER }, difficulty: 'intermediaire' },
     { skill: { id: 'metier', spec: CONSTRUCTEUR }, difficulty: 'intermediaire' },
@@ -161,8 +162,15 @@ const stock = (get: Banc['getState'], id: string) =>
   (get().vessel!.cargo ?? []).filter((l) => l.cargoId === id).reduce((enc, l) => enc + l.enc, 0);
 
 describe('Entretien du navire (MDG 15 l.302-306)', () => {
+  it('le catalogue du livre donne −20 en mer et +20 au chantier spécialisé', () => {
+    expect(ACTIVITIES.find((a) => a.resolver === 'shipMaintenance')).toMatchObject({
+      id: 'entretien-du-navire',
+      entretienNavire: { modEnMer: -20, modChantierSpecialise: 20 },
+    });
+  });
+
   it.each([
-    ['mer', CHARPENTIER, -20], ['port', CONSTRUCTEUR, 0], ['chantier', CHARPENTIER, 20],
+    ['mer', CHARPENTIER, -10], ['port', CONSTRUCTEUR, 0], ['chantier', CHARPENTIER, 30],
   ] as const)('applique le modificateur de lieu en %s au Test d’Usure et au Test Critique', (lieu, metier, mod) => {
     const { getState: get } = fixture(lieu, {}, [heros(0, metier)]);
     entretien(get);
@@ -173,6 +181,8 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
     expect(usure.difficulty).toBe('intermediaire');
     expect(usure.target! - usure.base!).toBe(mod);
     expect(inexplique(usure)).toBe(0);
+    expect(usure.mods?.find((m) => m.ref?.category === 'activities')?.ref)
+      .toEqual(mod === 0 ? undefined : { category: 'activities', id: ACTIVITE });
     tester(get, 98);
     expect(stock(get, PIECES)).toBe(35);
     expect(get().vessel!.usure).toBe(4);
@@ -184,6 +194,8 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
     expect(critique.difficulty).toBe('difficile');
     expect(critique.target! - critique.base!).toBe(mod - 20);
     expect(inexplique(critique)).toBe(0);
+    expect(critique.mods?.find((m) => m.ref?.category === 'activities')?.ref)
+      .toEqual(mod === 0 ? undefined : { category: 'activities', id: ACTIVITE });
     tester(get, 98);
     expect(stock(get, PIECES)).toBe(35);
     expect(stock(get, BOIS)).toBe(30);
@@ -305,6 +317,7 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
 
   it.each([
     ['tests', { tests: undefined }],
+    ['entretienNavire', { entretienNavire: undefined }],
     ['contexts', { contexts: ['voyage'] }],
     ['stake', { stake: undefined, stakeForm: undefined }],
   ] as const)('le catalogue d’Entretien exige %s', (champ, remplacement) => {
