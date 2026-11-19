@@ -54,7 +54,7 @@ import { BOARD_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
 import type { RecapEvent } from './recapLine';
 import { findSeaHazard } from '../engine/seaPerils';
 import { overspeedRow, foulingEffects } from '../engine/seaNavigation';
-import { setRule, resetRule } from '../engine/policy';
+import { rule, setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
 import { WORLD_STEP_OWNER } from './pendings';
 import { poserLeSiegeMJ, seatOwns } from './sieges';
@@ -2135,7 +2135,19 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   });
 
   it('1er jour de traversée (`daysAtSea === 0`) → UNE bande `mer-mal-de-mer`, une RANGÉE par PJ non-elfe', () => {
-    set({ net: mjAuSiege1(get().net) });
+    const [heros, ...autres] = get().party;
+    set({
+      net: mjAuSiege1(get().net),
+      party: [{
+        ...heros,
+        characteristics: { ...heros.characteristics, endurance: 40 },
+        skills: [{ id: 'resistance', advances: 8, characteristic: 'endurance' }],
+        activeEffects: [{
+          label: 'Effet contre le mal de mer', bonus: 0, duration: { scale: 'permanent' },
+          diseaseTestMod: { diseases: ['mal-de-mer'], amount: 7 },
+        }],
+      }, ...autres],
+    });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 0, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
     continueSeaDayAfterCascade(get, set);
@@ -2146,6 +2158,10 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     const bandes = get().pendingCascade!.participants.filter((s) => s.kind === 'mer-mal-de-mer');
     expect(bandes).toHaveLength(1);
     expect(bandes[0].participants!.map((r) => r.id)).toEqual(get().party.map((h) => h.id));
+    expect(bandes[0].participants![0]).toMatchObject({
+      base: 48, target: 45, difficulty: 'complexe', menace: 'maladie',
+      mods: expect.arrayContaining([expect.objectContaining({ label: 'Effet contre le mal de mer', value: 7 })]),
+    });
   });
 
   it('mauvais temps (Vent violent ou plus, l.218) → une bande `mer-mal-de-mer`, même hors 1er jour', () => {
@@ -2154,8 +2170,9 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 5, weather: { ...plan.sea!.weather, vent: 'vent-violent' } } } });
     continueSeaDayAfterCascade(get, set);
     expect(get().pendingCascade).toBeTruthy();
-    const kinds = get().pendingCascade!.participants.map((s) => s.kind);
-    expect(kinds).toContain('mer-mal-de-mer');
+    const bande = get().pendingCascade!.participants.find((s) => s.kind === 'mer-mal-de-mer');
+    expect(bande?.participants).toHaveLength(get().party.length);
+    expect(bande?.participants?.map((r) => r.difficulty)).toEqual(get().party.map(() => 'intermediaire'));
   });
 
   it('ni 1er jour ni mauvais temps → aucune étape `mer-mal-de-mer` (jour de routine)', () => {
@@ -2270,10 +2287,24 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
     expect(get().pendingRest).toBeTruthy();
   });
 
-  it('tonneau DÉJÀ contaminé la veille → UNE bande d’exposition : chaque PJ ET l’équipage collectif qui boivent (#4243)', () => {
-    journeeAuTonneau({ diseaseId: 'courante-galopante' });
+  it.each(['courante-galopante', 'flux-sanglant'])('tonneau contaminé par %s : Endurance Facile des PJ et seuil de l’équipage (MDG 14 l.209 ; LDB 20 l.41, l.64)', (diseaseId) => {
+    const [heros, ...autres] = get().party;
+    set({ party: [{
+      ...heros,
+      characteristics: { ...heros.characteristics, endurance: 40 },
+      skills: [{ id: 'resistance', characteristic: 'endurance', advances: 17 }],
+      activeEffects: [{ label: 'Effet contre la maladie', bonus: 0, duration: { scale: 'permanent' }, diseaseTestMod: { diseases: [diseaseId], amount: 3 } }],
+    }, ...autres] });
+    journeeAuTonneau({ diseaseId });
     const bande = bandeDuTonneau('mer-tonneau-expose');
     expect(bande.participants!.map((r) => r.id)).toEqual([...get().party.map((h) => h.id), WORLD_STEP_OWNER]);
+    const [premier] = bande.participants!;
+    expect(premier).toMatchObject({
+      label: 'Endurance', base: 40, target: 83, menace: 'maladie',
+      mods: expect.arrayContaining([expect.objectContaining({ label: 'Effet contre la maladie', value: 3 })]),
+    });
+    const equipage = bande.participants!.find((r) => r.id === WORLD_STEP_OWNER)!;
+    expect(equipage).toMatchObject({ base: rule('mer-resistance-de-l-equipage'), menace: 'maladie' });
   });
 
   it('exposition : l’équipage collectif qui échoue porte la maladie du tonneau (`porteurDeLEquipage`)', () => {

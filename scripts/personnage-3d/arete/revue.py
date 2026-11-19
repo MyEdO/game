@@ -2,8 +2,9 @@
 l'habille (`rendu.habiller_le_modele`, projeté), teinte de la palette que le jeu donne aux arêtes d'une apparence de
 `src/data/structureAppearance.json` (`palette_du_jeu`), rendue seule dans le studio de `rendu.py`, de face, de
 trois-quarts et de dessus (`rendu.vues_de_revue`), au cadrage du kit entier. `planche.png` range une ligne par
-pièce, dans l'ordre du GLB. Le GLB et son manifeste se cherchent par id dans chaque dossier de `--modeles`
-(`rendu.trouver`).
+pièce, dans l'ordre du GLB, puis une ligne par ouverture de plusieurs arêtes (`<pièce>-ouverture`) : ses nœuds
+`<pièce>--<position>` posés bout à bout, de gauche à droite. Le GLB et son manifeste se cherchent par id dans chaque
+dossier de `--modeles` (`rendu.trouver`).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.py <kit> --apparence <id> \\
         --modeles <dossier> --sortie <dossier neuf>
@@ -18,7 +19,7 @@ import time
 from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
-sys.path.insert(0, str(ICI.parent))
+sys.path[:0] = [str(ICI.parent), str(ICI)]
 
 import habillage  # noqa: E402
 import rendu  # noqa: E402
@@ -58,6 +59,8 @@ def main():
         raise ValueError(f"apparence {args.apparence} : absente de structureAppearance.json pour le kit {args.kit}")
     palette = palette_du_jeu(args.apparence)
     import bpy
+
+    import geometrie
     debut = time.monotonic()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     glb, manifeste = rendu.trouver([d.resolve() for d in args.modeles], f"arete--{args.kit}")
@@ -72,6 +75,23 @@ def main():
         for o in pieces:
             o.hide_render = o is not piece
         lignes.append(rendu.vues_de_revue(rendre, sortie, piece.name, (bas + hautes) / 2, hautes - bas, etendue))
+    ouvertures = {}
+    for piece in pieces:
+        base, _, position = piece.name.partition(geometrie.SEPARATEUR)
+        if position:
+            ouvertures.setdefault(base, {})[position] = piece
+    for base, posees in ouvertures.items():
+        suite = [posees[p] for p in (geometrie.GAUCHE, geometrie.MILIEU, geometrie.DROITE) if p in posees]
+        for rang, piece in enumerate(suite):
+            piece.location.x = (rang - (len(suite) - 1) / 2) * (hautes.x - bas.x)
+        for o in pieces:
+            o.hide_render = all(o is not piece for piece in suite)
+        bpy.context.view_layer.update()
+        pied, tete = rendu.bornes(bpy, suite)
+        lignes.append(rendu.vues_de_revue(rendre, sortie, f"{base}-ouverture", (pied + tete) / 2, tete - pied,
+                                          max(tete - pied)))
+        for piece in suite:
+            piece.location.x = 0.0
     rendu.grille(bpy, lignes, sortie / "planche.png")
     print("PLANCHE", sortie / "planche.png", flush=True)
 

@@ -127,7 +127,7 @@ import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
 import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
-import { formatDiseaseTime } from '../../engine/disease';
+import { formatDiseaseTime, sujetDeContraction } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
@@ -1591,7 +1591,7 @@ const CODEX_SPECS = {
     build: () => maladies.map((m) => depuisEnveloppe(m, {
       sub: m.symptoms.map((s) => symptomLabel(s.symptomId)).join(', '),
       meta: facts(
-        fact(tr('codex.fiche.contraction'), DIFFICULTY_LABELS[m.contractDifficulty]),
+        fact(tr('codex.fiche.contraction'), [testSkillLabel(sujetDeContraction(m.id)), DIFFICULTY_LABELS[m.contractDifficulty]].join(' ')),
         fact(tr('codex.fiche.incubation'), formatDiseaseTime(m.incubation)),
         fact(tr('codex.fiche.duree'), formatDiseaseTime(m.duration)),
       ),
