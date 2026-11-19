@@ -20,7 +20,7 @@
  * et d'INDEX, pas une seconde copie des refs avant.
  */
 import {
-  species, careers, careerLevels, skills, talents, trappings, siegeEngines, findSiegeEngineById, libelleDAuteur, creatures, traits, mutations,
+  species, careers, careerLevels, skills, talents, trappingsEffectifs, siegeEngines, findSiegeEngineById, libelleDAuteur, creatures, traits, mutations,
   spells, gods, domains, classes, maneuvers, qualities, characteristics, etats, maladies,
   locations, stars, mutationTables, advancementBaseId, careersForSpecies, findCareerById, estDotationDObjet,
 } from '../../data';
@@ -161,7 +161,7 @@ const graph = versionCached<ReverseGraph>(() => {
   }
 
   // 7) Équipements → qualités + groupe + munitions de l'arme.
-  for (const [category, objets] of Object.entries({ trappings, siegeEngines: siegeEngines() })) {
+  for (const [category, objets] of Object.entries({ trappings: trappingsEffectifs(), siegeEngines: siegeEngines() })) {
     for (const t of objets) {
       const by: Referrer = { category, id: t.id, label: category === 'siegeEngines' ? libelleDUnEnginAuCodex(t.id) : t.label };
       for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType?.id })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
@@ -272,7 +272,7 @@ const catalog = versionCached<CatalogEntry[]>(() => {
   pushCatalog('classes', classes);
   pushCatalog('skills', skills);
   pushCatalog('talents', talents);
-  pushCatalog('trappings', trappings);
+  pushCatalog('trappings', trappingsEffectifs());
   pushCatalog('siegeEngines', siegeEngines().map(({ id, source }) => ({ id, source, label: libelleDUnEnginAuCodex(id) })));
   pushCatalog('qualities', qualities as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('etats', etats);

@@ -159,6 +159,7 @@ import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
 import { datasetDe, type DatasetDe, type EntreeDe } from './datasets';
 import type * as pregensDef from './schemas/defs/pregens';
+import type * as trappingsDef from './schemas/defs/trappings';
 import type { MerchantArchetypeDef } from './merchants.types';
 import type * as criticalsDef from './schemas/defs/criticals';
 import type * as miscastDef from './schemas/defs/miscast';
@@ -177,8 +178,9 @@ import type * as tableauDeLaNatureDeMutation from './schemas/defs/mutation-natur
 import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
-import { catalogueDesEngins, trappings, findTrappingById, findSiegeEngineById } from './apparencesObjets';
-export { catalogueDesEngins, trappings, apparences, findTrappingById, findSiegeEngineById, findApparenceById, type SiegeEngineData } from './apparencesObjets';
+import { catalogueDesEngins, trappings, findTrappingById as trappingBrutParId, findSiegeEngineById } from './apparencesObjets';
+export { catalogueDesEngins, trappings, apparences, findSiegeEngineById, findApparenceById, type SiegeEngineData } from './apparencesObjets';
+export { trappingBrutParId };
 import vehiclesJson from './vehicles.json';
 import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
@@ -856,7 +858,7 @@ export interface ItemCapabilities {
    *  adjacente hors de l'eau — NON gaté sur le port (on le sort du sac, comme `isRations`). */
   waterContainer?: boolean;
 }
-export interface TrappingData {
+export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'variants' | 'qualitesAuChoix'> {
   /** id STABLE (slug du libellé) — cible des `TrappingRef`, robuste au renommage. */
   id: string;
   label: string;
@@ -1246,10 +1248,23 @@ const marqueDeSiege = porteLeMarqueur('weaponGroup', 'siege');
 export const groupeDeSiege = (id: string | null | undefined): boolean => !!id && marqueDeSiege(id);
 /** AA 10 l.175-193 ; ADE II 08 l.235-247. */
 export const siegeEngines = () => catalogueDesEngins;
+
+const profilsDePossession = memoParVersion(['trappings', 'reglesOptionnelles'], () => {
+  const fiches = trappings.map((t) => effectiveEntry(t));
+  return { fiches, parId: new Map(fiches.map((t) => [t.id, t])) };
+});
+
+/** AA 02 l.17, l.21 */
+export const trappingsEffectifs = () => profilsDePossession().fiches;
+
+export function findTrappingById(id: string | null | undefined): TrappingData | undefined {
+  return id == null ? undefined : profilsDePossession().parId.get(id);
+}
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
-export const trappingsInstanciables = memoParVersion('trappings', () => trappings.filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
+export const trappingsInstanciables = memoParVersion(['trappings', 'reglesOptionnelles'], () =>
+  trappingsEffectifs().filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
 /** Pièce d'armure nommée, lue au catalogue des armures, sa matière au Groupe : la parenthèse d'une Armure
  *  qui nomme des pièces (`classerParenthese`, `lireMatiere`). LDB 63 l.13 ; #1463. */
 export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () => emplacementsDesPieces(trappings, matiereDuGroupe));
@@ -2068,10 +2083,10 @@ export function findQualityTypeById(id: string | null | undefined): QualityTypeD
 export function qualityTypeLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? typeQualiteParId(id)?.label : '', id ?? '');
 }
-const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
+export const weaponGroupBrutParId = indexParId('weaponGroups', weaponGroups);
 /** Résout un Groupe d'objet par son `id` STABLE (`subType` d'un Weapon/ItemInstance, `subType.id` d'un trapping). */
 export function findWeaponGroupById(id: string | null | undefined): WeaponGroupData | undefined {
-  return groupeObjetParId(id);
+  return effectiveEntry(weaponGroupBrutParId(id));
 }
 /** Matière du Groupe d'armure `id` (`material`), `undefined` hors d'un Groupe d'armure. LDB 63 l.41-58 */
 export function matiereDuGroupe(id: string | null | undefined): MatiereDArmure | undefined {
@@ -2084,7 +2099,7 @@ export function findGroupeDArmureById(id: string | null | undefined): GroupeDArm
 }
 /** Libellé d'affichage d'un Groupe d'objet par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
 export function weaponGroupLabel(id: string | null | undefined): PlayerText {
-  return dataLabel(id ? groupeObjetParId(id)?.label : '', id ?? '');
+  return dataLabel(id ? weaponGroupBrutParId(id)?.label : '', id ?? '');
 }
 /** VOCABULAIRE FERMÉ des catégories de possession (`TrappingData.categorie`), miroir de l'enum du
  *  schéma `src/data/schemas/defs/trappings.ts` — une union, pas un registre de données. */
@@ -2167,7 +2182,7 @@ export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | n
  *  triée au libellé. `id` = `trappingId`
  *  STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`) ; `sizeFor`, sa Taille prévue ; `reserveeA`, le seul Groupe
  *  de peuple à qui elle s'offre. */
-export const armesChoisissables = memoParVersion(['trappings', 'qualities'], () => trappingsInstanciables()
+export const armesChoisissables = memoParVersion(['trappings', 'qualities', 'reglesOptionnelles'], () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed)
   .filter((t) => !t.qualities.some((r) => estQualiteMagique(qualiteParId(r.id))))
   .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id, sizeFor: t.sizeFor, reserveeA: t.reserveeA?.id }))

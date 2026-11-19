@@ -20,6 +20,7 @@ import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenari
 import { bus, EVT, type ChargesDuBus } from './bus';
 import { verbeDeJetDe, type RollVerb } from './flowVerbs';
 import type { Cadence } from '../engine/cadence';
+import { patchDeLArmement } from './monde/carrier';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
 export type Intention = {
@@ -65,6 +66,7 @@ export interface ResultatDeLAppel {
 
 export interface Partie {
   etat: Get;
+  reprojeterLArmement: () => void;
   /** Joue l'intention : au nom de son `siege` s'il est posé (`appliquerLIntentionDUnSiege`), sinon par l'action de
    *  l'état (`get()[type]`), celle qu'un invité a enrobée pour la demander à l'hôte (`transmettreLesIntentions`).
    *  Chez un invité, une intention qui porte un siège ou dont le verbe est de classe `hôte` ne se joue pas : elle se
@@ -179,6 +181,10 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
 
   return {
     etat: get,
+    reprojeterLArmement: () => {
+      ouvertePour('reprojeterLArmement');
+      set(patchDeLArmement(get()) ?? {});
+    },
     envoyer: (intention) => appeler('envoyer', () => {
       const refus = refusChezLInvite(get(), intention);
       if (refus) {

@@ -157,6 +157,20 @@ describe('narratifSchema — objet de campagne au schéma du catalogue (#4171)',
     expect(chemins(objetDeCampagne())).toEqual([]);
   });
 
+  it('réserve les variantes réglées et les Atouts au choix aux possessions du catalogue global', () => {
+    const armeLocale = {
+      ...findTrappingById('hallebarde')!,
+      id: 'arme-de-campagne',
+      label: 'Arme de campagne',
+    };
+    const { variants, ...profilFixe } = armeLocale;
+    const variante = variants?.[0];
+    expect(variante).toBeDefined();
+    expect(chemins(profilFixe)).toEqual([]);
+    expect(chemins({ ...profilFixe, variants: [variante] })).toEqual(['objets.0.variants']);
+    expect(chemins({ ...profilFixe, qualitesAuChoix: ['taille', 'empaleuse'] })).toEqual(['objets.0.qualitesAuChoix']);
+  });
+
   it('sans `source`, sans `categorie`, sans `qualities` : refusé, chaque champ au chemin de sa faute', () => {
     expect(chemins(sans(['source', 'categorie', 'qualities']))).toEqual(expect.arrayContaining(['objets.0.source', 'objets.0.categorie', 'objets.0.qualities']));
   });

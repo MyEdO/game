@@ -26,12 +26,13 @@ import {
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, perteSansEquipeSchema, qualiteDObjetRefSchema, weaponSchema, type QualiteDObjetRef } from '../grammaire/reference';
-import { porteLeMarqueur, ref, refs, refusDeLEntree } from '../grammaire/ref';
+import { idDe, porteLeMarqueur, ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR, RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
 export const file = 'trappings.json';
 export const famille = 'entite';
+export const VARIANT_RESOLVED_FIELDS = ['source', 'alsoIn', 'descRef', 'qualities', 'availability', 'damage', 'price', 'manieAussi', 'qualitesAuChoix'] as const;
 
 export const apparenceDObjetSchema = nommerChamps(z.looseObject({
   shape: ref('apparence', undefined, RACINE_D_APPARENCE).optional(),
@@ -105,11 +106,55 @@ export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
   qualities: { label: 'Qualités' },
 });
 
+type QualitesDuProfil = {
+  qualities: readonly QualiteDObjetRef[];
+  qualitesAuChoix?: readonly string[];
+};
+
+type EntreeDePossessionAAffiner = QualitesDuProfil & {
+  id: string;
+  categorie: string;
+  subType: { id: string } | null;
+  shape?: { id: string };
+  variants?: readonly Partial<QualitesDuProfil>[];
+};
+
+function affinerLesQualites(
+  { id, categorie }: EntreeDePossessionAAffiner,
+  { qualities, qualitesAuChoix }: QualitesDuProfil,
+  ctx: z.RefinementCtx,
+  chemin: (string | number)[] = [],
+): void {
+  if (categorie !== 'ammunition') {
+    qualities.forEach((q, i) => {
+      if ('majoration' in q) ctx.addIssue({ code: 'custom', path: [...chemin, 'qualities', i, 'majoration'], message: `${id} : seule une munition majore une qualité de l'arme (« +${q.majoration} »)` });
+    });
+  }
+  if (qualitesAuChoix === undefined) return;
+  const cheminDuChoix = [...chemin, 'qualitesAuChoix'];
+  if (categorie !== 'melee' && categorie !== 'distance') {
+    ctx.addIssue({ code: 'custom', path: cheminDuChoix, message: `${id} : seuls les profils d'arme portent des Atouts au choix` });
+  }
+  const imprimees = new Set<string>(qualities.map((q) => q.id));
+  const vues = new Set<string>();
+  for (const [i, choix] of qualitesAuChoix.entries()) {
+    if (!imprimees.has(choix)) {
+      ctx.addIssue({ code: 'custom', path: [...cheminDuChoix, i], message: `${id} : l’Atout au choix « ${choix} » doit figurer parmi les Qualités de ce profil` });
+    }
+    if (vues.has(choix)) {
+      ctx.addIssue({ code: 'custom', path: [...cheminDuChoix, i], message: `${id} : l’Atout au choix « ${choix} » est répété` });
+    }
+    vues.add(choix);
+  }
+}
+
 const doc = document(
   'trappings',
   famille,
   {
     ...profilDArmeDeCatalogueSchema.shape,
+    /** AA 08 l.67-77 */
+    qualitesAuChoix: z.array(idDe('quality')).min(2).optional(),
     packSize: z.number().optional(),
     /** CATÉGORIE de catalogue — vocabulaire FERMÉ de `trappingCategorieSchema`, obligatoire sur toute
      *  entrée. ≠ `Weapon.type` du moteur (`src/engine/types.ts`, `'melee' | 'distance'`, persisté) et
@@ -168,6 +213,7 @@ const doc = document(
   },
   {
     ...metaDesChamps(profilDArmeDeCatalogueSchema, { exigees: true }),
+    qualitesAuChoix: { label: 'Atouts au choix', hint: 'Qualités du profil qui s’excluent. La première s’applique en l’absence de choix.' },
     rangement: { label: 'Rangement', hint: 'Emplacement du corps où l’objet porté se range hors des mains' },
     packSize: { label: 'Taille du lot', hint: 'Nombre d’unités vendues ensemble (munitions groupées)' },
     categorie: {
@@ -255,17 +301,19 @@ const doc = document(
   // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
   {
     exiges: ['source'],
+    variantes: VARIANT_RESOLVED_FIELDS,
     espace: { discriminant: ['categorie', 'subType'], marqueurs: ['service'] },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; categorie: string; subType: { id: string } | null; shape?: { id: string }; qualities: QualiteDObjetRef[] };
+        const e = v as EntreeDePossessionAAffiner;
         if (e.subType && estGroupeDeSiege(e.subType.id)) {
           ctx.addIssue({ code: 'custom', path: ['subType', 'id'], message: `${e.id} : un engin de siège a son propre catalogue` });
         }
-        if (e.categorie !== 'ammunition')
-          e.qualities.forEach((q, i) => {
-            if ('majoration' in q) ctx.addIssue({ code: 'custom', path: ['qualities', i, 'majoration'], message: `${e.id} : seule une munition majore une qualité de l'arme (« +${q.majoration} »)` });
-          });
+        affinerLesQualites(e, e, ctx);
+        e.variants?.forEach((variante, i) => affinerLesQualites(e, {
+          qualities: variante.qualities ?? e.qualities,
+          qualitesAuChoix: variante.qualitesAuChoix ?? e.qualitesAuChoix,
+        }, ctx, ['variants', i]));
         if (e.categorie !== 'armor') return;
         const refus = refusDuTypeDArmure(e.subType);
         if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });
@@ -282,3 +330,4 @@ export const entree = doc.entree;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
+export const cles = doc.cles;

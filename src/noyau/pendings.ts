@@ -381,6 +381,8 @@ export interface PendingAttack {
   location: HitLocation | null;
   /** Arme choisie pour cette attaque (uid d'ItemInstance du loadout actif) ; absent = auto-choix. */
   weaponUid?: string;
+  /** AA 08 l.69-77 */
+  atoutChoisi?: { weaponUid: string; id: string };
   /** Arme RÉELLEMENT tirée, figée AU JET (#1153) — comme `PendingDefense.weapon` fige celle de
    *  l'attaquant. Un uid ne suffit pas : `Combatant.weapons` ne porte que le loadout ACTIF
    *  (`recomputeLoadout`), donc un uid désignant une arme possédée mais non tenue est INTROUVABLE et

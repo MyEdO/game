@@ -4,7 +4,7 @@
  * expose leur réglage passe par ici ; leur persistance reste à l'hôte (`hote/reglesMaison.ts`).
  */
 import { t } from '../i18n';
-import { loadRuleOverrides, resetRule, surchargerUneSaisie, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
+import { loadRuleOverrides, resetRule, rule, surchargerUneSaisie, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './persistance/elagage';
 import type { Jeu } from './etat';
 
@@ -33,15 +33,19 @@ export function poserLesReglesMaisonPersistees(persiste: Readonly<Record<string,
 }
 
 /** Surcharge la règle `id` de `valeur`, si le verrou de `s` le permet ; rend vrai si elle est posée. */
-export function surchargerUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId, valeur: RuleValue): boolean {
+export function surchargerUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId, valeur: RuleValue, reprojeter?: () => void): boolean {
   if (!reglesMaisonMutables(s).mutable) return false;
+  const avant = rule(id);
   surchargerUneSaisie(id, valeur);
+  if (id === 'combat-aa-armement' && rule(id) !== avant) reprojeter?.();
   return true;
 }
 
 /** Remet la règle `id` à son défaut, si le verrou de `s` le permet ; rend vrai si elle est remise. */
-export function retablirUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId): boolean {
+export function retablirUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: RegleOptionnelleId, reprojeter?: () => void): boolean {
   if (!reglesMaisonMutables(s).mutable) return false;
+  const avant = rule(id);
   resetRule(id);
+  if (id === 'combat-aa-armement' && rule(id) !== avant) reprojeter?.();
   return true;
 }

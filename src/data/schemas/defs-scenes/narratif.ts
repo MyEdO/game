@@ -172,12 +172,20 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
   });
 }
 
+const objetEmbarqueSchema = trappingEntree.superRefine((objet, ctx) => {
+  for (const champ of ['variants', 'qualitesAuChoix'] as const) {
+    if (objet[champ] !== undefined) {
+      ctx.addIssue({ code: 'custom', path: [champ], message: 'Ce champ est réservé aux possessions du catalogue global.' });
+    }
+  }
+});
+
 /** FORME du bloc narratif. #4171 */
 const formeNarratif = nommerChamps(z.strictObject({
   affaires: listeCle(affaireSchema, 'id'),
   indices: listeCle(indiceSchema, 'id'),
   presetsPnj: listeCle(presetPnjSchema, 'id'),
-  objets: listeCle(trappingEntree, 'id'),
+  objets: listeCle(objetEmbarqueSchema, 'id'),
   documents: listeCle(documentNarratifSchema, 'id'),
   etats: listeCle(etatNarratifSchema, 'id'),
   ouverture: ouvertureSchema.optional(),

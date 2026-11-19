@@ -307,6 +307,20 @@
     "hint": "Système ALTERNATIF d’Avantage d’Aux Armes (Annexe I) : l’Avantage n’est plus accumulé par combattant mais dans DEUX réserves de camp (alliés / adversaires). La génération est routée vers la réserve du camp (héros/alliés → alliés ; PNJ hostile ou neutre → adversaires). En fin de Round, le camp DOMINANT (le plus de combattants ; Coude-à-coude compte pour deux) prend 1 Avantage à l’autre (ou +1 si l’autre est vide) — remplace la décroissance et le Surnombre du Livre de base. Tout Talent ou Trait porteur d’une variante Aux Armes bascule alors sur elle : sa fiche au Compendium affiche la version qui s’applique. Désactivé (défaut) = modèle par combattant du Livre de base, inchangé."
   },
   {
+    "id": "combat-aa-armement",
+    "type": "reglesOptionnelles",
+    "label": "Profils d’armes et de munitions (Aux Armes)",
+    "ref": "AA 08 l.63-77",
+    "source": {
+      "book": "aux-armes",
+      "page": 89
+    },
+    "group": "Combat",
+    "kind": "flag",
+    "default": false,
+    "hint": "Applique les profils réimprimés dans Aux Armes. Désactivé, utilise les profils du Livre de base."
+  },
+  {
     "id": "combat-tir-dans-la-melee",
     "type": "reglesOptionnelles",
     "label": "Tir dans un corps à corps",

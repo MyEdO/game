@@ -296,6 +296,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  l'usage par `effectiveRange(weapon.range, BF du tireur)` aux sites combat/affichage. */
   range?: WeaponRangeSpec | null;
   qualities: QualityInstance[];
+  /** AA 08 l.69-77 */
+  atoutOptionnel?: string;
   /** `id` du Groupe d'arme/famille de munition (`WeaponGroupData.id`) — réf, ≠ libellé. Pilote la
    *  Spécialisation de combat (`combatValue`), la famille de munition (`ammoFamily`). */
   subType?: string;

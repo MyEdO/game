@@ -24,6 +24,8 @@ import { portesDuMobile } from './marcheDuGroupe';
 import { emptyScene } from './monde/scene';
 import { t } from '../i18n';
 import { bus, EVT } from './bus';
+import { reglerUneRegleMaison, remettreUneRegleMaison } from '../hote/reglesMaison';
+import { unpackHouseRules } from './persistance/save';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -516,6 +518,27 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
       partie.recevoir(avantLeCoup);
       expect(etatsGagnesDe(partie.recevoir(apresLeCoup))).toEqual(expect.arrayContaining([inconscient]));
     });
+  });
+
+  it('publie chaque bascule effective de l’armement à la coop, même sans porteur à reprojeter', () => {
+    const initial = etatInitialDuJeu();
+    const partie = creerPartie({ ...initial, net: { ...initial.net, mode: 'hote' } }, ENTREES);
+    const regle = 'combat-aa-armement';
+    const publications: unknown[] = [];
+    const arreter = partie.abonner((etat) => {
+      publications.push(unpackHouseRules(instantaneDeLaCoop(etat)).rules);
+    });
+    try {
+      expect(partie.etat().party).toEqual([]);
+      reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLArmement);
+      reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLArmement);
+      remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLArmement);
+      remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLArmement);
+      expect(publications).toEqual([{ [regle]: true }, {}]);
+    } finally {
+      arreter();
+      partie.fermer();
+    }
   });
 
   it('R8 : `relever` rend une fois l’écrit hors appel, `abonner` suit chaque écriture, un appel qui lève ne jette que le sien', () => {

@@ -11,6 +11,7 @@ import { ref } from '../grammaire/ref';
 
 export const file = 'weaponGroups.json';
 export const famille = 'entite';
+export const VARIANT_RESOLVED_FIELDS = ['source', 'manieAussi'] as const;
 
 const KINDS = { weapon: 'Groupe d’arme', ammo: 'Munitions', armour: 'Armure', inventory: 'Inventaire' } as const;
 
@@ -96,8 +97,15 @@ const doc = document(
   // `siege` : la sous-liste des Groupes d'engins de siège (`groupeDeSiege`, `src/data/index.ts`) ;
   // `lancee` : la sous-liste des Groupes d'armes lancées (`isThrownWeapon`, `src/engine/weaponGroup.ts`).
   {
+    variantes: VARIANT_RESOLVED_FIELDS,
     espace: { discriminant: ['combat', 'kind'], champDeCharge: 'kind', chargeParDiscriminant, requisesParDiscriminant, marqueurs: ['poudre', 'siege', 'lancee'] },
-    affinerEntree: (entree) => entree.refine((g: { seuil?: number }) => g.seuil === undefined || g.seuil >= 0, { path: ['seuil'], message: 'le palier de PA d’un Groupe d’armure est ≥ 0' }),
+    affinerEntree: (entree) => entree
+      .refine((g: { seuil?: number }) => g.seuil === undefined || g.seuil >= 0, { path: ['seuil'], message: 'le palier de PA d’un Groupe d’armure est ≥ 0' })
+      .refine(
+        (g: { kind?: Kind; variants?: readonly { manieAussi?: unknown }[] }) =>
+          g.kind === 'weapon' || !g.variants?.some((v) => v.manieAussi !== undefined),
+        { path: ['variants'], message: 'seul un Groupe d’arme peut porter une variante de maniement' },
+      ),
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         const groupes = v as ({ id: string; kind: string } & Partial<Record<(typeof RANGS_D_ARMURE)[number], number | null>>)[];
@@ -123,3 +131,4 @@ export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
+export const cles = doc.cles;

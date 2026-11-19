@@ -209,7 +209,7 @@ Les armes d'escrime sont très proches des armes de base et peuvent très bien �
 | (2M) Marteau à bec-de-corbin | 3 CO | 3   | Limitée       | Longue      | +BF +5  | Assommante            |
 | Sabre                        | 2 CO | 1   | Limitée       | Moyenne     | +BF +4  | Taillade (1A)         |
 
-<sup>\*</sup> Les lances de cavalerie et les demi-lances de cavalerie sont considérées comme des armes improvisées si vous les utilisez lors d'un Round où vous n'avez pas Chargé.
+\* Les lances de cavalerie et les demi-lances de cavalerie sont considérées comme des armes improvisées si vous les utilisez lors d'un Round où vous n'avez pas Chargé.
 
 #### TABLEAU DES ARMES D'ESCRIME
 
