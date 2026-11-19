@@ -18,6 +18,7 @@ import {
   opposedReasons,
   exactDifficultyFromModifier,
   cibleMesuree,
+  hydrateTR,
   TestResult,
   type VerdictReason,
   type VainqueurOppose,
@@ -506,6 +507,8 @@ export interface RollBreakdown {
   modifier: number;
   /** Détail étiqueté des modificateurs (somme = `modifier` quand renseigné). */
   mods?: ModLine[];
+  /** Modificateurs appliqués au DR du jet. */
+  modsDR?: ModLine[];
   /** Valeur cible effective (= base + modificateurs) ; le verdict est `evaluateTest` (LDB 12 l.25-28). */
   target: number;
   /** ÉCRÊTAGE réellement subi par la cible (`TestResult.clamped`) — la seule source qui autorise la
@@ -606,10 +609,19 @@ export interface AttackResult {
   log: string;
 }
 
+export function sommeDesModificateursDR(mods: readonly ModLine[] | undefined): number {
+  return mods?.reduce((somme, mod) => somme + mod.value, 0) ?? 0;
+}
+
+/** Reprend le jet d'attaque avant ses modificateurs de DR pour une nouvelle résolution. */
+export function hydrateAttackTR(d: RollBreakdown): TestResult {
+  return hydrateTR({ ...d, sl: d.sl - sommeDesModificateursDR(d.modsDR) });
+}
+
 /** Détail d'AFFICHAGE d'un jet de combat. La valeur nue voyage AVEC lui (`nue`, lue sur le
  *  `TestResult` décrit) : sans elle, tout jet réhydraté du détail (Chance, dé posé, ré-opposition)
  *  reprendrait `base` — la valeur TESTÉE — et rouvrirait le départage mixte (`LDB 12 l.160`). */
-const bd = (label: string, base: number, t: TestResult, c?: DifficultyComposition, mode?: DefenseMode): RollBreakdown => {
+const bd = (label: string, base: number, t: TestResult, c?: AttackComposition, mode?: DefenseMode): RollBreakdown => {
   // La Difficulté n'est PAS recomposée ici : elle est POSÉE par qui a roulé le jet, avec les
   // modificateurs qui ont fait la cible. `bd` la relaie — un détail d'affichage ne redécide rien.
   return {
@@ -621,10 +633,11 @@ const bd = (label: string, base: number, t: TestResult, c?: DifficultyCompositio
     ...(c ? { mods: c.mods, difficulty: c.difficulty } : {}),
     ...(c?.difficultyCombined != null ? { difficultyCombined: c.difficultyCombined } : {}),
     ...(c?.difficultyParts ? { difficultyParts: c.difficultyParts } : {}),
+    ...(c?.modsDR ? { modsDR: c.modsDR } : {}),
     ...cibleMesuree(t),
     roll: t.roll,
     success: t.success,
-    sl: t.sl,
+    sl: t.sl + sommeDesModificateursDR(c?.modsDR),
   };
 };
 export const DEFENSE_LABEL: Record<'parade' | 'esquive', string> = { parade: t('valeur.parade'), esquive: t('valeur.esquive') };
@@ -727,8 +740,10 @@ export function composeDifficulty(declared: Difficulty, surLaCible: ModLine[]): 
 /** Difficulté d'un jet de COMBAT composée par ce qui pèse sur sa cible : Intermédiaire à la source
  *  (`LDB 13 l.118`), puis la table (`LDB 14 l.91-96`). SEUL point d'entrée des résolveurs — ils
  *  composent avec les modificateurs qui ont RÉELLEMENT fait la cible, une fois. */
-export function composeAttack(mods: ModLine[]): DifficultyComposition {
-  return composeDifficulty('intermediaire', mods);
+export type AttackComposition = DifficultyComposition & { modsDR?: ModLine[] };
+
+export function composeAttack(mods: ModLine[], modsDR?: ModLine[]): AttackComposition {
+  return { ...composeDifficulty('intermediaire', mods), ...(modsDR?.length ? { modsDR } : {}) };
 }
 
 /**
@@ -754,7 +769,7 @@ function compoDeRepli(mods: ModLine[], site: string): DifficultyComposition {
  * distance, sans env, sans flanc/dos) changerait la Difficulté AFFICHÉE d'une attaque déjà tranchée.
  * `circCombined` se relit de la composition portée (les `difficultyParts` en SONT la somme).
  */
-export function frozenDifficulty(d: RollBreakdown | undefined): DifficultyComposition | undefined {
+export function frozenDifficulty(d: RollBreakdown | undefined): AttackComposition | undefined {
   if (!d?.difficulty) return undefined;
   const parts = d.difficultyParts;
   return {
@@ -762,6 +777,7 @@ export function frozenDifficulty(d: RollBreakdown | undefined): DifficultyCompos
     ...(d.difficultyCombined != null ? { difficultyCombined: d.difficultyCombined } : {}),
     ...(parts ? { difficultyParts: parts } : {}),
     mods: d.mods ?? [],
+    ...(d.modsDR ? { modsDR: d.modsDR } : {}),
     circCombined: (parts ?? []).reduce((s, m) => s + m.value, 0),
   };
 }
@@ -1242,7 +1258,7 @@ function combineOpposed(
   const dodgeMods = opts.dodgeMods ?? [];
   const noSize = !!attacker.swarm || !!defender.swarm; // Nuée : ignore toutes les règles de Taille (LDB 85 l.253)
   const parrySizePenalty = defenseMode === 'parade' && !noSize ? 2 * Math.max(0, sizeGap(attacker.size, defender.size)) : 0;
-  const atkSL = attackTestDR(attacker, defender, weapon, atk, weapon.type === 'distance' ? 'distance' : 'melee');
+  const atkSL = attackTestDR(attacker, defender, weapon, atkBd, weapon.type === 'distance' ? 'distance' : 'melee');
   const defSL = def.sl - parrySizePenalty + vsDefenseDRAdjust(weapon)
     + (defenseMode === 'parade' ? parryDRAdjust(parryWeapon, weapon) + craftTestDRAdjust(parryWeapon, def.success) : 0)
     + offTerrainTestDR(defender);
@@ -1254,11 +1270,11 @@ function combineOpposed(
   const usedParry = defenseMode === 'parade' ? parryWeapon : undefined; // arme de parade (Critiques opposés / Piège-lame)
   // Z5c — la RAISON du départage (LDB 12 l.160) va sur la LIGNE du camp qu'elle explique : le
   // résolveur la dit une fois, l'affichage n'a plus rien à déduire ni à recomparer.
-  // CONDITION d'annotation : les DR que les lignes AFFICHENT (`atk.sl`/`def.sl`, ceux que `bd` pose)
+  // CONDITION d'annotation : les DR que les lignes AFFICHENT (`atkBd.sl`/`defBd.sl`)
   // doivent être égaux EUX AUSSI. Les ajustements de DR (Taille en Parade, Défensive, Peur/Haine…)
   // entrent dans le verdict sans paraître sur les lignes : quand ils créent ou effacent l'égalité,
   // la phrase citerait des DR que l'écran ne montre pas. Ces cas restent MUETS (périmètre #1152).
-  const [atkWhy, defWhy] = atk.sl === def.sl ? opposedReasons(opp) : [undefined, undefined];
+  const [atkWhy, defWhy] = atkBd.sl === defBd.sl ? opposedReasons(opp) : [undefined, undefined];
   const atkLine = atkWhy ? { ...atkBd, decided: atkWhy } : atkBd;
   const defLine = defWhy ? { ...defBd, decided: defWhy } : defBd;
   if (opp.winner === 'defenseur') {
@@ -1336,7 +1352,7 @@ export function resolveMeleePassive(
 /** DR du Test d'ATTAQUE, ajustements compris : SOURCE UNIQUE du Test opposé (`combineOpposed`) et de
  *  l'attaque passive (`passiveOutcome`). LDB 60 l.22/58 ; LDB 62 l.323/288 ; LDB 21 ; LDB 10 l.19 ;
  *  MDG 09 l.232 ; MDG 16 l.17 */
-function attackTestDR(attacker: Combatant, defender: Combatant, weapon: Weapon, atk: TestResult, kind: 'melee' | 'distance'): number {
+function attackTestDR(attacker: Combatant, defender: Combatant, weapon: Weapon, atk: RollBreakdown, kind: 'melee' | 'distance'): number {
   return atk.sl + craftTestDRAdjust(weapon, atk.success) + attackDRAdjust(weapon, atk.success) + psychDRAdjust(attacker, defender)
     + (atk.success ? skillDRBonus(attacker, { id: kind === 'distance' ? 'projectiles' : 'corps-a-corps' }) : 0)
     + offTerrainTestDR(attacker);
@@ -1356,7 +1372,7 @@ function passiveOutcome(
   dmgProxy?: AttackOptions['dmgProxy'],
   withhold = false,
 ): AttackResult {
-  const dr = attackTestDR(attacker, defender, weapon, atk, kind);
+  const dr = attackTestDR(attacker, defender, weapon, atkBd, kind);
   // LDB 13 l.125 ; LDB 15 l.63 ; arbitrage A6 du 2026-10-13 (#1765, commentaire 6142721431).
   if (!atk.success) return {
     hit: false,
@@ -1505,6 +1521,7 @@ export function resolveRanged(
   defense: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMods?: ModLine[]; bouclierDuBinome?: Weapon } | undefined,
   metresPerTile: number,
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
+  modsDR?: ModLine[],
 ): AttackResult {
   const atkVal = combatValue(attacker, 'distance', weapon);
   const rangeM = porteeDeTir(attacker, weapon);
@@ -1513,7 +1530,7 @@ export function resolveRanged(
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile });
   let atk: TestResult = { ...rollTest(atkVal, 'intermediaire', rng, combineMods(mods)), base: combatBaseValue(attacker, 'distance', weapon) }; // LDB 12 l.160
   if (isHelplessTarget(defender)) atk = helplessTest(atk, 'distance'); // auto-succès, Dégâts à bout portant (LDB 16 l.113)
-  const atkBd = bd(attackTestLabel(attacker, weapon, 'distance'), atkVal, atk, composeAttack(mods));
+  const atkBd = bd(attackTestLabel(attacker, weapon, 'distance'), atkVal, atk, composeAttack(mods, modsDR));
   // Tir DÉFENDU (RAW : Protectrice 2+ LDB 62 l.296 / Bout Portant 14 l.40 / tireur Engagé 14 l.41) →
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
   if (defense && !isHelplessTarget(defender)) {
@@ -1557,7 +1574,7 @@ export function finishRanged(
   parryWeapon: Weapon | undefined,
   dodgeMods: ModLine[] | undefined,
   metresPerTile: number,
-  compo?: DifficultyComposition, // Difficulté FIGÉE par le jet d'origine (#1153 L4) ; absente = composée ici
+  compo?: AttackComposition, // Difficulté FIGÉE par le jet d'origine (#1153 L4) ; absente = composée ici
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
   bouclierDuBinome?: Weapon, // ZI 13 l.193
 ): AttackResult {
@@ -1592,12 +1609,12 @@ export function resolveStrayRangedHit(
   const src = frozenDifficulty(origine);
   const porte = (src ? src.circCombined : 0) + (src?.mods ?? []).reduce((s, m) => s + m.value, 0);
   const devie = effTarget - base - porte;
-  const compo: DifficultyComposition | undefined = src && {
+  const compo: AttackComposition | undefined = src && {
     ...src,
     mods: devie ? [...src.mods, { label: 'Tir dévié', value: devie, famille: 'jet', ref: refDeRegle('tir-dans-un-combat-au-corps-a-corps') }] : src.mods,
   };
   const atkBd = bd(`${attackTestLabel(attacker, weapon, 'distance')} (dévié)`, base, atk, compo);
-  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), tirage, withhold);
+  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atkBd.sl), tirage, withhold);
   return res;
 }
 
@@ -1958,7 +1975,7 @@ export function rederivePassiveAttack(
   tirage: TirageDeLocalisation,
   location?: HitLocation,
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
-  compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4)
+  compo?: AttackComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4)
   dmgProxy?: AttackOptions['dmgProxy'], // LDB 14 l.183
 ): AttackResult {
   // La composition FIGÉE par la résolution d'origine est TRANSPORTÉE : re-composer ici depuis un

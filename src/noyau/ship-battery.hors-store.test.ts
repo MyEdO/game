@@ -10,6 +10,8 @@ import { makeRNG } from '../engine/dice';
 import { jete } from '../engine/tests.testkit';
 import { rangeBandName, toucheAuJetPose } from '../engine/combat';
 import { sceneMetresPerTile } from './monde/scene';
+import type { TravelPlan } from './travelFlow';
+import { etatInitialDuJeu } from './etat';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { resolveVolley } from '../engine/volley';
 import { jouerLesTirsDeBordee } from './combatFlow';
@@ -181,6 +183,56 @@ const sailor = (id: string): Combatant =>
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] });
 /** Coque cible AVEC équipage exposé. */
 const crewedHull = (crewIds: string[]): Combatant => ({ ...enemyHull(), crewIds } as Combatant);
+
+describe('Visibilité maritime de la bordée jouée (MDG 13 l.234-243 ; MDG 14 l.128)', () => {
+  const jouer = (distance: number, visibilite: string, mode: 'joueur' | 'ia') => {
+    banc.abandonner();
+    seedBattleRng(7);
+    const cible = enemyHull({ x: 5 + distance, y: 5 });
+    const g = gunnerPJ();
+    const scene = {
+      ...navScene(), metresPerTile: 1, dimensions: { w: 32, h: 20 },
+      layers: [{ z: 0, tiles: new Array(640).fill('eau') }],
+    };
+    banc.setState({
+      ...etatInitialDuJeu(), screen: 'campaign',
+      battle: { combatants: [firingShip(), g, cible], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
+      party: [g], facing: { ship: 'N' }, scene: scene as never,
+      travelPlan: { sea: { weather: { precipitations: 'aucune', visibilite } } } as TravelPlan,
+    });
+    const avant = cible.wounds.current;
+    let lignes: [string, number][] = [];
+    if (mode === 'joueur') {
+      banc.getState().ouvrirLaBordee('ship', 'target');
+      expect(banc.getState().pendingShipBattery).not.toBeNull();
+      lignes = (banc.getState().pendingShipBattery!.modsDR ?? []).map((m) => [m.label, m.value]);
+      banc.getState().jetLancer('tirDeBatterie', 'gunner');
+      banc.getState().jetValider('tirDeBatterie');
+    } else {
+      expect(banc.getState().tirerLaBordee('ship', 'target')).toBe(true);
+    }
+    const etat = banc.getState().battle!;
+    expect(etat.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(false);
+    return { lignes, pertes: avant - etat.combatants.find((c) => c.id === 'target')!.wounds.current };
+  };
+
+  describe.each(['joueur', 'ia'] as const)('porte %s', (mode) => {
+    it.each([
+      ['brume', 'Brume', 20, -1],
+      ['brouillard', 'Brouillard', 10, -2],
+      ['puree-de-pois', 'Purée de pois', 5, -3],
+    ] as const)('%s (%s) : au seuil de %i m et un mètre au-delà', (id, libelle, seuil, malus) => {
+      const auSeuil = jouer(seuil, id, mode);
+      expect(auSeuil).toEqual(jouer(seuil, 'degage', mode));
+      const clair = jouer(seuil + 1, 'degage', mode);
+      const distant = jouer(seuil + 1, id, mode);
+      expect(clair.pertes, 'le Test en clair a réellement touché').toBeGreaterThan(-malus);
+      expect(distant.pertes).toBe(clair.pertes + malus);
+      if (mode === 'joueur') expect(distant.lignes).toEqual([[libelle, malus]]);
+    });
+  });
+});
+
 /** Pièce avec qualités/enchant custom (Atout d'aire + effet onHit générique). */
 const aireePoste = (qualities: { id: string; value?: number }[], onHit?: unknown): ShipPoste =>
   ({ side: 'tribord', crewIds: ['gunner'], item: { uid: 'canon', label: 'Canon', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
