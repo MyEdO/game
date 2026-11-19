@@ -29,7 +29,7 @@ const ACTIVITE_D_ESSAI: ActivityDef = {
   id: ACTIVITE, type: 'activities', label: 'Entretien de test',
   source: SOURCE_D_ESSAI, icon: 'voyage/reparer',
   resolver: 'shipMaintenance', contexts: ['mer'],
-  entretienNavire: { modEnMer: -10, modChantierSpecialise: 30 },
+  modEntretienEnMer: -10, modEntretienChantierSpecialise: 30,
   tests: [
     { skill: { id: 'metier', spec: CHARPENTIER }, difficulty: 'intermediaire' },
     { skill: { id: 'metier', spec: CONSTRUCTEUR }, difficulty: 'intermediaire' },
@@ -165,7 +165,7 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
   it('le catalogue du livre donne −20 en mer et +20 au chantier spécialisé', () => {
     expect(ACTIVITIES.find((a) => a.resolver === 'shipMaintenance')).toMatchObject({
       id: 'entretien-du-navire',
-      entretienNavire: { modEnMer: -20, modChantierSpecialise: 20 },
+      modEntretienEnMer: -20, modEntretienChantierSpecialise: 20,
     });
   });
 
@@ -317,7 +317,8 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
 
   it.each([
     ['tests', { tests: undefined }],
-    ['entretienNavire', { entretienNavire: undefined }],
+    ['modEntretienEnMer', { modEntretienEnMer: undefined }],
+    ['modEntretienChantierSpecialise', { modEntretienChantierSpecialise: undefined }],
     ['contexts', { contexts: ['voyage'] }],
     ['stake', { stake: undefined, stakeForm: undefined }],
   ] as const)('le catalogue d’Entretien exige %s', (champ, remplacement) => {

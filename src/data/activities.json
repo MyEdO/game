@@ -926,10 +926,8 @@
       }
     ],
     "resolver": "shipMaintenance",
-    "entretienNavire": {
-      "modEnMer": -20,
-      "modChantierSpecialise": 20
-    },
+    "modEntretienEnMer": -20,
+    "modEntretienChantierSpecialise": 20,
     "stake": "En cas de réussite, les matériaux sont dépensés et le dommage visé est réparé.",
     "stakeForm": "descripteur"
   },

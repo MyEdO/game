@@ -299,20 +299,22 @@ function etatDEntretien(get: Get, def: ActivityDef): EtatDEntretien | PlayerText
   const profil = vessel && findVehicleById(vessel.vehicleId);
   if (!vessel || !profil?.ship || !profil.hull) return t('sact.entretienSansNavire');
   const pending = s.pendingSeaActivities;
-  if (!pending || !def.entretienNavire) return t('sact.entretienIndisponible');
+  const { modEntretienEnMer, modEntretienChantierSpecialise } = def;
+  if (!pending || modEntretienEnMer === undefined || modEntretienChantierSpecialise === undefined) {
+    return t('sact.entretienIndisponible');
+  }
 
   const ref = cibleCodex({ type: 'activity', id: def.id });
-  const { modEnMer, modChantierSpecialise } = def.entretienNavire;
   let mod: ModLine[] = [];
   if (pending.escale !== undefined) {
     const port = currentPort(get);
     if (refusAQuai(s) || port?.placeId !== pending.escale) return t('port.pasAQuai');
     if (port.ref && findNavalPortById(port.ref)?.chantierNavalSpecialise) {
-      mod = [{ label: t('sact.entretienChantier'), famille: 'circonstance', value: modChantierSpecialise, ref }];
+      mod = [{ label: t('sact.entretienChantier'), famille: 'circonstance', value: modEntretienChantierSpecialise, ref }];
     }
   } else {
     if (!s.travelPlan?.sea || !coqueDuNavireDeCampagne(s.travelPlan, vessel)) return t('sact.entretienSansNavire');
-    mod = [{ label: t('sact.entretienEnMer'), famille: 'circonstance', value: modEnMer, ref }];
+    mod = [{ label: t('sact.entretienEnMer'), famille: 'circonstance', value: modEntretienEnMer, ref }];
   }
 
   const { current: courant, max: maximum, missing: manquantes } = blessuresDeCoqueARestaurer(vessel);
