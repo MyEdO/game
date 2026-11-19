@@ -949,6 +949,13 @@ static func echelle_de_motif() -> Vector3:
 	return Vector3.ONE / METRES_PAR_MOTIF
 
 
+## L'échelle de projection d'une texture de matière dans le repère de la pièce d'un modèle d'arête mesuré en mètres,
+## étirée de `etirement` sur un plateau de `metres_par_case` (`echelle_d_arete_servie`, #4471) : un motif tous les
+## `METRES_PAR_MOTIF` de la pièce posée, sur chaque axe, quel que soit son étirement.
+static func echelle_de_motif_etire(etirement: Vector3, metres_par_case: float) -> Vector3:
+	return echelle_de_motif() * etirement * metres_par_case
+
+
 ## Le point d'un plan de `taille` pixels où se pose un point placé en (`x`, `y`) de son cadre (0..1 sur chaque axe),
 ## la marge du plan autour.
 static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
