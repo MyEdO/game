@@ -87,6 +87,9 @@ export interface LumiereDeLaScene {
   /** Direction unitaire VERS le soleil, null sans soleil (intérieur, nuit). */
   soleil: { vers: { x: number; y: number; z: number }; couleur: string; energie: number } | null;
   ambiante: { couleur: string; energie: number };
+  /** L'énergie qui rend blanc pur une surface d'albédo 1 : le soleil haut plus l'ambiante pleine. La courbe de l'écran
+   *  s'y cale, si bien qu'un albédo clair reste clair en plein soleil sans s'écrêter. */
+  blanc: number;
   /** Dégradé du ciel d'un extérieur en immersion ; null en intérieur et hors de l'immersion, dont le fond est la
    *  brume. */
   ciel: { zenith: string; horizon: string } | null;
@@ -115,7 +118,8 @@ function melange(a: string, b: string, t: number): string {
  * partie, que le noyau calcule entière : Godot n'en pose que les valeurs. Le soleil (`soleil` : la direction unitaire
  * vers lui dans le repère du monde, sa couleur `#rrggbb`, son énergie ; `null` en intérieur et la nuit) suit l'heure et
  * le nord de la scène (`src/noyau/monde/soleil.ts`) ; l'ambiante (`ambiante`), dehors la moyenne du ciel, de son zénith à son horizon, suit le palier de lumière
- * (`ambientScalar`) ; le ciel (`ciel` : zénith et horizon, `null` en intérieur et hors de l'immersion, dont le fond est
+ * (`ambientScalar`) ; le blanc (`blanc`), l'énergie du soleil haut plus l'ambiante pleine, où la courbe de l'écran rend
+ * blanc pur un albédo 1 ; le ciel (`ciel` : zénith et horizon, `null` en intérieur et hors de l'immersion, dont le fond est
  * la brume) et la brume de profondeur (`brume` : sa couleur, la pénombre du hors-carte hors de l'immersion, puis où
  * elle commence et où elle couvre tout, en cases au-delà du point que la caméra vise, ou depuis l'œil en immersion,
  * et la puissance `courbe` à laquelle elle s'épaissit entre les deux,
@@ -177,6 +181,7 @@ export function lumiereDeLaScene(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaiss
       couleur: interieur ? AMBIANTE_INTERIEURE : deNuit(melange(pov.skyTop, pov.fogOutdoor, 0.5)),
       energie: AMBIANTE_NOIRE + (AMBIANTE_PLEINE - AMBIANTE_NOIRE) * palier,
     },
+    blanc: ENERGIE_DU_SOLEIL + AMBIANTE_PLEINE,
     ciel: interieur || !depuisLOeil ? null : { zenith: deNuit(pov.skyTop), horizon: deNuit(pov.fogOutdoor) },
     horsCarte: { sol, fonduCases: depuisLOeil ? null : FONDU_DU_HORS_CARTE_CASES },
     brume: {
