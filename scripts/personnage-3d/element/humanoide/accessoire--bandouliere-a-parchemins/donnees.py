@@ -1,13 +1,13 @@
-"""Données de `humanoide--accessoire--bandouliere-a-parchemins` (le Sorcier, #3743), lues par le kit des sangles (`element/sangle.py`) : la variante
+"""Données de `humanoide--accessoire--bandouliere-a-parchemins` (le Sorcier, #3743, #4351), lues par le kit des sangles (`element/sangle.py`) : la variante
 `bandouliere-a-parchemins` de la pièce `baudrier` de la garde-robe, dont elle garde l'emplacement `epaule_d`.
 
 Illustration directrice : ligne de `INDEX.md` du recueil `illustrations-wfrp` « Sorcier | sorcier | `carrieres/sorcier.png` |
-Livre de Base | 94 | certaine » (hors dépôt). Ce qu'elle montre : une large sangle claire, piquée, qui descend de l'épaule
-droite (sous l'écharpe) en travers du buste vers la hanche gauche ; des rouleaux de parchemin glissés en travers de la
-sangle sur la poitrine, puis, plus bas, trois fioles bouchées (deux violettes, une verte) : ce sont des objets, rangés
-dans les cases que la sangle offre (`CASES`, #3844), jamais cuits dans la sangle. Le dos ne se voit pas
-(HYPOTHÈSE : la sangle remonte du flanc gauche à l'épaule droite par le dos, nue). Échelle relevée : environ 530 px/m (le
-personnage, du capuchon aux semelles, environ 960 px pour les 1,82 m de la base).
+Livre de Base | 94 | certaine » (hors dépôt). Ce qu'elle montre : une sangle de cuir brun olive, piquée, qui descend de
+l'épaule droite (sous l'écharpe) en travers du buste vers la hanche gauche ; quatre rouleaux de parchemin tenus en
+travers de la sangle par des passants de cuir, sur la poitrine, puis, plus bas, trois fioles bouchées (deux vertes, une
+sombre) dans leurs passants : ce sont des objets, rangés dans les cases que la sangle offre (`CASES`, #3844), jamais
+cuits dans la sangle. Le dos ne se voit pas (HYPOTHÈSE : la sangle remonte du flanc gauche à l'épaule droite par le dos,
+nue). Échelle relevée : environ 570 px/m (1,75 m de la semelle au sommet du crâne, HYPOTHÈSE du contrat).
 
 Repère : celui de la base importée dans Blender (mètres, z vers le haut, l'avant vers -y, la gauche du personnage vers
 +x). La sangle suit la coupe du tronc par un plan oblique : celui qui passe par le point d'épaule `EPAULE` et le point de
@@ -76,8 +76,8 @@ PASSANTS = {
     'fiole': {'rayon': 0.0155, 'centre': 0.019, 'largeur': 0.03, 'segments': 4},
 }
 """Les passants de cuir qui tiennent les objets glissés dans les cases (illustration : une boucle de sangle par rouleau,
-un fourreau court par fiole). `rayon` : du dedans de la boucle, 1,5 mm de plus que l'objet (rouleau publié : 21,5 mm
-avec son lien ; fiole publiée : 13,8 mm à la bague) ; `centre` : l'axe de l'objet au-dessus de la case, son rayon plus
+un fourreau court par fiole). `rayon` : du dedans de la boucle, 1,5 mm de plus que l'objet (`rigide--parchemin` : 21,5 mm
+avec son lien ; `rigide--fiole` : 13,8 mm à la bague) ; `centre` : l'axe de l'objet au-dessus de la case, son rayon plus
 les 5 mm où l'hôte pose son dos (`JEU_DE_RANGEMENT`, `hotes/godot/projet/scripts/mise_en_page.gd`) ; `largeur` : le long
 de l'objet, illustration : ~11 px (2 cm) pour un rouleau, ~17 px (3 cm) pour une fiole ; `segments` : côtés du
 demi-cercle (HYPOTHÈSE de maillage)."""
@@ -99,5 +99,7 @@ positif vers la gauche du personnage ; `passant` : la boucle de `PASSANTS` qui t
 rouleaux empilés sur la poitrine, sous l'écharpe, leur bout gauche relevé de 20 à 25° (sur cette sangle, à -15° de sa
 perpendiculaire), puis trois fioles de même pente jusqu'au-dessus de la ceinture, tous sur la sangle. Le premier rouleau
 à s = 0,41 (à 0,30 et 0,36, il passait assez près du menton pour s'y lier : `suiviDuCorps/cle-inerte` sous
-`gabarit_head_plus`) ; pas des rouleaux : 5,4 cm (boucle de 5,2 cm de dehors, à 15°), soit 0,085 ; pas des fioles :
+`gabarit_head_plus`) ; les rangs 5 et 6 passent sous le pan de la capuche publiée (devant, de x = 0,092 à 0,135,
+au-dessus de z = 1,26), que leurs passants traversent (`couche-percee-au-repos` 15,8 mm, `couche-traversee` sous
+`carrure_plus`) ; pas des rouleaux : 5,4 cm (boucle de 5,2 cm de dehors, à 15°), soit 0,085 ; pas des fioles :
 3,8 cm, soit 0,06."""
