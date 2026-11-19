@@ -14,7 +14,7 @@ const ECART_DE_L_OBJET := 0.03
 const LUMIERE_DU_JEU := {
 	tactique = {
 		soleil = {vers = {x = 0.652, y = 0.552, z = 0.520}, couleur = "#fff3df", energie = 1.3},
-		ambiante = {couleur = "#5b83ac", energie = 0.75},
+		ambiante = {couleur = "#5b83ac", energie = 0.75}, blanc = 1.0,
 		ciel = null,
 		brume = {couleur = "#0f1013", debutCases = 8, finCases = 32, courbe = 2.0, depuisLOeil = false},
 		horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#3d6630"}, fonduCases = 6},
@@ -22,7 +22,7 @@ const LUMIERE_DU_JEU := {
 	},
 	immersion = {
 		soleil = {vers = {x = 0.652, y = 0.552, z = 0.520}, couleur = "#fff3df", energie = 1.3},
-		ambiante = {couleur = "#5b83ac", energie = 0.75},
+		ambiante = {couleur = "#5b83ac", energie = 0.75}, blanc = 1.0,
 		ciel = {zenith = "#5b83ac", horizon = "#9fb2c6"},
 		brume = {couleur = "#9fb2c6", debutCases = 8, finCases = 32, courbe = 2.0, depuisLOeil = true},
 		horsCarte = {sol = {matiere = "terrain--herbe", couleur = "#3d6630"}, fonduCases = null},

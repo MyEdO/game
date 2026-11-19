@@ -13,7 +13,7 @@ const PLATEAU := {w = 1, h = 1, metresParCase = METRES_PAR_CASE}
 const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6, canal = "ambiance"}
 const FLAMME := {cle = "posee/brasero", x = 2, y = 3, z = 0, hM = 0.6, rayonCases = 5, couleur = "#ff8c3a", energie = 2.5, scintillement = {amplitude = 0.35, hz = 2.4}, visuel = "feu", son = CREPITEMENT}
 const LUEUR := {cle = "portee/mage", x = 6, y = 3, z = 0, hM = 1.0, rayonCases = 4, couleur = "#8fc8ff", energie = 2.1, scintillement = null, visuel = "lueur", son = null}
-const LUMIERE := {soleil = null, ambiante = {couleur = "#203040", energie = 0.2}, ciel = null,
+const LUMIERE := {soleil = null, ambiante = {couleur = "#203040", energie = 0.2}, blanc = 1.0, ciel = null,
 	brume = {couleur = "#101820", debutCases = 10.0, finCases = 40.0, courbe = 1.0, depuisLOeil = true},
 	horsCarte = {sol = null, fonduCases = null}, sources = [FLAMME, LUEUR]}
 var _fautes: Array[String] = []
