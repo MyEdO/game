@@ -94,16 +94,19 @@ describe('Poursuite terrestre (#95)', () => {
     }
   });
 
-  it('la Compétence de la course décide ce qui est LU sur la fiche — à cheval, c’est Chevaucher (LDB 15 l.92)', () => {
+  it.each([
+    ['chevaucher', 39],
+    ['athletisme', 46],
+  ] as const)('teste %s sur le profil de Moritz avec son Encombrement (LDB 15 l.92, LDB 61 l.38)', (skill, valeurImprimee) => {
     heroes();
     startGroundPursuit(banc.getState, banc.setState, {
-      partyRole: 'pursuing', distance: 4, skill: 'chevaucher', foes: [{ id: 'moritz-valgeir' }],
+      partyRole: 'pursuing', distance: 4, skill, foes: [{ id: 'moritz-valgeir' }],
     });
     const fiche = findCreatureById('moritz-valgeir')!;
-    const chevaucher = fiche.skills.find((s) => s.id === 'chevaucher')!.value;
-    const athletisme = fiche.skills.find((s) => s.id === 'athletisme')!.value;
-    expect(chevaucher).not.toBe(athletisme); // deux Compétences distinctes sur la MÊME fiche
-    expect(pursuitOf(banc.getState())!.foes[0].skill).toBe(chevaucher);
+    // Middenheim 02 l.692-698 ; LDB 61 l.5, l.21, l.38 ; CRB 085 l.41, l.47
+    const malusEncombrement = -10;
+    expect(fiche.skills.find((s) => s.id === skill)?.value).toBe(valeurImprimee);
+    expect(pursuitOf(banc.getState())!.foes[0].skill).toBe(valeurImprimee + malusEncombrement);
   });
 
   it('PORTE : une référence de créature cassée est REFUSÉE à la validation (aucune stat à lire)', () => {

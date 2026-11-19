@@ -154,6 +154,16 @@ describe('possessions de fiche à l’apparition (#4348)', () => {
     expect(c.armour).toEqual({ tete: 2, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 });
   });
 
+  it('ZI 13 l.193 : le Technomage tient son jezaïl à l’apparition et garde la Malelame dans une autre panoplie', () => {
+    const c = spawnEnemy({ ref: 'technomage' }, 'technomage', undefined);
+    const jezail = c.items?.find((it) => it.trappingId === 'jezail-a-malepierre');
+    const malelame = c.items?.find((it) => it.trappingId === 'malelame-a-une-main');
+    expect(c.weapons).toEqual([
+      expect.objectContaining({ uid: jezail?.uid, trappingId: 'jezail-a-malepierre', bouclierDEquipe: { id: 'bouclier-de-jezail' } }),
+    ]);
+    expect(c.loadouts).toContainEqual(expect.objectContaining({ main: malelame?.uid }));
+  });
+
   it('MDG 16 l.405-407 : le pistolet de Long Drong est chargé dans son set et son crochet n’arme qu’une fois', () => {
     const c = spawnEnemy({ ref: 'long-drong-silver' }, 'drong', undefined);
     const pistolet = c.items?.find((it) => it.trappingId === 'pistolet');

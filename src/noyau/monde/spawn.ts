@@ -58,7 +58,9 @@ import {
   contexteDeNaissanceDObjet,
   deciderApparencesDesArmes,
   equipConflicts,
+  ensureDefaultLoadout,
   hydratePoste,
+  loadoutSetActive,
   loadWeapon,
   objetsDeLInventaire,
   objetDeSlot,
@@ -521,6 +523,13 @@ function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur, trapp
   }
   c.items = [...dotations, ...auteurSeul];
   ajusterTraitsDuProfil(c, fiche.items, [...carriere, ...auteurSeul]);
+  const armeDEquipe = fiche.items.find((o) => o.bouclierDEquipe && objetDeSlot(c, o.uid));
+  if (armeDEquipe) {
+    ensureDefaultLoadout(c);
+    // ZI 13 l.193.
+    const panoplie = c.loadouts?.find((set) => set.main === armeDEquipe.uid);
+    if (panoplie) loadoutSetActive(c, panoplie.id);
+  }
   recomputeLoadout(c);
 }
 
