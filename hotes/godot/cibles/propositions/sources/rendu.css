@@ -61,7 +61,10 @@
 #registre .regle .t{flex:1 1 190px;min-width:0}
 #registre .regle .c{margin-left:auto}
 #registre .regle .aide,#registre .regle .action{flex:1 0 100%;margin-top:0}
-#registre .feuille .tete{gap:12px}
+#registre .feuille .tete{gap:0 12px;height:auto;flex-wrap:wrap}
+#registre .regle .c .bulle-refus{width:240px}
+#registre .regle .action .plaque{width:100%}
+#registre .regle .action .plaque>div{font-size:12.5px;letter-spacing:.3px;padding:0 8px;gap:8px}
 #registre .feuille .tete .rubrique{font-size:13px;color:#5a2a12;white-space:nowrap}
 #registre .feuille .pied .rubrique{font-size:12.5px;color:#5a4530;white-space:nowrap}
 #registre .feuille .pied .marque .rubrique{color:#6b1c10}
@@ -93,6 +96,8 @@
    le cartouche et la page ; la page du service en grande page de 480 au
    coin haut-droit, jusqu'à la ligne basse puis elle défile ; la carte du port et ses départs en colonne de 360 */
 #rumeur{top:452px}
+/* en coop, qui tient la main prend la place de la rumeur, sous le rail */
+#main{left:24px;top:452px;width:300px}
 #scene-du-commerce{position:absolute;left:412px;top:20px;width:348px;height:530px;display:flex;flex-direction:column;align-items:flex-start;gap:16px}
 #scene-du-commerce.en-deux{width:468px;flex-wrap:wrap;align-content:flex-start;column-gap:16px}
 #scene-du-commerce .hote{position:relative;left:auto !important;top:auto !important}
@@ -312,3 +317,72 @@
 #documents{left:24px;top:324px;width:300px}
 #affaire{left:344px;right:24px;top:76px;bottom:24px;width:auto;height:auto}
 #affaire>.fond{height:100%;box-sizing:border-box}
+
+/* 2. Gestion, les sauvegardes : un feuillet par emplacement, tendus en rangée d'une marge à l'autre sous le cartouche,
+   l'avis dessous */
+#feuillets{position:absolute;left:24px;right:24px;top:196px;gap:18px}
+.feuillet{flex:1 1 0;width:auto;min-width:0}
+.feuillet .lieu{font-size:24px;line-height:40px}
+.feuillet .date{font-size:13px}
+.feuillet .filet{margin:10px 30px}
+.feuillet .gestes .plaque{flex:1 1 0;min-width:0}
+.feuillet .gestes .plaque>div{font-size:13.5px;letter-spacing:.5px;padding:0 4px}
+.feuillet .blanc{padding:0 30px}
+#avis{left:28px;top:520px}
+
+/* 2. Gestion, la fin de séance : un feuillet par héros tendu sous le cartouche, le groupe au bas jusqu'à l'action de
+   coin */
+#feuillets:has(>.seance-heros){top:136px;gap:12px}
+#groupe{left:24px;right:184px;top:auto;bottom:24px;height:92px}
+.action-de-coin .plaque>div{font-size:12.5px;letter-spacing:.3px;padding:0 6px}
+
+/* 1. Ouverture : le grand titre à 84 du bord gauche, la colonne des entrées à 88 dessous ; à l'accueil les outils au coin
+   bas-droit, au menu la pastille du système 30 / 23 du coin ; au chapitre le carton, la compagnie au bandeau, ou la fin de
+   séance à 8 du bas tendue de la marge à l'action de coin, les gestes en action de coin */
+#blason,#pause,#carton,#entrees,#outils,#pastille{position:absolute}
+#blason{left:84px;top:52px}
+#pause{left:84px;top:64px}
+#carton{left:84px;top:36px;width:640px}
+#entrees{left:88px;width:330px}
+#ui:has(>#blason) #entrees{top:320px}
+#ui:has(>#pause) #entrees{top:236px}
+#outils{left:auto;top:auto;right:24px;bottom:22px}
+#pastille{left:auto;top:auto;right:30px;bottom:23px}
+#seance{left:24px;right:184px;top:auto;bottom:8px}
+
+/* 2. Gestion, la nouvelle partie : recruter sous le cartouche, les campagnes au bord droit sous la croix jusqu'au-dessus
+   du bandeau, les voyageurs entre les deux */
+#salle{position:absolute;left:0;top:0}
+#campagnes{left:auto;right:24px;top:76px;width:300px;bottom:176px}
+#campagnes .fond{height:100%;box-sizing:border-box;padding:22px 12px 0}
+
+/* 2. Gestion, le Compendium : le volet des catégories sous le cartouche, le registre tendu jusqu'aux signets, ses entrées
+   serrées ; le détail de l'entrée posé par-dessus le registre, au bord droit */
+#categories{left:24px;top:136px;width:400px}
+#registre .entree{height:36px;line-height:36px;font-size:16px}
+#posee{right:10px;top:6px;bottom:10px;width:440px;z-index:2}
+#posee>.feuille{height:100%;box-sizing:border-box;padding:16px 22px 10px;border-radius:3px}
+#posee .fiche{overflow-y:auto;scrollbar-width:none}
+#posee>.croix{right:12px;top:12px}
+#posee .tete{padding-right:48px}
+
+/* 2. Gestion, la coop : la tablée tendue entre le panneau de gauche (rejoindre, l'invitation) et celui de droite
+   (héberger, l'attribution), jusqu'à 24 du bas */
+#rejoindre{left:24px;top:136px;width:340px}
+#heberger{left:auto;right:24px;top:136px;width:340px}
+#invitation{left:24px;top:136px;width:300px}
+#attribution{left:auto;right:24px;top:76px;width:420px}
+#tablee{position:absolute;left:388px;right:388px;top:136px;bottom:24px}
+#ui:has(>#invitation) #tablee{left:344px;right:464px}
+
+/* 8. Outil d'édition : la barre tendue en haut ; à 1280 les volets de gauche en une colonne à onglets, l'inspecteur à
+   droite, tendus jusqu'au bas ; le plan tendu entre eux, le nord à son coin bas-droit, le pied dessous */
+#ui:has(>#volets) #barre{left:12px;right:12px;top:10px;height:62px;width:auto}
+#ui:has(>#volets) #barre .croix{margin-right:13px}
+#ui:has(>#volets) #volets{left:12px;top:92px;bottom:12px;width:240px}
+#ui:has(>#volets) #volets .fond{height:100%;box-sizing:border-box}
+#ui:has(>#volets) #inspecteur{left:auto;right:12px;top:84px;bottom:12px;width:300px}
+#ui:has(>#volets) #plan{left:264px;right:324px;top:84px;bottom:60px}
+#ui:has(>#volets) #plan .fond{height:100%}
+#ui:has(>#volets) #nord{top:auto;bottom:34px}
+#ui:has(>#volets) #pied{position:absolute;left:264px;right:324px;bottom:12px;height:36px}

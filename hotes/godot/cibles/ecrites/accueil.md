@@ -1,7 +1,8 @@
 # Cible de finition de l'accueil (#3935), 2026-11-17
 
 Maquette : `maquettes/accueil.png`, rendue à l'échelle 1 depuis sa source
-`propositions/sources/accueil-et-systeme/accueil.html` (`accueil.css`, `accueil.js`). Les cotes, polices, couleurs et
+`propositions/sources/maquettes/accueil.ts` (l'état écrit au format de `maquette.ts`, dessiné par `rendu.html`, le
+décor dans `accueil-et-systeme/accueil.js`). Les cotes, polices, couleurs et
 l'ordre des pièces se lisent à la source ; l'image ne sert qu'au côte à côte. Compte rendu :
 `propositions/accueil-et-systeme.md`, section `accueil`. Choix de Laurent du 2026-11-17 : « Moi je veux la page
 d accueil ».

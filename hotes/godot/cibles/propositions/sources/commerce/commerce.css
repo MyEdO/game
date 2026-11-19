@@ -8,7 +8,6 @@
 .offre td{padding:1.5px 0;font-size:13px;line-height:17px;color:#e6dabd;white-space:nowrap}
 .offre td:first-child{font-family:"Fell SC";font-size:12px;letter-spacing:1px;color:var(--creme-2)}
 .offre td:last-child{text-align:right;font-weight:600;color:#f4e8ca}
-.offre td.alerte{color:#e8a184;font-weight:400;font-style:italic}
 .offre .gestes{display:flex;gap:8px;margin-top:9px}
 .offre .gestes .plaque>div{font-size:13.5px;gap:7px;padding:0 6px}
 .offre.choisie{box-shadow:0 14px 34px rgba(0,0,0,.6),0 0 0 1px #0c0705,0 0 0 2px rgba(226,192,106,.75),0 0 22px rgba(255,214,140,.38)}
@@ -87,10 +86,11 @@
 #suites .plaque.large{flex-basis:190px}
 
 /* la halle vue d'un siège invité */
-#main{left:700px;top:20px;width:400px;height:72px}
-#main .fond{display:flex;align-items:center;gap:13px;padding:0 16px}
-#main b{display:block;font-weight:400;font-size:24px;line-height:34px;margin:-5px 0 -5px;color:#f4e8ca;white-space:nowrap}
-#main span{font-size:12.5px;color:var(--creme-2);white-space:nowrap}
+#main .fond{display:flex;align-items:center;gap:12px;padding:8px 14px}
+#main b{display:block;font-weight:400;font-size:22px;line-height:32px;margin:-5px 0 -4px;color:#f4e8ca;white-space:nowrap}
+#main span{display:block;font-size:12px;line-height:15px;color:var(--creme-2)}
+.heros .joue{display:flex;align-items:center;gap:6px;margin-top:9px}
+.heros .joue .attend{margin-top:0}
 .heros .attend.autre{background:linear-gradient(180deg,#3a3630,#1e1c18);color:#cfc5ae;box-shadow:0 0 0 1px #000,0 2px 4px rgba(0,0,0,.6)}
 #page .note.refus{display:flex;align-items:center;gap:8px;color:#6b1c10}
 /* les parts de l'achat, sous le compte */

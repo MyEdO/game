@@ -1,24 +1,28 @@
-/* Accueil et système, images d'intention (#3935). Ajouts au kit commun (commun.js) : pictogrammes, bustes des
-   pré-tirés, outils de paysage, Altdorf. Maquette hors du jeu. */
-Object.assign(BUSTES, {
-  wanda: BUSTES.mira,
-  johann: BASE + '<path d="M18 30h42l-2 5H20zM25 30c1-12 6-18 14-18s13 6 14 18z" fill="#1c1410"/>',
-  kirsten: BASE + '<path d="M23 36c-3-15 5-25 16-25s19 10 16 25l-3 8c1-9-1-17-4-20-5-4-13-4-18 0-3 3-5 11-4 20z" fill="#1c1410"/>',
-  harbull: '<path d="M16 90c0-15 8-21 19-23l-1-6c-8-4-11-14-7-22 4-8 20-8 24 0 4 8 1 18-7 22l-1 6c11 2 19 8 19 23z"/><path d="M24 40c-3-13 4-22 15-22s18 9 15 22c-2-7-8-10-15-10s-13 3-15 10z" fill="#1c1410"/>',
-  sigrid: BASE + '<path d="M22 34c-2-14 6-23 17-23s19 9 17 23c-3-8-9-12-17-12s-14 4-17 12z" fill="#1c1410"/><path d="M36 13h6v12h-6zM31 17h16v4H31z" fill="#e9dcc0" opacity=".85"/>',
-  malmir: '<path d="M16 90c0-17 7-25 19-27l-2-8c-6-5-8-15-5-23 3-8 19-8 22 0 3 8 1 18-5 23l-2 8c12 2 19 10 19 27z"/><path d="M25 37l-10-10 10 3zM53 37l10-10-10 3z"/><path d="M24 30c0-12 7-19 15-19s15 7 15 19c-10-5-20-5-30 0z" fill="#1c1410"/>',
-});
+/* Accueil et système, images d'intention (#3935, #4411) : les fonds des écrans posés hors du jeu (la table, le jeu
+   assombri) et les outils de paysage des décors d'ouverture, peints à 1707 × 780 dans la `toile()` qui les rogne à la vue
+   (`../lieux-et-nuit/commun.js`). Maquette hors du jeu. */
 /* la table : le fond des écrans posés hors du jeu */
 const fondDeTable = () => { el(S, 'rect', { width: W, height: H, fill: '#150c07' }); return `<div class="calque bois" id="table"></div><div class="calque" id="lueur-table"></div>`; };
+/* le jeu flouté sous un écran posé dessus (`systeme.css`) : un `voile` uniforme, ou l'ombre qui gagne depuis la gauche
+   sous une colonne */
+const assombrirLeJeu = ({ voile = 0, gauche = false } = {}) => {
+  if (gauche) {
+    grad('ombre-g', [[0, '#04030a', .94], [.3, '#04030a', .78], [.62, '#04030a', .3], [1, '#04030a', .12]], { x1: 0, y1: 0, x2: 1, y2: 0 });
+    el(S, 'rect', { width: W, height: H, fill: 'url(#ombre-g)' });
+  }
+  if (voile) el(S, 'rect', { width: W, height: H, fill: '#04030a', opacity: voile });
+  el(S, 'rect', { width: W, height: H, fill: 'url(#vignette)', opacity: .7 });
+};
 /* les quatre clous d'un registre relié */
 const CLOUS = '<i class="clou" style="left:8px;top:8px"></i><i class="clou" style="right:8px;top:8px"></i><i class="clou" style="left:8px;bottom:8px"></i><i class="clou" style="right:8px;bottom:8px"></i>';
 
-/* ───────── paysage ───────── */
-const etoiles = (g, n, yMax, graine = 5) => { const r = alea(graine); for (let i = 0; i < n; i++) { const y = r() * yMax; el(g, 'circle', { cx: r() * W, cy: y, r: .5 + r() * 1.1, fill: '#fff', opacity: (.25 + r() * .6) * (1 - y / yMax * .8) }); } };
-const crete = (y0, amp, pas, graine, x0 = -20, x1 = W + 20) => { const r = alea(graine); const pts = []; for (let x = x0; x <= x1; x += pas * (.6 + r() * .8)) pts.push([x, y0 - r() * amp]); return pts; };
-const massif = (g, pts, bas, fill, extra = {}) => el(g, 'path', { d: 'M' + pts.map((p) => p.join(',')).join('L') + `L${W + 20},${bas}L-20,${bas}Z`, fill, ...extra });
+/* ───────── paysage, dans la toile de 1707 de large ───────── */
+const L = 1707;
+const etoiles = (g, n, yMax, graine = 5) => { const r = alea(graine); for (let i = 0; i < n; i++) { const y = r() * yMax; el(g, 'circle', { cx: r() * L, cy: y, r: .5 + r() * 1.1, fill: '#fff', opacity: (.25 + r() * .6) * (1 - y / yMax * .8) }); } };
+const crete = (y0, amp, pas, graine, x0 = -20, x1 = L + 20) => { const r = alea(graine); const pts = []; for (let x = x0; x <= x1; x += pas * (.6 + r() * .8)) pts.push([x, y0 - r() * amp]); return pts; };
+const massif = (g, pts, bas, fill, extra = {}) => el(g, 'path', { d: 'M' + pts.map((p) => p.join(',')).join('L') + `L${L + 20},${bas}L-20,${bas}Z`, fill, ...extra });
 const nuages = (g, bandes, fill, filtre = 'f8') => bandes.forEach(([cx, cy, rx, ry, o]) => el(g, 'ellipse', { cx, cy, rx, ry, fill, opacity: o, filter: `url(#${filtre})` }));
-const lisiere = (g, y, n, hMin, hMax, fill, graine, x0 = 0, x1 = W) => { const r = alea(graine); const a = []; for (let i = 0; i < n; i++) a.push([x0 + r() * (x1 - x0), y + r() * 10, hMin + r() * (hMax - hMin)]); a.sort((p, q) => p[1] - q[1]).forEach(([x, yy, h]) => sapin(g, x, yy, h, fill)); };
+const lisiere = (g, y, n, hMin, hMax, fill, graine, x0 = 0, x1 = L) => { const r = alea(graine); const a = []; for (let i = 0; i < n; i++) a.push([x0 + r() * (x1 - x0), y + r() * 10, hMin + r() * (hMax - hMin)]); a.sort((p, q) => p[1] - q[1]).forEach(([x, yy, h]) => sapin(g, x, yy, h, fill)); };
 /* Altdorf sur sa rive : remparts, tours, flèches, le temple de Sigmar, le palais. Se dessine dans `hote` */
 const altdorf = (hote) => {
   const g = el(hote, 'g', { fill: '#1d1532' }); const r = alea(42); const base = 532;
@@ -51,5 +55,5 @@ const altdorf = (hote) => {
   el(hote, 'path', { d: `M1168,${base + 22}v-20a11 11 0 0 1 22 0v20z`, fill: '#ffcf80' });
   [[770, 6], [912, 8], [1050, 5], [1311, 7], [1480, 6]].forEach(([x, dy]) => el(fen, 'rect', { x, y: base - 16 - dy, width: 3, height: 5, opacity: .8 }));
 };
-// Partagé avec les scripts de page chargés après celui-ci.
-Object.assign(globalThis, { fondDeTable, CLOUS, outil, etoiles, crete, massif, nuages, lisiere, altdorf });
+// Partagé avec `../rendu.js` et les décors chargés après ce script.
+Object.assign(globalThis, { fondDeTable, assombrirLeJeu, CLOUS, etoiles, crete, massif, nuages, lisiere, altdorf });
