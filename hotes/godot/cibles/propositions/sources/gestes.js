@@ -228,10 +228,10 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   /* le cadre de chêne ferré : géométrie en px (une cote `null` reste à la feuille), `matiere` du fond, `ruban` gothique,
      `tete` : ce qui se pose sur le bord haut ; `piece` : son rôle au relevé du rendu, son `id` sans autre rôle */
   const cadre = (id, x, y, w, h, matiere, contenu, { ruban: titre = null, classe = '', tete = '', piece = id } = {}) => `<div id="${id}" class="cadre bois ${classe}" data-piece="${piece}" style="${[['left', x], ['top', y], ['width', w], ['height', h]].filter(([, v]) => v != null).map(([k, v]) => `${k}:${v}px`).join(';')}"><div class="fond ${matiere}">${contenu}</div>${tete}${ferrures}${titre ? ruban(titre, { gothique: true }) : ''}</div>`;
-  /* une rangée de cartes se lit en liste à partir de quatre, ou quand ses cartes n'y tiennent pas à 200 de large */
+  /* une rangée de cartes se lit en liste à partir de quatre, paginée, ou quand ses cartes n'y tiennent pas à 200 de large */
   const ranger = () => document.querySelectorAll('.cartes').forEach((r) => {
     const n = r.querySelectorAll(':scope>.carte').length;
-    r.classList.toggle('liste', n > 3 || r.clientWidth < n * 200 + (n - 1) * 9);
+    r.classList.toggle('liste', r.classList.contains('paginee') || n > 3 || r.clientWidth < n * 200 + (n - 1) * 9);
     r.querySelectorAll(':scope>.carte').forEach((c) => {
       c.classList.remove('deux-lignes');
       const l = c.querySelector('.c');
@@ -273,11 +273,11 @@ grad('bas', [[0, '#000', 0], [1, '#000', .85]]);
   const MEUBLE = [[.0593, .2797, .7203, .9407], [.0593, .2797, .5, .7203, .9407]];
   const clouer = (cases = null) => (cases ? [0, 1].map(() => [.05, ...Array.from({ length: cases - 1 }, (_, k) => (k + 1) / cases), .945]) : MEUBLE)
     .map((ligne, k) => ligne.map((t) => `<i class="clou" style="left:${(100 * t).toFixed(2)}%;${k ? 'bottom' : 'top'}:3px"></i>`).join('')).join('');
-  /* le cartouche : le médaillon de ce dont on parle, son nom et ce qu'il est ; `taille` ligne, ou titre : celui de
+  /* le cartouche : le médaillon de ce dont on parle, son nom et ce qu'il est (`sous`, une ligne ou une liste de lignes) ; `taille` ligne, ou titre : celui de
      l'écran, dans son cadre au coin haut-gauche */
   const cartouche = ({ icone, nom, sous = '', marque = '', texte = nom, taille = 'ligne' }) => {
     const titre = taille === 'titre';
-    const corps = `${medaillon(icone, titre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${sous ? `<div class="s rubrique">${sous}</div>` : ''}</div>`;
+    const corps = `${medaillon(icone, titre ? { inerte: true } : { taille: 'moyen' })}<div><div class="n gothique" data-texte="${texte}">${nom}${marque ? `<span class="marque">${marque}</span>` : ''}</div>${[sous].flat().filter(Boolean).map((s) => `<div class="s rubrique">${s}</div>`).join('')}</div>`;
     return titre ? cadre('titre', null, null, null, null, 'bois cartouche', corps, { piece: 'cartouche' }) : `<div class="cartouche">${corps}</div>`;
   };
   /* le rang d'un personnage : son portrait, son nom (`gothique` : celui qui agit), `sous` ce qu'il est, `corps` sous son nom,

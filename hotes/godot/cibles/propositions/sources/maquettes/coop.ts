@@ -32,7 +32,7 @@ export default {
           { id: 'bjorn', nom: 'Bjorn', carriere: 'Chasseur', joueur: 'Karl' }, { id: 'mira', nom: 'Mira', carriere: 'Éclaireuse', joueur: 'Lena' },
           { id: 'aldric', nom: 'Aldric', carriere: 'Érudit', joueur: 'Karl' }, { id: 'greta', nom: 'Greta Hartmann', carriere: 'Soldate', joueur: 'Otto' },
         ],
-        maitre: { sans: 'IA (aucun MJ)', note: 'Un seul siège, ou personne' },
+        maitre: { sans: 'IA (aucun meneur de jeu)', note: 'Un seul siège, ou personne' },
       },
     },
   ],

@@ -133,12 +133,13 @@
 #panneau .plaque{margin-top:2px}
 #evenement .fond{padding:22px 24px 0 20px}
 #evenement .vignette{width:226px;height:226px}
-#apercu-test .apercu{left:640px;top:270px;--pointe:60px}
+#apercu-test .apercu{left:576px;top:270px;--pointe:124px}
 .apercu td:first-child{white-space:nowrap;padding-right:10px}
 .apercu table{border-collapse:collapse;width:100%}
 .apercu tr.somme td{border-top:1px solid rgba(60,40,20,.4);font-weight:600}
 .apercu td:last-child,#verdict.tests td:last-child{text-align:right;white-space:nowrap}
-#verdict.tests{text-align:left;padding:0 6px}
+/* les lignes du Test défilent entre sa tête et les gestes du pied */
+#verdict.tests{text-align:left;padding:0 6px;display:flex;flex-direction:column}
 #verdict.tests .tete{display:flex;align-items:baseline;gap:12px}
 #verdict.tests .tete .dr{font-size:24px;line-height:normal}
 #verdict.tests table{border-collapse:collapse;width:100%;margin-top:4px;font-size:12.5px;line-height:16px;color:#2a1d12}

@@ -59,23 +59,23 @@
 .fouille .trouve .c{font-size:12.5px;color:var(--rouille);white-space:nowrap}
 .fouille .trouve p{margin:7px 0 0;font-style:italic;font-size:13.5px;line-height:18px;color:var(--encre)}
 .fouille .bourse{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--encre)}
-.partage{position:relative;display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--heros),96px) 66px;align-items:center;row-gap:5px;align-content:start;height:168px;padding-left:18px;border-left:1px solid var(--filet-encre)}
+.partage{position:relative;display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--heros),96px) 66px;align-items:center;row-gap:3px;align-content:start;padding-left:18px;border-left:1px solid var(--filet-encre)}
 .partage .col{display:flex;align-items:center;gap:7px;padding:0 5px 6px;border-bottom:1px solid var(--filet-encre)}
 .partage .col .q{min-width:0;flex:1}
 .partage .col .q b{display:block;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:17px;color:var(--sepia);letter-spacing:.3px;white-space:nowrap}
 .partage .col .q span{display:block;font-size:10.5px;line-height:13px;color:var(--encre);white-space:nowrap}
 .partage .col .q span.plein{color:var(--sang)}
 .partage .col .jauge{margin-top:2px}
-.partage .tete-o{align-self:end;display:flex;align-items:flex-end;height:47px;padding-bottom:6px;font-size:12px;color:var(--rouille);border-bottom:1px solid var(--filet-encre)}
+.partage .tete-o{align-self:end;display:flex;align-items:flex-end;height:36px;padding-bottom:6px;font-size:12px;color:var(--rouille);border-bottom:1px solid var(--filet-encre)}
 .partage .col.laisser{align-self:stretch;justify-content:center;gap:5px;border-left:1px solid var(--filet-encre);color:var(--rouille)}
 .partage .col.laisser b{font-family:"Fell SC";font-weight:400;font-size:12.5px;letter-spacing:1px}
-.objet{display:flex;align-items:center;gap:9px;height:38px;min-width:0}
+.objet{display:flex;align-items:center;gap:9px;height:33px;min-width:0}
 .objet .t{display:flex;flex-direction:column;min-width:0}
 .objet .ic{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:var(--encre);border:1px solid var(--trait-encre)}
-.objet b{min-width:0;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:21px;color:var(--encre);letter-spacing:.3px;white-space:nowrap}
-.objet span{font-size:11.5px;line-height:14px;color:var(--rouille);white-space:nowrap}
+.objet b{flex:none;min-width:0;font-family:"Grenze Gotisch";font-weight:600;font-size:16px;line-height:22px;color:var(--encre);letter-spacing:.3px;white-space:nowrap}
+.objet span{font-size:11.5px;line-height:11px;color:var(--rouille);white-space:nowrap}
 .prise{justify-self:center;width:26px;height:26px;border-radius:50%;border:1px dashed var(--trait-encre)}
-.partage .reste{grid-column:1 / -1;margin-top:6px;font-style:italic;font-size:13px;color:var(--encre-2)}
+.fouille .trouve .reste{margin-top:8px;font-style:italic;font-size:13px;line-height:17px;color:var(--encre-2)}
 
 /* le carnet d'enquête : les documents remis sous les affaires, l'affaire ouverte sur sa page */
 #documents .fond{padding:20px 12px 12px;display:flex;flex-direction:column;gap:7px}
