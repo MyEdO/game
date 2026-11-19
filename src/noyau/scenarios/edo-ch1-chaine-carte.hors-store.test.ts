@@ -106,10 +106,10 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     banc.getState().fenetreValider('ouverture');
     expect(get().scene?.id).toBe('la-diligence');
 
-    poserLeGroupe(banc.getState, banc.setState, { x: 17, y: 3 });
+    poserLeGroupe(banc.getState, banc.setState, { x: 25, y: 9 });
     expect(objectifs()).toEqual(['edo-ch1-place-a-bord']);
 
-    poserLeGroupe(banc.getState, banc.setState, { x: 13, y: 31 });
+    poserLeGroupe(banc.getState, banc.setState, { x: 21, y: 37 });
     expect(get().flags[DEPART], 'marcher près de la diligence ne fait pas monter à bord').toBeFalsy();
 
     banc.getState().jouerAction('diligence-remise-charrette', 'monter-a-bord');
