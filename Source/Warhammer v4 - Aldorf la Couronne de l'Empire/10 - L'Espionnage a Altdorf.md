@@ -132,7 +132,7 @@ Les Gardiens Gris prodiguent souvent des conseils à d'autres organisations. Ils
 - 0 Gavius Klugge est un agent secret de « La Cape », des Gardiens Gris discrets qui offrent une protection physique contre de l'argent
 
 
-### **Les Todbringer**
+### <span id="page-213-0" data-folio="211"></span>**Les Todbringer**
 
 Les espions de Middenheim dans le Reikland et à Altdorf gardent l'œil sur les manœuvres politiques au cœur de l'Empire. Nastassia Hess est sous les ordres du baron Heinrich Todbringer, le fils du Graf de Middenheim. Elle se rend régulièrement à Altdorf pour consulter ses agents secrets à travers une société-écran, la Société d'export Salzenmund.
 
@@ -243,7 +243,7 @@ Les Royaumes de Saphery, Lothern, et Cothique ont tous des agents à Altdorf : e
 Les elfes noirs voient les humains comme du bétail, mais ils savent que l'Empire est puissant. Le Roi Sorcier est obsédé par les actions des Asur dans le Vieux Monde, surtout depuis que Teclis a appris aux humains à mieux utiliser la magie. Il y a des espions *druchii* à Altdorf : ils travaillent incognito pour récolter des informations et, parfois, éliminer une cible clé. Pour interroger leurs victimes, ils les kidnappent, les envoient sur la côte, et les suppriment quand ils sont satisfaits des réponses obtenues.
 
 
-### **Objectifs**
+### <span id="page-215-0" data-folio="213"></span>**Objectifs**
 
 - 0 Surveiller et contrer les progrès des humains
 - 0 Découvrir et contrecarrer les plans des Asur pour le Vieux Monde

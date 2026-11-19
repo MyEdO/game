@@ -5,7 +5,7 @@
  * quatre ans durant `{n, sides, sinPlus:true}` — un dé porteur d'un drapeau que seul
  * `engine/miscast.ts` savait lire, invisible au `DiceSpec` du moteur (`src/engine/dice.ts`) comme à
  * `rollDice`/`formatDice`. Un dé authoré n'a que les clés de `diceSpecSchema` (`{n, sides, fois?, plus?}`,
- * toutes lues par `rollDice`/`formatDice`/`parseDice`) ; ce que le RAW ajoute au dé hors de ces clés
+ * toutes lues par `rollDice`/`formatDice`) ; ce que le RAW ajoute au dé hors de ces clés
  * (« 1d10 + (Points de Péché) », LDB 40 l.58/62/65/68/73/75) est un TERME DE FORMULE
  * (`{sum:[{dice}, {sinPoints:true}]}`), jamais une clé de plus sur le dé.
  *
@@ -79,13 +79,13 @@ describe('dé — forme UNIQUE dans la donnée authorée (#1463)', () => {
   });
 
   // `{ count, faces }` est une troisième grammaire de dé, invisible au volet `n`/`sides` : le dé d'une
-  // table tirée est sa chaîne `die`, lue par `deDeLaTableTiree` (`src/engine/tables.ts`). #3961
+  // table tirée est son `DiceSpec` `die`, lue par `deDeLaTableTiree` (`src/engine/tables.ts`). #3961
   it('aucun nœud ne porte un dé `{ count, faces }`', () => {
     const porteurs: string[] = [];
     for (const { chemin, doc } of FICHIERS) marcherObjets(doc, (o) => {
       if ('count' in o && 'faces' in o) porteurs.push(`${chemin} ${JSON.stringify(o)}`);
     });
 
-    expect(porteurs, 'dé(s) `{ count, faces }` — le dé d’une table tirée s’écrit `die: "2d10"`').toEqual([]);
+    expect(porteurs, 'dé(s) `{ count, faces }` — le dé d’une table tirée s’écrit `die: { n, sides }`').toEqual([]);
   });
 });

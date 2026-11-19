@@ -1,17 +1,17 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { groupeDeScenario } from './_heros';
-import { findTrappingById, type SkillRef } from '../../data';
 import type { SceneEntity } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
 import { buildScene, type MapSpec } from '../../noyau/mapSpec';
-import type { TestScenario } from './_shared';
+import { projForPiece, type TestScenario } from './_shared';
 
 /**
  * SIÈGE COMPLET — défendre l'enceinte, entièrement DÉCLARÉ en UN `MapSpec` (plus aucune plomberie bespoke :
  * `buildScene` rejoue les primitives de l'éditeur). Carte PROFONDE (30×46, 2 couches) à l'échelle d'un vrai siège :
  *  - au NORD, le CAMP assaillant (tentes, braséros, bannières) et sa BATTERIE braquée sur la PORTE : une
  *    CATAPULTE pilonne de TRÈS LOIN en tir indirect (~71 m), un CANON de siège AVANCÉ tire en direct (~46 m) —
- *    l'IA cible la structure (Atout Siège), le canon BRÈCHE la porte tout seul ;
+ *    l'IA cible la structure (Atout Siège) et PILONNE la porte ; la brèche n'est pas promise ici (un servant par
+ *    pièce, de très loin) : elle est exercée par le scénario `breche-au-canon` ;
  *  - des FANTASSINS qui traversent le glacis, FRANCHISSENT la RIVIÈRE par le PONT (seul passage) et s'amassent
  *    à la porte tant qu'elle tient ;
  *  - l'ENCEINTE = une VRAIE MASSE de maçonnerie PLEINE, authorée par la RECETTE `cells` (une LETTRE = la case
@@ -21,26 +21,19 @@ import type { TestScenario } from './_shared';
  *    le mur EST des cases pleines, le chemin de ronde est SON TOIT). La PORTE laisse le z0 en TUNNEL passable
  *    et pose sa HERSE `porte-de-ville` sur la BOUCHE extérieure (arête N, côté champ) ; intacte elle bloque le
  *    passage, abattue → BRÈCHE. Le chemin de ronde passe au-dessus du tunnel (gatehouse continu).
- *  - le CHEMIN DE RONDE (couche z1, 4 m) est garni de PIÈCES servies (baliste/canon) et d'ARCHERS PNJ alliés-IA ;
+ *  - le CHEMIN DE RONDE (couche z1, 4 m) est garni de PIÈCES servies (baliste au rang intérieur, canon au rang
+ *    extérieur, son empreinte 2×2 tenant sur la bande) et d'ARCHERS PNJ alliés-IA ;
  *    on le rejoint par UNE RAMPE au FLANC GAUCHE (cols 3-4, montant ≤1 m/case — le moteur en fait une pente,
  *    plus aucun escalier), DÉPORTÉE de la porte pour dégager la cour DERRIÈRE la porte (zone de mort) ;
  *  - au SUD, une COUR pavée MODESTE où démarre le groupe.
- * Combat VERTICAL : les défenseurs (couche z1, 4 m) pilonnent en contrebas et la mêlée est refusée à travers le
- * vide (`combatDistance` ajoute la séparation métrique) ; la crénelure (rendu, PAS un WallSeg) ne coupe pas la
+ * Combat VERTICAL : les archers et le canon du rempart (couche z1, 4 m) tirent en contrebas ; contact et portée se mesurent par
+ * `distanceDeContact` et `distanceDeCombat` (footprint.ts) ; la crénelure (rendu, PAS un WallSeg) ne coupe pas la
  * LdV plongeante.
  *
  * TOUT est dans le `MapSpec` ci-dessous (grilles ASCII des 2 étages, recette `cells`, relief de rampe, binds de
  * marqueurs, entités à ids FIXES, rencontre). Les seules parts de code restantes = le `projForPiece` (Projectiles
- * dérivée de la pièce) et le `groupe` (le SOLDAT reçoit les Spé de service). AUCUN push/setEncounters résiduel.
+ * dérivée de la pièce, `_shared.ts`) et le `groupe` (le SOLDAT reçoit les Spé de service). AUCUN push/setEncounters résiduel.
  */
-
-// Compétence Projectiles APPROPRIÉE au Groupe de l'engin (AA 10 l.230) : un servant ne compte dans l'équipe
-// QUE s'il la possède (sinon « n'est pas considéré comme un membre de l'équipe », AA 10 l.253). Dérivée de la pièce
-// (`weaponGroup` du trapping) → la Spé = id du Groupe (arbalete/poudre-noire/catapulte). Test ~40.
-const projForPiece = (trappingId: string): SkillRef[] => {
-  const g = findTrappingById(trappingId)?.weaponGroup?.id;
-  return g ? [{ id: 'projectiles', spec: g, value: 40 }] : [];
-};
 
 // Servant de pièce (entité à id FIXE, référencé par le `crew` de l'emplacement) : une VRAIE créature du
 // bestiaire (a une CT pour viser), SANS arme propre → sa seule arme à distance est la PIÈCE servie (l'IA tire
@@ -70,7 +63,7 @@ export function spec(): MapSpec {
     label: 'Siège — défendre la muraille',
     desc:
       "Un siège à grande échelle : au nord, le camp assaillant et sa batterie (canon + catapulte) qui pilonne la " +
-      "porte de très loin ; des fantassins franchissent la rivière par le pont et s'amassent à la porte ; au sud, " +
+      "porte de loin ; des fantassins franchissent la rivière par le pont et s'amassent à la porte ; au sud, " +
       "l'enceinte de maçonnerie pleine à porte brèchable, son chemin de ronde (le TOIT du mur, à 4 m) garni de " +
       "pièces et d'archers, rejoint par une rampe au flanc gauche, et une cour pavée.",
     size: [30, 46],
@@ -78,8 +71,8 @@ export function spec(): MapSpec {
     ambiance: 'exterieur',
     ambientLight: 'jour', // plein jour : on voit l'assaut approcher sur tout le glacis
     startMessage:
-      { texte: "Défendez l'enceinte. Gagnez le CHEMIN DE RONDE (le dessus du mur) par la RAMPE du flanc gauche, SERVEZ une " +
-      "pièce et pilonnez l'assaut en contrebas. La batterie ennemie brèche la porte de très loin ; les assaillants " +
+      { texte: "Défendez l'enceinte. Gagnez le CHEMIN DE RONDE (le dessus du mur) par la RAMPE du flanc gauche, SERVEZ le " +
+      "canon du rang extérieur et pilonnez l'assaut en contrebas. La batterie ennemie pilonne la porte de loin ; les assaillants " +
       "ne peuvent forcer le passage — le tunnel de la porte — qu'une fois la herse abattue." },
 
     // ── Légende partagée (base z0='herbe', z1='vide'). '~'=rivière, '='=pont, 'P'=pavé de cour, '4/3/2/1'=paliers
@@ -192,8 +185,8 @@ export function spec(): MapSpec {
         '..............................',
         '..............................',
         '..............................',
-        '....A.....A...G...A.....A.....',
-        '........B............K........',
+        '....A.....A...G...A..K..A.....',
+        '........B.....................',
         '..............................',
         '..............................',
         '..............................',
@@ -214,9 +207,9 @@ export function spec(): MapSpec {
     //    par le `crew` des emplacements ET par le roster de la rencontre → il doit être STABLE (un marqueur en
     //    générerait un frais). Tout le RESTE (pièces, archers, gobelins, décor du camp) est posé PAR L'ASCII. ──────
     entities: [
-      // Servants de pièce DE REMPART (z1, côté défenseur) — postés à x-1 de leur affût (B(8,38)→(7,38), K(21,38)→(20,38)).
+      // Servants de pièce DE REMPART (z1, côté défenseur) — postés à x-1 de leur affût (B(8,38)→(7,38), K(21,37)→(20,37)).
       gunner('crew-baliste', { x: 7, y: 38 }, 'baliste', 'Servant de baliste', { z: 1 }),
-      gunner('crew-canon', { x: 20, y: 38 }, 'canon-petit', 'Servant de canon', { z: 1 }),
+      gunner('crew-canon', { x: 20, y: 37 }, 'canon-petit', 'Servant de canon', { z: 1 }),
       // Servants de la BATTERIE assaillante (z0, côté assaut, facing S) — à x-1 de leur affût (k(21,15)→(20,15), p(8,2)→(7,2)).
       gunner('brg-canon', { x: 20, y: 15 }, 'canon-petit', 'Canonnier de siège', { facing: 'S', creature: 'wolfgard-hohmann' }),
       gunner('brg-cata', { x: 7, y: 2 }, 'catapulte-petite', 'Servant de catapulte', { facing: 'S', creature: 'wolfgard-hohmann' }),
@@ -256,7 +249,7 @@ export function spec(): MapSpec {
       {
         id: 'assaut',
         // Rencontre de SIÈGE déclarée (`EncounterDef.siege`) : sans elle, la batterie assaillante ne verrait
-        // AUCUNE structure et ne brècherait jamais la porte — c'est tout le sujet du scénario.
+        // AUCUNE structure et ne pilonnerait jamais la porte.
         siege: true,
         members: [
           { entityId: 'crew-baliste', side: 'allie', ai: true },
@@ -278,10 +271,12 @@ export const scenario: TestScenario = {
   title: 'Siège — défendre la muraille',
   tests:
     'Siège à grande échelle (30×46, 2 couches) : champ d\'approche profond (~76 m) + camp & BATTERIE assaillante ' +
-    '(canon direct + catapulte indirecte) qui BRÈCHE la porte de loin (IA cible la structure, Atout Siège) ; rivière ' +
+    '(canon direct + catapulte indirecte) qui PILONNE la porte de loin (IA cible la structure, Atout Siège ; la brèche ' +
+    'est exercée par `breche-au-canon`) ; rivière ' +
     '+ pont qui canalise l\'assaut ; enceinte à porte brèchable (WallSpec sans hauteur) ; chemin de ronde = couche 1 ' +
     'à 4 m, rejoint par UNE RAMPE au FLANC GAUCHE (déportée de la porte), parapet z1 sur l\'arête extérieure ; ' +
-    'pièces servies + ARCHERS PNJ alliés-IA ; combat VERTICAL (LdV plongeante, mêlée refusée à travers le vide).',
+    'pièces servies (un servant par pièce ; le canon du rempart tire en contrebas) + ARCHERS PNJ alliés-IA ; combat ' +
+    'VERTICAL (LdV plongeante, mêlée refusée à travers le vide).',
   partyNote: 'Groupe pré-tiré (Soldat / Chasseur / Sorcier / Tueur) : montez au rempart par la rampe du flanc gauche ; le SOLDAT sait servir les pièces (Baliste/Canon).',
   construire: (idNeuf) => ({ party: groupe(idNeuf), scene: buildScene(spec()) }),
   autoCombat: 'assaut',

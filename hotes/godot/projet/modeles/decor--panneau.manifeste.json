@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "panneau"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "vieux",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    }
+  ],
+  "glb": {
+    "sha256": "ed16f2f1b33f17131fc8230620a16eb6d1a915e3bf9282be8d5b5a470a257471",
+    "octets": 19384
+  }
+}

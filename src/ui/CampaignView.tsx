@@ -178,7 +178,6 @@ export function CampaignView() {
   const ouvrirLeLieu = useGame((s) => s.ouvrirLeLieu);
   const hubPlace = mode === 'exploration' && !travelPlan ? lieuDuGroupe({ lieu, worldMap }) : undefined;
   const hubScene = hubPlace ? sceneDuRegistre(hubPlace.scene.id) : undefined;
-  const hubRest = hubPlace && scene?.id === hubPlace.scene.id ? restHere : null;
   const pendingCascade = useGame((s) => s.pendingCascade);
   const pendingRest = useGame((s) => s.pendingRest);
   // Écran-hub de voyage (#333) : actif tout au long d'un voyage EN COURS (source unique `voyageHubActive`).
@@ -226,6 +225,7 @@ export function CampaignView() {
     ? actionGate(handDef.id, {
         active: (inBattleId(battle, battle.order[battle.turn]) ?? battle.combatants[0])!,
         battle,
+        scene,
         netMode,
         gameTime,
       })
@@ -415,7 +415,7 @@ export function CampaignView() {
             auberge armait `pendingRest` SANS fermer le hub, qui restait monté DERRIÈRE la modale flottante
             (bouton « Recueillir des informations » écrasé sous son bord, #376 pt.4). */}
         {lieuOuvert && hubPlace && !worldMapOpen && !port && !landMarket && !pendingRest && !merchant && (
-          <CityHubScreen place={hubPlace} scene={hubScene} rest={hubRest} onClose={() => fermer('ecranDuLieu')} />
+          <CityHubScreen place={hubPlace} scene={hubScene} onClose={() => fermer('ecranDuLieu')} />
         )}
         {carnetOpen && mode === 'exploration' && <CarnetScreen onClose={() => setCarnetOpen(false)} />}
         {historyOpen && mode === 'exploration' && <DialogueHistoryScreen onClose={() => setHistoryOpen(false)} />}

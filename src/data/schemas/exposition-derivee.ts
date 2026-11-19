@@ -10,10 +10,9 @@
 import { SCHEMA_DEFS } from './_registry.generated';
 import type { SchemaDef } from './types';
 
-/** Route d'un dataset-OBJET : la clé JS du dataset et la projection de l'éditeur. */
+/** Route d'un dataset-OBJET : la clé JS du dataset. */
 export interface RouteObjet {
   readonly ds: string;
-  readonly mode: 'unique' | 'parCle';
 }
 
 /** Exemption d'exposition au Codex, telle que déclarée par le def. */
@@ -123,7 +122,7 @@ export function deriveExposition(defs: readonly SchemaDef[]): TablesExposition {
         );
       }
       revendique(keys[0], def.file);
-      objectCategory[keys[0]] = { ds: keys[0], mode: expo.edit.object };
+      objectCategory[keys[0]] = { ds: keys[0] };
       routeFichier(keys[0], def.file);
       continue;
     }

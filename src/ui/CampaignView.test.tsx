@@ -5,6 +5,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { act } from 'react';
 import { useGame } from '../state/store';
 import type { BattleState } from '../noyau/etat';
+import { ouvrirLeRepos } from '../noyau/restFlow';
 import type { Combatant } from '../engine/types';
 import { datasetArray, setDataset } from '../data/overrides';
 import { areneCampaign, paquetDuJeu } from '../scenes/campaign';
@@ -281,10 +282,9 @@ describe('CampaignView — « Réduire » le hub de voyage pendant une halte (#2
       screen: 'campaign', scene: testScene(), mode: 'exploration', povActive: false, battle: null,
       party: [heros], worldMapOpen: false, travelRecap: null, pendingCascade: null, pendingShoreLeave: null,
       travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'pied', departAt: 0, hoursPerDay: 6, km: 60, kmDone: 24, interrupted: false },
-      pendingRest: halte
-        ? { places: { camp: true }, lieu: t('rf.lieuRoute', { from: 'A', to: 'B' }), quality: 'normale', days: 1, perHero: { [heros.id]: { lodging: 'dehors', food: 'rien' } }, phase: 'setup', travelHalt: true } as never
-        : null,
+      pendingRest: null,
     });
+    if (halte) ouvrirLeRepos(useGame.getState, useGame.setState, { places: { camp: true }, lieu: t('rf.lieuRoute', { from: 'A', to: 'B' }), travelHalt: true });
     host = monterRacine(<CampaignView />).container;
     return [...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Réduire')!;
   }

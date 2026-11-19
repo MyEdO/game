@@ -16,6 +16,11 @@
       "inverted",
       "off"
     ],
+    "libelles": {
+      "normal": "Normales",
+      "inverted": "Inversées",
+      "off": "Aucune"
+    },
     "hint": "normal = 01-05 réussite auto / 96-00 échec auto (RAW) ; inverted = l’inverse ; off = aucune bande."
   },
   {
@@ -118,6 +123,12 @@
       "FM",
       "Int"
     ],
+    "libelles": {
+      "F": "Force",
+      "max": "La meilleure",
+      "FM": "Force Mentale",
+      "Int": "Intelligence"
+    },
     "hint": "Caractéristique de base d’Intimidation. F = Force (RAW) ; max = la meilleure de F/FM/Int ; FM = Force Mentale ; Int = Intelligence.",
     "maison": "LDB 09 l.294 nomme la Force Mentale et l’Intelligence comme Caractéristiques alternatives laissées au jugement du MJ (« le MJ peut juger que certaines situations vous permettent d’utiliser une Caractéristique différente »), sans jamais décrire de sélection automatique : l’option « max » (la meilleure de F/FM/Int) est une option MAISON — le RAW ne la chiffre ni ne l’évoque."
   },
@@ -138,6 +149,11 @@
       "manual",
       "auto"
     ],
+    "libelles": {
+      "off": "Non",
+      "manual": "Manuelle",
+      "auto": "Auto"
+    },
     "hint": "Longues Séances de Jeu : regagner des Points de Chance en cours de session (≈ 1×/h). off = seulement en début de session (RAW, via l’Effet de scène) ; manual = un bouton « Regagner la Chance maintenant » ici, à la demande ; auto = informationnel (le temps réel n’est pas traçable par le moteur — déclenchez-le à la main).",
     "action": {
       "when": "manual",
@@ -190,6 +206,7 @@
     "default": 60,
     "min": 0,
     "max": 100,
+    "modificateur": "bonus",
     "step": 10,
     "hint": "Plafond de la SOMME des bonus de CIRCONSTANCE d’un Test de combat (RAW +60 = Très Facile). Les modificateurs du jeteur (Avantage, Soutien, États) restent hors plafond."
   },
@@ -207,6 +224,7 @@
     "default": 30,
     "min": 0,
     "max": 100,
+    "modificateur": "malus",
     "step": 10,
     "hint": "Plafond de la SOMME des malus de CIRCONSTANCE d’un Test de combat (RAW −30 = Très Difficile), exprimé en valeur positive ; les modificateurs du jeteur (États, Maladresse…) n’y entrent pas. Règle optionnelle EDO (Difficultés extrêmes, réf EDO App.2) : porter ce plafond à 50."
   },
@@ -268,6 +286,10 @@
       "ldb",
       "aa"
     ],
+    "libelles": {
+      "ldb": "Livre de base",
+      "aa": "Aux Armes"
+    },
     "hint": "Système ALTERNATIF de Blessures/Blessures Critiques/mort d’Aux Armes (remplace WFJDR p.172-178). ldb = Livre de base (RAW, défaut). aa = tables de Critiques PAR LOCALISATION d’Aux Armes + Critique sur un double (même s’il reste des Blessures) + décalage +10/Blessure au-delà de 0 + mort si (Inconscient & 0 PB & Blessures critiques > Bonus d’Endurance). Le corps mécanique (Blessures + États immédiats + Mort) est appliqué ; les sous-effets récurrents à durée Rounds (membre inutilisable, pénalité de Test) le sont AUSSI (#125, `engine/critical.ts`) — restent en texte : durées en jours (ctx sans horloge au site de résolution) et amputations permanentes non converties en séquelles."
   },
   {
@@ -299,6 +321,23 @@
     "hint": "Tirer sur une cible Engagée : −20 au toucher ; si ce malus transforme une réussite en échec, le tir touche un allié au hasard. Désactiver retire le malus et le tir égaré."
   },
   {
+    "id": "combat-croisee-melee-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Coup de corps à corps par une croisée : couvert de la cible",
+    "ref": "LDB 14 l.86",
+    "maison": "[entériné 2026-11-13] Arbitrage utilisateur 2026-11-13 (#4105, commentaire 6849608906) : « Le coup passe par-dessus clôture, muret ou bastingage avec le malus de couvert de l'obstacle (-10 à -30) ; fenêtre -30 ; meurtrière : pas de coup. »",
+    "group": "Combat",
+    "kind": "mode",
+    "default": "tresDifficile",
+    "options": [
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "La cible d’un coup de corps à corps porté par une croisée ouverte est sous ce couvert, quel que soit le mur de la croisée. Défaut Très Difficile (–30), la couverture totale (LDB 14 l.86). Le tir par une croisée n’en dépend pas."
+  },
+  {
     "id": "combat-cible-inconsciente",
     "type": "reglesOptionnelles",
     "label": "Cible Inconsciente",
@@ -314,6 +353,10 @@
       "critique",
       "mort-auto"
     ],
+    "libelles": {
+      "critique": "Critique",
+      "mort-auto": "Mort automatique"
+    },
     "hint": "critique = l’attaque réussit en Coup Critique (RAW, défaut). mort-auto = en CORPS À CORPS la cible est tuée automatiquement ; le tir reste un succès à bout portant (critique)."
   },
   {
@@ -333,6 +376,11 @@
       "tous",
       "off"
     ],
+    "libelles": {
+      "figurants": "Figurants",
+      "tous": "Tous",
+      "off": "Personne"
+    },
     "hint": "La cible sort du combat sans passer par les Blessures critiques. Déclencheur selon « Blessures & Critiques » : Livre de base, « Lorsque votre cible subit plus de Dégâts qu'elle ne possède de Points de Blessure » (LDB 18 l.46) ; Aux Armes, « quand une cible atteint 0 Blessure » (AA 07 l.65). figurants = hors PNJ importants (Livre de base) ou hors PNJ possédant le Talent Chanceux (Aux Armes, l.67) — défaut ; tous = tout PNJ ; off = personne (tout passe par les critiques). Jamais les PJ, ni une Structure ou une coque."
   },
   {
@@ -377,6 +425,11 @@
       "roll-i",
       "roll-bi"
     ],
+    "libelles": {
+      "fixed-i": "Initiative",
+      "roll-i": "1d10 + I",
+      "roll-bi": "1d10 + BI + BAg"
+    },
     "hint": "fixed-i = tri par Initiative, sans dé (défaut RAW, ordre stable d’un Round à l’autre) ; roll-i = 1d10 + Initiative ; roll-bi = 1d10 + Bonus d’Initiative + Bonus d’Agilité."
   },
   {
@@ -465,7 +518,7 @@
   {
     "id": "social-reaction-au-statut",
     "type": "reglesOptionnelles",
-    "label": "Réaction au Statut (1d10)",
+    "label": "Réaction au Statut",
     "ref": "LDB 08 l.40/59",
     "source": {
       "book": "livre-de-base",
@@ -474,7 +527,7 @@
     "group": "Social",
     "kind": "flag",
     "default": false,
-    "hint": "Au-delà de la norme sociale : avant un Test social ciblant un PNJ, 1d10 → 1-2 « Braver le Statut » (annule les mods de Statut) ; 3-8 réactions classiques (mods normaux) ; 9-10 « Opinions extrêmes » (mods inversés)."
+    "hint": "Au-delà de la norme sociale : avant un Test social ciblant un PNJ, un tirage sur la table de Réaction au Statut (Codex) : « Braver le Statut » annule les mods de Statut, « Réactions classiques » les garde, « Opinions extrêmes » les inverse."
   },
   {
     "id": "social-mendicite-statut",
@@ -529,6 +582,7 @@
     "default": 0,
     "min": -30,
     "max": 30,
+    "modificateur": "bonus",
     "step": 10,
     "hint": "Modificateur appliqué au Test de Charme selon le discours tenu pour mendier."
   },
@@ -543,6 +597,7 @@
     "default": 10,
     "min": -30,
     "max": 30,
+    "modificateur": "bonus",
     "step": 10,
     "hint": "Modificateur accordé au Test quand le mendiant porte une atteinte visible (lésion apparente d’une maladie active)."
   },
@@ -603,6 +658,20 @@
     "hint": "Ajoute l’Ogre (Archives de l’Empire II) comme race jouable : le Tableau des Races aléatoires devient celui des Archives (la table maison avec le Gnome) et l’Ogre apparaît dans la grille de sélection. Désactivé par défaut."
   },
   {
+    "id": "creation-chevaucheur-de-blaireau",
+    "type": "reglesOptionnelles",
+    "label": "Chevaucheur de blaireau (ADE I)",
+    "ref": "ADE I 07 l.9",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 87
+    },
+    "group": "Création",
+    "kind": "flag",
+    "default": false,
+    "hint": "Ouvre la Carrière Chevaucheur de blaireau (Archives de l’Empire I) au halfling : il la prend à la place de Soldat tiré au Tableau des Carrières aléatoires. Désactivé par défaut."
+  },
+  {
     "id": "creation-signes-astraux",
     "type": "reglesOptionnelles",
     "label": "Signes astraux à la création",
@@ -634,6 +703,12 @@
       "sans-marchandage",
       "simplifie"
     ],
+    "libelles": {
+      "complet": "Complet",
+      "sans-disponibilite": "Sans Disponibilité",
+      "sans-marchandage": "Sans Marchandage",
+      "simplifie": "Simplifié"
+    },
     "hint": "complet = Disponibilité + Marchandage (RAW) ; sans-disponibilite = tout en stock (pas de Test) ; sans-marchandage = prix fixes (pas de jet opposé) ; simplifie = les deux désactivés."
   },
   {
@@ -812,20 +887,6 @@
     "hint": "LDB 07 l.89 : une Augmentation de Caractéristique/Compétence HORS carrière (déjà au coût doublé) exige de trouver un mentor. Activé, ces Augmentations sont bloquées tant que le flag de groupe/scène « mentor » n’est pas posé (Effet d’éditeur setFlag « mentor »). Désactivé par défaut."
   },
   {
-    "id": "magie-composant",
-    "type": "reglesOptionnelles",
-    "label": "Composants d'incantation",
-    "ref": "LDB 46 l.107",
-    "source": {
-      "book": "livre-de-base",
-      "page": 236
-    },
-    "group": "Magie",
-    "kind": "flag",
-    "default": false,
-    "hint": "Un lanceur peut focaliser sa magie via un composant adapté à un Sort d'Arcane/Domaine (acheté pour ce Sort, coût = NI pistoles d'argent). Sur une Incantation Imparfaite, le composant l'absorbe : Majeure → Mineure, Mineure → annulée. Consumé à l'incantation, même sans Imparfaite. Composants gérés sur la fiche du personnage. Désactivé par défaut."
-  },
-  {
     "id": "vents-tourbillonnants",
     "type": "reglesOptionnelles",
     "label": "Vents Tourbillonnants",
@@ -842,6 +903,11 @@
       "scene",
       "round"
     ],
+    "libelles": {
+      "off": "Désactivés",
+      "scene": "À chaque scène",
+      "round": "À chaque Round"
+    },
     "hint": "Avant chaque scène — ou à chaque Round dans une zone de turbulences — tirage 1d10 de la force des Vents (−30 à +30), appliqué aux Tests d'Incantation ET de Focalisation. Un porteur du Talent Seconde vue peut le repérer (Test de Perception Facile +40). off = désactivé (défaut) ; scene = tirage à l'ouverture du combat ; round = re-tirage à chaque Round (« zones de turbulences magiques »)."
   },
   {
@@ -883,6 +949,7 @@
     "default": 1,
     "min": 0,
     "max": 10,
+    "modificateur": "bonus",
     "hint": "« Si vous avez la Compétence Prière, le MJ peut augmenter ce pourcentage » (l.24) — sans barème chiffré. Valeur maison : +N % de seuil d’exaucement par avance de Prière."
   },
   {
@@ -892,7 +959,7 @@
     "ref": "LDB 49 l.5",
     "source": {
       "book": "livre-de-base",
-      "page": 255
+      "page": 254
     },
     "group": "Magie",
     "kind": "flag",
@@ -934,7 +1001,7 @@
     "ref": "EDOC 12 l.63",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
-      "page": 65
+      "page": 66
     },
     "group": "Corruption",
     "kind": "mode",
@@ -947,6 +1014,14 @@
       "slaanesh",
       "tzeentch"
     ],
+    "libelles": {
+      "ldb": "Livre de base",
+      "toute": "Toute Puissance",
+      "khorne": "Khorne",
+      "nurgle": "Nurgle",
+      "slaanesh": "Slaanesh",
+      "tzeentch": "Tzeentch"
+    },
     "hint": "Tables de mutations du Compagnon T1 (physiques + mentales), alignées par Puissance du Chaos. ldb = Tableaux du Livre de base (RAW, défaut). toute = tables EDOC « Toute Puissance » (élargies). khorne/nurgle/slaanesh/tzeentch = tables alignées sur un dieu (pour une campagne dédiée). Une mutation peut différer du Livre de base (ex. Écailles épineuses)."
   },
   {
@@ -980,6 +1055,11 @@
       "situational",
       "off"
     ],
+    "libelles": {
+      "full": "Toutes",
+      "situational": "Situationnelles",
+      "off": "Aucune"
+    },
     "hint": "full = toutes les expositions (RAW) ; situational = pas d’Infection Mineure post-critique, mais Infecté/Maladie conservés (Skavens/Nurgle) ; off = aucune maladie (ni contraction, ni progression, ni contagion)."
   },
   {
@@ -1143,6 +1223,43 @@
     "hint": "« Un membre d’équipage boit 2 à 3 litres d’eau par jour » (hors bandes Caniculaire/Chaude, déjà chiffrées à 4 L/3 L) : le canon donne une fourchette, pas une valeur unique. Défaut : borne haute (3 L)."
   },
   {
+    "id": "mer-vivres-frais-peremption-jours",
+    "type": "reglesOptionnelles",
+    "label": "Péremption des vivres frais de la cale (jours)",
+    "ref": "MDG 14 l.238",
+    "maison": "MDG 14 l.238 dit seulement que la nourriture du marché « va vite pourrir », sans durée ; le voisin LDB 47 l.93-97 (Conservation : « ils ne pourriront pas », une journée de vivres préservée des jours) chiffre la conservation en jours : défaut maison = une semaine.",
+    "group": "Voyage",
+    "kind": "param",
+    "default": 7,
+    "min": 1,
+    "max": 30,
+    "hint": "« se contenter d'acheter n'importe quelle nourriture disponible sur le marché revient à risquer un désastre lors d'une longue expédition, car elle va vite pourrir » : le canon ne chiffre pas la durée. Défaut : 7 jours après l'embarquement, le lot de vivres frais est jeté ; les biscuits de mer et la nourriture préservée ne périment pas."
+  },
+  {
+    "id": "mer-resistance-de-l-equipage",
+    "type": "reglesOptionnelles",
+    "label": "Résistance de l'équipage aux maladies",
+    "ref": "MDG 14 l.230",
+    "maison": "MDG 14 l.230 fait tester la Résistance « le Personnage » et ne chiffre pas l'équipage, dont MDG 14 l.297-302 ne donne que des soldes ; l'équipage PNJ teste en un seul porteur collectif. Valeur dérivée des voisins : Endurance humaine moyenne (LDB 05 l.358, 2d10+20, soit 31) plus la Compétence Résistance de la carrière Marin niveau 2 (LDB 08 l.2747-2751), arrondie à 10 avances : 40.",
+    "group": "Voyage",
+    "kind": "param",
+    "default": 40,
+    "min": 1,
+    "max": 100,
+    "hint": "La valeur du Test de Résistance de l'équipage PNJ, porteur collectif de ses maladies (scorbut, tonneau, contagion à bord). Défaut : 40."
+  },
+  {
+    "id": "mer-moral-maladie-contagieuse-a-bord",
+    "type": "reglesOptionnelles",
+    "label": "La maladie contagieuse d’un Personnage fait rage au sein de l’équipage",
+    "ref": "MDG 14 l.172",
+    "maison": "MDG 14 l.172 donne le facteur « La maladie fait rage au sein de l'équipage | –2d10 » sans dire quand il s'applique ; l.208 (« Si un membre d'équipage souffre d'une maladie comportant le symptôme toux et éternuements, tout le monde à bord y est exposé ») fait de la maladie contagieuse d'un seul l'affaire de tout le bord, et l.143 compte les Personnages parmi les officiers au Moral : défaut maison = actif dès qu'un Personnage vivant porte une maladie contagieuse déclarée.",
+    "group": "Voyage",
+    "kind": "flag",
+    "default": true,
+    "hint": "Au recalcul hebdomadaire du Moral, le facteur « La maladie fait rage au sein de l'équipage » (–2d10) compte quand au moins un Personnage vivant porte une maladie contagieuse déclarée (toux et éternuements), incubation exclue. Désactiver : ce facteur ne compte jamais de lui-même."
+  },
+  {
     "id": "exposition-tests-nuit-difficile",
     "type": "reglesOptionnelles",
     "label": "Exposition : Tests par nuit (difficile)",
@@ -1204,6 +1321,7 @@
     "default": 10,
     "min": 0,
     "max": 30,
+    "modificateur": "malus",
     "step": 5,
     "hint": "LDB 65 l.44 dit seulement « des pénalités » sans les chiffrer : valeur maison retirée au Test de Résistance contre le froid sans Manteau/Cape porté(e)."
   },
@@ -1233,6 +1351,10 @@
       "descente-facile",
       "libre"
     ],
+    "libelles": {
+      "descente-facile": "Descente facile",
+      "libre": "Libre"
+    },
     "hint": "« à moins qu’il ne souhaite se suspendre d’abord, ce qui réduira la hauteur de chute à 2 mètres » (EDO 01 l.231). Valeur MAISON, en combat : descente-facile = la hauteur épargnée se paie en Mouvement à demi-vitesse (LDB 15 l.55, LDB 15 l.57) ; libre = la suspension ne coûte rien de plus que le pas."
   },
   {
@@ -1248,6 +1370,10 @@
       "refus",
       "chute-pleine"
     ],
+    "libelles": {
+      "refus": "Refus",
+      "chute-pleine": "Chute pleine"
+    },
     "hint": "Hors combat, le groupe entier suit la chute volontaire (EDO 01 l.231) et chacun choisit de tenter ou non son Test d’Athlétisme (LDB 15 l.82). Valeur MAISON pour un membre vivant qui n’est pas debout : refus = le geste est refusé tant qu’il y en a un ; chute-pleine = il tombe avec le groupe, de toute la hauteur, sans Test."
   },
   {
@@ -1287,6 +1413,79 @@
       "tresDifficile"
     ],
     "hint": "Chaque semaine en mer, le navire fait un Test de Résistance (MDG 13 l.148) sur son Endurance (MDG 12 l.58) ; chaque échec ajoute un niveau de Salissures. La source ne chiffre pas la Difficulté de ce Test : défaut Intermédiaire (+0)."
+  },
+  {
+    "id": "mer-reparation-temporaire-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Difficulté du Test d’Endurance du navire",
+    "ref": "MDG 13 l.651",
+    "maison": "MDG 13 l.651 exige un Test d’Endurance du navire par jour de voyage et à chaque Test de Manœuvre après une réparation temporaire, sans en chiffrer la Difficulté : Difficulté maison, défaut Accessible (+20), celle que MSRC 7 l.117 imprime pour le même Test au fleuve.",
+    "group": "Voyage",
+    "kind": "mode",
+    "default": "accessible",
+    "options": [
+      "facile",
+      "accessible",
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "Après une réparation temporaire, le navire teste son Endurance chaque jour de voyage et à chaque Test de Manœuvre (MDG 13 l.651) ; chaque échec inflige 1d10–4 Dégâts. La Mer de Griffe ne chiffre pas la Difficulté de ce Test : défaut Accessible (+20), comme au fleuve (MSRC 7 l.117)."
+  },
+  {
+    "id": "mer-reparation-temporaire-reparation-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Difficulté du Test de réparation du navire",
+    "ref": "MDG 13 l.649",
+    "maison": "MDG 13 l.649 fait aller le Test de réparation temporaire « de Complexe (–10) à Très Difficile (–30) en fonction des conditions de travail », sans les chiffrer : Difficulté maison, défaut Complexe (–10), le bas de la fourchette. Le Test d’équipage d’Entretien qui le remplace (MDG 14 l.120) la reçoit.",
+    "group": "Voyage",
+    "kind": "mode",
+    "default": "complexe",
+    "options": [
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "« Le Test de Métier (Constructeur de navires) ou de Métier (Charpentier) pour cela va de Complexe (–10) à Très Difficile (–30) en fonction des conditions de travail » (MDG 13 l.649). Le Test d’équipage d’Entretien du soir, qui le remplace (MDG 14 l.120), se joue à cette Difficulté : défaut Complexe (–10)."
+  },
+  {
+    "id": "fleuve-reparation-temporaire-reparation-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Difficulté du Test de réparation du bateau",
+    "ref": "MSRC 7 l.115",
+    "maison": "MSRC 7 l.115 fait aller les Tests de réparation temporaire « de Complexe (–10) à Très Difficile (–30), selon les circonstances », sans les chiffrer : Difficulté maison, défaut Complexe (–10), le bas de la fourchette.",
+    "group": "Voyage",
+    "kind": "mode",
+    "default": "complexe",
+    "options": [
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "« Les Tests de Métier (Construction de bateaux) ou Métier (Charpentier) nécessaires pour y arriver vont de Complexe (–10) à Très Difficile (–30), selon les circonstances » (MSRC 7 l.115). Le calfatage d’une coque percée et la réparation du gréement en route se jouent à cette Difficulté : défaut Complexe (–10)."
+  },
+  {
+    "id": "fleuve-reparation-temporaire-navigation",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Test d’Endurance du bateau à chaque Test de Navigation",
+    "ref": "MSRC 7 l.117",
+    "maison": "MSRC 7 l.117 laisse au MJ d’exiger d’autres Tests d’Endurance Accessible (+20) du bateau réparé « quand le Personnage au gouvernail doit faire un Test de Navigation, par exemple » : défaut maison activé, chaque Test de Navigation du barreur est suivi de ce Test.",
+    "group": "Voyage",
+    "kind": "flag",
+    "default": true,
+    "hint": "« Le MJ peut exiger d’autres Tests d’Endurance Accessible (+20) quand le bateau subit de nouveaux Dégâts, ou quand il est sollicité par des manœuvres complexes (quand le Personnage au gouvernail doit faire un Test de Navigation, par exemple) » (MSRC 7 l.117). Activé (défaut) : après une réparation temporaire, chaque Test de Navigation du barreur est suivi d’un Test d’Endurance Accessible (+20) du bateau. Désactivé : le Test de Navigation n’en déclenche plus ; restent le Test du jour et, avec la règle sœur, celui des nouveaux Dégâts."
+  },
+  {
+    "id": "fleuve-reparation-temporaire-degats",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Test d’Endurance du bateau à chaque nouveau Dégât",
+    "ref": "MSRC 7 l.117",
+    "maison": "MSRC 7 l.117 laisse au MJ d’exiger d’autres Tests d’Endurance Accessible (+20) du bateau réparé « quand le bateau subit de nouveaux Dégâts » : défaut maison activé, chaque étape qui inflige des Dégâts à la coque est suivie de ce Test.",
+    "group": "Voyage",
+    "kind": "flag",
+    "default": true,
+    "hint": "« Le MJ peut exiger d’autres Tests d’Endurance Accessible (+20) quand le bateau subit de nouveaux Dégâts » (MSRC 7 l.117). Activé (défaut) : après une réparation temporaire, chaque étape qui inflige des Dégâts à la coque (collision, obstacle, échouage) est suivie d’un Test d’Endurance Accessible (+20) du bateau. Désactivé : les nouveaux Dégâts n’en déclenchent plus ; restent le Test du jour et, avec la règle sœur, celui des Tests de Navigation."
   },
   {
     "id": "vol-terrestre-fuite-pct",
@@ -1393,6 +1592,7 @@
     "default": 2,
     "min": 0,
     "max": 5,
+    "modificateur": "bonus",
     "step": 1,
     "hint": "Une Carte marine donne +2 DR au Test d’Orientation quotidien (MDG 15 l.290), en principe UNIQUEMENT entre les deux ports désignés à sa création. Faute d’un graphe de ports navigables (chantier de la carte du monde), la carte aide ici sur TOUTE route maritime — simplification maison, éditable (0 = la carte n’aide plus)."
   }

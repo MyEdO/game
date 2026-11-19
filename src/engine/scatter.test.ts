@@ -3,17 +3,31 @@ import { scatter } from './scatter';
 import type { RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
 
-// RNG SCRIPTÉ : d10() lit `rng.int(1,10)` dans l'ordre — on force la séquence (direction d'abord, puis
-// les 2d10 de distance) pour vérifier byte-pour-byte le RAW de Dispersion (LDB 14 l.144-151).
+// Dés scriptés : la face du diagramme d'abord, puis les 2d10 de distance ; un dé au-delà de la suite lève.
 const seqRng = (seq: number[]): RNG => desEnSuite(seq);
 
+/** Le diagramme de LDB 14 l.146-149, T au centre. */
+const DIAGRAMME = [
+  [1, 2, 3],
+  [4, 'T', 5],
+  [6, 7, 8],
+] as const;
+
 describe('scatter — Dispersion d’une arme de jet ratée (LDB 14 l.144-151)', () => {
-  it('1d10 = 9 → l’arme atterrit aux pieds du LANCEUR (l.151)', () => {
+  it.each(DIAGRAMME.flatMap((ligne, y) => ligne.flatMap((face, x) => (face === 'T' ? [] : [{ face, dx: x - 1, dy: y - 1 }]))))(
+    'face $face → décalage ($dx, $dy) du diagramme depuis la cible (l.146-149)',
+    ({ face, dx, dy }) => {
+      // 2d10 = 1+1 = 2 m = 1 tuile ; demi-distance 20 m, non plafonnée.
+      expect(scatter({ x: 0, y: 0 }, { x: 20, y: 20 }, seqRng([face, 1, 1]), 2)).toEqual({ x: 20 + dx, y: 20 + dy });
+    },
+  );
+
+  it('1d10 = 9 → l’arme atterrit aux pieds du LANCEUR (l.151), sans dé de distance', () => {
     const from = { x: 3, y: 4 };
     expect(scatter(from, { x: 12, y: 9 }, seqRng([9]), 2)).toEqual({ x: 3, y: 4 });
   });
 
-  it('1d10 = 10 → l’arme atterrit aux pieds de la CIBLE (l.151)', () => {
+  it('1d10 = 10 → l’arme atterrit aux pieds de la CIBLE (l.151), sans dé de distance', () => {
     const to = { x: 12, y: 9 };
     expect(scatter({ x: 3, y: 4 }, to, seqRng([10]), 2)).toEqual({ x: 12, y: 9 });
   });

@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "chandelier"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "laiton",
+      "palette": "metal",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "cire",
+      "palette": "corps",
+      "matiere": "prop--cire"
+    },
+    {
+      "nom": "flamme",
+      "palette": "accent",
+      "matiere": "prop--braises"
+    }
+  ],
+  "glb": {
+    "sha256": "046cf324276e46c57cd15f5bf6857a85f28c59ef465e7ecf845b7d66c60a24ab",
+    "octets": 54444
+  }
+}

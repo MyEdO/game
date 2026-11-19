@@ -15,13 +15,32 @@
  *  - IMMÉDIAT (`runCascadeImmediate`) — repos de plusieurs jours, reprise auto, triche de recette :
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
+import { nomDe } from '../engine/nom';
 import type { IconId } from '../data/icons';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
 import { roll, d100, totalDuDe, type RNG, type DiceSpec } from '../engine/dice';
-import { findTableEntry } from '../engine/tables';
-import type { CascadeStep, CascadeStepMeta, PendingCascade, ReprisePilote, RowSurface, CascadeRoll, BatchParticipant, CascadeAggregate, CascadeSecondRead, CascadeDeDecl, CascadeDeTirage, CascadeDeResult, CascadeTableDecl, CascadeTableResult, OpposedRowFreeze, StepEvaluation, SeuilDeSauvegarde } from './pendings';
+import { findTableEntry, type DeDeTable } from '../engine/tables';
+import type {
+  CascadeStep,
+  CascadeStepMeta,
+  PendingCascade,
+  ReprisePilote,
+  RowSurface,
+  CascadeRoll,
+  BatchParticipant,
+  CascadeAggregate,
+  CascadeSecondRead,
+  CascadeDeDecl,
+  CascadeDeTirage,
+  CascadeDeResult,
+  CascadeTableDecl,
+  CascadeTableResult,
+  OpposedRowFreeze,
+  StepEvaluation,
+  SeuilDeSauvegarde,
+} from './pendings';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t, type MsgKey } from '../i18n';
 import { refuserGeste } from './refusVisible';
@@ -29,12 +48,22 @@ import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
-import { canFixDie, influencesLocally } from './netOwnership';
+import { canFixDie, decidingSeat, influencesLocally } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
 import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './monde/combatants';
-import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, refusSansJet, type TestResult } from '../engine/tests';
+import {
+  rollTest,
+  evaluateTest,
+  evaluateCombinedTest,
+  bestForcedRoll,
+  resolveOpposed,
+  opposedBranchSuccess,
+  estJete,
+  refusSansJet,
+  type TestResult,
+} from '../engine/tests';
 import { battleRng } from './battleRng';
 import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
@@ -42,9 +71,10 @@ import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
-import { tenuParUnHumain } from './sieges';
+import { seatOwns, tenuParUnHumain } from './sieges';
 import { jouerLaPaireDuJet } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
+import { noterAuProcesVerbal } from './voyageCadence';
 
 /** Le trigger `onOwnTestFailed` d'un Test raté (MSRC 16 l.152), sur le RNG SEEDABLE (`battleRng`). */
 const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] => fireOwnTestFailed(get, actor, { sl, rng: battleRng() });
@@ -185,8 +215,9 @@ export interface TableStepCtx {
 export interface TableStepDef {
   /** Libellé de la table (rangée `TableRollLine`). */
   label: string;
-  /** Faces du dé (défaut 100) — une déclaration d'étape peut le surcharger. */
-  die?: number;
+  /** Le dé de la table, LU SUR SA DONNÉE (`engine/tables.deDeLaTableTiree`) — seul porteur du dé d'une
+   *  étape à table : la déclaration n'en porte aucun (#1667). */
+  die: DeDeTable;
   rows: TableStepRow[];
   /** Lignes d'affichage de la ligne atteinte par le dé EFFECTIF (formatage du moteur de domaine).
    *
@@ -264,10 +295,23 @@ function declVivante<T extends CascadeDeTirage>(s: Jeu, decl: T, actorId: string
   return { ...decl, mod: (decl.mod ?? 0) + live };
 }
 
-/** LES DÉS d'un tirage sur TABLE : la déclaration l'emporte, la table donne son défaut, d100 sinon —
- *  seul endroit où le repli de la table s'exprime, lu par le résolveur comme par les bornes de saisie. */
-export function tableSpec(decl: CascadeTableDecl): DiceSpec {
-  return decl.spec ?? { n: 1, sides: tableStepDef(decl.tableId)?.die ?? 100 };
+/** LA TABLE d'un tirage déclaré — refus NOMMÉ quand elle manque, jamais un repli sur une autre table ni
+ *  un dé deviné. Une table RETIRÉE de la donnée rend IRRÉSOLUBLE toute cascade persistée sur son id ;
+ *  aucune migration de sauvegarde (`.claude/memory/user-arbitrage-saves-reset-pas-migration.md`). */
+function tableDuTirage(decl: CascadeTableDecl): TableStepDef {
+  const def = tableStepDef(decl.tableId);
+  if (!def) {
+    throw new Error(
+      `table d'étape « ${decl.tableId} » introuvable — jamais déclarée (tablesTirables) ou table retirée de la donnée.`,
+    );
+  }
+  return def;
+}
+
+/** LES DÉS d'un tirage sur TABLE : ceux de la table (#1667), lus par le résolveur comme par les bornes
+ *  de saisie. */
+export function tableSpec(decl: CascadeTableDecl): DeDeTable {
+  return tableDuTirage(decl).die;
 }
 
 /** PLAGE des dés NATURELS que ce `DiceSpec` peut sortir : `n` dés de `sides` faces, totalisés — de `n`
@@ -330,15 +374,7 @@ export function rollTableStep(decl: CascadeTableDecl, rng: RNG, ctx?: TableStepC
  *    se déclare (`clamp`, table dont le RAW borne par le bas) ; le plafond reste un fail-fast.
  */
 export function lireEnTable(decl: CascadeTableDecl, de: CascadeDeResult, ctx?: TableStepCtx): CascadeTableResult {
-  const def = tableStepDef(decl.tableId);
-  // Une table RETIRÉE de la donnée (saison, seuil d'espèce, Tableau de Corruption) rend IRRÉSOLUBLE
-  // toute cascade persistée sur son id : le refus est NOMMÉ, jamais un repli sur une autre table.
-  // Aucune migration de sauvegarde (`.claude/memory/user-arbitrage-saves-reset-pas-migration.md`).
-  if (!def) {
-    throw new Error(
-      `rollTableStep : table d'étape « ${decl.tableId} » introuvable — jamais déclarée (tablesTirables) ou table retirée de la donnée.`,
-    );
-  }
+  const def = tableDuTirage(decl);
   const lo = def.rows[0].min;
   const hi = def.rows[def.rows.length - 1].max;
   const die = decl.clamp ? Math.max(de.total, lo) : de.total;
@@ -388,7 +424,7 @@ export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: 
  */
 export function stakeAtTableRow(stake: StakeRef | undefined, decl: CascadeTableDecl, result: CascadeTableResult): StakeRef | undefined {
   const category = tableStepDef(decl.tableId)?.entryCategory;
-  if (!stake || !category || stake.key == null) return stake;
+  if (!stake || !category || !('key' in stake)) return stake;
   return { ...stake, key: { ...stake.key, entryId: result.id, entryCategory: category } };
 }
 
@@ -663,12 +699,14 @@ export function stepOpposedFreeze(step: CascadeStep | undefined): OpposedRowFree
  * fin de combat, cadence auto) : elle porte l'étampe `meta.autoResolved`, que `commitStep` lit pour
  * émettre SA ligne de trace (#1281). « Tout lancer » (`resolveRemainingCascade`) ne la pose PAS : sa
  * modale reste ouverte sur le BILAN, où chaque rangée montre son dé.
+ *
+ * `resout` — les rangées que le pilote roule (« Tout résoudre » : `resoutLaRangeeIci`) ; les autres gardent leur attente.
  */
-function rollBatchParticipants(step: CascadeStep, autoResolved = false) {
+function rollBatchParticipants(step: CascadeStep, autoResolved = false, resout: (id: string) => boolean = () => true) {
   const opp = stepOpposedFreeze(step);
   // Une rangée née sans jet (ligne non tentable) n'a aucun dé à tirer, mais son refus a le journal pour
   // SEULE surface quand aucune fenêtre ne s'ouvre : elle reçoit la même étampe de trace.
-  return step.participants!.map((p) => (p.result ? (autoResolved && refusSansJet(p) != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
+  return step.participants!.map((p) => (p.result || !resout(p.id) ? (autoResolved && refusSansJet(p) != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
     ...p,
     ...(autoResolved ? { meta: { ...p.meta, autoResolved: true } } : {}),
     result: rollBatchParticipant(p, battleRng(), opp, step.evaluation),
@@ -695,11 +733,11 @@ function libelleDeTraceMono(step: CascadeStep): string | undefined {
  *    `runCascadeImmediate` ; `advanceCascade` le RE-DÉRIVE de `surfaceOf(porteurDe)` pour le dé que le
  *    curseur a posé lui-même), il n'est pas déduit d'un champ d'étape (rien n'entre dans la sauvegarde).
  *
- * PARTITION : « Tout lancer » (`resolveRemainingCascade`) n'étampe rien et ne déclare rien — sa modale
- * reste ouverte sur le BILAN, où chaque rangée montre son dé. Et le journal n'est pas la SEULE surface
- * possible d'une rangée sans fenêtre : le pilote qui rend ses bandes sur un PROCÈS-VERBAL structuré
- * (traversée de mer, `rowSurface: 'pv'`) le DÉCLARE au même titre — chaque dé sur EXACTEMENT une
- * surface, jamais deux (#1291).
+ * PARTITION : « Tout lancer » (`resolveRemainingCascade`) n'étampe rien — sa modale reste ouverte sur le
+ * BILAN, où chaque rangée montre son dé. Et le journal n'est pas la SEULE surface possible d'une rangée
+ * sans fenêtre : le pilote qui rend ses bandes sur un PROCÈS-VERBAL structuré (traversée de mer,
+ * `rowSurface: 'pv'`) le DÉCLARE, et chaque verbe qui commet une de ses bandes, « Tout lancer » compris,
+ * l'y écrit (`noterAuProcesVerbal`) — chaque dé sur EXACTEMENT une surface durable, jamais deux (#1291).
  *
  * Là où il l'est, le journal est la SEULE surface de ces jets — le cas nominatif que la doctrine #295
  * réserve (cf. `cascade-consequence-guard.test.ts`). Règle de CADENCE : une cadence qui réduit les
@@ -712,18 +750,21 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
     const refus = refusSansJet(row);
     if (refus != null) { out.push(refus); continue; }
     if (!estJete(row.result)) continue;
+    const porteur = actorIn(get(), row.id);
     out.push(traceLineOf({
-      who: actorIn(get(), row.id)?.label ?? row.id,
+      ...(porteur ? { who: nomDe(porteur) } : {}),
       label: row.label ?? step.rollLabel ?? undefined,
       ...row.result,
       ...lectureDeTrace(step, row.result),
     }));
   }
   const refusMono = refusSansJet(step);
+  const acteurDuPas = step.actorId ? actorIn(get(), step.actorId) : undefined;
+  const whoDuPas = acteurDuPas ? { who: nomDe(acteurDuPas) } : {};
   if (unwitnessed && !step.participants && refusMono != null) out.push(refusMono);
   if (unwitnessed && !step.participants && estJete(step.result) && stepInteraction(step) === 'jet') {
     out.push(traceLineOf({
-      ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
+      ...whoDuPas,
       label: libelleDeTraceMono(step),
       ...step.result,
       ...lectureDeTrace(step, step.result),
@@ -733,7 +774,7 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
   // journal pour SEULE surface. Le total (et son unité) y figure : c'est lui qui fait la conséquence.
   if (unwitnessed && !step.participants && step.de?.result) {
     out.push(traceDieLineOf({
-      ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
+      ...whoDuPas,
       label: libelleDeTraceMono(step),
       ...step.de.result,
       ...(step.de.unite ? { unite: step.de.unite } : {}),
@@ -843,7 +884,7 @@ export function refusDuDeDEtape(s: Pick<Jeu, 'pendingCascade'>, stepId: string):
 export function tirerLeDeDEtape(s: Jeu, get: Get, cur: CascadeStep): CascadeStep | null {
   if (cur.de) {
     const de = liveDeDecl(s, cur);
-    return deStepResolved(cur, de, roulerDe(de, specDeEtape(de), battleRng()));
+    return deStepResolved(cur, de, roulerDe(de, de.spec, battleRng()));
   }
   if (!cur.table) return null;
   const table = liveTableDecl(s, cur);
@@ -852,17 +893,8 @@ export function tirerLeDeDEtape(s: Jeu, get: Get, cur: CascadeStep): CascadeStep
 
 /** Les faces du dé de l'étape `cur` et son dé NATUREL tombé (`null` avant le tirage) ; `null` sans dé. */
 export function deDEtape(cur: CascadeStep): { roll: number | null; max: number } | null {
-  if (cur.de) return { roll: cur.de.result?.roll ?? null, max: plageNaturelle(specDeEtape(cur.de)).max };
+  if (cur.de) return { roll: cur.de.result?.roll ?? null, max: plageNaturelle(cur.de.spec).max };
   return cur.table ? { roll: cur.table.result?.roll ?? null, max: tableStepNaturalRange(cur.table).max } : null;
-}
-
-/** LES DÉS d'un dé NU — la déclaration les porte TOUJOURS : sa porte les EXIGE au type
- *  (`rollSeam.DieStepSpec.spec`). Aucun repli d100 ici, à la différence d'une TABLE (qui a le sien,
- *  `tableSpec`) : un dé nu sans dés est un montage HORS PORTE, et le deviner en d100 rendrait un
- *  tirage que personne n'a déclaré. */
-export function specDeEtape(decl: CascadeDeTirage): DiceSpec {
-  if (!decl.spec) throw new Error('specDeEtape : dé NU sans `spec` — déclaration montée hors porte (`rollSeam.dieStep` l\'exige).');
-  return decl.spec;
 }
 
 /** Étape à dé NU RÉSOLUE : la déclaration qui a tiré + son résultat. Jumeau PUR de `tableStepPosee`
@@ -870,12 +902,6 @@ export function specDeEtape(decl: CascadeDeTirage): DiceSpec {
  *  rien ne se dérive d'un total qui EST la conséquence). */
 export function deStepResolved(step: CascadeStep, decl: CascadeDeDecl, result: CascadeDeResult): CascadeStep {
   return { ...step, de: { ...decl, result } };
-}
-
-/** Faces du dé d'un tirage sur table — vue de `tableSpec` pour les appelants qui ne veulent que les
- *  faces (bornes d'une saisie, libellé). */
-export function tableStepDie(decl: CascadeTableDecl): number {
-  return tableSpec(decl).sides;
 }
 
 /** PLAGE des dés NATURELS que CE tirage sur table peut sortir — `plageNaturelle` appliquée aux dés
@@ -902,11 +928,11 @@ export function naturalRollForTableRow(decl: CascadeTableDecl, row: TableStepRow
  *  `mod` compris) — sans quoi une saisie extrême sous `mod` sortirait de la plage et ferait lever
  *  `rollTableStep` en pleine modale. */
 function clampTableNatural(decl: CascadeTableDecl, roll: number): number {
-  const def = tableStepDef(decl.tableId);
+  const def = tableDuTirage(decl);
   const mod = decl.mod ?? 0;
-  const plage = tableStepNaturalRange(decl);
-  const lo = def ? Math.max(plage.min, def.rows[0].min - mod) : plage.min;
-  const hi = def ? Math.min(plage.max, def.rows[def.rows.length - 1].max - mod) : plage.max;
+  const plage = plageNaturelle(def.die);
+  const lo = Math.max(plage.min, def.rows[0].min - mod);
+  const hi = Math.min(plage.max, def.rows[def.rows.length - 1].max - mod);
   return Math.min(Math.max(Math.floor(roll), lo), hi);
 }
 
@@ -920,7 +946,7 @@ export function poserLeDeDEtape(s: Jeu, get: Get, cur: CascadeStep, roll: number
   if (cur.committed) return null;
   if (cur.de) {
     const live = liveDeDecl(s, cur);
-    const spec = specDeEtape(live);
+    const spec = live.spec;
     const de: CascadeDeDecl = { ...live, forcedRoll: clampNaturel(spec, roll) };
     return deStepResolved(cur, de, roulerDe(de, spec, battleRng()));
   }
@@ -1282,11 +1308,14 @@ interface PiloteDuCommit {
   liveMerge?: boolean;
   /** Le jet a été posé PAR le pilote : aucune fenêtre ne l'a montré, le goulot lui donne sa ligne. */
   unwitnessed?: boolean;
-  /** L'appelant DÉCLARE que les rangées de ses bandes se montrent ailleurs qu'au journal (#1291). */
+  /** L'appelant DÉCLARE que les rangées de ses bandes se montrent ailleurs qu'au journal (#1291) : le goulot
+   *  les écrit au compte rendu du trajet (`noterAuProcesVerbal`). */
   rowSurface?: RowSurface;
+  /** La SUITE d'une étape-hôte qui se clôt (`sortirDeLHote`, #3981) : sa conséquence, jouée dans la fenêtre d'insertion. */
+  suiteDeLHote?: () => void;
 }
 
-function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote: PiloteDuCommit): { steps: CascadeStep[]; journal: string[]; suspended: boolean; parked: boolean; rangDeParcage: number; aOuvert: boolean; seq: number; bornes: BornesDuFragment | null } {
+function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote: PiloteDuCommit): { steps: CascadeStep[]; journal: string[]; suspended: boolean; parked: boolean; rangDeParcage: number; aOuvertOuEtendu: boolean; seq: number; bornes: BornesDuFragment | null } {
   const { liveMerge = false, unwitnessed = false, rowSurface } = pilote;
   const before = get().pendingCascade;
   const pileDEntree = get().suspendedCascades;
@@ -1301,6 +1330,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // ensuite, comme dans la fenêtre qui ne s'est pas ouverte.
   const traces = unwitnessedTraceLines(get, step, unwitnessed, rowSurface);
   journaliser(get, set, traces, 'information', { actorId: step.actorId });
+  if (rowSurface) noterAuProcesVerbal(get, set, step);
   // FENÊTRE D'INSERTION (#1508) ouverte le temps que l'applier — et la continuation qui le suit —
   // tournent : une étape poussée pendant ce temps est la SUITE IMMÉDIATE de celle-ci, pas la fin de la
   // séquence. Rendue à sa valeur précédente ensuite (un applier peut en déclencher un autre).
@@ -1321,6 +1351,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   try {
     const differesAvant = comptePasDifferes(get());
     out = applierDe(step.kind)?.(get, set, step, hero, { steps, index: i });
+    pilote.suiteDeLHote?.();
     const differe = comptePasDifferes(get()) > differesAvant ? OPS_DIFFEREES : undefined;
     // `consequences` (#295 Lot 0) : rendu en LIGNES STRUCTURÉES (#349, `resultLines`) — seule voie de
     // dénouement. Le journal texte reste alimenté depuis le même texte (`l.text`), par le routage
@@ -1403,18 +1434,18 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // (conséquence foldée, liveMerge) ou qui rend la main à une cascade SUIVANTE de son propre flux
   // (journée de mer → jour d'après) ne parque rien et n'est pas une suspension.
   // Le pilote IMMÉDIAT, dont la séquence est un tableau local hors du slot, lit à côté le RANG où le slot
-  // l'aurait parquée (`rangDeParcage`) et `aOuvert` : l'applier a ouvert ce qui lui survit — une séquence
-  // tient le slot et n'y était pas, ou la pile porte, au-dessus du rang, ce qu'il a ouvert puis parqué. Un
-  // append, une re-pose du slot, une poussée collectée sous fenêtre, une séquence ouverte et close ne le lèvent pas.
+  // l'aurait parquée (`rangDeParcage`) et `aOuvertOuEtendu` : le slot actif a changé (ouverture, append ou re-pose),
+  // ou la pile porte au-dessus du rang ce que l'applier a ouvert puis parqué. Un slot inchangé,
+  // une insertion collectée dans les étapes du pilote ou une ouverture sans survivant ne lèvent pas ce signal.
   const after = get().pendingCascade;
   const pile = get().suspendedCascades;
   const parked = before !== null && pile.lastIndexOf(before) >= 0;
   const suspended = before !== null && (after === null || parked);
   const rangDeParcage = pile === pileDEntree ? pile.length : rangApresLesAnterieures(pile, pileDEntree, before);
-  const aOuvert = (after !== null && after !== before && (before === null || parked)) || pile.length > rangDeParcage;
+  const aOuvertOuEtendu = (after !== null && after !== before) || pile.length > rangDeParcage;
   // Les BORNES des fragments collectés (`startCascade` sous fenêtre) : le pilote les fusionne à SON
   // écriture du slot, comme l'append hors fenêtre les fusionne au store (`startCascade`).
-  return { steps: next, journal: [...traces, ...lines.map((l) => l.text), ...ownTestFailedLines], suspended, parked, rangDeParcage, aOuvert, seq: seqBase + insereesParLApplier.length, bornes };
+  return { steps: next, journal: [...traces, ...lines.map((l) => l.text), ...ownTestFailedLines], suspended, parked, rangDeParcage, aOuvertOuEtendu, seq: seqBase + insereesParLApplier.length, bornes };
 }
 
 /** Le RANG qui suit la dernière entrée ANTÉRIEURE à l'applier dans la pile de sortie (`0` si aucune ne l'est) :
@@ -1490,7 +1521,7 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
  *  (`sortirDeLHote`) et par le pilote immédiat qui vient de parquer sa séquence sous ce qu'un applier a ouvert
  *  (`piloteImmediat`). */
 export function reprendreLaPile(get: Get, set: Set): void {
-  if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
+  if (!enSortieDHote.has(get) && !get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
 }
 
 /** La séquence du slot est celle d'un pilote À CONTEXTE, hors combat (#4075) : la condition sous laquelle
@@ -1505,22 +1536,47 @@ export function sequenceDuPiloteAContexteHorsCombat(s: Pick<Jeu, 'pendingCascade
 const enSortieDHote = new WeakSet<Get>();
 
 /**
- * SORTIE D'HÔTE (#4006) : l'hôte d'un Flow qui se clôt hors de `dispatchCascadeDone` libère son pending et le
- * slot en une écriture (`libere`, plus `pendingCascade: null`), joue la `suite` qu'on lui passe, puis reprend la
- * pile (`reprendreLaPile`). Une sortie ouverte PENDANT la suite d'une autre sur le même store (un hôte joué
- * d'office dans la branche, `jouerLHoteDOffice`) libère et joue sa suite, mais ne reprend pas : seule la sortie
- * la plus externe reprend, après sa suite entière.
+ * SORTIE D'HÔTE (#4006, #3981) : l'hôte d'un Flow qui se clôt hors de `dispatchCascadeDone` libère son pending
+ * (`libere`) et joue la `suite` qu'on lui passe. L'hôte est UNE étape de sa séquence. Seul au slot (Test ouvert
+ * hors séquence, slot vide compris), la séquence finit avec lui SANS dénouement : le slot se vide dans la même
+ * écriture et la suite reçoit la séquence fermée. Suivi d'autres étapes, il est validé par le pilote interactif
+ * (`advanceCascade`) et sa suite se joue COMME SA CONSÉQUENCE, dans la fenêtre d'insertion de son commit
+ * (`commitStep`) : ce qu'elle pousse est la suite immédiate de l'hôte ; seulement ensuite le curseur passe à
+ * l'étape suivante, et la séquence allée au bout se dénoue (`clotureDeCascade`). L'hôte est l'étape non validée
+ * dont le slot (`PENDING_BY_JET`) est l'un de ceux que `libere` vide ; hors du curseur, aucune étape n'est validée
+ * à sa place : il sort de la séquence (curseur gardé sur la même étape) et sa suite se joue, une fois. Seule la
+ * sortie la plus externe reprend la pile (`reprendreLaPile`, muette tant qu'une sortie joue sa suite), après sa
+ * suite entière.
  */
-export function sortirDeLHote(get: Get, set: Set, libere: PatchDeFlux, suite: () => void): void {
-  set({ ...libere, pendingCascade: null });
-  if (enSortieDHote.has(get)) { suite(); return; }
+export function sortirDeLHote(get: Get, set: Set, libere: PatchDeFlux, suite: (fermee: PendingCascade | null) => void): void {
+  const sequence = get().pendingCascade;
+  const externe = !enSortieDHote.has(get);
   enSortieDHote.add(get);
+  let denouee: PendingCascade | null = null;
   try {
-    suite();
+    if (!sequence || sequence.cursor >= sequence.participants.length - 1) {
+      set({ ...libere, pendingCascade: null });
+      suite(sequence);
+    } else {
+      const estLHote = (s: CascadeStep | undefined): boolean => {
+        const slot = s?.jet && !s.committed ? PENDING_BY_JET[s.jet] : null;
+        return slot != null && slot in libere;
+      };
+      const { participants, cursor } = sequence;
+      if (estLHote(participants[cursor])) {
+        set(libere);
+        denouee = avancerDepuis(get, set, () => suite(null));
+      } else {
+        const hote = participants.findIndex(estLHote);
+        set(hote < 0 ? libere : { ...libere, pendingCascade: { ...sequence, participants: participants.filter((_, i) => i !== hote), cursor: hote < cursor ? cursor - 1 : cursor } });
+        suite(null);
+      }
+    }
+    if (denouee) clotureDeCascade(denouee);
   } finally {
-    enSortieDHote.delete(get);
+    if (externe) enSortieDHote.delete(get);
   }
-  reprendreLaPile(get, set);
+  if (externe) reprendreLaPile(get, set);
 }
 
 /**
@@ -1658,7 +1714,7 @@ function poserLeCurseur(get: Get, p: PendingCascade, arrivee = true): PendingCas
     resolue = tableStepResolved(st, decl, rollTableStep(decl, battleRng(), { get }), get);
   } else if (interaction === 'de') {
     const de = liveDeDecl(get(), st);
-    resolue = deStepResolved(st, de, roulerDe(de, specDeEtape(de), battleRng()));
+    resolue = deStepResolved(st, de, roulerDe(de, de.spec, battleRng()));
   } else {
     resolue = { ...st, result: roulerDeEtape(st.target!, battleRng(), st.evaluation) };
   }
@@ -1666,20 +1722,11 @@ function poserLeCurseur(get: Get, p: PendingCascade, arrivee = true): PendingCas
 }
 
 /**
- * PORTE PUBLIQUE du curseur (#1426) — poser le curseur d'une cascade OUVERTE sur l'étape `i`. Tout
- * site qui reprend la main sur une cascade hôte (fold d'incantation, re-ciblage du lanceur d'un Test)
- * passe par ICI : un `set({ pendingCascade: { …casc, cursor: i } })` écrit à la main court-circuite le
- * pilote, et une table qu'aucun siège ne joue reste alors non tirée — `jetValider('cascade')` fermé pour toujours.
- */
-export function poserCurseurCascade(get: Get, set: Set, casc: PendingCascade, i: number): void {
-  set({ pendingCascade: curseurPose(get, casc, i) });
-}
-
-/**
- * LA MÊME PORTE, rendue en VALEUR (#1426) — pour un site qui doit publier `pendingCascade` DANS LE
- * MÊME `set` qu'un autre champ : le réglage `test.testeur` change le porteur du Test ET celui de l'étape,
- * et deux `set` successifs publient entre eux un état où les deux porteurs divergent (un abonné rend
- * cet inter-état). Une seule implémentation — `poserCurseurCascade` délègue ici.
+ * PORTE PUBLIQUE du curseur (#1426), rendue en VALEUR — pose le curseur d'une cascade OUVERTE sur
+ * l'étape `i` : un `{ …casc, cursor: i }` écrit à la main court-circuite le pilote, et une table qu'aucun
+ * siège ne joue reste alors non tirée. En valeur, le site publie `pendingCascade` DANS LE MÊME `set`
+ * qu'un autre champ : le réglage `test.testeur` change le porteur du Test ET celui de l'étape, et deux
+ * `set` successifs publient entre eux un état où les deux porteurs divergent (un abonné rend cet inter-état).
  */
 export function curseurPose(get: Get, casc: PendingCascade, i: number): PendingCascade {
   return poserLeCurseur(get, { ...casc, cursor: i });
@@ -1692,11 +1739,16 @@ export function curseurPose(get: Get, casc: PendingCascade, i: number): PendingC
  * influençable doit être lancée (sinon no-op : la modale force d'abord le jet).
  */
 export function advanceCascade(get: Get, set: Set): PendingCascade | null {
+  return avancerDepuis(get, set, undefined);
+}
+
+/** `advanceCascade`, la première étape validée portant la suite d'un hôte qui se clôt (`sortirDeLHote`). */
+function avancerDepuis(get: Get, set: Set, suiteDeLHote: (() => void) | undefined): PendingCascade | null {
   // BOUCLE, jamais récursion : une séquence enchaîne autant d'étapes résolues d'office que sa donnée
   // en déclare (cadence déférée, périls d'auteur, journée de voyage) — une récursion y épuise la pile
   // (`RangeError`) et laisse la cascade OUVERTE sur son curseur, sans dénouement.
-  for (;;) {
-    const rendu = avanceUnPas(get, set);
+  for (let suite = suiteDeLHote; ; suite = undefined) {
+    const rendu = avanceUnPas(get, set, suite);
     if (rendu !== ENCORE) return rendu;
   }
 }
@@ -1705,7 +1757,7 @@ export function advanceCascade(get: Get, set: Set): PendingCascade | null {
  *  rend la main à la fenêtre) et d'une cascade finalisée. */
 const ENCORE = Symbol('cascade.encore');
 
-function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE {
+function avanceUnPas(get: Get, set: Set, suiteDeLHote: (() => void) | undefined): PendingCascade | null | typeof ENCORE {
   const p = get().pendingCascade;
   if (!p) return null;
   const cur = p.participants[p.cursor];
@@ -1730,7 +1782,7 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   const dOffice = !!cur && (stepInteraction(cur) === 'jet' || !!cur.de?.result) && !surfaceOf(get, porteurDe(cur));
   if (cur) {
     // Une séquence que le pilote immédiat a parquée garde la surface de rangées DÉCLARÉE à son lancement.
-    const r = commitStep(get, set, steps, p.cursor, { seq, purpose: p.purpose, liveMerge: true, unwitnessed: dOffice, rowSurface: p.piloteImmediat?.rowSurface }); // liveMerge : préserve les appends d'une conséquence foldée
+    const r = commitStep(get, set, steps, p.cursor, { seq, purpose: p.purpose, liveMerge: true, unwitnessed: dOffice, rowSurface: p.piloteImmediat?.rowSurface, suiteDeLHote }); // liveMerge : préserve les appends d'une conséquence foldée
     steps = r.steps; suspended = r.suspended; parked = r.parked; seq = r.seq;
     if (r.bornes) fondu = { ...p, ...fusionnerLesBornes(p, r.bornes) };
   }
@@ -1788,7 +1840,14 @@ function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: 
   return { ...p, ...fusionnerLesBornes(p, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length };
 }
 
-/** « Tout lancer » : RÉSOUT d'office les étapes restantes (RNG, sans influence) — on ne peut pas
+/** « Tout résoudre » roule-t-il cette rangée de bande au siège qui décide (`decidingSeat`) ? L'hôte, toutes ; un autre
+ *  siège, celles qu'il influence (`influencesLocally`). #1273 */
+export function resoutLaRangeeIci(s: Jeu, id: string): boolean {
+  return seatOwns(s, decidingSeat(s), undefined) || influencesLocally(s, id);
+}
+
+/** « Tout lancer » : RÉSOUT d'office les étapes restantes (RNG, sans influence ; d'une bande, les rangées du siège qui
+ *  décide, `resoutLaRangeeIci`, la bande dont une rangée attend arrêtant la résolution) — on ne peut pas
  *  « dé-dormir », les conséquences subies s'appliquent quand même — puis place le curseur EN FIN
  *  (`cursor === participants.length`) = état BILAN. La modale RESTE ouverte pour montrer TOUTES les
  *  conséquences ; c'est `finalizeCascade` (« Terminer ») qui ferme et enchaîne la suite — on rend alors
@@ -1828,10 +1887,10 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
     // DÉ NU sans influence (#1508) : même résolveur ET même composition de déclaration que la modale.
     if (stepInteraction(steps[i]) === 'de') {
       const de = liveDeDecl(get(), steps[i]);
-      steps = steps.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, specDeEtape(de), battleRng())) : x));
+      steps = steps.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, de.spec, battleRng())) : x));
     }
     if (stepInteraction(steps[i]) === 'batch') {
-      steps = steps.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(steps[i]) } : x));
+      steps = steps.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(steps[i], false, (id) => resoutLaRangeeIci(get(), id)) } : x));
     }
     if (!stepReady(steps[i], get())) {
       // « Tout résoudre » ne TRANCHE pas un CHOIX du joueur (dévier/subir, piéger…) et ne joue pas une
@@ -1839,7 +1898,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
       set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: i, log } });
       return null;
     }
-    const r = commitStep(get, set, steps, i, { seq, purpose: p.purpose });
+    const r = commitStep(get, set, steps, i, { seq, purpose: p.purpose, rowSurface: p.piloteImmediat?.rowSurface });
     steps = r.steps;
     seq = r.seq;
     log = [...log, ...r.journal];
@@ -1878,7 +1937,7 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * Pilote IMMÉDIAT (sans modale) : lance chaque étape (RNG) et applique sa conséquence dans l'ordre,
  * insertions comprises. Pour les repos de plusieurs jours, la reprise automatique et la triche de
  * recette. Renvoie les étapes RÉSOLUES (pour un éventuel bilan en lecture seule), ou `undefined` quand
- * le pilote est INTERROMPU — combat ouvert en plein vol, séquence ouverte par un applier (cf. ci-dessous),
+ * le pilote est INTERROMPU — combat ouvert en plein vol, séquence ouverte ou étendue par un applier,
  * choix sans défaut authoré, slot de cascade que CE pilote a écrit (un slot déjà vivant à l'entrée n'en est
  * pas un), groupe anéanti : sa sortie est la clôture hors combat (`clotureHorsCombat`), qui constate la
  * non-viabilité du groupe AVANT tout dénouement. `undefined` : l'appelant n'enchaîne rien ; le dénouement
@@ -1886,23 +1945,24 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  *
  * `ctx` (optionnel) : titre/`purpose` du fragment — nécessaire pour un appelant qui résout un tableau DE
  * PLUSIEURS étapes dont un applier peut ouvrir un combat (`lancerLeCombat`) ou une séquence (Test, choix,
- * révélation) : lancé hors combat, si l'applier d'une étape ouvre ce qui lui survit (`commitStep`,
- * `aOuvert`) ou un combat, la séquence ENTIÈRE est parquée (`suspendedCascades`) au rang où le slot l'aurait
+ * révélation) : lancé hors combat, si l'applier d'une étape ouvre ou étend une séquence qui lui survit (`commitStep`,
+ * `aOuvertOuEtendu`) ou un combat, la séquence ENTIÈRE est parquée (`suspendedCascades`) au rang où le slot l'aurait
  * mise (`rangDeParcage`), curseur derrière cette étape, marquée `piloteImmediat` — jamais perdue ni résolue
- * par-dessus ce que l'applier a ouvert ; hors combat, la reprise partagée (`reprendreLaPile`) rend ensuite le
- * slot à la tête de pile s'il est libre. Ce qui a été ouvert clos, CE pilote reprend depuis le curseur
+ * par-dessus la séquence ouverte ou étendue ; hors combat, la reprise partagée (`reprendreLaPile`) rend ensuite le
+ * slot à la tête de pile s'il est libre. À la clôture de cette séquence, CE pilote reprend depuis le curseur
  * (`resumeSuspendedCascade`) et le dénouement de la séquence (`dispatchCascadeDone`) joue la clôture de
- * l'appelant. Sans `ctx`, rien n'est parqué : un combat ouvert arrête la boucle, une séquence ouverte ne
+ * l'appelant. Sans `ctx`, rien n'est parqué : un combat ouvert arrête la boucle, une ouverture ou un append ne
  * l'arrête pas. Lancé en combat, ni l'un ni l'autre ne l'arrête.
  *
  * CHOIX sans `defaultChoice` authoré : jamais tranché en silence (`options[0]`) — la cascade s'arrête
  * PENDANTE, surfacée via `pendingCascade` (patron `resolveRemainingCascade`, #351), marquée
  * `piloteImmediat` du contexte de lancement (`ReprisePilote`) : la décision validée, la suite reprend par CE
- * pilote (`avanceUnPas`) avec CE contexte, et le dénouement de la séquence honore sa `rowSurface`.
+ * pilote (`avanceUnPas`) avec CE contexte, `rowSurface` comprise.
  *
  * `ctx.rowSurface` : l'appelant DÉCLARE que les rangées de ses BANDES se montrent ailleurs qu'au
- * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291). Les
- * étapes MONO du même tableau gardent leur ligne : elles n'ont pas de rangée au PV.
+ * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291) et écrit
+ * chaque bande au compte rendu du trajet à son commit (`noterAuProcesVerbal`). Les étapes MONO du même
+ * tableau gardent leur ligne : elles n'ont pas de rangée au PV.
  */
 export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: ContexteDuPilote): CascadeStep[] | undefined {
   const r = piloteImmediat(get, set, steps, ctx, 0, steps.length, { log: ctx?.log ?? [] }); // un tableau à LUI : son compteur part de sa longueur
@@ -2003,7 +2063,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // goulot (`commitStep`) en dérive sa ligne de dé.
     if (stepInteraction(cur[i]) === 'de') {
       const de = liveDeDecl(get(), cur[i]);
-      cur = cur.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, specDeEtape(de), battleRng())) : x));
+      cur = cur.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, de.spec, battleRng())) : x));
       unwitnessed = true;
     }
     if (stepInteraction(cur[i]) === 'batch') {
@@ -2032,7 +2092,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // no-op de suspension ici puisque CE tableau n'était PAS dans le slot actif) : le reste du tableau
     // ne se résout pas pendant que le combat tourne. Avec un contexte, la séquence ENTIÈRE est parquée
     // (`suspendedCascades`) au rang où le slot l'aurait mise (`rangDeParcage`), sous ce que l'applier a
-    // ouvert avant le combat — étapes déjà jouées comprises, que son dénouement (`rowSurface`) relit — et sa
+    // ouvert avant le combat — étapes déjà jouées comprises — et sa
     // reprise revient à CE pilote, dernière étape comprise : la clôture de l'appelant se joue alors au
     // dénouement de la séquence.
     if (!combatALEntree && get().battle) {
@@ -2040,10 +2100,9 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
       return undefined;
     }
     if (get().partyWiped) return undefined; // l'applier a constaté l'anéantissement : plus personne à qui appliquer la suite
-    // Hors combat, l'applier a OUVERT ce qui lui survit (`aOuvert`) : même parcage au rang, puis la reprise
-    // partagée, qui rend le slot à la tête de pile s'il est libre. Ce que l'applier a ouvert passe avant la
-    // suite de la séquence ; sa clôture la rend à CE pilote (`resumeSuspendedCascade`).
-    if (ctx && !combatALEntree && r.aOuvert) {
+    // La séquence ouverte ou étendue par l'applier passe avant la suite du pilote. La reprise partagée
+    // lui rend le slot s'il est libre ; à sa clôture, le pilote reprend au curseur qu'il a parqué.
+    if (ctx && !combatALEntree && r.aOuvertOuEtendu) {
       parquerAuRang(r.rangDeParcage, parquee(i + 1, ctx.title));
       reprendreLaPile(get, set);
       return undefined;

@@ -246,7 +246,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, actorName: a.label, label: 'Test important', skillValue: 40,
+        actorId: a.id, label: 'Test important', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 95, sl: -6, success: false, isDouble: false, rerolled: true, onSuccess: [], onFailure: [],
       } as never,
@@ -264,7 +264,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, actorName: a.label, label: 'Test', skillValue: 40,
+        actorId: a.id, label: 'Test', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 12, sl: 2, success: true, isDouble: false, onSuccess: [], onFailure: [],
       } as never,
@@ -281,7 +281,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, actorName: a.label, label: 'Test', skillValue: 40,
+        actorId: a.id, label: 'Test', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 95, sl: -6, success: false, isDouble: false, rerolled: true, onSuccess: [], onFailure: [],
       } as never,

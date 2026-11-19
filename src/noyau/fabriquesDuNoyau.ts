@@ -31,7 +31,13 @@ import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
 import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { choixDInterlude, cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
-import { choixDeLaBataille, creerActionsDeBatailleDeMasse, massBattleResumeCombat, sortiesDeBatailleDeMasse, validationsDeBatailleDeMasse } from './massBattleFlow';
+import {
+  choixDeLaBataille,
+  creerActionsDeBatailleDeMasse,
+  massBattleResumeCombat,
+  sortiesDeBatailleDeMasse,
+  validationsDeBatailleDeMasse,
+} from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
 import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
@@ -39,7 +45,15 @@ import { creerActionsDeMarche } from './marcheDuGroupe';
 import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
 import { choixDeConversation } from './conversation';
-import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand, type ModeDEvaluation, type ModeDeMarche } from './merchantFlow';
+import {
+  choixDuMarchand,
+  cloturesDuMarchand,
+  creerActionsDuMarchand,
+  sortiesDuMarchand,
+  validationsDuMarchand,
+  type ModeDEvaluation,
+  type ModeDeMarche,
+} from './merchantFlow';
 import { creerActionsDeTaverne, sortiesDeLaTaverne, type TavernOpponent } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
 import { choixDuButin, creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
@@ -50,6 +64,7 @@ import { cloturesDesTestsDeScene, creerActionsDesTestsDeScene, reglagesDesTestsD
 import { cloturesDuLotDEtal } from './etalLotFlow';
 import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
 import { creerActionsDuJournal } from './journal';
+import { creerActionsDuReseau } from './reseau';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
 import { creerFabriqueDIds } from './idsDuMonde';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
@@ -64,7 +79,18 @@ import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 import type { BattleState, NetState, ShootingStanceKey } from './etat';
 import type { AttackPlan, MovementResolution } from './combatFlow';
-import type { CounterDeclaration, EnchainementDuCoup, IssueDEmpoignade, IssueOpposee, PendingAppraise, PendingAuContact, PendingDisengage, PendingGrapple, ReactionDeBouclier, RevealEntry } from './pendings';
+import type {
+  CounterDeclaration,
+  EnchainementDuCoup,
+  IssueDEmpoignade,
+  IssueOpposee,
+  PendingAppraise,
+  PendingAuContact,
+  PendingDisengage,
+  PendingGrapple,
+  ReactionDeBouclier,
+  RevealEntry,
+} from './pendings';
 import type { ZoneEnPose } from './targetingHolder';
 import type { VerdictApprentissage } from '../engine/grimoire';
 import type { OrientationOutcome } from '../engine/seaNavigation';
@@ -110,7 +136,6 @@ import type { phaseDeChute } from './fallMove';
 import type { Tool } from './sceneEditLecture';
 import type { ActionDArchitecture, OutilDeLEditeur } from './edition/session';
 import type { ContexteDuPointeur } from './edition/pointeur';
-import type { RouteObjet } from '../data/schemas/exposition-derivee';
 import type { advanceCost } from '../engine/advancement';
 import type { SequenceAbandon, SequenceBoard, SequenceCloseCtx, SequenceDef, SequenceRoundActors, SequenceState, SequenceVerdict } from './sequenceContract';
 import type { sequenceCumulsDeLaManche } from './sequenceCore';
@@ -214,7 +239,7 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'peur' | 'phare' | 'phase' | 'physique' | 'piece' | 'pied' | 'piege' | 'pietinement' | 'pirates' | 'pires' | 'pitance'
   | 'pivot' | 'place' | 'plaie' | 'plancher' | 'planque' | 'plateau' | 'plein' | 'pnj' | 'polymorphie' | 'port'
   | 'porte' | 'portee' | 'porteur' | 'porteurs' | 'pose' | 'possession' | 'possible' | 'poste' | 'posture' | 'pot' | 'pourcentage' | 'poursuite'
-  | 'poursuivre' | 'poussee' | 'pratiquer' | 'precedente' | 'present' | 'prevention' | 'priere' | 'privee' | 'prix'
+  | 'poursuivre' | 'poussee' | 'pratiquer' | 'precedente' | 'present' | 'prevention' | 'priere' | 'prix'
   | 'production' | 'profil' | 'progression' | 'prolonge' | 'promouvoir' | 'protecteur' | 'protection' | 'provisions'
   | 'psychologie' | 'psychologique' | 'puissance' | 'qualite' | 'quantite' | 'quotidien' | 'r' | 'raccourci' | 'ragot'
   | 'rallier' | 'ramassage' | 'rangees' | 'rapide' | 'rate' | 'ration' | 'rations' | 'reaction' | 'reapparition'
@@ -326,7 +351,7 @@ const verrousDuLexique: [
   Verrou<Mots<NonNullable<SkillData['combatSubstitute']>['role'] | NonNullable<SkillData['combatSubstitute']>['gate']>, MotDuLexique>, // #3977
   Verrou<Mots<PendingDisengage['phase'] | PendingAuContact['phase'] | PendingGrapple['phase'] | ReturnType<typeof phaseDeChute>>, MotDuLexique>, // #3977
   Verrou<Mots<Tool['mode'] | OutilDeLEditeur['mode'] | ActionDArchitecture | NonNullable<ContexteDuPointeur['architecture']>['action']>, MotDuLexique>, // #3977
-  Verrou<Mots<RouteObjet['mode'] | EntrainementOption['kind'] | Parameters<typeof advanceCost>[1]>, MotDuLexique>, // #3977
+  Verrou<Mots<EntrainementOption['kind'] | Parameters<typeof advanceCost>[1]>, MotDuLexique>, // #3977
   Verrou<Mots<keyof SequenceState | Exclude<ClesDeLUnion<SequenceVerdict<unknown>>, 'log'> | SequenceVerdict<unknown>['suite'] | keyof SequenceRoundActors
     | Exclude<keyof SequenceCloseCtx<unknown>, 'get' | 'seq' | 'rng'> | keyof SequenceDef | Exclude<keyof SequenceBoard, 'title' | 'unit'> | Exclude<keyof SequenceAbandon, 'label' | 'title'>
     | keyof ReturnType<typeof sequenceCumulsDeLaManche>>, MotDuLexique>, // #3977
@@ -458,6 +483,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDeLEquipage(get, set),
     ...creerActionsDesTestsDeScene(get, set),
     ...creerActionsDuJournal(get, set),
+    ...creerActionsDuReseau(get, set),
     ...creerActionsDAvanceeDHorloge(get, set),
     ...creerFabriqueDIds(get, set),
     ...creerActionsDHorloge(get, set),

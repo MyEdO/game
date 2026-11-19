@@ -1,0 +1,13 @@
+{
+  "model": "decor--rocher.glb",
+  "model_sha256": "667ce1093eb2482951bcc66207da4da2875c7fe432f195a85bad11a2d4168b29",
+  "importe_le": "2026-11-16",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

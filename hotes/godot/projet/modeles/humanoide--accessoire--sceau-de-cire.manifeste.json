@@ -1,0 +1,52 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "sceau-de-cire"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "emplacements": {
+    "ceinture_avant_d": {
+      "os": "jupe_avant_avant_d_01",
+      "position": [
+        -0.007057,
+        0.141308,
+        0.018496
+      ],
+      "rotation": [
+        -0.147072,
+        -0.043633,
+        -3.141593
+      ],
+      "poids": {
+        "jupe_avant_01": 0.1973,
+        "jupe_avant_d_01": 0.1386,
+        "jupe_avant_avant_d_01": 0.6641
+      }
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "parchemin",
+      "palette": "corne"
+    },
+    {
+      "nom": "cire",
+      "palette": "accent"
+    }
+  ],
+  "glb": {
+    "sha256": "335937cf99586ec8935b3054252b5746b48209225cc68fe8e105ba183b021981",
+    "octets": 428712
+  }
+}

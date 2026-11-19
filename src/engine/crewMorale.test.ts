@@ -1,5 +1,20 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { moraleBase, MORALE_FACTORS, MORALE_BANDS, moraleBand, recalcMorale, resolveCrewTest, tickShipMorale, payChoices, payChoiceCostBrass, isPayChoice, findMoraleFactor } from './crewMorale';
+import {
+  moraleBase,
+  MORALE_FACTORS,
+  MORALE_BANDS,
+  moraleBand,
+  recalcMorale,
+  resolveCrewTest,
+  tickShipMorale,
+  payChoices,
+  payChoiceCostBrass,
+  isPayChoice,
+  findMoraleFactor,
+  maladieFaitRage,
+} from './crewMorale';
+import { contractDisease } from './disease';
+import { setRule, resetRule } from './policy';
 import { setDataset } from '../data/overrides';
 import { makeRNG, type RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
@@ -133,5 +148,20 @@ describe('tickShipMorale — recalcul HEBDOMADAIRE gardé (jour ÷ 7, anti-doubl
     expect(b.state.score).toBeLessThan(75);
     // idempotent dans la même semaine
     expect(tickShipMorale(b.state, 8, makeRNG(1)).recalced).toBe(false);
+  });
+});
+
+describe('#4243 — `maladieFaitRage` : maladie déclarée du collectif, hors règle des Personnages (MDG 14 l.172)', () => {
+  afterEach(() => resetRule('mer-moral-maladie-contagieuse-a-bord'));
+  const collectif = (incubation: number) => ({ label: "l'équipage", diseases: [contractDisease('scorbut', makeRNG(1), { incubation, duration: 30 })!] });
+
+  it('maladie DÉCLARÉE du collectif → vrai, règle `mer-moral-maladie-contagieuse-a-bord` désactivée comprise', () => {
+    setRule('mer-moral-maladie-contagieuse-a-bord', false);
+    expect(maladieFaitRage([], collectif(0))).toBe(true);
+  });
+
+  it('collectif en incubation, ou absent → faux', () => {
+    expect(maladieFaitRage([], collectif(5))).toBe(false);
+    expect(maladieFaitRage([], undefined)).toBe(false);
   });
 });

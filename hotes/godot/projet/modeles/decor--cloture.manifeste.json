@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "cloture"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "6242f394dc1d7b38794da7306d9595c6c5833690078cb98ffa06eaeb9531f055",
+    "octets": 40092
+  }
+}

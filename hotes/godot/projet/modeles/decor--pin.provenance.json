@@ -1,0 +1,13 @@
+{
+  "model": "decor--pin.glb",
+  "model_sha256": "fc67aa5cb14215c8f01fe6ed0909f3df58480bfbab35849f1c64832704b5eb32",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

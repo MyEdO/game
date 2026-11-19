@@ -5,13 +5,21 @@ import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { conditionSchema, gameOpSchema, OP_DEFS, OPS_NON_TYPEES, mecaniqueDe } from './mecanique';
-import { applyOps, messageRecurrenceHorloge, SELF_REF } from '../../../engine/ops';
+import { applyOps, messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
 import type { Combatant } from '../../../engine/types';
 import { desDuTest } from '../../../engine/dice.testkit';
 import { conditionIds } from '../../index';
 import { validateDataset } from '../validate';
+import { MISCAST_TABLES } from '../../../engine/miscast';
+
+/** Première op `condition` d'un document `miscast.json` — FAIL-FAST : sans elle, la sonde ne mesure rien. */
+const premiereCondition = (doc: typeof MISCAST_TABLES) => {
+  const op = doc.flatMap((table) => table.entries).flatMap((e) => e.ops ?? []).find((o) => o.op === 'condition');
+  if (op === undefined) throw new Error('aucune op `condition` dans miscast.json : la sonde ne mesure rien.');
+  return op;
+};
 import { blessuresSurLeProfil, blessuresDeBase } from '../../../engine/combattantDeTest.testkit';
 
 describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', () => {
@@ -100,21 +108,19 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     }
   });
 
-  it('dialecte miscast : un État hors du registre est refusé au chargement, par la référence d’État de l’op `condition` (#1473)', () => {
-    const miscast = JSON.parse(readFileSync(new URL('../../miscast.json', import.meta.url), 'utf8')) as { entries: { ops?: Record<string, unknown>[] }[] }[];
-    expect(validateDataset('miscast.json', miscast)).toBeNull();
+  it('ops de miscast : un État hors du registre est refusé au chargement, par la référence d’État de l’op `condition` (#1473)', () => {
+    expect(validateDataset('miscast.json', MISCAST_TABLES)).toBeNull();
     for (const op of ['condition', 'removeCondition']) {
-      const doc = structuredClone(miscast);
-      const noeud = doc.flatMap((table) => table.entries).flatMap((e) => e.ops ?? []).find((o) => o.op === 'condition')!;
-      Object.assign(noeud, { op, id: { id: 'etat-fantome' } });
+      const doc = structuredClone(MISCAST_TABLES);
+      Object.assign(premiereCondition(doc), { op, id: { id: 'etat-fantome' } });
       expect(validateDataset('miscast.json', doc), op).toContain('« etat-fantome » est absent du catalogue des états (etats.json).');
     }
   });
 
-  it('dialecte miscast : une op `condition` sans État est refusée au chargement', () => {
-    const doc = JSON.parse(readFileSync(new URL('../../miscast.json', import.meta.url), 'utf8')) as { entries: { ops?: Record<string, unknown>[] }[] }[];
-    delete doc.flatMap((table) => table.entries).flatMap((e) => e.ops ?? []).find((o) => o.op === 'condition')!.id;
-    expect(validateDataset('miscast.json', doc)).toContain('`condition` exige son État.');
+  it('ops de miscast : une op `condition` sans État est refusée au chargement, par son payload canonique', () => {
+    const doc = structuredClone(MISCAST_TABLES);
+    Reflect.deleteProperty(premiereCondition(doc), 'id');
+    expect(validateDataset('miscast.json', doc)).toMatch(/GameOp « condition » .*id/s);
   });
 
   it('une op inconnue des DEUX registres est NOMMÉE en erreur', () => {
@@ -160,9 +166,9 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
 
   it('`rollTable` : table EXCLUSIVE — `entries` OU `tableId`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
     const entries = [{ min: 1, max: 10, ops: [{ op: 'kill' }] }];
-    expect(gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', entries }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'rollTable', die: { n: 1, sides: 10 }, entries }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'rollTable', tableId: 'mendier-ennuis' }).success).toBe(true);
-    for (const table of [{ die: 'd10', entries, tableId: 'mendier-ennuis' }, {}]) {
+    for (const table of [{ die: { n: 1, sides: 10 }, entries, tableId: 'mendier-ennuis' }, {}]) {
       const res = gameOpSchema.safeParse({ op: 'rollTable', ...table });
       expect(res.success).toBe(false);
       expect(res.error!.issues.map((i) => i.code)).toEqual(['invalid_union']);
@@ -173,8 +179,17 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       ['tableId', 'GameOp « rollTable » : « table-fantome » est absent du catalogue des tables (tables.json).'],
     ]);
     // Les ops de rangée sont PARSÉES : une op fantôme sous `entries` est refusée à son chemin.
-    const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
+    const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: { n: 1, sides: 10 }, entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
     expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['entries.0.ops.0.disease']);
+  });
+
+  // VDM 12 l.920 ; #4095 : sous `tableId`, le dé est celui de la table.
+  it('`rollTable` à `tableId` ne porte pas de `die`, au type comme au schéma', () => {
+    // @ts-expect-error -- `die?: never` sur la variante `tableId`.
+    const op: GameOp = { op: 'rollTable', die: { n: 1, sides: 10 }, tableId: 'vdm-maladie-coups-de-poing-maudits' };
+    const res = gameOpSchema.safeParse(op);
+    expect(res.success).toBe(false);
+    expect(JSON.stringify(res.error!.issues)).toMatch(/die/);
   });
 
   /** `withArg` (`noyau/triggeredEffects`) écarte l'op dont l'instance n'a pas le paramètre : seul un champ

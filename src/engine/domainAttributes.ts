@@ -38,6 +38,7 @@ import { RNG } from './dice';
 import { groupMatch, groupesDe } from './groups';
 import { bypassedAP } from './armourBypass';
 import { findDomainById } from '../data';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { arcaneDomainOf } from './combatFeatures/dispatch';
 import { applyOps } from './ops';
 
@@ -86,7 +87,7 @@ export function domainOnHitEffects(spell: SpellDomainRef): TriggeredEffect[] {
   // `DomainData.effects` est typé avec la feuille `Effect` complète (couche state, pour l'éditeur de
   // Flow partagé) ; un rider de Domaine ne porte JAMAIS de transition/dialogue (que des `GameOp`), donc
   // le rétrécir à la feuille `EffectOp` engine-pure est SAIN (signature publique du moteur = pure, #8).
-  return (findDomainById(spell.domainId?.id)?.effects ?? []) as TriggeredEffect[];
+  return findDomainById(spell.domainId?.id)?.effects ?? [];
 }
 
 /** Bonus d'incantation lié à l'ENVIRONNEMENT (LDB 48 l.690 — Vie/Ghyran : « Recevez un bonus de +10 aux
@@ -118,7 +119,8 @@ export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: R
  * Focalisation et d'Incantation en mer. ») — 4 Domaines portent un `seaModifier` (`DomainData`).
  * PARAMÈTRE en données ; `atSea` = contexte navigation fourni par l'appelant (état, hors du moteur pur).
  */
-export type SeaWind = 'violente-tempete' | 'calme-plat' | string;
+/** Les vents que nomme la Magie des mers. MDG 02 l.184 */
+const VENT = { tempete: 'violente-tempete', calme: 'calme-plat' } as const satisfies Record<string, IdsParEspace['sea-weather.json#vents']>;
 
 /** Feu (Aqshy, l.182) : « Les Tests de Focalisation pour ce Domaine subissent -1 DR. »
  *  Omission ASSUMÉE (#337) : l'exception « +1 DR si le sort cible un vaisseau EN FLAMMES » (même
@@ -142,12 +144,12 @@ export function domainSeaFocusCritMiscastMajeure(spell: SpellDomainRef, atSea: b
 }
 
 /** Cieux (Azyr, l.184) : « +1 DR sur les Tests d'Incantation » en Violente tempête, « -1 DR » en Calme plat. */
-export function domainSeaIncantationDR(spell: SpellDomainRef, atSea: boolean, wind: SeaWind | null | undefined): number {
+export function domainSeaIncantationDR(spell: SpellDomainRef, atSea: boolean, wind: string | null | undefined): number {
   if (!atSea) return 0;
   const sm = findDomainById(spell.domainId?.id)?.seaModifier;
   if (!sm) return 0;
-  if (wind === 'violente-tempete') return sm.incantationStormDR ?? 0;
-  if (wind === 'calme-plat') return sm.incantationCalmDR ?? 0;
+  if (wind === VENT.tempete) return sm.incantationStormDR ?? 0;
+  if (wind === VENT.calme) return sm.incantationCalmDR ?? 0;
   return 0;
 }
 

@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "gargouille"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "sculpture",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    }
+  ],
+  "glb": {
+    "sha256": "9c27cdac292612b3ccea278d4217d6ca2f82b782e15375fa9459820975054897",
+    "octets": 81048
+  }
+}

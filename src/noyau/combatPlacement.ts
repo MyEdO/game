@@ -23,6 +23,7 @@ import type { Flow as CoreFlow, EffectOp } from '../engine/flowCore';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { testerLaTraverseeDeZone } from './combat/triggeredTest';
 import { normaliserLesAppuis } from './monde/poseDuDecor';
+import { placeCombatant } from './monde/spawn';
 
 /** Perturbante (LDB 62 l.272-274) : repousse `target` d'au plus `tiles` cases dans la direction
  *  opposée à l'attaquant (cases praticables et libres seulement). Renvoie les cases reculées. */
@@ -43,8 +44,9 @@ export function pushBackTiles(get: Get, attacker: Combatant, target: Combatant, 
     pos = next;
     moved++;
   }
-  target.pos = pos;
-  if (moved) bus.emit(EVT.ANIM_MOVE, { id: target.id, path: [{ ...target.pos }] });
+  if (!moved) return 0;
+  placeCombatant(target, scene, pos);
+  bus.emit(EVT.ANIM_MOVE, { id: target.id, path: [{ ...target.pos! }] });
   return moved;
 }
 
@@ -65,7 +67,7 @@ export function displaceSmaller(get: Get, mover: Combatant): boolean {
     if ((mover.pos.z ?? 0) !== (c.pos.z ?? 0)) continue; // pas le même étage → hors d'atteinte du mover
     if (!occupiesTile(mover.pos, footprintN(mover), c.pos.x, c.pos.y)) continue; // pas sous l'empreinte du mover
     const free = nearestFreeOutside(scene, battle, c, mover);
-    if (free) { c.pos = free; moved = true; }
+    if (free) { placeCombatant(c, scene, free); moved = true; }
   }
   return moved;
 }

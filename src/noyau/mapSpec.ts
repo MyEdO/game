@@ -45,7 +45,7 @@ import type {
   WallOverlay,
   WallSeg,
 } from './monde/scene';
-import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './monde/scene';
+import { DEFAULT_TERRAIN, canonEdge, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './monde/scene';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
@@ -55,13 +55,14 @@ import { defautsDeCompilation } from '../data';
 // (`sceneRoofDefaultsSchema`/`roofDefaultsSchema`) — deux littéraux ici la feraient diverger en
 // silence de la porte qui refuse une scène authorée.
 import { PENTE_TOIT_DEG, sceneSchema, wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
 // SOLS NUS : la primitive PARTAGÉE de l'audit de plan (`terrains.json › built`, complément) — la CLI
 // `map:check` (famille `etage-sans-appui`) et cette porte jugent le même appui sur le même ensemble.
 import { groundTerrains } from './planDefects';
 import { estAbsent, terrainAbsent } from './monde/terrain';
 import { planStairFlight, applyStairFlight } from './stairFlight';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
 import type { FireArc } from '../engine/types';
 import type { ThreatTier } from '../engine/advantagePool';
 import type { Dir8 } from '../geometry/dir8';
@@ -70,8 +71,32 @@ import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
-import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
-import { canonEdge, edgeWallState } from './sceneEditLecture';
+import {
+  type Pt,
+  setEdgeWall,
+  patchWall,
+  toggleDiagonalWall,
+  paintHeight,
+  paintCrenellated,
+  paintTiles,
+  fillTerrainRect,
+  addLayer,
+  putLayer,
+  placeEmplacement,
+  setPosteCrew,
+  setPosteSide,
+  pasteEntity,
+  addRestZone,
+  setSceneScalaires,
+  setSceneFlags,
+  realFloorAt,
+  roofExclusionsByZ,
+  deriveArchitectureMasses,
+  bodyFootCellsByZ,
+  bodyFootCells,
+  adoptableOpeningsAt,
+} from './sceneEdit';
+import { edgeWallState } from './sceneEditLecture';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un
  *  « niveau » de relief, cf. `METRES_PER_LEVEL`). */
@@ -141,7 +166,7 @@ export interface EncounterSpec {
   enemies?: AuthoredEnemy[];
   members?: EncounterMember[];
   surprise?: 'groupe' | 'ennemis';
-  onVictory?: Flow;
+  onVictory?: FlowDeScene;
   /** Rencontre invisible en exploration jusqu'au combat (embuscade visuelle) — pose `combat.hiddenUntilCombat`
    *  sur les entités enrôlées via `enemies`. Défaut false (visibles, RAW). */
   hidden?: boolean;
@@ -243,7 +268,7 @@ export interface MapSpec {
   /** Départ héros : `[x,y]` ou `{x,y,z}`. */
   heroStart?: [number, number] | { x: number; y: number; z?: number };
   entryPoints?: Record<string, [number, number]>;
-  restZones?: { rect: { x: number; y: number; w: number; h: number }; places?: Scene['rest']; quality?: 'normale' | 'pietre' }[];
+  restZones?: { rect: { x: number; y: number; w: number; h: number }; places?: Scene['rest']; quality?: QualiteDeRepos }[];
   effectZones?: SceneEffectZone[];
   /** Calque de ZONES DESCRIPTIVES par étage : grille de chars aux dimensions de l'étage (` `/`.` = aucune
    *  zone), compilée en `SceneEffectZone` purement descriptives (nom de pièce, sans effet mécanique). Recale
@@ -984,7 +1009,7 @@ export function buildScene(spec: MapSpec): Scene {
  */
 function assertAuthoredIds(spec: MapSpec, scene: Scene): void {
   const inconnus: { source: string; quoi: string; id: string; catalogue: string }[] = [];
-  const appearanceIds = new Set(structureAppearances.map((a) => a.id));
+  const appearanceIds = new Set<string>(structureAppearances.map((a) => a.id));
   // Un MÊME id faux est atteint par plusieurs sources (le char de `wallLegend` ET chacune des arêtes
   // qu'il a posées) : une faute = UNE ligne, nommée par la source la PLUS PROCHE de l'auteur — les
   // tables du spec sont parcourues avant les arêtes compilées.

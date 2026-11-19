@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "rangee-sieges"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "toile",
+      "palette": "vet1",
+      "matiere": "prop--toile-rouge"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "ee41e74420df1d7ba52886ccd85ed87c411f33c32f858c9d19c783a12f8cb30e",
+    "octets": 117332
+  }
+}

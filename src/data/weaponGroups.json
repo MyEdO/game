@@ -209,6 +209,7 @@
     "rendu": {
       "id": "explosifs"
     },
+    "lancee": true,
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -241,6 +242,7 @@
     "rendu": {
       "id": "jet"
     },
+    "lancee": true,
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -502,18 +504,6 @@
       "book": "aux-armes",
       "page": 122,
       "note": "AA 10 l.136, section « Les armes de siège »."
-    }
-  },
-  {
-    "id": "munitions",
-    "type": "weaponGroups",
-    "label": "Munitions",
-    "kind": "weapon",
-    "maniement": "poings",
-    "source": {
-      "book": "livre-de-base",
-      "page": 296,
-      "note": "LDB 62 l.106, section « Munitions »."
     }
   },
   {

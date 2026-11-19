@@ -12,6 +12,8 @@ import { ev } from '../noyau/combatLog';
 import { describeAppraise } from '../noyau/flowOutcomes';
 import { libelleDEvaluation } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque mode d'Évaluation. */
@@ -20,6 +22,7 @@ const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> 
 /** Vue pure de la modale d'Évaluation (testable sans store). */
 export function AppraiseModalView({
   pa,
+  nom,
   actor,
   fortune,
   onRoll,
@@ -30,6 +33,8 @@ export function AppraiseModalView({
   onCancel,
   owned = true,
 }: {
+  /** le nom de l'acteur tel que le groupe le connaît (`nomEnVue`). */
+  nom: string;
   pa: PendingAppraise;
   /** Évaluateur (jet mono-acteur) → portrait dans la ligne de jet. */
   actor?: Combatant;
@@ -84,7 +89,7 @@ export function AppraiseModalView({
       subtitle={<>{pa.itemName}</>}
       rows={[actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(ev('information', describeAppraise(pa)))] : undefined}
+      outcome={rolled ? [recapLineOfEvent(ev('information', describeAppraise(pa, nom)))] : undefined}
       actions={actions}
       onCancel={rolled || !owned ? undefined : onCancel}
     />
@@ -98,6 +103,7 @@ export function AppraiseModalView({
  */
 export function AppraiseModal() {
   const pa = useGame((s) => s.pendingAppraise);
+  const nom = useGame((s) => (s.pendingAppraise ? nomEnVue(s, s.pendingAppraise.actorId) : null));
   const party = useGame((s) => s.party);
   const roll = useGesteDeJet('jetLancer', 'evaluation');
   const reroll = useGesteDeJet('jetRelancer', 'evaluation');
@@ -113,5 +119,5 @@ export function AppraiseModal() {
   // COOP (#1017) : même prédicat que la validation d'intent côté hôte (`seatInfluences`) — l'Évaluation
   // se joue entière par le siège de l'évaluateur (jet, influence, « Appliquer »).
   const owned = influencesLocally(useGame.getState(), pa.actorId);
-  return <AppraiseModalView pa={pa} actor={actor} fortune={actor?.fortune ?? 0} onRoll={roll} onReroll={reroll} onBonusSL={bonusSL} onDarkPact={darkPact} onConfirm={confirm} onCancel={cancel} owned={owned} />;
+  return <AppraiseModalView pa={pa} nom={garanti(nom, pa.actorId, 'évaluateur')} actor={actor} fortune={actor?.fortune ?? 0} onRoll={roll} onReroll={reroll} onBonusSL={bonusSL} onDarkPact={darkPact} onConfirm={confirm} onCancel={cancel} owned={owned} />;
 }

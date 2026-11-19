@@ -8,7 +8,7 @@ import { schema } from './ambiance';
 import ambianceJson from '../../ambiance.json';
 
 const BON = { visible: 1, explored: 0.42, unknown: 0.15 };
-const avec = (fogTint: Record<string, number>) => ({ ...(ambianceJson as object), fogTint });
+const avec = (fogTint: Record<string, number>) => ({ ...ambianceJson, fogTint });
 
 describe('ambiance.json — `fogTint` est borné et ORDONNÉ', () => {
   it('la donnée réelle passe (et le témoin de ce fichier EST la donnée réelle)', () => {
@@ -49,10 +49,10 @@ describe('ambiance.json — `fogTint` est borné et ORDONNÉ', () => {
  * (vitesse nulle ou négative), ce qui noie la frame (densité), et ce qui n'est pas une couleur.
  */
 const avecPrecip = (precip: unknown) => {
-  const base = ambianceJson as unknown as { iso: { weather: Record<string, unknown> } };
+  const base = ambianceJson;
   return {
     ...base,
-    iso: { ...base.iso, weather: { ...base.iso.weather, pluie: { ...(base.iso.weather.pluie as object), precip } } },
+    iso: { ...base.iso, weather: { ...base.iso.weather, pluie: { ...base.iso.weather.pluie, precip } } },
   };
 };
 const PRECIP_BON = {
@@ -64,7 +64,7 @@ describe('ambiance.json — `weather[].precip` est borné (#1176 P2-6)', () => {
   it('la donnée réelle passe, et le témoin de ce fichier EST la donnée réelle', () => {
     expect(schema.safeParse(ambianceJson).success).toBe(true);
     expect(schema.safeParse(avecPrecip(PRECIP_BON)).success).toBe(true);
-    expect((ambianceJson as unknown as { iso: { weather: { pluie: { precip: unknown } } } }).iso.weather.pluie.precip)
+    expect(ambianceJson.iso.weather.pluie.precip)
       .toEqual(PRECIP_BON);
   });
 
@@ -106,10 +106,10 @@ describe('ambiance.json — `weather[].precip` est borné (#1176 P2-6)', () => {
  * frame (plus de quatre nappes) et ce qui ferme le POV (resserrement nul ou > 1).
  */
 const avecBrume = (brume: unknown) => {
-  const base = ambianceJson as unknown as { iso: { weather: Record<string, unknown> } };
+  const base = ambianceJson;
   return {
     ...base,
-    iso: { ...base.iso, weather: { ...base.iso.weather, brouillard: { ...(base.iso.weather.brouillard as object), brume } } },
+    iso: { ...base.iso, weather: { ...base.iso.weather, brouillard: { ...base.iso.weather.brouillard, brume } } },
   };
 };
 const BRUME_BONNE = {
@@ -121,7 +121,7 @@ const BRUME_BONNE = {
 describe('ambiance.json — `weather[].brume` est bornée (#1247)', () => {
   it('la donnée réelle passe, et le témoin de ce fichier EST la donnée réelle', () => {
     expect(schema.safeParse(ambianceJson).success).toBe(true);
-    expect((ambianceJson as unknown as { iso: { weather: { brouillard: { brume: unknown } } } }).iso.weather.brouillard.brume)
+    expect(ambianceJson.iso.weather.brouillard.brume)
       .toEqual(BRUME_BONNE);
   });
 
@@ -163,13 +163,13 @@ describe('ambiance.json — `weather[].brume` est bornée (#1247)', () => {
  * enfonce la famille la plus sombre sous le plancher de luminance, un facteur qui ÉCLAIRE au lieu de
  * retirer, et un cycle qui n'a pas ses quatre directions.
  */
-const avecFaceShade = (faceShade: unknown) => ({ ...(ambianceJson as object), faceShade });
+const avecFaceShade = (faceShade: unknown) => ({ ...ambianceJson, faceShade });
 const SHADE_BON = { haut: 1, verticales: [0.95, 0.86, 0.7, 0.58], bas: 0.55 };
 
 describe('ambiance.json — `faceShade` est borné et SÉPARE les familles adjacentes (#1300)', () => {
   it('la donnée réelle passe, et le témoin de ce fichier EST la donnée réelle', () => {
     expect(schema.safeParse(ambianceJson).success).toBe(true);
-    expect((ambianceJson as unknown as { faceShade: unknown }).faceShade).toEqual(SHADE_BON);
+    expect(ambianceJson.faceShade).toEqual(SHADE_BON);
   });
 
   const refuses: [string, Record<string, unknown>][] = [
@@ -204,13 +204,13 @@ describe('ambiance.json — `faceShade` est borné et SÉPARE les familles adjac
  * quads nus, un plafond nul aussi, et un plafond démesuré laisse l'écran voilé sur un SVG en panne.
  * Le schéma doit refuser ces quatre-là AU CHARGEMENT.
  */
-const avecEntree = (entreeEnScene: unknown) => ({ ...(ambianceJson as object), entreeEnScene });
+const avecEntree = (entreeEnScene: unknown) => ({ ...ambianceJson, entreeEnScene });
 const ENTREE_BON = { rayonM: 12, plafondMs: 2000 };
 
 describe('ambiance.json — `entreeEnScene` est borné (#1372)', () => {
   it('la donnée réelle passe, et le témoin de ce fichier EST la donnée réelle', () => {
     expect(schema.safeParse(ambianceJson).success).toBe(true);
-    expect((ambianceJson as unknown as { entreeEnScene: unknown }).entreeEnScene).toEqual(ENTREE_BON);
+    expect(ambianceJson.entreeEnScene).toEqual(ENTREE_BON);
   });
 
   const refuses: [string, Record<string, unknown>][] = [

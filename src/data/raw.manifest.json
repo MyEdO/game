@@ -67,6 +67,13 @@
     "bloque": "Réparation des Structures, aucun site ne la résout (train Corr-C) : Test de Métier (Charpentier) ou (Maçon) Accessible (+20) hors combat (AA 10 l.132) ; Test étendu Très Difficile (−30), 20 DR, en combat (AA 10 l.134)"
   },
   {
+    "id": "4e/deplacement#reparer-des-bateaux-msrc",
+    "type": "raw.manifest",
+    "label": "Réparer des bateaux (MSRC)",
+    "ticket": "#4435",
+    "bloque": "Réparation définitive fluviale : aucun quai ni cale sèche fluviale n'est modélisé, le geste du chantier n'existe qu'en mer (MSRC 7 l.109-111)"
+  },
+  {
     "id": "4e/deplacement#option-attraper-froid",
     "type": "raw.manifest",
     "label": "Option « Attraper Froid »",
@@ -90,14 +97,7 @@
     "type": "raw.manifest",
     "label": "Dégâts infligés aux véhicules (EDOC)",
     "ticket": "#673",
-    "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Seul le refus de la Blessure Critique est joué"
-  },
-  {
-    "id": "4e/deplacement#humeur-de-manann-et-evenements-en-mer-mdg",
-    "type": "raw.manifest",
-    "label": "Humeur de Manann et événements en mer (MDG)",
-    "ticket": "#1652",
-    "bloque": "Blindage : il s'installe dans tout port, pas seulement sur un chantier naval spécialisé (MDG 12 l.230), #4052. Le facteur « La nourriture ne se résume pas à de simples rations de base » (MDG 14 l.156) n'a pas de lecteur : la nourriture fraîche de la cale ne pourrit pas (MDG 14 l.238). L'équipage, un effectif, ne contracte pas le scorbut : la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), #4058."
+    "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Le refus de la Blessure Critique est joué, et seuls les effets du Coup Critique (`coupCritique`) s'exercent"
   },
   {
     "id": "4e/maladies#maladie-type",
@@ -111,13 +111,67 @@
     "type": "raw.manifest",
     "label": "Test d'incantation",
     "ticket": "#1456",
-    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:60`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
+    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:94`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
   },
   {
     "id": "4e/activites#tableau-des-evenements-d100",
     "type": "raw.manifest",
     "label": "Tableau des Événements (d100)",
     "bloque": "Mercenaires particuliers (LDB 22 l.135) : −20 % des coûts d'Entraînement et d'Apprentissage particulier pour les Compétences et Talents martiaux, +20 % aux Tests adaptés d'Entraînement au Combat — aucune classification « martial » des Compétences et Talents dans la donnée"
+  },
+  {
+    "id": "4e/activites#allie-inculpe",
+    "type": "raw.manifest",
+    "label": "Allié inculpé",
+    "bloque": "Allié inculpé (LDB 22 l.12) : ni le Test de Savoir (Loi) Accessible (+20) au prix d'une Activité, ni les trois Activités de groupe qui disculpent, ni la Faveur Majeure gagnée ou la pendaison de l'allié — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test, ni dépense d'Activité, ni Faveur"
+  },
+  {
+    "id": "4e/activites#encheres-esoteriques",
+    "type": "raw.manifest",
+    "label": "Enchères ésotériques",
+    "bloque": "Enchères ésotériques (LDB 22 l.16) : ni l'achat du vieux livre à 10 CO, ni le +20 des Lettrés à l'Activité Recherche de Savoir — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni achat ni bonus d'Activité"
+  },
+  {
+    "id": "4e/activites#imprevu",
+    "type": "raw.manifest",
+    "label": "Imprévu",
+    "bloque": "Imprévu (LDB 22 l.24) : ni le Test de Dressage (Cheval) Accessible (+20) pour rattraper la monture, ni sa perte à l'échec — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test ni perte de monture"
+  },
+  {
+    "id": "4e/activites#meteo-defavorable",
+    "type": "raw.manifest",
+    "label": "Météo défavorable",
+    "bloque": "Météo défavorable (LDB 22 l.56) : ni le −10 aux Tests de Compétences sociales, ni le +20 % au prix des aliments pour la prochaine aventure — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte aucun effet différé à la prochaine aventure"
+  },
+  {
+    "id": "4e/activites#maladie-pernicieuse",
+    "type": "raw.manifest",
+    "label": "Maladie pernicieuse",
+    "bloque": "Maladie pernicieuse (LDB 22 l.68) : ni le Test d'Endurance Facile (+40), ni le Flux Sanglant contracté à l'échec — la maladie existe (`flux-sanglant`, `src/data/maladies.json`) mais `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test ni contagion"
+  },
+  {
+    "id": "4e/activites#colporteur",
+    "type": "raw.manifest",
+    "label": "Colporteur",
+    "bloque": "Colporteur (LDB 22 l.99) : ni la dépense de 3 sc, ni le +10 à toutes les Activités Dernières nouvelles — l'Activité existe (`dernieres-nouvelles`, `src/data/activities.json`) mais `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni dépense ni bonus d'Activité"
+  },
+  {
+    "id": "4e/activites#animal-domestique-malade",
+    "type": "raw.manifest",
+    "label": "Animal domestique malade",
+    "bloque": "Animal domestique malade (LDB 22 l.103) : ni le Test de Soin aux animaux Intermédiaire (+0), ni la mort de l'animal à l'échec — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test ni perte d'animal"
+  },
+  {
+    "id": "4e/activites#soupconne-d-heresie",
+    "type": "raw.manifest",
+    "label": "Soupçonné d'hérésie",
+    "bloque": "Soupçonné d'hérésie (LDB 22 l.119) : ni le Test de Charme Très Difficile (−30), ni la némésis Répurgateur gagnée à l'échec — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte ni Test ni némésis"
+  },
+  {
+    "id": "4e/activites#consideration-inattendue",
+    "type": "raw.manifest",
+    "label": "Considération inattendue",
+    "bloque": "Considération inattendue (LDB 22 l.131) : aucun don (objet de grande qualité ou bourse, disponible au début de la prochaine aventure) — `fx` du Tableau des Événements (`src/data/schemas/defs/interludeEvents.ts`) ne porte aucun don, et la nature du dédommagement, laissée au MJ par le RAW, attend son arbitrage maison"
   },
   {
     "id": "4e/activites#dressage",
@@ -154,5 +208,25 @@
     "type": "raw.manifest",
     "label": "Règles propres des Types de Souffle du Zoo impérial",
     "ticket": "#3272"
+  },
+  {
+    "id": "4e/deplacement#rencontres-d-etape",
+    "type": "raw.manifest",
+    "label": "Rencontres d'Étape",
+    "ticket": "#4005",
+    "bloque": "Seule la rangée Voyage tranquille (EDOC 08 l.198) est jouée. Rangées à effet de règle non jouées : EDOC 08 l.194, l.195, l.197, l.213, l.215, l.225, l.227, l.228, l.230, l.231, l.232, l.233. Issues déclarées sans lecteur : `rencontres-edoc.json` `extraActivity` (l.195), `skipStage` (l.197), `worsenWeather` (l.230). Rangées renvoyées au MJ sans arbitrage : EDOC 08 l.192, l.193, l.196, l.207-212, l.214, l.216, l.226, l.229."
+  },
+  {
+    "id": "4e/deplacement#phase-d-arrivee",
+    "type": "raw.manifest",
+    "label": "Phase d'arrivée",
+    "ticket": "#4155",
+    "bloque": "Jouée : EDOC 09 l.21. Non jouées : EDOC 09 l.19, l.23."
+  },
+  {
+    "id": "4e/equipement#chambre-commune-voleurs",
+    "type": "raw.manifest",
+    "label": "Chambre commune — voleurs",
+    "bloque": "LDB 66 l.26 ne chiffre ni Test ni effet : jouer la méfiance des voleurs de la chambre commune demande un arbitrage de règle (règle 7 d'AGENTS.md), non tranché."
   }
 ]

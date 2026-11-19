@@ -261,8 +261,8 @@ describe('applyOps — opérations unitaires', () => {
   it('giveTrapping : crée l’objet dans l’inventaire (réel → stats, échelle au DR)', () => {
     const c = hero({ items: [] });
     // Générosité de Manann : 1 Ration + 1 par +2 DR → à DR 4, 1 + floor(4/2) = 3 Rations.
-    applyOps(c, [{ op: 'giveTrapping', custom: 'Ration (1 jour)', perSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 4 });
-    const rations = (c.items ?? []).filter((it) => /^ration/i.test(it.label));
+    applyOps(c, [{ op: 'giveTrapping', trappingId: 'ration', perSL: { every: 2, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest, sl: 4 });
+    const rations = (c.items ?? []).filter((it) => it.trappingId === 'ration');
     expect(rations.length).toBe(3);
   });
 
@@ -666,21 +666,20 @@ describe("op:'sinMod' — Points de Péché ± (LDB 40 l.36 ; ACE Annexe I « P�
   });
 });
 
-describe("op:'corruptionExposure' — Exposition différée (LDB 19 l.23-75)", () => {
-  it('avec ctx.onCorruptionExposure : le hook reçoit niveau + nature (Test par modale côté state)', () => {
+describe("op:'corruptionExposure' — Test d'Exposition (LDB 19 l.29)", () => {
+  it('avec ctx.onCorruptionExposure : le hook reçoit la CIBLE de l’op, le niveau et la nature', () => {
     const c = hero();
     const seen: unknown[] = [];
     const lines = applyOps(c, [{ op: 'corruptionExposure', level: 'mineure', nature: 'physique' }], { idNeuf: idsDeTest, rng: desDuTest,
-      onCorruptionExposure: (level, nature) => { seen.push([level, nature]); return ['ouvert']; },
+      onCorruptionExposure: (cible, level, nature) => { seen.push([cible, level, nature]); return ['ouvert']; },
     });
-    expect(seen).toEqual([['mineure', 'physique']]);
+    expect(seen).toEqual([[c, 'mineure', 'physique']]);
     expect(lines).toEqual(['ouvert']);
-    expect(c.corruption ?? 0).toBe(0); // rien de tiré en silence : le Test vit dans la modale
   });
-  it('sans contexte (moteur pur) : journalisée inerte, aucune Corruption ajoutée', () => {
+  it('sans contexte (moteur pur) : journalisée inerte, niveau libellé, aucune Corruption ajoutée', () => {
     const c = hero();
     const lines = applyOps(c, [{ op: 'corruptionExposure', level: 'moderee' }], { idNeuf: idsDeTest, rng: desDuTest });
-    expect(lines).toHaveLength(1);
+    expect(lines).toEqual(["Cobaye doit réaliser un Test d'Exposition Modérée à la Corruption."]);
     expect(c.corruption ?? 0).toBe(0);
   });
 });
@@ -704,13 +703,13 @@ describe("op:'corruption' amount négatif — Absolution (LDB 19 l.167-182, #97 
     expect(lines).toEqual(['Cobaye : -1 Point(s) de Corruption (total 0).']);
   });
 
-  it('amount positif inchangé (non-régression) : passe par ctx.onCorruption quand fourni', () => {
+  it('amount positif : passe par ctx.onCorruption, qui reçoit la CIBLE de l’op', () => {
     const c = hero();
-    const seen: number[] = [];
+    const seen: unknown[] = [];
     applyOps(c, [{ op: 'corruption', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest,
-      onCorruption: (n) => { seen.push(n); return ['gain']; },
+      onCorruption: (cible, n) => { seen.push([cible, n]); return ['gain']; },
     });
-    expect(seen).toEqual([2]);
+    expect(seen).toEqual([[c, 2]]);
     expect(c.corruption ?? 0).toBe(0); // le hook gère le total lui-même (store) — non simulé ici
   });
 });
@@ -718,7 +717,7 @@ describe("op:'corruption' amount négatif — Absolution (LDB 19 l.167-182, #97 
 describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, source unique)", () => {
   // Table jouet : d10 → ops de la rangée touchée (min/max), avec ops IMBRIQUÉES appliquées au même ctx.
   const table = (extra: Partial<Extract<import('./ops').GameOp, { op: 'rollTable' }>> = {}) => ({
-    op: 'rollTable' as const, die: 'd10' as const,
+    op: 'rollTable' as const, die: { n: 1, sides: 10 },
     entries: [
       { min: 1, max: 2, ops: [{ op: 'charDamage' as const, characteristic: 'initiative' as const, amount: { dice: { n: 1, sides: 10 } } }] },
       { min: 3, max: 8, ops: [{ op: 'condition' as const, id: { id: 'sonne' } }] },

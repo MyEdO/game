@@ -18,7 +18,7 @@ import type {
   IdDEntiteDeScene, IdDuClic, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDActionDEntite, IdDeServiceDuLieu, IdDeRoute,
+  IdDeCompetenceOuDeTalent, IdDActionDEntite, IdDEchoppeDuLieu, IdDHebergementDuLieu, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
@@ -182,6 +182,15 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  transférée au siège qui possédait `heroId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
    *  du slot. */
   remplacerLeHeros: (heroId: IdDeHeros, heros: HerosEngage) => void;
+  /** Coop : attribue le héros `heroId` au siège `siege` (`attribuerLeHeros`) ; refusé, et dit, par
+   *  `refusDAttribuerLeHeros` (`noyau/sieges.ts`). */
+  affecterLeHerosAuSiege: (heroId: IdDeHeros, siege: number) => void;
+  /** Coop : attribue l'emplacement `emplacement` de l'écran d'équipe au siège `siege` (`attribuerLEmplacement`) ;
+   *  refusé, et dit, par `refusDAttribuerLEmplacement` (`noyau/sieges.ts`). */
+  affecterLEmplacementAuSiege: (emplacement: number, siege: number) => void;
+  /** Pose le rôle MJ au siège `siege` (`null` : l'IA) (`poserLeSiegeMJ`) ; refusé, et dit, par `refusDuSiegeMJ`
+   *  (`noyau/sieges.ts`). */
+  affecterLeSiegeMJ: (siege: number | null) => void;
   equiperLObjet: (uid: IdDObjet) => void;
   /** Range (`containerUid`) ou sort (null) un objet de son porteur d'un contenant (LDB 64). */
   rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
@@ -206,10 +215,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   designerLeCreneau: (heroId: IdDeHeros, slotKey: IdDeCreneau, option: RefDesignee<IdDeCompetenceOuDeTalent>) => void;
   /** Apprentissage/mémorisation d'un sort (LDB 46/10) — coût PX via engine/grimoire. */
   acheterLeSort: (heroId: IdDeHeros, spellId: IdDeSort) => void;
-  /** Achète un composant d'incantation pour un Sort d'Arcane/Domaine connu (LDB 46 l.113 — NI pistoles). */
+  /** Achète un composant d'incantation lié à un Sort d'Arcane/Domaine connu. LDB 46 l.113 */
   acheterLaComposante: (heroId: IdDeHeros, spellId: IdDeSort) => void;
-  /** Retire un composant d'incantation possédé pour un Sort (sans remboursement). */
-  retirerLaComposante: (heroId: IdDeHeros, spellId: IdDeSort) => void;
+  /** Lie un composant d'incantation à lier à un Sort d'Arcane/Domaine connu. LDB 46 l.113 */
+  designerLeComposant: (uid: IdDObjet, spellId: IdDeSort) => void;
   /** Édite la bio mutable d'un héros hors combat (Motivation + Ambitions court/long, LDB 05) — persisté en save + roster. */
   ecrireLHistorique: (heroId: IdDeHeros, patch: { motivation?: TexteLibre; ambitionShort?: TexteLibre; ambitionLong?: TexteLibre }) => void;
   /** Ouvre la fin de séance depuis le menu de jeu : refusée et dite hors exploration et chez l'invité (`refusDeFinDeSeance`). */
@@ -255,9 +264,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  coûte la maison `fouille-piece-minutes` une fois par geste (LDB 12 l.200). Refus DIT hors exploration,
    *  en dialogue, sans meneur debout, hors de toute pièce. */
   fouillerLaPiece: () => void;
-  /** Marchand de LIEU (#369) — l'échoppe du service `serviceId` du lieu où se tient le groupe (forgeron du hub de
+  /** Marchand de LIEU (#369) — l'échoppe `echoppeId` du lieu où se tient le groupe (forgeron du hub de
    *  ville…) : même système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
-  ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
+  ouvrirLaBoutique: (echoppeId: IdDEchoppeDuLieu) => void;
   /** Jeux de taverne (option `jeux-de-taverne`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
   ouvrirLesJeux: (entityId?: IdDEntiteDeScene) => void;
@@ -274,8 +283,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLeMedecin: (patientId?: IdDeHeros) => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('repos', …)`,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé ; le lieu de la nuit est celui où
-   *  se tient le groupe (`reposDuLieu`). */
-  ouvrirLeRepos: () => void;
+   *  se tient le groupe (`reposDuLieu`) : à un lieu de la carte, son établissement d'hébergement `hebergementId`. */
+  ouvrirLeRepos: (hebergementId?: IdDHebergementDuLieu) => void;
   /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
   effacerLApercu: () => void;
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
@@ -322,6 +331,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLePort: () => void;
   /** Répare la coque au chantier (1 CO/Blessure, MDG 13 l.643) — journalise le résultat. */
   reparerLeNavire: () => void;
+  /** Le groupe répare lui-même la coque au chantier : un Test de Métier, des pièces détachées (MDG 13 l.641-643). */
+  reparerParLeGroupe: () => void;
   /** Carène en cale sèche (Salissures, MDG 13 l.150-159). */
   carenerLeNavire: () => void;
   /** Installe une Amélioration navale (coût par bande de Taille, MDG 12). */
@@ -332,7 +343,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   renvoyerLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
   /** Achète à quai `quantites` rations-jour par vivre de la cale et `tonneaux` tonneaux d'eau douce
    *  (`devisDAvitaillement`, MDG 14 l.238, l.248-252 ; MDG 15 l.262). */
-  avitaillerLeNavire: (quantites: import('../engine/provisions').VivresDeCale, tonneaux: number) => void;
+  avitaillerLeNavire: (quantites: import('../engine/provisions').QuantitesDeVivres, tonneaux: number) => void;
   /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`) ; ses
    *  achats, ventes et bradages sont ses choix (`fenetreChoisir('marcheDeTerre', …)`, comme au port, `cargaison.ts`). */
   ouvrirLeMarche: () => void;
@@ -343,8 +354,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   evaluerLeVin: (cargoId: IdDOffreDeCargaison) => void;
   /** Ouvre le Test de Ragot de l'auberge du hub de ville (#352, Activité `recueillir-informations`
    *  étendue au contexte `auberge`) : succès → rumeur commerciale (`generateTradeRumour`), échec →
-   *  Exténué (EDOC 8 l.133). Avance l'horloge (`auberge-recueillir-informations-minutes`) quelle que soit l'issue. */
-  recueillirLesRumeurs: () => void;
+   *  Exténué (EDOC 8 l.133). Avance l'horloge (`auberge-recueillir-informations-minutes`) quelle que soit l'issue. À un
+   *  lieu de la carte, à son établissement d'hébergement `hebergementId`. */
+  recueillirLesRumeurs: (hebergementId?: IdDHebergementDuLieu) => void;
 }
 
 /** Un geste écrit en verbe du noyau et ses arguments, tel qu'un hôte le joue. */

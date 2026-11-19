@@ -3,6 +3,7 @@ import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, plageSchema, raceKeySchema } from '../grammaire/valeurs';
+import type { DiceSpec } from '../../../engine/dice';
 import { idsDeLaSousListe, ref } from '../grammaire/ref';
 
 export const file = 'especes-aleatoires.json';
@@ -16,7 +17,7 @@ export const rangee = ref('species', {
   max: nommerNoeud(z.number(), { nom: plage.max.label }),
 });
 
-type Document = { id: string; die: string; entries: z.output<typeof rangee>[] };
+type Document = { id: string; die: DiceSpec; entries: z.output<typeof rangee>[] };
 
 const doc = document(
   'especes-aleatoires',

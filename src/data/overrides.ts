@@ -17,33 +17,31 @@ import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, details, semencesDeScene, defautsDeCompilation, names, allAxes,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
-  WATER_EXPOSURE, navalPorts,
+  WATER_EXPOSURE, navalPorts, STEAM_BREAKDOWNS,
   seaNavigation, seaPerils, seaWeather, shipConstruction,
   disponibilite, riverNavigation, seaCargo, landCargo,
   GRAPPLE, STAKES,
-  regles, MERCHANT_ARCHETYPES,
+  regles, MERCHANT_ARCHETYPES, TAVERN_GAMES, ACTIVITIES,
 } from './index';
 // #157 : catalogues de CONTENU déjà chargés par un module dédié (`src/data/*.ts` ou `src/engine/*.ts`,
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
 // vient déjà d'`engine/massBattle.ts`). Le module JSON est un singleton ESM : cette référence EST la
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
-import type { TraumaFiche } from '../engine/trauma';
+import { TRAUMA_FICHES } from '../engine/trauma';
+import type { DiceSpec } from '../engine/dice';
 import { versDisque } from './schemas/grammaire/prose';
-import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
-import { TAVERN_GAMES } from '../engine/tavernGame';
 import { OBSESSIONS } from './obsessions';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
-import { CARGO_ENTRIES, type CargoEntry } from '../engine/cargo';
+import { CARGO_ENTRIES } from '../engine/cargo';
 import { MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS, FAST_VOYAGE_PALIERS } from '../engine/seaVoyage';
 import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
-import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, DATASETS_EDITABLES_DERIVE } from './schemas/exposition-derivee';
 import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
 import { atteindre, elementDeLaListe, idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
@@ -56,12 +54,13 @@ import { bumperDataset, memoParVersion } from './versionDataset';
 import type { EntreeVivante } from './datasets';
 import { critiqueEntries, type CritEntry } from './criticals';
 import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
-import traumasRawJson from './traumas.json';
 // #422 : famille RÈGLES LDB — Coût des Augmentations (07), % de Disponibilité (59), Accidents de
 // Conduite d'attelage (09) et Ivresse (09), Surchargé par palier (61).
 import advancementCostsRawJson from './advancementCosts.json';
 import encumbranceTiersRawJson from './encumbranceTiers.json';
 import { MISHAP_TABLE } from '../engine/drivingMishap';
+import { TABLE_DE_DISPERSION } from '../engine/scatter';
+import { TABLE_DE_REACTION_AU_STATUT, TABLE_DU_CAPRICIEUX } from '../engine/social';
 import { DRUNK_TABLE } from '../engine/drunkenness';
 // #422 (FINAL) : dernières 3 exemptions AUDIT — Empoignade (LDB 14, fiche de règle UNIQUE, même
 // patron que `disponibilite`/`riverNavigation`), Incantations Imparfaites/Colère des dieux (LDB 46/40,
@@ -74,11 +73,9 @@ import type * as imparfaites from './schemas/defs/miscast';
 import sizesRawJson from './sizes.json';
 // #851 : Magie environnementale (VDM 14, `arcane-phenomena.json`) — fiche de règle UNIQUE portant 4
 // tableaux frères NICHÉS (`saturationLevels`/`windSaturationEffects`/`phenomena`/`tables`, même patron
-// que `sizes`/`waterExposure`). Importé RAW (comme `sizesRawJson`) : `data/arcanePhenomena.ts` (lu par
-// `engine/magicEnvironment.ts`) importe le MÊME module JSON singleton, sans index précalculé — une
-// édition Compendium reste visible en direct, sans rechargement de page.
-import arcanePhenomenaRawJson from './arcane-phenomena.json';
-import type { ArcaneData } from './arcanePhenomena';
+// que `sizes`/`waterExposure`) : le document que lit `data/arcanePhenomena.ts` (lu par
+// `engine/magicEnvironment.ts`), sans index précalculé — une édition Compendium reste visible en direct.
+import { arcanePhenomenaData } from './arcanePhenomena';
 // V9 #1318 : registre des règles optionnelles (`engine/policy.ts`, tableau RACINE) et Tableau de
 // Surincantation (VDM 02, tableau NICHÉ dans `{source,ref,table}`) — importés comme les autres
 // datasets migrés du CODE en donnée, MÊME module JSON singleton que leur lecteur moteur.
@@ -89,13 +86,9 @@ import { windsOfMagicTable } from '../engine/windsOfMagic';
 import { NAVAL_PROGRESSION } from '../engine/shipNavigation';
 import { estObjet } from '../lib/objet.mjs';
 
-/** Entrée d'une table de miscast (`entries` d'un document de `miscast.json`) — DIALECTE compilé (PAS
- *  des `GameOp` standard, cf. `engine/miscast.ts::JsonRow`) : `ops`/`test` restent au format JSON brut
- *  du dialecte (sin-paramétrage), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`,
- *  qui suppose de vrais `GameOp`). */
+/** Entrée d'une table de miscast (`entries` d'un document de `miscast.json`) : ses `ops` portent le terme de
+ *  Péché non lié (`opsAuPecheSchema`), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`). */
 export type MiscastRowEntry = RangeeDe<typeof imparfaites>;
-
-const traumas = traumasRawJson as TraumaFiche[];
 
 /** Entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET AA « approche
  *  alternative ») — MÊME schéma pour les DEUX jeux depuis leur fusion (#1657). ALIAS de `CritEntry`
@@ -140,7 +133,7 @@ const ARRAYS = {
   // `src/noyau/monde/buildings` reconstruit son index au témoin de VERSION du dataset, si bien
   // qu'une entrée éditée au Codex se voit dans l'éditeur et au rendu sans rechargement.
   buildings,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, names,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, names,
   // Axes de forces/faiblesses (#409) — mécanique MAISON, éditable au Codex comme tout catalogue.
   axes: allAxes,
   // Apparences d'objet (#2948) : catalogue d'art, édité au fichier.
@@ -154,19 +147,19 @@ const ARRAYS = {
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   // #168 : catalogue UNIQUE des Activités (interlude/voyage/mer/bataille de masse) exposé au Codex —
-  // MÊME référence d'array que le moteur (`engine/activities.ts::ACTIVITIES`, singleton JSON) → l'édition
+  // MÊME référence d'array que le moteur (`ACTIVITIES`, singleton JSON) → l'édition
   // Codex (splice en place) reste visible en jeu. Fichier `activities.json` (défaut), racine = le tableau.
   activities: ACTIVITIES,
   // #157 : catalogues de CONTENU app-owned (façade `index.ts` ou module dédié), exposés au Codex.
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, navalTraits: NAVAL_TRAITS,
   montures: MOUNT_PROFILES, incidentsMonture: MOUNT_INCIDENTS, problemesVehicule: VEHICLE_PROBLEMS,
   tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS, merchants: MERCHANT_ARCHETYPES,
-  structureCriticals: STRUCTURE_CRITICALS, traumas,
+  structureCriticals: STRUCTURE_CRITICALS, traumas: TRAUMA_FICHES,
   // Catalogue des cargaisons (#1684) : le dataset éditable est le tableau BRUT du JSON (marchandises ET
   // marqueurs de l'Index, des deux voies), pas la vue filtrée `marchandisesDe` — sinon une réécriture
   // du dataset perdrait les marqueurs. Le Compendium, lui, n'affiche que les marchandises (filtre à la
   // VUE, `noyau/codex/registry.ts`).
-  cargoes: CARGO_ENTRIES as CargoEntry[], riverPerils: RIVER_PERILS,
+  cargoes: CARGO_ENTRIES, riverPerils: RIVER_PERILS,
   crewMoraleFactors: MORALE_FACTORS, crewMoraleBands: MORALE_BANDS, steamBreakdowns: STEAM_BREAKDOWNS,
   criticalsTete, criticalsBras, criticalsCorps, criticalsJambe,
   aaCriticalsTete, aaCriticalsBras, aaCriticalsCorps, aaCriticalsJambe,
@@ -199,7 +192,10 @@ const ARRAYS = {
   // copie) ; Surchargé par palier (tableau RACINE).
   advancementCosts: advancementCostsRawJson,
   drivingMishap: MISHAP_TABLE,
+  dispersion: TABLE_DE_DISPERSION,
   drunkenness: DRUNK_TABLE,
+  reactionAuStatut: TABLE_DE_REACTION_AU_STATUT,
+  tableauCapricieux: TABLE_DU_CAPRICIEUX,
   encumbranceTiers: encumbranceTiersRawJson,
   // Incantations Imparfaites Mineures/Majeures (LDB 46 ; VDM 02 l.218-263) + Colère des dieux (LDB 40)
   // — les rangées des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b, #1667).
@@ -232,9 +228,6 @@ const ARRAYS = {
 export type DatasetKey = keyof typeof ARRAYS;
 export const DATASET_KEYS = Object.keys(ARRAYS) as DatasetKey[];
 
-/** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS. */
-const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcaneData;
-
 /** Datasets-OBJETS uniques : pas un tableau d'entités mais UN objet de config (`details`) ou une fiche
  *  de règle UNIQUE (`waterExposure`, MSRC 16). Mutés EN PLACE (mêmes garanties que les tableaux) →
  *  preview live + écriture disque par l'éditeur du Codex. Le fichier disque est celui du def qui
@@ -259,7 +252,7 @@ const OBJECTS = {
   // fiche de règle UNIQUE, même patron ; les 3 tables sont NICHÉES (cf. la fusion en place ci-dessous).
   sizes: sizesRawJson,
   // #851 : Magie environnementale (VDM 14) — fiche de règle UNIQUE, même patron, 4 tableaux NICHÉS.
-  arcanePhenomena: arcanePhenomenaFile,
+  arcanePhenomena: arcanePhenomenaData,
 } as const;
 export type ObjectDatasetKey = keyof typeof OBJECTS;
 export const OBJECT_DATASET_KEYS = Object.keys(OBJECTS) as ObjectDatasetKey[];
@@ -267,6 +260,13 @@ export const OBJECT_DATASET_KEYS = Object.keys(OBJECTS) as ObjectDatasetKey[];
 /** Tableau live d'un dataset (même référence que l'export façade → lecture/itération par les consommateurs). */
 export function datasetArray<K extends DatasetKey>(key: K): (typeof ARRAYS)[K] {
   return ARRAYS[key];
+}
+
+/** Les entrées d'un dataset-tableau vues comme objets JSON : lecture GÉNÉRIQUE (atelier du Codex, suggestions de
+ *  saisie) d'un dataset que sa clé ne nomme qu'à l'exécution. Mêmes entrées que `datasetArray`, dans une liste neuve. */
+export function entreesDuDataset(key: DatasetKey): Record<string, unknown>[] {
+  const entrees: readonly unknown[] = ARRAYS[key];
+  return entrees.filter(estObjet);
 }
 
 /** Objet live d'un dataset-objet (même référence que l'export façade → vue live des consommateurs). */
@@ -494,13 +494,13 @@ export function ancetreDuDe(cle: DatasetKey): string | undefined {
   if (!suite) return undefined;
   const fichier = DATASET_FICHIER_DERIVE[cle];
   const prefixes = pasDeLaSuite(suite).slice(0, -1).reduce((acc, pas) => [...acc, suiteAvecPas(acc[acc.length - 1], pas)], ['']);
-  return prefixes.reverse().find((a) => { const n = noeudAuPrefixe(fichier, a); return estObjet(n) && typeof n.die === 'string'; });
+  return prefixes.reverse().find((a) => { const n = noeudAuPrefixe(fichier, a); return estObjet(n) && estObjet(n.die); });
 }
 
 /** Le DÉ DE TIRAGE de la table du dataset `key`, quand un ancêtre de sa collection le porte (`ancetreDuDe`). */
-export function deDeLaTable(key: DatasetKey): string | undefined {
+export function deDeLaTable(key: DatasetKey): DiceSpec | undefined {
   const ancetre = ancetreDuDe(key);
-  return ancetre === undefined ? undefined : (champDEnTete(key, ancetre, 'die') as string);
+  return ancetre === undefined ? undefined : (champDEnTete(key, ancetre, 'die') as DiceSpec);
 }
 
 /** Ce dataset a-t-il une route d'ÉDITION déclarée ? (sinon `datasetFile` refuse — #1530) */

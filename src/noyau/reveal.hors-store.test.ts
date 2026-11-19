@@ -210,7 +210,7 @@ describe('#1262 V2 L6 — `revealToStep` ne produit jamais un tirage À FAIRE', 
 
   it('table RÉSOLUE : l’étape reste un AFFICHAGE, dé et ligne portés par la rangée', () => {
     const step = revealToStep(ENTRY, 0, {
-      table: { tableId: 'wrath-table', spec: { n: 1, sides: 100 }, result: { roll: 77, die: 77, id: 'blaspheme', lines: ['ligne 77'] } },
+      table: { tableId: 'wrath-table', result: { roll: 77, die: 77, id: 'blaspheme', lines: ['ligne 77'] } },
     });
     expect(stepInteraction(step), 'un dé DÉJÀ tombé se lit, il ne se relance pas').toBe('affichage');
     expect(step.table!.result!.roll).toBe(77);
@@ -218,6 +218,6 @@ describe('#1262 V2 L6 — `revealToStep` ne produit jamais un tirage À FAIRE', 
 
   it('déclaration OUVERTE : refusée au TYPE — la directive est TUEUSE (sous `CascadeTableDecl`, elle serait inutilisée)', () => {
     // @ts-expect-error — `result` requis (`CascadeTableDone`) : sans lui l'étape LANCERAIT un tirage muet
-    expect(() => revealToStep(ENTRY, 0, { table: { tableId: 'wrath-table', spec: { n: 1, sides: 100 } } })).toBeTypeOf('function');
+    expect(() => revealToStep(ENTRY, 0, { table: { tableId: 'wrath-table' } })).toBeTypeOf('function');
   });
 });

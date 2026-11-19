@@ -1,6 +1,6 @@
 *Pages PDF 308*
 
-# **DROGUES ET POISONS**
+# <span id="page-307-0" data-folio="306"></span>**DROGUES ET POISONS**
 
 Les drogues récréatives, bien qu'elles ne soient pas illégales dans la majeure partie de l'Empire, sont fréquemment associées aux rituels douteux et au Culte de Sigmar. Les mœurs sont plus libres dans les grandes cités où l'on peut trouver des repaires offrant de la bave, de la mystracine ou du Délice de Ranald. Le poison n'est pas illégal non plus, mais en posséder soulève inévitablement des questions sur l'utilisation prévue.
 

@@ -35,7 +35,7 @@ Vous faites des efforts concertés pour vous reposer et réfléchir, et tenter d
 
 
 
-| A                           | E                                 | O                                |
+<span id="page-94-0" data-folio="93"></span><span id="page-95-0" data-folio="94"></span><span id="page-96-0" data-folio="95"></span>| A                           | E                                 | O                                |
 |-----------------------------|-----------------------------------|----------------------------------|
 | Activités de bataille84     | Écuries et réserve72              | Objets insolites67               |
 | Adalmann von Hopfberg78     | Égorgeuse55                       | Option :                         |
@@ -135,4 +135,4 @@ Vous faites des efforts concertés pour vous reposer et réfléchir, et tenter d
 
 Convalescence .........................92
 
-Dortoirs, Les ...........................72 Dragomas le Dragon ...............41 Duel.........................................88
+Dortoirs, Les ...........................72 Dragomas le Dragon ...............41 Duel.........................................88<span id="page-97-0" data-folio="96"></span>

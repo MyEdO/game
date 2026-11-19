@@ -175,16 +175,14 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(fautifs).toEqual([]);
   });
 
-  /** Une condition de victoire par seuil de Blessures cible une entité de SA scène, sous un seuil utile. */
-  it.each(bundledFiles.map((f) => [f] as const))('%s : toute victoire par seuil de Blessures cible une entité de sa scène', (file) => {
+  /** Une condition de victoire par seuil de Blessures porte un seuil utile ; sa cible, le parse la juge parmi les membres. */
+  it.each(bundledFiles.map((f) => [f] as const))('%s : toute victoire par seuil de Blessures porte un seuil dans ]0,100]', (file) => {
     const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const sc of doc.scenes) {
-      const ids = new Set(sc.entities.map((e) => e.id));
       for (const enc of sc.encounters) {
         const vc = enc.victoryCondition;
         if (vc?.type !== 'woundsThreshold') continue;
-        if (vc.targetId !== undefined && !ids.has(vc.targetId)) fautifs.push(`${sc.id}/${enc.id} : cible « ${vc.targetId} » absente de la scène`);
         if (!(vc.atOrBelowPercent > 0 && vc.atOrBelowPercent <= 100)) fautifs.push(`${sc.id}/${enc.id} : seuil ${vc.atOrBelowPercent} % hors ]0,100]`);
       }
     }
@@ -415,7 +413,7 @@ describe('prose de campagne SOURCÉE — copiée À L’OCTET du livre déclaré
   });
 
   it('chaque prose sourcée déclare un livre du REGISTRE et son folio', () => {
-    const ids = new Set(books.map((b) => b.id));
+    const ids = new Set<string>(books.map((b) => b.id));
     const fautives = prosesSourcees.flatMap((p) => {
       if (typeof p.source.book !== 'string' || !ids.has(p.source.book)) return [`${p.chemin} : book « ${String(p.source.book)} » absent de books.json`];
       if (typeof p.source.page !== 'number') return [`${p.chemin} : folio manquant (source.page)`];
@@ -444,7 +442,7 @@ type DocDeProvenance = Pick<ProjectDoc, 'source' | 'scenes' | 'narratif'>;
 
 /** #2001 ; #2427. */
 function fautesDeProvenance(doc: DocDeProvenance, fichier: string): string[] {
-  const livres = new Set(books.map((b) => b.id));
+  const livres = new Set<string>(books.map((b) => b.id));
   const fautes: string[] = [];
   const marche = (v: unknown, chemin: string): void => {
     if (Array.isArray(v)) return v.forEach((x, i) => marche(x, `${chemin}[${i}]`));

@@ -1,6 +1,6 @@
 /** Entrée en scène : partie neuve (`lancerLaScene`, `chargerLeProjet`) et changement de scène (`quitterLaScene`). */
 import { registerScene, sceneDuRegistre } from './monde/registreDesScenes';
-import { startOf } from './monde/scene';
+import { rectJouable, startOf } from './monde/scene';
 import { findFreeTile } from './monde/combatGeometry';
 import { spawnFacing } from './monde/exploreNav';
 import { poserCapDuGroupe } from './monde/combatants';
@@ -28,15 +28,17 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       const start = scene.entities.find((e) => e.kind === 'heroStart');
       const pos = startOf(scene) ?? findFreeTile(scene);
       // Démarrage d'une partie / d'un scénario : on repart de l'état NEUF du jeu (`etatInitialDuJeu`). On ne
-      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`), le compteur des ids du monde que ses objets ont consommé
-      // (`prochainId`, #2907) et la SESSION COOP (net : héberger une partie
+      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`), les compteurs de la partie (ids du monde
+      // `prochainId`, #2907 ; `lignesAuJournal` et `combatsOuverts`, #3009) et la SESSION COOP (net : héberger une partie
       // PUIS la lancer ne doit pas dissoudre le salon — Jalon 7). L'interface se remet chez son hôte, à
       // l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`).
-      const { screen, party, net, prochainId } = get();
-      const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
+      const { screen, party, net, prochainId, lignesAuJournal, combatsOuverts } = get();
+      const journal = scene.startMessage ? [scene.startMessage.texte] : [];
+      const capEntrant = start?.facing ?? spawnFacing(pos, rectJouable(scene));
       set({
         ...etatInitialDuJeu(),
-        screen, party, net, prochainId,
+        screen, party, net, prochainId, combatsOuverts,
+        lignesAuJournal: lignesAuJournal + journal.length,
         scene: JSON.parse(JSON.stringify(scene)),
         mode: 'exploration',
         partyPos: pos,
@@ -45,7 +47,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         facing: poserCapDuGroupe({}, capEntrant),
         flags: { ...scene.flags },
         campaignSceneId: scene.id,
-        journal: scene.startMessage ? [scene.startMessage.texte] : [],
+        journal,
         campaignNarratif: narratif ?? null,
       });
       if (scene.startMessage) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte: scene.startMessage.texte });
@@ -126,7 +128,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         sceneInstances,
         mode: 'exploration',
         partyPos: { ...start },
-        facing: poserCapDuGroupe(s.facing, authored ?? spawnFacing(start, target.dimensions)),
+        facing: poserCapDuGroupe(s.facing, authored ?? spawnFacing(start, rectJouable(target))),
         lightLevel: null, // nouvelle scène → lumière auto (un setLight ne se propage pas d'une scène à l'autre)
         // flags persistants : on conserve l'état narratif et on ajoute les
         // valeurs par défaut de la nouvelle scène pour les clés absentes.

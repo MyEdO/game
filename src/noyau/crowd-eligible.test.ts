@@ -14,7 +14,7 @@ describe('crowdEligible', () => {
     const ally = C('a', 5, 6, 'heros'); // allié du tireur au contact de la cible → fratricide possible
     const foe = C('f', 6, 6, 'monster'); // ennemi en diagonale, au contact
     const far = C('x', 9, 9, 'monster'); // distant → exclu
-    const elig = crowdEligible(battle([shooter, target, ally, foe, far]), shooter, target);
+    const elig = crowdEligible(null, battle([shooter, target, ally, foe, far]), shooter, target);
     expect(elig.map((c) => c.id).sort()).toEqual(['a', 'f', 't']);
   });
 });

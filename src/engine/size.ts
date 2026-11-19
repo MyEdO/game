@@ -8,6 +8,8 @@
  * Données règles (rangedMod, shipboardEnc, footprintSide) dans `src/data/sizes.json`.
  */
 import sizesJson from '../data/sizes.json';
+import type * as sizesDef from '../data/schemas/defs/sizes';
+import { datasetDe } from '../data/datasets';
 import type { QualityId } from './qualities/ids';
 import type { TraitsDesignes } from './statEntry';
 import type { ActiveEffect } from './types';
@@ -32,12 +34,12 @@ export const SIZE_ORDER: Record<SizeCategory, number> = {
   monstrueuse: 6,
 };
 
-export const SIZE_RANGED_MOD: Record<SizeCategory, number> =
-  sizesJson.rangedMod as Record<SizeCategory, number>;
+const TAILLES = datasetDe<typeof sizesDef>(sizesJson);
+
+export const SIZE_RANGED_MOD: Record<SizeCategory, number> = TAILLES.rangedMod;
 
 /** Enc qu'un être occupe à bord (place d'Équipage/Contenance selon sa Taille), MDG 12 l.25-33. */
-export const SIZE_SHIPBOARD_ENC: Record<SizeCategory, number> =
-  sizesJson.shipboardEnc as Record<SizeCategory, number>;
+export const SIZE_SHIPBOARD_ENC: Record<SizeCategory, number> = TAILLES.shipboardEnc;
 
 /**
  * Côté N de l'empreinte carrée N×N qu'une créature de cette Taille occupe PAR DÉFAUT sur la grille.
@@ -47,7 +49,7 @@ export const SIZE_SHIPBOARD_ENC: Record<SizeCategory, number> =
  * CHAQUE appel (pas de réf capturée) — une édition au Codex prend effet en direct.
  */
 export function sizeFootprintSide(size: SizeCategory): number {
-  return (sizesJson.footprintSide as Record<SizeCategory, number>)[size];
+  return TAILLES.footprintSide[size];
 }
 
 /** Libellés des 7 catégories — graphies de la table du LDB 85 l.348-354. */
@@ -63,6 +65,11 @@ export const SIZE_LABEL: Record<SizeCategory, string> = {
 
 /** Taille effective (défaut Moyenne : standard implicite des espèces jouables, LDB 14 l.128). */
 export const effectiveSize = (size?: SizeCategory): SizeCategory => size ?? 'moyenne';
+
+/** Une possession taillée pour `sizeFor` (absent : objet ordinaire du catalogue) est-elle à la Taille de son porteur
+ *  `porteur` ? ADE II 2 l.604 ; ADE II 2 l.710 ; LDB 10 l.939-943 */
+export const possessionASaTaille = (sizeFor: SizeCategory | undefined, porteur: SizeCategory | undefined): boolean =>
+  sizeFor === undefined ? SIZE_ORDER[effectiveSize(porteur)] <= SIZE_ORDER.moyenne : sizeFor === effectiveSize(porteur);
 
 /** Écart de catégories attaquant − défenseur (> 0 si l'attaquant est plus grand). */
 export const sizeGap = (a?: SizeCategory, b?: SizeCategory): number =>

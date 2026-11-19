@@ -9,6 +9,9 @@ import { EFFECT_HANDLERS } from './combatEffects';
 import { formulaForShape, newEffect, newOp, paramsDeRegle, shapeOf, valeurNeuveDe, variantesAChoisir, type FormulaShape } from './valeursNeuves';
 import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
 import { emptyWorldMap } from './worldMap';
+import { DEFS_DE_DOCUMENT } from '../data/schemas/validate';
+import { enfantsDe } from '../data/schemas/grammaire/descente';
+import { unionDuNoeud, varianteCourante } from './codex/editFields';
 
 describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve parse son schéma, hors sentinelle vide', () => {
   it('newOp : chaque op du vocabulaire (`OP_DEFS`) naît conforme à `gameOpSchema`', () => {
@@ -61,5 +64,23 @@ describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve pa
     const lieu = { id: 'l', label: 'L', scene: { id: 's' }, pos: { x: 10, y: 10 }, port: portNeuf(), market: marcheNeuf() };
     expect(mapPlaceSchema.safeParse(lieu).success).toBe(true);
     expect(portNeuf(), 'chaque port neuf est une valeur propre').not.toBe(portNeuf());
+  });
+
+  it('la valeur neuve de chaque variante de chaque union des documents et des ops se lit comme elle (`varianteCourante`) : aucune variante n’est ombrée par une autre', () => {
+    const vus = new Set<object>();
+    const ombrees: string[] = [];
+    const visiter = (noeud: unknown, chemin: string): void => {
+      if (!noeud || typeof noeud !== 'object' || vus.has(noeud)) return;
+      vus.add(noeud);
+      const u = unionDuNoeud(noeud);
+      for (const v of (u && variantesAChoisir(noeud, undefined)) ?? []) {
+        const lue = varianteCourante(u!, v.valeur);
+        if (lue?.cle !== v.cle) ombrees.push(`${chemin} : ${v.libelle} → ${lue?.libelle ?? 'aucune'}`);
+      }
+      for (const e of enfantsDe(noeud)) visiter(e.noeud, chemin + e.segment);
+    };
+    for (const d of DEFS_DE_DOCUMENT) visiter(d.schema, `${d.file}:`);
+    for (const [op, noeud] of Object.entries(OP_DEFS)) visiter(noeud, `${op}:`);
+    expect(ombrees).toEqual([]);
   });
 });

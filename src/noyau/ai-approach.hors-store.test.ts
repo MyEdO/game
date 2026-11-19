@@ -1,4 +1,5 @@
 import { describe, it, beforeEach, expect, vi, afterEach } from 'vitest';
+import { fixtureText } from '../i18n/fixtureText';
 import { aiApproachPlan, runEnemyAI } from './combatFlow';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
 import { makeRNG } from '../engine/dice';
@@ -107,7 +108,7 @@ describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
     const lignes = banc.getState().battle!.log.filter((l) => l.actorId === 'e' && l.kind === 'deplacement').map((l) => l.text);
     expect(chebyshev(depart, enemy.pos!), 'arrêt avant le budget').toBeLessThan(4 + runFromTest(jet, 4).bonusCases);
     expect(lignes).toEqual([
-      traceLineOf({ who: 'Gobelin', label: testTraceLabel(refLabel('skills', course.skill), course.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }),
+      traceLineOf({ who: fixtureText('Gobelin'), label: testTraceLabel(refLabel('skills', course.skill), course.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }),
       t('cs.run', { name: 'Gobelin', cost: chebyshev(depart, enemy.pos!), short: '' }),
     ]);
   });

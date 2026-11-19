@@ -18,15 +18,38 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
 import { hasTalent } from '../engine/magic';
-import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type CatalogItem, type StockLine } from '../engine/disponibilite';
-import type { Settlement } from '../data/schemas/grammaire/valeurs';
+import {
+  rollStock,
+  fullStock,
+  availabilitySearchBonus,
+  barterRatio,
+  availabilityAfterHalvings,
+  priceAfterHalvings,
+  isTradable,
+  outOfTradeReason,
+  type CatalogItem,
+  type StockLine,
+} from '../engine/disponibilite';
+import { settlementSchema, type Settlement } from '../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, findMerchantArchetypeById, type QualityRef, type TrappingData } from '../data/index';
+import {
+  findTrappingById,
+  trappingsInstanciables,
+  findVehicleById,
+  findCreatureById,
+  vehicles,
+  creatures,
+  combatStakeRef,
+  findMerchantArchetypeById,
+  type QualityRef,
+  type TrappingData,
+} from '../data/index';
 import type { MerchantArchetypeDef } from '../data/merchants.types';
 import type { UniteAchetable } from '../data/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
@@ -35,11 +58,12 @@ import { freeCons, openPartyTest } from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
-import { cleDeBillet, lieuDuGroupe, placeServiceMerchantId, placeServices, type ResolvedPlaceService } from './worldMap';
-import { sceneDuRegistre } from './monde/registreDesScenes';
+import { cleDeBillet, colonneDeDisponibiliteDuMarchand, lieuDeLaScene, lieuDuGroupe, placeServiceMerchantId, type MapPlace } from './worldMap';
+import { echoppesDuLieu, refuserLeServiceFerme } from './lieuFlow';
 import { ajouterLaPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 import { refuserGeste } from './refusVisible';
@@ -331,7 +355,7 @@ function rollFreshStock(
   entityId: string, ent: SceneEntity | undefined, arch: MerchantArchetypeDef, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
 ): { id: string; qty: number }[] {
   const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
-  if (tested.length) get().ecrireAuJournal(t('mf.tirageDuMarche', { settlement, lignes: tested.map((l) => t('mf.ligneDeStock', { label: l.label, qty: l.qty })).join(', ') }));
+  if (tested.length) get().ecrireAuJournal(t('mf.tirageDuMarche', { settlement: libelleDeValeur(settlementSchema, settlement), lignes: tested.map((l) => t('mf.ligneDeStock', { label: l.label, qty: l.qty })).join(', ') }));
   persistStock(set, entityId, stock, now);
   return stock;
 }
@@ -375,12 +399,13 @@ function openStockRevealCascade(
 
 /** Ouverture PARTAGÉE d'une visite marchande (#369) — `ent` est l'override d'ENTITÉ de scène (PNJ posé
  *  dans une scène) quand il existe ; un marchand de LIEU (`ouvrirLaBoutique`, catalogue `lieux-services.json`)
- *  n'en porte aucun et joue les défauts d'archétype nus. SOURCE UNIQUE du calcul d'ouverture, réutilisée
+ *  n'en porte aucun et joue les défauts d'archétype nus. `lieu` est le lieu où il se tient, d'où se dérive sa
+ *  colonne de Disponibilité (`colonneDeDisponibiliteDuMarchand`). SOURCE UNIQUE du calcul d'ouverture, réutilisée
  *  par les deux entrées — aucune n'est un fork de l'autre. */
-function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype: string, ent?: SceneEntity, backdrop?: string): void {
+function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype: string, lieu: MapPlace | undefined, ent?: SceneEntity, backdrop?: string): void {
   const arch = findMerchantArchetypeById(archetype);
   if (!arch) { get().ecrireAuJournal(t('mf.archetypeInconnu', { archetype })); return; }
-  const settlement: Settlement = ent?.merchant?.settlement ?? arch.settlement;
+  const settlement = garanti(colonneDeDisponibiliteDuMarchand(ent?.merchant?.settlement, lieu), entityId, 'colonne de Disponibilité du marchand');
   const resaleRate = ent?.merchant?.resaleRate ?? arch.resaleRate;
   const buyMarkup = ent?.merchant?.buyMarkup ?? arch.buyMarkup ?? 1; // majoration d’achat (1 = prix listé ; >1 = vend plus cher)
   const restockPeriod = (ent?.merchant?.restockDays ?? arch.restockDays ?? 1) * MINUTES_PER_DAY; // réassort (#T3)
@@ -407,24 +432,19 @@ function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype
 export function ouvrirLeMarchand(get: Get, set: Set, entityId: string): void {
   const ent = get().scene?.entities.find((e) => e.id === entityId);
   if (!ent?.merchant) return;
-  openMerchantByArchetype(get, set, entityId, ent.merchant.archetype.id, ent);
+  openMerchantByArchetype(get, set, entityId, ent.merchant.archetype.id, lieuDeLaScene(get().worldMap, get().scene?.id), ent);
 }
 
-/** Les services à échoppe (`merchantArchetype`) du lieu où se tient le groupe (`lieuDuGroupe`). */
-export function echoppesDuLieu(s: Jeu): ResolvedPlaceService[] {
-  const ici = lieuDuGroupe(s);
-  return ici ? placeServices(ici, sceneDuRegistre(ici.scene.id)).filter((svc) => svc.merchantArchetype) : [];
-}
-
-/** Marchand de LIEU (#369) — ouvre le système marchand EXISTANT pour l'échoppe `serviceId` du lieu du groupe
+/** Marchand de LIEU (#369) — ouvre le système marchand EXISTANT pour l'échoppe `echoppeId` du lieu du groupe
  *  (`echoppesDuLieu`, forgeron du hub de ville…) : même `openMerchantByArchetype`, keyé sur l'id virtuel
  *  `placeServiceMerchantId` (stock persistant propre au lieu+service). Extension du général, pas un fork. */
-export function ouvrirLaBoutique(get: Get, set: Set, serviceId: string): void {
+export function ouvrirLaBoutique(get: Get, set: Set, echoppeId: string): void {
   const ici = lieuDuGroupe(get());
-  const svc = echoppesDuLieu(get()).find((x) => x.id === serviceId);
+  const svc = echoppesDuLieu(get()).find((x) => x.id === echoppeId);
   if (!ici) return void refuserGeste(get, set, t('mf.boutiqueSansLieu'));
-  if (!svc?.merchantArchetype) return void refuserGeste(get, set, t('mf.boutiqueInconnue', { service: serviceId }));
-  openMerchantByArchetype(get, set, placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, undefined, svc.backdrop);
+  if (!svc) return void refuserGeste(get, set, t('mf.boutiqueInconnue', { service: echoppeId }));
+  if (refuserLeServiceFerme(get, set, svc.id)) return;
+  openMerchantByArchetype(get, set, placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, ici, undefined, svc.backdrop);
 }
 
 /** Kind d'étape de cascade du Test de Ragot de recherche active (#273) : le jet passe par la porte
@@ -962,7 +982,7 @@ function openAppraise(
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   const ligne = rollLine({ actor: best.actor, test: APPRAISE_SKILL[mode], difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
-    actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
+    actorId: best.actor.id, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
     mode, skillLabel: refLabel('skills', APPRAISE_SKILL[mode].skill),
     truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
@@ -1067,20 +1087,21 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     const item = pa.itemUid ? get().party.flatMap((h) => h.items ?? []).find((i) => i.uid === pa.itemUid) : undefined;
     const isMagic = line ? line.magic : !!item && (item.identified === false || !!item.magicKnown);
     const rules = line ? (line.effect.qualities?.length ?? (line.effect.identified === false ? 1 : 0)) : 1;
+    const actor = garanti(nomEnVue(get(), pa.actorId), pa.actorId, 'détecteur de la Détection');
     if (!pa.success) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectionVaine', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionVaine', { actor, item: pa.itemName }));
       return;
     }
     if (!isMagic) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectionSansAura', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionSansAura', { actor, item: pa.itemName }));
       return;
     }
     // Succès : aura sentie ; chaque DR apprend une règle → tout révélé quand DR couvre les règles.
     const allKnown = pa.sl >= Math.max(1, rules);
     patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId, magicKnown: true, ...(allKnown ? { identified: true } : {}) });
-    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor: pa.actorName, item: pa.itemName, dr: pa.sl }));
+    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor, item: pa.itemName, dr: pa.sl }));
     return;
   }
   if (!pa.success) {
@@ -1102,7 +1123,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
 export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     ouvrirLeMarchand: (entityId) => ouvrirLeMarchand(get, set, entityId),
-    ouvrirLaBoutique: (serviceId) => ouvrirLaBoutique(get, set, serviceId),
+    ouvrirLaBoutique: (echoppeId) => ouvrirLaBoutique(get, set, echoppeId),
     evaluerLObjet: (aEvaluer, mode) => evaluerLObjet(get, set, aEvaluer, mode),
   } satisfies FabriqueDuNoyau;
 }
@@ -1180,7 +1201,7 @@ export const TABLES = {
       // `arch` (`meta.archetype`, sérialisé à l'ouverture) SUFFIT — un marchand de LIEU (#369, `ouvrirLaBoutique`)
       // n'a aucune `SceneEntity` de scène, `ent` reste alors `undefined` (overrides d'entité simplement absents).
       if (!arch) return {};
-      const settlement = String(meta.settlement ?? arch.settlement) as Settlement;
+      const settlement = settlementSchema.parse(meta.settlement);
       const now = Number(meta.now ?? get().gameTime);
       const restockPeriod = Number(meta.restockPeriod ?? MINUTES_PER_DAY);
       const gossipDay = !!meta.gossipDay;

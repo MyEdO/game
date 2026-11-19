@@ -4,8 +4,8 @@ extends SceneTree
 ## `default_bus_layout.tres`, `musique`, `ambiance`, `effets` et `interface` vers `Master`, `musique-jouee` vers
 ## `musique` ; un son joué partout et à un point, une boucle, la météo sur le bus de leur canal, la musique sur
 ## `musique-jouee` ; les volumes des préférences posés sur les bus de leur canal (`PontDuNoyau.regler_les_volumes`), sans
-## toucher `Master` ni `musique-jouee`, et à `rejoindre` ceux du pont vivant, dont chaque préférence `volume-*` a son
-## bus ; la musique atténuée (`Musique.attenuer`) descend à `ATTENUE_DB` puis revient à `PLEIN_DB`, deux appels
+## toucher le volume de `Master` ni de `musique-jouee`, `Master` coupé quand la préférence `son-coupe` le dit et rétabli
+## sinon, et à `rejoindre` ceux du pont vivant, dont chaque préférence `volume-*` a son bus ; la musique atténuée (`Musique.attenuer`) descend à `ATTENUE_DB` puis revient à `PLEIN_DB`, deux appels
 ## rapprochés ne la laissent pas basse, et l'arrivée sonore d'un coup ou la nappe sonore d'une zone l'atténue, ni les
 ## pas ni une incantation. Le code de sortie dit le verdict : 0 tenu, 1 une faute.
 
@@ -22,16 +22,17 @@ const EXPLOSION := {id = "explosion", fichiers = ["explosion-1.ogg", "explosion-
 const INCANTATION := {id = "chant-d-incantation", fichiers = ["incantation-1.ogg", "incantation-2.ogg"], volume = 0.8, canal = "effets"}
 const PAS := {id = "pas", fichiers = ["pas-1.ogg", "pas-2.ogg", "pas-3.ogg"], volume = 0.4, canal = "effets"}
 const FLAMMES := {id = "sort-feu", fichiers = ["sort-feu-1.ogg", "sort-feu-2.ogg", "sort-feu-3.ogg"], volume = 0.85, canal = "effets"}
-const COUP := {quoi = "coup", de = "a", vers = "b", issue = "touche", couleur = "#ffa040", depart = null, trajet = null,
+const COUP := {quoi = Noyau.Effet.COUP, de = "a", vers = "b", issue = Noyau.IssueDuCoup.TOUCHE, couleur = "#ffa040", depart = null, trajet = null,
 	arrivee = {visuel = null, son = EXPLOSION}, flottants = []}
-const ZONE := {quoi = "zone", de = "a", centre = {x = 1, y = 0}, cases = [{x = 1, y = 0}], couleur = "#ff6a20", depart = null,
+const ZONE := {quoi = Noyau.Effet.ZONE, de = "a", centre = {x = 1, y = 0}, cases = [{x = 1, y = 0}], couleur = "#ff6a20", depart = null,
 	trajet = null, nappe = {visuel = null, son = FLAMMES}}
-const PAS_DU_DEPLACEMENT := {quoi = "son", son = PAS, fois = 1, ecartS = 0.0}
-const INCANTATION_REUSSIE := {quoi = "incantation", de = "a", vers = "b", reussie = true, couleur = "#9b7bff",
+const PAS_DU_DEPLACEMENT := {quoi = Noyau.Effet.SON, son = PAS, fois = 1, ecartS = 0.0}
+const INCANTATION_REUSSIE := {quoi = Noyau.Effet.INCANTATION, de = "a", vers = "b", reussie = true, couleur = "#9b7bff",
 	depart = {visuel = null, son = INCANTATION}, arrivee = {visuel = null, son = INCANTATION}, flottants = []}
 const LIEUX := {"a": Vector3(0.0, 0.0, 0.0), "b": Vector3(2.0, 0.0, 0.0), "1,0,0": Vector3(1.0, 0.0, 0.0)}
-## Les préférences connues que sert le pont figé : un volume par canal, et une préférence qui n'est pas un volume.
-const PREFERENCES := {"volume-musique": 0.25, "volume-ambiance": 0.5, "volume-effets": 0.75, "volume-interface": 0.1, "animations": true}
+## Les préférences connues que sert le pont figé : un volume par canal, le son coupé, et une préférence qui n'est pas un
+## volume.
+const PREFERENCES := {"volume-musique": 0.25, "volume-ambiance": 0.5, "volume-effets": 0.75, "volume-interface": 0.1, "son-coupe": true, "animations": true}
 ## Le volume (dB) posé d'avance sur `Master` et `musique-jouee`, que `regler_les_volumes` ne touche pas.
 const TEMOIN_DB := -3.0
 ## L'écart toléré entre deux volumes (dB ou linéaires).
@@ -103,14 +104,23 @@ func _les_lecteurs() -> void:
 	await create_timer(Foyer.SON_LIBERE_S).timeout
 
 
-## Les volumes des préférences : connues, servies par un pont figé, posées sur les bus de leur canal sans toucher
-## `Master` ni `musique-jouee` ; puis, à `rejoindre`, celles du pont vivant, chaque préférence `volume-*` sur son bus.
+## Les volumes des préférences : connues, servies par un pont figé, posées sur les bus de leur canal sans toucher le
+## volume de `Master` ni de `musique-jouee`, `Master` coupé quand `son-coupe` le dit, rétabli sinon ; puis, à
+## `rejoindre`, celles du pont vivant, chaque préférence `volume-*` sur son bus et `Master` coupé à sa valeur.
 func _les_volumes() -> void:
+	var master := AudioServer.get_bus_index("Master")
 	for nom in ["Master", Musique.BUS_JOUE]:
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(nom), TEMOIN_DB)
 	var fige := PontFige.new({preferences = {"null": {ok = true, preferences = PREFERENCES}}})
 	fige.regler_les_volumes()
 	fige.free()
+	_verifier(AudioServer.is_bus_mute(master), "son-coupe vrai : Master non coupé")
+	var retabli := PREFERENCES.duplicate()
+	retabli["son-coupe"] = false
+	fige = PontFige.new({preferences = {"null": {ok = true, preferences = retabli}}})
+	fige.regler_les_volumes()
+	fige.free()
+	_verifier(not AudioServer.is_bus_mute(master), "son-coupe faux : Master resté coupé")
 	for cle: String in PREFERENCES:
 		if cle.begins_with("volume-"):
 			var lu := AudioServer.get_bus_volume_linear(AudioServer.get_bus_index(cle.trim_prefix("volume-")))
@@ -119,6 +129,7 @@ func _les_volumes() -> void:
 		var lu := AudioServer.get_bus_volume_db(AudioServer.get_bus_index(nom))
 		_verifier(absf(lu - TEMOIN_DB) < TOLERANCE, "bus %s touché : %.3f dB, attendu %.3f" % [nom, lu, TEMOIN_DB])
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(nom), Musique.PLEIN_DB)
+	AudioServer.set_bus_mute(master, true)
 	var pont: PontDuNoyau = root.get_node("Pont")
 	var signales: Array[String] = []
 	if not await pont.rejoindre(func(m: String) -> void: signales.append("refus : " + m), func(m: String) -> void: signales.append("panne : " + m)):
@@ -129,6 +140,7 @@ func _les_volumes() -> void:
 	var volumes: Array = reponse.get("preferences", {}).keys().filter(func(cle: String) -> bool: return cle.begins_with("volume-"))
 	print("[mixage] volumes du pont vivant : %s" % [volumes.map(func(cle: String) -> String: return "%s=%s" % [cle, reponse.preferences[cle]])])
 	_verifier(volumes.size() == ENVOIS.size() - 1, "pont vivant : %d préférences volume-*, une par canal attendue" % volumes.size())
+	_verifier(AudioServer.is_bus_mute(master) == reponse.preferences.get("son-coupe"), "rejoindre : Master coupé à %s, son-coupe à %s" % [AudioServer.is_bus_mute(master), reponse.preferences.get("son-coupe")])
 	for cle: String in volumes:
 		var bus := AudioServer.get_bus_index(cle.trim_prefix("volume-"))
 		_verifier(bus != -1, "pont vivant : %s sans bus" % cle)

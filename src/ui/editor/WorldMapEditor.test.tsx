@@ -28,6 +28,7 @@ import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { lieuxServices, navalPorts } from '../../data';
+import { t } from '../../i18n';
 import { TRAVEL_DEFAULTS } from '../../engine/travel';
 
 beforeAll(() => {
@@ -156,19 +157,19 @@ describe('WorldMapEditor — panneau Lieu (#419)', () => {
     selectPlace('p1');
     const sv = lieuxServices[0];
     click(checkbox(sv.label));
-    expect(lastMap!.places[0].services).toEqual([{ kind: { id: sv.id } }]);
+    expect(lastMap!.places[0].services).toEqual([{ id: sv.id, kind: { id: sv.id } }]);
   });
 });
 
 describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
-  it('active le marché et édite taille/richesse/produits', () => {
+  it('pose la taille au lieu, active le marché et édite richesse/produits', () => {
     mount();
     selectPlace('p1');
+    setValue(input('Taille de la communauté'), '3');
+    expect(lastMap!.places[0].taille).toBe(3);
     click(tab('Commerce'));
     click(checkbox('Lieu de commerce'));
     expect(lastMap!.places[0].market).toBeTruthy();
-    setValue(input('Taille de la communauté'), '3');
-    expect(lastMap!.places[0].market!.taille).toBe(3);
 
     const richesseSel = input('Indice de richesse — Mise à prix') as HTMLSelectElement;
     const otherRichesse = [...richesseSel.options].map((o) => o.value).find((v) => v !== richesseSel.value)!;
@@ -181,12 +182,16 @@ describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
     expect(lastMap!.places[0].market!.produits).toContain('commerce-terre');
   });
 
-  it('active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare', () => {
+  it('active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/signal', () => {
     mount();
     selectPlace('p1');
+    setValue(input('Taille de la communauté'), '3');
     click(tab('Commerce'));
     click(checkbox('Port maritime'));
-    expect(lastMap!.places[0].port).toBeTruthy();
+    expect([!!lastMap!.places[0].port, lastMap!.places[0].taille], 'le port porte la taille du lieu').toEqual([true, undefined]);
+    click(tab('Lieu'));
+    expect(document.body.textContent, 'un lieu à port tient sa taille de son port').not.toContain('Taille de la communauté');
+    click(tab('Commerce'));
 
     const port0 = navalPorts[0];
     pickRef('Port du catalogue', `${port0.label} (${port0.region})`);
@@ -196,15 +201,19 @@ describe('WorldMapEditor — panneau Lieu / Commerce (#419)', () => {
     click(checkbox('Grand port cosmopolite'));
     expect(lastMap!.places[0].port!.cosmopolite).toBe(true);
 
-    click(checkbox('Phare à'));
-    expect(lastMap!.places[0].port!.lighthouse).toBe(true);
+    setValue(input('Signal du port'), 'clocher');
+    expect(lastMap!.places[0].port!.signal).toBe('clocher');
+    setValue(input('Signal du port'), '');
+    expect(lastMap!.places[0].port!.signal).toBeUndefined();
   });
 });
 
 describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
-  it('ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service)', () => {
+  it('ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service du lieu)', () => {
     mount();
     selectPlace('p1');
+    const sv = lieuxServices[0];
+    click(checkbox(sv.label));
     click(tab('Plan du hub'));
     click([...container.querySelectorAll('button')].find((b) => b.textContent?.includes("Point d'intérêt"))!);
     expect(lastMap!.places[0].poi).toHaveLength(1);
@@ -231,9 +240,23 @@ describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
     expect(lastMap!.places[0].poi![0].sceneId).toEqual({ id: 's2' });
 
     setValue(input('Cible (scène OU service, exclusif)'), 'service');
-    const sv = lieuxServices[0];
     pickRef('Service', sv.label);
-    expect(lastMap!.places[0].poi![0].serviceKind).toEqual({ id: sv.id });
+    expect(lastMap!.places[0].poi![0]).toEqual({ id: lastMap!.places[0].poi![0].id, pos: { x: 75, y: 47 }, icon: 'outil-de-carte/porte', service: { id: sv.id } });
+  });
+
+  it('décocher un type dont un établissement est visé par un point d’intérêt : refusé, et le refus est dit', () => {
+    mount();
+    selectPlace('p1');
+    const sv = lieuxServices[0];
+    click(checkbox(sv.label));
+    click(tab('Plan du hub'));
+    click([...container.querySelectorAll('button')].find((b) => b.textContent?.includes("Point d'intérêt"))!);
+    setValue(input('Cible (scène OU service, exclusif)'), 'service');
+    pickRef('Service', sv.label);
+    click(tab('Lieu'));
+    click(checkbox(sv.label));
+    expect(lastMap!.places[0].services).toEqual([{ id: sv.id, kind: { id: sv.id } }]);
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(t('ecran.editeur.lieu.etablissement.vise', { poi: sv.label }));
   });
 });
 

@@ -346,6 +346,8 @@ Pour créer une maladie, définir :
 
 **Cas Rongeur Infecté** : un rongeur (dont skavens) avec Infecté qui blesse un héros → Tests de **Résistance Accessible (+20)** pour *Fièvre du Rongeur* (en plus du Test Blessure Purulente). Source : `LDB 20 l.51` (Fièvre du Rongeur § Contraction).
 
+**Cas équipage collectif** : la fièvre du rongeur d'une infestation de bord tirée sur un marin se porte par l'équipage collectif du navire, qui fait le Test de Contraction de la maladie. Source : `MDG 15 l.161`, `MDG 15 l.176`.
+
 **Qualité Infecté (arme)** : les munitions portant la qualité Infecté (Aux Armes — ferraille/débris souillés) exposent aussi à la Blessure Purulente.
 
 ### Maladie (Type)
@@ -748,6 +750,8 @@ La promiscuité à bord et la mauvaise qualité de la nourriture et de la boisso
 
 > « Si un membre d'équipage souffrant de la *peste noire*, du *flux sanglant*, de la *courante galopante* ou de la vé*role urticante* boit dans un tonneau d'eau, il doit effectuer un Test de **Résistance Intermédiaire (+0)**. En cas d'échec, le tonneau devient une source de contagion pour quiconque boit dedans ensuite. La *petite bière* n'est pas soumise à cette règle. » — `MDG 14 l.209`
 
+**Dans le jeu** : les porteurs à bord sont les Personnages vivants et l'équipage PNJ, porteur de maladies collectif (`CampaignVessel.porteurDeLEquipage`) qui teste sa Résistance à la valeur maison `mer-resistance-de-l-equipage`, en un seul Test pour tout l'effectif. Chaque nuit à bord, la contagion joue dans les deux sens : l'équipage porteur d'une maladie contagieuse expose chaque Personnage, un Personnage contagieux expose l'équipage. `MDG 14 l.208` Le tonneau : chaque porteur d'une maladie déclarée qui contamine l'eau, l'équipage compris, fait le Test de Résistance Intermédiaire (+0) ; le lendemain d'un échec, tout porteur qui boit au tonneau est exposé. `MDG 14 l.209` La contagion se teste une fois par nuit, pas une fois par heure entamée (`LDB 20 l.206`, #4445).
+
 **Voir aussi** : [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Toux et Éternuements) ; [Litanie de la Pestilence — 9 maladies LDB](#litanie-de-la-pestilence--9-maladies-ldb) (peste noire / flux sanglant / courante galopante / vérole urticante) ; [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (petite bière) ; `docs/raw/4e/etats.md`.
 
 **Implémente :** [État calculé](../implemente.generated.md#4emaladiesmaladies-a-bord-contagion-et-tonneaux-contamines-mdg)
@@ -802,6 +806,8 @@ Maladie de **privation prolongée** qui frappe ceux qui restent longtemps en mer
 
 > « **Symptômes :** blessé, intoxication alimentaire, malaise, nausée. 1 % de chances de perdre une dent chaque jour. » — `MDG 14 l.234`
 
+**Dans le jeu** : « nourriture correcte » est un vivre frais de la cale pour l'équipage collectif, et un repas pris pour un Personnage, qui ne mange que ses rations. Chaque porteur à bord, Personnage ou équipage collectif, compte ses jours sans vivre frais et fait le Test de contraction au jour de mer joué jour par jour où ce compte tombe sur un multiple de 30 ; le voyage rapide n'en joue aucun. Le Test est Facile (+40) si le porteur a mangé de la soupe de chou fermenté au moins 15 jours de ce mois. `MDG 14 l.230` Un jour de vivre frais remet les deux compteurs à zéro. La Durée du scorbut décompte un jour par jour de vivre frais mangé, quel que soit le découpage de l'horloge ; à quai, l'équipage mange à terre et chaque jour franchi lui compte un jour de frais. `MDG 14 l.232`
+
 **Voir aussi** : [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (soupe de chou fermenté ; biscuits de mer ≠ nourriture correcte) ; [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Blessé, Intoxication Alimentaire, Malaise, Nausée) ; `docs/raw/4e/etats.md`.
 
 **Implémente :** [État calculé](../implemente.generated.md#4emaladiesscorbut-maladie-de-privation-mdg)
@@ -813,6 +819,10 @@ Maladie de **privation prolongée** qui frappe ceux qui restent longtemps en mer
 **Sources RAW** : `MDG 14 l.236-271`, `MDG 14 l.247-252`, `MDG 15 l.169-170`
 
 Planifier l'approvisionnement est vital pour un long voyage : l'équipage fournit un dur labeur et a besoin de beaucoup d'eau et de nourriture. Acheter n'importe quelle nourriture du marché risque le désastre, car elle **pourrit vite** ; seules les provisions ci-dessous sont prévues pour tenir en mer.
+
+> « se contenter d'acheter n'importe quelle nourriture disponible sur le marché revient à risquer un désastre lors d'une longue expédition, car elle va vite pourrir. » — `MDG 14 l.238`
+
+Le RAW ne chiffre pas la durée : règle maison `mer-vivres-frais-peremption-jours` (défaut 7 jours après l'embarquement, voisin `LDB 47 l.93-97`, Conservation « ils ne pourriront pas »).
 
 **Consommation et eau** — un tonneau d'eau douce contient **145 litres** ; un membre d'équipage **boit 2 à 3 litres d'eau par jour**. La **petite bière** (un tonneau d'eau + un tonnelet de bière) peut remplacer l'eau : si diluée, elle hydrate et **aide à empêcher la contamination de la boisson** (et échappe à la règle du tonneau contaminé, cf. § Maladies à bord).
 
@@ -836,7 +846,7 @@ Planifier l'approvisionnement est vital pour un long voyage : l'équipage fourni
 
 > « Pénurie de nourriture. La nourriture a moisi ou a été infestée par de la vermine pendant le voyage. La moitié des provisions à bord<br>sont gâtées. » — `MDG 15 l.169-170`
 
-**Voir aussi** : [Scorbut (maladie de privation MDG)](#scorbut-maladie-de-privation-mdg) (soupe de chou fermenté ; biscuits ≠ nourriture correcte) ; [Maladies à bord — contagion et tonneaux contaminés (MDG)](#maladies-à-bord--contagion-et-tonneaux-contaminés-mdg) (tonneau d'eau / petite bière) ; `docs/raw/4e/deplacement.md` (le voyage lui-même). Hors domaine : modificateurs de Moral liés à la nourriture (biscuits seuls / ration insuffisante) — `MDG 14 l.166`, `MDG 14 l.171`.
+**Voir aussi** : [Scorbut (maladie de privation MDG)](#scorbut-maladie-de-privation-mdg) (soupe de chou fermenté ; biscuits ≠ nourriture correcte) ; [Maladies à bord — contagion et tonneaux contaminés (MDG)](#maladies-à-bord--contagion-et-tonneaux-contaminés-mdg) (tonneau d'eau / petite bière) ; `docs/raw/4e/deplacement.md` (le voyage lui-même). Hors domaine : modificateurs de Moral liés à la nourriture (frais au-dessus des rations / biscuits seuls / ration insuffisante) — `MDG 14 l.156`, `MDG 14 l.166`, `MDG 14 l.171`.
 
 **Implémente :** [État calculé](../implemente.generated.md#4emaladiesprovisions-et-privations-en-mer-eau-rations-faim-mdg)
 

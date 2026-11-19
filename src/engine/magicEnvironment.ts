@@ -59,8 +59,8 @@ function scopeMatches(
   if (!scope) return true;
   const domain = spell.domainId?.id ?? null;
   const dominant = env.dominantWinds ?? [];
-  if (scope.domains && domain != null && scope.domains.includes(domain)) return true;
-  if (scope.domainsExcept && domain != null && !scope.domainsExcept.includes(domain)) return true;
+  if (scope.domains && domain != null && scope.domains.some((d) => d === domain)) return true;
+  if (scope.domainsExcept && domain != null && !scope.domainsExcept.some((d) => d === domain)) return true;
   if (scope.chaosMagic && caster && chaosDomainOf(caster) != null) return true;
   if (scope.dominantWinds && domain != null && dominant.includes(domain)) return true;
   if (scope.nonDominantWinds && domain != null && !dominant.includes(domain)) return true;

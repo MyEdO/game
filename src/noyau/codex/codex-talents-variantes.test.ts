@@ -4,7 +4,7 @@
  * `src/engine/combatFeatures/variants-lot4.test.ts`.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { setRule, resetRule, type RegleOptionnelleId } from '../../engine/policy';
+import { setRule, resetRule } from '../../engine/policy';
 import { activeVariant } from '../../engine/variants';
 import { findTalentById } from '../../data';
 import { ALL_VARIANT_CARRIERS, ruleOf } from '../../engine/combatFeatures/variantesDeTalent.testkit';
@@ -22,15 +22,14 @@ describe('provenance 2 — affichage CODEX (le registre RÉEL noyau/codex/regist
   it('la desc de chaque talent à variante bascule base ↔ variante avec SA règle, et la fiche Codex suit', () => {
     for (const id of ALL_VARIANT_CARRIERS) {
       const t = findTalentById(id)!;
-      const td = t as unknown as { variants?: { when: { rule: RegleOptionnelleId }; desc?: string }[] };
-      expect(activeVariant(td.variants)).toBeUndefined(); // mode de base : aucune variante active
+      expect(activeVariant(t.variants)).toBeUndefined(); // mode de base : aucune variante active
       expect(codexTalent(id).desc).toBe(t.desc);
       setRule(ruleOf(id), true);
-      const v = activeVariant(td.variants);
+      const v = activeVariant(t.variants);
       expect(v?.desc).toBeTruthy();
       expect(v?.desc).not.toBe(t.desc); // la variante diffère toujours du texte de base
       expect(codexTalent(id).desc).toBe(v!.desc);
-      expect(codexTalent(id).source?.page).toBe((v as unknown as { source?: { page: number } }).source!.page);
+      expect(codexTalent(id).source?.page).toBe(v!.source!.page);
       resetRule(ruleOf(id));
     }
   });

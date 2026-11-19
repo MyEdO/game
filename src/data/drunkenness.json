@@ -2,7 +2,10 @@
   "id": "ivresse",
   "type": "drunkenness",
   "label": "Ivresse",
-  "die": "d10",
+  "die": {
+    "n": 1,
+    "sides": 10
+  },
   "entries": [
     {
       "id": "bravoure-marienburgher",

@@ -6,7 +6,9 @@
  * `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`), avec la CATÉGORIE CODEX de chaque
  * fichier qui en déclare exactement une (`CATEGORIE_CODEX_DU_FICHIER`, lue sur l'`exposition.codex` des
  * defs), et les RACINES VIVANTES
- * (`src/data/schemas/_racines-vivantes.generated.ts`, `RACINES_VIVANTES`), son image.
+ * (`src/data/schemas/_racines-vivantes.generated.ts`, `RACINES_VIVANTES`), son image, et les FICHIERS DE
+ * L'ATELIER (`src/data/schemas/_fichiers-de-l-atelier.generated.json`) : le chemin de chaque fichier d'une catégorie
+ * éditable du Codex, que le dépôt servi écrit (`hotes/godot/servir.mjs`, `PUT donnees/<fichier>`).
  *
  * Le JSON disque de chaque document de `SCHEMA_DEFS` est CO-DESCENDU avec son schéma, sans parse
  * (`collectionsDesDocuments`, `grammaire/collection-cle.ts`) : chaque collection marquée `espace` y
@@ -30,7 +32,22 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
 import type { AccesAuxDocuments, CollectionDeFichier, MarqueDeCollection } from '../src/data/schemas/grammaire/collection-cle';
-import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleFiltree, cleNichee, HORS_DE_LA_GRAPHIE, lireCleDEspace, pasDeLaSuite, suiteAvecPas, suivreLeChemin, type PasResolu } from '../src/data/schemas/grammaire/cle-d-espace';
+import {
+  baseDe,
+  champsDiscriminants,
+  cleDesLibelles,
+  cleDesSpecs,
+  cleDuVocabulaire,
+  cleFiltree,
+  cleNichee,
+  HORS_DE_LA_GRAPHIE,
+  lireCleDEspace,
+  pasDeLaSuite,
+  suiteAvecPas,
+  suivreLeChemin,
+  valeurDuDiscriminant,
+  type PasResolu,
+} from '../src/data/schemas/grammaire/cle-d-espace';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
@@ -38,7 +55,7 @@ import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
 import { estObjet } from '../src/lib/objet.mjs';
 
-const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES } = SORTIES_DES_ESPACES;
+const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES, atelier: SORTIE_ATELIER } = SORTIES_DES_ESPACES;
 
 /** Table VIDE : ce que la phase 2 pose à la place d'un index illisible. */
 export const TABLE_VIDE = 'export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = {};\n';
@@ -67,8 +84,8 @@ function clesDe(c: CollectionDeFichier): string[] {
   for (const champ of champsDiscriminants(espace)) {
     const valeurs = new Set<string>();
     for (const [el, cle] of elementsCles(c)) {
-      const vaut = el[champ];
-      if (typeof vaut !== 'string') continue;
+      const vaut = valeurDuDiscriminant(el, champ);
+      if (vaut === undefined) continue;
       if (HORS_DE_LA_GRAPHIE.test(vaut)) throw new Error(`gen-espaces: ${c.cle} « ${cle} » : la valeur de discriminant « ${vaut} » porte ?, =, # ou !.`);
       valeurs.add(vaut);
     }
@@ -141,10 +158,13 @@ const litteralDePas = (pas: PasResolu): string =>
 /** Catégories à dataset dont la collection n'est pas une liste d'entrées `{ id, label }`, et pourquoi :
  *  hors de la porte `entreeDeCategorie`. */
 const HORS_DE_LA_PORTE: Readonly<Record<string, string>> = {
+  dispersion: 'rangées sans `label` : une face du dé, que son décalage désigne (LDB 14 l.146-149)',
   navalProgression: 'entrées sans `label`',
   obsessions: 'rangées sans `label` : leur `id` est un Groupe (`groups.json`), qui porte le libellé',
+  reactionAuStatut: 'rangées sans `label` : leur `issue` (`issueDeReactionSchema`) porte le libellé (LDB 08 l.43-45)',
   shipConstructionTraits: 'entrées sans `label`',
   shipHullSizes: 'entrées sans `label`',
+  tableauCapricieux: 'rangées sans `label` : une fourchette du dé, que son modificateur de DR désigne (MSRC 15 l.153-159)',
 };
 
 /** `suite` résolue contre `schema` en pas lisibles sans lui (`suivreLeChemin`) : un pas `[clé]` y porte
@@ -177,12 +197,12 @@ function cheminResolu(
 /** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), les CLÉS DE DATASET et les documents
  *  de leur image. Les modules qui importent l'index se chargent ICI, par `import()` : l'appelant a déjà
  *  rendu l'index chargeable. */
-export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeLEspace: [string, { readonly cle: string; readonly fichier: string; readonly chemin: readonly PasResolu[] }][]; racines: DocumentDeDataset[]; valeursDeRegle: [string, string][] }> {
+export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeLEspace: [string, { readonly cle: string; readonly fichier: string; readonly chemin: readonly PasResolu[] }][]; racines: DocumentDeDataset[]; fichiersDeLAtelier: [string, string][]; valeursDeRegle: [string, string][] }> {
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
   const { atteindre, cleDesLibellesDeLaSource, collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
   const { lectureDuVocabulaire } = await import('../src/data/schemas/grammaire/vocabulaires');
   const { TYPES } = await import('../src/data/schemas/grammaire/ref');
-  const { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } = await import('../src/data/schemas/exposition-derivee');
+  const { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } = await import('../src/data/schemas/exposition-derivee');
   const brutParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, JSON.parse(readFileSync(join(d.root, d.file), 'utf8')) as unknown]));
   const schemaParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, d.schema]));
   const acces: AccesAuxDocuments = (fichier) => (brutParNom.has(fichier) ? { schema: schemaParNom.get(fichier), racine: brutParNom.get(fichier) } : undefined);
@@ -282,6 +302,8 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     collections,
     datasetsDeLEspace: [...datasetsDeLEspace].sort(([a], [b]) => parUnitesDeCode(a, b)),
     racines,
+    fichiersDeLAtelier: [...new Set([...Object.values(CATEGORY_DATASET_DERIVE), ...Object.values(OBJECT_CATEGORY_DERIVE).map((r) => r.ds)].map((ds) => DATASET_FICHIER_DERIVE[ds]))]
+      .sort(parUnitesDeCode).map((fichier): [string, string] => { const def = defParNom.get(fichier)!; return [fichier, join(def.root, def.file).split('\\').join('/')]; }),
     valeursDeRegle: regles.map((r) => [r.id, typeDeValeur(r)]),
   };
 }
@@ -297,9 +319,9 @@ function specificateur(sortie: string, chemin: string): string {
   return rel.startsWith('.') ? rel : `./${rel}`;
 }
 
-/** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
+/** Les sorties de la phase 2, rendues sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
-  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeLEspace, racines, valeursDeRegle } = await indexDesIds();
+  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeLEspace, racines, fichiersDeLAtelier, valeursDeRegle } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -375,7 +397,8 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {\n` +
     racines.map((r, i) => `  ${litteralJs(r.fichier)}: r${i},\n`).join('') +
     `};\n`;
-  return { textes: new Map([[SORTIE, body], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines]]), table, clesDeDataset, racines };
+  const atelier = `${JSON.stringify(Object.fromEntries(fichiersDeLAtelier), null, 2)}\n`;
+  return { textes: new Map([[SORTIE, body], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines], [SORTIE_ATELIER, atelier]]), table, clesDeDataset, racines };
 }
 
 /** Le texte de l'index des ids sur disque, `''` s'il n'existe pas encore. */
@@ -398,8 +421,7 @@ export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TA
 
 /** Les deux autres modules de la phase 2, importés par `src/data/overrides.ts`,
  *  `src/data/versionDataset.ts` et `src/data/index.ts` que la phase 2 charge : posés VIDES quand ils
- *  manquent (clone neuf, #2203 A2) ou qu'il leur manque un export de l'amorce (module rendu avant que
- *  la phase 2 n'en rende un de plus), puis rendus. */
+ *  manquent (clone neuf, #2203 A2) ou ne se chargent pas (`moduleChargeable`, #4161), puis rendus. */
 const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
   [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const CLES_CODEX = [] as const;\nexport type CleCodex = (typeof CLES_CODEX)[number];\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_L_ESPACE: Readonly<Record<string, DatasetDeCategorie>> = {};\n'],
   [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
@@ -408,11 +430,13 @@ const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
 /** Les noms exportés d'un module en texte (`export const|type <nom>`). */
 const exportsDe = (texte: string): Set<string> => new Set([...texte.matchAll(/^export (?:const|type) (\w+)/gm)].map((m) => m[1]));
 
-/** Le module `chemin` existe-t-il, avec chaque export de son `amorce` ? */
-function porteLesExports(chemin: string, amorce: string): boolean {
-  if (!existsSync(chemin)) return false;
-  const presents = exportsDe(readFileSync(chemin, 'utf8'));
-  return [...exportsDe(amorce)].every((nom) => presents.has(nom));
+/** Le module en texte se charge-t-il : il porte chaque export de son `amorce` (module rendu avant que la phase 2
+ *  n'en rende un de plus), et chaque document JSON qu'il importe `existe` encore, au chemin relatif à lui (dataset
+ *  supprimé depuis son rendu) ? */
+export function moduleChargeable(texte: string, amorce: string, existe: (relatif: string) => boolean): boolean {
+  const presents = exportsDe(texte);
+  return [...exportsDe(amorce)].every((nom) => presents.has(nom))
+    && [...texte.matchAll(/^import \w+ from '([^']+\.json)';$/gm)].every((m) => existe(m[1]));
 }
 
 /** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs), phase 2 : module → texte, sans
@@ -422,7 +446,7 @@ export async function rendre(): Promise<Map<string, string>> {
   return (await rendu()).textes;
 }
 
-/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET et les RACINES VIVANTES — seulement si leur contenu change.
+/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET, les RACINES VIVANTES et les FICHIERS DE L'ATELIER — seulement si leur contenu change.
  *  Un index illisible est d'abord remplacé par la table vide ; en `check`, il est un rouge et rien ne se calcule. */
 async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number } | null> {
   if (!indexChargeable(indexSurDisque())) {
@@ -433,7 +457,10 @@ async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: 
     }
     writeFileSync(SORTIE, TABLE_VIDE);
   }
-  for (const [chemin, amorce] of AMORCES_DES_MODULES) if (!porteLesExports(chemin, amorce)) writeFileSync(chemin, amorce);
+  for (const [chemin, amorce] of AMORCES_DES_MODULES) {
+    const present = existsSync(chemin) && moduleChargeable(readFileSync(chemin, 'utf8'), amorce, (relatif) => existsSync(join(dirname(chemin), relatif)));
+    if (!present) writeFileSync(chemin, amorce);
+  }
   const { textes, table, clesDeDataset, racines } = await rendu();
   let changed = false;
   for (const [chemin, texte] of textes) changed = ecrire(chemin, texte, check) || changed;

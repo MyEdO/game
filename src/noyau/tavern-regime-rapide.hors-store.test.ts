@@ -17,7 +17,8 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { setRule } from '../engine/policy';
-import { findTavernGameById, fastTavernGame, TAVERN_GAMES, TAVERN_FAST_RULE, tavernFastRegime } from '../engine/tavernGame';
+import { findTavernGameById, fastTavernGame, TAVERN_FAST_RULE, tavernFastRegime } from '../engine/tavernGame';
+import { TAVERN_GAMES } from '../data';
 import { toBrass } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { tavernParams } from './tavernFlow';
@@ -75,7 +76,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
    */
   it('active : AUCUN champ hors liste blanche, sur les TREIZE jeux du chapitre', () => {
     setRule(TAVERN_FAST_RULE, true);
-    const BLANCHE = new Set(['id', 'label', 'desc', 'skill', 'spec', 'characteristic', 'mode', 'source']);
+    const BLANCHE = new Set(['id', 'type', 'label', 'desc', 'skill', 'spec', 'characteristic', 'mode', 'source']);
     const fuites: string[] = [];
     for (const entree of TAVERN_GAMES) {
       const jeu = findTavernGameById(entree.id)!;

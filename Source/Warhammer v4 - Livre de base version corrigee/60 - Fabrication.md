@@ -1,6 +1,6 @@
 *Pages PDF 293-294*
 
-# **FABRICATION**
+# <span id="page-292-0" data-folio="291"></span>**FABRICATION**
 
 Les objets disponibles dans les échoppes, sur les étals et dans les halles de l'Empire varient de façon importante en matière de qualité. Tout ne se vaut pas, et les règles de Fabrication reflètent ce fait en utilisant des Atouts et des Défauts d'objets. Un Atout d'objet rend sa Possession un peu meilleure, mais il est plus difficile à trouver. Un Défaut d'objet rend sa Possession un peu moins bonne, mais il est plus facile à trouver.
 

@@ -1,7 +1,8 @@
 /**
  * Câblage audio de l'hôte : la musique de la partie en campagne seulement (`musicSelectionOf`), et les sons
  * ponctuels (#701) — un Effet de scène `playSfx` appliqué joue son son une fois, par `EVT.SFX` ; un id
- * hors registre ne joue rien ; régler le volume de la musique le réapplique à la piste en cours. ⚠ Suite sous `test.isolate:false` (vite.config.ts) :
+ * hors registre ne joue rien, le son coupé non plus ; régler le volume de la musique le réapplique à la piste en cours,
+ * couper le son l'arrête et le rétablir la reprend (#4081). ⚠ Suite sous `test.isolate:false` (vite.config.ts) :
  * les sons sont débranchés, `Audio` restauré et le store remis à zéro après chaque test.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -80,6 +81,16 @@ describe('brancherLesSons — Effet playSfx (#701)', () => {
     expect(volumes).toEqual([0.5 * (findSonById('piece')!.volume ?? 1)]);
   });
 
+  it('le son coupé (préférence `son-coupe`) : aucune lecture', () => {
+    setPreference('son-coupe', true);
+    try {
+      applyEffects(useGame.getState, useGame.setState, [{ type: 'playSfx', id: 'porte-ouvre' }] as Effect[]);
+    } finally {
+      setPreference('son-coupe', false);
+    }
+    expect(created).toEqual([]);
+  });
+
   it('débranché, plus aucun son', () => {
     debrancher();
     applyEffects(useGame.getState, useGame.setState, [{ type: 'playSfx', id: 'porte-ouvre' }] as Effect[]);
@@ -118,5 +129,45 @@ describe('setPreference — le volume de la musique en cours (#3949)', () => {
     expect(pistes).toHaveLength(1);
     setPreference('volume-musique', 0.5);
     expect(pistes[0].volume).toBe(0.5 * (findSonById('musique-combat')!.volume ?? 1));
+  });
+});
+
+describe('setPreference — couper le son arrête la musique en cours, le rétablir la reprend (#4081)', () => {
+  let pistes: { pausee: boolean }[] = [];
+  let debrancher: () => void = () => {};
+
+  beforeEach(() => {
+    pistes = [];
+    vi.stubGlobal('Audio', class {
+      volume = 1;
+      loop = false;
+      paused = false;
+      pausee = false;
+      constructor() { pistes.push(this); }
+      play() { return new Promise<void>(() => {}); }
+      pause() { this.pausee = true; }
+    });
+    // Chaque image arrive un fondu entier plus tard : un fondu finit à sa première image.
+    let maintenant = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => (maintenant += 1000));
+    vi.stubGlobal('requestAnimationFrame', (image: FrameRequestCallback) => { image(0); return 0; });
+    debrancher = brancherLesSons();
+  });
+
+  afterEach(() => {
+    debrancher();
+    setPreference('son-coupe', false);
+    playMusic(null);
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('une musique joue : couper le son la met en pause, le rétablir rejoue la sélection courante', () => {
+    playMusic({ def: 'musique-combat' });
+    expect(pistes).toHaveLength(1);
+    setPreference('son-coupe', true);
+    expect(pistes.map((p) => p.pausee)).toEqual([true]);
+    setPreference('son-coupe', false);
+    expect(pistes.map((p) => p.pausee)).toEqual([true, false]);
   });
 });

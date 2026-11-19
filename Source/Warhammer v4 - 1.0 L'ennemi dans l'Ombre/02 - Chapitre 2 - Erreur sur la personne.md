@@ -14,7 +14,7 @@ Après deux heures de voyage sur la route principale, à la sortie d'un virage, 
 
 # 24
 
-Yanick Bedard - pumpkinhead83@hotmail.fr
+
 
 ## DOCUMENT 2 : ROLF HURTSIS
 

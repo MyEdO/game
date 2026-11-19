@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "cercle-runique"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-chaos"
+    },
+    {
+      "nom": "rune",
+      "palette": "accent",
+      "matiere": "prop--rune-chaos"
+    }
+  ],
+  "glb": {
+    "sha256": "44afcda7550312d2965966897970f3cc00f508cea029bcd9fdd11bea122c7dc0",
+    "octets": 67168
+  }
+}

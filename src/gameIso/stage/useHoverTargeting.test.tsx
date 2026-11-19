@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { nomEnVue } from '../../noyau/visionDuGroupe';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -298,6 +299,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     expect(aim, 'la carte est rendue et cliquable : le survol ne peut pas être muet').not.toBeNull();
     expect(aim?.tip, 'la cible frappable porte sa carte de jet').toBeTruthy();
     expect(aim?.tip?.difficulty, 'le survol dit la Difficulté que la modale dira').toBeDefined();
+    expect(aim?.tip?.targetName, 'la carte nomme la cible par `nomEnVue` (#4017)').toBe(nomEnVue(useGame.getState(), foe.id));
   });
 });
 
@@ -335,7 +337,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
     const anchor = (c: Combatant) => ({ cx: (c.pos?.x ?? 0) * 10, cy: (c.pos?.y ?? 0) * 10 });
     return renderToStaticMarkup(
       <svg>
-        <AimOverlay battle={battle} hoverAim={aim} anchor={anchor} dims={dims}
+        <AimOverlay scene={useGame.getState().scene} battle={battle} hoverAim={aim} anchor={anchor} dims={dims}
           pendingAttack={null} pendingDefense={null} pendingHeal={null} pendingCast={null} />
       </svg>,
     );

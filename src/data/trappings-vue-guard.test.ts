@@ -13,27 +13,25 @@ import { corpusDesGardes } from '../../scripts/guards/lib/commentPoison.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /** Où la collection brute est légitime : la déclaration des vues, le seam, la racine générée, et le
- *  Codex (qui montre tout le catalogue). */
+ *  Codex (qui montre tout le catalogue), son atelier et sa session (qui le lisent et l'écrivent entier). */
 const FOYER = [
   'src/data/index.ts',
   'src/data/apparencesObjets.ts',
+  'src/data/atelierDuCodex.ts',
   'src/data/overrides.ts',
   'src/data/schemas/_racines-vivantes.generated.ts',
   'src/noyau/codex/registry.ts',
   'src/noyau/codex/relations.ts',
+  'src/noyau/codex/session.ts',
 ];
 
 /** Sites où un appel au seam est ADMIS, chacun avec sa raison. */
 const SITES_ADMIS: readonly (SiteAdmis & { readonly raison: string })[] = [
   { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'collectionDuDataset', raison: 'observation DEV du catalogue par id, en copie détachée ; aucun objet instancié' },
   { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'datasetSerializeRoot', raison: 'lecture du schéma de la collection observée en copie détachée DEV ; aucune instanciation ni écriture' },
-  { rel: 'src/data/atelierDuCodex.ts', englobante: 'validateEntry', appele: 'datasetArray', raison: 'existence d’une référence dans le dataset de SON champ niché (`NESTED_REF_FIELDS`) : comparaison, rien n’est instancié' },
-  { rel: 'src/data/atelierDuCodex.ts', englobante: 'editableEntries', appele: 'datasetArray', raison: 'les entrées ÉDITÉES au Codex, qui montre tout le catalogue' },
-  { rel: 'src/data/atelierDuCodex.ts', englobante: 'enregistrerEntree', appele: 'datasetArray', raison: 'l’écriture au seam du dataset édité' },
-  { rel: 'src/data/atelierDuCodex.ts', englobante: 'enregistrerEntree', appele: 'datasetSerializeRoot', raison: 'l’écriture au seam du dataset édité' },
   { rel: 'src/ui/editor/codex/CodexEdit.tsx', englobante: 'ProsthesisField', appele: 'datasetArray', raison: 'champ de COMPARAISON (`traumas.prosthesis`, `engine/trauma.ts › prosthesisCancels` compare aux objets portés, n’instancie rien), #1463' },
-  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'useUnivers', appele: 'datasetArray', raison: 'univers d’un sélecteur générique : ses options et sa saisie se jugent sur la sous-liste du nœud du champ (`refusDuNoeud`)' },
-  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'valeursDistinctes', appele: 'datasetArray', raison: 'valeurs distinctes d’un champ (libellés, vocabulaire) proposées à une saisie libre, jamais des ids' },
+  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'useUnivers', appele: 'entreesDuDataset', raison: 'univers d’un sélecteur générique : ses options et sa saisie se jugent sur la sous-liste du nœud du champ (`refusDuNoeud`)' },
+  { rel: 'src/ui/compendium/refField/RefField.tsx', englobante: 'valeursDistinctes', appele: 'entreesDuDataset', raison: 'valeurs distinctes d’un champ (libellés, vocabulaire) proposées à une saisie libre, jamais des ids' },
 ];
 
 const PARAMETRES = {
@@ -44,7 +42,7 @@ const PARAMETRES = {
     { module: 'src/data/schemas/_racines-vivantes.generated.ts', exporte: 'RACINES_VIVANTES' },
   ],
   json: 'trappings.json',
-  seam: { module: 'src/data/overrides.ts', fonctions: ['datasetArray', 'collectionDuDataset', 'datasetSerializeRoot'] },
+  seam: { module: 'src/data/overrides.ts', fonctions: ['datasetArray', 'entreesDuDataset', 'collectionDuDataset', 'datasetSerializeRoot'] },
   dataset: 'trappings',
 } as const;
 const domaine = (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel);

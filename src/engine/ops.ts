@@ -18,20 +18,32 @@ import type { FabriqueDId } from './fabriqueDId';
 import { RNG, roll, type DiceSpec, type EffetSigne, type Tirage, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
-import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
+import {
+  addCondition,
+  addTimedCondition,
+  addClockCondition,
+  removeCondition,
+  loseWounds,
+  hasCondition,
+  releaseConditionLocks,
+  aUnVerrouLevePar,
+  syncDerivedConditions,
+  removeActiveEffects,
+  pionsRetirables,
+} from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY } from './clock';
-import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
+import { contractDiseaseOnce, exposerALaMaladie, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
 import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
-import type { SeaWeather } from './seaWeather';
+import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import type { CustomStatblock } from './statblock';
 import { ALL_MAGIC, type CastPenalty, type Difficulty, type Main } from './types';
 import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
-import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
+import { contexteDeTestSchema, exposureLevelSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
@@ -42,20 +54,53 @@ import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { deDeTirageDe } from '../data/rangees';
-import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
+// cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
+import {
+  peutEtreEmpoigne,
+  setGrapple,
+} from './grapple';
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
 import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
-import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, estPlaieAmputation, plaieDAmputation, avecSequelles, type SequelleNeuve } from './trauma';
+import {
+  cureCriticalWounds,
+  receiveMedicalAid,
+  traumaPassiveMods,
+  permanentAmputations,
+  consolidateAmputations,
+  estPlaieAmputation,
+  plaieDAmputation,
+  avecSequelles,
+  type SequelleNeuve,
+} from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, activeLoadout, damageString, autoStowNewItem, lacherLArme, laisserTomber, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
+import {
+  contexteDeNaissanceDObjet,
+  damageLeatherArmour,
+  endommagerLEquipementPorte,
+  itemFromGive,
+  giveTrappingLabel,
+  recomputeLoadout,
+  weaponItem,
+  activeLoadout,
+  damageString,
+  autoStowNewItem,
+  lacherLArme,
+  laisserTomber,
+  armeNaturelleAccordee,
+  estUneVraieArme,
+  objetDeSlot,
+  isWeaponActive,
+  uidDArme,
+} from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
-import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction, type PsychType } from './psychology';
+import { retraitsDits } from './weaponDamage';
+import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
@@ -588,17 +633,19 @@ export type GameOp =
    *  « enlevez 1 point de Péché, ou 2 sur un Succès Impressionnant ») — jamais sous 0. COUTURE UNIQUE
    *  du Péché : l'Effet de scène `giveSin` passe par CETTE op (une seule implémentation). */
   | { op: 'sinMod'; amount: number }
-  /** EXPOSITION à une Influence corruptrice (LDB 19 l.23-75) : Test différé par MODALE
-   *  (pendingCorruption) — op IMPURE résolue par la couche state via `ctx.onCorruptionExposure`
-   *  (même patron que `ctx.onCorruption`) ; sans contexte (moteur pur), journalisée sans jet.
+  /** EXPOSITION à une Influence corruptrice (LDB 19 l.29) : op IMPURE résolue par le noyau via
+   *  `ctx.onCorruptionExposure` (`noyau/corruptionFlow.crochetsDeCorruption`), qui reçoit la cible ;
+   *  sans contexte (moteur pur), journalisée sans jet.
    *  `nature` absente = indéterminée → le joueur choisit le Test de `influences-corruptrices` dans la modale.
    *  DEUX SENS, une seule op — `easeSteps` présent = la cible est ABRITÉE : l'op pose une protection
    *  (`ActiveEffect.corruptionEase`, N crans) qui ATTÉNUE toute Influence subie tant qu'elle dure
    *  (VDM 05 — Bouclier en acier doré : « réduit de 2 crans une Influence corruptrice (une Exposition
    *  Majeure en devient une Mineure par exemple) ») ; `level` est alors inutile. Sinon l'op POSE
    *  l'exposition, de niveau `level` atténué par la protection que la cible porte déjà (`easeExposure`).
-   *  Un niveau atténué sous la Mineure ne pose AUCUNE exposition. */
-  | { op: 'corruptionExposure'; level?: ExposureLevel; nature?: NatureDInfluence; easeSteps?: number }
+   *  Un niveau atténué sous la Mineure ne pose AUCUNE exposition.
+   *  `difficulty` : la Difficulté que la source imprime pour le Test (ZI 13 l.197) ; absente, celle du Test
+   *  de `influences-corruptrices`. */
+  | { op: 'corruptionExposure'; level?: ExposureLevel; nature?: NatureDInfluence; difficulty?: Difficulty; easeSteps?: number }
   /** Points de Chance OU de Destin accordés (`resource`, LDB 47 — « Les Signes d'Amul », « Que la
    *  chance persiste », « Maître du Destin », « Troisième Signe d'Amul ») : incrément immédiat (peut
    *  dépasser le maximum — c'est un grant de Sort) ; `temporary` pose un effet actif qui RETIRE les
@@ -652,7 +699,7 @@ export type GameOp =
    *  instance, pas une par jour). */
   | { op: 'removeTrait'; trait: { id: string } }
   /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
-   *  `c.psychTraits` à l'attache. `psychType.id` = `PsychType` (frenesie, peur…). Champs réservés aux sorts
+   *  `c.psychTraits` à l'attache. `psychType.id` = un id de `psychology.json` (frenesie, peur…). Champs réservés aux sorts
    *  (`grammaire/mecanique.ts`) : `envers` vise une personne que le DÉCIDEUR choisit (VDM 10 l.327), résolue
    *  par le noyau en `cible` d'individu AVANT `applyOps` (`noyau/personneChoisie.ts`) ; `resistanceSiAmis`, le
    *  Test qui permet à la cible de résister quand elle et la personne sont amies (VDM 10 l.327) ;
@@ -887,7 +934,8 @@ export type GameOp =
   /** ATTAQUE GRATUITE accordée par un talent/état (Frénésie : 1 attaque d'Arme/Round ; Assaut féroce :
    *  attaque supplémentaire à la touche ; Frappe réactive : riposte quand on est Chargé). Effet IMPUR (ouvre
    *  une frappe) RÉSOLU par la couche state (`accorderLAttaqueGratuite` de `combatFlow`, appelé par `runCombatFlow`
-   *  sur ce `do`) ; INERTE dans `applyOps`. `weapon` : arme tenue / main principale / naturelle. `when` :
+   *  sur ce `do`) ; INERTE dans `applyOps`. `weapon` : 'held' = arme du coup (`firedWeapon`), 'mainHand' = arme
+   *  de la main principale (`armeDeMainPrincipale`, LDB 10 l.500). `when` :
    *  'available' = surfacée comme OPTION du Tour (Frénésie, lue par `availableAttacks`) ou 'immediate' = résolue
    *  tout de suite (depuis un effet déclenché). `coutEnAvantage` / `avantageOuMouvement` : ce que la frappe
    *  coûte au porteur. `activeIf` : condition
@@ -895,21 +943,21 @@ export type GameOp =
    *  plafond /Round est porté par la couche state (= niveau du talent). Un éventuel jet PRÉALABLE (Frappe
    *  réactive : Test d'Initiative) est un nœud Flow `test` EN AMONT du `do`, pas un champ de l'op (cadence-aware
    *  via `resolveFlowTest`). */
-  | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand' | 'natural'; when: 'available' | 'immediate';
+  | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand'; when: 'available' | 'immediate';
       coutEnAvantage?: number; avantageOuMouvement?: boolean;
       activeIf?: 'frenzied'; perChargerOncePerRound?: boolean; label?: string }
   /** Marqueur IMPUR de la branche d'ÉCHEC du Test `interruption-de-focalisation` (LDB 46 l.144) :
    *  la cible perd tous les DR focalisés (couverts par son composant) et subit une Incantation Imparfaite
    *  Mineure. Résolu par la couche state (combatFlow : `applyFocusInterruption` via le hook injecté
    *  `focusInterrupt` appelé par `runCombatFlow`), qui détient get/set et le combattant. `applyOps` (moteur
-   *  pur) le laisse INERTE — comme `grantFreeAttack`/`summon`/`zone`. */
+   *  pur) le laisse INERTE — comme `grantFreeAttack`/`summon`. */
   | { op: 'interruptFocus' }
   /** Marqueur IMPUR de la branche de VICTOIRE d'un Test opposé de Piège-lame (LDB 62 l.280) : l'adversaire
    *  est désarmé (sa lame arrachée) et, sur un Succès Stupéfiant (marge nette ≥ 6 DR), sa lame est BRISÉE à
    *  moins qu'elle ne possède l'Atout Incassable. Résolu par la couche state (combatFlow : `applyBladeTrap`
    *  via le hook injecté `piegeALame` appelé par `runCombatFlow`), qui détient get/set, l'attaquant ciblé et
    *  l'arme visée (contexte sérialisé `ctx.piegeALame`). `applyOps` (moteur pur) le laisse INERTE — comme
-   *  `grantFreeAttack`/`interruptFocus`/`summon`/`zone`. */
+   *  `grantFreeAttack`/`interruptFocus`/`summon`. */
   | { op: 'breakBlade' }
   /** CHUTE (`LDB 15 l.80`, `l.84`) : la cible tombe de la hauteur que dit une TABLE (`hauteur.table`,
    *  `ship-criticals.json` → `tablesDeChute`), lue par (Taille de la coque `ctx.hull` × station du
@@ -942,7 +990,8 @@ export type GameOp =
    *  1d`sides` UNE fois, applique les `ops` de CHAQUE palier dont `atLeast` est atteint (cumulatif).
    *  Les ops de palier voient `{rolled}` = la valeur du dé. UN seul jet partagé (≠ jets indépendants). */
   | { op: 'rollThreshold'; sides: number; thresholds: { atLeast: number; ops: GameOp[] }[] }
-  /** Tirage sur TABLE (`die` = dé de tirage, `deDeTirageSchema`) : lookup par fourchette `[min,max]` (`findTableEntry`, source
+  /** Tirage sur TABLE (`die` = dé de tirage des `entries` inline, `deDeTirageSchema` ; sous `tableId`, le dé est
+   *  celui de la table, jamais l'op — #1667) : lookup par fourchette `[min,max]` (`findTableEntry`, source
    *  unique), les `ops` de la rangée touchée sont appliquées avec le MÊME ctx. DEUX formes exclusives de
    *  la table : `entries` INLINE (authorées sur l'op) OU `tableId` = référence à `tables.json`
    *  (`findEffectTableById`, fail-fast) — jamais les deux (membres stricts d'`OP_DEFS.rollTable`). `mod` = modificateur
@@ -954,8 +1003,8 @@ export type GameOp =
    *  LDB 47 l.13-17 / EDOC 13 l.230+270-276 : « pour chaque +2 DR […] vous POUVEZ à la fois prolonger
    *  la durée et refaire un jet sur le Tableau » — déclinable ; la durée se prolonge sur TOUS les pas
    *  alloués quel que soit le choix). Généralise tout « lancez 1dN [+ modif], consultez le tableau ». */
-  | { op: 'rollTable'; die: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; entries: { min: number; max: number; ops: GameOp[] }[] }
-  | { op: 'rollTable'; die?: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
+  | { op: 'rollTable'; die: DiceSpec; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; entries: { min: number; max: number; ops: GameOp[] }[] }
+  | { op: 'rollTable'; die?: never; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
   /** Tirage d'une MUTATION sur une table de Corruption (`mutationTables.json`, par id `table`) —
    *  réutilise `rollMutation()` + `attachMutation()` (`corruption.ts`/`mutations.ts`). DURÉE identique à
    *  `grantTrait` (EDOC 13 l.276-277 « appliquez […] pour toute la durée du Sort ») : durée du contexte
@@ -986,9 +1035,9 @@ export type GameOp =
    *  `resolveTriggerImpureOps` au décès, déclenché par `fireScheduledEffects` à l'échéance ; INERTE dans
    *  `applyOps` (moteur pur), comme `summon`. */
   | { op: 'scheduleRespawn'; ref: string; delayDays: Formula; count?: Formula; allyOfCaster?: boolean; cancelFlag?: string }
-  /** ZONE PERSISTANTE posée par le sort (Mur de feu, Grands feux d'U'Zhul, Vol du Destin). Effet IMPUR
-   *  (pose une zone dans la scène/bataille) RÉSOLU par la couche state (`noyau/combatEffects`) ; INERTE
-   *  dans `applyOps`. `shape` disc/wall ; `radiusMeters` (disque) ou `lengthMeters` (mur, +`lengthPerSL`
+  /** ZONE PERSISTANTE posée par un sort (Mur de feu, Grands feux d'U'Zhul, Vol du Destin : `placeSpellZone`) ou
+   *  par un effet déclenché qui porte sa durée (`durationRounds`, Bombe fumigène : crochet `OpsCtx.onZone`). Effet
+   *  IMPUR (pose une zone dans la scène/bataille) RÉSOLU par la couche state ; INERTE dans `applyOps` sans crochet. `shape` disc/wall ; `radiusMeters` (disque) ou `lengthMeters` (mur, +`lengthPerSL`
    *  « +N m par +2 DR ») ; `blocksLoS` ; `onCross`/`perRound` = effets de zone (traversée / fin de Round). */
   | { op: 'zone'; shape: 'disc' | 'wall'; radiusMeters?: Formula; lengthMeters?: Formula;
       lengthPerSL?: { every: number; metersFormula: Formula }; blocksLoS?: boolean;
@@ -1003,7 +1052,12 @@ export type GameOp =
       /** BARRIÈRE infranchissable (Protection de Phâ : « ne peuvent pas entrer ») ; `gate:'profane'`
        *  restreint barrière + `perRound` aux créatures profanes ; `noCorruption` : nul gain de Corruption
        *  pour les occupants tant que la zone dure (LDB 48 l.393). */
-      barrier?: boolean; gate?: 'profane'; noCorruption?: boolean }
+      barrier?: boolean; gate?: 'profane'; noCorruption?: boolean;
+      /** Durée en Rounds d'une zone posée HORS sort (#4202) — dé ouvert à la porte (`DES_DUNE_OP`). Interdite sur
+       *  l'op d'un sort : sa durée est celle du sort (`placeSpellZone`, LDB 47 l.15). */
+      durationRounds?: Formula;
+      /** Le rendu qui montre la zone tant qu'elle dure (`BattleZone.rendu`). */
+      rendu?: { id: string } }
   /** MÉTAMORPHOSE en créature (Forme bestiale, LDB 48) : remplace F/E/Ag/Dex (charMod différentiel) et
    *  accorde les Traits de la créature sauf Bestial (grantTrait), auto-restitués à l'expiration. `ref` =
    *  créature du bestiaire (forme LIBRE — « les Bêtes du Reikland », pas l'Ours seul). Pure : expansée
@@ -1144,7 +1198,7 @@ export type GameOp =
    *  Le gate tient tant que l'Hémorragique tient (`removeCondition` purge le marqueur à 0). */
   | { op: 'handGate' }
   /** Perte d'un organe sensoriel PAIRÉ (œil/oreille). Porté par une séquelle dont l'entrée déclare son
-   *  seuil d'escalade (`TraumaCumul.escalade` : 2 organes → Cécité/Surdité, LDB 18 l.273/277). */
+   *  seuil d'escalade (`TraumaFiche['cumul']` `escalade` : 2 organes → Cécité/Surdité, LDB 18 l.273/277). */
   | { op: 'senseLoss'; sense: PairedSense }
   /** Perd sa prochaine Action ET/OU son prochain Mouvement (Affamé : « festoie » ; échec du gate de la
    *  Racine de mandragore : « une Action ou un Mouvement (un au choix) », LDB 71 l.35 → l'issue du choix
@@ -1229,8 +1283,9 @@ export type GameOp =
   | { op: 'light'; radiusM: number; tone?: { id: string } }
   /** Boisson alcoolisée : enregistre UN échec de Résistance à l'alcool (LDB 09 l.475) sur la cible —
    *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
-   *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
-  | { op: 'intoxicate' }
+   *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow).
+   *  `tantQuIvre` : ops jouées sous l'effet d'ivresse (`EFFET_D_IVRESSE`), retirées au dessoûlage. MDG 16 l.411 */
+  | { op: 'intoxicate'; tantQuIvre?: GameOp[] }
   /** Narration de campagne : texte Markdown et provenance locale. #2001. `nombre` : un nombre tiré à
    *  l'application, annoncé après le texte. MDG 15 l.154-155 */
   | { op: 'narrative'; text: string; nombre?: Formula; source?: SourceRef; adapteDe?: SourceRef }
@@ -1253,7 +1308,7 @@ export type GameOp =
    *  souffle à l'opposé des dominants (`ventInverse`), et chaque matin `aggravation.de` ≥ `seuil` impose en
    *  plus `aggravation.meteo`. Posée sur le navire, elle vaut au départ d'un port. Op de NAVIRE.
    *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
-  | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo }
+  | { op: 'meteoImposee'; jours: Formula; meteo?: MeteoImposee; ventInverse?: true; aggravation?: AggravationMeteo }
   /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
    *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port ; OU
    *  `perduePct` % de l'Enc de la cale perdus ; OU `perdueEnc` Enc de la cale perdus. Op de NAVIRE.
@@ -1317,7 +1372,7 @@ export type GameOp =
   | { op: 'marcheDuPort'; demande: number; jours: Formula; colonnes?: never; offre?: never };
 
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
-export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
+export interface AggravationMeteo { de: Formula; seuil: number; meteo: MeteoImposee }
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
@@ -1413,9 +1468,9 @@ export interface OpsCtx {
   /** Forme choisie par le lanceur pour une arme invoquée à forme libre (op `grantWeapon` +
    *  `chooseForm`) — fixe Groupe/allonge/mains. Défaut (absent) : la 1ʳᵉ forme proposée. */
   conjureForm?: ConjureForm;
-  /** Branché par le store : EXPOSITION corruptrice (op `corruptionExposure`) → Test différé par modale
-   *  (pendingCorruption). Sans hook (moteur pur/tests), l'op est journalisée inerte. */
-  onCorruptionExposure?: (level: ExposureLevel, nature?: NatureDInfluence) => string[];
+  /** EXPOSITION corruptrice (op `corruptionExposure`) de `cible`, au niveau déjà atténué — fourni par
+   *  `noyau/corruptionFlow.crochetsDeCorruption`. Sans hook (moteur pur/tests), l'op est journalisée inerte. */
+  onCorruptionExposure?: (cible: Combatant, level: ExposureLevel, nature?: NatureDInfluence, difficulty?: Difficulty) => string[];
   /** Branché par la couche state : NOTIFICATION des mouvements d'État posés par ces ops (`condition` /
    *  `removeCondition`) — l'id part À CÔTÉ de la ligne, appariée 1:1 avec elle (#1330). Le moteur NOTIFIE :
    *  aucun texte n'en dépend, et sans hook les lignes rendues sont STRICTEMENT identiques. */
@@ -1523,9 +1578,9 @@ export interface OpsCtx {
   hiddenFromFoes?: boolean;
   engaged?: boolean;
   nearestFoeDist?: number;
-  /** Gain de Corruption AVEC seuil → mutation (corruptionFlow) ; sans contexte
-   *  store, l'op `corruption` incrémente simplement le compteur. */
-  onCorruption?: (n: number, align?: ChaosAlign) => string[];
+  /** Gain de Corruption de `cible` AVEC seuil → mutation (`noyau/corruptionFlow.crochetsDeCorruption`) ;
+   *  sans hook, l'op `corruption` incrémente simplement le compteur. */
+  onCorruption?: (cible: Combatant, n: number, align?: ChaosAlign) => string[];
   /** GAIN d'Avantage de l'op `gainAdvantage`, fourni par le noyau (`noyau/combat/advantagePool.ts`
    *  `campGain` : seul point de gain en combat, AA 11 l.11-13, LDB 10 l.364). Absent : primitif
    *  `engine/advantage.gainAdvantage`. */
@@ -1534,6 +1589,13 @@ export interface OpsCtx {
    *  retiré de lui (`laisserTomber`), pour le déposer au sol à sa case. Sans crochet (moteur pur, hors combat), l'arme
    *  quitte la main et reste à son porteur (`lacherLArme`). */
   onLacher?: (c: Combatant, objet: ItemInstance) => void;
+  /** Branché par la couche state (`noyau/combatFlow.crochetDeZone`) : POSE la zone d'une op `zone` qui porte sa durée
+   *  (`durationRounds`, déjà tirée en `rounds`) sur `cible`, ou au point `centreDeZone`. Sans crochet (moteur pur), l'op
+   *  reste inerte. */
+  onZone?: (op: Extract<GameOp, { op: 'zone' }>, rounds: number, cible: Combatant, ctx: OpsCtx) => string[];
+  /** Point où se pose la zone d'une op `zone` quand ce n'est pas la case de sa cible : le point d'arrivée d'une arme
+   *  lancée qui manque (LDB 14 l.142 ; #4202). */
+  centreDeZone?: { x: number; y: number; z?: number };
   /** Clause d'Avantage de groupe (AA) du Trait Redoutable (`MDG 16 l.13`) : branché par le store
    *  (`noyau/combat/advantagePool.ts` `creditOpposingAdvantage`, fourni par `turnHooks.fireTurnEdgeTriggers`
    *  pour `onTurnStart`) sur l'op `topUpAdvantage{feedOpposingPool:true}` — crédite `n` (l'Indice PLEIN) à la
@@ -1711,6 +1773,7 @@ export interface DemandeDe {
  */
 interface ChampsDOp {
   fall: 'hauteur' | 'degats';
+  zone: 'duree';
 }
 
 /** UN dé DÉCLARÉ par une op, avant que son rang ne lui donne sa clé — la forme AUTEUR de `DemandeDe`. */
@@ -1741,7 +1804,8 @@ function hauteurDeChute(o: Extract<GameOp, { op: 'fall' }>, target: Combatant, c
   if (!taille) throw new Error(`op « fall » (« ${table.label} ») : aucune Taille de coque au contexte (ctx.hull) — la hauteur se lit par la Taille du bateau (MDG 12 l.122-129).`);
   const bande = table.bandes.find((b) => b.tailles.includes(taille));
   if (!bande) throw new Error(`op « fall » (« ${table.label} ») : aucune bande ne couvre la Taille « ${taille} ».`);
-  const hauteur = target.shipStation === undefined ? undefined : structuredClone(bande.hauteurs[target.shipStation]); // #2097
+  const colonne = Object.entries(bande.hauteurs).find(([station]) => station === target.shipStation)?.[1];
+  const hauteur = colonne === undefined ? undefined : structuredClone(colonne); // #2097
   if (hauteur === undefined) throw new Error(`op « fall » (« ${table.label} ») : ${target.label} n'a pas de colonne de hauteur pour la station « ${target.shipStation ?? '—'} ».`);
   return { hauteur, table: table.label };
 }
@@ -1766,6 +1830,10 @@ const DES_DUNE_OP: { [K in keyof ChampsDOp]: (o: Extract<GameOp, { op: K }>, tar
       { champ: 'degats' as const, spec: D10_CHUTE, libelle: t('op.chute.deDegats') },
     ];
   },
+  // #4202
+  zone: (o): DeDeclare<ChampsDOp['zone']>[] => (typeof o.durationRounds === 'object' && 'dice' in o.durationRounds
+    ? [{ champ: 'duree' as const, spec: o.durationRounds.dice, libelle: t('op.zone.deDuree'), unite: 'Rounds' }]
+    : []),
 };
 
 /**
@@ -1824,21 +1892,21 @@ export const OPS_CTX_GELES = [
   'defaultDurationRounds', 'defaultUntilTime', 'now', 'sl', 'overcastDurationSteps', 'chosenTableRolls',
   'noReentryOwnTestFailed', 'woundsDealt', 'rolled', 'indice', 'stacks', 'engagedAdvantageGap',
   'engagedAdvantageLead', 'location', 'attackKind', 'startleCause', 'foeInLoS', 'affliction', 'cibleEnVue',
-  'hiddenFromFoes', 'engaged', 'nearestFoeDist', 'weapon',
+  'hiddenFromFoes', 'engaged', 'nearestFoeDist', 'weapon', 'centreDeZone',
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
-/** REBÂTIS à la reprise par un chemin NOMMÉ : le rng et la fabrique d'ids de la partie, les hooks de Corruption et d'Avantage
- *  branchés sur l'état (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur
- *  les étapes sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'des'] as const;
+/** REBÂTIS à la reprise par un chemin NOMMÉ (`noyau/combatEffects.ctxRepris`) : le rng et la fabrique d'ids de la partie,
+ *  les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage et du sol, qui reçoivent leur
+ *  cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
+ *  sœurs — jamais recopiés). */
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
- *  aucun contexte : horloge d'effets de `conditions.ts` (`onCondition`), interlude
- *  (`onCorruptionExposure`), Critique de `noyau/combatFlow.ts` (`surLigne`, que les ops imbriquées
- *  d'`applyOps` ne reçoivent pas). */
-export const OPS_CTX_HORS_CANAL = ['onCorruptionExposure', 'onCondition', 'surLigne'] as const;
+ *  aucun contexte : horloge d'effets de `conditions.ts` (`onCondition`), Critique de `noyau/combatFlow.ts`
+ *  (`surLigne`, que les ops imbriquées d'`applyOps` ne reçoivent pas). */
+export const OPS_CTX_HORS_CANAL = ['onCondition', 'surLigne'] as const;
 
 type CleClassee =
   | (typeof OPS_CTX_GELES)[number] | (typeof OPS_CTX_PAR_REFERENCE)[number]
@@ -1976,12 +2044,43 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
   }
 }
 
+/** La ligne de journal d'un Test d'Exposition dû par `c`, niveau libellé. LDB 19 l.29 */
+export function ligneDExposition(c: Combatant, level: ExposureLevel): string {
+  return t('op.expositionALaCorruption', { name: c.label, level: libelleDeValeur(exposureLevelSchema, level) });
+}
+
 /** La raison pour laquelle les ops de RÉUSSITE `ops` d'un geste délibéré (Activité, consommable) n'auraient
  *  rien à changer à `c` : chacune est `opSansObjet`, et la première dit pourquoi ; `null` sinon. */
 export function reussiteSansObjet(c: Combatant, ops: readonly GameOp[], ctx: ContexteDeRetrait = {}): string | null {
   if (!ops.length) return null;
   const raisons = ops.map((o) => opSansObjet(c, o, ctx));
   return raisons.every((r) => r != null) ? raisons[0] : null;
+}
+
+type OpTable = Extract<GameOp, { op: 'rollTable' }>;
+
+/** Les rangées d'une op `rollTable` : en ligne (`entries`) ou référencées (`tableId` → tables.json, fail-fast). */
+function rangeesDeLaTable(o: OpTable): { min: number; max: number; ops: GameOp[] }[] {
+  return 'tableId' in o ? findEffectTableById(o.tableId).entries : o.entries;
+}
+
+/** Une rangée tirée d'une `rollTable` : ses ops et le dé tiré (`rolled` des ops de la rangée). */
+interface RangeeTiree { ops: GameOp[]; rolled: number }
+
+/** Développe une op `rollTable` en rangées tirées, sans rien appliquer : un jet par rangée rendue, tiré à la
+ *  demande (l'appelant qui applique une rangée avant la suivante garde l'ordre des tirages de `rng`).
+ *  VDM 03 l.698 ; MSRC 16 l.90 ; EDOC 13 l.276 */
+export function* tirerLaTable(o: OpTable, ctx: Pick<OpsCtx, 'sl' | 'overcastDurationSteps' | 'chosenTableRolls'>, rng: RNG): Generator<RangeeTiree> {
+  const rows = rangeesDeLaTable(o);
+  const de = 'tableId' in o ? effectTableDie(o.tableId) : deDeTirageDe(o);
+  const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);
+  const allocatedSteps = Math.max(0, ctx.overcastDurationSteps ?? 0);
+  const chosenSteps = Math.min(ctx.chosenTableRolls ?? allocatedSteps, allocatedSteps);
+  const times = 1 + (o.extraRollsPerStep ? chosenSteps * o.extraRollsPerStep : 0);
+  for (let i = 0; i < times; i++) {
+    const rolled = rollDice(de, rng);
+    yield { ops: findTableEntry(rows, rolled + modifier).ops, rolled };
+  }
 }
 
 /**
@@ -2219,7 +2318,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // UPSERT par identité pour un Trait CIBLÉ, par (`type` + `sourceId`) sinon : un re-Test contre la
         // MÊME source met à jour SON entrée au lieu d'en empiler une seconde.
         const list = [...(target.psychState ?? [])];
-        const type = o.type.id as PsychType;
+        const type = o.type.id;
         const cible = o.cible === undefined ? undefined : cibleDeRef(o.cible);
         const identite = identiteDeCiblage(type, cible);
         const at = list.findIndex((p) => (cible !== undefined ? identiteDeCiblage(p.type, p.cible) === identite : p.type === type && p.sourceId === o.sourceId));
@@ -2317,7 +2416,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           target.corruption = Math.max(0, before + amount);
           lines.push(t('op.corruptionRetiree', { name: target.label, delta: target.corruption - before, total: target.corruption }));
         } else if (ctx.onCorruption) {
-          lines.push(...ctx.onCorruption(amount, o.align));
+          lines.push(...ctx.onCorruption(target, amount, o.align));
         } else {
           // Sans contexte store (moteur pur, tests unitaires) : simple incrément — align ignoré.
           target.corruption = (target.corruption ?? 0) + amount;
@@ -2341,16 +2440,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           lines.push(t('op.corruptionAllegee', { name: target.label, n: o.easeSteps, src: nomDeSource(ctx) }));
           break;
         }
-        // Test d'Exposition différé (LDB 19 l.23-75) : le store ouvre la modale (pendingCorruption) ;
-        // moteur pur sans hook → journalisé inerte (rien de tiré en silence). Le niveau posé est celui
-        // ATTÉNUÉ par les abris que la cible porte — sous le premier cran, l'Influence ne s'applique plus.
+        // LDB 19 l.29 ; VDM 05 (abri). Moteur pur sans hook : journalisé inerte, rien de tiré en silence.
         const level = easeExposure(o.level ?? 'mineure', corruptionEaseSteps(target));
         if (level == null) {
           lines.push(t('op.corruptionConjuree', { name: target.label }));
           break;
         }
-        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(level, o.nature));
-        else lines.push(t('op.expositionALaCorruption', { name: target.label, level }));
+        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(target, level, o.nature, o.difficulty));
+        else lines.push(ligneDExposition(target, level));
         break;
       }
       case 'gainResource': {
@@ -2495,8 +2592,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           ...(o.addQualities ?? []).map((id) => qualityRefLabel({ id })), // id stable → libellé affiché
           ...(dmg ? [`+${dmg} Dégâts`] : []),
           ...(o.onHitEffects?.length ? ['effet à la touche'] : []),
-          ...(o.removeQualities ?? []).map((id) => `−${qualityRefLabel({ id })}`),
-          ...(o.removeType ? [t(o.removeType === 'atout' ? 'op.frag.atoutsPerdus' : 'op.frag.defautsPerdus')] : []),
+          ...retraitsDits(o),
           ...(o.suppressEnchants ? [t('op.frag.enchantementsSuspendus')] : []),
           ...(o.passive?.length ? [t('op.frag.passifDArme')] : []),
         ];
@@ -2526,17 +2622,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'exposeDisease': {
-        // SILENCIEUX (comme l'ancien flag) : l'exposition ne s'exprime qu'au bilan de fin de combat.
-        // Double exposition à la MÊME maladie → fusion en gardant la PIRE (shift le plus dur, instant si l'une l'impose).
-        const entry = { disease: o.disease, ...(o.difficultyShift ? { difficultyShift: o.difficultyShift } : {}), ...(o.incubation === 'instant' ? { instant: true } : {}) };
-        const prev = (target.diseaseExposure ?? []).find((e) => e.disease === o.disease);
-        target.diseaseExposure = prev
-          ? (target.diseaseExposure ?? []).map((e) => e !== prev ? e : {
-              disease: e.disease,
-              ...(Math.min(e.difficultyShift ?? 0, entry.difficultyShift ?? 0) !== 0 ? { difficultyShift: Math.min(e.difficultyShift ?? 0, entry.difficultyShift ?? 0) } : {}),
-              ...(e.instant || entry.instant ? { instant: true } : {}),
-            })
-          : [...(target.diseaseExposure ?? []), entry];
+        // SILENCIEUX : l'exposition se résout au bilan de fin de combat, ou hors combat par `ouvrirLesContagions`.
+        target.diseaseExposure = exposerALaMaladie(target.diseaseExposure, o);
         break;
       }
       case 'contractDisease': {
@@ -2868,24 +2955,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'rollTable': {
-        // Table INLINE (`entries`) ou RÉFÉRENCÉE (`tableId` → tables.json, fail-fast) — jamais les deux.
-        const table = 'tableId' in o ? findEffectTableById(o.tableId) : o;
-        const rows: { min: number; max: number; ops: GameOp[] }[] = table.entries;
-        const de = 'tableId' in o ? effectTableDie(o.tableId) : deDeTirageDe(o);
-        // Modificateur CONSTANT (Haute Alchimie « 1d10 + 3 », VDM 03 l.698) + |DR négatif| (Vers de carie,
-        // MSRC 16 l.90) → lookup `[min,max]` (source unique) → ops de la rangée.
-        const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);
-        // Multiplicité : 1 jet + `extraRollsPerStep` par PAS de Surincantation CHOISI (EDOC 13 l.276 :
-        // « vous pouvez » — déclinable, jamais forcé) ; borné aux pas réellement alloués à la Durée
-        // (la durée, elle, se prolonge intégralement sur TOUS les pas alloués — couplage asymétrique).
-        const allocatedSteps = Math.max(0, ctx.overcastDurationSteps ?? 0);
-        const chosenSteps = Math.min(ctx.chosenTableRolls ?? allocatedSteps, allocatedSteps);
-        const times = 1 + (o.extraRollsPerStep ? chosenSteps * o.extraRollsPerStep : 0);
-        for (let i = 0; i < times; i++) {
-          const die = rollDice(de, rng);
-          const entry = findTableEntry(rows, die + modifier);
-          lines.push(...applyOps(target, entry.ops, imbrique({ rolled: die })));
-        }
+        for (const r of tirerLaTable(o, ctx, rng)) lines.push(...applyOps(target, r.ops, imbrique({ rolled: r.rolled })));
         break;
       }
       case 'rollMutation': {
@@ -3045,9 +3115,16 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         }));
         break;
       }
+      case 'zone': {
+        // Zone d'un sort (sans `durationRounds`) : posée par `placeSpellZone`, à la durée du sort (LDB 47 l.15).
+        if (o.durationRounds === undefined || !ctx.onZone) break;
+        const declares = DES_DUNE_OP.zone(o, target, ctx);
+        const rounds = declares.length ? lecteurDe(iOp, declares)('duree') : formuleDuCtx(o.durationRounds, ref, ctx);
+        lines.push(...ctx.onZone(o, rounds, target, ctx));
+        break;
+      }
       case 'summon':
       case 'scheduleRespawn':
-      case 'zone':
       case 'grantFreeAttack':
       case 'interruptFocus':
       case 'breakBlade':
@@ -3072,10 +3149,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'rationsDEscale':
       case 'marcheDuPort':
       case 'attaquesSubies':
-        // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
+        // Effets IMPURS (grille + initiative / reconstitution programmée / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la
-        // couche state (combatFlow : applySummon / scheduleRespawn → file horloge / placeSpellZone ; les
+        // couche state (combatFlow : applySummon / scheduleRespawn → file horloge ; les
         // hooks `freeAttack`/`focusInterrupt`/`piegeALame` appelés par `runCombatFlow` ; `applyCast` scanne
         // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp ;
         // les ops de navire → `noyau/navireOps.ts` ; l'op du marché d'un port → `noyau/portFlow.ts` ; les
@@ -3231,7 +3308,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         } else if (tenue) {
           if (!ctx.onLacher) lacherLArme(target, tenue);
           else {
-            const tombe = laisserTomber(target, tenue);
+            const tombe = laisserTomber(target, tenue, ctx.idNeuf);
             if (tombe) ctx.onLacher(target, tombe);
           }
           lines.push(t('op.desarmement', { name: target.label, item: tenue.label }));
@@ -3295,9 +3372,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const { log, drunkOps } = applyAlcoholTest(target, false, be, rng);
         lines.push(...log);
         // La MÉCANIQUE du résultat d'Ivresse (Bravoure/meilleur ami/belligérant, `drunkenness.json`)
-        // est un `GameOp[]` — exécutée ICI, sous le ctx imbriqué de l'op (`EFFET_D_IVRESSE` marque les
+        // est un `GameOp[]`, comme `tantQuIvre` — exécutés ICI, sous le ctx imbriqué de l'op (`EFFET_D_IVRESSE` marque les
         // ActiveEffect posés, retirés en bloc par `soberUpDissipate`).
-        if (drunkOps?.length) lines.push(...applyOps(target, drunkOps, imbrique({ effectId: EFFET_D_IVRESSE })));
+        const sousIvresse = [...(drunkOps ?? []), ...(o.tantQuIvre ?? [])];
+        if (sousIvresse.length) lines.push(...applyOps(target, sousIvresse, imbrique({ effectId: EFFET_D_IVRESSE })));
         break;
       }
       case 'narrative':

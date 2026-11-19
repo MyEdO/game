@@ -10,22 +10,6 @@
   },
   "couche": "armure",
   "couvre": [],
-  "silhouettes": [
-    "feminin",
-    "carrure_moins",
-    "carrure_plus",
-    "corpulence"
-  ],
-  "surfaces": [
-    {
-      "nom": "metal",
-      "palette": "metal"
-    },
-    {
-      "nom": "corne",
-      "palette": "corne"
-    }
-  ],
   "emplacements": {
     "cimier": {
       "os": "Head",
@@ -41,8 +25,25 @@
       ]
     }
   },
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "metal",
+      "palette": "metal",
+      "matiere": "prop--acier-battu"
+    },
+    {
+      "nom": "corne",
+      "palette": "corne"
+    }
+  ],
   "glb": {
-    "sha256": "03fa9b8aa63938f48a5d80f88521b3c673bfba6935e15bacd348a82c3995dbaa",
-    "octets": 328948
+    "sha256": "c11c2d5041141e273d27f4323eed69f2f828d5ab6b2aa0139cf8d904358edba9",
+    "octets": 270012
   }
 }

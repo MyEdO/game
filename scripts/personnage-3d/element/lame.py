@@ -3,13 +3,14 @@ dans le repère de la prise `main` de la base : +Y de l'auriculaire vers l'index
 les jointures, le tranchant sur Z ; +X l'axe de la paume, le plat sur X. L'arme et son fourreau sont deux objets ; le
 fourreau porte la propriété `fourreau` (exportée en `extras.fourreau`, `element/construire.py`), que le montage ne montre
 que l'arme rangée (`hotes/godot/pont/CONTRAT.md`, section « Atelier 3D »). Chaque donnée vient du `donnees.py` de
-l'arme ; mètres."""
+l'arme, l'axe de la prise de la base (`AXE_DANS_LA_PRISE`, `base/anatomie.py`) ; mètres."""
+from anatomie import AXE_DANS_LA_PRISE
 from maille import Maille, cylindre, objet, poutre, tour
 
 
 def construire(D, materiaux):
     nom = f"humanoide--rigide--{D['MANIFESTE']['cle']['apparence']}"
-    x, z = D['AXE_DANS_LA_PRISE']
+    x, z = AXE_DANS_LA_PRISE
     F, G, L, P, S = D['FUSEE'], D['GARDE'], D['LAME'], D['POMMEAU'], D['FOURREAU']
     axe = (x, 0.0, z)
     arme = Maille(list(materiaux.values()))

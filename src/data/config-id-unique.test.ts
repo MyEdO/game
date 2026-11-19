@@ -70,6 +70,10 @@ const FLIPPES_V_FLIP_CONFIG = [
   'artillery-misfire', 'driving-mishap', 'drunkenness', 'incidents-monture',
   'naval-progression', 'obsessions', 'problemes-vehicule', 'rencontres-edoc', 'river-criticals',
   'ship-criticals', 'structure-criticals', 'surincantation', 'vents-tourbillonnants',
+  // #1667 lot C-e
+  'dispersion',
+  // #1667 lot C-g
+  'reaction-au-statut', 'tableau-capricieux',
 ];
 
 /** TOUTE racine-objet à enveloppe de `src/data` (`id` + `label`) : l'espace d'unicité est celui des

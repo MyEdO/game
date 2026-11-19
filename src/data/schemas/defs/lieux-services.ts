@@ -2,7 +2,7 @@
  * Schéma de `lieux-services.json` — vocabulaire des SERVICES de lieu (#343) EXTENSIBLES par catalogue
  * (patron `naval-ports.json`). Le port et le marché d'un lieu portent leur propre schéma riche
  * (`MapPlace.port`/`MapPlace.market`) et lisent ici leur libellé, icône et fond par défaut. Désigné par
- * `ref('serviceDeLieu')` (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) et résolu par
+ * `ref('serviceDeLieu')` (`MapPlace.services[].kind`, et `PlacePoi.service` hors des établissements du lieu) et résolu par
  * `placeServices` (`src/noyau/worldMap.ts`) : id STABLE → libellé/icône d'affichage. Vocabulaire
  * app-interne de routage d'écran (id/label/icône), aucune mécanique RAW à sourcer par entrée
  * (cf. `SANS_LIVRE_DEFINITIF`, `grammaire/sans-livre.ts`).
@@ -10,6 +10,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { ref } from '../grammaire/ref';
+import { offresDAubergeSchema } from '../grammaire/hebergement';
 
 export const file = 'lieux-services.json';
 export const famille = 'entite';
@@ -29,6 +30,9 @@ const doc = document(
     merchantArchetype: ref('merchant').optional(),
     /** Service d'HÉBERGEMENT : son offre de couchage est celle du lieu, sinon celle de la scène liée (`placeServices`). */
     hebergement: z.literal(true).optional(),
+    /** Les offres d'auberge par défaut d'un établissement de ce type d'hébergement, qui ne déclare pas les siennes
+     *  (`placeServices`). LDB 66 l.12-16, l.28 */
+    offres: offresDAubergeSchema.optional(),
     /** Écran plein-champ EXISTANT vers lequel ce service PORTE (routage app-interne, #369) : `port` =
      *  l'écran de port, dont l'onglet Chantier est le défaut. Le service exige alors un navire de
      *  campagne, comme « Entrer au port ». Absent = service sans écran dédié. */
@@ -44,6 +48,7 @@ const doc = document(
     backdrop: { label: 'Bande d’ambiance', hint: 'Illustration d’arrière-plan par défaut du service' },
     merchantArchetype: { label: 'Archétype marchand ouvert', hint: 'Marchand ouvert par ce service (catalogue des marchands)' },
     hebergement: { label: 'Hébergement', hint: 'Le service offre le couchage du lieu, à défaut celui de la scène liée' },
+    offres: { label: 'Offres d’auberge', hint: 'Offres vendues par défaut par un établissement de ce type' },
     opensScreen: { label: 'Écran ouvert', hint: 'Écran plein-champ existant vers lequel ce service mène' },
     enterLabel: { label: 'Libellé du bouton d’entrée', hint: 'Texte du bouton qui ouvre l’écran du service' },
     editorNote: {

@@ -22,6 +22,7 @@
  * vente, jamais un jet interne silencieux. Seul le BRADAGE (`jeterAuPort`) reste synchrone (¼ du prix,
  * aucun Test de Marchandage au RAW, MDG 15 l.399).
  */
+import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import type { RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
@@ -38,8 +39,9 @@ import { refuserGeste } from './refusVisible';
 import { findVehicleById, findCrewRoleById, findTrappingById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
 import { VIVRES_DE_CALE } from '../engine/seaNavigation';
 import { ajouterDeLEau, ajouterDesRations } from './navireOps';
+import { applyVesselCrewLoss, inscrireLesRecrues } from './shipCrew';
 import { t } from '../i18n';
-import { ajouterAuRoster, weeklyCrewWageBrass } from '../engine/crewMorale';
+import { soldeDuRole, weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
   sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc,
@@ -48,8 +50,8 @@ import {
 } from '../engine/seaVoyage';
 import type { Formula, GameOp } from '../engine/ops';
 import { findCargoById, isTradeHubColumn } from '../engine/cargo';
-import { seasonOfMonth } from '../engine/travelStages';
-import { MINUTES_PER_DAY, toDate } from '../engine/clock';
+import { currentSeason } from '../engine/travelStages';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { chainStep } from './enchainerEtape';
 import type { CascadeStep, CascadeRoll } from './pendings';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
@@ -58,8 +60,7 @@ import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel, Jeu } from './etat';
-import { itemCapability } from '../engine/capabilities';
-import type { VivresDeCale } from '../engine/provisions';
+import { vivrePerissable, type QuantitesDeVivres } from '../engine/provisions';
 import type { Id } from '../data/schemas/grammaire/ref';
 import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
@@ -120,7 +121,7 @@ export function autrePortAuHasard(get: Get, rng: RNG): MapPlace | undefined {
  *  carte tiré au hasard. MDG 15 l.253, l.256, l.259, l.263 */
 export function alterLeMarche(get: Get, set: Set, o: Extract<GameOp, { op: 'marcheDuPort' }>, label: string, quantite: (f: Formula) => number, rng: RNG): string[] {
   const now = get().gameTime;
-  const season = seasonOfMonth(toDate(now).month);
+  const season = currentSeason(now);
   const escale = get().vessel?.escale;
   const ici = escale && get().worldMap ? placeById(get().worldMap!, escale) : undefined;
   const poser = (a: AlterationDuMarche): void => set({ alterationsDuMarche: [...get().alterationsDuMarche.filter((x) => x.jusqua === 'escale' || x.jusqua > now), a] });
@@ -200,10 +201,18 @@ export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'part
   return refus === null && offre ? { ...base, offre, refus } : { ...base, refus: refus ?? t('port.offreAbsente') };
 }
 
-/** Refus d'entrer au port : la raison affichée, ou `null`. Le négoce maritime se fait sur le navire de
- *  campagne (MDG 15 l.319). Tombe dans `ouvrirLePort`, lu par le hub du lieu. */
-export function refusDEntrerAuPort(s: Pick<Jeu, 'vessel'>): string | null {
-  return s.vessel ? null : t('port.sansNavire');
+/** Refus de tout geste sur le navire de campagne au port : sans navire, ou navire qui n'est pas à quai (`vessel.escale`)
+ *  au lieu du groupe ; `null` sinon. SOURCE UNIQUE de la présence du navire au port, lue par l'entrée au port
+ *  (`ouvrirLePort`, hub du lieu) et par `refusDeGesteAQuai`. MDG 15 l.319 */
+export function refusAQuai(s: Pick<Jeu, 'vessel' | 'lieu' | 'worldMap'>): string | null {
+  if (!s.vessel) return t('port.sansNavire');
+  return s.vessel.escale !== undefined && s.vessel.escale === lieuDuGroupe(s)?.id ? null : t('port.pasAQuai');
+}
+
+/** Refus d'un geste à quai sur le navire ou la bourse du groupe (chantier, équipage, avitaillement) : siège invité
+ *  (`refusDeGesteSurLeGroupe`), puis `refusAQuai` ; `null` sinon. Le refus que lisent leurs devis. */
+export function refusDeGesteAQuai(s: Pick<Jeu, 'vessel' | 'lieu' | 'worldMap' | 'net'>): string | null {
+  return refusDeGesteSurLeGroupe(s) ?? refusAQuai(s);
 }
 
 /** Génère les offres d'ACHAT de l'escale (l.319-331) : Production + Surplus (Enc = (Taille+Richesse+
@@ -211,7 +220,7 @@ export function refusDEntrerAuPort(s: Pick<Jeu, 'vessel'>): string | null {
 export function ouvrirLePort(get: Get, set: Set): void {
   const cur = currentPort(get);
   if (!cur) return;
-  const refus = refusDEntrerAuPort(get());
+  const refus = refusAQuai(get());
   if (refus) { refuserGeste(get, set, refus); return; }
   ouvrirEtal(get, set, 'port', `Port — ${cur.label}`);
 }
@@ -220,7 +229,7 @@ export function ouvrirLePort(get: Get, set: Set): void {
 function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) => void): void {
   const cur = currentPort(get);
   if (!cur || !get().vessel) return;
-  const season = seasonOfMonth(toDate(get().gameTime).month);
+  const season = currentSeason(get().gameTime);
   const { port } = cur;
   const ids = new Set<string>();
   // Seules les MARCHANDISES de la colonne Production entrent au négoce : un marqueur de l'Index
@@ -488,37 +497,40 @@ export function jeterAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   log(get, set, [t('port.dumped', { enc: lot.enc, label, pct, money: formatMoney(fromBrass(gross * PA_PER_CO)) })]);
 }
 
-/** Rôles recrutables à quai : ceux qui portent un barème de solde (MDG 14 l.293-302, `crew-roles.json`). */
+/** Rôles recrutables à quai : ceux dont le profil porte un barème d'embauche (`soldeDuRole`, MDG 14 l.293-302). */
 export function rolesRecrutables(): CrewRoleData[] {
-  return crewRoles.filter((r) => r.wage?.weekly);
+  return crewRoles.filter((r) => soldeDuRole(r));
 }
 
-/** Refus d'embaucher au rôle `roleId` : `refusHote` (`refusDeGesteSurLeGroupe`), sans navire, ou rôle sans
- *  barème ; `null` sinon. Tombe dans `recruterLEquipage`, lu par l'écran d'escale. */
-export function refusDEmbauche(vessel: Jeu['vessel'], roleId: string, refusHote: string | null): string | null {
-  return refusHote ?? (!vessel ? t('port.sansNavire') : findCrewRoleById(roleId)?.wage?.weekly ? null : t('port.roleSansSolde', { role: findCrewRoleById(roleId)?.label ?? roleId }));
+/** Refus d'embaucher au rôle `roleId` : `refusDuQuai` (`refusDeGesteAQuai`), ou rôle sans barème ; `null` sinon.
+ *  Tombe dans `recruterLEquipage`, lu par l'écran d'escale. */
+export function refusDEmbauche(roleId: string, refusDuQuai: string | null): string | null {
+  const role = findCrewRoleById(roleId);
+  return refusDuQuai ?? (role && soldeDuRole(role) ? null : t('port.roleSansSolde', { role: role?.label ?? roleId }));
 }
 
-/** Refus de débarquer un membre du rôle `roleId` : `refusHote`, sans navire, ou aucun membre de ce rôle à bord ;
- *  `null` sinon. Tombe dans `renvoyerLEquipage`, lu par l'écran d'escale. */
-export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refusHote: string | null): string | null {
-  return refusHote ?? (!vessel ? t('port.sansNavire') : vessel.crew?.some((h) => h.roleId === roleId && h.count > 0) ? null : t('port.aucunABord', { role: findCrewRoleById(roleId)?.label ?? roleId }));
+/** Refus de débarquer un membre du rôle `roleId` : `refusDuQuai` (`refusDeGesteAQuai`), ou aucun membre de ce rôle
+ *  à bord ; `null` sinon. Tombe dans `renvoyerLEquipage`, lu par l'écran d'escale. */
+export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refusDuQuai: string | null): string | null {
+  return refusDuQuai ?? (vessel?.crew?.some((h) => h.roleId === roleId && h.count > 0) ? null : t('port.aucunABord', { role: findCrewRoleById(roleId)?.label ?? roleId }));
 }
 
 /** RECRUTEMENT à quai (#228, escale-hub) : embauche `count` PNJ salariés au rôle `roleId` — fusionné
- *  dans le roster `vessel.crew` (`CrewHire[]`, #216). La solde HEBDOMADAIRE (`crew-roles.json`,
+ *  dans le roster `vessel.crew` (`CrewHire[]`, #216). La solde HEBDOMADAIRE (`soldeDuRole`,
  *  MDG 14 l.293-302) est prélevée à l'entretien (`resolveVesselWeek`) : le moteur ne débite JAMAIS à
- *  l'embauche (aucune avance dans le modèle), la bourse ne bouge pas ici. Un rôle sans barème (`wage`
- *  absent) n'est pas recrutable. Renvoie le journal (ligne de solde totale recalculée). */
+ *  l'embauche (aucune avance dans le modèle), la bourse ne bouge pas ici. Un rôle sans barème n'est
+ *  pas recrutable. Renvoie le journal (ligne de solde totale recalculée). */
 export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
-  const refus = refusDEmbauche(get().vessel, roleId, refusDeGesteSurLeGroupe(get()));
+  const refus = refusDEmbauche(roleId, refusDeGesteAQuai(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire de l’embauche');
   const role = garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage');
-  if (count <= 0 || !role.wage) return [];
-  const next = ajouterAuRoster(vessel.crew, roleId, count);
-  set({ vessel: { ...vessel, crew: next } });
-  const lines = [t('port.hired', { count, role: role.label, wage: formatMoney(priceToMoney(role.wage.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(next))) })];
+  const solde = soldeDuRole(role);
+  if (count <= 0 || !solde) return [];
+  const recrute = inscrireLesRecrues(vessel, roleId, count);
+  if (!recrute.admis) { refuserGeste(get, set, t('eff.equipageComplet')); return []; }
+  set({ vessel: recrute.vessel });
+  const lines = [t('port.hired', { count: recrute.admis, role: role.label, wage: formatMoney(priceToMoney(solde.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(recrute.vessel.crew))) })];
   log(get, set, lines);
   return lines;
 }
@@ -526,17 +538,15 @@ export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1)
 /** DÉBARQUEMENT d'un membre salarié à quai (#228) : retire `count` PNJ du rôle `roleId` (poste supprimé
  *  s'il tombe à 0). Aucune indemnité modélisée (le moteur ne débite qu'à la paie). Renvoie le journal. */
 export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
-  const refus = refusDeDebarquement(get().vessel, roleId, refusDeGesteSurLeGroupe(get()));
+  const refus = refusDeDebarquement(get().vessel, roleId, refusDeGesteAQuai(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire du débarquement');
-  const crew = vessel.crew ?? [];
-  const cur = garanti(crew.find((h) => h.roleId === roleId), roleId, 'poste à débarquer');
-  if (count <= 0) return [];
-  const left = cur.count - count;
-  const next = left > 0 ? crew.map((h) => h.roleId === roleId ? { ...h, count: left } : h) : crew.filter((h) => h.roleId !== roleId);
-  set({ vessel: { ...vessel, crew: next } });
+  const inscrits = (vessel.crew ?? []).reduce((n, h) => n + (h.roleId === roleId ? h.count : 0), 0);
+  const demandes = Math.max(0, Math.min(Math.floor(count), inscrits));
+  const { variation } = applyVesselCrewLoss(get, set, demandes, { roleId, registre: 'crew' });
+  if (!variation) return [];
   const role = findCrewRoleById(roleId);
-  const lines = [t('port.dismissed', { count: Math.min(count, cur.count), role: role?.label ?? roleId, total: formatMoney(fromBrass(weeklyCrewWageBrass(next))) })];
+  const lines = [t('port.dismissed', { count: variation, role: role?.label ?? roleId, total: formatMoney(fromBrass(weeklyCrewWageBrass(get().vessel?.crew))) })];
   log(get, set, lines);
   return lines;
 }
@@ -547,7 +557,7 @@ export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1)
 export function vivresAchetables(vessel: CampaignVessel): { id: Id<'trapping'>; prix: Money }[] {
   return VIVRES_DE_CALE.vivres.flatMap((id) => {
     const objet = garanti(findTrappingById(id), id, 'vivre de la cale');
-    if (itemCapability(objet, 'isRations')) return [{ id, prix: priceToMoney(objet.price ?? null) }];
+    if (!vivrePerissable(id)) return [{ id, prix: priceToMoney(objet.price ?? null) }];
     return vessel.rationsDEscale !== undefined ? [{ id, prix: fromBrass(vessel.rationsDEscale) }] : [];
   });
 }
@@ -557,7 +567,7 @@ export function vivresAchetables(vessel: CampaignVessel): { id: Id<'trapping'>; 
  *  SOURCE UNIQUE d'`avitaillerLeNavire` et de l'écran d'escale. PUR. MDG 14 l.238, l.248-252 ; MDG 15 l.262 */
 export interface DevisDAvitaillement { vivres: { id: Id<'trapping'>; prix: Money }[]; tonneau: Money; total: Money; refus: string | null }
 
-export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusHote: string | null, quantites: VivresDeCale, tonneaux: number): DevisDAvitaillement {
+export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusDuQuai: string | null, quantites: QuantitesDeVivres, tonneaux: number): DevisDAvitaillement {
   const tonneau = priceToMoney(garanti(findTrappingById(VIVRES_DE_CALE.tonneau), VIVRES_DE_CALE.tonneau, 'objet de cale').price ?? null);
   const vivres = vessel ? vivresAchetables(vessel) : [];
   const demandes = Object.entries(quantites) as [Id<'trapping'>, number][];
@@ -565,8 +575,7 @@ export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusH
   const prixDe = (id: Id<'trapping'>) => vivres.find((v) => v.id === id)?.prix;
   const horsVente = demandes.find(([id, n]) => n > 0 && prixDe(id) === undefined)?.[0];
   const total = fromBrass(demandes.reduce((s, [id, n]) => { const prix = prixDe(id); return prix ? s + n * toBrass(prix) : s; }, 0) + tonneaux * toBrass(tonneau));
-  const refus = refusHote ?? (!vessel ? t('port.sansNavire')
-    : vessel.escale === undefined ? t('port.pasAQuai')
+  const refus = refusDuQuai ?? (!vessel ? t('port.sansNavire')
     : [tonneaux, ...demandes.map(([, n]) => n)].some((n) => !Number.isInteger(n) || n < 0) || rations + tonneaux === 0 ? t('port.avitaillementVide')
     : horsVente !== undefined ? t('port.vivreHorsVente', { vivre: refLabel('trappings', { id: horsVente }) })
     : rations > 0 && vessel.provisions == null ? t('port.vivresSansSuivi')
@@ -578,8 +587,8 @@ export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusH
 
 /** AVITAILLEMENT de la cale à quai : le groupe paie le devis (`devisDAvitaillement`), chaque vivre va à sa part des
  *  vivres de la cale, les tonneaux à son eau douce. Renvoie le journal. MDG 14 l.238-252 ; MDG 15 l.262 */
-export function avitaillerLeNavire(get: Get, set: Set, quantites: VivresDeCale, tonneaux: number): string[] {
-  const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), quantites, tonneaux);
+export function avitaillerLeNavire(get: Get, set: Set, quantites: QuantitesDeVivres, tonneaux: number): string[] {
+  const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()), quantites, tonneaux);
   if (devis.refus) { refuserGeste(get, set, devis.refus); return []; }
   payFromGroup(get, set, devis.total, { purpose: 'avitaillement navire' });
   const achats = (Object.entries(quantites) as [Id<'trapping'>, number][]).filter(([, n]) => n > 0);
@@ -686,7 +695,7 @@ export const TABLES = {
       // Le Test de Ragot n'a pas de rangée propre : sa ligne se DÉRIVE (`traceLineOf`), jamais ré-imprimée à la main.
       // Né sans jet (LDB 09 l.30 ; #2588 Q1), il n'a ni dé ni cible à tracer : l'échec se dit sans eux.
       const gossip = (issue: string) => freeCons([estJete(jet) ? traceLineOf({
-        who: actor.label, label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
+        who: nomDe(actor), label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
         roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success, issue,
       }) : t('port.gossipSansJet', { name: actor.label, issue })]);
       if (!jet.success) {

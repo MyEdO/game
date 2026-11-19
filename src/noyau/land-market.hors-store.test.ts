@@ -11,7 +11,7 @@ import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { WINE_QUALITY } from '../engine/landCargo';
 import { carrierById, persistCarriersCargo } from './carriers';
-import type { WorldMap } from './worldMap';
+import { marcheDuLieu, type WorldMap } from './worldMap';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
 
@@ -54,7 +54,7 @@ function drainCascade(): void {
 const landMap: WorldMap = {
   id: 'm', label: 'Reikland',
   places: [
-    { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'ville-a' }, market: { taille: 4, richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } },
+    { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'ville-a' }, taille: 4, market: { richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } },
   ],
   routes: [],
 };
@@ -148,7 +148,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
 
   it('la vente de cargaison trouve un acheteur et crédite la bourse (Demande = Taille×10 +30 Commerce)', () => {
     setCarrierCargo([{ uid: 'lot-1', cargoId: 'vivres', enc: 40, basePriceGold: 2 }]);
-    banc.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
+    banc.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(marcheDuLieu(landMap.places[0])!), offers: [] } } as never);
     seedBattleRng(2);
     const before = partyMoneyTotal(get).gold;
     vendre('lot-1');
@@ -161,7 +161,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     const meneur = get().party[0];
     meneur.talents = [...meneur.talents, { talentId: 'negociateur', times: 1 }];
     meneur.skills = [...meneur.skills.filter((sk) => sk.id !== 'marchandage'), { id: 'marchandage', advances: 60 } as never];
-    banc.setState({ party: [meneur], landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [{ cargoId: 'metal', label: 'Métal', enc: 20, basePrice: 10 }] } } as never);
+    banc.setState({ party: [meneur], landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(marcheDuLieu(landMap.places[0])!), offers: [{ cargoId: 'metal', label: 'Métal', enc: 20, basePrice: 10 }] } } as never);
     seedBattleRng(3);
     const rng = battleRng() as { int: (min: number, max: number) => number };
     const brut = rng.int.bind(rng);
@@ -177,7 +177,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     const meneur = get().party[0];
     meneur.talents = [...meneur.talents, { talentId: 'negociateur', times: 1 }];
     meneur.skills = [...meneur.skills.filter((sk) => sk.id !== 'marchandage'), { id: 'marchandage', advances: 60 } as never];
-    banc.setState({ party: [meneur], landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
+    banc.setState({ party: [meneur], landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(marcheDuLieu(landMap.places[0])!), offers: [] } } as never);
     setCarrierCargo([{ uid: 'lot-2', cargoId: 'vivres', enc: 20, basePriceGold: 2 }]);
     seedBattleRng(2);
     const rng = battleRng() as { int: (min: number, max: number) => number };
@@ -190,7 +190,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
 
   it('le bradage de cargaison brade à la moitié du prix de base (Lieu de Commerce, l.160)', () => {
     setCarrierCargo([{ uid: 'lot-3', cargoId: 'metal', enc: 20, basePriceGold: 3 }]);
-    banc.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
+    banc.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(marcheDuLieu(landMap.places[0])!), offers: [] } } as never);
     const before = partyMoneyTotal(get).gold;
     get().fenetreChoisir('marcheDeTerre', 'jeter', 'lot-3');
     expect(carrierCargo().length).toBe(0);
@@ -199,7 +199,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
 
   it('le bradage de cargaison : deux lots du même bien, seul le lot désigné est bradé, à SON prix', () => {
     setCarrierCargo([{ uid: 'lot-a', cargoId: 'metal', enc: 10, basePriceGold: 3 }, { uid: 'lot-b', cargoId: 'metal', enc: 10, basePriceGold: 5 }]);
-    banc.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
+    banc.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(marcheDuLieu(landMap.places[0])!), offers: [] } } as never);
     const before = partyMoneyTotal(get).gold;
     get().fenetreChoisir('marcheDeTerre', 'jeter', 'lot-b');
     expect(carrierCargo()).toEqual([{ uid: 'lot-a', cargoId: 'metal', enc: 10, basePriceGold: 3 }]);

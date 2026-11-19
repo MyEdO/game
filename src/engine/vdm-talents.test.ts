@@ -11,7 +11,7 @@
  * (`VDM 13 l.487-493`) n'a ni ligne « Tests » ni Soutien à +20 câblable.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { setRule, resetRule, type RegleOptionnelleId } from './policy';
+import { setRule, resetRule } from './policy';
 import { effectiveEntry, activeVariant } from './variants';
 import { talentTestSLBonus } from './magic';
 import { findTalentById } from '../data';
@@ -35,8 +35,7 @@ describe('Concocter — variante « Règles d’incantation révisées » (VDM 1
   const concocter = () => findTalentById('concocter')!;
 
   it('règle OFF : entrée LDB strictement inchangée (aucune variante active)', () => {
-    const base = concocter() as unknown as { variants?: { when: { rule: RegleOptionnelleId } }[] };
-    expect(activeVariant(base.variants)).toBeUndefined();
+    expect(activeVariant(concocter().variants)).toBeUndefined();
     expect(effectiveEntry(concocter()).test?.raw).toBe('Savoir (Apothicaire)');
     expect(effectiveEntry(concocter()).source).toEqual({ book: 'livre-de-base', page: 135 });
   });
@@ -109,7 +108,7 @@ describe('Empreint de (Vent) — 8 Talents, un par Vent (VDM 13 l.461-486)', () 
   });
 
   it('Empreint d’Ulgu (NADJ 88) porte la republication VDM en emplacement SECONDAIRE, pas un doublon', () => {
-    const ulgu = findTalentById('empreint-d-ulgu')! as unknown as { alsoIn?: { book: string; page: number }[] };
+    const ulgu = findTalentById('empreint-d-ulgu')!;
     expect(findTalentById('empreint-d-ulgu')!.source).toEqual({ book: 'nuits-agitees-et-dures-journees', page: 88 });
     expect(ulgu.alsoIn).toEqual([expect.objectContaining({ book: 'vents-de-la-magie', page: 186 })]);
   });

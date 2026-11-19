@@ -9,7 +9,7 @@ import { actorIn } from './monde/combatants';
 import { libelleDeLaFermeture, libelleDuReglage } from './libelles';
 import { fermetureDuReglage, ligneDuTestNomme } from './rollFlowSpecs';
 import { NATURES_D_INFLUENCE, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
-import { testDeRegle } from '../engine/reglesChiffrees';
+import { testDExposition } from './corruptionFlow';
 import { refLabel } from '../data';
 
 /** Une nature offerte : la valeur du choix, la cible de son Test (`ligneDuTestNomme`) et la Compétence qu'il teste. */
@@ -39,7 +39,7 @@ export function fenetreDeCorruption(s: Jeu): { nature: ChoixDeNature | null } | 
       libelle: libelleDuReglage('corruption', 'nature'),
       choisie: pc.nature ?? null,
       options: NATURES_D_INFLUENCE.map((cle) => {
-        const test = testDeRegle('influences-corruptrices', cle);
+        const { test } = testDExposition(cle, pc.difficulteFixee);
         return { valeur: cle, libelle: test.label, competence: refLabel('skills', test.skill), cible: ligneDuTestNomme(heros, test).target, refus: refusDeLaNature(s) };
       }),
     },

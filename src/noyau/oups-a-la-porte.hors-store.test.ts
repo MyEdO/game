@@ -24,12 +24,13 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
-import { applyOups, applyAttackResult, applyBladeTrap, resolveAttack } from './combatFlow';
+import { applyOups, applyAttackResult, applyBladeTrap, firedWeapon, resolveAttack } from './combatFlow';
 import { OPS_DIFFEREES } from './combatEffects';
 import { emptyScene } from './monde/scene';
-import { stepInteraction } from './cascade';
+import { runCascadeImmediate, stepInteraction } from './cascade';
 import { pushHost } from './rollSeam';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, spyApplier } from './cascade.testkit';
+import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import type { CascadeStep, BladeTrapFreeze, PendingDefense, SuiteDeCoup } from './pendings';
 import type { Combatant, Weapon } from '../engine/types';
 import { hydratePoste, isUnarmed, itemFromTrappingById, recomputeLoadout } from '../engine/items';
@@ -38,6 +39,11 @@ import type { AttackResult } from '../engine/combat';
 import type { OupsResolved } from '../engine/oups';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { markFixedDie } from './fixedDieMark';
+import { battleRng, seedBattleRng } from './battleRng';
+import { makeRNG } from '../engine/dice';
+import { armeDeTest } from '../engine/objetsDeTest.testkit';
+import { oupsMisfire } from '../data/oups';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -86,6 +92,22 @@ const lignesLues = (): string[] => [
   ...(banc.getState().battle?.log ?? []).map((l) => l.text),
 ];
 
+/** Le héros `bretteur` rate son Test de Projectiles sur `jet` (LDB 14 l.19) contre `cible`, par le site de
+ *  production (`applyAttackResult` → `jouerLApresCoup`). Rend le tireur. */
+function tirRateSur(jet: number, arme: Weapon): Combatant {
+  const hero = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [arme] });
+  const cible = mk('ennemi', 'cible', { pos: { x: 3, y: 0 } });
+  setBattle([hero, cible], [hero]);
+  const res = {
+    hit: false, attackerRoll: jet, netSL: -3, location: null, damage: 0, woundsLost: 0,
+    critical: false, advantageTo: null, defenderDefeated: false, log: 'raté.',
+    attackerDetail: { roll: jet, success: false, sl: -3 },
+  } as unknown as AttackResult;
+  applyAttackResult(banc.getState, banc.setState, hero, cible, arme, res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } } });
+  return hero;
+}
+const etapesDeMaladresse = (): CascadeStep[] => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'jetDeMaladresse');
+
 const MALADRESSE: OupsResolved = { roll: 33, kind: 'actionPenalty', label: 'Vous perdez pied', mod: -10 };
 const INCIDENT: OupsResolved = { roll: 44, kind: 'misfire', label: 'Incident de Tir !' };
 
@@ -94,6 +116,52 @@ const brisee = (arme: Weapon): boolean => !(banc.getState().battle?.combatants ?
 
 const epeeBacleeSolide = (): Weapon =>
   ({ label: 'Épée bâclée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
+
+/**
+ * L'INCIDENT DE TIR se lit sur le jet du Test qui a produit la Maladresse (`LDB 14 l.34` : « une
+ * Maladresse qui est aussi un nombre pair […] en utilisant le dé des unités comme DR pour toucher ») :
+ * aucun dé du Tableau des Oups ! n'est tiré, aucune étape ne s'ouvre.
+ */
+describe('Incident de tir : le jet de la Maladresse décide, sans Tableau des Oups !', () => {
+  const pistolet = (): Weapon =>
+    ({ uid: 'pistolet', label: 'Pistolet', type: 'distance', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] }) as unknown as Weapon;
+
+  it('jet 44 : Dégâts de l’arme + 4 au Bras principal, arme détruite, aucun dé consommé, aucune étape', () => {
+    seedBattleRng(7);
+    const arme = pistolet();
+    const hero = tirRateSur(44, arme);
+    expect(etapesDeMaladresse(), 'aucune étape de Maladresse').toEqual([]);
+    expect(banc.getState().pendingCascade?.participants.some((st) => st.kind === 'casseDArme') ?? false, 'aucun dé de casse : arme non Solide').toBe(false);
+    // 8 (arme) + 4 (unités de 44) − BE 4, Bras principal sans PA (LDB 14 l.34).
+    expect(hero.wounds.max - hero.wounds.current).toBe(8);
+    expect(brisee(arme), 'l’arme est détruite').toBe(true);
+    expect(battleRng().int(1, 1000), 'aucun tirage du RNG de combat').toBe(makeRNG(7).int(1, 1000));
+  });
+
+  it('jet 98, pistolet Dangereux : Maladresse hors double (LDB 62 l.315), paire → Dégâts de l’arme + 8 (unités, pas dizaines)', () => {
+    const arme = { ...pistolet(), qualities: [{ id: 'dangereuse' }] } as unknown as Weapon;
+    const hero = tirRateSur(98, arme);
+    expect(etapesDeMaladresse(), 'aucune étape de Maladresse').toEqual([]);
+    // 8 (arme) + 8 (unités de 98) − BE 4, Bras principal sans PA (LDB 14 l.34).
+    expect(hero.wounds.max - hero.wounds.current).toBe(12);
+    expect(brisee(arme), 'l’arme est détruite').toBe(true);
+  });
+
+  it('jet 33 : la Maladresse impaire va au Tableau des Oups !, par l’étape du joueur', () => {
+    const arme = pistolet();
+    const hero = tirRateSur(33, arme);
+    expect(etapesDeMaladresse().map((st) => st.actorId)).toEqual([hero.id]);
+    expect(brisee(arme)).toBe(false);
+  });
+
+  it('un canon de siège (Groupe poudre-noire, AA 10 l.150) : jet pair → raté', () => {
+    const canon = { ...armeDeTest('canon-petit'), uid: 'canon' };
+    tirRateSur(66, canon);
+    expect(etapesDeMaladresse()).toEqual([]);
+    expect(lignesLues(), lignesLues().join(' | ')).toContain(t('cf.oups', { name: 'bretteur', effet: oupsMisfire().label }));
+    expect(brisee(canon), 'la pièce est détruite').toBe(true);
+  });
+});
 
 describe('Bâclé + Solide — le dé naît à la porte, AVANT toute mutation de l’arme', () => {
   const monte = (): { hero: Combatant; arme: Weapon } => {
@@ -212,22 +280,19 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   // UNE sauvegarde Solide par Maladresse : #1508 (commentaire du 2026-09-26), #1764 (commentaire du 2026-09-27) ; `LDB 60 l.30`, `l.50`, `LDB 14 l.34`.
   describe('Bâclé + Poudre noire + Solide(1), Incident de tir : UN dé pour l’événement', () => {
     const pistolet = (): Weapon =>
-      ({ label: 'Pistolet bâclé', type: 'distance', subType: 'poudre noire', damage: { plusBF: false, flat: 8 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
+      ({ label: 'Pistolet bâclé', type: 'distance', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
     /** Toute étape de Sauvegarde Solide ENTRÉE dans la séquence, fût-elle ensuite refermée. */
     const vues = new Map<string, boolean>();
     let stop = (): void => {};
     afterEach(() => stop());
-    /** Le joueur lance sa Maladresse ; le Tableau des Oups ! est FIXÉ sur l'Incident de tir (montage). */
+    /** Le joueur rate son tir sur un 44 : Maladresse paire, l'Incident de tir s'applique sans étape (`LDB 14 l.34`). */
     const incident = (arme: Weapon): void => {
       vues.clear();
       stop = banc.subscribe((st) => {
         for (const e of st.pendingCascade?.participants ?? []) if (e.kind === 'casseDArme' && !vues.has(e.id)) vues.set(e.id, brisee(arme));
       });
-      monteHote(arme);
-      banc.getState().jetLancer('maladresse');
-      const pc = banc.getState().pendingCascade!;
-      banc.setState({ pendingCascade: { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, maladresse: { ...st.maladresse!, result: INCIDENT } } : st)) } });
-      banc.getState().jetValider('maladresse');
+      tirRateSur(44, arme);
+      expect(etapesDeMaladresse(), 'aucune étape de Maladresse : le jet du tir décide').toEqual([]);
     };
     const journal = (): string[] => (banc.getState().battle?.log ?? []).map((l) => l.text);
     const detruite = (l: string): boolean => /se brise sur la Maladresse|arme détruite\.$/.test(l);
@@ -546,7 +611,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     expect(maladresses(frappeur.label), 'la Maladresse de l’attaquant s’applique, une fois').toBe(1);
     expect(maladresses(rival.label), 'celle du défenseur la suit, une fois').toBe(1);
     expect(sauvegardes(frappeur.label), 'un seul dé de casse par porteur').toBe(1);
-    expect(sauvegardes(rival.label), 'un seul dé de casse par porteur').toBe(1);
+    // Aucune case n'est vue du groupe : la ligne de dé du rival le nomme du nom neutre (#4017).
+    expect(sauvegardes(t('vision.horsDeVue')), 'un seul dé de casse par porteur').toBe(1);
     expect(banc.getState().battle!.acted, 'la suite (Action gratuite rendue) joue enfin').toBe(false);
     const premiereSuite = journalDesEcritures.findIndex((e) => !e.acted);
     expect(premiereSuite, 'la suite a bien laissé une trace datée').toBeGreaterThanOrEqual(0);
@@ -626,7 +692,7 @@ describe('l’arme BRISÉE quitte les mains — un ennemi à arme de statbloc, s
     applyOups(banc.getState, banc.setState, brute, gourdin, MALADRESSE);
     expect(brises(), lignesLues().join(' | ')).toHaveLength(1);
     expect(brisee(gourdin), 'le gourdin brisé a quitté les mains').toBe(true);
-    const coup = resolveAttack(banc.getState, brute, cible);
+    const coup = resolveAttack(banc.getState, brute, cible, firedWeapon(banc.getState().scene, brute, cible, undefined, banc.getState().battle?.combatants));
     expect(coup, 'l’attaque n’est pas refusée').not.toBeNull();
     expect(isUnarmed(coup!.weapon), `arme de l’attaque : ${coup!.weapon.label}`).toBe(true);
     applyOups(banc.getState, banc.setState, brute, coup!.weapon, MALADRESSE);
@@ -639,7 +705,7 @@ describe('l’arme BRISÉE quitte les mains — un ennemi à arme de statbloc, s
     applyOups(banc.getState, banc.setState, brute, pistolet, INCIDENT);
     expect(brises(), lignesLues().join(' | ')).toHaveLength(1);
     expect(brisee(pistolet), 'le pistolet détruit a quitté les mains').toBe(true);
-    const coup = resolveAttack(banc.getState, brute, cible);
+    const coup = resolveAttack(banc.getState, brute, cible, firedWeapon(banc.getState().scene, brute, cible, undefined, banc.getState().battle?.combatants));
     expect(coup && isUnarmed(coup.weapon), `arme de l’attaque : ${coup?.weapon.label}`).toBe(true);
   });
 });
@@ -683,7 +749,7 @@ describe('désarmé de sa SEULE arme : l’ennemi frappe ensuite aux Mains nues'
     applyBladeTrap(banc.getState, banc.setState, cible, { attackerId: 'brute', weaponUid: 'lame-e', defSL: 0, attackerSL: 0 }, 2);
     expect(lignesLues().some((l) => /arrachée/.test(l)), lignesLues().join(' | ')).toBe(true);
     expect(brisee(lame), 'la lame a quitté les mains').toBe(true);
-    const coup = resolveAttack(banc.getState, brute, cible);
+    const coup = resolveAttack(banc.getState, brute, cible, firedWeapon(banc.getState().scene, brute, cible, undefined, banc.getState().battle?.combatants));
     expect(coup && isUnarmed(coup.weapon), `arme de l’attaque : ${coup?.weapon.label}`).toBe(true);
   });
 });
@@ -726,5 +792,64 @@ describe('héros désarmé par Piège-lame : la lame quitte tous les sets et tom
     expect(heros.items!.some((i) => i.uid === 'lame-h'), 'elle quitte son porteur').toBe(false);
     const sol = banc.getState().scene!.entities.find((e) => e.id in banc.getState().objetsAuSol);
     expect([sol?.pos, banc.getState().objetsAuSol[sol!.id].map((i) => i.uid)], 'et gît à sa case').toEqual([{ x: 1, y: 0 }, ['lame-h']]);
+  });
+});
+
+/**
+ * LA MALADRESSE QU'UN COUP POUSSE SOUS LE PILOTE IMMÉDIAT (#3982) — `LDB 14 l.19`. La poussée du producteur
+ * (`pushHost`) faite PENDANT l'application d'une étape est collectée et fusionnée derrière elle sur le tableau
+ * du pilote (`cascade.pushStep`) : le pilote y arrive. Étape-jet franchie une fois sa donnée rendue
+ * (`slotsDeJet.hoteEnAttente`) : tenue, la séquence parque sur elle ; non tenue, elle se joue d'office (#3892).
+ */
+describe('Maladresse poussée sous le pilote immédiat : jamais validée sans son tirage d’Oups ! (#3982)', () => {
+  const epee = (): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }) as unknown as Weapon;
+  const applied: string[] = [];
+  /** Un coup dont l'applier écrit la Maladresse de son porteur par le producteur du jeu, puis une étape qui suit. */
+  const monte = (aiControlled: boolean): Combatant => {
+    applied.length = 0;
+    const arme = epee();
+    const hero = mk('heros', 'bretteur', { weapons: [arme], aiControlled });
+    setBattle([hero], [hero]);
+    avecLesTables({ appliers: {
+      coup: (get, set, st) => {
+        applied.push(st.id);
+        pushHost(get, set, (index) => ({ id: `cons-maladresse-${hero.id}-${index}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: hero.id, maladresse: { weapon: arme, result: null } }));
+        return undefined;
+      },
+      suite: spyApplier(applied, (st) => st.id),
+    } });
+    return hero;
+  };
+  const sequence = (heroId: string): CascadeStep[] => [
+    { id: 'coup', kind: cleDeFixture('coup'), actorId: heroId },
+    { id: 'suite', kind: cleDeFixture('suite'), actorId: heroId },
+  ];
+  const maladresses = (): string[] => (banc.getState().battle?.log ?? []).map((l) => l.text).filter((l) => /^bretteur — Maladresse !/.test(l));
+
+  it('héros TENU : la séquence parque sur la Maladresse non tirée ; lancer puis valider la franchit, tirage au journal', () => {
+    banc.getState().ensemencerLeTirage(7);
+    const hero = monte(false);
+    expect(runCascadeImmediate(banc.getState, banc.setState, sequence(hero.id), { title: 'Coup', purpose: 'combat' }), 'pilote PARQUÉ').toBeUndefined();
+    const st = etapeCourante();
+    expect(st, 'le curseur est SUR la Maladresse').toMatchObject({ kind: 'jetDeMaladresse', actorId: hero.id });
+    expect(st!.committed, 'la Maladresse n’est pas validée sans son tirage').toBeFalsy();
+    expect(st!.maladresse?.result, 'les Oups ! ne sont pas tirés').toBeNull();
+    expect(banc.getState().pendingCascade!.piloteImmediat, 'le pilote la reprendra').toBeTruthy();
+    expect(applied, 'rien de la suite ne joue avant la Maladresse').toEqual(['coup']);
+    expect(maladresses()).toEqual([]);
+
+    banc.getState().jetLancer('maladresse');
+    expect(etapeCourante()?.maladresse?.result, 'jetLancer tire les Oups !').not.toBeNull();
+    banc.getState().jetValider('maladresse');
+    expect(maladresses(), 'le tirage est au journal, une fois').toHaveLength(1);
+    expect(applied, 'la reprise du pilote a fini la séquence').toEqual(['coup', 'suite']);
+  });
+
+  it('héros NON TENU : la Maladresse non tirée se joue d’office, tirage au journal, et la séquence va au bout', () => {
+    banc.getState().ensemencerLeTirage(7);
+    const hero = monte(true);
+    runCascadeImmediate(banc.getState, banc.setState, sequence(hero.id), { title: 'Coup', purpose: 'combat' });
+    expect(maladresses(), 'les Oups ! tirés d’office sont au journal, une fois').toHaveLength(1);
+    expect(applied, 'la suite a joué après la Maladresse').toEqual(['coup', 'suite']);
   });
 });

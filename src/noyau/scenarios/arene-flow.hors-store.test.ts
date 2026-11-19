@@ -3,7 +3,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { EFFECT_HANDLERS, applyEffects, runFlow } from '../../noyau/combatEffects';
 import { sceneNpc } from '../../noyau/monde/sceneNpc';
-import { emptyScene, wallBetween, type ArchitectureRect, type Scene, type SceneEntity, type WallSeg } from '../../noyau/monde/scene';
+import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
+import { emptyScene, wallBetween, type Scene, type SceneEntity, type WallSeg } from '../../noyau/monde/scene';
 import { evalCondition, flowEffects, type Condition } from '../../engine/flowCore';
 import { parseProject } from '../../noyau/worldMap';
 import { groupeVitrineDeScenario } from '../../scenes/test-scenarios/_heros';
@@ -100,7 +101,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
     const taverne = bourg?.masses.find((mass) => mass.id === 'taverne');
     expect(taverne, 'la taverne porte une masse authorée').toBeTruthy();
     const isNorE = (w: WallSeg): w is WallSeg & { side: 'N' | 'E' } => w.side === 'N' || w.side === 'E';
-    const foot = taverne!.footprint.reduce((box: ArchitectureRect, part: ArchitectureRect) => ({
+    const foot = taverne!.footprint.reduce((box: RectDeCases, part: RectDeCases) => ({
       x: Math.min(box.x, part.x),
       y: Math.min(box.y, part.y),
       w: Math.max(box.x + box.w, part.x + part.w) - Math.min(box.x, part.x),
@@ -206,7 +207,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'chirurgien-fantome' } }]);
     expect(banc.getState().medic).toBeNull();
     // La validation d'ATELIER voit ce que voit le runtime : elle résout la FICHE (même `sceneNpc`).
-    const ctx = { sceneIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id, presetPnjById), within: () => true, walkable: () => true };
+    const ctx = { sceneIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id, presetPnjById), within: () => true, walkable: () => true };
     expect(EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'medecin' } }, ctx)).toEqual([]);
     // Entité EXISTANTE mais sans Guérison : l'atelier la nomme, elle aussi — la porte n'est plus aveugle.
     const sansSoin = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'fidele' } }, ctx);

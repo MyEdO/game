@@ -7,7 +7,7 @@
  * Codex), zéro code par trait.
  */
 import type { PsychParse } from './types';
-import type { PsychTrait, PsychType } from '../psychology';
+import { PSY, type PsychTrait } from '../psychology';
 import type { TraitList } from '../statEntry';
 import { findTraitById } from '../../data';
 import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
@@ -36,13 +36,13 @@ export function parsePsychTraits(traits: TraitList): PsychParse {
     if (!caps) continue;
     if (caps.psychImmune || caps.swarm || caps.mindless) out.psychImmune = true; // Nuée LDB 85 l.253 ; Fabriqué LDB 85 l.142
     const pt = caps.psychType;
-    if (pt === 'peur') {
+    if (pt === PSY.peur) {
       if (x.value != null) out.causesPeur = x.value;
-    } else if (pt === 'terreur') {
+    } else if (pt === PSY.terreur) {
       if (x.value != null) out.causesTerreur = x.value;
     } else if (pt && estCibleType(pt)) {
       for (const cible of ciblesDeLInstance(x, caps.psychCible)) {
-        const trait: PsychTrait = { type: pt as PsychType, cible };
+        const trait: PsychTrait = { type: pt, cible };
         if (caps.psychIndice != null) trait.indice = caps.psychIndice;
         (out.psychTraits ??= []).push(trait);
       }

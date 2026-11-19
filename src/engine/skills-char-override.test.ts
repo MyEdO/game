@@ -49,7 +49,8 @@ describe('testValue — Intimidation : caractéristique alternative (LDB 09 l.29
     // Le stock d'options vient du registre, jamais d'une liste recopiée : une 5ᵉ option non déclarée sur
     // l'entrée `skills.json` rougit ICI (c'est ainsi que « FM »/« Int » ont été trouvées inertes).
     const regle = ruleDef('test-intimidation-carac')!;
-    const rendu = tableTotale(regle.options ?? [], (o) => {
+    if (regle.kind !== 'mode') throw new Error('test-intimidation-carac : une règle `mode`');
+    const rendu = tableTotale(regle.options, (o) => {
       surchargerUneSaisie('test-intimidation-carac', o);
       return testValue(c(), { skill: { id: 'intimidation' } });
     });

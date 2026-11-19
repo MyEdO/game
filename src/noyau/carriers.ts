@@ -17,7 +17,16 @@ import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
 import { findVehicleById, libelleOuAbsence, dataLabel } from '../data';
 import type { PlayerText } from '../i18n/playerText';
-import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, carriersColocated, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
+import {
+  type CargoCarrier,
+  type CargoLot,
+  cargoTotalEnc,
+  carrierFreeEnc,
+  carriersColocated,
+  spoilCargoByPct,
+  cargoRaidLossPct,
+  type CargoRaidOutcome,
+} from '../engine/cargo';
 import { rule } from '../engine/policy';
 import { t } from '../i18n';
 import type { Jeu } from './etat';

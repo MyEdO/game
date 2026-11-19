@@ -71,7 +71,8 @@ les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un 
 absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence déclarée (ligne
 `License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
-`clips`, la table rôle d'animation → clip dont le rôle `marche` est la marche plantée, et `surfaces`, les matériaux du corps
+`bornesArticulaires`, `clips`, la table rôle d'animation → clip dont le rôle `marche` est la marche plantée, `clipsDeuxMains`
+(#3319), `prisesOccupees` (#3806), et `surfaces`, les matériaux du corps
 et leur emplacement de palette, sans `blason`, chacun avec, en option, `parSexe` : par sexe, le matériau d'un corps
 donneur que la construction recouche sur les UV de la surface et exporte en variante `KHR_materials_variants` du nom du
 sexe, #3188), la vitesse au sol du clip du rôle `marche` mesurée par l'évaluateur, et
@@ -116,7 +117,7 @@ la palette d'une composition donne à chaque emplacement une couleur du nuancier
 
 Un élément sans base (`decor`, `vehicule`, `amelioration`) se construit dans un repère fixe : en glTF, son avant
 vers +Z, sa gauche vers +X (bâbord d'un navire), son origine au sol ou, pour un navire, à la ligne
-de flottaison, son emprise recentrée en x et z ; l'hôte le pose sur son empreinte et le tourne vers
+de flottaison, son emprise recentrée en x et z, sauf un décor, dont l'origine reste l'ancre de sa recette (chapitre 10) ; l'hôte le pose sur son empreinte et le tourne vers
 son cap sans lire d'autre repère. Il se construit en mètres réels : l'hôte le réduit à son empreinte.
 Ce qui se monte, s'équipe ou s'améliore (arme, pièce d'artillerie, Amélioration de navire) n'est
 jamais modelé dans l'élément qui le porte : il est son propre élément, monté à un emplacement, ou à
@@ -184,7 +185,8 @@ lisibles à taille de jeu ; éléments indépendants et dépendances ; interface
 support, leur contact/dégagement, souplesse et poses ; grandes surfaces ; tri CONSERVER /
 SIMPLIFIER / OMETTRE. Distinguer volume, motif peint et ombre. Tracer les hypothèses du dos.
 Le modèle se compare à l'illustration directrice. Un grand revers et un foulard sont des formes ;
-coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth intentionnel.
+coutures et usure restent du détail. Chaque surface nomme sa matière (drap, laine, toile, cuir, acier, mailles,
+fourrure, bois : section 3), jamais un aplat ; ombrage flat/smooth intentionnel.
 
 Un emblème (d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde un champ
 neutre (écu uni, lame nue, insigne vierge), dont la couleur reste celle de son emplacement de palette, et le manifeste
@@ -192,7 +194,9 @@ déclare `blason: true` sur chaque surface qui reçoit l'emblème, dite surface 
 vient de la donnée du porteur, `embleme` de son apparence ou de sa composition (#3155), et se pose
 au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
 `blason` ; un signe peint sur une armure (tassette, brassard) est un emblème, reçu par une surface
-`blason` de la pièce.
+`blason` de la pièce. Un symbole religieux porté (`symbole-religieux`) a la forme de son dieu : il se modèle, une
+apparence de l'objet par dieu (`symbole_de_sigmar`, forme `symbole_religieux`) ; l'emblème du culte se pose sur la
+surface `blason` d'un autre objet, la couverture du livre de prières (#3867).
 
 Le matériau d'une surface `blason` ne couvre que la face porteuse : toute face de ce matériau reçoit
 l'emblème. Son îlot UV de `TEXCOORD_0` remplit le carré [0,1]², à l'échelle uniforme, sans miroir,
@@ -219,11 +223,22 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
 
 - `donnees.py` : `MANIFESTE`, les champs publiés propres à l'élément (`categorie`, `cle`, `liaison`, et pour une pièce
   skinnée `couche`, `couvre`, `chaines`) ; `MATERIAUX`, `{nom: (emplacement de palette, matière)}` (`habillage.py`,
-  section 9), en gris de construction ; `BUDGET_TRIANGLES` (section 7) ; `PRISE` pour un rigide ; chaque dimension en
-  mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE à trancher en revue), jamais enfouie
-  dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et la coiffure) nomme ses ids.
+  section 9) : la matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` dont le catalogue
+  `hotes/godot/projet/textures/` porte la texture, sa texture neutre (`.neutre.jpg`, que teint la palette) et son relief ;
+  à défaut de matière au catalogue (peau, poil, corne, parchemin), un gris de construction `(couleur, métal, rugosité)`.
+  Une matière qui manque s'ajoute au catalogue (texture CC0, provenance, entrée `prop`) avant la pièce (#4313).
+  `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces `blason`, section 2), qui gardent leurs UV ;
+  tout autre matériau reçoit du constructeur ses UV en mètres au repos (`maille.poser_les_uv_en_metres`) ; `BUDGET_TRIANGLES` (section 7) ; pour un rigide,
+  `PRISE` (une prise de la base) ou `EMPLACEMENT` (un emplacement de l'élément `OFFRANT`, importé avant lui) ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
+  à trancher en revue), jamais enfouie dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et
+  la coiffure) nomme ses ids.
 - `modele.py` : la construction seule. Un rigide : `construire(D, materiaux)` rend ses objets, bâtis dans le repère de
   sa prise. Une pièce skinnée : `construire(D, materiaux, base)` rend la pièce jointe, ses clés transférées.
+- Une pièce skinnée publiée dont l'atelier est perdu se reprend de son GLB épinglé (#3761) : `modele.py` tient en
+  `from publie import reprendre`, et `donnees.py` ne porte que `MANIFESTE` (les champs publiés, `emplacements` compris),
+  `MATERIAUX` (valeurs des matériaux du GLB publié) et `BUDGET_TRIANGLES` (son compte de triangles). `element/publie.py`
+  garde du publié le repos, les poids, les normales, la découpe en meshes et les clés propres (`visage_inverse`), et
+  retransfère de la base courante les silhouettes et les clés `gabarit_*`. Une pièce neuve ne passe jamais par là.
 
 Le constructeur commun `element/construire.py` ouvre la base épinglée, appelle le modèle, contrôle le budget, pend le
 rigide à l'os de sa prise ou découpe la pièce par zone, exporte l'élément seul et écrit son dossier de production
@@ -232,9 +247,12 @@ revient à l'orchestrateur, qui l'ajoute au kit. Les preuves (rendus, mesures, c
 
 Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, surfaces porteuses, coupes des zones,
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
-`joindre`, `Base.nappe`, `lambeaux` pour un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
+`joindre`, `joindre_les_surfaces`, `direction_spatiale`, `selon` pour une cote par azimut, `Base.nappe`, `lambeaux` pour
+un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
 sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
-dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), `formes.py` pour les
+dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), de même `element/robe.py` pour une
+robe longue sur le filet `jupe` (robe, bure) et `element/sangle.py` pour une sangle en bandoulière posée sur la pièce
+qu'elle contourne (bandoulière à parchemins, baudrier sur robe), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
 élément skinné reçoit les silhouettes déclarées ET toutes les clés `gabarit_*` de la base, celles-ci non déclarées au
@@ -242,7 +260,11 @@ manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones 
 le plus proche (une liaison de surface tourne l'écart au corps avec sa normale) ; une pièce longue
 dont le corps se tasse sous une clé (robe jusqu'aux chevilles sous `gabarit_legs_moins`) passe ses `bornes`. Une arête
 que la clé retourne est lissée comme une arête hors bornes ; la nappe intérieure d'une double nappe porte les clés de
-sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce). 
+sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce).
+Sous une silhouette à os (`gabarit.osDesSilhouettes` du manifeste de base : la carrure écarte les épaules et les
+hanches), les hôtes déplacent les os et compensent les liaisons : au repos, une pièce skinnée vaut son bind plus ses
+clés quels que soient ses poids, et une pièce rigide suit son os. L'élément ne déclare rien : ses clés transférées
+portent le déplacement entier. L'évaluateur et `rendu.py` déplacent les os de la même table.
 
 Une pièce ne se pondère jamais contre une autre pièce : ses poids sont ceux de son porteur, le corps. Le montage résout
 la pile des couches de la tenue réellement portée (`resoudreLaPile`, `hotes/godot/asset/pile.ts`), par les mêmes règles
@@ -252,7 +274,8 @@ triangles entièrement couverts ne se dessinent plus. La pièce lui doit trois c
 - sa `couche` déclarée, qui dit ce qui la couvre ; à couche égale, un `accessoire` se porte par-dessus ;
 - au repos et sous chaque silhouette, rester derrière ce qui la couvre : le montage laisse dehors ce qui le perce de
   plus de 1 cm, et la porte nomme (`couche-percee-au-repos`) l'arête qui traverse l'endroit de sa couverture et en sort
-  de plus de 5 mm ; longer sa couverture sans la traverser, comme un col sous une écharpe, n'est pas la percer ;
+  de plus de 5 mm devant un triangle qui lui fait face ; longer sa couverture sans la traverser, comme un col sous une
+  écharpe, n'est pas la percer, ni sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une barbe ;
 - les mêmes poids, sommet pour sommet, sur les deux faces d'une épaisseur : le montage garde rigide ce que son auteur
   a lié pareil.
 
@@ -338,7 +361,7 @@ et son roulis sont ceux du maniement de l'arme dans les clips dérivés (`SECOND
 repos, attaque et marche : poing fermé sur le manche, bras sans torsion. Un rendu Blender des clips montre la main
 gauche ouverte à la cote du clip : seul Godot la ferme et la ramène sur la seconde prise (`seconde_prise.gd`). Le poing
 fermé de la base r24 ne laisse qu'un passage d'environ 7 mm de rayon, et l'origine de la prise `main` est sur la paume :
-centrer le manche au meilleur passage (`AXE_DANS_LA_PRISE` du bâton) et consigner l'écart restant.
+centrer le manche au meilleur passage (`AXE_DANS_LA_PRISE`, `scripts/personnage-3d/base/anatomie.py`) et consigner l'écart restant.
 
 Peau et gant restent distincts. Enveloppe fine, épaisseur bornée par courbure/arêtes, pas de
 gonflement global ; examiner paume, dos, dessous et creux. Pour une prise plate, regarder les deux
@@ -368,7 +391,7 @@ Lire au besoin la référence diagnostics du skill.
 Exporter en interpolation LINEAR et garder les pistes cuites de la base. Graines déterministes
 tirées des codes de caractères de l'identité, jamais du hash Python variable entre processus.
 Reconstruire un échantillon et comparer les octets ; une signature égale ne remplace pas cette preuve.
-Couleur de base en niveaux de gris ; chaque surface reliée à son emplacement de palette, sans couleur cuite ni
+Chaque surface reliée à son emplacement de palette et à sa matière du catalogue, sans couleur cuite ni
 illustration en texture ; aucun emblème n'est cuit, il se pose au montage sur une surface `blason`
 (section 2). La cuisson de géométrie vers texture peut utiliser le kit.
 
@@ -390,7 +413,8 @@ sous l'empreinte que le dépôt épingle dans `hotes/godot/projet/modeles/<id>.m
 contournés ; `npm run godot:sonde` y tire ceux qui manquent. Il écrit `/atelier/baton/<id>/` : `<id>.glb`,
 `<id>.element.json` (le manifeste schéma 3, empreinte et taille du GLB comprises), `manifest.json` (l'enveloppe de
 l'import) et les licences des packs de la base, et imprime l'empreinte et les triangles. Deux constructions donnent les
-mêmes octets. Exemple du manifeste qu'il écrit pour un rigide :
+mêmes octets. `--local <id>=<glb>` (répétable) lit une voisine du lot pas encore importée, que l'élément contourne, à son
+GLB local : la sortie le dit (`LOCAL`), cette construction ne s'importe pas. Exemple du manifeste qu'il écrit pour un rigide :
 
 ```json
 {
@@ -412,7 +436,8 @@ provenance, captures, chemin du GLB ou décision utilisateur dans ce JSON fermé
 
 La CLI canonique appelle validerElement avec les octets du GLB pour vérifier forme, ids de clé
 contre la donnée du jeu, références à la base, noms de surfaces contre les matériaux du GLB
-(`surface-absente`), `TEXCOORD_0` sur chaque primitive d'une surface `blason` (`uv-absente`),
+(`surface-absente`), `TEXCOORD_0` sur chaque primitive d'une surface `blason`, et d'une surface à `matiere` d'un
+élément sur base, que le jeu habille aux UV (`uv-absente`),
 empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de base,
 puis GLB d'élément, depuis la racine du dépôt :
 
@@ -443,12 +468,16 @@ déclarée de la base seule à 1, une passe par processus, en parallèle sur les
 moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>`. Une passe isolée se
 rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips fautifs avant la porte entière.
 Ne pas valider une matrice entière avec le seul cas neutre.
+`--temoin <rapport.json>`, le rapport `--json` d'un run antérieur (la tenue publiée), ne liste que les écarts neufs : la
+retouche se juge sur eux. Le témoin se mesure sur les mêmes `<glb>` dans le même ordre, les éléments neufs à la fin : le
+libellé `élément k` d'un mesh est sa position.
 La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
 rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, triangles masqués).
 La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
 la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui.
 `couche-percee-au-repos` : au repos neutre, une arête d'une couche traverse l'endroit de celle qui la couvre et en
-sort devant. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
+sort devant un triangle qui lui fait face ; sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une
+barbe, n'est pas la percer. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
 manche de l'autre bras. Le tissu pincé n'en est pas : là où le vêtement repose sur le corps d'une autre zone,
 le membre qui l'y presse ne le traverse pas. D'un vêtement à doublure, seul compte l'endroit : la main posée devant
 lui est derrière sa doublure sans l'avoir traversé.
@@ -500,7 +529,8 @@ Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, pos
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
 lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
 (`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset`, la pose au `--clip`, et sa `planche.png` porte
-`--illustration` à gauche. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
+`--illustration` à gauche ; `--cadre x,y,z,étendue` (mètres, repère de `bounds` de `render-report.json`) en fait des gros
+plans. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
 
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
@@ -510,6 +540,28 @@ Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'
 l'atelier (`node hotes/godot/recette.mjs --parcours preset --preset <id> --web <web> --captures <dossier>`, face,
 trois-quarts, dos), montrées à côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
 composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
+
+Un modèle sans base (véhicule, décor, arête) se regarde dans Godot par les mêmes outils, une fois importé au dossier
+des modèles du projet (`--sans-publier`). L'atelier le montre tel que le jeu le sert : un véhicule à sa liste de tête,
+un décor et un mur dans la scène d'échantillon de leur famille (`src/noyau/monde/echantillons.ts`), le mur d'une
+apparence en un enclos qui porte chacune de ses pièces ; la recette `atelier-du-decor.gd` (`npm run godot:sonde`)
+pose un mur de chaque famille dont le modèle d'arête est servi. Posé dans une scène, il se capture au regard d'un
+joueur, sans export, par le parcours des cadrages d'un scénario de test qui le pose :
+
+```sh
+node hotes/godot/recette.mjs --natif --rendu gl_compatibility --parcours cadrages --scenario <id> \
+  --vues /atelier/vues.json --captures /atelier/cadrages
+```
+
+`vues.json` est un tableau de vues nommées, `{ "nom", "regard": "immersion", "case": { "x", "y" }, "etage"?, "lacet",
+"tangage" }` (l'œil sur la case, en exploration, tangage dans ±80°) ou `{ "nom", "regard": "tactique" | "plateau",
+"case", "etage"?, "lacet", "zoom" }` (la caméra regarde la case depuis `zoom` mètres, de 6 à 40) ; le lacet est un
+azimut en degrés, 90 vers l'est ; le plateau regarde à la verticale, l'immersion et la tactique montrent la face d'un
+mur. Chaque vue se capture en `<nom>.png`, et le journal imprime le plan de sa couche, l'œil marqué : il donne les
+cases. Exemple : `hotes/godot/cadrages/a-bord-de-la-caraque.json`. Les arêtes d'un scénario se comptent par famille
+de kit par `aretesDeLaScene` (`src/noyau/monde/aretes.ts`) sur sa scène (`construire` de
+`src/scenes/test-scenarios/`) ; une famille qu'aucun scénario ne pose se regarde à l'atelier, ou dans un scénario
+qu'on lui écrit (skill `creer-un-scenario-de-test`).
 
 ## 8. Livrer et définir le fini
 
@@ -530,9 +582,9 @@ vêtement et rigide, évalués, revus par l'utilisateur, puis montés dans le sc
 ## 9. Véhicule : navire ou engin de siège
 
 Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (catégorie `amelioration`) se construisent
-depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export et
-manifestes ; `plan_de_jeu.py` : les ponts d'un navire, lus dans la source unique `ponts` de sa fiche ; `navire.py` : les
-pièces communes des navires bâtis sur leurs ponts, coque, espars, cloisons, portes, échelles, pièces creusées et emprise
+depuis le dépôt, sans base, par le constructeur commun des éléments sans base, `scripts/personnage-3d/construire.py`
+(export et manifestes, d'un véhicule comme d'un décor), et `scripts/personnage-3d/vehicule/` : sa partie commune
+(`plan_de_jeu.py` : les ponts d'un navire, lus dans la source unique `ponts` de sa fiche ; `navire.py` : les pièces communes des navires bâtis sur leurs ponts, coque, espars, cloisons, portes, échelles, pièces creusées et emprise
 libre des cases ; `revue.py` : configurations rendues dans le studio de `rendu.py` ; `cote_a_cote.py` : l'illustration
 au-dessus du rendu orthographique, à la même échelle, de profil et pont par pont), celle qu'il partage avec les éléments
 sur base (section 3) dans `scripts/personnage-3d/` (`production.py` : dossiers de production ; `maille.py` : maille,
@@ -580,7 +632,7 @@ pièce de navire dans `navire.py` (deuxième cas réel), sans changer un octet d
 **Construire**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt (refusé sinon) :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/construire.py <type> --sortie /atelier/<type>
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py vehicule/<type> --sortie /atelier/<type>
 ```
 
 Chaque clé reçoit son dossier de production `/atelier/<type>/<id>/` (`<id>` = `<categorie>--<valeur de clé>`) :
@@ -589,7 +641,7 @@ et les nœuds de chaque GLB ; deux constructions donnent les mêmes octets.
 
 **Valider.** `npm run godot:valider -- /atelier/<type>/<id>/<id>.element.json /atelier/<type>/<id>/<id>.glb` pour chaque
 id ; `npm run personnage-3d:tests`, dont `test_vehicule.py` reconstruit chaque modèle et compare chaque manifeste, son
-empreinte comprise, à celui publié sous `hotes/godot/projet/modeles/` ; un véhicule ou une Amélioration publiés sans
+empreinte comprise, à celui publié sous `hotes/godot/projet/modeles/` (`reconstruction.py`, commun aux décors) ; un véhicule ou une Amélioration publiés sans
 modèle y échouent ; sur chaque navire, toute case des ponts s'atteint, l'emprise libre de chacune tient un occupant
 debout, et la coque est close (`closes` : aucun rayon ne sort du navire depuis une case, sabords bouchés, et aucune fosse
 sans plancher sous une case). Au noyau, le test du plan du navire (`src/noyau/planDe*.test.ts`) garde ses postes : la
@@ -598,7 +650,9 @@ ne franchissent ni mur ni porte, et reposent sur un plancher. Une garde qui refu
 d'une case ou en la tournant, jamais en la retirant ni en vidant une cabine dessinée : le nombre de pièces par bord est
 celui de l'illustration qui les place (MDG 12 pour la caraque). Dans le jeu, la route à bord
 (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`, une par scénario `a-bord-de-*`) prouve que chaque case
-s'atteint depuis le départ par les échelles, et la rejoue au clic dans l'export Web :
+s'atteint depuis le départ par les échelles et qu'au regard `plateau` chacune est la plus haute que le monde montre à
+la verticale de son point (aucun décor du pont du dessous ne la traverse : `src/noyau/planDeNavire.test.ts`), et la
+rejoue au clic dans l'export Web, au regard `plateau` :
 
 ```sh
 ROUTE=/atelier/routes npx vitest run --config vitest.noyau.config.ts hotes/godot/recettes/route-a-bord.hors-store.test.ts
@@ -609,7 +663,7 @@ données (le véhicule, la pièce des postes, les configurations et les vues de 
 `npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/affut --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/affut --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
 ```
 
 Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner. Avant de montrer un
@@ -633,6 +687,146 @@ Les manifestes, provenances et licences déposés sous `hotes/godot/projet/model
 GLB vont à la Release `modeles-3d` par une branche `transfert/<x>` partie de la branche de travail, qui porte les
 provenances neuves qui les épinglent (`git add -f` des GLB nommés par leur empreinte), que
 `.github/workflows/transfert.yml` vérifie, verse et efface.
+
+## 10. Décor
+
+Un décor (catégorie `decor`, clé `{ "prop": <id> }` d'un décor de `src/data/props.json`) se construit depuis le dépôt,
+sans base, par le constructeur commun `scripts/personnage-3d/construire.py`, un dossier par modèle,
+`scripts/personnage-3d/decor/<modele>/` : `donnees.py` (`MATERIAUX` par décor : chacun de ses matériaux, un
+emplacement de palette et une matière du domaine `prop` de `src/data/materials.json`, choisie pour ce qu'elle rend, qui
+peut différer de celle que nomme la recette, la docstring disant pourquoi ; `BUDGET_TRIANGLES` ; chaque proportion nommée, en fraction de la primitive qui la porte, et la docstring qui dit les
+proportions d'adaptation sans illustration) et `modele.py` (`elements(D)`, un élément par décor : `cles`
+`[("decor", {"prop": id})]`, un GLB par clé). Des décors qui partagent leur construction partagent le dossier (`arbre` :
+`arbre`, `hetre`, `orme`, `pin`, `arbre-mort`, `souche`, `buisson`).
+
+**Saisons.** Un décor change selon la saison du jeu (ids de `src/data/weather.json`, `SAISONS` de
+`hotes/godot/asset/element.ts`) par deux moyens, que `donnees.py` déclare dans `SELON`, par décor et par saison, et que
+`modele.py` porte au `selon` du manifeste :
+
+- une couleur, `{ "palette": { <emplacement d'une de ses surfaces>: "#rrggbb" } }` : elle teint la texture neutre de la
+  matière (`.neutre.jpg`), plus claire que sa texture, si bien que la teinte se règle au rendu (`revue.py --saison`),
+  jamais sur la couleur visée ; une saison sans entrée laisse le décor tel que bâti ;
+- des nœuds du GLB : `sans-<saison>`, caché en cette saison, et `avec-<saison>`, montré en elle seule. Une saison qui ne
+  change que des nœuds se déclare `{}` : l'hôte ne cache que les nœuds des saisons que `selon` nomme, et le manifeste
+  dont le GLB porte un tel nœud sans la nommer est refusé (`selon-absent`).
+
+Le feuillage d'un décor caduc (`CADUCS` de `decor/arbre/donnees.py`) est son nœud `sans-hiver`, et sa ramure nue son
+nœud `avec-hiver` : des brindilles en éventail là où chaque masse de feuillage se tient (`ramure`), tirées d'un aléa à
+part, pour que le feuillage ne change pas quand la ramure change. Le budget de triangles compte ce qui se montre à la
+fois, la plus lourde des deux tenues.
+
+**Ce qui luit.** Le GLB d'un décor a un nœud `emet` (`NOEUD_EMISSIF` de `decor/gabarit.py`) si et seulement si sa
+recette a une primitive `emet` (`test_decor.py`) : il porte ce qui luit à l'aplomb du centre de cette primitive, que l'hôte
+allume sur une pose qui éclaire (`MontageDesModeles._allumer`).
+
+**Gabarit.** Les primitives de la recette (`volume.primitives`) restent la seule source du gabarit de jeu (empreinte,
+dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes ni
+de leur géométrie, que `decor/polygones.mjs` tire de `polygonesDePrimitive` (`src/data/props.types.ts`), et se bâtit
+dans leur enveloppe convexe (`gabarit.enveloppe`), dont il garde l'encombrement sans recopier les primitives ;
+`Gabarit.rentrer` y ramène le sommet qui en sortirait. Le modèle ne
+passe par aucune rotation de `mathutils` (`rotation_difference`, `Quaternion`, `Euler`, `Matrix.Rotation`), dont la
+trigonométrie en simple précision change d'une libm à l'autre et déplace les sommets : un repère se transporte par
+produits vectoriels (`transporter` de `decor/arbre/modele.py`). `test_decor.py` refuse un sommet du GLB publié (lu dans le cache
+des modèles à l'empreinte de son manifeste) hors de cette enveloppe, sol compris, à 1 mm près. Une enveloppe qui empêche un modèle correct se rapporte, avec la cote qui gêne ; le modèle ne
+change pas la recette. Chaque pièce est une coque close aux faces vers le dehors : `test_decor.py` refuse un nœud du GLB publié qui a une arête non appariée ou une coque soudée de volume négatif ou nul (`glb.coques_en_defaut`).
+
+**Repère et cap.** La recette est en mètres, origine à l'ancre, `xM` à l'est, `yM` vers son front au cap d'identité
+(`CAP_IDENTITE_PROP`, `src/data/props.types.ts`), `hM` vers le haut. En Blender, (x, y, z) = (xM, -yM, hM) : le front vers
+-y comme l'avant d'un véhicule ; l'export glTF le place en (X, Y, Z) = (xM, hM, yM), le front vers +Z. L'origine reste
+l'ancre, jamais recentrée : un décor au cap d'identité sort orienté et posé comme sa recette.
+
+**Construire, valider, importer**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py decor/<modele> --sortie /atelier/<modele>
+npm run godot:valider -- /atelier/<modele>/decor--<id>/decor--<id>.element.json /atelier/<modele>/decor--<id>/decor--<id>.glb
+node hotes/godot/importer.mjs /atelier/<modele>/decor--<id> decor--<id> --sans-publier
+```
+
+Deux constructions donnent les mêmes octets (aléa semé des codes de caractères de l'id). `npm run personnage-3d:tests`
+(`test_decor.py`) reconstruit chaque modèle dont une entrée a changé (tous sous `WFRP_3D_TOUT=1`), compare chaque
+manifeste au publié, exige un modèle pour chaque `decor--*` publié et passe la garde du gabarit sur chaque GLB publié,
+sans le reconstruire. Publier comme un véhicule (chapitre 9, « Publier »).
+
+**Revue.** `decor/revue.py` rend AVANT (les primitives de la recette) et APRÈS (le GLB), habillés comme le jeu, dans le
+studio de `rendu.py`, de face, de trois-quarts et de dessus, dans une `planche.png` :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/decor/revue.py <id> --modeles /atelier/<modele> --sortie /atelier/revue-<id> [--saison <saison>]
+```
+
+`--saison` montre APRÈS comme le jeu en cette saison (nœuds cachés, palette du `selon`) ; sans elle, le décor tel que
+bâti. Un décor saisonnier se regarde en chacune de ses saisons. La recette rendue
+`hotes/godot/projet/recettes/saisons-du-decor.gd` (`npm run godot:rendus`) lit aux pixels le chêne en chaque saison.
+
+Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner.
+
+## 11. Arête
+
+Les pièces qu'un hôte pose sur les arêtes d'une scène (catégorie `arete`, clé `{ "kit": <famille> }`, le `kit` d'une
+apparence de `src/data/structureAppearance.json`) se construisent depuis le dépôt, sans base, par le constructeur commun
+`scripts/personnage-3d/construire.py`, un dossier par kit, `scripts/personnage-3d/arete/<kit>/` : `donnees.py`
+(`MATERIAUX`, `BUDGET_TRIANGLES` par pièce, chaque cote nommée, les illustrations directrices) et `modele.py`
+(`elements(D)`, par `arete/geometrie.py`). Un kit est un GLB, `arete--<kit>`, un nœud racine à mesh par pièce
+(`PieceDArete`, `src/noyau/monde/aretes.ts`) : `mur`, `porte-fermee`, `porte-ouverte`, `fenetre`, `fenetre-close`,
+`breche`.
+
+**Repère et taille.** Chaque pièce est à l'origine de l'arête, à sa taille réelle : X le long d'elle, centrée, sur la
+longueur d'une case ; Y depuis son pied, sur la hauteur de l'apparence ; Z son épaisseur, centrée, le dehors vers +Z
+(`arete/geometrie.py`). Un demi-poteau ou une chaîne de pierres à chaque bout se complète de celui de la pièce voisine.
+L'hôte porte la boîte du kit à la longueur de chaque arête et à la hauteur de son mur, l'épaisseur à l'échelle du
+plateau (`MiseEnPage.echelle_d_arete_servie`).
+
+**Ouverture de plusieurs arêtes.** Une suite d'arêtes adjacentes et alignées de même couche, de même nature (porte,
+porte de ville) et de même apparence est une seule ouverture (`ouverturesDeLaScene`, `src/noyau/monde/aretes.ts`). Chaque arête y reçoit le nœud `<pièce>--<position>`, de position `gauche`, `milieu` ou
+`droite` ; l'hôte se replie sur `<pièce>`, qui est aussi le nœud d'une ouverture d'une seule arête. `gauche` est
+l'arête au bout -X de l'ouverture dans le repère de la pièce (X le long du sens de l'arête, +Z vers le dehors),
+`droite` celle du bout +X. Un vantail se gonde au bout extérieur de l'ouverture : côté -X pour `gauche`, côté +X pour
+`droite` ; celui de `milieu`, brisé sur son voisin de gauche, clôt sa baie fermé et la laisse libre ouvert. L'état
+d'un vantail reste celui de son arête. Un kit ne bâtit que les positions qu'une scène
+pose (`geometrie.noeud`) : le budget d'un nœud est celui de sa pièce, et `arete/revue.py` montre chaque ouverture
+d'un seul tenant, ses nœuds bout à bout. Un kit dont toutes les arêtes sont une Structure qui s'abat sans s'ouvrir
+(`porterie`) ne bâtit que `mur` et `breche`. Une porte posée dans un mur prend le kit, la hauteur et les teintes de
+mur (`corps`, `bois`) de son mur porteur, celui du bout -X sinon du bout +X, et garde les teintes de menuiserie
+(`accent`, `vet1`, `metal`) de sa propre apparence (`paletteDeLApparence`) : chaque kit bâtit donc ses portes.
+
+**Famille neuve.** Ajouter d'abord la famille au `kitSchema` (`src/data/schemas/defs/structureAppearance.ts`), puis
+une apparence de `structureAppearance.json` qui la porte (le jeu de données s'édite au fichier). L'hôte pose une
+arête par le modèle `arete--<kit>` s'il est servi, sinon par le pack `projet/kit/kit.glb` (familles `pierre` et
+`cloture`, `hotes/godot/asset/kit.ts`), sinon par une boîte.
+
+**Forme et couleur.** `donnees.py` lit dans `structureAppearance.json` les seuls champs de forme des apparences qu'il
+nomme ; aucune couleur n'y entre (`test_arete.py`) : chaque surface nomme l'emplacement de palette que l'hôte teint de
+la couleur de l'apparence posée. Une baie est percée de part en part.
+
+**Communs de la famille**, sous `scripts/personnage-3d/arete/` : `apparences.py` lit une apparence et sa hauteur ;
+`menuiserie.py` porte le vantail de planches, la croisée et les volets, avec leurs cotes ; `maconnerie.py` l'appareil
+des kits de pierre (assises, chaînes, couronnement, porche voûté, brèche). Un kit les pose, il ne les recopie pas.
+La forme d'un kit se lit d'une apparence de référence, nommée dans son `donnees.py` ; les autres apparences du kit
+reçoivent cette forme, étirée par l'hôte à la hauteur de leur mur. Un mur plein ne laisse passer aucun jour
+(`test_arete.py`).
+
+**Construire, valider, importer, regarder**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/construire.py arete/<kit> --sortie /atelier/<kit>
+npm run godot:valider -- /atelier/<kit>/arete--<kit>/arete--<kit>.element.json \
+  /atelier/<kit>/arete--<kit>/arete--<kit>.glb
+node hotes/godot/importer.mjs /atelier/<kit>/arete--<kit> arete--<kit> --sans-publier
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/arete/revue.py <kit> --apparence <id> \
+  --modeles /atelier/<kit> --sortie /atelier/revue-<kit>
+```
+
+`arete/revue.py` rend chaque pièce seule, teinte de la palette que le jeu donne à l'apparence (`paletteDeLApparence`),
+de face, de trois-quarts et de dessus, dans une `planche.png`. `npm run personnage-3d:tests` (`test_arete.py`) bâtit
+chaque kit deux fois aux mêmes octets et mesure ses pièces (nœuds, repère, budget, coques closes, jour),
+reconstruit chaque kit dont une entrée a changé, compare chaque manifeste au publié et exige un kit pour chaque
+`arete--*` publié.
+Regarder le kit dans Godot comme tout modèle sans base (chapitre 7) : l'atelier en montre chaque pièce par
+l'échantillon « Mur et ouverture », et la capture `cadrages` le montre posé dans une scène, au regard d'un joueur.
+Une illustration de façade se compare à cette capture, jamais à une pièce seule. Recettes Godot des arêtes
+(`godot:sonde`) : `arete-au-pied.gd` (pied, échelle, nœuds par position), `aretes-en-instances.gd`,
+`atelier-du-decor.gd`. Publier comme un véhicule (chapitre 9, « Publier »).
 
 ## Disponibilité à sonder avant chaque production
 
@@ -673,6 +867,16 @@ Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé.
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
 Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<x>` partie de sa branche de travail, qui porte la provenance neuve et les fichiers ajoutés par `git add -f` (GLB nommés par leur empreinte, textures du catalogue) : `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
+
+Un lot se construit, s'importe et entre au cache des modèles en une commande, chaque élément après ceux du lot qu'il
+contourne ; `--transfert <nom>` fabrique le commit de transfert, GLB, manifestes et provenances importés du lot, et
+imprime le `git push` à lancer. Chaque élément se nomme `<base>/<dossier>`, `<base>` l'une de `CONSTRUCTEURS`
+(`scripts/personnage-3d/integrer.mjs`) : `humanoide`, ou `vehicule`, `decor` et `arete` pour un modèle sans base
+(`arete/moellons`) :
+
+```sh
+npm run personnage-3d:integrer -- humanoide/armure--plastron humanoide/accessoire--baudrier-sur-armure [--transfert soldat]
+```
 
 ```sh
 node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier

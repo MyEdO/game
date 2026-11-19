@@ -36,11 +36,9 @@ import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { Combatant, EffectSource } from '../engine/types';
 import type { GameOp } from '../engine/ops';
 import { t } from '../i18n';
-import crits from '../data/criticals.json';
-import etats from '../data/etats.json';
-import talents from '../data/talents.json';
-import spells from '../data/spells.json';
-import shipCrits from '../data/ship-criticals.json';
+import { CRITIQUE_DOCS } from '../data/criticals';
+import { findConditionById, findTalentById, spells } from '../data';
+import { SHIP_CRITICAL_TABLES } from '../data/shipCriticals';
 import { desDuTest } from '../engine/dice.testkit';
 
 let banc: Banc;
@@ -77,29 +75,34 @@ function allerRetourJSON(): void {
 
 // ── La DONNÉE, trouvée par sa FORME (jamais par un id recopié) ─────────────────────────────────
 
-type Rangee = { id: string; label: string; test: NoeudTest };
 /** La rangée de Critique dont l'échec pose UN Sonné sur la CIBLE — « Nez cassé » (LDB 15). */
-function rangeeSonneSurLaCible(): Rangee {
-  for (const table of crits as { entries?: Rangee[] }[]) {
-    for (const e of table.entries ?? []) {
-      const f = e.test?.echec as { effet?: { type?: string; on?: string; ops?: GameOp[] } } | undefined;
-      if (f?.effet?.on !== 'target' || f.effet.type !== 'ops') continue;
-      const ops = f.effet.ops ?? [];
-      if (ops.length === 1 && ops[0].op === 'condition' && (ops[0] as { id: { id: string } }).id.id === 'sonne') return e;
+function rangeeSonneSurLaCible() {
+  for (const table of CRITIQUE_DOCS) {
+    for (const e of table.entries) {
+      const test = e.test;
+      if (test === undefined) continue;
+      const f = test.echec;
+      if (f.kind !== 'effet' || f.effet.on !== 'target' || f.effet.type !== 'ops') continue;
+      const [op, ...reste] = f.effet.ops;
+      if (reste.length === 0 && op?.op === 'condition' && op.id.id === 'sonne') return { label: e.label, test };
     }
   }
   throw new Error('aucune rangée de Critique à branche `on:target` posant un Sonné — le scan a glissé');
 }
 
 /** Le Test de fin de Round d'un État (`etats.json`) — celui de Sonné porte un `si` de branche. */
-const noeudDEtat = (id: string): NoeudTest =>
-  (etats as { id: string; effects?: { flow: Flow }[] }[]).find((e) => e.id === id)!
-    .effects!.find((x) => x.flow.kind === 'test')!.flow as NoeudTest;
+const noeudDEtat = (id: string): NoeudTest => {
+  const noeud = findConditionById(id)?.effects?.find((x) => x.flow.kind === 'test')?.flow;
+  if (noeud?.kind !== 'test') throw new Error(`aucun nœud \`test\` aux effets de l'État « ${id} »`);
+  return noeud;
+};
 
 /** Le nœud `test` d'un talent (Mâchoires d'acier : branche `on:'caster'`, auto-portée). */
-const noeudDeTalent = (id: string): NoeudTest =>
-  (talents as { id: string; effects?: { flow: Flow }[] }[]).find((t) => t.id === id)!
-    .effects!.find((x) => x.flow.kind === 'test')!.flow as NoeudTest;
+const noeudDeTalent = (id: string): NoeudTest => {
+  const noeud = findTalentById(id)?.effects?.find((x) => x.flow.kind === 'test')?.flow;
+  if (noeud?.kind !== 'test') throw new Error(`aucun nœud \`test\` aux effets du talent « ${id} »`);
+  return noeud;
+};
 
 /** Feuilles `ops` d'un Flow (branches comprises) — sert à CHOISIR un nœud par sa forme. */
 function feuilles(f: Flow | undefined): { on?: string; ops: GameOp[] }[] {
@@ -123,23 +126,23 @@ function noeudsTest(f: unknown, out: NoeudTest[] = []): NoeudTest[] {
 /** L'ENTITÉ PORTEUSE du sort d'où vient le nœud — tout producteur réel la passe à la porte, et un
  *  Test enfoui dans une branche en dérive son enjeu. */
 function sourceDuSort(node: NoeudTest): EffectSource {
-  const sp = (spells as { id: string; effects?: Flow }[]).find((s) => noeudsTest(s.effects).includes(node))!;
+  const sp = spells.find((s) => noeudsTest(s.effects).includes(node))!;
   return { kind: 'sort', id: sp.id };
 }
 
-/** LA ligne que la feuille `on:'caster'` du nœud retenu produit (`op.expositionALaCorruption`) — elle
- *  NOMME le porteur, donc elle dit LEQUEL des deux acteurs a reçu la conséquence. Distincte de la
- *  ligne de JET, que le sujet produit toujours : sans ce filtre, le banc serait vert à vide. */
-function ligneDeLaConsequence(): string {
-  const lignes = get().journal.filter((l) => /Exposition/.test(l));
-  expect(lignes.length, 'la branche `on:caster` n’a produit AUCUNE conséquence').toBe(1);
-  return lignes[0];
+/** QUI subit la conséquence de la feuille `on:'caster'` du nœud retenu : un Test d'Exposition (LDB 19 l.29),
+ *  dont la modale de Corruption s'ouvre chez le héros qui l'encaisse — elle dit LEQUEL des deux acteurs a
+ *  reçu la conséquence. */
+function porteurDeLExposition(): string {
+  const pc = get().pendingCorruption;
+  expect(pc, 'la branche `on:caster` n’a produit AUCUNE conséquence').toBeTruthy();
+  return pc!.heroId;
 }
 
-/** Un nœud de `spells.json` dont une branche porte une feuille `on:'caster'` MESURABLE (une ligne
- *  nommant le porteur) : c'est le seul moyen de distinguer le LANCEUR du SUJET dans la conséquence. */
+/** Un nœud de `spells.json` dont une branche porte une feuille `on:'caster'` MESURABLE : c'est le seul
+ *  moyen de distinguer le LANCEUR du SUJET dans la conséquence. */
 function noeudDeSortACaster(): NoeudTest {
-  for (const sp of spells as { effects?: Flow }[]) {
+  for (const sp of spells) {
     for (const n of noeudsTest(sp.effects)) {
       const caster = [...feuilles(n.reussite), ...feuilles(n.echec)]
         .filter((e) => e.on === 'caster' && e.ops.some((o) => o.op !== 'narrative'));
@@ -226,9 +229,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     routeTriggeredTest(get, set, sujet, heros('h4'), node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort déclenché' });
     allerRetourJSON();
     acquitter({ success: false, sl: -1 });
-    const dit = ligneDeLaConsequence();
-    expect(dit, 'la conséquence `on:caster` doit nommer le LANCEUR (H4)').toContain('H4');
-    expect(dit, 'le sujet n’est pas le lanceur').not.toContain('H3');
+    expect(porteurDeLExposition(), 'la conséquence `on:caster` atteint le LANCEUR').toBe('h4');
   });
 
   it('T4c — lanceur IRRÉSOLUBLE à la reprise : la feuille `on:caster` retombe sur le SUJET', () => {
@@ -239,12 +240,12 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     routeTriggeredTest(get, set, sujet, heros('h4'), node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort déclenché' });
     set({ party: get().party.filter((c) => c.id !== 'h4') as never }); // le lanceur a quitté le groupe
     acquitter({ success: false, sl: -1 });
-    expect(ligneDeLaConsequence(), 'lanceur introuvable → le SUJET porte la conséquence').toContain('H3');
+    expect(porteurDeLExposition(), 'lanceur introuvable → le SUJET porte la conséquence').toBe('h3');
   });
 
   it('T5 — Test IMBRIQUÉ dans la branche : la 2ᵉ suspension s’ouvre sur le SUJET, meta sérialisable', () => {
     // Le nœud de `spells.json` dont la branche porte elle-même un `test` (trouvé par sa forme).
-    const node = (spells as { effects?: Flow }[])
+    const node = spells
       .flatMap((sp) => noeudsTest(sp.effects))
       .find((n) => noeudsTest(n.echec).length > 0 || noeudsTest(n.reussite).length > 0)!;
     expect(node, 'aucun nœud de sort à Test imbriqué — le scan a glissé').toBeTruthy();
@@ -262,7 +263,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
   });
 
   it('T5b — branche à `choice` : la cascade s’ouvre hors combat, chez le SUJET', () => {
-    const node = (spells as { effects?: Flow }[])
+    const node = spells
       .flatMap((sp) => noeudsTest(sp.effects))
       .find((n) => n.echec?.kind === 'choix' || n.reussite?.kind === 'choix')!;
     expect(node, 'aucun nœud de sort à `choice` en branche — le scan a glissé').toBeTruthy();
@@ -306,9 +307,8 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     // `subi` ne transporte que ce qui se résout par ID. Une branche qui exige une COQUE (op `fall` d'un
     // Critique de navire) n'a pas sa place derrière la modale : sa porte est `bandeTriggeredTest`, qui
     // tient la coque au site. Reprise sans elle → fail-fast NOMMÉ, jamais une hauteur tirée dans le vide.
-    const node = (shipCrits as { tables: Record<string, { crewHit?: { test?: NoeudTest } }[]> })
-      .tables.greement.map((r) => r.crewHit?.test).find((t) => t && JSON.stringify(t).includes('"fall"'))!;
-    expect(node, 'aucun nœud de Critique de coque à branche `fall` — le scan a glissé').toBeTruthy();
+    const node = SHIP_CRITICAL_TABLES.greement.map((r) => r.crewHit?.test).find((t) => t !== undefined && JSON.stringify(t).includes('"fall"'));
+    if (node === undefined) throw new Error('aucun nœud de Critique de coque à branche `fall` — le scan a glissé');
     const sujet = decor();
     routeTriggeredTest(get, set, sujet, sujet, node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Critique de coque' });
     expect(get().pendingTest!.subi, 'aucun `hull` n’entre dans le marqueur').toEqual({ label: 'Critique de coque' });

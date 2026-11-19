@@ -137,7 +137,7 @@ describe('G-A — le badge tap-1 ne nomme une Difficulté QUE pour un Test d’a
 
   it('l’option ARMÉE est bien l’Empoignade, et le réticule n’annonce aucune Difficulté', () => {
     const { a, b, battle, get } = empoignade();
-    expect(selectedAttackOption(a, battle as never)?.targeting).toBe('grapple');
+    expect(selectedAttackOption(get().scene, a, battle as never)?.targeting).toBe('grapple');
     const ht = hoverTargeting(get, a, b);
     expect(ht.kind).toBe('ok');
     expect(ht.kind === 'ok' && ht.difficulty, 'un Test opposé de Force n’a pas de Difficulté d’arme').toBeUndefined();

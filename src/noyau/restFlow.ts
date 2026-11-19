@@ -15,9 +15,8 @@
  * RAW :
  *  - Récupération (LDB 18 l.296) : Résistance +20 après « une bonne nuit de sommeil » → DR+BE PB,
  *    + BE/jour inconditionnel — le canon ne module PAS la récupération par la qualité du lit ;
- *  - Prix (LDB 66 l.5-28) : chambre commune 10 sc/pers · privée 10 pa pour 2 (la grande pour 4
- *    coûte le double → regrouper par paires est équivalent, coût auto) · repas 1 pa ; PIÈTRE = ½
- *    prix, et la nourriture piètre expose à la Courante galopante (10 %, LDB 66 l.5) ;
+ *  - Prix et chambres : LDB 66 l.12-16, l.28 (`CHAMBRES`, `prixDeLOffre`) ; qualité : `QUALITE_DU_REPOS` (LDB 66 l.5) ;
+ *  - Offres d'un établissement : ACE 02 l.99 (`PendingRest.offres`) ;
  *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon `activeExposureSeverity` (combatFlow) ;
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
@@ -33,26 +32,46 @@ import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, type RestRoll } from '../engine/rest';
-import { rollContraction, diseaseDefs, contagiousDiseases, contractionDue, applyContraction, applyDiseaseGangrene, diseaseTestModLines } from '../engine/disease';
+import {
+  rollContraction,
+  sujetDeContraction,
+  diseaseDefs,
+  contagiousDiseases,
+  contractionDue,
+  applyDiseaseGangrene,
+} from '../engine/disease';
 import { applyOps } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { type Difficulty } from '../engine/types';
 import { applyFractureEnd } from '../engine/trauma';
 import type { DeferredUpkeepTest } from './upkeep';
-import { exposureTestCount, expireOnRespite, exposureShelterFromTent, applyExposureFailure, exposureCoatMods, heaviestPossession, dropHeaviestPossession, type ExposureSeverity, type ExposureKind } from '../engine/exposure';
+import {
+  exposureTestCount,
+  expireOnRespite,
+  exposureShelterFromTent,
+  applyExposureFailure,
+  exposureCoatMods,
+  heaviestPossession,
+  dropHeaviestPossession,
+  type ExposureSeverity,
+  type ExposureKind,
+} from '../engine/exposure';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { applyForcedMarch } from '../engine/travel';
 import { startCascade, runCascadeImmediate } from './cascade';
 import { nightBands, bandeDeNuit, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand } from './nightBands';
 import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
-import { freeCons, monoStep, choiceStep, pousseSi } from './rollSeam';
+import { freeCons, monoStep, choiceStep, pousseSi, buildBand, resultLines, type BandPorteur } from './rollSeam';
+import { contracterABord, porteursABord, type PorteurABord } from './shipCrew';
+import { WORLD_STEP_OWNER } from './pendings';
 import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeStepMeta } from './pendings';
 import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
-import { toBrass, fromBrass, priceToMoney, type Money } from '../engine/money';
+import { toBrass, fromBrass, priceToMoney, toMoney, type Money } from '../engine/money';
 import { payFromGroup, totalDesBourses } from './bourseFlow';
 import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbsence, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
 import { runDailyUpkeep } from './upkeep';
 import { continueTravelAfterNight } from './travelFlow';
@@ -61,7 +80,14 @@ import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
 
 export type RestKind = 'auberge' | 'maison' | 'camp';
-export type RestLodging = 'commune' | 'privee' | 'maison' | 'dehors' | 'bord';
+/** Une offre de chambre d'auberge. */
+export type OffreDeChambre = 'chambre' | 'grande';
+/** Une chambre d'auberge de la nuit, `<offre>-<numéro>` (`lireLaChambre`). */
+export type IdDeChambre = string;
+/** Un couchage sans chambre. */
+export type CouchageSansChambre = 'commune' | 'maison' | 'dehors' | 'bord';
+/** Un couchage : une chambre d'auberge, ou un couchage sans chambre. */
+export type RestLodging = CouchageSansChambre | IdDeChambre;
 export type RestFood = 'repas' | 'ration' | 'maison' | 'rien';
 
 /** Lieux de repos OFFERTS par le contexte (scène, effet, halte de voyage) — combinables :
@@ -127,11 +153,13 @@ export interface NightEntry {
 
 export interface PendingRest extends PendingBase {
   places: RestPlaces;
+  /** Les offres d'auberge de la nuit, résolues à l'ouverture (`ouvrirLeRepos`) ; aucune hors d'une auberge. */
+  offres: readonly OffreDuRepos[];
   /** OÙ le groupe passe la nuit, nommé par l'APPELANT d'`ouvrirLeRepos` (relais ou bivouac de la route,
    *  bord du bateau, scène courante) — seul lieu du titre de la modale. */
   lieu: PlayerText;
-  /** Piètre : ½ prix, nourriture à risque (Courante galopante 10 %) — LDB 66. */
-  quality: 'normale' | 'pietre';
+  /** Qualité de la chambre et du repas (`QUALITE_DU_REPOS`). */
+  quality: QualiteDeRepos;
   days: number;
   perHero: Record<string, { lodging: RestLodging; food: RestFood }>;
   phase: 'setup';
@@ -148,10 +176,12 @@ export interface PendingRest extends PendingBase {
 import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
-import { t } from '../i18n';
-import { lieuDuGroupe, placeById, placeServices, type WorldMap } from './worldMap';
-import { sceneDuRegistre } from './monde/registreDesScenes';
+import { listeEt, t, type MsgKey } from '../i18n';
+import { lieuDuGroupe, placeById, offresDeLAubergeDeScene, type OffreDuRepos, type WorldMap } from './worldMap';
+import { hebergementsDuLieu, refuserLeServiceFerme } from './lieuFlow';
+import { refuserGeste } from './refusVisible';
 import { garanti } from '../lib/garanti';
+import { libelleDuLitteral } from './libelles';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
@@ -232,7 +262,7 @@ export function sleepParty(
 
   // Contagion de promiscuité (chambrée/campement — Toux et éternuements, LDB 20 l.206) : 1 Test de Contraction par nuit de repos.
   // Règle optionnelle « Utilisation des Maladies » : désactivée si maladie-mode = off.
-  for (const c of rule('maladie-mode') === 'off' ? [] : runContagion(party, n, rng)) {
+  for (const c of rule('maladie-mode') === 'off' ? [] : runContagion(get, set, n, rng)) {
     entries.push({ actorId: c.actorId, icon: 'medical/infection', label: t('rf.contagionLabel', { disease: diseaseLabel(c.dz) }), text: c.log.join(' '), tone: 'echec' });
     journal.push(...c.log);
   }
@@ -245,44 +275,69 @@ export function sleepParty(
 }
 
 /** Contagion de promiscuité (Toux et éternuements, LDB 20 l.206 ; 1 Test/nuit) — chemin EAGER (sleepParty,
- *  multi-jours), roule le Test. La cascade utilise `collectContagion` (jet différé en étape). */
-function runContagion(party: Combatant[], n: number, rng: RNG): { actorId: string; dz: string; log: string[] }[] {
+ *  multi-jours, hors du bord), roule le Test. Même source que la cascade : `collectContagion`. */
+function runContagion(get: Get, set: Set, n: number, rng: RNG): { actorId: string; dz: string; log: string[] }[] {
   const out: { actorId: string; dz: string; log: string[] }[] = [];
-  for (const sick of party) {
-    for (const dz of contagiousDiseases(sick)) {
-      for (const other of party) {
-        if (other === sick || other.dead) continue;
-        const def = diseaseDefs()[dz.id];
-        for (let d = 0; d < n; d++) {
-          const log = rollContraction(other, dz.id, testValue(other, { skill: { id: 'resistance' } }), def?.contractDifficulty ?? 'accessible', rng);
-          if (log.length) out.push({ actorId: other.id, dz: dz.id, log });
-        }
+  const party = get().party;
+  for (const c of collectContagion(porteursDeLaNuit(get, set, false))) {
+    const other = party.find((h) => h.id === c.porteurId);
+    if (!other) continue;
+    for (let d = 0; d < n; d++) {
+      const log = rollContraction(other, c.diseaseName, testValue(other, sujetDeContraction(c.diseaseName)), c.difficulty, rng);
+      if (log.length) out.push({ actorId: other.id, dz: c.diseaseName, log });
+    }
+  }
+  return out;
+}
+
+/** Un Test de Contraction d'entretien différé (contagion de promiscuité OU tambouille piètre) ; `porteurId` est l'id
+ *  de rangée du porteur (`PorteurABord.id`). */
+interface ContagionSpec { porteurId: string; diseaseName: string; difficulty: Difficulty; }
+
+/** Les porteurs de maladies de la nuit : les PJ vivants, et l'équipage collectif sur une nuit à bord. MDG 14 l.208 */
+function porteursDeLaNuit(get: Get, set: Set, aBord: boolean): PorteurABord[] {
+  return porteursABord(get, set).filter((p) => aBord || p.id !== WORLD_STEP_OWNER);
+}
+
+/** RECENSE les Tests de Contraction de promiscuité DÛS (sans les rouler) : chaque porteur sain résiste à la maladie
+ *  contagieuse d'un autre porteur (1 jet par paire, dédoublonné). LDB 20 l.206 ; MDG 14 l.208 */
+function collectContagion(porteurs: readonly PorteurABord[]): ContagionSpec[] {
+  const out: ContagionSpec[] = [];
+  const seen = new Set<string>();
+  for (const sick of porteurs) {
+    for (const dz of contagiousDiseases(sick.porteur)) {
+      for (const other of porteurs) {
+        if (other === sick) continue;
+        const key = `${other.id}:${dz.id}`;
+        if (seen.has(key) || !contractionDue(other.porteur, dz.id)) continue;
+        seen.add(key);
+        out.push({ porteurId: other.id, diseaseName: dz.id, difficulty: diseaseDefs()[dz.id]?.contractDifficulty ?? 'accessible' });
       }
     }
   }
   return out;
 }
 
-/** Un Test de Contraction d'entretien différé (contagion de promiscuité OU tambouille piètre). */
-interface ContagionSpec { heroId: string; diseaseName: string; difficulty: Difficulty; }
-
-/** RECENSE les Tests de Contraction de promiscuité DÛS (sans les rouler) — pour la cascade de nuit :
- *  chaque héros sain résiste à la maladie contagieuse d'un compagnon (1 jet par paire, dédoublonné). */
-function collectContagion(party: Combatant[]): ContagionSpec[] {
-  const out: ContagionSpec[] = [];
-  const seen = new Set<string>();
-  for (const sick of party) {
-    for (const dz of contagiousDiseases(sick)) {
-      for (const other of party) {
-        if (other === sick || other.dead) continue;
-        const key = `${other.id}:${dz.id}`;
-        if (seen.has(key) || !contractionDue(other, dz.id)) continue;
-        seen.add(key);
-        out.push({ heroId: other.id, diseaseName: dz.id, difficulty: diseaseDefs()[dz.id]?.contractDifficulty ?? 'accessible' });
-      }
-    }
+/** Les bandes de Contraction de la nuit : une par maladie, une rangée par porteur exposé (`porteursABord`) ; un
+ *  porteur exposé deux fois à la même maladie ouvre une bande de plus. LDB 20 l.25, l.206 ; MDG 14 l.208 */
+function contagionBands(get: Get, porteurs: readonly PorteurABord[], dues: readonly ContagionSpec[]): BuiltCascadeStep[] {
+  const bandes: { diseaseName: string; ids: string[]; porteurs: BandPorteur[] }[] = [];
+  for (const c of dues) {
+    const aLui = porteurs.find((p) => p.id === c.porteurId);
+    if (!aLui) continue;
+    const bande = bandes.find((b) => b.diseaseName === c.diseaseName && !b.ids.includes(c.porteurId))
+      ?? bandes[bandes.push({ diseaseName: c.diseaseName, ids: [], porteurs: [] }) - 1];
+    bande.ids.push(c.porteurId);
+    bande.porteurs.push({ ...aLui.contraction(c.diseaseName), difficulty: c.difficulty, meta: { diseaseName: c.diseaseName } });
   }
-  return out;
+  return bandes.flatMap(({ diseaseName, porteurs: rangees }, i) => buildBand(get, {
+    id: `contagion-${diseaseName}-${i}`, kind: 'contagion', icon: 'medical/infection',
+    label: stepPrecision(t('step.contagion'), diseaseLabel(diseaseName)),
+    stake: nightStakeRef('contagion'),
+    meta: { diseaseName },
+    difficulty: rangees[0].difficulty ?? 'accessible',
+    porteurs: rangees,
+  }) ?? []);
 }
 
 // ── CASCADE de NUIT (régime SÉQUENTIEL influençable, cf. cascade.ts) : chaque jet subi devient une
@@ -440,20 +495,10 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
   steps.push(...deferredUpkeepSteps(party, deferred, steps.length));
-  // CONTAGION (promiscuité — Toux et éternuements, LDB 20 l.206 + tambouille piètre) → un jet de Résistance influençable par héros exposé.
-  for (const c of [...collectContagion(party), ...(opts.extraContagion ?? [])]) {
-    const h = party.find((x) => x.id === c.heroId);
-    if (!h || h.dead) continue;
-    const st = monoStep({ id: `contagion-${c.heroId}-${steps.length}`, kind: 'contagion', actor: h, label: stepPrecision(t('step.contagion'), diseaseLabel(c.diseaseName)), icon: 'medical/infection',
-      rollLabel: SKILL_RESISTANCE(), difficulty: c.difficulty,
-      stake: nightStakeRef('contagion'),
-      // Contraction = « Test de Résistance » (`LDB 20 l.25`) : valeur de la porte, et les bonus d'effet
-      // SCOPÉS à cette maladie (Fleur de lune, Tonique digestif) en lignes NOMMÉES sur la cible.
-      ligne: { test: { skill: { id: 'resistance' } }, surLaCible: diseaseTestModLines(h, c.diseaseName) },
-      meta: { diseaseName: c.diseaseName },
-      menace: 'maladie' }); // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
-    pousseSi(steps, st);
-  }
+  // CONTAGION (promiscuité — Toux et éternuements, LDB 20 l.206, MDG 14 l.208 à bord + repas de la qualité à risque,
+  // LDB 66 l.5) → une bande de Résistance influençable par maladie, une rangée par porteur exposé.
+  const porteurs = porteursDeLaNuit(get, set, toitDeLaNuit(p, party) === 'bord');
+  steps.push(...contagionBands(get, porteurs, [...collectContagion(porteurs), ...(opts.extraContagion ?? [])]));
   // Campement : Exposition (intempéries) — abri de fortune (STEP) → insère les jets d'Exposition.
   const campers = party.filter((h) => !h.dead && p.perHero[h.id]?.lodging === 'dehors');
   const severity = activeExposureSeverity(get);
@@ -521,65 +566,157 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
 }
 
 /** Prix RAW de l'hébergement et du repas d'auberge (LDB 66 l.12-16) — SOURCE UNIQUE le catalogue
- *  `trappings.json` (ids de service), plus AUCUNE constante dupliquée : le hub de ville (#343) et
- *  `restCost` lisent le MÊME tarif. Piètre = ½ (appliqué par `restCost`). */
+ *  `trappings.json` (ids de service), lu par `PRIX_DU_LIVRE`. */
 function serviceBrass(id: string): number {
   const t = findTrappingById(id);
   if (!t) throw new Error(`restCost : tarif de service introuvable au catalogue "${id}" (trappings.json).`);
   return toBrass(priceToMoney(t.price));
 }
-const PRICE_BRASS = {
-  commune: serviceBrass('chambre-commune-nuit'),
-  privee: serviceBrass('chambre-privee-nuit'),
-  repas: serviceBrass('repas-auberge'),
-} as const;
 
-/** Tarif d'un service d'auberge en monnaie (LDB 66 l.12-16, source unique catalogue) — affiché par le
- *  panneau d'auberge du hub de ville (#343), aligné au débit de `restCost`. */
-export function restServicePrice(kind: keyof typeof PRICE_BRASS): Money {
-  return fromBrass(PRICE_BRASS[kind]);
+/** La qualité d'une chambre et d'un repas : facteur des prix listés, risque (en %) d'exposition à la
+ *  Courante galopante du repas consommé. LDB 66 l.5 */
+const QUALITE_DU_REPOS = {
+  pietre: { prix: 0.5, courante: 10 },
+  normale: { prix: 1, courante: 0 },
+  grande: { prix: 2, courante: 0 },
+} as const satisfies Record<QualiteDeRepos, { prix: number; courante: number }>;
+
+/** Les lits et le prix (en chambres privées) de chaque offre de chambre. LDB 66 l.28 */
+const CHAMBRES = { chambre: { lits: 2, prix: 1 }, grande: { lits: 4, prix: 2 } } as const satisfies Record<OffreDeChambre, { lits: number; prix: number }>;
+
+/** Prix du livre de chaque offre d'auberge, en sous. LDB 66 l.12-16, l.28 */
+const PRIX_DU_LIVRE = {
+  commune: serviceBrass('chambre-commune-nuit'),
+  chambre: serviceBrass('chambre-privee-nuit') * CHAMBRES.chambre.prix,
+  grande: serviceBrass('chambre-privee-nuit') * CHAMBRES.grande.prix,
+  repas: serviceBrass('repas-auberge'),
+} as const satisfies Record<OffreDuRepos['id'], number>;
+
+/** Le prix d'une nuit (ou d'un repas) de l'offre `offre` : son `prix` absolu, sinon le prix du livre × le facteur de
+ *  la qualité `qualite`. Source UNIQUE du prix d'une offre : note du repos (`partsDuRepos`) et affichage. LDB 66 l.5 */
+export function prixDeLOffre(offre: OffreDuRepos, qualite: QualiteDeRepos): Money {
+  if (offre.prix) return fromBrass(toBrass(toMoney(offre.prix)));
+  return fromBrass(Math.ceil(PRIX_DU_LIVRE[offre.id] * QUALITE_DU_REPOS[qualite].prix));
 }
 
-/** Couchages proposés par l'offre du lieu — PAR HÉROS ensuite (choix personnels). */
-export function lodgingOptions(places: RestPlaces): RestLodging[] {
-  const out: RestLodging[] = [];
-  if (places.auberge) out.push('privee', 'commune');
+/** L'offre `id` de la nuit `p`, `undefined` si elle n'y est pas offerte. */
+const offreDuRepos = (p: Pick<PendingRest, 'offres'>, id: OffreDuRepos['id']): OffreDuRepos | undefined => p.offres.find((o) => o.id === id);
+
+/** L'offre de chambre de l'appariement de troupe (`appariementEnChambres`) : la chambre, sinon la grande chambre, si la
+ *  nuit l'offre. */
+export const chambreDeTroupe = (p: Pick<PendingRest, 'offres'>): OffreDeChambre | undefined => OFFRES_DE_CHAMBRE.find((o) => offreDuRepos(p, o));
+const OFFRES_DE_CHAMBRE = Object.keys(CHAMBRES) as OffreDeChambre[];
+/** Le libellé d'une chambre prise et d'une chambre neuve, par offre. */
+const LIBELLES_DE_CHAMBRE = {
+  chambre: { prise: 'rf.chambre', neuve: 'rf.chambreNeuve' },
+  grande: { prise: 'rf.grandeChambre', neuve: 'rf.grandeChambreNeuve' },
+} as const satisfies Record<OffreDeChambre, { prise: MsgKey; neuve: MsgKey }>;
+const ID_DE_CHAMBRE = new RegExp(`^(${OFFRES_DE_CHAMBRE.join('|')})-([1-9]\\d*)$`);
+
+/** L'offre et le numéro de la chambre `id` ; `null` : `id` n'est pas une chambre. */
+function lireLaChambre(id: string): { offre: OffreDeChambre; numero: number } | null {
+  const m = ID_DE_CHAMBRE.exec(id);
+  return m ? { offre: m[1] as OffreDeChambre, numero: Number(m[2]) } : null;
+}
+const idDeChambre = (offre: OffreDeChambre, numero: number): IdDeChambre => `${offre}-${numero}`;
+
+/** Une chambre de la nuit : son id, son offre, son numéro et ses occupants. */
+export interface ChambreDuRepos { id: IdDeChambre; offre: OffreDeChambre; numero: number; occupants: string[] }
+
+/** Les chambres de la nuit, dérivées du couchage de chaque héros vivant réglé, par offre puis par numéro. PUR. */
+export function chambresDuRepos(p: PendingRest, party: Combatant[]): ChambreDuRepos[] {
+  const parId = new Map<string, ChambreDuRepos>();
+  for (const h of party) {
+    const id = !h.dead ? p.perHero[h.id]?.lodging : undefined;
+    const lue = id === undefined ? null : lireLaChambre(id);
+    if (!id || !lue) continue;
+    const c = parId.get(id) ?? { id, ...lue, occupants: [] };
+    c.occupants.push(h.id);
+    parId.set(id, c);
+  }
+  return [...parId.values()].sort((a, b) => OFFRES_DE_CHAMBRE.indexOf(a.offre) - OFFRES_DE_CHAMBRE.indexOf(b.offre) || a.numero - b.numero);
+}
+
+/** Un couchage que la nuit offre au dormeur `pid` (`undefined` : hors de toute rangée) : son id, son libellé, et sa
+ *  raison de fermeture (`refus`) ou `null`. */
+export interface CouchageDeLaNuit { id: RestLodging; libelle: string; refus: string | null }
+
+/** Les chambres que la nuit offre au dormeur `pid` : une chambre prise, fermée s'il n'y dort pas et que ses lits sont
+ *  tous occupés, ou la chambre neuve d'une offre de la nuit (numéro libre suivant). PUR. */
+function chambresOffertes(p: PendingRest, party: Combatant[], pid?: string): CouchageDeLaNuit[] {
+  const prises = chambresDuRepos(p, party);
+  const nom = (id: string) => party.find((h) => h.id === id)?.label ?? id;
+  const ouvertes = prises.map((c) => {
+    const lits = CHAMBRES[c.offre].lits;
+    const chambre = t(LIBELLES_DE_CHAMBRE[c.offre].prise, { n: c.numero, lits });
+    const autres = c.occupants.filter((o) => o !== pid).map(nom);
+    const pleine = c.occupants.length >= lits && !c.occupants.includes(pid ?? '');
+    return { id: c.id, libelle: autres.length ? t('rf.chambreAvec', { chambre, noms: listeEt(autres) }) : chambre, refus: pleine ? t('rf.chambrePleine') : null };
+  });
+  const neuves = OFFRES_DE_CHAMBRE.filter((offre) => offreDuRepos(p, offre)).map((offre) => {
+    let numero = 1;
+    while (prises.some((c) => c.id === idDeChambre(offre, numero))) numero++;
+    return { id: idDeChambre(offre, numero), libelle: t(LIBELLES_DE_CHAMBRE[offre].neuve, { lits: CHAMBRES[offre].lits }), refus: null };
+  });
+  return [...ouvertes, ...neuves];
+}
+
+/** Les couchages que la nuit offre au dormeur `pid` : les chambres d'une auberge, puis les couchages sans chambre
+ *  (`lodgingOptions`). PUR. LDB 66 */
+export function couchagesDeLaNuit(p: PendingRest, party: Combatant[], pid?: string): CouchageDeLaNuit[] {
+  return [
+    ...chambresOffertes(p, party, pid),
+    ...lodgingOptions(p).map((id) => ({ id, libelle: garanti(libelleDuLitteral(id, 'couchage'), id, 'couchage sans chambre'), refus: null })),
+  ];
+}
+
+/** L'appariement par défaut en chambres de l'offre `offre` : les héros vivants de `heros`, dans leur ordre, par lits
+ *  de la chambre, vers l'id de leur chambre. LDB 66 l.28 PUR. */
+export function appariementEnChambres(heros: Combatant[], offre: OffreDeChambre): Record<string, IdDeChambre> {
+  return Object.fromEntries(heros.filter((h) => !h.dead).map((h, i) => [h.id, idDeChambre(offre, Math.floor(i / CHAMBRES[offre].lits) + 1)]));
+}
+
+/** Couchages sans chambre que propose la nuit — PAR HÉROS ensuite (choix personnels) ; avec les chambres
+ *  d'une auberge : `couchagesDeLaNuit`. */
+export function lodgingOptions(p: Pick<PendingRest, 'places' | 'offres'>): CouchageSansChambre[] {
+  const { places } = p;
+  const out: CouchageSansChambre[] = [];
+  if (offreDuRepos(p, 'commune')) out.push('commune');
   if (places.maison) out.push('maison');
   if (places.bord) out.push('bord'); // à bord = hamacs (MDG 03 l.71) ; par défaut si offert
   if (places.camp || places.auberge || places.maison) out.push('dehors'); // la belle étoile reste un choix
   return out;
 }
 
-/** Pitances qu'offre le lieu (repas d'auberge, table de la maison), communes à toute la troupe. */
-const pitancesDuLieu = (places: RestPlaces): RestFood[] => [...(places.auberge ? ['repas' as const] : []), ...(places.maison ? ['maison' as const] : [])];
+/** Pitances qu'offre la nuit (repas d'auberge, table de la maison), communes à toute la troupe. */
+const pitancesDuLieu = (p: Pick<PendingRest, 'places' | 'offres'>): RestFood[] => [...(offreDuRepos(p, 'repas') ? ['repas' as const] : []), ...(p.places.maison ? ['maison' as const] : [])];
 
 /** Pitances proposées à un héros (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
  *  « ration » seulement si le héros en a une. */
-export function foodOptions(places: RestPlaces, hero: Combatant): RestFood[] {
-  return [...pitancesDuLieu(places), ...((hero.items ?? []).some(isRation) ? ['ration' as const] : []), 'rien'];
+export function foodOptions(p: Pick<PendingRest, 'places' | 'offres'>, hero: Combatant): RestFood[] {
+  return [...pitancesDuLieu(p), ...((hero.items ?? []).some(isRation) ? ['ration' as const] : []), 'rien'];
 }
 
 /** Pitances du choix « pour toute la troupe » : celles du lieu, sans la ration, qui dépend du sac de chacun. */
-export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
-  return [...pitancesDuLieu(places), 'rien'];
+export function nourrituresDeTroupe(p: Pick<PendingRest, 'places' | 'offres'>): RestFood[] {
+  return [...pitancesDuLieu(p), 'rien'];
 }
 
-/** Part de chaque héros vivant réglé dans la note du repos, par nuit × days : une chambre privée loge 2
- *  invités (LDB 66 l.28), sa part est sa moitié (valeur d'ingénierie, la source ne partage pas la
- *  chambre) ; chambre commune et repas par convive. La somme des parts EST `restCost`. */
+/** Part de chaque héros vivant réglé dans la note du repos, par nuit × days, au prix de chaque offre prise
+ *  (`prixDeLOffre`) ; d'une chambre partagée, un sou du reste à chacun de ses premiers occupants (ingénierie). La somme
+ *  des parts EST `restCost`. LDB 66 l.12-16, l.28 */
 export function partsDuRepos(p: PendingRest, party: Combatant[]): Record<string, Money> {
-  const half = p.quality === 'pietre' ? 0.5 : 1;
-  const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);
-  const enPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee');
+  const prixDe = (id: OffreDuRepos['id']) => toBrass(prixDeLOffre(garanti(offreDuRepos(p, id), id, 'offre de la nuit'), p.quality));
+  const enChambre = new Map<string, number>();
+  for (const c of chambresDuRepos(p, party)) {
+    const prix = prixDe(c.offre);
+    c.occupants.forEach((id, i) => enChambre.set(id, Math.floor(prix / c.occupants.length) + (i < prix % c.occupants.length ? 1 : 0)));
+  }
   const parts: Record<string, Money> = {};
-  for (const h of heroes) {
+  for (const h of party.filter((x) => !x.dead && p.perHero[x.id])) {
     const { lodging, food } = p.perHero[h.id];
-    const i = enPrivee.indexOf(h);
-    const seul = i === enPrivee.length - 1 && i % 2 === 0;
-    const chambre = lodging === 'privee' ? (seul ? PRICE_BRASS.privee : i % 2 === 0 ? Math.ceil(PRICE_BRASS.privee / 2) : Math.floor(PRICE_BRASS.privee / 2))
-      : lodging === 'commune' ? PRICE_BRASS.commune : 0;
-    const brass = chambre + (food === 'repas' ? PRICE_BRASS.repas : 0);
-    parts[h.id] = fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+    const brass = (lodging === 'commune' ? prixDe('commune') : 0) + (food === 'repas' ? prixDe('repas') : 0);
+    parts[h.id] = fromBrass(((enChambre.get(h.id) ?? 0) + brass) * Math.max(1, p.days));
   }
   return parts;
 }
@@ -591,7 +728,7 @@ export function restCost(p: PendingRest, party: Combatant[]): Money {
 
 /** Offre de repos À LA POSITION DU GROUPE : zone de repos (rect d'auteur) prioritaire, sinon
  *  réglage de scène, sinon camp (défaut). PARAMÉTRABLE SUR LA ZONE dans l'éditeur. */
-export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: 'normale' | 'pietre' } | null {
+export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: QualiteDeRepos } | null {
   const sc = st.scene;
   if (!sc) return null;
   const pos = st.partyPos;
@@ -607,7 +744,10 @@ export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: 'normale
 export interface OpenRestOpts {
   lieu: PlayerText;
   places?: RestPlaces;
-  quality?: 'normale' | 'pietre';
+  quality?: QualiteDeRepos;
+  /** Les offres d'auberge de la nuit, celles de l'établissement résolues par `placeServices` ; absentes : celles d'une
+   *  auberge de scène (`offresDeLAubergeDeScene`). */
+  offres?: readonly OffreDuRepos[];
   days?: number;
   travelHalt?: boolean;
   /** Le jour de voyage CLOS par cette halte — rejoint `travelPlan.log`, sa seule demeure. */
@@ -615,17 +755,17 @@ export interface OpenRestOpts {
   travelMarch?: string[];
 }
 
-/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'auberge de ses services
- *  (`placeServices`), à la qualité de la scène du lieu ; ailleurs, la scène à la position du groupe
- *  (`restPlacesHere`) ; `null` : aucun. */
-export function reposDuLieu(get: Get): OpenRestOpts | null {
+/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'établissement d'hébergement
+ *  `hebergementId` (`hebergementsDuLieu`), son offre de repos (places, qualité, offres d'auberge) et son nom d'auteur (le
+ *  nom du lieu sans lui) ; ailleurs, la scène à la position du groupe (`restPlacesHere`) ; `null` : aucun. */
+export function reposDuLieu(get: Get, hebergementId?: string): OpenRestOpts | null {
   const s = get();
   const ici = lieuDuGroupe(s);
   if (ici) {
-    const scene = sceneDuRegistre(ici.scene.id);
-    const auberge = placeServices(ici, scene).find((svc) => svc.category === 'auberge' && svc.rest);
-    const quality = scene?.rest?.quality;
-    return auberge?.rest ? { places: auberge.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) } : null;
+    const etablissement = hebergementsDuLieu(s).find((svc) => svc.id === hebergementId);
+    if (!etablissement) return null;
+    const lieu = etablissement.nommeParLAuteur ? dataLabel(etablissement.label) : libelleOuAbsence(ici, 'lieu', ici.id);
+    return { ...etablissement.rest, lieu };
   }
   const scene = restPlacesHere(s);
   return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
@@ -635,11 +775,14 @@ export function reposDuLieu(get: Get): OpenRestOpts | null {
 export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
   if (st.battle || st.pendingRest) return;
-  const places = opts.places ?? { maison: true, camp: true };
+  const places = { ...(opts.places ?? { maison: true, camp: true }) }; // #2097
+  const nuit = { places, offres: places.auberge ? structuredClone(opts.offres ?? offresDeLAubergeDeScene()) : [] };
+  // Le couchage par défaut : la chambre de troupe si la nuit en offre une, sinon le premier couchage hors chambre.
+  const offre = chambreDeTroupe(nuit);
+  const chambres = offre ? appariementEnChambres(st.party, offre) : {};
   const perHero: PendingRest['perHero'] = {};
-  for (const h of st.party) {
-    if (h.dead) continue;
-    perHero[h.id] = { lodging: lodgingOptions(places)[0], food: foodOptions(places, h)[0] };
+  for (const h of st.party.filter((x) => !x.dead)) {
+    perHero[h.id] = { lodging: chambres[h.id] ?? lodgingOptions(nuit)[0], food: foodOptions(nuit, h)[0] };
   }
   // CHRONIQUE de voyage (#333) : une halte de voyage porte le jour FINALISÉ — on l'accumule sur le plan
   // (même `set` que la modale) pour que l'écran-hub (`VoyageScreen`) en tienne le journal (une carte par
@@ -647,7 +790,7 @@ export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const logPatch = opts.travelDay && st.travelPlan
     ? { travelPlan: { ...st.travelPlan, log: [...(st.travelPlan.log ?? []), opts.travelDay] } }
     : {};
-  set({ ...logPatch, pendingRest: { places, lieu: opts.lieu, quality: opts.quality ?? 'normale', days: Math.max(1, opts.days ?? 1), perHero, phase: 'setup', travelHalt: opts.travelHalt, travelMarch: opts.travelMarch } });
+  set({ ...logPatch, pendingRest: { ...nuit, lieu: opts.lieu, quality: opts.quality ?? 'normale', days: Math.max(1, opts.days ?? 1), perHero, phase: 'setup', travelHalt: opts.travelHalt, travelMarch: opts.travelMarch } });
 }
 
 /** Le dormeur `pid` de la nuit à régler : un héros du groupe qui dort ici, tant que la nuit n'est pas réglée. */
@@ -673,6 +816,20 @@ export function noteDAubergeCouverte(s: Pick<Jeu, 'pendingRest' | 'party'>): boo
   return !s.pendingRest || toBrass(restCost(s.pendingRest, s.party)) <= toBrass(totalDesBourses(s.party));
 }
 
+/** Les risques d'exposition des offres que prend un dormeur réglé `cfg` : le `risque` de chaque offre prise (ACE 02
+ *  l.99), le repas sans risque propre exposant à la Courante galopante de la qualité (LDB 66 l.5). PUR. */
+function risquesDesOffres(p: PendingRest, cfg: PendingRest['perHero'][string]): { maladie: string; pourcent: number }[] {
+  const couchage = cfg.lodging === 'commune' ? 'commune' : lireLaChambre(cfg.lodging)?.offre;
+  // Chaque offre prise, et la Courante galopante de la qualité à défaut de risque propre (le repas seul, LDB 66 l.5).
+  const prises: [OffreDuRepos['id'] | undefined, number][] = [[cfg.food === 'repas' ? 'repas' : undefined, QUALITE_DU_REPOS[p.quality].courante], [couchage, 0]];
+  return prises.flatMap(([id, courante]): { maladie: string; pourcent: number }[] => {
+    const offre = id ? offreDuRepos(p, id) : undefined;
+    if (!offre) return [];
+    if (offre.risque) return [{ maladie: offre.risque.maladie.id, pourcent: offre.risque.pourcent }];
+    return courante > 0 ? [{ maladie: 'courante-galopante', pourcent: courante }] : [];
+  });
+}
+
 /** Dormir : paie (RAW ch.66), nourrit, puis ouvre la CHAÎNE de cascades de nuit (#347, `openRestNight`). Corps de la
  *  validation du repos (`fenetreValider('repos')`), que l'hôte joue au quorum, la note couverte. */
 function dormir(get: Get, set: Set): void {
@@ -684,8 +841,9 @@ function dormir(get: Get, set: Set): void {
   const cost = restCost(p, get().party);
   if (toBrass(cost) > 0) payFromGroup(get, set, cost, { purpose: 'auberge' });
 
-  // 2. Pitance AVANT la nuit (un héros nourri n'est plus affamé). La tambouille PIÈTRE (ch.66 l.51,
-  //    10 %) expose à un Test de Résistance vs Courante Galopante — DIFFÉRÉ en étape de cascade.
+  // 2. Pitance AVANT la nuit (un héros nourri n'est plus affamé). Chaque offre prise expose au risque de son
+  //    établissement (`risquesDesOffres`, ACE 02 l.99), le repas sans risque propre à celui de sa qualité
+  //    (`QUALITE_DU_REPOS`, LDB 66 l.5) — Test DIFFÉRÉ en étape de cascade.
   //    `party` est relu APRÈS le débit : `payFromGroup` remplace les objets héros des bourses ponctionnées,
   //    et `feedFromMeal` mute EN PLACE — nourrir un objet héros périmé laisserait le dormeur affamé.
   const party = get().party;
@@ -693,13 +851,13 @@ function dormir(get: Get, set: Set): void {
   for (const h of party) {
     const cfg = p.perHero[h.id];
     if (!cfg || h.dead) continue;
-    if (cfg.food === 'repas' || cfg.food === 'maison') {
-      feedFromMeal(h);
-      if (cfg.food === 'repas' && p.quality === 'pietre' && rng.int(1, 100) <= 10 && contractionDue(h, 'courante-galopante')) {
-        extraContagion.push({ heroId: h.id, diseaseName: 'courante-galopante', difficulty: diseaseDefs()['courante-galopante']?.contractDifficulty ?? 'accessible' });
+    if (cfg.food === 'repas' || cfg.food === 'maison') feedFromMeal(h);
+    // 'ration' : consommée par l'entretien quotidien (#T3) ; 'rien' : la Faim suivra son cours.
+    for (const { maladie, pourcent } of risquesDesOffres(p, cfg)) {
+      if (rng.int(1, 100) <= pourcent && contractionDue(h, maladie)) {
+        extraContagion.push({ porteurId: h.id, diseaseName: maladie, difficulty: diseaseDefs()[maladie]?.contractDifficulty ?? 'accessible' });
       }
     }
-    // 'ration' : consommée par l'entretien quotidien (#T3) ; 'rien' : la Faim suivra son cours.
   }
 
   // 3. Nuit(s) → CHAÎNE de cascades séquentielles influençables (#347, patron #253) : CHAQUE jet subi
@@ -722,7 +880,7 @@ export type ToitDeLaNuit = 'auberge' | 'maison' | 'bord' | 'campement';
  *  toutes les nuits d'un repos multi-jours (les choix de couchage ne changent pas en cours de séjour). */
 export function toitDeLaNuit(p: PendingRest, party: Combatant[]): ToitDeLaNuit {
   const lodgings = party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => p.perHero[h.id].lodging);
-  return lodgings.some((l) => l === 'privee' || l === 'commune') ? 'auberge'
+  return lodgings.some((l) => l === 'commune' || lireLaChambre(l)) ? 'auberge'
     : lodgings.some((l) => l === 'maison') ? 'maison'
     : lodgings.some((l) => l === 'bord') ? 'bord'
     : 'campement';
@@ -736,7 +894,7 @@ export function nightTitle(p: PendingRest, party: Combatant[]): string {
 /** Ouvre (ou enchaîne) UNE nuit de repos (#347) : reconstruit `buildNightCascade` pour CETTE nuit et
  *  l'ouvre en cascade influençable, en portant `nightsLeft` (nuits ENCORE à enchaîner après celle-ci)
  *  sur la cascade — sa clôture (`continueRestNights`, appelée par `dispatchCascadeDone`) reprend alors
- *  la nuit suivante. `extraContagion` (tambouille piètre) ne s'applique qu'à la nuit d'ARRIVÉE (repas
+ *  la nuit suivante. `extraContagion` (repas de la qualité à risque) ne s'applique qu'à la nuit d'ARRIVÉE (repas
  *  du soir posé une fois en amont par `dormir`).
  */
 export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = []): void {
@@ -779,9 +937,11 @@ export function validationsDuRepos(get: Get, set: Set) {
 
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
-    ouvrirLeRepos: () => {
-      const repos = reposDuLieu(get);
+    ouvrirLeRepos: (hebergementId) => {
+      if (refuserLeServiceFerme(get, set, hebergementId)) return;
+      const repos = reposDuLieu(get, hebergementId);
       if (repos) ouvrirLeRepos(get, set, repos);
+      else if (lieuDuGroupe(get())) refuserGeste(get, set, t('lieu.hebergementInconnu', { service: hebergementId ?? '' }));
     },
     offrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
@@ -894,8 +1054,16 @@ export const TABLES = {
       // `applyDiseaseEnd` (engine/rest) est le foyer unique, ici comme dans toute autre voie.
       return { consequences: freeCons(applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng())) };
     }),
-    contagion: bandeDeNuit((_get, _set, _band, row, hero) => {
-      return { consequences: freeCons(applyContraction(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, battleRng())) };
-    }),
+    /** Contagion : BANDE dont chaque rangée retrouve son porteur (`contracterABord`, l'équipage collectif compris) et
+     *  écrit son état. LDB 20 l.25 ; MDG 14 l.208 */
+    contagion: (get, set, step) => {
+      if (!step.participants) return;
+      for (const row of step.participants) {
+        const verdict = contracterABord(get, set, row, String(row.meta?.diseaseName ?? ''), battleRng());
+        row.outcome = verdict ? resultLines(freeCons(verdict.lignes)) : [];
+        for (const l of row.outcome) get().ecrireAuJournal(l.text);
+      }
+      return { consequences: [] };
+    },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

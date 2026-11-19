@@ -19,9 +19,23 @@ import type { JSX } from 'react';
  * `AGENTS.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
 import { useId, useMemo, useState } from 'react';
-import { datasetArray, type DatasetKey } from '../../../data/overrides';
+import { entreesDuDataset, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
-import { TYPES, catalogueSpecs, entreeOuverte, espaceDe, estFeuilleDId, estSpecialisable, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefASpecialisation, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
+import { metaDesChamps } from '../../../data/schemas/grammaire/meta';
+import {
+  TYPES,
+  catalogueSpecs,
+  entreeOuverte,
+  espaceDe,
+  estFeuilleDId,
+  estSpecialisable,
+  refusDeLEntree,
+  declarationDeFeuilleDId,
+  declarationDeRefASpecialisation,
+  declarationDeRefTypee,
+  type FeuilleDId,
+  type TypeEntite,
+} from '../../../data/schemas/grammaire/ref';
 import { datasetDeLEspaceDuType, specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
@@ -37,8 +51,9 @@ import { videDuNoeud } from '../../../noyau/codex/editFields';
  *  schéma — celle-ci se lit sur le NŒUD du champ (`noeud`, `refusDuNoeud`). */
 type RefDatasetCfg = { ds: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean };
 /** Mode `liste` : une rangée par réf, aucun contrôle unique ; `value` = un indice par rangée, `spec` = la
- *  spécialisation de chaque rangée (`ChoixDeSpec`). */
-type ListeRefCfg = RefDatasetCfg & { value?: boolean; spec?: boolean; single?: false; freeText?: false };
+ *  spécialisation de chaque rangée (`ChoixDeSpec`), `majoration` = un « +N » par rangée, exclusif de son indice
+ *  (`qualiteDObjetRefSchema`). */
+type ListeRefCfg = RefDatasetCfg & { value?: boolean; majoration?: boolean; spec?: boolean; single?: false; freeText?: false };
 /** Mode `single` avec `spec` : le `<select>` ET le contrôle de spécialisation (`ChoixDeSpec`), aucun contrôle unique ;
  *  `sujet` complète leurs deux noms. */
 type SpecRefCfg = RefDatasetCfg & { single: true; freeText?: false; spec: true };
@@ -68,6 +83,7 @@ export type RefFieldCfg = ListeRefCfg | SpecRefCfg | PolymorpheCfg | RefFieldCfg
 export const REF_FIELD: Record<string, RefFieldCfg> = {
   // ── listes (Ref[]) — existant ───────────────────────────────────────────────
   qualities: { ds: 'qualities', value: true },
+  'trappings.qualities': { ds: 'qualities', value: true, majoration: true },
   grantsManeuvers: { ds: 'maneuvers' },
   // Atouts d'une Structure de siège : réfs NUES de Trait (`ref('trait')`, ADE II 8), sans Indice ni pose.
   'structures.traits': { ds: 'traits' },
@@ -100,7 +116,7 @@ export function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) 
  *  `undefined` sinon. */
 export function cfgDeLaFeuille(noeud: unknown): (RefDatasetCfg & { single: true }) | undefined {
   const feuille = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
-  return !feuille || feuille.ouverte ? undefined : cfgDuType(feuille.type);
+  return !feuille || feuille.portee ? undefined : cfgDuType(feuille.type);
 }
 
 /** Config `single` à `spec` d'un champ dont le NŒUD est une référence à spécialisation (`refOuSpec`,
@@ -136,8 +152,8 @@ export function ChoixDeSpecs({ type, id, value, onChange, label }: {
 }) {
   const [saisie, setSaisie] = useState('');
   const courantes = value ?? [];
-  const catalogue = id === '' ? [] : catalogueSpecs(type, id);
-  const ouverte = id !== '' && entreeOuverte(type, id);
+  const catalogue = catalogueSpecs(type, id);
+  const ouverte = entreeOuverte(type, id);
   const offertes = [...catalogue, ...courantes.filter((s) => !catalogue.includes(s))];
   if (!offertes.length && !ouverte) return null;
   const cfg = cfgDuType(type);
@@ -180,7 +196,7 @@ export function typeDuDataset(ds: DatasetKey): TypeEntite {
 export function ChoixDeSpec({ type, id, value, onChange, ariaLabel }: {
   type: TypeEntite; id: string; value: string | undefined; onChange: (spec: string | undefined) => void; ariaLabel: string;
 }) {
-  if (id === '' || !estSpecialisable(type, id)) return null;
+  if (!estSpecialisable(type, id)) return null;
   if (entreeOuverte(type, id)) {
     return <input aria-label={ariaLabel} placeholder="spécialisation" style={{ width: 120 }} value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} />;
   }
@@ -236,7 +252,20 @@ const fournies = (cfg: RefFieldCfg): cfg is EntreesCfg => 'entrees' in cfg;
 const entryLabel = (e: Record<string, unknown>): string =>
   String(e.label ?? e.id ?? '');
 
-interface RefEntry { id: string; spec?: string; value?: number }
+interface RefEntry { id: string; spec?: string; value?: number; majoration?: number }
+
+/** La rangée `r` reposée sur la grandeur `cle` (`n`, ou aucune) : l'indice et la majoration s'excluent, poser l'un ôte l'autre. */
+function poserGrandeur(r: RefEntry, cle: 'value' | 'majoration', n: number | null): RefEntry {
+  const { value: _value, majoration: _majoration, ...reste } = r;
+  return n === null ? reste : { ...reste, [cle]: n };
+}
+
+/** Libellé de la clé `majoration` que l'élément du champ déclare (`metaDesChamps`) ; LÈVE s'il n'en déclare aucune. */
+function libelleDeMajoration(noeud: unknown): string {
+  const label = elementDeListe(noeud).map((n) => metaDesChamps(n)?.majoration?.label).find((l) => l !== undefined);
+  if (label === undefined) throw new Error('RefField : `majoration` configurée sur un champ dont l’élément ne déclare aucune majoration.');
+  return label;
+}
 interface SpecRef { id: string; spec?: string }
 
 /** Nom d'AUTEUR d'un dataset : le libellé de sa catégorie au Codex (`CATEGORY_DATASET_DERIVE`, puis
@@ -332,9 +361,9 @@ type Entree = { id: string; e: Record<string, unknown> };
 function useUnivers(source: DatasetKey | EntreesCfg['entrees'], entreesEnTete: Champ['entreesEnTete']): readonly Entree[] {
   const version = useVersionDesDatasets();
   return useMemo(() => {
-    const enTete = entreesEnTete.map((e) => ({ id: e.id, e: e as Record<string, unknown> }));
+    const enTete = entreesEnTete.map((e): Entree => ({ id: e.id, e }));
     const pris = new Set(enTete.map((x) => x.id));
-    const entrees = (typeof source === 'string' ? datasetArray(source) : source) as Record<string, unknown>[];
+    const entrees: readonly Record<string, unknown>[] = typeof source === 'string' ? entreesDuDataset(source) : source;
     const deLaSource = entrees.map((e) => ({ id: String(e.id ?? ''), e })).filter((x) => !pris.has(x.id));
     return [...enTete, ...deLaSource];
   }, [source, entreesEnTete, version]);
@@ -495,7 +524,7 @@ function FreeRefField(
 /** Valeurs DISTINCTES et non vides du champ `champ` des entrées du dataset `ds`, dans l'ordre du
  *  dataset : suggestions d'une saisie libre (`SaisieSuggeree`). */
 function valeursDistinctes(ds: DatasetKey, champ: string): string[] {
-  return [...new Set((datasetArray(ds) as Record<string, unknown>[]).flatMap((e) => (typeof e[champ] === 'string' && e[champ] ? [e[champ]] : [])))];
+  return [...new Set(entreesDuDataset(ds).flatMap((e) => (typeof e[champ] === 'string' && e[champ] ? [e[champ]] : [])))];
 }
 
 /** `valeursDistinctes` de `ds` (absent : aucune suggestion), recalculées à chaque écriture au seam
@@ -571,8 +600,9 @@ const elementEstUnId = (noeud: unknown): boolean => elementDeListe(noeud).some(e
  *  +Ajouter / ✕, `value` (Indice) si `cfg.value`. */
 function ListRefField(
   { label, sujet, cfg, champ, value, onChange }:
-  { label?: string; sujet?: string; cfg: { ds: DatasetKey; value?: boolean; spec?: boolean }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
+  { label?: string; sujet?: string; cfg: { ds: DatasetKey; value?: boolean; majoration?: boolean; spec?: boolean }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
 ) {
+  const majoration = cfg.majoration ? libelleDeMajoration(champ.noeud) : undefined;
   const options = useOptions(cfg, champ.noeud, useUnivers(cfg.ds, champ.entreesEnTete));
   const nus = elementEstUnId(champ.noeud);
   const list: RefEntry[] = nus ? ((value as string[] | undefined) ?? []).map((id) => ({ id })) : (value as RefEntry[]) ?? [];
@@ -595,8 +625,14 @@ function ListRefField(
           )}
           {cfg.value && (
             <NumberField
-              variant="nu" label={`Indice — ${label}`} placeholder="Indice" width={64}
-              vide value={ref.value} onChange={(n) => set(list.map((r, j) => (j === i ? { ...r, value: n ?? undefined } : r)))}
+              variant="nu" label={`Indice — ${rangee(i)}`} placeholder="Indice" width={64}
+              vide value={ref.value} onChange={(n) => set(list.map((r, j) => (j === i ? poserGrandeur(r, 'value', n) : r)))}
+            />
+          )}
+          {majoration !== undefined && (
+            <NumberField
+              variant="nu" label={`${majoration} — ${rangee(i)}`} placeholder="+N" width={64} min={1}
+              vide value={ref.majoration} onChange={(n) => set(list.map((r, j) => (j === i ? poserGrandeur(r, 'majoration', n) : r)))}
             />
           )}
           <button className="btn small danger" title="Retirer" aria-label={`Retirer ${rangee(i)}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
@@ -608,13 +644,21 @@ function ListRefField(
 }
 
 /** Liste d'ids NUS d'un champ `refs` : le catalogue est celui que désigne l'élément de son nœud
- *  (`cfgDeLaListe`) ; une liste vidée rend `undefined` (clé ôtée). */
+ *  (`cfgDeLaListe`) ; une liste vidée rend `undefined` (clé ôtée). Une rangée ajoutée et pas encore
+ *  choisie est un BROUILLON du contrôle : seuls les ids choisis partent dans la donnée. */
 export function ListeDIds({ noeud, label, title, value, onChange }: {
   noeud: unknown; label: string; title?: string; value: readonly string[] | undefined; onChange: (ids: string[] | undefined) => void;
 }) {
+  const [brouillons, setBrouillons] = useState(0);
   const cfg = cfgDeLaListe(noeud);
   if (!cfg) throw new Error(`ListeDIds « ${label} » : l'élément du nœud n'est pas une feuille \`idDe\` fermée.`);
-  return <RefField cfg={cfg} noeud={noeud} label={label} title={title} value={value ?? []} onChange={(v) => { const ids = v as string[]; onChange(ids.length ? ids : undefined); }} />;
+  const affichees = [...(value ?? []), ...Array.from({ length: brouillons }, () => '')];
+  return <RefField cfg={cfg} noeud={noeud} label={label} title={title} value={affichees} onChange={(v) => {
+    const rangees = v as string[];
+    const ids = rangees.filter((id) => id !== '');
+    setBrouillons(rangees.length - ids.length);
+    if (ids.length !== (value ?? []).length || ids.some((id, i) => id !== value?.[i])) onChange(ids.length ? ids : undefined);
+  }} />;
 }
 
 /** Nom d'AUTEUR de la source de chaque registre désigné, affiché au sélecteur. */

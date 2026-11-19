@@ -25,10 +25,9 @@
  *                      saute un Flow à `grantFreeAttack` (`flowHasFreeAttack`) et `resolveFreeAttacks` ne
  *                      l'énumère pas — il y serait perdu en silence (LDB 10 l.500).
  *
- * EXCLUSION `miscast.json` (famille 3) : ce fichier est un DIALECTE source (`JsonOp`/`JsonFormula` :
- * `{sinPlus1:true}`, `sinPlus1Value`, noms paramétrés par `sinPoints`) COMPILÉ en `GameOp` réels par
- * `engine/miscast.ts::expandOp`, et validé par `engine/miscast-ops.test.ts`. Ses `op` restent vérifiés
- * (famille 2 : ce sont des noms `GameOp` standard), mais ses Formules suivent un autre vocabulaire.
+ * EXCLUSION `miscast.json` (famille 3) : ses Formules portent le terme de Péché (`opsAuPecheSchema`,
+ * `grammaire/mecanique.ts`), lié à l'expansion par `engine/miscast.ts::lierLesOps`. Ses `op` restent
+ * vérifiés (famille 2).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -36,6 +35,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isValidFormula } from '../engine/ops';
 import { ICON_DEFS } from './icons';
+import { ACTIVITIES } from './index';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, flowHasImpureOpOutsideTest, flowHasFreeAttack } from '../engine/flowCore';
 import type { Flow } from '../engine/flowCore';
 import { ruleDef } from '../engine/policy';
@@ -64,7 +64,7 @@ const TRIGGERED_EFFECT_FIELDS = new Set(
  *  manœuvre (`maneuverEffects`) et Domaine (`domainOnHitEffects`) : famille 6ter. */
 const HORS_SOURCES_DE_GRATUITES = new Set(['maneuvers.json', 'domains.json']);
 
-// Fichier DIALECTE compilé (cf. en-tête) : exclu de la famille Formule.
+// Formules au dialecte du Péché (cf. en-tête) : exclu de la famille Formule.
 const MISCAST = 'miscast.json';
 
 // Champs d'une `GameOp` typés `Formula` (ou `number`, qui passe `isValidFormula`) — au minimum amount/count.
@@ -204,8 +204,7 @@ describe('Intégrité des données src/data/*.json', () => {
     expect(missing, `Espèce(s) sans family :\n  ${missing.join('\n  ')}`).toEqual([]);
   });
   it("8 — activities.json : chaque Activité porte une icône du registre (ActivityDef.icon ∈ ICON_DEFS)", () => {
-    const activities = JSON.parse(readFileSync(join(DIR, 'activities.json'), 'utf8')) as { id: string; icon?: string }[];
-    const bad = activities.filter((a) => typeof a.icon !== 'string' || !(a.icon in ICON_DEFS)).map((a) => `${a.id} → ${JSON.stringify(a.icon)}`);
+    const bad = ACTIVITIES.filter((a) => typeof a.icon !== 'string' || !(a.icon in ICON_DEFS)).map((a) => `${a.id} → ${JSON.stringify(a.icon)}`);
     expect(bad, `Activité(s) sans icône du registre (src/data/icons) :\n  ${bad.join('\n  ')}`).toEqual([]);
   });
   it("9 — actions.json : id unique, icône du registre (registre des actions, spec HUD zone 12)", () => {

@@ -8,7 +8,14 @@ import { catalogueSpecs, entreeOuverte, estSpecialisable, idsDe } from '../../da
 import { EMPTY_FLOW, type Condition } from '../../engine/flowCore';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  actorFieldSchema,
+  actorRefSchema,
+  hasWhatSchema,
+  partyWhoSchema,
+  relationOrCampSchema,
+  startleCauseSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { familleDesEffets } from '../../data/schemas/grammaire/mecanique';
 import { noeudDuChamp } from '../../data/schemas/validate';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
@@ -52,7 +59,7 @@ describe('ConditionEditor — conditions party-level (skill/career/species/statu
     expect(condSummary({ kind: 'skill', id: 'crochetage', who: 'any' })).toContain('crochetage');
     expect(condSummary({ kind: 'career', id: 'soldat', who: 'all' })).toContain('soldat');
     expect(condSummary({ kind: 'species', id: 'halflings', who: 'any' })).toContain('halflings');
-    expect(condSummary({ kind: 'status', atLeast: 'Argent 2', who: 'any' })).toContain('Argent 2');
+    expect(condSummary({ kind: 'status', atLeast: { tier: 'argent', standing: 2 }, who: 'any' })).toContain('Argent 2');
   });
 
   it('skill rend le sélecteur de Compétence + spec + seuil d’avances + who', () => {
@@ -75,16 +82,17 @@ describe('ConditionEditor — conditions party-level (skill/career/species/statu
     expect(html).toContain('value="halflings"');
   });
 
-  it('status rend le champ atLeast', () => {
-    const html = renderToStaticMarkup(<ConditionEditor cond={{ kind: 'status', atLeast: 'Argent 2', who: 'any' }} onChange={() => {}} />);
-    expect(html).toContain('value="Argent 2"');
+  it('status rend l’Échelon en choix d’ids et le Standing en nombre', () => {
+    const html = renderToStaticMarkup(<ConditionEditor cond={{ kind: 'status', atLeast: { tier: 'argent', standing: 2 }, who: 'any' }} onChange={() => {}} />);
+    expect(html).toContain('<option value="argent" selected="">Argent</option>');
+    expect(html).toMatch(/<input[^>]*aria-label="Standing minimum"[^>]*value="2"/);
   });
 
   it('recast : même kind préservé (lossless), kind différent → défauts sains sans NaN', () => {
     const skill: Condition = { kind: 'skill', id: 'crochetage', who: 'all', advances: 3 };
     expect(recast(skill, 'skill')).toEqual(skill); // même kind = round-trip lossless
     expect(recast(skill, 'career')).toMatchObject({ kind: 'career', id: '', who: 'any' }); // défauts sains, aucun NaN/donnée fantôme
-    expect(recast(recast(skill, 'status'), 'status')).toMatchObject({ kind: 'status', atLeast: 'Bronze 1' });
+    expect(recast(recast(skill, 'status'), 'status')).toMatchObject({ kind: 'status', atLeast: { tier: 'bronze', standing: 1 } });
   });
 });
 

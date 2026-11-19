@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "lustre-opera"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "cire",
+      "palette": "corps",
+      "matiere": "prop--cire"
+    },
+    {
+      "nom": "flamme",
+      "palette": "accent",
+      "matiere": "prop--braises"
+    }
+  ],
+  "glb": {
+    "sha256": "7495030f10014fabcb2fd6da1e880be71933cf809c397c41a5300163c7be0626",
+    "octets": 169480
+  }
+}

@@ -10,7 +10,7 @@ import { findEnsembleParHabille, findPresetDePersonnageById, piecesDeLObjet, tra
 
 type Entree = { id: string; [k: string]: unknown };
 const avec = (champs: Record<string, unknown>): Entree[] => {
-  const doc = structuredClone(presetsJson) as Entree[];
+  const doc: Entree[] = structuredClone(presetsJson);
   Object.assign(doc.find((e) => e.id === 'soldat')!, champs);
   return doc;
 };
@@ -56,9 +56,9 @@ describe('presets-de-personnage.json — preset de personnage entier (#3086)', (
     const [chemise] = findEnsembleParHabille({ id: 'uniforme-de-soldat', type: 'tenue' })!.pieces;
     const [casque] = piecesDeLObjet('heaume');
     const cas: [string, Record<string, unknown>, { path: string; message: string }][] = [
-      ['pièce de l’ensemble de la tenue', { pieces: ['baudrier', chemise] }, { path: '0.pieces.1', message: `« ${chemise} » est porté deux fois : déjà par l’ensemble de la tenue « uniforme-de-soldat ».` }],
-      ['pièce en double', { pieces: ['baudrier', 'baudrier'] }, { path: '0.pieces.1', message: '« baudrier » est porté deux fois : déjà par pieces[0].' }],
-      ['pièce et ensemble d’un objet', { pieces: ['baudrier', casque] }, { path: '0.objets.0', message: `« ${casque} » est porté deux fois : déjà par pieces[1].` }],
+      ['pièce de l’ensemble de la tenue', { pieces: ['baudrier', chemise, 'brassards'] }, { path: '0.pieces.1', message: `« ${chemise} » est porté deux fois : déjà par l’ensemble de la tenue « uniforme-de-soldat ».` }],
+      ['pièce en double', { pieces: ['baudrier', 'baudrier', 'brassards'] }, { path: '0.pieces.1', message: '« baudrier » est porté deux fois : déjà par pieces[0].' }],
+      ['pièce et ensemble d’un objet', { pieces: ['baudrier', casque, 'brassards'] }, { path: '0.objets.0', message: `« ${casque} » est porté deux fois : déjà par pieces[1].` }],
       ['objet aux deux mains', { prises: { main: { id: 'hallebarde' }, secondaire: { id: 'hallebarde' } } }, { path: '0.prises.secondaire', message: '« hallebarde » est porté deux fois : déjà par la prise main.' }],
       ['pièce d’un objet en double', { objets: ['heaume', 'heaume', 'plastron'] }, { path: '0.objets.1', message: `« ${casque} » est porté deux fois : déjà par l’objet « heaume ».` }],
       ['objet tenu et rangé', { objets: ['heaume', 'hallebarde'] }, { path: '0.objets.1', message: '« hallebarde » est porté deux fois : déjà par la prise main.' }],

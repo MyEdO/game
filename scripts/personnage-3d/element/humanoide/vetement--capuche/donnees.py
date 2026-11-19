@@ -21,7 +21,7 @@ MANIFESTE = {
     'couvre': ['tete', 'cou'],
 }
 # contrat : `SLOTS` n'offre que vet1 et vet2, pris par la robe ; gris de construction, sans couleur cuite
-MATERIAUX = {'capuche': ('accent', ((0.6, 0.6, 0.6), 0.0, 0.87))}
+MATERIAUX = {'capuche': ('accent', 'laine')}
 
 # Ce que la capuche contourne : la tête publiée et la coiffure du preset `sorcier` (contrat), leurs matières visibles.
 CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--barbe-courte', 'robe': 'humanoide--vetement--robe',

@@ -1,6 +1,6 @@
 *Pages PDF 217-218*
 
-# **LES DIEUX HALFLINGS**
+# <span id="page-216-0" data-folio="215"></span>**LES DIEUX HALFLINGS**
 
 Certains disent que les halflings sont superstitieux plus que religieux, et leurs divinités en général confirment cette impression. La plupart des dieux et déesses halflings ont tous un lien avec le foyer, la maison, la cuisine, la connaissance des plantes, les préoccupations générales de la terre et du quotidien. Les dieux halflings sont plus pragmatiques que philosophes car comme dit le proverbe « Pensées profondes ne paient pas ». Les halflings respectent également certaines divinités humaines – Sigmar, Taal et Rhya en particulier –, mais c'est plus par volonté d'éviter le conflit que par sincère dévotion.
 
@@ -9,7 +9,7 @@ Certains disent que les halflings sont superstitieux plus que religieux, et leur
 Les halflings n'ont pas réellement de clergé, et ils ne construisent évidemment pas de temples (même si les humains, en particulier les Sigmarites semblent heureux de le faire pour eux). Il y a mieux à faire que de bavasser sur les affaires d'autrui. Bien sûr, ils respectent les dieux, et gardent des sanctuaires à portée s'ils ont besoin de papoter, mais personne ne fait carrière en parlant exclusivement à un seul dieu – pourquoi être si exclusif ? Si un dieu en particulier a besoin d'être apaisé, un ancien local doit faire le nécessaire au nom de la communauté, souvent après de longues discussions avec des experts en la matière ou des pairs.
 
 
-# PRINCIPAUX DIEUX NAINS
+# <span id="page-217-0" data-folio="216"></span>PRINCIPAUX DIEUX NAINS
 
 | Dieu    | Sphère                                                               | Adorateurs                                            | Offrandes                                               | Remarques                                                                                                                                       |  |
 |---------|----------------------------------------------------------------------|-------------------------------------------------------|---------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|--|

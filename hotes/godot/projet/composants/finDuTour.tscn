@@ -1,0 +1,33 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="2_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
+
+[node name="FinDuTour" type="PanelContainer"]
+theme_type_variation = &"Enveloppe"
+
+[node name="libelle" type="Node" parent="."]
+script = ExtResource("2_liaison")
+champ = "libelle"
+propriete = &"tooltip_text"
+
+[node name="Rangee" type="HBoxContainer" parent="."]
+mouse_filter = 2
+theme_type_variation = &"RangeeSerree"
+
+[node name="Pastilles" type="VBoxContainer" parent="Rangee"]
+size_flags_vertical = 4
+theme_type_variation = &"PileSerree"
+
+[node name="Zone" type="Node" parent="Rangee/Pastilles"]
+script = ExtResource("1_zone")
+source = "valeurs"
+formes = PackedStringArray("bouton:pastilleDeBouton")
+
+[node name="Fin" type="HBoxContainer" parent="Rangee"]
+
+[node name="Zone" type="Node" parent="Rangee/Fin"]
+script = ExtResource("1_zone")
+source = "valeurs"
+ids = PackedStringArray("fin-de-tour")
+formes = PackedStringArray("bouton:boutonDeFin")

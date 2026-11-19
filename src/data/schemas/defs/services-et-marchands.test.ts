@@ -1,7 +1,8 @@
 /**
  * #2968 L17 — l'archétype de marchand (`lieux-services.json › merchantArchetype`, `SceneEntity.merchant.archetype`) se
- * désigne par `ref('merchant')`, le service de lieu (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) par
- * `ref('serviceDeLieu')` : `{ id }` refiné au parse contre l'index des ids. Fixtures : référence connue, inconnue,
+ * désigne par `ref('merchant')`, le type d'un établissement de lieu (`MapPlace.services[].kind`) par
+ * `ref('serviceDeLieu')` : `{ id }` refiné au parse contre l'index des ids. La cible d'un point d'intérêt
+ * (`PlacePoi.service`, #4277) : `src/noyau/validateScene.test.ts`. Fixtures : référence connue, inconnue,
  * d'un autre catalogue, écrite en id nu, et liste des services d'un lieu.
  */
 import { describe, expect, it } from 'vitest';
@@ -49,11 +50,6 @@ const PORTEURS = [
     connue: 'guilde', etrangere: 'armurier', catalogue: 'services de lieu',
     avec: (v: unknown) => projet((c) => Object.assign(c.worldMap.places[0].services[1], { kind: v })),
   },
-  {
-    porteur: 'worldMap.places[].poi[].serviceKind', schema: projetSchema, chemin: 'worldMap.places.0.poi.0.serviceKind',
-    connue: 'temple', etrangere: 'armurier', catalogue: 'services de lieu',
-    avec: (v: unknown) => projet((c) => Object.assign(c.worldMap.places[0].poi[0], { serviceKind: v })),
-  },
 ];
 
 describe('#2968 L17 — archétype de marchand et service de lieu désignés par `ref(type)`', () => {
@@ -86,7 +82,7 @@ describe('#2968 L17 — archétype de marchand et service de lieu désignés par
   });
 
   it('les services d’un lieu forment une liste : chaque service se juge au catalogue', () => {
-    const avecServices = (kinds: readonly string[]) => projet((c) => Object.assign(c.worldMap.places[1], { services: kinds.map((id) => ({ kind: { id } })) }));
+    const avecServices = (kinds: readonly string[]) => projet((c) => Object.assign(c.worldMap.places[1], { services: kinds.map((id) => ({ id, kind: { id } })) }));
     expect(projetSchema.safeParse(versDisque(avecServices(['auberge', 'guilde', 'temple']))).success).toBe(true);
     expect(messages(projetSchema, versDisque(avecServices(['auberge', 'service-inexistant'])))).toContain(
       'worldMap.places.1.services.1.kind.id « service-inexistant » est absent du catalogue des services de lieu',

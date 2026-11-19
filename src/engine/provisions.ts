@@ -25,7 +25,7 @@
  *    ch.14) ou sous la règle optionnelle `penurie-d-eau` (siège, désert, souterrain). « Ni nourriture
  *    ni boisson … ne peuvent pas récupérer » (LDB 18 l.338) → `isDeprived` = affamé OU assoiffé, lu par `rest.ts`.
  *
- * La nourriture = objets « Ration (1 jour) » (trappings LDB 66 l.20) dans l'inventaire du héros.
+ * La nourriture = objets `isRations` (trappings LDB 66 l.20) dans l'inventaire du héros.
  * CHOIX documenté (canon muet sur la résorption) : manger à nouveau remet les compteurs ET les
  * malus de faim à zéro.
  *
@@ -34,17 +34,23 @@
  * de Résistance (`resVal`) et le Bonus d'Endurance (`be`) sont passés par l'appelant, qui applique
  * lui-même les dégâts (via `loseWounds`).
  */
+import { nomDe } from './nom';
 import { Combatant, CharKey, ItemInstance, UpkeepDeferTest, type TestIds } from './types';
 import { RNG, d10 } from './dice';
 import { rollTest } from './tests';
 import { hasActiveFlag } from './activeFlags';
 import { itemCapability } from './capabilities';
 import { dailyWaterLitres } from './seaWeather';
-import { findTraitById, refLabel } from '../data';
+import { findDiseaseById, findTraitById, findTrappingById, refLabel } from '../data';
+import { garanti } from '../lib/garanti';
+import { rule } from './policy';
+import { dayIndex, MINUTES_PER_DAY } from './clock';
+import { VIVRES_DE_CALE } from './seaNavigation';
 import { RULE_REF, type CodexTarget } from './ruleRefs';
 import { traceLineOf } from './traceLine';
 import type { Id } from '../data/schemas/grammaire/ref';
 import type { ModFamille } from './types';
+import type { PorteurDeMaladies } from './disease';
 import { t } from '../i18n';
 import { effectiveTalents } from './talentEffects';
 
@@ -67,8 +73,9 @@ export interface HungerState {
   tests: number;
   /** Échecs cumulés : 1ᵉʳ → −10 F/E ; 2ᵉ et suivants → −10 autres caracs + 1d10 dégâts (LDB 18 l.342). */
   failures: number;
-  /** Journée DÉJÀ couverte : demi-ration de Brouet (LDB 10 l.139) ou repas pris (effet `mealParty`). */
-  coveredDay?: boolean;
+  /** Journée DÉJÀ couverte : `true` pour un repas pris (effet `mealParty`), la seconde moitié de la demi-ration
+   *  de Brouet sinon (LDB 10 l.139), avec le vivre qui la fait (`RepasDuJour`). */
+  coveredDay?: true | { repas: RepasDuJour };
 }
 
 /** État de soif d'un personnage (absent = désaltéré). Miroir de `HungerState` (LDB 18 l.340). */
@@ -94,7 +101,7 @@ export function traitConsumptionFactor(c: Combatant): number {
   return (c.traits ?? []).reduce((f, t) => Math.max(f, findTraitById(t.id)?.capabilities?.consumptionFactor ?? 1), 1);
 }
 
-/** L'objet est-il une ration de voyage (« Ration (1 jour) », LDB 66 l.20) ? Capacité par-OBJET `isRations`,
+/** L'objet est-il une ration de voyage (LDB 66 l.20) ? Capacité par-OBJET `isRations`,
  *  NON gatée sur le port (on mange depuis le sac) — lue PAR ID dans le catalogue (≠ nom — multilangue-safe). */
 export function isRation(it: ItemInstance): boolean {
   return itemCapability(it, 'isRations');
@@ -156,11 +163,6 @@ export interface FoodUpkeepResult {
 }
 
 /**
- * Entretien quotidien de nourriture d'UN personnage (une journée écoulée). Mute `c` (rations,
- * compteur de faim). `resVal` = valeur du Test de Résistance ; `be` = Bonus d'Endurance — passés
- * par l'appelant (cycle d'import, cf. en-tête). L'appelant applique `damage` via `loseWounds`.
- */
-/**
  * Applique le RÉSULTAT d'un Test de Faim DIFFÉRÉ (différé/influençable en cascade de nuit) : compte
  * le Test (LDB 18 l.338), et sur un échec applique les pénalités (LDB 18 l.342 : 1ᵉʳ → −10 F/E ; 2ᵉ+ → −10 autres
  * + 1d10 Dégâts réduits du BE, min 1). Mute `c.hunger` ; renvoie le journal + les Dégâts à appliquer
@@ -197,6 +199,7 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
   if (hasActiveFlag(c, 'noHunger')) {
     res.ate = true;
     c.hunger = undefined;
+    noterLeRepas(c, undefined);
     return res;
   }
   const brouet = hasBrouet(c);
@@ -204,23 +207,29 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
 
   // 1. Manger : journée déjà couverte (demi-ration de Brouet, repas d'auberge), sinon `traitConsumptionFactor`
   // ration(s) (ogre ADE II 2 l.708 : « les ogres doivent manger … au moins deux fois plus » — 2 rations/jour).
+  let repas: RepasDuJour;
   if (h.coveredDay) {
     res.ate = true;
+    repas = h.coveredDay === true ? 'repas' : h.coveredDay.repas;
   } else {
     const need = traitConsumptionFactor(c);
     const idxs: number[] = [];
     (c.items ?? []).forEach((it, i) => { if (idxs.length < need && isRation(it)) idxs.push(i); });
     if (idxs.length >= need) {
+      const vivres = new Set(idxs.map((i) => c.items![i].trappingId));
+      const [seul] = vivres;
+      repas = vivres.size === 1 && seul !== undefined ? seul as Id<'trapping'> : undefined;
       for (const i of [...idxs].reverse()) c.items!.splice(i, 1);
       res.ate = true;
       res.rationConsumed = true;
     }
   }
+  noterLeRepas(c, repas);
 
   if (res.ate) {
     if (h.days > 0 || h.failures > 0) res.log.push(t('prov.fedAgain', { name: c.label }));
     // Brouet : demi-ration → le jour suivant est couvert (LDB 10 l.139). Sinon, plus d'état de faim.
-    c.hunger = brouet && res.rationConsumed ? { days: 0, tests: 0, failures: 0, coveredDay: true } : undefined;
+    c.hunger = brouet && res.rationConsumed ? { days: 0, tests: 0, failures: 0, coveredDay: { repas } } : undefined;
     return res;
   }
 
@@ -240,7 +249,7 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
     h.tests += 1;
     // Test résolu SANS fenêtre (entretien du jour) : sa ligne se DÉRIVE (`traceLineOf`).
     res.log.push(traceLineOf({
-      who: c.label, label: t('prov.testLabel', { kind: t('prov.faim'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: h.tests > 1 ? t('prov.fragTestMalus', { n: (h.tests - 1) * 10 }) : '' }),
+      who: nomDe(c), label: t('prov.testLabel', { kind: t('prov.faim'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: h.tests > 1 ? t('prov.fragTestMalus', { n: (h.tests - 1) * 10 }) : '' }),
       roll: t2.roll, target: t2.target, sl: t2.sl, success: t2.success, issue: t2.success ? t('prov.holdsOn') : t('prov.fail'),
     }));
     if (!t2.success) {
@@ -316,7 +325,7 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   const t2 = rollTest(resVal, 'intermediaire', rng, penalty);
   s.tests += 1;
   res.log.push(traceLineOf({
-    who: c.label, label: t('prov.testLabel', { kind: t('prov.soif'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: s.tests > 1 ? t('prov.fragTestMalus', { n: (s.tests - 1) * 10 }) : '' }),
+    who: nomDe(c), label: t('prov.testLabel', { kind: t('prov.soif'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: s.tests > 1 ? t('prov.fragTestMalus', { n: (s.tests - 1) * 10 }) : '' }),
     roll: t2.roll, target: t2.target, sl: t2.sl, success: t2.success, issue: t2.success ? t('prov.holdsOn') : t('prov.fail'),
   }));
   if (!t2.success) {
@@ -334,13 +343,105 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
 /** Contenance d'un tonneau d'eau douce, en litres. MDG 14 l.242 */
 export const LITRES_PAR_TONNEAU = 145;
 
-/** Vivres de la cale du navire, en jours-homme par vivre (`sea-navigation.json` `longsVoyages.vivresDeCale`).
- *  MDG 14 l.245-252, l.238, l.263 */
-export type VivresDeCale = Partial<Record<Id<'trapping'>, number>>;
+/** Un lot de la cale : `rations` jours-homme d'un vivre (`sea-navigation.json` `longsVoyages.vivresDeCale`)
+ *  embarqués à la minute `entre` (`gameTime`). MDG 14 l.238, l.245-252, l.263 */
+export interface LotDeVivres { vivre: Id<'trapping'>; entre: number; rations: number }
 
-/** Total des rations (jours-homme) de la cale, tous vivres confondus. */
-export function rationsDeCale(provisions: VivresDeCale | undefined): number {
-  return Object.values(provisions ?? {}).reduce<number>((s, n) => s + Math.max(0, n ?? 0), 0);
+/** Quantités de vivres demandées, en jours-homme par vivre (commande d'avitaillement). MDG 14 l.248-252 */
+export type QuantitesDeVivres = Partial<Record<Id<'trapping'>, number>>;
+
+/** Total des rations (jours-homme) de la cale, tous vivres et lots confondus. */
+export function rationsDeCale(lots: readonly LotDeVivres[] | undefined): number {
+  return (lots ?? []).reduce((s, l) => s + l.rations, 0);
+}
+
+/** Rations (jours-homme) de la cale d'un seul vivre, tous lots confondus. */
+export function rationsDuVivre(lots: readonly LotDeVivres[] | undefined, vivre: Id<'trapping'>): number {
+  return rationsDeCale((lots ?? []).filter((l) => l.vivre === vivre));
+}
+
+/** Le vivre pourrit-il (il n'est pas une ration `isRations` prévue pour tenir en mer) ? MDG 14 l.238, l.263 */
+export function vivrePerissable(vivre: Id<'trapping'>): boolean {
+  return !itemCapability(garanti(findTrappingById(vivre), vivre, 'vivre de la cale'), 'isRations');
+}
+
+/** Le lot a-t-il pourri à la minute `now` : vivre périssable embarqué depuis la durée de la règle
+ *  `mer-vivres-frais-peremption-jours` (maison). MDG 14 l.238 ; LDB 47 l.93-97 */
+export function lotPerime(lot: LotDeVivres, now: number): boolean {
+  return vivrePerissable(lot.vivre) && dayIndex(now) - dayIndex(lot.entre) >= rule('mer-vivres-frais-peremption-jours');
+}
+
+/** Embarque `rations` jours-homme de `vivre` à la minute `now` : le lot rejoint celui du même vivre embarqué le même jour. */
+export function embarquerDesVivres(lots: readonly LotDeVivres[], vivre: Id<'trapping'>, rations: number, now: number): LotDeVivres[] {
+  if (rations <= 0) return [...lots];
+  const i = lots.findIndex((l) => l.vivre === vivre && dayIndex(l.entre) === dayIndex(now));
+  if (i < 0) return [...lots, { vivre, entre: now, rations }];
+  return lots.map((l, j) => j === i ? { ...l, rations: l.rations + rations } : l);
+}
+
+/** Retire `n` jours-homme de `vivre`, du lot le plus vieux au plus jeune ; un lot vidé sort de la cale. */
+export function retirerDuVivre(lots: readonly LotDeVivres[], vivre: Id<'trapping'>, n: number): LotDeVivres[] {
+  let reste = Math.max(0, n);
+  const pris = new Map<LotDeVivres, number>();
+  for (const l of [...lots].filter((x) => x.vivre === vivre).sort((a, b) => a.entre - b.entre)) {
+    const m = Math.min(reste, l.rations);
+    pris.set(l, m);
+    reste -= m;
+  }
+  return lots.map((l) => ({ ...l, rations: l.rations - (pris.get(l) ?? 0) })).filter((l) => l.rations > 0);
+}
+
+/** Ce que l'équipage a mangé de la cale (`mangerLaCale`) : lots restants, jours-homme manquants, et le repas de
+ *  chaque jour, dans l'ordre (`RepasDuJour` : le vivre qui a nourri seul toutes les bouches, absent si mêlé ou à court). */
+export interface RepasDeLaCale { lots: LotDeVivres[]; manque: number; repas: (Id<'trapping'> | undefined)[] }
+
+/** Le repas qui fait le jour d'un porteur : le vivre qui l'a nourri en entier, `'repas'` pour un repas pris
+ *  (auberge, hôte : `feedFromMeal`), absent s'il n'a pas mangé ou a mêlé plusieurs vivres. */
+export type RepasDuJour = Id<'trapping'> | 'repas' | undefined;
+
+/** Écrit le régime de bord d'un porteur pour UN jour où il a mangé `repas` : un vivre frais remet le mois à zéro, sinon
+ *  un jour de plus sans frais, et de soupe si le vivre porte `scurvyGuard`. Le porteur d'une maladie à `dureeAuFrais`
+ *  acquiert un jour de vivre frais à décompter (`minutesAuFrais`, consommé par `avancerLesMaladies`) ; sans elle, il
+ *  n'en garde aucun. Geste unique des deux mangeurs, `dailyFoodUpkeep` (PJ) et `mangerLaCale` via
+ *  `consumeCrewProvisions` (équipage). MDG 14 l.230-232 */
+export function noterLeRepas(p: Pick<PorteurDeMaladies, 'regimeDeBord' | 'diseases'>, repas: RepasDuJour): void {
+  const frais = repas === 'repas' || (repas !== undefined && vivrePerissable(repas));
+  const soupe = !frais && repas !== undefined && itemCapability(garanti(findTrappingById(repas), repas, 'vivre mangé'), 'scurvyGuard');
+  const r = p.regimeDeBord;
+  const auFrais = (p.diseases ?? []).some((d) => findDiseaseById(d.id)?.dureeAuFrais)
+    ? (r?.minutesAuFrais ?? 0) + (frais ? MINUTES_PER_DAY : 0)
+    : 0;
+  p.regimeDeBord = {
+    joursSansVivreFrais: frais ? 0 : (r?.joursSansVivreFrais ?? 0) + 1,
+    joursDeSoupe: frais ? 0 : (r?.joursDeSoupe ?? 0) + (soupe ? 1 : 0),
+    ...(auFrais ? { minutesAuFrais: auFrais } : {}),
+  };
+}
+
+/** `bouches` rations par jour pendant `jours` jours depuis la minute `now` : chaque jour, vivre après vivre dans
+ *  l'ordre de `VIVRES_DE_CALE.vivres`, du lot le plus vieux au plus jeune, sans toucher un lot pourri ce
+ *  jour-là (`lotPerime`). PUR. MDG 14 l.166, l.171, l.238, l.263 */
+export function mangerLaCale(lots: readonly LotDeVivres[], bouches: number, jours: number, now: number): RepasDeLaCale {
+  const rang = (l: LotDeVivres) => VIVRES_DE_CALE.vivres.indexOf(l.vivre);
+  const cale = [...lots].sort((a, b) => rang(a) - rang(b) || a.entre - b.entre).map((l) => ({ ...l }));
+  let manque = 0;
+  const repas: RepasDeLaCale['repas'] = [];
+  for (let k = 0; k < jours; k++) {
+    const jour = now + k * MINUTES_PER_DAY;
+    let reste = bouches;
+    const manges = new Set<Id<'trapping'>>();
+    for (const l of cale) {
+      if (reste === 0) break;
+      if (l.rations === 0 || lotPerime(l, jour)) continue;
+      const m = Math.min(reste, l.rations);
+      l.rations -= m;
+      reste -= m;
+      manges.add(l.vivre);
+    }
+    manque += reste;
+    repas.push(reste === 0 && manges.size === 1 ? [...manges][0] : undefined);
+  }
+  return { lots: cale.filter((l) => l.rations > 0), manque, repas };
 }
 
 /** Manifeste d'avitaillement AU DÉPART (#241/#245) : vivres/eau disponibles vs requis pour couvrir
@@ -348,9 +449,10 @@ export function rationsDeCale(provisions: VivresDeCale | undefined): number {
  *  PUR — aucune mutation, aucune consommation. `waterLitres` = tonneaux du navire (`CampaignVessel.waterLitres`,
  *  absent = ravitaillement réputé assuré, cf. en-tête) ; l'eau requise suit le régime de bord médian
  *  (`dailyWaterLitres('mediane')`, MDG 14 l.242 — la bande de Température réelle n'est tirée qu'en mer).
- *  `crew` (#245) = effectif PNJ nominal présent (`count`) et ses vivres de cale (`provisions`, `rationsDeCale`) :
+ *  `crew` (#245) = effectif PNJ nominal présent (`count`) et ses vivres de cale (`provisions`), comptés pour ce
+ *  que l'équipage en mangera avant péremption depuis la minute `now` (`mangerLaCale`, MDG 14 l.238) :
  *  l'équipage mange 1 ration/jour (pas de Brouet), les héros suivent Brouet (LDB 10 l.139) sur leurs rations
- *  portées. Rations disponibles = celles des héros + vivres de cale. `crew` absent : voyage à terre
+ *  portées. Rations disponibles = celles des héros + les jours-homme de cale que l'équipage mangera. `crew` absent : voyage à terre
  *  (`travelFlow`), seuls les héros comptent. */
 export interface ProvisioningManifest {
   joursEstimes: number;
@@ -364,14 +466,15 @@ export interface ProvisioningManifest {
 }
 
 export function provisioningManifest(
-  party: Combatant[], waterLitres: number | undefined, joursEstimes: number,
-  crew: { count?: number; provisions?: VivresDeCale } = {},
+  party: Combatant[], waterLitres: number | undefined, joursEstimes: number, now: number,
+  crew: { count?: number; provisions?: readonly LotDeVivres[] } = {},
 ): ProvisioningManifest {
   const alive = party.filter((h) => !h.dead);
   const days = Math.max(0, joursEstimes);
   const crewCount = Math.max(0, crew.count ?? 0);
   const souls = alive.length + crewCount;
-  const rationsDispo = alive.reduce((sum, h) => sum + rationCount(h), 0) + rationsDeCale(crew.provisions);
+  const rationsDispo = alive.reduce((sum, h) => sum + rationCount(h), 0)
+    + crewCount * days - mangerLaCale(crew.provisions ?? [], crewCount, days, now).manque;
   // Ogre (ADE II 2 l.708) : facteur ×2 sur les vivres/eau requis, PAR TÊTE — `traitConsumptionFactor`.
   const rationsRequises =
     alive.reduce((sum, h) => sum + (hasBrouet(h) ? Math.ceil(days / 2) : days) * traitConsumptionFactor(h), 0) + crewCount * days;

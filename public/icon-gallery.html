@@ -1,6 +1,268 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="./favicon.svg" /><title>Icônes UI QC</title>
 <style>
-  :root { color-scheme: dark; --gold: #b8912f; }
+  :root { color-scheme: dark;
+  --bg: #100e0b;
+  --bg2: #171410;
+  --panel: #1d1913;
+  --panel2: #272119;
+  --border: #443626;
+  --text: #e4dabf;
+  --muted: #a3936f;
+  --gold: #b8912f;
+  --gold2: #d8b954;
+  --accent: #7c1d12; /* rouge sang — action primaire */
+  --accent2: #a13224;
+  --danger: #d6543a; /* alerte (plus vif que l'accent, hover distinct) */
+  --danger-soft: #e07a63; /* alerte douce (coral) — texte/bordure d'avertissement léger */
+  --on-accent: #fff; /* texte sur badge/pill teinté (accent, danger…) */
+  --ok: #5d8a46; /* succès (vert mousse) */
+  --ok-bright: #6fce8e; /* succès clair — texte/icône positif sur fond sombre */
+  --parchment: #decb9d; /* surface claire « document » (texte = --ink) */
+  --parchment2: #cbb478;
+  --ivoire: #f3e6c8; /* parchemin éclairé : face du dé (navigation/des), champ d'étiquette */
+  --ink: #221a11;
+  --blood: #5a120a;
+  --corruption-violet: #4a1a56; /* gangrène de Corruption (liseré de registre + bandeau de cadre, #492) */
+  --copper: #c9905a; /* monnaie : sou de cuivre */
+  --silver: #cdd6df; /* monnaie : pistole d'argent */
+  --combat-walk: #8fc7fa; /* combat : portée de Marche */
+  --combat-run: #9b6be0; /* combat : portée de Course */
+  --combat-intent: #3fd0c9; /* combat : portée de l'INTENTION armée (Charge/Course/Mouvement) */
+  --combat-target: #ff5a4d; /* combat : anneau de cible d'attaque */
+  --combat-enemy: #e0533a; /* combat : réticule/indicateur ennemi (et delta négatif) */
+  --combat-crowd: #ff7a3c; /* combat : cibles éligibles à la Foule */
+  --combat-ally: #5db87a; /* combat : cible alliée / soin (et delta positif) */
+  --combat-range-bonus: #5db87a; /* combat : bande de portée avantageuse (Bout Portant/Courte) */
+  --combat-range-neutre: #d9b23c; /* combat : bande de portée Moyenne (mod +0) */
+  --combat-range-malus: #e0533a; /* combat : bande de portée pénalisante (Longue/Extrême) */
+  --combat-gold: #ffd75e; /* combat : surbrillance or (trajet, réticule héros, infobulle) */
+  --combat-gold-dk: #7a5b16; /* combat : contour sombre du glyphe or */
+  --combat-halo: #ffe27a; /* combat : halo d'interaction (survol PNJ/objet) */
+  --tooltip-bg: #14141c; /* combat : fond d'infobulle */
+  --tooltip-border: #888888; /* infobulle : liseré d'erreur */
+  --tooltip-fg: #f0f0f0; /* infobulle : texte principal */
+  --tooltip-muted: #b9b2a6; /* infobulle : libellés secondaires */
+  --tooltip-dim: #7f8893; /* infobulle : mentions effacées (aides non qualifiées) */
+  --tooltip-ok: #9fb8a6; /* infobulle : détail positif */
+  --tooltip-warn: #e0a53a; /* infobulle : avertissement */
+  --tooltip-aid: #b9926a; /* infobulle : rôle d'aide */
+  --iso-zone-smoke: #9aa0a6; /* combat : zone persistante opaque (fumée) */
+  --iso-zone-fire: #e2641e; /* combat : zone de feu/effet */
+  --iso-engage: #d98a3a; /* combat : lien d'engagement (pointillés) */
+  --iso-active-halo: #ffe066; /* carte : contour de case active / position du groupe */
+  --iso-door-open: #caa14a; /* carte : overlay de porte ouverte */
+  --iso-door-closed: #d4534a; /* carte : overlay de porte fermée */
+  --iso-climb: #d8c48a; /* carte : marqueur d'arête escaladable (pointillés) */
+  --iso-invalid: #777777; /* visée : gabarit hors portée / hors Ligne de Vue */
+  --iso-threat: #d11a1a; /* combat : télégraphe de zone ennemi */
+  --iso-fauna: #0d0d0d; /* carte : faune d'ambiance (mouches, corbeau) */
+  --iso-grid: #becde1; /* carte : grille de cases (surcouche tactique de la vue du dessus, éditeur) */
+  --dbg-z1: #13c4d6; /* debug carte : teinte couche z1 */
+  --dbg-z2: #9a5cff; /* debug carte : teinte couche z2 */
+  --dbg-wall: #e03a3a; /* debug carte : courtine */
+  --dbg-door: #f4d020; /* debug carte : porte */
+  --dbg-ink: #0a0a12; /* debug carte : cerne/fond */
+  --dbg-fg: #f2f2f2; /* debug carte : texte */
+  --dbg-border: #444444; /* debug carte : bord de légende */
+  /* Tri hex hors tokens (#310) — familles réutilisées par plusieurs écrans hors combat/tooltip/iso. */
+  --shadow-ink: #000; /* encre d'ombrage texte (text-shadow), fond de voile opaque */
+  --danger-bright: #ff9b80; /* alerte VIVE (badge Tir rapide armé, warning tour gâché…) */
+  --info: #6f8fb8; /* bleu neutre — info/armure/protection */
+  --magic: #b388ff; /* accent mystère/magie (objet non identifié) */
+  --magic-panel: #241830; /* fond sombre « objet équipé/enchanté » */
+  --magic-panel-dk: #0e0b14;
+  --cyan-pale: #9fd8ff; /* badge de pré-emption gratuite (éclair) */
+  --gauge-action: #e0b83a; /* gouttière d'Action de l'arche (CombatConsole) */
+  --gauge-move: #46c2d6; /* gouttière de Mouvement de l'arche */
+  --gauge-adv: #ff9b3d; /* conduit d'Avantage (LDB 14 l.198) */
+  --chip-malus-bg: #2a1518; /* pastille d'État : malus */
+  --chip-malus-border: #7a2a2a;
+  --chip-buff-bg: #16261a; /* pastille d'État : buff */
+  --chip-buff-border: #3a6b3a;
+  --chip-state-border: #e8973f; /* pastille d'État : état neutre */
+  --end-mort-bg: #6b1e1e; /* badge de fin d'aventure : mort */
+  --end-mort-fg: #f2dede;
+  --end-koan-bg: #2f4a7a; /* badge de fin d'aventure : Ka'oan */
+  --end-koan-fg: #dbe6ff;
+  --end-rendu-bg: #e9e4d6; /* badge de fin d'aventure : rendu */
+  --end-rendu-fg: #4a4030;
+  --end-hors-bg: #4a5240; /* badge de fin d'aventure : hors service */
+  --end-hors-fg: #d8e0cc;
+  --wm-age-spot: #7a5f38; /* carte du monde : taches d'âge du parchemin + cerne des médaillons */
+  --wm-frame-dark: #5a4327; /* carte du monde : filet de cadre brun épais */
+  --wm-frame-gold: #a9842f; /* carte du monde : filet de cadre or fin */
+  --wm-fleuron: #8a6c2f; /* carte du monde : fleurons d'angle */
+  --wm-badge-bg: #efe2bd; /* carte du monde : fond du badge de distance */
+  --wm-ink: #5d4520; /* carte du monde : encre du texte (badge, rose des vents) */
+  --wm-marker-icon: #4a3517; /* carte du monde : couleur de l'icône des médaillons de lieu */
+  --wm-compass-faint: #8a6c3e; /* carte du monde : branches pâles de la rose des vents */
+  --wm-cartouche-bg: #33240f; /* carte du monde : fond du cartouche de nom de lieu */
+  --wm-cartouche-fg: #f1e2bb; /* carte du monde : texte du cartouche de nom de lieu */
+  /* Encres d'atelier — gamme laiton/bois/cire ratifiée par le kit « Atelier du scribe » (#412),
+     retunées ICI (couche PARTAGÉE) plutôt qu'en variables parallèles : tout module qui les consomme
+     hérite d'un changement de palette en un seul geste. */
+  --atelier-brass-elu: #ffe6a8; /* valeur élue / nom scellé */
+  --atelier-brass-light: #ffd97a; /* alvéole allumée, dés roulants */
+  --atelier-brass-vif: #e8c467; /* titres gravés, rivets */
+  --atelier-brass-etch: #d9c48f; /* nom au repos (plaque/chip) */
+  --atelier-brass-rubric: #c9ac72; /* small-caps, hints */
+  --atelier-wood-liseret: #55402a; /* liseré des panneaux d'atelier */
+  --atelier-wood-etch: #4a3a24; /* bordure des chips/rangées */
+  --atelier-wood-hollow: #3a2c1a; /* bordure basse (prose, rangée) */
+  --atelier-wood-top: #241a10; /* haut des dégradés bois */
+  --atelier-wood-mid: #170f09; /* bas des dégradés bois (surface) */
+  --atelier-wood-bottom: #150e08; /* bas des dégradés bois (creux) */
+  --atelier-brass-hover: #8a6c2f; /* bordure laiton survolée (tuile, plaque) */
+  --atelier-plaque-hi: #4a2c18; /* haut du dégradé « plaque élue » */
+  --atelier-plaque-lo: #2c1810; /* bas du dégradé « plaque élue » */
+  --atelier-alcove-hi: #140e08; /* haut du fond d'alcôve/scène */
+  --atelier-alcove-lo: #080503; /* bas du fond d'alcôve/scène — le noir où la scène s'éteint */
+  --atelier-prose: #e7d9bc; /* texte de la prose sombre à scroll interne */
+  --atelier-wax-fold: #7c1810; /* pli du sceau de cire */
+  --atelier-wax-ring: #5e0f08; /* anneau/crâne du sceau */
+  --atelier-wax-ring-light: #e08a68; /* liseré clair du sceau */
+  --atelier-wax-shadow: #8f1f14; /* orbites/ombre du crâne */
+  /* AMBIANCE d'un cadre de campagne (#717) — strate de MATIÈRE d'un écran, portée en `data-ambiance`
+     par `ScreenShell` : ce sont les tokens qui changent, jamais une classe par écran. Valeurs de la
+     strate « parchemin » (défaut, plein jour) ; la « veillée » les rescope juste en dessous. */
+  --amb-parchment: var(--parchment); /* teinte du parchemin sous l'ambiance courante */
+  --amb-card-glow: 0 6px 18px rgba(0, 0, 0, .35); /* halo d'une carte posée sur la table */
+  --atelier-bronze-hi: #e29a6a; /* dégradé statut Bronze — haut */
+  --atelier-bronze-mid: #b06a3a; /* dégradé statut Bronze — milieu */
+  --atelier-bronze-lo: #7d4a28; /* dégradé statut Bronze — bas */
+  --atelier-argent-hi: #e8edf1; /* dégradé statut Argent — haut */
+  --atelier-argent-mid: #aab4bc; /* dégradé statut Argent — milieu */
+  --atelier-argent-lo: #7e8890; /* dégradé statut Argent — bas */
+  --atelier-or-lo: #9c7526; /* dégradé statut Or — bas */
+  --atelier-rose-well-hi: #2c2012; /* puits de la rose des forces — haut du dégradé */
+  --atelier-rose-well-lo: #050302; /* puits de la rose des forces — bas du dégradé */
+  --atelier-rose-rim: rgba(255, 217, 122, .28); /* liseré laiton du puits, rose renseignée */
+  --atelier-rose-rim-empty: rgba(255, 217, 122, .1); /* liseré laiton du puits, rose vide */
+  --atelier-rose-fill: rgba(216, 185, 84, .17); /* remplissage encre du polygone de score */
+  --atelier-rose-stroke: #d8b954; /* liseré du polygone de score */
+  --atelier-rose-empty-ink: #5c4a30; /* tiret/étiquettes d'une rose sans donnée */
+  --atelier-night: #0d0805; /* bas des dégradés d'alcôve/cadre de détail */
+  --atelier-dicewell-border: #c9573f; /* encrier attente — bordure rouge bordé-teinté */
+  --atelier-dicewell-border-hover: #e0765a; /* encrier attente — bordure survolée */
+  --atelier-dicewell-txt: #ffd9cd; /* encrier attente — libellé clair */
+  --atelier-dicewell-txt-muted: #c9a08c; /* encrier attente — texte atténué */
+  --atelier-dicewell-act-hi: #4c1d11; /* encrier attente — surface BORDÉ-TEINTÉE, sang sombre (haut) :
+    « Suivant → » reste l'UNIQUE rempli rouge vif de l'écran (#393 P2, correctif toolbar P1). */
+  --atelier-dicewell-act-lo: #280d08; /* encrier attente — surface bordé-teintée (bas) */
+  --atelier-dicewell-hi: #33270f; /* encrier statut laiton (roulants/rendu) — surface haut, `.c-dicewell` planche FINALE */
+  --atelier-dicewell-lo: #1c130a; /* encrier statut laiton — surface bas */
+  /* Astrolabe de la roue céleste (`CelestialWheel`) — gravure du laiton, `svg` du mock « 4 — Signe
+     astral » de la planche FINALE : la gamme est PLUS PÂLE que les encres de plaque (un cadran gravé
+     se lit au trait, pas au contraste). */
+  --atelier-wheel-hub: #1a120a; /* fond du moyeu */
+  --atelier-wheel-node: #6b5836; /* liseré des pastilles de signe au repos */
+  --atelier-brass-pale: #b09b6f; /* laiton PÂLE : prose secondaire d'une plaque (`.cs-tcard .ds`
+                                    planche), nom d'un signe au repos sur la roue */
+  --atelier-brass-engrave: #7a6440; /* gravure FINE : rubrique sous un nom de plaque (`.rf` planche),
+                                       borne d100 gravée sur un rayon de la roue */
+  --atelier-plate-hi: #2f2415; /* rangée-plaque (PlaqueRow) — surface haut, `.c-plate` planche FINALE */
+  --atelier-plate-lo: #1c140c; /* rangée-plaque — surface bas */
+  --atelier-brass-meta: #8a744a; /* méta de plaque (base/annotations), `.c-plate .mt` planche FINALE */
+  --atelier-brass-roll: #c9a44a; /* bordure d'une rangée qui ROULE, `.ck-cell.rolling` planche FINALE */
+  /* Teintes de MATIÈRE relevées sur la planche ratifiée du créateur (lot « matières & proportions »
+     #393) : les dégradés y modulent là où nos surfaces s'arrêtaient à un ton de bois générique. */
+  --atelier-lectern-hi: #180f09; /* HAUT du pupitre (`.c-lectern`/`.tal-panel` planche) — le bois du
+                                    pupitre est PLUS SOMBRE que `--atelier-wood-top` (#241a10) qui le
+                                    tenait : c'est la plus grande surface de l'écran, et l'écart
+                                    (rgb 36,26,16 → 24,15,9) portait à lui seul le « les couleurs ne
+                                    sont pas les mêmes » — le bas reste `--atelier-night`. */
+  --atelier-shell-hi: #1a130c; /* haut de la coquille d'atelier (`.dirC` planche) — le SOL de l'écran */
+  --atelier-shell-lo: #0a0705; /* bas de la coquille d'atelier */
+  --atelier-modal-lo: #0c0805; /* bas du dégradé de matière MODALE (planche de la fiche de personnage
+                                  l.108-109, #414) — même haut que `--atelier-shell-hi`, bas distinct
+                                  d'1-2 valeurs 8-bit (authoring), pas un doublon de `--atelier-shell-lo` */
+  --atelier-crank-hi: #3a2c15; /* haut de la manivelle laiton `[−]`/`[+]` (`.crank button` planche) */
+  --atelier-crank-lo: #1c130b; /* bas de la manivelle laiton (la planche écrit #1c130a pour l'encrier
+                                  `--atelier-dicewell-lo` et #1c130b ici : 1/255 d'écart, deux valeurs
+                                  d'authoring distinctes conservées telles quelles) */
+  --atelier-socket-core: #0a0603; /* cœur de l'alvéole ÉTEINTE (`.socket` planche) */
+  --atelier-socket-lit-rim: #a87f2c; /* bord de l'alvéole ALLUMÉE (`.socket.lit` planche) — laiton
+                                        CHAUD, plus clair que `--atelier-brass-hover` (#8a6c2f) */
+  --atelier-sechead-lo: #140d07; /* bas de la bande d'en-tête de section (`.cu-sechead` planche) */
+  --atelier-minibar-stripe: #171009; /* rayure de la piste de jauge-quota (`.cu-minibar` planche) */
+  --font-display: 'Grenze Gotisch', 'Trebuchet MS', serif;
+  --ptile-name-size: 12px;
+  --ptile-name-line: calc(var(--ptile-name-size) * 1.2);
+  /* Échelle NOMMÉE des plaques de caractéristique (#418) — CONTRAT partagé par `.char-stats`
+     (`CharStatsGrid`) et `.codex-kv` (fiche Codex) : sm = densité fiche/codex, md = écran plein
+     type Race, lg = allocation créateur (patron `CHAR_SIZE_PX` de PortraitTile). */
+  --stat-label-sm: 10px;
+  --stat-val-sm: 15px;
+  --stat-label-md: 11px;
+  --stat-val-md: 20px;
+  --stat-label-lg: 12px;
+  --stat-val-lg: 25px;
+  /* Matières de la CONSOLE DE COMBAT (`CombatConsole`) — relevées sur les spécimens C (aile
+     gauche : plaque d'ACIER), D (arche : bois + laiton, gouttières creusées) et E (aile droite :
+     plaque de LAITON, conduit d'Avantage) de `docs/plans/Spec HUD Combat.dc.html`. Deux gammes
+     distinctes ASSUMÉES : l'acier dit le MATÉRIEL tenu, le laiton dit la VOLONTÉ du personnage —
+     aucune n'existait au socle (les `--atelier-*` sont du bois d'atelier, pas de la tôle). */
+  --cc-steel-hi: #1b2129; /* plaque d'acier — haut */
+  --cc-steel-lo: #0c0f13; /* plaque d'acier — bas */
+  --cc-steel-edge: #3f4c5a; /* liseré d'acier */
+  --cc-steel-cell-hi: #232a33; /* alvéole d'acier — haut */
+  --cc-steel-cell-lo: #0e1216; /* alvéole d'acier — bas */
+  --cc-steel-ink: #8fa9c4; /* icône/libellé gravés sur l'acier */
+  --cc-steel-key: #6f8098; /* touche imprimée dans le coin de la case */
+  --cc-steel-lit: #7fa8c8; /* alvéole d'acier ARMÉE (liseré + cran de coût) */
+  --cc-steel-lit-ink: #bcd8ee; /* encre d'une alvéole d'acier armée */
+  --cc-void-steel-hi: #0d1014; /* case VIDE côté acier — haut (creusé : le vide n'a plus de mot) */
+  --cc-void-steel-lo: #0a0d10; /* case vide côté acier — bas */
+  --cc-void-steel-edge: #20262d; /* liseré d'une case vide d'acier */
+  --cc-void-steel-ink: #333c45; /* encre éteinte d'une case vide d'acier */
+  --cc-brass-cell-hi: #2a2014; /* alvéole de laiton — haut */
+  --cc-brass-cell-lo: #120d08; /* alvéole de laiton — bas */
+  --cc-void-brass-hi: #141009; /* case VIDE côté laiton — haut (creusé : le vide n'a plus de mot) */
+  --cc-void-brass-lo: #0c0906; /* case vide côté laiton — bas */
+  --cc-void-brass-edge: #2a2218; /* liseré d'une case vide de laiton */
+  --cc-void-brass-ink: #463c2c; /* encre éteinte d'une case vide de laiton */
+  --cc-gated-ink: #9d875c; /* encre d'une alvéole FERMÉE par la situation — AA sur ses deux arrêts */
+  --cc-conduit-edge: #6f5828; /* colliers du conduit d'Avantage */
+  --cc-conduit-track-hi: #0d0906; /* rail creusé du conduit — haut */
+  --cc-conduit-track-lo: #1a130d; /* rail creusé du conduit — bas */
+  --cc-conduit-fill-hi: #ffc98a; /* flux d'Avantage — crête (cœur = --gauge-adv) */
+  --cc-conduit-fill-lo: #8a4a10; /* flux d'Avantage — pied */
+  --cc-arch-hi: #2c2013; /* arche de l'acteur — haut */
+  --cc-arch-mid: #1a1209; /* arche de l'acteur — milieu */
+  --cc-arch-lo: #0e0a06; /* arche de l'acteur — bas */
+  /* GRANDEURS de la nappe de pont, consommées par la peau `.skin-pont` (components.css) et par les
+     réserves qui la relisent (`--xd-deck-h`, exploration-dock.css). Au `:root` parce qu'une peau
+     PARTAGÉE ne peut pas prendre ses grandeurs au module d'un organisme, et qu'un `:root` ne lit pas
+     une variable posée sur une classe. Un porteur qui doit s'en écarter la repose sur SON sélecteur
+     (variable de CONTEXTE : `.combat-console` ≤560). */
+  --pont-band: 300px; /* hauteur de la NAPPE de bois du pont (la fenêtre visible du dégradé) */
+  --pont-liseret: 3px; /* épaisseur du liseré de laiton du parapet */
+  --cc-arch-well-hi: #191309; /* gouttière creusée d'une jauge de l'arche — crête */
+  --cc-arch-well-lo: #0d0906; /* gouttière creusée d'une jauge de l'arche — fond */
+  --cc-end-hi: #3a1410; /* plaque de fin de tour — haut */
+  --cc-end-lo: #1a0806; /* plaque de fin de tour — bas */
+  --cc-end-warn-hi: #3a2c10; /* fin de tour APPELÉE (plus d'option utile) — haut */
+  --cc-end-warn-lo: #1a1206; /* fin de tour appelée — bas */
+  --cc-end-medal-fg: #f0d8b0; /* glyphe du médaillon de fin de tour */
+  /* Matières du HUD DE COMBAT hors console — spécimens A (frise d'initiative), B (bandeau du
+     groupe) et G (rail d'outils) de `docs/plans/Spec HUD Combat.dc.html` : le HUD entier se lit
+     dans une seule matière (bois + laiton), l'acier restant à l'arsenal tenu en main. */
+  --hud-frise-edge: #1a130d; /* bord sombre de la colonne de frise (dégradé 90°) */
+  --hud-frise-score-lo: #120c07; /* bas du badge d'Initiative posé en débord */
+  --hud-camp-ally-hi: #7fae62; /* réglette de camp — allié, crête */
+  --hud-camp-ally-lo: #2f5220; /* réglette de camp — allié, pied (ennemi = --combat-enemy/--blood) */
+  --hud-tool-hi: #3a2c18; /* haut d'une commande vissée sur le rail d'outils */
+  /* Échelle d'ESPACEMENT (#1800, couche LAYOUT) — six pas FERMÉS, dérivés de l'histogramme réel des
+     `gap` du dépôt. Tout `gap`/`padding`/`margin` d'un module d'ÉCRAN et de `layout.css` s'y pose
+     (cliquet (xxi)) ; `0`, `auto`, `%`/`vw`/`vh` et `env()` restent légaux sans token. Recalage des
+     deux valeurs hors échelle : 10px → `lg` dans un `.panel`, `md` sinon ; 14px → `lg`. */
+  --sp-2xs: 2px;
+  --sp-xs: 4px;
+  --sp-sm: 6px;
+  --sp-md: 8px;
+  --sp-lg: 12px;
+  --sp-xl: 16px;
+  }
   body { background:#11141c; color:#e8ecf4; font:13px/1.4 system-ui,sans-serif; padding:16px }
   a { color:#8fb6ff }
   h1 { font-size:18px } h2 { color:#d8a93b; font-size:14px; margin:20px 0 8px }
@@ -13,7 +275,7 @@
 </style></head>
 <body>
 <a href="galeries.html">← Galeries</a>
-<h1>Icônes UI (registre src/data/icons/) — 257 icônes, 28 familles</h1>
+<h1>Icônes UI (registre src/data/icons/) — 269 icônes, 29 familles</h1>
 <p class="sub">Primitive <b>&lt;Icon&gt;</b> : SVG maison 24×24 en <code>currentColor</code>, trait 1.8 « dessiné main ».
 Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.ts.</p>
 <h2>action/ (21)</h2>
@@ -436,7 +698,7 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 6.6 V21.1"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 20 H15"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3 V8.1 M8.6 3.6 C8.5 5.2 9.4 6.6 10.7 7.3 M15.4 3.6 C15.5 5.2 14.6 6.6 13.3 7.3"/></svg></div>
     <figcaption><code>foi/trident</code><br>Trident</figcaption>
   </figure></div>
-<h2>interface/ (29)</h2>
+<h2>interface/ (33)</h2>
 <div class="grid"><figure class="cell">
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7.1 3.5 H16.9 M7.1 20.5 H16.9"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8.1 4 C8.1 8.6 10.7 10.4 11.5 12 C10.7 13.6 8.1 15.4 8.1 20"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15.9 4 C15.9 8.6 13.3 10.4 12.5 12 C13.3 13.6 15.9 15.4 15.9 20"/><path fill="currentColor" stroke="none" d="M9.8 19 C11.1 17.4 12.9 17.4 14.2 19 Z"/><circle fill="currentColor" stroke="none" cx="12" cy="14.9" r="0.75"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7.1 3.5 H16.9 M7.1 20.5 H16.9"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8.1 4 C8.1 8.6 10.7 10.4 11.5 12 C10.7 13.6 8.1 15.4 8.1 20"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15.9 4 C15.9 8.6 13.3 10.4 12.5 12 C13.3 13.6 15.9 15.4 15.9 20"/><path fill="currentColor" stroke="none" d="M9.8 19 C11.1 17.4 12.9 17.4 14.2 19 Z"/><circle fill="currentColor" stroke="none" cx="12" cy="14.9" r="0.75"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7.1 3.5 H16.9 M7.1 20.5 H16.9"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8.1 4 C8.1 8.6 10.7 10.4 11.5 12 C10.7 13.6 8.1 15.4 8.1 20"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15.9 4 C15.9 8.6 13.3 10.4 12.5 12 C13.3 13.6 15.9 15.4 15.9 20"/><path fill="currentColor" stroke="none" d="M9.8 19 C11.1 17.4 12.9 17.4 14.2 19 Z"/><circle fill="currentColor" stroke="none" cx="12" cy="14.9" r="0.75"/></svg></div>
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7.1 3.5 H16.9 M7.1 20.5 H16.9"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8.1 4 C8.1 8.6 10.7 10.4 11.5 12 C10.7 13.6 8.1 15.4 8.1 20"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M15.9 4 C15.9 8.6 13.3 10.4 12.5 12 C13.3 13.6 15.9 15.4 15.9 20"/><path fill="currentColor" stroke="none" d="M9.8 19 C11.1 17.4 12.9 17.4 14.2 19 Z"/><circle fill="currentColor" stroke="none" cx="12" cy="14.9" r="0.75"/></svg></div>
@@ -473,8 +735,8 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <figcaption><code>interface/interruption</code><br>Interruption</figcaption>
   </figure>
 <figure class="cell">
-    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M12 2.6 L13.4 5 L15.9 4 L16.4 6.7 L19.1 6.7 L18.7 9.4 L21.1 10.7 L19.6 12.9 L21.1 15.1 L18.7 16.4 L19.1 19.1 L16.4 19.1 L15.9 21.8 L13.4 20.8 L12 23.2 L10.6 20.8 L8.1 21.8 L7.6 19.1 L4.9 19.1 L5.3 16.4 L2.9 15.1 L4.4 12.9 L2.9 10.7 L5.3 9.4 L4.9 6.7 L7.6 6.7 L8.1 4 L10.6 5 Z M12 9.3 C10.2 9.3 8.7 10.7 8.7 12.6 C8.7 14.4 10.2 15.9 12 15.9 C13.8 15.9 15.3 14.4 15.3 12.6 C15.3 10.7 13.8 9.3 12 9.3 Z"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M12 2.6 L13.4 5 L15.9 4 L16.4 6.7 L19.1 6.7 L18.7 9.4 L21.1 10.7 L19.6 12.9 L21.1 15.1 L18.7 16.4 L19.1 19.1 L16.4 19.1 L15.9 21.8 L13.4 20.8 L12 23.2 L10.6 20.8 L8.1 21.8 L7.6 19.1 L4.9 19.1 L5.3 16.4 L2.9 15.1 L4.4 12.9 L2.9 10.7 L5.3 9.4 L4.9 6.7 L7.6 6.7 L8.1 4 L10.6 5 Z M12 9.3 C10.2 9.3 8.7 10.7 8.7 12.6 C8.7 14.4 10.2 15.9 12 15.9 C13.8 15.9 15.3 14.4 15.3 12.6 C15.3 10.7 13.8 9.3 12 9.3 Z"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M12 2.6 L13.4 5 L15.9 4 L16.4 6.7 L19.1 6.7 L18.7 9.4 L21.1 10.7 L19.6 12.9 L21.1 15.1 L18.7 16.4 L19.1 19.1 L16.4 19.1 L15.9 21.8 L13.4 20.8 L12 23.2 L10.6 20.8 L8.1 21.8 L7.6 19.1 L4.9 19.1 L5.3 16.4 L2.9 15.1 L4.4 12.9 L2.9 10.7 L5.3 9.4 L4.9 6.7 L7.6 6.7 L8.1 4 L10.6 5 Z M12 9.3 C10.2 9.3 8.7 10.7 8.7 12.6 C8.7 14.4 10.2 15.9 12 15.9 C13.8 15.9 15.3 14.4 15.3 12.6 C15.3 10.7 13.8 9.3 12 9.3 Z"/></svg></div>
-    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M12 2.6 L13.4 5 L15.9 4 L16.4 6.7 L19.1 6.7 L18.7 9.4 L21.1 10.7 L19.6 12.9 L21.1 15.1 L18.7 16.4 L19.1 19.1 L16.4 19.1 L15.9 21.8 L13.4 20.8 L12 23.2 L10.6 20.8 L8.1 21.8 L7.6 19.1 L4.9 19.1 L5.3 16.4 L2.9 15.1 L4.4 12.9 L2.9 10.7 L5.3 9.4 L4.9 6.7 L7.6 6.7 L8.1 4 L10.6 5 Z M12 9.3 C10.2 9.3 8.7 10.7 8.7 12.6 C8.7 14.4 10.2 15.9 12 15.9 C13.8 15.9 15.3 14.4 15.3 12.6 C15.3 10.7 13.8 9.3 12 9.3 Z"/></svg></div>
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.6" cx="12" cy="12" r="3.2"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.6" cx="12" cy="12" r="3.2"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.6" cx="12" cy="12" r="3.2"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.6" cx="12" cy="12" r="3.2"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
     <figcaption><code>interface/reglages</code><br>Réglages</figcaption>
   </figure>
 <figure class="cell">
@@ -531,6 +793,26 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5.3" cy="12" r="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.6 12 H10"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 12 C12 12 12 6.4 15.1 6.4 M10 12 C12 12 12 17.6 15.1 17.6"/><circle fill="currentColor" stroke="none" cx="17.1" cy="6.4" r="1.7"/><circle fill="currentColor" stroke="none" cx="17.1" cy="17.6" r="1.7"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5.3" cy="12" r="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.6 12 H10"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 12 C12 12 12 6.4 15.1 6.4 M10 12 C12 12 12 17.6 15.1 17.6"/><circle fill="currentColor" stroke="none" cx="17.1" cy="6.4" r="1.7"/><circle fill="currentColor" stroke="none" cx="17.1" cy="17.6" r="1.7"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5.3" cy="12" r="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.6 12 H10"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 12 C12 12 12 6.4 15.1 6.4 M10 12 C12 12 12 17.6 15.1 17.6"/><circle fill="currentColor" stroke="none" cx="17.1" cy="6.4" r="1.7"/><circle fill="currentColor" stroke="none" cx="17.1" cy="17.6" r="1.7"/></svg></div>
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="5.3" cy="12" r="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.6 12 H10"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 12 C12 12 12 6.4 15.1 6.4 M10 12 C12 12 12 17.6 15.1 17.6"/><circle fill="currentColor" stroke="none" cx="17.1" cy="6.4" r="1.7"/><circle fill="currentColor" stroke="none" cx="17.1" cy="17.6" r="1.7"/></svg></div>
     <figcaption><code>interface/branchement</code><br>Branchement conditionnel</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M14.5 5.5 L8 12 L14.5 18.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M14.5 5.5 L8 12 L14.5 18.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M14.5 5.5 L8 12 L14.5 18.5"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M14.5 5.5 L8 12 L14.5 18.5"/></svg></div>
+    <figcaption><code>interface/precedent</code><br>Précédent</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9.5 5.5 L16 12 L9.5 18.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9.5 5.5 L16 12 L9.5 18.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9.5 5.5 L16 12 L9.5 18.5"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9.5 5.5 L16 12 L9.5 18.5"/></svg></div>
+    <figcaption><code>interface/suivant</code><br>Suivant</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="var(--laiton)" stroke="none" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/><path fill="var(--or-eclat)" stroke="none" d="M12 2.5 L16.75 7.25 L7.25 16.75 L2.5 12 Z"/><path fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="var(--laiton)" stroke="none" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/><path fill="var(--or-eclat)" stroke="none" d="M12 2.5 L16.75 7.25 L7.25 16.75 L2.5 12 Z"/><path fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="var(--laiton)" stroke="none" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/><path fill="var(--or-eclat)" stroke="none" d="M12 2.5 L16.75 7.25 L7.25 16.75 L2.5 12 Z"/><path fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="var(--laiton)" stroke="none" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/><path fill="var(--or-eclat)" stroke="none" d="M12 2.5 L16.75 7.25 L7.25 16.75 L2.5 12 Z"/><path fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/></svg></div>
+    <figcaption><code>interface/losange</code><br>Losange</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle fill="var(--cire)" stroke="none" cx="12" cy="12" r="9"/><circle fill="var(--cire-claire)" stroke="none" cx="9.5" cy="9" r="4"/><circle fill="none" stroke="var(--cire-sombre)" stroke-width="1.6" cx="12" cy="12" r="9"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle fill="var(--cire)" stroke="none" cx="12" cy="12" r="9"/><circle fill="var(--cire-claire)" stroke="none" cx="9.5" cy="9" r="4"/><circle fill="none" stroke="var(--cire-sombre)" stroke-width="1.6" cx="12" cy="12" r="9"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle fill="var(--cire)" stroke="none" cx="12" cy="12" r="9"/><circle fill="var(--cire-claire)" stroke="none" cx="9.5" cy="9" r="4"/><circle fill="none" stroke="var(--cire-sombre)" stroke-width="1.6" cx="12" cy="12" r="9"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle fill="var(--cire)" stroke="none" cx="12" cy="12" r="9"/><circle fill="var(--cire-claire)" stroke="none" cx="9.5" cy="9" r="4"/><circle fill="none" stroke="var(--cire-sombre)" stroke-width="1.6" cx="12" cy="12" r="9"/></svg></div>
+    <figcaption><code>interface/cire</code><br>Cire</figcaption>
   </figure>
 <figure class="cell">
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5"/></svg></div>
@@ -798,6 +1080,37 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" stroke="none" d="M9.2 3.8 C10.3 3.1 11.9 3.1 13 3.8 C13.9 5.3 14.1 7.6 13.6 10.1 C15.5 10.3 16.9 11.2 17.5 12.7 C18.1 14.2 17.5 15.9 15.9 16.6 L10.2 18.9 C8.3 19.6 6.4 18.6 5.9 16.8 C5.5 15.3 6.2 13.9 7.6 13.2 L8.6 12.7 C7.9 10.3 7.9 7.1 9.2 3.8 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M5.6 21 C8.7 20.1 12.1 20.1 15.1 21 M3.4 21 L4.7 19.6 M19.3 21 L18 19.6"/></svg></div>
     <figcaption><code>melee/pietinement</code><br>Piétinement</figcaption>
   </figure></div>
+<h2>meteo/ (6)</h2>
+<div class="grid"><figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="8.5" cy="8" r="3"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 2.6v1.2M3.1 8h1.2M4.7 4.2l.9.9M12.3 4.2l-.9.9"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 19a3.4 3.4 0 0 1 .6-6.7 4.4 4.4 0 0 1 8.4 1.2 2.8 2.8 0 0 1-.4 5.5z"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="8.5" cy="8" r="3"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 2.6v1.2M3.1 8h1.2M4.7 4.2l.9.9M12.3 4.2l-.9.9"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 19a3.4 3.4 0 0 1 .6-6.7 4.4 4.4 0 0 1 8.4 1.2 2.8 2.8 0 0 1-.4 5.5z"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="8.5" cy="8" r="3"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 2.6v1.2M3.1 8h1.2M4.7 4.2l.9.9M12.3 4.2l-.9.9"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 19a3.4 3.4 0 0 1 .6-6.7 4.4 4.4 0 0 1 8.4 1.2 2.8 2.8 0 0 1-.4 5.5z"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="8.5" cy="8" r="3"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 2.6v1.2M3.1 8h1.2M4.7 4.2l.9.9M12.3 4.2l-.9.9"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 19a3.4 3.4 0 0 1 .6-6.7 4.4 4.4 0 0 1 8.4 1.2 2.8 2.8 0 0 1-.4 5.5z"/></svg></div>
+    <figcaption><code>meteo/sec</code><br>Temps sec</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="12" cy="12" r="4"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="12" cy="12" r="4"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="12" cy="12" r="4"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="12" cy="12" r="4"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/></svg></div>
+    <figcaption><code>meteo/beau</code><br>Beau temps</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 18l-.8 2.6M12 18l-.8 2.6M15.5 18l-.8 2.6"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 18l-.8 2.6M12 18l-.8 2.6M15.5 18l-.8 2.6"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 18l-.8 2.6M12 18l-.8 2.6M15.5 18l-.8 2.6"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 18l-.8 2.6M12 18l-.8 2.6M15.5 18l-.8 2.6"/></svg></div>
+    <figcaption><code>meteo/pluie</code><br>Pluie</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7.5 17.8l-1.2 3.4M10.5 17.8l-1.2 3.4M13.5 17.8l-1.2 3.4M16.5 17.8l-1.2 3.4"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7.5 17.8l-1.2 3.4M10.5 17.8l-1.2 3.4M13.5 17.8l-1.2 3.4M16.5 17.8l-1.2 3.4"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7.5 17.8l-1.2 3.4M10.5 17.8l-1.2 3.4M13.5 17.8l-1.2 3.4M16.5 17.8l-1.2 3.4"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7.5 17.8l-1.2 3.4M10.5 17.8l-1.2 3.4M13.5 17.8l-1.2 3.4M16.5 17.8l-1.2 3.4"/></svg></div>
+    <figcaption><code>meteo/pluie-diluvienne</code><br>Pluie diluvienne</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 18.2v2.4M7.3 19.4h2.4M15.5 18.2v2.4M14.3 19.4h2.4M12 19.6v2.2M10.9 20.7h2.2"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 18.2v2.4M7.3 19.4h2.4M15.5 18.2v2.4M14.3 19.4h2.4M12 19.6v2.2M10.9 20.7h2.2"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 18.2v2.4M7.3 19.4h2.4M15.5 18.2v2.4M14.3 19.4h2.4M12 19.6v2.2M10.9 20.7h2.2"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 15.5a4 4 0 0 1 .7-7.9 5.2 5.2 0 0 1 10 1.4 3.3 3.3 0 0 1-.5 6.5z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 18.2v2.4M7.3 19.4h2.4M15.5 18.2v2.4M14.3 19.4h2.4M12 19.6v2.2M10.9 20.7h2.2"/></svg></div>
+    <figcaption><code>meteo/neige</code><br>Neige</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 8h11a2.5 2.5 0 1 0-2.5-2.5M3 12h15a2.5 2.5 0 1 1-2.5 2.5M3 16h7"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M14 18.6v2.4M12.8 19.8h2.4M19 17.2v2.4M17.8 18.4h2.4"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 8h11a2.5 2.5 0 1 0-2.5-2.5M3 12h15a2.5 2.5 0 1 1-2.5 2.5M3 16h7"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M14 18.6v2.4M12.8 19.8h2.4M19 17.2v2.4M17.8 18.4h2.4"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 8h11a2.5 2.5 0 1 0-2.5-2.5M3 12h15a2.5 2.5 0 1 1-2.5 2.5M3 16h7"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M14 18.6v2.4M12.8 19.8h2.4M19 17.2v2.4M17.8 18.4h2.4"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 8h11a2.5 2.5 0 1 0-2.5-2.5M3 12h15a2.5 2.5 0 1 1-2.5 2.5M3 16h7"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M14 18.6v2.4M12.8 19.8h2.4M19 17.2v2.4M17.8 18.4h2.4"/></svg></div>
+    <figcaption><code>meteo/blizzard</code><br>Blizzard</figcaption>
+  </figure></div>
 <h2>nautique/ (6)</h2>
 <div class="grid"><figure class="cell">
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 9 H15.5 C17.4 9 18.9 7.6 18.9 5.9 C18.9 4.5 17.7 3.6 16.4 4"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 15 H12.5 C14.1 15 15.4 16.1 15.4 17.5 C15.4 18.6 14.5 19.3 13.4 19.1"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M3 12 H10"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 9 H15.5 C17.4 9 18.9 7.6 18.9 5.9 C18.9 4.5 17.7 3.6 16.4 4"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 15 H12.5 C14.1 15 15.4 16.1 15.4 17.5 C15.4 18.6 14.5 19.3 13.4 19.1"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M3 12 H10"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 9 H15.5 C17.4 9 18.9 7.6 18.9 5.9 C18.9 4.5 17.7 3.6 16.4 4"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 15 H12.5 C14.1 15 15.4 16.1 15.4 17.5 C15.4 18.6 14.5 19.3 13.4 19.1"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M3 12 H10"/></svg></div>
@@ -829,7 +1142,7 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle fill="currentColor" stroke="none" cx="7" cy="7" r="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 9 L15.5 6.5"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 9 L12.5 14"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.5 14 L8 16.5"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.5 14 L18 15.5"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 20 C5.5 18.3 8 18.3 10.5 20 C13 21.7 15.5 21.7 18 20 C19 19.3 20 19 21 19"/></svg></div>
     <figcaption><code>nautique/natation</code><br>Natation</figcaption>
   </figure></div>
-<h2>navigation/ (18)</h2>
+<h2>navigation/ (19)</h2>
 <div class="grid"><figure class="cell">
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" stroke="none" d="M14.7 15.2 L5.2 4.5 C4.6 3.9 3.8 3.6 3.2 3.6 C3.2 4.2 3.5 5.1 4 5.7 L13.4 16.5 Z"/><path fill="currentColor" stroke="none" d="M9.3 15.2 L18.8 4.5 C19.4 3.9 20.2 3.6 20.8 3.6 C20.8 4.2 20.5 5.1 20 5.7 L10.6 16.5 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 13.5 L12.6 18.1 M14.9 15.9 L18.3 19.3"/><circle fill="currentColor" stroke="none" cx="18.9" cy="19.9" r="1.2"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 13.5 L11.4 18.1 M9.1 15.9 L5.7 19.3"/><circle fill="currentColor" stroke="none" cx="5.1" cy="19.9" r="1.2"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" stroke="none" d="M14.7 15.2 L5.2 4.5 C4.6 3.9 3.8 3.6 3.2 3.6 C3.2 4.2 3.5 5.1 4 5.7 L13.4 16.5 Z"/><path fill="currentColor" stroke="none" d="M9.3 15.2 L18.8 4.5 C19.4 3.9 20.2 3.6 20.8 3.6 C20.8 4.2 20.5 5.1 20 5.7 L10.6 16.5 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 13.5 L12.6 18.1 M14.9 15.9 L18.3 19.3"/><circle fill="currentColor" stroke="none" cx="18.9" cy="19.9" r="1.2"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 13.5 L11.4 18.1 M9.1 15.9 L5.7 19.3"/><circle fill="currentColor" stroke="none" cx="5.1" cy="19.9" r="1.2"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" stroke="none" d="M14.7 15.2 L5.2 4.5 C4.6 3.9 3.8 3.6 3.2 3.6 C3.2 4.2 3.5 5.1 4 5.7 L13.4 16.5 Z"/><path fill="currentColor" stroke="none" d="M9.3 15.2 L18.8 4.5 C19.4 3.9 20.2 3.6 20.8 3.6 C20.8 4.2 20.5 5.1 20 5.7 L10.6 16.5 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 13.5 L12.6 18.1 M14.9 15.9 L18.3 19.3"/><circle fill="currentColor" stroke="none" cx="18.9" cy="19.9" r="1.2"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 13.5 L11.4 18.1 M9.1 15.9 L5.7 19.3"/><circle fill="currentColor" stroke="none" cx="5.1" cy="19.9" r="1.2"/></svg></div>
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" stroke="none" d="M14.7 15.2 L5.2 4.5 C4.6 3.9 3.8 3.6 3.2 3.6 C3.2 4.2 3.5 5.1 4 5.7 L13.4 16.5 Z"/><path fill="currentColor" stroke="none" d="M9.3 15.2 L18.8 4.5 C19.4 3.9 20.2 3.6 20.8 3.6 C20.8 4.2 20.5 5.1 20 5.7 L10.6 16.5 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 13.5 L12.6 18.1 M14.9 15.9 L18.3 19.3"/><circle fill="currentColor" stroke="none" cx="18.9" cy="19.9" r="1.2"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 13.5 L11.4 18.1 M9.1 15.9 L5.7 19.3"/><circle fill="currentColor" stroke="none" cx="5.1" cy="19.9" r="1.2"/></svg></div>
@@ -844,6 +1157,11 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" stroke="none" d="M3.8 20.4 V7.6 H5.1 V9.1 H6.4 V7.6 H7.7 V20.4 Z"/><path fill="currentColor" stroke="none" d="M16.3 20.4 V7.6 H17.6 V9.1 H18.9 V7.6 H20.2 V20.4 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 11 C9.9 8.3 14.1 8.3 16 11"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M10.5 5.8 C11.1 5.2 11.6 5.2 11.9 5.7 M11.9 5.7 C12.2 5.2 12.7 5.2 13.3 5.8"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" stroke="none" d="M3.8 20.4 V7.6 H5.1 V9.1 H6.4 V7.6 H7.7 V20.4 Z"/><path fill="currentColor" stroke="none" d="M16.3 20.4 V7.6 H17.6 V9.1 H18.9 V7.6 H20.2 V20.4 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 11 C9.9 8.3 14.1 8.3 16 11"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M10.5 5.8 C11.1 5.2 11.6 5.2 11.9 5.7 M11.9 5.7 C12.2 5.2 12.7 5.2 13.3 5.8"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" stroke="none" d="M3.8 20.4 V7.6 H5.1 V9.1 H6.4 V7.6 H7.7 V20.4 Z"/><path fill="currentColor" stroke="none" d="M16.3 20.4 V7.6 H17.6 V9.1 H18.9 V7.6 H20.2 V20.4 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 11 C9.9 8.3 14.1 8.3 16 11"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M10.5 5.8 C11.1 5.2 11.6 5.2 11.9 5.7 M11.9 5.7 C12.2 5.2 12.7 5.2 13.3 5.8"/></svg></div>
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" stroke="none" d="M3.8 20.4 V7.6 H5.1 V9.1 H6.4 V7.6 H7.7 V20.4 Z"/><path fill="currentColor" stroke="none" d="M16.3 20.4 V7.6 H17.6 V9.1 H18.9 V7.6 H20.2 V20.4 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 11 C9.9 8.3 14.1 8.3 16 11"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M10.5 5.8 C11.1 5.2 11.6 5.2 11.9 5.7 M11.9 5.7 C12.2 5.2 12.7 5.2 13.3 5.8"/></svg></div>
     <figcaption><code>navigation/en-ligne</code><br>Jouer en ligne</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 8 H17 C17 10 15.5 11.5 13 11.5 V15 H16 V19 H7 V15 H10 V11.5 C7 11.5 4 10.5 4 8 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 8 H20.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 8 H17 C17 10 15.5 11.5 13 11.5 V15 H16 V19 H7 V15 H10 V11.5 C7 11.5 4 10.5 4 8 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 8 H20.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 8 H17 C17 10 15.5 11.5 13 11.5 V15 H16 V19 H7 V15 H10 V11.5 C7 11.5 4 10.5 4 8 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 8 H20.5"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 8 H17 C17 10 15.5 11.5 13 11.5 V15 H16 V19 H7 V15 H10 V11.5 C7 11.5 4 10.5 4 8 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 8 H20.5"/></svg></div>
+    <figcaption><code>navigation/atelier</code><br>Atelier</figcaption>
   </figure>
 <figure class="cell">
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.9 3.9 H17.2 C17.8 3.9 18.2 4.3 18.2 4.9 V19.1 C18.2 19.7 17.8 20.1 17.2 20.1 H6.9 C6.3 20.1 5.9 19.7 5.9 19.1 V4.9 C5.9 4.3 6.3 3.9 6.9 3.9 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.4 7.5 C10.8 7.3 13.2 7.3 15.6 7.5 M8.4 10.4 C10.4 10.2 12.4 10.2 14.4 10.4"/><circle fill="currentColor" stroke="none" cx="14.5" cy="15.8" r="2.5"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.5 17.7 L10.8 19.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.9 3.9 H17.2 C17.8 3.9 18.2 4.3 18.2 4.9 V19.1 C18.2 19.7 17.8 20.1 17.2 20.1 H6.9 C6.3 20.1 5.9 19.7 5.9 19.1 V4.9 C5.9 4.3 6.3 3.9 6.9 3.9 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.4 7.5 C10.8 7.3 13.2 7.3 15.6 7.5 M8.4 10.4 C10.4 10.2 12.4 10.2 14.4 10.4"/><circle fill="currentColor" stroke="none" cx="14.5" cy="15.8" r="2.5"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.5 17.7 L10.8 19.5"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6.9 3.9 H17.2 C17.8 3.9 18.2 4.3 18.2 4.9 V19.1 C18.2 19.7 17.8 20.1 17.2 20.1 H6.9 C6.3 20.1 5.9 19.7 5.9 19.1 V4.9 C5.9 4.3 6.3 3.9 6.9 3.9 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M8.4 7.5 C10.8 7.3 13.2 7.3 15.6 7.5 M8.4 10.4 C10.4 10.2 12.4 10.2 14.4 10.4"/><circle fill="currentColor" stroke="none" cx="14.5" cy="15.8" r="2.5"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.5 17.7 L10.8 19.5"/></svg></div>
@@ -911,8 +1229,8 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <figcaption><code>navigation/activite</code><br>Activité</figcaption>
   </figure>
 <figure class="cell">
-    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.1 3.1 L18.9 8.5 L17.1 16.7 L12 20.9 L6.9 16.7 L5.1 8.5 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12.1 3.1 L8.3 10.6 L12 14.5 L15.9 10.6 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12 14.5 V20.9 M8.3 10.6 L5.1 8.5 M8.3 10.6 L6.9 16.7 M15.9 10.6 L18.9 8.5 M15.9 10.6 L17.1 16.7"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.1 3.1 L18.9 8.5 L17.1 16.7 L12 20.9 L6.9 16.7 L5.1 8.5 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12.1 3.1 L8.3 10.6 L12 14.5 L15.9 10.6 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12 14.5 V20.9 M8.3 10.6 L5.1 8.5 M8.3 10.6 L6.9 16.7 M15.9 10.6 L18.9 8.5 M15.9 10.6 L17.1 16.7"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.1 3.1 L18.9 8.5 L17.1 16.7 L12 20.9 L6.9 16.7 L5.1 8.5 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12.1 3.1 L8.3 10.6 L12 14.5 L15.9 10.6 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12 14.5 V20.9 M8.3 10.6 L5.1 8.5 M8.3 10.6 L6.9 16.7 M15.9 10.6 L18.9 8.5 M15.9 10.6 L17.1 16.7"/></svg></div>
-    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12.1 3.1 L18.9 8.5 L17.1 16.7 L12 20.9 L6.9 16.7 L5.1 8.5 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12.1 3.1 L8.3 10.6 L12 14.5 L15.9 10.6 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M12 14.5 V20.9 M8.3 10.6 L5.1 8.5 M8.3 10.6 L6.9 16.7 M15.9 10.6 L18.9 8.5 M15.9 10.6 L17.1 16.7"/></svg></div>
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z" fill="var(--parchment)"/><path d="M12 1 L21.5 9.9 V14.1 L19.2 13.6 Z" fill="var(--ink)" opacity="0.08"/><path d="M12 23 V18.4 L4.8 13.6 L2.5 14.1 Z" fill="var(--ink)" opacity="0.1"/><path d="M12 23 V18.4 L19.2 13.6 L21.5 14.1 Z" fill="var(--ink)" opacity="0.18"/><path d="M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z" fill="var(--ivoire)"/><path fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.5" d="M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z M4.8 13.6 L2.5 14.1 M19.2 13.6 L21.5 14.1 M12 18.4 V23"/><path fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.8" d="M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z" fill="var(--parchment)"/><path d="M12 1 L21.5 9.9 V14.1 L19.2 13.6 Z" fill="var(--ink)" opacity="0.08"/><path d="M12 23 V18.4 L4.8 13.6 L2.5 14.1 Z" fill="var(--ink)" opacity="0.1"/><path d="M12 23 V18.4 L19.2 13.6 L21.5 14.1 Z" fill="var(--ink)" opacity="0.18"/><path d="M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z" fill="var(--ivoire)"/><path fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.5" d="M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z M4.8 13.6 L2.5 14.1 M19.2 13.6 L21.5 14.1 M12 18.4 V23"/><path fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.8" d="M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z" fill="var(--parchment)"/><path d="M12 1 L21.5 9.9 V14.1 L19.2 13.6 Z" fill="var(--ink)" opacity="0.08"/><path d="M12 23 V18.4 L4.8 13.6 L2.5 14.1 Z" fill="var(--ink)" opacity="0.1"/><path d="M12 23 V18.4 L19.2 13.6 L21.5 14.1 Z" fill="var(--ink)" opacity="0.18"/><path d="M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z" fill="var(--ivoire)"/><path fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.5" d="M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z M4.8 13.6 L2.5 14.1 M19.2 13.6 L21.5 14.1 M12 18.4 V23"/><path fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.8" d="M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path d="M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z" fill="var(--parchment)"/><path d="M12 1 L21.5 9.9 V14.1 L19.2 13.6 Z" fill="var(--ink)" opacity="0.08"/><path d="M12 23 V18.4 L4.8 13.6 L2.5 14.1 Z" fill="var(--ink)" opacity="0.1"/><path d="M12 23 V18.4 L19.2 13.6 L21.5 14.1 Z" fill="var(--ink)" opacity="0.18"/><path d="M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z" fill="var(--ivoire)"/><path fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.5" d="M12 1 L19.2 13.6 L12 18.4 L4.8 13.6 Z M4.8 13.6 L2.5 14.1 M19.2 13.6 L21.5 14.1 M12 18.4 V23"/><path fill="none" stroke="var(--ink)" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.8" d="M12 1 L21.5 9.9 V14.1 L12 23 L2.5 14.1 V9.9 Z"/></svg></div>
     <figcaption><code>navigation/des</code><br>Tirage</figcaption>
   </figure>
 <figure class="cell">
@@ -1253,7 +1571,7 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M5.4 5.6 H18.6 C19.4 5.6 20 6.2 20 7 V19 C20 19.8 19.4 20.4 18.6 20.4 H5.4 C4.6 20.4 4 19.8 4 19 V7 C4 6.2 4.6 5.6 5.4 5.6 Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 3.6 V7.6 M16 3.6 V7.6"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M4 10.2 H20"/><circle fill="currentColor" stroke="none" cx="8.6" cy="14.4" r="1"/><circle fill="currentColor" stroke="none" cx="12" cy="14.4" r="1"/><circle fill="currentColor" stroke="none" cx="15.4" cy="14.4" r="1"/></svg></div>
     <figcaption><code>temps/calendrier</code><br>Calendrier</figcaption>
   </figure></div>
-<h2>voyage/ (15)</h2>
+<h2>voyage/ (16)</h2>
 <div class="grid"><figure class="cell">
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4.4 7.2 H15.6 C16.4 7.2 17 7.8 17 8.6 V13.4 H4.4 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.2 7.4 V13.2 M11.2 7.4 V13.2"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 10 L20.4 8.6"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="7.2" cy="16.6" r="3.1"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="14.4" cy="16.6" r="3.1"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.2 13.7 V19.5 M4.3 16.6 H10.1 M14.4 13.7 V19.5 M11.5 16.6 H17.3"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4.4 7.2 H15.6 C16.4 7.2 17 7.8 17 8.6 V13.4 H4.4 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.2 7.4 V13.2 M11.2 7.4 V13.2"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 10 L20.4 8.6"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="7.2" cy="16.6" r="3.1"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="14.4" cy="16.6" r="3.1"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.2 13.7 V19.5 M4.3 16.6 H10.1 M14.4 13.7 V19.5 M11.5 16.6 H17.3"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4.4 7.2 H15.6 C16.4 7.2 17 7.8 17 8.6 V13.4 H4.4 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.2 7.4 V13.2 M11.2 7.4 V13.2"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 10 L20.4 8.6"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="7.2" cy="16.6" r="3.1"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="14.4" cy="16.6" r="3.1"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.2 13.7 V19.5 M4.3 16.6 H10.1 M14.4 13.7 V19.5 M11.5 16.6 H17.3"/></svg></div>
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4.4 7.2 H15.6 C16.4 7.2 17 7.8 17 8.6 V13.4 H4.4 Z"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.2 7.4 V13.2 M11.2 7.4 V13.2"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M17 10 L20.4 8.6"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="7.2" cy="16.6" r="3.1"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="14.4" cy="16.6" r="3.1"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7.2 13.7 V19.5 M4.3 16.6 H10.1 M14.4 13.7 V19.5 M11.5 16.6 H17.3"/></svg></div>
@@ -1328,5 +1646,10 @@ Rendu sm 14 / md 18 / lg 24 + loupe 48px. Garde-fou : src/data/icons/icons.test.
     <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="9" cy="12" r="5.4"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="15" cy="12" r="5.4"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7 10.4 C7.6 9.8 8.4 9.8 9 10.4 M11.6 13.6 C10.6 14.6 8.4 14.6 7.4 13.6"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M13.2 10.8 L14.4 9.6 M16.6 10.8 L15.4 9.6 M13.4 14 C14.4 13.2 15.6 13.2 16.6 14"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="9" cy="12" r="5.4"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="15" cy="12" r="5.4"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7 10.4 C7.6 9.8 8.4 9.8 9 10.4 M11.6 13.6 C10.6 14.6 8.4 14.6 7.4 13.6"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M13.2 10.8 L14.4 9.6 M16.6 10.8 L15.4 9.6 M13.4 14 C14.4 13.2 15.6 13.2 16.6 14"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="9" cy="12" r="5.4"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="15" cy="12" r="5.4"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7 10.4 C7.6 9.8 8.4 9.8 9 10.4 M11.6 13.6 C10.6 14.6 8.4 14.6 7.4 13.6"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M13.2 10.8 L14.4 9.6 M16.6 10.8 L15.4 9.6 M13.4 14 C14.4 13.2 15.6 13.2 16.6 14"/></svg></div>
     <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="9" cy="12" r="5.4"/><circle fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" cx="15" cy="12" r="5.4"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M7 10.4 C7.6 9.8 8.4 9.8 9 10.4 M11.6 13.6 C10.6 14.6 8.4 14.6 7.4 13.6"/><path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" d="M13.2 10.8 L14.4 9.6 M16.6 10.8 L15.4 9.6 M13.4 14 C14.4 13.2 15.6 13.2 16.6 14"/></svg></div>
     <figcaption><code>voyage/rencontre</code><br>Rencontre fortuite</figcaption>
+  </figure>
+<figure class="cell">
+    <div class="sizes"><svg class="icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" stroke="none" d="M15 3.4 C10.4 3.2 6.6 6.6 6.2 11.1 C5.8 15.6 9.1 19.5 13.6 20 C14.4 20.1 15.2 20 15.9 19.8 C12.5 17.8 10.8 14.8 10.8 11.6 C10.8 8.4 12.4 5.4 15 3.4 Z"/></svg><svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" stroke="none" d="M15 3.4 C10.4 3.2 6.6 6.6 6.2 11.1 C5.8 15.6 9.1 19.5 13.6 20 C14.4 20.1 15.2 20 15.9 19.8 C12.5 17.8 10.8 14.8 10.8 11.6 C10.8 8.4 12.4 5.4 15 3.4 Z"/></svg><svg class="icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" stroke="none" d="M15 3.4 C10.4 3.2 6.6 6.6 6.2 11.1 C5.8 15.6 9.1 19.5 13.6 20 C14.4 20.1 15.2 20 15.9 19.8 C12.5 17.8 10.8 14.8 10.8 11.6 C10.8 8.4 12.4 5.4 15 3.4 Z"/></svg></div>
+    <div class="loupe"><svg class="icon" viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" stroke="none" d="M15 3.4 C10.4 3.2 6.6 6.6 6.2 11.1 C5.8 15.6 9.1 19.5 13.6 20 C14.4 20.1 15.2 20 15.9 19.8 C12.5 17.8 10.8 14.8 10.8 11.6 C10.8 8.4 12.4 5.4 15 3.4 Z"/></svg></div>
+    <figcaption><code>voyage/nuit-passee</code><br>Nuit passée en route</figcaption>
   </figure></div>
 </body></html>

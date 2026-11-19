@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resolveFreeAttacks, runEnemyAI, doAttack, fileDesGratuites } from './combatFlow';
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
 import { addCondition } from '../engine/conditions';
 import { emitCombatEvent } from './combatEvents';
 import { battleRng } from './battleRng';
@@ -21,7 +21,8 @@ import { testScene } from '../scenes/test-fixture';
 import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
+import { triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -162,7 +163,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
     runEnemyAI(banc.getState, banc.setState, E.id);
     for (let i = 0; i < 2 && banc.enAttente() && !banc.getState().pendingCascade && !banc.getState().pendingDefense; i++) banc.reprendreLesEnAttente();
     fin();
-    expect(combatDistance(vif(E.id), vif(H.id)), 'au contact').toBeLessThanOrEqual(1);
+    expect(distanceDeContact(banc.getState().scene, vif(E.id), vif(H.id)), 'au contact').toBeLessThanOrEqual(1);
     expect(charge).toBe(false);
     expect(vif(E.id).advantage).toBe(avantage);
     expect(etapes()).not.toContain('choixDeclenche');
@@ -177,7 +178,7 @@ function effetsAGratuiteDeLaDonnee(): { ou: string; eff: TriggeredEffect }[] {
     if (Array.isArray(n)) { n.forEach((x, i) => parcourir(x, `${ou}[${i}]`)); return; }
     if (!n || typeof n !== 'object') return;
     const o = n as Record<string, unknown>;
-    if (typeof o.trigger === 'string' && o.flow && JSON.stringify(o.flow).includes('"grantFreeAttack"')) out.push({ ou, eff: o as unknown as TriggeredEffect });
+    if (typeof o.trigger === 'string' && o.flow && JSON.stringify(o.flow).includes('"grantFreeAttack"')) out.push({ ou, eff: triggeredEffectSchema.parse(o) });
     for (const [k, v] of Object.entries(o)) parcourir(v, `${ou}.${k}`);
   };
   for (const fichier of listerDossier(dir).filter((x: string) => x.endsWith('.json'))) parcourir(JSON.parse(readFileSync(join(dir, fichier), 'utf8')), fichier);

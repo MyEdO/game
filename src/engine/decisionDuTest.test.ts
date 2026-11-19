@@ -71,10 +71,10 @@ describe('resoudreFlowTest — qui allège : le sujet d’un Test subi, le group
 });
 
 describe('resoudreFlowTest — joué ou non', () => {
-  it('`onlyGroups` : le Test n’a lieu que pour un membre du Groupe (Épée de justice, « Criminel »)', () => {
-    const ft: FlowTest = { skill: { id: 'resistance' }, difficulty: 'accessible', onlyGroups: ['Criminel'] };
+  it('`onlyGroups` : le Test n’a lieu que pour un membre du Groupe (Épée de justice)', () => {
+    const ft: FlowTest = { skill: { id: 'resistance' }, difficulty: 'accessible', onlyGroups: ['criminel'] };
     expect(resoudreFlowTest(ft, { cc, sujet: profane }).joue).toBe(false);
-    expect(resoudreFlowTest(ft, { cc, sujet: combattantDeTest({ groups: ['Criminel'] }) }).joue).toBe(true);
+    expect(resoudreFlowTest(ft, { cc, sujet: combattantDeTest({ groups: ['criminel'] }) }).joue).toBe(true);
     expect(resoudreFlowTest(ft, { cc }).joue, 'sans sujet imposé, rien à juger').toBe(true);
   });
 

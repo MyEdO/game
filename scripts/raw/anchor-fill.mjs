@@ -195,9 +195,18 @@ export function boundsLabel(b) {
 
 // ---------- têtes de page (lignes pdfminer ordonnées par `lib/colonnes.mjs#lignes`) ----------
 // Mot réel = 3 minuscules consécutives : la 1re ligne qui en porte un ouvre le texte courant.
-export const HAS_LOWER_RE = /[a-zàâäéèêëïîôöùûüÿœæç]{3,}/
+const HAS_LOWER_RE = /[a-zàâäéèêëïîôöùûüÿœæç]{3,}/
+// Filigrane d'acheteur d'un PDF vendu, imprimé sur chaque page (`<nom> - <e-mail>`) : pas du livre.
+const FILIGRANE_RE = /^[^@]+ - [^\s@]+@[^\s@]+\.[^\s@]+$/
+/** La ligne porte-t-elle un mot réel du livre (le filigrane n'en porte pas) ? PURE. */
+export const porteUnMot = (texte) => HAS_LOWER_RE.test(texte) && !FILIGRANE_RE.test(texte.trim())
 const FOLIO_NU_RE = /^\d{1,4}$/
 const PIED_DE_PAGE = 60
+/** Mobilier de page d'une ligne pdfminer : vide, filigrane, folio de pied. PURE. */
+const estMobilier = (l) => {
+  const t = l.texte.trim()
+  return !t || FILIGRANE_RE.test(t) || (l.y0 < PIED_DE_PAGE && FOLIO_NU_RE.test(t))
+}
 // Points de conduite d'une table des matières (`Swimming ........ 157`), absents du `.md`.
 const POINTILLES_RE = /\s*\.{4,}\s*/g
 const SLIDE_MAX = 8
@@ -208,7 +217,7 @@ const hauteurDe = (l) => Math.max(1, ...(l.spans ?? []).map((s) => s.taille ?? 0
 const parHauteur = (a, b) => b.y0 - a.y0 || a.x0 - b.x0
 
 /**
- * Les ORDRES de tête d'une page (`[texte…]`), folio de pied écarté ; `[]` pour une page SANS texte.
+ * Les ORDRES de tête d'une page (`[texte…]`), mobilier écarté (`estMobilier`) ; `[]` pour une page SANS texte.
  * (1) L'ordre des colonnes. (2) Le même, les lignes posées plus HAUT que la 1re ligne de texte
  * courant remontées en tête par y (titre d'une colonne voisine au-dessus du corps, tableau coiffé) —
  * absent s'il ne change rien. (3) L'ordre des RANGÉES : lignes triées par haut
@@ -218,9 +227,9 @@ const parHauteur = (a, b) => b.y0 - a.y0 || a.x0 - b.x0
  * @returns {string[][]}
  */
 export function sequencesDeTete(lignesDeLaPage) {
-  const ls = lignesDeLaPage.filter((l) => l.texte.trim() && !(l.y0 < PIED_DE_PAGE && FOLIO_NU_RE.test(l.texte.trim())))
+  const ls = lignesDeLaPage.filter((l) => !estMobilier(l))
   if (!ls.length) return []
-  const i0 = ls.findIndex((l) => HAS_LOWER_RE.test(l.texte))
+  const i0 = ls.findIndex((l) => porteUnMot(l.texte))
   const yCourant = i0 < 0 ? Infinity : ls[i0].y0
   const remonte = (l) => l.y0 > yCourant
   const remontees = [...ls.filter(remonte).sort(parHauteur), ...ls.filter((l) => !remonte(l))]
@@ -412,7 +421,7 @@ export function planChapter(file, text, offset, pageOf) {
       continue
     }
     const r = localiserPage(lines, sequences, known, folio, pageOf(folio - 1 + offset), index)
-    if (r.reason && !page.some((l) => HAS_LOWER_RE.test(l.texte))) { sansTexte.push(folio); continue }
+    if (r.reason && !sequences[0].some(porteUnMot)) { sansTexte.push(folio); continue }
     if (r.reason) { plan.skipped.push({ folio, reason: r.reason }); continue }
     poser(folio, r.line, r.slide)
   }

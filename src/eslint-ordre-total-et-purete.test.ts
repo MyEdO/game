@@ -7,7 +7,18 @@ import { correspondGlob } from '../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest, estKitDeTest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
-import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, fermeParLaSurvie, fermeture, paquetFerme, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
+import {
+  COUCHES,
+  PAQUETS_DE_L_HOTE_WEB,
+  SURFACE_DU_NOYAU,
+  dossierDe,
+  estZone,
+  fermeParLaSurvie,
+  fermeture,
+  paquetFerme,
+  porteManquee,
+  zoneDe,
+} from '../scripts/guards/lib/couches.mjs';
 
 /**
  * BANC DES MURS DE COUCHE (#1709, #2882 ; AGENTS.md règle stricte 3).
@@ -483,7 +494,8 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       for (const neutre of [relatif(rel, 'docs/zz.json'), 'node:fs']) cas.push([`${rel} → ${neutre}`, voisin(rel, cas.length), `import x from '${neutre}';\nexport const a = x;\n`, 'passe']);
     }
     for (const [z, { outillage = {} }] of Object.entries(COUCHES)) {
-      for (const [script, modules] of Object.entries(outillage)) {
+      for (const [cle, modules] of Object.entries(outillage)) {
+        const script = cle.endsWith('/') ? `${cle}zz-outil.mjs` : cle;
         const [autre] = sondes(z).filter((rel) => rel !== script);
         for (const m of modules) {
           cas.push([`${script} → ${m} (déclaré)`, script, `import * as x from '${relatif(script, m)}';\nexport const a = x;\n`, 'passe']);

@@ -6,9 +6,10 @@
 import { describe, expect, it } from 'vitest';
 import { schema } from './weaponGroups';
 import weaponGroupsJson from '../../weaponGroups.json';
+import { weaponGroups } from '../../index';
 
 type Entree = { id: string; kind: string; [k: string]: unknown };
-const avec = (...entrees: Entree[]): Entree[] => [...(structuredClone(weaponGroupsJson) as Entree[]), ...entrees];
+const avec = (...entrees: Entree[]): Entree[] => [...structuredClone(weaponGroupsJson), ...entrees];
 const refus = (doc: unknown): string => {
   const r = schema.safeParse(doc);
   expect(r.success, 'le document a parsé alors qu’il devait être REFUSÉ').toBe(false);
@@ -66,7 +67,7 @@ describe('weaponGroups.json — présentation portée par la donnée (#3076)', (
   });
 
   it('sans Groupe d’armure au seuil 0, le document est refusé', () => {
-    const doc = (structuredClone(weaponGroupsJson) as Entree[]).map((g) => (g.seuil === 0 ? { ...g, seuil: 1 } : g));
+    const doc = structuredClone(weaponGroups).map((g) => (g.seuil === 0 ? { ...g, seuil: 1 } : g));
     expect(refus(doc)).toMatch(/aucun Groupe d’armure au seuil 0/);
   });
 

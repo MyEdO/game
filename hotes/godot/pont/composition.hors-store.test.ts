@@ -39,11 +39,17 @@ describe('composerSurLaBase', () => {
     const tenue = { type: 'tenue', id: 'uniforme-de-soldat' };
     expect(manquants.map(({ ligne, champ, id, par }) => ({ ligne, champ, id, par: par && { type: par.type, id: par.id } }))).toEqual([
       { ligne: 'ligne/tete', champ: 'tete', id: 'humain', par: undefined },
-      ...['chemise', 'pourpoint', 'haut-de-chausses', 'bas', 'bottes', 'gants'].map((id) => ({ ligne: `ligne/piece/${id}`, champ: 'piece', id, par: tenue })),
+      { ligne: 'ligne/coiffure', champ: 'coiffure', id: 'cheveux-longs', par: undefined },
+      ...[['chemise', 'chemise'], ['pourpoint', 'pourpoint'], ['haut-de-chausses', 'haut-de-chausses'], ['bas', 'bas-de-chausses'], ['bottes', 'bottines'], ['gants', 'gants']]
+        .map(([piece, id]) => ({ ligne: `ligne/piece/${piece}`, champ: 'piece', id, par: tenue })),
       { ligne: 'ligne/emplacement/genou_g', champ: 'piece', id: 'ruban', par: undefined },
       { ligne: 'ligne/emplacement/poitrine', champ: 'piece', id: 'insigne', par: undefined },
       { ligne: 'ligne/emplacement/epaule_d', champ: 'piece', id: 'baudrier-sur-armure', par: undefined },
       { ligne: 'ligne/emplacement/cimier', champ: 'piece', id: 'plumet', par: undefined },
+      { ligne: 'ligne/piece/epaulieres', champ: 'piece', id: 'epaulieres', par: undefined },
+      { ligne: 'ligne/piece/brassards', champ: 'piece', id: 'brassards-d-acier', par: undefined },
+      { ligne: 'ligne/piece/tassettes', champ: 'piece', id: 'tassettes', par: undefined },
+      { ligne: 'ligne/emplacement/dos', champ: 'piece', id: 'ecu-au-dos', par: undefined },
       { ligne: 'main', champ: 'apparence', id: 'hallebarde', par: { type: 'trapping', id: 'hallebarde' } },
       { ligne: 'ligne/piece/casque', champ: 'piece', id: 'casque', par: { type: 'trapping', id: 'heaume' } },
       { ligne: 'ligne/piece/plastron', champ: 'piece', id: 'plastron', par: { type: 'trapping', id: 'plastron' } },
@@ -91,6 +97,15 @@ describe('composerSurLaBase', () => {
     expect(composer({ humanoide }, soldat).materiaux).toEqual({});
   });
 
+  it('la corpulence efface le relief de la peau (#4002) : facteur `1 + (r − 1) × w` sur chaque surface de peau, aucun à poids nul ni sans `reliefDeCorpulence`', () => {
+    const surfaces = [{ nom: 'Peau', palette: 'peau' }, { nom: 'Cheveux', palette: 'cheveux' }];
+    const charnue = { ...humanoide, silhouettes: ['corpulence'], reliefDeCorpulence: 0.2, surfaces };
+    expect(composer({ humanoide: charnue }, { ...soldat, build: 1 }).reliefs).toEqual({ Peau: 0.2 });
+    expect(composer({ humanoide: charnue }, { ...soldat, build: 0.75 }).reliefs).toEqual({ Peau: 0.6 });
+    expect(composer({ humanoide: charnue }, { ...soldat, build: 0.5 }).reliefs).toEqual({});
+    expect(composer({ humanoide: { ...humanoide, surfaces } }, { ...soldat, build: 1 }).reliefs).toEqual({});
+  });
+
   it('une apparence variante monte l’élément qui la désigne, à défaut celui de sa racine ; sans l’un ni l’autre, le manquant garde son id', () => {
     const epee = { ...elementSchema3('humanoide'), cle: { apparence: 'epee' } };
     const epeeDeSoldat = { ...elementSchema3('humanoide'), cle: { apparence: 'epee_soldat' } };
@@ -117,14 +132,14 @@ describe('composerSurLaBase', () => {
 });
 
 describe('le pont : composer, catalogues, presetDeComposition', () => {
-  const pont = creerPont(null);
+  const pont = creerPont(null, null);
   const appeler = (methode: string, entree?: unknown) => JSON.parse(pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree)));
 
   it('composer se refuse avant modeles, puis compose sur une base servie', () => {
     expect(appeler('composer', { base: 'humanoide', composition: soldat }).erreur.message).toMatch(/modeles d’abord/);
     appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
     expect(appeler('composer', { base: 'autre', composition: soldat }).erreur.categorie).toBe('validation');
-    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'materiaux', 'montes', 'morphes', 'ok', 'palette', 'rapport']);
+    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'materiaux', 'montes', 'morphes', 'ok', 'palette', 'rapport', 'reliefs']);
   });
 
   it('un élément monté prend la palette de la teinte de sa chose portée (#3456) ; une chose sans élément, aucune', () => {
@@ -141,8 +156,8 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
     appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
     const { couleurs: _, ...sansCouleurs } = soldat;
     expect(appeler('composer', { base: 'humanoide', composition: sansCouleurs }).palette).toEqual({});
-    const couleurs = { peau: { id: 'peau-halee' }, plume: { id: 'plume-rousse' } };
-    expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs } }).palette).toEqual({ peau: findCouleurById('peau-halee')!.color, plume: findCouleurById('plume-rousse')!.color });
+    const couleurs = { peau: { id: 'peau-halee' }, plume: { id: 'plume-rousse' }, metal2: { id: 'laiton' } };
+    expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs } }).palette).toEqual({ peau: findCouleurById('peau-halee')!.color, plume: findCouleurById('plume-rousse')!.color, metal2: findCouleurById('laiton')!.color });
     expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs: { peau: { id: 'acier-bleu' } } } }).erreur.categorie).toBe('validation');
     expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, couleurs: { or: { id: 'acier' } } } }).erreur.categorie).toBe('validation');
   });

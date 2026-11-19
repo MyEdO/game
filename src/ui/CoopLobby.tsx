@@ -74,7 +74,8 @@ export function CoopLobby() {
               onClick={async () => {
                 setError('');
                 setBusy(true);
-                if (!(await hostStart(name.trim()))) setError(t("coop.hote.erreur"));
+                const err = await hostStart(name.trim());
+                if (err) setError(err);
                 setBusy(false);
               }}
             >

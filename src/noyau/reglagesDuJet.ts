@@ -17,7 +17,17 @@ import type { FermetureDuJet } from './rollFlowFactory';
 import type { FlowKey } from './flowVerbs';
 import type { Jeu } from './etat';
 import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from './pendings';
-import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDeRangee, IdDObjet, IdDOptionDEtape } from './designations';
+import type {
+  IdDAdversaireADistraire,
+  IdDAdversaireDuBattement,
+  IdDeChanson,
+  IdDeCombattant,
+  IdDeFormeConjuree,
+  IdDeHeros,
+  IdDeRangee,
+  IdDObjet,
+  IdDOptionDEtape,
+} from './designations';
 import { offreDeLIncantation, type ReglageOffertDeLIncantation } from './reglagesDIncantation';
 import { sequenceAbandonOf } from './sequenceCore';
 

@@ -8,23 +8,23 @@ import { rollShipCritical } from '../engine/shipCritical';
 import { rollStructureCritical } from '../engine/structureCritical';
 
 describe('dés authorés des tables — câblage aux lecteurs', () => {
-  it.each(['2d10', 'd10+1'])('la Salve refuse une expression incompatible avec sa porte : %s', (die) => {
-    sousLeDe('artilleryMisfire', die, () => {
-      expect(() => artilleryMisfireDie()).toThrow('exige un dé unique sans modificateur');
+  it('la Salve refuse un dé multiple à sa porte', () => {
+    sousLeDe('artilleryMisfire', { n: 2, sides: 10 }, () => {
+      expect(() => artilleryMisfireDie()).toThrow('exige un dé unique : 2d10');
     });
   });
   it('la Salve expose le dé authoré à sa porte', () => {
     expect(artilleryMisfireDie()).toEqual(deDeTirageDe(artilleryMisfireJson));
   });
   it('le critique de structure tire le dé authoré', () => {
-    sousLeDe('structureCriticals', 'd6', () => {
+    sousLeDe('structureCriticals', { n: 1, sides: 6 }, () => {
       const int = vi.fn(() => 3);
       rollStructureCritical({ int });
       expect(int).toHaveBeenCalledExactlyOnceWith(1, 6);
     });
   });
   it('le critique de navire tire le dé authoré', () => {
-    sousLeDe('shipCriticalsAvirons', 'd6', () => {
+    sousLeDe('shipCriticalsAvirons', { n: 1, sides: 6 }, () => {
       const int = vi.fn(() => 3);
       rollShipCritical('avirons', { int });
       expect(int).toHaveBeenCalledExactlyOnceWith(1, 6);

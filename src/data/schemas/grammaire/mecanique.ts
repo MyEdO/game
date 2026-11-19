@@ -6,18 +6,73 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
  * op par op ; `OPS_NON_TYPEES` porte celles qui restent à décrire (lot L1c #1468).
  */
 import { z } from 'zod';
-import { validerApparenceDonnee } from './valeurs';
+import { estObjet } from '../../../lib/objet.mjs';
+import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from './valeurs';
 import { proseNommee } from './prose';
-import { declarerEnfants } from './descente';
+import { declarerEnfants, defDe } from './descente';
 import { marquerProduit } from './interne/produits';
-import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
-import { categorieDEntreeAPool, trousDeLEnjeu, type StakeRef } from '../../index';
+import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
-import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
-import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, genreDArmeSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
+import {
+  ARG_TEMPLATE,
+  INDICE_TEMPLATE,
+  flowHasFreeAttack,
+  walkFlow,
+  type Condition,
+  type EffectOp,
+  type Flow,
+  type FlowTest,
+  type FlowTestNode,
+} from '../../../engine/flowCore';
+import {
+  acteDeDeverrouillageSchema,
+  attackKindSchema,
+  chaosAlignSchema,
+  charKeySchema,
+  cibleEtendueSchema,
+  contexteDeTestSchema,
+  deDeTirageSchema,
+  diceSpecSchema,
+  difficultySchema,
+  effetSigneSchema,
+  idDIconeSchema,
+  enumNomme,
+  shipLocationSchema,
+  exposureLevelSchema,
+  formulaSchema,
+  formuleNommee,
+  formulaSinSchema,
+  formuleSansTirageSchema,
+  genreDArmeSchema,
+  hitLocationSchema,
+  mainSchema,
+  messageDeTermeDeJet,
+  meteoImposeeSchema,
+  statutSchema,
+  ouReserve,
+  plageSchema,
+  reachSchema,
+  natureDInfluenceSchema,
+  sizeCategorySchema,
+  symptomSeveritySchema,
+  tirageSchema,
+  type FormuleAuPeche,
+} from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
+import {
+  idDe,
+  marquerOpAtteinte,
+  ref,
+  refs,
+  refOuSpec,
+  specAuCatalogue,
+  specDe,
+  specFermeeDe,
+  tirageSurTable,
+  type RegimeDePorteur,
+  type TypeEntite,
+} from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
@@ -29,8 +84,9 @@ import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 export type RegimeDeListe = 'passive' | 'executee';
 const REGIMES_DES_LISTES = new WeakMap<object, RegimeDeListe>();
 
-/** La variante `noeud` d'une union (`Condition`, `Flow`, sélecteur, fenêtre, cible), nommée `label` à l'affichage. */
-const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
+/** La variante `noeud` d'une union (`Condition`, `Flow`, sélecteur, fenêtre, cible, objectif de victoire), nommée
+ *  `label` à l'affichage. */
+export const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
 
 /** Le régime d'une liste d'ops, `undefined` hors de `passifsDe` et `executeesDe`. */
 export function regimeDeListe(noeud: unknown): RegimeDeListe | undefined {
@@ -115,10 +171,10 @@ function refusDeLaPoseDEtat(v: Readonly<Record<string, unknown>> & { id: { id: s
 export const loseTurnWhatSchema = enumNomme({ action: 'son Action', movement: 'son Mouvement' });
 
 /** Compétences du dieu que frappe l'op `deitySkillMod`. LDB 40 l.61, l.70 */
-export const deitySkillPickSchema = enumNomme({ all: 'toutes', random: 'une au hasard' });
+const deitySkillPickSchema = enumNomme({ all: 'toutes', random: 'une au hasard' });
 
 /** Refus d'une op `deitySkillMod` sans durée, ou à deux durées. */
-export const MESSAGE_DUREE_DE_DIVINITE = 'durée EXCLUSIVE : « durationHours » (heures) OU « durationDays » (jours) — exactement une des deux.';
+const MESSAGE_DUREE_DE_DIVINITE = 'durée EXCLUSIVE : « durationHours » (heures) OU « durationDays » (jours) — exactement une des deux.';
 
 /** Forme d'une `zone`. */
 export const zoneShapeSchema = enumNomme({ disc: 'disque', wall: 'mur' });
@@ -260,8 +316,9 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('corruptionExposure'),
     level: exposureLevelSchema.optional(),
     nature: natureDInfluenceSchema.optional(),
+    difficulty: difficultySchema.optional(),
     easeSteps: z.number().optional(),
-  }), { op: { label: "opération"  }, level: { label: "niveau"  }, nature: { label: "nature de l’Influence" }, easeSteps: { label: "crans de facilité" } }),
+  }), { op: { label: "opération"  }, level: { label: "niveau"  }, nature: { label: "nature de l’Influence" }, difficulty: { label: "difficulté" }, easeSteps: { label: "crans de facilité" } }),
   aggravateSymptom: nommerChamps(z.strictObject({
     op: z.literal('aggravateSymptom'),
     disease: idDe('maladie'),
@@ -554,7 +611,7 @@ const DECLARATIONS_D_OPS = {
   }),
   healCaster: nommerChamps(z.strictObject({ op: z.literal('healCaster'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   gainAdvantage: nommerChamps(z.strictObject({ op: z.literal('gainAdvantage'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-  topUpAdvantage: nommerChamps(z.strictObject({ op: z.literal('topUpAdvantage'), amount: ouReserve(formulaSchema, INDICE_TEMPLATE), feedOpposingPool: z.boolean().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, feedOpposingPool: { label: "réserve adverse" } }),
+  topUpAdvantage: nommerChamps(z.strictObject({ op: z.literal('topUpAdvantage'), amount: ouReserve(formuleNommee, nommerNoeud(enumNomme({ [INDICE_TEMPLATE]: 'valeur de l’indice' }), { label: 'valeur de l’indice' })), feedOpposingPool: z.boolean().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, feedOpposingPool: { label: "réserve adverse" } }),
   spendAdvantage: nommerChamps(z.strictObject({ op: z.literal('spendAdvantage'), amount: z.number().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" } }),
   kill: nommerChamps(z.strictObject({ op: z.literal('kill') }), { op: { label: "opération"  } }),
   /** LDB 09 l.260 */
@@ -703,14 +760,14 @@ const DECLARATIONS_D_OPS = {
   }), { op: { label: "opération"  }, days: { label: "jours" }, dice: { label: "dés" }, disease: { label: "maladie" , texte: { regime: "technique"} }, oncePerDisease: { label: "une fois par maladie" }, daysPerSL: { label: "jours par DR" } }),
   diseaseTestMod: nommerChamps(z.strictObject({ op: z.literal('diseaseTestMod'), diseases: refs('maladie').optional(), amount: z.number() }), { op: { label: "opération"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, amount: { label: "quantité" } }),
   suppressSymptom: nommerChamps(z.strictObject({ op: z.literal('suppressSymptom'), symptomId: idDe('symptome') }), { op: { label: "opération"  }, symptomId: { label: "symptôme" , texte: { regime: "technique"} } }),
-  giveTrapping: nommerChamps(z.strictObject({
+  giveTrapping: nommerChamps(avecApparenceDObjetDonne(z.strictObject({
     op: z.literal('giveTrapping'),
     apparence: ref('apparence').optional(),
-    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true }).optional(),
+    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET }).optional(),
     custom: z.string().optional(),
     count: z.number().optional(),
     perSL: perSLSchema.optional(),
-  }).superRefine(validerApparenceDonnee), { op: { label: "opération"  }, apparence: { label: "apparence" }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
+  })), { op: { label: "opération"  }, apparence: { label: "apparence" }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
   /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op
    *  sans créature est refusée AU PARSE (#1882), jamais spawnée. `addTraits` : instances de Trait
    *  (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est une feuille `idDe('trait')`. */
@@ -732,6 +789,10 @@ const DECLARATIONS_D_OPS = {
     allyOfCaster: z.boolean().optional(),
     cancelFlag: z.string().optional(),
   }), { op: { label: "opération"  }, ref: { label: "référence" , texte: { regime: "technique"} }, delayDays: { label: "délai en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, allyOfCaster: { label: "allié du lanceur" }, cancelFlag: { label: "drapeau d’annulation" , texte: { regime: "technique"} } }),
+  intoxicate: nommerChamps(z.strictObject({
+    op: z.literal('intoxicate'),
+    tantQuIvre: executeesDe(z.lazy(() => gameOpSchema)).optional(),
+  }), { op: { label: "opération"  }, tantQuIvre: { label: "tant qu’ivre" } }),
   polymorph: nommerChamps(z.strictObject({ op: z.literal('polymorph'), ref: idDe('creature') }), { op: { label: "opération"  }, ref: { label: "référence" , texte: { regime: "technique"} } }),
   transform: nommerChamps(z.strictObject({
     op: z.literal('transform'),
@@ -751,12 +812,11 @@ const DECLARATIONS_D_OPS = {
     }), { op: { label: "opération"  }, die: { label: "dé de tirage" , texte: { regime: "technique"} }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, entries: { label: "rangées" } }),
     nommerChamps(z.strictObject({
       op: z.literal('rollTable'),
-      die: deDeTirageSchema.optional(),
       mod: z.number().optional(),
       addNegativeSL: z.boolean().optional(),
       extraRollsPerStep: z.number().optional(),
       tableId: idDe('table'),
-    }), { op: { label: "opération"  }, die: { label: "dé de tirage" , texte: { regime: "technique"} }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, tableId: { label: "table" , texte: { regime: "technique"} } }),
+    }), { op: { label: "opération"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, tableId: { label: "table" , texte: { regime: "technique"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { entries?: unknown; tableId?: unknown };
@@ -817,7 +877,9 @@ const DECLARATIONS_D_OPS = {
     barrier: z.boolean().optional(),
     gate: z.literal('profane').optional(),
     noCorruption: z.boolean().optional(),
-  }), { op: { label: "opération"  }, shape: { label: "forme"  }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }),
+    durationRounds: formulaSchema.optional(),
+    rendu: ref('rendu').optional(),
+  }), { op: { label: "opération"  }, shape: { label: "forme"  }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, rendu: { label: "rendu" }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }),
   augmentWeapon: nommerChamps(z.strictObject({
     op: z.literal('augmentWeapon'),
     addQualities: refs('quality').optional(),
@@ -888,9 +950,13 @@ type ConditionReservee = (typeof CONDITIONS_RESERVEES)[number];
 /** Régime d'une Condition réservée. */
 export type RegimeDeCondition = `condition.${ConditionReservee}`;
 
+/** Régime des feuilles de `Formula` de premier niveau des payloads : `peche` les ouvre au dialecte de la Colère
+ *  des dieux (`formulaSinSchema`). LDB 40 l.46 */
+type RegimeDeFormule = { formule: 'peche' };
+
 /** Régime de chaque champ d'un porteur : un champ à choix absent est `specSeule`, un champ réservé ou une
- *  Condition réservée absents sont REFUSÉS. */
-export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Record<ChampReserve | RegimeDeCondition, 'admis'>>>;
+ *  Condition réservée absents sont REFUSÉS, une formule absente est générale. */
+export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Record<ChampReserve | RegimeDeCondition, 'admis'> & RegimeDeFormule>>;
 
 /**
  * Ops du moteur DONT LE PAYLOAD RESTE À DÉCRIRE — liste NOMINATIVE datée (2026-08-24),
@@ -903,7 +969,7 @@ export const OPS_NON_TYPEES: readonly string[] = [
   'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod', 'breakBlade', 'crewTestMod',
   'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm', 'endTransform',
   'freeReroll', 'grantFreeAttack', 'handGate', 'ignoreAnimosity', 'ignoreStatePenalties', 'interruptFocus',
-  'intoxicate', 'martyr', 'mitigateIncoming', 'reduceToZero', 'removeShipPoste',
+  'martyr', 'mitigateIncoming', 'reduceToZero', 'removeShipPoste',
   'senseLoss', 'statusMod', 'suppressPsych', 'teamCommander', 'weaponDamageMod', 'weaponRollMod',
   'weatherWard',
 ];
@@ -911,7 +977,7 @@ export const OPS_NON_TYPEES: readonly string[] = [
 /** Familles de `Condition` qu'un contexte de VERROU d'État GARANTIT — elles ne lisent que la vue
  *  d'acteur (`buildActorView`). Tout le reste (drapeaux de scène, horloge, bourse, inventaire de
  *  groupe, contexte de résolution d'une touche) est absent de ce contexte. */
-export const SUJETS_DE_VERROU = new Set(['always', 'compare', 'capability', 'has', 'relation', 'casterChaosDomain', 'visiblePassive'] as const);
+export const SUJETS_DE_VERROU = new Set(['always', 'compare', 'capability', 'has', 'relation', 'casterChaosDomain', 'visiblePassive', 'navire'] as const);
 
 /** Les `kind` d'une Condition de verrou que le contexte ne garantit pas (récursif sur `all`/`any`/`not`). */
 export function sujetsNonGarantis(cond: unknown): string[] {
@@ -1000,13 +1066,13 @@ const compareSubjectSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, condition: idDe('etat') }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
   charRefSchema,
 ]);
-/** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
+/** `CompareSubject & { factor?: number }` (`engine/flowCore.ts`) — un `z.intersection` d'un
  *  `z.union` de `strictObject` NE FONCTIONNE PAS avec zod (chaque branche strict rejette les clés des
  *  autres, cf. `domains.ts` avant ce rewire : `z.intersection(compareSubjectSchema, …)` échouait sur
  *  `etats.json` #14 « inondation » — `{who,characteristic:'endurance',factor:0.5}` — vérifié en isolation). La forme
  *  fidèle est donc l'UNION des 3 branches de `CompareSubject`, chacune portant son `factor`. */
 const compareValueSchema = z.union([
-  z.number(),
+  nommerNoeud(z.number(), { label: 'nombre' }),
   nommerChamps(z.strictObject({
     who: actorRefSchema,
     field: actorFieldSchema,
@@ -1016,24 +1082,35 @@ const compareValueSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
 ]);
 
-/** Condition `skill` : sa Compétence et sa spécialisation résolvent au catalogue (`refOuSpec`). Le nœud de la
- *  fabrique est un objet discriminable par `kind`, ce que sa signature générique ne porte pas. */
+/** Condition `skill` : sa Compétence et sa spécialisation résolvent au catalogue (`refOuSpec`). */
 const conditionDeCompetenceSchema = refOuSpec('skill', {
   kind: nommerNoeud(z.literal('skill'), { nom: 'type' }),
   advances: nommerNoeud(z.number().optional(), { nom: 'augmentations' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'skill' }>> & z.core.$ZodTypeDiscriminable;
+});
 
 /** `{ kind: 'talent' }` — un héros du groupe porte le Talent (Béni (Manann) : MDG 15 l.197-198). */
 const conditionDeTalentSchema = refOuSpec('talent', {
   kind: nommerNoeud(z.literal('talent'), { nom: 'type' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
-}) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
+});
+
+/** `{ kind: 'career' }` — un héros du groupe exerce la Carrière (`flowCore.ts`, `evalCondition`). */
+const conditionDeCarriereSchema = ref('career', {
+  kind: nommerNoeud(z.literal('career'), { nom: 'type' }),
+  who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
+});
+
+/** `{ kind: 'species' }` — un héros du groupe est de l'Espèce (`flowCore.ts`, `evalCondition`). */
+const conditionDEspeceSchema = ref('species', {
+  kind: nommerNoeud(z.literal('species'), { nom: 'type' }),
+  who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
+});
 
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
 
-/** `Condition` (`engine/flowCore.ts:112`) — algèbre CLOSE, récursive via `all`/`any`/`not`, où une Condition
+/** `Condition` (`engine/flowCore.ts`) — algèbre CLOSE, récursive via `all`/`any`/`not`, où une Condition
  *  RÉSERVÉE hors des `admises` de la famille est refusée nommément. Mémoïsée par ses `admises` ; chaque branche est
  *  un produit de la fabrique, de même classe d'une famille à l'autre. */
 function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition> {
@@ -1070,9 +1147,9 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('État de campagne', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('etat'), etat: z.string().min(1, 'Condition « etat » : nommez l’état de campagne lu.'), value: z.string().optional() }), { kind: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, value: { label: "valeur" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.etat')),
       variante('Compétence du groupe', conditionDeCompetenceSchema),
       variante('Talent du groupe', conditionDeTalentSchema),
-      variante('Carrière du groupe', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.career')),
-      variante('Espèce du groupe', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.species')),
-      variante('Statut du groupe ≥', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.status')),
+      variante('Carrière du groupe', conditionDeCarriereSchema),
+      variante('Espèce du groupe', conditionDEspeceSchema),
+      variante('Statut du groupe ≥', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" }, who: { label: "acteur"  } }), 'conditionDe', 'condition.status')),
       variante('État du porteur (comparaison)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.compare')),
       variante('Marge (DR)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.slThreshold')),
       variante('Localisation touchée', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.location')),
@@ -1092,6 +1169,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('Possède (Groupe/Talent/Trait)', hasConditionSchema),
       variante('Domaine du Chaos du lanceur', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('casterChaosDomain'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.casterChaosDomain')),
       variante('Atteinte VISIBLE (apparence)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.visiblePassive')),
+      variante('Est un NAVIRE', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('navire'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.navire')),
       variante('Cible de l’affliction en vue (psychologie)', reservee('cibleEnVue', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('cibleEnVue'), hostiles: z.literal(true).optional() }), { kind: { label: "type"  }, hostiles: { label: "hostiles seulement" } }), 'conditionDe', 'condition.cibleEnVue'))),
       variante('TOUS (ET)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('all'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.all')),
       variante('AU MOINS UN (OU)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('any'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }), 'conditionDe', 'condition.any')),
@@ -1106,7 +1184,6 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
 export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
 
-/** `FlowTest` (`engine/flowCore.ts:335`) — jet différé (→ modale), tout le métier hors branches. */
 /** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
  *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
@@ -1132,21 +1209,11 @@ export const catalogStakeSchema = nommerChamps(z.strictObject({
  *  (arbitrage user 2026-08-12, #1262) : elle voyage avec le document et ne pointe aucun dataset. */
 export const authoredStakeSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'stake.authored');
 
-/** `DerivedStake` (`src/data/index.ts`) — enjeu DÉRIVÉ de l'entité porteuse (`{kind, id}`), calculé
- *  au montage de l'étape par le socle. */
-export const derivedStakeSchema = nommerChamps(z.strictObject({
-  from: nommerChamps(z.strictObject({
-    kind: z.enum(Object.keys(CATEGORY_BY_SOURCE_KIND) as [EffectSourceKind, ...EffectSourceKind[]]),
-    id: z.string(),
-  }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } }),
-}), { from: { label: "provenance" } });
-
-/** `StakeRef` (`src/data/index.ts`) — les TROIS formes d'enjeu d'une entrée de jet, qui passent par
- *  la même porte de résolution (`resolveStake`). */
-export const stakeRefSchema: z.ZodType<StakeRef> = z.union([
+/** L'enjeu SAISI d'une entrée de jet : les deux formes de `StakeRef` (`src/data/index.ts`) qu'un document
+ *  écrit. `DerivedStake` est calculé par le socle (`derivedStake`, #1262) et vit au seul type du runtime. */
+export const stakeRefSchema = z.union([
   catalogStakeSchema,
   authoredStakeSchema,
-  derivedStakeSchema,
 ]);
 
 /** FACILITATION d'un jet par ce que porte le jeteur (Compétence, Talent) : `steps` crans plus facile,
@@ -1173,48 +1240,71 @@ export const menaceSchema = specFermeeDe('talent', 'resistance');
  *  forme partagée du Test de flux et du Test étendu, sans refine. */
 export const decisionDuTestSchema = nommerChamps(z.strictObject({
   easierIf: facilitationSchema.optional(),
+  /** MDG 15 l.197, l.231 */
   gate: conditionSchema.optional(),
+  /** LDB 16 l.54 */
   difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
-}), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" } });
+  onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+  exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+}), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} } });
 
-export const flowTestSchema = nommerChamps(z.strictObject({
-  /** ENJEU du Test (#1117) — cf. `stakeRefSchema`. */
-  stake: stakeRefSchema.optional(),
+/** Le Test qui PEUT porter une décision, tel que le DÉCLARENT `jetSchema` et `decisionDuTestSchema` : la cible de
+ *  `src/decision-du-test-guard.test.ts`. */
+export type JetDecidable = z.output<typeof jetSchema> & z.output<typeof decisionDuTestSchema>;
+
+/** Test OPPOSÉ d'un Test de donnée (LDB 62 l.235). */
+const opposeSchema = nommerChamps(z
+  .strictObject({
+    attacker: charKeySchema,
+    attackerSkill: idDe('skill').optional(),
+    attackerLabel: z.string().optional(),
+    /** LDB 62 l.280 */
+    bonusSL: z.number().optional(),
+    /** LDB 85 */
+    attackerBonusSL: z.number().optional(),
+    /** LDB 62 l.235, l.280 ; LDB 12 l.160 */
+    defenderMustWin: z.boolean().optional(),
+  }), { attacker: { label: "attaquant"  }, attackerSkill: { label: "Compétence de l’attaquant" , texte: { regime: "technique"} }, attackerLabel: { label: "nom de l’attaquant" , texte: { regime: "technique"} }, bonusSL: { label: "bonus de DR" }, attackerBonusSL: { label: "bonus de DR de l’attaquant" }, defenderMustWin: { label: "le défenseur doit l’emporter" } });
+
+/** Les champs d'un Test de donnée qui précèdent sa décision. */
+const champsDuTestAvantLaDecision = {
   ...jetSchema.shape,
+  /** LDB 18 */
   sense: senseSchema.optional(),
   /** MDG 15 l.144-145 */
   crewTestType: idDe('crewTestType').optional(),
   requireSL: z.number().optional(),
   label: z.string().optional(),
   tool: z.string().optional(),
+  /** LDB 21 */
   vsGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
+  /** LDB 08 */
   vsStatus: statutSchema.optional(),
+  /** LDB 08 l.63 */
   begging: z.boolean().optional(),
+  /** MSRC 15 l.149-159 */
   vsCapricieux: z.boolean().optional(),
-  ...decisionDuTestSchema.shape,
-  argDifficulty: z.boolean().optional(),
-  onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
-  exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+};
+
+/** Les champs d'un Test de donnée qui suivent sa décision. */
+const champsDuTestApresLaDecision = {
   /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT authoré : absent = défaut de la VOIE qui ouvre le Test (scène/
    *  dialogue : soutenable ; effet déclenché / consommable : non soutenable) ; `true` = jamais
    *  soutenable ; `false` = soutenable malgré la voie (Test de soin d'un nécessaire). */
   noSupport: z.boolean().optional(),
   /** Tag MENACE du talent « Résistance (Menace) » (LDB 10 l.1016-1020). */
   menace: menaceSchema.optional(),
-  opposed: nommerChamps(z
-    .strictObject({
-      attacker: charKeySchema,
-      attackerSkill: idDe('skill').optional(),
-      attackerLabel: z.string().optional(),
-      bonusSL: z.number().optional(),
-      attackerBonusSL: z.number().optional(),
-    }), { attacker: { label: "attaquant"  }, attackerSkill: { label: "Compétence de l’attaquant" , texte: { regime: "technique"} }, attackerLabel: { label: "nom de l’attaquant" , texte: { regime: "technique"} }, bonusSL: { label: "bonus de DR" }, attackerBonusSL: { label: "bonus de DR de l’attaquant" } })
-    .optional(),
-}).superRefine((v, ctx) => {
-  // UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
-  // calculer : `testValue` rend 0 et le jet devient un auto-échec SILENCIEUX, sur une cible qui n'est
-  // la valeur de personne. Les deux peuvent coexister — une Compétence jouée sur une autre
-  // Caractéristique que la sienne (Venin : Résistance sur Endurance, `LDB 20`) est une forme RAW.
+  opposed: opposeSchema.optional(),
+};
+
+const metaDuTestAvantLaDecision: MetaDesChamps<typeof champsDuTestAvantLaDecision> = { ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" } };
+const metaDuTestApresLaDecision: MetaDesChamps<typeof champsDuTestApresLaDecision> = { noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } };
+
+/** UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
+ *  calculer : `testValue` rend 0 et le jet devient un auto-échec SILENCIEUX, sur une cible qui n'est
+ *  la valeur de personne. Les deux peuvent coexister — une Compétence jouée sur une autre
+ *  Caractéristique que la sienne (Venin : Résistance sur Endurance, `LDB 20`) est une forme RAW. */
+function nommerCeQueTesteLeJet(v: { stake?: unknown; skill?: unknown; characteristic?: unknown; crewTestType?: unknown }, ctx: z.RefinementCtx): void {
   if (v.crewTestType) {
     if (!v.stake) {
       ctx.addIssue({ code: 'custom', path: ['stake'], message: 'Test d’équipage SANS enjeu : le Test nomme ce qu’il met en jeu (`stake`).' });
@@ -1234,18 +1324,42 @@ export const flowTestSchema = nommerChamps(z.strictObject({
     message: 'jet SANS compétence ni caractéristique : la porte le jouerait sur une valeur de 0 '
       + '(auto-échec muet). Nommer `skill` (id de compétence), `characteristic`, ou `crewTestType`.',
   });
-}), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, ...metaDesChamps(decisionDuTestSchema, { exigees: true }), argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } });
+}
+
+/** Le Test de DONNÉE, la forme UNIQUE du jet en donnée, avec l'ENJEU (#1117) qu'un document peut lui écrire et
+ *  ce que le Test NON FIXE `ajoute` : sa décision (`decisionDuTestSchema`), ou rien (`testFixeSchema`). */
+function testDeDonnee<E extends z.ZodType, A extends z.core.$ZodShape>(enjeu: E, ajoute: A, metaDeLAjout: MetaDesChamps<A>) {
+  return marquerProduit(nommerChamps(
+    z.strictObject({ stake: enjeu.optional(), ...champsDuTestAvantLaDecision, ...ajoute, ...champsDuTestApresLaDecision }).superRefine(nommerCeQueTesteLeJet),
+    { stake: { label: "enjeu" }, ...metaDuTestAvantLaDecision, ...metaDeLAjout, ...metaDuTestApresLaDecision },
+  ), 'testDeDonnee', 'test');
+}
+
+/** Le Test de flux : il porte sa décision (`decisionDuTestSchema`), que `resoudreFlowTest` lit seule, et le
+ *  marqueur `argDifficulty` (LDB 85 l.423-425) que `withArg` (`noyau/triggeredEffects.ts`) remplace AVANT elle. */
+export const flowTestSchema = testDeDonnee(
+  stakeRefSchema,
+  { ...decisionDuTestSchema.shape, argDifficulty: z.boolean().optional() },
+  { ...metaDesChamps(decisionDuTestSchema, { exigees: true }), argDifficulty: { label: "difficulté de l’argument" } },
+);
+
+/** Le Test FIXE : sans aucun champ de décision, sa Difficulté est celle qu'il déclare. La forme du Test d'un
+ *  porteur qui la fixe (`porteurDeTestFixe`, `noeudTestFixe`). */
+export const testFixeSchema = testDeDonnee(stakeRefSchema, {}, {});
+
+/** Le Test d'un document de SCÈNE : son enjeu est la phrase que le document écrit (`authoredStakeSchema`,
+ *  arbitrage user 2026-08-12, #1262), jamais une clé du catalogue du moteur. */
+export const testDeSceneSchema = testDeDonnee(authoredStakeSchema, decisionDuTestSchema.shape, metaDesChamps(decisionDuTestSchema, { exigees: true }));
 
 
-/** Champ que `flowTestSchema` laisse FACULTATIF et qu'un porteur peut exiger. */
+/** Champ que le Test de donnée (`testDeDonnee`) laisse FACULTATIF et qu'un porteur peut exiger. */
 type ChampExigibleDuTest = 'skill' | 'difficulty';
 
 /** RESSERREMENT, au PORTEUR, du Test qu'il compose par identité sous sa clé `test` : les `champs` que le
- *  nœud partagé laisse facultatifs y sont exigés. Un clone resserré du nœud perdrait sa pose
- *  (`interne/concepts.ts`) ; le `superRefine` du porteur la garde. */
-export function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
-  return (porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx): void => {
-    const test = porteur.test;
+ *  nœud partagé laisse facultatifs y sont exigés. */
+function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
+  return (porteur: object, ctx: z.RefinementCtx): void => {
+    const test: unknown = Reflect.get(porteur, 'test');
     if (typeof test !== 'object' || test === null) return;
     for (const champ of champs)
       if (Reflect.get(test, champ) === undefined)
@@ -1253,24 +1367,41 @@ export function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
   };
 }
 
-/** Refuse au Test de `porteur` tout champ de DÉCISION (`CHAMPS_DE_DECISION`) : c'est le porteur qui la tient. */
-function refuserLaDecision(porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx, raison: string): void {
-  const test = porteur.test;
-  if (typeof test !== 'object' || test === null) return;
-  for (const champ of CHAMPS_DE_DECISION)
-    if (Reflect.get(test, champ) !== undefined)
-      ctx.addIssue({ code: 'custom', path: ['test', champ], message: `Test : \`${champ}\` refusé — ${raison}` });
+/** Le `porteur` dont le Test FIXE (`testFixeSchema`) exige les `champs` (`exigerDuTest`), sa sortie resserrée d'autant
+ *  (`JetFixe`, `engine/flowCore.ts`) : le prédicat ne se joue que sur un porteur sans faute. Le porteur est un nœud qui
+ *  compose `testFixeSchema` sous `test`, ou l'entrée d'un document (`affinerEntree`) dont le schéma le compose. */
+export function porteurDeTestFixe<S extends z.ZodType<object>, const K extends ChampExigibleDuTest>(porteur: S, ...champs: readonly K[]) {
+  type Sortie = z.output<S>;
+  type Test = z.output<typeof testFixeSchema>;
+  const fixe = porteur.superRefine(exigerDuTest(...champs)).refine(
+    (v: Sortie): v is Sortie & { test: Required<Pick<Test, K>> } => {
+      const test: unknown = Reflect.get(v, 'test');
+      return estObjet(test) && champs.every((c) => test[c] !== undefined);
+    },
+    { when: (p) => p.issues.length === 0 },
+  );
+  return declarerTestFixe(fixe, champs);
 }
 
-/** Le Test que son PORTEUR fixe (`JetFixe`, `engine/flowCore.ts`) : les `champs` exigés (`exigerDuTest`),
- *  aucun champ de décision — sa Difficulté est celle qu'il déclare. */
-export function fixerLeTest(...champs: readonly ChampExigibleDuTest[]) {
-  const exiger = exigerDuTest(...champs);
-  return (porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx): void => {
-    exiger(porteur, ctx);
-    refuserLaDecision(porteur, ctx, 'ce porteur fixe sa Difficulté, il ne la décide pas.');
-  };
+/** Ce qu'un porteur de Test fixe (`porteurDeTestFixe`) déclare : le nœud du Test qu'il compose (`testFixeSchema`), et
+ *  le nœud de chacun des champs de ce Test qu'il exige. */
+export interface TestFixe {
+  readonly test: unknown;
+  readonly exiges: readonly unknown[];
 }
+
+/** Les porteurs construits par `porteurDeTestFixe`, avec leur déclaration. */
+const TESTS_FIXES = new WeakMap<object, TestFixe>();
+
+/** Déclare `porteur`, dont le Test exige les `champs`, et le rend. */
+function declarerTestFixe<N extends z.ZodType>(porteur: N, champs: readonly ChampExigibleDuTest[]): N {
+  TESTS_FIXES.set(porteur, { test: testFixeSchema, exiges: champs.map((c) => testFixeSchema.shape[c]) });
+  return porteur;
+}
+
+/** La déclaration (`TestFixe`) d'un porteur construit par `porteurDeTestFixe`, `undefined` si le nœud n'en est pas un. */
+export const declarationDeTestFixe = (noeud: unknown): TestFixe | undefined =>
+  typeof noeud === 'object' && noeud !== null ? TESTS_FIXES.get(noeud) : undefined;
 
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à sa cible
  *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite).
@@ -1282,8 +1413,8 @@ export const extendedTestSchema = nommerChamps(z.strictObject({
   label: z.string(),
   ...cibleEtendueSchema.shape,
   flag: z.string().optional(),
-  /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
-   *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
+  /** ENJEU du Test (#1117) — l'enjeu d'un document (`stakeRefSchema`), résolu par `resolveStake` et
+   *  affiché par la modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
   stake: stakeRefSchema.optional(),
 }), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), ...metaDesChamps(decisionDuTestSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
 
@@ -1307,18 +1438,13 @@ export interface OptionsNoeudTest {
    * `spellOps` APLATIRAIT les ops — promises quelle que soit l'issue. Le contrat les REFUSE.
    */
   readonly echecSeulServi?: boolean;
-  /**
-   * La Difficulté du nœud se décide au PORTEUR (`difficultyBySeverity` du cycle de maladie, lu par
-   * `engine/disease.ts`) : le Test ne porte aucun champ de décision (`NoeudDecideAuPorteur`).
-   */
-  readonly decisionAuPorteur?: boolean;
 }
 
 /**
  * Un Flow est-il une branche PLATE ? — que des `sequence`/`effet` : aucun embranchement dont `spellOps`
  * (extraction plate) promettrait les ops des deux côtés. Rend le `kind` fautif, ou `null`.
  */
-function kindDEmbranchement(flow: Flow<unknown>): string | null {
+function kindDEmbranchement(flow: Flow<unknown, unknown, unknown>): string | null {
   if (flow.kind === 'sequence') {
     for (const e of flow.etapes) {
       const k = kindDEmbranchement(e);
@@ -1330,27 +1456,36 @@ function kindDEmbranchement(flow: Flow<unknown>): string | null {
 }
 
 /**
- * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:559`) — jet ALÉATOIRE interactif dont l'issue
+ * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts`) — jet ALÉATOIRE interactif dont l'issue
  * choisit la branche `reussite` ou `echec`. Le nœud ne dépend PAS du type de la feuille `effet` de ses
  * branches : seul le schéma de BRANCHE change (`arbreDeFlow`, composé par `flowSchema` mécanique et
  * `sceneFlowSchema`, `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré
  * par sa branche — `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
  */
 export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeudTest = {}) {
-  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test: flowTestSchema, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
-  const exige = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
-  const noeud = options.decisionAuPorteur
-    ? exige.superRefine((v, ctx) => refuserLaDecision(v, ctx, 'la Difficulté de ce nœud se décide au porteur.'))
-    : exige;
+  return noeudDeTest(flowTestSchema, branche, options);
+}
+
+/** NŒUD `test` dont le PORTEUR décide la Difficulté (`difficultyBySeverity` du cycle de maladie, lu par
+ *  `engine/disease.ts`) : son Test est FIXE (`porteurDeTestFixe`), `difficulty` exigée. */
+export function noeudTestFixe<B extends z.ZodType>(branche: B, options: Pick<OptionsNoeudTest, 'echecSeulServi'> = {}) {
+  return porteurDeTestFixe(noeudDeTest(testFixeSchema, branche, options), 'difficulty');
+}
+
+/** Le nœud `test` de `noeudTest`, sur le Test `test` : de flux, fixe, ou de scène. */
+function noeudDeTest<T extends typeof flowTestSchema | typeof testFixeSchema | typeof testDeSceneSchema, B extends z.ZodType>(test: T, branche: B, options: OptionsNoeudTest) {
+  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
+  const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
-    // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
-    // FORME du nœud de Flow est inspectée — celle que `flowCore.ts` déclare pour tout `Flow<E>`.
-    const v = valeur as FlowTestNode<unknown>;
+    // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : la sortie d'un objet zod sur un `B` générique est un
+    // type mappé DIFFÉRÉ, que TS ne réduit pas à sa contrainte ; seule la FORME du nœud de Flow est inspectée —
+    // celle que `flowCore.ts` déclare pour tout `Flow<E, T, C>`.
+    const v = valeur as FlowTestNode<unknown, unknown, unknown>;
     if (v.reussite.kind !== 'sequence' || v.reussite.etapes.length > 0) {
       ctx.addIssue({
         code: 'custom',
-        path: ['reussite' satisfies keyof FlowTestNode<unknown>],
+        path: ['reussite' satisfies keyof FlowTestNode<unknown, unknown, unknown>],
         message:
           'ce nœud ne SERT que sa branche d’ÉCHEC : une branche « reussite » peuplée ne serait jamais jouée. '
           + 'Elle s’écrit vide : {kind:"sequence",etapes:[]}.',
@@ -1360,7 +1495,7 @@ export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeud
     if (embranchement) {
       ctx.addIssue({
         code: 'custom',
-        path: ['echec' satisfies keyof FlowTestNode<unknown>],
+        path: ['echec' satisfies keyof FlowTestNode<unknown, unknown, unknown>],
         message:
           'branche d’ÉCHEC à EMBRANCHEMENT (« ' + embranchement + ' ») : ce nœud est lu par extraction PLATE '
           + '(spellOps), qui appliquerait les ops des DEUX côtés. La branche d’échec ne porte que des feuilles « effet ».',
@@ -1380,17 +1515,47 @@ export const effectOnSchema = enumNomme({
   empoigne: 'la victime empoignée (absorbée)',
 });
 
-/** `EffectTargeting` (`engine/flowCore.ts:632`). */
+/** CIBLE(S) d'un effet déclenché : le porteur (`soi`), la victime touchée (`victime`), les adversaires
+ *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
+ *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
+ *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
+ *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus, sauf
+ *  `centreCompris` qui inclut le CENTRE seul : avec `near:'soi'` le centre est le porteur, avec
+ *  `near:'victime'` le porteur reste exclu (aucun porteur réel ne s'y vise). `radiusInnerMeters`
+ *  fait une COURONNE : la distance doit DÉPASSER ce rayon intérieur. Les deux rayons passent par la
+ *  même conversion en cases (`porteeEnCases`), d'où des couronnes jointives sans recouvrement (#4202).
+ *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
+ *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
+ *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
+ *  par tout effet « happe le plus proche petit ennemi engagé ». */
 export const effectTargetingSchema = z.union([
   variante('Cible désignée', effectOnSchema),
-  nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
+  nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number(), radiusInnerMeters: z.number().optional(), centreCompris: z.literal(true).optional() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" }, radiusInnerMeters: { label: "au-delà de (mètres)" }, centreCompris: { label: "centre compris" } }),
   nommerChamps(z.strictObject({ pick: z.literal('engages'), sizeAtMost: z.literal('soi').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
 
-/** DÉCLENCHEUR d'un `TriggeredEffect` (`EffectTrigger`, `engine/flowCore.ts`). Le `satisfies` garde
- *  l'exhaustivité de COMPILATION que le Record d'affichage tenait : un trigger ajouté à l'union sans
- *  son libellé ici ne compile pas. La taxonomie du recensement d'événements de combat
- *  (`src/combat-event-emission-coverage.test.ts`) en dérive. */
+/** DÉCLENCHEUR d'un effet « sur événement » — le pendant du « au lancement » des sorts. Partagé par
+ *  TOUT porteur d'effets déclenchés (Trait de créature, Atout d'arme, Talent…). `onHit` : après une
+ *  touche réussie (du porteur ou de l'arme) ; `onWoundLoss` : quand le porteur PERD des PB ;
+ *  `onRoundStart` : au début de son Round ; `onStartled` : magie / bruit fort ; `onKill` : adversaire
+ *  mis hors de combat ; `onGainCondition` : le porteur vient de GAGNER un État (filtré par `condition` —
+ *  Mâchoires d'acier : « chaque fois que vous gagnez un État Sonné »).
+ *  `onWoundLoss` se produit pour TOUTE perte de PB (mêlée OU distance) ; le TYPE d'attaque voyage dans le
+ *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
+ *  `onCrit` : chaque Blessure critique non létale infligée, et le Critique refusé par une coque routière,
+ *  où seuls les effets `coupCritique` jouent (EDOC 07 l.334 ; #4202) ; son origine voyage dans le contexte
+ *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
+ *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
+ *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).
+ *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 l.98) et tout futur effet « à la mort ».
+ *  Cycle de vie du COMBAT (au point de hook correspondant — cf. `combatHooks`) : `onCombatStart` (le
+ *  combat débute), `onCombatEnd` (le combat se résout, AVANT l'écran de victoire), `onRoundEnd` (fin de
+ *  Round, après l'entretien), `onTurnStart`/`onTurnEnd` (début/fin du tour du porteur).
+ *  Cycle de l'HORLOGE de campagne (émis par `noyau/clockHooks`, au franchissement de jour de
+ *  `runDailyUpkeep`) : `onDayStart` — une fois par JOUR calendaire franchi, rattrapage compris (trois
+ *  jours sautés = trois émissions) ; `onWake` — au RÉVEIL, c'est-à-dire le jour d'une nuit JOUÉE
+ *  (`lastNightDay`) seulement : une avance d'horloge de 24 h sans sommeil ne l'émet pas.
+ *  La taxonomie du recensement d'événements de combat (`src/combat-event-emission-coverage.test.ts`) en dérive. */
 export const effectTriggerSchema = enumNomme({
   onHit: 'À la touche',
   onCrit: 'Sur un Critique',
@@ -1411,8 +1576,13 @@ export const effectTriggerSchema = enumNomme({
   onAttackResolved: 'Après une attaque résolue',
   onCastResolved: 'Après une incantation résolue',
   onMiscast: 'Sur une Imparfaite',
+  /** Le PORTEUR vient d'ÉCHOUER un Test (n'importe lequel : combat, scène, entretien) — `ctx.margin` = le
+   *  DR de l'échec (négatif). Les paliers de gravité s'expriment en DONNÉE via la Condition `slThreshold`
+   *  (jamais de bande codée en dur au moteur) : Crampes abdominales (MSRC 16 l.152-158) réagissent à
+   *  `slThreshold(≤-2)`/`(≤-4)`/`(≤-6)`. Émis par `fireOwnTestFailed` (noyau/triggeredEffects), qui garde
+   *  la RÉ-ENTRANCE (un Test résolu PENDANT le traitement ne ré-émet jamais). */
   onOwnTestFailed: 'En échouant à un Test',
-} satisfies Record<EffectTrigger, string>);
+});
 
 
 /** `StageOutcome` (`src/engine/activities.ts:82-84`) — effet de portée Étape (Activités + Rencontres
@@ -1603,24 +1773,48 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   marcheDuPort: 'Marché d’un port',
 };
 
+/** La feuille `noeud` d'un payload au dialecte du Péché : `formulaSchema` (facultative ou non) devient `formulaSinSchema`. */
+const feuilleAuPeche = (noeud: z.ZodType): z.ZodType =>
+  noeud === formulaSchema ? formulaSinSchema
+    : noeud instanceof z.ZodOptional && noeud.unwrap() === formulaSchema ? formulaSinSchema.optional()
+      : noeud;
+
+/** Le payload construit `noeud` de l'op `op` au dialecte du Péché : un CLONE (méta, contrôles et message d'union hérités)
+ *  dont les feuilles de formule de premier niveau passent par `feuilleAuPeche`. Sans feuille de formule, il ressort identique. */
+function payloadAuPeche(noeud: z.ZodType, op: string): z.ZodType {
+  if (noeud instanceof z.ZodObject) {
+    const shape: z.ZodRawShape = Object.fromEntries(Object.entries(noeud.shape).map(([champ, v]) => [champ, feuilleAuPeche(v)]));
+    if (Object.entries(shape).every(([champ, v]) => v === noeud.shape[champ])) return noeud;
+    return marquerProduit(noeud.clone(z.util.mergeDefs({ ...defDe(noeud) }, { shape }), { parent: true }), 'payloadsDe', op);
+  }
+  if (noeud instanceof z.ZodUnion) {
+    const options = noeud.options.map((o) => (o instanceof z.ZodType ? payloadAuPeche(o, op) : o));
+    if (options.every((o, i) => o === noeud.options[i])) return noeud;
+    return marquerProduit(noeud.clone(z.util.mergeDefs({ ...defDe(noeud) }, { options }), { parent: true }), 'payloadsDe', op);
+  }
+  return noeud;
+}
+
 /** Payloads d'une famille, chacun nommé par le libellé de son op (`OP_LABEL`) : une FORME se ferme en `z.strictObject`,
- *  ses champs à choix au régime demandé. */
+ *  ses champs à choix au régime demandé, ses feuilles de formule au régime `formule`. */
 function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown>>> {
+  const auPeche = regimes.formule === 'peche';
+  const feuille = (noeud: z.ZodType): z.ZodType => (auPeche ? feuilleAuPeche(noeud) : noeud);
   return Object.fromEntries(
     Object.entries(DECLARATIONS_D_OPS).map(([op, d]) => {
       const nomme = <N extends z.ZodType>(noeud: N): N => nommerNoeud(noeud, { label: OP_LABEL[op as GameOp['op']] });
-      if (estNoeudZod(d)) return [op, nomme(d)];
+      if (estNoeudZod(d)) return [op, nomme(auPeche ? payloadAuPeche(d, op) : d)];
       const admis = (champ: string, v: unknown): v is ChampReserveDeclare =>
         v instanceof ChampReserveDeclare && regimes[`${op}.${champ}` as ChampReserve] === 'admis';
       const entrees = Object.entries((d as PayloadDeclare).champs);
       const champs = entrees.flatMap(([champ, v]) =>
         v instanceof ChampAChoixDeclare ? [[champ, refOuSpec(v.cible, v.extra, regimes[`${op}.${champ}` as ChampAChoix] ?? 'specSeule')]]
-          : v instanceof ChampReserveDeclare ? (admis(champ, v) ? [[champ, v.noeud]] : [])
-            : [[champ, v]],
+          : v instanceof ChampReserveDeclare ? (admis(champ, v) ? [[champ, feuille(v.noeud)]] : [])
+            : [[champ, feuille(v)]],
       );
       const meta = Object.fromEntries(champs.map(([champ]) => [champ, (d as PayloadDeclare).meta[champ as string]]));
       // Les clés RÉSERVÉES admises sont le choix de la famille appelante (ses régimes).
-      const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, v.noeud]] : [])));
+      const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, feuille(v.noeud)]] : [])));
       const affinage = (d as PayloadDeclare).affinage;
       return [op, nomme(marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)).check(...(affinage ? [z.superRefine(affinage)] : [])), meta), 'payloadsDe', op, reservesAdmises))];
     }),
@@ -1654,15 +1848,29 @@ function refuserLaGratuiteNonTerminale(flow: Flow<EffectOp>, ctx: z.RefinementCt
   });
 }
 
-/** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
- *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
-export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
-  const flow: z.ZodType<Flow<E>> = z.lazy(() =>
+/** Une zone posée hors sort porte sa durée (`durationRounds`, #4202) : refuse une op `zone` qui n'en a pas
+ *  dans un Flow d'effet déclenché. */
+function refuserLaZoneSansDuree(flow: Flow<EffectOp>, ctx: z.RefinementCtx): void {
+  walkFlow(flow, (noeud, chemin) => {
+    if (noeud.kind !== 'effet') return;
+    noeud.effet.ops.forEach((o, i) => {
+      if (o.op === 'zone' && o.durationRounds === undefined) {
+        ctx.addIssue({ code: 'custom', path: ['flow', ...chemin, 'effet', 'ops', i], message: 'op « zone » hors sort sans « durationRounds » : la zone porte sa durée.' });
+      }
+    });
+  });
+}
+
+/** `Flow<E, T, C>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
+ *  par sa feuille `effet`, sa `Condition`, le coût d'Avantage de son `choix` et le Test de ses nœuds `test` :
+ *  la sortie de chacun de ces schémas est le paramètre de type du Flow produit. */
+export function arbreDeFlow<E, T, C>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<C>, test: (typeof flowTestSchema | typeof testDeSceneSchema) & z.ZodType<T>): z.ZodType<Flow<E, T, C>> {
+  const flow: z.ZodType<Flow<E, T, C>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
       variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('sequence'), etapes: z.array(flow) }), { kind: { label: "type"  }, etapes: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
       variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('effet'), effet: feuille }), { kind: { label: "type"  }, effet: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
       variante('Si', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('si'), condition, alors: flow, sinon: flow.optional() }), { kind: { label: "type"  }, condition: { label: "condition" }, alors: { label: "alors" }, sinon: { label: "sinon" } }), 'arbreDeFlow', 'flow.if')),
-      variante('Test', noeudTest(flow)),
+      variante('Test', noeudDeTest(test, flow, {})),
       variante('Choix', proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choix'),
         coutEnAvantage: coutDAvantage.optional(),
@@ -1673,6 +1881,30 @@ export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condi
     ]),
   );
   return flow;
+}
+
+/** Effet DÉCLENCHÉ authoré (`TriggeredEffect`, `engine/flowCore.ts`) : un Flow d'ops appliqué à `on` quand
+ *  `trigger` se produit, porté indifféremment par un Trait, un Atout, un talent, un État… Même vocabulaire
+ *  que les sorts (`runPureFlowLines`/`applyOps`), jamais un handler en dur. */
+function effetDeclencheSur(flow: z.ZodType<Flow<EffectOp>>) {
+  return marquerProduit(nommerChamps(z.strictObject({
+    trigger: effectTriggerSchema,
+    on: effectTargetingSchema,
+    flow: flow,
+    /** Filtre du déclencheur `onGainCondition` : ne réagit que si l'État GAGNÉ a cet `id` (Mâchoires
+     *  d'acier : `condition:'sonne'`). Absent = réagit à n'importe quel État gagné. Inerte pour les
+     *  autres triggers. */
+    condition: idDe('etat').optional(),
+    /** Filtre par TYPE d'attaque (`onHit`/`onWoundLoss`) : ne réagit que si la touche/perte provient d'une
+     *  attaque de ce type (`melee`/`distance`). Absent = tout type (LDB 85 l.310). Lu via `ctx.attackType`. */
+    attackType: genreDArmeSchema.optional(),
+    /** Filtre `onCrit` : le seul Coup Critique (`estUnCoupCritique(ctx.origine)`). LDB 62 l.248-250 ; VDM 12 l.910. */
+    coupCritique: z.boolean().optional(),
+    /** Effet OPT-IN (LDB 10 l.251-255) : le porteur CHOISIT de le déclencher. Héros en cadence MANUELLE →
+     *  proposé (étape de CHOIX de fin de Round, skippable) ; IA / cadence auto → JAMAIS exercé (ni décision
+     *  silencieuse ni jet caché). */
+    optional: z.boolean().optional(),
+  }).superRefine((v, ctx) => { refuserLaGratuiteNonTerminale(v.flow, ctx); refuserLaZoneSansDuree(v.flow, ctx); }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 }
 
 function construire(regimes: Regimes) {
@@ -1705,7 +1937,7 @@ function construire(regimes: Regimes) {
 
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
    *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `effet` par
-   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
+   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts`), et l'un des membres de l'union `Effect` de
    *  scène (`defs-scenes/effets.ts`). `on` = les 5 valeurs de
    *  l'interface TS : `'party'`/`'hero'`/`'navire'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
    *  ciblage `'soi'`/`'victime'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
@@ -1728,19 +1960,9 @@ function construire(regimes: Regimes) {
 
   // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
   // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
-  const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE));
+  const flow = arbreDeFlow<EffectOp, FlowTest, number | typeof INDICE_TEMPLATE>(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE), flowTestSchema);
 
-  /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:635`). `optional` (Contrôle de la Frénésie…)
-   *  seule 1/9 des JSON le peuple (`talents.json`) — laissé optionnel, sans risque pour les autres. */
-  const triggeredEffect = marquerProduit(nommerChamps(z.strictObject({
-    trigger: effectTriggerSchema,
-    on: effectTargetingSchema,
-    flow: flow,
-    condition: idDe('etat').optional(),
-    attackType: genreDArmeSchema.optional(),
-    coupCritique: z.boolean().optional(),
-    optional: z.boolean().optional(),
-  }).superRefine((v, ctx) => refuserLaGratuiteNonTerminale(v.flow, ctx)), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
+  const triggeredEffect = effetDeclencheSur(flow);
 
   /** Entrée d100 d'une table de voyage (`TravelTableEntry`, `src/engine/travelTables.ts`), partagée par
    *  `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
@@ -1758,10 +1980,10 @@ function construire(regimes: Regimes) {
      *  déduite de son id. Une entrée sans `mount` ne laisse aucune séquelle. */
     mount: marquerProduit(nommerChamps(z.strictObject({
       /** Test du CAVALIER, sous peine de chute de `fallM` mètres (l.166/l.171). */
-      riderTest: marquerProduit(nommerChamps(z.strictObject({
-        test: flowTestSchema,
+      riderTest: porteurDeTestFixe(marquerProduit(nommerChamps(z.strictObject({
+        test: testFixeSchema,
         fallM: z.number(),
-      }).superRefine(fixerLeTest('skill', 'difficulty')), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
+      }), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest'), 'skill', 'difficulty').optional(),
       /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
       ridingPenalty: z.number().optional(),
       /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */
@@ -1834,10 +2056,10 @@ export function mecaniqueDe(regimes: Regimes): FamilleMecanique {
   const entrees = (Object.entries(regimes) as [string, RegimeDePorteur | 'admis' | undefined][])
     .filter(([, r]) => r !== undefined && r !== 'specSeule')
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  const declares: readonly string[] = [...CHAMPS_A_CHOIX, ...CHAMPS_RESERVES, ...CONDITIONS_RESERVEES.map((k) => `condition.${k}`)];
+  const declares: readonly string[] = [...CHAMPS_A_CHOIX, ...CHAMPS_RESERVES, ...CONDITIONS_RESERVEES.map((k) => `condition.${k}`), 'formule'];
   for (const [champ] of entrees) {
     if (!declares.includes(champ)) {
-      throw new Error(`mecaniqueDe : « ${champ} » n'est aucun champ à choix ni réservé déclaré (${declares.join(', ')}).`);
+      throw new Error(`mecaniqueDe : « ${champ} » n'est aucun régime déclaré (${declares.join(', ')}).`);
     }
   }
   const cle = JSON.stringify(entrees);
@@ -1894,9 +2116,22 @@ export function executeesDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodArray<z.
   REGIMES_DES_LISTES.set(liste, 'executee');
   return liste;
 }
+
+/** Un champ `T` de payload au régime `formule: 'peche'` : une `Formula` (facultative ou non) admet `FormuleAuPeche`, comme
+ *  `feuilleAuPeche` la substitue au schéma. */
+type FeuilleAuPeche<T> = [Exclude<T, undefined>] extends [Formula]
+  ? [Formula] extends [Exclude<T, undefined>] ? FormuleAuPeche | Extract<T, undefined> : T
+  : T;
+
+/** Une op `O` au régime `formule: 'peche'` : chacun de ses champs de premier niveau passe par `FeuilleAuPeche`. */
+type AuPeche<O> = O extends unknown ? { [K in keyof O]: FeuilleAuPeche<O[K]> } : never;
+
+/** Liste d'ops EXÉCUTÉE au dialecte du Péché (régime `formule: 'peche'`), portée par une rangée de `miscast.json` : le
+ *  moteur la lit par `gameOpSchema` après avoir lié le Péché (`engine/miscast.ts`). LDB 40 l.46 */
+export const opsAuPecheSchema: z.ZodType<AuPeche<GameOp>[]> = executeesDe(mecaniqueDe({ formule: 'peche' }).gameOp);
 export const effectOpSchema = FERMEE.effectOp;
 export const flowSchema: z.ZodType<Flow<EffectOp>> = FERMEE.flow;
-export const triggeredEffectSchema: z.ZodType<TriggeredEffect<EffectOp>> = FERMEE.triggeredEffect;
+export const triggeredEffectSchema: ReturnType<typeof effetDeclencheSur> = FERMEE.triggeredEffect;
 export const travelTableEntrySchema = FERMEE.travelTableEntry;
 export const shipCrewHitSchema = FERMEE.shipCrewHit;
 export const shipCritEntrySchema = FERMEE.shipCritEntry;

@@ -52,7 +52,7 @@ describe('firedWeapon — bélier ADE II (Équipe 6) : −20 plat en sous-effect
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     const all = [mkEmplacement(poste), chef, ...crewIds.slice(1).map((id) => mkCrewman(id)), mkEnemy('cible', 6, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(chef, mkEnemy('cible', 6, 5), poste.item.uid, all);
+    const w = firedWeapon(groundScene(), chef, mkEnemy('cible', 6, 5), poste.item.uid, all);
     expect(w.crewTeamIncomplete).toBeUndefined();
     expect(w.resolveChar).toBe('force'); // Force, pas CC
     expect(w.reload).toBe(0); // ADE II n'a AUCUNE Recharge (≠ AA) — rien à doubler
@@ -64,7 +64,7 @@ describe('firedWeapon — bélier ADE II (Équipe 6) : −20 plat en sous-effect
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     const all = [mkEmplacement(poste), chef, ...crewIds.slice(1).map((id) => mkCrewman(id)), mkEnemy('cible', 6, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(chef, mkEnemy('cible', 6, 5), poste.item.uid, all);
+    const w = firedWeapon(groundScene(), chef, mkEnemy('cible', 6, 5), poste.item.uid, all);
     expect(w.crewTeamIncomplete).toBe(true);
     expect(firedAttackBlock(mkGet(groundScene(), all), chef, mkEnemy('cible', 6, 5), poste.item.uid)).toBeNull();
   });
@@ -85,7 +85,7 @@ describe('firedWeapon — bélier ADE II (Équipe 6) : −20 plat en sous-effect
     const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     const all = [mkEmplacement(poste), chef, mkCrewman('c1'), mkEnemy('cible', 12, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(chef, mkEnemy('cible', 12, 5), poste.item.uid, all);
+    const w = firedWeapon(groundScene(), chef, mkEnemy('cible', 12, 5), poste.item.uid, all);
     expect(w.crewTeamIncomplete).toBe(true);
     expect(w.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(false); // ADE II ne porte PAS cette Qualité AA
   });

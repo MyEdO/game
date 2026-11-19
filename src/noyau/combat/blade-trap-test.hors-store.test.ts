@@ -1,10 +1,9 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
-import { fixtureText } from '../../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parseQualityInstance } from '../../data/refFormatLivre';
 import { isUnarmed } from '../../engine/items';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { pushChoice } from '../rollSeam';
+import { proposerLePiegeALame } from '../combatFlow';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../battleRng';
 import { resolveOpposed } from '../../engine/tests';
@@ -13,7 +12,7 @@ import { skillBaseValue } from '../../engine/skills';
 
 import { testScene } from '../../scenes/test-fixture';
 import type { PendingBladeTrap } from '../pendings';
-import type { Weapon } from '../../engine/types';
+import type { Combatant, Weapon } from '../../engine/types';
 import { setCadence } from '../../engine/cadence';
 
 let banc: Banc;
@@ -46,14 +45,11 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
 
   /** Pousse l'étape de CHOIX « piège-lame » (créée en production au Critique défensif) puis tranche `trap`
    *  et avance → l'applier route le Test opposé cadence-aware (héros manuel → étape `testDeclenche`). */
-  function openTrapChoice(H: { id: string }, A: { id: string }, weapon: Weapon, defSL: number) {
-    const pbt: PendingBladeTrap = { defenderId: H.id, attackerId: A.id, weapon, parryWeaponUid: 'parry-uid', defSL, roll: 33 };
-    pushChoice(banc.setState, {
-      id: 'cons-piege-a-lame', kind: 'piegeALame', actorId: H.id, icon: 'objet/arme', label: fixtureText('Parade — piéger la lame ?'),
-      options: [{ key: 'piege', label: fixtureText('Piéger la lame') }, { key: 'critique', label: fixtureText('Coup Critique') }],
-      defaultChoice: 'critique', piegeLame: pbt,
-    });
-    banc.getState().jetRegler('cascade', 'choix', 'piege', 'cons-piege-a-lame');
+  function openTrapChoice(H: Combatant, A: Combatant, weapon: Weapon, defSL: number) {
+    const parade = bladedWeapon('parry-uid');
+    const pbt: PendingBladeTrap = { defenderId: H.id, attackerId: A.id, weapon, parryWeaponUid: parade.uid!, defSL, roll: 33 };
+    proposerLePiegeALame(banc.setState, pbt, H, A, parade);
+    banc.getState().jetRegler('cascade', 'choix', 'piege', `cons-piege-a-lame-${H.id}`);
     banc.getState().jetValider('cascade'); // commit du choix → l'applier append l'étape `testDeclenche`
   }
 

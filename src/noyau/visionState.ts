@@ -7,7 +7,18 @@
  */
 import { Scene, sceneMetresPerTile } from './monde/scene';
 import { Pt } from './monde/path';
-import { computeVisible, computeLightField, ambientScalar, baseSightTiles, darkSightTiles, mapLights, combatantLights, buildOpaque, type LightSource, type Occ } from './monde/vision';
+import {
+  computeVisible,
+  computeLightField,
+  ambientScalar,
+  baseSightTiles,
+  darkSightTiles,
+  mapLights,
+  combatantLights,
+  buildOpaque,
+  type LightSource,
+  type Occ,
+} from './monde/vision';
 import { memoByRef, memoByRefDeps } from './monde/sceneMemo';
 import { meneurDuMonde } from './monde/combatants';
 import { smokeOf } from './monde/combatGeometry';
@@ -31,7 +42,7 @@ export interface VisionInput {
  *  le même gate de port et les mêmes rayons. PUR. */
 export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'party' | 'partyPos'>): LightSource[] {
   const mpt = sceneMetresPerTile(s.scene!);
-  const sources = mapLights(s.scene!);
+  const sources = [...mapLights(s.scene!)];
   if (s.battle) {
     for (const c of s.battle.combatants) sources.push(...combatantLights(c, mpt));
     return sources;
@@ -143,7 +154,7 @@ export function perceivedTiles(s: VisionInput, viewer: Combatant): Set<string> {
   const { light, smoke } = sceneLightField(s, occ);
   return computeVisible(
     s.scene,
-    [{ pos: viewer.pos, radiusTiles: baseSightTiles(s.scene, s.gameTime), darkTiles: darkSightTiles(viewer) }],
+    [{ pos: viewer.pos, z: viewer.pos.z, radiusTiles: baseSightTiles(s.scene, s.gameTime), darkTiles: darkSightTiles(viewer) }],
     light,
     smoke,
     occ,

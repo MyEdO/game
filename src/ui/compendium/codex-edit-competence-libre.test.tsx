@@ -23,7 +23,6 @@ afterEach(() => {
   container.remove();
 });
 
-type Activite = { id: string; freeSkill?: { id: string; spec?: string }[] };
 const ID = 'pratiquer-competence';
 
 function monter() {
@@ -44,7 +43,7 @@ describe('atelier du Codex — Compétence libre d’une Activité', () => {
   });
 
   it('vidée, `freeSkill` retourne à l’absence : Enregistrer passe le schéma, l’entrée ne porte plus de `freeSkill`', async () => {
-    const avant = (datasetArray('activities') as Activite[]).slice();
+    const avant = datasetArray('activities').slice();
     expect(avant.find((a) => a.id === ID)?.freeSkill?.length, 'Pratiquer ne porte aucune Compétence libre').toBeGreaterThan(0);
     try {
       monter();
@@ -53,11 +52,11 @@ describe('atelier du Codex — Compétence libre d’une Activité', () => {
       const enregistrer = container.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!;
       expect(enregistrer.disabled, 'le vidage n’a rien émis').toBe(false);
       await act(async () => { enregistrer.click(); });
-      const posee = (datasetArray('activities') as Activite[]).find((a) => a.id === ID)!;
+      const posee = datasetArray('activities').find((a) => a.id === ID);
       expect(posee, 'l’enregistrement a été refusé').not.toBe(avant.find((a) => a.id === ID));
-      expect(posee.freeSkill, '`freeSkill: []` posé au lieu de l’absence').toBeUndefined();
+      expect(posee?.freeSkill, '`freeSkill: []` posé au lieu de l’absence').toBeUndefined();
     } finally {
-      setDataset('activities', avant as never);
+      setDataset('activities', avant);
     }
   });
 });

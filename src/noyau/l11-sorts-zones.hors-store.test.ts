@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyCast, zoneRadiusTilesAt } from './combatFlow';
+import { applyCast, castCommitZone, castZoneSpell, zoneRadiusTilesAt } from './combatFlow';
 import { wardedAgainst, organicProjectile } from './combat/hitModifiers';
 import { sceneMetresPerTile, emptyScene } from './monde/scene';
 import { createHero } from '../engine/character';
@@ -17,7 +17,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { GameOp } from '../engine/ops';
 
 let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); });
+beforeEach(() => { banc = ouvrirLeBanc({ desFixes: true }); });
 
 describe('L11 — zones persistantes posées par les sorts', () => {
   function setup() {
@@ -30,7 +30,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     banc.getState().ensemencerLeTirage(5);
     const b = banc.getState().battle!;
     const caster = b.combatants.find((c) => c.label === 'W')!;
-    caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
+    caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 70 });
     caster.characteristics['force-mentale'] = 40; // BFM 4
     caster.pos = { x: 5, y: 10 };
     const T = b.combatants.filter((c) => c.kind === 'ennemi')[0];
@@ -41,7 +41,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
   it('Mur de feu : mur perpendiculaire centré sur la cible, durée (BFM) Rounds, onCross armé', () => {
     const { caster, T } = setup();
     const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(banc.getState, banc.setState, caster, T, findSpellById('mur-de-feu')!, ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [T], findSpellById('mur-de-feu')!, ok, false, false);
     const wall = (banc.getState().battle!.zones ?? []).find((z) => z.label === 'Mur de feu')!;
     expect(wall).toBeTruthy();
     expect(wall.rounds).toBe(4); // (BFM 4) Rounds
@@ -53,10 +53,13 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     expect(wall.casterId).toBe(caster.id);
   });
 
-  it('Forêt d’épines : disque centré sur la cible, onCross Empêtré porte escapeStrength = FM du LANCEUR (LDB 48 l.749)', () => {
-    const { caster, T } = setup();
-    const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(banc.getState, banc.setState, caster, T, findSpellById('foret-d-epines')!, ok, false, false);
+  it('Forêt d’épines : onCross Empêtré porte escapeStrength = FM du lanceur (LDB 48 l.749)', () => {
+    const { caster } = setup();
+    castZoneSpell(banc.getState, banc.setState, caster, 'foret-d-epines');
+    banc.getState().jetLancer('incantation');
+    banc.getState().jetImposerLeResultat('incantation', 3);
+    banc.getState().jetValider('incantation');
+    castCommitZone(banc.getState, banc.setState, { x: 8, y: 10 });
     const zone = (banc.getState().battle!.zones ?? []).find((z) => z.label === 'Forêt d\'épines')!;
     expect(zone).toBeTruthy();
     const empetreOp = zone.onCross?.find((o): o is Extract<GameOp, { op: 'condition' }> => o.op === 'condition' && o.id.id === 'empetre');
@@ -66,8 +69,8 @@ describe('L11 — zones persistantes posées par les sorts', () => {
   it('Bouclier anti-flèches / Dôme : auras posées par le cast ; géométrie intérieur/extérieur', () => {
     const { caster, T } = setup();
     const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(banc.getState, banc.setState, caster, caster, findSpellById('bouclier-anti-fleches')!, ok, false, false);
-    applyCast(banc.getState, banc.setState, caster, caster, findSpellById('dome')!, ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('bouclier-anti-fleches')!, ok, false, false);
+    applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('dome')!, ok, false, false);
     const effects = caster.activeEffects ?? [];
     // Les DEUX auras déclarent leur zone par la ligne « Cible » de leur sort (`LDB 47 l.356` pour le
     // Bouclier anti-flèches, `l.408` pour le Dôme). Une ZdE est un DIAMÈTRE (`LDB 47 l.28`) : à BFM 4,
@@ -77,11 +80,12 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     // Géométrie : héros adjacent au porteur = couvert vs un tireur lointain…
     const ally = { ...caster, id: 'ally', activeEffects: [], pos: { x: 6, y: 10 } } as Combatant;
     const combatants = [caster, ally, T];
-    const mptTerre = sceneMetresPerTile(banc.getState().scene);
-    expect(wardedAgainst(combatants, T, ally, 'arrowWard', mptTerre)).toBe(true);
+    const terre = banc.getState().scene;
+    const mer = { ...terre!, metresPerTile: 10 };
+    expect(wardedAgainst(combatants, T, ally, 'arrowWard', terre)).toBe(true);
     // …mais un attaquant DANS la zone n'est pas gêné (le projectile n'« entre » pas).
     const inside = { ...T, id: 'in', pos: { x: 5, y: 11 } } as Combatant;
-    expect(wardedAgainst([caster, ally, inside], inside, ally, 'arrowWard', mptTerre)).toBe(false);
+    expect(wardedAgainst([caster, ally, inside], inside, ally, 'arrowWard', terre)).toBe(false);
     // ÉCHELLE DE LA SCÈNE (#1507) : l'aura reste chiffrée en MÈTRES, et sa conversion en cases est la
     // primitive partagée (`porteeEnCases`, plancher d'UNE case — formule verrouillée par
     // `echelle-de-scene.test.ts`). Avec la ZdE du RAW (4 m de DIAMÈTRE → 2 m de rayon), ce rayon tient
@@ -89,19 +93,13 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     // contraste « couvert à terre, découvert en mer » que ces lignes montraient tenait à un rayon de
     // 4 m — la zone DOUBLÉE que ce lot corrige (LDB 47 l.28 : une ZdE est un diamètre).
     const loin = { ...caster, id: 'loin', activeEffects: [], pos: { x: 7, y: 10 } } as Combatant;
-    expect(wardedAgainst([caster, loin, T], T, loin, 'arrowWard', mptTerre)).toBe(false);
-    expect(wardedAgainst([caster, loin, T], T, loin, 'arrowWard', 10)).toBe(false);
+    expect(wardedAgainst([caster, loin, T], T, loin, 'arrowWard', terre)).toBe(false);
+    expect(wardedAgainst([caster, loin, T], T, loin, 'arrowWard', mer)).toBe(false);
     // …et la case ADJACENTE au porteur reste couverte à toute échelle (plancher d'UNE case).
-    expect(wardedAgainst(combatants, T, ally, 'arrowWard', 10)).toBe(true);
+    expect(wardedAgainst(combatants, T, ally, 'arrowWard', mer)).toBe(true);
   });
 
-  /**
-   * GABARIT d'un sort de ZONE (#1507) — `op zone` écrit son rayon en MÈTRES (`radiusMeters`) ; c'est
-   * `zoneRadiusTilesAt` qui le pose en cases, à l'échelle de la SCÈNE. Une ZdE de 4 m couvre 2 cases
-   * à terre et 0 case en mer (0,4 case : le gabarit est plus petit que la maille, il ne déborde pas
-   * de la case posée). Le littéral `2` d'avant peignait 2 cases de 10 m, soit un disque de 40 m.
-   */
-  it('gabarit de ZONE : 4 m = 2 cases à 2 m/case, 0 case à 10 m/case', () => {
+  it('gabarit de zone : 4 m de rayon = 2 cases à 2 m/case, 0 case à 10 m/case', () => {
     const mptTerre = sceneMetresPerTile(emptyScene('scene-test', 1, 1));
     expect([mptTerre, zoneRadiusTilesAt(4, 0, mptTerre)]).toEqual([2, 2]);
     expect(zoneRadiusTilesAt(4, 0, 10)).toBe(0);
@@ -122,13 +120,12 @@ describe('L11 — zones persistantes posées par les sorts', () => {
       cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok',
       hit: true, woundsLost: 0, defenderDefeated: false, location: 'corps',
     };
-    applyCast(banc.getState, banc.setState, caster, T, findSpellById('grands-feux-d-u-zhul')!, ok, true, false);
+    applyCast(banc.getState, banc.setState, caster, [T], findSpellById('grands-feux-d-u-zhul')!, ok, true, false);
     const fire = (banc.getState().battle!.zones ?? []).find((z) => z.label === "Grands feux d'U'Zhul")!;
     expect(fire).toBeTruthy();
     expect(fire.rounds).toBe(4); // (BFM) Rounds
     expect(fire.perRound?.some((o) => o.op === 'wounds' && o.ignoreAP === true)).toBe(true);
-    // disque BFM 4 m → rayon 2 cases autour de la cible (10,10) → 5×5
-    expect(fire.tiles).toHaveLength(25);
+    expect(fire.tiles).toHaveLength(9);
     expect(fire.tiles.some((t) => t.x === 10 && t.y === 10)).toBe(true);
   });
 });

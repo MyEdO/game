@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "cage"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "45f9cadbdf493596643b8ebaf0bec184c1c9f64638fe3fe465001751f9273f64",
+    "octets": 109928
+  }
+}

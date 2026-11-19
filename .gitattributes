@@ -26,6 +26,13 @@
 # `main` y est en conflit. Le train la reprend par fusion locale, régénération des stocks de sites et
 # nouvelle tête (scripts/ops/etapesDuTrain.mjs, étape `file`, #2525).
 
+# imports : scripts/git-hooks/merge-imports.mjs, les blocs en conflit faits seulement de déclarations
+# `import` / `export` fusionnés par ensemble ; tout autre conflit reste celui de la 3-voies. Un motif de
+# la section suivante, écrit après ceux-ci, l'emporte sur eux.
+*.ts  merge=imports
+*.tsx merge=imports
+*.mts merge=imports
+*.mjs merge=imports
 
 # stocks : scripts/git-hooks/merge-stocks.mjs, par groupe de site (`FORMATS`,
 # scripts/guards/lib/stockDeSites.mjs) ; un fichier sans collection de sites retombe sur la 3-voies.

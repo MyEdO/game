@@ -156,9 +156,8 @@ describe('tables migrées — sweep d\'application', () => {
     }
   });
 
-  it('« Tenue indisciplinée » (LDB 46) : escapeStrength (1d10×5) SURVIT à expandOp → GameOp résolu', () => {
-    // Preuve TDD de la propagation `JsonOp.escapeStrength` → `GameOp.escapeStrength` par `expandOp`
-    // (`engine/miscast.ts`) : sans elle, l'Empêtré de cette entrée perd sa Force d'évasion à la
+  it('« Tenue indisciplinée » (LDB 46) : escapeStrength (1d10×5) SURVIT à l’expansion → GameOp résolu', () => {
+    // Propagation de `escapeStrength` de la rangée au `GameOp` par `lierLesOps` (`engine/miscast.ts`) : sans elle, l'Empêtré de cette entrée perd sa Force d'évasion à la
     // résolution (silencieusement, un Test opposé simple au lieu du 1d10×5 RAW).
     let found = false;
     for (let seed = 0; seed < 400 && !found; seed++) {
@@ -244,10 +243,10 @@ describe('tables migrées — sweep d\'application', () => {
   });
 });
 
-// Mitigation des Blessures : `miscast.json` la DÉCLARE par entrée (`ignoreTB`/`ignoreAP`), `expandOp`
+// Mitigation des Blessures : `miscast.json` la DÉCLARE par entrée (`ignoreTB`/`ignoreAP`), `lierLesOps`
 // (`miscast.ts`) la recopie sur le `GameOp` `wounds`, `applyOps` la déduit (`ops.ts`). Trois entrées
 // aux trois régimes du RAW — le câblage saute si l'un des trois étages perd les champs.
-describe('mitigation déclarée des Blessures — donnée → expandOp → applyOps', () => {
+describe('mitigation déclarée des Blessures — donnée → lierLesOps → applyOps', () => {
   function woundsOf(sev: Parameters<typeof rollMiscast>[0], rowId: string) {
     for (let seed = 0; seed < 600; seed++) {
       const r = rollMiscast(sev, makeRNG(seed), 3);
@@ -367,7 +366,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   it('une op gatée atteinte par un dé SOUS le rejeu annonce une POSE, jamais « le tient toujours »', () => {
     const c = hero();
     const roulee: GameOp = {
-      op: 'rollTable', die: 'd10',
+      op: 'rollTable', die: { n: 1, sides: 10 },
       entries: [{ min: 1, max: 10, ops: [{ op: 'condition', id: { id: 'aveugle' }, value: 1, unlessCondition: { id: 'aveugle' } }] }],
     };
     c.activeEffects = [{ label: 'Nuée', bonus: 0, duration: { scale: 'rounds', left: 2 }, opsPerRound: [roulee] }];
@@ -421,7 +420,7 @@ describe('enjeu du Test imbriqué d’une rangée tirée (#1667)', () => {
       const r = rollMiscast('mineure', makeRNG(1), 0, undefined, 53);
       expect(r.rowId).toBe('mineure-vdm-visions-impies');
       const test = r.testFlow as Extract<Flow, { kind: 'test' }>;
-      expect(test.test.stake?.key).toMatchObject({ entryId: 'mineure-vdm-visions-impies', entryCategory: 'imparfaiteMineureVdm' });
+      expect(test.test.stake).toMatchObject({ key: { entryId: 'mineure-vdm-visions-impies', entryCategory: 'imparfaiteMineureVdm' } });
     } finally {
       resetRule('magie-vdm-incantation');
     }

@@ -79,13 +79,13 @@ describe('États récurrents (« un par Round »)', () => {
     const c = pair().ally;
     c.items = [];
     // Durée 1 Round portée à 3 par Surincantation de Durée → 3 Rations (1 par Round actif).
-    applyOps(c, [{ op: 'perRound', ops: [{ op: 'giveTrapping', custom: 'Ration (1 jour)' }] }],
+    applyOps(c, [{ op: 'perRound', ops: [{ op: 'giveTrapping', trappingId: 'ration' }] }],
       { idNeuf: idsDeTest, rng: desDuTest, label: 'Récolte de Rhya', defaultDurationRounds: 3 });
-    expect((c.items ?? []).filter((it) => /^ration/i.test(it.label)).length).toBe(0); // rien à l'incantation
+    expect((c.items ?? []).filter((it) => it.trappingId === 'ration').length).toBe(0); // rien à l'incantation
     endOfRound(c, makeRNG(1), idsDeTest);
     endOfRound(c, makeRNG(1), idsDeTest);
     endOfRound(c, makeRNG(1), idsDeTest);
-    expect((c.items ?? []).filter((it) => /^ration/i.test(it.label)).length).toBe(3);
+    expect((c.items ?? []).filter((it) => it.trappingId === 'ration').length).toBe(3);
     expect(c.activeEffects?.length ?? 0).toBe(0); // effet porteur dissipé après 3 Rounds
   });
 });
@@ -107,14 +107,14 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
     const downed = { ...stub('e3', 'ennemi', 3, 0), conditions: [{ id: 'inconscient', value: 1 }] }; // Mort Subite au dépassement : LDB 18 l.46
     const dead = { ...stub('e4', 'ennemi', 4), dead: true };
     const pool = [caster, stub('e1', 'ennemi', 1), stub('e2', 'ennemi', 2), downed, dead];
-    const ids = overcastTargetCandidates(pool, caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
+    const ids = overcastTargetCandidates(null, pool, caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['e2']);
   });
 
   it('Projectile : les cibles supplémentaires doivent être À PORTÉE du Sort', () => {
     const caster = stub('w', 'heros', 0); // Carreau : Portée FM mètres → FM 30 = 15 cases
     const far = stub('e3', 'ennemi', 90);
-    const ids = overcastTargetCandidates([caster, stub('e1', 'ennemi', 1), stub('e2', 'ennemi', 2), far], caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
+    const ids = overcastTargetCandidates(null, [caster, stub('e1', 'ennemi', 1), stub('e2', 'ennemi', 2), far], caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['e2']);
   });
 
@@ -123,7 +123,7 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
     const ko = stub('h2', 'heros', 1, 0);
     addCondition(ko, 'inconscient', 1);
     const dead = { ...stub('h3', 'heros', 2), dead: true };
-    const ids = overcastTargetCandidates([caster, stub('h1', 'heros', 3), ko, dead], caster, 'h1', { range: null }, false, 'arcane', 0).map((c) => c.id);
+    const ids = overcastTargetCandidates(null, [caster, stub('h1', 'heros', 3), ko, dead], caster, 'h1', { range: null }, false, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['w', 'h2']);
   });
 });
@@ -167,11 +167,8 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const { priest, ally } = pair();
     const wiz = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [wiz, priest, ally] as Combatant[] });
-    const sort = { ...findSpellById('benediction-de-bataille')!, type: 'Magie des Arcanes', cn: 0 }; // gabarit +10 CC 6 rounds en SORT
-    applyCast(banc.getState, banc.setState, wiz, priest, sort, okRes(4), false, false, undefined, {
-      durationMult: 2,
-      extraTargets: [ally],
-    });
+    const sort = { ...findSpellById('benediction-de-bataille')!, family: 'arcane' as const, cn: 0 }; // gabarit +10 CC 6 rounds en SORT
+    applyCast(banc.getState, banc.setState, wiz, [priest, ally], sort, okRes(4), false, false, undefined, { durationMult: 2 });
     const p = banc.getState().party.find((h) => h.id === priest.id)!;
     const a = banc.getState().party.find((h) => h.id === ally.id)!;
     expect(p.activeEffects?.[0]).toMatchObject({ characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 12 } }); // 6 ×2

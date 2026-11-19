@@ -2,10 +2,10 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.39-351 */
 import { z } from 'zod';
 import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, ecartsDeCouverture, maisonSchema, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { deDuParse, difficultySchema, ecartsDeCouverture, maisonSchema, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 import { ref } from '../grammaire/ref';
-import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
-import { parseDice, totalDuDe } from '../../../engine/dice';
+import { facesDuDe } from '../../../engine/tables';
+import { totalDuDe } from '../../../engine/dice';
 
 export const file = 'sea-navigation.json';
 export const famille = 'config';
@@ -179,19 +179,15 @@ const champs = {
     portCostGoldPerWound: z.number(),
     testHours: tirageSchema,
     woundsPerTest: tirageSchema,
-    charpentierPenalty: z.number(),
     lissageRepairSurcoutPct: z.number(),
+    charpentierMalus: z.number().int().max(0),
+    piecesEncParTranche: z.number().int().min(1),
+    piecesBlessuresParTranche: z.number().int().min(1),
     source: sourceRefSchema,
     temporaire: nommerChamps(z.strictObject({
-      difficultyMin: difficultySchema,
-      difficultyMax: difficultySchema,
-      hoursPerRepair: z.number(),
       woundsPerRepair: tirageSchema,
       failDamage: tirageSchema,
     }), {
-      difficultyMin: { label: 'Difficulté minimale' },
-      difficultyMax: { label: 'Difficulté maximale' },
-      hoursPerRepair: { label: 'Heures par réparation' },
       woundsPerRepair: { label: 'Blessures par réparation' },
       failDamage: { label: 'Dégâts à l’échec' },
     }),
@@ -203,8 +199,10 @@ const champs = {
     portCostGoldPerWound: { label: 'Coût au port par Blessure (co)' },
     testHours: { label: 'Durée du Test (heures)' },
     woundsPerTest: { label: 'Blessures par Test' },
-    charpentierPenalty: { label: 'Pénalité de Charpentier' },
     lissageRepairSurcoutPct: { label: 'Surcoût de lissage (%)' },
+    charpentierMalus: { label: 'Malus du Métier (Charpentier)' },
+    piecesEncParTranche: { label: 'Enc de pièces détachées par tranche' },
+    piecesBlessuresParTranche: { label: 'Blessures restaurées par tranche de pièces' },
     source: { label: 'Source' },
     temporaire: { label: 'Temporaire' },
     entretienCrewTestDR: { label: 'DR du Test d’entretien de l’équipage' },
@@ -242,7 +240,7 @@ const doc = document(
         type Bande = { min?: number | null; max?: number | null };
         const d = v as Partial<SeaNavigationData>;
         const cap = d.orientation?.changementDeCap;
-        const deDuCap = cap && parseDice(cap.die) ? deDeLaTableTiree(cap) : null;
+        const deDuCap = cap ? deDuParse(cap) : null;
         const tables: [string[], Bande[], number | 'ouverte', number | 'ouverte'][] = [
           [['vitesseMax', 'table'], d.vitesseMax?.table ?? [], (d.vitesseMax?.safeBonus ?? 0) + 1, 'ouverte'],
           [['orientation', 'reperes'], d.orientation?.reperes ?? [], 'ouverte', 'ouverte'],
@@ -267,4 +265,4 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type SeaNavigationData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;
+type SeaNavigationData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

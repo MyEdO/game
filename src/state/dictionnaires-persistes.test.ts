@@ -1,18 +1,14 @@
 /** Les dictionnaires du navigateur se relisent VALEUR par valeur contre leur registre (#2404) : une valeur
  *  non conforme est ignorée, son défaut s'applique. */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { loadKeyOverrides } from './keybindingsPrefs';
 import { KEYBINDINGS, effectiveCodes, effectiveMods, surchargeDe } from './clavier/keybindings';
-import { loadAudioPrefs } from '../audio/engine';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 const poser = (cle: string, valeur: unknown) => localStorage.setItem(cle, JSON.stringify(valeur));
 
 beforeEach(() => {
   poserLeLocalStorage();
-});
-afterEach(() => {
-  delete (globalThis as { localStorage?: Storage }).localStorage;
 });
 
 describe('touches (`wfrp4.keys`)', () => {
@@ -35,17 +31,5 @@ describe('touches (`wfrp4.keys`)', () => {
       expect(surchargeDe(b, { 'editeur-dupliquer': combo }), combo).toBeUndefined();
     }
     expect(KEYBINDINGS.some((k) => surchargeDe(k, { 'id-hors-registre': 'KeyX' }) !== undefined)).toBe(false);
-  });
-});
-
-describe('audio (`wfrp4.audio`)', () => {
-  it('une sourdine booléenne est chargée', () => {
-    poser('wfrp4.audio', { muted: true });
-    expect(loadAudioPrefs()).toEqual({ muted: true });
-  });
-
-  it('une sourdine non booléenne est ignorée : le défaut s’applique', () => {
-    poser('wfrp4.audio', { muted: 1 });
-    expect(loadAudioPrefs()).toEqual({ muted: false });
   });
 });

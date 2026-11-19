@@ -99,13 +99,13 @@ func _verifier(cas: String, seconde: Dictionary, montes: Dictionary, ploie: bool
 		var apres := Vector2(releve.coude_g.origin.distance_to(releve.epaule_g.origin), releve.main_g.origin.distance_to(releve.coude_g.origin))
 		juste = juste and absf(apres.x - longueurs.x) < EPSILON and absf(apres.y - longueurs.y) < EPSILON
 	var repos_joue: String = CLIPS_DEUX_MAINS.lourde2m.repos if ploie else CLIPS.repos
-	juste = juste and montage.clip("repos") == repos_joue and montage.clip("coup") == CLIPS.coup and montage.role_du_clip(repos_joue) == "repos"
+	juste = juste and montage.clip(Noyau.Role.REPOS) == repos_joue and montage.clip(Noyau.Role.COUP) == CLIPS.coup and montage.role_du_clip(repos_joue) == Noyau.Role.REPOS
 	if ploie:
 		var tenue_par: Dictionary = MontageDeComposition.modeles.secondesPrises.hache
 		tenue_par.maniement = "hampe"
-		juste = juste and montage.clip("repos") == CLIPS_DEUX_MAINS.hampe.repos and montage.role_du_clip(CLIPS_DEUX_MAINS.hampe.repos) == "repos"
+		juste = juste and montage.clip(Noyau.Role.REPOS) == CLIPS_DEUX_MAINS.hampe.repos and montage.role_du_clip(CLIPS_DEUX_MAINS.hampe.repos) == Noyau.Role.REPOS
 		tenue_par.maniement = null
-		juste = juste and montage.clip("repos") == CLIPS.repos
+		juste = juste and montage.clip(Noyau.Role.REPOS) == CLIPS.repos
 	if not juste:
 		_fautes.append("%s : prise de la main libre %s, seconde prise %s, montage %s" % [cas, prise, visee, montage.seconde_prise])
 	print("[seconde-prise] %s : %s" % [cas, "OK" if juste else "KO"])

@@ -20,7 +20,7 @@ import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { CAP_IDENTITE_PROP } from '../data/props.types';
 import { DIR4_ORDER, estCardinal, rotateDir8, type Dir4 } from '../geometry/dir8';
 import { garanti } from '../lib/garanti';
-import type { Scene, SceneDuVolume, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';
+import type { Scene, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';
 import { edgeOf, heightAt, porteAuteur, sceneMetresPerTile, tileAt } from './monde/scene';
 import { edgeKey } from './monde/facades';
 import type { Pt } from './monde/path';
@@ -60,7 +60,7 @@ export const TYPES_DE_NAVIRE: readonly { id: string; label: string }[] = PLANS_D
 export const CAPS_DES_PONTS: readonly Dir4[] = DIR4_ORDER;
 
 /** `scene` est-elle à l'échelle du plan des ponts du type de navire `ref` ? Ses ponts ne s'y posent qu'alors. */
-export const aLEchelleDesPonts = (scene: SceneDuVolume, ref: string): boolean =>
+export const aLEchelleDesPonts = (scene: Pick<Scene, 'metresPerTile'>, ref: string): boolean =>
   sceneMetresPerTile(garanti(planDe(ref), ref, 'plan de navire').ponts) === sceneMetresPerTile(scene);
 
 /** Les ponts du type `ref` avec ce qu'y ajoutent les Améliorations `upgrades` ; une Amélioration qui ne change
@@ -118,7 +118,7 @@ interface PoseDeNavire {
  *  n'est pas à l'échelle de son plan, ou s'il n'est pas à un cap cardinal, faute que le schéma de scène nomme
  *  (`refusDeLEntite`) : ses ponts ne se posent pas. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
  *  l'entier, au plus près quand leurs côtés n'ont pas la parité de l'empreinte. */
-function poseDe(scene: SceneDuVolume, ent: SceneEntity): PoseDeNavire | null {
+function poseDe(scene: Pick<Scene, 'metresPerTile'>, ent: SceneEntity): PoseDeNavire | null {
   const plan = planDe(ent.vehicule?.id);
   if (!plan || !aLEchelleDesPonts(scene, plan.ponts.id)) return null;
   const cap = ent.facing ?? 'N';
@@ -132,12 +132,14 @@ function poseDe(scene: SceneDuVolume, ent: SceneEntity): PoseDeNavire | null {
 }
 
 /** Les poses des navires de `scene`. */
-const posesDe = (scene: SceneDuVolume): PoseDeNavire[] => scene.entities.flatMap((e) => poseDe(scene, e) ?? []);
+const posesDe = (scene: Pick<Scene, 'entities' | 'metresPerTile'>): PoseDeNavire[] => scene.entities.flatMap((e) => poseDe(scene, e) ?? []);
 
+/** Les ids des navires posés par leurs ponts, par scène et version des datasets (`posesDe` lit les véhicules). */
 const idsDesNaviresPoses = memoByRef((scene: Scene): ReadonlySet<string> => new Set(posesDe(scene).map((pose) => pose.id)));
 
 /** Le combattant `id` est-il un navire dont `scene` pose les ponts ? Ses ponts portent alors son corps. */
-export const estPoseParSesPonts = (scene: Scene, id: string): boolean => idsDesNaviresPoses(scene).has(id);
+export const estPoseParSesPonts = (scene: Scene, id: string): boolean =>
+  idsDesNaviresPoses(scene).has(id);
 
 /** La case hôte, en cases continues, de chaque point (x, y) des ponts `navire` posés selon `pose`. */
 function versLaScene(navire: Scene, pose: PoseDeNavire): (x: number, y: number) => Pt {
@@ -180,8 +182,11 @@ function emprise(navire: Scene, pose: PoseDeNavire): { cases: (Pt & { z: number;
   return { cases, sols, aretes };
 }
 
-/** Les ponts compilés (`buildScene`) du type et des Améliorations de `pose`. */
-const pontsCompiles = (pose: PoseDeNavire): Scene => buildScene(pontsDuNavire(pose.ref, pose.upgrades));
+/** Les poses des navires de `scene` (`posesDe`), chacune avec ses ponts compilés (`buildScene`) du type et des
+ *  Améliorations de sa pose. Retenues par `scene` et la version des datasets qu'elles lisent (`memoByRef`) :
+ *  tout lecteur des ponts d'une scène les lit ici. */
+const naviresPoses = memoByRef((scene: Pick<Scene, 'entities' | 'metresPerTile'>): readonly { pose: PoseDeNavire; navire: Scene }[] =>
+  posesDe(scene).map((pose) => ({ pose, navire: buildScene(pontsDuNavire(pose.ref, pose.upgrades)) })));
 
 /** `hote` avec les ponts de `navire` (la scène compilée de `pontsDuNavire`) posés selon `pose` ; une pièce ou un décor
  *  déjà posé sous le même id est remplacé : poser deux fois la même pose rend la même scène. */
@@ -231,10 +236,10 @@ function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): Scene {
 }
 
 /** `scene` avec les ponts de chacun de ses navires posés (`poserLeNavire`) : la dérivation qu'une scène subit à son
- *  chargement en jeu, et la vue que l'éditeur en montre ; la dériver de nouveau rend la même scène. Mémoïsée par
- *  l'identité de `scene` (`memoByRef`). */
+ *  chargement en jeu, et la vue que l'éditeur en montre ; la dériver de nouveau rend la même scène. Retenue par
+ *  `scene` et la version des datasets (`memoByRef`). */
 export const poserLesNavires = memoByRef((scene: Scene): Scene =>
-  posesDe(scene).reduce((s, pose) => poserLeNavire(s, pontsCompiles(pose), pose), scene));
+  naviresPoses(scene).reduce((s, { pose, navire }) => poserLeNavire(s, navire, pose), scene));
 
 /** `scene` où un navire du type `ref` se pose : l'entité de son véhicule, nommée de son type, à la case `p` de la couche
  *  `z`, au cap `cap`, et son id ; `null` si `scene` n'est pas à l'échelle de son plan (`aLEchelleDesPonts`), où ses
@@ -250,12 +255,11 @@ export function poserUnNavire(scene: Scene, ref: string, p: Pt, z: number, cap: 
  *  (`edgeKey`), qu'un hôte garde pour la marche et le pointage, le navire se montrant par son modèle 3D
  *  (`naviresDeLaScene`) ; et sa flottaison : les cases (clés `x,y,z`) du rectangle de ses ponts à l'étage de son pont le
  *  plus bas, la mer qui borde sa coque, sa flottaison étant à la hauteur 0 de la scène. */
-export function provenanceDesNavires(scene: SceneDuVolume): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string>; flottaison: ReadonlyMap<string, string> } {
+export function provenanceDesNavires(scene: Pick<Scene, 'entities' | 'metresPerTile'>): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string>; flottaison: ReadonlyMap<string, string> } {
   const cases = new Map<string, string>();
   const aretes = new Map<string, string>();
   const flottaison = new Map<string, string>();
-  for (const pose of posesDe(scene)) {
-    const navire = pontsCompiles(pose);
+  for (const { pose, navire } of naviresPoses(scene)) {
     const e = emprise(navire, pose);
     for (const c of e.cases) cases.set(`${c.x},${c.y},${c.z}`, pose.id);
     for (const { place } of e.aretes) aretes.set(edgeKey(place), pose.id);
@@ -270,7 +274,7 @@ export function provenanceDesNavires(scene: SceneDuVolume): { cases: ReadonlyMap
 }
 
 /** Les arêtes de `scene` hors de celles des ponts de ses navires (`provenanceDesNavires`) : celles qu'un hôte dessine. */
-export function aretesHorsDesNavires(scene: Scene): WallSeg[] {
+export function aretesHorsDesNavires(scene: Pick<Scene, 'entities' | 'metresPerTile' | 'walls'>): WallSeg[] {
   const { aretes } = provenanceDesNavires(scene);
   return (scene.walls ?? []).filter((seg) => !aretes.has(edgeKey(seg)));
 }
@@ -287,8 +291,7 @@ export interface NavireDeLaScene {
 
 /** Les navires de `scene` tels qu'un hôte les montre. PUR. */
 export function naviresDeLaScene(scene: Scene): NavireDeLaScene[] {
-  return posesDe(scene).map((pose) => {
-    const navire = pontsCompiles(pose);
+  return naviresPoses(scene).map(({ pose, navire }) => {
     const fiche = ficheDEntite(garanti(scene.entities.find((e) => e.id === pose.id), pose.id, 'entité de navire'), () => undefined);
     return {
       id: pose.id,
@@ -314,8 +317,8 @@ export interface StationDeNavire {
 /** Les stations des cases des ponts du navire `id` de `scene` que son modèle rogne (`emprises`) : le centre de l'emprise
  *  de chacune, posé avec ses ponts. PUR. */
 export function stationsDuNavire(scene: Scene, id: string, emprises: EmprisesDesCases): StationDeNavire[] {
-  const pose = garanti(posesDe(scene).find((p) => p.id === id), id, 'pose de navire');
-  const vers = versLaScene(pontsCompiles(pose), pose);
+  const { pose, navire } = garanti(naviresPoses(scene).find((n) => n.pose.id === id), id, 'pose de navire');
+  const vers = versLaScene(navire, pose);
   return Object.entries(emprises).map(([cle, [x0, y0, x1, y1]]) => {
     const [x, y, z] = cle.split(',').map(Number);
     return { ...vers(x, y), z: pose.z + z, point: vers((x0 + x1 - 1) / 2, (y0 + y1 - 1) / 2) };

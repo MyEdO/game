@@ -26,7 +26,13 @@ import {
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { champsSansSlot, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe } from '../../scripts/guards/lib/occurrencesStock.mjs';
-import { CLES_POSEES_INCONDITIONNELLEMENT, clesDeclareesJamaisPortees, INVENTAIRE as COLLECTIONS_D_INVENTAIRE, inventaireDe, SANS_LOT } from '../../scripts/guards/lib/inventaireDeDette.mts';
+import {
+  CLES_POSEES_INCONDITIONNELLEMENT,
+  clesDeclareesJamaisPortees,
+  INVENTAIRE as COLLECTIONS_D_INVENTAIRE,
+  inventaireDe,
+  SANS_LOT,
+} from '../../scripts/guards/lib/inventaireDeDette.mts';
 import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
@@ -1126,6 +1132,25 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
   });
 });
 
+describe('marcheur du scan : le champ porteur d’un objet (`parcourir`)', () => {
+  it('fixture : les options d’un choix `{pick, of}` comptent sous le champ du choix ; un `of` sans `pick` reste son propre champ', () => {
+    const mesure = scannerFixtureDeReferences('structures-feuilles-de-choix-', {
+      'trappings.json': [{ id: 'dague', label: 'Dague' }, { id: 'corde', label: 'Corde' }],
+      'talents.json': [{ id: 'haine', label: 'Haine' }],
+      'niveaux.json': [{
+        id: 'n1',
+        label: 'N1',
+        trappings: [{ id: 'dague' }, { pick: 1, of: [{ id: 'dague' }, { id: 'corde' }] }],
+        talents: [{ id: 'haine' }, { pick: 1, of: [{ id: 'haine' }] }],
+        bonus: { tirage: 2, of: [{ id: 'dague' }, { id: 'corde' }] },
+      }],
+    }, []);
+    const occurrences = (champ: string) => mesure.occurrencesDeReference.filter((o) => o.dataset === 'niveaux.json' && o.champ === champ).length;
+    expect({ trappings: occurrences('trappings'), talents: occurrences('talents'), of: occurrences('of') }).toEqual({ trappings: 3, talents: 2, of: 2 });
+    expect(mesure.ambigues.filter((a) => a.dataset === 'niveaux.json'), 'une option de choix comptée sous un couple qui mêle les référents du porteur et d’autres').toEqual([]);
+  });
+});
+
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
   it('une façade et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
@@ -1505,7 +1530,7 @@ const reTape = (remplace: (source: string) => string) => (schemas: string) => {
 };
 
 /** Le Test COMPOSÉ de `sea-perils.ts › freeTest`, tel que le def l'écrit. */
-const FREE_TEST_COMPOSE = 'z.strictObject({ test: flowTestSchema, ...cibleEtendueSchema.shape })';
+const FREE_TEST_COMPOSE = 'z.strictObject({ test: testFixeSchema, ...cibleEtendueSchema.shape })';
 
 /** Une contrefaçon RE-TAPÉE dans `sea-perils.ts` d'une racine : le littéral de `freeTest` à plat, `cles` à la
  *  place du Test composé, sa cible re-tapée. */

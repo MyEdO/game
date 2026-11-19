@@ -11,10 +11,10 @@
  */
 import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import type { FlowDeScene } from '../../data/schemas/defs-scenes/effets';
 import type { OptionalDeScene } from '../../data/schemas/defs-scenes/scene';
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
-import type { SkillRef } from '../../data';
+import type { SkillRefDesignee } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
 import type { ThreatTier } from '../../engine/advantagePool';
 
@@ -29,6 +29,7 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   anim?: SceneEntity['anim'];
   /** Camp au spawn (défaut 'ennemi'). */
   side?: 'ennemi' | 'allie';
+  navireDeCampagne?: boolean;
   /** PNJ allié piloté par l'IA (avec `side:'allie'`) : agit seul, le joueur ne le micro-gère pas. */
   ai?: boolean;
   /** Monture rideable. */
@@ -38,9 +39,9 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   optionals?: OptionalDeScene[];
   spells?: string[];
   randomChars?: boolean;
-  /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées au spawn (servant de pièce : Projectiles
+  /** Compétences d'AUTEUR ajoutées (réfs `SkillRefDesignee`) — fusionnées au spawn (servant de pièce : Projectiles
    *  du Groupe de son engin, AA 10 l.142-146). */
-  skills?: SkillRef[];
+  skills?: SkillRefDesignee[];
   /** Coque/navire (`vehicule`) : `id`s d'entités d'ÉQUIPAGE exposées (MDG 14).
    *  Les ids des ennemis de la rencontre sont déterministes : `enemy-<idRencontre>-<index>`. */
   crewIds?: string[];
@@ -59,7 +60,7 @@ export interface AuthoredEncounter {
   enemies: AuthoredEnemy[];
   /** Camp pris en embuscade (Test de Surprise opposé, LDB 13). */
   surprise?: 'groupe' | 'ennemis';
-  onVictory?: Flow;
+  onVictory?: FlowDeScene;
   /** Invisibles en exploration jusqu'au combat (embuscade visuelle). Défaut : false (visibles). */
   hidden?: boolean;
   /** Avantage initial — Manœuvrabilité (AA 11 l.53-65), cf. `EncounterDef.maneuverability`. */
@@ -114,9 +115,10 @@ export function buildEncounter(a: AuthoredEncounter): BuiltEncounter {
   const members: EncounterMember[] = a.enemies.map((e, i) => {
     const m: EncounterMember = { entityId: ids[i] };
     if (e.side) m.side = e.side;
+    if (e.navireDeCampagne) m.navireDeCampagne = true;
     if (e.ai) m.ai = e.ai;
     if (e.mount) m.mount = e.mount;
-    if (e.rides != null && ids[e.rides]) m.ridesEntityId = ids[e.rides];
+    if (e.rides != null && ids[e.rides]) m.ridesEntityId = { id: ids[e.rides] };
     return m;
   });
   const encounter: EncounterDef = { id: a.id, members };

@@ -2,7 +2,14 @@ import { afterAll, describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY } from '../scripts/guards/lib/registryIdBranch.mjs';
+import {
+  scanRegistryIdBranch,
+  scanRawIdEqualities,
+  isRegistryIdBranchExcluded,
+  SCAN_DIRS,
+  SCAN_EXTS,
+  OP_VOCABULARY,
+} from '../scripts/guards/lib/registryIdBranch.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
@@ -97,7 +104,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/monde/aiSpellValue.ts': 2,
   'src/noyau/colonnesDuMarchand.ts': 1,
   'src/noyau/combatEffects.ts': 3,
-  'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
+  'src/noyau/combatFlow.ts': 2, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
   'src/noyau/combatManeuvers.ts': 1,
   'src/noyau/combatSlice.ts': 1,
@@ -108,7 +115,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/state/devtools.ts': 1,
   'src/noyau/interludeFlow.ts': 1,
   'src/noyau/mount.ts': 1,
-  'src/noyau/seaVoyageFlow.ts': 3,
+  'src/noyau/seaVoyageFlow.ts': 2,
   'src/noyau/travelFlow.ts': 6,
   'src/noyau/travelPostes.ts': 1,
   'src/noyau/verdictsDInterlude.ts': 1,

@@ -1,12 +1,13 @@
 """Géométrie de `humanoide--rigide--baton` : un fût droit de bois et deux bagues de métal aux extrémités, le long du +Y
-de la prise, centrés sur `AXE_DANS_LA_PRISE`."""
+de la prise, centrés sur `AXE_DANS_LA_PRISE` (`base/anatomie.py`)."""
+from anatomie import AXE_DANS_LA_PRISE
 from maille import Maille, cylindre, objet
 
 
 def construire(D, materiaux):
     talon = -D['PRISE_DEPUIS_TALON']
     tete = D['LONGUEUR'] - D['PRISE_DEPUIS_TALON']
-    cu, cw = D['AXE_DANS_LA_PRISE']
+    cu, cw = AXE_DANS_LA_PRISE
     centre = (cu, 0.0, cw)
     F, B = D['FUT'], D['BAGUES']
     m = Maille(list(materiaux.values()))

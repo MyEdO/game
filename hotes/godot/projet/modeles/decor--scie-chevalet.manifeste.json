@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "scie-chevalet"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "ecorce",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "acier",
+      "palette": "metal2",
+      "matiere": "prop--acier-battu"
+    }
+  ],
+  "glb": {
+    "sha256": "e45071f783b1c1b89f8657584bc5d92759ef6a60bca494c5cd0a4782a6447457",
+    "octets": 31476
+  }
+}

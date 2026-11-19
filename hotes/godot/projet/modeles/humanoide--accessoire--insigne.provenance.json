@@ -1,11 +1,15 @@
 {
   "model": "humanoide--accessoire--insigne.glb",
-  "model_sha256": "52338dd003e0b6f4a2fb62b6b861ff82f1fb46a0d393ed99befc576a7fdca055",
-  "importe_le": "2026-11-06",
+  "model_sha256": "da8c59017b5b387e7fc83cc7ad86d2c5f6d640dc26eddcd13bc60e702d311cae",
+  "importe_le": "2026-11-16",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

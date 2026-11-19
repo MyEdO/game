@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 // @ts-expect-error - generateur ESM JS (pas de types)
 import { REGISTRIES } from './scripts/gen-registry.mjs';
@@ -8,9 +9,18 @@ import { REGISTRIES } from './scripts/gen-registry.mjs';
 import { ENTETE_RACINE, portDev, portPreview, valeurEnteteRacine } from './scripts/port-dev.mjs';
 // @ts-expect-error - plugin ESM JS (pas de types)
 import { proseSource } from './scripts/source/prose-source-plugin.mjs';
-import { DELAI_DE_TEST_MS, TAS_WORKER_MO } from './scripts/test/partition.mjs';
+import { BaseSequencer, type TestSpecification } from 'vitest/node';
+import { DELAI_DE_TEST_MS, TAS_WORKER_MO, environnementDe, grouperParEnvironnement } from './scripts/test/partition.mjs';
 import { EXCLUSIONS_DE_LA_SUITE, RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
 import { argumentsDeGenerationCode, verdictDeGenerationCode } from './scripts/gates/generationCode.mjs';
+
+/** L'ordre de `BaseSequencer`, groupé par environnement (`grouperParEnvironnement`, #3412). */
+class SequenceurParEnvironnement extends BaseSequencer {
+  async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
+    return grouperParEnvironnement(await super.sort(files),
+      (spec) => environnementDe(readFileSync(spec.moduleId, 'utf8'), spec.project.config.environment));
+  }
+}
 
 /** Les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs : registres « dépose un fichier →
  *  intégré » et INDEX DES IDS) produites au démarrage et à chaque ajout/suppression dans un dossier
@@ -98,6 +108,9 @@ export default defineConfig({
     // et ses mesures : `TAS_WORKER_MO` de scripts/test/partition.mjs.
     pool: 'forks',
     execArgv: [`--max-old-space-size=${TAS_WORKER_MO}`],
+    // Quatrième effet : un worker ne sert le fichier suivant que s'il partage son environnement, sinon
+    // il meurt et le suivant recharge le graphe (#3412).
+    sequence: { sequencer: SequenceurParEnvironnement },
     // Tas de chaque worker en fin de fichier : relevé par le bloc `[diag]` du lanceur (scripts/test/run.mjs).
     logHeapUsage: true,
     // Paramètre de BANC : `DELAI_DE_TEST_MS` de scripts/test/partition.mjs (#1619).

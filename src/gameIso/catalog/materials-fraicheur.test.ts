@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { materials, matieresDe } from '../../data/index';
 import { setDataset, resetData } from '../../data/overrides';
 import type { MaterialEntry } from '../../data/materials.types';
+import type { EntreeVivante } from '../../data/datasets';
 import { editees } from '../../data/materials.testkit';
 import { propMaterial } from '../../noyau/monde/volume/matieres';
 import { roofMaterial } from '../../noyau/monde/volume/matieres';
@@ -42,7 +43,7 @@ describe('matières — toute vue du document est VIVANTE (aucun index figé à 
   });
 
   it('une matière AJOUTÉE au document est résolvable sans rechargement', () => {
-    const neuve: MaterialEntry = {
+    const neuve: EntreeVivante<MaterialEntry> = {
       id: 'matiere-neuve-du-banc', type: 'materials', label: 'Matière neuve du banc',
       domain: 'prop', color: COULEUR_NEUVE, roughness: 0.5, metalness: 0,
     };

@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "roue-dentee"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    }
+  ],
+  "glb": {
+    "sha256": "dc8cc8a5bc83acb60c1012f00ea6254facad0701ab794b5342cf2a5fb3d5aa6e",
+    "octets": 88472
+  }
+}

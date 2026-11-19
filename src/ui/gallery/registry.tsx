@@ -62,12 +62,13 @@ import { DrBar } from '../DrBar';
 import { Coins } from '../Coins';
 import { LifeBar } from '../LifeBar';
 import { MetalStatus } from '../MetalStatus';
+import { ChampDeStatut } from '../editor/ChampDeStatut';
 import { WaxSeal, SealedPlaque } from '../WaxSeal';
 import { CareerPath } from '../CareerPath';
 import { FigTile, FigZoneBadges, type ZoneBadgeSpec } from '../FigTile';
 import { PlaqueRow, PlaqueGrid } from '../PlaqueRow';
 import { DieFace } from '../DiceRoll';
-import { CHAR_KEYS, CHAR_LABELS, type ConditionId } from '../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS } from '../../engine/types';
 import { effectiveChar } from '../../engine/characteristics';
 import { GroupedPickGrid, type PickGridSection } from '../GroupedPickGrid';
 import { DetailFrame } from '../DetailFrame';
@@ -87,14 +88,31 @@ import { CouvreField } from '../editor/CouvreField';
 import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, creatures, skillRefLabel, type SkillRef, type TrappingData } from '../../data';
+import {
+  species,
+  careers,
+  levelsForCareer,
+  stars,
+  mutations,
+  allAxes,
+  charAbr,
+  spells,
+  etats,
+  memoParVersion,
+  findPsychologyById,
+  findTrappingById,
+  creatures,
+  skillRefLabel,
+  type SkillRef,
+  type TrappingData,
+} from '../../data';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTrait, parseSkillRef } from '../../data/refFormatLivre';
 import { refsEnLignes, lignesEnRefs } from '../editor/codex/CodexEdit';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { pretires } from '../../data/pregens';
-import { toMoney } from '../../engine/money';
+import { toMoney, type Status } from '../../engine/money';
 import { RoseAxes } from '../RoseAxes';
 import { CharStatsGrid } from '../CharStatsGrid';
 import { axesProfile } from '../../engine/axes';
@@ -708,10 +726,10 @@ function PlaqueRowDemo() {
 function MetalStatusDemo() {
   return (
     <Row>
-      <MetalStatus status="Bronze 1" />
-      <MetalStatus status="Argent 2" />
-      <MetalStatus status="Or 3" />
-      <MetalStatus status="Or 3" size="plaque" />
+      <MetalStatus status={{ tier: 'bronze', standing: 1 }} />
+      <MetalStatus status={{ tier: 'argent', standing: 2 }} />
+      <MetalStatus status={{ tier: 'or', standing: 3 }} />
+      <MetalStatus status={{ tier: 'or', standing: 3 }} size="plaque" />
     </Row>
   );
 }
@@ -743,7 +761,7 @@ function DetailFrameDemo() {
   return (
     <DetailFrame
       label={carriereExemple().label}
-      meta={<MetalStatus status={niveauxDeLaCarriereExemple()[0]?.status ?? 'Bronze 1'} />}
+      meta={<MetalStatus status={niveauxDeLaCarriereExemple()[0]?.status ?? { tier: 'bronze', standing: 1 }} />}
       prose={carriereExemple().desc}
       porteur={{ type: 'careers', id: carriereExemple().id, chemin: 'desc' }}
     />
@@ -1315,6 +1333,17 @@ function GameOpEditorDemo() {
 }
 
 /** Trois états : deux entrées RÉELLES des fiches commitées, liste vide, entrée introuvable. */
+function ChampDeStatutDemo() {
+  const [statut, setStatut] = useState<Status | undefined>({ tier: 'argent', standing: 2 });
+  const [minimum, setMinimum] = useState<Status | undefined>({ tier: 'bronze', standing: 1 });
+  return (
+    <Row>
+      <ChampDeStatut value={statut} onChange={setStatut} echelon="Échelon du spécimen facultatif" standing="Standing du spécimen facultatif" facultatif />
+      <ChampDeStatut value={minimum} onChange={(s) => s && setMinimum(s)} echelon="Échelon du spécimen requis" standing="Standing du spécimen requis" />
+    </Row>
+  );
+}
+
 function CouvreFieldDemo() {
   const [connues, setConnues] = useState<string[] | undefined>(ENTREES_DE_DOSSIER.slice(0, 2).map((e) => e.id));
   const [vide, setVide] = useState<string[] | undefined>(undefined);
@@ -1606,7 +1635,7 @@ function CombatStartSplashDemo() {
 }
 
 /** Deux États RÉELS du catalogue — la pastille NE fabrique aucune règle, elle rend ce que la donnée dit. */
-const etatsExemples = memoParVersion('etats', () => etats.slice(0, 2).map((e) => ({ id: e.id as ConditionId, value: 1 })));
+const etatsExemples = memoParVersion('etats', () => etats.slice(0, 2).map((e) => ({ id: e.id, value: 1 })));
 
 /** Pastilles : rangée d'États réels (`EffectChips`) et conséquence mécanique nommée (`FxChip`). */
 function FxChipDemo() {
@@ -1920,6 +1949,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'prose', label: 'Prose', file: 'src/ui/Prose.tsx', category: 'Texte', render: ProseDemo },
   { id: 'objetdonnefield', label: 'ObjetDonneField', file: 'src/ui/editor/ObjetDonneField.tsx', category: 'Éditeur', render: ObjetDonneFieldDemo, note: 'Objet de campagne de démonstration dérivé de l’Arme simple, de forme Hache.' },
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },
+  { id: 'champdestatut', label: 'ChampDeStatut', file: 'src/ui/editor/ChampDeStatut.tsx', category: 'Éditeur', render: ChampDeStatutDemo },
   { id: 'couvrefield', label: 'CouvreField', file: 'src/ui/editor/CouvreField.tsx', category: 'Éditeur', render: CouvreFieldDemo },
   { id: 'reglagesapparence', label: 'ReglagesApparence', file: 'src/ui/editor/ReglagesApparence.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },

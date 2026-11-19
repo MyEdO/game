@@ -19,8 +19,8 @@ import { applySurprise } from '../noyau/combatFlow';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { runCombatFlow } from '../noyau/combat/triggeredTest';
-import { testFlow } from '../noyau/monde/flow';
-import { EMPTY_FLOW } from '../engine/flowCore';
+import { EMPTY_FLOW, testFlow } from '../engine/flowCore';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { testValue } from '../engine/skills';
 import { jete } from '../engine/tests.testkit';
 import { evaluateTest } from '../engine/tests';
@@ -164,7 +164,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
     useGame.setState({ pendingCascade: null });
     runCombatFlow(
       { get: useGame.getState, set: useGame.setState, target: guetteur, caster: embusqueur, label: 'Surprise' },
-      testFlow(
+      testFlow<Effect>(
         // MÊME DÉCLARATION que le producteur réel (`applySurprise`, `noyau/combatFlow`) : un jet de
         // Surprise dit ce qu'il met en jeu (`ambushSurprise`). SEULE divergence, celle que ce test
         // mesure : la Difficulté DIFFICILE (le site réel oppose à l'Intermédiaire, où un défaut

@@ -2,7 +2,20 @@
 import { describe, it, expect } from 'vitest';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CharacterCreator, CareerScreen, CharScreen, SpeciesRaceScreen, SkillsScreen, StarScreen, TrappingsScreen, DetailsScreen, PresentationScreen, PettySpellsSection, careerLevelTalentsTitle, TrappingChoiceSlot } from './CharacterCreator';
+import {
+  CharacterCreator,
+  CareerScreen,
+  CharScreen,
+  SpeciesRaceScreen,
+  SkillsScreen,
+  StarScreen,
+  TrappingsScreen,
+  DetailsScreen,
+  PresentationScreen,
+  PettySpellsSection,
+  careerLevelTalentsTitle,
+  TrappingChoiceSlot,
+} from './CharacterCreator';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche } from '../../engine/trappingChoices';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
@@ -455,7 +468,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
   it('TrappingChoiceSlot `{id, qualityChoice}` : les 4 Atouts de Fabrication en options, raffine pré-sélectionné sans choix', () => {
     avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
       const slot = emplacementA(dot([4]));
-      const withoutChoice = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} choices={{}} onChoicesChange={() => {}} />);
+      const withoutChoice = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} porteur={{ size: 'moyenne' }} choices={{}} onChoicesChange={() => {}} />);
       for (const label of ['Raffiné', 'Léger', 'Pratique', 'Solide']) expect(withoutChoice).toContain(label);
       // Hints d'effet verbatim (`QualityData.desc`, LDB 60).
       expect(withoutChoice).toContain('signe de statut social');
@@ -466,7 +479,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
       expect(estRetenue(withoutChoice, 'Raffiné')).toBe(true);
       expect(estRetenue(withoutChoice, 'Solide')).toBe(false);
 
-      const withChoice = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} choices={{ [dot([4])]: 'solide' }} onChoicesChange={() => {}} />);
+      const withChoice = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} porteur={{ size: 'moyenne' }} choices={{ [dot([4])]: 'solide' }} onChoicesChange={() => {}} />);
       expect(estRetenue(withChoice, 'Solide')).toBe(true);
       expect(estRetenue(withChoice, 'Raffiné')).toBe(false);
     });
@@ -477,12 +490,12 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
       const slot = emplacementA(dot([0]));
       const retenues = (html: string) => (html.match(/aria-pressed="true"/g) ?? []).length;
       // Aucun choix : aucune branche retenue, aucun picker d'Atout imbriqué.
-      const beforeBranch = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} choices={{}} onChoicesChange={() => {}} />);
+      const beforeBranch = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} porteur={{ size: 'moyenne' }} choices={{}} onChoicesChange={() => {}} />);
       expect(beforeBranch).not.toContain('matériaux robustes'); // desc de Solide, absent : picker imbriqué non déroulé
       expect(retenues(beforeBranch), 'aucune branche retenue avant le choix du joueur').toBe(0);
       // Branche « Fleuret de qualité » choisie + Atout Solide choisi dans le picker imbriqué.
       const afterBranch = renderToStaticMarkup(
-        <TrappingChoiceSlot emplacement={slot} choices={{ [dot([0])]: 1, [dot([0, 1])]: 'solide' }} onChoicesChange={() => {}} />,
+        <TrappingChoiceSlot emplacement={slot} porteur={{ size: 'moyenne' }} choices={{ [dot([0])]: 1, [dot([0, 1])]: 'solide' }} onChoicesChange={() => {}} />,
       );
       expect(afterBranch).toContain('matériaux robustes'); // picker imbriqué déroulé
       expect(estRetenue(afterBranch, 'Solide')).toBe(true);
@@ -494,7 +507,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
       const ecrits: [string, number | string][] = [];
       const slot = emplacementA(dot([3]));
-      const rendu = TrappingChoiceSlot({ emplacement: slot, choices: { [dot([3])]: 0 }, onChoicesChange: (adresse, v) => ecrits.push([adresse, v]) });
+      const rendu = TrappingChoiceSlot({ emplacement: slot, porteur: { size: 'moyenne' }, choices: { [dot([3])]: 0 }, onChoicesChange: (adresse, v) => ecrits.push([adresse, v]) });
       const [chooser, sous] = (rendu as ReactElement<{ children: ReactElement<{ options?: { onSelect: () => void }[]; emplacement?: { adresse: string } }>[] }>).props.children;
       chooser.props.options![1].onSelect();
       expect(ecrits).toEqual([[dot([3]), 1]]);
@@ -507,7 +520,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
       type Rendu = ReactElement<{ children: [ReactElement, ReactElement<{ emplacement: { adresse: string } }> | undefined] }>;
       const slot = emplacementA(dot([3]));
       const sousDe = (choices: Record<string, number | string>) =>
-        (TrappingChoiceSlot({ emplacement: slot, choices, onChoicesChange: () => {} }) as Rendu).props.children[1];
+        (TrappingChoiceSlot({ emplacement: slot, porteur: { size: 'moyenne' }, choices, onChoicesChange: () => {} }) as Rendu).props.children[1];
       expect(sousDe({}), 'aucune branche choisie : rien ne se déroule dessous').toBeFalsy();
       expect(emplacementTranche(slot, {})).toBe(false);
       expect(sousDe({ [dot([3])]: 0 })!.props.emplacement.adresse).toBe(dot([3, 0]));

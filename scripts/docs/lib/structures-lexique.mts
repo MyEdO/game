@@ -135,7 +135,7 @@ export const MANDAT_SLOTS =
  * garde les référence, les autres sites y RENVOIENT.
  */
 export const ANGLES_MORTS_SLOTS: readonly string[] = [
-  'Une occurrence de référence dont AUCUNE case ne porte de chaîne (`{random:N}`, `{pick:N,of:[{…}]}`) n’ouvre aucune case (`inscrireReference`, `structures-scan.mts`) : un couple ne compte que ses occurrences à case, et les feuilles d’un choix comptent sous leur propre couple (`careerLevels.json | of`).',
+  'Une occurrence de référence dont AUCUNE case ne porte de chaîne (`{random:N}`, `{pick:N,of:[{…}]}`) n’ouvre aucune case (`inscrireReference`, `structures-scan.mts`) : un couple ne compte que ses occurrences à case, et les feuilles d’un choix comptent sous le couple du champ qui porte le choix (`careerLevels.json | trappings`, `parcourir`).',
   'Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.',
 ];
 
@@ -306,6 +306,11 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [
       { sig: 'id', statut: 'cible' },
       { sig: 'id,spec', statut: 'cible' },
+      { sig: 'id,qualityChoice', statut: 'cible', note: 'objet doté dont les Atouts sont au choix : `qualityChoice` porte sa classe de qualité (`classeDeQualiteSchema`, #4110)' },
+      { sig: 'id,qualityChoice,spec', statut: 'cible', note: 'idem, avec sa précision' },
+      { sig: 'wildcard', statut: 'cible', note: 'arme au choix d’une dotation (`wildcard: \'arme\'`), seule graphie du concept depuis le lot 2c-b1 de #4053 (#4110)' },
+      { sig: 'groupe,wildcard', statut: 'cible', note: 'idem, restreinte à un groupe d’armes (`groupe` : référence emboîtée)' },
+      { sig: 'qualityChoice,wildcard', statut: 'cible', note: 'idem, ses Atouts au choix (`qualityChoice`, comme `id,qualityChoice`)' },
       { sig: 'choix,id', statut: 'cible', note: 'choix borné / libre (DESIGN v2 S2)' },
       { sig: 'id,type', statut: 'cible', note: 'référence polymorphe : le `type` nomme l’espace où l’`id` résout (`refTypee`, foyer de règle #2820)' },
       { sig: 'count,id,type', statut: 'cible' },
@@ -335,9 +340,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'count,id', statut: 'historique' },
       { sig: 'count,text', statut: 'historique' },
       { sig: 'id,times', statut: 'historique' },
-      { sig: 'id,qualityChoice', statut: 'historique' },
       { sig: 'ref', statut: 'historique', note: 'ref emboîtée {ref:{id,spec}} ou id nu sous `ref`' },
-      { sig: 'wildcard', statut: 'historique' },
       { sig: 'specOptions,wildcard', statut: 'historique' },
       { sig: 'skillId', statut: 'historique' },
       { sig: 'skillId,spec', statut: 'historique' },
@@ -604,6 +607,18 @@ export const CONCEPTS: readonly Concept[] = [
     strate: 'Valeur',
     signatures: [{ sig: 'repere,valeur+…', statut: 'cible', note: '`source` ⊕ `adapteDe`, l’un des deux REQUIS au schéma' }],
     noyau: ['repere', 'valeur'],
+  },
+  // AVANT `billet-de-route` (même clé `prix`, l'offre porte `id`), et l'ordre décide. Porte : `offreDAubergeSchema`
+  // (`src/data/schemas/grammaire/hebergement.ts`). LDB 66 l.12-16 ; LDB 66 l.28 ; ACE 02 l.99. #4277.
+  {
+    id: 'offre-d-auberge',
+    label: 'offre d’auberge d’un établissement (`OffreDAuberge`)',
+    strate: 'Valeur',
+    signatures: [
+      { sig: 'id,prix,source', statut: 'cible' },
+      { sig: 'id,prix,risque,source', statut: 'cible', note: '`risque` OPTIONNEL au schéma' },
+    ],
+    noyau: ['id', 'prix'],
   },
   // APRÈS `palier` (même clé `prix`, le palier d'un billet porte `seuil`), et l'ordre décide. Porte :
   // `routeBilletSchema` (`src/data/schemas/grammaire/route.ts`). Noyau MESURÉ sur les 2 racines

@@ -134,6 +134,10 @@ describe('`routePerilSchema` — un péril de route n’a pas de scène : il en 
     expect(messages(avecPeril(differe(ouvrir)))).toEqual([`routes.${LIBRE}.perils.0.effects.0.flow.effet.dialogue.id « dlg » est absent du catalogue des dialogues de la scène (collection « dialogues » du document).`]);
   });
 
+  it('un `startCombat` est absent du catalogue des rencontres : un péril n’a aucune rencontre de scène (#3606 M4a)', () => {
+    expect(messages(avecPeril({ type: 'startCombat', encounter: { id: 'enc-brigands' } }))).toEqual([`routes.${LIBRE}.perils.0.effects.0.encounter.id « enc-brigands » est absent du catalogue des rencontres de la scène (collection « encounters » du document).`]);
+  });
+
   it('un effet sans référence locale parse, au premier niveau comme sous un `delayedEffect`', () => {
     expect(worldMapSchema.safeParse(avecPeril(journal)).success).toBe(true);
     expect(worldMapSchema.safeParse(avecPeril(differe(journal))).success).toBe(true);

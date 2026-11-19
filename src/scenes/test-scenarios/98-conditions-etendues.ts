@@ -57,7 +57,7 @@ const construireScene = (): Scene => buildScene({
             {
               id: 'statut-argent-nous',
               label: '[Statut : Argent+] « Nous sommes des gens de qualité. »',
-              when: { kind: 'status', atLeast: 'Argent 1' },
+              when: { kind: 'status', atLeast: { tier: 'argent', standing: 1 } },
               flow: flowFromEffects([{ type: 'journal', desc: 'Le garde s’incline, un peu raide.' }, { type: 'endDialogue' }]),
             },
             {

@@ -5410,14 +5410,6 @@
     },
     {
       "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/03 - CHAPITRE 1 - Easter eggs.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
       "fichier": "Source/Warhammer v4 - Aventures a Ubersreik/01 - introduction.md",
       "ref": "aucune ancre data-folio",
       "occurrence": 1,
@@ -5619,78 +5611,6 @@
     {
       "famille": "sans-folio",
       "fichier": "Source/Warhammer v4 - Aventures a Ubersreik/26 - _GoBack.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/03 - _GoBack.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/06 - Classes.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/37 - Les dieux elfes.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/38 - Les dieux halflings.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/64 - Sacs et contenants.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/69 - Outils professionnels et Ateliers.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/72 - Herbes et potions.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/75 - Mercenaires.md",
-      "ref": "aucune ancre data-folio",
-      "occurrence": 1,
-      "lot": "#1739 H-0",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "sans-folio",
-      "fichier": "Source/Warhammer v4 - Nuits agitees & dures journees/12 - _GoBack.md",
       "ref": "aucune ancre data-folio",
       "occurrence": 1,
       "lot": "#1739 H-0",

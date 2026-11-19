@@ -3,6 +3,7 @@ import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, plageSchema, saisonSchema } from '../grammaire/valeurs';
+import type { DiceSpec } from '../../../engine/dice';
 import { porteLeMarqueur, ref, refusDeLId } from '../grammaire/ref';
 import { voieSchema } from './cargoes';
 
@@ -17,7 +18,7 @@ export const rangee = ref('cargo', {
   max: nommerNoeud(z.number(), { nom: plage.max.label }),
 });
 
-type Document = { id: string; die: string; voie: z.output<typeof voieSchema>; saison: z.output<typeof saisonSchema>; entries: z.output<typeof rangee>[] };
+type Document = { id: string; die: DiceSpec; voie: z.output<typeof voieSchema>; saison: z.output<typeof saisonSchema>; entries: z.output<typeof rangee>[] };
 
 const nomDeRangee = (r: z.output<typeof rangee>) => `la rangée ${r.min}-${r.max} (${r.id})`;
 

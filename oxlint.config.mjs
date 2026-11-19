@@ -177,7 +177,7 @@ export const REGLES_ORDRE_TOTAL = { ...REGLES_MARCHE, ...REGLES_LOCALE };
 const GLOBS_GENERATEURS = [
   'scripts/docs/**', 'scripts/raw/**', 'scripts/guards/lib/**',
 
-  'scripts/gen-registry.mjs', 'scripts/gen-sorts-doc.mts', 'scripts/gen-formats.mjs', 'scripts/gen-verbes.mjs', 'scripts/gen-combattants-de-l-etat.mjs',
+  'scripts/gen-registry.mjs', 'scripts/gen-sorts-doc.mts', 'scripts/gen-formats.mjs', 'scripts/gen-verbes.mjs', 'scripts/gen-combattants-de-l-etat.mjs', 'scripts/gen-noyau-godot.mjs',
   'scripts/data/check-progression-schemas.mjs',
 
   'scripts/test/partition.mjs',
@@ -823,6 +823,12 @@ export const BLOCS_LINT = [
   {
     files: GLOBS_DE_MOD_HORS_TS,
     rules: { 'murs/mod-sans-regle': ['error', ...VERROU_MOD_HORS_TS] },
+  },
+  {
+    // #3821
+    files: ['src/**', 'hotes/**', 'scripts/**', 'server/**', '.claude/**'],
+    excludeFiles: BANCS_DE_MOD,
+    rules: { 'murs/noms-par-ligne': 'error' },
   },
 ];
 export default {

@@ -1,6 +1,6 @@
-// Logique PURE du lanceur de suite `scripts/test/run.mjs` : partition des fichiers de test par
-// environnement, répartition des workers, routage des filtres. Aucun spawn ; le seul accès disque
-// est la mesure système `mesureMemoireDisponibleMo`.
+// Logique PURE du lanceur de suite `scripts/test/run.mjs`, du séquenceur de `vite.config.ts` et du mur de
+// `scripts/test/perimetre.mjs` : partition des fichiers de test par environnement, répartition des workers,
+// routage des filtres. Aucun spawn ; le seul accès disque est la mesure système `mesureMemoireDisponibleMo`.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import os from 'node:os'
@@ -35,6 +35,18 @@ export const REGEX_ENV_DOCBLOCK = /@(?:vitest|jest)-environment\s+([\w-]+)\b/
 /** Environnement d'un fichier de test, du docblock ou, à défaut, de `test.environment`. */
 export function environnementDe(code, defaut = 'node') {
   return code.match(REGEX_ENV_DOCBLOCK)?.[1] || defaut
+}
+
+/** Les `elements` regroupés par `environnementDe(element)`, groupes dans l'ordre de première apparition, ordre
+ *  interne conservé : Vitest ne réemploie un worker que pour un fichier suivant de même environnement
+ *  (node_modules/vitest/dist/chunks/index.DpLw24bj.js:11549, #3412). PURE. */
+export function grouperParEnvironnement(elements, environnementDe) {
+  const groupes = new Map()
+  for (const element of elements) {
+    const environnement = environnementDe(element)
+    groupes.set(environnement, [...(groupes.get(environnement) ?? []), element])
+  }
+  return [...groupes.values()].flat()
 }
 
 /** Deux seaux : `jsdom` (docblock jsdom) et `node` (tout le reste). Le seau ne décide QUE du
@@ -205,9 +217,10 @@ export function admissionNode(cpus, disponibleOctets, { profils = [], parentOcte
  *  convention que `repartitionWorkers`/`maxWorkersMono`). Calculée avec un parent ; si ce résultat partage,
  *  recalculée avec deux (node et jsdom) — elle peut alors retomber sous le seuil, en mono, qui n'a qu'un parent.
  *  `portes` est le compte de workers que la mémoire porte ; `refus` vaut `MEMOIRE_INSUFFISANTE` sous `minimumMo`
- *  (un parent et `MINIMUM_WORKERS` workers, bornés par les cœurs). Un régime inconnu lève. Régime `node --test` :
- *  `admissionNode`. */
-export function capacite(cpus, memoireMo, regime) {
+ *  (un parent et `MINIMUM_WORKERS` workers, bornés par les cœurs et par `fichiers`, les fichiers lancés,
+ *  `fichiersNommes` : un worker ne reçoit jamais plus que les fichiers lancés). Un régime inconnu lève. Régime
+ *  `node --test` : `admissionNode`. */
+export function capacite(cpus, memoireMo, regime, fichiers = Infinity) {
   if (!Object.hasOwn(EMPREINTES_WORKER_MO, regime))
     throw new Error(`régime de lancement inconnu : « ${regime} » — attendu ${Object.keys(EMPREINTES_WORKER_MO).join(' | ')}`)
   const empreinteMo = EMPREINTES_WORKER_MO[regime]
@@ -217,7 +230,7 @@ export function capacite(cpus, memoireMo, regime) {
   }
   const mono = avec(1)
   const { portes, servis } = repartitionWorkers(mono.servis).split ? avec(2) : mono
-  const minimumMo = PARENT_MO + Math.min(MINIMUM_WORKERS, maxWorkersMono(cpus)) * empreinteMo
+  const minimumMo = PARENT_MO + Math.min(MINIMUM_WORKERS, maxWorkersMono(cpus), fichiers) * empreinteMo
   return {
     refus: memoireMo < minimumMo ? 'MEMOIRE_INSUFFISANTE' : null,
     minimumMo,
@@ -261,11 +274,11 @@ export function cotesRequis(filtres, partition, racine, plateforme = process.pla
   return cotes.length ? cotes : ['node']
 }
 
-/** La capacité servie par le lanceur sous l'environnement `env` et le régime `regime` : `capacite` des cœurs
- *  (`coeurs`, mesure `os.availableParallelism`) et de la mémoire disponible (`memoireDisponibleMo`). Lue par
+/** La capacité servie par le lanceur sous l'environnement `env`, le régime `regime` et les `fichiers` lancés : `capacite`
+ *  des cœurs (`coeurs`, mesure `os.availableParallelism`) et de la mémoire disponible (`memoireDisponibleMo`). Lue par
  *  `run.mjs` et par l'estimation du mur de `perimetre.mjs`. */
-export const capaciteDuLanceur = (env, regime) =>
-  capacite(coeurs(env, () => os.availableParallelism()), memoireDisponibleMo(env), regime)
+export const capaciteDuLanceur = (env, regime, fichiers) =>
+  capacite(coeurs(env, () => os.availableParallelism()), memoireDisponibleMo(env), regime, fichiers)
 
 /** Le nom d'un argument de l'argv, sans sa valeur `=…`. PURE. */
 const nomDuDrapeau = (a) => a.split('=')[0]
@@ -315,6 +328,11 @@ export function separerArguments(argv, estChemin = () => true) {
   }
   return { filtres, mono }
 }
+
+/** Fichiers lancés par les `filtres` de `separerArguments` quand chacun nomme un fichier (`estFichier`) : leur
+ *  compte ; sinon (aucun filtre, un dossier) `Infinity`, la suite ou un dossier entier. PURE. */
+export const fichiersNommes = (filtres, estFichier) =>
+  filtres.length && filtres.every(estFichier) ? filtres.length : Infinity
 
 const VALEUR_ATTENDUE = [
   '--config', '-c', '--workspace', '--reporter', '--outputFile', '--testNamePattern', '-t',

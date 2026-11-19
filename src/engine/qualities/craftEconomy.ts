@@ -5,13 +5,13 @@
  */
 import { resolveQualities, type QualityCarrier } from './dispatch';
 import { AVAILABILITIES, type Availability } from '../types';
-import { t, type MsgKey } from '../../i18n';
+import type { ClasseDeQualite } from '../../data/schemas/grammaire/reference';
 
 const craftDefs = (c: QualityCarrier | undefined) => resolveQualities(c).filter((r) => r.data?.subType === 'objet');
 
-/** Nombre d'Atouts d'objet (multiplicité = répétition dans la liste). */
+/** Nombre de prises d'Atouts d'objet, l'Indice d'un Atout indicé compris. LDB 60 l.11 ; LDB 60 l.30-32 */
 export function craftAtoutCount(c: QualityCarrier | undefined): number {
-  return craftDefs(c).filter((r) => r.data?.polarite === 'atout').length;
+  return craftDefs(c).filter((r) => r.data?.polarite === 'atout').reduce((n, r) => n + (r.data?.indice ? (r.indice ?? 1) : 1), 0);
 }
 /** Nombre de Défauts d'objet. */
 export function craftDefautCount(c: QualityCarrier | undefined): number {
@@ -49,33 +49,10 @@ export function shiftAvailability(base: Availability, c: QualityCarrier | undefi
   return AVAILABILITIES[Math.max(0, Math.min(AVAILABILITIES.length - 1, idx))];
 }
 
-/** Classe de qualité, en id STABLE (LDB 60 l.7/11/42) — l'affichage vit au catalogue
- *  (`QUALITY_CLASS_KEY`/`qualityClassLabel`). */
-export type QualityClass = 'haute' | 'qualite' | 'defectueuse' | 'standard';
-
-/** Clé d'affichage de chaque classe (résolue à l'APPEL, jamais gelée au chargement du module). */
-export const QUALITY_CLASS_KEY: Record<QualityClass, MsgKey> = {
-  haute: 'craft.classHaute',
-  qualite: 'craft.classQualite',
-  defectueuse: 'craft.classDefectueuse',
-  standard: 'craft.classStandard',
-};
-
-/** Libellé JOUEUR d'une classe de qualité (LDB 60 l.7/11/42). */
-export function qualityClassLabel(k: QualityClass): string {
-  return t(QUALITY_CLASS_KEY[k]);
-}
-
-/**
- * Classe de qualité (LDB 60 l.7/11/42) : **Haute Qualité** = aucun Défaut ET plus d'Atouts que
- * l'Encombrement ; **Qualité** = plus d'Atouts que de Défauts ; **Défectueuse** = l'inverse ;
- * sinon **Standard**. `enc` = Encombrement de base de l'objet.
- */
-export function qualityClass(c: QualityCarrier | undefined, enc: number): QualityClass {
-  const a = craftAtoutCount(c);
-  const d = craftDefautCount(c);
-  if (d === 0 && a > enc) return 'haute';
-  if (a > d) return 'qualite';
-  if (d > a) return 'defectueuse';
-  return 'standard';
+/** Le nombre minimal d'Atouts de Fabrication d'une Possession de la classe `classe` et d'Encombrement `enc`.
+ *  LDB 60 l.7 ; LDB 60 l.11 */
+export function atoutsMinimaux(classe: 'qualite'): number;
+export function atoutsMinimaux(classe: ClasseDeQualite, enc: number): number;
+export function atoutsMinimaux(classe: ClasseDeQualite, enc = 0): number {
+  return classe === 'haute' ? enc + 1 : 1;
 }

@@ -5,7 +5,7 @@ import especesAleatoiresJson from '../../especes-aleatoires.json';
 
 const FICHIER = 'especes-aleatoires.json';
 const table = (entries: { id: string; min: number; max: number }[]) => [
-  { id: 'races-fixture', type: 'especes-aleatoires', label: 'Fixture', die: 'd100', source: { book: 'livre-de-base', page: 24 }, entries },
+  { id: 'races-fixture', type: 'especes-aleatoires', label: 'Fixture', die: { n: 1, sides: 100 }, source: { book: 'livre-de-base', page: 24 }, entries },
 ];
 
 describe('especes-aleatoires.json — couverture du dé', () => {
@@ -15,14 +15,13 @@ describe('especes-aleatoires.json — couverture du dé', () => {
 
   it('REFUSE, en le nommant, un trou entre deux rangées', () => {
     expect(validateDataset(FICHIER, table([{ id: 'humains-reiklander', min: 1, max: 90 }, { id: 'nains', min: 92, max: 100 }]))).toMatch(
-      /especes-aleatoires\.json › races-fixture : les rangées ne couvrent pas le d100 d'un seul tenant/,
+      /especes-aleatoires\.json › races-fixture : les rangées ne couvrent pas le 1d100 d'un seul tenant/,
     );
   });
 });
 
-type Document = { id: string; entries: { id: string; min: number; max: number }[] };
-const clone = () => structuredClone(especesAleatoiresJson) as unknown as Document[];
-const nomme = (docs: Document[], id: string) => {
+const clone = () => structuredClone(especesAleatoiresJson);
+const nomme = (docs: ReturnType<typeof clone>, id: string) => {
   const d = docs.find((x) => x.id === id);
   expect(d, `le document « ${id} » est dans especes-aleatoires.json`).toBeDefined();
   return structuredClone(d!);

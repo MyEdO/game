@@ -1,0 +1,30 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "col-de-fourrure"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "manteau",
+  "couvre": [],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "fourrure",
+      "palette": "fourrure",
+      "matiere": "prop--fourrure"
+    }
+  ],
+  "glb": {
+    "sha256": "7a1db13248038a23b8b7431511aeb30a787101e95697af8e5c94ade0bf35c043",
+    "octets": 568380
+  }
+}

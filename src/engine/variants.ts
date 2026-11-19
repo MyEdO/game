@@ -4,14 +4,18 @@
  * référence LE registre `OPTIONAL_RULES` (`src/engine/policy.ts`), lu par `rule(id)` — jamais un
  * booléen/flag parallèle (garde #564, `scripts/guards`).
  */
-import type { Variant } from '../data/schemas/grammaire/valeurs';
+import type { z } from 'zod';
+import type { variantWhenSchema } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
+
+/** Ce que toute variante réglée porte, quel que soit son dataset : sa garde (`variantWhenSchema`). */
+export type VarianteReglee = { when: z.output<typeof variantWhenSchema> };
 
 /** Première variante dont la règle `when.rule` est à l'état `when.equals` (défaut `true` — règle
  *  `kind:'flag'` activée). `undefined` si aucune variante n'est active (forme LDB de base). Deux
  *  variantes simultanément actives sur une même entrée sont un défaut de DONNÉE que ce `find` ne peut
  *  pas départager — gardé par `src/data/variants-integrity.test.ts`. */
-export function activeVariant(variants: Variant[] | undefined): Variant | undefined {
+export function activeVariant<V extends VarianteReglee>(variants: readonly V[] | undefined): V | undefined {
   if (!variants) return undefined;
   return variants.find((v) => rule(v.when.rule) === (v.when.equals ?? true));
 }
@@ -24,13 +28,13 @@ export function activeVariant(variants: Variant[] | undefined): Variant | undefi
  * republie l'entrée entière — aucune fusion profonde implicite). `when` n'apparaît jamais dans le
  * résultat. Sans variante active, l'entrée est renvoyée TELLE QUELLE (forme de base, byte-pour-byte).
  */
-export function effectiveEntry<T extends object>(entry: T): T;
-export function effectiveEntry<T extends object>(entry: T | undefined): T | undefined;
-export function effectiveEntry<T extends object>(entry: T | undefined): T | undefined {
+type AVariantes = { variants?: readonly VarianteReglee[] };
+export function effectiveEntry<T extends AVariantes>(entry: T): T;
+export function effectiveEntry<T extends AVariantes>(entry: T | undefined): T | undefined;
+export function effectiveEntry<T extends AVariantes>(entry: T | undefined): T | undefined {
   if (!entry) return entry;
-  const v = activeVariant((entry as { variants?: Variant[] }).variants);
+  const v = activeVariant(entry.variants);
   if (!v) return entry;
-  const patch: Record<string, unknown> = { ...v };
-  delete patch.when;
-  return { ...entry, ...patch } as T;
+  const { when: _when, ...patch } = v;
+  return { ...entry, ...patch };
 }

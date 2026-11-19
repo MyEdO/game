@@ -1,0 +1,54 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/touche.gd" id="2_touche"]
+
+[node name="CaseLibre" type="VBoxContainer"]
+custom_minimum_size = Vector2(72, 0)
+mouse_filter = 2
+theme_type_variation = &"PileDOffre"
+
+[node name="Cadre" type="Panel" parent="."]
+custom_minimum_size = Vector2(40, 40)
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_type_variation = &"CaseLibre"
+
+[node name="Rang" type="Control" parent="Cadre"]
+anchors_preset = 0
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 9.0
+offset_bottom = 9.0
+mouse_filter = 2
+
+[node name="Disque" type="Panel" parent="Cadre/Rang"]
+offset_right = 34.0
+offset_bottom = 34.0
+scale = Vector2(0.5, 0.5)
+mouse_filter = 2
+theme_type_variation = &"Rang"
+
+[node name="Touche" type="Label" parent="Cadre/Rang"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"ChiffreDuRang"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="touche" type="Node" parent="Cadre/Rang/Touche"]
+script = ExtResource("2_touche")
+champ = "touche"
+cacher_si_nul = true
+
+[node name="Libelle" type="Label" parent="."]
+theme_type_variation = &"NomDOffre"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="texte" type="Node" parent="Libelle"]
+script = ExtResource("1_liaison")
+champ = "texte"

@@ -9,6 +9,8 @@ import { testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { describeHeal } from '../../noyau/flowOutcomes';
+import { nomEnVue } from '../../noyau/visionDuGroupe';
+import { garanti } from '../../lib/garanti';
 import { lodgedAmmoCount } from '../../engine/healing';
 import { stacks } from '../../engine/conditions';
 import { Icon } from '../Icon';
@@ -32,6 +34,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const ph = useGame((s) => s.pendingHeal);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
+  const nomCible = useGame((s) => (s.pendingHeal ? nomEnVue(s, s.pendingHeal.targetId) : null));
   const roll = useGesteDeJet('jetLancer', 'soins');
   const reroll = useGesteDeJet('jetRelancer', 'soins');
   const bonusSL = useGesteDeJet('jetAjouterUnDR', 'soins');
@@ -44,6 +47,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const setTest = (v: ReglagesDuJet['soins']['test']) => regler('soins', 'test', v);
   const setBandages = (v: ReglagesDuJet['soins']['bandages']) => regler('soins', 'bandages', v);
   if (!ph) return null;
+  const nom = garanti(nomCible, ph.targetId, 'cible du soin');
   const fenetre = fenetreDuSoin(useGame.getState());
   const pool = battle?.combatants ?? party; // même flux en combat (file) et hors combat (groupe)
   const healer = pool.find((c) => c.id === ph.healerId); // absent (PNJ médecin) → Chance/Résilience à 0
@@ -100,7 +104,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
        nom est au titre de l'infirmerie). La Difficulté reste la donnée de la LIGNE (#1072). */
     extra: embedded ? undefined : healer
       ? <VsHeader actor={healer} target={target} label={acte.label} verb={acte.icon} targetVariant="full" />
-      : <p className="rm-note">{acte.label} — {ph.targetName}</p>,
+      : <p className="rm-note">{acte.label} — {nom}</p>,
     // Fenêtre du soin (`fenetreDuSoin`) : le Test et les Bandages engagés, chaque option fermée avec sa raison.
     setup: rolled ? undefined : (
       <>
@@ -144,7 +148,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
     ),
     rows: [actorRow],
     rolled,
-    outcome: rolled && target ? [recapLineOfEvent(ev('soin', describeHeal(ph, target), ph.healerId, ph.targetId), pool)] : undefined,
+    outcome: rolled && target ? [recapLineOfEvent(ev('soin', describeHeal(ph, target, nom), ph.healerId, ph.targetId), pool)] : undefined,
     actions,
     onCancel: rolled ? undefined : cancel,
   };

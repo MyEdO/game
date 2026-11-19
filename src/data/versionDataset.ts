@@ -31,14 +31,16 @@ export function versionDuDataset(cle: CleDeDataset): number {
   return VERSIONS.get(cle)?.v ?? 0;
 }
 
+/** Écritures au seam, toutes clés confondues : la somme des compteurs, tenue à l'écriture. */
+let ecritures = 0;
+
 /** Version de TOUS les datasets à la fois : la somme de leurs compteurs, qui croît strictement à chaque
  *  écriture au seam sur n'importe quelle clé (`bumperDataset` n'incrémente jamais que d'un). Le témoin
  *  d'une valeur dérivée d'un document qui référence le catalogue ENTIER — le verdict de schéma d'une
- *  scène (`noyau/validateScene.ts`). */
+ *  scène (`noyau/validateScene.ts`), la marche (`noyau/monde/path.ts`, `noyau/monde/sceneRules.ts`) : une
+ *  lecture de champ, posable sur un chemin chaud. */
 export function versionDesDatasets(): number {
-  let v = 0;
-  for (const c of VERSIONS.values()) v += c.v;
-  return v;
+  return ecritures;
 }
 
 /** Marque un dataset comme ÉDITÉ — appelée par le seam d'écriture (`setDataset`/`setObjectDataset`/
@@ -46,6 +48,7 @@ export function versionDesDatasets(): number {
  *  prochaine lecture. */
 export function bumperDataset(cle: CleDeDataset): void {
   cellule(cle).v += 1;
+  ecritures += 1;
   for (const abonne of ABONNES) abonne();
 }
 

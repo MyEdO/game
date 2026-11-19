@@ -73,7 +73,7 @@ describe('cascade du libellé', () => {
 });
 
 describe('cascade sur DONNÉE RÉELLE (`trappings`, def ADOPTÉ)', () => {
-  const champs = () => inferFields(editableEntries('trappings') as Record<string, unknown>[], { meta: metaPourFichier('trappings.json') });
+  const champs = () => inferFields(editableEntries('trappings'), { meta: metaPourFichier('trappings.json') });
 
   /** Le discriminant de catalogue s'appelle `categorie` depuis #1467 L1b V-P5, et `trappings` a adopté
    *  `document()` à la vague 12b : il porte donc MAINTENANT une clé d'enveloppe `type` sur les mêmes
@@ -81,7 +81,7 @@ describe('cascade sur DONNÉE RÉELLE (`trappings`, def ADOPTÉ)', () => {
    *  libellé que SON def déclare, et jamais celui d'une clé d'enveloppe homonyme — les deux coexistent
    *  sans se confondre. */
   it('`categorie` prend le libellé de SON def, jamais celui de la clé d’enveloppe `type` qui la côtoie', () => {
-    const entrees = editableEntries('trappings') as Record<string, unknown>[];
+    const entrees = editableEntries('trappings');
     expect(entrees.some((e) => typeof e.categorie === 'string'), 'la population `categorie` a disparu de trappings.json').toBe(true);
     const meta = metaPourFichier('trappings.json');
     expect(meta, '`trappings` a adopté `document()` : sa méta doit arriver au canal').toBeDefined();
@@ -213,7 +213,7 @@ describe('canal registre → atelier (`metaPourFichier`)', () => {
 describe('cliquet — part des champs de premier niveau qui portent un libellé', () => {
   const champsAffiches = () =>
     CODEX.filter((c) => isEditableCategory(c.key)).flatMap((c) =>
-      inferFields(editableEntries(c.key) as Record<string, unknown>[], { meta: metaPourFichier(`${c.key}.json`) }),
+      inferFields(editableEntries(c.key), { meta: metaPourFichier(`${c.key}.json`) }),
     );
 
   // PLANCHER NOMINAL : 819/1220 = 67,1 % — mesure du 2026-08-28 sur l'arbre, les 76 defs `entite`
@@ -246,7 +246,7 @@ describe('cliquet — part des champs de premier niveau qui portent un libellé'
     // méta de sa catégorie — aucun n'est un artefact d'`inferFields`.
     const ecarts = CODEX.filter((c) => isEditableCategory(c.key)).flatMap((c) => {
       const meta = metaPourFichier(`${c.key}.json`);
-      return inferFields(editableEntries(c.key) as Record<string, unknown>[], { meta })
+      return inferFields(editableEntries(c.key), { meta })
         .filter((f) => f.label !== f.key && libelleDuChamp(f.key, { meta }) !== f.label)
         .map((f) => `${c.key}.${f.key} → ${f.label}`);
     });

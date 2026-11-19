@@ -8,16 +8,10 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HouseRulesPanel } from './HouseRulesModal';
-import { OPTIONAL_RULES } from '../engine/policy';
+import { OPTIONAL_RULES, type OptionalRule } from '../engine/policy';
 
 describe('HouseRulesPanel — la borne d’une règle chiffrée vient de la DONNÉE', () => {
-  const params = OPTIONAL_RULES.filter((r) => r.kind === 'param');
-
-  it('chaque règle `param` a un domaine authoré (sans quoi il n’y a rien à caler)', () => {
-    expect(params.length).toBeGreaterThan(0);
-    const sansDomaine = params.filter((r) => r.min == null || r.max == null).map((r) => r.id);
-    expect(sansDomaine, 'règle chiffrée sans min/max : le champ ne pourrait rien caler').toEqual([]);
-  });
+  const params = OPTIONAL_RULES.filter((r): r is Extract<OptionalRule, { kind: 'param' }> => r.kind === 'param');
 
   it('le champ rendu porte le min/max/step de SON entrée — jamais une borne écrite au panneau', () => {
     const html = renderToStaticMarkup(<HouseRulesPanel />);

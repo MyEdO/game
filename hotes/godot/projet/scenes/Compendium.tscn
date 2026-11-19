@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/compendium.gd" id="1_compendium"]
+[ext_resource type="PackedScene" path="res://scenes/PanneauDuCompendium.tscn" id="2_panneau"]
+
+[node name="Compendium" type="Node"]
+script = ExtResource("1_compendium")
+
+[node name="Panneau" parent="." instance=ExtResource("2_panneau")]

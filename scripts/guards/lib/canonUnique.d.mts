@@ -63,6 +63,7 @@ export const CONSTRUCTION_DE_PROGRAMME: Construction;
 export const ECRITURE_DE_STOCK_JSON: Construction;
 export const SONDE_D_EXISTENCE: Construction;
 export const PREDICAT_D_OBJET: Construction;
+export const LECTURE_AU_CHEMIN: Construction;
 export const VIE_SUR_PID_LU: Construction;
 export const CONSTRUCTION_DE_TABLE_TOTALE: Construction;
 export function constructionDeFragment(p: {

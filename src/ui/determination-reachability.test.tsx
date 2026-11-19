@@ -100,7 +100,7 @@ describe('Détermination — les trois usages sont ATTEIGNABLES depuis la consol
   it('réserve VIDE — les deux alvéoles restent DESSINÉES et portent leur raison, au SURVOL', () => {
     const h = heros({ resolve: 0, conditions: [] });
     monter(h);
-    const attendue = actionGate('determination-psychologie', { active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
+    const attendue = actionGate('determination-psychologie', { scene: useGame.getState().scene, active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
     for (const id of ['determination-psychologie', 'determination-critique']) {
       const c = alveole(id)!;
       expect(c, `l’alvéole ${id} a disparu — la géométrie ne bouge jamais`).toBeTruthy();

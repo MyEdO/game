@@ -2,7 +2,7 @@
 name: modeleur
 description: Construit un lot d'éléments 3D (GLB et manifeste schéma 3) depuis une illustration et son contrat, spécifié par l'orchestrateur. Pour toute production ou retouche d'élément 3D.
 tools: Read, Edit, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_patch, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, Write, Bash, PowerShell, Skill
-model: opus
+model: fable
 effort: medium
 ---
 
@@ -12,10 +12,12 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
 - **Charge le skill `creer-un-personnage-3d`** et suis sa procédure : elle porte la chaîne, les
   commandes et les interdits. Le contrat de l'élément et l'illustration directrice nommés au brief font
   la barre.
+- **Chaque surface nomme sa matière du catalogue** (procédure, section 3), jamais un aplat ; une matière qui manque
+  revient à l'orchestrateur. Tes rendus passent par `rendu.py --preset`, qui habille la pièce comme le jeu.
 - **Ta source vit dans le dépôt** : un élément sur base dans `scripts/personnage-3d/element/<base>/<categorie>--<valeur>/`
   (`donnees.py`, `modele.py`, section 3 de la procédure), un véhicule dans `scripts/personnage-3d/vehicule/<type>/`
-  (chapitre 9) : les dossiers que le brief te donne. Tu construis par le constructeur commun, jamais par un
-  constructeur d'atelier ni une copie des communs.
+  (chapitre 9), un décor dans `scripts/personnage-3d/decor/<modele>/` (chapitre 10) : les dossiers que le brief te
+  donne. Tu construis par le constructeur commun, jamais par un constructeur d'atelier ni une copie des communs.
 - **Un véhicule** (navire, engin de siège) suit le chapitre 9 de la procédure : tes fichiers sont ceux de
   `scripts/personnage-3d/vehicule/<type>/` que le brief te donne ; tu décomposes d'abord l'illustration en parties (bateau,
   Améliorations, armement, décor, pavillon) et ne modèles dans le GLB que le bateau. Avant de rendre, passe les gardes
@@ -23,6 +25,11 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
   ou tourner la pièce, fermer la muraille, poser le plancher), jamais en retirant ce que l'illustration dessine ni en
   vidant une cabine. L'illustration qui place une chose l'arbitre (plan des ponts, plan des canons) : compte ses
   ouvertures et ses pièces, et rends le compte des deux côtés.
+- **Un décor** (`decor`, clé `prop`) suit le chapitre 10 de la procédure : il se bâtit dans l'enveloppe convexe des primitives
+  de sa recette dans `src/data/props.json`, lues par `decor/gabarit.py`, et chaque sommet y reste, sol compris : il garde
+  leur encombrement sans les recopier ; une enveloppe qui empêche un modèle correct revient à l'orchestrateur, avec la
+  cote qui gêne, jamais retouchée.
+  Tu le regardes par `decor/revue.py` : AVANT (les primitives) et APRÈS (le GLB), de face, de trois-quarts et de dessus.
 - **Épingle ton arbre avant toute mesure** : `git log --oneline -1`, le hash dans ton rendu, et la
   sha256 du manifeste de base que tu vises.
 - Tu n'écris que les fichiers que le brief te donne. Tes sorties (GLB, manifestes, rendus, mesures)

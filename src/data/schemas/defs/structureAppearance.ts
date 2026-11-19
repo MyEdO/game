@@ -1,14 +1,14 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `structureAppearance.json` — apparence PARTAGÉE d'une structure d'arête (mur/porte),
- * consommée comme `StructureAppearanceDef[]` (`src/data/structureAppearance.types.ts`). Chaque champ
+ * consommée comme `StructureAppearanceDef[]` (`EntreeDe`, `src/data/index.ts`). Chaque champ
  * est une COULEUR ou une mesure que le rendu lit par PARTIE de mur (`wallPartColor`).
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { detailRecipeSchema, enumNomme } from '../grammaire/valeurs';
-import { WALL_PARTS, type FamilleDuKit, type WallPart } from '../../structureAppearance.types';
+import { WALL_PARTS, type WallPart } from '../../structureAppearance.types';
 
 export const file = 'structureAppearance.json';
 export const famille = 'entite';
@@ -29,11 +29,18 @@ const reliefParPartie = nommerChamps(z.strictObject(
   ...tableTotale(RELIEF_PART_KEYS, (partie) => ({ label: { panneau: 'Panneau', moulure: 'Moulure', plinthe: 'Plinthe', chambranle: 'Chambranle', vantail: 'Vantail', 'vantail-planche': 'Planche de vantail', poignee: 'Poignée', vitre: 'Vitre', meneau: 'Meneau', bande: 'Bande', linteau: 'Linteau', 'herse-barreau': 'Barreau de herse', 'herse-traverse': 'Traverse de herse', seuil: 'Seuil', gravats: 'Gravats', 'gravats-tas': 'Tas de gravats' }[partie] })),
 });
 
+/** La famille du kit 3D d'une apparence : le modèle `arete--<famille>` dont l'hôte pose les pièces (#4471), sinon les
+ *  pièces `<famille>--<pièce>` du kit des arêtes (`hotes/godot/asset/kit.ts`). */
+export const kitSchema = enumNomme({
+  colombage: 'Pan de bois', pierre: 'Pierre', moellons: 'Moellons', 'pierres-seches': 'Pierres sèches',
+  porterie: 'Porterie', cloture: 'Clôture',
+});
+
 const doc = document(
   'structureAppearance',
   famille,
   {
-    kit: enumNomme({ colombage: 'Pan de bois', pierre: 'Pierre', cloture: 'Clôture' } satisfies Record<FamilleDuKit, string>),
+    kit: kitSchema,
     wallHeightM: z.number().positive().optional(),
     detail: detailRecipeSchema.optional(),
     face: z.string(),

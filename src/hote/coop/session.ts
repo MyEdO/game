@@ -1,7 +1,7 @@
 /**
  * Session coop — modèle HÔTE-AUTORITAIRE sur Transport injecté (transports du relay en prod,
- * `transport.testkit.ts` en test). L'hôte est le SEUL à exécuter le store : les invités envoient des
- * intents, l'hôte les rejoue puis diffuse un snapshot d'état complet
+ * `transport.testkit.ts` en test). L'hôte seul applique les intents des sièges et diffuse l'état : les
+ * invités envoient des intents, l'hôte les rejoue puis diffuse un snapshot d'état complet
  * (mêmes données JSON-sûres que la sauvegarde — cf. spec coop §3). Les sièges sont attribués
  * par la room (Durable Object) et injectés via `addGuest`.
  *
@@ -10,14 +10,6 @@
  */
 import type { Transport } from './transport';
 import { PROTOCOL_VERSION, parseMessage, serializeMessage, type NetMessage } from './protocol';
-import { registerScene, type EtatDeJeu, type Scene } from '../../noyau/index';
-
-type PaquetDeCampagne = NonNullable<EtatDeJeu['pendingCampaign']>;
-
-/** Le message `paquetDeCampagne` (spec v2 §5) du paquet `pc`. */
-function messageDuPaquet(pc: PaquetDeCampagne): NetMessage {
-  return { kind: 'paquetDeCampagne', label: pc.label, scenes: pc.scenes, startSceneId: pc.startSceneId, worldMap: pc.worldMap ?? null };
-}
 
 export interface Seat {
   label: string;
@@ -27,16 +19,12 @@ export interface Seat {
 export class HostSession {
   /** Sièges CONNECTÉS (handshake accompli), indexés par numéro (1..3 — 0 = l'hôte). */
   readonly seats: Record<number, Seat> = {};
-  /** Le dernier paquet de campagne envoyé : un paquet chargé APRÈS le join part à la diffusion suivante. */
-  private paquetEnvoye: PaquetDeCampagne | null = null;
 
   constructor(
     private readonly opts: {
       build: string;
       applyIntent: (action: string, args: unknown[], seat: number) => void;
       getSnapshot: () => Record<string, unknown>;
-      /** Le paquet de campagne de l'hôte : envoyé au handshake ENTRE hello et snapshot (spec v2 §5). */
-      campagne?: () => EtatDeJeu['pendingCampaign'];
       onSeatClosed?: (seat: number) => void;
     },
   ) {}
@@ -63,11 +51,6 @@ export class HostSession {
         this.seats[seat] = { label: m.label, transport };
         joined = true;
         transport.send(serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: this.opts.build, label: 'hôte' }));
-        const pc = this.opts.campagne?.();
-        if (pc) {
-          this.paquetEnvoye = pc;
-          transport.send(serializeMessage(messageDuPaquet(pc)));
-        }
         transport.send(serializeMessage({ kind: 'snapshot', data: this.opts.getSnapshot() }));
         return;
       }
@@ -92,14 +75,8 @@ export class HostSession {
     for (const s of Object.values(this.seats)) s.transport.send(msg);
   }
 
-  /** Diffuse l'état autoritaire à tous les sièges connectés, précédé du paquet de campagne s'il a changé
-   *  depuis le dernier envoyé. */
+  /** Diffuse l'état autoritaire à tous les sièges connectés. */
   broadcastSnapshot(): void {
-    const pc = this.opts.campagne?.();
-    if (pc && pc !== this.paquetEnvoye) {
-      this.paquetEnvoye = pc;
-      this.broadcast(messageDuPaquet(pc));
-    }
     this.broadcast({ kind: 'snapshot', data: this.opts.getSnapshot() });
   }
 
@@ -139,10 +116,6 @@ export class GuestSession {
         this.opts.applySnapshot(m.data);
         return;
       }
-      if (m.kind === 'paquetDeCampagne') {
-        for (const s of m.scenes) registerScene(s as Scene);
-        return;
-      }
       if (m.kind === 'error' && m.reason === 'protocol-mismatch') this.opts.onProtocolMismatch?.(m.expected, m.got);
       if (m.kind === 'error' && m.reason === 'format-mismatch') this.opts.onFormatMismatch?.();
     });
@@ -157,7 +130,7 @@ export class GuestSession {
     this.transport?.send(serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: this.opts.build, label: this.opts.label }));
   }
 
-  /** Reprise après reconnexion : re-handshake — l'hôte répond hello + paquet de campagne + snapshot. */
+  /** Reprise après reconnexion : re-handshake — l'hôte répond hello + snapshot. */
   rejoin(): void {
     this.sayHello();
   }

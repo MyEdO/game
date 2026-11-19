@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "tonneaux-pile"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "492cacb33793ec3e492f1151995a4524dc4af9908d8479532afcfadab5bf6f04",
+    "octets": 191412
+  }
+}

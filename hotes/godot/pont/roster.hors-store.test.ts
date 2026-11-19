@@ -10,7 +10,7 @@ import { t } from '../../../src/i18n';
 import { rosterDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { brouillonComplet } from '../../../src/noyau/creation/engagement.testkit';
 import { engagement, rosterExport, type RosterEntry } from '../../../src/noyau/index';
-import { ajouterAuRoster, chargerLeRoster } from '../../../src/hote/roster';
+import { ajouterAuRoster, chargerLeRoster, retirerDuRoster } from '../../../src/hote/roster';
 import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
@@ -53,7 +53,7 @@ describe('le roster par le pont', () => {
     expect(recrute.vue.projection.pas, 'le recrutement est un geste de la partie').toBe(s.vue.projection.pas + 1);
     expect(recrute.zones['journal.lignes'].some((l) => l.texte.includes('Alda')), 'sa bourse de départ au journal').toBe(true);
     expect(boutonDe(recrute, alda, 'recruter').refus, 'déjà au groupe').toBe(t('pf.partyDuplicate', { name: 'Alda' }));
-    expect(erreurDe(appel('roster', { roster: { recruter: alda } })), 'le bouton refusé se refuse en règle').toEqual({ categorie: 'regle', message: `roster : ${t('pf.partyDuplicate', { name: 'Alda' })}` });
+    expect(erreurDe(appel('roster', { roster: { recruter: alda } })), 'le bouton refusé se refuse en règle').toEqual({ categorie: 'regle', message: t('pf.partyDuplicate', { name: 'Alda' }) });
     expect(boutonDe(recrute, bruno, 'recruter').refus).toBeNull();
     expect(chargerLeRoster(stockage).map((e) => e.hero.id), 'le roster garde ses deux héros').toEqual([alda, bruno]);
   });
@@ -85,6 +85,16 @@ describe('le roster par le pont', () => {
     expect(importe.vue.zones['groupe.roster'].map((e) => e.id)).toEqual([`roster/${bruno}`, `roster/${alda}`]);
     expect(importe.vue.zones['groupe.avis']).toEqual([]);
     expect(chargerLeRoster(stockage).map((e) => e.hero), 'le héros importé est celui exporté').toEqual([entrees[1].hero, entrees[0].hero]);
+  });
+
+  it('un export qui lève en `interne` laisse à la `Suite` suivante ce que la partie avait produit avant lui', () => {
+    const { appel, entrees, stockage } = tableAuRoster('Alda');
+    const alda = entrees[0].hero.id;
+    const s = suiteDe(appel('ouvrir', { graine: 7 }));
+    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 1 })).categorie).toBe('permission');
+    retirerDuRoster(stockage, alda);
+    expect(erreurDe(appel('roster', boutonDe(s, alda, 'exporter').jeu)).categorie, 'le héros exporté n’est plus au stockage').toBe('interne');
+    expect(suiteDe(appel('regarder', { regard: 'tactique' })).journal.map((l) => ('texte' in l ? l.texte : null)), 'la ligne du refus').toEqual([t('coop.intentRefused')]);
   });
 
   it('un fichier qui n’est pas un export de héros se refuse en avis, le roster intact ; un import réussi l’efface', () => {

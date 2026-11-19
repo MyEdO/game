@@ -66,7 +66,8 @@ describe('campagne du jeu — identité à l’import, paquet parsé au geste', 
  *  présent seulement s'il est déclaré. */
 describe('activeAxes — porté du paquet à la campagne lancée', () => {
   const axes = allAxes.filter((a) => !a.core).map((a) => a.id);
-  const avecAxes: BuiltinCampaign = { ...areneCampaign, paquet: { ...areneProjet, activeAxes: axes } as BuiltinCampaign['paquet'] };
+  const paquetAvecAxes = { ...areneProjet, activeAxes: axes };
+  const avecAxes: BuiltinCampaign = { ...areneCampaign, paquet: paquetAvecAxes };
 
   it('le registre porte des axes hors socle', () => {
     expect(axes.length).toBeGreaterThan(0);

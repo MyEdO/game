@@ -10,7 +10,7 @@ import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont
 import type { CombattantProjete } from '../../../src/hote/projection';
 import type { VueDuPont } from './pont';
 
-const COMMITES = modelesCommites();
+const COMMITES = await modelesCommites();
 
 const { appel } = table();
 const servir = (manifestes: Record<string, unknown>) => servirLesModeles(appel, COMMITES, manifestes);

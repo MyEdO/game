@@ -1,0 +1,13 @@
+{
+  "model": "decor--statue.glb",
+  "model_sha256": "de4d55975b8f55641d0f37192f15e280bf735db0a6a975711d948db0d7e6b402",
+  "importe_le": "2026-11-17",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

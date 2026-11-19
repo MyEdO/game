@@ -444,7 +444,10 @@
     }
   },
   "boardEvents": {
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "entries": [
       {
         "min": null,
@@ -472,7 +475,10 @@
                     "ops": [
                       {
                         "op": "rollTable",
-                        "die": "1d10",
+                        "die": {
+                          "n": 1,
+                          "sides": 10
+                        },
                         "entries": [
                           {
                             "min": 1,
@@ -562,7 +568,10 @@
             "ops": [
               {
                 "op": "rollTable",
-                "die": "1d10",
+                "die": {
+                  "n": 1,
+                  "sides": 10
+                },
                 "entries": [
                   {
                     "min": 1,
@@ -788,7 +797,10 @@
             "ops": [
               {
                 "op": "rollTable",
-                "die": "1d10",
+                "die": {
+                  "n": 1,
+                  "sides": 10
+                },
                 "entries": [
                   {
                     "min": 1,
@@ -899,7 +911,10 @@
                         "ops": [
                           {
                             "op": "rollTable",
-                            "die": "1d100",
+                            "die": {
+                              "n": 1,
+                              "sides": 100
+                            },
                             "entries": [
                               {
                                 "min": 1,
@@ -993,7 +1008,10 @@
             "ops": [
               {
                 "op": "rollTable",
-                "die": "1d10",
+                "die": {
+                  "n": 1,
+                  "sides": 10
+                },
                 "entries": [
                   {
                     "min": 1,
@@ -1177,7 +1195,10 @@
                         "ops": [
                           {
                             "op": "rollTable",
-                            "die": "1d100",
+                            "die": {
+                              "n": 1,
+                              "sides": 100
+                            },
                             "entries": [
                               {
                                 "min": 1,
@@ -1406,7 +1427,9 @@
                   }
                 },
                 "meteo": {
-                  "vent": "calme-plat"
+                  "vent": {
+                    "id": "calme-plat"
+                  }
                 }
               }
             ]
@@ -1676,8 +1699,12 @@
                   }
                 },
                 "meteo": {
-                  "visibilite": "brume",
-                  "precipitations": "legeres"
+                  "visibilite": {
+                    "id": "brume"
+                  },
+                  "precipitations": {
+                    "id": "legeres"
+                  }
                 }
               }
             ]
@@ -1916,7 +1943,10 @@
               "ops": [
                 {
                   "op": "rollTable",
-                  "die": "1d10",
+                  "die": {
+                    "n": 1,
+                    "sides": 10
+                  },
                   "entries": [
                     {
                       "min": 1,
@@ -2020,7 +2050,9 @@
                   }
                 },
                 "meteo": {
-                  "temperature": "mediane"
+                  "temperature": {
+                    "id": "mediane"
+                  }
                 }
               }
             ]
@@ -2101,7 +2133,10 @@
                 },
                 {
                   "op": "rollTable",
-                  "die": "1d10",
+                  "die": {
+                    "n": 1,
+                    "sides": 10
+                  },
                   "entries": [
                     {
                       "min": 1,
@@ -2188,8 +2223,12 @@
                   }
                 },
                 "meteo": {
-                  "visibilite": "degage",
-                  "precipitations": "aucune"
+                  "visibilite": {
+                    "id": "degage"
+                  },
+                  "precipitations": {
+                    "id": "aucune"
+                  }
                 }
               }
             ]
@@ -2423,7 +2462,10 @@
     ]
   },
   "portEvents": {
-    "die": "2d10",
+    "die": {
+      "n": 2,
+      "sides": 10
+    },
     "entries": [
       {
         "min": 1,
@@ -2432,6 +2474,7 @@
         "label": "Embrigadement",
         "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
         "relache": true,
+        "liaisonEquipage": "enleves",
         "consequence": {
           "kind": "sequence",
           "etapes": [
@@ -3110,9 +3153,15 @@
                   }
                 },
                 "meteo": {
-                  "visibilite": "brouillard",
-                  "precipitations": "abondantes",
-                  "vent": "vent-violent"
+                  "visibilite": {
+                    "id": "brouillard"
+                  },
+                  "precipitations": {
+                    "id": "abondantes"
+                  },
+                  "vent": {
+                    "id": "vent-violent"
+                  }
                 },
                 "aggravation": {
                   "de": {
@@ -3123,7 +3172,9 @@
                   },
                   "seuil": 8,
                   "meteo": {
-                    "vent": "violente-tempete"
+                    "vent": {
+                      "id": "violente-tempete"
+                    }
                   }
                 }
               }
@@ -3355,10 +3406,18 @@
                   }
                 },
                 "meteo": {
-                  "visibilite": "degage",
-                  "precipitations": "aucune",
-                  "temperature": "mediane",
-                  "vent": "brise-fraiche"
+                  "visibilite": {
+                    "id": "degage"
+                  },
+                  "precipitations": {
+                    "id": "aucune"
+                  },
+                  "temperature": {
+                    "id": "mediane"
+                  },
+                  "vent": {
+                    "id": "brise-fraiche"
+                  }
                 }
               }
             ]
@@ -3403,7 +3462,10 @@
                 "ops": [
                   {
                     "op": "rollTable",
-                    "die": "1d10",
+                    "die": {
+                      "n": 1,
+                      "sides": 10
+                    },
                     "entries": [
                       {
                         "min": 1,
@@ -3501,7 +3563,10 @@
                     },
                     {
                       "op": "rollTable",
-                      "die": "1d10",
+                      "die": {
+                        "n": 1,
+                        "sides": 10
+                      },
                       "entries": [
                         {
                           "min": 1,
@@ -3758,7 +3823,10 @@
     ]
   },
   "fastVoyage": {
-    "die": "d10",
+    "die": {
+      "n": 1,
+      "sides": 10
+    },
     "entries": [
       {
         "min": null,

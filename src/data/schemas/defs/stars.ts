@@ -7,9 +7,9 @@ import { z } from 'zod';
 import { document, sousTirage } from '../grammaire/document';
 import { executeesDe, mecaniqueDe } from '../grammaire/mecanique';
 import { nommerChamps } from '../grammaire/meta';
-import { ecartsDuDeDeLaTable, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { formatDice, parseDice, totalDuDe } from '../../../engine/dice';
-import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
+import { deDuParse, ecartsDuDeDeLaTable, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
+import { facesDuDe } from '../../../engine/tables';
 
 export const file = 'stars.json';
 export const famille = 'config';
@@ -80,9 +80,9 @@ const doc = document(
     // replie sur la dernière entrée, et un 5 rendrait la variante « Sorcier ! ».
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
-        const { sub, entries } = v as { sub: { die: string }; entries: { id: string; rand: number; sub?: { min: number; max: number } }[] };
-        if (parseDice(sub.die) === null) return;
-        const subDie = deDeLaTableTiree(sub);
+        const { sub, entries } = v as { sub: { die: DiceSpec }; entries: { id: string; rand: number; sub?: { min: number; max: number } }[] };
+        const subDie = deDuParse(sub);
+        if (!subDie) return;
         const groupes = new Map<number, typeof entries>();
         for (const e of entries) groupes.set(e.rand, [...(groupes.get(e.rand) ?? []), e]);
         for (const [rand, groupe] of groupes) {

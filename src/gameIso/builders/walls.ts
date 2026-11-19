@@ -8,21 +8,34 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, piedDeLArete, tileAt, wallEnds, doorIsOpen, structureIsDown, porteMasquee, porteSelon, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
+import {
+  heightAt,
+  piedDeLArete,
+  tileAt,
+  wallEnds,
+  doorIsOpen,
+  structureIsDown,
+  porteMasquee,
+  porteSelon,
+  type LectureDArete,
+  type Scene,
+  type WallSeg,
+  type WallSide,
+} from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
 import { isWallEdgeStructure } from '../../engine/structures';
-import { interiorCells } from '../../noyau/planDefects';
 import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { estAbsent } from '../../noyau/monde/terrain';
 import { viewedBuilder, type Viewed } from '../../noyau/monde/volume/viewTruth';
 import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdit';
 import { edgeAppearance } from '../../noyau/monde/volume/structures';
 import { crownFaces, cretesDePerimetre } from '../../noyau/monde/volume/creneaux';
-import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
+import type { WallPart } from '../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../data';
+import type { EntreeVivante } from '../../data/datasets';
 import { edgeKey, facadeEdges, facadeWallFeatureAppearance, KINDS_DE_DECOR, type FacadeEdge } from '../../noyau/monde/facades';
 import { WALL_H_M, isoPxToM } from '../../noyau/monde/iso';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
-import type { Dir4 } from '../../geometry/dir8';
 import type { WallEl } from './types';
 import type { Face, GP } from '../../noyau/monde/volume/types';
 import type { FloorView } from '../../noyau/monde/volume/floors';
@@ -30,6 +43,7 @@ import {
   closureAppearance, fieldHeightAt, massSpaceCells, nappeKey, resolveNappes, WALL_NB, type RoofField,
 } from '../../noyau/monde/volume/toits';
 import { massFootprintCells } from '../../noyau/monde/buildings';
+import { dehorsDeScene } from '../../noyau/monde/volume/ornements';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
 /** Ouverture d'une porte bois sans config de def. */
@@ -72,7 +86,7 @@ type GXY = { x: number; y: number };
  *  [haut, bas] — le backend lui donne sa largeur. `capped` = un ÉTAGE repose sur ce mur (`storeyAbove`) :
  *  la lèvre débordante du couronnement est alors omise, elle percerait le plancher du dessus. `porte` =
  *  l'arête se lit en PORTE sous la lecture du rendu (`porteSelon`). */
-function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: boolean, wallHeightM = WALL_H_M, porte = false, open = false, capped = false): Face[] {
+function wallFaces(seg: WallSeg, app: EntreeVivante<StructureAppearanceDef>, b: number, down: boolean, wallHeightM = WALL_H_M, porte = false, open = false, capped = false): Face[] {
   const [A, B] = wallEnds(seg);
   const at = (t: number): GXY => ({ x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t });
   const mat = (part: WallPart) => ({ domain: 'structure' as const, id: app.id, part });
@@ -218,51 +232,6 @@ function storeyAbove(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side'>, z: nu
     && cells.some(([x, y]) => x >= 0 && y >= 0 && x < w && y < h
       && !estAbsent(tileAt(scene, x, y, l.z))
       && Math.abs(heightAt(scene, x, y, l.z) - topH) < EPS));
-}
-
-const xyKey = (x: number, y: number) => `${x},${y}`;
-
-/** Le DEHORS d'une case, par étage — SEULE définition du dépôt, lue par l'ENVELOPPE des murs
- *  (`envelopeEdgesOf`) comme par le CÔTÉ SORTANT d'une arête (`outwardSide`, décors de façade).
- *  Le dehors = case n'appartenant à AUCUNE case INTÉRIEURE (`interiorCells`, `noyau/planDefects.ts`,
- *  #881 — closes par les murs ET non déclarées à ciel ouvert, jamais la seule notion
- *  `SceneEffectZone.presentation: 'interior'` : une enceinte close n'est pas un bâtiment couvert) ET
- *  hors de l'emprise BÂTIE d'une masse (le VOLUME du corps, PAS sa couverture de toit — #825bis : un
- *  avant-toit déborde le mur PAR CONSTRUCTION, la case qu'il surplombe reste DEHORS ; confondre « sous
- *  un toit » et « à l'intérieur » neutralisait 31 arêtes d'étage sur 58 côté La Diligence, mur en
- *  alternance visible/invisible). Une masse à plusieurs niveaux bâtit TOUS les étages qu'elle porte
- *  (`z − levels + 1 … z`), pas seulement son plancher sommet. Mémoïsé PAR SCÈNE (`memoByRef`, patron
- *  canonique unique) : une scène immuable ne recalcule jamais deux fois. */
-export const dehorsDeScene = memoByRef((scene: Scene) => {
-  const builtByZ = new Map<number, Set<string>>();
-  const build = (z: number, x: number, y: number) => {
-    const set = builtByZ.get(z) ?? (builtByZ.set(z, new Set()).get(z)!);
-    set.add(xyKey(x, y));
-  };
-  for (const body of effectiveArchitecture(scene))
-    for (const mass of body.masses) {
-      const cells = massFootprintCells(mass.footprint);
-      for (const key of cells) {
-        const [x, y] = key.split(',').map(Number);
-        for (let z = mass.z - mass.levels + 1; z <= mass.z; z++) build(z, x, y);
-      }
-    }
-  return (x: number, y: number, z: number): boolean =>
-    !interiorCells(scene, z).has(xyKey(x, y)) && !builtByZ.get(z)?.has(xyKey(x, y));
-});
-
-/** CÔTÉ SORTANT d'une arête : le cap cardinal vers lequel elle donne sur le DEHORS (`dehorsDeScene`) —
- *  ce qu'un décor de façade doit savoir pour se dresser du bon côté du mur. `null` quand aucun des deux
- *  côtés n'est le dehors (arête intérieure) et pour une arête DIAGONALE, dont `WALL_NB` rend un voisin
- *  nul : l'appelant tranche son repli. */
-export function outwardSide(scene: Scene, edge: Pick<WallSeg, 'x' | 'y' | 'side'> & { z?: number }): Dir4 | null {
-  const [nx, ny] = NB[edge.side];
-  if (nx === 0 && ny === 0) return null;
-  const z = edge.z ?? 0;
-  const isDehors = dehorsDeScene(scene);
-  if (isDehors(edge.x + nx, edge.y + ny, z)) return edge.side === 'N' ? 'N' : 'E';
-  if (isDehors(edge.x, edge.y, z)) return edge.side === 'N' ? 'S' : 'O';
-  return null;
 }
 
 /** ENVELOPPE extérieure d'un bâtiment (#818) : une arête `WallSeg` en est une seulement si la case
@@ -566,7 +535,7 @@ export function buildWalls(scene: Scene, lecture: LectureDArete, visible?: Reado
   return murs(scene, visible, { lecture, view });
 }
 
-const murs = viewedBuilder<WallEl, { lecture: LectureDArete; view?: FloorView }>({
+const murs = viewedBuilder<Scene, WallEl, { lecture: LectureDArete; view?: FloorView }>({
   derive: (scene, v) => wallGeometry(scene, v!.lecture, v!.view),
   // `view` ABSENT (toutes les couches) ≠ `view` fourni à activeZ 0 (une seule) : la clé les sépare.
   key: (v) => `${v!.lecture}|${v!.view ? 1 : 0}|${v!.view?.activeZ ?? 0}|${v!.view?.viewZ ?? null}`,

@@ -78,7 +78,7 @@ describe('drawWaterDisease — dé de la table « +10 pour chaque DR négatif »
   it('le jet se tire au `die` VIVANT de la table, et le modifié plafonne à ses faces (MSRC 16 l.53 ; #1667)', () => {
     const imprime = structuredClone(datasetObject('waterExposure'));
     try {
-      setObjectDataset('waterExposure', { ...imprime, diseases: { ...imprime.diseases, die: 'd50' } });
+      setObjectDataset('waterExposure', { ...imprime, diseases: { ...imprime.diseases, die: { n: 1, sides: 50 } } });
       expect(drawWaterDisease(9, false, deMax), 'd50 au max, +90 plafonné à 50 → Colique (41-60)').toMatchObject({ roll: 50, modified: 50, disease: 'colique' });
     } finally {
       setObjectDataset('waterExposure', imprime);

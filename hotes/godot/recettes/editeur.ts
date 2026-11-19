@@ -2,11 +2,13 @@
  * L'ÉDITEUR FIGÉ DU NAVIRE (#3772) : ce que la recette native de l'éditeur (`projet/recettes/editeur-navire.gd`) lit,
  * figé par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. L'atelier figé sur les véhicules
  * et les pièces d'Amélioration du dossier des modèles (`figerLAtelier`), la campagne de l'adresse (`parametres`), et sur
- * son pont, l'Arène ouverte et la caraque posée comme Godot la joue (`GESTES`) : chaque entrée de `editer` sous la clé
+ * son pont, l'Arène ouverte, la caraque posée, puis la zone jouable tracée comme Godot les joue (`GESTES`,
+ * `GESTES_DE_LA_ZONE`) : chaque entrée de `editer` sous la clé
  * que la recette en calcule, sa réponse ; après chaque réponse qui sert un manifeste, l'entrée de `morceaux` que
  * l'éditeur envoie alors (source `edition`, les clés dont l'empreinte posée diffère, `VolumeDeScene.manquants`) sous sa
  * clé, sa réponse ; puis les cases du pont du dessus que les morceaux posés au dernier manifeste touchent sans les
- * peindre (`touches`), où la recette lâche son rayon.
+ * peindre (`touches`), où la recette lâche son rayon ; enfin les pointes de la zone jouable et les cases de son contour
+ * servies en surcouche (`zone`).
  */
 import type { Bouton, Choix } from '../../../src/hote/elements';
 import type { MorceauDuMonde } from '../../../src/noyau/index';
@@ -34,11 +36,21 @@ const GESTES: readonly (string | ReturnType<typeof pointe>)[] = [
   'couche/haute',
 ];
 
+/** Les gestes qui suivent `GESTES` : l'outil Zone, sa sorte « Zone jouable », et le rectangle tiré de la case (2, 2) à la
+ *  case (5, 4), sur le pont du dessus choisi. #4392 */
+const GESTES_DE_LA_ZONE: readonly (string | ReturnType<typeof pointe>)[] = [
+  'outil/zone',
+  'zone/jouable',
+  pointe('appui', 2, 2, 2.5, 2.5),
+  pointe('relache', 5, 4, 5.5, 4.5),
+];
+
 interface Reponse {
   ok: boolean;
   vue: { zones: Record<string, (Bouton | Choix | { type: string; id: string })[]> };
   monde?: NonNullable<MondeDuPont['monde']>;
   navires?: Record<string, { centre: { x: number; y: number } }>;
+  surcouche: { zoneJouable: { x: number; y: number; z: number }[] };
 }
 
 /** `jeu` en JSON comme `JSON.stringify` de Godot écrit un jeu qu'il a lu d'une réponse (`JSON.parse_string`) : les
@@ -101,13 +113,20 @@ export function figerLEditeurDuNavire(listage: Listage) {
   };
   const ouvrir = { ouvrir: 'arene' };
   const reponses: [string, Reponse][] = [[cleDEntree(ouvrir), suivre(jouer(ouvrir))]];
-  for (const geste of GESTES) {
-    const jeu = typeof geste === 'string' ? boutonDe(reponses[reponses.length - 1][1], geste).jeu : null;
-    reponses.push(jeu ? [cleDUnJeuLu(jeu), suivre(jouer(jeu))] : [cleDEntree({ edition: geste }), suivre(jouer({ edition: geste }))]);
-  }
+  const derouler = (gestes: typeof GESTES) => {
+    for (const geste of gestes) {
+      const jeu = typeof geste === 'string' ? boutonDe(reponses[reponses.length - 1][1], geste).jeu : null;
+      reponses.push(jeu ? [cleDUnJeuLu(jeu), suivre(jouer(jeu))] : [cleDEntree({ edition: geste }), suivre(jouer({ edition: geste }))]);
+    }
+  };
+  derouler(GESTES);
+  const touches = casesDuPontDuDessus([...poses.values()]);
+  derouler(GESTES_DE_LA_ZONE);
   const servis = reponses.flatMap(([, r]) => (r.navires && Object.keys(r.navires).length ? [r.navires] : []));
   const [id] = Object.keys(servis[0]);
-  if (!reponses[reponses.length - 1][1].monde) throw new Error('éditeur figé : le pont du dessus choisi sans monde servi');
+  if (!reponses[GESTES.length][1].monde) throw new Error('éditeur figé : le pont du dessus choisi sans monde servi');
+  const contour = reponses[reponses.length - 1][1].surcouche.zoneJouable;
+  if (!contour.length) throw new Error('éditeur figé : la zone jouable tracée sans contour servi');
   return {
     ...fige,
     parametres: { campagne: 'arene' },
@@ -115,6 +134,7 @@ export function figerLEditeurDuNavire(listage: Listage) {
     morceaux,
     pointes: GESTES.filter((g) => typeof g !== 'string'),
     navire: { id, pose: servis[0][id].centre, deplace: servis[servis.length - 1][id].centre },
-    touches: casesDuPontDuDessus([...poses.values()]),
+    touches,
+    zone: { pointes: GESTES_DE_LA_ZONE.filter((g) => typeof g !== 'string'), contour },
   };
 }

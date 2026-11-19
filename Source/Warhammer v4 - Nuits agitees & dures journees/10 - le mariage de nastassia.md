@@ -45,7 +45,7 @@ Les écuries et une petite forge se dressent contre les murs intérieurs. Un mem
 
 
 
-<span id="page-58-0" data-folio="57"></span>La remise à calèche se trouve à côté des écuries. Étant donné le nombre de visiteurs qui ont besoin d'une écurie pour leurs chevaux, une zone a été délimitée entre les écuries et les jardins à la mode ; plusieurs carrosses y sont garés et leurs chevaux sont attachés en ligne, occupés à manger des bottes de foin.
+<span id="page-57-0" data-folio="56"></span><span id="page-58-0" data-folio="57"></span>La remise à calèche se trouve à côté des écuries. Étant donné le nombre de visiteurs qui ont besoin d'une écurie pour leurs chevaux, une zone a été délimitée entre les écuries et les jardins à la mode ; plusieurs carrosses y sont garés et leurs chevaux sont attachés en ligne, occupés à manger des bottes de foin.
 
 En face de l'écurie se trouve un bâtiment en pierre dédié aux plus grands plaisirs du Graf : la chasse et la fauconnerie. L'agitation actuelle a perturbé les faucons et les chiens, qui sont beaucoup plus bruyants que d'habitude.
 
@@ -137,7 +137,7 @@ La cérémonie du mariage doit commencer à midi, le Festag (le dernier jour de 
 Voici en gros ce qui se passera pendant cette période, sous réserve de ce que les Personnages décideront de faire et de tous les ajustements, changements et événements supplémentaires que vous déciderez d'apporter. Plus il y en a, plus on s'amuse !
 
 
-### **Angestag, après-midi**
+### <span id="page-60-0" data-folio="59"></span>**Angestag, après-midi**
 
 Le défilé des invités arrivant par la route et la rivière se transforme en invasion. Vers 15 heures, le navire de croisière « Empereur Wilhelm » transportant la plupart des von Liebwitz (en supposant que la Grande comtesse Emmanuelle a tiré quelques ficelles pour s'approprier le navire ; sinon, la Gravin et son personnel arrivent par barge) arrive au milieu d'une grande agitation. Bien que la Comtesse n'assiste pas au mariage en personne, elle a fait parvenir de nombreux présents apportés par la petite délégation de Nuln, les von Liebwitz qui sont venus avec leurs cousins Ambosstein.
 
@@ -164,7 +164,7 @@ Vous pouvez ajouter d'autres incidents et événements à volonté. Par exemple,
 Un couple pourrait s'éclipser et être pris en flagrant délit dans une chambre à coucher, une crypte ou un bosquet. Un serviteur des invités peut essayer de glisser une pièce d'argenterie von Saponatheim sous ses vêtements, ou proposer de vendre des secrets de famille à un rival. Des plaisanteries, des menus larcins et des actes de vandalisme peuvent se produire. Le vin coule à flots et les jeunes nobles pleins d'entrain s'amusent, de sorte que presque tout peut arriver.
 
 
-La fête se termine vers 23 heures. Les invités errent, titubent et sont transportés dans les différentes chambres d'hôtes. Nastassia est l'une des premières à quitter sa table, prétextant une migraine. À minuit, la grande salle est déserte, à l'exception de quelques serviteurs qui nettoient les vestiges du festin et d'un groupe de vieux Barons bourrus rassemblés autour d'un tonneau de brandy, reconstituant bruyamment diverses batailles historiques sur une table vide à l'aide de salières, de verres à vin et de morceaux de fruits.
+<span id="page-61-0" data-folio="60"></span>La fête se termine vers 23 heures. Les invités errent, titubent et sont transportés dans les différentes chambres d'hôtes. Nastassia est l'une des premières à quitter sa table, prétextant une migraine. À minuit, la grande salle est déserte, à l'exception de quelques serviteurs qui nettoient les vestiges du festin et d'un groupe de vieux Barons bourrus rassemblés autour d'un tonneau de brandy, reconstituant bruyamment diverses batailles historiques sur une table vide à l'aide de salières, de verres à vin et de morceaux de fruits.
 
 ### **Minuit**
 
@@ -207,7 +207,7 @@ S'il n'est pas intercepté, Manfred passera par les appartements familiaux, dans
 Arrêter Manfred est une affaire délicate. En tant que noble, malgré sa condition, il est théoriquement illégal pour un inférieur de lui faire violence. Le graf Wilhelm peut passer outre si Manfred peut être maîtrisé rapidement et sans bruit, et renvoyé dans les caves avant que quelqu'un d'étranger à la
 
 
-famille n'apprenne la vérité. Si Manfred est blessé, il y aura des conséquences : paradoxalement, celles du meurtre de Manfred peuvent être moins graves, si personne en dehors de la famille n'apprend son existence. Sa mort, après tout, résout un problème pour la famille en laissant Nastassia héritière incontestée du graf Wilhelm. Cependant, si l'existence de Manfred est révélée, ses assassins paieront cher sa mort et l'humiliation de la famille.
+<span id="page-62-0" data-folio="61"></span>famille n'apprenne la vérité. Si Manfred est blessé, il y aura des conséquences : paradoxalement, celles du meurtre de Manfred peuvent être moins graves, si personne en dehors de la famille n'apprend son existence. Sa mort, après tout, résout un problème pour la famille en laissant Nastassia héritière incontestée du graf Wilhelm. Cependant, si l'existence de Manfred est révélée, ses assassins paieront cher sa mort et l'humiliation de la famille.
 
 ### **1h15**
 
@@ -236,7 +236,7 @@ Six jeunes nobles (*Intrigue n° 5*) sortent de différentes chambres d'invités
 Une fois dans les caves, les cultistes barricadent la porte de l'intérieur et entament leur cérémonie. Si Kavenner est vivant, c'est lui qui dirige le rituel. Si Rechtshandler est en vie et devenu un mutant, il se cache dans un coin, sanglotant sur son triste sort. Un chant grave et, à l'occasion, un gémissement et un cri étouffé peuvent être entendus à travers la porte de la cave si quelqu'un écoute attentivement avec un Test de **Perception Accessible (+20)**.
 
 
-Les cultistes lancent un sort qui invoquera un certain nombre de démonettes au château. Une fois l'invocation terminée, les adeptes dévérouillent la porte de la cave et les démonettes se déchaînent à travers le château dans une orgie de destruction, de douleur, et pire encore. Vous devez décider du nombre de démonettes à invoquer en fonction des capacités des Personnages : il doit être suffisant pour assurer un combat acharné au groupe de PJ et aux alliés qu'il peut rassembler, mais pas assez pour provoquer un massacre unilatéral. Si les choses semblent échapper à tout contrôle, il suffit d'envoyer d'autres soldats du graf Wilhelm pour les aider.
+<span id="page-63-0" data-folio="62"></span>Les cultistes lancent un sort qui invoquera un certain nombre de démonettes au château. Une fois l'invocation terminée, les adeptes dévérouillent la porte de la cave et les démonettes se déchaînent à travers le château dans une orgie de destruction, de douleur, et pire encore. Vous devez décider du nombre de démonettes à invoquer en fonction des capacités des Personnages : il doit être suffisant pour assurer un combat acharné au groupe de PJ et aux alliés qu'il peut rassembler, mais pas assez pour provoquer un massacre unilatéral. Si les choses semblent échapper à tout contrôle, il suffit d'envoyer d'autres soldats du graf Wilhelm pour les aider.
 
 ### **2h15**
 

@@ -1,29 +1,24 @@
 /**
  * Protocole coop — messages typés du transport, modèle hôte-autoritaire : les invités envoient
  * des INTENTS (action de store rejouable), l'hôte renvoie des SNAPSHOTS (état complet, mêmes
- * données JSON-sûres que la sauvegarde) et transfère la campagne custom UNE fois au join
- * (`paquetDeCampagne`). `parseMessage` valide la FORME de chaque message : le réseau est une entrée
- * non fiable → null, jamais d'exception.
+ * données JSON-sûres que la sauvegarde, `instantaneDeLaCoop`, `noyau/coop.ts`). `parseMessage` valide
+ * la FORME de chaque message : le réseau est une entrée non fiable → null, jamais d'exception.
  *
  * `hello.build` : le format de l'état et l'empreinte des registres que nomme un snapshot
  * (`buildDeLaCoop`, `noyau/coop.ts`), comparée par l'hôte au hello.
  *
  * `error` : envoyé par l'hôte AVANT de fermer le transport (mismatch de protocole ou de format au hello)
- * pour distinguer une fermeture VOLONTAIRE d'une coupure réseau banale côté invité. N'entraîne
- * PAS un bump de PROTOCOL_VERSION : c'est un AJOUT de type de message, les formes existantes
- * (`hello`/`intent`/`snapshot`/…) sont inchangées — un invité plus ANCIEN qui ne connaît pas
- * encore `error` le voit juste rejeté par `parseMessage` (→ null) et retombe sur la fermeture
- * silencieuse préexistante ; un invité à jour affiche le motif précis.
+ * pour distinguer une fermeture VOLONTAIRE d'une coupure réseau banale côté invité, qui en affiche
+ * le motif précis.
  */
 import { estObjet } from '../../lib/objet.mjs';
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export type NetMessage =
   | { kind: 'hello'; protocol: number; build: string; label: string }
   | { kind: 'intent'; action: string; args: unknown[]; seat: number }
   | { kind: 'snapshot'; data: Record<string, unknown> }
-  | { kind: 'paquetDeCampagne'; label: string; scenes: unknown[]; startSceneId: string; worldMap: unknown }
   | { kind: 'error'; reason: 'protocol-mismatch'; expected: number; got: number }
   | { kind: 'error'; reason: 'format-mismatch'; expected: string; got: string }
   | { kind: 'bye' };
@@ -53,10 +48,6 @@ export function parseMessage(raw: string): NetMessage | null {
     case 'snapshot':
       return estObjet(m.data)
         ? { kind: 'snapshot', data: m.data }
-        : null;
-    case 'paquetDeCampagne':
-      return typeof m.label === 'string' && Array.isArray(m.scenes) && typeof m.startSceneId === 'string'
-        ? { kind: 'paquetDeCampagne', label: m.label, scenes: m.scenes, startSceneId: m.startSceneId, worldMap: m.worldMap ?? null }
         : null;
     case 'error':
       if (m.reason === 'protocol-mismatch' && typeof m.expected === 'number' && typeof m.got === 'number')

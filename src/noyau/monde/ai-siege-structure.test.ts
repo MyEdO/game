@@ -4,7 +4,7 @@ import { chooseEnemyAction, type EnemyTurnInput } from './ai';
 import { aiDriven } from '../netOwnership';
 import { structureCombatant, structureAimCell } from '../../engine/structures';
 import { applyShipPostes } from './shipPostes';
-import { itemFromTrappingById } from '../../engine/items';
+import { itemFromTrappingById, unloadWeapon } from '../../engine/items';
 import { findStructureById } from '../../data';
 import type { Combatant, ShipPoste, Weapon } from '../../engine/types';
 import type { Scene } from './scene';
@@ -56,9 +56,10 @@ const input = (enemy: Combatant, structures: Combatant[]): EnemyTurnInput =>
 describe('SIÈGE-B — armes de siège ciblent les structures', () => {
   it('canon de siège ennemi → BRÈCHE la porte (le héros derrière le mur est hors LdV)', () => {
     const gunner = mkGunner();
-    expect(gunner.weapons.some((w) => w.type === 'distance')).toBe(true); // sanity : la pièce est servie
+    expect(gunner.weapons.find((w) => w.uid === gunner.mannedPoste?.item.uid)?.type).toBe('distance'); // la pièce est servie
+    const piece = gunner.weapons.find((w) => w.uid === gunner.mannedPoste?.item.uid)!;
     const action = chooseEnemyAction(input(gunner, [mkGate()]));
-    expect(action).toEqual({ kind: 'tir', targetId: 'gate' });
+    expect(action).toStrictEqual({ kind: 'tir', targetId: 'gate', weaponUid: piece.uid });
   });
 
   it('on vise la FACE exposée de la porte (case côté champ), pas la case derrière le mur', () => {
@@ -77,6 +78,40 @@ describe('SIÈGE-B — armes de siège ciblent les structures', () => {
     const gunner = mkGunner();
     const action = chooseEnemyAction({ ...input(gunner, []), structures: undefined });
     expect(action.kind).not.toBe('tir'); // le seul héros est hors LdV (derrière le mur) → pas de tir
+  });
+
+  // LDB 62 l.333, AA 10 l.138 — #4187.
+  const unloadedGunner = (): Combatant => {
+    const g = mkGunner();
+    const piece = g.weapons.find((w) => w.uid === g.mannedPoste?.item.uid)!;
+    unloadWeapon(g, piece, g.mannedPoste);
+    return g;
+  };
+
+  it('pièce DÉCHARGÉE, seule la porte en vue et en portée, aucun héros perçu → RECHARGE', () => {
+    const action = chooseEnemyAction({ ...input(unloadedGunner(), [mkGate()]), perceived: new Set() });
+    expect(action).toStrictEqual({ kind: 'rechargement' });
+  });
+
+  it('pièce DÉCHARGÉE, aucune structure fournie, aucun héros perçu → pas de recharge', () => {
+    const action = chooseEnemyAction({ ...input(unloadedGunner(), []), perceived: new Set() });
+    expect(action.kind).not.toBe('rechargement');
+  });
+
+  // LDB 14 l.41 — #4187.
+  it('servant ENGAGÉ, sans arme de mêlée, pièce chargée, porte en vue et en portée → ne tire pas', () => {
+    const gunner = mkGunner();
+    gunner.engagedWith = ['hero'];
+    const action = chooseEnemyAction({ ...input(gunner, [mkGate()]), perceived: new Set() });
+    expect(action.kind).not.toBe('tir');
+  });
+
+  // LDB 21 l.33 — #4187.
+  it('servant FRÉNÉTIQUE, seule la porte en vue, adversaire non perçu atteignable → s\'approche', () => {
+    const gunner = mkGunner();
+    gunner.psychState = [{ type: 'frenesie' }];
+    const action = chooseEnemyAction({ ...input(gunner, [mkGate()]), movement: 4, perceived: new Set() });
+    expect(action).toMatchObject({ kind: 'deplacement', thenTargetId: 'hero' });
   });
 });
 

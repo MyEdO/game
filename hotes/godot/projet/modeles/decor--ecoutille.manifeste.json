@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "ecoutille"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "vieux",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "7c109ae0c3ea549f85a6eb69e8dbe3606cf1b87f760fd9c65bd9871170177bf6",
+    "octets": 51304
+  }
+}

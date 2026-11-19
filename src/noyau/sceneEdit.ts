@@ -7,14 +7,74 @@
  * vit hors du store. Les lectures (outil, sélection, picking, emprise du pinceau) vivent dans
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, dialoguesDeLaScene, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneStationAnchor, type Dialogue, type DialogueChoice, type Trigger, type EncounterDef, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
+import type { RectDeCases } from '../data/schemas/grammaire/valeurs';
+import {
+  ActionAuthoree,
+  DEFAULT_TERRAIN,
+  dialoguesDeLaScene,
+  emptyScene,
+  Scene,
+  SceneEntity,
+  SceneEffectZone,
+  type SceneStationAnchor,
+  type Dialogue,
+  type DialogueChoice,
+  type DialogueNode,
+  type Trigger,
+  type EncounterDef,
+  CellSide,
+  canonEdge,
+  EncounterMember,
+  crenellatedAt,
+  heightAt,
+  layerTiles,
+  porteAuteur,
+  secretAuteur,
+  tileAt,
+  sceneMetresPerTile,
+  reposDeScene,
+  WallSeg,
+  WallSide,
+  ArchitectureBody,
+  ArchitectureEdgeRef,
+  ArchitecturePart,
+  type ArchitectureStorey,
+  type FacadeFeature,
+  FacadeSection,
+  BuildingMass,
+  RoofDefaults,
+  ZoneArea,
+  type SceneDesToits,
+  rectJouable,
+} from './monde/scene';
+import { aretesA } from './monde/wallIndex';
+import { estUneCoqueNavale } from './monde/coqueDeCampagne';
+import { translaterLaScene } from './translationDeLaScene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
+import { type MapPlace, type MapRoute, type PlacePoi, type WorldMap } from './worldMap';
+import {
+  ajouterLieu,
+  ajouterPoi,
+  BORNES_DE_CARTE,
+  lierLieux,
+  majCarte,
+  majLieu,
+  majRoute,
+  etablissementRetire,
+  refusDeRetirerLEtablissement,
+  supprimerLieu,
+  supprimerRoute,
+  type PatchDeCarte,
+  type PatchDeRoute,
+} from './worldMapEdit';
+import { t as tr, type MsgKey } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
-import { findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
+import { creatures, findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
 import { estAbsent, terrainAbsent } from './monde/terrain';
@@ -31,30 +91,72 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { entityKindSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
-import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type ChoixDuContexte, type ContexteDuChamp } from './codex/editFields';
-import { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
+import {
+  entityKindSchema,
+  refusDeLEntite,
+  typeNonNomme,
+  type Terrain,
+  type SceneRoofDefaults,
+  type ReliefDefaults,
+  PENTE_TOIT_DEG,
+} from '../data/schemas/defs-scenes/scene';
+import {
+  champ,
+  ecritureAuFormulaire,
+  monteeAuFormulaire,
+  rescellementAuFormulaire,
+  retraitAuFormulaire,
+  type ChoixDuFormulaire,
+  type EcritureDeValeur,
+  type Segment,
+  fauteNeuve,
+} from './edition/formulaire';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { buildingRoofMaterial } from './monde/buildings';
 import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
 import { tileKey, type Pt as ScenePt } from './monde/path';
 import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
 import { entiteFootTiles } from './monde/spawn';
-import { actionNeuve } from './monde/usable';
+import { actionNeuve, aUnRoleEnJeu } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
 import { ancreDuDecor } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { cheminOffert, choixDuChamp, ecritureOfferte, formeDuPorteur, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
-import { estObjet } from '../lib/objet.mjs';
-import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive } from './edition/adresseDeProse';
+import { SOUS_ENTREES, ajouteEntree, etatCouvert, indiceCouple, type CorpsNeuf, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { refusDId, refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
+import {
+  choixDuChamp,
+  DOCUMENTS,
+  noeudNeuf,
+  formeDuPorteur,
+  projetAvecLePorteur,
+  type CadreDuPorteur,
+  type ProjetDEdition,
+  type DonneeDuPorteur,
+  type SorteDePorteur,
+  type EntityTool,
+  type Sel,
+  type Tool,
+  EFFECT_ZONE_SEEDS,
+  dansLaCarte,
+  edgeWallState,
+  effectZoneArea,
+  effectZoneRect,
+  empriseDuPinceau,
+  entityAt,
+  selPos,
+  selRect,
+  accesDe,
+} from './sceneEditLecture';
+import { tableTotale } from '../lib/tableTotale';
 
-export type Rect = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
 
-function boundedRect(scene: Scene, rect: Rect): Rect {
+function boundedRect(scene: Scene, rect: RectDeCases): RectDeCases {
   const w = Math.max(1, Math.min(rect.w, scene.dimensions.w));
   const h = Math.max(1, Math.min(rect.h, scene.dimensions.h));
   return {
@@ -63,6 +165,17 @@ function boundedRect(scene: Scene, rect: Rect): Rect {
     w,
     h,
   };
+}
+
+/** Pose la zone jouable de `scene` au rectangle `rect` plafonné à la grille (`boundedRect`) ; `null`, ou un rectangle qui
+ *  couvre toute la grille, la retire : toute la carte se joue (`rectJouable`). #4392 */
+export function setZoneJouable(scene: Scene, rect: RectDeCases | null): Scene {
+  const r = rect && boundedRect(scene, rect);
+  const { zoneJouable: _avant, ...toute } = scene;
+  if (!r || (r.w === scene.dimensions.w && r.h === scene.dimensions.h)) return _avant ? toute : scene;
+  const a = scene.zoneJouable;
+  if (a && a.x === r.x && a.y === r.y && a.w === r.w && a.h === r.h) return scene;
+  return { ...scene, zoneJouable: { x: r.x, y: r.y, w: r.w, h: r.h } };
 }
 
 /** Réécrit le corps `bodyId` par `update`. No-op si le corps est absent. */
@@ -87,7 +200,7 @@ export function poseToitureDuCorps(scene: Scene, bodyId: string, champ: keyof Ro
 type ExclusionDeToiture = NonNullable<ArchitectureBody['roofExclusions']>[number];
 
 /** Ajoute au corps une exclusion de toiture sur `rect` (plafonné à la carte), à l'étage `z`, et re-dérive ses masses. */
-export function addRoofExclusion(scene: Scene, bodyId: string, z: number, rect: Rect): Scene {
+export function addRoofExclusion(scene: Scene, bodyId: string, z: number, rect: RectDeCases): Scene {
   return rederiveRoofMasses(updateArchitectureBody(scene, bodyId, (body) => ({
     ...body,
     roofExclusions: [...(body.roofExclusions ?? []), { z, rect: boundedRect(scene, rect) }],
@@ -226,7 +339,7 @@ export function patchBuildingMass(scene: Scene, bodyId: string, massId: string, 
  *  volume (`resizeSel`) au lieu de partir d'un corps qui revendique toute la scène.
  *  `style` est le TYPE de bâtiment (`buildings.json`), OPTIONNEL au schéma : un corps qui n'en porte
  *  aucun est un bâti sans type (bourg, hameau, corps composite). */
-export function addArchitectureBody(scene: Scene, style: ArchitectureBody['style'], foot: Rect): { scene: Scene; id: string; storeyId: string } {
+export function addArchitectureBody(scene: Scene, style: ArchitectureBody['style'], foot: RectDeCases): { scene: Scene; id: string; storeyId: string } {
   const id = nextEntityId('architecture', (scene.architecture ?? []).map((body) => body.id));
   const part: ArchitecturePart = { id: nextEntityId('part', []), foot: boundedRect(scene, foot) };
   const body: ArchitectureBody = { id, ...(style === undefined ? {} : { style }), storeys: [{ id: 'z0', z: 0, parts: [part], roomZoneIds: [] }], facades: [], masses: [] };
@@ -254,7 +367,7 @@ export function addStoreyAbove(scene: Scene, bodyId: string): { scene: Scene; id
   return out && { scene: addLayer(out.scene, z), id: out.id, z };
 }
 
-export function addArchitecturePart(scene: Scene, bodyId: string, storeyId: string, foot: Rect): { scene: Scene; id: string } | null {
+export function addArchitecturePart(scene: Scene, bodyId: string, storeyId: string, foot: RectDeCases): { scene: Scene; id: string } | null {
   const body = scene.architecture?.find((candidate) => candidate.id === bodyId);
   const storey = body?.storeys.find((candidate) => candidate.id === storeyId);
   if (!body || !storey) return null;
@@ -278,7 +391,7 @@ export function addFacadeSection(scene: Scene, bodyId: string, edge: Architectur
   return { scene: updateArchitectureBody(scene, bodyId, (candidate) => ({ ...candidate, facades: [...candidate.facades, section] })), id };
 }
 
-export function addBuildingMass(scene: Scene, bodyId: string, foot: Rect, z: number): { scene: Scene; id: string } | null {
+export function addBuildingMass(scene: Scene, bodyId: string, foot: RectDeCases, z: number): { scene: Scene; id: string } | null {
   const body = scene.architecture?.find((candidate) => candidate.id === bodyId);
   if (!body) return null;
   const id = nextEntityId('masse', body.masses.map((mass) => mass.id));
@@ -298,7 +411,7 @@ export function addBuildingMass(scene: Scene, bodyId: string, foot: Rect, z: num
 }
 
 /** Rectangle inclusif englobant deux cases (drag de zone/bâtiment/remplissage). */
-export function rectFrom(a: Pt, b: Pt): Rect {
+export function rectFrom(a: Pt, b: Pt): RectDeCases {
   return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x) + 1, h: Math.abs(a.y - b.y) + 1 };
 }
 
@@ -318,7 +431,7 @@ export function paintTiles(scene: Scene, p: Pt, terrain: Terrain, brush: number,
 }
 
 /** Remplit un rectangle de terrain (sous-mode Rectangle), sur la couche `z` (défaut base). */
-export function fillTerrainRect(scene: Scene, rect: Rect, terrain: Terrain, z = 0): Scene {
+export function fillTerrainRect(scene: Scene, rect: RectDeCases, terrain: Terrain, z = 0): Scene {
   const { w, h } = scene.dimensions;
   const tiles = [...layerTiles(scene, z)];
   for (let y = rect.y; y < rect.y + rect.h; y++)
@@ -340,25 +453,38 @@ export function fillTerrainRect(scene: Scene, rect: Rect, terrain: Terrain, z = 
  * La pose passe par `putLayer`, jamais par une reconstruction directe de `layers` : le CARDINAL de la
  * grille (#1789) est gardé là et nulle part ailleurs. Les nouvelles dimensions sont posées D'ABORD,
  * c'est contre elles que le cardinal se mesure. PUR — l'éditeur n'en tient que l'appel.
+ *
+ * `decalage` place l'ancienne grille dans la nouvelle : la case (x,y) va en (x+dx, y+dy), et tout ce que la scène
+ * positionne la suit (`translaterLaScene`) ; la zone jouable est rognée à la nouvelle grille, retirée si rien n'en
+ * reste. #4392
  */
-export function resizeGrid(scene: Scene, w: number, h: number): Scene {
-  return scene.layers.reduce<Scene>((s, layer) => {
+export function resizeGrid(scene: Scene, w: number, h: number, decalage: { x: number; y: number } = { x: 0, y: 0 }): Scene {
+  const { x: dx, y: dy } = decalage;
+  const retissee = scene.layers.reduce<Scene>((s, layer) => {
     const semence: Terrain = layer.z === 0 ? DEFAULT_TERRAIN : terrainAbsent();
     const tiles = new Array(w * h).fill(semence) as Terrain[];
     const height = new Array(w * h).fill(0) as number[];
     const crenellated = new Array(w * h).fill(null) as (string | null)[];
     let hasHeight = false;
     let hasCrenellated = false;
-    for (let y = 0; y < Math.min(h, scene.dimensions.h); y++)
-      for (let x = 0; x < Math.min(w, scene.dimensions.w); x++) {
-        tiles[y * w + x] = tileAt(scene, x, y, layer.z);
+    for (let y = Math.max(0, -dy); y < Math.min(scene.dimensions.h, h - dy); y++)
+      for (let x = Math.max(0, -dx); x < Math.min(scene.dimensions.w, w - dx); x++) {
+        const i = (y + dy) * w + x + dx;
+        tiles[i] = tileAt(scene, x, y, layer.z);
         const hv = heightAt(scene, x, y, layer.z);
-        if (hv) { height[y * w + x] = hv; hasHeight = true; }
+        if (hv) { height[i] = hv; hasHeight = true; }
         const cv = crenellatedAt(scene, x, y, layer.z);
-        if (cv) { crenellated[y * w + x] = cv; hasCrenellated = true; }
+        if (cv) { crenellated[i] = cv; hasCrenellated = true; }
       }
     return putLayer(s, layer.z, tiles, hasHeight ? height : undefined, hasCrenellated ? crenellated : undefined);
   }, { ...scene, dimensions: { w, h }, layers: [] });
+  const translatee = translaterLaScene(retissee, dx, dy);
+  const zone = translatee.zoneJouable;
+  if (!zone) return translatee;
+  const x0 = Math.max(0, zone.x), y0 = Math.max(0, zone.y);
+  const x1 = Math.min(w, zone.x + zone.w), y1 = Math.min(h, zone.y + zone.h);
+  const { zoneJouable: _rognee, ...sansZone } = translatee;
+  return x1 <= x0 || y1 <= y0 ? sansZone : { ...translatee, zoneJouable: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } };
 }
 
 /** Ajoute une couche à la cote `z` (grille « vide » = transparente, à construire), triée par z. No-op si
@@ -401,8 +527,7 @@ export function toggleEdgeWall(scene: Scene, x: number, y: number, side: CellSid
 export function toggleDiagonalWall(scene: Scene, x: number, y: number, diag: '\\' | '/', z: number): Scene {
   const isDiagHere = (w: WallSeg) => w.x === x && w.y === y && (w.z ?? 0) === z && (w.side === '\\' || w.side === '/');
   const others = (scene.walls ?? []).filter((w) => !isDiagHere(w));
-  const had = (scene.walls ?? []).find((w) => w.x === x && w.y === y && (w.z ?? 0) === z && w.side === diag);
-  if (had) return { ...scene, walls: others.length ? others : undefined };
+  if (aretesA(scene, x, y, diag, z).length) return { ...scene, walls: others.length ? others : undefined };
   return { ...scene, walls: [...others, { x, y, side: diag, ...(z ? { z } : {}) }] };
 }
 
@@ -572,21 +697,26 @@ export function setEffectZoneArea(zone: SceneEffectZone, area: ZoneArea): SceneE
 function clamp(v: number, max: number): number {
   return Math.max(0, Math.min(max - 1, v));
 }
-/** Case `p` plafonnée à la carte et ramenée à une case entière — la convention de pose du noyau : un geste
- *  hors carte se pose au bord. */
-export function borneALaCarte(scene: Scene, p: Pt): Pt {
-  return { x: clamp(Math.floor(p.x), scene.dimensions.w), y: clamp(Math.floor(p.y), scene.dimensions.h) };
+/** Case `p` plafonnée et ramenée à une case entière — la convention de pose du noyau : un geste hors borne se pose
+ *  au bord. La borne est la zone jouable (`rectJouable`) pour ce qui se joue (`jouable` : entité à rôle,
+ *  `aUnRoleEnJeu`, ou point d'entrée), la grille pour un pur décor. */
+export function borneALaCarte(scene: Scene, p: Pt, jouable: boolean): Pt {
+  const r = jouable ? rectJouable(scene) : { x: 0, y: 0, ...scene.dimensions };
+  return { x: r.x + clamp(Math.floor(p.x) - r.x, r.w), y: r.y + clamp(Math.floor(p.y) - r.y, r.h) };
 }
 
 
-/** Déplace la sélection vers `to` (clampée dans la carte). Scene inchangée si sélection invalide. */
+/** Déplace la sélection vers `to` (entité et point d'entrée bornés par `borneALaCarte`, le reste à la carte). Scene inchangée si sélection invalide. */
 export function moveSel(scene: Scene, sel: Sel, to: Pt): Scene {
   const { w, h } = scene.dimensions;
-  if (sel?.type === 'entity') return moveEntityTo(scene, sel.id, borneALaCarte(scene, to));
+  if (sel?.type === 'entity') {
+    const ent = scene.entities.find((e) => e.id === sel.id);
+    return ent ? moveEntityTo(scene, sel.id, borneALaCarte(scene, to, aUnRoleEnJeu(scene, ent))) : scene;
+  }
   if (sel?.type === 'entry') {
     const pos = scene.entryPoints?.[sel.id];
     if (!pos) return scene;
-    return { ...scene, entryPoints: { ...scene.entryPoints, [sel.id]: { ...pos, ...borneALaCarte(scene, to) } } };
+    return { ...scene, entryPoints: { ...scene.entryPoints, [sel.id]: { ...pos, ...borneALaCarte(scene, to, true) } } };
   }
   if (sel?.type === 'trigger')
     return {
@@ -688,7 +818,7 @@ export function deleteSel(scene: Scene, sel: Sel): Scene {
     const encounters = scene.encounters.map((e) => {
       const members = (e.members ?? []).filter((m) => m.entityId !== sel.id);
       if (members.length === (e.members ?? []).length) return e;
-      return { ...e, members: members.map((m) => (m.ridesEntityId === sel.id ? { ...m, ridesEntityId: undefined } : m)) };
+      return { ...e, members: members.map((m) => (m.ridesEntityId?.id === sel.id ? { ...m, ridesEntityId: undefined } : m)) };
     });
     return { ...removeEntity({ ...scene, encounters }, sel.id) };
   }
@@ -742,13 +872,14 @@ export function changePropRef(scene: Scene, propId: string, ref: string): Scene 
 }
 
 /** Pose une entité à p (id frais) depuis l'OUTIL tel que la palette le porte — il tient déjà le décor
- *  ou la fiche élue : aucun cas muet ne subsiste ici. Les props appliquent leurs défauts de catalogue
+ *  ou la fiche élue : aucun cas muet ne subsiste ici. Le départ des héros, qui se joue, se borne à la zone jouable
+ *  (`borneALaCarte`). Les props appliquent leurs défauts de catalogue
  *  (empreinte, interactif si fouillable) et se posent au point visé `point` (`poseAuPoint` : case, calage, appui) ;
  *  un personnage porte sa fiche en `creature` et le libellé de la fiche, son apparence se dérive du record (#1882). Une
  *  fiche absente du bestiaire lève. */
 export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point: Pt = p): { scene: Scene; id: string } {
   const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
-  const base: SceneEntity = { id, kind: outil.kind, pos: { ...p } };
+  const base: SceneEntity = { id, kind: outil.kind, pos: borneALaCarte(scene, p, outil.kind === 'heroStart') };
   if (outil.kind === 'personnage' && !findCreatureById(outil.ref))
     throw new Error(`placeEntity : « ${outil.ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
   // #1463 S3 · #1882 : `nomDEntite`.
@@ -807,12 +938,12 @@ export function propRefPatch(ref: string, avant: Pick<SceneEntity, 'usable' | 'f
   return { decor: { id: ref }, ...cap };
 }
 
-/** Colle une copie de `data` (id frais) à la case p plafonnée à la carte (`borneALaCarte`, comme
+/** Colle une copie de `data` (id frais) à la case p plafonnée selon son rôle (`borneALaCarte`, comme
  *  `moveSel`), sur la couche `z` (défaut 0 — jamais le z SOURCE de l'entité copiée, cf. #835 FU-3 :
  *  coller reprend la couche ACTIVE de l'éditeur). */
 export function pasteEntity(scene: Scene, data: SceneEntity, p: Pt, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId(data.kind, scene.entities.map((e) => e.id));
-  const ent: SceneEntity = { ...(JSON.parse(JSON.stringify(data)) as SceneEntity), id, pos: borneALaCarte(scene, p) };
+  const ent: SceneEntity = { ...(JSON.parse(JSON.stringify(data)) as SceneEntity), id, pos: borneALaCarte(scene, p, aUnRoleEnJeu(scene, data)) };
   return { scene: addEntity(scene, ent, z), id };
 }
 
@@ -825,7 +956,7 @@ export function dupliquerLEntite(scene: Scene, ent: SceneEntity): { scene: Scene
  *  (`premiereCaseEnAnneaux`), sur sa couche, où toute son empreinte (`entiteFootTiles`) tient debout (`tientDebout`,
  *  joignable à pied depuis `ent`) hors des cases d'une autre entité de la couche ou d'une copie déjà posée. Chaque copie
  *  tire ses Caractéristiques au hasard (LDB 77 l.108) et entre dans chaque rencontre de `ent` au même titre, sans la
- *  monture qu'il chevauche. Moins de `n` copies quand la couche manque de cases. */
+ *  monture qu'il chevauche ni la désignation du navire de campagne. Moins de `n` copies quand la couche manque de cases. */
 export function poserUneTroupe(scene: Scene, ent: SceneEntity, n: number): { scene: Scene; ids: string[] } {
   const z = ent.z ?? 0;
   const mpt = sceneMetresPerTile(scene);
@@ -846,17 +977,19 @@ export function poserUneTroupe(scene: Scene, ent: SceneEntity, n: number): { sce
   }
   const encounters = posee.encounters.map((enc) => {
     const m = enc.members?.find((mm) => mm.entityId === ent.id);
-    return m ? { ...enc, members: [...enc.members!, ...ids.map((entityId) => ({ ...m, entityId, ridesEntityId: undefined }))] } : enc;
+    return m ? { ...enc, members: [...enc.members!, ...ids.map((entityId) => champs(m, {
+      entityId, ridesEntityId: undefined, navireDeCampagne: undefined,
+    }))] } : enc;
   });
   return { scene: { ...posee, encounters }, ids };
 }
 
-/** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la carte comme
+/** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la zone jouable comme
  *  `editEntry` (`borneALaCarte`), sur l'étage `z` (défaut 0). Les transitions et la carte du monde le
  *  référencent par son id (#835 FU-5). */
 export function placeEntry(scene: Scene, p: Pt, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId('entree', Object.keys(scene.entryPoints ?? {}));
-  return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, p), ...(z ? { z } : {}) } } }, id };
+  return { scene: { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, p, true), ...(z ? { z } : {}) } } }, id };
 }
 
 /** Renomme un point d'entrée (clé unique, non vide). Renvoie la scène inchangée si conflit. */
@@ -869,7 +1002,7 @@ export function renameEntry(scene: Scene, from: string, to: string): Scene {
 }
 
 /** Crée un trigger sur `rect`, à l'étage `z` (id frais). */
-export function addTrigger(scene: Scene, rect: Rect, z = 0): { scene: Scene; id: string } {
+export function addTrigger(scene: Scene, rect: RectDeCases, z = 0): { scene: Scene; id: string } {
   const id = nextEntityId('trig', scene.triggers.map((t) => t.id));
   return { scene: { ...scene, triggers: [...scene.triggers, { id, rect: { ...rect, ...(z ? { z } : {}) }, once: true, flow: EMPTY_FLOW }] }, id };
 }
@@ -886,12 +1019,18 @@ export function renameTrigger(scene: Scene, from: string, to: string): Scene {
   return { ...scene, triggers: scene.triggers.map((t) => (t.id === from ? { ...t, id: next } : t)) };
 }
 
-/** Renomme la rencontre `from`. Refusé (scène inchangée) pour un id vide ou déjà porté par une autre
- *  rencontre : « Démarrer un combat » désigne une rencontre par son id. */
+/** Renomme la rencontre `from` et le PROPAGE à chaque effet « Démarrer un combat » et « Poursuite » de la scène qui la
+ *  désigne (`sitesDeLaScene`). Refusé (scène inchangée) pour un id vide ou déjà porté par une autre rencontre.
+ *  `sceneSchema` (portée `encounters`). */
 export function renameEncounter(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
   if (!next || next === from || scene.encounters.some((e) => e.id === next) || !scene.encounters.some((e) => e.id === from)) return scene;
-  return { ...scene, encounters: scene.encounters.map((e) => (e.id === from ? { ...e, id: next } : e)) };
+  const copie = structuredClone(scene);
+  for (const { effet } of sitesDeLaScene(copie).effets) {
+    const lance = effet as Effect;
+    if ((lance.type === 'startCombat' || lance.type === 'startPursuit') && lance.encounter?.id === from) lance.encounter = { id: next };
+  }
+  return { ...copie, encounters: copie.encounters.map((e) => (e.id === from ? { ...e, id: next } : e)) };
 }
 
 /** Crée un dialogue d'un seul nœud de départ, sans choix (id frais). */
@@ -926,12 +1065,10 @@ export function renameDialogue(scene: Scene, from: string, to: string): Scene {
   return renomme.entities.filter((e) => e.dialogueId?.id === from).reduce((s, e) => editEntity(s, e.id, { dialogueId: { id: next } }), renomme);
 }
 
-/** Ajoute au dialogue un nœud sans réplique ni choix, d'id frais `n<k>` (`k` part du nombre de nœuds + 1). */
+/** Ajoute au dialogue son nœud neuf (`noeudNeuf`). */
 export function addDialogueNode(dialogue: Dialogue): { dialogue: Dialogue; id: string } {
-  let n = dialogue.nodes.length + 1;
-  while (dialogue.nodes.some((x) => x.id === `n${n}`)) n++;
-  const id = `n${n}`;
-  return { dialogue: { ...dialogue, nodes: [...dialogue.nodes, { id, choices: [] }] }, id };
+  const noeud = noeudNeuf(dialogue);
+  return { dialogue: { ...dialogue, nodes: [...dialogue.nodes, noeud] }, id: noeud.id };
 }
 
 /** Renomme le nœud `from` et le PROPAGE au départ et à chaque `next`, la boucle du nœud sur lui-même
@@ -970,9 +1107,29 @@ export function addEncounter(scene: Scene): { scene: Scene; id: string } {
   return { scene: { ...scene, encounters: [...scene.encounters, { id, members: [] }] }, id };
 }
 
-/** Patche la rencontre `id`. */
+/** #4227 */
+function sansDesignationDuNavire(rencontre: EncounterDef, entityId?: string): EncounterDef {
+  const membres = rencontre.members;
+  const aRetirer = (m: EncounterMember) => m.navireDeCampagne !== undefined && (entityId === undefined || m.entityId === entityId);
+  return membres?.some(aRetirer)
+    ? { ...rencontre, members: membres.map((m) => aRetirer(m) ? champ(m, 'navireDeCampagne', undefined) : m) }
+    : rencontre;
+}
+
+/** Patche la rencontre `id`. Une nouvelle désignation valide remplace celle d'avant. #4227 */
 export function patchEncounter(scene: Scene, id: string, patch: Partial<EncounterDef>): Scene {
-  return { ...scene, encounters: scene.encounters.map((e) => (e.id === id ? { ...e, ...patch } : e)) };
+  return { ...scene, encounters: scene.encounters.map((avant) => {
+    if (avant.id !== id) return avant;
+    const apres = champs(avant, patch);
+    if (avant.members === apres.members || !apres.members?.some((m) => m.navireDeCampagne !== undefined)) return apres;
+    const eligible = (m: EncounterMember) => m.side === 'allie' && estUneCoqueNavale(scene.entities.find((e) => e.id === m.entityId));
+    const dejaDesignes = new Set(avant.members?.filter((m) => m.navireDeCampagne && eligible(m)).map((m) => m.entityId));
+    const designe = apres.members.find((m) => m.navireDeCampagne && !dejaDesignes.has(m.entityId) && eligible(m));
+    const members = apres.members.map((m) => m.navireDeCampagne === undefined
+      || (m.navireDeCampagne && eligible(m) && (!designe || m.entityId === designe.entityId))
+      ? m : champ(m, 'navireDeCampagne', undefined));
+    return { ...apres, members };
+  }) };
 }
 
 /** Retire la rencontre `id`. */
@@ -991,25 +1148,28 @@ export function poseBlocsAvances(scene: Scene, blocs: { dialogues?: Dialogue[]; 
 }
 
 /** Crée une zone de repos sur `rect`, à l'étage `z` (camp par défaut — lieux/qualité éditables dans l'inspecteur). */
-export function addRestZone(scene: Scene, rect: Rect, z = 0): { scene: Scene; idx: number } {
+export function addRestZone(scene: Scene, rect: RectDeCases, z = 0): { scene: Scene; idx: number } {
   const zones = [...(scene.restZones ?? []), { rect: { ...rect, ...(z ? { z } : {}) }, places: reposDeScene({}) }];
   return { scene: { ...scene, restZones: zones }, idx: zones.length - 1 };
 }
 
 /** Patche la zone de repos d'indice `idx`. */
 export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNullable<Scene['restZones']>[number]>): Scene {
-  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? { ...z, ...patch } : z)) };
+  return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? (patch.quality ? champ({ ...z, ...patch }, 'quality', qualiteEcrite(patch.quality)) : { ...z, ...patch }) : z)) };
 }
 
+/** `q` telle que le document l'écrit : « normale » est l'absence du champ. */
+const qualiteEcrite = (q: QualiteDeRepos): QualiteDeRepos | undefined => (q === 'normale' ? undefined : q);
+
 /** Ce que l'inspecteur écrit sur la zone sélectionnée (`patchZone`) : sa couche ; d'un déclencheur, s'il ne joue
- *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité piètre ; d'une zone d'effet, son nom, sa nature (`null` :
+ *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité ; d'une zone d'effet, son nom, sa nature (`null` :
  *  non déclarée), sa forme, son emprise rendue pleine (`clearEffectZoneCarve`), si elle masque la ligne de vue et si
  *  elle barre le passage ; d'un déclencheur ou d'une zone d'effet, les entrées de fiche qu'il couvre (`null` : aucune). */
 export interface PatchDeZone {
   z?: number;
   once?: boolean;
   lieux?: NonNullable<Scene['restZones']>[number]['places'];
-  pietre?: boolean;
+  qualite?: QualiteDeRepos;
   nom?: string;
   presentation?: 'interior' | 'exterior' | null;
   forme?: ZoneArea['kind'];
@@ -1019,143 +1179,458 @@ export interface PatchDeZone {
   couvre?: string[] | null;
 }
 
-/** LA règle d'absence des écrivains de l'éditeur : `o` où le champ `k` vaut `v`, ou s'en retire quand `v` est
- *  `undefined`. */
-function champ<T extends object, K extends keyof T>(o: T, k: K, v: T[K] | undefined): T {
-  const out = { ...o };
-  if (v === undefined) delete out[k];
-  else out[k] = v;
-  return out;
-}
-
 /** `o` où chaque champ de `patch` est posé par `champ` : une clé portée à `undefined` RETIRE le champ. */
 function champs<T extends object>(o: T, patch: Partial<NoInfer<T>>): T {
   const poses: Partial<T> = patch;
   return (Object.keys(poses) as (keyof T)[]).reduce((out, k) => champ<T, keyof T>(out, k, poses[k]), o);
 }
 
-/** Un pas du chemin d'un champ dans sa donnée : une clé d'objet, ou un rang de liste. */
-export type Segment = string | number;
+/** Les choix du contexte du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` (`choixDuChamp`). */
+const choixDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): ChoixDuFormulaire =>
+  (ici) => choixDuChamp(sorte, donnee, ici, cadre);
 
-type Objet = Record<string, unknown>;
-
-/** Le nœud admet-il que son champ soit retiré ? */
-const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
-
-/** La valeur `valeur` est-elle de la sorte du nœud `noeud`, où la valeur `actuelle` est écrite ? `undefined` : s'il
- *  admet le retrait ; d'un champ à choix, l'une de ses valeurs (`choixDuNoeud`) ; d'un objet, sa valeur neuve
- *  (`valeurNeuveDe`) ; d'une union, l'une de ses variantes à choisir (`variantesAChoisir`), ou de l'union qu'est sa
- *  variante courante ; d'une liste, l'actuelle après l'un de ses gestes (`gestesDeLaListe`) ; sinon, et pour une union
- *  ou une liste saisie entière, une valeur que le nœud parse. */
-function admise(noeud: unknown, actuelle: unknown, valeur: unknown): boolean {
-  if (valeur === undefined) return retirable(noeud);
-  const choix = choixDuNoeud(noeud);
-  if (choix) return choix.some((o) => o.valeur === valeur);
-  if (champsDeclares(noeud)) return jsonCanonique(valeur) === jsonCanonique(valeurNeuveDe(noeud));
-  const parse = () => (noeud as { safeParse: (v: unknown) => { success: boolean } }).safeParse(valeur).success;
-  const jouee = jsonCanonique(valeur);
-  const union = unionDuNoeud(noeud);
-  if (union) {
-    const courante = varianteCourante(union, actuelle)?.noeud;
-    return variantesAChoisir(noeud, actuelle)!.some((v) => jsonCanonique(v.valeur) === jouee)
-      || (unionDuNoeud(courante) !== undefined && admise(courante, actuelle, valeur)) || parse();
-  }
-  const element = elementDuNoeud(noeud);
-  if (element !== undefined) {
-    const gestes = gestesDeLaListe(Array.isArray(actuelle) ? actuelle : [], valeurNeuveDe(element));
-    return [gestes.ajouter, ...gestes.elements.flatMap((e) => [e.retirer, e.monter])].some((l) => l && jsonCanonique(l) === jouee) || parse();
-  }
-  return parse();
-}
-
-/** Le conteneur `o` où le champ au chemin `[cle, ...reste]` vaut `valeur`, posé par `champ` (un élément de liste se
- *  remplace à son rang) ; un objet que ce retrait vide, au rang `rang` du chemin, en part aussi quand `vidable(rang)`. */
-function ecrit(o: unknown, [cle, ...reste]: readonly Segment[], valeur: unknown, vidable: (rang: number) => boolean, rang = 0): unknown {
-  const sous = (o as Record<Segment, unknown>)[cle];
-  const suite = reste.length ? ecrit(sous, reste, valeur, vidable, rang + 1) : valeur;
-  if (Array.isArray(o)) return o.map((e, i) => (i === cle ? suite : e));
-  const vide = valeur === undefined && reste.length > 0 && Object.keys(sous as object).length > 0 && !Object.keys(suite as object).length;
-  return champ(o as Objet, cle as string, vide && vidable(rang) ? undefined : suite);
-}
-
-/** Le nœud du pas `pas` depuis le point de nœud `noeud` et de valeur `point`, où le contexte pose les choix `poses` : le
- *  rang d'un élément d'une liste présente (`elementDuNoeud`) ; une clé du record présent (`recordDuNoeud`) qu'il porte, ou
- *  qu'il offre (`champsDuRecord`) : l'un des choix admis que le contexte y pose, sinon une clé qu'admet son nœud ; une clé
- *  déclarée de l'objet présent (`champsDeclares`), à travers ses unions (`formeAuPoint`), ni discriminant que tient le
- *  choix d'une variante, ni identité (`cleOfferte`) ; `undefined` si le formulaire ne l'offre pas. */
-function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => readonly ChoixDuContexte[] | undefined): unknown {
-  if (typeof pas === 'number') {
-    const element = elementDuNoeud(noeud);
-    return element !== undefined && Array.isArray(point) && Number.isInteger(pas) && pas >= 0 && pas < point.length ? element : undefined;
-  }
-  if (!estObjet(point)) return undefined;
-  const record = recordDuNoeud(noeud);
-  if (record) {
-    const cles = poses();
-    const offerte = cles ? cles.some((c) => c.refus === null && c.valeur === pas) : (record.cle as { safeParse: (v: unknown) => { success: boolean } }).safeParse(pas).success;
-    return offerte || Object.keys(point).includes(pas) ? record.valeur : undefined;
-  }
-  const forme = formeAuPoint(noeud, point);
-  const n = forme && champsDeclares(forme.noeud)?.find(([cle]) => cle === pas)?.[1];
-  return n !== undefined && !forme!.tenus.includes(pas) && cleOfferte(pas, n) ? n : undefined;
-}
-
-/** Pourquoi une valeur ne s'écrit pas : le formulaire n'offre pas son chemin, elle n'est pas de la sorte du champ, elle
- *  est arrivée `null` (un JSON illisible) là où le champ ne l'admet pas, ou son porteur écrit enfreint une règle,
- *  dite. */
-export type RefusDeValeur = 'nonOffert' | 'horsSorte' | 'illisible' | { regle: string };
-
-/** Ce qu'écrit une valeur : la donnée écrite, ou son refus. */
-export type EcritureDeValeur<T> = { ok: true; valeur: T } | { ok: false; refus: RefusDeValeur };
-
-/** La donnée `donnee` de l'objet de schéma `objet` où `valeur` s'écrit au chemin `chemin` (`ecrit`), le champ retiré si
- *  elle vaut `undefined` (l'entrée d'un record partiel ou à clé ouverte, `recordDuNoeud`, se retire toujours), une liste
- *  vidée retirée si son nœud admet l'absence ; ou son refus : un pas que le formulaire n'offre pas (`noeudDuPas`), une
- *  valeur qui n'est pas l'un des choix admis que le contexte de son porteur y pose (`choix`, qui, d'un record, pose ses
- *  clés), ou, sans eux, pas de la sorte du champ (`admise`). Le schéma entier ne se vérifie qu'à l'enregistrement et à
- *  l'essai. */
-export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown, choix: ContexteDuChamp['choix'] = () => undefined): EcritureDeValeur<Objet> {
-  const noeuds: unknown[] = [];
-  let point: unknown = donnee;
-  for (const [rang, pas] of chemin.entries()) {
-    const noeud = noeudDuPas(noeuds.length ? noeuds[noeuds.length - 1] : objet, point, pas, () => choix(chemin.slice(0, rang)));
-    if (noeud === undefined) return { ok: false, refus: 'nonOffert' };
-    noeuds.push(noeud);
-    point = (point as Record<Segment, unknown>)[pas];
-  }
-  const dernier = noeuds[noeuds.length - 1];
-  if (dernier === undefined) return { ok: false, refus: 'nonOffert' };
-  const ecrite = Array.isArray(valeur) && !valeur.length && elementDuNoeud(dernier) !== undefined && retirable(dernier) ? undefined : valeur;
-  const poses = ecrite === undefined || recordDuNoeud(dernier) ? undefined : choix(chemin);
-  const entreeRetiree = ecrite === undefined && recordDuNoeud(noeuds.length > 1 ? noeuds[noeuds.length - 2] : objet) !== undefined;
-  const ecrivable = poses ? poses.some((c) => c.refus === null && jsonCanonique(c.valeur) === jsonCanonique(ecrite)) : entreeRetiree || admise(dernier, point, ecrite);
-  if (!ecrivable) return { ok: false, refus: valeur === null ? 'illisible' : 'horsSorte' };
-  return { ok: true, valeur: ecrit(donnee, chemin, ecrite, (rang) => retirable(noeuds[rang])) as Objet };
-}
+/** Le retrait de chaque champ, à son chemin, du formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le
+ *  cadre `cadre`, s'écrit-il (`retraitAuFormulaire`, sur sa forme `formeDuPorteur`) ? */
+export const retraitOffert = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): ((chemin: readonly Segment[]) => boolean) =>
+  retraitAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, choixDuPorteur(sorte, donnee, cadre));
 
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
- *  (`formeDuPorteur`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`), son
- *  adresse de prose recalée (`adresseRecalee`) et chaque fragment d'adresse scellé sur le `Source/` du cadre
- *  (`adressesScellees`) ; ou son refus : une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas
- *  (`ecritureOfferte`), à ce qu'une adresse de prose dérive (`estCheminDerive`), ou qui apporte un fragment que seul un
- *  chapitre non chargé scellerait, n'est pas offerte. */
-export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
-  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
-  const actuelle = chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
-  if (!ecritureOfferte(offerts, chemin, actuelle) || estCheminDerive(noeud, donnee, chemin)) return { ok: false, refus: 'nonOffert' };
-  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre));
-  if (!ecrite.ok) return ecrite;
-  const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, chemin), cadre.source);
-  return scellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: scellee as DonneeDuPorteur[S] };
-}
+ *  (`ecritureAuFormulaire`, sur sa forme `formeDuPorteur`, aux choix de son contexte et sur le `Source/` du cadre
+ *  `cadre`) ; ou son refus. */
+export const avecLaValeurDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
+  ecritureAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, valeur, choixDuPorteur(sorte, donnee, cadre), cadre.source);
+
+/** La donnée `donnee` du porteur de sorte `sorte` où l'élément de liste au chemin `chemin` de son formulaire passe
+ *  avant le précédent (`monteeAuFormulaire`, sur sa forme `formeDuPorteur`, aux choix de son contexte et sur le
+ *  `Source/` du cadre `cadre`) ; ou son refus. */
+export const avecLElementMonte = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
+  monteeAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, choixDuPorteur(sorte, donnee, cadre), cadre.source);
 
 /** La donnée `donnee` du porteur de sorte `sorte` où l'adresse de prose au chemin `chemin` de son formulaire est
- *  rescellée après relecture (`adresseRescellee`), sur le `Source/` du cadre `cadre` ; ou son refus : un chemin que son
- *  formulaire n'offre pas, qui ne désigne pas une adresse, ou dont le chapitre n'est pas chargé. */
-export function avecLAdresseRescellee<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
-  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
-  const rescellee = cheminOffert(offerts, chemin) ? adresseRescellee(noeud, donnee, chemin, cadre.source) : undefined;
-  return rescellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: rescellee as DonneeDuPorteur[S] };
+ *  rescellée après relecture (`rescellementAuFormulaire`, sur le `Source/` du cadre `cadre`) ; ou son refus. */
+export const avecLAdresseRescellee = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> =>
+  rescellementAuFormulaire(formeDuPorteur(sorte, donnee, cadre), donnee, chemin, cadre.source);
+
+/** Le patch qui fait de `avant` l'objet `apres` : chaque champ de premier niveau qui change, posé à sa valeur
+ *  d'`apres`, `undefined` s'il en est absent. */
+function patchEntre<T extends object>(avant: T, apres: T): Partial<T> {
+  const cles = new Set([...Object.keys(avant), ...Object.keys(apres)]);
+  return Object.fromEntries([...cles].flatMap((cle) => {
+    const v = (apres as Record<string, unknown>)[cle];
+    return v === (avant as Record<string, unknown>)[cle] ? [] : [[cle, v]];
+  })) as Partial<T>;
+}
+
+/** La scène `scene` où l'entité `avant` devient `apres`, chaque champ de premier niveau qui change posé par sa porte
+ *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint l'entité écrite et que l'entité d'avant n'enfreignait pas
+ *  (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
+function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity): EcritureDeValeur<Scene> {
+  const patch = patchEntre(avant, apres);
+  let ecrite: Scene;
+  try {
+    ecrite = editEntity(scene, avant.id, patch);
+  } catch (e) {
+    if (e instanceof TypeNonNomme) return { ok: false, refus: { regle: e.message } };
+    throw e;
+  }
+  const deja = new Set(refusDeLEntite(avant).map((f) => f.message));
+  const neuve = ecrite.entities.filter((e) => e.id === avant.id).flatMap(refusDeLEntite).find((f) => !deja.has(f.message));
+  return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: ecrite };
+}
+
+/** Ce qu'une table d'écriture déclare d'un porteur de la scène : la scène où sa donnée `avant` devient `apres`, ou son
+ *  refus ; et, pour la sorte qui les a, la scène où un porteur neuf est créé, sous son identifiant ; celle où le porteur
+ *  `de` prend l'identifiant `vers`, propagé à ce qui le désigne dans la scène ; celle où le porteur `id` est retiré ;
+ *  celle où l'élément `de` de la sous-collection à clé du porteur `id`, adressé par son parent `parent` quand sa clé n'est
+ *  unique que dans lui, prend l'identifiant `vers`, et ce qui refuse de donner l'identifiant `vers` à cet élément, dit
+ *  (`null` : retenu). Un renommage sous un identifiant vide ou déjà pris rend la scène telle quelle. */
+interface EcritureDeScene<D> {
+  ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
+  creer?: (scene: Scene) => { scene: Scene; id: string };
+  renommer?: (scene: Scene, de: string, vers: string) => Scene;
+  retirer?: (scene: Scene, id: string) => Scene;
+  renommerElement?: (scene: Scene, id: string, de: string, vers: string, parent?: string) => Scene;
+  refusDeRenommer?: (scene: Scene, id: string, vers: string, element: string | undefined, parent?: string) => string | null;
+}
+
+/** Ce que la table d'écriture d'une sorte de porteur déclare, sur le projet `projet` où la scène `sceneId` est
+ *  montrée : le projet où sa donnée `avant` devient `apres`, ou son refus ; et, pour la sorte qui les a, le projet où un
+ *  porteur neuf est créé depuis la sélection `depuis`, avec l'identifiant `avec` qu'elle offre (`avecs`), sous son
+ *  identifiant (`undefined` : refusé), et ce qui refuse cette création, dit ; celui où le porteur `de` prend
+ *  l'identifiant `vers`, propagé à ce qui le désigne, et ce qui refuse de donner l'identifiant `vers` au porteur `id`, ou
+ *  à son élément `element`, adressé par son parent `parent` quand sa clé n'est unique que dans lui, dit (`null` :
+ *  retenu) ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la sous-collection à clé du porteur `id`,
+ *  adressé de même, prend l'identifiant `vers` ; celui où son élément `element` est retiré ; et ce
+ *  qui refuse le retrait du porteur `id`, ou de son élément `element`, dit. Un renommage sous un identifiant vide ou déjà
+ *  pris rend le projet tel quel. `entrees` : les identifiants des entrées des fiches de dossier que l'hôte sert à la
+ *  session (`SessionDEdition`, `entreesDeFiche`). #3606 */
+interface EcritureDuPorteur<D> {
+  ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D) => EcritureDeValeur<ProjetDEdition>;
+  creer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, avec: string | undefined, entrees: readonly string[]) => { projet: ProjetDEdition; id: string } | undefined;
+  refusDeCreer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => string | undefined;
+  avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, entrees: readonly string[]) => readonly string[];
+  renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string, entrees: readonly string[]) => ProjetDEdition;
+  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, entrees: readonly string[], parent?: string) => string | null;
+  retirer?: (projet: ProjetDEdition, sceneId: string, id: string) => ProjetDEdition;
+  renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string, parent?: string) => ProjetDEdition;
+  retirerElement?: (projet: ProjetDEdition, sceneId: string, id: string, element: string) => ProjetDEdition;
+  refusDeRetirer?: (projet: ProjetDEdition, sceneId: string, id: string, element?: string) => string | undefined;
+}
+
+/** L'écriture du porteur que la table `e` écrit dans la scène montrée du projet (`DOCUMENTS`, `scene`) : chacun de ses
+ *  écrivains relevé au projet, la scène lue puis réécrite, le projet tel quel quand elle l'est. */
+function deLaScene<D>(e: EcritureDeScene<D>): EcritureDuPorteur<D>;
+function deLaScene(e: Omit<EcritureDeScene<never>, 'ecrire'>): Omit<EcritureDuPorteur<never>, 'ecrire'>;
+function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur<D>> {
+  const releve = (projet: ProjetDEdition, sceneId: string, f: (scene: Scene) => Scene): ProjetDEdition => {
+    const { lire, ecrire } = DOCUMENTS.scene;
+    const scene = lire(projet, sceneId)!;
+    const ecrite = f(scene);
+    return ecrite === scene ? projet : ecrire(projet, sceneId, ecrite);
+  };
+  const { ecrire: ecrireLaScene, creer, renommer, retirer, renommerElement, refusDeRenommer } = e;
+  return {
+    ...(ecrireLaScene && { ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D): EcritureDeValeur<ProjetDEdition> => {
+      const { lire, ecrire } = DOCUMENTS.scene;
+      const ecrite = ecrireLaScene(lire(projet, sceneId)!, avant, apres);
+      return ecrite.ok ? { ok: true, valeur: ecrire(projet, sceneId, ecrite.valeur) } : ecrite;
+    } }),
+    ...(creer && { creer: (projet: ProjetDEdition, sceneId: string) => {
+      const { lire, ecrire } = DOCUMENTS.scene;
+      const cree = creer(lire(projet, sceneId)!);
+      return { projet: ecrire(projet, sceneId, cree.scene), id: cree.id };
+    } }),
+    ...(renommer && { renommer: (projet: ProjetDEdition, sceneId: string, de: string, vers: string) => releve(projet, sceneId, (sc) => renommer(sc, de, vers)) }),
+    ...(retirer && { retirer: (projet: ProjetDEdition, sceneId: string, id: string) => releve(projet, sceneId, (sc) => retirer(sc, id)) }),
+    ...(renommerElement && { renommerElement: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string, parent?: string) => releve(projet, sceneId, (sc) => renommerElement(sc, id, de, vers, parent)) }),
+    ...(refusDeRenommer && { refusDeRenommer: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, _entrees: readonly string[], parent?: string) => refusDeRenommer(DOCUMENTS.scene.lire(projet, sceneId)!, id, vers, element, parent) }),
+  };
+}
+
+/** L'écriture du porteur de sorte `sorte` qui remplace sa donnée dans son document (`projetAvecLePorteur`). */
+const remplace = <S extends SorteDePorteur>(sorte: S): EcritureDuPorteur<DonneeDuPorteur[S]>['ecrire'] =>
+  (projet, sceneId, avant, apres) => ({ ok: true, valeur: projetAvecLePorteur(accesDe(sorte), projet, sceneId, avant, apres) });
+
+/** Les routes de la carte du monde du projet `projet` dont l'embuscade lance la rencontre `id` de la scène `sceneId`
+ *  (`WorldMap.routes[].ambush`). */
+const routesDeLEmbuscade = (projet: ProjetDEdition, sceneId: string, id: string): WorldMap['routes'] =>
+  (projet.worldMap?.routes ?? []).filter((r) => r.ambush?.scene.id === sceneId && r.ambush.encounter === id);
+
+/** Ce qui, sur la carte du monde du projet `projet`, désigne la rencontre `id` de la scène `sceneId` : les embuscades
+ *  de route qui la lancent (`routesDeLEmbuscade`), dites ; `undefined` sans elles. #3606 */
+function embuscadesDeLaRencontre(projet: ProjetDEdition, sceneId: string, id: string): string | undefined {
+  const routes = routesDeLEmbuscade(projet, sceneId, id).map((r) => `« ${r.id} »`);
+  return routes.length ? tr('ecran.editeur.rencontre.embuscade', { id, routes: routes.join(', ') }) : undefined;
+}
+
+/** Ce qui refuse de retirer l'établissement `element` du lieu `id` de la carte du projet `projet`
+ *  (`refusDeRetirerLEtablissement`) ; `undefined` hors d'un établissement. #4277 */
+function refusDeRetirerLElement(projet: ProjetDEdition, _sceneId: string, id: string, element?: string): string | undefined {
+  const lieu = projet.worldMap?.places.find((p) => p.id === id);
+  return lieu && element !== undefined ? refusDeRetirerLEtablissement(lieu, element) : undefined;
+}
+
+/** Le projet `projet` où la rencontre `de` de la scène `sceneId` prend l'identifiant `vers` (`renameEncounter`), propagé
+ *  à l'embuscade de chaque route qui la lance (`routesDeLEmbuscade`). #3606 */
+function rencontreRenommee(projet: ProjetDEdition, sceneId: string, de: string, vers: string): ProjetDEdition {
+  const scene = DOCUMENTS.scene.lire(projet, sceneId)!;
+  const renommee = renameEncounter(scene, de, vers);
+  if (renommee === scene) return projet;
+  const avec = DOCUMENTS.scene.ecrire(projet, sceneId, renommee);
+  const routes = new Set(routesDeLEmbuscade(projet, sceneId, de));
+  const carte = projet.worldMap;
+  if (!carte || !routes.size) return avec;
+  const encounter = vers.trim();
+  return DOCUMENTS.carte.ecrire(avec, sceneId, { ...carte, routes: carte.routes.map((r) => (routes.has(r) ? { ...r, ambush: { ...r.ambush!, encounter } } : r)) });
+}
+
+/** La scène `scene` où l'action authorée `de` du décor `id` prend l'identifiant `vers` (`renameActionAuthoree`). */
+function actionRenommee(scene: Scene, id: string, de: string, vers: string): Scene {
+  const ent = scene.entities.find((e) => e.id === id);
+  const actions = ent?.usable?.actions;
+  const renommees = actions && renameActionAuthoree(actions, de, vers);
+  return ent && renommees !== actions ? editEntity(scene, id, { usable: { ...ent.usable, actions: renommees } }) : scene;
+}
+
+/** Les éléments du dialogue `dialogue` sœurs de celui qu'adresse le parent `parent`, et le texte qui nomme le n-ième :
+ *  ses nœuds sans parent, les réponses du nœud `parent` (`dialogueNodeSchema.choices`, liste-clé du nœud) ; `undefined`
+ *  pour un nœud absent. */
+function soeursDansLeDialogue(dialogue: Dialogue, parent: string | undefined): { elements: readonly { id: string }[]; porteur: MsgKey } | undefined {
+  if (parent === undefined) return { elements: dialogue.nodes, porteur: 'ecran.editeur.noeud.porteur' };
+  const noeud = dialogue.nodes.find((n) => n.id === parent);
+  return noeud && { elements: noeud.choices, porteur: 'ecran.editeur.choix.porteur' };
+}
+
+/** Le refus de donner l'identifiant `vers` à l'élément `element` du dialogue `id` de la scène `scene`, adressé par son
+ *  parent `parent` (`soeursDansLeDialogue`) : vide, ou déjà porté par un de ses sœurs (`refusDId`) ; `null` s'il est
+ *  retenu, inchangé, ou sans élément désigné. */
+function refusDIdentifierDansLeDialogue(scene: Scene, id: string, vers: string, element: string | undefined, parent?: string): string | null {
+  const dialogue = scene.dialogues.find((d) => d.id === id);
+  const soeurs = dialogue && soeursDansLeDialogue(dialogue, parent);
+  if (element === undefined || !soeurs?.elements.some((e) => e.id === element)) return null;
+  return refusDId(element, vers.trim(), (candidat) => {
+    const j = soeurs.elements.findIndex((e) => e.id === candidat);
+    return j >= 0 ? tr(soeurs.porteur, { n: j + 1 }) : null;
+  });
+}
+
+/** La scène `scene` où l'élément `de` du dialogue `id`, adressé par son parent `parent`, prend l'identifiant `vers`
+ *  (rogné) : le nœud, propagé (`renameDialogueNode`), ou la réponse du nœud `parent` ; telle quelle, l'élément absent,
+ *  l'identifiant inchangé ou refusé (`refusDIdentifierDansLeDialogue`). */
+function elementDuDialogueRenomme(scene: Scene, id: string, de: string, vers: string, parent?: string): Scene {
+  const dialogue = scene.dialogues.find((d) => d.id === id);
+  const next = vers.trim();
+  if (!dialogue || !soeursDansLeDialogue(dialogue, parent)?.elements.some((e) => e.id === de) || next === de || refusDIdentifierDansLeDialogue(scene, id, next, de, parent)) return scene;
+  const reponseRenommee = (n: DialogueNode): DialogueNode => (n.id === parent ? { ...n, choices: n.choices.map((c) => (c.id === de ? { ...c, id: next } : c)) } : n);
+  return replaceDialogue(scene, id, parent === undefined ? renameDialogueNode(dialogue, de, next) : { ...dialogue, nodes: dialogue.nodes.map(reponseRenommee) });
+}
+
+/** Le projet `projet` dont la carte du monde devient celle que `f` écrit ; tel quel sans carte. */
+function surLaCarte(projet: ProjetDEdition, f: (carte: WorldMap) => WorldMap): ProjetDEdition {
+  const carte = projet.worldMap;
+  return carte ? DOCUMENTS.carte.ecrire(projet, '', f(carte)) : projet;
+}
+
+/** Le projet `projet` où la route `avant` devient `apres` par son écrivain (`majRoute`), du patch qui les sépare
+ *  (`patchEntre`) ; refusé, dit, quand l'écrivain rend la carte telle quelle alors que la route change : elle n'offrirait
+ *  plus le mode d'un de ses billets. #3606 */
+function routeEcrite(projet: ProjetDEdition, _sceneId: string, avant: MapRoute, apres: MapRoute): EcritureDeValeur<ProjetDEdition> {
+  const carte = projet.worldMap!;
+  const ecrite = majRoute(carte, avant.id, patchEntre(avant, apres) as PatchDeRoute);
+  if (ecrite === carte && jsonCanonique(avant) !== jsonCanonique(apres)) return { ok: false, refus: { regle: tr('ecran.editeur.route.modeDuBillet', { id: avant.id }) } };
+  return { ok: true, valeur: DOCUMENTS.carte.ecrire(projet, '', ecrite) };
+}
+
+/** Le lieu sélectionné par `depuis` sur la carte du projet `projet`, `undefined` hors d'un lieu. */
+const lieuDeLaSel = (projet: ProjetDEdition, depuis: Sel): MapPlace | undefined =>
+  (depuis?.type === 'place' ? projet.worldMap?.places.find((p) => p.id === depuis.id) : undefined);
+
+/** La carte `carte` où un lieu neuf est posé à `pos` (`ajouterLieu`, borné et décalé), sous un identifiant qu'aucun de
+ *  ses lieux ne porte (`nextEntityId`), lié à la première des scènes `scenes`. #3606 */
+export function lieuNeuf(carte: WorldMap, pos: MapPlace['pos'], scenes: readonly { id: string }[]): { carte: WorldMap; id: string } {
+  const id = nextEntityId('lieu', carte.places.map((p) => p.id));
+  return { carte: ajouterLieu(carte, id, pos, scenes), id };
+}
+
+/** La carte `carte` où un point d'intérêt neuf est posé au plan du lieu `lieu`, à `pos` (`ajouterPoi`, borné), sous un
+ *  identifiant qu'aucun point de la carte ne porte (`nextEntityId`), menant à la première des scènes `scenes`, dont il
+ *  prend le nom ; `undefined` pour un lieu inconnu. #3606 */
+export function poiNeuf(carte: WorldMap, lieu: string, pos: PlacePoi['pos'], scenes: readonly Pick<Scene, 'id' | 'label'>[]): { carte: WorldMap; id: string } | undefined {
+  const id = nextEntityId('poi', carte.places.flatMap((p) => (p.poi ?? []).map((x) => x.id)));
+  const [scene] = scenes;
+  const posee = ajouterPoi(carte, lieu, { id, label: scene.label, pos, sceneId: { id: scene.id } });
+  return posee === carte ? undefined : { carte: posee, id };
+}
+
+/** Le centre des bornes de la carte (`BORNES_DE_CARTE`). */
+const CENTRE_DE_CARTE = { x: (BORNES_DE_CARTE.x.min + BORNES_DE_CARTE.x.max) / 2, y: (BORNES_DE_CARTE.y.min + BORNES_DE_CARTE.y.max) / 2 };
+
+/** Le projet `projet` où un lieu neuf est posé au centre des bornes de sa carte (`lieuNeuf`) ; `undefined` sans carte.
+ *  Le pointeur, lui, le pose au point appuyé. #3606 */
+function lieuCree(projet: ProjetDEdition): { projet: ProjetDEdition; id: string } | undefined {
+  const carte = projet.worldMap;
+  if (!carte) return undefined;
+  const pose = lieuNeuf(carte, CENTRE_DE_CARTE, projet.scenes);
+  return { projet: DOCUMENTS.carte.ecrire(projet, '', pose.carte), id: pose.id };
+}
+
+/** La route neuve que `lierLieux` pose du lieu `depuis` au lieu `vers` de la carte `carte`, sous un identifiant
+ *  qu'aucune de ses routes ne porte (`nextEntityId`) ; `undefined` si elle la refuse. */
+export function routeLiee(carte: WorldMap, depuis: string, vers: string): { carte: WorldMap; id: string } | undefined {
+  const id = nextEntityId('trajet', carte.routes.map((r) => r.id));
+  const liee = lierLieux(carte, id, depuis, vers);
+  return liee === carte ? undefined : { carte: liee, id };
+}
+
+/** Les lieux de la carte du projet `projet` que le lieu sélectionné par `depuis` peut rejoindre par une route neuve
+ *  (`routeLiee`). #3606 */
+function lieuxAJoindre(projet: ProjetDEdition, _sceneId: string, depuis: Sel): readonly string[] {
+  const lieu = lieuDeLaSel(projet, depuis);
+  const carte = projet.worldMap;
+  return lieu && carte ? carte.places.flatMap((p) => (routeLiee(carte, lieu.id, p.id) ? [p.id] : [])) : [];
+}
+
+/** Le projet `projet` où une route neuve relie le lieu sélectionné par `depuis` au lieu `avec` (`routeLiee`) ;
+ *  `undefined` sans lui ou si elle est refusée. #3606 */
+function routeCreee(projet: ProjetDEdition, _sceneId: string, depuis: Sel, avec?: string): { projet: ProjetDEdition; id: string } | undefined {
+  const lieu = lieuDeLaSel(projet, depuis);
+  const liee = lieu && avec !== undefined ? routeLiee(projet.worldMap!, lieu.id, avec) : undefined;
+  return liee && { projet: DOCUMENTS.carte.ecrire(projet, '', liee.carte), id: liee.id };
+}
+
+/** Le corps neuf d'une entrée de chaque registre créable du narratif, dans le narratif `narratif`, celui que pose
+ *  l'éditeur web (`NarratifEditor.tsx` : `addAffaire`, `addIndice`, `addPreset`, `addDocument`, `addEtat`) ; d'un objet,
+ *  une possession sans provenance, que son schéma dit fautive tant que l'auteur ne la pose pas ; ou le refus de la créer,
+ *  dit : un indice sans affaire à rattacher. */
+const CORPS_NEUFS: { readonly [R in RegistreCreable]: (narratif: NarratifBlock) => CorpsNeuf<R> | string } = {
+  affaires: () => ({ titre: tr('ecran.editeur.narratif.affaireNeuve') }),
+  indices: ({ affaires: [affaire] }) => (affaire
+    ? { affaireId: affaire.id, kind: 'indice', titre: tr('ecran.editeur.narratif.indiceNeuf'), stades: [{ id: 'stade-1', prose: '' }] }
+    : tr('ecran.editeur.narratif.indiceSansAffaire')),
+  presetsPnj: () => {
+    const [premiere] = [...creatures].sort((a, b) => a.label.localeCompare(b.label));
+    return { base: premiere && { id: premiere.id } };
+  },
+  documents: () => ({ titre: tr('ecran.editeur.narratif.documentNeuf'), prose: '' }),
+  etats: () => ({ label: tr('ecran.editeur.narratif.etatNeuf'), forme: { kind: 'heros' } }),
+  objets: () => ({ type: 'trappings', label: tr('ecran.editeur.narratif.objetNeuf'), categorie: 'trapping', subType: null, availability: null, qualities: [], price: null }),
+};
+
+/** Ce que l'écriture d'une entrée d'un registre du narratif lui fait porter, la règle de son écrivain web : chaque stade
+ *  d'un indice couplé à son document (`indiceCouple`), l'identité d'un état couverte (`etatCouvert`). */
+const REECRITURES: { readonly [R in RegistreCreable]?: (entree: NarratifBlock[R][number]) => NarratifBlock[R][number] } = {
+  indices: indiceCouple,
+  etats: etatCouvert,
+};
+
+/** L'écriture d'une entrée du registre créable `registre` du narratif, sur le projet : son remplacement (`remplace`),
+ *  réécrite par la règle de son registre (`REECRITURES`) ;
+ *  sa création, son corps neuf (`CORPS_NEUFS`) sous un identifiant frais (`ajouteEntree`), refusée sans corps ; son
+ *  renommage propagé au projet (`renommeAuProjet`), refusé (`refusDeRenommage`) ; son retrait (`retireDuProjet`),
+ *  refusé tant qu'une référence la désigne (`refusDeRetrait`) ; du registre à sous-entrées (`SOUS_ENTREES`), le
+ *  renommage et le retrait d'une sous-entrée par les mêmes écrivains. #3606 B8, C3 */
+function ecritureDuRegistre<R extends RegistreCreable>(registre: R): EcritureDuPorteur<DonneeDuPorteur[R]> {
+  const cible = (id: string, sous?: string): CibleNarrative => (sous === undefined ? { registre, id } : { registre, id, sous });
+  const sousEntrees = SOUS_ENTREES[registre] && {
+    renommerElement: (projet: ProjetDEdition, _sceneId: string, id: string, de: string, vers: string) => renommeAuProjet(projet, cible(id, de), vers),
+    retirerElement: (projet: ProjetDEdition, _sceneId: string, id: string, element: string) => retireDuProjet(projet, cible(id, element)),
+  };
+  const reecrite = (REECRITURES[registre] ?? ((entree) => entree)) as (entree: DonneeDuPorteur[R]) => DonneeDuPorteur[R];
+  return {
+    ecrire: (projet, sceneId, avant, apres) => remplace(registre)(projet, sceneId, avant, reecrite(apres)),
+    creer: (projet) => {
+      const corps = CORPS_NEUFS[registre](projet.narratif);
+      if (typeof corps === 'string') return undefined;
+      const { narratif, id } = ajouteEntree(projet.narratif, registre, corps);
+      return { projet: { ...projet, narratif }, id };
+    },
+    refusDeCreer: (projet) => {
+      const corps = CORPS_NEUFS[registre](projet.narratif);
+      return typeof corps === 'string' ? corps : undefined;
+    },
+    renommer: (projet, _sceneId, de, vers) => renommeAuProjet(projet, cible(de), vers),
+    refusDeRenommer: (projet, _sceneId, id, vers, element) => refusDeRenommage(projet.narratif, cible(id, element), vers),
+    retirer: (projet, _sceneId, id) => retireDuProjet(projet, cible(id)),
+    refusDeRetirer: (projet, _sceneId, id, element) => refusDeRetraitNarratif(projet, cible(id, element)),
+    ...sousEntrees,
+  };
+}
+
+/** Les écarts du projet `projet`, absents lus vides. */
+const ecartsDe = (projet: ProjetDEdition): NonNullable<NarratifBlock['ecartes']> => projet.narratif.ecartes ?? [];
+
+/** Le projet `projet` dont les écarts deviennent `ecartes`, retirés vides. */
+const avecLesEcarts = (projet: ProjetDEdition, ecartes: NonNullable<NarratifBlock['ecartes']>): ProjetDEdition =>
+  ({ ...projet, narratif: { ...projet.narratif, ecartes: ecartes.length ? ecartes : undefined } });
+
+/** Les entrées `entrees` des fiches de dossier que l'hôte sert, qu'aucun écart du projet `projet` n'écarte encore
+ *  (`NarratifEditor.tsx`, `EcartesForm`). */
+const entreesLibres = (projet: ProjetDEdition, entrees: readonly string[]): readonly string[] =>
+  entrees.filter((e) => !ecartsDe(projet).some((x) => x.entree === e));
+
+/** Le refus de donner l'entrée `vers` à l'écart `id` du projet `projet` : une entrée hors des entrées `entrees` que
+ *  l'hôte sert, ou qu'un autre écart écarte déjà ; `null` : retenue ou inchangée. */
+function refusDEntree(projet: ProjetDEdition, id: string, vers: string, entrees: readonly string[]): string | null {
+  const entree = vers.trim();
+  if (entree === id || entreesLibres(projet, entrees).includes(entree)) return null;
+  return entrees.includes(entree) ? tr('ecran.editeur.ecart.entreePrise', { entree }) : tr('ecran.editeur.ecart.entreeInconnue', { entree });
+}
+
+/** L'écriture d'un écart du narratif : son remplacement (`remplace`) ; sa création avec l'entrée `avec`, à motif vide,
+ *  parmi les entrées libres (`entreesLibres`), qu'il offre ; le changement de son entrée vers une entrée libre
+ *  (`refusDEntree`) ; son retrait, la liste vidée retirée (`avecLesEcarts`). #3606 B7 */
+const ECRITURE_DE_L_ECART: EcritureDuPorteur<DonneeDuPorteur['ecart']> = {
+  ecrire: remplace('ecart'),
+  creer: (projet, _sceneId, _depuis, avec, entrees) => (avec !== undefined && entreesLibres(projet, entrees).includes(avec)
+    ? { projet: avecLesEcarts(projet, [...ecartsDe(projet), { entree: avec, motif: '' }]), id: avec } : undefined),
+  avecs: (projet, _sceneId, _depuis, entrees) => entreesLibres(projet, entrees),
+  renommer: (projet, _sceneId, de, vers, entrees) => (refusDEntree(projet, de, vers, entrees) === null && vers.trim() !== de
+    ? avecLesEcarts(projet, ecartsDe(projet).map((e) => (e.entree === de ? { ...e, entree: vers.trim() } : e))) : projet),
+  refusDeRenommer: (projet, _sceneId, id, vers, _element, entrees) => refusDEntree(projet, id, vers, entrees),
+  retirer: (projet, _sceneId, id) => avecLesEcarts(projet, ecartsDe(projet).filter((e) => e.entree !== id)),
+};
+
+/** L'écriture d'une entrée de chaque registre créable du narratif (`ecritureDuRegistre`), sous sa clé. */
+const ecrituresDesRegistres = tableTotale(Object.keys(CORPS_NEUFS) as RegistreCreable[], (registre) => ecritureDuRegistre(registre)) as { readonly [R in RegistreCreable]: EcritureDuPorteur<DonneeDuPorteur[R]> };
+
+/** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur, d'un dialogue,
+ *  ou de la scène, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
+ *  renommage d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son
+ *  retrait (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
+ *  (`removeDialogue`), le renommage d'un de ses nœuds ou de la réponse d'un nœud (`elementDuDialogueRenomme`) et son refus
+ *  dit (`refusDIdentifierDansLeDialogue`) ; d'une rencontre, son écriture (`patchEncounter`), sa création
+ *  (`addEncounter`), son renommage propagé aux embuscades de route (`rencontreRenommee`), son retrait
+ *  (`removeEncounter`), refusé tant qu'une embuscade de route la lance (`embuscadesDeLaRencontre`) ; d'un lieu, son
+ *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`), et celui d'un de
+ *  ses établissements (`etablissementRetire`), refusé tant qu'un point d'intérêt le vise (`refusDeRetirerLElement`) ; d'une route,
+ *  son écriture (`routeEcrite`), sa création depuis le lieu
+ *  sélectionné vers l'un de ceux qu'il rejoint (`routeCreee`, `lieuxAJoindre`) et son retrait (`supprimerRoute`) ; de la
+ *  carte, son écriture (`majCarte`) et son retrait du projet, qui n'offre plus de voyage ; des réglages du projet et du
+ *  narratif, leur remplacement (`remplace`) ; d'une entrée d'un registre créable du narratif, la sienne
+ *  (`ecrituresDesRegistres`) ; d'un écart, la sienne (`ECRITURE_DE_L_ECART`). Les écrivains de la scène y sont relevés
+ *  au projet (`deLaScene`). */
+export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
+  zone: { ecrire: remplace('zone') },
+  declencheur: { ...deLaScene({ renommer: renameTrigger, retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }) }), ecrire: remplace('declencheur') },
+  entite: deLaScene({ ecrire: sceneAvecLEntite, renommerElement: actionRenommee }),
+  dialogue: { ...deLaScene({ creer: addDialogue, renommer: renameDialogue, retirer: removeDialogue, renommerElement: elementDuDialogueRenomme, refusDeRenommer: refusDIdentifierDansLeDialogue }), ecrire: remplace('dialogue') },
+  rencontre: {
+    ...deLaScene({
+      ecrire: (scene: Scene, avant: EncounterDef, apres: EncounterDef) => ({ ok: true, valeur: patchEncounter(scene, avant.id, patchEntre(avant, apres)) }),
+      creer: addEncounter,
+      retirer: removeEncounter,
+    }),
+    renommer: rencontreRenommee,
+    refusDeRetirer: embuscadesDeLaRencontre,
+  },
+  scene: { ecrire: remplace('scene') },
+  lieu: {
+    ecrire: (projet, _sceneId, avant, apres) => ({ ok: true, valeur: surLaCarte(projet, (carte) => majLieu(carte, avant.id, patchEntre(avant, apres))) }),
+    creer: lieuCree,
+    retirer: (projet, _sceneId, id) => surLaCarte(projet, (carte) => supprimerLieu(carte, id)),
+    retirerElement: (projet, _sceneId, id, element) => surLaCarte(projet, (carte) => {
+      const patch = etablissementRetire(carte.places.find((p) => p.id === id)!, element);
+      return patch ? majLieu(carte, id, patch) : carte;
+    }),
+    refusDeRetirer: refusDeRetirerLElement,
+  },
+  route: {
+    ecrire: routeEcrite,
+    creer: routeCreee,
+    avecs: lieuxAJoindre,
+    retirer: (projet, _sceneId, id) => surLaCarte(projet, (carte) => supprimerRoute(carte, id)),
+  },
+  carte: {
+    ecrire: (projet, _sceneId, avant, apres) => ({ ok: true, valeur: surLaCarte(projet, (carte) => majCarte(carte, patchEntre(avant, apres) as PatchDeCarte)) }),
+    retirer: (projet) => {
+      const { worldMap: _carte, ...sans } = projet;
+      return sans;
+    },
+  },
+  projet: { ecrire: remplace('projet') },
+  ...ecrituresDesRegistres,
+  ecart: ECRITURE_DE_L_ECART,
+  narratif: { ecrire: remplace('narratif') },
+};
+
+/** Le projet `projet`, où la scène `sceneId` est montrée, sans le porteur `porteur`, ou sans son élément `element` de sa
+ *  sous-collection à clé, retiré par la table de sa sorte (`ECRITURES_DES_PORTEURS`, `retirer`, `retirerElement`) ; ou
+ *  son refus : celui que la table dit (`refusDeRetirer`), sinon la première faute du parse de son document (`DOCUMENTS`,
+ *  `schema`) que le document d'avant ne portait pas (`fauteNeuve`), dite ; un document retiré avec son porteur singulier
+ *  n'en porte aucune. `undefined` : sa sorte ne le retire pas par la table. */
+export function projetSansLePorteur(projet: ProjetDEdition, sceneId: string, porteur: { sorte: SorteDePorteur; id: string }, element?: string): { ok: true; valeur: ProjetDEdition } | { ok: false; regle: string } | undefined {
+  const { retirer, retirerElement, refusDeRetirer } = ECRITURES_DES_PORTEURS[porteur.sorte];
+  const retrait = element === undefined
+    ? retirer && ((p: ProjetDEdition) => retirer(p, sceneId, porteur.id))
+    : retirerElement && ((p: ProjetDEdition) => retirerElement(p, sceneId, porteur.id, element));
+  if (!retrait) return undefined;
+  const refus = refusDeRetirer?.(projet, sceneId, porteur.id, element);
+  if (refus !== undefined) return { ok: false, regle: refus };
+  const apres = retrait(projet);
+  const document = DOCUMENTS[accesDe(porteur.sorte).document] as { lire: (p: ProjetDEdition, id: string) => unknown; schema: unknown };
+  const lu = document.lire(apres, sceneId);
+  const faute = lu === undefined ? undefined : fauteNeuve(document.schema, document.lire(projet, sceneId), lu);
+  return faute === undefined ? { ok: true, valeur: apres } : { ok: false, regle: faute };
 }
 
 /** La liste ou le record `v` d'un patch, `undefined` (son absence, `champ`) quand il est vide ou `null`. */
@@ -1165,7 +1640,7 @@ export const sansVide = <T extends object>(v: T | null): T | undefined => (v && 
 export const coucheEcrite = (z: number): number | undefined => z || undefined;
 
 /** Le rectangle `r` porté à la couche `z` (`z` omis au rez). */
-const rectALaCouche = (r: Rect, z: number) => ({ x: r.x, y: r.y, w: r.w, h: r.h, ...(z ? { z } : {}) });
+const rectALaCouche = (r: RectDeCases, z: number) => ({ x: r.x, y: r.y, w: r.w, h: r.h, ...(z ? { z } : {}) });
 
 /** La zone d'effet `zone` portée à la couche `z`, son emprise découpée avec elle. */
 function zoneDEffetALaCouche(zone: SceneEffectZone, z: number): SceneEffectZone {
@@ -1205,7 +1680,7 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
       restZones: (scene.restZones ?? []).map((r, i) => {
         if (i !== sel.idx) return r;
         const out = { ...r, rect: patch.z === undefined ? r.rect : rectALaCouche(r.rect, patch.z), places: { ...r.places, ...patch.lieux } };
-        return patch.pietre === undefined ? out : champ(out, 'quality', patch.pietre ? 'pietre' : undefined);
+        return patch.qualite ? champ(out, 'quality', qualiteEcrite(patch.qualite)) : out;
       }),
     };
   }
@@ -1220,21 +1695,19 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
  *  barrière…). `id`, `area` et `z` restent au créateur — ils viennent du geste, pas de l'appelant. */
 export type EffectZoneSeed = Partial<Omit<SceneEffectZone, 'id' | 'area' | 'z'>>;
 
+/** Remplace la zone d'effet `id` par `zone`. */
+export const replaceEffectZone = (scene: Scene, id: string, zone: SceneEffectZone): Scene => ({ ...scene, effectZones: (scene.effectZones ?? []).map((z) => (z.id === id ? zone : z)) });
+
 /** Crée une ZONE D'EFFET sur `rect`, à l'étage `z` (id frais pour le rendu/sélection). Tout ce que la
  *  zone PORTE vient de `seed` : sans seed, elle naît DESCRIPTIVE (`isDescriptiveZone`) et libellée par
  *  son id, renommable dans l'inspecteur. */
-export function addEffectZone(scene: Scene, rect: Rect, z = 0, seed: EffectZoneSeed = {}): { scene: Scene; id: string } {
+export function addEffectZone(scene: Scene, rect: RectDeCases, z = 0, seed: EffectZoneSeed = {}): { scene: Scene; id: string } {
   const id = nextEntityId('zone', (scene.effectZones ?? []).map((ez) => ez.id));
   const zones = [
     ...(scene.effectZones ?? []),
     { label: id, ...seed, id, area: { kind: 'rect' as const, ...rect }, ...(z ? { z } : {}) },
   ];
   return { scene: { ...scene, effectZones: zones }, id };
-}
-
-/** Remplace la zone d'effet `id` par `zone`. */
-export function replaceEffectZone(scene: Scene, id: string, zone: SceneEffectZone): Scene {
-  return { ...scene, effectZones: (scene.effectZones ?? []).map((z) => (z.id === id ? zone : z)) };
 }
 
 /** Renomme l'id d'une ZONE D'EFFET (référencée par `FacadeSection.roomZoneIds` — lien Façade↔Pièce) et
@@ -1292,7 +1765,7 @@ export function removeMember(scene: Scene, encId: string, entityId: string): Sce
         ...e,
         members: (e.members ?? [])
           .filter((m) => m.entityId !== entityId)
-          .map((m) => (m.ridesEntityId === entityId ? { ...m, ridesEntityId: undefined } : m)),
+          .map((m) => (m.ridesEntityId?.id === entityId ? { ...m, ridesEntityId: undefined } : m)),
       };
     }),
   };
@@ -1300,17 +1773,14 @@ export function removeMember(scene: Scene, encId: string, entityId: string): Sce
 
 /** Patche le contexte de rencontre d'un membre (camp/monture/chevauche). */
 export function patchMember(scene: Scene, encId: string, entityId: string, patch: Partial<EncounterMember>): Scene {
-  return {
-    ...scene,
-    encounters: scene.encounters.map((e) =>
-      e.id === encId
-        ? { ...e, members: (e.members ?? []).map((m) => (m.entityId === entityId ? { ...m, ...patch } : m)) }
-        : e,
-    ),
-  };
+  const rencontre = scene.encounters.find((e) => e.id === encId);
+  if (!rencontre) return scene;
+  const members = (rencontre.members ?? []).map((m) => m.entityId === entityId ? { ...m, ...patch } : m);
+  return patchEncounter(scene, encId, { members });
 }
 
-/** Outil « combat » : POSE une entité-personnage de combat (cachée par défaut) à p, sur la couche `z`,
+/** Outil « combat » : POSE une entité-personnage de combat (cachée par défaut) à p bornée à la zone jouable
+ *  (`borneALaCarte` : elle se joue), sur la couche `z`,
  *  ET l'enrôle dans la rencontre `encId` (créée si absente). `ref` = id STABLE d'une créature du
  *  bestiaire : la primitive VALIDE (fail-fast si l'id ne résout pas), elle ne normalise pas — un
  *  libellé passé à la place d'un id est une erreur d'appelant, jamais un cas à rattraper. Le nom
@@ -1329,7 +1799,7 @@ export function addEnemyMember(scene: Scene, encId: string, ref: string, p: Pt, 
   const ent: SceneEntity = {
     id,
     kind: 'personnage',
-    pos: { ...p },
+    pos: borneALaCarte(scene, p, true),
     combat: { hiddenUntilCombat: true },
     creature: { id: ref },
   };
@@ -1369,32 +1839,36 @@ export function setNorthDeg(scene: Scene, deg: number | undefined): Scene {
   return champ(scene, 'northDeg', deg === undefined || !Number.isFinite(deg) ? undefined : ((deg % 360) + 360) % 360);
 }
 
-/** Renomme la scène éditée. Refusé (scène rendue inchangée) pour un id vide, ou déjà porté par une autre
- *  scène du projet (`autres`) : les transitions et la carte du monde désignent une scène par son id. */
-export function renameScene(scene: Scene, autres: readonly Pick<Scene, 'id'>[], to: string): Scene {
+/** Renomme la racine éditée du projet, une scène ou la carte du monde. Refusé (racine rendue inchangée) pour un id
+ *  vide, ou déjà porté par une autre racine (`autres`) : les transitions et la carte du monde désignent une scène par
+ *  son id, et `validateScene` range les fautes de la carte sous le sien. */
+export function renameScene<R extends Pick<Scene, 'id'>>(racine: R, autres: readonly Pick<Scene, 'id'>[], to: string): R {
   const next = to.trim();
-  if (!next || next === scene.id || autres.some((s) => s.id === next)) return scene;
-  return { ...scene, id: next };
+  if (!next || next === racine.id || autres.some((s) => s.id === next)) return racine;
+  return { ...racine, id: next };
 }
 
-/** Réécrit le point d'entrée `id` : sa case est plafonnée à la carte et ramenée à une case entière
+/** Réécrit le point d'entrée `id` : sa case est plafonnée à la zone jouable et ramenée à une case entière
  *  (`borneALaCarte`, comme `moveSel`) ; l'étage 0 est implicite. No-op si l'entrée est absente. */
 export function editEntry(scene: Scene, id: string, patch: { x?: number; y?: number; z?: number }): Scene {
   const pos = scene.entryPoints?.[id];
   if (!pos) return scene;
   const { z, ...case_ } = { ...pos, ...patch };
-  return { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, case_), ...(z ? { z } : {}) } } };
+  return { ...scene, entryPoints: { ...scene.entryPoints, [id]: { ...borneALaCarte(scene, case_, true), ...(z ? { z } : {}) } } };
 }
 
-/** Ajoute une ancre de bataille vers la Scène de Round `sceneId`, à la case (0,0). */
+/** Ajoute une ancre de bataille vers la Scène de Round `sceneId`, à l'origine de la zone jouable (`rectJouable`). */
 export function addStation(scene: Scene, sceneId: string): Scene {
-  return { ...scene, stations: [...(scene.stations ?? []), { sceneId, pos: { x: 0, y: 0 } }] };
+  const { x, y } = rectJouable(scene);
+  return { ...scene, stations: [...(scene.stations ?? []), { sceneId, pos: { x, y } }] };
 }
 
-/** Patche l'ancre de bataille d'indice `i` ; la scène telle quelle sans elle. */
+/** Patche l'ancre de bataille d'indice `i`, sa case plafonnée à la zone jouable (`borneALaCarte`, comme `editEntry`) ; la
+ *  scène telle quelle sans elle. */
 export function patchStation(scene: Scene, i: number, patch: Partial<SceneStationAnchor>): Scene {
   const stations = scene.stations ?? [];
-  return i in stations ? { ...scene, stations: stations.map((st, j) => (j === i ? { ...st, ...patch } : st)) } : scene;
+  const borne = (st: SceneStationAnchor): SceneStationAnchor => (patch.pos ? { ...st, pos: borneALaCarte(scene, patch.pos, true) } : st);
+  return i in stations ? { ...scene, stations: stations.map((st, j) => (j === i ? borne({ ...st, ...patch }) : st)) } : scene;
 }
 
 /** Retire l'ancre de bataille d'indice `i` ; la dernière retirée, le champ quitte le document. La scène telle quelle
@@ -1437,7 +1911,8 @@ export function patchSceneRoofDefaults(scene: Scene, patch: Partial<SceneRoofDef
 
 /** Patche l'offre de repos de la scène entière, à partir de l'offre effective (`reposDeScene`). */
 export function setSceneRest(scene: Scene, patch: Partial<NonNullable<Scene['rest']>>): Scene {
-  return { ...scene, rest: { ...reposDeScene(scene), ...patch } };
+  const rest = { ...reposDeScene(scene), ...patch };
+  return { ...scene, rest: patch.quality ? champ(rest, 'quality', qualiteEcrite(patch.quality)) : rest };
 }
 
 /** Fusionne des flags initiaux dans `scene.flags` (état de départ : porte ouverte, jalon posé…). */
@@ -1584,7 +2059,10 @@ export function editEntity(scene: Scene, id: string, patch: Partial<SceneEntity>
   const apres = patchee.entities.find((e) => e.id === id);
   const absence = avant && apres && !typeNonNomme(avant) ? typeNonNomme(apres) : undefined;
   if (absence) throw new TypeNonNomme(absence);
-  return normaliserLaPose(patchee);
+  const perdSaCoqueNavale = estUneCoqueNavale(avant) && !estUneCoqueNavale(apres);
+  return normaliserLaPose(perdSaCoqueNavale
+    ? { ...patchee, encounters: patchee.encounters.map((r) => sansDesignationDuNavire(r, id)) }
+    : patchee);
 }
 
 /** Idem pour le sous-objet `combat` (fusion non écrasante) — même porte, même seam. */
@@ -1657,7 +2135,7 @@ export function putLayer(scene: Scene, z: number, tiles: Terrain[], height?: num
  *  `z>0` sur le PLANCHER RÉEL (terrain non-vide, PAS `isWalkable` — un décor multi-cases ne change pas
  *  la structure) : un étage est BÂTI par construction, y compris au-dessus d'une cour (galerie en
  *  anneau), mesuré sur La Diligence (#825ter). */
-export function realFloorAt(scene: Scene): (z: number) => ReadonlySet<string> {
+export function realFloorAt(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'layers' | 'walls'>): (z: number) => ReadonlySet<string> {
   const layerZs = new Set(scene.layers.map((l) => l.z));
   const { w, h } = scene.dimensions;
   const cache = new Map<number, Set<string>>();
@@ -1700,7 +2178,7 @@ export function roofExclusionsByZ(body: ArchitectureBody): Map<number, Set<strin
  * rendus tels que le corps les porte — absents, ils restent des CHOIX du socle : le profil se lit sur
  * la PORTÉE, la pente se dérive.
  */
-export function toitureEffective(scene: Scene, body: ArchitectureBody): {
+export function toitureEffective(scene: Pick<Scene, 'roofDefaults'>, body: ArchitectureBody): {
   material: SceneRoofDefaults['material'];
   riseMaxStoreys: number;
   penteReference: number;
@@ -1773,7 +2251,7 @@ export const ROOF_GABLE_SPAN_MAX_M = 8;
 function vkey(x: number, y: number): string { return `${x},${y}`; }
 
 /** Cellules d'une emprise de masse. */
-function footprintCells(footprint: readonly ArchitectureRect[]): Set<string> {
+function footprintCells(footprint: readonly RectDeCases[]): Set<string> {
   const out = new Set<string>();
   for (const rect of footprint)
     for (let y = rect.y; y < rect.y + rect.h; y++)
@@ -1863,7 +2341,7 @@ function enclosedHolesOf(sheet: ReadonlySet<string>, w: number, h: number): Set<
  *  trou n'est une trémie que s'il y a un plancher à trouer, et au dernier étage l'ouverture au-dessus
  *  d'une case est le CIEL. Indexée par l'étage de DÉBOUCHÉ, jamais par celui de la marche : c'est la
  *  seule nappe qu'une volée puisse ouvrir. */
-export function flightOpeningsAt(scene: Scene, z: number): ReadonlySet<string> {
+export function flightOpeningsAt(scene: Pick<Scene, 'dimensions' | 'layers'>, z: number): ReadonlySet<string> {
   const storeyZs = new Set(scene.layers.map((l) => l.z));
   if (!storeyZs.has(z) || !storeyZs.has(z - 1)) return new Set<string>();
   return stairFlightCells(scene, z - 1, z);
@@ -1888,7 +2366,7 @@ export function adoptableOpeningsAt(scene: Scene, z: number): ReadonlySet<string
  *  basse. Départage entièrement DÉTERMINISTE, du plus significatif au moins : aire, puis grand côté
  *  (le faîtage le plus long l'emporte à aire égale), puis `y` le plus petit, puis `x` le plus petit —
  *  aucun aléa, la même emprise rend toujours le même rectangle. `null` si `cells` est vide. */
-function largestRectIn(cells: ReadonlySet<string>): ArchitectureRect | null {
+function largestRectIn(cells: ReadonlySet<string>): RectDeCases | null {
   if (!cells.size) return null;
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const key of cells) {
@@ -1899,8 +2377,8 @@ function largestRectIn(cells: ReadonlySet<string>): ArchitectureRect | null {
   const width = maxX - minX + 1;
   const heights = new Array<number>(width).fill(0);
   const stack: number[] = [];
-  let best: ArchitectureRect | null = null;
-  const beats = (a: ArchitectureRect, b: ArchitectureRect | null): boolean => {
+  let best: RectDeCases | null = null;
+  const beats = (a: RectDeCases, b: RectDeCases | null): boolean => {
     if (!b) return true;
     if (a.w * a.h !== b.w * b.h) return a.w * a.h > b.w * b.h;
     const longA = Math.max(a.w, a.h), longB = Math.max(b.w, b.h);
@@ -1974,9 +2452,9 @@ export function ridgeAxisOf(cells: ReadonlySet<string>): 'x' | 'y' {
  *  exactement (aucun recouvrement, aucune case perdue) : c'est la forme sous laquelle un `footprint`
  *  (liste de rectangles) décrit un corps en L, en U ou en anneau autour d'une cour. DÉTERMINISTE, et
  *  la récurrence termine toujours — une case isolée est encore un rectangle 1×1. */
-export function rectCoverOf(cells: ReadonlySet<string>): ArchitectureRect[] {
+export function rectCoverOf(cells: ReadonlySet<string>): RectDeCases[] {
   const remaining = new Set(cells);
-  const out: ArchitectureRect[] = [];
+  const out: RectDeCases[] = [];
   while (remaining.size) {
     const rect = largestRectIn(remaining)!;
     out.push(rect);
@@ -1989,7 +2467,7 @@ export function rectCoverOf(cells: ReadonlySet<string>): ArchitectureRect[] {
 /** Portée maximale d'un PIGNON en CASES pour cette scène — `ROOF_GABLE_SPAN_MAX_M` ramenée à
  *  l'échelle de la grille, plancher à 1 case (une scène à très grosses cases garde le pignon sur une
  *  case de portée plutôt que sur aucune). */
-export function gableSpanMaxTiles(scene: Scene): number {
+export function gableSpanMaxTiles(scene: Pick<Scene, 'metresPerTile'>): number {
   return Math.max(1, Math.floor(ROOF_GABLE_SPAN_MAX_M / sceneMetresPerTile(scene)));
 }
 
@@ -2023,7 +2501,7 @@ export function gableSpanMaxTiles(scene: Scene): number {
  *  `body.roofDefaults` — un profil et une pente AUTHORÉS passent avant la lecture de portée, croupe
  *  comprise ; faîtage TOUJOURS explicite pour ne jamais tomber sur le fail-fast
  *  « emprise carrée ». */
-export function deriveArchitectureMasses(scene: Scene): ArchitectureBody[] {
+export function deriveArchitectureMasses(scene: SceneDesToits): ArchitectureBody[] {
   const floorAt = realFloorAt(scene);
   const layerZs = [...new Set(scene.layers.map((l) => l.z))].sort((a, b) => b - a);
   const { w, h } = scene.dimensions;
@@ -2196,11 +2674,11 @@ export function deriveArchitectureMasses(scene: Scene): ArchitectureBody[] {
  *  ajouter un étage fait suivre la toiture sans qu'aucune mutation n'ait à le savoir. Les masses
  *  AUTHORÉES (sans `derived`) traversent telles quelles — elles sont l'intention de l'auteur.
  *
- *  Mémoïsée par le patron canonique `memoByRef` (mesuré : 19 ms de dérivation pour 12 corps sur
- *  64×64×3, soit 34 % du coût de `buildRoofs`, et trois builders la lisent). */
-const derivedArchitecture = memoByRef((scene: Scene) => deriveArchitectureMasses(scene));
+ *  Mémoïsée par scène et version des datasets (`memoByRef`, la dérivation lit les terrains : `estAbsent`) (mesuré :
+ *  19 ms de dérivation pour 12 corps sur 64×64×3, soit 34 % du coût de `buildRoofs`, et trois builders la lisent). */
+const derivedArchitecture = memoByRef(deriveArchitectureMasses);
 
-export function effectiveArchitecture(scene: Scene): readonly ArchitectureBody[] {
+export function effectiveArchitecture(scene: SceneDesToits): readonly ArchitectureBody[] {
   if (!scene.architecture?.length) return scene.architecture ?? [];
   return derivedArchitecture(scene);
 }
@@ -2267,9 +2745,13 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
 
 /** Valide le rectangle `rect` tracé à l'outil `tool` sur la couche `z` : une zone (déclencheur, repos,
  *  pièce, zone d'effet) qu'il désigne, ou le terrain qu'il remplit. null pour un outil sans rectangle. */
-export function validerRectangle(scene: Scene, tool: Tool, rect: Rect, z: number): EffetDOutil | null {
+export function validerRectangle(scene: Scene, tool: Tool, rect: RectDeCases, z: number): EffetDOutil | null {
   if (tool.mode === 'terrain') return { scene: fillTerrainRect(scene, rect, tool.terrain, z) };
   if (tool.mode !== 'zone') return null;
+  if (tool.zone === 'jouable') {
+    const posee = setZoneJouable(scene, rect);
+    return posee === scene ? null : { scene: posee };
+  }
   if (tool.zone === 'trigger') {
     const out = addTrigger(scene, rect, z);
     return { scene: out.scene, sel: { type: 'trigger', id: out.id } };
@@ -2297,7 +2779,8 @@ export function addProjectScene(p: ProjectScenes, id: string): ProjectScenes {
 /** Copie la scène éditée sous l'id `id`, en fin de projet, et édite la copie. */
 export function duplicateProjectScene(p: ProjectScenes, id: string): ProjectScenes {
   const copie = JSON.parse(JSON.stringify(p.scene)) as Scene;
-  return versLaFin(p, { ...copie, id, label: `${p.scene.label || p.scene.id} (copie)` });
+  const encounters = copie.encounters.map((r) => sansDesignationDuNavire(r));
+  return versLaFin(p, { ...copie, id, label: `${p.scene.label || p.scene.id} (copie)`, encounters });
 }
 
 /** Retire la scène éditée et édite sa suivante, sinon sa précédente. null pour la seule scène du projet. */

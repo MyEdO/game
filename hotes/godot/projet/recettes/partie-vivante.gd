@@ -12,7 +12,10 @@ extends SceneTree
 ## `PackedFloat32Array` aux tailles que disent ses surfaces, et les clés et empreintes du manifeste ; le `monde` demandé
 ## ensuite reçoit sa propre réponse, le manifeste de nouveau ; un clic sur un
 ## geste de l'écran publié, la fin du tour s'il est offert, change la vue ; ni panne ni refus ne se signale, et l'avis
-## de panne du combat reste vide. Le code de sortie dit le verdict : 0 tenu, 1 une faute.
+## de panne du combat reste vide. Le fichier de stockage du processus (`TransportDuProcessus.fichier_du_stockage`) est
+## celui que le lancement demande, aucun sous une recette qui n'en demande pas, `stockage.json` sous `user://` sous le
+## jeu, et cette recette tient la boucle principale par son script. Le code de sortie dit le verdict : 0 tenu, 1 une
+## faute.
 
 const RECETTE_AUTONOME := true
 const SCENARIO := "dome"
@@ -34,6 +37,7 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[partie-vivante] version=", Engine.get_version_info().string)
+	_verifier_le_stockage()
 	var pont: PontDuNoyau = root.get_node("Pont")
 	pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))
 	pont.refus.connect(func(message: String) -> void: _signales.append("refus : " + message))
@@ -72,6 +76,24 @@ func _recetter() -> void:
 		push_error("[partie-vivante] " + faute)
 	print("[partie-vivante] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## Le fichier de stockage du processus pour chaque lancement : demandé, sous une recette, sous le jeu.
+func _verifier_le_stockage() -> void:
+	var demande := "/stockage/demande.json"
+	var attendus := [
+		[demande, true, demande, "demandé sous une recette"],
+		[demande, false, demande, "demandé sous le jeu"],
+		["", true, "", "sous une recette sans demande"],
+		["", false, ProjectSettings.globalize_path("user://stockage.json"), "sous le jeu sans demande"],
+	]
+	for cas: Array in attendus:
+		var fichier := TransportDuProcessus.fichier_du_stockage(cas[0], cas[1])
+		if fichier != cas[2]:
+			_fautes.append("stockage %s : « %s » au lieu de « %s »" % [cas[3], fichier, cas[2]])
+	if get_script() == null:
+		_fautes.append("stockage : la boucle principale de la recette ne porte pas son script")
+	print("[partie-vivante] stockage : %d cas" % attendus.size())
 
 
 ## `morceaux` de toutes les clés du manifeste, reçu en octets aux tailles que disent ses surfaces, puis un `monde` qui

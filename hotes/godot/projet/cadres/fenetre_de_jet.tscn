@@ -1,0 +1,53 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
+[ext_resource type="Theme" path="res://art/bandeau_de_jet.tres" id="2_bandeau"]
+[ext_resource type="Theme" path="res://art/titre_du_ruban.tres" id="3_titre"]
+[ext_resource type="Theme" path="res://art/statbloc.tres" id="4_encre"]
+
+[node name="Cadre" type="MarginContainer" groups=["bandeau"]]
+visible = false
+theme = ExtResource("2_bandeau")
+
+[node name="Fond" type="MarginContainer" parent="."]
+theme_type_variation = &"SaillieDuRuban"
+
+[node name="Chene" type="PanelContainer" parent="Fond"]
+theme_type_variation = &"Cartouche"
+
+[node name="Parchemin" type="PanelContainer" parent="Fond/Chene"]
+theme_type_variation = &"Parchemin"
+
+[node name="Marge" type="MarginContainer" parent="Fond/Chene/Parchemin"]
+theme_type_variation = &"MargeDuParchemin"
+
+[node name="Pile" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge"]
+theme_type_variation = &"PileSerree"
+
+[node name="Corps" type="VBoxContainer" parent="Fond/Chene/Parchemin/Marge/Pile"]
+theme = ExtResource("4_encre")
+
+[node name="Gestes" type="HFlowContainer" parent="Fond/Chene/Parchemin/Marge/Pile"]
+theme_type_variation = &"RangeeDeGestes"
+alignment = 1
+
+[node name="Zone" type="Node" parent="Fond/Chene/Parchemin/Marge/Pile/Gestes"]
+script = ExtResource("1_zone")
+source = "fenetre.gestes"
+formes = PackedStringArray("bouton:boutonDeJet")
+
+[node name="Tete" type="CenterContainer" parent="."]
+size_flags_vertical = 0
+mouse_filter = 2
+
+[node name="Ruban" type="PanelContainer" parent="Tete"]
+theme_type_variation = &"Ruban"
+
+[node name="Titre" type="VBoxContainer" parent="Tete/Ruban"]
+theme = ExtResource("3_titre")
+
+[node name="Zone" type="Node" parent="Tete/Ruban/Titre" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.titre"
+formes = PackedStringArray("ligne:rubrique")
+masque = NodePath("../../../..")

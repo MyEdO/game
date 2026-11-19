@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "epave-carrosse"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "vieux",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "ombre",
+      "palette": "accent",
+      "matiere": "prop--ombre"
+    }
+  ],
+  "glb": {
+    "sha256": "b7cdc18f1c2688c8d96e25b2ba7dafaee3afffee8ce7384ece9d0c6834d700f2",
+    "octets": 233168
+  }
+}

@@ -1,6 +1,6 @@
 *Pages PDF 151-157*
 
-# **Tests simples**
+# <span id="page-150-0" data-folio="149"></span>**Tests simples**
 
 Les Tests simples sont utilisés lorsque vous devez déterminer si votre Personnage réussit ou non une tâche simple. Est-ce que Molli parvient à sauter au-dessus de ce cours d'eau au fort courant ? Est-ce que Wilhem arrive à obtenir un tarif plus intéressant auprès de ce truculent marchand ? Souvent, le fait de répondre rapidement oui ou non permet une progression rapide de l'aventure. L'exception la plus notable est lorsqu'un échec risque d'avoir un impact significatif sur la progression de l'aventure. Vous devriez alors utiliser plutôt un Test spectaculaire (voir ci-dessous).
 

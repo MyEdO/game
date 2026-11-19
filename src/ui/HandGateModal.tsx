@@ -7,6 +7,8 @@ import { Icon } from './Icon';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /**
@@ -19,6 +21,7 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function HandGateModal() {
   const pg = useGame((s) => s.pendingHandGate);
   const battle = useGame((s) => s.battle);
+  const nom = useGame((s) => (s.pendingHandGate ? nomEnVue(s, s.pendingHandGate.attackerId) : null));
   const roll = useGesteDeJet('jetLancer', 'mainEnsanglantee');
   const reroll = useGesteDeJet('jetRelancer', 'mainEnsanglantee');
   const bonusSL = useGesteDeJet('jetAjouterUnDR', 'mainEnsanglantee');
@@ -61,7 +64,7 @@ export function HandGateModal() {
       title={<><Icon id="etat/hemorragique" size="sm" /> Main ensanglantée</>}
       subtitle={
         <>
-          <strong>{pg.actorName}</strong> raffermit sa prise{' '}
+          <strong>{garanti(nom, pg.attackerId, 'porteur de la main ensanglantée')}</strong> raffermit sa prise{' '}
           <span className="rm-weapon">(Dextérité, Accessible +20)</span>
         </>
       }

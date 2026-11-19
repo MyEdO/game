@@ -288,6 +288,14 @@ function rendu() {
    régénèrent par \`npm run stocks:regen\`, un seul par
    \`npx tsx scripts/guards/lib/regenStock.mts <module qui mesure>\`, jamais par \`docs:build\`.`,
     },
+    {
+      module: 'scripts/git-hooks/merge-imports.mjs',
+      texte: (module) =>
+        `Le pilote de fusion des imports (${listeCode(pilotesDe(module))}), déclaré par
+   \`.gitattributes\` pour les modules de code et servi par \`${module}\` : un bloc en conflit fait
+   seulement de déclarations \`import\` / \`export\` se fusionne par ensemble ; sans lui, deux
+   chantiers qui ajoutent chacun un import au même endroit rouvrent un conflit à la fusion locale.`,
+    },
   ].map((f) => ({ ...f, porte: f.porte ?? clePiloteDe(f.module) }))
   for (const c of CONFIGS) {
     if (!FAMILLES_POSTINSTALL.some((f) => f.porte(c))) {
@@ -475,7 +483,7 @@ Le partage de la suite (\`${script('test')}\`) est décidé par \`repartitionWor
 ${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. Les
 cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (\`capacite\`) : autant de workers que
 la mémoire en porte, à l'empreinte d'un worker de son régime (\`EMPREINTES_WORKER_MO\`, \`--regime\` de
-\`scripts/test/run.mjs\`), avec refus sous le minimum empirique de \`MINIMUM_WORKERS\` quand les cœurs le permettent ; une réserve
+\`scripts/test/run.mjs\`), avec refus sous le minimum empirique de \`MINIMUM_WORKERS\` quand les cœurs et les fichiers nommés (\`fichiersNommes\`) le permettent ; une réserve
 (\`PARENT_MO\`) déduite par processus Vitest. Les variables
 d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures (seule façon
 de jouer l'autre chemin sur une machine quelconque).
@@ -534,7 +542,7 @@ ${lignesNonVersionnes}
 
 Ne sont pas non plus dans le clone, parce que ce ne sont pas des fichiers :
 
-- **Compte Cloudflare du relay coop** — URL de prod dans \`src/state/netFlow.ts\` (\`RELAY_URL_PROD\`) ;
+- **Compte Cloudflare du relay coop** — URL de prod dans \`src/hote/coop/page.ts\` (\`RELAY_URL_PROD\`) ;
   redéployable via \`npm run relay:deploy\` (\`${script('relay:deploy')}\`).
 - **Publication du jeu** — workflow \`.github/workflows/deploy.yml\` (« ${DEPLOY.nom} »,
   ${DEPLOY.declencheurs.join(', ')}) ; il build le COMMIT de la ref lancée sur un runner propre et le publie pour sa
@@ -582,12 +590,13 @@ MESURÉ sur le YAML (garde \`scripts/gates/workflowsDuDepot.test.mjs\`) :
 ${lignesEtatsPorte}
 
 Vérifier qu'elles tournent : onglet Actions du dépôt, ou \`gh run list --workflow=canari.yml\`. LA
-PORTE est \`.github/workflows/ci.yml\` (« ${CI.nom} », ${CI.declencheurs.join(', ')}) : elle joue les
-gates sur CHAQUE branche \`chantier/**\` et sur chaque commit de la file de fusion, et c'est son verdict —
-jamais un artefact local — qui autorise une PR à entrer dans \`main\`. Elle CLASSE d'abord le push
-(\`scripts/gates/classerPush.mjs\`) : un push dont tous les fichiers changés tombent sous
-${listeCode(Object.keys(DOCUMENTAIRE))} ne joue que les ${NB_GATES_TOUJOURS} gates qui LISENT un de
-ces chemins (${listeCode(GATES_TOUJOURS)}) ; les ${NB_GATES_SAUTABLES} autres sont sautées.
+PORTE est \`.github/workflows/ci.yml\` (« ${CI.nom} », ${CI.declencheurs.join(', ')}). Elle exécute
+les courses de branche et de file décrites ci-dessous. Le verdict de la course de file autorise
+l'intégration dans \`main\`. Le prologue classe le push (\`scripts/gates/classerPush.mjs\`) : il est
+documentaire si le diff est non vide, si tous les chemins changés sont couverts par
+${listeCode(Object.keys(DOCUMENTAIRE))} et si aucun ne tombe sous une racine de mod.
+Dans la course de file, pour tout push documentaire, les ${NB_GATES_TOUJOURS} gates dont le \`lit\`
+chevauche ce périmètre jouent (${listeCode(GATES_TOUJOURS)}) et les ${NB_GATES_SAUTABLES} autres sont sautées.
 
 \`npm run ops:publier\` joue le train : push de la BRANCHE, PR armée, attente de la fusion
 par la file, pilotage. Il refuse à la première étape rouge en la nommant,

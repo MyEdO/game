@@ -7,11 +7,18 @@ import type { NarratifBlock } from '../../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS } from '../../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../../../data/schemas/grammaire/valeurs';
-import { actorFieldSchema, actorRefSchema, hasConditionSchema, hasWhatSchema, relationOrCampSchema, startleCauseSchema } from '../../../data/schemas/grammaire/mecanique';
+import {
+  actorFieldSchema,
+  actorRefSchema,
+  hasConditionSchema,
+  hasWhatSchema,
+  relationOrCampSchema,
+  startleCauseSchema,
+} from '../../../data/schemas/grammaire/mecanique';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
 import { findTrappingById, refLabel } from '../../../data';
 import { cfgDeLaFeuille } from '../../compendium/refField/RefField';
-import { formatMoney } from '../../../engine/money';
+import { formatMoney, libelleDuStatut } from '../../../engine/money';
 import { libelleDEtat } from '../../../noyau/codex/libellesNarratifs';
 
 /** Libellé d'affichage d'un `trappingId` (objet catalogué) — repli sur l'id brut (objet CUSTOM par nom). */
@@ -77,6 +84,7 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'foeInLoS': return 'ennemi en Ligne de Vue';
     case 'cibleEnVue': return c.hostiles ? 'membre hostile de la Cible en vue' : 'membre de la Cible en vue';
     case 'visiblePassive': return `${c.who === 'caster' ? 'lanceur' : 'cible'} : atteinte visible`;
+    case 'navire': return `${libelleDeValeur(actorRefSchema, c.who)} : navire`;
     case 'hiddenFromFoes': return 'caché (hors de vue de l’ennemi)';
     case 'engaged': return 'engagé avec un ennemi';
     case 'crewTest': return 'au sein d’un Test d’équipage';
@@ -90,7 +98,7 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'talent': return `${quiResume(c.who, narratif)} : Talent « ${c.id ? refLabel('talents', { id: c.id, spec: c.spec }) : '?'} »`;
     case 'career': return `${quiResume(c.who, narratif)} : carrière « ${c.id || '?'} »`;
     case 'species': return `${quiResume(c.who, narratif)} : espèce « ${c.id || '?'} »`;
-    case 'status': return `${quiResume(c.who, narratif)} : Statut ≥ « ${c.atLeast || '?'} »`;
+    case 'status': return `${quiResume(c.who, narratif)} : Statut ≥ « ${libelleDuStatut(c.atLeast)} »`;
     case 'all': return c.of.length ? c.of.map((x) => condSummary(x, narratif)).join(' ET ') : 'toujours';
     case 'any': return c.of.length ? c.of.map((x) => condSummary(x, narratif)).join(' OU ') : 'jamais';
     case 'not': return `NON(${condSummary(c.of, narratif)})`;

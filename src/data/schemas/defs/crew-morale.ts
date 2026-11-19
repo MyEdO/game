@@ -23,8 +23,10 @@ const doc = document(
       wageMul: z.number().optional(),
       /** MDG 14. */
       recommendedPay: z.boolean().optional(),
-      /** MDG 14 l.166 */
+      /** MDG 14 l.156, l.166 */
       vivreSeul: ref('trapping').optional(),
+      /** MDG 14 l.172 */
+      maladieFaitRage: z.boolean().optional(),
       source: sourceRefSchema,
     }), {
       id: { label: 'identifiant' },
@@ -33,6 +35,7 @@ const doc = document(
       wageMul: { label: 'multiplicateur de paie' },
       recommendedPay: { label: 'paie recommandée' },
       vivreSeul: { label: 'seul vivre mangé', texte: { regime: 'technique' } },
+      maladieFaitRage: { label: 'une maladie fait rage à bord' },
       source: { label: 'source' },
     }),
     'id',

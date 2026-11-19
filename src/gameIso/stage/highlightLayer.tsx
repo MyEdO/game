@@ -65,7 +65,7 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
       if (!pendingAttack?.dansLeTas) return null;
       const atk = battle.combatants.find((c) => c.id === pendingAttack.attackerId);
       const tgt = battle.combatants.find((c) => c.id === pendingAttack.targetId);
-      return atk && tgt ? new Set(crowdEligible(battle, atk, tgt).map((v) => v.id)) : null;
+      return atk && tgt ? new Set(crowdEligible(get().scene, battle, atk, tgt).map((v) => v.id)) : null;
     })(),
     // Cibles cliquables du MODE de ciblage courant (targetingModes → MÊME source que réticule/clic).
     // C'est le MODE qui DÉCLARE s'il peint ses candidats et de quelle teinte (`anneauCandidats`) : rien

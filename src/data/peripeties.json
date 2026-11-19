@@ -2,9 +2,15 @@
   "id": "peripeties",
   "type": "peripeties",
   "label": "Péripéties",
-  "die": "d10",
+  "die": {
+    "n": 1,
+    "sides": 10
+  },
   "tirageQuotidien": {
-    "die": "d10"
+    "die": {
+      "n": 1,
+      "sides": 10
+    }
   },
   "source": {
     "book": "livre-de-base",

@@ -163,7 +163,7 @@ primitive React pose souvent ces classes pour toi (ex. `Modal` pose `.modal`/`.m
 | `.prose-link` | Lien Markdown de Prose | Couleur héritée en états normal et visité ; soulignement conservé, focus partagé de `a[href]`. |
 | `.stat-chip` (+ `.sc-label`, `.sc-value`) | Cartouche « label + valeur » (PV, carac, ressource) | Afficher une valeur nommée — jamais un format cryptique (« 4·4 » sans libellé, cf. règle charte ci-dessus). |
 | `.listrow` (+ `.lr-name`, `.lr-sub`) | Rangée de liste : nom + méta + action ; quand la place manque, les puces passent SOUS le nom et une puce trop longue se coupe en ellipse ; `.lr-sub` = ligne secondaire SOUS le nom (prop `subtitle` de `ListRow`) | Toute liste d'entités cliquables/actionnables (inventaire, roster…) plutôt qu'un `<li>` stylé à la main. Une méta qui n'est pas une puce (une date, une ligne descriptive) va en `subtitle`, jamais en enfant à droite. Rangée NON cliquable (une action de fin, un retrait ✕) : `ListRow` sans `onClick`, rendue `<div className="listrow">` sans `data-variant` — jamais `data-variant='insp'` (curseur et survol d'une rangée cliquable). |
-| `.fieldrow` (+ `[data-variant='texte-dessous']`) | Rangée de CONTRÔLES d'un formulaire d'édition (sélecteur, saisie, retrait ✕) qui s'enroule et tient à 360 px : chaque enfant rétrécit (`min-width: 0`, `max-width: 100%`), le `<select>` garde un plancher `min(14rem, 100%)`. Variante `texte-dessous` : le `<select>` (base `0`, sans plancher) et le ✕ partagent la première ligne à toute largeur ; le `<textarea>` prend sa propre ligne, pleine largeur, et grandit avec son contenu (`field-sizing: content`, plancher 2 lignes ; sans support : 2 lignes + défilement) | Toute rangée « réf + ✕ » de l'atelier du Codex et de l'éditeur (`RefField`, `DescRefField`, `StructFields`, `CodexEdit`, `EffectList`, `Inspector`, `NarratifEditor`) ; un texte libre long d'une telle rangée (motif d'écart) est un `<textarea>` en `texte-dessous`, jamais un `<input>` réduit au reste de la ligne. |
+| `.fieldrow` (+ `[data-variant='texte-dessous']`) | Rangée de CONTRÔLES d'un formulaire d'édition (sélecteur, saisie, retrait ✕) qui s'enroule et tient aux largeurs étroites : chaque enfant rétrécit (`min-width: 0`, `max-width: 100%`), le `<select>` garde un plancher `min(14rem, 100%)`. Variante `texte-dessous` : le `<select>` (base `0`, sans plancher) et le ✕ partagent la première ligne à toute largeur ; le `<textarea>` prend sa propre ligne, pleine largeur, et grandit avec son contenu (`field-sizing: content`, plancher 2 lignes ; sans support : 2 lignes + défilement) | Toute rangée « réf + ✕ » de l'atelier du Codex et de l'éditeur (`RefField`, `DescRefField`, `StructFields`, `CodexEdit`, `EffectList`, `Inspector`, `NarratifEditor`) ; un texte libre long d'une telle rangée (motif d'écart) est un `<textarea>` en `texte-dessous`, jamais un `<input>` réduit au reste de la ligne. |
 | `.master-detail-rail` (+ `.master-detail-action`) | Rail d'un `MasterDetail` qui porte une ACTION de liste (« Ajouter un… ») collée sous la liste, hors de son défilement | Prop `action` de `MasterDetail` (`src/ui/MasterDetail.tsx`) — jamais un bouton d'ajout au pied du rail défilant. |
 | `.clamp` | Texte TRONQUÉ à N lignes (`--clamp`, défaut 3) | Toute accroche/description bornée dans une carte — jamais un `-webkit-line-clamp` recopié par écran. |
 | `.wounds-badge` / `.char-value` (+ tailles `.char-value-sm`/`.char-value-md`/`.char-value-lg`) / `.game-date` | Composants de donnée unifiés (LOT 5) — respectivement PB/carac+avancées/date de jeu | Rendus par leurs composants (`WoundsBadge`, `CharValue`, `GameDate`) — ne pas reformater ces données à la main ailleurs ; `CharValue` prend l'échelle NOMMÉE (`size`, défaut `sm`, #418) au lieu d'hériter du contexte. |
@@ -185,7 +185,7 @@ chips, panneaux, carte-parchemin) s'ALIGNE sur le canon déjà existant ci-dessu
 
 | Classe | Rôle | Quand l'utiliser / anti-patron |
 |---|---|---|
-| `.metal-status` (+ `.metal-status-chip`/`.metal-status-plaque`, `.st-bronze`/`.st-argent`/`.st-or`) | Chip statut métallisé Bronze/Argent/Or + échelon | Composée par `MetalStatus` (`src/ui/MetalStatus.tsx`, docs/primitives.md) — dérivée de `parseStatus`, jamais un `switch` de couleur recodé. |
+| `.metal-status` (+ `.metal-status-chip`/`.metal-status-plaque`, `.st-bronze`/`.st-argent`/`.st-or`) | Chip statut métallisé Bronze/Argent/Or + échelon | Composée par `MetalStatus` (`src/ui/MetalStatus.tsx`, docs/primitives.md) — dérivée de l'Échelon du `Status`, jamais un `switch` de couleur recodé. |
 | `.wax-seal` / `.sealed-plaque` (+ `.sealed-plaque-seal`/`-title`/`-desc`, `.sel`) | Sceau de cire tête de mort (SVG) + plaque d'élu scellée | Composés par `WaxSeal`/`SealedPlaque` (`src/ui/WaxSeal.tsx`, docs/primitives.md) — tout médaillon de candidature/carrière élue. |
 | `.char-stats` (+ tailles `.char-stats-sm`/`.char-stats-md`/`.char-stats-lg`, `.stat`, `.stat-label`, `.stat-val`) | Grille de plaques de caractéristique (CC, CT, F…) : libellé small-caps gravé + valeur en grand, cadre laiton discret | Composée par `CharStatsGrid` (`src/ui/CharStatsGrid.tsx`, docs/primitives.md) — SOURCE UNIQUE du markup, échelle NOMMÉE (`size`, défaut `sm`, #418, jetons `--stat-*`) au lieu d'une taille en dur ; `.codex-kv` (fiche Codex) converge sur les MÊMES jetons `--stat-label-sm`/`--stat-val-sm`. |
 | `.cc-path` (+ `.cc-step`, `.cc-step-lv`/`-nm`, `.now`, `.cc-link`) | Chemin d'évolution de carrière en médaillons de niveau | Composé par `CareerPath` (`src/ui/CareerPath.tsx`, docs/primitives.md) depuis `levelsForCareer` (données réelles). |
@@ -416,7 +416,7 @@ portée de mise en page, jamais une matière ; c'est l'écran qui compose ses ra
 (`scripts/guards/lib/cssCouches.mjs`).
 
 Preuve mécanique : `scripts/recette/console-pont-formes.mjs` sonde les DEUX ponts — passe EXPLORATION
-(dialogue ouvert, panneau du journal déployé, trois vues jugées) puis passe COMBAT (trois formes,
+(dialogue ouvert, panneau du journal déployé, vues jugées) puis passe COMBAT (trois formes,
 sept vues). Une surface PORTÉE par un pont (le tiroir-journal, assis sur le pont d'exploration) est
 relevée `descendant` et n'est pas une occlusion : le relevé le dit, le détecteur ne devine pas.
 
@@ -592,29 +592,27 @@ recomposé, jamais une classe de rôle empruntée (`.rm-vs` appartient à `VsHea
 `src/ui/roll-display-contract.test.tsx`). Une information qui manque se sert par sa zone ; si aucune
 zone ne l'accueille, c'est le contrat qu'on amende ici, avant le code.
 
-## La HAUTEUR réelle — trois vues, et rien qui défile en page (#1847)
+## La HAUTEUR réelle — les vues jugées, et rien qui défile en page (#1847)
 
 Les seuils de largeur et les vues de hauteur se vérifient séparément (#1847). Vue de référence, la fenêtre de l'utilisateur, mesurée le 2026-09-20 :
 2560×1440 à 150 % = **1707×960px CSS**, `availHeight` 912, fenêtre Chrome utile ≈ 745-780px. Toutes
 les recettes se jouaient à 1440×900 ou 1600×900 : personne ne voyait ce qu'il voit.
 
-**Un écran se juge à la HAUTEUR autant qu'à la largeur.** À chacune des trois vues de référence,
+**Un écran se juge à la HAUTEUR autant qu'à la largeur.** À chacune des vues de référence,
 l'action principale d'un écran est atteignable **sans défiler la PAGE**, et un corps de modale n'est
 jamais écrasé par ses bandes.
 
-Les trois vues vivent dans UNE source, `scripts/recette/vues-recette.json`, que lisent le kit de
-recette (`scripts/recette/lib.mjs` : viewport par défaut, `setMobileViewport`, helper
-`pourChaqueVue`), le viewport de référence des cliquets CSS (`VIEWPORT_RECETTE`,
+Les vues vivent dans UNE source, `scripts/recette/vues-recette.json`, que lisent le kit de
+recette (`scripts/recette/lib.mjs` : viewport par défaut, helper `pourChaqueVue`), le viewport de référence des cliquets CSS (`VIEWPORT_RECETTE`,
 `scripts/guards/lib/cssCouchesAudit.ts`) et les sondes de navigateur :
 
 | Vue | Taille | Ce qu'elle représente |
 |---|---|---|
 | `bureau` | **1707×780** | la fenêtre réelle de l'utilisateur (2560×1440 à 150 %, barre d'onglets et favoris déduites) — c'est l'étalon : `1vw = 17,07px`, `1vh = 7,8px` |
 | `portable` | **1366×650** | le portable ordinaire : la hauteur où tout défaut de hauteur se voit en premier |
-| `mobile` | **360×740** | le mobile canon de la règle stricte 4 |
 
 Ce ne sont **pas** des breakpoints : `1440` (politique grand écran, ci-dessous) et `900 / 700 / 560`
-(règle stricte 4) restent les seuils responsive, en LARGEUR. Ces trois-là sont les fenêtres où l'on
+restent les seuils responsive, en LARGEUR. Ces vues-là sont les fenêtres où l'on
 REGARDE.
 
 Ce qui en découle, et qui se mesure :
@@ -643,14 +641,13 @@ Ce qui en découle, et qui se mesure :
   C'est la colonne qui défile, le bloc rend la sienne.
 
 **Garde** : `node scripts/recette/hauteur-reelle.mjs` — ce qu'elle ouvre, ce qu'elle juge et comment
-s'y ajouter : `docs/recette-navigateur.md` § « Hauteur réelle ». Résidu mesuré : Codex à 360×740,
-page 3007/740 — #1860. Aucune de ces valeurs ne se garde en test unitaire — voir « Où se garde un
+s'y ajouter : `docs/recette-navigateur.md` § « Hauteur réelle ». Aucune de ces valeurs ne se garde en test unitaire — voir « Où se garde un
 contrat CSS » ci-dessus.
 
 ## Politique grand écran (≥1440px)
 
-Les breakpoints canon de la règle stricte 4 (900/700/560) ne bornent que VERS LE BAS (empilement
-mobile). Sans politique symétrique vers le HAUT, un écran large (~1920px) lit un contenu enfermé
+Les breakpoints canon (900/700/560) ne bornent que VERS LE BAS (empilement
+des largeurs étroites). Sans politique symétrique vers le HAUT, un écran large (~1920px) lit un contenu enfermé
 dans un couloir étroit avec un océan vide de part et d'autre (« vide non habité », #371) — constat
 utilisateur sur moniteur large. Nouveau seuil documenté : **1440px**, au-delà duquel s'appliquent
 trois règles :
@@ -712,8 +709,8 @@ noms longs — Détermination — étaient tronquées DEUX fois : le nom ET la r
 - **Éviter les espaces vides.** Un panneau aéré-à-vide lit comme inachevé. Regrouper sur une
   ligne ce qui peut l'être (ex. itinéraire + boutons de mode en `space-between`), ne pas
   détourner `.bar` (header à fond/padding) pour une simple rangée, resserrer les marges —
-  densité maîtrisée mais lisible. **Vérifier à 360px ET en large** : un layout qui tient à 360
-  peut s'étaler à vide en grand (breakpoints canon 900/700/560, règle stricte 4).
+  densité maîtrisée mais lisible. **Vérifier à chaque vue de `vues-recette.json`** : un layout qui
+  tient à `portable` peut s'étaler à vide en grand (breakpoints canon 900/700/560).
 
 ## États de fin d'un combattant (#237)
 

@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4bsiv"]
+resource_local_to_scene = true
+transparency = 1
+cull_mode = 2
+shading_mode = 0
+disable_fog = true
+distance_fade_mode = 1
+distance_fade_min_distance = 0.5
+distance_fade_max_distance = 1.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_ntvmd"]
+resource_local_to_scene = true
+material = SubResource("StandardMaterial3D_4bsiv")
+
+[node name="Averse" type="CPUParticles3D" unique_id=644929215]
+cast_shadow = 0
+local_coords = true
+mesh = SubResource("BoxMesh_ntvmd")
+emission_shape = 3
+emission_box_extents = Vector3(1, 1, 1)
+particle_flag_align_y = true
+spread = 0.0
+gravity = Vector3(0, 0, 0)

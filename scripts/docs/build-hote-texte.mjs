@@ -75,7 +75,7 @@ const PROVENANCE = [
   ['combat.voisins, carte', 'les combattants en vue (combattantEnVue)'],
   ['combat.actif.mouvement', 'mouvementDuTour (le restant et le total que la jauge de la console montre)'],
   ['combat.actif.action', 'battle.acted'],
-  ['combat.voisins, carte : distance', 'combatDistance (empreinte et relief, comme le ciblage)'],
+  ['combat.voisins, carte : distance', 'distanceDeCombat (empreinte et relief, comme le ciblage)'],
   ['combat.voisins, carte : engagé', 'Combatant.engagedWith'],
   ['fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
   ['fenetre.fermes', 'fermeturesDeLaFenetre : chaque verbe de la fenêtre que son flux de jet ferme maintenant, avec sa raison (libelleDeLaFermeture)'],
@@ -84,6 +84,8 @@ const PROVENANCE = [
   ['combat.apercu', 'battle.preview (l’aperçu du premier clic)'],
   ['cases', 'porteesDuTour (displayedReach, computeRunReach, intentReach : la surbrillance du champ)'],
   ['exploration.entites, carte hors combat', 'Scene.entities que le groupe connaît (entiteConnue), hors des navires posés par leurs ponts (estPoseParSesPonts)'],
+  ['carte hors combat : trajets', 'trajetsDepuis le lieuDuGroupe : destination, distance, modes, devis, gestes et refus aux réglages de départ par défaut'],
+  ['carte hors combat : cadence de voyage', 'cadenceAUnEffet, CADENCES_AU_CHOIX et DEFAULT_VOYAGE_ORDERS.cadence'],
   ['combat.barre', 'etatDeLaBarre (le verdict que lit la console)'],
   ['combat.offres', 'offresDeLActif (l’énumération que lit la console)'],
   ['combat.cibles', 'validTargets'],
@@ -189,6 +191,7 @@ function rendu() {
 
   out += `## Ce que la vue donne prêt à jouer\n\nLa fenêtre qui tient la main se lit en combat comme hors combat, avec la signature de ses verbes. En exploration, la vue donne la case du groupe, son étage quand la scène en a plusieurs, son cap, puis chaque geste que le groupe peut jouer depuis sa case (\`gestesDExploration\` : les arêtes qu'il borde, les sauts, les accès et les sorties de scène, rejoints pas à pas), chacun écrit en appel de \`jouer\` à coller tel quel ; ${bornes.gestesEnVue} au plus, \`lire\` \`{"quoi":"offres"}\` les liste tous. Une réponse de \`jouer\` dit ce que ses gestes ont levé : une intention armée, un aperçu du premier clic, une fin de tour armée. Un refus de permission nomme qui tient la main et son siège (\`quiTientLaMain\`, \`siegeDe\`).\n\n`
   out += `## Les verbes et leurs arguments\n\nLes arguments d'un verbe sont un tableau JSON, contrôlés contre le TYPE du verbe, celui que \`Partie.envoyer\` accepte (\`ActionsDuNoyau\`, \`src/noyau/actionsDuNoyau.ts\`), que la cible de code \`src/hote/verbes.generated.ts\` porte (\`npm run gen\`) : un argument d'une forme fausse, en trop ou manquant lève \`validation\`, avec la signature du verbe. Un point s'écrit \`{"x":3,"y":6}\`, jamais \`[3,6]\`. \`null\` omet un argument optionnel pour en poser un suivant. Un argument qui désigne un id (\`DESIGNATIONS\`, \`src/noyau/designations.ts\` : ce que l'état porte, combattant, héros, scène, objet, porte, indice ; ce que la garde d'un verbe accepte, tireur rapide, chanson, créature à dépecer ; ou une entrée du catalogue, sort, Talent, Activité) s'écrit par ce qu'il désigne (\`id de combattant\`) et se contrôle contre les ids que la table lit ; aucun paramètre d'un verbe n'est une chaîne nue (\`npm run gen\` le refuse), un texte du joueur s'écrit \`TexteLibre\`. \`lire\` \`{"quoi":"verbes","id":"<verbe>"}\` donne une signature. Dans la table, \`?\` marque un argument optionnel ; un objet montre ses champs au premier niveau, le nom de son type au-delà, et se contrôle à toute profondeur, le brouillon d'un héros (\`HorsDesignation\`) compris, une clé qu'il ne déclare pas refusée, un refus nommant le chemin du champ fautif ; une union de littéraux (un flux, une fenêtre) se contrôle contre ses valeurs, que le refus nomme ; \`pid\` est l'id de l'étape ou de la rangée que la ligne « verbes » de la vue donne. Un verbe de jet (\`jetLancer\`, \`jetRelancer\`, \`jetImposerLeResultat\`…) prend en premier argument le flux qu'il vise (\`"attack"\`), que la ligne « verbes » écrit en valeur : \`{"type":"jetLancer","args":["attaque"]}\`. Une suite de \`jouer\` compte ${GESTES_PAR_APPEL} gestes au plus.\n\n`
+  out += `Pour partir en voyage, la lecture de la signature développe les champs des \`OptionsDeDepart\` sous la ligne du verbe. La carte indique les cadences proposées et celle utilisée par défaut là où la cadence a un effet. Les durées et les refus de départ correspondent aux réglages par défaut.\n\n`
   out += `| Verbe | Arguments |\n|---|---|\n`
   for (const [verbe, parametres] of Object.entries(verbes)) out += `| \`${verbe}\` | \`${cellule(parametresEcrits(parametres))}\` |\n`
   out += `\n## Provenance de la vue\n\nAucune règle ne se calcule dans l'hôte : chaque champ est un lecteur de la surface du noyau, ou un champ de l'état lu tel quel.\n\n`
@@ -201,7 +204,7 @@ function rendu() {
   out += '\n'
   out += `- La vue liste l'actif, ses engagés, puis ${bornes.autresEnVue} autres combattants au plus, par distance ; ${bornes.offresEnVue} offres ouvertes au plus (une par action, ses candidats comptés) ; ${bornes.ciblesEnVue} cibles au plus.\n`
   out += `- Une réponse de \`jouer\` montre ${bornes.journalEnReponse} lignes de journal au plus, puis « +N lignes » et l'appel qui donne la suite ; un tour de l'IA tient en une ligne.\n`
-  out += `- \`journal\`, \`carte\` et \`offres\` se lisent par pages de ${bornes.page}, \`depuis\` k ; \`cases\` par pages de ${bornes.cases} cases, ${bornes.casesParLigne} par ligne ; \`verbes\` par pages de ${bornes.verbesParPage} noms. Une entrée du journal plus haute que la page se lit seule, par ses lignes (\`ligne\` m). Une liste de verbes se replie sur plusieurs lignes ; une erreur est bornée comme toute sortie.\n\n`
+  out += `- \`journal\`, \`carte\` et \`offres\` se lisent par pages de ${bornes.page}, \`depuis\` k ; depuis un lieu de la carte du monde hors combat, la page de \`carte\` compte les lignes après repli. \`cases\` se lit par pages de ${bornes.cases} cases, ${bornes.casesParLigne} par ligne ; \`verbes\` par pages de ${bornes.verbesParPage} noms. Une entrée du journal plus haute que la page se lit seule, par ses lignes (\`ligne\` m). Une liste de verbes se replie sur plusieurs lignes ; une erreur est bornée comme toute sortie.\n\n`
 
   out += `## Budgets de temps\n\n| Mesure | Budget |\n|---|---|\n`
   for (const [mesure, budget] of BUDGETS_DE_TEMPS) out += `| ${mesure} | ${budget} |\n`

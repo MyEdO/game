@@ -17,10 +17,20 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
 import { facingToward } from '../geometry/dir8';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, CHAR_LABELS } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
-import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL, baseTestModLines, weaponSkillId, GRAPPLE_TEST_CTX } from '../engine/combat';
+import {
+  combatValue,
+  combatBaseValue,
+  defenseValue,
+  defenseBaseValue,
+  DEFENSE_LABEL,
+  baseTestModLines,
+  weaponSkillId,
+  GRAPPLE_TEST_CTX,
+} from '../engine/combat';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, evaluateTest, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe } from '../engine/characteristics';
@@ -28,7 +38,15 @@ import { testValue, skillBaseValue } from '../engine/skills';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
-import { creatureAttacks, attaqueDeCle, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
+import {
+  creatureAttacks,
+  attaqueDeCle,
+  attaquesNaturelles,
+  attaqueNaturelle,
+  type AttackKind,
+  type CreatureAttack,
+  type ManoeuvreComposee,
+} from '../engine/creatureAttacks';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../data/schemas/grammaire/valeurs';
 import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
@@ -45,10 +63,11 @@ import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
 type GrantFreeAttackOp = Extract<GameOp, { op: 'grantFreeAttack' }>;
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
+import { sceneMetresPerTile, type Scene } from './monde/scene';
 import { type Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
-import { combatantsWithinRadius } from './monde/combatGeometry';
+import { combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
 import { smokeZone } from './monde/lineOfSight';
 import { clampZoneTiles, discTiles } from './monde/zones';
 import { applyTriggeredEffects, maneuverEffects } from './triggeredEffects';
@@ -113,7 +132,7 @@ export function applyManeuverEffects(
 
 /** Adversaire ADJACENT, encore actif, plus petit que `c` d'au moins `ecart` catégories de Taille.
  *  `targetId` borne la recherche à une cible précise (clic du joueur). LDB 85 l.387 */
-export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: number, targetId?: string): Combatant | undefined {
+export function cibleDEcartDeTaille(scene: Scene | null, battle: BattleState, c: Combatant, ecart: number, targetId?: string): Combatant | undefined {
   return battle.combatants.find(
     (t) =>
       (targetId ? t.id === targetId : true) &&
@@ -121,7 +140,7 @@ export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: nu
       !isOutOfAction(t) &&
       !!t.pos &&
       !!c.pos &&
-      combatDistance(c, t) <= 1 &&
+      distanceDeContact(scene, c, t) <= 1 &&
       sizeGap(c.size, t.size) >= ecart,
   );
 }
@@ -144,9 +163,9 @@ export const gratuitesRestantes = (c: Combatant, kind: AttackKind, a?: Pick<Crea
 
 /** `target` est-elle une cible VALIDE de l'attaque gratuite `kind` de `c` ? SOURCE UNIQUE du survol, du
  *  clic et de l'IA. LDB 85 l.387 */
-export function freeAttackTargetOk(battle: BattleState, c: Combatant, kind: AttackKind, target: Combatant): boolean {
+export function freeAttackTargetOk(scene: Scene | null, battle: BattleState, c: Combatant, kind: AttackKind, target: Combatant): boolean {
   const ecart = attaqueNaturelle(c.traits ?? [], kind)?.def.ecartDeTailleMin;
-  return ecart == null || !!cibleDEcartDeTaille(battle, c, ecart, target.id);
+  return ecart == null || !!cibleDEcartDeTaille(scene, battle, c, ecart, target.id);
 }
 
 /** Icône par type de manœuvre (id du registre `src/data/icons/` — la hotbar rend `<Icon id>`).
@@ -235,7 +254,7 @@ export function grappleActionEligible(mover: Combatant, foe: Combatant): boolean
 /** Attaques que le héros ACTIF peut lancer MAINTENANT — UNE liste à coût (Arme d'abord, puis gratuites/
  *  zone abordables, mutation Tentacule). Subsume l'attaque d'arme implicite ET la garde de Frénésie.
  *  Source : `active.weapons` (Arme) + `attaquesNaturelles` (gratuites) + les prédicats existants. */
-export function availableAttacks(active: Combatant, battle: BattleState): AttackOption[] {
+export function availableAttacks(scene: Scene | null, active: Combatant, battle: BattleState): AttackOption[] {
   // KIND-AGNOSTIQUE (un ennemi conduit par le MJ a le MÊME jeu d'attaques qu'un héros — bac-à-sable). Seul un
   // NAVIRE (`kind:'heros'`/`ennemi`, MDG 13) est exclu : il n'a PAS d'attaque-arme PERSONNELLE (`active.weapons`
   // vide → l'option 'arme' planterait `attackPlan`) — ses « attaques » sont la Manœuvre + la Bordée via ses postes.
@@ -255,7 +274,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   //     variable ; Action si trigger='action') ; une manœuvre d'écart de Taille exige sa cible au contact.
   for (const a of attaquesNaturelles(active.traits ?? [])) {
     if (a.kind === 'arme' || a.trigger === 'charge') continue;
-    if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
+    if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(scene, battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
     const cout = freeAttackCost(battle, active, a.def); // LDB 85 l.387 ; LDB 85 l.314
     const prix = cout.advantage;
     const minAdv = a.modeDAvantage === 'variable' ? 1 : prix;
@@ -318,9 +337,9 @@ export function attaqueImmediate(a: AttackOption): boolean {
  *  repli sur 'arme' si périmée). `undefined` = mode
  *  non-attaque (cast/heal/focus/…) ou aucune attaque abordable. SOURCE UNIQUE partagée par le clic (store)
  *  et le survol (targeting). */
-export function selectedAttackOption(active: Combatant, battle: BattleState): AttackOption | undefined {
+export function selectedAttackOption(scene: Scene | null, active: Combatant, battle: BattleState): AttackOption | undefined {
   if (battle.action !== null) return undefined; // l'attaque ne vit qu'en mode neutre (cast/heal/… = leurs propres modes)
-  const opts = availableAttacks(active, battle);
+  const opts = availableAttacks(scene, active, battle);
   const want = battle.selectedAttack ?? 'arme';
   return opts.find((o) => o.id === want) ?? opts.find((o) => o.id === 'arme'); // armée, repli sur l'Arme si périmée
 }
@@ -362,8 +381,6 @@ function measureMeters(spec: ManeuverMeasure | undefined, ref: Combatant): numbe
   const m = (spec.bonusOf ? bonusDe(ref, spec.bonusOf) : 0) + (spec.plus ?? 0);
   return m > 0 ? m : null;
 }
-/** Mètres → CASES (grille 2 m/case), min 1 ; null conservé. */
-const tilesOf = (meters: number | null): number | null => (meters == null ? null : Math.max(1, Math.ceil(meters / 2)));
 
 /** Jet du DÉFENSEUR opposé à la manœuvre, selon `def.defense`. `null` = pas d'opposition (Résistance/
  *  auto sans jet — le `test` op de l'effet roule lui-même, Hurlement). 'init' = Initiative (Regard) ;
@@ -389,20 +406,21 @@ function emitAoe(get: Get, de: string, center: Pt, radius: number, rendu: string
  *  d'impact ou de population) — pure, partagée par la résolution (`resolveManeuver`) et l'affichage
  *  (`maneuverDefensePending`). `chosenTarget` = clic joueur ; absent ou écarté → le plus proche. */
 interface CiblesDeManoeuvre { affected: Combatant[]; center: Combatant | null; blast?: number; radius?: number }
-function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: ManeuverDef, chosenTarget?: Combatant): CiblesDeManoeuvre {
+function ciblesDeManoeuvre(scene: Scene | null, battle: BattleState, attacker: Combatant, def: ManeuverDef, chosenTarget?: Combatant): CiblesDeManoeuvre {
+  const mpt = sceneMetresPerTile(scene);
   const alive = (c: Combatant) => c.kind !== attacker.kind && !isOutOfAction(c) && !!c.pos;
   const inPlay = (c: Combatant) => c.id !== attacker.id && !isOutOfAction(c) && !!c.pos; // population SANS camp (`toutAutour`)
   const nearest = (cands: Combatant[]) => cands.reduce((p, c) => (chebyshev(attacker.pos!, p.pos!) <= chebyshev(attacker.pos!, c.pos!) ? p : c));
   if (def.ciblage === 'soi') return { affected: [], center: null };
   if (def.ciblage === 'zone') {
-    const rangeTiles = tilesOf(measureMeters(def.range, attacker)) ?? Math.max(1, Math.ceil(bonus(effectiveChar(attacker, 'endurance')) / 2));
+    const rangeTiles = porteeEnCases(measureMeters(def.range, attacker) ?? bonus(effectiveChar(attacker, 'endurance')), mpt);
     const foes = combatantsWithinRadius(attacker.pos!, rangeTiles, battle.combatants, alive);
     const center = chosenTarget && alive(chosenTarget) && chebyshev(attacker.pos!, chosenTarget.pos!) <= rangeTiles
       ? chosenTarget : foes[0] ?? null; // `foes` est trié par distance (combatantsWithinRadius) → le plus proche d'abord
     if (!center) return { affected: [], center: null };
     // Rayon de Souffle : `blast` résolu contre la CIBLE au centre (« Bonus de Force » → BF de la cible, RAW l.251 ;
     // Vomi « 2 mètres » → littéral, 1 case). Aucune regex `/force/i` — la mesure structurée porte le référent.
-    const blast = tilesOf(measureMeters(def.blast, center)) ?? 1;
+    const blast = porteeEnCases(measureMeters(def.blast, center) ?? 0, mpt);
     return { affected: combatantsWithinRadius(center.pos!, blast, battle.combatants, alive), center, blast };
   }
   if (def.ciblage === 'adversairesAutour' || def.ciblage === 'toutAutour') {
@@ -414,7 +432,7 @@ function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: Maneuv
     // l.11 : « effectuer une attaque gratuite de hurlement contre ses ennemis »).
     // « créatures vivantes » exclut aussi l'objet INANIMÉ (structure de siège, véhicule-coque) — dans les
     // DEUX populations : un chariot n'entend pas un hurlement.
-    const radius = Math.max(1, Math.ceil(effectiveChar(attacker, 'initiative') / 2));
+    const radius = porteeEnCases(effectiveChar(attacker, 'initiative'), mpt);
     const pop = def.ciblage === 'toutAutour' ? inPlay : alive;
     const affected = combatantsWithinRadius(attacker.pos!, radius, battle.combatants, (c) => pop(c) && !isInanimate(c) && !traitCapability(c.traits, 'undead'));
     return { affected, center: null, radius };
@@ -445,7 +463,7 @@ export function maneuverDefensePending(s: Jeu): boolean {
   const def = attaqueDeCle(attacker.traits ?? [], pm.attaque)?.def;
   if (!def) return false;
   const chosen = pm.targetId ? inBattleId(battle, pm.targetId) : undefined;
-  return defenseursSurfacesDeManoeuvre(s, def, pm.result, ciblesDeManoeuvre(battle, attacker, def, chosen).affected).length > 0;
+  return defenseursSurfacesDeManoeuvre(s, def, pm.result, ciblesDeManoeuvre(s.scene, battle, attacker, def, chosen).affected).length > 0;
 }
 
 /**
@@ -457,7 +475,7 @@ export function maneuverDefensePending(s: Jeu): boolean {
  * (`{indiceOf}`) et la marge (`ctx.sl` : slThreshold/valuePerSL). NE PPELLE PAS `checkBattleOver`.
  */
 export function resolveManeuver(
-  get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, indice: number, atk: TestResult | null, spent: number, chosenTarget?: Combatant,
+  get: Get, set: SetFn, attacker: Combatant, def: ManoeuvreComposee, indice: number, atk: TestResult | null, spent: number, chosenTarget?: Combatant,
 ): boolean {
   const battle = get().battle;
   if (!battle || battle.over || !attacker.pos) return false;
@@ -505,7 +523,7 @@ export function resolveManeuver(
 
   // Cibles AFFECTÉES (`ciblesDeManoeuvre`, la géométrie partagée avec l'affichage) + émissions propres
   // à la géométrie.
-  const { affected, center, blast, radius } = ciblesDeManoeuvre(battle, attacker, def, chosenTarget);
+  const { affected, center, blast, radius } = ciblesDeManoeuvre(get().scene, battle, attacker, def, chosenTarget);
   if (def.ciblage === 'zone') {
     if (!center) { flushLog(); return false; }
     faceTarget(center); // le centre de la zone = ce que l'attaquant vise (cliqué, ou recentré sur le plus proche)
@@ -573,7 +591,7 @@ function maneuverDefenseLabel(tgt: Combatant, defense: NonNullable<ManeuverDef['
  *  ciblé (jumeau de la cascade de Psychologie), le jet d'attaquant FIGÉ dans `meta.opposed.aT`. À la
  *  fermeture, le store reprend le tour de la créature (`maneuverResume`). */
 function openManeuverDefenseCascade(
-  get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, indice: number, atk: TestResult, spent: number, heroes: Combatant[],
+  get: Get, set: SetFn, attacker: Combatant, def: ManoeuvreComposee, indice: number, atk: TestResult, spent: number, heroes: Combatant[],
 ): void {
   const attackerLabel = dataLabel(def.label);
   const steps: CascadeStep[] = heroes.map((h) => {
@@ -588,7 +606,7 @@ function openManeuverDefenseCascade(
       label: attackerLabel,
       stake: combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
       meta: {
-        opposed: { aT: atk, attackerId: attacker.id, attackerName: attacker.label, attackerLabel },
+        opposed: { aT: atk, attackerId: attacker.id, attackerName: nomDe(attacker), attackerLabel },
         defenseDeManoeuvre: { attackerId: attacker.id, def: structuredClone(def), indice, spent },
       },
     };

@@ -8,8 +8,9 @@
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
 ## aucun sous son `refus`), son véhicule (`vue.corps.vehicules`) et les marques de ses États (`vue.marques`,
 ## `MarquesDEtats`), les zones qui durent (`vue.zonesQuiDurent`, `ZonesQuiDurent`), chaque navire de la scène sous le modèle
-## de son corps (`vue.corps.navires`, `MontageDesNavires`), sous tout regard, coupé sous les ponts que le regard
-## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité que l'exploration nomme (`exploration.entites`, aucune en combat) nommée à sa case, les surbrillances des cases
+## de son corps (`vue.corps.navires`, `MontageDesModeles`), sous tout regard, coupé sous les ponts que le regard
+## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), chaque décor servi
+## sous le modèle de son élément (`vue.corps.decors`, même montage), et chaque entité que l'exploration nomme (`exploration.entites`, aucune en combat) nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles à la case que `vue.casesDesCibles` leur donne, en vue ou non, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; touchables par le rayon même retirées, hors de l'immersion, les cases
 ## jouables qui se voient : celle de chaque combattant dessiné et chaque case peinte en cible (`Monde.poser_les_cases_jouables`),
@@ -23,7 +24,7 @@ extends Node3D
 signal case_cliquee(case: Vector3i)
 ## Le clic droit sur une case, qui ouvre la fiche de son occupant.
 signal case_inspectee(case: Vector3i)
-## Le corps d'un combattant dessiné a changé (`Combattant.habille`), ou le modèle d'un navire s'est posé.
+## Le corps d'un combattant dessiné a changé (`Combattant.habille`), ou le modèle d'un navire ou d'un décor s'est posé.
 signal habille
 
 ## Les clés que lit le cadrage sous chaque regard (`cadrer`), `etage` seule facultative.
@@ -37,7 +38,7 @@ const CLES_DU_CADRAGE := {
 
 @onready var _monde: Monde = $Monde
 @onready var _combattants: Node3D = $Combattants
-@onready var _navires: MontageDesNavires = $Navires
+@onready var _modeles_poses: MontageDesModeles = $Modeles
 @onready var _immersion: Immersion = $Immersion
 
 ## Les effets des appels, rendus au plateau (`Effets`).
@@ -54,7 +55,7 @@ var _survol: Variant = null
 func _ready() -> void:
 	_monde.cadrage_change.connect(func() -> void: _survoler(_monde.case_sous(get_viewport().get_mouse_position())))
 	_immersion.case_jouee.connect(case_cliquee.emit)
-	_navires.pose.connect(habille.emit)
+	_modeles_poses.pose.connect(habille.emit)
 	_effets.name = "Effets"
 	add_child(_effets)
 	_zones.name = "ZonesQuiDurent"
@@ -83,7 +84,7 @@ func montrer(vue: Dictionary) -> void:
 			_monde.suivre(_lieu(suivi[0].pos))
 	_immersion.montrer(vue)
 	if vue.plateau != null:
-		_navires.poser(vue.corps.navires, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
+		_modeles_poses.poser(vue.corps.navires, vue.corps.decors, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
 	var poses := {}
 	for c in dessines:
 		if c.pos == null:
@@ -178,9 +179,9 @@ func _nommer_les_entites(entites: Array) -> void:
 	_monde.etiqueter(noms)
 
 
-## Les ids des navires de la scène dont le modèle est posé (`MontageDesNavires.poses`).
+## Les ids des navires de la scène dont le modèle est posé (`MontageDesModeles.navires`).
 func navires() -> Array:
-	return _navires.poses()
+	return _modeles_poses.navires()
 
 
 ## La caméra posée sur le cadrage `cadrage` (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`), sous le regard du
@@ -268,10 +269,11 @@ func _cases_des(ids: Array) -> Array:
 
 
 ## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume, ses nappes de toit et
-## ses couronnes crénelées (`Monde.poser`, les géométries reçues `recus`, réponse de `morceaux`), et sa météo
+## ses couronnes crénelées (`Monde.poser`, les géométries reçues `recus`, réponse de `morceaux`), la caméra sur le
+## centre de la zone jouable `zone` (`plateau.zoneJouable`, toute la carte sans elle), et sa météo
 ## (`Monde.poser_la_meteo`).
-func poser_le_monde(monde: Dictionary, recus: Dictionary) -> void:
-	_monde.poser(monde, recus)
+func poser_le_monde(monde: Dictionary, recus: Dictionary, zone := Rect2i()) -> void:
+	_monde.poser(monde, recus, zone)
 	_monde.poser_la_meteo(monde.meteo)
 
 
@@ -371,9 +373,10 @@ func _survoler(case: Variant) -> void:
 ## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
 ## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`
 ## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps est animé par un arbre d'états
-## (`AnimationTree` `Etats` de `Combattant.tscn`, machine `projet/animation/corps.tres`, #3949) dont chaque état joue le
+## (`EtatsDuCorps`, le nœud `Etats` de `Combattant.tscn`, machine `projet/animation/corps.tres`, #3949) dont chaque état joue le
 ## clip de sa base qui tient son rôle (`clips` de la base, réponse de `modeles`) : `repos` en boucle, `marche` en boucle
-## au déplacement, `melee` vers une cible, `coup` au coup reçu, `melee` et `coup` revenant seuls au repos en fin de clip,
+## au déplacement, `tir` vers une cible si sa table en porte un clip, `melee` sinon, `coup` au coup reçu, `melee`, `tir`
+## et `coup` revenant seuls au repos en fin de clip,
 ## `mort` hors de combat, sans retour ; chaque passage d'un état à un autre est un fondu, réglé dans l'éditeur. Tant que
 ## sa main libre tient la seconde prise d'un objet (section « Atelier 3D »), un rôle joue le clip de `clipsDeuxMains`
 ## sous le maniement de cet objet (`secondesPrises`), à défaut celui de `clips` (`MontageDeComposition.clip`) ; l'état
@@ -402,12 +405,28 @@ func _survoler(case: Variant) -> void:
 ## en boucle au déplacement, et, vers une cible, le clip de son rôle d'attaque, `tir` si sa table en porte un, `melee`
 ## sinon, puis le repos en fin de clip
 ## (recette `projet/recettes/clips-du-vehicule.gd`). Pour chaque navire de la vue (`navires`), le plateau monte son
-## `corps` sous son nœud `Navires` (`MontageDesNavires`, `projet/scripts/montage_des_navires.gd`, que l'éditeur monte de
-## même : `MontageDeVehicule`, son GLB tiré par le montage `Navires/Chargeur`), peint, ses
+## `corps` sous son nœud `Modeles` (`MontageDesModeles`, `projet/scripts/montage_des_modeles.gd`, que l'éditeur et
+## l'atelier montent de même : `MontageDeVehicule`, son GLB tiré par le montage `Modeles/Chargeur`), peint, ses
 ## pièces et ses Améliorations montées et ses nœuds cachés comme un véhicule, sous tout regard ; sa scène nue à
 ## l'échelle métrique du plateau, sa proue, le +Z de son repère, tournée vers le `cap` de son corps
 ## (`MiseEnPage.lacet_de_proue`), son origine au point de la carte `centre`, à la hauteur 0 de la scène
-## (`MontageDesNavires._placer`) ; un navire dont seul le `centre` change se repose sans se recharger ; un navire que la
+## (`MontageDesModeles._placer`) ; un navire dont seul le `centre` change se repose sans se recharger ; un navire que la
 ## vue ne sert plus est retiré. `corps()` d'un combattant rapporte
 ## l'élément de son véhicule posé (`vehicule`), l'emblème posé sur lui (`embleme_du_vehicule`, `null` : aucun), ceux de
 ## ses pièces montées (`postes`) et ceux de ses Améliorations (`ameliorations`).
+
+## @contrat Corps d'un combattant
+## Pour chaque pose de chaque décor de la vue (`decors`), le plateau monte l'`element` du décor sous le même nœud
+## `Modeles` (`MontageDesModeles`), comme un véhicule nu : peint de ses `surfaces` (`MontageDeVehicule.peindre_l_element`,
+## une `matiere` sans texture au projet gardant la couleur du GLB), sa scène nue à l'échelle métrique du plateau, le +Z
+## de son repère, le front de sa recette, tourné vers son `cap` comme la proue d'un navire (`MiseEnPage.lacet_de_proue` :
+## au cap `S`, la recette telle qu'authorée), son origine au point de la carte `ancre`, à la hauteur `piedM` ; la lecture
+## d'un GLB sert toutes les poses de son décor. Le monde ne peint ni n'ombre plus les surfaces de ce décor
+## (`VolumeDeScene.peindre_sans`), dès que la vue le sert, le rayon du pointeur les touchant toujours ; le modèle porte
+## sa propre ombre, sur la couche des luminaires si la pose porte `luminaire` (`VolumeDeScene.COUCHE_DES_LUMINAIRES`),
+## les meshes de son nœud `emet` émettant alors leur couleur d'albédo (`MontageDesModeles._allumer`), se voile à la
+## vision comme un navire (`VolumeDeScene.voile`), et, quand le regard retire sa `case` (au plan `pose` de sa couche)
+## ou lève la `nappe` de toit qui la porte (`VolumeDeScene.pose_retiree`), ne se voit plus et porte son ombre. Recettes
+## `projet/recettes/decor-sur-ses-primitives.gd` (coïncidence avec les primitives, couche et lueur d'un luminaire),
+## `voile-du-decor.gd` (voile, rendu réel), `saisons-du-decor.gd` (feuillage de saison, rendu réel) et
+## `atelier-du-decor.gd` (l'échantillon d'un décor dans l'atelier).

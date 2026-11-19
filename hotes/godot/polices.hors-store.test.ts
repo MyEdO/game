@@ -1,7 +1,9 @@
 /**
  * LES POLICES DE L'HÔTE GODOT (#3498) : l'autoload `Police` (`projet/scripts/police.gd`) pose en police par défaut du
- * thème celle de `projet/art/police.tres`, sa base puis ses replis dans l'ordre ; celle des titres
- * (`projet/art/police_des_titres.tres`) a les mêmes replis. Dans chaque chaîne, chaque caractère du catalogue de messages
+ * thème celle de `projet/art/police.tres`, sa base puis ses replis dans l'ordre, et celle des bulles ; le thème du projet n'en
+ * charge aucune. Celles des titres
+ * (`projet/art/police_des_titres.tres`), des rubriques (`projet/art/police_des_rubriques.tres`), à empattements
+ * (`projet/art/police_a_empattements.tres`) et penchée (`projet/art/police_penchee.tres`) ont les mêmes replis. Dans chaque chaîne, chaque caractère du catalogue de messages
  * français (`src/i18n/messages/fr.ts`) a son glyphe dans l'une d'elles, lu dans la table `cmap` du fichier livré ; chaque
  * fichier de `projet/polices/` a l'empreinte que sa provenance déclare.
  */
@@ -58,7 +60,7 @@ function pointsDeCode(police: Buffer): Set<number> {
 
 /** Les fichiers d'une police (`FontVariation`) de `art/`, sa base puis ses replis, dans l'ordre de son fichier. */
 const chaineDe = (police: string) => [...lire(police).toString('utf8').matchAll(/^\[ext_resource type="FontFile" path="([^"]+)"/gm)].map((m) => m[1]);
-const POLICES = ['art/police.tres', 'art/police_des_titres.tres'];
+const POLICES = ['art/police.tres', 'art/police_des_titres.tres', 'art/police_des_rubriques.tres', 'art/police_a_empattements.tres', 'art/police_penchee.tres'];
 const chaine = chaineDe('art/police.tres');
 
 const textes: string[] = [];
@@ -73,6 +75,21 @@ describe('la police de l’hôte Godot (#3498)', () => {
     expect(lire('project.godot').toString('utf8')).toMatch(/^Police="\*res:\/\/scripts\/police\.gd"$/m);
     expect(lire('scripts/police.gd').toString('utf8')).toContain('ThemeDB.get_project_theme().default_font = load("res://art/police.tres")');
     expect(chaine.length, 'base et replis').toBeGreaterThan(1);
+  });
+
+  it('le thème du projet ne charge aucune police, fût-ce par une ressource qu’il référence : l’import à froid le charge avant les polices', () => {
+    const vus = new Set<string>();
+    const polices: string[] = [];
+    const visiter = (chemin: string): void => {
+      if (vus.has(chemin)) return;
+      vus.add(chemin);
+      for (const [, type, cible] of lire(chemin).toString('utf8').matchAll(/^\[ext_resource type="([^"]+)" path="([^"]+)"/gm)) {
+        if (type === 'FontFile' || type === 'FontVariation') polices.push(`${chemin} → ${cible}`);
+        else if (cible.endsWith('.tres')) visiter(cible);
+      }
+    };
+    visiter('res://art/theme.tres');
+    expect(polices, 'poser la police au lancement (`scripts/police.gd`)').toEqual([]);
   });
 
   it.each(POLICES)('chaque caractère des messages français a son glyphe dans la chaîne de %s', (police) => {

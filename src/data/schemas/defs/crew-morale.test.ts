@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import crewMoraleJson from '../../crew-morale.json';
 
-type Bande = { id: string; min: number | null; max: number | null };
-const clone = () => structuredClone(crewMoraleJson) as unknown as { bands: Bande[] };
+const clone = () => structuredClone(crewMoraleJson);
 
 describe('crew-morale.json — les bandes de Moral couvrent le score d’un seul tenant', () => {
   it('le schéma accepte les bandes, et REFUSE une bande du milieu sans plafond', () => {

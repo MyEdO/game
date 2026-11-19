@@ -17,14 +17,14 @@ import {
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
   charAbr, navalPorts, shipConstruction, effectTables, disponibilite, massBattleHazardsDie,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel, TAVERN_GAMES,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -40,6 +40,8 @@ import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOut
 import { equipeSchema } from '../../data/schemas/grammaire/valeurs';
 import { phenomenonKindSchema, phenomenonTestSchema, saturationTierSchema } from '../../data/schemas/defs/arcane-phenomena';
 import { drivingMishapOutcomeSchema } from '../../data/schemas/defs/driving-mishap';
+import { depuisSchema as depuisDeDispersionSchema } from '../../data/schemas/defs/dispersion';
+import { issueDeReactionSchema } from '../../data/schemas/defs/reaction-au-statut';
 import { drunkennessOutcomeSchema } from '../../data/schemas/defs/drunkenness';
 import { progressionModeSchema } from '../../data/schemas/defs/naval-progression';
 import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
@@ -53,39 +55,43 @@ import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, mountIncidentDie, vehicleProblemDie, encounterDie } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
-import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { OBSESSIONS, obsessionsDie } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
-import { bandeAuDe, deDeLaTableTiree, facesDuDe, fourchette, type DeDeTable } from '../../engine/tables';
+import { bandeAuDe, deDeLaTableTiree, facesDuDe, fourchette, type DeDeTable, type PorteurDeDe } from '../../engine/tables';
 import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../../data/artilleryMisfire';
 import { structureCriticalsDie } from '../../data/structureCriticals';
 import { deDeTirageDe } from '../../data/rangees';
 import drivingMishapJson from '../../data/driving-mishap.json';
+import dispersionJson from '../../data/dispersion.json';
+import capricieuxJson from '../../data/tableau-capricieux.json';
+import reactionAuStatutJson from '../../data/reaction-au-statut.json';
 import drunkennessJson from '../../data/drunkenness.json';
 import ventsJson from '../../data/vents-tourbillonnants.json';
 import type * as accidents from '../../data/schemas/defs/driving-mishap';
+import type * as dispersion from '../../data/schemas/defs/dispersion';
+import type * as capricieux from '../../data/schemas/defs/tableau-capricieux';
+import type * as reactionAuStatut from '../../data/schemas/defs/reaction-au-statut';
 import type * as ivresse from '../../data/schemas/defs/drunkenness';
 import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
 import { deDesEvenementsDeBord, deDuVoyageRapide } from '../../engine/seaVoyage';
 import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
-import { RIVER_PERILS } from '../../engine/riverNavigation';
+import { RIVER_PERILS, type RiverWindEffect } from '../../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../../engine/crewMorale';
-import { STEAM_BREAKDOWNS, steamBreakdownDie } from '../../engine/shipBuild';
 import { oupsDie } from '../../data/oups';
 import { interludeEventDie } from '../../data/interludeEvents';
 import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
-import { spellOps, type Flow, type FlowTestNode } from '../../engine/flowCore';
+import { spellOps, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp } from '../../engine/ops';
 import { noeudAmputation } from '../../engine/critical';
 import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
-import type { RuleValue } from '../../engine/policy';
+import { rule, type RuleValue } from '../../engine/policy';
 import SURINCANTATION from '../../data/surincantation.json';
-import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
+import type { ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
 import { isOptionalNote, type TraitList } from '../../engine/statEntry';
@@ -95,14 +101,25 @@ import { damageString } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { talentMaxLabel } from '../../engine/careerSlots';
-import type { AdvancementRef, TrappingRef, WaterExposureModifier, SpellData } from '../../data';
+import { STEAM_BREAKDOWNS, steamBreakdownDie, type AdvancementRef, type TrappingRef, type WaterExposureModifier, type SpellData } from '../../data';
 import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
 import { AVAILABILITIES } from '../../engine/types';
-import { ACTIVITIES, testsDeLActivite } from '../../engine/activities';
+import { testsDeLActivite } from '../../engine/activities';
+import { ACTIVITIES } from '../../data';
 import type { OutcomeBand } from '../../engine/activities';
 import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
-import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
+import {
+  CHAR_KEYS,
+  CHAR_LABELS,
+  HIT_LOCATION_LABELS,
+  DIFFICULTY_LABELS,
+  LOCALISATIONS_DE_COUP,
+  type Combatant,
+  type CharKey,
+  type HitLocation,
+  type Difficulty,
+} from '../../engine/types';
 import type { ResolveurDePreset } from '../monde/resolveursDuNarratif';
 import type { Porteur, PorteurDeRangee } from './porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
@@ -110,9 +127,9 @@ import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
 import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
-import { formatDiseaseTime } from '../../engine/disease';
+import { formatDiseaseTime, sujetDeContraction } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
-import { formatMoney, priceToMoney, type Money } from '../../engine/money';
+import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
@@ -329,7 +346,7 @@ const priceLabel = (p: Money | 'ND' | null | undefined): string | null => {
  *  (Bélier `ram` / Siège `siege`, #135) — jamais un total qui suggère un dégât inconditionnel quand la
  *  donnée dit le contraire. `conditionalDamageNote` = SOURCE UNIQUE (`weaponStats.ts`), la MÊME que
  *  `weaponStatParts` pour les armes EN MAIN (Sac/popover/fiche personnage). */
-const damageFact = (t: { damage: import('../../engine/types').WeaponDamageSpec | null; qualities: { id: string; value?: number }[]; onHitEffects?: import('../../engine/flowCore').TriggeredEffect[] }): string | undefined =>
+const damageFact = (t: { damage?: import('../../engine/types').WeaponDamageSpec | null; qualities: { id: string; value?: number }[]; onHitEffects?: import('../../engine/flowCore').TriggeredEffect[] }): string | undefined =>
   join(t.damage ? damageString(t.damage) : null, conditionalDamageNote(t));
 
 /** Nom d'auteur d'un décor de `props.json` (le catalogue n'a pas de catégorie Codex et aucun écran ne
@@ -380,13 +397,20 @@ const kvRows = (pairs: [string, unknown][]): CodexRow[] =>
 const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
   rows.length ? { title, layout: 'chips', rows } : null;
 /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
- *  foyer — `id`→Possessions, `{id, type}`→Créatures ou Véhicules selon `type` — jamais une re-résolution
- *  par libellé. Une somme, une mention et un `{text}` ne désignent aucune entité ;
+ *  foyer — `id`→Possessions, `{id, type}`→Créatures, Véhicules ou Engins de siège selon `type` — jamais une
+ *  re-résolution par libellé. Une somme, une mention et un `{text}` ne désignent aucune entité ;
  *  `pick`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);
-  if ('type' in ref && ref.type === 'creature') return idRefRow('creatures', ref.id, undefined, show);
-  if ('type' in ref) return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
+  if ('type' in ref)
+    switch (ref.type) {
+      case 'creature':
+        return idRefRow('creatures', ref.id, undefined, show);
+      case 'vehicle':
+        return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
+      case 'engin':
+        return { t: 'ref', category: 'siegeEngines', id: ref.id, label: refLabel('trappings', ref), show };
+    }
   if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
   // PASTILLE NUE, jamais de la prose : une somme, une mention ou un `{text}` est un NOM (« Grand hôtel particulier avec
   // jardins » y ferait lier « Grand »), et `pick`/`wildcard` sont des libellés composites. Aucune
@@ -454,7 +478,7 @@ const careerStatusRange = (levels: import('../../data').CareerLevelData[]): stri
   if (!levels.length) return null;
   const first = levels[0].status;
   const last = levels[levels.length - 1].status;
-  return first === last ? first : `${first} → ${last}`;
+  return memeStatut(first, last) ? libelleDuStatut(first) : `${libelleDuStatut(first)} → ${libelleDuStatut(last)}`;
 };
 
 /**
@@ -619,7 +643,7 @@ const traitItem = (t0: (typeof traits)[number]): CodexItem => {
       cap?.psychIndice != null ? fact(tr('codex.fiche.indice'), cap.psychIndice) : null,
     ),
     sections: sections(
-      chips(tr('codex.fiche.manoeuvresConferees'), (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id, r.spec))),
+      chips(tr('codex.fiche.manoeuvresConferees'), (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id))),
       passiveSection(t.passive), effectsSection(t.effects, ETATS_DU_CODEX),
       ...reverseSections('traits', t.id), // Créatures ayant ce trait · Mutations le conférant
     ),
@@ -734,7 +758,7 @@ function libelleDeJet(n: FlowTestNode): string {
  *  (`noeudAmputation`) — jamais re-décrits ici : la vue et le jeu ne peuvent pas diverger. */
 function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKey): CodexItem {
   const jet = e.test;
-  const amputation = noeudAmputation(e, jeu, CRIT_TABLE_LOCATION[table]);
+  const amputation = e.amputation && noeudAmputation(e, e.amputation, jeu, CRIT_TABLE_LOCATION[table]);
   const jetsAmp = noeudsDeTest(amputation);
   return depuisEnveloppe(e, {
     sub: bandeAuDe(critiqueDie(jeu, table), e.min, e.max),
@@ -788,7 +812,7 @@ function crewTargetLabel(cible: CrewTarget): string {
  *  vocabulaire que les autres Critiques (`critEntryItem`). */
 function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
   const ch = e.crewHit;
-  const jet = ch?.test?.test;
+  const jet: FlowTest | undefined = ch?.test?.test;
   const sujet = jet && (testSkillLabel(jet) ?? '');
   return depuisEnveloppe(e, {
     sub: jeu.die ? bandeAuDe(jeu.die, e.min, e.max) : undefined,
@@ -937,12 +961,11 @@ function barterRatiosSection(rows: (typeof disponibilite)['barterRatios']): Code
 }
 
 // ── LOT 3 #422 (FINAL) : exemptions AUDIT — Empoignade (LDB 14, fiche de règle
-//    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, DIALECTE compilé — PAS de vrais
-//    `GameOp`, cf. `MiscastRowEntry`/`engine/miscast.ts::JsonRow` — renderer DÉDIÉ ci-dessous, jamais
-//    `passiveSection`). ──
+//    UNIQUE), Incantations Imparfaites/Colère des dieux (LDB 46/40, ops au terme de Péché non lié,
+//    cf. `MiscastRowEntry` — renderer DÉDIÉ ci-dessous, jamais `passiveSection`). ──
 
-/** Libellé lisible d'un montant du DIALECTE miscast (nombre / dé / terme de Péché / somme —
- *  `JsonFormula`, `engine/miscast.ts`). Le terme de Péché n'est résolu qu'à l'exécution (Points de
+/** Libellé lisible d'un montant au dialecte du Péché (nombre / dé / terme de Péché / somme —
+ *  `FormuleAuPeche`, `grammaire/valeurs.ts`). Le terme de Péché n'est résolu qu'à l'exécution (Points de
  *  Péché du lanceur) : ici, affichage d'AUTEUR (« 1d10 + Points de Péché »), jamais une valeur bakée. */
 function miscastAmountLabel(a: unknown): string {
   if (typeof a === 'number') return String(a);
@@ -954,9 +977,9 @@ function miscastAmountLabel(a: unknown): string {
   return String(a);
 }
 
-/** Une op du DIALECTE miscast (`JsonOp`) → sa ligne Codex — sous-ensemble des `op` réellement présents
- *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`, cf.
- *  `engine/miscast.ts::expandOp`). Chip cross-réf pour l'État ; texte structuré pour le reste. */
+/** Une op de rangée de miscast (`opsAuPecheSchema`) → sa ligne Codex — sous-ensemble des `op` réellement présents
+ *  dans `miscast.json` (`condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`).
+ *  Chip cross-réf pour l'État ; texte structuré pour le reste. */
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
     case 'condition': {
@@ -1116,15 +1139,15 @@ export function optionBody(o: { label: string; desc: string }): string {
   return sansPuce.replace(new RegExp(`^\\*\\*${echappe}\\s*:\\*\\*\\s*`), '');
 }
 
-/** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette. */
-function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires)[number], category: string, libelle: (id: string) => string) {
+/** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette, au dé que porte `porteurDuDe`. */
+function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires | typeof mutationNature)[number], porteurDuDe: PorteurDeDe, category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
-    sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+    sub: tr('codex.fiche.plages', { length: t.entries.length, die: formatDice(porteurDuDe.die) }),
     sections: sections({
       title: tr('codex.fiche.tirages'), layout: 'list',
       rows: t.entries.map((r) => {
         const label = libelle(r.id);
-        return { t: 'ref', category, id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(t), r.min, r.max) } as CodexRow;
+        return { t: 'ref', category, id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(porteurDuDe), r.min, r.max) } as CodexRow;
       }),
     }),
   });
@@ -1134,10 +1157,7 @@ const CODEX_SPECS = {
   arcanePhenomena: {
     label: 'codex.fiche.magieEnvironnementale', group: 'magie', sourceRef: 'VDM 14',
     build: () => {
-      const d = datasetObject('arcanePhenomena') as {
-        saturationLevels: SaturationLevel[]; windSaturationEffects: WindSaturationEffects[];
-        phenomena: ArcanePhenomenon[]; tables: ArcaneTable[];
-      };
+      const d = datasetObject('arcanePhenomena');
       return [
         ...[...d.saturationLevels].sort((a, b) => a.order - b.order).map((l) => depuisEnveloppe(l, {
           group: tr('codex.fiche.paliersDeSaturation'),
@@ -1185,8 +1205,8 @@ const CODEX_SPECS = {
           ),
         })),
         ...d.tables.map((t) => depuisEnveloppe(t, {
-          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
-          sections: sections({ title: tr('codex.fiche.tirage', { die: t.die }), layout: 'list', rows: arcaneTableRows(t) }),
+          group: tr('codex.fiche.rubriqueTables'), sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: formatDice(t.die) }),
+          sections: sections({ title: tr('codex.fiche.tirage', { die: formatDice(t.die) }), layout: 'list', rows: arcaneTableRows(t) }),
         })),
       ];
     },
@@ -1235,6 +1255,37 @@ const CODEX_SPECS = {
       meta: facts(fact(tr('codex.fiche.type'), libelleDeValeur(drivingMishapOutcomeSchema, e.outcome))),
     })),
   },
+  dispersion: {
+    label: 'codex.fiche.dispersion', group: 'tables', sourceRef: 'LDB 14',
+    build: () => {
+      const de = deDeTirageDe<typeof dispersion>(dispersionJson);
+      return datasetArray('dispersion').map((e) => ({
+        id: e.id, label: tr('codex.fiche.dispersionResultat', { n: fourchette(e.min, e.max, facesDuDe(de)) }), sub: bandeAuDe(de, e.min, e.max),
+        meta: facts(
+          fact(tr('codex.fiche.dispersionDepuis'), libelleDeValeur(depuisDeDispersionSchema, e.depuis)),
+          fact(tr('codex.fiche.dispersionDecalage'), `(${e.dx}, ${e.dy})`),
+        ),
+      }));
+    },
+  },
+  tableauCapricieux: {
+    label: 'codex.fiche.capricieux', group: 'tables', sourceRef: 'MSRC 15',
+    build: () => {
+      const de = deDeTirageDe<typeof capricieux>(capricieuxJson);
+      return datasetArray('tableauCapricieux').map((e) => ({
+        id: e.id, label: tr('codex.fiche.capricieuxDR', { dr: e.dr > 0 ? `+${e.dr}` : e.dr < 0 ? `−${-e.dr}` : '0' }), sub: bandeAuDe(de, e.min, e.max),
+      }));
+    },
+  },
+  reactionAuStatut: {
+    label: 'codex.fiche.reactionAuStatut', group: 'tables', sourceRef: 'LDB 08',
+    build: () => {
+      const de = deDeTirageDe<typeof reactionAuStatut>(reactionAuStatutJson);
+      return datasetArray('reactionAuStatut').map((e) => ({
+        id: e.id, label: libelleDeValeur(issueDeReactionSchema, e.issue), sub: bandeAuDe(de, e.min, e.max),
+      }));
+    },
+  },
   drunkenness: {
     label: 'codex.fiche.ivresseTableau', group: 'tables', sourceRef: 'LDB 09',
     build: () => datasetArray('drunkenness').map((e) => ({
@@ -1259,10 +1310,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.navigationFluvialeVentChavirageEchouage', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 7',
     build: () => {
       const n = datasetObject('riverNavigation');
-      const forceLabel = new Map(n.windForces.entries.map((f) => [f.id, f.label]));
-      const dirLabel = new Map(n.windDirections.entries.map((d) => [d.id, d.label]));
-      const effectText = (e: { pourcentage?: number; derive?: boolean; louvoyage?: boolean; risqueDeChavirage?: boolean; risqueDeGreement?: boolean } | undefined): string => {
-        if (!e) return '—';
+      const effectText = (e: RiverWindEffect): string => {
         const parts: string[] = [];
         if (e.pourcentage != null) parts.push(tr('codex.riviere.vitesse', { pct: `${e.pourcentage > 0 ? '+' : ''}${e.pourcentage}` }));
         if (e.derive) parts.push(tr('codex.riviere.derive'));
@@ -1290,7 +1338,7 @@ const CODEX_SPECS = {
           {
             title: tr('codex.fiche.effetDuVentForceDirection'), layout: 'list',
             rows: n.windForces.entries.flatMap((f) => n.windDirections.entries.map((d) => ({
-              t: 'kv', k: `${forceLabel.get(f.id)} · ${dirLabel.get(d.id)}`, v: effectText(n.windEffect[f.id]?.[d.id as 'arriere' | 'cote' | 'contraire']),
+              t: 'kv', k: `${f.label} · ${d.label}`, v: effectText(f.effet[d.id]),
             } as CodexRow))),
           },
           {
@@ -1305,7 +1353,7 @@ const CODEX_SPECS = {
             rows: [
               { t: 'kv', k: tr('codex.fiche.horsDeControle'), v: tr('codex.fiche.navigation', { navPenalty: n.horsDeControle.navPenalty }) } as CodexRow,
               { t: 'kv', k: tr('codex.fiche.sEchouer'), v: tr('codex.fiche.degatsDeCoque', { hullDamage: n.echouage.hullDamage }) } as CodexRow,
-              { t: 'kv', k: tr('codex.fiche.reparationTemporaire'), v: tr('codex.fiche.charpentierBlessures', { v: DIFFICULTY_LABELS[n.temporaryRepair.difficulty], charpentierPenalty: n.temporaryRepair.charpentierPenalty, v2: formatDice(n.temporaryRepair.woundsPerRepair.dice) }) } as CodexRow,
+              { t: 'kv', k: tr('codex.fiche.reparationTemporaire'), v: tr('codex.fiche.difficulteBlessures', { v: DIFFICULTY_LABELS[rule('fleuve-reparation-temporaire-reparation-difficulte') as Difficulty], v2: formatDice(n.temporaryRepair.woundsPerRepair.dice) }) } as CodexRow,
             ],
           },
         ),
@@ -1381,7 +1429,7 @@ const CODEX_SPECS = {
       // Les 4 échelons réunis en UN onglet « Progression » (au lieu d'un onglet par niveau) → la
       // montée en Carrière se lit d'un trait ; la description flavor gagne en proéminence relative.
       const levelSections: CodexSection[] = levels.map((lv) => ({
-        title: tr('codex.fiche.niveau', { level: lv.level, label: lv.label, status: lv.status }),
+        title: tr('codex.fiche.niveau', { level: lv.level, label: lv.label, status: libelleDuStatut(lv.status) }),
         layout: 'chips' as const,
         rows: [
           // Les Caractéristiques avancées sont des IDS (`CharKey` = id de `characteristics.json`) :
@@ -1497,8 +1545,10 @@ const CODEX_SPECS = {
         sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
         meta: facts(fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)), fact(tr('codex.fiche.emplacement'), t.loc), fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa), reachFact),
         sections: sections(
-          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
+          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel(r.instance)))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
+          passiveSection(t.passifDArme),
+          effectsSection(t.effects, ETATS_DU_CODEX, tr('codex.fiche.effetsDeclenches')),
           ...reverseSections('trappings', t.id),
         ),
       });
@@ -1542,7 +1592,7 @@ const CODEX_SPECS = {
     build: () => maladies.map((m) => depuisEnveloppe(m, {
       sub: m.symptoms.map((s) => symptomLabel(s.symptomId)).join(', '),
       meta: facts(
-        fact(tr('codex.fiche.contraction'), DIFFICULTY_LABELS[m.contractDifficulty]),
+        fact(tr('codex.fiche.contraction'), [testSkillLabel(sujetDeContraction(m.id)), DIFFICULTY_LABELS[m.contractDifficulty]].join(' ')),
         fact(tr('codex.fiche.incubation'), formatDiseaseTime(m.incubation)),
         fact(tr('codex.fiche.duree'), formatDiseaseTime(m.duration)),
       ),
@@ -1593,7 +1643,7 @@ const CODEX_SPECS = {
   mutationTables: {
     label: 'codex.fiche.tablesDeCorruption', group: 'effets',
     build: () => mutationTables.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+      sub: tr('codex.fiche.plages', { length: t.entries.length, die: formatDice(t.die) }),
       // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
       sections: sections({
         title: tr('codex.fiche.tirageMutation', { die: formatDice(deDeLaTableTiree(t)) }), layout: 'list',
@@ -1609,8 +1659,8 @@ const CODEX_SPECS = {
     // Tables `[min,max] → GameOp[]` référencées par l'op `rollTable` (Allure démoniaque : Tableau des
     // aspects démoniaques par Domaine du Chaos). Chaque rangée = fourchette + ops (chips codex-liées).
     build: () => effectTables.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: t.die }),
-      sections: sections({ title: tr('codex.fiche.tirageEffet', { die: t.die }), layout: 'list', rows: tableRows(t) }),
+      sub: tr('codex.fiche.rangeeS', { length: t.entries.length, die: formatDice(t.die) }),
+      sections: sections({ title: tr('codex.fiche.tirageEffet', { die: formatDice(t.die) }), layout: 'list', rows: tableRows(t) }),
     })),
   },
   maneuvers: {
@@ -1765,7 +1815,7 @@ const CODEX_SPECS = {
     // celui de la DONNÉE (#1467 L1b V-P1) — le registre ne recompose plus d'identité.
     build: () => careerLevels.map((lv) => depuisEnveloppe(lv, {
       label: entryKey(lv as unknown as Record<string, unknown>),
-      sub: lv.status, group: findCareerById(lv.career.id)?.label ?? lv.career.id,
+      sub: libelleDuStatut(lv.status), group: findCareerById(lv.career.id)?.label ?? lv.career.id,
       sections: sections(
         lv.characteristics.length ? { title: tr('codex.fiche.caracteristiquesAvancees'), layout: 'chips', rows: charRefRows(lv.characteristics) } : null,
         chips(tr('codex.fiche.competences'), lv.skills.map((a) => advancementRow('skills', a))),
@@ -1806,7 +1856,7 @@ const CODEX_SPECS = {
   },
   weather: {
     label: 'codex.fiche.meteoDeVoyage', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
-    build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: s.die }) })),
+    build: () => weather.map((s) => depuisEnveloppe(s, { sub: tr('codex.fiche.plagesEdoc8', { length: s.entries.length, die: formatDice(s.die) }) })),
   },
   weatherConditions: {
     label: 'codex.fiche.conditionsMeteo', group: 'tables', cluster: 'codex.fiche.voyageTerrestre',
@@ -1842,7 +1892,7 @@ const CODEX_SPECS = {
     // Le `label` EST le texte du résultat → on le garde tel quel ;
     // on enrichit par le TYPE d'effet (kind) en méta.
     build: () => oups.map((o) => {
-      const range = 'min' in o ? bandeAuDe(oupsDie(), o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
+      const range = o.kind !== 'misfire' ? bandeAuDe(oupsDie(), o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
       return depuisEnveloppe(o, {
         sub: range,
         meta: facts(fact(tr('codex.fiche.type'), valeurFR('oups.json', 'kind', o.kind))),
@@ -2026,7 +2076,7 @@ const CODEX_SPECS = {
     // RÈGLE (franchissabilité, précédence de raccord, blocage de la vue, surface bâtie, hauteur du bloc
     // plein) et les mêmes clés de RENDU (teinte, rampe, décor posé). Aucune table de libellés ici : les
     // noms FR viennent de la méta du def (`libelleDuChamp`), l'ordre des arrêts de rampe de la source
-    // unique `terrainStopsOrdonnes`, et le nom du décor posé de l'entrée `props.json` qu'il référence.
+    // unique `terrainStopsOrdonnes`, et les noms des décors posés des entrées `props.json` qu'il référence.
     label: 'codex.fiche.terrains', group: 'monde',
     build: () => {
       const meta = metaPourFichier('terrains.json');
@@ -2042,7 +2092,7 @@ const CODEX_SPECS = {
           fact(nom('built'), t.built ? tr('codex.fiche.oui') : null),
           fact(nom('solidHeightM'), t.solidHeightM != null ? `${t.solidHeightM} m` : null),
           fact(nom('matiere'), t.matiere ? matiereLabel(t.matiere.id) : null),
-          fact(nom('overlayProp'), t.overlayProp ? propLabel(t.overlayProp.id) : null),
+          fact(nom('overlayProps'), t.overlayProps ? t.overlayProps.map(propLabel).join(' · ') : null),
         ),
         // Les DEUX porteurs de couleur du terrain (teinte d'aperçu + arrêts de la rampe) tiennent la
         // MÊME section : ce sont des couleurs, rendues par la même rangée `couleur` (pastille peinte +
@@ -2440,7 +2490,7 @@ const CODEX_SPECS = {
     build: () => {
       const w = datasetObject('seaWeather');
       // Les 4 aspects du tirage (`table[].precipitations`/`.temperature`/`.visibilite`/`.vent`) sont des
-      // ids de catalogue (`w.precipitations`/`.temperatures`/`.visibilites`/`.vents`, CHACUN déjà porteur
+      // références de catalogue (`w.precipitations`/`.temperatures`/`.visibilites`/`.vents`, CHACUN déjà porteur
       // de son `label` FR verbatim MDG) — la fiche résout id→label PAR LOOKUP (jamais l'id affiché ;
       // aucune duplication de `label` sur `table.entries[]`, la SOURCE UNIQUE du libellé reste le catalogue).
       const precipLabel = new Map(w.precipitations.map((p) => [p.id, p.label]));
@@ -2455,7 +2505,7 @@ const CODEX_SPECS = {
             title: tr('codex.fiche.tirageQuotidienSaisonParAspect', { die: formatDice(deDeLaTableTiree(w.table)) }), layout: 'list',
             rows: w.table.entries.map((row) => ({
               t: 'kv', k: fourchette(row.min, row.max),
-              v: [precipLabel.get(row.precipitations), tempLabel.get(row.temperature), visLabel.get(row.visibilite), windLabel.get(row.vent)].join(' · '),
+              v: [precipLabel.get(row.precipitations.id), tempLabel.get(row.temperature.id), visLabel.get(row.visibilite.id), windLabel.get(row.vent.id)].join(' · '),
             } as CodexRow)),
           },
           {
@@ -2556,7 +2606,7 @@ const CODEX_SPECS = {
       const { achat, vente, ragot } = c;
       return [{
         id: 'landCargo', label: c.label, source: src(achat.source),
-        meta: facts(fact(tr('codex.fiche.ragot'), tr('codex.fiche.difficulteEtModificateur', { v: DIFFICULTY_LABELS[ragot.difficulty], mod: signe(ragot.mod) }))),
+        meta: facts(fact(tr('codex.fiche.ragot'), DIFFICULTY_LABELS[ragot.difficulty])),
         sections: sections(
           {
             title: tr('codex.fiche.qualiteDuVin', { die: formatDice(deDeLaTableTiree(c.qualiteDuVin)) }), layout: 'list',
@@ -2630,19 +2680,23 @@ const CODEX_SPECS = {
   },
   talentsAleatoires: {
     label: 'codex.fiche.talentsAleatoires', group: 'tables',
-    build: () => talentsAleatoires.map((t) => ficheDeTableDeRefs(t, 'talents', (id) => talentRefLabel({ id }))),
+    build: () => talentsAleatoires.map((t) => ficheDeTableDeRefs(t, t, 'talents', (id) => talentRefLabel({ id }))),
   },
   carrieresAleatoires: {
     label: 'codex.fiche.carrieresAleatoires', group: 'tables',
-    build: () => carrieresAleatoires.map((t) => ficheDeTableDeRefs(t, 'careers', (id) => refLabel('careers', { id }))),
+    build: () => carrieresAleatoires.map((t) => ficheDeTableDeRefs(t, porteurDuDeDeCarrieres(t), 'careers', (id) => refLabel('careers', { id }))),
   },
   especesAleatoires: {
     label: 'codex.fiche.especesAleatoires', group: 'tables',
-    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('races', { id }))),
+    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, t, 'races', (id) => refLabel('races', { id }))),
   },
   cargaisonsAleatoires: {
     label: 'codex.fiche.cargaisonsAleatoires', group: 'tables',
-    build: () => cargaisonsAleatoires.map((t) => ficheDeTableDeRefs(t, 'cargoes', (id) => refLabel('cargoes', { id }))),
+    build: () => cargaisonsAleatoires.map((t) => ficheDeTableDeRefs(t, t, 'cargoes', (id) => refLabel('cargoes', { id }))),
+  },
+  mutationNature: {
+    label: 'codex.fiche.mutationNature', group: 'tables',
+    build: () => mutationNature.map((t) => ficheDeTableDeRefs(t, t, 'mutationTables', (id) => refLabel('mutationTables', { id }))),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
@@ -2655,8 +2709,8 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.ref'), r.ref),
         fact(tr('codex.fiche.controle'), valeurFR('reglesOptionnelles.json', 'kind', r.kind)),
         fact(tr('codex.fiche.defaut'), ruleValueLabel(r.default)),
-        fact(tr('codex.fiche.valeurs'), r.options?.join(' · ') ?? null),
-        fact(tr('codex.fiche.bornes'), r.kind === 'param' && r.min != null && r.max != null ? tr('codex.fiche.deA', { min: r.min, max: r.max, v: r.step ? tr('codex.fiche.pasDe', { step: r.step }) : '' }) : null),
+        fact(tr('codex.fiche.valeurs'), r.kind === 'mode' ? r.options.join(' · ') : null),
+        fact(tr('codex.fiche.bornes'), r.kind === 'param' ? tr('codex.fiche.deA', { min: r.min, max: r.max, v: r.step ? tr('codex.fiche.pasDe', { step: r.step }) : '' }) : null),
         fact(tr('codex.fiche.actionAttachee'), r.action ? tr('codex.fiche.si', { label: r.action.label, v: ruleValueLabel(r.action.when) }) : null),
       ),
     })),
@@ -2762,7 +2816,7 @@ export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex,
 /** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
  *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
  *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
-function couleursDuTableau(table: typeof tableDesYeux, de: DeDeTable): CodexItem[] {
+function couleursDuTableau(table: typeof tableDesYeux | typeof tableDesCheveux, de: DeDeTable): CodexItem[] {
   const rangee = (e: (typeof eyes)[number]) => e.rand;
   const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
   /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */
@@ -2851,6 +2905,16 @@ export function codexLookupById(category: string | undefined, id: string | undef
   return categoryIndex(category)?.get(id);
 }
 
+/** La cible d'une ouverture du Compendium : une entrée d'une catégorie, et son instance. */
+export interface CibleDuCompendium { categorie: string; id: string; instance?: string }
+
+/** La cible de l'entrée `id` de la catégorie `categorie` (`codexLookupById`), et son `instance` quand le terme qui la
+ *  désigne en est une ; `null` sans `id` ou sans cette entrée au Codex. */
+export function cibleDuCodex(categorie: string, id: string | undefined, instance?: string): CibleDuCompendium | null {
+  const item = codexLookupById(categorie, id);
+  return item ? { categorie, id: item.id, ...(instance === undefined ? {} : { instance }) } : null;
+}
+
 const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
 const ARMOUR_LOCS: readonly HitLocation[] = [tete, corps, brasG, brasD, jambeG, jambeD];
 
@@ -2896,7 +2960,7 @@ const sectionDescription = (text: string, porteur: PorteurDeRangee | undefined):
 /**
  * La prose d'un combattant à fiche (#2206) : une section sans titre et l'entrée qui PORTE son texte
  * (`CodexSections`, `entree`), ou `null` sans prose. Lit le porteur de fiche, jamais `creatureId`
- * (`mergeCreatureProfile` laisse un `profil.id` l'écraser) ; lit `desc`, jamais `maison`.
+ * (celui d'un preset sans base est l'id du preset) ; lit `desc`, jamais `maison`.
  * - réf : la `desc` de la créature du catalogue ;
  * - preset : la `desc` de la fiche fusionnée. Quand elle EST la `desc` du profil du preset
  *   (`presetDe`, résolveur injecté), son porteur est le champ du document de projet

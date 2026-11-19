@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { navalPorts, findNavalPortById } from './index';
 import { CARGO_ENTRIES, marchandisesDe } from '../engine/cargo';
+import { schema as navalPortsSchema } from './schemas/defs/naval-ports';
 
 describe('naval-ports.json — catalogue de l’Index des ports (#217)', () => {
   it('charge et porte au moins les entrées connues', () => {
@@ -19,10 +20,10 @@ describe('naval-ports.json — catalogue de l’Index des ports (#217)', () => {
   });
 
   it('chaque id de production/surplus/demande résout dans la voie maritime du catalogue (cargoes.json)', () => {
-    const cargoIds = new Set(marchandisesDe('mer').map((c) => c.id));
+    const cargoIds = new Set<string>(marchandisesDe('mer').map((c) => c.id));
     // La colonne Production admet TOUT le vocabulaire de la voie, marqueurs de l'Index compris
     // (`echangeable: false`) — Surplus et Demande, eux, ne portent que des marchandises.
-    const columnIds = new Set(CARGO_ENTRIES.filter((c) => c.voie === 'mer').map((c) => c.id));
+    const columnIds = new Set<string>(CARGO_ENTRIES.filter((c) => c.voie === 'mer').map((c) => c.id));
     for (const p of navalPorts) {
       for (const id of p.production ?? []) {
         expect(columnIds.has(id), `${p.id} : production id inconnu "${id}"`).toBe(true);
@@ -89,5 +90,13 @@ describe('naval-ports.json — catalogue de l’Index des ports (#217)', () => {
       expect(p.source.book).toBe('mer-des-griffes');
       expect(typeof p.source.page).toBe('number');
     }
+  });
+});
+
+describe('naval-ports.json — chantier naval spécialisé (#4052, MDG 12 l.230)', () => {
+  it('le champ exige une citation : un simple booléen est refusé', () => {
+    const salzenmund = findNavalPortById('salzenmund')!;
+    expect(navalPortsSchema.safeParse([{ ...salzenmund, chantierNavalSpecialise: { book: 'mer-des-griffes', page: 24, note: 'MDG 03 l.196' } }]).error).toBeUndefined();
+    expect(navalPortsSchema.safeParse([{ ...salzenmund, chantierNavalSpecialise: true }]).error?.issues.map((i) => i.path)).toEqual([[0, 'chantierNavalSpecialise']]);
   });
 });

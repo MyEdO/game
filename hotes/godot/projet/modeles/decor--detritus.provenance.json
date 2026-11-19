@@ -1,0 +1,13 @@
+{
+  "model": "decor--detritus.glb",
+  "model_sha256": "be95748f6539b296a21311fd73607c871955d9c7ae442f148625783893b3027c",
+  "importe_le": "2026-11-18",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

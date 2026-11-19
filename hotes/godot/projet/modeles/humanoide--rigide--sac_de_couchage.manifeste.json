@@ -11,15 +11,17 @@
   "surfaces": [
     {
       "nom": "toile",
-      "palette": "vet2"
+      "palette": "vet2",
+      "matiere": "prop--toile-ecrue"
     },
     {
       "nom": "cuir",
-      "palette": "cuir"
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
     }
   ],
   "glb": {
-    "sha256": "a8ad2ca545cfa845ed7b30a05f73ebd4caa7aded913b621d0ce2568ff29c8d63",
-    "octets": 60800
+    "sha256": "1fa9afebe085dbf61650d75795a80441420f644575089ff9895574c0e7ec727d",
+    "octets": 73848
   }
 }

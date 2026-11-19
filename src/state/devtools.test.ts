@@ -360,7 +360,7 @@ describe('__wfrp — autres commandes de recette', () => {
     const hero = useGame.getState().party[0];
     useGame.setState({
       pendingTest: {
-        actorId: hero.id, actorName: hero.label, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+        actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 42, success: true, sl: 1,
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
@@ -1062,7 +1062,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
       suspendedCascades: [],
       gameTime: 8 * 60,
       lastUpkeepDay: 0,
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+      vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
       journal: [],
     } as never);
   };
@@ -1375,7 +1375,7 @@ describe('__wfrp.visibleCount / __wfrp.walls — sondes de brouillard et d’ar�
     expect(clayonnage.length).toBe(parStructure['cloture-en-clayonnage']);
     expect(clayonnage.every((w) => w.structure === 'cloture-en-clayonnage')).toBe(true);
     // La séparation de box des écuries que la recette vise (aucune fenêtre, aucune porte).
-    expect(clayonnage).toContainEqual(expect.objectContaining({ x: 23, y: 30, side: 'E', window: false, door: false }));
+    expect(clayonnage).toContainEqual(expect.objectContaining({ x: 31, y: 36, side: 'E', window: false, door: false }));
   });
 
   it('`closed` rend l’état VIVANT d’une porte (flags de scène), jamais son seul champ authoré', () => {

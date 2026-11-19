@@ -8,7 +8,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../state/store';
 import { Modal } from '../Modal';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexGroupLabel, codexItemKey, type CodexCategory, type CodexGroup, type CodexItem } from '../../noyau/codex/registry';
+import {
+  CODEX,
+  CODEX_GROUPS,
+  categoriesIn,
+  categoryByKey,
+  clustersIn,
+  codexGroupLabel,
+  codexItemKey,
+  type CodexCategory,
+  type CodexGroup,
+  type CodexItem,
+} from '../../noyau/codex/registry';
 import type { CodexFocus } from '../../state/codexFocus';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { filterItems, facetRows, type FacetSelection } from '../../noyau/codex/search';

@@ -97,12 +97,12 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     expect(e2.wounds.current).toBeLessThan(before); // CC 95 vs Mutant : touche déterministe (seed 2)
     expect(hasCondition(e2, 'empetre')).toBe(true); // LDB 85 l.405 : Dégâts → Empêtré (État keyé par id stable)
     // 2ᵉ tentative le même tour : la mutation Tentacule n'est PLUS dans la liste d'attaques (1/tour).
-    expect(availableAttacks(h2, st.battle!).some((o) => o.id === 'tentacule')).toBe(false);
+    expect(availableAttacks(banc.getState().scene, h2, st.battle!).some((o) => o.id === 'tentacule')).toBe(false);
   });
 
   it('absente de la liste d\'attaques sans le trait Tentacules', () => {
     const { H } = setup(false);
-    expect(availableAttacks(H, banc.getState().battle!).some((o) => o.id === 'tentacule')).toBe(false);
+    expect(availableAttacks(banc.getState().scene, H, banc.getState().battle!).some((o) => o.id === 'tentacule')).toBe(false);
   });
 
   it('cible distante : la mutation Tentacule CHARGE puis frappe (approche-puis-frappe)', () => {

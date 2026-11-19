@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "herbes"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "vegetal",
+      "palette": "vegetal"
+    }
+  ],
+  "glb": {
+    "sha256": "bf9ecc4672b96339388850de4faf0d495f86935807d851b1bd0aab26ccf0b94d",
+    "octets": 118432
+  }
+}

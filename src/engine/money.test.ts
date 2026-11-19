@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { toBrass, fromBrass, add, subtract, canAfford, formatMoney, spellMoney, priceToMoney, statusBudgetBrass, withinStatusBudget, parseStatus, formuleDeRevenus } from './money';
+import {
+  toBrass,
+  fromBrass,
+  add,
+  subtract,
+  canAfford,
+  formatMoney,
+  spellMoney,
+  priceToMoney,
+  statusBudgetBrass,
+  withinStatusBudget,
+  libelleDuStatut,
+  formuleDeRevenus,
+} from './money';
 
 describe('« Tenir les comptes » — budget par Statut (LDB 59 l.9-11)', () => {
   it('statusBudgetBrass : Bronze N = N sous, Argent N = N pistoles, Or N = N couronnes', () => {
@@ -11,12 +24,10 @@ describe('« Tenir les comptes » — budget par Statut (LDB 59 l.9-11)', () => 
     expect(withinStatusBudget(24, 'argent', 2)).toBe(true); // pile 2 pistoles
     expect(withinStatusBudget(25, 'argent', 2)).toBe(false); // au-delà
   });
-  it('parseStatus : décompose « Argent 2 » / « Bronze 1 » / libellé inconnu', () => {
-    expect(parseStatus('Argent 2')).toEqual({ tier: 'argent', standing: 2 });
-    expect(parseStatus('Bronze 1')).toEqual({ tier: 'bronze', standing: 1 });
-    expect(parseStatus('Or 7')).toEqual({ tier: 'or', standing: 7 });
-    expect(parseStatus('—')).toBeNull();
-    expect(parseStatus(undefined)).toBeNull();
+  it('libelleDuStatut : l’Échelon en libellé joueur, puis le Standing', () => {
+    expect(libelleDuStatut({ tier: 'argent', standing: 2 })).toBe('Argent 2');
+    expect(libelleDuStatut({ tier: 'bronze', standing: 0 })).toBe('Bronze 0');
+    expect(libelleDuStatut({ tier: 'or', standing: 7 })).toBe('Or 7');
   });
 });
 

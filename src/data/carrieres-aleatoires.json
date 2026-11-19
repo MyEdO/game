@@ -4,12 +4,16 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Humain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
       "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
     },
+    "tableauDuLdb": true,
     "entries": [
       {
         "id": "agitateur",
@@ -333,12 +337,16 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Halfling",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
       "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
     },
+    "tableauDuLdb": true,
     "entries": [
       {
         "id": "agitateur",
@@ -587,12 +595,16 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Nain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
       "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
     },
+    "tableauDuLdb": true,
     "entries": [
       {
         "id": "agitateur",
@@ -836,7 +848,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Gnome",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 87,
@@ -1066,7 +1081,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Ogre",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 18,
@@ -1195,12 +1213,16 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Haut elfe",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
       "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
     },
+    "tableauDuLdb": true,
     "entries": [
       {
         "id": "artisan",
@@ -1384,12 +1406,16 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Elfe sylvain",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "livre-de-base",
       "page": 30,
       "note": "Tableau des Classes et Carrières aléatoires, LDB 05 l.214-299"
     },
+    "tableauDuLdb": true,
     "entries": [
       {
         "id": "artisan",
@@ -1508,12 +1534,17 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Middenheimer",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "middenheim",
       "page": 148,
       "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
     },
+    "tableauDuLdb": true,
+    "maison": "Seconds jets d’AA 02 l.109 et de VDM 03 l.17 étendus à cette colonne : les Carrières y sont « toutes communes à l’Empire » (AA 02 l.111) et « les Middenlanders ont le même type d’occupation que les Reiklanders » (Middenheim 09 l.51) ; proposé au ticket #3908 (https://github.com/MyEdO/game/issues/3908#issuecomment-6841841671)",
     "entries": [
       {
         "id": "apothicaire",
@@ -1807,12 +1838,17 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Middenlander",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "middenheim",
       "page": 148,
       "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
     },
+    "tableauDuLdb": true,
+    "maison": "Seconds jets d’AA 02 l.109 et de VDM 03 l.17 étendus à cette colonne : les Carrières y sont « toutes communes à l’Empire » (AA 02 l.111) et « les Middenlanders ont le même type d’occupation que les Reiklanders » (Middenheim 09 l.51) ; proposé au ticket #3908 (https://github.com/MyEdO/game/issues/3908#issuecomment-6841841671)",
     "entries": [
       {
         "id": "apothicaire",
@@ -2136,12 +2172,17 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Nordlander",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "middenheim",
       "page": 148,
       "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
     },
+    "tableauDuLdb": true,
+    "maison": "Seconds jets d’AA 02 l.109 et de VDM 03 l.17 étendus à cette colonne : les Carrières y sont « toutes communes à l’Empire » (AA 02 l.111) et « les Middenlanders ont le même type d’occupation que les Reiklanders » (Middenheim 09 l.51) ; proposé au ticket #3908 (https://github.com/MyEdO/game/issues/3908#issuecomment-6841841671)",
     "entries": [
       {
         "id": "apothicaire",
@@ -2465,7 +2506,10 @@
     "type": "carrieres-aleatoires",
     "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Norse",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 57,
@@ -2634,7 +2678,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Humain",
-    "die": "d100",
     "colonne": "humain",
     "source": {
       "book": "mer-des-griffes",
@@ -2689,7 +2732,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Halfling",
-    "die": "d100",
     "colonne": "halfling",
     "source": {
       "book": "mer-des-griffes",
@@ -2724,7 +2766,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Nain",
-    "die": "d100",
     "colonne": "nain",
     "source": {
       "book": "mer-des-griffes",
@@ -2764,7 +2805,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Haut elfe",
-    "die": "d100",
     "colonne": "haut-elfe",
     "source": {
       "book": "mer-des-griffes",
@@ -2804,7 +2844,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Elfe sylvain",
-    "die": "d100",
     "colonne": "elfe-sylvain",
     "source": {
       "book": "mer-des-griffes",
@@ -2824,16 +2863,11 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Cavalier",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "cavalier",
-    "colonnes": [
-      "humain",
-      "haut-elfe",
-      "elfe-sylvain",
-      "middenheim",
-      "middenland",
-      "nordland"
-    ],
     "source": {
       "book": "aux-armes",
       "page": 9,
@@ -2857,16 +2891,11 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Chevalier",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "chevalier",
-    "colonnes": [
-      "humain",
-      "haut-elfe",
-      "elfe-sylvain",
-      "middenheim",
-      "middenland",
-      "nordland"
-    ],
     "source": {
       "book": "aux-armes",
       "page": 9,
@@ -2905,14 +2934,11 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Prêtre guerrier",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "pretre-guerrier",
-    "colonnes": [
-      "humain",
-      "middenheim",
-      "middenland",
-      "nordland"
-    ],
     "source": {
       "book": "aux-armes",
       "page": 9,
@@ -2936,18 +2962,11 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Soldat",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "soldat",
-    "colonnes": [
-      "humain",
-      "halfling",
-      "nain",
-      "haut-elfe",
-      "elfe-sylvain",
-      "middenheim",
-      "middenland",
-      "nordland"
-    ],
     "source": {
       "book": "aux-armes",
       "page": 9,
@@ -2996,16 +3015,11 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Colporteur",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "colporteur",
-    "colonnes": [
-      "humain",
-      "halfling",
-      "nain",
-      "middenheim",
-      "middenland",
-      "nordland"
-    ],
     "source": {
       "book": "aux-armes",
       "page": 9,
@@ -3029,18 +3043,11 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Érudit",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "erudit",
-    "colonnes": [
-      "humain",
-      "halfling",
-      "nain",
-      "haut-elfe",
-      "elfe-sylvain",
-      "middenheim",
-      "middenland",
-      "nordland"
-    ],
     "source": {
       "book": "aux-armes",
       "page": 9,
@@ -3064,16 +3071,11 @@
     "type": "carrieres-aleatoires",
     "kind": "variante",
     "label": "Jet optionnel — Ingénieur",
-    "die": "d100",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
     "carriere": "ingenieur",
-    "colonnes": [
-      "humain",
-      "halfling",
-      "nain",
-      "middenheim",
-      "middenland",
-      "nordland"
-    ],
     "source": {
       "book": "aux-armes",
       "page": 9,
@@ -3088,6 +3090,118 @@
       {
         "id": "artilleur",
         "min": 76,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-apothicaire",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Second lancer — Apothicaire",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
+    "carriere": "apothicaire",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 35,
+      "note": "Obtenir aléatoirement les nouvelles Carrières, Second lancer, VDM 03 l.23-31"
+    },
+    "entries": [
+      {
+        "id": "alchimiste-ordinaire",
+        "min": 1,
+        "max": 15
+      },
+      {
+        "id": "apothicaire",
+        "min": 16,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-sorcier",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Second lancer — Sorcier",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
+    "carriere": "sorcier",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 35,
+      "note": "Obtenir aléatoirement les nouvelles Carrières, Second lancer, VDM 03 l.23-31"
+    },
+    "entries": [
+      {
+        "id": "sorcier",
+        "min": 1,
+        "max": 95
+      },
+      {
+        "id": "magister-vigilant",
+        "min": 96,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-garde",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Second lancer — Garde",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
+    "carriere": "garde",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 35,
+      "note": "Obtenir aléatoirement les nouvelles Carrières, Second lancer, VDM 03 l.23-31"
+    },
+    "entries": [
+      {
+        "id": "bedeau",
+        "min": 1,
+        "max": 15
+      },
+      {
+        "id": "garde",
+        "min": 16,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "variantes-mystique",
+    "type": "carrieres-aleatoires",
+    "kind": "variante",
+    "label": "Second lancer — Mystique",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
+    "carriere": "mystique",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 35,
+      "note": "Obtenir aléatoirement les nouvelles Carrières, Second lancer, VDM 03 l.23-31"
+    },
+    "entries": [
+      {
+        "id": "devin",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "id": "mystique",
+        "min": 11,
         "max": 100
       }
     ]

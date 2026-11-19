@@ -65,9 +65,11 @@ export const icons: IconFamily = [
   {
     id: 'interface/reglages',
     label: 'Réglages',
-    // Engrenage à 6 dents, moyeu évidé.
+    // Le pictogramme « système » des maquettes (`propositions/sources/lieux-et-nuit/commun.js`, `PICTOS.systeme`) : un
+    // moyeu et huit rayons.
     svg:
-      `<path ${FE} d="M12 2.6 L13.4 5 L15.9 4 L16.4 6.7 L19.1 6.7 L18.7 9.4 L21.1 10.7 L19.6 12.9 L21.1 15.1 L18.7 16.4 L19.1 19.1 L16.4 19.1 L15.9 21.8 L13.4 20.8 L12 23.2 L10.6 20.8 L8.1 21.8 L7.6 19.1 L4.9 19.1 L5.3 16.4 L2.9 15.1 L4.4 12.9 L2.9 10.7 L5.3 9.4 L4.9 6.7 L7.6 6.7 L8.1 4 L10.6 5 Z M12 9.3 C10.2 9.3 8.7 10.7 8.7 12.6 C8.7 14.4 10.2 15.9 12 15.9 C13.8 15.9 15.3 14.4 15.3 12.6 C15.3 10.7 13.8 9.3 12 9.3 Z"/>`,
+      `<circle fill="none" stroke="currentColor" stroke-width="1.6" cx="12" cy="12" r="3.2"/>` +
+      `<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>`,
   },
   {
     id: 'interface/rechercher',
@@ -164,6 +166,36 @@ export const icons: IconFamily = [
       `<path ${K} d="M10 12 C12 12 12 6.4 15.1 6.4 M10 12 C12 12 12 17.6 15.1 17.6"/>` +
       `<circle ${F} cx="17.1" cy="6.4" r="1.7"/>` +
       `<circle ${F} cx="17.1" cy="17.6" r="1.7"/>`,
+  },
+  {
+    id: 'interface/precedent',
+    label: 'Précédent',
+    // Chevron vers la gauche : le feuillet, la valeur d'avant.
+    svg: `<path ${K} d="M14.5 5.5 L8 12 L14.5 18.5"/>`,
+  },
+  {
+    id: 'interface/suivant',
+    label: 'Suivant',
+    // Chevron vers la droite : le feuillet, la valeur d'après.
+    svg: `<path ${K} d="M9.5 5.5 L16 12 L9.5 18.5"/>`,
+  },
+  {
+    id: 'interface/losange',
+    label: 'Losange',
+    // Le curseur d'une glissière : un losange de laiton, éclairé en haut à gauche, cerné d'encre.
+    svg:
+      `<path fill="var(--laiton)" stroke="none" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/>` +
+      `<path fill="var(--or-eclat)" stroke="none" d="M12 2.5 L16.75 7.25 L7.25 16.75 L2.5 12 Z"/>` +
+      `<path fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z"/>`,
+  },
+  {
+    id: 'interface/cire',
+    label: 'Cire',
+    // La goutte de cire d'un signet dont une règle est modifiée : un disque de cire, éclairé en haut à gauche.
+    svg:
+      `<circle fill="var(--cire)" stroke="none" cx="12" cy="12" r="9"/>` +
+      `<circle fill="var(--cire-claire)" stroke="none" cx="9.5" cy="9" r="4"/>` +
+      `<circle fill="none" stroke="var(--cire-sombre)" stroke-width="1.6" cx="12" cy="12" r="9"/>`,
   },
   {
     id: 'interface/fermer',

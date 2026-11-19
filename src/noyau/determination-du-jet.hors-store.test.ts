@@ -52,7 +52,7 @@ const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant
 function bandeDePeur(rangees: BatchParticipant[] = [row('h2'), row('h3')]) {
   const etape: CascadeStep = {
     id: 'bande-peur', kind: 'psychologieDeCombat', label: fixtureText('Peur'), aggregate: 'none', participants: rangees, result: null, groupOwner: true,
-    psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
+    psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: fixtureText('Bête'), indice: 2, round: 1 },
   };
   startCascade(banc.getState, banc.setState, { title: 'Peur', purpose: 'test', steps: [etape] });
 }

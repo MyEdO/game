@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "rack-lances"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "acier",
+      "palette": "metal2",
+      "matiere": "prop--acier-battu"
+    }
+  ],
+  "glb": {
+    "sha256": "847bb5ee88a6f954a5cf65ec42760b401b3c84f521262e137afb34332aa54741",
+    "octets": 59724
+  }
+}

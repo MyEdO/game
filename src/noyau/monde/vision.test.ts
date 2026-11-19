@@ -1,14 +1,26 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from '../../engine/items';
-import { computeVisible, computeLightField, ambientScalar, baseSightTiles, combatantLights, darkSightTiles, mapLights, rayonEnCases, type LightField } from './vision';
+import { combattantDeTest } from '../../engine/combattantDeTest.testkit';
+import {
+  computeVisible,
+  computeLightField,
+  ambientScalar,
+  baseSightTiles,
+  combatantLights,
+  darkSightTiles,
+  mapLights,
+  rayonEnCases,
+  type LightField,
+} from './vision';
 import { Scene, WallSeg, emptyScene, sceneMetresPerTile, wallBetween } from './scene';
 import { couvertDArete, losClear } from './lineOfSight';
 import { pathTo } from './path';
 import { findLightLevelById, structures } from '../../data';
 import { couvertDepuisDifficulte, cranDeCouvertEnMoins } from '../../engine/cover';
 import { METRES_PER_LEVEL } from './relief';
-import { computeStateVisible } from '../visionState';
+import { computeStateVisible, sceneLightSources } from '../visionState';
+import { bumperDataset } from '../../data/versionDataset';
 import { parseWalledAscii } from './asciiMap';
 import { builtinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 
@@ -252,6 +264,24 @@ describe('mapLights — sources de lumière POSÉES (dataset props)', () => {
     expect(v.has('0,0,0')).toBe(true); // sa propre case
     expect(v.has('2,0,0')).toBe(false); // entre les deux : sombre → invisible
   });
+  it('se calculent une fois par scène : relue, la scène rend les mêmes sources, que la lumière portée du groupe ne touche pas (#3975)', () => {
+    const s = { ...scene(9, 1), entities: [{ id: 'b', kind: 'prop', pos: { x: 5, y: 0 }, decor: { id: 'brasero' } }] } as unknown as Scene;
+    const posees = mapLights(s);
+    const lanterne = { ...itemFromTrappingById('lanterne', idsDeTest)!, uid: 'i1', equipped: true };
+    const sources = sceneLightSources({ scene: s, battle: null, party: [combattantDeTest({ id: 'h1', items: [lanterne] })], partyPos: { x: 1, y: 0 } });
+    expect(sources.map((l) => l.srcId)).toEqual(['b', 'h1']);
+    expect(mapLights(s)).toBe(posees);
+    expect(posees.map((l) => l.srcId)).toEqual(['b']);
+  });
+  it('une écriture au seam des datasets les recalcule à la lecture suivante (#3975)', () => {
+    const s = { ...scene(9, 1), entities: [{ id: 'b', kind: 'prop', pos: { x: 5, y: 0 }, decor: { id: 'brasero' } }] } as unknown as Scene;
+    const avant = mapLights(s);
+    bumperDataset('props');
+    const apres = mapLights(s);
+    expect(apres).not.toBe(avant);
+    expect(apres).toEqual(avant);
+    expect(mapLights(s)).toBe(apres);
+  });
 });
 
 describe('combatantLights — la source PORTÉE suit son porteur : son ÉTAGE et son identité', () => {
@@ -459,10 +489,10 @@ describe('croisée (#1712) — la vue et le tir passent, le pas non ; volets clo
   it('croisée portée par une Structure : le couvert descend d’UN cran', () => {
     expect(porteuse, 'une Structure à couvert dégradable existe au dataset').toBeTruthy();
     const brut = couvertDepuisDifficulte(porteuse.couvertPenalty!);
-    expect(couvertDArete(couloir({ structure: porteuse.id }), A, { x: 2, y: 0 })).toBe(cranDeCouvertEnMoins(brut));
+    expect(couvertDArete(couloir({ structure: porteuse.id }), { pos: A }, { pos: { x: 2, y: 0 } }, cranDeCouvertEnMoins)).toBe(cranDeCouvertEnMoins(brut));
   });
 
   it('croisée sur MUR NU (sans `structure`) : aucun couvert', () => {
-    expect(couvertDArete(couloir(), A, { x: 2, y: 0 })).toBe('none');
+    expect(couvertDArete(couloir(), { pos: A }, { pos: { x: 2, y: 0 } }, cranDeCouvertEnMoins)).toBe('none');
   });
 });

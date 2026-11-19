@@ -6,11 +6,16 @@ extends SceneTree
 ## 0,1 mm de sa place dessinée seule : une pièce skinnée par ses liaisons, une pièce rigide par son `BoneAttachment3D`,
 ## au repère de la pièce dans l'os. La pièce fondue n'est plus sur aucun calque ; restent seules, sur leur calque, la
 ## pièce cachée, la pièce portée par un nœud `top_level` et la pièce rigide à matériau projeté dans son repère. Une
-## pièce démasquée se fond à la refonte suivante, et des liaisons égales ne s'ajoutent qu'une fois.
+## pièce d'élément monté peinte (`MontageDeComposition.peindre`) d'une matière que la palette colore porte sa texture
+## neutre lue aux UV du mesh, sans projection, et se fond (#4313). Une pièce démasquée se fond à la refonte suivante, et
+## des liaisons égales ne s'ajoutent qu'une fois.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
+const TOILE := "toile"
 var _fautes: Array[String] = []
+## Les matières locales des pièces peintes (`MontageDeComposition.materiau_local`).
+var _locaux: Dictionary = {}
 
 
 func _initialize() -> void:
@@ -43,6 +48,17 @@ func _recetter() -> void:
 	var range_ := _rigide("Range", squelette, "hanche", metal, Transform3D.IDENTITY)
 	range_.get_parent().top_level = true
 	var baton := _rigide("Baton", squelette, "main", projete, Transform3D.IDENTITY)
+	var toile := StandardMaterial3D.new()
+	toile.resource_name = TOILE
+	var tunique := _skinnee("Tunique", squelette, toile, {torse = 1.0})
+	var matiere := _matiere_a_texture_neutre()
+	if matiere.is_empty():
+		_fautes.append("aucune texture neutre au projet (`res://textures/<matiere>.neutre.jpg`)")
+		return _finir()
+	MontageDeComposition.peindre([tunique], [{nom = TOILE, palette = "vet1", matiere = matiere}], null, {vet1 = "#a03020"}, _locaux, true)
+	var peinte := tunique.get_active_material(0) as BaseMaterial3D
+	if peinte.albedo_texture != load(VolumeDeScene.texture_neutre_de(matiere)) or peinte.uv1_triplanar:
+		_fautes.append("tunique : texture %s (triplanaire %s), %s aux UV attendue" % [peinte.albedo_texture, peinte.uv1_triplanar, VolumeDeScene.texture_neutre_de(matiere)])
 	squelette.set_bone_pose_rotation(squelette.find_bone("torse"), Quaternion.from_euler(Vector3(0.4, -0.2, 0.1)))
 	squelette.set_bone_pose_rotation(squelette.find_bone("main"), Quaternion.from_euler(Vector3(-0.7, 0.5, 0.3)))
 	squelette.force_update_all_bone_transforms()
@@ -52,19 +68,19 @@ func _recetter() -> void:
 	if fusion == null:
 		_fautes.append("aucune fusion")
 		return _finir()
-	if fusion.mesh.get_surface_count() != 2:
-		_fautes.append("%d surfaces fondues, attendu 2 (cuir et son double, métal)" % fusion.mesh.get_surface_count())
-	for fondue in [corps, gant, epee]:
+	if fusion.mesh.get_surface_count() != 3:
+		_fautes.append("%d surfaces fondues, attendu 3 (cuir et son double, métal, toile peinte)" % fusion.mesh.get_surface_count())
+	for fondue in [corps, gant, epee, tunique]:
 		if fondue.layers != 0:
 			_fautes.append("%s fondue reste sur le calque %d" % [fondue.name, fondue.layers])
 	for seule in [cache, range_, baton]:
 		if seule.layers != MontageDeComposition.CALQUE:
 			_fautes.append("%s laissée seule hors de son calque (%d)" % [seule.name, seule.layers])
 	var fondus := _sommets_fondus(fusion, squelette)
-	for piece in [corps, gant, epee]:
+	for piece in [corps, gant, epee, tunique]:
 		_comparer(piece, _sommets_seuls(piece, squelette), fondus)
-	if fondus.size() != _compte([corps, gant, epee]):
-		_fautes.append("%d sommets fondus, attendu %d" % [fondus.size(), _compte([corps, gant, epee])])
+	if fondus.size() != _compte([corps, gant, epee, tunique]):
+		_fautes.append("%d sommets fondus, attendu %d" % [fondus.size(), _compte([corps, gant, epee, tunique])])
 
 	var liaisons := fusion.skin.get_bind_count()
 	cache.visible = true
@@ -82,6 +98,14 @@ func _finir() -> void:
 		push_error("[fusion-des-pieces] " + faute)
 	print("[fusion-des-pieces] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## La première matière dont le projet porte la texture neutre (`VolumeDeScene.texture_neutre_de`), "" sans aucune.
+func _matiere_a_texture_neutre() -> String:
+	for fichier in DirAccess.get_files_at("res://textures"):
+		if fichier.ends_with(".neutre.jpg"):
+			return fichier.trim_suffix(".neutre.jpg")
+	return ""
 
 
 ## Un squelette hanche → torse → main, hors de l'origine.

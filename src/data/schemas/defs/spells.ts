@@ -1,8 +1,8 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `spells.json` — dérivé de l'inventaire COMPLET des clés (script node, n=416/416), de
- * `SpellData` (`src/data/index.ts`), `SpellRange`/`SpellTarget` (`src/engine/spellRange.ts`),
- * `SpellDuration` (`src/engine/spellDuration.ts`) et `Formula` (`src/engine/ops.ts`).
+ * Schéma de `spells.json`, d'où dérivent `SpellData` (`src/data/index.ts`), `SpellRange`/`SpellTarget`
+ * (`src/engine/spellRange.ts`) et `SpellDuration` (`src/engine/spellDuration.ts`) ; ses formules sont
+ * `Formula` (`src/engine/ops.ts`).
  * `effects` (`Flow<EffectOp>`) : MÊME algèbre que talents/etats (`engine/flowCore.ts`), PROMUE dans
  * `grammaire/mecanique.ts` (famille `mecaniqueDe`, `conditionSchema`) et `grammaire/valeurs.ts` (`formulaSchema`).
  */
@@ -16,46 +16,55 @@ import { messagePorteSansDuree } from '../../../engine/ops';
 export const file = 'spells.json';
 export const famille = 'entite';
 
-/** Toute op `condition { carried }` de l'arbre d'effets d'une entrée (#1695). */
-function* opsPortees(noeud: unknown): Generator<Record<string, unknown>> {
-  if (Array.isArray(noeud)) { for (const e of noeud) yield* opsPortees(e); return; }
+/** Toute op de l'arbre d'effets d'une entrée que `retenue` retient. */
+function* opsRetenues(noeud: unknown, retenue: (n: Record<string, unknown>) => boolean): Generator<Record<string, unknown>> {
+  if (Array.isArray(noeud)) { for (const e of noeud) yield* opsRetenues(e, retenue); return; }
   if (noeud == null || typeof noeud !== 'object') return;
   const n = noeud as Record<string, unknown>;
-  if (n.op === 'condition' && n.carried === true) yield n;
-  for (const v of Object.values(n)) yield* opsPortees(v);
+  if (retenue(n)) yield n;
+  for (const v of Object.values(n)) yield* opsRetenues(v, retenue);
 }
 
-/** `SpellRange` (`engine/spellRange.ts`). */
+/** Portée d'un Sort (`SpellRange` en dérive, `engine/spellRange.ts`). */
 const spellRangeSchema = z.discriminatedUnion('kind', [
-  nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('touch') }), { kind: { label: 'Type' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('distance'), value: formuleSansTirageSchema, unit: z.enum(['m', 'km']) }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, unit: { label: 'Unité' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }),
+  nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }, { label: 'Vous' }),
+  nommerChamps(z.strictObject({ kind: z.literal('touch') }), { kind: { label: 'Type' } }, { label: 'Contact' }),
+  nommerChamps(z.strictObject({ kind: z.literal('distance'), value: formuleSansTirageSchema, unit: z.enum(['m', 'km']) }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, unit: { label: 'Unité' } }, { label: 'Distance' }),
+  nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }, { label: 'Spéciale' }),
 ]);
 
-/** `SpellTarget` (`engine/spellRange.ts`). `maison` : valeur maison ÉDITABLE portant sa
+/** Cible d'un Sort (`SpellTarget` en dérive, `engine/spellRange.ts`). `maison` : valeur maison ÉDITABLE portant sa
  *  justification, quand le RAW laisse un point ouvert — AGENTS.md règle 7. */
 const spellTargetSchema = z.discriminatedUnion('kind', [
-  nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('count'), n: formuleSansTirageSchema }), { kind: { label: 'Type' }, n: { label: 'Nombre' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formuleSansTirageSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: maisonSchema.optional() }), {
+  nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }, { label: 'Vous' }),
+  nommerChamps(z.strictObject({ kind: z.literal('count'), n: formuleSansTirageSchema }), { kind: { label: 'Type' }, n: { label: 'Nombre' } }, { label: 'Cibles' }),
+  nommerChamps(z.strictObject({
+    kind: z.literal('area'),
+    span: z.enum(['radius', 'diameter']),
+    meters: formuleSansTirageSchema,
+    anchor: z.literal('target').optional(),
+    excludesCaster: z.boolean().optional(),
+    affects: conditionSchema.optional(),
+    maison: maisonSchema.optional(),
+  }), {
     kind: { label: 'Type' },
     span: { label: 'Envergure' },
     meters: { label: 'Mètres' },
+    anchor: { label: 'Ancre sur la cible' },
     excludesCaster: { label: 'Lanceur exclu' },
     affects: { label: 'Cibles affectées' },
     maison: { label: 'Arbitrage maison' },
-  }),
-  nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }),
+  }, { label: 'Zone' }),
+  nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }, { label: 'Spéciale' }),
 ]);
 
-/** `SpellDuration` (`engine/spellDuration.ts`). */
+/** Durée d'un Sort (`SpellDuration` en dérive, `engine/spellDuration.ts`). */
 const spellDurationSchema = z.discriminatedUnion('kind', [
-  nommerChamps(z.strictObject({ kind: z.literal('instant') }), { kind: { label: 'Type' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('rounds'), value: formulaSchema, plus: z.literal(true).optional() }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, plus: { label: 'Ajout' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('clock'), value: formulaSchema, unit: z.enum(['minutes', 'hours', 'days']) }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, unit: { label: 'Unité' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('untilDawn') }), { kind: { label: 'Type' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }),
+  nommerChamps(z.strictObject({ kind: z.literal('instant') }), { kind: { label: 'Type' } }, { label: 'Instantané' }),
+  nommerChamps(z.strictObject({ kind: z.literal('rounds'), value: formulaSchema, plus: z.literal(true).optional() }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, plus: { label: 'Ajout' } }, { label: 'Rounds' }),
+  nommerChamps(z.strictObject({ kind: z.literal('clock'), value: formulaSchema, unit: z.enum(['minutes', 'hours', 'days']) }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, unit: { label: 'Unité' } }, { label: 'Durée chiffrée' }),
+  nommerChamps(z.strictObject({ kind: z.literal('untilDawn') }), { kind: { label: 'Type' } }, { label: "Jusqu'au lever du soleil" }),
+  nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }, { label: 'Spéciale' }),
 ]);
 
 /** VDM 02 l.377-393 */
@@ -101,7 +110,7 @@ const ritualSchema = nommerChamps(z.strictObject({
   consequences: { label: 'Conséquences' },
 });
 
-// ── SpellData (src/data/index.ts) ───────────────────────────────────────────────────────────────
+// ── Champs d'où dérive SpellData (src/data/index.ts) ───────────────────────────────────────────────────────────────
 /** Champs PROPRES d'une entrée de `spells.json` — l'enveloppe (id/label/desc/source/alsoIn/variants)
  *  est posée par `document()`. */
 const champs = {
@@ -196,8 +205,13 @@ const doc = document(
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as { duration?: { kind?: string } | null; effects?: unknown };
+        // LDB 47 l.15 ; #4202.
+        if (!opsRetenues(e.effects, (n) => n.op === 'zone' && n.durationRounds !== undefined).next().done) {
+          ctx.addIssue({ code: 'custom', path: ['effects'], message: 'op « zone » d’un sort : « durationRounds » interdit, la zone dure le temps du sort.' });
+        }
         if (e.duration != null && e.duration.kind !== 'instant') return;
-        for (const op of opsPortees(e.effects)) {
+        // #1695
+        for (const op of opsRetenues(e.effects, (n) => n.op === 'condition' && n.carried === true)) {
           ctx.addIssue({ code: 'custom', path: ['effects'], message: messagePorteSansDuree(String(op.id ?? '')) });
         }
       }),

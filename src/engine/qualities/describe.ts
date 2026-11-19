@@ -29,7 +29,7 @@ export function describeQuality(q: QualityInstance): QualityInfo | null {
     key,
     polarite: data.polarite === 'atout' || data.polarite === 'defaut' ? data.polarite : undefined,
     indice: q.value,
-    label: q.value != null ? `${key} ${q.value}` : key,
+    label: q.majoration != null ? `${key} +${q.majoration}` : q.value != null ? `${key} ${q.value}` : key,
     desc: data.desc,
   };
 }

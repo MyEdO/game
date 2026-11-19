@@ -12,6 +12,7 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray } from '../../data/overrides';
+import type { DomainData } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -55,12 +56,10 @@ const bouton = (dans: ParentNode, texte: string): HTMLButtonElement => {
   return b!;
 };
 
-type Source = { book: string; page: number; note?: string };
-type Domaine = { id: string; label: string; windModifiers?: { source?: Source }[] };
 
 /** Premier domaine RÉEL à deux rangées `windModifiers` de MÊME source (les deux rangées se valent). */
-function domaineARangeesJumelles(): Domaine {
-  const d = (datasetArray('domains') as Domaine[]).find((x) => (x.windModifiers?.length ?? 0) >= 2
+function domaineARangeesJumelles(): DomainData {
+  const d = datasetArray('domains').find((x) => (x.windModifiers?.length ?? 0) >= 2
     && x.windModifiers![0].source != null
     && JSON.stringify(x.windModifiers![0].source) === JSON.stringify(x.windModifiers![1].source));
   expect(d, 'aucun domaine à deux rangées sourcées identiques — la mesure ne porte sur rien').toBeTruthy();

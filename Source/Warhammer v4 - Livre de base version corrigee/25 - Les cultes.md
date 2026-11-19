@@ -1,6 +1,6 @@
 *Pages PDF 205-206*
 
-# **LES CULTES**
+# <span id="page-204-0" data-folio="203"></span>**LES CULTES**
 
 Le Vieux Monde compte de nombreux cultes visant à apaiser ou à faire appel aux divinités et promouvoir les idéaux qu'elles incarnent. Les dirigeants de ces cultes influencent fréquemment les politiques locales. Ils ne s'affichent pas seulement comme les représentants de leurs dieux, mais sont également à la tête de centaines voire de milliers de religieux et Templiers : une puissance politique qui ne peut être ignorée.
 

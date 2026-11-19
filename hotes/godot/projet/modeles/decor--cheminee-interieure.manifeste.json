@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "cheminee-interieure"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "pierre",
+      "palette": "corps",
+      "matiere": "prop--pierre-atre"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "braises",
+      "palette": "accent",
+      "matiere": "prop--braises"
+    }
+  ],
+  "glb": {
+    "sha256": "62f31eea2cb6ffbd26bf380704e644194335ae880c05040993dc74e60e2a76f7",
+    "octets": 196652
+  }
+}

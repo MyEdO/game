@@ -14,6 +14,7 @@ import { narratifSchema } from './narratif';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from './registres-narratifs';
 import { cheminLisible, validateDocument } from '../validate';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
+import { objetDeCampagne } from '../../../scenes/fixtures/objetDeCampagne.testkit';
 
 type Jouet = Record<string, unknown>;
 
@@ -25,7 +26,7 @@ const ENTREE_DE: { readonly [K in CleDeRegistreNarratif]: (id: string) => Jouet 
   affaires: (id) => ({ id, titre: 'Une affaire' }),
   indices: (id) => ({ id, affaireId: 'aff-socle', kind: 'indice', titre: 'Un indice', stades: [{ id: 's1', prose: 'Un indice.' }] }),
   presetsPnj: (id) => ({ id, base: { id: 'gobelin' } }),
-  objets: (id) => ({ id, label: 'Un objet' }),
+  objets: (id) => objetDeCampagne({ id }),
   documents: (id) => ({ id, titre: 'Un document', prose: 'Un texte.' }),
   etats: (id) => ({ id, label: 'Un état', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } }),
 };
@@ -76,7 +77,7 @@ describe('registre `documents` — un registre narratif comme les autres (table 
 
   it('un id de document qui résout dans la règle globale est refusé, nommé', () => {
     expect(fautes(narratif({ documents: [ENTREE_DE.documents('gobelin')] }), narratifSchema)).toEqual([
-      'document « gobelin » › identifiant :: l\'id de document « gobelin » collisionne avec un id de la règle globale (créature/possession).',
+      'document « gobelin » › identifiant :: l\'id de document « gobelin » collisionne avec un id de la règle globale (créature, possession, véhicule ou structure).',
     ]);
   });
 

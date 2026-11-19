@@ -5,7 +5,7 @@
  * de terrain, et les VÉRITÉS DE SCÈNE (visible/surplomb/fantôme/surplomb plein). PUR et
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
-import { Scene, tileAt, isWalkable, sceneMetresPerTile, wallEnds, type CellSide, type SceneDuVolume } from '../scene';
+import { Scene, tileAt, solPraticable, sceneMetresPerTile, wallEnds, type CellSide, type SceneDuVolume } from '../scene';
 import { estAbsent, terrainBuilt, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
 import type { Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';
@@ -29,12 +29,14 @@ export interface EdgeBlend {
   terrain: string;
 }
 
-/** Voisins de plus haute précédence qui « débordent » sur la tuile (x,y) du niveau `z`. */
+/** Voisins de la grille de plus haute précédence qui « débordent » sur la tuile (x,y) du niveau `z` ; au-delà du bord,
+ *  le sol du hors-carte prolonge le bord (#4392) : rien n'y déborde. */
 export function edgeBlends(scene: SceneDuVolume, x: number, y: number, z = 0): EdgeBlend[] {
   const self = terrainPriority(tileAt(scene, x, y, z));
   const out: EdgeBlend[] = [];
   for (const dir of SIDES) {
     const [dx, dy] = NEIGHBOURS[dir];
+    if (!presenteDansLaGrille(scene, x + dx, y + dy, z)) continue;
     const nt = tileAt(scene, x + dx, y + dy, z);
     if (terrainPriority(nt) > self) out.push({ dir, terrain: nt });
   }
@@ -46,7 +48,7 @@ export function edgeBlends(scene: SceneDuVolume, x: number, y: number, z = 0): E
  *  ne descend PAS jusqu'au sol (dalle fine + piliers), la couche du dessous reste visible/passable. */
 export function isOverhang(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   if (z <= 0) return false;
-  for (let zz = z - 1; zz >= 0; zz--) if (isWalkable(scene, x, y, zz)) return true;
+  for (let zz = z - 1; zz >= 0; zz--) if (solPraticable(scene, x, y, zz)) return true;
   return false;
 }
 
@@ -95,7 +97,7 @@ function cappedAbove(scene: SceneDuVolume, x: number, y: number, z: number): boo
 
 /** Hauteur d'AFFICHAGE de la surface INFÉRIEURE sous un surplomb (1ʳᵉ couche marchable en dessous), ou null. */
 function overhangLowerHeight(scene: SceneDuVolume, x: number, y: number, z: number): number | null {
-  for (let zz = z - 1; zz >= 0; zz--) if (isWalkable(scene, x, y, zz)) return displayHeightAt(scene, x, y, zz);
+  for (let zz = z - 1; zz >= 0; zz--) if (solPraticable(scene, x, y, zz)) return displayHeightAt(scene, x, y, zz);
   return null;
 }
 
@@ -353,7 +355,7 @@ function floorGeometry(scene: Scene, view: FloorView | undefined): Viewed<FloorE
  *  mémoïsée (`viewedBuilder`) : un pas qui ne change que le brouillard ne re-dérive AUCUNE face — il ne
  *  bascule que la vérité de vue des sols concernés, et rend le TABLEAU PRÉCÉDENT si aucun n'a bougé. */
 export const buildFloors: (scene: Scene, visible?: ReadonlySet<string>, view?: FloorView) => FloorEl[] =
-  viewedBuilder<FloorEl, FloorView>({
+  viewedBuilder<Scene, FloorEl, FloorView>({
     derive: floorGeometry,
     key: (view) => `${view?.activeZ ?? 0}|${view?.viewZ ?? null}`,
     // Vérité VRAIE = dessiné AU-DESSUS du voile ; sur un FANTÔME c'est le surplomb PLEIN (opaque, il ne

@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "coffre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "laiton",
+      "palette": "metal2",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "c3ec75941ed49b8b94ce170ef5d6974c58bccb68a69269ca6c7b9d3c09d10c1f",
+    "octets": 60568
+  }
+}

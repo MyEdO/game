@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "souche"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois-mort",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    }
+  ],
+  "glb": {
+    "sha256": "bf8aafe9d809a59240453a67af532dc8dfd02920932f262978a751a57681a1c5",
+    "octets": 41264
+  }
+}

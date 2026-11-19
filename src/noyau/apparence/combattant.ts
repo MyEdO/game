@@ -11,9 +11,33 @@ import type { Dir8 } from '../../geometry/dir8';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
 import { findTierEntry } from '../../engine/tables';
-import { findCreatureById, findFicheDeVehicule, findNavalTrait, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, findVehicleById, piecesDeLObjet, raceAppearance, sexeDuPorteur, weaponGroups, type GroupeDArmure } from '../../data';
+import {
+  findCreatureById,
+  findFicheDeVehicule,
+  findNavalTrait,
+  findGroupeDArmureById,
+  findPlanDEspeceById,
+  findSpeciesById,
+  findTenueDeCarriere,
+  findTeteById,
+  findVehicleById,
+  piecesDeLObjet,
+  raceAppearance,
+  sexeDuPorteur,
+  weaponGroups,
+  type GroupeDArmure,
+  type RaceAppearanceData,
+} from '../../data';
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
-import { facteursDeComposition, porteesDeLaTenue, porteesDesObjets, teinteDeLObjet, type ObjetPorte, type Portee, type PorteeDeComposition } from './composition';
+import {
+  facteursDeComposition,
+  porteesDeLaTenue,
+  porteesDesObjets,
+  teinteDeLObjet,
+  type ObjetPorte,
+  type Portee,
+  type PorteeDeComposition,
+} from './composition';
 import { pieceRacine, type EmblemeResolu } from './gardeRobe';
 import { footprintN } from '../monde/footprint';
 import { hullNavalTraits } from '../../engine/navalTraits';
@@ -79,10 +103,10 @@ function uneFoisParPiece(portees: readonly Portee[]): Portee[] {
   });
 }
 
-/** Les couleurs de `c` : celles de l'apparence de sa créature, chacune remplacée par celle de son apparence d'auteur
- *  (`appearanceOverride`) ; absentes si aucune ne colore un emplacement. */
-function couleursDuCombattant(c: Combatant): Pick<EntityAppearance, 'couleurs'> {
-  const couleurs = { ...findCreatureById(c.creatureId)?.appearance?.couleurs, ...c.appearanceOverride?.couleurs };
+/** Les couleurs de `c` : celles de sa `race` de rendu (#4379), chacune remplacée par celle de l'apparence de sa créature,
+ *  puis par celle de son apparence d'auteur (`appearanceOverride`) ; absentes si aucune ne colore un emplacement. */
+function couleursDuCombattant(c: Combatant, race?: RaceAppearanceData): Pick<EntityAppearance, 'couleurs'> {
+  const couleurs = { ...race?.couleurs, ...findCreatureById(c.creatureId)?.appearance?.couleurs, ...c.appearanceOverride?.couleurs };
   return Object.keys(couleurs).length ? { couleurs } : {};
 }
 
@@ -110,7 +134,7 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
     portees: uneFoisParPiece([...(tete ? [{ cle: { champ: 'tete', id: tete.id }, label: tete.label } satisfies Portee] : []), ...portees, ...(tenue ? porteesDeLaTenue(tenue.id) : [])]),
     rapport,
     ...(embleme ? { embleme } : {}),
-    ...couleursDuCombattant(c),
+    ...couleursDuCombattant(c, race),
     facteurs: facteursDeComposition(undefined, race),
     // #3253
     sex: sexeDuPorteur(c) ?? 'M',

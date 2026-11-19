@@ -7,7 +7,7 @@ import { scenario } from '../../../scenes/test-scenarios/zones-pieces';
 import { findPropById, materials, matieresDe, props, terrains } from '../../../data';
 import { setDataset, resetData } from '../../../data/overrides';
 import type { MaterialEntry } from '../../../data/materials.types';
-import type { TerrainDef } from '../../../data/terrains.types';
+import type { TerrainDef } from '../../../data';
 import { effectiveArchitecture } from '../../../noyau/sceneEdit';
 import { roofMaterial } from '../../../noyau/monde/volume/matieres';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';
@@ -67,6 +67,7 @@ const MUTATIONS: Record<Exclude<keyof Scene, 'type'>, (s: Scene) => Scene> = {
   dimensions: (s) => ({ ...s, dimensions: { ...s.dimensions } }),
   metresPerTile: (s) => ({ ...s, metresPerTile: sceneMetresPerTile(s) + 1 }),
   ambiance: (s) => ({ ...s, ambiance: s.ambiance === 'interieur' ? 'exterieur' : 'interieur' }),
+  zoneJouable: (s) => ({ ...s, zoneJouable: { x: 1, y: 1, w: 3, h: 3 } }),
   environment: (s) => ({ ...s, environment: 'urbain' }),
   weather: (s) => ({ ...s, weather: 'tempete' }),
   ambientLight: (s) => ({ ...s, ambientLight: 'nuit' }),

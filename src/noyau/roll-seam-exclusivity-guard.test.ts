@@ -5,8 +5,27 @@ import * as ts from 'typescript/unstable/ast';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers, AMORCE_DES } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
-import { RACINE_DU_SEAM, rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
+import {
+  scanRollSeamExclusivity,
+  ROLL_SEAM_RX,
+  scanPendingJetFabrication,
+  engineRollerExports,
+  engineHomonyms,
+  scanEngineDelegatedRoll,
+  scanDesHorsPorte,
+  engineDiceRollers,
+  AMORCE_DES,
+} from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
+import {
+  RACINE_DU_SEAM,
+  rollSeamExcluded,
+  ROLL_SEAM_PHASE2_STOCK,
+  WORLD_DIE_SUBTRACTED_STOCK,
+  PENDING_JET_FABRICATION_STOCK,
+  ENGINE_DELEGATED_ROLL_STOCK,
+  DES_HORS_PORTE_STOCK,
+  SEAM_CALLERS,
+} from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
 import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
@@ -784,11 +803,10 @@ describe('REGISTRE des chemins de jet (#1066) — familles CANONIQUES énuméré
 const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
   // COMBAT : SOLDÉ — toute cible de Test se forme par `cibleDuTest` (`engine/tests.ts`), y compris la
   // rangée batch du Test de Peur (`encounterPsychFlow`) et le dé d'une manœuvre (`rollFlowSpecs`).
-  // HORS COMBAT — les sites de jet sont routés par `rollLine`/`rollStep` ; ce qui reste n'est pas une cible.
-  'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'un Test d'équipage (`buildVoyageCrewStep`, pas une cible)
+  // HORS COMBAT : SOLDÉ — les sites de jet sont routés par `rollLine`/`rollStep`.
 };
 
-/** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 1 occurrence / 1 fichier, aucune en combat — verrou
+/** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 0 occurrence — verrou
  *  global : un site déplacé d'un fichier à l'autre ne s'y cache pas. `ui/editor/LogicDock.tsx` n'y
  *  figure pas : son aperçu de difficulté mesure 0 site, la borne du champ vit dans `NumberField`. */
 const TOTAL_DECLARE = Object.values(LIGNE_A_LA_MAIN_STOCK).reduce((s, n) => s + n, 0);
@@ -869,7 +887,7 @@ const ETAPE_A_LA_MAIN_STOCK: Record<string, number> = {
   'src/noyau/interludeFlow.ts': 2, // PendingActivityFields (type) + `target: 0` sentinelle d'ouverture
   // RELAIS d'une ligne DÉJÀ montée par le monteur (rien à recalculer ici) — EXEMPTION AU SITE
   'src/noyau/restFlow.ts': 1, // `deferredUpkeepSteps` : `montee` recopie base/target/mods/clamped de la
-  // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:178). Le scanner est TEXTUEL : il ne voit pas
+  // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:202). Le scanner est TEXTUEL : il ne voit pas
   // cette provenance, il compte le littéral — la raison la dit.
   // MONTAGES à la main — dette RÉELLE restante hors combat, à router par `rollStep`
   'src/engine/rest.ts': 3, // bilan EAGER de la modale de Repos (`RestRoll` : type + 2 collectes)

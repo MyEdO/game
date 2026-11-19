@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "mare-sang"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "sang",
+      "palette": "accent",
+      "matiere": "prop--sang-repandu"
+    }
+  ],
+  "glb": {
+    "sha256": "8feb423dee1ea092f3782d4f1d04f3c3bd67a7a82643fa4f4a3074a0417fd137",
+    "octets": 40640
+  }
+}

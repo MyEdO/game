@@ -126,9 +126,9 @@ describe('Surincantation « +Cible » — candidats filtrés par LdV (sight four
     const { w, seen, hidden } = setup();
     const pool: Combatant[] = [w, seen, hidden];
     const spell = findSpellById('carreau')!;
-    const sansSight = overcastTargetCandidates(pool, w, 'e-vu', spell, true, 'arcane', 0).map((c) => c.id);
+    const sansSight = overcastTargetCandidates(banc.getState().scene, pool, w, 'e-vu', spell, true, 'arcane', 0).map((c) => c.id);
     expect(sansSight).toContain('e-cache');
-    const avecSight = overcastTargetCandidates(pool, w, 'e-vu', spell, true, 'arcane', 0, { scene: banc.getState().scene! as never, smoke: [] }).map((c) => c.id);
+    const avecSight = overcastTargetCandidates(banc.getState().scene, pool, w, 'e-vu', spell, true, 'arcane', 0, { scene: banc.getState().scene! as never, smoke: [] }).map((c) => c.id);
     expect(avecSight).not.toContain('e-cache');
   });
 });

@@ -4,7 +4,8 @@
  * (l.310) exempte de tout dégât/corrosion/destruction. Réparation = hors combat (Jalon 5).
  */
 import { Weapon, WeaponEnchant, ArmourBypass, WeaponRangeSpec, AmmoRangeMod } from './types';
-import { findTrappingById, qualityInstance, type TrappingData } from '../data';
+import { findTrappingById, qualityInstance, qualityRefLabel, type TrappingData } from '../data';
+import { t } from '../i18n';
 import type { ManiementRetenu } from './weaponGroup';
 import type { TriggeredEffect } from './flowCore';
 import type { OpPassive } from './ops';
@@ -19,7 +20,7 @@ function effectiveDamageTaken(w: Pick<Weapon, 'damageTaken' | 'qualities'>): num
 
 /** Dégâts d'arme effectifs après réduction par `damageTaken` (la composante fixe positive est
  *  réduite, plancher 0 → BF+0 improvisée ; une composante négative — mains nues — est préservée).
- *  Lit la donnée STRUCTURÉE (`WeaponDamageSpec`) — zéro parsing de chaîne ; « Spécial » (literal) → 0. */
+ *  Lit la donnée STRUCTURÉE (`WeaponDamageSpec`) — zéro parsing de chaîne ; « Spécial » (literal) et « – » (aucun) → 0. */
 export function effectiveWeaponDamage(w: Weapon, force: { bf: number; passif: number }): number {
   const d = w.damage;
   const usesBF = 'plusBF' in d && d.plusBF;
@@ -54,13 +55,6 @@ export function applyAmmoMod(rangeM: number | null, mod: AmmoRangeMod | null | u
  *  strBonus), ammoMod)`. SOURCE UNIQUE pour les sites combat (bandes de portée) — le BF reste paresseux. */
 export function effectiveWeaponRange(weapon: { range?: WeaponRangeSpec | null }, ammoMod: AmmoRangeMod | null | undefined, strBonus: number | (() => number)): number | null {
   return applyAmmoMod(effectiveRange(weapon.range, strBonus), ammoMod);
-}
-
-/** Arme de JET (javelot, couteau de lancer, bombe…) : sa Portée est une SPEC `{ bf }` (BF × N mètres,
- *  LDB 62) — par opposition à une Portée fixe en mètres (arc/arbalète/poudre). C'est le classifieur des
- *  armes lancées, seules concernées par la Dispersion d'un Test de Projectiles (Lancer) raté (LDB 14). */
-export function isThrownWeapon(weapon: { type?: string; range?: WeaponRangeSpec | null }): boolean {
-  return weapon.type === 'distance' && typeof weapon.range === 'object' && weapon.range != null && 'bf' in weapon.range;
 }
 
 /**
@@ -104,7 +98,7 @@ export function applyEnchants(w: Weapon, enchants: WeaponEnchant[]): Weapon {
 
 /** L'arme est-elle réduite à l'état improvisé (bonus de Dégâts à +0 par usure) ? */
 export function isImprovised(w: Pick<Weapon, 'damage' | 'damageTaken' | 'qualities'>): boolean {
-  if (!('flat' in w.damage)) return false; // « Spécial » (literal) : jamais improvisé
+  if (!('flat' in w.damage)) return false; // « Spécial » (literal) et « – » (aucun) : jamais improvisé
   const flat = w.damage.flat;
   const dt = effectiveDamageTaken(w);
   return dt > 0 && flat >= 0 && flat - dt <= 0; // LDB 62 l.135 : réduits PAR les Dégâts reçus
@@ -125,9 +119,12 @@ export function improvisedProfile(w: Weapon, resolveTrapping: ResolveTrapping = 
   // `resolveQualities` réinjecterait les qualités de FAMILLE du Groupe (ex. Rapide/Empaleuse d'Escrime).
   // `subType`/`weaponGroup` restent INTACTS : `combatValue`/`talentDamageBonus` (lus par `subType`)
   // doivent voir la MÊME Spé qu'avant improvisation (une arme usée reste de son Groupe pour la
-  // compétence, seules ses qualités changent).
+  // compétence, seules ses qualités changent). Une arme qui « n'est plus identifiable » perd aussi ses
+  // effets propres de catalogue (`passifDArme`, `onHitEffects`). LDB 62 l.135
   return {
     ...w,
+    passifDArme: undefined,
+    onHitEffects: undefined,
     damage: { ...t.damage },
     qualities: (t.qualities ?? []).map(qualityInstance),
     reach: t.reach ?? undefined,
@@ -165,10 +162,40 @@ export interface WeaponContext {
    *  l'arme, il en ôte `retire`. Posé par le funnel (`weaponContextOf`). AA 08 l.190 ; AA 08 l.314 ;
    *  AA 08 l.343 */
   maniement?: ManiementRetenu;
+  /** Le tireur n'a pas d'équipe (`sansEquipe`) : l'arme perd sa `perteSansEquipe` (`armeSansEquipe`). Posé par le
+   *  funnel (`weaponContextOf`). AA 10 l.148 ; ZI 13 l.193 */
+  sansEquipe?: boolean;
 }
 
-/** LDB 62 l.58,135,146-147,176,184,188 ; AA 08 l.190 ; AA 08 l.212 ; AA 08 l.314 ; AA 08 l.343 ; ADE II 02 l.677 */
-export function effectiveWeapon(w: Weapon, ctx?: WeaponContext): Weapon {
+/** `presents` (tireur compris) ne fait pas une équipe. AA 10 l.148 ; ZI 13 l.193 */
+export function sansEquipe(presents: number): boolean {
+  return presents <= 1;
+}
+
+/** Les retraits de qualités `o`, dits au joueur : « −Pointue », « tous ses Atouts disparaissent ». */
+export function retraitsDits(o: Pick<WeaponEnchant, 'removeQualities' | 'removeType'>): string[] {
+  return [
+    ...(o.removeQualities ?? []).map((id) => `−${qualityRefLabel({ id })}`),
+    ...(o.removeType ? [t(o.removeType === 'atout' ? 'op.frag.atoutsPerdus' : 'op.frag.defautsPerdus')] : []),
+  ];
+}
+
+/** `w` tirée sans équipe : sa `perteSansEquipe` versée aux retraits que lit `resolveQualities`. AA 10 l.148 ;
+ *  ZI 13 l.193 */
+export function armeSansEquipe(w: Weapon): Weapon {
+  const perte = w.perteSansEquipe;
+  if (!perte) return w;
+  return {
+    ...w,
+    ...(perte.removeQualities?.length ? { removedQualities: [...new Set([...(w.removedQualities ?? []), ...perte.removeQualities])] } : {}),
+    ...(perte.removeType ? { removedTypes: [...new Set([...(w.removedTypes ?? []), perte.removeType])] } : {}),
+  };
+}
+
+/** LDB 62 l.58,135,146-147,176,184,188 ; AA 08 l.190 ; AA 08 l.212 ; AA 08 l.314 ; AA 08 l.343 ; ADE II 02 l.677 ;
+ *  AA 10 l.148 ; ZI 13 l.193 */
+export function effectiveWeapon(arme: Weapon, ctx?: WeaponContext): Weapon {
+  const w = ctx?.sansEquipe ? armeSansEquipe(arme) : arme;
   if (isImprovised(w)) return improvisedProfile(w); // LDB 62 l.135
   if (ctx?.charged === false && w.capabilities?.improvisedWithoutCharge) return improvisedProfile(w); // LDB 62 l.58 ; AA 08 l.212
   // LDB 62 l.176
@@ -192,7 +219,7 @@ export function effectiveWeapon(w: Weapon, ctx?: WeaponContext): Weapon {
 
   // LDB 62 l.184,188
   if (ctx?.groupSkillMode === 'degrade') {
-    const kept = resolveQualities(manie).filter((r) => !isAtoutQuality(r.id)).map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
+    const kept = resolveQualities(manie).filter((r) => !isAtoutQuality(r.id)).map((r) => r.instance);
     return { ...manie, qualities: kept, noFamilyQualities: true };
   }
   return manie;

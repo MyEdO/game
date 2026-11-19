@@ -4,7 +4,6 @@ import { vehicleCombatant } from '../engine/vehicle';
 import { shipHitLocation } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { rollShipCritical } from '../engine/shipCritical';
-import type { ShipCritKey } from '../data/shipCriticals';
 import { applyOps } from '../engine/ops';
 import { fireConditionEffects } from './triggeredEffects';
 import { stacks } from '../engine/conditions';
@@ -32,7 +31,7 @@ describe('Modèle naval — chaîne complète rig → localisation → Critique 
     expect(loc).toBe('coque');
 
     // 2) Critique de Coque, d10=10 → « Voie d'eau en dessous de la ligne de flottaison » : Voie d'eau 4.
-    const crit = rollShipCritical(loc as ShipCritKey, makeRNG(1), 10); // loc vérifié === 'coque' ci-dessus (≠ 'equipage')
+    const crit = rollShipCritical('coque', makeRNG(1), 10);
     expect(crit.id).toBe('voie-d-eau-en-dessous-de-la-ligne-de-flottaison');
     expect(crit.ops).toEqual([{ op: 'condition', id: { id: 'voie-d-eau' }, value: 4 }]);
 

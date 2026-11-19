@@ -1,32 +1,40 @@
 /**
- * Le Statut d'un Niveau de Carrière se valide au SCHÉMA par `parseStatus` (`statutSchema`) : un libellé
- * illisible saisi au Compendium est refusé comme toute donnée invalide, si bien que `statutDeDonnee`
- * tient sa garantie sur une donnée chargée. LDB 08 l.9
+ * Le Statut d'un Niveau de Carrière est un objet d'ids (`statutSchema`) : un Échelon parmi `ECHELONS_DE_STATUT` et
+ * un Standing entier de 0 sans borne haute. Un libellé, un Échelon hors vocabulaire ou un Standing négatif ou
+ * fractionnaire saisis au Compendium sont refusés comme toute donnée invalide. LDB 08 l.9, l.101
  */
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import careerLevelsJson from '../../careerLevels.json';
 import { CHAR_KEYS } from '../../../engine/types';
 
-type Niveau = { id: string; status: string; [k: string]: unknown };
+type Niveau = { id: string; status: unknown; [k: string]: unknown };
 /** Le document réel, dont le PREMIER Niveau porte le Statut `status`. */
-const avecStatut = (status: string): Niveau[] => {
+const avecStatut = (status: unknown): Niveau[] => {
   const doc = structuredClone(careerLevelsJson) as unknown as Niveau[];
   doc[0] = { ...doc[0], status };
   return doc;
 };
 
-describe('careerLevels — `status` validé par `parseStatus`', () => {
-  it('un Statut lisible passe', () => {
-    expect(validateDataset('careerLevels.json', avecStatut('Or 2'))).toBeNull();
+describe('careerLevels — `status` est un Statut en ids (`statutSchema`)', () => {
+  it('un Statut en ids passe, Standing 0 et Standing au-delà de 5 compris (LDB 08 l.9, l.101)', () => {
+    expect(validateDataset('careerLevels.json', avecStatut({ tier: 'or', standing: 2 }))).toBeNull();
+    expect(validateDataset('careerLevels.json', avecStatut({ tier: 'bronze', standing: 0 }))).toBeNull();
+    expect(validateDataset('careerLevels.json', avecStatut({ tier: 'or', standing: 7 }))).toBeNull();
   });
-  it('un Statut illisible (« Gold 2 ») est refusé, avec sa raison', () => {
-    expect(validateDataset('careerLevels.json', avecStatut('Gold 2'))).toContain('Statut illisible');
+  it.each([
+    ['un libellé', 'Or 2'],
+    ['un Échelon en libellé', { tier: 'Or', standing: 2 }],
+    ['un Échelon hors vocabulaire', { tier: 'gold', standing: 2 }],
+    ['un Standing négatif', { tier: 'or', standing: -1 }],
+    ['un Standing fractionnaire', { tier: 'or', standing: 1.5 }],
+    ['un Standing absent', { tier: 'or' }],
+  ])('%s est refusé', (_cas, status) => {
+    expect(validateDataset('careerLevels.json', avecStatut(status))).not.toBeNull();
   });
 });
 
-type NiveauDeCarriere = { id: string; career: { id: string }; level: number; characteristics: string[]; [k: string]: unknown };
-const reel = (): NiveauDeCarriere[] => structuredClone(careerLevelsJson) as unknown as NiveauDeCarriere[];
+const reel = () => structuredClone(careerLevelsJson);
 
 describe('careerLevels — identité `<career>-<level>`, quatre Niveaux, Schéma de Progression 3/1/1/1 (LDB 07 l.26 ; LDB 07 l.41-43)', () => {
   it('la donnée réelle passe', () => {

@@ -5,13 +5,13 @@
 // Lancé par `npm run test:ops`.
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import {
-  ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, creerChantier, equipementsDesPrerequis,
+  ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, EQUIPEMENTS_DU_CONTENEUR, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, creerChantier, equipementsDesPrerequis,
   nomValide, ouvrirChantier, refusDeCreation, relancerChantier, resumeDeChantier,
 } from './chantier.mjs'
 import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
@@ -20,6 +20,9 @@ import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { sousEcheanceAsync } from '../test/verrou.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+
+/** L'environnement d'un poste (hors conteneur cloud) : le régime se pose, jamais hérité de la session. */
+const POSTE = {}
 
 /** Le script du consommateur du post-merge, celui de CET arbre : un principal jetable n'en porte pas. */
 const SYNCHRONISEUR = join(import.meta.dirname, 'synchroniser.mjs')
@@ -73,7 +76,7 @@ test('resumeDeChantier imprime les quatre faits, un par ligne', () => {
 test('nom invalide : refus NOMMÉ, et aucun git n’est joué', () => {
   let joue = 0
   const compte = () => { joue += 1 }
-  const vu = creerChantier({ racine: '/dep', nom: 'Publication', gestes: { arbrePrincipal: compte, shaDe: compte, fetchOrigin: compte, ajouterWorktree: compte } })
+  const vu = creerChantier({ env: POSTE, racine: '/dep', nom: 'Publication', gestes: { arbrePrincipal: compte, shaDe: compte, fetchOrigin: compte, ajouterWorktree: compte } })
   assert.equal(vu.ok, false)
   assert.match(vu.refus, /nom de chantier invalide/)
   assert.match(vu.refus, /numéro de ticket/)
@@ -81,10 +84,10 @@ test('nom invalide : refus NOMMÉ, et aucun git n’est joué', () => {
 })
 
 /** Dépôt jetable + son `origin` NU, avec `origin/main` réellement posé. */
-function depotAvecOrigin() {
+function depotAvecOrigin(fichiers = { 'a.txt': 'a' }) {
   const nu = mkdtempSync(join(tmpdir(), 'origin-nu-'))
   lancerGit(['init', '--bare', '-q', '-b', 'main', nu])
-  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'fondation' })
+  const { racine } = instanceDeDepot({ fichiers, message: 'fondation' })
   const git = gitDe(racine, { net: true })
   git('remote', 'add', 'origin', nu)
   git('push', '-q', 'origin', 'main')
@@ -110,7 +113,7 @@ describe('#2187 matrice 18 : le principal synchronisé d’abord, relance sur `a
         return vu
       }
       const attendreConsommateur = (c, o) => attendreLeConsommateur(c, { ...o, racine })
-      const creer = (args) => creerChantier({ racine, ...args })
+      const creer = (args) => creerChantier({ env: POSTE, racine, ...args })
       const relances = []
       const dits = []
       try {
@@ -191,7 +194,7 @@ test('progression avant fetch, création et chaque équipement ; durée après l
   const { racine, jeter } = depotAvecOrigin()
   const sorties = []
   try {
-    const vu = creerChantier({ racine, nom: '2329-banc', annoncer: (texte) => sorties.push(texte),
+    const vu = creerChantier({ env: POSTE, racine, nom: '2329-banc', annoncer: (texte) => sorties.push(texte),
       npm: (_cmd, args) => {
         assert.match(sorties.at(-1), /début\n$/)
         assert.ok(sorties.at(-1).includes(args.includes('docs:build') ? 'npm run docs:build' : 'npm'))
@@ -216,7 +219,7 @@ test('création RÉELLE : worktree .wt-42 sur chantier/42 issue d’ORIGIN/main,
     assert.notEqual(teteLocale, git('rev-parse', 'origin/main'))
 
     let npmVu = null
-    const vu = creerChantier({ racine, nom: '42', sansCi: true, npm: (...a) => { npmVu = a; return { status: 0 } } })
+    const vu = creerChantier({ env: POSTE, racine, nom: '42', sansCi: true, npm: (...a) => { npmVu = a; return { status: 0 } } })
 
     assert.equal(vu.ok, true, vu.refus)
     assert.equal(npmVu, null, '--sans-ci : npm n’est jamais appelé')
@@ -232,7 +235,7 @@ test('création RÉELLE : worktree .wt-42 sur chantier/42 issue d’ORIGIN/main,
     assert.match(vu.resume, new RegExp(`branche=${brancheDe('42')}`))
     assert.match(vu.resume, /^port=\d+ \(http:\/\/localhost:\d+\/\)$/m)
 
-    const second = creerChantier({ racine, nom: '42', sansCi: true })
+    const second = creerChantier({ env: POSTE, racine, nom: '42', sansCi: true })
     assert.equal(second.ok, false)
     assert.match(second.refus, /déjà ouvert/, 'cible ET branche : le refus les nomme toutes les deux')
     assert.match(second.refus, /\.wt-42/)
@@ -243,7 +246,7 @@ test('npm ci ROUGE : le worktree RESTE, et le refus dit quoi relancer où', () =
   const { racine, jeter } = depotAvecOrigin()
   try {
     const appels = []
-    const vu = creerChantier({ racine, nom: '43', npm: (cmd, args, opts) => { appels.push({ cmd, args, cwd: opts.cwd }); return { status: 1 } } })
+    const vu = creerChantier({ env: POSTE, racine, nom: '43', npm: (cmd, args, opts) => { appels.push({ cmd, args, cwd: opts.cwd }); return { status: 1 } } })
     assert.equal(vu.ok, false)
     assert.equal(appels.length, 1)
     assert.deepEqual(appels[0].args, ['ci', '--no-audit', '--no-fund'])
@@ -269,17 +272,21 @@ describe('equipementsDesPrerequis', () => {
 
   test('sur la table RÉELLE : la racine, puis le seul prérequis déclaré (server/), puis les docs dérivés', () => {
     assert.deepEqual(EQUIPEMENTS, [
-      { args: ['ci', '--no-audit', '--no-fund'], ou: '', relance: 'npm ci' },
-      { args: ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'], ou: ' dans server/', relance: 'npm --prefix server ci' },
+      { args: ['ci', '--no-audit', '--no-fund'], ou: '', relance: 'npm ci', chemin: 'node_modules' },
+      { args: ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'], ou: ' dans server/', relance: 'npm --prefix server ci', chemin: 'server/node_modules' },
       { args: ['run', 'docs:build'], ou: ' (docs dérivés)', relance: 'npm run docs:build' },
     ])
+  })
+
+  test('en conteneur : les mêmes, plus `npm run gen` juste avant les docs dérivés', () => {
+    assert.deepEqual(EQUIPEMENTS_DU_CONTENEUR.map((e) => e.relance), ['npm ci', 'npm --prefix server ci', 'npm run gen', 'npm run docs:build'])
   })
 
   test('un pose PARTAGÉ ne se pose qu’une fois ; un sous-projet de plus arrive en DERNIER', () => {
     const vu = [{ args: ['ci', '--no-audit', '--no-fund'], ou: '', relance: 'npm ci' }, ...equipementsDesPrerequis(ECRIT_LU_FIXTURE)]
     assert.equal(vu.length, 3)
     assert.deepEqual(vu.map((e) => e.relance), ['npm ci', 'npm --prefix server ci', 'npm --prefix outil ci'])
-    assert.deepEqual(vu[2], { args: ['--prefix', 'outil', 'ci', '--no-audit', '--no-fund'], ou: ' dans outil/', relance: 'npm --prefix outil ci' })
+    assert.deepEqual(vu[2], { args: ['--prefix', 'outil', 'ci', '--no-audit', '--no-fund'], ou: ' dans outil/', relance: 'npm --prefix outil ci', chemin: 'outil/node_modules' })
   })
 
   test('un pose qui n’est pas du npm est REFUSÉ en nommant la gate et le pose', () => {
@@ -302,7 +309,7 @@ test('équipement : npm ci à la RACINE puis dans server/, puis docs:build, dans
   const { racine, jeter } = depotAvecOrigin()
   try {
     const appels = []
-    const vu = creerChantier({ racine, nom: '47', npm: (cmd, args, opts) => { appels.push({ cmd, args, cwd: opts.cwd }); return { status: 0 } } })
+    const vu = creerChantier({ env: POSTE, racine, nom: '47', npm: (cmd, args, opts) => { appels.push({ cmd, args, cwd: opts.cwd }); return { status: 0 } } })
     assert.equal(vu.ok, true, vu.refus)
     assert.equal(vu.npmJoue, true)
     assert.deepEqual(appels.map((a) => a.args), [
@@ -318,7 +325,7 @@ test('équipement : npm ci à la RACINE puis dans server/, puis docs:build, dans
 test('docs:build rouge : les npm ci restent faits, et le refus NOMME le geste qui le rejoue', () => {
   const { racine, jeter } = depotAvecOrigin()
   try {
-    const vu = creerChantier({ racine, nom: '49', npm: (cmd, args) => ({ status: args.includes('docs:build') ? 1 : 0 }) })
+    const vu = creerChantier({ env: POSTE, racine, nom: '49', npm: (cmd, args) => ({ status: args.includes('docs:build') ? 1 : 0 }) })
     assert.equal(vu.ok, false)
     assert.match(vu.refus, /worktree posé, npm run docs:build rouge \(docs dérivés\) — relancer `npm run docs:build`/)
     assert.equal(existsSync(cibleDe(racine, '49')), true, 'un docs:build rouge ne défait pas le worktree')
@@ -330,6 +337,7 @@ test('npm ci rouge dans server/ : la racine reste faite, et le refus NOMME le so
   try {
     const appels = []
     const vu = creerChantier({
+      env: POSTE,
       racine,
       nom: '48',
       npm: (cmd, args, opts) => { appels.push(args); return { status: args.includes('--prefix') ? 1 : 0, cwd: opts.cwd } },
@@ -349,10 +357,10 @@ test('npm ci rouge dans server/ : la racine reste faite, et le refus NOMME le so
 test('lancé depuis un WORKTREE : la cible se pose sous l’ARBRE PRINCIPAL, à côté des autres', () => {
   const { racine, jeter } = depotAvecOrigin()
   try {
-    assert.equal(creerChantier({ racine, nom: '44', sansCi: true }).ok, true)
+    assert.equal(creerChantier({ env: POSTE, racine, nom: '44', sansCi: true }).ok, true)
     const depuisLeWorktree = cibleDe(racine, '44')
 
-    const vu = creerChantier({ racine: depuisLeWorktree, nom: '45', sansCi: true })
+    const vu = creerChantier({ env: POSTE, racine: depuisLeWorktree, nom: '45', sansCi: true })
     assert.equal(vu.ok, true, vu.refus)
     assert.equal(vu.cible, cibleDe(racine, '45'), 'la cible est calculée sur l’arbre principal, pas sur le cwd')
     assert.equal(existsSync(cibleDe(racine, '45')), true, 'le worktree neuf est posé là')
@@ -370,7 +378,7 @@ test('lancé depuis un WORKTREE : la cible se pose sous l’ARBRE PRINCIPAL, à 
 test('origin injoignable : refus qui NOMME la raison, et aucun worktree posé', () => {
   const { racine, jeter } = depotAvecOrigin()
   try {
-    const vu = creerChantier({ racine, nom: '46', sansCi: true, gestes: { ...GESTES_DU_CHANTIER, fetchOrigin: () => ({ disponible: false, raison: 'réseau coupé' }) } })
+    const vu = creerChantier({ env: POSTE, racine, nom: '46', sansCi: true, gestes: { ...GESTES_DU_CHANTIER, fetchOrigin: () => ({ disponible: false, raison: 'réseau coupé' }) } })
     assert.equal(vu.ok, false)
     assert.match(vu.refus, /réseau coupé/)
     assert.equal(existsSync(cibleDe(racine, '46')), false)
@@ -383,7 +391,7 @@ test('docs ciblés : copie puis docs:build --perimes, ordre et cwd conservés', 
     const appels = []
     const scripts = ['scripts/docs/build-primitives.mjs', 'scripts/docs/build-doctrines.mjs']
     const vu = creerChantier({
-      racine, nom: '2456-selection',
+      env: POSTE, racine, nom: '2456-selection',
       npm: (_cmd, args, opts) => { appels.push({ args, cwd: opts.cwd }); return { status: 0 } },
       copierDocs: () => ({ ok: true, copies: 30, scriptsARegenerer: scripts }),
     })
@@ -401,7 +409,7 @@ test('docs frais : copie équipée après npm ci, aucun npm docs:build ; repli r
       const annonces = []
       let copieVue
       const vu = creerChantier({
-        racine, nom: '2456-banc', annoncer: (texte) => annonces.push(texte),
+        env: POSTE, racine, nom: '2456-banc', annoncer: (texte) => annonces.push(texte),
         npm: (_cmd, args) => {
           appels.push(args)
           return { status: args.includes('docs:build') ? 9 : 0 }
@@ -424,4 +432,63 @@ test('docs frais : copie équipée après npm ci, aucun npm docs:build ; repli r
       }
     } finally { jeter() }
   }
+})
+
+// #4339 : en conteneur cloud (`CLAUDE_CODE_REMOTE=true`), le worktree se pose sans hooks et chaque
+// `node_modules` RÉPERTOIRE du principal se lie en dur (`cp -al`) si les `package-lock.json` sont égaux.
+describe('#4339 conteneur cloud', () => {
+  const CONTENEUR = { CLAUDE_CODE_REMOTE: 'true' }
+  const LOCK = '{"lockfileVersion":3}\n'
+
+  /** Dépôt dont le principal porte un `node_modules` racine (pas de `server/node_modules`). */
+  function depotEquipe() {
+    const depot = depotAvecOrigin({ 'a.txt': 'a', 'package-lock.json': LOCK })
+    mkdirSync(join(depot.racine, 'node_modules', 'paquet'), { recursive: true })
+    writeFileSync(join(depot.racine, 'node_modules', 'paquet', 'index.js'), 'export {}\n')
+    for (const cachee of ['.bin', '.cache']) {
+      mkdirSync(join(depot.racine, 'node_modules', cachee))
+      writeFileSync(join(depot.racine, 'node_modules', cachee, 'f'), cachee)
+    }
+    return depot
+  }
+
+  test('lock égal : worktree sans hooks, node_modules lié en dur, server/ par npm ci, puis gen et docs', () => {
+    const { racine, jeter } = depotEquipe()
+    try {
+      const ajouts = []
+      const appels = []
+      const vu = creerChantier({
+        env: CONTENEUR, racine, nom: '4339',
+        gestes: { ...GESTES_DU_CHANTIER, ajouterWorktree: (d, p) => { ajouts.push(p); return GESTES_DU_CHANTIER.ajouterWorktree(d, p) } },
+        npm: (_cmd, args, opts) => { appels.push({ args, cwd: opts.cwd }); return { status: 0 } },
+      })
+      assert.equal(vu.ok, true, vu.refus)
+      assert.equal(ajouts[0].sansHooks, true, 'git worktree add sous core.hooksPath=/dev/null')
+      const cible = cibleDe(racine, '4339')
+      const fichier = (arbre) => statSync(join(arbre, 'node_modules', 'paquet', 'index.js'))
+      assert.equal(fichier(cible).ino, fichier(racine).ino, 'le fichier de la cible est un lien EN DUR vers celui du principal')
+      assert.deepEqual(readdirSync(join(cible, 'node_modules')).sort(), ['.bin', 'paquet'],
+        'le cache d’outil (.cache) n’est pas lié : réécrit en place, il changerait aussi dans le principal')
+      assert.deepEqual(appels.map((a) => a.args), [
+        ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'],
+        ['run', 'gen'],
+        ['run', 'docs:build', '--', '--perimes'],
+      ])
+      assert.deepEqual([...new Set(appels.map((a) => a.cwd))], [cible])
+    } finally { jeter() }
+  })
+
+  test('lock différent : refus NOMMÉ, worktree laissé, ni lien ni npm', () => {
+    const { racine, jeter } = depotEquipe()
+    try {
+      writeFileSync(join(racine, 'package-lock.json'), '{"lockfileVersion":3,"avance":true}\n')
+      let joue = 0
+      const vu = creerChantier({ env: CONTENEUR, racine, nom: '4340', lier: () => { joue += 1 }, npm: () => { joue += 1; return { status: 0 } } })
+      assert.equal(vu.ok, false)
+      assert.match(vu.refus, /worktree posé, node_modules non lié : package-lock\.json du principal diffère de celui de la cible/)
+      assert.match(vu.refus, /relancer `npm ci`/)
+      assert.equal(joue, 0)
+      assert.equal(existsSync(cibleDe(racine, '4340')), true)
+    } finally { jeter() }
+  })
 })

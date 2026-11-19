@@ -178,9 +178,8 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     }
   });
 
-  it('Possession de catalogue SANS profil de Dégâts (Lasso) : « +BF » nu — convention du profil d’arme, portée par la projection UNIQUE, jamais redéclarée par un canal', () => {
-    const nu = { plusBF: true, flat: 0, bare: true };
-    expect(parPossession('lasso')!.damage).toEqual(nu);
+  it('Lasso : Dégâts « – » (LDB 62 l.76) — portés par la projection UNIQUE, jamais redéclarés par un canal', () => {
+    expect(parPossession('lasso')!.damage).toEqual({ aucun: true });
     // Canal TRAIT : l'Indice IMPRIMÉ du statbloc prime (LDB 85 l.9) — il n'y a rien à replier.
     expect(weaponFromTrait(t({ id: 'a-distance', arg: 'lasso', value: 4 }))!.damage).toEqual({ plusBF: false, flat: 4 });
   });
@@ -188,5 +187,24 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
   it('Taille PRÉVUE d’une arme ogre (`sizeFor`, ADE II 2 l.706-710) : héritée par le canal TRAIT — un statbloc à massue ogre porte la même arme que la possession', () => {
     expect(weaponFromTrait(t({ id: 'arme', arg: 'massue-ogre', value: 7 }))!.sizeFor).toBe('grande');
     expect(parPossession('massue-ogre')!.sizeFor).toBe('grande');
+  });
+});
+
+describe('statblocs armés au catalogue : Atouts/Allonge du catalogue, Dégâts et Portée du statbloc (LDB 85 l.9)', () => {
+  const armesDe = (id: string): Weapon[] => {
+    const c = findCreatureById(id)!;
+    return renderWeaponsFromTraits(traitsDuPorteur(c.traits, porteurDuProfil(c.id, c.char)));
+  };
+
+  it('Vrisk Gratte-le-fer « Arme (Épée) +12 » : une Arme simple (LDB 62 l.127 ; MDG 16 l.499)', () => {
+    const w = armesDe('vrisk-gratte-le-fer').find((a) => a.trappingId === 'arme-simple')!;
+    expect([w.type, w.reach, w.qualities, w.damage]).toEqual(['melee', 'Moyenne', [], { plusBF: false, flat: 12, bfInclus: true }]);
+  });
+
+  it('Technomage du clan Skryre : ses deux attaques à distance, dont le Pistolet à malepierre +9 (20) (ZI 13 l.222)', () => {
+    const distance = armesDe('technomage-du-clan-skryre').filter((a) => a.type === 'distance');
+    expect(distance).toHaveLength(2);
+    const pistolet = distance.find((a) => a.trappingId === 'pistolet-a-malepierre')!;
+    expect([pistolet.damage, pistolet.range]).toEqual([{ plusBF: false, flat: 9 }, 20]);
   });
 });

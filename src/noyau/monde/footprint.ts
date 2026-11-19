@@ -19,7 +19,9 @@ import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
 import type { Pt } from './path';
-import type { SceneEntity } from './scene';
+import { areteSepareLeCoupEntre, plafondDe, sceneMetresPerTile, wallOnSight, type Scene, type SceneEntity } from './scene';
+import { isStructure } from '../../engine/structures';
+import { chebyshev } from '../../engine/grid';
 import { verticalTiles } from './relief';
 
 /** Côté N de l'empreinte carrée pour une Taille créature (défaut Moyenne = 1). */
@@ -127,20 +129,66 @@ export function footprintsOverlap(aPos: Pt, an: number, bPos: Pt, bn: number): b
 }
 
 /**
- * Distance de COMBAT (Chebyshev d'empreinte) entre deux combattants positionnés — `Infinity` si l'un
- * n'est pas posé. Un grand est « au contact » (distance 1) si UNE de ses tuiles touche la cible, et
- * la portée d'un tir se mesure du bord de l'empreinte. Remplace `chebyshev(a.pos, b.pos)` partout où
- * la Taille des deux combattants compte (mêlée, bandes de portée, sélection de cible).
- *
- * RELIEF : la séparation VERTICALE est la vraie hauteur métrique entre les deux surfaces, convertie en
- * cases (`verticalTiles`, Δhauteur ÷ échelle métrique) — un défenseur de muraille (h élevée) n'est PAS
- * superposé aux assaillants au sol. `mpt` = m/case de la scène (défaut 2 person-scale ; les appelants
- * qui ont la scène passent `sceneMetresPerTile(scene)`). Δhauteur=0 (même altitude) ⇒ terme nul ⇒
- * résultat byte-identique au plan. `pos.h` est stampé/rafraîchi à chaque mouvement (`placeCombatant`).
+ * Distance de COMBAT, en cases, entre deux combattants : Chebyshev d'empreinte et séparation verticale
+ * (`verticalTiles` sur `pos.h`, à l'échelle `sceneMetresPerTile` de `scene`) ; `Infinity` si l'un n'est pas posé.
+ * Mesure de la PORTÉE. LDB 15 l.12.
  */
-export function combatDistance(a: Combatant, b: Combatant, mpt = 2): number {
+export function distanceDeCombat(scene: Scene | null, a: Combatant, b: Combatant): number {
   if (!a.pos || !b.pos) return Infinity;
   const horizontal = footprintChebyshev(a.pos, footprintN(a), b.pos, footprintN(b));
-  const vertical = verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, mpt);
+  const vertical = verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, sceneMetresPerTile(scene));
   return Math.max(horizontal, vertical);
+}
+
+/** Le corps de `c` est-il porté par la scène : une structure de siège (ses arêtes), un navire sur ses ponts ? */
+export const porteParLaScene = (c: Combatant): boolean => isStructure(c) || !!c.surSesPonts;
+
+/** Un corps posé : son ancre (coin NO) et ce dont `footprintN` tire son côté, lus sur le MÊME objet. */
+export interface Corps { pos: Pt; size?: SizeCategory; footprint?: number }
+
+/** Le corps d'un combattant posé, `undefined` sans `pos`. */
+export const corpsDe = (c: Pick<Combatant, 'pos' | 'size' | 'footprint'>): Corps | undefined =>
+  c.pos && { pos: c.pos, size: c.size, footprint: c.footprint };
+
+/** Toutes les paires (case de `a`, case de `b`) de deux empreintes, avec leur distance de Chebyshev. */
+function pairesDeCases(aPos: Pt, an: number, bPos: Pt, bn: number): { ta: Pt; tb: Pt; d: number }[] {
+  const out: { ta: Pt; tb: Pt; d: number }[] = [];
+  for (const ta of footprintTiles(aPos, an)) for (const tb of footprintTiles(bPos, bn)) out.push({ ta, tb, d: chebyshev(ta, tb) });
+  return out;
+}
+
+/** Les paires de cases EN REGARD de deux corps : celles à la plus petite distance de Chebyshev (`footprintChebyshev`). */
+export function pairesEnRegard(a: Corps, b: Corps): [Pt, Pt][] {
+  const an = footprintN(a), bn = footprintN(b);
+  const d = footprintChebyshev(a.pos, an, b.pos, bn);
+  return pairesDeCases(a.pos, an, b.pos, bn).filter((p) => p.d === d).map((p) => [p.ta, p.tb]);
+}
+
+/** Distance horizontale de contact : la plus petite distance de Chebyshev entre une case de chaque empreinte que
+ *  nulle arête ne sépare pour le coup (`wallOnSight` sous `areteSepareLeCoupEntre`, à la couche la plus haute des deux) ; `Infinity` s'il n'y en a aucune.
+ *  Un corps porté par la scène n'est séparé de personne par une arête. LDB 13 l.94 ; LDB 13 l.114. */
+function horizontalDeContact(scene: Scene | null, a: Combatant, b: Combatant, aPos: Pt, bPos: Pt): number {
+  const an = footprintN(a), bn = footprintN(b);
+  if (!scene?.walls?.length || porteParLaScene(a) || porteParLaScene(b)) return footprintChebyshev(aPos, an, bPos, bn);
+  const z = Math.max(aPos.z ?? 0, bPos.z ?? 0);
+  let best = Infinity;
+  const separe = (ax: number, ay: number, bx: number, by: number) => areteSepareLeCoupEntre(scene, ax, ay, bx, by, z);
+  for (const { ta, tb, d } of pairesDeCases(aPos, an, bPos, bn)) if (d < best && !wallOnSight(scene, ta, tb, z, separe)) best = d;
+  return best;
+}
+
+/** Le plafond (m) d'une empreinte de côté `n` posée en `p` : le plus haut des plafonds de ses cases (`plafondDe`). */
+function plafondDeLEmpreinte(scene: Scene, p: Pt, n: number): number {
+  return Math.max(...footprintTiles(p, n).map((t) => plafondDe(scene, { ...t, z: p.z ?? 0 })));
+}
+
+/** Distance de CONTACT, en cases : celle de tout ce qui dit « au contact » (Allonge, adjacence, Surnombre).
+ *  `Infinity` quand le plafond du plus bas (`plafondDeLEmpreinte`, lu à la scène) n'est pas plus haut que le sol du
+ *  plus haut, ou quand une arête les sépare pour le coup (`horizontalDeContact`). La séparation verticale se lit à
+ *  l'échelle `sceneMetresPerTile` de `scene`. Sans scène, ni plafond ni arête. LDB 13 l.114 ; LDB 15 l.12. */
+export function distanceDeContact(scene: Scene | null, a: Combatant, b: Combatant): number {
+  if (!a.pos || !b.pos) return Infinity;
+  const [bas, posBas, posHaut] = (a.pos.h ?? 0) <= (b.pos.h ?? 0) ? [a, a.pos, b.pos] : [b, b.pos, a.pos];
+  if (scene && plafondDeLEmpreinte(scene, posBas, footprintN(bas)) <= (posHaut.h ?? 0)) return Infinity;
+  return Math.max(horizontalDeContact(scene, a, b, a.pos, b.pos), verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, sceneMetresPerTile(scene)));
 }

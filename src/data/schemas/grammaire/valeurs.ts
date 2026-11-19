@@ -7,22 +7,37 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
-import type { FormuleSansTirage } from '../../../engine/ops';
-import type { RegleOptionnelleId } from '../../../engine/policy';
+import type { Formula, FormuleSansTirage } from '../../../engine/ops';
 import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
-import { parseStatus, type Money } from '../../../engine/money';
-import { parseDice, totalDuDe } from '../../../engine/dice';
-import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
-import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
+import { ECHELONS_DE_STATUT, libelleDEchelon, type Money, type Status } from '../../../engine/money';
+import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe, type DeDeTable, type PorteurDeDe } from '../../../engine/tables';
+import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
+import { estObjet } from '../../../lib/objet.mjs';
+import type { TrappingData } from '../../index';
 
-import { type Amateur, type ConditionUnlock, type ContexteDeTest, type Availability, type TestedAvailability, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import {
+  type Amateur,
+  type ConditionUnlock,
+  type ContexteDeTest,
+  type Availability,
+  type TestedAvailability,
+  CHAR_LABELS,
+  COUVERT_DIFFICULTES,
+  DIFFICULTY_LABELS,
+  HIT_LOCATION_LABELS,
+  LOCALISATIONS_DE_COUP,
+  REACH_LABELS,
+  REACH_VARIABLE,
+  STAKE_FORMS,
+} from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
-import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
+import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLocale, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
-import { listeCle } from './collection-cle';
+import { controlerSousPortee, listeCle } from './collection-cle';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit, produitDe } from './interne/produits';
@@ -110,16 +125,13 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
 /** Le genre d'une arme, d'un Groupe d'arme ou d'une attaque : corps à corps ou à distance (LDB 62). */
 export const genreDArmeSchema = enumNomme({ melee: 'Corps à corps', distance: 'À distance' });
 
+/** Qualité d'une chambre et d'un repas (LDB 66 l.5). */
+export const qualiteDeReposSchema = enumNomme({ pietre: 'Piètre', normale: 'Normale', grande: 'Grande' });
+export type QualiteDeRepos = z.output<typeof qualiteDeReposSchema>;
+
 /** Les rôles d'animation d'ambiance d'une entité de scène. */
 export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
-
-/** Dé de TIRAGE d'une table à fourchettes (`die`) : une expression de dé (« d10 », « 2d10 ») que
- *  `parseDice` (`src/engine/dice.ts`) lit en `DiceSpec`. UNE déclaration pour la fabrique
- *  (`options.deDeTirage`, `grammaire/document.ts`), les tables de `arcane-phenomena.json`, les porteurs
- *  de N tables (`defs/rencontres-edoc.ts`, `defs/ship-criticals.ts`) et l'op `rollTable`
- *  (`grammaire/mecanique.ts`). #1669 */
-export const deDeTirageSchema = z.string().refine((s) => parseDice(s) !== null, { message: 'dé de tirage illisible : une expression « NdM » (ex. « d10 », « 2d10 »)' });
 
 /** Maniement d'une arme : l'axe d'ANIMATION (prise physique), distinct du Groupe de règles — UNE déclaration
  *  pour les racines de `apparences.json` (`defs/apparences.ts`) et les Groupes d'arme de `weaponGroups.json`
@@ -174,6 +186,19 @@ export const symptomSeveritySchema = enumNomme({ moderee: 'Modérée', grave: 'G
  *  l.19), un individu (LDB 21 l.75 ; EDOC 11 l.648). Son libellé nomme la variante dans les refus. #3045 */
 export const varianteDeCibleSchema = enumNomme({ groupe: 'un Groupe', individu: 'une personne' });
 export type VarianteDeCible = z.infer<typeof varianteDeCibleSchema>;
+
+/** Restriction d'Action, de Mouvement et de défense qu'un Statut impose à son porteur (`gating` de `etats.json` et de
+ *  `psychology.json`), lue par `conditionGating` (`engine/conditions.ts`). LDB 16 ; LDB 21 */
+export const gatingDeStatutSchema = nommerChamps(z.strictObject({
+  action: z.literal('none').optional(),
+  movement: z.enum(['none', 'half', 'crawl']).optional(),
+  cannotDefend: z.literal(true).optional(),
+}), {
+  action: { label: 'Action' },
+  movement: { label: 'Déplacement' },
+  cannotDefend: { label: 'Défense impossible' },
+});
+export type GatingDeStatut = z.output<typeof gatingDeStatutSchema>;
 
 /**
  * FAMILLE d'attaque d'une manœuvre et d'une arme naturelle (`AttackKind`, `src/engine/creatureAttacks.ts`) — le libellé est
@@ -241,8 +266,11 @@ export const LIBELLES_DE_DISPONIBILITE = { commune: 'Commune', limitee: 'Limité
 export const availabilitySchema = enumNomme(LIBELLES_DE_DISPONIBILITE);
 /** Les Disponibilités qui se testent au d100 (`TestedAvailability`). LDB 59 l.25-30 */
 export const dispoPctAvailabilitySchema = enumNomme({ limitee: LIBELLES_DE_DISPONIBILITE.limitee, rare: LIBELLES_DE_DISPONIBILITE.rare } satisfies Record<TestedAvailability, string>);
-/** Libellé de Statut (« Argent 2 ») : lisible par `parseStatus`, que `statutDeDonnee` garantit ensuite. LDB 08 l.9 */
-export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'Statut illisible : « Bronze N », « Argent N » ou « Or N » attendu.');
+/** Statut (`Status`, `src/engine/money.ts`) : un Échelon et un Standing entier, de 0 sans borne haute. LDB 08 l.9, l.101 */
+export const statutSchema = nommerChamps(
+  z.strictObject({ tier: enumNomme(tableTotale(ECHELONS_DE_STATUT, libelleDEchelon)), standing: z.number().int().min(0) }),
+  { tier: { label: 'échelon' }, standing: { label: 'standing' } },
+) satisfies z.ZodType<Status>;
 
 /**
  * Rareté d'une pièce de créature récoltée (`HarvestRarity`, `src/data/index.ts`) = les paliers de
@@ -294,7 +322,7 @@ export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
  */
 export const sourceRefSchema = nommerChamps(z.strictObject({
   book: idDe('book', undefined, { nue: true }),
-  page: z.number(),
+  page: z.number().int(),
   /** Précision optionnelle (ch./l. du passage, portée VERBATIM…). Aucune LOGIQUE DE JEU ne la lit ;
    *  une GARDE la lit : quand elle est de la forme `<ABRÉV> <ch> l.<ligne>`,
    *  `scripts/guards/lib/folioLineAlign.mjs` la confronte au marqueur `data-folio` qui gouverne cette
@@ -487,70 +515,164 @@ const specEntrySchema = nommerChamps(z.strictObject({
 export const specsSchema = listeCle(specEntrySchema, 'id', { espace: {} });
 
 // ============================================================================
-// COMBAT FEATURE (`src/engine/combatFeatures/types.ts`) — sac de flags CLOS conféré par un Talent/Trait,
-// `aa` récursif (variante « Avantage de groupe », Aux Armes Annexe I). Promu ici (partagé avec
-// `talents.ts`) : SOURCE UNIQUE pour tout schéma qui porte `combat`/`variants[].combat`.
-// La FORME est retapée ici, pas dérivée : `CombatFeature` est un TYPE, sans contrepartie runtime à
-// importer (au contraire d'`AVAILABILITIES`/`STAKE_FORMS`, tuples importés de `src/engine/types` l.8).
-// Reflet FIDÈLE de l'interface TS — une dérive rougit au parse des données qui portent `combat`.
+// COMBAT FEATURE (`src/engine/combatFeatures/types.ts`) — sac de flags CLOS conféré par un Talent/Trait.
+// Promu ici (partagé avec `talents.ts`) : SOURCE UNIQUE pour tout schéma qui porte `combat`/`variants[].combat`, dont `CombatFeature`
+// (`src/engine/combatFeatures/types.ts`) est la sortie.
 // ============================================================================
 
 export const castingKindSchema = z.enum(['mineure', 'arcane', 'invocation', 'beni', 'chaos']);
 
-export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
+export const combatFeatureSchema = z.lazy(() =>
   nommerChamps(z.strictObject({
+    /** Pénalité de main secondaire transformée par niveau (Ambidextre, LDB 10 : -20 → -10 à 1×, 0 à `zeroAt`).
+     *  DÉCLARATIF (`offHandPenalty(c)` l'interprète) — jamais une hook-fonction, 100 % donnée éditable. */
     offHandPenalty: nommerChamps(z.strictObject({ perLevel: z.number(), zeroAt: z.number() }), { perLevel: { label: "par niveau" }, zeroAt: { label: "seuil de zéro" } }).optional(),
+    /** Modes d'attaque ajoutés par la capacité (Maniement de deux armes → ['dual-wield']). */
     attackModes: z.array(z.string()).optional(),
+    /** Pénalité aux défenses du porteur après une double frappe, jusqu'au début de son prochain Tour
+     *  (Maniement de deux armes, LDB 10 l.773). Lue par `dualStrikeDefensePenalty(c)`. */
     dualStrikeDefense: z.number().optional(),
+    // ── Dégâts (× niveau) ──────────────────────────────────────────────────────
+    /** Coup puissant : +niveau Dégâts avec les armes de Corps à corps. */
     meleeDamageBonus: z.boolean().optional(),
+    /** Tir précis : +niveau Dégâts avec les armes à distance. */
     rangedDamageBonus: z.boolean().optional(),
+    /** Combat déloyal : +niveau Dégâts avec Corps à corps (Bagarre). */
     brawlDamageBonus: z.boolean().optional(),
+    /** Charge berserk / Déterminé : +niveau Dégâts quand on Charge. */
     chargeDamageBonus: z.boolean().optional(),
+    /** Tueur : Bonus de Force = Bonus d'Endurance de la cible s'il est plus élevé. */
     slayer: z.boolean().optional(),
+    /** Robuste : réduit tous les Dégâts SUBIS de niveau (min 1 Blessure). */
     damageReduction: z.boolean().optional(),
+    /** Frappe blessante : +niveau Blessures quand on inflige une Blessure Critique. */
     critExtraWounds: z.boolean().optional(),
+    /** Tir sûr : ignore niveau PA de la cible au tir. */
     rangedAPIgnore: z.boolean().optional(),
+    // ── Modificateurs de Test d'attaque ────────────────────────────────────────
+    /** Frappe assommante : pas de −20 de Localisation visée (Tête) avec une arme Assommante. */
     ignoreCalledShotHead: z.boolean().optional(),
+    /** Tir mortel : choisit la Localisation au tir — pas de −20 de Localisation visée à distance. */
     ignoreCalledShotRanged: z.boolean().optional(),
+    /** Tireur d'élite : ignore les modificateurs de Taille de la cible au tir. */
     ignoreSizeRangedMods: z.boolean().optional(),
+    /** Tireur embusqué : aucune pénalité à Longue portée, moitié à Portée extrême. */
     sniper: z.boolean().optional(),
+    // ── Initiative / économie d'action ─────────────────────────────────────────
+    /** Combat instinctif : +10 × niveau à l'Initiative de combat. */
     initiativeBonus: z.boolean().optional(),
+    /** Tir rapide : tire hors de l'ordre d'Initiative si l'arme à distance est chargée (pré-emption gratuite). */
     strikeFirstRanged: z.boolean().optional(),
+    /** Vigilance : Test de Perception Intermédiaire (+0) pour ignorer la Surprise. */
     surpriseSave: z.boolean().optional(),
+    /** Rechargement rapide ('all') / Artilleur ('blackpowder') : +niveau DR aux Tests de rechargement. */
     reloadDR: z.enum(['all', 'blackpowder']).optional(),
+    /** Sprinter : Mouvement +1 quand on Court. */
     runBonus: z.boolean().optional(),
+    /** Fuite ! : Mouvement +1 quand on Fuit. */
     fleeBonus: z.boolean().optional(),
+    /** Fuite ! — variante « Nouveaux talents et talents mis à jour » (AA 13 l.68) : Mouvement +1 quand on
+     *  est la Cible d'une Poursuite. Lu par la manche de poursuite terrestre (`noyau/pursuitFlow.ts`,
+     *  `pursuedMovement`) au calcul du DR de vitesse (LDB 15 l.104-108). */
     pursuitTargetBonus: z.boolean().optional(),
+    // ── Défense / Avantage ─────────────────────────────────────────────────────
+    /** Porte-Bouclier (LDB 10 l.972) : +niveau Avantage quand on se défend au Bouclier et qu'on PERD le
+     *  Test opposé (consolation d'une situation désespérée — pas sur une défense gagnée). */
     shieldAdvantage: z.boolean().optional(),
+    /** Réaction défensive à coût d'Avantages de réserve (Porte-Bouclier variante « Avantage de groupe »,
+     *  AA 13 l.84) : quand on se défend au Bouclier, 1×/Round, dépenser `cost` Avantages soit pour causer des
+     *  Dégâts « comme s'il s'agissait de son Action », soit pour repousser l'attaquant de 2 m et se
+     *  désengager. Déclarée en DONNÉE (variante `variants[].combat`, active en mode Avantage de groupe) ;
+     *  offerte par le chooser de défense (`shieldReactionCost`), débitée par `campSpend`, résolue par
+     *  `applyShieldReaction`. */
     advantageDefenseReaction: nommerChamps(z.strictObject({ avantage: z.number() }), { avantage: { label: "Avantage" } }).optional(),
+    /** Contre-attaque en gagnant un Test opposé de défense en mêlée (Champion LDB 85 sans condition d'arme ;
+     *  Riposte LDB 10 avec `counterRequiresFastParry`). GÉNÉRIQUE : tout talent/trait qui le déclare contre. */
     counterOnDefenseWin: z.boolean().optional(),
+    /** La contre-attaque exige une arme de PARADE Rapide (Riposte ; Champion ne l'exige pas). */
     counterRequiresFastParry: z.boolean().optional(),
+    /** La contre-attaque se DÉCLARE, au plus Niveau fois par Round (Riposte LDB 10 l.1037). */
     counterDeclaredPerLevel: z.boolean().optional(),
+    /** Renversement : en gagnant le Test opposé de Corps à corps, prend TOUS les Avantages adverses au lieu de +1. */
     stealAdvantage: z.boolean().optional(),
+    /** Renversement — variante « Avantage de groupe » (AA 13 l.92-98) : prend 1 Avantage dans la réserve
+     *  ADVERSE (au lieu de tout l'Avantage individuel de l'adversaire), l'ajoute à sa réserve, sans Dégât. */
     stealOne: z.boolean().optional(),
+    /** Coude-à-coude — variante « Avantage de groupe » (AA 13 l.43) : « compte comme deux combattants »
+     *  au décompte de domination de fin de Round (transfert d'Avantage). Poids par défaut 1. */
     transferWeight: z.number().optional(),
+    /** Artilleur / Rechargement rapide — variante « Avantage de groupe » (AA 13 l.9/90) : recharger une
+     *  arme pendant un combat compte comme une Action Évaluer → +1 Avantage supplémentaire au rechargement. */
     reloadAssessAdvantage: z.boolean().optional(),
+    /** Cavalier émérite — variante « Avantage de groupe » (AA 13 l.25) : Taille considérée égale à celle de
+     *  la monture pour résister à la Peur/Terreur causée UNIQUEMENT par la Taille de l'adversaire. */
     fearSizeAsMount: z.boolean().optional(),
+    /** Impitoyable — variante « Avantage de groupe » (AA 13 l.74) : le coût d'Avantage d'une Retraite
+     *  stratégique (Désengagement, défaut 2 Avantages, AA 11 l.37) tombe à cette valeur pour le porteur. */
     retreatCost: z.number().optional(),
+    /** Impitoyable (LDB 10 l.591) : au Désengagement « Sacrifier l'Avantage », GARDE niveau Avantages au
+     *  lieu de tomber à 0 (× niveau). */
     keepAdvantageOnDisengage: z.boolean().optional(),
+    /** Impitoyable (LDB 10 l.591) : peut Sacrifier l'Avantage pour se Désengager MÊME avec moins d'Avantage
+     *  que ses adversaires (relâche la garde de supériorité stricte). */
     disengageWithLessAdvantage: z.boolean().optional(),
+    /** Battement — variante « Avantage de groupe » (AA 13 l.17) : manœuvre d'Action retirant de l'Avantage
+     *  à la réserve ADVERSE (−1 sur Succès de Corps à corps, −1 de plus à 6 DR). Le porteur peut la déclarer. */
     battement: z.boolean().optional(),
+    /** Distraire (LDB 10 / AA 13 l.51) : manœuvre de Mouvement — Test opposé Athlétisme/Calme ; sur Succès,
+     *  la cible (mode groupe : sa réserve) ne gagne aucun Avantage jusqu'à la fin du prochain Round. */
     distraire: z.boolean().optional(),
+    /** Maîtrise du combat : compte pour 1+niveau personnes au calcul du surnombre. */
     outnumberCount: z.boolean().optional(),
+    /** Cœur vaillant : tente de retirer le Brisé même Engagé (Calme en fin de Round). */
     braveheart: z.boolean().optional(),
+    /** Sans peur (LDB 10 l.1051) : PAS une immunité — détecte que le porteur a le Talent contre
+     *  l'Ennemi spécifié (`ctx.spec` ; sans spec — talent ACCORDÉ par Flambeau de Vertu/Cœurs
+     *  ardents — toutes sources). L'effet réel (un seul Test de Calme Accessible (+20), qui PEUT
+     *  échouer) est résolu par `sansPeurVs`/`psychTest`/`pasDePeur` (psychology.ts). */
     fearImmune: z.boolean().optional(),
+    /** Endurci : ignore niveau Points de Blessure perdus par l'État Hémorragique. */
     bleedIgnore: z.boolean().optional(),
+    // ── Magie / psychologie ────────────────────────────────────────────────────
+    /** Harmonisation aethyrique : pas d'Incantation Imparfaite sur un double RÉUSSI de Focalisation. */
     focusNoMiscastOnDouble: z.boolean().optional(),
+    /** Diction instinctive : pas d'Incantation Imparfaite sur un double RÉUSSI de Langue (Magick). */
     castNoMiscastOnDouble: z.boolean().optional(),
+    /** Effrayant : le porteur a un Indice de Peur égal à son niveau. */
     causesFear: z.boolean().optional(),
+    // ── Tests hors combat ──────────────────────────────────────────────────────
+    /** Inverse un Test RATÉ de la Compétence référencée s'il devient réussi (Sociable → Ragot, Studieux →
+     *  Recherche…). Réfs STRUCTURÉES `{ id, spec? }` (jamais un match par libellé) ; `capDR` plafonne le DR
+     *  (Pansement +1). TOUJOURS une LISTE : un Talent peut couvrir plusieurs Compétences en « ou »
+     *  (Pilote → Ramer OU Voile, LDB 10 l.964). `contexte` : le Test que le Talent vise (LDB 10 l.899, l.966). */
     reverseFailed: nommerChamps(z.strictObject({ skills: z.array(refOuSpec('skill')).min(1), capDR: z.number().optional(), contexte: contexteDeTestSchema.optional() }), { skills: { label: "Compétences" }, capDR: { label: "limite de DR" }, contexte: { label: "contexte du Test" } }).optional(),
+    // ── Économie / social ──────────────────────────────────────────────────────
+    /** Négociateur : LDB 10 l.818 ; appliqué par `engine/bargain`. */
     bargainBonus: z.boolean().optional(),
+    // ── Capacités diverses (hors combat direct) ──────────────────────────────────
+    /** Costaud (LDB 10) : limite d'Encombrement +2 × niveau (items.maxEncumbrance). */
     encumbranceBonus: z.boolean().optional(),
+    /** Âme pure (LDB 10) : seuil de Corruption +niveau (corruption.corruptionThresholdExceeded). */
     corruptionThreshold: z.boolean().optional(),
+    /** Chirurgie (LDB 10) : débloque le mode de soin chirurgical (healing/partyFlow : fracture/amputation). */
     surgery: z.boolean().optional(),
+    // ── Incantation (apprentissage des sorts — grimoire.ts) ──────────────────────
+    /** Talent de lanceur (LDB 10) : famille d'incantation qu'il ouvre (Magie mineure → 'mineure',
+     *  Magie des Arcanes → 'arcane', Invocation → 'invocation', Béni → 'beni', Magie du Chaos → 'chaos').
+     *  La spécialisation (Domaine/Culte) est portée par `ctx.spec`. Remplace le name-match de grimoire. */
     castingKind: castingKindSchema.optional(),
+    /** Commandant d'équipe (AA 13 l.29-35) : peut DIRIGER une équipe servant une Arme d'équipe « à portée
+     *  de voix » (Test de Commandement Intermédiaire) — sur réussite, l'équipe tire au score de Projectiles
+     *  du Personnage. Lu par `hasCommandTeam` (affordance + substitution `noyau/monde/commandTeam`). */
     commandTeam: z.boolean().optional(),
+    /** Chanson de marin (MDG 09 l.32-40) : peut ENTONNER une chanson de marin connue (une spec du Talent =
+     *  une chanson apprise, l.36) — Test de Divertissement (Chant), effet 3 min + DR sur tout l'équipage,
+     *  une seule chanson par quart. Lu par `shantySingers` (affordance) + `chanterLaChanson` (state). */
     seaShanty: z.boolean().optional(),
+    /** Frappe blessante — variante « Nouveaux talents et talents mis à jour » (AA 13 l.57) : au lieu de
+     *  Blessures supplémentaires (`critExtraWounds`), lance deux fois le tableau de Blessures Critiques et
+     *  garde le résultat préféré. Lu par la résolution de Critique (kind-agnostique, même primitive que le
+     *  drapeau temporaire `critRollTwice` de Bénédiction de Sauvagerie, `engine/activeFlags.ts`). */
     critRollTwice: z.boolean().optional(),
   }), { offHandPenalty: { label: "malus de main secondaire" }, attackModes: { label: "modes d’attaque" }, dualStrikeDefense: { label: "pénalité de défense après double frappe" }, meleeDamageBonus: { label: "bonus de dégâts au contact" }, rangedDamageBonus: { label: "bonus de dégâts au tir" }, brawlDamageBonus: { label: "bonus de dégâts de bagarre" }, chargeDamageBonus: { label: "bonus de dégâts de charge" }, slayer: { label: "tueur" }, damageReduction: { label: "réduction des dégâts" }, critExtraWounds: { label: "Blessures critiques supplémentaires" }, rangedAPIgnore: { label: "armure ignorée au tir" }, ignoreCalledShotHead: { label: "ignorer la visée à la tête" }, ignoreCalledShotRanged: { label: "ignorer la visée à distance" }, ignoreSizeRangedMods: { label: "ignorer les modificateurs de Taille au tir" }, sniper: { label: "tireur d’élite" }, initiativeBonus: { label: "bonus d’Initiative" }, strikeFirstRanged: { label: "tirer le premier" }, surpriseSave: { label: "sauvegarde de surprise" }, reloadDR: { label: "DR de rechargement" }, runBonus: { label: "bonus de course" }, fleeBonus: { label: "bonus de fuite" }, pursuitTargetBonus: { label: "bonus de poursuite" }, shieldAdvantage: { label: "Avantage du bouclier" }, advantageDefenseReaction: { label: "réaction défensive avec Avantage" }, counterOnDefenseWin: { label: "riposte après défense réussie" }, counterRequiresFastParry: { label: "riposte avec parade rapide" }, counterDeclaredPerLevel: { label: "riposte déclarée, plafond par Niveau" }, stealAdvantage: { label: "vol d’Avantage" }, stealOne: { label: "voler un point" }, transferWeight: { label: "poids transféré" }, reloadAssessAdvantage: { label: "Avantage d’évaluation au rechargement" }, fearSizeAsMount: { label: "Taille de la monture pour la Peur" }, retreatCost: { label: "coût de retraite" }, keepAdvantageOnDisengage: { label: "conserver l’Avantage au désengagement" }, disengageWithLessAdvantage: { label: "désengagement avec moins d’Avantage" }, battement: { label: "battement" }, distraire: { label: "distraction" }, outnumberCount: { label: "nombre pour la supériorité numérique" }, braveheart: { label: "courage" }, fearImmune: { label: "immunité à la Peur" }, bleedIgnore: { label: "ignorer le saignement" }, focusNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi de Focalisation" }, castNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi d’incantation" }, causesFear: { label: "Peur provoquée" }, reverseFailed: { label: "inverser les échecs" }, bargainBonus: { label: "bonus de marchandage" }, encumbranceBonus: { label: "bonus d’encombrement" }, corruptionThreshold: { label: "seuil de Corruption" }, surgery: { label: "chirurgie" }, castingKind: { label: "type d’incantation" }, commandTeam: { label: "équipe commandée" }, seaShanty: { label: "chant de marin" }, critRollTwice: { label: "double jet de Critique" } }),
 );
@@ -598,17 +720,6 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
   } as MetaDesChamps<typeof final.shape>);
 }
 
-/** Vue TS COMMUNE d'une variante — le contrat de FORME (runtime) est celui de `variantOf` par dataset ;
- *  cette vue expose les champs partagés par tous les porteurs et laisse les autres en `unknown`. Portée
- *  par le champ `variants?: Variant[]` de toute entrée à variante réglée (`activeVariant`/`effectiveEntry`,
- *  `src/engine/variants.ts`). */
-export type Variant = {
-  when: { rule: RegleOptionnelleId; equals?: z.infer<typeof ruleValueSchema> };
-  desc?: string;
-  source?: SourceRef;
-  [field: string]: unknown;
-};
-
 /**
  * Recette de détail de surface (`DetailRecipe`, `src/data/materials.types.ts`) — portée par le champ
  * optionnel `detail` de 2 datasets d'apparence (`materials.json` — domaines `roof` et `relief` — et
@@ -624,7 +735,7 @@ export const detailRecipeSchema = nommerChamps(z.strictObject({
       blockWM: z.tuple([z.number(), z.number()]).optional(),
       edgeWobble: z.number().optional(),
       paletteVar: z.number().optional(),
-    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "bloquer la carte du monde" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
+    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "largeur de bloc en mètres" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
     .optional(),
   bands: z.array(nommerChamps(z.strictObject({ atV: z.number(), hM: z.number(), color: z.string() }), { atV: { label: "position verticale" }, hM: { label: "hauteur en mètres" }, color: { label: "couleur" } })).optional(),
   timber: nommerChamps(z
@@ -687,7 +798,7 @@ export const deckCoverSchema = z.enum(['imparfaite', 'moyenne', 'totale']);
  */
 export const charKeySchema = enumNomme(CHAR_LABELS);
 
-/** Une Caractéristique et sa valeur IMPRIMÉE (`SwapGrant`, `src/engine/statEntry.ts`) : l'octroi d'une
+/** Une Caractéristique et sa valeur IMPRIMÉE (`OptionalSwap['grant']`, `src/engine/statEntry.ts`) : l'octroi d'une
  *  variante « swap » (ZI 1 l.229). */
 export const caracteristiqueChiffreeSchema = nommerChamps(
   z.strictObject({ characteristic: charKeySchema, value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
@@ -732,7 +843,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 /** Le libellé de chaque emplacement de palette (`SLOTS`, `src/lib/palette.ts`). */
 const LIBELLES_DES_SLOTS = {
   peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Étoffe principale', vet2: 'Étoffe secondaire', cuir: 'Cuir', metal: 'Métal',
-  corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume',
+  metal2: 'Métal secondaire', corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume', vegetal: 'Végétal',
 } as const satisfies Readonly<Record<Slot, string>>;
 
 /** Un emplacement de palette. */
@@ -747,7 +858,7 @@ export const surchargePaletteSchema = z.partialRecord(slotSchema, couleurHexSche
  *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
 export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS)]);
 
-/** `WeaponDamageSpec` (`src/engine/types.ts`) — Dégâts d'arme : littéral, ou Bonus de Force + valeur fixe.
+/** `WeaponDamageSpec` (`src/engine/types.ts`) — Dégâts d'arme : littéral, « – », ou Bonus de Force + valeur fixe.
  *  Lu par les armes du catalogue (`trappings`) et les manœuvres qui portent leurs Dégâts (`maneuvers`). ZI */
 export const weaponDamageSpecSchema = z.union([
   nommerChamps(z.strictObject({ literal: z.string() }), { literal: { label: 'Valeur littérale' } }),
@@ -757,25 +868,101 @@ export const weaponDamageSpecSchema = z.union([
     bare: { label: 'Mains nues' },
     bfInclus: { label: 'Indice BF inclus' },
   }),
+  nommerChamps(z.strictObject({ aucun: z.literal(true) }), { aucun: { label: 'Sans Dégâts' } }),
 ]);
 
+/** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
+export const weaponRangeSpecSchema = z.union([nommerNoeud(z.number(), { label: 'mètres' }), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);
+
+/** `AmmoRangeMod` : fraction de la Portée de l'arme, ou ± mètres. */
+export const ammoRangeModSchema = z.union([nommerChamps(z.strictObject({ mult: z.number() }), { mult: { label: 'Multiplicateur' } }), nommerChamps(z.strictObject({ add: z.number() }), { add: { label: 'Ajout' } })]);
+
+/** `ItemCapabilities` (`src/data/index.ts`) — sac de drapeaux IRRÉDUCTIBLES, tous optionnels. */
+export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
+  preventForcedDrop: z.boolean().optional(),
+  weatherProtection: z.boolean().optional(),
+  isShelter: z.boolean().optional(),
+  isRations: z.boolean().optional(),
+  isGrimoire: z.boolean().optional(),
+  isSpellComponent: z.boolean().optional(),
+  lockpicks: z.boolean().optional(),
+  scurvyGuard: z.boolean().optional(),
+  sealskin: z.boolean().optional(),
+  shipParts: z.boolean().optional(),
+  disarmImmune: z.boolean().optional(),
+  detruitAuLancer: z.boolean().optional(),
+  armureDeMonture: z.boolean().optional(),
+  ropeMode: z.boolean().optional(),
+  waterContainer: z.boolean().optional(),
+  improvisedWithoutCharge: z.boolean().optional(),
+}), {
+  preventForcedDrop: { label: 'Empêche la perte forcée' },
+  weatherProtection: { label: 'Protection contre les intempéries' },
+  isShelter: { label: 'Abri' },
+  isRations: { label: 'Rations' },
+  isGrimoire: { label: 'Grimoire' },
+  isSpellComponent: { label: 'Composant d’incantation' },
+  lockpicks: { label: 'Crochets' },
+  scurvyGuard: { label: 'Protection contre le scorbut' },
+  sealskin: { label: 'Peau de phoque' },
+  shipParts: { label: 'Pièces de navire' },
+  disarmImmune: { label: 'Immunité au désarmement' },
+  detruitAuLancer: { label: 'Détruit au lancer' },
+  armureDeMonture: { label: 'Armure de monture' },
+  ropeMode: { label: 'Usage de la corde' },
+  waterContainer: { label: 'Récipient d’eau' },
+  improvisedWithoutCharge: { label: 'Improvisée sans Charge' },
+});
+
+/** Une capacité de `itemCapabilitiesSchema`, nommée par le libellé de son champ (`skills.tool.capability`). */
+export const capaciteDObjetSchema = enumNomme(tableTotale(itemCapabilitiesSchema.keyof().options, (cle) => metaDesChamps(itemCapabilitiesSchema, { exigees: true })[cle].label));
+
+/** Un palier d'entraînement à une prothèse (`prosthesisTraining`), son coût en XP et ce qu'il réduit ou accorde. LDB 73 l.19/23 */
+export const entrainementDeProtheseSchema = nommerChamps(z.strictObject({ px: z.number(), label: z.string(), reduces: z.number().optional(), grants: z.enum(['movement', 'all']).optional() }), {
+  px: { label: 'Points d’Expérience' },
+  label: { label: 'Libellé' },
+  reduces: { label: 'Réductions' },
+  grants: { label: 'Accorde' },
+});
+
+/** La contenance d'un contenant (`container`). */
+export const contenantSchema = nommerChamps(z.strictObject({ capacity: z.number() }), { capacity: { label: 'Capacité' } });
+
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
- *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
-export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
+ *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`mass-battle`), qui impriment un montant complet. */
+export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } }, { label: 'montant' });
+
+/** Barème d'embauche d'un mercenaire, coût quotidien et hebdomadaire. MDG 14 l.293-302 */
+export const baremeDEmbaucheSchema = nommerChamps(z.strictObject({ daily: moneySchema, weekly: moneySchema, source: sourceRefSchema }), {
+  daily: { label: 'paie quotidienne' },
+  weekly: { label: 'paie hebdomadaire' },
+  source: { label: 'source' },
+});
 
 /** La pièce d'une somme (`keyof Money`), ses libellés au pluriel. LDB 57 */
 export const monnaieSchema = enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' } satisfies Record<keyof Money, string>);
 
 /** La nature d'une mention (`DotationDeMention`), son libellé de rubrique. #4053 */
-export const natureDeMentionSchema = enumNomme({ personne: 'Personnes', immeuble: 'Lieux', titre: 'Titres et droits', intangible: 'Réputation et tempérament' });
+export const natureDeMentionSchema = enumNomme({ personne: 'Personnes', bete: 'Bêtes', vehicule: 'Véhicules', immeuble: 'Lieux', titre: 'Titres et droits', intangible: 'Réputation et tempérament' });
 export type NatureDeMention = z.infer<typeof natureDeMentionSchema>;
 
 /** Montant PARTIEL authoré (coût d'un choix, mise minimale, octroi) — mêmes 3 dénominations, chacune
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */
 export const moneyPartialSchema = nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
 
-/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `CountSpec.roll`, `Formula.dice` et `details`. */
+/** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, fois?, plus?}`, partagé par `Formula.dice` et `details`. */
 export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), fois: z.number().positive().optional(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, fois: { label: "multiplicateur" }, plus: { label: "ajout" } });
+
+/** Dé de TIRAGE d'une table à fourchettes (`die`) ou d'une quantité (`CountSpec.roll`) : le `DiceSpec` restreint
+ *  à NdM, N et M entiers de 1. UNE déclaration pour la fabrique (`options.deDeTirage`, `grammaire/document.ts`),
+ *  les tables de `arcane-phenomena.json`, les porteurs de N tables (`defs/rencontres-edoc.ts`,
+ *  `defs/ship-criticals.ts`, `defs/tavernGames.ts`), l'op `rollTable` (`grammaire/mecanique.ts`) et
+ *  `countSpecSchema`. #1669 #4056 */
+const metaDuDe = metaDesChamps(diceSpecSchema, { exigees: true });
+export const deDeTirageSchema = nommerChamps(
+  z.strictObject({ n: diceSpecSchema.shape.n.int().min(1), sides: diceSpecSchema.shape.sides.int().min(1) }),
+  { n: metaDuDe.n, sides: metaDuDe.sides },
+) satisfies z.ZodType<DiceSpec>;
 
 /** `ShipSize` (`src/data/index.ts`) — les sept Tailles de bateau du tableau standard (`MDG 12 l.122-129`),
  *  dérivées de la LONGUEUR par `shipSizeOfLength` (`src/engine/shipBuild.ts`). Déclarées ICI une fois :
@@ -803,12 +990,11 @@ export type ProfilDeVoile = z.output<typeof profilDeVoileSchema>;
 
 /** Axes de la MÉTÉO MARINE (`SeaWeather`, `engine/seaWeather.ts`) : une rangée de sa table, ou le climat
  *  qu'un événement impose. MDG 13 l.170 */
-export const ventMarinSchema = z.enum(['calme-plat', 'legere-brise', 'brise-fraiche', 'vent-modere', 'vent-violent', 'violente-tempete']);
 const AXES_DE_LA_METEO_MARINE = {
-  precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
-  temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
-  visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
-  vent: ventMarinSchema,
+  precipitations: ref('seaPrecipitation'),
+  temperature: ref('seaTemperature'),
+  visibilite: ref('seaVisibility'),
+  vent: ref('seaWind'),
 };
 const META_DE_LA_METEO_MARINE = {
   precipitations: { label: 'Précipitations' },
@@ -817,13 +1003,14 @@ const META_DE_LA_METEO_MARINE = {
   vent: { label: 'Vent' },
 };
 export const meteoMarineSchema = nommerChamps(z.strictObject(AXES_DE_LA_METEO_MARINE), META_DE_LA_METEO_MARINE);
-/** Climat IMPOSÉ : les seuls axes qu'il fixe (`Partial<SeaWeather>`), un au moins. MDG 15 l.189, l.199, l.248 */
+/** Climat IMPOSÉ : les seuls axes qu'il fixe, un au moins. MDG 15 l.189, l.199, l.248 */
 export const meteoImposeeSchema = nommerChamps(z.strictObject({
   precipitations: AXES_DE_LA_METEO_MARINE.precipitations.optional(),
   temperature: AXES_DE_LA_METEO_MARINE.temperature.optional(),
   visibilite: AXES_DE_LA_METEO_MARINE.visibilite.optional(),
   vent: AXES_DE_LA_METEO_MARINE.vent.optional(),
 }).refine((m) => Object.keys(m).length > 0, { message: 'météo imposée VIDE : nommer au moins un axe (précipitations, température, visibilité, vent).' }), META_DE_LA_METEO_MARINE);
+export type MeteoImposee = z.output<typeof meteoImposeeSchema>;
 
 /** `ShipLocation` (`src/engine/combat.ts`) — les Localisations de coque des DEUX jeux de Critiques
  *  (MDG naval : cargaison/gréement/coque/avirons/équipements ; MSRC fluvial : gouvernail/superstructure). */
@@ -895,6 +1082,11 @@ export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]
  *  d'une place assise (`props.json`). */
 export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(), y: z.number().finite() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
+/** Rectangle de CASES entières de la grille, coin `x,y` et taille `w × h` : la zone jouable d'une scène
+ *  (`Scene.zoneJouable`, #4392). */
+export const rectDeCasesSchema = nommerChamps(z.strictObject({ x: z.number().int().nonnegative(), y: z.number().int().nonnegative(), w: z.number().int().min(1), h: z.number().int().min(1) }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } });
+export type RectDeCases = z.infer<typeof rectDeCasesSchema>;
+
 /** `{x,y}` CONTINU du plan, point et non case, dans l'unité que nomme le champ qui le compose : pour cent d'un canevas
  *  (0-100) pour un lieu sur la carte du monde ou un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`),
  *  part du jeu libre d'un décor dans son empreinte (-1 à +1) pour son calage (`SceneEntity.calage`, `defs-scenes/scene.ts`). */
@@ -961,12 +1153,13 @@ export const castingNumberModSchema = nommerChamps(z
     message: 'castingNumberMod : un modificateur sans `multiply`/`divide`/`delta` ne modifie rien',
   }), { multiply: { label: "multiplier" }, divide: { label: "diviser" }, round: { label: "arrondi" }, delta: { label: "variation" }, min: { label: "minimum" }, scope: { label: "portée" }, maison: { label: "arbitrage maison" }, source: { label: "source" }, desc: { label: "texte" } });
 
-/** `CountSpec` (`src/data/index.ts`) — quantité fixe ou tirage de dés. Dupliqué dans `careerLevels`/
- *  `classes`/`creatures`. */
+/** Quantité fixe ou tirage de dés (`CountSpec`) : un entier de 1, ou un dé de tirage NdM. LDB 08 l.238, l.965, l.1667 #4056 */
 export const countSpecSchema = z.union([
-  nommerChamps(z.strictObject({ fixed: z.number() }), { fixed: { label: "fixé" } }),
-  nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
+  nommerChamps(z.strictObject({ fixed: z.number().int().min(1) }), { fixed: { label: "fixé" } }),
+  nommerChamps(z.strictObject({ roll: deDeTirageSchema }), { roll: { label: "jet" } }),
 ]);
+/** Quantité d'une dotation : nombre fixe ou jet de dés. */
+export type CountSpec = z.infer<typeof countSpecSchema>;
 
 /** Le libellé de chaque sexe d'une apparence (`SEXES`, `src/lib/sexe.ts`). */
 const LIBELLES_DES_SEXES = { M: 'Masculin', F: 'Féminin' } as const satisfies Readonly<Record<SexeDApparence, string>>;
@@ -981,21 +1174,58 @@ export type Sexe = z.infer<typeof sexeSchema>;
  *  `grammaire/mecanique.ts` (`weaponHand`). */
 export const mainSchema = enumNomme({ main: 'Main directrice', secondaire: 'Main secondaire' });
 
-/** #2948 */
-export function validerApparenceDObjet(trappingId: string | undefined, apparence: string, ctx: z.RefinementCtx, path: string[]): void {
-  const message = messageDApparenceDObjet(trappingId, apparence);
-  if (message) ctx.addIssue({ code: 'custom', message, path, params: { referenceDObjet: { trappingId, apparence } } });
+/** Les objets de la campagne (`narratif.objets`), que désignent hors du catalogue l'objet donné (Effet et GameOp
+ *  `giveTrapping`) et la clé d'une apparence par objet (`apparencesDObjetsSchema`) ; le projet l'ouvre (`projetSchema`).
+ *  Déclarée ici et non dans `defs-scenes/communs.ts`, qui importe ce module. */
+export const OBJETS_DU_PROJET = { collection: 'narratif.objets', catalogue: 'objets de la campagne' } as const satisfies PorteeLocale;
+
+type FauteDApparence = { readonly path: readonly (string | number)[]; readonly message: string };
+
+/** #2948 — l'apparence `apparence` de l'objet `trappingId` (absent : objet `custom`), résolu par `resoudre`, au `path`. */
+function fautesDApparence(trappingId: string | undefined, apparence: string, resoudre: TrappingResolver, path: readonly (string | number)[]): FauteDApparence[] {
+  const message = messageDApparenceDObjet(trappingId, apparence, resoudre);
+  return message ? [{ path, message }] : [];
 }
 
-export function validerApparenceDonnee(v: { op?: string; trappingId?: string; apparence?: { id: string } }, ctx: z.RefinementCtx): void {
-  if (v.op && v.trappingId && !findTrappingById(v.trappingId)) ctx.addIssue({ code: 'custom', message: `Objet inconnu « ${v.trappingId} ».`, path: ['trappingId'], params: { referenceDObjet: { trappingId: v.trappingId } } });
-  if (v.apparence) validerApparenceDObjet(v.trappingId, v.apparence.id, ctx, ['apparence', 'id']);
+/** L'objet de la campagne `entree(id)`, en résolveur d'objet. */
+const objetDeLaCampagne = (entree: (id: string) => unknown): TrappingResolver => (id) => entree(id) as TrappingData | undefined;
+
+const signaler = (ctx: z.RefinementCtx, fautes: readonly FauteDApparence[]): void => {
+  for (const f of fautes) ctx.addIssue({ code: 'custom', path: [...f.path], message: f.message });
+};
+
+/** OBJET DONNÉ (Effet et GameOp `giveTrapping`) : l'apparence d'un objet du catalogue ou `custom` se juge au catalogue ;
+ *  celle d'un objet de la campagne, sous `OBJETS_DU_PROJET` (`controlerSousPortee`). */
+export function avecApparenceDObjetDonne<N extends z.ZodType<{ trappingId?: string; apparence?: { id: string } }>>(noeud: N): N {
+  const jugee = noeud.superRefine((v, ctx) => {
+    if (v.apparence && (v.trappingId === undefined || findTrappingById(v.trappingId))) signaler(ctx, fautesDApparence(v.trappingId, v.apparence.id, findTrappingById, ['apparence', 'id']));
+  });
+  return controlerSousPortee(jugee, OBJETS_DU_PROJET, (valeur, entree) => {
+    if (!estObjet(valeur) || typeof valeur.trappingId !== 'string' || entree(valeur.trappingId) === undefined) return [];
+    const apparence = idDApparence(valeur.apparence);
+    return apparence === undefined ? [] : fautesDApparence(valeur.trappingId, apparence, objetDeLaCampagne(entree), ['apparence', 'id']);
+  });
 }
 
-/** Apparence par objet porté, clé = id de trapping : `EntityAppearance.apparencesObjets`, presets de personnage (#3086). */
-export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>, Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
-  for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence.id, ctx, [trappingId, 'id']);
-});
+/** L'id d'une référence d'apparence `{ id }` lisible, `undefined` pour toute autre valeur (refusée par son propre nœud). */
+const idDApparence = (apparence: unknown): string | undefined => (estObjet(apparence) && typeof apparence.id === 'string' ? apparence.id : undefined);
+
+/** Apparence par objet porté, clé = id de trapping du catalogue ou objet de la campagne (`OBJETS_DU_PROJET`) :
+ *  `EntityAppearance.apparencesObjets`, presets de personnage (#3086). Ses clés sont celles d'un `recordDIds`, qui laisse
+ *  la référence d'apparence jugée au parse de mesure. */
+export const apparencesDObjetsSchema: z.ZodType<Partial<Record<string, { id: string }>>, Partial<Record<string, { id: string }>>> = controlerSousPortee(
+  recordDIds('trapping', ref('apparence'), undefined, { portee: OBJETS_DU_PROJET }).superRefine((v, ctx) => {
+    for (const [trappingId, apparence] of Object.entries(v)) if (apparence && findTrappingById(trappingId)) signaler(ctx, fautesDApparence(trappingId, apparence.id, findTrappingById, [trappingId, 'id']));
+  }),
+  OBJETS_DU_PROJET,
+  (valeur, entree) =>
+    estObjet(valeur)
+      ? Object.entries(valeur).flatMap(([trappingId, apparence]) => {
+          const id = idDApparence(apparence);
+          return id !== undefined && entree(trappingId) !== undefined ? fautesDApparence(trappingId, id, objetDeLaCampagne(entree), [trappingId, 'id']) : [];
+        })
+      : [],
+);
 
 /** Refus d'une espèce d'apparence hors de `especeDApparenceSchema`. */
 export function messageDEspeceInconnue(id: string): string {
@@ -1092,7 +1322,7 @@ export const messageDeTermeDeJet = (f: unknown): string | undefined => {
  *  qui n'admettent que lui (`max` d'un Talent). */
 export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } });
 /** Le Maxi d'un Talent « Nombre de Sorts disponibles dans le Domaine de Magie du Chaos choisi » (`LDB 10 l.704`). */
-export const maxiSortsDuDomaine = z.literal('sortsDuDomaine');
+export const maxiSortsDuDomaine = nommerNoeud(z.literal('sortsDuDomaine'), { label: 'Sorts du Domaine' });
 
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */
@@ -1132,7 +1362,14 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
  *  jet-associé/pions/écart d'Avantage/Blessures infligées/Blessures maximales/Taille du navire/valeur de la
  *  cargaison/valeur liée/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
-export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]]));
+export const formulaSchema: z.ZodType<Formula> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<Formula>, ...z.ZodType<Formula>[]]));
+
+/** `ConsumableDuration` (`src/engine/consumables.ts`) — UNE durée par objet (minutes/heures/jours). */
+export const consumableDurationSchema = nommerChamps(z.strictObject({
+  minutes: formulaSchema.optional(),
+  hours: formulaSchema.optional(),
+  days: formulaSchema.optional(),
+}), { minutes: { label: 'Minutes' }, hours: { label: 'Heures' }, days: { label: 'Jours' } });
 
 /** `FormuleSansTirage` (`src/engine/ops.ts`, #2817) — quantité LUE AVANT tout jet (portée, cibles, zone
  *  d'un Sort, bonus de DR, modificateur de Test affiché) : la grammaire de `formulaSchema` sans ses
@@ -1142,18 +1379,24 @@ export const formuleSansTirageSchema: z.ZodType<FormuleSansTirage> = z.lazy(() =
   { error: (iss) => messageDeTermeDeJet(iss.input) },
 )) as z.ZodType<FormuleSansTirage>;
 
-/** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
- *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à
+/** La grammaire d'une quantité (`formulaSchema`), nommée « formule » en variante d'une union qui l'admet à côté
+ *  d'autres formes ; `formulaSchema` garde son nom. */
+export const formuleNommee = nommerNoeud(z.lazy(() => formulaSchema), { label: 'formule' });
+
+/** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Lié à
+ *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::lierLesOps`), jamais à
  *  l'application de l'op : le Péché est expié AVANT `applyOps` (`noyau/combatFlow.ts`). */
 export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.literal(true) }), { sinPoints: { label: "Points de Péché" } });
 
-/** `Formula` du dialecte de la Colère des dieux : une formule GÉNÉRALE, le terme de Péché, ou leur
- *  SOMME — la seule composition que le livre imprime (« 1d10 + (Points de Péché) »). */
-export const formulaSinSchema: z.ZodType<unknown> = z.union([
-  formulaSchema,
+/** `Formula` du dialecte de la Colère des dieux : leur SOMME — la seule composition que le livre imprime
+ *  (« 1d10 + (Points de Péché) ») —, une formule GÉNÉRALE, ou le terme de Péché. La somme d'abord : une somme se lit
+ *  à la variante qui admet le terme de Péché (`varianteCourante`), jamais à la somme de la formule générale. */
+export const formulaSinSchema = z.union([
+  nommerChamps(z.strictObject({ sum: z.array(z.union([formuleNommee, sinPointsSchema])) }), { sum: { label: "somme" } }),
+  formuleNommee,
   sinPointsSchema,
-  nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
+export type FormuleAuPeche = z.output<typeof formulaSinSchema>;
 
 /** Le nœud est-il, sous ses seules enveloppes (`optional`, `lazy`…), la grammaire SANS TIRAGE
  *  (`formuleSansTirageSchema`) ? C'est le DIALECTE d'un champ de `Formula` lu sur son schéma, comme
@@ -1341,24 +1584,37 @@ export function ecartsDeCouverture<F extends { min?: number | null; max?: number
   return ecarts;
 }
 
+/** Le dé de `table` (`deDeLaTableTiree`) pour un raffinement de dataset, `null` hors NdM : un raffinement court sur un
+ *  dé que son champ (`deDeTirageSchema`) refuse déjà, nominativement. */
+export const deDuParse = (table: PorteurDeDe): DeDeTable | null => (deDeTirageSchema.safeParse(table.die).success ? deDeLaTableTiree(table) : null);
+
 /**
  * COUVERTURE DU DÉ d'une table tirée : ses fourchettes couvrent le dé que porte la table
  * (`deDeLaTableTiree`, `src/engine/tables.ts`) d'un seul tenant, de son plus petit total à son plus
- * grand (`facesDuDe`), ouverte en haut quand une fourchette l'est (`max: null`). Un dé illisible rend
- * `[]` : son champ (`deDeTirageSchema`) le refuse déjà, nominativement.
+ * grand (`facesDuDe`), ouverte en haut quand une fourchette l'est (`max: null`) ; aucun écart hors NdM (`deDuParse`).
  */
 export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: number | null }>(
   table: PorteurDeDe,
   fourchettes: readonly F[],
   nom: (f: F) => string,
 ): string[] {
-  if (parseDice(table.die) === null) return [];
-  const de = deDeLaTableTiree(table);
+  const de = deDuParse(table);
+  if (!de) return [];
   return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
 
 /** Un document d'un fichier de tables tirées : son dé et ses rangées. */
-type TableTiree = { readonly id: string; readonly die: string; readonly entries: readonly { min?: number | null; max?: number | null }[] };
+type TableTiree = { readonly id: string; readonly die: DiceSpec; readonly entries: readonly { min?: number | null; max?: number | null }[] };
+
+/** Le refus nominatif d'un document `t` dont les rangées ne couvrent pas le dé, posé sur `chemin`. */
+function refuserLaCouverture<T extends TableTiree>(
+  fichier: string, t: T, nom: (r: T['entries'][number], t: T) => string, ctx: z.RefinementCtx, chemin: (string | number)[],
+): void {
+  const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
+  if (ecarts.length) {
+    ctx.addIssue({ code: 'custom', path: chemin, message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${formatDice(t.die)} d'un seul tenant — ${ecarts.join(' ; ')}.` });
+  }
+}
 
 /**
  * L'`affinerDataset` d'un fichier de tables tirées : chaque document que `tiree` retient couvre son dé
@@ -1372,13 +1628,18 @@ export function couvertureDuDeParDocument<T extends TableTiree>(
   return (dataset) =>
     dataset.superRefine((v, ctx) => {
       for (const [i, t] of (v as T[]).entries()) {
-        if (!tiree(t)) continue;
-        const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
-        if (ecarts.length) {
-          ctx.addIssue({ code: 'custom', path: [i, 'entries'], message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
-        }
+        if (tiree(t)) refuserLaCouverture(fichier, t, nom, ctx, [i, 'entries']);
       }
     });
+}
+
+/** L'`affinerDataset` d'un fichier qui EST une table tirée (famille `config`) : même refus que
+ *  `couvertureDuDeParDocument`, sur ses `entries`. */
+export function couvertureDuDeDuDocument<T extends TableTiree>(
+  fichier: string,
+  nom: (r: T['entries'][number], t: T) => string,
+): (dataset: z.ZodType<unknown>) => z.ZodType<unknown> {
+  return (dataset) => dataset.superRefine((v, ctx) => refuserLaCouverture(fichier, v as T, nom, ctx, ['entries']));
 }
 
 /**

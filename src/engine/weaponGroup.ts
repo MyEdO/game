@@ -4,7 +4,7 @@
  */
 import type { Combatant, SkillInstance, Weapon } from './types';
 import { porteLeMarqueur } from '../data/schemas/grammaire/ref';
-import { byId, findWeaponGroupById, type ManiementAlternatif } from '../data';
+import { byId, findWeaponGroupById, groupeDeLArme, type ManiementAlternatif } from '../data';
 import { maxBy } from './pick';
 
 /** Groupe canonique : l'id `Weapon.subType` (#602), posé par le catalogue ou par l'éditeur ; absent =
@@ -16,6 +16,12 @@ export function weaponGroup(w?: Pick<Weapon, 'subType'>): string | null {
 const marqueAPoudre = porteLeMarqueur('weaponGroup', 'poudre');
 /** Groupe d'arme ou de munition À POUDRE : marqueur `poudre` de `weaponGroups.json`. LDB 62 l.99 ; LDB 62 l.129 */
 export const groupeAPoudre = (id: string | null | undefined): boolean => !!id && marqueAPoudre(id);
+
+const marqueLancee = porteLeMarqueur('weaponGroup', 'lancee');
+/** Groupe d'armes LANCÉES : marqueur `lancee` de `weaponGroups.json`. LDB 14 l.142 ; #4330 */
+export const groupeLance = (id: string | null | undefined): boolean => !!id && marqueLancee(id);
+/** Arme LANCÉE : son Groupe (`groupeDeLArme`) porte le marqueur `lancee`. LDB 14 l.142 ; #4330 */
+export const isThrownWeapon = (w: Pick<Weapon, 'weaponGroup' | 'subType'>): boolean => groupeLance(groupeDeLArme(w));
 
 /** Spé de Corps à corps `spec` (id de Groupe d'arme) de `c`, ou `undefined` : instance d'une Compétence dont
  *  l'entrée puise ses Spés dans les Groupes d'armes de mêlée (`specsSource`). */
@@ -42,9 +48,9 @@ export function maniementRetenu(
   weapon: Pick<Weapon, 'manieAussi' | 'weaponGroup' | 'subType'>,
   mainsTenues?: 1 | 2,
 ): ManiementRetenu | undefined {
-  const groupeDeLArme = weapon.weaponGroup ?? weapon.subType;
-  const famille = findWeaponGroupById(groupeDeLArme);
-  const declares = { ...(famille?.kind === 'weapon' ? famille.manieAussi : undefined), ...weapon.manieAussi };
+  const sonGroupe = groupeDeLArme(weapon);
+  const famille = findWeaponGroupById(sonGroupe);
+  const declares: Readonly<Record<string, ManiementAlternatif>> = { ...(famille?.kind === 'weapon' ? famille.manieAussi : undefined), ...weapon.manieAussi };
   const ouverts = Object.entries(declares)
     .filter(([groupe, m]) => !(m.aPied && c.mountId) && speDeCorpsACorps(c, groupe))
     .map(([groupe, m]): ManiementRetenu => ({ groupe, ...m }));
@@ -54,5 +60,5 @@ export function maniementRetenu(
   const candidats = mainsTenues === 1 && aUneMain.length ? aUneMain : [undefined, ...ouverts.filter((m) => mainsTenues !== 2 || !m.mains)];
   const augmentations = (groupe?: string | null) => (groupe ? speDeCorpsACorps(c, groupe)?.advances : undefined) ?? -1;
   const gardeLesQualites = (m?: ManiementRetenu) => !m?.qualites?.length && !m?.retire?.length;
-  return maxBy(candidats, (m) => 2 * augmentations(m ? m.groupe : groupeDeLArme) + (gardeLesQualites(m) ? 1 : 0))?.item;
+  return maxBy(candidats, (m) => 2 * augmentations(m ? m.groupe : sonGroupe) + (gardeLesQualites(m) ? 1 : 0))?.item;
 }

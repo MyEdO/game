@@ -144,7 +144,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const { H, E } = setup();
     H.advantage = 3;
     const sabre = sabreAPied(H, spec);
-    porterUnCritique(H, E, firedWeapon(H, E, sabre.uid));
+    porterUnCritique(H, E, firedWeapon(banc.getState().scene, H, E, sabre.uid));
 
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants[pc.cursor].options?.[0].label).toBe(offre);

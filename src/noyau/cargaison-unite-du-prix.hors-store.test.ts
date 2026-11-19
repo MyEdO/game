@@ -10,8 +10,7 @@ import { emptyScene } from './monde/scene';
 import type { CampaignVessel } from './etat';
 import type { WorldMap } from './worldMap';
 import { findCargoById, type CargoDef } from '../engine/cargo';
-import { seasonOfMonth } from '../engine/travelStages';
-import { toDate } from '../engine/clock';
+import { currentSeason } from '../engine/travelStages';
 import { devisDAchatDeCargaison } from './landMarketFlow';
 import { devisDAchatEnPort } from './portFlow';
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
@@ -31,14 +30,14 @@ function partie(carte: WorldMap, etat: Partial<EtatDeJeu>): Partie {
 function prixDuLivre(p: Partie, cargoId: string): number {
   const prix = (findCargoById(cargoId) as CargoDef).price;
   if ('dice' in prix) throw new Error(`${cargoId} : prix à dés`);
-  return prix[seasonOfMonth(toDate(p.etat().gameTime).month)];
+  return prix[currentSeason(p.etat().gameTime)];
 }
 
 describe('#3646 — unité du prix de base d’une cargaison, par voie', () => {
   it('terre : un lot complet de 10 Enc d’un bien à P CO au livre coûte P CO avant Marchandage (MSRC 13 l.91)', () => {
     const p = partie({
       id: 'm', label: 'Reikland', routes: [],
-      places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a' }, market: { taille: 4, richesse: 4, produits: ['metal', 'vivres', 'laine-terre'] } }],
+      places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a' }, taille: 4, market: { richesse: 4, produits: ['metal', 'vivres', 'laine-terre'] } }],
     }, { possessions: [{ uid: 'convoi', ownerId: tousLesHerosDeScenario(idsDeTest)[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }] });
     try {
       p.envoyer({ type: 'ouvrirLeMarche', args: [] });
@@ -56,7 +55,7 @@ describe('#3646 — unité du prix de base d’une cargaison, par voie', () => {
   });
 
   it('mer : un lot de 10 Enc d’un bien à P CO au livre coûte 10·P CO avant Marchandage (MDG 15 l.436)', () => {
-    const vessel = { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as unknown as CampaignVessel;
+    const vessel = { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A' } as unknown as CampaignVessel;
     const p = partie({
       id: 'm', label: 'Mer', routes: [],
       places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a' }, port: { taille: 4, richesse: 4, production: ['sel', 'metaux', 'bois-mer'] } as never }],

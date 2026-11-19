@@ -2,18 +2,29 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makeRNG } from '../engine/dice';
-import { startCascade, rollTableStep, runCascadeImmediate, stepInteraction, stepReady, tableStepDef, tableStepIds, tableStepDie, naturalRollForTableRow } from './cascade';
+import {
+  startCascade,
+  rollTableStep,
+  runCascadeImmediate,
+  stepInteraction,
+  stepReady,
+  tableStepDef,
+  tableStepIds,
+  tableSpec,
+  tableStepNaturalRange,
+  naturalRollForTableRow,
+  type TableStepDef,
+} from './cascade';
 import { spyApplier } from './cascade.testkit';
 import { STRUCTURE_CRIT_TABLE } from './combatFlow';
 import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
 import { stripBookMarker, hasBookMarker } from '../data/bookMarker';
 import { combatStakeRef, resolveStake } from '../data';
-import { findTableEntry } from '../engine/tables';
+import { findTableEntry, deDeLaTableTiree } from '../engine/tables';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { intentAllowedFor } from './netOwnership';
 import { setDataset, datasetArray } from '../data/overrides';
-import { type MutationTable } from '../data/mutations';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
@@ -38,7 +49,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [SYNTH]: {
       label: 'Table synthétique',
-      die: 100,
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ min: 1, max: 50, id: 'basse' }, { min: 51, max: 100, id: 'haute' }],
       lines: (die) => [`ligne ${die <= 50 ? 'basse' : 'haute'} (dé ${die})`, 'note de la ligne'],
     } }, appliers: { ...tablesDuJeu().appliers, tableSpy: spyApplier(applied, (step) => ({
@@ -171,7 +182,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     // Le registre SUIT la donnée (#1692) : une table retirée de la donnée rend irrésoluble toute
     // cascade persistée qui la tirait — refus nommé sur l'id, jamais un repli sur une autre table,
     // aucune migration de sauvegarde (`.claude/memory/user-arbitrage-saves-reset-pas-migration.md`).
-    const livrees = [...(datasetArray('mutationTables') as MutationTable[])];
+    const livrees = [...datasetArray('mutationTables')];
     const retiree = livrees[0];
     expect(tableStepDef(retiree.id), 'la table doit exister AVANT le retrait').toBeDefined();
     startCascade(banc.getState, banc.setState, {
@@ -214,7 +225,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [T]: {
       label: 'Table du mode',
-      die: 100,
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
       lines: (die) => [`ligne ${die <= 50 ? 'basse' : 'haute'} (dé ${die})`],
     } }, appliers: { ...tablesDuJeu().appliers, tableModeSpy: spyApplier(applied, (s) => ({ id: s.table!.result!.id, roll: s.table!.result!.roll, die: s.table!.result!.die })) } });
@@ -226,8 +237,19 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     expect(naturalRollForTableRow(decl, tableStepDef(T)!.rows[1])).toBe(61);
     expect(naturalRollForTableRow(decl, tableStepDef(T)!.rows[0])).toBe(11);
     expect(naturalRollForTableRow({ tableId: T, mod: 10 }, tableStepDef(T)!.rows[1])).toBe(41);
-    expect(tableStepDie({ tableId: T })).toBe(100);
-    expect(tableStepDie({ tableId: T, spec: { n: 1, sides: 10 } })).toBe(10);
+  });
+
+  it('le dé d’une étape à table n’a qu’UN porteur, sa table : la déclaration n’en porte aucun (#1667)', () => {
+    expect(tableSpec({ tableId: T })).toBe(tableStepDef(T)!.die);
+    expect(tableStepNaturalRange({ tableId: T })).toEqual({ min: 1, max: 100 });
+    // @ts-expect-error — une déclaration de tirage sur table ne porte pas de dé.
+    const declADe: CascadeTableDecl = { tableId: T, spec: { n: 1, sides: 10 } };
+    expect(tableSpec(declADe), 'un dé glissé dans la déclaration n’est pas lu').toEqual({ n: 1, sides: 100 });
+    // @ts-expect-error — une table tirable sans le dé de sa donnée ne compile pas.
+    const sansDe: TableStepDef = { label: 'x', rows: [], lines: () => [] };
+    // @ts-expect-error — ni avec un nombre de faces : seul `deDeLaTableTiree` forge le dé d'une table.
+    const deNu: TableStepDef = { label: 'x', die: 100, rows: [], lines: () => [] };
+    expect([sansDe.die, deNu.die]).toEqual([undefined, 100]);
   });
 
   it('ligne HORS D’ATTEINTE sous le `mod` : aucun dé naturel n’y tombe → `null` (jamais un dé qui glisse)', () => {
@@ -342,7 +364,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [NEUTRE]: {
       label: 'Table sans catégorie',
-      die: 100,
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ min: 1, max: 100, id: 'unique' }],
       lines: () => ['x'],
     } }, appliers: { ...tablesDuJeu().appliers, stakeSpy: spyApplier([], () => undefined) } });
@@ -351,7 +373,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
   /** Étape sur la VRAIE table de Critiques de Structure, portant l'enjeu de son `kind`. */
   const structureStep = (id: string, forcedRoll?: number): CascadeStep => ({
     id, kind: cleDeFixture('stakeSpy'), label: fixtureText('Critique de Structure'), icon: 'navigation/des',
-    table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, ...(forcedRoll ? { forcedRoll } : {}) },
+    table: { tableId: STRUCTURE_CRIT_TABLE, ...(forcedRoll ? { forcedRoll } : {}) },
     stake: combatStakeRef('structure-critique'),
   });
 
@@ -359,7 +381,8 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   it('AVANT le dé, l’enjeu reste au `kind` (aucune ligne n’a encore été jouée)', () => {
     const st = structureStep('s0');
-    expect(st.stake!.key!.entryId).toBeUndefined();
+    expect(st.stake).toHaveProperty('key');
+    expect(st.stake).not.toHaveProperty('key.entryId');
     expect(ruleOf(st)).toBeUndefined(); // l'entrée `structure-critique` n'a que sa catégorie d'entrées
   });
 
@@ -395,19 +418,19 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
   it('table SANS catégorie d’entrées : l’enjeu est rendu TEL QUEL (repli déclaré)', () => {
     const st: CascadeStep = {
       id: 'n1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Neutre'), icon: 'navigation/des',
-      table: { tableId: NEUTRE, spec: { n: 1, sides: 100 }, forcedRoll: 50 }, stake: combatStakeRef('structure-critique'),
+      table: { tableId: NEUTRE, forcedRoll: 50 }, stake: combatStakeRef('structure-critique'),
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
     banc.getState().jetLancer('cascadeTirage', 'n1');
     const apres = banc.getState().pendingCascade!.participants[0];
-    expect(apres.stake!.key!.entryId).toBeUndefined();
+    expect(apres.stake).not.toHaveProperty('key.entryId');
     expect(apres.stake).toEqual(st.stake);
   });
 
   it('étape SANS enjeu : le tirage n’en fabrique aucun', () => {
     const st: CascadeStep = {
       id: 'm1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Muette'), icon: 'navigation/des',
-      table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, forcedRoll: 40 },
+      table: { tableId: STRUCTURE_CRIT_TABLE, forcedRoll: 40 },
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
     banc.getState().jetLancer('cascadeTirage', 'm1');

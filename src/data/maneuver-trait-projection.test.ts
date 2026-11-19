@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { maneuvers, traits, traitProjectingManeuver } from './index';
 
 /**
@@ -16,9 +14,6 @@ import { maneuvers, traits, traitProjectingManeuver } from './index';
  * La prose ET son ancrage vivent chez le TRAIT, repérés au FOLIO (`source.page`) : une manœuvre ne
  * porte AUCUN localisateur RAW propre. La classe de ce localisateur relève de #1228.
  */
-const RAW: { id: string; source?: { book: string; page: number }; desc?: string }[] = JSON.parse(
-  readFileSync(fileURLToPath(new URL('./maneuvers.json', import.meta.url)), 'utf8'),
-);
 
 describe('manœuvre → Trait projetant : une entité, une prose (#1226)', () => {
   it('chaque manœuvre a un trait projetant RÉSOLUBLE, porteur d’une prose non vide (fail-fast, aucun repli)', () => {
@@ -48,7 +43,7 @@ describe('manœuvre → Trait projetant : une entité, une prose (#1226)', () =>
   });
 
   it('aucune manœuvre ne porte de prose en propre — la desc vit chez le trait', () => {
-    const avecProse = RAW.filter((m) => m.desc != null).map((m) => m.id);
+    const avecProse = maneuvers.filter((m) => m.desc != null).map((m) => m.id);
     expect(
       avecProse,
       `Prose dupliquée dans maneuvers.json (règle 5) — la supprimer, le trait projetant la porte :\n${avecProse.join('\n')}`,
@@ -56,7 +51,7 @@ describe('manœuvre → Trait projetant : une entité, une prose (#1226)', () =>
   });
 
   it('le folio de la manœuvre est celui du trait projetant (aucune dérive entre les deux ancrages)', () => {
-    const derives = RAW.filter((m) => {
+    const derives = maneuvers.filter((m) => {
       const t = traitProjectingManeuver(m.id);
       return JSON.stringify(m.source) !== JSON.stringify(t?.source);
     }).map((m) => `${m.id} : manœuvre ${JSON.stringify(m.source)} vs trait ${JSON.stringify(traitProjectingManeuver(m.id)?.source)}`);

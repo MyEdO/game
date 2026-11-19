@@ -60,6 +60,13 @@ describe('le navire d’un scénario au lancement', () => {
     expect(s.vessel?.morale.lastMoraleWeek).toBe(Math.floor(dayIndex(s.gameTime) / 7));
     expect(s.vessel?.morale.lastMoraleWeek).toBeGreaterThan(0);
   });
+
+  it('est à quai au lieu portuaire où le lancement pose le groupe (MDG 15 l.129)', () => {
+    lancer('voyage-maritime');
+    const s = banc.getState();
+    expect(s.lieu).toBe('p-salzenmund');
+    expect(s.vessel?.escale).toBe('p-salzenmund');
+  });
 });
 
 describe('le lancement d’une campagne du jeu par le groupe composé', () => {

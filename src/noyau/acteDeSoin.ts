@@ -9,7 +9,9 @@ import type { Combatant, Difficulty, Trauma } from '../engine/types';
 import type { IdDePlaieDeLOperation } from './designations';
 import { garanti } from '../lib/garanti';
 import { rollLine, type RollLineParts } from './ligneDeJet';
-import type { FlowStakeId, StakeRef, SkillRef } from '../data';
+import { dataLabel, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
+import { nomDe } from '../engine/nom';
+import type { PlayerText } from '../i18n/playerText';
 import { cibleMesuree } from '../engine/tests';
 import { partyAssisted, type SupportDetail } from '../engine/skills';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -46,7 +48,7 @@ export interface MedicState {
     kind: ActeOperatoire;
     difficulty: Difficulty;
     healerId?: string;
-    healerName: string;
+    healerName: PlayerText;
     skill: number;
     /** SOUTIEN (LDB 12) des assistants, déjà fondu dans `skill` — recopié sur chaque passe (affichage). */
     support?: SupportDetail;
@@ -87,7 +89,7 @@ export const estOperation = (act: HealMode): act is ActeOperatoire => act === 'c
 
 /** Le soigneur d'un acte : `actor`, le soigneur JOUEUR, absent pour un PNJ payant (aucune fiche) — c'est lui qui
  *  permet de décomposer la valeur en Niveau de Compétence nu + composantes nommées (`rollLine`). */
-interface Soigneur { id?: string; actor?: Combatant; label: string; skill: number; intBonus: number; support?: SupportDetail }
+interface Soigneur { id?: string; actor?: Combatant; label: PlayerText; skill: number; intBonus: number; support?: SupportDetail }
 
 /** Ligne d'un jet de l'infirmerie — SOURCE UNIQUE des deux surfaces (acte `pendingHeal`, passe d'opération
  *  `pendingSurgery`), montée par le monteur canonique (`rollLine`, #1153) : la valeur est DÉCOMPOSABLE quand le
@@ -107,9 +109,9 @@ function soigneurDeLActe(s: Pick<Jeu, 'medic' | 'party'>, act: HealMode): Soigne
   const m = s.medic;
   const sg = m?.surgery;
   if (sg?.kind === act) return { id: sg.healerId, label: sg.healerName, skill: sg.skill, intBonus: sg.intBonus, support: sg.support };
-  if (m?.npc) return { id: m.npc.id, label: m.npc.label, skill: m.npc.skill.value, intBonus: m.npc.intBonus };
+  if (m?.npc) return { id: m.npc.id, label: dataLabel(m.npc.label), skill: m.npc.skill.value, intBonus: m.npc.intBonus };
   const best = bestHealerFor(s.party, act);
-  return best && { id: best.actor.id, actor: best.actor, label: best.actor.label, skill: best.value, intBonus: bonus(effectiveChar(best.actor, 'intelligence')), support: best.support };
+  return best && { id: best.actor.id, actor: best.actor, label: nomDe(best.actor), skill: best.value, intBonus: bonus(effectiveChar(best.actor, 'intelligence')), support: best.support };
 }
 
 /** Les Blessures Critiques qu'une opération de genre `act` peut viser sur `patient` : à rééduquer
@@ -163,7 +165,7 @@ export function soinDeLActe(s: Pick<Jeu, 'medic' | 'party'>, act: HealMode): Pen
   const plaie = estOperation(act) && !reprise ? plaiesDeLActe(patient, act)[0]?.uid : undefined;
   const ligne = ligneDuSoigneur(soigneur, difficulty);
   return {
-    healerId: soigneur.id ?? 'pnj-soigneur', healerName: soigneur.label, targetId: patient.id, targetName: patient.label,
+    healerId: soigneur.id ?? 'pnj-soigneur', healerName: soigneur.label, targetId: patient.id,
     mode: act, intBonus: soigneur.intBonus, test: 'guerison', bandagesDe: null, skillValue: soigneur.skill, support: soigneur.support,
     difficulty, ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0, ...(plaie ? { plaie } : {}),
   };
@@ -195,7 +197,7 @@ export function passeDeLOperation(s: Pick<Jeu, 'medic' | 'party'>): PendingSurge
   const patient = garanti(s.party.find((h) => h.id === m.patientId), m.patientId ?? undefined, 'patient opéré');
   const ligne = ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty);
   return {
-    healerId: sg.healerId ?? 'pnj-soigneur', healerName: sg.healerName, targetId: patient.id, targetName: patient.label,
+    healerId: sg.healerId ?? 'pnj-soigneur', targetId: patient.id,
     intBonus: sg.intBonus, ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0, drCible: sg.drCible, cumDR: sg.cumDR,
   };
 }

@@ -4,7 +4,18 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { surfaceDeLEtape, surfaceDesEtapes, buildBand, surfaceOf, tableStep, displayStep, monoStep, worldStep } from './rollSeam';
 import { t } from '../i18n';
 import { actorIn } from './monde/combatants';
-import { runCascadeImmediate, lireDeEtape, tableStepDef, naturalRollForTableRow, rollTableStep, startCascade, pushStep, suspendActiveCascade, poserCurseurCascade, stepReady } from './cascade';
+import {
+  runCascadeImmediate,
+  lireDeEtape,
+  tableStepDef,
+  naturalRollForTableRow,
+  rollTableStep,
+  startCascade,
+  pushStep,
+  suspendActiveCascade,
+  curseurPose,
+  stepReady,
+} from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene, type Scene } from './monde/scene';
@@ -39,6 +50,7 @@ import type { GenreDEtape, GenreDeCascade } from './tablesPosees';
 import { tablesDuJeu } from './tablesDuJeu';
 import { deFixe } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -228,7 +240,7 @@ const marche = (id: string, label: string) => buildScene({ id, label, desc: '.',
 function carte(): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
-    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, market: profile() }],
+    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, taille: 4, market: { richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'] } }],
     routes: [],
   };
 }
@@ -356,18 +368,19 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
  * flux RNG : sans troncature, les périls suivants rejoueraient leurs dés après le combat.
  */
 describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (parité du `break`)', () => {
-  /** Route à 3 périls d'auteur À 100 % ; le rang `interrompt` porte un `startCombat`. */
+  /** Route à 3 périls d'auteur À 100 % ; le rang `interrompt` porte une `transition`. */
   const routeAvecPerils = (interrompt: number): MapRoute => ({
     id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 10, modes: ['pied'],
     perils: [0, 1, 2].map((i) => ({
       label: `P${i}`, chancePct: 100,
-      effects: i === interrompt ? [{ type: 'startCombat' as const, encounter: 'enc-x' }] : [{ type: 'journal' as const, desc: `note ${i}` }],
+      effects: i === interrompt ? [{ type: 'transition' as const, scene: { id: 'clairiere' } }] : [{ type: 'journal' as const, desc: `note ${i}` }],
     })),
   } as MapRoute);
 
   function planSur(route: MapRoute): void {
+    get().chargerLeProjet({ scenes: [emptyScene('route', 2, 2), emptyScene('clairiere', 2, 2)], entryId: 'route', worldMap: { id: 'm', label: 'm', places: [], routes: [route] }, projet: null });
     set({
-      worldMap: { id: 'm', nom: 'm', places: [], routes: [route] } as unknown as WorldMap,
+      journal: [],
       travelPlan: { routeId: 'r1', fromPlaceId: 'A', toPlaceId: 'B', mode: 'pied', hoursPerDay: 8, km: 10, kmDone: 0, interrupted: false } as never,
     });
   }
@@ -521,7 +534,7 @@ describe('#1426 — la POSE fonctionne sur les tables de monde migrées', () => 
       const tableId = `stage-weather-${saison.id}`;
       const def = tableStepDef(tableId)!;
       for (const row of def.rows) {
-        const nat = naturalRollForTableRow({ tableId, spec: { n: 1, sides: 100 } }, row);
+        const nat = naturalRollForTableRow({ tableId }, row);
         if (nat == null) inatteignables.push(`${tableId}/${row.id}`);
         else expect(weatherFromRoll(nat, saison.id as Season)).toBe(row.id); // le naturel proposé DONNE bien cette ligne
       }
@@ -533,7 +546,7 @@ describe('#1426 — la POSE fonctionne sur les tables de monde migrées', () => 
     for (const saison of weather) {
       const tableId = `stage-weather-${saison.id}`;
       for (const face of [1, 25, 50, 75, 100]) {
-        const r = rollTableStep({ tableId, spec: { n: 1, sides: 100 }, forcedRoll: face }, deFixe(face));
+        const r = rollTableStep({ tableId, forcedRoll: face }, deFixe(face));
         expect(r.id).toBe(weatherFromRoll(face, saison.id as Season));
       }
     }
@@ -547,14 +560,14 @@ describe('#1426 — la POSE fonctionne sur les tables de monde migrées', () => 
     // (une Humeur très haute rend le naufrage inatteignable, une très basse rend la manne impossible).
     const visable = (mod: number, id: string) => {
       const row = def.rows.find((r) => r.id === id)!;
-      return naturalRollForTableRow({ tableId: 'evenements-de-bord', spec: { n: 1, sides: 100 }, ...(mod ? { mod } : {}) }, row) != null;
+      return naturalRollForTableRow({ tableId: 'evenements-de-bord', ...(mod ? { mod } : {}) }, row) != null;
     };
     expect(visable(0, 'triton'), 'sans Humeur, les lignes très négatives sont hors du d100').toBe(false);
     expect(visable(-200, 'triton'), 'Humeur très basse : le triton devient atteignable').toBe(true);
     expect(visable(0, 'manne-de-manann'), 'sans Humeur, la manne est hors d’atteinte').toBe(false);
     expect(visable(200, 'manne-de-manann'), 'Humeur très haute : la manne s’ouvre').toBe(true);
     // Et à Humeur nulle, la tranche 1..100 offre bien des lignes à viser (la pose n'est pas morte).
-    const offertes = def.rows.filter((r) => naturalRollForTableRow({ tableId: 'evenements-de-bord', spec: { n: 1, sides: 100 } }, r) != null);
+    const offertes = def.rows.filter((r) => naturalRollForTableRow({ tableId: 'evenements-de-bord' }, r) != null);
     expect(offertes.length, 'au moins une ligne visable sans Humeur').toBeGreaterThan(0);
   });
 });
@@ -731,7 +744,7 @@ function prepareJourTerrestre(seed: number): void {
   get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });
 }
-const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied'); };
+const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied', { cadence: 'jourParJour' }); };
 
 /** État d'une traversée dont le compteur d'événement de bord échoit AUJOURD'HUI (l'étape à table
  *  existe). RNG ensemencé EN TÊTE, pour la raison dite sur `prepareJourTerrestre` : `buildSeaPlan`
@@ -798,7 +811,7 @@ const TABLE_SONDE = 'table-sonde-porteur';
 /** Étape à TABLE portée par le MONDE (aucun acteur nommé). Le `kind` route l'applier de sonde. */
 const etapeTableMonde = (id: string, kind: GenreDEtape = cleDeFixture('sonde-table')): CascadeStep => tableStep({
   id, kind, worldOwner: true,
-  label: fixtureText('Table de monde'), table: { tableId: TABLE_SONDE, spec: { n: 1, sides: 100 } },
+  label: fixtureText('Table de monde'), table: { tableId: TABLE_SONDE },
   stake: { key: { dataset: 'combat', kind: 'mutation' } },
 })!;
 /** Étape d'AFFICHAGE (rien à lancer) — `kind` libre : c'est lui qui route l'applier de sonde. */
@@ -816,7 +829,7 @@ beforeEach(() => {
   avecLesTables({
     tablesTirables: { ...tablesDuJeu().tablesTirables, [TABLE_SONDE]: {
       label: fixtureText('Table de sonde'),
-      die: 100,
+      die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
       lines: () => ['ligne de sonde'],
     } },
@@ -873,7 +886,7 @@ function sitesCurseurALaMain(): string[] {
  * `pendingCascade` court-circuite ce seam : la table reste non tirée, `stepReady` la refuse et
  * `jetValider('cascade')` devient un no-op DÉFINITIF — la séquence est perdue avec le geste du joueur.
  *
- * Deux cas : la PORTE publique (`poserCurseurCascade`) fait le travail, et aucun site de production
+ * Deux cas : la PORTE publique (`curseurPose`) fait le travail, et aucun site de production
  * de `src/**` ne l'écrit à la main (garde STRUCTURELLE ci-dessous — un `cursor:` de plus la rougit).
  */
 describe('#1426 — les portes du curseur', () => {
@@ -887,7 +900,7 @@ describe('#1426 — les portes du curseur', () => {
     });
     const casc = get().pendingCascade!;
     expect(casc.participants[1].table!.result, 'la table n’est pas tirée au BUILD').toBeUndefined();
-    poserCurseurCascade(get, set, casc, 1);
+    set({ pendingCascade: curseurPose(get, casc, 1) });
     const apres = get().pendingCascade!;
     expect(apres.cursor).toBe(1);
     expect(apres.participants[1].table!.result, 'posé le curseur, le socle a tiré au RANG de l’étape').toBeTruthy();
@@ -905,7 +918,7 @@ describe('#1426 — les portes du curseur', () => {
    */
   it('GARDE STRUCTURELLE — aucun site de `src/**` n’écrit `cursor:` dans un littéral `pendingCascade` hors du pilote', () => {
     const fautifs = sitesCurseurALaMain();
-    expect(fautifs, 'poser le curseur passe par `cascade.poserCurseurCascade`/`curseurPose` — sinon le seam du pilote est court-circuité').toEqual([]);
+    expect(fautifs, 'poser le curseur passe par `cascade.curseurPose` — sinon le seam du pilote est court-circuité').toEqual([]);
   });
 
   /**
@@ -952,7 +965,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(a) MER — même règle pour l’Événement de bord : tiré sans arrêt, raconté à la clôture du jour (#3534)', () => {
     ouvreJourMaritime(4);
     expect(draineJour(false), 'aucune table ne retient la journée').toBeUndefined();
-    // Le jour CLOS déplace ses events dans sa carte de récap (`sea.events` repart à vide).
+    // Le jour CLOS déplace ses events dans sa carte de récap (`travelPlan.evenements` se vide).
     expect(get().travelPlan!.log![0].events, 'l’événement de bord a été raconté').toHaveLength(1);
   });
 
@@ -1046,7 +1059,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
     set({ party: [heros], pendingCascade: null, suspendedCascades: [], battle: null });
     const etape = tableStep({
       id: 'ctrl-1', kind: cleDeFixture('ctrl-table'), actorId: heros.id,
-      label: fixtureText('Table d’acteur'), table: { tableId: TABLE_SONDE, spec: { n: 1, sides: 100 } },
+      label: fixtureText('Table d’acteur'), table: { tableId: TABLE_SONDE },
       stake: { key: { dataset: 'combat', kind: 'mutation' } },
     })!;
     startCascade(get, set, { title: 'Contrôle', purpose: 'test', steps: [etape] });

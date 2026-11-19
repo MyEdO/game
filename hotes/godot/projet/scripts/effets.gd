@@ -63,6 +63,8 @@ static var _scenes := {}
 static var _tours := {}
 
 var _metres_par_case := 1.0
+## Les matières de ses mailles teintes (`teinter`), qu'il tient au-delà de leur vie (`MontageDeComposition.materiau_local`).
+var _locaux := {}
 
 
 ## La clé d'une case d'un effet (`{ x, y, z? }`) parmi les lieux que reçoit `jouer`.
@@ -74,12 +76,12 @@ static func cle_de_case(case: Dictionary) -> String:
 ## case d'un flottant, chaque case d'un déplacement.
 static func cases_de(effet: Dictionary) -> Array:
 	var cases: Array = []
-	if effet.quoi == "zone":
+	if effet.quoi == Noyau.Effet.ZONE:
 		cases = effet.cases.duplicate()
 		cases.append(effet.centre)
-	elif effet.quoi == "flottant" and effet.case != null:
+	elif effet.quoi == Noyau.Effet.FLOTTANT and effet.case != null:
 		cases = [effet.case]
-	elif effet.quoi == "deplacement":
+	elif effet.quoi == Noyau.Effet.DEPLACEMENT:
 		cases = effet.cases
 	return cases
 
@@ -89,23 +91,23 @@ static func cases_de(effet: Dictionary) -> Array:
 func jouer(effets: Array, lieux: Dictionary, metres_par_case: float) -> void:
 	_metres_par_case = metres_par_case
 	for effet: Dictionary in effets:
-		if effet.quoi == "deplacement":
+		if effet.quoi == Noyau.Effet.DEPLACEMENT:
 			deplacement.emit(effet.qui, effet.cases.map(func(case: Dictionary) -> Vector3: return lieux[cle_de_case(case)]), effet.cases.map(func(case: Dictionary) -> float: return case.metres))
 	var premier := true
-	for effet: Dictionary in effets.filter(func(e: Dictionary) -> bool: return e.quoi != "deplacement"):
+	for effet: Dictionary in effets.filter(func(e: Dictionary) -> bool: return e.quoi != Noyau.Effet.DEPLACEMENT):
 		if not premier:
 			await get_tree().create_timer(ECART_S).timeout
 		premier = false
 		match effet.quoi:
-			"coup":
+			Noyau.Effet.COUP:
 				_coup(effet, lieux)
-			"incantation":
+			Noyau.Effet.INCANTATION:
 				_incantation(effet, lieux)
-			"zone":
+			Noyau.Effet.ZONE:
 				_zone(effet, lieux)
-			"flottant":
+			Noyau.Effet.FLOTTANT:
 				_flottant(effet, lieux)
-			"son":
+			Noyau.Effet.SON:
 				_repeter_le_son(effet.son, effet.fois, effet.ecartS)
 
 
@@ -122,7 +124,7 @@ func _coup(effet: Dictionary, lieux: Dictionary) -> void:
 	if effet.arrivee != null and effet.arrivee.son != null:
 		Musique.attenuer(get_tree())
 	_flotter(effet.flottants, sol)
-	arrivee.emit(effet.vers, effet.issue == "touche" or effet.issue == "critique")
+	arrivee.emit(effet.vers, effet.issue == Noyau.IssueDuCoup.TOUCHE or effet.issue == Noyau.IssueDuCoup.CRITIQUE)
 
 
 ## L'incantation `effet` : son départ au lanceur (`_partir`), puis son arrivée et ses flottants sur sa cible.
@@ -233,7 +235,7 @@ func _phase(phase: Variant, point: Vector3, teinte: Color) -> void:
 ## l'échelle du plateau ; son animation `eclat` l'éteint puis le retire.
 func eclater(visuel: String, point: Vector3, teinte: Color) -> Node3D:
 	var eclat: Node3D = scene_de_l_effet(FAMILLE_DES_VISUELS, visuel).instantiate()
-	teinter(eclat, teinte)
+	teinter(eclat, teinte, _locaux)
 	eclat.name = visuel
 	eclat.position = point
 	eclat.scale = MiseEnPage.echelle_au_plateau(_metres_par_case)
@@ -243,7 +245,7 @@ func eclater(visuel: String, point: Vector3, teinte: Color) -> Node3D:
 
 ## La scène de l'effet `id` de la famille `famille` posée en continu, teinte de `teinte` : chacune de ses gerbes émet
 ## sans fin, ses particules nées d'avance (`preprocess`), tout autre enfant (éclair, animation) retiré avant l'entrée
-## dans l'arbre. Une flamme, une zone qui dure, la marque d'un État.
+## dans l'arbre, donc aucune maille à teindre. Une flamme, une zone qui dure, la marque d'un État.
 static func pose_continue(famille: String, id: String, teinte: Color) -> Node3D:
 	var pose: Node3D = scene_de_l_effet(famille, id).instantiate()
 	for enfant in pose.get_children():
@@ -254,7 +256,7 @@ static func pose_continue(famille: String, id: String, teinte: Color) -> Node3D:
 		gerbe.one_shot = false
 		gerbe.explosiveness = 0.0
 		gerbe.preprocess = gerbe.lifetime
-	teinter(pose, teinte)
+	teinter(pose, teinte, {})
 	return pose
 
 
@@ -272,9 +274,9 @@ static func scene_de_l_effet(famille: String, id: String) -> PackedScene:
 
 
 ## Teint de `teinte` chaque descendant de `noeud` du groupe `GROUPE_DE_LA_TEINTE` : une gerbe par sa `color`, une lampe
-## par sa `light_color`, une maille par une copie de sa matière posée en surcharge ; aucune ressource de la scène ne
-## change.
-static func teinter(noeud: Node, teinte: Color) -> void:
+## par sa `light_color`, une maille par sa matière locale (`MontageDeComposition.materiau_local`), tenue dans `locaux`,
+## ceux de son porteur ; aucune ressource de la scène ne change.
+static func teinter(noeud: Node, teinte: Color, locaux: Dictionary) -> void:
 	for teint in noeud.find_children("*", "", true, false):
 		if not teint.is_in_group(GROUPE_DE_LA_TEINTE):
 			continue
@@ -283,12 +285,10 @@ static func teinter(noeud: Node, teinte: Color) -> void:
 		elif teint is OmniLight3D:
 			(teint as OmniLight3D).light_color = teinte
 		elif teint is MeshInstance3D:
-			var maille := teint as MeshInstance3D
-			var matiere := maille.mesh.surface_get_material(0).duplicate() as StandardMaterial3D
+			var matiere := MontageDeComposition.materiau_local(teint as MeshInstance3D, 0, locaux)
 			matiere.albedo_color = teinte
 			if matiere.emission_enabled:
 				matiere.emission = teinte
-			maille.set_surface_override_material(0, matiere)
 
 
 ## Le projectile du trajet `trajet` en vol de `de` à `vers` en `trajet.dureeS` secondes : son nœud file droit vers la
@@ -317,7 +317,7 @@ func projectile_de(nom: String, teinte: Color) -> Node3D:
 	var projectile: Node3D = scene_de_l_effet(FAMILLE_DES_PROJECTILES, nom).instantiate()
 	projectile.name = nom
 	(projectile.get_node("Corps") as Node3D).scale = MiseEnPage.echelle_au_plateau(_metres_par_case)
-	teinter(projectile, teinte)
+	teinter(projectile, teinte, _locaux)
 	for gerbe: CPUParticles3D in projectile.find_children("*", "CPUParticles3D", true, false):
 		if not gerbe.local_coords:
 			gerbe.scale_amount_min = MiseEnPage.hauteur_au_plateau(gerbe.scale_amount_min, _metres_par_case)

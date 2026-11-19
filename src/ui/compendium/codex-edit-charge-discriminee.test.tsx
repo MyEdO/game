@@ -20,7 +20,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { CodexEdit, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 import { editableDataset, editableObjectDataset } from '../../data/atelierDuCodex';
 import { libelleDuChamp, inferFields } from '../../noyau/codex/editFields';
-import { metaPourFichier, chargeDiscriminee, noeudDeLEntree, schemaForFile } from '../../data/schemas/validate';
+import { metaPourFichier, chargeDiscriminee, champDeProvenanceEcarte, noeudDeLEntree, schemaForFile } from '../../data/schemas/validate';
 import { CODEX } from '../../noyau/codex/registry';
 import { setDataset, datasetArray, datasetFile } from '../../data/overrides';
 import { creatures, materials, oups } from '../../data';
@@ -64,6 +64,15 @@ function monteNeuf(categoryKey: string) {
 function champ(label: string): HTMLLabelElement | undefined {
   return [...container.querySelectorAll<HTMLLabelElement>('.codex-edit-form label.ed-field')]
     .find((l) => l.querySelector('span')?.textContent?.trim() === label);
+}
+
+function saisir(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, valeur: string) {
+  const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value')!.set!;
+  act(() => {
+    setter.call(el, valeur);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
 }
 
 const META = metaPourFichier('materials.json');
@@ -166,6 +175,48 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
     expect(champsPresentes()).toEqual(expect.arrayContaining((['min', 'max', 'mod'] as const).map((k) => libelleDuChamp(k, rangee))));
   });
 
+  it('Carrières : les bornes d’une substitution ne se présentent qu’avec `aLaPlaceDe` (AA 05 l.137)', () => {
+    const bornes = (presentes: string[]) => presentes.filter((l) => /^(Espèces|Talent) de la substitution/.test(l));
+    monte('careers', 'nonne');
+    expect(bornes(champsPresentes())).toEqual(expect.arrayContaining(['Espèces de la substitution (Races)', 'Talent de la substitution']));
+    act(() => { root.unmount(); });
+    container.remove();
+    monte('careers', 'soldat');
+    const presentes = champsPresentes();
+    expect(presentes, 'le formulaire de Soldat n’est pas monté').toContain('Classe');
+    expect(bornes(presentes)).toEqual([]);
+  });
+
+  it('une règle sourcée propose la raison maison après retrait de la source', () => {
+    const regle = datasetArray('reglesOptionnelles').find((r) => r.source)!;
+    monte('reglesOptionnelles', regle.id);
+    expect(champsPresentes()).toContain('Source');
+    expect(champsPresentes()).not.toContain('Arbitrage maison');
+    const livre = container.querySelector<HTMLSelectElement>('select[aria-label="Livre — Source"]')!;
+    saisir(livre, '');
+    expect(champsPresentes()).toEqual(expect.arrayContaining(['Source', 'Arbitrage maison']));
+    saisir(champ('Arbitrage maison')!.querySelector('textarea')!, 'Raison d’arbitrage.');
+    expect(champsPresentes()).toContain('Arbitrage maison');
+    expect(champsPresentes()).not.toContain('Source');
+  });
+
+  it('une règle maison propose la source après effacement de la raison dans la zone de texte', () => {
+    const regle = datasetArray('reglesOptionnelles').find((r) => (r.maison?.length ?? 0) > 240)!;
+    monte('reglesOptionnelles', regle.id);
+    expect(champsPresentes()).toContain('Arbitrage maison');
+    expect(champsPresentes()).not.toContain('Source');
+    const raison = champ('Arbitrage maison')!.querySelector('textarea')!;
+    expect(raison.value).toBe(regle.maison);
+    saisir(raison, '');
+    expect(champsPresentes()).toEqual(expect.arrayContaining(['Source', 'Arbitrage maison']));
+    saisir(container.querySelector('select[aria-label="Livre — Source"]')!, 'livre-de-base');
+    const page = container.querySelector<HTMLInputElement>('input[aria-label="Page — Source"]')!;
+    saisir(page, '150');
+    act(() => { page.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    expect(champsPresentes()).toContain('Source');
+    expect(champsPresentes()).not.toContain('Arbitrage maison');
+  });
+
   it('TÉMOIN — un document sans `chargeParDiscriminant` DÉCLARÉ garde l’union', () => {
     expect(chargeDiscriminee('reglesOptionnelles.json', {})).toBeUndefined();
     // Une valeur INCONNUE du discriminant ne fabrique pas une charge : l'union reprend (saisie en cours).
@@ -179,7 +230,7 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
  *
  * La mesure est DÉRIVÉE, jamais récitée : pour chaque catégorie de dataset-liste éditable (`CODEX` ×
  * `editableDataset`), les champs présentés sont ceux de l'atelier (`inferFields` moins les éditeurs
- * dédiés, moins ce que `chargeDiscriminee` retranche), et un champ compte ÉTRANGER quand l'entrée
+ * dédiés et les champs écartés par la charge ou la provenance), et un champ compte ÉTRANGER quand l'entrée
  * parse SEULE mais ne parse PLUS une fois ce champ posé avec une valeur RÉELLE, prise à une autre
  * entrée du même document. C'est exactement la pathologie de `materials` avant ce lot : un formulaire
  * qui offre ce que le save refuse. Les entrées sont dédupliquées par SIGNATURE de clés (deux entrées
@@ -201,7 +252,9 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
     // Chacun partitionne ses entrées par REFINE sans DÉCLARER sa charge par cas — les clés fautives sont
     // MESURÉES par la sonde ci-dessous, elles sont ici pour se lire :
     activities: ['stake', 'stakeForm'], // `recuperer` : enjeu d'un autre cas d'activité
-    reglesOptionnelles: ['min', 'max'], // règle à BANDES : d'une autre forme de valeur par défaut
+    // Les clés des `libelles` d'un `mode` sont les `options` de SA règle (`ecartsDeLaRegle`) : la valeur d'un donneur est
+    // refusée par construction, même famille que `weaponGroups:seuil`.
+    reglesOptionnelles: ['libelles'],
     // ENTRÉE #1691 : `terrains` rejoint la même famille — le bloc plein et la matière de ses flancs
     // vont par PAIRE (`solidHeightM` ⟺ `matiere`, `defs/terrains.ts`), si bien qu'un sol nu à qui
     // l'atelier offre l'un des deux se verrait refuser au save. La partition est portée par la
@@ -258,7 +311,10 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
         const solo = parse([e]);
         if (!solo && !entier) continue;
         const charge = chargeDiscriminee(fichier, e);
-        const presentes = champs.filter((k) => !charge || k === charge.champ || charge.duCas.includes(k) || !charge.toutes.includes(k));
+        const provenanceEcartee = champDeProvenanceEcarte(fichier, e);
+        const presentes = champs
+          .filter((k) => k !== provenanceEcartee)
+          .filter((k) => !charge || k === charge.champ || charge.duCas.includes(k) || !charge.toutes.includes(k));
         const etrangers: string[] = [];
         for (const k of presentes) {
           if (e[k] !== undefined || !donneur.has(k)) continue;

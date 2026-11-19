@@ -12,6 +12,7 @@ import { memoParVersion } from '../data/versionDataset';
 import type { Settlement } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
 import { t } from '../i18n';
+import { garanti } from '../lib/garanti';
 
 export interface CatalogItem { id: string; label: string; availability: Availability | null; }
 export interface StockLine { id: string; label: string; qty: number; test?: { roll: number; target: number } }
@@ -20,6 +21,12 @@ export interface StockLine { id: string; label: string; qty: number; test?: { ro
 export const dispoPct = memoParVersion('disponibilite', () => Object.fromEntries(
   dispoJson.dispoPct.map((e) => [e.availability, e.pct]),
 ) as Record<TestedAvailability, Record<Settlement, number>>);
+
+/** La colonne du Tableau de Disponibilité (LDB 59 l.25-34) que lit la Taille de lieu `taille` (MSRC 13 l.44-50).
+ *  Donnée : `src/data/disponibilite.json` › `colonneParTaille`, table maison. */
+export function colonneDeLaTaille(taille: number): Settlement {
+  return garanti(dispoJson.colonneParTaille[String(taille) as keyof typeof dispoJson.colonneParTaille], taille, 'Taille de lieu');
+}
 
 /** Quantité en Cité (LDB 59 l.34) — non chiffrée par le RAW : règle éditable `marche-cite-stock`. */
 function citeQty(): number {

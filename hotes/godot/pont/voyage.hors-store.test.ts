@@ -48,11 +48,15 @@ describe('le voyage par le pont', () => {
     expect(Object.keys(corps), 'le plan seul : aucun trajet en liste à côté').toEqual(['carte/plan']);
     const plan = corps['carte/plan'] as Plan;
     const departs = plan.points.map((pt) => [pt.nom, pt.ton, pt.elements.map((x) => [(x as Choix).libelle, (x as Choix).valeurs.map((b) => [b.libelle, b.refus])])]);
-    expect(departs, 'chaque lieu au plan, celui du groupe distingué, sous chaque destination son départ ; la longue route ne part pas de Weiler').toEqual([
+    expect(departs, 'chaque lieu au plan, celui du groupe distingué, sous chaque destination un seul départ, sa distance et ses moyens ; la longue route ne part pas de Weiler').toEqual([
       ['Weiler', 'alerte', []],
       ['Federholz', 'neutre', [['24 km', [['À pied · 1 j', null]]]]],
       ['Steinbruck', 'neutre', [['30 km', [['À pied · 2 j', null], ['Diligence · 1 j', null]]]]],
       ['Altdorf', 'neutre', []],
+    ]);
+    expect(departDeLaCarte(suite.vue, 'r-grandroute').valeurs.map((b) => b.jeu), 'chaque mode part sans cadence : la traversée prend les ordres par défaut, réglés en route').toEqual([
+      { type: 'partirEnVoyage', args: ['r-grandroute', 'pied'] },
+      { type: 'partirEnVoyage', args: ['r-grandroute', 'diligence'] },
     ]);
     expect(plan.points.every((pt) => pt.x >= 0 && pt.x <= 1 && pt.y >= 0 && pt.y <= 1), 'chaque lieu dans le cadre du plan').toBe(true);
     expect(plan.traits.map((tr) => [tr.id, tr.ton]), 'chaque route, celles qui partent d’ici distinguées').toEqual([['r-piste', 'reussite'], ['r-grandroute', 'reussite'], ['r-longue', 'neutre']]);
@@ -74,6 +78,7 @@ describe('le voyage par le pont', () => {
     let suite = p.jouer(carte(p.suite), 'carteDuMonde');
     suite = p.jouer(mode(suite, 'r-grandroute', 'pied'), 'ecranDuLieu');
     expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte), 'le lieu en titre').toEqual(['Steinbruck']);
+    expect(suite.vue.zones['fenetre.corps'][0], 'sous le titre, la date impériale du jour').toMatchObject({ type: 'ligne', id: 'lieu/date', texte: expect.stringMatching(/^\S.* \d{4} CI$/) });
     expect(suite.vue.projection.scene?.id, 'le groupe n’est pas entré dans la scène du lieu').toBe('test-voyage-village');
     const corps = parId(suite.vue.zones['fenetre.corps']);
     expect((corps['lieu/description'] as Ligne).texte, 'la description du lieu').toMatch(/^Un bourg de pierre grise au carrefour des routes/);

@@ -5,12 +5,26 @@ import type { GameOp } from '../../engine/ops';
 import { newOp } from '../valeursNeuves';
 import { OP_REF_FIELDS, opRefValue, opWithRefValue } from '../../data/refsDOp';
 import { OP_LABEL } from '../../data/schemas/grammaire/mecanique';
-import { datasetArray } from '../../data/overrides';
+import { entreesDuDataset } from '../../data/overrides';
 import { opRow, opRows, tableRows } from './opRows';
 import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
-import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables, groupLabel } from '../../data';
-import type { CharKey } from '../../engine/types';
+import {
+  talents,
+  skills,
+  traits,
+  psychologies,
+  etats,
+  trappings,
+  maladies,
+  symptoms,
+  creatures,
+  mutations,
+  findSymptomById,
+  effectTables,
+  groupLabel,
+} from '../../data';
+import { CHAR_KEYS } from '../../engine/types';
 import { psychBranchOps } from '../../engine/psychology';
 import { spellOps } from '../../engine/flowCore';
 import { opPsy } from '../../engine/psych/opsPsy';
@@ -34,7 +48,7 @@ function sample(kind: GameOp['op']): GameOp {
   let o = { ...newOp(kind) } as Record<string, unknown>;
   for (const f of OP_REF_FIELDS[kind] ?? []) {
     const v = opRefValue(o, f.field);
-    if (v == null || v === '') o = opWithRefValue(o, f.field, (datasetArray(f.ds) as { id?: string }[])[0]?.id);
+    if (v == null || v === '') o = opWithRefValue(o, f.field, entreesDuDataset(f.ds)[0]?.id);
   }
   return o as unknown as GameOp;
 }
@@ -90,11 +104,11 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
   /** Résolvabilité des ancres — DATA-DRIVEN (zéro id en dur) : chaque kind à ancre nominative
    *  d'`opRows.ts` produit un `{t:'ref'}` dont l'id RÉSOUT réellement dans le Codex (même lookup
    *  que `CodexRef.tsx:131`, `codexLookupById`). L'id de fixture est le PREMIER item du dataset réel
-   *  de la catégorie visée — une dérive id↔catégorie future (mauvais champ, mauvaise catégorie,
+   *  de la catégorie visée, la première clé de `CHAR_KEYS` pour une Caractéristique — une dérive id↔catégorie future (mauvais champ, mauvaise catégorie,
    *  dataset renommé) casse ce test au lieu de fuiter en silence sur une chip Codex morte. */
   const ANCHOR_FIXTURES: { kind: GameOp['op']; category: string; build: () => GameOp }[] = [
-    { kind: 'charMod', category: 'characteristics', build: () => ({ op: 'charMod', characteristic: characteristics[0].id as CharKey, mod: -10 }) },
-    { kind: 'charDRBonus', category: 'characteristics', build: () => ({ op: 'charDRBonus', characteristic: characteristics[0].id as CharKey, bonus: 1 }) },
+    { kind: 'charMod', category: 'characteristics', build: () => ({ op: 'charMod', characteristic: CHAR_KEYS[0], mod: -10 }) },
+    { kind: 'charDRBonus', category: 'characteristics', build: () => ({ op: 'charDRBonus', characteristic: CHAR_KEYS[0], bonus: 1 }) },
     // Mouvement/Blessure voyagent par leur propre famille d'ops (hors `CharKey`) mais s'affichent
     // COMME une Caractéristique (arbitrage user 2026-07-17) — même catégorie `characteristics`.
     { kind: 'moveMod', category: 'characteristics', build: () => ({ op: 'moveMod', mod: -1 }) },
@@ -184,7 +198,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     it('table IMBRIQUÉE dans une rangée déjà expansée (rollTable → rollTable) : libellé + lien codex, jamais ré-expansée (borne l’imbrication)', () => {
       const nested: import('../../engine/ops').GameOp = {
         op: 'rollTable',
-        die: 'd10',
+        die: { n: 1, sides: 10 },
         entries: [{ min: 1, max: 10, ops: [{ op: 'rollTable', tableId: 'allure-demoniaque-nurgle' }] }],
       };
       const rows = opRows([nested]);

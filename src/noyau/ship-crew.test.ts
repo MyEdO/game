@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { shipCrewAssignments, shipMoraleScore, shipDefaultRoles, crewTestContributors } from './shipCrew';
+import { applyShipMoraleDelta, shipCrewAssignments, shipMoraleScore, shipDefaultRoles, crewTestContributors } from './shipCrew';
+import { lierLaCoqueDeCampagne } from './monde/coqueDeCampagne';
 import { traumaById } from '../engine/trauma';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { Get } from './flowTypes';
@@ -90,9 +91,14 @@ describe('shipDefaultRoles — défaut GLOBAL : essentiel rempli en 1er + PJ ét
 describe('shipMoraleScore — pont campagne → combat', () => {
   it('coque = navire de campagne → Moral du vaisseau ; sinon défaut 75', () => {
     const ship = hull([], 'cogue');
-    expect(shipMoraleScore(getWith({ vehicleId: 'cogue', morale: { score: 60 } }), ship)).toBe(60);
-    expect(shipMoraleScore(getWith({ vehicleId: 'knarr', morale: { score: 60 } }), ship)).toBe(75);
+    const autre = hull([], 'cogue');
+    const vessel = { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 60, lastMoraleWeek: 0, factors: [] } };
+    lierLaCoqueDeCampagne(ship, vessel);
+    expect(shipMoraleScore(getWith(vessel), ship)).toBe(60);
+    expect(shipMoraleScore(getWith(vessel), autre)).toBe(75);
     expect(shipMoraleScore(getWith(null), ship)).toBe(75);
+    const refuse = () => { throw new Error('une coque sans lien écrit le moral de campagne'); };
+    expect(applyShipMoraleDelta(getWith(vessel), refuse, autre, -3)).toEqual([]);
   });
 });
 

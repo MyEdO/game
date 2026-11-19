@@ -41,10 +41,14 @@ const HAINE_SPORADIQUE = 'haine-sporadique';
 
 /** Instance de mutation MINIMALE (ce que porte un Combatant) — sans `effects` : ils vivent au registre. */
 const mutInstance = (id: string, over: Partial<Mutation> = {}): Mutation =>
-  ({ id, label: id, desc: '', kind: 'mentale', roll: 1, ...over }) as Mutation;
+  ({ id, type: 'mutations', label: id, desc: '', kind: 'mentale', roll: 1, ...over });
 
 /** Fiche TIRÉE du catalogue, telle que le chemin de Corruption la passe à `attachMutation`, qui en pose la copie (#2097). */
-const mutFromCatalog = (id: string): Mutation => ({ ...findMutationById(id)!, roll: 1 }) as Mutation;
+const mutFromCatalog = (id: string): Mutation => {
+  const fiche = findMutationById(id);
+  if (!fiche) throw new Error(`mutation « ${id} » absente du catalogue`);
+  return { ...fiche, roll: 1 };
+};
 
 const hero = (label = 'H', seed = 1): Combatant =>
   createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed });

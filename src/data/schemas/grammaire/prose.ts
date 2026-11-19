@@ -100,7 +100,7 @@ interface NoeudProse {
  *     stock `PROSE_INLINE_TOLEREE` (dénominateur décroissant de #1390). `maison` ne dispense pas :
  *     le champ `maison` et une prose verbatim du livre COEXISTENT dans la donnée (mesuré 2026-09-05 :
  *     32 nœuds sur les deux racines) ; une prose sans folio, elle, n'a pas de `source` du tout
- *     (refine de provenance de `document.ts` : `source` ⊕ `maison`).
+ *     (voir la provenance de l’enveloppe dans `document.ts`).
  * V4 OBLIGATION — un site qui exige la prose l'exige sous l'un des deux porteurs ; une `desc` VIDE est
  *     déjà la faute du `min(1)` de `champsProse` : une faute par défaut.
  * V5 PORTEUR — un site qui n'admet pas `desc` (`porteurs`) refuse toute prose inline, quel que soit le

@@ -8,7 +8,7 @@ import { chargerLesPreferences, reglerUnePreference } from './preferences';
 import { cadence, setCadence, CADENCE_DEFAULT } from '../engine/cadence';
 import { desFixes, setDesFixes, DES_FIXES_DEFAULT } from '../engine/fixedDie';
 import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
-import { VOLUME_DEFAUT, reglerLeVolume, volumeDuCanal } from '../noyau/volumes';
+import { SON_COUPE_DEFAUT, VOLUME_DEFAUT, couperLeSon, reglerLeVolume, sonCoupe, volumeDuCanal } from '../noyau/volumes';
 
 const CLE = 'wfrp4.prefs';
 const CADENCE_HORS_DEFAUT = 'auto';
@@ -23,17 +23,18 @@ beforeEach(() => {
   setCadence(CADENCE_DEFAULT);
   setDesFixes(DES_FIXES_DEFAULT);
   reglerLeVolume('musique', VOLUME_DEFAUT);
+  couperLeSon(SON_COUPE_DEFAUT);
 });
 
 describe('le chargement des préférences d’un stockage', () => {
   it('une valeur conforme à la forme de son entrée est chargée', () => {
-    chargerLesPreferences(avec({ 'combat-cadence': CADENCE_HORS_DEFAUT, 'des-fixes': true }));
-    expect([cadence(), desFixes()]).toEqual([CADENCE_HORS_DEFAUT, true]);
+    chargerLesPreferences(avec({ 'combat-cadence': CADENCE_HORS_DEFAUT, 'des-fixes': true, 'son-coupe': true }));
+    expect([cadence(), desFixes(), sonCoupe()]).toEqual([CADENCE_HORS_DEFAUT, true, true]);
   });
 
   it('une valeur non conforme (mode hors options, flag non booléen) est ignorée : le défaut s’applique', () => {
-    chargerLesPreferences(avec({ 'combat-cadence': 'turbo', 'des-fixes': 'oui' }));
-    expect([cadence(), desFixes()]).toEqual([CADENCE_DEFAULT, DES_FIXES_DEFAULT]);
+    chargerLesPreferences(avec({ 'combat-cadence': 'turbo', 'des-fixes': 'oui', 'son-coupe': 1 }));
+    expect([cadence(), desFixes(), sonCoupe()]).toEqual([CADENCE_DEFAULT, DES_FIXES_DEFAULT, SON_COUPE_DEFAUT]);
   });
 
   it('un nombre (`param`) est chargé dans ses bornes ; hors bornes ou non numérique, il est ignoré', () => {

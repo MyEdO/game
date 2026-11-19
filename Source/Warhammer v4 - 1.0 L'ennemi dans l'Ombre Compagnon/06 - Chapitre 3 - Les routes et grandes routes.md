@@ -1,6 +1,6 @@
 *Pages PDF 20-22*
 
-### **LES ROUTES**
+### <span id="page-19-0" data-folio="19"></span>**LES ROUTES**
 
 L'état du réseau routier de l'Empire doit beaucoup à l'empereur Wilhelm le Sage. Ayant entendu parler des vitesses de livraison extraordinaires offertes par le service de surveillance de l'Ostland utilisé le long de la frontière de Kislev et dans les Marches du Nord, Wilhelm décida de reproduire le système dans tout l'Empire. Dans un décret datant de 2453, un système de messagers impériaux fut créé pour faire circuler rapidement les nouvelles entre toutes les grandes villes de l'Empire, en particulier en temps de guerre, en complément de la Poste impériale. En réquisitionnant des chevaux frais dans les auberges relais tout au long du chemin, un messager pouvait aller des frontières de Kislev à Altdorf en six jours, et depuis le célèbre col du Feu Noir en seulement onze jours.
 
@@ -70,4 +70,4 @@ L'auberge La Diligence (voir **L'Ennemi dans l'Ombre**, page 11) est une auberge
 
 Après avoir découvert le double avantage d'une diligence abîmée et de ses voyageurs faibles, riches et faciles à éliminer, une bande entreprenante de bandits presque analphabètes a investi dans un nouveau projet lucratif. En rénovant le véhicule et en bricolant une version proche de l'héraldique et des uniformes des Lignes Rochet, le gang a créé le piège parfait. Les passagers paient pour monter à bord, sont conduits loin de la sécurité de la société, puis volés sans pitié par ces faux cochers qui sortent leurs armes pendant que la diligence roule encore. Jusqu'à présent, les « *Lygnes Rotchet* » sont toujours rentables et la combine n'a pas été repérée par les forces de l'ordre, mais ils deviennent plus audacieux, et n'importe qui avec une éducation minimale ou un œil un peu curieux pourrait démasquer ces égorgeurs.
 
-Comme le gang a l'intention de prendre l'intégralité de la bourse de chaque client en cours de route, il peut offrir des prix très bas pour monter à bord, ce qui est parfait pour les groupes au budget serré. Les « *Lygnes Rotchet* » pourraient remplacer les cochers au début de **L'Ennemi dans l'Ombre**, surtout si vous avez envie d'organiser des combats sur une diligence en marche !
+Comme le gang a l'intention de prendre l'intégralité de la bourse de chaque client en cours de route, il peut offrir des prix très bas pour monter à bord, ce qui est parfait pour les groupes au budget serré. Les « *Lygnes Rotchet* » pourraient remplacer les cochers au début de **L'Ennemi dans l'Ombre**, surtout si vous avez envie d'organiser des combats sur une diligence en marche !<span id="page-21-0" data-folio="21"></span>

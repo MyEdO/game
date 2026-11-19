@@ -6,7 +6,9 @@ import { RecapLineList } from './RecapLine';
 import { ParchmentCard } from './ParchmentCard';
 import { Icon } from './Icon';
 import type { Dir8 } from '../geometry/dir8';
-import { type SeaWindForceId, windAspect } from '../engine/seaWeather';
+import { windAspect } from '../engine/seaWeather';
+import { deDesEvenementsDeBord } from '../engine/seaVoyage';
+import { formatDice } from '../engine/dice';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { windDirectionSchema } from '../data/schemas/defs-scenes/worldmap';
 import { windAspectSchema } from '../data/schemas/defs/sea-weather';
@@ -37,7 +39,7 @@ export function SeaVoyageBody({ day }: { day: TravelRecapDay }) {
   return (
     <div className="sea-voyage">
       <div className="sea-voyage-head">
-        <WindRose dir={HEADING_TO_DIR8[chrome.windFrom] ?? 'N'} force={chrome.windForce as SeaWindForceId} heading={HEADING_TO_DIR8[chrome.heading] ?? 'N'} size="md" />
+        <WindRose dir={HEADING_TO_DIR8[chrome.windFrom] ?? 'N'} force={chrome.windForce} heading={HEADING_TO_DIR8[chrome.heading] ?? 'N'} size="md" />
         <div className="sea-voyage-gauges">
           {hullGauge && (
             <NotchGauge label={t('sv.coque')} icon={<Icon id="scenario/port" size="sm" />} value={hullGauge.current} max={hullGauge.max}
@@ -66,7 +68,7 @@ export function SeaVoyageBody({ day }: { day: TravelRecapDay }) {
       {(day.events?.length ?? 0) > 0 && (
         <div className="sea-voyage-events">
           {day.events!.map((ev, i) => (
-            <ParchmentCard key={i} title={ev.title} tone={ev.tone} seal={ev.roll != null ? { label: 'd100', roll: ev.roll } : undefined}>
+            <ParchmentCard key={i} title={ev.title} tone={ev.tone} seal={ev.roll != null ? { label: formatDice(deDesEvenementsDeBord()), roll: ev.roll } : undefined}>
               <p>{ev.text}</p>
             </ParchmentCard>
           ))}

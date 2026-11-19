@@ -2,18 +2,28 @@ import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../noyau/carriers';
 import { FORMULES_DES_MARCHES, achatDeLOffre } from '../noyau/cargaison';
 import { useGame } from '../state/store';
-import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, refLabel, type NavalPortData } from '../data';
-import { rationsDeCale, type VivresDeCale } from '../engine/provisions';
+import { rationsDeCale, type QuantitesDeVivres } from '../engine/provisions';
 import { type PortProfile } from '../engine/seaVoyage';
 import { REPARATION } from '../engine/seaNavigation';
 import { humanizeFormula } from '../noyau/codex/humanize';
 import { findCargoEntryById } from '../engine/cargo';
 import { toMoney, priceToMoney, fromBrass, formatMoney, PA_PER_CO, type Money } from '../engine/money';
-import { moraleBand } from '../engine/crewMorale';
+import { moraleBand, soldeDuRole } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
-import { devisDAchatEnPort, caleALEscale, refusDeBradageEnPort, rolesRecrutables, refusDEmbauche, refusDeDebarquement, devisDAvitaillement } from '../noyau/portFlow';
+import {
+  devisDAchatEnPort,
+  caleALEscale,
+  refusDeBradageEnPort,
+  rolesRecrutables,
+  refusDEmbauche,
+  refusDeDebarquement,
+  devisDAvitaillement,
+  refusDeGesteAQuai,
+} from '../noyau/portFlow';
 import { devisDeChantier, ameliorationsAuChantier, type PendingShoreLeave } from '../noyau/seaVoyageFlow';
+import { t } from '../i18n';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Prose } from './Prose';
@@ -54,13 +64,13 @@ export function PortHeader({ pp, catalogue }: { pp: PortProfile; catalogue?: Nav
 /** AVITAILLEMENT de la cale : rations-jour de chaque vivre achetable (`vivresAchetables`) et tonneaux d'eau douce à
  *  embarquer, au devis du noyau (`devisDAvitaillement`) contre la bourse `bourse` du groupe. MDG 14 l.238, l.248-252 ;
  *  MDG 15 l.262 */
-function AvitaillementDeLaCale({ vessel, bourse, refusHote, onAvitailler }: {
-  vessel: CampaignVessel; bourse: Money; refusHote: string | null;
-  onAvitailler: (quantites: VivresDeCale, tonneaux: number) => void;
+function AvitaillementDeLaCale({ vessel, bourse, refusDuQuai, onAvitailler }: {
+  vessel: CampaignVessel; bourse: Money; refusDuQuai: string | null;
+  onAvitailler: (quantites: QuantitesDeVivres, tonneaux: number) => void;
 }) {
-  const [quantites, setQuantites] = useState<VivresDeCale>({});
+  const [quantites, setQuantites] = useState<QuantitesDeVivres>({});
   const [tonneaux, setTonneaux] = useState(0);
-  const devis = devisDAvitaillement(vessel, bourse, refusHote, quantites, tonneaux);
+  const devis = devisDAvitaillement(vessel, bourse, refusDuQuai, quantites, tonneaux);
   return (
     <section className="panel port-section">
       <h3>Avitailler la cale</h3>
@@ -76,7 +86,7 @@ function AvitaillementDeLaCale({ vessel, bourse, refusHote, onAvitailler }: {
                 <b>{libelle}</b>
                 <span className="port-hint"><Coins money={prix} /> l’unité</span>
               </div>
-              <NumberField variant="nu" label={`${libelle} à embarquer`} min={0} value={quantites[id] ?? 0} disabled={!!refusHote} onChange={(n) => setQuantites({ ...quantites, [id]: n })} />
+              <NumberField variant="nu" label={`${libelle} à embarquer`} min={0} value={quantites[id] ?? 0} disabled={!!refusDuQuai} onChange={(n) => setQuantites({ ...quantites, [id]: n })} />
             </div>
           );
         })}
@@ -85,7 +95,7 @@ function AvitaillementDeLaCale({ vessel, bourse, refusHote, onAvitailler }: {
             <b>Tonneaux d’eau douce</b>
             <span className="port-hint"><Coins money={devis.tonneau} /> l’unité</span>
           </div>
-          <NumberField variant="nu" label="Tonneaux d’eau douce à embarquer" min={0} value={tonneaux} disabled={!!refusHote} onChange={setTonneaux} />
+          <NumberField variant="nu" label="Tonneaux d’eau douce à embarquer" min={0} value={tonneaux} disabled={!!refusDuQuai} onChange={setTonneaux} />
         </div>
       </Stack>
       <GatedAction
@@ -105,11 +115,11 @@ function AvitaillementDeLaCale({ vessel, bourse, refusHote, onAvitailler }: {
  *  le hub COMPOSE `ShoreLeaveBody`, déjà résolvant et branché au store, aucune 2e prose de décision),
  *  RECRUTEMENT salarié (MDG 14 l.293-302, `crew-roles.json`) et AVITAILLEMENT de la cale ; PUR sur ces volets,
  *  les gestes en props. */
-export function EscaleTab({ vessel, bourse, refusHote, pendingShoreLeave, onHire, onDismiss, onAvitailler }: {
-  vessel: CampaignVessel; bourse: Money; refusHote: string | null;
+export function EscaleTab({ vessel, bourse, refusDuQuai, pendingShoreLeave, onHire, onDismiss, onAvitailler }: {
+  vessel: CampaignVessel; bourse: Money; refusDuQuai: string | null;
   pendingShoreLeave: PendingShoreLeave | null;
   onHire: (roleId: string) => void; onDismiss: (roleId: string) => void;
-  onAvitailler: (quantites: VivresDeCale, tonneaux: number) => void;
+  onAvitailler: (quantites: QuantitesDeVivres, tonneaux: number) => void;
 }) {
   const hireable = rolesRecrutables();
   const countOf = (roleId: string) => vessel.crew?.find((h) => h.roleId === roleId)?.count ?? 0;
@@ -122,7 +132,7 @@ export function EscaleTab({ vessel, bourse, refusHote, pendingShoreLeave, onHire
           {!hasEvent && <p className="port-hint">Aucun événement d’escale en cours.</p>}
           <ShoreLeaveBody embedded />
         </section>
-        <AvitaillementDeLaCale vessel={vessel} bourse={bourse} refusHote={refusHote} onAvitailler={onAvitailler} />
+        <AvitaillementDeLaCale vessel={vessel} bourse={bourse} refusDuQuai={refusDuQuai} onAvitailler={onAvitailler} />
       </Stack>
       <section className="panel port-section">
         <h3>Recruter de l’équipage</h3>
@@ -134,18 +144,18 @@ export function EscaleTab({ vessel, bourse, refusHote, pendingShoreLeave, onHire
               <div key={role.id} className="port-upgrade">
                 <div className="port-upgrade-head">
                   <b>{role.label}{n > 0 ? ` ×${n}` : ''}</b>
-                  <span className="port-hint"><Coins money={priceToMoney(role.wage!.weekly)} />/sem.</span>
+                  <span className="port-hint"><Coins money={priceToMoney(soldeDuRole(role)!.weekly)} />/sem.</span>
                 </div>
                 <div className="port-crew-actions">
                   <GatedAction
                     id={`port-hire-${role.id}`} label="Embaucher" ariaLabel={`Embaucher un ${role.label}`}
-                    enabled={refusDEmbauche(vessel, role.id, refusHote) == null} {...raisonSi(refusDEmbauche(vessel, role.id, refusHote))}
+                    enabled={refusDEmbauche(role.id, refusDuQuai) == null} {...raisonSi(refusDEmbauche(role.id, refusDuQuai))}
                     onClick={() => onHire(role.id)} primary={false} btnClassName="small"
                   />
                   <GatedAction
                     id={`port-dismiss-${role.id}`} label="Débarquer" ariaLabel={`Débarquer un ${role.label}`}
-                    enabled={refusDeDebarquement(vessel, role.id, refusHote) == null}
-                    {...raisonSi(refusDeDebarquement(vessel, role.id, refusHote))}
+                    enabled={refusDeDebarquement(vessel, role.id, refusDuQuai) == null}
+                    {...raisonSi(refusDeDebarquement(vessel, role.id, refusDuQuai))}
                     onClick={() => onDismiss(role.id)} primary={false} btnClassName="small ghost"
                   />
                 </div>
@@ -178,17 +188,18 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const close = () => fermer('port');
   const choisir = useGame((s) => s.fenetreChoisir);
   const repair = useGame((s) => s.reparerLeNavire);
+  const repairParLeGroupe = useGame((s) => s.reparerParLeGroupe);
   const careen = useGame((s) => s.carenerLeNavire);
   const install = useGame((s) => s.installerLAmelioration);
   const hire = useGame((s) => s.recruterLEquipage);
   const dismiss = useGame((s) => s.renvoyerLEquipage);
   const avitailler = useGame((s) => s.avitaillerLeNavire);
   const pendingShoreLeave = useGame((s) => s.pendingShoreLeave);
-  const refusHote = useGame(refusDeGesteSurLeGroupe);
+  const refusDuQuai = useGame(refusDeGesteAQuai);
   const [tab, setTab] = useState<'coque' | 'cargaison' | 'escale'>(initialTab);
 
   const vd = vessel ? findVehicleById(vessel.vehicleId) : undefined;
-  const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusHote) : [];
+  const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusDuQuai, port?.ref) : [];
   if (!port || !vessel || !vd?.ship) return null;
   const etat = useGame.getState();
   const devisDe = (cargoId: string) => {
@@ -197,7 +208,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   };
   // L'achat de l'offre se compose avant d'être réglé ou conclu (`cargaison.ts`).
   const composer = (cargoId: string) => { if (useGame.getState().port?.achat?.offre !== cargoId) choisir('port', 'offre', cargoId); };
-  const chantier = devisDeChantier(vessel, money, refusHote);
+  const chantier = devisDeChantier(vessel, money, refusDuQuai, party);
   const cale = caleALEscale(vessel);
   const { max: woundsMax, current: woundsCur, missing, lissage, reparationGold: repairCost, carenagePct: careenPct, carenageGold: careenCost } = chantier;
   const cargo = vessel.cargo ?? [];
@@ -236,6 +247,14 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                 {...raisonSi(chantier.refusReparation)}
                 descOfferte={`${formatMoney(toMoney({ gold: REPARATION.portCostGoldPerWound }))} par Blessure restaurée${lissage ? ` · +${REPARATION.lissageRepairSurcoutPct} % coque lissée` : ''}`}
                 onClick={repair}
+                primary={false}
+              />
+              <GatedAction
+                id="port-repair-groupe"
+                label={<><Icon id="voyage/reparer" size="sm" /> {t('port.reparerParLeGroupe')}</>}
+                enabled={!chantier.refusReparationParLeGroupe}
+                {...raisonSi(chantier.refusReparationParLeGroupe)}
+                onClick={repairParLeGroupe}
                 primary={false}
               />
               <NotchGauge
@@ -314,7 +333,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                       <div className={`market-offer-buy ${devis.refus ? 'unaffordable' : ''}`}>
                         <NumberField
                           variant="nu" label={`Enc à embarquer — ${o.label}`}
-                          min={1} max={devis.max} value={devis.enc} disabled={!!refusHote}
+                          min={1} max={devis.max} value={devis.enc} disabled={!!refusDuQuai}
                           onChange={(n) => { composer(o.cargoId); choisir('port', 'encombrement', n); }}
                         />
                         <span className="market-offer-total">≈ <Coins money={toMoney({ gold: devis.estimationGold })} /></span>
@@ -348,7 +367,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   action={(r) => (
                     <div className="port-sell-actions">
                       <GatedAction
-                        id={`port-sell-${r.i}`} label="Vendre" enabled={!refusHote} {...raisonSi(refusHote)}
+                        id={`port-sell-${r.i}`} label="Vendre" enabled={!refusDuQuai} {...raisonSi(refusDuQuai)}
                         descOfferte="Trouver un acheteur puis marchander"
                         onClick={() => choisir('port', 'vendre', r.lot.uid)} primary={false} btnClassName="small"
                       />
@@ -365,7 +384,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
           </Split>
         ) : (
           <EscaleTab
-            vessel={vessel} bourse={money} refusHote={refusHote}
+            vessel={vessel} bourse={money} refusDuQuai={refusDuQuai}
             pendingShoreLeave={pendingShoreLeave}
             onHire={(roleId) => hire(roleId, 1)} onDismiss={(roleId) => dismiss(roleId, 1)}
             onAvitailler={avitailler}

@@ -21,8 +21,11 @@ import { draineCascade } from './cascade.testkit';
 import { devisDeTrajet } from './travelFlow';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { encounterTable } from '../engine/travelTables';
+import { noteEvent } from './evenementDuJour';
 
-const ENTREES_DE_RENCONTRE = (['fortuites', 'dangereuses'] as const).flatMap((c) => encounterTable(c).map((e) => e.label));
+/** La ligne de journal de chaque Rencontre tirable, telle que l'écrit son seul écrivain `noteEvent` (sans trajet : rien n'est noté). */
+const LIGNES_DE_RENCONTRE = (['fortuites', 'dangereuses'] as const).flatMap((c) => encounterTable(c))
+  .map((e) => noteEvent(() => ({ travelPlan: null }) as never, () => {}, { title: e.label, text: e.desc }));
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -153,7 +156,7 @@ describe('partirEnVoyage — à pied', () => {
     banc.getState().partirEnVoyage('r1', 'pied');
     const p = banc.getState().pendingRest!;
     expect(p.places.auberge).toBe(true);
-    expect(p.perHero[banc.getState().party[0].id].lodging).toBe('privee'); // défaut auberge
+    expect(p.perHero[banc.getState().party[0].id].lodging).toBe('chambre-1'); // défaut auberge
     const before = toBrass(partyMoneyTotal(banc.getState));
     sleepThroughHalt();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before - 120 - 12); // chambre 10 pa + repas 1 pa
@@ -209,17 +212,16 @@ describe('partirEnVoyage — transports payants (LDB 51 l.178-189)', () => {
 });
 
 describe('péripéties d’auteur — interruption et reprise', () => {
-  it('péripétie à 100 % qui démarre un combat : le RÉCIT s’affiche AVANT — le combat part à l’acquittement', () => {
+  it('péripétie à 100 % qui mène à une autre scène : le RÉCIT s’affiche AVANT — la transition part à l’acquittement', () => {
     setup(map({
       km: 30,
-      perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }],
+      perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'lieu-b-scene' } }] }],
     }));
     banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // la péripétie du jour est une étape de la cascade travelDay → la drainer
     let st = banc.getState();
-    // DIFFÉRÉ derrière le récit : pas de combat tant que le recap n'est pas acquitté
-    // (sinon on se retrouve en combat sans comprendre ce qui arrive).
-    expect(st.battle).toBeNull();
+    // DIFFÉRÉ derrière le récit : la scène ne change pas tant que le recap n'est pas acquitté.
+    expect(st.scene?.id).toBe('lieu-a-scene');
     expect(st.travelRecap?.then?.kind).toBe('effects');
     expect(st.travelPlan?.interrupted).toBe(true);
     expect(st.travelPlan!.kmDone).toBeGreaterThan(0);
@@ -228,13 +230,12 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     banc.getState().reprendreLeVoyage();
     expect(banc.getState().travelRecap?.then).toBeTruthy();
     expect(banc.getState().travelPlan?.interrupted).toBe(true);
-    // « Faire face » : l'acquittement déclenche le combat.
+    // « Faire face » : l'acquittement applique la transition.
     banc.getState().fenetreFermer('recitDeVoyage');
     st = banc.getState();
-    expect(st.battle).toBeTruthy();
+    expect(st.scene?.id).toBe('lieu-b-scene');
     expect(st.travelRecap).toBeNull();
-    // Victoire simulée → reprise (la péripétie est neutralisée pour ne pas re-déclencher).
-    banc.setState({ battle: null, mode: 'exploration' });
+    // Reprise (la péripétie est neutralisée pour ne pas re-déclencher).
     const wm = banc.getState().worldMap!;
     banc.setState({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
     banc.getState().reprendreLeVoyage();
@@ -249,14 +250,13 @@ describe('péripéties d’auteur — interruption et reprise', () => {
   it('interrompu sur le DERNIER kilomètre (kmDone = km) : la reprise arrive sans rejouer la journée', () => {
     // 12 km à M4 = 3 h → la péripétie tombe le jour de l'arrivée ; la reprise ne doit PAS re-tirer
     // la péripétie (sinon une péripétie à 100 % boucle indéfiniment).
-    setup(map({ perils: [{ label: 'Toujours là !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }] }));
+    setup(map({ perils: [{ label: 'Toujours là !', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'lieu-b-scene' } }] }] }));
     banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // péripétie du jour en cascade → drainer pour l'interruption
     expect(banc.getState().travelPlan?.interrupted).toBe(true);
     expect(banc.getState().travelPlan?.kmDone).toBeCloseTo(12);
-    banc.getState().fenetreFermer('recitDeVoyage'); // « Faire face » → le combat démarre
-    expect(banc.getState().battle).toBeTruthy();
-    banc.setState({ battle: null, mode: 'exploration' });
+    banc.getState().fenetreFermer('recitDeVoyage'); // « Faire face » → la transition part
+    expect(banc.getState().scene?.id).toBe('lieu-b-scene');
     banc.getState().reprendreLeVoyage(); // péripétie TOUJOURS à 100 % — ne doit plus se déclencher
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
@@ -327,10 +327,10 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     expect(banc.getState().travelRecap).toBeNull();
   });
 
-  it('interruption par péripétie de combat : recap « interrupted » avec km restants ; la reprise produit SON recap', () => {
+  it('interruption par péripétie de transition : recap « interrupted » avec km restants ; la reprise produit SON recap', () => {
     setup(map({
       km: 30,
-      perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }],
+      perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'lieu-b-scene' } }] }],
     }));
     banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // péripétie du jour en cascade travelDay → drainer pour l'interruption
@@ -338,11 +338,10 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     expect(r.status).toBe('interrupted');
     expect(r.kmDone).toBeLessThan(30);
     expect(r.days[0].lines.some((l) => l.text.includes('Brigands'))).toBe(true);
-    // « Faire face » : le combat différé démarre à l'acquittement du recap.
+    // « Faire face » : la transition différée part à l'acquittement du recap.
     banc.getState().fenetreFermer('recitDeVoyage');
-    expect(banc.getState().battle).toBeTruthy();
-    // victoire simulée → reprise : nouveau segment, nouveau recap
-    banc.setState({ battle: null, mode: 'exploration' });
+    expect(banc.getState().scene?.id).toBe('lieu-b-scene');
+    // reprise : nouveau segment, nouveau recap
     const wm = banc.getState().worldMap!;
     banc.setState({ worldMap: { ...wm, routes: wm.routes.map((x) => ({ ...x, perils: [] })) } });
     banc.getState().reprendreLeVoyage();
@@ -609,7 +608,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     expect(banc.getState().travelPlan).toBeNull();
   });
 
-  it('Rencontre : un échec d’Activité déclenche une Rencontre EDOC (texte verbatim au journal)', () => {
+  it('Rencontre : un échec d’Activité déclenche une Rencontre EDOC, au journal par la ligne de l’événement du jour (nom et texte verbatim)', () => {
     setRule('voyage-etapes', true);
     // Héros nul en Survie au poste Approvisionnement → échec quasi certain → Rencontre (dangereuse/fortuite).
     let met = false;
@@ -619,7 +618,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       setup(map({ km: 12, perilDie: 0 }), [h]);
       banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade(); // cascade travelDay (échec de poste → Rencontre tirée après l'agrégation) → drainer
-      if (banc.getState().journal.some((l) => ENTREES_DE_RENCONTRE.some((e) => l.startsWith(`${e} : `)))) met = true;
+      if (banc.getState().journal.some((l) => LIGNES_DE_RENCONTRE.includes(l))) met = true;
     }
     expect(met).toBe(true);
   });

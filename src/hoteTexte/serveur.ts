@@ -12,7 +12,21 @@ import { lireGeste, offresDeLaBarre, type Geste } from '../hote/geste';
 import { VERBES } from '../hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
 import { casesAtteignables } from '../hote/projection';
-import { borner, enSuspens, projeter, rendreLaCarte, rendreLaFiche, rendreLaSuite, rendreLaVue, rendreLeJournal, rendreLesCases, rendreLesGestes, rendreLesOffres, rendreLesVerbes, replier } from './vue';
+import {
+  borner,
+  enSuspens,
+  projeter,
+  rendreLaCarte,
+  rendreLaFiche,
+  rendreLaSuite,
+  rendreLaVue,
+  rendreLeJournal,
+  rendreLesCases,
+  rendreLesGestes,
+  rendreLesOffres,
+  rendreLesVerbes,
+  replier,
+} from './vue';
 import { etatDeLaBarre, gestesDExploration, porteurEnVue } from '../noyau/index';
 import { t } from '../i18n';
 

@@ -5,7 +5,17 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, activeCombatant, actionGate, type ActionCtx, type EntreesDeLaPartie, type Jeton, type Partie, type ResultatDeLAppel } from './index';
+import {
+  creerPartie,
+  etatInitialDuJeu,
+  activeCombatant,
+  actionGate,
+  type ActionCtx,
+  type EntreesDeLaPartie,
+  type Jeton,
+  type Partie,
+  type ResultatDeLAppel,
+} from './index';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Intention } from './partie';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -78,7 +88,7 @@ const etatDe = (j: Partie | Banc): Jeu => ('getState' in j ? j.getState() : j.et
 const lire = (j: Partie | Banc): Get => () => etatDe(j) as never;
 const contexte = (j: Partie | Banc): ActionCtx => {
   const s = etatDe(j);
-  return { active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
+  return { scene: s.scene, active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
 };
 const refusDit = (partie: Partie): string | undefined => partie.etat().refus?.texte;
 

@@ -27,7 +27,7 @@ import { findCrewRoleById, findSpellById, refLabel, testSkillLabel } from '../da
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
 import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
-import { maladresseCourante, specDeEtape, tableStepDef } from './cascade';
+import { maladresseCourante, tableStepDef } from './cascade';
 import { opposedAttackerLabel } from './rollSeam';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { APPRAISE_SKILL } from './merchantFlow';
@@ -135,7 +135,7 @@ export const libelleDuSeuil = (seuil: SeuilDeSauvegarde): string =>
   `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.sauvegardeDuDome') : ''}`;
 
 /** Ce qui se tire d'un dé nu, et ses dés (« Hauteur de chute (2d10) »). */
-export const libelleDuDe = (s: CascadeStep): string => `${s.label ?? ''} (${s.de ? formatDice(specDeEtape(s.de)) : ''})`.trim();
+export const libelleDuDe = (s: CascadeStep): string => `${s.label ?? ''} (${s.de ? formatDice(s.de.spec) : ''})`.trim();
 
 /** Le total d'un dé nu, dans la lecture de l'étape : avec son unité, ou confronté à son seuil. */
 export function lectureDuTotal(s: CascadeStep, total: number): string {

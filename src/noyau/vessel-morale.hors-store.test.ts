@@ -1,8 +1,9 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts, resolveVesselWeek } from './shipCrew';
+import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts, resolveVesselWeek, porteursABord, applyVesselCrewLoss } from './shipCrew';
+import { WORLD_STEP_OWNER } from './pendings';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { MINUTES_PER_DAY, campaignStart, dayIndex } from '../engine/clock';
 import { applyEffects } from './combatEffects';
@@ -13,6 +14,10 @@ import { t } from '../i18n';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
+import { contractDisease, contagiousDiseases, applyContraction } from '../engine/disease';
+import { deFixe } from '../engine/dice.testkit';
+import { findMoraleFactor } from '../engine/crewMorale';
+import { setRule, resetRule } from '../engine/policy';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -48,7 +53,7 @@ describe('Moral du navire de campagne — recalcul hebdomadaire dans l’entreti
 
   it('#1652 — le facteur « nourriture-biscuits-de-mer » tire −1d10 au recalcul hebdomadaire (MDG 14 l.143, l.166)', () => {
     const vessel = { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } };
-    const r = resolveVesselWeek(vessel, { gold: 0, silver: 0, brass: 0 }, null, 1, { int: () => 4 });
+    const r = resolveVesselWeek(vessel, { gold: 0, silver: 0, brass: 0 }, null, 1, false, { int: () => 4 });
     expect(r.factorRolls).toEqual([{ id: 'nourriture-biscuits-de-mer', label: 'La nourriture est uniquement composée de biscuits de mer', rolled: -4 }]);
     expect(r.after).toBe(71);
   });
@@ -56,6 +61,98 @@ describe('Moral du navire de campagne — recalcul hebdomadaire dans l’entreti
   it('sans navire (vessel null) → aucun effet, aucun plantage', () => {
     banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     expect(banc.getState().vessel).toBeNull();
+  });
+});
+
+describe('#4058 — « La maladie fait rage au sein de l’équipage » (MDG 14 l.172, l.208 ; règle maison `mer-moral-maladie-contagieuse-a-bord`)', () => {
+  afterEach(() => resetRule('mer-moral-maladie-contagieuse-a-bord'));
+  const MALADIE = findMoraleFactor('maladie-fait-rage')!.label;
+  /** Le premier Personnage du groupe porte `maladie` (incubation et durée en jours), puis une semaine passe. */
+  function uneSemaineMalade(maladie: string, incubation: number): void {
+    const [pj] = banc.getState().party;
+    banc.setState({
+      party: [{ ...pj, diseases: [contractDisease(maladie, deFixe(1), { incubation, duration: 30 })!] }],
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    });
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
+  }
+
+  it('un Personnage porte une maladie contagieuse déclarée → le recalcul compte −2d10, jamais persisté', () => {
+    uneSemaineMalade('verole-urticante', 0);
+    expect(contagiousDiseases(banc.getState().party[0]).length).toBe(1);
+    const v = banc.getState().vessel!;
+    expect(v.morale.lastMoraleWeek).toBe(1);
+    expect(v.morale.score).toBeLessThan(75);
+    expect(banc.getState().journal.join('\n')).toContain(`${MALADIE} : -`);
+    expect(v.morale.factors).toEqual([]);
+  });
+
+  it('maladie non contagieuse → aucun facteur de maladie', () => {
+    uneSemaineMalade('courante-galopante', 0);
+    expect(banc.getState().party[0].diseases).toHaveLength(1);
+    expect(contagiousDiseases(banc.getState().party[0])).toEqual([]);
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+  });
+
+  it('maladie contagieuse encore en incubation → aucun facteur de maladie', () => {
+    uneSemaineMalade('verole-urticante', 20);
+    expect(banc.getState().party[0].diseases?.[0]?.phase).toBe('incubation');
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+  });
+
+  it('règle désactivée → aucun facteur de maladie', () => {
+    setRule('mer-moral-maladie-contagieuse-a-bord', false);
+    uneSemaineMalade('verole-urticante', 0);
+    expect(contagiousDiseases(banc.getState().party[0]).length).toBe(1);
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+  });
+});
+
+describe('#4243 — l’équipage PNJ, porteur collectif : « La maladie fait rage au sein de l’équipage » (MDG 14 l.172)', () => {
+  afterEach(() => resetRule('mer-moral-maladie-contagieuse-a-bord'));
+  const MALADIE = findMoraleFactor('maladie-fait-rage')!.label;
+  const equipage = () => porteursABord(banc.getState, banc.setState).find((p) => p.id === WORLD_STEP_OWNER);
+  /** L'équipage collectif contracte `maladie` par la couture de bord (incubation de `incubationJours` quand elle est
+   *  posée), puis une semaine passe, la maladie avançant avec l'horloge. */
+  function equipageMalade(maladie: string, incubationJours?: number): void {
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
+    const e = equipage()!;
+    if (incubationJours === undefined) applyContraction(e.porteur, maladie, false, makeRNG(1));
+    else e.porteur.diseases = [contractDisease(maladie, makeRNG(1), { incubation: incubationJours })!];
+    e.ecrire();
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
+  }
+
+  it('scorbut déclaré du collectif → −2d10 au procès-verbal de la semaine, règle des Personnages désactivée comprise', () => {
+    setRule('mer-moral-maladie-contagieuse-a-bord', false);
+    equipageMalade('scorbut');
+    const v = banc.getState().vessel!;
+    expect(v.porteurDeLEquipage?.diseases?.map((d) => `${d.id}/${d.phase}`)).toEqual(['scorbut/active']);
+    expect(v.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).toContain(`${MALADIE} : -`);
+    expect(v.morale.factors).toEqual([]);
+  });
+
+  it('maladie du collectif encore en incubation → aucun facteur de maladie', () => {
+    equipageMalade('verole-urticante', 30);
+    expect(banc.getState().vessel!.porteurDeLEquipage?.diseases?.[0]?.phase).toBe('incubation');
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
+    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+  });
+
+  it('effectif PNJ à 0 → le collectif est vidé et n’est plus énuméré', () => {
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
+    const e = equipage()!;
+    applyContraction(e.porteur, 'scorbut', false, makeRNG(1));
+    e.ecrire();
+    expect(banc.getState().vessel!.porteurDeLEquipage?.diseases).toHaveLength(1);
+    applyVesselCrewLoss(banc.getState, banc.setState, 1000, () => 0);
+    expect(banc.getState().vessel!.porteurDeLEquipage).toBeUndefined();
+    expect(equipage()).toBeUndefined();
+    expect(porteursABord(banc.getState, banc.setState).map((p) => p.id)).toEqual(banc.getState().party.map((h) => h.id));
   });
 });
 
@@ -287,4 +384,38 @@ describe('Désertion à la relâche à terre ACCORDÉE (MDG 14 l.192-202) — se
     expect(lines).toEqual([]);
     expect(banc.getState().vessel!.crewLost ?? 0).toBe(0);
   });
+
+  it('retire le marin du d100 de désertion, sans second tirage', () => {
+    lowVessel();
+    banc.setState({ vessel: { ...banc.getState().vessel!,
+      crew: [{ roleId: 'timonier', count: 1 }, { roleId: 'mousse', count: 1 }],
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    } });
+    let jets = 0;
+    const rng = { int: (min: number, max: number) => {
+      expect([min, max]).toEqual([1, 100]);
+      return ++jets === 2 ? 1 : 100;
+    } };
+    resolveShoreLeaveDesertion(banc.getState, banc.setState, rng);
+    expect(jets).toBe(15);
+    expect(banc.getState().vessel).toMatchObject({ crewLost: 1, crew: [{ roleId: 'timonier', count: 1 }],
+      recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+    });
+  });
+});
+
+it('une perte anonyme tire sans remise parmi les inscrits et les marins sans poste', () => {
+  banc.setState({ vessel: {
+    vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] },
+    crew: [{ roleId: 'timonier', count: 1 }, { roleId: 'timonier', count: 1 }],
+    recueillisSansSolde: [{ roleId: 'navigateur', count: 1 }],
+  } });
+  const indices = [1, 1, 11];
+  const bornes: [number, number][] = [];
+  applyVesselCrewLoss(banc.getState, banc.setState, 3, (postes) => {
+    bornes.push([0, postes - 1]);
+    return indices.shift()!;
+  });
+  expect(bornes).toEqual([[0, 14], [0, 13], [0, 12]]);
+  expect(banc.getState().vessel).toMatchObject({ crewLost: 3, crew: [{ roleId: 'timonier', count: 1 }], recueillisSansSolde: [] });
 });

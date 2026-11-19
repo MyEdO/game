@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://composants/rang.tscn" id="1_rang"]
+
+[node name="Rang" instance=ExtResource("1_rang")]
+
+[node name="Zone" parent="Rangee/Cadre/Portrait"]
+formes = PackedStringArray("portrait:portraitDuRangActif")
+
+[node name="Nom" parent="Rangee/Pile"]
+theme_type_variation = &"NomDeLActif"

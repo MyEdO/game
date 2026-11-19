@@ -14,3 +14,5 @@
 /sons/*.import
 # Le catalogue des dessins que `npm run godot:ouvrir` dépose dans le projet en place (`deposerLesDessins`, #3935).
 /art/dessins.json
+# Le `.uid` que l'éditeur pose à côté de la cible pure `scripts/noyau.generated.gd` (`scripts/gen-noyau-godot.mjs`, #4056).
+/scripts/noyau.generated.gd.uid

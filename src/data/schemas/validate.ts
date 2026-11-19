@@ -15,6 +15,7 @@ import type { z } from 'zod';
 import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
+import { exigeProvenanceExclusive, type Provenance } from './grammaire/document';
 import { defDe, descendre, enfantsDe, estConteneur, ouverts, pasDeDonnee } from './grammaire/descente';
 import { atteindre, champDeCharge, collectionDe, noeudsDeLElement, type EspaceDeNoms } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
@@ -110,6 +111,19 @@ export function schemaForFile(file: string): z.ZodType | undefined {
   return DEFS_DE_DOCUMENT.find((d) => d.file === file)?.schema;
 }
 
+/** Le champ de provenance absent qui serait refusé s’il était ajouté à ce brouillon. */
+export function champDeProvenanceEcarte(file: string, { source, maison }: Provenance): 'source' | 'maison' | undefined {
+  if (!exigeProvenanceExclusive(schemaForFile(file))) return undefined;
+  if (source === undefined && maison !== undefined) return 'source';
+  if (source !== undefined && maison === undefined) return 'maison';
+  return undefined;
+}
+
+/** Le texte vidé d’une raison maison retire cette provenance dans le brouillon exclusif. */
+export function valeurDeProvenanceAuBrouillon(file: string, champ: string, valeur: unknown): unknown {
+  return champ === 'maison' && valeur === '' && exigeProvenanceExclusive(schemaForFile(file)) ? undefined : valeur;
+}
+
 /** Méta d'ÉDITION d'un document par nom de fichier — le canal registre est le SEUL chemin
  *  schéma→atelier (`src/noyau/codex/editFields.ts`). `undefined` pour un def qui ne passe pas par
  *  `document()` ; adoption par def : lot L1b #1467. */
@@ -153,30 +167,38 @@ export function payloadDeFamille(liste: unknown, op: string): unknown {
   return regimes && mecaniqueDe(regimes).opDefs[op];
 }
 
-/**
- * NŒUD OBJET de la RANGÉE `entree` du dataset `dataset`, lu sur sa route DÉCLARÉE (`exposition.edit`,
- * `exposition-derivee.ts`) : l'élément de la collection au bout de sa suite (`DATASET_SUITE_DERIVE`,
- * `''` : la collection de racine), la valeur de la collection de racine d'un dataset-OBJET `record`, la
- * racine elle-même d'un dataset-OBJET `single`. Une union DISCRIMINÉE s'y ouvre par la valeur de son
- * discriminant dans `entree` (`ouverts`). LÈVE, en nommant fichier, dataset et suite, sur un dataset
- * sans route, une suite qui ne mène à aucune collection à clé, ou une rangée qui n'a pas UN nœud objet
- * (en nommant en plus la valeur des discriminants) — `RangeeSansNoeud` quand sa forme disque est
- * refusée par chacun des nœuds de son élément, qui en portent les FAUTES.
- */
-export function noeudDeLEntree(dataset: string, entree: object): unknown {
+/** Les nœuds des entrées du dataset `dataset`, lus sur sa route DÉCLARÉE (`exposition.edit`, `exposition-derivee.ts`) :
+ *  ceux de l'élément de la collection au bout de sa suite (`DATASET_SUITE_DERIVE`, `''` : la collection de racine), la
+ *  racine elle-même d'un dataset-OBJET ; et le lieu qui les nomme. LÈVE sur un dataset sans route, ou une suite qui ne
+ *  mène à aucune collection à clé. */
+function routeDesEntrees(dataset: string): { lieu: string; noeuds: readonly unknown[] } {
   const fichier = DATASET_FICHIER_DERIVE[dataset];
   const objet = OBJECT_CATEGORY_DERIVE[dataset];
   const suite = objet ? '' : DATASET_SUITE_DERIVE[dataset];
   const schema = fichier === undefined ? undefined : schemaForFile(fichier);
   const lieu = `noeudDeLEntree : dataset « ${dataset} » (${fichier ?? 'aucun fichier'}, suite « ${suite ?? '(aucune)'} »)`;
   if (!schema || suite === undefined) throw new Error(`${lieu} — aucune route d'édition déclarée (\`exposition.edit\`).`);
-  let noeuds: readonly unknown[];
-  if (objet?.mode === 'unique') noeuds = [schema];
-  else {
-    const collection = atteindre(schema, undefined, suite);
-    if (!collection) throw new Error(`${lieu} — la suite ne mène à aucune collection à clé du schéma.`);
-    noeuds = noeudsDeLElement(collection.noeuds, collection.marque);
-  }
+  if (objet) return { lieu, noeuds: [schema] };
+  const collection = atteindre(schema, undefined, suite);
+  if (!collection) throw new Error(`${lieu} — la suite ne mène à aucune collection à clé du schéma.`);
+  return { lieu, noeuds: noeudsDeLElement(collection.noeuds, collection.marque) };
+}
+
+/** Les nœuds des entrées du dataset `dataset` (`routeDesEntrees`), avant qu'une entrée ouvre l'union d'un document
+ *  discriminé par la valeur de son discriminant. */
+export const noeudsDesEntrees = (dataset: string): readonly unknown[] => routeDesEntrees(dataset).noeuds;
+
+/**
+ * NŒUD OBJET de la RANGÉE `entree` du dataset `dataset`, lu sur sa route DÉCLARÉE (`exposition.edit`,
+ * `exposition-derivee.ts`) : l'élément de la collection au bout de sa suite (`DATASET_SUITE_DERIVE`,
+ * `''` : la collection de racine), la racine elle-même d'un dataset-OBJET. Une union DISCRIMINÉE s'y ouvre par la valeur de son
+ * discriminant dans `entree` (`ouverts`). LÈVE, en nommant fichier, dataset et suite, sur un dataset
+ * sans route, une suite qui ne mène à aucune collection à clé, ou une rangée qui n'a pas UN nœud objet
+ * (en nommant en plus la valeur des discriminants) — `RangeeSansNoeud` quand sa forme disque est
+ * refusée par chacun des nœuds de son élément, qui en portent les FAUTES.
+ */
+export function noeudDeLEntree(dataset: string, entree: object): unknown {
+  const { lieu, noeuds } = routeDesEntrees(dataset);
   const objets = ouverts(noeuds, entree).filter((n) => defDe(n)?.type === 'object');
   if (objets.length !== 1) {
     const discriminants = [...new Set(ouverts(noeuds).map((n) => defDe(n)?.discriminator).filter((d): d is string => d !== undefined))];

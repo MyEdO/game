@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "cheval-mort"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "peau",
+      "palette": "corps",
+      "matiere": "prop--peau-morte"
+    },
+    {
+      "nom": "sang",
+      "palette": "accent",
+      "matiere": "prop--sang-repandu"
+    },
+    {
+      "nom": "crin",
+      "palette": "accent",
+      "matiere": "prop--crin"
+    },
+    {
+      "nom": "corne",
+      "palette": "accent",
+      "matiere": "prop--corne"
+    }
+  ],
+  "glb": {
+    "sha256": "128d129b04892cdcbeb20641fbdc19e6ad177d3526e16af4428194df6b6eee09",
+    "octets": 93804
+  }
+}

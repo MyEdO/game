@@ -96,7 +96,7 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
   });
 
   it('(a) chaque verbe de jet est exposé dans COMBAT_INTENTS et ROUTÉ (jamais laissé au repli universel)', () => {
-    // `netFlow.interceptGuestActions` n'enrobe que `GUEST_INTENTS` : un geste sans intent s'exécuterait EN LOCAL
+    // `transmettreLesIntentions` (`reseau.ts`) n'enrobe que `GUEST_INTENTS` : un geste sans intent s'exécuterait EN LOCAL
     // chez l'invité (défaut #949) ; un geste au repli rendrait le owner de la MODALE — `'*'` sur une étape partagée,
     // donc TOUS les sièges brûleraient la Résistance ou la Résilience d'autrui (#1050, angle mort #965).
     const nus = Object.values(NOM_DU_VERBE_DE_JET).filter((n) => !COMBAT_INTENTS.has(n) || !ROUTES.has(n));

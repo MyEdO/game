@@ -22,6 +22,7 @@ import { reprendreTestSubi } from './combat/triggeredTest';
 import { poursuivreLAccostage } from './seaVoyageFlow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import type { Cloture, PendingExtendedTest } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
@@ -95,7 +96,7 @@ export function reglagesDesTestsDeScene(get: Get, set: Set): Pick<CorpsDesReglag
         const pc = get().pendingCascade;
         const etape = pc ? curseurPose(get, { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, actorId: cand.id } : st)) }, pc.cursor) : null;
         set({
-          pendingTest: { ...pt, actorId: cand.id, actorName: cand.label, skillValue: cand.value, target: cand.target, clamped: cand.clamped, base: cand.base, mods: cand.mods, psychMod: cand.psychMod, psychDetail: cand.psychDetail, itemUid: cand.itemUid, support: cand.support },
+          pendingTest: { ...pt, actorId: cand.id, skillValue: cand.value, target: cand.target, clamped: cand.clamped, base: cand.base, mods: cand.mods, psychMod: cand.psychMod, psychDetail: cand.psychDetail, itemUid: cand.itemUid, support: cand.support },
           ...(etape ? { pendingCascade: etape } : {}),
         });
       },
@@ -181,10 +182,9 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       // ACQUITTEMENT par le goulot (`FLOWS.test.apply`) : l'issue est déclarée AU FLUX (`spec.issue`),
       // journalisée là — ici on acquitte, avant de fermer (l'issue se lit sur le pending qui l'a produite).
       FLOWS.test.apply(get);
-      // Le Test EST une cascade-hôte à une étape (rendu par CascadeModal) : la sortie d'hôte ferme LES DEUX avant
-      // la branche (qui peut ouvrir d'autres pendings — combat, autre Test…), puis reprend la pile après la suite.
-      const accostage = get().pendingCascade?.portArrival;
-      sortirDeLHote(get, set, { pendingTest: null }, () => {
+      // Le Test EST une étape-hôte de sa séquence (rendue par CascadeModal) : la sortie d'hôte la ferme avant la
+      // branche (qui peut ouvrir d'autres pendings — combat, autre Test…), puis reprend la pile après la suite.
+      sortirDeLHote(get, set, { pendingTest: null }, (fermee) => {
         const actor = get().party.find((c) => c.id === pt.actorId);
         const tool = pt.itemUid ? actor?.items?.find((i) => i.uid === pt.itemUid) : undefined;
         // Pratique/Peu Fiable : ±1 DR sur un Test RATÉ (LDB 60 l.22/58). Ne repêche qu'un échec qui a
@@ -197,7 +197,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
           tool.destroyed = true;
           set({ party: [...get().party] }); // persiste la casse + re-render
-          get().ecrireAuJournal(t('store.toolBroken', { tool: tool.label, name: actor?.label ?? pt.actorName }));
+          get().ecrireAuJournal(t('store.toolBroken', { tool: tool.label, name: garanti(nomEnVue(get(), pt.actorId), pt.actorId, 'testeur') }));
         }
         // Action de combat « cumuler l'Avantage » (LDB 09 l.305-308) : sur réussite, +1 Avantage plafonné au
         // `cap` de la Compétence (via `gainAdvantage`, qui respecte aussi le plafond général) ; l'Action est
@@ -228,9 +228,9 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         if (!effSuccess && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
         if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
         cloturer(get, set, issue, clotures);
-        // Le Test d'un événement d'escale se clôt par la sortie d'hôte, sans `dispatchCascadeDone` : l'accostage que portait sa
-        // cascade suit la branche, avant la reprise de la pile.
-        if (accostage) poursuivreLAccostage(get, set, accostage);
+        // Le Test d'un événement d'escale se clôt par la sortie d'hôte, sans `dispatchCascadeDone` : l'accostage que portait la
+        // séquence qu'elle a fermée suit la branche, avant la reprise de la pile. Une séquence qui continue l'accoste à son dénouement.
+        if (fermee?.portArrival) poursuivreLAccostage(get, set, fermee.portArrival);
       });
     },
   } satisfies Partial<CloturesDuJet>;

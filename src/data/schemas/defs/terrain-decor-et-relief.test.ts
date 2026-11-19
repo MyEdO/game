@@ -1,6 +1,7 @@
 /**
- * #2968 L11 — le terrain, le décor de recouvrement d'un terrain et la matière de relief se désignent par
- * `ref(type)` (`{ id }` refiné au parse contre l'index des ids), une couche de tuiles par `refs('terrain')`.
+ * #2968 L11 — le terrain et la matière de relief se désignent par `ref(type)` (`{ id }` refiné au parse contre
+ * l'index des ids), une couche de tuiles par `refs('terrain')`, les décors de recouvrement d'un terrain par
+ * `refs('prop', { min: 1 })` (#4335).
  * Fixtures : référence connue, inconnue, écrite en id nu, hors de sa sous-liste, et liste.
  */
 import { describe, expect, it } from 'vitest';
@@ -55,7 +56,6 @@ const PORTEURS = [
   { porteur: 'semences-de-scene.json › terrain', schema: schemaSemences, doc: (v: unknown) => ({ ...semencesJson, terrain: v }), connue: 'terre', refus: 'est absent du catalogue des terrains' },
   { porteur: 'semences-de-scene.json › reliefDefaults.cliff', schema: schemaSemences, doc: (v: unknown) => ({ ...semencesJson, reliefDefaults: { ...semencesJson.reliefDefaults, cliff: v } }), connue: 'pierre', refus: 'est hors de la sous-liste « relief » du catalogue des matières' },
   { porteur: 'traits.json › passive[].terrain', schema: schemaTraits, doc: (v: unknown) => horsDeSonTerrain('aquatique', v), connue: 'lave', refus: 'est absent du catalogue des terrains' },
-  { porteur: 'terrains.json › overlayProp', schema: schemaTerrains, doc: (v: unknown) => avec(terrainsJson, 'bois', 'overlayProp', v), connue: 'arbre', refus: 'est absent du catalogue des décors' },
   { porteur: 'terrains.json › matiere', schema: schemaTerrains, doc: (v: unknown) => avec(terrainsJson, 'mur', 'matiere', v), connue: 'terre', refus: 'est hors de la sous-liste « relief » du catalogue des matières' },
   { porteur: 'arene-projet.json › scenes[].reliefDefaults.cliff', schema: sceneSchema, doc: sceneAFalaise, connue: 'pierre', refus: 'est hors de la sous-liste « relief » du catalogue des matières' },
 ];
@@ -92,6 +92,26 @@ describe('#2968 L11 — terrain, décor et matière de relief désignés par `re
 
     it('un terrain inconnu dans la couche est refusé, son catalogue nommé', () => {
       expect(messages(layerSchema, { z: 0, tiles: ['herbe', 'terrain-inexistant'] })).toContain('« terrain-inexistant » est absent du catalogue des terrains');
+    });
+  });
+
+  describe('`terrains.json › overlayProps` : liste NON VIDE de décors (`refs`, #4335)', () => {
+    const decors = (v: unknown) => avec(terrainsJson, 'bois', 'overlayProps', v);
+
+    it('une liste de décors connus parse', () => {
+      expect(schemaTerrains.safeParse(decors(['arbre', 'pin'])).success).toBe(true);
+    });
+
+    it('un décor inconnu dans la liste est refusé, son catalogue nommé', () => {
+      expect(messages(schemaTerrains, decors(['arbre', 'decor-inexistant']))).toContain('« decor-inexistant » est absent du catalogue des décors');
+    });
+
+    it('une liste vide est refusée : le terrain qui la porte pose au moins un décor', () => {
+      expect(schemaTerrains.safeParse(decors([])).success).toBe(false);
+    });
+
+    it('un décor écrit en référence emboîtée est refusé (ids nus)', () => {
+      expect(schemaTerrains.safeParse(decors([{ id: 'arbre' }])).success).toBe(false);
     });
   });
 });

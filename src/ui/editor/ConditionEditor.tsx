@@ -6,15 +6,33 @@
  * porteur (ex. `CONDITION_KINDS_CARTE`) ; absente = toute l'algèbre. Remplace les
  * adaptateurs plats `whenFlag/whenWindow/buildWhen` (qui n'exprimaient que « flag ET créneau »).
  */
-import { seuilDeBourse, type Condition, type ActorRef, type ActorField, type CompareOp, type PartySelector, type TemporalCondition } from '../../engine/flowCore';
+import {
+  seuilDeBourse,
+  type Condition,
+  type ActorRef,
+  type ActorField,
+  type CompareOp,
+  type PartySelector,
+  type TemporalCondition,
+} from '../../engine/flowCore';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { actorFieldSchema, actorRefSchema, CONDITIONS_RESERVEES, conditionSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  actorFieldSchema,
+  actorRefSchema,
+  CONDITIONS_RESERVEES,
+  conditionSchema,
+  hasWhatSchema,
+  partyWhoSchema,
+  relationOrCampSchema,
+  startleCauseSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
 import { ChoixDeSpec, RefField, reposerLId } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
+import { ChampDeStatut } from './ChampDeStatut';
 import { CONDITION_TOUJOURS, recast } from '../../data/valeursNeuves';
 import { unionDuNoeud } from '../../noyau/codex/editFields';
 import { ATTACK_KIND_LABELS, valeurDeHas } from './interne/resumeDeCondition';
@@ -66,7 +84,7 @@ const KIND_OPTIONS: [Condition['kind'], string][] = ([
   'always', 'flag', 'etat', 'time', 'hasItem', 'money', 'partyDead', 'compare', 'slThreshold', 'location',
   'attackKind', 'startleCause', 'woundsDealt', 'engagedAdvantageGap', 'engagedAdvantageLead', 'foeInLoS',
   'cibleEnVue', 'hiddenFromFoes', 'engaged', 'crewTest', 'roundDeCombat', 'nearestFoe', 'capability',
-  'visiblePassive', 'relation', 'has', 'casterChaosDomain', 'skill', 'talent', 'career', 'species', 'status', 'all',
+  'visiblePassive', 'navire', 'relation', 'has', 'casterChaosDomain', 'skill', 'talent', 'career', 'species', 'status', 'all',
   'any', 'not',
 ] as const).map((k): [Condition['kind'], string] => [k, LIBELLE_DE_CONDITION.get(k)!]);
 
@@ -259,6 +277,15 @@ export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = condi
           porte une atteinte visible
         </span>
       )}
+      {cond.kind === 'navire' && (
+        <span className="cond-time">
+          <select className="cond-kind" aria-label="Acteur qui est un navire" value={cond.who}
+            onChange={(e) => onChange({ ...cond, who: e.target.value as ActorRef })}>
+            {optionsDuNoeud(actorRefSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          est un navire
+        </span>
+      )}
       {cond.kind === 'relation' && (
         <span className="cond-time">
           <select className="cond-kind" value={cond.who} onChange={(e) => onChange({ ...cond, who: e.target.value as ActorRef })}>
@@ -341,7 +368,7 @@ export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = condi
       )}
       {cond.kind === 'status' && (
         <span className="cond-time">
-          <input className="cond-flag" value={cond.atLeast} placeholder="Statut (ex. Argent 2)" onChange={(e) => onChange({ ...cond, atLeast: e.target.value })} />
+          <ChampDeStatut value={cond.atLeast} onChange={(atLeast) => atLeast && onChange({ ...cond, atLeast })} echelon="Échelon minimum" standing="Standing minimum" />
           <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
         </span>
       )}

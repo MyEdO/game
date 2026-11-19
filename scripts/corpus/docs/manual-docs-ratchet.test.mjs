@@ -8,30 +8,115 @@
 // Périmètre — `docs/*.md` À PLAT (hors sous-dossiers, `docs/plans/` et `docs/raw/` compris), même
 // frontière que `scripts/docs/check-doc-refs.mjs` (`listerDossier(DOCS_DIR)` non récursif).
 // Détection GÉNÉRÉ — l'appartenance à `GENERATORS` (`generateurDe`, scripts/docs/build-all.mjs), jamais
-// le disque : une cible de `GENERATORS` est générée par définition, et son texte se lit par
-// `rendreCible`, jamais sur disque (#2203).
+// le disque : une cible de `GENERATORS` est générée par définition, et son texte se lit à son rendu
+// sur l'hôte (`renduSurLHote`), jamais sur disque (#2203).
 //
 // Second volet (#903) — un doc MANUSCRIT qui porte le marqueur `GÉNÉRÉ par` ment : il n'a ni
 // script `npm`, ni `--check`, ni place en CI, et dérive sans rien dire. Le marqueur n'est porté
 // que par une cible de `GENERATORS`.
 //
 // Filet des citations des docs PURS (#2203) : chaque `fichier:ligne` qu'un générateur de `GENERATORS`
-// rend porte, à ±2 lignes du site SUR LE DISQUE, l'un des identifiants backtiqués de sa ligne. Il vit
-// dans ce fichier parce que le rendu des générateurs (`renduDe`) se calcule une fois par PROCESSUS :
-// deux fichiers de test le paieraient deux fois (#3412).
-import test from 'node:test'
+// rend porte, à ±2 lignes du site SUR LE DISQUE, l'un des identifiants backtiqués de sa ligne.
+//
+// Rendu sous win32 (#1801, DoD 1) : chaque dérivé de `GENERATORS` rend le MÊME corps sur l'hôte et
+// sous win32. L'hôte de développement est Windows, la CI est Linux : un générateur qui bâtit un chemin
+// RELATIF par l'API de `node:path` rend un corps qui dépend de la plateforme. La garde compare, par
+// générateur, le rendu d'un processus de l'hôte à celui d'un processus rendu sous win32
+// (`rendusEnProcessus`) : tous deux jouent le même lot de `LOTS`, et `scripts/docs/lib/plateforme-win32.mjs`
+// en `--import` est leur SEULE différence. Sur un hôte win32, la garde ne compare rien de vrai : sans la
+// simulation, les deux côtés sont le même rendu natif ; avec elle, les chemins absolus de l'hôte passés à
+// `child_process` (exécutable, `cwd`) perdent leur lecteur (`versPosix`), et un lancement à `cwd` échoue
+// (`spawnSync /Program Files/nodejs/node.exe ENOENT`). Elle saute sur win32 et mord en CI Linux.
+// Le lieu d'un module décide de ce qu'il voit : le dépôt voit win32, `node_modules` voit l'hôte
+// (`estModuleDuDepot`, plateforme-win32-hooks.mjs).
+//
+// Tous ces volets vivent dans ce fichier parce qu'ils lisent le MÊME rendu des générateurs sur l'hôte
+// (`rendusParCote`), calculé une fois : deux fichiers de test le paieraient deux fois (#3412).
+import test, { after } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { availableParallelism, tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { enFileBornee } from '../../guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../guards/lib/lister.mjs'
 import { MANUAL_DOCS_STOCK } from '../../guards/lib/manualDocsStock.mjs'
+import { spawnBorne } from '../../guards/lib/processusBorne.mjs'
 import { ecartsDeStock } from '../../guards/lib/stock.mjs'
-import { GENERATORS, generateurDe, rendreCible, renduDe } from '../../docs/build-all.mjs'
+import { GENERATORS, generateurDe } from '../../docs/build-all.mjs'
 import { estUnDocMarkdown } from '../../docs/lib/ecriture-derives.mjs'
-import { fautesDeCitations } from '../../test/lib/bancGenerateurs.mjs'
+import { ecartsDeRendu, fautesDeCitations } from '../../test/lib/bancGenerateurs.mjs'
+import { coeurs } from '../../test/partition.mjs'
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
+
+/** Le module qui rend sous win32, en `--import` ; il se pose AVANT `tsx/esm`. */
+const SOUS_WIN32 = ['--import', new URL('../../docs/lib/plateforme-win32.mjs', import.meta.url).href]
+
+const RENDRE_SEUL = fileURLToPath(new URL('../../docs/lib/rendre-seul.mjs', import.meta.url))
+
+const RENDRE_ENSEMBLE = fileURLToPath(new URL('../../docs/lib/rendre-ensemble.mjs', import.meta.url))
+
+const TSX_ESM = pathToFileURL(fileURLToPath(import.meta.resolve('tsx/esm'))).href
+
+const ECHEANCE_MS = 900_000
+
+/** Rendu d'un lot : tous les dérivés de `GENERATORS` tiennent sous cette capture. */
+const CAPTURE_MAX = 256 * 1024 * 1024
+
+/** Les lots de rendu, un processus chacun : les générateurs `node` ENSEMBLE (`rendre-ensemble.mjs` : le rendu qu'un
+ *  générateur lit d'un autre s'y calcule une fois), et chaque générateur `tsx` seul, lancé comme son runner
+ *  (`rendre-seul.mjs` derrière `tsx/esm`). `lire` rend, de la sortie du processus, `[script, [cible, texte][]][]`. */
+const LOTS = [
+  { nom: 'node', argv: [RENDRE_ENSEMBLE, ...GENERATORS.filter((g) => g.runner !== 'tsx').map((g) => g.script)], lire: (sortie) => JSON.parse(sortie) },
+  ...GENERATORS.filter((g) => g.runner === 'tsx').map((g) => ({
+    nom: g.script, argv: ['--import', TSX_ESM, RENDRE_SEUL, g.script], lire: (sortie) => [[g.script, JSON.parse(sortie)]],
+  })),
+]
+
+/** Les rendus du lot `lot` par un processus node que `imports` précharge, arrêté avec `signal` :
+ *  `[script, cible → texte][]`. */
+async function rendusEnProcessus(lot, imports, dossier, signal) {
+  const cote = imports.length ? 'sous win32' : 'sur l’hôte'
+  const r = await spawnBorne({
+    argv: [...imports, ...lot.argv],
+    fichier: join(dossier, `${lot.nom.replaceAll('/', '_')}.${imports.length ? 'win32' : 'hote'}.log`),
+    limiteMs: ECHEANCE_MS, cwd: ROOT, env: { ...process.env, WFRP_PLATEFORME_RACINE: ROOT },
+    signal, fluxDistincts: true, maxBuffer: CAPTURE_MAX, site: `rendus-des-generateurs/${lot.nom} ${cote}`,
+  })
+  if (r.code !== 0) throw new Error(`${lot.nom} ${cote} : sortie ${r.code}${r.error ? ` (${r.error.code ?? ''} ${r.error.message})` : ''}\n${r.stderr}`)
+  return lot.lire(r.stdout).map(([script, rendu]) => [script, new Map(rendu)])
+}
+
+/** L'arrêt des processus de rendu encore en vol à la fin du fichier. */
+const ARRET = new AbortController()
+after(() => ARRET.abort())
+
+let rendus
+
+/** Les rendus de chaque générateur de `GENERATORS` (`script` → cible → texte), lancés UNE fois : `hote` toujours, et
+ *  `win32` hors d'un hôte win32 (`null` sur lui). Les processus se mènent de front par `enFileBornee`, un par cœur
+ *  (`coeurs`), lancés par `spawnBorne` (#2586). */
+function rendusParCote() {
+  rendus ??= (async () => {
+    const cotes = process.platform === 'win32' ? [[]] : [[], SOUS_WIN32]
+    const dossier = mkdtempSync(join(tmpdir(), 'rendus-des-generateurs-'))
+    try {
+      const parTache = await enFileBornee(
+        LOTS.flatMap((lot) => cotes.map((imports) => (signal) => rendusEnProcessus(lot, imports, dossier, signal))),
+        { deFront: coeurs(process.env, availableParallelism), signal: ARRET.signal },
+      )
+      const [hote, win32 = null] = cotes.map((_, i) => new Map(parTache.filter((_, j) => j % cotes.length === i).flat()))
+      return { hote, win32 }
+    } finally {
+      rmSync(dossier, { recursive: true, force: true })
+    }
+  })()
+  return rendus
+}
+
+/** Le rendu du générateur `g` sur l'hôte : cible → texte. */
+const renduSurLHote = async (g) => (await rendusParCote()).hote.get(g.script)
 
 const DOCS_DIR = join(ROOT, 'docs')
 
@@ -55,9 +140,15 @@ function manualDocs() {
   return DOCS_MD.filter((f) => !estGenere(f)).map((f) => `docs/${f}`)
 }
 
-/** Texte d'un `docs/<fichier>.md` : son RENDU s'il est généré, le disque s'il est manuscrit, `null` absent. */
+/** Texte d'un `docs/<fichier>.md` : son RENDU s'il est généré, le disque s'il est manuscrit, `null` absent. LÈVE sur
+ *  une cible que son générateur ne rend pas. */
 async function texteDuDoc(doc) {
-  if (generateurDe(doc) !== undefined) return rendreCible(doc)
+  const g = generateurDe(doc)
+  if (g !== undefined) {
+    const texte = (await renduSurLHote(g)).get(doc)
+    if (texte === undefined) throw new Error(`${g.script} ne rend pas ${doc}`)
+    return texte
+  }
   const chemin = join(ROOT, doc)
   return existsSync(chemin) ? readFileSync(chemin, 'utf8') : null
 }
@@ -243,7 +334,7 @@ test('chaque doc RENDU par `GENERATORS` cite des sites qui portent leur symbole 
   const fautes = []
   let docs = 0
   for (const g of GENERATORS.filter((x) => x.targets.some(estUnDocMarkdown))) {
-    for (const [cible, texte] of await renduDe(g)) {
+    for (const [cible, texte] of await renduSurLHote(g)) {
       if (!estUnDocMarkdown(cible)) continue
       docs++
       fautes.push(...fautesDeCitations(cible, texte, lireDuDisque))
@@ -251,4 +342,11 @@ test('chaque doc RENDU par `GENERATORS` cite des sites qui portent leur symbole 
   }
   assert.ok(docs > 20, `${docs} doc(s) rendu(s) : le balayage est aveugle`)
   assert.deepEqual(fautes, [])
+})
+
+test('chaque générateur de `GENERATORS` rend le MÊME corps sur l’hôte et sous win32', {
+  skip: process.platform === 'win32' && 'hôte win32 : sans la simulation, les deux côtés sont le même rendu natif ; avec elle, un lancement à `cwd` échoue (ENOENT) — la garde mord en CI Linux',
+}, async () => {
+  const { hote, win32 } = await rendusParCote()
+  assert.deepEqual(GENERATORS.flatMap((g) => ecartsDeRendu(g.script, hote.get(g.script), win32.get(g.script))), [])
 })

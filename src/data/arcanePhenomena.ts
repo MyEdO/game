@@ -4,127 +4,25 @@
  * `src/engine/magicEnvironment.ts`) ; régler un phénomène = éditer le JSON, jamais ce fichier.
  */
 import arcaneJson from './arcane-phenomena.json';
-import type { CastingNumberMod } from '../engine/castingNumber';
-import type { DiceSpec } from '../engine/dice';
+import { datasetDe, type DatasetDe } from './datasets';
+import type * as arcaneDef from './schemas/defs/arcane-phenomena';
 
-/** Tests qu'un phénomène peut modifier — surensemble de `WindTest` (`engine/domainAttributes.ts`). */
-export type PhenomenonTest = 'incantation' | 'focalisation' | 'dissipation';
-
-/** À QUELS Sorts s'applique un modificateur. Plusieurs clés = OU (le RAW énumère « la Sorcellerie,
- *  la Magie noire ou le Chaos »). Absente = tous les Domaines. */
-export interface PhenomenonScope {
-  domains?: string[];
-  domainsExcept?: string[];
-  chaosMagic?: boolean;
-  dominantWinds?: boolean;
-  nonDominantWinds?: boolean;
-}
-
-export interface PhenomenonTestMod {
-  tests: PhenomenonTest[];
-  /** Delta de DR — borne BASSE quand le RAW ne donne qu'une fourchette (`drMax`). */
-  dr: number;
-  drMax?: number;
-  /** Loi du tirage par Round (`1d10/2`) : le SITE tire et pose la valeur dans `ArcaneOccurrence.dr`. */
-  drDie?: { faces: number; divide: number; perRound?: boolean };
-  scope?: PhenomenonScope;
-  /** Restreint le modificateur aux Vents déclarés par le site (`VDM 14` l.161). */
-  windRestricted?: boolean;
-  maison?: string;
-  source: { book: string; page: number };
-  desc: string;
-}
-
-export interface SaturationEffect {
-  levelsPerYear?: number;
-  levelsPerMonth?: number;
-  levels?: number;
-  viaGrandVortex?: boolean;
-  blocksPropagation?: boolean;
-  preventsJonctionSaturee?: boolean;
-  whenOffLine?: boolean;
-  source: { book: string; page: number };
-  desc: string;
-}
-
-export interface SaturationLevel {
-  id: string;
-  label: string;
-  order: number;
-  effectsMin: number;
-  effectsMax: number;
-  corrupts?: boolean;
-  testMods?: PhenomenonTestMod[];
-  source: { book: string; page: number };
-  desc: string;
-}
-
-export interface WindSaturationEffects {
-  id: string;
-  domainId: { id: string };
-  wind: string;
-  environments: string[];
-  effects: { label: string; tier: 'premier' | 'courant' | 'extreme' }[];
-  surnoms: string[];
-  source: { book: string; page: number };
-}
-
-export interface ArcanePhenomenon {
-  id: string;
-  label: string;
-  /** `site` = lieu NOMMÉ du chapitre dont le RAW chiffre l'effet magique (folios 200-207). */
-  kind: 'ligne-de-force' | 'pierre-gardienne' | 'vortex' | 'nexus' | 'appui-arcanique' | 'tempete' | 'corruption' | 'site';
-  testMods?: PhenomenonTestMod[];
-  /** Modificateurs de NIVEAU D'INCANTATION apportés par le lieu (`VDM 14 l.353`, l.437, l.489) —
-   *  lus par `environmentNIMods` (`engine/magicEnvironment.ts`). */
-  niMods?: CastingNumberMod[];
-  saturation?: SaturationEffect;
-  influenceMalveillante?: boolean;
-  critOnTens?: boolean;
-  daemonsDoubled?: boolean;
-  singleWind?: boolean;
-  cancelsTraitId?: { id: string };
-  refractedWindsOnly?: { source: { book: string; page: number }; desc: string };
-  stonePropertySlots?: { max: number; source: { book: string; page: number }; desc: string };
-  fluxTableId?: { id: string };
-  controlFlux?: { difficulty: string; source: { book: string; page: number }; desc: string };
-  overcastPerSpell?: { dice: DiceSpec; source: { book: string; page: number }; desc: string };
-  tableId?: { id: string };
-  draws?: number;
-  source: { book: string; page: number };
-  desc: string;
-}
-
+/** Le document `arcane-phenomena.json` (VDM 14), au type de son schéma. */
+export type ArcaneData = DatasetDe<typeof arcaneDef>;
+export type SaturationLevel = ArcaneData['saturationLevels'][number];
+export type WindSaturationEffects = ArcaneData['windSaturationEffects'][number];
+export type ArcanePhenomenon = ArcaneData['phenomena'][number];
+export type ArcaneTable = ArcaneData['tables'][number];
 /** Rangée d'une table du chapitre — fourchette `[min,max]` (lookup `findTableEntry`). */
-export interface ArcaneTableRow {
-  min: number;
-  max: number;
-  label: string;
-  /** Flux magique : Domaine(s) désigné(s) par la rangée. */
-  domainIds?: string[];
-  /** Flux magique : la rangée désigne AUSSI la Magie du Chaos (sans Domaine dédié). */
-  chaosMagic?: boolean;
-  /** Rangée RECONSTRUITE (cellule vide à l'impression) : dit ce qui est LU et ce qui est DÉDUIT. */
-  maison?: string;
-}
+export type ArcaneTableRow = ArcaneTable['entries'][number];
+export type PhenomenonTestMod = NonNullable<ArcanePhenomenon['testMods']>[number];
+/** Tests qu'un phénomène peut modifier — surensemble de `WindTest` (`engine/domainAttributes.ts`). */
+export type PhenomenonTest = PhenomenonTestMod['tests'][number];
+export type PhenomenonScope = NonNullable<PhenomenonTestMod['scope']>;
 
-export interface ArcaneTable {
-  id: string;
-  label: string;
-  die: string;
-  entries: ArcaneTableRow[];
-  source: { book: string; page: number };
-  desc: string;
-}
-
-export interface ArcaneData {
-  saturationLevels: SaturationLevel[];
-  windSaturationEffects: WindSaturationEffects[];
-  phenomena: ArcanePhenomenon[];
-  tables: ArcaneTable[];
-}
-
-const DATA = arcaneJson as unknown as ArcaneData;
+/** Le document VIVANT, lu ici seul : `data/overrides.ts` l'importe pour le seam. */
+export const arcanePhenomenaData = datasetDe<typeof arcaneDef>(arcaneJson);
+const DATA = arcanePhenomenaData;
 
 /** Les cinq paliers de Saturation environnementale, dans l'ordre du document — MÊME référence que
  *  `DATA.saturationLevels` : une édition Compendium (`setObjectDataset`, `data/overrides.ts`) mute ce

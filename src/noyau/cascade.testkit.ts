@@ -41,6 +41,14 @@ export function inexplique(st: LigneJugeable): number {
     - (st.clamped ?? 0);
 }
 
+/** Rangées d'un Test d'équipage qui ne jouent PAS leur Test individuel à la Difficulté `d`, cible expliquée
+ *  (`inexplique`) ; une étape sans rangée en rend une fictive. `[]` attendu. MDG 14 l.13 */
+export function membresHorsDifficulte(st: { participants?: readonly BatchParticipant[] }, d: Difficulty): string[] {
+  const rangees = st.participants ?? [];
+  if (!rangees.length) return ['(aucune rangée)'];
+  return rangees.filter((p) => p.difficulty !== d || inexplique(p) !== 0).map((p) => p.id);
+}
+
 /** LIGNE DE JET d'une étape : la RANGÉE du porteur quand l'étape est une BANDE (#1117 L3 — les jets
  *  de nuit vivent sur les rangées), l'étape elle-même sinon. `heroId` absent ⇒ la 1ʳᵉ rangée. Rendu
  *  STRUCTUREL (`LigneJugeable` + le libellé de Compétence), pour que les cliquets de ligne

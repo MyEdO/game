@@ -1,6 +1,5 @@
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Formula } from '../engine/ops';
-import type { FateSaveSource } from '../engine/fortune';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShipMoraleState } from '../engine/crewMorale';
@@ -23,10 +22,56 @@ import type { Possession } from '../engine/possession';
 import type { MerchantState, MerchantStocks } from './merchantFlow';
 import type { FinDeSeance } from './partyFlow';
 import type * as tavernFlow from './tavernFlow';
-import type { PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain, PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel, PendingFrenzy, PendingRenounce, PendingDefense, PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption, PendingCastOpposition, PendingCascade, ScheduledEffect, EtatDialogue, Suite } from './pendings';
+import type {
+  PendingVictory,
+  PendingLoot,
+  PendingTest,
+  PendingSteamSave,
+  PendingReload,
+  PendingStateRecovery,
+  PendingBargain,
+  PendingAppraise,
+  PendingAttack,
+  PendingHandGate,
+  PendingSiegeAim,
+  PendingCleave,
+  PendingDualStrike,
+  PendingBattement,
+  PendingDistraire,
+  PendingManeuver,
+  PendingRun,
+  PendingFall,
+  PendingShipManeuver,
+  PendingShipBattery,
+  PendingShanty,
+  PendingApproach,
+  PendingWard,
+  PendingFocus,
+  PendingDispel,
+  PendingFrenzy,
+  PendingRenounce,
+  PendingDefense,
+  PendingDisengage,
+  PendingAuContact,
+  PendingGrapple,
+  PendingCast,
+  PendingCounterspell,
+  PendingExtendedTest,
+  PendingForceDoor,
+  PendingDesignationHeros,
+  PendingEtalLot,
+  PendingHeal,
+  PendingSurgery,
+  PendingCorruption,
+  PendingCastOpposition,
+  PendingCascade,
+  ScheduledEffect,
+  EtatDialogue,
+  Suite,
+} from './pendings';
 import type { MedicState } from './acteDeSoin';
 import type { PendingRest } from './restFlow';
-import type { PendingCouncil } from './shipCrew';
+import type { PendingCouncil, PosteDuBord } from './shipCrew';
 import type { Scene, VictoryCondition } from './monde/scene';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { Pt } from './monde/path';
@@ -54,7 +99,7 @@ export type ShootingStanceKey = keyof ShootingStance;
  *  (`frappePilotee`), qui porte en `reprise` le geste de l'IA qu'elle a devancé dans un tour décidé. */
 export type GesteDeSuite =
   | { kind: 'frappePilotee'; pa: PendingAttack; reprise?: GesteDeSuite }
-  | { kind: 'frappe'; cibleId: string }
+  | { kind: 'frappe'; cibleId: string; weaponUid?: string }
   | { kind: 'avancer' }
   | { kind: 'sort'; spellId: string; cibleId: string }
   | { kind: 'zone'; spellId: string; centre: Pt }
@@ -71,11 +116,21 @@ export interface TourEnCours {
 }
 
 /** La série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`). `apresSuite` : la suite que le dé `nombre` faisait
- *  attendre (#1508), remise par son applier et jouée à la sortie unique de la série (`fermerLaSerieSubie`). */
-export interface SerieSubie { assaillant: Combatant; cibleId: string; avant: Combatant; restantes: number; apresSuite?: Suite }
+ *  attendre (#1508), remise par son applier et jouée à la sortie unique de la série (`fermerLaSerieSubie`). L'hôte de
+ *  la cible : le groupe, qui la rend telle qu'`avant` la rencontre (`sortieDeRencontre`), ou la série, qui héberge le
+ *  `membre` de l'équipage tiré à son `poste` (`MembreDuBord`). MDG 15 l.161-164, l.176-178 */
+export type SerieSubie = { assaillant: Combatant; cibleId: string; restantes: number; apresSuite?: Suite }
+  & ({ avant: Combatant; membre?: never } | { membre: MembreDuBord; avant?: never });
+
+/** Un membre de l'équipage que la série d'attaques subies héberge : son combattant, au profil de son rôle, et son poste. */
+export interface MembreDuBord { combattant: Combatant; poste: PosteDuBord }
+
+/** Une Blessure critique suspendue à son étape (`etapeId`, Déviation `self` ou Piège-à-lame) : `avantLeCoup`, le porteur
+ *  tel qu'avant le coup (`instantaneAvantLeCoup`), lu et retiré par l'applier de l'étape. LDB 17 l.32 */
+export interface CritiqueSuspendu { etapeId: string; porteurId: string; avantLeCoup: Combatant }
 
 export interface BattleState {
-  combatants: Combatant[];
+  combatants: import('./monde/coqueDeCampagne').CombattantDeRencontreOuTrajet[];
   order: string[];
   /** Ordre d'initiative CANONIQUE (immuable) ; `order` en est dérivé chaque Round (Maladresse
    *  « agir en dernier » / pré-emption Chance = effets d'UN Round, non permanents). */
@@ -226,14 +281,17 @@ export interface PaquetALancer {
  *  UN type, lu par l'état comme par son poseur : les deux ne peuvent plus diverger. */
 export type PendingInteract = { id: string; actionId?: string; at: Pt };
 
+/** Les registres de l'équipage par rôle : les salariés (`crew`), puis les recueillis sans solde. MDG 14 l.293-302 ; MDG 15 l.258 */
+export const REGISTRES_DU_BORD = ['crew', 'recueillisSansSolde'] as const satisfies readonly (keyof CampaignVessel)[];
+export type RegistreDuBord = (typeof REGISTRES_DU_BORD)[number];
+
 /** Navire que le groupe possède/commande en campagne — survit aux jours et aux combats (≠ la coque
- *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). Ses champs
- *  d'état sont OPTIONNELS : une save antérieure charge tel quel, chaque point de lecture porte son
- *  défaut (coque intacte, humeur neutre, cale vide) — migration par défauts, jamais de corruption. */
+ *  transitoire d'un combat). Son Moral est recalculé hebdomadairement (`tickShipMorale`). */
 export interface CampaignVessel {
+  /** Identité de l'instance, distincte de la fiche de véhicule. */
+  uid?: string;
   vehicleId: string;
-  /** #230 — Nom d'INSTANCE authoré (« Le Cormoran »…). Affichage pur (jamais une clé de logique/rendu) ;
-   *  absent = le label du TYPE (`findVehicleById(vehicleId).label`). Migration par défaut. */
+  /** #230 — Nom d'instance authoré. Sans nom, l'affichage reprend le libellé du type. */
   label?: string;
   morale: ShipMoraleState;
   /** #30 — Blessures de COQUE persistantes (absent = coque intacte). Synchronisées par le voyage
@@ -244,6 +302,8 @@ export interface CampaignVessel {
   upgrades?: import('../engine/types').NavalTraitRef[];
   /** Salissures (MDG 13 l.144-159) : niveau 0-5 + garde hebdomadaire du Test. */
   fouling?: { level: number; lastWeek: number };
+  /** Coque tenue par une réparation temporaire, jusqu'à la réparation au port (`portRepairVessel`). MDG 13 l.651 */
+  reparationTemporaire?: true;
   /** Humeur de Manann (MDG 15 l.83-125) — par navire, registre des facteurs déjà appliqués. */
   manann?: import('../engine/seaVoyage').ManannMood;
   /** SABOTAGE authoré sur cette coque (MDG 14 l.45-47) — clampé [-5,0] par `shipSaboteurDR`,
@@ -260,10 +320,10 @@ export interface CampaignVessel {
   /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = eau non suivie, l'accès
    *  à l'eau suit la règle `penurie-d-eau` (`upkeep.ts`, `hasWater`). */
   waterLitres?: number;
-  /** VIVRES de l'équipage PNJ embarqués, en jours-homme par vivre de la cale (`VivresDeCale`), mangés par
-   *  `consumeCrewProvisions` (`seaVoyageFlow.ts`). MDG 14 l.171, l.238, l.245-252. Absent = vivres de
-   *  l'équipage non suivis. #245 */
-  provisions?: import('../engine/provisions').VivresDeCale;
+  /** VIVRES de l'équipage PNJ embarqués, en lots datés de la cale (`LotDeVivres`), mangés par
+   *  `consumeCrewProvisions` (`seaVoyageFlow.ts`), le périssable pourri purgé par `purgeSurAvanceDHorloge`.
+   *  MDG 14 l.171, l.238, l.245-252. Absent = vivres de l'équipage non suivis. #245 ; #4058 */
+  provisions?: import('../engine/provisions').LotDeVivres[];
   /** Milles de la DERNIÈRE traversée accomplie — vente à un port PRODUCTEUR : « Si le bateau a
    *  parcouru plus de 100 milles » (MDG 15 l.366). Absent = navire à quai depuis sa mise à l'eau. */
   lastVoyageMilles?: number;
@@ -271,6 +331,9 @@ export interface CampaignVessel {
    *  plafonné au complément nominal du type (`vehicles.json` ship.crew — `applyVesselCrewLoss`). Absent
    *  = aucune perte. #150. */
   crewLost?: number;
+  /** L'équipage PNJ, UN porteur de maladies collectif sans fiche ; lu et écrit par `porteursABord` (`shipCrew.ts`), vidé
+   *  quand l'effectif PNJ tombe à 0 (`applyVesselCrewLoss`). MDG 14 l.172, l.208-209, l.230-232. Absent = équipage sain. #4243 */
+  porteurDeLEquipage?: Pick<import('../engine/disease').PorteurDeMaladies, 'diseases' | 'regimeDeBord'>;
   /** #216 — Équipage SALARIÉ embauché (barème `crew-roles.json`). Absent/vide = aucun équipage salarié
    *  = aucune paie prélevée à l'entretien hebdomadaire. */
   crew?: import('../engine/crewMorale').CrewHire[];
@@ -360,7 +423,7 @@ export interface EtatDeJeu {
    *  à choisir LEQUEL de ses Sorts permanents dissiper — c'est le paramètre que le panneau borné de
    *  la console demande. LOCAL au client au même titre que `localIntent` (aucune ressource engagée,
    *  hors `battle`, hors snapshot). L'élection se joue donc chez l'ÉMETTEUR du clic
-   *  (`emettreIntentInvite`, `hote/coop/salon.ts` ; table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
+   *  (`emettreIntentInvite`, `noyau/reseau.ts` ; table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
    *  JAMAIS en intent — l'exécuter dans le store de l'hôte y ferait naître un panneau étranger, et
    *  l'invité n'en verrait aucun (le snapshot efface ce champ).
    *  null = aucun porteur élu — avant le clic-token, ou après la fermeture du panneau. */
@@ -419,6 +482,13 @@ export interface EtatDeJeu {
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`lancerLaScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
   journal: string[];
+  /** Lignes écrites au `journal` depuis l'ouverture de la partie : clé réservée, augmentée par `ecrireAuJournal`
+   *  (`journal.ts`) et par `lancerLaScene` (`entreeEnScene.ts`), jamais remise. Un invité compte par elle ce qu'un
+   *  instantané lui apporte (`Partie.recevoir`). #3009 */
+  lignesAuJournal: number;
+  /** Combats ouverts depuis l'ouverture de la partie : clé réservée, augmentée par `marquerUnCombatOuvert`
+   *  (`idsDuMonde.ts`) et gardée par `lancerLaScene`. L'identité du `battle` courant (`Partie.recevoir`). #3009 */
+  combatsOuverts: number;
   /** CONVERSATION en cours (`EtatDialogue`, porteuse de sa `session`) — ouverte par l'unique
    *  fabrique `ouvrirDialogue` (`noyau/dialogue.ts`), jamais bâtie à la main. */
   dialogue: EtatDialogue | null;
@@ -440,6 +510,8 @@ export interface EtatDeJeu {
    *  qu'il était avant d'entrer dans la rencontre ; `restantes`, les attaques encore dues. `null` hors série. MDG 15
    *  l.163-164, l.177-178 */
   serieSubie: SerieSubie | null;
+  /** Les Blessures critiques suspendues à une étape de la séquence, chacune avec son porteur d'avant le coup. */
+  critiquesSuspendus: CritiqueSuspendu[];
   campaignSceneId: string | null;
   /** Couche NARRATIVE de la campagne chargée (#765/#767) — bloc `{affaires, indices, presetsPnj, objets}`
    *  du paquet, posé par `chargerLeProjet`, lu par id via les résolveurs UNIQUES de `resolveursDuNarratif.ts`. RUNTIME
@@ -596,10 +668,14 @@ export interface EtatDeJeu {
    *  frise) — le prochain clic sur un adversaire (carte OU frise) déclenche `declencherLeTirPreventif`. `null` = aucune. */
   preemptAiming: string | null;
   /** Sauvetage par le Destin en attente (LDB 17 l.29-32). */
-  pendingFateSave: { heroId: string; source: FateSaveSource; restoreWounds?: number;
+  pendingFateSave: ({ heroId: string;
     /** L'auteur du coup direct, dont se lisent les Cibles de l'Animosité acquise si le héros dépense le Destin
      *  (`ciblesDAnimositeAcquise`, ADE II 09 l.15). */
-    foeId?: string } | null;
+    foeId?: string } & (
+    /** Le coup létal : `avantLeCoup`, le porteur tel qu'avant le coup, que « Comment ça a pu rater ? » restaure
+     *  (LDB 17 l.32). */
+    | { source: 'hit'; avantLeCoup: Combatant }
+    | { source: 'slow' })) | null;
   /** Récompenses de victoire capturées (écran de fin de combat) ; null hors victoire. */
   pendingVictory: PendingVictory | null;
   /** VOL TERRESTRE en cours (#327) : le combat courant est né d'une péripétie dangereuse terrestre —
@@ -633,8 +709,8 @@ export interface EtatDeJeu {
   /** Combat de masse / Puissance de Bataille (ADE II 08) : état de la bataille abstraite en cours
    *  (Puissance des deux armées, Round, Scènes) — null hors bataille. */
   massBattle: MassBattleState | null;
-  /** Coop en ligne : état réseau sérialisable + actions de session — délégué à netFlow.
-   *  Les objets réseau vivants (sessions, sockets du relay) restent des singletons de module. */
+  /** Coop en ligne : état réseau sérialisable ; les objets réseau vivants (sessions, sockets du
+   *  relay) restent dans la fermeture du salon (`hote/coop/salon.ts`). */
   net: NetState;
   /** La fin de séance ouverte (`ouvrirLaFinDeSeance` : l'Effet `sessionEnd` #83, le menu de jeu, le récap de chapitre)
    *  et ses cases cochées ; `null` : fermée. */
@@ -755,6 +831,8 @@ export function etatInitialDuJeu(): EtatDeJeu {
     clues: {},
     explored: {},
     journal: [],
+    lignesAuJournal: 0,
+    combatsOuverts: 0,
     dialogue: null,
     dialogueHistory: [],
     merchant: null,
@@ -762,6 +840,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     tavernGames: null,
     battle: null,
     serieSubie: null,
+    critiquesSuspendus: [],
     campaignSceneId: null,
     interlude: null,
     bank: [],

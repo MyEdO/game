@@ -12,9 +12,7 @@
   "couvre": [
     "hanches",
     "cuisse_g",
-    "cuisse_d",
-    "genou_g",
-    "genou_d"
+    "cuisse_d"
   ],
   "silhouettes": [
     "feminin",
@@ -24,16 +22,18 @@
   ],
   "surfaces": [
     {
-      "nom": "haut_de_chausses",
-      "palette": "vet1"
+      "nom": "drap",
+      "palette": "vet1",
+      "matiere": "prop--drap-terne"
     },
     {
-      "nom": "creves",
-      "palette": "vet2"
+      "nom": "toile",
+      "palette": "vet2",
+      "matiere": "prop--toile-ecrue"
     }
   ],
   "glb": {
-    "sha256": "40331ce8f7784869dc9c7e87afcf69370475b39137ac8864a3f3e21bb477e7a6",
-    "octets": 686820
+    "sha256": "eacbbe3500954f356f314e64b928f2ba73385ddf1f42fa11cddb2c7de79d5c96",
+    "octets": 757156
   }
 }

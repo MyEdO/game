@@ -1,4 +1,4 @@
-import { nommerChamps } from '../grammaire/meta';
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /** MDG 12 ; MSRC 12 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -19,8 +19,8 @@ const installBandSchema = nommerChamps(z.strictObject({
 });
 
 const installBaremeSchema = z.union([
-  nommerChamps(z.strictObject({ bands: z.array(installBandSchema), per: z.enum(['5m', '10m', 'unite']).optional() }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' } }),
-  z.literal('modele'),
+  nommerChamps(z.strictObject({ bands: z.array(installBandSchema), per: z.enum(['5m', '10m', 'unite']).optional() }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' } }, { label: 'barème' }),
+  nommerNoeud(z.literal('modele'), { label: 'ceux du modèle embarqué' }),
 ]);
 
 const navalInstallSchema = nommerChamps(z.strictObject({
@@ -28,7 +28,9 @@ const navalInstallSchema = nommerChamps(z.strictObject({
   weightEnc: installBaremeSchema.optional(),
   /** MDG 12 l.230 ; MDG 12 l.293 */
   jours: installBaremeSchema.optional(),
-}), { installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose (jours)' } });
+  /** MDG 12 l.230 */
+  chantierSpecialise: z.boolean().optional(),
+}), { installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose (jours)' }, chantierSpecialise: { label: 'Exige un chantier naval spécialisé' } });
 
 const doc = document(
   'naval-traits',

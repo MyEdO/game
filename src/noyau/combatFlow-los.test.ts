@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveAttack, strayShotVictim } from './combatFlow';
+import { firedWeapon, resolveAttack, strayShotVictim } from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
 import { Scene } from './monde/scene';
@@ -54,7 +54,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7, { '3,0': 'mur' });
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
-    expect(resolveAttack(mkGet(s, [a, b]), a, b)).toBeNull();
+    expect(resolveAttack(mkGet(s, [a, b]), a, b, firedWeapon(s, a, b, undefined, [a, b]))).toBeNull();
   });
 
   it('ligne dégagée → tir résolu (résultat non nul)', () => {
@@ -62,7 +62,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7);
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
-    expect(resolveAttack(mkGet(s, [a, b]), a, b)).not.toBeNull();
+    expect(resolveAttack(mkGet(s, [a, b]), a, b, firedWeapon(s, a, b, undefined, [a, b]))).not.toBeNull();
   });
 
   it('sous-bois sur la ligne → ligne « Couvert » dans le détail du jet', () => {
@@ -70,7 +70,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7, { '3,0': 'bois' });
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
-    const r = resolveAttack(mkGet(s, [a, b]), a, b);
+    const r = resolveAttack(mkGet(s, [a, b]), a, b, firedWeapon(s, a, b, undefined, [a, b]));
     expect(ligneDe(nomme(r!.res.attackerDetail!), RULE_REF['cible-sous-couverture'])).toBeDefined();
   });
 
@@ -80,7 +80,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
     const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 99 }, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
-    const r = resolveAttack(get, a, b);
+    const r = resolveAttack(get, a, b, firedWeapon(get().scene, a, b, undefined, get().battle?.combatants));
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)?.value).toBe(-10);
   });
 
@@ -90,7 +90,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7);
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
-    const r = resolveAttack(mkGet(s, [a, b]), a, b); // pas d'immobilisation → tir mobile
+    const r = resolveAttack(mkGet(s, [a, b]), a, b, firedWeapon(s, a, b, undefined, [a, b])); // pas d'immobilisation → tir mobile
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)?.value).toBe(-10);
   });
 
@@ -99,7 +99,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7);
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
-    const r = resolveAttack(mkGet(s, [a, b]), a, b, undefined, undefined, undefined, true); // tirImmobile = true
+    const r = resolveAttack(mkGet(s, [a, b]), a, b, firedWeapon(s, a, b, undefined, [a, b]), undefined, undefined, undefined, true); // tirImmobile = true
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)).toBeUndefined();
   });
 
@@ -109,7 +109,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7);
     const a = shooter({ conditions: [{ id: 'empetre', value: 1 }] });
     const b = target({ pos: { x: 6, y: 0 } });
-    const r = resolveAttack(mkGet(s, [a, b]), a, b); // pas de tirImmobile, mais Mouvement nul
+    const r = resolveAttack(mkGet(s, [a, b]), a, b, firedWeapon(s, a, b, undefined, [a, b])); // pas de tirImmobile, mais Mouvement nul
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)).toBeUndefined();
   });
 });
@@ -123,7 +123,7 @@ describe('resolveAttack — Allonge en mêlée (RAW-3, LDB 62 l.163/164)', () =>
     const s = scene(7);
     const a = shooter({ weapons: [lance] as never, pos: { x: 0, y: 0 } });
     const b = target({ pos: { x: 2, y: 0 } });
-    expect(resolveAttack(mkGet(s, [a, b]), a, b)).not.toBeNull(); // 2 cases ≤ Allonge 2
+    expect(resolveAttack(mkGet(s, [a, b]), a, b, firedWeapon(s, a, b, undefined, [a, b]))).not.toBeNull(); // 2 cases ≤ Allonge 2
   });
 
   it('arme de contact (Très courte) ne touche PAS à 2 cases', () => {
@@ -131,7 +131,7 @@ describe('resolveAttack — Allonge en mêlée (RAW-3, LDB 62 l.163/164)', () =>
     const s = scene(7);
     const a = shooter({ weapons: [dague] as never, pos: { x: 0, y: 0 } });
     const b = target({ pos: { x: 2, y: 0 } });
-    expect(resolveAttack(mkGet(s, [a, b]), a, b)).toBeNull(); // hors de portée de mêlée
+    expect(resolveAttack(mkGet(s, [a, b]), a, b, firedWeapon(s, a, b, undefined, [a, b]))).toBeNull(); // hors de portée de mêlée
   });
 });
 

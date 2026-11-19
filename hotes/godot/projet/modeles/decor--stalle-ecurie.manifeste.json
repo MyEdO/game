@@ -1,0 +1,26 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "stalle-ecurie"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "paille",
+      "palette": "vegetal",
+      "matiere": "prop--paille"
+    }
+  ],
+  "glb": {
+    "sha256": "66e8d0c63129da80f25c56159873d05df08151e16c0ab73c2fb12fb7ea374d25",
+    "octets": 140236
+  }
+}

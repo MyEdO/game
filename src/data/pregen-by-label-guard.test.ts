@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { scanPregenByLabel } from '../../scripts/guards/lib/pregenByLabel.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import pregens from './pregens.json';
+import { pregens } from './index';
 import { estSuiteVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
@@ -12,7 +12,7 @@ import { estSuiteVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * la migration (#322) a ramené le compte à 0 sur les 42 sites recensés (17 fichiers) ; tout nouveau site réintroduit régresse.
  */
 
-const NAMES = (pregens as { label: string }[]).map((p) => p.label);
+const NAMES = pregens.map((p) => p.label);
 
 /** Les `.ts(x)` de `src/**`, TESTS COMPRIS (la garde vise justement les tests), rendus par la
  *  primitive de marche `readCorpus` : chemin POSIX relatif à la racine + texte. */

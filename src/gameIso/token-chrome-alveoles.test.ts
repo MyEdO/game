@@ -13,9 +13,9 @@ import { conditionIds } from '../data';
  * ALVÉOLES DU CHROME D'UN JETON — « rien ne bouge jamais » (état de l'art des interfaces de combat,
  * arbitrage user 2026-08-16 sur la taille des éléments). Le rang d'icônes d'États se RECENTRAIT à
  * chaque ajout : une seule condition qui tombe déplaçait TOUTES les icônes déjà lues, sous le regard
- * du joueur. Les places sont désormais RÉSERVÉES (même compte que le rack du portrait) et fixes.
+ * du joueur. Les places sont RÉSERVÉES (même compte que le rack du portrait) et fixes.
  */
-const ICONS = ['drapeau/frenesie', 'drapeau/posture-defensive', 'action/viser', 'drapeau/focalisation'] as unknown as IconId[];
+const ICONS: IconId[] = ['drapeau/frenesie', 'drapeau/posture-defensive', 'action/viser', 'drapeau/focalisation'];
 
 /** Abscisses des icônes RENDUES, dans l'ordre du markup. */
 function xs(icons: readonly IconId[], iconsMore = 0): number[] {

@@ -3799,9 +3799,6 @@
               {
                 "op": "zone",
                 "shape": "disc",
-                "radiusMeters": {
-                  "bonusOf": "force-mentale"
-                },
                 "perRound": [
                   {
                     "op": "wounds",
@@ -4661,7 +4658,8 @@
       "span": "diameter",
       "meters": {
         "bonusOf": "force-mentale"
-      }
+      },
+      "anchor": "target"
     },
     "duration": {
       "kind": "rounds",
@@ -4708,9 +4706,6 @@
               {
                 "op": "zone",
                 "shape": "disc",
-                "radiusMeters": {
-                  "bonusOf": "force-mentale"
-                },
                 "perRound": [
                   {
                     "op": "wounds",
@@ -8009,9 +8004,6 @@
               {
                 "op": "zone",
                 "shape": "disc",
-                "radiusMeters": {
-                  "bonusOf": "force-mentale"
-                },
                 "onCross": [
                   {
                     "op": "condition",
@@ -8231,9 +8223,6 @@
               {
                 "op": "zone",
                 "shape": "disc",
-                "radiusMeters": {
-                  "bonusOf": "force-mentale"
-                },
                 "perRound": [
                   {
                     "op": "heal",
@@ -8287,9 +8276,6 @@
                   {
                     "op": "zone",
                     "shape": "disc",
-                    "radiusMeters": {
-                      "bonusOf": "force-mentale"
-                    },
                     "perRound": [
                       {
                         "op": "heal",
@@ -8642,7 +8628,7 @@
     },
     "source": {
       "book": "livre-de-base",
-      "page": 255
+      "page": 254
     },
     "family": "arcane",
     "domainId": {
@@ -18333,9 +18319,6 @@
               {
                 "op": "zone",
                 "shape": "disc",
-                "radiusMeters": {
-                  "charOf": "force-mentale"
-                },
                 "onCross": [
                   {
                     "op": "condition",
@@ -20445,7 +20428,10 @@
               "ops": [
                 {
                   "op": "rollTable",
-                  "die": "d10",
+                  "die": {
+                    "n": 1,
+                    "sides": 10
+                  },
                   "entries": [
                     {
                       "min": 1,
@@ -21894,7 +21880,10 @@
             "ops": [
               {
                 "op": "rollTable",
-                "die": "d10",
+                "die": {
+                  "n": 1,
+                  "sides": 10
+                },
                 "entries": [
                   {
                     "min": 1,
@@ -22607,9 +22596,6 @@
               {
                 "op": "zone",
                 "shape": "disc",
-                "radiusMeters": {
-                  "charOf": "force-mentale"
-                },
                 "perRound": [
                   {
                     "op": "wounds",
@@ -23897,7 +23883,10 @@
                   },
                   {
                     "op": "rollTable",
-                    "die": "d10",
+                    "die": {
+                      "n": 1,
+                      "sides": 10
+                    },
                     "entries": [
                       {
                         "min": 1,
@@ -25261,10 +25250,7 @@
             "ops": [
               {
                 "op": "zone",
-                "shape": "disc",
-                "radiusMeters": {
-                  "bonusOf": "force-mentale"
-                }
+                "shape": "disc"
               },
               {
                 "op": "narrative",
@@ -25684,9 +25670,6 @@
               {
                 "op": "zone",
                 "shape": "disc",
-                "radiusMeters": {
-                  "bonusOf": "force-mentale"
-                },
                 "perRound": [
                   {
                     "op": "wounds",
@@ -28035,7 +28018,6 @@
               {
                 "op": "zone",
                 "shape": "disc",
-                "radiusMeters": 4,
                 "perRound": [
                   {
                     "op": "wounds",

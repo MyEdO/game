@@ -1,9 +1,21 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { initialNet } from './etat';
-import { openSequence, displayStep, monoStep, choiceStep } from './rollSeam';
-import { startCascade, advanceCascade, resolveRemainingCascade, runCascadeImmediate, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, dropSceneEntrySteps, setClotureDeCascade } from './cascade';
+import { initialNet, type BattleState } from './etat';
+import { openSequence, displayStep, monoStep, pushDisplay, choiceStep } from './rollSeam';
+import { toRecapLines } from './recapLine';
+import { testDeRegle } from '../engine/reglesChiffrees';
+import {
+  startCascade,
+  advanceCascade,
+  resolveRemainingCascade,
+  runCascadeImmediate,
+  resumeSuspendedCascade,
+  sortirDeLHote,
+  suspendActiveCascade,
+  dropSceneEntrySteps,
+  setClotureDeCascade,
+} from './cascade';
 import { runFlow, pushReveal } from './combatEffects';
 import { dispatchCascadeDone } from './combatSlice';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -17,6 +29,16 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import type { GenreDeCascade } from './tablesPosees';
+import { openCastCascade, activeCombatant, commitPlacedZone, startDisengage, openAttackCascade, advanceTurn } from './combatFlow';
+import { emptyScene } from './monde/scene';
+import { bus, EVT } from './bus';
+import { avanceEtapeCascade } from './cascade.testkit';
+import { createHero } from '../engine/character';
+import { testScene } from '../scenes/test-fixture';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import type { Combatant } from '../engine/types';
+import type { CritChoice, CastResult } from '../engine/magic';
+import { objetDeTest } from '../engine/objetsDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -56,11 +78,14 @@ const KIND_OUVRE_FLOW_PUIS_COMBAT = cleDeFixture('sonde-4006-ouvre-flow-puis-com
 const KIND_OUVRE_FLOW_PUIS_QUITTE = cleDeFixture('sonde-4006-ouvre-flow-puis-quitte');
 const KIND_QUITTE = cleDeFixture('sonde-4006-quitte');
 const KIND_PILOTE_IMBRIQUE = cleDeFixture('sonde-4006-pilote-imbrique');
+const KIND_VOIT_LES_FLAGS = cleDeFixture('sonde-3981-voit-les-flags');
 
 /** Le Flow que joue l'applier `KIND_OUVRE_FLOW`, posé par chaque test. */
 let flowOuvert: Flow = { kind: 'sequence', etapes: [] };
 /** Les clôtures `testRateDeLActeur` jouées, avec la profondeur de pile qu'elles voient. */
 let ratesVus: { actorId: string; parquees: number }[] = [];
+/** Les flags que voit l'applier `KIND_VOIT_LES_FLAGS` à son application. */
+let flagsVus: Record<string, boolean>[] = [];
 
 /** Le combat que voit la garde `combatALEntree` : elle lit `get().battle`, un combat complet est inutile. */
 const COMBAT = { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never;
@@ -97,6 +122,7 @@ beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_
   return {};
 }, [KIND_OUVRE_FLOW_PUIS_QUITTE]: (g, s, st) => { apples++; joues.push(st.id); runFlow(g, s, flowOuvert); quitterLaPile(g, s); return {}; },
 [KIND_QUITTE]: (g, s) => { apples++; quitterLaPile(g, s); return {}; },
+[KIND_VOIT_LES_FLAGS]: (g) => { flagsVus.push({ ...g().flags }); return {}; },
 [KIND_PILOTE_IMBRIQUE]: (g, s) => {
   apples++;
   const automate = g().party[1];
@@ -125,6 +151,7 @@ beforeEach(() => {
   joues = [];
   slotsSousRevelation = [];
   ratesVus = [];
+  flagsVus = [];
   seedBattleRng(7);
   const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
   set({ party, battle: null, pendingCascade: null, suspendedCascades: [], journal: [] } as never);
@@ -407,13 +434,22 @@ describe('#4006 — le pilote immédiat à contexte parque au rang ce que son ap
     expect(get().pendingCascade).toBeNull();
   });
 
-  it('garde (doc de `clotureHorsCombat`) — slot vivant et append : le fait n’est pas levé, la journée va au bout, rien n’est rendu', () => {
+  it('slot vivant et append : la séquence étendue garde le slot, puis la journée reprend une fois', () => {
     const meneur = get().party[0];
     startCascade(get, set, { title: 'Vivante', purpose: 'affichage', steps: [displayStep({ id: 'v1', kind: KIND_INERTE, actorId: meneur.id, label: fixtureText('Vivante') })!] });
-    expect(piloter(KIND_REVELE), 'le slot a été réécrit : aucun dénouement à enchaîner').toBeUndefined();
-    expect(apples, 'la journée est jouée en entier').toBe(2);
-    expect(get().suspendedCascades, 'rien n’est parqué').toEqual([]);
+    expect(piloter(KIND_REVELE), 'le pilote attend').toBeUndefined();
+    expect(apples, 'la suite n’est pas jouée par-dessus la révélation').toBe(1);
+    expect(pile()).toEqual(['Journée']);
     expect(get().pendingCascade?.participants.map((s) => s.label), 'la révélation rejoint le slot vivant').toEqual(['Vivante', 'Révélation']);
+
+    avanceEtapeCascade(get);
+    expect(get().pendingCascade?.participants[get().pendingCascade!.cursor]?.label).toBe('Révélation');
+    expect(denouements).toEqual([]);
+    avanceEtapeCascade(get);
+    expect(joues).toEqual(['v1', 'j2']);
+    expect(denouements, 'le dénouement de la journée est joué une fois').toEqual(['Journée']);
+    expect(get().pendingCascade).toBeNull();
+    expect(pile()).toEqual([]);
   });
 
   it('deux ouvertures dans un applier : la seconde, puis la première, puis la journée, une fois', () => {
@@ -655,5 +691,535 @@ describe('#4075 — borne : une révélation émise sous une séquence au slot h
     const slot = get().pendingCascade;
     expect([slot?.purpose, slot?.participants.map((x) => x.label)], 'la révélation tient le slot, seule').toEqual(['affichage', ['Révélation']]);
     expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), 'la séquence attend en pile, finie').toEqual([['travelDay', 1]]);
+  });
+});
+
+describe('#3981 — la clôture d’un jet hôte hors combat rend le slot à son état d’avant', () => {
+  beforeEach(groupe);
+  const testDeForce: Flow = { kind: 'test', test: { characteristic: 'force' }, reussite: posee('force'), echec: posee('force') };
+  const note = () => displayStep({ id: 'note', kind: KIND_INERTE, actorId: get().party[0].id, label: fixtureText('Note') })!;
+
+  it('une séquence [hôte test, note] arrive à `note` après `jetValider(\'test\')`', () => {
+    runFlow(get, set, testDeForce);
+    startCascade(get, set, { title: 'Suite', purpose: 'test', steps: [note()] });
+    expect(get().pendingCascade?.participants.map((s) => s.jet ?? s.id), 'prémisse : la séquence porte l’hôte puis la note').toEqual(['test', 'note']);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().flags.force, 'la branche du Test est jouée').toBe(true);
+    const slot = get().pendingCascade;
+    expect(slot?.participants[slot.cursor]?.id, 'le curseur est posé sur la note').toBe('note');
+    expect(get().pendingTest).toBeNull();
+  });
+
+  it('une cascade « Autre » suspendue par `openSkillTest` revient au slot après la clôture du Test', () => {
+    startCascade(get, set, { title: 'Autre', purpose: 'affichage', steps: [note()] });
+    runFlow(get, set, testDeForce);
+    expect(get().suspendedCascades.map((c) => c.title), 'prémisse : « Autre » est suspendue sous le Test').toEqual(['Autre']);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().pendingCascade?.title, '« Autre » tient le slot').toBe('Autre');
+    expect(get().suspendedCascades).toEqual([]);
+  });
+
+  it('un Test seul se ferme : slot vide, pile vide', () => {
+    runFlow(get, set, testDeForce);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().pendingCascade).toBeNull();
+    expect(get().suspendedCascades).toEqual([]);
+  });
+  it('la branche du Test se joue AVANT l’étape suivante, même jouée d’office', () => {
+    runFlow(get, set, { ...testDeForce, reussite: posee('x'), echec: posee('x') });
+    const jet = monoStep({ id: 'jet-auto', kind: KIND_VOIT_LES_FLAGS, actor: get().party[1], label: fixtureText('Jet auto'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!;
+    startCascade(get, set, { title: 'Suite', purpose: 'test', steps: [jet] });
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(flagsVus, 'le jet d’office s’applique une fois, sur l’état que la branche a produit').toEqual([{ x: true }]);
+    expect(get().pendingCascade, 'la séquence allée au bout est dénouée').toBeNull();
+  });
+
+  it('un Test ouvert par la branche est la suite IMMÉDIATE de l’hôte, et se valide à son tour', () => {
+    const testB: Flow = { ...testDeForce, reussite: posee('B'), echec: posee('B') };
+    runFlow(get, set, { ...testDeForce, reussite: testB, echec: testB });
+    startCascade(get, set, { title: 'Suite', purpose: 'test', steps: [note()] });
+    get().jetLancer('test');
+    get().jetValider('test');
+    const slot = get().pendingCascade!;
+    expect(slot.participants.map((s) => s.jet ?? s.id), 'B s’insère juste derrière A').toEqual(['test', 'test', 'note']);
+    expect(slot.cursor, 'le curseur est posé sur B').toBe(1);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().flags.B, 'la branche de B est jouée').toBe(true);
+    const apres = get().pendingCascade!;
+    expect(apres.participants[apres.cursor]?.id, 'le curseur est posé sur la note').toBe('note');
+    expect(get().pendingTest).toBeNull();
+  });
+
+  /** L'hôte clos hors du curseur : sa branche se joue, l'étape au curseur reste à jouer, l'hôte sort de la séquence. */
+  const hoteHorsDuCurseur = (auCurseur: BuiltCascadeStep) => {
+    startCascade(get, set, { title: 'Avant', purpose: 'test', steps: [auCurseur] });
+    runFlow(get, set, { ...testDeForce, reussite: posee('x'), echec: posee('x') });
+    expect(get().pendingCascade?.participants.map((s) => s.jet ?? s.id), 'prémisse : l’hôte est appendu derrière le curseur').toEqual([auCurseur.id, 'test']);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().flags.x, 'la branche du Test est jouée').toBe(true);
+    expect(apples, 'l’étape au curseur n’est pas appliquée à la place de l’hôte').toBe(0);
+    const slot = get().pendingCascade;
+    expect(slot?.title, 'le slot « Avant » est conservé').toBe('Avant');
+    expect(slot?.participants.map((s) => s.id), 'l’hôte clos sort de la séquence').toEqual([auCurseur.id]);
+    expect(slot?.cursor, 'le curseur reste sur son étape').toBe(0);
+    expect(get().pendingTest).toBeNull();
+  };
+  it('un hôte clos derrière une note au curseur : la note reste à jouer', () => hoteHorsDuCurseur(note()));
+  it('un hôte clos derrière un jet du meneur non lancé : la branche n’est pas perdue', () => hoteHorsDuCurseur(
+    monoStep({ id: 'jet-meneur', kind: KIND_INERTE, actor: get().party[0], label: fixtureText('Jet meneur'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!,
+  ));
+
+  it('une sortie imbriquée qui dénoue sa séquence ne reprend pas la pile : la sortie externe la reprend après sa suite', () => {
+    startCascade(get, set, { title: 'Autre', purpose: 'affichage', steps: [note()] });
+    suspendActiveCascade(get, set);
+    const pendantLaSuite: string[][] = [];
+    // Le `get` du propriétaire, celui que les verbes du store passent à la sortie imbriquée.
+    sortirDeLHote(banc.getState, set, {}, () => {
+      runFlow(get, set, testDeForce);
+      const jet = monoStep({ id: 'jet-auto', kind: KIND_VOIT_LES_FLAGS, actor: get().party[1], label: fixtureText('Jet auto'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!;
+      startCascade(get, set, { title: 'Interne', purpose: 'test', steps: [jet] });
+      get().jetLancer('test');
+      get().jetValider('test');
+      expect(flagsVus, 'prémisse : la séquence interne est allée au bout').toHaveLength(1);
+      pendantLaSuite.push(get().suspendedCascades.map((c) => c.title));
+    });
+    expect(pendantLaSuite, 'pendant la suite externe, « Autre » reste parquée').toEqual([['Autre']]);
+    expect(get().pendingCascade?.title, 'la sortie externe la reprend').toBe('Autre');
+    expect(get().suspendedCascades).toEqual([]);
+  });
+});
+
+describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte', () => {
+  /** Sorcier contre un ennemi lanceur de `sort`, combat ouvert ; `ia` donne la main à l'ennemi. */
+  function duel(ia: boolean, sort = 'flechette'): { lanceur: Combatant; cible: Combatant } {
+    const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+    w.spells = [sort];
+    banc.getState().ensemencerLeTirage(21);
+    banc.setState({ party: [w] });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
+    banc.getState().fenetreValider('debutDuRound');
+    banc.abandonner();
+    const b = banc.getState().battle!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [E, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
+    autres.forEach((e) => (e.dead = true));
+    E.spells = [sort];
+    H.pos = { x: 10, y: 10 }; E.pos = { x: 14, y: 10 };
+    H.wounds = blessuresDeBase(99, 99, H); E.wounds = blessuresDeBase(99, 99, E);
+    if (ia) b.turn = b.order.indexOf(E.id);
+    banc.setState({ battle: { ...b }, pendingCast: null, pendingCascade: null });
+    return ia ? { lanceur: E, cible: H } : { lanceur: H, cible: E };
+  }
+
+  /** Incante la Fléchette au jet figé, l'hôte ouvert comme `castSpell`, puis « Appliquer ». */
+  function incante(lanceur: Combatant, cible: Combatant, maladresse: boolean): void {
+    banc.setState({
+      pendingCast: {
+        casterId: lanceur.id, targetId: cible.id, spellId: 'flechette', missile: true, focused: false,
+        result: maladresse
+          ? { cast: false, roll: 99, target: 40, sl: -3, isCritical: false, isFumble: true, log: 'Maladresse !' }
+          : { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' },
+      },
+    });
+    openCastCascade(banc.getState, banc.setState, lanceur);
+    banc.getState().jetValider('incantation');
+  }
+
+  /** Incante l'Explosion (ZdE) au jet critique, l'hôte ouvert comme `castSpell`, puis « Appliquer ». */
+  function incanteZone(lanceur: Combatant, cible: Combatant, ia: boolean, critChoice: CritChoice): void {
+    banc.setState({
+      pendingCast: {
+        casterId: lanceur.id, targetId: cible.id, spellId: 'explosion', missile: true, focused: false, counterspellRouted: true, critChoice,
+        result: { cast: true, roll: 22, target: 60, sl: 2, isCritical: true, isFumble: false, log: 'critique' },
+        zone: { center: null, radius: 1, r0m: 2, ...(ia ? { autoCenter: { x: 10, y: 10 } } : {}) },
+      },
+    });
+    openCastCascade(banc.getState, banc.setState, lanceur);
+    banc.getState().jetValider('incantation');
+  }
+
+  const journal = () => banc.getState().battle!.log.map((l) => l.text);
+  const etapes = () => banc.getState().pendingCascade!.participants.map((p) => `${p.kind}${p.committed ? '[C]' : ''}${p.table?.result ? '[R]' : ''}`);
+
+  it('lanceur héros : l’étape d’incantation est validée et son Imparfaite reste montrée au joueur', () => {
+    const { lanceur, cible } = duel(false);
+    incante(lanceur, cible, true);
+    const c = banc.getState().pendingCascade!;
+    expect(c.participants[0], 'l’hôte d’incantation est une étape validée de sa séquence').toMatchObject({ jet: 'incantation', committed: true });
+    expect(c.participants[c.cursor], 'le dé du Tableau attend la main du joueur').toMatchObject({ kind: 'tableDIncantationImparfaite' });
+    expect(c.participants[c.cursor].table?.result, 'rien n’est tiré dans le dos du joueur').toBeUndefined();
+    avanceEtapeCascade(banc.getState);
+    const revele = banc.getState().pendingCascade!;
+    expect(revele.participants[revele.cursor], 'l’Imparfaite tirée s’affiche dans la même séquence').toMatchObject({ kind: 'incantationImparfaite' });
+  });
+
+  it('lanceur IA : son Imparfaite se joue d’office, PUIS son tour reprend', () => {
+    const { lanceur, cible } = duel(true);
+    incante(lanceur, cible, true);
+    expect(banc.getState().pendingCascade, 'aucun siège ne tient la conséquence : la séquence va au bout').toBeNull();
+    banc.avancer(5000);
+    const j = journal();
+    const imparfaite = j.findIndex((l) => /Incantation Imparfaite/.test(l));
+    expect(imparfaite, 'l’Imparfaite du lanceur IA est appliquée').toBeGreaterThanOrEqual(0);
+    expect(activeCombatant(banc.getState().battle!)?.id, 'le tour de l’IA a repris et fini').not.toBe(lanceur.id);
+    expect(j.findIndex((l) => /Round 2/.test(l)), 'la reprise de l’IA vient après la conséquence').toBeGreaterThan(imparfaite);
+  });
+
+  it('lanceur IA sans conséquence : la situation se ferme et son tour reprend', () => {
+    const { lanceur, cible } = duel(true);
+    incante(lanceur, cible, false);
+    expect(banc.getState().pendingCascade).toBeNull();
+    expect(banc.getState().pendingCast).toBeNull();
+    banc.avancer(5000);
+    expect(activeCombatant(banc.getState().battle!)?.id).not.toBe(lanceur.id);
+  });
+
+  it('ZdE, lanceur héros : la pose au clic clôt l’hôte et laisse le Tableau à la main du joueur', () => {
+    const { lanceur, cible } = duel(false, 'explosion');
+    incanteZone(lanceur, cible, false, 'critique');
+    commitPlacedZone(banc.getState, banc.setState, { x: 14, y: 10 });
+    expect(banc.getState().pendingCascade!.cursor).toBe(1);
+    expect(etapes(), 'l’hôte validé, le dé du Tableau pas tiré').toEqual(['incantation[C]', 'tableDIncantationImparfaite']);
+    expect(banc.getState().battle!.acted).toBe(true);
+  });
+
+  it('ZdE, lanceur IA, Puissance totale : la séquence va au bout et son tour reprend une seule fois', () => {
+    const { lanceur, cible } = duel(true, 'explosion');
+    incanteZone(lanceur, cible, true, 'puissance');
+    expect(banc.getState().pendingCascade).toBeNull();
+    const j = journal();
+    expect(j.some((l) => /lance Explosion/.test(l)), 'la zone est posée d’office').toBe(true);
+    expect(j.some((l) => /Incantation Imparfaite Mineure/.test(l)), 'l’Imparfaite est appliquée').toBe(true);
+    banc.avancer(5000);
+    expect(journal().filter((l) => /— Round 2 —/.test(l)), 'une seule reprise du tour').toHaveLength(1);
+  });
+
+  it('ZdE, lanceur IA, effet critique : la sortie d’hôte enchaîne Tableau tiré puis Déviation', () => {
+    const { lanceur, cible } = duel(true, 'explosion');
+    incanteZone(lanceur, cible, true, 'critique');
+    expect(banc.getState().pendingCascade!.cursor).toBe(2);
+    expect(etapes()).toEqual(['incantation[C]', 'tableDIncantationImparfaite[C][R]', 'deviation']);
+  });
+
+  it.each([
+    { spellId: 'flechette', zone: false, focalise: false, diction: false },
+    { spellId: 'explosion', zone: true, focalise: false, diction: false },
+    { spellId: 'explosion', zone: true, focalise: true, diction: false },
+    { spellId: 'flechette', zone: false, focalise: true, diction: true },
+  ])('#4431 — $spellId critique dissipé (focalisé : $focalise, Diction : $diction)', ({ spellId, zone, focalise, diction }) => {
+    const { lanceur, cible } = duel(false, spellId);
+    if (diction) lanceur.talents.push({ talentId: 'diction-instinctive', times: 1 });
+    const blessures = cible.wounds.current;
+    banc.setState({
+      pendingCast: {
+        casterId: lanceur.id, targetId: zone ? lanceur.id : cible.id, spellId, missile: true, focused: focalise,
+        counterspellRouted: true, critChoice: 'puissance',
+        result: { cast: true, roll: 22, target: 60, sl: 4, isCritical: true, isFumble: false, log: 'critique' },
+        ...(zone ? { zone: { center: null, radius: 1, r0m: 2 } } : {}),
+      },
+      pendingCounterspell: { participants: [{
+        id: cible.id, interactive: true, declared: 'solo',
+        result: { dispelled: true, counter: { roll: 5, target: 60, sl: 6, success: true, isDouble: false }, casterNetSL: -2, log: 'Dissipé' },
+      }] },
+    });
+    openCastCascade(banc.getState, banc.setState, lanceur);
+    banc.getState().jetValider('contreSort');
+    expect(banc.getState().pendingCast?.result).toMatchObject({ dispelled: true, cast: false, isCritical: true });
+    banc.getState().jetValider('incantation');
+
+    expect(banc.getState().pendingCast).toBeNull();
+    expect(banc.getState().battle!.combatants.find((c) => c.id === cible.id)?.wounds.current).toBe(blessures);
+    expect(journal().join('\n')).not.toMatch(/Puissance totale/);
+    const cascade = banc.getState().pendingCascade;
+    const jets = cascade?.participants.filter((p) => p.kind === 'tableDIncantationImparfaite') ?? [];
+    expect(jets).toEqual(diction ? [] : [expect.objectContaining({
+      incantationImparfaite: expect.objectContaining({ severity: 'mineure' }),
+    })]);
+  });
+});
+
+describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas la suite de sa séquence', () => {
+  /** Sorcier contre un ennemi, combat ouvert, la main au héros. */
+  function duel(): { heros: Combatant; ennemi: Combatant } {
+    const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+    w.spells = ['explosion'];
+    banc.getState().ensemencerLeTirage(21);
+    banc.setState({ party: [w] });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
+    banc.getState().fenetreValider('debutDuRound');
+    banc.abandonner();
+    const b = banc.getState().battle!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [E, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
+    autres.forEach((e) => (e.dead = true));
+    H.pos = { x: 10, y: 10 }; E.pos = { x: 11, y: 10 };
+    H.wounds = blessuresDeBase(40, 40, H); E.wounds = blessuresDeBase(40, 40, E);
+    b.turn = b.order.indexOf(H.id);
+    banc.setState({ battle: { ...b }, pendingCast: null, pendingCascade: null });
+    return { heros: H, ennemi: E };
+  }
+
+  /** Une étape déjà appendue DERRIÈRE l'hôte de la séquence, avant sa clôture. */
+  function suiteDejaAppendue(heros: Combatant): void {
+    pushDisplay(banc.setState, { id: 'suite-appendue', kind: 'issueDuPiegeALame', actorId: heros.id, icon: 'objet/arme', label: fixtureText('suite'), outcome: toRecapLines(['suite']) });
+  }
+
+  /** L'Explosion (ZdE) au jet figé, l'hôte ouvert comme `castZoneSpell`. */
+  function incanteZone(heros: Combatant, result: CastResult): void {
+    banc.setState({
+      pendingCast: {
+        casterId: heros.id, targetId: heros.id, spellId: 'explosion', missile: true, focused: false, counterspellRouted: true,
+        result, zone: { center: null, radius: 1, r0m: 2 },
+      },
+    });
+    openCastCascade(banc.getState, banc.setState, heros);
+  }
+
+  const etapes = () => banc.getState().pendingCascade?.participants.map((p) => `${p.id}${p.committed ? '[C]' : ''}`);
+
+  it('ZdE qui n’aboutit pas : l’hôte d’incantation est validé, l’étape qui le suit reste au curseur', () => {
+    const { heros } = duel();
+    incanteZone(heros, { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: 'raté' });
+    suiteDejaAppendue(heros);
+    banc.getState().jetValider('incantation');
+    expect(banc.getState().pendingCast).toBeNull();
+    expect(etapes()![0]).toMatch(/\[C\]$/);
+    expect(etapes()![1]).toBe('suite-appendue');
+    expect(banc.getState().pendingCascade!.cursor).toBe(1);
+  });
+
+  it('ZdE posée dans le vide : l’hôte d’incantation est validé, l’étape qui le suit reste au curseur', () => {
+    const { heros } = duel();
+    incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' });
+    banc.getState().jetValider('incantation');
+    suiteDejaAppendue(heros);
+    commitPlacedZone(banc.getState, banc.setState, { x: 10, y: 14 });
+    expect(banc.getState().pendingCast).toBeNull();
+    expect(banc.getState().battle!.acted, 'le Sort lancé à vide consomme l’Action').toBe(true);
+    expect(etapes()![0]).toMatch(/\[C\]$/);
+    expect(etapes()![1]).toBe('suite-appendue');
+    expect(banc.getState().pendingCascade!.cursor).toBe(1);
+  });
+
+  const genres = () => banc.getState().pendingCascade?.participants.map((p) => `${p.kind}${p.committed ? '[C]' : ''}`);
+
+  for (const [critique, attendu] of [
+    [false, ['desengagement[C]', 'issueDuPiegeALame']],
+    [true, ['desengagement[C]', 'deviation', 'mouvementDeFuite', 'issueDuPiegeALame']],
+  ] as const) {
+    it(`Fuite (coup dans le dos ${critique ? 'critique' : 'simple'}) : l’hôte de Désengagement est validé, ses conséquences s’insèrent devant l’étape qui le suit`, () => {
+      const { heros, ennemi } = duel();
+      heros.engagedWith = [ennemi.id]; ennemi.engagedWith = [heros.id];
+      startDisengage(banc.getState, banc.setState, heros);
+      suiteDejaAppendue(heros);
+      banc.setState({
+        pendingDisengage: {
+          moverId: heros.id, foeId: ennemi.id, canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
+          fuir: { participants: [
+            { id: ennemi.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: critique ? 11 : 30, netSL: 1, location: 'corps', damage: critique ? 50 : 4, woundsLost: critique ? 50 : 4, critical: critique, advantageTo: 'attaquant', defenderDefeated: false, log: 'dans le dos' } },
+            { id: heros.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -2 } },
+          ] },
+        },
+      });
+      banc.getState().jetValider('fuite');
+      expect(banc.getState().pendingDisengage).toBeNull();
+      expect(genres()).toEqual(attendu);
+      expect(banc.getState().pendingCascade!.cursor).toBe(1);
+    });
+  }
+
+  describe('#4255 lot 2 — toute tentative de ZdE se résout par `applyCast`', () => {
+    const rate: CastResult = { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: 'raté' };
+
+    it('ZdE non posée ratée, focalisée : l’Action et le focus sont consommés, l’Imparfaite Mineure suit l’hôte (LDB 46 l.132)', () => {
+      const { heros } = duel();
+      heros.focus = { spell: 'explosion', dr: 4 };
+      incanteZone(heros, rate);
+      banc.setState({ pendingCast: { ...banc.getState().pendingCast!, focused: true } });
+      banc.getState().jetValider('incantation');
+      expect(banc.getState().pendingCast).toBeNull();
+      expect(banc.getState().battle!.acted, 'la tentative consomme l’Action').toBe(true);
+      expect(heros.focus, 'l’énergie focalisée est perdue').toBeUndefined();
+      expect(genres()).toEqual(['incantation[C]', 'tableDIncantationImparfaite']);
+    });
+
+    it('ZdE non posée en Maladresse : l’hôte validé, le Tableau d’Imparfaite suit dans la cascade (LDB 46 l.85)', () => {
+      const { heros } = duel();
+      incanteZone(heros, { ...rate, roll: 99, isFumble: true, log: 'Maladresse !' });
+      banc.getState().jetValider('incantation');
+      expect(genres()).toEqual(['incantation[C]', 'tableDIncantationImparfaite']);
+      expect(banc.getState().pendingCascade!.cursor).toBe(1);
+      expect(banc.getState().battle!.acted).toBe(true);
+    });
+
+    it('ZdE DISSIPÉE : aucun effet, l’Action est consommée', () => {
+      const { heros, ennemi } = duel();
+      const avant = { h: heros.wounds.current, e: ennemi.wounds.current };
+      incanteZone(heros, { cast: false, dispelled: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'dissipé' });
+      banc.getState().jetValider('incantation');
+      expect(banc.getState().pendingCast).toBeNull();
+      expect(banc.getState().battle!.acted).toBe(true);
+      expect({ h: heros.wounds.current, e: ennemi.wounds.current }, 'personne n’est touché').toEqual(avant);
+    });
+
+    it('ZdE posée dans une zone vide : le composant est consumé (LDB 46 l.111), l’Action consommée, personne n’est touché', () => {
+      const { heros, ennemi } = duel();
+      heros.items = [...(heros.items ?? []), objetDeTest('composant-d-incantation', { uid: 'comp-explosion', sortLie: 'explosion' })];
+      const avant = { h: heros.wounds.current, e: ennemi.wounds.current };
+      incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' });
+      banc.getState().jetValider('incantation');
+      commitPlacedZone(banc.getState, banc.setState, { x: 10, y: 14 });
+      expect(banc.getState().battle!.acted).toBe(true);
+      expect((heros.items ?? []).some((it) => it.uid === 'comp-explosion'), 'le composant est consumé').toBe(false);
+      expect({ h: heros.wounds.current, e: ennemi.wounds.current }).toEqual(avant);
+    });
+
+    for (const [nom, res] of [
+      ['ratée', rate],
+      ['en Maladresse', { ...rate, roll: 99, isFumble: true, log: 'Maladresse !' }],
+      ['dissipée', { ...rate, dispelled: true, log: 'dissipé' }],
+    ] as const) {
+      it(`ZdE non posée ${nom} d’un lanceur IA : la fenêtre se ferme, aucun coup n’est porté`, () => {
+        const { ennemi } = duel();
+        ennemi.spells = ['explosion'];
+        ennemi.pos = { x: 14, y: 10 };
+        const b = banc.getState().battle!;
+        banc.setState({ battle: { ...b, turn: b.order.indexOf(ennemi.id) } });
+        const coups: string[] = [];
+        const off = bus.on(EVT.ANIM_ATTACK, (p: { to: string }) => coups.push(p.to));
+        incanteZone(ennemi, res);
+        banc.getState().jetValider('incantation');
+        banc.avancer(8000);
+        off?.();
+        expect(banc.getState().pendingCast).toBeNull();
+        expect(coups).toEqual([]);
+      });
+    }
+  });
+
+  describe('#4255 lot 3 — la clôture d’un hôte de combat garde les étapes qui le suivent', () => {
+    /** Le héros Engagé avec l'ennemi, le menu de Désengagement ouvert, une étape déjà appendue derrière lui. */
+    function desengagementSuivi(avantage: number): { heros: Combatant; ennemi: Combatant } {
+      const { heros, ennemi } = duel();
+      heros.engagedWith = [ennemi.id]; ennemi.engagedWith = [heros.id];
+      heros.advantage = avantage; ennemi.advantage = 0;
+      startDisengage(banc.getState, banc.setState, heros);
+      suiteDejaAppendue(heros);
+      return { heros, ennemi };
+    }
+    const suiteAuCurseur = (hote: string) => {
+      expect(genres()).toEqual([`${hote}[C]`, 'issueDuPiegeALame']);
+      expect(banc.getState().pendingCascade!.cursor).toBe(1);
+    };
+
+    it('Sacrifier l’Avantage : l’hôte de Désengagement est validé, l’étape qui le suit reste au curseur (LDB 15 l.47)', () => {
+      const { heros } = desengagementSuivi(3);
+      expect(banc.getState().pendingDisengage!.canSacrifice, 'prémisse : l’option est offerte').toBe(true);
+      banc.getState().jetRegler('desengagement', 'sacrifier', true);
+      expect(banc.getState().pendingDisengage).toBeNull();
+      expect(heros.advantage).toBe(0);
+      expect(heros.engagedWith).toEqual([]);
+      expect(banc.getState().battle!.acted, 'l’Action est préservée').toBe(false);
+      suiteAuCurseur('desengagement');
+    });
+
+    it('Esquive appliquée : l’hôte de Désengagement est validé, l’étape qui le suit reste au curseur (LDB 15 l.49)', () => {
+      const { heros, ennemi } = desengagementSuivi(0);
+      banc.setState({ pendingDisengage: { ...banc.getState().pendingDisengage!, phase: 'esquive',
+        atk: { roll: 70, target: 40, success: false, sl: -3, isDouble: false }, def: { roll: 10, target: 40, success: true, sl: 3, isDouble: false }, result: 'reussite' } });
+      banc.getState().jetValider('desengagement');
+      expect(banc.getState().pendingDisengage).toBeNull();
+      expect(heros.engagedWith).not.toContain(ennemi.id);
+      expect(banc.getState().battle!.acted, 'l’Esquive est l’Action').toBe(true);
+      suiteAuCurseur('desengagement');
+    });
+
+    it('menu de Désengagement renoncé : l’hôte est validé, l’étape qui le suit reste au curseur', () => {
+      desengagementSuivi(0);
+      banc.getState().jetAnnuler('desengagement');
+      expect(banc.getState().pendingDisengage).toBeNull();
+      suiteAuCurseur('desengagement');
+    });
+
+    it('attaque annulée avant le jet : l’hôte est validé, l’étape qui le suit reste au curseur', () => {
+      const { heros, ennemi } = duel();
+      openAttackCascade(banc.getState, banc.setState, { attackerId: heros.id, targetId: ennemi.id, location: null, result: null }, 'Attaque', 'action/attaquer');
+      suiteDejaAppendue(heros);
+      banc.getState().jetAnnuler('attaque');
+      expect(banc.getState().pendingAttack).toBeNull();
+      suiteAuCurseur('jetDAttaque');
+    });
+
+    it('charge défaite avant le jet : positions rendues, l’hôte est validé, l’étape qui le suit reste au curseur (LDB 15 l.35)', () => {
+      const { heros, ennemi } = duel();
+      const chargeUndo = { pos: { [heros.id]: { x: 6, y: 10 } }, facing: {}, movedPreAction: false, movementUsed: 0, advGained: 1, gainedAdvBefore: false, chargedBefore: false, avecAvantageBefore: false };
+      heros.advantage = 1;
+      openAttackCascade(banc.getState, banc.setState, { attackerId: heros.id, targetId: ennemi.id, location: null, result: null, fromCharge: true, chargeUndo }, 'Charge', 'action/attaquer');
+      suiteDejaAppendue(heros);
+      banc.getState().jetAnnuler('attaque');
+      expect(banc.getState().pendingAttack).toBeNull();
+      expect(heros.pos).toEqual({ x: 6, y: 10 });
+      expect(heros.advantage, 'l’Avantage de la charge est rendu').toBe(0);
+      suiteAuCurseur('jetDAttaque');
+    });
+
+    /** Tir rapide en interruption (LDB 11 l.97-103) à la pause de début de Round : le héros tire sur un ennemi
+     *  qui se défend (siège MJ, Bout Portant LDB 14 l.40) ou non, et dont la sauvegarde (LDB 85 l.98) suspend
+     *  ou non le coup. */
+    function tirRapide(defendu: boolean, suspendu: boolean): void {
+      const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+      H.fortune = 0; H.pos = { x: 0, y: 0 };
+      const E: Combatant = JSON.parse(JSON.stringify(H));
+      E.id = 'ennemi-tir'; E.label = 'Gobelin'; E.kind = 'ennemi';
+      E.pos = defendu ? { x: 1, y: 0 } : { x: 3, y: 0 };
+      E.wounds = blessuresDeBase(99, 99, E);
+      if (suspendu) E.traits = [{ id: 'demoniaque', value: 8 }] as never;
+      H.talents = [{ talentId: 'tir-rapide', times: 1 }];
+      H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [], loaded: true }] as never;
+      H.characteristics['capacite-de-tir'] = 80;
+      const battle: BattleState = {
+        combatants: [H, E], order: [E.id, H.id], turn: 1, round: 1, action: null, selectedSpellId: null,
+        reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+      };
+      banc.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8), pendingCascade: null });
+      if (defendu) banc.setState({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } } as never);
+      advanceTurn(banc.getState, banc.setState);
+      banc.getState().declencherLeTirPreventif(H.id, E.id);
+      banc.getState().jetLancer('attaque');
+      banc.getState().jetImposerLeResultat('attaque', 21);
+      banc.getState().jetValider('attaque');
+      if (defendu) {
+        banc.getState().jetLancer('defense');
+        banc.getState().jetImposerLeResultat('defense', 96);
+        banc.getState().jetValider('defense');
+      }
+      const c = banc.getState().pendingCascade;
+      const st = c?.participants[c.cursor];
+      if (suspendu && defendu) {
+        expect(st?.kind, 'prémisse : la sauvegarde tient la main').toBe('sauvegarde');
+        banc.getState().jetImposerLeResultat('cascadeTirage', 3, st!.id);
+        banc.getState().jetValider('cascade');
+      }
+    }
+
+    for (const defendu of [false, true]) for (const suspendu of [false, true]) {
+      it(`Tir rapide ${defendu ? 'défendu' : 'non défendu'}, coup ${suspendu ? 'suspendu' : 'direct'} : la séquence se ferme, le tour n’avance pas`, () => {
+        tirRapide(defendu, suspendu);
+        const s = banc.getState();
+        expect(s.pendingAttack).toBeNull();
+        expect(s.pendingCascade).toBeNull();
+        expect(s.pendingRoundStart, 'toujours à la pause de début de Round').not.toBeNull();
+        expect(s.battle!.turn).toBe(-1);
+        expect(s.battle!.combatants.find((c) => c.id === 'ennemi-tir')!.wounds.current, 'le tir a porté').toBeLessThan(99);
+      });
+    }
   });
 });

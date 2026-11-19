@@ -3,7 +3,7 @@
  * réservé à `src/ui/editor/` (#495, #2724).
  */
 import type { GameOp } from '../../../engine/ops';
-import type { JsonFormula } from '../../../engine/miscast';
+import type { FormuleAuPeche } from '../../../data/schemas/grammaire/valeurs';
 import type { DatasetKey } from '../../../data/overrides';
 import { charAbr, conditionLabel, findCrewTestTypeById, psychologyLabel, qualityRefLabel, refLabel } from '../../../data';
 import { cibleDeRef, libelleDePsy } from '../../../engine/psych/ciblage';
@@ -28,7 +28,7 @@ import { opMissingRefs } from '../../../data/refsDOp';
 import { libelleDeLaNature } from './libelleDeLaNature';
 
 /** Résumé court d'une Formula (lecture sans perte dans les résumés d'op). */
-export function formulaSummary(f: JsonFormula | undefined): string {
+export function formulaSummary(f: FormuleAuPeche | undefined): string {
   if (f == null) return '0';
   if (typeof f === 'number') return String(f);
   if ('bonusOf' in f) return `B${charAbr(f.bonusOf)}`;
@@ -169,7 +169,7 @@ export function opSummary(o: GameOp): string {
     case 'manann': return o.factorId !== undefined ? `facteur « ${refLabel('seaManannFactors', { id: o.factorId })} »` : `Humeur ${formatEffetSigne(o.delta)}`;
     case 'shipCritical': return `${formulaSummary(o.count)} Critique(s) — ${o.location === 'aleatoire' ? 'Localisation aléatoire' : shipLocationLabel(o.location)}${o.equipageEpargne ? ' · équipage épargné' : ''}`;
     case 'navireMod': return `${[o.m !== undefined ? `M ${o.m >= 0 ? '+' : ''}${o.m}` : '', o.manDR !== undefined ? `Man ${o.manDR >= 0 ? '+' : ''}${o.manDR} DR` : '', o.evite ? `évite ${o.evite.join(', ')}` : ''].filter(Boolean).join(', ')} ${o.jusqua === 'carenage' ? '→ carénage' : o.jusqua === 'evenementDeBord' ? '→ prochain événement' : `· ${formulaSummary(o.jusqua.jours)} j`}`;
-    case 'meteoImposee': return `météo ${[...Object.values(o.meteo ?? {}), ...(o.ventInverse ? ['vent inversé'] : [])].join(', ')} · ${formulaSummary(o.jours)} j${o.aggravation ? ' (aggravation)' : ''}`;
+    case 'meteoImposee': return `météo ${[...Object.values(o.meteo ?? {}).map((r) => r.id), ...(o.ventInverse ? ['vent inversé'] : [])].join(', ')} · ${formulaSummary(o.jours)} j${o.aggravation ? ' (aggravation)' : ''}`;
     case 'cargaison': return o.perteAuDechargement !== undefined ? `−${formulaSummary(o.perteAuDechargement)} Enc au déchargement` : o.perduePct !== undefined ? `−${o.perduePct} % de la cargaison` : o.perdueEnc !== undefined ? `−${formulaSummary(o.perdueEnc)} Enc de cargaison` : `${formulaSummary(o.enc)} Enc de cargaison tirée`;
     case 'equipage': return o.perdusPct !== undefined ? `Équipage −${o.perdusPct} % des PNJ` : `Équipage ${formulaSummary(o.delta)}${o.role ? ` (${refLabel('crewRoles', o.role)})` : ''}${o.sansSolde ? ' · sans solde jusqu’au port' : ''}`;
     case 'provisions': return o.gateesPct !== undefined ? `${o.gateesPct} % des provisions gâtées` : o.rations !== undefined ? `+${formulaSummary(o.rations)} ration(s) de « ${refLabel('trappings', o.vivre)} »` : o.eauTonneaux !== undefined ? `+${formulaSummary(o.eauTonneaux)} tonneau(x) d’eau` : `+${formulaSummary(o.jours)} j de « ${refLabel('trappings', o.vivre)} »`;

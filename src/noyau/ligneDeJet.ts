@@ -9,11 +9,19 @@ import type { PairedSense } from '../engine/ops';
 import type { ModLine } from '../engine/combat';
 import { combatBaseValue, combatValueModParts, conditionModLines, combatCharKey, combineMods, composeDifficulty } from '../engine/combat';
 import { volatileCharLines } from '../engine/characteristics';
-import { precipitationTestMods, type SeaPrecipitationId } from '../engine/seaWeather';
-import { testValue, testValueSplit, testValueParts, skillBaseValue, supportSplit, type SupportDetail } from '../engine/skills';
-import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
+import { precipitationTestMods } from '../engine/seaWeather';
+import {
+  rawCombatTestBase,
+  testValue,
+  testValueSplit,
+  testValueParts,
+  skillBaseValue,
+  supportSplit,
+  type SujetContextualise,
+  type SupportDetail,
+} from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
-import { testStatePenaltyParts, testStatePenalty } from '../engine/conditions';
+import { testStatePenaltyParts } from '../engine/conditions';
 import { clampTarget, cibleDuTest } from '../engine/tests';
 
 /** Ce qui est VRAI de tout jet : qui teste quoi, à quelle Difficulté, et ce qui pèse SUR LA CIBLE. */
@@ -21,7 +29,7 @@ interface RollLineBase {
   /** Le jeteur. Absent (côté MONDE : seuil d100 posé par l'appelant) ⇒ `valeur` tient lieu de base. */
   actor?: Combatant;
   /** Ids du Test — MÊME forme que `RollRequest['test']` (aucun texte : la ligne se NOMME depuis le catalogue). */
-  test?: SujetDuJet & { sense?: PairedSense };
+  test?: SujetContextualise & { sense?: PairedSense };
   difficulty: Difficulty;
   /** Modificateurs NOMMÉS qui s'ajoutent À LA CIBLE et que la valeur ne contient PAS (dérive MSRC 7
    *  l.38, hors de contrôle l.41, −5 cumulatif du redressement l.40, km déjà au pas de course EDOC 7
@@ -38,7 +46,7 @@ interface RollLineBase {
   /** Le Test est celui d'un Personnage SUR LE PONT d'un navire, sous ces Précipitations (MDG 13 l.185) :
    *  le monteur en tire la ligne « Météo : … », keyée par la Compétence du Test (`test.skill`/`test.spec`),
    *  SEUL lecteur des Précipitations hors du moteur de combat. Absent ou `undefined` : rien sur le pont. */
-  pont?: SeaPrecipitationId;
+  pont?: string;
   /** LIGNE NON TENTABLE (`peutTenter` faux, LDB 09 l.30 ; #2588 Q1) : le refus NOMMÉ du porteur. Le
    *  monteur (`rollStep`) rend alors la ligne RÉSOLUE — `ECHEC_SANS_JET`, aucun dé — avec ce refus. */
   refus?: PlayerText;
@@ -135,7 +143,7 @@ export interface RollLineParts {
  *  `testStatePenaltyParts`, `engine/skills.ts`) — un Test de COMBAT leur substitue `conditionModLines`.
  *  Le découpage positionnel est VÉRIFIÉ par l'oracle du canal (`rawCombatTestBase`), jamais supposé. */
 function partsHorsEtats(actor: Combatant, t: RollLineBase['test'] = {}): ModLine[] {
-  const etats = testStatePenaltyParts(actor, t.skill?.id, { sense: t.sense }).filter((p) => p.value !== 0).length;
+  const etats = testStatePenaltyParts(actor, t.skill?.id, { sense: t.sense, disease: t.disease }).filter((p) => p.value !== 0).length;
   return testValueParts(actor, t, t.sense).slice(etats);
 }
 
@@ -158,7 +166,7 @@ function combatValueSplit(
     ? skillBaseValue(actor, t ?? {})
     : combatBaseValue(actor, canal.kind, canal.weapon) - charLines.reduce((s, l) => s + l.value, 0);
   const parts = canal.kind === 'test'
-    ? [...partsHorsEtats(actor, t), ...conditionModLines(actor, { skill: t?.skill?.id, sense: t?.sense })]
+    ? [...partsHorsEtats(actor, t), ...conditionModLines(actor, { skill: t?.skill?.id, sense: t?.sense, disease: t?.disease })]
     : [...charLines, ...combatValueModParts(actor, canal.kind, canal.weapon)];
   const sum = parts.reduce((s, p) => s + p.value, 0);
   if (nue + sum + fused !== sup.base) return { ...sup, exact: false };
@@ -168,13 +176,9 @@ function combatValueSplit(
 /** Valeur DÉRIVÉE d'un canal de combat quand l'appelant n'en fournit aucune. */
 function combatChannelValue(actor: Combatant | undefined, canal: RollLineCombat, t: RollLineBase['test']): number {
   if (!actor) return 0;
-  // `sense` transite des DEUX côtés (ici comme dans `partsHorsEtats`) : `rawCombatTestBase` ne le
-  // prend pas, donc la valeur dérivée est composée à la main sur la MÊME formule (`testValue` privée
-  // de la pénalité d'États hors combat). Sans cela, un Test de combat sense-scopé (Surdité, LDB 18)
-  // verrait sa valeur et ses composantes diverger, et l'oracle THROW sur un site pourtant correct.
   return canal.kind === 'test'
-    ? testValue(actor, t ?? {}, t?.sense) - testStatePenalty(actor, t?.skill?.id, { sense: t?.sense })
-      + conditionModLines(actor, { skill: t?.skill?.id, sense: t?.sense }).reduce((s, m) => s + m.value, 0)
+    ? rawCombatTestBase(actor, t ?? {}, t?.sense)
+      + conditionModLines(actor, { skill: t?.skill?.id, sense: t?.sense, disease: t?.disease }).reduce((s, m) => s + m.value, 0)
     : combatBaseValue(actor, canal.kind, canal.weapon) + combatValueModParts(actor, canal.kind, canal.weapon).reduce((s, m) => s + m.value, 0);
 }
 

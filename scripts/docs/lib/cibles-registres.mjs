@@ -62,6 +62,15 @@ export const REGISTRIES = [
     vocabulaire: { nom: 'fonds', id: 'id', libelle: 'label' },
   },
   {
+    // Cadres de panneau (dessin SVG en neuf tranches que l'hôte trace à ses couleurs) : 1 cadre = 1 fichier defs/.
+    dir: 'src/data/cadres/defs',
+    out: 'src/data/cadres/_registry.generated.ts',
+    exportName: 'cadre',
+    arrayName: 'CADRE_DEFS',
+    type: 'CadreDef',
+    typeFrom: './types',
+  },
+  {
     // Couches de paysage (dessin SVG que l'hôte trace à ses couleurs, empilées en un paysage) : 1 famille = 1 fichier defs/.
     dir: 'src/data/paysages/defs',
     out: 'src/data/paysages/_registry.generated.ts',
@@ -124,6 +133,7 @@ export const SORTIES_DES_ESPACES = {
   ids: 'src/data/schemas/_ids.generated.ts',
   cles: 'src/data/schemas/_cles-de-dataset.generated.ts',
   racines: 'src/data/schemas/_racines-vivantes.generated.ts',
+  atelier: 'src/data/schemas/_fichiers-de-l-atelier.generated.json',
 };
 
 /** La sortie des VOCABULAIRES D'ART (option `vocabulaire`), écrite par la phase 1, que lisent
@@ -143,3 +153,6 @@ export const SORTIE_NOMS_DE_PARAMETRE = 'src/i18n/nomsDeParametre.generated.ts'
 
 /** La cible de `scripts/gen-combattants-de-l-etat.mjs` : les chemins des combattants de l'état, que `transitionDuJeu` lit. */
 export const SORTIE_COMBATTANTS_DE_L_ETAT = 'src/noyau/combattantsDeLEtat.generated.ts'
+
+/** La cible de `scripts/gen-noyau-godot.mjs` : les ids que le noyau émet vers Godot, que ses scripts lisent (`Noyau`). */
+export const SORTIE_NOYAU_GODOT = 'hotes/godot/projet/scripts/noyau.generated.gd'

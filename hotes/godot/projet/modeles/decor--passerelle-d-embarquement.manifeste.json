@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "passerelle-d-embarquement"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "vieux",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    }
+  ],
+  "glb": {
+    "sha256": "d4f4fad5d8dbb9cc2592383cfcd546afc25f04bcc1e52dde7b0c34a31d4afaa7",
+    "octets": 63232
+  }
+}

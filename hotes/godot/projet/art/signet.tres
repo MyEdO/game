@@ -1,0 +1,47 @@
+[gd_resource type="Theme" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="1_cadre"]
+[ext_resource type="FontVariation" path="res://art/police_des_signets.tres" id="2_police_des_signets"]
+[ext_resource type="FontVariation" path="res://art/police.tres" id="3_police"]
+
+[sub_resource type="StyleBoxEmpty" id="Rien"]
+
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Signet"]
+content_margin_left = 12.0
+content_margin_top = 0.0
+content_margin_right = 18.5
+content_margin_bottom = 1.8
+script = ExtResource("1_cadre")
+cadre = "signet"
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Cire"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+script = ExtResource("1_cadre")
+cadre = "medaillon"
+
+[resource]
+Signet/base_type = &"PanelContainer"
+Signet/styles/panel = SubResource("Signet")
+RangeeDeSignet/base_type = &"HBoxContainer"
+RangeeDeSignet/constants/separation = 6
+NomDeSignet/base_type = &"Label"
+NomDeSignet/colors/font_color = Color(0.941, 0.886, 0.761, 1)
+NomDeSignet/font_sizes/font_size = 12
+NomDeSignet/fonts/font = ExtResource("2_police_des_signets")
+Rubrique/base_type = &"Label"
+Rubrique/colors/font_color = Color(0.851, 0.725, 0.651, 1)
+Rubrique/font_sizes/font_size = 10
+Rubrique/fonts/font = ExtResource("3_police")
+CireDeSignet/base_type = &"Panel"
+CireDeSignet/styles/panel = SubResource("Cire")
+SurfaceDeSignet/base_type = &"Button"
+SurfaceDeSignet/styles/normal = SubResource("Rien")
+SurfaceDeSignet/styles/hover = SubResource("Rien")
+SurfaceDeSignet/styles/pressed = SubResource("Rien")
+SurfaceDeSignet/styles/hover_pressed = SubResource("Rien")
+SurfaceDeSignet/styles/disabled = SubResource("Rien")
+SurfaceDeSignet/styles/focus = SubResource("Rien")

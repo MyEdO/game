@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "decor",
+  "cle": {
+    "prop": "barque"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "vieux",
+      "palette": "bois",
+      "matiere": "prop--bois-mort"
+    },
+    {
+      "nom": "corde",
+      "palette": "accent",
+      "matiere": "prop--corde"
+    }
+  ],
+  "glb": {
+    "sha256": "39527807a13c13054088185803b325d57d467712b31b98ca7febf9f7b1309e89",
+    "octets": 147212
+  }
+}

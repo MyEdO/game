@@ -18,11 +18,11 @@ import { viewYawDeg, poserYaw, resetStageYaw, SENSIBILITE_DRAG_DEG_PX, lacetActi
 import { AreteOverlay } from '../gameIso/stage/AreteOverlay';
 import { scèneÀDeuxPièces, aretesDePortes } from '../gameIso/stage/arete-dans-la-chaine.fixture';
 import { Editor } from '../ui/editor/Editor';
-import { emptyScene } from '../noyau/monde/scene';
+import { canonEdge, emptyScene } from '../noyau/monde/scene';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees } from '../web/indexedDb.testkit';
 import { tileEdge, screenToTileF, type Dims } from '../geometry/iso';
-import { canonEdge, nearestEdge } from '../noyau/sceneEditLecture';
+import { nearestEdge } from '../noyau/sceneEditLecture';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

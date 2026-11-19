@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import trappings from './trappings.json';
+import { trappings } from './index';
 import { validateDataset } from './schemas/validate';
 import { AVAILABILITIES, REACH_LABELS, REACH_VARIABLE } from '../engine/types';
 import { priceToMoney, toBrass } from '../engine/money';
@@ -13,7 +13,7 @@ import { priceToMoney, toBrass } from '../engine/money';
  *   - `range` = SPEC de Portée de tir : `number` (mètres fixes) OU `{bf}` (arme de jet : BF×bf m).
  *     UNIQUEMENT sur les armes à distance.
  */
-const rows = trappings as { id: string; categorie: string; subType?: { id: string }; reach?: unknown; range?: unknown; ammoRangeMod?: unknown; enc?: unknown; availability?: unknown; price: { gold: number; silver: number; brass: number } | 'ND' | null }[];
+const rows = trappings;
 
 const ALLONGE = new Set(['Personnelle', 'Très courte', 'Courte', 'Moyenne', 'Longue', 'Très longue', 'Considérable', 'Variable']);
 const isNumericLike = (v: unknown): boolean =>

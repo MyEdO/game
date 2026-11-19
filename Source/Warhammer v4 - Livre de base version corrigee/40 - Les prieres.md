@@ -1,6 +1,6 @@
 *Pages PDF 219-221*
 
-# **LES PRIÈRES**
+# <span id="page-218-0" data-folio="217"></span>**LES PRIÈRES**
 
 Un petit nombre de croyants se distingue de leurs pairs en étant, à priori, capables de faire appel à l'intervention directe de leur divinité sous forme de Miracles. Ceux qui possèdent de tels dons sont connus sous bien des noms dans les différentes parties du Vieux Monde – Saints vivants, Serviteurs de Dieu, Sanctifiés, Volontés divines, Élus – mais, dans l'Empire, ils sont plus communément appelés les « Bienheureux », terme souvent utilisé comme un titre. Donc, si Sœur Anna est Bénie par Sigmar – si elle s'est vu accorder la grâce de Sigmar et qu'elle est donc en mesure de recevoir des réponses à ses Prières – elle devient « la Bienheureuse Anna », ou, dans son intégralité, « la Bienheureuse Anna, Sœur de Sigmar ».
 

@@ -261,6 +261,7 @@ test('CLÔTURE : une acquisition calculée partagée par deux groupes, ou attein
 test('CLÔTURE : une acquisition calculée que la forme fermée lit vers une zone qui survit passe : littéral (F6), registre gelé, descente', () => {
   const VERTS = {
     'F6 littéral lié': "const m = '../src/noyau/z.ts';\nexport const x = () => import(m);\n",
+    'F6 littéral lié près d’un motif à trous': "const [, , a] = process.argv;\nconst m = '../src/noyau/z.ts';\nexport const x = () => import(m);\n",
     'registre gelé': "import path from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst G = Object.freeze([{ s: 'src/noyau/z.ts' }].map(Object.freeze));\nconst R = fileURLToPath(new URL('../', import.meta.url));\nexport const x = (g) => { const c = G.find((y) => y.s === g); return import(pathToFileURL(path.join(R, c.s)).href); };\n",
     'descente de `src/noyau/`': `${LISTER}import { join } from 'node:path';\nimport { fileURLToPath, pathToFileURL } from 'node:url';\nconst D = fileURLToPath(new URL('../src/noyau/', import.meta.url));\nexport const x = () => listerEntrees(D).entrees.filter((f) => f).map((f) => import(pathToFileURL(join(D, f.nom)).href));\n`,
   }
