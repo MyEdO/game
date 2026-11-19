@@ -130,7 +130,6 @@ def construire(D, materiaux, b):
         for nom in boucle:
             passants.append(passant(b, f'passant-{rang}', D['PASSANTS'][nom], origine, axes, w, materiaux['sangle'],
                                     D['EPAISSEUR']))
-            print('CASE', rang, round(t, 3), 'origine', np.round(origine, 3), 'haut', np.round(haut, 2), 'z', np.round(z, 2), 'L', round(float(longueurs[-1]), 3))
 
     if passants:
         sangle = joindre([sangle] + passants)

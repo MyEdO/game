@@ -75,12 +75,29 @@ PASSANTS = {
     'rouleau': {'rayon': 0.023, 'centre': 0.0265, 'largeur': 0.02, 'segments': 4},
     'fiole': {'rayon': 0.0155, 'centre': 0.019, 'largeur': 0.03, 'segments': 4},
 }
+"""Les passants de cuir qui tiennent les objets glissés dans les cases (illustration : une boucle de sangle par rouleau,
+un fourreau court par fiole). `rayon` : du dedans de la boucle, 1,5 mm de plus que l'objet (rouleau publié : 21,5 mm
+avec son lien ; fiole publiée : 13,8 mm à la bague) ; `centre` : l'axe de l'objet au-dessus de la case, son rayon plus
+les 5 mm où l'hôte pose son dos (`JEU_DE_RANGEMENT`, `hotes/godot/projet/scripts/mise_en_page.gd`) ; `largeur` : le long
+de l'objet, illustration : ~11 px (2 cm) pour un rouleau, ~17 px (3 cm) pour une fiole ; `segments` : côtés du
+demi-cercle (HYPOTHÈSE de maillage)."""
+
 CASES = [
+    # (s, angle, decalage, passant)
     (0.41, -15, 0.0, 'rouleau'),
-    (0.52, -15, 0.0, 'rouleau'),
-    (0.63, -15, 0.0, 'rouleau'),
-    (0.74, -15, 0.0, 'rouleau'),
-    (0.82, -15, 0.0, 'fiole'),
-    (0.89, -15, 0.0, 'fiole'),
-    (0.96, -15, 0.0, 'fiole'),
+    (0.495, -15, 0.0, 'rouleau'),
+    (0.58, -15, 0.0, 'rouleau'),
+    (0.665, -15, 0.0, 'rouleau'),
+    (0.74, -15, 0.0, 'fiole'),
+    (0.80, -15, 0.0, 'fiole'),
+    (0.86, -15, 0.0, 'fiole'),
 ]
+"""Les cases offertes devant, dans l'ordre des rangs. `s` : position le long de la sangle, de l'épaule (0) à la hanche (1),
+par le devant (63,5 cm sur la robe publiée) ; `angle` : degrés de l'axe de l'objet glissé sur la perpendiculaire à la
+sangle, positif vers l'épaule ; `decalage` : m du point de la case le long de cet axe, depuis le milieu de la sangle,
+positif vers la gauche du personnage ; `passant` : la boucle de `PASSANTS` qui tient l'objet. Illustration : quatre
+rouleaux empilés sur la poitrine, sous l'écharpe, leur bout gauche relevé de 20 à 25° (sur cette sangle, à -15° de sa
+perpendiculaire), puis trois fioles de même pente jusqu'au-dessus de la ceinture, tous sur la sangle. Le premier rouleau
+à s = 0,41 (à 0,30 et 0,36, il passait assez près du menton pour s'y lier : `suiviDuCorps/cle-inerte` sous
+`gabarit_head_plus`) ; pas des rouleaux : 5,4 cm (boucle de 5,2 cm de dehors, à 15°), soit 0,085 ; pas des fioles :
+3,8 cm, soit 0,06."""
