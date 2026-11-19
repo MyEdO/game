@@ -30,6 +30,7 @@ import type { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement'
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { provenanceDeValeurSchema, routeBilletSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
+import { tableTotale } from '../lib/tableTotale';
 import { normalizeScene } from './monde/scene';
 import { isEchangeable, type PortProfile } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
@@ -237,7 +238,7 @@ export function portVersDepot(port: MapPlace['port']): PortDuDocument | undefine
   const clesSurchargees = (Object.keys(defauts) as (keyof typeof defauts)[]).filter(
     (k) => port[k] !== undefined && !egalJson(port[k], defauts[k]),
   );
-  const surcharges = Object.fromEntries(clesSurchargees.map((k) => [k, port[k]] as const));
+  const surcharges = tableTotale(clesSurchargees, (k) => port[k]) as Partial<typeof defauts>;
   return { ref: port.ref, ...surcharges };
 }
 
