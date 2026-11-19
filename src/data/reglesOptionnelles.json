@@ -318,6 +318,7 @@
     "group": "Combat",
     "kind": "flag",
     "default": false,
+    "reprojetteArmement": true,
     "hint": "Applique les profils réimprimés dans Aux Armes. Désactivé, utilise les profils du Livre de base."
   },
   {

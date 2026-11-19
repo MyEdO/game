@@ -175,13 +175,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/variants-integrity.test.ts",
-    motif: "désormais",
-    ancre: "désormais adoptés : aucun ne se lit plus au nœud zod. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/engine/buildWeapon.test.ts",
     motif: "désormais",
     ancre: "quelle (jamais une chaîne re-parsée). Le token `BF` est désormais porté par le flag `plusBF` (lu par",

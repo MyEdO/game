@@ -4,7 +4,7 @@
  * expose leur réglage passe par ici ; leur persistance reste à l'hôte (`hote/reglesMaison.ts`).
  */
 import { t } from '../i18n';
-import { loadRuleOverrides, resetRule, rule, surchargerUneSaisie, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
+import { loadRuleOverrides, resetRule, rule, ruleDef, surchargerUneSaisie, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './persistance/elagage';
 import type { Jeu } from './etat';
 
@@ -37,7 +37,7 @@ export function surchargerUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: Reg
   if (!reglesMaisonMutables(s).mutable) return false;
   const avant = rule(id);
   surchargerUneSaisie(id, valeur);
-  if (id === 'combat-aa-armement' && rule(id) !== avant) reprojeter?.();
+  if (ruleDef(id)?.reprojetteArmement && rule(id) !== avant) reprojeter?.();
   return true;
 }
 
@@ -46,6 +46,6 @@ export function retablirUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: Regle
   if (!reglesMaisonMutables(s).mutable) return false;
   const avant = rule(id);
   resetRule(id);
-  if (id === 'combat-aa-armement' && rule(id) !== avant) reprojeter?.();
+  if (ruleDef(id)?.reprojetteArmement && rule(id) !== avant) reprojeter?.();
   return true;
 }

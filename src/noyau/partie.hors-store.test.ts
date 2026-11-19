@@ -530,6 +530,9 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
     });
     try {
       expect(partie.etat().party).toEqual([]);
+      reglerUneRegleMaison(null, partie.etat(), 'test-bandes-auto', 'off', partie.reprojeterLArmement);
+      remettreUneRegleMaison(null, partie.etat(), 'test-bandes-auto', partie.reprojeterLArmement);
+      expect(publications).toEqual([]);
       reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLArmement);
       reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLArmement);
       remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLArmement);
