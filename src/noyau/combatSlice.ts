@@ -185,7 +185,7 @@ import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { spendResolveForPsychImmunity, calmeDAcquisition, ciblesDAnimositeAcquise, PSY } from '../engine/psychology';
-import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
+import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback } from '../engine/qualities/dispatch';
 import { talentFearIndice, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
@@ -244,9 +244,8 @@ import {
   leaveChef,
   isPosteManned,
   rechargeDuTour,
-  posteDeLaBataille,
 } from './monde/shipPostes';
-import { pushEligible, pushCrewOk, pushReachable } from './siegePush';
+import { preparerPoussee } from './pousseeDeCombat';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
 import {
   crewTestContributors,
@@ -1253,33 +1252,15 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t('cs.leavePoste', { name: active.label, weapon }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    // « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, Lot 2 #156) : ouvre le mode de
-    // ciblage-CASE 'poussee' — le clic-sol suivant (PUSH_MODE.commitTile, targetingModes.ts) commet la
-    // translation de la formation. Gate : chef d'un poste MOBILE (`pushEligible`), Action dispo, Équipe ≥
-    // moitié requise (`pushCrewOk`, sinon no-op — comme un tir sous-effectif refusé, `firedAttackBlock`).
-    // Ne consomme RIEN ici (la dépense de l'Action a lieu au COMMIT, comme `cliquerLaCaseDuCombat`/`servirLePoste`).
+    // ADE II 08 l.233, l.258 ; LDB 13 l.79, l.106.
     pousserLEngin: () => {
-      const battle = get().battle;
-      const scene = get().scene;
+      const { battle, scene } = get();
       if (!battle || battle.over || !scene) return;
-      // Toggle (parité cast/heal) : re-cliquer « Pousser » alors qu'on est déjà en mode 'poussee' ferme le mode sans consommer
-      // l'Action, comme le re-clic de sa case (`desarmerLeMode`).
       if (battle.action === 'poussee') return void get().desarmerLeMode();
       const active = activeCombatant(battle);
-      // Pousser = le MOUVEMENT (pas l'Action) : bloqué si le Mouvement du chef est déjà dépensé, PAS si l'Action
-      // a été prise (on peut pousser puis assener, ou l'inverse — ordre libre, LDB 13 l.79). Et pas davantage
-      // si l'Action lui est INTERDITE : un chef Sonné garde son Mouvement (LDB 16 l.125 — « incapable
-      // d'effectuer votre Action […] vous ne pouvez vous déplacer que de la moitié de votre Mouvement »),
-      // il pousse donc, à demi-budget. Ce que l'engin exige, c'est du MOUVEMENT — et le budget d'un
-      // porteur cloué (Inconscient/Surpris, `gating.movement:'none'`) vaut déjà 0, ce que la ligne suivante
-      // refuse. Exiger `canTakeAction` ici faisait mentir le coût déclaré au registre.
-      if (!active || !pushEligible(active) || (battle.movementUsed ?? 0) >= mountMovement(battle, active)) return;
-      const poste = active.mannedPoste!;
-      const hull = posteDeLaBataille(poste.item.uid, battle.combatants)?.porteur;
-      const w = mannedPosteWeapon(active, poste);
-      if (!hull || !hull.pos || !active.pos || !w || !pushCrewOk(poste, w, battle.combatants)) return;
-      const reach = pushReachable(battle, scene, active, hull);
-      set({ battle: { ...battle, action: 'poussee', reachable: reach, preview: null } });
+      const poussee = active && preparerPoussee(battle, scene, active);
+      if (!poussee) return;
+      set({ battle: { ...battle, action: 'poussee', reachable: poussee.reachable, preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
     },
     // « Diriger l'équipe » (Commandant d'équipe, AA 13 l.29-35) : le Personnage doté du Talent aide une équipe

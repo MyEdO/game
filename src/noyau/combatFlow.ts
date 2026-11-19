@@ -451,6 +451,7 @@ import {
   heightAt,
   surfaceDAtterrissage,
   structureIsDown,
+  structureDownKey,
   climbEdgeBetween,
   type VictoryCondition,
 } from './monde/scene';
@@ -494,7 +495,9 @@ import { targetArc, headingToBear } from './monde/fireArc';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
-import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
+import { warMachineFireWeapon, warMachineCrewRequired } from '../engine/warMachineCrew';
+import { meleeWarMachineHullOf, pushCrewOk } from './siegePush';
+import { executerPoussee, preparerPoussee } from './pousseeDeCombat';
 import {
   fearSourceFor,
   idDeSource,
@@ -829,6 +832,11 @@ export function siegeActif(battle: BattleState | null | undefined): boolean {
   return battle?.siege === true;
 }
 
+function effectifDeLArmeSuffisant(active: Combatant, arme: Weapon, combatants: Combatant[]): boolean {
+  const poste = active.mannedPoste;
+  return !poste || arme.uid !== poste.item.uid || pushCrewOk(poste, arme, combatants);
+}
+
 /** Tir héros refusé — LÉGALITÉ de l'arme employée (tir en étant *Engagé*, `LDB 14 l.41` ; armes à distance
  *  bannies de la rencontre) ou RESSOURCE : arme à défaut Recharge non chargée (LDB 62 l.335) ou plus
  *  de munition compatible — `null` si le tir peut partir. Concern ORTHOGONAL à la géométrie (`attackPlan`),
@@ -846,14 +854,8 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
     ? pickAttackWeaponList(get().scene, b.combatants, active, target, weaponUid)
     : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(get().scene, active, target) <= meleeReachTiles(active.weapons, sceneMetresPerTile(get().scene)));
   const distanceTiles = b ? distanceDeCombat(get().scene, attackGeomOf(b, active, w), combatGeomOf(b, target)) : distanceDeCombat(get().scene, active, target);
-  // Machine de guerre ADE II (Qualité `equipe`, ch.08 l.233) sous LA MOITIÉ de l'Équipe requise : INUTILISABLE
-  // — mêlée (bélier, Force) ET distance, donc AVANT le early-return ranged-only ci-dessous.
-  const required = warMachineCrewRequired(w);
-  if (required > 0 && active.mannedPoste) {
-    const crew = (active.mannedPoste.crewIds ?? []).map((id) => inBattleId(b, id)).filter((c): c is Combatant => !!c);
-    if (warMachineCrewPenalty(exposedCrew(crew).length, required).unusable)
-      return { reason: 'sous-effectif', detail: `${active.label} : Équipe trop réduite pour servir ${w.label}.` };
-  }
+  if (!effectifDeLArmeSuffisant(active, w, b?.combatants ?? []))
+    return { reason: 'sous-effectif', detail: `${active.label} : Équipe trop réduite pour servir ${w.label}.` };
   if (w.type !== 'distance') return null;
   // Tir en étant *Engagé* : impossible sauf Atout d'arme Pistolet (`LDB 14 l.41`, `LDB 62 l.284-285`).
   // Refus AVANT les gates de ressource : recharger ne débloquerait rien.
@@ -4255,6 +4257,10 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
 }
 
 export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, enchainement?: EnchainementDuCoup, weaponUid?: string): Applique {
+  // ADE II 08 l.233.
+  const armeDesignee = weaponUid ? attacker.weapons.find((w) => w.uid === weaponUid) : undefined;
+  if (weaponUid && isStructure(target) && !armeDesignee) return undefined;
+  if (armeDesignee?.type === 'melee' && !effectifDeLArmeSuffisant(attacker, armeDesignee, get().battle?.combatants ?? [])) return undefined;
   // Bénédiction de Protection (LDB 41 — L13) : Test de FM Accessible (+20) pour oser attaquer le
   // béni ; échec → l'IA renonce à CE coup (simplification : pas de re-ciblage, documentée).
   const ward = attackWardGate(attacker, target, battleRng());
@@ -6121,6 +6127,22 @@ function isSpellActive(spell: SpellData, caster: Combatant, battle: BattleState 
  * Couche IMPURE : a les DONNÉES de sort + le `battle`. Le `movement` n'inclut PAS le cas « vient
  * d'enfourcher » (Mouvement consommé) — l'appelant le force à 0 le cas échéant.
  */
+function ciblesDeStructureIA(battle: BattleState, acteur: Combatant): Combatant[] {
+  if (!siegeActif(battle)) return [];
+  const assaillant = acteur.kind === 'ennemi';
+  const condition = battle.victoryCondition;
+  const chef = acteur.mannedPoste?.crewIds?.[0] === acteur.id;
+  const objectif = acteur.kind === 'heros' && chef && condition?.type === 'destroyStructure'
+    && meleeWarMachineHullOf(acteur, battle.combatants) ? condition.edge : null;
+  if (!assaillant && !objectif) return [];
+  const cleObjectif = objectif && structureDownKey(objectif.x, objectif.y, objectif.side, objectif.z);
+  return battle.combatants.filter((cible) => {
+    if (!isStructure(cible) || isOutOfAction(cible) || !cible.pos) return false;
+    const arete = cible.structureEdge;
+    return assaillant || (!!arete && structureDownKey(arete.x, arete.y, arete.side, arete.z) === cleObjectif);
+  });
+}
+
 export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
   const battle = get().battle!;
   const scene = get().scene!;
@@ -6168,14 +6190,10 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
       active: isSpellActive(data, enemy, battle),
     });
   }
-  // Structures destructibles (porte/mur) offertes au choix de cible de l'IA. DEUX conditions, aucune autre :
-  // la rencontre DÉCLARE le siège (`siegeActif`, défaut littéral false) ET le décideur est ENNEMI — un défenseur
-  // allié-IA n'attaque pas sa propre porte, et `structureImmune` n'y suffirait pas (une pièce de siège alliée la
-  // pourrait). Hors siège ou côté allié → `undefined`, aucun candidat. L'arme qui n'abîme pas la structure est
-  // écartée plus bas (`ai.ts`, `structureImmune`).
-  const structures = enemy.kind === 'ennemi' && siegeActif(battle)
-    ? battle.combatants.filter((c) => isStructure(c) && !isOutOfAction(c) && c.pos)
-    : undefined;
+  const cibles = ciblesDeStructureIA(battle, enemy);
+  const poussee = cibles.length && enemy.mannedPoste?.item.kind === 'melee' ? preparerPoussee(battle, scene, enemy) : null;
+  const armesDeMelee = cibles.length ? enemy.weapons.filter((arme) => arme.type === 'melee'
+    && effectifDeLArmeSuffisant(enemy, arme, battle.combatants)) : [];
   const smoke = smokeOf(battle);
   return {
     enemy, heroes, ...(pulsion.length ? { ciblesDePulsion: pulsion } : {}), scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
@@ -6187,7 +6205,16 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
     // « Servir cette pièce » (MDG 12) : postes de siège NON servis adjacents — KIND-AGNOSTIQUE (l'appelant
     // impur a la liste complète des combattants). Vide en scène sans emplacement → aucun candidat (parité golden).
     servablePostes: servablePostes(get().scene, enemy, battle.combatants).map(({ hull, poste }) => ({ hullId: hull.id, posteUid: poste.item.uid })),
-    structures,
+    structures: enemy.kind === 'ennemi' && siegeActif(battle) ? cibles : undefined,
+    ...(cibles.length ? {
+      meleeDeStructure: {
+        cibles, combattants: battle.combatants, actionDepensee: battle.acted,
+        profils: (cible) => armesDeMelee.map((arme) => arme.uid
+          ? firedWeapon(scene, enemy, cible, arme.uid, battle.combatants)
+          : effectiveWeapon(arme, weaponContextOf(enemy, arme, cible))),
+        ...(poussee ? { poussee: { coque: poussee.hull, arrivees: poussee.reachable } } : {}),
+      },
+    } : {}),
     // Tenue de FORMATION (#196) : crew d'un poste d'engin ACTIF (bélier, batterie de siège) → il ne charge
     // pas seul, c'est le poste qui le déplace (naval : le passager suit `shipOfCrew`, cas déjà distinct).
     holdsFormation: !!crewPosteOf(enemy.id, battle.combatants),
@@ -8445,7 +8472,8 @@ function frapperPuisAvancer(get: Get, set: SetFn, acteur: Combatant, cible: Comb
   // normale si la créature en a le trait + l'Avantage ; sinon attaque normale (opposée). Une manœuvre
   // spéciale qui touche des HÉROS ouvre une cascade de défense influençable → tour SUSPENDU (reprise
   // via `resumeManeuverDefense` à la fermeture), détectée par `maneuverCascadePending`.
-  const suspended = aiMaybeSpecialAction(get, set, acteur) ? maneuverCascadePending(get) : doAttack(get, set, acteur, cible, undefined, weaponUid);
+  const special = !(weaponUid && isStructure(cible)) && aiMaybeSpecialAction(get, set, acteur);
+  const suspended = special ? maneuverCascadePending(get) : doAttack(get, set, acteur, cible, undefined, weaponUid);
   // Si la modale de défense s'ouvre, la reprise est portée par jetValider('defense') → resumeEnemyTurn.
   if (suspended) return;
   // Attaques GRATUITES après l'attaque principale : d'Arme « disponibles » (Frénésie LDB 21 l.33 =
@@ -9010,6 +9038,7 @@ function describeAiAction(a: EnemyAction): string {
     case 'focalisation': return `focalisation ${a.spell}`;
     case 'tir': return `tir ${a.targetId}`;
     case 'melee': return `melee ${a.targetId}`;
+    case 'poussee': return `poussee→${a.targetId}@${a.to.x},${a.to.y}`;
     case 'deplacement': return `deplacement→${a.thenTargetId}@${a.to.x},${a.to.y}`;
     case 'rechargement': return 'rechargement';
     case 'liberation': return `liberation ${a.state}`;
@@ -9161,13 +9190,8 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   const foeKind = enemy.kind === 'ennemi' ? 'heros' : 'ennemi';
   const heroes = battle.combatants.filter((c) => c.kind === foeKind && !isOutOfAction(c));
   if (heroes.length === 0) {
-    // Aucun adversaire vivant mais le combat continue (`victoryCondition` non authorable atteinte,
-    // ex. structure encore intacte) : `checkBattleOver` ne termine PAS forcément le combat → il n'y a
-    // rien à jouer ce tour (aucune cible), mais le tour DOIT quand même se clore, sinon l'IA reste
-    // bloquée indéfiniment (soft-lock). Si `checkBattleOver` a terminé/suspendu le combat
-    // (victoire/défaite/cascade), ne pas avancer par-dessus.
     if (checkBattleOver(get, set)) return;
-    return advanceTurn(get, set);
+    if (!ciblesDeStructureIA(get().battle!, enemy).length) return advanceTurn(get, set);
   }
   // Combat monté (LDB 14) : un PNJ à pied, non Engagé, adjacent à une monture LIBRE de son camp décide
   // de l'enfourcher (aucun jet → simple Mouvement ; il pourra ensuite ATTAQUER, mais pas se déplacer en plus).
@@ -9203,6 +9227,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // n'épuise PAS l'Action → l'ennemi libéré RE-DÉCIDE et joue sa vraie action (tir/cast/charge) le même tour.
   // Multi-Empoignade : chaque tour de boucle dénoue UN lien ; `grapplingWith` se vide → la garde ne re-fire plus.
   let pieceServie = false;
+  let pousseeJouee: EnemyAction | undefined;
   for (let safety = 8; safety > 0; safety--) {
     if (action.kind === 'depenseDeRessource') {
       const before = stacks(enemy, action.id);
@@ -9217,15 +9242,23 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       battle.log.push(ev('esquive', tr('cs.grappleBreak', { name: enemy.label, foe: foe.label }), enemy.id, foe.id));
       set({ battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
+    } else if (action.kind === 'poussee') {
+      if (pousseeJouee) break;
+      if (executerPoussee(get, set, enemy, action.to)) pousseeJouee = action;
+      else {
+        action = chooseEnemyAction({ ...input, movement: 0 });
+        break;
+      }
     } else if (action.kind === 'servirLePoste') {
       // Servir la pièce : Action gratuite (LDB 13 l.106, arbitrage #3595), puis l'IA re-décide.
       const { posteUid } = action; // capture AVANT la closure (narrowing perdu sur un `let` réassigné)
-      const poste = posteDeLaBataille(posteUid, battle.combatants)?.poste;
+      const batailleCourante = get().battle!;
+      const poste = posteDeLaBataille(posteUid, batailleCourante.combatants)?.poste;
       if (!poste || pieceServie || (poste.crewIds ?? []).includes(enemy.id)) break;
       pieceServie = true;
-      serveAtPoste(enemy, poste, battle.combatants);
-      battle.log.push(ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: poste.item.label }), enemy.id));
-      set({ battle: { ...battle } });
+      serveAtPoste(enemy, poste, batailleCourante.combatants);
+      batailleCourante.log.push(ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: poste.item.label }), enemy.id));
+      set({ battle: { ...batailleCourante } });
       bus.emit(EVT.SCENE_DIRTY);
     } else break;
     input = buildAiInput(enemy, get);
@@ -9234,7 +9267,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   }
   // TRACE IA (DEV) : SEUL site d'enregistrement → `consumeAiRanking` vide le classement de l'appel qui
   // précède immédiatement (pas de pollution par aiApproachPlan/peek de Frénésie). `top` vide si flag off.
-  AI_TURN_LOG.push({ round: battle.round, id: enemy.id, label: enemy.label, action: describeAiAction(action), top: consumeAiRanking() });
+  AI_TURN_LOG.push({ round: battle.round, id: enemy.id, label: enemy.label, action: describeAiAction(action.kind === 'fin' ? pousseeJouee ?? action : action), top: consumeAiRanking() });
   if (AI_TURN_LOG.length > 400) AI_TURN_LOG.shift();
   const targetOf = (id: string) => inBattleId(battle, id)!;
   const canAct = canTakeAction(enemy); // Sonné : pas d'Action — déplacement seul (LDB 16 l.125)
@@ -9259,6 +9292,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   switch (action.kind) {
     case 'fin':
       return advanceTurn(get, set);
+    case 'poussee':
     case 'servirLePoste':
     case 'depenseDeRessource':
       // La boucle de dépense ci-dessus n'a PAS pu déverrouiller (dépense inopérante — l'acteur reste
@@ -9336,7 +9370,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
     }
     case 'melee':
       if (!canAct) return advanceTurn(get, set);
-      attackThenAdvance(targetOf(action.targetId));
+      attackThenAdvance(targetOf(action.targetId), action.weaponUid);
       return;
     case 'liberation': {
       // Se libérer (Empêtré, Test opposé de Force, l.66) / se rouler (En flammes, Athlétisme, l.84).
