@@ -71,6 +71,7 @@ func eclairer(lumiere: Dictionary, plateau: Dictionary) -> void:
 		_soleil.light_energy = soleil.energie
 	_environnement.ambient_light_color = Color(lumiere.ambiante.couleur)
 	_environnement.ambient_light_energy = lumiere.ambiante.energie
+	_environnement.tonemap_white = lumiere.blanc
 	var ciel: Variant = lumiere.ciel
 	if ciel != null:
 		var materiau := _environnement.sky.sky_material as ShaderMaterial

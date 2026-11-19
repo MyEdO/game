@@ -52,6 +52,12 @@ describe('lumiereDeLaScene', () => {
     canaux(ambiante.couleur).forEach((c, i) => expect(Math.abs(c - (z[i] + h[i]) / 2)).toBeLessThanOrEqual(1));
   });
 
+  it('en plein jour, le soleil et l’ambiante ensemble ne dépassent pas le blanc de l’écran', () => {
+    const { soleil, ambiante, blanc } = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion');
+    expect(soleil!.energie + ambiante.energie).toBeLessThanOrEqual(blanc);
+    expect(soleil!.energie + ambiante.energie).toBeGreaterThan(0.9 * blanc);
+  });
+
   it('la pluie voile le soleil et teinte le ciel', () => {
     const clair = lumiereDeLaScene(etat(emptyScene('scene-test', 4, 4), MIDI), 'immersion');
     const pluie = lumiereDeLaScene(etat({ ...emptyScene('scene-test', 4, 4), weather: 'pluie' }, MIDI), 'immersion');
