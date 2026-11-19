@@ -311,7 +311,7 @@ import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
 import { progresDeRecharge } from './progresEtendu';
 import { touchActors, windsMagicModOf, seaMagicContext, ventsAnnonces } from './combatOrParty';
-import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
+import { campOf, followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
@@ -5388,7 +5388,11 @@ export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: 
  * (`castClickCommit`) la DIT au point du geste. `range` null = portée non chiffrable (« le lanceur »,
  * « au toucher », spécial) → pas de gate. Un Souffle suit le TRAIT (BE+20 m, LDB 85), pas le champ Portée.
  */
-export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, target: Combatant): { reason: 'range' | 'los'; detail: PlayerText } | null {
+export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, target: Combatant): { reason: 'range' | 'los' | 'cible-invalide'; detail: PlayerText } | null {
+  if (ancreDeLaZdE(spell) === 'target'
+    && (!get().battle || !target.pos || isOutOfAction(target) || campOf(target) === 'neutre' || !effectivelyHostile(caster, target))) {
+    return { reason: 'cible-invalide', detail: tr('cs.magicMissileNeedsTarget', { spell: spell.label }) };
+  }
   if (!get().battle || !caster.pos || !target.pos || caster.id === target.id) return null;
   const range = spell.breathAttack
     ? porteeEnCases(bonus(effectiveChar(caster, 'endurance')) + 20, sceneMetresPerTile(get().scene))
@@ -5886,6 +5890,11 @@ export function resumeAfterCounterspell(get: Get, set: SetFn): void {
   resolveCastChain(get, set);
 }
 
+export function ancreDeLaZdE({ range, target }: Pick<SpellData, 'range' | 'target'>): 'point' | 'caster' | 'target' | undefined {
+  if (target?.kind !== 'area') return undefined;
+  return target.anchor ?? (range?.kind === 'self' ? 'caster' : 'point');
+}
+
 /** Rayon INITIAL d'un sort de ZONE en mètres, depuis la cible STRUCTURÉE (`target.area`, source unique —
  *  le rayon de ZdE y est plié). `null` = pas un sort de ZdE chiffrable. */
 export function zoneRadiusMeters(spell: NonNullable<ReturnType<typeof findSpell>>, caster: Combatant): number | null {
@@ -5895,20 +5904,17 @@ export function zoneRadiusMeters(spell: NonNullable<ReturnType<typeof findSpell>
 
 /** Rayon en CASES après `alloc` Surincantations « +Zone » — multiplicateur SOURCE UNIQUE
  *  (`zoneDiameterMultiplier`, LDB 47 l.15 / `VDM 02 l.207-215`). La ZdE est réservée à l'arcane.
- *  `mpt` = l'échelle de la SCÈNE (#1507) : le rayon d'un sort est écrit en MÈTRES en donnée
- *  (`op zone`, `radiusMeters`), c'est ici qu'il devient un nombre de cases de gabarit. Arrondi au
- *  PLANCHER, minimum 0 — un gabarit plus petit que la case ne couvre aucune case au-delà du centre
+ *  `mpt` = l'échelle de la SCÈNE (#1507) : le rayon de la ZdE en mètres devient un nombre de
+ *  cases de gabarit. Arrondi au PLANCHER, minimum 0 — le gabarit peut se limiter au centre
  *  posé, et c'est la règle de POSE, pas celle d'une portée (cf. `porteeEnCases`). */
 export const zoneRadiusTilesAt = (r0m: number, alloc: number, mpt: number): number =>
   rayonDeGabaritEnCases(r0m * zoneDiameterMultiplier('arcane', alloc), mpt);
 
-/** Ouvre la modale d'un sort de ZONE — flux « jet PUIS pose » (LDB 47 l.15/28) : pas de cible à
- *  désigner, le centre se choisit APRÈS le jet et la Surincantation (+Zone agrandit le gabarit).
- *  `targetId` = ancre lanceur (aucun effet ne lui est appliqué — les cibles réelles sont
- *  recensées à la pose). Retourne false si le sort n'est PAS une zone chiffrable. */
+/** Ouvre le jet et le gabarit d'une ZdE centrée sur un point ou le lanceur. Les occupants
+ *  sont recensés à la pose, après la Surincantation. LDB 47 l.15, l.28. */
 export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: string): boolean {
   const spell = resolveSpell(label);
-  if (!spell) return false;
+  if (!spell || ancreDeLaZdE(spell) === 'target') return false;
   const r0m = zoneRadiusMeters(spell, caster);
   if (r0m == null) return false;
   const refus = refusDIncanter(caster, spell);
@@ -5997,8 +6003,9 @@ export function zoneSousLeCurseur(get: Get, hover: Pt): { radius: number; valide
   const active = s.mode === 'battle' ? activeCombatant(battle) : undefined;
   if (battle.action !== 'incantation' || !battle.selectedSpellId || active?.kind !== 'heros' || s.pendingCast || !active.pos) return null;
   const spell = findSpellById(battle.selectedSpellId);
-  const radius = spell ? zdeRadiusTiles(spell.target, active, sceneMetresPerTile(s.scene)) : null;
-  if (!spell || radius == null) return null;
+  if (!spell || ancreDeLaZdE(spell) !== 'point') return null;
+  const radius = zdeRadiusTiles(spell.target, active, sceneMetresPerTile(s.scene));
+  if (radius == null) return null;
   return { radius, valide: placedZoneValidAt(get, { casterId: active.id, rangeTiles: spellRangeTiles(spell.range, active, sceneMetresPerTile(s.scene)) }, hover) };
 }
 
@@ -6023,14 +6030,16 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const caster = inBattleId(battle, pc.casterId);
   const spell = effectiveSpellOf(pc);
   if (!caster?.pos || !spell) return;
+  const ancrage = ancreDeLaZdE(spell);
   const res = pc.result;
-  if (!castAfterCrit(res, pc.critChoice)) return;
+  if (ancrage === 'target' || !castAfterCrit(res, pc.critChoice)) return;
+  const centre = ancrage === 'caster' ? caster.pos : pt;
   const range = spellRangeTiles(spell.range, caster, sceneMetresPerTile(get().scene));
-  if (range != null && chebyshev(caster.pos, pt) > range) {
+  if (range != null && chebyshev(caster.pos, centre) > range) {
     get().ecrireAuJournal(tr('cf.zoneHorsDePortee', { spell: spell.label, range }));
     return;
   }
-  if (castSightBlocked(get, caster.pos, pt)) {
+  if (ancrage !== 'caster' && castSightBlocked(get, caster.pos, centre)) {
     get().ecrireAuJournal(tr('cf.sansLigneDeVue', { spell: spell.label }));
     return;
   }
@@ -6045,18 +6054,21 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   // l.302 / LDB 10 l.1026). C'est ce filtre qui CONSTITUE la zone : chaque candidat est donc sa zone.
   const affected = (c: Combatant): boolean =>
     affects == null || evalCondition(affects, combatConditionCtx(c, { caster, now: get().gameTime, sl: spellSLFor(res.sl, c) }));
-  const inZone = battle.combatants.filter((c) => !isOutOfAction(c) && c.pos && (c.pos.z ?? 0) === (pt.z ?? 0) && chebyshev(c.pos, pt) <= radius && (!excludesCaster || c.id !== caster.id) && affected(c));
-  set({ pendingCast: { ...pc, zone: { ...pc.zone, center: { ...pt }, placing: false } } });
-  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...pt }, tiles: clampZoneTiles(discTiles(pt, radius, pt.z), get().scene?.dimensions), sort: spell.id });
-  resoudreLeSortDeZone(get, set, pc, caster, spell, res, inZone);
+  const inZone = battle.combatants.filter((c) => !isOutOfAction(c) && c.pos && (c.pos.z ?? 0) === (centre.z ?? 0) && chebyshev(c.pos, centre) <= radius && (!excludesCaster || c.id !== caster.id) && affected(c));
+  const pose = { centre: { ...centre }, rayon: radius };
+  set({ pendingCast: { ...pc, zone: { ...pc.zone, center: { ...centre }, placing: false } } });
+  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...centre }, tiles: clampZoneTiles(discTiles(centre, radius, centre.z), get().scene?.dimensions), sort: spell.id });
+  resoudreLeSortDeZone(get, set, pc, caster, spell, res, inZone, pose);
 }
+
+type PoseDeZone = { centre: Pt; rayon?: number };
 
 /** Résout la tentative d'un Sort de ZONE sur `targets`, vides pour une zone jamais posée ou posée dans le
  *  vide (LDB 47 l.28) : ferme le jet, `applyCast`, PUIS clôt par la sortie d'hôte l'étape d'incantation
  *  restée au curseur (#4248). La reprise de l'IA revient à l'appelant. */
 export function resoudreLeSortDeZone(
   get: Get, set: SetFn, pc: PendingCast, caster: Combatant, spell: NonNullable<ReturnType<typeof effectiveSpellOf>>,
-  res: CastResult & Partial<MissileResult>, targets: readonly Combatant[],
+  res: CastResult & Partial<MissileResult>, targets: readonly Combatant[], pose?: Required<PoseDeZone>,
 ): void {
   const [ancre] = targets;
   const r1 = pc.missile && res.cast && ancre ? evaluateMissile(caster, ancre, spell, res) : res;
@@ -6073,6 +6085,7 @@ export function resoudreLeSortDeZone(
     overcastDurationSteps: pc.overcast?.duration ?? 0,
     overcastDamageSteps: pc.overcast?.damage ?? 0,
     chosenTableRolls: pc.chosenTableRolls,
+    pose,
   });
   const casc = get().pendingCascade;
   if (castStepIdx >= 0 && casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) sortirDeLHote(get, set, { pendingCast: null }, () => {});
@@ -6145,7 +6158,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
     const focusState: CastableSpell['focusState'] = ready ? 'ready'
       : (!hasAllySummon && landProb < 0.5 && isArcaneSpell(data) && !!focusSkillFor(enemy, data)) ? 'focusable'
         : 'none';
-    const radius = hasAllySummon ? null : zdeRadiusTiles(data.target, enemy, sceneMetresPerTile(scene));
+    const radius = hasAllySummon || ancreDeLaZdE(data) === 'target' ? null : zdeRadiusTiles(data.target, enemy, sceneMetresPerTile(scene));
     const shape: CastableSpell['shape'] = hasAllySummon ? 'self'
       : radius != null ? { area: { radius } }
         : (data.range?.kind === 'self' || data.target?.kind === 'self') ? 'self'
@@ -6697,8 +6710,8 @@ function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string
   return lignes;
 }
 
-/** Applique un résultat d'incantation DÉJÀ obtenu (mute caster/cibles, consomme l'Action). `targets` : les
- *  cibles dans l'ordre de la zone, la première est l'ancre ; vide pour une tentative sans cible (LDB 47 l.28). */
+/** Applique un résultat d'incantation DÉJÀ obtenu (mute caster/cibles, consomme l'Action). `targets`
+ *  peut être vide. Le centre d'une ZdE posée vient de `extras.pose` (LDB 47 l.28). */
 export function applyCast(
   get: Get,
   set: SetFn,
@@ -6709,7 +6722,17 @@ export function applyCast(
   missile: boolean,
   focusedNI0: boolean,
   critChoice?: CritChoice,
-  extras?: { durationMult?: number; durationBonusRounds?: number; overcastDurationSteps?: number; overcastDamageSteps?: number; chosenTableRolls?: number; conjureForm?: ConjureForm; opposedOutcome?: Record<string, { resisted: boolean; margin: number }> },
+  extras?: {
+    durationMult?: number;
+    durationBonusRounds?: number;
+    overcastDurationSteps?: number;
+    overcastDamageSteps?: number;
+    overcastZoneSteps?: number;
+    chosenTableRolls?: number;
+    conjureForm?: ConjureForm;
+    opposedOutcome?: Record<string, { resisted: boolean; margin: number }>;
+    pose?: Required<PoseDeZone>;
+  },
 ) {
   const battle = get().battle; // null = incantation HORS COMBAT (couture D) : même applyCast, sortie journal
   // Durée surincantée DÉCOMPOSÉE (engine/overcast) : `rounds = base × mult + bonus`. Arcane/Miracle :
@@ -6816,9 +6839,24 @@ export function applyCast(
     battle.domainCasts = [...marks, ...targets.map((t) => ({ targetId: t.id, domain: domaine }))];
   }
 
+  const ancrage = ancreDeLaZdE(spell);
+  const positionDirecte = ancrage === 'caster' ? caster.pos : ancrage === 'point' ? undefined : ancre?.pos;
+  const centreDirect = positionDirecte && { ...positionDirecte };
+  const poserLaZone = (): void => {
+    if (!res.cast || res.dispelled) return;
+    const rayonM = centreDirect ? zoneRadiusMeters(spell, caster) : null;
+    const pose = extras?.pose ?? (centreDirect && {
+      centre: centreDirect,
+      rayon: rayonM == null ? undefined : zoneRadiusTilesAt(rayonM, extras?.overcastZoneSteps ?? 0, sceneMetresPerTile(get().scene)),
+    });
+    if (pose || (ancre && (ancrage !== 'point' || !battle))) {
+      const sl = !extras?.pose && ancre ? slFor(ancre) : res.sl;
+      placeSpellZone(get, caster, pose, spell, sl, durationMult, durationBonusRounds, logLines);
+    }
+  };
+
   if (missile) {
     // Touche d'un Projectile : application des Blessures + Critique (choix/overkill).
-    const missileSpec = spell;
     /** LA TOUCHE telle qu'elle voyage — bâtie ICI pour les trois sites de cible (initiale, cible
      *  supplémentaire de Surincantation, maillon de rebond), jamais recomposée à la reprise. */
     const toucheDe = (t: Combatant, mres: CastResult & Partial<MissileResult>, rebond?: RebondDeChaine): ToucheDeProjectile => ({
@@ -6864,9 +6902,7 @@ export function applyCast(
     // Le rebond DÉCLARÉ plus haut ne se joue ICI que si la touche initiale est CLOSE : suspendue
     // (sauvegarde, Déviation Critique), c'est SA reprise qui le jouera, sur des PB frais.
     if (rebond && toucheInitiale && initiale?.issue === 'appliquee') logLines.push(...jouerLeRebond(get, set, toucheInitiale));
-    // Zone persistante d'un Projectile (Grands feux d'U'Zhul : « le feu continue de brûler
-    // dans la Zone d'Effet pour la durée du Sort ») — posée autour de la cible touchée.
-    if (res.cast && ancre) placeSpellZone(get, caster, ancre, spell, missileSpec, slFor(ancre), durationMult, durationBonusRounds, logLines);
+    poserLaZone();
     // LDB 46 l.85 ; LDB 46 l.132
     if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
     else if (echecApresFocalisation && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
@@ -6957,8 +6993,7 @@ export function applyCast(
           logLines.push(tr('cf.souffleRecit', { name: caster.label }));
         }
       }
-      // Zone persistante d'un sort de soutien/zone (Mur de feu : « Quiconque traverse… »).
-      if (res.cast && ancre) placeSpellZone(get, caster, ancre, spell, spec, slFor(ancre), durationMult, durationBonusRounds, logLines);
+      poserLaZone();
       // TÉLÉPORTATION (Jalon 2.6 — « vous vous téléportez de BFM mètres (+BFM par +2 DR) »,
       // LDB 47 l.517-519) : le choix de la case d'arrivée suit l'Appliquer (mode 'teleportation',
       // cases = survol des obstacles, atterrissage libre — cliquerLaCaseDuCombat).
@@ -7054,17 +7089,12 @@ export function applyCast(
   }
 }
 
-/** Pose la ZONE PERSISTANTE d'un sort (op `zone` du Flow, on:'caster' — L11 Mur de feu : mur
- *  perpendiculaire à l'axe lanceur→cible centré sur la cible ; Grands feux : disque autour de la
- *  cible). Durée = celle du sort, surincantée à la SOURCE UNIQUE (`overcastDurationParts` : `base × mult
- *  + bonus`, LDB 47 l.15), formules résolues contre le LANCEUR. Effet IMPUR du Flow résolu ici
- *  (grille) ; hors combat : narratif. */
+/** LDB 47 l.15, l.28 ; LDB 48 l.252, l.284. */
 function placeSpellZone(
   get: Get,
   caster: Combatant,
-  target: Combatant,
-  spell: { id?: string; label: string; effects?: Flow; duration?: import('../engine/spellDuration').SpellDuration | null; target?: import('../engine/spellRange').SpellTarget | null },
-  _spec: unknown,
+  pose: PoseDeZone | undefined,
+  spell: SortJoue,
   sl: number,
   durationMult: number,
   durationBonusRounds: number,
@@ -7074,31 +7104,22 @@ function placeSpellZone(
   if (!pz) return;
   const baseRounds = spell.duration?.kind === 'rounds' ? resolveFormula(spell.duration.value, caster, battleRng()) : 1;
   const rounds = baseRounds * durationMult + durationBonusRounds;
-  // Rayon par défaut (si l'op n'a pas de `radiusMeters`) : dérivé de la `target` du sort (« Zone Diamètre
-  // BFM m » → rayon BFM/2). Protection de Phâ : Zone centrée sur le lanceur (range self).
-  if (!target.pos) { logLines.push(tr('cf.zonePersiste', { spell: spell.label })); return; }
-  placeZoneFromOp(get, caster, target.pos, pz, spell.label, rounds, sl, (zdeDiameterMeters(spell.target, caster) ?? 4) / 2, logLines,
-    spell.id ? { kind: 'sort', id: spell.id } : undefined);
+  if (!pose) { logLines.push(tr('cf.zonePersiste', { spell: spell.label })); return; }
+  placeZoneFromOp(get, caster, pose, pz, spell.label, rounds, sl, logLines, { kind: 'sort', id: spell.id });
 }
 
-/** Pose une ZONE persistante depuis un op `zone` : celle d'un sort (`placeSpellZone`) ou d'un effet déclenché
- *  (`crochetDeZone`). `label`/`rounds`/`fallbackRadiusM` sont fournis par l'appelant (un sort les tire de sa
- *  durée/ZdE ; un effet déclenché, de l'op). `centre` = centre du disque (le mur est perpendiculaire à l'axe
- *  poseur→centre). `source` = l'ENTITÉ qui pose la zone (ids) : elle voyage SUR la zone, et le Test de TRAVERSÉE
- *  (`crossTest`) en dérive son enjeu — ce qui se joue est le sort qui barre le passage (#1262 V2 L6d). */
-function placeZoneFromOp(get: Get, caster: Combatant, centre: Pt, opDeZone: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], sourceRecue?: EffectSource): void {
+/** Pose une zone persistante. Le rayon du gabarit est déjà en cases. Sinon le disque tire son rayon de l'op.
+ *  Le Test de traversée tire son enjeu de l'identité de source conservée sur la zone (#1262 V2 L6d). */
+function placeZoneFromOp(get: Get, caster: Combatant, pose: PoseDeZone, opDeZone: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, logLines: string[], sourceRecue?: EffectSource): void {
   const { pz, source } = structuredClone({ pz: opDeZone, source: sourceRecue }); // #2097
   const battle = get().battle;
   if (!battle || !caster.pos) { logLines.push(tr('cf.zonePersiste', { spell: label })); return; }
-  const discRadiusM = pz.radiusMeters != null ? Math.max(0, resolveFormula(pz.radiusMeters, caster, battleRng())) : fallbackRadiusM;
-  // Cases BORNÉES à la carte au SITE D'ÉCRITURE (`clampZoneTiles`) : la géométrie de pose est non
-  // bornée, une zone posée au coin déborderait en cases négatives stockées dans `battle.zones`.
-  const rawTiles = clampZoneTiles(pz.shape === 'wall'
-    ? wallTiles(caster.pos, centre, porteeEnCases(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng()), sceneMetresPerTile(get().scene)))
-    : discTiles(centre, porteeEnCases(discRadiusM, sceneMetresPerTile(get().scene))), get().scene?.dimensions);
-  // z propagé sur chaque case (défaut 0, cf. zoneAreaTiles §782/#799) : une zone posée à l'étage `centre.z`
-  // ne couvre pas les cases de même (x,y) à un autre étage (zoneCovers compare `t.z ?? 0` / `p.z ?? 0`).
-  const tiles = centre.z ? rawTiles.map((t) => ({ ...t, z: centre.z })) : rawTiles;
+  const { centre, rayon } = pose;
+  const mpt = sceneMetresPerTile(get().scene);
+  const casesDeLaZone = pz.shape === 'wall'
+    ? wallTiles(caster.pos, centre, porteeEnCases(resolveZoneMeters(pz.lengthMeters ?? 2, pz.lengthPerSL, caster, sl, battleRng()), mpt), centre.z)
+    : discTiles(centre, rayon ?? porteeEnCases(Math.max(0, resolveFormula(pz.radiusMeters ?? 2, caster, battleRng())), mpt), centre.z);
+  const tiles = clampZoneTiles(casesDeLaZone, get().scene?.dimensions);
   const zone: BattleZone = {
     label, tiles, rounds, casterId: caster.id,
     ...(pz.blocksLoS ? { blocksLoS: true } : {}),
@@ -7137,7 +7158,7 @@ export function crochetDeZone(get: Get): Required<Pick<OpsCtx, 'onZone'>> {
       const centre = ctx.centreDeZone ?? cible.pos;
       if (!centre) return [tr('cf.zonePersiste', { spell: nomDeSource(ctx) })];
       if (op.shape === 'disc' && op.radiusMeters === undefined) throw new Error(`op « zone » de ${nomDeSource(ctx)} : disque sans « radiusMeters » — hors sort, aucune Zone d'Effet ne le donne.`);
-      placeZoneFromOp(get, ctx.caster ?? cible, centre, op, nomDeSource(ctx), rounds, ctx.sl ?? 0, 0, lines, ctx.source);
+      placeZoneFromOp(get, ctx.caster ?? cible, { centre }, op, nomDeSource(ctx), rounds, ctx.sl ?? 0, lines, ctx.source);
       return lines;
     },
   };
@@ -9287,12 +9308,12 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // comme l'auto-combat fournit ses jets. PLUS de `castCommitZone` bespoke ici : la pose vit dans le
       // `jetValider('incantation')` UNIQUE. PARITÉ RAW (LDB 46 l.156) : la fenêtre de Contre-sort s'intercale AVANT la
       // pose (`routeCounterspell`, appelé par `jetLancer('incantation')`) ; dissipée → `jetValider('incantation')` ne pose RIEN.
-      const center = action.center;
       // Télégraphe de ZONE (parité missile) : peint le DISQUE cible (centre + rayon) ~0,7 s avant la
       // résolution, au lieu de l'ancien `actorAim` dégénéré (ligne enemy→enemy, n'indiquait PAS l'aire).
       // Rayon = celui du sort CHOISI (forme `area` portée par `input.spells`), repli sur `zdeRadiusTiles`.
       const chosenAoe = input.spells.find((s) => s.id === action.spell);
       const aoeSp = resolveSpell(action.spell);
+      const center = aoeSp && ancreDeLaZdE(aoeSp) === 'caster' ? enemy.pos ?? action.center : action.center;
       const aoeRadius = (chosenAoe && typeof chosenAoe.shape === 'object' ? chosenAoe.shape.area.radius : undefined)
         ?? (aoeSp ? zdeRadiusTiles(aoeSp.target, enemy, sceneMetresPerTile(input.scene)) ?? 1 : 1);
       set({ actorAoe: { casterId: enemy.id, center, radius: aoeRadius } });

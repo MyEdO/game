@@ -79,6 +79,7 @@ import {
   spellSightOf,
   castZoneSpell,
   castCommitZone,
+  ancreDeLaZdE,
   resoudreLeSortDeZone,
   zoneRadiusTilesAt,
   routeCounterspell,
@@ -3270,26 +3271,23 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // « clic » de pose change de SOURCE (souris du héros / décision de l'IA), comme l'auto-combat fournit
       // déjà ses jets.
       if (pc.zone && !pc.zone.center) {
+        const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
+        const spell = garanti(effectiveSpellOf(pc), pc.spellId, 'sort');
         const castable = castAfterCrit(lance, pc.critChoice);
         // Sort qui n'aboutit PAS (raté / DISSIPÉ par Contre-sort, LDB 46 l.156) : aucune zone à poser, aucune
         // cible (LDB 47 l.28) — la tentative se résout sans cible, puis l'IA reprend.
         if (!castable) {
-          const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
-          resoudreLeSortDeZone(get, set, pc, caster, garanti(effectiveSpellOf(pc), pc.spellId, 'sort'), lance, []);
+          resoudreLeSortDeZone(get, set, pc, caster, spell, lance, []);
           if (aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
           return;
         }
-        // Lançable → la confirmation EST le passage en pose (la vraie application se fait à la pose,
-        // castCommitZone).
-        get().jetRegler('incantation', 'carte', 'zone');
-        // IA = HÉROS (même flux) : le héros manuel attend le clic réel sur la carte (return ci-dessous) ;
-        // un lanceur aiDriven FOURNIT son clic — le centre décidé par l'IA pure (`pc.zone.autoCenter`,
-        // équivalent du curseur souris). On pose ici via le MÊME `castCommitZone`, puis on reprend le tour
-        // de l'IA UNE seule fois.
-        const caster = garanti(actorIn(get(), pc.casterId), pc.casterId, 'lanceur');
-        if (aiDriven(get(), caster) && pc.zone.autoCenter && get().battle) {
-          castCommitZone(get, set, pc.zone.autoCenter);
-          if (get().battle) resumeEnemyTurn(get, set);
+        const automatique = aiDriven(get(), caster);
+        const centre = ancreDeLaZdE(spell) === 'caster' ? caster.pos : automatique ? pc.zone.autoCenter : undefined;
+        if (centre && get().battle) {
+          castCommitZone(get, set, centre);
+          if (automatique && get().battle) resumeEnemyTurn(get, set);
+        } else {
+          get().jetRegler('incantation', 'carte', 'zone');
         }
         return;
       }
@@ -3318,6 +3316,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         durationBonusRounds: ocDur.bonusRounds,
         overcastDurationSteps: pc.overcast?.duration ?? 0,
         overcastDamageSteps: pc.overcast?.damage ?? 0,
+        overcastZoneSteps: pc.overcast?.zone ?? 0,
         chosenTableRolls: pc.chosenTableRolls,
         conjureForm: pc.conjureForm,
         opposedOutcome: pc.opposedOutcome,
