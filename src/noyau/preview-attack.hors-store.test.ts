@@ -130,6 +130,26 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     expect(previewAttack(mkGet([a, b, allie, autreDefenseur]), a, b).target).toBe(50);
   });
 
+  it('une mêlée reliée compte les Engagements directs autour du duel (#4107)', () => {
+    const a1 = combatant({ id: 'A1' });
+    const a2 = combatant({ id: 'A2', pos: { x: 1, y: 1 } });
+    const a3 = combatant({ id: 'A3', pos: { x: 0, y: 2 } });
+    const b1 = combatant({ id: 'B1', kind: 'ennemi', pos: { x: 1, y: 0 } });
+    const b2 = combatant({ id: 'B2', kind: 'ennemi', pos: { x: 0, y: 1 } });
+    engage(a2, b1);
+    engage(a2, b2);
+    engage(a3, b2);
+    const get = mkGet([a1, a2, a3, b1, b2]);
+
+    const cibleDuJet = () => {
+      seedBattleRng(1);
+      return resolveAttack(get, a1, b1, firedWeapon(get().scene, a1, b1))?.res.attackerDetail?.target;
+    };
+    expect(cibleDuJet()).toBe(70); // A1 et A2 contre B1
+    engage(a1, b2);
+    expect(cibleDuJet()).toBe(50); // A1 et A2 contre B1 et B2
+  });
+
   it('le destrier et son cavalier forment un attaquant même si le destrier frappe (LDB 14 l.182, #4202)', () => {
     const cavalier = combatant({ id: 'C' });
     const destrier = combatant({ id: 'D', bodyShape: 'quadrupede' });
